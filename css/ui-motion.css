@@ -220,6 +220,154 @@ body.mobile-events-open .event {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 2 — identidade "sala de operações": menos "cartão de app",
+   mais painel técnico. Cantos mais retos, textura de grade sutil,
+   um acento âmbar reservado pra "isto é UI estrutural" (separado do
+   --mg-threat-color, que continua reservado só pra "isto é gravidade
+   de evento"). Tudo dentro do mesmo escopo mobile retrato ≤900px já
+   usado na Fase 1 — zero mudança fora dele.
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --mg-panel-accent: #d9a441;
+}
+
+@media screen and (max-width:900px) and (orientation:portrait) {
+
+  /* ---- Forma: menos arredondado, mais "painel" ---- */
+  body.mobile-events-open .event,
+  body.mg-clean-portrait #latest-event-ticker,
+  #latest-event-ticker {
+    border-radius: 8px !important;
+  }
+  body.mobile-details-mid #painel-direito,
+  body.mobile-details-open #painel-direito {
+    border-radius: 10px 10px 0 0 !important;
+  }
+
+  /* ---- Textura de grade (blueprint), sem disputar o "background"
+     já usado por outras regras — um ::before próprio, atrás do
+     conteúdo, evita reabrir aquela guerra de especificidade. ---- */
+  #top-strip,
+  body.mobile-events-open #sidebar-left,
+  body.mobile-details-mid #painel-direito,
+  body.mobile-details-open #painel-direito {
+    position: relative;
+  }
+  #top-strip::before,
+  body.mobile-events-open #sidebar-left::before,
+  body.mobile-details-mid #painel-direito::before,
+  body.mobile-details-open #painel-direito::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--mg-panel-accent) 30%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--mg-panel-accent) 30%, transparent) 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: .05;
+  }
+  /* Conteúdo continua acima da grade — mesmo padrão já usado por
+     #pd-gauge/.pd-mag/.pd-flag (z-index:1) em css/mobile-late-patches.css. */
+  #top-strip > * { position: relative; z-index: 1; }
+  body.mobile-events-open #sidebar-left > * { position: relative; z-index: 1; }
+
+  /* ---- Rótulos "readout": marcador ▍ antes do texto, tipo terminal ---- */
+  #events-label,
+  #painel-direito .pd-header,
+  #pd-source {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+  #events-label::before,
+  #painel-direito .pd-header::before,
+  #pd-source::before {
+    content: '▍';
+    color: var(--mg-panel-accent);
+    font-size: .9em;
+    line-height: 1;
+  }
+
+  /* ---- Caixa de registros: cards "linha de log", sem gradiente
+     diagonal — a cor entra só pela borda esquerda + medalhão. ---- */
+  body.mobile-events-open .event {
+    background: rgba(6,16,27,.86) !important;
+  }
+  /* Cabeçalho de grupo com linha divisória atravessando o texto,
+     tipo separador de painel, em vez de texto solto. */
+  body.mobile-events-open #events .group-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  body.mobile-events-open #events .group-header::before {
+    content: '▍';
+    color: var(--mg-panel-accent);
+  }
+  body.mobile-events-open #events .group-header::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(140,182,214,.22), transparent);
+  }
+
+  /* ---- Card principal: barra de severidade com leve brilho ---- */
+  #painel-direito {
+    box-shadow: 0 -2px 20px -4px color-mix(in srgb, var(--pd-sev, #334155) 55%, transparent) !important;
+    transition: box-shadow .5s ease;
+  }
+
+  /* Botões FOCO/Story e local/hora, na mesma família dos chips —
+     cantos quase retos, borda fina, sem pílula nem gradiente vivo. */
+  #painel-direito .pd-focus-badge,
+  #painel-direito #pd-share-btn {
+    border-radius: 5px !important;
+  }
+  #painel-direito #pd-share-btn {
+    background: rgba(56,189,248,.12) !important;
+    color: #7dd3fc !important;
+    border: 1px solid rgba(56,189,248,.32) !important;
+    box-shadow: none !important;
+  }
+  #painel-direito .pd-local,
+  #painel-direito .pd-time {
+    border-left: 2px solid color-mix(in srgb, var(--pd-sev, #334155) 65%, transparent) !important;
+    padding-left: 8px !important;
+  }
+
+  /* ---- Ponteiro na ponta do arco do medidor (posição calculada ao
+     vivo em js/sismo-metrics.js, via getPointAtLength — acompanha o
+     mesmo stroke-dashoffset que já anima por CSS). ---- */
+  #pd-gauge-dot {
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+
+  /* ---- Scan sweep: uma faixa de luz baixíssima varrendo o
+     cabeçalho e o card principal a cada poucos segundos — reforça a
+     sensação de painel "ativo", bem discreto pra não cansar. ---- */
+  #top-strip::after,
+  body.mobile-details-mid #painel-direito::after,
+  body.mobile-details-open #painel-direito::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 42%, color-mix(in srgb, var(--mg-panel-accent) 12%, transparent) 50%, transparent 58%);
+    background-size: 250% 100%;
+    background-position: 150% 0;
+    animation: mgScanSweep 7s ease-in-out infinite;
+  }
+}
+
+@keyframes mgScanSweep {
+  0%, 60% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mg-value-pulse,
   #latest-event-ticker.mg-ticker-ping,
@@ -229,11 +377,17 @@ body.mobile-events-open .event {
     animation: none !important;
     transform: none !important;
   }
+  #top-strip::after,
+  body.mobile-details-mid #painel-direito::after,
+  body.mobile-details-open #painel-direito::after {
+    display: none !important;
+  }
   #pd-gauge-arc,
   #pd-gauge-glow,
   body.mobile-events-open .event,
   body.mg-clean-portrait #top-strip,
-  #top-strip {
+  #top-strip,
+  #painel-direito {
     transition: none !important;
   }
   body.mobile-events-open .event:active {
