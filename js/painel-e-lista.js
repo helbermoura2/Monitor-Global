@@ -173,8 +173,21 @@ function atualizarTickerUltimoEvento(item) {
     }
     const meta = TYPE_META[item.type] || TYPE_META.earthquake;
     iconEl.textContent = meta.icon;
-    if (box && meta.color) {
-        box.style.setProperty('--ticker-accent', meta.color);
+    // Mesma cor do selo "NOVO"/"ATUALIZADO" da lista lateral (desktop):
+    // sismo usa a cor por magnitude (getHexColor) e ciclone usa a cor da
+    // categoria real (classificarCiclone), em vez da cor fixa do tipo —
+    // assim um M6.8 pulsa vermelho igual nos dois lugares, não a mesma
+    // cor azul genérica de qualquer sismo.
+    let accent = meta.color;
+    if (item.type === 'earthquake' && typeof getHexColor === 'function') {
+        accent = getHexColor(Number(item.mag) || 0);
+    } else if ((item.type === 'hurricane' || (typeof looksLikeCyclone === 'function' && looksLikeCyclone(item))) && typeof classificarCiclone === 'function') {
+        const w = item.windKmh != null ? item.windKmh : (typeof extractWindKmh === 'function' ? extractWindKmh(item.detail || item.place || '') : null);
+        const cycClassif = classificarCiclone(w);
+        if (cycClassif && cycClassif.cor) accent = cycClassif.cor;
+    }
+    if (box && accent) {
+        box.style.setProperty('--ticker-accent', accent);
         box.dataset.type = item.type || '';
     }
     const rotulo = item.type === 'earthquake' ? `M${Number(item.mag).toFixed(1)}` : (item.type === 'hurricane' && typeof rotuloCicloneCurto === 'function' ? rotuloCicloneCurto(item) : (item.cycloneLabel || meta.label));
