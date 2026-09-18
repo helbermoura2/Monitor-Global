@@ -115,9 +115,12 @@
     setImp(e.kpiMaior, {display:'none'});
     setImp(e.btnRadarHeader, {display:'none'});
     setImp(e.btnSom, {display:'none'});
+    /* Faixa de KPIs mais fina (24px, era 34px) — vira "legenda" do
+       título, ver comentário equivalente em
+       js/mobile-portrait-clean-toggle.js. */
     setImp(e.kpis, {display:'flex',order:'2','flex-direction':'row','flex-wrap':'nowrap','align-items':'center',
-      'justify-content':'space-between',gap:'10px',margin:'6px 0 0',width:'100%','min-width':'0',
-      flex:'0 0 34px',height:'34px','min-height':'34px','max-height':'34px',overflow:'hidden',
+      'justify-content':'space-between',gap:'10px',margin:'4px 0 0',width:'100%','min-width':'0',
+      flex:'0 0 24px',height:'24px','min-height':'24px','max-height':'24px',overflow:'hidden',
       padding:'0','border-top':'1px solid rgba(72,216,255,.14)'});
     setImp(e.kpiSp, {order:'1',display:'flex','flex-direction':'row','align-items':'center',gap:'6px',
       flex:'1 1 auto','min-width':'0',margin:'0',padding:'0','border-left':'none',overflow:'hidden'});
@@ -146,10 +149,12 @@
     setImp(e.fabAudio, {display:'none'});
     setImp(e.meta, {display:'none'});
     setImp(e.mobileWeatherMini, {display:'none'});
-    /* margin-top negativo de propósito — ver comentário equivalente em
+    /* Faixa full-bleed (margin lateral -14px cancela o padding do
+       #top-strip; width explícito por causa do stretch assimétrico
+       do flexbox com margem negativa) — ver comentário equivalente em
        js/mobile-portrait-clean-toggle.js. */
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto',margin:'-3px 14px 0',padding:'6px 10px'});
+      width:'calc(100vw + 28px)','max-width':'none',height:'auto',margin:'-3px -14px 0',padding:'8px 14px'});
     /* Magnitude + chips na mesma linha, com os chips rolando na
        horizontal (setinhas ‹ › visíveis) — mesmo esquema do celular
        (js/mobile-portrait-clean-toggle.js). */

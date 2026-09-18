@@ -23,8 +23,23 @@
     obs.observe(el, { childList: true, characterData: true, subtree: true });
   }
 
-  ['kpi-temp', 'kpi-brent', 'latest-event-ticker-text', 'latest-event-ticker-kicker']
-    .forEach(watchValueChange);
+  ['kpi-temp', 'kpi-brent'].forEach(watchValueChange);
+
+  // Faixa "AO VIVO": kicker+texto deslizam juntos (mg-ticker-slide, em
+  // css/ui-motion.css) em vez do fade genérico usado nas métricas —
+  // ver o .let-mid como uma unidade só, não dois valores separados.
+  (function watchTickerSlide() {
+    var mid = document.querySelector('#latest-event-ticker .let-mid');
+    var textEl = document.getElementById('latest-event-ticker-text');
+    if (!mid || !textEl) return;
+    var last = textEl.textContent;
+    var obs = new MutationObserver(function () {
+      if (textEl.textContent === last) return;
+      last = textEl.textContent;
+      restartAnimation(mid, 'mg-ticker-slide');
+    });
+    obs.observe(textEl, { childList: true, characterData: true, subtree: true });
+  })();
 
   var ticker = document.getElementById('latest-event-ticker');
   if (ticker) {

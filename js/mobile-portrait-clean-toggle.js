@@ -186,10 +186,13 @@
     setImp(e.kpiMaior, {display:'none'});
 
     /* Linha 2 — 📍 clima · 🛢️ Brent · relógio, uma faixa só, largura
-       cheia, com divisores finos entre os grupos (igual ao desktop). */
+       cheia, com divisores finos entre os grupos (igual ao desktop).
+       Mais fina que antes (24px, era 34px) e discreta de propósito —
+       vira "legenda" do título, não mais uma barra de pílulas do
+       mesmo peso visual dos chips de filtro logo abaixo. */
     setImp(e.kpis, {display:'flex','flex-direction':'row','flex-wrap':'nowrap','align-items':'center',
-      'justify-content':'space-between',gap:'10px',margin:'6px 0 0',width:'100%','min-width':'0',
-      flex:'0 0 34px',order:'2',overflow:'hidden','height':'34px','min-height':'34px','max-height':'34px',
+      'justify-content':'space-between',gap:'10px',margin:'4px 0 0',width:'100%','min-width':'0',
+      flex:'0 0 24px',order:'2',overflow:'hidden','height':'24px','min-height':'24px','max-height':'24px',
       padding:'0','border-top':'1px solid rgba(72,216,255,.14)'});
     var kpiChildren = e.kpis ? Array.prototype.slice.call(e.kpis.children) : [];
     kpiChildren.forEach(function(el){ setImp(el, {opacity:'1',visibility:'visible'}); });
@@ -226,14 +229,30 @@
     setImp(fabEvents, {display:'none'});
     setImp(fabAudio, {display:'none'});
 
-    /* margin-top negativo (não zero) de propósito: garante que o card
+    /* margin-top negativo (não zero) de propósito: garante que a faixa
        sobreponha o rodapé do cabeçalho em vez de só encostar nele. Com
        margin:0 sobrava, em alguns aparelhos (telas de densidade não
        inteira, tipo 2.625x), uma frestinha de menos de 1px por
        arredondamento sub-pixel — some quando os dois se sobrepõem de
-       propósito, já que os dois têm fundo escuro opaco. */
+       propósito, já que os dois têm fundo escuro opaco.
+       margin lateral NEGATIVO (-14px, cancelando o padding horizontal
+       do #top-strip) faz a faixa sangrar de ponta a ponta — ela deixa
+       de ser "mais uma pílula igual às de cima" e vira uma faixa de
+       largura cheia, como pediu o Helber. O padding interno compensa
+       pra o ícone/texto ficarem alinhados com o título, não colados
+       na borda da tela. Cantos (topo reto, embaixo arredondado) e
+       sombra ficam em css/ui-motion.css — aqui só a geometria.
+       width explícito (não 'auto'): dentro de um flex-column, um item
+       com margin lateral negativa e width:auto NÃO estica simétrico
+       (o Chromium ignora a margem negativa no cálculo do "stretch"),
+       sobrando ~14px descoberto de um lado. calc(100vw + 28px) força
+       a largura certa; o excesso é cortado pelo overflow:hidden que
+       #app já tem (css/base.css), sem precisar de scroll horizontal.
+       max-width:'none' também é necessário — css/mobile-early.css tem
+       #latest-event-ticker{max-width:100vw!important} de uma versão
+       antiga, que sem esse override anulava toda a largura extra. */
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto','min-height':'40px',margin:'-3px 14px 0',padding:'6px 10px'});
+      width:'calc(100vw + 28px)','max-width':'none',height:'auto','min-height':'40px',margin:'-3px -14px 0',padding:'8px 14px'});
 
     /* Linha 3 — magnitude + chips na MESMA linha, como pediu o Helber:
        o slider fica compacto (só "M 0.0", sem o rótulo "Magnitude
