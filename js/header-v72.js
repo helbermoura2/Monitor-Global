@@ -26,7 +26,7 @@
   var LAYOUT_PROPS = ['display','flex-direction','flex-wrap','flex','order','align-items','justify-content',
     'gap','position','top','right','left','bottom','width','height','min-width','max-width','min-height','max-height',
     'margin','margin-left','margin-right','padding','padding-left','overflow','overflow-x','overflow-y','grid-template-rows',
-    'white-space','text-overflow','border-left','border-top','box-sizing'];
+    'white-space','text-overflow','border-left','border-top','border-bottom','box-sizing'];
 
   var origFabParent = null, origFabNext = null;
   function rememberFabParent(fab){
@@ -95,8 +95,10 @@
        depois do cabeçalho — igual já funciona no celular. */
     setImp(e.app, {display:'flex','flex-direction':'column',height:'100dvh',width:'100vw'});
     setImp(e.mapWrap, {flex:'1 1 auto','min-height':'0',height:'auto',position:'relative',overflow:'hidden'});
+    /* Sem border-bottom — ver comentário equivalente em
+       js/mobile-portrait-clean-toggle.js. */
     setImp(e.strip, {display:'flex','flex-direction':'column','flex-wrap':'nowrap',
-      height:'auto','min-height':'0',padding:'8px 14px 6px',gap:'0',overflow:'visible'});
+      height:'auto','min-height':'0',padding:'8px 14px 6px',gap:'0',overflow:'visible','border-bottom':'none'});
     try {
       rememberFabParent(e.fab);
       if(e.fab && e.mainrow && e.fab.parentElement !== e.mainrow){
