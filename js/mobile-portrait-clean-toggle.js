@@ -24,7 +24,7 @@
   }
   var GEOM = ['display','flex-direction','flex-wrap','flex','width','min-width','max-width',
     'height','min-height','max-height','padding','margin','position','top','left','right','bottom',
-    'overflow','overflow-x','gap','align-items','justify-content','grid-template-columns','order',
+    'overflow','overflow-x','overflow-y','gap','align-items','justify-content','grid-template-columns','order',
     'border-top','border-left','padding-left','text-overflow','white-space'];
 
   function els(){
@@ -47,6 +47,8 @@
       ticker: document.getElementById('latest-event-ticker'),
       controlbar: document.getElementById('ux-controlbar'),
       controls: document.getElementById('controls'),
+      chipsScrollLeft: document.getElementById('chips-scroll-left'),
+      chipsScrollRight: document.getElementById('chips-scroll-right'),
       chipsWrap: document.getElementById('chips-scroll-wrap'),
       chipsRow: document.getElementById('chips-row'),
       mapWrap: document.getElementById('mapWrap')
@@ -105,7 +107,8 @@
     document.body.classList.toggle('mg-clean-portrait', mq.matches);
     if(!mq.matches){
       restoreOriginalParents(e);
-      [e.app,e.strip,e.mainrow,e.kpis,e.kpiSp,e.kpiBrent,e.clock,e.ticker,e.controlbar,e.controls,e.chipsWrap,e.mapWrap].forEach(function(el){
+      [e.app,e.strip,e.mainrow,e.kpis,e.kpiSp,e.kpiBrent,e.clock,e.ticker,e.controlbar,e.controls,
+       e.chipsWrap,e.chipsRow,e.chipsScrollLeft,e.chipsScrollRight,e.mapWrap].forEach(function(el){
         clearProps(el, GEOM);
       });
       var titleEl = document.querySelector('#top-strip .ts-title');
@@ -113,8 +116,10 @@
       var spLabelEl = document.querySelector('#kpibox-sp .ts-kpi-label');
       var spRowEl = document.querySelector('#kpibox-sp .ts-kpi-row');
       var spIconEl = document.getElementById('kpi-wx-icon');
-      [titleEl,liveEl,spLabelEl,spRowEl,spIconEl].forEach(function(el){ clearProps(el, GEOM); });
+      var magLabelEl = document.querySelector('.mag-slider-row span:first-child');
+      [titleEl,liveEl,spLabelEl,spRowEl,spIconEl,magLabelEl].forEach(function(el){ clearProps(el, GEOM); });
       [e.actions,e.topProbar,e.v70,e.probar,e.btnSom,e.btnRadar,e.kpiEventos,e.kpiMaior,e.clock,
+       e.chipsScrollLeft,e.chipsScrollRight,
        document.getElementById('kpi-wind'),document.getElementById('kpi-feels')].forEach(function(el){
         if(el) el.style.removeProperty('display');
       });
@@ -204,18 +209,27 @@
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
       width:'auto',height:'auto','min-height':'40px',margin:'6px 14px 0',padding:'6px 10px'});
 
-    /* Linha 3 — filtros (magnitude + chips), mesma largura/alinhamento
-       das linhas acima, separada por um divisor fino. */
+    /* Linha 3 — filtros. Em vez de uma faixa horizontal que rola (difícil
+       de descobrir no toque), os chips quebram em grade: o que couber
+       aparece de cara, e o resto some só depois de um teto de altura,
+       com rolagem VERTICAL (gesto que todo mundo já conhece) em vez de
+       horizontal. "+ Mais filtros" continua revelando os chips avançados
+       (🔥🌀🌪️🌊🌋🚨💨💧), que entram na mesma grade. */
     setImp(e.controlbar, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      'flex-direction':'row','flex-wrap':'nowrap','align-items':'center',flex:'0 0 auto',width:'100%',height:'auto',
-      'min-height':'0','max-height':'46px',overflow:'hidden',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
+      'flex-direction':'column','flex-wrap':'nowrap','align-items':'stretch',flex:'0 0 auto',width:'100%',height:'auto',
+      'min-height':'0','max-height':'none',overflow:'visible',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
       'border-top':'1px solid rgba(72,216,255,.14)'});
-    setImp(e.controls, {display:'flex','flex-direction':'row','align-items':'center',gap:'5px',
-      flex:'0 0 92px',width:'92px','min-width':'92px','max-width':'92px',padding:'0',height:'auto',order:'2'});
-    setImp(e.chipsWrap, {display:'flex','align-items':'center',flex:'1 1 auto','min-width':'0',
-      width:'auto',height:'30px','max-height':'30px',overflow:'hidden',order:'3'});
-    setImp(e.chipsRow, {display:'flex','flex-wrap':'nowrap','overflow-x':'auto',height:'30px','max-height':'30px',
-      padding:'0',margin:'0','align-items':'center'});
+    setImp(e.controls, {display:'flex','flex-direction':'row','align-items':'center',gap:'8px',
+      flex:'0 0 auto',width:'100%','min-width':'0','max-width':'none',padding:'0',height:'auto',order:'1'});
+    var magLabel = document.querySelector('.mag-slider-row span:first-child');
+    setImp(magLabel, {display:'inline'});
+    setImp(e.chipsWrap, {display:'block',flex:'0 0 auto',width:'100%','min-width':'0',
+      height:'auto','max-height':'128px','overflow-y':'auto','overflow-x':'hidden',order:'2'});
+    setImp(e.chipsRow, {display:'flex','flex-wrap':'wrap','overflow-x':'visible',height:'auto','max-height':'none',
+      width:'100%','min-width':'0','max-width':'100%',flex:'0 0 auto',
+      padding:'2px 0',margin:'0',gap:'6px','align-items':'center'});
+    setImp(e.chipsScrollLeft, {display:'none'});
+    setImp(e.chipsScrollRight, {display:'none'});
 
     setImp(e.mapWrap, {flex:'1 1 auto','min-height':'0',height:'auto',position:'relative',overflow:'hidden'});
   }

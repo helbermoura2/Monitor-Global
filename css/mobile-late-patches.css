@@ -1305,8 +1305,10 @@ body.mg-clean-portrait #mapContainer { inset: 0 !important; height: 100% !import
     margin:0 !important;
     padding:0 !important;
   }
-  body.mg-clean-portrait #top-strip > #ux-controlbar .chip,
-  #top-strip > #ux-controlbar .chip{
+  body.mg-clean-portrait #top-strip > #ux-controlbar .chip:not(.advanced-filter),
+  #top-strip > #ux-controlbar .chip:not(.advanced-filter),
+  body.mg-clean-portrait #top-strip > #ux-controlbar #chips-row.expanded .chip.advanced-filter,
+  #top-strip > #ux-controlbar #chips-row.expanded .chip.advanced-filter{
     display:inline-flex !important;
     visibility:visible !important;
     flex:0 0 auto !important;
