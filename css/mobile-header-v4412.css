@@ -51,7 +51,8 @@
   body.mobile-details-mid #painel-direito .pd-gauge-wrap,
   body.mobile-details-mid #painel-direito .pd-local,
   body.mobile-details-mid #painel-direito .pd-time,
-  body.mobile-details-mid #painel-direito .stats-grid { opacity: 1; pointer-events: auto; }
+  body.mobile-details-mid #painel-direito .stats-grid,
+  body.mobile-details-mid #painel-direito-close { opacity: 1; pointer-events: auto; }
   body.mobile-details-mid #pd-peek-arrow { transform: rotate(90deg); }
 
   body.mobile-details-open #painel-direito {
@@ -65,13 +66,25 @@
   body.mobile-details-open #painel-direito .pd-header-row { height: auto; min-height: 0; }
   body.mobile-details-open #painel-direito > *:not(.pd-header-row) { opacity: 1; pointer-events: auto; }
   body.mobile-details-open #pd-peek-arrow { transform: rotate(180deg); }
+  /* z-index:50 (era 2): css/intensity-filters.css sobe .pd-header-row pra
+     40 e .pd-header-actions/#pd-share-btn/#pd-focus-btn pra 45-46 (pro
+     cabeçalho colar no topo ao rolar o card aberto) — sem subir também o
+     X, ele ficava pintado por baixo da faixa FOCO/Story: nem aparecia,
+     nem recebia toque (o toque ali caía no botão ou na seta por baixo). */
   body.mobile-details-mid #painel-direito-close,
   body.mobile-details-open #painel-direito-close {
     display: flex; align-items: center; justify-content: center;
-    position: absolute; top: 10px; right: 10px; z-index: 2;
+    position: absolute; top: 10px; right: 10px; z-index: 50;
     width: 28px; height: 28px; border-radius: 50%;
     background: rgba(15,23,42,.9); border: 1px solid #334155; color: #e2e8f0;
     font-size: 14px; cursor: pointer;
+  }
+  /* Com o X visível de novo, abre espaço na faixa FOCO/Story pra ele não
+     ficar colado/sobreposto — nada mais renderiza embaixo do canto
+     reservado pro fechar. */
+  body.mobile-details-mid #painel-direito .pd-header-actions,
+  body.mobile-details-open #painel-direito .pd-header-actions {
+    padding-right: 34px !important;
   }
 }
 @media screen and (max-width: 1100px) {
