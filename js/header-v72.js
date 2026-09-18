@@ -139,24 +139,26 @@
     setImp(e.mobileWeatherMini, {display:'none'});
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
       width:'auto',height:'auto',margin:'6px 14px 0',padding:'6px 10px'});
-    /* Filtros em grade (quebra de linha) com teto de altura + rolagem
-       vertical, em vez de faixa horizontal escondida — mesmo esquema do
-       celular (js/mobile-portrait-clean-toggle.js). */
+    /* Magnitude + chips na mesma linha, com os chips rolando na
+       horizontal (setinhas ‹ › visíveis) — mesmo esquema do celular
+       (js/mobile-portrait-clean-toggle.js). */
     setImp(e.controlbar, {display:'flex',order:'8',position:'static',top:'auto',left:'auto',right:'auto',
-      bottom:'auto','flex-direction':'column','flex-wrap':'nowrap','align-items':'stretch',flex:'0 0 auto',
-      width:'100%',height:'auto','max-height':'none',overflow:'visible',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
+      bottom:'auto','flex-direction':'row','flex-wrap':'nowrap','align-items':'center',flex:'0 0 auto',
+      width:'100%',height:'auto','max-height':'40px',overflow:'hidden',margin:'6px 0 0',padding:'6px 0 0',gap:'8px',
       'border-top':'1px solid rgba(72,216,255,.14)'});
-    setImp(e.controlsBox, {display:'flex','flex-direction':'row','align-items':'center',gap:'8px',
-      flex:'0 0 auto',width:'100%','min-width':'0','max-width':'none',padding:'0',order:'1'});
+    setImp(e.controlsBox, {display:'flex','flex-direction':'row','align-items':'center',gap:'5px',
+      flex:'0 0 86px',width:'86px','min-width':'86px','max-width':'86px',padding:'0',order:'1'});
     var magLabel = document.querySelector('.mag-slider-row span:first-child');
-    setImp(magLabel, {display:'inline'});
-    setImp(e.chipsWrap, {display:'block',flex:'0 0 auto',width:'100%','min-width':'0',
-      height:'auto','max-height':'128px','overflow-y':'auto','overflow-x':'hidden',order:'2'});
-    setImp(e.chipsRow, {display:'flex','flex-wrap':'wrap','overflow-x':'visible',height:'auto','max-height':'none',
-      width:'100%','min-width':'0','max-width':'100%',flex:'0 0 auto',
-      padding:'2px 0',margin:'0',gap:'6px','align-items':'center'});
-    setImp(e.chipsScrollLeft, {display:'none'});
-    setImp(e.chipsScrollRight, {display:'none'});
+    setImp(magLabel, {display:'none'});
+    setImp(e.chipsWrap, {display:'flex','align-items':'center',flex:'1 1 auto','min-width':'0',
+      width:'auto',height:'30px','max-height':'30px','overflow-y':'hidden','overflow-x':'hidden',order:'2'});
+    setImp(e.chipsRow, {display:'flex','flex-wrap':'nowrap','overflow-x':'auto',height:'30px','max-height':'30px',
+      width:'auto','min-width':'0','max-width':'none',flex:'1 1 auto',
+      padding:'0',margin:'0',gap:'6px','align-items':'center'});
+    setImp(e.chipsScrollLeft, {display:'flex',flex:'0 0 22px',width:'22px',height:'26px',
+      position:'static',top:'auto',bottom:'auto',margin:'0'});
+    setImp(e.chipsScrollRight, {display:'flex',flex:'0 0 22px',width:'22px',height:'26px',
+      position:'static',top:'auto',bottom:'auto',margin:'0'});
     /* Sismos/Alertas/Rede e o card de commodities do v70 são extras de
        desktop sem lugar no cabeçalho enxuto de retrato — ficam escondidos
        aqui igual ao celular (js/mobile-portrait-clean-toggle.js). */
