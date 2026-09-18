@@ -1,0 +1,183 @@
+/* === global-trust-5-8 (linhas originais 1880-1907) === */
+.conf-badge {
+  display: inline-block; font-size: 8px; font-weight: 800; letter-spacing: .4px;
+  padding: 2px 6px; border-radius: 4px; text-transform: uppercase; vertical-align: middle;
+  margin-left: 4px; white-space: nowrap;
+}
+.conf-oficial { background: rgba(34,197,94,.18); color: #4ade80; border: 1px solid rgba(74,222,128,.45); }
+.conf-radar { background: rgba(56,189,248,.15); color: #7dd3fc; border: 1px solid rgba(56,189,248,.4); }
+.conf-obs { background: rgba(167,139,250,.15); color: #c4b5fd; border: 1px solid rgba(167,139,250,.4); }
+.conf-modelo { background: rgba(148,163,184,.12); color: #94a3b8; border: 1px solid rgba(100,116,139,.4); }
+.conf-rede { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.35); }
+#chip-criticos.on { background: #7f1d1d; border-color: #ef4444; color: #fecaca; }
+#freshness-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 3px 10px; font-size: 9px; color: #64748b;
+  border-bottom: 1px solid #0f254c; background: rgba(2,8,22,.6);
+}
+#freshness-bar b { color: #94a3b8; font-weight: 700; }
+#freshness-bar .ok { color: #4ade80; }
+#freshness-bar .warn { color: #fbbf24; }
+#freshness-bar .off { color: #f87171; }
+@media (max-width: 900px) {
+  .conf-badge { font-size: 7px; padding: 1px 4px; }
+  #freshness-bar { font-size: 8px; padding: 2px 8px; }
+  #chip-criticos { font-size: 10px; }
+}
+.event.conf-modelo-row { opacity: 0.78; }
+
+/* === mid-tech-5-8-1 (linhas originais 1909-1940) === */
+.fresh-btn {
+  margin-left: auto; font-size: 9px; font-weight: 700; padding: 2px 8px;
+  border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; cursor: pointer;
+}
+.fresh-btn:hover { border-color: #38bdf8; color: #fff; }
+#snooze-panel {
+  display: none; position: fixed; z-index: 200000; right: 12px; top: 70px;
+  background: rgba(2,8,22,.98); border: 1px solid #1e3a5f; border-radius: 12px;
+  padding: 12px; min-width: 220px; box-shadow: 0 12px 40px rgba(0,0,0,.5);
+}
+#snooze-panel.open { display: block; }
+#snooze-panel h4 { margin: 0 0 8px; font-size: 12px; color: #7dd3fc; }
+#snooze-panel button {
+  display: block; width: 100%; margin: 4px 0; padding: 8px; border-radius: 8px;
+  border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 12px; cursor: pointer; text-align: left;
+}
+#snooze-panel button:hover { border-color: #38bdf8; }
+body.mode-tv #freshness-bar .fresh-btn { font-size: 11px; padding: 4px 10px; }
+body.mode-tv #chips-row .advanced-filter,
+body.mode-tv #ux-search-wrap,
+body.mode-tv #mag-slider,
+body.mode-tv .mag-slider-row,
+body.mode-tv #more-filters-toggle { display: none !important; }
+body.mode-tv #brasil-hub { display: none !important; }
+body.mode-tv.geo-br.show-br-hub-tv #brasil-hub { display: block !important; }
+@media (max-width: 900px) {
+  #freshness-bar { gap: 6px; }
+  .fresh-btn { margin-left: 0; }
+  #snooze-panel { left: 8px; right: 8px; top: auto; bottom: 80px; }
+}
+
+/* === rain-eta-chip-5-8-3 (linhas originais 1942-1952) === */
+#sp-rain-eta-chip { cursor: help; }
+#sp-rain-eta-chip.rain-soon b { color: #38bdf8; }
+#sp-rain-eta-chip.rain-now b { color: #fb923c; }
+#sp-rain-eta-chip.rain-clear b { color: #94a3b8; }
+#top-probar #sp-rain-eta-chip small { display: none; }
+#top-probar #sp-rain-eta-chip b { font-size: 11px; font-weight: 800; }
+@media (max-width: 900px) {
+  #sp-rain-eta-chip b { font-size: 10px; }
+}
+
+/* === menu-next-to-volume-5-8-7 (linhas originais 2001-2112) === */
+/* Menu ☰ ao lado do volume — não cobre o nome da cidade (SP) */
+@media (min-width: 1101px) {
+  .header-main-menu {
+    position: absolute !important;
+    left: auto !important;
+    right: 175px !important; /* à esquerda do bloco Brent+volume+relógio */
+    top: 9px !important;
+    z-index: 320 !important;
+  }
+  .header-main-panel {
+    left: auto !important;
+    right: 0 !important;
+  }
+}
+@media (min-width: 1101px) and (max-width: 1450px) {
+  .header-main-menu {
+    right: 165px !important;
+    left: auto !important;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .header-main-menu {
+    position: absolute !important;
+    left: auto !important;
+    right: 70px !important;
+    top: 9px !important;
+  }
+}
+/* Reordena o canto direito do cabeçalho: BRENT, RELÓGIO, MENU, SOM — nessa
+   ordem, um do lado do outro, sem posicionamento solto que causava sobreposição */
+@media screen and (min-width: 1101px) {
+  #top-strip .ts-kpis {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    position: absolute !important;
+    left: auto !important;
+    right: 18px !important;
+    top: 9px !important;
+    height: 34px !important;
+    width: auto !important;
+    z-index: 300 !important;
+  }
+  #top-strip .ts-kpis #kpibox-eventos,
+  #top-strip .ts-kpis #kpibox-maior,
+  #top-strip .ts-kpis #kpibox-sp { display: none !important; }
+  #top-strip .ts-kpis #kpibox-brent,
+  #top-strip .ts-kpis #kpi-relogio,
+  #top-strip .ts-kpis #header-main-menu,
+  #top-strip .ts-kpis #btn-som-header {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    margin: 0 !important;
+    flex: 0 0 auto !important;
+  }
+  #top-strip .ts-kpis #kpibox-brent { order: 1 !important; }
+  #top-strip .ts-kpis #kpi-relogio {
+    order: 2 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+  }
+  #top-strip .ts-kpis #header-main-menu {
+    order: 3 !important;
+    width: fit-content !important;
+    max-width: fit-content !important;
+  }
+  #top-strip .ts-kpis #header-main-menu .header-main-panel {
+    left: auto !important;
+    right: 0 !important;
+  }
+  #top-strip .ts-kpis #btn-som-header {
+    order: 4 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+  }
+}
+/* Corrige Resumo/Snooze caindo por baixo do Brent/relógio em telas largas */
+@media screen and (min-width: 1101px) {
+  #top-strip > #ux-controlbar {
+    padding-right: 345px !important;
+    box-sizing: border-box !important;
+  }
+  #freshness-bar .fresh-btn {
+    font-size: 8px !important;
+    padding: 2px 6px !important;
+  }
+}
+@media screen and (min-width: 1451px) {
+  #top-strip > #ux-controlbar { padding-right: 355px !important; }
+}
+/* Garante espaço pro nome da cidade no card SP / top-probar */
+#top-strip #sp-live-card .sp-live-title,
+#top-strip #sp-live-city {
+  position: relative;
+  z-index: 5;
+  padding-right: 4px;
+}
+#top-strip #sp-city-name,
+#top-probar #sp-live-city {
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap;
+}
+

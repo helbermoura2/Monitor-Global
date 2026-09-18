@@ -1,0 +1,1333 @@
+/* === mobile-v73-antisobreposicao-css (linhas originais 18177-18254) === */
+/* =====================================================================
+   v7.3 — Correção definitiva de sobreposição no mobile/retrato.
+   Estratégia: o ticker deixa de usar position:absolute com "top" fixo
+   (causa raiz dos textos sobrepostos) e passa a ficar no fluxo normal,
+   sempre logo abaixo do cabeçalho, não importa a altura dele.
+   Como várias regras antigas usam !important, este bloco fica por
+   último no arquivo para vencer o empate de especificidade.
+   ===================================================================== */
+@media screen and (max-width:900px) and not ((max-width:700px) and (orientation:portrait)){
+  #app{ display:flex !important; flex-direction:column !important; height:100vh !important; height:100dvh !important; }
+  /* O cabeçalho tinha várias alturas fixas (58/72/74/78/88/112px) herdadas
+     de versões antigas, menores que o conteúdo real — o excesso ficava
+     visível por fora da caixa (overflow:visible) e se sobrepunha ao que
+     vinha a seguir (o ticker). Deixamos a altura livre, do tamanho do
+     conteúdo. */
+  #top-strip{ position:relative !important; flex:0 0 auto !important;
+    height:auto !important; min-height:0 !important; max-height:none !important;
+    border-radius:0 0 14px 14px !important; box-shadow:0 6px 18px rgba(0,0,0,.35) !important; }
+
+  /* Ticker: sai do "position:absolute" e volta ao fluxo do documento */
+  #latest-event-ticker{
+    position:static !important;
+    top:auto !important; left:auto !important; right:auto !important;
+    width:auto !important;
+    margin:8px 10px !important;
+    border-radius:10px !important;
+    z-index:2 !important;
+  }
+
+  /* Empilhamento vertical limpo das seções do cabeçalho */
+  #mobile-probar{ order:6 !important; }
+  #ux-toolbar{ order:7 !important; }
+  #ux-controlbar{ order:8 !important; flex-wrap:wrap !important; row-gap:6px !important; }
+  #v70-header-row{ order:9 !important; }
+
+  /* Espaço entre cartões para não ficarem colados/ilegíveis */
+  #mobile-probar, #ux-controlbar, #v70-header-row{ margin-top:2px !important; }
+
+  /* O restante da página (mapa, listas) ocupa o espaço que sobrar,
+     e nunca fica escondido atrás do cabeçalho. */
+  #app > #mapContainer, #app > main, #app > #map-shell{ flex:1 1 auto !important; min-height:0 !important; }
+
+  /* Toasts e avisos: todos ancorados embaixo, longe do cabeçalho
+     variável (antes usavam "top" fixo e caíam em cima dos filtros) */
+  .toast-stack,
+  #app-status,
+  #loading-indicator,
+  #som-gesture-banner{
+    top:auto !important;
+    bottom:calc(64px + max(10px, env(safe-area-inset-bottom))) !important;
+    left:50% !important; right:auto !important;
+    transform:translateX(-50%) !important;
+    width:calc(100vw - 24px) !important;
+    max-width:calc(100vw - 24px) !important;
+  }
+}
+@media screen and (max-width:900px) and (orientation:landscape){
+  #latest-event-ticker{ margin:5px 8px !important; }
+}
+/* Celulares em paisagem (largura > 900px, altura baixa) usam outra
+   media query no código antigo — repetimos aqui a mesma correção. */
+@media screen and (orientation:landscape) and (max-height:500px){
+  #app{ display:flex !important; flex-direction:column !important; height:100vh !important; height:100dvh !important; }
+  #top-strip{ position:relative !important; flex:0 0 auto !important;
+    height:auto !important; min-height:0 !important; max-height:none !important; }
+  #latest-event-ticker{ position:static !important; top:auto !important; left:auto !important; right:auto !important;
+    width:auto !important; margin:6px 8px !important; z-index:2 !important; }
+  .toast-stack, #app-status, #loading-indicator, #som-gesture-banner{
+    top:auto !important;
+    bottom:calc(10px + max(6px, env(safe-area-inset-bottom))) !important;
+    left:50% !important; right:auto !important;
+    transform:translateX(-50%) !important;
+    width:calc(100vw - 24px) !important;
+    max-width:calc(100vw - 24px) !important;
+  }
+}
+
+/* === mobile-v75-cabecalho-definitivo-css (linhas originais 18272-18347) === */
+/* =====================================================================
+   v7.5 — Empilhamento do cabeçalho mobile feito só em CSS (sem depender
+   de JavaScript reaplicar estilo). Antes, o script só ajeitava a altura
+   uma vez; quando os dados chegavam (sismos, alertas, clima) e o
+   cabeçalho era redesenhado, a correção podia se perder por um instante
+   e as linhas voltavam a se sobrepor. Regra de CSS não tem esse problema:
+   fica sempre valendo, mesmo que o conteúdo interno mude.
+   ===================================================================== */
+@media screen and (max-width:900px){
+  /* Nada dentro do cabeçalho pode "flutuar" (position:absolute/fixed) —
+     é isso que causava as linhas por cima uma da outra. */
+  #top-strip,
+  #top-strip .ts-kpis,
+  #top-strip .ts-clock,
+  #top-strip > .ts-mainrow > .ts-kpis,
+  #top-strip > .ts-mainrow > .ts-clock,
+  #top-strip>#ux-controlbar,
+  #top-strip #mobile-probar,
+  #v70-header-row{
+    position:static !important;
+    top:auto !important; right:auto !important; left:auto !important; bottom:auto !important;
+  }
+
+  #top-strip{
+    display:flex !important; flex-direction:row !important; flex-wrap:wrap !important;
+    align-items:center !important; height:auto !important; min-height:0 !important; max-height:none !important;
+    padding:8px 10px !important; gap:6px 8px !important; overflow:visible !important;
+  }
+  #top-strip>.ts-mainrow{ order:1 !important; flex:0 0 auto !important; width:auto !important; height:auto !important; }
+  #top-strip>.ts-actions{ display:none !important; }
+  #top-strip>#top-probar{ display:none !important; }
+  #top-strip>.ts-meta{ display:none !important; }
+  #mobile-probar .mobile-weather-mini{ display:none !important; }
+  #ux-search-wrap{ display:none !important; }
+
+  #top-strip>.ts-mainrow>.ts-kpis,
+  #top-strip>.ts-kpis{
+    order:2 !important; flex:1 1 auto !important; width:auto !important; height:auto !important;
+    display:flex !important; align-items:center !important; justify-content:flex-end !important;
+    gap:8px !important; margin:0 !important; overflow:visible !important; flex-wrap:wrap !important;
+  }
+  #kpibox-eventos, #kpibox-maior, #btn-radar-header, #kpi-feels{ display:none !important; }
+  #kpibox-sp{ order:1 !important; margin-right:auto !important; display:flex !important; flex-direction:row !important;
+    align-items:center !important; gap:6px !important; flex:0 1 auto !important; min-width:0 !important; padding:0 !important; border-left:none !important; }
+  #kpibox-brent{ order:3 !important; width:auto !important; min-width:0 !important; max-width:none !important;
+    flex:0 0 auto !important; margin:0 4px !important; padding:0 !important; border-left:none !important; border-right:none !important; height:auto !important; max-height:none !important; }
+  .ts-clock, #kpi-relogio{ order:4 !important; width:auto !important; max-width:none !important; margin:0 4px !important; height:auto !important; }
+  #btn-som-header{ order:5 !important; flex:0 0 auto !important; margin:0 !important; }
+
+  /* Cabeçalho compacto do mobile (risco + clima + botões) sempre em sua
+     própria linha, com largura total. */
+  #mobile-probar{ order:6 !important; flex:1 1 100% !important; width:100% !important; }
+  #ux-toolbar{ order:7 !important; flex:1 1 100% !important; width:100% !important; }
+
+  /* Filtros: cada parte na sua própria linha — evita que o texto da
+     magnitude, os chips e o resumo (Sismos/Alertas/Rede) disputem a
+     mesma linha e fiquem ilegíveis/sobrepostos. */
+  #top-strip>#ux-controlbar{
+    order:8 !important; display:flex !important; flex-direction:column !important;
+    flex:1 1 100% !important; width:100% !important; height:auto !important; max-height:none !important;
+    align-items:stretch !important; gap:6px !important; padding:6px 4px !important;
+  }
+  #ux-controlbar #controls{ width:100% !important; flex:0 0 auto !important; padding:0 !important; }
+  #ux-controlbar #chips-scroll-wrap{ width:100% !important; flex:0 0 auto !important; min-width:0 !important; }
+  #ux-controlbar #freshness-bar{ width:100% !important; flex:0 0 auto !important; display:flex !important;
+    flex-wrap:wrap !important; gap:6px 10px !important; white-space:normal !important; }
+
+  #v70-header-row{ order:9 !important; flex:1 1 100% !important; width:100% !important; margin-top:2px !important; }
+
+  /* Espaço visual entre os blocos do cabeçalho, para ficar claro que são
+     seções diferentes e não uma coisa só amontoada. */
+  #top-strip>.ts-mainrow>.ts-kpis, #top-strip>.ts-kpis{ padding-top:2px !important; }
+  #mobile-probar, #top-strip>#ux-controlbar, #v70-header-row{ border-top:1px solid rgba(72,216,255,.10) !important; }
+}
+
+/* === mobile-v76-cabecalho-enxuto-css (linhas originais 18348-18371) === */
+/* =====================================================================
+   v7.6 — Cabeçalho mais enxuto no celular na vertical: escondia o card
+   "ANOMALIA" da linha de clima global, liberando altura pro mapa.
+   Só se aplica em telas estreitas E na orientação retrato — no celular
+   deitado e no desktop nada muda.
+   ATUALIZAÇÃO: essa regra também escondia o botão ☰ (#fab-menu), de uma
+   época em que ele "ficava flutuando sem função clara". Hoje o menu tem
+   função real (Eventos, Status das fontes, Resumo do dia...), então
+   escondê-lo no celular em pé deixava esses recursos inacessíveis nesse
+   modo — voltou a aparecer.
+   ===================================================================== */
+@media screen and (max-width:900px) and (orientation:portrait){
+  #v70h-anom{ display:none !important; }
+
+  /* Pedido: some também com a linha de Magnitude mínima, a linha de
+     chips (Tudo/BR/Crítico/...) e a linha Extremos/Ciclones — libera
+     mais espaço pro mapa. #top-strip>#ux-controlbar precisa da mesma
+     especificidade da regra que o força a aparecer (linha ~14489). */
+  #v70-header-row{ display:none !important; }
+}
+
+/* === mobile-v78-vertical-polish-css (linhas originais 18415-18684) === */
+/* =====================================================================
+   v7.8 — Vertical mobile: radar mais contido, controles legíveis,
+   e a faixa do mapa até o card de detalhe um pouco mais “premium”.
+   Só portrait ≤900px (não mexe no desktop nem na horizontal).
+   ===================================================================== */
+@media screen and (max-width:900px) and (orientation:portrait) {
+
+  /* Controles do mapa (zoom +/−) acima de markers/radar — evita ponto verde
+     “em cima” das setas e roubo de toque. */
+  .maplibregl-ctrl-top-left,
+  .mapboxgl-ctrl-top-left,
+  .maplibregl-ctrl-top-right,
+  .mapboxgl-ctrl-top-right {
+    z-index: 80 !important;
+  }
+  .maplibregl-ctrl-group,
+  .mapboxgl-ctrl-group {
+    z-index: 80 !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.45) !important;
+    border: 1px solid rgba(56,189,248,.22) !important;
+    backdrop-filter: blur(8px);
+  }
+  .maplibregl-ctrl-group button,
+  .mapboxgl-ctrl-group button {
+    opacity: .92 !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* Markers abaixo dos controles; um pouco menores no celular */
+  .maplibregl-marker,
+  .mapboxgl-marker {
+    z-index: 15 !important;
+  }
+  .emoji-marker {
+    font-size: 18px !important;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,.85)) !important;
+  }
+
+  /* Radar: no mobile o scale(25) vira um semicírculo enorme cobrindo o mapa.
+     Escala menor + z-index sob controles. */
+  .radar-center {
+    width: 10px !important;
+    height: 10px !important;
+    margin-left: -5px !important;
+    margin-top: -5px !important;
+    z-index: 40 !important;
+    box-shadow: 0 0 8px currentColor !important;
+  }
+  .radar-ring {
+    width: 16px !important;
+    height: 16px !important;
+    margin-left: -8px !important;
+    margin-top: -8px !important;
+    z-index: 39 !important;
+    border-width: 2px !important;
+    animation-name: radarPulseMobile !important;
+    animation-duration: 2.6s !important;
+  }
+  .new-quake-radar-wrap { z-index: 38 !important; }
+  .new-quake-radar-ring {
+    animation-name: newQuakeRadarPulseMobile !important;
+  }
+
+  /* FABs e ticker sempre acima do mapa */
+  #mobile-fab-bar { z-index: 500100 !important; }
+  #latest-event-ticker {
+    z-index: 60 !important;
+    margin: 0 10px !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(56,189,248,.18) !important;
+    background: linear-gradient(180deg, rgba(8,16,32,.92), rgba(4,10,22,.88)) !important;
+    box-shadow: 0 8px 22px rgba(0,0,0,.35) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  /* Mapa: vinheta suave embaixo (liga visualmente no card) */
+  #mapWrap {
+    isolation: isolate;
+  }
+  #mapWrap::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 28%;
+    z-index: 25;
+    background: linear-gradient(
+      180deg,
+      rgba(3,9,20,0) 0%,
+      rgba(3,9,20,.35) 55%,
+      rgba(3,9,20,.72) 100%
+    );
+  }
+
+  /* Card de detalhe: topo arredondado, “folha” sobre o mapa */
+  body.mobile-details-mid #painel-direito,
+  body.mobile-details-open #painel-direito,
+  #painel-direito {
+    border-radius: 18px 18px 0 0 !important;
+    border-top: 1px solid rgba(56,189,248,.22) !important;
+    box-shadow:
+      0 -12px 40px rgba(0,0,0,.45),
+      0 -1px 0 rgba(125,211,252,.12) !important;
+    background: linear-gradient(180deg, #0b1528 0%, #07101e 40%, #050c18 100%) !important;
+  }
+  #pd-peek-arrow,
+  #painel-direito .pd-handle,
+  .pd-drag-handle {
+    opacity: .9;
+  }
+  /* Puxador visual no topo do painel (se não houver handle dedicado) */
+  body.mobile-details-mid #painel-direito::before,
+  body.mobile-details-open #painel-direito::before {
+    content: '';
+    display: block;
+    width: 42px;
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(148,163,184,.45);
+    margin: 8px auto 4px;
+  }
+
+  /* Cabeçalho do card (análise sísmica) um pouco mais limpo */
+  #painel-direito .pd-head,
+  #pd-head,
+  #painel-direito .bubble-header {
+    padding-top: 2px !important;
+  }
+
+  /* Stats FONTE/EST: badges legíveis no estreito */
+  #painel-direito .estimativa-badge {
+    font-size: 7px !important;
+    padding: 1px 4px !important;
+    vertical-align: middle;
+  }
+  #painel-direito .stat-card {
+    border-radius: 10px !important;
+  }
+}
+
+@keyframes radarPulseMobile {
+  0%   { transform: scale(.2); opacity: .75; }
+  55%  { opacity: .28; }
+  100% { transform: scale(11); opacity: 0; }
+}
+@keyframes newQuakeRadarPulseMobile {
+  0%   { transform: scale(.18); opacity: .85; }
+  65%  { opacity: .3; }
+  100% { transform: scale(9); opacity: 0; }
+}
+
+/* Preferência de menos movimento: radar quase estático */
+@media screen and (max-width:900px) and (orientation:portrait) and (prefers-reduced-motion: reduce) {
+  .radar-ring,
+  .new-quake-radar-ring {
+    animation: none !important;
+    opacity: .4 !important;
+    transform: scale(4) !important;
+  }
+}
+
+/* --- Card de detalhe menos “seco” (só vertical mobile) --- */
+@media screen and (max-width:900px) and (orientation:portrait) {
+  #painel-direito .pd-header-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    padding: 2px 2px 8px !important;
+    border-bottom: 1px solid rgba(56,189,248,.10) !important;
+    margin-bottom: 4px !important;
+  }
+  #painel-direito .pd-header,
+  #pd-source {
+    font-size: 10px !important;
+    letter-spacing: .8px !important;
+    font-weight: 800 !important;
+    color: #7dd3fc !important;
+    text-transform: uppercase !important;
+  }
+  #painel-direito .pd-gauge-wrap {
+    margin: 6px auto 2px !important;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,.35));
+  }
+  #painel-direito .pd-mag {
+    font-weight: 800 !important;
+    letter-spacing: -1px !important;
+    text-shadow: 0 0 24px rgba(251,146,60,.25);
+  }
+  #painel-direito .pd-local {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #f1f5f9 !important;
+    line-height: 1.25 !important;
+    margin-top: 4px !important;
+  }
+  #painel-direito .pd-time {
+    font-size: 11px !important;
+    color: #94a3b8 !important;
+  }
+  #painel-direito .stats-grid {
+    gap: 8px !important;
+    margin: 12px 0 10px !important;
+  }
+  #painel-direito .stat-card {
+    background: linear-gradient(160deg, rgba(15,23,42,.95), rgba(8,15,28,.9)) !important;
+    border: 1px solid rgba(56,189,248,.14) !important;
+    border-radius: 12px !important;
+    padding: 10px 8px !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,.25) !important;
+  }
+  #painel-direito .stat-card-primary {
+    border-color: rgba(56,189,248,.28) !important;
+    background: linear-gradient(160deg, rgba(14,40,72,.95), rgba(8,18,36,.92)) !important;
+  }
+  #painel-direito .stat-card-label {
+    font-size: 8px !important;
+    letter-spacing: .5px !important;
+    color: #64748b !important;
+    margin-bottom: 4px !important;
+  }
+  #painel-direito .stat-card-value {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+  }
+  #painel-direito .bubble-section {
+    background: rgba(8,15,28,.72) !important;
+    border: 1px solid rgba(148,163,184,.10) !important;
+    border-left-width: 3px !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18) !important;
+  }
+  #painel-direito .bubble-section-title {
+    font-size: 10px !important;
+    letter-spacing: .4px !important;
+    color: #cbd5e1 !important;
+    margin-bottom: 6px !important;
+  }
+  #painel-direito .bubble-section-content {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    color: #e2e8f0 !important;
+  }
+  #painel-direito #pd-share-btn {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    border-radius: 9px !important;
+    padding: 5px 10px !important;
+    box-shadow: 0 4px 12px rgba(14,165,233,.35) !important;
+  }
+  #painel-direito .pd-focus-badge {
+    background: rgba(74,222,128,.12) !important;
+    color: #86efac !important;
+    border: 1px solid rgba(74,222,128,.35) !important;
+    border-radius: 6px !important;
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+  #painel-direito .source-trust-card {
+    border-radius: 12px !important;
+    border-left-width: 3px !important;
+  }
+}
+
+/* === mobile-v79-pd-design-1a6-css (linhas originais 18687-18902) === */
+/* Design card 1–6 + ticker superior (global + reforço mobile) */
+
+#painel-direito {
+  --pd-sev: #334155;
+  border-top: 3px solid var(--pd-sev) !important;
+}
+#painel-direito.pd-sev-low { --pd-sev: #64748b; }
+#painel-direito.pd-sev-mid { --pd-sev: #fbbf24; }
+#painel-direito.pd-sev-high { --pd-sev: #fb923c; }
+#painel-direito.pd-sev-crit { --pd-sev: #ef4444; }
+#painel-direito.pd-sev-extreme {
+  --pd-sev: #f43f5e;
+  box-shadow: 0 -8px 40px rgba(244,63,94,.25) !important;
+}
+
+.pd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+#pd-share-btn {
+  background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  border-radius: 9px !important;
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(14,165,233,.3);
+}
+
+.pd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 4px 0 8px;
+}
+.pd-chip {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,.2);
+  background: rgba(15,23,42,.75);
+  color: #cbd5e1;
+}
+.pd-chip.chip-ok { color: #86efac; border-color: rgba(74,222,128,.35); background: rgba(22,101,52,.25); }
+.pd-chip.chip-live { color: #7dd3fc; border-color: rgba(56,189,248,.35); background: rgba(12,74,110,.35); }
+.pd-chip.chip-upd { color: #fde68a; border-color: rgba(251,191,36,.4); background: rgba(120,53,15,.35); }
+.pd-chip.chip-q { color: #e2e8f0; }
+.pd-chip.chip-src { color: #94a3b8; }
+
+.pd-gauge-wrap {
+  position: relative;
+  isolation: isolate;
+}
+.pd-gauge-glow {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 120px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: .3;
+  pointer-events: none;
+  z-index: 0;
+}
+#pd-gauge, .pd-mag, .pd-flag { position: relative; z-index: 1; }
+
+.pd-timeline {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 8px 0 4px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: rgba(8,15,28,.75);
+  border: 1px solid rgba(56,189,248,.12);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.pd-tl-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.pd-tl-k {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.pd-tl-v {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+.pd-tl-sep {
+  color: #334155;
+  font-size: 14px;
+  align-self: center;
+  padding: 0 2px;
+}
+
+.pd-more-toggle {
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid rgba(56,189,248,.2);
+  background: rgba(15,23,42,.7);
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  cursor: pointer;
+}
+.pd-more-toggle:active { transform: scale(.99); }
+.pd-more-details[hidden] { display: none !important; }
+.pd-more-details { margin-top: 2px; }
+
+/* Ticker superior (SOMENTE MOBILE — no desktop quem mostra o evento é o #painel-direito) */
+@media screen and (max-width:1100px) {
+#latest-event-ticker {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(56,189,248,.18) !important;
+  background: linear-gradient(135deg, rgba(8,18,36,.94), rgba(4,12,24,.9)) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.38) !important;
+  backdrop-filter: blur(12px) !important;
+}
+#latest-event-ticker .let-left {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14,165,233,.12);
+  border: 1px solid rgba(56,189,248,.25);
+  font-size: 18px;
+}
+#latest-event-ticker .let-mid {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#latest-event-ticker-kicker {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .7px;
+  color: #38bdf8;
+}
+#latest-event-ticker-text {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#latest-event-ticker .let-right {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 14px;
+}
+#latest-event-ticker[data-sev="mid"] { border-color: rgba(251,191,36,.35) !important; }
+#latest-event-ticker[data-sev="mid"] #latest-event-ticker-kicker { color: #fbbf24; }
+#latest-event-ticker[data-sev="high"] { border-color: rgba(251,146,60,.4) !important; }
+#latest-event-ticker[data-sev="high"] #latest-event-ticker-kicker { color: #fb923c; }
+#latest-event-ticker[data-sev="crit"] {
+  border-color: rgba(239,68,68,.45) !important;
+  box-shadow: 0 10px 28px rgba(239,68,68,.18) !important;
+}
+#latest-event-ticker[data-sev="crit"] #latest-event-ticker-kicker { color: #f87171; }
+#latest-event-ticker[data-sev="crit"] .let-left {
+  background: rgba(239,68,68,.15);
+  border-color: rgba(239,68,68,.35);
+}
+} /* fim @media ticker mobile */
+
+@media screen and (max-width:900px) and (orientation:portrait) {
+  #painel-direito .pd-local {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+  }
+  #painel-direito .stat-card {
+    border-radius: 12px !important;
+    background: linear-gradient(160deg, rgba(15,23,42,.95), rgba(8,15,28,.9)) !important;
+    border: 1px solid rgba(56,189,248,.14) !important;
+  }
+  #painel-direito .bubble-section {
+    border-radius: 12px !important;
+    background: rgba(8,15,28,.72) !important;
+  }
+}
+
+/* === pd-mag-flag-fix-css (linhas originais 18905-18974) === */
+/* Magnitude e bandeira NÃO podem se sobrepor — em todos os breakpoints */
+#painel-direito .pd-gauge-wrap,
+.pd-gauge-wrap {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  min-height: 108px !important;
+  margin: 4px auto 6px !important;
+  isolation: isolate;
+}
+#painel-direito #pd-gauge,
+#pd-gauge {
+  width: 150px !important;
+  height: 82px !important;
+  display: block !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+#painel-direito .pd-mag,
+.pd-mag {
+  position: absolute !important;
+  top: 34px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  z-index: 3 !important;
+  font-size: 30px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+  letter-spacing: -0.5px !important;
+}
+#painel-direito .pd-flag,
+.pd-flag {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 2 !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+  height: auto !important;
+  min-height: 24px !important;
+  display: block !important;
+  text-align: center !important;
+}
+#painel-direito .pd-gauge-glow {
+  z-index: 0 !important;
+}
+#painel-direito .pd-focus-badge,
+.pd-focus-badge {
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: .6px !important;
+  color: #86efac !important;
+  background: rgba(74,222,128,.12) !important;
+  border: 1px solid rgba(74,222,128,.35) !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+}
+
+/* === mobile-77-real-redesign (linhas originais 18977-19062) === */
+/* ================================================================
+   MONITOR GLOBAL 7.7 — MOBILE VERTICAL DE VERDADE
+   Só portrait <=700px. Desktop, DeX e landscape permanecem com o layout
+   anterior. A filosofia aqui é APP: cabeçalho curto + mapa protagonista +
+   gaveta de registros/detalhes.
+   ================================================================ */
+@media screen and (max-width:700px) and (orientation:portrait){
+  html,body{background:#020914!important;overflow:hidden!important;}
+  #app{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:142px minmax(0,1fr)!important;grid-template-areas:"top" "map"!important;height:100dvh!important;width:100vw!important;}
+  #top-strip{height:142px!important;min-height:142px!important;max-height:142px!important;padding:0 12px!important;background:linear-gradient(180deg,#061423 0%,#03101c 72%,#020914 100%)!important;border-bottom:1px solid rgba(56,189,248,.20)!important;box-shadow:0 8px 28px rgba(0,0,0,.34)!important;overflow:hidden!important;}
+  #top-strip>.ts-mainrow{height:48px!important;min-height:48px!important;padding:0 4px!important;gap:9px!important;pointer-events:auto!important;align-items:center!important;}
+  #top-strip .ts-title{font-size:13px!important;letter-spacing:1.7px!important;font-weight:900!important;}
+  #top-strip .live-indicator{font-size:8px!important;padding:3px 7px!important;border-radius:99px!important;}
+  #top-strip .ts-actions,#top-strip .ts-meta,#top-probar,#v70-header-row{display:none!important;}
+  #top-strip .ts-kpis{display:grid!important;grid-template-columns:1.2fr 1fr 1fr!important;gap:6px!important;width:100%!important;height:76px!important;padding:0!important;align-items:stretch!important;}
+  #top-strip .ts-kpi{border:1px solid rgba(56,189,248,.13)!important;border-radius:12px!important;background:linear-gradient(145deg,rgba(8,27,45,.92),rgba(4,16,28,.92))!important;padding:8px 8px!important;min-width:0!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;}
+  #top-strip .ts-kpi-label{font-size:7px!important;letter-spacing:1px!important;color:#6f8ca4!important;}
+  #top-strip .ts-kpi-value{font-size:14px!important;}
+  #top-strip #kpibox-eventos .ts-kpi-value:before{content:'● ';color:#35e09b;font-size:9px;vertical-align:2px;}
+  #top-strip #kpibox-maior .ts-kpi-value{color:#ffbd66!important;}
+  #top-strip #kpibox-brent{display:flex!important;}
+  #top-strip #kpibox-brent .ts-kpi-value{font-size:13px!important;color:#4ade80!important;}
+  #top-strip #kpibox-sp{display:flex!important;}
+  #top-strip #kpibox-sp .ts-kpi-label{font-size:7px!important;}
+  #top-strip #kpibox-sp .ts-kpi-row{display:flex!important;align-items:baseline!important;gap:5px!important;}
+  #top-strip #kpibox-sp .ts-kpi-value{font-size:14px!important;}
+  #top-strip #kpibox-sp .mg-wind{font-size:8px!important;}
+  #top-strip #btn-som-header,#top-strip #btn-radar-header{display:none!important;}
+  #top-strip #kpi-relogio{position:absolute!important;right:14px!important;top:10px!important;font-size:9px!important;color:#8ca6bb!important;opacity:.9!important;}
+
+  /* Botões de ação: uma pequena barra flutuante, sem roubar o mapa. */
+  #mobile-fab-bar{display:flex!important;position:fixed!important;top:91px!important;right:12px!important;z-index:500100!important;gap:6px!important;}
+  #mobile-fab-bar button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:11px!important;background:rgba(5,20,34,.96)!important;border:1px solid rgba(56,189,248,.28)!important;box-shadow:0 8px 22px rgba(0,0,0,.35)!important;font-size:17px!important;}
+  #mobile-fab-bar #fab-menu{border-color:rgba(34,197,94,.62)!important;}
+
+  #mapWrap{grid-area:map!important;height:100%!important;min-height:0!important;position:relative!important;overflow:hidden!important;}
+  #mapContainer{inset:0!important;height:100%!important;}
+  .maplibregl-ctrl-group,.mapboxgl-ctrl-group{border-radius:12px!important;overflow:hidden!important;background:rgba(3,15,27,.88)!important;border:1px solid rgba(56,189,248,.16)!important;}
+  .maplibregl-ctrl-top-left,.mapboxgl-ctrl-top-left{top:12px!important;left:10px!important;}
+  .maplibregl-ctrl-top-right,.mapboxgl-ctrl-top-right{top:12px!important;right:10px!important;}
+
+  /* Último evento: faixa discreta, não um card gigante. */
+  #latest-event-ticker{display:flex!important;position:fixed!important;left:10px!important;right:10px!important;top:151px!important;height:56px!important;box-sizing:border-box!important;z-index:50000!important;border-radius:15px!important;padding:8px 10px!important;background:linear-gradient(135deg,rgba(3,18,31,.94),rgba(4,12,23,.92))!important;border:1px solid rgba(56,189,248,.20)!important;box-shadow:0 10px 28px rgba(0,0,0,.30)!important;backdrop-filter:blur(12px)!important;}
+  #latest-event-ticker .let-left{width:36px!important;min-width:36px!important;height:36px!important;border-radius:11px!important;background:rgba(56,189,248,.10)!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:18px!important;}
+  #latest-event-ticker .let-mid{min-width:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:2px!important;}
+  #latest-event-ticker-kicker{font-size:7px!important;letter-spacing:1.4px!important;color:#4ade80!important;font-weight:900!important;}
+  #latest-event-ticker-text{font-size:12px!important;font-weight:800!important;color:#edf8ff!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  #latest-event-ticker .let-right{margin-left:auto!important;display:flex!important;align-items:center!important;color:#6e8ba2!important;}
+
+  /* Painel de detalhe: pequeno peek inferior; ao abrir vira bottom sheet. */
+  #painel-direito{display:flex!important;position:fixed!important;left:10px!important;right:10px!important;bottom:10px!important;top:auto!important;width:auto!important;height:68px!important;max-height:68px!important;min-height:68px!important;border:1px solid rgba(56,189,248,.22)!important;border-radius:16px!important;background:linear-gradient(145deg,rgba(4,19,32,.97),rgba(2,10,19,.98))!important;box-shadow:0 15px 40px rgba(0,0,0,.45)!important;overflow:hidden!important;z-index:500005!important;padding:10px 12px!important;}
+  body.mobile-details-mid #painel-direito,body.mobile-details-open #painel-direito{left:0!important;right:0!important;bottom:0!important;width:100vw!important;border-radius:18px 18px 0 0!important;border-bottom:0!important;}
+  body.mobile-details-mid #painel-direito{height:min(38dvh,300px)!important;max-height:min(38dvh,300px)!important;}
+  body.mobile-details-open #painel-direito{height:min(84dvh,680px)!important;max-height:min(84dvh,680px)!important;}
+  #painel-direito .pd-header{font-size:8px!important;letter-spacing:1.2px!important;}
+  #painel-direito .pd-gauge-wrap{margin:0 auto!important;}
+  #painel-direito .pd-gauge-wrap,#painel-direito .pd-header-row,#painel-direito .stats-grid,#painel-direito .bubble-section,#painel-direito .source-trust-card{flex-shrink:0!important;}
+  body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito .pd-gauge-wrap{display:none!important;}
+  body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito .stats-grid,body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito .bubble-section,body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito .source-trust-card{display:none!important;}
+  body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito .pd-local{font-size:12px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:left!important;margin:0!important;}
+  body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito .pd-time{font-size:8px!important;text-align:left!important;margin:2px 0 0!important;}
+
+  /* Registros: folha própria, com cabeçalho e cards de timeline. */
+  body.mobile-events-open #mobile-events-backdrop{display:block!important;position:fixed!important;inset:0!important;z-index:500040!important;background:rgba(0,4,10,.72)!important;backdrop-filter:blur(3px)!important;}
+  body.mobile-events-open #sidebar-left{display:flex!important;position:fixed!important;left:0!important;right:0!important;top:86px!important;bottom:0!important;width:100vw!important;height:auto!important;max-height:none!important;z-index:500050!important;padding:0 10px 10px!important;border:0!important;border-radius:20px 20px 0 0!important;background:linear-gradient(180deg,#061423 0%,#020b15 100%)!important;box-shadow:0 -18px 50px rgba(0,0,0,.48)!important;overflow:hidden!important;}
+  body.mobile-events-open #sidebar-events-close{display:flex!important;position:absolute!important;right:14px!important;top:10px!important;width:32px!important;height:32px!important;align-items:center!important;justify-content:center!important;border-radius:10px!important;background:#0b2236!important;border:1px solid rgba(56,189,248,.22)!important;color:#bdeeff!important;z-index:2!important;}
+  body.mobile-events-open #events-label{height:52px!important;padding:0 50px 0 8px!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;font-size:9px!important;color:#7dd3fc!important;letter-spacing:1.4px!important;border-bottom:1px solid rgba(56,189,248,.12)!important;}
+  body.mobile-events-open #events-label:before{content:'◉';font-size:10px!important;color:#4ade80!important;}
+  body.mobile-events-open #events-label .events-count{font-size:9px!important;background:rgba(56,189,248,.10)!important;padding:3px 7px!important;border-radius:99px!important;}
+  body.mobile-events-open #events{padding:5px 2px 20px!important;overflow-y:auto!important;min-height:0!important;}
+  body.mobile-events-open .group-header{margin:12px 6px 6px!important;font-size:7px!important;letter-spacing:1.5px!important;color:#54748e!important;}
+  body.mobile-events-open .event{margin:0 2px 6px!important;padding:10px 9px!important;border-radius:13px!important;border:1px solid rgba(56,189,248,.10)!important;border-left:3px solid var(--ev-color,#38bdf8)!important;background:linear-gradient(145deg,rgba(7,23,38,.92),rgba(4,14,24,.92))!important;box-shadow:0 6px 18px rgba(0,0,0,.18)!important;}
+  body.mobile-events-open .event-header{gap:8px!important;}
+  body.mobile-events-open .event-mag{font-size:17px!important;min-width:48px!important;}
+  body.mobile-events-open .event-place{font-size:12px!important;line-height:1.3!important;}
+  body.mobile-events-open .event-meta{font-size:8px!important;gap:5px!important;margin-top:6px!important;}
+  body.mobile-events-open .event-source{font-size:7px!important;padding:2px 4px!important;}
+  body.mobile-events-open .event-type-badge{font-size:8px!important;padding:3px 5px!important;border-radius:6px!important;}
+  body.mobile-events-open .conf-badge{font-size:7px!important;padding:2px 4px!important;}
+
+  /* Quando um vulcão está selecionado, os textos em inglês nunca aparecem na UI. */
+  #painel-direito[data-event-type="volcano"] .pd-fault-desc,
+  #painel-direito[data-event-type="volcano"] .impact-text{font-size:12px!important;line-height:1.5!important;}
+}
+
+/* === mg-fab-menu-same-line-as-title (linhas originais 19063-19096) === */
+/* O ☰ (fab-menu) vivia "flutuando" numa posição fixa (top:91px) calculada
+   no chute — enquanto a caixa do último registro (#latest-event-ticker) usa
+   JS (syncTickerTop) pra se posicionar sempre logo abaixo da altura REAL do
+   cabeçalho, que muda conforme o conteúdo. Quando o cabeçalho ficava mais
+   baixo que 91px, o botão caía dentro da caixa do registro.
+   Solução: prender o ☰ na própria linha do título (topo do cabeçalho),
+   bem acima de onde o registro pode começar, em vez de um valor fixo que
+   dependia de o cabeçalho ter sempre a mesma altura. */
+@media screen and (max-width:900px) {
+  #mobile-fab-bar {
+    position: fixed !important;
+    top: 7px !important;
+    right: 10px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 500250 !important;
+    pointer-events: auto !important;
+  }
+  #mobile-fab-bar #fab-menu {
+    display: flex !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9px !important;
+    font-size: 15px !important;
+    border-color: rgba(34,197,94,.62) !important;
+  }
+}
+
+/* === mg-fix-ux-panel-z-index (linhas originais 19097-19105) === */
+/* O painel de Ferramentas (Resumo/Timeline/Fontes/Legenda/Mudanças/Alertas,
+   #ux-panel) tinha z-index:11000 — menor que a caixa do último registro
+   (#latest-event-ticker, que em mobile chega a z-index:50000). Resultado:
+   o painel abria ATRÁS do registro, incluindo o próprio botão de fechar
+   (#ux-panel-close), então clicar ali acabava clicando no registro por
+   baixo e o painel nunca fechava. Agora o painel fica acima de tudo. */
+#ux-panel { z-index: 700000 !important; }
+
+
+
+
+/* ===================================================================
+   REESCRITA COMPLETA v2 — retrato mobile ≤700px (pedido do Helber)
+   ===================================================================
+   Depois de duas tentativas perdendo empate de especificidade contra
+   regras antigas (!important em #top-strip/.ts-kpis de eras
+   anteriores), esta versão usa uma classe no <body>
+   (body.mg-clean-portrait, ligada por
+   js/mobile-portrait-clean-toggle.js) como prefixo de TODO seletor
+   aqui. Isso dá força de sobra (ID + classe do body) pra vencer
+   qualquer regra antiga sem depender da ordem no arquivo. Fluxo normal
+   de documento, sem position:fixed/absolute no cabeçalho/ticker/
+   controlbar e sem JavaScript medindo altura de nada.
+   =================================================================== */
+body.mg-clean-portrait #app {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  width: 100vw !important;
+}
+
+body.mg-clean-portrait #top-strip {
+  position: static !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 8px 12px 6px !important;
+  gap: 6px !important;
+  background: linear-gradient(180deg,#061423 0%,#03101c 72%,#020914 100%) !important;
+  border-bottom: 1px solid rgba(56,189,248,.20) !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,.34) !important;
+}
+body.mg-clean-portrait #top-strip > .ts-mainrow {
+  display: flex !important; align-items: center !important; justify-content: space-between !important;
+  width: 100% !important; height: auto !important; flex: 0 0 auto !important; gap: 8px !important;
+}
+body.mg-clean-portrait #top-strip .ts-title { font-size: 12px !important; letter-spacing: .8px !important; font-weight: 900 !important; white-space: nowrap !important; }
+body.mg-clean-portrait #top-strip .live-indicator { display: none !important; }
+body.mg-clean-portrait #top-strip .ts-actions,
+body.mg-clean-portrait #top-strip .ts-meta,
+body.mg-clean-portrait #top-probar,
+body.mg-clean-portrait #v70-header-row,
+body.mg-clean-portrait #mobile-probar { display: none !important; }
+body.mg-clean-portrait #top-strip #btn-som-header,
+body.mg-clean-portrait #top-strip #btn-radar-header { display: none !important; }
+
+body.mg-clean-portrait #top-strip > .ts-kpis {
+  display: grid !important;
+  grid-template-columns: 1.2fr 1fr 1fr !important;
+  gap: 6px !important;
+  width: 100% !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+body.mg-clean-portrait #top-strip .ts-kpi {
+  border: 0 !important;
+  border-left: 1px solid rgba(86,166,220,.25) !important;
+  background: none !important;
+  border-radius: 0 !important;
+  padding: 0 7px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+}
+body.mg-clean-portrait #top-strip .ts-kpi-label { font-size: 8px !important; letter-spacing: .3px !important; color: #7d96b3 !important; font-weight: 700 !important; white-space: nowrap !important; }
+body.mg-clean-portrait #top-strip .ts-kpi-value { font-size: 12px !important; color: #eaf5ff !important; font-weight: 800 !important; white-space: nowrap !important; }
+body.mg-clean-portrait #top-strip .ts-kpi-sub { font-size: 9px !important; color: #7bdcff !important; font-weight: 700 !important; white-space: nowrap !important; }
+body.mg-clean-portrait #top-strip #kpibox-eventos,
+body.mg-clean-portrait #top-strip #kpibox-maior { display: none !important; }
+body.mg-clean-portrait #top-strip #kpibox-brent,
+body.mg-clean-portrait #top-strip #kpibox-sp { display: flex !important; }
+body.mg-clean-portrait #top-strip #kpibox-brent .ts-kpi-value { color: #4ade80 !important; }
+body.mg-clean-portrait #top-strip #kpi-relogio { font-size: 9px !important; color: #8ca6bb !important; border-left: 1px solid rgba(86,166,220,.25) !important; padding-left: 7px !important; white-space: nowrap !important; }
+body.mg-clean-portrait #top-strip #kpibox-brent { flex-direction: row !important; align-items: center !important; gap: 3px !important; }
+body.mg-clean-portrait #top-strip #kpibox-brent .ts-kpi-label { font-size: 8px !important; }
+body.mg-clean-portrait #top-strip #kpibox-sp .mg-wind,
+body.mg-clean-portrait #top-strip #kpibox-sp .ts-kpi-sub { display: none !important; }
+body.mg-clean-portrait #top-strip #kpibox-sp { flex-direction: row !important; align-items: center !important; gap: 3px !important; }
+body.mg-clean-portrait #top-strip #kpibox-sp .ts-kpi-label { display: inline !important; font-size: 8px !important; }
+body.mg-clean-portrait #top-strip #kpibox-sp .mg-wx-icon { display: none !important; }
+body.mg-clean-portrait #top-strip #kpibox-sp .ts-kpi-row { display: flex !important; }
+
+body.mg-clean-portrait #latest-event-ticker {
+  display: flex !important;
+  position: static !important;
+  top: auto !important; left: auto !important; right: auto !important; bottom: auto !important;
+  width: auto !important;
+  margin: 8px 10px 0 !important;
+  height: auto !important;
+  min-height: 56px !important;
+  box-sizing: border-box !important;
+  border-radius: 15px !important;
+  padding: 8px 10px !important;
+  background: linear-gradient(135deg,rgba(3,18,31,.94),rgba(4,12,23,.92)) !important;
+  border: 1px solid color-mix(in srgb, var(--ticker-accent,#38bdf8) 45%, transparent) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.30) !important;
+  backdrop-filter: blur(12px) !important;
+}
+body.mg-clean-portrait #latest-event-ticker .let-left {
+  width: 36px !important; min-width: 36px !important; height: 36px !important;
+  border-radius: 11px !important;
+  background: color-mix(in srgb, var(--ticker-accent,#38bdf8) 16%, transparent) !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 18px !important;
+}
+body.mg-clean-portrait #latest-event-ticker .let-mid { min-width: 0 !important; display: flex !important; flex-direction: column !important; justify-content: center !important; gap: 2px !important; }
+body.mg-clean-portrait #latest-event-ticker-kicker { font-size: 7px !important; letter-spacing: 1.4px !important; font-weight: 900 !important; color: var(--ticker-accent,#4ade80) !important; }
+body.mg-clean-portrait #latest-event-ticker-text { font-size: 12px !important; font-weight: 800 !important; color: #edf8ff !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+body.mg-clean-portrait #latest-event-ticker .let-right { margin-left: auto !important; display: flex !important; align-items: center !important; color: #6e8ba2 !important; }
+
+body.mg-clean-portrait #ux-controlbar {
+  display: flex !important;
+  position: static !important;
+  top: auto !important; left: auto !important; right: auto !important; bottom: auto !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 8px 10px 0 !important;
+  padding: 6px 8px !important;
+  gap: 6px !important;
+  background: linear-gradient(135deg, rgba(8,18,36,.94), rgba(4,12,24,.9)) !important;
+  border: 1px solid rgba(56,189,248,.18) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35) !important;
+}
+body.mg-clean-portrait #ux-controlbar #controls {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex: 0 0 70px !important;
+  width: 70px !important;
+  padding: 0 !important;
+}
+body.mg-clean-portrait #ux-controlbar .mag-slider-row { display: flex !important; margin: 0 !important; flex: 0 0 auto !important; }
+body.mg-clean-portrait #ux-controlbar .mag-slider-row span:first-child { display: none !important; }
+body.mg-clean-portrait #ux-controlbar .mag-value { font-size: 12px !important; color: #7bdcff !important; font-weight: 800 !important; white-space: nowrap !important; }
+body.mg-clean-portrait #ux-controlbar #mag-slider { width: 52px !important; height: 4px !important; margin: 0 !important; }
+body.mg-clean-portrait #ux-controlbar #mag-slider::-webkit-slider-thumb { width: 16px !important; height: 16px !important; }
+body.mg-clean-portrait #ux-controlbar #mag-slider::-moz-range-thumb { width: 16px !important; height: 16px !important; }
+body.mg-clean-portrait #ux-controlbar #chips-scroll-wrap { flex: 1 1 auto !important; min-width: 0 !important; border: 0 !important; background: transparent !important; }
+body.mg-clean-portrait #ux-controlbar #chips-row { gap: 4px !important; }
+body.mg-clean-portrait #ux-controlbar .chip { font-size: 12px !important; padding: 3px 6px !important; border-radius: 7px !important; white-space: nowrap !important; }
+body.mg-clean-portrait #ux-controlbar #type-counters,
+body.mg-clean-portrait #ux-controlbar #ux-search-wrap,
+body.mg-clean-portrait #ux-controlbar #ux-events-total,
+body.mg-clean-portrait #ux-controlbar #freshness-bar { display: none !important; }
+
+body.mg-clean-portrait #mapWrap {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+body.mg-clean-portrait #mapContainer { inset: 0 !important; height: 100% !important; }
+
+
+/* ================================================================
+   v28.1 — CABEÇALHO MOBILE VERTICAL ALINHADO AO DESKTOP
+   No retrato <=700px, título + KPIs + ☰ formam UMA única linha.
+   O menu não fica mais "solto" por cima dos dizeres.
+   ================================================================ */
+@media screen and (max-width:700px) and (orientation:portrait){
+  body.mg-clean-portrait #top-strip > .ts-mainrow{
+    position:relative !important;
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    width:100% !important;
+    height:48px !important;
+    min-height:48px !important;
+    max-height:48px !important;
+    gap:6px !important;
+    padding:0 2px !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+  }
+
+  body.mg-clean-portrait #top-strip .ts-title{
+    flex:0 1 auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    font-size:12px !important;
+    letter-spacing:.8px !important;
+    white-space:nowrap !important;
+    overflow:visible !important;
+  }
+
+  body.mg-clean-portrait #top-strip .live-indicator{
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:3px !important;
+    flex:0 0 auto !important;
+    font-size:7px !important;
+    letter-spacing:.5px !important;
+    color:#7bdcff !important;
+    opacity:.9 !important;
+  }
+  body.mg-clean-portrait #top-strip .live-dot{
+    width:5px !important;
+    height:5px !important;
+  }
+
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-end !important;
+    flex:0 1 auto !important;
+    width:auto !important;
+    min-width:0 !important;
+    margin-left:auto !important;
+    margin-right:0 !important;
+    gap:0 !important;
+    order:2 !important;
+    overflow:visible !important;
+  }
+
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis .ts-kpi{
+    height:32px !important;
+    min-height:32px !important;
+    padding:0 7px !important;
+    border-left:1px solid rgba(86,166,220,.25) !important;
+    background:transparent !important;
+    border-radius:0 !important;
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:3px !important;
+    white-space:nowrap !important;
+  }
+
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp{
+    display:flex !important;
+    flex:0 1 auto !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-brent{
+    display:flex !important;
+    flex:0 1 auto !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-eventos,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-maior,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpi-relogio,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #btn-som-header,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #btn-radar-header{
+    display:none !important;
+  }
+
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp .ts-kpi-label,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-brent .ts-kpi-label{
+    font-size:8px !important;
+    line-height:1 !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp .ts-kpi-row{
+    display:flex !important;
+    align-items:center !important;
+    gap:2px !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp .ts-kpi-value,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-brent .ts-kpi-value{
+    font-size:12px !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-brent .ts-kpi-value{
+    color:#4ade80 !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp .mg-wx-icon,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp .mg-wind,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-kpis #kpibox-sp .ts-kpi-sub{
+    display:none !important;
+  }
+
+  /* O FAB passa a ser parte real do cabeçalho. Só o ☰ aparece. */
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar{
+    position:static !important;
+    display:flex !important;
+    flex:0 0 44px !important;
+    width:44px !important;
+    height:44px !important;
+    min-width:44px !important;
+    min-height:44px !important;
+    margin:0 !important;
+    padding:0 !important;
+    gap:0 !important;
+    order:3 !important;
+    z-index:500000 !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu{
+    display:flex !important;
+    position:static !important;
+    width:44px !important;
+    height:44px !important;
+    min-width:44px !important;
+    min-height:44px !important;
+    margin:0 !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-events,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-audio{
+    display:none !important;
+  }
+
+  /* Remove a sensação de "menu por cima": o botão ocupa seu próprio espaço. */
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu{
+    border-color:rgba(34,197,94,.45) !important;
+    background:rgba(2,8,22,.72) !important;
+    box-shadow:0 5px 16px rgba(0,0,0,.35) !important;
+  }
+}
+
+/* =====================================================================
+   v28.2 — FILTROS MOBILE VERTICAL: IGUAIS À LÓGICA DO DESKTOP
+   A barra de magnitude + chips deve SEMPRE existir no retrato <=700px.
+   Este bloco fica no FINAL da folha para neutralizar regras antigas que
+   escondiam #ux-controlbar no mobile.
+   ===================================================================== */
+@media screen and (max-width:700px) and (orientation:portrait){
+  body.mg-clean-portrait #top-strip > #ux-controlbar,
+  #top-strip > #ux-controlbar{
+    display:flex !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    position:static !important;
+    order:4 !important;
+    flex:0 0 auto !important;
+    flex-direction:row !important;
+    flex-wrap:nowrap !important;
+    align-items:center !important;
+    width:calc(100% - 20px) !important;
+    min-width:0 !important;
+    height:42px !important;
+    min-height:42px !important;
+    max-height:42px !important;
+    margin:5px 10px 0 !important;
+    padding:4px 7px !important;
+    gap:7px !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+    z-index:100 !important;
+    border:1px solid rgba(56,189,248,.18) !important;
+    border-radius:11px !important;
+    background:linear-gradient(135deg,rgba(8,18,36,.96),rgba(4,12,24,.94)) !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #controls,
+  #top-strip > #ux-controlbar #controls{
+    display:flex !important;
+    visibility:visible !important;
+    flex:0 0 86px !important;
+    width:86px !important;
+    min-width:86px !important;
+    max-width:86px !important;
+    height:30px !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:5px !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar .mag-slider-row,
+  #top-strip > #ux-controlbar .mag-slider-row{
+    display:flex !important;
+    align-items:center !important;
+    margin:0 !important;
+    flex:0 0 auto !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar .mag-slider-row span:first-child,
+  #top-strip > #ux-controlbar .mag-slider-row span:first-child{
+    display:none !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar .mag-value,
+  #top-strip > #ux-controlbar .mag-value{
+    display:inline-flex !important;
+    font-size:12px !important;
+    line-height:1 !important;
+    color:#7bdcff !important;
+    font-weight:900 !important;
+    white-space:nowrap !important;
+    min-width:32px !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #mag-slider,
+  #top-strip > #ux-controlbar #mag-slider{
+    display:block !important;
+    visibility:visible !important;
+    width:45px !important;
+    min-width:45px !important;
+    height:4px !important;
+    margin:0 !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #mag-slider::-webkit-slider-thumb,
+  #top-strip > #ux-controlbar #mag-slider::-webkit-slider-thumb{
+    width:15px !important;
+    height:15px !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #mag-slider::-moz-range-thumb,
+  #top-strip > #ux-controlbar #mag-slider::-moz-range-thumb{
+    width:15px !important;
+    height:15px !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #chips-scroll-wrap,
+  #top-strip > #ux-controlbar #chips-scroll-wrap{
+    display:flex !important;
+    visibility:visible !important;
+    flex:1 1 auto !important;
+    width:auto !important;
+    min-width:0 !important;
+    height:30px !important;
+    max-height:30px !important;
+    overflow:hidden !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    background:transparent !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #chips-row,
+  #top-strip > #ux-controlbar #chips-row{
+    display:flex !important;
+    visibility:visible !important;
+    flex:0 0 auto !important;
+    flex-wrap:nowrap !important;
+    align-items:center !important;
+    width:max-content !important;
+    min-width:max-content !important;
+    height:30px !important;
+    max-height:30px !important;
+    overflow-x:visible !important;
+    overflow-y:hidden !important;
+    gap:4px !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar .chip,
+  #top-strip > #ux-controlbar .chip{
+    display:inline-flex !important;
+    visibility:visible !important;
+    flex:0 0 auto !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:27px !important;
+    height:27px !important;
+    padding:3px 7px !important;
+    font-size:11px !important;
+    line-height:1 !important;
+    border-radius:7px !important;
+    white-space:nowrap !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar .chips-scroll-btn,
+  #top-strip > #ux-controlbar .chips-scroll-btn{
+    display:none !important;
+  }
+  body.mg-clean-portrait #top-strip > #ux-controlbar #freshness-bar,
+  body.mg-clean-portrait #top-strip > #ux-controlbar #ux-search-wrap,
+  body.mg-clean-portrait #top-strip > #ux-controlbar #ux-events-total,
+  body.mg-clean-portrait #top-strip > #ux-controlbar #type-counters{
+    display:none !important;
+  }
+}

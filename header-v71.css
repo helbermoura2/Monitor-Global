@@ -1,0 +1,232 @@
+/* === monitor-global-71-header-css (linhas originais 2114-2127) === */
+/* =========================================================
+   MONITOR GLOBAL — terceira linha inteligente do cabeçalho
+   ========================================================= */
+#v70-header-row{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;padding:5px 10px;background:linear-gradient(180deg,rgba(3,11,25,.99),rgba(2,8,18,.99));border-top:1px solid rgba(30,58,95,.8);border-bottom:1px solid #17325d;z-index:7000;min-height:42px}
+.v70h-card{min-width:0;display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid rgba(56,189,248,.18);border-radius:8px;background:linear-gradient(145deg,rgba(8,25,45,.85),rgba(4,12,25,.92));color:#e5edf7;cursor:pointer;text-align:left;overflow:hidden;transition:border-color .15s,background .15s,transform .15s}
+.v70h-card:hover,.v70h-card:focus-visible{border-color:rgba(56,189,248,.55);background:rgba(9,30,54,.96);transform:translateY(-1px);outline:none}
+.v70h-icon{font-size:17px;line-height:1;flex:0 0 auto}.v70h-main{min-width:0;display:flex;align-items:baseline;gap:8px;overflow:hidden}.v70h-main b{font-size:8px;letter-spacing:.9px;color:#7dd3fc;white-space:nowrap}.v70h-main span{font-size:10px;font-weight:800;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v70h-status{margin-left:auto;font-size:8px;color:#4ade80;flex:0 0 auto}.v70h-status.warn{color:#facc15}.v70h-status.off{color:#f87171}
+#v70-header-detail{position:absolute;left:10px;right:10px;top:calc(100% + 5px);max-height:min(46vh,360px);overflow:auto;background:rgba(2,8,22,.985);border:1px solid #244b83;border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.7);padding:9px;z-index:9000}
+.v70hd-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#7dd3fc;font-size:9px;letter-spacing:.7px;margin-bottom:7px}.v70hd-head button{width:24px;height:24px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;cursor:pointer}.v70hd-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(148,163,184,.08);font-size:9px}.v70hd-row:last-child{border-bottom:0}.v70hd-row b{font:800 11px/1 ui-monospace,monospace}.v70hd-hot{color:#fb923c}.v70hd-cold{color:#7dd3fc}.v70hd-pos{color:#fb923c}.v70hd-neg{color:#60a5fa}.v70hd-note{padding:6px 4px 2px;color:#64748b;font-size:7px;line-height:1.4}.v70hd-storm{padding:7px 4px;border-bottom:1px solid rgba(148,163,184,.08)}.v70hd-storm strong{font-size:10px}.v70hd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}.v70hd-chip{padding:4px;text-align:center;border:1px solid rgba(148,163,184,.12);border-radius:5px;background:#0a1425;font-size:7px}.v70hd-chip b{display:block;font-size:9px}.v70hd-link{color:#67e8f9;text-decoration:none;font-weight:800}
+@media(max-width:1100px){#v70-header-row{padding:4px 7px;gap:4px}.v70h-card{padding:5px 7px}.v70h-main{gap:5px}.v70h-main b{font-size:7px}.v70h-main span{font-size:9px}.v70h-icon{font-size:15px}}
+@media(max-width:900px){#v70-header-row{overflow-x:auto;display:flex;scrollbar-width:none}.v70h-card{flex:0 0 min(44vw,220px);min-height:36px}.v70h-main{display:block}.v70h-main b{display:block;font-size:6px;margin-bottom:1px}.v70h-main span{display:block;font-size:8px}.v70h-status{font-size:7px}#v70-header-detail{left:7px;right:7px;max-height:48vh}}
+@media(max-width:500px){.v70h-card{flex-basis:44vw;padding:4px 6px}.v70h-icon{font-size:14px}.v70h-main span{font-size:7.5px}.v70hd-row{font-size:8px}.v70hd-row b{font-size:10px}}
+
+/* === monitor-global-71-clean-layout (linhas originais 2129-2346) === */
+/* 7.1 — limpeza visual: nenhum HUD/card de status flutua sobre o mapa. */
+#mg70-hud,
+#mg-global-hud,
+#radar-legend-pro,
+#replay-panel-pro {
+  display: none !important;
+}
+
+/* =========================================================
+   Header 2 linhas limpas + clima na coluna de registros
+   ========================================================= */
+@media screen and (min-width: 901px) {
+  #app {
+    grid-template-rows: auto minmax(0, 1fr) !important;
+  }
+  #top-strip {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  #top-strip > .ts-mainrow {
+    position: relative !important;
+    z-index: 20 !important;
+    flex: 0 0 auto !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    width: 100% !important;
+    padding: 0 14px !important;
+    box-sizing: border-box !important;
+  }
+  #top-strip > #top-probar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 44px !important;
+    z-index: 15 !important;
+    pointer-events: none !important;
+  }
+  /* Segunda linha FULL WIDTH — mais espaço pros emojis */
+  #top-strip > #ux-controlbar {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    top: auto !important;
+    z-index: 25 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 42px !important;
+    padding: 4px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    border-top: 1px solid rgba(100, 180, 255, 0.10) !important;
+    border-bottom: 0 !important;
+    background: rgba(2, 8, 22, 0.98) !important;
+    box-sizing: border-box !important;
+  }
+  #top-strip > #ux-controlbar #controls {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 150px !important;
+  }
+  #top-strip > #ux-controlbar #chips-scroll-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  #top-strip > #ux-controlbar #chips-row {
+    gap: 7px !important;
+    padding: 4px 28px !important;
+  }
+  #top-strip > #ux-controlbar .chip {
+    padding: 5px 11px !important;
+    font-size: 12px !important;
+    min-height: 30px !important;
+  }
+  /* Esconde os 3 cards do header */
+  #top-strip > #v70-header-row,
+  #v70-header-row {
+    display: none !important;
+  }
+}
+
+/* Chip clima global */
+#chip-clima-global {
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  color: #7dd3fc !important;
+  font-weight: 800 !important;
+}
+#chip-clima-global.active,
+#chip-clima-global.on {
+  background: rgba(14, 116, 144, 0.45) !important;
+  border-color: #22d3ee !important;
+  color: #e0f2fe !important;
+}
+
+/* Painel clima na coluna de registros */
+#clima-global-panel {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid rgba(30, 58, 95, 0.7);
+  background: linear-gradient(180deg, rgba(6, 18, 36, 0.98), rgba(3, 10, 22, 0.98));
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.2s ease;
+}
+#clima-global-panel.open {
+  max-height: 420px;
+  opacity: 1;
+  padding: 8px 10px 10px;
+  overflow-y: auto;
+}
+#clima-global-panel .cgp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+#clima-global-panel .cgp-title {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #7dd3fc;
+  text-transform: uppercase;
+}
+#clima-global-panel .cgp-meta {
+  font-size: 7px;
+  color: #64748b;
+}
+#clima-global-panel .cgp-actions {
+  display: flex;
+  gap: 4px;
+}
+#clima-global-panel .cgp-btn {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #93c5fd;
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#clima-global-panel .cgp-btn:hover {
+  border-color: #38bdf8;
+  color: #e0f2fe;
+}
+#clima-global-panel .cgp-section {
+  margin-bottom: 8px;
+  padding: 7px 8px;
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  border-radius: 8px;
+  background: rgba(8, 20, 38, 0.72);
+}
+#clima-global-panel .cgp-section h4 {
+  margin: 0 0 5px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
+}
+#clima-global-panel .cgp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 10px;
+  padding: 2px 0;
+  color: #cbd5e1;
+}
+#clima-global-panel .cgp-row b {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #f8fafc;
+}
+#clima-global-panel .cgp-hot b { color: #fb923c; }
+#clima-global-panel .cgp-cold b { color: #7dd3fc; }
+#clima-global-panel .cgp-pos b { color: #fb923c; }
+#clima-global-panel .cgp-neg b { color: #60a5fa; }
+#clima-global-panel .cgp-note {
+  font-size: 7px;
+  color: #64748b;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+#clima-global-panel .cgp-storm {
+  font-size: 10px;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+#clima-global-panel .cgp-storm strong { color: #e9d5ff; }
+#sidebar-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#sidebar-left #events {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+@media screen and (max-width: 900px) {
+  #v70-header-row { display: none !important; }
+  #clima-global-panel.open { max-height: 50vh; }
+}
+

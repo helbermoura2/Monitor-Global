@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<script>
+(function () {
+  var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+  if (isTouch) document.documentElement.classList.add('is-touch');
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Monitor Global — Central de Monitoramento</title>
+<meta name="description" content="Monitor global de sismos, tempestades, ciclones, tsunamis e alertas oficiais em tempo quase real.">
+<meta name="theme-color" content="#020816">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ctext x='64' y='84' text-anchor='middle' font-size='72'%3E%F0%9F%8C%8D%3C/text%3E%3C/svg%3E">
+<link href='https://unpkg.com/maplibre-gl@5.13.0/dist/maplibre-gl.css' rel='stylesheet' />
+<script src='https://unpkg.com/maplibre-gl@5.13.0/dist/maplibre-gl.js'></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+
+<link rel="stylesheet" href="css/mobile-early.css">
+
+<link rel="stylesheet" href="css/features-misc.css">
+
+<link rel="stylesheet" href="css/header-v71.css">
+
+<script src="js/header-v71.js"></script>
+
+<script src="js/clima-sidebar.js"></script>
+
+<link rel="stylesheet" href="css/volcano.css">
+    <link rel="stylesheet" href="css/mobile-ultimate.css">
+</head>
+<body>
+<div id="app-status" role="status" aria-live="polite"><span id="app-status-text">Inicializando monitor…</span><button id="app-status-retry" type="button" hidden>Tentar novamente</button></div>
+<div id="lightning-flash"></div>
+<div id="debug-panel" style="display:none;position:fixed;top:60px;left:10px;z-index:100000;width:min(92vw,480px);max-height:60vh;overflow-y:auto;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px;font:11px/1.4 monospace;color:#cbd5e1;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <b style="color:#e2e8f0;">Log de diagnóstico</b>
+        <button id="debug-clear" style="background:#334155;border:none;border-radius:6px;color:#e2e8f0;padding:2px 8px;font-size:11px;cursor:pointer;">limpar</button>
+    </div>
+    <div id="debug-log"></div>
+</div>
+<div id="vignette-cinematic"></div>
+<div id="mobile-events-backdrop" onclick="toggleMobileEventsModal(false)"></div>
+<div id="app">
+  <header id="top-strip">
+    <div class="ts-mainrow">
+    <div class="ts-title">🌐 MONITOR GLOBAL</div>
+    <div class="live-indicator"><span class="live-dot"></span><span>AO VIVO</span></div>
+    </div>
+    <div class="ts-actions">
+      <div class="header-menu-group" id="audio-menu-group"><button class="header-menu-trigger" type="button" aria-expanded="false" aria-controls="audio-menu">🔊 Áudio</button><div class="header-submenu" id="audio-menu" role="menu"><div class="header-submenu-title">ÁUDIO E ALERTAS</div><button class="submenu-action" id="btn-som" title="Ligar ou desligar som">🔊 Som <b>ativo</b></button><div class="ts-vol-wrap" id="ts-vol-wrap"><button class="submenu-action" id="ts-vol-toggle" title="Volume e tipos de alerta" onclick="toggleVolPanel()">🎚️ Volume e tipos</button><div class="ts-vol-panel" id="ts-vol-panel"><div class="ts-vol-row"><span>Volume</span><input type="range" id="vol-slider" min="0" max="100" value="70" oninput="setSomVolume(this.value)"><span id="vol-value">70%</span></div><div class="ts-vol-label">Silenciar por tipo</div><div class="ts-vol-chips"><button class="chip chip-som" data-tipo="quake" title="Sismos">🌍</button><button class="chip chip-som" data-tipo="fire" title="Incêndios">🔥</button><button class="chip chip-som" data-tipo="storm" title="Tempestades">⚡</button><button class="chip chip-som" data-tipo="hurricane" title="Furacões/Ciclones">🌀</button><button class="chip chip-som" data-tipo="tornado" title="Tornados">🌪️</button><button class="chip chip-som" data-tipo="tsunami" title="Tsunamis">🌊</button><button class="chip chip-som" data-tipo="volcano" title="Vulcões">🌋</button><button class="chip chip-som" data-tipo="civil" title="Defesa Civil">🚨</button><button class="chip chip-som" data-tipo="wind" title="Vento">💨</button><button class="chip chip-som" data-tipo="flood" title="Enchentes">💧</button></div></div></div><button class="submenu-action" id="btn-teste" title="Testar sons">🔔 Testar sons</button>
+<button class="submenu-action" id="btn-teste-faixas" title="Testar toques M3–M6">🎚️ Testar faixas M3–M6</button>
+<button class="submenu-action" id="btn-voz-hist" title="Últimos alertas falados">🗣️ Histórico de voz</button>
+<button class="submenu-action" id="btn-share-resumo" title="Copiar resumo">📋 Copiar resumo</button></div></div>
+      <div class="header-menu-group" id="events-menu-group"><button class="header-menu-trigger" type="button" aria-expanded="false" aria-controls="events-menu">📊 Eventos</button><div class="header-submenu" id="events-menu" role="menu"><div class="header-submenu-title">EVENTOS E DADOS</div><button class="submenu-action" id="btn-previsao" title="Previsão & qualidade do ar">🌤️ Previsão e ar</button><button class="submenu-action" id="mobile-events-btn" onclick="toggleMobileEventsModal(true)" title="Ver registros de eventos">📋 Abrir registros <span class="mobile-events-badge" id="mobile-events-fab-count">0</span></button><button class="submenu-action" id="events-sources-shortcut" type="button">📡 Status das fontes</button><button class="submenu-action" id="btn-resumo-dia" type="button" title="Gerar imagem com os 5 maiores sismos do dia" onclick="shareResumoDiarioStory()">🏆 Resumo do dia</button></div></div>
+      <div class="ts-more-wrap header-menu-group" id="ts-more-wrap"><button class="header-menu-trigger" id="ts-more-toggle" type="button" title="Mais opções" onclick="toggleMoreMenu()" aria-expanded="false">⋯ Mais</button><div class="header-submenu" id="ts-more-menu" role="menu"><div class="header-submenu-title">FERRAMENTAS</div><button class="submenu-action" id="debug-toggle" title="Log de diagnóstico">🛠️ Diagnóstico</button><button class="submenu-action" id="ux-btn-summary" type="button" title="Abrir resumo executivo">📊 Resumo</button><button class="submenu-action" id="ux-btn-timeline" type="button" title="Abrir linha do tempo">◷ Timeline</button><button class="submenu-action" id="ux-btn-sources" type="button" title="Ver status das fontes">📡 Fontes</button><button class="submenu-action" id="ux-btn-legend" type="button" title="Abrir legenda do mapa">ⓘ Legenda</button><button class="submenu-action" id="ux-btn-changes" type="button" title="Ver o que mudou">↕ Mudanças</button><button class="submenu-action" id="ux-btn-settings" type="button" title="Configurar alertas">🔔 Alertas</button><button class="submenu-action" type="button" id="menu-btn-reload" onclick="event.stopPropagation();window.menuAcao&&window.menuAcao('reload')">🔄 Recarregar dados</button></div></div>
+    </div>
+    <div class="ts-kpis">
+      <div class="ts-kpi" id="kpibox-eventos"><span class="ts-kpi-label">REGISTROS 24H</span><span class="ts-kpi-value" id="kpi-eventos">--</span></div>
+      <div class="ts-kpi" id="kpibox-maior"><span class="ts-kpi-label">MAIOR</span><span class="ts-kpi-value c-high" id="kpi-maior">--</span></div>
+      <button type="button" id="btn-som-header" class="btn-som-header" title="Alertas: M6+ têm voz; M5.9 ou menor têm apenas som" aria-label="Alertas: M6+ têm voz; M5.9 ou menor têm apenas som">🔊</button><div class="ts-clock" id="kpi-relogio">--:--:--</div><div class="ts-kpi" id="kpibox-brent"><span class="ts-kpi-label" id="kpi-brent-label">🛢️ BRENT</span><span class="ts-kpi-value" id="kpi-brent">--</span></div><button type="button" id="btn-radar-header" class="btn-radar-header active" title="Radar de precipitação em tempo real (RainViewer)" aria-label="Ligar ou desligar radar de precipitação">🌧️</button>
+      <div class="ts-kpi" id="kpibox-sp"><span class="ts-kpi-label">📍 <span id="sp-city-name">--</span></span><span class="mg-wx-icon" id="kpi-wx-icon" aria-hidden="true">--</span><div class="ts-kpi-row"><span class="ts-kpi-value" id="kpi-temp">--</span><span class="ts-kpi-sub" id="kpi-feels">sens --</span></div><span class="mg-wind" id="kpi-wind" title="Vento (rajada)">💨 --</span></div>
+    </div>
+    <div class="ts-meta" id="ts-meta">
+      <span id="ts-meta-fontes">USGS · USGS-RT · EMSC · GEOFON · FUNVISIS · AFAD · JMA · BMKG · IGP · INPE · FIRMS · GDACS · NHC · INMET · CPTEC · Chuva-modelo (SP) · CGE-SP · REDEMET · USP-Sismologia · Open-Meteo · RainViewer</span>
+      <span>atualiza em <b class="bs-count">--</b></span>
+      <span id="ts-meta-fresh">dados: --</span>
+      <span id="ts-meta-build">build 7.6.3</span>
+      <span>WGS-84</span>
+      <span class="bs-tz">BRT</span>
+    </div>
+    <!-- PRO DESKTOP: segunda linha da faixa superior; evita qualquer sobreposição com mapa/colunas. -->
+    <div id="top-probar" aria-label="Resumo e controles principais">
+  <div id="pro-dashboard" aria-live="polite">
+    <div id="risk-card" class="risk-card risk-normal">
+      <div class="risk-main"><span id="risk-icon">🟢</span><div><div class="risk-kicker">NÍVEL DE RISCO</div><div id="risk-label">NORMAL</div></div></div>
+      <div id="risk-reason">Sem ameaça relevante detectada.</div><div class="pro-meta" id="risk-confidence">Confiança: --</div>
+    </div>
+    <div class="pb-sep"></div>
+    <div id="sp-live-card" class="sp-live-card">
+      <div class="sp-live-title">📍 <b id="sp-live-city">SÃO PAULO</b><span id="sp-live-source">Open-Meteo</span><button id="weather-shortcut-desktop" class="weather-header-shortcut" type="button" title="Abrir previsão, chuva chegando e qualidade do ar" aria-label="Abrir previsão meteorológica" >🌤️</button></div><div class="pro-location" id="pro-location-state">📍 SP padrão · localização aguardando</div>
+      <div class="sp-live-grid">
+        <div class="sp-temp-cell"><span>🌡️</span><b id="sp-live-temp">--</b><b id="sp-live-feels" class="sp-feels">sens --</b><small>temp / sensação</small></div>
+        <div><span>💨</span><b id="sp-live-gust">--</b><small>rajada</small></div>
+        <div><span>💧</span><b id="sp-live-rain">--</b><small>chuva</small></div>
+        <div><span>💦</span><b id="sp-live-hum">--</b><small>umidade</small></div>
+        <div id="flood-risk-chip" title="Risco de alagamento local"><span>💧</span><b id="flood-risk-label">BAIXO</b><small>alagamento</small></div>
+        <div id="sp-rain-eta-chip" class="rain-clear" title="Previsão/radar de chuva nas próximas horas"><span id="sp-rain-eta-ico">⏱️</span><b id="sp-rain-eta">--</b><small>próx. chuva</small></div>
+      </div>
+    </div>
+    <div class="pb-sep"></div>
+    <div id="cemaden-card" class="cemaden-card" aria-live="polite">
+      <div class="cemaden-title"><span>🌧️ CHUVA EM SP · ESTIMATIVA DE MODELO</span><span id="cemaden-status" class="cemaden-status">AGUARDANDO</span></div>
+      <div class="cemaden-main"><b id="cemaden-stations">--</b><span>pontos</span><b id="cemaden-max24">--</b><span>mm/24h máx.</span></div>
+      <div class="cemaden-sub" id="cemaden-last">📊 Conectando…</div>
+      <div class="cemaden-sub" id="cemaden-observed" style="margin-top:2px"></div>
+      <div class="cemaden-actions"><button id="btn-cemaden-layer" class="mini-btn">pontos no mapa</button><a href="https://painelalertas.cemaden.gov.br/" target="_blank" rel="noopener" class="mini-btn cemaden-link">Painel CEMADEN ↗</a><a href="https://mapainterativo.cemaden.gov.br/" target="_blank" rel="noopener" class="mini-btn cemaden-link">Mapa ↗</a><a href="https://open-meteo.com/" target="_blank" rel="noopener" class="mini-btn cemaden-link">modelo chuva ↗</a></div>
+    </div>
+    <div id="source-card" class="source-card">
+      <div class="source-title">📡 FONTES <button id="btn-sources" class="mini-btn">status</button></div><div class="source-summary" id="source-summary">Verificando disponibilidade…</div>
+      <div id="source-list" class="source-list"></div>
+    </div>
+    <div class="tp-meta" id="tp-meta">
+      <span>USGS · EMSC · JMA · IGP · NHC · Open-Meteo · RainViewer</span>
+      <span>atualiza em <b class="bs-count">--</b></span>
+      <span class="bs-tz">BRT</span>
+    </div>
+  </div>
+  <div id="map-tools-pro">
+    <button class="map-tool active" id="btn-radar-pro" title="Radar meteorológico">🌧️ Radar</button>
+    <button class="map-tool" id="btn-replay-pro" title="Reproduzir eventos das últimas 24h">▶ Replay</button>
+    <button class="map-tool" id="btn-follow-pro" title="Retomar câmera automática">🎯 Auto</button>
+  </div>
+    </div>
+    <!-- Barra PRO compacta: no celular todos os controles ficam dentro do cabeçalho, nunca sobre o mapa. -->
+    <div id="mobile-probar" aria-label="Controles principais do monitor">
+      <div class="mobile-risk-mini" id="mobile-risk-mini">
+        <span id="mobile-risk-icon">🟢</span>
+        <div><b id="mobile-risk-label">NORMAL</b><small id="mobile-risk-reason">Sem ameaça relevante</small></div>
+      </div>
+      <div class="mobile-weather-mini" title="Condições atuais de São Paulo">
+        <b id="mobile-temp">--°</b><span id="mobile-feels">sens --</span>
+        <span id="mobile-gust">💨 --</span><span id="mobile-rain">🌧️ --</span><span id="mobile-hum">💧 --</span><button id="weather-shortcut" class="weather-shortcut" type="button" title="Abrir previsão, chuva chegando e qualidade do ar" aria-label="Abrir previsão meteorológica">🌤️</button>
+      </div>
+      <div class="mobile-pro-actions">
+        <button class="map-tool active" id="mobile-btn-radar" title="Radar meteorológico">🌧️ Radar</button>
+        <button class="map-tool" id="mobile-btn-replay" title="Replay das últimas 24h">▶ Replay</button>
+        <button class="map-tool" id="mobile-btn-follow" title="Retomar câmera automática">🎯 Auto</button>
+        <button class="map-tool" id="mobile-btn-cemaden" title="Estimativa de chuva pelo modelo Open-Meteo; não é medição oficial">🌧️ <span id="mobile-cemaden-status">MODELO</span></button>
+        <button class="map-tool" id="mobile-btn-more" title="Mais controles">⋯</button>
+      </div>
+    </div>
+    <div id="ux-toolbar" aria-hidden="true"></div>
+    <div id="ux-controlbar" aria-label="Filtros e busca de eventos"><div id="controls"><div class="mag-slider-row"><span>Magnitude mínima</span><span class="mag-value" id="mag-value">M 0.1</span></div><input type="range" id="mag-slider" min="0" max="7" step="0.1" value="0.1" oninput="updateMagFilter(this.value)"></div><div id="chips-scroll-wrap" aria-label="Filtros de eventos"><button class="chips-scroll-btn" id="chips-scroll-left" type="button" title="Rolar filtros para a esquerda" aria-label="Rolar filtros para a esquerda">‹</button><div id="chips-row"><button class="chip active" data-f="all" title="Todos os eventos">Tudo</button><button class="chip" data-f="earthquake" title="Sismos">🌍</button><button class="chip advanced-filter" data-f="fire" title="Incêndios">🔥</button><button class="chip" data-f="storm" title="Tempestades">⚡</button><button class="chip advanced-filter" data-f="hurricane" title="Ciclones">🌀</button><button class="chip advanced-filter" data-f="tornado" title="Tornados">🌪️</button><button class="chip advanced-filter" data-f="tsunami" title="Tsunamis">🌊</button><button class="chip advanced-filter" data-f="volcano" title="Vulcões">🌋</button><button class="chip advanced-filter" data-f="civil" title="Defesa Civil">🚨</button><button class="chip advanced-filter" data-f="wind" title="Vento forte">💨</button><button class="chip advanced-filter" data-f="flood" title="Enchentes">💧</button><button class="chip advanced-filter chip-toggle" id="chip-importantes" title="Só sismos M4.5+">M4.5+</button><button class="chip chip-toggle" id="chip-criticos" title="Só eventos críticos: sismos fortes, avisos oficiais graves, ciclone/tsunami, radar">⚡ Crítico</button><button class="chip chip-toggle" id="chip-geo-br" data-geo="br" title="Só eventos no Brasil">🇧🇷 BR</button><button class="chip chip-toggle" id="chip-geo-me" data-geo="me" title="Brasil ou até 500 km de você">📍 Me afeta</button><button class="chip advanced-filter chip-toggle" id="chip-geo-500" data-geo="500" title="Raio de 500 km da sua localização">📍 500km</button><button class="chip advanced-filter chip-toggle" id="chip-geo-100" data-geo="100" title="Raio de 100 km da sua localização">📍 100km</button><button class="chip chip-toggle" id="chip-clima-global" type="button" title="Clima global: extremos, anomalia e ciclones (atualiza a cada 6h)">🌡️ Clima</button><button class="chip chip-menu-desktop" id="chip-menu-desktop" type="button" title="Abrir menu principal">☰ Menu</button><button class="chip more-filters-btn" id="more-filters-toggle" type="button" title="Mostrar filtros avançados" aria-expanded="false">＋ Mais filtros</button></div><button class="chips-scroll-btn" id="chips-scroll-right" type="button" title="Rolar filtros para a direita" aria-label="Rolar filtros para a direita">›</button></div><div id="type-counters" style="display:none!important" aria-hidden="true" hidden></div><div id="freshness-bar" aria-live="polite"><span id="fresh-sismo">Sismos: —</span><span id="fresh-alerts">Alertas: —</span><span id="fresh-net">Rede: —</span><span id="fresh-snooze" style="display:none"></span></div><div id="ux-search-wrap"><input id="ux-search" type="search" placeholder="Buscar cidade, país ou evento…" aria-label="Buscar cidade, país ou evento"></div><div id="ux-events-total" style="display:none!important" aria-hidden="true" hidden><span>REGISTROS</span><strong id="ux-events-total-value">-- eventos</strong></div></div>
+    <section id="v70-header-row" aria-label="Monitor Global — inteligência climática global">
+      <button class="v70h-card" id="v70h-ext" type="button" aria-label="Extremos térmicos">
+        <span class="v70h-icon">🌡️</span><span class="v70h-main"><b>EXTREMOS</b><span id="v70h-ext-main">carregando…</span></span><span class="v70h-status" id="v70h-ext-status">●</span>
+      </button>
+      <button class="v70h-card" id="v70h-anom" type="button" aria-label="Anomalias de temperatura">
+        <span class="v70h-icon">🗺️</span><span class="v70h-main"><b>ANOMALIA</b><span id="v70h-anom-main">carregando…</span></span><span class="v70h-status" id="v70h-anom-status">●</span>
+      </button>
+      <button class="v70h-card" id="v70h-cyc" type="button" aria-label="Ciclones ativos">
+        <span class="v70h-icon">🌀</span><span class="v70h-main"><b>CICLONES</b><span id="v70h-cyc-main">consultando…</span></span><span class="v70h-status" id="v70h-cyc-status">●</span>
+      </button>
+      <div id="v70-header-detail" role="dialog" aria-live="polite" hidden>
+        <div class="v70hd-head"><b id="v70hd-title">MONITOR GLOBAL</b><button id="v70hd-close" type="button" aria-label="Fechar">✕</button></div>
+        <div id="v70hd-body"></div>
+      </div>
+    </section>
+  </header>
+<div id="latest-event-ticker" onclick="alternarCaixaRegistrosMobile()" role="button" tabindex="0">
+  <span class="let-left"><span id="latest-event-ticker-icon">📡</span></span>
+  <span class="let-mid">
+    <span id="latest-event-ticker-kicker">AO VIVO</span>
+    <span id="latest-event-ticker-text">Aguardando dados…</span>
+  </span>
+  <span class="let-right"><span id="latest-event-ticker-arrow" aria-hidden="true">▾</span></span>
+</div>
+<!-- Barra de ação mobile: botões que SEMPRE recebem toque (S25 / Nothing) -->
+<div id="mobile-fab-bar" aria-label="Ações rápidas">
+  <button type="button" id="fab-events" title="Lista de eventos">📋</button>
+  <button type="button" id="fab-audio" title="Áudio / voz">🔊</button>
+  <button type="button" id="fab-menu" title="Menu de controles">☰</button>
+</div>
+
+  <aside id="sidebar-left"><button id="sidebar-events-close" onclick="toggleMobileEventsModal(false)" title="Fechar">✕</button><div id="events-label" onclick="alternarCaixaRegistrosMobile()"><span>REGISTROS EXIBIDOS · 24–72H</span><span class="events-count" id="events-count-label"></span><span id="events-peek-arrow" aria-hidden="true">▲</span></div>
+<div id="clima-global-panel" aria-label="Inteligência climática global">
+  <div class="cgp-head">
+    <span class="cgp-title">🌡️ Clima global</span>
+    <span class="cgp-meta" id="cgp-updated">—</span>
+    <div class="cgp-actions">
+      <button type="button" class="cgp-btn" id="cgp-refresh" title="Atualizar agora">↻</button>
+      <button type="button" class="cgp-btn" id="cgp-close" title="Fechar">✕</button>
+    </div>
+  </div>
+  <div class="cgp-section" id="cgp-ext"><h4>🌡️ Extremos térmicos</h4><div class="cgp-body">Carregando…</div></div>
+  <div class="cgp-section" id="cgp-anom"><h4>🗺️ Anomalia térmica</h4><div class="cgp-body">Carregando…</div></div>
+  <div class="cgp-section" id="cgp-cyc"><h4>🌀 Ciclones ativos</h4><div class="cgp-body">Carregando…</div></div>
+  <div class="cgp-note">Atualização automática a cada 6 horas · Open-Meteo · NHC</div>
+</div>
+<div id="events"></div></aside>
+
+  <main id="mapWrap">
+    <div id="mapContainer" role="region" aria-label="Mapa interativo de eventos globais"></div>
+    <div id="empty-map-state" role="status"><strong>Aguardando dados dos provedores</strong><p id="empty-map-message">O mapa será preenchido assim que as fontes responderem.</p><button id="empty-map-retry" type="button">Tentar novamente</button></div>
+    <div id="fc-backdrop" onclick="hideFcPopup()"></div>
+    <div id="sp-forecast-air">
+      <div class="topbar-card-header"><span>🌤️ <span id="fc-city-name">--</span> — Previsão & Ar</span><span id="fc-update">--</span><button id="fc-close" onclick="hideFcPopup()" title="Fechar">✕</button></div>
+      <div class="weather-control-row"><select id="weather-city-select" class="weather-city-select" aria-label="Selecionar cidade brasileira"><option value="São Paulo">São Paulo</option><option value="Rio de Janeiro">Rio de Janeiro</option><option value="Belo Horizonte">Belo Horizonte</option><option value="Brasília">Brasília</option><option value="Curitiba">Curitiba</option><option value="Porto Alegre">Porto Alegre</option><option value="Salvador">Salvador</option><option value="Recife">Recife</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option><option value="Belém">Belém</option><option value="Goiânia">Goiânia</option></select><button id="weather-pin-btn" class="weather-pin-btn" type="button" title="Fixar painel meteorológico" aria-label="Fixar painel meteorológico">📌</button><span id="weather-confidence" class="weather-confidence model">MODELO</span></div>
+      <div class="weather-summary" role="status" aria-live="polite"><div class="weather-summary-kicker">RESUMO OPERACIONAL</div><div id="weather-summary-text" class="weather-summary-text">Aguardando atualização meteorológica.</div><div id="weather-summary-meta" class="weather-summary-meta">Fonte e atualização serão exibidas aqui.</div></div>
+      <div class="sp-nowcast" id="sp-nowcast"></div>
+      <section class="weather-ops" aria-label="Nowcasting operacional">
+        <div class="weather-ops-head"><b>NOWCASTING OPERACIONAL</b><span id="weather-ops-source">MODELO · Open-Meteo (não oficial)</span></div>
+        <div class="weather-arrival" id="weather-arrival"><span class="weather-arrival-icon">🌧️</span><div><strong id="weather-arrival-title">Aguardando atualização</strong><small id="weather-arrival-detail">Probabilidade, chegada e intensidade serão calculadas.</small></div></div>
+        <div class="weather-metrics" id="weather-metrics"><span>Prob. <b id="weather-prob">--</b></span><span>1h <b id="weather-mm1">--</b></span><span>Rajada <b id="weather-gust">--</b></span></div>
+        <div class="weather-hourly-title"><span>PRÓXIMAS HORAS</span><small>estimativa de modelo</small></div>
+        <div class="weather-hourly" id="weather-hourly"><span class="weather-loading">Carregando previsão horária…</span></div>
+        <div class="weather-trend"><span>Próx. 2h <b id="weather-trend-2h">--</b></span><span>Próx. 6h <b id="weather-trend-6h">--</b></span><span>Temp. 6h <b id="weather-trend-temp">--</b></span></div>
+        <div class="weather-source-note"><strong>Fontes:</strong> <span class="source-model">modelo Open-Meteo</span> · <span class="source-radar">radar observado RainViewer</span> · <span class="source-official">alertas oficiais somente quando confirmados</span>.</div>
+      </section>
+      <div class="aqi-row">
+        <span class="aqi-badge" id="aqi-badge">--</span>
+        <div><div class="aqi-label" id="aqi-label">--</div><div class="aqi-pm" id="aqi-pm">PM2.5 --</div></div>
+      </div>
+      <div class="fc-strip" id="fc-strip"></div>
+    </div>
+    <div id="radar-legend-pro"><b>RADAR DE PRECIPITAÇÃO</b><span>Dados observados · RainViewer</span><i><em></em>chuva fraca&nbsp;&nbsp;<em></em>chuva forte&nbsp;&nbsp;<em></em>intensa</i><small id="radar-time-pro">--</small></div>
+    <div id="replay-panel-pro"><div><b>🎬 REPLAY 24H</b><span id="replay-status-pro">Parado</span></div><input id="replay-range-pro" type="range" min="0" max="100" value="0"><div class="replay-actions"><button data-speed="1">×1</button><button data-speed="5">×5</button><button data-speed="20">×20</button><button id="replay-stop-pro">■ Parar</button></div></div>
+
+  </main>
+
+  <aside id="painel-direito" class="pd-sev-none" onclick="alternarPainelDetalhesMobile()">
+    <button id="painel-direito-close" onclick="event.stopPropagation();fecharPainelDetalhesMobile()" title="Fechar">✕</button>
+    <div class="pd-header-row">
+      <div class="pd-header" id="pd-source">AGUARDANDO EVENTO…</div>
+      <div class="pd-header-actions">
+        <button type="button" class="pd-focus-badge" id="pd-focus-btn" title="Centralizar no epicentro" onclick="event.stopPropagation();focarEventoNoMapa()">FOCO</button>
+        <button type="button" id="pd-share-btn" title="Compartilhar nos Stories" aria-label="Compartilhar nos Stories">📤 Story</button>
+        <span id="pd-peek-arrow" aria-hidden="true">▲</span>
+      </div>
+    </div>
+    <div class="pd-chips" id="pd-chips" aria-label="Resumo da fonte"></div>
+    <div class="pd-gauge-wrap" id="pd-gauge-wrap">
+      <div class="pd-gauge-glow" id="pd-gauge-glow" aria-hidden="true"></div>
+      <svg id="pd-gauge" viewBox="0 0 120 66">
+        <path d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8" stroke-linecap="round"/>
+        <path id="pd-gauge-arc" d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="#fb923c" stroke-width="8" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
+      </svg>
+      <div class="pd-mag" id="pd-mag">--</div>
+      <div class="pd-flag" id="pd-flag"></div>
+    </div>
+    <div class="pd-local" id="pd-local">Selecione um evento na lista</div>
+    <div class="pd-time" id="pd-horario">--</div>
+    <div class="pd-timeline" id="pd-timeline" style="display:none" aria-label="Linha do tempo do evento"></div>
+    <div class="pd-time" id="pd-distvoce" style="display:none;color:#38bdf8;font-weight:600"></div>
+    <div class="stats-grid">
+      <div class="stat-card" title="Profundidade do hipocentro e classificação: Raso (&lt;70 km, sentido com mais força na superfície), Intermediário (70-300 km) ou Profundo (&gt;300 km, menos destrutivo mesmo em magnitudes altas)."><div class="stat-card-label" id="pd-depth-label">Profundidade</div><div class="stat-card-value" id="pd-depth">--</div></div>
+      <div class="stat-card stat-card-primary" title="Escala Mercalli Modificada: mede o quanto o tremor foi sentido/o estrago causado (I=imperceptível ... XII=destruição total), diferente da magnitude, que mede a energia liberada."><div class="stat-card-label" id="pd-mercalli-label">Intensidade (MMI)</div><div class="stat-card-value" id="pd-mercalli">--</div></div>
+      <div class="stat-card" title="Energia liberada, convertida em equivalente de TNT (kg/ton/kt/Mt) — a partir de M5 mostra também uma comparação com eventos conhecidos, pra dar noção de escala."><div class="stat-card-label" id="pd-energy-label">Energia</div><div class="stat-card-value" id="pd-energy">--</div></div>
+    </div>
+    <div class="bubble-section pd-impact-section" style="border-left-color:#ef4444;">
+      <div class="bubble-section-title">⚠️ Impacto Estimado <span class="estimativa-badge" title="Estimativa automática com base em magnitude, profundidade e distância — não substitui um relatório oficial de defesa civil.">ESTIMATIVA</span></div>
+      <div class="bubble-section-content" id="pd-impact">--</div>
+    </div>
+    <button type="button" id="pd-more-toggle" class="pd-more-toggle" onclick="event.stopPropagation();togglePainelMaisDetalhes()" aria-expanded="false">Mais detalhes ▾</button>
+    <div id="pd-more-details" class="pd-more-details" hidden>
+      <div id="pd-source-trust" class="source-trust-card" style="display:none"></div>
+      <div class="bubble-section">
+        <div class="bubble-section-title"><span id="pd-fault-section-label">Dinâmica da Falha</span><a href="#" target="_blank" id="pd-link" class="btn-source-inline">🔗 Fonte oficial →</a></div>
+        <div class="fault-diagram"><span class="fault-arrow" id="pd-fault-arrow">❓</span><span class="fault-label" id="pd-fault-type">--</span></div>
+        <div class="bubble-section-content" id="pd-fault-desc">--</div>
+      </div>
+      <div class="bubble-section" style="border-left-color:#4ade80;">
+        <div class="bubble-section-title" id="pd-cities-title">🏙️ Cidades Próximas</div>
+        <div id="pd-cities" class="bubble-section-content">--</div>
+      </div>
+      <div class="bubble-section" style="border-left-color:#fb923c;">
+        <div class="bubble-section-title">📅 Histórico Regional (30 dias)</div>
+        <div id="pd-history" class="bubble-section-content">--</div>
+      </div>
+    </div>
+  </aside>
+
+  
+</div>
+<div id="loading-indicator"><div class="spinner"></div><span>Atualizando dados...</span></div>
+
+<script src="js/debug-panel.js"></script>
+<script src="js/nucleo-estado.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/geo-e-ciclone-utils.js"></script>
+<script src="js/cidades-proximas.js"></script>
+<script src="js/sismo-metrics.js"></script>
+<script src="js/feed-utils.js"></script>
+<script src="js/confianca-fontes.js"></script>
+<script src="js/painel-e-lista.js"></script>
+<script src="js/kpis-ui.js"></script>
+<script src="js/sismo-fontes.js"></script>
+<script src="js/orquestrador-feeds.js"></script>
+<script src="js/brent.js"></script>
+<script src="js/clima-local.js"></script>
+<script src="js/tempestades.js"></script>
+<script src="js/inmet-avisos.js"></script>
+<script src="js/furacoes-gdacs.js"></script>
+<script src="js/tsunami-enchente.js"></script>
+<script src="js/vulcao.js"></script>
+<script src="js/tsunami-tornado.js"></script>
+<script src="js/incendios.js"></script>
+<script src="js/alertas-locais-sp.js"></script>
+<script src="js/ui-wiring-final.js"></script>
+
+<script src="js/cemaden-risco.js"></script>
+<script src="js/fetch-timeout.js"></script>
+<div id="ux-panel" role="dialog" aria-modal="false" aria-labelledby="ux-panel-title"><div class="ux-panel-head"><span id="ux-panel-title">Análise</span><button class="ux-close" id="ux-panel-close" type="button" aria-label="Fechar painel">✕</button></div><div id="ux-panel-content"></div></div>
+<script src="js/ux-panel.js"></script>
+<script src="js/header-event-count-sync.js"></script>
+<script src="js/header-menu-toggle.js"></script>
+
+<link rel="stylesheet" href="css/menu-fix.css">
+<script src="js/header-menu-pro.js"></script>
+
+<link rel="stylesheet" href="css/mobile-header-v4412.css">
+
+<link rel="stylesheet" href="css/desktop-layout-lock.css">
+
+<script src="js/mobile-desktop-cleanup.js"></script>
+
+<script src="js/enhancements-4413.js"></script>
+
+<script src="js/flood-chip-click.js"></script>
+
+<script src="js/inmet-detail.js"></script>
+
+<script src="js/adaptive-panel.js"></script>
+
+<script src="js/mobile-final-fix.js"></script>
+
+<link rel="stylesheet" href="css/mobile-mid.css">
+
+<!-- mobile-menu-single-handler-2026-08-24 removido: mirava #header-main-menu-toggle,
+     id que não existe no HTML (só existe #fab-menu). Nunca executava — dead code. -->
+
+<script src="js/mobile-fab-menu-handler.js"></script>
+<!-- ═══════════ MODO DIAGNÓSTICO (?debug=1) ═══════════ -->
+<script src="js/debug-overlay.js"></script>
+
+<link rel="stylesheet" href="css/intensity-filters.css">
+<script src="js/real-intensity.js"></script>
+
+<script src="js/pwa-offline-tv.js"></script>
+
+<link rel="stylesheet" href="css/tv-mode.css">
+
+<!-- ═══ BRASIL HUB 5.7 — tempo severo nacional + CPTEC capitais ═══ -->
+<div id="brasil-hub" class="brasil-hub" hidden aria-label="Central Brasil — tempo severo nacional">
+  <div class="bh-head">
+    <strong>🇧🇷 Central Brasil</strong>
+    <span id="bh-status">INMET · CPTEC · CGE-SP · CEMADEN (links)</span>
+    <button type="button" id="bh-close" title="Fechar">✕</button>
+  </div>
+  <div class="bh-grid">
+    <section class="bh-card" id="bh-inmet">
+      <h4>⚡ INMET — tempo severo no país</h4>
+      <p id="bh-inmet-sum">Carregando avisos nacionais…</p>
+      <div id="bh-inmet-ufs" class="bh-tags"></div>
+      <a href="https://alertas2.inmet.gov.br/" target="_blank" rel="noopener">Mapa de avisos ↗</a>
+    </section>
+    <section class="bh-card" id="bh-cemaden">
+      <h4>🌧️ CEMADEN — sem API pública (links oficiais)</h4>
+      <p id="bh-cemaden-sum">Não é um feed ao vivo aqui no app — API plena depende da <b>PED</b> (pedido enviado). Até lá: use Painel e Mapa oficiais abaixo. O card "Chuva-modelo" no topo é uma estimativa via Open-Meteo, não dado do CEMADEN.</p>
+      <div class="bh-links">
+        <a href="https://painelalertas.cemaden.gov.br/" target="_blank" rel="noopener">Painel de Alertas ↗</a>
+        <a href="https://mapainterativo.cemaden.gov.br/" target="_blank" rel="noopener">Mapa Interativo ↗</a>
+        <a href="https://www.gov.br/cemaden/pt-br/assuntos/riscos-geo-hidrologicos/" target="_blank" rel="noopener">Boletins ↗</a>
+      </div>
+    </section>
+    <section class="bh-card" id="bh-cptec">
+      <h4>📡 CPTEC/INPE — capitais (visão nacional)</h4>
+      <p id="bh-cptec-sum">Condições e previsão nas capitais. Destaca instabilidade / chuva / tempestade.</p>
+      <div id="bh-cptec-caps" class="bh-caps"></div>
+      <div id="bh-cptec-days" class="bh-days"></div>
+      <a href="https://www.cptec.inpe.br/" target="_blank" rel="noopener">Portal CPTEC (mapas de severidade) ↗</a>
+    </section>
+    <section class="bh-card" id="bh-cge">
+      <h4>🏙️ CGE-SP — sua capital</h4>
+      <p id="bh-cge-sum">Operação municipal de chuva e alagamento em São Paulo.</p>
+      <div class="bh-links">
+        <a href="https://www.cgesp.org/" target="_blank" rel="noopener">Site CGE ↗</a>
+        <a href="https://www.cgesp.org/v3/" target="_blank" rel="noopener">Mapa operacional ↗</a>
+      </div>
+      <p id="bh-cge-local" class="bh-note">Contexto SP: aguardando…</p>
+    </section>
+  </div>
+  <p class="bh-foot">Lista à esquerda = eventos no <b>Brasil</b> (INMET, fogo, sismos, etc.). O mapa de severidade do site CPTEC não tem API pública — usamos avisos INMET (oficial) + previsão CPTEC nas capitais. Emergência: <b>199</b>.</p>
+</div>
+<link rel="stylesheet" href="css/brasil-hub.css">
+<script src="js/brasil-hub.js"></script>
+
+<!-- 5.8.1 médio impacto + técnico -->
+<div id="snooze-panel" role="dialog" aria-label="Snooze">
+  <h4>⏸️ Snooze (DeX / sala)</h4>
+  <button type="button" data-snooze-som="15">🔇 Som 15 min</button>
+  <button type="button" data-snooze-som="30">🔇 Som 30 min</button>
+  <button type="button" data-snooze-som="60">🔇 Som 60 min</button>
+  <button type="button" id="snooze-clear">▶ Retomar tudo agora</button>
+  <button type="button" id="snooze-close">Fechar</button>
+</div>
+<script src="js/mid-tech-features.js"></script>
+
+<!-- ═══ Compartilhar evento nos Stories (Instagram/WhatsApp/etc.) ═══ -->
+<script src="js/story-share.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MONITOR GLOBAL — HUD GLOBAL / CAMADA OPERACIONAL
+     Este bloco é autocontido para facilitar futuras atualizações sem mexer
+     no núcleo existente do mapa e do catálogo sísmico.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="css/monitor-global-6.css">
+<script src="js/monitor-global-6.js"></script>
+
+<link rel="stylesheet" href="css/correlation.css">
+<script src="js/correlation-engine.js"></script>
+<link rel="stylesheet" href="css/monitor-global-70.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="js/monitor-global-70.js"></script>
+
+<link rel="stylesheet" href="css/radar-v71.css">
+<script src="js/monitor-global-71.js"></script>
+
+<link rel="stylesheet" href="css/header-v72.css">
+<script src="js/header-v72.js"></script>
+<script src="js/mobile-portrait-clean-toggle.js"></script>
+<link rel="stylesheet" href="css/mobile-late-patches.css">
+<script src="js/mobile-v73.js"></script>
+<script src="js/mobile-v77.js"></script>
+
+<script src="mg-volcano-flood-pt.js"></script>
+<script src="mg-volcano-flood-fetch.js"></script>
+
+<script>
+(function(){
+  const mq=()=>window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+  function fix(){
+    if(!mq()) return;
+    const strip=document.getElementById('top-strip'), main=document.querySelector('#top-strip>.ts-mainrow');
+    const kpis=document.querySelector('#top-strip>.ts-kpis'), cb=document.getElementById('ux-controlbar'), fab=document.getElementById('mobile-fab-bar');
+    if(!strip||!main) return;
+    if(kpis && kpis.parentElement!==strip) strip.appendChild(kpis);
+    if(fab && fab.parentElement!==main) main.appendChild(fab);
+    if(cb){ cb.style.setProperty('display','flex','important'); cb.style.setProperty('visibility','visible','important'); cb.style.setProperty('opacity','1','important'); }
+  }
+  let timer; function schedule(){clearTimeout(timer);timer=setTimeout(fix,20);}
+  document.addEventListener('DOMContentLoaded',fix,{once:true});
+  window.addEventListener('load',fix); window.addEventListener('resize',schedule); window.addEventListener('orientationchange',()=>setTimeout(fix,50));
+  if(window.MutationObserver){
+    new MutationObserver(schedule).observe(document.getElementById('top-strip')||document.documentElement,{subtree:true,childList:true});
+  }
+  fix(); setTimeout(fix,250); setTimeout(fix,1000); setTimeout(fix,2500); setTimeout(fix,4000); setInterval(fix,1500);
+})();
+</script>
+</body>
+</html>

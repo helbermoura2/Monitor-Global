@@ -1,0 +1,9 @@
+/* ===== Cabeçalho 7.2 — 3 linhas horizontais (identidade/estado, controle, inteligência) ===== */
+@media screen and (max-width:900px){
+  .mg-wx-icon{font-size:15px;line-height:1;flex:0 0 auto}
+  .mg-wind{font-size:10px;color:#7dd3fc;font-weight:700;white-space:nowrap;flex:0 0 auto}
+  #kpibox-sp .ts-kpi-row{flex-direction:row;gap:4px;align-items:baseline}
+  #kpibox-sp .ts-kpi-label{white-space:nowrap}
+  #top-strip>.ts-kpis{border-left:0!important}
+}
+

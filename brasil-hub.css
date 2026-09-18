@@ -1,0 +1,40 @@
+.brasil-hub {
+  position: fixed; z-index: 180000; right: 12px; bottom: 12px;
+  width: min(440px, calc(100vw - 24px)); max-height: min(72vh, 620px);
+  overflow: auto; background: rgba(2, 8, 22, 0.97);
+  border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.55); padding: 12px 14px 10px;
+  color: #e2e8f0; font-size: 12px;
+}
+.brasil-hub[hidden] { display: none !important; }
+.bh-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1e3a5f; }
+.bh-head strong { font-size: 14px; }
+#bh-status { flex: 1; font-size: 10px; color: #64748b; }
+#bh-close { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; cursor: pointer; }
+.bh-grid { display: grid; gap: 8px; }
+.bh-card { background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-radius: 10px; padding: 8px 10px; }
+.bh-card h4 { margin: 0 0 4px; font-size: 11px; color: #7dd3fc; letter-spacing: .3px; }
+.bh-card p { margin: 0 0 6px; color: #94a3b8; line-height: 1.4; font-size: 11px; }
+.bh-card a { color: #38bdf8; font-size: 11px; font-weight: 700; text-decoration: none; margin-right: 10px; }
+.bh-links { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 4px; }
+.bh-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 8px; }
+.bh-tag { font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 99px; background: #0b1528; border: 1px solid #334155; color: #cbd5e1; }
+.bh-tag.sev-3, .bh-tag.sev-4 { border-color: #ef4444; color: #fecaca; background: rgba(127,29,29,.35); }
+.bh-tag.sev-2 { border-color: #f59e0b; color: #fde68a; background: rgba(120,53,15,.3); }
+.bh-tag.sev-1 { border-color: #eab308; color: #fef08a; }
+.bh-caps { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 6px 0; max-height: 160px; overflow-y: auto; }
+.bh-cap { font-size: 10px; padding: 4px 6px; border-radius: 7px; background: #0b1528; border: 1px solid #1e293b; }
+.bh-cap.hot { border-color: #f59e0b; background: rgba(120,53,15,.25); }
+.bh-cap b { color: #f8fafc; }
+.bh-days { display: flex; gap: 4px; overflow-x: auto; margin: 6px 0; }
+.bh-day { min-width: 56px; text-align: center; padding: 5px 4px; border-radius: 8px; background: #0b1528; border: 1px solid #1e293b; }
+.bh-day b { display: block; font-size: 12px; color: #f8fafc; }
+.bh-day span { font-size: 9px; color: #64748b; }
+.bh-note { font-size: 10px !important; color: #7dd3fc !important; }
+.bh-foot { margin: 10px 0 0; font-size: 10px; color: #64748b; line-height: 1.4; }
+body.geo-br #brasil-hub { display: block !important; }
+@media (max-width: 900px) {
+  .brasil-hub { left: 8px; right: 8px; width: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-height: 48vh; }
+  .bh-caps { grid-template-columns: 1fr; }
+}
+

@@ -1,0 +1,44 @@
+/* ── MODO TV / KIOSK ──────────────────────────────────────────
+   Ative com ?mode=tv na URL ou toggleTvMode() no console.
+   Pensado para monitor de parede, DeX em TV e videowall. */
+/* esconde controles densos no modo TV */
+body.mode-tv #chips-row,
+body.mode-tv #more-filters-toggle,
+body.mode-tv #ux-toolbar,
+body.mode-tv #map-tools-pro,
+body.mode-tv .mag-slider-row,
+body.mode-tv #mag-slider,
+body.mode-tv #mobile-probar .map-tool:not(#mobile-btn-radar) {
+  display: none !important;
+}
+body.mode-tv #top-strip { min-height: 64px; }
+body.mode-tv .ts-title { font-size: 22px !important; letter-spacing: 2px; }
+body.mode-tv .ts-clock { font-size: 26px !important; font-weight: 800; }
+body.mode-tv .event { padding: 16px 18px !important; margin-bottom: 12px !important; font-size: 14px !important; }
+body.mode-tv .event-place { font-size: 16px !important; font-weight: 700; }
+body.mode-tv .pd-mag { font-size: 52px !important; }
+body.mode-tv #painel-direito { padding: 20px !important; }
+body.mode-tv .stat-card-value { font-size: 18px !important; }
+body.mode-tv .btn-som-header { width: 42px; height: 38px; font-size: 20px; }
+body.mode-tv .tv-highlight {
+  outline: 3px solid #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56,189,248,.4), 0 12px 32px rgba(0,0,0,.4) !important;
+  background: rgba(14,116,144,.22) !important;
+}
+body.mode-tv #sp-forecast-air {
+  max-height: calc(100vh - 80px) !important;
+  max-height: calc(100dvh - 80px) !important;
+}
+body.mode-tv #som-gesture-banner { display: none !important; }
+@media screen and (min-width: 1400px) {
+  body.mode-tv #app {
+    grid-template-columns: 360px 1fr 420px !important;
+  }
+}
+@media screen and (min-width: 2560px) {
+  body.mode-tv .ts-title { font-size: 28px !important; }
+  body.mode-tv .ts-clock { font-size: 32px !important; }
+  body.mode-tv .pd-mag { font-size: 64px !important; }
+  body.mode-tv .event-place { font-size: 18px !important; }
+}
+

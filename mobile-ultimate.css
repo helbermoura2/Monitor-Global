@@ -1,0 +1,130 @@
+/* MONITOR GLOBAL — RESPONSIVE ULTIMATE PATCH
+   Mobile portrait: nothing important is clipped or hidden because of width.
+   Desktop/tablet are untouched. */
+@media screen and (max-width:700px) and (orientation:portrait){
+  #top-strip, body.mg-clean-portrait #top-strip{
+    display:flex !important; flex-direction:column !important; align-items:stretch !important;
+    width:100% !important; height:auto !important; min-height:0 !important; max-height:none !important;
+    overflow:visible !important; padding:5px 8px 6px !important; gap:5px !important;
+    box-sizing:border-box !important;
+  }
+  #top-strip > .ts-mainrow, body.mg-clean-portrait #top-strip > .ts-mainrow{
+    order:1 !important; display:flex !important; flex:0 0 42px !important;
+    width:100% !important; height:42px !important; min-height:42px !important;
+    max-height:42px !important; align-items:center !important; justify-content:flex-start !important;
+    gap:6px !important; padding:0 2px !important; box-sizing:border-box !important;
+    overflow:visible !important;
+  }
+  #top-strip .ts-title, body.mg-clean-portrait #top-strip .ts-title{
+    flex:1 1 auto !important; min-width:0 !important; max-width:none !important;
+    font-size:clamp(11px,3.5vw,14px) !important; white-space:nowrap !important;
+    overflow:hidden !important; text-overflow:ellipsis !important;
+  }
+  #top-strip .live-indicator, body.mg-clean-portrait #top-strip .live-indicator{
+    display:inline-flex !important; flex:0 0 auto !important; white-space:nowrap !important;
+    font-size:8px !important; padding:4px 7px !important;
+  }
+  #top-strip > .ts-mainrow > #mobile-fab-bar{
+    position:static !important; display:flex !important; flex:0 0 42px !important;
+    width:42px !important; min-width:42px !important; height:42px !important;
+    margin:0 !important; padding:0 !important; transform:none !important;
+  }
+  #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu{
+    display:flex !important; width:42px !important; height:42px !important;
+    min-width:42px !important; min-height:42px !important; align-items:center !important;
+    justify-content:center !important; border-radius:11px !important; font-size:18px !important;
+  }
+  #top-strip > .ts-kpis, body.mg-clean-portrait #top-strip > .ts-kpis{
+    order:2 !important; display:flex !important; flex:0 0 34px !important;
+    width:100% !important; height:34px !important; min-height:34px !important; max-height:34px !important;
+    min-width:0 !important; margin:0 !important; padding:0 2px !important;
+    overflow:visible !important; align-items:center !important; justify-content:flex-start !important;
+    gap:8px !important; box-sizing:border-box !important;
+  }
+  #top-strip > .ts-kpis > .ts-kpi{ min-width:0 !important; padding:0 7px !important; }
+  #top-strip #kpibox-eventos, #top-strip #kpibox-maior{ display:none !important; }
+  #top-strip #kpibox-sp{
+    display:flex !important; flex:0 1 auto !important; width:auto !important; min-width:0 !important;
+    max-width:45% !important; flex-direction:row !important; align-items:center !important; gap:4px !important;
+    border-left:0 !important; border-right:1px solid rgba(86,166,220,.22) !important;
+    white-space:nowrap !important;
+  }
+  #top-strip #kpibox-sp .mg-wx-icon, #top-strip #kpibox-sp .mg-wind,
+  #top-strip #kpibox-sp .ts-kpi-sub{ display:none !important; }
+  #top-strip #kpibox-sp .ts-kpi-label{ display:inline !important; font-size:8px !important; white-space:nowrap !important; }
+  #top-strip #kpibox-sp .ts-kpi-row{ display:flex !important; align-items:baseline !important; gap:2px !important; }
+  #top-strip #kpibox-sp .ts-kpi-value{ font-size:15px !important; white-space:nowrap !important; }
+  #top-strip #kpibox-brent{
+    display:flex !important; flex:1 1 auto !important; width:auto !important; min-width:0 !important;
+    max-width:none !important; flex-direction:row !important; align-items:center !important; gap:5px !important;
+    border-left:0 !important; border-right:1px solid rgba(86,166,220,.22) !important;
+    overflow:visible !important; white-space:nowrap !important;
+  }
+  #top-strip #kpibox-brent .ts-kpi-label{
+    display:inline !important; flex:0 0 auto !important; font-size:8px !important;
+    white-space:nowrap !important; overflow:visible !important;
+  }
+  #top-strip #kpibox-brent .ts-kpi-value{
+    display:flex !important; align-items:baseline !important; gap:4px !important;
+    flex:1 1 auto !important; min-width:0 !important; font-size:13px !important;
+    white-space:nowrap !important; overflow:visible !important; color:#f1f7ff !important;
+  }
+  #top-strip #kpibox-brent .brent-price{ flex:0 0 auto !important; }
+  #top-strip #kpibox-brent .brent-change{ flex:0 0 auto !important; font-size:11px !important; }
+  #top-strip #kpi-relogio{
+    display:block !important; flex:0 0 auto !important; position:static !important;
+    width:auto !important; margin:0 !important; padding:0 3px 0 0 !important;
+    font-size:9px !important; white-space:nowrap !important; border:0 !important;
+  }
+  #top-strip > #ux-controlbar, body.mg-clean-portrait #top-strip > #ux-controlbar{
+    order:3 !important; display:flex !important; visibility:visible !important; opacity:1 !important;
+    position:static !important; flex:0 0 42px !important; width:100% !important;
+    height:42px !important; min-height:42px !important; max-height:42px !important;
+    margin:0 !important; padding:4px 6px !important; gap:7px !important;
+    overflow:hidden !important; box-sizing:border-box !important;
+  }
+  #top-strip > #ux-controlbar #controls{
+    display:flex !important; flex:0 0 82px !important; width:82px !important; min-width:82px !important;
+    max-width:82px !important; height:30px !important; align-items:center !important; gap:4px !important;
+  }
+  #top-strip > #ux-controlbar .mag-slider-row{ display:flex !important; align-items:center !important; margin:0 !important; }
+  #top-strip > #ux-controlbar .mag-slider-row span:first-child{ display:none !important; }
+  #top-strip > #ux-controlbar .mag-value{ display:inline-flex !important; font-size:12px !important; min-width:28px !important; white-space:nowrap !important; }
+  #top-strip > #ux-controlbar #mag-slider{ display:block !important; width:46px !important; min-width:46px !important; height:4px !important; }
+  #top-strip > #ux-controlbar #chips-scroll-wrap{
+    display:flex !important; flex:1 1 auto !important; min-width:0 !important; width:auto !important;
+    height:30px !important; overflow:hidden !important; border:0 !important; background:transparent !important;
+  }
+  #top-strip > #ux-controlbar #chips-row{
+    display:flex !important; flex-wrap:nowrap !important; align-items:center !important;
+    width:max-content !important; min-width:max-content !important; height:30px !important;
+    overflow-x:auto !important; overflow-y:hidden !important; gap:4px !important; padding:0 !important;
+    scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important;
+  }
+  #top-strip > #ux-controlbar #chips-row::-webkit-scrollbar{ display:none !important; }
+  #top-strip > #ux-controlbar .chip{
+    display:inline-flex !important; flex:0 0 auto !important; min-height:27px !important; height:27px !important;
+    padding:3px 7px !important; font-size:11px !important; white-space:nowrap !important;
+  }
+  #top-strip > #ux-controlbar .chips-scroll-btn{
+    display:flex !important; flex:0 0 20px !important; width:20px !important; height:27px !important;
+    top:auto !important; bottom:auto !important; position:static !important; align-items:center !important;
+    justify-content:center !important;
+  }
+  #top-strip > #ux-controlbar #freshness-bar,
+  #top-strip > #ux-controlbar #ux-search-wrap,
+  #top-strip > #ux-controlbar #ux-events-total,
+  #top-strip > #ux-controlbar #type-counters{ display:none !important; }
+  #top-strip > .ts-actions, #top-strip > .ts-meta, #top-strip > #top-probar, #top-strip > #v70-header-row,
+  #top-strip > #mobile-probar{ display:none !important; }
+}
+
+@media screen and (max-width:360px) and (orientation:portrait){
+  #top-strip .ts-title{font-size:10.5px !important;}
+  #top-strip .live-indicator{font-size:7px !important;padding:3px 5px !important;}
+  #top-strip #kpibox-sp .ts-kpi-value{font-size:13px !important;}
+  #top-strip #kpibox-brent .ts-kpi-label{font-size:7px !important;}
+  #top-strip #kpibox-brent .ts-kpi-value{font-size:12px !important;}
+  #top-strip #kpibox-brent .brent-change{font-size:10px !important;}
+  #top-strip #kpi-relogio{font-size:8px !important;}
+}

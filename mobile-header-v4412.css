@@ -1,0 +1,258 @@
+/* ===== MOBILE HEADER LIMPO 4.4.12 ===== */
+#mobile-fab-bar {
+  display: none;
+}
+#latest-event-ticker { display: none; }
+@media screen and (max-width: 1100px) {
+  #latest-event-ticker {
+    display: flex; align-items: center; gap: 8px;
+    position: fixed; left: 0; right: 0; top: 0; /* "top" real é definido via JS */
+    z-index: 480;
+    background: rgba(2,8,22,.97); border-bottom: 1px solid #17325d;
+    padding: 7px 12px; font-size: 11px; color: #cbd5e1;
+    cursor: pointer; -webkit-tap-highlight-color: rgba(56,189,248,.25);
+    touch-action: manipulation; white-space: nowrap; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  }
+  #latest-event-ticker-icon { font-size: 13px; flex: 0 0 auto; }
+  #latest-event-ticker-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+  #latest-event-ticker-arrow { font-size: 11px; color: #64748b; flex: 0 0 auto; }
+
+  /* ═══ Painel de detalhes do evento: caixa recolhida sempre visível no
+     rodapé, expande ao toque pra mostrar as informações completas ═══ */
+  #painel-direito {
+    display: flex !important; flex-direction: column;
+    position: fixed !important; left: 0; right: 0; top: auto; bottom: 0;
+    height: 56px; max-height: 56px;
+    z-index: 500005; border-radius: 14px 14px 0 0;
+    border: 1px solid #1e3a5f; border-bottom: none;
+    box-shadow: 0 -6px 20px rgba(0,0,0,.5);
+    overflow: hidden;
+    transition: height .22s ease, max-height .22s ease;
+    padding: 0 14px !important;
+    cursor: pointer; -webkit-tap-highlight-color: rgba(56,189,248,.25);
+    touch-action: manipulation;
+  }
+  #painel-direito .pd-header-row { height: 56px; min-height: 56px; margin-bottom: 0; }
+  #painel-direito .pd-header { margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #painel-direito > *:not(.pd-header-row) { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+  #pd-peek-arrow { display: inline-block; font-size: 9px; color: #64748b; flex: 0 0 auto; transition: transform .22s ease; }
+
+  /* Estágio "meio": mostra cabeçalho + medidor de magnitude + os três cards
+     (profundidade/intensidade/energia); o resto (dinâmica da falha, impacto,
+     cidades, histórico) continua escondido até tocar de novo. */
+  body.mobile-details-mid #painel-direito {
+    height: 335px; max-height: 335px;
+    z-index: 500045;
+    padding: 16px 14px !important;
+    animation: sheetUp .22s ease;
+  }
+  body.mobile-details-mid #painel-direito .pd-header-row { height: auto; min-height: 0; margin-bottom: 6px; }
+  body.mobile-details-mid #painel-direito .pd-gauge-wrap,
+  body.mobile-details-mid #painel-direito .pd-local,
+  body.mobile-details-mid #painel-direito .pd-time,
+  body.mobile-details-mid #painel-direito .stats-grid { opacity: 1; pointer-events: auto; }
+  body.mobile-details-mid #pd-peek-arrow { transform: rotate(90deg); }
+
+  body.mobile-details-open #painel-direito {
+    height: 72vh; max-height: 72vh;
+    overflow-y: auto;
+    z-index: 500045;
+    padding: 40px 14px 20px !important;
+    animation: sheetUp .22s ease;
+    cursor: default;
+  }
+  body.mobile-details-open #painel-direito .pd-header-row { height: auto; min-height: 0; }
+  body.mobile-details-open #painel-direito > *:not(.pd-header-row) { opacity: 1; pointer-events: auto; }
+  body.mobile-details-open #pd-peek-arrow { transform: rotate(180deg); }
+  body.mobile-details-mid #painel-direito-close,
+  body.mobile-details-open #painel-direito-close {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(15,23,42,.9); border: 1px solid #334155; color: #e2e8f0;
+    font-size: 14px; cursor: pointer;
+  }
+}
+@media screen and (max-width: 1100px) {
+  /* Esconde NORMAL / risco e barra mobile antiga */
+  #mobile-probar,
+  .mobile-risk-mini,
+  #mobile-risk-mini,
+  #risk-card,
+  #top-probar .risk-card,
+  #pro-dashboard .risk-card {
+    display: none !important;
+  }
+
+  /* Cabeçalho: 2 linhas iguais em vertical e horizontal */
+  #top-strip {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  #top-strip > .ts-mainrow {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
+  #top-strip .ts-title {
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+    flex: 0 0 auto !important;
+  }
+  #top-strip .live-indicator { display: none !important; }
+  /* esconde ☰ antigo do header (FAB assume o toque) */
+  #header-main-menu,
+  .header-main-menu {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #top-strip .ts-kpis {
+    display: flex !important;
+    position: static !important;
+    margin-left: auto !important;
+    align-items: center !important;
+  }
+  #top-strip #kpibox-sp { display: flex !important; }
+  #top-strip #kpibox-brent { display: flex !important; }
+  #top-strip #kpibox-eventos,
+  #top-strip #kpibox-maior { display: none !important; }
+  #top-strip .ts-kpi { padding: 0 6px !important; border-left: 1px solid #1e3a5f !important; }
+  #top-strip .ts-kpi-label { font-size: 7px !important; }
+  #top-strip .ts-kpi-value { font-size: 12px !important; }
+  #top-strip .ts-kpi-sub { font-size: 9px !important; }
+  #btn-som-header {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    margin-left: 4px !important;
+    border-radius: 10px !important;
+    font-size: 16px !important;
+    z-index: 500001 !important;
+  } /* áudio no topo + FAB */
+  #top-strip .ts-clock {
+    position: static !important;
+    font-size: 12px !important;
+    margin-left: 4px !important;
+  }
+  #top-strip .ts-actions,
+  #top-strip .ts-meta { display: none !important; }
+
+  /* Segunda linha: só filtros + registros (sem NORMAL) */
+  #top-strip > #top-probar {
+    display: none !important; /* cards risco/clima grandes saem */
+  }
+  #top-strip > #ux-controlbar {
+    display: flex !important;
+    position: static !important;
+    left: auto !important; right: auto !important; bottom: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+    padding: 4px 8px 6px !important;
+    border-top: 1px solid rgba(30,58,138,.35) !important;
+    gap: 6px !important;
+    align-items: center !important;
+    overflow-x: auto !important;
+  }
+  #top-strip > #ux-controlbar #controls {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 110px !important;
+  }
+  #top-strip > #ux-controlbar #chips-scroll-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  #top-strip > #ux-controlbar #ux-events-total {
+    flex: 0 0 auto !important;
+    font-size: 9px !important;
+  }
+
+  /* FAB: sempre clicável */
+  #mobile-fab-bar {
+    display: flex !important;
+    position: fixed !important;
+    top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+    right: 8px !important;
+    z-index: 500000 !important;
+    gap: 8px !important;
+    pointer-events: auto !important;
+  }
+  #mobile-fab-bar button {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    border: 1px solid #1e3a5f !important;
+    background: #020816 !important;
+    color: #e2e8f0 !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.55) !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(56,189,248,.4);
+    padding: 0 !important;
+  }
+  #fab-audio.muted { opacity: .55; filter: grayscale(.7); }
+#fab-audio[data-state="on"] { border-color: #22c55e !important; }
+#fab-audio[data-state="off"] { border-color: #64748b !important; }
+#mobile-fab-bar button:active {
+    transform: scale(0.94);
+    background: #0b1528 !important;
+  }
+  /* painel do menu sobe no topo */
+  #header-main-menu-panel {
+    position: fixed !important;
+    top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    right: 8px !important;
+    left: auto !important;
+    width: min(280px, calc(100vw - 16px)) !important;
+    z-index: 500010 !important;
+    pointer-events: auto !important;
+  }
+  /* espaço no título para não ficar sob o FAB */
+  #top-strip > .ts-mainrow {
+    padding-right: 150px !important;
+  }
+}
+@media screen and (max-width: 1100px) and (orientation: landscape) {
+  #top-strip > .ts-mainrow {
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+  }
+  #mobile-fab-bar {
+    top: calc(4px + env(safe-area-inset-top, 0px)) !important;
+  }
+  #mobile-fab-bar button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+@media screen and (min-width: 901px) {
+  #mobile-fab-bar { display: none !important; }
+}
+

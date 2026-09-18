@@ -1,0 +1,148 @@
+/* === monitor-global-fix-card-intensity-v1 (linhas originais 15270-15352) === */
+/* ===== CORREÇÃO 1 — topo do card principal sempre visível ===== */
+#painel-direito {
+  position: relative !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-top: 12px !important;
+}
+#painel-direito .pd-header-row {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  min-height: 34px !important;
+  margin: 0 0 6px !important;
+  padding: 4px 2px 7px !important;
+  background: linear-gradient(180deg, rgba(5,14,25,.98) 0%, rgba(5,14,25,.94) 78%, rgba(5,14,25,0) 100%) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#painel-direito .pd-header {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+#painel-direito .pd-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 45 !important;
+}
+#painel-direito #pd-share-btn,
+#painel-direito #pd-focus-btn {
+  position: relative !important;
+  z-index: 46 !important;
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+#painel-direito #pd-peek-arrow { flex: 0 0 auto !important; }
+@media (max-width:900px) {
+  #painel-direito { padding-top: 8px !important; }
+  body.mobile-details-mid #painel-direito,
+  body.mobile-details-open #painel-direito {
+    padding-top: 12px !important;
+  }
+  #painel-direito .pd-header-row {
+    position: sticky !important;
+    top: 0 !important;
+    min-height: 36px !important;
+    flex-wrap: nowrap !important;
+    padding: 3px 2px 7px !important;
+    margin-bottom: 5px !important;
+  }
+}
+
+/* ===== CORREÇÃO 3 — intensidade real x estimativa ===== */
+#painel-direito .pd-intensity-source {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .35px;
+  vertical-align: middle;
+}
+#painel-direito .pd-intensity-source.official { background: rgba(74,222,128,.14); color:#86efac; border:1px solid rgba(74,222,128,.25); }
+#painel-direito .pd-intensity-source.shakemap { background: rgba(96,165,250,.14); color:#93c5fd; border:1px solid rgba(96,165,250,.25); }
+#painel-direito .pd-intensity-source.observed { background: rgba(192,132,252,.14); color:#d8b4fe; border:1px solid rgba(192,132,252,.25); }
+#painel-direito .pd-intensity-source.estimated { background: rgba(250,204,21,.12); color:#fde68a; border:1px solid rgba(250,204,21,.22); }
+#painel-direito .pd-impact-source { font-size: 9px; opacity:.88; margin-top:4px; }
+
+/* === fix-7-6-2-filters-menu (linhas originais 15434-15498) === */
+/* 7.6.2 — Menu integrado à faixa de chips no desktop. */
+.chip-menu-desktop {
+  display: none !important;
+}
+@media screen and (min-width: 901px) {
+  #chips-row .chip-menu-desktop {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    border-color: rgba(72,216,255,.30) !important;
+  }
+  #chips-row .chip-menu-desktop:hover {
+    border-color: rgba(72,216,255,.65) !important;
+    background: rgba(15,55,80,.75) !important;
+  }
+}
+
+/* 7.6.2 — No celular em retrato, o ☰ deixa de ficar solto no mapa.
+   Ele passa para a primeira linha do cabeçalho, logo depois do
+   MONITOR GLOBAL. */
+@media screen and (max-width: 700px) and (orientation: portrait) {
+  #mobile-fab-bar {
+    top: calc(7px + env(safe-area-inset-top, 0px)) !important;
+    left: clamp(118px, calc(39vw + 4px), 178px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  #mobile-fab-bar #fab-menu {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 10px !important;
+  }
+}
+
+/* Tablets/DeX em retrato: deixa o menu junto do bloco de controles do
+   canto superior direito, sem cobrir o título. */
+@media screen and (min-width: 701px) and (max-width: 900px) and (orientation: portrait) {
+  #mobile-fab-bar {
+    top: calc(7px + env(safe-area-inset-top, 0px)) !important;
+    left: auto !important;
+    right: 58px !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
