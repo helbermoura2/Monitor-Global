@@ -101,7 +101,21 @@
     } catch(err){ window.__mgRestoreErr = String(err); }
   }
 
+  var OWNER_TAG = 'phone';
+
   function apply(){
+    /* js/mobile-portrait-clean-toggle.js (≤700px retrato) e js/header-v72.js
+       (701-900px) mexem nos MESMOS elementos do cabeçalho, cada um com sua
+       própria fila de setTimeout independente. Sem essa marcação de "dono
+       atual" (body.dataset.mgHeaderOwner), uma reaplicação atrasada de um
+       script podia limpar o que o outro tinha acabado de montar — o
+       cabeçalho "piscava" pro estado errado por 1-2s até o próximo
+       setTimeout corrigir de novo. Se o outro script é o dono e este aqui
+       está inativo, não mexe em nada. */
+    if(!mq.matches){
+      var owner = document.body.dataset.mgHeaderOwner;
+      if(owner && owner !== OWNER_TAG) return;
+    }
     var e = els();
     rememberOriginalParents(e);
     document.body.classList.toggle('mg-clean-portrait', mq.matches);
@@ -123,8 +137,10 @@
        document.getElementById('kpi-wind'),document.getElementById('kpi-feels')].forEach(function(el){
         if(el) el.style.removeProperty('display');
       });
+      if(document.body.dataset.mgHeaderOwner === OWNER_TAG) delete document.body.dataset.mgHeaderOwner;
       return;
     }
+    document.body.dataset.mgHeaderOwner = OWNER_TAG;
     setImp(e.app, {display:'flex','flex-direction':'column',height:'100dvh',width:'100vw'});
     /* v28.3 — cabeçalho retrato reorganizado em 3 faixas coesas (título,
        KPIs, filtros), com o mesmo espaçamento horizontal e divisores
@@ -207,7 +223,7 @@
     setImp(fabAudio, {display:'none'});
 
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto','min-height':'40px',margin:'6px 14px 0',padding:'6px 10px'});
+      width:'auto',height:'auto','min-height':'40px',margin:'0 14px',padding:'6px 10px'});
 
     /* Linha 3 — magnitude + chips na MESMA linha, como pediu o Helber:
        o slider fica compacto (só "M 0.0", sem o rótulo "Magnitude
