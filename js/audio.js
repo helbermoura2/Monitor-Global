@@ -1,0 +1,546 @@
+// === audio.js — Motor de áudio completo: vozes, tons, alertas sonoros, fala (TTS) (linhas originais 763-1306 do core-app.js) ===
+
+function carregarVozesDisponiveis() {
+    if (window.speechSynthesis) vozesDisponiveis = window.speechSynthesis.getVoices();
+}
+function ensureAudio() {
+    if (!audioContext || audioContext.state === 'closed') return false;
+    if (audioContext.state === 'suspended') {
+        try {
+            const r = audioContext.resume();
+            if (r && typeof r.then === 'function') {
+                r.then(() => {
+                    if (audioContext && audioContext.state === 'running') {
+                        isAudioUnlocked = true;
+                        atualizarTodosBotoesSom();
+                        flushPendingSounds();
+                    }
+                }).catch(() => {
+                    isAudioUnlocked = false;
+                    atualizarTodosBotoesSom();
+                });
+            }
+        } catch (e) {
+            isAudioUnlocked = false;
+            return false;
+        }
+        return false;
+    }
+    return audioContext.state === 'running';
+}
+function queuePendingSound(sound) {
+    pendingSounds.push(sound);
+    if (pendingSounds.length > 8) pendingSounds = pendingSounds.slice(-8);
+}
+function flushPendingSounds() {
+    if (!isAudioUnlocked || !audioContext || audioContext.state !== 'running' || !somAtivo) return;
+    const fila = pendingSounds.splice(0);
+    if (!fila.length) return;
+    setTimeout(() => {
+        fila.forEach((ps, i) => {
+            setTimeout(() => {
+                if (ps.type === 'tone') playAlertTone(ps.kind);
+                else playEarthquakeSound(ps.mag, ps.place, ps.depth, ps.qtd, false, !!ps.isUpdate, ps.deltaTxt || '');
+            }, i * 1200);
+        });
+    }, 150);
+}
+let noiseBuf = null;
+function getNoise() {
+    if (noiseBuf) return noiseBuf;
+    const len = audioContext.sampleRate * 2;
+    noiseBuf = audioContext.createBuffer(1, len, audioContext.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+}
+function tone(f0, { t = 0, dur = .3, type = 'sine', vol = .35, glide = null, attack = .02, release = .08 } = {}) {
+    if (!audioContext) return;
+    const now = audioContext.currentTime + t;
+    const o = audioContext.createOscillator(), g = audioContext.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, now);
+    if (glide) o.frequency.exponentialRampToValueAtTime(glide, now + dur);
+    o.connect(g); g.connect(audioContext.destination);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, vol * somVolume), now + Math.min(attack, dur * 0.45));
+    g.gain.setValueAtTime(Math.max(0.0001, vol * somVolume), Math.max(now + Math.min(attack, dur * 0.45), now + dur - release));
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    o.start(now); o.stop(now + dur + .05);
+}
+function noise({ t = 0, dur = 1, vol = .35, fFrom = 800, fTo = 100, type = 'lowpass', q = 1 } = {}) {
+    if (!audioContext) return;
+    const now = audioContext.currentTime + t;
+    const src = audioContext.createBufferSource();
+    src.buffer = getNoise();
+    const f = audioContext.createBiquadFilter();
+    f.type = type;
+    f.frequency.setValueAtTime(fFrom, now);
+    f.frequency.exponentialRampToValueAtTime(Math.max(40, fTo), now + dur);
+    f.Q.value = q;
+    const g = audioContext.createGain();
+    src.connect(f); f.connect(g); g.connect(audioContext.destination);
+    g.gain.setValueAtTime(Math.max(0.0001, vol * somVolume), now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    src.start(now); src.stop(now + dur);
+}
+function playUnlockChime() {
+    if (!audioContext) return;
+    tone(880, { dur: .15, vol: .3 });
+    tone(1320, { t: .14, dur: .25, vol: .3 });
+}
+function atualizarBotaoSomHeader() {
+    const btn = document.getElementById('btn-som-header');
+    if (!btn) return;
+    if (!somAtivo) {
+        btn.textContent = '🔇';
+        btn.setAttribute('data-state', 'off');
+    } else if (!isAudioUnlocked) {
+        btn.textContent = '🔊';
+        btn.setAttribute('data-state', 'pending');
+    } else {
+        btn.textContent = '🔊';
+        btn.setAttribute('data-state', 'on');
+    }
+    btn.classList.toggle('muted', !somAtivo);
+    btn.classList.toggle('needs-gesture', !!(somAtivo && !isAudioUnlocked));
+    btn.title = !somAtivo
+        ? 'Voz: desligada — clique para ligar'
+        : (somMutedTypes.has('quake') ? 'Alertas de sismo silenciados — abra Áudio > Volume e tipos' : (isAudioUnlocked ? 'Voz: ligada — clique para desligar' : 'Voz: aguardando toque para liberar (Chrome)'));
+    btn.setAttribute('aria-label', btn.title);
+}
+function mostrarBannerSom(show) {
+    // Só mostra 1x por sessão de aba (não enche o saco a cada reload mental)
+    try {
+        if (show && sessionStorage.getItem('somBannerDismissed') === '1') show = false;
+    } catch (e) {}
+    let b = document.getElementById('som-gesture-banner');
+    if (!b) {
+        b = document.createElement('div');
+        b.id = 'som-gesture-banner';
+        b.innerHTML = '🔊 Toque para ativar alertas de voz <span style="opacity:.6;font-weight:600">(só esta vez)</span>';
+        b.addEventListener('click', function () {
+            if (!somAtivo) {
+                somAtivo = true;
+                try { localStorage.setItem('somAtivo', '1'); } catch (e) {}
+            }
+            try { sessionStorage.setItem('somBannerDismissed', '1'); } catch (e) {}
+            unlockAudio(true);
+            mostrarBannerSom(false);
+        });
+        document.body.appendChild(b);
+    }
+    if (!show) {
+        try { if (isAudioUnlocked) sessionStorage.setItem('somBannerDismissed', '1'); } catch (e) {}
+    }
+    b.classList.toggle('show', !!show);
+}
+function unlockAudio(forceSpeak) {
+    if (!somAtivo) return false;
+    try {
+        if (!audioContext || audioContext.state === 'closed') {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = audioContext;
+        const concluir = () => {
+            if (!audioContext || audioContext.state !== 'running') return false;
+            isAudioUnlocked = true;
+            carregarVozesDisponiveis();
+            playUnlockChime();
+            try { pedirPermissaoNotificacao(); } catch (e) {}
+            if (forceSpeak) {
+                try {
+                    const n = (typeof globalAlerts !== 'undefined' && globalAlerts.length) || 0;
+                    falarAlertaGenerico(`Áudio ativado. Central armada.${n > 0 ? ` ${n} alertas ativos agora.` : ''}`);
+                } catch (e) {}
+            }
+            flushPendingSounds();
+            mostrarBannerSom(false);
+            atualizarTodosBotoesSom();
+            return true;
+        };
+        if (ctx.state === 'running') return concluir();
+        const r = ctx.resume();
+        if (r && typeof r.then === 'function') {
+            r.then(() => concluir()).catch(e => {
+                console.warn('[audio] resume bloqueado:', e && e.message);
+                isAudioUnlocked = false;
+                atualizarTodosBotoesSom();
+                if (somAtivo) mostrarBannerSom(true);
+            });
+        }
+        return false;
+    } catch (e) {
+        console.warn('[audio] unlock falhou:', e && e.message);
+        isAudioUnlocked = false;
+        atualizarTodosBotoesSom();
+        if (somAtivo) mostrarBannerSom(true);
+        return false;
+    }
+}
+// No Android/Chrome/DeX, o desbloqueio precisa acontecer dentro de um gesto real.
+// Usamos pointerdown + touchstart + click, sem {once:true}, para que um primeiro
+// toque consumido por outro controle não deixe o áudio permanentemente bloqueado.
+function gestoParaAudio() {
+    if (somAtivo && (!audioContext || audioContext.state !== 'running')) unlockAudio(false);
+}
+document.addEventListener('pointerdown', gestoParaAudio, {capture:true, passive:true});
+document.addEventListener('touchstart', gestoParaAudio, {capture:true, passive:true});
+document.addEventListener('click', gestoParaAudio, {capture:true, passive:true});
+document.addEventListener('keydown', gestoParaAudio, {capture:true});
+if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = carregarVozesDisponiveis;
+
+// Liga/desliga áudio de verdade (cabeçalho, FAB e menu)
+function atualizarTodosBotoesSom() {
+    try { atualizarBotaoSomHeader(); } catch (e) {}
+    const fab = document.getElementById('fab-audio');
+    if (fab) {
+        fab.textContent = somAtivo ? '🔊' : '🔇';
+        fab.setAttribute('data-state', somAtivo ? (typeof isAudioUnlocked !== 'undefined' && isAudioUnlocked ? 'on' : 'pending') : 'off');
+        fab.classList.toggle('muted', !somAtivo);
+        fab.title = somAtivo
+            ? (isAudioUnlocked ? 'Áudio ligado — toque para desligar' : 'Áudio ligado — toque para liberar no Chrome')
+            : 'Áudio desligado — toque para ligar';
+        fab.setAttribute('aria-label', fab.title);
+    }
+    const old = document.getElementById('btn-som');
+    if (old) old.textContent = somAtivo ? '🔊 Som ativo' : '🔇 Som mudo';
+    const menuAudio = document.getElementById('menu-btn-audio');
+    if (menuAudio) menuAudio.textContent = somAtivo ? '🔊 Áudio: ligado (tocar p/ desligar)' : '🔇 Áudio: desligado (tocar p/ ligar)';
+}
+function toggleSomAtivo(opts) {
+    opts = opts || {};
+    const force = opts.force; // true=ligar, false=desligar, undefined=toggle
+    if (force === true) somAtivo = true;
+    else if (force === false) somAtivo = false;
+    else somAtivo = !somAtivo;
+    try { localStorage.setItem('somAtivo', somAtivo ? '1' : '0'); } catch (err) {}
+    if (somAtivo) {
+        try { unlockAudio(!!opts.speak); } catch (e) {}
+        if (!opts.silent) {
+            try { showToast('🔊 Alertas de voz ligados', 'info'); } catch (err) {}
+        }
+    } else {
+        try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (err) {}
+        try { mostrarBannerSom(false); } catch (e) {}
+        if (!opts.silent) {
+            try { showToast('🔇 Alertas de voz desligados', 'info'); } catch (err) {}
+        }
+    }
+    atualizarTodosBotoesSom();
+    return somAtivo;
+}
+window.toggleSomAtivo = toggleSomAtivo;
+window.atualizarTodosBotoesSom = atualizarTodosBotoesSom;
+// expõe leitura (não atribuição direta do let)
+Object.defineProperty(window, 'somAtivo', {
+    get: function () { return somAtivo; },
+    set: function (v) { somAtivo = !!v; try { localStorage.setItem('somAtivo', somAtivo ? '1' : '0'); } catch (e) {} atualizarTodosBotoesSom(); },
+    configurable: true
+});
+
+function bindBotaoSomHeader() {
+    const btn = document.getElementById('btn-som-header');
+    if (!btn || btn.dataset.somBound === '1') return;
+    btn.dataset.somBound = '1';
+    btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSomAtivo({ speak: true });
+    }, true);
+    btn.addEventListener('touchend', function (e) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        toggleSomAtivo({ speak: true });
+    }, { passive: false });
+}
+document.addEventListener('DOMContentLoaded', function () {
+    bindBotaoSomHeader();
+    atualizarTodosBotoesSom();
+    if (somAtivo) {
+        setTimeout(function () {
+            try { unlockAudio(false); } catch (e) {}
+            if (!isAudioUnlocked) mostrarBannerSom(true);
+            atualizarTodosBotoesSom();
+        }, 800);
+    }
+});
+// se o script rodar após DOMContentLoaded
+if (document.readyState !== 'loading') {
+    bindBotaoSomHeader();
+    atualizarTodosBotoesSom();
+}
+
+
+/*
+ * ALARME SÍSMICO — assinatura sonora dedicada.
+ * Cada magnitude é UM ÚNICO bloco de áudio: isso evita que os bipes sejam
+ * tratados como alertas separados pela fila e garante que todos sejam agendados
+ * juntos no mesmo AudioContext.
+ *
+ * M3.x = 3 bipes | M4.x = 4 bipes | M5.x = 5 bipes
+ * M6+ = alerta especial + voz | M7+ = alerta máximo + voz
+ */
+function quakeBeep(freq, t, dur, vol, last = false) {
+    if (!audioContext || audioContext.state !== 'running') return;
+    const now = audioContext.currentTime + t;
+    const g = audioContext.createGain();
+    const level = Math.min(0.92, Math.max(0.02, vol * somVolume * 1.35));
+    const o1 = audioContext.createOscillator();
+    const o2 = audioContext.createOscillator();
+    o1.type = 'triangle';
+    o2.type = 'sine';
+    o1.frequency.setValueAtTime(freq, now);
+    o2.frequency.setValueAtTime(freq / 2, now);
+    o1.connect(g); o2.connect(g); g.connect(audioContext.destination);
+
+    const finalDur = last ? dur + 0.10 : dur;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(level, now + 0.018);
+    g.gain.setValueAtTime(level, now + Math.max(0.03, finalDur - 0.055));
+    g.gain.exponentialRampToValueAtTime(0.0001, now + finalDur);
+
+    o1.start(now); o2.start(now);
+    o1.stop(now + finalDur + 0.04);
+    o2.stop(now + finalDur + 0.04);
+}
+
+
+function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, isUpdate = false, deltaTxt = '') {
+    if (!somAtivo || somMutedTypes.has('quake')) return;
+    if (!ensureAudio()) { pendingSound = { type: 'quake', mag, place, depth, qtd, isUpdate, deltaTxt }; return; }
+    // Alertas automáticos respeitam o filtro mínimo; uma reprodução manual
+    // deve tocar mesmo que o usuário esteja filtrando magnitudes maiores.
+    if (!forceManual && mag < Math.max(SOM_SISMO_MIN, minMagnitude)) return;
+
+    // Guardamos no closure para a fila de som (M6+ fala "Atualização" se for revisão)
+    const _isUpdate = !!isUpdate;
+    const _deltaTxt = deltaTxt || '';
+
+    agendarSom(() => {
+        /*
+         * ASSINATURAS SONORAS DOS SISMOS
+         * M3 = 3 bipes agudos / atenção
+         * M4 = 4 bipes médios-graves / alerta
+         * M5 = 5 bipes graves / alerta forte, último prolongado
+         * M6+ = emergência + voz
+         *
+         * Cada faixa tem timbre, duração e envelope próprios.
+         * A quantidade de bipes continua sendo o código visual/auditivo da magnitude.
+         */
+        if (mag >= 7) {
+            // M7+: assinatura máxima — pulsos alternados + grave contínuo + voz
+            for (let i = 0; i < 5; i++) {
+                tone(i % 2 ? 430 : 720, {
+                    t: i * .38,
+                    dur: i === 4 ? .42 : .30,
+                    type: 'sawtooth',
+                    vol: .62,
+                    attack: .018,
+                    release: .10
+                });
+            }
+            noise({ t: 1.75, dur: 2.0, vol: .48, fFrom: 360, fTo: 55 });
+            tone(110, { t: 1.75, dur: 2.0, type: 'sine', vol: .48, glide: 72, attack: .04, release: .22 });
+            agendarFala(mag, place, depth, qtd, 1800, _isUpdate, _deltaTxt);
+        } else if (mag >= 6) {
+            // M6: emergência — dois pares graves + ruído/impacto + voz
+            tone(560, { t: 0, dur: .24, type: 'square', vol: .52, attack: .015, release: .08 });
+            tone(560, { t: .32, dur: .24, type: 'square', vol: .52, attack: .015, release: .08 });
+            tone(430, { t: .68, dur: .28, type: 'sawtooth', vol: .56, attack: .015, release: .10 });
+            tone(430, { t: 1.04, dur: .28, type: 'sawtooth', vol: .56, attack: .015, release: .10 });
+            noise({ t: 1.42, dur: 1.25, vol: .45, fFrom: 260, fTo: 55 });
+            tone(105, { t: 1.42, dur: 1.25, type: 'sine', vol: .42, glide: 72, attack: .03, release: .20 });
+            agendarFala(mag, place, depth, qtd, 1450, _isUpdate, _deltaTxt);
+        } else if (mag >= 5.0) {
+            // M5: grave, encorpado e claramente mais forte. 5º pulso é prolongado.
+            const gap = .57;
+            const freqs = [300, 300, 300, 300, 240];
+            for (let i = 0; i < 5; i++) {
+                tone(freqs[i], {
+                    t: i * gap,
+                    dur: i === 4 ? .46 : .30,
+                    type: 'sawtooth',
+                    vol: i === 4 ? .62 : .54,
+                    attack: .018,
+                    release: i === 4 ? .16 : .10
+                });
+            }
+            // Subgrave curto para dar corpo sem transformar o alerta em ruído.
+            tone(92, { t: 4 * gap, dur: .40, type: 'sine', vol: .28, glide: 72, attack: .02, release: .16 });
+        } else if (mag >= 4.0) {
+            // M4: assinatura média-grave, 4 pulsos bem separados.
+            const gap = .54;
+            for (let i = 0; i < 4; i++) {
+                tone(420, {
+                    t: i * gap,
+                    dur: i === 3 ? .38 : .28,
+                    type: 'triangle',
+                    vol: i === 3 ? .52 : .46,
+                    attack: .018,
+                    release: i === 3 ? .13 : .09
+                });
+            }
+        } else if (mag >= 3.0) {
+            // M3: assinatura aguda e limpa, 3 bipes de atenção.
+            const gap = .52;
+            for (let i = 0; i < 3; i++) {
+                tone(860, {
+                    t: i * gap,
+                    dur: i === 2 ? .34 : .26,
+                    type: 'sine',
+                    vol: i === 2 ? .46 : .40,
+                    attack: .012,
+                    release: .08
+                });
+            }
+        }
+    });
+}
+function playAlertTone(kind) {
+    if (!somAtivo || somMutedTypes.has(kind)) return;
+    if (!ensureAudio()) { queuePendingSound({ type: 'tone', kind }); return; }
+    agendarSom(() => {
+        switch (kind) {
+            case 'fire':
+                for (let i = 0; i < 6; i++) noise({ t: i * .11, dur: .07, vol: .3, fFrom: 2500, fTo: 900, type: 'bandpass', q: 2 });
+                tone(320, { t: .1, dur: .6, type: 'triangle', vol: .35, glide: 520 });
+                break;
+            case 'hurricane':
+                tone(160, { dur: 1.4, type: 'sawtooth', vol: .4, glide: 240 });
+                noise({ dur: 1.6, vol: .3, fFrom: 300, fTo: 1400, type: 'bandpass', q: 1.5 });
+                break;
+            case 'tornado':
+                for (let i = 0; i < 8; i++) tone(i % 2 ? 300 : 900, { t: i * .09, dur: .09, type: 'sawtooth', vol: .35 });
+                break;
+            case 'tsunami':
+                tone(220, { dur: 1.5, type: 'square', vol: .45, glide: 880 });
+                tone(220, { t: 1.7, dur: 1.5, type: 'square', vol: .45, glide: 880 });
+                break;
+            case 'storm':
+                noise({ dur: 2, vol: .5, fFrom: 400, fTo: 60 });
+                tone(90, { dur: 1.6, vol: .3 });
+                break;
+            case 'civil':
+                tone(880, { dur: .5, type: 'square', vol: .4, glide: 620 });
+                tone(880, { t: .6, dur: .5, type: 'square', vol: .4, glide: 620 });
+                break;
+            case 'wind':
+                // Vendaval / vento forte: assinatura própria, audível e distinta
+                // dos terremotos. Três rajadas curtas, crescendo levemente,
+                // seguidas por um sopro grave que dá sensação de vento.
+                noise({ t: 0, dur: .55, vol: .46, fFrom: 1500, fTo: 420, type: 'bandpass', q: 1.1 });
+                noise({ t: .72, dur: .55, vol: .52, fFrom: 1700, fTo: 380, type: 'bandpass', q: 1.05 });
+                noise({ t: 1.44, dur: .65, vol: .60, fFrom: 1900, fTo: 300, type: 'bandpass', q: 1.0 });
+                tone(125, { t: 1.48, dur: .78, type: 'sine', vol: .28, glide: 72, attack: .06, release: .22 });
+                break;
+            case 'flood':
+                tone(180, { dur: 1.2, type: 'sine', vol: .4, glide: 60 });
+                tone(180, { t: 1.3, dur: 1.2, type: 'sine', vol: .4, glide: 60 });
+                break;
+            case 'volcano':
+                noise({ dur: 1.8, vol: .4, fFrom: 200, fTo: 60, type: 'lowpass', q: 1 });
+                tone(70, { t: .1, dur: 1.5, type: 'sawtooth', vol: .35, glide: -20 });
+                break;
+        }
+    });
+}
+function agendarFala(mag, place, depth, qtd, delay, isUpdate = false, deltaTxt = '') {
+    if (speakAlertTimeoutId) clearTimeout(speakAlertTimeoutId);
+    speakAlertTimeoutId = setTimeout(() => {
+        speakAlert(mag, place, depth, qtd, isUpdate, deltaTxt);
+        speakAlertTimeoutId = null;
+    }, delay);
+}
+function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '') {
+    if (!somAtivo || !window.speechSynthesis) return;
+    const prof = (typeof depth === 'number' && !isNaN(depth)) ? `, a ${depth.toFixed(0)} quilômetros de profundidade` : '';
+    let txt;
+    if (isUpdate) {
+        // Deixa claro que NÃO é um sismo novo — é revisão do que já estava no ar.
+        const deltaFala = String(deltaTxt || '')
+            .replace(/M(\d+(?:\.\d+)?)/g, 'magnitude $1')
+            .replace(/→/g, ' para ')
+            .replace(/·/g, ',')
+            .trim();
+        txt = `Atualização sísmica. `;
+        if (deltaFala) txt += `${deltaFala}. `;
+        txt += `Terremoto de magnitude ${Number(mag).toFixed(1)} em ${place}${prof}.`;
+    } else {
+        txt = `Atenção. Terremoto de magnitude ${Number(mag).toFixed(1)} detectado em ${place}${prof}.`;
+        if (qtd > 0) txt += ` Mais ${qtd} evento(s) nesta atualização.`;
+    }
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang = 'pt-BR';
+    u.rate = .9;
+    u.pitch = 1.1;
+    u.volume = somVolume;
+    if (!vozesDisponiveis.length) carregarVozesDisponiveis();
+    const v = vozesDisponiveis.filter(x => x.lang.includes('pt-BR') || x.lang.includes('pt_BR'));
+    if (v[0]) u.voice = v[0]; else avisarVozIndisponivel();
+    window.speechSynthesis.cancel();
+    setTimeout(() => window.speechSynthesis.speak(u), 500);
+}
+function falarAlertaGenerico(txt) {
+    if (!somAtivo || !window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang = 'pt-BR';
+    u.rate = .95;
+    u.volume = somVolume;
+    const v = vozesDisponiveis.filter(x => x.lang.includes('pt-BR') || x.lang.includes('pt_BR'));
+    if (v[0]) u.voice = v[0]; else avisarVozIndisponivel();
+    window.speechSynthesis.cancel();
+    setTimeout(() => window.speechSynthesis.speak(u), 300);
+}
+let vozIndisponivelAvisada = false;
+function avisarVozIndisponivel() {
+    if (vozIndisponivelAvisada) return;
+    vozIndisponivelAvisada = true;
+    showToast('Nenhuma voz em português encontrada neste aparelho — os alertas falados vão sair na voz padrão do sistema.', 'warning');
+}
+function reproduzirAlertaSismicoManual(item) {
+    if (!item || item.type !== 'earthquake') return;
+
+    // Cancelamos uma fala pendente/anterior para que o evento clicado seja o único foco.
+    if (speakAlertTimeoutId) {
+        clearTimeout(speakAlertTimeoutId);
+        speakAlertTimeoutId = null;
+    }
+
+    // O mesmo alerta sonoro usado para um novo evento é reproduzido novamente.
+    // forceManual=true permite ouvir o alerta mesmo se o slider de magnitude estiver
+    // acima da magnitude do evento selecionado.
+    try {
+        playEarthquakeSound(item.mag, item.place, item.depth, 0, true);
+    } catch (e) {
+        console.warn('[audio] falha no replay manual do sismo:', e);
+    }
+
+    // REGRA DA VOZ:
+    // M6.0 ou maior -> alerta sonoro + voz.
+    // M5.9 ou menor -> somente alerta sonoro.
+    if (Number(item.mag) >= VOZ_SISMO_MIN && somAtivo && window.speechSynthesis) {
+        speakAlert(item.mag, item.place, item.depth, 0);
+    } else if (window.speechSynthesis && Number(item.mag) < VOZ_SISMO_MIN) {
+        // Garante que uma fala anterior não continue ao clicar em um M5.9 ou menor.
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+}
+
+// Compatibilidade com chamadas antigas do projeto.
+// Agora clicar em um sismo nunca fala abaixo de M6.0.
+
+function triggerLightningFlash() {
+    const el = document.getElementById('lightning-flash');
+    if (!el) return;
+    el.classList.remove('lightning-flash-active');
+    void el.offsetWidth;
+    el.classList.add('lightning-flash-active');
+    const v = document.getElementById('vignette-cinematic');
+    if (v) {
+        v.classList.add('vignette-active');
+        setTimeout(() => v.classList.remove('vignette-active'), 3200);
+    }
+}
+
+/* ====== ✅ FIM DA PARTE 1 — cole a PARTE 2 logo abaixo ====== */
