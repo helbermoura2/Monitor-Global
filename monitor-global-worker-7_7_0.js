@@ -1451,6 +1451,64 @@ function fillRect(rgba, w, x, y, rw, rh, r, g, b, a = 255) {
     }
 }
 
+/** Igual a fillRect, mas com cantos arredondados (raio em px) — usado nos
+ * cartões do resumo diário pra tirar a "cara de planilha" dos retângulos
+ * retos. Teste de distância só nos 4 quadrados de canto; o miolo do
+ * retângulo é preenchido reto (rápido, sem custo extra no resto da área). */
+function fillRoundRect(rgba, w, h, x, y, rw, rh, radius, r, g, b, a = 255) {
+    const rad = Math.max(0, Math.min(radius, rw / 2, rh / 2));
+    const x0 = Math.max(0, x | 0), y0 = Math.max(0, y | 0);
+    const x1 = Math.min(w, x0 + (rw | 0)), y1 = Math.min(h, y0 + (rh | 0));
+    const rr = rad * rad;
+    for (let yy = y0; yy < y1; yy++) {
+        const inTopBand = yy < y0 + rad, inBottomBand = yy >= y1 - rad;
+        let i = (yy * w + x0) * 4;
+        for (let xx = x0; xx < x1; xx++) {
+            let skip = false;
+            if (rad > 0 && (inTopBand || inBottomBand)) {
+                const cx = xx < x0 + rad ? x0 + rad : (xx >= x1 - rad ? x1 - rad : null);
+                if (cx !== null) {
+                    const cy = inTopBand ? y0 + rad : y1 - rad;
+                    const dx = xx - cx, dy = yy - cy;
+                    if (dx * dx + dy * dy > rr) skip = true;
+                }
+            }
+            if (!skip) {
+                if (a >= 255) {
+                    rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = 255;
+                } else if (a > 0) {
+                    const ia = 255 - a;
+                    rgba[i] = (r * a + rgba[i] * ia) / 255;
+                    rgba[i + 1] = (g * a + rgba[i + 1] * ia) / 255;
+                    rgba[i + 2] = (b * a + rgba[i + 2] * ia) / 255;
+                    rgba[i + 3] = 255;
+                }
+            }
+            i += 4;
+        }
+    }
+}
+
+/** Brilho radial suave (glow) — alpha cai por distância ao centro, ao
+ * quadrado, pra parecer luz de verdade em vez de um círculo chapado. */
+function fillRadialGlow(rgba, w, h, cx, cy, rad, r, g, b, maxAlpha = 0.35) {
+    const y0 = Math.max(0, (cy - rad) | 0), y1 = Math.min(h, (cy + rad + 1) | 0);
+    const x0 = Math.max(0, (cx - rad) | 0), x1 = Math.min(w, (cx + rad + 1) | 0);
+    for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+            const dx = x - cx, dy = y - cy;
+            const d = Math.sqrt(dx * dx + dy * dy) / rad;
+            if (d >= 1) continue;
+            const a = maxAlpha * (1 - d * d);
+            const i = (y * w + x) * 4;
+            rgba[i] = r * a + rgba[i] * (1 - a);
+            rgba[i + 1] = g * a + rgba[i + 1] * (1 - a);
+            rgba[i + 2] = b * a + rgba[i + 2] * (1 - a);
+            rgba[i + 3] = 255;
+        }
+    }
+}
+
 function fillCircle(rgba, w, h, cx, cy, rad, r, g, b, a = 255) {
     const r2 = rad * rad;
     const y0 = Math.max(0, (cy - rad) | 0), y1 = Math.min(h, (cy + rad + 1) | 0);
@@ -2301,48 +2359,142 @@ async function fetchDailyQuakesBrt() {
     }).filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time));
     return {day,events};
 }
+/** Layout de cada cartão do Top 5 é todo calculado ANTES de desenhar —
+ * a fonte é monoespaçada (largura por caractere é exata, sem precisar
+ * medir texto), então dá pra saber a altura real de cada cartão sem
+ * chute. Isso elimina de vez o tipo de bug que havia antes (o número de
+ * ranking desenhado numa posição fixa à direita, que colidia com a
+ * segunda linha do nome do local quando ele quebrava — ex.: "2." em
+ * cima de "Tonga"). Aqui o ranking vira um selo à esquerda, ANTES do
+ * texto, então não tem como colidir; e o horário/profundidade vai
+ * sempre abaixo do bloco de texto já quebrado, na altura calculada. */
+function layoutQuakeCard(fonts, item, cardW) {
+    const padTop = 26, padBottom = 22, padLeft = 30;
+    const badgeR = 20;
+    const magX = padLeft + badgeR * 2 + 18;
+    const placeX = 300;
+    const placeMaxChars = Math.floor((cardW - placeX - 26) / fonts.small.cellW);
+    const lines = wrapText(sanitizeFontText(item.place), Math.max(10, placeMaxChars), 3);
+    const magRowH = fonts.hero.cellH;
+    const placeBlockY = padTop + magRowH + 16;
+    const placeBlockH = lines.length * (fonts.small.cellH + 6);
+    const metaY = placeBlockY + placeBlockH + 6;
+    const metaH = fonts.micro.cellH * 2 + 6;
+    return { padTop, padBottom, padLeft, badgeR, magX, placeX, lines, magRowH, placeBlockY, metaY, cardH: metaY + metaH + padBottom };
+}
+
 async function renderDailySummaryPng() {
     const {day,events}=await fetchDailyQuakesBrt();
-    const W=800,H=1440,rgba=new Uint8Array(W*H*4),fonts=await getFontAtlases();
+    const fonts=await getFontAtlases();
+    const W=800, cardX=38, cardW=W-76, cardGap=20;
+    const top=events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
+    const topColor = top.length ? getHexColorFromMag(top[0].mag) : [56,189,248];
+
+    // Todas as posições do cabeçalho/rodapé em uma constante só, usada
+    // tanto no cálculo de altura quanto no desenho — antes "Total
+    // registrado" ficava num y fixo (242) sem relação nenhuma com onde o
+    // cabeçalho realmente terminava, e a faixa de stats no fim ficava
+    // perto demais do rodapé; um valor por partes assim não tem como
+    // voltar a desalinhar dos dois lados.
+    const HEADER_H = 178, FOOTER_H = 70;
+    const TITLE_Y = HEADER_H + 30, TOTAL_Y = TITLE_Y + 40, CARDS_START_Y = TOTAL_Y + 50;
+    const STATS_GAP_TOP = 6, STATS_GAP_MID = 16, STATS_GAP_BOTTOM = 24;
+    const STATS_SECTION_H = STATS_GAP_TOP + 1 + 33 + fonts.micro.cellH + STATS_GAP_MID + fonts.micro.cellH + STATS_GAP_BOTTOM;
+
+    // Altura calculada em duas passadas: primeiro descobre quanto cada
+    // cartão vai ocupar (sem desenhar nada ainda), pra alocar o canvas do
+    // tamanho certo — sem sobra de fundo vazio quando tem poucos sismos,
+    // sem cortar nada quando os nomes de local são longos.
+    const cardLayouts = top.map(e => layoutQuakeCard(fonts, e, cardW));
+    let contentH = CARDS_START_Y;
+    if (!top.length) contentH += 90;
+    else cardLayouts.forEach(l => { contentH += l.cardH + cardGap; });
+    contentH += STATS_SECTION_H;
+    const H = contentH + FOOTER_H;
+    const rgba=new Uint8Array(W*H*4);
+
     fillRect(rgba,W,0,0,W,H,4,10,22);
-    fillRect(rgba,W,0,0,W,170,2,8,22,245);
+    fillRect(rgba,W,0,0,W,HEADER_H,2,8,22,245);
+    // Linha de destaque embaixo do cabeçalho, na cor do maior sismo do dia —
+    // o mesmo princípio de "cor por nível de ameaça" usado no app.
+    fillRect(rgba,W,0,HEADER_H-3,W,3,topColor[0],topColor[1],topColor[2],160);
     drawTextFontHalo(rgba,W,H,fonts.small,'MONITOR GLOBAL',34,30,56,189,248);
     drawTextFontHalo(rgba,W,H,fonts.micro,'RESUMO DO DIA',34,70,148,163,184);
     drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(`${day.split('-').reverse().join('/')} · 00:00-23:59 BRT`),34,103,148,163,184);
-    drawTextFontCenteredHalo(rgba,W,H,fonts.small,'TOP 5 SISMOS',W/2,205,248,250,252);
-    drawTextFontCenteredHalo(rgba,W,H,fonts.micro,`Total registrado: ${events.length}`,W/2,242,148,163,184);
+    drawTextFontCenteredHalo(rgba,W,H,fonts.small,'TOP 5 SISMOS',W/2,TITLE_Y,248,250,252);
+    drawTextFontCenteredHalo(rgba,W,H,fonts.micro,`Total registrado: ${events.length}`,W/2,TOTAL_Y,148,163,184);
 
-    const top=events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
-    let y=292;
-    top.forEach((e,i)=>{
-        const c=getHexColorFromMag(e.mag);
-        fillRect(rgba,W,38,y-15,724,150,10,16,30,245);
-        fillRect(rgba,W,38,y-15,5,150,c[0],c[1],c[2],255);
-        // Magnitude separada do texto para nunca haver sobreposição.
-        // O atlas HERO é 68 px por caractere; 'M4.8' ocuparia 272 px.
-        // Usamos M pequeno + valor HERO, deixando uma coluna livre para o local.
-        drawTextFontHalo(rgba,W,H,fonts.small,'M',50,y+30,c[0],c[1],c[2]);
-        drawTextFontHalo(rgba,W,H,fonts.hero,e.mag.toFixed(1),76,y,c[0],c[1],c[2]);
-        const safePlace=sanitizeFontText(e.place);
-        const lines=wrapText(safePlace,27,3);
-        lines.forEach((line,j)=>drawTextFontHalo(rgba,W,H,fonts.small,sanitizeFontText(line),300,y+2+j*(fonts.small.cellH+3),226,232,240));
-        const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
-        drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(when),300,y+103,148,163,184);
-        drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Prof. ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'--'} · ${e.source}`),300,y+126,148,163,184);
-        drawTextFontHalo(rgba,W,H,fonts.micro,`${i+1}.`,728,y+8,100,116,139);
-        y+=170;
+    let y=CARDS_START_Y;
+    if(!top.length){
+        drawTextFontCenteredHalo(rgba,W,H,fonts.small,'Nenhum sismo registrado',W/2,y+20,148,163,184);
+        y+=90;
+    } else {
+        top.forEach((e,i)=>{
+            const c=getHexColorFromMag(e.mag);
+            const L=cardLayouts[i];
+            const cardTop=y;
+            fillRoundRect(rgba,W,H,cardX,cardTop,cardW,L.cardH,18,10,16,30,245);
+            // Brilho suave atrás do primeiro cartão (o maior sismo do dia) —
+            // único elemento com destaque extra, criando hierarquia real em
+            // vez de 5 cartões visualmente idênticos.
+            if(i===0) fillRadialGlow(rgba,W,H,cardX+L.magX+40,cardTop+L.padTop+L.magRowH/2,150,c[0],c[1],c[2],0.16);
+            // Barra de cor recuada (não encosta nos cantos arredondados).
+            fillRoundRect(rgba,W,H,cardX,cardTop+10,5,L.cardH-20,2,c[0],c[1],c[2],255);
+
+            const badgeCx=cardX+L.padLeft+L.badgeR, badgeCy=cardTop+L.padTop+Math.round(L.magRowH/2);
+            fillCircle(rgba,W,H,badgeCx,badgeCy,L.badgeR,c[0],c[1],c[2],38);
+            const rankTxt=String(i+1);
+            drawTextFontHalo(rgba,W,H,fonts.small,rankTxt,badgeCx-Math.round(textFontWidth(fonts.small,rankTxt)/2),badgeCy-Math.round(fonts.small.cellH/2),c[0],c[1],c[2]);
+
+            drawTextFontHalo(rgba,W,H,fonts.small,'M',cardX+L.magX,cardTop+L.padTop+30,c[0],c[1],c[2]);
+            const magStr=e.mag.toFixed(1);
+            drawTextFontHalo(rgba,W,H,fonts.hero,magStr,cardX+L.magX+22,cardTop+L.padTop,c[0],c[1],c[2]);
+            if(i===0){
+                const labelX=cardX+L.magX+22+textFontWidth(fonts.hero,magStr)+16;
+                if(labelX+textFontWidth(fonts.micro,'MAIOR DO DIA')<cardX+cardW-16)
+                    drawTextFontHalo(rgba,W,H,fonts.micro,'MAIOR DO DIA',labelX,cardTop+L.padTop+14,148,163,184);
+            }
+            L.lines.forEach((line,j)=>drawTextFontHalo(rgba,W,H,fonts.small,sanitizeFontText(line),cardX+L.placeX,cardTop+L.placeBlockY+j*(fonts.small.cellH+6),226,232,240));
+            const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(when),cardX+L.placeX,cardTop+L.metaY,148,163,184);
+            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Prof. ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'--'} · ${e.source}`),cardX+L.placeX,cardTop+L.metaY+fonts.micro.cellH+4,148,163,184);
+
+            y+=L.cardH+cardGap;
+        });
+    }
+    // Seção de estatísticas: mesma lógica de "altura combinada" dos
+    // cartões acima — cada incremento de y aqui bate exatamente com o
+    // que STATS_SECTION_H previu lá em cima, então o texto nunca fica
+    // colado/sobreposto ao rodapé, seja qual for a altura final do canvas.
+    y+=STATS_GAP_TOP;
+    fillRect(rgba,W,40,y,720,1,100,116,139,60); y+=1+33;
+    const m6=events.filter(e=>e.mag>=6).length, m5=events.filter(e=>e.mag>=5).length, m4=events.filter(e=>e.mag>=4).length;
+    // Selinhos coloridos (mesma escala de cor dos cartões) em vez de texto
+    // cru — dá pra "ler" a gravidade do dia num relance, sem precisar dos
+    // números.
+    const statBands=[[m6,getHexColorFromMag(6),'M6+'],[m5,getHexColorFromMag(5),'M5+'],[m4,getHexColorFromMag(4),'M4+']];
+    const statTxt=statBands.map(([n,,label])=>`${label}: ${n}`).join('   ·   ');
+    const statW=textFontWidth(fonts.micro,statTxt)+statBands.length*16;
+    let sx=Math.round(W/2-statW/2);
+    const statCy=y+Math.round(fonts.micro.cellH/2);
+    statBands.forEach(([n,c,label])=>{
+        fillCircle(rgba,W,H,sx+6,statCy,5,c[0],c[1],c[2],255);
+        const t=`${label}: ${n}`;
+        drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(t),sx+18,y,226,232,240);
+        sx+=18+textFontWidth(fonts.micro,t)+22;
     });
-    if(!top.length) drawTextFontCenteredHalo(rgba,W,H,fonts.small,'Nenhum sismo registrado',W/2,330,148,163,184);
-    y=Math.min(y+18,1250);
-    fillRect(rgba,W,40,y,720,1,100,116,139,60); y+=34;
-    drawTextFontCenteredHalo(rgba,W,H,fonts.micro,
-        sanitizeFontText(`M6+: ${events.filter(e=>e.mag>=6).length} · M5+: ${events.filter(e=>e.mag>=5).length} · M4+: ${events.filter(e=>e.mag>=4).length}`),
-        W/2,y,226,232,240);
-    y+=34;
+    y+=fonts.micro.cellH+STATS_GAP_MID;
     drawTextFontCenteredHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Demais registros: ${events.filter(e=>e.mag<4).length}`),W/2,y,148,163,184);
-    fillRect(rgba,W,0,H-70,W,70,10,16,28,230);
-    drawTextFontHalo(rgba,W,H,fonts.small,'monitorglobal.top',34,H-44,56,189,248);
-    drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText('Telegram · at monitor_global'),W-310,H-40,148,163,184);
+    y+=fonts.micro.cellH+STATS_GAP_BOTTOM;
+    fillRect(rgba,W,0,H-FOOTER_H,W,FOOTER_H,10,16,28,230);
+    drawTextFontHalo(rgba,W,H,fonts.small,'monitorglobal.top',34,H-Math.round(FOOTER_H/2+fonts.small.cellH/2)+4,56,189,248);
+    // Texto do rodapé direito com largura calculada de verdade (fonte
+    // monoespaçada) em vez de um "x" fixo no olho — a versão antiga
+    // ("Telegram · at monitor_global" em W-310) estourava a borda direita
+    // do canvas e cortava a última letra.
+    const tgTxt=sanitizeFontText('Telegram: monitor_global');
+    const tgX=W-38-textFontWidth(fonts.micro,tgTxt);
+    drawTextFontHalo(rgba,W,H,fonts.micro,tgTxt,tgX,H-Math.round(FOOTER_H/2+fonts.micro.cellH/2)+4,148,163,184);
     return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
 const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary';
@@ -2374,9 +2526,9 @@ async function runTelegramDailySummary(request,env){
     const form=new FormData();
     form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
     form.append('caption',
-        `📊 *Resumo do dia — ${day.split('-').reverse().join('/')}*\\n` +
-        `🌍 ${pack.total} sismos registrados\\n` +
-        `🏆 Maior: ${pack.top[0]?`M${pack.top[0].mag.toFixed(1)} — ${escapeMdLegacy(pack.top[0].place)}`:'sem registro'}\\n` +
+        `📊 *Resumo do dia — ${day.split('-').reverse().join('/')}*\n` +
+        `🌍 ${pack.total} sismos registrados\n` +
+        `🏆 Maior: ${pack.top[0]?`M${pack.top[0].mag.toFixed(1)} — ${escapeMdLegacy(pack.top[0].place)}`:'sem registro'}\n` +
         `🌐 monitorglobal.top`);
     form.append('parse_mode','Markdown');
     form.append('photo',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo.png');
