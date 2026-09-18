@@ -105,6 +105,121 @@ body.mobile-events-open .event {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ═══════════ Redesign visual: cabeçalho → ticker → caixa de registros ═══════════
+   Linguagem única "vidro + cor por nível de ameaça" descendo pela tela:
+   --mg-threat-color/data-mg-threat (setados em js/painel-e-lista.js, função
+   atualizarTickerUltimoEvento) refletem a gravidade do evento mais recente
+   e alimentam o brilho do cabeçalho, o ticker e os medalhões da lista — em
+   vez de cada peça ter sua própria cor isolada. Só cosméticos aqui (fundo,
+   sombra, blur, borda, cor) — nada de largura/altura/posição, que já é
+   responsabilidade dos motores de layout (mobile-portrait-clean-toggle.js
+   e header-v72.js) e não deve ser disputada de novo aqui. */
+@media screen and (max-width:900px) and (orientation:portrait) {
+  body.mg-clean-portrait #top-strip,
+  #top-strip {
+    background: linear-gradient(180deg, rgba(7,19,33,.88) 0%, rgba(4,13,23,.93) 70%, rgba(2,9,18,.97) 100%) !important;
+    backdrop-filter: blur(20px) saturate(1.15) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.15) !important;
+    box-shadow:
+      0 10px 30px rgba(0,0,0,.36),
+      0 26px 60px -20px color-mix(in srgb, var(--mg-threat-color, #38bdf8) 55%, transparent) !important;
+    transition: box-shadow .6s ease !important;
+  }
+  body.mg-clean-portrait #latest-event-ticker,
+  #latest-event-ticker {
+    background: linear-gradient(135deg, rgba(6,20,34,.86), rgba(4,12,22,.9)) !important;
+    backdrop-filter: blur(18px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+  }
+
+  /* KPIs (local/clima, Brent, hora) como pequenos chips de vidro em vez
+     de texto solto — o divisor fino original continua ali (vem do motor
+     de layout), isto só acrescenta uma "pílula" sutil por trás do valor. */
+  .ts-kpi-value {
+    background: rgba(255,255,255,.045) !important;
+    border: 1px solid rgba(140,182,214,.14) !important;
+    padding: 1px 7px !important;
+    border-radius: 7px !important;
+    display: inline-block !important;
+  }
+  #kpibox-brent .ts-kpi-value { border-color: rgba(74,222,128,.22) !important; }
+
+  /* Cabeçalho fixo da caixa de registros ganha o mesmo acabamento de
+     vidro do resto — ela já não rola junto com a lista (só #events tem
+     scroll), então isto só é cosmético, sem position:sticky necessário. */
+  body.mobile-events-open #events-label {
+    background: linear-gradient(180deg, rgba(8,20,34,.94), rgba(6,15,27,.82)) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+}
+
+/* ═══════════ Medalhão de ícone (ticker + cards da lista) ═══════════
+   Mesmo vocabulário visual em dois lugares: círculo colorido com blur
+   de fundo, usando a cor do próprio evento (--ev-color no card, cor do
+   tipo/severidade no ticker). Escondido por padrão (inclusive desktop);
+   só aparece dentro da folha de registros no mobile retrato. .event-body
+   usa display:contents fora desse escopo para não alterar em nada o
+   fluxo/visual da lista no desktop — os filhos continuam se comportando
+   como se fossem filhos diretos de .event, exatamente como antes. */
+.event-icon { display: none; }
+.event-body { display: contents; }
+
+@media screen and (max-width:900px) and (orientation:portrait) {
+  body.mobile-events-open .event {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  body.mobile-events-open .event-body {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  body.mobile-events-open .event-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    flex: 0 0 auto !important;
+    width: 34px !important;
+    height: 34px !important;
+    margin-top: 1px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: -.3px !important;
+    color: #eaf7ff !important;
+    background: color-mix(in srgb, var(--ev-color, #38bdf8) 24%, rgba(4,14,24,.92)) !important;
+    border: 1px solid color-mix(in srgb, var(--ev-color, #38bdf8) 55%, transparent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ev-color, #38bdf8) 10%, transparent) !important;
+  }
+  /* Rabicho da trilha abaixo do medalhão: como .event já tem
+     overflow:hidden (herdado do card em si), o traço nunca escapa pro
+     card vizinho — fica sempre contido dentro dos próprios limites do
+     card, sem risco de "vazar" por baixo de um card ao lado. */
+  body.mobile-events-open .event-icon::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 2px;
+    height: 80px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ev-color,#38bdf8) 32%, transparent), transparent 70%);
+  }
+
+  /* Feedback de toque: leve encolhida ao tocar um card. */
+  body.mobile-events-open .event {
+    transition: transform .12s ease, background .2s ease !important;
+  }
+  body.mobile-events-open .event:active {
+    transform: scale(.98) !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mg-value-pulse,
   #latest-event-ticker.mg-ticker-ping,
@@ -115,7 +230,13 @@ body.mobile-events-open .event {
     transform: none !important;
   }
   #pd-gauge-arc,
-  #pd-gauge-glow {
+  #pd-gauge-glow,
+  body.mobile-events-open .event,
+  body.mg-clean-portrait #top-strip,
+  #top-strip {
     transition: none !important;
+  }
+  body.mobile-events-open .event:active {
+    transform: none !important;
   }
 }
