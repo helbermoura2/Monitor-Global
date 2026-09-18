@@ -124,16 +124,17 @@
       padding:'0','border-top':'1px solid rgba(72,216,255,.14)'});
     setImp(e.kpiSp, {order:'1',display:'flex','flex-direction':'row','align-items':'center',gap:'6px',
       flex:'1 1 auto','min-width':'0',margin:'0',padding:'0','border-left':'none',overflow:'hidden'});
-    /* Nome da cidade trunca com reticências; vento/sensação somem para dar
-       espaço, igual ao celular (js/mobile-portrait-clean-toggle.js). */
+    /* Nome da cidade trunca com reticências; vento continua saindo, mas a
+       sensação térmica volta a aparecer — igual ao celular
+       (js/mobile-portrait-clean-toggle.js). */
     var spLabel = document.querySelector('#kpibox-sp .ts-kpi-label');
     var spRow = document.querySelector('#kpibox-sp .ts-kpi-row');
     var spIcon = document.getElementById('kpi-wx-icon');
     setImp(spLabel, {flex:'1 1 auto','min-width':'0',overflow:'hidden','text-overflow':'ellipsis','white-space':'nowrap'});
-    setImp(spRow, {flex:'0 0 auto',display:'flex'});
+    setImp(spRow, {flex:'0 0 auto',display:'flex','align-items':'baseline',gap:'3px'});
+    setImp(e.kpiFeels, {display:'inline-block','flex':'0 0 auto'});
     setImp(spIcon, {flex:'0 0 auto'});
     setImp(document.getElementById('kpi-wind'), {display:'none'});
-    setImp(e.kpiFeels, {display:'none'});
     setImp(e.kpiBrent, {order:'2',display:'flex','flex-direction':'row','align-items':'center',gap:'4px',
       position:'static',width:'auto','min-width':'0','max-width':'none',flex:'0 0 auto',margin:'0',
       'padding-left':'10px','border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});

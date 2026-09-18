@@ -199,18 +199,20 @@
     setImp(e.kpiSp, {order:'1',display:'flex','flex-direction':'row','align-items':'center',gap:'6px',
       flex:'1 1 auto','min-width':'0',margin:'0',padding:'0','border-left':'none',overflow:'hidden'});
     /* Nome da cidade trunca com reticências; ícone/temperatura ficam fixos.
-       Vento e sensação térmica somem no retrato — não cabem com folga
-       e a temperatura já é a informação essencial aqui. */
+       Vento continua saindo (não cabe nem compacto), mas a sensação
+       térmica volta a aparecer — pedido do Helber, a temperatura sozinha
+       não bastava. O nome da cidade absorve o aperto extra truncando
+       mais cedo (já era o elemento "sacrificável" aqui). */
     var spLabel = document.querySelector('#kpibox-sp .ts-kpi-label');
     var spRow = document.querySelector('#kpibox-sp .ts-kpi-row');
     var spWind = document.getElementById('kpi-wind');
     var spFeels = document.getElementById('kpi-feels');
     var spIcon = document.getElementById('kpi-wx-icon');
     setImp(spLabel, {flex:'1 1 auto','min-width':'0',overflow:'hidden','text-overflow':'ellipsis','white-space':'nowrap'});
-    setImp(spRow, {flex:'0 0 auto',display:'flex'});
+    setImp(spRow, {flex:'0 0 auto',display:'flex','align-items':'baseline',gap:'3px'});
+    setImp(spFeels, {display:'inline-block','flex':'0 0 auto'});
     setImp(spIcon, {flex:'0 0 auto',display:'inline-block'});
     setImp(spWind, {display:'none'});
-    setImp(spFeels, {display:'none'});
     setImp(e.kpiBrent, {order:'2',display:'flex','flex-direction':'row','align-items':'center',gap:'4px',
       position:'static',width:'auto','min-width':'0','max-width':'none',flex:'0 0 auto',margin:'0',
       'padding-left':'10px','border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});
