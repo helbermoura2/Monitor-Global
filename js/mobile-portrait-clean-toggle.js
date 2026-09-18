@@ -222,8 +222,14 @@
     setImp(fabEvents, {display:'none'});
     setImp(fabAudio, {display:'none'});
 
+    /* margin-top negativo (não zero) de propósito: garante que o card
+       sobreponha o rodapé do cabeçalho em vez de só encostar nele. Com
+       margin:0 sobrava, em alguns aparelhos (telas de densidade não
+       inteira, tipo 2.625x), uma frestinha de menos de 1px por
+       arredondamento sub-pixel — some quando os dois se sobrepõem de
+       propósito, já que os dois têm fundo escuro opaco. */
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto','min-height':'40px',margin:'0 14px',padding:'6px 10px'});
+      width:'auto',height:'auto','min-height':'40px',margin:'-3px 14px 0',padding:'6px 10px'});
 
     /* Linha 3 — magnitude + chips na MESMA linha, como pediu o Helber:
        o slider fica compacto (só "M 0.0", sem o rótulo "Magnitude

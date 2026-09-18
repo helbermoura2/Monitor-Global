@@ -144,8 +144,10 @@
     setImp(e.fabAudio, {display:'none'});
     setImp(e.meta, {display:'none'});
     setImp(e.mobileWeatherMini, {display:'none'});
+    /* margin-top negativo de propósito — ver comentário equivalente em
+       js/mobile-portrait-clean-toggle.js. */
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto',margin:'0 14px',padding:'6px 10px'});
+      width:'auto',height:'auto',margin:'-3px 14px 0',padding:'6px 10px'});
     /* Magnitude + chips na mesma linha, com os chips rolando na
        horizontal (setinhas ‹ › visíveis) — mesmo esquema do celular
        (js/mobile-portrait-clean-toggle.js). */
