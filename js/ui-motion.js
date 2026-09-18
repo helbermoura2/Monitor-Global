@@ -41,6 +41,22 @@
     obs.observe(textEl, { childList: true, characterData: true, subtree: true });
   })();
 
+  // Painel direito (desktop): mesma lógica do ticker, mas no elemento que
+  // o desktop realmente usa pra mostrar o evento em foco (#pd-local muda
+  // de texto sempre que showEventDetails/showAlertDetails trocam de item).
+  (function watchPanelSwap() {
+    var local = document.getElementById('pd-local');
+    var panel = document.getElementById('painel-direito');
+    if (!local || !panel) return;
+    var last = local.textContent;
+    var obs = new MutationObserver(function () {
+      if (local.textContent === last) return;
+      last = local.textContent;
+      restartAnimation(panel, 'mg-panel-swap');
+    });
+    obs.observe(local, { childList: true, characterData: true, subtree: true });
+  })();
+
   var ticker = document.getElementById('latest-event-ticker');
   if (ticker) {
     var lastSev = ticker.dataset.sev;
