@@ -24,8 +24,8 @@
   }
 
   var LAYOUT_PROPS = ['display','flex-direction','flex-wrap','flex','order','align-items','justify-content',
-    'gap','position','top','right','left','bottom','width','height','min-width','max-width','min-height',
-    'margin','margin-left','margin-right','padding','padding-left','overflow','overflow-x','grid-template-rows',
+    'gap','position','top','right','left','bottom','width','height','min-width','max-width','min-height','max-height',
+    'margin','margin-left','margin-right','padding','padding-left','overflow','overflow-x','overflow-y','grid-template-rows',
     'white-space','text-overflow','border-left','border-top','box-sizing'];
 
   var origFabParent = null, origFabNext = null;
@@ -58,6 +58,9 @@
       controlbar: document.getElementById('ux-controlbar'),
       controlsBox: document.getElementById('controls'),
       chipsWrap: document.getElementById('chips-scroll-wrap'),
+      chipsRow: document.getElementById('chips-row'),
+      chipsScrollLeft: document.getElementById('chips-scroll-left'),
+      chipsScrollRight: document.getElementById('chips-scroll-right'),
       freshBar: document.getElementById('freshness-bar'),
       searchWrap: document.getElementById('ux-search-wrap'),
       v70: document.getElementById('v70-header-row'),
@@ -136,15 +139,30 @@
     setImp(e.mobileWeatherMini, {display:'none'});
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
       width:'auto',height:'auto',margin:'6px 14px 0',padding:'6px 10px'});
+    /* Filtros em grade (quebra de linha) com teto de altura + rolagem
+       vertical, em vez de faixa horizontal escondida — mesmo esquema do
+       celular (js/mobile-portrait-clean-toggle.js). */
     setImp(e.controlbar, {display:'flex',order:'8',position:'static',top:'auto',left:'auto',right:'auto',
-      bottom:'auto','flex-direction':'row','flex-wrap':'nowrap','align-items':'center',flex:'0 0 auto',
-      width:'100%',height:'auto',overflow:'hidden',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
+      bottom:'auto','flex-direction':'column','flex-wrap':'nowrap','align-items':'stretch',flex:'0 0 auto',
+      width:'100%',height:'auto','max-height':'none',overflow:'visible',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
       'border-top':'1px solid rgba(72,216,255,.14)'});
-    setImp(e.controlsBox, {flex:'0 0 92px',width:'92px',padding:'0'});
-    setImp(e.chipsWrap, {flex:'1 1 auto','min-width':'0'});
-    setImp(e.freshBar, {flex:'0 0 auto',display:'flex',gap:'8px','white-space':'nowrap'});
+    setImp(e.controlsBox, {display:'flex','flex-direction':'row','align-items':'center',gap:'8px',
+      flex:'0 0 auto',width:'100%','min-width':'0','max-width':'none',padding:'0',order:'1'});
+    var magLabel = document.querySelector('.mag-slider-row span:first-child');
+    setImp(magLabel, {display:'inline'});
+    setImp(e.chipsWrap, {display:'block',flex:'0 0 auto',width:'100%','min-width':'0',
+      height:'auto','max-height':'128px','overflow-y':'auto','overflow-x':'hidden',order:'2'});
+    setImp(e.chipsRow, {display:'flex','flex-wrap':'wrap','overflow-x':'visible',height:'auto','max-height':'none',
+      width:'100%','min-width':'0','max-width':'100%',flex:'0 0 auto',
+      padding:'2px 0',margin:'0',gap:'6px','align-items':'center'});
+    setImp(e.chipsScrollLeft, {display:'none'});
+    setImp(e.chipsScrollRight, {display:'none'});
+    /* Sismos/Alertas/Rede e o card de commodities do v70 são extras de
+       desktop sem lugar no cabeçalho enxuto de retrato — ficam escondidos
+       aqui igual ao celular (js/mobile-portrait-clean-toggle.js). */
+    setImp(e.freshBar, {display:'none'});
     setImp(e.searchWrap, {display:'none'});
-    setImp(e.v70, {display:'flex',order:'9',flex:'1 1 100%',width:'100%'});
+    setImp(e.v70, {display:'none'});
     if(ro){ ro.disconnect(); ro = null; }
     if(e.ticker) e.ticker.style.removeProperty('top');
   }
@@ -153,6 +171,12 @@
     restoreFabParent(e.fab);
     clearProps(e.fab, LAYOUT_PROPS);
     clearProps(e.fabMenu, LAYOUT_PROPS);
+    /* Limpa o esquema de grade do retrato para não sobrar flex-wrap/
+       overflow-y presos ao virar o tablet de retrato pra paisagem. */
+    [e.chipsRow, e.chipsScrollLeft, e.chipsScrollRight,
+     document.querySelector('.mag-slider-row span:first-child')].forEach(function(el){
+      clearProps(el, LAYOUT_PROPS);
+    });
     setImp(e.app, {'grid-template-rows':'auto 1fr'});
     setImp(e.strip, {display:'flex','flex-direction':'row','flex-wrap':'wrap','align-items':'center',
       height:'auto','min-height':'auto',padding:'6px 10px',gap:'6px 8px',overflow:'visible'});
@@ -196,10 +220,12 @@
       restoreFabParent(e.fab);
       [e.app,e.strip,e.mainrow,e.actions,e.kpis,e.kpiEventos,e.kpiMaior,e.btnRadarHeader,
        e.kpiSp,e.kpiFeels,e.kpiBrent,e.clock,e.btnSom,e.meta,e.mobileWeatherMini,e.controlbar,
-       e.controlsBox,e.chipsWrap,e.freshBar,e.searchWrap,e.v70,e.title,e.live,e.fab,e.fabMenu,
+       e.controlsBox,e.chipsWrap,e.chipsRow,e.chipsScrollLeft,e.chipsScrollRight,
+       e.freshBar,e.searchWrap,e.v70,e.title,e.live,e.fab,e.fabMenu,
        document.getElementById('mobile-probar'),document.querySelector('#kpibox-sp .ts-kpi-label'),
        document.querySelector('#kpibox-sp .ts-kpi-row'),document.getElementById('kpi-wx-icon'),
-       document.getElementById('kpi-wind')].forEach(function(el){
+       document.getElementById('kpi-wind'),document.querySelector('.mag-slider-row span:first-child')
+      ].forEach(function(el){
         clearProps(el, LAYOUT_PROPS);
       });
       if(e.ticker) e.ticker.style.removeProperty('top');

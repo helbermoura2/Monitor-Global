@@ -102,7 +102,8 @@
     scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important;
   }
   #top-strip > #ux-controlbar #chips-row::-webkit-scrollbar{ display:none !important; }
-  #top-strip > #ux-controlbar .chip{
+  #top-strip > #ux-controlbar .chip:not(.advanced-filter),
+  #top-strip > #ux-controlbar #chips-row.expanded .chip.advanced-filter{
     display:inline-flex !important; flex:0 0 auto !important; min-height:27px !important; height:27px !important;
     padding:3px 7px !important; font-size:11px !important; white-space:nowrap !important;
   }
