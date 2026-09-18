@@ -1,10 +1,19 @@
 /* === monitor-global-fix-card-intensity-v1 (linhas originais 15270-15352) === */
 /* ===== CORREÇÃO 1 — topo do card principal sempre visível ===== */
 #painel-direito {
-  position: relative !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding-top: 12px !important;
+}
+/* position:relative só faz sentido quando #painel-direito é coluna real do
+   grid (desktop/tablet largo). Abaixo de 901px o layout mobile o transforma
+   em bottom-sheet fixo (ver mobile-header-v4412.css); aplicar relative sem
+   essa guarda quebrava o grid do #app inteiro em telas de 701–900px
+   retrato, colapsando o cabeçalho. */
+@media screen and (min-width: 901px) {
+  #painel-direito {
+    position: relative !important;
+  }
 }
 #painel-direito .pd-header-row {
   position: sticky !important;
