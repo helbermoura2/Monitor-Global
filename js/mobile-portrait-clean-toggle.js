@@ -25,7 +25,7 @@
   var GEOM = ['display','flex-direction','flex-wrap','flex','width','min-width','max-width',
     'height','min-height','max-height','padding','margin','position','top','left','right','bottom',
     'overflow','overflow-x','overflow-y','gap','align-items','justify-content','grid-template-columns','order',
-    'border-top','border-left','padding-left','text-overflow','white-space'];
+    'border-top','border-left','border-bottom','padding-left','text-overflow','white-space'];
 
   function els(){
     return {
@@ -149,9 +149,13 @@
        ainda tem #top-strip{flex-wrap:wrap!important} de uma versão antiga,
        e a combinação column+wrap fazia os itens "vazarem" para uma coluna
        fantasma fora da tela (o vão vazio visto entre as linhas do header). */
+    /* Sem border-bottom aqui: o card AO VIVO agora sobrepõe o rodapé do
+       cabeçalho de propósito (margin-top negativo, mais abaixo). Com a
+       borda ligada, ela ficava "escapando" bem no canto arredondado do
+       card, onde a curva não cobre o suficiente pra tapar a linha. */
     setImp(e.strip, {display:'flex','flex-direction':'column','flex-wrap':'nowrap',
       flex:'0 0 auto',height:'auto','min-height':'0','max-height':'none',overflow:'visible',
-      padding:'8px 14px 6px',gap:'0'});
+      padding:'8px 14px 6px',gap:'0','border-bottom':'none'});
     try {
       /* KPIs e filtros ficam abaixo do título; o botão de menu (FAB)
          entra na mesma linha do título, à direita, como no desktop. */
