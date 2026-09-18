@@ -65,6 +65,7 @@
       searchWrap: document.getElementById('ux-search-wrap'),
       v70: document.getElementById('v70-header-row'),
       ticker: document.getElementById('latest-event-ticker'),
+      mapWrap: document.getElementById('mapWrap'),
       title: document.querySelector('#top-strip .ts-title'),
       live: document.querySelector('#top-strip .live-indicator'),
       fab: document.getElementById('mobile-fab-bar'),
@@ -86,8 +87,14 @@
   function applyPortrait(e){
     /* Mesmo desenho de 3 faixas do celular (js/mobile-portrait-clean-toggle.js):
        título+AO VIVO+menu / 📍clima·🛢️Brent·relógio / filtros — para que o
-       cabeçalho não mude de estrutura ao cruzar os 700px em retrato. */
-    setImp(e.app, {'grid-template-rows':'auto 1fr'});
+       cabeçalho não mude de estrutura ao cruzar os 700px em retrato.
+       #app vira flex-column (não grid): o #latest-event-ticker é filho
+       direto de #app mas não tem grid-area — num grid só com "top"/"map"
+       ele caía numa 3ª linha implícita depois do mapa (quase 900px mais
+       embaixo!). Em flex, ele simplesmente segue a ordem do HTML, logo
+       depois do cabeçalho — igual já funciona no celular. */
+    setImp(e.app, {display:'flex','flex-direction':'column',height:'100dvh',width:'100vw'});
+    setImp(e.mapWrap, {flex:'1 1 auto','min-height':'0',height:'auto',position:'relative',overflow:'hidden'});
     setImp(e.strip, {display:'flex','flex-direction':'column','flex-wrap':'nowrap',
       height:'auto','min-height':'0',padding:'8px 14px 6px',gap:'0',overflow:'visible'});
     try {
@@ -138,7 +145,7 @@
     setImp(e.meta, {display:'none'});
     setImp(e.mobileWeatherMini, {display:'none'});
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto',margin:'6px 14px 0',padding:'6px 10px'});
+      width:'auto',height:'auto',margin:'0 14px',padding:'6px 10px'});
     /* Magnitude + chips na mesma linha, com os chips rolando na
        horizontal (setinhas ‹ › visíveis) — mesmo esquema do celular
        (js/mobile-portrait-clean-toggle.js). */
@@ -175,7 +182,7 @@
     clearProps(e.fabMenu, LAYOUT_PROPS);
     /* Limpa o esquema de grade do retrato para não sobrar flex-wrap/
        overflow-y presos ao virar o tablet de retrato pra paisagem. */
-    [e.chipsRow, e.chipsScrollLeft, e.chipsScrollRight,
+    [e.chipsRow, e.chipsScrollLeft, e.chipsScrollRight, e.mapWrap, e.app,
      document.querySelector('.mag-slider-row span:first-child')].forEach(function(el){
       clearProps(el, LAYOUT_PROPS);
     });
@@ -214,16 +221,28 @@
     }
   }
 
+  var OWNER_TAG = 'tablet';
+
   function apply(){
+    /* Mesma marcação de "dono atual" usada em
+       js/mobile-portrait-clean-toggle.js — os dois scripts mexem nos
+       mesmos elementos do cabeçalho em larguras vizinhas, cada um com
+       sua própria fila de setTimeout; sem isso, uma reaplicação atrasada
+       de um script podia apagar o que o outro tinha acabado de montar. */
+    if(!ativo()){
+      var owner = document.body.dataset.mgHeaderOwner;
+      if(owner && owner !== OWNER_TAG) return;
+    }
     var e = els();
     if(ativo()){
+      document.body.dataset.mgHeaderOwner = OWNER_TAG;
       if(mqPortrait.matches){ applyPortrait(e); } else { applyLandscape(e); }
     } else {
       restoreFabParent(e.fab);
       [e.app,e.strip,e.mainrow,e.actions,e.kpis,e.kpiEventos,e.kpiMaior,e.btnRadarHeader,
        e.kpiSp,e.kpiFeels,e.kpiBrent,e.clock,e.btnSom,e.meta,e.mobileWeatherMini,e.controlbar,
        e.controlsBox,e.chipsWrap,e.chipsRow,e.chipsScrollLeft,e.chipsScrollRight,
-       e.freshBar,e.searchWrap,e.v70,e.title,e.live,e.fab,e.fabMenu,
+       e.freshBar,e.searchWrap,e.v70,e.title,e.live,e.fab,e.fabMenu,e.mapWrap,
        document.getElementById('mobile-probar'),document.querySelector('#kpibox-sp .ts-kpi-label'),
        document.querySelector('#kpibox-sp .ts-kpi-row'),document.getElementById('kpi-wx-icon'),
        document.getElementById('kpi-wind'),document.querySelector('.mag-slider-row span:first-child')
@@ -232,6 +251,7 @@
       });
       if(e.ticker) e.ticker.style.removeProperty('top');
       if(ro){ ro.disconnect(); ro = null; }
+      if(document.body.dataset.mgHeaderOwner === OWNER_TAG) delete document.body.dataset.mgHeaderOwner;
     }
   }
   // v73: ordena visualmente as seções empilhadas do cabeçalho mobile,
