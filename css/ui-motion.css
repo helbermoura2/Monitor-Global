@@ -53,14 +53,31 @@
 }
 
 /* Medidor de magnitude do card do evento: o arco desliza até a posição
-   nova (em vez de "teleportar") e a cor acompanha. O número em si é
-   animado via JS (js/sismo-metrics.js, animateMagNumber), porque CSS
-   não anima o conteúdo de texto. */
+   nova (em vez de "teleportar") e a cor acompanha. Curva com leve
+   overshoot (passa um pouco do ponto final e volta) pra lembrar o
+   ponteiro de um medidor físico em vez de um simples ease-out. O
+   número em si é animado via JS (js/sismo-metrics.js,
+   animateMagNumber), porque CSS não anima o conteúdo de texto. */
 #pd-gauge-arc {
-  transition: stroke-dashoffset .6s cubic-bezier(.22,.9,.32,1), stroke .4s ease, color .4s ease;
+  transition: stroke-dashoffset .65s cubic-bezier(.34,1.56,.64,1), stroke .4s ease, color .4s ease;
 }
 #pd-gauge-glow {
   transition: opacity .4s ease, background .4s ease;
+}
+
+/* Painel direito (desktop): no desktop é ele — não o ticker (mobile-only,
+   ver mobile-late-patches.css) — quem mostra o evento em foco. Ao trocar
+   de evento (clique na lista/mapa), o conteúdo desliza de leve + fade em
+   vez de trocar seco; é o mesmo tipo de reforço visual do mg-ticker-slide,
+   só que aplicado onde o desktop realmente exibe os detalhes. */
+@media screen and (min-width: 901px) {
+  .mg-panel-swap {
+    animation: mgPanelSwap .38s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes mgPanelSwap {
+    0%   { opacity: 0; transform: translateX(10px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
 }
 
 /* ═══════════ Caixa de registros (mobile) ═══════════ */
@@ -99,6 +116,57 @@ body.mobile-events-open .event {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 8%, transparent), transparent 55%),
     linear-gradient(145deg, rgba(7,23,38,.92), rgba(4,14,24,.92)) !important;
+}
+
+/* Mesma linguagem (2) e (3) pro desktop: a sidebar esquerda fica sempre
+   visível ali (não é uma caixa que abre/fecha como no mobile), então o
+   cabeçalho de grupo sticky e o tint por severidade valem o tempo todo,
+   sem depender de body.mobile-events-open. */
+@media screen and (min-width: 901px) {
+  #events .group-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(180deg, rgba(6,17,29,.97) 70%, rgba(6,17,29,0));
+    padding-top: 8px !important;
+    padding-bottom: 6px !important;
+  }
+  .event {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 8%, transparent), transparent 55%),
+      linear-gradient(145deg, rgba(7,23,38,.92), rgba(4,14,24,.92)) !important;
+  }
+}
+
+/* ═══════════ Micro-interações de hover (só com mouse de verdade) ═══════════
+   (hover:hover) and (pointer:fine) evita pegar touch — em touchscreen o
+   :hover gruda depois do toque, por isso .event:hover já zera transform
+   pra touch em base.css. Aqui é só o extra pra quem tem mouse/trackpad. */
+@media screen and (min-width: 901px) and (hover: hover) and (pointer: fine) {
+  .event {
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .event:hover {
+    transform: translateY(-2px) !important;
+    border-color: color-mix(in srgb, var(--ev-color, #38bdf8) 45%, transparent) !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--ev-color, #38bdf8) 30%, transparent) !important;
+  }
+  .chip {
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .chip:hover {
+    transform: translateY(-1px);
+    border-color: rgba(56,189,248,.45) !important;
+    box-shadow: 0 4px 12px rgba(56,189,248,.15);
+  }
+  #pd-share-btn {
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  #pd-share-btn:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+    filter: brightness(1.08);
+  }
 }
 
 /* 4) Entrada em cascata: quando a caixa abre, os cards já visíveis
@@ -433,12 +501,16 @@ body.mobile-events-open .event {
 @media (prefers-reduced-motion: reduce) {
   .mg-value-pulse,
   .mg-ticker-slide,
+  .mg-panel-swap,
   #latest-event-ticker.mg-ticker-ping,
   #latest-event-ticker.mg-ticker-ping .let-left,
   body.mobile-events-open #mobile-events-backdrop,
   .mg-card-in {
     animation: none !important;
     transform: none !important;
+  }
+  #pd-gauge-arc {
+    transition-timing-function: ease !important;
   }
   #top-strip::after,
   body.mobile-details-mid #painel-direito::after,
