@@ -209,27 +209,28 @@
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
       width:'auto',height:'auto','min-height':'40px',margin:'6px 14px 0',padding:'6px 10px'});
 
-    /* Linha 3 — filtros. Em vez de uma faixa horizontal que rola (difícil
-       de descobrir no toque), os chips quebram em grade: o que couber
-       aparece de cara, e o resto some só depois de um teto de altura,
-       com rolagem VERTICAL (gesto que todo mundo já conhece) em vez de
-       horizontal. "+ Mais filtros" continua revelando os chips avançados
-       (🔥🌀🌪️🌊🌋🚨💨💧), que entram na mesma grade. */
+    /* Linha 3 — magnitude + chips na MESMA linha, como pediu o Helber:
+       o slider fica compacto (só "M 0.0", sem o rótulo "Magnitude
+       mínima", que não cabe mais aqui) e os chips rolam na horizontal
+       ao lado, com as setinhas ‹ › (já existem em js/ui-wiring-final.js,
+       só precisavam ficar visíveis) mostrando quando dá pra rolar mais. */
     setImp(e.controlbar, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      'flex-direction':'column','flex-wrap':'nowrap','align-items':'stretch',flex:'0 0 auto',width:'100%',height:'auto',
-      'min-height':'0','max-height':'none',overflow:'visible',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
+      'flex-direction':'row','flex-wrap':'nowrap','align-items':'center',flex:'0 0 auto',width:'100%',height:'auto',
+      'min-height':'0','max-height':'40px',overflow:'hidden',margin:'6px 0 0',padding:'6px 0 0',gap:'8px',
       'border-top':'1px solid rgba(72,216,255,.14)'});
-    setImp(e.controls, {display:'flex','flex-direction':'row','align-items':'center',gap:'8px',
-      flex:'0 0 auto',width:'100%','min-width':'0','max-width':'none',padding:'0',height:'auto',order:'1'});
+    setImp(e.controls, {display:'flex','flex-direction':'row','align-items':'center',gap:'5px',
+      flex:'0 0 86px',width:'86px','min-width':'86px','max-width':'86px',padding:'0',height:'auto',order:'1'});
     var magLabel = document.querySelector('.mag-slider-row span:first-child');
-    setImp(magLabel, {display:'inline'});
-    setImp(e.chipsWrap, {display:'block',flex:'0 0 auto',width:'100%','min-width':'0',
-      height:'auto','max-height':'128px','overflow-y':'auto','overflow-x':'hidden',order:'2'});
-    setImp(e.chipsRow, {display:'flex','flex-wrap':'wrap','overflow-x':'visible',height:'auto','max-height':'none',
-      width:'100%','min-width':'0','max-width':'100%',flex:'0 0 auto',
-      padding:'2px 0',margin:'0',gap:'6px','align-items':'center'});
-    setImp(e.chipsScrollLeft, {display:'none'});
-    setImp(e.chipsScrollRight, {display:'none'});
+    setImp(magLabel, {display:'none'});
+    setImp(e.chipsWrap, {display:'flex','align-items':'center',flex:'1 1 auto','min-width':'0',
+      width:'auto',height:'30px','max-height':'30px','overflow-y':'hidden','overflow-x':'hidden',order:'2'});
+    setImp(e.chipsRow, {display:'flex','flex-wrap':'nowrap','overflow-x':'auto',height:'30px','max-height':'30px',
+      width:'auto','min-width':'0','max-width':'none',flex:'1 1 auto',
+      padding:'0',margin:'0',gap:'6px','align-items':'center'});
+    setImp(e.chipsScrollLeft, {display:'flex',flex:'0 0 22px',width:'22px',height:'26px',
+      position:'static',top:'auto',bottom:'auto',margin:'0'});
+    setImp(e.chipsScrollRight, {display:'flex',flex:'0 0 22px',width:'22px',height:'26px',
+      position:'static',top:'auto',bottom:'auto',margin:'0'});
 
     setImp(e.mapWrap, {flex:'1 1 auto','min-height':'0',height:'auto',position:'relative',overflow:'hidden'});
   }
