@@ -58,6 +58,16 @@
     position: relative !important;
     height: 100% !important;
     min-height: 0 !important;
+    /* Contém numa stacking context própria: sem isso, os anéis do radar
+       (.radar-ring/.new-quake-radar-ring, com z-index 9999/10020 pra
+       ficarem acima dos marcadores no mapa) escapam pra comparação
+       global e acabam pintando por cima do cabeçalho quando o
+       epicentro cai perto do topo visível do mapa. */
+    z-index: 0 !important;
+  }
+  #top-strip {
+    position: relative !important;
+    z-index: 10 !important;
   }
 }
 @media screen and (min-width: 1200px) {
