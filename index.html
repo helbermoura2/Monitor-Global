@@ -233,6 +233,13 @@
       <svg id="pd-gauge" viewBox="0 0 120 66">
         <path d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8" stroke-linecap="round"/>
         <path id="pd-gauge-arc" d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="#fb923c" stroke-width="8" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
+        <g id="pd-gauge-ticks" stroke="rgba(255,255,255,.22)" stroke-width="1.5" aria-hidden="true">
+          <line x1="10" y1="60" x2="3" y2="60"/>
+          <line x1="28.8" y1="20.9" x2="24.5" y2="15.4"/>
+          <line x1="71.1" y1="11.3" x2="72.7" y2="4.4"/>
+          <line x1="105.1" y1="38.3" x2="111.4" y2="35.3"/>
+        </g>
+        <circle id="pd-gauge-dot" cx="10" cy="60" r="4.5" fill="#fb923c" aria-hidden="true"/>
       </svg>
       <div class="pd-mag" id="pd-mag">--</div>
       <div class="pd-flag" id="pd-flag"></div>

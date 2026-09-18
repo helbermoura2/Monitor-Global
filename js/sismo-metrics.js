@@ -68,6 +68,38 @@ function animateMagNumber(el, target) {
 }
 
 const GAUGE_LEN = 157;
+
+// Ponteiro na ponta do arco: em vez de reimplementar a curva de animação do
+// CSS (transition em stroke-dashoffset, css/ui-motion.css), lê o valor ao
+// vivo via getComputedStyle a cada quadro enquanto a transição roda — o
+// próprio navegador já está interpolando, só precisamos seguir. A posição
+// x/y vem de arc.getPointAtLength(), então não depende de trigonometria
+// manual nem de o arco mudar de forma no futuro.
+function animateGaugeDot(arc, color) {
+    const dot = document.getElementById('pd-gauge-dot');
+    if (!dot || !arc.getTotalLength) return;
+    if (color) dot.setAttribute('fill', color);
+    const total = arc.getTotalLength();
+    function place() {
+        const off = parseFloat(getComputedStyle(arc).strokeDashoffset) || 0;
+        const len = Math.max(0, Math.min(total, total - off));
+        const pt = arc.getPointAtLength(len);
+        dot.setAttribute('cx', pt.x);
+        dot.setAttribute('cy', pt.y);
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        place();
+        return;
+    }
+    if (arc._mgDotAnimId) cancelAnimationFrame(arc._mgDotAnimId);
+    const start = performance.now();
+    function tick(now) {
+        place();
+        arc._mgDotAnimId = (now - start < 700) ? requestAnimationFrame(tick) : null;
+    }
+    arc._mgDotAnimId = requestAnimationFrame(tick);
+}
+
 function setGauge(mag, isQuake, icon, color, frac) {
     const arc = document.getElementById('pd-gauge-arc');
     const magEl = document.getElementById('pd-mag');
@@ -82,6 +114,7 @@ function setGauge(mag, isQuake, icon, color, frac) {
         magEl.textContent = icon || '--';
         magEl.style.color = c;
         if (glow) { glow.style.background = c; glow.style.opacity = '0.35'; }
+        animateGaugeDot(arc, c);
         return;
     }
     const f = Math.max(0.04, Math.min(1, (mag - 2) / 7));
@@ -95,6 +128,7 @@ function setGauge(mag, isQuake, icon, color, frac) {
         glow.style.background = c;
         glow.style.opacity = mag >= 6 ? '0.55' : mag >= 4.5 ? '0.4' : '0.28';
     }
+    animateGaugeDot(arc, c);
 }
 
 /* ═══════════ RAIO ESTIMADO — versão refinada ═══════════ */
