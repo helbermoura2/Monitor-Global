@@ -4382,124 +4382,135 @@ async function fetchDailyQuakesBrt() {
 // começando na mesma coluna nos 5 cartões.
 const FLAG_GUTTER = FLAG_CELL_W + 12;
 
-function layoutQuakeCard(fonts, item, cardW) {
-    const padTop = 26, padBottom = 22, padLeft = 30;
-    const badgeR = 20;
-    const magX = padLeft + badgeR * 2 + 18;
+/** Pino de localização desenhado à mão (círculo + gota), sem depender de
+ * nenhum atlas de ícone — "buraco" no meio usa a cor de fundo do painel. */
+function drawPinIcon(rgba, w, h, cx, cy, r, cr, cg, cb, bg) {
+    fillCircle(rgba, w, h, cx, cy - r * 0.2, r, cr, cg, cb, 255);
+    fillTriangle(rgba, w, h, cx - r * 0.75, cy + r * 0.15, cx + r * 0.75, cy + r * 0.15, cx, cy + r * 1.7, cr, cg, cb, 255);
+    fillCircle(rgba, w, h, cx, cy - r * 0.2, Math.max(1, r * 0.4), bg[0], bg[1], bg[2], 255);
+}
+
+/** Relógio desenhado à mão (anel + ponteiros), usado só no cabeçalho. */
+function drawClockIcon(rgba, w, h, cx, cy, r, cr, cg, cb, bg) {
+    fillCircle(rgba, w, h, cx, cy, r, cr, cg, cb, 220);
+    fillCircle(rgba, w, h, cx, cy, Math.max(1, r - 2), bg[0], bg[1], bg[2], 255);
+    fillRect(rgba, w, cx - 1, cy - r + 3, 2, r - 3, cr, cg, cb, 255);
+    fillRect(rgba, w, cx, cy - 1, Math.round(r * 0.6), 2, cr, cg, cb, 255);
+}
+
+/** Avião de papel (ícone clássico do Telegram), só com 2 triângulos. */
+function drawPaperPlaneIcon(rgba, w, h, x, y, size, cr, cg, cb, bg) {
+    fillTriangle(rgba, w, h, x, y - size * 0.5, x, y + size * 0.5, x + size, y, cr, cg, cb, 255);
+    fillTriangle(rgba, w, h, x + size * 0.1, y, x + size * 0.45, y + size * 0.18, x + size * 0.22, y + size * 0.5, bg[0], bg[1], bg[2], 255);
+}
+
+/** Layout de linha "lado a lado": magnitude à esquerda (centralizada na
+ * altura da linha), local+meta à direita começando no topo — em vez do
+ * empilhado (magnitude em cima, local embaixo) usado antes. Deixa a linha
+ * bem mais baixa/compacta, igual à referência. */
+function layoutRow(fonts, item, cardW) {
+    const padTop = 18, padBottom = 18, padLeft = 26;
+    const magX = padLeft;
     const placeX = 300;
     const countryCode = guessCountryCode(item.place);
-    // Fonte "place" (maior que a antiga `small`) só pro nome do local —
-    // era a parte que ficava pequena demais perto do dígito de magnitude.
     const placeMaxChars = Math.floor((cardW - placeX - FLAG_GUTTER - 26) / fonts.place.cellW);
     const lines = wrapText(sanitizeFontText(item.place), Math.max(10, placeMaxChars), 3);
     const magRowH = fonts.hero.cellH;
-    const placeBlockY = padTop + magRowH + 16;
-    const placeBlockH = lines.length * (fonts.place.cellH + 6);
-    const metaY = placeBlockY + placeBlockH + 6;
+    const placeBlockH = lines.length * (fonts.place.cellH + 4);
     const metaH = fonts.micro.cellH * 2 + 6;
-    return { padTop, padBottom, padLeft, badgeR, magX, placeX, countryCode, lines, magRowH, placeBlockY, metaY, cardH: metaY + metaH + padBottom };
+    const rightColH = placeBlockH + 8 + metaH;
+    const cardH = Math.max(padTop + magRowH + padBottom, padTop + rightColH + padBottom);
+    const magY = padTop + Math.round(((cardH - padTop - padBottom) - magRowH) / 2);
+    const placeBlockY = padTop;
+    const metaY = placeBlockY + placeBlockH + 8;
+    return { padTop, padBottom, padLeft, magX, placeX, countryCode, lines, magRowH, magY, placeBlockY, metaY, cardH };
 }
 
 async function renderDailySummaryPng() {
     const {day,events}=await fetchDailyQuakesBrt();
     const fonts=await getFontAtlases();
-    const W=800, cardX=38, cardW=W-76, cardGap=20;
+    const W=800, cardX=38, cardW=W-76;
     const top=events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
     const topColor = top.length ? getHexColorFromMag(top[0].mag) : [56,189,248];
+    const PANEL=[10,16,30];
 
-    // Todas as posições do cabeçalho/rodapé em uma constante só, usada
-    // tanto no cálculo de altura quanto no desenho — antes "Total
-    // registrado" ficava num y fixo (242) sem relação nenhuma com onde o
-    // cabeçalho realmente terminava, e a faixa de stats no fim ficava
-    // perto demais do rodapé; um valor por partes assim não tem como
-    // voltar a desalinhar dos dois lados.
     const HEADER_H = 178, FOOTER_H = 70;
-    const TITLE_Y = HEADER_H + 30, TOTAL_Y = TITLE_Y + 40, CARDS_START_Y = TOTAL_Y + 50;
-    const STATS_GAP_TOP = 6, STATS_GAP_MID = 16, STATS_GAP_BOTTOM = 24;
+    const TITLE_Y = HEADER_H + 30, TOTAL_Y = TITLE_Y + 40, PANEL_START_Y = TOTAL_Y + 42;
+    const STATS_GAP_TOP = 20, STATS_GAP_MID = 16, STATS_GAP_BOTTOM = 24;
     const STATS_SECTION_H = STATS_GAP_TOP + 1 + 33 + fonts.micro.cellH + STATS_GAP_MID + fonts.micro.cellH + STATS_GAP_BOTTOM;
 
-    // Altura calculada em duas passadas: primeiro descobre quanto cada
-    // cartão vai ocupar (sem desenhar nada ainda), pra alocar o canvas do
-    // tamanho certo — sem sobra de fundo vazio quando tem poucos sismos,
-    // sem cortar nada quando os nomes de local são longos.
-    const cardLayouts = top.map(e => layoutQuakeCard(fonts, e, cardW));
-    let contentH = CARDS_START_Y;
+    const cardLayouts = top.map(e => layoutRow(fonts, e, cardW));
+    let contentH = PANEL_START_Y + 20;
     if (!top.length) contentH += 90;
-    else cardLayouts.forEach(l => { contentH += l.cardH + cardGap; });
+    else cardLayouts.forEach(l => { contentH += l.cardH; });
     contentH += STATS_SECTION_H;
     const H = contentH + FOOTER_H;
     const rgba=new Uint8Array(W*H*4);
 
     fillRect(rgba,W,0,0,W,H,4,10,22);
-    fillRect(rgba,W,0,0,W,HEADER_H,2,8,22,245);
-    // Linha de destaque embaixo do cabeçalho, na cor do maior sismo do dia —
-    // o mesmo princípio de "cor por nível de ameaça" usado no app.
+    fillRadialGlow(rgba,W,H,W/2,-60,460,56,189,248,0.12);
+    for(let i=0;i<160;i++){
+        const sx=Math.floor(Math.random()*W), sy=Math.floor(Math.random()*Math.min(H,600));
+        fillRect(rgba,W,sx,sy,1,1,255,255,255,40+Math.floor(Math.random()*110));
+    }
+
+    fillRect(rgba,W,0,0,W,HEADER_H,2,8,22,200);
     fillRect(rgba,W,0,HEADER_H-3,W,3,topColor[0],topColor[1],topColor[2],160);
-    // Título/legendas em fonte proporcional de verdade (Liberation Sans
-    // Bold) — só o que é "narrativa" (marca, título de seção, avisos).
-    // Números e qualquer coisa que precise alinhar em coluna continuam na
-    // fonte monoespaçada (JetBrains Mono) mais abaixo, no mesmo princípio
-    // já usado no app: dado numérico é mono, texto corrido é proporcional.
     drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'MONITOR GLOBAL',34,26,56,189,248);
     drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'RESUMO DO DIA',34,68,148,163,184);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(`${day.split('-').reverse().join('/')} · 00:00-23:59 BRT`),34,100,148,163,184);
+    drawClockIcon(rgba,W,H,44,106,7,148,163,184,[2,8,22]);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(`${day.split('-').reverse().join('/')} · 00:00-23:59 BRT`),58,100,148,163,184);
+
     drawTextFontPropCenteredHalo(rgba,W,H,fonts.titleProp,'TOP 5 SISMOS',W/2,TITLE_Y,248,250,252);
     drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,`Total registrado: ${events.length}`,W/2,TOTAL_Y,148,163,184);
 
-    let y=CARDS_START_Y;
+    let y=PANEL_START_Y;
     if(!top.length){
         drawTextFontPropCenteredHalo(rgba,W,H,fonts.titleProp,'Nenhum sismo registrado',W/2,y+16,148,163,184);
         y+=90;
     } else {
+        const panelTop=y;
+        const panelH=cardLayouts.reduce((s,l)=>s+l.cardH,0);
+        fillRoundRect(rgba,W,H,cardX,panelTop,cardW,panelH,20,PANEL[0],PANEL[1],PANEL[2],238);
+
         top.forEach((e,i)=>{
             const c=getHexColorFromMag(e.mag);
             const L=cardLayouts[i];
             const cardTop=y;
-            fillRoundRect(rgba,W,H,cardX,cardTop,cardW,L.cardH,18,10,16,30,245);
-            // Brilho suave atrás do primeiro cartão (o maior sismo do dia) —
-            // único elemento com destaque extra, criando hierarquia real em
-            // vez de 5 cartões visualmente idênticos.
-            if(i===0) fillRadialGlow(rgba,W,H,cardX+L.magX+40,cardTop+L.padTop+L.magRowH/2,150,c[0],c[1],c[2],0.16);
-            // Barra de cor recuada (não encosta nos cantos arredondados).
-            fillRoundRect(rgba,W,H,cardX,cardTop+10,5,L.cardH-20,2,c[0],c[1],c[2],255);
+            fillRect(rgba,W,cardX,cardTop,cardW,L.cardH,c[0],c[1],c[2],16);
+            if(i===0) fillRadialGlow(rgba,W,H,cardX+L.magX+30,cardTop+L.magY+L.magRowH/2,180,c[0],c[1],c[2],0.22);
+            if(i>0) fillRect(rgba,W,cardX+16,cardTop,cardW-32,1,255,255,255,18);
+            // Barra de cor rente à borda esquerda, ocupando a linha inteira
+            // (em vez de recuada/arredondada) — igual à referência.
+            fillRect(rgba,W,cardX,cardTop,6,L.cardH,c[0],c[1],c[2],255);
 
-            const badgeCx=cardX+L.padLeft+L.badgeR, badgeCy=cardTop+L.padTop+Math.round(L.magRowH/2);
-            fillCircle(rgba,W,H,badgeCx,badgeCy,L.badgeR,c[0],c[1],c[2],38);
-            const rankTxt=String(i+1);
-            drawTextFontHalo(rgba,W,H,fonts.small,rankTxt,badgeCx-Math.round(textFontWidth(fonts.small,rankTxt)/2),badgeCy-Math.round(fonts.small.cellH/2),c[0],c[1],c[2]);
+            const rankTxt=`${i+1}.`;
+            const rankW=textFontWidth(fonts.micro,rankTxt);
+            drawTextFontHalo(rgba,W,H,fonts.micro,rankTxt,cardX+cardW-16-rankW,cardTop+14,148,163,184);
 
-            drawTextFontHalo(rgba,W,H,fonts.small,'M',cardX+L.magX,cardTop+L.padTop+30,c[0],c[1],c[2]);
+            drawTextFontHalo(rgba,W,H,fonts.small,'M',cardX+L.magX,cardTop+L.magY+30,c[0],c[1],c[2]);
             const magStr=e.mag.toFixed(1);
-            drawTextFontHalo(rgba,W,H,fonts.hero,magStr,cardX+L.magX+22,cardTop+L.padTop,c[0],c[1],c[2]);
-            if(i===0){
-                const labelX=cardX+L.magX+22+textFontWidth(fonts.hero,magStr)+16;
-                if(labelX+textFontWidthProp(fonts.captionProp,'MAIOR DO DIA')<cardX+cardW-16)
-                    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'MAIOR DO DIA',labelX,cardTop+L.padTop+16,148,163,184);
-            }
-            // Bandeira do país (heurística por texto — ver guessCountryCode)
-            // alinhada verticalmente com a primeira linha do nome do local.
-            if(L.countryCode){
-                const flagY=cardTop+L.placeBlockY+Math.round((fonts.place.cellH-FLAG_CELL_H)/2)-2;
-                drawFlag(rgba,W,H,fonts.flags,L.countryCode,cardX+L.placeX,flagY);
-            }
-            L.lines.forEach((line,j)=>drawTextFontHalo(rgba,W,H,fonts.place,sanitizeFontText(line),cardX+L.placeX+FLAG_GUTTER,cardTop+L.placeBlockY+j*(fonts.place.cellH+6),226,232,240));
-            const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
-            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(when),cardX+L.placeX+FLAG_GUTTER,cardTop+L.metaY,148,163,184);
-            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Prof. ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'--'} · ${e.source}`),cardX+L.placeX+FLAG_GUTTER,cardTop+L.metaY+fonts.micro.cellH+4,148,163,184);
+            drawTextFontHalo(rgba,W,H,fonts.hero,magStr,cardX+L.magX+22,cardTop+L.magY,c[0],c[1],c[2]);
 
-            y+=L.cardH+cardGap;
+            if(L.countryCode){
+                const flagY=cardTop+L.cardH-L.padBottom-FLAG_CELL_H;
+                drawFlag(rgba,W,H,fonts.flags,L.countryCode,cardX+cardW-16-FLAG_CELL_W,flagY);
+            }
+
+            const pinX=cardX+L.placeX+7;
+            drawPinIcon(rgba,W,H,pinX,cardTop+L.placeBlockY+Math.round(fonts.place.cellH*0.4),6,148,163,184,PANEL);
+            L.lines.forEach((line,j)=>drawTextFontHalo(rgba,W,H,fonts.place,sanitizeFontText(line),cardX+L.placeX+18,cardTop+L.placeBlockY+j*(fonts.place.cellH+4),226,232,240));
+
+            const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(when),cardX+L.placeX+18,cardTop+L.metaY,148,163,184);
+            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Prof. ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'--'} · ${e.source}`),cardX+L.placeX+18,cardTop+L.metaY+fonts.micro.cellH+4,148,163,184);
+
+            y+=L.cardH;
         });
     }
-    // Seção de estatísticas: mesma lógica de "altura combinada" dos
-    // cartões acima — cada incremento de y aqui bate exatamente com o
-    // que STATS_SECTION_H previu lá em cima, então o texto nunca fica
-    // colado/sobreposto ao rodapé, seja qual for a altura final do canvas.
     y+=STATS_GAP_TOP;
     fillRect(rgba,W,40,y,720,1,100,116,139,60); y+=1+33;
     const m6=events.filter(e=>e.mag>=6).length, m5=events.filter(e=>e.mag>=5).length, m4=events.filter(e=>e.mag>=4).length;
-    // Selinhos coloridos (mesma escala de cor dos cartões) em vez de texto
-    // cru — dá pra "ler" a gravidade do dia num relance, sem precisar dos
-    // números.
     const statBands=[[m6,getHexColorFromMag(6),'M6+'],[m5,getHexColorFromMag(5),'M5+'],[m4,getHexColorFromMag(4),'M4+']];
     const statTxt=statBands.map(([n,,label])=>`${label}: ${n}`).join('   ·   ');
     const statW=textFontWidth(fonts.micro,statTxt)+statBands.length*16;
@@ -4516,12 +4527,11 @@ async function renderDailySummaryPng() {
     y+=fonts.micro.cellH+STATS_GAP_BOTTOM;
     fillRect(rgba,W,0,H-FOOTER_H,W,FOOTER_H,10,16,28,230);
     drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'monitorglobal.top',34,H-Math.round(FOOTER_H/2+fonts.titleProp.cellH/2)+4,56,189,248);
-    // Texto do rodapé direito com largura calculada de verdade (fonte
-    // proporcional) em vez de um "x" fixo no olho — a versão antiga
-    // ("Telegram · at monitor_global" em W-310) estourava a borda direita
-    // do canvas e cortava a última letra.
     const tgTxt=sanitizeFontText('Telegram: monitor_global');
-    const tgX=W-38-textFontWidthProp(fonts.captionProp,tgTxt);
+    const tgTxtW=textFontWidthProp(fonts.captionProp,tgTxt);
+    const tgIconSize=16;
+    const tgX=W-38-tgTxtW;
+    drawPaperPlaneIcon(rgba,W,H,tgX-tgIconSize-8,H-Math.round(FOOTER_H/2)-Math.round(tgIconSize/2)+2,tgIconSize,148,163,184,[10,16,28]);
     drawTextFontPropHalo(rgba,W,H,fonts.captionProp,tgTxt,tgX,H-Math.round(FOOTER_H/2+fonts.captionProp.cellH/2)+4,148,163,184);
     return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
