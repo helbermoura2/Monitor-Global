@@ -53,10 +53,63 @@
   transition: opacity .4s ease, background .4s ease;
 }
 
+/* ═══════════ Caixa de registros (mobile) ═══════════ */
+
+/* 1) Fundo desfocado atrás da caixa (em vez de preto chapado), com um
+   fade suave ao abrir — @keyframes roda sozinha assim que o elemento
+   passa a existir no layout (display:none -> block), diferente de
+   transition, que precisaria de um segundo passo em JS pra disparar. */
+body.mobile-events-open #mobile-events-backdrop {
+  backdrop-filter: blur(7px) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+  animation: mgBackdropIn .3s ease both;
+}
+@keyframes mgBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 2) Cabeçalho de cada grupo ("Última hora", "1–6h atrás"...) fica
+   grudado no topo da lista enquanto o grupo está passando, com um
+   fade no rodapé pra não cortar o texto do próximo card em seco. */
+body.mobile-events-open #events .group-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: linear-gradient(180deg, rgba(6,17,29,.97) 70%, rgba(6,17,29,0));
+  padding-top: 8px !important;
+  padding-bottom: 6px !important;
+}
+
+/* 3) A cor do tipo/severidade (--ev-color, já usada na borda esquerda)
+   também tinge bem de leve o fundo do card inteiro — dá pra notar a
+   severidade rolando rápido, sem precisar ler o texto. */
+body.mobile-events-open .event {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 8%, transparent), transparent 55%),
+    linear-gradient(145deg, rgba(7,23,38,.92), rgba(4,14,24,.92)) !important;
+}
+
+/* 4) Entrada em cascata: quando a caixa abre, os cards já visíveis
+   nascem com um fade + leve subida, um pouquinho atrasado por
+   posição (js/ui-motion.js define --mg-stagger por card). Reabrir a
+   lista sem trocar de evento não fica repetindo a cascata — só
+   dispara quando a caixa realmente muda de fechada pra aberta. */
+.mg-card-in {
+  animation: mgCardIn .38s ease both;
+  animation-delay: var(--mg-stagger, 0ms);
+}
+@keyframes mgCardIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mg-value-pulse,
   #latest-event-ticker.mg-ticker-ping,
-  #latest-event-ticker.mg-ticker-ping .let-left {
+  #latest-event-ticker.mg-ticker-ping .let-left,
+  body.mobile-events-open #mobile-events-backdrop,
+  .mg-card-in {
     animation: none !important;
     transform: none !important;
   }

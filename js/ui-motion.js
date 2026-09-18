@@ -36,4 +36,28 @@
     });
     obs.observe(ticker, { attributes: true, attributeFilter: ['data-sev'] });
   }
+
+  // Caixa de registros: entrada em cascata dos cards só quando a caixa
+  // realmente ACABOU de abrir (fechada -> aberta), nunca em re-renders
+  // normais da lista (que acontecem o tempo todo com dados novos).
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) {
+    var wasEventsOpen = document.body.classList.contains('mobile-events-open');
+    var modalObs = new MutationObserver(function () {
+      var isOpen = document.body.classList.contains('mobile-events-open');
+      if (isOpen && !wasEventsOpen) {
+        var cards = document.querySelectorAll('#events .event');
+        var max = Math.min(cards.length, 24);
+        for (var i = 0; i < max; i++) {
+          var el = cards[i];
+          el.classList.remove('mg-card-in');
+          void el.offsetWidth;
+          el.style.setProperty('--mg-stagger', (i * 26) + 'ms');
+          el.classList.add('mg-card-in');
+        }
+      }
+      wasEventsOpen = isOpen;
+    });
+    modalObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
 })();
