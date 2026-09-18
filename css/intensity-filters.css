@@ -7,8 +7,8 @@
 }
 /* position:relative só faz sentido quando #painel-direito é coluna real do
    grid (desktop/tablet largo). Abaixo de 901px o layout mobile o transforma
-   em bottom-sheet fixo (ver mobile-header-v4412.css); aplicar relative sem
-   essa guarda quebrava o grid do #app inteiro em telas de 701–900px
+   em bottom-sheet fixo (ver css/mobile-header-v4412.css); aplicar relative
+   sem essa guarda quebrava o grid do #app inteiro em telas de 701–900px
    retrato, colapsando o cabeçalho. */
 @media screen and (min-width: 901px) {
   #painel-direito {
