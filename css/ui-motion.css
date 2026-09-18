@@ -60,8 +60,9 @@
    passa a existir no layout (display:none -> block), diferente de
    transition, que precisaria de um segundo passo em JS pra disparar. */
 body.mobile-events-open #mobile-events-backdrop {
-  backdrop-filter: blur(7px) !important;
-  -webkit-backdrop-filter: blur(7px) !important;
+  background: rgba(2,8,20,.25) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
   animation: mgBackdropIn .3s ease both;
 }
 @keyframes mgBackdropIn {
