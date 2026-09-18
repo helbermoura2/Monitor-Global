@@ -169,6 +169,8 @@ function atualizarTickerUltimoEvento(item) {
         textEl.textContent = 'Nenhum evento no filtro atual';
         if (kicker) kicker.textContent = 'AO VIVO';
         if (box) { box.dataset.sev = 'none'; box.style.removeProperty('--ticker-accent'); delete box.dataset.type; }
+        document.documentElement.dataset.mgThreat = 'none';
+        document.documentElement.style.removeProperty('--mg-threat-color');
         return;
     }
     const meta = TYPE_META[item.type] || TYPE_META.earthquake;
@@ -206,6 +208,12 @@ function atualizarTickerUltimoEvento(item) {
             sev = m >= 6 ? 'crit' : m >= 5 ? 'high' : m >= 4 ? 'mid' : 'low';
         } else if (item.type === 'tsunami' || item.type === 'hurricane' || item.type === 'volcano') sev = 'high';
         box.dataset.sev = sev;
+        // Nível de ameaça em escopo de documento (não só do próprio ticker):
+        // cabeçalho e cards da lista puxam a mesma cor/gravidade daqui, em
+        // vez de cada componente recalcular por conta própria — a página
+        // toda reage visualmente ao evento mais grave do momento.
+        document.documentElement.dataset.mgThreat = sev;
+        if (accent) document.documentElement.style.setProperty('--mg-threat-color', accent);
     }
 }
 
@@ -431,6 +439,8 @@ function renderSidebarList(items) {
                 : '';
             const placePrefix = item.isPreliminary ? '? ' : '';
             div.innerHTML = `
+                <span class="event-icon" aria-hidden="true">${item.mag.toFixed(1)}</span>
+                <div class="event-body">
                 <div class="event-header">
                     <span class="event-mag ${getMagColorClass(item.mag)}">M${item.mag.toFixed(1)}${prelimMark}</span>
                     ${item.correlationLevel && Number(item.mag)>=5.5 ? `<span class="mg-corr-mini" title="Correlação inteligente de risco">${item.correlationLevel==='ALERTA OFICIAL'?'🌊⚠️':item.correlationLevel==='ALTO'?'🌊🔴':item.correlationLevel==='MODERADO'?'🌊🟠':item.correlationLevel==='ATENÇÃO'?'🌊🟡':'🌊🟢'}</span>` : ''}
@@ -444,6 +454,7 @@ function renderSidebarList(items) {
                     <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
                     <span class="energy-indicator" title="Energia liberada">Energia ${getEnergyLevel(item.mag)}/10</span>
                     ${updatedTxt}
+                </div>
                 </div>`;
             div.style.setProperty('--ev-color', getHexColor(item.mag));
         } else {
@@ -469,6 +480,8 @@ function renderSidebarList(items) {
             // visualmente idênticos na lista, só o texto do badge diferenciava.
             const badgeColor = (isCyc && cycClassif) ? cycClassif.cor : meta.color;
             div.innerHTML = `
+                <span class="event-icon" aria-hidden="true">${isCyc ? '🌀' : meta.icon}</span>
+                <div class="event-body">
                 <div class="event-header">
                     <span class="event-type-badge" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}55;">
                         ${isCyc ? '🌀' : meta.icon} ${badgeTxt}
@@ -482,6 +495,7 @@ function renderSidebarList(items) {
                     ${staleTxt}
                     ${updatedTxt}
                     ${!isCyc ? `<span class="event-source">${item.source}</span><span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>` : ''}
+                </div>
                 </div>`;
             div.style.setProperty('--ev-color', badgeColor);
         }
