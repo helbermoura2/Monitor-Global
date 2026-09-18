@@ -127,9 +127,15 @@ body.mobile-events-open .event {
 @media screen and (max-width:900px) and (orientation:portrait) {
   body.mg-clean-portrait #top-strip,
   #top-strip {
-    background: linear-gradient(180deg, rgba(7,19,33,.88) 0%, rgba(4,13,23,.93) 70%, rgba(2,9,18,.97) 100%) !important;
-    backdrop-filter: blur(20px) saturate(1.15) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.15) !important;
+    background: linear-gradient(180deg, rgba(7,19,33,.94) 0%, rgba(4,13,23,.97) 70%, rgba(2,9,18,.99) 100%) !important;
+    /* Blur bem mais leve que antes (8px, era 20px) e sem saturate() —
+       esse cabeçalho fica sempre ligado bem ao lado do mapa, e blur
+       pesado + filtro composto custam GPU em todo frame de pan/zoom
+       do mapa (relatado como travadinha em aparelhos mais fracos). O
+       fundo já ficou bem mais opaco pra compensar visualmente o blur
+       menor. */
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
     box-shadow:
       0 10px 30px rgba(0,0,0,.36),
       0 26px 60px -20px color-mix(in srgb, var(--mg-threat-color, #38bdf8) 55%, transparent) !important;
@@ -143,9 +149,11 @@ body.mobile-events-open .event {
      mais forte reforça a sensação de profundidade/flutuação. */
   body.mg-clean-portrait #latest-event-ticker,
   #latest-event-ticker {
-    background: linear-gradient(135deg, rgba(6,20,34,.9), rgba(4,12,22,.94)) !important;
-    backdrop-filter: blur(18px) saturate(1.2) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+    background: linear-gradient(135deg, rgba(6,20,34,.95), rgba(4,12,22,.97)) !important;
+    /* Mesmo raciocínio do #top-strip: blur leve (8px, era 18px), sem
+       saturate(), fundo mais opaco compensando. */
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
     border-radius: 0 0 16px 16px !important;
     border-top: none !important;
     box-shadow:
@@ -168,8 +176,8 @@ body.mobile-events-open .event {
      scroll), então isto só é cosmético, sem position:sticky necessário. */
   body.mobile-events-open #events-label {
     background: linear-gradient(180deg, rgba(8,20,34,.94), rgba(6,15,27,.82)) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
   }
 }
 
@@ -389,25 +397,32 @@ body.mobile-events-open .event {
 
   /* ---- Scan sweep: uma faixa de luz baixíssima varrendo o
      cabeçalho e o card principal a cada poucos segundos — reforça a
-     sensação de painel "ativo", bem discreto pra não cansar. ---- */
+     sensação de painel "ativo", bem discreto pra não cansar.
+     Anima só "transform" (composição na GPU), não mais
+     "background-position" (força repintura a cada quadro) — esse
+     cabeçalho fica ligado o tempo todo bem ao lado do mapa, então uma
+     animação "barata" aqui importa pro pan/zoom do mapa não perder
+     quadro por causa de repintura concorrente. */
   #top-strip::after,
   body.mobile-details-mid #painel-direito::after,
   body.mobile-details-open #painel-direito::after {
     content: '';
     position: absolute;
-    inset: 0;
+    top: 0;
+    bottom: 0;
+    left: -50%;
+    width: 50%;
     z-index: 2;
     pointer-events: none;
-    background: linear-gradient(100deg, transparent 42%, color-mix(in srgb, var(--mg-panel-accent) 12%, transparent) 50%, transparent 58%);
-    background-size: 250% 100%;
-    background-position: 150% 0;
+    background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--mg-panel-accent) 14%, transparent) 50%, transparent 70%);
     animation: mgScanSweep 7s ease-in-out infinite;
+    will-change: transform;
   }
 }
 
 @keyframes mgScanSweep {
-  0%, 60% { background-position: 150% 0; }
-  100% { background-position: -50% 0; }
+  0%, 55% { transform: translateX(0%); }
+  100%    { transform: translateX(300%); }
 }
 
 @keyframes mgTitleGlow {
