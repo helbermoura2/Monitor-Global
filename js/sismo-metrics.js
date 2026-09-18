@@ -43,6 +43,30 @@ function classificarProfundidade(km) {
     return { label: 'Profundo', cor: '#4ade80' };
 }
 
+// Anima o número do medidor (ex.: M0.7 -> M5.4) contando suavemente em vez
+// de trocar de uma vez — acompanha o arco, que já desliza via transition
+// CSS (css/ui-motion.css). Cancela qualquer contagem em andamento se o
+// usuário trocar de evento rápido, pra não sobrepor duas animações.
+function animateMagNumber(el, target) {
+    if (!el) return;
+    if (el._mgAnimId) { cancelAnimationFrame(el._mgAnimId); el._mgAnimId = null; }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.textContent = 'M' + target.toFixed(1);
+        return;
+    }
+    const prev = parseFloat(String(el.textContent || '').replace('M', '').replace(',', '.'));
+    const from = Number.isFinite(prev) ? prev : target;
+    const duration = 550;
+    const t0 = performance.now();
+    function tick(now) {
+        const p = Math.min(1, (now - t0) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = 'M' + (from + (target - from) * eased).toFixed(1);
+        el._mgAnimId = p < 1 ? requestAnimationFrame(tick) : null;
+    }
+    el._mgAnimId = requestAnimationFrame(tick);
+}
+
 const GAUGE_LEN = 157;
 function setGauge(mag, isQuake, icon, color, frac) {
     const arc = document.getElementById('pd-gauge-arc');
@@ -54,6 +78,7 @@ function setGauge(mag, isQuake, icon, color, frac) {
         const c = color || '#38bdf8';
         arc.style.strokeDashoffset = GAUGE_LEN * (1 - f);
         arc.style.stroke = c;
+        if (magEl._mgAnimId) { cancelAnimationFrame(magEl._mgAnimId); magEl._mgAnimId = null; }
         magEl.textContent = icon || '--';
         magEl.style.color = c;
         if (glow) { glow.style.background = c; glow.style.opacity = '0.35'; }
@@ -64,7 +89,7 @@ function setGauge(mag, isQuake, icon, color, frac) {
     arc.style.strokeDashoffset = GAUGE_LEN * (1 - f);
     arc.style.stroke = c;
     arc.style.color = c;
-    magEl.textContent = 'M' + mag.toFixed(1);
+    animateMagNumber(magEl, mag);
     magEl.style.color = c;
     if (glow) {
         glow.style.background = c;

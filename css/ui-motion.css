@@ -42,11 +42,26 @@
   transform: scale(1.12);
 }
 
+/* Medidor de magnitude do card do evento: o arco desliza até a posição
+   nova (em vez de "teleportar") e a cor acompanha. O número em si é
+   animado via JS (js/sismo-metrics.js, animateMagNumber), porque CSS
+   não anima o conteúdo de texto. */
+#pd-gauge-arc {
+  transition: stroke-dashoffset .6s cubic-bezier(.22,.9,.32,1), stroke .4s ease, color .4s ease;
+}
+#pd-gauge-glow {
+  transition: opacity .4s ease, background .4s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mg-value-pulse,
   #latest-event-ticker.mg-ticker-ping,
   #latest-event-ticker.mg-ticker-ping .let-left {
     animation: none !important;
     transform: none !important;
+  }
+  #pd-gauge-arc,
+  #pd-gauge-glow {
+    transition: none !important;
   }
 }
