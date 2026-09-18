@@ -24,7 +24,8 @@
   }
   var GEOM = ['display','flex-direction','flex-wrap','flex','width','min-width','max-width',
     'height','min-height','max-height','padding','margin','position','top','left','right','bottom',
-    'overflow','overflow-x','gap','align-items','justify-content','grid-template-columns','order'];
+    'overflow','overflow-x','gap','align-items','justify-content','grid-template-columns','order',
+    'border-top','border-left','padding-left','text-overflow','white-space'];
 
   function els(){
     return {
@@ -35,6 +36,8 @@
       kpis: document.querySelector('#top-strip > .ts-kpis'),
       kpiEventos: document.getElementById('kpibox-eventos'),
       kpiMaior: document.getElementById('kpibox-maior'),
+      kpiSp: document.getElementById('kpibox-sp'),
+      kpiBrent: document.getElementById('kpibox-brent'),
       clock: document.getElementById('kpi-relogio'),
       btnSom: document.getElementById('btn-som-header'),
       btnRadar: document.getElementById('btn-radar-header'),
@@ -102,24 +105,35 @@
     document.body.classList.toggle('mg-clean-portrait', mq.matches);
     if(!mq.matches){
       restoreOriginalParents(e);
-      [e.app,e.strip,e.mainrow,e.kpis,e.ticker,e.controlbar,e.controls,e.chipsWrap,e.mapWrap].forEach(function(el){
+      [e.app,e.strip,e.mainrow,e.kpis,e.kpiSp,e.kpiBrent,e.clock,e.ticker,e.controlbar,e.controls,e.chipsWrap,e.mapWrap].forEach(function(el){
         clearProps(el, GEOM);
       });
-      [e.actions,e.topProbar,e.v70,e.probar,e.btnSom,e.btnRadar,e.kpiEventos,e.kpiMaior,e.clock].forEach(function(el){
+      var titleEl = document.querySelector('#top-strip .ts-title');
+      var liveEl = document.querySelector('#top-strip .live-indicator');
+      var spLabelEl = document.querySelector('#kpibox-sp .ts-kpi-label');
+      var spRowEl = document.querySelector('#kpibox-sp .ts-kpi-row');
+      var spIconEl = document.getElementById('kpi-wx-icon');
+      [titleEl,liveEl,spLabelEl,spRowEl,spIconEl].forEach(function(el){ clearProps(el, GEOM); });
+      [e.actions,e.topProbar,e.v70,e.probar,e.btnSom,e.btnRadar,e.kpiEventos,e.kpiMaior,e.clock,
+       document.getElementById('kpi-wind'),document.getElementById('kpi-feels')].forEach(function(el){
         if(el) el.style.removeProperty('display');
       });
       return;
     }
     setImp(e.app, {display:'flex','flex-direction':'column',height:'100dvh',width:'100vw'});
-    setImp(e.strip, {display:'flex','flex-direction':'column',
+    /* v28.3 — cabeçalho retrato reorganizado em 3 faixas coesas (título,
+       KPIs, filtros), com o mesmo espaçamento horizontal e divisores
+       sutis que o cabeçalho desktop usa entre seus grupos de informação.
+       flex-wrap:nowrap é essencial aqui: sem ele, css/mobile-late-patches.css
+       ainda tem #top-strip{flex-wrap:wrap!important} de uma versão antiga,
+       e a combinação column+wrap fazia os itens "vazarem" para uma coluna
+       fantasma fora da tela (o vão vazio visto entre as linhas do header). */
+    setImp(e.strip, {display:'flex','flex-direction':'column','flex-wrap':'nowrap',
       flex:'0 0 auto',height:'auto','min-height':'0','max-height':'none',overflow:'visible',
-      padding:'6px 10px 4px',gap:'4px'});
-    /* v28.1 — no retrato, os KPIs pertencem à mesma linha do título,
-       como no cabeçalho desktop. Isso evita que clima/Brent acabem
-       misturados à barra de filtros e deixa o ☰ alinhado ao cabeçalho. */
+      padding:'8px 14px 6px',gap:'0'});
     try {
-      /* No retrato, KPIs ficam na segunda linha do cabeçalho.
-         Só o botão de menu pertence à primeira linha. */
+      /* KPIs e filtros ficam abaixo do título; o botão de menu (FAB)
+         entra na mesma linha do título, à direita, como no desktop. */
       if(e.kpis && e.strip && e.kpis.parentElement !== e.strip){
         e.strip.appendChild(e.kpis);
       }
@@ -128,11 +142,15 @@
         e.mainrow.appendChild(fab);
       }
     } catch(err){ window.__mgReparentErr = String(err); }
-    setImp(e.mainrow, {display:'flex','align-items':'center','justify-content':'flex-start',gap:'6px',
-      width:'100%',height:'48px',minHeight:'48px',flex:'0 0 48px','min-width':'0',
-      'box-sizing':'border-box','padding':'0 2px'});
+
+    /* Linha 1 — logo/título + AO VIVO + menu, todos numa faixa só. */
+    setImp(e.mainrow, {display:'flex','align-items':'center','justify-content':'flex-start',gap:'8px',
+      width:'100%',height:'44px','min-height':'44px',flex:'0 0 44px','min-width':'0',
+      'box-sizing':'border-box',padding:'0','border-top':'none'});
     var title = document.querySelector('#top-strip .ts-title');
-    setImp(title, {flex:'0 0 auto',overflow:'hidden','text-overflow':'ellipsis','white-space':'nowrap','max-width':'220px'});
+    setImp(title, {flex:'1 1 auto','min-width':'0',overflow:'hidden','text-overflow':'ellipsis','white-space':'nowrap','max-width':'none'});
+    var live = document.querySelector('#top-strip .live-indicator');
+    setImp(live, {flex:'0 0 auto'});
     setImp(e.actions, {display:'none'});
     setImp(e.topProbar, {display:'none'});
     setImp(e.v70, {display:'none'});
@@ -141,36 +159,57 @@
     setImp(e.btnRadar, {display:'none'});
     setImp(e.kpiEventos, {display:'none'});
     setImp(e.kpiMaior, {display:'none'});
-    setImp(e.clock, {display:'none'});
-    setImp(e.kpis, {display:'flex','flex-direction':'row','align-items':'center','justify-content':'flex-start',
-      gap:'0','margin-right':'6px',width:'auto','min-width':'0',flex:'0 0 auto',height:'auto',overflow:'visible',order:'1',
-      opacity:'1',visibility:'visible'});
+
+    /* Linha 2 — 📍 clima · 🛢️ Brent · relógio, uma faixa só, largura
+       cheia, com divisores finos entre os grupos (igual ao desktop). */
+    setImp(e.kpis, {display:'flex','flex-direction':'row','flex-wrap':'nowrap','align-items':'center',
+      'justify-content':'space-between',gap:'10px',margin:'6px 0 0',width:'100%','min-width':'0',
+      flex:'0 0 34px',order:'2',overflow:'hidden','height':'34px','min-height':'34px','max-height':'34px',
+      padding:'0','border-top':'1px solid rgba(72,216,255,.14)'});
     var kpiChildren = e.kpis ? Array.prototype.slice.call(e.kpis.children) : [];
     kpiChildren.forEach(function(el){ setImp(el, {opacity:'1',visibility:'visible'}); });
+    setImp(e.kpiSp, {order:'1',display:'flex','flex-direction':'row','align-items':'center',gap:'6px',
+      flex:'1 1 auto','min-width':'0',margin:'0',padding:'0','border-left':'none',overflow:'hidden'});
+    /* Nome da cidade trunca com reticências; ícone/temperatura ficam fixos.
+       Vento e sensação térmica somem no retrato — não cabem com folga
+       e a temperatura já é a informação essencial aqui. */
+    var spLabel = document.querySelector('#kpibox-sp .ts-kpi-label');
+    var spRow = document.querySelector('#kpibox-sp .ts-kpi-row');
+    var spWind = document.getElementById('kpi-wind');
+    var spFeels = document.getElementById('kpi-feels');
+    var spIcon = document.getElementById('kpi-wx-icon');
+    setImp(spLabel, {flex:'1 1 auto','min-width':'0',overflow:'hidden','text-overflow':'ellipsis','white-space':'nowrap'});
+    setImp(spRow, {flex:'0 0 auto',display:'flex'});
+    setImp(spIcon, {flex:'0 0 auto',display:'inline-block'});
+    setImp(spWind, {display:'none'});
+    setImp(spFeels, {display:'none'});
+    setImp(e.kpiBrent, {order:'2',display:'flex','flex-direction':'row','align-items':'center',gap:'4px',
+      position:'static',width:'auto','min-width':'0','max-width':'none',flex:'0 0 auto',margin:'0',
+      'padding-left':'10px','border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});
+    setImp(e.clock, {order:'3',display:'flex','align-items':'center',position:'static',width:'auto','max-width':'none',
+      flex:'0 0 auto',margin:'0','padding-left':'10px','border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});
 
-    /* KPIs ficam no lado direito da primeira linha; o menu acompanha essa
-       mesma linha, em vez de flutuar por cima de outros textos. */
-    setImp(e.kpis, {'margin-left':'0','margin-right':'0',gap:'8px',
-      width:'100%','min-width':'0',flex:'0 0 34px',order:'2',overflow:'visible',
-      'height':'34px','min-height':'34px','max-height':'34px'});
     var fab = document.getElementById('mobile-fab-bar');
     var fabMenu = document.getElementById('fab-menu');
     var fabEvents = document.getElementById('fab-events');
     var fabAudio = document.getElementById('fab-audio');
     setImp(fab, {display:'flex',position:'static',top:'auto',right:'auto',left:'auto',
-      bottom:'auto',width:'44px',height:'44px','min-width':'44px','min-height':'44px',
-      flex:'0 0 44px',order:'3',gap:'0',margin:'0',padding:'0',zIndex:'500000'});
-    setImp(fabMenu, {display:'flex',width:'44px',height:'44px','min-width':'44px','min-height':'44px',
+      bottom:'auto',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
+      flex:'0 0 40px',order:'3',gap:'0',margin:'0',padding:'0',zIndex:'500000'});
+    setImp(fabMenu, {display:'flex',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
       position:'static',margin:'0'});
     setImp(fabEvents, {display:'none'});
     setImp(fabAudio, {display:'none'});
 
     setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'auto',height:'auto','min-height':'40px',margin:'6px 10px 0',padding:'6px 10px'});
+      width:'auto',height:'auto','min-height':'40px',margin:'6px 14px 0',padding:'6px 10px'});
 
+    /* Linha 3 — filtros (magnitude + chips), mesma largura/alinhamento
+       das linhas acima, separada por um divisor fino. */
     setImp(e.controlbar, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      'flex-direction':'row','flex-wrap':'nowrap','align-items':'center',flex:'1 1 100%',width:'auto',height:'auto',
-      'min-height':'0','max-height':'46px',overflow:'hidden',margin:'4px 10px 0',padding:'4px 8px',gap:'6px'});
+      'flex-direction':'row','flex-wrap':'nowrap','align-items':'center',flex:'0 0 auto',width:'100%',height:'auto',
+      'min-height':'0','max-height':'46px',overflow:'hidden',margin:'6px 0 0',padding:'6px 0 0',gap:'6px',
+      'border-top':'1px solid rgba(72,216,255,.14)'});
     setImp(e.controls, {display:'flex','flex-direction':'row','align-items':'center',gap:'5px',
       flex:'0 0 92px',width:'92px','min-width':'92px','max-width':'92px',padding:'0',height:'auto',order:'2'});
     setImp(e.chipsWrap, {display:'flex','align-items':'center',flex:'1 1 auto','min-width':'0',
