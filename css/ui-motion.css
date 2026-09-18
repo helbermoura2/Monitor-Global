@@ -1,0 +1,52 @@
+/* ui-motion.css — pequenas transições pra deixar o painel "vivo"
+   (dado mudou, evento novo chegou) em vez de trocar tudo seco.
+   Não mexe em layout/tamanho — só opacidade, transform e box-shadow,
+   então não afeta a altura do cabeçalho nem o espaço do mapa. */
+
+#kpi-temp,
+#kpi-brent,
+#latest-event-ticker-text,
+#latest-event-ticker-kicker {
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+.mg-value-pulse {
+  animation: mgValuePulse .45s ease;
+}
+
+@keyframes mgValuePulse {
+  0%   { opacity: 0; transform: translateY(-3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Realce breve na caixa "AO VIVO" quando o evento em destaque muda
+   (novo evento ou severidade mudou), usando a cor do próprio tipo de
+   evento (--ticker-accent, já setada em js/painel-e-lista.js). */
+#latest-event-ticker {
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+#latest-event-ticker.mg-ticker-ping {
+  animation: mgTickerPing 1.1s ease;
+}
+
+@keyframes mgTickerPing {
+  0%   { box-shadow: 0 10px 28px rgba(0,0,0,.38), 0 0 0 0 color-mix(in srgb, var(--ticker-accent, #38bdf8) 55%, transparent); }
+  35%  { box-shadow: 0 10px 28px rgba(0,0,0,.38), 0 0 0 7px color-mix(in srgb, var(--ticker-accent, #38bdf8) 22%, transparent); }
+  100% { box-shadow: 0 10px 28px rgba(0,0,0,.38), 0 0 0 0 transparent; }
+}
+
+#latest-event-ticker .let-left {
+  transition: transform .3s ease;
+}
+#latest-event-ticker.mg-ticker-ping .let-left {
+  transform: scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-value-pulse,
+  #latest-event-ticker.mg-ticker-ping,
+  #latest-event-ticker.mg-ticker-ping .let-left {
+    animation: none !important;
+    transform: none !important;
+  }
+}
