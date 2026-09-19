@@ -1,6 +1,6 @@
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
-// Versão 7.6.0 — Telegram diário + vulcanismo global + FUNVISIS + clamp FDSN
+// Versão 7.7.0 — Telegram diário + vulcanismo global (GDACS/USGS/VAAC/GVP) + FUNVISIS + clamp FDSN
 // =========================================================
 
 const ALLOWED_HOSTS = [
