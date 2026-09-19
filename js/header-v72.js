@@ -183,7 +183,7 @@
     setImp(e.searchWrap, {display:'none'});
     setImp(e.v70, {display:'none'});
     if(ro){ ro.disconnect(); ro = null; }
-    if(e.ticker) e.ticker.style.removeProperty('top');
+    if(e.ticker && !document.body.classList.contains('mg-clean-portrait')) e.ticker.style.removeProperty('top');
   }
 
   function applyLandscape(e){
@@ -259,7 +259,14 @@
       ].forEach(function(el){
         clearProps(el, LAYOUT_PROPS);
       });
-      if(e.ticker) e.ticker.style.removeProperty('top');
+      /* Em retrato estreito (body.mg-clean-portrait), o "top" do ticker
+         não é sobra deste script — é setado ativamente por
+         js/clima-local.js (__posicionarTickerAbaixoDoHeader), que exige
+         position:absolute pra funcionar (ver
+         js/mobile-portrait-clean-toggle.js). Limpar aqui desfaria esse
+         sincronismo toda vez que este apply() rodar (resize, mudança de
+         media query etc.), mesmo sem este script ter sido o dono. */
+      if(e.ticker && !document.body.classList.contains('mg-clean-portrait')) e.ticker.style.removeProperty('top');
       if(ro){ ro.disconnect(); ro = null; }
       if(document.body.dataset.mgHeaderOwner === OWNER_TAG) delete document.body.dataset.mgHeaderOwner;
     }

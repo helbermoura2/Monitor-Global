@@ -253,8 +253,20 @@
        max-width:'none' também é necessário — css/mobile-early.css tem
        #latest-event-ticker{max-width:100vw!important} de uma versão
        antiga, que sem esse override anulava toda a largura extra. */
-    setImp(e.ticker, {display:'flex',position:'static',top:'auto',left:'auto',right:'auto',bottom:'auto',
-      width:'calc(100vw + 28px)','max-width':'none',height:'auto','min-height':'40px',margin:'-3px -14px 0',padding:'8px 14px'});
+    /* position:absolute (era static) — o cabeçalho e o mapa agora usam o
+       mesmo esquema "mapa em tela cheia por baixo, cabeçalho/ticker
+       flutuando por cima" do desktop (ver css/mobile-layout-lock.css),
+       pra o vidro translúcido ter mapa de verdade atrás pra revelar, em
+       vez do fundo escuro chapado do body. "top" fica de fora de
+       propósito — quem cuida dele é js/clima-local.js
+       (__posicionarTickerAbaixoDoHeader, com ResizeObserver, já
+       observando a altura real do cabeçalho). Sem a negativa de margem
+       pra "sangrar" full-bleed: como o ticker não fica mais dentro do
+       fluxo do #top-strip, ancorar em left:0/right:0 (relativo ao #app)
+       já dá largura cheia direto, sem precisar de calc()/margem
+       negativa. */
+    setImp(e.ticker, {display:'flex',position:'absolute',left:'0',right:'0',bottom:'auto',
+      width:'auto','max-width':'none',height:'auto','min-height':'40px',margin:'6px 0 0',padding:'8px 14px','z-index':'25'});
 
     /* Linha 3 — magnitude + chips na MESMA linha, como pediu o Helber:
        o slider fica compacto (só "M 0.0", sem o rótulo "Magnitude
@@ -279,7 +291,11 @@
     setImp(e.chipsScrollRight, {display:'flex',flex:'0 0 22px',width:'22px',height:'26px',
       position:'static',top:'auto',bottom:'auto',margin:'0'});
 
-    setImp(e.mapWrap, {flex:'1 1 auto','min-height':'0',height:'auto',position:'relative',overflow:'hidden'});
+    /* position:absolute (era relative) + inset:0 — mapa preenche a tela
+       toda por baixo do cabeçalho/ticker, em vez de só o espaço que
+       sobrava depois deles no fluxo normal (ver comentário equivalente
+       no setImp do e.ticker, acima). */
+    setImp(e.mapWrap, {position:'absolute',inset:'0','min-height':'0',height:'auto',overflow:'hidden'});
   }
 
   if(document.readyState==='loading'){

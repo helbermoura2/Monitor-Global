@@ -27,6 +27,51 @@
    ainda muito opaco no cabeçalho/card principal — ~35% mais transparente
    que a rodada anterior). */
 @media screen and (max-width: 900px) {
+  /* ═══ CAUSA RAIZ DE VERDADE (achada só agora) ═══
+     Em retrato estreito (body.mg-clean-portrait), o cabeçalho usa fluxo
+     normal de documento (position:static) e o mapa (#mapWrap) só começa
+     DEPOIS dele, mais abaixo na página — decisão proposital de uma
+     versão anterior, documentada em css/mobile-late-patches.css ("Fluxo
+     normal de documento, sem position:fixed/absolute no cabeçalho/
+     ticker/controlbar e sem JavaScript medindo altura de nada"), pra
+     evitar a complexidade de sincronizar altura dinamicamente.
+     Isso significa que NUNCA existiu mapa nenhum atrás do cabeçalho pra
+     revelar — por isso nenhum ajuste de opacidade/gradiente resolvia:
+     o "vidro" só deixava aparecer o fundo escuro chapado do body
+     (#painel-direito funciona porque ele já é position:fixed, flutuando
+     sobre onde o mapa realmente está).
+     A correção de verdade é reproduzir o mesmo esquema "mapa em tela
+     cheia por baixo, cabeçalho flutuando por cima" que já existe pro
+     desktop (css/desktop-layout-lock.css). O sincronismo de altura do
+     ticker (pra ele ficar colado embaixo do cabeçalho, que tem altura
+     variável) já existe pronto em js/clima-local.js
+     ("__posicionarTickerAbaixoDoHeader", com ResizeObserver, já rodando
+     pra qualquer largura ≤1100px) — só não tinha efeito nenhum porque o
+     ticker era position:static (o "top" setado por JS não faz nada
+     numa posição estática). */
+  body.mg-clean-portrait #mapWrap {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+  }
+  body.mg-clean-portrait #top-strip {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 30 !important;
+  }
+  body.mg-clean-portrait #latest-event-ticker {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: auto !important;
+    z-index: 25 !important;
+  }
+  body.mg-clean-portrait #app {
+    overflow: hidden !important;
+  }
+
   /* "body.mg-clean-portrait #top-strip" tem que ser listado explicitamente
      — em retrato estreito o body ganha essa classe (ver
      js/mobile-portrait-clean-toggle.js), e css/ui-motion.css já tem uma
