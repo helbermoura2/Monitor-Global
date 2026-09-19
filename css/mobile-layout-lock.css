@@ -13,7 +13,15 @@
    navegadores/GPUs (confirmado no Chrome Android via ?debug=1, mesmo com
    preserveDrawingBuffer). O efeito de vidro vem só do gradiente + brilho
    interno da borda, funciona igual em qualquer aparelho.
-   backdrop-filter continua declarado como bônus grátis.
+
+   backdrop-filter foi REMOVIDO por completo aqui (diferente do arquivo de
+   desktop) — em vez de simplesmente não fazer nada, ele se mostrou
+   inconsistente: dependendo do que está atrás (mapa claro vs escuro), o
+   navegador às vezes pega um pouco de cor/saturação mesmo sem borrar de
+   verdade, fazendo o cabeçalho e o card principal parecerem tons
+   diferentes de vidro apesar de usarem quase o mesmo gradiente. Sem o
+   backdrop-filter, o visual fica 100% determinado só pelo gradiente
+   próprio — idêntico em qualquer tela/mapa por trás.
 
    Alpha reduzido de novo (usuário achou o desktop bom, mas o mobile
    ainda muito opaco no cabeçalho/card principal — ~35% mais transparente
@@ -28,8 +36,8 @@
   #top-strip,
   body.mg-clean-portrait #top-strip {
     background: linear-gradient(180deg, rgba(38,78,124,.40) 0%, rgba(10,22,40,.52) 100%) !important;
-    backdrop-filter: blur(20px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow: 0 6px 24px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
   /* Faixa "AO VIVO ..." (ticker do último evento): mesmo motivo do
@@ -39,24 +47,24 @@
   #latest-event-ticker,
   body.mg-clean-portrait #latest-event-ticker {
     background: linear-gradient(135deg, rgba(28,58,92,.42), rgba(10,20,36,.52)) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   #painel-direito {
     background: linear-gradient(160deg, rgba(46,84,132,.39) 0%, rgba(10,22,38,.52) 100%) !important;
-    backdrop-filter: blur(20px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   body.mobile-details-mid #painel-direito,
   body.mobile-details-open #painel-direito {
     background: linear-gradient(180deg, rgba(46,84,132,.39) 0%, rgba(22,44,72,.44) 40%, rgba(10,22,38,.52) 100%) !important;
-    backdrop-filter: blur(20px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   body.mobile-events-open #sidebar-left {
     background: linear-gradient(160deg, rgba(28,66,102,.39) 0%, rgba(10,22,38,.52) 100%) !important;
-    backdrop-filter: blur(20px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   /* Cards de registro: só transparência, sem blur (podem ter centenas na
@@ -92,8 +100,8 @@
   }
   #painel-direito .pd-header-row {
     background: linear-gradient(180deg, rgba(30,62,96,.40) 0%, rgba(14,28,46,.31) 78%, rgba(14,28,46,0) 100%) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   #painel-direito .pd-timeline {
     background: linear-gradient(135deg, rgba(24,50,80,.29), rgba(8,16,30,.34)) !important;
