@@ -1,3 +1,7 @@
 name = "black-sky-9ba0"
 main = "monitor-global-worker-7_7_0.js"
 compatibility_date = "2024-09-01"
+
+[[kv_namespaces]]
+binding = "TTS_USAGE"
+id = "2b5f24c184864d8d9cb2adba3ccdfd43"

@@ -4709,17 +4709,36 @@ async function pollySynthesize(texto, accessKeyId, secretAccessKey) {
     });
 }
 
+// Segurança extra além da cota grátis da própria AWS: um teto MUITO abaixo
+// dela (uso real esperado é uns 3 mil caracteres/mês, contra sismos M6+),
+// guardado no KV do Cloudflare (grátis) por mês corrente. Se algum dia a
+// rota for abusada (alguém martelando a URL direto), ela trava sozinha bem
+// antes de chegar perto de gerar qualquer cobrança de verdade na AWS.
+const TTS_LIMITE_MENSAL = 300000;
+async function verificarEIncrementarCotaTts(env, tamanhoTexto) {
+    if (!env.TTS_USAGE) return { ok: true }; // KV ainda não configurado — não bloqueia, só sem essa camada extra
+    const agora = new Date();
+    const chave = `usage-${agora.getUTCFullYear()}-${String(agora.getUTCMonth() + 1).padStart(2, '0')}`;
+    const atual = Number(await env.TTS_USAGE.get(chave)) || 0;
+    if (atual + tamanhoTexto > TTS_LIMITE_MENSAL) return { ok: false, usado: atual };
+    await env.TTS_USAGE.put(chave, String(atual + tamanhoTexto), { expirationTtl: 40 * 24 * 3600 });
+    return { ok: true };
+}
+
 // Sem token de admin aqui de propósito: essa rota é chamada pelo navegador
 // de qualquer visitante do site (pra tocar o alerta de voz), não só pelo
 // dono — não dá pra exigir um secret que teria que ficar exposto no JS do
-// cliente. O limite de tamanho do texto e a cota mensal grátis da AWS
-// seguram o abuso: se a cota acabar, a API responde erro e o site cai de
-// volta pra voz nativa do navegador sozinho (falarNaNuvem no audio.js já
-// trata isso), sem custo nem quebra pro usuário.
+// cliente. O limite de tamanho do texto, o teto mensal acima e a cota
+// grátis da AWS seguram o abuso: se algum deles travar, a API responde
+// erro e o site cai de volta pra voz nativa do navegador sozinho
+// (falarNaNuvem no audio.js já trata isso), sem custo nem quebra pro
+// usuário.
 async function handleTts(reqUrl, env) {
     const texto = String(reqUrl.searchParams.get('text') || '').trim();
     if (!texto) return json({ ok: false, error: 'texto vazio' }, 400);
     if (texto.length > 400) return json({ ok: false, error: 'texto longo demais (máx. 400 caracteres)' }, 400);
+    const cota = await verificarEIncrementarCotaTts(env, texto.length);
+    if (!cota.ok) return json({ ok: false, error: `Limite de segurança mensal atingido (${cota.usado} caracteres já usados este mês) — voz na nuvem pausada até o mês seguinte.` }, 429);
     const accessKeyId = env.AWS_ACCESS_KEY_ID;
     const secretAccessKey = env.AWS_SECRET_ACCESS_KEY;
     if (!accessKeyId || !secretAccessKey) return json({ ok: false, error: 'AWS Polly não configurado' }, 501);
