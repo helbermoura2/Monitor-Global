@@ -4579,10 +4579,34 @@ async function runTelegramDailySummary(request,env){
 }
 
 
+// As rotas /telegram-test, /telegram-daily-summary, /telegram-m6-check e
+// /telegram-card-preview disparam ações de verdade (mensagem real no
+// Telegram do dono, ou renderização de imagem) e não tinham NENHUMA
+// autenticação — qualquer pessoa que soubesse a URL do worker (exposta no
+// próprio código do site) conseguia acioná-las. O disparo automático de
+// verdade (cron) chama runTelegramM6Alerts/runTelegramDailySummary
+// diretamente em scheduled(), sem passar por HTTP — nenhum código do site
+// chama essas rotas por HTTP — então protegê-las não quebra nada legítimo.
+// Configure o secret ADMIN_TOKEN no Worker (wrangler secret put ADMIN_TOKEN)
+// e passe ?token=SEU_TOKEN na URL (ou header X-Admin-Token) pra testar.
+function tokenAdminValido(request, reqUrl, env) {
+    const esperado = env.ADMIN_TOKEN;
+    if (!esperado) return false; // sem o secret configurado, ninguém aciona — seguro por padrão
+    const recebido = reqUrl.searchParams.get('token') || request.headers.get('X-Admin-Token');
+    return recebido === esperado;
+}
+
 export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+
+        const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
+            '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview'
+        ]);
+        if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
+            return json({ ok: false, error: 'Não autorizado. Passe ?token=SEU_ADMIN_TOKEN.' }, 401);
+        }
 
         if (reqUrl.pathname === '/health') {
             return json({
