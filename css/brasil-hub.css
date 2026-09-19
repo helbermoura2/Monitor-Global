@@ -9,7 +9,7 @@
 .brasil-hub[hidden] { display: none !important; }
 .bh-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1e3a5f; }
 .bh-head strong { font-size: 14px; }
-#bh-status { flex: 1; font-size: 10px; color: #64748b; }
+#bh-status { flex: 1; font-size: 10px; color: #94a3b8; }
 #bh-close { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; cursor: pointer; }
 .bh-grid { display: grid; gap: 8px; }
 .bh-card { background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-radius: 10px; padding: 8px 10px; }
@@ -29,9 +29,9 @@
 .bh-days { display: flex; gap: 4px; overflow-x: auto; margin: 6px 0; }
 .bh-day { min-width: 56px; text-align: center; padding: 5px 4px; border-radius: 8px; background: #0b1528; border: 1px solid #1e293b; }
 .bh-day b { display: block; font-size: 12px; color: #f8fafc; }
-.bh-day span { font-size: 9px; color: #64748b; }
+.bh-day span { font-size: 9px; color: #94a3b8; }
 .bh-note { font-size: 10px !important; color: #7dd3fc !important; }
-.bh-foot { margin: 10px 0 0; font-size: 10px; color: #64748b; line-height: 1.4; }
+.bh-foot { margin: 10px 0 0; font-size: 10px; color: #94a3b8; line-height: 1.4; }
 body.geo-br #brasil-hub { display: block !important; }
 @media (max-width: 900px) {
   .brasil-hub { left: 8px; right: 8px; width: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-height: 48vh; }

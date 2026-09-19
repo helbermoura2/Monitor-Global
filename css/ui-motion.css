@@ -275,7 +275,10 @@ body.mobile-events-open .event {
     opacity: .92;
   }
   #kpibox-brent .ts-kpi-value { color: #8fd9a8 !important; }
-  .ts-kpi-label { opacity: .78; }
+  /* Sem opacity aqui: a cor-base do label já é marginal em contraste
+     (WCAG AA) contra o fundo — reduzir mais a opacidade derrubava pra
+     ~3:1, abaixo do mínimo, justo nos rótulos que mais importam num
+     celular durante um evento ao vivo ("REGISTROS 24H", "MAIOR"...). */
 
   /* Cabeçalho fixo da caixa de registros ganha o mesmo acabamento de
      vidro do resto — ela já não rola junto com a lista (só #events tem
