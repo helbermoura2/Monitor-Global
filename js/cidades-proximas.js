@@ -1,5 +1,9 @@
 // === cidades-proximas.js — Busca e dedupe de cidades próximas a um evento (Photon/Overpass) (linhas originais 2332-2642 do core-app.js) ===
 
+// c.nome vem do OpenStreetMap Overpass (tag name/name:pt) — editável por
+// qualquer pessoa, então nunca é confiável pra ir direto num innerHTML.
+const escCidade = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
 function getCidadesProximas(lat, lng, maxD = 800, maxC = 6) {
     return CIDADES_MUNDO
         .map(c => ({ ...c, distancia: haversine(lat, lng, c.lat, c.lng) }))
@@ -303,7 +307,7 @@ async function resolverCidadesProximas(lat, lng, maxC = 8, maxDReserva = 800) {
 
 function renderCidadesHTML(cidades, reserva) {
     const linhas = cidades.length
-        ? cidades.map(c => `<div class="city-item"><span class="city-name">🏙️ ${c.nome}</span><span class="city-dist">${Math.round(c.distancia)} km</span>${c.pop ? `<span class="city-pop">${formatarPopulacao(c.pop)}</span>` : ''}</div>`).join('')
+        ? cidades.map(c => `<div class="city-item"><span class="city-name">🏙️ ${escCidade(c.nome)}</span><span class="city-dist">${Math.round(c.distancia)} km</span>${c.pop ? `<span class="city-pop">${formatarPopulacao(c.pop)}</span>` : ''}</div>`).join('')
         : '<div class="city-item" style="color:#64748b;">Nenhuma localidade encontrada nas proximidades</div>';
     const aviso = reserva
         ? '<div class="city-item" style="color:#facc15;font-size:10px;line-height:1.35;">⚠️ Busca geográfica indisponível — lista de referência exibida.</div>'
