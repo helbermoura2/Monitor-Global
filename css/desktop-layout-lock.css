@@ -37,10 +37,21 @@
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
     border-bottom: 1px solid rgba(255,255,255,.12) !important;
   }
+  /* A faixa de chips/slider (#ux-controlbar, #controls, #chips-scroll-wrap)
+     é filha do próprio #top-strip, mas tinha fundo sólido próprio — sem
+     isso, ficava destacada como uma "faixa" opaca em cima do vidro
+     translúcido do cabeçalho, em vez de fazer parte da mesma superfície. */
+  #top-strip > #ux-controlbar,
+  #ux-controlbar,
+  #controls,
+  #chips-scroll-wrap {
+    background: transparent !important;
+    border-bottom: none !important;
+  }
   #sidebar-left {
     display: flex !important;
     position: absolute !important;
-    top: 90px !important;
+    top: 178px !important;
     left: 12px !important;
     bottom: 12px !important;
     right: auto !important;
@@ -59,7 +70,7 @@
   #painel-direito {
     display: block !important;
     position: absolute !important;
-    top: 90px !important;
+    top: 178px !important;
     right: 12px !important;
     bottom: 12px !important;
     left: auto !important;
@@ -102,6 +113,13 @@
   .event.active {
     background: linear-gradient(135deg, rgba(20,70,95,.24), rgba(10,35,52,.28)) !important;
   }
+}
+/* A partir de 1101px o cabeçalho cabe numa altura menor (o slider/KPIs não
+   quebram mais linha) — reduz o "top" de sidebar/painel de volta, senão
+   sobra um vão vazio grande embaixo do cabeçalho nessas telas. */
+@media screen and (min-width: 1101px) {
+  #sidebar-left { top: 130px !important; }
+  #painel-direito { top: 130px !important; }
 }
 @media screen and (min-width: 1200px) {
   #sidebar-left { width: 320px !important; }
