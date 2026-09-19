@@ -4649,46 +4649,87 @@ function tokenAdminValido(request, reqUrl, env) {
     return recebido === esperado;
 }
 
-// Neural2 feminina em pt-BR — sotaque brasileiro nativo de verdade. Trocado
-// da ElevenLabs porque as vozes prontas dela (só as "padrão" funcionam via
-// API no plano grátis) só têm sotaque americano/britânico; as com sotaque
-// brasileiro são todas da "Biblioteca" deles, bloqueada pra API sem pagar.
-const GOOGLE_TTS_VOICE = 'pt-BR-Neural2-A';
+// Camila (neural, feminina, pt-BR nativa) via Amazon Polly. A API da AWS não
+// aceita uma chave simples feito Google/ElevenLabs — exige uma requisição
+// assinada (AWS Signature Version 4), calculada abaixo com Web Crypto puro
+// (Workers não tem o SDK da AWS disponível).
+const AWS_REGION = 'us-east-1';
+const POLLY_VOICE = 'Camila';
+
+async function hmacSha256(key, msg) {
+    const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const data = typeof msg === 'string' ? new TextEncoder().encode(msg) : msg;
+    return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, data));
+}
+async function sha256Hex(msg) {
+    const data = typeof msg === 'string' ? new TextEncoder().encode(msg) : msg;
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function bytesToHex(bytes) {
+    return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function pollySynthesize(texto, accessKeyId, secretAccessKey) {
+    const service = 'polly';
+    const host = `polly.${AWS_REGION}.amazonaws.com`;
+    const canonicalUri = '/v1/speech';
+    const body = JSON.stringify({
+        Text: texto,
+        OutputFormat: 'mp3',
+        VoiceId: POLLY_VOICE,
+        Engine: 'neural',
+        LanguageCode: 'pt-BR'
+    });
+
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+    const dateStamp = amzDate.slice(0, 8);
+
+    const payloadHash = await sha256Hex(body);
+    const canonicalHeaders = `content-type:application/json\nhost:${host}\nx-amz-date:${amzDate}\n`;
+    const signedHeaders = 'content-type;host;x-amz-date';
+    const canonicalRequest = ['POST', canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+
+    const credentialScope = `${dateStamp}/${AWS_REGION}/${service}/aws4_request`;
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, await sha256Hex(canonicalRequest)].join('\n');
+
+    const kDate = await hmacSha256(new TextEncoder().encode('AWS4' + secretAccessKey), dateStamp);
+    const kRegion = await hmacSha256(kDate, AWS_REGION);
+    const kService = await hmacSha256(kRegion, service);
+    const kSigning = await hmacSha256(kService, 'aws4_request');
+    const signature = bytesToHex(await hmacSha256(kSigning, stringToSign));
+
+    const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+    return fetch(`https://${host}${canonicalUri}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Amz-Date': amzDate, 'Authorization': authorization },
+        body
+    });
+}
+
 // Sem token de admin aqui de propósito: essa rota é chamada pelo navegador
 // de qualquer visitante do site (pra tocar o alerta de voz), não só pelo
 // dono — não dá pra exigir um secret que teria que ficar exposto no JS do
-// cliente. O limite de tamanho do texto e a cota mensal grátis do próprio
-// Google Cloud seguram o abuso: se a cota acabar, a API responde erro e o
-// site cai de volta pra voz nativa do navegador sozinho (falarNaNuvem no
-// audio.js já trata isso), sem custo nem quebra pro usuário.
+// cliente. O limite de tamanho do texto e a cota mensal grátis da AWS
+// seguram o abuso: se a cota acabar, a API responde erro e o site cai de
+// volta pra voz nativa do navegador sozinho (falarNaNuvem no audio.js já
+// trata isso), sem custo nem quebra pro usuário.
 async function handleTts(reqUrl, env) {
     const texto = String(reqUrl.searchParams.get('text') || '').trim();
     if (!texto) return json({ ok: false, error: 'texto vazio' }, 400);
     if (texto.length > 400) return json({ ok: false, error: 'texto longo demais (máx. 400 caracteres)' }, 400);
-    const apiKey = env.GOOGLE_TTS_API_KEY;
-    if (!apiKey) return json({ ok: false, error: 'Google TTS não configurado' }, 501);
+    const accessKeyId = env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY;
+    if (!accessKeyId || !secretAccessKey) return json({ ok: false, error: 'AWS Polly não configurado' }, 501);
     try {
-        const r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                input: { text: texto },
-                voice: { languageCode: 'pt-BR', name: GOOGLE_TTS_VOICE },
-                audioConfig: { audioEncoding: 'MP3' }
-            })
-        });
+        const r = await pollySynthesize(texto, accessKeyId, secretAccessKey);
         if (!r.ok) {
             const detalhe = await r.text().catch(() => '');
-            return json({ ok: false, error: `Google TTS HTTP ${r.status}: ${detalhe.slice(0, 200)}` }, 502);
+            return json({ ok: false, error: `AWS Polly HTTP ${r.status}: ${detalhe.slice(0, 200)}` }, 502);
         }
-        const data = await r.json();
-        if (!data.audioContent) return json({ ok: false, error: 'Google TTS: resposta sem áudio' }, 502);
-        // Google devolve o áudio em base64 dentro do JSON, não como stream
-        // binário direto — decodifica pra bytes antes de responder.
-        const bin = atob(data.audioContent);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        return resposta(bytes, 200, 'audio/mpeg');
+        return resposta(r.body, 200, 'audio/mpeg');
     } catch (e) {
         return json({ ok: false, error: e?.message || String(e) }, 502);
     }
