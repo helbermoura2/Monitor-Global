@@ -424,12 +424,39 @@ function enriquecerVulcaoComUSGS(obj,reports){
     obj.sourceSummary=obj.sources.join(' · ');
     return obj;
 }
+async function fetchGlobalVolcanoAdvisories(){
+    // Rota do Worker /global-volcano: VAAC Darwin + VAAC Tokyo (cinzas vulcânicas).
+    // Cobre vulcões fora do escopo do USGS (só EUA) e que o GDACS às vezes não lista
+    // (ex.: Sakurajima, muito ativo mas "rotina" pro critério de risco do GDACS).
+    const t=performance.now();
+    try{
+        const base=workerBaseUrl();
+        const urls=[base+'/global-volcano?t='+Date.now(), base+'/global-volcano'];
+        for(const u of urls){
+            try{
+                const r=await fetch(u,{cache:'no-store',mode:'cors'});
+                if(!r.ok) continue;
+                const j=await r.json();
+                if(j && Array.isArray(j.items)){
+                    setSource('VAAC-Global','ok',performance.now()-t);
+                    return j.items;
+                }
+            }catch(e){ console.warn('global-volcano try:', e?.message||e); }
+        }
+        throw new Error('VAAC global indisponível');
+    }catch(e){
+        console.warn('VAAC global:', e?.message||e);
+        try{ setSource('VAAC-Global','off',null,e?.message||'falha'); }catch(_){}
+        return [];
+    }
+}
 async function fetchVolcanoes(){
     window.__lastVolcanoAttempt = Date.now();
     try{
-        const [feats,usgsPack]=await Promise.all([
+        const [feats,usgsPack,vaacItems]=await Promise.all([
             fetchGdacsEvents('VO').catch(e=>{ console.warn('GDACS VO:',e); window.__lastVolcanoGdacsError=e?.message||String(e); return []; }),
-            fetchUSGSVolcanoProfessional()
+            fetchUSGSVolcanoProfessional(),
+            fetchGlobalVolcanoAdvisories()
         ]);
         window.__gdacsVoCount = (feats||[]).length;
         const usgsAll = Array.isArray(usgsPack) ? usgsPack : (usgsPack?.all || []);
@@ -443,7 +470,9 @@ async function fetchVolcanoes(){
         }
         usgsElev = (usgsElev||[]).filter(r => r && r.name && Array.isArray(r.coords) && r.coords.length>=2
           && Number.isFinite(Number(r.coords[0])) && Number.isFinite(Number(r.coords[1])));
-        try { console.info('[vulcanismo] GDACS VO:', (feats||[]).length, '| USGS all:', usgsAll.length, '| USGS elevados/VONA:', usgsElev.length); } catch(_){}
+        const vaacUsaveis = (vaacItems||[]).filter(v => v && v.name && Array.isArray(v.coords)
+          && Number.isFinite(Number(v.coords[0])) && Number.isFinite(Number(v.coords[1])));
+        try { console.info('[vulcanismo] GDACS VO:', (feats||[]).length, '| USGS all:', usgsAll.length, '| USGS elevados/VONA:', usgsElev.length, '| VAAC/GVP:', vaacUsaveis.length); } catch(_){}
         try {
           if (usgsElev.length && typeof showToast==='function' && !window.__usgsElevListToast) {
             window.__usgsElevListToast = true;
@@ -528,10 +557,53 @@ async function fetchVolcanoes(){
             }
         });
 
+        // 3) VAAC Darwin/Tokyo + Relatório Semanal Smithsonian GVP — cobre o
+        // que fica fora do escopo GDACS/USGS: vulcões fora dos EUA (USGS) e
+        // erupções que o GDACS não lista pelo critério de risco dele (ex.:
+        // Sakurajima no Japão, Nevados de Chillán no Chile).
+        vaacUsaveis.forEach(v=>{
+            const [lng,lat]=v.coords;
+            const existing=globalAlerts.find(a=>a.type==='volcano'&&(
+                vulcaoNomeIgual(a.place,v.name)||
+                (a.coords&&haversine(a.coords[1],a.coords[0],lat,lng)<80)
+            ));
+            if(existing){
+                existing.sources=[...new Set([...(existing.sources||[]),v.source])];
+                existing.sourceSummary=existing.sources.join(' · ');
+                if(!existing.ashStatus && v.ashStatus) existing.ashStatus=v.ashStatus;
+                if(v.time && (!existing.time||Number(v.time)>Number(existing.time))) existing.time=v.time;
+                ids.add(existing.id);
+                return;
+            }
+            const id=`vaac-${String(v.name||'volcano').toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
+            ids.add(id);
+            const ct=(typeof getCountryByCoords==='function')?getCountryByCoords(lat,lng):{flag:'',nome:''};
+            const infoT=(typeof traduzirEIdentificar==='function')?traduzirEIdentificar(v.name):{bandeira:'',pais:''};
+            const obj={
+                id,type:'volcano',place:v.name,bandeira:infoT.bandeira||ct.flag||getFlagByCoords(lat,lng),pais:infoT.pais||ct.nome||'',
+                time:v.time||Date.now(),coords:[lng,lat],source:v.source,sources:[v.source],
+                sourceSummary:v.source,
+                aviationColor:v.aviationColor||'',usgsAlertLevel:v.alertLevel||'',
+                vulcanicActivity:v.detail,activityStatus:v.ashStatus,ashStatus:v.ashStatus,
+                eruptionStatus:v.detail||'Aviso de cinzas vulcânicas',
+                detail:v.detail||'Aviso de cinzas vulcânicas',
+                vei:null,link:/tokyo/i.test(v.source||'')?'https://www.data.jma.go.jp/vaac/data/vaac_list.html':'https://www.bom.gov.au/products/Volc_ash_latest.shtml'
+            };
+            const isNew=upsertAlert(obj,{fonte:'volcanoVaac',skipRemove:true});
+            if(isNew){
+                primeiroNovo=primeiroNovo||obj;
+                try{ playAlertTone('volcano'); }catch(_){}
+                try{ showToast(`🌋 ${v.source}: ${v.name}`,'warning'); }catch(_){}
+                try{ notificarNavegador(`🌋 Vulcanismo — ${v.name}`,v.source); }catch(_){}
+            } else if (activeUpdatedIds.has(id)) {
+                try{ showToast(`🔄 ${v.source} atualizado: ${v.name}`,'info'); }catch(_){}
+            }
+        });
+
         // Mantém GDACS atuais + qualquer vulcão USGS (elevado/VONA) + VAAC/EONET globais
         globalAlerts=globalAlerts.filter(a=>{
             if(a.type!=='volcano') return true;
-            if(/VAAC|EONET|NASA/i.test(String(a.source||'')) || (a.sources||[]).some(s=>/VAAC|EONET|NASA/i.test(String(s)))) return true;
+            if(/VAAC|EONET|NASA|GVP|Smithsonian/i.test(String(a.source||'')) || (a.sources||[]).some(s=>/VAAC|EONET|NASA|GVP|Smithsonian/i.test(String(s)))) return true;
             if(a.source==='GDACS') return ids.has(a.id) || (a.sources||[]).includes('USGS VHP');
             if(a.source==='USGS VHP' || (a.sources||[]).includes('USGS VHP')) return true;
             return ids.has(a.id);
@@ -539,6 +611,7 @@ async function fetchVolcanoes(){
         globalAlerts.filter(a=>a.type==='volcano').forEach(a=>{ try{ a.confidence=consolidarConfianca(a);}catch(_){} });
         marcarBooted('volcanoGdacs');
         marcarBooted('volcanoUsgs');
+        marcarBooted('volcanoVaac');
         window.__lastVolcanoSuccess = Date.now();
         window.__lastVolcanoError = null;
         applyFilters();
