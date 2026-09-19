@@ -26,16 +26,24 @@
        epicentro cai perto do topo visível do mapa. */
     z-index: 0 !important;
   }
+  /* Vidro "autocontido": não depende mais do mapa aparecer borrado por
+     trás (backdrop-filter não consegue ler o canvas WebGL do MapLibre em
+     boa parte dos navegadores/GPUs, mesmo com preserveDrawingBuffer — ver
+     discussão nos PRs #54-#60). O efeito de vidro agora vem só do próprio
+     gradiente + brilho interno da borda, então funciona igual em
+     qualquer aparelho. backdrop-filter continua declarado como bônus
+     grátis pros poucos casos em que o navegador consegue aplicar. */
   #top-strip {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     z-index: 30 !important;
-    background: linear-gradient(180deg, rgba(10,26,46,.14) 0%, rgba(4,11,20,.18) 100%) !important;
+    background: linear-gradient(180deg, rgba(38,78,124,.58) 0%, rgba(10,22,40,.78) 100%) !important;
     backdrop-filter: blur(28px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
-    border-bottom: 1px solid rgba(255,255,255,.12) !important;
+    border-bottom: 1px solid rgba(255,255,255,.14) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
   /* A faixa de chips/slider (#ux-controlbar, #controls, #chips-scroll-wrap)
      é filha do próprio #top-strip, mas tinha fundo sólido próprio — sem
@@ -60,12 +68,12 @@
     max-height: none !important;
     z-index: 20 !important;
     padding-top: 0 !important;
-    background: linear-gradient(180deg, rgba(6,17,29,.16) 0%, rgba(4,11,20,.20) 100%) !important;
+    background: linear-gradient(160deg, rgba(28,66,102,.56) 0%, rgba(10,22,38,.78) 100%) !important;
     backdrop-filter: blur(28px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
-    border: 1px solid rgba(255,255,255,.12) !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
     border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
   #painel-direito {
     display: block !important;
@@ -82,12 +90,12 @@
     margin: 0 !important;
     overflow-y: auto !important;
     padding: 16px !important;
-    background: linear-gradient(180deg, rgba(15,37,66,.15) 0%, rgba(4,11,20,.19) 100%) !important;
+    background: linear-gradient(160deg, rgba(46,84,132,.56) 0%, rgba(10,22,38,.78) 100%) !important;
     backdrop-filter: blur(28px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
-    border: 1px solid rgba(255,255,255,.12) !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
     border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
   body.mobile-details-mid #painel-direito,
   body.mobile-details-open #painel-direito {
@@ -102,16 +110,24 @@
 
   /* Cards de registro (lista de eventos): efeito "vidro" mais leve — só
      transparência e brilho sutil, sem desfoque de verdade, porque pode
-     ter centenas rolando na lista ao mesmo tempo e o blur pesa na GPU. */
-  .event {
-    background: rgba(13,28,45,.14) !important;
-    border: 1px solid rgba(255,255,255,.11) !important;
+     ter centenas rolando na lista ao mesmo tempo e o blur pesa na GPU.
+     "#events" na frente é OBRIGATÓRIO — achado só agora com um script que
+     lista todo mundo que bate no elemento e ordena por especificidade de
+     verdade: css/ui-motion.css tem ".event {...}" sem media query (afeta
+     desktop também) e carrega DEPOIS deste arquivo. Sem o prefixo, aquela
+     regra sempre ganhava o empate pela ordem — ou seja, os cards de
+     registro nunca chegaram a pegar esta cor em nenhum dos PRs anteriores
+     (#53-#60), apesar do resto do vidro (.event.active, painel, sidebar
+     etc.) estar correto o tempo todo. */
+  #events .event {
+    background: linear-gradient(135deg, rgba(30,62,96,.40), rgba(12,24,42,.52)) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
     border-radius: 12px !important;
-    box-shadow: 0 4px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.07) !important;
     text-shadow: 0 1px 3px rgba(0,0,0,.7) !important;
   }
-  .event.active {
-    background: linear-gradient(135deg, rgba(20,70,95,.24), rgba(10,35,52,.28)) !important;
+  #events .event.active {
+    background: linear-gradient(135deg, rgba(30,100,135,.42), rgba(12,44,64,.50)) !important;
   }
 
   /* Caixas internas dos cards (chips de filtro, cabeçalho fixo do painel,
@@ -122,19 +138,19 @@
      (sem :not() nem remover a cor de estado dos badges coloridos), pra
      manter legibilidade e ainda deixar o mapa aparecer por trás. */
   .chip {
-    background: rgba(9,23,37,.35) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.45), rgba(10,20,36,.55)) !important;
   }
   .chip.active {
-    background: rgba(13,93,130,.55) !important;
+    background: linear-gradient(135deg, rgba(20,120,165,.65), rgba(10,60,88,.65)) !important;
   }
   #freshness-bar {
-    background: rgba(2,8,22,.25) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.38), rgba(8,16,30,.48)) !important;
   }
   .stat-card {
-    background: rgba(9,27,43,.22) !important;
+    background: linear-gradient(160deg, rgba(24,52,84,.36), rgba(8,18,32,.46)) !important;
   }
   .bubble-section {
-    background: linear-gradient(135deg, rgba(9,25,40,.22), rgba(6,17,28,.16)) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.36), rgba(8,18,32,.42)) !important;
   }
   /* "body" na frente é de propósito — css/intensity-filters.css define
      #painel-direito .pd-header-row (sem media query, afeta mobile também)
@@ -143,7 +159,7 @@
      maior, então esta regra (só desktop, min-width:901px) sempre vence
      aqui, sem mexer no visual do cabeçalho sticky no mobile. */
   body #painel-direito .pd-header-row {
-    background: linear-gradient(180deg, rgba(5,14,25,.4) 0%, rgba(5,14,25,.28) 78%, rgba(5,14,25,0) 100%) !important;
+    background: linear-gradient(180deg, rgba(30,62,96,.55) 0%, rgba(14,28,46,.42) 78%, rgba(14,28,46,0) 100%) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
   }
@@ -154,10 +170,10 @@
      de carregamento. Com o ID na frente, a especificidade maior garante
      que esta regra vença independente da ordem. */
   #painel-direito .pd-timeline {
-    background: rgba(8,15,28,.22) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.38), rgba(8,16,30,.46)) !important;
   }
   #painel-direito .pd-chip {
-    background: rgba(15,23,42,.25) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.40), rgba(10,20,36,.50)) !important;
   }
 
   /* Ícones do cabeçalho (áudio, mais menu, setas de scroll dos chips) e o
@@ -168,13 +184,13 @@
      escopado só pro desktop. */
   .icon-btn,
   .header-menu-trigger {
-    background: rgba(10,26,42,.30) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.42), rgba(10,20,36,.52)) !important;
   }
   .chips-scroll-btn {
-    background: rgba(2,8,22,.30) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.42), rgba(8,16,30,.52)) !important;
   }
   #painel-direito .source-trust-card {
-    background: rgba(2,8,22,.20) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.34), rgba(8,18,32,.44)) !important;
   }
   /* Dentro do card de confiança, só a sub-caixa "DADO DA FONTE/ESTIMATIVA
      DO APP" tem fundo inline (definido em js/confianca-fontes.js) — as
@@ -182,7 +198,7 @@
      o seletor mira só quem tem o border-radius inline dessa sub-caixa
      específica, sem criar um retângulo em cada linha de texto solta. */
   #painel-direito .source-trust-meta[style*="border-radius:6px"] {
-    background: rgba(15,23,42,.18) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.30), rgba(10,20,36,.38)) !important;
   }
 }
 /* A partir de 1101px o cabeçalho cabe numa altura menor (o slider/KPIs não
