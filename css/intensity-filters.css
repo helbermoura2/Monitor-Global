@@ -5,16 +5,11 @@
   overflow-x: hidden !important;
   padding-top: 12px !important;
 }
-/* position:relative só faz sentido quando #painel-direito é coluna real do
-   grid (desktop/tablet largo). Abaixo de 901px o layout mobile o transforma
-   em bottom-sheet fixo (ver css/mobile-header-v4412.css); aplicar relative
-   sem essa guarda quebrava o grid do #app inteiro em telas de 701–900px
-   retrato, colapsando o cabeçalho. */
-@media screen and (min-width: 901px) {
-  #painel-direito {
-    position: relative !important;
-  }
-}
+/* #painel-direito não é mais coluna de grid a partir de 901px — agora
+   flutua em cima do mapa (position:absolute, ver css/desktop-layout-lock.
+   css), então não força mais relative aqui. Abaixo de 901px o layout
+   mobile continua tratando ele como bottom-sheet fixo (ver
+   css/mobile-header-v4412.css), sem mudança nenhuma. */
 #painel-direito .pd-header-row {
   position: sticky !important;
   top: 0 !important;
