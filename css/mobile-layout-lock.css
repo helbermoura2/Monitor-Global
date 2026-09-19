@@ -40,6 +40,22 @@
     -webkit-backdrop-filter: none !important;
     box-shadow: 0 6px 24px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
+  /* A faixa de chips (#ux-controlbar) tinha fundo PRÓPRIO quase opaco
+     (.94/.96) numa regra de retrato estreito em
+     css/mobile-late-patches.css ("body.mg-clean-portrait #top-strip >
+     #ux-controlbar"), nunca coberta aqui — só o #top-strip por trás
+     tinha ficado transparente, então a faixa de chips continuava
+     aparecendo como uma tarja escura sólida por cima dele. Mesmo
+     seletor composto (empata especificidade, este arquivo carrega
+     depois → vence) + variações mais simples por segurança. */
+  #top-strip > #ux-controlbar,
+  body.mg-clean-portrait #top-strip > #ux-controlbar,
+  #ux-controlbar,
+  #controls,
+  #chips-scroll-wrap {
+    background: transparent !important;
+    border-bottom: none !important;
+  }
   /* Faixa "AO VIVO ..." (ticker do último evento): mesmo motivo do
      #top-strip acima — css/ui-motion.css tem
      "body.mg-clean-portrait #latest-event-ticker" (quase opaco, .95/.97)
