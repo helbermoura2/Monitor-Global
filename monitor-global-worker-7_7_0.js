@@ -761,6 +761,26 @@ async function getUsgsVolcanoProfessional() {
 }
 
 
+// Coordenadas de vulcões conhecidos, usadas como fallback quando a fonte (VAAC
+// texto ICAO, relatório semanal do GVP) não traz lat/lon diretamente.
+const KNOWN_VOLCANO_COORDS = {
+    'sakurajima aira caldera':[31.593,130.657], 'sakurajima':[31.593,130.657], 'aira':[31.593,130.657],
+    'mayon':[13.257,123.685], 'kanlaon':[10.412,123.132],
+    'asosan':[32.884,131.104], 'suwanosejima':[29.638,129.714], 'kirishima':[31.934,130.862],
+    'krakatau':[-6.102,105.423], 'anak krakatau':[-6.102,105.423],
+    'dukono':[1.693,127.894], 'great sitkin':[52.076,-176.130], 'ibu':[1.488,127.630],
+    'karangetang':[2.781,125.407], 'kilauea':[19.421,-155.287],
+    'klyuchevskoy':[56.056,160.642], 'krasheninnikov':[54.593,159.813],
+    'lewotolok':[-8.274,123.505], 'merapi':[-7.540,110.446], 'purace':[2.320,-76.397],
+    'rincon de la vieja':[10.830,-85.324], 'sabancaya':[-15.787,-71.857],
+    'semeru':[-8.108,112.922], 'sheveluch':[56.653,161.360], 'sinabung':[3.170,98.392],
+    'lewotobi':[-8.542,122.775], 'lewotobi laki-laki':[-8.542,122.775],
+    'nevados de chillan':[-36.868,-71.378], 'chillan':[-36.868,-71.378]
+};
+function lookupKnownVolcanoCoords(name) {
+    return KNOWN_VOLCANO_COORDS[normVolcanoName(name)] || null;
+}
+
 function parseVolcanoAdvisoryText(text, source) {
     const out = [];
     const blocks = String(text || '').split(/(?=VA ADVISORY\b)/i);
@@ -785,16 +805,7 @@ function parseVolcanoAdvisoryText(text, source) {
         const dm = dtg.match(/^(\d{4})(\d{2})(\d{2})\/(\d{2})(\d{2})Z$/);
         if (dm) time = Date.UTC(+dm[1], +dm[2]-1, +dm[3], +dm[4], +dm[5]);
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            const key = normVolcanoName(name);
-            const known = {
-                'sakurajima aira caldera':[31.593,130.657],
-                'sakurajima':[31.593,130.657],
-                'mayon':[13.257,123.685],
-                'kanlaon':[10.412,123.132],
-                'asosan':[32.884,131.104],
-                'suwanosejima':[29.638,129.714],
-                'kirishima':[31.934,130.862]
-            }[key];
+            const known = lookupKnownVolcanoCoords(name);
             if (known) { lat=known[0]; lon=known[1]; }
         }
         if (!name || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
@@ -810,12 +821,48 @@ function parseVolcanoAdvisoryText(text, source) {
     return out;
 }
 
+function parseWeeklyVolcanicReport(html) {
+    // Relatório Semanal de Atividade Vulcânica (Smithsonian GVP / USGS): uma
+    // tabela HTML com todos os vulcões relatados na semana, de qualquer país —
+    // é a fonte que cobre o que fica fora do escopo do USGS (só EUA) e do
+    // GDACS (critério de risco próprio, às vezes sem certos vulcões/erupções).
+    // Só "New Activity/Unrest" vira alerta novo aqui; "Continuing Activity" é
+    // rotina de vulcões já sempre ativos (Kilauea, Merapi etc.) e viraria
+    // ruído se replotasse toda semana.
+    const out = [];
+    const rows = [...String(html || '').matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map(m => m[1]);
+    for (const row of rows) {
+        const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1]);
+        if (cells.length < 5) continue;
+        const nameCell = cells[0];
+        const name = nameCell.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!name || /^volcano$/i.test(name)) continue;
+        const vnum = (nameCell.match(/vn=(\d+)/i) || [, ''])[1];
+        const country = cells[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        const startDate = cells[3].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        const reportType = cells[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!/new activity|unrest/i.test(reportType)) continue;
+        const known = lookupKnownVolcanoCoords(name);
+        if (!known) continue; // sem coordenada conhecida, não dá pra plotar no mapa
+        out.push({
+            id: `gvp-weekly-${vnum || name}`.replace(/\s+/g, '-'),
+            type: 'volcano', name, vnum, coords: [known[1], known[0]],
+            source: 'Smithsonian GVP', country, startDate, time: Date.now(),
+            detail: `Nova atividade eruptiva/unrest (${country || 'relatório semanal'})${startDate && startDate !== '—' ? ' desde ' + startDate : ''}`,
+            ashStatus: reportType, aviationColor: '', alertLevel: 'WARNING', elevated: true
+        });
+    }
+    return out;
+}
+
 async function getGlobalVolcanoAdvisories() {
     const settled = await Promise.allSettled([
         fetchText('https://www.bom.gov.au/products/Volc_ash_latest.shtml',
             {headers:{'User-Agent':'MonitorGlobal/7.6','Accept':'text/html,*/*'}}, 15000),
         fetchText('https://www.data.jma.go.jp/vaac/data/vaac_list.html',
-            {headers:{'User-Agent':'MonitorGlobal/7.6','Accept':'text/html,*/*'}}, 15000)
+            {headers:{'User-Agent':'MonitorGlobal/7.6','Accept':'text/html,*/*'}}, 15000),
+        fetchText('https://volcano.si.edu/reports_weekly.cfm',
+            {headers:{'User-Agent':'MonitorGlobal/7.7','Accept':'text/html,*/*'}}, 18000)
     ]);
     const items = [];
     const errors = [];
@@ -839,9 +886,11 @@ async function getGlobalVolcanoAdvisories() {
             const time = Date.UTC(+date[1],+date[2]-1,+date[3],+date[4],+date[5],+(date[6]||0));
             // Tokyo VAAC é especialmente importante para Japão e Pacífico ocidental.
             if (!/japan|philippines|kuril|russia|taiwan/i.test(area)) continue;
+            const known = lookupKnownVolcanoCoords(name);
+            if (!known) continue; // sem coordenada conhecida, não dá pra plotar no mapa
             items.push({
                 id:`vaac-TOKYO-${name}-${time}`.replace(/\s+/g,'-'),
-                type:'volcano', name, vnum:'', coords:[NaN,NaN],
+                type:'volcano', name, vnum:'', coords:[known[1],known[0]],
                 source:'VAAC TOKYO', area, advisory:cells[3]||'', time,
                 detail:'Volcanic Ash Advisory (Tokyo VAAC)',
                 ashStatus:'Aviso de cinzas vulcânicas', aviationColor:'',
@@ -849,6 +898,10 @@ async function getGlobalVolcanoAdvisories() {
             });
         }
     } else errors.push('Tokyo VAAC indisponível');
+
+    if (settled[2] && settled[2].status === 'fulfilled' && settled[2].value.ok) {
+        items.push(...parseWeeklyVolcanicReport(settled[2].value.text));
+    } else errors.push('GVP weekly report indisponível');
 
     return {ok:items.length>0,source:'VAAC global',updatedAt:nowIso(),items,errors};
 }

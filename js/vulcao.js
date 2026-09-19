@@ -472,7 +472,7 @@ async function fetchVolcanoes(){
           && Number.isFinite(Number(r.coords[0])) && Number.isFinite(Number(r.coords[1])));
         const vaacUsaveis = (vaacItems||[]).filter(v => v && v.name && Array.isArray(v.coords)
           && Number.isFinite(Number(v.coords[0])) && Number.isFinite(Number(v.coords[1])));
-        try { console.info('[vulcanismo] GDACS VO:', (feats||[]).length, '| USGS all:', usgsAll.length, '| USGS elevados/VONA:', usgsElev.length, '| VAAC:', vaacUsaveis.length); } catch(_){}
+        try { console.info('[vulcanismo] GDACS VO:', (feats||[]).length, '| USGS all:', usgsAll.length, '| USGS elevados/VONA:', usgsElev.length, '| VAAC/GVP:', vaacUsaveis.length); } catch(_){}
         try {
           if (usgsElev.length && typeof showToast==='function' && !window.__usgsElevListToast) {
             window.__usgsElevListToast = true;
@@ -557,9 +557,10 @@ async function fetchVolcanoes(){
             }
         });
 
-        // 3) VAAC Darwin/Tokyo — cinzas vulcânicas fora do escopo GDACS/USGS
-        // (ex.: Sakurajima, Japão: fora do USGS e o GDACS costuma não listar
-        // a atividade "de rotina" dele; o VAAC Tokyo sempre reporta explosões).
+        // 3) VAAC Darwin/Tokyo + Relatório Semanal Smithsonian GVP — cobre o
+        // que fica fora do escopo GDACS/USGS: vulcões fora dos EUA (USGS) e
+        // erupções que o GDACS não lista pelo critério de risco dele (ex.:
+        // Sakurajima no Japão, Nevados de Chillán no Chile).
         vaacUsaveis.forEach(v=>{
             const [lng,lat]=v.coords;
             const existing=globalAlerts.find(a=>a.type==='volcano'&&(
@@ -602,7 +603,7 @@ async function fetchVolcanoes(){
         // Mantém GDACS atuais + qualquer vulcão USGS (elevado/VONA) + VAAC/EONET globais
         globalAlerts=globalAlerts.filter(a=>{
             if(a.type!=='volcano') return true;
-            if(/VAAC|EONET|NASA/i.test(String(a.source||'')) || (a.sources||[]).some(s=>/VAAC|EONET|NASA/i.test(String(s)))) return true;
+            if(/VAAC|EONET|NASA|GVP|Smithsonian/i.test(String(a.source||'')) || (a.sources||[]).some(s=>/VAAC|EONET|NASA|GVP|Smithsonian/i.test(String(s)))) return true;
             if(a.source==='GDACS') return ids.has(a.id) || (a.sources||[]).includes('USGS VHP');
             if(a.source==='USGS VHP' || (a.sources||[]).includes('USGS VHP')) return true;
             return ids.has(a.id);
