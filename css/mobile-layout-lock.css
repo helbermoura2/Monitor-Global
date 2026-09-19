@@ -35,7 +35,7 @@
      este arquivo carregando por último. */
   #top-strip,
   body.mg-clean-portrait #top-strip {
-    background: linear-gradient(180deg, rgba(38,78,124,.40) 0%, rgba(10,22,40,.52) 100%) !important;
+    background: linear-gradient(180deg, rgba(38,78,124,.30) 0%, rgba(10,22,40,.40) 100%) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: 0 6px 24px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
@@ -43,10 +43,12 @@
   /* Faixa "AO VIVO ..." (ticker do último evento): mesmo motivo do
      #top-strip acima — css/ui-motion.css tem
      "body.mg-clean-portrait #latest-event-ticker" (quase opaco, .95/.97)
-     e carrega antes deste arquivo. */
+     e carrega antes deste arquivo. Reduzido mais uma vez — sendo uma
+     faixa fina, mesmo com o mesmo alpha do card principal "revela"
+     menos mapa e parece menos transparente por comparação. */
   #latest-event-ticker,
   body.mg-clean-portrait #latest-event-ticker {
-    background: linear-gradient(135deg, rgba(28,58,92,.42), rgba(10,20,36,.52)) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.32), rgba(10,20,36,.40)) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }

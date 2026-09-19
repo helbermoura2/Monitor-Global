@@ -189,7 +189,10 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 .toast-stack { position: fixed; top: 70px; right: 20px; width: min(430px, calc(100vw - 32px)); display: flex; flex-direction: column; align-items: stretch; gap: 8px; z-index: 10000; pointer-events: none; }
 .toast { position: relative; top: auto; right: auto; box-sizing: border-box; width: 100%; padding: 12px 20px; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; line-height: 1.35; box-shadow: 0 8px 24px rgba(0,0,0,.35); animation: slideIn .3s ease; pointer-events: auto; overflow-wrap: anywhere; }
 @keyframes slideIn { from{transform:translateX(400px);opacity:0;} to{transform:translateX(0);opacity:1;} }
-.toast-info { background: linear-gradient(135deg, rgba(29,78,216,.72), rgba(59,130,246,.72)); border: 1px solid rgba(255,255,255,.14); }
+/* Azul satura mais que laranja/vermelho na mesma opacidade — "lê" mais
+   sólido mesmo com o alpha igual (percepção de cor, não é bug de CSS).
+   Por isso o alpha do toast-info é mais baixo que os outros dois. */
+.toast-info { background: linear-gradient(135deg, rgba(29,78,216,.52), rgba(59,130,246,.52)); border: 1px solid rgba(255,255,255,.14); }
 .toast-warning,.toast-warn { background: linear-gradient(135deg, rgba(180,83,9,.72), rgba(245,158,11,.72)); border: 1px solid rgba(255,255,255,.14); }
 .toast-error { background: linear-gradient(135deg, rgba(153,27,27,.72), rgba(239,68,68,.72)); border: 1px solid rgba(255,255,255,.14); }
 @media (max-width: 700px) {
