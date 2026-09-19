@@ -1,5 +1,52 @@
 // === feed-utils.js — Filtros, dedupe e construção do feed unificado de eventos (linhas originais 2937-3316 do core-app.js) ===
 
+// Índice espacial pra achar "já existe um evento aqui perto?" em globalEvents
+// sem varrer o array inteiro pra cada candidato — mesma técnica de grid do
+// dedupeFeedItems acima, só que reutilizável contra um array já existente
+// (usado por fetchAfadQuakes/planetReinforcementDedupEAdiciona em
+// sismo-fontes.js, que faziam um .some()/.find() completo em globalEvents
+// pra CADA sismo recebido — com o piso de magnitude em 0.1 e o reforço
+// planetário buscando até 5000 sismos por ciclo, isso girava rápido pra
+// milhões de comparações a cada 60s).
+function construirIndiceEspacial(lista, tolGraus) {
+    const grid = new Map(); // "célulaLat|célulaLng" -> [itens]
+    const chave = (lat, lng) => `${Math.floor(lat / tolGraus)}|${Math.floor(lng / tolGraus)}`;
+    lista.forEach(item => {
+        if (!item || !item.coords) return;
+        const [lng, lat] = item.coords;
+        const k = chave(lat, lng);
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k).push(item);
+    });
+    return {
+        // Retorna o primeiro item na mesma célula (ou nas 8 vizinhas) que
+        // satisfaz o predicado `combina(candidatoDoIndice)`, ou null.
+        encontrar(coords, combina) {
+            if (!coords) return null;
+            const [lng, lat] = coords;
+            const baseLat = Math.floor(lat / tolGraus), baseLng = Math.floor(lng / tolGraus);
+            for (let dLat = -1; dLat <= 1; dLat++) {
+                for (let dLng = -1; dLng <= 1; dLng++) {
+                    const bucket = grid.get(`${baseLat + dLat}|${baseLng + dLng}`);
+                    if (!bucket) continue;
+                    for (const it of bucket) if (combina(it)) return it;
+                }
+            }
+            return null;
+        },
+        // Insere um item novo no índice (ex.: um item aceito no meio de um
+        // loop de dedupe, pra próximos candidatos do mesmo lote já poderem
+        // encontrá-lo como duplicata, igual o array original permitia).
+        inserir(item) {
+            if (!item || !item.coords) return;
+            const [lng, lat] = item.coords;
+            const k = chave(lat, lng);
+            if (!grid.has(k)) grid.set(k, []);
+            grid.get(k).push(item);
+        }
+    };
+}
+
 // Bbox aproximado do território brasileiro. NÃO é preciso o suficiente sozinho
 // perto das fronteiras (Peru/Bolívia/Colômbia entram na faixa oeste). Quem precisa
 // de "é Brasil de verdade?" deve combinar com bandeira/país/texto (ver isEventoBrasil

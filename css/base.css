@@ -896,6 +896,7 @@ button[aria-pressed="true"] { box-shadow: 0 0 0 1px rgba(56,189,248,.65),0 0 12p
 #top-probar #flood-risk-chip.flood-high b { color: #fb923c; }
 #top-probar #flood-risk-chip.flood-crit b { color: #ef4444; }
 #flood-risk-card { display: none !important; }
+#flood-risk-chip { cursor: pointer; }
 #sp-live-card #flood-risk-chip small { display: block; }
 #top-probar #flood-risk-chip small { display: none; }
 body { font-family: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important; }

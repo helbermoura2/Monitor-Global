@@ -610,32 +610,30 @@ async function fetchAfadQuakes() {
         return;
     }
 
-    // Mescla em globalEvents (dedupe por tempo+coords)
+    // Mescla em globalEvents (dedupe por tempo+coords). Índice espacial em
+    // vez de globalEvents.some()/.find() completo por item (ver comentário
+    // em construirIndiceEspacial, feed-utils.js) — com o piso de magnitude
+    // baixo, globalEvents pode ter milhares de sismos, e isso rodava pra
+    // cada um dos até 100 sismos da AFAD, a cada 60s.
     const cut = Date.now() - 36 * 3600000;
     list = list.filter(e => e.time >= cut);
+    const indiceAfad = construirIndiceEspacial(globalEvents, 0.15);
     let novos = 0;
     list.forEach(ev => {
         const canonical = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
-        const exists = globalEvents.some(g => {
-            if (!g.coords) return false;
-            return Math.abs(g.time - ev.time) < 120000 &&
-                Math.abs(g.coords[1] - ev.coords[1]) < 0.15 &&
-                Math.abs(g.coords[0] - ev.coords[0]) < 0.15;
-        });
-        if (exists) {
+        const combina = g => g.coords && Math.abs(g.time - ev.time) < 120000 &&
+            Math.abs(g.coords[1] - ev.coords[1]) < 0.15 && Math.abs(g.coords[0] - ev.coords[0]) < 0.15;
+        const hit = indiceAfad.encontrar(ev.coords, combina);
+        if (hit) {
             // marca fonte AFAD se já existe de outra rede
-            const hit = globalEvents.find(g =>
-                Math.abs(g.time - ev.time) < 120000 &&
-                Math.abs(g.coords[1] - ev.coords[1]) < 0.15 &&
-                Math.abs(g.coords[0] - ev.coords[0]) < 0.15
-            );
-            if (hit && hit.source !== 'AFAD') hit.quality = hit.quality === 'A' ? 'A' : 'B';
+            if (hit.source !== 'AFAD') hit.quality = hit.quality === 'A' ? 'A' : 'B';
             return;
         }
         const isNew = !knownEventIds.has(canonical) && !isFirstLoad;
         knownEventIds.add(canonical);
         ev.id = canonical;
         globalEvents.push(ev);
+        indiceAfad.inserir(ev);
         if (isNew) {
             novos++;
             try {
@@ -708,19 +706,23 @@ const PLANET_REINFORCEMENT_TILES = [
 ];
 
 function planetReinforcementDedupEAdiciona(lista, origemLabel) {
+    // Mesmo índice espacial de fetchAfadQuakes acima — aqui importa ainda
+    // mais: cada fatia manda até 1000 sismos, 5 fatias por ciclo (USGS) mais
+    // 5 do EMSC, então sem isso eram até milhares de comparações completas
+    // contra globalEvents a cada chamada, a cada 60s.
+    const indice = construirIndiceEspacial(globalEvents, 0.15);
     let novos = 0;
     (lista || []).forEach(ev => {
         if (!ev || !ev.coords) return;
-        const exists = globalEvents.some(g => g.coords &&
-            Math.abs(g.time - ev.time) < 120000 &&
-            Math.abs(g.coords[1] - ev.coords[1]) < 0.15 &&
-            Math.abs(g.coords[0] - ev.coords[0]) < 0.15);
-        if (exists) return;
+        const combina = g => g.coords && Math.abs(g.time - ev.time) < 120000 &&
+            Math.abs(g.coords[1] - ev.coords[1]) < 0.15 && Math.abs(g.coords[0] - ev.coords[0]) < 0.15;
+        if (indice.encontrar(ev.coords, combina)) return;
         const canonical = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
         const isNew = !knownEventIds.has(canonical) && !isFirstLoad;
         knownEventIds.add(canonical);
         ev.id = canonical;
         globalEvents.push(ev);
+        indice.inserir(ev);
         if (isNew) novos++;
     });
     if (novos > 0) {
