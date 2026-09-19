@@ -211,7 +211,11 @@ function initMap() {
             source: 'ofm',
             'source-layer': 'transportation',
             minzoom: 9,
-            filter: ['!in', ['get', 'class'], ['literal', ['path', 'rail', 'ferry']]],
+            // MapLibre 5.x não aceita mais o operador legado "!in" — precisa
+            // ser a expressão "in" (que aceita ['get',...]/['literal',...])
+            // negada por fora com "!". A sintaxe antiga só validava em
+            // versões anteriores do MapLibre/Mapbox GL JS.
+            filter: ['!', ['in', ['get', 'class'], ['literal', ['path', 'rail', 'ferry']]]],
             paint: {
                 'line-color': ['match', ['get', 'class'], 'motorway', '#ffb300', 'trunk', '#ffc53d', 'primary', '#ffe082', '#ffffff'],
                 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 14, 2, 18, 6],
