@@ -452,10 +452,56 @@ function agendarFala(mag, place, depth, qtd, delay, isUpdate = false, deltaTxt =
         speakAlertTimeoutId = null;
     }, delay);
 }
+// Nomes de lugar no formato do USGS ("16 km S of Twentynine Palms, CA") vêm
+// em inglês — lidos com a voz pt-BR, saem com sotaque estranho (o motivo do
+// pedido). Nomes de lugar em português (sismos no Brasil, sempre por fontes
+// locais) continuam na voz pt-BR normalmente — só trocamos quando o texto
+// bate com o padrão de distância+direção cardinal do USGS.
+function pareceLugarEmIngles(s) {
+    return /\d+\s*km\s+(N|S|E|W|NE|NW|SE|SW|NNE|NNW|SSE|SSW|ENE|ESE|WNW|WSW)\s+of\s+/i.test(String(s || ''));
+}
+
+// Escolhe a melhor voz disponível pra um idioma, testando prefixos em ordem
+// (ex.: 'en-us' antes de 'en' genérico). Retorna null se nada bater — quem
+// chama decide o que fazer (cair pra voz padrão do navegador).
+function escolherVoz(prefixos) {
+    if (!vozesDisponiveis.length) carregarVozesDisponiveis();
+    for (const p of prefixos) {
+        const achada = vozesDisponiveis.find(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(p));
+        if (achada) return achada;
+    }
+    return null;
+}
+
+// Fala uma sequência de trechos, cada um podendo ter idioma/voz própria —
+// é assim que a gente troca de pt-BR pro inglês só no nome do lugar e volta,
+// numa frase só, sem precisar de nenhuma API paga de voz. speechSynthesis já
+// enfileira .speak() chamados em sequência, então basta disparar todos na
+// ordem certa depois do mesmo delay de acomodação que já existia.
+function falarTrechos(trechos) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    setTimeout(() => {
+        trechos.forEach((trecho) => {
+            if (!trecho.texto) return;
+            const u = new SpeechSynthesisUtterance(trecho.texto);
+            u.lang = trecho.lang;
+            u.rate = trecho.rate != null ? trecho.rate : .9;
+            u.pitch = trecho.pitch != null ? trecho.pitch : 1.1;
+            u.volume = somVolume;
+            const ehIngles = trecho.lang.toLowerCase().startsWith('en');
+            const voz = escolherVoz(ehIngles ? ['en-us', 'en-gb', 'en'] : ['pt-br', 'pt']);
+            if (voz) u.voice = voz;
+            else if (!ehIngles) avisarVozIndisponivel(); // só avisa se faltar a voz principal (pt)
+            window.speechSynthesis.speak(u);
+        });
+    }, 500);
+}
+
 function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '') {
     if (!somAtivo || !window.speechSynthesis) return;
     const prof = (typeof depth === 'number' && !isNaN(depth)) ? `, a ${depth.toFixed(0)} quilômetros de profundidade` : '';
-    let txt;
+    let intro;
     if (isUpdate) {
         // Deixa claro que NÃO é um sismo novo — é revisão do que já estava no ar.
         const deltaFala = String(deltaTxt || '')
@@ -463,23 +509,21 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
             .replace(/→/g, ' para ')
             .replace(/·/g, ',')
             .trim();
-        txt = `Atualização sísmica. `;
-        if (deltaFala) txt += `${deltaFala}. `;
-        txt += `Terremoto de magnitude ${Number(mag).toFixed(1)} em ${place}${prof}.`;
+        intro = `Atualização sísmica. `;
+        if (deltaFala) intro += `${deltaFala}. `;
+        intro += `Terremoto de magnitude ${Number(mag).toFixed(1)} em`;
     } else {
-        txt = `Atenção. Terremoto de magnitude ${Number(mag).toFixed(1)} detectado em ${place}${prof}.`;
-        if (qtd > 0) txt += ` Mais ${qtd} evento(s) nesta atualização.`;
+        intro = `Atenção. Terremoto de magnitude ${Number(mag).toFixed(1)} detectado em`;
     }
-    const u = new SpeechSynthesisUtterance(txt);
-    u.lang = 'pt-BR';
-    u.rate = .9;
-    u.pitch = 1.1;
-    u.volume = somVolume;
-    if (!vozesDisponiveis.length) carregarVozesDisponiveis();
-    const v = vozesDisponiveis.filter(x => x.lang.includes('pt-BR') || x.lang.includes('pt_BR'));
-    if (v[0]) u.voice = v[0]; else avisarVozIndisponivel();
-    window.speechSynthesis.cancel();
-    setTimeout(() => window.speechSynthesis.speak(u), 500);
+    let outro = `${prof}.`;
+    if (!isUpdate && qtd > 0) outro += ` Mais ${qtd} evento(s) nesta atualização.`;
+
+    const langLugar = pareceLugarEmIngles(place) ? 'en-US' : 'pt-BR';
+    falarTrechos([
+        { texto: intro, lang: 'pt-BR' },
+        { texto: place, lang: langLugar, rate: langLugar === 'en-US' ? .95 : .9 },
+        { texto: outro, lang: 'pt-BR' }
+    ]);
 }
 function falarAlertaGenerico(txt) {
     if (!somAtivo || !window.speechSynthesis) return;
