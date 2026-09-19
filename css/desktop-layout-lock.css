@@ -1,47 +1,82 @@
 /* DESKTOP LOCK — a partir de 901px nunca usa folha mobile / faixa de 56px */
 @media screen and (min-width: 901px) {
+  /* Layout "overlay": o mapa ocupa a tela inteira por baixo, e cabeçalho,
+     sidebar e painel de detalhes flutuam por cima dele (position:absolute),
+     em vez de ficarem em colunas de grid separadas ao lado do mapa — sem
+     isso, o vidro translúcido não tinha o mapa atrás pra revelar, só o
+     fundo escuro do app (motivo de o efeito "flutuando sobre o mapa" não
+     funcionar antes). */
   #app {
-    display: grid !important;
-    grid-template-columns: 300px minmax(0, 1fr) 360px !important;
-    grid-template-rows: 78px minmax(0, 1fr) !important;
-    grid-template-areas: "top top top" "left map right" !important;
+    position: relative !important;
+    display: block !important;
     height: 100dvh !important;
     width: 100vw !important;
     overflow: hidden !important;
   }
+  #mapWrap {
+    position: absolute !important;
+    inset: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    /* Sempre a camada mais baixa — cabeçalho/sidebar/painel ficam por cima
+       (z-index maior). Contém numa stacking context própria: sem isso, os
+       anéis do radar (.radar-ring/.new-quake-radar-ring, com z-index
+       9999/10020 pra ficarem acima dos marcadores no mapa) escapam pra
+       comparação global e acabam pintando por cima do cabeçalho quando o
+       epicentro cai perto do topo visível do mapa. */
+    z-index: 0 !important;
+  }
+  #top-strip {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 30 !important;
+    background: linear-gradient(180deg, rgba(10,26,46,.28) 0%, rgba(4,11,20,.35) 100%) !important;
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+    border-bottom: 1px solid rgba(255,255,255,.10) !important;
+  }
   #sidebar-left {
     display: flex !important;
-    position: relative !important;
-    grid-area: left !important;
-    left: auto !important;
+    position: absolute !important;
+    top: 90px !important;
+    left: 12px !important;
+    bottom: 12px !important;
     right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
-    width: auto !important;
+    width: 300px !important;
     height: auto !important;
     max-height: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    z-index: auto !important;
+    z-index: 20 !important;
     padding-top: 0 !important;
+    background: linear-gradient(180deg, rgba(6,17,29,.32) 0%, rgba(4,11,20,.4) 100%) !important;
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
   }
   #painel-direito {
     display: block !important;
-    position: relative !important;
-    grid-area: right !important;
+    position: absolute !important;
+    top: 90px !important;
+    right: 12px !important;
+    bottom: 12px !important;
     left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
-    width: auto !important;
+    width: 360px !important;
     height: auto !important;
     max-height: none !important;
     min-height: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    z-index: auto !important;
+    z-index: 20 !important;
+    margin: 0 !important;
     overflow-y: auto !important;
     padding: 16px !important;
+    background: linear-gradient(180deg, rgba(15,37,66,.30) 0%, rgba(4,11,20,.38) 100%) !important;
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
   }
   body.mobile-details-mid #painel-direito,
   body.mobile-details-open #painel-direito {
@@ -53,40 +88,6 @@
   #mobile-events-btn { display: none !important; }
   #mobile-events-backdrop { display: none !important; }
   #sidebar-events-close { display: none !important; }
-  #mapWrap {
-    grid-area: map !important;
-    position: relative !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    /* Contém numa stacking context própria: sem isso, os anéis do radar
-       (.radar-ring/.new-quake-radar-ring, com z-index 9999/10020 pra
-       ficarem acima dos marcadores no mapa) escapam pra comparação
-       global e acabam pintando por cima do cabeçalho quando o
-       epicentro cai perto do topo visível do mapa. */
-    z-index: 0 !important;
-  }
-  #top-strip {
-    position: relative !important;
-    z-index: 10 !important;
-    background: linear-gradient(180deg, rgba(10,26,46,.28) 0%, rgba(4,11,20,.35) 100%) !important;
-    backdrop-filter: blur(24px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-    border-bottom: 1px solid rgba(255,255,255,.10) !important;
-  }
-
-  /* Visual "vidro" (glassmorphism) no card principal de detalhes — desfoque
-     de verdade, só um elemento por vez, sem custo de performance. Margem
-     nas bordas pra ele "flutuar" em vez de ficar colado na tela. */
-  #painel-direito {
-    margin: 12px 12px 12px 0 !important;
-    height: calc(100% - 24px) !important;
-    background: linear-gradient(180deg, rgba(15,37,66,.30) 0%, rgba(4,11,20,.38) 100%) !important;
-    backdrop-filter: blur(24px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
-  }
 
   /* Cards de registro (lista de eventos): efeito "vidro" mais leve — só
      transparência e brilho sutil, sem desfoque de verdade, porque pode
@@ -102,9 +103,10 @@
   }
 }
 @media screen and (min-width: 1200px) {
-  #app { grid-template-columns: 320px minmax(0, 1fr) 380px !important; }
+  #sidebar-left { width: 320px !important; }
+  #painel-direito { width: 380px !important; }
 }
 @media screen and (min-width: 1600px) {
-  #app { grid-template-columns: 340px minmax(0, 1fr) 400px !important; }
+  #sidebar-left { width: 340px !important; }
+  #painel-direito { width: 400px !important; }
 }
-
