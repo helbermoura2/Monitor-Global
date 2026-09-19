@@ -19,6 +19,23 @@ if (/[?&]debugvoz=1\b/.test(location.search) && window.speechSynthesis) {
     if (window.speechSynthesis.getVoices().length) mostrarVozesDebug();
     else window.speechSynthesis.addEventListener('voiceschanged', mostrarVozesDebug, { once: true });
 }
+// Diagnóstico temporário: abrir com ?testevoz=1 e tocar em qualquer lugar da
+// tela força uma frase de teste na voz (nuvem, com fallback pro navegador se
+// a nuvem falhar) sem precisar esperar um terremoto de M6+ de verdade. Exige
+// um toque real (em vez de disparar sozinho ao carregar) porque o navegador
+// bloqueia áudio automático sem interação do usuário.
+if (/[?&]testevoz=1\b/.test(location.search)) {
+    let testeVozDisparado = false;
+    const dispararTesteVoz = () => {
+        if (testeVozDisparado) return;
+        testeVozDisparado = true;
+        if (typeof falarAlertaGenerico === 'function') {
+            falarAlertaGenerico('Isto é um teste de voz do Monitor Global.');
+        }
+    };
+    document.addEventListener('click', dispararTesteVoz, { once: true });
+    document.addEventListener('touchstart', dispararTesteVoz, { once: true });
+}
 function ensureAudio() {
     if (!audioContext || audioContext.state === 'closed') return false;
     if (audioContext.state === 'suspended') {
