@@ -147,7 +147,14 @@ function initMap() {
         center: [-46.63, -23.55],
         zoom: 1.6,
         maxZoom: ZOOM_MAX,
-        attributionControl: false
+        attributionControl: false,
+        // Sem isso, o navegador descarta o buffer de desenho do WebGL logo
+        // depois de cada frame — e o backdrop-filter (blur do vidro em
+        // css/desktop-layout-lock.css) não consegue "ler" um canvas WebGL
+        // nesse estado em vários browsers/GPUs, então o painel/sidebar
+        // ficam com o vidro composto sobre um fundo que o navegador enxerga
+        // como vazio, em vez do mapa de verdade (mesmo com o CSS 100% certo).
+        preserveDrawingBuffer: true
     });
 
     // Attribution removido: o app é de uso pessoal, então o botão "ⓘ" de
