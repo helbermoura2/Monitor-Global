@@ -346,6 +346,12 @@ body.mobile-events-open .event {
     transform: translateX(-50%);
     background: linear-gradient(180deg, color-mix(in srgb, var(--ev-color,#38bdf8) 32%, transparent), transparent 70%);
   }
+  /* O medalhão já mostra a magnitude do sismo dentro do círculo — o
+     texto "M1.5" ao lado do lugar ficava repetindo a mesma informação
+     duas vezes no mesmo card. */
+  body.mobile-events-open .event-mag {
+    display: none !important;
+  }
 
   /* Feedback de toque: leve encolhida ao tocar um card. */
   body.mobile-events-open .event {

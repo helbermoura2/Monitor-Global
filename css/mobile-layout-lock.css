@@ -32,6 +32,16 @@
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
     box-shadow: 0 6px 24px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
+  /* Faixa "AO VIVO ..." (ticker do último evento): mesmo motivo do
+     #top-strip acima — css/ui-motion.css tem
+     "body.mg-clean-portrait #latest-event-ticker" (quase opaco, .95/.97)
+     e carrega antes deste arquivo. */
+  #latest-event-ticker,
+  body.mg-clean-portrait #latest-event-ticker {
+    background: linear-gradient(135deg, rgba(28,58,92,.42), rgba(10,20,36,.52)) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
   #painel-direito {
     background: linear-gradient(160deg, rgba(46,84,132,.39) 0%, rgba(10,22,38,.52) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;

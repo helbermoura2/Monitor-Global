@@ -130,6 +130,57 @@
     background: linear-gradient(135deg, rgba(30,100,135,.42), rgba(12,44,64,.50)) !important;
   }
 
+  /* Medalhão de ícone: mesmo desenho já usado na folha de registros do
+     mobile (css/ui-motion.css, "body.mobile-events-open .event-icon") —
+     círculo colorido com a magnitude do sismo (ou emoji do tipo pros
+     outros eventos) + rabicho decorativo abaixo, usando a cor do
+     próprio evento (--ev-color, já setado via JS em painel-e-lista.js).
+     Trazido pro desktop a pedido do usuário, que achou o "M1.5" de texto
+     redundante ao lado do círculo — por isso o texto some aqui também. */
+  #events .event {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  #events .event-body {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  #events .event-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    flex: 0 0 auto !important;
+    width: 34px !important;
+    height: 34px !important;
+    margin-top: 1px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: -.3px !important;
+    color: #eaf7ff !important;
+    background: color-mix(in srgb, var(--ev-color, #38bdf8) 24%, rgba(4,14,24,.92)) !important;
+    border: 1px solid color-mix(in srgb, var(--ev-color, #38bdf8) 55%, transparent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ev-color, #38bdf8) 10%, transparent) !important;
+  }
+  #events .event-icon::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 2px;
+    height: 80px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ev-color,#38bdf8) 32%, transparent), transparent 70%);
+  }
+  #events .event-mag {
+    display: none !important;
+  }
+
   /* Caixas internas dos cards (chips de filtro, cabeçalho fixo do painel,
      mini-cards de profundidade/intensidade/energia, bloco "detectado/
      fontes", badges de fonte) tinham fundo quase opaco próprio — cada uma
