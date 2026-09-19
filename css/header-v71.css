@@ -7,7 +7,7 @@
 .v70h-card:hover,.v70h-card:focus-visible{border-color:rgba(56,189,248,.55);background:rgba(9,30,54,.96);transform:translateY(-1px);outline:none}
 .v70h-icon{font-size:17px;line-height:1;flex:0 0 auto}.v70h-main{min-width:0;display:flex;align-items:baseline;gap:8px;overflow:hidden}.v70h-main b{font-size:8px;letter-spacing:.9px;color:#7dd3fc;white-space:nowrap}.v70h-main span{font-size:10px;font-weight:800;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v70h-status{margin-left:auto;font-size:8px;color:#4ade80;flex:0 0 auto}.v70h-status.warn{color:#facc15}.v70h-status.off{color:#f87171}
 #v70-header-detail{position:absolute;left:10px;right:10px;top:calc(100% + 5px);max-height:min(46vh,360px);overflow:auto;background:rgba(2,8,22,.985);border:1px solid #244b83;border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.7);padding:9px;z-index:9000}
-.v70hd-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#7dd3fc;font-size:9px;letter-spacing:.7px;margin-bottom:7px}.v70hd-head button{width:24px;height:24px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;cursor:pointer}.v70hd-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(148,163,184,.08);font-size:9px}.v70hd-row:last-child{border-bottom:0}.v70hd-row b{font:800 11px/1 ui-monospace,monospace}.v70hd-hot{color:#fb923c}.v70hd-cold{color:#7dd3fc}.v70hd-pos{color:#fb923c}.v70hd-neg{color:#60a5fa}.v70hd-note{padding:6px 4px 2px;color:#64748b;font-size:7px;line-height:1.4}.v70hd-storm{padding:7px 4px;border-bottom:1px solid rgba(148,163,184,.08)}.v70hd-storm strong{font-size:10px}.v70hd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}.v70hd-chip{padding:4px;text-align:center;border:1px solid rgba(148,163,184,.12);border-radius:5px;background:#0a1425;font-size:7px}.v70hd-chip b{display:block;font-size:9px}.v70hd-link{color:#67e8f9;text-decoration:none;font-weight:800}
+.v70hd-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#7dd3fc;font-size:9px;letter-spacing:.7px;margin-bottom:7px}.v70hd-head button{width:24px;height:24px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;cursor:pointer}.v70hd-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(148,163,184,.08);font-size:9px}.v70hd-row:last-child{border-bottom:0}.v70hd-row b{font:800 11px/1 ui-monospace,monospace}.v70hd-hot{color:#fb923c}.v70hd-cold{color:#7dd3fc}.v70hd-pos{color:#fb923c}.v70hd-neg{color:#60a5fa}.v70hd-note{padding:6px 4px 2px;color:#94a3b8;font-size:7px;line-height:1.4}.v70hd-storm{padding:7px 4px;border-bottom:1px solid rgba(148,163,184,.08)}.v70hd-storm strong{font-size:10px}.v70hd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}.v70hd-chip{padding:4px;text-align:center;border:1px solid rgba(148,163,184,.12);border-radius:5px;background:#0a1425;font-size:7px}.v70hd-chip b{display:block;font-size:9px}.v70hd-link{color:#67e8f9;text-decoration:none;font-weight:800}
 @media(max-width:1100px){#v70-header-row{padding:4px 7px;gap:4px}.v70h-card{padding:5px 7px}.v70h-main{gap:5px}.v70h-main b{font-size:7px}.v70h-main span{font-size:9px}.v70h-icon{font-size:15px}}
 @media(max-width:900px){#v70-header-row{overflow-x:auto;display:flex;scrollbar-width:none}.v70h-card{flex:0 0 min(44vw,220px);min-height:36px}.v70h-main{display:block}.v70h-main b{display:block;font-size:6px;margin-bottom:1px}.v70h-main span{display:block;font-size:8px}.v70h-status{font-size:7px}#v70-header-detail{left:7px;right:7px;max-height:48vh}}
 @media(max-width:500px){.v70h-card{flex-basis:44vw;padding:4px 6px}.v70h-icon{font-size:14px}.v70h-main span{font-size:7.5px}.v70hd-row{font-size:8px}.v70hd-row b{font-size:10px}}
@@ -152,7 +152,7 @@
 }
 #clima-global-panel .cgp-meta {
   font-size: 7px;
-  color: #64748b;
+  color: #94a3b8;
 }
 #clima-global-panel .cgp-actions {
   display: flex;
@@ -206,7 +206,7 @@
 #clima-global-panel .cgp-neg b { color: #60a5fa; }
 #clima-global-panel .cgp-note {
   font-size: 7px;
-  color: #64748b;
+  color: #94a3b8;
   line-height: 1.35;
   margin-top: 4px;
 }

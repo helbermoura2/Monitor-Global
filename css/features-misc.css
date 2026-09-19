@@ -12,7 +12,7 @@
 #chip-criticos.on { background: #7f1d1d; border-color: #ef4444; color: #fecaca; }
 #freshness-bar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 3px 10px; font-size: 9px; color: #64748b;
+  padding: 3px 10px; font-size: 9px; color: #94a3b8;
   border-bottom: 1px solid #0f254c; background: rgba(2,8,22,.6);
 }
 #freshness-bar b { color: #94a3b8; font-weight: 700; }

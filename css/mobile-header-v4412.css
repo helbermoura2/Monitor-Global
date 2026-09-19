@@ -16,7 +16,7 @@
   }
   #latest-event-ticker-icon { font-size: 13px; flex: 0 0 auto; }
   #latest-event-ticker-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
-  #latest-event-ticker-arrow { font-size: 11px; color: #64748b; flex: 0 0 auto; }
+  #latest-event-ticker-arrow { font-size: 11px; color: #94a3b8; flex: 0 0 auto; }
 
   /* ═══ Painel de detalhes do evento: caixa recolhida sempre visível no
      rodapé, expande ao toque pra mostrar as informações completas ═══ */
@@ -36,7 +36,7 @@
   #painel-direito .pd-header-row { height: 56px; min-height: 56px; margin-bottom: 0; }
   #painel-direito .pd-header { margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #painel-direito > *:not(.pd-header-row) { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
-  #pd-peek-arrow { display: inline-block; font-size: 9px; color: #64748b; flex: 0 0 auto; transition: transform .22s ease; }
+  #pd-peek-arrow { display: inline-block; font-size: 9px; color: #94a3b8; flex: 0 0 auto; transition: transform .22s ease; }
 
   /* Estágio "meio": mostra cabeçalho + medidor de magnitude + os três cards
      (profundidade/intensidade/energia); o resto (dinâmica da falha, impacto,
@@ -231,7 +231,7 @@
   }
   #fab-audio.muted { opacity: .55; filter: grayscale(.7); }
 #fab-audio[data-state="on"] { border-color: #22c55e !important; }
-#fab-audio[data-state="off"] { border-color: #64748b !important; }
+#fab-audio[data-state="off"] { border-color: #94a3b8 !important; }
 #mobile-fab-bar button:active {
     transform: scale(0.94);
     background: #0b1528 !important;

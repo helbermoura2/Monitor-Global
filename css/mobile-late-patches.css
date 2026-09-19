@@ -327,8 +327,12 @@
   100% { transform: scale(9); opacity: 0; }
 }
 
-/* Preferência de menos movimento: radar quase estático */
-@media screen and (max-width:900px) and (orientation:portrait) and (prefers-reduced-motion: reduce) {
+/* Preferência de menos movimento: radar quase estático. Sem restrição de
+   orientação — a regra do .radar-ring que isso precisa neutralizar
+   (animation-duration:2.6s!important, acima) também não tem, então em
+   paisagem essa versão portrait-only nunca batia e o radar continuava
+   pulsando mesmo com "reduzir movimento" ativado no sistema. */
+@media screen and (max-width:900px) and (prefers-reduced-motion: reduce) {
   .radar-ring,
   .new-quake-radar-ring {
     animation: none !important;
@@ -394,7 +398,7 @@
   #painel-direito .stat-card-label {
     font-size: 8px !important;
     letter-spacing: .5px !important;
-    color: #64748b !important;
+    color: #94a3b8 !important;
     margin-bottom: 4px !important;
   }
   #painel-direito .stat-card-value {
@@ -451,7 +455,7 @@
   --pd-sev: #334155;
   border-top: 3px solid var(--pd-sev) !important;
 }
-#painel-direito.pd-sev-low { --pd-sev: #64748b; }
+#painel-direito.pd-sev-low { --pd-sev: #94a3b8; }
 #painel-direito.pd-sev-mid { --pd-sev: #fbbf24; }
 #painel-direito.pd-sev-high { --pd-sev: #fb923c; }
 #painel-direito.pd-sev-crit { --pd-sev: #ef4444; }
@@ -543,7 +547,7 @@
   font-weight: 800;
   letter-spacing: .4px;
   text-transform: uppercase;
-  color: #64748b;
+  color: #94a3b8;
 }
 .pd-tl-v {
   font-size: 11px;
@@ -626,7 +630,7 @@
 }
 #latest-event-ticker .let-right {
   flex: 0 0 auto;
-  color: #64748b;
+  color: #94a3b8;
   font-size: 14px;
 }
 #latest-event-ticker[data-sev="mid"] { border-color: rgba(251,191,36,.35) !important; }
