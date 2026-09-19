@@ -10,8 +10,11 @@ function carregarVozesDisponiveis() {
 if (/[?&]debugvoz=1\b/.test(location.search) && window.speechSynthesis) {
     const mostrarVozesDebug = () => {
         const vs = window.speechSynthesis.getVoices();
-        const linhas = vs.map(v => `${v.name} — ${v.lang}${v.default ? ' (padrão)' : ''}`);
-        alert('Vozes que o navegador enxerga (' + vs.length + '):\n\n' + (linhas.join('\n') || 'nenhuma'));
+        // Alert nativo trunca texto muito longo — filtra só português (é o
+        // que importa aqui) pra caber inteiro na caixa.
+        const pt = vs.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('pt'));
+        const linhas = pt.map(v => `${v.name} — ${v.lang}${v.default ? ' (padrão)' : ''}`);
+        alert('Vozes em português (' + pt.length + ' de ' + vs.length + ' no total):\n\n' + (linhas.join('\n') || 'NENHUMA voz em português encontrada'));
     };
     if (window.speechSynthesis.getVoices().length) mostrarVozesDebug();
     else window.speechSynthesis.addEventListener('voiceschanged', mostrarVozesDebug, { once: true });
