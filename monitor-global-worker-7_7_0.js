@@ -4649,12 +4649,12 @@ function tokenAdminValido(request, reqUrl, env) {
     return recebido === esperado;
 }
 
-// Vitória (neural, feminina, pt-BR nativa) via Amazon Polly. A API da AWS não
+// Camila (neural, feminina, pt-BR nativa) via Amazon Polly. A API da AWS não
 // aceita uma chave simples feito Google/ElevenLabs — exige uma requisição
 // assinada (AWS Signature Version 4), calculada abaixo com Web Crypto puro
 // (Workers não tem o SDK da AWS disponível).
 const AWS_REGION = 'us-east-1';
-const POLLY_VOICE = 'Vitoria';
+const POLLY_VOICE = 'Camila';
 
 async function hmacSha256(key, msg) {
     const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
