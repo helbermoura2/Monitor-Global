@@ -36,7 +36,10 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 #chips-row::-webkit-scrollbar-track { background: rgba(15,23,42,.45); border-radius: 8px; }
 #chips-row::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; border: 1px solid rgba(2,8,22,.8); }
 #chips-row::-webkit-scrollbar-thumb:hover { background: #475569; }
-#chips-row::after { content: ''; position: absolute; top: 0; right: 30px; bottom: 7px; width: 28px; background: linear-gradient(to right, transparent, rgba(10,20,36,.40)); pointer-events: none; }
+/* Degradê decorativo removido — as próprias setas ‹/› de scroll (.chips-scroll-btn)
+   já indicam que dá pra rolar; a faixa escura era só um artefato visual em
+   cima do vidro, redundante com as setas. */
+#chips-row::after { display: none; }
 .chips-scroll-btn { position: absolute; top: 5px; bottom: 7px; z-index: 5; width: 25px; border: 1px solid #334155; background: rgba(2,8,22,.94); color: #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; box-shadow: 0 2px 8px rgba(0,0,0,.45); }
 .chips-scroll-btn:hover { background: #172554; color: #fff; border-color: #3b82f6; }
 #chips-scroll-left { left: 4px; border-radius: 7px; }
