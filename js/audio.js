@@ -565,11 +565,28 @@ async function falarNaNuvem(texto) {
         if (!blob || !blob.size) return false;
         const url = URL.createObjectURL(blob);
         const audio = new Audio();
-        audio.volume = somVolume;
         audio.addEventListener('ended', () => URL.revokeObjectURL(url));
         audio.addEventListener('error', () => URL.revokeObjectURL(url));
         vozNuvemAtual = audio;
         audio.src = url;
+        // Reforça o volume da voz na nuvem via Web Audio API — um <audio>
+        // sozinho não passa de volume=1 (100%), e mesmo nesse máximo a voz
+        // da Polly soa mais baixa que os bipes de alerta (que já saem com
+        // ganho extra, ver "vol * somVolume * 1.35" mais abaixo). Só entra
+        // em ação se o AudioContext já estiver desbloqueado/rodando —
+        // sem isso, cai pro volume normal em vez de arriscar tocar mudo.
+        let boosted = false;
+        try {
+            if (audioContext && audioContext.state === 'running') {
+                const source = audioContext.createMediaElementSource(audio);
+                const gain = audioContext.createGain();
+                gain.gain.value = Math.min(3, somVolume * 1.8);
+                source.connect(gain).connect(audioContext.destination);
+                audio.volume = 1;
+                boosted = true;
+            }
+        } catch (e) {}
+        if (!boosted) audio.volume = somVolume;
         // Espera o navegador confirmar que o áudio já está pronto pra tocar
         // sem travar antes de dar play — sem isso, o começo da fala (ex.: a
         // palavra "Atenção") pode sair cortado em alguns aparelhos/navegadores,
