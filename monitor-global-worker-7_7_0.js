@@ -4649,6 +4649,42 @@ function tokenAdminValido(request, reqUrl, env) {
     return recebido === esperado;
 }
 
+// Voz "Marianne" (pt-BR) escolhida no ElevenLabs — não é segredo, é só um ID
+// público da voz; a chave de API (env.ELEVENLABS_API_KEY) é que fica secreta.
+const ELEVENLABS_VOICE_ID = 'iScHbNW8K33gNo3lGgbo';
+// Sem token de admin aqui de propósito: essa rota é chamada pelo navegador
+// de qualquer visitante do site (pra tocar o alerta de voz), não só pelo
+// dono — não dá pra exigir um secret que teria que ficar exposto no JS do
+// cliente. O limite de tamanho do texto e a cota mensal grátis da própria
+// ElevenLabs seguram o abuso: se a cota acabar, a API deles responde erro e
+// o site cai de volta pra voz nativa do navegador sozinho (falarNaNuvem no
+// audio.js já trata isso), sem custo nem quebra pro usuário.
+async function handleTts(reqUrl, env) {
+    const texto = String(reqUrl.searchParams.get('text') || '').trim();
+    if (!texto) return json({ ok: false, error: 'texto vazio' }, 400);
+    if (texto.length > 400) return json({ ok: false, error: 'texto longo demais (máx. 400 caracteres)' }, 400);
+    const apiKey = env.ELEVENLABS_API_KEY;
+    if (!apiKey) return json({ ok: false, error: 'ElevenLabs não configurado' }, 501);
+    try {
+        const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=mp3_44100_128`, {
+            method: 'POST',
+            headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+            body: JSON.stringify({
+                text: texto,
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+            })
+        });
+        if (!r.ok) {
+            const detalhe = await r.text().catch(() => '');
+            return json({ ok: false, error: `ElevenLabs HTTP ${r.status}: ${detalhe.slice(0, 200)}` }, 502);
+        }
+        return resposta(r.body, 200, 'audio/mpeg');
+    } catch (e) {
+        return json({ ok: false, error: e?.message || String(e) }, 502);
+    }
+}
+
 export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -4688,6 +4724,7 @@ export default {
         if (reqUrl.pathname === '/usgs-volcano') { return await handleUsgsVolcano(); }
         if (reqUrl.pathname === '/gdacs-volcano') { return await handleGdacsVolcano(); }
         if (reqUrl.pathname === '/global-volcano') { return await handleGlobalVolcanoAdvisories(); }
+        if (reqUrl.pathname === '/tts') { return await handleTts(reqUrl, env); }
         if (reqUrl.pathname === '/gdacs-floods') { return await handleGdacsFloods(); }
         if (reqUrl.pathname === '/afad-earthquakes') { return await handleAfadEarthquakes(reqUrl); }
         if (reqUrl.pathname === '/ingv-earthquakes') { return await handleIngvEarthquakes(reqUrl); }

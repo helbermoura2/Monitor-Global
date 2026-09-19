@@ -528,8 +528,39 @@ function falarTrechos(trechos) {
     }, 500);
 }
 
+// Tenta falar com uma voz melhor (ElevenLabs, via Worker) antes de cair pra
+// síntese nativa do navegador — resolve o problema de só existir uma voz
+// genérica em português no Chrome Android, sem depender de configuração
+// nenhuma do aparelho. Se a cota grátis acabar, a rede falhar, ou o Worker
+// não tiver a chave configurada ainda, cai pra window.speechSynthesis
+// sozinho, sem quebrar o alerta.
+let vozNuvemAtual = null;
+async function falarNaNuvem(texto) {
+    if (!texto || typeof workerBaseUrl !== 'function') return false;
+    // Interrompe um áudio de alerta anterior ainda tocando — mesmo
+    // comportamento que window.speechSynthesis.cancel() já dava pra fila de
+    // fala nativa, importante em sismos com atualizações rápidas seguidas.
+    if (vozNuvemAtual) { try { vozNuvemAtual.pause(); } catch (_) {} }
+    try {
+        const r = await fetch(workerBaseUrl() + '/tts?text=' + encodeURIComponent(texto), { cache: 'no-store' });
+        if (!r.ok) return false;
+        const blob = await r.blob();
+        if (!blob || !blob.size) return false;
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.volume = somVolume;
+        audio.addEventListener('ended', () => URL.revokeObjectURL(url));
+        audio.addEventListener('error', () => URL.revokeObjectURL(url));
+        vozNuvemAtual = audio;
+        await audio.play();
+        return true;
+    } catch (e) {
+        console.warn('TTS nuvem indisponível, caindo pra voz do navegador:', e?.message || e);
+        return false;
+    }
+}
 function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '') {
-    if (!somAtivo || !window.speechSynthesis) return;
+    if (!somAtivo) return;
     const prof = (typeof depth === 'number' && !isNaN(depth)) ? `, a ${depth.toFixed(0)} quilômetros de profundidade` : '';
     let intro;
     if (isUpdate) {
@@ -549,22 +580,28 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
     if (!isUpdate && qtd > 0) outro += ` Mais ${qtd} evento(s) nesta atualização.`;
 
     const langLugar = pareceLugarEmIngles(place) ? 'en-US' : 'pt-BR';
-    falarTrechos([
-        { texto: intro, lang: 'pt-BR' },
-        { texto: place, lang: langLugar, rate: langLugar === 'en-US' ? .95 : .9 },
-        { texto: outro, lang: 'pt-BR' }
-    ]);
+    falarNaNuvem(`${intro} ${place}${outro}`).then(ok => {
+        if (ok || !window.speechSynthesis) return;
+        falarTrechos([
+            { texto: intro, lang: 'pt-BR' },
+            { texto: place, lang: langLugar, rate: langLugar === 'en-US' ? .95 : .9 },
+            { texto: outro, lang: 'pt-BR' }
+        ]);
+    });
 }
 function falarAlertaGenerico(txt) {
-    if (!somAtivo || !window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(txt);
-    u.lang = 'pt-BR';
-    u.rate = .95;
-    u.volume = somVolume;
-    const v = escolherVoz(['pt-br']);
-    if (v) u.voice = v; else avisarVozIndisponivel();
-    window.speechSynthesis.cancel();
-    setTimeout(() => window.speechSynthesis.speak(u), 300);
+    if (!somAtivo) return;
+    falarNaNuvem(txt).then(ok => {
+        if (ok || !window.speechSynthesis) return;
+        const u = new SpeechSynthesisUtterance(txt);
+        u.lang = 'pt-BR';
+        u.rate = .95;
+        u.volume = somVolume;
+        const v = escolherVoz(['pt-br']);
+        if (v) u.voice = v; else avisarVozIndisponivel();
+        window.speechSynthesis.cancel();
+        setTimeout(() => window.speechSynthesis.speak(u), 300);
+    });
 }
 let vozIndisponivelAvisada = false;
 function avisarVozIndisponivel() {
