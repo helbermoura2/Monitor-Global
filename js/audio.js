@@ -564,11 +564,23 @@ async function falarNaNuvem(texto) {
         const blob = await r.blob();
         if (!blob || !blob.size) return false;
         const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
+        const audio = new Audio();
         audio.volume = somVolume;
         audio.addEventListener('ended', () => URL.revokeObjectURL(url));
         audio.addEventListener('error', () => URL.revokeObjectURL(url));
         vozNuvemAtual = audio;
+        audio.src = url;
+        // Espera o navegador confirmar que o áudio já está pronto pra tocar
+        // sem travar antes de dar play — sem isso, o começo da fala (ex.: a
+        // palavra "Atenção") pode sair cortado em alguns aparelhos/navegadores,
+        // mesmo com o arquivo inteiro já baixado (o corte é de decodificação,
+        // não de rede). Timeout de segurança pra não travar se o evento não
+        // disparar por algum motivo.
+        await new Promise((resolve) => {
+            audio.addEventListener('canplaythrough', resolve, { once: true });
+            audio.load();
+            setTimeout(resolve, 800);
+        });
         await audio.play();
         return true;
     } catch (e) {
