@@ -104,7 +104,7 @@
      transparência e brilho sutil, sem desfoque de verdade, porque pode
      ter centenas rolando na lista ao mesmo tempo e o blur pesa na GPU. */
   .event {
-    background: rgba(13,28,45,.20) !important;
+    background: rgba(13,28,45,.14) !important;
     border: 1px solid rgba(255,255,255,.11) !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04) !important;
@@ -158,6 +158,31 @@
   }
   #painel-direito .pd-chip {
     background: rgba(15,23,42,.25) !important;
+  }
+
+  /* Ícones do cabeçalho (áudio, mais menu, setas de scroll dos chips) e o
+     card "Mais detalhes ▾ → Confiança & natureza dos dados": mesmo
+     problema dos itens acima, fundo quase opaco próprio por cima do
+     vidro. .source-trust-card não tem !important nenhum lá na origem
+     (css/volcano.css), então qualquer !important aqui já ganha, mesmo
+     escopado só pro desktop. */
+  .icon-btn,
+  .header-menu-trigger {
+    background: rgba(10,26,42,.30) !important;
+  }
+  .chips-scroll-btn {
+    background: rgba(2,8,22,.30) !important;
+  }
+  #painel-direito .source-trust-card {
+    background: rgba(2,8,22,.20) !important;
+  }
+  /* Dentro do card de confiança, só a sub-caixa "DADO DA FONTE/ESTIMATIVA
+     DO APP" tem fundo inline (definido em js/confianca-fontes.js) — as
+     outras linhas de .source-trust-meta não têm background nenhum, então
+     o seletor mira só quem tem o border-radius inline dessa sub-caixa
+     específica, sem criar um retângulo em cada linha de texto solta. */
+  #painel-direito .source-trust-meta[style*="border-radius:6px"] {
+    background: rgba(15,23,42,.18) !important;
   }
 }
 /* A partir de 1101px o cabeçalho cabe numa altura menor (o slider/KPIs não
