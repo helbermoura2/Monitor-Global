@@ -1,4 +1,7 @@
 (function () {
+  // Campos como cidade/condição (BrasilAPI) e nome/tempo (XML da CPTEC) vêm
+  // de terceiros — escapa antes de ir pro innerHTML.
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const COND = {
     ec:'Encoberto c/ chuvas isoladas', ci:'Chuvas isoladas', c:'Chuva', in:'Instável',
     pp:'Poss. pancadas', cm:'Chuva manhã', cn:'Chuva noite', pt:'Pancadas tarde',
@@ -105,7 +108,7 @@
         tags.innerHTML = Object.keys(byUf).sort().map(u => {
           const x = byUf[u];
           const cls = x.max >= 3 ? 'sev-3' : x.max >= 2 ? 'sev-2' : 'sev-1';
-          return '<span class="bh-tag ' + cls + '">' + u + ' ×' + x.n + '</span>';
+          return '<span class="bh-tag ' + cls + '">' + esc(u) + ' ×' + x.n + '</span>';
         }).join('');
       }
     } catch (e) {
@@ -132,8 +135,8 @@
           const temp = c.temp != null ? c.temp + '°' : (c.temperatura != null ? c.temperatura + '°' : '');
           const hot = /tempestade|chuva|pancada|instáv|nublado|trovoad/i.test(String(cond));
           if (hot) stormy.push(cidade + (uf ? '/' + uf : ''));
-          return '<div class="bh-cap' + (hot ? ' hot' : '') + '"><b>' + cidade + (uf ? ' · ' + uf : '') + '</b> ' +
-            (temp ? temp + ' · ' : '') + (cond || '—') + '</div>';
+          return '<div class="bh-cap' + (hot ? ' hot' : '') + '"><b>' + esc(cidade) + (uf ? ' · ' + esc(uf) : '') + '</b> ' +
+            (temp ? esc(temp) + ' · ' : '') + esc(cond || '—') + '</div>';
         });
         if (capsEl) capsEl.innerHTML = rows.join('') || '<span style="color:#64748b">Sem dados de capitais</span>';
         if (sum) {
@@ -160,7 +163,7 @@
               const max = p.max != null ? p.max : (p.maxima != null ? p.maxima : '--');
               const min = p.min != null ? p.min : (p.minima != null ? p.minima : '--');
               const desc = p.condicao_desc || COND[p.condicao] || p.condicao || '';
-              return '<div class="bh-day" title="' + desc + '"><span>' + dia + '</span><b>' + max + '°/' + min + '°</b><span>' + String(desc).slice(0, 14) + '</span></div>';
+              return '<div class="bh-day" title="' + esc(desc) + '"><span>' + esc(dia) + '</span><b>' + esc(max) + '°/' + esc(min) + '°</b><span>' + esc(String(desc).slice(0, 14)) + '</span></div>';
             }).join('');
         }
         ok = true;
@@ -181,7 +184,7 @@
               const nome = m.querySelector('codigo')?.textContent || '';
               const temp = m.querySelector('temperatura')?.textContent || '';
               const tempo = m.querySelector('tempo')?.textContent || '';
-              return '<div class="bh-cap"><b>' + nome + '</b> ' + temp + '° · ' + tempo + '</div>';
+              return '<div class="bh-cap"><b>' + esc(nome) + '</b> ' + esc(temp) + '° · ' + esc(tempo) + '</div>';
             }).join('');
           }
           if (sum) sum.textContent = 'Condições nas capitais (XML CPTEC).';

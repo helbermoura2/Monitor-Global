@@ -1,5 +1,13 @@
 // === painel-e-lista.js — Lista lateral, painel de detalhes do evento e câmera do mapa (motor compartilhado por todos os tipos) (linhas originais 3523-5037 do core-app.js) ===
 
+// Escapa texto antes de ir pro innerHTML — necessário porque item.place,
+// item.detail etc. vêm crus de feeds externos (EMSC, JMA, GDACS, USGS VONA,
+// OSM Overpass via cidades-proximas.js...), que não são confiáveis: um nome
+// de lugar/descrição malicioso injetado por qualquer uma dessas fontes (o
+// OSM, por exemplo, é editável por qualquer um) executaria HTML/JS arbitrário
+// pra todo mundo com o site aberto se fosse interpolado sem escapar.
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
 function updateFreshnessBar() {
     try {
         const ago = function(ts) {
@@ -444,13 +452,13 @@ function renderSidebarList(items) {
                 <div class="event-header">
                     <span class="event-mag ${getMagColorClass(item.mag)}">M${item.mag.toFixed(1)}${prelimMark}</span>
                     ${item.correlationLevel && Number(item.mag)>=5.5 ? `<span class="mg-corr-mini" title="Correlação inteligente de risco">${item.correlationLevel==='ALERTA OFICIAL'?'🌊⚠️':item.correlationLevel==='ALTO'?'🌊🔴':item.correlationLevel==='MODERADO'?'🌊🟠':item.correlationLevel==='ATENÇÃO'?'🌊🟡':'🌊🟢'}</span>` : ''}
-                    <span class="event-place">${item.bandeira || ''} ${placePrefix}${item.place}</span>
+                    <span class="event-place">${esc(item.bandeira)} ${placePrefix}${esc(item.place)}</span>
                 </div>
                 <div class="event-meta">
                     <span>${formatTime(item.time)}</span>
                     <span title="Profundidade">${Math.max(0, item.depth).toFixed(0)} km prof.</span>
                     ${distVoce}
-                    <span class="event-source" title="${(item.sources||[]).join(' · ')||item.source}">${item.sourceSummary || item.source}</span>
+                    <span class="event-source" title="${esc((item.sources||[]).join(' · ')||item.source)}">${esc(item.sourceSummary || item.source)}</span>
                     <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
                     <span class="energy-indicator" title="Energia liberada">Energia ${getEnergyLevel(item.mag)}/10</span>
                     ${updatedTxt}
@@ -484,17 +492,17 @@ function renderSidebarList(items) {
                 <div class="event-body">
                 <div class="event-header">
                     <span class="event-type-badge" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}55;">
-                        ${isCyc ? '🌀' : meta.icon} ${badgeTxt}
+                        ${isCyc ? '🌀' : meta.icon} ${esc(badgeTxt)}
                     </span>
-                    <span class="event-place">${flagTxt} ${placeTxt}</span>
+                    <span class="event-place">${esc(flagTxt)} ${esc(placeTxt)}</span>
                 </div>
                 <div class="event-meta">
                     <span>${formatTime(item.time)}</span>
                     ${distVoce}
-                    ${detailTxt ? `<span>${detailTxt}</span>` : ''}
+                    ${detailTxt ? `<span>${esc(detailTxt)}</span>` : ''}
                     ${staleTxt}
                     ${updatedTxt}
-                    ${!isCyc ? `<span class="event-source">${item.source}</span><span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>` : ''}
+                    ${!isCyc ? `<span class="event-source">${esc(item.source)}</span><span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>` : ''}
                 </div>
                 </div>`;
             div.style.setProperty('--ev-color', badgeColor);
@@ -1067,7 +1075,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         hh += `<div class="history-item"><span>📊 Total na região:</span><span class="history-mag">${his.total}</span></div>`;
         if (his.maior) hh += `<div class="history-item"><span>🔴 Maior:</span><span class="history-mag" style="color:${getHexColor(his.maior.mag)}">M${his.maior.mag.toFixed(1)}</span></div>`;
         his.eventos.slice(0, 3).forEach(e => {
-            hh += `<div class="history-item"><span style="color:#94a3b8;">• ${e.place.substring(0, 25)}...</span><span class="history-mag" style="color:${getHexColor(e.mag)}">M${e.mag.toFixed(1)}</span></div>`;
+            hh += `<div class="history-item"><span style="color:#94a3b8;">• ${esc(e.place.substring(0, 25))}...</span><span class="history-mag" style="color:${getHexColor(e.mag)}">M${e.mag.toFixed(1)}</span></div>`;
         });
     } else {
         hh = '<div class="history-item" style="color:#64748b;">Nenhum evento recente (30 dias)</div>';
@@ -1217,7 +1225,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     document.getElementById('pd-horario').textContent = `${formatBrasiliaDateTime(item.time)} (${formatTime(item.time)})`;
 
     document.getElementById('pd-depth').textContent = meta.label;
-    document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${item.source}</span>`;
+    document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${esc(item.source)}</span>`;
     document.getElementById('pd-energy').textContent = 'Ativo';
     renderConsolidacaoFonte(item);
 
@@ -1241,13 +1249,15 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // Link cone oficial NHC se disponível
         try {
             const box = document.getElementById('pd-cities') || document.querySelector('#painel-direito .bubble-section-content');
-            if (item.coneUrl && box) {
+            // coneUrl vem cru do feed do GDACS — só usa se for http(s) de verdade
+            // (evita "javascript:" ou quebra de atributo via aspas no valor).
+            if (item.coneUrl && box && /^https?:\/\//i.test(String(item.coneUrl))) {
                 const prev = document.getElementById('nhc-cone-link');
                 if (prev) prev.remove();
                 const a = document.createElement('div');
                 a.id = 'nhc-cone-link';
                 a.style.cssText = 'margin-top:8px;font-size:11px';
-                a.innerHTML = `<a href="${item.coneUrl}" target="_blank" rel="noopener" style="color:#a855f7;font-weight:700">🌀 Cone / trilha oficial NHC ↗</a>`;
+                a.innerHTML = `<a href="${esc(item.coneUrl)}" target="_blank" rel="noopener" style="color:#a855f7;font-weight:700">🌀 Cone / trilha oficial NHC ↗</a>`;
                 box.parentNode && box.parentNode.appendChild(a);
             }
         } catch (e) {}
