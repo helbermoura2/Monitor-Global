@@ -113,6 +113,52 @@
   .event.active {
     background: linear-gradient(135deg, rgba(20,70,95,.24), rgba(10,35,52,.28)) !important;
   }
+
+  /* Caixas internas dos cards (chips de filtro, cabeçalho fixo do painel,
+     mini-cards de profundidade/intensidade/energia, bloco "detectado/
+     fontes", badges de fonte) tinham fundo quase opaco próprio — cada uma
+     virava um "bloco sólido" por cima do vidro do painel/sidebar, em vez de
+     fazer parte da mesma superfície translúcida. Reduz só a opacidade
+     (sem :not() nem remover a cor de estado dos badges coloridos), pra
+     manter legibilidade e ainda deixar o mapa aparecer por trás. */
+  .chip {
+    background: rgba(9,23,37,.35) !important;
+  }
+  .chip.active {
+    background: rgba(13,93,130,.55) !important;
+  }
+  #freshness-bar {
+    background: rgba(2,8,22,.25) !important;
+  }
+  .stat-card {
+    background: rgba(9,27,43,.22) !important;
+  }
+  .bubble-section {
+    background: linear-gradient(135deg, rgba(9,25,40,.22), rgba(6,17,28,.16)) !important;
+  }
+  /* "body" na frente é de propósito — css/intensity-filters.css define
+     #painel-direito .pd-header-row (sem media query, afeta mobile também)
+     e carrega DEPOIS deste arquivo; numa empate de especificidade ele
+     venceria pela ordem de carregamento. Com "body" a especificidade fica
+     maior, então esta regra (só desktop, min-width:901px) sempre vence
+     aqui, sem mexer no visual do cabeçalho sticky no mobile. */
+  body #painel-direito .pd-header-row {
+    background: linear-gradient(180deg, rgba(5,14,25,.4) 0%, rgba(5,14,25,.28) 78%, rgba(5,14,25,0) 100%) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+  /* #painel-direito .pd-timeline/.pd-chip: prefixado com #painel-direito
+     (em vez de só a classe) de propósito — css/mobile-late-patches.css
+     define essas mesmas classes sem media query e carrega DEPOIS deste
+     arquivo, então numa empate de especificidade ele venceria pela ordem
+     de carregamento. Com o ID na frente, a especificidade maior garante
+     que esta regra vença independente da ordem. */
+  #painel-direito .pd-timeline {
+    background: rgba(8,15,28,.22) !important;
+  }
+  #painel-direito .pd-chip {
+    background: rgba(15,23,42,.25) !important;
+  }
 }
 /* A partir de 1101px o cabeçalho cabe numa altura menor (o slider/KPIs não
    quebram mais linha) — reduz o "top" de sidebar/painel de volta, senão
