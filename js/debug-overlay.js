@@ -19,11 +19,19 @@
       const volcanoPosGeo = (typeof globalAlerts !== 'undefined' && globalAlerts && typeof passesGeoFilter === 'function')
         ? globalAlerts.filter(a => a.type === 'volcano' && passesGeoFilter(a)).length : '?';
       const fmtHora = (ts) => ts ? new Date(ts).toLocaleTimeString('pt-BR') + ' (há ' + Math.round((Date.now() - ts) / 1000) + 's)' : 'nunca';
+      const cssDebug = ['sidebar-left', 'painel-direito', 'top-strip'].map(id => {
+        const el = document.getElementById(id);
+        if (!el) return `${id}: NÃO ACHOU O ELEMENTO`;
+        const cs = getComputedStyle(el);
+        return `${id}: bg-img=${cs.backgroundImage.slice(0, 60) || '(nenhum)'} | bg-color=${cs.backgroundColor} | blur=${cs.backdropFilter}`;
+      }).join('\n');
       box.textContent =
         `🐛 DEBUG — Monitor Global ${typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?'}\n` +
         `viewport: ${window.innerWidth}x${window.innerHeight} | dpr: ${window.devicePixelRatio}\n` +
         `is-touch: ${document.documentElement.classList.contains('is-touch')}\n` +
         `origin: ${location.origin || '(null — arquivo local)'}\n` +
+        `─── VIDRO (desktop-layout-lock.css) ───\n` +
+        `${cssDebug}\n` +
         `─── FILTROS ATIVOS (podem persistir entre sessões) ───\n` +
         `sidebarFilter (tipo): ${typeof sidebarFilter !== 'undefined' ? sidebarFilter : '?'}\n` +
         `geoFilter (geografia, salvo no navegador): ${typeof geoFilter !== 'undefined' ? geoFilter : '?'}\n` +
