@@ -161,11 +161,15 @@ document.getElementById('btn-teste')?.addEventListener('click', () => {
     setTimeout(() => {
         if (!ensureAudio()) return;
         showToast('🔊 Teste: M4 → M6 → tufão → tsunami → defesa civil', 'info');
+        // Espaçamento generoso pra cada som (e a voz do M6, que depende de
+        // uma chamada de rede e pode demorar alguns segundos) terminar antes
+        // do próximo começar — sem isso o M6 (mais alto) entrava em cima do
+        // M4 ainda tocando e mascarava o último bipe dele.
         playEarthquakeSound(4.2, 'teste', 10, 0, true);
-        setTimeout(() => playEarthquakeSound(6.3, 'teste', 20, 0, true), 1200);
-        setTimeout(() => playAlertTone('hurricane'), 3400);
-        setTimeout(() => playAlertTone('tsunami'), 5200);
-        setTimeout(() => playAlertTone('civil'), 7000);
+        setTimeout(() => playEarthquakeSound(6.3, 'teste', 20, 0, true), 2500);
+        setTimeout(() => playAlertTone('hurricane'), 12000);
+        setTimeout(() => playAlertTone('tsunami'), 14000);
+        setTimeout(() => playAlertTone('civil'), 17500);
     }, 300);
 });
 document.getElementById('btn-teste-faixas')?.addEventListener('click', () => {
@@ -177,9 +181,9 @@ document.getElementById('btn-teste-faixas')?.addEventListener('click', () => {
         }
         showToast('🎚️ ASSINATURAS: M3 = agudo (3x) → M4 = médio-grave (4x) → M5 = grave forte (5x) → M6 = emergência + voz', 'info');
         playEarthquakeSound(3.2, 'teste M3', 10, 0, true);
-        setTimeout(() => playEarthquakeSound(4.5, 'teste M4', 12, 0, true), 2800);
-        setTimeout(() => playEarthquakeSound(5.5, 'teste M5', 15, 0, true), 5600);
-        setTimeout(() => playEarthquakeSound(6.3, 'teste M6', 20, 0, true), 9200);
+        setTimeout(() => playEarthquakeSound(4.5, 'teste M4', 12, 0, true), 2000);
+        setTimeout(() => playEarthquakeSound(5.5, 'teste M5', 15, 0, true), 4700);
+        setTimeout(() => playEarthquakeSound(6.3, 'teste M6', 20, 0, true), 8200);
     }, 350);
 });
 document.getElementById('btn-voz-hist')?.addEventListener('click', () => {
