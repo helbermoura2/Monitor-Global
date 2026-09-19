@@ -1,6 +1,18 @@
 // === orquestrador-feeds.js — fetchGlobalFeeds — orquestrador que dispara todas as fontes (linhas originais 6038-6403 do core-app.js) ===
 
+// Evita rodadas sobrepostas. fetchGlobalFeeds é chamado de 3 lugares
+// independentes (o ciclo normal de 45s, retomarBuscas() ao voltar pra aba, e
+// o watchdog de 60s se os sismos pararem de atualizar) — numa rede ruim, uma
+// chamada com fallback em 11 fontes pode levar dezenas de segundos, tempo
+// suficiente pra um desses gatilhos disparar outra rodada por cima. Sem essa
+// trava, a rodada mais LENTA podia terminar DEPOIS da mais rápida e
+// sobrescrever globalEvents com dado já superado (ex.: uma preliminar velha
+// pisando por cima de uma revisão mais nova).
+let __fetchGlobalFeedsEmAndamento = false;
+
 async function fetchGlobalFeeds() {
+    if (__fetchGlobalFeedsEmAndamento) return;
+    __fetchGlobalFeedsEmAndamento = true;
     window.__lastSismoAttempt = Date.now();
 
     try {
@@ -369,6 +381,7 @@ async function fetchGlobalFeeds() {
             'error'
         );
     } finally {
+        __fetchGlobalFeedsEmAndamento = false;
         const loading = document.getElementById('loading-indicator');
         if (loading) loading.style.display = 'none';
         try {
