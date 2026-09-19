@@ -472,8 +472,17 @@ function pareceLugarEmIngles(s) {
 function escolherVoz(prefixos) {
     if (!vozesDisponiveis.length) carregarVozesDisponiveis();
     for (const p of prefixos) {
-        const achada = vozesDisponiveis.find(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(p));
-        if (achada) return achada;
+        const candidatas = vozesDisponiveis.filter(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(p));
+        if (!candidatas.length) continue;
+        // Quando o aparelho tem mais de um motor de TTS instalado, o Chrome
+        // lista as vozes de todos juntas — sem isso, a gente sempre pegava a
+        // primeira da lista, que podia continuar sendo a do Google mesmo
+        // depois do usuário trocar o motor padrão nas configs do sistema.
+        // Prioriza a voz marcada como padrão do navegador e, se não tiver
+        // nenhuma, prefere qualquer voz que não seja do motor do Google.
+        return candidatas.find(v => v.default) ||
+            candidatas.find(v => !/google/i.test(v.name)) ||
+            candidatas[0];
     }
     return null;
 }
@@ -536,8 +545,8 @@ function falarAlertaGenerico(txt) {
     u.lang = 'pt-BR';
     u.rate = .95;
     u.volume = somVolume;
-    const v = vozesDisponiveis.filter(x => x.lang.includes('pt-BR') || x.lang.includes('pt_BR'));
-    if (v[0]) u.voice = v[0]; else avisarVozIndisponivel();
+    const v = escolherVoz(['pt-br']);
+    if (v) u.voice = v; else avisarVozIndisponivel();
     window.speechSynthesis.cancel();
     setTimeout(() => window.speechSynthesis.speak(u), 300);
 }
