@@ -545,7 +545,7 @@ function falarTrechos(trechos) {
     }, 500);
 }
 
-// Tenta falar com uma voz melhor (ElevenLabs, via Worker) antes de cair pra
+// Tenta falar com uma voz melhor (Google Cloud TTS, via Worker) antes de cair pra
 // síntese nativa do navegador — resolve o problema de só existir uma voz
 // genérica em português no Chrome Android, sem depender de configuração
 // nenhuma do aparelho. Se a cota grátis acabar, a rede falhar, ou o Worker

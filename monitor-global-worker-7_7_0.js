@@ -4649,37 +4649,46 @@ function tokenAdminValido(request, reqUrl, env) {
     return recebido === esperado;
 }
 
-// Voz "Marianne" (pt-BR) escolhida no ElevenLabs — não é segredo, é só um ID
-// público da voz; a chave de API (env.ELEVENLABS_API_KEY) é que fica secreta.
-const ELEVENLABS_VOICE_ID = 'iScHbNW8K33gNo3lGgbo';
+// Neural2 feminina em pt-BR — sotaque brasileiro nativo de verdade. Trocado
+// da ElevenLabs porque as vozes prontas dela (só as "padrão" funcionam via
+// API no plano grátis) só têm sotaque americano/britânico; as com sotaque
+// brasileiro são todas da "Biblioteca" deles, bloqueada pra API sem pagar.
+const GOOGLE_TTS_VOICE = 'pt-BR-Neural2-A';
 // Sem token de admin aqui de propósito: essa rota é chamada pelo navegador
 // de qualquer visitante do site (pra tocar o alerta de voz), não só pelo
 // dono — não dá pra exigir um secret que teria que ficar exposto no JS do
-// cliente. O limite de tamanho do texto e a cota mensal grátis da própria
-// ElevenLabs seguram o abuso: se a cota acabar, a API deles responde erro e
-// o site cai de volta pra voz nativa do navegador sozinho (falarNaNuvem no
+// cliente. O limite de tamanho do texto e a cota mensal grátis do próprio
+// Google Cloud seguram o abuso: se a cota acabar, a API responde erro e o
+// site cai de volta pra voz nativa do navegador sozinho (falarNaNuvem no
 // audio.js já trata isso), sem custo nem quebra pro usuário.
 async function handleTts(reqUrl, env) {
     const texto = String(reqUrl.searchParams.get('text') || '').trim();
     if (!texto) return json({ ok: false, error: 'texto vazio' }, 400);
     if (texto.length > 400) return json({ ok: false, error: 'texto longo demais (máx. 400 caracteres)' }, 400);
-    const apiKey = env.ELEVENLABS_API_KEY;
-    if (!apiKey) return json({ ok: false, error: 'ElevenLabs não configurado' }, 501);
+    const apiKey = env.GOOGLE_TTS_API_KEY;
+    if (!apiKey) return json({ ok: false, error: 'Google TTS não configurado' }, 501);
     try {
-        const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=mp3_44100_128`, {
+        const r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
             method: 'POST',
-            headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                text: texto,
-                model_id: 'eleven_multilingual_v2',
-                voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                input: { text: texto },
+                voice: { languageCode: 'pt-BR', name: GOOGLE_TTS_VOICE },
+                audioConfig: { audioEncoding: 'MP3' }
             })
         });
         if (!r.ok) {
             const detalhe = await r.text().catch(() => '');
-            return json({ ok: false, error: `ElevenLabs HTTP ${r.status}: ${detalhe.slice(0, 200)}` }, 502);
+            return json({ ok: false, error: `Google TTS HTTP ${r.status}: ${detalhe.slice(0, 200)}` }, 502);
         }
-        return resposta(r.body, 200, 'audio/mpeg');
+        const data = await r.json();
+        if (!data.audioContent) return json({ ok: false, error: 'Google TTS: resposta sem áudio' }, 502);
+        // Google devolve o áudio em base64 dentro do JSON, não como stream
+        // binário direto — decodifica pra bytes antes de responder.
+        const bin = atob(data.audioContent);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return resposta(bytes, 200, 'audio/mpeg');
     } catch (e) {
         return json({ ok: false, error: e?.message || String(e) }, 502);
     }
