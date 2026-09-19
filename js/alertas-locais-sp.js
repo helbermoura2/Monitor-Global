@@ -131,7 +131,12 @@ async function avaliarAlertasLocaisSP() {
 /* ═══════════════ DEFESA CIVIL + AVISOS ═══════════════ */
 async function fetchDefesaCivil() {
     try {
-        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&current=temperature_2m,relative_humidity_2m,wind_gusts_10m,precipitation,weather_code&timezone=auto`);
+        // Mesma URL (mesmos campos, mesma ordem) que fetchSPWeather (clima-local.js)
+        // de propósito: o cache de Open-Meteo em mid-tech-features.js guarda por
+        // string exata da URL, então uma diferença de ordem/campo nos parâmetros
+        // — mesmo pedindo os mesmos lat/lng — fazia esta chamada nunca bater no
+        // cache e disparar uma requisição de rede extra a cada 5 minutos.
+        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&current=temperature_2m,apparent_temperature,weather_code,wind_gusts_10m,precipitation,relative_humidity_2m&timezone=auto`);
         const d = await r.json();
         const c = d && d.current;
         if (!c) throw new Error('sem current');

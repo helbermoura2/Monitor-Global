@@ -457,7 +457,11 @@
   if(window.MutationObserver){
     new MutationObserver(schedule).observe(document.getElementById('top-strip')||document.documentElement,{subtree:true,childList:true});
   }
-  fix(); setTimeout(fix,250); setTimeout(fix,1000); setTimeout(fix,2500); setTimeout(fix,4000); setInterval(fix,1500);
+  // O MutationObserver logo acima já reage a qualquer mudança relevante no
+  // #top-strip; os retries abaixo cobrem o acerto inicial da página. Um
+  // setInterval(fix,1500) rodando pra sempre além disso só duplicava o que
+  // o observer já garante, gastando ciclo de CPU à toa pelo resto da sessão.
+  fix(); setTimeout(fix,250); setTimeout(fix,1000); setTimeout(fix,2500); setTimeout(fix,4000);
 })();
 </script>
 </body>

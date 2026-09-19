@@ -17,6 +17,17 @@
       box.appendChild(row);
     }
   }
-  setInterval(enhance, 2000);
+  // Observa mudanças reais (troca de evento ativo, nova renderização da
+  // lista) em vez de checar via polling pra sempre a cada 2s — o próprio
+  // comentário acima já apontava isso como o jeito certo de fazer.
+  enhance();
+  const eventsEl = document.getElementById('events');
+  if (eventsEl && window.MutationObserver) {
+    new MutationObserver(enhance).observe(eventsEl, {
+      subtree: true, childList: true, attributes: true, attributeFilter: ['class']
+    });
+  } else {
+    setInterval(enhance, 2000); // fallback só se #events ainda não existir
+  }
 })();
 

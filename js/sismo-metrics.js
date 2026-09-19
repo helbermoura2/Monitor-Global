@@ -184,14 +184,28 @@ function updateFeltRadiusLayer() {
         document.getElementById('mapContainer').appendChild(raioWrap);
 
         let _raioRaf = 0;
+        // raioUpdCore roda a cada frame de pan/zoom (até ~60x/s) — antes fazia
+        // um globalEvents.find() (busca linear) por anel a cada frame. Com
+        // vários anéis na tela isso vira uma varredura completa de
+        // globalEvents dezenas de vezes por segundo enquanto o usuário
+        // arrasta o mapa. globalEvents só troca de referência ~1x a cada 45s
+        // (novo ciclo de fetch), então cacheia um índice por id e só
+        // reconstrói quando a referência realmente muda.
+        let _raioIndexFor = null;
+        let _raioIndex = null;
         const raioUpdCore = () => {
             if (!raioWrap || !map) return;
             const z = map.getZoom();
             const bounds = map.getBounds();
             const magMinAnel = z < 4 ? RAIO_MAG_MIN_ZOOM_BAIXO : RAIO_MAG_MIN;
 
+            if (_raioIndexFor !== globalEvents) {
+                _raioIndexFor = globalEvents;
+                _raioIndex = new Map(globalEvents.map(e => [e.id, e]));
+            }
+
             raioStore.forEach((rec, id) => {
-                const ev = globalEvents.find(e => e.id === id);
+                const ev = _raioIndex.get(id);
                 if (!ev || !layerVisibility.earthquakes || ev.mag < magMinAnel) {
                     rec.wrap.style.display = 'none';
                     return;
@@ -326,13 +340,15 @@ function updateQuakeLabels() {
     });
 }
 
-// Hook automático
-setInterval(() => {
+// Hook automático — só precisa rodar até o mapa existir; antes ficava
+// checando pra sempre mesmo depois de já ter achado o mapa.
+const _hookExtraId = setInterval(() => {
     if (map && !map.__hookExtra) {
         map.__hookExtra = true;
         map.on('zoomend', () => { updateQuakeLabels(); });
         updateQuakeLabels();
         updateFeltRadiusLayer();
+        clearInterval(_hookExtraId);
     }
 }, 1000);
 
