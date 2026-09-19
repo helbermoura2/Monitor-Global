@@ -78,6 +78,44 @@
     0%   { opacity: 0; transform: translateX(10px); }
     100% { opacity: 1; transform: translateX(0); }
   }
+
+  /* Título do evento (#pd-local): crossfade completo estilo "breaking
+     news". O texto antigo (clonado em .mg-headline-ghost, criado via JS
+     em js/ui-motion.js) fica sobreposto por cima do texto real e desliza
+     pra fora pela esquerda enquanto o real, já com o texto novo, entra
+     digitando letra a letra (efeito teletipo) com um cursor piscando. */
+  .mg-headline-ghost {
+    position: absolute;
+    margin: 0;
+    pointer-events: none;
+    opacity: 1;
+    transform: translateX(0);
+    z-index: 1;
+  }
+  .mg-headline-ghost-out {
+    animation: mgHeadlineGhostOut .32s cubic-bezier(.4,0,1,1) forwards;
+  }
+  @keyframes mgHeadlineGhostOut {
+    to { opacity: 0; transform: translateX(-18px); }
+  }
+  #pd-local.mg-headline-in {
+    animation: mgHeadlineIn .22s ease both;
+  }
+  @keyframes mgHeadlineIn {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  #pd-local.mg-headline-in::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: .9em;
+    background: currentColor;
+    margin-left: 2px;
+    vertical-align: -0.1em;
+    animation: mgCursorBlink .8s steps(1,end) infinite;
+  }
+  @keyframes mgCursorBlink { 50% { opacity: 0; } }
 }
 
 /* ═══════════ Caixa de registros (mobile) ═══════════ */
@@ -502,12 +540,18 @@ body.mobile-events-open .event {
   .mg-value-pulse,
   .mg-ticker-slide,
   .mg-panel-swap,
+  .mg-headline-ghost-out,
+  #pd-local.mg-headline-in,
+  #pd-local.mg-headline-in::after,
   #latest-event-ticker.mg-ticker-ping,
   #latest-event-ticker.mg-ticker-ping .let-left,
   body.mobile-events-open #mobile-events-backdrop,
   .mg-card-in {
     animation: none !important;
     transform: none !important;
+  }
+  .mg-headline-ghost {
+    display: none !important;
   }
   #pd-gauge-arc {
     transition-timing-function: ease !important;

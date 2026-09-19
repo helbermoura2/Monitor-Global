@@ -41,18 +41,93 @@
     obs.observe(textEl, { childList: true, characterData: true, subtree: true });
   })();
 
-  // Painel direito (desktop): mesma lógica do ticker, mas no elemento que
-  // o desktop realmente usa pra mostrar o evento em foco (#pd-local muda
-  // de texto sempre que showEventDetails/showAlertDetails trocam de item).
+  // Painel direito (desktop): o painel inteiro leva o fade+slide sutil de
+  // sempre (mg-panel-swap), e o título do evento (#pd-local — "16 km S of
+  // Twentynine Palms, CA") ganha o tratamento completo de "breaking news":
+  // o texto antigo sai deslizando pra fora pela esquerda (num "fantasma"
+  // por cima) enquanto o novo entra digitado, tipo teletipo, com cursor
+  // piscando — sem tocar em showEventDetails/showAlertDetails, só reagindo
+  // à mudança de texto que elas já fazem.
   (function watchPanelSwap() {
     var local = document.getElementById('pd-local');
     var panel = document.getElementById('painel-direito');
     if (!local || !panel) return;
-    var last = local.textContent;
+    var lastCommitted = local.textContent;
+    var typing = false;
+    var typingTarget = null;
+
+    function spawnGhost(text) {
+      var host = local.offsetParent || panel;
+      if (!host) return;
+      var cs = getComputedStyle(local);
+      var ghost = document.createElement('div');
+      ghost.className = 'mg-headline-ghost';
+      ghost.textContent = text;
+      ghost.style.left = local.offsetLeft + 'px';
+      ghost.style.top = local.offsetTop + 'px';
+      ghost.style.width = local.offsetWidth + 'px';
+      ghost.style.boxSizing = 'border-box';
+      ghost.style.font = cs.font;
+      ghost.style.color = cs.color;
+      ghost.style.lineHeight = cs.lineHeight;
+      ghost.style.letterSpacing = cs.letterSpacing;
+      ghost.style.whiteSpace = cs.whiteSpace;
+      ghost.style.textAlign = cs.textAlign;
+      ghost.style.padding = cs.padding;
+      ghost.style.border = cs.border;
+      ghost.style.borderColor = 'transparent';
+      host.appendChild(ghost);
+      requestAnimationFrame(function () { ghost.classList.add('mg-headline-ghost-out'); });
+      setTimeout(function () { if (ghost.parentNode) ghost.remove(); }, 420);
+    }
+
+    function typeIn(toText) {
+      typing = true;
+      typingTarget = toText;
+      if (!local.style.minHeight) local.style.minHeight = local.offsetHeight + 'px';
+      local.textContent = '';
+      local.classList.add('mg-headline-in');
+      var i = 0;
+      var step = Math.max(9, Math.min(24, Math.round(280 / Math.max(toText.length, 1))));
+      (function tick() {
+        i++;
+        local.textContent = toText.slice(0, i);
+        if (i < toText.length) {
+          local._mgTypeId = setTimeout(tick, step);
+        } else {
+          local._mgTypeId = null;
+          local.classList.remove('mg-headline-in');
+          local.style.minHeight = '';
+          typing = false;
+          typingTarget = null;
+          lastCommitted = toText;
+        }
+      })();
+    }
+
     var obs = new MutationObserver(function () {
-      if (local.textContent === last) return;
-      last = local.textContent;
+      var real = local.textContent;
+      // passo do nosso próprio typewriter (real é sempre um prefixo do alvo)?
+      if (typing && typingTarget && real.length <= typingTarget.length && typingTarget.slice(0, real.length) === real) {
+        return;
+      }
+      if (!typing && real === lastCommitted) return;
+
       restartAnimation(panel, 'mg-panel-swap');
+
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var desktop = window.matchMedia && window.matchMedia('(min-width:901px)').matches;
+      if (reduceMotion || !desktop) {
+        if (local._mgTypeId) { clearTimeout(local._mgTypeId); local._mgTypeId = null; }
+        typing = false; typingTarget = null;
+        lastCommitted = real;
+        return;
+      }
+
+      // troca real nova, ou uma preempção (evento mudou de novo no meio da digitação)
+      if (local._mgTypeId) clearTimeout(local._mgTypeId);
+      spawnGhost(lastCommitted);
+      typeIn(real);
     });
     obs.observe(local, { childList: true, characterData: true, subtree: true });
   })();
