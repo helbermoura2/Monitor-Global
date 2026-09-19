@@ -192,7 +192,13 @@ function __posicionarTickerAbaixoDoHeader() {
     const header = document.getElementById('top-strip');
     if (!ticker || !header) return;
     if (window.innerWidth > 1100) return; // só existe em mobile/tablet
-    ticker.style.top = header.offsetHeight + 'px';
+    // setProperty(...,'important') — não basta atribuição normal: em
+    // retrato estreito existe uma regra externa
+    // ("body.mg-clean-portrait #latest-event-ticker { top: auto
+    // !important }", css/mobile-late-patches.css) que sempre vence um
+    // "top" inline sem !important, não importa o valor. Só um !important
+    // inline consegue vencer um !important externo.
+    ticker.style.setProperty('top', header.offsetHeight + 'px', 'important');
 }
 if (typeof ResizeObserver !== 'undefined') {
     const __headerObserver = new ResizeObserver(__posicionarTickerAbaixoDoHeader);
