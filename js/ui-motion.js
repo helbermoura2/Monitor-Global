@@ -88,7 +88,7 @@
       local.textContent = '';
       local.classList.add('mg-headline-in');
       var i = 0;
-      var step = Math.max(9, Math.min(24, Math.round(280 / Math.max(toText.length, 1))));
+      var step = Math.max(24, Math.min(55, Math.round(750 / Math.max(toText.length, 1))));
       (function tick() {
         i++;
         local.textContent = toText.slice(0, i);
