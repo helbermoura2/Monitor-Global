@@ -4734,6 +4734,12 @@ async function verificarEIncrementarCotaTts(env, tamanhoTexto) {
 // (falarNaNuvem no audio.js já trata isso), sem custo nem quebra pro
 // usuário.
 async function handleTts(reqUrl, env) {
+    // Diagnóstico temporário: ?debug=1 mostra qual voz está configurada no
+    // Worker sem gastar nada da cota do Polly — só abrir o link no navegador,
+    // sem precisar de DevTools nem conseguir distinguir vozes no ouvido.
+    if (reqUrl.searchParams.get('debug') === '1') {
+        return json({ ok: true, vozConfigurada: POLLY_VOICE });
+    }
     const texto = String(reqUrl.searchParams.get('text') || '').trim();
     if (!texto) return json({ ok: false, error: 'texto vazio' }, 400);
     if (texto.length > 400) return json({ ok: false, error: 'texto longo demais (máx. 400 caracteres)' }, 400);
