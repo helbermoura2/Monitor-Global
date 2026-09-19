@@ -1311,7 +1311,6 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-energy-label').textContent='USGS VHP';
         document.getElementById('pd-energy').textContent=uaLabel?`${uaLabel}${obsLabel?' · '+obsLabel:''}`:(item.eruptionStatus||'Monitorado');
     } else if (item.type === 'tsunami' || item.type === 'tornado') {
-    } else if (item.type === 'tsunami' || item.type === 'tornado') {
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').innerHTML = `<span style="color:${cor}">${meta.label}</span>`;
         document.getElementById('pd-mercalli-label').textContent = 'Status';

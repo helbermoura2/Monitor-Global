@@ -203,7 +203,23 @@ async function fetchGlobalFeeds() {
             });
         }
 
-        globalEvents = merged;
+        // `merged` só reflete as 11 fontes deste ciclo. Sismos que chegaram por
+        // canais paralelos com relógio próprio (AFAD a cada 60s, reforço
+        // planetário USGS/EMSC a cada 60s — ver js/ui-wiring-final.js) ou que uma
+        // fonte específica simplesmente não reconfirmou neste ciclo (falha de
+        // rede pontual) não aparecem em `merged`. Sem preservá-los aqui, a
+        // reatribuição abaixo os apagava a cada ~45s até o canal paralelo os
+        // adicionar de volta — um pisca-apaga constante pros exatos sismos que
+        // esses canais existem pra resgatar. Mantém só o que ainda está dentro
+        // da mesma janela de 36h usada pro resto do app.
+        const cutoffPreserva = Date.now() - 36 * 3600000;
+        const preservados = (Array.isArray(globalEvents) ? globalEvents : []).filter(e =>
+            e && e.type === 'earthquake' && e.id != null && !seenNow.has(e.id) &&
+            Number.isFinite(e.time) && e.time >= cutoffPreserva
+        );
+        const mergedFinal = preservados.length ? merged.concat(preservados).sort((a, b) => b.time - a.time) : merged;
+
+        globalEvents = mergedFinal;
         try { window.globalEvents = globalEvents; } catch (_) {}
         window.sismoSourceStatus = sourceStatus;
         window.sismoSourceSummary = Object.entries(sourceStatus)

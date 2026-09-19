@@ -213,12 +213,25 @@ async function fetchCemaden(){
   fetchWeatherApiObservado();
 }
 
-function renderCemadenLayer(){if(!map)return;try{if(map.getLayer('cemaden-stations-layer'))map.removeLayer('cemaden-stations-layer');if(map.getSource('cemaden-stations-source'))map.removeSource('cemaden-stations-source')}catch(e){}
+// Referências estáveis pros handlers do layer do CEMADEN — precisa da MESMA
+// referência de função pra map.off() conseguir remover o listener certo
+// antes de renderCemadenLayer() re-adicionar (chamado a cada 2min via
+// agendarBusca(fetchCemaden,...); sem isso, cada ciclo empilhava mais um
+// conjunto de listeners de click/hover pro mesmo layer, indefinidamente,
+// pra quem deixa a aba aberta por horas).
+function onCemadenClick(e){const p=e.features?.[0]?.properties;if(!p)return;new maplibregl.Popup({closeButton:true,maxWidth:'260px'}).setLngLat(e.lngLat).setHTML(`<b>🌧️ Chuva estimada</b><br>${String(p.name||'Ponto').replace(/[<>]/g,'')}<br>${String(p.city||'').replace(/[<>]/g,'')}<br><b>24h:</b> ${p.rain24!=null?p.rain24+' mm':'N/D'}<br><b>Última hora:</b> ${p.rain1!=null?p.rain1+' mm':'N/D'}<br><small>Estimativa por modelo meteorológico (Open-Meteo), não é medição de pluviômetro físico</small>`).addTo(map)}
+function onCemadenEnter(){map.getCanvas().style.cursor='pointer'}
+function onCemadenLeave(){map.getCanvas().style.cursor=''}
+function renderCemadenLayer(){if(!map)return;try{
+  map.off('click','cemaden-stations-layer',onCemadenClick);
+  map.off('mouseenter','cemaden-stations-layer',onCemadenEnter);
+  map.off('mouseleave','cemaden-stations-layer',onCemadenLeave);
+  if(map.getLayer('cemaden-stations-layer'))map.removeLayer('cemaden-stations-layer');if(map.getSource('cemaden-stations-source'))map.removeSource('cemaden-stations-source')}catch(e){}
   const features=CEMADEN.stations.map(s=>({type:'Feature',geometry:{type:'Point',coordinates:[s.lng,s.lat]},properties:{id:s.id,name:s.name,city:s.city,rain24:s.rain24,rain1:s.rain1,time:s.time}}));
   map.addSource('cemaden-stations-source',{type:'geojson',data:{type:'FeatureCollection',features}});
   map.addLayer({id:'cemaden-stations-layer',type:'circle',source:'cemaden-stations-source',paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,3,7,5,11,7],'circle-color':['case',['>=',['coalesce',['get','rain24'],0],50],'#ef4444',['>=',['coalesce',['get','rain24'],0],20],'#facc15',['>=',['coalesce',['get','rain24'],0],5],'#38bdf8','#22c55e'],'circle-stroke-color':'#fff','circle-stroke-width':1.2,'circle-opacity':.88}});
-  map.on('click','cemaden-stations-layer',e=>{const p=e.features?.[0]?.properties;if(!p)return;new maplibregl.Popup({closeButton:true,maxWidth:'260px'}).setLngLat(e.lngLat).setHTML(`<b>🌧️ Chuva estimada</b><br>${String(p.name||'Ponto').replace(/[<>]/g,'')}<br>${String(p.city||'').replace(/[<>]/g,'')}<br><b>24h:</b> ${p.rain24!=null?p.rain24+' mm':'N/D'}<br><b>Última hora:</b> ${p.rain1!=null?p.rain1+' mm':'N/D'}<br><small>Estimativa por modelo meteorológico (Open-Meteo), não é medição de pluviômetro físico</small>`).addTo(map)});
-  map.on('mouseenter','cemaden-stations-layer',()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave','cemaden-stations-layer',()=>map.getCanvas().style.cursor='');
+  map.on('click','cemaden-stations-layer',onCemadenClick);
+  map.on('mouseenter','cemaden-stations-layer',onCemadenEnter);map.on('mouseleave','cemaden-stations-layer',onCemadenLeave);
 }
 function toggleCemadenLayer(){CEMADEN.layer=!CEMADEN.layer;if(!map)return;const l=map.getLayer('cemaden-stations-layer');if(l)map.setLayoutProperty('cemaden-stations-layer','visibility',CEMADEN.layer?'visible':'none');q('btn-cemaden-layer')?.classList.toggle('active',CEMADEN.layer)}
 
@@ -351,9 +364,30 @@ function corTemperaturaRedemet(t) {
   return '#38bdf8';
 }
 
+// Mesmo motivo do CEMADEN acima: referências estáveis pra map.off() conseguir
+// remover o listener certo antes de re-adicionar a cada ciclo (fetchRedemetMetar
+// roda a cada 10min via agendarBusca) — sem isso os handlers de click/hover
+// se acumulavam indefinidamente.
+function onRedemetClick(e) {
+  const p = e.features?.[0]?.properties;
+  if (!p) return;
+  const vento = p.ventoKt != null ? `${p.ventoKt} kt${p.rajadaKt ? ' (rajada ' + p.rajadaKt + ' kt)' : ''}` : 'N/D';
+  new maplibregl.Popup({ closeButton: true, maxWidth: '260px' }).setLngLat(e.lngLat).setHTML(
+    `<b>🛩️ ${String(p.icao || '').replace(/[<>]/g, '')} — ${String(p.nome || '').replace(/[<>]/g, '')}/${String(p.uf || '').replace(/[<>]/g, '')}</b><br>` +
+    `<b>Temp:</b> ${p.tempC != null ? p.tempC + '°C' : 'N/D'} · <b>Orvalho:</b> ${p.orvalhoC != null ? p.orvalhoC + '°C' : 'N/D'}<br>` +
+    `<b>Vento:</b> ${vento}<br>` +
+    `<b>QNH:</b> ${p.qnh != null ? p.qnh + ' hPa' : 'N/D'}<br>` +
+    `<small>Estação meteorológica REDEMET/DECEA (aeródromo) · METAR: ${String(p.raw || '').replace(/[<>]/g, '')}</small>`
+  ).addTo(map);
+}
+function onRedemetEnter() { map.getCanvas().style.cursor = 'pointer'; }
+function onRedemetLeave() { map.getCanvas().style.cursor = ''; }
 function renderRedemetLayer() {
   if (!map) return;
   try {
+    map.off('click', 'redemet-stations-layer', onRedemetClick);
+    map.off('mouseenter', 'redemet-stations-layer', onRedemetEnter);
+    map.off('mouseleave', 'redemet-stations-layer', onRedemetLeave);
     if (map.getLayer('redemet-stations-label')) map.removeLayer('redemet-stations-label');
     if (map.getLayer('redemet-stations-layer')) map.removeLayer('redemet-stations-layer');
     if (map.getSource('redemet-stations-source')) map.removeSource('redemet-stations-source');
@@ -385,20 +419,9 @@ function renderRedemetLayer() {
     },
     paint: { 'text-color': '#0b1220' }
   });
-  map.on('click', 'redemet-stations-layer', e => {
-    const p = e.features?.[0]?.properties;
-    if (!p) return;
-    const vento = p.ventoKt != null ? `${p.ventoKt} kt${p.rajadaKt ? ' (rajada ' + p.rajadaKt + ' kt)' : ''}` : 'N/D';
-    new maplibregl.Popup({ closeButton: true, maxWidth: '260px' }).setLngLat(e.lngLat).setHTML(
-      `<b>🛩️ ${String(p.icao || '').replace(/[<>]/g, '')} — ${String(p.nome || '').replace(/[<>]/g, '')}/${String(p.uf || '').replace(/[<>]/g, '')}</b><br>` +
-      `<b>Temp:</b> ${p.tempC != null ? p.tempC + '°C' : 'N/D'} · <b>Orvalho:</b> ${p.orvalhoC != null ? p.orvalhoC + '°C' : 'N/D'}<br>` +
-      `<b>Vento:</b> ${vento}<br>` +
-      `<b>QNH:</b> ${p.qnh != null ? p.qnh + ' hPa' : 'N/D'}<br>` +
-      `<small>Estação meteorológica REDEMET/DECEA (aeródromo) · METAR: ${String(p.raw || '').replace(/[<>]/g, '')}</small>`
-    ).addTo(map);
-  });
-  map.on('mouseenter', 'redemet-stations-layer', () => map.getCanvas().style.cursor = 'pointer');
-  map.on('mouseleave', 'redemet-stations-layer', () => map.getCanvas().style.cursor = '');
+  map.on('click', 'redemet-stations-layer', onRedemetClick);
+  map.on('mouseenter', 'redemet-stations-layer', onRedemetEnter);
+  map.on('mouseleave', 'redemet-stations-layer', onRedemetLeave);
 }
 
 const PRO={radar:true,follow:true,replay:false,speed:1,timer:null,events:[],idx:0,radarLayer:false,sourceState:{}};
@@ -712,8 +735,14 @@ function boot(){
   renderSources();
   checkSources();
   fetchProSP();
-  setInterval(fetchProSP,300000);
-  setInterval(checkSources,300000);
+  // Antes usavam setInterval cru, que ignora a pausa automática quando a
+  // aba fica em segundo plano (agendarBusca respeita __buscasPausadasPorAba)
+  // — nesse app, feito pra ficar aberto por horas/dias, isso significava
+  // continuar batendo Open-Meteo/wttr.in e 18 endpoints de status a cada 5min
+  // com a aba escondida, gastando bateria/dados à toa. O atraso inicial é
+  // igual ao intervalo pra não repetir a chamada imediata logo acima.
+  agendarBusca(fetchProSP, 300000, 300000);
+  agendarBusca(checkSources, 300000, 300000);
 
   // Consulta a PED a cada 2 min. Isso NÃO cria dados novos: apenas captura
   // rapidamente uma nova transmissão quando o CEMADEN disponibilizá-la.
