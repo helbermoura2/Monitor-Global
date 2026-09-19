@@ -7,10 +7,13 @@
    em cada regra — mais simples de manter que replicar o truque de
    especificidade usado no arquivo de desktop.
 
-   Alpha mais alto que no desktop (~0.45-0.55 vs ~0.14-0.20): tela menor,
-   texto mais perto do olho, e o mapa costuma preencher menos espaço atrás
-   do #top-strip/#painel-direito no celular — precisa de mais opacidade
-   pra manter legível. */
+   Vidro "autocontido" (mesma decisão do desktop, PRs #54-#60): não
+   depende do mapa aparecer borrado por trás — backdrop-filter não
+   consegue ler o canvas WebGL do MapLibre em boa parte dos
+   navegadores/GPUs (confirmado no Chrome Android via ?debug=1, mesmo com
+   preserveDrawingBuffer). O efeito de vidro vem só do gradiente + brilho
+   interno da borda, funciona igual em qualquer aparelho.
+   backdrop-filter continua declarado como bônus grátis. */
 @media screen and (max-width: 900px) {
   /* "body.mg-clean-portrait #top-strip" tem que ser listado explicitamente
      — em retrato estreito o body ganha essa classe (ver
@@ -20,33 +23,38 @@
      este arquivo carregando por último. */
   #top-strip,
   body.mg-clean-portrait #top-strip {
-    background: linear-gradient(180deg, rgba(10,26,46,.55) 0%, rgba(4,11,20,.65) 100%) !important;
+    background: linear-gradient(180deg, rgba(38,78,124,.62) 0%, rgba(10,22,40,.80) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    box-shadow: 0 6px 24px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
   #painel-direito {
-    background: linear-gradient(145deg, rgba(8,20,34,.55), rgba(4,11,20,.65)) !important;
+    background: linear-gradient(160deg, rgba(46,84,132,.60) 0%, rgba(10,22,38,.80) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   }
   body.mobile-details-mid #painel-direito,
   body.mobile-details-open #painel-direito {
-    background: linear-gradient(180deg, rgba(14,28,48,.55) 0%, rgba(8,20,34,.60) 40%, rgba(4,11,20,.65) 100%) !important;
+    background: linear-gradient(180deg, rgba(46,84,132,.60) 0%, rgba(22,44,72,.68) 40%, rgba(10,22,38,.80) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   }
   body.mobile-events-open #sidebar-left {
-    background: linear-gradient(180deg, rgba(7,25,42,.55) 0%, rgba(2,11,21,.65) 100%) !important;
+    background: linear-gradient(160deg, rgba(28,66,102,.60) 0%, rgba(10,22,38,.80) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   }
 
   /* Cards de registro: só transparência, sem blur (podem ter centenas na
      lista ao mesmo tempo e blur pesa na GPU do celular ainda mais que no
-     desktop). */
-  body.mobile-events-open .event,
-  .event {
-    background: rgba(13,28,45,.32) !important;
+     desktop). "#events" na frente é obrigatório pelo mesmo motivo do
+     arquivo de desktop: css/ui-motion.css tem ".event {...}" sem media
+     query, carrega depois deste arquivo, e venceria o empate de
+     especificidade contra uma classe sozinha. */
+  body.mobile-events-open #events .event,
+  #events .event {
+    background: linear-gradient(135deg, rgba(30,62,96,.46), rgba(12,24,42,.58)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07) !important;
   }
 
   /* Mesmas caixas internas que ficavam sólidas no desktop (chips, ícones
@@ -54,42 +62,42 @@
      "detectado/fontes", badges de fonte) — ver css/desktop-layout-lock.css
      pros valores equivalentes de desktop e o porquê de cada uma. */
   .chip {
-    background: rgba(9,23,37,.42) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.52), rgba(10,20,36,.62)) !important;
   }
   #freshness-bar {
-    background: rgba(2,8,22,.35) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.44), rgba(8,16,30,.54)) !important;
   }
   /* #painel-direito na frente é de propósito — css/mobile-late-patches.css
      usa "#painel-direito .stat-card"/"#painel-direito .bubble-section"
      (mais específico que a classe sozinha) pra esses dois. */
   #painel-direito .stat-card {
-    background: rgba(9,27,43,.30) !important;
+    background: linear-gradient(160deg, rgba(24,52,84,.42), rgba(8,18,32,.52)) !important;
   }
   #painel-direito .bubble-section {
-    background: linear-gradient(135deg, rgba(9,25,40,.30), rgba(6,17,28,.24)) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.42), rgba(8,18,32,.48)) !important;
   }
   #painel-direito .pd-header-row {
-    background: linear-gradient(180deg, rgba(5,14,25,.55) 0%, rgba(5,14,25,.40) 78%, rgba(5,14,25,0) 100%) !important;
+    background: linear-gradient(180deg, rgba(30,62,96,.62) 0%, rgba(14,28,46,.48) 78%, rgba(14,28,46,0) 100%) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
   }
   #painel-direito .pd-timeline {
-    background: rgba(8,15,28,.30) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.44), rgba(8,16,30,.52)) !important;
   }
   #painel-direito .pd-chip {
-    background: rgba(15,23,42,.32) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.46), rgba(10,20,36,.56)) !important;
   }
   .icon-btn,
   .header-menu-trigger {
-    background: rgba(10,26,42,.38) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.48), rgba(10,20,36,.58)) !important;
   }
   .chips-scroll-btn {
-    background: rgba(2,8,22,.38) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.48), rgba(8,16,30,.58)) !important;
   }
   #painel-direito .source-trust-card {
-    background: rgba(2,8,22,.28) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.40), rgba(8,18,32,.50)) !important;
   }
   #painel-direito .source-trust-meta[style*="border-radius:6px"] {
-    background: rgba(15,23,42,.24) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.36), rgba(10,20,36,.44)) !important;
   }
 }
