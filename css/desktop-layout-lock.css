@@ -68,6 +68,10 @@
   #top-strip {
     position: relative !important;
     z-index: 10 !important;
+    background: linear-gradient(180deg, rgba(10,26,46,.55) 0%, rgba(4,11,20,.65) 100%) !important;
+    backdrop-filter: blur(18px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
+    border-bottom: 1px solid rgba(255,255,255,.08) !important;
   }
 
   /* Visual "vidro" (glassmorphism) no card principal de detalhes — desfoque
