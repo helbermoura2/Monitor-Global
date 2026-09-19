@@ -3,6 +3,19 @@
 function carregarVozesDisponiveis() {
     if (window.speechSynthesis) vozesDisponiveis = window.speechSynthesis.getVoices();
 }
+// Diagnóstico temporário: abrir o site com ?debugvoz=1 na URL mostra num
+// alert() nativo (funciona em qualquer celular, sem precisar de console) a
+// lista real de vozes que o Chrome enxerga, pra confirmar se uma troca de
+// motor de TTS nas configs do sistema realmente chegou até o navegador.
+if (/[?&]debugvoz=1\b/.test(location.search) && window.speechSynthesis) {
+    const mostrarVozesDebug = () => {
+        const vs = window.speechSynthesis.getVoices();
+        const linhas = vs.map(v => `${v.name} — ${v.lang}${v.default ? ' (padrão)' : ''}`);
+        alert('Vozes que o navegador enxerga (' + vs.length + '):\n\n' + (linhas.join('\n') || 'nenhuma'));
+    };
+    if (window.speechSynthesis.getVoices().length) mostrarVozesDebug();
+    else window.speechSynthesis.addEventListener('voiceschanged', mostrarVozesDebug, { once: true });
+}
 function ensureAudio() {
     if (!audioContext || audioContext.state === 'closed') return false;
     if (audioContext.state === 'suspended') {
