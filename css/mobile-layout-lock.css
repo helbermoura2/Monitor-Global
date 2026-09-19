@@ -7,13 +7,17 @@
    em cada regra — mais simples de manter que replicar o truque de
    especificidade usado no arquivo de desktop.
 
-   Vidro "autocontido" (mesma decisão do desktop, PRs #54-#60): não
+   Vidro "autocontido" (mesma decisão do desktop, PRs #54-#61): não
    depende do mapa aparecer borrado por trás — backdrop-filter não
    consegue ler o canvas WebGL do MapLibre em boa parte dos
    navegadores/GPUs (confirmado no Chrome Android via ?debug=1, mesmo com
    preserveDrawingBuffer). O efeito de vidro vem só do gradiente + brilho
    interno da borda, funciona igual em qualquer aparelho.
-   backdrop-filter continua declarado como bônus grátis. */
+   backdrop-filter continua declarado como bônus grátis.
+
+   Alpha reduzido de novo (usuário achou o desktop bom, mas o mobile
+   ainda muito opaco no cabeçalho/card principal — ~35% mais transparente
+   que a rodada anterior). */
 @media screen and (max-width: 900px) {
   /* "body.mg-clean-portrait #top-strip" tem que ser listado explicitamente
      — em retrato estreito o body ganha essa classe (ver
@@ -23,24 +27,24 @@
      este arquivo carregando por último. */
   #top-strip,
   body.mg-clean-portrait #top-strip {
-    background: linear-gradient(180deg, rgba(38,78,124,.62) 0%, rgba(10,22,40,.80) 100%) !important;
+    background: linear-gradient(180deg, rgba(38,78,124,.40) 0%, rgba(10,22,40,.52) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
     box-shadow: 0 6px 24px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
   #painel-direito {
-    background: linear-gradient(160deg, rgba(46,84,132,.60) 0%, rgba(10,22,38,.80) 100%) !important;
+    background: linear-gradient(160deg, rgba(46,84,132,.39) 0%, rgba(10,22,38,.52) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   }
   body.mobile-details-mid #painel-direito,
   body.mobile-details-open #painel-direito {
-    background: linear-gradient(180deg, rgba(46,84,132,.60) 0%, rgba(22,44,72,.68) 40%, rgba(10,22,38,.80) 100%) !important;
+    background: linear-gradient(180deg, rgba(46,84,132,.39) 0%, rgba(22,44,72,.44) 40%, rgba(10,22,38,.52) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   }
   body.mobile-events-open #sidebar-left {
-    background: linear-gradient(160deg, rgba(28,66,102,.60) 0%, rgba(10,22,38,.80) 100%) !important;
+    background: linear-gradient(160deg, rgba(28,66,102,.39) 0%, rgba(10,22,38,.52) 100%) !important;
     backdrop-filter: blur(20px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   }
@@ -53,7 +57,7 @@
      especificidade contra uma classe sozinha. */
   body.mobile-events-open #events .event,
   #events .event {
-    background: linear-gradient(135deg, rgba(30,62,96,.46), rgba(12,24,42,.58)) !important;
+    background: linear-gradient(135deg, rgba(30,62,96,.30), rgba(12,24,42,.38)) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.07) !important;
   }
 
@@ -62,42 +66,42 @@
      "detectado/fontes", badges de fonte) — ver css/desktop-layout-lock.css
      pros valores equivalentes de desktop e o porquê de cada uma. */
   .chip {
-    background: linear-gradient(135deg, rgba(28,58,92,.52), rgba(10,20,36,.62)) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.34), rgba(10,20,36,.40)) !important;
   }
   #freshness-bar {
-    background: linear-gradient(135deg, rgba(24,50,80,.44), rgba(8,16,30,.54)) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.29), rgba(8,16,30,.35)) !important;
   }
   /* #painel-direito na frente é de propósito — css/mobile-late-patches.css
      usa "#painel-direito .stat-card"/"#painel-direito .bubble-section"
      (mais específico que a classe sozinha) pra esses dois. */
   #painel-direito .stat-card {
-    background: linear-gradient(160deg, rgba(24,52,84,.42), rgba(8,18,32,.52)) !important;
+    background: linear-gradient(160deg, rgba(24,52,84,.27), rgba(8,18,32,.34)) !important;
   }
   #painel-direito .bubble-section {
-    background: linear-gradient(135deg, rgba(24,52,84,.42), rgba(8,18,32,.48)) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.27), rgba(8,18,32,.31)) !important;
   }
   #painel-direito .pd-header-row {
-    background: linear-gradient(180deg, rgba(30,62,96,.62) 0%, rgba(14,28,46,.48) 78%, rgba(14,28,46,0) 100%) !important;
+    background: linear-gradient(180deg, rgba(30,62,96,.40) 0%, rgba(14,28,46,.31) 78%, rgba(14,28,46,0) 100%) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
   }
   #painel-direito .pd-timeline {
-    background: linear-gradient(135deg, rgba(24,50,80,.44), rgba(8,16,30,.52)) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.29), rgba(8,16,30,.34)) !important;
   }
   #painel-direito .pd-chip {
-    background: linear-gradient(135deg, rgba(26,54,86,.46), rgba(10,20,36,.56)) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.30), rgba(10,20,36,.36)) !important;
   }
   .icon-btn,
   .header-menu-trigger {
-    background: linear-gradient(135deg, rgba(28,58,92,.48), rgba(10,20,36,.58)) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.31), rgba(10,20,36,.38)) !important;
   }
   .chips-scroll-btn {
-    background: linear-gradient(135deg, rgba(24,50,80,.48), rgba(8,16,30,.58)) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.31), rgba(8,16,30,.38)) !important;
   }
   #painel-direito .source-trust-card {
-    background: linear-gradient(135deg, rgba(24,52,84,.40), rgba(8,18,32,.50)) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.26), rgba(8,18,32,.33)) !important;
   }
   #painel-direito .source-trust-meta[style*="border-radius:6px"] {
-    background: linear-gradient(135deg, rgba(26,54,86,.36), rgba(10,20,36,.44)) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.23), rgba(10,20,36,.29)) !important;
   }
 }
