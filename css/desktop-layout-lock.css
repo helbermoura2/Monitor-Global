@@ -32,10 +32,10 @@
     left: 0 !important;
     right: 0 !important;
     z-index: 30 !important;
-    background: linear-gradient(180deg, rgba(10,26,46,.28) 0%, rgba(4,11,20,.35) 100%) !important;
-    backdrop-filter: blur(24px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-    border-bottom: 1px solid rgba(255,255,255,.10) !important;
+    background: linear-gradient(180deg, rgba(10,26,46,.14) 0%, rgba(4,11,20,.18) 100%) !important;
+    backdrop-filter: blur(28px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+    border-bottom: 1px solid rgba(255,255,255,.12) !important;
   }
   #sidebar-left {
     display: flex !important;
@@ -49,10 +49,10 @@
     max-height: none !important;
     z-index: 20 !important;
     padding-top: 0 !important;
-    background: linear-gradient(180deg, rgba(6,17,29,.32) 0%, rgba(4,11,20,.4) 100%) !important;
-    backdrop-filter: blur(24px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
+    background: linear-gradient(180deg, rgba(6,17,29,.16) 0%, rgba(4,11,20,.20) 100%) !important;
+    backdrop-filter: blur(28px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
     border-radius: 16px !important;
     box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
   }
@@ -71,10 +71,10 @@
     margin: 0 !important;
     overflow-y: auto !important;
     padding: 16px !important;
-    background: linear-gradient(180deg, rgba(15,37,66,.30) 0%, rgba(4,11,20,.38) 100%) !important;
-    backdrop-filter: blur(24px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
+    background: linear-gradient(180deg, rgba(15,37,66,.15) 0%, rgba(4,11,20,.19) 100%) !important;
+    backdrop-filter: blur(28px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
     border-radius: 16px !important;
     box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06) !important;
   }
@@ -93,13 +93,14 @@
      transparência e brilho sutil, sem desfoque de verdade, porque pode
      ter centenas rolando na lista ao mesmo tempo e o blur pesa na GPU. */
   .event {
-    background: rgba(13,28,45,.32) !important;
-    border: 1px solid rgba(255,255,255,.09) !important;
+    background: rgba(13,28,45,.20) !important;
+    border: 1px solid rgba(255,255,255,.11) !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,.7) !important;
   }
   .event.active {
-    background: linear-gradient(135deg, rgba(20,70,95,.38), rgba(10,35,52,.42)) !important;
+    background: linear-gradient(135deg, rgba(20,70,95,.24), rgba(10,35,52,.28)) !important;
   }
 }
 @media screen and (min-width: 1200px) {
