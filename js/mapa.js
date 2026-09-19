@@ -162,7 +162,8 @@ function initMap() {
 
     try { map.setProjection({ type: 'globe' }); } catch (e) {}
 
-    map.addControl(new GL.NavigationControl({ visualizePitch: true }), 'top-left');
+    // Botão de zoom +/- removido a pedido do usuário (pinça no celular e
+    // scroll no desktop já bastam) — em todas as versões, não só mobile.
     map.addControl(new GL.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
     // Debounce do syncAllMarkers: evita travar o mapa ao arrastar

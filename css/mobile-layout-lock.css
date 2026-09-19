@@ -129,6 +129,13 @@
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
+  /* Botão ☰ Menu (#fab-menu, em retrato estreito): tinha fundo próprio
+     quase opaco (.72) numa regra específica em
+     css/mobile-late-patches.css — mesmo seletor composto, este arquivo
+     carrega depois → vence o empate de especificidade. */
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu {
+    background: linear-gradient(135deg, rgba(28,58,92,.42), rgba(10,20,36,.52)) !important;
+  }
 
   /* Cards de registro: só transparência, sem blur (podem ter centenas na
      lista ao mesmo tempo e blur pesa na GPU do celular ainda mais que no
