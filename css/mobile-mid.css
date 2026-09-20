@@ -4,7 +4,20 @@
       da caixa do último registro, sem esconder os indicadores do header;
    2) a caixa do último registro fica mais alta e legível. */
 
-@media screen and (max-width:1100px) {
+/* Corrigido de max-width:1100px para 900px: esse bloco inteiro (posições
+   fixas do #mobile-fab-bar e do ticker, pensadas pra tela de celular) é
+   anterior ao css/desktop-layout-lock.css, que criou a faixa 901-1100px
+   como "tablet com tratamento de desktop" e conta com o FAB escondido
+   (display:none!important) nessa faixa. Como os dois arquivos usam
+   !important no mesmo seletor #mobile-fab-bar com a mesma especificidade,
+   quem carrega por último vencia — e este arquivo carrega DEPOIS do
+   desktop-layout-lock.css, reexibindo o FAB (📋/🔊/☰) em cima do cabeçalho
+   de desktop inteiro entre 901 e 1100px (a mesma faixa que o "Solicitar
+   site para computador" do Chrome força num celular). Estreitar pra
+   900px alinha com o corte que o resto do código já usa (ativo(), em
+   js/header-v72.js, e o próprio desktop-layout-lock.css) sem tirar nada
+   de celulares de verdade (≤900px, inalterados). */
+@media screen and (max-width:900px) {
   #latest-event-ticker {
     display: flex !important;
     position: absolute !important;
@@ -96,7 +109,7 @@
   }
 }
 
-@media screen and (max-width:1100px) and (orientation:landscape) {
+@media screen and (max-width:900px) and (orientation:landscape) {
   #latest-event-ticker {
     top: 50px !important;
     min-height: 58px !important;
