@@ -237,7 +237,7 @@ const SourceHealth = (function () {
   return { get, isOpen, remainingMs, recordOk, recordFail, summary, snapshot, restoreSnapshot };
 })();
 try { window.SourceHealth = SourceHealth; } catch (e) {}
-let map = null, alertTimeout = null, cycleTimeout = null, currentRadar = null;
+let map = null, alertTimeout = null, cycleTimeout = null, currentRadar = null, currentCascade = null;
 let audioContext = null, isAudioUnlocked = false, vozesDisponiveis = [], speakAlertTimeoutId = null;
 let pendingSounds = [];
 let somAtivo = localStorage.getItem('somAtivo') !== '0';
