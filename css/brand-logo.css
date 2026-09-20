@@ -1,0 +1,28 @@
+/* Nova identidade "Radar Scope": ícone SVG (mesma varredura do selo AO VIVO
+   e do epicentro no mapa) + wordmark em Rajdhani, no lugar do antigo emoji
+   🌐 + texto no peso padrão do body. Tamanho/posição de #top-strip .ts-title
+   continuam vindo de base.css e dos arquivos mobile-* — aqui só o CONTEÚDO
+   interno do título (ícone + palavra) é estilizado, em unidades relativas
+   (em) ao font-size que cada breakpoint já define no .ts-title, pra herdar
+   o dimensionamento responsivo existente sem duplicar nenhuma media query. */
+#top-strip .ts-title.mg-title {
+  align-items: center;
+  gap: .35em;
+  max-width: 100%;
+}
+#top-strip .ts-title.mg-title .mg-logo-icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: 0 0 auto;
+}
+#top-strip .ts-title.mg-title .mg-logo-word {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: inherit;
+  letter-spacing: inherit;
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
