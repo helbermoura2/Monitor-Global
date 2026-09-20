@@ -1,0 +1,36 @@
+/* Nome do projeto, ícone e o conjunto AO VIVO+relógio maiores em telas de
+   desktop de verdade (≥1101px — a mesma faixa do cabeçalho de uma linha
+   só, position:absolute). Antes esses elementos tinham um tamanho FIXO
+   em px que não crescia em nenhuma largura (901px e 2560px usavam
+   exatamente os mesmos valores) — só #top-strip .ts-title/.live-indicator
+   (base.css, @media min-width:901px) e os detalhes internos do selo
+   (css/ao-vivo-badge.css) definiam esses tamanhos, sem nenhuma escala
+   maior pra telas largas. Carregado por último de propósito, pra vencer
+   os dois.
+
+   Valores calibrados com folga medida via Playwright na faixa mais
+   apertada (1101-1450px, onde o selo AO VIVO fica mais perto do
+   título) — sem invadir o respiro entre título e selo mesmo se a fonte
+   Rajdhani não carregar (cai pro sans-serif padrão, mais largo). */
+@media screen and (min-width: 1101px) {
+  #top-strip .ts-title.mg-title {
+    font-size: 17px !important;
+    letter-spacing: 1.3px !important;
+  }
+  #top-strip .live-indicator {
+    gap: 7px !important;
+    padding: 5px 12px 5px 8px !important;
+  }
+  #top-strip .live-indicator .av-radar {
+    width: 15px;
+    height: 15px;
+  }
+  #top-strip .live-indicator .av-label {
+    font-size: 11px !important;
+  }
+  #top-strip .live-indicator .ts-clock,
+  #top-strip .live-indicator #kpi-relogio {
+    font-size: 11px !important;
+    padding-left: 8px !important;
+  }
+}
