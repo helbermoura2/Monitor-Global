@@ -4235,7 +4235,31 @@ async function telegramSendMessage(env, text) {
     return data;
 }
 
-async function loadSentAlertIds(request) {
+// Chave dentro do KV "TTS_USAGE" (já existe pra outra coisa — cota de
+// Polly — mas KV é só um key-value store; reutilizar com uma chave bem
+// distinta não colide com nada). Preferido a caches.default: o Cache API
+// do Workers é POR DATA-CENTER, não global. O Cron Trigger deste worker
+// pode rodar num data-center diferente a cada disparo, e cada um tem seu
+// próprio cache isolado — foi exatamente essa a causa de um mesmo sismo
+// M6+ sair duplicado no Telegram com ~2h30 de intervalo: o segundo
+// disparo caiu num data-center que nunca tinha visto aquele id, mesmo o
+// primeiro já tendo "salvo" o alerta como enviado (só que na cópia local
+// de OUTRO data-center). KV é replicado globalmente, então resolve de
+// vez — caches.default fica só como fallback se o KV não estiver
+// configurado no ambiente (ex.: wrangler dev local sem bind).
+const TELEGRAM_SENT_KV_KEY = 'telegram-m6-sent-ids';
+
+async function loadSentAlertIds(request, env) {
+    if (env && env.TTS_USAGE) {
+        try {
+            const raw = await env.TTS_USAGE.get(TELEGRAM_SENT_KV_KEY);
+            if (!raw) return new Set();
+            const d = JSON.parse(raw);
+            return new Set(Array.isArray(d.ids) ? d.ids : []);
+        } catch (e) {
+            console.warn('telegram KV read:', e?.message || e);
+        }
+    }
     try {
         const hit = await caches.default.match(cacheKey(request, TELEGRAM_ALERT_CACHE_PATH));
         if (!hit) return new Set();
@@ -4246,8 +4270,20 @@ async function loadSentAlertIds(request) {
     }
 }
 
-async function saveSentAlertIds(request, idSet) {
+async function saveSentAlertIds(request, idSet, env) {
     const ids = [...idSet].slice(-200); // mantém os 200 mais recentes
+    if (env && env.TTS_USAGE) {
+        try {
+            await env.TTS_USAGE.put(
+                TELEGRAM_SENT_KV_KEY,
+                JSON.stringify({ ids, updatedAt: nowIso() }),
+                { expirationTtl: TELEGRAM_ALERT_TTL }
+            );
+            return;
+        } catch (e) {
+            console.warn('telegram KV write:', e?.message || e);
+        }
+    }
     try {
         const response = new Response(JSON.stringify({ ids, updatedAt: nowIso() }), {
             status: 200,
@@ -4307,7 +4343,7 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     const events = await fetchUsgsM6Recent();
-    const sentIds = await loadSentAlertIds(request);
+    const sentIds = await loadSentAlertIds(request, env);
     const sent = [];
     const skipped = [];
 
@@ -4335,7 +4371,7 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
-    if (sent.length) await saveSentAlertIds(request, sentIds);
+    if (sent.length) await saveSentAlertIds(request, sentIds, env);
 
     return {
         ok: true,
@@ -4589,14 +4625,32 @@ async function renderDailySummaryPng() {
     return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
 const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary';
-async function dailySummarySent(request,day){
+// Mesmo motivo do KV em loadSentAlertIds/saveSentAlertIds acima: caches.default
+// é por data-center, e o Cron Trigger pode cair num data-center diferente a
+// cada tick dentro da janela 00:00-00:20 BRT — arriscando reenviar o resumo
+// do dia. KV (env.TTS_USAGE) é global; caches.default fica só de fallback.
+const TELEGRAM_DAILY_KV_KEY = 'telegram-daily-summary-sent';
+async function dailySummarySent(request,day,env){
+    if(env && env.TTS_USAGE){
+        try{
+            const raw = await env.TTS_USAGE.get(TELEGRAM_DAILY_KV_KEY);
+            if(!raw) return false;
+            return JSON.parse(raw).day === day;
+        }catch(e){console.warn('daily summary KV read:',e?.message||e);}
+    }
     try{
         const hit=await caches.default.match(cacheKey(request,TELEGRAM_DAILY_CACHE_PATH));
         if(!hit)return false;
         const d=await hit.json(); return d.day===day;
     }catch{return false;}
 }
-async function markDailySummarySent(request,day){
+async function markDailySummarySent(request,day,env){
+    if(env && env.TTS_USAGE){
+        try{
+            await env.TTS_USAGE.put(TELEGRAM_DAILY_KV_KEY, JSON.stringify({day,sentAt:nowIso()}), {expirationTtl:172800});
+            return;
+        }catch(e){console.warn('daily summary KV write:',e?.message||e);}
+    }
     try{
         await caches.default.put(cacheKey(request,TELEGRAM_DAILY_CACHE_PATH),
             new Response(JSON.stringify({day,sentAt:nowIso()}),{
@@ -4612,7 +4666,7 @@ async function runTelegramDailySummary(request,env){
     // Janela automática de segurança. ?force=1 permite teste manual pelo navegador.
     if(!force && (hour!==0 || minute>20)) return {ok:true,skipped:true,reason:'fora da janela 00:00–00:20 BRT'};
     const day=saoPauloYmdOffset(-1);
-    if(await dailySummarySent(request,day)) return {ok:true,skipped:true,reason:'resumo já enviado',day};
+    if(await dailySummarySent(request,day,env)) return {ok:true,skipped:true,reason:'resumo já enviado',day};
     const pack=await renderDailySummaryPng();
     const form=new FormData();
     form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
@@ -4627,7 +4681,7 @@ async function runTelegramDailySummary(request,env){
     const r=await fetch(api,{method:'POST',body:form});
     const data=await r.json().catch(()=>({}));
     if(!r.ok||!data.ok) throw new Error(data.description||`Telegram HTTP ${r.status}`);
-    await markDailySummarySent(request,day);
+    await markDailySummarySent(request,day,env);
     return {ok:true,day,total:pack.total};
 }
 
