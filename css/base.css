@@ -5,14 +5,21 @@
 .ts-clock, .ts-kpi-value, .ts-kpi-sub, .event-mag, .pd-mag, .stat-card-value, .mag-value, #vol-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .3px; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
-/* mix-blend-mode removido: assim como o backdrop-filter sobre o canvas
+/* Escopo do flash: só o card principal (#painel-direito), não a tela
+   toda — cobrir a tela inteira de branco fazia parecer que o aparelho
+   tinha travado/quebrado (feedback do Helber depois de ver em vídeo).
+   Por isso #lightning-flash agora é filho de #painel-direito no HTML
+   (não mais solto no body) e position:absolute (relativo ao card, que
+   já é position:absolute/fixed em todo modo) em vez de fixed+inset:0
+   na viewport. z-index alto só DENTRO do stacking context do próprio
+   card — acima do conteúdo dele, sem vazar pra fora.
+   mix-blend-mode removido: assim como o backdrop-filter sobre o canvas
    WebGL do MapLibre (ver css/desktop-layout-lock.css), misturar com o que
-   está atrás é inconsistente entre navegador/GPU — em vários aparelhos o
-   "flash" simplesmente não aparecia. Um branco quase opaco pintado direto
-   já lê como relâmpago sem depender de blend nenhum, e funciona igual em
-   qualquer tela. Sequência de 13s (era 0.9s) com 3 "descargas" — cada uma
-   com um clarão duplo (tipo raio de verdade) — em vez de um clarão único. */
-#lightning-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 99999; }
+   está atrás é inconsistente entre navegador/GPU. Um branco quase opaco
+   pintado direto já lê como relâmpago sem depender de blend nenhum.
+   Sequência de 13s (era 0.9s) com 3 "descargas" — cada uma com um clarão
+   duplo (tipo raio de verdade) — em vez de um clarão único. */
+#lightning-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 999; border-radius: inherit; }
 @keyframes lightningFlash {
   0%    { opacity: 0; }
   1%    { opacity: 1; }
