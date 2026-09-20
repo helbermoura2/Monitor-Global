@@ -3,7 +3,21 @@
   display: none;
 }
 #latest-event-ticker { display: none; }
-@media screen and (max-width: 1100px) {
+/* Estreitado de max-width:1100px pra 900px (mesma correção já aplicada em
+   css/mobile-mid.css pro mesmo motivo): este bloco INTEIRO é a folha de
+   celular de verdade — ticker como faixa fixa no topo, e #painel-direito
+   como "bottom sheet" que abre com toque (recolhido = só cabeçalho,
+   ".pd-header-row"; o resto some com opacity:0 até tocar). Isso não devia
+   nunca chegar em 901-1100px, onde css/desktop-layout-lock.css já trata
+   #painel-direito como um painel de vidro sempre visível por completo —
+   mas como os dois usam max-width/min-width:1100/901 (não o mesmo corte
+   de 900px que o resto do código usa), a faixa 901-1100px herdava as
+   DUAS coisas ao mesmo tempo: o ticker (que devia estar escondido, como
+   já fica em desktop de verdade) E o "opacity:0" no conteúdo do painel
+   (por isso o card de evento aparecia só com o cabeçalho, sem nenhuma
+   informação — não era uma exceção no JS, era este opacity:0 aplicado
+   por engano numa largura que não devia). */
+@media screen and (max-width: 900px) {
   #latest-event-ticker {
     display: flex; align-items: center; gap: 8px;
     position: fixed; left: 0; right: 0; top: 0; /* "top" real é definido via JS */
