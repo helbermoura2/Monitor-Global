@@ -104,6 +104,24 @@ function getEventoTelaFrac() {
             if (document.body.classList.contains('mobile-details-open')) y = 0.22;
             else if (document.body.classList.contains('mobile-details-mid')) y = 0.28;
             else y = 0.38;
+        } else {
+            // Desktop e mobile-paisagem: desde os PRs #52/#61/#68 o mapa
+            // ocupa a tela inteira (#mapWrap position:absolute;inset:0) e
+            // o cabeçalho (#top-strip) flutua por cima cobrindo só o topo —
+            // não existe mais uma "coluna de mapa" menor abaixo do
+            // cabeçalho como no layout antigo. Y=0.45 (fixo) foi calibrado
+            // pra aquele layout antigo e ficou desatualizado: sem
+            // compensar a altura do cabeçalho, o epicentro cai visualmente
+            // acima do centro da área realmente visível (o que sobra
+            // abaixo do cabeçalho). Calcula a altura do cabeçalho na hora
+            // e centraliza dentro da área visível de verdade.
+            const header = document.getElementById('top-strip');
+            const mapEl = map && typeof map.getContainer === 'function' ? map.getContainer() : null;
+            if (header && mapEl) {
+                const hh = header.getBoundingClientRect().height;
+                const mh = mapEl.clientHeight;
+                if (mh > 0) y = Math.min(0.7, (hh + (mh - hh) / 2) / mh);
+            }
         }
     } catch (e) {}
     return { x, y };
