@@ -206,6 +206,8 @@ function stopFeltZone() {
 function startFeltZone(lng, lat, mag, depth) {
     if (!map) return;
     stopFeltZone();
+    try { if (typeof stopCascadeRipple === 'function') stopCascadeRipple(); } catch (e) {}
+    try { if (typeof stopContinuousRadar === 'function') stopContinuousRadar(); } catch (e) {}
     const host = document.getElementById('mapContainer');
     if (!host) return;
 
