@@ -115,8 +115,51 @@ body.mode-tv.geo-br.show-br-hub-tv #brasil-hub { display: block !important; }
     z-index: 300 !important;
   }
   #top-strip .ts-kpis #kpibox-eventos,
-  #top-strip .ts-kpis #kpibox-maior,
-  #top-strip .ts-kpis #kpibox-sp { display: none !important; }
+  #top-strip .ts-kpis #kpibox-maior { display: none !important; }
+  /* kpibox-sp (clima compacto) fica visível de propósito, do lado do
+     ícone de radar de chuva (#btn-radar-header) — mesmo assunto
+     (clima/chuva), pedido do Helber pra não ficarem espalhados pelo
+     cabeçalho. .ts-kpi na especificidade garante que vence a regra
+     acima independente da ordem de carregamento das folhas. */
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi {
+    display: flex !important;
+    order: 0 !important;
+    position: static !important;
+    left: auto !important; right: auto !important; top: auto !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 5px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    border-left: 1px solid #17325d !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+  }
+  /* Só cidade + temperatura — ícone/sensação/vento ficam de fora aqui pra
+     caber numa linha só ao lado dos outros ícones compactos; a versão
+     completa continua no card de clima detalhado (#sp-live-card). */
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi .mg-wx-icon,
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi .mg-wind,
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi .ts-kpi-sub { display: none !important; }
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi .ts-kpi-label {
+    display: inline-flex !important;
+    font-size: 9px !important;
+    max-width: 70px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi .ts-kpi-row {
+    display: inline-flex !important;
+    align-items: baseline !important;
+  }
+  #top-strip .ts-kpis #kpibox-sp.ts-kpi .ts-kpi-value {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+  }
   #top-strip .ts-kpis #kpibox-brent,
   #top-strip .ts-kpis #kpi-relogio,
   #top-strip .ts-kpis #header-main-menu,
