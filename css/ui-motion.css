@@ -176,15 +176,19 @@ body.mobile-events-open .event {
      olhar a ordem de carregamento. Resultado prático: o tint de
      severidade nunca aparecia em nenhuma largura de desktop (901px+),
      sempre coberto pelo fundo genérico do outro arquivo.
-     A camada de baixo usa os MESMOS valores translúcidos do vidro de
-     desktop-layout-lock.css (rgba .30/.38, não os .92 quase opacos do
-     mobile) — só a camada de cima (tint por severidade) é nova aqui;
-     colar o fundo escuro do mobile por engano tirava o efeito vidro do
-     card inteiro no desktop. */
+     Alpha bem mais baixa que a v1 (.30/.38 -> .14/.18): #painel-direito
+     (card principal) tem só UMA camada de vidro sobre o mapa. A sidebar
+     tem DUAS — o próprio #sidebar-left (rgba .39/.52, desktop-layout-
+     lock.css) e, por cima, o fundo de cada .event — então na mesma
+     opacidade da v1 as duas camadas empilhadas ficavam visivelmente mais
+     escuras/saturadas que o card principal, mesmo sendo "o mesmo vidro"
+     nominalmente. Com a camada de cima bem mais fraca, o resultado
+     empilhado fica raso o bastante pra combinar com a transparência de
+     uma camada só do card principal. */
   #events .event {
     background:
-      linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 12%, transparent), transparent 55%),
-      linear-gradient(135deg, rgba(30,62,96,.30), rgba(12,24,42,.38)) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 16%, transparent), transparent 55%),
+      linear-gradient(135deg, rgba(30,62,96,.14), rgba(12,24,42,.18)) !important;
   }
 }
 
