@@ -398,12 +398,10 @@ function renderSidebarList(items) {
 
         if (grupo !== grupoAtual) {
             grupoAtual = grupo;
-            if (idadeH >= 1) {
-                const gh = document.createElement('div');
-                gh.className = 'group-header';
-                gh.textContent = grupo;
-                frag.appendChild(gh);
-            }
+            const gh = document.createElement('div');
+            gh.className = 'group-header';
+            gh.textContent = grupo;
+            frag.appendChild(gh);
         }
 
         const div = document.createElement('div');
