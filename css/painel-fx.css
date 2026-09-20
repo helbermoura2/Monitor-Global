@@ -20,16 +20,19 @@
 .pd-fx-ember {
   position: absolute;
   left: 50%;
-  bottom: 26%;
-  width: 5px;
-  height: 5px;
+  bottom: 24%;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   pointer-events: none;
   opacity: 0;
   background: var(--pd-fx-color, #f97316);
-  box-shadow: 0 0 6px 1px var(--pd-fx-color, #f97316);
+  box-shadow: 0 0 10px 2px var(--pd-fx-color, #f97316);
 }
-.pd-fx-ember-2 { left: 58%; bottom: 22%; width: 4px; height: 4px; }
+.pd-fx-ember-2 { left: 59%; bottom: 20%; width: 5px; height: 5px; }
+.pd-fx-ember-3 { left: 42%; bottom: 22%; width: 6px; height: 6px; }
+.pd-fx-ember-4 { left: 47%; bottom: 28%; width: 4px; height: 4px; }
+.pd-fx-ember-5 { left: 54%; bottom: 26%; width: 5px; height: 5px; }
 
 @media (prefers-reduced-motion: reduce) {
   #painel-direito[class*="pd-fx-"] { animation: none !important; }
@@ -57,25 +60,44 @@
   animation: pdQuakeShake 7s cubic-bezier(.36,.07,.19,.97) 1;
 }
 
-/* 🔥 INCÊNDIO / 🌋 VULCÃO — brasas subindo do centro do gauge + glow
-   pulsando. Vulcão usa a mesma mecânica, só mais lenta e mais vermelha
-   (a cor em si já muda via --pd-fx-color, setada por tipo). */
+/* 🔥 INCÊNDIO / 🌋 VULCÃO — labareda: 5 brasas subindo (bem mais visíveis
+   que a v1, que tinha só 2 bem pequenas) + glow do gauge pulsando mais
+   forte e um brilho quente por trás do card inteiro. Vulcão usa a mesma
+   mecânica, só mais lenta e mais vermelha (a cor muda via --pd-fx-color). */
 @keyframes pdEmberRise {
-  0%   { opacity: 0; transform: translateY(0) scale(.6); }
-  15%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-64px) scale(1.1); }
+  0%   { opacity: 0; transform: translateY(0) scale(.5); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-78px) scale(1.3); }
 }
 @keyframes pdGlowPulse {
-  0%, 100% { transform: translate(-50%,-50%) scale(1); }
-  50%      { transform: translate(-50%,-50%) scale(1.4); }
+  0%, 100% { transform: translate(-50%,-50%) scale(1); filter: brightness(1); }
+  50%      { transform: translate(-50%,-50%) scale(1.9); filter: brightness(1.8); }
 }
-#painel-direito.pd-fx-fire .pd-fx-ember-1 { animation: pdEmberRise 1.8s ease-out 3 both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-2 { animation: pdEmberRise 2.1s ease-out 3 .5s both; }
-#painel-direito.pd-fx-fire #pd-gauge-glow { animation: pdGlowPulse 1.4s ease-in-out 5; }
+@keyframes pdEmberBackglow {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: .3; }
+}
+#painel-direito.pd-fx-fire #pd-fx-overlay {
+  background: radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--pd-fx-color, #f97316) 55%, transparent) 0%, transparent 70%);
+  animation: pdEmberBackglow 1.1s ease-in-out 6;
+}
+#painel-direito.pd-fx-fire .pd-fx-ember-1 { animation: pdEmberRise 1.6s ease-out 4 both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-2 { animation: pdEmberRise 1.9s ease-out 4 .3s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-3 { animation: pdEmberRise 1.4s ease-out 5 .5s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-4 { animation: pdEmberRise 2.1s ease-out 3 .15s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-5 { animation: pdEmberRise 1.7s ease-out 4 .65s both; }
+#painel-direito.pd-fx-fire #pd-gauge-glow { animation: pdGlowPulse 1.1s ease-in-out 6; }
 
-#painel-direito.pd-fx-volcano .pd-fx-ember-1 { animation: pdEmberRise 2.6s ease-out 2 both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-2 { animation: pdEmberRise 3.1s ease-out 2 .7s both; }
-#painel-direito.pd-fx-volcano #pd-gauge-glow { animation: pdGlowPulse 2.3s ease-in-out 3; }
+#painel-direito.pd-fx-volcano #pd-fx-overlay {
+  background: radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--pd-fx-color, #dc2626) 50%, transparent) 0%, transparent 70%);
+  animation: pdEmberBackglow 1.8s ease-in-out 4;
+}
+#painel-direito.pd-fx-volcano .pd-fx-ember-1 { animation: pdEmberRise 2.4s ease-out 3 both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-2 { animation: pdEmberRise 2.8s ease-out 3 .5s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-3 { animation: pdEmberRise 2.2s ease-out 3 .8s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-4 { animation: pdEmberRise 3s ease-out 2 .3s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-5 { animation: pdEmberRise 2.6s ease-out 3 1s both; }
+#painel-direito.pd-fx-volcano #pd-gauge-glow { animation: pdGlowPulse 1.8s ease-in-out 4; }
 
 /* 🌀 CICLONE / 🌪️ TORNADO — o próprio emoji gira (é literalmente uma
    espiral). O giro em si é feito via JS (js/painel-fx.js, spinIcon), não
@@ -85,17 +107,32 @@
    com prioridade "important" (setProperty(...,'important')) consegue
    vencer esse empate, por isso o giro é feito quadro a quadro em JS. */
 
-/* ⚡ TEMPESTADE / 🌪️ TORNADO — clarão branco rápido no card (raio),
-   repetindo algumas vezes dentro da janela de 7s. */
+/* ⚡ TEMPESTADE / 🌪️ TORNADO — chuva caindo o tempo todo (risca diagonal
+   fina, contínua, opacidade fixa) + clarões de raio bem mais fortes que
+   a v1 (só "filter: brightness", nunca opacity — se a opacidade também
+   fosse a zero durante o clarão, a chuva sumiria junto em vez de "ficar
+   branca de tão forte"). */
+@keyframes pdRainFall {
+  from { background-position: 0 0; }
+  to   { background-position: -60px 140px; }
+}
 @keyframes pdFlash {
-  0%, 92%, 100% { opacity: 0; }
-  93%, 96%      { opacity: .55; }
-  94.5%         { opacity: .1; }
+  0%, 78%, 100% { filter: brightness(1); }
+  80%, 84%      { filter: brightness(4.5); }
+  82%           { filter: brightness(1.8); }
 }
 #painel-direito.pd-fx-storm #pd-fx-overlay,
 #painel-direito.pd-fx-tornado #pd-fx-overlay {
-  background: #fff;
-  animation: pdFlash 2.3s linear 3;
+  background-color: rgba(255,255,255,.10);
+  background-image: repeating-linear-gradient(
+    100deg,
+    rgba(255,255,255,.5) 0px,
+    rgba(255,255,255,.5) 1.5px,
+    transparent 1.5px,
+    transparent 16px
+  );
+  opacity: .55;
+  animation: pdRainFall .5s linear infinite, pdFlash 2.4s ease-out 3;
 }
 
 /* 🌊 TSUNAMI — ondas atravessando o card, tipo "água" varrendo. */
@@ -134,30 +171,53 @@
   animation: pdWindStreak 7s cubic-bezier(.3,0,.4,1) 1;
 }
 
-/* 💧 ENCHENTE — nível de "água" subindo e assentando (marca d'água). */
+/* 💧 ENCHENTE — nível de "água" sobe bem mais alto e mais opaco que a v1
+   (dava pra nem notar), com ondulação diagonal contínua por cima pra
+   parecer água de verdade em vez de um gradiente parado. */
 @keyframes pdFloodRise {
   0%   { transform: scaleY(0); opacity: 0; }
-  55%  { transform: scaleY(1); opacity: .55; }
-  100% { transform: scaleY(1); opacity: .3; }
+  50%  { transform: scaleY(1); opacity: .85; }
+  100% { transform: scaleY(1); opacity: .6; }
+}
+@keyframes pdFloodRipple {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 70px 0, 0 0; }
 }
 #painel-direito.pd-fx-flood #pd-fx-overlay {
-  background: linear-gradient(0deg, color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 45%, transparent) 0%, transparent 65%);
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 50%, transparent) 0px,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 50%, transparent) 8px,
+      transparent 8px,
+      transparent 38px
+    ),
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 70%, transparent) 0%,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 30%, transparent) 60%,
+      transparent 82%
+    );
   transform-origin: bottom;
-  animation: pdFloodRise 7s cubic-bezier(.16,.84,.44,1) 1 forwards;
+  animation: pdFloodRise 7s cubic-bezier(.16,.84,.44,1) 1 forwards, pdFloodRipple 2.2s linear infinite;
 }
 
-/* 🚨 ALERTA CIVIL — pulso tipo sirene na borda do card, ritmo constante
-   pelos 7s inteiros (é o único cuja urgência pede o efeito completo, sem
-   decair rápido como o tremor de sismo). Anima o box-shadow do próprio
-   #pd-fx-overlay (não o de #painel-direito, que já tem box-shadow
-   !important no vidro — uma animação normal nunca ganha de !important,
-   então o pulso ficaria invisível ali). Inset, pra "acender" a borda de
-   dentro do card sem tampar nada. */
+/* 🚨 ALERTA CIVIL — giroflex de viatura de verdade: vermelho e azul
+   alternando em flashes secos (steps, não suaviza como um "respirar"),
+   ritmo constante pelos 7s inteiros — é o único cuja urgência pede o
+   efeito completo, sem decair rápido como o tremor de sismo. Anima o
+   box-shadow do próprio #pd-fx-overlay (não o de #painel-direito, que já
+   tem box-shadow !important no vidro — uma animação normal nunca ganha
+   de !important, então o pulso ficaria invisível ali). Inset e bem
+   grosso (14px), pra "acender" a borda de dentro do card sem tampar
+   nada do conteúdo. */
 @keyframes pdSirenPulse {
-  0%, 100% { box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--pd-fx-color, #e11d48) 65%, transparent); }
-  50%      { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--pd-fx-color, #e11d48) 65%, transparent); }
+  0%, 22%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  8%            { box-shadow: inset 0 0 0 14px rgba(225,29,72,.92); }
+  32%, 54%      { box-shadow: inset 0 0 0 0 transparent; }
+  42%           { box-shadow: inset 0 0 0 14px rgba(37,99,235,.92); }
 }
 #painel-direito.pd-fx-civil #pd-fx-overlay {
   opacity: 1;
-  animation: pdSirenPulse 1.15s ease-out 6;
+  animation: pdSirenPulse 1.4s steps(1, end) 5;
 }
