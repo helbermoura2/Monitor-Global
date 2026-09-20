@@ -1,0 +1,163 @@
+/* Efeitos de entrada por tipo de evento no card principal (#painel-direito).
+   Disparados por js/painel-fx.js (triggerCardFx), que adiciona a classe
+   "pd-fx-<tipo>" por ~7s toda vez que o usuário troca de evento (nunca em
+   silentRefresh). Elementos dedicados em vez de ::before/::after porque
+   #painel-direito já usa esses pseudo-elementos pra outra coisa (grade
+   decorativa no modo mobile-details-mid/open, css/ui-motion.css) — usar
+   elementos próprios evita qualquer conflito de seletor.
+
+   #pd-fx-overlay fica com z-index:-1 dentro do stacking context do próprio
+   #painel-direito (que já é position:absolute): isso o coloca ACIMA do
+   fundo de vidro do card, mas ABAIXO de todo o conteúdo normal (que não
+   tem z-index própria) — nunca tampa texto. */
+#pd-fx-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+}
+.pd-fx-ember {
+  position: absolute;
+  left: 50%;
+  bottom: 26%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--pd-fx-color, #f97316);
+  box-shadow: 0 0 6px 1px var(--pd-fx-color, #f97316);
+}
+.pd-fx-ember-2 { left: 58%; bottom: 22%; width: 4px; height: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #painel-direito[class*="pd-fx-"] { animation: none !important; }
+  #painel-direito[class*="pd-fx-"] .pd-fx-ember,
+  #painel-direito[class*="pd-fx-"] #pd-fx-overlay,
+  #painel-direito[class*="pd-fx-"] #pd-gauge-glow,
+  #painel-direito[class*="pd-fx-"] .pd-mag { animation: none !important; }
+}
+
+/* 🌍 SISMO — treme com força proporcional à magnitude (--pd-fx-amp, setado
+   por triggerCardFxMag) e sossega rápido, igual um abalo de verdade — 7s de
+   "janela" do efeito, mas o tremor real dura só o começo. */
+@keyframes pdQuakeShake {
+  0%, 100%       { transform: translate(0,0) rotate(0); }
+  3%             { transform: translate(calc(var(--pd-fx-amp,6px) * -1), 1px) rotate(-.3deg); }
+  6%             { transform: translate(var(--pd-fx-amp,6px), -1px) rotate(.3deg); }
+  9%             { transform: translate(calc(var(--pd-fx-amp,6px) * -.7), 1px) rotate(-.2deg); }
+  12%            { transform: translate(calc(var(--pd-fx-amp,6px) * .7), 0) rotate(.2deg); }
+  15%            { transform: translate(calc(var(--pd-fx-amp,6px) * -.4), 1px) rotate(0); }
+  18%            { transform: translate(calc(var(--pd-fx-amp,6px) * .4), 0); }
+  21%            { transform: translate(calc(var(--pd-fx-amp,6px) * -.15), 0); }
+  24%, 100%      { transform: translate(0,0) rotate(0); }
+}
+#painel-direito.pd-fx-earthquake {
+  animation: pdQuakeShake 7s cubic-bezier(.36,.07,.19,.97) 1;
+}
+
+/* 🔥 INCÊNDIO / 🌋 VULCÃO — brasas subindo do centro do gauge + glow
+   pulsando. Vulcão usa a mesma mecânica, só mais lenta e mais vermelha
+   (a cor em si já muda via --pd-fx-color, setada por tipo). */
+@keyframes pdEmberRise {
+  0%   { opacity: 0; transform: translateY(0) scale(.6); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-64px) scale(1.1); }
+}
+@keyframes pdGlowPulse {
+  0%, 100% { transform: translate(-50%,-50%) scale(1); }
+  50%      { transform: translate(-50%,-50%) scale(1.4); }
+}
+#painel-direito.pd-fx-fire .pd-fx-ember-1 { animation: pdEmberRise 1.8s ease-out 3 both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-2 { animation: pdEmberRise 2.1s ease-out 3 .5s both; }
+#painel-direito.pd-fx-fire #pd-gauge-glow { animation: pdGlowPulse 1.4s ease-in-out 5; }
+
+#painel-direito.pd-fx-volcano .pd-fx-ember-1 { animation: pdEmberRise 2.6s ease-out 2 both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-2 { animation: pdEmberRise 3.1s ease-out 2 .7s both; }
+#painel-direito.pd-fx-volcano #pd-gauge-glow { animation: pdGlowPulse 2.3s ease-in-out 3; }
+
+/* 🌀 CICLONE / 🌪️ TORNADO — o próprio emoji gira (é literalmente uma
+   espiral). O giro em si é feito via JS (js/painel-fx.js, spinIcon), não
+   CSS: .pd-mag tem "transform: translateX(-50%) !important" (pra ficar
+   centralizado, css/mobile-late-patches.css) e uma animação CSS normal
+   nunca ganha de uma declaração !important — só um inline style setado
+   com prioridade "important" (setProperty(...,'important')) consegue
+   vencer esse empate, por isso o giro é feito quadro a quadro em JS. */
+
+/* ⚡ TEMPESTADE / 🌪️ TORNADO — clarão branco rápido no card (raio),
+   repetindo algumas vezes dentro da janela de 7s. */
+@keyframes pdFlash {
+  0%, 92%, 100% { opacity: 0; }
+  93%, 96%      { opacity: .55; }
+  94.5%         { opacity: .1; }
+}
+#painel-direito.pd-fx-storm #pd-fx-overlay,
+#painel-direito.pd-fx-tornado #pd-fx-overlay {
+  background: #fff;
+  animation: pdFlash 2.3s linear 3;
+}
+
+/* 🌊 TSUNAMI — ondas atravessando o card, tipo "água" varrendo. */
+@keyframes pdWaveSweep {
+  0%   { background-position: 0 0; opacity: 0; }
+  10%  { opacity: .5; }
+  90%  { opacity: .5; }
+  100% { background-position: -220px 0; opacity: 0; }
+}
+#painel-direito.pd-fx-tsunami #pd-fx-overlay {
+  background-image: repeating-linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 55%, transparent) 0px,
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 55%, transparent) 10px,
+    transparent 10px,
+    transparent 55px
+  );
+  animation: pdWaveSweep 7s linear 1;
+}
+
+/* 💨 VENTO — riscos diagonais passando rápido, tipo rajada. */
+@keyframes pdWindStreak {
+  0%   { background-position: 260px 0; opacity: 0; }
+  8%   { opacity: .4; }
+  92%  { opacity: .4; }
+  100% { background-position: -260px 0; opacity: 0; }
+}
+#painel-direito.pd-fx-wind #pd-fx-overlay {
+  background-image: repeating-linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--pd-fx-color, #5eead4) 60%, transparent) 0px,
+    color-mix(in srgb, var(--pd-fx-color, #5eead4) 60%, transparent) 2px,
+    transparent 2px,
+    transparent 34px
+  );
+  animation: pdWindStreak 7s cubic-bezier(.3,0,.4,1) 1;
+}
+
+/* 💧 ENCHENTE — nível de "água" subindo e assentando (marca d'água). */
+@keyframes pdFloodRise {
+  0%   { transform: scaleY(0); opacity: 0; }
+  55%  { transform: scaleY(1); opacity: .55; }
+  100% { transform: scaleY(1); opacity: .3; }
+}
+#painel-direito.pd-fx-flood #pd-fx-overlay {
+  background: linear-gradient(0deg, color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 45%, transparent) 0%, transparent 65%);
+  transform-origin: bottom;
+  animation: pdFloodRise 7s cubic-bezier(.16,.84,.44,1) 1 forwards;
+}
+
+/* 🚨 ALERTA CIVIL — pulso tipo sirene na borda do card, ritmo constante
+   pelos 7s inteiros (é o único cuja urgência pede o efeito completo, sem
+   decair rápido como o tremor de sismo). Anima o box-shadow do próprio
+   #pd-fx-overlay (não o de #painel-direito, que já tem box-shadow
+   !important no vidro — uma animação normal nunca ganha de !important,
+   então o pulso ficaria invisível ali). Inset, pra "acender" a borda de
+   dentro do card sem tampar nada. */
+@keyframes pdSirenPulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--pd-fx-color, #e11d48) 65%, transparent); }
+  50%      { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--pd-fx-color, #e11d48) 65%, transparent); }
+}
+#painel-direito.pd-fx-civil #pd-fx-overlay {
+  opacity: 1;
+  animation: pdSirenPulse 1.15s ease-out 6;
+}

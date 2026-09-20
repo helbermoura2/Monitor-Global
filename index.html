@@ -41,6 +41,7 @@
 <link rel="stylesheet" href="css/volcano.css">
     <link rel="stylesheet" href="css/mobile-ultimate.css">
 <link rel="stylesheet" href="css/theme-dark-mode.css">
+<link rel="stylesheet" href="css/painel-fx.css">
 <script defer src="js/theme-toggle.js"></script>
 </head>
 <body>
@@ -224,6 +225,7 @@
   </main>
 
   <aside id="painel-direito" class="pd-sev-none" onclick="alternarPainelDetalhesMobile()">
+    <div class="pd-fx-overlay" id="pd-fx-overlay" aria-hidden="true"></div>
     <button id="painel-direito-close" onclick="event.stopPropagation();fecharPainelDetalhesMobile()" title="Fechar" aria-label="Fechar painel de detalhes">✕</button>
     <div class="pd-header-row">
       <div class="pd-header" id="pd-source">AGUARDANDO EVENTO…</div>
@@ -236,6 +238,8 @@
     <div class="pd-chips" id="pd-chips" aria-label="Resumo da fonte"></div>
     <div class="pd-gauge-wrap" id="pd-gauge-wrap">
       <div class="pd-gauge-glow" id="pd-gauge-glow" aria-hidden="true"></div>
+      <span class="pd-fx-ember pd-fx-ember-1" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-2" aria-hidden="true"></span>
       <svg id="pd-gauge" viewBox="0 0 120 66">
         <path d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8" stroke-linecap="round"/>
         <path id="pd-gauge-arc" d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="#fb923c" stroke-width="8" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
@@ -295,6 +299,7 @@
 <script defer src="js/sismo-metrics.js"></script>
 <script defer src="js/feed-utils.js"></script>
 <script defer src="js/confianca-fontes.js"></script>
+<script defer src="js/painel-fx.js"></script>
 <script defer src="js/painel-e-lista.js"></script>
 <script defer src="js/kpis-ui.js"></script>
 <script defer src="js/sismo-fontes.js"></script>
