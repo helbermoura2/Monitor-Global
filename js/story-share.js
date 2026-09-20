@@ -173,6 +173,50 @@
     ctx.closePath();
   }
 
+  // Ícone oficial do app (mesma "varredura de radar" do selo AO VIVO e do
+  // epicentro no mapa) — desenhado como vetor (arcos/cunha), não colado como
+  // imagem, pra ficar nítido em qualquer resolução de export.
+  function drawRadarLogo(ctx, cx, cy, r, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, r * 0.055);
+    ctx.globalAlpha = .35;
+    [1, 0.68, 0.36].forEach(f => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * f, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    const grad = ctx.createLinearGradient(cx, cy - r, cx, cy);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 0.22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(2, r * 0.12), 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Cabeçalho de marca (ícone + "MONITOR GLOBAL") usado nas imagens geradas
+  // pra compartilhar — evento avulso e resumo do dia. x/y = onde o TEXTO
+  // começa (mesma âncora que já existia); o ícone entra à esquerda dele,
+  // sem precisar realinhar o resto do cabeçalho em cada um dos dois lugares.
+  function drawBrandHeaderStory(ctx, x, y, color) {
+    color = color || '#7dd3fc';
+    const r = 20;
+    ctx.textAlign = 'left';
+    drawRadarLogo(ctx, x + r, y - 11, r, color);
+    ctx.fillStyle = color;
+    ctx.font = '700 32px "JetBrains Mono", monospace';
+    haloFillText(ctx, 'MONITOR GLOBAL', x + r * 2 + 14, y);
+  }
+
   // Arredonda um valor de distância pra um número "redondo" de escala de mapa
   // (1, 2 ou 5 × potência de 10) — mesma lógica usada em barras de escala de
   // mapas de verdade (Google Maps, Leaflet, etc.)
@@ -796,10 +840,7 @@
     drawBackground(ctx, W, H, cor);
 
     // ═══ Cabeçalho ═══
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#7dd3fc';
-    ctx.font = '700 32px "JetBrains Mono", monospace';
-    haloFillText(ctx, '🌐 MONITOR GLOBAL', padX, 74);
+    drawBrandHeaderStory(ctx, padX, 74);
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(148,163,184,.78)';
     ctx.font = '600 22px system-ui, sans-serif';
@@ -1179,10 +1220,7 @@
     // Não usar location.hostname aqui: ao compartilhar um HTML local no Android,
     // ele pode virar "com.google.android.apps.nbu.files.provider" na imagem.
     const brandHost = 'monitorglobal.top';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#7dd3fc';
-    ctx.font = '700 32px "JetBrains Mono", monospace';
-    haloFillText(ctx, '🌐 MONITOR GLOBAL', 56, 74);
+    drawBrandHeaderStory(ctx, 56, 74);
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(148,163,184,.78)';
     ctx.font = '600 22px system-ui, sans-serif';

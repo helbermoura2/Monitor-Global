@@ -12,7 +12,7 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ctext x='64' y='84' text-anchor='middle' font-size='72'%3E%F0%9F%8C%8D%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ccircle cx='64' cy='64' r='56' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='38' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='20' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Cpath d='M64 64L64 8A56 56 0 0 1 103.6 24.4Z' fill='%2338bdf8' opacity='.85'/%3E%3Ccircle cx='64' cy='64' r='7' fill='%2338bdf8'/%3E%3C/svg%3E",
       "sizes": "128x128",
       "type": "image/svg+xml",
       "purpose": "any maskable"

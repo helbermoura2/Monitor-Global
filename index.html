@@ -17,7 +17,10 @@
 <meta name="description" content="Monitor global de sismos, tempestades, ciclones, tsunamis e alertas oficiais em tempo quase real.">
 <meta name="theme-color" content="#020816">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ctext x='64' y='84' text-anchor='middle' font-size='72'%3E%F0%9F%8C%8D%3C/text%3E%3C/svg%3E">
+<!-- Ícone oficial: varredura de radar (mesma linguagem visual do selo
+     "AO VIVO" e do epicentro no mapa) — antes era só o emoji 🌍. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ccircle cx='64' cy='64' r='56' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='38' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='20' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Cpath d='M64 64L64 8A56 56 0 0 1 103.6 24.4Z' fill='%2338bdf8' opacity='.85'/%3E%3Ccircle cx='64' cy='64' r='7' fill='%2338bdf8'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ccircle cx='64' cy='64' r='56' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='38' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='20' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Cpath d='M64 64L64 8A56 56 0 0 1 103.6 24.4Z' fill='%2338bdf8' opacity='.85'/%3E%3Ccircle cx='64' cy='64' r='7' fill='%2338bdf8'/%3E%3C/svg%3E">
 <!-- MapLibre GL hospedado localmente (vendor/) em vez do unpkg — o mapa é o
      coração do app; depender de um CDN externo pra ele carregar é um ponto
      único de falha desnecessário quando o arquivo cabe tranquilo no repo. -->
@@ -25,7 +28,7 @@
 <script defer src='vendor/maplibre-gl.js'></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 
 <link rel="stylesheet" href="css/mobile-early.css">
@@ -60,7 +63,7 @@
 <div id="app">
   <header id="top-strip">
     <div class="ts-mainrow">
-    <h1 class="ts-title" style="margin:0;font:inherit;display:inline">🌐 MONITOR GLOBAL</h1>
+    <h1 class="ts-title mg-title" style="margin:0;font:inherit;display:inline-flex"><svg class="mg-logo-icon" viewBox="0 0 128 128" aria-hidden="true" focusable="false"><rect width="128" height="128" rx="24" fill="#020816"/><circle cx="64" cy="64" r="56" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><circle cx="64" cy="64" r="38" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><circle cx="64" cy="64" r="20" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><path d="M64 64L64 8A56 56 0 0 1 103.6 24.4Z" fill="#38bdf8" opacity=".85"/><circle cx="64" cy="64" r="7" fill="#38bdf8"/></svg><span class="mg-logo-word">MONITOR GLOBAL</span></h1>
     <div class="live-indicator" id="ao-vivo-badge"><span class="av-radar" aria-hidden="true"><span class="av-ring"></span><span class="av-sweep"></span><span class="av-core"></span></span><span class="av-label">AO VIVO</span><span class="ts-clock" id="kpi-relogio">--:--:--</span></div>
     </div>
     <div class="ts-actions">
@@ -455,6 +458,7 @@
 
 <link rel="stylesheet" href="css/mobile-layout-lock.css">
 <link rel="stylesheet" href="css/ao-vivo-badge.css">
+<link rel="stylesheet" href="css/brand-logo.css">
 
 <script defer src="mg-volcano-flood-pt.js"></script>
 <script defer src="mg-volcano-flood-fetch.js"></script>
