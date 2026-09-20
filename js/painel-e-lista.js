@@ -1609,6 +1609,35 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     }
 }
 
+/* Rede de segurança pras duas funções acima: cada uma é uma sequência
+   longa e sem try/catch de "document.getElementById(...).innerHTML = ..."
+   — se QUALQUER passo no meio achar um elemento que não existe (ou uma
+   conta que dá NaN/undefined em algum caminho de dado incomum), o resto
+   nem chega a rodar, e o painel fica preso mostrando só o cabeçalho
+   ("ANÁLISE SÍSMICA...") que já tinha sido escrito antes de travar —
+   sem nenhum rastro do que quebrou. Em vez de reescrever essas funções
+   inteiras (arriscado sem conseguir reproduzir o gatilho real), só
+   embrulha as duas: captura o erro em window.__lastPainelDetalheError
+   (mesmo padrão de window.__lastSismoError etc., visível no
+   ?debug=1) pra da próxima vez dar pra achar a causa de verdade, em
+   vez de ficar só reportando "o card veio vazio". */
+(function () {
+  function wrapComRedeDeSeguranca(nomeFn) {
+    const original = window[nomeFn];
+    if (typeof original !== 'function') return;
+    window[nomeFn] = function (...args) {
+      try {
+        return original.apply(this, args);
+      } catch (e) {
+        window.__lastPainelDetalheError = `${nomeFn}: ${(e && e.stack) || e}`;
+        console.error(`${nomeFn} falhou:`, e);
+      }
+    };
+  }
+  wrapComRedeDeSeguranca('showEventDetails');
+  wrapComRedeDeSeguranca('showAlertDetails');
+})();
+
 /* ====== ✅ FIM DA PARTE 3 — cole a PARTE 4 logo abaixo ====== */
 
 /* ═══════════════ FAIXAS (KPIs + relógio + countdown) ═══════════════ */

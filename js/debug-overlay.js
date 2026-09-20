@@ -58,6 +58,8 @@
         `última tentativa de buscar sismos: ${window.__lastSismoAttempt ? new Date(window.__lastSismoAttempt).toLocaleTimeString('pt-BR') + ' (há ' + Math.round((Date.now()-window.__lastSismoAttempt)/1000) + 's)' : 'nunca'}\n` +
         `último sucesso completo: ${window.__lastSismoSuccess ? new Date(window.__lastSismoSuccess).toLocaleTimeString('pt-BR') + ' (há ' + Math.round((Date.now()-window.__lastSismoSuccess)/1000) + 's)' : 'nunca'}\n` +
         `último erro capturado: ${window.__lastSismoError || '(nenhum)'}\n` +
+        `─── PAINEL DE DETALHES (card "ANÁLISE SÍSMICA"/alerta) ───\n` +
+        `último erro ao popular o card: ${window.__lastPainelDetalheError || '(nenhum)'}\n` +
         `─── FONTES ───\n` + (linhas.join('\n') || '(nenhuma fonte reportou ainda)');
     }
     render();
