@@ -1152,22 +1152,27 @@ body.mg-clean-portrait #mapContainer { inset: 0 !important; height: 100% !import
     display:none !important;
   }
 
-  /* O FAB passa a ser parte real do cabeçalho. Só o ☰ aparece. */
+  /* O FAB passa a ser parte real do cabeçalho: áudio (liga/desliga) e ☰
+     aparecem lado a lado, igual ao desktop já tinha o botão de áudio
+     próprio (#btn-som-header) — só a geometria de verdade vem daqui e
+     de js/mobile-portrait-clean-toggle.js (inline !important sempre
+     vence, então esta regra é só o estado "antes do JS aplicar"). */
   body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar{
     position:static !important;
     display:flex !important;
-    flex:0 0 44px !important;
-    width:44px !important;
+    flex:0 0 88px !important;
+    width:88px !important;
     height:44px !important;
-    min-width:44px !important;
+    min-width:88px !important;
     min-height:44px !important;
     margin:0 !important;
     padding:0 !important;
-    gap:0 !important;
+    gap:8px !important;
     order:3 !important;
     z-index:500000 !important;
   }
-  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu{
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-audio{
     display:flex !important;
     position:static !important;
     width:44px !important;
@@ -1175,15 +1180,20 @@ body.mg-clean-portrait #mapContainer { inset: 0 !important; height: 100% !import
     min-width:44px !important;
     min-height:44px !important;
     margin:0 !important;
+    align-items:center !important;
+    justify-content:center !important;
   }
-  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-events,
-  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-audio{
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-events{
     display:none !important;
   }
 
-  /* Remove a sensação de "menu por cima": o botão ocupa seu próprio espaço. */
+  /* Remove a sensação de "menu por cima": os botões ocupam seu próprio espaço. */
   body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu{
     border-color:rgba(34,197,94,.45) !important;
+    background:rgba(2,8,22,.72) !important;
+    box-shadow:0 5px 16px rgba(0,0,0,.35) !important;
+  }
+  body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-audio{
     background:rgba(2,8,22,.72) !important;
     box-shadow:0 5px 16px rgba(0,0,0,.35) !important;
   }

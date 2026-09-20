@@ -36,7 +36,8 @@
 .mg-theme-dark body.mg-clean-portrait #latest-event-ticker {
   background: linear-gradient(135deg, rgba(28,58,92,.94), rgba(10,20,36,.97)) !important;
 }
-.mg-theme-dark body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu {
+.mg-theme-dark body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu,
+.mg-theme-dark body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-audio {
   background: linear-gradient(135deg, rgba(28,58,92,.94), rgba(10,20,36,.97)) !important;
 }
 

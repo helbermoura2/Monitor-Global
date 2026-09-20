@@ -223,13 +223,18 @@
     var fabMenu = document.getElementById('fab-menu');
     var fabEvents = document.getElementById('fab-events');
     var fabAudio = document.getElementById('fab-audio');
+    /* Largura pra caber 2 botões (áudio + menu) com um respiro entre eles
+       — antes só sobrava espaço pro ☰, igual ao desktop tinha o botão de
+       áudio (#btn-som-header) e o celular não tinha nenhum equivalente
+       visível (pedido do Helber). */
     setImp(fab, {display:'flex',position:'static',top:'auto',right:'auto',left:'auto',
-      bottom:'auto',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
-      flex:'0 0 40px',order:'3',gap:'0',margin:'0',padding:'0',zIndex:'500000'});
+      bottom:'auto',width:'88px',height:'40px','min-width':'88px','min-height':'40px',
+      flex:'0 0 88px',order:'3',gap:'8px',margin:'0',padding:'0',zIndex:'500000'});
     setImp(fabMenu, {display:'flex',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
       position:'static',margin:'0'});
     setImp(fabEvents, {display:'none'});
-    setImp(fabAudio, {display:'none'});
+    setImp(fabAudio, {display:'flex',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
+      position:'static',margin:'0','align-items':'center','justify-content':'center'});
 
     /* margin-top negativo (não zero) de propósito: garante que a faixa
        sobreponha o rodapé do cabeçalho em vez de só encostar nele. Com
