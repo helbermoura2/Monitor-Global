@@ -135,10 +135,12 @@
     }
     var b = $('ux-btn-sources') || $('ux-btn-legend') || $('ux-btn-settings');
     if (b) try { b.click(); } catch (e) {}
+    var temaEscuro = document.documentElement.classList.contains('mg-theme-dark');
     showFloat('Mais ferramentas',
       '<button type="button" id="mf-leg">ⓘ Legenda do mapa</button>' +
       '<button type="button" id="mf-set">🔔 Alertas</button>' +
       '<button type="button" id="mf-src">📡 Status das fontes</button>' +
+      '<button type="button" id="mf-theme">' + (temaEscuro ? '🌑 Visual: Escuro' : '🪟 Visual: Vidro') + '</button>' +
       '<button type="button" id="mf-tv">📺 Modo TV</button>'
     );
     $('mf-leg').onclick = function () {
@@ -152,6 +154,11 @@
     $('mf-src').onclick = function () {
       if (typeof window.__uxShow === 'function') window.__uxShow('sources');
       else $('ux-btn-sources')?.click();
+    };
+    $('mf-theme').onclick = function () {
+      if (typeof window.mgToggleTheme !== 'function') return;
+      var dark = window.mgToggleTheme();
+      this.textContent = dark ? '🌑 Visual: Escuro' : '🪟 Visual: Vidro';
     };
     $('mf-tv').onclick = function () {
       if (typeof window.toggleTvMode === 'function') window.toggleTvMode();
