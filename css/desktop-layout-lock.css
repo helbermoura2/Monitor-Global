@@ -118,21 +118,27 @@
      ter centenas rolando na lista ao mesmo tempo e o blur pesa na GPU.
      "#events" na frente é OBRIGATÓRIO — achado só agora com um script que
      lista todo mundo que bate no elemento e ordena por especificidade de
-     verdade: css/ui-motion.css tem ".event {...}" sem media query (afeta
-     desktop também) e carrega DEPOIS deste arquivo. Sem o prefixo, aquela
-     regra sempre ganhava o empate pela ordem — ou seja, os cards de
-     registro nunca chegaram a pegar esta cor em nenhum dos PRs anteriores
-     (#53-#60), apesar do resto do vidro (.event.active, painel, sidebar
-     etc.) estar correto o tempo todo. */
+     verdade: css/ui-motion.css tem "#events .event {...}" na MESMA
+     especificidade e carrega DEPOIS deste arquivo, então a versão de lá é
+     quem realmente vale (empate de !important e especificidade é
+     desempatado por ordem de carregamento) — os valores aqui embaixo
+     ficam só de referência/fallback, mantidos EM SINCRONIA manualmente
+     com os de lá pra não haver duas fontes de verdade divergentes.
+     Alpha baixa (.14/.18, era .30/.38) porque a sidebar empilha ESTE
+     fundo por cima do próprio fundo translúcido de #sidebar-left (linha
+     ~76 acima) — na alpha antiga, as duas camadas juntas ficavam bem
+     mais escuras/saturadas que o vidro de uma camada só do card
+     principal (#painel-direito), mesmo sendo "o mesmo material"
+     nominalmente. */
   #events .event {
-    background: linear-gradient(135deg, rgba(30,62,96,.30), rgba(12,24,42,.38)) !important;
+    background: linear-gradient(135deg, rgba(30,62,96,.14), rgba(12,24,42,.18)) !important;
     border: 1px solid rgba(255,255,255,.12) !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.07) !important;
     text-shadow: 0 1px 3px rgba(0,0,0,.7) !important;
   }
   #events .event.active {
-    background: linear-gradient(135deg, rgba(30,100,135,.32), rgba(12,44,64,.38)) !important;
+    background: linear-gradient(135deg, rgba(30,100,135,.18), rgba(12,44,64,.22)) !important;
   }
 
   /* Medalhão de ícone: mesmo desenho já usado na folha de registros do
