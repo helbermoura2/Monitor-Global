@@ -1140,21 +1140,27 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + 30000) : 30000);
     }
 
-    // Zona de alcance (crítico + sentido) só para sismo NOVO de verdade — seleção manual
-    // ou ciclo automático revisitando um evento antigo não mostra mais nada no mapa além
-    // do pontinho/rótulo padrão (.quake-dot/.quake-label), pra não poluir.
-    if (triggerVisualAlert) {
-        try {
-            clearTimeout(window.__mgRadarDelayT);
-            window.__mgRadarDelayT = setTimeout(() => {
-                try {
-                    if (eventoSelecionadoId !== item.id) return;
+    // Sismo NOVO de verdade ganha a zona de alcance real (crítico + sentido, "Onda
+    // Dupla") — sismo revisitado no ciclo automático ou selecionado manualmente ganha
+    // só a onda em cascata (mesmo efeito dos outros tipos de evento), pra sempre ter
+    // algo pulsando no epicentro em vez de só o pontinho parado.
+    try {
+        clearTimeout(window.__mgRadarDelayT);
+        window.__mgRadarDelayT = setTimeout(() => {
+            try {
+                if (eventoSelecionadoId !== item.id) return;
+                if (triggerVisualAlert) {
                     if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
-                } catch (e) {}
-            }, soft ? Math.max(2500, totalDur - 600) : 150);
-        } catch (e) {
-            try { startFeltZone(lng, lat, item.mag, item.depth); } catch (e2) {}
-        }
+                } else if (typeof startCascadeRipple === 'function') {
+                    startCascadeRipple(lng, lat, getHexColor(item.mag));
+                }
+            } catch (e) {}
+        }, soft ? Math.max(2500, totalDur - 600) : 150);
+    } catch (e) {
+        try {
+            if (triggerVisualAlert) startFeltZone(lng, lat, item.mag, item.depth);
+            else startCascadeRipple(lng, lat, getHexColor(item.mag));
+        } catch (e2) {}
     }
 }
 

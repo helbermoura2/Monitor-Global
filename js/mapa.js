@@ -539,6 +539,7 @@ function syncAllMarkers() {
 function startContinuousRadar(lng, lat, mag, corOverride) {
     stopContinuousRadar();
     stopCascadeRipple();
+    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
     if (!map) return;
     const cor = corOverride || getHexColor(mag);
     const mc = document.getElementById('mapContainer');
@@ -619,6 +620,7 @@ const RADAR_COR = {
 function startCascadeRipple(lng, lat, color) {
     stopContinuousRadar();
     stopCascadeRipple();
+    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
     if (!map) return;
     const mc = document.getElementById('mapContainer');
     const w = document.createElement('div');
