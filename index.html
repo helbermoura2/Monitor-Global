@@ -244,7 +244,16 @@
   </main>
 
   <aside id="painel-direito" class="pd-sev-none" onclick="alternarPainelDetalhesMobile()">
-    <div class="pd-fx-overlay" id="pd-fx-overlay" aria-hidden="true"></div>
+    <div class="pd-fx-overlay" id="pd-fx-overlay" aria-hidden="true">
+      <span class="pd-fx-ember pd-fx-ember-1" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-2" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-3" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-4" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-5" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-6" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-7" aria-hidden="true"></span>
+      <span class="pd-fx-ember pd-fx-ember-8" aria-hidden="true"></span>
+    </div>
     <div id="lightning-flash" aria-hidden="true"></div>
     <button id="painel-direito-close" onclick="event.stopPropagation();fecharPainelDetalhesMobile()" title="Fechar" aria-label="Fechar painel de detalhes">✕</button>
     <div class="pd-header-row">
@@ -258,14 +267,6 @@
     <div class="pd-chips" id="pd-chips" aria-label="Resumo da fonte"></div>
     <div class="pd-gauge-wrap" id="pd-gauge-wrap">
       <div class="pd-gauge-glow" id="pd-gauge-glow" aria-hidden="true"></div>
-      <span class="pd-fx-ember pd-fx-ember-1" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-2" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-3" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-4" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-5" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-6" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-7" aria-hidden="true"></span>
-      <span class="pd-fx-ember pd-fx-ember-8" aria-hidden="true"></span>
       <svg id="pd-gauge" viewBox="0 0 120 66">
         <path d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8" stroke-linecap="round"/>
         <path id="pd-gauge-arc" d="M10,60 A50,50 0 0 1 110,60" fill="none" stroke="#fb923c" stroke-width="8" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
