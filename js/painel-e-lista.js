@@ -1103,6 +1103,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         return;
     }
 
+    if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
+    if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag));
+
     // Zoom alvo + voo cinematográfico
     let zoomAlvo = 6.6;
     try {
@@ -1465,6 +1468,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     } catch (e) {}
 
     if (silentRefresh) return;
+
+    if (typeof triggerCardFx === 'function') triggerCardFx(item.type, cor);
 
     if (item.coords && map) {
         let zoomEvento = 6;
