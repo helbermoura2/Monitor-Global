@@ -16,18 +16,19 @@
   z-index: -1;
   pointer-events: none;
   opacity: 0;
+  border-radius: inherit;
 }
 .pd-fx-ember {
   position: absolute;
   left: 50%;
   bottom: 4%;
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   pointer-events: none;
   opacity: 0;
   background: var(--pd-fx-color, #f97316);
-  box-shadow: 0 0 10px 2px var(--pd-fx-color, #f97316);
+  box-shadow: 0 0 16px 4px var(--pd-fx-color, #f97316);
 }
 /* Espalhadas pela LARGURA e ALTURA inteiras do card (não mais um
    aglomerado de 27% no meio-baixo) — desde que #pd-fx-overlay passou a
@@ -35,20 +36,28 @@
    position:relative só da área do medidor/ícone: por isso o "fogo"
    nunca saía dali, mesmo com left indo de 37% a 64%. #pd-fx-overlay já
    é inset:0 dentro de #painel-direito, ou seja, essas mesmas
-   porcentagens agora cobrem o card todo de graça). */
-.pd-fx-ember-2 { left: 84%; bottom: 12%; width: 5px; height: 5px; }
-.pd-fx-ember-3 { left: 16%; bottom: 8%;  width: 6px; height: 6px; }
-.pd-fx-ember-4 { left: 68%; bottom: 22%; width: 4px; height: 4px; }
-.pd-fx-ember-5 { left: 32%; bottom: 18%; width: 5px; height: 5px; }
-.pd-fx-ember-6 { left: 92%; bottom: 30%; width: 5px; height: 5px; }
-.pd-fx-ember-7 { left: 8%;  bottom: 26%; width: 4px; height: 4px; }
-.pd-fx-ember-8 { left: 50%; bottom: 2%;  width: 6px; height: 6px; }
+   porcentagens agora cobrem o card todo de graça).
+   12 brasas (era 8) e brilho/tamanho maiores — usuário pediu "não
+   economiza", o efeito tinha que ficar bem mais visível, cobrindo o
+   card inteiro em vez de parecer só uns pontinhos passando. */
+.pd-fx-ember-2  { left: 84%; bottom: 12%; width: 6px; height: 6px; }
+.pd-fx-ember-3  { left: 16%; bottom: 8%;  width: 8px; height: 8px; }
+.pd-fx-ember-4  { left: 68%; bottom: 22%; width: 5px; height: 5px; }
+.pd-fx-ember-5  { left: 32%; bottom: 18%; width: 7px; height: 7px; }
+.pd-fx-ember-6  { left: 92%; bottom: 30%; width: 6px; height: 6px; }
+.pd-fx-ember-7  { left: 8%;  bottom: 26%; width: 5px; height: 5px; }
+.pd-fx-ember-8  { left: 50%; bottom: 2%;  width: 8px; height: 8px; }
+.pd-fx-ember-9  { left: 24%; bottom: 40%; width: 6px; height: 6px; }
+.pd-fx-ember-10 { left: 76%; bottom: 46%; width: 7px; height: 7px; }
+.pd-fx-ember-11 { left: 44%; bottom: 52%; width: 5px; height: 5px; }
+.pd-fx-ember-12 { left: 60%; bottom: 36%; width: 6px; height: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
   #painel-direito[class*="pd-fx-"] { animation: none !important; }
   #painel-direito[class*="pd-fx-"] .pd-fx-ember,
   #painel-direito[class*="pd-fx-"] #pd-fx-overlay,
   #painel-direito[class*="pd-fx-"] #pd-gauge-glow,
+  #painel-direito[class*="pd-fx-"] #lightning-flash,
   #painel-direito[class*="pd-fx-"] .pd-mag { animation: none !important; }
 }
 
@@ -119,46 +128,86 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
    brasa aumentada na mesma proporção pra manter a MESMA velocidade
    visual de subida (rápido demais nessa distância maior pareceria
    "voando", não subindo). */
-#painel-direito.pd-fx-fire .pd-fx-ember-1 { animation: pdEmberRise 3.2s ease-out infinite both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-2 { animation: pdEmberRise 3.8s ease-out infinite .3s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-3 { animation: pdEmberRise 2.8s ease-out infinite .5s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-4 { animation: pdEmberRise 4.2s ease-out infinite .15s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-5 { animation: pdEmberRise 3.4s ease-out infinite .65s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-6 { animation: pdEmberRise 4.6s ease-out infinite .9s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-7 { animation: pdEmberRise 3s ease-out infinite 1.1s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-8 { animation: pdEmberRise 4s ease-out infinite .45s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-1  { animation: pdEmberRise 3.2s ease-out infinite both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-2  { animation: pdEmberRise 3.8s ease-out infinite .3s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-3  { animation: pdEmberRise 2.8s ease-out infinite .5s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-4  { animation: pdEmberRise 4.2s ease-out infinite .15s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-5  { animation: pdEmberRise 3.4s ease-out infinite .65s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-6  { animation: pdEmberRise 4.6s ease-out infinite .9s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-7  { animation: pdEmberRise 3s ease-out infinite 1.1s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-8  { animation: pdEmberRise 4s ease-out infinite .45s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-9  { animation: pdEmberRise 3.6s ease-out infinite .75s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-10 { animation: pdEmberRise 4.4s ease-out infinite .2s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-11 { animation: pdEmberRise 3.1s ease-out infinite 1.3s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-12 { animation: pdEmberRise 4.8s ease-out infinite .6s both; }
 
-#painel-direito.pd-fx-volcano .pd-fx-ember-1 { animation: pdEmberRise 4.8s ease-out infinite both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-2 { animation: pdEmberRise 5.6s ease-out infinite .5s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-3 { animation: pdEmberRise 4.4s ease-out infinite .8s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-4 { animation: pdEmberRise 6s ease-out infinite .3s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-5 { animation: pdEmberRise 5.2s ease-out infinite 1s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-6 { animation: pdEmberRise 6.4s ease-out infinite .15s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-7 { animation: pdEmberRise 5s ease-out infinite 1.3s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-8 { animation: pdEmberRise 5.8s ease-out infinite .65s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-1  { animation: pdEmberRise 4.8s ease-out infinite both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-2  { animation: pdEmberRise 5.6s ease-out infinite .5s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-3  { animation: pdEmberRise 4.4s ease-out infinite .8s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-4  { animation: pdEmberRise 6s ease-out infinite .3s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-5  { animation: pdEmberRise 5.2s ease-out infinite 1s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-6  { animation: pdEmberRise 6.4s ease-out infinite .15s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-7  { animation: pdEmberRise 5s ease-out infinite 1.3s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-8  { animation: pdEmberRise 5.8s ease-out infinite .65s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-9  { animation: pdEmberRise 5.4s ease-out infinite 1.1s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-10 { animation: pdEmberRise 6.2s ease-out infinite .45s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-11 { animation: pdEmberRise 4.6s ease-out infinite 1.5s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-12 { animation: pdEmberRise 6.6s ease-out infinite .9s both; }
 
-/* Brilho de labareda no fundo do card inteiro, além das brasas — sem
-   isso, mesmo espalhadas, as brasas sozinhas ainda pareciam "pontinhos"
-   passando por cima do vidro normal, não o card "pegando fogo" de
-   verdade. Um gradiente radial quente subindo da base + leve tremelique
-   de opacidade (não parou de vez em 100% como o resto dos efeitos —
-   fogo de verdade não "acaba", tremula sem parar enquanto durar) dá o
-   clima por trás das brasas cobrindo o card visível inteiro. */
+/* Brilho de labareda cobrindo o card INTEIRO, não só o fundo — usuário
+   pediu "não economiza": elipse bem maior (170%/140%, era 140%/65%) que
+   estoura pra cima do topo do card de propósito, garantindo cor até a
+   borda de cima mesmo em cards bem altos; opacidade de pico quase
+   dobrada (.88, era .52) com um brilho pulsante na BORDA do card (inset
+   box-shadow, mesma técnica do giroflex de alerta civil abaixo — uma
+   animação normal nunca ganha do box-shadow !important do próprio
+   #painel-direito, por isso o pulso vai no #pd-fx-overlay) pra reforçar
+   a sensação de "card inteiro envolvido em fogo", não só um gradiente
+   decorativo no fundo. */
 @keyframes pdFireGlow {
-  0%, 100% { opacity: .30; }
-  50%      { opacity: .52; }
+  0%, 100% {
+    opacity: .55;
+    box-shadow: inset 0 0 70px 12px color-mix(in srgb, var(--pd-fx-color, #f97316) 40%, transparent);
+  }
+  50% {
+    opacity: .88;
+    box-shadow: inset 0 0 110px 22px color-mix(in srgb, var(--pd-fx-color, #f97316) 62%, transparent);
+  }
 }
 #painel-direito.pd-fx-fire #pd-fx-overlay,
 #painel-direito.pd-fx-volcano #pd-fx-overlay {
   background: radial-gradient(
-    ellipse 140% 65% at 50% 100%,
-    color-mix(in srgb, var(--pd-fx-color, #f97316) 60%, transparent) 0%,
-    color-mix(in srgb, var(--pd-fx-color, #f97316) 22%, transparent) 45%,
-    transparent 75%
+    ellipse 170% 140% at 50% 100%,
+    color-mix(in srgb, var(--pd-fx-color, #f97316) 78%, transparent) 0%,
+    color-mix(in srgb, var(--pd-fx-color, #f97316) 42%, transparent) 45%,
+    color-mix(in srgb, var(--pd-fx-color, #f97316) 16%, transparent) 75%,
+    transparent 100%
   );
   animation: pdFireGlow 2.2s ease-in-out infinite;
 }
 #painel-direito.pd-fx-volcano #pd-fx-overlay {
+  animation-duration: 3.4s;
+}
+/* #pd-fx-overlay fica ATRÁS de todo o conteúdo normal do card (z-index:-1,
+   de propósito — nunca tampar texto, ver comentário lá em cima). Num
+   card de verdade, cheio de chips/stats/caixinhas com fundo próprio, o
+   brilho de baixo só aparecia nos vãos vazios entre elas, não "no card
+   inteiro" como pedido. Reaproveita #lightning-flash (mesmo truque do
+   flash de tempestade abaixo: elemento que já existe, já cobre o card
+   inteiro e já fica ACIMA de tudo, z-index:999) como um véu bem sutil
+   por cima de todo o conteúdo — opacidade baixa o bastante pra nunca
+   atrapalhar a leitura do texto, mas presente em toda a superfície,
+   inclusive por cima das caixinhas de dados. */
+@keyframes pdFireWash {
+  0%, 100% { opacity: .20; }
+  50%      { opacity: .40; }
+}
+#painel-direito.pd-fx-fire #lightning-flash,
+#painel-direito.pd-fx-volcano #lightning-flash {
+  background: var(--pd-fx-color, #f97316);
+  animation: pdFireWash 2.2s ease-in-out infinite;
+}
+#painel-direito.pd-fx-volcano #lightning-flash {
   animation-duration: 3.4s;
 }
 
@@ -196,6 +245,44 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   );
   opacity: .55;
   animation: pdRainFall .5s linear infinite, pdFlash 2.4s ease-out 3;
+}
+/* Clarão de raio de verdade — usuário reportou que faltava esse flash
+   (só o filter:brightness acima, numa camada com 55% de opacidade
+   ATRÁS de todo o conteúdo, quase não se via). Reaproveita #lightning-
+   flash, elemento que já existe dentro de #painel-direito e já é
+   restrito ao card (não à tela toda, ver comentário no topo do
+   base.css) — só precisava de uma animação própria pra tempestade, em
+   vez de depender do gatilho JS (triggerLightningFlash, usado só na
+   rara "primeira vez que o alerta chega com a câmera voando"). Assim
+   dispara toda vez que o efeito de tempestade entra, igual às brasas do
+   fogo. 4 descargas em 10s, opacidade quase em 1 ("não economiza") —
+   bem mais forte que o clarão sutil de antes. */
+@keyframes pdStormFlash {
+  0%    { opacity: 0; }
+  1%    { opacity: 1; }
+  2.5%  { opacity: .1; }
+  4%    { opacity: .9; }
+  6%    { opacity: 0; }
+  24%   { opacity: 0; }
+  25%   { opacity: .95; }
+  26.5% { opacity: .12; }
+  28%   { opacity: .8; }
+  31%   { opacity: 0; }
+  48%   { opacity: 0; }
+  49%   { opacity: 1; }
+  50.5% { opacity: .1; }
+  52%   { opacity: .85; }
+  55%   { opacity: 0; }
+  72%   { opacity: 0; }
+  73%   { opacity: .9; }
+  74.5% { opacity: .12; }
+  76%   { opacity: .7; }
+  79%   { opacity: 0; }
+  100%  { opacity: 0; }
+}
+#painel-direito.pd-fx-storm #lightning-flash,
+#painel-direito.pd-fx-tornado #lightning-flash {
+  animation: pdStormFlash 10s ease-out;
 }
 
 /* 🌊 TSUNAMI — ondas atravessando o card, tipo "água" varrendo. */
