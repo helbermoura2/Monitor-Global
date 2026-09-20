@@ -621,6 +621,7 @@ function startCascadeRipple(lng, lat, color) {
     stopContinuousRadar();
     stopCascadeRipple();
     try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
     if (!map) return;
     const mc = document.getElementById('mapContainer');
     const w = document.createElement('div');
@@ -685,6 +686,7 @@ function triggerEventoMapaFx(item, corFallback) {
         const cor = RADAR_COR[item.type] || corFallback;
         if (item.type === 'hurricane') {
             startContinuousRadar(item.coords[0], item.coords[1], 5, cor);
+            if (typeof startHurricaneOfficialRoute === 'function') startHurricaneOfficialRoute(item);
         } else {
             startCascadeRipple(item.coords[0], item.coords[1], cor);
         }

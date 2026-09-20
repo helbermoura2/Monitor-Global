@@ -8,6 +8,21 @@
 // pra todo mundo com o site aberto se fosse interpolado sem escapar.
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
+// Callback de js/furacao-rota-oficial.js (async — o card já pode ter trocado
+// de evento quando a resposta chega, daí o check pelo data-event-id).
+function onHurricaneRouteStatus(status, forId) {
+    const el = document.getElementById('nhc-route-status');
+    if (!el || el.dataset.eventId !== forId) return;
+    if (status === 'oficial') {
+        el.innerHTML = '<span style="color:#e879f9">🛰️ Cone e trajetória oficiais do NHC no mapa</span>';
+    } else if (status === 'falhou') {
+        el.innerHTML = '<span style="color:#94a3b8">📐 Estimativa própria no mapa — não deu pra carregar o produto oficial do NHC agora</span>';
+    } else {
+        el.innerHTML = '<span style="color:#94a3b8">📐 Estimativa própria no mapa — sem cobertura oficial do NHC nesta bacia</span>';
+    }
+}
+try { window.onHurricaneRouteStatus = onHurricaneRouteStatus; } catch (e) {}
+
 function updateFreshnessBar() {
     try {
         const ago = function(ts) {
@@ -1259,19 +1274,35 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-energy').textContent = item.pressureMb != null
             ? `${item.pressureMb} hPa · ${item.source}`
             : item.source;
-        // Link cone oficial NHC se disponível
+        // Rota no mapa: tenta a trajetória + cone OFICIAL do NHC (produto GIS
+        // real, quando o furacão tem cobertura); enquanto isso não resolve —
+        // ou pra furacões fora da área do NHC — o mapa já mostra uma
+        // estimativa própria o tempo todo (ver js/furacao-rota-oficial.js).
         try {
             const box = document.getElementById('pd-cities') || document.querySelector('#painel-direito .bubble-section-content');
-            // coneUrl vem cru do feed do GDACS — só usa se for http(s) de verdade
-            // (evita "javascript:" ou quebra de atributo via aspas no valor).
-            if (item.coneUrl && box && /^https?:\/\//i.test(String(item.coneUrl))) {
-                const prev = document.getElementById('nhc-cone-link');
-                if (prev) prev.remove();
-                const a = document.createElement('div');
-                a.id = 'nhc-cone-link';
-                a.style.cssText = 'margin-top:8px;font-size:11px';
-                a.innerHTML = `<a href="${esc(item.coneUrl)}" target="_blank" rel="noopener" style="color:#a855f7;font-weight:700">🌀 Cone / trilha oficial NHC ↗</a>`;
-                box.parentNode && box.parentNode.appendChild(a);
+            if (box) {
+                const prevLink = document.getElementById('nhc-cone-link');
+                if (prevLink) prevLink.remove();
+                let statusEl = document.getElementById('nhc-route-status');
+                if (!statusEl) {
+                    statusEl = document.createElement('div');
+                    statusEl.id = 'nhc-route-status';
+                    statusEl.style.cssText = 'margin-top:8px;font-size:11px;font-weight:600';
+                    box.parentNode && box.parentNode.appendChild(statusEl);
+                }
+                statusEl.dataset.eventId = item.id;
+                statusEl.innerHTML = item.nhcId
+                    ? '<span style="color:#94a3b8">🛰️ Verificando cone oficial do NHC…</span>'
+                    : '<span style="color:#94a3b8">📐 Estimativa própria no mapa — sem cobertura oficial do NHC nesta bacia</span>';
+                // coneUrl vem cru do feed do GDACS — só usa se for http(s) de verdade
+                // (evita "javascript:" ou quebra de atributo via aspas no valor).
+                if (item.coneUrl && /^https?:\/\//i.test(String(item.coneUrl))) {
+                    const a = document.createElement('div');
+                    a.id = 'nhc-cone-link';
+                    a.style.cssText = 'margin-top:4px;font-size:11px';
+                    a.innerHTML = `<a href="${esc(item.coneUrl)}" target="_blank" rel="noopener" style="color:#a855f7;font-weight:700">🌀 Cone / trilha oficial NHC (baixar) ↗</a>`;
+                    statusEl.insertAdjacentElement('afterend', a);
+                }
             }
         } catch (e) {}
     } else if (item.type === 'storm' || item.type === 'wind') {

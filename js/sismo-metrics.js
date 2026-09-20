@@ -208,6 +208,7 @@ function startFeltZone(lng, lat, mag, depth) {
     stopFeltZone();
     try { if (typeof stopCascadeRipple === 'function') stopCascadeRipple(); } catch (e) {}
     try { if (typeof stopContinuousRadar === 'function') stopContinuousRadar(); } catch (e) {}
+    try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
     const host = document.getElementById('mapContainer');
     if (!host) return;
 
