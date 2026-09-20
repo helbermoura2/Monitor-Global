@@ -2,7 +2,11 @@
    Cada tipo tem sua própria animação em css/painel-fx.css (pd-fx-<tipo>),
    disparada só quando o usuário troca de evento de verdade — nunca em
    silentRefresh (revisão de magnitude etc.), senão o card "tremeria" de novo
-   sozinho a cada atualização periódica dos dados. */
+   sozinho a cada atualização periódica dos dados.
+   Duração da "janela" do efeito por tipo — o padrão é 7s, mas fogo/vulcão
+   (brasas) e enchente (maré subindo) pediram mais tempo pra dar pra notar
+   direito o efeito. */
+const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200 };
 function triggerCardFx(type, color) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
@@ -15,7 +19,7 @@ function triggerCardFx(type, color) {
     void el.offsetWidth;
     const cls = 'pd-fx-' + type;
     el.classList.add(cls);
-    el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, 7200);
+    el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
 
     if (type === 'hurricane') spinIcon(7000, 1080);
     else if (type === 'tornado') spinIcon(7000, 2160);
