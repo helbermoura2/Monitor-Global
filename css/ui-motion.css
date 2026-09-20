@@ -169,7 +169,14 @@ body.mobile-events-open .event {
     padding-top: 8px !important;
     padding-bottom: 6px !important;
   }
-  .event {
+  /* "#events" na frente é OBRIGATÓRIO — sem ele, esta regra (.event, uma
+     classe só) perdia pra "#events .event" de css/desktop-layout-lock.css
+     (ID + classe, especificidade maior) mesmo as duas tendo !important:
+     empate de importância é desempatado por especificidade antes de
+     olhar a ordem de carregamento. Resultado prático: o tint de
+     severidade nunca aparecia em nenhuma largura de desktop (901px+),
+     sempre coberto pelo fundo genérico do outro arquivo. */
+  #events .event {
     background:
       linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 8%, transparent), transparent 55%),
       linear-gradient(145deg, rgba(7,23,38,.92), rgba(4,14,24,.92)) !important;
