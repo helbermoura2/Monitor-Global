@@ -5,9 +5,35 @@
 .ts-clock, .ts-kpi-value, .ts-kpi-sub, .event-mag, .pd-mag, .stat-card-value, .mag-value, #vol-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .3px; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
-#lightning-flash { position: fixed; inset: 0; background: #eef4ff; opacity: 0; pointer-events: none; z-index: 99999; mix-blend-mode: screen; }
-@keyframes lightningFlash { 0%{opacity:0;} 6%{opacity:.9;} 12%{opacity:.05;} 20%{opacity:.6;} 28%{opacity:.02;} 38%{opacity:.35;} 50%{opacity:0;} 100%{opacity:0;} }
-.lightning-flash-active { animation: lightningFlash 0.9s ease-out; }
+/* mix-blend-mode removido: assim como o backdrop-filter sobre o canvas
+   WebGL do MapLibre (ver css/desktop-layout-lock.css), misturar com o que
+   está atrás é inconsistente entre navegador/GPU — em vários aparelhos o
+   "flash" simplesmente não aparecia. Um branco quase opaco pintado direto
+   já lê como relâmpago sem depender de blend nenhum, e funciona igual em
+   qualquer tela. Sequência de 13s (era 0.9s) com 3 "descargas" — cada uma
+   com um clarão duplo (tipo raio de verdade) — em vez de um clarão único. */
+#lightning-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 99999; }
+@keyframes lightningFlash {
+  0%    { opacity: 0; }
+  1%    { opacity: 1; }
+  2.5%  { opacity: .12; }
+  4%    { opacity: .95; }
+  6%    { opacity: 0; }
+  8%    { opacity: .5; }
+  10%   { opacity: 0; }
+  32%   { opacity: 0; }
+  33%   { opacity: .92; }
+  34.5% { opacity: .1; }
+  36%   { opacity: .8; }
+  38.5% { opacity: 0; }
+  62%   { opacity: 0; }
+  63%   { opacity: .85; }
+  64.5% { opacity: .08; }
+  66%   { opacity: .6; }
+  69%   { opacity: 0; }
+  100%  { opacity: 0; }
+}
+.lightning-flash-active { animation: lightningFlash 13s ease-out; }
 #vignette-cinematic { position: fixed; inset: 0; pointer-events: none; z-index: 9998; transition: box-shadow 1.2s ease; }
 .vignette-active { box-shadow: inset 0 0 180px rgba(0,0,0,0.55); }
 .ts-kpi-row { display: flex; align-items: baseline; gap: 7px; }
