@@ -1,0 +1,90 @@
+/* Modo "escuro sólido" — alternativa ao vidro translúcido (botão 🪟/🌑 no
+   cabeçalho, js/theme-toggle.js). Prefixa ".mg-theme-dark" em cada seletor
+   original do vidro (css/desktop-layout-lock.css, css/mobile-layout-lock.css,
+   css/mobile-late-patches.css) pra ganhar especificidade maior que a regra
+   original — assim funciona independente da ordem de carregamento das
+   folhas, sem precisar repetir o truque de nomear o arquivo por último.
+   A classe fica em <html> (setada de forma síncrona ainda no <head>, antes
+   do body existir, pra não piscar vidro por uma fração de segundo antes de
+   aplicar o escuro salvo em localStorage). */
+
+.mg-theme-dark #top-strip,
+.mg-theme-dark body.mg-clean-portrait #top-strip,
+.mg-theme-dark #latest-event-ticker,
+.mg-theme-dark body.mg-clean-portrait #latest-event-ticker {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.mg-theme-dark #top-strip,
+.mg-theme-dark body.mg-clean-portrait #top-strip {
+  background: linear-gradient(180deg, rgba(38,78,124,.94) 0%, rgba(10,22,40,.97) 100%) !important;
+}
+.mg-theme-dark #sidebar-left,
+.mg-theme-dark body.mobile-events-open #sidebar-left {
+  background: linear-gradient(160deg, rgba(28,66,102,.94) 0%, rgba(10,22,38,.97) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.mg-theme-dark #painel-direito,
+.mg-theme-dark body.mobile-details-mid #painel-direito,
+.mg-theme-dark body.mobile-details-open #painel-direito {
+  background: linear-gradient(160deg, rgba(46,84,132,.94) 0%, rgba(10,22,38,.97) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.mg-theme-dark #latest-event-ticker,
+.mg-theme-dark body.mg-clean-portrait #latest-event-ticker {
+  background: linear-gradient(135deg, rgba(28,58,92,.94), rgba(10,20,36,.97)) !important;
+}
+.mg-theme-dark body.mg-clean-portrait #top-strip > .ts-mainrow > #mobile-fab-bar #fab-menu {
+  background: linear-gradient(135deg, rgba(28,58,92,.94), rgba(10,20,36,.97)) !important;
+}
+
+.mg-theme-dark #events .event {
+  background: linear-gradient(135deg, rgba(30,62,96,.92), rgba(12,24,42,.95)) !important;
+}
+.mg-theme-dark #events .event.active {
+  background: linear-gradient(135deg, rgba(30,100,135,.92), rgba(12,44,64,.95)) !important;
+}
+.mg-theme-dark .chip {
+  background: linear-gradient(135deg, rgba(28,58,92,.90), rgba(10,20,36,.94)) !important;
+}
+.mg-theme-dark .chip.active {
+  background: linear-gradient(135deg, rgba(20,120,165,.92), rgba(10,60,88,.92)) !important;
+}
+.mg-theme-dark #freshness-bar {
+  background: linear-gradient(135deg, rgba(24,50,80,.90), rgba(8,16,30,.94)) !important;
+}
+.mg-theme-dark .stat-card,
+.mg-theme-dark #painel-direito .stat-card {
+  background: linear-gradient(160deg, rgba(24,52,84,.90), rgba(8,18,32,.94)) !important;
+}
+.mg-theme-dark .bubble-section,
+.mg-theme-dark #painel-direito .bubble-section {
+  background: linear-gradient(135deg, rgba(24,52,84,.90), rgba(8,18,32,.92)) !important;
+}
+.mg-theme-dark body #painel-direito .pd-header-row,
+.mg-theme-dark #painel-direito .pd-header-row {
+  background: linear-gradient(180deg, rgba(30,62,96,.92) 0%, rgba(14,28,46,.88) 78%, rgba(14,28,46,0) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.mg-theme-dark #painel-direito .pd-timeline {
+  background: linear-gradient(135deg, rgba(24,50,80,.90), rgba(8,16,30,.94)) !important;
+}
+.mg-theme-dark #painel-direito .pd-chip {
+  background: linear-gradient(135deg, rgba(26,54,86,.90), rgba(10,20,36,.94)) !important;
+}
+.mg-theme-dark .icon-btn,
+.mg-theme-dark .header-menu-trigger {
+  background: linear-gradient(135deg, rgba(28,58,92,.88), rgba(10,20,36,.92)) !important;
+}
+.mg-theme-dark .chips-scroll-btn {
+  background: linear-gradient(135deg, rgba(24,50,80,.88), rgba(8,16,30,.92)) !important;
+}
+.mg-theme-dark #painel-direito .source-trust-card {
+  background: linear-gradient(135deg, rgba(24,52,84,.85), rgba(8,18,32,.90)) !important;
+}
+.mg-theme-dark #painel-direito .source-trust-meta[style*="border-radius:6px"] {
+  background: linear-gradient(135deg, rgba(26,54,86,.80), rgba(10,20,36,.85)) !important;
+}
