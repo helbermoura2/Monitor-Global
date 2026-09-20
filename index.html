@@ -62,7 +62,7 @@
   <header id="top-strip">
     <div class="ts-mainrow">
     <h1 class="ts-title" style="margin:0;font:inherit;display:inline">🌐 MONITOR GLOBAL</h1>
-    <div class="live-indicator"><span class="live-dot"></span><span>AO VIVO</span></div>
+    <div class="live-indicator" id="ao-vivo-badge"><span class="av-radar" aria-hidden="true"><span class="av-ring"></span><span class="av-sweep"></span><span class="av-core"></span></span><span class="av-label">AO VIVO</span><span class="ts-clock" id="kpi-relogio">--:--:--</span></div>
     </div>
     <div class="ts-actions">
       <div class="header-menu-group" id="audio-menu-group"><button class="header-menu-trigger" type="button" aria-expanded="false" aria-controls="audio-menu">🔊 Áudio</button><div class="header-submenu" id="audio-menu" role="menu"><div class="header-submenu-title">ÁUDIO E ALERTAS</div><button class="submenu-action" id="btn-som" title="Ligar ou desligar som">🔊 Som <b>ativo</b></button><div class="ts-vol-wrap" id="ts-vol-wrap"><button class="submenu-action" id="ts-vol-toggle" title="Volume e tipos de alerta" onclick="toggleVolPanel()">🎚️ Volume e tipos</button><div class="ts-vol-panel" id="ts-vol-panel"><div class="ts-vol-row"><span>Volume</span><input type="range" id="vol-slider" min="0" max="100" value="70" oninput="setSomVolume(this.value)"><span id="vol-value">70%</span></div><div class="ts-vol-label">Silenciar por tipo</div><div class="ts-vol-chips"><button class="chip chip-som" data-tipo="quake" title="Sismos" aria-label="Silenciar sismos">🌍</button><button class="chip chip-som" data-tipo="fire" title="Incêndios" aria-label="Silenciar incêndios">🔥</button><button class="chip chip-som" data-tipo="storm" title="Tempestades" aria-label="Silenciar tempestades">⚡</button><button class="chip chip-som" data-tipo="hurricane" title="Furacões/Ciclones" aria-label="Silenciar furacões e ciclones">🌀</button><button class="chip chip-som" data-tipo="tornado" title="Tornados" aria-label="Silenciar tornados">🌪️</button><button class="chip chip-som" data-tipo="tsunami" title="Tsunamis" aria-label="Silenciar tsunamis">🌊</button><button class="chip chip-som" data-tipo="volcano" title="Vulcões" aria-label="Silenciar vulcões">🌋</button><button class="chip chip-som" data-tipo="civil" title="Defesa Civil" aria-label="Silenciar defesa civil">🚨</button><button class="chip chip-som" data-tipo="wind" title="Vento" aria-label="Silenciar vento">💨</button><button class="chip chip-som" data-tipo="flood" title="Enchentes" aria-label="Silenciar enchentes">💧</button></div></div></div><button class="submenu-action" id="btn-teste" title="Testar sons">🔔 Testar sons</button>
@@ -75,7 +75,7 @@
     <div class="ts-kpis">
       <div class="ts-kpi" id="kpibox-eventos"><span class="ts-kpi-label">REGISTROS 24H</span><span class="ts-kpi-value" id="kpi-eventos">--</span></div>
       <div class="ts-kpi" id="kpibox-maior"><span class="ts-kpi-label">MAIOR</span><span class="ts-kpi-value c-high" id="kpi-maior">--</span></div>
-      <button type="button" id="btn-som-header" class="btn-som-header" title="Alertas: M6+ têm voz; M5.9 ou menor têm apenas som" aria-label="Alertas: M6+ têm voz; M5.9 ou menor têm apenas som">🔊</button><div class="ts-clock" id="kpi-relogio">--:--:--</div><div class="ts-kpi" id="kpibox-brent"><span class="ts-kpi-label" id="kpi-brent-label">🛢️ BRENT</span><span class="ts-kpi-value" id="kpi-brent">--</span></div><button type="button" id="btn-radar-header" class="btn-radar-header active" title="Radar de precipitação em tempo real (RainViewer)" aria-label="Ligar ou desligar radar de precipitação">🌧️</button>
+      <button type="button" id="btn-som-header" class="btn-som-header" title="Alertas: M6+ têm voz; M5.9 ou menor têm apenas som" aria-label="Alertas: M6+ têm voz; M5.9 ou menor têm apenas som">🔊</button><div class="ts-kpi" id="kpibox-brent"><span class="ts-kpi-label" id="kpi-brent-label">🛢️ BRENT</span><span class="ts-kpi-value" id="kpi-brent">--</span></div><button type="button" id="btn-radar-header" class="btn-radar-header active" title="Radar de precipitação em tempo real (RainViewer)" aria-label="Ligar ou desligar radar de precipitação">🌧️</button>
       <div class="ts-kpi" id="kpibox-sp"><span class="ts-kpi-label">📍 <span id="sp-city-name">--</span></span><span class="mg-wx-icon" id="kpi-wx-icon" aria-hidden="true">--</span><div class="ts-kpi-row"><span class="ts-kpi-value" id="kpi-temp">--</span><span class="ts-kpi-sub" id="kpi-feels">sens --</span></div><span class="mg-wind" id="kpi-wind" title="Vento (rajada)">💨 --</span></div>
     </div>
     <div class="ts-meta" id="ts-meta">
@@ -454,6 +454,7 @@
 <script defer src="js/ui-motion.js"></script>
 
 <link rel="stylesheet" href="css/mobile-layout-lock.css">
+<link rel="stylesheet" href="css/ao-vivo-badge.css">
 
 <script defer src="mg-volcano-flood-pt.js"></script>
 <script defer src="mg-volcano-flood-fetch.js"></script>

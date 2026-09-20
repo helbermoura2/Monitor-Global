@@ -216,8 +216,9 @@
     setImp(e.kpiBrent, {order:'2',display:'flex','flex-direction':'row','align-items':'center',gap:'4px',
       position:'static',width:'auto','min-width':'0','max-width':'none',flex:'0 0 auto',margin:'0',
       'padding-left':'10px','border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});
-    setImp(e.clock, {order:'3',display:'flex','align-items':'center',position:'static',width:'auto','max-width':'none',
-      flex:'0 0 auto',margin:'0','padding-left':'10px','border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});
+    /* O relógio (#kpi-relogio) saiu da fileira de KPIs — agora mora dentro
+       do selo "AO VIVO" (#top-strip .live-indicator), estilizado em
+       css/ao-vivo-badge.css. Nada a fazer com ele aqui. */
 
     var fab = document.getElementById('mobile-fab-bar');
     var fabMenu = document.getElementById('fab-menu');
