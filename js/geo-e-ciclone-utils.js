@@ -129,7 +129,6 @@ const dicionarioBandeiras = {
     "são vicente e granadinas":"🇻🇨","saint vincent":"🇻🇨",
     "antígua e barbuda":"🇦🇬","antigua":"🇦🇬",
     "são cristóvão e nevis":"🇰🇳","saint kitts":"🇰🇳",
-    "oceano":"🌊","ocean":"🌊","mar":"🌊","sea":"🌊",
 
 };
 

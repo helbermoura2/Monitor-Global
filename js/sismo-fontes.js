@@ -472,7 +472,16 @@ function mergeEarthquakeReports(reports) {
         const g=groups[hit];
         g.reports.push(ev);
         if(!g.sources.includes(ev.source)) g.sources.push(ev.source);
-        g.magnitudes.push({source:ev.source,mag:ev.mag});
+        // Uma agência nunca deve aparecer 2x na lista de magnitudes de UM
+        // evento — se aparece, é sinal de que dois sismos DIFERENTES (comum
+        // em enxames, ex. Porto Rico/Guánica) foram fundidos num card só,
+        // não de que a mesma agência "atualizou" o valor (revisão de
+        // magnitude já é tratada à parte, via Object.assign abaixo). Corrige
+        // a entrada existente da mesma fonte em vez de empilhar mais uma.
+        const srcNormLocal = (s) => (s === 'USGS-RT' ? 'USGS' : s);
+        const existingMag = g.magnitudes.find(m => srcNormLocal(m.source) === srcNormLocal(ev.source));
+        if (existingMag) existingMag.mag = ev.mag;
+        else g.magnitudes.push({source:ev.source,mag:ev.mag});
         g.magnitudeMin=Math.min(g.magnitudeMin,ev.mag);
         g.magnitudeMax=Math.max(g.magnitudeMax,ev.mag);
         g.magnitudeSpread=g.magnitudeMax-g.magnitudeMin;
