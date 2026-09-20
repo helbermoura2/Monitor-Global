@@ -142,12 +142,13 @@
       'max-width':'none',flex:'0 0 auto',margin:'0','padding-left':'10px',
       'border-left':'1px solid rgba(72,216,255,.14)','white-space':'nowrap'});
     setImp(e.fab, {display:'flex',position:'static',top:'auto',right:'auto',left:'auto',bottom:'auto',
-      width:'40px',height:'40px','min-width':'40px','min-height':'40px',flex:'0 0 40px',order:'3',
-      gap:'0',margin:'0',padding:'0'});
+      width:'88px',height:'40px','min-width':'88px','min-height':'40px',flex:'0 0 88px',order:'3',
+      gap:'8px',margin:'0',padding:'0'});
     setImp(e.fabMenu, {display:'flex',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
       position:'static',margin:'0'});
     setImp(e.fabEvents, {display:'none'});
-    setImp(e.fabAudio, {display:'none'});
+    setImp(e.fabAudio, {display:'flex',width:'40px',height:'40px','min-width':'40px','min-height':'40px',
+      position:'static',margin:'0','align-items':'center','justify-content':'center'});
     setImp(e.meta, {display:'none'});
     setImp(e.mobileWeatherMini, {display:'none'});
     /* Faixa full-bleed (margin lateral -14px cancela o padding do
