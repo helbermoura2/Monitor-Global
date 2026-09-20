@@ -538,6 +538,7 @@ function syncAllMarkers() {
 /* ============================ RADAR PULSANTE ============================ */
 function startContinuousRadar(lng, lat, mag, corOverride) {
     stopContinuousRadar();
+    stopCascadeRipple();
     if (!map) return;
     const cor = corOverride || getHexColor(mag);
     const mc = document.getElementById('mapContainer');
@@ -599,6 +600,92 @@ const RADAR_COR = {
     tsunami: '#38bdf8',
     storm: '#facc15',
     fire: '#f97316',
-    civil: '#e11d48'
+    civil: '#e11d48',
+    wind: '#5eead4',
+    flood: '#0ea5e9',
+    volcano: '#dc2626'
 };
+
+/* ============================ ONDAS EM CASCATA ============================
+   Substitui o radar de anel único (startContinuousRadar) pra todo tipo de
+   alerta MENOS furacão/ciclone (que segue com o radar simples por enquanto,
+   até decidirmos como mostrar a rota prevista) e sismo (que tem seu próprio
+   sistema, ver startFeltZone em sismo-metrics.js). 3 ondas finas saem em
+   sequência (delay escalonado) em vez de um anel duro solitário — mesma
+   ideia de "Ondas em Cascata" já usada como referência de design pro
+   marcador de epicentro. Fica rodando enquanto esse evento for o
+   selecionado/exibido (novo ou revisitado no ciclo automático), substituído
+   assim que outro evento tomar seu lugar — nunca mais de um por vez. */
+function startCascadeRipple(lng, lat, color) {
+    stopContinuousRadar();
+    stopCascadeRipple();
+    if (!map) return;
+    const mc = document.getElementById('mapContainer');
+    const w = document.createElement('div');
+    w.className = 'cascade-wrap';
+    w.style.cssText = 'position:absolute;left:0;top:0;z-index:9999;pointer-events:none;';
+    mc.appendChild(w);
+
+    const core = document.createElement('div');
+    core.className = 'cascade-core';
+    core.style.background = color;
+    core.style.boxShadow = `0 0 10px ${color},0 0 20px ${color}`;
+    w.appendChild(core);
+
+    ['', 'r2', 'r3'].forEach(cls => {
+        const r = document.createElement('div');
+        r.className = 'cascade-ring' + (cls ? ' ' + cls : '');
+        r.style.borderColor = color;
+        r.style.boxShadow = `0 0 6px 0 ${color}`;
+        w.appendChild(r);
+    });
+
+    let _cascadeRaf = 0;
+    const updCore = () => {
+        if (!map) return;
+        const pt = map.project([lng, lat]);
+        if (pt) {
+            w.style.left = pt.x + 'px';
+            w.style.top = pt.y + 'px';
+        }
+    };
+    const upd = () => {
+        if (_cascadeRaf) return;
+        _cascadeRaf = requestAnimationFrame(() => {
+            _cascadeRaf = 0;
+            updCore();
+        });
+    };
+    setTimeout(updCore, 50);
+    map.on('move', upd);
+    map.on('zoom', upd);
+    currentCascade = { wrapper: w, h: upd };
+}
+
+function stopCascadeRipple() {
+    if (currentCascade) {
+        if (map) {
+            map.off('move', currentCascade.h);
+            map.off('zoom', currentCascade.h);
+        }
+        if (currentCascade.wrapper.parentNode) {
+            currentCascade.wrapper.parentNode.removeChild(currentCascade.wrapper);
+        }
+        currentCascade = null;
+    }
+}
+
+/* Escolhe o efeito certo por tipo — furacão/ciclone mantém o radar simples
+   de sempre (RADAR_COR), os demais tipos (menos sismo, tratado à parte)
+   ganham a onda em cascata. */
+function triggerEventoMapaFx(item, corFallback) {
+    try {
+        const cor = RADAR_COR[item.type] || corFallback;
+        if (item.type === 'hurricane') {
+            startContinuousRadar(item.coords[0], item.coords[1], 5, cor);
+        } else {
+            startCascadeRipple(item.coords[0], item.coords[1], cor);
+        }
+    } catch (e) {}
+}
 /* ====== ✅ FIM DA PARTE 2 — cole a PARTE 3 logo abaixo ====== */

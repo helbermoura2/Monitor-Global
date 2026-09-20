@@ -1531,16 +1531,26 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                 clearTimeout(window.__mgRadarDelayT);
                 window.__mgRadarDelayT = setTimeout(() => {
                     if (eventoSelecionadoId !== item.id) return;
-                    startContinuousRadar(item.coords[0], item.coords[1], 5, RADAR_COR[item.type] || cor);
+                    triggerEventoMapaFx(item, cor);
                 }, 2500);
             } catch (e) {
-                startContinuousRadar(item.coords[0], item.coords[1], 5, RADAR_COR[item.type] || cor);
+                triggerEventoMapaFx(item, cor);
             }
         } else {
-            // Seleção manual/ciclo revisitando um alerta antigo — sem anel no mapa
-            // (só o voo da câmera), mesma regra do sismo: radar só pra evento novo.
+            // Ciclo automático revisitando (ou seleção manual de) um alerta —
+            // continua mostrando o efeito no mapa (onda em cascata/radar do
+            // furacão), só o sismo é que fica reservado pra quando é novo.
             const totalDur = softFlyToCoords(item.coords[0], item.coords[1], zA, softA);
             scheduleNextAutoCycle(softA ? (totalDur + 30000) : 30000);
+            try {
+                clearTimeout(window.__mgRadarDelayT);
+                window.__mgRadarDelayT = setTimeout(() => {
+                    if (eventoSelecionadoId !== item.id) return;
+                    triggerEventoMapaFx(item, cor);
+                }, softA ? Math.max(2000, totalDur - 800) : 200);
+            } catch (e) {
+                triggerEventoMapaFx(item, cor);
+            }
         }
     } else {
         scheduleNextAutoCycle(30000);

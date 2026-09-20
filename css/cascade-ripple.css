@@ -1,0 +1,40 @@
+/* "Ondas em Cascata" — efeito de marcador no mapa pra evento em destaque (novo
+   ou revisitado no ciclo automático), pra todo tipo MENOS sismo (tem seu
+   próprio sistema, css/felt-zone.css) e furacão/ciclone (segue com o radar
+   de anel único por enquanto). Disparado por startCascadeRipple/
+   stopCascadeRipple em js/mapa.js. 3 ondas finas e desfocadas saem em
+   sequência (delay escalonado), tipo pedra caindo n'água, em vez de um anel
+   duro solitário — roda em loop enquanto esse evento for o exibido. */
+.cascade-core {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  z-index: 10000;
+}
+.cascade-ring {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  margin-top: -9px;
+  border: 1.5px solid;
+  border-radius: 50%;
+  filter: blur(.4px);
+  opacity: 0;
+  animation: cascadeRipple 2.7s cubic-bezier(.2,.6,.35,1) infinite;
+}
+.cascade-ring.r2 { animation-delay: .9s; }
+.cascade-ring.r3 { animation-delay: 1.8s; }
+
+@keyframes cascadeRipple {
+  0%   { transform: scale(.4); opacity: .85; }
+  100% { transform: scale(5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cascade-ring { animation: none !important; opacity: .5 !important; }
+}
