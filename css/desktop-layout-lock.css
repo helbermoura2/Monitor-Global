@@ -39,7 +39,7 @@
     left: 0 !important;
     right: 0 !important;
     z-index: 30 !important;
-    background: linear-gradient(180deg, rgba(38,78,124,.58) 0%, rgba(10,22,40,.78) 100%) !important;
+    background: linear-gradient(180deg, rgba(38,78,124,.30) 0%, rgba(10,22,40,.40) 100%) !important;
     backdrop-filter: blur(28px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
     border-bottom: 1px solid rgba(255,255,255,.14) !important;
@@ -68,7 +68,7 @@
     max-height: none !important;
     z-index: 20 !important;
     padding-top: 0 !important;
-    background: linear-gradient(160deg, rgba(28,66,102,.56) 0%, rgba(10,22,38,.78) 100%) !important;
+    background: linear-gradient(160deg, rgba(28,66,102,.39) 0%, rgba(10,22,38,.52) 100%) !important;
     backdrop-filter: blur(28px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
     border: 1px solid rgba(255,255,255,.14) !important;
@@ -90,7 +90,7 @@
     margin: 0 !important;
     overflow-y: auto !important;
     padding: 16px !important;
-    background: linear-gradient(160deg, rgba(46,84,132,.56) 0%, rgba(10,22,38,.78) 100%) !important;
+    background: linear-gradient(160deg, rgba(46,84,132,.39) 0%, rgba(10,22,38,.52) 100%) !important;
     backdrop-filter: blur(28px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
     border: 1px solid rgba(255,255,255,.14) !important;
@@ -120,14 +120,14 @@
      (#53-#60), apesar do resto do vidro (.event.active, painel, sidebar
      etc.) estar correto o tempo todo. */
   #events .event {
-    background: linear-gradient(135deg, rgba(30,62,96,.40), rgba(12,24,42,.52)) !important;
+    background: linear-gradient(135deg, rgba(30,62,96,.30), rgba(12,24,42,.38)) !important;
     border: 1px solid rgba(255,255,255,.12) !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.07) !important;
     text-shadow: 0 1px 3px rgba(0,0,0,.7) !important;
   }
   #events .event.active {
-    background: linear-gradient(135deg, rgba(30,100,135,.42), rgba(12,44,64,.50)) !important;
+    background: linear-gradient(135deg, rgba(30,100,135,.32), rgba(12,44,64,.38)) !important;
   }
 
   /* Medalhão de ícone: mesmo desenho já usado na folha de registros do
@@ -189,19 +189,19 @@
      (sem :not() nem remover a cor de estado dos badges coloridos), pra
      manter legibilidade e ainda deixar o mapa aparecer por trás. */
   .chip {
-    background: linear-gradient(135deg, rgba(28,58,92,.45), rgba(10,20,36,.55)) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.34), rgba(10,20,36,.40)) !important;
   }
   .chip.active {
-    background: linear-gradient(135deg, rgba(20,120,165,.65), rgba(10,60,88,.65)) !important;
+    background: linear-gradient(135deg, rgba(20,120,165,.49), rgba(10,60,88,.49)) !important;
   }
   #freshness-bar {
-    background: linear-gradient(135deg, rgba(24,50,80,.38), rgba(8,16,30,.48)) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.29), rgba(8,16,30,.35)) !important;
   }
   .stat-card {
-    background: linear-gradient(160deg, rgba(24,52,84,.36), rgba(8,18,32,.46)) !important;
+    background: linear-gradient(160deg, rgba(24,52,84,.27), rgba(8,18,32,.34)) !important;
   }
   .bubble-section {
-    background: linear-gradient(135deg, rgba(24,52,84,.36), rgba(8,18,32,.42)) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.27), rgba(8,18,32,.31)) !important;
   }
   /* "body" na frente é de propósito — css/intensity-filters.css define
      #painel-direito .pd-header-row (sem media query, afeta mobile também)
@@ -210,7 +210,7 @@
      maior, então esta regra (só desktop, min-width:901px) sempre vence
      aqui, sem mexer no visual do cabeçalho sticky no mobile. */
   body #painel-direito .pd-header-row {
-    background: linear-gradient(180deg, rgba(30,62,96,.55) 0%, rgba(14,28,46,.42) 78%, rgba(14,28,46,0) 100%) !important;
+    background: linear-gradient(180deg, rgba(30,62,96,.40) 0%, rgba(14,28,46,.31) 78%, rgba(14,28,46,0) 100%) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
   }
@@ -221,10 +221,10 @@
      de carregamento. Com o ID na frente, a especificidade maior garante
      que esta regra vença independente da ordem. */
   #painel-direito .pd-timeline {
-    background: linear-gradient(135deg, rgba(24,50,80,.38), rgba(8,16,30,.46)) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.29), rgba(8,16,30,.34)) !important;
   }
   #painel-direito .pd-chip {
-    background: linear-gradient(135deg, rgba(26,54,86,.40), rgba(10,20,36,.50)) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.30), rgba(10,20,36,.36)) !important;
   }
 
   /* Ícones do cabeçalho (áudio, mais menu, setas de scroll dos chips) e o
@@ -235,13 +235,13 @@
      escopado só pro desktop. */
   .icon-btn,
   .header-menu-trigger {
-    background: linear-gradient(135deg, rgba(28,58,92,.42), rgba(10,20,36,.52)) !important;
+    background: linear-gradient(135deg, rgba(28,58,92,.31), rgba(10,20,36,.38)) !important;
   }
   .chips-scroll-btn {
-    background: linear-gradient(135deg, rgba(24,50,80,.42), rgba(8,16,30,.52)) !important;
+    background: linear-gradient(135deg, rgba(24,50,80,.31), rgba(8,16,30,.38)) !important;
   }
   #painel-direito .source-trust-card {
-    background: linear-gradient(135deg, rgba(24,52,84,.34), rgba(8,18,32,.44)) !important;
+    background: linear-gradient(135deg, rgba(24,52,84,.26), rgba(8,18,32,.33)) !important;
   }
   /* Dentro do card de confiança, só a sub-caixa "DADO DA FONTE/ESTIMATIVA
      DO APP" tem fundo inline (definido em js/confianca-fontes.js) — as
@@ -249,7 +249,7 @@
      o seletor mira só quem tem o border-radius inline dessa sub-caixa
      específica, sem criar um retângulo em cada linha de texto solta. */
   #painel-direito .source-trust-meta[style*="border-radius:6px"] {
-    background: linear-gradient(135deg, rgba(26,54,86,.30), rgba(10,20,36,.38)) !important;
+    background: linear-gradient(135deg, rgba(26,54,86,.23), rgba(10,20,36,.29)) !important;
   }
 }
 /* A partir de 1101px o cabeçalho cabe numa altura menor (o slider/KPIs não
