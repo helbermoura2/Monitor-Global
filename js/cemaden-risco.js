@@ -425,7 +425,7 @@ function renderRedemetLayer() {
 }
 
 const PRO={radar:true,follow:true,replay:false,speed:1,timer:null,events:[],idx:0,radarLayer:false,sourceState:{}};
-const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe',GDACS:'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com',EONET:'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com',CEMADEN:'https://painelalertas.cemaden.gov.br',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br'};
+const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe',GDACS:'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com',EONET:'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com',CEMADEN:'https://painelalertas.cemaden.gov.br',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br','CSN-Chile':'https://api.gael.cloud','SSN-Mexico':'https://www.ssn.unam.mx'};
 function q(id){return document.getElementById(id)}
 function safeText(id,v){const e=q(id);if(e)e.textContent=v==null?'--':v}
 // Fontes sísmicas REGIONAIS (rede nacional de um país específico): quando
@@ -441,7 +441,9 @@ const REGIONAL_SEISMIC_FALLBACK = {
   GEONET: 'Nova Zelândia — USGS/EMSC seguem cobrindo a região',
   FUNVISIS: 'Venezuela — USGS/EMSC seguem cobrindo a região',
   USP: 'Brasil — USGS/EMSC seguem cobrindo a região',
-  AFAD: 'Turquia — USGS/EMSC seguem cobrindo a região'
+  AFAD: 'Turquia — USGS/EMSC seguem cobrindo a região',
+  'CSN-Chile': 'Chile — USGS/EMSC seguem cobrindo a região',
+  'SSN-Mexico': 'México — USGS/EMSC seguem cobrindo a região'
 };
 function setSource(name,status,ms,error){
   // 2 falhas seguidas → OFF; 1 falha → LENTO. Sucesso zera.
@@ -520,6 +522,8 @@ async function checkSources(){
     // "/api/sismos/recent?limit=N" quando "/api/sismos" sozinho vem vazio —
     // o teste de status usava só o primeiro, que é o caminho menos confiável.
     pingSource('FUNVISIS',viaWorker(SRC.FUNVISIS+'/api/sismos/recent?limit=5')),
+    pingSource('CSN-Chile',viaWorker(SRC['CSN-Chile']+'/general/public/sismos')),
+    pingSource('SSN-Mexico',viaWorker(SRC['SSN-Mexico']+'/sismicidad/ultimos-utc/')),
     pingSource('CPTEC',viaWorker(SRC.CPTEC+'/XML/capitais/condicoesAtuais.xml')),
     pingSource('INPE',viaWorker(SRC.INPE+'/queimadas/queimadas/focos/csv/10min/')),
     pingSource('CGE',viaWorker(SRC.CGE+'/v3/alagamentos.jsp'))

@@ -28,6 +28,8 @@ const ALLOWED_HOSTS = [
     'api.orhanaydogdu.com.tr',
     'deprem-api.vercel.app',
     'sismosve.rafnixg.dev', // FUNVISIS (espelho comunitário dos boletins oficiais)
+    'api.gael.cloud', // CSN Chile
+    'www.ssn.unam.mx', // SSN México
     'www.nhc.noaa.gov',
     'www.tsunami.gov',
     'overpass-api.de',
