@@ -134,7 +134,6 @@ function applyFilters() {
     } catch (e) { console.error('[monitor] fabCount falhou:', e); }
 
     try { syncAllMarkers(); } catch (e) { console.error('[monitor] syncAllMarkers falhou:', e); }
-    try { updateFeltRadiusLayer(); } catch (e) { console.error('[monitor] updateFeltRadiusLayer falhou:', e); }
     try { updateQuakeLabels(); } catch (e) { console.error('[monitor] updateQuakeLabels falhou:', e); }
     try { updateFreshnessBar(); } catch (e) {}
 }
@@ -1141,17 +1140,21 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + 30000) : 30000);
     }
 
-    // Radar só perto do fim do voo
-    try {
-        clearTimeout(window.__mgRadarDelayT);
-        window.__mgRadarDelayT = setTimeout(() => {
-            try {
-                if (eventoSelecionadoId !== item.id) return;
-                startContinuousRadar(lng, lat, item.mag);
-            } catch (e) {}
-        }, soft ? Math.max(2500, totalDur - 600) : 150);
-    } catch (e) {
-        try { startContinuousRadar(lng, lat, item.mag); } catch (e2) {}
+    // Zona de alcance (crítico + sentido) só para sismo NOVO de verdade — seleção manual
+    // ou ciclo automático revisitando um evento antigo não mostra mais nada no mapa além
+    // do pontinho/rótulo padrão (.quake-dot/.quake-label), pra não poluir.
+    if (triggerVisualAlert) {
+        try {
+            clearTimeout(window.__mgRadarDelayT);
+            window.__mgRadarDelayT = setTimeout(() => {
+                try {
+                    if (eventoSelecionadoId !== item.id) return;
+                    if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
+                } catch (e) {}
+            }, soft ? Math.max(2500, totalDur - 600) : 150);
+        } catch (e) {
+            try { startFeltZone(lng, lat, item.mag, item.depth); } catch (e2) {}
+        }
     }
 }
 
@@ -1176,7 +1179,8 @@ function focarEventoNoMapa() {
             duration: 1200,
             essential: true
         });
-        try { startContinuousRadar(lng, lat, item.mag != null ? item.mag : 5, (typeof RADAR_COR !== 'undefined' && RADAR_COR[item.type]) || null); } catch (e) {}
+        // "Centralizar no epicentro" é ação manual — sem anel/zona no mapa, só o voo
+        // (o pontinho/rótulo do evento já fica visível o tempo todo via .quake-dot).
     } catch (e) { console.warn('[foco]', e); }
 }
 try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
@@ -1533,17 +1537,10 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                 startContinuousRadar(item.coords[0], item.coords[1], 5, RADAR_COR[item.type] || cor);
             }
         } else {
+            // Seleção manual/ciclo revisitando um alerta antigo — sem anel no mapa
+            // (só o voo da câmera), mesma regra do sismo: radar só pra evento novo.
             const totalDur = softFlyToCoords(item.coords[0], item.coords[1], zA, softA);
             scheduleNextAutoCycle(softA ? (totalDur + 30000) : 30000);
-            try {
-                clearTimeout(window.__mgRadarDelayT);
-                window.__mgRadarDelayT = setTimeout(() => {
-                    if (eventoSelecionadoId !== item.id) return;
-                    startContinuousRadar(item.coords[0], item.coords[1], 5, RADAR_COR[item.type] || cor);
-                }, softA ? Math.max(2000, totalDur - 800) : 200);
-            } catch (e) {
-                startContinuousRadar(item.coords[0], item.coords[1], 5, RADAR_COR[item.type] || cor);
-            }
         }
     } else {
         scheduleNextAutoCycle(30000);

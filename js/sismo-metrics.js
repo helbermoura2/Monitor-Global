@@ -172,138 +172,82 @@ function metrosPorPixel(lat, z) {
     return 156543.03 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
 }
 
-const raioStore = new Map();
-let raioWrap = null, raioUpd = null;
+/* ═══════════ ZONA DE ALCANCE — sismo NOVO ("Onda Dupla") ═══════════
+   Substitui o antigo updateFeltRadiusLayer (desenhava os 3 raios pra TODO sismo
+   M≥7 sempre visível, sem animação, poluindo o mapa) e o startContinuousRadar
+   de sismos (mapa.js) — agora só aparece quando o sismo é NOVO de verdade
+   (triggerVisualAlert em showEventDetails), com os raios reais em km de sempre
+   (raioCritico/raioEstimado) crescendo a partir do epicentro, e some sozinho
+   depois de um tempo proporcional à magnitude — quanto maior o sismo, mais
+   tempo o alcance fica visível, mas nunca fica pra sempre. Seleção manual ou
+   ciclo revisitando um evento antigo não chama nada disso (só o .quake-dot/
+   .quake-label padrão, que já existem e não mudam). */
+let feltZoneEl = null, feltZoneUpd = null, feltZoneTimer = null, feltZoneFadeTimer = null;
 
-function updateFeltRadiusLayer() {
-    if (!map) return;
+function feltZoneDurationMs(mag) {
+    if (mag >= 7) return 150000;
+    if (mag >= 6) return 90000;
+    if (mag >= 5) return 50000;
+    return 45000; // mesmo tempo do ciclo automático de evento novo
+}
 
-    if (!raioWrap) {
-        raioWrap = document.createElement('div');
-        raioWrap.style.cssText = 'position:absolute;left:0;top:0;z-index:6;pointer-events:none;overflow:visible;';
-        document.getElementById('mapContainer').appendChild(raioWrap);
-
-        let _raioRaf = 0;
-        // raioUpdCore roda a cada frame de pan/zoom (até ~60x/s) — antes fazia
-        // um globalEvents.find() (busca linear) por anel a cada frame. Com
-        // vários anéis na tela isso vira uma varredura completa de
-        // globalEvents dezenas de vezes por segundo enquanto o usuário
-        // arrasta o mapa. globalEvents só troca de referência ~1x a cada 45s
-        // (novo ciclo de fetch), então cacheia um índice por id e só
-        // reconstrói quando a referência realmente muda.
-        let _raioIndexFor = null;
-        let _raioIndex = null;
-        const raioUpdCore = () => {
-            if (!raioWrap || !map) return;
-            const z = map.getZoom();
-            const bounds = map.getBounds();
-            const magMinAnel = z < 4 ? RAIO_MAG_MIN_ZOOM_BAIXO : RAIO_MAG_MIN;
-
-            if (_raioIndexFor !== globalEvents) {
-                _raioIndexFor = globalEvents;
-                _raioIndex = new Map(globalEvents.map(e => [e.id, e]));
-            }
-
-            raioStore.forEach((rec, id) => {
-                const ev = _raioIndex.get(id);
-                if (!ev || !layerVisibility.earthquakes || ev.mag < magMinAnel) {
-                    rec.wrap.style.display = 'none';
-                    return;
-                }
-                if (!bounds.contains(ev.coords)) {
-                    rec.wrap.style.display = 'none';
-                    return;
-                }
-
-                const rMax = raioEstimado(ev.mag, ev.depth);
-                const rCrit = raioCritico(ev.mag, ev.depth);
-                const rDet = raioDetectavel(ev.mag, ev.depth);
-                const pxOut = (rMax * 1000) / metrosPorPixel(ev.coords[1], z);
-                if (pxOut < 6) {
-                    rec.wrap.style.display = 'none';
-                    return;
-                }
-                const pxIn = (rCrit * 1000) / metrosPorPixel(ev.coords[1], z);
-                const pxDet = (rDet * 1000) / metrosPorPixel(ev.coords[1], z);
-                const pt = map.project(ev.coords);
-
-                rec.wrap.style.display = 'block';
-                rec.out.style.width = rec.out.style.height = (pxOut * 2) + 'px';
-                rec.out.style.left = (pt.x - pxOut) + 'px';
-                rec.out.style.top = (pt.y - pxOut) + 'px';
-                rec.inn.style.width = rec.inn.style.height = (pxIn * 2) + 'px';
-                rec.inn.style.left = (pt.x - pxIn) + 'px';
-                rec.inn.style.top = (pt.y - pxIn) + 'px';
-                rec.det.style.width = rec.det.style.height = (pxDet * 2) + 'px';
-                rec.det.style.left = (pt.x - pxDet) + 'px';
-                rec.det.style.top = (pt.y - pxDet) + 'px';
-                rec.det.setAttribute('width', pxDet * 2);
-                rec.det.setAttribute('height', pxDet * 2);
-                rec.detCircle.setAttribute('cx', pxDet);
-                rec.detCircle.setAttribute('cy', pxDet);
-                rec.detCircle.setAttribute('r', Math.max(0, pxDet - 2));
-            });
-        };
-        raioUpd = () => {
-            if (_raioRaf) return;
-            _raioRaf = requestAnimationFrame(() => {
-                _raioRaf = 0;
-                raioUpdCore();
-            });
-        };
-        map.on('move', raioUpd);
-        map.on('zoom', raioUpd);
+function stopFeltZone() {
+    try { clearTimeout(feltZoneTimer); } catch (e) {}
+    try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
+    feltZoneTimer = feltZoneFadeTimer = null;
+    if (feltZoneEl) {
+        try { map && map.off('move', feltZoneUpd); map && map.off('zoom', feltZoneUpd); } catch (e) {}
+        feltZoneEl.remove();
+        feltZoneEl = null;
+        feltZoneUpd = null;
     }
+}
 
-    const cut = Date.now() - 864e5;
-    const want = new Set();
+function startFeltZone(lng, lat, mag, depth) {
+    if (!map) return;
+    stopFeltZone();
+    const host = document.getElementById('mapContainer');
+    if (!host) return;
 
-    globalEvents.forEach(ev => {
-        if (ev.time < cut || ev.mag < RAIO_MAG_MIN) return;
-        want.add(ev.id);
+    const wrap = document.createElement('div');
+    wrap.className = 'felt-zone-wrap';
+    const blue = document.createElement('div');
+    blue.className = 'felt-zone-blue';
+    const red = document.createElement('div');
+    red.className = 'felt-zone-red';
+    const sweep = document.createElement('div');
+    sweep.className = 'felt-zone-sweep';
+    wrap.append(blue, red, sweep);
+    host.appendChild(wrap);
+    feltZoneEl = wrap;
 
-        if (!raioStore.has(ev.id)) {
-            const wrap = document.createElement('div');
-            wrap.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;';
+    const coords = [lng, lat];
+    const place = () => {
+        if (!map) return;
+        const z = map.getZoom();
+        const mpp = metrosPorPixel(lat, z);
+        const pxBlue = Math.max(24, (raioEstimado(mag, depth) * 1000) / mpp * 2);
+        const pxRed = Math.max(10, (raioCritico(mag, depth) * 1000) / mpp * 2);
+        const pt = map.project(coords);
+        blue.style.width = blue.style.height = pxBlue + 'px';
+        red.style.width = red.style.height = pxRed + 'px';
+        sweep.style.width = sweep.style.height = pxRed + 'px';
+        [blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+    };
+    feltZoneUpd = place;
+    place();
+    map.on('move', place);
+    map.on('zoom', place);
 
-            const out = document.createElement('div');
-            out.style.cssText = 'position:absolute;border:2px solid #3b82f6;border-radius:50%;opacity:.75;background:rgba(59,130,246,.05);pointer-events:none;';
+    // Dispara o crescimento só no frame seguinte — se a classe "grow" entrar
+    // junto com a criação do elemento, o navegador nunca chega a pintar o
+    // scale(0) inicial e a transição não anima (já nasce no estado final).
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('grow')));
 
-            const inn = document.createElement('div');
-            inn.style.cssText = 'position:absolute;border:2px solid #ef4444;border-radius:50%;opacity:.85;background:rgba(239,68,68,.08);pointer-events:none;';
-
-            const det = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            det.style.cssText = 'position:absolute;pointer-events:none;overflow:visible;';
-            const detCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            detCircle.setAttribute('fill', 'none');
-            detCircle.setAttribute('stroke', '#c084fc');
-            detCircle.setAttribute('stroke-width', '3');
-            detCircle.setAttribute('stroke-dasharray', '14 10');
-            detCircle.setAttribute('opacity', '0.85');
-            det.appendChild(detCircle);
-
-            wrap.appendChild(det);
-            wrap.appendChild(out);
-            wrap.appendChild(inn);
-
-            const rMax = Math.round(raioEstimado(ev.mag, ev.depth));
-            const rCrit = Math.round(raioCritico(ev.mag, ev.depth));
-            const rDet = Math.round(raioDetectavel(ev.mag, ev.depth));
-            wrap.title = `🔴 zona crítica (~${rCrit} km) • 🔵 alcance sentido (~${rMax} km) • 🟣 detectável (~${rDet} km) — estimativa`;
-
-            raioWrap.appendChild(wrap);
-            raioStore.set(ev.id, { wrap, out, inn, det, detCircle });
-        }
-    });
-
-    raioStore.forEach((rec, id) => {
-        if (!want.has(id)) {
-            rec.wrap.remove();
-            raioStore.delete(id);
-        }
-    });
-
-    if (raioUpd) raioUpd();
+    feltZoneTimer = setTimeout(() => {
+        wrap.classList.add('fading');
+        feltZoneFadeTimer = setTimeout(stopFeltZone, 950);
+    }, feltZoneDurationMs(mag));
 }
 
 /* ═══════════ RÓTULOS "M + profundidade" (M≥5) ═══════════ */
@@ -347,7 +291,6 @@ const _hookExtraId = setInterval(() => {
         map.__hookExtra = true;
         map.on('zoomend', () => { updateQuakeLabels(); });
         updateQuakeLabels();
-        updateFeltRadiusLayer();
         clearInterval(_hookExtraId);
     }
 }, 1000);
