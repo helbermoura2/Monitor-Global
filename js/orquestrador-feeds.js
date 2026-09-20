@@ -51,6 +51,8 @@ async function fetchGlobalFeeds() {
             fetchBMKGData(),
             fetchGeoNetData(),
             fetchUspSismos(),
+            fetchCSNChileData(),      // CSN Chile — trecho mais ativo do Círculo de Fogo
+            fetchSSNMexicoData(),     // SSN México — subducção Cocos/Rivera
             fetchEMSCData().then(features => normalizarSismoGeoJSON(features, 'EMSC', {
                 mag: (f, p) => p.mag,
                 time: (f, p) => Date.parse(p.time || p.origin_time || ''),
@@ -62,7 +64,8 @@ async function fetchGlobalFeeds() {
 
         const names = [
             'USGS', 'USGS-RT', 'GEOFON', 'FUNVISIS', 'JMA',
-            'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP', 'EMSC'
+            'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP',
+            'CSN-Chile', 'SSN-Mexico', 'EMSC'
         ];
 
         const settled = await Promise.allSettled(tasks);
@@ -89,7 +92,8 @@ async function fetchGlobalFeeds() {
         try {
             [
                 'USGS', 'USGS-RT', 'GEOFON', 'FUNVISIS', 'JMA',
-                'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP', 'EMSC'
+                'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP',
+                'CSN-Chile', 'SSN-Mexico', 'EMSC'
             ].forEach(src => {
                 setSource(
                     src,

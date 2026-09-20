@@ -70,6 +70,8 @@ const SISMO_SOURCES = {
     GEONET:{ rank: 60, label: 'GeoNet NZ', color: '#a3e635' },
     USP:   { rank: 60, label: 'USP-Sismologia', color: '#facc15' },
     FUNVISIS: { rank: 60, label: 'FUNVISIS', color: '#f472b6' },
+    'CSN-CHILE': { rank: 60, label: 'CSN Chile', color: '#e879f9' },
+    'SSN-MEXICO': { rank: 60, label: 'SSN México', color: '#fb7185' },
     AFAD:  { rank: 55, label: 'AFAD', color: '#fb923c' },
     EMSC:  { rank: 45, label: 'EMSC', color: '#38bdf8' },
     GEOFON:{ rank: 45, label: 'GEOFON', color: '#c084fc' },
@@ -259,6 +261,171 @@ async function fetchFunvisisData() {
                 isPreliminary: false,
                 reviewStatus: 'reviewed',
                 detailUrl: 'http://www.funvisis.gob.ve/'
+            });
+        } catch (e) {}
+    });
+    return out;
+}
+
+/* CSN (Centro Sismológico Nacional, Universidade do Chile) — Chile é a
+   fronteira mais ativa do Círculo de Fogo (interface de subducção Nazca /
+   Sul-Americana), com sismicidade M2-M4 constante que USGS/EMSC/GEOFON não
+   captam por inteiro. Usa o espelho público api.gael.cloud/general/public/
+   sismos (5min de atualização, mesma fonte usada por vários apps chilenos
+   de sismo em produção), mas essa API tem duas particularidades que exigem
+   conversão:
+   1) "Fecha" vem em horário LOCAL do Chile, sem fuso — convertida pra UTC
+      via Intl (evita cravar regra de horário de verão, que muda de ano
+      pra ano e já foi alterada várias vezes no Chile).
+   2) Não vem lat/lon — só "RefGeografica" em texto ("43 km al O de
+      Ollagüe"). Resolvida com rumo+distância a partir de uma tabela das
+      localidades mais citadas pelo CSN como referência. Localidade fora
+      da tabela = evento descartado com segurança (mesmo comportamento de
+      qualquer outra fonte quando o parse falha), não um dado errado. */
+const CSN_RUMO_GRAUS = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SO: 225, O: 270, NO: 315 };
+const CSN_LOCALIDADES = {
+    'arica': [-18.478, -70.323], 'putre': [-18.196, -69.557], 'visviri': [-17.588, -69.478],
+    'iquique': [-20.213, -70.152], 'pica': [-20.489, -69.328], 'pozo almonte': [-20.259, -69.784],
+    'calama': [-22.456, -68.930], 'ollague': [-21.221, -68.253], 'ollagüe': [-21.221, -68.253],
+    'san pedro de atacama': [-22.910, -68.200], 'tocopilla': [-22.092, -70.198],
+    'mejillones': [-23.101, -70.445], 'antofagasta': [-23.650, -70.400],
+    'taltal': [-25.407, -70.485], 'copiapo': [-27.367, -70.332], 'copiapó': [-27.367, -70.332],
+    'vallenar': [-28.573, -70.759], 'freirina': [-28.512, -71.062],
+    'la serena': [-29.904, -71.249], 'coquimbo': [-29.953, -71.339],
+    'ovalle': [-30.598, -71.199], 'combarbala': [-31.180, -71.007], 'illapel': [-31.634, -71.166],
+    'los vilos': [-31.911, -71.512], 'salamanca': [-31.777, -70.966],
+    'valparaiso': [-33.047, -71.613], 'valparaíso': [-33.047, -71.613],
+    'vina del mar': [-33.024, -71.552], 'viña del mar': [-33.024, -71.552],
+    'san antonio': [-33.593, -71.608], 'santiago': [-33.448, -70.669],
+    'rancagua': [-34.170, -70.744], 'san fernando': [-34.585, -70.988],
+    'pichilemu': [-34.389, -72.010], 'curico': [-34.985, -71.238], 'curicó': [-34.985, -71.238],
+    'talca': [-35.426, -71.666], 'constitucion': [-35.333, -72.412], 'constitución': [-35.333, -72.412],
+    'linares': [-35.848, -71.594], 'cauquenes': [-35.966, -72.354],
+    'chillan': [-36.607, -72.103], 'chillán': [-36.607, -72.103],
+    'concepcion': [-36.827, -73.050], 'concepción': [-36.827, -73.050],
+    'talcahuano': [-36.717, -73.117], 'coronel': [-37.028, -73.138],
+    'los angeles': [-37.470, -72.351], 'los ángeles': [-37.470, -72.351],
+    'angol': [-37.798, -72.715], 'lebu': [-37.608, -73.651],
+    'temuco': [-38.735, -72.590], 'villarrica': [-39.281, -72.227],
+    'pucon': [-39.281, -71.975], 'pucón': [-39.281, -71.975],
+    'valdivia': [-39.814, -73.246], 'lago ranco': [-40.318, -72.499],
+    'osorno': [-40.574, -73.135], 'puerto montt': [-41.469, -72.942],
+    'castro': [-42.482, -73.764], 'quellon': [-43.119, -73.617], 'quellón': [-43.119, -73.617],
+    'chaiten': [-42.917, -72.707], 'chaitén': [-42.917, -72.707],
+    'coyhaique': [-45.575, -72.068], 'puerto aysen': [-45.404, -72.693], 'puerto aysén': [-45.404, -72.693],
+    'cochrane': [-47.255, -72.573], 'puerto natales': [-51.727, -72.507],
+    'punta arenas': [-53.163, -70.917], 'porvenir': [-53.297, -70.365]
+};
+function chileLocalToUtc(dateStr, timeStr) {
+    const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    const tm = /^(\d{2}):(\d{2}):(\d{2})$/.exec(timeStr);
+    if (!dm || !tm) return NaN;
+    const [y, mo, d] = [Number(dm[1]), Number(dm[2]), Number(dm[3])];
+    const [h, mi, s] = [Number(tm[1]), Number(tm[2]), Number(tm[3])];
+    // Chuta que o horário informado já é UTC, olha que horas isso daria em
+    // Santiago, e corrige pela diferença — assim não precisa cravar a regra
+    // de horário de verão (que o próprio fuso IANA do runtime já sabe).
+    const guess = Date.UTC(y, mo - 1, d, h, mi, s);
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Santiago', hourCycle: 'h23',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).formatToParts(new Date(guess)).reduce((o, p) => (o[p.type] = p.value, o), {});
+        const seenAsLocal = Date.UTC(
+            Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+            Number(parts.hour), Number(parts.minute), Number(parts.second)
+        );
+        return guess - (seenAsLocal - guess);
+    } catch (e) {
+        return guess; // Intl indisponível: aproximação sem ajuste de fuso.
+    }
+}
+function estimarCoordsCSN(refGeografica) {
+    const texto = String(refGeografica || '').trim();
+    const m = /^(\d+(?:[.,]\d+)?)\s*km\s+al\s+([A-ZÑ]{1,2})\s+de\s+(.+)$/i.exec(texto);
+    if (!m) return null;
+    const dist = parseFloat(m[1].replace(',', '.'));
+    const rumo = CSN_RUMO_GRAUS[m[2].toUpperCase()];
+    const local = CSN_LOCALIDADES[m[3].trim().toLowerCase()];
+    if (!Number.isFinite(dist) || rumo == null || !local) return null;
+    return destinoGeo(local[0], local[1], rumo, dist); // [lon, lat]
+}
+async function fetchCSNChileData() {
+    const minMag = Math.max(0.1, typeof minMagnitude === 'number' ? minMagnitude : 0.1);
+    const r = await fetchWithCorsFallback('https://api.gael.cloud/general/public/sismos', 15000);
+    const lista = await r.json();
+    if (!Array.isArray(lista)) throw new Error('CSN: resposta inesperada');
+    const out = [];
+    const cutoff = Date.now() - 36 * 3600000;
+    lista.forEach(s => {
+        try {
+            const fm = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/.exec(String(s.Fecha || s.fecha || ''));
+            if (!fm) return;
+            const time = chileLocalToUtc(fm[1], fm[2]);
+            const mag = Number(String(s.Magnitud ?? s.magnitud ?? '').replace(',', '.'));
+            const depth = Number(String(s.Profundidad ?? s.profundidad ?? '').replace(/[^\d.]/g, ''));
+            const ref = s.RefGeografica || s.refGeografica || s.referencia || '';
+            const coords = estimarCoordsCSN(ref);
+            if (!coords || !Number.isFinite(mag) || !Number.isFinite(time)) return;
+            if (mag < minMag || time < cutoff) return;
+            out.push({
+                id: `CSN-${time}-${coords[1].toFixed(3)}-${coords[0].toFixed(3)}`,
+                place: `${ref}, Chile`,
+                bandeira: '🇨🇱', pais: 'Chile', mag, time,
+                coords, depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                source: 'CSN-Chile', quality: 'A',
+                detailUrl: 'https://www.sismologia.cl/'
+            });
+        } catch (e) {}
+    });
+    return out;
+}
+
+/* SSN (Servicio Sismológico Nacional, UNAM, México) — outro trecho denso do
+   Círculo de Fogo (subducção Cocos/Rivera). Diferente do CSN, o SSN não tem
+   API JSON documentada publicamente — lemos a tabela HTML de "últimos sismos
+   em UTC" (já em UTC, sem conversão de fuso a fazer) do próprio site, igual
+   ao padrão já usado pra OSC-BOL acima. Detecção de coluna por cabeçalho
+   (não por índice fixo) porque não há como testar contra o HTML real deste
+   ambiente — se a ordem das colunas mudar, ainda funciona; se a estrutura
+   mudar bastante, o pior caso é a fonte aparecer "sem dados" (mesma
+   segurança de qualquer parser desta lista), nunca um dado errado. */
+async function fetchSSNMexicoData() {
+    const minMag = Math.max(0.1, typeof minMagnitude === 'number' ? minMagnitude : 0.1);
+    const url = 'https://www.ssn.unam.mx/sismicidad/ultimos-utc/';
+    const r = await fetchWithCorsFallback(url, 20000);
+    const html = await r.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const tabela = Array.from(doc.querySelectorAll('table')).find(t => /fecha/i.test(t.textContent) && /magnitud/i.test(t.textContent));
+    if (!tabela) throw new Error('SSN: tabela não encontrada');
+    const headerCells = Array.from(tabela.querySelectorAll('tr')[0]?.querySelectorAll('th,td') || []).map(c => (c.textContent || '').trim().toLowerCase());
+    const idx = (re) => headerCells.findIndex(h => re.test(h));
+    const iFecha = idx(/fecha/), iHora = idx(/hora/), iLat = idx(/lat/), iLon = idx(/lon/), iProf = idx(/prof/), iMag = idx(/mag/), iRef = idx(/referencia|localizaci|region/);
+    if ([iFecha, iHora, iLat, iLon, iMag].some(i => i < 0)) throw new Error('SSN: colunas não reconhecidas');
+    const out = [];
+    const cutoff = Date.now() - 36 * 3600000;
+    Array.from(tabela.querySelectorAll('tr')).slice(1).forEach(tr => {
+        try {
+            const cells = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent || '').trim());
+            if (!cells.length) return;
+            const dataStr = cells[iFecha], horaStr = cells[iHora];
+            const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dataStr);
+            if (!dm) return;
+            const time = Date.parse(`${dm[1]}-${dm[2]}-${dm[3]}T${horaStr}Z`);
+            const lat = parseFloat(cells[iLat]), lon = parseFloat(cells[iLon]);
+            const mag = Number(String(cells[iMag]).replace(',', '.'));
+            const depth = iProf >= 0 ? parseFloat(cells[iProf]) : NaN;
+            if (![lat, lon, mag].every(Number.isFinite) || !Number.isFinite(time)) return;
+            if (mag < minMag || time < cutoff) return;
+            const ref = iRef >= 0 ? cells[iRef] : '';
+            const place = ref ? (/m[eé]xico/i.test(ref) ? ref : `${ref}, México`) : 'México';
+            out.push({
+                id: `SSN-${time}-${lat.toFixed(3)}-${lon.toFixed(3)}`,
+                place, bandeira: '🇲🇽', pais: 'México', mag, time,
+                coords: [lon, lat], depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                source: 'SSN-Mexico', quality: 'A',
+                detailUrl: 'https://www.ssn.unam.mx/'
             });
         } catch (e) {}
     });
