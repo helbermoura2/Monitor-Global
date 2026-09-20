@@ -222,22 +222,28 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 #loading-indicator { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, rgba(28,58,92,.55), rgba(10,20,36,.62)); border: 1px solid rgba(255,255,255,.12); padding: 10px 18px; border-radius: 8px; z-index: 1000; display: none; align-items: center; gap: 10px; font-size: 12px; color: #94a3b8; }
 .spinner { width: 14px; height: 14px; border: 2px solid #0f254c; border-top-color: #3b82f6; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-/* top-center (mesmo padrão de #loading-indicator, algumas linhas acima) —
-   não "right:20px" como antes: no desktop (≥901px), #painel-direito
-   também mora na faixa direita da tela, e mais de um toast na fila
-   (comum quando várias fontes reportam alerta/offline quase juntas)
-   cobria o topo do painel de detalhes por trás. Centralizado, a pilha
-   de toasts fica sempre sobre o mapa (a única área sem painel fixo em
-   cima), qualquer que seja a largura. */
-.toast-stack { position: fixed; top: 70px; left: 50%; right: auto; transform: translateX(-50%); width: min(430px, calc(100vw - 32px)); display: flex; flex-direction: column; align-items: stretch; gap: 8px; z-index: 10000; pointer-events: none; }
-.toast { position: relative; top: auto; right: auto; box-sizing: border-box; width: 100%; padding: 12px 20px; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; line-height: 1.35; box-shadow: 0 8px 24px rgba(0,0,0,.35); animation: slideIn .3s ease; pointer-events: auto; overflow-wrap: anywhere; }
-@keyframes slideIn { from{transform:translateY(-16px);opacity:0;} to{transform:translateY(0);opacity:1;} }
-/* Azul satura mais que laranja/vermelho na mesma opacidade — "lê" mais
-   sólido mesmo com o alpha igual (percepção de cor, não é bug de CSS).
-   Por isso o alpha do toast-info é mais baixo que os outros dois. */
-.toast-info { background: linear-gradient(135deg, rgba(29,78,216,.52), rgba(59,130,246,.52)); border: 1px solid rgba(255,255,255,.14); }
-.toast-warning,.toast-warn { background: linear-gradient(135deg, rgba(180,83,9,.72), rgba(245,158,11,.72)); border: 1px solid rgba(255,255,255,.14); }
-.toast-error { background: linear-gradient(135deg, rgba(153,27,27,.72), rgba(239,68,68,.72)); border: 1px solid rgba(255,255,255,.14); }
+/* Pílula compacta ancorada embaixo (bottom-center), no lugar da faixa
+   larga que ficava perto do topo — usuário pediu esse estilo depois de
+   ver as opções de mockup ("2A"). Embaixo também é mais seguro: o mapa
+   é a única área sem painel flutuante fixo o tempo todo, tanto no
+   desktop (sidebar/painel ocupam a faixa de cima) quanto no mobile (o
+   cabeçalho variável fica em cima). O deslocamento padrão de 88px+
+   safe-area limpa a barra recolhida do painel de detalhes no mobile
+   (bottom:10px + height:68px = 78px de baixo pra cima, + ~10px de
+   respiro); o desktop reduz esse respiro nos media queries abaixo, já
+   que lá não existe essa barra. */
+.toast-stack { position: fixed; bottom: calc(88px + max(10px, env(safe-area-inset-bottom, 0px))); top: auto; left: 50%; right: auto; transform: translateX(-50%); width: auto; max-width: calc(100vw - 32px); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 10000; pointer-events: none; }
+.toast { display: flex; align-items: center; gap: 9px; position: relative; box-sizing: border-box; max-width: min(420px, calc(100vw - 32px)); padding: 10px 18px 10px 14px; border-radius: 999px; background: rgba(13,24,38,.96); border: 1px solid rgba(255,255,255,.14); color: #e6edf5; font-size: 12.5px; font-weight: 600; line-height: 1.35; box-shadow: 0 10px 26px rgba(0,0,0,.4); animation: toastIn .35s cubic-bezier(.2,.8,.2,1); pointer-events: auto; overflow-wrap: anywhere; white-space: normal; }
+@keyframes toastIn { from{transform:translateY(18px) scale(.96);opacity:0;} to{transform:translateY(0) scale(1);opacity:1;} }
+/* Severidade vira um pontinho colorido antes do texto (::before), não
+   mais um fundo colorido cobrindo a pílula inteira — as mensagens já
+   trazem seu próprio emoji (🔥/⚠️/🌊...), que é um glifo colorido de
+   fonte e não obedece "color" do CSS, então recolorir só o emoji não
+   funciona; o pontinho por fora resolve sem depender disso. */
+.toast::before { content:''; flex:0 0 auto; width:7px; height:7px; border-radius:50%; background:var(--toast-accent,#8ea3bd); box-shadow:0 0 7px var(--toast-accent,transparent); }
+.toast-info { --toast-accent:#38bdf8; }
+.toast-warning,.toast-warn { --toast-accent:#f97316; }
+.toast-error { --toast-accent:#ef4444; }
 /* ≥901px: sidebar-left e #painel-direito (css/desktop-layout-lock.css) são
    position:absolute com largura FIXA em cada faixa (300+360px até 1199px,
    320+380px até 1599px, 340+400px dali em diante — sempre left:12px /
@@ -245,14 +251,15 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
    fração da tela. Centralizar em 50% da viewport (regra acima) supõe que
    os dois painéis têm a mesma largura, o que não é o caso (painel é maior
    que a sidebar) — por isso a pilha vazava por cima do painel bem antes
-   dos ~1174px onde a conta realmente fecha, mesmo já "estreitada" pra
-   430px. A correção usa left/right FIXOS (bordas dos painéis + 20px de
-   respiro) em vez de left:50%: com left e right definidos e width:auto,
-   a caixa preenche exatamente o vão disponível (nunca menos, nunca
-   encostando nos painéis); max-width:430+margin:auto centraliza dentro
-   dela quando o vão é largo o bastante, sem overflow quando não é. */
+   dos ~1174px onde a conta realmente fecha. A correção usa left/right
+   FIXOS (bordas dos painéis + 20px de respiro) em vez de left:50%: com
+   left e right definidos e width:auto, a caixa preenche exatamente o vão
+   disponível (nunca menos, nunca encostando nos painéis); max-width:430
+   +margin:auto centraliza dentro dela quando o vão é largo o bastante.
+   Sem a barra recolhida do painel aqui (só existe no mobile), o respiro
+   de baixo pode ser bem menor que os 64px do padrão mobile. */
 @media screen and (min-width: 901px) {
-.toast-stack { left: 332px !important; right: 392px !important; width: auto !important; max-width: 430px !important; margin: 0 auto !important; transform: none !important; }
+.toast-stack { bottom: 22px !important; left: 332px !important; right: 392px !important; width: auto !important; max-width: 430px !important; margin: 0 auto !important; transform: none !important; }
 }
 @media screen and (min-width: 1200px) {
 .toast-stack { left: 352px !important; right: 412px !important; }
@@ -261,8 +268,17 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 .toast-stack { left: 372px !important; right: 432px !important; }
 }
 @media (max-width: 700px) {
-.toast-stack { top: 62px; width: calc(100vw - 24px); }
-.toast { font-size: 12px; padding: 10px 14px; }
+.toast { font-size: 12px; padding: 9px 15px 9px 12px; }
+}
+/* 701-900px: nessa faixa (tablet/celular grande), #painel-direito não é
+   a barrinha fina de 56-68px do celular comum — um min-height:160px de
+   css/base.css (@media max-width:900px, sem largura própria porque o
+   "height:56px!important" de outro arquivo só fixa a altura MÍNIMA, não
+   a máxima: min-height sempre vence um height explícito menor) deixa a
+   barra recolhida com 160px, colada no rodapé (bottom:0). Respiro maior
+   só aqui pra não tampar essa barra mais alta. */
+@media screen and (min-width: 701px) and (max-width: 900px) {
+.toast-stack { bottom: calc(180px + max(10px, env(safe-area-inset-bottom, 0px))); }
 }
 @media screen and (min-width: 1800px) {
 #app { grid-template-columns: 340px 1fr 400px; }

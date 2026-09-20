@@ -39,11 +39,16 @@ function showToast(m, t = 'info') {
     const remove = () => {
         if (!d.isConnected) return;
         d.style.opacity = '0';
-        d.style.transform = 'translateX(400px)';
-        d.style.transition = 'opacity .4s, transform .4s';
-        setTimeout(() => d.remove(), 400);
+        d.style.transform = 'translateY(14px) scale(.96)';
+        d.style.transition = 'opacity .35s ease, transform .35s ease';
+        setTimeout(() => d.remove(), 350);
     };
-    setTimeout(remove, 4200);
+    // Mensagens de "atualização" de evento já em andamento (🔄 Sismo
+    // atualizado, 🔄 Vulcão atualizado, 🔄 USGS atualizado...) ficam mais
+    // tempo na tela (10s) que o resto (7s, era 4.2s fixo pra tudo) — a
+    // pedido do usuário, que quer dar tempo de ler todas elas.
+    const isUpdate = /🔄/.test(msg);
+    setTimeout(remove, isUpdate ? 10000 : 7000);
 }
 
 /* ═══════════════ INTERFACE ═══════════════ */
