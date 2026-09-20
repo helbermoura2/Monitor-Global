@@ -267,7 +267,27 @@
          js/mobile-portrait-clean-toggle.js). Limpar aqui desfaria esse
          sincronismo toda vez que este apply() rodar (resize, mudança de
          media query etc.), mesmo sem este script ter sido o dono. */
-      if(e.ticker && !document.body.classList.contains('mg-clean-portrait')) e.ticker.style.removeProperty('top');
+      if(e.ticker && !document.body.classList.contains('mg-clean-portrait')){
+        var winW = window.innerWidth;
+        /* 901-1100px: nem ativo() (celular ≤900, tratado acima) nem
+           desktop de verdade (≥1101px, onde o ticker é display:none) —
+           é a faixa de tablet, e também a largura que o "Solicitar site
+           para computador" do Chrome força num celular. O CSS estático
+           dessa faixa (mobile-early.css) tem um "top" antigo (50px),
+           calibrado pra uma altura de cabeçalho menor do que a atual —
+           sobrando cabeçalho por cima do próprio ticker. Sem nenhum
+           script sincronizando aqui (só ativo() tinha isso, via
+           syncTickerTop), o ticker ficava preso nesse valor velho pra
+           sempre nessa faixa. Reaproveita a mesma técnica (altura real
+           do #top-strip, não um número fixo) em vez de mexer nos vários
+           CSS espalhados com "top" fixo. */
+        if(winW > 900 && winW <= 1100 && e.strip){
+          var stripH = e.strip.getBoundingClientRect().height;
+          if(stripH > 0) e.ticker.style.setProperty('top', stripH + 'px', 'important');
+        } else {
+          e.ticker.style.removeProperty('top');
+        }
+      }
       if(ro){ ro.disconnect(); ro = null; }
       if(document.body.dataset.mgHeaderOwner === OWNER_TAG) delete document.body.dataset.mgHeaderOwner;
     }
