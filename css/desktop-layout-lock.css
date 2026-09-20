@@ -31,8 +31,13 @@
      boa parte dos navegadores/GPUs, mesmo com preserveDrawingBuffer — ver
      discussão nos PRs #54-#60). O efeito de vidro agora vem só do próprio
      gradiente + brilho interno da borda, então funciona igual em
-     qualquer aparelho. backdrop-filter continua declarado como bônus
-     grátis pros poucos casos em que o navegador consegue aplicar. */
+     qualquer aparelho.
+     backdrop-filter REMOVIDO por completo (igual ao mobile, PR #65+) —
+     nos navegadores/GPUs onde ele de fato funciona, o blur(28px) deixava
+     o vidro com aspecto "fosco"/embaçado em vez do reflexo nítido do
+     mapa que o mobile mostra (mesmo alfa, resultado bem mais opaco na
+     prática). Sem blur, o visual fica determinado só pelo gradiente —
+     idêntico em qualquer tela, e igual ao mobile. */
   #top-strip {
     position: absolute !important;
     top: 0 !important;
@@ -40,8 +45,8 @@
     right: 0 !important;
     z-index: 30 !important;
     background: linear-gradient(180deg, rgba(38,78,124,.30) 0%, rgba(10,22,40,.40) 100%) !important;
-    backdrop-filter: blur(28px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border-bottom: 1px solid rgba(255,255,255,.14) !important;
     box-shadow: 0 8px 32px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10) !important;
   }
@@ -69,8 +74,8 @@
     z-index: 20 !important;
     padding-top: 0 !important;
     background: linear-gradient(160deg, rgba(28,66,102,.39) 0%, rgba(10,22,38,.52) 100%) !important;
-    backdrop-filter: blur(28px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border: 1px solid rgba(255,255,255,.14) !important;
     border-radius: 16px !important;
     box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.10) !important;
@@ -91,8 +96,8 @@
     overflow-y: auto !important;
     padding: 16px !important;
     background: linear-gradient(160deg, rgba(46,84,132,.39) 0%, rgba(10,22,38,.52) 100%) !important;
-    backdrop-filter: blur(28px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border: 1px solid rgba(255,255,255,.14) !important;
     border-radius: 16px !important;
     box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.10) !important;
@@ -211,8 +216,8 @@
      aqui, sem mexer no visual do cabeçalho sticky no mobile. */
   body #painel-direito .pd-header-row {
     background: linear-gradient(180deg, rgba(30,62,96,.40) 0%, rgba(14,28,46,.31) 78%, rgba(14,28,46,0) 100%) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   /* #painel-direito .pd-timeline/.pd-chip: prefixado com #painel-direito
      (em vez de só a classe) de propósito — css/mobile-late-patches.css
