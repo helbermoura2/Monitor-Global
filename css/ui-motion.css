@@ -175,11 +175,16 @@ body.mobile-events-open .event {
      empate de importância é desempatado por especificidade antes de
      olhar a ordem de carregamento. Resultado prático: o tint de
      severidade nunca aparecia em nenhuma largura de desktop (901px+),
-     sempre coberto pelo fundo genérico do outro arquivo. */
+     sempre coberto pelo fundo genérico do outro arquivo.
+     A camada de baixo usa os MESMOS valores translúcidos do vidro de
+     desktop-layout-lock.css (rgba .30/.38, não os .92 quase opacos do
+     mobile) — só a camada de cima (tint por severidade) é nova aqui;
+     colar o fundo escuro do mobile por engano tirava o efeito vidro do
+     card inteiro no desktop. */
   #events .event {
     background:
-      linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 8%, transparent), transparent 55%),
-      linear-gradient(145deg, rgba(7,23,38,.92), rgba(4,14,24,.92)) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ev-color, #38bdf8) 12%, transparent), transparent 55%),
+      linear-gradient(135deg, rgba(30,62,96,.30), rgba(12,24,42,.38)) !important;
   }
 }
 
