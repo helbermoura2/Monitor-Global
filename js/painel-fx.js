@@ -28,7 +28,9 @@ function triggerCardFx(type, color) {
 function triggerCardFxMag(mag) {
     const el = document.getElementById('painel-direito');
     if (!el) return;
-    const amp = Math.max(2, Math.min(14, (Number(mag) || 3) * 2));
+    // Piso de 6px (era 2px): sismos pequenos (M1, M2...) — bem comuns no
+    // ciclo automático — ficavam com um tremor quase imperceptível.
+    const amp = Math.max(6, Math.min(14, (Number(mag) || 3) * 2));
     el.style.setProperty('--pd-fx-amp', amp + 'px');
 }
 

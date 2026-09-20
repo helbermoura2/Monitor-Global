@@ -93,35 +93,56 @@ function spinGlobe() {
 }
 
 function getEventoTelaFrac() {
-    // Onde o epicentro deve aparecer na tela (0–1, origem no topo/esquerda).
-    // No celular vertical o card cobre a metade de baixo do mapa — se usar Y=0.45,
-    // o ponto fica “atrás” do painel. Empurramos para o centro da área VISÍVEL.
+    // Onde o epicentro deve aparecer na tela (0–1, origem no topo/esquerda):
+    // bem no meio da área realmente livre do mapa, entre a "caixa de
+    // registro" (#latest-event-ticker — a barra do último evento; é IRMÃ
+    // do #top-strip, não filha, e só existe em telas até 1100px) e o card
+    // principal (#painel-direito — barra fixa embaixo quando ele ocupa a
+    // largura toda, painel lateral estreito nos outros casos, sem reduzir
+    // a altura útil do mapa).
+    // v1 usava frações fixas "no chute" pro celular (0.22/0.28/0.38 por
+    // estado do card) e só a altura do cabeçalho no desktop — nenhum dos
+    // dois contava com a caixa de registro (some o topo fica mais baixo
+    // do que o cabeçalho sozinho sugere) nem acompanhava a altura real do
+    // card, que varia com clima/filtros/tamanho de tela. Mede tudo de
+    // verdade via getBoundingClientRect() pra funcionar em qualquer
+    // combinação de layout.
     let x = EVENTO_TELA_X, y = EVENTO_TELA_Y;
     try {
-        const mobilePortrait = window.matchMedia('(max-width:900px) and (orientation:portrait)').matches;
-        if (mobilePortrait) {
-            x = 0.5;
-            if (document.body.classList.contains('mobile-details-open')) y = 0.22;
-            else if (document.body.classList.contains('mobile-details-mid')) y = 0.28;
-            else y = 0.38;
-        } else {
-            // Desktop e mobile-paisagem: desde os PRs #52/#61/#68 o mapa
-            // ocupa a tela inteira (#mapWrap position:absolute;inset:0) e
-            // o cabeçalho (#top-strip) flutua por cima cobrindo só o topo —
-            // não existe mais uma "coluna de mapa" menor abaixo do
-            // cabeçalho como no layout antigo. Y=0.45 (fixo) foi calibrado
-            // pra aquele layout antigo e ficou desatualizado: sem
-            // compensar a altura do cabeçalho, o epicentro cai visualmente
-            // acima do centro da área realmente visível (o que sobra
-            // abaixo do cabeçalho). Calcula a altura do cabeçalho na hora
-            // e centraliza dentro da área visível de verdade.
-            const header = document.getElementById('top-strip');
-            const mapEl = map && typeof map.getContainer === 'function' ? map.getContainer() : null;
-            if (header && mapEl) {
-                const hh = header.getBoundingClientRect().height;
-                const mh = mapEl.clientHeight;
-                if (mh > 0) y = Math.min(0.7, (hh + (mh - hh) / 2) / mh);
+        const mapEl = map && typeof map.getContainer === 'function' ? map.getContainer() : null;
+        if (!mapEl) return { x, y };
+        const mapRect = mapEl.getBoundingClientRect();
+        const mh = mapRect.height, mw = mapRect.width;
+        if (mh <= 0) return { x, y };
+
+        let topBoundary = 0;
+        const header = document.getElementById('top-strip');
+        if (header) topBoundary = Math.max(topBoundary, header.getBoundingClientRect().bottom - mapRect.top);
+        const ticker = document.getElementById('latest-event-ticker');
+        if (ticker) {
+            const tr = ticker.getBoundingClientRect();
+            if (tr.height > 0 && getComputedStyle(ticker).display !== 'none') {
+                topBoundary = Math.max(topBoundary, tr.bottom - mapRect.top);
             }
+        }
+
+        // #painel-direito só limita o espaço vertical de verdade quando
+        // vira uma barra no rodapé (largura quase toda a tela) — como
+        // painel lateral (desktop/paisagem) ele fica do lado, sem tirar
+        // altura útil do mapa.
+        let bottomBoundary = mh;
+        const painel = document.getElementById('painel-direito');
+        if (painel && mw > 0) {
+            const pr = painel.getBoundingClientRect();
+            if (pr.width >= mw * 0.85) {
+                x = 0.5;
+                const t = pr.top - mapRect.top;
+                if (t > 0 && t < mh) bottomBoundary = t;
+            }
+        }
+
+        if (bottomBoundary > topBoundary) {
+            y = Math.min(0.85, Math.max(0.08, (topBoundary + (bottomBoundary - topBoundary) / 2) / mh));
         }
     } catch (e) {}
     return { x, y };
