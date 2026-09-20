@@ -26,3 +26,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Cunha do radar girando, igual ao selo AO VIVO (mesmo período de 2.4s) —
+   só o grupo cunha+ponto gira, os 3 anéis ficam parados. transform-box:
+   view-box ancora a rotação no centro real do ícone (64,64 no viewBox de
+   128), não na caixa da própria cunha (que é assimétrica). */
+#top-strip .ts-title.mg-title .mg-logo-icon .mg-logo-sweep {
+  transform-box: view-box;
+  transform-origin: 64px 64px;
+  animation: mgLogoSpin 2.4s linear infinite;
+}
+@keyframes mgLogoSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  #top-strip .ts-title.mg-title .mg-logo-icon .mg-logo-sweep { animation: none; }
+}
