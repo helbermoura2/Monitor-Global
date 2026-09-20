@@ -1,0 +1,85 @@
+/* Zona de alcance do sismo NOVO ("Onda Dupla" + toque de radar) — disparada por
+   js/sismo-metrics.js (startFeltZone/stopFeltZone). Dois discos reais (raio em
+   km convertido pra px na escala do mapa) crescem a partir do epicentro e
+   FICAM ali, translúcidos, respirando devagar — não são um flash que aparece
+   e some, porque a informação (zona crítica / zona sentida) continua válida
+   enquanto o efeito estiver na tela. O disco vermelho ganha uma varredura
+   girando por dentro, de enfeite, sem virar um widget separado do azul.
+
+   translate(-50%,-50%) em CADA quadro da animação (não só no estado de
+   repouso) porque left/top são setados via JS como a coordenada projetada do
+   epicentro, não o canto do elemento — sem isso o disco cresceria a partir do
+   canto superior esquerdo em vez do centro. */
+.felt-zone-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+.felt-zone-blue,
+.felt-zone-red,
+.felt-zone-sweep {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+}
+.felt-zone-blue {
+  background: radial-gradient(circle, rgba(56,189,248,.22) 0%, rgba(56,189,248,.10) 68%, transparent 100%);
+  border: 1.5px solid rgba(56,189,248,.60);
+}
+.felt-zone-red {
+  background: radial-gradient(circle, rgba(239,68,68,.42) 0%, rgba(239,68,68,.20) 68%, transparent 100%);
+  border: 1.5px solid rgba(239,68,68,.70);
+}
+.felt-zone-sweep {
+  mix-blend-mode: screen;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,.85) 18deg, transparent 46deg);
+  -webkit-mask: radial-gradient(circle, transparent 30%, #000 31%);
+  mask: radial-gradient(circle, transparent 30%, #000 31%);
+}
+
+.felt-zone-wrap.grow .felt-zone-blue {
+  animation: fzGrow 2.3s cubic-bezier(.16,.7,.3,1) forwards,
+             fzBreatheBlue 3.4s ease-in-out 2.3s infinite;
+}
+.felt-zone-wrap.grow .felt-zone-red {
+  animation: fzGrow 1.15s cubic-bezier(.16,.7,.3,1) forwards,
+             fzBreatheRed 2.8s ease-in-out 1.15s infinite;
+}
+.felt-zone-wrap.grow .felt-zone-sweep {
+  animation: fzGrow 1.15s cubic-bezier(.16,.7,.3,1) forwards,
+             fzSpin 2.6s linear 1.15s infinite;
+}
+.felt-zone-wrap.fading {
+  transition: opacity .9s ease;
+  opacity: 0;
+}
+
+@keyframes fzGrow {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+  100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+}
+@keyframes fzBreatheBlue {
+  0%, 100% { transform: translate(-50%,-50%) scale(1);     opacity: .82; }
+  50%      { transform: translate(-50%,-50%) scale(1.025); opacity: 1; }
+}
+@keyframes fzBreatheRed {
+  0%, 100% { transform: translate(-50%,-50%) scale(1);    opacity: .88; }
+  50%      { transform: translate(-50%,-50%) scale(1.04); opacity: 1; }
+}
+@keyframes fzSpin {
+  from { transform: translate(-50%,-50%) rotate(0deg); }
+  to   { transform: translate(-50%,-50%) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .felt-zone-wrap.grow .felt-zone-blue,
+  .felt-zone-wrap.grow .felt-zone-red,
+  .felt-zone-wrap.grow .felt-zone-sweep {
+    animation: none !important;
+    transform: translate(-50%,-50%) scale(1) !important;
+    opacity: .7 !important;
+  }
+}

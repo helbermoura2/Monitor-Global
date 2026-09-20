@@ -47,10 +47,6 @@ let floodRiskState = { level: 'baixo', score: 0, reason: 'Aguardando dados de ch
 const VOO_ALERTA_DUR = 9000, VOO_MANUAL_DUR = 6000, VOO_VOLTA_DUR = 7000;
 const SP_LAT = -23.55, SP_LNG = -46.63;
 
-/* Configurações de performance dos anéis */
-const RAIO_MAG_MIN = 7.0;          // só desenha anel a partir desta magnitude (evita poluir o mapa em enxames de réplicas)
-const RAIO_MAG_MIN_ZOOM_BAIXO = 7.0; // no zoom do globo, mesma regra
-
 let globalEvents = [], globalAlerts = [];
 // Espelha no window para scripts em IIFE (ex.: story-share) sempre enxergarem a lista.
 try { window.globalEvents = globalEvents; window.globalAlerts = globalAlerts; } catch (_) {}
