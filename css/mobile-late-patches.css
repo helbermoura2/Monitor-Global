@@ -582,8 +582,13 @@
 .pd-more-details[hidden] { display: none !important; }
 .pd-more-details { margin-top: 2px; }
 
-/* Ticker superior (SOMENTE MOBILE — no desktop quem mostra o evento é o #painel-direito) */
-@media screen and (max-width:1100px) {
+/* Ticker superior (SOMENTE MOBILE — no desktop quem mostra o evento é o
+   #painel-direito). Estreitado de max-width:1100px pra 900px: o corte de
+   1100px datava de antes de css/desktop-layout-lock.css existir e tratar
+   901-1100px como desktop de verdade — nessa faixa o ticker "mobile"
+   ficava aparecendo por cima do cabeçalho de desktop, exatamente o que
+   este comentário diz que não devia acontecer. */
+@media screen and (max-width:900px) {
 #latest-event-ticker {
   display: flex !important;
   align-items: center !important;
