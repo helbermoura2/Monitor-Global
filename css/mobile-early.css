@@ -552,7 +552,14 @@
   }
   #top-strip>.ts-mainrow{padding-right:145px!important;}
   #latest-event-ticker{top:50px!important;}
-  #painel-direito{height:54px!important;max-height:54px!important;}
+  /* min-height:54px!important além de height/max-height: sem isso, um
+     "min-height:160px" antigo e sem !important (base.css, @media max-
+     width:900px — de um desenho anterior, com #painel-direito ocupando
+     sua própria linha de grid) ainda vencia NESSA propriedade (min-
+     height é diferente de max-height/height, então o !important de um
+     não protegia o outro) e forçava o painel a 160px numa tela curta
+     (celular deitado), invadindo o próprio cabeçalho por cima. */
+  #painel-direito{height:54px!important;max-height:54px!important;min-height:54px!important;}
   body.mobile-details-mid #painel-direito{height:min(60dvh,300px)!important;max-height:min(60dvh,300px)!important;}
   body.mobile-details-open #painel-direito{height:min(84dvh,430px)!important;max-height:min(84dvh,430px)!important;}
   #mobile-fab-bar{top:4px!important;right:6px!important;}
