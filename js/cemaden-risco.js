@@ -428,6 +428,21 @@ const PRO={radar:true,follow:true,replay:false,speed:1,timer:null,events:[],idx:
 const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe',GDACS:'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com',EONET:'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com',CEMADEN:'https://painelalertas.cemaden.gov.br',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br'};
 function q(id){return document.getElementById(id)}
 function safeText(id,v){const e=q(id);if(e)e.textContent=v==null?'--':v}
+// Fontes sísmicas REGIONAIS (rede nacional de um país específico): quando
+// uma delas cai, o sismo daquela região continua chegando pelo USGS/EMSC
+// (rede global, cobre o planeta inteiro) — só perde o detalhe extra que só
+// a rede local capta. O aviso deixa isso explícito, em vez de "OFFLINE" seco
+// parecer que a região ficou sem monitoramento nenhum.
+const REGIONAL_SEISMIC_FALLBACK = {
+  IGP: 'Peru — USGS/EMSC seguem cobrindo a região',
+  JMA: 'Japão — USGS/EMSC seguem cobrindo a região',
+  'OSC-BOL': 'Bolívia — USGS/EMSC seguem cobrindo a região',
+  BMKG: 'Indonésia — USGS/EMSC seguem cobrindo a região',
+  GEONET: 'Nova Zelândia — USGS/EMSC seguem cobrindo a região',
+  FUNVISIS: 'Venezuela — USGS/EMSC seguem cobrindo a região',
+  USP: 'Brasil — USGS/EMSC seguem cobrindo a região',
+  AFAD: 'Turquia — USGS/EMSC seguem cobrindo a região'
+};
 function setSource(name,status,ms,error){
   // 2 falhas seguidas → OFF; 1 falha → LENTO. Sucesso zera.
   // SourceHealth: 3ª falha abre cooldown 90s (não martela a fonte).
@@ -449,7 +464,7 @@ function setSource(name,status,ms,error){
   renderSources();
 }
 function renderSources(){const c=q('source-list');const keys=Object.keys(SRC);let ok=0,warn=0,off=0;const offNames=[];const rows=keys.map(k=>{const s=PRO.sourceState[k]||{};if(s.status==='ok')ok++;else if(s.status==='warn')warn++;else if(s.status==='off'){off++;offNames.push(k);}const cls=s.status==='ok'?'source-ok':s.status==='warn'?'source-warn':s.status==='off'?'source-off':'';const label=s.status==='ok'?'ONLINE':s.status==='warn'?'LENTO':s.status==='off'?'OFF':'--';const ms=s.ms?Math.round(s.ms)+'ms':'--';const age=s.time?Math.max(0,Math.round((Date.now()-s.time)/1000))+'s':'--';const title=s.error?` title="${String(s.error).replace(/"/g,'&quot;')}"`:'';return `<div class="source-row"><span>${k}</span><b class="${cls}"${title}>${label}</b><span>${ms} · ${age}</span></div>`}).join('');if(c)c.innerHTML=rows;const sum=`${ok} online · ${warn} atenção · ${off} offline`;safeText('source-summary',sum);try{const el=document.getElementById('ts-meta-fresh');if(el&&offNames.length)el.title='Offline: '+offNames.join(', ');const strip=document.getElementById('ts-meta-fontes');if(strip&&off){strip.style.color='#f87171';}else if(strip){strip.style.color='';}}catch(e){}// Toast discreto quando uma fonte cai
-try{const prev=window.__srcOffCount|0;window.__srcOffCount=off;if(off>prev&&off>0&&typeof showToast==='function'){(()=>{const n=offNames.find(x=>x!=='OpenMeteo'); if(n) showToast('⚠️ Fonte offline: '+n,'warn');})();}}catch(e){}}
+try{const prev=window.__srcOffCount|0;window.__srcOffCount=off;if(off>prev&&off>0&&typeof showToast==='function'){(()=>{const n=offNames.find(x=>x!=='OpenMeteo'); if(!n) return; const fallback=REGIONAL_SEISMIC_FALLBACK[n]; showToast('⚠️ Fonte offline: '+n+(fallback?' · '+fallback:''),'warn');})();}}catch(e){}}
 async function pingSource(name,url){
   try {
     if (typeof SourceHealth !== 'undefined' && SourceHealth.isOpen(name)) {
@@ -484,18 +499,27 @@ async function checkSources(){
     pingSource('USGS',SRC.USGS+'/fdsnws/event/1/application.json'),
     pingSource('EMSC',SRC.EMSC),
     pingSource('JMA','https://www.jma.go.jp/bosai/quake/data/list.json'),
-    pingSource('IGP','https://ide.igp.gob.pe/arcgis/rest/services/monitoreocensis/UltimoSismo/MapServer/0'),
+    // IGP e USGS-Volcano eram as 2 únicas fontes desta lista testadas direto do
+    // navegador (sem viaWorker) — institutos de governo raramente liberam CORS
+    // pra origem de terceiros, então isso dava "OFFLINE" falso mesmo com o
+    // servidor de pé (o navegador bloqueia a resposta antes do JS enxergar).
+    // Servidor-a-servidor (via Worker) não tem essa restrição.
+    pingSource('IGP',viaWorker('https://ide.igp.gob.pe/arcgis/rest/services/monitoreocensis/UltimoSismo/MapServer/0?f=json')),
     pingSource('GDACS',viaWorker(SRC.GDACS+'/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&fromdate='+today+'&todate='+today)),
     pingSource('NWS',SRC.NWS+'/alerts/active?status=actual'),
     pingSource('OpenMeteo',SRC.OpenMeteo+`/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m`),
     pingSource('EONET',SRC.EONET+'/api/v3/events'),
     pingSource('RainViewer','https://api.rainviewer.com/public/weather-maps.json'),
-    pingSource('USGS-Volcano','https://volcanoes.usgs.gov/vsc/api/hansApi/vonas/30'),
+    pingSource('USGS-Volcano',viaWorker('https://volcanoes.usgs.gov/vsc/api/hansApi/vonas/30')),
     pingSource('GEOFON',viaWorker(SRC.GEOFON+'/fdsnws/event/1/version')),
     pingSource('OSC-BOL',viaWorker(SRC['OSC-BOL']+'/index.php/es/')),
     pingSource('BMKG',viaWorker(SRC.BMKG+'/DataMKG/TEWS/gempaterkini.json')),
     pingSource('GEONET',viaWorker(SRC.GEONET+'/quake?MMI=-1')),
-    pingSource('FUNVISIS',viaWorker(SRC.FUNVISIS+'/api/sismos')),
+    // Caminho corrigido pra bater com o que já funciona de verdade: o próprio
+    // handler do Worker (handleFunvisisEarthquakes) só consegue dados por
+    // "/api/sismos/recent?limit=N" quando "/api/sismos" sozinho vem vazio —
+    // o teste de status usava só o primeiro, que é o caminho menos confiável.
+    pingSource('FUNVISIS',viaWorker(SRC.FUNVISIS+'/api/sismos/recent?limit=5')),
     pingSource('CPTEC',viaWorker(SRC.CPTEC+'/XML/capitais/condicoesAtuais.xml')),
     pingSource('INPE',viaWorker(SRC.INPE+'/queimadas/queimadas/focos/csv/10min/')),
     pingSource('CGE',viaWorker(SRC.CGE+'/v3/alagamentos.jsp'))
