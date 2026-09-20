@@ -75,6 +75,21 @@
 #painel-direito.pd-fx-earthquake {
   animation: pdQuakeShake 7s cubic-bezier(.36,.07,.19,.97) 1;
 }
+/* No celular, abrir o card (toque) sempre põe body.mobile-details-mid/-open,
+   e css/mobile-header-v4412.css tem "body.mobile-details-mid #painel-direito
+   { animation: sheetUp .22s ease }" — especificidade (1 id + 1 classe + 1
+   tag) MAIOR que a regra acima (1 id + 1 classe), então o shake nunca
+   chegava a aparecer de verdade no celular: `animation` é uma propriedade
+   só, a 2ª declaração substitui inteira a 1ª, não soma. Como no celular o
+   card SEMPRE está em mid/open quando dá pra ver o tremor, sem isto aqui o
+   efeito simplesmente não existia lá (só no desktop, onde essas classes de
+   body não se aplicam). Junta as duas animações (vírgula = múltiplas
+   animações na mesma propriedade) numa regra com especificidade maior
+   ainda (1 id + 2 classes + 1 tag), que daí ganha das duas anteriores. */
+body.mobile-details-mid #painel-direito.pd-fx-earthquake,
+body.mobile-details-open #painel-direito.pd-fx-earthquake {
+  animation: sheetUp .22s ease, pdQuakeShake 7s cubic-bezier(.36,.07,.19,.97) 1;
+}
 
 /* 🔥 INCÊNDIO / 🌋 VULCÃO — só as brasas subindo, nada mais (usuário achou
    o círculo pulsante do gauge/glow desnecessário — removido de vez).

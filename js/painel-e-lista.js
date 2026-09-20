@@ -156,7 +156,11 @@ function applyFilters() {
 function selectMapEvent(item, speak = false) {
     if (!item) return;
     const idx = globalEvents.findIndex(x => x.id === item.id);
-    if (item.type === 'earthquake' && idx >= 0) showEventDetails(idx, false);
+    // Alguns sismos chegam sem item.type setado (só item.mag) — mesmo
+    // critério usado em painel-e-lista.js:244 e nucleo-estado.js:127, pra
+    // não cair no fallback de "tempestade" de showAlertDetails.
+    const ehSismo = item.type === 'earthquake' || (item.mag != null && !item.type);
+    if (ehSismo && idx >= 0) showEventDetails(idx, false);
     else showAlertDetails(item, false);
     requestAnimationFrame(() => {
         const card = Array.from(document.querySelectorAll('#events .event')).find(el => el.dataset.eventId === String(item.id));
@@ -596,7 +600,7 @@ function handleEventCardActivate(e, isKeyboard) {
     if (isKeyboard) e.preventDefault();
     e.stopPropagation();
     marcarEventoComoVisto(item.id, div);
-    if (item.type === 'earthquake') {
+    if (item.type === 'earthquake' || (item.mag != null && !item.type)) {
         const idxNow = globalEvents.findIndex(e2 => e2.id === item.id);
         if (idxNow >= 0) {
             showEventDetails(idxNow, false);
@@ -829,7 +833,8 @@ function scheduleNextAutoCycle(ms) {
                 return;
             }
             window.__mgSoftCycle = true;
-            if (it.type === 'earthquake') {
+            const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
+            if (ehSismo) {
                 const i = globalEvents.findIndex(e => e && e.id === it.id);
                 if (i !== -1) showEventDetails(i, false);
                 else showAlertDetails(it, false);
@@ -1239,7 +1244,13 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     resetPainelDetalheCompartilhado();
 
-    const meta = TYPE_META[item.type] || TYPE_META.storm;
+    // Sismo é o fallback seguro (igual às outras 2 ocorrências deste
+    // fallback no arquivo) — não "tempestade": um evento sem item.type
+    // reconhecido (registro parcial vindo do EventStore, sismo com type
+    // ausente detectado só pelo mag) tem muito mais chance de ser um
+    // sismo do que uma tempestade, e cair em ⚡/"TEMPESTADE" sem bandeira
+    // era o sintoma visível desse bug.
+    const meta = TYPE_META[item.type] || TYPE_META.earthquake;
     const cor = meta.color;
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
