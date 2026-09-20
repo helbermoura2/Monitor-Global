@@ -48,7 +48,6 @@
 </head>
 <body>
 <div id="app-status" role="status" aria-live="polite"><span id="app-status-text">Inicializando monitor…</span><button id="app-status-retry" type="button" hidden>Tentar novamente</button></div>
-<div id="lightning-flash"></div>
 <div id="debug-panel" style="display:none;position:fixed;top:60px;left:10px;z-index:100000;width:min(92vw,480px);max-height:60vh;overflow-y:auto;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px;font:11px/1.4 monospace;color:#cbd5e1;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <b style="color:#e2e8f0;">Log de diagnóstico</b>
@@ -228,6 +227,7 @@
 
   <aside id="painel-direito" class="pd-sev-none" onclick="alternarPainelDetalhesMobile()">
     <div class="pd-fx-overlay" id="pd-fx-overlay" aria-hidden="true"></div>
+    <div id="lightning-flash" aria-hidden="true"></div>
     <button id="painel-direito-close" onclick="event.stopPropagation();fecharPainelDetalhesMobile()" title="Fechar" aria-label="Fechar painel de detalhes">✕</button>
     <div class="pd-header-row">
       <div class="pd-header" id="pd-source">AGUARDANDO EVENTO…</div>
