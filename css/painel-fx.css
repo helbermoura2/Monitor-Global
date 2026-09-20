@@ -33,6 +33,9 @@
 .pd-fx-ember-3 { left: 42%; bottom: 22%; width: 6px; height: 6px; }
 .pd-fx-ember-4 { left: 47%; bottom: 28%; width: 4px; height: 4px; }
 .pd-fx-ember-5 { left: 54%; bottom: 26%; width: 5px; height: 5px; }
+.pd-fx-ember-6 { left: 37%; bottom: 18%; width: 5px; height: 5px; }
+.pd-fx-ember-7 { left: 64%; bottom: 24%; width: 4px; height: 4px; }
+.pd-fx-ember-8 { left: 50%; bottom: 16%; width: 6px; height: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
   #painel-direito[class*="pd-fx-"] { animation: none !important; }
@@ -43,61 +46,66 @@
 }
 
 /* 🌍 SISMO — treme com força proporcional à magnitude (--pd-fx-amp, setado
-   por triggerCardFxMag) e sossega rápido, igual um abalo de verdade — 7s de
-   "janela" do efeito, mas o tremor real dura só o começo. */
+   por triggerCardFxMag) pelos 7s inteiros (v1 sossegava em 1.5s e ficava
+   parado o resto do tempo — achado "muito rápido"), com a amplitude
+   decaindo bem devagar até quase zero só no finalzinho. */
 @keyframes pdQuakeShake {
-  0%, 100%       { transform: translate(0,0) rotate(0); }
-  3%             { transform: translate(calc(var(--pd-fx-amp,6px) * -1), 1px) rotate(-.3deg); }
-  6%             { transform: translate(var(--pd-fx-amp,6px), -1px) rotate(.3deg); }
-  9%             { transform: translate(calc(var(--pd-fx-amp,6px) * -.7), 1px) rotate(-.2deg); }
-  12%            { transform: translate(calc(var(--pd-fx-amp,6px) * .7), 0) rotate(.2deg); }
-  15%            { transform: translate(calc(var(--pd-fx-amp,6px) * -.4), 1px) rotate(0); }
-  18%            { transform: translate(calc(var(--pd-fx-amp,6px) * .4), 0); }
-  21%            { transform: translate(calc(var(--pd-fx-amp,6px) * -.15), 0); }
-  24%, 100%      { transform: translate(0,0) rotate(0); }
+  0%   { transform: translate(0,0) rotate(0); }
+  5%   { transform: translate(calc(var(--pd-fx-amp,6px) * -1),    1px) rotate(-.3deg); }
+  10%  { transform: translate(calc(var(--pd-fx-amp,6px) * .99),  -1px) rotate(.3deg); }
+  15%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.98),  1px) rotate(-.28deg); }
+  20%  { transform: translate(calc(var(--pd-fx-amp,6px) * .96),   0)   rotate(.26deg); }
+  25%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.94),  1px) rotate(-.24deg); }
+  30%  { transform: translate(calc(var(--pd-fx-amp,6px) * .92),   0)   rotate(.22deg); }
+  35%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.89),  1px) rotate(-.2deg); }
+  40%  { transform: translate(calc(var(--pd-fx-amp,6px) * .86),   0)   rotate(.18deg); }
+  45%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.82),  0)   rotate(-.16deg); }
+  50%  { transform: translate(calc(var(--pd-fx-amp,6px) * .78),   0)   rotate(.14deg); }
+  55%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.73),  0)   rotate(-.12deg); }
+  60%  { transform: translate(calc(var(--pd-fx-amp,6px) * .68),   0)   rotate(.1deg); }
+  65%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.62),  0); }
+  70%  { transform: translate(calc(var(--pd-fx-amp,6px) * .56),   0); }
+  75%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.49),  0); }
+  80%  { transform: translate(calc(var(--pd-fx-amp,6px) * .42),   0); }
+  85%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.35),  0); }
+  90%  { transform: translate(calc(var(--pd-fx-amp,6px) * .27),   0); }
+  95%  { transform: translate(calc(var(--pd-fx-amp,6px) * -.19),  0); }
+  100% { transform: translate(0,0) rotate(0); }
 }
 #painel-direito.pd-fx-earthquake {
   animation: pdQuakeShake 7s cubic-bezier(.36,.07,.19,.97) 1;
 }
 
-/* 🔥 INCÊNDIO / 🌋 VULCÃO — labareda: 5 brasas subindo (bem mais visíveis
-   que a v1, que tinha só 2 bem pequenas) + glow do gauge pulsando mais
-   forte e um brilho quente por trás do card inteiro. Vulcão usa a mesma
-   mecânica, só mais lenta e mais vermelha (a cor muda via --pd-fx-color). */
+/* 🔥 INCÊNDIO / 🌋 VULCÃO — só as brasas subindo, nada mais (usuário achou
+   o círculo pulsante do gauge/glow desnecessário — removido de vez).
+   8 brasas (era 5) rodando em loop por 15s (era 7s — achado curto pro
+   efeito de fogo). Vulcão usa a mesma mecânica, só mais lento e mais
+   vermelho (a cor muda via --pd-fx-color). Iteration infinite porque
+   quem controla a duração total é o timeout em js/painel-fx.js
+   (FX_DURATION.fire/volcano = 15s) removendo a classe — não precisa
+   contar iterações certinhas pra bater com a janela. */
 @keyframes pdEmberRise {
   0%   { opacity: 0; transform: translateY(0) scale(.5); }
   20%  { opacity: 1; }
   100% { opacity: 0; transform: translateY(-78px) scale(1.3); }
 }
-@keyframes pdGlowPulse {
-  0%, 100% { transform: translate(-50%,-50%) scale(1); filter: brightness(1); }
-  50%      { transform: translate(-50%,-50%) scale(1.9); filter: brightness(1.8); }
-}
-@keyframes pdEmberBackglow {
-  0%, 100% { opacity: 0; }
-  50%      { opacity: .3; }
-}
-#painel-direito.pd-fx-fire #pd-fx-overlay {
-  background: radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--pd-fx-color, #f97316) 55%, transparent) 0%, transparent 70%);
-  animation: pdEmberBackglow 1.1s ease-in-out 6;
-}
-#painel-direito.pd-fx-fire .pd-fx-ember-1 { animation: pdEmberRise 1.6s ease-out 4 both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-2 { animation: pdEmberRise 1.9s ease-out 4 .3s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-3 { animation: pdEmberRise 1.4s ease-out 5 .5s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-4 { animation: pdEmberRise 2.1s ease-out 3 .15s both; }
-#painel-direito.pd-fx-fire .pd-fx-ember-5 { animation: pdEmberRise 1.7s ease-out 4 .65s both; }
-#painel-direito.pd-fx-fire #pd-gauge-glow { animation: pdGlowPulse 1.1s ease-in-out 6; }
+#painel-direito.pd-fx-fire .pd-fx-ember-1 { animation: pdEmberRise 1.6s ease-out infinite both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-2 { animation: pdEmberRise 1.9s ease-out infinite .3s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-3 { animation: pdEmberRise 1.4s ease-out infinite .5s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-4 { animation: pdEmberRise 2.1s ease-out infinite .15s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-5 { animation: pdEmberRise 1.7s ease-out infinite .65s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-6 { animation: pdEmberRise 2.3s ease-out infinite .9s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-7 { animation: pdEmberRise 1.5s ease-out infinite 1.1s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-8 { animation: pdEmberRise 2s ease-out infinite .45s both; }
 
-#painel-direito.pd-fx-volcano #pd-fx-overlay {
-  background: radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--pd-fx-color, #dc2626) 50%, transparent) 0%, transparent 70%);
-  animation: pdEmberBackglow 1.8s ease-in-out 4;
-}
-#painel-direito.pd-fx-volcano .pd-fx-ember-1 { animation: pdEmberRise 2.4s ease-out 3 both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-2 { animation: pdEmberRise 2.8s ease-out 3 .5s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-3 { animation: pdEmberRise 2.2s ease-out 3 .8s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-4 { animation: pdEmberRise 3s ease-out 2 .3s both; }
-#painel-direito.pd-fx-volcano .pd-fx-ember-5 { animation: pdEmberRise 2.6s ease-out 3 1s both; }
-#painel-direito.pd-fx-volcano #pd-gauge-glow { animation: pdGlowPulse 1.8s ease-in-out 4; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-1 { animation: pdEmberRise 2.4s ease-out infinite both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-2 { animation: pdEmberRise 2.8s ease-out infinite .5s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-3 { animation: pdEmberRise 2.2s ease-out infinite .8s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-4 { animation: pdEmberRise 3s ease-out infinite .3s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-5 { animation: pdEmberRise 2.6s ease-out infinite 1s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-6 { animation: pdEmberRise 3.2s ease-out infinite .15s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-7 { animation: pdEmberRise 2.5s ease-out infinite 1.3s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-8 { animation: pdEmberRise 2.9s ease-out infinite .65s both; }
 
 /* 🌀 CICLONE / 🌪️ TORNADO — o próprio emoji gira (é literalmente uma
    espiral). O giro em si é feito via JS (js/painel-fx.js, spinIcon), não
@@ -171,35 +179,27 @@
   animation: pdWindStreak 7s cubic-bezier(.3,0,.4,1) 1;
 }
 
-/* 💧 ENCHENTE — nível de "água" sobe bem mais alto e mais opaco que a v1
-   (dava pra nem notar), com ondulação diagonal contínua por cima pra
-   parecer água de verdade em vez de um gradiente parado. */
+/* 💧 ENCHENTE — nível do "mar" subindo bem devagar (10s — era 7s com a
+   subida toda nos primeiros 3.5s, rápido demais) até assentar. A v1 tinha
+   uma textura de risca diagonal que lembrava chuva — usuário achou ruim,
+   queria água de verdade subindo, tipo maré. Removida a risca: agora é só
+   um gradiente sólido de água com uma linha mais clara na "linha d'água"
+   (o topo do preenchimento), sem textura nenhuma por cima. */
 @keyframes pdFloodRise {
   0%   { transform: scaleY(0); opacity: 0; }
-  50%  { transform: scaleY(1); opacity: .85; }
-  100% { transform: scaleY(1); opacity: .6; }
-}
-@keyframes pdFloodRipple {
-  from { background-position: 0 0, 0 0; }
-  to   { background-position: 70px 0, 0 0; }
+  70%  { transform: scaleY(1); opacity: .85; }
+  100% { transform: scaleY(1); opacity: .62; }
 }
 #painel-direito.pd-fx-flood #pd-fx-overlay {
-  background-image:
-    repeating-linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 50%, transparent) 0px,
-      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 50%, transparent) 8px,
-      transparent 8px,
-      transparent 38px
-    ),
-    linear-gradient(
-      0deg,
-      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 70%, transparent) 0%,
-      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 30%, transparent) 60%,
-      transparent 82%
-    );
+  background-image: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 80%, transparent) 0%,
+    color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 62%, transparent) 6%,
+    color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 22%, transparent) 55%,
+    transparent 82%
+  );
   transform-origin: bottom;
-  animation: pdFloodRise 7s cubic-bezier(.16,.84,.44,1) 1 forwards, pdFloodRipple 2.2s linear infinite;
+  animation: pdFloodRise 10s cubic-bezier(.22,.61,.36,1) 1 forwards;
 }
 
 /* 🚨 ALERTA CIVIL — giroflex de viatura de verdade: vermelho e azul
