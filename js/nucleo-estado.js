@@ -31,10 +31,15 @@ const CRISIS_QUAKE_MAG = 6.0;
 const CRISIS_QUAKE_KM = 1500;
 const DEDUPE_KM = 80;
 const DEDUPE_MS = 6 * 3600000;
-// Cruzamento entre catálogos sísmicos: janela maior para que USGS/EMSC/GFZ/JMA/IGP
-// encontrem o mesmo evento mesmo quando uma agência publica alguns minutos depois.
+// Cruzamento entre catálogos sísmicos: raio maior (a localização do epicentro
+// diverge bastante entre agências) pra que USGS/EMSC/GFZ/JMA/IGP encontrem o
+// mesmo evento. Janela de TEMPO reduzida de 15 pra 5 minutos (era larga
+// demais): 5 minutos ainda cobre uma agência publicando alguns minutos depois
+// da outra, mas sem juntar sismos DIFERENTES de um enxame de verdade (Porto
+// Rico/Guánica chega a ter vários M1-M3 na mesma área em poucos minutos —
+// com 15min esses viravam "um evento só" com dezenas de magnitudes na lista).
 const SISMO_DEDUPE_RAIO_KM = 80;
-const SISMO_DEDUPE_TOL_MS = 15 * 60 * 1000;
+const SISMO_DEDUPE_TOL_MS = 5 * 60 * 1000;
 // Diferença considerada relevante entre magnitudes publicadas para o mesmo evento.
 const SISMO_MAG_DIVERGENCIA_TOL = 0.4;
 const SISMO_MAG_DIVERGENCIA_FORTE = 0.8;

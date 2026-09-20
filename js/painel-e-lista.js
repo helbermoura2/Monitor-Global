@@ -1151,7 +1151,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
             });
         } catch (e) {}
         totalDur = 4000;
-        if (typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
+        // Sem flash aqui: esta função só trata sismo, e o flash de raio é
+        // efeito exclusivo de tempestade (ver showAlertDetails abaixo).
         scheduleNextAutoCycle(45000);
     } else {
         totalDur = softFlyToCoords(lng, lat, zoomAlvo, soft);
@@ -1556,7 +1557,10 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                     essential: true
                 });
             } catch (e) {}
-            if (typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
+            // Flash de raio é exclusivo de tempestade — outros tipos (furacão,
+            // tsunami, vulcão...) usam seus próprios efeitos de entrada
+            // (js/painel-fx.js), sem flash genérico de "evento novo".
+            if (item.type === 'storm' && typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
             if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
             window.returnCameraTimeout = setTimeout(() => {
                 if (window.preAlertCamera && map && !map.isMoving()) {

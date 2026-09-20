@@ -1186,25 +1186,33 @@ input[type=range]::-webkit-slider-thumb { background: var(--cyan) !important; bo
 #top-strip > .ts-mainrow > .ts-title { flex: 0 0 auto !important; }
 #top-strip > .ts-mainrow > .live-indicator { flex: 0 0 auto !important; }
 #top-strip > .ts-mainrow > .header-main-menu { flex: 0 0 auto !important; }
-#top-strip > .ts-mainrow > .ts-kpis #kpibox-brent { display: flex !important; flex: 0 0 158px !important; width: 158px !important; min-width: 158px !important; max-width: 158px !important; height: 40px !important; padding: 3px 10px !important; border-left: 1px solid #17325d !important; border-right: 1px solid #17325d !important; align-items: center !important; justify-content: center !important; overflow: hidden !important; }
-#top-strip > .ts-mainrow > .ts-kpis #kpibox-brent .ts-kpi-label { font-size: 8px !important; line-height: 1 !important; margin-right: 7px !important; }
-#top-strip > .ts-mainrow > .ts-kpis #kpibox-brent .ts-kpi-value { font-size: 15px !important; line-height: 1 !important; white-space: nowrap !important; }
-#top-strip > .ts-mainrow > .ts-kpis #btn-som-header { position: relative !important; flex: 0 0 48px !important; width: 48px !important; min-width: 48px !important; max-width: 48px !important; height: 40px !important; min-height: 40px !important; max-height: 40px !important; margin: 0 !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 10px !important; font-size: 19px !important; box-sizing: border-box !important; z-index: 301 !important; }
-#top-strip > .ts-mainrow > .ts-kpis #kpibox-sp { display: none !important; }
-#top-strip > .ts-mainrow > .ts-kpis #kpibox-eventos,
-  #top-strip > .ts-mainrow > .ts-kpis #kpibox-maior { display: none !important; }
+#top-strip > .ts-kpis #kpibox-brent { display: flex !important; flex: 0 0 158px !important; width: 158px !important; min-width: 158px !important; max-width: 158px !important; height: 40px !important; padding: 3px 10px !important; border-left: 1px solid #17325d !important; border-right: 1px solid #17325d !important; align-items: center !important; justify-content: center !important; overflow: hidden !important; }
+#top-strip > .ts-kpis #kpibox-brent .ts-kpi-label { font-size: 8px !important; line-height: 1 !important; margin-right: 7px !important; }
+#top-strip > .ts-kpis #kpibox-brent .ts-kpi-value { font-size: 15px !important; line-height: 1 !important; white-space: nowrap !important; }
+#top-strip > .ts-kpis #btn-som-header { position: relative !important; flex: 0 0 48px !important; width: 48px !important; min-width: 48px !important; max-width: 48px !important; height: 40px !important; min-height: 40px !important; max-height: 40px !important; margin: 0 !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 10px !important; font-size: 19px !important; box-sizing: border-box !important; z-index: 301 !important; }
+/* Clima compacto (cidade + ícone + temp/sensação): visibilidade/posição
+   real vêm de css/features-misc.css (única regra que de fato vence a
+   disputa de especificidade contra a que escondia isso aqui) — aqui só a
+   tipografia interna. */
+#top-strip > .ts-kpis #kpibox-sp .ts-kpi-label { font-size: 8px !important; max-width: 90px !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+#top-strip > .ts-kpis #kpibox-sp .ts-kpi-row { display: flex !important; align-items: baseline !important; gap: 3px !important; }
+#top-strip > .ts-kpis #kpibox-sp .ts-kpi-value { font-size: 14px !important; font-weight: 800 !important; }
+#top-strip > .ts-kpis #kpibox-sp .ts-kpi-sub { font-size: 9px !important; color: #8ea6c4 !important; }
+#top-strip > .ts-kpis #kpibox-sp .mg-wind { display: none !important; }
+#top-strip > .ts-kpis #kpibox-eventos,
+  #top-strip > .ts-kpis #kpibox-maior { display: none !important; }
 #top-strip > .ts-mainrow > .ts-clock { position: absolute !important; right: 0 !important; top: 12px !important; width: 112px !important; min-width: 112px !important; max-width: 112px !important; height: 28px !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; margin: 0 !important; padding: 0 !important; font-size: 16px !important; line-height: 1 !important; white-space: nowrap !important; z-index: 300 !important; }
 #top-strip > .ts-mainrow { position: relative !important; display: flex !important; align-items: center !important; width: 100% !important; height: 52px !important; gap: 12px !important; padding-right: 365px !important; }
 }
 @media screen and (min-width:1101px) and (max-width:1450px) {
 #top-strip > .ts-mainrow { padding-right: 315px !important; }
-#top-strip > .ts-mainrow > .ts-kpis { right: 112px !important; gap: 6px !important; }
-#top-strip > .ts-mainrow > .ts-kpis #kpibox-brent { flex-basis: 138px !important; width: 138px !important; min-width: 138px !important; max-width: 138px !important; }
-#top-strip > .ts-mainrow > .ts-kpis #btn-som-header { flex-basis: 44px !important; width: 44px !important; min-width: 44px !important; max-width: 44px !important; }
+#top-strip > .ts-kpis { right: 112px !important; gap: 6px !important; }
+#top-strip > .ts-kpis #kpibox-brent { flex-basis: 138px !important; width: 138px !important; min-width: 138px !important; max-width: 138px !important; }
+#top-strip > .ts-kpis #btn-som-header { flex-basis: 44px !important; width: 44px !important; min-width: 44px !important; max-width: 44px !important; }
 #top-strip > .ts-mainrow > .ts-clock { width: 100px !important; min-width: 100px !important; max-width: 100px !important; font-size: 14px !important; }
 }
 @media screen and (min-width:1451px) {
-#top-strip > .ts-mainrow > .ts-kpis { right: 126px !important; }
+#top-strip > .ts-kpis { right: 126px !important; }
 }
 #top-strip #kpibox-brent .ts-kpi-label,
 #top-strip #kpibox-brent .ts-kpi-value { overflow: hidden !important; text-overflow: ellipsis !important; }
@@ -1224,7 +1232,7 @@ input[type=range]::-webkit-slider-thumb { background: var(--cyan) !important; bo
 @media screen and (min-width:1101px) {
 #top-strip #btn-som-header { white-space: nowrap !important; box-shadow: 0 0 12px rgba(34,197,94,.22) !important; transition: box-shadow .2s ease,transform .2s ease !important; }
 #top-strip #btn-som-header:hover { box-shadow: 0 0 16px rgba(34,197,94,.34) !important; transform: translateY(-1px) !important; }
-#top-strip > .ts-mainrow > .ts-kpis { position: absolute !important; right: 128px !important; top: 6px !important; height: 40px !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 8px !important; margin: 0 !important; padding: 0 !important; width: auto !important; z-index: 300 !important; border-left: 1px solid rgba(55,91,133,.32) !important; padding-left: 8px !important; }
+#top-strip > .ts-kpis { position: absolute !important; right: 128px !important; top: 6px !important; height: 40px !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 8px !important; margin: 0 !important; padding: 0 !important; width: auto !important; z-index: 300 !important; border-left: 1px solid rgba(55,91,133,.32) !important; padding-left: 8px !important; }
 }
 .event { position: relative !important; padding: 9px 9px 8px !important; margin-bottom: 5px !important; border: 1px solid rgba(82,143,183,.09) !important; border-left: 2px solid transparent !important; border-radius: 9px !important; background: linear-gradient(135deg,rgba(9,24,39,.92),rgba(6,16,27,.9)) !important; cursor: pointer; transition: all .2s; box-shadow: 0 4px 12px rgba(0,0,0,.13) !important; transform: none !important; overflow: hidden !important; }
 .event.selected,.event.active,.event.is-selected { box-shadow: 0 0 0 1px rgba(39,174,255,.28) !important; }
