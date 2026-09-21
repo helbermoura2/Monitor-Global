@@ -359,3 +359,58 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   opacity: 1;
   animation: pdSirenPulse 1.4s steps(1, end) 5;
 }
+
+/* 🌍💥 CAOS DE SISMO GRANDE — ÚNICO efeito deste arquivo que sai do card
+   (#painel-direito) e mexe no SITE INTEIRO: pedido do usuário pra M6+
+   tremer o app todo (não só o card) por 10s, e M7+ ganhar por cima um
+   escurecer piscando, tipo luz falhando durante o tremor ("caos
+   completo"). Disparado por triggerSiteChaos() (js/painel-fx.js), do
+   mesmo lugar onde o card já treme/muda de cor pra qualquer sismo
+   selecionado — sismo novo, clique manual ou revisita do ciclo
+   automático disparam igual, sem distinção. */
+@keyframes mgSiteShake {
+  0%   { transform: translate(0,0); }
+  4%   { transform: translate(calc(var(--mg-shake-amp,10px) * -1),    calc(var(--mg-shake-amp,10px) * .3)); }
+  8%   { transform: translate(calc(var(--mg-shake-amp,10px) * .95),  calc(var(--mg-shake-amp,10px) * -.25)); }
+  12%  { transform: translate(calc(var(--mg-shake-amp,10px) * -.9),   calc(var(--mg-shake-amp,10px) * .2)); }
+  16%  { transform: translate(calc(var(--mg-shake-amp,10px) * .85),  calc(var(--mg-shake-amp,10px) * -.2)); }
+  20%  { transform: translate(calc(var(--mg-shake-amp,10px) * -.8),   calc(var(--mg-shake-amp,10px) * .15)); }
+  28%  { transform: translate(calc(var(--mg-shake-amp,10px) * .72),  calc(var(--mg-shake-amp,10px) * -.15)); }
+  36%  { transform: translate(calc(var(--mg-shake-amp,10px) * -.64),  calc(var(--mg-shake-amp,10px) * .1)); }
+  44%  { transform: translate(calc(var(--mg-shake-amp,10px) * .56),  calc(var(--mg-shake-amp,10px) * -.1)); }
+  52%  { transform: translate(calc(var(--mg-shake-amp,10px) * -.48),  0); }
+  60%  { transform: translate(calc(var(--mg-shake-amp,10px) * .4),   0); }
+  68%  { transform: translate(calc(var(--mg-shake-amp,10px) * -.32),  0); }
+  76%  { transform: translate(calc(var(--mg-shake-amp,10px) * .24),  0); }
+  84%  { transform: translate(calc(var(--mg-shake-amp,10px) * -.16),  0); }
+  92%  { transform: translate(calc(var(--mg-shake-amp,10px) * .08),  0); }
+  100% { transform: translate(0,0); }
+}
+#app.mg-site-shake {
+  animation: mgSiteShake 10s cubic-bezier(.36,.07,.19,.97) 1;
+}
+/* Escurecer piscando (só M7+) — 3 "quedas de luz" espalhadas pelos 10s,
+   nunca ficando escuro parado (isso deixaria o site ilegível/inutilizável
+   por 10s inteiros). Reaproveita #vignette-cinematic (já existe, fixed,
+   cobre a tela toda, pointer-events:none) com uma classe própria bem
+   mais forte que o uso normal dele (vignette-active, só uma borda sutil). */
+@keyframes mgChaosDark {
+  0%, 20%   { opacity: 0; }
+  4%        { opacity: .85; }
+  9%        { opacity: .15; }
+  14%       { opacity: .8; }
+  38%, 54%  { opacity: 0; }
+  42%       { opacity: .78; }
+  48%       { opacity: .1; }
+  72%, 100% { opacity: 0; }
+  76%       { opacity: .72; }
+  82%       { opacity: .08; }
+}
+#vignette-cinematic.mg-chaos-dark {
+  background: #000;
+  animation: mgChaosDark 10s ease-in-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  #app.mg-site-shake,
+  #vignette-cinematic.mg-chaos-dark { animation: none !important; }
+}
