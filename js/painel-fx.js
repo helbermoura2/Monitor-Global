@@ -6,7 +6,7 @@
    Duração da "janela" do efeito por tipo — o padrão é 7s, mas fogo/vulcão
    (brasas) e enchente (maré subindo) pediram mais tempo pra dar pra notar
    direito o efeito. */
-const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200 };
+const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200 };
 function triggerCardFx(type, color) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
@@ -21,7 +21,7 @@ function triggerCardFx(type, color) {
     el.classList.add(cls);
     el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
 
-    if (type === 'hurricane') spinIcon(7000, 1080);
+    if (type === 'hurricane') spinIcon(12000, 1800);
     else if (type === 'tornado') spinIcon(7000, 2160);
 }
 
