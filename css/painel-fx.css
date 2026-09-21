@@ -628,70 +628,180 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 #painel-direito.pd-fx-wind .pd-fx-ember:nth-child(7n) { animation-delay: .5s; }
 #painel-direito.pd-fx-wind .pd-fx-ember:nth-child(11n) { animation-delay: .66s; }
 
-/* 🌀 FURACÃO — espiral de nuvens girando no card inteiro (conic-gradient
-   rotacionando), além do próprio ícone já girar via JS (spinIcon, painel-
-   fx.js) — as duas coisas juntas (ícone girando + "satélite" girando por
-   trás) é o que vende a sensação de olho de furacão de verdade. */
+/* 🌀 FURACÃO / TUFÃO / TEMPESTADE TROPICAL — todas as categorias de ciclone
+   (Depressão, Tempestade Tropical, Furacão, Tufão... — js/furacoes-gdacs.js)
+   caem no MESMO tipo "hurricane" aqui, então é este efeito que representa
+   todas elas. v1 era um repeating-conic-gradient de bordas duras girando
+   uma vez só em 7s — usuário reportou que parecia "filme de baixo
+   orçamento" (fatias de pizza nítidas não parecem nuvem nenhuma) e que
+   sumia rápido demais. v2: 3 camadas de nuvem desfocadas (filter:blur,
+   sem NENHuma borda dura) girando em velocidades e sentidos diferentes —
+   como um satélite de verdade mostra bandas de nuvem em profundidades
+   diferentes — mais um "olho" claro e parado no centro (um radial-gradient
+   simétrico: gira junto mas, sendo simétrico, não SE MOVE visualmente,
+   só as bandas ao redor dele giram). Roda em loop contínuo por toda a
+   duração do efeito (12s — FX_DURATION.hurricane, js/painel-fx.js), com
+   só um envelope de fade entrando/saindo, em vez de aparecer e sumir uma
+   vez só. */
+/* translateY(19%) empurra o "olho" pra baixo, pertinho da borda de baixo
+   do card: o card de previsão do tempo fica por cima da metade de cima
+   do painel (mesmo z-index dos outros efeitos, sismo/fogo/etc.), então
+   um giro centralizado no meio do card (50%/50% padrão) ficava com o
+   miolo inteiro escondido atrás dele — só sobrava a bagunça sem forma
+   nenhuma da borda externa do giro, sem olho visível nenhum. Descendo o
+   centro do giro pra dentro da fatia de baixo (a única sempre visível),
+   o "olho do furacão" — a parte que mais vende o efeito — aparece de
+   verdade. */
 @keyframes pdCycloneSpin {
-  0%   { transform: rotate(0deg); opacity: 0; }
-  10%  { opacity: .5; }
-  90%  { opacity: .45; }
-  100% { transform: rotate(360deg); opacity: 0; }
+  0%   { transform: translateY(19%) rotate(0deg); }
+  100% { transform: translateY(19%) rotate(360deg); }
+}
+@keyframes pdCycloneSpinRev {
+  0%   { transform: translateY(19%) rotate(0deg); }
+  100% { transform: translateY(19%) rotate(-360deg); }
+}
+@keyframes pdCycloneFade {
+  0%       { opacity: 0; }
+  12%, 85% { opacity: 1; }
+  100%     { opacity: 0; }
 }
 #painel-direito.pd-fx-hurricane #pd-fx-overlay {
   opacity: 1;
-  background: repeating-conic-gradient(
+  overflow: hidden;
+  animation: pdCycloneFade 12s ease-in-out 1 forwards;
+}
+#painel-direito.pd-fx-hurricane #pd-fx-overlay::before,
+#painel-direito.pd-fx-hurricane #pd-fx-overlay::after {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  border-radius: 50%;
+}
+/* repeating-conic-gradient com fatias FINAS e uniformes (tentativa v1)
+   lavava tudo pro cinza com qualquer blur que prestasse (fatia fina
+   perto do centro = largura em pixels menor que o próprio blur, some
+   por completo) — trocado por um conic-gradient de UM SÓ giro com 4
+   "braços" de larguras e espaçamentos DIFERENTES entre si (nunca um
+   padrão uniforme repetindo, que é o que lembra ventilador/pizza em vez
+   de nuvem). Perto do centro os braços ainda lavam com o blur — o que
+   por acaso é ótimo, porque é exatamente ali que fica o "olho" (o
+   radial-gradient claro logo abaixo), então o embaçado vira miolo calmo
+   e os braços só aparecem organizados mais pra fora, que é como um
+   furacão de satélite de verdade se parece. */
+#painel-direito.pd-fx-hurricane #pd-fx-overlay::before {
+  background-image: conic-gradient(
     from 0deg,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 55%, transparent) 0deg 8deg,
-    transparent 8deg 26deg
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 62%, transparent) 0deg,
+    transparent 50deg,
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 48%, transparent) 100deg,
+    transparent 160deg,
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 58%, transparent) 215deg,
+    transparent 270deg,
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 40%, transparent) 315deg,
+    transparent 360deg
   );
-  animation: pdCycloneSpin 7s linear 1;
+  filter: blur(6px);
+  opacity: .82;
+  animation: pdCycloneSpin 10s linear infinite;
+}
+#painel-direito.pd-fx-hurricane #pd-fx-overlay::after {
+  background-image:
+    radial-gradient(circle at 50% 52%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.16) 7%, transparent 15%),
+    conic-gradient(
+      from 60deg,
+      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 42%, transparent) 0deg,
+      transparent 45deg,
+      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 34%, transparent) 130deg,
+      transparent 190deg,
+      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 40%, transparent) 260deg,
+      transparent 330deg
+    );
+  filter: blur(9px);
+  opacity: .68;
+  animation: pdCycloneSpinRev 16s linear infinite;
 }
 
 /* 💧 ENCHENTE — nível do "mar" subindo bem devagar (10s — era 7s com a
-   subida toda nos primeiros 3.5s, rápido demais) até assentar. A v1 tinha
-   uma textura de risca diagonal que lembrava chuva — usuário achou ruim,
-   queria água de verdade subindo, tipo maré. Removida a risca: agora é só
-   um gradiente sólido de água com uma linha mais clara na "linha d'água"
-   (o topo do preenchimento), sem textura nenhuma por cima. */
+   subida toda nos primeiros 3.5s, rápido demais) até assentar. v1/v2
+   só decoravam a "linha d'água" (o topo do preenchimento) — só que essa
+   linha sobe rápido e passa a maior parte do tempo escondida atrás do
+   card de previsão do tempo (que fica por cima, na metade de cima do
+   painel), então na prática quase nunca dava pra VER a onda — sobrava só
+   um tom azul liso, daí o usuário achar fraco. v3: ondulação de verdade
+   espalhada por TODO o preenchimento (dois tiles de onda em repeat nos
+   dois eixos, rolando), não só na borda de cima — assim tem textura de
+   água se mexendo visível não importa quanto do preenchimento esteja
+   exposto, escondido ou não atrás de outro card. */
 @keyframes pdFloodRise {
   0%   { transform: scaleY(0); opacity: 0; }
   70%  { transform: scaleY(1); opacity: .85; }
   100% { transform: scaleY(1); opacity: .62; }
 }
-#painel-direito.pd-fx-flood #pd-fx-overlay {
-  background-image: linear-gradient(
-    0deg,
-    color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 80%, transparent) 0%,
-    color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 62%, transparent) 6%,
-    color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 22%, transparent) 55%,
-    transparent 82%
-  );
-  transform-origin: bottom;
-  animation: pdFloodRise 10s cubic-bezier(.22,.61,.36,1) 1 forwards;
+@keyframes pdFloodTexture {
+  0%   { background-position: 0 0, 0 10px, 0 0; }
+  100% { background-position: -140px 0, 190px 10px, 0 0; }
 }
-/* Linha d'água ondulando na superfície — usa o elemento .pd-fx-waterline
-   (topo do #pd-fx-overlay, mesmo pai da água): como o pai inteiro sobe
-   via scaleY a partir da base (transform-origin:bottom acima), o topo
-   dele SOBE JUNTO com a água enchendo — a linha já nasce grudada na
-   "crista" da maré, sem precisar calcular posição nenhuma na mão. Só
-   falta o textura de espuma indo e vindo (background-position), pra não
-   parecer uma risca reta parada. */
-@keyframes pdWaterlineDrift {
-  0%   { background-position: 0 0; opacity: 0; }
-  15%  { opacity: .9; }
-  100% { background-position: -120px 0; opacity: .9; }
+#painel-direito.pd-fx-flood #pd-fx-overlay {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='46' viewBox='0 0 140 46'%3E%3Cpath d='M0 25 Q17.5 13 35 25 T70 25 T105 25 T140 25 V46 H0 Z' fill='rgba(240,249,255,0.16)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='60' viewBox='0 0 190 60'%3E%3Cpath d='M0 33 Q23.75 18 47.5 33 T95 33 T142.5 33 T190 33 V60 H0 Z' fill='rgba(224,242,254,0.1)'/%3E%3C/svg%3E"),
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 80%, transparent) 0%,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 62%, transparent) 6%,
+      color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 22%, transparent) 55%,
+      transparent 82%
+    );
+  background-repeat: repeat, repeat, no-repeat;
+  background-size: 140px 46px, 190px 60px, 100% 100%;
+  transform-origin: bottom;
+  animation: pdFloodRise 10s cubic-bezier(.22,.61,.36,1) 1 forwards, pdFloodTexture 3.4s linear infinite;
+}
+/* Linha d'água na crista — só some atrás do card de previsão quando a
+   água sobe alto, mas nos primeiros instantes (ou em telas onde o card
+   de previsão não cobre tanto) ainda é um baita toque de realismo extra
+   ver a crista com onda de verdade, não só uma cor lisa. */
+@keyframes pdWaterlineFlow {
+  0%   { background-position: 0 0, 0 5px; }
+  100% { background-position: -120px 0, 160px 5px; }
+}
+@keyframes pdWaterlineFadeIn {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  100% { opacity: 1; }
 }
 #painel-direito.pd-fx-flood .pd-fx-waterline {
-  background-image: repeating-linear-gradient(
-    100deg,
-    rgba(240,249,255,.9) 0px,
-    rgba(240,249,255,.9) 3px,
-    transparent 3px,
-    transparent 26px
-  );
-  box-shadow: 0 2px 10px 1px color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 70%, transparent);
-  animation: pdWaterlineDrift 10s linear 1 forwards;
+  height: 24px;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='24' viewBox='0 0 120 24'%3E%3Cpath d='M0 13 Q15 3 30 13 T60 13 T90 13 T120 13 V24 H0 Z' fill='rgba(240,249,255,0.65)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='24' viewBox='0 0 160 24'%3E%3Cpath d='M0 16 Q20 6 40 16 T80 16 T120 16 T160 16 V24 H0 Z' fill='rgba(224,242,254,0.35)'/%3E%3C/svg%3E");
+  background-repeat: repeat-x, repeat-x;
+  background-size: 120px 24px, 160px 24px;
+  box-shadow: 0 3px 12px 1px color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 65%, transparent);
+  animation: pdWaterlineFlow 2.2s linear infinite, pdWaterlineFadeIn 10s ease-out 1 forwards;
+}
+/* Brilho de reflexo — uma faixa de luz clareando na diagonal atravessando
+   a água UMA vez (não em loop, senão vira "piscar" chamativo demais),
+   tipo reflexo de sol/luz na superfície molhada. Usa o ::before do
+   #pd-fx-overlay (livre pra enchente — só fogo/vulcão usam ::before/
+   ::after neste arquivo, e são classes mutuamente exclusivas). */
+@keyframes pdWaterShimmer {
+  0%   { transform: translateX(-140%) skewX(-15deg); opacity: 0; }
+  45%  { opacity: .3; }
+  62%  { opacity: 0; }
+  100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
+}
+#painel-direito.pd-fx-flood #pd-fx-overlay::before {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: pdWaterShimmer 4.5s ease-in-out 1 2.4s both;
 }
 
 /* 🚨 ALERTA CIVIL — giroflex de viatura de verdade: vermelho e azul
