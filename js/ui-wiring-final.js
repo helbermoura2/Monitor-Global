@@ -96,7 +96,7 @@ function showSismoAtualizadoPill(ev) {
         d.style.transition = 'opacity .35s ease, transform .35s ease';
         setTimeout(() => d.remove(), 350);
     };
-    setTimeout(remove, 12000);
+    setTimeout(remove, 13000);
 }
 
 /* ═══════════════ INTERFACE ═══════════════ */
