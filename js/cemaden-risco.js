@@ -286,7 +286,7 @@ function metarFmtDataHora(d) {
 // só o suficiente pra mostrar um resumo útil no painel.
 function parseMetarBasico(raw) {
   const s = String(raw || '');
-  const out = { tempC: null, orvalhoC: null, ventoDir: null, ventoKt: null, rajadaKt: null, qnh: null };
+  const out = { tempC: null, orvalhoC: null, ventoDir: null, ventoKt: null, rajadaKt: null, qnh: null, chuvaIntensidade: null, tempestade: false };
   const mTemp = s.match(/\s(M?\d{2})\/(M?\d{2})\s/);
   if (mTemp) {
     out.tempC = Number(mTemp[1].replace('M', '-'));
@@ -300,6 +300,12 @@ function parseMetarBasico(raw) {
   }
   const mQnh = s.match(/\bQ(\d{4})\b/);
   if (mQnh) out.qnh = Number(mQnh[1]);
+  // Tempo presente (grupo de fenômeno) — chuva/chuvisco real observado na estação,
+  // não é um parser completo (não distingue localização/proximidade do fenômeno,
+  // "VC" = nas vizinhanças, tratado igual a ocorrendo no local pra não perder o sinal).
+  out.tempestade = /\bTS\w*/.test(s);
+  const mChuva = s.match(/(?:^|\s)(-|\+)?(?:VC)?(?:MI|PR|BC|DR|BL|SH|FZ)*(?:TS)?(RA|DZ)\b/);
+  if (mChuva) out.chuvaIntensidade = mChuva[1] === '+' ? 'forte' : mChuva[1] === '-' ? 'fraca' : 'moderada';
   return out;
 }
 
@@ -792,6 +798,10 @@ function boot(){
   // vulcões. Também deixava o painel de debug sem ver window.PRO.sourceState.
   window.setSource = setSource;
   window.PRO = PRO;
+  // Idem pro REDEMET: risco de alagamento (enhancements-4413.js, outro arquivo)
+  // precisa ler METAR real (chuva/tempestade observada) pra reforçar o cálculo
+  // que hoje só usa modelo Open-Meteo.
+  window.REDEMET = REDEMET;
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();

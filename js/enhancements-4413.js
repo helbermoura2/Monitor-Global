@@ -127,6 +127,28 @@
         score += 20; reasons.push(`modelo 24h ${max24} mm`);
       }
     } catch (e) {}
+    // METAR real (REDEMET) — chuva/tempestade OBSERVADA no aeródromo mais próximo,
+    // não é modelo/previsão. O CEMADEN teria os pluviômetros oficiais espalhados
+    // pela cidade, mas a API plena dele depende de uma liberação da própria
+    // CEMADEN (pedido em andamento, ped@cemaden.gov.br) que ainda não veio — até
+    // lá, METAR é o único dado de chuva REAL (não estimado) que o app já tem.
+    try {
+      const estacoes = (window.REDEMET && Array.isArray(window.REDEMET.stations)) ? window.REDEMET.stations : [];
+      if (ref && estacoes.length) {
+        let maisProxima = null, menorDist = Infinity;
+        estacoes.forEach(st => {
+          const d = haversine(ref.lat, ref.lng, st.lat, st.lng);
+          if (d < menorDist) { menorDist = d; maisProxima = st; }
+        });
+        const fresca = maisProxima && (Date.now() - maisProxima.updatedAt) < 75 * 60000;
+        if (maisProxima && menorDist < 80 && fresca) {
+          if (maisProxima.tempestade) { score += 30; reasons.push(`tempestade observada (METAR ${maisProxima.icao})`); }
+          if (maisProxima.chuvaIntensidade === 'forte') { score += 30; reasons.push(`chuva forte observada (METAR ${maisProxima.icao})`); }
+          else if (maisProxima.chuvaIntensidade === 'moderada') { score += 15; reasons.push(`chuva observada (METAR ${maisProxima.icao})`); }
+          else if (maisProxima.chuvaIntensidade === 'fraca') { score += 5; reasons.push(`chuvisco observado (METAR ${maisProxima.icao})`); }
+        }
+      }
+    } catch (e) {}
 
     let level = 'baixo', label = 'BAIXO', icon = '💧', cls = 'risk-normal';
     if (score >= 55) { level = 'muito_alto'; label = 'MUITO ALTO'; icon = '🆘'; cls = 'risk-critical'; }
