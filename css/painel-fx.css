@@ -51,6 +51,22 @@
 .pd-fx-ember-10 { left: 76%; bottom: 46%; width: 7px; height: 7px; }
 .pd-fx-ember-11 { left: 44%; bottom: 52%; width: 5px; height: 5px; }
 .pd-fx-ember-12 { left: 60%; bottom: 36%; width: 6px; height: 6px; }
+/* Segunda leva (13-24) — usuário pediu pra tirar o brilho colorido piscando
+   e deixar SÓ as brasas, só que com muito mais delas. Dobrando de 12 pra
+   24, preenchendo os vãos que a primeira leva deixava (cantos e faixas
+   mais altas do card). */
+.pd-fx-ember-13 { left: 6%;  bottom: 4%;  width: 7px; height: 7px; }
+.pd-fx-ember-14 { left: 96%; bottom: 20%; width: 5px; height: 5px; }
+.pd-fx-ember-15 { left: 38%; bottom: 8%;  width: 6px; height: 6px; }
+.pd-fx-ember-16 { left: 72%; bottom: 4%;  width: 8px; height: 8px; }
+.pd-fx-ember-17 { left: 14%; bottom: 34%; width: 5px; height: 5px; }
+.pd-fx-ember-18 { left: 56%; bottom: 46%; width: 6px; height: 6px; }
+.pd-fx-ember-19 { left: 88%; bottom: 12%; width: 7px; height: 7px; }
+.pd-fx-ember-20 { left: 4%;  bottom: 50%; width: 5px; height: 5px; }
+.pd-fx-ember-21 { left: 46%; bottom: 28%; width: 6px; height: 6px; }
+.pd-fx-ember-22 { left: 30%; bottom: 56%; width: 5px; height: 5px; }
+.pd-fx-ember-23 { left: 64%; bottom: 58%; width: 7px; height: 7px; }
+.pd-fx-ember-24 { left: 80%; bottom: 42%; width: 6px; height: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
   #painel-direito[class*="pd-fx-"] { animation: none !important; }
@@ -140,6 +156,18 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 #painel-direito.pd-fx-fire .pd-fx-ember-10 { animation: pdEmberRise 4.4s ease-out infinite .2s both; }
 #painel-direito.pd-fx-fire .pd-fx-ember-11 { animation: pdEmberRise 3.1s ease-out infinite 1.3s both; }
 #painel-direito.pd-fx-fire .pd-fx-ember-12 { animation: pdEmberRise 4.8s ease-out infinite .6s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-13 { animation: pdEmberRise 3.3s ease-out infinite .1s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-14 { animation: pdEmberRise 4.1s ease-out infinite .85s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-15 { animation: pdEmberRise 2.9s ease-out infinite .35s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-16 { animation: pdEmberRise 4.5s ease-out infinite 1.2s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-17 { animation: pdEmberRise 3.7s ease-out infinite .55s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-18 { animation: pdEmberRise 4.9s ease-out infinite .05s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-19 { animation: pdEmberRise 3s ease-out infinite 1.4s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-20 { animation: pdEmberRise 4.3s ease-out infinite .7s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-21 { animation: pdEmberRise 3.5s ease-out infinite 1s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-22 { animation: pdEmberRise 4.7s ease-out infinite .25s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-23 { animation: pdEmberRise 3.9s ease-out infinite .95s both; }
+#painel-direito.pd-fx-fire .pd-fx-ember-24 { animation: pdEmberRise 3.2s ease-out infinite 1.5s both; }
 
 #painel-direito.pd-fx-volcano .pd-fx-ember-1  { animation: pdEmberRise 4.8s ease-out infinite both; }
 #painel-direito.pd-fx-volcano .pd-fx-ember-2  { animation: pdEmberRise 5.6s ease-out infinite .5s both; }
@@ -153,62 +181,30 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 #painel-direito.pd-fx-volcano .pd-fx-ember-10 { animation: pdEmberRise 6.2s ease-out infinite .45s both; }
 #painel-direito.pd-fx-volcano .pd-fx-ember-11 { animation: pdEmberRise 4.6s ease-out infinite 1.5s both; }
 #painel-direito.pd-fx-volcano .pd-fx-ember-12 { animation: pdEmberRise 6.6s ease-out infinite .9s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-13 { animation: pdEmberRise 5.1s ease-out infinite .2s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-14 { animation: pdEmberRise 6.1s ease-out infinite 1.2s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-15 { animation: pdEmberRise 4.5s ease-out infinite .6s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-16 { animation: pdEmberRise 5.9s ease-out infinite .35s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-17 { animation: pdEmberRise 5.3s ease-out infinite 1.4s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-18 { animation: pdEmberRise 6.3s ease-out infinite .05s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-19 { animation: pdEmberRise 4.7s ease-out infinite 1s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-20 { animation: pdEmberRise 5.7s ease-out infinite .75s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-21 { animation: pdEmberRise 6.5s ease-out infinite .5s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-22 { animation: pdEmberRise 4.9s ease-out infinite 1.1s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-23 { animation: pdEmberRise 5.5s ease-out infinite .85s both; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-24 { animation: pdEmberRise 6.7s ease-out infinite .15s both; }
 
-/* Brilho de labareda cobrindo o card INTEIRO, não só o fundo — usuário
-   pediu "não economiza": elipse bem maior (170%/140%, era 140%/65%) que
-   estoura pra cima do topo do card de propósito, garantindo cor até a
-   borda de cima mesmo em cards bem altos; opacidade de pico quase
-   dobrada (.88, era .52) com um brilho pulsante na BORDA do card (inset
-   box-shadow, mesma técnica do giroflex de alerta civil abaixo — uma
-   animação normal nunca ganha do box-shadow !important do próprio
-   #painel-direito, por isso o pulso vai no #pd-fx-overlay) pra reforçar
-   a sensação de "card inteiro envolvido em fogo", não só um gradiente
-   decorativo no fundo. */
-@keyframes pdFireGlow {
-  0%, 100% {
-    opacity: .55;
-    box-shadow: inset 0 0 70px 12px color-mix(in srgb, var(--pd-fx-color, #f97316) 40%, transparent);
-  }
-  50% {
-    opacity: .88;
-    box-shadow: inset 0 0 110px 22px color-mix(in srgb, var(--pd-fx-color, #f97316) 62%, transparent);
-  }
-}
+/* Usuário achou o brilho colorido piscando (radial-gradient laranja/
+   vermelho no #pd-fx-overlay + véu no #lightning-flash, versões
+   anteriores) demais — pediu pra tirar a cor e deixar só as brasas
+   subindo. #pd-fx-overlay continua precisando de opacity:1 aqui porque
+   é o PAI das brasas (opacity é multiplicativo com os filhos — no
+   opacity:0 padrão do elemento, elas ficariam invisíveis mesmo tendo
+   a própria opacity certa); só que agora sem background nem animação
+   própria, puramente um contêiner transparente pra elas. */
 #painel-direito.pd-fx-fire #pd-fx-overlay,
 #painel-direito.pd-fx-volcano #pd-fx-overlay {
-  background: radial-gradient(
-    ellipse 170% 140% at 50% 100%,
-    color-mix(in srgb, var(--pd-fx-color, #f97316) 78%, transparent) 0%,
-    color-mix(in srgb, var(--pd-fx-color, #f97316) 42%, transparent) 45%,
-    color-mix(in srgb, var(--pd-fx-color, #f97316) 16%, transparent) 75%,
-    transparent 100%
-  );
-  animation: pdFireGlow 2.2s ease-in-out infinite;
-}
-#painel-direito.pd-fx-volcano #pd-fx-overlay {
-  animation-duration: 3.4s;
-}
-/* #pd-fx-overlay fica ATRÁS de todo o conteúdo normal do card (z-index:-1,
-   de propósito — nunca tampar texto, ver comentário lá em cima). Num
-   card de verdade, cheio de chips/stats/caixinhas com fundo próprio, o
-   brilho de baixo só aparecia nos vãos vazios entre elas, não "no card
-   inteiro" como pedido. Reaproveita #lightning-flash (mesmo truque do
-   flash de tempestade abaixo: elemento que já existe, já cobre o card
-   inteiro e já fica ACIMA de tudo, z-index:999) como um véu bem sutil
-   por cima de todo o conteúdo — opacidade baixa o bastante pra nunca
-   atrapalhar a leitura do texto, mas presente em toda a superfície,
-   inclusive por cima das caixinhas de dados. */
-@keyframes pdFireWash {
-  0%, 100% { opacity: .20; }
-  50%      { opacity: .40; }
-}
-#painel-direito.pd-fx-fire #lightning-flash,
-#painel-direito.pd-fx-volcano #lightning-flash {
-  background: var(--pd-fx-color, #f97316);
-  animation: pdFireWash 2.2s ease-in-out infinite;
-}
-#painel-direito.pd-fx-volcano #lightning-flash {
-  animation-duration: 3.4s;
+  opacity: 1;
 }
 
 /* 🌀 CICLONE / 🌪️ TORNADO — o próprio emoji gira (é literalmente uma
