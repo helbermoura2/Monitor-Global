@@ -470,21 +470,17 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   100% { transform: translateY(50px); opacity: 0; }
 }
 #painel-direito.pd-fx-storm #pd-fx-overlay,
-#painel-direito.pd-fx-tornado #pd-fx-overlay,
-#painel-direito.pd-fx-hurricane #pd-fx-overlay {
+#painel-direito.pd-fx-tornado #pd-fx-overlay {
   /* precisa ficar em opacity:1 — é o pai das gotas, mesmo motivo do
      #pd-fx-overlay de fogo/vulcão (opacity é multiplicativo com os
      filhos). Tom de tempestade vem só de um fundo bem sutil, sem
-     textura repetindo. Furacão/tufão/tempestade tropical entram aqui
-     também — usuário pediu chuva de verdade além do giro de nuvens (que
-     continua vindo do ::before/::after, sem conflito: essas propriedades
-     aqui não mexem em nenhuma delas). */
+     textura repetindo. (Furacão/tufão/tempestade tropical NÃO entram
+     mais aqui — têm efeito próprio de névoa em espiral, mais abaixo.) */
   opacity: 1;
   background: rgba(15,23,42,.16);
 }
 #painel-direito.pd-fx-storm .pd-fx-ember,
-#painel-direito.pd-fx-tornado .pd-fx-ember,
-#painel-direito.pd-fx-hurricane .pd-fx-ember {
+#painel-direito.pd-fx-tornado .pd-fx-ember {
   width: 2px;
   height: 18px;
   border-radius: 2px;
@@ -496,20 +492,15 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   animation-duration: .55s;
 }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(2n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(2n),
-#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(2n) { animation-duration: .42s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(2n) { animation-duration: .42s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(3n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(3n),
-#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(3n) { animation-duration: .68s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(3n) { animation-duration: .68s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(4n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(4n),
-#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(4n) { animation-delay: .12s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(4n) { animation-delay: .12s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(5n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(5n),
-#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(5n) { animation-delay: .24s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(5n) { animation-delay: .24s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(7n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(7n),
-#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(7n) { animation-delay: .33s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(7n) { animation-delay: .33s; }
 /* Raio de verdade (formato em zigue-zague, não só um clarão branco chapado)
    — os dois .pd-fx-bolt (posições/espelhamento diferentes, css/base) piscam
    alternados, sincronizados com os 4 batimentos de pdStormFlash abaixo. */
@@ -642,119 +633,102 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 /* 🌀 FURACÃO / TUFÃO / TEMPESTADE TROPICAL — todas as categorias de ciclone
    (Depressão, Tempestade Tropical, Furacão, Tufão... — js/furacoes-gdacs.js)
    caem no MESMO tipo "hurricane" aqui, então é este efeito que representa
-   todas elas. v1 era um repeating-conic-gradient de bordas duras girando
-   uma vez só em 7s — usuário reportou que parecia "filme de baixo
-   orçamento" (fatias de pizza nítidas não parecem nuvem nenhuma) e que
-   sumia rápido demais. v2: 3 camadas de nuvem desfocadas (filter:blur,
-   sem NENHuma borda dura) girando em velocidades e sentidos diferentes —
-   como um satélite de verdade mostra bandas de nuvem em profundidades
-   diferentes — mais um "olho" claro e parado no centro (um radial-gradient
-   simétrico: gira junto mas, sendo simétrico, não SE MOVE visualmente,
-   só as bandas ao redor dele giram). Roda em loop contínuo por toda a
-   duração do efeito (12s — FX_DURATION.hurricane, js/painel-fx.js), com
-   só um envelope de fade entrando/saindo, em vez de aparecer e sumir uma
-   vez só. */
-/* translateY(19%) empurra o "olho" pra baixo, pertinho da borda de baixo
-   do card: o card de previsão do tempo fica por cima da metade de cima
-   do painel (mesmo z-index dos outros efeitos, sismo/fogo/etc.), então
-   um giro centralizado no meio do card (50%/50% padrão) ficava com o
-   miolo inteiro escondido atrás dele — só sobrava a bagunça sem forma
-   nenhuma da borda externa do giro, sem olho visível nenhum. Descendo o
-   centro do giro pra dentro da fatia de baixo (a única sempre visível),
-   o "olho do furacão" — a parte que mais vende o efeito — aparece de
-   verdade. */
-@keyframes pdCycloneSpin {
-  0%   { transform: translateY(19%) rotate(0deg); }
-  100% { transform: translateY(19%) rotate(360deg); }
-}
-@keyframes pdCycloneSpinRev {
-  0%   { transform: translateY(19%) rotate(0deg); }
-  100% { transform: translateY(19%) rotate(-360deg); }
-}
-@keyframes pdCycloneFade {
-  0%       { opacity: 0; }
-  12%, 85% { opacity: 1; }
-  100%     { opacity: 0; }
-}
+   todas elas. v4 (pedido do usuário: algo BEM REAL, nada de "filme de
+   orçamento baixo"): a tempestade de verdade batendo no card —
+   (1) CHUVA FORTE inclinada pelo vento: as 48 .pd-fx-ember viram fios de
+       chuva compridos caindo na diagonal (soprados pro lado), densos e
+       rápidos. Cada fio mantém o `left` de base (espalhados 4%-96%), só
+       muda de forma/movimento por seletor — o mesmo "motor" de partículas.
+   (2) RAIOS: os dois .pd-fx-bolt (zigue-zague) piscam alternados + o
+       #lightning-flash dá o clarão no card, em loop rápido — reaproveita o
+       mesmo maquinário/keyframes da tempestade (pdBoltFlashA/B + pdStormFlash).
+   (3) VENTO nas letras: cada letra do local do evento (#pd-local) é
+       arrancada/voa pro lado numa rajada que varre o texto (js/painel-fx.js,
+       triggerWindLetters → .pd-fx-windletter, keyframe pdLetterGust abaixo).
+   Sem envelope de fade: chuva/raio/vento entram já a todo vapor e rodam em
+   loop pela janela inteira (12s — FX_DURATION.hurricane, js/painel-fx.js). */
 #painel-direito.pd-fx-hurricane #pd-fx-overlay {
   opacity: 1;
   overflow: hidden;
-  animation: pdCycloneFade 12s ease-in-out 1 forwards;
+  /* céu de tempestade escuro por trás da chuva */
+  background:
+    linear-gradient(180deg, rgba(15,23,42,.34), rgba(15,23,42,.1) 55%, transparent),
+    radial-gradient(120% 80% at 50% -10%, rgba(30,41,59,.42), transparent 70%);
 }
-#painel-direito.pd-fx-hurricane #pd-fx-overlay::before,
-#painel-direito.pd-fx-hurricane #pd-fx-overlay::after {
+/* Lençol de vento/chuva soprada varrendo o card na diagonal, em loop — dá a
+   leitura de "vento visível" batendo em rajadas. */
+@keyframes pdGustSheet {
+  0%   { transform: translateX(-70%) skewX(-18deg); opacity: 0; }
+  25%  { opacity: .5; }
+  70%  { opacity: .2; }
+  100% { transform: translateX(170%) skewX(-18deg); opacity: 0; }
+}
+#painel-direito.pd-fx-hurricane #pd-fx-overlay::before {
   content: "";
   position: absolute;
-  inset: -35%;
-  border-radius: 50%;
+  top: -25%;
+  bottom: -25%;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(100deg, transparent, rgba(226,232,240,.16), transparent);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: pdGustSheet 1.9s ease-in-out infinite;
 }
-/* repeating-conic-gradient com fatias FINAS e uniformes (tentativa v1)
-   lavava tudo pro cinza com qualquer blur que prestasse (fatia fina
-   perto do centro = largura em pixels menor que o próprio blur, some
-   por completo) — trocado por um conic-gradient de UM SÓ giro com 4
-   "braços" de larguras e espaçamentos DIFERENTES entre si (nunca um
-   padrão uniforme repetindo, que é o que lembra ventilador/pizza em vez
-   de nuvem). Perto do centro os braços ainda lavam com o blur — o que
-   por acaso é ótimo, porque é exatamente ali que fica o "olho" (o
-   radial-gradient claro logo abaixo), então o embaçado vira miolo calmo
-   e os braços só aparecem organizados mais pra fora, que é como um
-   furacão de satélite de verdade se parece. */
-#painel-direito.pd-fx-hurricane #pd-fx-overlay::before {
-  background-image: conic-gradient(
-    from 0deg,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 62%, transparent) 0deg,
-    transparent 50deg,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 48%, transparent) 100deg,
-    transparent 160deg,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 58%, transparent) 215deg,
-    transparent 270deg,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 40%, transparent) 315deg,
-    transparent 360deg
-  );
-  filter: blur(6px);
-  opacity: .82;
-  animation: pdCycloneSpin 10s linear infinite;
+/* Chuva batida: fio comprido azul-claro caindo na diagonal (pra baixo e pra
+   esquerda, empurrado pelo vento); o rotate alinha o fio com a direção do
+   movimento pra parecer chuva soprada, não pingo caindo reto. */
+@keyframes pdDrivingRain {
+  0%   { transform: translate(130px, -300px) rotate(21deg); opacity: 0; }
+  8%   { opacity: .95; }
+  92%  { opacity: .9; }
+  100% { transform: translate(-110px, 320px) rotate(21deg); opacity: 0; }
 }
-#painel-direito.pd-fx-hurricane #pd-fx-overlay::after {
-  background-image:
-    radial-gradient(circle at 50% 52%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.16) 7%, transparent 15%),
-    conic-gradient(
-      from 60deg,
-      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 42%, transparent) 0deg,
-      transparent 45deg,
-      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 34%, transparent) 130deg,
-      transparent 190deg,
-      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 40%, transparent) 260deg,
-      transparent 330deg
-    );
-  filter: blur(9px);
-  opacity: .68;
-  animation: pdCycloneSpinRev 16s linear infinite;
+#painel-direito.pd-fx-hurricane .pd-fx-ember {
+  top: -30px;
+  bottom: auto;
+  width: 2px;
+  height: 32px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(191,219,254,.95));
+  box-shadow: none;
+  filter: none;
+  opacity: .9;
+  animation: pdDrivingRain .6s linear infinite;
 }
-/* Vento derrubando as letras do nome/local do evento (#pd-local) — pedido
-   do usuário: "uma ventania derrubando as letras do card principal".
-   js/painel-fx.js (triggerWindLetters) embrulha cada CARACTERE do texto
-   REAL num <span class="pd-fx-windletter"> (nunca troca o conteúdo, só
-   envolve o mesmo texto pra poder girar cada letra sozinha) e desembrulha
-   de volta pro innerHTML original assim que o efeito acaba. --wl-i (o
-   índice do caractere, setado no JS) vira o atraso de cada um via
-   calc() — isso faz uma "rajada" varrer o texto da esquerda pra direita
-   repetidamente, tipo dominó, em vez de todas as letras caírem juntas. */
-@keyframes pdWindTopple {
-  0%, 8%  { transform: rotate(0deg) translateX(0); }
-  22%     { transform: rotate(-78deg) translateX(-6px); }
-  38%     { transform: rotate(-70deg) translateX(-5px); }
-  58%     { transform: rotate(0deg) translateX(0); }
-  100%    { transform: rotate(0deg) translateX(0); }
-}
+/* velocidade/atraso variados por nth-child (mesma técnica da tempestade) →
+   chuva sem padrão repetitivo perceptível. O `left` de cada fio continua o
+   de base (espalhados pela largura), então não precisa mexer aqui. */
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(2n) { animation-duration: .5s; }
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(3n) { animation-duration: .72s; }
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(4n) { animation-delay: .1s; }
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(5n) { animation-delay: .22s; }
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(6n) { animation-duration: .55s; }
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(7n) { animation-delay: .33s; }
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(8n) { animation-duration: .66s; }
+/* Raios — reaproveita pdBoltFlashA/B (os zigue-zagues) e pdStormFlash (o
+   clarão no card), mas em loop de 4s (≈3 descargas na janela de 12s), em vez
+   da versão de 10s/uma-vez da tempestade. */
+#painel-direito.pd-fx-hurricane .pd-fx-bolt-1 { animation: pdBoltFlashA 4s ease-out infinite; }
+#painel-direito.pd-fx-hurricane .pd-fx-bolt-2 { animation: pdBoltFlashB 4s ease-out infinite; }
+#painel-direito.pd-fx-hurricane #lightning-flash { animation: pdStormFlash 4s ease-out infinite; }
+/* Vento arrancando as letras do local (#pd-local): cada letra levanta e voa
+   pra esquerda-cima (mesma direção do vento que inclina a chuva) e volta, com
+   o atraso escalonado por --wl-i (índice da letra) fazendo a rajada varrer o
+   texto da esquerda pra direita, tipo onda. */
 .pd-fx-windletter {
   display: inline-block;
-  transform-origin: bottom center;
-  will-change: transform;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+}
+@keyframes pdLetterGust {
+  0%, 100% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+  35%      { transform: translate(-24px,-13px) rotate(-34deg); opacity: .5; }
+  62%      { transform: translate(-9px,-4px) rotate(-11deg); opacity: .85; }
 }
 #painel-direito.pd-fx-hurricane .pd-fx-windletter {
-  animation: pdWindTopple 2.6s ease-in-out infinite;
-  animation-delay: calc(var(--wl-i, 0) * .06s);
+  animation: pdLetterGust 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--wl-i, 0) * .08s);
 }
 
 /* 💧 ENCHENTE — nível do "mar" subindo bem devagar (10s — era 7s com a
