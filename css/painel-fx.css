@@ -129,6 +129,7 @@
   #painel-direito[class*="pd-fx-"] #pd-fx-overlay::after,
   #painel-direito[class*="pd-fx-"] .pd-fx-bolt,
   #painel-direito[class*="pd-fx-"] .pd-fx-waterline,
+  #painel-direito[class*="pd-fx-"] .pd-fx-windletter,
   #painel-direito[class*="pd-fx-"] #pd-gauge-glow,
   #painel-direito[class*="pd-fx-"] #lightning-flash,
   #painel-direito[class*="pd-fx-"] .pd-mag { animation: none !important; }
@@ -469,16 +470,21 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   100% { transform: translateY(50px); opacity: 0; }
 }
 #painel-direito.pd-fx-storm #pd-fx-overlay,
-#painel-direito.pd-fx-tornado #pd-fx-overlay {
+#painel-direito.pd-fx-tornado #pd-fx-overlay,
+#painel-direito.pd-fx-hurricane #pd-fx-overlay {
   /* precisa ficar em opacity:1 — é o pai das gotas, mesmo motivo do
      #pd-fx-overlay de fogo/vulcão (opacity é multiplicativo com os
      filhos). Tom de tempestade vem só de um fundo bem sutil, sem
-     textura repetindo. */
+     textura repetindo. Furacão/tufão/tempestade tropical entram aqui
+     também — usuário pediu chuva de verdade além do giro de nuvens (que
+     continua vindo do ::before/::after, sem conflito: essas propriedades
+     aqui não mexem em nenhuma delas). */
   opacity: 1;
   background: rgba(15,23,42,.16);
 }
 #painel-direito.pd-fx-storm .pd-fx-ember,
-#painel-direito.pd-fx-tornado .pd-fx-ember {
+#painel-direito.pd-fx-tornado .pd-fx-ember,
+#painel-direito.pd-fx-hurricane .pd-fx-ember {
   width: 2px;
   height: 18px;
   border-radius: 2px;
@@ -490,15 +496,20 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   animation-duration: .55s;
 }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(2n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(2n) { animation-duration: .42s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(2n),
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(2n) { animation-duration: .42s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(3n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(3n) { animation-duration: .68s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(3n),
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(3n) { animation-duration: .68s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(4n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(4n) { animation-delay: .12s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(4n),
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(4n) { animation-delay: .12s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(5n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(5n) { animation-delay: .24s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(5n),
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(5n) { animation-delay: .24s; }
 #painel-direito.pd-fx-storm .pd-fx-ember:nth-child(7n),
-#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(7n) { animation-delay: .33s; }
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(7n),
+#painel-direito.pd-fx-hurricane .pd-fx-ember:nth-child(7n) { animation-delay: .33s; }
 /* Raio de verdade (formato em zigue-zague, não só um clarão branco chapado)
    — os dois .pd-fx-bolt (posições/espelhamento diferentes, css/base) piscam
    alternados, sincronizados com os 4 batimentos de pdStormFlash abaixo. */
@@ -719,6 +730,31 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   filter: blur(9px);
   opacity: .68;
   animation: pdCycloneSpinRev 16s linear infinite;
+}
+/* Vento derrubando as letras do nome/local do evento (#pd-local) — pedido
+   do usuário: "uma ventania derrubando as letras do card principal".
+   js/painel-fx.js (triggerWindLetters) embrulha cada CARACTERE do texto
+   REAL num <span class="pd-fx-windletter"> (nunca troca o conteúdo, só
+   envolve o mesmo texto pra poder girar cada letra sozinha) e desembrulha
+   de volta pro innerHTML original assim que o efeito acaba. --wl-i (o
+   índice do caractere, setado no JS) vira o atraso de cada um via
+   calc() — isso faz uma "rajada" varrer o texto da esquerda pra direita
+   repetidamente, tipo dominó, em vez de todas as letras caírem juntas. */
+@keyframes pdWindTopple {
+  0%, 8%  { transform: rotate(0deg) translateX(0); }
+  22%     { transform: rotate(-78deg) translateX(-6px); }
+  38%     { transform: rotate(-70deg) translateX(-5px); }
+  58%     { transform: rotate(0deg) translateX(0); }
+  100%    { transform: rotate(0deg) translateX(0); }
+}
+.pd-fx-windletter {
+  display: inline-block;
+  transform-origin: bottom center;
+  will-change: transform;
+}
+#painel-direito.pd-fx-hurricane .pd-fx-windletter {
+  animation: pdWindTopple 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--wl-i, 0) * .06s);
 }
 
 /* 💧 ENCHENTE — nível do "mar" subindo bem devagar (10s — era 7s com a
