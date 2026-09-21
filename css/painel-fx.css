@@ -30,6 +30,31 @@
   background: var(--pd-fx-color, #f97316);
   box-shadow: 0 0 16px 4px var(--pd-fx-color, #f97316);
 }
+/* Raio (tempestade/tornado) e "linha d'água" (enchente) — escondidos por
+   padrão, só um tipo de efeito de cada vez os ativa. Ficam dentro do
+   mesmo #pd-fx-overlay que as brasas, então herdam o mesmo z-index/
+   pointer-events:none. */
+.pd-fx-bolt {
+  position: absolute;
+  top: 6%;
+  width: 60px;
+  height: 62%;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 14px rgba(224,242,254,.9));
+}
+.pd-fx-bolt polygon { fill: #f0f9ff; }
+.pd-fx-bolt-1 { left: 22%; }
+.pd-fx-bolt-2 { left: 64%; transform: scaleX(-1); }
+.pd-fx-waterline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 10px;
+  opacity: 0;
+  pointer-events: none;
+}
 /* Espalhadas pela LARGURA e ALTURA inteiras do card (não mais um
    aglomerado de 27% no meio-baixo) — desde que #pd-fx-overlay passou a
    ser o pai de verdade delas (era .pd-gauge-wrap, um recorte pequeno
@@ -100,6 +125,10 @@
   #painel-direito[class*="pd-fx-"] { animation: none !important; }
   #painel-direito[class*="pd-fx-"] .pd-fx-ember,
   #painel-direito[class*="pd-fx-"] #pd-fx-overlay,
+  #painel-direito[class*="pd-fx-"] #pd-fx-overlay::before,
+  #painel-direito[class*="pd-fx-"] #pd-fx-overlay::after,
+  #painel-direito[class*="pd-fx-"] .pd-fx-bolt,
+  #painel-direito[class*="pd-fx-"] .pd-fx-waterline,
   #painel-direito[class*="pd-fx-"] #pd-gauge-glow,
   #painel-direito[class*="pd-fx-"] #lightning-flash,
   #painel-direito[class*="pd-fx-"] .pd-mag { animation: none !important; }
@@ -283,6 +312,139 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   opacity: 1;
 }
 
+/* 🔥 FUMAÇA — reaproveita as brasas 37-48 (mesmo pool, zero elemento novo)
+   só que maiores, cinzas/translúcidas, subindo bem mais devagar e sem
+   brilho — a mistura de brasa rápida + fumaça lenta é o que dá a
+   sensação de labareda de verdade, não só "bolinhas subindo". Vem DEPOIS
+   do bloco de brasas do fogo no arquivo: mesma especificidade (mesmo
+   seletor), então a declaração mais abaixo ganha. */
+@keyframes pdSmokeRise {
+  0%   { opacity: 0; transform: translate(0,0) scale(.6); }
+  15%  { opacity: .3; }
+  100% { opacity: 0; transform: translate(var(--smoke-dx,16px), -260px) scale(1.9); }
+}
+#painel-direito.pd-fx-fire .pd-fx-ember-37,
+#painel-direito.pd-fx-fire .pd-fx-ember-38,
+#painel-direito.pd-fx-fire .pd-fx-ember-39,
+#painel-direito.pd-fx-fire .pd-fx-ember-40,
+#painel-direito.pd-fx-fire .pd-fx-ember-41,
+#painel-direito.pd-fx-fire .pd-fx-ember-42,
+#painel-direito.pd-fx-fire .pd-fx-ember-43,
+#painel-direito.pd-fx-fire .pd-fx-ember-44,
+#painel-direito.pd-fx-fire .pd-fx-ember-45,
+#painel-direito.pd-fx-fire .pd-fx-ember-46,
+#painel-direito.pd-fx-fire .pd-fx-ember-47,
+#painel-direito.pd-fx-fire .pd-fx-ember-48 {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(148,163,184,.55), transparent 70%);
+  box-shadow: none;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+#painel-direito.pd-fx-fire .pd-fx-ember-37 { animation: pdSmokeRise 6.2s ease-out infinite .1s both;  --smoke-dx: 22px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-38 { animation: pdSmokeRise 5.6s ease-out infinite .8s both;  --smoke-dx: -18px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-39 { animation: pdSmokeRise 6.8s ease-out infinite 1.5s both; --smoke-dx: 14px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-40 { animation: pdSmokeRise 5.9s ease-out infinite .35s both; --smoke-dx: -24px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-41 { animation: pdSmokeRise 7.1s ease-out infinite 1.1s both; --smoke-dx: 20px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-42 { animation: pdSmokeRise 6.4s ease-out infinite .55s both; --smoke-dx: -16px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-43 { animation: pdSmokeRise 5.7s ease-out infinite 1.8s both; --smoke-dx: 18px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-44 { animation: pdSmokeRise 6.9s ease-out infinite .2s both;  --smoke-dx: -22px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-45 { animation: pdSmokeRise 6.1s ease-out infinite 1.35s both; --smoke-dx: 12px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-46 { animation: pdSmokeRise 5.5s ease-out infinite .95s both; --smoke-dx: -14px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-47 { animation: pdSmokeRise 7.3s ease-out infinite .05s both; --smoke-dx: 24px; }
+#painel-direito.pd-fx-fire .pd-fx-ember-48 { animation: pdSmokeRise 6.6s ease-out infinite 1.6s both; --smoke-dx: -20px; }
+/* Labaredas na base do card — dois "blobs" de gradiente tremeluzindo
+   (skew + scaleY), sem elemento novo no HTML: usa ::before/::after do
+   próprio #pd-fx-overlay, que não é usado por mais nada no CSS (o
+   ::before/::after de #painel-direito já tem outro uso, grade decorativa
+   mobile — ver comentário no topo do arquivo). */
+@keyframes pdFlameLick {
+  0%   { transform: scaleY(.85) skewX(-4deg); }
+  100% { transform: scaleY(1.15) skewX(5deg); }
+}
+#painel-direito.pd-fx-fire #pd-fx-overlay::before,
+#painel-direito.pd-fx-fire #pd-fx-overlay::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 46px;
+  height: 64px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(0deg, var(--pd-fx-color,#f97316), transparent 75%);
+  filter: blur(1px);
+  opacity: .85;
+  transform-origin: bottom;
+  animation: pdFlameLick .9s ease-in-out infinite alternate;
+}
+#painel-direito.pd-fx-fire #pd-fx-overlay::before { left: 30%; }
+#painel-direito.pd-fx-fire #pd-fx-overlay::after  { left: 62%; animation-duration: 1.3s; animation-delay: .2s; }
+
+/* 🌋 CINZAS — mesma ideia da fumaça do fogo, só que CAINDO (não subindo)
+   e sem o tom mais claro — cinza vulcânica de verdade. Reaproveita as
+   mesmas brasas 37-48, agora no contexto .pd-fx-volcano (a brasa 37-48
+   pode estar em QUALQUER um dos dois contextos ao mesmo tempo no CSS,
+   mas nunca as duas classes no card ao mesmo tempo — são mutuamente
+   exclusivas, só uma "pd-fx-*" fica ativa por vez). */
+@keyframes pdAshFall {
+  0%   { opacity: 0; transform: translate(0,-20px) rotate(0deg); }
+  12%  { opacity: .75; }
+  100% { opacity: 0; transform: translate(var(--ash-dx,-14px), 260px) rotate(220deg); }
+}
+#painel-direito.pd-fx-volcano .pd-fx-ember-37,
+#painel-direito.pd-fx-volcano .pd-fx-ember-38,
+#painel-direito.pd-fx-volcano .pd-fx-ember-39,
+#painel-direito.pd-fx-volcano .pd-fx-ember-40,
+#painel-direito.pd-fx-volcano .pd-fx-ember-41,
+#painel-direito.pd-fx-volcano .pd-fx-ember-42,
+#painel-direito.pd-fx-volcano .pd-fx-ember-43,
+#painel-direito.pd-fx-volcano .pd-fx-ember-44,
+#painel-direito.pd-fx-volcano .pd-fx-ember-45,
+#painel-direito.pd-fx-volcano .pd-fx-ember-46,
+#painel-direito.pd-fx-volcano .pd-fx-ember-47,
+#painel-direito.pd-fx-volcano .pd-fx-ember-48 {
+  border-radius: 20%;
+  background: color-mix(in srgb, #64748b 75%, transparent);
+  box-shadow: none;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+#painel-direito.pd-fx-volcano .pd-fx-ember-37 { top: 4%;  animation: pdAshFall 3.4s linear infinite .1s both;  --ash-dx: -16px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-38 { top: 9%;  animation: pdAshFall 4.1s linear infinite .7s both;  --ash-dx: 12px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-39 { top: 2%;  animation: pdAshFall 3.8s linear infinite 1.3s both; --ash-dx: -20px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-40 { top: 14%; animation: pdAshFall 4.5s linear infinite .3s both;  --ash-dx: 18px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-41 { top: 6%;  animation: pdAshFall 3.6s linear infinite 1.1s both; --ash-dx: -14px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-42 { top: 18%; animation: pdAshFall 4.2s linear infinite .5s both;  --ash-dx: 22px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-43 { top: 3%;  animation: pdAshFall 3.9s linear infinite 1.6s both; --ash-dx: -18px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-44 { top: 22%; animation: pdAshFall 4.6s linear infinite .2s both;  --ash-dx: 16px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-45 { top: 8%;  animation: pdAshFall 3.5s linear infinite 1.4s both; --ash-dx: -22px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-46 { top: 26%; animation: pdAshFall 4.3s linear infinite .9s both;  --ash-dx: 14px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-47 { top: 5%;  animation: pdAshFall 4.0s linear infinite .05s both; --ash-dx: -12px; }
+#painel-direito.pd-fx-volcano .pd-fx-ember-48 { top: 16%; animation: pdAshFall 3.7s linear infinite 1.8s both; --ash-dx: 20px; }
+/* Brilho de cratera — bem mais discreto e LOCALIZADO (embaixo do card, um
+   circulo pequeno pulsando) que o glow de tela inteira que existia antes
+   e foi removido a pedido do usuário; aqui é só um toque de realismo,
+   não o efeito principal (que são as cinzas caindo). */
+@keyframes pdCraterGlow {
+  0%   { opacity: .35; transform: translateX(-50%) scale(.9); }
+  100% { opacity: .7;  transform: translateX(-50%) scale(1.15); }
+}
+#painel-direito.pd-fx-volcano #pd-fx-overlay::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8%;
+  width: 140px;
+  height: 90px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--pd-fx-color,#ef4444) 70%, transparent), transparent 70%);
+  filter: blur(6px);
+  opacity: .6;
+  animation: pdCraterGlow 2.4s ease-in-out infinite alternate;
+}
+
 /* 🌀 CICLONE / 🌪️ TORNADO — o próprio emoji gira (é literalmente uma
    espiral). O giro em si é feito via JS (js/painel-fx.js, spinIcon), não
    CSS: .pd-mag tem "transform: translateX(-50%) !important" (pra ficar
@@ -291,33 +453,75 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
    com prioridade "important" (setProperty(...,'important')) consegue
    vencer esse empate, por isso o giro é feito quadro a quadro em JS. */
 
-/* ⚡ TEMPESTADE / 🌪️ TORNADO — chuva caindo o tempo todo (risca diagonal
-   fina, contínua, opacidade fixa) + clarões de raio bem mais fortes que
-   a v1 (só "filter: brightness", nunca opacity — se a opacidade também
-   fosse a zero durante o clarão, a chuva sumiria junto em vez de "ficar
-   branca de tão forte"). */
-@keyframes pdRainFall {
-  from { background-position: 0 0; }
-  to   { background-position: -60px 140px; }
-}
-@keyframes pdFlash {
-  0%, 78%, 100% { filter: brightness(1); }
-  80%, 84%      { filter: brightness(4.5); }
-  82%           { filter: brightness(1.8); }
+/* ⚡ TEMPESTADE / 🌪️ TORNADO — v2: gotas de chuva DE VERDADE em vez de
+   uma textura de risca repetindo. Reaproveita as 48 brasas do incêndio
+   como gotas (mesmos elementos, só troca forma/cor/movimento via
+   seletor — é o mesmo "motor de partículas", zero elemento novo). Cada
+   gota cai reto (translateY simples) em loop bem rápido; a variação de
+   velocidade/atraso entre elas vem de :nth-child em vez de 48 regras
+   escritas à mão (o que já fizemos pras brasas) — mais barato de manter
+   e olho não nota diferença com uma chuva de verdade, que também não
+   tem padrão repetitivo perceptível. */
+@keyframes pdRainDrop {
+  0%   { transform: translateY(-240px); opacity: 0; }
+  10%  { opacity: .9; }
+  85%  { opacity: .85; }
+  100% { transform: translateY(50px); opacity: 0; }
 }
 #painel-direito.pd-fx-storm #pd-fx-overlay,
 #painel-direito.pd-fx-tornado #pd-fx-overlay {
-  background-color: rgba(255,255,255,.10);
-  background-image: repeating-linear-gradient(
-    100deg,
-    rgba(255,255,255,.5) 0px,
-    rgba(255,255,255,.5) 1.5px,
-    transparent 1.5px,
-    transparent 16px
-  );
-  opacity: .55;
-  animation: pdRainFall .5s linear infinite, pdFlash 2.4s ease-out 3;
+  /* precisa ficar em opacity:1 — é o pai das gotas, mesmo motivo do
+     #pd-fx-overlay de fogo/vulcão (opacity é multiplicativo com os
+     filhos). Tom de tempestade vem só de um fundo bem sutil, sem
+     textura repetindo. */
+  opacity: 1;
+  background: rgba(15,23,42,.16);
 }
+#painel-direito.pd-fx-storm .pd-fx-ember,
+#painel-direito.pd-fx-tornado .pd-fx-ember {
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(191,219,254,.95));
+  box-shadow: none;
+  animation-name: pdRainDrop;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: .55s;
+}
+#painel-direito.pd-fx-storm .pd-fx-ember:nth-child(2n),
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(2n) { animation-duration: .42s; }
+#painel-direito.pd-fx-storm .pd-fx-ember:nth-child(3n),
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(3n) { animation-duration: .68s; }
+#painel-direito.pd-fx-storm .pd-fx-ember:nth-child(4n),
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(4n) { animation-delay: .12s; }
+#painel-direito.pd-fx-storm .pd-fx-ember:nth-child(5n),
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(5n) { animation-delay: .24s; }
+#painel-direito.pd-fx-storm .pd-fx-ember:nth-child(7n),
+#painel-direito.pd-fx-tornado .pd-fx-ember:nth-child(7n) { animation-delay: .33s; }
+/* Raio de verdade (formato em zigue-zague, não só um clarão branco chapado)
+   — os dois .pd-fx-bolt (posições/espelhamento diferentes, css/base) piscam
+   alternados, sincronizados com os 4 batimentos de pdStormFlash abaixo. */
+@keyframes pdBoltFlashA {
+  0%, 3%, 100% { opacity: 0; }
+  1%           { opacity: 1; }
+  2%           { opacity: .3; }
+  23%, 27%     { opacity: 0; }
+  25%          { opacity: .95; }
+  26%          { opacity: .2; }
+}
+@keyframes pdBoltFlashB {
+  0%, 47%, 51%, 100% { opacity: 0; }
+  49%                { opacity: 1; }
+  50%                { opacity: .25; }
+  71%, 75%           { opacity: 0; }
+  73%                { opacity: .9; }
+  74%                { opacity: .2; }
+}
+#painel-direito.pd-fx-storm .pd-fx-bolt-1,
+#painel-direito.pd-fx-tornado .pd-fx-bolt-1 { animation: pdBoltFlashA 10s ease-out; }
+#painel-direito.pd-fx-storm .pd-fx-bolt-2,
+#painel-direito.pd-fx-tornado .pd-fx-bolt-2 { animation: pdBoltFlashB 10s ease-out; }
 /* Clarão de raio de verdade — usuário reportou que faltava esse flash
    (só o filter:brightness acima, numa camada com 55% de opacidade
    ATRÁS de todo o conteúdo, quase não se via). Reaproveita #lightning-
@@ -357,40 +561,91 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   animation: pdStormFlash 10s ease-out;
 }
 
-/* 🌊 TSUNAMI — ondas atravessando o card, tipo "água" varrendo. */
+/* 🌊 TSUNAMI — v2: em vez de só varrer num sentido só, agora RECUA
+   primeiro (o mar se afasta da costa, como avisos oficiais de tsunami
+   sempre descrevem) e só depois avança rápido e forte — fisicamente mais
+   correto e bem mais dramático que um sweep de velocidade única. Duas
+   camadas: a onda em si (cor do evento) + uma faixa de espuma clara na
+   frente dela (bem mais clara, um pouco mais estreita, levemente
+   defasada), pra dar a sensação de crista quebrando. */
 @keyframes pdWaveSweep {
-  0%   { background-position: 0 0; opacity: 0; }
-  10%  { opacity: .5; }
-  90%  { opacity: .5; }
-  100% { background-position: -220px 0; opacity: 0; }
+  0%   { background-position: 60px 0, 30px 0; opacity: 0; }
+  8%   { opacity: .55; background-position: 95px 0, 65px 0; }
+  18%  { opacity: .6;  background-position: 80px 0, 50px 0; }
+  30%  { opacity: .65; }
+  62%  { background-position: -240px 0, -270px 0; opacity: .78; }
+  85%  { opacity: .4; }
+  100% { background-position: -320px 0, -350px 0; opacity: 0; }
 }
 #painel-direito.pd-fx-tsunami #pd-fx-overlay {
-  background-image: repeating-linear-gradient(
-    100deg,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 55%, transparent) 0px,
-    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 55%, transparent) 10px,
-    transparent 10px,
-    transparent 55px
-  );
-  animation: pdWaveSweep 7s linear 1;
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      rgba(240,249,255,.85) 0px,
+      rgba(240,249,255,.85) 4px,
+      transparent 4px,
+      transparent 60px
+    ),
+    repeating-linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 60%, transparent) 0px,
+      color-mix(in srgb, var(--pd-fx-color, #38bdf8) 60%, transparent) 12px,
+      transparent 12px,
+      transparent 60px
+    );
+  animation: pdWaveSweep 8s cubic-bezier(.45,.05,.35,1) 1;
 }
 
-/* 💨 VENTO — riscos diagonais passando rápido, tipo rajada. */
-@keyframes pdWindStreak {
-  0%   { background-position: 260px 0; opacity: 0; }
-  8%   { opacity: .4; }
-  92%  { opacity: .4; }
-  100% { background-position: -260px 0; opacity: 0; }
+/* 💨 VENTO — v2: em vez de riscos diagonais abstratos, agora é detrito/
+   folha de verdade sendo soprado (reaproveita as 48 brasas, igual a
+   chuva de tempestade acima) — cada peça voa na horizontal girando
+   sem parar, tipo galho/folha realmente sendo carregado pelo vento. */
+@keyframes pdDebrisBlow {
+  0%   { transform: translate(-160px, -6px) rotate(0deg); opacity: 0; }
+  10%  { opacity: .85; }
+  88%  { opacity: .8; }
+  100% { transform: translate(240px, 22px) rotate(620deg); opacity: 0; }
 }
 #painel-direito.pd-fx-wind #pd-fx-overlay {
-  background-image: repeating-linear-gradient(
-    100deg,
-    color-mix(in srgb, var(--pd-fx-color, #5eead4) 60%, transparent) 0px,
-    color-mix(in srgb, var(--pd-fx-color, #5eead4) 60%, transparent) 2px,
-    transparent 2px,
-    transparent 34px
+  /* pai do detrito — mesmo motivo do opacity:1 do fogo/vulcão/tempestade. */
+  opacity: 1;
+}
+#painel-direito.pd-fx-wind .pd-fx-ember {
+  width: 6px;
+  height: 3px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--pd-fx-color, #5eead4) 82%, transparent);
+  box-shadow: none;
+  animation-name: pdDebrisBlow;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+  animation-duration: 1.3s;
+}
+#painel-direito.pd-fx-wind .pd-fx-ember:nth-child(2n) { animation-duration: 1.05s; }
+#painel-direito.pd-fx-wind .pd-fx-ember:nth-child(3n) { animation-duration: 1.55s; }
+#painel-direito.pd-fx-wind .pd-fx-ember:nth-child(4n) { animation-delay: .18s; }
+#painel-direito.pd-fx-wind .pd-fx-ember:nth-child(5n) { animation-delay: .34s; }
+#painel-direito.pd-fx-wind .pd-fx-ember:nth-child(7n) { animation-delay: .5s; }
+#painel-direito.pd-fx-wind .pd-fx-ember:nth-child(11n) { animation-delay: .66s; }
+
+/* 🌀 FURACÃO — espiral de nuvens girando no card inteiro (conic-gradient
+   rotacionando), além do próprio ícone já girar via JS (spinIcon, painel-
+   fx.js) — as duas coisas juntas (ícone girando + "satélite" girando por
+   trás) é o que vende a sensação de olho de furacão de verdade. */
+@keyframes pdCycloneSpin {
+  0%   { transform: rotate(0deg); opacity: 0; }
+  10%  { opacity: .5; }
+  90%  { opacity: .45; }
+  100% { transform: rotate(360deg); opacity: 0; }
+}
+#painel-direito.pd-fx-hurricane #pd-fx-overlay {
+  opacity: 1;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--pd-fx-color, #38bdf8) 55%, transparent) 0deg 8deg,
+    transparent 8deg 26deg
   );
-  animation: pdWindStreak 7s cubic-bezier(.3,0,.4,1) 1;
+  animation: pdCycloneSpin 7s linear 1;
 }
 
 /* 💧 ENCHENTE — nível do "mar" subindo bem devagar (10s — era 7s com a
@@ -414,6 +669,29 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   );
   transform-origin: bottom;
   animation: pdFloodRise 10s cubic-bezier(.22,.61,.36,1) 1 forwards;
+}
+/* Linha d'água ondulando na superfície — usa o elemento .pd-fx-waterline
+   (topo do #pd-fx-overlay, mesmo pai da água): como o pai inteiro sobe
+   via scaleY a partir da base (transform-origin:bottom acima), o topo
+   dele SOBE JUNTO com a água enchendo — a linha já nasce grudada na
+   "crista" da maré, sem precisar calcular posição nenhuma na mão. Só
+   falta o textura de espuma indo e vindo (background-position), pra não
+   parecer uma risca reta parada. */
+@keyframes pdWaterlineDrift {
+  0%   { background-position: 0 0; opacity: 0; }
+  15%  { opacity: .9; }
+  100% { background-position: -120px 0; opacity: .9; }
+}
+#painel-direito.pd-fx-flood .pd-fx-waterline {
+  background-image: repeating-linear-gradient(
+    100deg,
+    rgba(240,249,255,.9) 0px,
+    rgba(240,249,255,.9) 3px,
+    transparent 3px,
+    transparent 26px
+  );
+  box-shadow: 0 2px 10px 1px color-mix(in srgb, var(--pd-fx-color, #0ea5e9) 70%, transparent);
+  animation: pdWaterlineDrift 10s linear 1 forwards;
 }
 
 /* 🚨 ALERTA CIVIL — giroflex de viatura de verdade: vermelho e azul
