@@ -30,6 +30,7 @@ const ALLOWED_HOSTS = [
     'sismosve.rafnixg.dev', // FUNVISIS (espelho comunitário dos boletins oficiais)
     'api.gael.cloud', // CSN Chile
     'www.ssn.unam.mx', // SSN México
+    'www.snirh.gov.br', // ANA — nível de rios (Rede Hidrometeorológica Nacional)
     'www.nhc.noaa.gov',
     'www.tsunami.gov',
     'overpass-api.de',

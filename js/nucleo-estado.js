@@ -459,18 +459,27 @@ function marcarAtualizadoNoTopo(id, deltaTxt = '', ttl = ATUALIZADO_EXPIRA_MS) {
     } catch (e) {}
 }
 
-function ordenarAtualizadosNoTopo(items) {
+// Era "atualizados sobem pro topo" — usuário reportou que isso confundia
+// (o card principal já mostra a revisão; ver o mesmo registro pular lá em
+// cima na lista, às vezes horas depois de ter ocorrido, parecia um evento
+// novo que não era). Trocado pra "novos sobem pro topo": um registro recém-
+// chegado (activeAlertingIds, já usado pro selo "NOVO") fica em destaque por
+// alguns minutos e depois se encaixa sozinho no horário real de ocorrência —
+// "atualizado" continua com seu próprio selo no card (activeUpdatedIds, não
+// mexido aqui), só não reordena mais a lista; a informação da revisão agora
+// vai pra pílula de atualização (ver showSismoAtualizadoPill).
+function ordenarNovosNoTopo(items) {
     const arr = Array.isArray(items) ? items.slice() : [];
     const agora = Date.now();
     return arr
-        .map((item, index) => ({ item, index, expira: activeUpdatedIds.get(item && item.id) || 0 }))
+        .map((item, index) => ({ item, index, expira: activeAlertingIds.get(item && item.id) || 0 }))
         .sort((a, b) => {
-            const au = a.expira > agora;
-            const bu = b.expira > agora;
-            if (au !== bu) return au ? -1 : 1;
-            if (au && bu) {
-                const at = Number(a.item && a.item._updatedAt) || 0;
-                const bt = Number(b.item && b.item._updatedAt) || 0;
+            const an = a.expira > agora;
+            const bn = b.expira > agora;
+            if (an !== bn) return an ? -1 : 1;
+            if (an && bn) {
+                const at = Number(a.item && (a.item._novoAt || a.item._lastSeenAt)) || 0;
+                const bt = Number(b.item && (b.item._novoAt || b.item._lastSeenAt)) || 0;
                 if (bt !== at) return bt - at;
             }
             return a.index - b.index;

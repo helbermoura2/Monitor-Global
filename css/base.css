@@ -244,6 +244,16 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 .toast-info { --toast-accent:#38bdf8; }
 .toast-warning,.toast-warn { --toast-accent:#f97316; }
 .toast-error { --toast-accent:#ef4444; }
+/* Pílula de atualização de sismo — maior e com 3 linhas (rótulo/lugar/
+   delta), "como se fosse o card" só que no rodapé, no lugar do antigo
+   som+pulo-pro-topo-da-lista quando um registro já conhecido é revisado.
+   Troca o pontinho (faz sentido numa linha só) por uma borda colorida na
+   lateral, que combina melhor com texto em várias linhas. */
+.toast-update-card { flex-direction: column; align-items: flex-start; gap: 1px; max-width: min(480px, calc(100vw - 32px)); padding: 12px 18px 12px 15px; border-radius: 16px; border-left: 3px solid var(--toast-accent,#38bdf8); }
+.toast-update-card::before { display: none; }
+.toast-update-label { font-size: 10px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--toast-accent,#38bdf8); }
+.toast-update-place { font-size: 13.5px; font-weight: 700; color: #f1f5f9; margin-top: 3px; }
+.toast-update-delta { font-size: 12px; font-weight: 500; color: #b8c7da; margin-top: 1px; }
 /* ≥901px: sidebar-left e #painel-direito (css/desktop-layout-lock.css) são
    position:absolute com largura FIXA em cada faixa (300+360px até 1199px,
    320+380px até 1599px, 340+400px dali em diante — sempre left:12px /

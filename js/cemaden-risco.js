@@ -425,7 +425,7 @@ function renderRedemetLayer() {
 }
 
 const PRO={radar:true,follow:true,replay:false,speed:1,timer:null,events:[],idx:0,radarLayer:false,sourceState:{}};
-const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe',GDACS:'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com',EONET:'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com',CEMADEN:'https://painelalertas.cemaden.gov.br',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br','CSN-Chile':'https://api.gael.cloud','SSN-Mexico':'https://www.ssn.unam.mx'};
+const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe',GDACS:'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com',EONET:'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com',CEMADEN:'https://painelalertas.cemaden.gov.br',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br','CSN-Chile':'https://api.gael.cloud','SSN-Mexico':'https://www.ssn.unam.mx',ANA:'https://www.snirh.gov.br'};
 function q(id){return document.getElementById(id)}
 function safeText(id,v){const e=q(id);if(e)e.textContent=v==null?'--':v}
 // Fontes sísmicas REGIONAIS (rede nacional de um país específico): quando
@@ -526,7 +526,8 @@ async function checkSources(){
     pingSource('SSN-Mexico',viaWorker(SRC['SSN-Mexico']+'/sismicidad/ultimos-utc/')),
     pingSource('CPTEC',viaWorker(SRC.CPTEC+'/XML/capitais/condicoesAtuais.xml')),
     pingSource('INPE',viaWorker(SRC.INPE+'/queimadas/queimadas/focos/csv/10min/')),
-    pingSource('CGE',viaWorker(SRC.CGE+'/v3/alagamentos.jsp'))
+    pingSource('CGE',viaWorker(SRC.CGE+'/v3/alagamentos.jsp')),
+    pingSource('ANA',viaWorker(SRC.ANA+'/hidroweb/rest/api/estacaotelemetrica?id=87450020'))
   ]);
 }
 
