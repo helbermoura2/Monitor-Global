@@ -34,6 +34,40 @@ function triggerCardFxMag(mag) {
     el.style.setProperty('--pd-fx-amp', amp + 'px');
 }
 
+// M6+ treme o site INTEIRO (não só o card) por 10s — pedido do usuário
+// pra dar a sensação de "caos" num sismo grande de verdade. M7+ soma um
+// escurecer piscando por cima (reaproveita #vignette-cinematic, que já
+// existe pra um efeito mais discreto — aqui com uma classe própria bem
+// mais forte). Roda no MESMO ponto onde o card já treme/muda de cor
+// (showEventDetails, js/painel-e-lista.js) — ou seja, sismo novo de
+// verdade, clique manual no evento e revisita do ciclo automático todos
+// disparam igual, exatamente como o efeito do card já fazia antes disso.
+const SITE_CHAOS_DURATION = 10000;
+let __siteChaosTimeout = null;
+function triggerSiteChaos(mag) {
+    const m = Number(mag) || 0;
+    if (m < 6) return;
+    const app = document.getElementById('app');
+    const veil = document.getElementById('vignette-cinematic');
+    try { clearTimeout(__siteChaosTimeout); } catch (e) {}
+    if (app) {
+        app.classList.remove('mg-site-shake');
+        void app.offsetWidth;
+        app.style.setProperty('--mg-shake-amp', (m >= 7 ? '16px' : '10px'));
+        app.classList.add('mg-site-shake');
+    }
+    if (veil) veil.classList.remove('mg-chaos-dark');
+    if (m >= 7 && veil) {
+        void veil.offsetWidth;
+        veil.classList.add('mg-chaos-dark');
+    }
+    __siteChaosTimeout = setTimeout(() => {
+        if (app) app.classList.remove('mg-site-shake');
+        if (veil) veil.classList.remove('mg-chaos-dark');
+    }, SITE_CHAOS_DURATION);
+}
+window.triggerSiteChaos = triggerSiteChaos;
+
 /* Gira o ícone central (#pd-mag) quadro a quadro via inline style com
    prioridade "important" — é a única forma de vencer o
    "transform: translateX(-50%) !important" que centraliza o ícone

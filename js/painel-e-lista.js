@@ -1127,6 +1127,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag));
+    if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag);
 
     // Zoom alvo + voo cinematográfico
     let zoomAlvo = 6.6;
