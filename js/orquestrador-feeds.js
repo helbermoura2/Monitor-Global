@@ -205,9 +205,14 @@ async function fetchGlobalFeeds() {
 
         if (novos.length) {
             const novoExpira = Date.now() + 180000;
+            const novoAgora = Date.now();
             novos.forEach(ev => {
                 activeAlertingIds.set(ev.id, novoExpira);
                 activeUpdatedIds.delete(ev.id);
+                // Desempate de ordenarNovosNoTopo quando vários sismos chegam
+                // no mesmo ciclo — sem isso, todos empatam e ficam na ordem
+                // original do merge, não na ordem de chegada de verdade.
+                ev._novoAt = novoAgora;
             });
             try { mostrarNovosSismosNoMapa(novos); } catch (e) { console.warn('[radar novo] falhou:', e); }
         }
@@ -264,14 +269,11 @@ async function fetchGlobalFeeds() {
         nextRefresh = Date.now() + 45000;
 
         // Fonte única: avisa o store das revisões → card principal atualiza sozinho
+        // (o aviso pra tela — pílula, não mais toast de uma linha só pro
+        // selecionado — sai mais abaixo, junto com o que antes era o som).
         try {
             if (atualizados.length && typeof EventStore !== 'undefined') {
                 EventStore.onDataRevised(atualizados.map(e => e.id));
-                const sel = EventStore.getSelected();
-                if (sel && atualizados.some(e => e.id === sel.id) && typeof showToast === 'function') {
-                    const u = atualizados.find(e => e.id === sel.id);
-                    showToast(`🔄 Sismo atualizado: ${u && u._deltaTxt ? u._deltaTxt : 'dados revisados'}`, 'info');
-                }
             }
         } catch (e) { console.warn('[sismo] EventStore revise:', e); }
 
@@ -285,26 +287,23 @@ async function fetchGlobalFeeds() {
 
         isFirstLoad = false;
 
-        // Som em atualização significativa (só se não houver sismo novo no mesmo ciclo)
-        if (atualizados.length && !novos.length) {
-            const alvoUpd = atualizados
-                .filter(ev => Number(ev.mag) >= Math.max(SOM_SISMO_MIN, minMagnitude))
-                .sort((a, b) => b.mag - a.mag)[0];
-            if (alvoUpd) {
-                const somKey = alvoUpd.id + '|upd|' + (alvoUpd._deltaTxt || '');
-                if (!sismosSonorizados.has(somKey)) {
-                    try {
-                        // isUpdate=true → voz (M6+) diz "Atualização sísmica…", não o texto de sismo novo
-                        playEarthquakeSound(
-                            alvoUpd.mag, alvoUpd.place, alvoUpd.depth, 0,
-                            false, true, alvoUpd._deltaTxt || ''
-                        );
-                        sismosSonorizados.add(somKey);
-                        if (sismosSonorizados.size > 300) {
-                            sismosSonorizados = new Set([...sismosSonorizados].slice(-150));
-                        }
-                    } catch (e) {}
-                }
+        // Atualização (revisão de magnitude/profundidade/fonte) não toca mais
+        // som nem pula pro topo da lista — usuário achou confuso ouvir/ver um
+        // "sismo novo" quando na real era um registro antigo só sendo
+        // corrigido. A informação agora vai pra uma pílula maior no rodapé
+        // (mesmo estilo dos toasts, só que com o card inteiro: lugar, M
+        // antiga → nova etc.), sem som e sem reordenar nada.
+        if (atualizados.length) {
+            const jaAvisados = new Set();
+            atualizados.forEach(ev => {
+                const pillKey = ev.id + '|updpill|' + (ev._deltaTxt || '');
+                if (jaAvisados.has(pillKey) || sismosSonorizados.has(pillKey)) return;
+                jaAvisados.add(pillKey);
+                sismosSonorizados.add(pillKey);
+                try { if (typeof showSismoAtualizadoPill === 'function') showSismoAtualizadoPill(ev); } catch (e) {}
+            });
+            if (sismosSonorizados.size > 300) {
+                sismosSonorizados = new Set([...sismosSonorizados].slice(-150));
             }
         }
 

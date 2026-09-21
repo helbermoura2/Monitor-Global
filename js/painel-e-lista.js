@@ -108,11 +108,14 @@ function applyFilters() {
 
     /* Modo crise removido — lista sempre completa */
 
-    // ATUALIZADOS sobem temporariamente para o topo, independentemente de
-    // terem ocorrido há 3 horas, 12 horas etc. O horário original não é
-    // alterado: após 10 minutos o temporizador limpa activeUpdatedIds e este
-    // mesmo feed volta à ordem cronológica automaticamente.
-    merged = ordenarAtualizadosNoTopo(merged);
+    // NOVOS sobem temporariamente para o topo, independentemente de terem
+    // ocorrido há 3 horas, 12 horas etc. — só até o usuário notar que
+    // chegou (o mesmo prazo do selo "NOVO"). O horário original não é
+    // alterado: passado esse prazo, o item volta à ordem cronológica
+    // automaticamente no próximo applyFilters(). Atualizados (revisão de
+    // magnitude etc.) não reordenam mais a lista — a informação vai pra
+    // pílula de atualização em vez de mover o card.
+    merged = ordenarNovosNoTopo(merged);
 
     // Fica disponível pro resto do app mesmo que o redesenho abaixo falhe —
     // é por causa dessa linha vir antes que o filtro "BR" e outros consumidores

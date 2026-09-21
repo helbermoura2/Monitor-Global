@@ -51,6 +51,54 @@ function showToast(m, t = 'info') {
     setTimeout(remove, isUpdate ? 10000 : 7000);
 }
 
+// Pílula de atualização de sismo — maior que um toast normal, mostra o
+// registro inteiro (lugar + o que mudou) em vez de uma linha de texto só.
+// Substitui o antigo som+pulo-pro-topo-da-lista quando um sismo já
+// conhecido é revisado (magnitude/profundidade/fonte/qualidade): o usuário
+// achou os dois confusos, pareciam sismo novo sendo um registro antigo só
+// corrigido. Fica no mesmo #toast-stack dos toasts normais (ancorado embaixo,
+// já com o desvio dos painéis calculado) — só que com sua própria classe
+// pra CSS mais largo/alto.
+function showSismoAtualizadoPill(ev) {
+    if (!ev || !ev.place) return;
+
+    let stack = document.getElementById('toast-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'toast-stack';
+        stack.className = 'toast-stack';
+        stack.setAttribute('aria-live', 'polite');
+        stack.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(stack);
+    }
+    while (stack.children.length >= 4) stack.firstElementChild?.remove();
+
+    const d = document.createElement('div');
+    d.className = 'toast toast-info toast-update-card';
+    const label = document.createElement('div');
+    label.className = 'toast-update-label';
+    label.textContent = '🔄 Sismo atualizado';
+    const place = document.createElement('div');
+    place.className = 'toast-update-place';
+    place.textContent = ev.place;
+    const delta = document.createElement('div');
+    delta.className = 'toast-update-delta';
+    delta.textContent = ev._deltaTxt || 'Dado revisado pela fonte';
+    d.appendChild(label);
+    d.appendChild(place);
+    d.appendChild(delta);
+    stack.appendChild(d);
+
+    const remove = () => {
+        if (!d.isConnected) return;
+        d.style.opacity = '0';
+        d.style.transform = 'translateY(14px) scale(.96)';
+        d.style.transition = 'opacity .35s ease, transform .35s ease';
+        setTimeout(() => d.remove(), 350);
+    };
+    setTimeout(remove, 12000);
+}
+
 /* ═══════════════ INTERFACE ═══════════════ */
 document.getElementById('btn-som').textContent = somAtivo ? '🔊' : '🔇';
 document.getElementById('btn-som')?.addEventListener('click', function () {
@@ -450,6 +498,7 @@ window.addEventListener('load', () => {
     agendarBusca(fetchVolcanoes, 3000, 120000);
     agendarBusca(fetchDefesaCivil, 10000, 300000);
     agendarBusca(fetchBrazilStorms, 12000, 300000);
+    agendarBusca(fetchAnaRios, 13000, 300000);     // ANA — nível de rios (RS/AM)
     agendarBusca(fetchInmetAvisos, 11000, 300000);     // avisos oficiais INMET Brasil
     agendarBusca(fetchRealHurricanes, 14000, 600000);   // ciclones GDACS+NHC 10min
     agendarBusca(fetchEonetStorms, 16000, 900000);
