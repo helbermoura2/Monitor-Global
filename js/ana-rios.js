@@ -9,7 +9,9 @@
 // na lista ANA_ESTACOES.
 const ANA_ESTACOES = [
     { codigo: '87450020', nome: 'Rio Guaíba — Porto Alegre, RS', uf: 'RS', coords: [-51.230, -30.027] },
-    { codigo: '14990000', nome: 'Rio Negro — Porto de Manaus, AM', uf: 'AM', coords: [-60.023, -3.130] }
+    { codigo: '14990000', nome: 'Rio Negro — Porto de Manaus, AM', uf: 'AM', coords: [-60.023, -3.130] },
+    { codigo: '15400000', nome: 'Rio Madeira — Porto Velho, RO', uf: 'RO', coords: [-63.904, -8.760] },
+    { codigo: '14620000', nome: 'Rio Branco — Boa Vista, RR', uf: 'RR', coords: [-60.676, 2.824] }
 ];
 
 // Guarda a última leitura de cada estação pra comparar com a próxima —
