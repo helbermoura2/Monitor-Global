@@ -4496,6 +4496,30 @@ function drawPaperPlaneIcon(rgba, w, h, x, y, size, cr, cg, cb, bg) {
     fillTriangle(rgba, w, h, x + size * 0.1, y, x + size * 0.45, y + size * 0.18, x + size * 0.22, y + size * 0.5, bg[0], bg[1], bg[2], 255);
 }
 
+/** Ícone de radar — mesmo desenho do logo do app/site (drawRadarLogo,
+ * js/story-share.js): 3 anéis concêntricos + cunha de varredura saindo do
+ * topo + ponto central. Aqui em primitivas de pixel puro (sem gradiente
+ * real — o motor do Worker não tem canvas/gradiente de verdade — a cunha
+ * usa alpha fixo em vez de esmaecer, mas o desenho geral é o mesmo). Usado
+ * no cabeçalho do Resumo do Dia, que até então só tinha o texto "MONITOR
+ * GLOBAL" sem nenhum ícone — inconsistente com o card de evento avulso e
+ * com o próprio app, que sempre mostram esse radar junto da marca. */
+function drawRadarIcon(rgba, w, h, cx, cy, r, cr, cg, cb) {
+    [1, 0.68, 0.36].forEach(f => {
+        drawArc(rgba, w, h, cx, cy, r * f, Math.max(1, r * 0.1), 0, 360, cr, cg, cb, 90);
+    });
+    const steps = 16, startDeg = -90, sweepDeg = 78;
+    for (let i = 0; i < steps; i++) {
+        const a0 = (startDeg + sweepDeg * i / steps) * Math.PI / 180;
+        const a1 = (startDeg + sweepDeg * (i + 1) / steps) * Math.PI / 180;
+        fillTriangle(rgba, w, h, cx, cy,
+            cx + r * Math.cos(a0), cy + r * Math.sin(a0),
+            cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+            cr, cg, cb, 130);
+    }
+    fillCircle(rgba, w, h, cx, cy, Math.max(1, r * 0.14), cr, cg, cb, 255);
+}
+
 /** Layout de linha "lado a lado": magnitude à esquerda (centralizada na
  * altura da linha), local+meta à direita começando no topo — em vez do
  * empilhado (magnitude em cima, local embaixo) usado antes. Deixa a linha
@@ -4530,12 +4554,20 @@ async function renderDailySummaryPng() {
     const TITLE_Y = HEADER_H + 30, TOTAL_Y = TITLE_Y + 40, PANEL_START_Y = TOTAL_Y + 42;
     const STATS_GAP_TOP = 20, STATS_GAP_MID = 16, STATS_GAP_BOTTOM = 24;
     const STATS_SECTION_H = STATS_GAP_TOP + 1 + 33 + fonts.micro.cellH + STATS_GAP_MID + fonts.micro.cellH + STATS_GAP_BOTTOM;
+    // Caixa de CTA (o que o canal do Telegram envia + link pro site) — o
+    // Resumo terminava só com o rodapé de marca, sem explicar o escopo do
+    // canal nem apontar de volta pro app. Só uma vez o domínio no rodapé
+    // (não repete aqui, como na v1 do mockup) — aqui só o texto do escopo
+    // + um "veja o mapa completo" sem link cru duplicado.
+    const CTA_GAP_TOP = 24, CTA_H = 92, CTA_GAP_BOTTOM = 30;
+    const CTA_SECTION_H = CTA_GAP_TOP + CTA_H + CTA_GAP_BOTTOM;
 
     const cardLayouts = top.map(e => layoutRow(fonts, e, cardW));
     let contentH = PANEL_START_Y + 20;
     if (!top.length) contentH += 90;
     else cardLayouts.forEach(l => { contentH += l.cardH; });
     contentH += STATS_SECTION_H;
+    contentH += CTA_SECTION_H;
     const H = contentH + FOOTER_H;
     const rgba=new Uint8Array(W*H*4);
 
@@ -4548,8 +4580,12 @@ async function renderDailySummaryPng() {
 
     fillRect(rgba,W,0,0,W,HEADER_H,2,8,22,200);
     fillRect(rgba,W,0,HEADER_H-3,W,3,topColor[0],topColor[1],topColor[2],160);
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'MONITOR GLOBAL',34,26,56,189,248);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'RESUMO DO DIA',34,68,148,163,184);
+    // Ícone de radar antes do nome (era só texto) — mesma marca do card de
+    // evento avulso e do app. Empurra as duas linhas de texto pra direita
+    // pra abrir espaço (34 -> 82), sem mexer nos y de cada linha.
+    drawRadarIcon(rgba,W,H,51,53,17,56,189,248);
+    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'MONITOR GLOBAL',82,26,56,189,248);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'RESUMO DO DIA',82,68,148,163,184);
     drawClockIcon(rgba,W,H,44,106,7,148,163,184,[2,8,22]);
     drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(`${day.split('-').reverse().join('/')} · 00:00-23:59 BRT`),58,100,148,163,184);
 
@@ -4617,6 +4653,23 @@ async function renderDailySummaryPng() {
     y+=fonts.micro.cellH+STATS_GAP_MID;
     drawTextFontCenteredHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Demais registros: ${events.filter(e=>e.mag<4).length}`),W/2,y,148,163,184);
     y+=fonts.micro.cellH+STATS_GAP_BOTTOM;
+
+    // ═══ Caixa de CTA — escopo do canal + link pro site ═══
+    y += CTA_GAP_TOP;
+    const ctaX = 60, ctaW = W - 120;
+    fillRoundRect(rgba,W,H,ctaX,y,ctaW,CTA_H,16, 56,189,248,70);
+    fillRoundRect(rgba,W,H,ctaX+2,y+2,ctaW-4,CTA_H-4,14, 14,30,50,150);
+    const ctaLine1 = 'Este canal só envia: resumo diário + sismos M6+';
+    const ctaLine2 = 'Para tudo em tempo real, veja o mapa completo';
+    const ctaCy1 = y + 32, ctaCy2 = y + 62;
+    const ctaW1 = textFontWidthProp(fonts.captionProp, sanitizeFontText(ctaLine1));
+    const ctaW2 = textFontWidthProp(fonts.captionProp, sanitizeFontText(ctaLine2));
+    fillCircle(rgba,W,H,W/2-ctaW1/2-14,ctaCy1+8,4,56,189,248,255);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(ctaLine1),W/2-ctaW1/2,ctaCy1,226,232,240);
+    fillCircle(rgba,W,H,W/2-ctaW2/2-14,ctaCy2+8,4,56,189,248,255);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(ctaLine2),W/2-ctaW2/2,ctaCy2,148,163,184);
+    y += CTA_H + CTA_GAP_BOTTOM;
+
     fillRect(rgba,W,0,H-FOOTER_H,W,FOOTER_H,10,16,28,230);
     drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'monitorglobal.top',34,H-Math.round(FOOTER_H/2+fonts.titleProp.cellH/2)+4,56,189,248);
     const tgTxt=sanitizeFontText('Telegram: monitor_global');
