@@ -12,6 +12,7 @@ function triggerCardFx(type, color) {
     if (!el || !type) return;
     try { clearTimeout(el._fxTimeout); } catch (e) {}
     stopIconSpin();
+    restoreWindLetters();
     el.className.split(' ').forEach(c => { if (c.indexOf('pd-fx-') === 0) el.classList.remove(c); });
     el.style.setProperty('--pd-fx-color', color || '#38bdf8');
     // Força reflow pra reiniciar a animação mesmo selecionando o mesmo tipo
@@ -21,8 +22,56 @@ function triggerCardFx(type, color) {
     el.classList.add(cls);
     el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
 
-    if (type === 'hurricane') spinIcon(12000, 1800);
-    else if (type === 'tornado') spinIcon(7000, 2160);
+    if (type === 'hurricane') {
+        spinIcon(12000, 1800);
+        triggerWindLetters(FX_DURATION.hurricane);
+    } else if (type === 'tornado') spinIcon(7000, 2160);
+}
+
+// ═══════════ FURACÃO — vento "derrubando" as letras do local do evento ═══════════
+// Embrulha cada CARACTERE do texto REAL de #pd-local num <span> pra poder
+// girar cada um sozinho via CSS (.pd-fx-windletter, css/painel-fx.css) —
+// nunca troca/esconde o texto, só envolve o mesmo conteúdo. Ao restaurar,
+// reconstrói o texto a partir dos PRÓPRIOS spans (não de uma cópia
+// guardada de antes) — importante porque js/painel-e-lista.js pode setar
+// #pd-local.textContent com um valor NOVO antes de chamar triggerCardFx
+// de novo (ex.: outro furacão em seguida, ainda dentro da janela de 12s
+// do anterior); se restaurássemos pra uma string velha guardada, esse
+// texto novo seria apagado e trocado de volta pelo do furacão anterior.
+let __windLettersEl = null;
+let __windLettersTimeout = null;
+function restoreWindLetters() {
+    try { clearTimeout(__windLettersTimeout); } catch (e) {}
+    if (__windLettersEl) {
+        const spans = __windLettersEl.querySelectorAll('.pd-fx-windletter');
+        if (spans.length) {
+            __windLettersEl.textContent = [...spans]
+                .map(s => s.textContent === ' ' ? ' ' : s.textContent)
+                .join('');
+        }
+    }
+    __windLettersEl = null;
+    __windLettersTimeout = null;
+}
+function triggerWindLetters(durationMs) {
+    const el = document.getElementById('pd-local');
+    if (!el || !el.textContent) return;
+    __windLettersEl = el;
+    const frag = document.createDocumentFragment();
+    [...el.textContent].forEach((ch, i) => {
+        const span = document.createElement('span');
+        span.className = 'pd-fx-windletter';
+        span.style.setProperty('--wl-i', i);
+        // Espaço normal SOZINHO dentro de um inline-block é tratado como
+        // espaço "de borda" e colapsado pra zero (o texto colava:
+        // "FuracãoKatrina") — troca por espaço não-quebrável, que não
+        // sofre esse colapso e mede a largura certinha.
+        span.textContent = ch === ' ' ? ' ' : ch;
+        frag.appendChild(span);
+    });
+    el.textContent = '';
+    el.appendChild(frag);
+    __windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
 }
 
 function triggerCardFxMag(mag) {
