@@ -214,13 +214,15 @@ function startFeltZone(lng, lat, mag, depth) {
 
     const wrap = document.createElement('div');
     wrap.className = 'felt-zone-wrap';
+    const detect = document.createElement('div');
+    detect.className = 'felt-zone-detect';
     const blue = document.createElement('div');
     blue.className = 'felt-zone-blue';
     const red = document.createElement('div');
     red.className = 'felt-zone-red';
     const sweep = document.createElement('div');
     sweep.className = 'felt-zone-sweep';
-    wrap.append(blue, red, sweep);
+    wrap.append(detect, blue, red, sweep);
     host.appendChild(wrap);
     feltZoneEl = wrap;
 
@@ -229,13 +231,15 @@ function startFeltZone(lng, lat, mag, depth) {
         if (!map) return;
         const z = map.getZoom();
         const mpp = metrosPorPixel(lat, z);
+        const pxDetect = Math.max(30, (raioDetectavel(mag, depth) * 1000) / mpp * 2);
         const pxBlue = Math.max(24, (raioEstimado(mag, depth) * 1000) / mpp * 2);
         const pxRed = Math.max(10, (raioCritico(mag, depth) * 1000) / mpp * 2);
         const pt = map.project(coords);
+        detect.style.width = detect.style.height = pxDetect + 'px';
         blue.style.width = blue.style.height = pxBlue + 'px';
         red.style.width = red.style.height = pxRed + 'px';
         sweep.style.width = sweep.style.height = pxRed + 'px';
-        [blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+        [detect, blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
     };
     feltZoneUpd = place;
     place();
@@ -271,12 +275,24 @@ const WAVE_P_KMS = 7.5;
 const WAVE_S_KMS = 4.3;
 const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico, evita <div> gigante se item.time vier defasado
 let waveFrontEl = null, waveFrontUpd = null, waveFrontInterval = null, waveFrontTimer = null, waveFrontFadeTimer = null;
+// Câmera "persegue" a frente de onda P conforme ela cresce (efeito tipo
+// GlobalQuake) — guarda a referência do handler de interação pra poder
+// remover no stopWaveFront, senão cada sismo novo empilha mais um listener.
+let waveCamAbortHandler = null;
 
 function stopWaveFront() {
     try { clearInterval(waveFrontInterval); } catch (e) {}
     try { clearTimeout(waveFrontTimer); } catch (e) {}
     try { clearTimeout(waveFrontFadeTimer); } catch (e) {}
     waveFrontInterval = waveFrontTimer = waveFrontFadeTimer = null;
+    if (waveCamAbortHandler) {
+        try {
+            map && map.off('dragstart', waveCamAbortHandler);
+            map && map.off('wheel', waveCamAbortHandler);
+            map && map.off('touchstart', waveCamAbortHandler);
+        } catch (e) {}
+        waveCamAbortHandler = null;
+    }
     if (waveFrontEl) {
         try { map && map.off('move', waveFrontUpd); map && map.off('zoom', waveFrontUpd); } catch (e) {}
         waveFrontEl.remove();
@@ -285,7 +301,14 @@ function stopWaveFront() {
     }
 }
 
-function startWaveFront(lng, lat, mag, depth, originTime) {
+// opts.chaseCam: câmera acompanha o alcance da onda P puxando o zoom pra trás
+// aos poucos (em vez de abrir tudo de uma vez), até o teto de raioDetectavel —
+// só pro sismo ao vivo e pro clique manual (o autociclo mantém o comportamento
+// de sempre, decidido pelo chamador via opts).
+// opts.camDelayMs: espera o voo cinematográfico inicial (flyTo/softFlyToCoords)
+// terminar antes de começar a puxar a câmera — sem isso as duas animações
+// brigam pela câmera ao mesmo tempo.
+function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (!map || !Number.isFinite(originTime)) return;
     stopWaveFront();
     const host = document.getElementById('mapContainer');
@@ -308,6 +331,26 @@ function startWaveFront(lng, lat, mag, depth, originTime) {
     const durationMs = feltZoneDurationMs(mag);
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion &&
+        typeof calcZoomParaAlcance === 'function' && typeof centroCompensado === 'function';
+    const camStartAt = Date.now() + Math.max(0, (opts && opts.camDelayMs) || 0);
+    // Definido preguiçosamente (null até o delay passar) — se pegasse map.getZoom()
+    // já aqui, capturaria o zoom de ANTES do voo cinematográfico inicial terminar
+    // (ainda no meio do flyTo de 4.5s), não o zoom final de onde a perseguição
+    // realmente precisa continuar a partir.
+    let camZoomAtual = null;
+    let camAtingiuTeto = false;
+    let camAbortada = false;
+
+    if (chaseCam) {
+        // Só aborta em interação de VERDADE do usuário (originalEvent presente) —
+        // chamadas programáticas nossas (easeTo) não disparam com originalEvent.
+        waveCamAbortHandler = (e) => { if (e && e.originalEvent) camAbortada = true; };
+        map.on('dragstart', waveCamAbortHandler);
+        map.on('wheel', waveCamAbortHandler);
+        map.on('touchstart', waveCamAbortHandler);
+    }
+
     const place = () => {
         if (!map || !waveFrontEl) return;
         const elapsedS = Math.max(0, (Date.now() - originTime) / 1000);
@@ -321,6 +364,27 @@ function startWaveFront(lng, lat, mag, depth, originTime) {
         pRing.style.width = pRing.style.height = pxP + 'px';
         sRing.style.width = sRing.style.height = pxS + 'px';
         [pRing, sRing].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+
+        if (chaseCam && !camAbortada && !camAtingiuTeto && Date.now() >= camStartAt) {
+            // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial.
+            if (camZoomAtual == null) camZoomAtual = map.getZoom();
+            const tetoKm = raioDetectavel(mag, depth);
+            const kmAlvoCam = Math.min(tetoKm, kmP);
+            const zoomNecessario = Math.max(1.5, calcZoomParaAlcance(lat, kmAlvoCam));
+            // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
+            if (zoomNecessario < camZoomAtual - 0.01) {
+                camZoomAtual = zoomNecessario;
+                try {
+                    map.easeTo({
+                        center: centroCompensado(lng, lat, camZoomAtual),
+                        zoom: camZoomAtual,
+                        duration: 320,
+                        easing: t => t
+                    });
+                } catch (e) {}
+            }
+            if (kmP >= tetoKm) camAtingiuTeto = true;
+        }
     };
     waveFrontUpd = place;
     place();

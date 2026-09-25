@@ -71,6 +71,15 @@ let activeLateIds = new Map();
 const ATUALIZADO_EXPIRA_MS = 10 * 60 * 1000; // 10 minutos
 const updatedReturnTimers = new Map();
 let currentIndex = -1, isFirstLoad = true, minMagnitude = 0.1;
+// Separado de isFirstLoad: isFirstLoad controla se um lote de eventos deve
+// disparar "novo" (só falso depois de um ciclo com pelo menos 1 fonte OK) —
+// se todas as fontes falharem sempre, isFirstLoad fica true pra sempre de
+// propósito. isFirstDisplay só controla a seleção inicial (mostrar o índice 0
+// uma vez), e precisa disparar mesmo quando a primeira rodada real falha e cai
+// pro cache — sem essa separação, cada ciclo que falhava re-selecionava o
+// índice 0 do zero, cancelando no meio qualquer voo/perseguição de câmera em
+// andamento (bug pré-existente, ficou visível ao testar a câmera dinâmica).
+let isFirstDisplay = true;
 
 /* ═══ EventStore — fonte única de verdade (lista / mapa / card / Story) ═══
    Antes cada painel lia globalEvents, globalAlerts ou lastMerged por conta

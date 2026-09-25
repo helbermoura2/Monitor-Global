@@ -1195,7 +1195,13 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 if (eventoSelecionadoId !== item.id) return;
                 if (triggerVisualAlert) {
                     if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
-                    if (typeof startWaveFront === 'function') startWaveFront(lng, lat, item.mag, item.depth, item.time);
+                    // Câmera acompanha a onda P puxando o zoom pra trás aos poucos, só
+                    // depois que o voo cinematográfico inicial (4500ms) termina — senão
+                    // as duas animações de câmera brigam. Só pro sismo AO VIVO por
+                    // enquanto (não no ciclo automático).
+                    if (typeof startWaveFront === 'function') {
+                        startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350 });
+                    }
                 } else {
                     if (typeof startCascadeRipple === 'function') startCascadeRipple(lng, lat, getHexColor(item.mag));
                     // "Replay": o sismo original pode ter sido há horas — usar o
@@ -1205,7 +1211,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     // animação como se estivesse acontecendo agora. Vale pro ciclo
                     // automático E pro clique manual, os dois passam por aqui.
                     if (item.mag >= 5 && typeof startWaveFront === 'function') {
-                        startWaveFront(lng, lat, item.mag, item.depth, Date.now());
+                        // Câmera dinâmica só no clique MANUAL (soft=false) — o ciclo
+                        // automático (soft=true) mantém o comportamento de sempre.
+                        startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
+                            chaseCam: !soft,
+                            camDelayMs: Math.max(0, totalDur - 150)
+                        });
                     }
                 }
             } catch (e) {}
@@ -1214,11 +1225,16 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         try {
             if (triggerVisualAlert) {
                 startFeltZone(lng, lat, item.mag, item.depth);
-                if (typeof startWaveFront === 'function') startWaveFront(lng, lat, item.mag, item.depth, item.time);
+                if (typeof startWaveFront === 'function') {
+                    startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350 });
+                }
             } else {
                 startCascadeRipple(lng, lat, getHexColor(item.mag));
                 if (item.mag >= 5 && typeof startWaveFront === 'function') {
-                    startWaveFront(lng, lat, item.mag, item.depth, Date.now());
+                    startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
+                        chaseCam: !soft,
+                        camDelayMs: Math.max(0, totalDur - 150)
+                    });
                 }
             }
         } catch (e2) {}
