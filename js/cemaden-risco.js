@@ -798,6 +798,10 @@ function boot(){
   // vulcões. Também deixava o painel de debug sem ver window.PRO.sourceState.
   window.setSource = setSource;
   window.PRO = PRO;
+  // Idem pro painel "Status por fonte" (ux-panel.js): precisa do texto de
+  // fallback regional pra explicar o que continua coberto quando uma fonte
+  // sísmica nacional cai.
+  window.REGIONAL_SEISMIC_FALLBACK = REGIONAL_SEISMIC_FALLBACK;
   // Idem pro REDEMET: risco de alagamento (enhancements-4413.js, outro arquivo)
   // precisa ler METAR real (chuva/tempestade observada) pra reforçar o cálculo
   // que hoje só usa modelo Open-Meteo.
