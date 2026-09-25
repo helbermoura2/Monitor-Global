@@ -106,25 +106,35 @@
     const hum = Number(w.hum);
     let score = 0;
     const reasons = [];
+    // Categorias independentes que contribuíram pro score — usado logo abaixo
+    // pra exigir corroboração antes de bater "MUITO ALTO" (ver comentário lá).
+    const sinais = new Set();
     if (Number.isFinite(rain)) {
-      if (rain >= (FLOOD_RAIN_1H_HIGH || 20)) { score += 50; reasons.push(`chuva intensa ${rain.toFixed(1)} mm`); }
-      else if (rain >= (FLOOD_RAIN_1H_MOD || 8)) { score += 25; reasons.push(`chuva ${rain.toFixed(1)} mm`); }
-      else if (rain >= 2) { score += 8; reasons.push(`chuva leve ${rain.toFixed(1)} mm`); }
+      if (rain >= (FLOOD_RAIN_1H_HIGH || 20)) { score += 50; reasons.push(`chuva intensa ${rain.toFixed(1)} mm`); sinais.add('chuva'); }
+      else if (rain >= (FLOOD_RAIN_1H_MOD || 8)) { score += 25; reasons.push(`chuva ${rain.toFixed(1)} mm`); sinais.add('chuva'); }
+      else if (rain >= 2) { score += 8; reasons.push(`chuva leve ${rain.toFixed(1)} mm`); sinais.add('chuva'); }
     }
+    // Umidade não conta como sinal independente: vem da mesma chamada Open-Meteo
+    // que a chuva, então não corrobora nada — só reforça o mesmo dado de modelo.
     if (Number.isFinite(hum) && hum >= 90 && rain >= 1) { score += 10; reasons.push('umidade alta'); }
-    // Alertas de enchente próximos
+    // Alertas de enchente próximos — usa só o MAIS FORTE, não soma vários feeds.
+    // GDACS, INMET e CGE-SP costumam noticiar a MESMA chuva ao mesmo tempo (e o
+    // aviso do INMET/CGE pra São Paulo cai ancorado bem no centro da capital por
+    // falta de polígono exato); somar os três inflava o score por um evento só.
     const ref = (typeof minhaPosicao !== 'undefined' && minhaPosicao) || (typeof weatherLoc !== 'undefined' ? weatherLoc : null);
+    let alertaPts = 0, alertaMotivo = null;
     (Array.isArray(globalAlerts) ? globalAlerts : []).forEach(a => {
       if (a.type !== 'flood' || !a.coords || !ref) return;
       const d = haversine(ref.lat, ref.lng, a.coords[1], a.coords[0]);
-      if (d < 80) { score += 40; reasons.push('alerta de enchente <80 km'); }
-      else if (d < 250) { score += 15; reasons.push('alerta de enchente na região'); }
+      if (d < 80 && alertaPts < 40) { alertaPts = 40; alertaMotivo = 'alerta de enchente <80 km'; }
+      else if (d < 250 && alertaPts < 15) { alertaPts = 15; alertaMotivo = alertaMotivo || 'alerta de enchente na região'; }
     });
+    if (alertaPts) { score += alertaPts; reasons.push(alertaMotivo); sinais.add('alerta'); }
     // CEMADEN / card se existir
     try {
       const max24 = parseFloat((document.getElementById('cemaden-max24') || {}).textContent);
       if (Number.isFinite(max24) && max24 >= (FLOOD_RAIN_24H_HIGH || 50)) {
-        score += 20; reasons.push(`modelo 24h ${max24} mm`);
+        score += 20; reasons.push(`modelo 24h ${max24} mm`); sinais.add('modelo24h');
       }
     } catch (e) {}
     // METAR real (REDEMET) — chuva/tempestade OBSERVADA no aeródromo mais próximo,
@@ -142,10 +152,10 @@
         });
         const fresca = maisProxima && (Date.now() - maisProxima.updatedAt) < 75 * 60000;
         if (maisProxima && menorDist < 80 && fresca) {
-          if (maisProxima.tempestade) { score += 30; reasons.push(`tempestade observada (METAR ${maisProxima.icao})`); }
-          if (maisProxima.chuvaIntensidade === 'forte') { score += 30; reasons.push(`chuva forte observada (METAR ${maisProxima.icao})`); }
-          else if (maisProxima.chuvaIntensidade === 'moderada') { score += 15; reasons.push(`chuva observada (METAR ${maisProxima.icao})`); }
-          else if (maisProxima.chuvaIntensidade === 'fraca') { score += 5; reasons.push(`chuvisco observado (METAR ${maisProxima.icao})`); }
+          if (maisProxima.tempestade) { score += 30; reasons.push(`tempestade observada (METAR ${maisProxima.icao})`); sinais.add('metar'); }
+          if (maisProxima.chuvaIntensidade === 'forte') { score += 30; reasons.push(`chuva forte observada (METAR ${maisProxima.icao})`); sinais.add('metar'); }
+          else if (maisProxima.chuvaIntensidade === 'moderada') { score += 15; reasons.push(`chuva observada (METAR ${maisProxima.icao})`); sinais.add('metar'); }
+          else if (maisProxima.chuvaIntensidade === 'fraca') { score += 5; reasons.push(`chuvisco observado (METAR ${maisProxima.icao})`); sinais.add('metar'); }
         }
       }
     } catch (e) {}
@@ -154,6 +164,16 @@
     if (score >= 55) { level = 'muito_alto'; label = 'MUITO ALTO'; icon = '🆘'; cls = 'risk-critical'; }
     else if (score >= 35) { level = 'alto'; label = 'ALTO'; icon = '🟠'; cls = 'risk-alert'; }
     else if (score >= 18) { level = 'moderado'; label = 'MODERADO'; icon = '🟡'; cls = 'risk-attention'; }
+
+    // Exige corroboração pro nível mais alto: um ÚNICO sinal isolado (ex: só um
+    // pico do modelo de chuva do Open-Meteo, que é estimativa e não medição)
+    // não pode virar "MUITO ALTO" sozinho — precisa de pelo menos 2 fontes
+    // independentes concordando (chuva modelada + alerta oficial, ou chuva
+    // modelada + chuva REAL observada por METAR, etc). É essa falta de
+    // corroboração que já causou "MUITO ALTA" com quase nada de chuva real.
+    if (level === 'muito_alto' && sinais.size < 2) {
+      level = 'alto'; label = 'ALTO'; icon = '🟠'; cls = 'risk-alert';
+    }
 
     floodRiskState = {
       level, score,
