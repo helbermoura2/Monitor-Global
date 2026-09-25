@@ -172,10 +172,14 @@
       console.warn('BrasilAPI previsão SP:', e);
     }
 
-    // 3) Fallback XML direto (pode falhar por CORS)
+    // 3) Fallback XML — precisa passar pelo proxy do Worker (fetchWithCorsFallback),
+    // igual toda outra fonte de governo desta base: um fetch() direto daqui nunca
+    // funcionava (servidor não manda cabeçalho CORS pra navegador nenhum), então
+    // esse fallback sempre falhava silenciosamente e derrubava o selo pra "off"
+    // mesmo quando o XML estava disponível — bastava passar pelo Worker.
     if (!ok) {
       try {
-        const r = await fetch('https://servicos.cptec.inpe.br/XML/capitais/condicoesAtuais.xml');
+        const r = await fetchWithCorsFallback('https://servicos.cptec.inpe.br/XML/capitais/condicoesAtuais.xml', 15000);
         if (r.ok) {
           const xml = new DOMParser().parseFromString(await r.text(), 'application/xml');
           const metas = [...xml.querySelectorAll('metar')];
