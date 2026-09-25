@@ -17,6 +17,7 @@
   z-index: 8;
   pointer-events: none;
 }
+.felt-zone-detect,
 .felt-zone-blue,
 .felt-zone-red,
 .felt-zone-sweep {
@@ -24,6 +25,14 @@
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
+}
+/* Anel "detectável" (raioDetectavel): limiar bem mais fraco que o sentido/crítico —
+   tracejado e sem preenchimento, pra não competir visualmente com os dois anéis
+   principais, só sinalizar que ali é território de "sensível/prédio alto/bacia
+   sedimentar", não uma estimativa tão firme quanto os outros dois. */
+.felt-zone-detect {
+  background: transparent;
+  border: 1.5px dashed rgba(148,163,184,.5);
 }
 .felt-zone-blue {
   background: radial-gradient(circle, rgba(56,189,248,.22) 0%, rgba(56,189,248,.10) 68%, transparent 100%);
@@ -40,6 +49,10 @@
   mask: radial-gradient(circle, transparent 30%, #000 31%);
 }
 
+.felt-zone-wrap.grow .felt-zone-detect {
+  animation: fzGrow 3.1s cubic-bezier(.16,.7,.3,1) forwards,
+             fzBreatheDetect 4s ease-in-out 3.1s infinite;
+}
 .felt-zone-wrap.grow .felt-zone-blue {
   animation: fzGrow 2.3s cubic-bezier(.16,.7,.3,1) forwards,
              fzBreatheBlue 3.4s ease-in-out 2.3s infinite;
@@ -61,6 +74,10 @@
   0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
   100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
 }
+@keyframes fzBreatheDetect {
+  0%, 100% { transform: translate(-50%,-50%) scale(1);     opacity: .5; }
+  50%      { transform: translate(-50%,-50%) scale(1.012); opacity: .65; }
+}
 @keyframes fzBreatheBlue {
   0%, 100% { transform: translate(-50%,-50%) scale(1);     opacity: .82; }
   50%      { transform: translate(-50%,-50%) scale(1.025); opacity: 1; }
@@ -75,6 +92,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .felt-zone-wrap.grow .felt-zone-detect,
   .felt-zone-wrap.grow .felt-zone-blue,
   .felt-zone-wrap.grow .felt-zone-red,
   .felt-zone-wrap.grow .felt-zone-sweep {

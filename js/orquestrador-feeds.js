@@ -142,6 +142,15 @@ async function fetchGlobalFeeds() {
                 'error'
             );
 
+            // Seleção inicial só dispara UMA vez na vida da sessão, mesmo que essa
+            // primeira rodada tenha falhado — senão o próximo ciclo que falhar de
+            // novo re-seleciona o índice 0 e cancela qualquer voo/perseguição de
+            // câmera que já esteja em andamento por outro motivo.
+            if (isFirstDisplay) {
+                isFirstDisplay = false;
+                if (globalEvents.length) showEventDetails(0, false);
+            }
+
             return;
         }
 
@@ -309,7 +318,8 @@ async function fetchGlobalFeeds() {
             }
         } catch (e) { console.warn('[sismo] EventStore revise:', e); }
 
-        if (isFirstLoad) {
+        if (isFirstDisplay) {
+            isFirstDisplay = false;
             if (globalEvents.length) showEventDetails(0, false);
         } else if (novosRecentes.length) {
             novosRecentes.sort((a, b) => b.mag - a.mag);
