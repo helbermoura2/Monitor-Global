@@ -189,7 +189,12 @@ const SourceHealth = (function () {
 
   function get(name) {
     if (!state.has(name)) {
-      state.set(name, { fails: 0, openUntil: 0, lastOk: 0, lastErr: '', lastMs: 0, status: 'unknown' });
+      state.set(name, {
+        fails: 0, openUntil: 0, lastOk: 0, lastErr: '', lastMs: 0, status: 'unknown',
+        // Histórico leve desta sessão (não persiste em snapshot/reload) — alimenta
+        // a narrativa de estabilidade do painel "Status por fonte" (ux-panel.js).
+        okCount: 0, failCount: 0, failTimes: [], firstSeenAt: Date.now()
+      });
     }
     return state.get(name);
   }
@@ -199,12 +204,17 @@ const SourceHealth = (function () {
     const s = get(name);
     s.fails = 0; s.openUntil = 0; s.lastOk = Date.now();
     s.lastMs = Number(ms) || 0; s.lastErr = ''; s.status = 'ok';
+    s.okCount = (s.okCount || 0) + 1;
   }
   function recordFail(name, error, ms) {
     const s = get(name);
     s.fails = (s.fails || 0) + 1;
     s.lastErr = String(error || 'falha');
     s.lastMs = Number(ms) || s.lastMs || 0;
+    s.failCount = (s.failCount || 0) + 1;
+    if (!Array.isArray(s.failTimes)) s.failTimes = [];
+    s.failTimes.push(Date.now());
+    if (s.failTimes.length > 20) s.failTimes.shift();
     if (s.fails >= OPEN_AFTER) { s.openUntil = Date.now() + COOLDOWN_MS; s.status = 'off'; }
     else if (s.fails >= FAIL_TO_OFF) s.status = 'off';
     else s.status = 'warn';
