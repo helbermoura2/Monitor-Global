@@ -1385,40 +1385,79 @@
     } else {
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '500 25px system-ui, sans-serif';
-      haloFillText(ctx, `Fonte: ${item.sourceSummary || item.source || '—'}`, W / 2, y);
+      const movTxt = (item.type === 'hurricane' && item.movementInfo)
+        ? ` · Mov: ${item.movementInfo.compass}${item.movementInfo.speedKmh != null ? ' ' + item.movementInfo.speedKmh + ' km/h' : ''}`
+        : '';
+      haloFillText(ctx, `Fonte: ${item.sourceSummary || item.source || '—'}${movTxt}`, W / 2, y);
       y += 90;
 
-      // Selo de nível de alerta (GDACS: green/orange/red) — mesmo estilo do
-      // selo A/B/C dos sismos, pra preencher o card em tipos sem cards de
-      // estatística (vulcão, enchente etc.) em vez de deixar espaço vazio
-      const nivelMatch = String(item.detail || '').match(/green|orange|red/i);
-      if (nivelMatch) {
-        const nivelInfo = {
-          green:  { label: 'VERDE', desc: 'monitorado, sem impacto significativo', cor: '#4ade80' },
-          orange: { label: 'LARANJA', desc: 'impacto moderado, atenção', cor: '#fb923c' },
-          red:    { label: 'VERMELHO', desc: 'impacto potencialmente grave', cor: '#ef4444' }
-        }[nivelMatch[0].toLowerCase()];
-        ctx.textAlign = 'left';
-        ctx.font = '800 24px "JetBrains Mono", monospace';
-        const label = nivelInfo.label;
-        const bw = ctx.measureText(label).width + 24;
-        ctx.font = '500 22px system-ui, sans-serif';
-        const descTxt = nivelInfo.desc;
-        const gapBadgeTxt = 12;
-        const descW = ctx.measureText(descTxt).width;
-        const totalW = bw + gapBadgeTxt + descW;
-        const startX = W / 2 - totalW / 2;
-        roundRect(ctx, startX, y - 28, bw, 36, 8);
-        ctx.fillStyle = nivelInfo.cor; ctx.globalAlpha = .18; ctx.fill(); ctx.globalAlpha = 1;
-        ctx.strokeStyle = nivelInfo.cor; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = nivelInfo.cor;
-        ctx.font = '800 24px "JetBrains Mono", monospace';
-        haloFillText(ctx, label, startX + 12, y - 2);
-        ctx.font = '500 22px system-ui, sans-serif';
-        ctx.fillStyle = '#94a3b8';
-        haloFillText(ctx, descTxt, startX + bw + gapBadgeTxt, y - 2);
-        ctx.textAlign = 'center';
-        y += 100;
+      if (item.type === 'hurricane') {
+        // Cartões de estatística iguais aos do sismo (mesmo layout de 3
+        // colunas), só que com o dado real que todo furacão/ciclone já tem
+        // (vento, pressão, categoria) — antes o Story de furacão caía no
+        // selo genérico verde/laranja/vermelho logo abaixo, que na prática
+        // nunca aparecia (o texto de `detail` do furacão não tem essas
+        // palavras), deixando um vão vazio grande no card.
+        const classif = (typeof classificarCiclone === 'function') ? classificarCiclone(item.windKmh) : { cat: '—', cor: '#94a3b8' };
+        const cardW = 300, cardH = 170, gap = 30, cardsTotalW = cardW * 3 + gap * 2;
+        const cardX0 = (W - cardsTotalW) / 2;
+        const cards = [
+          { label: 'CATEGORIA', value: classif.cat.replace('Categoria ', 'CAT '), valCor: classif.cor },
+          { label: 'VENTO MÁXIMO', value: item.windKmh != null ? `${item.windKmh} km/h` : '—' },
+          { label: 'PRESSÃO', value: item.pressureMb != null ? `${item.pressureMb} hPa` : '—' }
+        ];
+        cards.forEach((c, i) => {
+          const cxCard = cardX0 + i * (cardW + gap);
+          if (i > 0) {
+            ctx.strokeStyle = 'rgba(148,163,184,.18)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cxCard - gap / 2, y + 10);
+            ctx.lineTo(cxCard - gap / 2, y + cardH - 10);
+            ctx.stroke();
+          }
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#64748b';
+          ctx.font = '700 18px system-ui, sans-serif';
+          wrapText(ctx, c.label, cxCard + cardW / 2, y + 38, cardW - 24, 22);
+          ctx.fillStyle = c.valCor || '#f8fafc';
+          ctx.font = '800 34px "JetBrains Mono", monospace';
+          haloFillText(ctx, c.value, cxCard + cardW / 2, y + 100);
+        });
+        y += cardH + 36;
+      } else {
+        // Selo de nível de alerta (GDACS: green/orange/red) — mesmo estilo do
+        // selo A/B/C dos sismos, pra preencher o card em tipos sem cards de
+        // estatística (vulcão, enchente etc.) em vez de deixar espaço vazio
+        const nivelMatch = String(item.detail || '').match(/green|orange|red/i);
+        if (nivelMatch) {
+          const nivelInfo = {
+            green:  { label: 'VERDE', desc: 'monitorado, sem impacto significativo', cor: '#4ade80' },
+            orange: { label: 'LARANJA', desc: 'impacto moderado, atenção', cor: '#fb923c' },
+            red:    { label: 'VERMELHO', desc: 'impacto potencialmente grave', cor: '#ef4444' }
+          }[nivelMatch[0].toLowerCase()];
+          ctx.textAlign = 'left';
+          ctx.font = '800 24px "JetBrains Mono", monospace';
+          const label = nivelInfo.label;
+          const bw = ctx.measureText(label).width + 24;
+          ctx.font = '500 22px system-ui, sans-serif';
+          const descTxt = nivelInfo.desc;
+          const gapBadgeTxt = 12;
+          const descW = ctx.measureText(descTxt).width;
+          const totalW = bw + gapBadgeTxt + descW;
+          const startX = W / 2 - totalW / 2;
+          roundRect(ctx, startX, y - 28, bw, 36, 8);
+          ctx.fillStyle = nivelInfo.cor; ctx.globalAlpha = .18; ctx.fill(); ctx.globalAlpha = 1;
+          ctx.strokeStyle = nivelInfo.cor; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = nivelInfo.cor;
+          ctx.font = '800 24px "JetBrains Mono", monospace';
+          haloFillText(ctx, label, startX + 12, y - 2);
+          ctx.font = '500 22px system-ui, sans-serif';
+          ctx.fillStyle = '#94a3b8';
+          haloFillText(ctx, descTxt, startX + bw + gapBadgeTxt, y - 2);
+          ctx.textAlign = 'center';
+          y += 100;
+        }
       }
 
       // Cidades próximas (até 2) — mesmo bloco do sismo, com margem segura
