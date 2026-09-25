@@ -528,7 +528,7 @@ async function fetchVolcanoes(){
                 vulcaoNomeIgual(a.place,r.name)||
                 (a.coords&&haversine(a.coords[1],a.coords[0],r.coords[1],r.coords[0])<80)
             ));
-            if(existing){ enriquecerVulcaoComUSGS(existing,[r]); return; }
+            if(existing){ enriquecerVulcaoComUSGS(existing,[r]); existing._lastSeenAt=Date.now(); return; }
             const id=`usgs-volcano-${r.vnum||String(r.name||'').replace(/[^a-z0-9]+/gi,'-')}`;
             ids.add(id);
             const ct=(typeof getCountryByCoords==='function')?getCountryByCoords(r.coords[1],r.coords[0]):{flag:'🇺🇸',nome:'EUA'};
@@ -572,6 +572,14 @@ async function fetchVolcanoes(){
                 existing.sourceSummary=existing.sources.join(' · ');
                 if(!existing.ashStatus && v.ashStatus) existing.ashStatus=v.ashStatus;
                 if(v.time && (!existing.time||Number(v.time)>Number(existing.time))) existing.time=v.time;
+                // Esse merge substitui a chamada a upsertAlert() pra registros já
+                // existentes — e é upsertAlert() quem normalmente carimba
+                // _lastSeenAt (usado só pro selo "sem atualização" da lista, 2h+
+                // sem reconfirmação). Sem essa linha, um vulcão que a VAAC continua
+                // reportando ativamente a cada ciclo ficava com esse selo aceso pra
+                // sempre depois de 2h — um falso alarme, já que a fonte nunca
+                // parou de confirmar, só esse carimbo é que nunca era atualizado.
+                existing._lastSeenAt=Date.now();
                 ids.add(existing.id);
                 return;
             }
