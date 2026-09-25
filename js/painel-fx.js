@@ -6,7 +6,7 @@
    Duração da "janela" do efeito por tipo — o padrão é 7s, mas fogo/vulcão
    (brasas) e enchente (maré subindo) pediram mais tempo pra dar pra notar
    direito o efeito. */
-const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200 };
+const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200 };
 function triggerCardFx(type, color) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
@@ -26,23 +26,41 @@ function triggerCardFx(type, color) {
         spinIcon(12000, 1800);
         triggerWindLetters(FX_DURATION.hurricane);
     } else if (type === 'tornado') spinIcon(7000, 2160);
+    else if (type === 'wind') triggerWindLetters(FX_DURATION.wind);
 }
 
-// ═══════════ FURACÃO — vento "derrubando" as letras do local do evento ═══════════
+// ═══════════ FURACÃO / VENTO — vento arrancando as letras do local do evento ═══════════
 // Embrulha cada CARACTERE do texto REAL de #pd-local num <span> pra poder
-// girar cada um sozinho via CSS (.pd-fx-windletter, css/painel-fx.css) —
+// tremer/voar sozinho via CSS (.pd-fx-windletter, css/painel-fx.css) —
 // nunca troca/esconde o texto, só envolve o mesmo conteúdo. Ao restaurar,
 // reconstrói o texto a partir dos PRÓPRIOS spans (não de uma cópia
 // guardada de antes) — importante porque js/painel-e-lista.js pode setar
 // #pd-local.textContent com um valor NOVO antes de chamar triggerCardFx
-// de novo (ex.: outro furacão em seguida, ainda dentro da janela de 12s
-// do anterior); se restaurássemos pra uma string velha guardada, esse
-// texto novo seria apagado e trocado de volta pelo do furacão anterior.
+// de novo (ex.: outro furacão em seguida, ainda dentro da janela
+// anterior); se restaurássemos pra uma string velha guardada, esse texto
+// novo seria apagado e trocado de volta pelo do furacão anterior.
+//
+// BUG encontrado (usuário reportou "as letras só voam se eu clicar
+// manualmente, não na primeira vez"): js/painel-e-lista.js seta
+// #pd-local.textContent de novo toda vez que o card é atualizado —
+// inclusive num silentRefresh (revisão de dados do furacão/vento em
+// segundo plano, sem o usuário clicar em nada), que roda facilmente nos
+// primeiros segundos depois de abrir um evento. Isso apagava os <span>
+// recém-criados, e como silentRefresh nunca chama triggerCardFx de novo,
+// nada reconstruía o embrulho — o efeito ficava "morto" até o próximo
+// clique manual (que passa pelo caminho normal, não-silencioso).
+// Corrigido com um MutationObserver (ver triggerWindLetters): sempre que
+// o texto voltar a ficar puro (sem os spans) enquanto o efeito ainda
+// devia estar ativo, reembrulha sozinho, não importa quantas vezes algo
+// de fora resetar o texto.
 let __windLettersEl = null;
 let __windLettersTimeout = null;
+let __windLettersObserver = null;
 function restoreWindLetters() {
     try { clearTimeout(__windLettersTimeout); } catch (e) {}
     stopLetterGusts();
+    try { __windLettersObserver && __windLettersObserver.disconnect(); } catch (e) {}
+    __windLettersObserver = null;
     if (__windLettersEl) {
         const spans = __windLettersEl.querySelectorAll('.pd-fx-windletter');
         if (spans.length) {
@@ -54,10 +72,7 @@ function restoreWindLetters() {
     __windLettersEl = null;
     __windLettersTimeout = null;
 }
-function triggerWindLetters(durationMs) {
-    const el = document.getElementById('pd-local');
-    if (!el || !el.textContent) return;
-    __windLettersEl = el;
+function wrapWindLetters(el) {
     const frag = document.createDocumentFragment();
     [...el.textContent].forEach((ch, i) => {
         const span = document.createElement('span');
@@ -72,8 +87,24 @@ function triggerWindLetters(durationMs) {
     });
     el.textContent = '';
     el.appendChild(frag);
+}
+function triggerWindLetters(durationMs) {
+    const el = document.getElementById('pd-local');
+    if (!el || !el.textContent) return;
+    __windLettersEl = el;
+    wrapWindLetters(el);
     __windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
     startLetterGusts(el, durationMs);
+
+    // Auto-cura: se algo de fora (silentRefresh do card, por exemplo)
+    // resetar #pd-local pra texto puro enquanto o efeito ainda devia
+    // estar rodando, reembrulha sozinho na hora — ver comentário grande
+    // acima sobre o bug "só voa se clicar manualmente".
+    try { __windLettersObserver && __windLettersObserver.disconnect(); } catch (e) {}
+    __windLettersObserver = new MutationObserver(() => {
+        if (el.textContent && !el.querySelector('.pd-fx-windletter')) wrapWindLetters(el);
+    });
+    __windLettersObserver.observe(el, { childList: true });
 }
 
 // Rajada: pega algumas letras ao acaso e solta uma CÓPIA de cada uma

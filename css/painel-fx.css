@@ -740,6 +740,14 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   animation: pdLetterGust 2.4s ease-in-out infinite;
   animation-delay: calc(var(--wl-i, 0) * .08s);
 }
+/* Rajada de Vento — mesmo tremor/voo das letras do furacão (mesma física,
+   "vento arrancando as letras" vale pros dois tipos), reaproveitando o
+   mesmo keyframe pdLetterGust. js/painel-fx.js já dispara
+   triggerWindLetters também pro tipo "wind". */
+#painel-direito.pd-fx-wind .pd-fx-windletter {
+  animation: pdLetterGust 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--wl-i, 0) * .08s);
+}
 /* Card inteiro sendo empurrado pelo vento — tremor contínuo e irregular
    (não decai como o do sismo), pelos 12s inteiros, reforçando o "bem
    caótico" pedido: a tempestade não bate só na letra/na chuva, sacode o
