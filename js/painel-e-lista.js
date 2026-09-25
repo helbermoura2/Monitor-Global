@@ -1211,10 +1211,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     // animação como se estivesse acontecendo agora. Vale pro ciclo
                     // automático E pro clique manual, os dois passam por aqui.
                     if (item.mag >= 5 && typeof startWaveFront === 'function') {
-                        // Câmera dinâmica só no clique MANUAL (soft=false) — o ciclo
-                        // automático (soft=true) mantém o comportamento de sempre.
+                        // Câmera dinâmica agora vale no clique manual E no ciclo
+                        // automático — ambos passam por aqui, o único diferencial
+                        // entre eles é a duração do voo inicial (totalDur), já
+                        // refletida no camDelayMs abaixo.
                         startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
-                            chaseCam: !soft,
+                            chaseCam: true,
                             camDelayMs: Math.max(0, totalDur - 150)
                         });
                     }
@@ -1232,7 +1234,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 startCascadeRipple(lng, lat, getHexColor(item.mag));
                 if (item.mag >= 5 && typeof startWaveFront === 'function') {
                     startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
-                        chaseCam: !soft,
+                        chaseCam: true,
                         camDelayMs: Math.max(0, totalDur - 150)
                     });
                 }
@@ -1457,11 +1459,15 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     if (item.type === 'tsunami' && item.coords) {
         const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
+        // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
+        // — não é o ritmo do anel animado no mapa (esse é acelerado só pra dar pra
+        // ver a revelação da zona; a onda real leva mesmo horas pra cruzar isso).
+        const etaTxt = dist => (typeof TSUNAMI_KMH === 'number') ? ` · ≈${(dist / TSUNAMI_KMH).toFixed(1)}h de viagem` : '';
         document.getElementById('pd-cities-title').textContent = '🌊 Países e cidades próximas';
         document.getElementById('pd-cities').innerHTML =
             '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🌊 Países potencialmente afetados (2.000 km)</div>' +
             (ps.length
-                ? ps.map(p => `<div class="city-item"><span class="city-name">${p.flag} ${p.nome}</span><span class="city-dist">${p.dist} km</span></div>`).join('')
+                ? ps.map(p => `<div class="city-item"><span class="city-name">${p.flag} ${p.nome}</span><span class="city-dist">${p.dist} km${etaTxt(p.dist)}</span></div>`).join('')
                 : '<div class="city-item" style="color:#64748b;">Nenhum país costeiro em 2.000 km</div>') +
             '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;border-top:1px solid rgba(148,163,184,.12);margin-top:5px;padding-top:6px;">🏙️ Cidades próximas ao epicentro do tsunami</div>' +
             '<div class="city-item" style="color:#64748b;">🔎 Buscando localidades em tempo real…</div>';
@@ -1475,7 +1481,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             const header = '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🏙️ Cidades próximas ao epicentro do tsunami</div>';
             el.innerHTML =
                 '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🌊 Países potencialmente afetados (2.000 km)</div>' +
-                (ps.length ? ps.map(p => `<div class="city-item"><span class="city-name">${p.flag} ${p.nome}</span><span class="city-dist">${p.dist} km</span></div>`).join('') : '<div class="city-item" style="color:#64748b;">Nenhum país costeiro em 2.000 km</div>') +
+                (ps.length ? ps.map(p => `<div class="city-item"><span class="city-name">${p.flag} ${p.nome}</span><span class="city-dist">${p.dist} km${etaTxt(p.dist)}</span></div>`).join('') : '<div class="city-item" style="color:#64748b;">Nenhum país costeiro em 2.000 km</div>') +
                 header + renderCidadesHTML(cidades, reserva);
         });
     } else if (item.type === 'volcano') {
