@@ -1,0 +1,45 @@
+/* Frente de onda sísmica (P/S) — disparada por js/sismo-metrics.js
+   (startWaveFront/stopWaveFront), junto do sismo NOVO que já ganha a zona
+   sentida (felt-zone.css). É um elemento visual SEPARADO: dois anéis finos e
+   tracejados (sem preenchimento) que crescem em tempo real com base no
+   horário de origem do sismo — não confundir com os discos cheios da zona
+   sentida, que representam "até onde seria sentido" (uma métrica bem
+   diferente, sempre menor). O tracejado existe justamente pra deixar claro,
+   a olho, que são coisas diferentes mesmo aparecendo ao mesmo tempo. */
+.wave-front-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+.wave-front-p,
+.wave-front-s {
+  position: absolute;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+.wave-front-p {
+  border: 2px dashed rgba(56, 189, 248, .55);
+}
+.wave-front-s {
+  border: 2px dashed rgba(239, 68, 68, .65);
+}
+.wave-front-wrap.grow .wave-front-p,
+.wave-front-wrap.grow .wave-front-s {
+  opacity: 1;
+}
+.wave-front-wrap.fading {
+  transition: opacity .9s ease;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-front-p,
+  .wave-front-s {
+    transition: none;
+  }
+}

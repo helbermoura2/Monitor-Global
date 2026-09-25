@@ -1176,6 +1176,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 if (eventoSelecionadoId !== item.id) return;
                 if (triggerVisualAlert) {
                     if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
+                    if (typeof startWaveFront === 'function') startWaveFront(lng, lat, item.mag, item.depth, item.time);
                 } else if (typeof startCascadeRipple === 'function') {
                     startCascadeRipple(lng, lat, getHexColor(item.mag));
                 }
@@ -1183,8 +1184,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         }, soft ? Math.max(2500, totalDur - 600) : 150);
     } catch (e) {
         try {
-            if (triggerVisualAlert) startFeltZone(lng, lat, item.mag, item.depth);
-            else startCascadeRipple(lng, lat, getHexColor(item.mag));
+            if (triggerVisualAlert) {
+                startFeltZone(lng, lat, item.mag, item.depth);
+                if (typeof startWaveFront === 'function') startWaveFront(lng, lat, item.mag, item.depth, item.time);
+            } else startCascadeRipple(lng, lat, getHexColor(item.mag));
         } catch (e2) {}
     }
 }
