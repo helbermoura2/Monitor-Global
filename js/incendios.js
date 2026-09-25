@@ -138,11 +138,20 @@ async function fetchEonetStorms() {
 
             if (isCyc) {
                 // Evita duplicidade: se já existe o mesmo ciclone via GDACS (fonte mais completa,
-                // com trilha/cone/vento), não cria uma segunda entrada via EONET.
-                const jaExisteGdacs = globalAlerts.some(a =>
-                    a.type === 'hurricane' && /GDACS|NHC/i.test(a.source || '') && a.coords &&
-                    haversine(a.coords[1], a.coords[0], lat, lng) < 900
-                );
+                // com trilha/cone/vento), não cria uma segunda entrada via EONET. Casa por NOME
+                // (mesmo critério de limparCiclonesEonetDuplicados, mais abaixo) além de
+                // distância — só checar <900km deixava passar um ciclone rápido/em
+                // intensificação forte, cuja posição no EONET (atualiza mais devagar) já
+                // tinha se afastado da posição real do GDACS/NHC além desse raio, criando
+                // uma segunda entrada/ícone/trilha pro mesmo furacão.
+                const nomeAtual = title.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                const jaExisteGdacs = globalAlerts.some(a => {
+                    if (a.type !== 'hurricane' || !/GDACS|NHC/i.test(a.source || '')) return false;
+                    const nomeOutro = String(a.place || a.cycloneName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    if (nomeAtual && nomeOutro && nomeAtual.length >= 3 && nomeOutro.length >= 3 &&
+                        (nomeAtual.includes(nomeOutro) || nomeOutro.includes(nomeAtual))) return true;
+                    return a.coords && haversine(a.coords[1], a.coords[0], lat, lng) < 900;
+                });
                 if (!jaExisteGdacs) {
                     const cyc = getCycloneMeta(lng, lat);
                     // EONET já traz o histórico de posições dentro do próprio evento (ev.geometry
