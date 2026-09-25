@@ -535,7 +535,12 @@ function falarTrechos(trechos) {
             u.lang = trecho.lang;
             u.rate = trecho.rate != null ? trecho.rate : .9;
             u.pitch = trecho.pitch != null ? trecho.pitch : 1.1;
-            u.volume = somVolume;
+            // Fallback nativo (só entra se a voz na nuvem falhar): a API do
+            // navegador não tem reforço de ganho como a nuvem acima, e o
+            // teto dela já é 1.0 — então sempre fala no máximo, sem
+            // multiplicar de novo pelo volume dos bipes (que já deixava a
+            // voz nativa, sozinha mais baixa que a da nuvem, ainda pior).
+            u.volume = 1;
             const ehIngles = trecho.lang.toLowerCase().startsWith('en');
             const voz = escolherVoz(ehIngles ? ['en-us', 'en-gb', 'en'] : ['pt-br', 'pt']);
             if (voz) u.voice = voz;
@@ -572,15 +577,18 @@ async function falarNaNuvem(texto) {
         // Reforça o volume da voz na nuvem via Web Audio API — um <audio>
         // sozinho não passa de volume=1 (100%), e mesmo nesse máximo a voz
         // da Polly soa mais baixa que os bipes de alerta (que já saem com
-        // ganho extra, ver "vol * somVolume * 1.35" mais abaixo). Só entra
-        // em ação se o AudioContext já estiver desbloqueado/rodando —
-        // sem isso, cai pro volume normal em vez de arriscar tocar mudo.
+        // ganho extra, ver "vol * somVolume * 1.35" mais abaixo). Usuário
+        // relatou a voz ainda baixa mesmo com esse reforço — ganho e teto
+        // aumentados (1.8→2.4, teto 3→3.2) pra ficar audível de verdade sem
+        // chegar perto de distorcer. Só entra em ação se o AudioContext já
+        // estiver desbloqueado/rodando — sem isso, cai pro volume normal em
+        // vez de arriscar tocar mudo.
         let boosted = false;
         try {
             if (audioContext && audioContext.state === 'running') {
                 const source = audioContext.createMediaElementSource(audio);
                 const gain = audioContext.createGain();
-                gain.gain.value = Math.min(3, somVolume * 1.8);
+                gain.gain.value = Math.min(3.2, somVolume * 2.4);
                 source.connect(gain).connect(audioContext.destination);
                 audio.volume = 1;
                 boosted = true;
@@ -642,7 +650,7 @@ function falarAlertaGenerico(txt) {
         const u = new SpeechSynthesisUtterance(txt);
         u.lang = 'pt-BR';
         u.rate = .95;
-        u.volume = somVolume;
+        u.volume = 1; // fallback nativo sem reforço de ganho — sempre no teto (ver falarTrechos)
         const v = escolherVoz(['pt-br']);
         if (v) u.voice = v; else avisarVozIndisponivel();
         window.speechSynthesis.cancel();
