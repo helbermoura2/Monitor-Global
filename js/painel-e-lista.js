@@ -229,6 +229,7 @@ function atualizarTickerUltimoEvento(item) {
     else if (item.type === 'tsunami' || item.type === 'hurricane') k = 'ALERTA';
     else if (activeUpdatedIds && activeUpdatedIds.has(item.id)) k = 'ATUALIZADO';
     else if (activeAlertingIds && activeAlertingIds.has(item.id)) k = 'NOVO';
+    else if (activeLateIds && activeLateIds.has(item.id)) k = 'ADICIONADO AGORA';
     if (kicker) kicker.textContent = k;
     if (box) {
         let sev = 'low';
@@ -342,7 +343,8 @@ function marcarEventoComoVisto(id, el){
     if (!id) return;
     activeAlertingIds.delete(id);
     activeUpdatedIds.delete(id);
-    if (el) el.classList.remove('new-event','new-event-major','new-event-critical','new-event-info','updated-event');
+    if (activeLateIds) activeLateIds.delete(id);
+    if (el) el.classList.remove('new-event','new-event-major','new-event-critical','new-event-info','updated-event','late-event');
 }
 
 const LIST_RENDER_CAP = 120; // evita milhares de nós DOM num dia agitado
@@ -373,6 +375,7 @@ function renderSidebarList(items) {
                 String(it.id),
                 activeAlertingIds.has(it.id) ? 'n' : '',
                 activeUpdatedIds.has(it.id) ? 'u' : '',
+                (activeLateIds && activeLateIds.has(it.id)) ? 'l' : '',
                 it._deltaTxt || ''
             );
         }
@@ -563,6 +566,20 @@ function renderSidebarList(items) {
                 }, ex - agora);
             } else {
                 activeUpdatedIds.delete(item.id);
+            }
+        } else if (activeLateIds && activeLateIds.has(item.id)) {
+            const ex = activeLateIds.get(item.id);
+            if (agora < ex) {
+                div.classList.add('late-event');
+                div.title = 'Sismo antigo publicado agora pela fonte — não acabou de acontecer';
+                setTimeout(() => {
+                    if (activeLateIds.get(item.id) === ex) {
+                        div.classList.remove('late-event');
+                        div.removeAttribute('title');
+                    }
+                }, ex - agora);
+            } else {
+                activeLateIds.delete(item.id);
             }
         }
         frag.appendChild(div);

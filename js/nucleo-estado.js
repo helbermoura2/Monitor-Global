@@ -40,6 +40,12 @@ const DEDUPE_MS = 6 * 3600000;
 // com 15min esses viravam "um evento só" com dezenas de magnitudes na lista).
 const SISMO_DEDUPE_RAIO_KM = 80;
 const SISMO_DEDUPE_TOL_MS = 5 * 60 * 1000;
+// "Novo" (badge pulsando + som + voo de câmera) só faz sentido pra um sismo que
+// de fato ACABOU de acontecer. Uma rede regional pode publicar um sismo pequeno
+// só horas depois de ele ter ocorrido de verdade (revisão humana, sincronização
+// atrasada) — nesse caso é a primeira vez que esta sessão vê o id, mas o evento
+// não é recente, então não deve disparar o mesmo alarme de "aconteceu agora".
+const SISMO_NOVO_RECENTE_MS = 30 * 60 * 1000;
 // Diferença considerada relevante entre magnitudes publicadas para o mesmo evento.
 const SISMO_MAG_DIVERGENCIA_TOL = 0.4;
 const SISMO_MAG_DIVERGENCIA_FORTE = 0.8;
@@ -56,6 +62,9 @@ let globalEvents = [], globalAlerts = [];
 // Espelha no window para scripts em IIFE (ex.: story-share) sempre enxergarem a lista.
 try { window.globalEvents = globalEvents; window.globalAlerts = globalAlerts; } catch (_) {}
 let knownEventIds = new Set(), knownAlertIds = new Set(), activeAlertingIds = new Map(), activeUpdatedIds = new Map();
+// Sismo novo-pra-esta-sessão mas com origem antiga (fora da janela de
+// SISMO_NOVO_RECENTE_MS) — selo discreto "ADICIONADO AGORA", sem som/voo de câmera.
+let activeLateIds = new Map();
 // Uma revisão precisa ficar visível no topo por tempo suficiente para o usuário
 // perceber qual registro mudou. Depois desse prazo, o item volta automaticamente
 // para sua posição cronológica original (sem alterar item.time).
@@ -561,6 +570,7 @@ function limparIdsAntigos() {
         // renderizado), a entrada fica presa no Map pra sempre.
         activeAlertingIds.forEach((_, id) => { if (!idsEventosAtivos.has(id) && !idsAlertasAtivos.has(id)) activeAlertingIds.delete(id); });
         activeUpdatedIds.forEach((_, id) => { if (!idsEventosAtivos.has(id) && !idsAlertasAtivos.has(id)) activeUpdatedIds.delete(id); });
+        activeLateIds.forEach((_, id) => { if (!idsEventosAtivos.has(id) && !idsAlertasAtivos.has(id)) activeLateIds.delete(id); });
 
         feedArrivalAt.forEach((_, key) => { if (!feedPreviousKeys.has(key)) feedArrivalAt.delete(key); });
     } catch (e) { console.warn('[limpeza] falhou:', e && e.message); }

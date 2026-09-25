@@ -1382,6 +1382,12 @@ input[type=range]::-webkit-slider-thumb { background: var(--cyan) !important; bo
    deve competir visualmente com o alerta de "NOVO". */
 .event.updated-event::after { content: "ATUALIZADO" !important; position: absolute !important; top: 10px !important; right: 10px !important; width: auto !important; height: auto !important; border-radius: 4px !important; background: #475569 !important; margin-top: 0 !important; padding: 2px 6px !important; font-size: 8px !important; font-weight: 800 !important; letter-spacing: .5px !important; line-height: 1.4 !important; color: #e2e8f0 !important; opacity: .9 !important; pointer-events: none !important; z-index: 20 !important; animation: none !important; }
 .event.updated-event { padding-right: 68px !important; }
+/* "ADICIONADO AGORA": sismo novo pra esta sessão, mas com origem fora da janela
+   recente (SISMO_NOVO_RECENTE_MS) — publicação atrasada da rede sísmica, não um
+   evento que acabou de acontecer. Mesmo formato discreto do "ATUALIZADO" (sem
+   pulsar, sem som), só com cor e texto próprios pra não confundir com uma revisão. */
+.event.late-event::after { content: "ADICIONADO AGORA" !important; position: absolute !important; top: 10px !important; right: 10px !important; width: auto !important; height: auto !important; border-radius: 4px !important; background: #0e5f86 !important; margin-top: 0 !important; padding: 2px 6px !important; font-size: 8px !important; font-weight: 800 !important; letter-spacing: .5px !important; line-height: 1.4 !important; color: #e2f2fb !important; opacity: .9 !important; pointer-events: none !important; z-index: 20 !important; animation: none !important; }
+.event.late-event { padding-right: 92px !important; }
 .stale-badge { font-size: 9px !important; padding: 1px 5px !important; border-radius: 3px !important; font-weight: 700 !important; letter-spacing: .2px !important; }
 .stale-badge.stale-warn { background: rgba(245,158,11,.16) !important; color: #f59e0b !important; }
 .stale-badge.stale-off { background: rgba(248,113,113,.16) !important; color: #f87171 !important; }

@@ -216,10 +216,22 @@ async function fetchGlobalFeeds() {
             }
         });
 
-        if (novos.length) {
-            const novoExpira = Date.now() + 180000;
-            const novoAgora = Date.now();
-            novos.forEach(ev => {
+        // "Novo pra esta sessão" (isNew) não é o mesmo que "aconteceu agora": uma
+        // rede regional pode publicar um sismo pequeno horas depois da origem real
+        // (revisão humana, sincronização atrasada). Só o que de fato aconteceu
+        // dentro da janela recente ganha o alarme completo (som, voo de câmera,
+        // radar no mapa); o resto só recebe um selo discreto, sem susto.
+        const novoAgora = Date.now();
+        const novosRecentes = [];
+        const novosTardios = [];
+        novos.forEach(ev => {
+            const idadeMs = novoAgora - (Number(ev.time) || novoAgora);
+            (idadeMs <= SISMO_NOVO_RECENTE_MS ? novosRecentes : novosTardios).push(ev);
+        });
+
+        if (novosRecentes.length) {
+            const novoExpira = novoAgora + 180000;
+            novosRecentes.forEach(ev => {
                 activeAlertingIds.set(ev.id, novoExpira);
                 activeUpdatedIds.delete(ev.id);
                 // Desempate de ordenarNovosNoTopo quando vários sismos chegam
@@ -227,7 +239,14 @@ async function fetchGlobalFeeds() {
                 // original do merge, não na ordem de chegada de verdade.
                 ev._novoAt = novoAgora;
             });
-            try { mostrarNovosSismosNoMapa(novos); } catch (e) { console.warn('[radar novo] falhou:', e); }
+            try { mostrarNovosSismosNoMapa(novosRecentes); } catch (e) { console.warn('[radar novo] falhou:', e); }
+        }
+        if (novosTardios.length) {
+            const tardioExpira = novoAgora + 180000;
+            novosTardios.forEach(ev => {
+                activeLateIds.set(ev.id, tardioExpira);
+                activeUpdatedIds.delete(ev.id);
+            });
         }
         if (atualizados.length) {
             atualizados.forEach(ev => {
@@ -292,9 +311,9 @@ async function fetchGlobalFeeds() {
 
         if (isFirstLoad) {
             if (globalEvents.length) showEventDetails(0, false);
-        } else if (novos.length) {
-            novos.sort((a, b) => b.mag - a.mag);
-            const i = globalEvents.findIndex(e => e.id === novos[0].id);
+        } else if (novosRecentes.length) {
+            novosRecentes.sort((a, b) => b.mag - a.mag);
+            const i = globalEvents.findIndex(e => e.id === novosRecentes[0].id);
             if (i !== -1) showEventDetails(i, true);
         }
 
@@ -320,17 +339,20 @@ async function fetchGlobalFeeds() {
             }
         }
 
-        if (novos.length) {
-            const max = novos.reduce((a, b) => a.mag > b.mag ? a : b);
+        // Som, voz e notificação são o "alarme de aconteceu agora" — só cabem
+        // pros sismos recentes de verdade (novosTardios só ganha o selo discreto
+        // já aplicado acima, sem nenhum desses efeitos).
+        if (novosRecentes.length) {
+            const max = novosRecentes.reduce((a, b) => a.mag > b.mag ? a : b);
 
             if (max.mag >= 5) {
                 notificarNavegador(
                     `🌍 M${max.mag.toFixed(1)} — ${max.place}`,
-                    `${novos.length} novo(s) • ${max.sourceSummary || max.source}`
+                    `${novosRecentes.length} novo(s) • ${max.sourceSummary || max.source}`
                 );
             }
 
-            const novosComSom = novos.filter(
+            const novosComSom = novosRecentes.filter(
                 ev => ev.mag >= Math.max(SOM_SISMO_MIN, minMagnitude)
             );
 
@@ -358,7 +380,7 @@ async function fetchGlobalFeeds() {
 
             // Voz automática: somente M6.0 ou maior.
             const novosComVoz =
-                novos.filter(ev => Number(ev.mag) >= VOZ_SISMO_MIN);
+                novosRecentes.filter(ev => Number(ev.mag) >= VOZ_SISMO_MIN);
 
             if (novosComVoz.length && somAtivo && window.speechSynthesis) {
                 const alvoVoz =
@@ -372,9 +394,12 @@ async function fetchGlobalFeeds() {
                     1400
                 );
             }
+        }
 
+        if (novos.length) {
+            const tardioTxt = novosTardios.length ? ` (${novosTardios.length} publicado(s) com atraso)` : '';
             showToast(
-                `✅ ${novos.length} novo(s) sismo(s) • ${successfulSources.length} fonte(s) online`,
+                `✅ ${novos.length} novo(s) sismo(s)${tardioTxt} • ${successfulSources.length} fonte(s) online`,
                 'info'
             );
         }
