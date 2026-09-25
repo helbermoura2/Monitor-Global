@@ -42,6 +42,7 @@ let __windLettersEl = null;
 let __windLettersTimeout = null;
 function restoreWindLetters() {
     try { clearTimeout(__windLettersTimeout); } catch (e) {}
+    stopLetterGusts();
     if (__windLettersEl) {
         const spans = __windLettersEl.querySelectorAll('.pd-fx-windletter');
         if (spans.length) {
@@ -72,6 +73,59 @@ function triggerWindLetters(durationMs) {
     el.textContent = '';
     el.appendChild(frag);
     __windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
+    startLetterGusts(el, durationMs);
+}
+
+// Rajada: pega algumas letras ao acaso e solta uma CÓPIA de cada uma
+// voando (translateX/Y + rotação + fade, css/painel-fx.css
+// pdLetterBlowAway) — a letra REAL nunca some, só pisca/estremece um
+// instante (.pd-fx-windletter-hit) enquanto a cópia voa, então o nome do
+// evento nunca fica ilegível por muito tempo, só "treme" a cada rajada.
+// Reaproveita ensureFallLayer/pickRandom, definidas mais abaixo neste
+// arquivo pro caos de sismo M7+ — mesma técnica: nunca mexe no elemento
+// real, só clona.
+let __letterGustInterval = null;
+function spawnLetterGust(el) {
+    if (!el) return;
+    const spans = el.querySelectorAll('.pd-fx-windletter');
+    if (!spans.length) return;
+    const layer = ensureFallLayer();
+    const chosen = pickRandom([...spans], 2 + Math.floor(Math.random() * 3));
+    chosen.forEach((span) => {
+        const rect = span.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        span.classList.remove('pd-fx-windletter-hit');
+        void span.offsetWidth;
+        span.classList.add('pd-fx-windletter-hit');
+
+        const cs = getComputedStyle(span);
+        const clone = document.createElement('span');
+        clone.className = 'pd-fx-letter-blown';
+        clone.textContent = span.textContent;
+        clone.style.font = cs.font;
+        clone.style.color = cs.color;
+        clone.style.left = rect.left + 'px';
+        clone.style.top = rect.top + 'px';
+        clone.style.width = rect.width + 'px';
+        clone.style.height = rect.height + 'px';
+        const dx = Math.round(120 + Math.random() * 90);
+        const dy = Math.round(-30 + Math.random() * 50);
+        const rot = Math.round(220 + Math.random() * 220);
+        clone.style.setProperty('--blow-dx', dx + 'px');
+        clone.style.setProperty('--blow-dy', dy + 'px');
+        clone.style.setProperty('--blow-rot', rot + 'deg');
+        layer.appendChild(clone);
+        setTimeout(() => { try { clone.remove(); } catch (e) {} }, 1300);
+    });
+}
+function startLetterGusts(el, durationMs) {
+    stopLetterGusts();
+    __letterGustInterval = setInterval(() => spawnLetterGust(el), 1500);
+    setTimeout(stopLetterGusts, durationMs);
+}
+function stopLetterGusts() {
+    try { clearInterval(__letterGustInterval); } catch (e) {}
+    __letterGustInterval = null;
 }
 
 function triggerCardFxMag(mag) {
