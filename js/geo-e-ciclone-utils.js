@@ -291,6 +291,28 @@ function extractWindKmh(texto) {
     return m ? Math.round(parseFloat(m[1])) : null;
 }
 
+// Cor por severidade de alerta — mesma paleta já usada no Resumo do Dia
+// (js/story-share.js, corAlertLevel) pro nível GDACS (verde/laranja/
+// vermelho/amarelo) de vulcão, agora reaproveitada pros marcadores de
+// enchente/tsunami no mapa (que até aqui eram um emoji sem nenhuma cor,
+// mesmo já tendo o dado de severidade disponível). Cobre também o campo
+// numérico `sev` que fontes como o CGE-SP usam em vez do texto do GDACS.
+function corSeveridadeAlerta(item) {
+    const nivel = String((item && item.gdacsAlertLevel) || '').toLowerCase();
+    if (nivel === 'red') return '#ef4444';
+    if (nivel === 'orange') return '#fb923c';
+    if (nivel === 'yellow') return '#facc15';
+    if (nivel === 'green') return '#4ade80';
+    const sev = item && item.sev;
+    if (Number.isFinite(sev)) {
+        if (sev >= 4) return '#ef4444';
+        if (sev >= 3) return '#fb923c';
+        if (sev >= 2) return '#facc15';
+        return '#4ade80';
+    }
+    return '#94a3b8';
+}
+
 // Classificação por velocidade do vento (limiares padrão em km/h, escala Saffir-Simpson
 // adaptada + depressão/tempestade tropical)
 function classificarCiclone(kmh) {

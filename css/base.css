@@ -216,6 +216,12 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 .cyclone-wind { margin-top: 1px; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 8px; background: rgba(0,0,0,.55); white-space: nowrap; letter-spacing: .3px; }
 .cyclone-arrow { position: absolute; bottom: calc(100% + 3px); left: 50%; width: 20px; height: 20px; margin-left: -10px; color: #e9d5ff; font-size: 15px; line-height: 20px; text-align: center; }
 .tsunami-name { margin-top: 1px; font-size: 9px; font-weight: 700; color: #bae6fd; text-shadow: 0 1px 3px #000; white-space: nowrap; }
+/* Anel colorido por severidade nos marcadores de enchente/tsunami — mesma
+   ideia visual do glow dos pontos de sismo, aplicada a um dado (alerta
+   GDACS verde/laranja/vermelho, ou o campo sev do CGE-SP) que já existia
+   mas não aparecia em lugar nenhum do marcador no mapa. Cor real definida
+   via corSeveridadeAlerta() (js/geo-e-ciclone-utils.js). */
+.severity-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(2,6,14,.6); }
 .radar-center { position: absolute; width: 12px; height: 12px; margin-left: -6px; margin-top: -6px; border: 3px solid white; border-radius: 50%; z-index: 10000; }
 .radar-ring { position: absolute; width: 20px; height: 20px; margin-left: -10px; margin-top: -10px; border: 2px solid var(--ring-color,#4ade80); border-radius: 50%; opacity: 0; animation-name: radarPulse; animation-timing-function: ease-out; animation-iteration-count: infinite; z-index: 9999; }
 @keyframes radarPulse { 0%{transform:scale(.15);opacity:.8;} 50%{opacity:.4;} 100%{transform:scale(25);opacity:0;} }
