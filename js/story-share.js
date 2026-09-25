@@ -373,6 +373,36 @@
     ctx.shadowBlur = 0;
   }
 
+  // Anéis indicativos da frente de onda P/S (só M6+, mesma ideia visual do
+  // startWaveFront do mapa ao vivo em js/sismo-metrics.js) — SEM escala
+  // real: o mapa do Story usa zoom fixo pra sempre mostrar ≈70km na régua
+  // (drawScaleBar), então um raio real de centenas/milhares de km sairia
+  // maior que o próprio card, o mesmo problema de tamanho visto comparando
+  // com o GlobalQuake. A distância real percorrida vai como número mais
+  // abaixo (drawWaveChip), junto dos cartões de estatística.
+  function drawWaveRingsStory(ctx, cx, cy, rP, rS) {
+    ctx.save();
+    ctx.setLineDash([12, 10]);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(56,189,248,.55)';
+    ctx.beginPath(); ctx.arc(cx, cy, rP, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(239,68,68,.6)';
+    ctx.beginPath(); ctx.arc(cx, cy, rS, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Um "chip" ponto colorido + texto (ex: "P ≈1.240 km"), alinhado à
+  // esquerda a partir de x. Devolve a largura ocupada, pra quem chama poder
+  // encadear vários chips centralizados num bloco só.
+  function drawWaveChip(ctx, x, y, color, text) {
+    const dotR = 7, gap = 12;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x + dotR, y - 8, dotR, 0, Math.PI * 2); ctx.fill();
+    haloFillText(ctx, text, x + dotR * 2 + gap, y);
+    return dotR * 2 + gap + ctx.measureText(text).width;
+  }
+
 
   /*
    * BANDEIRA NO STORY — correção importante
@@ -1196,6 +1226,11 @@
     ctx.fillStyle = gradTop;
     ctx.fillRect(0, 0, W, 200);
 
+    // Frente de onda P/S (só M6+) — desenhada ANTES do marcador, pra ficar
+    // por baixo dele visualmente.
+    const isBigQuake = isQuake && Number(item.mag) >= 6;
+    if (isBigQuake) drawWaveRingsStory(ctx, markerCx, markerCy, 210, 130);
+
     // Marcador no epicentro — anel externo suave + anel principal com brilho +
     // ponto central, pra ficar claramente em destaque mesmo com o mapa por trás
     ctx.beginPath(); ctx.arc(markerCx, markerCy, 68, 0, Math.PI * 2);
@@ -1432,6 +1467,36 @@
         }
       });
       y += cardH + 36;
+
+      // Alcance real da onda P/S no instante em que o Story foi gerado (só
+      // M6+, mesma conta do anel do mapa ao vivo — startWaveFront em
+      // js/sismo-metrics.js). Os anéis desenhados no mapa acima são só
+      // indicativos; esse número aqui é a distância de verdade.
+      if (isBigQuake && Number.isFinite(item.time)) {
+        const elapsedS = Math.max(0, (Date.now() - item.time) / 1000);
+        const pKms = typeof WAVE_P_KMS === 'number' ? WAVE_P_KMS : 7.5;
+        const sKms = typeof WAVE_S_KMS === 'number' ? WAVE_S_KMS : 4.3;
+        const capKm = typeof WAVE_MAX_KM === 'number' ? WAVE_MAX_KM : 20000;
+        const kmP = Math.min(capKm, elapsedS * pKms);
+        const kmS = Math.min(capKm, elapsedS * sKms);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#64748b';
+        ctx.font = '700 18px system-ui, sans-serif';
+        haloFillText(ctx, 'ALCANCE DA ONDA SÍSMICA (agora)', W / 2, y);
+
+        const chipY = y + 42;
+        ctx.font = '800 26px "JetBrains Mono", monospace';
+        const pTxt = `P ≈${Math.round(kmP)} km`, sTxt = `S ≈${Math.round(kmS)} km`;
+        const pW = ctx.measureText(pTxt).width, sW = ctx.measureText(sTxt).width;
+        const dotBlock = 26, chipGap = 46;
+        const totalW = dotBlock + pW + chipGap + dotBlock + sW;
+        let cx = W / 2 - totalW / 2;
+        cx += drawWaveChip(ctx, cx, chipY, '#38bdf8', pTxt) + chipGap;
+        drawWaveChip(ctx, cx, chipY, '#ef4444', sTxt);
+        ctx.textAlign = 'center';
+        y += 76;
+      }
 
       // Mecanismo focal (mesma função usada no painel — sem esperar a consulta
       // real ao USGS, que é assíncrona; usa direto a estimativa geométrica)
