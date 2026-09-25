@@ -1146,10 +1146,16 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag));
     if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag);
 
-    // Zoom alvo + voo cinematográfico
-    let zoomAlvo = 6.6;
+    // Zoom alvo + voo cinematográfico. Começa mais FECHADO de propósito — a
+    // câmera dinâmica (chaseCam, ver startWaveFront) puxa pra trás sozinha
+    // depois, conforme o alcance real da onda. Sem esse ponto de partida mais
+    // apertado, um sismo pequeno (cujo alcance cabe dentro do enquadramento
+    // "regional" de sempre) não tinha margem nenhuma pra abrir — a câmera
+    // parecia estática o tempo todo, mesmo com o chaseCam ativo.
+    let zoomAlvo = 8.0;
+    let zoomAberturaMin = 6.6; // enquadramento regional de sempre — teto mínimo de abertura da câmera
     try {
-        if (window.matchMedia('(max-width:900px)').matches) zoomAlvo = 6.9;
+        if (window.matchMedia('(max-width:900px)').matches) { zoomAlvo = 8.3; zoomAberturaMin = 6.9; }
     } catch (e) {}
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
@@ -1200,7 +1206,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     // as duas animações de câmera brigam. Só pro sismo AO VIVO por
                     // enquanto (não no ciclo automático).
                     if (typeof startWaveFront === 'function') {
-                        startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350 });
+                        startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350, zoomFinalMinimo: zoomAberturaMin });
                     }
                 } else {
                     if (typeof startCascadeRipple === 'function') startCascadeRipple(lng, lat, getHexColor(item.mag));
@@ -1217,7 +1223,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                         // refletida no camDelayMs abaixo.
                         startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
                             chaseCam: true,
-                            camDelayMs: Math.max(0, totalDur - 150)
+                            camDelayMs: Math.max(0, totalDur - 150),
+                            zoomFinalMinimo: zoomAberturaMin
                         });
                     }
                 }
@@ -1228,14 +1235,15 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
             if (triggerVisualAlert) {
                 startFeltZone(lng, lat, item.mag, item.depth);
                 if (typeof startWaveFront === 'function') {
-                    startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350 });
+                    startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350, zoomFinalMinimo: zoomAberturaMin });
                 }
             } else {
                 startCascadeRipple(lng, lat, getHexColor(item.mag));
                 if (item.mag >= 5 && typeof startWaveFront === 'function') {
                     startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
                         chaseCam: true,
-                        camDelayMs: Math.max(0, totalDur - 150)
+                        camDelayMs: Math.max(0, totalDur - 150),
+                        zoomFinalMinimo: zoomAberturaMin
                     });
                 }
             }
