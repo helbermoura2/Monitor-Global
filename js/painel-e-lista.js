@@ -1168,7 +1168,11 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Sismo NOVO de verdade ganha a zona de alcance real (crítico + sentido, "Onda
     // Dupla") — sismo revisitado no ciclo automático ou selecionado manualmente ganha
     // só a onda em cascata (mesmo efeito dos outros tipos de evento), pra sempre ter
-    // algo pulsando no epicentro em vez de só o pontinho parado.
+    // algo pulsando no epicentro em vez de só o pontinho parado. Revisitado pelo
+    // ciclo automático ALEATÓRIO (soft) com M5+ ganha TAMBÉM a frente de onda P/S
+    // (não a zona sentida) — dá pra rever o alcance de sismos grandes revisitados,
+    // não só dos que acabaram de chegar. Seleção manual (clique) nunca ganha isso,
+    // só o ciclo automático mesmo.
     try {
         clearTimeout(window.__mgRadarDelayT);
         window.__mgRadarDelayT = setTimeout(() => {
@@ -1177,8 +1181,16 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 if (triggerVisualAlert) {
                     if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
                     if (typeof startWaveFront === 'function') startWaveFront(lng, lat, item.mag, item.depth, item.time);
-                } else if (typeof startCascadeRipple === 'function') {
-                    startCascadeRipple(lng, lat, getHexColor(item.mag));
+                } else {
+                    if (typeof startCascadeRipple === 'function') startCascadeRipple(lng, lat, getHexColor(item.mag));
+                    // "Replay": o sismo original pode ter sido há horas — usar o
+                    // horário de origem de verdade faria a onda já ter percorrido
+                    // o teto físico e nascer com o anel do tamanho máximo, sem
+                    // crescer nada. Rebobina pra Date.now(), reencenando a
+                    // animação como se estivesse acontecendo agora.
+                    if (soft && item.mag >= 5 && typeof startWaveFront === 'function') {
+                        startWaveFront(lng, lat, item.mag, item.depth, Date.now());
+                    }
                 }
             } catch (e) {}
         }, soft ? Math.max(2500, totalDur - 600) : 150);
@@ -1187,7 +1199,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
             if (triggerVisualAlert) {
                 startFeltZone(lng, lat, item.mag, item.depth);
                 if (typeof startWaveFront === 'function') startWaveFront(lng, lat, item.mag, item.depth, item.time);
-            } else startCascadeRipple(lng, lat, getHexColor(item.mag));
+            } else {
+                startCascadeRipple(lng, lat, getHexColor(item.mag));
+                if (soft && item.mag >= 5 && typeof startWaveFront === 'function') {
+                    startWaveFront(lng, lat, item.mag, item.depth, Date.now());
+                }
+            }
         } catch (e2) {}
     }
 }
