@@ -1,1 +1,6 @@
 .claude/settings.local.json
+
+# Testes (Playwright) — instalado via npm install, não versionado
+node_modules/
+test-results/
+playwright-report/
