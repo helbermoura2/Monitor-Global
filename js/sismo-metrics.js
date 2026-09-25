@@ -335,10 +335,20 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion &&
         typeof calcZoomParaAlcance === 'function' && typeof centroCompensado === 'function';
     const camStartAt = Date.now() + Math.max(0, (opts && opts.camDelayMs) || 0);
-    // Definido preguiçosamente (null até o delay passar) — se pegasse map.getZoom()
-    // já aqui, capturaria o zoom de ANTES do voo cinematográfico inicial terminar
-    // (ainda no meio do flyTo de 4.5s), não o zoom final de onde a perseguição
-    // realmente precisa continuar a partir.
+    // Duração fixa da "abertura" da câmera, escalada por magnitude — INDEPENDENTE
+    // de quantos segundos a onda P já percorreu fisicamente. Sem isso, um sismo
+    // que levou alguns minutos pra aparecer no feed (comum: revisão de catálogo,
+    // atraso de rede regional) já nasce com a onda maior que o teto de
+    // raioDetectavel, e a câmera pulava pro zoom final numa tacada só em vez de
+    // abrir aos poucos — ficava "estática". Agora sempre interpola do zoom
+    // inicial (pós-voo) até o zoom alvo ao longo de camSweepMs; se o alvo ainda
+    // estiver crescendo (sismo genuinamente novo, onda ainda expandindo), depois
+    // da abertura ela passa a seguir o crescimento real 1:1.
+    const camSweepMs = mag >= 7 ? 35000 : mag >= 6 ? 25000 : mag >= 5 ? 18000 : 12000;
+    // Definidos preguiçosamente (null até o delay passar) — se pegasse
+    // map.getZoom() já aqui, capturaria o zoom de ANTES do voo cinematográfico
+    // inicial terminar (ainda no meio do flyTo de 4.5s).
+    let camZoomInicial = null;
     let camZoomAtual = null;
     let camAtingiuTeto = false;
     let camAbortada = false;
@@ -367,14 +377,22 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         [pRing, sRing].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
 
         if (chaseCam && !camAbortada && !camAtingiuTeto && Date.now() >= camStartAt) {
-            // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial.
-            if (camZoomAtual == null) camZoomAtual = map.getZoom();
+            // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial,
+            // vira o ponto de partida da interpolação.
+            if (camZoomInicial == null) { camZoomInicial = map.getZoom(); camZoomAtual = camZoomInicial; }
             const tetoKm = raioDetectavel(mag, depth);
             const kmAlvoCam = Math.min(tetoKm, kmP);
-            const zoomNecessario = Math.max(1.5, calcZoomParaAlcance(lat, kmAlvoCam));
+            // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
+            // caiba dentro do enquadramento "regional" de sempre, precisa abrir
+            // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
+            // estática) só porque o alvo calculado já cabia no zoom inicial.
+            const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
+            const zoomFinal = Math.min(Math.max(1.5, calcZoomParaAlcance(lat, kmAlvoCam)), zoomMin);
+            const progresso = Math.min(1, (Date.now() - camStartAt) / camSweepMs);
+            const zoomAlvoAgora = camZoomInicial + (zoomFinal - camZoomInicial) * progresso;
             // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
-            if (zoomNecessario < camZoomAtual - 0.01) {
-                camZoomAtual = zoomNecessario;
+            if (zoomAlvoAgora < camZoomAtual - 0.01) {
+                camZoomAtual = zoomAlvoAgora;
                 try {
                     map.easeTo({
                         center: centroCompensado(lng, lat, camZoomAtual),
@@ -384,7 +402,11 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                     });
                 } catch (e) {}
             }
-            if (kmP >= tetoKm) camAtingiuTeto = true;
+            // Só considera concluído quando a abertura JÁ terminou (progresso=1)
+            // E a onda física de fato alcançou o teto — se o sismo é novo de
+            // verdade, a onda pode continuar crescendo além do fim da abertura,
+            // e a câmera deve seguir acompanhando 1:1 até lá.
+            if (progresso >= 1 && kmP >= tetoKm) camAtingiuTeto = true;
         }
     };
     waveFrontUpd = place;
