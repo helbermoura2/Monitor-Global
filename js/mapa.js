@@ -594,6 +594,7 @@ function startContinuousRadar(lng, lat, mag, corOverride) {
     stopCascadeRipple();
     try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
     try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+    try { if (typeof stopTsunamiWave === 'function') stopTsunamiWave(); } catch (e) {}
     if (!map) return;
     const cor = corOverride || getHexColor(mag);
     const mc = document.getElementById('mapContainer');
@@ -677,6 +678,7 @@ function startCascadeRipple(lng, lat, color) {
     try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
     try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
+    try { if (typeof stopTsunamiWave === 'function') stopTsunamiWave(); } catch (e) {}
     if (!map) return;
     const mc = document.getElementById('mapContainer');
     const w = document.createElement('div');
@@ -742,6 +744,9 @@ function triggerEventoMapaFx(item, corFallback) {
         if (item.type === 'hurricane') {
             startContinuousRadar(item.coords[0], item.coords[1], 5, cor);
             if (typeof startHurricaneOfficialRoute === 'function') startHurricaneOfficialRoute(item);
+        } else if (item.type === 'tsunami' && typeof startTsunamiWave === 'function') {
+            const corSev = (typeof corSeveridadeAlerta === 'function') ? corSeveridadeAlerta(item) : cor;
+            startTsunamiWave(item.coords[0], item.coords[1], corSev);
         } else {
             startCascadeRipple(item.coords[0], item.coords[1], cor);
         }

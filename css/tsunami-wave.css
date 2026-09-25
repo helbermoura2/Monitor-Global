@@ -1,0 +1,35 @@
+/* Frente de onda de tsunami — anel único tracejado (js/tsunami-enchente.js:
+   startTsunamiWave/stopTsunamiWave). Igual em espírito ao wave-front.css do
+   sismo (tracejado, sem preenchimento, cresce e depois sai de cena sozinho),
+   mas é uma revelação em escala de tempo acelerada, não velocidade real de
+   propagação — ver o comentário físico no JS. Cor vem por style inline
+   (corSeveridadeAlerta do alerta), não fixa aqui. */
+.tsunami-wave-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+.tsunami-wave-ring {
+  position: absolute;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px dashed rgba(56, 189, 248, .6);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+.tsunami-wave-wrap.grow .tsunami-wave-ring {
+  opacity: 1;
+}
+.tsunami-wave-wrap.fading {
+  transition: opacity .9s ease;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsunami-wave-ring {
+    transition: none;
+  }
+}

@@ -47,6 +47,87 @@ async function fetchTsunamiAlertsGDACS() {
     } catch (e) { console.error('GDACS TS:', e); }
 }
 
+/* ═══════════ FRENTE DE ONDA DE TSUNAMI — anel único, revelação acelerada ═══════════
+   Tsunami em mar aberto viaja a ~sqrt(9,81 × profundidade) — numa bacia oceânica
+   típica (~4000m) isso dá uns 198 m/s, ~720 km/h. Cruzar os 2.000km do raio
+   "países potencialmente afetados" (mesmo teto de getPaisesAfetadosTsunami)
+   levaria HORAS de verdade — em tempo real o anel mal se moveria nos poucos
+   minutos que o card fica na tela. Por isso a animação usa escala de tempo
+   comprimida: sempre reinicia do zero ao abrir/revisitar o alerta (mesma ideia
+   do "replay" do sismo, não usa item.time como origem) e alcança o teto em
+   TSUNAMI_SWEEP_MS — é uma REVELAÇÃO da zona de alcance estimada, não um
+   rastreador de onda em tempo real. A velocidade real (TSUNAMI_KMH) é usada
+   à parte pra estimar tempo de viagem até cada país no painel. */
+const TSUNAMI_KMH = 720;
+const TSUNAMI_ALCANCE_MAX_KM = 2000;
+const TSUNAMI_SWEEP_MS = 90000;
+let tsunamiWaveEl = null, tsunamiWaveUpd = null, tsunamiWaveInterval = null, tsunamiWaveTimer = null, tsunamiWaveFadeTimer = null;
+
+function stopTsunamiWave() {
+    try { clearInterval(tsunamiWaveInterval); } catch (e) {}
+    try { clearTimeout(tsunamiWaveTimer); } catch (e) {}
+    try { clearTimeout(tsunamiWaveFadeTimer); } catch (e) {}
+    tsunamiWaveInterval = tsunamiWaveTimer = tsunamiWaveFadeTimer = null;
+    if (tsunamiWaveEl) {
+        try { map && map.off('move', tsunamiWaveUpd); map && map.off('zoom', tsunamiWaveUpd); } catch (e) {}
+        tsunamiWaveEl.remove();
+        tsunamiWaveEl = null;
+        tsunamiWaveUpd = null;
+    }
+}
+
+function startTsunamiWave(lng, lat, cor) {
+    if (!map) return;
+    stopTsunamiWave();
+    try { if (typeof stopCascadeRipple === 'function') stopCascadeRipple(); } catch (e) {}
+    try { if (typeof stopContinuousRadar === 'function') stopContinuousRadar(); } catch (e) {}
+    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+    try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
+    const host = document.getElementById('mapContainer');
+    if (!host) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'tsunami-wave-wrap';
+    const ring = document.createElement('div');
+    ring.className = 'tsunami-wave-ring';
+    if (cor) ring.style.borderColor = cor;
+    wrap.append(ring);
+    host.appendChild(wrap);
+    tsunamiWaveEl = wrap;
+
+    const coords = [lng, lat];
+    const startAt = Date.now();
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const place = () => {
+        if (!map || !tsunamiWaveEl) return;
+        const elapsedMs = Date.now() - startAt;
+        const km = Math.min(TSUNAMI_ALCANCE_MAX_KM, (elapsedMs / TSUNAMI_SWEEP_MS) * TSUNAMI_ALCANCE_MAX_KM);
+        const z = map.getZoom();
+        const mpp = metrosPorPixel(lat, z);
+        const px = Math.max(20, (km * 1000) / mpp * 2);
+        const pt = map.project(coords);
+        ring.style.width = ring.style.height = px + 'px';
+        ring.style.left = pt.x + 'px';
+        ring.style.top = pt.y + 'px';
+    };
+    tsunamiWaveUpd = place;
+    place();
+    map.on('move', place);
+    map.on('zoom', place);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('grow')));
+    tsunamiWaveInterval = setInterval(place, reduceMotion ? 1500 : 300);
+
+    // Fica visível mais um pouco depois de chegar no teto (pra dar tempo de ver
+    // o anel "parado" no alcance máximo) antes de sumir sozinho.
+    tsunamiWaveTimer = setTimeout(() => {
+        wrap.classList.add('fading');
+        tsunamiWaveFadeTimer = setTimeout(stopTsunamiWave, 950);
+    }, TSUNAMI_SWEEP_MS + 15000);
+}
+
 /* ═══════════════ ENCHENTES — GDACS (FL) ═══════════════ */
 async function fetchGdacsFloods() {
     try {
