@@ -283,22 +283,41 @@ function initMap() {
                 });
             }).catch(() => {});
 
-        // Trilha de ciclones
+        // Trilha de ciclones — um segmento por trecho, colorido pela categoria
+        // (vento) de cada ponto (ver pushTrackHistory em js/furacoes-gdacs.js),
+        // em vez de uma linha só numa cor fixa: dá pra ver a intensificação/
+        // enfraquecimento do sistema ao longo do caminho, não só "passou por aqui".
         map.addSource('cyclone-track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         map.addLayer({
             id: 'cyclone-track-line',
             type: 'line',
             source: 'cyclone-track',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
-                'line-color': '#a855f7',
-                'line-width': 2,
-                'line-opacity': 0.85,
-                'line-dasharray': [2, 2]
+                'line-color': ['coalesce', ['get', 'cor'], '#a855f7'],
+                'line-width': 3,
+                'line-opacity': 0.9
+            }
+        });
+
+        // Marcadores de posição na trilha (mesma cor do trecho que chega neles)
+        map.addSource('cyclone-track-points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        map.addLayer({
+            id: 'cyclone-track-points',
+            type: 'circle',
+            source: 'cyclone-track-points',
+            paint: {
+                'circle-radius': 4,
+                'circle-color': ['coalesce', ['get', 'cor'], '#a855f7'],
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#03070f'
             }
         });
 
         // Cone de incerteza (ESTIMATIVA própria a partir da direção recente — não é o
-        // cone oficial de previsão de NHC/JTWC, que depende de modelos que não temos acesso)
+        // cone oficial de previsão de NHC/JTWC, que depende de modelos que não temos acesso).
+        // Contorno tracejado deixa claro, a olho, que é diferente da trilha observada
+        // (sólida) acima — um é o que já aconteceu, o outro é só uma projeção simples.
         map.addSource('cyclone-cone', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         map.addLayer({
             id: 'cyclone-cone-fill',
@@ -310,7 +329,7 @@ function initMap() {
             id: 'cyclone-cone-outline',
             type: 'line',
             source: 'cyclone-cone',
-            paint: { 'line-color': '#a855f7', 'line-width': 1, 'line-opacity': 0.4 }
+            paint: { 'line-color': '#c084fc', 'line-width': 1.5, 'line-opacity': 0.55, 'line-dasharray': [3, 3] }
         }, 'cyclone-track-line');
 
         map.on('movestart', (e) => {
