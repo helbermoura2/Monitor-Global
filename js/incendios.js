@@ -144,12 +144,9 @@ async function fetchEonetStorms() {
                 // intensificação forte, cuja posição no EONET (atualiza mais devagar) já
                 // tinha se afastado da posição real do GDACS/NHC além desse raio, criando
                 // uma segunda entrada/ícone/trilha pro mesmo furacão.
-                const nomeAtual = title.toUpperCase().replace(/[^A-Z0-9]/g, '');
                 const jaExisteGdacs = globalAlerts.some(a => {
                     if (a.type !== 'hurricane' || !/GDACS|NHC/i.test(a.source || '')) return false;
-                    const nomeOutro = String(a.place || a.cycloneName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    if (nomeAtual && nomeOutro && nomeAtual.length >= 3 && nomeOutro.length >= 3 &&
-                        (nomeAtual.includes(nomeOutro) || nomeOutro.includes(nomeAtual))) return true;
+                    if (nomesDeEventoCasam(title, a.place || a.cycloneName)) return true;
                     return a.coords && haversine(a.coords[1], a.coords[0], lat, lng) < 900;
                 });
                 if (!jaExisteGdacs) {
