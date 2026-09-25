@@ -49,7 +49,7 @@ function limparCiclonesEonetDuplicados() {
 
 async function fetchRealHurricanes() {
     /* GDACS (global) + NHC CurrentStorms (Atlântico / EP / CP). */
-    const tracks = [], cones = [], ids = new Set();
+    const tracks = [], cones = [], trackPoints = [], ids = new Set();
     let novo = null;
     function markFetch(src) { try { lastFetchTimes[src] = Date.now(); } catch (e) {} }
 
@@ -94,10 +94,10 @@ async function fetchRealHurricanes() {
         return { obj, isNew: true };
     }
 
-    function pushTrackHistory(id, lng, lat, bearingHint) {
+    function pushTrackHistory(id, lng, lat, bearingHint, windKmh) {
         const hist = cycloneHistory.get(id) || [];
         const last = hist[hist.length - 1];
-        if (!last || haversine(last.lat, last.lng, lat, lng) > 2) hist.push({ lng, lat, t: Date.now() });
+        if (!last || haversine(last.lat, last.lng, lat, lng) > 2) hist.push({ lng, lat, t: Date.now(), windKmh: windKmh != null ? windKmh : null });
         if (hist.length > 24) hist.shift();
         cycloneHistory.set(id, hist);
         let movementInfo = null;
@@ -109,7 +109,25 @@ async function fetchRealHurricanes() {
             movementInfo = { bearing: brg, compass: compassLabel(brg) };
         }
         if (hist.length >= 2) {
-            tracks.push({ type: 'Feature', properties: { id }, geometry: { type: 'LineString', coordinates: hist.map(h2 => [h2.lng, h2.lat]) } });
+            // Um segmento por trecho (não uma linha só) — cada um colorido pela
+            // categoria (vento) do ponto de CHEGADA daquele trecho, pra mostrar a
+            // intensificação/enfraquecimento ao longo da trilha, não só "passou
+            // por aqui" numa cor só. Os pontos viram marcadores coloridos à parte.
+            for (let i = 1; i < hist.length; i++) {
+                const de = hist[i - 1], para = hist[i];
+                tracks.push({
+                    type: 'Feature',
+                    properties: { id, cor: classificarCiclone(para.windKmh).cor },
+                    geometry: { type: 'LineString', coordinates: [[de.lng, de.lat], [para.lng, para.lat]] }
+                });
+            }
+            hist.forEach(h2 => {
+                trackPoints.push({
+                    type: 'Feature',
+                    properties: { id, cor: classificarCiclone(h2.windKmh).cor },
+                    geometry: { type: 'Point', coordinates: [h2.lng, h2.lat] }
+                });
+            });
             const brg = movementInfo ? movementInfo.bearing : bearingBetween(hist[hist.length - 2], hist[hist.length - 1]);
             cones.push(cycloneConePolygon(lng, lat, brg));
         }
@@ -131,11 +149,11 @@ async function fetchRealHurricanes() {
             let nome = p.eventname || p.name || 'Sistema sem nome';
             nome = String(nome).replace(/-\d{2}$/, '').trim() || nome;
             const sev = (p.severitydata && p.severitydata.severitytext) || p.alertlevel || '--';
-            const movementInfo = pushTrackHistory(id, lng, lat, null);
             const svd = p.severitydata || {};
             const windKmh = (typeof svd.severity === 'number')
                 ? Math.round(/mph/i.test(svd.severityunit || '') ? svd.severity * 1.60934 : svd.severity)
                 : extractWindKmh(sev);
+            const movementInfo = pushTrackHistory(id, lng, lat, null, windKmh);
             const gdObj = {
                 id, type: 'hurricane', place: nome, bandeira: cyc.basinEmoji || '🌀',
                 cycloneLabel: cyc.label, basin: cyc.basin, time: Date.now(), coords: [lng, lat], source: 'GDACS',
@@ -170,7 +188,7 @@ async function fetchRealHurricanes() {
             const pressureMb = s.pressure ? parseFloat(s.pressure) : null;
             const movDir = s.movementDir != null ? Number(s.movementDir) : null;
             const movSpd = s.movementSpeed != null ? Number(s.movementSpeed) : null;
-            const movementInfo = pushTrackHistory(id, lng, lat, movDir);
+            const movementInfo = pushTrackHistory(id, lng, lat, movDir, windKmh);
             if (movementInfo && movSpd != null && !isNaN(movSpd)) movementInfo.speedKmh = Math.round(movSpd * 1.852);
             const classif = classificarCiclone(windKmh);
             const clsMap = { TD: 'Depressão Tropical', TS: 'Tempestade Tropical', HU: 'Furacão', STY: 'Super Tufão', STS: 'Tempestade Tropical Severa', TY: 'Tufão' };
@@ -208,6 +226,7 @@ async function fetchRealHurricanes() {
     }
 
     if (map && map.getSource('cyclone-track')) map.getSource('cyclone-track').setData({ type: 'FeatureCollection', features: tracks });
+    if (map && map.getSource('cyclone-track-points')) map.getSource('cyclone-track-points').setData({ type: 'FeatureCollection', features: trackPoints });
     if (map && map.getSource('cyclone-cone')) map.getSource('cyclone-cone').setData({ type: 'FeatureCollection', features: cones });
     globalAlerts = globalAlerts.filter(a => a.type !== 'hurricane' || ids.has(a.id));
     [...cycloneHistory.keys()].forEach(id => { if (!ids.has(id)) cycloneHistory.delete(id); });
