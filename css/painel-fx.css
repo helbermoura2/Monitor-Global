@@ -133,6 +133,8 @@
   #painel-direito[class*="pd-fx-"] #pd-gauge-glow,
   #painel-direito[class*="pd-fx-"] #lightning-flash,
   #painel-direito[class*="pd-fx-"] .pd-mag { animation: none !important; }
+  .pd-fx-windletter-hit,
+  .pd-fx-letter-blown { animation: none !important; }
 }
 
 /* 🌍 SISMO — treme com força proporcional à magnitude (--pd-fx-amp, setado
@@ -677,18 +679,26 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 }
 /* Chuva batida: fio comprido azul-claro caindo na diagonal (pra baixo e pra
    esquerda, empurrado pelo vento); o rotate alinha o fio com a direção do
-   movimento pra parecer chuva soprada, não pingo caindo reto. */
+   movimento pra parecer chuva soprada, não pingo caindo reto.
+   IMPORTANTE: NÃO fixa `top` — a v anterior usava `top:-30px` fixo, que
+   prendia a chuva inteira nos primeiros ~300px do overlay (o overlay
+   cobre o card TODO, mas a metade de cima fica atrás do card de previsão
+   do tempo, que sobrepõe visualmente) — na prática a chuva nunca saía de
+   trás do card de previsão, ficava invisível pra quem usa o site de
+   verdade. Mantendo o `bottom:X%` de cada brasa (já espalhado 2%-59% do
+   card pelas regras .pd-fx-ember-N no topo do arquivo) como ÂNCORA e só
+   TRANSLATANDO a partir dali — mesma técnica que já funciona pra chuva
+   da tempestade normal e pras brasas do fogo — garante que boa parte das
+   gotas passe pela faixa de baixo do card, que é a única sempre visível. */
 @keyframes pdDrivingRain {
-  0%   { transform: translate(130px, -300px) rotate(21deg); opacity: 0; }
+  0%   { transform: translate(70px, -260px) rotate(21deg); opacity: 0; }
   8%   { opacity: .95; }
   92%  { opacity: .9; }
-  100% { transform: translate(-110px, 320px) rotate(21deg); opacity: 0; }
+  100% { transform: translate(-55px, 65px) rotate(21deg); opacity: 0; }
 }
 #painel-direito.pd-fx-hurricane .pd-fx-ember {
-  top: -30px;
-  bottom: auto;
   width: 2px;
-  height: 32px;
+  height: 26px;
   border-radius: 2px;
   background: linear-gradient(to bottom, transparent, rgba(191,219,254,.95));
   box-shadow: none;
@@ -729,6 +739,49 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 #painel-direito.pd-fx-hurricane .pd-fx-windletter {
   animation: pdLetterGust 2.4s ease-in-out infinite;
   animation-delay: calc(var(--wl-i, 0) * .08s);
+}
+/* Card inteiro sendo empurrado pelo vento — tremor contínuo e irregular
+   (não decai como o do sismo), pelos 12s inteiros, reforçando o "bem
+   caótico" pedido: a tempestade não bate só na letra/na chuva, sacode o
+   card todo. */
+@keyframes pdWindBuffet {
+  0%   { transform: translate(0,0) rotate(0deg); }
+  9%   { transform: translate(-3px, 1px) rotate(-.15deg); }
+  21%  { transform: translate(4px, -1px) rotate(.2deg); }
+  34%  { transform: translate(-2px, 2px) rotate(-.1deg); }
+  47%  { transform: translate(3px, 0) rotate(.15deg); }
+  60%  { transform: translate(-4px, -1px) rotate(-.2deg); }
+  74%  { transform: translate(2px, 1px) rotate(.1deg); }
+  88%  { transform: translate(-3px, 0) rotate(-.12deg); }
+  100% { transform: translate(0,0) rotate(0deg); }
+}
+#painel-direito.pd-fx-hurricane {
+  animation: pdWindBuffet 1.1s ease-in-out infinite;
+}
+/* "Letras voando" de verdade — o pdLetterGust acima já faz a letra REAL
+   inclinar/levantar no lugar, mas nunca sai de fato do card (o texto
+   precisa continuar legível). Pra realmente "voar", uma CÓPIA da letra é
+   solta (spawnLetterGust, js/painel-fx.js) que sai voando pra longe e
+   some — a letra real só pisca/estremece um instante
+   (.pd-fx-windletter-hit) enquanto a cópia voa, nunca é escondida de
+   verdade. Mesma técnica (clonar, nunca mexer no elemento real) do caos
+   de sismo M7+ já usado neste arquivo. */
+@keyframes pdLetterHit {
+  0%   { opacity: 1; transform: translateX(0) rotate(0deg); }
+  30%  { opacity: .15; transform: translateX(-4px) rotate(-10deg); }
+  100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+.pd-fx-windletter-hit { animation: pdLetterHit .5s ease-out 1; }
+@keyframes pdLetterBlowAway {
+  0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--blow-dx,150px), var(--blow-dy,-16px)) rotate(var(--blow-rot,320deg)); opacity: 0; }
+}
+.pd-fx-letter-blown {
+  position: fixed;
+  pointer-events: none;
+  z-index: 100000;
+  will-change: transform, opacity;
+  animation: pdLetterBlowAway 1.1s cubic-bezier(.36,.07,.19,.97) 1 forwards;
 }
 
 /* 💧 ENCHENTE — nível do "mar" subindo bem devagar (10s — era 7s com a
