@@ -370,10 +370,18 @@ function syncAllMarkers() {
     });
 
     // --- OUTROS TIPOS ---
+    // Incêndio/ciclone/vulcão "abertos" na fonte: a data da geometria pode ser
+    // antiga (às vezes dias) mesmo pro evento continuar ativo — mesma exceção
+    // que alertVisivelNaLista() já faz pra sidebar (js/feed-utils.js). Sem
+    // isso, um furacão sendo monitorado há mais de 24h perdia o ícone/anéis
+    // no mapa (sumia igual um evento morto) enquanto continuava aparecendo
+    // normalmente na lista lateral — o item ficava "sem ícone".
+    const SEM_LIMITE_TEMPO = new Set(['fire', 'hurricane', 'volcano']);
     const syncType = (store, list, builder) => {
         const want = new Set();
         list.forEach(item => {
-            if (!item.coords || item.time < cut) return;
+            if (!item.coords) return;
+            if (item.time < cut && !SEM_LIMITE_TEMPO.has(item.type)) return;
             want.add(item.id);
             if (!store.has(item.id)) {
                 const rec = builder(item);
