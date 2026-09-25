@@ -26,6 +26,7 @@ async function fetchTsunamiAlertsGDACS() {
                 pais: infoT.pais,
                 time: prev ? prev.time : Date.now(),
                 coords: [lng, lat], source: 'GDACS',
+                gdacsAlertLevel: p.alertlevel || null,
                 detail: `Alerta ${p.alertlevel || ''}`,
                 link: (p.url && p.url.report) ? p.url.report : (p.url || '#')
             };
@@ -74,6 +75,7 @@ async function fetchGdacsFloods() {
                 pais: infoT.pais,
                 time: prev ? prev.time : Date.now(),
                 coords: [p.lon, p.lat], source: 'GDACS',
+                gdacsAlertLevel: p.alertlevel || null,
                 detail: [p.alertlevel ? `Alerta ${p.alertlevel}` : null, p.description || null].filter(Boolean).join(' · '),
                 link: p.link || '#'
             };

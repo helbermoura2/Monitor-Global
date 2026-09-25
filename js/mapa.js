@@ -480,8 +480,11 @@ function syncAllMarkers() {
             el.style.display = 'flex';
             el.style.flexDirection = 'column';
             el.style.alignItems = 'center';
-            el.innerHTML = `<span style="font-size:26px;">🌊</span><span class="tsunami-name"></span>`;
+            el.innerHTML = `<span class="severity-badge"><span style="font-size:22px;">🌊</span></span><span class="tsunami-name"></span>`;
             el.querySelector('.tsunami-name').textContent = (item.place || '').substring(0, 22);
+            const badge = el.querySelector('.severity-badge');
+            const cor = typeof corSeveridadeAlerta === 'function' ? corSeveridadeAlerta(item) : '#94a3b8';
+            badge.style.boxShadow = `0 0 0 2px ${cor}, 0 0 10px ${cor}`;
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
             return { el };
         });
@@ -555,8 +558,10 @@ function syncAllMarkers() {
         syncType(markerStores.flood, globalAlerts.filter(a => a.type === 'flood'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.fontSize = '22px';
-            el.textContent = '💧';
+            el.innerHTML = `<span class="severity-badge"><span style="font-size:18px;">💧</span></span>`;
+            const badge = el.querySelector('.severity-badge');
+            const cor = typeof corSeveridadeAlerta === 'function' ? corSeveridadeAlerta(item) : '#94a3b8';
+            badge.style.boxShadow = `0 0 0 2px ${cor}, 0 0 10px ${cor}`;
             el.title = item.place;
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
             return { el };
