@@ -43,7 +43,9 @@ const ALLOWED_HOSTS = [
     'api-redemet.decea.gov.br',
     'www.cgesp.org',
     'api.allorigins.win',
-    'www.bom.gov.au'
+    'www.bom.gov.au',
+    'servicos.cptec.inpe.br', // CPTEC — condições atuais das capitais (XML)
+    'dataserver-coids.inpe.br' // INPE — focos de queimadas (CSV 10min)
 ];
 
 // Piso real de magnitude e limite máximo por host FDSN. O frontend pede
