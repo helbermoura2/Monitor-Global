@@ -561,6 +561,7 @@ function startContinuousRadar(lng, lat, mag, corOverride) {
     stopContinuousRadar();
     stopCascadeRipple();
     try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     if (!map) return;
     const cor = corOverride || getHexColor(mag);
     const mc = document.getElementById('mapContainer');
@@ -642,6 +643,7 @@ function startCascadeRipple(lng, lat, color) {
     stopContinuousRadar();
     stopCascadeRipple();
     try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
     if (!map) return;
     const mc = document.getElementById('mapContainer');

@@ -154,15 +154,29 @@ async function fetchGlobalFeeds() {
         let novos = [];
         let atualizados = [];
         const seenNow = new Set();
-        const prevById = new Map();
-        try {
-            (Array.isArray(globalEvents) ? globalEvents : []).forEach(e => {
-                if (e && e.id != null) prevById.set(e.id, e);
-            });
-        } catch (e) {}
+        const earthquakesAntes = (Array.isArray(globalEvents) ? globalEvents : [])
+            .filter(e => e && e.type === 'earthquake' && e.id != null);
 
         merged.forEach(ev => {
-            const canonical =
+            // Casa com um evento JÁ conhecido pela posição/hora aproximada (mesma
+            // folga usada pra deduplicar entre fontes em mergeEarthquakeReports),
+            // em vez de recalcular um id "fresco" a partir de time/coords
+            // arredondados a cada ciclo. Uma REVISÃO de verdade costuma ajustar o
+            // horário de origem em ~1-2s e/ou o epicentro em alguns km — o
+            // suficiente pra mudar esse id antigo e fazer o app achar que era um
+            // sismo NOVO, tocando som e disparando os efeitos visuais de novo
+            // pra um registro de minutos atrás que só estava sendo corrigido.
+            let prev = null;
+            for (const cand of earthquakesAntes) {
+                if (seenNow.has(cand.id)) continue; // já casado com outro report deste ciclo
+                const d = haversine(ev.coords[1], ev.coords[0], cand.coords[1], cand.coords[0]);
+                if (d > SISMO_DEDUPE_RAIO_KM) continue;
+                if (Math.abs(ev.time - cand.time) > SISMO_DEDUPE_TOL_MS) continue;
+                prev = cand;
+                break;
+            }
+
+            const canonical = prev ? prev.id :
                 `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
 
             ev.id = canonical;
@@ -176,7 +190,6 @@ async function fetchGlobalFeeds() {
             if (isNew) {
                 novos.push(ev);
             } else if (!isFirstLoad) {
-                const prev = prevById.get(canonical);
                 if (prev) {
                     const magMudou = Number.isFinite(prev.mag) && Number.isFinite(ev.mag)
                         && Math.abs(Number(prev.mag) - Number(ev.mag)) >= 0.1;

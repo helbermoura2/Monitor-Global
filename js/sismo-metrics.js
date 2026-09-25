@@ -253,6 +253,91 @@ function startFeltZone(lng, lat, mag, depth) {
     }, feltZoneDurationMs(mag));
 }
 
+/* ═══════════ FRENTE DE ONDA SÍSMICA (P/S) — animação em tempo real ═══════════
+   Elemento visual SEPARADO da zona sentida acima: aqui o raio não é uma
+   estimativa fixa de "até onde seria sentido" — é a distância que a onda
+   sísmica já percorreu FISICAMENTE desde o horário de origem, do jeito que
+   apps tipo GlobalQuake mostram (por isso os círculos de lá aparecem bem
+   maiores que a zona sentida: são métricas diferentes — "até onde a onda já
+   chegou" vs. "até onde alguém sentiria"). Usa velocidade média de onda P
+   (~7.5 km/s) e onda S (~4.3 km/s) na crosta: é uma aproximação por
+   velocidade constante, não uma curva de tempo de trânsito real (tipo
+   IASP91, que varia com profundidade/distância), mas dá uma frente de onda
+   realista o bastante pro efeito visual. Cresce de verdade com o relógio
+   (Date.now() - horário de origem do sismo), não com uma animação CSS de
+   duração fixa — por isso os anéis já nascem do tamanho certo mesmo se o
+   evento levou alguns segundos pra chegar até aqui. */
+const WAVE_P_KMS = 7.5;
+const WAVE_S_KMS = 4.3;
+const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico, evita <div> gigante se item.time vier defasado
+let waveFrontEl = null, waveFrontUpd = null, waveFrontInterval = null, waveFrontTimer = null, waveFrontFadeTimer = null;
+
+function stopWaveFront() {
+    try { clearInterval(waveFrontInterval); } catch (e) {}
+    try { clearTimeout(waveFrontTimer); } catch (e) {}
+    try { clearTimeout(waveFrontFadeTimer); } catch (e) {}
+    waveFrontInterval = waveFrontTimer = waveFrontFadeTimer = null;
+    if (waveFrontEl) {
+        try { map && map.off('move', waveFrontUpd); map && map.off('zoom', waveFrontUpd); } catch (e) {}
+        waveFrontEl.remove();
+        waveFrontEl = null;
+        waveFrontUpd = null;
+    }
+}
+
+function startWaveFront(lng, lat, mag, depth, originTime) {
+    if (!map || !Number.isFinite(originTime)) return;
+    stopWaveFront();
+    const host = document.getElementById('mapContainer');
+    if (!host) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'wave-front-wrap';
+    const pRing = document.createElement('div');
+    pRing.className = 'wave-front-p';
+    const sRing = document.createElement('div');
+    sRing.className = 'wave-front-s';
+    wrap.append(pRing, sRing);
+    host.appendChild(wrap);
+    waveFrontEl = wrap;
+
+    const coords = [lng, lat];
+    // Mesmo teto de tempo em tela da zona sentida (proporcional à magnitude),
+    // só pra não deixar um anel "crescendo pra sempre" depois que o usuário
+    // já saiu da tela do evento.
+    const durationMs = feltZoneDurationMs(mag);
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const place = () => {
+        if (!map || !waveFrontEl) return;
+        const elapsedS = Math.max(0, (Date.now() - originTime) / 1000);
+        const z = map.getZoom();
+        const mpp = metrosPorPixel(lat, z);
+        const kmP = Math.min(WAVE_MAX_KM, elapsedS * WAVE_P_KMS);
+        const kmS = Math.min(WAVE_MAX_KM, elapsedS * WAVE_S_KMS);
+        const pxP = (kmP * 1000) / mpp * 2;
+        const pxS = (kmS * 1000) / mpp * 2;
+        const pt = map.project(coords);
+        pRing.style.width = pRing.style.height = pxP + 'px';
+        sRing.style.width = sRing.style.height = pxS + 'px';
+        [pRing, sRing].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+    };
+    waveFrontUpd = place;
+    place();
+    map.on('move', place);
+    map.on('zoom', place);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('grow')));
+    // Atualização periódica pra crescer com o tempo real — sem exagerar o
+    // ritmo com prefers-reduced-motion, mas continua fisicamente correto.
+    waveFrontInterval = setInterval(place, reduceMotion ? 1500 : 300);
+
+    waveFrontTimer = setTimeout(() => {
+        wrap.classList.add('fading');
+        waveFrontFadeTimer = setTimeout(stopWaveFront, 950);
+    }, durationMs);
+}
+
 /* ═══════════ RÓTULOS "M + profundidade" (M≥5) ═══════════ */
 const quakeLabelStore = new Map();
 
