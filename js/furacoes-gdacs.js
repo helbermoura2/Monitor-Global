@@ -34,13 +34,11 @@ function limparCiclonesEonetDuplicados() {
     globalAlerts = globalAlerts.filter(a => {
         if (a.type !== 'hurricane' && !(typeof looksLikeCyclone === 'function' && looksLikeCyclone(a))) return true;
         if (!/EONET|NASA/i.test(a.source || '')) return true;
-        const na = String(a.place || a.cycloneName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         return !globalAlerts.some(b => {
             if (b === a) return false;
             if (b.type !== 'hurricane' && !(typeof looksLikeCyclone === 'function' && looksLikeCyclone(b))) return false;
             if (!/NHC|GDACS/i.test(b.source || '')) return false;
-            const nb = String(b.place || b.cycloneName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            if (na && nb && na.length >= 3 && nb.length >= 3 && (na.includes(nb) || nb.includes(na))) return true;
+            if (nomesDeEventoCasam(a.place || a.cycloneName, b.place || b.cycloneName)) return true;
             if (a.coords && b.coords && haversine(a.coords[1], a.coords[0], b.coords[1], b.coords[0]) < 900) return true;
             return false;
         });
@@ -60,9 +58,7 @@ async function fetchRealHurricanes() {
             if (a.id === obj.id) return true;
             const dist = haversine(a.coords[1], a.coords[0], lat, lng);
             if (dist < 400) return true;
-            const na = String(a.place || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            const nb = String(obj.place || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            return na && nb && (na.includes(nb) || nb.includes(na)) && dist < 1200;
+            return dist < 1200 && nomesDeEventoCasam(a.place, obj.place);
         });
         if (dup) {
             const rank = s => (/NHC/i.test(s) ? 4 : /GDACS/i.test(s) ? 3 : /EONET|NASA/i.test(s) ? 1 : 2);
@@ -232,21 +228,9 @@ async function fetchRealHurricanes() {
     [...cycloneHistory.keys()].forEach(id => { if (!ids.has(id)) cycloneHistory.delete(id); });
     salvarCycloneHistory();
     // Remove ciclones EONET que já têm par NHC/GDACS (nome ou proximidade ampliada)
-    globalAlerts = globalAlerts.filter(a => {
-        if (a.type !== 'hurricane' && !(typeof looksLikeCyclone === 'function' && looksLikeCyclone(a))) return true;
-        if (!/EONET|NASA/i.test(a.source || '')) return true;
-        const na = String(a.place || a.cycloneName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const clash = globalAlerts.some(b => {
-            if (b === a) return false;
-            if (b.type !== 'hurricane' && !(typeof looksLikeCyclone === 'function' && looksLikeCyclone(b))) return false;
-            if (!/NHC|GDACS/i.test(b.source || '')) return false;
-            const nb = String(b.place || b.cycloneName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            if (na && nb && na.length >= 3 && nb.length >= 3 && (na.includes(nb) || nb.includes(na))) return true;
-            if (a.coords && b.coords && haversine(a.coords[1], a.coords[0], b.coords[1], b.coords[0]) < 900) return true;
-            return false;
-        });
-        return !clash;
-    });
+    // — era uma reimplementação inline idêntica a limparCiclonesEonetDuplicados()
+    // logo acima neste arquivo; agora só chama a função de verdade.
+    limparCiclonesEonetDuplicados();
     marcarBooted('hurricane');
     applyFilters();
     if (novo) showAlertDetails(novo, true);

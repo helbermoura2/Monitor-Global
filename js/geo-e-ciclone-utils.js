@@ -304,6 +304,28 @@ function classificarCiclone(kmh) {
     return { cat: 'Categoria 5', cor: '#a21caf' };
 }
 
+// Normaliza um nome de evento (furacão/ciclone/tempestade) pra comparação —
+// maiúsculas, só letras/números. Existiam 4 cópias quase idênticas desse
+// mesmo trecho espalhadas por js/furacoes-gdacs.js e js/incendios.js, cada
+// uma tentando decidir "isso daqui é o MESMO sistema físico que já temos
+// registrado, só que reportado por outra fonte (GDACS/NHC/EONET)?" — uma
+// delas (a checagem de duplicidade em fetchEonetStorms) tinha ESQUECIDO de
+// comparar o nome, só a distância, e foi exatamente isso que causou o bug do
+// furacão Polo aparecendo duplicado no mapa. Centralizando aqui, a chance de
+// uma cópia futura esquecer um pedaço da lógica cai bastante.
+function normalizarNomeEvento(nome) {
+    return String(nome || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+// Dois nomes "casam" se, depois de normalizados, um é substring do outro —
+// e ambos têm pelo menos 3 caracteres, pra não dar falso positivo em nomes
+// curtos demais (ex.: "R" combinando com qualquer coisa).
+function nomesDeEventoCasam(nomeA, nomeB) {
+    const na = normalizarNomeEvento(nomeA);
+    const nb = normalizarNomeEvento(nomeB);
+    return !!(na && nb && na.length >= 3 && nb.length >= 3 && (na.includes(nb) || nb.includes(na)));
+}
+
 function bearingBetween(a, b) {
     const r = x => x * Math.PI / 180;
     const y = Math.sin(r(b.lng - a.lng)) * Math.cos(r(b.lat));

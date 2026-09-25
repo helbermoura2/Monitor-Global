@@ -1,0 +1,13 @@
+{
+  "name": "monitor-global",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Monitor Global — monitoramento de desastres em tempo real (monitorglobal.top). Site estático sem build step; este package.json existe só pra rodar os testes de fumaça (Playwright).",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "serve": "^14.2.1"
+  }
+}
