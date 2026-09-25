@@ -150,6 +150,12 @@
             hit.detail = obj.detail;
           }
           if (obj.ashStatus && !hit.ashStatus) hit.ashStatus = obj.ashStatus;
+          // Mesmo bug do merge equivalente em js/vulcao.js: esse caminho troca
+          // upsertAlert() (que carimba _lastSeenAt) por um merge direto no
+          // registro existente — sem isso, o selo "sem atualização" (2h+ sem
+          // reconfirmação) acendia mesmo com a VAAC/EONET confirmando o vulcão
+          // ativamente a cada ciclo, só porque esse carimbo nunca era tocado.
+          hit._lastSeenAt = Date.now();
           return;
         }
         const isNew = (typeof upsertAlert === 'function')
