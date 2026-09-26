@@ -380,8 +380,13 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial,
             // vira o ponto de partida da interpolação.
             if (camZoomInicial == null) { camZoomInicial = map.getZoom(); camZoomAtual = camZoomInicial; }
-            const tetoKm = raioDetectavel(mag, depth);
-            const kmAlvoCam = Math.min(tetoKm, kmP);
+            // A câmera precisa acompanhar o mesmo raio que o anel AZUL (onda P)
+            // está desenhando na tela AGORA — kmP, sem teto de raioDetectavel.
+            // Usar raioDetectavel aqui era o bug: é a métrica da zona SENTIDA
+            // (bem menor), então a câmera parava de abrir muito antes do anel
+            // real (que não tem esse teto, só o físico de WAVE_MAX_KM) — por
+            // isso precisava de zoom out manual pra ver o anel inteiro.
+            const kmAlvoCam = kmP;
             // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
             // caiba dentro do enquadramento "regional" de sempre, precisa abrir
             // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
@@ -402,11 +407,12 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                     });
                 } catch (e) {}
             }
-            // Só considera concluído quando a abertura JÁ terminou (progresso=1)
-            // E a onda física de fato alcançou o teto — se o sismo é novo de
-            // verdade, a onda pode continuar crescendo além do fim da abertura,
-            // e a câmera deve seguir acompanhando 1:1 até lá.
-            if (progresso >= 1 && kmP >= tetoKm) camAtingiuTeto = true;
+            // Só "termina" quando o anel de verdade parar de crescer (chegou no
+            // teto físico WAVE_MAX_KM — na prática, quase nunca dentro do tempo
+            // de exibição do efeito). Enquanto o anel crescer, a câmera continua
+            // acompanhando, mesmo depois que a abertura inicial (progresso=1) já
+            // tiver terminado — é exatamente o "sempre segue o raio azul" pedido.
+            if (progresso >= 1 && kmP >= WAVE_MAX_KM) camAtingiuTeto = true;
         }
     };
     waveFrontUpd = place;
