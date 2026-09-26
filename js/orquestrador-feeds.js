@@ -381,19 +381,33 @@ async function fetchGlobalFeeds() {
                 const alvo = novosComSom.sort((a, b) => b.mag - a.mag)[0];
 
                 if (!sismosSonorizados.has(alvo.id)) {
-                    const disparado = playEarthquakeSound(
-                        alvo.mag,
-                        alvo.place,
-                        alvo.depth,
-                        novosComSom.length - 1
-                    );
-
-                    if (disparado || pendingSounds.length) {
+                    // Redes diferentes (USGS, EMSC, GFZ...) — incluindo os canais
+                    // paralelos de reforço planetário (fetchPlanetReinforcementQuakes/
+                    // fetchEmscPlanetReinforcementQuakes, com tolerância de
+                    // deduplicação própria e mais apertada) — podem publicar o MESMO
+                    // tremor físico com coordenadas/hora levemente diferentes, cada
+                    // uma virando um ID "novo" pro dedup principal e tocando o som de
+                    // novo (caso relatado: um M5.6 tocando 6 vezes seguidas). Só toca
+                    // se não for um quase-duplicado de um som já tocado recentemente
+                    // na mesma região.
+                    if (somJaTocadoParaRegiao(alvo)) {
                         sismosSonorizados.add(alvo.id);
+                    } else {
+                        const disparado = playEarthquakeSound(
+                            alvo.mag,
+                            alvo.place,
+                            alvo.depth,
+                            novosComSom.length - 1
+                        );
 
-                        if (sismosSonorizados.size > 300) {
-                            sismosSonorizados =
-                                new Set([...sismosSonorizados].slice(-150));
+                        if (disparado || pendingSounds.length) {
+                            sismosSonorizados.add(alvo.id);
+                            registrarSomSismo(alvo);
+
+                            if (sismosSonorizados.size > 300) {
+                                sismosSonorizados =
+                                    new Set([...sismosSonorizados].slice(-150));
+                            }
                         }
                     }
                 }
@@ -407,13 +421,18 @@ async function fetchGlobalFeeds() {
                 const alvoVoz =
                     novosComVoz.sort((a, b) => b.mag - a.mag)[0];
 
-                agendarFala(
-                    Number(alvoVoz.mag),
-                    alvoVoz.place,
-                    alvoVoz.depth,
-                    Math.max(0, novosComVoz.length - 1),
-                    1400
-                );
+                // Mesma checagem de quase-duplicata do som (ver acima) — não repete
+                // o anúncio de voz pro mesmo tremor sob outro ID de rede.
+                if (!somJaTocadoParaRegiao(alvoVoz)) {
+                    agendarFala(
+                        Number(alvoVoz.mag),
+                        alvoVoz.place,
+                        alvoVoz.depth,
+                        Math.max(0, novosComVoz.length - 1),
+                        1400
+                    );
+                    registrarSomSismo(alvoVoz);
+                }
             }
         }
 

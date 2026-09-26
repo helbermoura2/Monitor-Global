@@ -280,6 +280,37 @@ let proximoSomLivre = 0;
 let filaSonsPendentes = [];
 let processandoFilaSom = false;
 let sismosSonorizados = new Set();
+// Guarda os últimos sons/vozes de sismo tocados (região + magnitude + hora),
+// não só o ID exato (isso já é o que sismosSonorizados faz) — várias redes
+// sísmicas (USGS, EMSC, GFZ, canais de reforço planetário em
+// fetchPlanetReinforcementQuakes/fetchEmscPlanetReinforcementQuakes, que
+// rodam em paralelo com tolerância de deduplicação própria e mais apertada)
+// podem publicar o MESMO tremor físico com coordenadas/hora levemente
+// diferentes, cada uma virando um ID "novo" pro dedup principal — e cada ID
+// novo tocaria o som de novo pro que é fisicamente o mesmo sismo (relatado:
+// um M5.6 tocando 6 vezes seguidas). Tolerância bem mais generosa que o
+// dedup normal de eventos (SISMO_DEDUPE_RAIO_KM/TOL_MS) de propósito: aqui
+// o risco de "grudar" dois sons por engano é bem menos grave que soar 6
+// alarmes pro mesmo tremor.
+let historicoSomSismo = [];
+const SOM_DEDUPE_RAIO_KM = 300;
+const SOM_DEDUPE_JANELA_MS = 20 * 60 * 1000;
+
+function somJaTocadoParaRegiao(ev) {
+    if (!ev || !ev.coords) return false;
+    const agora = Date.now();
+    historicoSomSismo = historicoSomSismo.filter(h => agora - h.playedAt < SOM_DEDUPE_JANELA_MS);
+    return historicoSomSismo.some(h =>
+        Math.abs((Number(ev.mag) || 0) - h.mag) <= 1.5 &&
+        haversine(ev.coords[1], ev.coords[0], h.lat, h.lon) <= SOM_DEDUPE_RAIO_KM
+    );
+}
+
+function registrarSomSismo(ev) {
+    if (!ev || !ev.coords) return;
+    historicoSomSismo.push({ lat: ev.coords[1], lon: ev.coords[0], mag: Number(ev.mag) || 0, playedAt: Date.now() });
+    if (historicoSomSismo.length > 100) historicoSomSismo = historicoSomSismo.slice(-50);
+}
 const GAP_ENTRE_SONS_MS = 900, BACKLOG_SOM_MAX_MS = 12000;
 /* Espaça alertas sonoros no mínimo GAP_ENTRE_SONS_MS um do outro — evita que uma
    rajada de eventos diferentes (ex: 3 enchentes + 2 tempestades no mesmo ciclo)
