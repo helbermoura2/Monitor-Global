@@ -1174,6 +1174,18 @@ async function handleRedemet(reqUrl, env) {
 const TELEGRAM_MIN_MAG = 6.0;
 const TELEGRAM_ALERT_CACHE_PATH = '/__cache/monitor-global/telegram-m6-sent';
 const TELEGRAM_ALERT_TTL = 86400 * 3; // 3 dias de memória anti-spam
+// Um mesmo sismo grande costuma aparecer no feed do USGS com MAIS DE UM ID
+// nos primeiros minutos — cada rede sismológica que contribui pro catálogo
+// (ex.: "us", "pt"/IPMA, etc.) publica sua própria solução de magnitude/
+// profundidade, com ID próprio, antes do ComCat mesclar tudo numa única
+// entrada "preferida". O dedup abaixo é só por ID, então cada solução vira
+// um alerta M6+ separado — foi o que aconteceu com M7.0 (rede PT) e M6.6
+// (rede US) do mesmo tremor perto de Tadine, Nova Caledônia, chegando como
+// dois cards de ~2s de diferença. TELEGRAM_DUP_KM/TELEGRAM_DUP_WINDOW_MS
+// definem quando duas dessas soluções contam como "provavelmente o mesmo
+// tremor" pra virar uma mensagem de atualização em vez de um card novo.
+const TELEGRAM_DUP_KM = 150;
+const TELEGRAM_DUP_WINDOW_MS = 30 * 60000;
 
 // ---------- Card PNG (gerado no Worker, sem dependência externa) ----------
 // =========================================================
@@ -4199,6 +4211,41 @@ function telegramCaption(ev) {
     );
 }
 
+// Procura, entre os alertas M6+ já enviados recentemente, um que esteja
+// perto (TELEGRAM_DUP_KM) e próximo no tempo (TELEGRAM_DUP_WINDOW_MS) do
+// evento novo — sinal forte de que é a MESMA ocorrência sob outro ID de
+// rede, e não um sismo novo de verdade.
+function findNearDuplicateAlert(ev, sentRecords) {
+    const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
+    for (const r of sentRecords) {
+        if (!r || r.id === ev.id || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
+        const rTime = r.timeIso ? new Date(r.timeIso).getTime() : null;
+        if (evTime != null && rTime != null && Math.abs(evTime - rTime) > TELEGRAM_DUP_WINDOW_MS) continue;
+        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= TELEGRAM_DUP_KM) return r;
+    }
+    return null;
+}
+
+// Mensagem curta (sem card/imagem) pra quando o evento novo é uma provável
+// duplicata de rede de um alerta já mandado — deixa claro que é uma
+// ATUALIZAÇÃO de magnitude do mesmo tremor, não um sismo novo.
+function telegramUpdateMessage(ev, dup) {
+    const place = escapeMdLegacy(ev.place || dup.place || 'Local desconhecido');
+    const newMag = Number(ev.mag).toFixed(1);
+    const oldMag = Number(dup.mag).toFixed(1);
+    const newSrc = escapeMdLegacy(ev.source || 'USGS');
+    const oldSrc = escapeMdLegacy(dup.source || 'USGS');
+    const arrow = ev.mag > dup.mag ? '⬆️' : ev.mag < dup.mag ? '⬇️' : '➡️';
+    return (
+        `🔄 *Atualização de magnitude* ${arrow}\n` +
+        `${place}\n\n` +
+        `Antes: *M${oldMag}* (rede ${oldSrc})\n` +
+        `Agora: *M${newMag}* (rede ${newSrc})\n\n` +
+        `_Provavelmente o mesmo tremor, calculado por redes sísmicas diferentes._\n` +
+        `📢 Canal: @monitor\\_global`
+    );
+}
+
 /** Gera o card PNG (magnitude + textos + marca) e envia no Telegram. */
 async function telegramSendPhoto(env, ev, caption) {
     const token = env.TELEGRAM_BOT_TOKEN;
@@ -4259,34 +4306,44 @@ async function telegramSendMessage(env, text) {
 // configurado no ambiente (ex.: wrangler dev local sem bind).
 const TELEGRAM_SENT_KV_KEY = 'telegram-m6-sent-ids';
 
-async function loadSentAlertIds(request, env) {
+// Guarda o registro completo (id + mag/lat/lon/hora/local/fonte) de cada
+// alerta já mandado, não só o ID — o findNearDuplicateAlert precisa de
+// lat/lon/hora pra comparar com eventos novos. Formato antigo (só
+// {ids:[...]}) ainda é lido pra não perder o histórico anti-spam na troca;
+// esses registros legados não têm geo, então só servem pro dedup exato por
+// ID (comportamento de antes), não pra detecção de quase-duplicata.
+async function loadSentAlerts(request, env) {
     if (env && env.TTS_USAGE) {
         try {
             const raw = await env.TTS_USAGE.get(TELEGRAM_SENT_KV_KEY);
-            if (!raw) return new Set();
+            if (!raw) return [];
             const d = JSON.parse(raw);
-            return new Set(Array.isArray(d.ids) ? d.ids : []);
+            if (Array.isArray(d.items)) return d.items;
+            if (Array.isArray(d.ids)) return d.ids.map(id => ({ id: String(id) }));
+            return [];
         } catch (e) {
             console.warn('telegram KV read:', e?.message || e);
         }
     }
     try {
         const hit = await caches.default.match(cacheKey(request, TELEGRAM_ALERT_CACHE_PATH));
-        if (!hit) return new Set();
+        if (!hit) return [];
         const d = await hit.json();
-        return new Set(Array.isArray(d.ids) ? d.ids : []);
+        if (Array.isArray(d.items)) return d.items;
+        if (Array.isArray(d.ids)) return d.ids.map(id => ({ id: String(id) }));
+        return [];
     } catch {
-        return new Set();
+        return [];
     }
 }
 
-async function saveSentAlertIds(request, idSet, env) {
-    const ids = [...idSet].slice(-200); // mantém os 200 mais recentes
+async function saveSentAlerts(request, records, env) {
+    const items = records.slice(-200); // mantém os 200 mais recentes
     if (env && env.TTS_USAGE) {
         try {
             await env.TTS_USAGE.put(
                 TELEGRAM_SENT_KV_KEY,
-                JSON.stringify({ ids, updatedAt: nowIso() }),
+                JSON.stringify({ items, updatedAt: nowIso() }),
                 { expirationTtl: TELEGRAM_ALERT_TTL }
             );
             return;
@@ -4295,7 +4352,7 @@ async function saveSentAlertIds(request, idSet, env) {
         }
     }
     try {
-        const response = new Response(JSON.stringify({ ids, updatedAt: nowIso() }), {
+        const response = new Response(JSON.stringify({ items, updatedAt: nowIso() }), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
@@ -4353,8 +4410,10 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     const events = await fetchUsgsM6Recent();
-    const sentIds = await loadSentAlertIds(request, env);
+    const sentRecords = await loadSentAlerts(request, env);
+    const sentIds = new Set(sentRecords.map(r => r.id));
     const sent = [];
+    const updates = [];
     const skipped = [];
 
     for (const ev of events) {
@@ -4362,31 +4421,43 @@ async function runTelegramM6Alerts(request, env) {
             skipped.push(ev.id);
             continue;
         }
+        // Antes de tratar como sismo novo, checa se é provavelmente a MESMA
+        // ocorrência de um alerta já mandado sob outro ID de rede (ver
+        // findNearDuplicateAlert) — nesse caso manda só uma atualização de
+        // magnitude, sem duplicar o card cheio.
+        const dup = findNearDuplicateAlert(ev, sentRecords);
         try {
-            const caption = telegramCaption(ev);
-            try {
-                await telegramSendPhoto(env, ev, caption);
-            } catch (photoErr) {
-                // Fallback: só texto, se o mapa estático falhar
-                console.warn('sendPhoto falhou, fallback texto:', photoErr.message);
-                await telegramSendMessage(
-                    env,
-                    caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
-                );
+            if (dup) {
+                await telegramSendMessage(env, telegramUpdateMessage(ev, dup));
+                updates.push({ id: ev.id, mag: ev.mag, place: ev.place, comparedTo: dup.id, previousMag: dup.mag });
+            } else {
+                const caption = telegramCaption(ev);
+                try {
+                    await telegramSendPhoto(env, ev, caption);
+                } catch (photoErr) {
+                    // Fallback: só texto, se o mapa estático falhar
+                    console.warn('sendPhoto falhou, fallback texto:', photoErr.message);
+                    await telegramSendMessage(
+                        env,
+                        caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
+                    );
+                }
+                sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
             }
             sentIds.add(ev.id);
-            sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
+            sentRecords.push({ id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source });
         } catch (e) {
             console.error('Telegram alerta falhou:', ev.id, e.message);
         }
     }
 
-    if (sent.length) await saveSentAlertIds(request, sentIds, env);
+    if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
     return {
         ok: true,
         checked: events.length,
         sent,
+        updates,
         alreadySent: skipped.length,
         minMag: TELEGRAM_MIN_MAG,
         updatedAt: nowIso()
@@ -4688,7 +4759,7 @@ async function renderDailySummaryPng() {
     return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
 const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary';
-// Mesmo motivo do KV em loadSentAlertIds/saveSentAlertIds acima: caches.default
+// Mesmo motivo do KV em loadSentAlerts/saveSentAlerts acima: caches.default
 // é por data-center, e o Cron Trigger pode cair num data-center diferente a
 // cada tick dentro da janela 00:00-00:20 BRT — arriscando reenviar o resumo
 // do dia. KV (env.TTS_USAGE) é global; caches.default fica só de fallback.
