@@ -25,6 +25,15 @@
    item.coneUrl — o mesmo dado que o card já usa pro link de download,
    extraído uma vez em js/furacoes-gdacs.js. */
 let hurricaneOfficialId = null;
+// Guarda também a coneUrl usada — a NHC publica uma KMZ NOVA a cada boletim
+// (~a cada 6h), com o cone/trilha reposicionados pra refletir o avanço real
+// do furacão. Sem comparar a coneUrl, "já carregado pra este mesmo furacão"
+// (mesmo item.id, que não muda durante toda a vida do ciclone) trava pra
+// sempre no boletim antigo — o cone/trilha nunca acompanha o furacão se
+// movendo, ficando "parado" enquanto o marcador do furacão no mapa segue
+// avançando normalmente (foi o que ficou visível como o ícone do furacão
+// aparecendo longe do centro do cone/anel).
+let hurricaneOfficialConeUrl = null;
 
 function stopHurricaneOfficialRoute() {
     if (!hurricaneOfficialId) return;
@@ -37,6 +46,7 @@ function stopHurricaneOfficialRoute() {
         });
     } catch (e) {}
     hurricaneOfficialId = null;
+    hurricaneOfficialConeUrl = null;
 }
 
 // Extrai as 3 formas que o KMZ do cone da NHC costuma trazer juntas: o
@@ -88,7 +98,10 @@ async function startHurricaneOfficialRoute(item) {
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
         return;
     }
-    if (hurricaneOfficialId === item.id) return; // já carregado pra este mesmo furacão
+    // Só pula o fetch se for o MESMO furacão E o MESMO boletim (coneUrl) já
+    // carregado — um boletim novo da NHC (coneUrl muda a cada atualização)
+    // precisa recarregar e reposicionar o cone/trilha.
+    if (hurricaneOfficialId === item.id && hurricaneOfficialConeUrl === item.coneUrl) return;
 
     try {
         const parsed = await fetchKmzGeoJSON(item.coneUrl);
@@ -134,6 +147,7 @@ async function startHurricaneOfficialRoute(item) {
 
         if (eventoSelecionadoId !== item.id) { stopHurricaneOfficialRoute(); return; }
         hurricaneOfficialId = item.id;
+        hurricaneOfficialConeUrl = item.coneUrl;
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('oficial', item.id); } catch (e) {}
     } catch (e) {
         console.warn('[furacão rota oficial]', e);

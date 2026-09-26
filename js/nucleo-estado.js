@@ -618,6 +618,14 @@ function limparIdsAntigos() {
 setInterval(limparIdsAntigos, 3600000); // a cada 1h — bem espaçado, não é urgente
 let fcPopupTimeout = null;
 const cycloneHistory = new Map();
+// Guarda em que coordenadas o anel de destaque/cone oficial do furacão
+// SELECIONADO foi desenhado por último (ver fetchRealHurricanes em
+// furacoes-gdacs.js) — sem isso, o anel/cone fica travado na posição de
+// quando o card foi aberto mesmo que o furacão continue se movendo nas
+// atualizações seguintes (a cada 10min), enquanto o marcador dele no mapa
+// segue sendo atualizado normalmente. Resultado visível: o ícone do
+// furacão "se afasta" cada vez mais do anel/cone parado.
+const hurricaneFxSyncCoords = new Map();
 // Persiste o histórico de posições dos ciclones (GDACS) entre recarregamentos da página —
 // sem isso, toda vez que o app é reaberto o histórico zera e a seta de direção só aparece
 // depois do próximo ciclo de atualização (até 2h de espera). Descarta pontos com mais de

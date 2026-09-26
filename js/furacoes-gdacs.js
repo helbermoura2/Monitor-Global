@@ -226,6 +226,7 @@ async function fetchRealHurricanes() {
     if (map && map.getSource('cyclone-cone')) map.getSource('cyclone-cone').setData({ type: 'FeatureCollection', features: cones });
     globalAlerts = globalAlerts.filter(a => a.type !== 'hurricane' || ids.has(a.id));
     [...cycloneHistory.keys()].forEach(id => { if (!ids.has(id)) cycloneHistory.delete(id); });
+    [...hurricaneFxSyncCoords.keys()].forEach(id => { if (!ids.has(id)) hurricaneFxSyncCoords.delete(id); });
     salvarCycloneHistory();
     // Remove ciclones EONET que já têm par NHC/GDACS (nome ou proximidade ampliada)
     // — era uma reimplementação inline idêntica a limparCiclonesEonetDuplicados()
@@ -234,6 +235,26 @@ async function fetchRealHurricanes() {
     marcarBooted('hurricane');
     applyFilters();
     if (novo) showAlertDetails(novo, true);
+
+    // Se o furacão ATUALMENTE selecionado é um dos que essa busca acabou de
+    // atualizar e ele se moveu de verdade, reposiciona o anel de destaque e
+    // deixa startHurricaneOfficialRoute recarregar o cone/trilha oficial se
+    // a NHC publicou um boletim novo (coneUrl mudou — ver comentário lá).
+    // Sem isso, os dois ficam presos na posição de quando o card foi aberto
+    // enquanto o marcador do furacão no mapa segue avançando normalmente.
+    try {
+        if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId != null) {
+            const sel = globalAlerts.find(a => a && a.id === eventoSelecionadoId && a.type === 'hurricane');
+            if (sel && ids.has(sel.id) && sel.coords) {
+                const last = hurricaneFxSyncCoords.get(sel.id);
+                const moveu = !last || haversine(last[1], last[0], sel.coords[1], sel.coords[0]) > 5;
+                if (moveu && typeof triggerEventoMapaFx === 'function') {
+                    triggerEventoMapaFx(sel, '#a855f7');
+                    hurricaneFxSyncCoords.set(sel.id, sel.coords.slice());
+                }
+            }
+        }
+    } catch (e) {}
     globalAlerts.filter(a => a.type === 'hurricane' && !a.movementInfo && a.gdacsId).slice(0, 4).forEach(async (obj) => {
         const brg = await buscarTrilhaGDACS(obj.gdacsId);
         if (brg != null) {
