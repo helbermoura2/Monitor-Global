@@ -629,7 +629,12 @@ async function getV70Anomaly(env){
 
 async function getV70Cyclones(){
     const d=await fetchJson('https://www.nhc.noaa.gov/CurrentStorms.json',{headers:{'User-Agent':'MonitorGlobal/7.0'}},15000);
-    const storms=(d.activeStorms||[]).map(s=>({id:s.id,name:s.name,classification:s.classification,intensity:Number(s.intensity),pressure:Number(s.pressure),lat:Number(s.latitudeNumeric),lon:Number(s.longitudeNumeric),movementDir:Number(s.movementDir),movementSpeed:Number(s.movementSpeed),updated:s.lastUpdate,track:s.forecastTrack?.kmzFile||null,cone:s.trackCone?.kmzFile||null,advisory:s.publicAdvisory?.url||null,graphics:s.forecastGraphics?.url||null}));
+    // A NHC não publica a trajetória prevista como um KMZ separado — ela vem
+    // BUNDLED dentro do próprio KMZ do cone (trackCone.kmzFile): polígono da
+    // incerteza + linha da trajetória + pontos de previsão, tudo junto. Um
+    // campo "forecastTrack" separado nunca existiu de verdade nesse JSON;
+    // ficava sempre nulo (bug corrigido aqui).
+    const storms=(d.activeStorms||[]).map(s=>({id:s.id,name:s.name,classification:s.classification,intensity:Number(s.intensity),pressure:Number(s.pressure),lat:Number(s.latitudeNumeric),lon:Number(s.longitudeNumeric),movementDir:Number(s.movementDir),movementSpeed:Number(s.movementSpeed),updated:s.lastUpdate,cone:s.trackCone?.kmzFile||null,advisory:s.publicAdvisory?.url||null,graphics:s.forecastGraphics?.url||null}));
     return {updatedAt:nowIso(),source:'NHC',storms,sourceNote:'Dados oficiais do National Hurricane Center; trajetória e cone são os produtos GIS do NHC.'};
 }
 

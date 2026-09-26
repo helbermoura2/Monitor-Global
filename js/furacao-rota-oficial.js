@@ -1,7 +1,8 @@
 /* Rota oficial do NHC pra furacão/ciclone — trajetória prevista + cone de
    incerteza REAIS (produtos GIS oficiais do National Hurricane Center, em
    KMZ), carregados quando o furacão aberto no card tiver cobertura do NHC
-   (item.nhcId, setado em js/furacoes-gdacs.js a partir do CurrentStorms.json).
+   (item.nhcId/item.coneUrl, setados em js/furacoes-gdacs.js a partir do
+   CurrentStorms.json).
 
    Sem isso, o app já desenha uma estimativa própria o tempo todo (linha
    tracejada = por onde já passou, cone alargando = projeção simples a partir
@@ -12,47 +13,63 @@
    furacões/ciclones fora da área de cobertura do NHC (ex: Pacífico Oeste,
    Índico).
 
-   Curiosamente já existia um parser de KMZ pronto pra isso em
-   js/monitor-global-70.js (loadStormProducts/kmlToGeoJSON) — só que preso
-   dentro de uma IIFE nunca conectada a lugar nenhum (o painel que chamava
-   ela, #mg70-hud, não é criado por ninguém no app), então nunca rodava de
-   verdade. Reescrito aqui, exposto em window, e ligado ao card principal via
-   triggerEventoMapaFx (js/mapa.js). */
+   BUG encontrado e corrigido nesta versão: o código buscava o cone e a
+   trilha como dois produtos KMZ SEPARADOS, um deles (`forecastTrack`) num
+   campo que não existe de verdade no CurrentStorms.json da NHC — sempre
+   voltava nulo, então a trilha prevista nunca aparecia. Na prática a NHC
+   publica os dois juntos NO MESMO KMZ do cone (polígono da incerteza + linha
+   da trajetória prevista + pontos de previsão, tudo no mesmo arquivo) — então
+   agora é só UM fetch, e as geometrias são separadas por TIPO depois de
+   parseadas. Também trocado o caminho: em vez de um round-trip extra pro
+   Worker (/v70-cyclones, que tinha o bug do campo errado), usa direto
+   item.coneUrl — o mesmo dado que o card já usa pro link de download,
+   extraído uma vez em js/furacoes-gdacs.js. */
 let hurricaneOfficialId = null;
 
 function stopHurricaneOfficialRoute() {
     if (!hurricaneOfficialId) return;
     try {
-        ['nhc-official-cone', 'nhc-official-track'].forEach(id => {
+        ['nhc-official-cone-fill', 'nhc-official-cone-outline', 'nhc-official-track', 'nhc-official-points', 'nhc-official-points-label'].forEach(id => {
             if (map.getLayer(id)) map.removeLayer(id);
+        });
+        ['nhc-official-cone', 'nhc-official-track', 'nhc-official-points'].forEach(id => {
             if (map.getSource(id)) map.removeSource(id);
         });
     } catch (e) {}
     hurricaneOfficialId = null;
 }
 
+// Extrai as 3 formas que o KMZ do cone da NHC costuma trazer juntas: o
+// polígono da incerteza, a linha da trajetória prevista e os pontos de
+// previsão (rotulados por dia/horário, tipo "11 AM Tue" no gráfico oficial).
 function kmlToGeoJSONRota(xml) {
     const doc = new DOMParser().parseFromString(xml, 'application/xml');
-    const features = [];
+    const poligonos = [], linhas = [], pontos = [];
     doc.querySelectorAll('Placemark').forEach(pm => {
-        const name = pm.querySelector('name')?.textContent || '';
+        const name = pm.querySelector('name')?.textContent?.trim() || '';
         pm.querySelectorAll('LineString').forEach(g => {
             const s = g.querySelector('coordinates')?.textContent.trim();
             if (!s) return;
             const pts = s.split(/\s+/).map(v => v.split(',').slice(0, 2).map(Number)).filter(a => a.length === 2 && a.every(Number.isFinite));
-            if (pts.length > 1) features.push({ type: 'Feature', properties: { name }, geometry: { type: 'LineString', coordinates: pts } });
+            if (pts.length > 1) linhas.push({ type: 'Feature', properties: { name }, geometry: { type: 'LineString', coordinates: pts } });
         });
         pm.querySelectorAll('Polygon outerBoundaryIs LinearRing').forEach(g => {
             const s = g.querySelector('coordinates')?.textContent.trim();
             if (!s) return;
             const pts = s.split(/\s+/).map(v => v.split(',').slice(0, 2).map(Number)).filter(a => a.length === 2 && a.every(Number.isFinite));
-            if (pts.length > 2) features.push({ type: 'Feature', properties: { name }, geometry: { type: 'Polygon', coordinates: [pts] } });
+            if (pts.length > 2) poligonos.push({ type: 'Feature', properties: { name }, geometry: { type: 'Polygon', coordinates: [pts] } });
+        });
+        pm.querySelectorAll('Point coordinates').forEach(g => {
+            const s = g.textContent.trim();
+            if (!s) return;
+            const p = s.split(',').slice(0, 2).map(Number);
+            if (p.length === 2 && p.every(Number.isFinite)) pontos.push({ type: 'Feature', properties: { name }, geometry: { type: 'Point', coordinates: p } });
         });
     });
-    return { type: 'FeatureCollection', features };
+    return { poligonos, linhas, pontos };
 }
 
-async function fetchKmzComoGeoJSON(kmzUrl) {
+async function fetchKmzGeoJSON(kmzUrl) {
     if (!window.JSZip || typeof WORKER_PROXY !== 'function') return null;
     const r = await fetch(WORKER_PROXY(kmzUrl), { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -67,61 +84,57 @@ async function fetchKmzComoGeoJSON(kmzUrl) {
 
 async function startHurricaneOfficialRoute(item) {
     if (!item || item.type !== 'hurricane' || !map) return;
-    if (!item.nhcId) {
+    if (!item.coneUrl) {
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
         return;
     }
     if (hurricaneOfficialId === item.id) return; // já carregado pra este mesmo furacão
 
     try {
-        const base = (typeof WORKER_PROXY === 'function') ? WORKER_PROXY('').split('?')[0].replace(/\/$/, '') : '';
-        if (!base) throw new Error('Worker não encontrado');
-        const r = await fetch(base + '/v70-cyclones', { cache: 'no-store' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const d = await r.json();
-        const c = (d.storms || []).find(s => s.id === item.nhcId);
+        const parsed = await fetchKmzGeoJSON(item.coneUrl);
         if (eventoSelecionadoId !== item.id) return; // usuário já trocou de evento enquanto isso carregava
-        if (!c || (!c.track && !c.cone)) {
+        if (!parsed || (!parsed.poligonos.length && !parsed.linhas.length && !parsed.pontos.length)) {
             try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
             return;
         }
 
-        let ok = false;
-        if (c.track) {
-            try {
-                const fc = await fetchKmzComoGeoJSON(c.track);
-                if (fc && fc.features.length && eventoSelecionadoId === item.id) {
-                    if (map.getSource('nhc-official-track')) map.getSource('nhc-official-track').setData(fc);
-                    else {
-                        map.addSource('nhc-official-track', { type: 'geojson', data: fc });
-                        map.addLayer({ id: 'nhc-official-track', type: 'line', source: 'nhc-official-track', paint: { 'line-color': '#e879f9', 'line-width': 3, 'line-opacity': .9 } });
-                    }
-                    ok = true;
-                }
-            } catch (e) { console.warn('[furacão rota oficial] track', e); }
+        if (parsed.poligonos.length) {
+            const fc = { type: 'FeatureCollection', features: parsed.poligonos };
+            if (map.getSource('nhc-official-cone')) map.getSource('nhc-official-cone').setData(fc);
+            else {
+                map.addSource('nhc-official-cone', { type: 'geojson', data: fc });
+                map.addLayer({ id: 'nhc-official-cone-fill', type: 'fill', source: 'nhc-official-cone', paint: { 'fill-color': '#a855f7', 'fill-opacity': .16 } });
+                map.addLayer({ id: 'nhc-official-cone-outline', type: 'line', source: 'nhc-official-cone', paint: { 'line-color': '#e879f9', 'line-width': 1.5, 'line-opacity': .8 } });
+            }
         }
-        if (c.cone) {
-            try {
-                const fc = await fetchKmzComoGeoJSON(c.cone);
-                if (fc && fc.features.length && eventoSelecionadoId === item.id) {
-                    if (map.getSource('nhc-official-cone')) map.getSource('nhc-official-cone').setData(fc);
-                    else {
-                        map.addSource('nhc-official-cone', { type: 'geojson', data: fc });
-                        const before = map.getLayer('nhc-official-track') ? 'nhc-official-track' : undefined;
-                        map.addLayer({ id: 'nhc-official-cone', type: 'fill', source: 'nhc-official-cone', paint: { 'fill-color': '#a855f7', 'fill-opacity': .16, 'fill-outline-color': '#c084fc' } }, before);
-                    }
-                    ok = true;
-                }
-            } catch (e) { console.warn('[furacão rota oficial] cone', e); }
+        if (parsed.linhas.length) {
+            const fc = { type: 'FeatureCollection', features: parsed.linhas };
+            if (map.getSource('nhc-official-track')) map.getSource('nhc-official-track').setData(fc);
+            else {
+                map.addSource('nhc-official-track', { type: 'geojson', data: fc });
+                map.addLayer({ id: 'nhc-official-track', type: 'line', source: 'nhc-official-track', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#e879f9', 'line-width': 2.5, 'line-dasharray': [2, 1.5], 'line-opacity': .95 } });
+            }
+        }
+        if (parsed.pontos.length) {
+            const fc = { type: 'FeatureCollection', features: parsed.pontos };
+            if (map.getSource('nhc-official-points')) map.getSource('nhc-official-points').setData(fc);
+            else {
+                map.addSource('nhc-official-points', { type: 'geojson', data: fc });
+                map.addLayer({ id: 'nhc-official-points', type: 'circle', source: 'nhc-official-points', paint: { 'circle-radius': 3.5, 'circle-color': '#e879f9', 'circle-stroke-width': 1, 'circle-stroke-color': '#1a0b2e' } });
+                map.addLayer({
+                    id: 'nhc-official-points-label', type: 'symbol', source: 'nhc-official-points',
+                    layout: {
+                        'text-field': ['get', 'name'], 'text-size': 9, 'text-offset': [0, 1], 'text-anchor': 'top',
+                        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': false
+                    },
+                    paint: { 'text-color': '#e879f9', 'text-halo-color': '#1a0b2e', 'text-halo-width': 1 }
+                });
+            }
         }
 
         if (eventoSelecionadoId !== item.id) { stopHurricaneOfficialRoute(); return; }
-        if (ok) {
-            hurricaneOfficialId = item.id;
-            try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('oficial', item.id); } catch (e) {}
-        } else {
-            try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
-        }
+        hurricaneOfficialId = item.id;
+        try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('oficial', item.id); } catch (e) {}
     } catch (e) {
         console.warn('[furacão rota oficial]', e);
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('falhou', item.id); } catch (e2) {}
