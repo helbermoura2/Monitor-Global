@@ -1221,17 +1221,14 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     }
                 } else {
                     if (typeof startCascadeRipple === 'function') startCascadeRipple(lng, lat, getHexColor(item.mag));
-                    // "Replay": o sismo original pode ter sido há horas — usar o
-                    // horário de origem de verdade faria a onda já ter percorrido
-                    // o teto físico e nascer com o anel do tamanho máximo, sem
-                    // crescer nada. Rebobina pra Date.now(), reencenando a
-                    // animação como se estivesse acontecendo agora. Vale pro ciclo
-                    // automático E pro clique manual, os dois passam por aqui.
-                    if (item.mag >= 5 && typeof startWaveFront === 'function') {
-                        // Câmera dinâmica agora vale no clique manual E no ciclo
-                        // automático — ambos passam por aqui, o único diferencial
-                        // entre eles é a duração do voo inicial (totalDur), já
-                        // refletida no camDelayMs abaixo.
+                    // "Replay": o anel agora sempre recomeça a crescer do zero (ver
+                    // startWaveFront), então nasce pequeno mesmo pra um sismo
+                    // original de horas atrás — não precisa mais só de M5+ pra fazer
+                    // sentido, um M2 pequeno agora só gera um anel pequeno mesmo.
+                    // Vale pro ciclo automático E pro clique manual, os dois passam
+                    // por aqui — único diferencial é a duração do voo inicial
+                    // (totalDur), já refletida no camDelayMs abaixo.
+                    if (typeof startWaveFront === 'function') {
                         startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
                             chaseCam: true,
                             camDelayMs: Math.max(0, totalDur - 150),
@@ -1250,7 +1247,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 }
             } else {
                 startCascadeRipple(lng, lat, getHexColor(item.mag));
-                if (item.mag >= 5 && typeof startWaveFront === 'function') {
+                if (typeof startWaveFront === 'function') {
                     startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
                         chaseCam: true,
                         camDelayMs: Math.max(0, totalDur - 150),
