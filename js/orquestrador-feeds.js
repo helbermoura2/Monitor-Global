@@ -323,8 +323,19 @@ async function fetchGlobalFeeds() {
             if (globalEvents.length) showEventDetails(0, false);
         } else if (novosRecentes.length) {
             novosRecentes.sort((a, b) => b.mag - a.mag);
-            const i = globalEvents.findIndex(e => e.id === novosRecentes[0].id);
-            if (i !== -1) showEventDetails(i, true);
+            const maiorNovo = novosRecentes[0];
+            // Estilo GlobalQuake: um sismo em exibição (ver waveHoldMs em
+            // sismo-metrics.js / showEventDetails) só é interrompido por um
+            // sismo novo se ele for de magnitude MAIOR — senão o anel/câmera
+            // do que já está na tela é cortado no meio pra mostrar algo menor.
+            // O evento novo não se perde: já está em globalEvents e entra no
+            // ciclo automático normal assim que o "hold" atual acabar.
+            const holdAtivo = typeof window.__mgHoldEndsAt === 'number' && Date.now() < window.__mgHoldEndsAt;
+            const magAtual = typeof window.__mgHoldMag === 'number' ? window.__mgHoldMag : -Infinity;
+            if (!holdAtivo || maiorNovo.mag > magAtual) {
+                const i = globalEvents.findIndex(e => e.id === maiorNovo.id);
+                if (i !== -1) showEventDetails(i, true);
+            }
         }
 
         isFirstLoad = false;

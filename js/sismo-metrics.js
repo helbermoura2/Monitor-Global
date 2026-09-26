@@ -191,6 +191,28 @@ function feltZoneDurationMs(mag) {
     return 45000; // mesmo tempo do ciclo automático de evento novo
 }
 
+// Quanto tempo um sismo fica "no ar" (frente de onda P/S + câmera acompanhando
+// + ciclo automático pausado) antes de poder trocar sozinho pro próximo evento
+// — estilo GlobalQuake: a onda sempre anda na MESMA velocidade real (WAVE_P_KMS/
+// WAVE_S_KMS não mudam), mas um sismo grande fica em tela muito mais tempo que
+// um pequeno, então na mesma velocidade ele simplesmente percorre uma distância
+// bem maior antes de "terminar" — não é a onda que anda mais rápido, é o tempo
+// de exibição que escala com a magnitude. Usado tanto pelo timer interno do
+// startWaveFront (abaixo) quanto pelo scheduleNextAutoCycle (painel-e-lista.js)
+// — os dois precisam bater pro anel não ser cortado no meio pela troca de
+// evento (era exatamente o bug: auto-ciclo fixo em 30-45s cortava um M5+ antes
+// da onda "terminar"). Ver também orquestrador-feeds.js: um sismo novo só
+// interrompe esse tempo se for de magnitude MAIOR que o que já está em tela.
+function waveHoldMs(mag) {
+    const m = Number(mag);
+    if (!Number.isFinite(m)) return 30000;
+    if (m >= 7) return 480000; // 8min
+    if (m >= 6) return 240000; // 4min
+    if (m >= 5) return 120000; // 2min
+    if (m >= 4) return 60000;  // 1min
+    return 30000;              // <M4: 30s
+}
+
 function stopFeltZone() {
     try { clearTimeout(feltZoneTimer); } catch (e) {}
     try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
@@ -326,10 +348,11 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     waveFrontEl = wrap;
 
     const coords = [lng, lat];
-    // Mesmo teto de tempo em tela da zona sentida (proporcional à magnitude),
-    // só pra não deixar um anel "crescendo pra sempre" depois que o usuário
-    // já saiu da tela do evento.
-    const durationMs = feltZoneDurationMs(mag);
+    // Mesmo teto de waveHoldMs usado pelo ciclo automático (painel-e-lista.js)
+    // — os dois têm que bater, senão um corta o outro no meio. Isso aqui é só
+    // uma rede de segurança (se por algum motivo o auto-ciclo não rodar, o
+    // anel ainda se limpa sozinho depois desse tempo).
+    const durationMs = waveHoldMs(mag);
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion &&

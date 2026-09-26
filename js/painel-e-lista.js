@@ -1163,9 +1163,20 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     userInteractingWithGlobe = true;
     if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
 
+    // Tempo de permanência escalado pela magnitude (estilo GlobalQuake — ver
+    // waveHoldMs em sismo-metrics.js): sismo grande fica MUITO mais tempo em
+    // tela que um pequeno, então a onda P/S (velocidade real, sem mudar) tem
+    // tempo de percorrer uma distância bem maior antes do ciclo automático
+    // trocar de evento sozinho. Guardado em window.__mgHoldMag/__mgHoldEndsAt
+    // pra orquestrador-feeds.js saber se um sismo novo pode interromper esse
+    // tempo (só se for de magnitude MAIOR que o que já está em tela).
+    const hold = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
+    window.__mgHoldMag = item.mag;
+    window.__mgHoldEndsAt = Date.now() + hold;
+
     let totalDur = 1800;
     if (triggerVisualAlert) {
-        // EVENTO NOVO — voo destacado + 45s de permanência
+        // EVENTO NOVO — voo destacado + permanência escalada por magnitude
         stopMapCamera();
         try {
             map.flyTo({
@@ -1180,12 +1191,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         totalDur = 4000;
         // Sem flash aqui: esta função só trata sismo, e o flash de raio é
         // efeito exclusivo de tempestade (ver showAlertDetails abaixo).
-        scheduleNextAutoCycle(45000);
+        scheduleNextAutoCycle(hold);
     } else {
         totalDur = softFlyToCoords(lng, lat, zoomAlvo, soft);
-        // 30s de permanência DEPOIS do voo (ciclo automático)
-        // manual: agenda 30s também, mas o usuário pode interromper
-        scheduleNextAutoCycle(soft ? (totalDur + 30000) : 30000);
+        // Permanência DEPOIS do voo (ciclo automático), escalada por magnitude.
+        // manual: agenda o mesmo tempo, mas o usuário pode interromper
+        scheduleNextAutoCycle(soft ? (totalDur + hold) : hold);
     }
 
     // Sismo NOVO de verdade ganha a zona de alcance real (crítico + sentido, "Onda
@@ -1281,6 +1292,10 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    // Evento em tela não é mais um sismo — zera o "hold" de magnitude (ver
+    // showEventDetails) pra não deixar um valor velho bloqueando por engano a
+    // interrupção de um sismo novo em orquestrador-feeds.js.
+    window.__mgHoldMag = -Infinity;
     // Sempre resolve a cópia mais recente no store (evita card com versão velha)
     try {
         if (typeof EventStore !== 'undefined' && item.id != null) {
