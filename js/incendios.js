@@ -170,7 +170,12 @@ async function fetchEonetStorms() {
                     }
                     globalAlerts.push({
                         id, type: 'hurricane', place: title,
-                        bandeira: getFlagByCoords(lat, lng),
+                        // Ciclone quase sempre está em alto mar, longe de qualquer país —
+                        // getFlagByCoords pode devolver vazio se o país costeiro mais
+                        // próximo (mesmo a milhares de km) não tiver entrada no
+                        // dicionário. GDACS/NHC já usam esse mesmo fallback pro emoji
+                        // de bacia (🌀); aqui faltava, deixando o card sem ícone nenhum.
+                        bandeira: getFlagByCoords(lat, lng) || cyc.basinEmoji || '🌀',
                         cycloneLabel: cyc.label,
                         time: prev ? prev.time : Date.now(),
                         coords: [lng, lat], source: 'NASA EONET',
