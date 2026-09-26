@@ -396,11 +396,17 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion &&
         typeof calcZoomParaAlcance === 'function' && typeof centroCompensado === 'function';
-    const camStartAt = Date.now() + Math.max(0, (opts && opts.camDelayMs) || 0);
-    // Câmera acompanha o MESMO ritmo que o anel leva pra crescer até seu
-    // alcance final (waveFrontGrowMs) — os dois têm que bater, senão a câmera
-    // termina de abrir antes (ou depois) do anel terminar de crescer.
-    const camSweepMs = waveFrontGrowMs(mag);
+    const camDelayMs = Math.max(0, (opts && opts.camDelayMs) || 0);
+    const camStartAt = Date.now() + camDelayMs;
+    // A câmera só começa a interpolar depois de camDelayMs (esperando o voo
+    // cinematográfico inicial terminar), mas o ANEL já está crescendo desde
+    // showStartedAt (sem esse atraso). Se a câmera usasse o mesmo
+    // waveFrontGrowMs(mag) como duração da SUA PRÓPRIA interpolação, ela só
+    // terminaria de abrir camDelayMs DEPOIS do anel já ter parado de crescer
+    // — dava a impressão de "o zoom out continua puxando bem depois do anel
+    // já ter parado". Encurtando pelo atraso já gasto, os dois terminam
+    // exatamente no mesmo instante real (showStartedAt + waveFrontGrowMs).
+    const camSweepMs = Math.max(1000, waveFrontGrowMs(mag) - camDelayMs);
     // Definidos preguiçosamente (null até o delay passar) — se pegasse
     // map.getZoom() já aqui, capturaria o zoom de ANTES do voo cinematográfico
     // inicial terminar (ainda no meio do flyTo de 4.5s).
@@ -419,7 +425,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
 
     const alvoKm = waveFrontMaxKm(mag);
-    const growMs = camSweepMs; // mesmo ritmo da câmera (ver comentário acima)
+    // Duração de crescimento do anel — usa a escala completa por magnitude,
+    // NÃO o camSweepMs encurtado (esse é só da câmera, ver comentário acima).
+    const growMs = waveFrontGrowMs(mag);
 
     const place = () => {
         if (!map || !waveFrontEl) return;
