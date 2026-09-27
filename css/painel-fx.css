@@ -6,23 +6,32 @@
    decorativa no modo mobile-details-mid/open, css/ui-motion.css) — usar
    elementos próprios evita qualquer conflito de seletor.
 
-   #pd-fx-overlay é o PRIMEIRO filho de #painel-direito no HTML — isso
-   sozinho já garante que ele pinta ABAIXO de todo o resto do conteúdo
-   (cabeçalho, gauge, texto...) na ordem normal do DOM, sem precisar de
-   z-index negativo. ANTES usava z-index:-1 pra "escapar" pro fundo do
-   stacking context do próprio #painel-direito — só que isso depende do
-   navegador tratar #painel-direito como stacking context corretamente em
-   TODO breakpoint/estado (mobile tem várias regras de layout empilhadas,
-   css/mobile-*.css), e relatou-se a chuva de furacão/tufão sumindo por
-   completo no Samsung Internet (só a chuva — raio, tremor e letras
-   voando, que não dependem de z-index negativo, continuavam aparecendo).
-   z-index:0 evita esse tipo de bug de composição em navegadores/GPUs
-   específicos: não depende de "escapar" de nada, só da ordem natural do
-   DOM, que é universalmente confiável. */
+   #pd-fx-overlay usa z-index:-1 pra garantir que fica ATRÁS de TODO o
+   conteúdo do card — inclusive texto/divs comuns sem position própria
+   (cabeçalho, rótulos, texto...), não só de outros elementos posicionados.
+   CORREÇÃO IMPORTANTE (era z-index:0 antes): um elemento POSICIONADO
+   (position:absolute) com z-index:0 entra na "camada de elementos
+   posicionados com z-index:0", que pinta DEPOIS do conteúdo comum em
+   fluxo normal sem position própria — ou seja, na prática ainda ficava
+   POR CIMA de qualquer texto sem position:relative/absolute, escurecendo
+   e deixando ilegível o cabeçalho/rótulos do card (relatado: "tem chuva,
+   mas está escuro, tem que clarear"). Só z-index NEGATIVO garante ficar
+   atrás de tudo, sem exceção. `isolation: isolate` em #painel-direito
+   (ver regra logo abaixo) garante que #painel-direito É de fato um
+   stacking context em qualquer navegador/breakpoint, então o z-index:-1
+   fica contido ali dentro, sem "escapar" pro resto da página — o motivo
+   de já ter existido uma versão com z-index:-1 sem isolation, que
+   escapava em alguns estados do layout mobile. A chuva em si (gotas
+   individuais, js/painel-fx.js) não depende mais nada disso: vive numa
+   camada position:fixed separada (#mg-fall-layer), fora de
+   #painel-direito por completo. */
+#painel-direito {
+  isolation: isolate;
+}
 #pd-fx-overlay {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   opacity: 0;
   border-radius: inherit;
@@ -661,10 +670,13 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 #painel-direito.pd-fx-hurricane #pd-fx-overlay {
   opacity: 1;
   overflow: hidden;
-  /* céu de tempestade escuro por trás da chuva */
+  /* céu de tempestade escuro por trás da chuva — opacidade reduzida
+     (pedido do usuário: "tem chuva, mas está escuro, tem que clarear"),
+     somado à correção de stacking acima (z-index:-1 em vez de 0), que já
+     por si só evitava esse escurecido cobrir o texto do card. */
   background:
-    linear-gradient(180deg, rgba(15,23,42,.34), rgba(15,23,42,.1) 55%, transparent),
-    radial-gradient(120% 80% at 50% -10%, rgba(30,41,59,.42), transparent 70%);
+    linear-gradient(180deg, rgba(15,23,42,.20), rgba(15,23,42,.06) 55%, transparent),
+    radial-gradient(120% 80% at 50% -10%, rgba(30,41,59,.26), transparent 70%);
 }
 /* Lençol de vento/chuva soprada varrendo o card na diagonal, em loop — dá a
    leitura de "vento visível" batendo em rajadas. */
