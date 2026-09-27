@@ -53,6 +53,15 @@
     var panel = document.getElementById('painel-direito');
     if (!local || !panel) return;
     var lastCommitted = local.textContent;
+    // Rastreia o que está DE VERDADE pintado na tela agora — diferente de
+    // lastCommitted, que só é atualizado quando um typeIn() termina. Sem
+    // isso, uma segunda troca chegando NO MEIO de uma digitação em
+    // andamento (preempção — ex.: o ciclo automático troca de evento bem
+    // na hora em que o usuário clica manualmente em outro) fazia o
+    // "fantasma" mostrar lastCommitted, ou seja, o título de DUAS trocas
+    // atrás, não o que o usuário via um instante antes — um "eco" de um
+    // evento totalmente diferente do que estava na tela.
+    var lastRendered = local.textContent;
     var typing = false;
     var typingTarget = null;
 
@@ -92,6 +101,7 @@
       (function tick() {
         i++;
         local.textContent = toText.slice(0, i);
+        lastRendered = local.textContent;
         if (i < toText.length) {
           local._mgTypeId = setTimeout(tick, step);
         } else {
@@ -121,12 +131,16 @@
         if (local._mgTypeId) { clearTimeout(local._mgTypeId); local._mgTypeId = null; }
         typing = false; typingTarget = null;
         lastCommitted = real;
+        lastRendered = real;
         return;
       }
 
       // troca real nova, ou uma preempção (evento mudou de novo no meio da digitação)
+      // — spawnGhost usa lastRendered (o que estava de fato pintado agora
+      // mesmo), nunca lastCommitted (que numa preempção seria o título de
+      // duas trocas atrás, causando o "eco" de um evento errado).
       if (local._mgTypeId) clearTimeout(local._mgTypeId);
-      spawnGhost(lastCommitted);
+      spawnGhost(lastRendered);
       typeIn(real);
     });
     obs.observe(local, { childList: true, characterData: true, subtree: true });

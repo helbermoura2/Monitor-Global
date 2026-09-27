@@ -174,7 +174,6 @@ function triggerCardFxMag(mag) {
 // sozinha. O elemento real nunca sai do lugar nem perde o clique — só
 // #btn-som-header (silenciar o alarme) fica de fora da lista de
 // propósito, por ser o controle mais importante bem na hora do abalo.
-const FALL_POOL_SMALL = ['.mg-logo-icon', '#kpi-wx-icon', '#kpi-brent-label', '.av-radar'];
 const FALL_POOL_BIG = [
     '.mg-logo-icon', '#kpi-wx-icon', '#kpi-brent-label', '#btn-radar-header',
     '.av-radar', '#kpi-relogio', '#sp-city-name', '#kpi-temp', '#kpi-wind', '.chip'
@@ -270,19 +269,26 @@ function triggerFallingIcons(mag, durationMs) {
     const m = Number(mag) || 0;
     if (m < 6) return;
     const layer = ensureFallLayer();
+    const bigTargets = [];
+    FALL_POOL_BIG.forEach(sel => document.querySelectorAll(sel).forEach(el => bigTargets.push(el)));
+
     if (m < 7) {
-        // M6-6.9: só 2-3 peças, caindo quase juntas — um susto pequeno.
-        const targets = pickRandom(FALL_POOL_SMALL.map(sel => document.querySelector(sel)).filter(Boolean), 2 + Math.round(Math.random()));
-        targets.forEach((el, i) => dropElementClone(layer, el, i * 0.4));
+        // M6-6.9: pedido do usuário — mais coisa caindo que antes (2-3 peças
+        // do pool pequeno virou 6-9 do pool grande), espalhado por boa parte
+        // da janela de 10s. Ainda bem mais discreto que o "caos completo" do
+        // M7+, mas já um susto de verdade, não só 2 ícones isolados.
+        const spreadSec = Math.max(3, durationMs / 1000 - 2);
+        const chosen = pickRandom(bigTargets, Math.min(bigTargets.length, 6 + Math.round(Math.random() * 3)));
+        chosen.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, chosen.length)) * spreadSec));
         return;
     }
     // M7+: "caos completo" — quase tudo da lista grande, espalhado pela
     // janela toda (nunca tudo de uma vez, senão perde a sensação de ir
-    // desmoronando aos poucos).
+    // desmoronando aos poucos). M8+ ("caos generalizado", pedido do
+    // usuário): TUDO que existir no pool cai, não só até 22 peças.
     const spreadSec = Math.max(4, durationMs / 1000 - 3);
-    const bigTargets = [];
-    FALL_POOL_BIG.forEach(sel => document.querySelectorAll(sel).forEach(el => bigTargets.push(el)));
-    const chosen = pickRandom(bigTargets, Math.min(bigTargets.length, 22));
+    const maxPecas = m >= 8 ? bigTargets.length : Math.min(bigTargets.length, 22);
+    const chosen = pickRandom(bigTargets, maxPecas);
     chosen.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, chosen.length)) * spreadSec));
 
     // Bônus M7+: nome do site e o preço do Brent caem letra por letra.
@@ -290,18 +296,32 @@ function triggerFallingIcons(mag, durationMs) {
     const brentEl = document.getElementById('kpi-brent');
     if (wordEl) dropTextChars(layer, wordEl, 1, spreadSec * 0.7);
     if (brentEl) dropTextChars(layer, brentEl, 3, spreadSec * 0.5);
+
+    // M8+: uma SEGUNDA onda de peças cai pouco depois da primeira já ter
+    // sumido — dá a sensação de "ainda não parou de desmoronar", em vez de
+    // uma única rajada. Reaproveita o mesmo pool (clones novos; os
+    // elementos reais nunca saem do lugar).
+    if (m >= 8) {
+        setTimeout(() => {
+            const segunda = pickRandom(bigTargets, Math.min(bigTargets.length, 14));
+            segunda.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, segunda.length)) * (spreadSec * 0.6)));
+        }, Math.round(durationMs * 0.55));
+    }
 }
 window.triggerFallingIcons = triggerFallingIcons;
 
 // M6+ treme o site INTEIRO (não só o card) por 10s — pedido do usuário
-// pra dar a sensação de "caos" num sismo grande de verdade. M7+ soma um
-// escurecer piscando por cima (reaproveita #vignette-cinematic, que já
-// existe pra um efeito mais discreto — aqui com uma classe própria bem
-// mais forte) e os ícones/letras caindo acima, e a janela sobe de 10
-// pra 15s (mais espaço pra tudo cair aos poucos, sem amontoar). Roda no
-// MESMO ponto onde o card já treme/muda de cor (showEventDetails, js/
-// painel-e-lista.js) — sismo novo de verdade, clique manual no evento e
-// revisita do ciclo automático disparam igual, sem distinção.
+// pra dar a sensação de "caos" num sismo grande de verdade. A amplitude do
+// tremor sobe em 3 degraus (10px / 20px / 26px) pra M6-6.9 / M7-7.9 / M8+ —
+// "caos generalizado" tem que parecer visivelmente mais forte que um caos
+// comum, não só um pouco mais. M7+ soma um escurecer piscando por cima
+// (reaproveita #vignette-cinematic, que já existe pra um efeito mais
+// discreto — aqui com uma classe própria bem mais forte) e os ícones/letras
+// caindo acima, e a janela sobe de 10 pra 15s (mais espaço pra tudo cair aos
+// poucos, sem amontoar). Roda no MESMO ponto onde o card já treme/muda de
+// cor (showEventDetails, js/painel-e-lista.js) — sismo novo de verdade,
+// clique manual no evento e revisita do ciclo automático disparam igual,
+// sem distinção.
 let __siteChaosTimeout = null;
 function triggerSiteChaos(mag) {
     const m = Number(mag) || 0;
@@ -313,7 +333,8 @@ function triggerSiteChaos(mag) {
     if (app) {
         app.classList.remove('mg-site-shake');
         void app.offsetWidth;
-        app.style.setProperty('--mg-shake-amp', (m >= 7 ? '16px' : '10px'));
+        const amp = m >= 8 ? 26 : m >= 7 ? 20 : 10;
+        app.style.setProperty('--mg-shake-amp', amp + 'px');
         app.style.setProperty('--mg-chaos-dur', (durationMs / 1000) + 's');
         app.classList.add('mg-site-shake');
     }
