@@ -1157,6 +1157,27 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     try {
         if (window.matchMedia('(max-width:900px)').matches) { zoomAlvo = 8.3; zoomAberturaMin = 6.9; }
     } catch (e) {}
+    // Sismo NOVO (triggerVisualAlert) de M5+ ganha a frente de onda P/S, que já
+    // nasce crescendo em waveFrontGrowMs(mag) desde ANTES do voo cinematográfico
+    // terminar — a câmera dinâmica só entra em ação depois do voo (~4500ms,
+    // ver startWaveFront/camDelayMs abaixo), então o anel cresce livremente
+    // até lá no zoomAlvo "fechado de propósito" de cima. Pra sismos M5-5.9+
+    // isso já é raio suficiente pra "vazar" da tela ANTES da câmera dinâmica
+    // ter a chance de puxar pra trás (medido: raio em px passa da metade da
+    // tela por volta desses ~4.5s pra M5.2+). Por isso, só nesse caso (evento
+    // novo, M5+), o próprio ponto de partida do voo já é calculado pra caber
+    // o alcance que o anel vai ter no instante em que a câmera dinâmica entra
+    // — nunca mais apertado que isso, mas também nunca mais aberto que o
+    // zoomAlvo padrão (não muda nada pra sismo pequeno).
+    if (triggerVisualAlert && Number(item.mag) >= 5 && typeof waveFrontMaxKm === 'function' &&
+        typeof waveFrontGrowMs === 'function' && typeof calcZoomParaAlcance === 'function') {
+        try {
+            const waitMs = 4500; // 150ms (delay do startWaveFront) + camDelayMs (4350)
+            const kmNoInicioDaCam = Math.min(waveFrontMaxKm(item.mag), waveFrontMaxKm(item.mag) * Math.min(1, waitMs / waveFrontGrowMs(item.mag)));
+            const zoomSeguro = calcZoomParaAlcance(lat, kmNoInicioDaCam);
+            if (Number.isFinite(zoomSeguro)) zoomAlvo = Math.min(zoomAlvo, Math.max(1.5, zoomSeguro));
+        } catch (e) {}
+    }
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
 
