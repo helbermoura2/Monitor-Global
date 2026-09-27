@@ -22,11 +22,19 @@
   opacity: 0;
   transition: opacity .6s ease;
 }
+/* Espessura/opacidade aumentadas e um halo (box-shadow duplo: brilho colorido
+   + contorno escuro) — no mapa satélite os anéis finos e semi-transparentes
+   de antes se perdiam completamente contra o terreno (relatado: "não dá pra
+   ver eles"). O halo escuro garante contraste mesmo sobre fundo claro
+   (deserto/nuvem), e o brilho colorido garante contraste sobre fundo escuro
+   (oceano/noite). */
 .wave-front-p {
-  border: 2px dashed rgba(56, 189, 248, .55);
+  border: 3px dashed rgba(56, 189, 248, .95);
+  box-shadow: 0 0 8px 1px rgba(56, 189, 248, .85), 0 0 0 1px rgba(0, 0, 0, .55);
 }
 .wave-front-s {
-  border: 2px dashed rgba(239, 68, 68, .65);
+  border: 3px dashed rgba(248, 113, 113, .95);
+  box-shadow: 0 0 8px 1px rgba(248, 113, 113, .85), 0 0 0 1px rgba(0, 0, 0, .55);
 }
 .wave-front-wrap.grow .wave-front-p,
 .wave-front-wrap.grow .wave-front-s {
