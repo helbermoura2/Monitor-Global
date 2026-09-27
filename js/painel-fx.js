@@ -13,6 +13,7 @@ function triggerCardFx(type, color) {
     try { clearTimeout(el._fxTimeout); } catch (e) {}
     stopIconSpin();
     restoreWindLetters();
+    stopRainEffect();
     el.className.split(' ').forEach(c => { if (c.indexOf('pd-fx-') === 0) el.classList.remove(c); });
     el.style.setProperty('--pd-fx-color', color || '#38bdf8');
     // Força reflow pra reiniciar a animação mesmo selecionando o mesmo tipo
@@ -25,6 +26,7 @@ function triggerCardFx(type, color) {
     if (type === 'hurricane') {
         spinIcon(12000, 1800);
         triggerWindLetters(FX_DURATION.hurricane);
+        triggerRainEffect(FX_DURATION.hurricane);
     } else if (type === 'tornado') spinIcon(7000, 2160);
     else if (type === 'wind') triggerWindLetters(FX_DURATION.wind);
 }
@@ -117,6 +119,60 @@ function triggerWindLetters(durationMs) {
     });
     __windLettersObserver.observe(el, { childList: true });
 }
+
+// ═══════════ FURACÃO — chuva via camada fixa, fora do card ═══════════
+// Gotas de verdade (posição/tamanho/velocidade sorteados por gota, nunca um
+// padrão repetido) numa camada position:fixed direto no <body>
+// (ensureFallLayer/#mg-fall-layer, mais abaixo neste arquivo — a MESMA já
+// usada pelas letras/ícones caindo). Ver comentário grande em
+// css/painel-fx.css (mgRainFall) pro raciocínio completo de por que a
+// chuva antiga (dentro do card) não renderizava em alguns navegadores
+// mobile e essa camada fixa resolve.
+let __rainInterval = null;
+let __rainWrapper = null;
+function stopRainEffect() {
+    try { clearInterval(__rainInterval); } catch (e) {}
+    __rainInterval = null;
+    if (__rainWrapper) { try { __rainWrapper.remove(); } catch (e) {} }
+    __rainWrapper = null;
+}
+function spawnRainDrop(wrapper, w, h) {
+    const drop = document.createElement('span');
+    drop.className = 'mg-rain-drop';
+    const len = 14 + Math.random() * 16;
+    const left = -40 + Math.random() * (w + 80);
+    const dur = (0.45 + Math.random() * 0.35).toFixed(2);
+    const delay = (Math.random() * 0.6).toFixed(2);
+    drop.style.left = left + 'px';
+    drop.style.height = len + 'px';
+    drop.style.setProperty('--rain-dur', dur + 's');
+    drop.style.setProperty('--rain-delay', delay + 's');
+    drop.style.setProperty('--rain-dist', (h + 80) + 'px');
+    wrapper.appendChild(drop);
+    setTimeout(() => { try { drop.remove(); } catch (e) {} }, (Number(dur) + Number(delay)) * 1000 + 80);
+}
+function triggerRainEffect(durationMs) {
+    const painel = document.getElementById('painel-direito');
+    if (!painel) return;
+    stopRainEffect();
+    const rect = painel.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const layer = ensureFallLayer();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mg-rain-wrap';
+    wrapper.style.left = rect.left + 'px';
+    wrapper.style.top = rect.top + 'px';
+    wrapper.style.width = rect.width + 'px';
+    wrapper.style.height = rect.height + 'px';
+    layer.appendChild(wrapper);
+    __rainWrapper = wrapper;
+
+    const spawnBatch = () => { for (let i = 0; i < 4; i++) spawnRainDrop(wrapper, rect.width, rect.height); };
+    spawnBatch();
+    __rainInterval = setInterval(spawnBatch, 80);
+    setTimeout(stopRainEffect, durationMs);
+}
+window.triggerRainEffect = triggerRainEffect;
 
 // Rajada: pega algumas letras ao acaso e solta uma CÓPIA de cada uma
 // voando (translateX/Y + rotação + fade, css/painel-fx.css
