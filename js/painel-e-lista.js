@@ -1157,29 +1157,32 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     try {
         if (window.matchMedia('(max-width:900px)').matches) { zoomAlvo = 8.3; zoomAberturaMin = 6.9; }
     } catch (e) {}
-    // Sismo NOVO (triggerVisualAlert) de M5+ ganha a frente de onda P/S, que já
-    // nasce crescendo em waveFrontGrowMs(mag) desde ANTES do voo cinematográfico
-    // terminar — a câmera dinâmica só entra em ação depois do voo (~4500ms,
-    // ver startWaveFront/camDelayMs abaixo), então o anel cresce livremente
-    // até lá no zoomAlvo "fechado de propósito" de cima. Pra sismos M5-5.9+
-    // isso já é raio suficiente pra "vazar" da tela ANTES da câmera dinâmica
-    // ter a chance de puxar pra trás (medido: raio em px passa da metade da
-    // tela por volta desses ~4.5s pra M5.2+). Por isso, só nesse caso (evento
-    // novo, M5+), o próprio ponto de partida do voo já é calculado pra caber
-    // o alcance que o anel vai ter no instante em que a câmera dinâmica entra
-    // — nunca mais apertado que isso, mas também nunca mais aberto que o
-    // zoomAlvo padrão (não muda nada pra sismo pequeno).
-    if (triggerVisualAlert && Number(item.mag) >= 5 && typeof waveFrontMaxKm === 'function' &&
-        typeof waveFrontGrowMs === 'function' && typeof calcZoomParaAlcance === 'function') {
+    const soft = !!window.__mgSoftCycle;
+    window.__mgSoftCycle = false;
+
+    // A frente de onda P/S (startWaveFront) mostra o alcance REAL que a onda
+    // já percorreu desde a origem verdadeira do sismo (velocidade real
+    // acelerada por WAVE_SPEED_MULT) — não mais um alcance estilizado que
+    // sempre nasce pequeno. Isso importa aqui de dois jeitos:
+    // - Ciclo automático (soft): usa item.time como origem (ver mais abaixo),
+    //   então um sismo de HORAS atrás já aparece com o anel na distância real
+    //   dele — que pode já ser enorme. Sem abrir o voo cinematográfico já
+    //   levando isso em conta, o anel nasceria vazando a tela na hora.
+    // - Ao vivo/clique manual: a origem usada é sempre recente (ver mais
+    //   abaixo), então o alcance no instante em que a câmera dinâmica assume
+    //   (~4500ms de espera) ainda é pequeno na prática — o clamp abaixo quase
+    //   nunca faz efeito nesses dois casos, mas calcular do mesmo jeito cobre
+    //   o caso raro de um evento "ao vivo" que já chegou com alguns segundos
+    //   de atraso da fonte.
+    if (typeof calcZoomParaAlcance === 'function') {
         try {
-            const waitMs = 4500; // 150ms (delay do startWaveFront) + camDelayMs (4350)
-            const kmNoInicioDaCam = Math.min(waveFrontMaxKm(item.mag), waveFrontMaxKm(item.mag) * Math.min(1, waitMs / waveFrontGrowMs(item.mag)));
+            const origemReal = (triggerVisualAlert || soft) ? item.time : Date.now();
+            const waitMs = 4500; // ~tempo até a câmera dinâmica assumir (voo + camDelayMs)
+            const kmNoInicioDaCam = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * (Math.max(0, Date.now() - origemReal) + waitMs) / 1000);
             const zoomSeguro = calcZoomParaAlcance(lat, kmNoInicioDaCam);
             if (Number.isFinite(zoomSeguro)) zoomAlvo = Math.min(zoomAlvo, Math.max(1.5, zoomSeguro));
         } catch (e) {}
     }
-    const soft = !!window.__mgSoftCycle;
-    window.__mgSoftCycle = false;
 
     userInteractingWithGlobe = true;
     if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
@@ -1242,15 +1245,14 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     }
                 } else {
                     if (typeof startCascadeRipple === 'function') startCascadeRipple(lng, lat, getHexColor(item.mag));
-                    // "Replay": o anel agora sempre recomeça a crescer do zero (ver
-                    // startWaveFront), então nasce pequeno mesmo pra um sismo
-                    // original de horas atrás — não precisa mais só de M5+ pra fazer
-                    // sentido, um M2 pequeno agora só gera um anel pequeno mesmo.
-                    // Vale pro ciclo automático E pro clique manual, os dois passam
-                    // por aqui — único diferencial é a duração do voo inicial
-                    // (totalDur), já refletida no camDelayMs abaixo.
+                    // Ciclo automático (soft): usa a origem VERDADEIRA do sismo
+                    // (item.time) — o anel já nasce no alcance real que a onda
+                    // atingiu até agora, por mais velho que o sismo seja (ver
+                    // startWaveFront). Clique manual: "replay", recomeça a
+                    // crescer do zero (Date.now()) — revelação visual de
+                    // propósito, igual sempre foi.
                     if (typeof startWaveFront === 'function') {
-                        startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
+                        startWaveFront(lng, lat, item.mag, item.depth, soft ? item.time : Date.now(), {
                             chaseCam: true,
                             camDelayMs: Math.max(0, totalDur - 150),
                             zoomFinalMinimo: zoomAberturaMin
@@ -1269,7 +1271,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
             } else {
                 startCascadeRipple(lng, lat, getHexColor(item.mag));
                 if (typeof startWaveFront === 'function') {
-                    startWaveFront(lng, lat, item.mag, item.depth, Date.now(), {
+                    startWaveFront(lng, lat, item.mag, item.depth, soft ? item.time : Date.now(), {
                         chaseCam: true,
                         camDelayMs: Math.max(0, totalDur - 150),
                         zoomFinalMinimo: zoomAberturaMin

@@ -285,53 +285,24 @@ function startFeltZone(lng, lat, mag, depth) {
    estimativa de "até onde seria sentido" — representa a frente da onda
    sísmica se afastando do epicentro, do jeito que apps tipo GlobalQuake
    mostram (por isso os círculos de lá aparecem bem maiores que a zona
-   sentida: são métricas diferentes). Alcance final ESCALADO POR MAGNITUDE
-   (waveFrontMaxKm) — um M7+ termina cobrindo boa parte do planeta, um M2-3
-   fica pequeno e local — crescendo sempre a partir de AGORA (não do horário
-   real do sismo) ao longo de waveFrontGrowMs. Não é mais a velocidade real
-   da onda P (~7.5km/s) aplicada por tempo real: nessa velocidade, cobrir uma
-   fração visível do planeta levaria dezenas de minutos, tempo impraticável
-   de prender um evento na tela. WAVE_P_KMS/WAVE_S_KMS agora só definem a
-   PROPORÇÃO visual entre as duas ondas (S mais lenta/menor que P), não mais
-   uma velocidade absoluta usada no cálculo do raio. */
+   sentida: são métricas diferentes).
+   Alcance = velocidade REAL da onda (WAVE_P_KMS/WAVE_S_KMS) × tempo real
+   decorrido desde a origem verdadeira do sismo, acelerado por
+   WAVE_SPEED_MULT — nada de alcance-alvo estilizado por magnitude: na vida
+   real a onda P não anda mais rápido num M7 do que num M3 (a diferença
+   entre eles é o quanto ainda é PERCEPTÍVEL numa dada distância, não a
+   posição geométrica da frente de onda). Comparado com um vídeo do
+   GlobalQuake, cujo círculo reflete essa mesma distância real, um sismo de
+   ~6-15min de idade já alcança uns 4500-6750km na velocidade real (7.5km/s)
+   — sem aceleração, ficar preso nessa distância levaria literalmente esse
+   tempo todo de tela parada. WAVE_SPEED_MULT comprime isso: com 2.5x
+   (18.75km/s efetivos), o mesmo alcance sai em 2.5x menos tempo (~2.5-6min),
+   ainda realista mas praticável. */
 const WAVE_P_KMS = 7.5;
 const WAVE_S_KMS = 4.3;
-const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico absoluto, nunca alcançado na prática
+const WAVE_SPEED_MULT = 2.5; // aceleração sobre a velocidade real, só pra não prender o evento em tela por dezenas de minutos
+const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico absoluto (a onda já passou por todo o planeta)
 
-// O alcance final do anel agora é ESTILIZADO por magnitude, não mais
-// "elapsedS × velocidade real desde a origem do sismo": na velocidade real
-// da onda P (~7.5km/s) até um M7+ levaria dezenas de minutos pra cobrir uma
-// fração visível do planeta — tempo impraticável de deixar um evento preso
-// na tela. O pedido (estilo GlobalQuake) é que o TAMANHO final do anel seja
-// bem maior pra um sismo grande que pra um pequeno — um M7.7 cobrindo boa
-// parte do globo, um M3.1 ficando pequeno e local — o que exige um alcance-
-// alvo por magnitude em vez de uma velocidade real constante pra todos.
-// Cresce sempre a partir de AGORA (não do horário real do sismo, que pode
-// estar defasado) até esse alvo, ao longo de waveFrontGrowMs — evita também
-// o "pop-in" instantâneo de um sismo com item.time atrasado (o anel sempre
-// nasce pequeno e cresce visivelmente, nunca já nasce do tamanho final).
-function waveFrontMaxKm(mag) {
-    const m = Number(mag);
-    if (!Number.isFinite(m)) return 300;
-    if (m >= 8) return 10000;
-    if (m >= 7) return 7500;
-    if (m >= 6) return 4000;
-    if (m >= 5) return 1800;
-    if (m >= 4) return 800;
-    if (m >= 3) return 350;
-    return 150;
-}
-function waveFrontGrowMs(mag) {
-    const m = Number(mag);
-    if (!Number.isFinite(m)) return 8000;
-    if (m >= 8) return 60000;
-    if (m >= 7) return 45000;
-    if (m >= 6) return 35000;
-    if (m >= 5) return 25000;
-    if (m >= 4) return 18000;
-    if (m >= 3) return 12000;
-    return 8000;
-}
 let waveFrontEl = null, waveFrontUpd = null, waveFrontInterval = null, waveFrontTimer = null, waveFrontFadeTimer = null;
 // Câmera "persegue" a frente de onda P conforme ela cresce (efeito tipo
 // GlobalQuake) — guarda a referência do handler de interação pra poder
@@ -359,20 +330,24 @@ function stopWaveFront() {
     }
 }
 
-// opts.chaseCam: câmera acompanha o alcance da onda P puxando o zoom pra trás
-// aos poucos (em vez de abrir tudo de uma vez), até o teto de raioDetectavel —
-// só pro sismo ao vivo e pro clique manual (o autociclo mantém o comportamento
-// de sempre, decidido pelo chamador via opts).
+// opts.chaseCam: câmera acompanha o alcance real da onda P puxando o zoom pra
+// trás aos poucos (em vez de abrir tudo de uma vez) — usado nos três casos
+// (ao vivo, clique manual, ciclo automático), decidido pelo chamador via
+// opts; o que muda entre eles é só o originTime passado (ver comentário
+// acima da função).
 // opts.camDelayMs: espera o voo cinematográfico inicial (flyTo/softFlyToCoords)
 // terminar antes de começar a puxar a câmera — sem isso as duas animações
 // brigam pela câmera ao mesmo tempo.
 function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (!map) return;
     stopWaveFront();
-    // O anel cresce a partir de AGORA (não do horário real do sismo — ver
-    // waveFrontMaxKm acima), então originTime não entra mais no cálculo de
-    // tamanho; mantido como parâmetro só por compatibilidade com quem chama.
-    const showStartedAt = Date.now();
+    // originTime agora DEFINE o tamanho do anel: alcance = velocidade real
+    // (acelerada) × tempo decorrido desde originTime. Quem chama decide o
+    // que "origem" significa em cada caso — item.time (origem verdadeira do
+    // sismo) pro ao vivo e pro ciclo automático (o anel já nasce na
+    // distância real que a onda alcançou, por mais velho que o sismo seja),
+    // ou Date.now() pro "replay" do clique manual (nasce pequeno e cresce
+    // visivelmente, de propósito, como uma re-exibição).
     const host = document.getElementById('mapContainer');
     if (!host) return;
 
@@ -399,11 +374,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     const camDelayMs = Math.max(0, (opts && opts.camDelayMs) || 0);
     const camStartAt = Date.now() + camDelayMs;
     // A câmera só começa a se mover depois de camDelayMs (esperando o voo
-    // cinematográfico inicial terminar), mas o ANEL já está crescendo desde
-    // showStartedAt (sem esse atraso). Como a câmera agora persegue o raio
-    // ATUAL do anel a cada tick (sem interpolação por duração própria), os
-    // dois convergem naturalmente perto do fim do crescimento — sem precisar
-    // encurtar nenhuma duração de sweep pra sincronizar os dois.
+    // cinematográfico inicial terminar), mas o ANEL já reflete o alcance real
+    // desde originTime (sem esse atraso — pode inclusive já nascer grande,
+    // se originTime for um sismo antigo revisitado).
     // Definidos preguiçosamente (null até o delay passar) — se pegasse
     // map.getZoom() já aqui, capturaria o zoom de ANTES do voo cinematográfico
     // inicial terminar (ainda no meio do flyTo de 4.5s).
@@ -421,19 +394,13 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         map.on('touchstart', waveCamAbortHandler);
     }
 
-    const alvoKm = waveFrontMaxKm(mag);
-    const growMs = waveFrontGrowMs(mag);
-
     const place = () => {
         if (!map || !waveFrontEl) return;
-        const elapsedMs = Math.max(0, Date.now() - showStartedAt);
-        const progressoOnda = Math.min(1, elapsedMs / growMs);
+        const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
         const z = map.getZoom();
         const mpp = metrosPorPixel(lat, z);
-        const kmP = Math.min(WAVE_MAX_KM, alvoKm * progressoOnda);
-        // Mantém a proporção visual real P/S (onda S é mais lenta, ~57% da
-        // velocidade da P) mesmo com o alcance final agora estilizado.
-        const kmS = kmP * (WAVE_S_KMS / WAVE_P_KMS);
+        const kmP = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
+        const kmS = Math.min(WAVE_MAX_KM, WAVE_S_KMS * WAVE_SPEED_MULT * elapsedS);
         const pxP = (kmP * 1000) / mpp * 2;
         const pxS = (kmS * 1000) / mpp * 2;
         const pt = map.project(coords);
@@ -467,14 +434,15 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // puxada direto pra lá — o próprio ritmo de ticks (~a cada frame
             // de move/zoom) mais a duration:320 do easeTo já suavizam o
             // movimento, sem o atraso sistemático artificial que o blend
-            // introduzia.
+            // introduzia. Agora que o alcance cresce de forma puramente
+            // LINEAR no tempo real (sem a curva estilizada de antes), essa
+            // perseguição tick-a-tick acompanha o crescimento com muito
+            // menos folga.
             // Mirar exatamente no raio ATUAL (kmP) ainda deixa a câmera
             // sempre um passo atrás: o zoom real do mapa (map.getZoom())
             // só alcança o alvo depois da easeTo de 320ms rodar, e nesse
-            // meio-tempo o raio real já cresceu mais — na prática um pico
-            // passageiro de "vazamento" logo que a câmera começa a reagir
-            // (medido: ~600px por ~3s, contra 500px seguro). Por isso mira-se
-            // um pouco ADIANTE (lookaheadMs), no raio que o anel terá daqui a
+            // meio-tempo o raio real já cresceu mais. Por isso mira-se um
+            // pouco ADIANTE (camLookaheadMs), no raio que o anel terá daqui a
             // pouco — a câmera fica sempre a alguns instantes à frente do
             // crescimento real, em vez de correndo atrás dele.
             // Usar raioDetectavel aqui também já foi um bug antigo: é a
@@ -483,8 +451,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // físico de WAVE_MAX_KM) — por isso precisava de zoom out manual
             // pra ver o anel inteiro.
             const camLookaheadMs = 900;
-            const progressoAntecipado = Math.min(1, (elapsedMs + camLookaheadMs) / growMs);
-            const kmAlvoCam = Math.min(WAVE_MAX_KM, alvoKm * progressoAntecipado);
+            const kmAlvoCam = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
             // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
             // caiba dentro do enquadramento "regional" de sempre, precisa abrir
             // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
@@ -503,9 +470,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                     });
                 } catch (e) {}
             }
-            // Só "termina" quando o anel de verdade parar de crescer — chegou no
-            // alcance-alvo por magnitude (waveFrontMaxKm).
-            if (progressoOnda >= 1) camAtingiuTeto = true;
+            // Só "termina" (pra de reagir) quando a onda já bateu no teto
+            // físico absoluto — na prática nunca, um sismo teria que ficar
+            // selecionado por dias.
+            if (kmP >= WAVE_MAX_KM) camAtingiuTeto = true;
         }
     };
     waveFrontUpd = place;
