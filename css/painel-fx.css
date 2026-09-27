@@ -724,7 +724,18 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   width: 2px;
   border-radius: 2px;
   background: linear-gradient(to bottom, transparent, rgba(191,219,254,.95));
-  animation: mgRainFall var(--rain-dur, .6s) linear var(--rain-delay, 0s) 1 both;
+  /* Duração/atraso em propriedades longhand (animation-duration/-delay),
+     NUNCA embutidos dentro do shorthand `animation` — var() como valor de
+     TEMPO dentro do shorthand tem suporte historicamente inconsistente em
+     alguns motores mobile. As letras (que funcionam) já seguem esse
+     padrão: --wl-i entra via animation-delay separado (calc()), nunca
+     dentro de um `animation: ...` só. */
+  animation-name: mgRainFall;
+  animation-duration: var(--rain-dur, .6s);
+  animation-delay: var(--rain-delay, 0s);
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
 }
 @media (prefers-reduced-motion: reduce) {
   .mg-rain-drop { animation: none !important; }
