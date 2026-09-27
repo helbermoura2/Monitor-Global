@@ -398,15 +398,12 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         typeof calcZoomParaAlcance === 'function' && typeof centroCompensado === 'function';
     const camDelayMs = Math.max(0, (opts && opts.camDelayMs) || 0);
     const camStartAt = Date.now() + camDelayMs;
-    // A câmera só começa a interpolar depois de camDelayMs (esperando o voo
+    // A câmera só começa a se mover depois de camDelayMs (esperando o voo
     // cinematográfico inicial terminar), mas o ANEL já está crescendo desde
-    // showStartedAt (sem esse atraso). Se a câmera usasse o mesmo
-    // waveFrontGrowMs(mag) como duração da SUA PRÓPRIA interpolação, ela só
-    // terminaria de abrir camDelayMs DEPOIS do anel já ter parado de crescer
-    // — dava a impressão de "o zoom out continua puxando bem depois do anel
-    // já ter parado". Encurtando pelo atraso já gasto, os dois terminam
-    // exatamente no mesmo instante real (showStartedAt + waveFrontGrowMs).
-    const camSweepMs = Math.max(1000, waveFrontGrowMs(mag) - camDelayMs);
+    // showStartedAt (sem esse atraso). Como a câmera agora persegue o raio
+    // ATUAL do anel a cada tick (sem interpolação por duração própria), os
+    // dois convergem naturalmente perto do fim do crescimento — sem precisar
+    // encurtar nenhuma duração de sweep pra sincronizar os dois.
     // Definidos preguiçosamente (null até o delay passar) — se pegasse
     // map.getZoom() já aqui, capturaria o zoom de ANTES do voo cinematográfico
     // inicial terminar (ainda no meio do flyTo de 4.5s).
@@ -425,8 +422,6 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
 
     const alvoKm = waveFrontMaxKm(mag);
-    // Duração de crescimento do anel — usa a escala completa por magnitude,
-    // NÃO o camSweepMs encurtado (esse é só da câmera, ver comentário acima).
     const growMs = waveFrontGrowMs(mag);
 
     const place = () => {
@@ -450,24 +445,55 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial,
             // vira o ponto de partida da interpolação.
             if (camZoomInicial == null) { camZoomInicial = map.getZoom(); camZoomAtual = camZoomInicial; }
-            // A câmera precisa acompanhar o mesmo raio que o anel AZUL (onda P)
-            // está desenhando na tela AGORA — kmP, sem teto de raioDetectavel.
-            // Usar raioDetectavel aqui era o bug: é a métrica da zona SENTIDA
-            // (bem menor), então a câmera parava de abrir muito antes do anel
-            // real (que não tem esse teto, só o físico de WAVE_MAX_KM) — por
-            // isso precisava de zoom out manual pra ver o anel inteiro.
-            const kmAlvoCam = kmP;
+            // A câmera mira no raio ATUAL do anel (kmP), recalculando o alvo
+            // a cada tick — não interpola linearmente por `progresso` rumo a
+            // um alvo fixo. Zoom é aproximadamente LOGARÍTMICO em km, então
+            // interpolar zoom linearmente no tempo não acompanha o raio (que
+            // cresce linear/físico) — isso já causou dois bugs opostos:
+            // 1) usando kmP com blend linear por progresso: o blend gastava
+            //    a maior parte do percurso mirando um alvo ainda pequeno (kmP
+            //    baixo no começo), sobrando pouco tempo pra abrir de verdade
+            //    perto do fim — anel "vazava" da tela perto de 90% do
+            //    crescimento e só assentava vários segundos depois.
+            // 2) usando alvoKm fixo com o MESMO blend linear: corrigia o
+            //    vazamento tardio, mas como o blend caminha em passo
+            //    constante rumo a um zoom-alvo fixo (e zoom≈log(km)), a
+            //    câmera abria RÁPIDO DEMAIS no início (leve estouro em
+            //    t=9-12s) e depois ficava PARADA/atrasada enquanto o raio
+            //    real (linear) continuava crescendo — o anel encolhia em
+            //    pixels de t=12 a t=27 mesmo crescendo em km.
+            // Fix: descartar o blend por progresso inteiramente. A cada tick
+            // calcula-se o zoom que enquadraria o raio do anel e a câmera é
+            // puxada direto pra lá — o próprio ritmo de ticks (~a cada frame
+            // de move/zoom) mais a duration:320 do easeTo já suavizam o
+            // movimento, sem o atraso sistemático artificial que o blend
+            // introduzia.
+            // Mirar exatamente no raio ATUAL (kmP) ainda deixa a câmera
+            // sempre um passo atrás: o zoom real do mapa (map.getZoom())
+            // só alcança o alvo depois da easeTo de 320ms rodar, e nesse
+            // meio-tempo o raio real já cresceu mais — na prática um pico
+            // passageiro de "vazamento" logo que a câmera começa a reagir
+            // (medido: ~600px por ~3s, contra 500px seguro). Por isso mira-se
+            // um pouco ADIANTE (lookaheadMs), no raio que o anel terá daqui a
+            // pouco — a câmera fica sempre a alguns instantes à frente do
+            // crescimento real, em vez de correndo atrás dele.
+            // Usar raioDetectavel aqui também já foi um bug antigo: é a
+            // métrica da zona SENTIDA (bem menor), então a câmera parava de
+            // abrir muito antes do anel real (que não tem esse teto, só o
+            // físico de WAVE_MAX_KM) — por isso precisava de zoom out manual
+            // pra ver o anel inteiro.
+            const camLookaheadMs = 900;
+            const progressoAntecipado = Math.min(1, (elapsedMs + camLookaheadMs) / growMs);
+            const kmAlvoCam = Math.min(WAVE_MAX_KM, alvoKm * progressoAntecipado);
             // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
             // caiba dentro do enquadramento "regional" de sempre, precisa abrir
             // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
             // estática) só porque o alvo calculado já cabia no zoom inicial.
             const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
             const zoomFinal = Math.min(Math.max(1.5, calcZoomParaAlcance(lat, kmAlvoCam)), zoomMin);
-            const progresso = Math.min(1, (Date.now() - camStartAt) / camSweepMs);
-            const zoomAlvoAgora = camZoomInicial + (zoomFinal - camZoomInicial) * progresso;
             // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
-            if (zoomAlvoAgora < camZoomAtual - 0.01) {
-                camZoomAtual = zoomAlvoAgora;
+            if (zoomFinal < camZoomAtual - 0.01) {
+                camZoomAtual = zoomFinal;
                 try {
                     map.easeTo({
                         center: centroCompensado(lng, lat, camZoomAtual),
@@ -478,10 +504,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 } catch (e) {}
             }
             // Só "termina" quando o anel de verdade parar de crescer — chegou no
-            // alcance-alvo por magnitude (waveFrontMaxKm), não mais um teto físico
-            // genérico. Como progresso e progressoOnda correm no mesmo ritmo
-            // (camSweepMs === growMs), os dois terminam juntos.
-            if (progresso >= 1 && progressoOnda >= 1) camAtingiuTeto = true;
+            // alcance-alvo por magnitude (waveFrontMaxKm).
+            if (progressoOnda >= 1) camAtingiuTeto = true;
         }
     };
     waveFrontUpd = place;
