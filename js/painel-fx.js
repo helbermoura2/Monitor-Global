@@ -149,9 +149,44 @@ function spawnLetterGust(el) {
         setTimeout(() => { try { clone.remove(); } catch (e) {} }, 1300);
     });
 }
+// Detritos do card voando na rajada — pedido do usuário: "coisas voando
+// (além do nome)". Mesma técnica do spawnLetterGust (clona, nunca mexe no
+// elemento real, some sozinho), só que aqui a peça é um elemento inteiro do
+// card (bandeira, categoria/magnitude, um cartão de estatística...), não uma
+// letra avulsa — dá a sensação de o vento arrancando pedaço do painel, não só
+// do nome do lugar.
+const WIND_DEBRIS_SELECTORS = ['#pd-flag', '#pd-mag', '.stat-card', '#pd-chips .chip'];
+function spawnCardDebris() {
+    const candidatos = [];
+    WIND_DEBRIS_SELECTORS.forEach(sel => document.querySelectorAll(sel).forEach(el => candidatos.push(el)));
+    const el = pickRandom(candidatos, 1)[0];
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const layer = ensureFallLayer();
+    const cs = getComputedStyle(el);
+    const clone = el.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.className = 'pd-fx-letter-blown';
+    clone.style.font = cs.font;
+    clone.style.color = cs.color;
+    clone.style.margin = '0';
+    clone.style.left = rect.left + 'px';
+    clone.style.top = rect.top + 'px';
+    clone.style.width = rect.width + 'px';
+    clone.style.height = rect.height + 'px';
+    const dx = Math.round(140 + Math.random() * 110);
+    const dy = Math.round(-40 + Math.random() * 60);
+    const rot = Math.round(180 + Math.random() * 320);
+    clone.style.setProperty('--blow-dx', dx + 'px');
+    clone.style.setProperty('--blow-dy', dy + 'px');
+    clone.style.setProperty('--blow-rot', rot + 'deg');
+    layer.appendChild(clone);
+    setTimeout(() => { try { clone.remove(); } catch (e) {} }, 1300);
+}
 function startLetterGusts(el, durationMs) {
     stopLetterGusts();
-    __letterGustInterval = setInterval(() => spawnLetterGust(el), 1500);
+    __letterGustInterval = setInterval(() => { spawnLetterGust(el); spawnCardDebris(); }, 1500);
     setTimeout(stopLetterGusts, durationMs);
 }
 function stopLetterGusts() {
@@ -178,6 +213,11 @@ const FALL_POOL_BIG = [
     '.mg-logo-icon', '#kpi-wx-icon', '#kpi-brent-label', '#btn-radar-header',
     '.av-radar', '#kpi-relogio', '#sp-city-name', '#kpi-temp', '#kpi-wind', '.chip'
 ];
+// M7+ (pedido do usuário): também cai gente da caixa de registros
+// (#events, "REGISTROS EXIBIDOS") e do próprio card principal
+// (#painel-direito) — sem isso o caos ficava só no cabeçalho, o resto da
+// tela parecia intocado.
+const FALL_POOL_CARD = ['#pd-mag', '#pd-flag', '.stat-card'];
 
 function ensureFallLayer() {
     let layer = document.getElementById('mg-fall-layer');
@@ -289,7 +329,17 @@ function triggerFallingIcons(mag, durationMs) {
     const spreadSec = Math.max(4, durationMs / 1000 - 3);
     const maxPecas = m >= 8 ? bigTargets.length : Math.min(bigTargets.length, 22);
     const chosen = pickRandom(bigTargets, maxPecas);
-    chosen.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, chosen.length)) * spreadSec));
+
+    // Peças da caixa de registros e do card principal — GARANTIDAS (não
+    // sujeitas ao sorteio do pool do cabeçalho acima), pra sempre aparecer
+    // nessas duas regiões da tela quando for M7+. Em telas onde a caixa de
+    // registros/card estão ocultos (ex.: mobile com a lista fechada), o
+    // guard de tamanho zero em dropElementClone já pula sozinho, sem erro.
+    const eventCards = pickRandom([...document.querySelectorAll('#events .event')], 4);
+    const cardPieces = [];
+    FALL_POOL_CARD.forEach(sel => document.querySelectorAll(sel).forEach(el => cardPieces.push(el)));
+    const todos = chosen.concat(eventCards, cardPieces);
+    todos.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, todos.length)) * spreadSec));
 
     // Bônus M7+: nome do site e o preço do Brent caem letra por letra.
     const wordEl = document.querySelector('.mg-logo-word');
