@@ -686,40 +686,48 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   pointer-events: none;
   animation: pdGustSheet 1.9s ease-in-out infinite;
 }
-/* Camada de reforço da chuva — usuário relatou a chuva (só ela, não raio/
-   tremor/letras) sumindo no Samsung Internet mesmo com o overlay
-   corretamente posicionado (confirmado por inspeção: opacidade e
-   animação corretas). Em vez de tentar adivinhar qual detalhe exato de
-   composição/GPU está falando mais alto nesse navegador específico,
-   soma-se uma SEGUNDA técnica de chuva, totalmente independente da
-   primeira (.pd-fx-ember + transform): um gradiente repetido animado só
-   por background-position, sem elementos extras nem transform/opacity
-   por item — a técnica de "chuva CSS" mais antiga e amplamente suportada
-   que existe. Se uma das duas falhar em algum navegador, a outra cobre;
-   nunca ficam sincronizadas (visualmente reforça, não duplica igual). */
-@keyframes pdRainSheetFallback {
-  from { background-position: 0 0; }
-  to   { background-position: -160px 320px; }
+/* Chuva via camada fixa (fora do card) — ver js/painel-fx.js,
+   triggerRainEffect/mg-rain-wrap/mg-rain-drop. Usuário relatou a chuva
+   (só ela, não raio/tremor/letras) sumindo no Samsung Internet mesmo com
+   o overlay corretamente posicionado (confirmado por inspeção: opacidade
+   e animação corretas). Uma primeira tentativa de reforço (gradiente
+   repetido animado por background-position, aqui mesmo no #pd-fx-overlay)
+   RENDERIZOU no Samsung, mas com cara de "veneziana"/linhas paralelas
+   uniformes, não chuva de verdade ("tem que ser algo verdadeiro",
+   reportado pelo usuário) — limitação inerente de repeating-linear-
+   gradient, que é sempre perfeitamente periódico.
+   A chuva agora é gerada por JS como gotas individuais (posição/tamanho/
+   velocidade aleatórios de verdade, não um padrão repetido) numa camada
+   position:fixed direto no <body> (#mg-fall-layer, a mesma já usada pelas
+   letras/ícones caindo) — NUNCA aninhada dentro de #painel-direito, que
+   TAMBÉM anima sozinho (mg-panel-swap) quase sempre no mesmo instante em
+   que a chuva dispara; um elemento animando dentro de outro que está
+   animando ao mesmo tempo, com overflow:hidden no meio, é o padrão mais
+   provável de travar composição em motores mobile — letras e ícones já
+   usam essa mesma camada fixa e renderizam normalmente no Samsung
+   Internet do usuário, por isso a chuva passa a usar a técnica idêntica
+   em vez de mais uma variação aninhada. */
+@keyframes mgRainFall {
+  0%   { transform: translate(35px, -30px) rotate(21deg); opacity: 0; }
+  10%  { opacity: .95; }
+  85%  { opacity: .85; }
+  100% { transform: translate(-30px, var(--rain-dist, 340px)) rotate(21deg); opacity: 0; }
 }
-#painel-direito.pd-fx-hurricane #pd-fx-overlay::after {
-  content: "";
-  position: absolute;
-  top: -20%;
-  right: -20%;
-  bottom: -20%;
-  left: -20%;
-  background-image: repeating-linear-gradient(
-    112deg,
-    transparent 0px,
-    transparent 16px,
-    rgba(191,219,254,.55) 16px,
-    rgba(191,219,254,.8) 18px,
-    transparent 18px,
-    transparent 42px
-  );
-  background-size: 200% 200%;
+.mg-rain-wrap {
+  position: fixed;
+  overflow: hidden;
   pointer-events: none;
-  animation: pdRainSheetFallback .7s linear infinite;
+}
+.mg-rain-drop {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(191,219,254,.95));
+  animation: mgRainFall var(--rain-dur, .6s) linear var(--rain-delay, 0s) 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-rain-drop { animation: none !important; }
 }
 /* Chuva batida: fio comprido azul-claro caindo na diagonal (pra baixo e pra
    esquerda, empurrado pelo vento); o rotate alinha o fio com a direção do
