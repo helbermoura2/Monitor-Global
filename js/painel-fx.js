@@ -78,6 +78,17 @@ function wrapWindLetters(el) {
         const span = document.createElement('span');
         span.className = 'pd-fx-windletter';
         span.style.setProperty('--wl-i', i);
+        // Direção da rajada sorteada por letra (pedido do usuário: "voar em
+        // várias direções, não só uma") — antes toda letra ia pro mesmo
+        // canto (cima-esquerda, fixo no CSS); agora cada uma sorteia seu
+        // próprio ângulo/distância (css/painel-fx.css, pdLetterGust usa
+        // --wl-dx/--wl-dy/--wl-rot), então a rajada varre o texto em
+        // ziguezague, não numa fileira só inclinando igual.
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 10 + Math.random() * 16;
+        span.style.setProperty('--wl-dx', (Math.cos(ang) * dist).toFixed(1) + 'px');
+        span.style.setProperty('--wl-dy', (Math.sin(ang) * dist).toFixed(1) + 'px');
+        span.style.setProperty('--wl-rot', Math.round((Math.random() * 2 - 1) * 34) + 'deg');
         // Espaço normal SOZINHO dentro de um inline-block é tratado como
         // espaço "de borda" e colapsado pra zero (o texto colava:
         // "FuracãoKatrina") — troca por espaço não-quebrável, que não
@@ -139,9 +150,13 @@ function spawnLetterGust(el) {
         clone.style.top = rect.top + 'px';
         clone.style.width = rect.width + 'px';
         clone.style.height = rect.height + 'px';
-        const dx = Math.round(120 + Math.random() * 90);
-        const dy = Math.round(-30 + Math.random() * 50);
-        const rot = Math.round(220 + Math.random() * 220);
+        // Direção sorteada em 360° (pedido do usuário: "várias direções, não
+        // só uma") — antes dx era sempre positivo (só voava pra direita).
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 90 + Math.random() * 120;
+        const dx = Math.round(Math.cos(ang) * dist);
+        const dy = Math.round(Math.sin(ang) * dist);
+        const rot = Math.round((Math.random() * 2 - 1) * 420);
         clone.style.setProperty('--blow-dx', dx + 'px');
         clone.style.setProperty('--blow-dy', dy + 'px');
         clone.style.setProperty('--blow-rot', rot + 'deg');
@@ -175,9 +190,14 @@ function spawnCardDebris() {
     clone.style.top = rect.top + 'px';
     clone.style.width = rect.width + 'px';
     clone.style.height = rect.height + 'px';
-    const dx = Math.round(140 + Math.random() * 110);
-    const dy = Math.round(-40 + Math.random() * 60);
-    const rot = Math.round(180 + Math.random() * 320);
+    // Mesma direção em 360° das letras (spawnLetterGust) — consistência
+    // visual: tudo que voa na rajada segue a mesma física de "vento em
+    // várias direções", não só uma.
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 120 + Math.random() * 150;
+    const dx = Math.round(Math.cos(ang) * dist);
+    const dy = Math.round(Math.sin(ang) * dist);
+    const rot = Math.round((Math.random() * 2 - 1) * 420);
     clone.style.setProperty('--blow-dx', dx + 'px');
     clone.style.setProperty('--blow-dy', dy + 'px');
     clone.style.setProperty('--blow-rot', rot + 'deg');
