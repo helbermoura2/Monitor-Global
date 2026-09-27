@@ -686,6 +686,41 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   pointer-events: none;
   animation: pdGustSheet 1.9s ease-in-out infinite;
 }
+/* Camada de reforço da chuva — usuário relatou a chuva (só ela, não raio/
+   tremor/letras) sumindo no Samsung Internet mesmo com o overlay
+   corretamente posicionado (confirmado por inspeção: opacidade e
+   animação corretas). Em vez de tentar adivinhar qual detalhe exato de
+   composição/GPU está falando mais alto nesse navegador específico,
+   soma-se uma SEGUNDA técnica de chuva, totalmente independente da
+   primeira (.pd-fx-ember + transform): um gradiente repetido animado só
+   por background-position, sem elementos extras nem transform/opacity
+   por item — a técnica de "chuva CSS" mais antiga e amplamente suportada
+   que existe. Se uma das duas falhar em algum navegador, a outra cobre;
+   nunca ficam sincronizadas (visualmente reforça, não duplica igual). */
+@keyframes pdRainSheetFallback {
+  from { background-position: 0 0; }
+  to   { background-position: -160px 320px; }
+}
+#painel-direito.pd-fx-hurricane #pd-fx-overlay::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -20%;
+  bottom: -20%;
+  left: -20%;
+  background-image: repeating-linear-gradient(
+    112deg,
+    transparent 0px,
+    transparent 16px,
+    rgba(191,219,254,.55) 16px,
+    rgba(191,219,254,.8) 18px,
+    transparent 18px,
+    transparent 42px
+  );
+  background-size: 200% 200%;
+  pointer-events: none;
+  animation: pdRainSheetFallback .7s linear infinite;
+}
 /* Chuva batida: fio comprido azul-claro caindo na diagonal (pra baixo e pra
    esquerda, empurrado pelo vento); o rotate alinha o fio com a direção do
    movimento pra parecer chuva soprada, não pingo caindo reto.
