@@ -1166,6 +1166,15 @@ input[type=range]::-webkit-slider-thumb { background: var(--cyan) !important; bo
 .bubble-section { padding: 9px !important; }
 #pd-cities { max-height: 150px !important; }
 }
+/* color-scheme:dark avisa o navegador que o site JÁ É escuro por padrão
+   (não tem alternativa clara/escura, é sempre dark) — sem isso, o "modo
+   escuro" de alguns navegadores mobile (Samsung Internet incluso) tenta
+   REPROCESSAR as cores da página sozinho pra forçar um tema escuro,
+   mesmo ela já sendo escura. Usuário relatou exatamente esse sintoma:
+   card com aspecto "vidro escuro/azulado" e efeitos sumindo — clássico de
+   reprocessamento automático de cor. Com esse aviso, o navegador para de
+   tentar "escurecer" por conta própria e usa as cores originais do site. */
+:root { color-scheme: dark; }
 :root { --font-mono: "Roboto Mono", "SFMono-Regular", Consolas, monospace; --focus: #fbbf24; --surface: #071426; --line: rgba(86,166,220,.16); --muted: #70869b; --ui-bg: #030712; --ui-panel: #07111f; --ui-panel2: #0a1627; --ui-line: rgba(100,180,255,.16); --ui-line2: rgba(148,163,184,.10); --ui-text: #e8f1fb; --ui-muted: #71839a; --ui-cyan: #38bdf8; --ui-blue: #60a5fa; --ui-green: #4ade80; --ui-yellow: #facc15; --ui-orange: #fb923c; --ui-red: #fb4b5b; --bg: #030811; --panel: #06111e; --panel2: #081727; --line2: rgba(86,166,220,.08); --cyan: #48d8ff; --cyan2: #0ea5e9; --text: #e8f4ff; --green: #36e0a0; --amber: #ffc857; --danger: #ff5b62; --font-main: Inter, "Segoe UI", Roboto, Arial, sans-serif; }
 @media screen and (min-width:901px) {
 #app { grid-template-columns: 330px minmax(0,1fr) 380px !important; }
