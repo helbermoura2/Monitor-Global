@@ -927,23 +927,37 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
      precisar reescrever nada aqui. */
   animation: mgSiteShake var(--mg-chaos-dur,10s) cubic-bezier(.36,.07,.19,.97) 1;
 }
-/* Escurecer piscando (só M7+) — 3 "quedas de luz" espalhadas pela janela,
-   nunca ficando escuro parado (isso deixaria o site ilegível/inutilizável
-   pelos segundos inteiros do efeito). Reaproveita #vignette-cinematic (já
-   existe, fixed, cobre a tela toda, pointer-events:none) com uma classe
-   própria bem mais forte que o uso normal dele (vignette-active, só uma
-   borda sutil). */
+/* Escurecer piscando (só M7+) — 5 "quedas de luz" espalhadas pela janela em
+   intervalos regulares (a cada 20% da duração, era a cada ~34%), nunca
+   ficando escuro parado (isso deixaria o site ilegível/inutilizável pelos
+   segundos inteiros do efeito). Pedido do usuário: "o flash da tela mais
+   rápido" — mais bursts na mesma janela = flashes mais frequentes, sem
+   precisar reduzir --mg-chaos-dur (que também controla o tremor via
+   mgSiteShake). Reaproveita #vignette-cinematic (já existe, fixed, cobre a
+   tela toda, pointer-events:none) com uma classe própria bem mais forte que
+   o uso normal dele (vignette-active, só uma borda sutil). */
 @keyframes mgChaosDark {
-  0%, 20%   { opacity: 0; }
-  4%        { opacity: .85; }
-  9%        { opacity: .15; }
-  14%       { opacity: .8; }
-  38%, 54%  { opacity: 0; }
-  42%       { opacity: .78; }
-  48%       { opacity: .1; }
-  72%, 100% { opacity: 0; }
-  76%       { opacity: .72; }
-  82%       { opacity: .08; }
+  0%        { opacity: 0; }
+  2%        { opacity: .85; }
+  4%        { opacity: .15; }
+  6%        { opacity: .8; }
+  8%, 20%   { opacity: 0; }
+  22%       { opacity: .85; }
+  24%       { opacity: .15; }
+  26%       { opacity: .8; }
+  28%, 40%  { opacity: 0; }
+  42%       { opacity: .85; }
+  44%       { opacity: .15; }
+  46%       { opacity: .8; }
+  48%, 60%  { opacity: 0; }
+  62%       { opacity: .85; }
+  64%       { opacity: .15; }
+  66%       { opacity: .8; }
+  68%, 80%  { opacity: 0; }
+  82%       { opacity: .85; }
+  84%       { opacity: .15; }
+  86%       { opacity: .8; }
+  88%, 100% { opacity: 0; }
 }
 #vignette-cinematic.mg-chaos-dark {
   background: #000;
