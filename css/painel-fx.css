@@ -6,14 +6,23 @@
    decorativa no modo mobile-details-mid/open, css/ui-motion.css) — usar
    elementos próprios evita qualquer conflito de seletor.
 
-   #pd-fx-overlay fica com z-index:-1 dentro do stacking context do próprio
-   #painel-direito (que já é position:absolute): isso o coloca ACIMA do
-   fundo de vidro do card, mas ABAIXO de todo o conteúdo normal (que não
-   tem z-index própria) — nunca tampa texto. */
+   #pd-fx-overlay é o PRIMEIRO filho de #painel-direito no HTML — isso
+   sozinho já garante que ele pinta ABAIXO de todo o resto do conteúdo
+   (cabeçalho, gauge, texto...) na ordem normal do DOM, sem precisar de
+   z-index negativo. ANTES usava z-index:-1 pra "escapar" pro fundo do
+   stacking context do próprio #painel-direito — só que isso depende do
+   navegador tratar #painel-direito como stacking context corretamente em
+   TODO breakpoint/estado (mobile tem várias regras de layout empilhadas,
+   css/mobile-*.css), e relatou-se a chuva de furacão/tufão sumindo por
+   completo no Samsung Internet (só a chuva — raio, tremor e letras
+   voando, que não dependem de z-index negativo, continuavam aparecendo).
+   z-index:0 evita esse tipo de bug de composição em navegadores/GPUs
+   específicos: não depende de "escapar" de nada, só da ordem natural do
+   DOM, que é universalmente confiável. */
 #pd-fx-overlay {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   opacity: 0;
   border-radius: inherit;
@@ -723,9 +732,13 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 #painel-direito.pd-fx-hurricane .pd-fx-bolt-2 { animation: pdBoltFlashB 4s ease-out infinite; }
 #painel-direito.pd-fx-hurricane #lightning-flash { animation: pdStormFlash 4s ease-out infinite; }
 /* Vento arrancando as letras do local (#pd-local): cada letra levanta e voa
-   pra esquerda-cima (mesma direção do vento que inclina a chuva) e volta, com
-   o atraso escalonado por --wl-i (índice da letra) fazendo a rajada varrer o
-   texto da esquerda pra direita, tipo onda. */
+   e volta, com o atraso escalonado por --wl-i (índice da letra) fazendo a
+   rajada varrer o texto da esquerda pra direita, tipo onda. A DIREÇÃO de
+   cada letra vem de --wl-dx/--wl-dy/--wl-rot, sorteados por letra em
+   wrapWindLetters (js/painel-fx.js) — pedido do usuário: antes toda letra
+   ia pro mesmo canto (cima-esquerda), agora cada uma voa pro seu próprio
+   lado, dando a sensação de rajada de verdade (várias direções), não uma
+   fileira toda inclinando igual. */
 .pd-fx-windletter {
   display: inline-block;
   transform-origin: center bottom;
@@ -733,8 +746,8 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 }
 @keyframes pdLetterGust {
   0%, 100% { transform: translate(0,0) rotate(0deg); opacity: 1; }
-  35%      { transform: translate(-24px,-13px) rotate(-34deg); opacity: .5; }
-  62%      { transform: translate(-9px,-4px) rotate(-11deg); opacity: .85; }
+  35%      { transform: translate(var(--wl-dx,-24px), var(--wl-dy,-13px)) rotate(var(--wl-rot,-34deg)); opacity: .5; }
+  62%      { transform: translate(calc(var(--wl-dx,-24px) * .38), calc(var(--wl-dy,-13px) * .38)) rotate(calc(var(--wl-rot,-34deg) * .32)); opacity: .85; }
 }
 #painel-direito.pd-fx-hurricane .pd-fx-windletter {
   animation: pdLetterGust 2.4s ease-in-out infinite;
