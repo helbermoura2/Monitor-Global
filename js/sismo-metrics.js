@@ -200,7 +200,14 @@ function waveHoldMs(mag) {
     const alcanceMaxKm = waveFrontMaxKm(mag);
     const tempoOndaMs = (alcanceMaxKm / (WAVE_P_KMS * WAVE_SPEED_MULT)) * 1000;
     const BUFFER_MS = 7000;
-    return Math.min(480000, Math.max(10000, tempoOndaMs + BUFFER_MS));
+    // Piso de 60s (era 10s): pedido do usuário depois de ver, em vídeo, um
+    // sismo pequeno ficando pouquíssimo tempo em tela antes do automático
+    // já trocar de novo — sem tempo nem do pop-up "Alcance do sismo" (que
+    // só abre aos 12s) terminar de aparecer. 1 minuto garante que qualquer
+    // evento NOVO (ao vivo ou clique manual) segura a tela tempo suficiente
+    // pra realmente ser visto, mesmo sismos pequenos cuja física da onda
+    // sozinha pediria bem menos.
+    return Math.min(480000, Math.max(60000, tempoOndaMs + BUFFER_MS));
 }
 
 // Nunca some sozinha por conta de um timer interno — só quando outro evento
@@ -506,6 +513,17 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
 
     const alcanceMaxKm = waveFrontMaxKm(mag);
+    // Teto de abertura da câmera: o raio DETECTÁVEL (o anel tracejado mais
+    // externo da zona crítica) — pedido do usuário depois de ver, em vídeo,
+    // a câmera abrindo até mostrar quase o oceano inteiro atrás de um sismo
+    // razoavelmente pequeno. alcanceMaxKm (teto da onda P/S) é quase sempre
+    // BEM maior que o raio detectável (a onda continua existindo, em
+    // teoria, bem além de onde alguém realmente sentiria ou um
+    // instrumento razoável detectaria) — sem este teto a câmera seguia
+    // abrindo pra acompanhar a onda até esse alcance físico gigante, em vez
+    // de parar quando o anel tracejado (o que realmente importa mostrar) já
+    // cabe na tela.
+    const raioDetectMaxKm = raioDetectavel(mag, depth);
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
@@ -571,7 +589,14 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
             // estática) só porque o alvo calculado já cabia no zoom inicial.
             const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
-            const zoomFinal = Math.min(Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin);
+            // zoomAberturaMaxima: nunca abre além do que cabe o raio
+            // detectável (o tracejado) — mesmo que a onda em si (kmAlvoCam)
+            // já tenha crescido bem mais que isso fisicamente.
+            const zoomAberturaMaxima = Math.max(1.5, zoomParaCaberRaio(lng, lat, raioDetectMaxKm));
+            const zoomFinal = Math.max(
+                Math.min(Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin),
+                zoomAberturaMaxima
+            );
             // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
             // Throttle de ~260ms entre correções: sem isso, place() (chamado a
             // cada frame de 'move'/'zoom' DURANTE a própria easeTo do chase-cam,

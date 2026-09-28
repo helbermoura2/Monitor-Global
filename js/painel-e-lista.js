@@ -847,7 +847,15 @@ function scheduleNextAutoCycle(ms) {
             }
             const pool = m.slice(0, 50).filter(x => x && x.id !== eventoSelecionadoId);
             const list = pool.length ? pool : m.slice(0, 50);
-            const it = list[Math.floor(Math.random() * list.length)];
+            // Sismos costumam ser minoria no feed unificado (furacões, alertas
+            // etc. dominam o pool) — sem viés, o automático quase nunca cai
+            // num sismo. Dá um peso de ~70% pra sismo quando há os dois tipos
+            // disponíveis, em vez de sorteio uniforme puro.
+            const ehSismoItem = x => x.type === 'earthquake' || (x.mag != null && !x.type);
+            const sismos = list.filter(ehSismoItem);
+            const outros = list.filter(x => !ehSismoItem(x));
+            const grupo = (sismos.length && outros.length) ? (Math.random() < 0.7 ? sismos : outros) : list;
+            const it = grupo[Math.floor(Math.random() * grupo.length)];
             if (!it) {
                 scheduleNextAutoCycle(20000);
                 return;
@@ -1143,7 +1151,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     return;
                 }
                 const cabecalho = `<div class="city-item"><span class="city-name">👥 ~${formatarPessoasHeadline(totalPessoas)} pessoas podem ter sentido este tremor <span class="estimativa-badge">EST</span></span></div>`;
-                elAlcance.innerHTML = cabecalho + cidadesMmi.map(linhaCidadePopup).join('');
+                // GeoNames é CC BY 4.0 (exige atribuição), diferente da
+                // Natural Earth (domínio público) usada antes.
+                const creditoGeoNames = '<div style="font-size:9px;color:#475569;margin-top:4px;">Dados de população: <a href="https://www.geonames.org/" target="_blank" rel="noopener" style="color:#64748b;">GeoNames.org</a> (CC BY 4.0)</div>';
+                elAlcance.innerHTML = cabecalho + cidadesMmi.map(linhaCidadePopup).join('') + creditoGeoNames;
             });
         }
     }
@@ -1250,7 +1261,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 center: centroCompensado(lng, lat, zoomAlvo),
                 zoom: zoomAlvo,
                 pitch: 0,
-                duration: 4500,
+                duration: 6000,
                 curve: 1.6,
                 essential: true
             });
@@ -1324,7 +1335,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 // enorme. Clique manual: "replay" de sempre, origem = agora.
                 const MAX_LIVE_AGE_MS = 15000;
                 const origemOnda = triggerVisualAlert ? Math.max(item.time, Date.now() - MAX_LIVE_AGE_MS) : Date.now();
-                const camDelayMs = triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150);
+                const camDelayMs = triggerVisualAlert ? 5850 : Math.max(0, totalDur - 150);
                 clearTimeout(window.__mgWaveDelayT);
                 window.__mgWaveDelayT = setTimeout(() => {
                     try {
@@ -1749,7 +1760,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                     center: centro,
                     zoom: zA,
                     pitch: 0,
-                    duration: 4500,
+                    duration: 6000,
                     curve: 1.6,
                     essential: true
                 });
