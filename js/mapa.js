@@ -392,6 +392,20 @@ function initMap() {
     });
 }
 
+// Ícones "outros" (furacão/tufão, vulcão, tornado, tempestade, vento,
+// enchente, alerta civil — tudo MENOS sismo) só mostram o conteúdo cheio
+// (emoji grande + nome + extras) pro evento que está em foco de verdade
+// (ciclo automático ou clique manual, via eventoSelecionadoId). Qualquer
+// outro item do mesmo tipo vira só um pontinho discreto (.mg-tipo-dot,
+// mesmo padrão visual dos sismos) — evita um ícone grande "andando" pela
+// tela durante o zoom de um evento totalmente diferente (o pontinho
+// pequeno também se desloca com a câmera, mas passa despercebido).
+function marcarFocoOuPonto(dotEl, fullEl, item, displayEmFoco = 'flex') {
+    const emFoco = typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId != null && eventoSelecionadoId === item.id;
+    dotEl.style.display = emFoco ? 'none' : 'block';
+    fullEl.style.display = emFoco ? displayEmFoco : 'none';
+}
+
 /* ============================ MARKERS ============================ */
 function syncAllMarkers() {
     if (!map) return;
@@ -476,13 +490,16 @@ function syncAllMarkers() {
         syncType(markerStores.cyclone, globalAlerts.filter(a => a.type === 'hurricane'), (item) => {
             const el = document.createElement('div');
             el.className = 'cyclone-marker';
-            el.innerHTML = `<div class="cyclone-arrow" style="display:none;">➤</div><div class="cyclone-emoji">🌀</div><div class="cyclone-name"></div><div class="cyclone-wind" style="display:none;"></div>`;
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.hurricane};box-shadow:0 0 6px ${RADAR_COR.hurricane};"></div><div class="cyclone-full" style="display:none;flex-direction:column;align-items:center;"><div class="cyclone-arrow" style="display:none;">➤</div><div class="cyclone-emoji">🌀</div><div class="cyclone-name"></div><div class="cyclone-wind" style="display:none;"></div></div>`;
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
+            const dot = el.querySelector('.mg-tipo-dot');
+            const full = el.querySelector('.cyclone-full');
             const rec = {
                 el,
                 update: (it) => {
-                    el.querySelector('.cyclone-name').textContent = `${it.cycloneLabel || ''} ${it.place}`.trim();
-                    const ar = el.querySelector('.cyclone-arrow');
+                    marcarFocoOuPonto(dot, full, it);
+                    full.querySelector('.cyclone-name').textContent = `${it.cycloneLabel || ''} ${it.place}`.trim();
+                    const ar = full.querySelector('.cyclone-arrow');
                     if (it.movementInfo) {
                         ar.style.display = 'block';
                         ar.style.transform = `rotate(${Math.round(it.movementInfo.bearing - 90)}deg)`;
@@ -490,7 +507,7 @@ function syncAllMarkers() {
                     } else {
                         ar.style.display = 'none';
                     }
-                    const wEl = el.querySelector('.cyclone-wind');
+                    const wEl = full.querySelector('.cyclone-wind');
                     const windKmh = (it.windKmh != null) ? it.windKmh : extractWindKmh(it.detail);
                     if (windKmh) {
                         const classif = classificarCiclone(windKmh);
@@ -516,16 +533,17 @@ function syncAllMarkers() {
         syncType(markerStores.tsunami, globalAlerts.filter(a => a.type === 'tsunami'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.display = 'flex';
-            el.style.flexDirection = 'column';
-            el.style.alignItems = 'center';
-            el.innerHTML = `<span class="severity-badge"><span style="font-size:22px;">🌊</span></span><span class="tsunami-name"></span>`;
-            el.querySelector('.tsunami-name').textContent = (item.place || '').substring(0, 22);
-            const badge = el.querySelector('.severity-badge');
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.tsunami};box-shadow:0 0 6px ${RADAR_COR.tsunami};"></div><div class="mg-tipo-full" style="display:none;flex-direction:column;align-items:center;"><span class="severity-badge"><span style="font-size:22px;">🌊</span></span><span class="tsunami-name"></span></div>`;
+            const full = el.querySelector('.mg-tipo-full');
+            full.querySelector('.tsunami-name').textContent = (item.place || '').substring(0, 22);
+            const badge = full.querySelector('.severity-badge');
             const cor = typeof corSeveridadeAlerta === 'function' ? corSeveridadeAlerta(item) : '#94a3b8';
             badge.style.boxShadow = `0 0 0 2px ${cor}, 0 0 10px ${cor}`;
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it) };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.tsunami.forEach(r => r.marker.remove());
@@ -536,13 +554,14 @@ function syncAllMarkers() {
         syncType(markerStores.volcano, globalAlerts.filter(a => a.type === 'volcano'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.display = 'flex';
-            el.style.flexDirection = 'column';
-            el.style.alignItems = 'center';
-            el.innerHTML = `<span style="font-size:26px;">🌋</span><span class="tsunami-name"></span>`;
-            el.querySelector('.tsunami-name').textContent = (item.place || '').substring(0, 22);
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.volcano};box-shadow:0 0 6px ${RADAR_COR.volcano};"></div><div class="mg-tipo-full" style="display:none;flex-direction:column;align-items:center;"><span style="font-size:26px;">🌋</span><span class="tsunami-name"></span></div>`;
+            const full = el.querySelector('.mg-tipo-full');
+            full.querySelector('.tsunami-name').textContent = (item.place || '').substring(0, 22);
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it) };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.volcano.forEach(r => r.marker.remove());
@@ -553,10 +572,13 @@ function syncAllMarkers() {
         syncType(markerStores.tornado, globalAlerts.filter(a => a.type === 'tornado'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.fontSize = '24px';
-            el.textContent = '🌪️';
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.tornado};box-shadow:0 0 6px ${RADAR_COR.tornado};"></div><span class="mg-tipo-full" style="display:none;font-size:24px;">🌪️</span>`;
+            const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it, 'inline') };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.tornado.forEach(r => r.marker.remove());
@@ -567,11 +589,14 @@ function syncAllMarkers() {
         syncType(markerStores.storm, globalAlerts.filter(a => a.type === 'storm'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.fontSize = '20px';
-            el.textContent = '⚡';
             el.title = item.place;
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.storm};box-shadow:0 0 6px ${RADAR_COR.storm};"></div><span class="mg-tipo-full" style="display:none;font-size:20px;">⚡</span>`;
+            const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it, 'inline') };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.storm.forEach(r => r.marker.remove());
@@ -582,11 +607,14 @@ function syncAllMarkers() {
         syncType(markerStores.wind, globalAlerts.filter(a => a.type === 'wind'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.fontSize = '22px';
-            el.textContent = '💨';
             el.title = item.place;
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.wind};box-shadow:0 0 6px ${RADAR_COR.wind};"></div><span class="mg-tipo-full" style="display:none;font-size:22px;">💨</span>`;
+            const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it, 'inline') };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.wind.forEach(r => r.marker.remove());
@@ -597,13 +625,17 @@ function syncAllMarkers() {
         syncType(markerStores.flood, globalAlerts.filter(a => a.type === 'flood'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.innerHTML = `<span class="severity-badge"><span style="font-size:18px;">💧</span></span>`;
-            const badge = el.querySelector('.severity-badge');
+            el.title = item.place;
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.flood};box-shadow:0 0 6px ${RADAR_COR.flood};"></div><div class="mg-tipo-full" style="display:none;"><span class="severity-badge"><span style="font-size:18px;">💧</span></span></div>`;
+            const full = el.querySelector('.mg-tipo-full');
+            const badge = full.querySelector('.severity-badge');
             const cor = typeof corSeveridadeAlerta === 'function' ? corSeveridadeAlerta(item) : '#94a3b8';
             badge.style.boxShadow = `0 0 0 2px ${cor}, 0 0 10px ${cor}`;
-            el.title = item.place;
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it, 'block') };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.flood.forEach(r => r.marker.remove());
@@ -614,11 +646,14 @@ function syncAllMarkers() {
         syncType(markerStores.civil, globalAlerts.filter(a => a.type === 'civil'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.style.fontSize = '22px';
-            el.textContent = '🚨';
             el.title = item.place;
+            el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.civil};box-shadow:0 0 6px ${RADAR_COR.civil};"></div><span class="mg-tipo-full" style="display:none;font-size:22px;">🚨</span>`;
+            const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
+            const dot = el.querySelector('.mg-tipo-dot');
+            const rec = { el, update: (it) => marcarFocoOuPonto(dot, full, it, 'inline') };
+            rec.update(item);
+            return rec;
         });
     } else {
         markerStores.civil.forEach(r => r.marker.remove());

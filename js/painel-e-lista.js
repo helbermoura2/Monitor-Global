@@ -993,6 +993,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     currentIndex = index;
     eventoSelecionadoId = globalEvents[index].id;
     try { if (typeof EventStore !== 'undefined') EventStore.setSelected(eventoSelecionadoId); } catch (e) {}
+    // Devolve a pontinho o ícone "outro tipo" (furacão/vulcão/etc) que
+    // estava em foco antes, já que agora é um sismo que está selecionado.
+    try { if (typeof syncAllMarkers === 'function') syncAllMarkers(); } catch (e) {}
     if (!silentRefresh) renderSidebarList(lastMerged);
 
     const item = globalEvents[index];
@@ -1364,6 +1367,9 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     }
     eventoSelecionadoId = item.id;
     try { if (typeof EventStore !== 'undefined') EventStore.setSelected(item.id); } catch (e) {}
+    // Troca o ícone "pontinho" pelo cheio (e devolve o anterior a pontinho)
+    // na hora, sem esperar o próximo moveend/zoomend re-sincronizar sozinho.
+    try { if (typeof syncAllMarkers === 'function') syncAllMarkers(); } catch (e) {}
     if (!silentRefresh) renderSidebarList(lastMerged);
 
     resetPainelDetalheCompartilhado();
