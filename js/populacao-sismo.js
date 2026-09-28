@@ -1,7 +1,8 @@
 // === populacao-sismo.js — Estimativa de pessoas afetadas + MMI por cidade
-// para o pop-up "Alcance do sismo" (Modelo A) e a seção fixa em Mais
-// Detalhes. Só sismo tem esse conceito (zona sentida por distância); outros
-// tipos de evento não usam nada deste arquivo.
+// para a "virada" do card principal (como uma carta de baralho, ver
+// agendarViradaCardAlcance) e a seção fixa em Mais Detalhes. Só sismo tem
+// esse conceito (zona sentida por distância); outros tipos de evento não
+// usam nada deste arquivo.
 //
 // Fonte de população: extrato do GeoNames Gazetteer (mirror lmfmaier/
 // cities-json, atualizado periodicamente a partir do dump oficial do
@@ -97,109 +98,119 @@ function escPopup(v) {
 
 function linhaCidadePopup(c) {
     const mmiHtml = c.mmi
-        ? `<span class="mg-popup-mmi" style="color:${c.mmi.cor};background:${c.mmi.cor}22;border-color:${c.mmi.cor}55;">${c.mmi.nivel}</span>`
+        ? `<span class="pd-flip-verso-mmi" style="color:${c.mmi.cor};background:${c.mmi.cor}22;border-color:${c.mmi.cor}55;">${c.mmi.nivel}</span>`
         : '';
-    return `<div class="mg-popup-cidade">
-        <span class="mg-popup-cidade-nome">🏙️ ${escPopup(c.nome)}</span>
-        <span class="mg-popup-cidade-dist">${Math.round(c.distancia)} km</span>
-        <span class="mg-popup-cidade-pop">${c.pop ? formatarPopulacao(c.pop) : '—'}</span>
+    return `<div class="pd-flip-verso-cidade">
+        <span class="pd-flip-verso-cidade-nome">🏙️ ${escPopup(c.nome)}</span>
+        <span class="pd-flip-verso-cidade-dist">${Math.round(c.distancia)} km</span>
+        <span class="pd-flip-verso-cidade-pop">${c.pop ? formatarPopulacao(c.pop) : '—'}</span>
         ${mmiHtml}
     </div>`;
 }
 
-// Timers/estado do pop-up "Alcance do sismo" — só um por vez, guardado em
+// Timers/estado da "virada" do card principal — só uma por vez, guardado em
 // window pra sobreviver a qualquer re-execução acidental do script e pra
-// outras funções (troca de evento) conseguirem fechar de fora.
-function fecharPopupAlcanceSismo() {
-    try { clearTimeout(window.__mgPopupAlcanceAbrirT); } catch (e) {}
-    try { clearTimeout(window.__mgPopupAlcanceFecharT); } catch (e) {}
-    window.__mgPopupAlcanceAbrirT = null;
-    window.__mgPopupAlcanceFecharT = null;
-    const el = document.getElementById('mg-popup-alcance');
-    if (el) {
-        el.classList.remove('mg-popup-visivel');
-        setTimeout(() => { try { el.remove(); } catch (e) {} }, 400);
-    }
+// outras funções (troca de evento) conseguirem cancelar de fora.
+function fecharViradaCardAlcance() {
+    try { clearTimeout(window.__mgFlipAbrirT); } catch (e) {}
+    try { clearTimeout(window.__mgFlipFecharT); } catch (e) {}
+    try { clearTimeout(window.__mgFlipRemoveT); } catch (e) {}
+    try { window.removeEventListener('resize', window.__mgFlipReposiciona); } catch (e) {}
+    window.__mgFlipAbrirT = null;
+    window.__mgFlipFecharT = null;
+    window.__mgFlipRemoveT = null;
+    const painel = document.getElementById('painel-direito');
+    if (painel) painel.classList.remove('pd-flip-girado', 'pd-flip-preparado');
+    const verso = document.getElementById('pd-flip-verso');
+    if (verso) { try { verso.remove(); } catch (e) {} }
 }
 
-// Posiciona o card grudado em #painel-direito, "saindo" dele: no desktop
-// (card é a sidebar fixa da direita) sai pra esquerda, alinhado ao topo do
-// card; no mobile (card é uma barra/sheet no rodapé) sai pra cima, saindo
-// do topo do card. Recalcula a cada abertura (não fixo em CSS) porque
-// #painel-direito muda de posição/tamanho entre os estados mobile
-// (colapsado/mid/aberto) e entre breakpoints.
-function posicionarPopupAlcance(card) {
+// Cobre o verso exatamente sobre #painel-direito — recalcula a cada abertura
+// (não fixo em CSS) porque #painel-direito muda de posição/tamanho entre os
+// estados mobile (colapsado/mid/aberto) e entre breakpoints.
+function posicionarVersoCard(verso) {
     const painel = document.getElementById('painel-direito');
     const r = painel ? painel.getBoundingClientRect() : null;
-    const mobile = window.matchMedia && window.matchMedia('(max-width:900px)').matches;
-    card.classList.remove('mg-popup-lado-esquerdo', 'mg-popup-lado-cima');
-    if (!r || !r.width || !r.height) {
-        // Sem o card pra ancorar (não deveria acontecer) — fallback simples.
-        card.style.cssText = 'top:16px;right:16px;';
-        card.classList.add('mg-popup-lado-esquerdo');
-        return;
-    }
-    if (mobile) {
-        // Sai por cima do card, alinhado às bordas laterais dele.
-        card.style.cssText = `left:${Math.max(8, r.left)}px;right:${Math.max(8, window.innerWidth - r.right)}px;bottom:${Math.max(8, window.innerHeight - r.top + 8)}px;`;
-        card.classList.add('mg-popup-lado-cima');
-    } else {
-        // Sai pela esquerda do card, alinhado ao topo dele.
-        card.style.cssText = `top:${Math.max(8, r.top)}px;right:${Math.max(8, window.innerWidth - r.left + 10)}px;`;
-        card.classList.add('mg-popup-lado-esquerdo');
-    }
+    if (!r || !r.width || !r.height) return;
+    verso.style.top = r.top + 'px';
+    verso.style.left = r.left + 'px';
+    verso.style.width = r.width + 'px';
+    verso.style.height = r.height + 'px';
 }
 
-// Agenda a abertura do "slidebar" Alcance do sismo: abre depois de ~12s,
-// desliza pra fora de #painel-direito, fica visível por ~10s e retrai
-// sozinho de volta — a MESMA informação (cidades + MMI + total de pessoas)
-// já fica disponível de forma permanente em #pd-cities (seção "Mais
-// detalhes"), então fechar/retrair não faz a informação desaparecer, só
-// some o destaque temporário. Sem fundo escurecido nem bloqueio de clique
-// no resto da tela — é um anexo do card, não um modal. Só ao vivo e clique
-// manual chamam isto — nunca o ciclo automático (mesmo padrão já usado pra
-// frente de onda P/S: o auto-ciclo troca de evento rápido demais pra um
-// destaque de ~22s fazer sentido).
-function agendarPopupAlcanceSismo(lat, lng, item) {
-    fecharPopupAlcanceSismo();
-    window.__mgPopupAlcanceAbrirT = setTimeout(async () => {
-        if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return;
-        let dados;
-        try { dados = await estimarPessoasAfetadas(lat, lng, item.mag, item.depth); }
-        catch (e) { return; }
-        if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
+// Agenda a "virada" do card principal (como uma carta de baralho) pra
+// mostrar o alcance do sismo (cidades + MMI + total de pessoas): o tremor de
+// entrada (pdQuakeShake, 7s, ver painel-fx.js) acontece normal, 7s depois
+// disso (14s desde a seleção) o card vira mostrando o verso, e 12s depois
+// (26s desde a seleção) vira de volta pra frente e fica assim — bem menos
+// que o tempo total em tela do evento (pedido do usuário: substituir o
+// antigo pop-up/slidebar por essa animação no próprio card). A MESMA
+// informação já fica disponível de forma permanente em #pd-cities/
+// #pd-alcance ("Mais detalhes"), então a virada é só um destaque temporário.
+// Busca os dados desde já (t=0) pra já estarem prontos quando a virada
+// acontecer aos 14s. Só ao vivo e clique manual chamam isto — nunca o ciclo
+// automático (mesmo padrão já usado pra frente de onda P/S: o auto-ciclo
+// troca de evento rápido demais pra essa animação fazer sentido).
+function agendarViradaCardAlcance(lat, lng, item) {
+    fecharViradaCardAlcance();
+    const dadosPromise = estimarPessoasAfetadas(lat, lng, item.mag, item.depth).catch(() => null);
 
-        // Sempre mostra o slidebar pra TODO evento novo (ao vivo/manual) —
-        // mesmo sem nenhuma cidade cadastrada no alcance (área muito remota
-        // — oceano aberto, deserto etc.), com uma mensagem explicando em
-        // vez de simplesmente não aparecer nada.
+    window.__mgFlipAbrirT = setTimeout(async () => {
+        if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return;
+        const painel = document.getElementById('painel-direito');
+        if (!painel) return;
+        const dados = await dadosPromise;
+        if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
+        if (!dados) return;
+
+        // Sempre vira o card pra TODO evento novo (ao vivo/manual) — mesmo
+        // sem nenhuma cidade cadastrada no alcance (área muito remota —
+        // oceano aberto, deserto etc.), com uma mensagem explicando em vez
+        // de simplesmente não virar nada.
         const semCidades = !dados.cidades.length;
         const corpo = semCidades
-            ? `<div class="mg-popup-alcance-vazio">Nenhuma cidade cadastrada densamente povoada dentro do alcance detectável — área provavelmente remota (oceano, deserto ou litoral pouco povoado).</div>`
-            : `<div class="mg-popup-alcance-list">
-                <div class="mg-popup-alcance-listhead"><span>Cidade / distância / população</span><span>MMI</span></div>
+            ? `<div class="pd-flip-verso-vazio">Nenhuma cidade cadastrada densamente povoada dentro do alcance detectável — área provavelmente remota (oceano, deserto ou litoral pouco povoado).</div>`
+            : `<div class="pd-flip-verso-list">
+                <div class="pd-flip-verso-listhead"><span>Cidade / distância / população</span><span>MMI</span></div>
                 ${dados.cidades.map(linhaCidadePopup).join('')}
-                <div class="mg-popup-alcance-credito">Dados de população: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames.org</a> (CC BY 4.0)</div>
+                <div class="pd-flip-verso-credito">Dados de população: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames.org</a> (CC BY 4.0)</div>
             </div>`;
 
-        const card = document.createElement('div');
-        card.id = 'mg-popup-alcance';
-        card.className = 'mg-popup-alcance-card';
-        card.innerHTML = `
-            <div class="mg-popup-alcance-head">
-                <span class="mg-popup-alcance-tag">🌍 ALCANCE DO SISMO</span>
-                <span class="mg-popup-alcance-close">✕</span>
+        const verso = document.createElement('div');
+        verso.id = 'pd-flip-verso';
+        verso.className = 'pd-flip-verso';
+        verso.innerHTML = `
+            <div class="pd-flip-verso-head">
+                <span class="pd-flip-verso-tag">🌍 ALCANCE DO SISMO</span>
             </div>
-            <div class="mg-popup-alcance-headline">
-                <span class="mg-popup-alcance-num">${semCidades ? '—' : formatarPessoasHeadline(dados.totalPessoas)}</span>
-                <span class="mg-popup-alcance-sub">${semCidades ? 'sem estimativa de pessoas atingidas' : 'pessoas podem ter sentido este tremor'}</span>
+            <div class="pd-flip-verso-headline">
+                <span class="pd-flip-verso-num">${semCidades ? '—' : formatarPessoasHeadline(dados.totalPessoas)}</span>
+                <span class="pd-flip-verso-sub">${semCidades ? 'sem estimativa de pessoas atingidas' : 'pessoas podem ter sentido este tremor'}</span>
             </div>
             ${corpo}`;
-        card.querySelector('.mg-popup-alcance-close').addEventListener('click', fecharPopupAlcanceSismo);
-        posicionarPopupAlcance(card);
-        document.body.appendChild(card);
-        requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('mg-popup-visivel')));
+        posicionarVersoCard(verso);
+        document.body.appendChild(verso);
+        // Reposiciona se a janela mudar de tamanho/orientação enquanto o
+        // verso está visível (ex.: girar o celular).
+        window.__mgFlipReposiciona = () => posicionarVersoCard(verso);
+        window.addEventListener('resize', window.__mgFlipReposiciona);
 
-        window.__mgPopupAlcanceFecharT = setTimeout(fecharPopupAlcanceSismo, 10000);
-    }, 12000);
+        painel.classList.add('pd-flip-preparado');
+        void painel.offsetWidth; // força reflow pra garantir a transição
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            painel.classList.add('pd-flip-girado');
+            verso.classList.add('pd-flip-visivel');
+        }));
+
+        window.__mgFlipFecharT = setTimeout(() => {
+            if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return;
+            painel.classList.remove('pd-flip-girado');
+            verso.classList.remove('pd-flip-visivel');
+            try { window.removeEventListener('resize', window.__mgFlipReposiciona); } catch (e) {}
+            window.__mgFlipRemoveT = setTimeout(() => {
+                try { verso.remove(); } catch (e) {}
+                painel.classList.remove('pd-flip-preparado');
+            }, 750);
+        }, 12000);
+    }, 14000);
 }

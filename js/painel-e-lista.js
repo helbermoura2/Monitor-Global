@@ -980,7 +980,7 @@ function resetPainelDetalheCompartilhado() {
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
-    try { if (typeof fecharPopupAlcanceSismo === 'function') fecharPopupAlcanceSismo(); } catch (e) {}
+    try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
     if (!silentRefresh) {
         closeMobileEventsModalIfOpen();
         scrollToDetailsIfMobile();
@@ -1136,7 +1136,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     });
 
     // Alcance do sismo (pessoas afetadas + MMI por cidade) — mesma
-    // informação do pop-up temporário (ver agendarPopupAlcanceSismo),
+    // informação da virada do card (ver agendarViradaCardAlcance),
     // disponível aqui de forma permanente em "Mais detalhes".
     const secAlcance = document.getElementById('pd-alcance-section');
     const elAlcance = document.getElementById('pd-alcance');
@@ -1308,11 +1308,11 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     startCascadeRipple(lng, lat, getHexColor(item.mag), true);
                 }
 
-                // Pop-up "Alcance do sismo" (cidades + MMI + pessoas afetadas)
-                // — só ao vivo e clique manual (nunca ciclo automático, já
-                // filtrado pelo "return" do bloco soft acima).
-                if (typeof agendarPopupAlcanceSismo === 'function') {
-                    agendarPopupAlcanceSismo(lat, lng, item);
+                // Virada do card "Alcance do sismo" (cidades + MMI + pessoas
+                // afetadas) — só ao vivo e clique manual (nunca ciclo
+                // automático, já filtrado pelo "return" do bloco soft acima).
+                if (typeof agendarViradaCardAlcance === 'function') {
+                    agendarViradaCardAlcance(lat, lng, item);
                 }
 
                 // Frente de onda P/S entra só alguns segundos DEPOIS da zona
@@ -1400,7 +1400,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
-    try { if (typeof fecharPopupAlcanceSismo === 'function') fecharPopupAlcanceSismo(); } catch (e) {}
+    try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
     // "Alcance do sismo" é conceito exclusivo de sismo (MMI por distância) —
     // esconde a seção pra qualquer outro tipo de evento.
     try { const s = document.getElementById('pd-alcance-section'); if (s) s.style.display = 'none'; } catch (e) {}
