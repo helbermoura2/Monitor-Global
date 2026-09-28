@@ -1507,6 +1507,35 @@
       });
       y += cardH + 36;
 
+      // Pessoas que podem ter sentido o tremor — mesma conta usada no pop-up
+      // "Alcance do sismo" ao vivo (estimarPessoasAfetadas, base GeoNames em
+      // js/populacao-sismo.js), pra manter consistência entre o que o app
+      // mostra ao vivo e o que sai na imagem compartilhada. Omitido em
+      // silêncio se não achou nenhuma cidade cadastrada no alcance (área
+      // remota) — um "0 pessoas" destacado ficaria estranho numa imagem que
+      // já vai sair do app.
+      if (item.coords && typeof estimarPessoasAfetadas === 'function') {
+        try {
+          const dadosPessoas = await estimarPessoasAfetadas(lat, lng, item.mag, depth);
+          if (dadosPessoas && dadosPessoas.totalPessoas > 0) {
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#64748b';
+            ctx.font = '700 18px system-ui, sans-serif';
+            haloFillText(ctx, 'PESSOAS QUE PODEM TER SENTIDO O TREMOR', W / 2, y);
+
+            ctx.fillStyle = '#facc15';
+            ctx.font = '800 46px "JetBrains Mono", monospace';
+            haloFillText(ctx, formatarPessoasHeadline(dadosPessoas.totalPessoas), W / 2, y + 58);
+
+            ctx.fillStyle = '#475569';
+            ctx.font = '500 15px system-ui, sans-serif';
+            haloFillText(ctx, 'Dados de população: GeoNames.org (CC BY 4.0)', W / 2, y + 86);
+
+            y += 118;
+          }
+        } catch (e) {}
+      }
+
       // Alcance real da onda P/S no instante em que o Story foi gerado (só
       // M6+, mesma conta do anel do mapa ao vivo — startWaveFront em
       // js/sismo-metrics.js). Os anéis desenhados no mapa acima são só
