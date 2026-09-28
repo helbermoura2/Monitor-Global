@@ -972,6 +972,7 @@ function resetPainelDetalheCompartilhado() {
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
+    try { if (typeof fecharPopupAlcanceSismo === 'function') fecharPopupAlcanceSismo(); } catch (e) {}
     if (!silentRefresh) {
         closeMobileEventsModalIfOpen();
         scrollToDetailsIfMobile();
@@ -1111,6 +1112,27 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         if (!el) return;
         el.innerHTML = feltLine + renderCidadesHTML(cidades, reserva);
     });
+
+    // Alcance do sismo (pessoas afetadas + MMI por cidade) — mesma
+    // informação do pop-up temporário (ver agendarPopupAlcanceSismo),
+    // disponível aqui de forma permanente em "Mais detalhes".
+    const secAlcance = document.getElementById('pd-alcance-section');
+    const elAlcance = document.getElementById('pd-alcance');
+    if (secAlcance && elAlcance) {
+        secAlcance.style.display = '';
+        elAlcance.innerHTML = '<div class="city-item" style="color:#64748b;">🔎 Calculando alcance…</div>';
+        if (typeof estimarPessoasAfetadas === 'function') {
+            estimarPessoasAfetadas(lat, lng, item.mag, item.depth).then(({ totalPessoas, cidades: cidadesMmi }) => {
+                if (eventoSelecionadoId !== item.id) return;
+                if (!cidadesMmi.length) {
+                    elAlcance.innerHTML = '<div class="city-item" style="color:#64748b;">Nenhuma cidade conhecida dentro do alcance detectável.</div>';
+                    return;
+                }
+                const cabecalho = `<div class="city-item"><span class="city-name">👥 ~${formatarPessoasHeadline(totalPessoas)} pessoas podem ter sentido este tremor <span class="estimativa-badge">EST</span></span></div>`;
+                elAlcance.innerHTML = cabecalho + cidadesMmi.map(linhaCidadePopup).join('');
+            });
+        }
+    }
 
     let hh = '';
     if (his.total > 0) {
@@ -1252,6 +1274,13 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     startCascadeRipple(lng, lat, getHexColor(item.mag), true);
                 }
 
+                // Pop-up "Alcance do sismo" (cidades + MMI + pessoas afetadas)
+                // — só ao vivo e clique manual (nunca ciclo automático, já
+                // filtrado pelo "return" do bloco soft acima).
+                if (typeof agendarPopupAlcanceSismo === 'function') {
+                    agendarPopupAlcanceSismo(lat, lng, item);
+                }
+
                 // Frente de onda P/S entra só alguns segundos DEPOIS da zona
                 // crítica — dá tempo dela "assentar" na tela antes da câmera
                 // dinâmica (chaseCam) começar a puxar o zoom pra trás atrás do
@@ -1337,6 +1366,10 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    try { if (typeof fecharPopupAlcanceSismo === 'function') fecharPopupAlcanceSismo(); } catch (e) {}
+    // "Alcance do sismo" é conceito exclusivo de sismo (MMI por distância) —
+    // esconde a seção pra qualquer outro tipo de evento.
+    try { const s = document.getElementById('pd-alcance-section'); if (s) s.style.display = 'none'; } catch (e) {}
     // Evento em tela não é mais um sismo — zera o "hold" de magnitude (ver
     // showEventDetails) pra não deixar um valor velho bloqueando por engano a
     // interrupção de um sismo novo em orquestrador-feeds.js.
