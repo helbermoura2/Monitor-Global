@@ -409,7 +409,20 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
         const alvoPx = (dim / 2) * margem;
         const centro = map.project([lng, lat]);
         const raioPxAtual = Math.max(...[0, 90, 180, 270].map(az => {
-            const p = map.project(destinoGeodesico(lat, lng, raioKm, az));
+            const [lngD, latD] = destinoGeodesico(lat, lng, raioKm, az);
+            // Desembrulha a longitude do ponto cardeal em relação ao
+            // epicentro — mesma correção do antimeridiano usada em
+            // anelGeodesico. Sem isso, um epicentro perto de 180° (ex.:
+            // Nova Zelândia, Fiji) tinha um ponto cardeal "voltando" pro
+            // lado oposto do mapa (179.5°E + 200km leste virava -178°E em
+            // vez de 181.5°E), medindo uma distância em pixel absurda —
+            // via real: um M4.7 na Nova Zelândia abrindo a câmera pra
+            // mostrar o Pacífico inteiro, achando que precisava caber uma
+            // distância que não existia de verdade.
+            let lngAjustado = lngD;
+            if (lngAjustado - lng > 180) lngAjustado -= 360;
+            else if (lngAjustado - lng < -180) lngAjustado += 360;
+            const p = map.project([lngAjustado, latD]);
             return Math.hypot(p.x - centro.x, p.y - centro.y);
         }));
         if (!raioPxAtual) return map.getZoom();
@@ -488,10 +501,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // Definidos preguiçosamente (null até o delay passar) — se pegasse
     // map.getZoom() já aqui, capturaria o zoom de ANTES do voo cinematográfico
     // inicial terminar (ainda no meio do flyTo de 4.5s).
-    let camZoomInicial = null;
-    let camZoomAtual = null;
     let camAtingiuTeto = false;
     let camAbortada = false;
+    let camUltimaEaseEm = 0;
 
     if (chaseCam) {
         // Só aborta em interação de VERDADE do usuário (originalEvent presente) —
@@ -514,9 +526,6 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         } catch (e) {}
 
         if (chaseCam && !camAbortada && !camAtingiuTeto && Date.now() >= camStartAt) {
-            // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial,
-            // vira o ponto de partida da interpolação.
-            if (camZoomInicial == null) { camZoomInicial = map.getZoom(); camZoomAtual = camZoomInicial; }
             // A câmera mira no raio ATUAL do anel (kmP), recalculando o alvo
             // a cada tick — não interpola linearmente por `progresso` rumo a
             // um alvo fixo. Zoom é aproximadamente LOGARÍTMICO em km, então
@@ -564,14 +573,47 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
             const zoomFinal = Math.min(Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin);
             // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
-            if (zoomFinal < camZoomAtual - 0.01) {
-                camZoomAtual = zoomFinal;
+            // Throttle de ~260ms entre correções: sem isso, place() (chamado a
+            // cada frame de 'move'/'zoom' DURANTE a própria easeTo do chase-cam,
+            // não só no tick de 300ms) reiniciava uma nova easeTo quase a cada
+            // frame — cada reinício com easing linear trocava a velocidade de
+            // forma abrupta, e era exatamente essa cadeia de arranques/paradas
+            // que ficava "brusca"/"rápida demais" em vez de suave. Com o
+            // throttle, cada perna tem tempo de rodar quase até o fim (a
+            // easing ease-in-out logo abaixo cuida do resto).
+            // Usa o zoom REAL atual do mapa (não um alvo previamente
+            // "comandado") como referência: durante uma easeTo mais longa
+            // (salto grande, ver abaixo) o zoom interpolado real pode estar
+            // bem longe do último alvo guardado, e basear o próximo salto
+            // nesse alvo desatualizado sub-dimensionava a duration de
+            // correções que na real ainda cobriam uma distância grande.
+            const zoomAtualReal = map.getZoom();
+            const agora = Date.now();
+            if (zoomFinal < zoomAtualReal - 0.01 && agora - camUltimaEaseEm >= 260) {
+                const salto = zoomAtualReal - zoomFinal;
+                // A PRIMEIRA correção (assim que camDelayMs libera a câmera)
+                // costuma ser um salto bem maior que os nudges seguintes: o
+                // zoom pós-voo inicial (enquadrando só a zona crítica, bem
+                // fechado pra sismos pequenos) pode estar longe do "teto
+                // mínimo de abertura" que o chase-cam já exige de cara — com
+                // duration fixa de 360ms isso virava um "chacoalhão" (ex.:
+                // zoom 8.3→6.6 em 1/4 de segundo). Duration proporcional ao
+                // tamanho do salto deixa saltos grandes visivelmente mais
+                // lentos/suaves, sem atrasar os nudges pequenos de sempre.
+                const duration = Math.min(1300, 320 + salto * 380);
+                camUltimaEaseEm = agora;
                 try {
                     map.easeTo({
-                        center: centroCompensado(lng, lat, camZoomAtual),
-                        zoom: camZoomAtual,
-                        duration: 320,
-                        easing: t => t
+                        center: centroCompensado(lng, lat, zoomFinal),
+                        zoom: zoomFinal,
+                        duration,
+                        // Ease-IN-out (velocidade zero nas duas pontas): uma
+                        // ease-out pura começa já em velocidade máxima, o que
+                        // criava um "arranco" bem perceptível bem no instante
+                        // em que cada correção começa — com ease-in-out, tanto
+                        // o início quanto uma eventual interrupção no meio do
+                        // trajeto (pelo throttle/próxima correção) ficam suaves.
+                        easing: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
                     });
                 } catch (e) {}
             }

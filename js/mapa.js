@@ -283,16 +283,27 @@ function initMap() {
             }
         });
 
-        // Placas tectônicas
+        // Placas tectônicas — linha fina (1.5px) e bem transparente (0.6)
+        // demais sumia em cima de imagem de satélite/terreno com tom
+        // parecido (ex.: terreno avermelhado no Oriente Médio/Andes). Um
+        // "glow" (linha mais larga e borrada por baixo, mesma técnica da
+        // frente de onda sísmica) garante contraste em qualquer fundo, e a
+        // linha principal ficou mais grossa/opaca.
         fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
             .then(r => r.json())
             .then(d => {
                 map.addSource('tectonic-plates', { type: 'geojson', data: d });
                 map.addLayer({
+                    id: 'tectonic-plates-glow',
+                    type: 'line',
+                    source: 'tectonic-plates',
+                    paint: { 'line-color': '#dc2626', 'line-width': 5, 'line-blur': 3, 'line-opacity': 0.35 }
+                });
+                map.addLayer({
                     id: 'tectonic-plates',
                     type: 'line',
                     source: 'tectonic-plates',
-                    paint: { 'line-color': '#dc2626', 'line-width': 1.5, 'line-opacity': 0.6 }
+                    paint: { 'line-color': '#f87171', 'line-width': 2, 'line-opacity': 0.9 }
                 });
             }).catch(() => {});
 
