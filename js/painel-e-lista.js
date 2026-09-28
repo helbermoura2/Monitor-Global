@@ -1156,10 +1156,18 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // desenho só fazia sentido quando só a frente de onda abria a câmera
     // sozinha depois). Nunca fecha mais que o enquadramento "regional" de
     // sempre — só abre além dele quando o raio detectável realmente precisa.
-    let zoomAlvo = 8.0;
+    // Teto de "quanto no máximo dá pra fechar" — não é mais um zoom fixo de
+    // 8.0/8.3: isso deixava sismos pequenos (cujo raio detectável cabe MUITO
+    // mais fechado que isso) com a zona crítica perdida, minúscula, no meio
+    // de uma vista regional vazia — sobrava tela demais em volta dos anéis
+    // sem mostrar nada (visto no ciclo automático com um M3.0: o enquadramento
+    // "regional" parava o zoom bem antes do que o raio realmente precisava).
+    // 10.5/10.8 ainda mostra contexto geográfico (não é zoom de rua), mas
+    // deixa fechar bem mais que antes pra eventos pequenos.
+    let zoomAlvo = 10.5;
     let zoomAberturaMin = 6.6; // enquadramento regional de sempre — teto mínimo de abertura da câmera
     try {
-        if (window.matchMedia('(max-width:900px)').matches) { zoomAlvo = 8.3; zoomAberturaMin = 6.9; }
+        if (window.matchMedia('(max-width:900px)').matches) { zoomAlvo = 10.8; zoomAberturaMin = 6.9; }
     } catch (e) {}
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
