@@ -418,20 +418,13 @@ function syncAllMarkers() {
         });
     };
 
-    if (layerVisibility.fires) {
-        syncType(markerStores.fire, globalAlerts.filter(a => a.type === 'fire'), (item) => {
-            const el = document.createElement('div');
-            el.className = 'emoji-marker';
-            el.style.fontSize = '22px';
-            el.textContent = '🔥';
-            el.title = item.place;
-            el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
-            return { el };
-        });
-    } else {
-        markerStores.fire.forEach(r => r.marker.remove());
-        markerStores.fire.clear();
-    }
+    // Ícones de incêndio removidos do MAPA de propósito — em temporada de
+    // queimadas na América do Sul (INPE+FIRMS+EONET+GDACS somados) a
+    // quantidade de focos poluía demais o mapa com dezenas de 🔥 amontoados.
+    // O dado continua existindo normalmente (fetchFires, lista lateral,
+    // filtros) — só o marcador no mapa em si foi desativado.
+    markerStores.fire.forEach(r => r.marker.remove());
+    markerStores.fire.clear();
 
     if (layerVisibility.hurricanes) {
         syncType(markerStores.cyclone, globalAlerts.filter(a => a.type === 'hurricane'), (item) => {
