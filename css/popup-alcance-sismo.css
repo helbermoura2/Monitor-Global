@@ -1,50 +1,54 @@
 /* Pop-up "Alcance do sismo" (Modelo A) — abre ~12s depois de um sismo
-   ao vivo ou clicado manualmente, fica visível ~15s e some sozinho. A mesma
-   informação (cidades + MMI + total) fica permanente em #pd-cities (seção
-   "Mais detalhes"), então o pop-up é só um destaque temporário, não a única
-   forma de ver o dado. Ver js/populacao-sismo.js. */
-.mg-popup-alcance-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 4, 10, 0);
-  transition: background .35s ease;
-  pointer-events: none;
-}
-.mg-popup-alcance-overlay.mg-popup-visivel {
-  background: rgba(0, 4, 10, .68);
-  pointer-events: auto;
-}
-.mg-popup-alcance-overlay.mg-popup-saindo {
-  background: rgba(0, 4, 10, 0);
-  pointer-events: none;
-}
+   ao vivo ou clicado manualmente, fica visível ~10s e retrai sozinho de
+   volta pra dentro do card principal (#painel-direito), de onde ele
+   "sai". Não é mais um modal de tela cheia (sem fundo escurecido, sem
+   bloquear cliques no resto da página) — a posição (top/right ou
+   bottom, conforme desktop/mobile) é calculada em JS a partir do
+   getBoundingClientRect() do próprio #painel-direito no momento em que
+   abre, pra sempre nascer grudado nele onde quer que ele esteja (sidebar
+   fixa no desktop, barra/sheet no rodapé no mobile). A mesma informação
+   (cidades + MMI + total) fica permanente em #pd-cities (seção "Mais
+   detalhes"), então o pop-up é só um destaque temporário. Ver
+   js/populacao-sismo.js. */
 .mg-popup-alcance-card {
-  width: min(420px, 92vw);
-  max-height: 80vh;
+  position: fixed;
+  z-index: 99000;
+  width: min(320px, 92vw);
+  max-height: min(70vh, 420px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: linear-gradient(160deg, rgba(20, 40, 64, .97), rgba(6, 14, 26, .98));
-  border: 1px solid rgba(86, 166, 220, .25);
-  border-radius: 16px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
-  transform: translateY(14px) scale(.97);
+  border: 1px solid rgba(86, 166, 220, .3);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
   opacity: 0;
-  transition: transform .35s cubic-bezier(.16, .7, .3, 1), opacity .35s ease;
+  pointer-events: none;
+  transition: transform .4s cubic-bezier(.19, 1, .22, 1), opacity .3s ease;
 }
-.mg-popup-alcance-overlay.mg-popup-visivel .mg-popup-alcance-card {
-  transform: translateY(0) scale(1);
+/* Desktop (card é a sidebar da direita): "sai" do card pra esquerda. */
+.mg-popup-alcance-card.mg-popup-lado-esquerdo {
+  transform: translateX(24px);
+}
+.mg-popup-alcance-card.mg-popup-lado-esquerdo.mg-popup-visivel {
+  transform: translateX(0);
+}
+/* Mobile (card é uma barra/sheet no rodapé): "sai" do card pra cima. */
+.mg-popup-alcance-card.mg-popup-lado-cima {
+  transform: translateY(20px);
+}
+.mg-popup-alcance-card.mg-popup-lado-cima.mg-popup-visivel {
+  transform: translateY(0);
+}
+.mg-popup-alcance-card.mg-popup-visivel {
   opacity: 1;
+  pointer-events: auto;
 }
 .mg-popup-alcance-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px 12px;
+  padding: 14px 16px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
 .mg-popup-alcance-tag {
@@ -55,15 +59,15 @@
   text-transform: uppercase;
 }
 .mg-popup-alcance-close {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 8px;
   background: rgba(255, 255, 255, .06);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #94a3b8;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 .mg-popup-alcance-close:hover { background: rgba(255, 255, 255, .12); color: #e2e8f0; }
@@ -71,11 +75,11 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 12px 18px 10px;
+  padding: 10px 16px 8px;
 }
-.mg-popup-alcance-num { font-size: 30px; font-weight: 900; color: #facc15; line-height: 1; }
-.mg-popup-alcance-sub { font-size: 12px; color: #94a3b8; }
-.mg-popup-alcance-list { padding: 6px 18px 16px; overflow-y: auto; }
+.mg-popup-alcance-num { font-size: 26px; font-weight: 900; color: #facc15; line-height: 1; }
+.mg-popup-alcance-sub { font-size: 11px; color: #94a3b8; }
+.mg-popup-alcance-list { padding: 4px 16px 14px; overflow-y: auto; }
 .mg-popup-alcance-listhead {
   font-size: 9px;
   font-weight: 700;
@@ -104,8 +108,4 @@
   border: 1px solid;
   border-radius: 5px;
   padding: 2px 6px;
-}
-
-@media (max-width: 900px) {
-  .mg-popup-alcance-card { width: min(360px, 90vw); }
 }
