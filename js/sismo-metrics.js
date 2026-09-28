@@ -343,9 +343,36 @@ function destinoGeodesico(lat, lng, distanciaKm, azimuteGraus) {
 }
 // Anel geodésico fechado (pontos ao redor do centro, todos à mesma
 // distância real) pronto pra virar coordinates de um LineString GeoJSON.
+//
+// destinoGeodesico devolve cada ponto com a longitude normalizada pra
+// (-180,180] INDEPENDENTEMENTE — ótimo pra um ponto isolado (ex.:
+// zoomParaCaberRaio, que só usa 4 pontos cardeais direto num map.project),
+// mas catastrófico aqui: um anel de raio grande o suficiente pra cruzar o
+// antimeridiano (comum já a partir de ~2000km perto de longitudes como
+// 166-169°E, tipo Fiji/Nova Caledônia) tem um ponto normalizado saltando de
+// ~179.9° pra ~-179.9° de um vértice pro próximo — MapLibre desenha isso como
+// uma reta ligando os dois extremos do mapa (visto no bug relatado: linhas
+// horizontais atravessando a tela inteira depois de sismos M5+, exatamente
+// onde o anel cruzava 180°). Corrige "desembrulhando" a sequência: se o
+// salto de longitude entre pontos consecutivos for maior que 180°, soma/
+// subtrai 360° pra manter a longitude contínua (pode passar de ±180 — o
+// motor do mapa lida bem com isso, é só a normalização por ponto isolado que
+// não podia se aplicar a uma sequência).
 function anelGeodesico(lng, lat, raioKm, pontos = 128) {
     const coords = [];
-    for (let i = 0; i <= pontos; i++) coords.push(destinoGeodesico(lat, lng, raioKm, (360 * i) / pontos));
+    let ajuste = 0;
+    let lngAnterior = null;
+    for (let i = 0; i <= pontos; i++) {
+        const [lngBruto, latPonto] = destinoGeodesico(lat, lng, raioKm, (360 * i) / pontos);
+        if (lngAnterior !== null) {
+            const salto = lngBruto + ajuste - lngAnterior;
+            if (salto > 180) ajuste -= 360;
+            else if (salto < -180) ajuste += 360;
+        }
+        const lngContinuo = lngBruto + ajuste;
+        coords.push([lngContinuo, latPonto]);
+        lngAnterior = lngContinuo;
+    }
     return coords;
 }
 
