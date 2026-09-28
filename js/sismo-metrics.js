@@ -555,7 +555,16 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // abrir muito antes do anel real (que tem o teto de
             // waveFrontMaxKm, não mais o físico absoluto direto) — por isso
             // precisava de zoom out manual pra ver o anel inteiro.
-            const camLookaheadMs = 900;
+            // 900ms → 1800ms: com 900, a câmera ficava "parada" (o alvo
+            // continuava preso no zoomFinalMinimo) até o anel quase encostar
+            // na borda do teto mínimo, e só então começava a reagir de uma
+            // vez — de "parado" pra "se movendo" de forma perceptível (visto
+            // em vídeo: 2s+ parado, depois um arranque). Com o dobro do
+            // lookahead, o alvo cruza o teto mínimo mais cedo em relação ao
+            // crescimento real do anel, então a câmera começa a ceder ANTES
+            // do anel chegar perto da borda — a transição "parado→andando"
+            // fica gradual em vez de um degrau.
+            const camLookaheadMs = 1800;
             const kmAlvoCam = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
             // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
             // caiba dentro do enquadramento "regional" de sempre, precisa abrir

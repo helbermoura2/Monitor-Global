@@ -491,8 +491,14 @@ function calcZoomParaAlcance(lat, raioKm, margem = 0.8) {
         return z;
     } catch (e) { return 6; }
 }
+// "k"/"M" são abreviações comuns em apps técnicos, mas nem todo mundo
+// reconhece na hora — escreve por extenso ("mil"/"milhão(ões)") pra não
+// exigir essa tradução mental de quem está vendo.
 function formatarPopulacao(p) {
-    if (p >= 1e6) return (p / 1e6).toFixed(1) + "M hab";
-    if (p >= 1e3) return Math.round(p / 1e3) + "k hab";
+    if (p >= 1e6) {
+        const milhoes = p / 1e6;
+        return milhoes.toFixed(1).replace('.', ',') + (milhoes < 1.05 ? " milhão hab" : " milhões hab");
+    }
+    if (p >= 1e3) return Math.round(p / 1e3) + " mil hab";
     return p + " hab";
 }

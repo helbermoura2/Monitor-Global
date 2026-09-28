@@ -497,6 +497,15 @@
   border: 1px solid rgba(148,163,184,.2);
   background: rgba(15,23,42,.75);
   color: #cbd5e1;
+  /* Sem isto, um rótulo mais comprido (ex.: "Open-Meteo") fica bem na borda
+     de caber numa linha só dentro do pill — qualquer flutuação mínima de
+     largura disponível (a própria .pd-chips já tem flex-wrap, então isso
+     não devia acontecer no pill individual) fazia o texto "piscar" entre
+     uma linha e duas ("Open-" / "Meteo"), parecendo tremer. Com nowrap, o
+     texto do chip nunca quebra sozinho — se não couber, o chip INTEIRO vai
+     pra próxima linha (flex-wrap do container), sem nenhum tremor visual.
+  */
+  white-space: nowrap;
 }
 .pd-chip.chip-ok { color: #86efac; border-color: rgba(74,222,128,.35); background: rgba(22,101,52,.25); }
 .pd-chip.chip-live { color: #7dd3fc; border-color: rgba(56,189,248,.35); background: rgba(12,74,110,.35); }
