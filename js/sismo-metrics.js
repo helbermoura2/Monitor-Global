@@ -184,30 +184,25 @@ function metrosPorPixel(lat, z) {
    .quake-label padrão, que já existem e não mudam). */
 let feltZoneEl = null, feltZoneUpd = null, feltZoneFadeTimer = null;
 
-// Quanto tempo um sismo NOVO/ao vivo fica "no ar" (frente de onda P/S +
-// câmera acompanhando + ciclo automático pausado) antes de poder trocar
-// sozinho pro próximo evento — derivado direto da física da onda: tempo
-// real que o raio azul (onda P) leva pra crescer até o teto dele
-// (waveFrontMaxKm) + um respiro curto (7s) depois de completar. Antes era
-// uma tabela fixa por faixa de magnitude (chutada, sem relação direta com
-// quando o anel de fato parava de crescer — um M7+ podia sobrar 100s+ de
-// tela parada depois do anel já ter "terminado"); agora bate exatamente
-// com o que a tela mostra. Teto de 8min: mesmo um M8+ catastrófico (raio
-// bem maior) não trava a tela por 15-18min inteiros esperando a onda
-// "terminar" de verdade. Ver também orquestrador-feeds.js: um sismo novo só
+// Quanto tempo um sismo NOVO/ao vivo (ou revisitado por clique manual) fica
+// "no ar" (frente de onda P/S + câmera acompanhando + ciclo automático
+// pausado) antes de poder trocar sozinho pro próximo evento — faixas FIXAS
+// por magnitude, pedido direto do usuário (a versão anterior derivava esse
+// tempo da física real da onda, o que dava valores pouco intuitivos: um
+// sismo raso de magnitude alta terminava de "crescer" rápido e saía da tela
+// cedo demais, enquanto um fundo demorava bem mais — o usuário queria algo
+// previsível, só pela magnitude). Só vale pra evento NOVO ao vivo e pro
+// replay manual — o ciclo automático (revisitando um evento já conhecido)
+// usa HOLD_AUTO_MS, fixo em 1 minuto pra qualquer magnitude (ver
+// painel-e-lista.js). Ver também orquestrador-feeds.js: um sismo novo só
 // interrompe esse tempo se for de magnitude MAIOR que o que já está em tela.
 function waveHoldMs(mag) {
-    const alcanceMaxKm = waveFrontMaxKm(mag);
-    const tempoOndaMs = (alcanceMaxKm / (WAVE_P_KMS * WAVE_SPEED_MULT)) * 1000;
-    const BUFFER_MS = 7000;
-    // Piso de 60s (era 10s): pedido do usuário depois de ver, em vídeo, um
-    // sismo pequeno ficando pouquíssimo tempo em tela antes do automático
-    // já trocar de novo — sem tempo nem do pop-up "Alcance do sismo" (que
-    // só abre aos 12s) terminar de aparecer. 1 minuto garante que qualquer
-    // evento NOVO (ao vivo ou clique manual) segura a tela tempo suficiente
-    // pra realmente ser visto, mesmo sismos pequenos cuja física da onda
-    // sozinha pediria bem menos.
-    return Math.min(480000, Math.max(60000, tempoOndaMs + BUFFER_MS));
+    const m = Number(mag) || 0;
+    if (m < 5) return 90000;   // até M4.9: 1min30
+    if (m < 6) return 120000;  // M5.0-5.9: 2min
+    if (m < 7) return 210000;  // M6.0-6.9: 3min30
+    if (m < 8) return 300000;  // M7.0-7.9: 5min
+    return 420000;             // M8+: 7min
 }
 
 // Nunca some sozinha por conta de um timer interno — só quando outro evento
