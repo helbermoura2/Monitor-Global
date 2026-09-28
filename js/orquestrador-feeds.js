@@ -163,8 +163,20 @@ async function fetchGlobalFeeds() {
         let novos = [];
         let atualizados = [];
         const seenNow = new Set();
+        // BUG CORRIGIDO: filtrava por `e.type === 'earthquake'`, mas os
+        // objetos que vêm do merge multiagência principal (USGS/JMA/EMSC/
+        // GEOFON/IGP/BMKG/GeoNet/USP/CSN-Chile/SSN-México/OSC-Bolívia) NUNCA
+        // recebem esse campo — só o canal paralelo do AFAD marca `type`
+        // explicitamente. Na prática esse filtro deixava `earthquakesAntes`
+        // vazio (ou quase) pra maioria dos sismos, e a correspondência por
+        // proximidade/id nativo logo abaixo (o "prev") nunca encontrava
+        // nada — cada ciclo tratava a MESMA revisão como um evento
+        // totalmente novo (bug relatado: M5.1 no Japão "tocando" de novo a
+        // cada correção de magnitude, 5.1→5.0→4.9). `globalEvents` só
+        // contém sismos por definição (é o array irmão de `globalAlerts`,
+        // que guarda tudo o mais) — não precisa desse campo pra confirmar.
         const earthquakesAntes = (Array.isArray(globalEvents) ? globalEvents : [])
-            .filter(e => e && e.type === 'earthquake' && e.id != null);
+            .filter(e => e && e.id != null);
 
         merged.forEach(ev => {
             // Casa com um evento JÁ conhecido pela posição/hora aproximada (mesma
@@ -176,13 +188,41 @@ async function fetchGlobalFeeds() {
             // sismo NOVO, tocando som e disparando os efeitos visuais de novo
             // pra um registro de minutos atrás que só estava sendo corrigido.
             let prev = null;
-            for (const cand of earthquakesAntes) {
-                if (seenNow.has(cand.id)) continue; // já casado com outro report deste ciclo
-                const d = haversine(ev.coords[1], ev.coords[0], cand.coords[1], cand.coords[0]);
-                if (d > SISMO_DEDUPE_RAIO_KM) continue;
-                if (Math.abs(ev.time - cand.time) > SISMO_DEDUPE_TOL_MS) continue;
-                prev = cand;
-                break;
+            // 1) Correspondência EXATA pelo id nativo do catálogo de origem
+            // (sourceEventId — USGS/EMSC/GEOFON preservam esse id em
+            // normalizarSismoGeoJSON, ver sismo-fontes.js). É a fonte de
+            // verdade mais confiável que existe: o catálogo garante que o
+            // MESMO id nunca muda entre revisões, não importa quanto tempo
+            // passe ou o quanto a magnitude/hora/epicentro publicado seja
+            // corrigido — ao contrário da correspondência por proximidade
+            // espaço-temporal abaixo, que falha se uma revisão empurrar o
+            // horário publicado além da tolerância (bug relatado: um M5.1 no
+            // Japão "tocando" de novo a cada revisão de magnitude, 5.1→5.0→
+            // 4.9 — a fonte japonesa republica o boletim com um novo
+            // carimbo de hora a cada correção, e o app achava que era um
+            // sismo novo a cada vez). Sempre checada ANTES da correspondência
+            // por proximidade, nunca depois.
+            if (ev.sourceEventId) {
+                for (const cand of earthquakesAntes) {
+                    if (seenNow.has(cand.id)) continue;
+                    if (cand.sourceEventId && cand.sourceEventId === ev.sourceEventId) {
+                        prev = cand;
+                        break;
+                    }
+                }
+            }
+            // 2) Sem id nativo estável disponível (fontes sem catálogo FDSN
+            // próprio, ex.: JMA, IGP, BMKG...) — cai na correspondência por
+            // proximidade espaço-temporal de sempre.
+            if (!prev) {
+                for (const cand of earthquakesAntes) {
+                    if (seenNow.has(cand.id)) continue; // já casado com outro report deste ciclo
+                    const d = haversine(ev.coords[1], ev.coords[0], cand.coords[1], cand.coords[0]);
+                    if (d > SISMO_DEDUPE_RAIO_KM) continue;
+                    if (Math.abs(ev.time - cand.time) > SISMO_DEDUPE_TOL_MS) continue;
+                    prev = cand;
+                    break;
+                }
             }
 
             const canonical = prev ? prev.id :
