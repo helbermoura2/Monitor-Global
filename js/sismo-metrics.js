@@ -303,11 +303,71 @@ const WAVE_S_KMS = 4.3;
 const WAVE_SPEED_MULT = 2.5; // aceleração sobre a velocidade real, só pra não prender o evento em tela por dezenas de minutos
 const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico absoluto (a onda já passou por todo o planeta)
 
-let waveFrontEl = null, waveFrontUpd = null, waveFrontInterval = null, waveFrontTimer = null, waveFrontFadeTimer = null;
+// Ponto de destino a partir de um centro, dado um azimute (graus, 0=norte,
+// sentido horário) e uma distância (km) — fórmula esférica padrão de
+// navegação. Usado pra desenhar o anel da frente de onda como um círculo
+// GEODÉSICO de verdade em vez de aproximar por pixels de tela: um círculo
+// "de tela" (raio convertido só pela escala do zoom atual) fica visivelmente
+// torto pra raios grandes (M7/M8 passam de milhares de km) numa projeção
+// Mercator/globo — cada ponto aqui é calculado na esfera real, então fica
+// certo em qualquer raio e em qualquer projeção.
+function destinoGeodesico(lat, lng, distanciaKm, azimuteGraus) {
+    const R = 6371; // raio médio da Terra em km
+    const delta = Math.min(Math.max(0, distanciaKm), Math.PI * R - 1) / R;
+    const theta = azimuteGraus * Math.PI / 180;
+    const phi1 = lat * Math.PI / 180;
+    const lambda1 = lng * Math.PI / 180;
+    const senPhi2 = Math.sin(phi1) * Math.cos(delta) + Math.cos(phi1) * Math.sin(delta) * Math.cos(theta);
+    const phi2 = Math.asin(Math.max(-1, Math.min(1, senPhi2)));
+    const y = Math.sin(theta) * Math.sin(delta) * Math.cos(phi1);
+    const x = Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2);
+    const lambda2 = lambda1 + Math.atan2(y, x);
+    const lngNorm = ((lambda2 * 180 / Math.PI + 540) % 360) - 180;
+    return [lngNorm, phi2 * 180 / Math.PI];
+}
+// Anel geodésico fechado (pontos ao redor do centro, todos à mesma
+// distância real) pronto pra virar coordinates de um LineString GeoJSON.
+function anelGeodesico(lng, lat, raioKm, pontos = 128) {
+    const coords = [];
+    for (let i = 0; i <= pontos; i++) coords.push(destinoGeodesico(lat, lng, raioKm, (360 * i) / pontos));
+    return coords;
+}
+
+// Calcula o zoom necessário pra um raio geodésico caber dentro de `margem`
+// da metade da menor dimensão da tela — medindo EMPIRICAMENTE quantos
+// pixels esse raio ocupa no zoom ATUAL (via map.project nos 4 pontos
+// cardeais) e ajustando por log2 a partir daí, em vez de uma fórmula
+// hard-coded pra Mercator "achatado". O mapa roda em projeção globo
+// (map.setProjection({type:'globe'}) em mapa.js) — nela, zoom não mapeia
+// pra metros-por-pixel do mesmo jeito que na Mercator plana, então uma
+// fórmula fixa (a antiga calcZoomParaAlcance) SUBESTIMA o tamanho real na
+// tela (chegava a ~metade do raio verdadeiro): a câmera achava que já tinha
+// aberto o suficiente quando na real ainda faltava muito, e o anel vazava
+// da tela. Medir de verdade, no motor de projeção que já está rodando,
+// funciona certo em Mercator, globo, ou qualquer outra projeção futura.
+function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
+    if (!map) return 6;
+    try {
+        const cont = map.getContainer();
+        const dim = Math.min(cont.clientWidth, cont.clientHeight);
+        if (!dim || !raioKm) return map.getZoom();
+        const alvoPx = (dim / 2) * margem;
+        const centro = map.project([lng, lat]);
+        const raioPxAtual = Math.max(...[0, 90, 180, 270].map(az => {
+            const p = map.project(destinoGeodesico(lat, lng, raioKm, az));
+            return Math.hypot(p.x - centro.x, p.y - centro.y);
+        }));
+        if (!raioPxAtual) return map.getZoom();
+        return map.getZoom() - Math.log2(raioPxAtual / alvoPx);
+    } catch (e) { return map.getZoom(); }
+}
+
+let waveFrontAtivo = false, waveFrontInterval = null, waveFrontTimer = null, waveFrontFadeTimer = null;
 // Câmera "persegue" a frente de onda P conforme ela cresce (efeito tipo
 // GlobalQuake) — guarda a referência do handler de interação pra poder
 // remover no stopWaveFront, senão cada sismo novo empilha mais um listener.
 let waveCamAbortHandler = null;
+let waveFrontPlaceHandler = null;
 
 function stopWaveFront() {
     try { clearInterval(waveFrontInterval); } catch (e) {}
@@ -322,11 +382,17 @@ function stopWaveFront() {
         } catch (e) {}
         waveCamAbortHandler = null;
     }
-    if (waveFrontEl) {
-        try { map && map.off('move', waveFrontUpd); map && map.off('zoom', waveFrontUpd); } catch (e) {}
-        waveFrontEl.remove();
-        waveFrontEl = null;
-        waveFrontUpd = null;
+    if (waveFrontPlaceHandler) {
+        try { map && map.off('move', waveFrontPlaceHandler); map && map.off('zoom', waveFrontPlaceHandler); } catch (e) {}
+        waveFrontPlaceHandler = null;
+    }
+    if (waveFrontAtivo) {
+        try {
+            ['wave-front-p-line', 'wave-front-p-glow', 'wave-front-s-line', 'wave-front-s-glow'].forEach(id => {
+                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0);
+            });
+        } catch (e) {}
+        waveFrontAtivo = false;
     }
 }
 
@@ -348,20 +414,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // distância real que a onda alcançou, por mais velho que o sismo seja),
     // ou Date.now() pro "replay" do clique manual (nasce pequeno e cresce
     // visivelmente, de propósito, como uma re-exibição).
-    const host = document.getElementById('mapContainer');
-    if (!host) return;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'wave-front-wrap';
-    const pRing = document.createElement('div');
-    pRing.className = 'wave-front-p';
-    const sRing = document.createElement('div');
-    sRing.className = 'wave-front-s';
-    wrap.append(pRing, sRing);
-    host.appendChild(wrap);
-    waveFrontEl = wrap;
-
-    const coords = [lng, lat];
+    if (!map.getSource('wave-front-p') || !map.getSource('wave-front-s')) return;
+    waveFrontAtivo = true;
     // Mesmo teto de waveHoldMs usado pelo ciclo automático (painel-e-lista.js)
     // — os dois têm que bater, senão um corta o outro no meio. Isso aqui é só
     // uma rede de segurança (se por algum motivo o auto-ciclo não rodar, o
@@ -369,8 +423,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     const durationMs = waveHoldMs(mag);
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion &&
-        typeof calcZoomParaAlcance === 'function' && typeof centroCompensado === 'function';
+    const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion && typeof centroCompensado === 'function';
     const camDelayMs = Math.max(0, (opts && opts.camDelayMs) || 0);
     const camStartAt = Date.now() + camDelayMs;
     // A câmera só começa a se mover depois de camDelayMs (esperando o voo
@@ -395,18 +448,14 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
 
     const place = () => {
-        if (!map || !waveFrontEl) return;
+        if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
-        const z = map.getZoom();
-        const mpp = metrosPorPixel(lat, z);
         const kmP = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
         const kmS = Math.min(WAVE_MAX_KM, WAVE_S_KMS * WAVE_SPEED_MULT * elapsedS);
-        const pxP = (kmP * 1000) / mpp * 2;
-        const pxS = (kmS * 1000) / mpp * 2;
-        const pt = map.project(coords);
-        pRing.style.width = pRing.style.height = pxP + 'px';
-        sRing.style.width = sRing.style.height = pxS + 'px';
-        [pRing, sRing].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+        try {
+            map.getSource('wave-front-p').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmP) } });
+            map.getSource('wave-front-s').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmS) } });
+        } catch (e) {}
 
         if (chaseCam && !camAbortada && !camAtingiuTeto && Date.now() >= camStartAt) {
             // Primeira vez que o delay passou: pega o zoom JÁ pós-voo inicial,
@@ -457,7 +506,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
             // estática) só porque o alvo calculado já cabia no zoom inicial.
             const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
-            const zoomFinal = Math.min(Math.max(1.5, calcZoomParaAlcance(lat, kmAlvoCam)), zoomMin);
+            const zoomFinal = Math.min(Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin);
             // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
             if (zoomFinal < camZoomAtual - 0.01) {
                 camZoomAtual = zoomFinal;
@@ -476,18 +525,36 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if (kmP >= WAVE_MAX_KM) camAtingiuTeto = true;
         }
     };
-    waveFrontUpd = place;
     place();
+    // A geometria em si (lng/lat real) o Mapbox reprojeta sozinho em
+    // qualquer pan/zoom — mas o chase-cam (dentro de place()) ainda precisa
+    // rodar em cada frame de câmera, não só no tick de 300ms: só no
+    // setInterval, a correção perdia ritmo justamente durante a própria
+    // easeTo do chase-cam (que dispara 'move'/'zoom' em cada frame dela),
+    // deixando a câmera acumular atraso atrás do crescimento real do anel
+    // (raio em tela chegando a passar de 650px, medido). Recalcular o anel
+    // geodésico a mais vezes por causa disso é barato, sai bem mais barato
+    // que a câmera vazando atrás do anel.
+    waveFrontPlaceHandler = place;
     map.on('move', place);
     map.on('zoom', place);
-
-    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('grow')));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        try {
+            ['wave-front-p-line', 'wave-front-p-glow', 'wave-front-s-line', 'wave-front-s-glow'].forEach(id => {
+                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id.endsWith('-glow') ? 0.5 : 1);
+            });
+        } catch (e) {}
+    }));
     // Atualização periódica pra crescer com o tempo real — sem exagerar o
     // ritmo com prefers-reduced-motion, mas continua fisicamente correto.
     waveFrontInterval = setInterval(place, reduceMotion ? 1500 : 300);
 
     waveFrontTimer = setTimeout(() => {
-        wrap.classList.add('fading');
+        try {
+            ['wave-front-p-line', 'wave-front-p-glow', 'wave-front-s-line', 'wave-front-s-glow'].forEach(id => {
+                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0);
+            });
+        } catch (e) {}
         waveFrontFadeTimer = setTimeout(stopWaveFront, 950);
     }, durationMs);
 }

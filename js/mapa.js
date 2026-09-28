@@ -332,6 +332,39 @@ function initMap() {
             paint: { 'line-color': '#c084fc', 'line-width': 1.5, 'line-opacity': 0.55, 'line-dasharray': [3, 3] }
         }, 'cyclone-track-line');
 
+        // Frente de onda sísmica P/S (ver startWaveFront em sismo-metrics.js) —
+        // círculo GEODÉSICO de verdade (polígono com pontos calculados por
+        // distância/azimute reais), não mais um <div> redondo posicionado por
+        // pixel. Um anel "de tela" fica visivelmente torto pra raios grandes
+        // (M7/M8 passam de milhares de km) numa projeção Mercator/globo —
+        // o geodésico fica correto em qualquer raio, do minúsculo ao
+        // quase-antípoda, e acompanha pan/zoom sozinho (é geometria real,
+        // não overlay HTML), sem precisarmos recalcular posição em cada
+        // frame de 'move'/'zoom'. Camada de "glow" (mais larga e borrada)
+        // por baixo simula o halo que o box-shadow fazia no <div> antigo.
+        map.addSource('wave-front-p', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
+        map.addSource('wave-front-s', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
+        map.addLayer({
+            id: 'wave-front-p-glow', type: 'line', source: 'wave-front-p',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#38bdf8', 'line-width': 9, 'line-blur': 4, 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
+        });
+        map.addLayer({
+            id: 'wave-front-p-line', type: 'line', source: 'wave-front-p',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#38bdf8', 'line-width': 3, 'line-dasharray': [2, 1.5], 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
+        });
+        map.addLayer({
+            id: 'wave-front-s-glow', type: 'line', source: 'wave-front-s',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#f87171', 'line-width': 9, 'line-blur': 4, 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
+        });
+        map.addLayer({
+            id: 'wave-front-s-line', type: 'line', source: 'wave-front-s',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#f87171', 'line-width': 3, 'line-dasharray': [2, 1.5], 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
+        });
+
         map.on('movestart', (e) => {
             if (e.originalEvent) {
                 window.preAlertCamera = null;
