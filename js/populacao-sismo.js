@@ -3,14 +3,21 @@
 // Detalhes. Só sismo tem esse conceito (zona sentida por distância); outros
 // tipos de evento não usam nada deste arquivo.
 //
-// Fonte de população: Natural Earth "populated places" (domínio público,
-// ~7.3 mil cidades no mundo todo, população real e consistente — bem mais
-// confiável que o campo de população do OpenStreetMap usado em
-// cidades-proximas.js, que falta na maioria das cidades pequenas/médias).
-// Carregado uma única vez, sob demanda (só quando o primeiro sismo precisar
-// disso), e cacheado em memória pelo resto da sessão.
-
-const NATURAL_EARTH_PLACES_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson';
+// Fonte de população: extrato do GeoNames Gazetteer (mirror lmfmaier/
+// cities-json, atualizado periodicamente a partir do dump oficial do
+// GeoNames) — ~178 mil lugares povoados reais do mundo todo (cidades,
+// vilas, sedes administrativas) com população ≥ 500 habitantes, TODOS com
+// campo de população preenchido. Bem mais denso que a fonte anterior
+// (Natural Earth, ~7,3 mil lugares "notáveis" pra rótulo de mapa) — áreas
+// rurais/remotas (ex.: litoral do Iêmen, onde um sismo só encontrava 2
+// cidades cadastradas antes) agora têm cobertura de verdade. CC BY 4.0
+// (GeoNames exige atribuição — ver crédito em #pd-alcance e no menu de
+// fontes), diferente da Natural Earth que era domínio público. Carregado
+// uma única vez, sob demanda (só quando o primeiro sismo precisar disso),
+// e cacheado em memória pelo resto da sessão. Arquivo bem maior que antes
+// (~7MB comprimido) — aceitável pra um recurso opcional carregado uma vez
+// por sessão, nunca no carregamento inicial da página.
+const GEONAMES_CITIES_URL = 'https://raw.githubusercontent.com/lmfmaier/cities-json/master/cities500.json';
 
 let _lugaresPopulososCache = null;
 let _lugaresPopulososInflight = null;
@@ -18,13 +25,12 @@ let _lugaresPopulososInflight = null;
 function fetchLugaresPopulosos() {
     if (_lugaresPopulososCache) return Promise.resolve(_lugaresPopulososCache);
     if (_lugaresPopulososInflight) return _lugaresPopulososInflight;
-    _lugaresPopulososInflight = fetch(NATURAL_EARTH_PLACES_URL)
+    _lugaresPopulososInflight = fetch(GEONAMES_CITIES_URL)
         .then(r => r.json())
-        .then(geojson => {
-            const lugares = (geojson.features || []).map(f => {
-                const p = f.properties || {};
-                const lat = Number(p.latitude), lng = Number(p.longitude), pop = Number(p.pop_max) || 0;
-                const nome = p.nameascii || p.name;
+        .then(lista => {
+            const lugares = (lista || []).map(p => {
+                const lat = Number(p.lat), lng = Number(p.lon), pop = Number(p.pop) || 0;
+                const nome = p.name;
                 if (!nome || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
                 return { nome, lat, lng, pop };
             }).filter(Boolean);
@@ -162,7 +168,19 @@ function agendarPopupAlcanceSismo(lat, lng, item) {
         try { dados = await estimarPessoasAfetadas(lat, lng, item.mag, item.depth); }
         catch (e) { return; }
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
-        if (!dados.cidades.length) return; // sem nenhuma cidade no alcance — nada pra mostrar
+
+        // Sempre mostra o slidebar pra TODO evento novo (ao vivo/manual) —
+        // mesmo sem nenhuma cidade cadastrada no alcance (área muito remota
+        // — oceano aberto, deserto etc.), com uma mensagem explicando em
+        // vez de simplesmente não aparecer nada.
+        const semCidades = !dados.cidades.length;
+        const corpo = semCidades
+            ? `<div class="mg-popup-alcance-vazio">Nenhuma cidade cadastrada densamente povoada dentro do alcance detectável — área provavelmente remota (oceano, deserto ou litoral pouco povoado).</div>`
+            : `<div class="mg-popup-alcance-list">
+                <div class="mg-popup-alcance-listhead"><span>Cidade / distância / população</span><span>MMI</span></div>
+                ${dados.cidades.map(linhaCidadePopup).join('')}
+                <div class="mg-popup-alcance-credito">Dados de população: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames.org</a> (CC BY 4.0)</div>
+            </div>`;
 
         const card = document.createElement('div');
         card.id = 'mg-popup-alcance';
@@ -173,13 +191,10 @@ function agendarPopupAlcanceSismo(lat, lng, item) {
                 <span class="mg-popup-alcance-close">✕</span>
             </div>
             <div class="mg-popup-alcance-headline">
-                <span class="mg-popup-alcance-num">${formatarPessoasHeadline(dados.totalPessoas)}</span>
-                <span class="mg-popup-alcance-sub">pessoas podem ter sentido este tremor</span>
+                <span class="mg-popup-alcance-num">${semCidades ? '—' : formatarPessoasHeadline(dados.totalPessoas)}</span>
+                <span class="mg-popup-alcance-sub">${semCidades ? 'sem estimativa de pessoas atingidas' : 'pessoas podem ter sentido este tremor'}</span>
             </div>
-            <div class="mg-popup-alcance-list">
-                <div class="mg-popup-alcance-listhead"><span>Cidade / distância / população</span><span>MMI</span></div>
-                ${dados.cidades.map(linhaCidadePopup).join('')}
-            </div>`;
+            ${corpo}`;
         card.querySelector('.mg-popup-alcance-close').addEventListener('click', fecharPopupAlcanceSismo);
         posicionarPopupAlcance(card);
         document.body.appendChild(card);
