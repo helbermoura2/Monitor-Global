@@ -1146,12 +1146,16 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag));
     if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag);
 
-    // Zoom alvo + voo cinematográfico. Começa mais FECHADO de propósito — a
-    // câmera dinâmica (chaseCam, ver startWaveFront) puxa pra trás sozinha
-    // depois, conforme o alcance real da onda. Sem esse ponto de partida mais
-    // apertado, um sismo pequeno (cujo alcance cabe dentro do enquadramento
-    // "regional" de sempre) não tinha margem nenhuma pra abrir — a câmera
-    // parecia estática o tempo todo, mesmo com o chaseCam ativo.
+    // Zoom alvo + voo cinematográfico. A zona crítica (raios "principais" —
+    // detectável/estimado/crítico, ver startFeltZone) agora aparece PRIMEIRO
+    // pra qualquer contexto (ao vivo, clique manual, ciclo automático) e fica
+    // sozinha na tela por alguns segundos antes da frente de onda P/S entrar
+    // (ver mais abaixo) — então o próprio voo cinematográfico já precisa
+    // enquadrar ela direito, calculando o zoom a partir do maior raio
+    // (raioDetectavel) em vez de um valor fixo "fechado de propósito" (esse
+    // desenho só fazia sentido quando só a frente de onda abria a câmera
+    // sozinha depois). Nunca fecha mais que o enquadramento "regional" de
+    // sempre — só abre além dele quando o raio detectável realmente precisa.
     let zoomAlvo = 8.0;
     let zoomAberturaMin = 6.6; // enquadramento regional de sempre — teto mínimo de abertura da câmera
     try {
@@ -1160,27 +1164,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
 
-    // A frente de onda P/S (startWaveFront) mostra o alcance REAL que a onda
-    // já percorreu desde a origem verdadeira do sismo (velocidade real
-    // acelerada por WAVE_SPEED_MULT) — não mais um alcance estilizado que
-    // sempre nasce pequeno. Isso importa aqui de dois jeitos:
-    // - Ciclo automático (soft): usa item.time como origem (ver mais abaixo),
-    //   então um sismo de HORAS atrás já aparece com o anel na distância real
-    //   dele — que pode já ser enorme. Sem abrir o voo cinematográfico já
-    //   levando isso em conta, o anel nasceria vazando a tela na hora.
-    // - Ao vivo/clique manual: a origem usada é sempre recente (ver mais
-    //   abaixo), então o alcance no instante em que a câmera dinâmica assume
-    //   (~4500ms de espera) ainda é pequeno na prática — o clamp abaixo quase
-    //   nunca faz efeito nesses dois casos, mas calcular do mesmo jeito cobre
-    //   o caso raro de um evento "ao vivo" que já chegou com alguns segundos
-    //   de atraso da fonte.
-    if (typeof calcZoomParaAlcance === 'function') {
+    if (typeof calcZoomParaAlcance === 'function' && typeof raioDetectavel === 'function') {
         try {
-            const origemReal = (triggerVisualAlert || soft) ? item.time : Date.now();
-            const waitMs = 4500; // ~tempo até a câmera dinâmica assumir (voo + camDelayMs)
-            const kmNoInicioDaCam = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * (Math.max(0, Date.now() - origemReal) + waitMs) / 1000);
-            const zoomSeguro = calcZoomParaAlcance(lat, kmNoInicioDaCam);
-            if (Number.isFinite(zoomSeguro)) zoomAlvo = Math.min(zoomAlvo, Math.max(1.5, zoomSeguro));
+            const zoomFelt = calcZoomParaAlcance(lat, raioDetectavel(item.mag, item.depth));
+            if (Number.isFinite(zoomFelt)) zoomAlvo = Math.max(1.5, Math.min(zoomAlvo, zoomFelt));
         } catch (e) {}
     }
 
@@ -1223,57 +1210,84 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + hold) : hold);
     }
 
-    // Sismo NOVO de verdade ganha a zona de alcance real (crítico + sentido, "Onda
-    // Dupla") — sismo revisitado (ciclo automático ou clique manual) ganha a onda em
-    // cascata de sempre (mesmo efeito dos outros tipos de evento), pra sempre ter algo
-    // pulsando no epicentro em vez de só o pontinho parado. M5+ ganha TAMBÉM a frente
-    // de onda P/S (não a zona sentida) nos dois casos — dá pra rever o alcance de
-    // sismos grandes revisitados, não só dos que acabaram de chegar.
+    // Zona crítica (raios "principais" — detectável/estimado/crítico) SEMPRE
+    // aparece primeiro, pra qualquer sismo (ao vivo, clique manual ou ciclo
+    // automático): é instantânea (calcula o raio final direto, não anima),
+    // então já dá pra ver de cara enquanto a frente de onda P/S — bem mais
+    // lenta agora (ver WAVE_SPEED_MULT em sismo-metrics.js) — ainda nem
+    // começou. Sismo revisitado (ciclo automático ou clique manual) ganha
+    // também a onda em cascata de sempre, pra sempre ter algo pulsando no
+    // epicentro em vez de só o pontinho parado.
     try {
         clearTimeout(window.__mgRadarDelayT);
         window.__mgRadarDelayT = setTimeout(() => {
             try {
                 if (eventoSelecionadoId !== item.id) return;
-                if (triggerVisualAlert) {
-                    if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
-                    // Câmera acompanha a onda P puxando o zoom pra trás aos poucos, só
-                    // depois que o voo cinematográfico inicial (4500ms) termina — senão
-                    // as duas animações de câmera brigam. Só pro sismo AO VIVO por
-                    // enquanto (não no ciclo automático).
-                    if (typeof startWaveFront === 'function') {
-                        startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350, zoomFinalMinimo: zoomAberturaMin });
-                    }
-                } else {
-                    if (typeof startCascadeRipple === 'function') startCascadeRipple(lng, lat, getHexColor(item.mag));
-                    // Ciclo automático (soft): usa a origem VERDADEIRA do sismo
-                    // (item.time) — o anel já nasce no alcance real que a onda
-                    // atingiu até agora, por mais velho que o sismo seja (ver
-                    // startWaveFront). Clique manual: "replay", recomeça a
-                    // crescer do zero (Date.now()) — revelação visual de
-                    // propósito, igual sempre foi.
-                    if (typeof startWaveFront === 'function') {
-                        startWaveFront(lng, lat, item.mag, item.depth, soft ? item.time : Date.now(), {
-                            chaseCam: true,
-                            camDelayMs: Math.max(0, totalDur - 150),
-                            zoomFinalMinimo: zoomAberturaMin
-                        });
-                    }
+                if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
+
+                if (soft) {
+                    // Ciclo automático: só os raios principais — a câmera fica
+                    // no enquadramento fechado deles (calculado lá em cima),
+                    // sem abrir pra frente de onda. Ela levaria segundos a
+                    // minutos pra abrir alguma coisa que valha a pena ver, e o
+                    // auto-ciclo já troca de evento rápido demais pra isso
+                    // fazer sentido — melhor deixar o próximo revisitar
+                    // manualmente pra ver a onda crescer de verdade.
+                    if (typeof stopWaveFront === 'function') stopWaveFront();
+                    return;
                 }
+
+                if (!triggerVisualAlert && typeof startCascadeRipple === 'function') {
+                    startCascadeRipple(lng, lat, getHexColor(item.mag), true);
+                }
+
+                // Frente de onda P/S entra só alguns segundos DEPOIS da zona
+                // crítica — dá tempo dela "assentar" na tela antes da câmera
+                // dinâmica (chaseCam) começar a puxar o zoom pra trás atrás do
+                // anel crescendo. As duas coisas ao mesmo tempo ficava confuso:
+                // os raios da zona crítica já prontos e parados, enquanto a
+                // câmera saía abrindo pra acompanhar um anel ainda minúsculo.
+                // Ao vivo: origem = horário real do sismo (cresce visivelmente
+                // desde ~0, já que é recente) — mas NUNCA mais velha que
+                // MAX_LIVE_AGE_MS: uma fonte sísmica pode confirmar/publicar um
+                // sismo pequeno só minutos depois de ter ocorrido de verdade, e
+                // usar o horário real puro faria a onda já nascer enorme na
+                // hora (bug real visto: M1.5 na Espanha com 20min de atraso na
+                // fonte virou um anel quase do tamanho do planeta assim que
+                // apareceu). O "ao vivo" é sobre revelar um evento NOVO na
+                // tela — se a fonte já demorou, a revelação ainda merece
+                // parecer fresca, crescendo visivelmente, em vez de já nascer
+                // enorme. Clique manual: "replay" de sempre, origem = agora.
+                const MAX_LIVE_AGE_MS = 15000;
+                const origemOnda = triggerVisualAlert ? Math.max(item.time, Date.now() - MAX_LIVE_AGE_MS) : Date.now();
+                const camDelayMs = triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150);
+                clearTimeout(window.__mgWaveDelayT);
+                window.__mgWaveDelayT = setTimeout(() => {
+                    try {
+                        if (eventoSelecionadoId !== item.id) return;
+                        if (typeof startWaveFront === 'function') {
+                            startWaveFront(lng, lat, item.mag, item.depth, origemOnda, {
+                                chaseCam: true,
+                                camDelayMs,
+                                zoomFinalMinimo: zoomAberturaMin
+                            });
+                        }
+                    } catch (e) {}
+                }, 3000);
             } catch (e) {}
         }, soft ? Math.max(2500, totalDur - 600) : 150);
     } catch (e) {
         try {
-            if (triggerVisualAlert) {
-                startFeltZone(lng, lat, item.mag, item.depth);
-                if (typeof startWaveFront === 'function') {
-                    startWaveFront(lng, lat, item.mag, item.depth, item.time, { chaseCam: true, camDelayMs: 4350, zoomFinalMinimo: zoomAberturaMin });
-                }
+            startFeltZone(lng, lat, item.mag, item.depth);
+            if (soft) {
+                if (typeof stopWaveFront === 'function') stopWaveFront();
             } else {
-                startCascadeRipple(lng, lat, getHexColor(item.mag));
+                if (!triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
                 if (typeof startWaveFront === 'function') {
-                    startWaveFront(lng, lat, item.mag, item.depth, soft ? item.time : Date.now(), {
+                    const origemFallback = triggerVisualAlert ? Math.max(item.time, Date.now() - 60000) : Date.now();
+                    startWaveFront(lng, lat, item.mag, item.depth, origemFallback, {
                         chaseCam: true,
-                        camDelayMs: Math.max(0, totalDur - 150),
+                        camDelayMs: triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150),
                         zoomFinalMinimo: zoomAberturaMin
                     });
                 }

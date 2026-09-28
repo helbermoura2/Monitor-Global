@@ -672,10 +672,13 @@ const RADAR_COR = {
    marcador de epicentro. Fica rodando enquanto esse evento for o
    selecionado/exibido (novo ou revisitado no ciclo automático), substituído
    assim que outro evento tomar seu lugar — nunca mais de um por vez. */
-function startCascadeRipple(lng, lat, color) {
+// manterFeltZone: pula o stopFeltZone() — usado quando startFeltZone já
+// rodou logo antes pra ESSE MESMO evento (ver showEventDetails) e as duas
+// devem coexistir, em vez do exclusivismo de sempre entre os efeitos.
+function startCascadeRipple(lng, lat, color, manterFeltZone) {
     stopContinuousRadar();
     stopCascadeRipple();
-    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    if (!manterFeltZone) { try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {} }
     try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
     try { if (typeof stopTsunamiWave === 'function') stopTsunamiWave(); } catch (e) {}
