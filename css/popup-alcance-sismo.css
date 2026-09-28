@@ -1,108 +1,108 @@
-/* Pop-up "Alcance do sismo" (Modelo A) — abre ~12s depois de um sismo
-   ao vivo ou clicado manualmente, fica visível ~10s e retrai sozinho de
-   volta pra dentro do card principal (#painel-direito), de onde ele
-   "sai". Não é mais um modal de tela cheia (sem fundo escurecido, sem
-   bloquear cliques no resto da página) — a posição (top/right ou
-   bottom, conforme desktop/mobile) é calculada em JS a partir do
-   getBoundingClientRect() do próprio #painel-direito no momento em que
-   abre, pra sempre nascer grudado nele onde quer que ele esteja (sidebar
-   fixa no desktop, barra/sheet no rodapé no mobile). A mesma informação
-   (cidades + MMI + total) fica permanente em #pd-cities (seção "Mais
-   detalhes"), então o pop-up é só um destaque temporário. Ver
-   js/populacao-sismo.js. */
-.mg-popup-alcance-card {
+/* Card principal "vira" como uma carta de baralho pra mostrar o alcance do
+   sismo (cidades + MMI + pessoas atingidas) — substitui o antigo pop-up
+   flutuante (slidebar). Sequência (só ao vivo/manual, nunca automático — ver
+   js/populacao-sismo.js): o tremor de entrada do card (pdQuakeShake, 7s,
+   css/painel-fx.css) acontece normal; 7s depois disso (14s desde a seleção)
+   o card vira mostrando o verso; 12s depois (26s desde a seleção) vira de
+   volta pra frente e fica assim. A MESMA informação continua disponível de
+   forma permanente em #pd-cities/#pd-alcance ("Mais detalhes").
+
+   Técnica: #painel-direito (a frente) e um elemento novo .pd-flip-verso (o
+   verso) ficam exatamente sobrepostos — o verso é posicionado via JS
+   (getBoundingClientRect do próprio #painel-direito) pra sempre cobrir ele
+   onde quer que esteja (sidebar fixa no desktop, sheet no rodapé no
+   mobile). Os dois giram em rotateY ao mesmo tempo, em sentidos que somam
+   uma volta só (frente 0→180deg, verso -180→0deg) — com
+   backface-visibility:hidden nos dois, só um fica visível a cada instante,
+   dando a ilusão de UMA carta física virando, sem precisar reestruturar o
+   DOM interno de #painel-direito (referenciado por id em dezenas de outros
+   lugares do app). */
+#painel-direito.pd-flip-preparado {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  transform: perspective(1600px) rotateY(0deg);
+  transition: transform .7s cubic-bezier(.4, 0, .2, 1);
+}
+#painel-direito.pd-flip-preparado.pd-flip-girado {
+  transform: perspective(1600px) rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  #painel-direito.pd-flip-preparado { transition: none; }
+}
+
+.pd-flip-verso {
   position: fixed;
-  z-index: 99000;
-  width: min(320px, 92vw);
-  max-height: min(70vh, 420px);
-  overflow: hidden;
+  z-index: 700;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(160deg, rgba(20, 40, 64, .97), rgba(6, 14, 26, .98));
-  border: 1px solid rgba(86, 166, 220, .3);
-  border-radius: 14px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform .4s cubic-bezier(.19, 1, .22, 1), opacity .3s ease;
+  background: linear-gradient(180deg, #071421 0%, #040b14 100%);
+  border: 1px solid rgba(86, 166, 220, .18);
+  border-radius: 12px;
+  box-shadow: -12px 0 35px rgba(0, 0, 0, .35);
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  transform: perspective(1600px) rotateY(-180deg);
+  transition: transform .7s cubic-bezier(.4, 0, .2, 1);
 }
-/* Desktop (card é a sidebar da direita): "sai" do card pra esquerda. */
-.mg-popup-alcance-card.mg-popup-lado-esquerdo {
-  transform: translateX(24px);
+.pd-flip-verso.pd-flip-visivel {
+  transform: perspective(1600px) rotateY(0deg);
 }
-.mg-popup-alcance-card.mg-popup-lado-esquerdo.mg-popup-visivel {
-  transform: translateX(0);
+@media (prefers-reduced-motion: reduce) {
+  .pd-flip-verso { transition: none; }
 }
-/* Mobile (card é uma barra/sheet no rodapé): "sai" do card pra cima. */
-.mg-popup-alcance-card.mg-popup-lado-cima {
-  transform: translateY(20px);
-}
-.mg-popup-alcance-card.mg-popup-lado-cima.mg-popup-visivel {
-  transform: translateY(0);
-}
-.mg-popup-alcance-card.mg-popup-visivel {
-  opacity: 1;
-  pointer-events: auto;
-}
-.mg-popup-alcance-head {
+
+.pd-flip-verso-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
+  padding: 16px 18px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
+  flex: 0 0 auto;
 }
-.mg-popup-alcance-tag {
+.pd-flip-verso-tag {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.3px;
   color: #72d8ff;
   text-transform: uppercase;
 }
-.mg-popup-alcance-close {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, .06);
+.pd-flip-verso-headline {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  font-size: 13px;
-  cursor: pointer;
+  text-align: center;
+  gap: 2px;
+  padding: 16px 18px 14px;
+  flex: 0 0 auto;
 }
-.mg-popup-alcance-close:hover { background: rgba(255, 255, 255, .12); color: #e2e8f0; }
-.mg-popup-alcance-headline {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 10px 16px 8px;
-}
-.mg-popup-alcance-num { font-size: 26px; font-weight: 900; color: #facc15; line-height: 1; }
-.mg-popup-alcance-sub { font-size: 11px; color: #94a3b8; }
-.mg-popup-alcance-list { padding: 4px 16px 14px; overflow-y: auto; }
-.mg-popup-alcance-listhead {
+.pd-flip-verso-num { font-size: 32px; font-weight: 900; color: #facc15; line-height: 1; }
+.pd-flip-verso-sub { font-size: 11.5px; color: #94a3b8; }
+.pd-flip-verso-list { padding: 4px 18px 16px; overflow-y: auto; flex: 1 1 auto; }
+.pd-flip-verso-listhead {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1px;
   color: #5f7f95;
   text-transform: uppercase;
-  margin: 6px 0 4px;
+  margin: 6px 0 6px;
   display: flex;
   justify-content: space-between;
 }
-.mg-popup-cidade {
+.pd-flip-verso-cidade {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 0;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, .05);
 }
-.mg-popup-cidade-nome { flex: 1; min-width: 0; color: #dcebf5; font-weight: 500; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mg-popup-cidade-dist { color: #64cbed; font-weight: 600; font-size: 11px; }
-.mg-popup-cidade-pop { color: #637a8d; font-size: 10px; min-width: 52px; text-align: right; }
-.mg-popup-alcance-credito { font-size: 9px; color: #475569; margin-top: 6px; }
-.mg-popup-alcance-credito a { color: #64748b; }
-.mg-popup-mmi {
+.pd-flip-verso-cidade-nome { flex: 1; min-width: 0; color: #dcebf5; font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-flip-verso-cidade-dist { color: #64cbed; font-weight: 600; font-size: 11.5px; }
+.pd-flip-verso-cidade-pop { color: #637a8d; font-size: 10.5px; min-width: 52px; text-align: right; }
+.pd-flip-verso-credito { font-size: 9.5px; color: #475569; margin-top: 8px; }
+.pd-flip-verso-credito a { color: #64748b; }
+.pd-flip-verso-mmi {
   min-width: 30px;
   text-align: center;
   font-weight: 800;
@@ -113,10 +113,11 @@
 }
 /* Sismo em área remota (oceano, deserto...) sem cidade cadastrada no
    alcance — mensagem explicativa no lugar da lista, pra sempre mostrar o
-   slidebar em todo evento novo em vez de simplesmente não abrir nada. */
-.mg-popup-alcance-vazio {
-  padding: 4px 16px 16px;
-  font-size: 11.5px;
-  line-height: 1.5;
+   verso em todo evento novo em vez de simplesmente não virar nada. */
+.pd-flip-verso-vazio {
+  padding: 4px 18px 18px;
+  font-size: 12.5px;
+  line-height: 1.55;
   color: #7d93a6;
+  text-align: center;
 }
