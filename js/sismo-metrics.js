@@ -212,19 +212,24 @@ function waveHoldMs(mag) {
 // hora — mantém os listeners de move/zoom durante o fade pra o anel
 // continuar acompanhando o epicentro geograficamente certo até sumir de
 // vez, em vez de congelar na posição de tela do instante da troca.
+// Idempotente de propósito (if (!feltZoneEl) return ANTES de mexer no
+// timer): showEventDetails chama isto direto ao trocar de evento (limpeza
+// imediata) E o startFeltZone do evento novo chama de novo, mais tarde,
+// como sempre fez — sem essa guarda, a SEGUNDA chamada (com feltZoneEl já
+// null da primeira) ainda cancelava o timer de remoção já agendado pela
+// primeira sem reagendar outro, deixando o anel anterior preso no DOM pra
+// sempre (só com fade visual via CSS, nunca de fato removido).
 function stopFeltZone() {
+    if (!feltZoneEl) return;
     try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
-    feltZoneFadeTimer = null;
-    if (feltZoneEl) {
-        const elAntigo = feltZoneEl, updAntigo = feltZoneUpd;
-        elAntigo.classList.add('fading');
-        feltZoneFadeTimer = setTimeout(() => {
-            try { map && map.off('move', updAntigo); map && map.off('zoom', updAntigo); } catch (e) {}
-            try { elAntigo.remove(); } catch (e) {}
-        }, 2600);
-        feltZoneEl = null;
-        feltZoneUpd = null;
-    }
+    const elAntigo = feltZoneEl, updAntigo = feltZoneUpd;
+    elAntigo.classList.add('fading');
+    feltZoneFadeTimer = setTimeout(() => {
+        try { map && map.off('move', updAntigo); map && map.off('zoom', updAntigo); } catch (e) {}
+        try { elAntigo.remove(); } catch (e) {}
+    }, 2600);
+    feltZoneEl = null;
+    feltZoneUpd = null;
 }
 
 function startFeltZone(lng, lat, mag, depth) {

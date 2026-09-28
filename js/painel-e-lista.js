@@ -992,7 +992,21 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         }
     }
     currentIndex = index;
+    const idAnteriorSismo = eventoSelecionadoId;
     eventoSelecionadoId = globalEvents[index].id;
+    // Trocou de evento sísmico de verdade (não é o mesmo já em tela) —
+    // limpa a zona crítica/onda do evento ANTERIOR AGORA, em vez de deixar
+    // pro startFeltZone/startWaveFront do evento novo mais abaixo (que têm
+    // delay de propósito, de ~150ms no ao vivo/manual a alguns segundos no
+    // automático). Zona crítica e onda não somem mais sozinhas (ver
+    // stopFeltZone/startWaveFront em sismo-metrics.js) — sem esta limpeza
+    // imediata, o anel do evento ANTERIOR (podendo ser de magnitude/lugar
+    // bem diferente) ficava visível por cima do card já mostrando o evento
+    // novo, durante esse intervalo.
+    if (idAnteriorSismo !== eventoSelecionadoId) {
+        try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+        try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+    }
     try { if (typeof EventStore !== 'undefined') EventStore.setSelected(eventoSelecionadoId); } catch (e) {}
     // Devolve a pontinho o ícone "outro tipo" (furacão/vulcão/etc) que
     // estava em foco antes, já que agora é um sismo que está selecionado.
@@ -1384,6 +1398,13 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // showEventDetails) pra não deixar um valor velho bloqueando por engano a
     // interrupção de um sismo novo em orquestrador-feeds.js.
     window.__mgHoldMag = -Infinity;
+    // Alertas nunca usam zona crítica/onda P-S (conceitos exclusivos de
+    // sismo) — como esses anéis não somem mais sozinhos (ver
+    // stopFeltZone/startWaveFront em sismo-metrics.js), sem isto aqui o
+    // anel do ÚLTIMO sismo visto ficava preso na tela pra sempre assim que
+    // o usuário saísse pra ver um furacão/vulcão/etc.
+    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     // Sempre resolve a cópia mais recente no store (evita card com versão velha)
     try {
         if (typeof EventStore !== 'undefined' && item.id != null) {
