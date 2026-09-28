@@ -1207,14 +1207,23 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     userInteractingWithGlobe = true;
     if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
 
-    // Tempo de permanência escalado pela magnitude (estilo GlobalQuake — ver
-    // waveHoldMs em sismo-metrics.js): sismo grande fica MUITO mais tempo em
-    // tela que um pequeno, então a onda P/S (velocidade real, sem mudar) tem
-    // tempo de percorrer uma distância bem maior antes do ciclo automático
-    // trocar de evento sozinho. Guardado em window.__mgHoldMag/__mgHoldEndsAt
-    // pra orquestrador-feeds.js saber se um sismo novo pode interromper esse
+    // Tempo de permanência de um evento NOVO/ao vivo (estilo GlobalQuake —
+    // ver waveHoldMs em sismo-metrics.js): deriva direto de quanto tempo a
+    // onda P (raio azul) leva pra crescer até o teto dela + um respiro curto
+    // — um sismo grande de fato prende a tela por mais tempo (o raio precisa
+    // de mais tempo real pra "terminar"), mas sem sobrar tela parada depois
+    // disso. Guardado em window.__mgHoldMag/__mgHoldEndsAt pra
+    // orquestrador-feeds.js saber se um sismo novo pode interromper esse
     // tempo (só se for de magnitude MAIOR que o que já está em tela).
-    const hold = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
+    const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
+    // Ciclo automático puro (revisitando um evento já conhecido, sem onda
+    // rodando — só a zona crítica): tempo curto e FIXO, não escalado por
+    // magnitude. Zona crítica e onda não somem mais sozinhas (ver
+    // stopFeltZone/startWaveFront em sismo-metrics.js) — quem decide quando
+    // trocar de evento no automático é só este tempo aqui, então ele pode
+    // ser rápido sem risco de "cortar" nenhuma animação no meio.
+    const HOLD_AUTO_MS = 15000;
+    const hold = soft ? HOLD_AUTO_MS : holdNovo;
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
 
@@ -1235,12 +1244,13 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         totalDur = 4000;
         // Sem flash aqui: esta função só trata sismo, e o flash de raio é
         // efeito exclusivo de tempestade (ver showAlertDetails abaixo).
-        scheduleNextAutoCycle(hold);
+        scheduleNextAutoCycle(holdNovo);
     } else {
         totalDur = softFlyToCoords(lng, lat, zoomAlvo, soft);
-        // Permanência DEPOIS do voo (ciclo automático), escalada por magnitude.
-        // manual: agenda o mesmo tempo, mas o usuário pode interromper
-        scheduleNextAutoCycle(soft ? (totalDur + hold) : hold);
+        // Automático: totalDur (voo) + HOLD_AUTO_MS fixo. Manual: holdNovo,
+        // mesmo tempo de um evento ao vivo dessa magnitude — usuário que
+        // clicou pode interromper navegando, mas não é apressado sozinho.
+        scheduleNextAutoCycle(soft ? (totalDur + HOLD_AUTO_MS) : hold);
     }
 
     // Zona crítica (raios "principais" — detectável/estimado/crítico) SEMPRE
