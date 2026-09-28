@@ -437,10 +437,15 @@ let waveFrontAtivo = false, waveFrontInterval = null;
 // remover no stopWaveFront, senão cada sismo novo empilha mais um listener.
 let waveCamAbortHandler = null;
 let waveFrontPlaceHandler = null;
+let waveCamRAF = null;
 
 function stopWaveFront() {
     try { clearInterval(waveFrontInterval); } catch (e) {}
     waveFrontInterval = null;
+    if (waveCamRAF) {
+        try { cancelAnimationFrame(waveCamRAF); } catch (e) {}
+        waveCamRAF = null;
+    }
     if (waveCamAbortHandler) {
         try {
             map && map.off('dragstart', waveCamAbortHandler);
@@ -501,11 +506,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // inicial terminar (ainda no meio do flyTo de 4.5s).
     let camAtingiuTeto = false;
     let camAbortada = false;
-    let camUltimaEaseEm = 0;
 
     if (chaseCam) {
         // Só aborta em interação de VERDADE do usuário (originalEvent presente) —
-        // chamadas programáticas nossas (easeTo) não disparam com originalEvent.
+        // chamadas programáticas nossas (jumpTo) não disparam com originalEvent.
         waveCamAbortHandler = (e) => { if (e && e.originalEvent) camAbortada = true; };
         map.on('dragstart', waveCamAbortHandler);
         map.on('wheel', waveCamAbortHandler);
@@ -533,123 +537,94 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             map.getSource('wave-front-p').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmP) } });
             map.getSource('wave-front-s').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmS) } });
         } catch (e) {}
+    };
+    place();
 
-        if (chaseCam && !camAbortada && !camAtingiuTeto && Date.now() >= camStartAt) {
-            // A câmera mira no raio ATUAL do anel (kmP), recalculando o alvo
-            // a cada tick — não interpola linearmente por `progresso` rumo a
-            // um alvo fixo. Zoom é aproximadamente LOGARÍTMICO em km, então
-            // interpolar zoom linearmente no tempo não acompanha o raio (que
-            // cresce linear/físico) — isso já causou dois bugs opostos:
-            // 1) usando kmP com blend linear por progresso: o blend gastava
-            //    a maior parte do percurso mirando um alvo ainda pequeno (kmP
-            //    baixo no começo), sobrando pouco tempo pra abrir de verdade
-            //    perto do fim — anel "vazava" da tela perto de 90% do
-            //    crescimento e só assentava vários segundos depois.
-            // 2) usando alvoKm fixo com o MESMO blend linear: corrigia o
-            //    vazamento tardio, mas como o blend caminha em passo
-            //    constante rumo a um zoom-alvo fixo (e zoom≈log(km)), a
-            //    câmera abria RÁPIDO DEMAIS no início (leve estouro em
-            //    t=9-12s) e depois ficava PARADA/atrasada enquanto o raio
-            //    real (linear) continuava crescendo — o anel encolhia em
-            //    pixels de t=12 a t=27 mesmo crescendo em km.
-            // Fix: descartar o blend por progresso inteiramente. A cada tick
-            // calcula-se o zoom que enquadraria o raio do anel e a câmera é
-            // puxada direto pra lá — o próprio ritmo de ticks (~a cada frame
-            // de move/zoom) mais a duration:320 do easeTo já suavizam o
-            // movimento, sem o atraso sistemático artificial que o blend
-            // introduzia. Agora que o alcance cresce de forma puramente
-            // LINEAR no tempo real (sem a curva estilizada de antes), essa
-            // perseguição tick-a-tick acompanha o crescimento com muito
-            // menos folga.
-            // Mirar exatamente no raio ATUAL (kmP) ainda deixa a câmera
-            // sempre um passo atrás: o zoom real do mapa (map.getZoom())
-            // só alcança o alvo depois da easeTo de 320ms rodar, e nesse
-            // meio-tempo o raio real já cresceu mais. Por isso mira-se um
-            // pouco ADIANTE (camLookaheadMs), no raio que o anel terá daqui a
-            // pouco — a câmera fica sempre a alguns instantes à frente do
-            // crescimento real, em vez de correndo atrás dele.
-            // Usar raioDetectavel aqui também já foi um bug antigo: é a
-            // métrica da zona SENTIDA (bem menor), então a câmera parava de
-            // abrir muito antes do anel real (que tem o teto de
-            // waveFrontMaxKm, não mais o físico absoluto direto) — por isso
-            // precisava de zoom out manual pra ver o anel inteiro.
-            // 900ms → 1800ms: com 900, a câmera ficava "parada" (o alvo
-            // continuava preso no zoomFinalMinimo) até o anel quase encostar
-            // na borda do teto mínimo, e só então começava a reagir de uma
-            // vez — de "parado" pra "se movendo" de forma perceptível (visto
-            // em vídeo: 2s+ parado, depois um arranque). Com o dobro do
-            // lookahead, o alvo cruza o teto mínimo mais cedo em relação ao
-            // crescimento real do anel, então a câmera começa a ceder ANTES
-            // do anel chegar perto da borda — a transição "parado→andando"
-            // fica gradual em vez de um degrau.
+    // ═══ Chase-cam: suavização exponencial contínua (quadro a quadro), NÃO
+    // mais uma cadeia de easeTo() curtos reiniciados a cada correção. ═══
+    // Versão antiga: a cada tick (evento 'move'/'zoom', disparado em TODO
+    // frame durante a própria easeTo do chase-cam) recalculava o alvo e, se
+    // mudou o suficiente, INTERROMPIA a easeTo em andamento com uma nova
+    // (throttle de 260ms só reduzia a frequência, não eliminava o problema).
+    // Cada easeTo tinha easing ease-in-out (velocidade zero nas pontas), mas
+    // ao ser cortada no meio por uma nova antes de terminar sua desaceleração,
+    // a velocidade real da câmera saltava de forma abrupta entre pernas —
+    // exatamente o "degrau"/"chacoalhão" medido em teste e visto em vídeo.
+    // Fix real (pedido do usuário: câmera "cinema", nunca brusca ou rápida
+    // demais): abandonar a ideia de "animação com início e fim" pra corrigir
+    // o zoom. Em vez disso, a cada quadro (requestAnimationFrame) o zoom
+    // atual persegue o alvo bruto com um filtro exponencial de constante de
+    // tempo fixa (como uma câmera de cinema com "damping": nunca para nem
+    // arranca de repente, a velocidade muda de forma contínua o tempo todo)
+    // e aplica via jumpTo (sem a própria easeTo, que teria seu próprio
+    // início/fim pra brigar com o próximo quadro). Sem reinícios, sem
+    // "pernas" — uma curva de velocidade contínua do início ao fim.
+    if (chaseCam) {
+        let camZoomAtual = null;
+        let camUltimoFrameEm = 0;
+        // Constante de tempo do amortecimento: quanto maior, mais lenta/
+        // "pesada" a câmera reage ao alvo — 650ms dá uma sensação de
+        // câmera de cinema (nunca "gruda" instantaneamente no alvo, mas
+        // também não fica visivelmente atrasada atrás do crescimento real
+        // do anel, que já tem seu próprio lookahead embutido abaixo).
+        const TAU_CAM_MS = 650;
+        const camLoop = () => {
+            if (!map || !waveFrontAtivo || camAbortada) { waveCamRAF = null; return; }
+            if (Date.now() < camStartAt) { waveCamRAF = requestAnimationFrame(camLoop); return; }
+
+            const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
+            const kmP = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
+            // Mira um pouco ADIANTE (camLookaheadMs) no raio que o anel terá
+            // daqui a pouco, não no raio atual — senão a câmera sempre fica
+            // um passo atrás do crescimento real (ver histórico de bugs
+            // acima). 1800ms dá margem suficiente pro amortecimento de
+            // TAU_CAM_MS não deixar o anel escapar da tela.
             const camLookaheadMs = 1800;
             const kmAlvoCam = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
-            // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
-            // caiba dentro do enquadramento "regional" de sempre, precisa abrir
-            // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
-            // estática) só porque o alvo calculado já cabia no zoom inicial.
+            // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance
+            // real caiba dentro do enquadramento "regional" de sempre,
+            // precisa abrir até ALI pelo menos — senão a câmera nunca se
+            // move (fica parecendo estática).
             const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
             // zoomAberturaMaxima: nunca abre além do que cabe o raio
             // detectável (o tracejado) — mesmo que a onda em si (kmAlvoCam)
-            // já tenha crescido bem mais que isso fisicamente.
+            // já tenha crescido bem mais que isso fisicamente. Pedido do
+            // usuário depois de ver, em vídeo, a câmera abrindo até mostrar
+            // quase o oceano inteiro atrás de um sismo razoavelmente pequeno.
             const zoomAberturaMaxima = Math.max(1.5, zoomParaCaberRaio(lng, lat, raioDetectMaxKm));
-            const zoomFinal = Math.max(
+            const zoomAlvoBruto = Math.max(
                 Math.min(Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin),
                 zoomAberturaMaxima
             );
-            // Só puxa a câmera pra trás — nunca zoom in de volta (a onda só cresce).
-            // Throttle de ~260ms entre correções: sem isso, place() (chamado a
-            // cada frame de 'move'/'zoom' DURANTE a própria easeTo do chase-cam,
-            // não só no tick de 300ms) reiniciava uma nova easeTo quase a cada
-            // frame — cada reinício com easing linear trocava a velocidade de
-            // forma abrupta, e era exatamente essa cadeia de arranques/paradas
-            // que ficava "brusca"/"rápida demais" em vez de suave. Com o
-            // throttle, cada perna tem tempo de rodar quase até o fim (a
-            // easing ease-in-out logo abaixo cuida do resto).
-            // Usa o zoom REAL atual do mapa (não um alvo previamente
-            // "comandado") como referência: durante uma easeTo mais longa
-            // (salto grande, ver abaixo) o zoom interpolado real pode estar
-            // bem longe do último alvo guardado, e basear o próximo salto
-            // nesse alvo desatualizado sub-dimensionava a duration de
-            // correções que na real ainda cobriam uma distância grande.
-            const zoomAtualReal = map.getZoom();
-            const agora = Date.now();
-            if (zoomFinal < zoomAtualReal - 0.01 && agora - camUltimaEaseEm >= 260) {
-                const salto = zoomAtualReal - zoomFinal;
-                // A PRIMEIRA correção (assim que camDelayMs libera a câmera)
-                // costuma ser um salto bem maior que os nudges seguintes: o
-                // zoom pós-voo inicial (enquadrando só a zona crítica, bem
-                // fechado pra sismos pequenos) pode estar longe do "teto
-                // mínimo de abertura" que o chase-cam já exige de cara — com
-                // duration fixa de 360ms isso virava um "chacoalhão" (ex.:
-                // zoom 8.3→6.6 em 1/4 de segundo). Duration proporcional ao
-                // tamanho do salto deixa saltos grandes visivelmente mais
-                // lentos/suaves, sem atrasar os nudges pequenos de sempre.
-                const duration = Math.min(1300, 320 + salto * 380);
-                camUltimaEaseEm = agora;
-                try {
-                    map.easeTo({
-                        center: centroCompensado(lng, lat, zoomFinal),
-                        zoom: zoomFinal,
-                        duration,
-                        // Ease-IN-out (velocidade zero nas duas pontas): uma
-                        // ease-out pura começa já em velocidade máxima, o que
-                        // criava um "arranco" bem perceptível bem no instante
-                        // em que cada correção começa — com ease-in-out, tanto
-                        // o início quanto uma eventual interrupção no meio do
-                        // trajeto (pelo throttle/próxima correção) ficam suaves.
-                        easing: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-                    });
-                } catch (e) {}
-            }
-            // Só "termina" (pra de reagir) quando a onda já bateu no teto
-            // desse sismo (waveFrontMaxKm) — pra a maioria das magnitudes
-            // isso acontece bem antes do fim do waveHoldMs, então a câmera
-            // simplesmente assenta e fica parada no resto do tempo em tela.
+
+            if (camZoomAtual === null) camZoomAtual = map.getZoom();
+            const agoraMs = performance.now();
+            // dt entre quadros — limitado a 200ms pra não dar um "salto"
+            // gigante se a aba ficou em background (rAF pausa) e voltou.
+            const dt = camUltimoFrameEm ? Math.min(200, agoraMs - camUltimoFrameEm) : 16;
+            camUltimoFrameEm = agoraMs;
+            const fatorSuavizacao = 1 - Math.exp(-dt / TAU_CAM_MS);
+            const proximoZoom = camZoomAtual + (zoomAlvoBruto - camZoomAtual) * fatorSuavizacao;
+            // Só abre (zoom out) — nunca fecha de volta (a onda só cresce).
+            camZoomAtual = Math.min(camZoomAtual, proximoZoom);
+            try {
+                map.jumpTo({ center: centroCompensado(lng, lat, camZoomAtual), zoom: camZoomAtual });
+            } catch (e) {}
+
+            // "Termina" (para de recalcular) só quando a onda já bateu no
+            // teto físico dela E a câmera já convergiu pro alvo (dentro de
+            // uma folga pequena) — antes disso continua ajustando quadro a
+            // quadro, mesmo que o ajuste esteja ficando imperceptivelmente
+            // pequeno (filtro exponencial nunca chega EXATAMENTE no alvo).
             if (kmP >= alcanceMaxKm) camAtingiuTeto = true;
-        }
-    };
-    place();
+            if (camAtingiuTeto && Math.abs(zoomAlvoBruto - camZoomAtual) < 0.003) {
+                waveCamRAF = null;
+                return;
+            }
+            waveCamRAF = requestAnimationFrame(camLoop);
+        };
+        waveCamRAF = requestAnimationFrame(camLoop);
+    }
     // A geometria em si (lng/lat real) o Mapbox reprojeta sozinho em
     // qualquer pan/zoom — mas o chase-cam (dentro de place()) ainda precisa
     // rodar em cada frame de câmera, não só no tick de 300ms: só no
