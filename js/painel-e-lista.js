@@ -1232,22 +1232,21 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     userInteractingWithGlobe = true;
     if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
 
-    // Tempo de permanência de um evento NOVO/ao vivo (estilo GlobalQuake —
-    // ver waveHoldMs em sismo-metrics.js): deriva direto de quanto tempo a
-    // onda P (raio azul) leva pra crescer até o teto dela + um respiro curto
-    // — um sismo grande de fato prende a tela por mais tempo (o raio precisa
-    // de mais tempo real pra "terminar"), mas sem sobrar tela parada depois
-    // disso. Guardado em window.__mgHoldMag/__mgHoldEndsAt pra
-    // orquestrador-feeds.js saber se um sismo novo pode interromper esse
-    // tempo (só se for de magnitude MAIOR que o que já está em tela).
+    // Tempo de permanência de um evento NOVO/ao vivo ou revisitado por
+    // clique manual (ver waveHoldMs em sismo-metrics.js): faixas fixas por
+    // magnitude, pedido direto do usuário — 1min30 até M4.9, 2min de M5 a
+    // M5.9, 3min30 de M6 a M6.9, 5min de M7 a M7.9 e 7min de M8 pra cima.
+    // Guardado em window.__mgHoldMag/__mgHoldEndsAt pra orquestrador-feeds.js
+    // saber se um sismo novo pode interromper esse tempo (só se for de
+    // magnitude MAIOR que o que já está em tela).
     const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
     // Ciclo automático puro (revisitando um evento já conhecido, sem onda
-    // rodando — só a zona crítica): tempo curto e FIXO, não escalado por
-    // magnitude. Zona crítica e onda não somem mais sozinhas (ver
-    // stopFeltZone/startWaveFront em sismo-metrics.js) — quem decide quando
-    // trocar de evento no automático é só este tempo aqui, então ele pode
-    // ser rápido sem risco de "cortar" nenhuma animação no meio.
-    const HOLD_AUTO_MS = 15000;
+    // rodando — só a zona crítica): 1 minuto fixo pra qualquer magnitude,
+    // não escalado como o evento novo/manual acima. Zona crítica e onda não
+    // somem mais sozinhas (ver stopFeltZone/startWaveFront em
+    // sismo-metrics.js) — quem decide quando trocar de evento no automático
+    // é só este tempo aqui.
+    const HOLD_AUTO_MS = 60000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
