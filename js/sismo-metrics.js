@@ -303,6 +303,22 @@ const WAVE_S_KMS = 4.3;
 const WAVE_SPEED_MULT = 2.5; // aceleração sobre a velocidade real, só pra não prender o evento em tela por dezenas de minutos
 const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico absoluto (a onda já passou por todo o planeta)
 
+// A velocidade da onda P/S não muda com a magnitude (isso é real — um M0.8 e
+// um M8 propagam na mesma velocidade física), mas mostrar o anel de um M0.8
+// crescendo até centenas de km é enganoso: essa onda já está muito abaixo do
+// ruído sísmico de fundo bem antes disso, ninguém (pessoa ou instrumento)
+// registraria nada ali. O que varia com a magnitude é até onde a onda seria
+// DETECTÁVEL/relevante mostrar — daí esse teto (não a velocidade), crescendo
+// de poucos km num M0-1 até o teto físico absoluto (WAVE_MAX_KM, a distância
+// antípoda) só perto de M8, que já é registrado pelo planeta inteiro de
+// verdade. Curva ajustada por dois pontos-âncora (M0.8→~15km, M8→~19km mil,
+// saturando em WAVE_MAX_KM logo depois).
+function waveFrontMaxKm(mag) {
+    const m = Number(mag);
+    if (!Number.isFinite(m)) return WAVE_MAX_KM;
+    return Math.min(WAVE_MAX_KM, Math.pow(10, 0.43 * m + 0.83));
+}
+
 // Ponto de destino a partir de um centro, dado um azimute (graus, 0=norte,
 // sentido horário) e uma distância (km) — fórmula esférica padrão de
 // navegação. Usado pra desenhar o anel da frente de onda como um círculo
@@ -447,11 +463,12 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         map.on('touchstart', waveCamAbortHandler);
     }
 
+    const alcanceMaxKm = waveFrontMaxKm(mag);
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
-        const kmP = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
-        const kmS = Math.min(WAVE_MAX_KM, WAVE_S_KMS * WAVE_SPEED_MULT * elapsedS);
+        const kmP = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
+        const kmS = Math.min(alcanceMaxKm, WAVE_S_KMS * WAVE_SPEED_MULT * elapsedS);
         try {
             map.getSource('wave-front-p').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmP) } });
             map.getSource('wave-front-s').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmS) } });
@@ -496,11 +513,11 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // crescimento real, em vez de correndo atrás dele.
             // Usar raioDetectavel aqui também já foi um bug antigo: é a
             // métrica da zona SENTIDA (bem menor), então a câmera parava de
-            // abrir muito antes do anel real (que não tem esse teto, só o
-            // físico de WAVE_MAX_KM) — por isso precisava de zoom out manual
-            // pra ver o anel inteiro.
+            // abrir muito antes do anel real (que tem o teto de
+            // waveFrontMaxKm, não mais o físico absoluto direto) — por isso
+            // precisava de zoom out manual pra ver o anel inteiro.
             const camLookaheadMs = 900;
-            const kmAlvoCam = Math.min(WAVE_MAX_KM, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
+            const kmAlvoCam = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
             // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance real
             // caiba dentro do enquadramento "regional" de sempre, precisa abrir
             // até ALI pelo menos — senão a câmera nunca se move (fica parecendo
@@ -520,9 +537,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 } catch (e) {}
             }
             // Só "termina" (pra de reagir) quando a onda já bateu no teto
-            // físico absoluto — na prática nunca, um sismo teria que ficar
-            // selecionado por dias.
-            if (kmP >= WAVE_MAX_KM) camAtingiuTeto = true;
+            // desse sismo (waveFrontMaxKm) — pra a maioria das magnitudes
+            // isso acontece bem antes do fim do waveHoldMs, então a câmera
+            // simplesmente assenta e fica parada no resto do tempo em tela.
+            if (kmP >= alcanceMaxKm) camAtingiuTeto = true;
         }
     };
     place();
