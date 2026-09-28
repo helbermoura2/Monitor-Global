@@ -67,6 +67,7 @@
 <link rel="stylesheet" href="css/theme-dark-mode.css">
 <link rel="stylesheet" href="css/painel-fx.css">
 <link rel="stylesheet" href="css/felt-zone.css">
+<link rel="stylesheet" href="css/popup-alcance-sismo.css">
 <link rel="stylesheet" href="css/tsunami-wave.css">
 <link rel="stylesheet" href="css/cascade-ripple.css">
 <script defer src="js/theme-toggle.js"></script>
@@ -352,6 +353,10 @@
         <div class="fault-diagram"><span class="fault-arrow" id="pd-fault-arrow">❓</span><span class="fault-label" id="pd-fault-type">--</span></div>
         <div class="bubble-section-content" id="pd-fault-desc">--</div>
       </div>
+      <div class="bubble-section" id="pd-alcance-section" style="border-left-color:#facc15;display:none;">
+        <div class="bubble-section-title">🌍 Alcance do Sismo</div>
+        <div id="pd-alcance" class="bubble-section-content">--</div>
+      </div>
       <div class="bubble-section" style="border-left-color:#4ade80;">
         <div class="bubble-section-title" id="pd-cities-title">🏙️ Cidades Próximas</div>
         <div id="pd-cities" class="bubble-section-content">--</div>
@@ -374,6 +379,7 @@
 <script defer src="js/geo-e-ciclone-utils.js"></script>
 <script defer src="js/cidades-proximas.js"></script>
 <script defer src="js/sismo-metrics.js"></script>
+<script defer src="js/populacao-sismo.js"></script>
 <script defer src="js/feed-utils.js"></script>
 <script defer src="js/confianca-fontes.js"></script>
 <script defer src="js/painel-fx.js"></script>
