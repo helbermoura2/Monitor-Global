@@ -213,13 +213,26 @@ function waveHoldMs(mag) {
     return 30000;              // <M4: 30s
 }
 
+// Sempre desliga com um fade suave (2.6s), nunca some na hora — mesmo
+// quando é chamada por INTERRUPÇÃO (ex.: o ciclo automático já troca pro
+// próximo sismo antes do timer natural de feltZoneDurationMs zerar). Antes,
+// só o caminho de expiração natural (dentro de startFeltZone) fazia a
+// transição de opacidade; a interrupção chamava isto aqui direto, que
+// removia o elemento na hora — exatamente o "some de repente" reportado no
+// ciclo automático. Mantém os listeners de move/zoom durante o fade pra o
+// anel continuar acompanhando o epicentro geograficamente certo até sumir
+// de vez, em vez de congelar na posição de tela do instante da troca.
 function stopFeltZone() {
     try { clearTimeout(feltZoneTimer); } catch (e) {}
     try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
     feltZoneTimer = feltZoneFadeTimer = null;
     if (feltZoneEl) {
-        try { map && map.off('move', feltZoneUpd); map && map.off('zoom', feltZoneUpd); } catch (e) {}
-        feltZoneEl.remove();
+        const elAntigo = feltZoneEl, updAntigo = feltZoneUpd;
+        elAntigo.classList.add('fading');
+        feltZoneFadeTimer = setTimeout(() => {
+            try { map && map.off('move', updAntigo); map && map.off('zoom', updAntigo); } catch (e) {}
+            try { elAntigo.remove(); } catch (e) {}
+        }, 2600);
         feltZoneEl = null;
         feltZoneUpd = null;
     }
@@ -274,10 +287,9 @@ function startFeltZone(lng, lat, mag, depth) {
     // scale(0) inicial e a transição não anima (já nasce no estado final).
     requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('grow')));
 
-    feltZoneTimer = setTimeout(() => {
-        wrap.classList.add('fading');
-        feltZoneFadeTimer = setTimeout(stopFeltZone, 950);
-    }, feltZoneDurationMs(mag));
+    // stopFeltZone já cuida do fade suave (2.6s) sozinha — não precisa
+    // duplicar a classe/timer aqui.
+    feltZoneTimer = setTimeout(stopFeltZone, feltZoneDurationMs(mag));
 }
 
 /* ═══════════ FRENTE DE ONDA SÍSMICA (P/S) — estilo GlobalQuake ═══════════
