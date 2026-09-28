@@ -182,50 +182,39 @@ function metrosPorPixel(lat, z) {
    tempo o alcance fica visível, mas nunca fica pra sempre. Seleção manual ou
    ciclo revisitando um evento antigo não chama nada disso (só o .quake-dot/
    .quake-label padrão, que já existem e não mudam). */
-let feltZoneEl = null, feltZoneUpd = null, feltZoneTimer = null, feltZoneFadeTimer = null;
+let feltZoneEl = null, feltZoneUpd = null, feltZoneFadeTimer = null;
 
-function feltZoneDurationMs(mag) {
-    if (mag >= 7) return 150000;
-    if (mag >= 6) return 90000;
-    if (mag >= 5) return 50000;
-    return 45000; // mesmo tempo do ciclo automático de evento novo
-}
-
-// Quanto tempo um sismo fica "no ar" (frente de onda P/S + câmera acompanhando
-// + ciclo automático pausado) antes de poder trocar sozinho pro próximo evento
-// — estilo GlobalQuake: a onda sempre anda na MESMA velocidade real (WAVE_P_KMS/
-// WAVE_S_KMS não mudam), mas um sismo grande fica em tela muito mais tempo que
-// um pequeno, então na mesma velocidade ele simplesmente percorre uma distância
-// bem maior antes de "terminar" — não é a onda que anda mais rápido, é o tempo
-// de exibição que escala com a magnitude. Usado tanto pelo timer interno do
-// startWaveFront (abaixo) quanto pelo scheduleNextAutoCycle (painel-e-lista.js)
-// — os dois precisam bater pro anel não ser cortado no meio pela troca de
-// evento (era exatamente o bug: auto-ciclo fixo em 30-45s cortava um M5+ antes
-// da onda "terminar"). Ver também orquestrador-feeds.js: um sismo novo só
+// Quanto tempo um sismo NOVO/ao vivo fica "no ar" (frente de onda P/S +
+// câmera acompanhando + ciclo automático pausado) antes de poder trocar
+// sozinho pro próximo evento — derivado direto da física da onda: tempo
+// real que o raio azul (onda P) leva pra crescer até o teto dele
+// (waveFrontMaxKm) + um respiro curto (7s) depois de completar. Antes era
+// uma tabela fixa por faixa de magnitude (chutada, sem relação direta com
+// quando o anel de fato parava de crescer — um M7+ podia sobrar 100s+ de
+// tela parada depois do anel já ter "terminado"); agora bate exatamente
+// com o que a tela mostra. Teto de 8min: mesmo um M8+ catastrófico (raio
+// bem maior) não trava a tela por 15-18min inteiros esperando a onda
+// "terminar" de verdade. Ver também orquestrador-feeds.js: um sismo novo só
 // interrompe esse tempo se for de magnitude MAIOR que o que já está em tela.
 function waveHoldMs(mag) {
-    const m = Number(mag);
-    if (!Number.isFinite(m)) return 30000;
-    if (m >= 7) return 480000; // 8min
-    if (m >= 6) return 240000; // 4min
-    if (m >= 5) return 120000; // 2min
-    if (m >= 4) return 60000;  // 1min
-    return 30000;              // <M4: 30s
+    const alcanceMaxKm = waveFrontMaxKm(mag);
+    const tempoOndaMs = (alcanceMaxKm / (WAVE_P_KMS * WAVE_SPEED_MULT)) * 1000;
+    const BUFFER_MS = 7000;
+    return Math.min(480000, Math.max(10000, tempoOndaMs + BUFFER_MS));
 }
 
-// Sempre desliga com um fade suave (2.6s), nunca some na hora — mesmo
-// quando é chamada por INTERRUPÇÃO (ex.: o ciclo automático já troca pro
-// próximo sismo antes do timer natural de feltZoneDurationMs zerar). Antes,
-// só o caminho de expiração natural (dentro de startFeltZone) fazia a
-// transição de opacidade; a interrupção chamava isto aqui direto, que
-// removia o elemento na hora — exatamente o "some de repente" reportado no
-// ciclo automático. Mantém os listeners de move/zoom durante o fade pra o
-// anel continuar acompanhando o epicentro geograficamente certo até sumir
-// de vez, em vez de congelar na posição de tela do instante da troca.
+// Nunca some sozinha por conta de um timer interno — só quando outro evento
+// é selecionado de verdade (startFeltZone chama isto no início, pra trocar).
+// Enquanto o usuário está vendo um evento (ao vivo, manual ou revisitado no
+// automático), a zona crítica precisa continuar lá até o fim: pode dar zoom
+// in pra olhar de perto minutos depois, e ela tem que estar exatamente onde
+// era pra estar. Sempre desliga com um fade suave (2.6s), nunca some na
+// hora — mantém os listeners de move/zoom durante o fade pra o anel
+// continuar acompanhando o epicentro geograficamente certo até sumir de
+// vez, em vez de congelar na posição de tela do instante da troca.
 function stopFeltZone() {
-    try { clearTimeout(feltZoneTimer); } catch (e) {}
     try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
-    feltZoneTimer = feltZoneFadeTimer = null;
+    feltZoneFadeTimer = null;
     if (feltZoneEl) {
         const elAntigo = feltZoneEl, updAntigo = feltZoneUpd;
         elAntigo.classList.add('fading');
@@ -287,9 +276,9 @@ function startFeltZone(lng, lat, mag, depth) {
     // scale(0) inicial e a transição não anima (já nasce no estado final).
     requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('grow')));
 
-    // stopFeltZone já cuida do fade suave (2.6s) sozinha — não precisa
-    // duplicar a classe/timer aqui.
-    feltZoneTimer = setTimeout(stopFeltZone, feltZoneDurationMs(mag));
+    // Sem timer de auto-expiração aqui de propósito (ver comentário em
+    // stopFeltZone): o anel fica na tela até outro startFeltZone() ser
+    // chamado pra um evento diferente.
 }
 
 /* ═══════════ FRENTE DE ONDA SÍSMICA (P/S) — estilo GlobalQuake ═══════════
@@ -430,7 +419,7 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
     } catch (e) { return map.getZoom(); }
 }
 
-let waveFrontAtivo = false, waveFrontInterval = null, waveFrontTimer = null, waveFrontFadeTimer = null;
+let waveFrontAtivo = false, waveFrontInterval = null;
 // Câmera "persegue" a frente de onda P conforme ela cresce (efeito tipo
 // GlobalQuake) — guarda a referência do handler de interação pra poder
 // remover no stopWaveFront, senão cada sismo novo empilha mais um listener.
@@ -439,9 +428,7 @@ let waveFrontPlaceHandler = null;
 
 function stopWaveFront() {
     try { clearInterval(waveFrontInterval); } catch (e) {}
-    try { clearTimeout(waveFrontTimer); } catch (e) {}
-    try { clearTimeout(waveFrontFadeTimer); } catch (e) {}
-    waveFrontInterval = waveFrontTimer = waveFrontFadeTimer = null;
+    waveFrontInterval = null;
     if (waveCamAbortHandler) {
         try {
             map && map.off('dragstart', waveCamAbortHandler);
@@ -484,11 +471,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // visivelmente, de propósito, como uma re-exibição).
     if (!map.getSource('wave-front-p') || !map.getSource('wave-front-s')) return;
     waveFrontAtivo = true;
-    // Mesmo teto de waveHoldMs usado pelo ciclo automático (painel-e-lista.js)
-    // — os dois têm que bater, senão um corta o outro no meio. Isso aqui é só
-    // uma rede de segurança (se por algum motivo o auto-ciclo não rodar, o
-    // anel ainda se limpa sozinho depois desse tempo).
-    const durationMs = waveHoldMs(mag);
+    // Sem timer de auto-expiração: o anel fica na tela (mesmo já parado no
+    // teto) até outro startWaveFront() ser chamado pra um evento diferente —
+    // quem decide QUANDO trocar de evento é scheduleNextAutoCycle
+    // (painel-e-lista.js, usando o mesmo waveHoldMs), não este timer.
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const chaseCam = !!(opts && opts.chaseCam) && !reduceMotion && typeof centroCompensado === 'function';
@@ -646,16 +632,11 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }));
     // Atualização periódica pra crescer com o tempo real — sem exagerar o
     // ritmo com prefers-reduced-motion, mas continua fisicamente correto.
+    // Sem timer de auto-expiração ao final (ver comentário lá em cima): o
+    // anel fica visível, já parado no teto, até outro startWaveFront() ser
+    // chamado — o interval só para de rodar quando isso acontecer (via
+    // stopWaveFront no início da próxima chamada).
     waveFrontInterval = setInterval(place, reduceMotion ? 1500 : 300);
-
-    waveFrontTimer = setTimeout(() => {
-        try {
-            ['wave-front-p-line', 'wave-front-p-glow', 'wave-front-s-line', 'wave-front-s-glow'].forEach(id => {
-                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0);
-            });
-        } catch (e) {}
-        waveFrontFadeTimer = setTimeout(stopWaveFront, 950);
-    }, durationMs);
 }
 
 /* ═══════════ RÓTULOS "M + profundidade" (M≥5) ═══════════ */
