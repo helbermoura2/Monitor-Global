@@ -76,7 +76,10 @@ const PAISES_COSTEIROS = [
 ];
 
 
-let userInteractingWithGlobe = false, globeSpinEnabled = true;
+// globeSpinEnabled desligado de propósito — era só pro visual de globo 3D
+// girando sozinho parado; sem a projeção globo (ver map.setProjection mais
+// abaixo) isso viraria só um auto-pan lateral estranho no mapa plano.
+let userInteractingWithGlobe = false, globeSpinEnabled = false;
 const GLOBE_SECONDS_PER_REV = 140, GLOBE_MAX_SPIN_ZOOM = 4.2, GLOBE_SLOW_SPIN_ZOOM = 2.5;
 const CINEMATIC_EASE = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -199,7 +202,17 @@ function initMap() {
     // Attribution removido: o app é de uso pessoal, então o botão "ⓘ" de
     // créditos (Esri/HERE/OSM etc.) do MapLibre não precisa aparecer no mapa.
 
-    try { map.setProjection({ type: 'globe' }); } catch (e) {}
+    // Projeção Mercator de propósito, NÃO globo — marcadores HTML (furacão,
+    // tufão, ciclone etc.) usam a posição em pixel calculada por
+    // map.project(), que é exata em Mercator mas fica visivelmente errada
+    // em globo: perto do zoom bem aberto, a perspectiva 3D "comprime"
+    // pontos de latitude alta (ex: um ciclone a -45° e outro a -75°
+    // projetavam quase no MESMO pixel), fazendo o marcador aparecer
+    // deslocado — visto num caso real, um ciclone a sul da Austrália
+    // aparecendo em cima da Antártida no zoom aberto, corrigindo sozinho só
+    // ao dar zoom in. Sem conserto fino possível combinando globo com
+    // marcador HTML simples — Mercator não tem esse problema.
+    try { map.setProjection({ type: 'mercator' }); } catch (e) {}
 
     // Botão de zoom +/- removido a pedido do usuário (pinça no celular e
     // scroll no desktop já bastam) — em todas as versões, não só mobile.
