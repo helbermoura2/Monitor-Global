@@ -207,6 +207,15 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 #fc-backdrop { z-index: 11990 !important; }
 }
 .quake-dot { border: 2px solid #fff; border-radius: 50%; cursor: pointer; }
+/* Pontinho discreto pros tipos "outros" (furacão, tufão, vulcão, tornado,
+   tempestade, vento, enchente, alerta civil) quando NÃO estão em foco — ver
+   marcarFocoOuPonto em mapa.js. O ícone grande (emoji+nome) só aparece pro
+   evento selecionado (ciclo automático ou clique manual); todo o resto vira
+   esse pontinho, do jeito que os sismos sempre foram — evita um ícone
+   grande e chamativo "andando" na tela durante o zoom de um evento
+   totalmente diferente (o pontinho também se desloca com a câmera, mas é
+   pequeno e discreto o bastante pra não incomodar). */
+.mg-tipo-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
 .quake-label { pointer-events: none; white-space: nowrap; font-size: 10px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000,0 0 6px #000; }
 .emoji-marker { cursor: pointer; line-height: 1; text-align: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,.95)); }
 .cyclone-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
