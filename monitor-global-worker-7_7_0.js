@@ -4726,37 +4726,17 @@ const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary'
 // cada tick dentro da janela 00:00-00:20 BRT — arriscando reenviar o resumo
 // do dia. KV (env.TTS_USAGE) é global; caches.default fica só de fallback.
 const TELEGRAM_DAILY_KV_KEY = 'telegram-daily-summary-sent';
+// Leitura apenas para preservar envios confirmados pela versão anterior.
+// Falha de leitura não é tratada como autorização para reenviar.
 async function dailySummarySent(request,day,env){
-    if(env && env.TTS_USAGE){
-        try{
-            const raw = await env.TTS_USAGE.get(TELEGRAM_DAILY_KV_KEY);
-            if(!raw) return false;
-            return JSON.parse(raw).day === day;
-        }catch(e){console.warn('daily summary KV read:',e?.message||e);}
-    }
-    try{
-        const hit=await caches.default.match(cacheKey(request,TELEGRAM_DAILY_CACHE_PATH));
-        if(!hit)return false;
-        const d=await hit.json(); return d.day===day;
-    }catch{return false;}
+    if(!env.TTS_USAGE) throw new Error('KV de histórico indisponível');
+    const raw=await env.TTS_USAGE.get(TELEGRAM_DAILY_KV_KEY);
+    return raw ? JSON.parse(raw).day===day : false;
 }
 async function markDailySummarySent(request,day,env){
-    if(env && env.TTS_USAGE){
-        try{
-            await env.TTS_USAGE.put(TELEGRAM_DAILY_KV_KEY, JSON.stringify({day,sentAt:nowIso()}), {expirationTtl:172800});
-            return;
-        }catch(e){console.warn('daily summary KV write:',e?.message||e);}
-    }
-    try{
-        await caches.default.put(cacheKey(request,TELEGRAM_DAILY_CACHE_PATH),
-            new Response(JSON.stringify({day,sentAt:nowIso()}),{
-                headers:{'Content-Type':'application/json','Cache-Control':'public,max-age=172800'}
-            }));
-    }catch(e){console.warn('daily summary cache:',e?.message||e);}
+    await env.TTS_USAGE.put(TELEGRAM_DAILY_KV_KEY,
+        JSON.stringify({day,sentAt:nowIso()}),{expirationTtl:172800});
 }
-// Uma falha temporária não deve perder o resumo: cada cron tenta o dia
-// anterior até confirmar o envio. Não repetir imediatamente uma requisição
-// Telegram que pode ter sido aceita antes de um timeout.
 async function telegramDailyRequest(env, method, body) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20000);
@@ -4764,13 +4744,18 @@ async function telegramDailyRequest(env, method, body) {
         const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,
             {method:'POST',body,signal:controller.signal});
         const data = await r.json().catch(()=>({}));
-        if(!r.ok || !data.ok) throw new Error(data.description || `Telegram HTTP ${r.status}`);
+        if(!r.ok || !data.ok) {
+            const error=new Error(data.description || `Telegram HTTP ${r.status}`);
+            // Só a recusa explícita da API permite repetir com segurança.
+            error.definitelyRejected=data.ok===false;
+            throw error;
+        }
         return data;
     } finally {
         clearTimeout(timer);
     }
 }
-async function runTelegramDailySummary(request,env){
+async function deliverTelegramDailySummary(request,env,delivery){
     if(!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID) {
         console.error('Telegram resumo diário: secrets ausentes');
         return {ok:false,skipped:true,reason:'Secrets Telegram ausentes'};
@@ -4796,6 +4781,7 @@ async function runTelegramDailySummary(request,env){
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('caption',caption.slice(0,1024));
         form.append('photo',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo.png');
+        await delivery.beforeSend();
         await telegramDailyRequest(env,'sendPhoto',form);
     } else {
         const text=caption+'\n\nTop 5:\n'+(top.map((e,i)=>
@@ -4803,13 +4789,76 @@ async function runTelegramDailySummary(request,env){
         const form=new FormData();
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('text',text.slice(0,4096));
+        await delivery.beforeSend();
         await telegramDailyRequest(env,'sendMessage',form);
     }
-    await markDailySummarySent(request,day,env);
+    await delivery.confirm();
+    try { await markDailySummarySent(request,day,env); }
+    catch { console.error('Resumo confirmado; falha ao atualizar histórico KV'); }
     console.log('Telegram resumo diário: enviado', {day,total:quakes.events.length,format:pack?'photo':'text'});
     return {ok:true,day,total:quakes.events.length};
 }
 
+
+
+async function runTelegramDailySummary(request,env){
+    const p=saoPauloParts();
+    if(Number(p.hour)!==0 || Number(p.minute)>30)
+        return {ok:true,skipped:true,reason:'fora da janela 00:00–00:30 BRT'};
+    if(!env.DAILY_SUMMARY) throw new Error('Controle central do resumo indisponível');
+    const day=saoPauloYmdOffset(-1);
+    const id=env.DAILY_SUMMARY.idFromName(day);
+    const response=await env.DAILY_SUMMARY.get(id).fetch('https://summary.internal/');
+    const result=await response.json();
+    if(!response.ok) throw new Error(result.error||'Resumo pendente');
+    return result;
+}
+
+// Um objeto persistente por data; reservas atômicas sobrevivem a deploys.
+// "sending" não expira: um timeout pode acontecer depois da entrega.
+export class DailySummaryDelivery {
+    constructor(ctx,env) { this.ctx=ctx; this.env=env; }
+    async fetch(request) {
+        const p=saoPauloParts();
+        if(Number(p.hour)!==0 || Number(p.minute)>30)
+            return Response.json({ok:true,skipped:true,reason:'fora da janela'});
+        const token=crypto.randomUUID(), now=Date.now(), storage=this.ctx.storage;
+        const claimed=await storage.transaction(async tx=>{
+            const state=await tx.get('delivery');
+            if(state && (state.status!=='preparing'||state.until>now)) return false;
+            await tx.put('delivery',{status:'preparing',token,until:now+120000});
+            return true;
+        });
+        if(!claimed) return Response.json({ok:true,skipped:true,reason:'envio reservado ou confirmado'});
+        const change=async status=>storage.transaction(async tx=>{
+            const state=await tx.get('delivery');
+            if(state?.token!==token) throw new Error('Reserva substituída');
+            if(status==='sending' && state.status!=='preparing') throw new Error('Envio já iniciado');
+            await tx.put('delivery',{status,token,at:Date.now()});
+        });
+        try {
+            const result=await deliverTelegramDailySummary(request,this.env,{
+                beforeSend:()=>change('sending'),
+                confirm:()=>change('sent')
+            });
+            if(result.skipped && result.reason==='resumo já enviado') await change('sent');
+            else if(!result.ok) {
+                await storage.transaction(async tx=>{
+                    if((await tx.get('delivery'))?.token===token) await tx.delete('delivery');
+                });
+            }
+            return Response.json(result);
+        } catch(error) {
+            await storage.transaction(async tx=>{
+                const state=await tx.get('delivery');
+                if(state?.token===token && (state.status==='preparing'||error.definitelyRejected))
+                    await tx.delete('delivery');
+            });
+            console.error('Resumo diário: tentativa falhou; controle persistente preservado');
+            return Response.json({ok:false,error:'Falha ao preparar ou enviar resumo'}, {status:502});
+        }
+    }
+}
 
 // As rotas /telegram-test, /telegram-daily-summary, /telegram-m6-check e
 // /telegram-card-preview disparam ações de verdade (mensagem real no

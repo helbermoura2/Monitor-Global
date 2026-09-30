@@ -5,3 +5,11 @@ compatibility_date = "2024-09-01"
 [[kv_namespaces]]
 binding = "TTS_USAGE"
 id = "2b5f24c184864d8d9cb2adba3ccdfd43"
+
+[[durable_objects.bindings]]
+name = "DAILY_SUMMARY"
+class_name = "DailySummaryDelivery"
+
+[[migrations]]
+tag = "daily-summary-v1"
+new_sqlite_classes = ["DailySummaryDelivery"]
