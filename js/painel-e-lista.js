@@ -312,11 +312,50 @@ function renderPainelTimeline(item) {
     box.style.display = 'flex';
 }
 
+let panelPresentationPrevious=null, panelRevisionTimer=null;
+function syncPanelPresentation(item) {
+    const panel=document.getElementById('painel-direito');
+    if(!panel||!item)return;
+    const quake=item.type==='earthquake'||(item.mag!=null&&!item.type);
+    panel.dataset.presentation=quake?'quake':'alert';
+    const label=document.getElementById('pd-scale-label');
+    if(label)label.textContent=quake?'MAGNITUDE':'SEVERIDADE DO EVENTO';
+    const gauge=document.getElementById('pd-gauge');
+    if(gauge)gauge.setAttribute('aria-label',quake?'Indicador de magnitude do sismo':'Indicador de severidade do evento');
+    const note=document.getElementById('pd-revision-note');
+    const current={id:String(item.id),mag:item.mag!=null?Number(item.mag):NaN,depth:item.depth!=null?Number(item.depth):NaN};
+    const previous=panelPresentationPrevious;
+    const same=previous&&previous.id===current.id;
+    if(!same){
+        clearTimeout(panelRevisionTimer);
+        if(note){note.hidden=true;note.textContent='';}
+    }
+    const changes=[];
+    if(same&&quake){
+        if(Number.isFinite(previous.mag)&&Number.isFinite(current.mag)&&previous.mag!==current.mag)
+            changes.push({id:'pd-mag',text:'Magnitude: '+previous.mag.toFixed(1).replace('.',',')+' → '+current.mag.toFixed(1).replace('.',',')});
+        if(Number.isFinite(previous.depth)&&Number.isFinite(current.depth)&&previous.depth!==current.depth)
+            changes.push({id:'pd-depth',text:'Profundidade: '+previous.depth.toFixed(1)+' → '+current.depth.toFixed(1)+' km'});
+    }
+    panelPresentationPrevious=current;
+    if(!changes.length)return;
+    if(note){note.textContent='Revisão · '+changes.map(x=>x.text).join(' · ');note.hidden=false;}
+    const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if(!reduce)changes.forEach(change=>{
+        const el=document.getElementById(change.id);
+        // Só ilumina o dado; não interfere em transformações de tremor/giro.
+        el?.animate?.([{textShadow:'0 0 0 transparent'},{textShadow:'0 0 14px rgba(251,191,36,.95)'},{textShadow:'0 0 0 transparent'}],{duration:1600,easing:'ease-out'});
+    });
+    clearTimeout(panelRevisionTimer);
+    panelRevisionTimer=setTimeout(()=>{if(note)note.hidden=true;},8000);
+}
+
 function enrichPainelDetalheUI(item) {
     try {
         applyPainelSeveridade(item);
         renderPainelChips(item);
         renderPainelTimeline(item);
+        syncPanelPresentation(item);
     } catch (e) { console.warn('[pd-ui]', e); }
 }
 

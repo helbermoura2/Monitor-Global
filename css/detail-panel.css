@@ -1,0 +1,23 @@
+/* Frente do painel: hierarquia apenas. O tema mantém backgrounds,
+   transparência e blur; efeitos de tremor, giro e verso não são alterados. */
+#painel-direito .pd-header-row { gap:8px;align-items:center; }
+#painel-direito .pd-header { font-size:10px!important;letter-spacing:.1em!important;line-height:1.4!important; }
+#painel-direito .pd-header-actions { gap:6px; }
+#painel-direito .pd-chips { gap:5px!important;margin-top:7px!important;margin-bottom:9px!important;flex-wrap:wrap; }
+#painel-direito .pd-chip { font-size:8px!important;letter-spacing:.04em; }
+#painel-direito .pd-scale-label { text-align:center;font-size:9px;font-weight:750;letter-spacing:.16em;color:#b3cbdc;margin-top:5px; }
+#painel-direito .pd-local { font-size:17px!important;font-weight:750!important;line-height:1.4!important;margin:9px 0 6px!important;overflow-wrap:anywhere;text-shadow:0 1px 3px #0008; }
+#painel-direito .pd-time { font-size:11px!important;line-height:1.5!important;color:#bfd2df; }
+#painel-direito #pd-distvoce { margin-top:6px!important; }
+#painel-direito #pd-mag-sources { font-size:10px!important;line-height:1.5!important;margin:6px 0 10px!important; }
+#painel-direito .pd-timeline { margin:11px 0!important;padding:9px 0!important;border-top:1px solid rgba(175,216,239,.16);border-bottom:1px solid rgba(175,216,239,.16); }
+#painel-direito .stats-grid { gap:8px!important;margin-top:12px!important;margin-bottom:12px!important; }
+#painel-direito .stat-card-label { font-size:9px!important;line-height:1.45!important;letter-spacing:.05em!important; }
+#painel-direito .stat-card-value { font-size:19px!important;line-height:1.3!important;overflow-wrap:anywhere; }
+#painel-direito .pd-impact-section { margin-top:10px!important;padding-top:10px!important; }
+#painel-direito .pd-impact-section .bubble-section-title { font-size:10px!important;line-height:1.5!important; }
+#painel-direito #pd-impact { font-size:12px!important;line-height:1.6!important; }
+#painel-direito .pd-more-toggle { margin-top:12px!important;min-height:34px; }
+#painel-direito .pd-revision-note { font-size:10px;line-height:1.5;font-weight:650;color:#fbd077;border:1px solid rgba(251,191,36,.35);border-radius:7px;padding:6px 9px;margin:8px 0;text-align:center; }
+#painel-direito .pd-revision-note[hidden] { display:none!important; }
+@media(max-width:700px){#painel-direito .pd-local {font-size:16px!important}#painel-direito .stat-card-value {font-size:17px!important}}
