@@ -4516,7 +4516,7 @@ async function handleTelegramM6Check(request, env) {
 function saoPauloParts(date=new Date()) {
     const parts = new Intl.DateTimeFormat('en-CA',{
         timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',
-        hour:'2-digit',minute:'2-digit',hour12:false
+        hour:'2-digit',minute:'2-digit',hourCycle:'h23'
     }).formatToParts(date);
     const o={}; for(const p of parts)o[p.type]=p.value; return o;
 }
@@ -4620,8 +4620,8 @@ function layoutRow(fonts, item, cardW) {
     return { padTop, padBottom, padLeft, magX, placeX, countryCode, lines, magRowH, magY, placeBlockY, metaY, cardH };
 }
 
-async function renderDailySummaryPng() {
-    const {day,events}=await fetchDailyQuakesBrt();
+async function renderDailySummaryPng(quakes = null) {
+    const {day,events}=quakes || await fetchDailyQuakesBrt();
     const fonts=await getFontAtlases();
     const W=800, cardX=38, cardW=W-76;
     const top=events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
@@ -4792,31 +4792,60 @@ async function markDailySummarySent(request,day,env){
             }));
     }catch(e){console.warn('daily summary cache:',e?.message||e);}
 }
+// Uma falha temporária não deve perder o resumo: cada cron tenta o dia
+// anterior até confirmar o envio. Não repetir imediatamente uma requisição
+// Telegram que pode ter sido aceita antes de um timeout.
+async function telegramDailyRequest(env, method, body) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+        const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,
+            {method:'POST',body,signal:controller.signal});
+        const data = await r.json().catch(()=>({}));
+        if(!r.ok || !data.ok) throw new Error(data.description || `Telegram HTTP ${r.status}`);
+        return data;
+    } finally {
+        clearTimeout(timer);
+    }
+}
 async function runTelegramDailySummary(request,env){
-    if(!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID)
+    if(!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID) {
+        console.error('Telegram resumo diário: secrets ausentes');
         return {ok:false,skipped:true,reason:'Secrets Telegram ausentes'};
-    const force = new URL(request.url).searchParams.get('force') === '1';
-    const p=saoPauloParts(), hour=Number(p.hour), minute=Number(p.minute);
-    // Janela automática de segurança. ?force=1 permite teste manual pelo navegador.
-    if(!force && (hour!==0 || minute>20)) return {ok:true,skipped:true,reason:'fora da janela 00:00–00:20 BRT'};
+    }
     const day=saoPauloYmdOffset(-1);
     if(await dailySummarySent(request,day,env)) return {ok:true,skipped:true,reason:'resumo já enviado',day};
-    const pack=await renderDailySummaryPng();
-    const form=new FormData();
-    form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
-    form.append('caption',
-        `📊 *Resumo do dia — ${day.split('-').reverse().join('/')}*\n` +
-        `🌍 ${pack.total} sismos registrados\n` +
-        `🏆 Maior: ${pack.top[0]?`M${pack.top[0].mag.toFixed(1)} — ${escapeMdLegacy(pack.top[0].place)}`:'sem registro'}\n` +
-        `🌐 monitorglobal.top`);
-    form.append('parse_mode','Markdown');
-    form.append('photo',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo.png');
-    const api=`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`;
-    const r=await fetch(api,{method:'POST',body:form});
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok||!data.ok) throw new Error(data.description||`Telegram HTTP ${r.status}`);
+    const quakes=await fetchDailyQuakesBrt();
+    const top=quakes.events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
+    const caption =
+        `📊 Resumo do dia — ${day.split('-').reverse().join('/')}` +
+        `\n🌍 ${quakes.events.length} sismos registrados` +
+        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1)} — ${top[0].place}`:'sem registro'}` +
+        '\n🌐 monitorglobal.top';
+    let pack;
+    try {
+        pack=await renderDailySummaryPng(quakes);
+    } catch(e) {
+        // Só usar texto se a renderização falhar ANTES de enviar ao Telegram.
+        console.error('Telegram resumo diário: renderização falhou; usando texto');
+    }
+    if(pack) {
+        const form=new FormData();
+        form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
+        form.append('caption',caption.slice(0,1024));
+        form.append('photo',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo.png');
+        await telegramDailyRequest(env,'sendPhoto',form);
+    } else {
+        const text=caption+'\n\nTop 5:\n'+(top.map((e,i)=>
+            `${i+1}. M${e.mag.toFixed(1)} — ${e.place}`).join('\n')||'Sem registro');
+        const form=new FormData();
+        form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
+        form.append('text',text.slice(0,4096));
+        await telegramDailyRequest(env,'sendMessage',form);
+    }
     await markDailySummarySent(request,day,env);
-    return {ok:true,day,total:pack.total};
+    console.log('Telegram resumo diário: enviado', {day,total:quakes.events.length,format:pack?'photo':'text'});
+    return {ok:true,day,total:quakes.events.length};
 }
 
 
@@ -5098,10 +5127,11 @@ export default {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';
         const cacheRequest = new Request(baseUrl, { method: 'GET' });
         ctx.waitUntil((async () => {
+            // Prioridade ao resumo; consultas de outros feeds não atrasam sua tentativa.
+            try { await runTelegramDailySummary(cacheRequest, env); } catch (e) { console.error('Cron Telegram resumo diário: envio pendente; nova tentativa no próximo cron'); }
             try { await refreshSpClimaCache(cacheRequest, env); } catch (e) { console.error('Cron SP:', e); }
             try { await refreshGlobalFeedsCache(cacheRequest, env); } catch (e) { console.error('Cron global:', e); }
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
-            try { await runTelegramDailySummary(cacheRequest, env); } catch (e) { console.error('Cron Telegram resumo diário:', e); }
         })());
     }
 };
