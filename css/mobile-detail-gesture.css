@@ -1,0 +1,25 @@
+#mobile-detail-handle {display:none}
+@media(max-width:900px){
+  #painel-direito #mobile-detail-handle {
+    display:flex!important;align-items:center;justify-content:center;
+    width:100%;min-height:24px;height:24px;flex-shrink:0;
+    padding:0;margin:0 0 3px;border:0;background:transparent;
+    opacity:1;pointer-events:auto;touch-action:none;cursor:ns-resize;
+    position:relative;z-index:60;user-select:none;-webkit-user-select:none;
+  }
+  #mobile-detail-handle span {display:block;width:42px;height:4px;border-radius:99px;background:rgba(194,230,249,.65)}
+  #mobile-detail-handle:focus-visible {outline:2px solid #70d5f3;outline-offset:-2px;border-radius:7px}
+  body.mobile-details-mid #painel-direito::before,
+  body.mobile-details-open #painel-direito::before {display:none!important}
+  body.mg-mobile-primary.mobile-details-mid #painel-direito #mobile-detail-handle {grid-column:1 / -1;grid-row:1;position:absolute;left:0;top:0;margin:0;width:100%}
+  body.mg-mobile-primary.mobile-details-mid #painel-direito {padding-top:25px!important}
+  body.mobile-details-open #painel-direito #mobile-detail-handle {position:sticky;top:0}
+  body:not(.mobile-details-mid):not(.mobile-details-open) #painel-direito #mobile-detail-handle {min-height:16px;height:16px;margin-bottom:0}
+  body.mg-sheet-dragging #painel-direito {
+    height:var(--mg-sheet-drag-height)!important;
+    max-height:var(--mg-sheet-drag-height)!important;
+    min-height:0!important;transition:none!important;
+  }
+  /* Áudio permanece visível ao lado do Menu, conforme preferência do usuário. */
+  body.mg-mobile-primary #top-strip > .ts-mainrow > #mobile-fab-bar #fab-audio {display:flex!important}
+}
