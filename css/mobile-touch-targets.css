@@ -1,0 +1,38 @@
+/* Áreas de toque maiores apenas no mobile; tamanhos dos ícones preservados. */
+@media(max-width:900px){
+  #painel-direito #pd-focus-btn,
+  #painel-direito #pd-share-btn {
+    min-width:44px!important;min-height:44px!important;height:44px!important;
+    box-sizing:border-box;touch-action:manipulation;
+  }
+  body.mobile-details-mid #painel-direito-close,
+  body.mobile-details-open #painel-direito-close {
+    width:44px!important;height:44px!important;min-width:44px!important;
+    min-height:44px!important;z-index:70!important;box-sizing:border-box;
+    touch-action:manipulation;
+  }
+  body.mobile-details-mid #painel-direito .pd-header-actions,
+  body.mobile-details-open #painel-direito .pd-header-actions,
+  body.mg-mobile-primary.mobile-details-mid #painel-direito .pd-header-actions {
+    padding-right:52px!important;gap:6px!important;
+  }
+  body.mobile-details-mid #painel-direito .pd-header-row,
+  body.mg-mobile-primary.mobile-details-mid #painel-direito .pd-header-row,
+  body.mobile-details-open #painel-direito .pd-header-row {min-height:44px!important}
+  #sidebar-events-close,
+  #ux-panel-close,
+  #menu-float-panel.mg-mobile-panel .close-x {
+    width:44px!important;height:44px!important;min-width:44px!important;
+    min-height:44px!important;box-sizing:border-box;touch-action:manipulation;
+  }
+  .maplibregl-ctrl-group button.maplibregl-ctrl-zoom-in,
+  .maplibregl-ctrl-group button.maplibregl-ctrl-zoom-out {
+    width:44px!important;height:44px!important;min-width:44px!important;
+    min-height:44px!important;touch-action:manipulation;
+  }
+  .maplibregl-ctrl-group button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon,
+  .maplibregl-ctrl-group button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon {background-size:20px 20px}
+  #painel-direito #pd-focus-btn:focus-visible,
+  #painel-direito #pd-share-btn:focus-visible,
+  #painel-direito-close:focus-visible {outline:2px solid #70d5f3;outline-offset:2px}
+}
