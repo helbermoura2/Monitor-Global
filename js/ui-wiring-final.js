@@ -59,6 +59,7 @@ function showToast(m, t = 'info') {
 // corrigido. Fica no mesmo #toast-stack dos toasts normais (ancorado embaixo,
 // já com o desvio dos painéis calculado) — só que com sua própria classe
 // pra CSS mais largo/alto.
+const mobileRevisionHistory = [];
 function showSismoAtualizadoPill(ev) {
     if (!ev || !ev.place) return;
 
@@ -71,9 +72,20 @@ function showSismoAtualizadoPill(ev) {
         stack.setAttribute('aria-atomic', 'false');
         document.body.appendChild(stack);
     }
+    const compactPortrait = window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+    let earlierRevisions = 0;
+    if (compactPortrait) {
+        mobileRevisionHistory.push({id:ev.id,place:ev.place,_deltaTxt:ev._deltaTxt});
+        if (mobileRevisionHistory.length > 20) mobileRevisionHistory.shift();
+        stack.querySelectorAll('.toast-update-card').forEach(card => {
+            earlierRevisions += 1 + (Number(card.dataset.earlierRevisions) || 0);
+            card.remove();
+        });
+    }
     while (stack.children.length >= 4) stack.firstElementChild?.remove();
 
     const d = document.createElement('div');
+    if (compactPortrait) d.dataset.earlierRevisions = String(earlierRevisions);
     d.className = 'toast toast-info toast-update-card';
     const label = document.createElement('div');
     label.className = 'toast-update-label';
@@ -87,6 +99,13 @@ function showSismoAtualizadoPill(ev) {
     d.appendChild(label);
     d.appendChild(place);
     d.appendChild(delta);
+    if (earlierRevisions) {
+        const more = document.createElement('button');
+        more.type = 'button'; more.className = 'toast-update-more';
+        more.textContent = '+' + earlierRevisions + ' revisão(ões) recebida(s)';
+        more.onclick = () => window.MobilePortraitUI?.revisions(mobileRevisionHistory.slice());
+        d.appendChild(more);
+    }
     stack.appendChild(d);
 
     const remove = () => {

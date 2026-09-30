@@ -43,6 +43,11 @@
     var willOpen = !el.classList.contains('open');
     if (!willOpen) { closeMenu(); return false; }
 
+    if (window.MobilePortraitUI?.isPortrait()) {
+      window.MobilePortraitUI.menu();
+      return false;
+    }
+
     el.innerHTML =
       '<button type="button" class="close-x" id="menu-float-close">✕</button>' +
       '<h3>Menu</h3>' +
