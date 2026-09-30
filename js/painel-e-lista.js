@@ -349,6 +349,11 @@ function marcarEventoComoVisto(id, el){
 
 const LIST_RENDER_CAP = 120; // evita milhares de nós DOM num dia agitado
 
+function recordCardTime(time) {
+    const date=new Date(time);
+    if(!Number.isFinite(date.getTime()))return 'Horário não informado';
+    return date.toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})+' BRT';
+}
 function renderSidebarList(items) {
     const c = document.getElementById('events');
     if (!c) return;
@@ -429,7 +434,9 @@ function renderSidebarList(items) {
         }
 
         const div = document.createElement('div');
-        div.className = 'event';
+        div.className = 'event event-card-v2';
+        div.setAttribute('role','button');
+        div.setAttribute('aria-label',String(item.place||'Evento'));
         div.dataset.eventId = String(item.id);
         div.dataset.eventType = item.type;
         div.tabIndex = 0;
@@ -466,26 +473,25 @@ function renderSidebarList(items) {
         }
 
         if (item.type === 'earthquake') {
-            const prelimMark = item.isPreliminary
-                ? `<span class="prelim-mark" title="Solução automática/preliminar — será atualizada quando a fonte revisar">?</span>`
-                : '';
-            const placePrefix = item.isPreliminary ? '? ' : '';
             div.innerHTML = `
-                <span class="event-icon" aria-hidden="true">${item.mag.toFixed(1)}</span>
+                <span class="event-icon ev-magnitude" aria-hidden="true"><small>M</small>${item.mag.toFixed(1)}</span>
                 <div class="event-body">
                 <div class="event-header">
-                    <span class="event-mag ${getMagColorClass(item.mag)}">M${item.mag.toFixed(1)}${prelimMark}</span>
+                    <span class="ev-kind">SISMO</span>${item.isPreliminary?'<span class="ev-status">PRELIMINAR</span>':''}
                     ${item.correlationLevel && Number(item.mag)>=5.5 ? `<span class="mg-corr-mini" title="Correlação inteligente de risco">${item.correlationLevel==='ALERTA OFICIAL'?'🌊⚠️':item.correlationLevel==='ALTO'?'🌊🔴':item.correlationLevel==='MODERADO'?'🌊🟠':item.correlationLevel==='ATENÇÃO'?'🌊🟡':'🌊🟢'}</span>` : ''}
-                    <span class="event-place">${esc(item.bandeira)} ${placePrefix}${esc(item.place)}</span>
+                    <span class="event-place">${esc(item.bandeira)} ${esc(item.place)}</span>
                 </div>
                 <div class="event-meta">
-                    <span>${formatTime(item.time)}</span>
-                    <span title="Profundidade">${Math.max(0, item.depth).toFixed(0)} km prof.</span>
+                    <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age">${esc(formatTime(item.time))}</span>
+                    <span title="Profundidade">${Number.isFinite(Number(item.depth))&&item.depth!=null?Math.max(0,Number(item.depth)).toFixed(0)+' km de profundidade':'Profundidade não informada'}</span>
                     ${distVoce}
-                    <span class="event-source" title="${esc((item.sources||[]).join(' · ')||item.source)}">${esc(item.sourceSummary || item.source)}</span>
-                    <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
-                    <span class="energy-indicator" title="Energia liberada">Energia ${getEnergyLevel(item.mag)}/10</span>
+
                     ${updatedTxt}
+                </div>
+                <div class="ev-footer">
+                    <span class="event-source" title="${esc((item.sources||[]).join(' · ')||item.source)}">Fonte: ${esc(item.sourceSummary || item.source || 'Não informada')}</span>
+                    <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
+                    <span class="ev-action" aria-hidden="true">Detalhes →</span>
                 </div>
                 </div>`;
             div.style.setProperty('--ev-color', getHexColor(item.mag));
@@ -521,12 +527,17 @@ function renderSidebarList(items) {
                     <span class="event-place">${esc(flagTxt)} ${esc(placeTxt)}</span>
                 </div>
                 <div class="event-meta">
-                    <span>${formatTime(item.time)}</span>
+                    <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age">${esc(formatTime(item.time))}</span>
                     ${distVoce}
-                    ${detailTxt ? `<span>${esc(detailTxt)}</span>` : ''}
+                    ${detailTxt ? `<span class="ev-description">${esc(detailTxt)}</span>` : ''}
                     ${staleTxt}
                     ${updatedTxt}
-                    ${!isCyc ? `<span class="event-source">${esc(item.source)}</span><span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>` : ''}
+                    
+                </div>
+                <div class="ev-footer">
+                    <span class="event-source">Fonte: ${esc(item.source || 'Não informada')}</span>
+                    <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
+                    <span class="ev-action" aria-hidden="true">${isCyc?'Trajetória':'Detalhes'} →</span>
                 </div>
                 </div>`;
             div.style.setProperty('--ev-color', badgeColor);

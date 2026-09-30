@@ -1,0 +1,21 @@
+/* Hierarquia dos registros. Background, transparência e backdrop-filter
+   continuam integralmente sob controle do tema vidro existente. */
+#events .event.event-card-v2 { display:flex!important; align-items:flex-start!important; gap:11px!important; padding:12px 11px!important; }
+#events .event.event-card-v2 .event-icon { position:relative!important; flex:0 0 48px!important; width:48px!important; height:48px!important; min-width:0!important; margin:4px 0 0!important; font-size:25px!important; display:flex!important; align-items:center!important; justify-content:center!important; }
+#events .event.event-card-v2 .ev-magnitude { flex-direction:column; font-size:23px!important; font-weight:800; color:var(--ev-color); line-height:1.05; font-variant-numeric:tabular-nums; }
+#events .event.event-card-v2 .ev-magnitude small { font-size:10px; line-height:1.4; }
+#events .event.event-card-v2 .event-body { flex:1!important; min-width:0!important; }
+#events .event.event-card-v2 .event-header { display:flex!important; flex-wrap:wrap!important; align-items:center!important; gap:5px!important; margin-bottom:7px!important; }
+#events .event.event-card-v2 .ev-kind { font-size:9px; letter-spacing:.12em; font-weight:800; color:var(--ev-color); }
+#events .event.event-card-v2 .ev-status { font-size:8px; letter-spacing:.05em; color:#fbbf24; }
+#events .event.event-card-v2 .event-type-badge { font-size:9px!important; max-width:100%; white-space:normal!important; line-height:1.3; }
+#events .event.event-card-v2 .event-place { flex:1 0 100%!important; font-size:14px!important; line-height:1.35!important; font-weight:750!important; -webkit-line-clamp:2; overflow-wrap:anywhere; text-shadow:0 1px 3px #0009; }
+#events .event.event-card-v2 .event-meta { font-size:10px!important; line-height:1.45!important; gap:5px 10px!important; margin-top:0!important; color:#bfd0dc!important; }
+#events .event.event-card-v2 .ev-time { font-variant-numeric:tabular-nums; color:#deedf6; font-weight:650; }
+#events .event.event-card-v2 .ev-description { flex-basis:100%; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+#events .event.event-card-v2 .ev-footer { display:flex; flex-wrap:wrap; gap:5px 8px; align-items:center; border-top:1px solid rgba(164,205,225,.16); margin-top:9px; padding-top:7px; }
+#events .event.event-card-v2 .event-source { font-size:9px!important; max-width:100%; overflow-wrap:anywhere; color:#abc6d7!important; }
+#events .event.event-card-v2 .conf-badge { font-size:8px!important; }
+#events .event.event-card-v2 .ev-action { font-size:9px; font-weight:700; color:#67d9ee; margin-left:auto; white-space:nowrap; }
+#events .event.event-card-v2:focus-visible { outline:2px solid #67d9ee!important; outline-offset:2px; }
+@media(max-width:400px){ #events .event.event-card-v2 {gap:8px!important} #events .event.event-card-v2 .event-icon {flex-basis:40px!important;width:40px!important;font-size:22px!important} }
