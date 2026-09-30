@@ -1,83 +1,156 @@
-// === populacao-sismo.js — Estimativa de pessoas afetadas + MMI por cidade
-// para a "virada" do card principal (como uma carta de baralho, ver
-// agendarViradaCardAlcance) e a seção fixa em Mais Detalhes. Só sismo tem
-// esse conceito (zona sentida por distância); outros tipos de evento não
-// usam nada deste arquivo.
-//
-// Fonte de população: extrato do GeoNames Gazetteer (mirror lmfmaier/
-// cities-json, atualizado periodicamente a partir do dump oficial do
-// GeoNames) — ~178 mil lugares povoados reais do mundo todo (cidades,
-// vilas, sedes administrativas) com população ≥ 500 habitantes, TODOS com
-// campo de população preenchido. Bem mais denso que a fonte anterior
-// (Natural Earth, ~7,3 mil lugares "notáveis" pra rótulo de mapa) — áreas
-// rurais/remotas (ex.: litoral do Iêmen, onde um sismo só encontrava 2
-// cidades cadastradas antes) agora têm cobertura de verdade. CC BY 4.0
-// (GeoNames exige atribuição — ver crédito em #pd-alcance e no menu de
-// fontes), diferente da Natural Earth que era domínio público. Carregado
-// uma única vez, sob demanda (só quando o primeiro sismo precisar disso),
-// e cacheado em memória pelo resto da sessão. Arquivo bem maior que antes
-// (~7MB comprimido) — aceitável pra um recurso opcional carregado uma vez
-// por sessão, nunca no carregamento inicial da página.
-const GEONAMES_CITIES_URL = 'https://raw.githubusercontent.com/lmfmaier/cities-json/master/cities500.json';
+// População cadastrada na área estimada de percepção. Não é contagem de vítimas,
+// relatos humanos ou integração de população em grade (GHSL/WorldPop).
+const GEONAMES_CITIES_URL='https://raw.githubusercontent.com/lmfmaier/cities-json/master/cities500.json';
+const GEONAMES_CITIES_MIRROR='https://rawcdn.githack.com/lmfmaier/cities-json/aed0822519df832873f6cca8e05d5224c418e657/cities500.json';
+let _lugaresPopulososCache=null,_lugaresPopulososInflight=null,_popRetryAfter=0;
+const _popAreaCache=new Map(),_popAreaInflight=new Map();
 
-let _lugaresPopulososCache = null;
-let _lugaresPopulososInflight = null;
-
-function fetchLugaresPopulosos() {
-    if (_lugaresPopulososCache) return Promise.resolve(_lugaresPopulososCache);
-    if (_lugaresPopulososInflight) return _lugaresPopulososInflight;
-    _lugaresPopulososInflight = fetch(GEONAMES_CITIES_URL)
-        .then(r => r.json())
-        .then(lista => {
-            const lugares = (lista || []).map(p => {
-                const lat = Number(p.lat), lng = Number(p.lon), pop = Number(p.pop) || 0;
-                const nome = p.name;
-                if (!nome || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-                return { nome, lat, lng, pop };
-            }).filter(Boolean);
-            _lugaresPopulososCache = lugares;
-            return lugares;
-        })
-        .catch(() => { _lugaresPopulososCache = []; return []; })
-        .finally(() => { _lugaresPopulososInflight = null; });
+function numeroPopulacao(value){
+    const text=String(value==null?'':value).trim();
+    if(!/^\d+(?:[ ,.]\d{3})*$/.test(text))return null;
+    const n=Number(text.replace(/[ ,.]/g,''));
+    return Number.isSafeInteger(n)&&n>0?n:null;
+}
+function normalizarLugarPop(p,source='GeoNames'){
+    const latitude=p.lat,longitude=p.lon??p.lng;
+    if(latitude==null||longitude==null||String(latitude).trim()===''||String(longitude).trim()==='')return null;
+    const lat=Number(latitude),lng=Number(longitude),nome=String(p.name||p.nome||'').trim();
+    if(!nome||!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return null;
+    return {nome,lat,lng,pop:numeroPopulacao(p.pop??p.population),source,id:String(p.id||''),country:String(p.country||'')};
+}
+async function fetchPopJson(url,timeout=12000){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
+    try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
+    finally{clearTimeout(timer);}
+}
+// Cache persistente evita baixar o catálogo global em cada visita. Só salva dados válidos.
+function cachePopPersistente(mode,value){
+    return new Promise(resolve=>{
+        if(typeof indexedDB==='undefined'){resolve(null);return;}
+        let db,finished=false;
+        const done=v=>{if(finished)return;finished=true;clearTimeout(timer);if(db)db.close();resolve(v);};
+        const timer=setTimeout(()=>done(null),1500);
+        try{
+            const request=indexedDB.open('monitor-global-population',1);
+            request.onupgradeneeded=()=>request.result.createObjectStore('catalog');
+            request.onerror=()=>done(null);
+            request.onsuccess=()=>{
+                db=request.result;if(finished){db.close();return;}
+                const tx=db.transaction('catalog',mode==='write'?'readwrite':'readonly');
+                const op=mode==='write'?tx.objectStore('catalog').put({at:Date.now(),places:value},'geonames-v1'):tx.objectStore('catalog').get('geonames-v1');
+                op.onsuccess=()=>{if(mode!=='write'){const data=op.result;done(data&&Date.now()-data.at<30*864e5&&Array.isArray(data.places)&&data.places.length?data.places:null);}};
+                tx.oncomplete=()=>done(mode==='write'?true:null);tx.onerror=()=>done(null);
+            };
+        }catch(e){done(null);}
+    });
+}
+function fetchLugaresPopulosos(){
+    if(_lugaresPopulososCache)return Promise.resolve(_lugaresPopulososCache);
+    if(_lugaresPopulososInflight)return _lugaresPopulososInflight;
+    if(Date.now()<_popRetryAfter)return Promise.resolve(null);
+    _lugaresPopulososInflight=(async()=>{
+        const stored=await cachePopPersistente('read');
+        if(stored){_lugaresPopulososCache=stored;return stored;}
+        for(const url of [GEONAMES_CITIES_URL,GEONAMES_CITIES_MIRROR]){
+            try{
+                const data=await fetchPopJson(url);
+                if(!Array.isArray(data))throw new Error('Catálogo inválido');
+                const places=data.map(p=>normalizarLugarPop(p)).filter(Boolean);
+                if(!places.length||!places.some(p=>p.pop))throw new Error('Catálogo sem população');
+                _lugaresPopulososCache=places;void cachePopPersistente('write',places);return places;
+            }catch(e){}
+        }
+        _popRetryAfter=Date.now()+60000;
+        return null; // Falha de rede nunca se transforma em uma região sem moradores.
+    })().finally(()=>{_lugaresPopulososInflight=null;});
     return _lugaresPopulososInflight;
 }
-
-// Classifica a intensidade sentida numa distância dada, reaproveitando os
-// MESMOS raios já usados na zona crítica visual (startFeltZone) — sem
-// inventar um segundo modelo de atenuação. Ordem real: raioCritico (mais
-// apertado, mais forte) < raioEstimado < raioDetectavel (mais largo, mais
-// fraco).
-function mmiPorDistancia(distanciaKm, mag, depth) {
-    if (typeof raioCritico !== 'function') return null;
-    const rc = raioCritico(mag, depth);
-    const re = raioEstimado(mag, depth);
-    const rd = raioDetectavel(mag, depth);
-    if (distanciaKm <= rc) return { nivel: 'V-VI', cor: '#fb923c' };
-    if (distanciaKm <= re) return { nivel: 'III-IV', cor: '#facc15' };
-    if (distanciaKm <= rd) return { nivel: 'I-II', cor: '#4ade80' };
-    return null; // fora do alcance detectável — não entra na lista/soma
+function dedupePopulacao(places){
+    const list=[],names=new Map(),ids=new Map();
+    const key=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    places.forEach(p=>{
+        const name=key(p.nome),id=p.id?p.source+':'+p.id:'';
+        const old=(id&&ids.get(id))||(names.get(name)||[]).find(c=>haversine(c.lat,c.lng,p.lat,p.lng)<10);
+        if(old){if(!old.pop&&p.pop){old.pop=p.pop;old.source=p.source;}return;}
+        const copy={...p};list.push(copy);
+        if(!names.has(name))names.set(name,[]);names.get(name).push(copy);
+        if(id)ids.set(id,copy);
+    });return list;
 }
-
-// Retorna { totalPessoas, cidades } — cidades já ordenadas por distância,
-// cada uma com {nome, lat, lng, pop, distancia, mmi}. totalPessoas soma a
-// população de TODOS os lugares dentro do raio detectável (não só os
-// exibidos na lista, que fica limitada a maxC pra não virar uma lista
-// infinita) — dá uma estimativa mais completa do alcance real.
-async function estimarPessoasAfetadas(lat, lng, mag, depth, maxC = 8) {
-    const lugares = await fetchLugaresPopulosos();
-    const rd = raioDetectavel(mag, depth);
-    const dentroDoAlcance = lugares
-        .map(l => ({ ...l, distancia: haversine(lat, lng, l.lat, l.lng) }))
-        .filter(l => l.distancia <= rd && l.distancia > 0)
-        .sort((a, b) => a.distancia - b.distancia);
-
-    const totalPessoas = dentroDoAlcance.reduce((soma, l) => soma + l.pop, 0);
-    const cidades = dentroDoAlcance.slice(0, maxC).map(l => ({
-        ...l,
-        mmi: mmiPorDistancia(l.distancia, mag, depth)
-    }));
-    return { totalPessoas, cidades };
+async function buscarPopulacaoOSM(lat,lng,radius){
+    if(typeof fetchJsonComFallbackCidade!=='function')return null;
+    // Apenas pontos de localidades: não soma polígonos administrativos e bairros
+    // com suas cidades. O limite de raio/linhas é declarado como cobertura parcial.
+    const meters=Math.ceil(Math.min(120,Math.max(1,radius))*1000);
+    const query=`[out:json][timeout:8];node["place"~"^(city|town|village|hamlet)$"](around:${meters},${lat},${lng});out body 2000;`;
+    const data=await fetchJsonComFallbackCidade('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query),5000);
+    if(!data||!Array.isArray(data.elements))return null;
+    return data.elements.filter(x=>/^(city|town|village|hamlet)$/.test(x.tags?.place||'')).map(x=>normalizarLugarPop({name:x.tags['name:pt']||x.tags.name,lat:x.lat,lon:x.lon,pop:x.tags.population,id:x.id},'OpenStreetMap')).filter(Boolean);
+}
+// Área de percepção potencial, distinta do raio instrumental detectável.
+// As faixas são geográficas estimadas; não inventamos MMI por cidade.
+function mmiPorDistancia(distance,mag,depth){
+    const radius=raioEstimado(mag,depth),critical=Math.min(radius,raioCritico(mag,depth));
+    if(distance<=critical)return{nivel:'Próxima · EST',cor:'#fb923c'};
+    if(distance<=radius)return{nivel:'Percepção · EST',cor:'#facc15'};
+    return null;
+}
+async function estimarPessoasAfetadas(lat,lng,mag,depth,maxC=8){
+    lat=Number(lat);lng=Number(lng);mag=Number(mag);depth=Number(depth);
+    if(![lat,lng,mag,depth].every(Number.isFinite)||Math.abs(lat)>90||Math.abs(lng)>180)throw new Error('Coordenadas ou magnitude inválidas');
+    const key=[lat.toFixed(4),lng.toFixed(4),mag,depth,maxC].join('|');
+    const cached=_popAreaCache.get(key);if(cached&&Date.now()<cached.until)return cached.data;
+    if(_popAreaInflight.has(key))return _popAreaInflight.get(key);
+    const job=(async()=>{
+        const radius=raioEstimado(mag,depth);
+        let places=await fetchLugaresPopulosos(),hasCatalog=!!places;
+        const inside=p=>haversine(lat,lng,p.lat,p.lng)<=radius;
+        let partial=!hasCatalog;
+        if(!places||!places.some(p=>p.pop&&inside(p))){
+            const [osm,nearby]=await Promise.allSettled([
+                buscarPopulacaoOSM(lat,lng,radius),
+                typeof resolverCidadesProximas==='function'?resolverCidadesProximas(lat,lng,12):Promise.resolve(null)
+            ]);
+            const extra=[];
+            if(osm.status==='fulfilled'&&osm.value)extra.push(...osm.value);
+            if(nearby.status==='fulfilled'&&nearby.value){
+                (nearby.value.cidades||[]).forEach(c=>{const p=normalizarLugarPop(c,nearby.value.reserva?'Base local':'OpenStreetMap');if(p)extra.push(p);});
+            }
+            if(typeof CIDADES_MUNDO!=='undefined')CIDADES_MUNDO.forEach(c=>{const p=normalizarLugarPop(c,'Base local');if(p&&inside(p))extra.push(p);});
+            places=dedupePopulacao([...(places||[]).filter(inside),...extra.filter(inside)]);
+            if(extra.some(inside))partial=true;
+        }else{
+            // Pré-filtro de latitude evita calcular distância para todo o catálogo.
+            places=places.filter(p=>Math.abs(p.lat-lat)<=radius/110.5);
+        }
+        const all=dedupePopulacao(places).map(p=>({...p,distancia:haversine(lat,lng,p.lat,p.lng)}))
+            .filter(p=>p.distancia<=radius).sort((a,b)=>a.distancia-b.distancia);
+        const known=all.filter(p=>p.pop>0),missing=all.length-known.length;
+        const status=known.length?'available':all.length?'population-missing':hasCatalog?'no-settlements':'unavailable';
+        const data={totalPessoas:known.length?known.reduce((sum,p)=>sum+p.pop,0):null,cidades:all.slice(0,maxC).map(p=>({...p,mmi:mmiPorDistancia(p.distancia,mag,depth)})),status,partial,missingPopulation:missing,localidades:all.length,raioKm:radius,sources:[...new Set([...(hasCatalog?['GeoNames']:[]),...all.map(p=>p.source)])]};
+        _popAreaCache.set(key,{until:Date.now()+(status==='available'?3600000:60000),data});
+        if(_popAreaCache.size>80)_popAreaCache.delete(_popAreaCache.keys().next().value);
+        return data;
+    })();
+    _popAreaInflight.set(key,job);try{return await job;}finally{_popAreaInflight.delete(key);}
+}
+function mensagemCoberturaPopulacao(data){
+    if(data.status==='unavailable')return'Não foi possível carregar os dados populacionais. Isso não significa que a área esteja desabitada.';
+    if(data.status==='population-missing')return'Localidades encontradas, mas suas populações não foram informadas pelas fontes consultadas.';
+    if(data.status==='no-settlements')return'Nenhuma localidade cadastrada no raio estimado de percepção. Moradores rurais ou localidades ausentes da base podem não estar representados.';
+    return'Soma aproximada das populações cadastradas dentro de ~'+Math.round(data.raioKm)+' km. '+(data.partial?'Cobertura parcial; ':'')+(data.missingPopulation?data.missingPopulation+' localidade(s) sem população. ':'')+'Não é contagem de quem sentiu o tremor nem de pessoas feridas. Não inclui toda a população rural; limites das cidades podem ultrapassar o raio.';
+}
+function creditoPopulacaoHTML(data){
+    const sources=data.sources||[];
+    return '<div class="pd-flip-verso-credito">Fontes utilizadas: '+(sources.map(escPopup).join(' · ')||'nenhuma disponível')+
+        (sources.includes('GeoNames')?' · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames (CC BY 4.0)</a>':'')+
+        (sources.includes('OpenStreetMap')?' · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap (ODbL)</a>':'')+'</div>';
+}
+function renderAlcancePopulacaoHTML(data){
+    const headline=data.totalPessoas!=null?'~'+formatarPessoasHeadline(data.totalPessoas)+' moradores nas localidades cadastradas':'População sem dados suficientes';
+    return '<div class="city-item"><span class="city-name">👥 '+headline+' <span class="estimativa-badge">EST'+(data.partial?' · PARCIAL':'')+'</span></span></div>'+
+        '<div class="city-item" style="font-size:10px;line-height:1.5">'+escPopup(mensagemCoberturaPopulacao(data))+'</div>'+
+        data.cidades.map(linhaCidadePopup).join('')+creditoPopulacaoHTML(data);
 }
 
 // "k"/"M" são abreviações comuns em apps técnicos, mas nem todo mundo
@@ -103,7 +176,7 @@ function linhaCidadePopup(c) {
     return `<div class="pd-flip-verso-cidade">
         <span class="pd-flip-verso-cidade-nome">🏙️ ${escPopup(c.nome)}</span>
         <span class="pd-flip-verso-cidade-dist">${Math.round(c.distancia)} km</span>
-        <span class="pd-flip-verso-cidade-pop">${c.pop ? formatarPopulacao(c.pop) : '—'}</span>
+        <span class="pd-flip-verso-cidade-pop">${c.pop ? formatarPopulacao(c.pop) : 'Pop. não informada'}</span>
         ${mmiHtml}
     </div>`;
 }
@@ -112,6 +185,7 @@ function linhaCidadePopup(c) {
 // window pra sobreviver a qualquer re-execução acidental do script e pra
 // outras funções (troca de evento) conseguirem cancelar de fora.
 function fecharViradaCardAlcance() {
+    window.__mgFlipPopulationGeneration=(window.__mgFlipPopulationGeneration||0)+1;
     try { clearTimeout(window.__mgFlipAbrirT); } catch (e) {}
     try { clearTimeout(window.__mgFlipFecharT); } catch (e) {}
     try { clearTimeout(window.__mgFlipRemoveT); } catch (e) {}
@@ -153,6 +227,7 @@ function posicionarVersoCard(verso) {
 // troca de evento rápido demais pra essa animação fazer sentido).
 function agendarViradaCardAlcance(lat, lng, item) {
     fecharViradaCardAlcance();
+    const generation=window.__mgFlipPopulationGeneration;
     const dadosPromise = estimarPessoasAfetadas(lat, lng, item.mag, item.depth).catch(() => null);
 
     window.__mgFlipAbrirT = setTimeout(async () => {
@@ -161,20 +236,15 @@ function agendarViradaCardAlcance(lat, lng, item) {
         if (!painel) return;
         const dados = await dadosPromise;
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
-        if (!dados) return;
+        if (!dados || generation!==window.__mgFlipPopulationGeneration) return;
 
         // Sempre vira o card pra TODO evento novo (ao vivo/manual) — mesmo
         // sem nenhuma cidade cadastrada no alcance (área muito remota —
         // oceano aberto, deserto etc.), com uma mensagem explicando em vez
         // de simplesmente não virar nada.
-        const semCidades = !dados.cidades.length;
-        const corpo = semCidades
-            ? `<div class="pd-flip-verso-vazio">Nenhuma cidade cadastrada densamente povoada dentro do alcance detectável — área provavelmente remota (oceano, deserto ou litoral pouco povoado).</div>`
-            : `<div class="pd-flip-verso-list">
-                <div class="pd-flip-verso-listhead"><span>Cidade / distância / população</span><span>MMI</span></div>
-                ${dados.cidades.map(linhaCidadePopup).join('')}
-                <div class="pd-flip-verso-credito">Dados de população: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames.org</a> (CC BY 4.0)</div>
-            </div>`;
+        const semDados = dados.totalPessoas == null;
+        const corpo = `<div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +
+            (dados.cidades.length ? `<div class="pd-flip-verso-list"><div class="pd-flip-verso-listhead"><span>Localidade / distância / população</span><span>Área estimada</span></div>${dados.cidades.map(linhaCidadePopup).join('')}</div>` : '') + creditoPopulacaoHTML(dados);
 
         const verso = document.createElement('div');
         verso.id = 'pd-flip-verso';
@@ -184,8 +254,8 @@ function agendarViradaCardAlcance(lat, lng, item) {
                 <span class="pd-flip-verso-tag">🌍 ALCANCE DO SISMO</span>
             </div>
             <div class="pd-flip-verso-headline">
-                <span class="pd-flip-verso-num">${semCidades ? '—' : formatarPessoasHeadline(dados.totalPessoas)}</span>
-                <span class="pd-flip-verso-sub">${semCidades ? 'sem estimativa de pessoas atingidas' : 'pessoas podem ter sentido este tremor'}</span>
+                <span class="pd-flip-verso-num">${semDados ? '—' : '~'+formatarPessoasHeadline(dados.totalPessoas)}</span>
+                <span class="pd-flip-verso-sub">${semDados ? 'população sem dados suficientes' : 'moradores nas localidades da área estimada'}</span>
             </div>
             ${corpo}`;
         posicionarVersoCard(verso);
@@ -214,3 +284,4 @@ function agendarViradaCardAlcance(lat, lng, item) {
         }, 12000);
     }, 14000);
 }
+

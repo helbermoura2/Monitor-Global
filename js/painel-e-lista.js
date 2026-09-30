@@ -1215,20 +1215,17 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const secAlcance = document.getElementById('pd-alcance-section');
     const elAlcance = document.getElementById('pd-alcance');
     if (secAlcance && elAlcance) {
+        const populationGeneration=(window.__mgPopulationSelection||0)+1;
+        window.__mgPopulationSelection=populationGeneration;
         secAlcance.style.display = '';
         elAlcance.innerHTML = '<div class="city-item" style="color:#64748b;">🔎 Calculando alcance…</div>';
         if (typeof estimarPessoasAfetadas === 'function') {
-            estimarPessoasAfetadas(lat, lng, item.mag, item.depth).then(({ totalPessoas, cidades: cidadesMmi }) => {
-                if (eventoSelecionadoId !== item.id) return;
-                if (!cidadesMmi.length) {
-                    elAlcance.innerHTML = '<div class="city-item" style="color:#64748b;">Nenhuma cidade conhecida dentro do alcance detectável.</div>';
-                    return;
-                }
-                const cabecalho = `<div class="city-item"><span class="city-name">👥 ~${formatarPessoasHeadline(totalPessoas)} pessoas podem ter sentido este tremor <span class="estimativa-badge">EST</span></span></div>`;
-                // GeoNames é CC BY 4.0 (exige atribuição), diferente da
-                // Natural Earth (domínio público) usada antes.
-                const creditoGeoNames = '<div style="font-size:9px;color:#475569;margin-top:4px;">Dados de população: <a href="https://www.geonames.org/" target="_blank" rel="noopener" style="color:#64748b;">GeoNames.org</a> (CC BY 4.0)</div>';
-                elAlcance.innerHTML = cabecalho + cidadesMmi.map(linhaCidadePopup).join('') + creditoGeoNames;
+            estimarPessoasAfetadas(lat, lng, item.mag, item.depth).then(dados => {
+                if (eventoSelecionadoId !== item.id || populationGeneration!==window.__mgPopulationSelection) return;
+                elAlcance.innerHTML = renderAlcancePopulacaoHTML(dados);
+            }).catch(() => {
+                if (eventoSelecionadoId !== item.id || populationGeneration!==window.__mgPopulationSelection) return;
+                elAlcance.textContent = 'Dados populacionais indisponíveis. A população da área não pôde ser estimada.';
             });
         }
     }
