@@ -10,6 +10,35 @@
 // pisando por cima de uma revisão mais nova).
 let __fetchGlobalFeedsEmAndamento = false;
 
+
+// Revisões aguardam os eventos novos/ao vivo; maior magnitude vem primeiro.
+const pendingQuakeRevisions = new Map();
+function queueQuakeRevisions(items) {
+    for (const item of items || []) {
+        if (item && item.id != null) pendingQuakeRevisions.set(item.id, item);
+    }
+}
+function focusNextQuakeRevision(blocked = false) {
+    const live = window.__mgLiveQuakeId === eventoSelecionadoId &&
+        Date.now() < (window.__mgLiveQuakeUntil || 0);
+    if (blocked || live || !map) return false;
+    const candidates = [];
+    for (const [id, revision] of pendingQuakeRevisions) {
+        const index = globalEvents.findIndex(e => e && e.id === id);
+        if (index < 0) { pendingQuakeRevisions.delete(id); continue; }
+        candidates.push({index, revision, event:globalEvents[index]});
+    }
+    candidates.sort((a,b) => (Number(b.event.mag)||0)-(Number(a.event.mag)||0) ||
+        (Number(b.revision._updatedAt)||0)-(Number(a.revision._updatedAt)||0));
+    const next = candidates[0];
+    if (!next) return false;
+    pendingQuakeRevisions.delete(next.event.id);
+    window.__mgSoftCycle = true;
+    showEventDetails(next.index, false);
+    if (typeof showPanelRevisionFocus === 'function') showPanelRevisionFocus(next.revision);
+    return true;
+}
+
 async function fetchGlobalFeeds() {
     if (__fetchGlobalFeedsEmAndamento) return;
     __fetchGlobalFeedsEmAndamento = true;
@@ -360,6 +389,8 @@ async function fetchGlobalFeeds() {
             }
         } catch (e) { console.warn('[sismo] EventStore revise:', e); }
 
+        queueQuakeRevisions(atualizados);
+        const firstRevisionDisplay = isFirstDisplay;
         if (isFirstDisplay) {
             isFirstDisplay = false;
             if (globalEvents.length) showEventDetails(0, false);
@@ -380,10 +411,12 @@ async function fetchGlobalFeeds() {
             }
         }
 
+        if (!firstRevisionDisplay) focusNextQuakeRevision(novosRecentes.length > 0);
+
         isFirstLoad = false;
 
         // Atualização (revisão de magnitude/profundidade/fonte) não toca mais
-        // som nem pula pro topo da lista — usuário achou confuso ouvir/ver um
+        // som nem pula pro topo da lista — mantém a distinção entre um
         // "sismo novo" quando na real era um registro antigo só sendo
         // corrigido. A informação agora vai pra uma pílula maior no rodapé
         // (mesmo estilo dos toasts, só que com o card inteiro: lugar, M

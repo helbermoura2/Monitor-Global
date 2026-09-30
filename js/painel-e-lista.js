@@ -313,6 +313,17 @@ function renderPainelTimeline(item) {
 }
 
 let panelPresentationPrevious=null, panelRevisionTimer=null;
+
+function showPanelRevisionFocus(item) {
+    const note = document.getElementById('pd-revision-note');
+    if (!note || !item) return;
+    clearTimeout(panelRevisionTimer);
+    note.textContent = 'SISMO ATUALIZADO · ' + (item._deltaTxt || 'Dados revisados pela fonte');
+    note.hidden = false;
+    // O aviso permanece durante o destaque; outra seleção limpa o aviso.
+    panelRevisionTimer = setTimeout(() => { note.hidden = true; }, 60000);
+}
+
 function syncPanelPresentation(item) {
     const panel=document.getElementById('painel-direito');
     if(!panel||!item)return;
@@ -899,6 +910,7 @@ function scheduleNextAutoCycle(ms) {
                 scheduleNextAutoCycle(4000);
                 return;
             }
+            if (typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) return;
             const sismos = getPriorityCameraEarthquakes();
             const m = sismos.length ? sismos :
                 ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed() : []);
@@ -1307,6 +1319,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
+    if (triggerVisualAlert) {
+        window.__mgLiveQuakeId = item.id;
+        window.__mgLiveQuakeUntil = window.__mgHoldEndsAt;
+    }
 
     let totalDur = 1800;
     if (triggerVisualAlert) {
