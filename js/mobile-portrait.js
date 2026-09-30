@@ -72,6 +72,7 @@
     for (const [label,kind] of [['Linha do tempo','timeline'],['Mudanças recentes','changes'],['Status das fontes','sources'],['Legenda do mapa','legend']]) button(panel,label,secondary(() => window.__uxShow?.(kind)));
     for (const [label,kind] of [['Radar de chuva','radar'],['Reproduzir eventos','replay'],['Acompanhar eventos','follow']]) button(panel,label,secondary(() => window.menuAcao?.(kind)));
     heading(panel, 'Configurações');
+    button(panel, 'Avisos recentes', secondary(() => window.MobileNotices?.openHistory()));
     button(panel, 'Alertas e áudio', alerts);
     button(panel, 'Filtros de eventos', secondary(() => {
       const open = document.body.classList.toggle('mg-mobile-filters');

@@ -1,0 +1,21 @@
+#mobile-notice-stack[hidden] {display:none!important}
+#mobile-notice-stack {display:none}
+#mobile-notice-history {color:#e6f5fc;background:linear-gradient(145deg,rgba(20,49,70,.88),rgba(6,21,35,.94));border:1px solid rgba(140,214,242,.35);border-radius:14px;max-width:420px;width:calc(100% - 24px);max-height:75dvh;box-sizing:border-box;padding:14px;margin:auto}
+#mobile-notice-history::backdrop {background:rgba(0,8,15,.38)}
+.notice-history-head {display:flex;align-items:center;justify-content:space-between;gap:10px}
+.notice-history-head button {width:44px;height:44px;border:1px solid #8bc5dd55;border-radius:10px;color:#e6f5fc;background:#3889ad22;font-size:22px}
+.notice-history-row {padding:12px 0;border-top:1px solid #8bc5dd33;font-size:12px}
+.notice-history-row p {margin:5px 0;line-height:1.5}
+.notice-history-row small,#mobile-notice-history > p {color:#b2d0e0;font-size:11px}
+@media(max-width:900px){
+  #toast-stack {display:none!important}
+  #mobile-notice-stack {display:block;position:fixed;bottom:var(--notice-bottom,78px)!important;left:12px;right:12px;z-index:500070;pointer-events:none}
+  #mobile-notice-stack .mobile-notice {pointer-events:auto;display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid rgba(136,208,238,.3);border-radius:12px;background:linear-gradient(145deg,rgba(20,49,70,.66),rgba(6,21,35,.78));color:#e8f7ff;box-shadow:0 4px 16px #0004;font-size:11px;line-height:1.4}
+  #mobile-notice-stack .notice-warning,#mobile-notice-stack .notice-error {border-left:3px solid #fbbf24}
+  #mobile-notice-stack .notice-copy {flex:1;min-width:0}
+  #mobile-notice-stack .notice-copy strong {font-size:11px;font-weight:650;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #mobile-notice-stack .notice-copy span {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:10px;color:#bde0ef;margin-top:3px}
+  #mobile-notice-stack .notice-actions {display:flex;align-items:center;gap:3px;flex-shrink:0}
+  #mobile-notice-stack button {min-height:44px;min-width:44px;padding:4px 7px;border:1px solid #8bc5dd44;border-radius:9px;color:#c9ecfa;background:#3889ad11;font:inherit;font-size:10px;touch-action:manipulation}
+  #painel-direito #mobile-notice-stack.notice-inline {position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%;margin:8px 0;z-index:1;opacity:1;pointer-events:auto;flex-shrink:0;box-sizing:border-box;grid-column:1 / -1;grid-row:6}
+}

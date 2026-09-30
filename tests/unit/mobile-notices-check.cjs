@@ -1,0 +1,16 @@
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const nodes=new Map();let now=1000;const timers=new Map(),frames=[];let timerId=0,change;const observers=[];
+class Classes{constructor(){this.set=new Set()}contains(c){return this.set.has(c)}add(c){this.set.add(c)}toggle(c,on){on?this.set.add(c):this.set.delete(c)}}
+class E{constructor(tag){this.tag=tag;this.children=[];this.classList=new Classes();this.props=new Map();this.style={setProperty:(k,v)=>this.props.set(k,v),removeProperty:k=>this.props.delete(k)};this.rect={top:0,bottom:0,height:0};this.open=false}set id(v){this._id=v;nodes.set(v,this)}get id(){return this._id}append(...kids){kids.forEach(k=>this.appendChild(k))}appendChild(k){if(k.parentNode)k.parentNode.children=k.parentNode.children.filter(x=>x!==k);k.parentNode=this;this.children.push(k);return k}replaceChildren(){this.children=[]}setAttribute(){}addEventListener(){}getBoundingClientRect(){return this.rect}querySelector(){return header}after(k){this.parentNode.appendChild(k)}showModal(){this.open=true}close(){this.open=false}}
+const body=new E('body'),panel=new E('aside');panel.id='painel-direito';panel.rect={top:580,bottom:800,height:220};const header=new E('header');panel.append(header);body.append(panel);
+for(const id of ['top-strip','latest-event-ticker']){const e=new E('div');e.id=id;e.rect.bottom=200;body.append(e)}
+const media={matches:true,addEventListener:(_,fn)=>change=fn};
+const ctx={document:{body,readyState:'complete',getElementById:id=>nodes.get(id),createElement:t=>new E(t)},window:{matchMedia:()=>media,innerHeight:800,addEventListener(){}},Date:class extends Date{static now(){return now}},setTimeout:fn=>{timers.set(++timerId,fn);return timerId},clearTimeout:id=>timers.delete(id),requestAnimationFrame:fn=>{frames.push(fn);return frames.length},MutationObserver:class{constructor(fn){this.fn=fn}observe(){observers.push(this.fn)}},ResizeObserver:class{observe(){}}};
+vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../../js/mobile-notices.js'),'utf8'),ctx);const api=ctx.window.MobileNotices;
+api.push({title:'Fonte JMA offline',type:'warning'});api.push({title:'Vulcão atualizado',type:'info'});api.push({title:'Sismo atualizado',type:'revision'});while(frames.length)frames.shift()();
+const stack=nodes.get('mobile-notice-stack');assert.equal(stack.children.length,1);assert.equal(stack.children[0].children[0].children[0].textContent,'Fonte JMA offline');assert.equal(stack.children[0].children[1].children[0].textContent,'+2 avisos');assert.equal(stack.props.get('--notice-bottom'),'230px');
+api.openHistory();assert.equal(nodes.get('mobile-notice-history').open,true);assert.equal(nodes.get('mobile-notice-history').children.length,5);
+body.classList.add('mobile-details-open');panel.rect.top=100;observers.forEach(fn=>fn());while(frames.length)frames.shift()();assert.equal(stack.parentNode,panel);assert(stack.classList.contains('notice-inline'));
+now=10000;[...timers.values()].forEach(fn=>fn());assert.equal(stack.hidden,true);
+media.matches=false;change();assert.equal(api.enabled(),false);assert.equal(stack.hidden,true);
+console.log('PASS: one notice, count, warning priority, full history, above-panel positioning, inline expanded state, expiry and desktop isolation');

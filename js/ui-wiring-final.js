@@ -15,6 +15,12 @@ function showToast(m, t = 'info') {
         if (now - ts > 10000) __toastState.recent.delete(key);
     }
 
+    if (window.MobileNotices?.enabled()) {
+        const type = t === 'warn' || t === 'warning' ? 'warning' : t === 'error' ? 'error' : 'info';
+        window.MobileNotices.push({title:msg,type,duration:/🔄/.test(msg)?10000:7000});
+        return;
+    }
+
     let stack = document.getElementById('toast-stack');
     if (!stack) {
         stack = document.createElement('div');
@@ -62,6 +68,10 @@ function showToast(m, t = 'info') {
 const mobileRevisionHistory = [];
 function showSismoAtualizadoPill(ev) {
     if (!ev || !ev.place) return;
+    if (window.MobileNotices?.enabled()) {
+        window.MobileNotices.push({title:'Sismo atualizado · '+ev.place,detail:ev._deltaTxt || 'Dados revisados pela fonte',type:'revision',duration:13000});
+        return;
+    }
 
     let stack = document.getElementById('toast-stack');
     if (!stack) {
