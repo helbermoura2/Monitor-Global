@@ -4399,6 +4399,59 @@ async function fetchUsgsM6Recent() {
     return out;
 }
 
+
+const TG_HISTORY_TTL=31*86400;
+async function telegramHistoryWrite(env,key,record){
+    if(!env.TTS_USAGE)return false;
+    try {
+        const metadata={kind:record.kind,at:record.at,status:record.status,mag:record.mag||0,place:String(record.place||'').slice(0,180)};
+        await env.TTS_USAGE.put(key,JSON.stringify(record),{expirationTtl:TG_HISTORY_TTL,metadata});
+        return true;
+    } catch { console.error('Telegram: falha ao gravar histórico'); return false; }
+}
+async function handleTelegramHistory(request,env){
+    const u=new URL(request.url);
+    if(!env.DAILY_SUMMARY||!env.TTS_USAGE)return json({ok:false,error:'Armazenamento do histórico indisponível'},503);
+    if(u.pathname==='/telegram-history-preview'){
+        const day=u.searchParams.get('day')||'';
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return json({error:'Data inválida'},400);
+        const png=await env.TTS_USAGE.get('telegram-history-preview:'+day,'arrayBuffer');
+        if(!png)return json({error:'Prévia não disponível para esta data'},404);
+        return new Response(png,{headers:{...CORS_HEADERS,'Content-Type':'image/png'}});
+    }
+    if(u.pathname==='/telegram-history-detail'){
+        const key=u.searchParams.get('key')||'';
+        if(!/^telegram-history-m6:[0-9TZ:.\-]+:[a-f0-9-]+$/.test(key))return json({error:'Registro inválido'},400);
+        const raw=await env.TTS_USAGE.get(key);
+        return raw?json({ok:true,record:JSON.parse(raw)}):json({error:'Registro não encontrado'},404);
+    }
+    const daily=await Promise.all(Array.from({length:30},async(_,i)=>{
+        const day=saoPauloYmdOffset(-1-i);
+        try {
+            const response=await env.DAILY_SUMMARY.get(env.DAILY_SUMMARY.idFromName(day)).fetch('https://summary.internal/history');
+            if(!response.ok)return {kind:'daily',day,status:'unavailable',events:[]};
+            const data=await response.json();
+            return data.record?{kind:'daily',day,...data.record}:null;
+        } catch {return {kind:'daily',day,status:'unavailable',events:[]};}
+    }));
+    // Metadados permitem listar alertas sem uma leitura KV por mensagem.
+    const m6=[];let cursor,hasMore=false;
+    for(let page=0;page<5;page++){
+        const list=await env.TTS_USAGE.list({prefix:'telegram-history-m6:',limit:1000,...(cursor?{cursor}:{})});
+        list.keys.forEach(k=>{if(k.metadata)m6.push({key:k.name,...k.metadata});});
+        hasMore=!list.list_complete;
+        if(!hasMore)break;cursor=list.cursor;
+    }
+    const cutoff=Date.now()-30*86400000;
+    const old=await env.TTS_USAGE.get(TELEGRAM_DAILY_KV_KEY);
+    if(old){
+        const confirmed=JSON.parse(old);
+        if(confirmed.day && Date.parse(confirmed.sentAt)>=cutoff && !daily.some(x=>x?.day===confirmed.day))
+            daily.push({kind:'daily',day:confirmed.day,status:'sent',at:Date.parse(confirmed.sentAt),legacy:true,events:[]});
+    }
+    return json({ok:true,daily:daily.filter(Boolean),alerts:m6.filter(x=>x.at>=cutoff).sort((a,b)=>b.at-a.at),hasMore,retentionDays:30});
+}
+
 async function runTelegramM6Alerts(request, env) {
     if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         return {
@@ -4426,6 +4479,9 @@ async function runTelegramM6Alerts(request, env) {
         // findNearDuplicateAlert) — nesse caso manda só uma atualização de
         // magnitude, sem duplicar o card cheio.
         const dup = findNearDuplicateAlert(ev, sentRecords);
+        const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
+        const history={kind:dup?'m6-update':'m6',at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
+        await telegramHistoryWrite(env,historyKey,history);
         try {
             if (dup) {
                 await telegramSendMessage(env, telegramUpdateMessage(ev, dup));
@@ -4444,9 +4500,15 @@ async function runTelegramM6Alerts(request, env) {
                 }
                 sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
             }
+            history.status='sent';history.sentAt=Date.now();
+            history.events.push({at:history.sentAt,stage:'sent'});
+            await telegramHistoryWrite(env,historyKey,history);
             sentIds.add(ev.id);
             sentRecords.push({ id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source });
         } catch (e) {
+            history.status='uncertain';
+            history.events.push({at:Date.now(),stage:'uncertain'});
+            await telegramHistoryWrite(env,historyKey,history);
             console.error('Telegram alerta falhou:', ev.id, e.message);
         }
     }
@@ -4762,7 +4824,9 @@ async function deliverTelegramDailySummary(request,env,delivery){
     }
     const day=saoPauloYmdOffset(-1);
     if(await dailySummarySent(request,day,env)) return {ok:true,skipped:true,reason:'resumo já enviado',day};
+    await delivery.note('query');
     const quakes=await fetchDailyQuakesBrt();
+    await delivery.note('data',{total:quakes.events.length});
     const top=quakes.events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
     const caption =
         `📊 Resumo do dia — ${day.split('-').reverse().join('/')}` +
@@ -4771,9 +4835,11 @@ async function deliverTelegramDailySummary(request,env,delivery){
         '\n🌐 monitorglobal.top';
     let pack;
     try {
+        await delivery.note('render');
         pack=await renderDailySummaryPng(quakes);
     } catch(e) {
         // Só usar texto se a renderização falhar ANTES de enviar ao Telegram.
+        await delivery.note('text-fallback');
         console.error('Telegram resumo diário: renderização falhou; usando texto');
     }
     if(pack) {
@@ -4781,18 +4847,26 @@ async function deliverTelegramDailySummary(request,env,delivery){
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('caption',caption.slice(0,1024));
         form.append('photo',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo.png');
+        let hasPreview=false;
+        try {
+            await env.TTS_USAGE.put('telegram-history-preview:'+day,pack.png,{expirationTtl:TG_HISTORY_TTL});
+            hasPreview=true;
+        } catch { console.error('Telegram: prévia não armazenada'); }
+        await delivery.note('prepared',{format:'photo',hasPreview});
         await delivery.beforeSend();
-        await telegramDailyRequest(env,'sendPhoto',form);
+        const response=await telegramDailyRequest(env,'sendPhoto',form);
+        await delivery.confirm({messageId:response.result?.message_id});
     } else {
         const text=caption+'\n\nTop 5:\n'+(top.map((e,i)=>
             `${i+1}. M${e.mag.toFixed(1)} — ${e.place}`).join('\n')||'Sem registro');
         const form=new FormData();
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('text',text.slice(0,4096));
+        await delivery.note('prepared',{format:'text',hasPreview:false});
         await delivery.beforeSend();
-        await telegramDailyRequest(env,'sendMessage',form);
+        const response=await telegramDailyRequest(env,'sendMessage',form);
+        await delivery.confirm({messageId:response.result?.message_id});
     }
-    await delivery.confirm();
     try { await markDailySummarySent(request,day,env); }
     catch { console.error('Resumo confirmado; falha ao atualizar histórico KV'); }
     console.log('Telegram resumo diário: enviado', {day,total:quakes.events.length,format:pack?'photo':'text'});
@@ -4819,6 +4893,13 @@ async function runTelegramDailySummary(request,env){
 export class DailySummaryDelivery {
     constructor(ctx,env) { this.ctx=ctx; this.env=env; }
     async fetch(request) {
+        if(new URL(request.url||request).pathname==='/history'){
+            const history=await this.ctx.storage.get('history');
+            const state=await this.ctx.storage.get('delivery');
+            if(!history&&!state)return Response.json({record:null});
+            const status=state?.status==='sending'?(history?.status==='uncertain'||Date.now()-(state.at||0)>45000?'uncertain':'sending'):state?.status==='sent'?'sent':history?.status||'pending';
+            return Response.json({record:{...history,status,at:history?.at||state?.at||0,events:history?.events||[],legacy:!history}});
+        }
         const p=saoPauloParts();
         if(Number(p.hour)!==0 || Number(p.minute)>30)
             return Response.json({ok:true,skipped:true,reason:'fora da janela'});
@@ -4827,9 +4908,22 @@ export class DailySummaryDelivery {
             const state=await tx.get('delivery');
             if(state && (state.status!=='preparing'||state.until>now)) return false;
             await tx.put('delivery',{status:'preparing',token,until:now+120000});
+            const history=await tx.get('history')||{events:[],attempts:0};
+            history.events=(history.events||[]).slice(-199);
+            history.events.push({at:now,stage:'preparing'});
+            history.at=now;history.status='preparing';history.attempts++;
+            await tx.put('history',history);
             return true;
         });
         if(!claimed) return Response.json({ok:true,skipped:true,reason:'envio reservado ou confirmado'});
+        const note=async(stage,details={})=>storage.transaction(async tx=>{
+            if((await tx.get('delivery'))?.token!==token)throw new Error('Reserva substituída');
+            const history=await tx.get('history')||{events:[]};
+            history.events=(history.events||[]).slice(-199);
+            history.events.push({at:Date.now(),stage});
+            Object.assign(history,details,{at:Date.now(),status:stage});
+            await tx.put('history',history);
+        });
         const change=async status=>storage.transaction(async tx=>{
             const state=await tx.get('delivery');
             if(state?.token!==token) throw new Error('Reserva substituída');
@@ -4838,21 +4932,37 @@ export class DailySummaryDelivery {
         });
         try {
             const result=await deliverTelegramDailySummary(request,this.env,{
-                beforeSend:()=>change('sending'),
-                confirm:()=>change('sent')
+                note,
+                beforeSend:async()=>{await change('sending');await note('sending');},
+                confirm:async details=>{await change('sent');await note('sent',details);}
             });
-            if(result.skipped && result.reason==='resumo já enviado') await change('sent');
+            if(result.skipped && result.reason==='resumo já enviado') {
+                await change('sent');await note('legacy-confirmed',{legacy:true});
+            }
             else if(!result.ok) {
                 await storage.transaction(async tx=>{
-                    if((await tx.get('delivery'))?.token===token) await tx.delete('delivery');
+                    if((await tx.get('delivery'))?.token===token) {
+                        await tx.delete('delivery');
+                        const history=await tx.get('history')||{events:[]};
+                        history.status='failed';history.events.push({at:Date.now(),stage:'missing-secrets'});
+                        await tx.put('history',history);
+                    }
                 });
             }
             return Response.json(result);
         } catch(error) {
             await storage.transaction(async tx=>{
                 const state=await tx.get('delivery');
-                if(state?.token===token && (state.status==='preparing'||error.definitelyRejected))
-                    await tx.delete('delivery');
+                if(state?.token===token) {
+                    const safeToRetry=state.status==='preparing'||error.definitelyRejected;
+                    if(safeToRetry)await tx.delete('delivery');
+                    const history=await tx.get('history')||{events:[]};
+                    const stage=state.status==='sent'?'sent':safeToRetry?'failed':'uncertain';
+                    history.status=stage;history.at=Date.now();
+                    history.events=(history.events||[]).slice(-199);
+                    history.events.push({at:Date.now(),stage});
+                    await tx.put('history',history);
+                }
             });
             console.error('Resumo diário: tentativa falhou; controle persistente preservado');
             return Response.json({ok:false,error:'Falha ao preparar ou enviar resumo'}, {status:502});
@@ -4994,12 +5104,20 @@ export default {
         const reqUrl = new URL(request.url);
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
-            '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview'
+            '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
+            '/telegram-history', '/telegram-history-preview', '/telegram-history-detail'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
             return json({ ok: false, error: 'Não autorizado. Passe ?token=SEU_ADMIN_TOKEN.' }, 401);
         }
 
+        if(reqUrl.pathname.startsWith('/telegram-history')){
+            if(request.method!=='GET')return json({error:'Método não permitido'},405);
+            if(!env.ADMIN_TOKEN || request.headers.get('X-Admin-Token')!==env.ADMIN_TOKEN)
+                return json({error:'Acesso administrativo não autorizado'},401);
+            try {return await handleTelegramHistory(request,env);}
+            catch {return json({ok:false,error:'Não foi possível consultar o histórico'},502);}
+        }
         if (reqUrl.pathname === '/health') {
             return json({
                 ok: true,

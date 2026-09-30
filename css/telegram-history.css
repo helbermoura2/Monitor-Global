@@ -1,0 +1,26 @@
+/* Painel administrativo independente dos resets e dos painéis públicos. */
+#tg-admin-dialog { position:fixed!important;inset:0!important;margin:auto!important;width:min(680px,calc(100vw - 24px));max-height:85dvh;box-sizing:border-box;padding:0;border:1px solid #31546b;border-radius:16px;background:#071725;color:#e7f2fa;overflow:hidden;font:15px/1.5 system-ui,sans-serif; }
+#tg-admin-dialog[open] { display:flex;flex-direction:column; }
+#tg-admin-dialog::backdrop { background:#020816b3; }
+#tg-admin-dialog .tg-admin-head { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #264559; }
+#tg-admin-dialog h2 { margin:0;font-size:20px; }
+#tg-admin-dialog h3 { margin:20px 0 10px; }
+#tg-admin-dialog button { cursor:pointer;background:#163448;color:#e7f2fa;border:1px solid #31546b;border-radius:8px;padding:9px 12px;font:inherit; }
+#tg-admin-dialog button:disabled { opacity:.6;cursor:wait; }
+#tg-admin-dialog button:focus-visible,#tg-admin-dialog input:focus-visible { outline:2px solid #53d4eb;outline-offset:2px; }
+#tg-admin-dialog .tg-admin-head button { font-size:22px; }
+#tg-admin-dialog .tg-admin-body { min-height:0;overflow:auto;padding:0 20px 22px;overscroll-behavior:contain; }
+#tg-admin-dialog .tg-admin-message { margin:0;padding:8px 20px;color:#f4d486;font-size:13px; }
+#tg-admin-dialog .tg-note { color:#abc2d2;font-size:13px;margin:12px 0; }
+#tg-admin-dialog .tg-controls { display:flex;flex-wrap:wrap;gap:8px;margin:8px 0; }
+#tg-admin-dialog button[aria-pressed="true"] { border-color:#53d4eb;color:#53d4eb; }
+#tg-admin-dialog .tg-history-row { display:grid;grid-template-columns:1fr auto;text-align:left;gap:4px 12px;width:100%;margin:10px 0;padding:14px; }
+#tg-admin-dialog .tg-history-row small { grid-column:1/-1;color:#9ab5c7; }
+#tg-admin-dialog .tg-status { color:#62d8ec;font-size:13px; }
+#tg-admin-dialog .tg-timeline { margin:16px 0;padding-left:20px; }
+#tg-admin-dialog .tg-timeline li { padding:5px 0;color:#b8cbd8;font-size:13px; }
+#tg-admin-dialog .tg-preview { display:block;width:100%;height:auto;border-radius:10px;margin-top:16px; }
+#tg-admin-dialog form { display:flex;flex-direction:column;gap:12px;margin:18px 0; }
+#tg-admin-dialog input { padding:12px;border-radius:8px;border:1px solid #31546b;background:#0f293b;color:#fff;font:inherit; }
+#admin-telegram-history[hidden] { display:none!important; }
+@media(max-width:500px){#tg-admin-dialog .tg-history-row {grid-template-columns:1fr}#tg-admin-dialog .tg-admin-body {padding:0 14px 18px}}

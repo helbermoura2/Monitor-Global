@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Monitor Global — monitoramento de desastres em tempo real (monitorglobal.top). Site estático sem build step; este package.json existe só pra rodar os testes de fumaça (Playwright).",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:telegram": "node tests/unit/telegram-history-check.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
