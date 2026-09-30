@@ -1,0 +1,36 @@
+/* Atualização separada da cor de severidade dos eventos. */
+#top-strip #ao-vivo-badge { --av-color:#94a3b8; cursor:pointer; font:inherit; color:#eaf5ff; max-width:100%; }
+#top-strip #ao-vivo-badge[data-freshness="fresh"] { --av-color:#4ade80; }
+#top-strip #ao-vivo-badge[data-freshness="partial"] { --av-color:#facc15; }
+#top-strip #ao-vivo-badge[data-freshness="updating"] { --av-color:#38bdf8; }
+#top-strip #ao-vivo-badge[data-freshness="stale"] { --av-color:#fb923c; }
+#top-strip #ao-vivo-badge[data-freshness="offline"] .av-sweep,
+#top-strip #ao-vivo-badge[data-freshness="stale"] .av-sweep { animation:none; }
+#top-strip #ao-vivo-badge .av-label { letter-spacing:.035em!important; }
+#top-strip #ao-vivo-badge .av-age { color:#b9d4e6; font-size:10px; white-space:nowrap; }
+#top-strip #ao-vivo-badge:focus-visible { outline:2px solid #38bdf8; outline-offset:3px; }
+.mg-fresh-dialog { background:#081725; color:#eaf5ff; border:1px solid #29475c; border-radius:18px; width:min(540px,calc(100vw - 32px)); max-height:85dvh; padding:0; box-sizing:border-box; box-shadow:0 24px 80px #0008; font:15px/1.5 system-ui,sans-serif; }
+.mg-fresh-dialog::backdrop { background:#020816b3; }
+.mg-fresh-head { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid #29475c; }
+.mg-fresh-head h2 { font-size:19px; margin:0; }
+.mg-fresh-close { color:#dceefa; background:#152c3d; border:0; border-radius:8px; width:40px; height:40px; font-size:25px; cursor:pointer; }
+.mg-fresh-body { padding:0 22px 22px; }
+.mg-fresh-body h3 { color:#62d8ec; font-size:14px; margin:24px 0 10px; }
+.mg-fresh-note { color:#a0b9c9; font-size:13px; }
+.mg-fresh-overall { font-weight:600; }
+.mg-fresh-row { display:flex; gap:16px; justify-content:space-between; padding:12px 0; border-bottom:1px solid #203749; }
+.mg-fresh-row strong,.mg-fresh-row span { display:block; }
+.mg-fresh-row strong { font-size:14px; }
+.mg-fresh-row span { font-size:12px; color:#adc4d2; }
+.mg-fresh-times { text-align:right; }
+@media(max-width:900px) {
+ #top-strip #ao-vivo-badge #kpi-relogio { display:none!important; }
+ #top-strip #ao-vivo-badge { flex-wrap:wrap; justify-content:center; row-gap:1px!important; }
+ #top-strip #ao-vivo-badge .av-label { font-size:8px!important; }
+ #top-strip #ao-vivo-badge .av-age { font-size:9px; }
+}
+@media(max-width:400px) {
+ #top-strip #ao-vivo-badge .av-age { flex-basis:100%; text-align:center; }
+ .mg-fresh-head { padding:14px; }
+ .mg-fresh-body { padding:0 14px 18px; }
+}

@@ -14,6 +14,7 @@ async function fetchGlobalFeeds() {
     if (__fetchGlobalFeedsEmAndamento) return;
     __fetchGlobalFeedsEmAndamento = true;
     window.__lastSismoAttempt = Date.now();
+    window.MonitorFreshness?.beginQuakes();
 
     try {
         const loading = document.getElementById('loading-indicator');
@@ -75,6 +76,7 @@ async function fetchGlobalFeeds() {
 
         settled.forEach((result, i) => {
             const name = names[i];
+            window.MonitorFreshness?.record(name,result.status==='fulfilled');
 
             if (result.status === 'fulfilled') {
                 sourceStatus[name] = true;
@@ -503,6 +505,7 @@ async function fetchGlobalFeeds() {
         );
     } finally {
         __fetchGlobalFeedsEmAndamento = false;
+        window.MonitorFreshness?.endQuakes();
         const loading = document.getElementById('loading-indicator');
         if (loading) loading.style.display = 'none';
         try {

@@ -87,7 +87,7 @@
   <header id="top-strip">
     <div class="ts-mainrow">
     <h1 class="ts-title mg-title" style="margin:0;font:inherit;display:inline-flex"><svg class="mg-logo-icon" viewBox="0 0 128 128" aria-hidden="true" focusable="false"><rect width="128" height="128" rx="24" fill="#020816"/><circle cx="64" cy="64" r="56" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><circle cx="64" cy="64" r="38" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><circle cx="64" cy="64" r="20" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><g class="mg-logo-sweep"><path d="M64 64L64 8A56 56 0 0 1 103.6 24.4Z" fill="#38bdf8" opacity=".85"/><circle cx="64" cy="64" r="7" fill="#38bdf8"/></g></svg><span class="mg-logo-word">MONITOR GLOBAL</span></h1>
-    <div class="live-indicator" id="ao-vivo-badge"><span class="av-radar" aria-hidden="true"><span class="av-ring"></span><span class="av-sweep"></span><span class="av-core"></span></span><span class="av-label">AO VIVO</span><span class="ts-clock" id="kpi-relogio">--:--:--</span></div>
+    <button type="button" class="live-indicator" id="ao-vivo-badge"><span class="av-radar" aria-hidden="true"><span class="av-ring"></span><span class="av-sweep"></span><span class="av-core"></span></span><span class="av-label">AGUARDANDO</span><span class="av-age"></span><span class="ts-clock" id="kpi-relogio">--:--:--</span></button>
     </div>
     <div class="ts-actions">
       <div class="header-menu-group" id="audio-menu-group"><button class="header-menu-trigger" type="button" aria-expanded="false" aria-controls="audio-menu">🔊 Áudio</button><div class="header-submenu" id="audio-menu" role="menu"><div class="header-submenu-title">ÁUDIO E ALERTAS</div><button class="submenu-action" id="btn-som" title="Ligar ou desligar som">🔊 Som <b>ativo</b></button><div class="ts-vol-wrap" id="ts-vol-wrap"><button class="submenu-action" id="ts-vol-toggle" title="Volume e tipos de alerta" onclick="toggleVolPanel()">🎚️ Volume e tipos</button><div class="ts-vol-panel" id="ts-vol-panel"><div class="ts-vol-row"><span>Volume</span><input type="range" id="vol-slider" min="0" max="100" value="70" oninput="setSomVolume(this.value)"><span id="vol-value">70%</span></div><div class="ts-vol-label">Silenciar por tipo</div><div class="ts-vol-chips"><button class="chip chip-som" data-tipo="quake" title="Sismos" aria-label="Silenciar sismos">🌍</button><button class="chip chip-som" data-tipo="fire" title="Incêndios" aria-label="Silenciar incêndios">🔥</button><button class="chip chip-som" data-tipo="storm" title="Tempestades" aria-label="Silenciar tempestades">⚡</button><button class="chip chip-som" data-tipo="hurricane" title="Furacões/Ciclones" aria-label="Silenciar furacões e ciclones">🌀</button><button class="chip chip-som" data-tipo="tornado" title="Tornados" aria-label="Silenciar tornados">🌪️</button><button class="chip chip-som" data-tipo="tsunami" title="Tsunamis" aria-label="Silenciar tsunamis">🌊</button><button class="chip chip-som" data-tipo="volcano" title="Vulcões" aria-label="Silenciar vulcões">🌋</button><button class="chip chip-som" data-tipo="civil" title="Defesa Civil" aria-label="Silenciar defesa civil">🚨</button><button class="chip chip-som" data-tipo="wind" title="Vento" aria-label="Silenciar vento">💨</button><button class="chip chip-som" data-tipo="flood" title="Enchentes" aria-label="Silenciar enchentes">💧</button></div></div></div><button class="submenu-action" id="btn-teste" title="Testar sons">🔔 Testar sons</button>
@@ -373,6 +373,7 @@
 <div id="loading-indicator"><div class="spinner"></div><span>Atualizando dados...</span></div>
 
 <script defer src="js/debug-panel.js"></script>
+<script defer src="js/data-freshness.js"></script>
 <script defer src="js/nucleo-estado.js"></script>
 <script defer src="js/audio.js"></script>
 <script defer src="js/mapa.js"></script>
@@ -563,5 +564,6 @@
   fix(); setTimeout(fix,250); setTimeout(fix,1000); setTimeout(fix,2500); setTimeout(fix,4000);
 })();
 </script>
+<link rel="stylesheet" href="css/data-freshness.css">
 </body>
 </html>

@@ -476,6 +476,7 @@ async function fetchInmetAvisos() {
         });
 
         globalAlerts = globalAlerts.filter(x => !String(x.id).startsWith('inmet-') || ids.has(x.id));
+        window.MonitorFreshness?.record('INMET',true);
         try { lastFetchTimes['INMET'] = Date.now(); } catch (e) {}
         try { if (typeof setSource === 'function') setSource('INMET', 'ok', lista.length); } catch (e) {}
         try { salvarCacheOffline(); } catch (e) {}
@@ -483,6 +484,7 @@ async function fetchInmetAvisos() {
         if (novoCritico) showAlertDetails(novoCritico, true);
         marcarBooted('inmet');
     } catch (e) {
+        window.MonitorFreshness?.record('INMET',false);
         console.warn('INMET avisos:', e && e.message);
         try { if (typeof setSource === 'function') setSource('INMET', 'off', 0, e && e.message); } catch (err) {}
     }
