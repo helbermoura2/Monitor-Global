@@ -328,17 +328,14 @@ function quakeBeep(freq, t, dur, vol, last = false) {
 
 
 function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, isUpdate = false, deltaTxt = '') {
-    if (!somAtivo || somMutedTypes.has('quake')) return;
+    if (!somAtivo || somMutedTypes.has('quake')) return false;
+    if (!forceManual && mag < Math.max(SOM_SISMO_MIN, minMagnitude)) return false;
     // Áudio ainda não desbloqueado (comum logo após abrir a página) — sem
     // isso o alerta de M6+/M7+ (beep + voz) se perdia de vez: guardava numa
     // variável (`pendingSound`, singular) que nada nunca lia. flushPendingSounds()
     // já sabe tocar isso da fila (pendingSounds, plural) assim que o áudio
     // desbloquear — só faltava usar a fila certa.
-    if (!ensureAudio()) { queuePendingSound({ type: 'quake', mag, place, depth, qtd, isUpdate, deltaTxt }); return; }
-    // Alertas automáticos respeitam o filtro mínimo; uma reprodução manual
-    // deve tocar mesmo que o usuário esteja filtrando magnitudes maiores.
-    if (!forceManual && mag < Math.max(SOM_SISMO_MIN, minMagnitude)) return;
-
+    if (!ensureAudio()) { queuePendingSound({ type: 'quake', mag, place, depth, qtd, isUpdate, deltaTxt }); return true; }
     // Guardamos no closure para a fila de som (M6+ fala "Atualização" se for revisão)
     const _isUpdate = !!isUpdate;
     const _deltaTxt = deltaTxt || '';
@@ -422,6 +419,7 @@ function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, is
             }
         }
     });
+    return true;
 }
 function playAlertTone(kind) {
     if (!somAtivo || somMutedTypes.has(kind)) return;

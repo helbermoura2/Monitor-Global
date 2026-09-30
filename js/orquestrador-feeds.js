@@ -475,7 +475,7 @@ async function fetchGlobalFeeds() {
                             novosComSom.length - 1
                         );
 
-                        if (disparado || pendingSounds.length) {
+                        if (disparado) {
                             sismosSonorizados.add(alvo.id);
                             registrarSomSismo(alvo);
 

@@ -795,6 +795,7 @@ async function fetchAfadQuakes() {
     list = list.filter(e => e.time >= cut);
     const indiceAfad = construirIndiceEspacial(globalEvents, 0.15);
     let novos = 0;
+    const newSupplemental = [];
     list.forEach(ev => {
         const canonical = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
         const combina = g => g.coords && Math.abs(g.time - ev.time) < 120000 &&
@@ -812,14 +813,11 @@ async function fetchAfadQuakes() {
         indiceAfad.inserir(ev);
         if (isNew) {
             novos++;
-            try {
-                if (ev.mag >= Math.max(SOM_SISMO_MIN, minMagnitude) && typeof playEarthquakeSound === 'function') {
-                    // só toca se passar do limiar de som (não enche de M1.8)
-                }
-            } catch (e) {}
+            newSupplemental.push(ev);
         }
     });
     globalEvents.sort((a, b) => b.time - a.time);
+    anunciarSismosSuplementares(newSupplemental);
     try { if (typeof setSource === 'function') setSource('AFAD', 'ok', 0); } catch (e) {}
     try { if (typeof applyFilters === 'function') applyFilters(); } catch (e) {}
     try { if (typeof updateKPIs === 'function') updateKPIs(); } catch (e) {}
@@ -881,6 +879,42 @@ const PLANET_REINFORCEMENT_TILES = [
     { name: 'ASIA-ORIENTAL-OCEANIA',      minlatitude: -85, maxlatitude: 80, minlongitude: 90,   maxlongitude: 180  }
 ];
 
+
+/* Canais paralelos também anunciam um registro realmente novo, sem repetir
+   alarmes de outra rede e sem soar dados antigos da carga inicial. */
+function anunciarSismosSuplementares(items) {
+    if (!items || !items.length) return;
+    const now = Date.now();
+    const recent = [], late = [];
+    for (const ev of items) {
+        if (!Number.isFinite(Number(ev.time))) continue;
+        if (now - Number(ev.time) <= SISMO_NOVO_RECENTE_MS) {
+            recent.push(ev);
+            activeAlertingIds.set(ev.id, now + 180000);
+            activeUpdatedIds.delete(ev.id);
+            ev._novoAt = now;
+        } else {
+            late.push(ev);
+            activeLateIds.set(ev.id, now + 180000);
+        }
+    }
+    if (!recent.length) return;
+    try { if (typeof mostrarNovosSismosNoMapa === 'function') mostrarNovosSismosNoMapa(recent); } catch (e) { console.warn('[sismo suplementar] mapa:', e); }
+    const candidates = recent.filter(ev => Number(ev.mag) >= Math.max(SOM_SISMO_MIN, minMagnitude))
+        .sort((a,b) => Number(b.mag) - Number(a.mag));
+    for (const ev of candidates) {
+        if (sismosSonorizados.has(ev.id)) continue;
+        if (somJaTocadoParaRegiao(ev)) { sismosSonorizados.add(ev.id); continue; }
+        const accepted = playEarthquakeSound(ev.mag, ev.place, ev.depth, recent.length - 1);
+        if (accepted) {
+            sismosSonorizados.add(ev.id);
+            registrarSomSismo(ev);
+            if (sismosSonorizados.size > 300) sismosSonorizados = new Set([...sismosSonorizados].slice(-150));
+        }
+        break; // Mesmo comportamento do feed principal: maior magnitude por lote.
+    }
+}
+
 function planetReinforcementDedupEAdiciona(lista, origemLabel) {
     // Mesmo índice espacial de fetchAfadQuakes acima — aqui importa ainda
     // mais: cada fatia manda até 1000 sismos, 5 fatias por ciclo (USGS) mais
@@ -888,6 +922,7 @@ function planetReinforcementDedupEAdiciona(lista, origemLabel) {
     // contra globalEvents a cada chamada, a cada 60s.
     const indice = construirIndiceEspacial(globalEvents, 0.15);
     let novos = 0;
+    const newSupplemental = [];
     (lista || []).forEach(ev => {
         if (!ev || !ev.coords) return;
         const combina = g => g.coords && Math.abs(g.time - ev.time) < 120000 &&
@@ -899,12 +934,13 @@ function planetReinforcementDedupEAdiciona(lista, origemLabel) {
         ev.id = canonical;
         globalEvents.push(ev);
         indice.inserir(ev);
-        if (isNew) novos++;
+        if (isNew) { novos++; newSupplemental.push(ev); }
     });
     if (novos > 0) {
         globalEvents.sort((a, b) => b.time - a.time);
         console.log(`[REFORCO-${origemLabel}] sismos que estavam fora do teto global:`, novos);
     }
+    anunciarSismosSuplementares(newSupplemental);
     return novos;
 }
 
