@@ -49,7 +49,7 @@
   }
   #painel-direito .pd-header-row { height: 56px; min-height: 56px; margin-bottom: 0; }
   #painel-direito .pd-header { margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #painel-direito > *:not(.pd-header-row):not(#pd-fx-overlay):not(#lightning-flash) { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+  #painel-direito > *:not(.pd-header-row):not(:where(#pd-fx-overlay, #lightning-flash)) { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
   #pd-peek-arrow { display: inline-block; font-size: 9px; color: #94a3b8; flex: 0 0 auto; transition: transform .22s ease; }
 
   /* Estágio "meio": mostra cabeçalho + medidor de magnitude + os três cards
@@ -81,7 +81,7 @@
     cursor: default;
   }
   body.mobile-details-open #painel-direito .pd-header-row { height: auto; min-height: 0; }
-  body.mobile-details-open #painel-direito > *:not(.pd-header-row):not(#pd-fx-overlay):not(#lightning-flash) { opacity: 1; pointer-events: auto; }
+  body.mobile-details-open #painel-direito > *:not(.pd-header-row):not(:where(#pd-fx-overlay, #lightning-flash)) { opacity: 1; pointer-events: auto; }
   body.mobile-details-open #pd-peek-arrow { transform: rotate(180deg); }
   /* z-index:50 (era 2): css/intensity-filters.css sobe .pd-header-row pra
      40 e .pd-header-actions/#pd-share-btn/#pd-focus-btn pra 45-46 (pro
