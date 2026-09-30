@@ -21,3 +21,133 @@
 #painel-direito .pd-revision-note { font-size:10px;line-height:1.5;font-weight:650;color:#fbd077;border:1px solid rgba(251,191,36,.35);border-radius:7px;padding:6px 9px;margin:8px 0;text-align:center; }
 #painel-direito .pd-revision-note[hidden] { display:none!important; }
 @media(max-width:700px){#painel-direito .pd-local {font-size:16px!important}#painel-direito .stat-card-value {font-size:17px!important}}
+
+/* Acabamento do painel. Todas as superfícies internas continuam translúcidas.
+   Não há alterações em transform, animação, gauge, vidro externo ou verso. */
+#painel-direito .pd-header-row {
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(139,211,246,.22);
+}
+#painel-direito .pd-header { margin-bottom:0!important; }
+#painel-direito .pd-focus-badge,
+#painel-direito #pd-share-btn {
+  border-radius:8px!important;
+  min-height:29px;
+  padding:5px 8px!important;
+}
+#painel-direito .pd-chips { margin-top:10px!important;margin-bottom:12px!important; }
+#painel-direito .pd-chip { border-radius:20px!important;padding:4px 7px!important; }
+#painel-direito .pd-local::before {
+  content:"LOCAL DO EVENTO";
+  display:block;
+  margin-bottom:5px;
+  font-size:8px;
+  font-weight:650;
+  letter-spacing:.16em;
+  color:#a3c7db;
+  text-shadow:none;
+}
+#painel-direito .pd-local { margin-top:12px!important; }
+#painel-direito #pd-horario { color:#c3d9e7!important;margin-bottom:7px!important; }
+#painel-direito #pd-mag-sources { color:#c3d9e7; }
+#painel-direito .pd-timeline {
+  gap:8px!important;
+  align-items:stretch;
+  border:1px solid rgba(159,213,242,.2);
+  border-radius:10px;
+  padding:10px!important;
+  background:linear-gradient(120deg,rgba(104,203,246,.055),rgba(104,203,246,.015));
+}
+#painel-direito .pd-tl-step { flex:1;min-width:0;text-align:left; }
+#painel-direito .pd-tl-k { display:block;font-size:8px!important;letter-spacing:.09em;color:#a4c6da; }
+#painel-direito .pd-tl-v { display:block;margin-top:4px;font-size:11px!important;font-weight:700;color:#e4f3fc;overflow-wrap:anywhere; }
+#painel-direito .pd-tl-sep { display:none; }
+#painel-direito #pd-distvoce {
+  padding:6px 8px;
+  border:1px solid rgba(56,189,248,.18);
+  border-radius:20px;
+  font-size:10px!important;
+  margin:8px auto 12px!important;
+  width:fit-content;
+  max-width:100%;
+  box-sizing:border-box;
+}
+#painel-direito[data-presentation="quake"] .stats-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+#painel-direito[data-presentation="quake"] .stats-grid::before {
+  content:"LEITURA DO SISMO";
+  grid-column:1 / -1;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.13em;
+  color:#b6d6e8;
+  text-align:left;
+  padding:2px 0;
+}
+#painel-direito .stats-grid .stat-card {
+  min-width:0;
+  border-radius:12px!important;
+  padding:11px 8px!important;
+  background:linear-gradient(135deg,rgba(105,196,240,.075),rgba(105,196,240,.02))!important;
+  border:1px solid rgba(154,216,244,.22)!important;
+  box-shadow:inset 0 1px 0 rgba(230,249,255,.07);
+}
+#painel-direito .stats-grid .stat-card-label { color:#b5cfdd!important; }
+#painel-direito[data-presentation="quake"] .stats-grid .stat-card-primary {
+  grid-column:1 / -1;
+  grid-row:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  text-align:left;
+  border-color:rgba(103,210,230,.4)!important;
+  background:linear-gradient(110deg,rgba(64,208,214,.1),rgba(64,208,214,.025))!important;
+}
+#painel-direito[data-presentation="quake"] .stat-card-primary .stat-card-label {
+  max-width:44%;
+  margin-bottom:0;
+  color:#c7e8ee!important;
+}
+#painel-direito[data-presentation="quake"] .stat-card-primary .stat-card-value {
+  text-align:right;
+  min-width:0;
+  font-size:24px!important;
+}
+#painel-direito .pd-impact-section {
+  border:1px solid rgba(248,163,124,.25)!important;
+  border-left:3px solid rgba(248,163,124,.8)!important;
+  border-radius:12px!important;
+  padding:12px!important;
+  background:linear-gradient(120deg,rgba(247,158,109,.065),rgba(247,158,109,.015))!important;
+}
+#painel-direito .pd-impact-section .bubble-section-title { color:#ffcfac;gap:7px;flex-wrap:wrap; }
+#painel-direito .pd-impact-section .estimativa-badge { font-size:7px;letter-spacing:.08em; }
+#painel-direito #pd-impact { margin-top:7px; }
+#painel-direito .pd-more-toggle {
+  display:block;
+  width:100%;
+  border:1px solid rgba(139,211,246,.28)!important;
+  border-radius:10px!important;
+  padding:10px!important;
+  color:#d5eefb!important;
+  font-weight:700;
+  letter-spacing:.04em;
+  background:rgba(82,175,219,.06)!important;
+  transition:border-color .2s ease,background-color .2s ease;
+}
+#painel-direito .pd-more-toggle:hover,
+#painel-direito .pd-more-toggle:focus-visible {
+  border-color:rgba(139,211,246,.65)!important;
+  background:rgba(82,175,219,.13)!important;
+}
+@media(max-width:700px){
+  #painel-direito .pd-local {font-size:16px!important}
+  #painel-direito .stats-grid .stat-card {padding:9px 7px!important}
+  #painel-direito[data-presentation="quake"] .stat-card-primary .stat-card-value {font-size:22px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #painel-direito .pd-more-toggle {transition:none}
+}
