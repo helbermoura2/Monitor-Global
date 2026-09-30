@@ -34,3 +34,12 @@
  .mg-fresh-head { padding:14px; }
  .mg-fresh-body { padding:0 14px 18px; }
 }
+
+/* O reset global de margens também atingia o dialog nativo. */
+#mg-fresh-dialog {
+ position:fixed!important; inset:0!important; margin:auto!important;
+ max-height:min(85dvh,760px); overflow:hidden;
+}
+#mg-fresh-dialog[open] { display:flex; flex-direction:column; }
+#mg-fresh-dialog .mg-fresh-head { flex:0 0 auto; }
+#mg-fresh-dialog .mg-fresh-body { overflow-y:auto; min-height:0; overscroll-behavior:contain; }
