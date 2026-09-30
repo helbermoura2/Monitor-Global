@@ -142,7 +142,7 @@ const EventStore = (function () {
     if (selectedId == null) return;
     if (_refreshScheduled) return;
     _refreshScheduled = true;
-    queueAnimationFrame(() => {
+    requestAnimationFrame(() => {
       _refreshScheduled = false;
       try {
         const item = getById(selectedId);

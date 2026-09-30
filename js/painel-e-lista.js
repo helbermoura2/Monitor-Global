@@ -1036,8 +1036,8 @@ function resetPainelDetalheCompartilhado() {
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
-    try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
     if (!silentRefresh) {
+        try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
         closeMobileEventsModalIfOpen();
         scrollToDetailsIfMobile();
         // No ciclo automático, abre o painel sem forçar resize no meio do voo
