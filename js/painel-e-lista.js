@@ -283,26 +283,19 @@ function applyPainelSeveridade(item) {
 }
 
 function renderPainelChips(item) {
-    const box = document.getElementById('pd-chips');
-    if (!box) return;
-    if (!item) { box.innerHTML = ''; return; }
-    const chips = [];
-    const conf = (typeof confiancaFonte === 'function') ? confiancaFonte(item) : null;
-    if (item.type === 'earthquake' || item.mag != null) {
-        chips.push({ t: item.sourceSummary || item.source || 'Fonte', cls: 'chip-src' });
-        if (item.sourceCount > 1) chips.push({ t: item.sourceCount + ' fontes', cls: 'chip-ok' });
-        if (item.isPreliminary) chips.push({ t: '? PRELIMINAR', cls: 'chip-upd' });
-        if (item.quality) chips.push({ t: 'Q ' + item.quality, cls: 'chip-q' });
-        if (activeUpdatedIds && activeUpdatedIds.has(item.id)) chips.push({ t: 'ATUALIZADO', cls: 'chip-upd' });
-        else if (!item.isPreliminary) chips.push({ t: 'ATIVO', cls: 'chip-live' });
-    } else {
-        const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || {};
-        chips.push({ t: meta.label || item.type || 'Evento', cls: 'chip-src' });
-        chips.push({ t: item.source || '—', cls: 'chip-src' });
-        chips.push({ t: 'ATIVO', cls: 'chip-live' });
-    }
-    if (conf && conf.label) chips.push({ t: conf.label, cls: conf.cls === 'conf-oficial' ? 'chip-ok' : 'chip-src' });
-    box.innerHTML = chips.slice(0, 5).map(c => `<span class="pd-chip ${c.cls}">${c.t}</span>`).join('');
+    const box=document.getElementById('pd-chips');
+    if(!box)return;
+    box.replaceChildren();if(!item)return;
+    const e=evidenciasFontes(item);
+    const labels=[e.sources.join(' · ')||'Fonte não identificada',...e.badges];
+    if(activeUpdatedIds&&activeUpdatedIds.has(item.id)&&!labels.some(x=>x.startsWith('Magnitude revisada'))) labels.push('Registro atualizado');
+    labels.forEach(label=>{
+        const button=document.createElement('button');button.type='button';
+        button.className='pd-chip pd-evidence-chip';button.textContent=label;
+        button.setAttribute('aria-label',label+'. Sobre as fontes deste registro');
+        button.onclick=event=>{event.stopPropagation();abrirEvidenciasFontes(item);};
+        button.onkeydown=event=>event.stopPropagation();box.appendChild(button);
+    });
 }
 
 function renderPainelTimeline(item) {
@@ -552,7 +545,7 @@ function renderSidebarList(items) {
                 </div>
                 <div class="ev-footer">
                     <span class="event-source" title="${esc((item.sources||[]).join(' · ')||item.source)}">Fonte: ${esc(item.sourceSummary || item.source || 'Não informada')}</span>
-                    <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
+                    <button type="button" class="conf-badge ${conf.cls} source-evidence-trigger" aria-label="Sobre as fontes deste registro">${esc(conf.label)}</button>
                     <span class="ev-action" aria-hidden="true">Detalhes →</span>
                 </div>
                 </div>`;
@@ -598,12 +591,17 @@ function renderSidebarList(items) {
                 </div>
                 <div class="ev-footer">
                     <span class="event-source">Fonte: ${esc(item.source || 'Não informada')}</span>
-                    <span class="conf-badge ${conf.cls}" title="Confiança consolidada">${conf.label}</span>
+                    <button type="button" class="conf-badge ${conf.cls} source-evidence-trigger" aria-label="Sobre as fontes deste registro">${esc(conf.label)}</button>
                     <span class="ev-action" aria-hidden="true">${isCyc?'Trajetória':'Detalhes'} →</span>
                 </div>
                 </div>`;
             div.style.setProperty('--ev-color', badgeColor);
         }
+
+        div.querySelectorAll('.source-evidence-trigger').forEach(button=>{
+            button.onclick=event=>{event.stopPropagation();abrirEvidenciasFontes(item);};
+            button.onkeydown=event=>event.stopPropagation();
+        });
 
         if (activeAlertingIds.has(item.id)) {
             const ex = activeAlertingIds.get(item.id);
@@ -1147,14 +1145,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }, 60000);
     let magNote=document.getElementById('pd-mag-sources');
     if(!magNote){ magNote=document.createElement('div'); magNote.id='pd-mag-sources'; magNote.style.cssText='font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.45;text-align:center;'; const anchor=document.getElementById('pd-horario'); anchor && anchor.parentNode.insertBefore(magNote,anchor.nextSibling); }
-    const magLines=(item.magnitudes||[]).sort((a,b)=>sismoSourceRank(b.source)-sismoSourceRank(a.source)).map(x=>`${x.source} M${Number(x.mag).toFixed(1)}`).join(' · ');
-    const qs = { A: 'A — confirmado por 2+ fontes (ou agência regional prioritária)', B: 'B — fonte única confiável', C: 'C — magnitude baixa / menos precisa' };
-    const qLine = item.quality ? `<div style="margin-top:4px"><span class="qselo q-${item.quality}">${item.quality}</span> <span style="color:#94a3b8">${qs[item.quality] || ''}</span></div>` : '';
-    const fontLine = item.sourceCount>1
-      ? `Fontes: ${magLines}${item.divergentMagnitude ? ` <span style="color:${item.strongMagnitudeDivergence?'#ef4444':'#fbbf24'}">• ΔM ${item.magnitudeSpread.toFixed(1)}</span>` : ''}`
-      : (item.sourceSummary || item.source ? `Fonte: ${item.sourceSummary || item.source}` : '');
-    magNote.innerHTML = [fontLine, qLine].filter(Boolean).join('');
-    magNote.style.display = (fontLine || qLine) ? 'block' : 'none';
+    const evidence=evidenciasFontes(item);
+    const magLines=evidence.reports.map(x=>x.source+' M'+x.mag.toFixed(1)).join(' · ');
+    magNote.textContent=magLines ? 'Fontes: '+magLines : 'Fonte: '+(evidence.sources.join(' · ')||'não identificada');
+    magNote.style.display='block';
     renderConsolidacaoFonte(item);
     // A intensidade não é mais tratada como EST por padrão. Primeiro usamos
     // MMI fornecido pela fonte/ShakeMap; só então caímos para a estimativa do app.
@@ -1947,3 +1941,4 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 /* ====== ✅ FIM DA PARTE 3 — cole a PARTE 4 logo abaixo ====== */
 
 /* ═══════════════ FAIXAS (KPIs + relógio + countdown) ═══════════════ */
+

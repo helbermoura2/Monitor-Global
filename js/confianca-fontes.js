@@ -126,7 +126,7 @@ function legendaNaturezaDados(item){
   if(item.type==='earthquake' || (item.mag!=null && !item.type)){
     return {
       fonte: 'Magnitude, profundidade, horário e local vêm das agências sísmicas.',
-      estima: 'Intensidade (MMI), energia em TNT, raio sentido e mecanismo focal (quando estimado) são do app — não são boletim oficial.'
+      estima: 'MMI, quando calculada pelo app, energia em TNT, raio sentido e mecanismo focal estimado são estimativas. MMI/ShakeMap ou mecanismo fornecidos pela agência são dados da fonte.'
     };
   }
   if(item.type==='volcano'){
@@ -153,48 +153,83 @@ function legendaNaturezaDados(item){
     estima: 'Distância, prioridade e textos de impacto podem ser estimativa do app.'
   };
 }
+// Evidências observáveis; o score legado não é apresentado como probabilidade.
+function evidenciasFontes(item){
+  item=item||{};
+  const raw=[...(Array.isArray(item.sources)?item.sources:[]),item.source,
+    ...String(item.sourceSummary||'').split(/\s*[·,;|]\s*/),
+    ...(Array.isArray(item.magnitudes)?item.magnitudes:[]).map(x=>x.source)];
+  const sources=[], seen=new Set();
+  raw.forEach(value=>{
+    const name=String(value||'').trim().replace(/^USGS-RT$/i,'USGS');
+    const key=name.toUpperCase();
+    if(name&&!seen.has(key)){seen.add(key);sources.push(name);}
+  });
+  const reports=(Array.isArray(item.magnitudes)?item.magnitudes:[])
+    .filter(x=>x.mag!==null&&x.mag!==undefined&&String(x.mag).trim()!==''&&Number.isFinite(Number(x.mag)))
+    .map(x=>({source:String(x.source||'Fonte não identificada'),mag:Number(x.mag)}));
+  const modeled=sources.some(x=>/OPEN-?METEO|WEATHERAPI|MODELO|NOWCAST/i.test(x));
+  const institutional=sources.filter(fonteEhOficial);
+  const origin=modeled?'Dados de modelo':institutional.length?'Fonte institucional':sources.length?'Fonte identificada':'Fonte não identificada';
+  const badges=[origin];
+  if(sources.length>1) badges.push('Reportado por '+sources.length+' fontes');
+  const quake=item.type==='earthquake'||(!item.type&&item.mag!=null);
+  if(quake){
+    if(item.isPreliminary) badges.push('Magnitude preliminar');
+    const values=reports.map(x=>x.mag);
+    if(values.length>1&&Math.max(...values)-Math.min(...values)>=0.099){
+      badges.push('Magnitudes divergentes · M'+Math.min(...values).toFixed(1)+' a M'+Math.max(...values).toFixed(1));
+    }
+    const revision=String(item._deltaTxt||'').match(/M[\d.,]+\s*→\s*M[\d.,]+/);
+    if(revision) badges.push('Magnitude revisada · '+revision[0]);
+  }
+  return {sources,reports,institutional,modeled,origin,badges};
+}
+function preencherEvidenciasFontes(box,item){
+  const e=evidenciasFontes(item),leg=legendaNaturezaDados(item);
+  box.replaceChildren();
+  const add=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;node.textContent=text;box.appendChild(node);return node;};
+  add('h3','source-evidence-title','Fontes e natureza dos dados');
+  e.badges.forEach(label=>add('p','source-evidence-fact',label));
+  add('p','source-evidence-text','Fontes: '+(e.sources.join(' · ')||'não identificadas'));
+  e.reports.forEach(r=>add('p','source-evidence-report',r.source+' · M'+r.mag.toFixed(1)));
+  if(e.sources.length>1) add('p','source-evidence-text','As fontes podem compartilhar dados. A contagem não representa confirmações independentes.');
+  add('h4','source-evidence-label','Dados da fonte');
+  add('p','source-evidence-text',leg.fonte);
+  add('h4','source-evidence-label','Estimativas do app');
+  add('p','source-evidence-text',leg.estima);
+}
 function renderConsolidacaoFonte(item){
   const box=document.getElementById('pd-source-trust');
   if(!box)return;
-  const c=consolidarConfianca(item);
-  const conf=typeof confiancaFonte==='function'?confiancaFonte(item):{label:'—',cls:''};
-  const leg=legendaNaturezaDados(item);
-  const natureLabel={
-    oficial:'DADO INSTITUCIONAL',
-    consolidada:'CONSOLIDADO (várias fontes)',
-    rede:'REDE / AGREGADOR',
-    modelo:'MODELO (não oficial)',
-    desconhecido:'—'
-  }[c.nature]||c.nature;
-  const natureColor=c.nature==='oficial'?'#4ade80':c.nature==='modelo'?'#fbbf24':c.nature==='consolidada'?'#38bdf8':'#94a3b8';
-  box.innerHTML=`
-    <div class="source-trust-head">
-      <span class="source-trust-title">📡 Confiança & natureza dos dados</span>
-      <span class="source-trust-score ${c.cls}">${c.score}%</span>
-    </div>
-    <div class="source-trust-bar"><div class="source-trust-fill" style="width:${c.score}%"></div></div>
-    <div class="source-trust-meta"><b style="color:#e2e8f0">${c.label}</b> · selo lista: <span class="${conf.cls||''}">${conf.label||'—'}</span></div>
-    <div class="source-trust-meta" style="margin-top:4px">Natureza: <b style="color:${natureColor}">${natureLabel}</b></div>
-    <div class="source-trust-meta" style="margin-top:6px;padding:6px 7px;border-radius:6px;background:rgba(15,23,42,.65);border:1px solid rgba(148,163,184,.12)">
-      <div style="color:#86efac;font-weight:800;font-size:9px;letter-spacing:.4px">✅ DADO DA FONTE</div>
-      <div style="margin-top:2px;line-height:1.35">${leg.fonte}</div>
-      <div style="color:#fbbf24;font-weight:800;font-size:9px;letter-spacing:.4px;margin-top:6px">📐 ESTIMATIVA DO APP</div>
-      <div style="margin-top:2px;line-height:1.35">${leg.estima}</div>
-    </div>
-    <div class="source-trust-meta" style="margin-top:5px">Fontes: ${c.sources.join(' · ')||'não identificadas'}${c.officialSources&&c.officialSources.length?` · institucionais: ${c.officialSources.join(', ')}`:''}</div>
-    <div class="source-trust-meta" style="margin-top:3px;opacity:.85">${c.reason}</div>
-    <div class="source-trust-meta" style="margin-top:4px;font-size:8px;color:#64748b">Não substitui alerta de defesa civil, bombeiros ou agência oficial do país afetado.</div>
-  `;
-  box.style.display='block';
+  preencherEvidenciasFontes(box,item);box.style.display='block';
 }
-function confiancaFonte(item){if(!item)return{nivel:'rede',label:'REDE',cls:'conf-rede'};const c=consolidarConfianca(item),src=String(item.source||'').toUpperCase();if(item.type==='volcano'&&(item.usgsVona||item.usgsStatus))return{nivel:'oficial',label:'VULCANOLÓGICO',cls:'conf-oficial'};if(src==='RADAR'||/RAINVIEWER/.test(src))return{nivel:'radar',label:'RADAR',cls:'conf-radar'};
-// Tempestade/vento com condição ATUAL (weather_code >= 95 agora, não previsão) —
-// antes caía junto com "modelo" só por vir de Open-Meteo/WeatherAPI, e por isso
-// nunca entrava nos registros/chips (o toast ainda disparava, então parecia que
-// o evento tinha sumido). "sp-storm-soon" é a única previsão de fato (chegando
-// em N min) e continua como modelo de propósito.
-if((item.type==='storm'||item.type==='wind')&&item.id!=='sp-storm-soon'&&/OPEN-?METEO|WEATHERAPI|MODELO LOCAL/i.test(src))return{nivel:'rede',label:'REDE',cls:'conf-rede'};
-if(/OPEN-?METEO|MODELO|NOWCAST/i.test(src))return{nivel:'modelo',label:'MODELO',cls:'conf-modelo'};if(fonteEhOficial(src))return{nivel:'oficial',label:'OFICIAL',cls:'conf-oficial'};if(/GDACS/.test(src))return{nivel:'rede',label:'GDACS',cls:'conf-rede'};return{nivel:c.score>=70?'oficial':'rede',label:c.score>=70?'CONSOLIDADA':'REDE',cls:c.score>=70?'conf-oficial':'conf-rede'};}
+function abrirEvidenciasFontes(item){
+  let dialog=document.getElementById('source-evidence-dialog');
+  if(!dialog){
+    dialog=document.createElement('dialog');dialog.id='source-evidence-dialog';
+    dialog.setAttribute('aria-label','Fontes e natureza dos dados');
+    const close=document.createElement('button');close.type='button';close.className='source-evidence-close';
+    close.textContent='✕';close.setAttribute('aria-label','Fechar informações das fontes');
+    close.onclick=()=>dialog.close();dialog.appendChild(close);
+    const body=document.createElement('div');body.className='source-evidence-body';dialog.appendChild(body);
+    dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
+    document.body.appendChild(dialog);
+  }
+  preencherEvidenciasFontes(dialog.querySelector('.source-evidence-body'),item);
+  if(!dialog.open)dialog.showModal();
+}
+function confiancaFonte(item){
+  const e=evidenciasFontes(item),src=String(item&&item.source||'').toUpperCase();
+  let nivel='rede',cls='conf-rede';
+  // Preserva a classificação usada pelos filtros, inclusive condição atual do tempo.
+  if(src==='RADAR'||/RAINVIEWER/.test(src)){nivel='radar';cls='conf-radar';}
+  else if(item&&(item.type==='storm'||item.type==='wind')&&item.id!=='sp-storm-soon'&&/OPEN-?METEO|WEATHERAPI|MODELO LOCAL/i.test(src)){}
+  else if(/OPEN-?METEO|MODELO|NOWCAST/i.test(src)){nivel='modelo';cls='conf-modelo';}
+  else if(fonteEhOficial(src)||(item&&item.type==='volcano'&&(item.usgsVona||item.usgsStatus))){nivel='oficial';cls='conf-oficial';}
+  const label=nivel==='radar'?'RADAR':e.origin;
+  return {nivel,cls,label};
+}
 function isEventoCritico(item) {
     if (!item) return false;
     if (item.type === 'earthquake' && Number(item.mag) >= 4.5) return true;
@@ -206,3 +241,4 @@ function isEventoCritico(item) {
     if (item.type === 'storm' && (Number(item.sev) >= 3 || /grande perigo/i.test(String(item.detail || '')))) return true;
     return false;
 }
+
