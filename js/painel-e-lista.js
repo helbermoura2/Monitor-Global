@@ -828,6 +828,15 @@ function cinematicFlyTo(o, flash) {
     } catch (e) {}
 }
 
+// Fonte central da prioridade automática: independe dos filtros da lista e
+// do limite de 50 registros. Cliques manuais continuam livres.
+function getPriorityCameraEarthquakes() {
+    return globalEvents.filter(e => e &&
+        (e.type === 'earthquake' || (e.mag != null && !e.type)) &&
+        Array.isArray(e.coords) && e.coords.length >= 2 &&
+        e.coords.slice(0, 2).every(Number.isFinite));
+}
+
 function scheduleNextAutoCycle(ms) {
     clearTimeout(cycleTimeout);
     try { clearTimeout(window.__mgCycleGuard); } catch (e) {}
@@ -840,21 +849,18 @@ function scheduleNextAutoCycle(ms) {
                 scheduleNextAutoCycle(4000);
                 return;
             }
-            const m = (typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed() : [];
+            const sismos = getPriorityCameraEarthquakes();
+            const m = sismos.length ? sismos :
+                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed() : []);
             if (!m || !m.length) {
                 scheduleNextAutoCycle(20000);
                 return;
             }
-            const pool = m.slice(0, 50).filter(x => x && x.id !== eventoSelecionadoId);
-            const list = pool.length ? pool : m.slice(0, 50);
-            // Sismos costumam ser minoria no feed unificado (furacões, alertas
-            // etc. dominam o pool) — sem viés, o automático quase nunca cai
-            // num sismo. Dá um peso de ~70% pra sismo quando há os dois tipos
-            // disponíveis, em vez de sorteio uniforme puro.
-            const ehSismoItem = x => x.type === 'earthquake' || (x.mag != null && !x.type);
-            const sismos = list.filter(ehSismoItem);
-            const outros = list.filter(x => !ehSismoItem(x));
-            const grupo = (sismos.length && outros.length) ? (Math.random() < 0.7 ? sismos : outros) : list;
+            // Decide o tipo ANTES de limitar/excluir o selecionado. Mesmo um
+            // único sismo já selecionado vence todos os outros alertas.
+            const candidatos = m.slice(0, 50);
+            const pool = candidatos.filter(x => x && x.id !== eventoSelecionadoId);
+            const grupo = pool.length ? pool : candidatos;
             const it = grupo[Math.floor(Math.random() * grupo.length)];
             if (!it) {
                 scheduleNextAutoCycle(20000);
@@ -1231,6 +1237,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     userInteractingWithGlobe = true;
     if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
+    window.preAlertCamera = null;
 
     // Tempo de permanência de um evento NOVO/ao vivo ou revisitado por
     // clique manual (ver waveHoldMs em sismo-metrics.js): faixas fixas por
@@ -1400,6 +1407,16 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
+    // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
+    // módulos continuam independentes. Atualizações silenciosas e cliques
+    // manuais não são uma tomada automática de câmera.
+    if (!silentRefresh && (triggerVisualAlert || window.__mgSoftCycle) &&
+        getPriorityCameraEarthquakes().length &&
+        !(item.type === 'earthquake' || (item.mag != null && !item.type))) {
+        window.__mgSoftCycle = false;
+        return;
+    }
     try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
     // "Alcance do sismo" é conceito exclusivo de sismo (MMI por distância) —
     // esconde a seção pra qualquer outro tipo de evento.
@@ -1770,6 +1787,10 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             if (item.type === 'storm' && typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
             if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
             window.returnCameraTimeout = setTimeout(() => {
+                if (getPriorityCameraEarthquakes().length) {
+                    window.preAlertCamera = null;
+                    return;
+                }
                 if (window.preAlertCamera && map && !map.isMoving()) {
                     try {
                         map.flyTo({

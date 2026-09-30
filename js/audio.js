@@ -136,37 +136,16 @@ function atualizarBotaoSomHeader() {
         btn.setAttribute('data-state', 'on');
     }
     btn.classList.toggle('muted', !somAtivo);
-    btn.classList.toggle('needs-gesture', !!(somAtivo && !isAudioUnlocked));
+    btn.classList.remove('needs-gesture');
     btn.title = !somAtivo
         ? 'Voz: desligada — clique para ligar'
-        : (somMutedTypes.has('quake') ? 'Alertas de sismo silenciados — abra Áudio > Volume e tipos' : (isAudioUnlocked ? 'Voz: ligada — clique para desligar' : 'Voz: aguardando toque para liberar (Chrome)'));
+        : (somMutedTypes.has('quake') ? 'Alertas de sismo silenciados — abra Áudio > Volume e tipos' : (isAudioUnlocked ? 'Voz: ligada — clique para desligar' : 'Voz: ativação automática pendente'));
     btn.setAttribute('aria-label', btn.title);
 }
-function mostrarBannerSom(show) {
-    // Só mostra 1x por sessão de aba (não enche o saco a cada reload mental)
-    try {
-        if (show && sessionStorage.getItem('somBannerDismissed') === '1') show = false;
-    } catch (e) {}
-    let b = document.getElementById('som-gesture-banner');
-    if (!b) {
-        b = document.createElement('div');
-        b.id = 'som-gesture-banner';
-        b.innerHTML = '🔊 Toque para ativar alertas de voz <span style="opacity:.6;font-weight:600">(só esta vez)</span>';
-        b.addEventListener('click', function () {
-            if (!somAtivo) {
-                somAtivo = true;
-                try { localStorage.setItem('somAtivo', '1'); } catch (e) {}
-            }
-            try { sessionStorage.setItem('somBannerDismissed', '1'); } catch (e) {}
-            unlockAudio(true);
-            mostrarBannerSom(false);
-        });
-        document.body.appendChild(b);
-    }
-    if (!show) {
-        try { if (isAudioUnlocked) sessionStorage.setItem('somBannerDismissed', '1'); } catch (e) {}
-    }
-    b.classList.toggle('show', !!show);
+// Mantém compatibilidade com os controles antigos, sem criar um banner.
+function mostrarBannerSom() {
+    const banner = document.getElementById('som-gesture-banner');
+    if (banner) banner.remove();
 }
 function unlockAudio(forceSpeak) {
     if (!somAtivo) return false;
@@ -175,12 +154,21 @@ function unlockAudio(forceSpeak) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         const ctx = audioContext;
+        // O navegador também pode liberar o contexto sem uma nova chamada a
+        // resume(). Observa a transição para drenar os alertas pendentes.
+        ctx.onstatechange = () => {
+            isAudioUnlocked = ctx.state === 'running';
+            atualizarTodosBotoesSom();
+            if (isAudioUnlocked) flushPendingSounds();
+        };
         const concluir = () => {
             if (!audioContext || audioContext.state !== 'running') return false;
+            const primeiraAtivacao = !isAudioUnlocked;
             isAudioUnlocked = true;
             carregarVozesDisponiveis();
-            playUnlockChime();
-            try { pedirPermissaoNotificacao(); } catch (e) {}
+            if (primeiraAtivacao) playUnlockChime();
+            // Permissão de notificação continua reservada ao botão explícito.
+            if (forceSpeak) try { pedirPermissaoNotificacao(); } catch (e) {}
             if (forceSpeak) {
                 try {
                     const n = (typeof globalAlerts !== 'undefined' && globalAlerts.length) || 0;
@@ -199,7 +187,6 @@ function unlockAudio(forceSpeak) {
                 console.warn('[audio] resume bloqueado:', e && e.message);
                 isAudioUnlocked = false;
                 atualizarTodosBotoesSom();
-                if (somAtivo) mostrarBannerSom(true);
             });
         }
         return false;
@@ -207,7 +194,6 @@ function unlockAudio(forceSpeak) {
         console.warn('[audio] unlock falhou:', e && e.message);
         isAudioUnlocked = false;
         atualizarTodosBotoesSom();
-        if (somAtivo) mostrarBannerSom(true);
         return false;
     }
 }
@@ -232,7 +218,7 @@ function atualizarTodosBotoesSom() {
         fab.setAttribute('data-state', somAtivo ? (typeof isAudioUnlocked !== 'undefined' && isAudioUnlocked ? 'on' : 'pending') : 'off');
         fab.classList.toggle('muted', !somAtivo);
         fab.title = somAtivo
-            ? (isAudioUnlocked ? 'Áudio ligado — toque para desligar' : 'Áudio ligado — toque para liberar no Chrome')
+            ? (isAudioUnlocked ? 'Áudio ligado — toque para desligar' : 'Áudio ligado — ativação automática pendente')
             : 'Áudio desligado — toque para ligar';
         fab.setAttribute('aria-label', fab.title);
     }
@@ -287,22 +273,24 @@ function bindBotaoSomHeader() {
         toggleSomAtivo({ speak: true });
     }, { passive: false });
 }
-document.addEventListener('DOMContentLoaded', function () {
+function iniciarAudioAutomatico() {
     bindBotaoSomHeader();
     atualizarTodosBotoesSom();
-    if (somAtivo) {
-        setTimeout(function () {
-            try { unlockAudio(false); } catch (e) {}
-            if (!isAudioUnlocked) mostrarBannerSom(true);
-            atualizarTodosBotoesSom();
-        }, 800);
-    }
-});
-// se o script rodar após DOMContentLoaded
-if (document.readyState !== 'loading') {
-    bindBotaoSomHeader();
-    atualizarTodosBotoesSom();
+    mostrarBannerSom();
+    carregarVozesDisponiveis();
+    if (somAtivo) unlockAudio(false);
 }
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarAudioAutomatico, { once: true });
+} else {
+    iniciarAudioAutomatico();
+}
+// Retorno à aba também pode permitir retomar um contexto suspenso.
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') gestoParaAudio();
+});
+window.addEventListener('pageshow', gestoParaAudio);
+
 
 
 /*
