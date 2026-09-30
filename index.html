@@ -190,13 +190,14 @@
       </div>
     </section>
   </header>
-<div id="latest-event-ticker" onclick="alternarCaixaRegistrosMobile()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarCaixaRegistrosMobile()}" role="button" tabindex="0" aria-label="Último evento — abrir lista de registros">
-  <span class="let-left"><span id="latest-event-ticker-icon">📡</span></span>
+<div id="latest-event-ticker" class="ticker-cutout" onclick="alternarCaixaRegistrosMobile()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarCaixaRegistrosMobile()}" role="button" tabindex="0" aria-label="Último evento — abrir lista de registros">
+  <span class="let-left"><span id="latest-event-ticker-icon" aria-hidden="true"></span></span>
   <span class="let-mid" aria-live="polite" aria-atomic="true">
-    <span id="latest-event-ticker-kicker">AO VIVO</span>
-    <span id="latest-event-ticker-text">Aguardando dados…</span>
+    <span class="ticker-main"><span id="latest-event-ticker-type">REGISTROS</span><span id="latest-event-ticker-metric" hidden></span><span id="latest-event-ticker-text">Aguardando dados…</span></span>
+    <span class="ticker-secondary"><span id="latest-event-ticker-kicker">AGUARDANDO</span><span id="latest-event-ticker-age"></span></span>
   </span>
   <span class="let-right"><span id="latest-event-ticker-arrow" aria-hidden="true">▾</span></span>
+  <span class="ticker-tab" aria-hidden="true">Abrir registros ↓</span>
 </div>
 <!-- Barra de ação mobile: botões que SEMPRE recebem toque (S25 / Nothing) -->
 <div id="mobile-fab-bar" aria-label="Ações rápidas">
@@ -386,7 +387,7 @@
 <script defer src="js/feed-utils.js"></script>
 <script defer src="js/confianca-fontes.js"></script>
 <script defer src="js/painel-fx.js"></script>
-<script defer src="js/painel-e-lista.js?v=20260930-priority"></script>
+<script defer src="js/painel-e-lista.js?v=20260930-ticker"></script>
 <script defer src="js/kpis-ui.js"></script>
 <script defer src="js/sismo-fontes.js"></script>
 <script defer src="js/orquestrador-feeds.js?v=20260930-priority"></script>
@@ -525,7 +526,7 @@
 <link rel="stylesheet" href="css/header-v72.css">
 <script defer src="js/header-v72.js"></script>
 <script defer src="js/tablet-panels-top-fix.js"></script>
-<script defer src="js/mobile-portrait-clean-toggle.js"></script>
+<script defer src="js/mobile-portrait-clean-toggle.js?v=20260930-ticker"></script>
 <link rel="stylesheet" href="css/mobile-late-patches.css">
 <script defer src="js/mobile-v73.js"></script>
 <script defer src="js/mobile-v77.js"></script>
@@ -575,5 +576,6 @@
 <script defer src="js/mobile-portrait.js?v=20260930-1"></script>
 <link rel="stylesheet" href="css/mobile-detail-gesture.css?v=20260930-1">
 <script defer src="js/mobile-detail-gesture.js?v=20260930-1"></script>
+<link rel="stylesheet" href="css/latest-event-cutout.css?v=20260930-1">
 </body>
 </html>

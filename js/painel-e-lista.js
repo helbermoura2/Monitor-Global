@@ -192,18 +192,23 @@ function atualizarTickerUltimoEvento(item) {
     const textEl = document.getElementById('latest-event-ticker-text');
     const kicker = document.getElementById('latest-event-ticker-kicker');
     const box = document.getElementById('latest-event-ticker');
+    const typeEl = document.getElementById('latest-event-ticker-type');
+    const metricEl = document.getElementById('latest-event-ticker-metric');
+    const ageEl = document.getElementById('latest-event-ticker-age');
     if (!iconEl || !textEl) return;
+    iconEl.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>';
     if (!item) {
-        iconEl.textContent = '📡';
+        if (typeEl) typeEl.textContent = 'REGISTROS';
+        if (metricEl) { metricEl.hidden = true; metricEl.textContent = ''; }
+        if (ageEl) ageEl.textContent = '';
         textEl.textContent = 'Nenhum evento no filtro atual';
-        if (kicker) kicker.textContent = 'AO VIVO';
+        if (kicker) kicker.textContent = 'AGUARDANDO';
         if (box) { box.dataset.sev = 'none'; box.style.removeProperty('--ticker-accent'); delete box.dataset.type; }
         document.documentElement.dataset.mgThreat = 'none';
         document.documentElement.style.removeProperty('--mg-threat-color');
         return;
     }
     const meta = TYPE_META[item.type] || TYPE_META.earthquake;
-    iconEl.textContent = meta.icon;
     // Mesma cor do selo "NOVO"/"ATUALIZADO" da lista lateral (desktop):
     // sismo usa a cor por magnitude (getHexColor) e ciclone usa a cor da
     // categoria real (classificarCiclone), em vez da cor fixa do tipo —
@@ -221,15 +226,22 @@ function atualizarTickerUltimoEvento(item) {
         box.style.setProperty('--ticker-accent', accent);
         box.dataset.type = item.type || '';
     }
-    const rotulo = item.type === 'earthquake' ? `M${Number(item.mag).toFixed(1)}` : (item.type === 'hurricane' && typeof rotuloCicloneCurto === 'function' ? rotuloCicloneCurto(item) : (item.cycloneLabel || meta.label));
-    textEl.textContent = `${rotulo} · ${item.bandeira || ''} ${item.place || ''} · ${formatTime(item.time)}`.replace(/\s+/g, ' ').trim();
-    let k = 'AO VIVO';
-    if (item.type === 'earthquake' && Number(item.mag) >= 6) k = 'CRÍTICO';
-    else if (item.type === 'earthquake' && Number(item.mag) >= 5) k = 'FORTE';
-    else if (item.type === 'tsunami' || item.type === 'hurricane') k = 'ALERTA';
-    else if (activeUpdatedIds && activeUpdatedIds.has(item.id)) k = 'ATUALIZADO';
-    else if (activeAlertingIds && activeAlertingIds.has(item.id)) k = 'NOVO';
-    else if (activeLateIds && activeLateIds.has(item.id)) k = 'ADICIONADO AGORA';
+    const quake = item.type === 'earthquake' || (item.mag != null && !item.type);
+    const kindLabels = {earthquake:'SISMO',wind:'VENTO',hurricane:'CICLONE',storm:'TEMPESTADE',fire:'INCÊNDIO',flood:'ENCHENTE',tsunami:'TSUNAMI',volcano:'VULCÃO',tornado:'TORNADO',civil:'ALERTA'};
+    if (typeEl) typeEl.textContent = quake ? 'SISMO' : (kindLabels[item.type] || meta.label || 'EVENTO');
+    let metric = '';
+    if (quake && item.mag != null && Number.isFinite(Number(item.mag))) metric = 'M' + Number(item.mag).toFixed(1).replace('.',',');
+    else if (['wind','hurricane'].includes(item.type) && item.windKmh != null && Number.isFinite(Number(item.windKmh))) metric = Math.round(Number(item.windKmh)) + ' km/h';
+    if (metricEl) { metricEl.textContent = metric; metricEl.hidden = !metric; }
+    textEl.textContent = (item.place || 'Local não informado').replace(/\s+/g, ' ').trim();
+    if (ageEl) ageEl.textContent = item.time ? formatTime(item.time) : 'Horário não informado';
+    let k = 'Em monitoramento';
+    if (activeUpdatedIds && activeUpdatedIds.has(item.id)) k = 'Atualizado';
+    else if (activeAlertingIds && activeAlertingIds.has(item.id)) k = 'Novo registro';
+    else if (activeLateIds && activeLateIds.has(item.id)) k = 'Publicado com atraso';
+    else if (quake && Number(item.mag) >= 6) k = 'Crítico';
+    else if (quake && Number(item.mag) >= 5) k = 'Sismo forte';
+    else if (item.type === 'tsunami' || item.type === 'hurricane') k = 'Alerta';
     if (kicker) kicker.textContent = k;
     if (box) {
         let sev = 'low';
