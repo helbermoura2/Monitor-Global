@@ -242,8 +242,10 @@ function agendarViradaCardAlcance(lat, lng, item) {
         // sem nenhuma cidade cadastrada no alcance (área muito remota —
         // oceano aberto, deserto etc.), com uma mensagem explicando em vez
         // de simplesmente não virar nada.
-        const semDados = dados.totalPessoas == null;
-        const corpo = `<div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +
+        const exposure=typeof exposicaoPopulacionalDoEvento==='function'?exposicaoPopulacionalDoEvento(item):null;
+        const headlinePopulation=exposure?Number(exposure.ranges[0].population):dados.totalPessoas;
+        const semDados = headlinePopulation == null;
+        const corpo = `<div id="pd-flip-grid-exposure">${exposure?renderExposicaoPopulacionalHTML(exposure):''}</div><div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +
             (dados.cidades.length ? `<div class="pd-flip-verso-list"><div class="pd-flip-verso-listhead"><span>Localidade / distância / população</span><span>Área estimada</span></div>${dados.cidades.map(linhaCidadePopup).join('')}</div>` : '') + creditoPopulacaoHTML(dados);
 
         const verso = document.createElement('div');
@@ -254,8 +256,8 @@ function agendarViradaCardAlcance(lat, lng, item) {
                 <span class="pd-flip-verso-tag">🌍 ALCANCE DO SISMO</span>
             </div>
             <div class="pd-flip-verso-headline">
-                <span class="pd-flip-verso-num">${semDados ? '—' : '~'+formatarPessoasHeadline(dados.totalPessoas)}</span>
-                <span class="pd-flip-verso-sub">${semDados ? 'população sem dados suficientes' : 'moradores nas localidades da área estimada'}</span>
+                <span class="pd-flip-verso-num">${semDados ? '—' : '~'+formatarPessoasHeadline(headlinePopulation)}</span>
+                <span class="pd-flip-verso-sub">${semDados ? 'população sem dados suficientes' : exposure ? 'população em área de tremor fraco ou maior · EST' : 'moradores nas localidades da área estimada'}</span>
             </div>
             ${corpo}`;
         posicionarVersoCard(verso);

@@ -1,3 +1,4 @@
+import { handlePopulationExposure } from "./population-exposure-worker.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
 // Versão 7.7.0 — Telegram diário + vulcanismo global (GDACS/USGS/VAAC/GVP) + FUNVISIS + clamp FDSN
@@ -5102,6 +5103,7 @@ export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
             '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',

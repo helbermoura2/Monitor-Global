@@ -1,0 +1,13 @@
+.population-exposure-card{border:1px solid #7dd3fc30;border-radius:12px;background:rgba(10,35,48,.2);padding:12px;margin:8px 0 14px;color:#eef6fa}
+.population-exposure-heading{font-size:12px;font-weight:700;line-height:1.5;margin-bottom:8px}
+.population-exposure-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #ffffff12;font-size:12px;line-height:1.4}
+.population-exposure-row small{display:block;font-size:10px;color:#a4beca}
+.population-exposure-row strong{font-size:17px;color:#bcecff;font-variant-numeric:tabular-nums}
+.population-exposure-note,.population-exposure-status{font-size:10px;line-height:1.55;color:#bed0d9;margin:10px 0}
+.population-exposure-method{font-size:10px;line-height:1.55;color:#bed0d9}
+.population-exposure-method summary{cursor:pointer;padding:8px 0}
+.population-exposure-method a{color:#8bdaf4}
+#pd-flip-verso .population-exposure-card{margin:8px 12px}
+@media(max-width:900px){.population-exposure-method summary{min-height:44px;box-sizing:border-box;display:list-item;padding:12px 0}.population-exposure-row{padding:10px 0}}
+#pd-exposure-brief{display:block;width:100%;padding:10px;margin-top:8px;min-height:44px;border:1px solid #7dd3fc30;border-radius:10px;background:rgba(10,35,48,.2);color:#c4e9f5;font-family:inherit;font-size:11px;line-height:1.5;text-align:left;cursor:pointer}
+#pd-exposure-brief:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}

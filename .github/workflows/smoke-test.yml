@@ -23,6 +23,12 @@ jobs:
       - name: Instalar navegador do Playwright
         run: npx playwright install --with-deps chromium
 
+      - name: Validar exposição populacional e reservas
+        run: |
+          node tests/unit/population-exposure-check.mjs
+          node tests/unit/population-check.cjs
+          node tests/unit/telegram-history-check.mjs
+
       - name: Rodar testes de fumaça
         run: npx playwright test
 

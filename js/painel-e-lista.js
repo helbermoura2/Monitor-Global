@@ -1044,6 +1044,7 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
 // atualizada. Centralizando aqui, só existe UM lugar pra lembrar "resetei
 // tudo que é compartilhado" antes de cada função preencher o que é do seu tipo.
 function resetPainelDetalheCompartilhado() {
+    if (typeof cancelarExposicaoPopulacional === 'function') cancelarExposicaoPopulacional();
     const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
     set('pd-depth-label', 'Profundidade');
     set('pd-mercalli-label', 'Intensidade (MMI)');
@@ -1212,6 +1213,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Alcance do sismo (pessoas afetadas + MMI por cidade) — mesma
     // informação da virada do card (ver agendarViradaCardAlcance),
     // disponível aqui de forma permanente em "Mais detalhes".
+    if (typeof carregarExposicaoPopulacional === 'function') carregarExposicaoPopulacional(item);
     const secAlcance = document.getElementById('pd-alcance-section');
     const elAlcance = document.getElementById('pd-alcance');
     if (secAlcance && elAlcance) {
