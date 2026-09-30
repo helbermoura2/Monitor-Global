@@ -4620,144 +4620,106 @@ function layoutRow(fonts, item, cardW) {
     return { padTop, padBottom, padLeft, magX, placeX, countryCode, lines, magRowH, magY, placeBlockY, metaY, cardH };
 }
 
+// Quebra pela largura real da fonte proporcional, preservando o local completo.
+function summaryWrap(font, text, maxWidth) {
+    const lines=[]; let line='';
+    for(const word of sanitizeFontText(text).split(/\s+/)) {
+        const candidate=line ? line+' '+word : word;
+        if(line && textFontWidthProp(font,candidate)>maxWidth) { lines.push(line); line=word; }
+        else line=candidate;
+        while(textFontWidthProp(font,line)>maxWidth) {
+            let n=1;
+            while(n<line.length && textFontWidthProp(font,line.slice(0,n+1))<=maxWidth) n++;
+            lines.push(line.slice(0,n)); line=line.slice(n);
+        }
+    }
+    if(line) lines.push(line);
+    return lines.length?lines:['Região não informada'];
+}
+function summaryPlace(place) {
+    const match=/^(\d+(?:\.\d+)?)\s*km\s+([NSEW]{1,3})\s+of\s+(.+)$/i.exec(place);
+    const directions={N:'ao norte',S:'ao sul',E:'a leste',W:'a oeste',NE:'a nordeste',NW:'a noroeste',SE:'a sudeste',SW:'a sudoeste',NNE:'a norte-nordeste',ENE:'a leste-nordeste',ESE:'a leste-sudeste',SSE:'a sul-sudeste',SSW:'a sul-sudoeste',WSW:'a oeste-sudoeste',WNW:'a oeste-noroeste',NNW:'a norte-noroeste'};
+    let title=match?match[3]:place;
+    title=title.replace(/New Caledonia/g,'Nova Caledônia').replace(/Canada/g,'Canadá').replace(/north of Svalbard/i,'Norte de Svalbard');
+    return {title,detail:match?`${match[1]} km ${directions[match[2].toUpperCase()]||match[2]}`:''};
+}
 async function renderDailySummaryPng(quakes = null) {
     const {day,events}=quakes || await fetchDailyQuakesBrt();
     const fonts=await getFontAtlases();
-    const W=800, cardX=38, cardW=W-76;
+    const W=800, X=32, CW=736, CYAN=[62,211,232], WHITE=[235,244,250], MUTED=[151,178,196];
     const top=events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
-    const topColor = top.length ? getHexColorFromMag(top[0].mag) : [56,189,248];
-    const PANEL=[10,16,30];
-
-    const HEADER_H = 178, FOOTER_H = 70;
-    const TITLE_Y = HEADER_H + 30, TOTAL_Y = TITLE_Y + 40, PANEL_START_Y = TOTAL_Y + 42;
-    const STATS_GAP_TOP = 20, STATS_GAP_MID = 16, STATS_GAP_BOTTOM = 24;
-    const STATS_SECTION_H = STATS_GAP_TOP + 1 + 33 + fonts.micro.cellH + STATS_GAP_MID + fonts.micro.cellH + STATS_GAP_BOTTOM;
-    // Caixa de CTA (o que o canal do Telegram envia + link pro site) — o
-    // Resumo terminava só com o rodapé de marca, sem explicar o escopo do
-    // canal nem apontar de volta pro app. Só uma vez o domínio no rodapé
-    // (não repete aqui, como na v1 do mockup) — aqui só o texto do escopo
-    // + um "veja o mapa completo" sem link cru duplicado.
-    const CTA_GAP_TOP = 24, CTA_H = 92, CTA_GAP_BOTTOM = 30;
-    const CTA_SECTION_H = CTA_GAP_TOP + CTA_H + CTA_GAP_BOTTOM;
-
-    const cardLayouts = top.map(e => layoutRow(fonts, e, cardW));
-    let contentH = PANEL_START_Y + 20;
-    if (!top.length) contentH += 90;
-    else cardLayouts.forEach(l => { contentH += l.cardH; });
-    contentH += STATS_SECTION_H;
-    contentH += CTA_SECTION_H;
-    const H = contentH + FOOTER_H;
-    const rgba=new Uint8Array(W*H*4);
-
-    fillRect(rgba,W,0,0,W,H,4,10,22);
-    fillRadialGlow(rgba,W,H,W/2,-60,460,56,189,248,0.12);
-    for(let i=0;i<160;i++){
-        const sx=Math.floor(Math.random()*W), sy=Math.floor(Math.random()*Math.min(H,600));
-        fillRect(rgba,W,sx,sy,1,1,255,255,255,40+Math.floor(Math.random()*110));
-    }
-
-    fillRect(rgba,W,0,0,W,HEADER_H,2,8,22,200);
-    fillRect(rgba,W,0,HEADER_H-3,W,3,topColor[0],topColor[1],topColor[2],160);
-    // Ícone de radar antes do nome (era só texto) — mesma marca do card de
-    // evento avulso e do app. Empurra as duas linhas de texto pra direita
-    // pra abrir espaço (34 -> 82), sem mexer nos y de cada linha.
-    drawRadarIcon(rgba,W,H,51,53,17,56,189,248);
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'MONITOR GLOBAL',82,26,56,189,248);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'RESUMO DO DIA',82,68,148,163,184);
-    drawClockIcon(rgba,W,H,44,106,7,148,163,184,[2,8,22]);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(`${day.split('-').reverse().join('/')} · 00:00-23:59 BRT`),58,100,148,163,184);
-
-    drawTextFontPropCenteredHalo(rgba,W,H,fonts.titleProp,'TOP 5 SISMOS',W/2,TITLE_Y,248,250,252);
-    drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,`Total registrado: ${events.length}`,W/2,TOTAL_Y,148,163,184);
-
-    let y=PANEL_START_Y;
-    if(!top.length){
-        drawTextFontPropCenteredHalo(rgba,W,H,fonts.titleProp,'Nenhum sismo registrado',W/2,y+16,148,163,184);
-        y+=90;
-    } else {
-        const panelTop=y;
-        const panelH=cardLayouts.reduce((s,l)=>s+l.cardH,0);
-        fillRoundRect(rgba,W,H,cardX,panelTop,cardW,panelH,20,PANEL[0],PANEL[1],PANEL[2],238);
-
-        top.forEach((e,i)=>{
-            const c=getHexColorFromMag(e.mag);
-            const L=cardLayouts[i];
-            const cardTop=y;
-            fillRect(rgba,W,cardX,cardTop,cardW,L.cardH,c[0],c[1],c[2],16);
-            if(i===0) fillRadialGlow(rgba,W,H,cardX+L.magX+30,cardTop+L.magY+L.magRowH/2,180,c[0],c[1],c[2],0.22);
-            if(i>0) fillRect(rgba,W,cardX+16,cardTop,cardW-32,1,255,255,255,18);
-            // Barra de cor rente à borda esquerda, ocupando a linha inteira
-            // (em vez de recuada/arredondada) — igual à referência.
-            fillRect(rgba,W,cardX,cardTop,6,L.cardH,c[0],c[1],c[2],255);
-
-            const rankTxt=`${i+1}.`;
-            const rankW=textFontWidth(fonts.micro,rankTxt);
-            drawTextFontHalo(rgba,W,H,fonts.micro,rankTxt,cardX+cardW-16-rankW,cardTop+14,148,163,184);
-
-            drawTextFontHalo(rgba,W,H,fonts.small,'M',cardX+L.magX,cardTop+L.magY+30,c[0],c[1],c[2]);
-            const magStr=e.mag.toFixed(1);
-            drawTextFontHalo(rgba,W,H,fonts.hero,magStr,cardX+L.magX+22,cardTop+L.magY,c[0],c[1],c[2]);
-
-            if(L.countryCode){
-                const flagY=cardTop+L.cardH-L.padBottom-FLAG_CELL_H;
-                drawFlag(rgba,W,H,fonts.flags,L.countryCode,cardX+cardW-16-FLAG_CELL_W,flagY);
-            }
-
-            const pinX=cardX+L.placeX+7;
-            drawPinIcon(rgba,W,H,pinX,cardTop+L.placeBlockY+Math.round(fonts.place.cellH*0.4),6,148,163,184,PANEL);
-            L.lines.forEach((line,j)=>drawTextFontHalo(rgba,W,H,fonts.place,sanitizeFontText(line),cardX+L.placeX+18,cardTop+L.placeBlockY+j*(fonts.place.cellH+4),226,232,240));
-
-            const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
-            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(when),cardX+L.placeX+18,cardTop+L.metaY,148,163,184);
-            drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Prof. ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'--'} · ${e.source}`),cardX+L.placeX+18,cardTop+L.metaY+fonts.micro.cellH+4,148,163,184);
-
-            y+=L.cardH;
-        });
-    }
-    y+=STATS_GAP_TOP;
-    fillRect(rgba,W,40,y,720,1,100,116,139,60); y+=1+33;
-    const m6=events.filter(e=>e.mag>=6).length, m5=events.filter(e=>e.mag>=5).length, m4=events.filter(e=>e.mag>=4).length;
-    const statBands=[[m6,getHexColorFromMag(6),'M6+'],[m5,getHexColorFromMag(5),'M5+'],[m4,getHexColorFromMag(4),'M4+']];
-    const statTxt=statBands.map(([n,,label])=>`${label}: ${n}`).join('   ·   ');
-    const statW=textFontWidth(fonts.micro,statTxt)+statBands.length*16;
-    let sx=Math.round(W/2-statW/2);
-    const statCy=y+Math.round(fonts.micro.cellH/2);
-    statBands.forEach(([n,c,label])=>{
-        fillCircle(rgba,W,H,sx+6,statCy,5,c[0],c[1],c[2],255);
-        const t=`${label}: ${n}`;
-        drawTextFontHalo(rgba,W,H,fonts.micro,sanitizeFontText(t),sx+18,y,226,232,240);
-        sx+=18+textFontWidth(fonts.micro,t)+22;
+    const layouts=top.map(e=>{
+        const place=summaryPlace(e.place);
+        const lines=summaryWrap(fonts.titleProp,place.title,436);
+        const detail=place.detail?summaryWrap(fonts.captionProp,place.detail,436):[];
+        return {place,lines,detail,height:Math.max(132,32+lines.length*40+detail.length*26+36)};
     });
-    y+=fonts.micro.cellH+STATS_GAP_MID;
-    drawTextFontCenteredHalo(rgba,W,H,fonts.micro,sanitizeFontText(`Demais registros: ${events.filter(e=>e.mag<4).length}`),W/2,y,148,163,184);
-    y+=fonts.micro.cellH+STATS_GAP_BOTTOM;
-
-    // ═══ Caixa de CTA — escopo do canal + link pro site ═══
-    y += CTA_GAP_TOP;
-    const ctaX = 60, ctaW = W - 120;
-    fillRoundRect(rgba,W,H,ctaX,y,ctaW,CTA_H,16, 56,189,248,70);
-    fillRoundRect(rgba,W,H,ctaX+2,y+2,ctaW-4,CTA_H-4,14, 14,30,50,150);
-    const ctaLine1 = 'Este canal só envia: resumo diário + sismos M6+';
-    const ctaLine2 = 'Para tudo em tempo real, veja o mapa completo';
-    const ctaCy1 = y + 32, ctaCy2 = y + 62;
-    const ctaW1 = textFontWidthProp(fonts.captionProp, sanitizeFontText(ctaLine1));
-    const ctaW2 = textFontWidthProp(fonts.captionProp, sanitizeFontText(ctaLine2));
-    fillCircle(rgba,W,H,W/2-ctaW1/2-14,ctaCy1+8,4,56,189,248,255);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(ctaLine1),W/2-ctaW1/2,ctaCy1,226,232,240);
-    fillCircle(rgba,W,H,W/2-ctaW2/2-14,ctaCy2+8,4,56,189,248,255);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,sanitizeFontText(ctaLine2),W/2-ctaW2/2,ctaCy2,148,163,184);
-    y += CTA_H + CTA_GAP_BOTTOM;
-
-    fillRect(rgba,W,0,H-FOOTER_H,W,FOOTER_H,10,16,28,230);
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'monitorglobal.top',34,H-Math.round(FOOTER_H/2+fonts.titleProp.cellH/2)+4,56,189,248);
-    const tgTxt=sanitizeFontText('Telegram: monitor_global');
-    const tgTxtW=textFontWidthProp(fonts.captionProp,tgTxt);
-    const tgIconSize=16;
-    const tgX=W-38-tgTxtW;
-    drawPaperPlaneIcon(rgba,W,H,tgX-tgIconSize-8,H-Math.round(FOOTER_H/2)-Math.round(tgIconSize/2)+2,tgIconSize,148,163,184,[10,16,28]);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,tgTxt,tgX,H-Math.round(FOOTER_H/2+fonts.captionProp.cellH/2)+4,148,163,184);
+    const cardsH=layouts.reduce((n,l)=>n+l.height+12,0);
+    const statsY=292+(top.length?cardsH:112)+14;
+    const H=statsY+300;
+    const rgba=new Uint8Array(W*H*4);
+    fillRect(rgba,W,0,0,W,H,4,16,29);
+    fillRadialGlow(rgba,W,H,620,60,360,20,130,171,0.13);
+    // Grade restrita ao cabeçalho e radar original do site como marca.
+    for(let x=480;x<W;x+=32) fillRect(rgba,W,x,0,1,210,62,211,232,13);
+    for(let y=18;y<210;y+=32) fillRect(rgba,W,480,y,320,1,62,211,232,13);
+    drawRadarIcon(rgba,W,H,678,95,86,...CYAN);
+    drawRadarIcon(rgba,W,H,62,52,24,...CYAN);
+    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'MONITOR GLOBAL',102,32,...WHITE);
+    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'Resumo sísmico diário',X,112,...WHITE);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,day.split('-').reverse().join('/')+' · 00:00-23:59 BRT',X,164,...MUTED);
+    fillRect(rgba,W,X,210,CW,2,...CYAN,130);
+    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'Os 5 maiores sismos',X,234,...WHITE);
+    let y=292;
+    if(!top.length) {
+        fillRoundRect(rgba,W,H,X,y,CW,98,18,11,35,52);
+        drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,'Nenhum sismo registrado neste dia',W/2,y+36,...MUTED);
+    }
+    top.forEach((e,i)=>{
+        const L=layouts[i], c=getHexColorFromMag(e.mag);
+        fillRoundRect(rgba,W,H,X,y,CW,L.height,18,30,89,111);
+        fillRoundRect(rgba,W,H,X+1,y+1,CW-2,L.height-2,17,8,31,49);
+        drawTextFontPropHalo(rgba,W,H,fonts.titleProp,String(i+1),52,y+L.height/2-18,...WHITE);
+        // Emblema de radar: identidade visual, sem mapa ou epicentro fictício.
+        drawRadarIcon(rgba,W,H,111,y+L.height/2,27,...CYAN);
+        fillRoundRect(rgba,W,H,156,y+L.height/2-26,118,52,12,...c);
+        const mag='M '+e.mag.toFixed(1).replace('.',',');
+        drawTextFontCenteredHalo(rgba,W,H,fonts.small,mag,215,y+L.height/2-15,4,16,29);
+        const px=298; let ty=y+18;
+        L.lines.forEach(line=>{drawTextFontPropHalo(rgba,W,H,fonts.titleProp,line,px,ty,...WHITE);ty+=40;});
+        L.detail.forEach(line=>{drawTextFontPropHalo(rgba,W,H,fonts.captionProp,line,px,ty,...MUTED);ty+=26;});
+        const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+        drawClockIcon(rgba,W,H,px+7,ty+16,7,...CYAN,[8,31,49]);
+        const meta=`${when} · ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'prof. indisponível'} · ${e.source||'USGS'}`;
+        drawTextFontPropHalo(rgba,W,H,fonts.captionProp,meta,px+23,ty+4,...MUTED);
+        y+=L.height+12;
+    });
+    y=statsY;
+    fillRoundRect(rgba,W,H,X,y,CW,142,18,10,36,53);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,`Distribuição de magnitudes · ${events.length} ${events.length===1?'registro':'registros'}`,X+20,y+16,...WHITE);
+    // Faixas exclusivas: somam o total, ao contrário dos limiares cumulativos.
+    const bands=[
+        ['M6+',events.filter(e=>e.mag>=6).length],
+        ['M5-5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],
+        ['M4-4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],
+        ['Outros',events.filter(e=>e.mag<4).length]
+    ];
+    bands.forEach(([label,n],i)=>{
+        const bx=X+14+i*180;
+        fillRoundRect(rgba,W,H,bx,y+50,168,78,10,6,25,40);
+        drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,label,bx+84,y+58,...CYAN);
+        drawTextFontPropCenteredHalo(rgba,W,H,fonts.titleProp,String(n),bx+84,y+84,...WHITE);
+    });
+    y+=164;
+    drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,'Fonte: USGS · Dados sujeitos a revisão',W/2,y,...MUTED);
+    drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,'Resumo diário + alertas de sismos M6+',W/2,y+30,...MUTED);
+    fillRect(rgba,W,X,y+68,CW,1,...CYAN,55);
+    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'Explore o mapa em tempo real',X,y+89,...MUTED);
+    const domain='monitorglobal.top';
+    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,domain,W-X-textFontWidthProp(fonts.titleProp,domain),y+82,...CYAN);
     return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
+
 const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary';
 // Mesmo motivo do KV em loadSentAlerts/saveSentAlerts acima: caches.default
 // é por data-center, e o Cron Trigger pode cair num data-center diferente a
