@@ -7,3 +7,29 @@
 #top-strip #sp-live-card #sp-rain-eta-chip>span{flex:0 0 auto!important}
 #top-strip #sp-rain-eta-chip{display:flex!important}
 #top-strip #flood-risk-chip{display:none!important}
+
+/* Desktop: logo and weather share row one; one status/clock on row two. */
+@media(min-width:1101px){
+ #top-strip > .ts-mainrow{justify-content:flex-start!important;padding-right:230px!important;gap:18px!important}
+ #top-strip > .ts-mainrow #sp-live-card{display:flex!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;max-width:none!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important}
+ #top-strip > .ts-mainrow #sp-live-card .sp-live-grid{overflow:visible!important;flex-wrap:wrap!important;row-gap:3px!important}
+ #top-strip #sp-live-card #sp-rain-eta-chip{max-width:none!important;overflow:visible!important}
+ #top-strip #sp-live-card #sp-rain-eta-chip>b{overflow:visible!important;text-overflow:clip!important}
+ #top-strip > .ts-mainrow #sp-live-card .sp-live-title{font-size:10px!important}
+ #top-strip > #ux-controlbar{padding-right:12px!important;flex-wrap:nowrap!important}
+ #top-strip #freshness-bar{position:static!important;display:flex!important;flex:0 0 auto!important;width:auto!important;max-width:none!important;margin-left:auto!important;align-items:center!important;flex-wrap:wrap!important;justify-content:flex-end!important;gap:3px 8px!important;padding:0!important}
+ #top-strip #freshness-bar #ao-vivo-badge{flex:0 0 100%!important;justify-content:center!important;min-height:28px!important;width:auto!important;cursor:pointer!important}
+ #top-strip #freshness-bar #fresh-sismo{display:none!important}
+ #top-strip #freshness-bar #fresh-alerts,#top-strip #freshness-bar #fresh-net{font-size:8px!important}
+ #top-strip #freshness-bar #fresh-snooze{font-size:8px!important}
+ #top-strip #chips-scroll-wrap{flex:1 1 auto!important;min-width:0!important}
+}
+@media(min-width:1101px){
+ #top-strip #freshness-bar #ao-vivo-badge{position:static!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto!important}
+ #top-strip #freshness-bar{flex-direction:column!important;align-items:flex-end!important}
+ #top-strip #freshness-bar #fresh-alerts,#top-strip #freshness-bar #fresh-net{display:none!important}
+}
+@media(min-width:1101px){
+ #top-strip > .ts-mainrow > .ts-title{position:static!important;left:auto!important;top:auto!important;max-width:none!important;order:0!important}
+ #top-strip > .ts-mainrow #sp-live-card{order:1!important}
+}
