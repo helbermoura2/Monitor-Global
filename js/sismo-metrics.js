@@ -512,17 +512,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
 
     const alcanceMaxKm = waveFrontMaxKm(mag);
-    // Teto de abertura da câmera: o raio DETECTÁVEL (o anel tracejado mais
-    // externo da zona crítica) — pedido do usuário depois de ver, em vídeo,
-    // a câmera abrindo até mostrar quase o oceano inteiro atrás de um sismo
-    // razoavelmente pequeno. alcanceMaxKm (teto da onda P/S) é quase sempre
-    // BEM maior que o raio detectável (a onda continua existindo, em
-    // teoria, bem além de onde alguém realmente sentiria ou um
-    // instrumento razoável detectaria) — sem este teto a câmera seguia
-    // abrindo pra acompanhar a onda até esse alcance físico gigante, em vez
-    // de parar quando o anel tracejado (o que realmente importa mostrar) já
-    // cabe na tela.
-    const raioDetectMaxKm = raioDetectavel(mag, depth);
+    // A câmera acompanha a frente azul até o próprio limite da onda P.
+    // A zona de percepção permanece independente desse enquadramento.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
@@ -581,15 +572,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // precisa abrir até ALI pelo menos — senão a câmera nunca se
             // move (fica parecendo estática).
             const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
-            // zoomAberturaMaxima: nunca abre além do que cabe o raio
-            // detectável (o tracejado) — mesmo que a onda em si (kmAlvoCam)
-            // já tenha crescido bem mais que isso fisicamente. Pedido do
-            // usuário depois de ver, em vídeo, a câmera abrindo até mostrar
-            // quase o oceano inteiro atrás de um sismo razoavelmente pequeno.
-            const zoomAberturaMaxima = Math.max(1.5, zoomParaCaberRaio(lng, lat, raioDetectMaxKm));
-            const zoomAlvoBruto = Math.max(
-                Math.min(Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin),
-                zoomAberturaMaxima
+            const zoomAlvoBruto = Math.min(
+                Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin
             );
 
             if (camZoomAtual === null) camZoomAtual = map.getZoom();
