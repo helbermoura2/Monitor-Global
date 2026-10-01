@@ -1,3 +1,5 @@
+import { SUMMARY_FLAGS } from "./summary-flags.mjs";
+import { SUMMARY_TYPOGRAPHY } from "./summary-typography.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
 // =========================================================
@@ -3371,8 +3373,8 @@ function drawTextFontProp(rgba, w, h, font, text, x, y, r, g, b, tracking = 1) {
     for (const ch of text) {
         const g_ = font.glyphs[ch] || font.glyphs['?'];
         if (g_) {
-            blitGlyph(rgba, w, h, font.img, g_[0], 0, g_[1], font.cellH, cx, y, r, g, b);
-            cx += g_[1] + tracking;
+            blitGlyph(rgba, w, h, font.img, g_[0], 0, g_[1], font.cellH, cx - (g_[2] != null ? 1 : 0), y, r, g, b);
+            cx += (g_[2] ?? g_[1]) + tracking;
         } else {
             cx += 6 + tracking;
         }
@@ -3384,7 +3386,7 @@ function textFontWidthProp(font, text, tracking = 1) {
     let total = 0;
     for (const ch of text) {
         const g_ = font.glyphs[ch] || font.glyphs['?'];
-        total += (g_ ? g_[1] : 6) + tracking;
+        total += (g_ ? (g_[2] ?? g_[1]) : 6) + tracking;
     }
     return Math.max(0, total - tracking);
 }
@@ -4707,80 +4709,88 @@ function summaryPlace(place) {
     title=title.replace(/New Caledonia/g,'Nova Caledônia').replace(/Canada/g,'Canadá').replace(/north of Svalbard/i,'Norte de Svalbard');
     return {title,detail:match?`${match[1]} km ${directions[match[2].toUpperCase()]||match[2]}`:''};
 }
-async function renderDailySummaryPng(quakes = null) {
-    const {day,events}=quakes || await fetchDailyQuakesBrt();
-    const fonts=await getFontAtlases();
-    const W=800, X=32, CW=736, CYAN=[62,211,232], WHITE=[235,244,250], MUTED=[151,178,196];
-    const top=events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
-    const layouts=top.map(e=>{
-        const place=summaryPlace(e.place);
-        const lines=summaryWrap(fonts.titleProp,place.title,436);
-        const detail=place.detail?summaryWrap(fonts.captionProp,place.detail,436):[];
-        return {place,lines,detail,height:Math.max(132,32+lines.length*40+detail.length*26+36)};
-    });
-    const cardsH=layouts.reduce((n,l)=>n+l.height+12,0);
-    const statsY=292+(top.length?cardsH:112)+14;
-    const H=statsY+300;
-    const rgba=new Uint8Array(W*H*4);
-    fillRect(rgba,W,0,0,W,H,4,16,29);
-    fillRadialGlow(rgba,W,H,620,60,360,20,130,171,0.13);
-    // Grade restrita ao cabeçalho e radar original do site como marca.
-    for(let x=480;x<W;x+=32) fillRect(rgba,W,x,0,1,210,62,211,232,13);
-    for(let y=18;y<210;y+=32) fillRect(rgba,W,480,y,320,1,62,211,232,13);
-    drawRadarIcon(rgba,W,H,678,95,86,...CYAN);
-    drawRadarIcon(rgba,W,H,62,52,24,...CYAN);
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'MONITOR GLOBAL',102,32,...WHITE);
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'Resumo sísmico diário',X,112,...WHITE);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,day.split('-').reverse().join('/')+' · 00:00-23:59 BRT',X,164,...MUTED);
-    fillRect(rgba,W,X,210,CW,2,...CYAN,130);
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,'Os 5 maiores sismos',X,234,...WHITE);
-    let y=292;
-    if(!top.length) {
-        fillRoundRect(rgba,W,H,X,y,CW,98,18,11,35,52);
-        drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,'Nenhum sismo registrado neste dia',W/2,y+36,...MUTED);
+let _dailySummaryFonts=null;
+async function getDailySummaryFonts(){
+    if(_dailySummaryFonts)return _dailySummaryFonts;
+    const fonts={};
+    for(const [name,data] of Object.entries(SUMMARY_TYPOGRAPHY)) fonts[name]={img:await decodePng(base64ToBytes(data.b64)),cellH:data.cellH,glyphs:data.glyphs};
+    fonts.aq=await decodePng(base64ToBytes('iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAARVBMVEVHcEwmX7UmX7UmX7UmX7UmX7X///9ch8iTr9omX7XJ1+3x9fo0abpBc76gud/W4fG7zeiuw+N3m9Fqkczk6/ZPfcOFpdWLa0WiAAAABnRSTlMAv+9gIM+kpfmZAAABRUlEQVR4Xu3X2W6DMBCG0aQJ/8x4Zc37P2qXVKqclM7I9k0jvms4MkZYzOl1Ozq6nKWh8+WbuQ7S2HD9ct6kubdPaZAODR/7I126nM59oPNJOvX/IB4zkB23QmnFvTGKzLEamvFTBqZaKOGhWyXk8Zh3ickAbaGA8HtOh1xxTcROBqjYhWXHyTqUiv2c6h8tesBt5bt/zuvQ/eYURSQwdlt0SO63O+fwR6MBmmDIGaBthR4bIBE2QMECSYaad6MOhQxDqw4RLKVeEOlQhKVZhSjDklOh4GHK8GgjDHkdEmHosQWKti3SIVmhxTYoQYsUyPqVTGKDJEwt51FJETMT0Tx5wPua8+iZpJBsZ7ZeAY03qYZ8+caqIS4+jqBAxgWtm7SvyMMtbT+jkYiZ4kKyW7cf9m4jRK+hptuY1Wvw6zWKvmxHR++lCXjpbjMoUQAAAABJRU5ErkJggg=='));
+    fonts.flags={img:await decodePng(base64ToBytes(SUMMARY_FLAGS.b64)),map:SUMMARY_FLAGS.map};
+    _dailySummaryFonts=fonts;return fonts;
+}
+function summaryCountry(place){
+    let code=/balleny|antarctic/i.test(place)?'AQ':guessCountryCode(place);
+    if(!code&&/,\s*(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)\s*$/.test(place))code='US';
+    let label='REGIÃO OCEÂNICA / NÃO IDENTIFICADA';
+    if(code){try{label=new Intl.DisplayNames(['pt-BR'],{type:'region'}).of(code).toUpperCase();}catch(_){label=code;}}
+    if(code==='AQ')label='ANTÁRTIDA';
+    return {code,label};
+}
+function summaryCleanText(value,font){
+    return [...String(value??'').replace(/[–—]/g,'-')].map(ch=>font.glyphs[ch]?ch:ch.normalize('NFD').replace(/[\u0300-\u036f]/g,'')).join('');
+}
+function summaryCardWrap(font,text,width){
+    const lines=[];let line='';
+    for(const word of summaryCleanText(text,font).split(/\s+/)){
+        const candidate=line?line+' '+word:word;
+        if(line&&textFontWidthProp(font,candidate,0)>width){lines.push(line);line=word;}else line=candidate;
+        while(textFontWidthProp(font,line,0)>width){let n=1;while(n<line.length&&textFontWidthProp(font,line.slice(0,n+1),0)<=width)n++;lines.push(line.slice(0,n));line=line.slice(n);}
     }
-    top.forEach((e,i)=>{
-        const L=layouts[i], c=getHexColorFromMag(e.mag);
-        fillRoundRect(rgba,W,H,X,y,CW,L.height,18,30,89,111);
-        fillRoundRect(rgba,W,H,X+1,y+1,CW-2,L.height-2,17,8,31,49);
-        drawTextFontPropHalo(rgba,W,H,fonts.titleProp,String(i+1),52,y+L.height/2-18,...WHITE);
-        // Emblema de radar: identidade visual, sem mapa ou epicentro fictício.
-        drawRadarIcon(rgba,W,H,111,y+L.height/2,27,...CYAN);
-        fillRoundRect(rgba,W,H,156,y+L.height/2-26,118,52,12,...c);
-        const mag='M '+e.mag.toFixed(1).replace('.',',');
-        drawTextFontCenteredHalo(rgba,W,H,fonts.small,mag,215,y+L.height/2-15,4,16,29);
-        const px=298; let ty=y+18;
-        L.lines.forEach(line=>{drawTextFontPropHalo(rgba,W,H,fonts.titleProp,line,px,ty,...WHITE);ty+=40;});
-        L.detail.forEach(line=>{drawTextFontPropHalo(rgba,W,H,fonts.captionProp,line,px,ty,...MUTED);ty+=26;});
+    if(line)lines.push(line);return lines;
+}
+async function renderDailySummaryPng(quakes = null) {
+    const {day,events}=quakes||await fetchDailyQuakesBrt(),fonts=await getDailySummaryFonts();
+    const W=800,X=32,CW=736,CYAN=[85,203,235],WHITE=[235,244,251],MUTED=[171,198,217],AMBER=[255,185,65],PX=250,TW=410;
+    const top=events.slice().sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5);
+    const layouts=top.map(e=>{
+        const country=summaryCountry(e.place),place=summaryPlace(e.place);
+        if(country.code&&place.title.includes(',')){
+            const suffix=place.title.slice(place.title.lastIndexOf(',')+1).trim();
+            if(summaryCountry(suffix).code===country.code||/^(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)$/.test(suffix))place.title=place.title.slice(0,place.title.lastIndexOf(','));
+        }
+        place.title=place.title.replace(/Balleny Islands region/i,'Ilhas Balleny').replace(/north of Svalbard/i,'Norte de Svalbard');
+        const names=summaryCardWrap(fonts.title,place.title,TW),detail=place.detail?summaryCardWrap(fonts.caption,place.detail,TW):[];
         const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-        drawClockIcon(rgba,W,H,px+7,ty+16,7,...CYAN,[8,31,49]);
-        const meta=`${when} · ${Number.isFinite(e.depth)?Math.round(e.depth)+' km':'prof. indisponível'} · ${e.source||'USGS'}`;
-        drawTextFontPropHalo(rgba,W,H,fonts.captionProp,meta,px+23,ty+4,...MUTED);
-        y+=L.height+12;
+        const meta=summaryCardWrap(fonts.caption,when+' · Profundidade: '+(Number.isFinite(e.depth)?Math.round(e.depth)+' km':'não informada'),TW);
+        const countries=summaryCardWrap(fonts.country,country.label,TW);
+        return {country,names,detail,meta,countries,height:Math.max(146,34+countries.length*fonts.country.cellH+names.length*fonts.title.cellH+(detail.length+meta.length)*fonts.caption.cellH)};
     });
-    y=statsY;
-    fillRoundRect(rgba,W,H,X,y,CW,142,18,10,36,53);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,`Distribuição de magnitudes · ${events.length} ${events.length===1?'registro':'registros'}`,X+20,y+16,...WHITE);
-    // Faixas exclusivas: somam o total, ao contrário dos limiares cumulativos.
-    const bands=[
-        ['M6+',events.filter(e=>e.mag>=6).length],
-        ['M5-5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],
-        ['M4-4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],
-        ['Outros',events.filter(e=>e.mag<4).length]
-    ];
-    bands.forEach(([label,n],i)=>{
-        const bx=X+14+i*180;
-        fillRoundRect(rgba,W,H,bx,y+50,168,78,10,6,25,40);
-        drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,label,bx+84,y+58,...CYAN);
-        drawTextFontPropCenteredHalo(rgba,W,H,fonts.titleProp,String(n),bx+84,y+84,...WHITE);
+    const statsY=270+(top.length?layouts.reduce((sum,l)=>sum+l.height+14,0):130)+8,H=statsY+240;
+    const rgba=new Uint8Array(W*H*4);fillRect(rgba,W,0,0,W,H,5,20,35);
+    fillRadialGlow(rgba,W,H,660,35,430,18,111,178,.16);
+    const write=(font,text,x,y,color)=>drawTextFontProp(rgba,W,H,font,summaryCleanText(text,font),x,y,...color,0);
+    drawRadarIcon(rgba,W,H,70,75,38,...CYAN);
+    write(fonts.brand,'MONITOR GLOBAL',125,31,WHITE);
+    write(fonts.title,'Resumo sísmico diário',125,84,MUTED);
+    write(fonts.caption,day.split('-').reverse().join('/')+' · 00:00-23:59 BRT',125,128,MUTED);
+    fillRect(rgba,W,X,185,CW,1,...CYAN,150);
+    write(fonts.title,'Os 5 maiores sismos',X,211,WHITE);
+    let y=270;
+    if(!top.length){fillRoundRect(rgba,W,H,X,y,CW,110,18,10,36,55);write(fonts.title,'Nenhum sismo registrado no período',X+20,y+32,MUTED);}
+    top.forEach((e,i)=>{
+        const L=layouts[i];fillRoundRect(rgba,W,H,X,y,CW,L.height,18,36,92,121);fillRoundRect(rgba,W,H,X+1,y+1,CW-2,L.height-2,17,10,34,54);
+        write(fonts.caption,String(i+1).padStart(2,'0'),X+17,y+L.height/2-fonts.caption.cellH/2,MUTED);
+        write(fonts.magnitude,'M'+e.mag.toFixed(1).replace('.',','),92,y+L.height/2-fonts.magnitude.cellH/2,AMBER);
+        let ty=y+16;
+        L.countries.forEach(line=>{write(fonts.country,line,PX,ty,CYAN);ty+=fonts.country.cellH;});
+        L.names.forEach(line=>{write(fonts.title,line,PX,ty,WHITE);ty+=fonts.title.cellH;});
+        L.detail.forEach(line=>{write(fonts.caption,line,PX,ty,MUTED);ty+=fonts.caption.cellH;});
+        L.meta.forEach(line=>{write(fonts.caption,line,PX,ty,MUTED);ty+=fonts.caption.cellH;});
+        const fx=688,fy=y+L.height/2-25;
+        if(L.country.code==='AQ')blitIcon(rgba,W,H,fonts.aq,0,0,72,72,fx-6,fy-11);
+        else if(L.country.code&&fonts.flags.map[L.country.code]){
+            const flag=fonts.flags.map[L.country.code];
+            blitIcon(rgba,W,H,fonts.flags.img,flag[0],0,flag[1],flag[2],fx, y+L.height/2-flag[2]/2);
+        }
+        y+=L.height+14;
     });
-    y+=164;
-    drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,'Fonte: USGS · Dados sujeitos a revisão',W/2,y,...MUTED);
-    drawTextFontPropCenteredHalo(rgba,W,H,fonts.captionProp,'Resumo diário + alertas de sismos M6+',W/2,y+30,...MUTED);
-    fillRect(rgba,W,X,y+68,CW,1,...CYAN,55);
-    drawTextFontPropHalo(rgba,W,H,fonts.captionProp,'Explore o mapa em tempo real',X,y+89,...MUTED);
-    const domain='monitorglobal.top';
-    drawTextFontPropHalo(rgba,W,H,fonts.titleProp,domain,W-X-textFontWidthProp(fonts.titleProp,domain),y+82,...CYAN);
+    fillRoundRect(rgba,W,H,X,statsY,CW,96,15,32,78,105);fillRoundRect(rgba,W,H,X+1,statsY+1,CW-2,94,14,8,31,48);
+    write(fonts.title,events.length+' '+(events.length===1?'registro':'registros'),X+19,statsY+8,WHITE);
+    const bands=[['M6+',events.filter(e=>e.mag>=6).length],['M5-5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],['M4-4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],['Outros',events.filter(e=>e.mag<4).length]];
+    bands.forEach(([label,count],i)=>write(fonts.country,label+': '+count,X+19+i*178,statsY+57,MUTED));
+    write(fonts.caption,'Fonte: USGS · Dados sujeitos a revisão',X,statsY+115,MUTED);
+    write(fonts.caption,'Resumo diário + alertas de sismos M6+',X,statsY+150,MUTED);
+    const domain='monitorglobal.top';write(fonts.country,domain,W-X-textFontWidthProp(fonts.country,domain,0),statsY+195,CYAN);
     return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
 
