@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ns0:feed xmlns:ns0="http://www.w3.org/2005/Atom" xmlns:ns1="urn:oasis:names:tc:emergency:cap:1.2"><ns0:entry>
+    <ns1:geocode>
+      <ns0:valueName>EMMA_ID</ns0:valueName>
+      <ns0:value>DE080</ns0:value>
+    </ns1:geocode>
+    <ns0:link title="Kreis und Stadt Heilbronn" href="https://meteoalarm.org?geocode=EMMA_ID:DE080" hreflang="en" />
+    <ns1:areaDesc>Kreis und Stadt Heilbronn</ns1:areaDesc>
+    <ns1:event>heavy rain</ns1:event>
+    <ns1:sent>2026-10-01T20:35:00+00:00</ns1:sent>
+    <ns1:expires>2026-10-01T22:00:00+00:00</ns1:expires>
+    <ns1:onset>2026-10-01T15:31:00+00:00</ns1:onset>
+    <ns1:certainty>Likely</ns1:certainty>
+    <ns1:severity>Moderate</ns1:severity>
+    <ns1:urgency>Immediate</ns1:urgency>
+    <ns1:scope>Public</ns1:scope>
+    <ns1:message_type>Update</ns1:message_type>
+    <ns1:status>Actual</ns1:status>
+    <ns1:identifier>2.49.0.0.276.0.DWD.PVW.1790886900000.ec314b0d-8804-4a1f-8231-357d229750b6.MUL</ns1:identifier>
+    <ns0:link type="application/cap+xml" href="https://feeds.meteoalarm.org/api/v1/warnings/feeds-germany/a3cfbb8f-4af7-4b40-afe0-c9576e101215" />
+    <ns0:link title="Germany" rel="related" href="https://meteoalarm.org?region=DE" hreflang="en" />
+    <ns0:author>
+      <ns0:name>meteoalarm.org</ns0:name>
+      <ns0:uri>https://meteoalarm.org</ns0:uri>
+    </ns0:author>
+    <ns0:published>2026-10-01T20:35:00Z</ns0:published>
+    <ns0:id>https://feeds.meteoalarm.org/api/v1/warnings/feeds-germany/a3cfbb8f-4af7-4b40-afe0-c9576e101215?index_info=1&amp;index_area=5&amp;index_geocode=0</ns0:id>
+    <ns0:title>Orange Rain Warning issued for Germany - Kreis und Stadt Heilbronn</ns0:title>
+    <ns0:updated>2026-10-01T20:35:00Z</ns0:updated>
+  </ns0:entry>
+  <ns0:entry>
+    <ns1:geocode>
+      <ns0:valueName>EMMA_ID</ns0:valueName>
+      <ns0:value>DE226</ns0:value>
+    </ns1:geocode>
+    <ns0:link title="Stadt Stuttgart" href="https://meteoalarm.org?geocode=EMMA_ID:DE226" hreflang="en" />
+    <ns1:areaDesc>Stadt Stuttgart</ns1:areaDesc>
+    <ns1:event>heavy rain</ns1:event>
+    <ns1:sent>2026-10-01T20:35:00+00:00</ns1:sent>
+    <ns1:expires>2026-10-01T22:00:00+00:00</ns1:expires>
+    <ns1:onset>2026-10-01T15:31:00+00:00</ns1:onset>
+    <ns1:certainty>Likely</ns1:certainty>
+    <ns1:severity>Moderate</ns1:severity>
+    <ns1:urgency>Immediate</ns1:urgency>
+    <ns1:scope>Public</ns1:scope>
+    <ns1:message_type>Update</ns1:message_type>
+    <ns1:status>Actual</ns1:status>
+    <ns1:identifier>2.49.0.0.276.0.DWD.PVW.1790886900000.ec314b0d-8804-4a1f-8231-357d229750b6.MUL</ns1:identifier>
+    <ns0:link type="application/cap+xml" href="https://feeds.meteoalarm.org/api/v1/warnings/feeds-germany/a3cfbb8f-4af7-4b40-afe0-c9576e101215" />
+    <ns0:link title="Germany" rel="related" href="https://meteoalarm.org?region=DE" hreflang="en" />
+    <ns0:author>
+      <ns0:name>meteoalarm.org</ns0:name>
+      <ns0:uri>https://meteoalarm.org</ns0:uri>
+    </ns0:author>
+    <ns0:published>2026-10-01T20:35:00Z</ns0:published>
+    <ns0:id>https://feeds.meteoalarm.org/api/v1/warnings/feeds-germany/a3cfbb8f-4af7-4b40-afe0-c9576e101215?index_info=1&amp;index_area=4&amp;index_geocode=0</ns0:id>
+    <ns0:title>Orange Rain Warning issued for Germany - Stadt Stuttgart</ns0:title>
+    <ns0:updated>2026-10-01T20:35:00Z</ns0:updated>
+  </ns0:entry>
+  <ns0:entry>
+    <ns1:geocode>
+      <ns0:valueName>EMMA_ID</ns0:valueName>
+      <ns0:value>DE223</ns0:value>
+    </ns1:geocode>
+    <ns0:link title="Kreis Böblingen" href="https://meteoalarm.org?geocode=EMMA_ID:DE223" hreflang="en" />
+    <ns1:areaDesc>Kreis Böblingen</ns1:areaDesc>
+    <ns1:event>heavy rain</ns1:event>
+    <ns1:sent>2026-10-01T20:35:00+00:00</ns1:sent>
+    <ns1:expires>2026-10-01T22:00:00+00:00</ns1:expires>
+    <ns1:onset>2026-10-01T15:31:00+00:00</ns1:onset>
+    <ns1:certainty>Likely</ns1:certainty>
+    <ns1:severity>Moderate</ns1:severity>
+    <ns1:urgency>Immediate</ns1:urgency>
+    <ns1:scope>Public</ns1:scope>
+    <ns1:message_type>Update</ns1:message_type>
+    <ns1:status>Actual</ns1:status>
+    <ns1:identifier>2.49.0.0.276.0.DWD.PVW.1790886900000.ec314b0d-8804-4a1f-8231-357d229750b6.MUL</ns1:identifier>
+    <ns0:link type="application/cap+xml" href="https://feeds.meteoalarm.org/api/v1/warnings/feeds-germany/a3cfbb8f-4af7-4b40-afe0-c9576e101215" />
+    <ns0:link title="Germany" rel="related" href="https://meteoalarm.org?region=DE" hreflang="en" />
+    <ns0:author>
+      <ns0:name>meteoalarm.org</ns0:name>
+      <ns0:uri>https://meteoalarm.org</ns0:uri>
+    </ns0:author>
+    <ns0:published>2026-10-01T20:35:00Z</ns0:published>
+    <ns0:id>https://feeds.meteoalarm.org/api/v1/warnings/feeds-germany/a3cfbb8f-4af7-4b40-afe0-c9576e101215?index_info=1&amp;index_area=3&amp;index_geocode=0</ns0:id>
+    <ns0:title>Orange Rain Warning issued for Germany - Kreis Böblingen</ns0:title>
+    <ns0:updated>2026-10-01T20:35:00Z</ns0:updated>
+  </ns0:entry>
+  </ns0:feed>

@@ -1,3 +1,4 @@
+import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
 import { SUMMARY_TYPOGRAPHY } from "./summary-typography.mjs";
@@ -5215,6 +5216,7 @@ export default {
         }
         if (reqUrl.pathname === '/weatherapi') return await handleWeatherApi(reqUrl, env);
         if (reqUrl.pathname === '/cge-bulletins') return await handleCgeBulletins();
+        if (reqUrl.pathname === '/official-weather-alerts') return await handleOfficialWeatherAlerts(reqUrl);
         if (reqUrl.pathname === '/metar-observed') return await handleWeatherObservations(reqUrl);
         if (reqUrl.pathname === '/redemet-metar') return await handleRedemet(reqUrl, env);
 

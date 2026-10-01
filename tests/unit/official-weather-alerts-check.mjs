@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {handleOfficialWeatherAlerts,BOM_FEEDS} from '../../official-weather-alerts-worker.mjs';
+const url=p=>new URL('https://worker.test/official-weather-alerts?provider='+p);
+assert.equal((await handleOfficialWeatherAlerts(url('unknown'))).status,400);
+let calls=[];
+let r=await handleOfficialWeatherAlerts(url('eccc'),async u=>{calls.push(u);return Response.json(calls.length===1?{type:'FeatureCollection',features:[{id:'one'}],numberMatched:2,links:[{rel:'next',href:'https://api.weather.gc.ca/collections/weather-alerts/items?f=json&offset=1'}]}:{type:'FeatureCollection',features:[{id:'two'}],numberMatched:2})});
+assert.equal(r.status,200);assert.equal((await r.json()).features.length,2);
+r=await handleOfficialWeatherAlerts(url('eccc'),async()=>Response.json({type:'FeatureCollection',features:[],numberMatched:9}));assert.equal(r.status,502);
+calls=[];r=await handleOfficialWeatherAlerts(url('eccc'),async u=>{calls.push(u);return Response.json({type:'FeatureCollection',features:[],links:[{rel:'next',href:'https://evil.test/steal'}]})});assert.equal(r.status,502);assert.equal(calls.length,1);
+r=await handleOfficialWeatherAlerts(url('eccc'),async()=>Response.json({error:'maintenance'}));assert.equal(r.status,502);
+r=await handleOfficialWeatherAlerts(url('eccc'),async()=>new Response('failure',{status:503}));assert.equal(r.status,502);
+const rss='<rss><channel><title>Bureau of Meteorology</title><lastBuildDate>'+new Date().toUTCString()+'</lastBuildDate></channel></rss>';
+r=await handleOfficialWeatherAlerts(url('bom'),async u=>new Response(u.endsWith(BOM_FEEDS[0][2])?'maintenance':rss));const d=await r.json();assert.equal(r.status,200);assert.equal(d.partial,true);assert.equal(d.feeds.length,7);assert.ok(d.feeds[0].error);assert.ok(d.feeds[1].xml);
+r=await handleOfficialWeatherAlerts(url('bom'),async()=>new Response('<rss><channel>Bureau of Meteorology<lastBuildDate>Wed, 01 Jan 2020 00:00:00 GMT</lastBuildDate></channel></rss>'));assert.equal(r.status,502);
+const saved=new Map(),cache={async match(k){return saved.get(k.url)?.clone()},async put(k,v){saved.set(k.url,v.clone())}};let fetched=0;
+r=await handleOfficialWeatherAlerts(url('eccc'),async()=>{fetched++;return Response.json({type:'FeatureCollection',features:[]})},cache);const checkedAt=(await r.json()).checkedAt;
+r=await handleOfficialWeatherAlerts(url('eccc'),async()=>{throw Error('should use cache')},cache);assert.equal((await r.json()).checkedAt,checkedAt);assert.equal(fetched,1);
+console.log('PASS: ECCC pagination, incomplete/invalid/error responses, safe links, partial BOM failures, stale RSS and cache preserves consultation time');

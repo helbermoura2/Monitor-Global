@@ -1,0 +1,8 @@
+#official-weather-warnings{font:12px/1.5 system-ui;color:#edf6fa;overflow-wrap:anywhere}
+#official-weather-warnings>details{margin:8px 0;padding:8px;border:1px solid #72c6de33;border-radius:12px;background:rgba(8,24,37,.18)}
+#official-weather-warnings summary{cursor:pointer;min-height:44px;padding:8px 0;white-space:normal}
+#official-weather-warnings article{padding:12px 0;border-top:1px solid #72c6de33}
+#official-weather-warnings p{margin:6px 0;white-space:pre-line}
+#official-weather-warnings small{display:block;color:#d7eaf3;line-height:1.5}
+#official-weather-warnings a{display:inline-flex;align-items:center;min-height:44px;color:#8ee8f6}
+#official-weather-warnings button{min-height:44px;margin-top:8px;padding:8px 12px;border:1px solid #72c6de66;border-radius:10px;background:rgba(16,47,62,.45);color:white;font:inherit;cursor:pointer}

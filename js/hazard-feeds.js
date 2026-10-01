@@ -17,9 +17,9 @@
  async function warnings(){try{
   const r=await fetchWithCorsFallback('https://api.weather.gov/alerts/active?status=actual');if(!r.ok)throw Error('HTTP '+r.status);
   const d=await r.json();if(!Array.isArray(d.features))throw Error('Sem avisos');
-  ingest('nws-weather-',d.features.map(x=>HazardEvidence.nws(x)).filter(Boolean));
-  try{setSource('NWS','ok');}catch(e){}
- }catch(e){try{setSource('NWS','off',null,e.message);}catch(_){} }}
+  OfficialWeatherAlerts.set('nws','NWS EUA',d.features.map(x=>HazardEvidence.nws(x)).filter(Boolean),{healthName:'NWS',credit:'NOAA / National Weather Service · alertas oficiais'});
+
+ }catch(e){OfficialWeatherAlerts.set('nws','NWS EUA',[],{error:e.message,healthName:'NWS'}); }}
  // Even if a provider fails, an expired warning/observation cannot remain active.
  setInterval(()=>{const now=Date.now(),n=globalAlerts.length;globalAlerts=globalAlerts.filter(x=>!x.expiresAt||x.expiresAt>now);if(n!==globalAlerts.length)applyFilters();},60000);
  document.addEventListener('DOMContentLoaded',()=>{setTimeout(observed,18000);setTimeout(warnings,24000);setInterval(observed,300000);setInterval(warnings,300000);});

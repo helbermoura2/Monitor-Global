@@ -54,6 +54,8 @@
   }
   more.hidden=false;back.append(more);
   const evidence=document.createElement('div');const h=window.HazardEvidence?.classify(item);if(h?.nature){const p=document.createElement('p');p.textContent=h.label+' · '+h.note;evidence.append(p);}
+  if(item?.severityLabel){const p=document.createElement('p');p.textContent='Severidade informada pela fonte: '+item.severityLabel;evidence.append(p);}
+  if(item?.onset>Date.now()){const p=document.createElement('p');p.textContent='Início previsto '+new Date(item.onset).toLocaleString('pt-BR');evidence.append(p);}
   if(item?.expiresAt){const p=document.createElement('p');p.textContent='Validade até '+new Date(item.expiresAt).toLocaleString('pt-BR');evidence.append(p);}
   for(const key of ['locationNote','warningDescription','warningInstruction'])if(item?.[key]){const p=document.createElement('p');p.textContent=item[key];evidence.append(p);}
   if(evidence.childNodes.length)back.append(section('Produto, área e validade',evidence,true));

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>Weather Warnings for Victoria. Issued by the Australian Bureau of Meteorology</title>
+		<link>https://reg.bom.gov.au/fwo/IDZ00059.warnings_vic.xml</link>
+		<atom:link href="https://reg.bom.gov.au/fwo/IDZ00059.warnings_vic.xml" rel="self" type="application/rss+xml" />
+		<description>Current weather warnings for Victoria, Australia including strong wind, gale, storm force and hurricane force wind warnings; tsunami; damaging waves; abnormally high tides; tropical cyclones; severe thunderstorms; severe weather; fire weather; flood; frost; driving; bushwalking; sheep graziers and other agricultural warnings.</description>
+		<language>en-au</language>
+		<copyright>Copyright: (C) Copyright Commonwealth of Australia 2010, Bureau of Meteorology (ABN 92637 533532), see https://reg.bom.gov.au/other/copyright.shtml for terms and conditions of reuse.</copyright>
+		<webMaster>webops@bom.gov.au (Help desk)</webMaster>
+		<pubDate>Thu, 01 Oct 2026 21:41:02 GMT</pubDate>
+		<lastBuildDate>Thu, 01 Oct 2026 21:41:02 GMT</lastBuildDate>
+		<generator>Australian Bureau of Meteorology</generator>
+		<ttl>10</ttl>
+		<image>
+			<url>https://reg.bom.gov.au/images/bom_logo_inline.gif</url>
+			<title>Weather Warnings for Victoria. Issued by the Australian Bureau of Meteorology</title>
+			<link>https://reg.bom.gov.au/fwo/IDZ00059.warnings_vic.xml</link>
+		</image>
+		<item>
+			<title>02/04:10 EST Marine Wind Warning Summary for Victoria</title>
+			<link>http://reg.bom.gov.au/vic/warnings/marinewind.shtml</link>
+			<pubDate>Thu, 01 Oct 2026 18:10:25 GMT</pubDate>
+			<guid isPermaLink="false">http://reg.bom.gov.au/vic/warnings/marinewind.shtml</guid>
+		</item>
+		<item>
+			<title>02/04:45 EST Warning to Sheep Graziers
+for Wimmera, North Central, South West, Central and West and South Gippsland forecast districts</title>
+			<link>http://reg.bom.gov.au/vic/warnings/sheep.shtml</link>
+			<pubDate>Thu, 01 Oct 2026 18:45:06 GMT</pubDate>
+			<guid isPermaLink="false">http://reg.bom.gov.au/vic/warnings/sheep.shtml</guid>
+		</item>
+		<item>
+			<title>01/12:37 EST Flood Watch for parts of Gippsland, North East and Central Victoria</title>
+			<link>https://reg.bom.gov.au/cgi-bin/wrap_fwo.pl?IDV35010.html</link>
+			<pubDate>Thu, 01 Oct 2026 02:37:45 GMT</pubDate>
+			<guid isPermaLink="false">https://reg.bom.gov.au/cgi-bin/wrap_fwo.pl?IDV35010.html</guid>
+		</item>
+	</channel>
+</rss>

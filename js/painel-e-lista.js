@@ -1569,16 +1569,16 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         } catch (e) {}
     } else if (item.type === 'storm' || item.type === 'wind') {
         document.getElementById('pd-depth-label').textContent = 'Tipo';
-        document.getElementById('pd-depth').textContent = item.hazardNature==='bulletin'?'Boletim':item.type === 'wind' ? 'Rajada' : 'Tempestade';
+        document.getElementById('pd-depth').textContent = item.hazardNature==='warning'?(item.warningLevel||'Aviso'):item.hazardNature==='bulletin'?'Boletim':item.type === 'wind' ? 'Rajada' : 'Tempestade';
         document.getElementById('pd-mercalli-label').textContent = 'Intensidade';
         const wk = item.windKmh != null ? item.windKmh : null;
         document.getElementById('pd-mercalli').innerHTML = wk != null
             ? `<span style="color:${cor}">${wk} km/h</span>`
-            : `<span style="color:${cor}">${item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
+            : `<span style="color:${cor}">${item.hazardNature==='warning'?(esc(item.severityLabel||'Aviso oficial')):item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     } else if (item.type === 'flood') {
-        const alertaPt = (typeof mgCorPT==='function' && item.gdacsAlertLevel) ? mgCorPT(item.gdacsAlertLevel, true) : (item.gdacsAlertLevel||'ATIVO');
+        const alertaPt = item.hazardNature==='warning'?(item.warningLevel||'Aviso oficial'):(typeof mgCorPT==='function' && item.gdacsAlertLevel) ? mgCorPT(item.gdacsAlertLevel, true) : (item.gdacsAlertLevel||'ATIVO');
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').textContent = 'Enchente';
         document.getElementById('pd-mercalli-label').textContent = 'Alerta';
@@ -1589,7 +1589,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').textContent = 'Incêndio';
         document.getElementById('pd-mercalli-label').textContent = 'Status';
-        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
+        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${item.hazardNature==='warning'?(esc(item.severityLabel||'Aviso oficial')):item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     } else if (item.type === 'civil') {

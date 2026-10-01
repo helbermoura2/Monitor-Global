@@ -89,7 +89,7 @@ function prepararTextoVulcao(item){
 }
 
 function normalizarNomeVulcao(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
-function fonteEhOficial(src){return /NOAA|METEOALARM|GDACS|ANA|USGS|INMET|AFAD|JMA|NHC|NWS|PTWC|CEMADEN|CGE|DEFESA|BMKG|GEONET|USP|OSC-BOL|EMSC|GEOFON|IGP|FUNVISIS/i.test(String(src||''));}
+function fonteEhOficial(src){return /ECCC|Bureau of Meteorology|NOAA|METEOALARM|GDACS|ANA|USGS|INMET|AFAD|JMA|NHC|NWS|PTWC|CEMADEN|CGE|DEFESA|BMKG|GEONET|USP|OSC-BOL|EMSC|GEOFON|IGP|FUNVISIS/i.test(String(src||''));}
 function consolidarConfianca(item){
   if(!item)return{score:0,label:'SEM DADOS',cls:'low',sources:[],officialSources:[],reason:'Evento sem registro.',nature:'desconhecido'};
   const raw=[];

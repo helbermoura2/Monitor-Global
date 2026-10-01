@@ -182,6 +182,7 @@ function alertVisivelNaLista(a) {
         if (Number.isFinite(a.inicioTs)) return true;
     }
 
+    if (a.hazardNature === 'warning' && Number.isFinite(a.expiresAt)) return a.expiresAt > now && (a.time || 0) <= now;
     return (a.time || 0) >= cut && (a.time || 0) <= now;
 }
 function looksLikeCyclone(item) {
@@ -192,6 +193,7 @@ function looksLikeCyclone(item) {
 }
 function normalizeEventItem(item) {
     if (!item) return item;
+    if (item.hazardNature === 'warning') return item;
     if (!looksLikeCyclone(item) && item.type !== 'hurricane') return item;
     const coords = item.coords || [0, 0];
     const cyc = (typeof getCycloneMeta === 'function') ? getCycloneMeta(coords[0], coords[1]) : { label: 'Ciclone', basin: '', basinEmoji: '🌀' };
@@ -239,6 +241,9 @@ function dedupeFeedItems(items) {
     function sameEvent(o, it) {
         if (o.type !== it.type) return false;
         if (o.id && it.id && o.id === it.id) return true;
+        // Official warnings refer to their own areas and validity periods.
+        // Proximity alone cannot merge separate warnings or a warning with an observation.
+        if (o.hazardNature === 'warning' || it.hazardNature === 'warning') return false;
         if (!o.coords || !it.coords) {
             const na = String(o.place || '').toLowerCase();
             const nb = String(it.place || '').toLowerCase();

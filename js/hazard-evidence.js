@@ -20,17 +20,22 @@
   if(thunder)rows.push({...base,id:'metar-storm-'+station.icao,type:'storm',detail:raw.includes('VCTS')?'Trovoada reportada nas proximidades do aeródromo':'Trovoada reportada no aeródromo'});
   return rows;
  }
+ function warningType(event){if(/wind chill/i.test(event))return null;return /flood|storm surge/i.test(event)?'flood':/wind|gale/i.test(event)?'wind':/thunder|tornado|rain|storm|hurricane|typhoon|cyclone/i.test(event)?'storm':null;}
+ function severityLabel(value){return ({Extreme:'Extrema',Severe:'Severa',Moderate:'Moderada',Minor:'Baixa',Unknown:'Não informada',High:'Alta',Low:'Baixa'})[value]||'Não informada';}
+ function polygonPoint(g){
+  const ring=g?.type==='Polygon'?g.coordinates?.[0]:g?.type==='MultiPolygon'?g.coordinates?.[0]?.[0]:null;
+  if(!Array.isArray(ring)||ring.length<3||ring.some(x=>!Array.isArray(x)||!Number.isFinite(x[0])||!Number.isFinite(x[1])||Math.abs(x[0])>180||Math.abs(x[1])>90))return null;
+  const pts=ring.length>3&&ring[0][0]===ring.at(-1)[0]&&ring[0][1]===ring.at(-1)[1]?ring.slice(0,-1):ring;
+  const origin=pts[0][0],lon=pts.reduce((s,p)=>s+(p[0]-origin>180?p[0]-360:p[0]-origin < -180?p[0]+360:p[0]),0)/pts.length;
+  return [((lon+540)%360)-180,pts.reduce((s,p)=>s+p[1],0)/pts.length];
+ }
  function nws(feature,now=Date.now()){
   const p=feature?.properties||{};
-  if(p.status!=='Actual'||p.messageType==='Cancel'||!(Date.parse(p.expires)>now))return null;
-  const type=/Flood Warning/.test(p.event)?'flood':/High Wind Warning/.test(p.event)?'wind':/Severe Thunderstorm Warning/.test(p.event)?'storm':null;
+  if(p.status!=='Actual'||p.messageType==='Cancel'||p.scope==='Private'||!(Date.parse(p.expires)>now)||!Number.isFinite(Date.parse(p.sent))||Date.parse(p.sent)>now+300000)return null;
+  const type=warningType(p.event);
   if(!type)return null;
-  const g=feature.geometry;
-  const rings=g?.type==='Polygon'?g.coordinates:g?.type==='MultiPolygon'?g.coordinates.flat():[];
-  const pts=rings.flat().filter(x=>Array.isArray(x)&&Number.isFinite(x[0])&&Number.isFinite(x[1]));
-  if(!pts.length)return null; // Never invent a city's coordinates from an area name.
-  const coords=[0,0];pts.forEach(x=>{coords[0]+=x[0]/pts.length;coords[1]+=x[1]/pts.length;});
-  return {id:'nws-weather-'+(feature.id||p.id),type,place:p.areaDesc||p.event,coords,source:'NWS / NOAA',bandeira:'🇺🇸',hazardNature:'warning',time:Date.parse(p.sent),expiresAt:Date.parse(p.expires),detail:p.headline||p.event,warningDescription:p.description,warningInstruction:p.instruction,link:'https://alerts.weather.gov/search?area=US',locationNote:'Marcador representativo do polígono do aviso; não é um epicentro.'};
+  const coords=polygonPoint(feature.geometry),id=feature.id||p.id;if(!id)return null;
+  return {id:'nws-weather-'+id,type,place:p.areaDesc||p.event,...(coords?{coords}:{}),source:'NWS / NOAA',bandeira:'🇺🇸',hazardNature:'warning',time:Date.parse(p.sent),onset:Date.parse(p.onset),expiresAt:Date.parse(p.expires),severity:p.severity,severityLabel:severityLabel(p.severity),warningEvent:p.event,warningLevel:/Watch/i.test(p.event)?'Atenção':/Advisory/i.test(p.event)?'Aviso':'Alerta',detail:p.headline||p.event,warningDescription:p.description,warningInstruction:p.instruction,link:/^https:\/\/api\.weather\.gov\/alerts\//.test(id)?id:'https://www.weather.gov/',locationNote:coords?'Marcador representativo do polígono do aviso; não é um epicentro.':'Sem coordenadas verificadas; aviso disponível na lista de Meteorologia.'};
  }
- const api={classify,metar,nws};root.HazardEvidence=api;if(typeof module!=='undefined')module.exports=api;
+ const api={classify,metar,nws,warningType,severityLabel,polygonPoint};root.HazardEvidence=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
