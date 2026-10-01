@@ -1201,36 +1201,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const raioDet = Math.round(raioDetectavel(item.mag, item.depth));
     const feltLine = `<div class="city-item"><span class="city-name">📢 Pode ser sentido até ~${raioSentido} km • zona crítica ~${raioCrit} km • detectável ~${raioDet} km <span class="estimativa-badge">EST</span></span></div>`;
 
-    document.getElementById('pd-cities').innerHTML = feltLine +
-        '<div class="city-item" style="color:#64748b;">🔎 Buscando localidade mais próxima em tempo real…</div>';
-    resolverCidadesProximas(lat, lng, 6).then(({ cidades, reserva }) => {
-        if (eventoSelecionadoId !== item.id) return; // usuário já trocou de evento
-        const el = document.getElementById('pd-cities');
-        if (!el) return;
-        el.innerHTML = feltLine + renderCidadesHTML(cidades, reserva);
-    });
-
-    // Alcance do sismo (pessoas afetadas + MMI por cidade) — mesma
-    // informação da virada do card (ver agendarViradaCardAlcance),
-    // disponível aqui de forma permanente em "Mais detalhes".
+    // População, alcance e cidades aparecem em uma única seção.
+    carregarAlcanceECidades(item,lat,lng,feltLine);
     if (typeof carregarExposicaoPopulacional === 'function') carregarExposicaoPopulacional(item);
-    const secAlcance = document.getElementById('pd-alcance-section');
-    const elAlcance = document.getElementById('pd-alcance');
-    if (secAlcance && elAlcance) {
-        const populationGeneration=(window.__mgPopulationSelection||0)+1;
-        window.__mgPopulationSelection=populationGeneration;
-        secAlcance.style.display = '';
-        elAlcance.innerHTML = '<div class="city-item" style="color:#64748b;">🔎 Calculando alcance…</div>';
-        if (typeof estimarPessoasAfetadas === 'function') {
-            estimarPessoasAfetadas(lat, lng, item.mag, item.depth).then(dados => {
-                if (eventoSelecionadoId !== item.id || populationGeneration!==window.__mgPopulationSelection) return;
-                elAlcance.innerHTML = renderAlcancePopulacaoHTML(dados);
-            }).catch(() => {
-                if (eventoSelecionadoId !== item.id || populationGeneration!==window.__mgPopulationSelection) return;
-                elAlcance.textContent = 'Dados populacionais indisponíveis. A população da área não pôde ser estimada.';
-            });
-        }
-    }
 
     let hh = '';
     if (his.total > 0) {
@@ -1495,6 +1468,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // "Alcance do sismo" é conceito exclusivo de sismo (MMI por distância) —
     // esconde a seção pra qualquer outro tipo de evento.
     try { const s = document.getElementById('pd-alcance-section'); if (s) s.style.display = 'none'; } catch (e) {}
+    const citiesSection=document.getElementById('pd-cities-section');if(citiesSection)citiesSection.style.display='';
     // Evento em tela não é mais um sismo — zera o "hold" de magnitude (ver
     // showEventDetails) pra não deixar um valor velho bloqueando por engano a
     // interrupção de um sismo novo em orquestrador-feeds.js.

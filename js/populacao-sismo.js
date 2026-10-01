@@ -146,11 +146,11 @@ function creditoPopulacaoHTML(data){
         (sources.includes('GeoNames')?' · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames (CC BY 4.0)</a>':'')+
         (sources.includes('OpenStreetMap')?' · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap (ODbL)</a>':'')+'</div>';
 }
-function renderAlcancePopulacaoHTML(data){
+function renderAlcancePopulacaoHTML(data,includeCities=true){
     const headline=data.totalPessoas!=null?'~'+formatarPessoasHeadline(data.totalPessoas)+' moradores nas localidades cadastradas':'População sem dados suficientes';
     return '<div class="city-item"><span class="city-name">👥 '+headline+' <span class="estimativa-badge">EST'+(data.partial?' · PARCIAL':'')+'</span></span></div>'+
         '<div class="city-item" style="font-size:10px;line-height:1.5">'+escPopup(mensagemCoberturaPopulacao(data))+'</div>'+
-        data.cidades.map(linhaCidadePopup).join('')+creditoPopulacaoHTML(data);
+        (includeCities?data.cidades.map(linhaCidadePopup).join(''):'')+creditoPopulacaoHTML(data);
 }
 
 // "k"/"M" são abreviações comuns em apps técnicos, mas nem todo mundo
@@ -287,3 +287,41 @@ function agendarViradaCardAlcance(lat, lng, item) {
     }, 14000);
 }
 
+
+// Lista única: mantém cidades fora da área de percepção sem somar sua população ao alcance.
+function cidadesUnificadasSismo(lat,lng,mag,depth,population,nearby){
+    const places=[...(population?.cidades||[]),...(nearby?.cidades||[])].map(c=>normalizarLugarPop(c,c.source||(nearby?.reserva?'Base local':'OpenStreetMap'))).filter(Boolean);
+    const radius=raioEstimado(mag,depth);
+    return dedupePopulacao(places).map(c=>({...c,distancia:haversine(lat,lng,c.lat,c.lng)})).sort((a,b)=>a.distancia-b.distancia).map(c=>({...c,dentro:c.distancia<=radius,intensidade:intensidadeCidadeSismo(mag,depth,c.distancia)}));
+}
+function intensidadeCidadeSismo(mag,depth,distance){
+    // Mesmo modelo radial usado na exposição em grade; somente no domínio adotado pelo app.
+    if(![mag,depth,distance].every(Number.isFinite)||mag<3||mag>8.5||depth<0||depth>70||distance>500)return null;
+    const hypo=Math.hypot(distance,depth>0?Math.max(1,depth):10),smoothing=-.209+2.042*Math.exp(mag-5);
+    const value=2.085+1.428*mag-1.402*Math.log(Math.hypot(hypo,smoothing))+(hypo>50?.078*Math.log(hypo/50):0);
+    const romans=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+    return romans[Math.max(0,Math.min(11,Math.round(value)-1))];
+}
+function renderCidadesUnificadasSismo(cities){
+    if(!cities.length)return '<div class="city-item">Nenhuma localidade encontrada nas fontes consultadas. Isso não comprova ausência de moradores.</div>';
+    return cities.map(c=>'<div class="quake-city-row"><strong>🏙️ '+escPopup(c.nome)+'</strong><span>'+Math.round(c.distancia)+' km</span><span>'+(c.pop?formatarPopulacao(c.pop)+' moradores':'População não informada')+'</span><span class="quake-city-zone">'+(c.dentro?'Dentro do alcance estimado':'Fora do alcance estimado')+'</span><small>'+(c.intensidade?'MMI '+c.intensidade+' · EST':'Intensidade local não estimada')+'</small></div>').join('');
+}
+function carregarAlcanceECidades(item,lat,lng,feltLine){
+    const section=document.getElementById('pd-alcance-section'),box=document.getElementById('pd-alcance');
+    if(!section||!box)return;
+    const separate=document.getElementById('pd-cities-section');if(separate)separate.style.display='none';
+    section.style.display='';
+    const generation=(window.__mgPopulationSelection||0)+1;window.__mgPopulationSelection=generation;
+    let population=null,nearby=null,popFinished=false,citiesFinished=false;
+    const selected=()=>eventoSelecionadoId===item.id&&generation===window.__mgPopulationSelection;
+    const paint=()=>{
+        if(!selected())return;
+        const cities=cidadesUnificadasSismo(lat,lng,item.mag,item.depth,population,nearby);
+        box.innerHTML=feltLine+(population?renderAlcancePopulacaoHTML(population,false):'<div class="city-item">'+(popFinished?'Dados populacionais indisponíveis.':'Consultando população da área…')+'</div>')+
+            '<div class="quake-city-heading">Localidades · distância do epicentro</div>'+((cities.length||citiesFinished)?renderCidadesUnificadasSismo(cities):'<div class="city-item">Buscando cidades próximas…</div>')+
+            '<div class="quake-city-note">Alcance e intensidade são estimativas distintas. MMI local: modelo radial de Allen, Wald e Worden (2012), sem efeitos do solo ou da ruptura.'+(item.depth===0?' Profundidade zero na fonte: adotados 10 km para estimar MMI.':'')+' População da cidade não equivale a pessoas que sentiram o tremor.</div>'+(nearby?.reserva?'<div class="quake-city-note">Busca geográfica indisponível: localidades de referência incluídas.</div>':'');
+    };
+    paint();
+    Promise.resolve().then(()=>resolverCidadesProximas(lat,lng,8)).then(data=>{nearby=data;}).catch(()=>{}).finally(()=>{citiesFinished=true;paint();});
+    Promise.resolve().then(()=>estimarPessoasAfetadas(lat,lng,item.mag,item.depth)).then(data=>{population=data;}).catch(()=>{}).finally(()=>{popFinished=true;paint();});
+}

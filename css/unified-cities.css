@@ -1,0 +1,5 @@
+.quake-city-heading{margin:12px 0 6px;font-size:11px;color:#a4dceb;font-weight:700}
+.quake-city-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:10px 0;border-bottom:1px solid rgba(170,219,239,.15);font-size:11px}
+.quake-city-row strong{overflow-wrap:anywhere;color:#e4f3fb}.quake-city-row>span:nth-child(3){grid-column:1/-1;color:#bad6e3}
+.quake-city-zone{color:#96dbe6;font-size:10px}.quake-city-row small{font-size:10px;color:#ddd0a4;text-align:right}
+.quake-city-note{margin-top:8px;font-size:10px;line-height:1.5;color:#b2c6d2}
