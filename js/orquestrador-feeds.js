@@ -22,7 +22,6 @@ function focusNextNewCameraQuake() {
     if (!map) return false;
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
         Date.now() < (window.__mgRevisionProtectedUntil || 0);
-    if (protectedSelection) return false;
     const candidates = [];
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
@@ -32,6 +31,10 @@ function focusNextNewCameraQuake() {
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
     if (!candidates.length) return false;
     const next=candidates[0];
+    const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
+    // Automatic revisits never delay a newly arrived quake. A larger arrival
+    // may interrupt a live/manual hold; equal or smaller arrivals wait.
+    if (protectedSelection && Number(next.event.mag)<=Number(current?.mag)) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     window.__mgSoftCycle=false;
     showEventDetails(next.index,true);
@@ -209,7 +212,7 @@ async function fetchGlobalFeeds() {
             // câmera que já esteja em andamento por outro motivo.
             if (isFirstDisplay) {
                 isFirstDisplay = false;
-                if (globalEvents.length) showEventDetails(0, false);
+                if (globalEvents.length) { window.__mgSoftCycle=true; showEventDetails(0, false); }
             }
 
             return;
@@ -423,7 +426,7 @@ async function fetchGlobalFeeds() {
         const firstRevisionDisplay = isFirstDisplay;
         if (isFirstDisplay) {
             isFirstDisplay = false;
-            if (globalEvents.length) showEventDetails(0, false);
+            if (globalEvents.length) { window.__mgSoftCycle=true; showEventDetails(0, false); }
         } else {
             queueNewCameraQuakes(novosRecentes);
             focusNextNewCameraQuake();
