@@ -1,0 +1,23 @@
+/* Keep the map visible on both faces. */
+.pd-flip-verso{background:linear-gradient(145deg,rgba(8,31,47,.78),rgba(5,20,33,.68));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.pd-details-back{display:block!important;overflow-y:auto!important;overscroll-behavior:contain;padding:16px;box-sizing:border-box;pointer-events:auto}
+.pd-details-back header{position:sticky;top:-16px;z-index:2;padding:8px 0;background:rgba(7,27,42,.84);border-radius:8px}
+.pd-details-back button{min-height:44px;padding:8px 14px;border:1px solid #48cfe977;background:#173c4b99;color:#edfaff;border-radius:10px;cursor:pointer}
+.pd-details-back h2{font-size:16px;line-height:1.4;color:#eefaff;margin:14px 0}
+.pd-details-back details{border:1px solid #72c6de33;border-radius:10px;margin:10px 0;background:#16344733}
+.pd-details-back summary{min-height:44px;padding:12px;box-sizing:border-box;font-size:12px;font-weight:600;color:#b8eaf3;cursor:pointer}
+.pd-details-back details>div{padding:10px;font-size:12px;line-height:1.6;color:#e2eef3}
+.pd-details-back .pd-more-details{display:block!important;padding:0!important;max-height:none!important;overflow:visible!important}
+.pd-details-back .bubble-section{margin:0;border-radius:0;background:transparent}
+.pd-details-back table{width:100%;border-collapse:collapse}.pd-details-back td,.pd-details-back th{text-align:left;padding:6px;border-bottom:1px solid #72c6de33}
+.pd-details-back details:has(>div[style*="display: none"]),.pd-details-back details:has(>div[style*="display:none"]){display:none}
+body.weather-view .pd-details-back{display:none!important}
+@media(prefers-reduced-motion:reduce){.pd-flip-verso,#painel-direito.pd-flip-preparado{transition:none!important}}
+
+#painel-direito .pd-header-actions #pd-more-toggle{width:auto!important;margin:0!important;min-height:36px;padding:6px 8px!important;font-size:10px;letter-spacing:normal;white-space:nowrap}
+@media(max-width:700px){#painel-direito .pd-header-actions #pd-more-toggle{min-height:44px!important}.pd-details-back summary{min-height:48px}}
+#meteoalarm-warnings{font-size:11px;line-height:1.5}#meteoalarm-warnings details{margin:8px 0;border-bottom:1px solid #72c6de33;padding:6px}#meteoalarm-warnings summary{cursor:pointer;min-height:40px;display:flex;align-items:center}#meteoalarm-warnings a{color:#83dfed}#meteoalarm-warnings small{color:#b4cad6}
+/* The mobile drag handle must leave header actions touchable. */
+#painel-direito .pd-header-actions{position:relative;z-index:90;pointer-events:auto}
+body.pd-more-open #painel-direito{pointer-events:none}
+#painel-direito .pd-header-row{position:relative!important;z-index:90!important}

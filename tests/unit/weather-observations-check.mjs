@@ -6,3 +6,7 @@ const d=await r.json();assert.equal(d.stations.length,1);assert.equal(d.stations
 assert.equal((await handleWeatherObservations(new URL('https://worker/metar-observed?ids=https://evil'),()=>{throw Error('Must not fetch')})).status,400);
 assert.equal((await handleWeatherObservations(url,async()=>new Response('',{status:503}))).status,502);
 console.log('PASS: public METAR backup, station allowlist, true observation timestamp, CORS and upstream failure');
+const international=await handleWeatherObservations(new URL('https://worker/metar-observed?ids=EGLL,KJFK'),async()=>Response.json([{icaoId:'EGLL',rawOb:'METAR EGLL 011500Z 24030G45KT',obsTime:123,lat:51.47,lon:-.45}]));
+assert.equal(international.status,200);assert.equal((await international.json()).stations[0].icao,'EGLL');
+assert.equal((await handleWeatherObservations(new URL('https://worker/metar-observed?ids='+Array(61).fill('EGLL').join(',')),()=>{throw Error('Must not fetch')})).status,400);
+console.log('PASS: global ICAO observation and bounded batch');

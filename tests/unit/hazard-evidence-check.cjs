@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const h=require('../../js/hazard-evidence.js');const now=Date.now();
+const station={icao:'KJFK',lat:40,lng:-73,updatedAt:now,raw:'METAR KJFK 011500Z 24030G45KT +TSRA TEMPO 25060G90KT'};
+assert.equal(h.metar(station,now).length,2);assert.equal(h.metar(station,now)[0].windKmh,83);
+assert.equal(h.metar({...station,updatedAt:now-91*60000},now).length,0);
+assert.equal(h.metar({...station,raw:'METAR KJFK 011500Z 24010KT CAVOK TEMPO TSRA'},now).length,0);
+assert.equal(h.classify({source:'Open-Meteo'}).nature,'forecast');assert.equal(h.classify({source:'NOAA METAR'}).nature,'observed');
+const warning={id:'test',properties:{status:'Actual',event:'Flash Flood Warning',sent:new Date(now).toISOString(),expires:new Date(now+3600000).toISOString(),areaDesc:'Test',messageType:'Alert'},geometry:{type:'Polygon',coordinates:[[[-73,40],[-72,40],[-72,41],[-73,40]]]}};
+assert.equal(h.nws(warning,now).hazardNature,'warning');assert.equal(h.nws({...warning,geometry:null},now),null);
+assert.equal(h.nws({...warning,properties:{...warning.properties,status:'Test'}},now),null);
+assert.equal(h.nws(warning,now+3600001),null);
+console.log('PASS: provenance, METAR freshness/current groups, official warning geometry and expiry');

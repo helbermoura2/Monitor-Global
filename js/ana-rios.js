@@ -37,9 +37,12 @@ async function fetchAnaRios() {
 
             const dataHoraDe = (x) => (x && x.id && x.id.horDataHora) || x?.horDataHora || '';
             const ultima = serie.reduce((a, b) => (Date.parse(dataHoraDe(b)) || 0) > (Date.parse(dataHoraDe(a)) || 0) ? b : a);
-            const nivel = Number(ultima.horNivelAdotado ?? ultima.nivel);
+            const rawLevel = ultima.horNivelAdotado ?? ultima.nivel;
+            const unidade = String(ultima.unidadeNivel ?? ultima.unidade ?? '').toLowerCase();
+            if (rawLevel == null || rawLevel === '' || !['m','cm'].includes(unidade)) throw new Error('nível sem unidade declarada; não inferir enchente');
+            const nivel = Number(rawLevel) / (unidade === 'cm' ? 100 : 1);
             const time = Date.parse(dataHoraDe(ultima));
-            if (!Number.isFinite(nivel) || !Number.isFinite(time)) throw new Error('leitura sem nível/hora válidos');
+            if (!Number.isFinite(nivel) || !Number.isFinite(time) || Date.now()-time > 3*3600000 || time > Date.now()+300000) throw new Error('leitura sem nível/hora válidos');
             algumaOk = true;
 
             const prev = anaUltimaLeitura.get(est.codigo);
@@ -62,7 +65,7 @@ async function fetchAnaRios() {
             const obj = {
                 id, type: 'flood', place: est.nome,
                 bandeira: '🇧🇷', pais: 'Brasil', uf: est.uf,
-                time: Date.now(), coords: est.coords,
+                time, coords: est.coords, hazardNature: 'river', expiresAt: time+3*3600000,
                 source: 'ANA', sev: 2,
                 detail: `Subiu ${subida.toFixed(2)} m em ${(dtMs / 3600000).toFixed(1)}h · nível atual ${nivel.toFixed(2)} m · Rede Hidrometeorológica Nacional`,
                 nivelRio: nivel, nivelSubidaRecente: subida,
@@ -70,7 +73,7 @@ async function fetchAnaRios() {
             };
             const isNew = upsertAlert(obj, { fonte: 'anaRio', expiraMs: ANA_SUBIDA_JANELA_MS, skipRemove: true });
             if (isNew) {
-                playAlertTone('flood');
+
                 showToast(`💧 ${est.nome}: subindo rápido (+${subida.toFixed(2)} m)`, 'warning');
                 notificarNavegador(`💧 ${est.nome}`, `Subiu ${subida.toFixed(2)} m em ${(dtMs / 3600000).toFixed(1)}h`);
             }

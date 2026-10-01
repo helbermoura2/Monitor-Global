@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v583';
+const CACHE = 'monitor-global-pro-v584';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -28,7 +28,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
   // Dados ao vivo: nunca preferir cache velho
-  const isDataApi = /open-meteo|usgs\.gov|emsc-csem|gdacs|rainviewer|weather\.gov|allorigins|workers\.dev|arcgisonline|google\.com\/vt|apiprevmet3\.inmet|brasilapi\.com\.br|orhanaydogdu|deprem-api|afad\.gov|cptec\.inpe|nhc\.noaa|eonet\.gsfc|seismicportal|geofon\.gfz|ingv\.it|isc\.ac\.uk|jma\.go\.jp|cgesp\.org|cemaden|redemet\.decea|moho\.iag\.usp/i.test(url.href);
+  const isDataApi = /meteoalarm|aviationweather|open-meteo|usgs\.gov|emsc-csem|gdacs|rainviewer|weather\.gov|allorigins|workers\.dev|arcgisonline|google\.com\/vt|apiprevmet3\.inmet|brasilapi\.com\.br|orhanaydogdu|deprem-api|afad\.gov|cptec\.inpe|nhc\.noaa|eonet\.gsfc|seismicportal|geofon\.gfz|ingv\.it|isc\.ac\.uk|jma\.go\.jp|cgesp\.org|cemaden|redemet\.decea|moho\.iag\.usp/i.test(url.href);
 
   if (isDataApi) {
     event.respondWith(

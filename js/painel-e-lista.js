@@ -304,7 +304,7 @@ function renderPainelTimeline(item) {
     if (!item) { box.style.display = 'none'; box.innerHTML = ''; return; }
     const steps = [];
     const det = item.time ? formatTime(item.time) : '—';
-    steps.push({ k: 'Detectado', v: det });
+    steps.push({ k: item.hazardNature==='warning'?'Emitido':item.hazardNature==='forecast'?'Modelo':item.hazardNature==='observed'?'Observado':'Detectado', v: det });
     if (item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id))) {
         steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(item._deltaTxt).slice(0, 28) : 'revisão' });
     }
@@ -376,6 +376,7 @@ function enrichPainelDetalheUI(item) {
 }
 
 function togglePainelMaisDetalhes(force) {
+    if (window.EventDetailsBack) return EventDetailsBack.toggle(force);
     const more = document.getElementById('pd-more-details');
     const btn = document.getElementById('pd-more-toggle');
     if (!more || !btn) return;
@@ -923,7 +924,7 @@ function scheduleNextAutoCycle(ms) {
             if (typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) return;
             const sismos = getPriorityCameraEarthquakes();
             const m = sismos.length ? sismos :
-                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed() : []);
+                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed().filter(x=>!['forecast','river'].includes(x.hazardNature)) : []);
             if (!m || !m.length) {
                 scheduleNextAutoCycle(20000);
                 return;
@@ -1059,6 +1060,7 @@ function resetPainelDetalheCompartilhado() {
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
+    if (!silentRefresh && globalEvents[index].id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     if (!silentRefresh) {
         try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
         closeMobileEventsModalIfOpen();
@@ -1431,6 +1433,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river'].includes(item.hazardNature)) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
     // módulos continuam independentes. Atualizações silenciosas e cliques
@@ -1441,7 +1444,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgSoftCycle = false;
         return;
     }
-    try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
+    if (!silentRefresh && item.id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
+    try { if (!window.EventDetailsBack?.isOpen() && typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
     // "Alcance do sismo" é conceito exclusivo de sismo (MMI por distância) —
     // esconde a seção pra qualquer outro tipo de evento.
     try { const s = document.getElementById('pd-alcance-section'); if (s) s.style.display = 'none'; } catch (e) {}

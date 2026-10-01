@@ -89,7 +89,7 @@ function prepararTextoVulcao(item){
 }
 
 function normalizarNomeVulcao(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
-function fonteEhOficial(src){return /USGS|INMET|AFAD|JMA|NHC|NWS|PTWC|CEMADEN|CGE|DEFESA|BMKG|GEONET|USP|OSC-BOL|EMSC|GEOFON|IGP|FUNVISIS/i.test(String(src||''));}
+function fonteEhOficial(src){return /NOAA|METEOALARM|GDACS|ANA|USGS|INMET|AFAD|JMA|NHC|NWS|PTWC|CEMADEN|CGE|DEFESA|BMKG|GEONET|USP|OSC-BOL|EMSC|GEOFON|IGP|FUNVISIS/i.test(String(src||''));}
 function consolidarConfianca(item){
   if(!item)return{score:0,label:'SEM DADOS',cls:'low',sources:[],officialSources:[],reason:'Evento sem registro.',nature:'desconhecido'};
   const raw=[];
@@ -141,6 +141,9 @@ function legendaNaturezaDados(item){
       estima: 'Rótulos de severidade e distância até você são calculados no app.'
     };
   }
+  if(item.hazardNature && window.HazardEvidence){
+    const h=HazardEvidence.classify(item);return {fonte:h.label+' · '+h.note,estima:'Distância e marcador representativo são calculados no app.'};
+  }
   if(item.type==='storm'||item.type==='wind'){
     const modelo=/OPEN-?METEO|MODELO|NOWCAST|WEATHERAPI/i.test(String(item.source||''));
     return {
@@ -171,7 +174,8 @@ function evidenciasFontes(item){
   const modeled=sources.some(x=>/OPEN-?METEO|WEATHERAPI|MODELO|NOWCAST/i.test(x));
   const institutional=sources.filter(fonteEhOficial);
   const origin=modeled?'Dados de modelo':institutional.length?'Fonte institucional':sources.length?'Fonte identificada':'Fonte não identificada';
-  const badges=[origin];
+  const hazard=window.HazardEvidence?.classify(item);
+  const badges=[hazard?.nature?hazard.label:origin];
   if(sources.length>1) badges.push('Reportado por '+sources.length+' fontes');
   const quake=item.type==='earthquake'||(!item.type&&item.mag!=null);
   if(quake){

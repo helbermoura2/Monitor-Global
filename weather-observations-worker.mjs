@@ -1,7 +1,7 @@
 // Backup público de observações METAR, sem chave de API. Não gera previsão.
 export async function handleWeatherObservations(url, fetcher=fetch) {
   const ids=(url.searchParams.get('ids')||'SBSP,SBGR,SBMT').split(',').map(x=>x.trim().toUpperCase());
-  if(!ids.length || ids.length>12 || ids.some(x=>!/^S[BDSINW][A-Z]{2}$/.test(x)))return Response.json({error:'Estações brasileiras inválidas'},{status:400,headers:{'Access-Control-Allow-Origin':'*'}});
+  if(!ids.length || ids.length>60 || ids.some(x=>!/^[A-Z][A-Z0-9]{3}$/.test(x)))return Response.json({error:'Códigos ICAO inválidos'},{status:400,headers:{'Access-Control-Allow-Origin':'*'}});
   const c=new AbortController(),timer=setTimeout(()=>c.abort(),10000);
   try{
     const r=await fetcher('https://aviationweather.gov/api/data/metar?ids='+ids.join(',')+'&format=json',{signal:c.signal});

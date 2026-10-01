@@ -154,8 +154,8 @@ async function fetchGdacsFloods() {
                 id, type: 'flood', place: nome,
                 bandeira: infoT.bandeira || getFlagByCoords(p.lat, p.lon),
                 pais: infoT.pais,
-                time: prev ? prev.time : Date.now(),
-                coords: [p.lon, p.lat], source: 'GDACS',
+                time: Date.parse(p.fromdate) || (prev ? prev.time : Date.now()),
+                coords: [p.lon, p.lat], source: 'GDACS', hazardNature: 'report',
                 gdacsAlertLevel: p.alertlevel || null,
                 detail: [p.alertlevel ? `Alerta ${p.alertlevel}` : null, p.description || null].filter(Boolean).join(' · '),
                 link: p.link || '#'

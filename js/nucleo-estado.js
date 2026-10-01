@@ -548,6 +548,7 @@ function ordenarNovosNoTopo(items) {
 
 function upsertAlert(obj, opts = {}) {
     if (!obj || obj.id == null) return false;
+    if (obj.hazardNature && (!Number.isFinite(obj.time) || (obj.expiresAt != null && (!Number.isFinite(obj.expiresAt) || obj.expiresAt <= Date.now())))) return false;
     const { fonte, expiraMs = 180000, skipRemove = false } = opts;
     const id = obj.id;
     const prev = globalAlerts.find(a => a.id === id);
@@ -560,6 +561,10 @@ function upsertAlert(obj, opts = {}) {
     obj._lastSeenAt = Date.now();
     if (!skipRemove) globalAlerts = globalAlerts.filter(a => a.id !== id);
     globalAlerts.push(obj);
+    if (obj.hazardNature === 'forecast' || obj.hazardNature === 'river') {
+        activeAlertingIds.delete(id); activeUpdatedIds.delete(id);
+        return false; // Informational model/river context cannot seize live-event priority.
+    }
     if (isNew) {
         activeAlertingIds.set(id, Date.now() + expiraMs);
         activeUpdatedIds.delete(id);

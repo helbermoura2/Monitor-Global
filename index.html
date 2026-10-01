@@ -316,6 +316,7 @@
       <div class="pd-header-actions">
         <button type="button" class="pd-focus-badge" id="pd-focus-btn" title="Centralizar no epicentro" onclick="event.stopPropagation();focarEventoNoMapa()">FOCO</button>
         <button type="button" id="pd-share-btn" title="Compartilhar nos Stories" aria-label="Compartilhar nos Stories">📤 Story</button>
+        <button type="button" id="pd-more-toggle" class="pd-more-toggle" onclick="event.stopPropagation();togglePainelMaisDetalhes()" aria-expanded="false">Detalhes ↻</button>
         <span id="pd-peek-arrow" aria-hidden="true">▲</span>
       </div>
     </div>
@@ -351,7 +352,6 @@
       <div class="bubble-section-title">⚠️ Impacto Estimado <span class="estimativa-badge" title="Estimativa automática com base em magnitude, profundidade e distância — não substitui um relatório oficial de defesa civil.">ESTIMATIVA</span></div>
       <div class="bubble-section-content" id="pd-impact">--</div>
     </div>
-    <button type="button" id="pd-more-toggle" class="pd-more-toggle" onclick="event.stopPropagation();togglePainelMaisDetalhes()" aria-expanded="false">Mais detalhes ▾</button>
     <div id="pd-more-details" class="pd-more-details" hidden>
       <div id="pd-source-trust" class="source-trust-card" style="display:none"></div>
       <div class="bubble-section">
@@ -397,6 +397,7 @@
 <script defer src="js/orquestrador-feeds.js?v=20261001-new-priority"></script>
 <script defer src="js/brent.js"></script>
 <script defer src="js/clima-local.js?v=20261001-shortterm"></script>
+<script defer src="js/hazard-evidence.js?v=20261001"></script>
 <script defer src="js/tempestades.js"></script>
 <script defer src="js/inmet-avisos.js?v=20261001-evidence"></script>
 <script defer src="js/furacoes-gdacs.js"></script>
@@ -593,6 +594,10 @@
 <link rel="stylesheet" href="css/unified-cities.css?v=20261001-unified-cities">
 <link rel="stylesheet" href="css/weather-panel.css?v=20261001-weather-chip">
 <script defer src="js/weather-panel.js?v=20261001-weather-chip"></script>
+<script defer src="js/meteoalarm-warnings.js?v=20261001"></script>
+<script defer src="js/hazard-feeds.js?v=20261001"></script>
+<script defer src="js/event-details-back.js?v=20261001"></script>
+<link rel="stylesheet" href="css/event-details-back.css?v=20261001">
 </body>
 </html>
 

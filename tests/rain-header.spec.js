@@ -1,5 +1,7 @@
 const {test,expect}=require('@playwright/test');
+test.use({serviceWorkers:'block'});
 test('chuva por modelo separada de alagamentos e sem sobreposição',async({page})=>{
+ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  await page.setViewportSize({width:1280,height:720});
  await page.addInitScript(()=>{
   const native=window.fetch.bind(window);
@@ -23,5 +25,5 @@ test('chuva por modelo separada de alagamentos e sem sobreposição',async({page
  }
  expect(visible).toBeGreaterThan(0);
  await page.getByRole('button',{name:'Meteorologia',exact:true}).click();await expect(page.locator('#weather-brief')).toContainText('Chuva · curto prazo');await expect(page.locator('#weather-brief')).toContainText('Alagamentos');await expect(page.locator('#weather-more')).toHaveJSProperty('open',false);
- await page.locator('#weather-more summary').click();await expect(page.getByRole('link',{name:'Radar CGE/SP'})).toBeVisible();
+ await page.locator('#weather-more > summary').click();await expect(page.getByRole('link',{name:'Radar CGE/SP'})).toBeVisible();
 });

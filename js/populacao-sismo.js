@@ -206,6 +206,7 @@ function posicionarVersoCard(verso) {
     const painel = document.getElementById('painel-direito');
     const r = painel ? painel.getBoundingClientRect() : null;
     if (!r || !r.width || !r.height) return;
+    verso.style.zIndex = String(Math.max(700, Number(getComputedStyle(painel).zIndex) || 0) + 1);
     verso.style.top = r.top + 'px';
     verso.style.left = r.left + 'px';
     verso.style.width = r.width + 'px';
@@ -226,6 +227,7 @@ function posicionarVersoCard(verso) {
 // automático (mesmo padrão já usado pra frente de onda P/S: o auto-ciclo
 // troca de evento rápido demais pra essa animação fazer sentido).
 function agendarViradaCardAlcance(lat, lng, item) {
+    if (window.EventDetailsBack?.isOpen()) return;
     fecharViradaCardAlcance();
     const generation=window.__mgFlipPopulationGeneration;
     const dadosPromise = estimarPessoasAfetadas(lat, lng, item.mag, item.depth).catch(() => null);

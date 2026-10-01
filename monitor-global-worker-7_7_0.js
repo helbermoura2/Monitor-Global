@@ -14,6 +14,8 @@ const ALLOWED_HOSTS = [
     'stooq.com',
     'wttr.in',
     'api.open-meteo.com',
+    'flood-api.open-meteo.com',
+    'feeds.meteoalarm.org',
     'air-quality-api.open-meteo.com',
     'api.weatherapi.com',
     'earthquake.usgs.gov',

@@ -5,7 +5,7 @@ async function fetchGlobalStormCities() {
         const amostra = CIDADES_MUNDO.filter((_, i) => i % 4 === 0);
         const la = amostra.map(c => c.lat).join(',');
         const lo = amostra.map(c => c.lng).join(',');
-        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=weather_code,wind_gusts_10m,precipitation&timezone=auto`);
+        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=weather_code,wind_gusts_10m,precipitation&timezone=UTC`);
         const d = await r.json();
         const res = Array.isArray(d) ? d : [d];
         let nova = false;
@@ -19,20 +19,20 @@ async function fetchGlobalStormCities() {
                 const isNew = upsertAlert({
                     id, type: 'storm', place: city.nome,
                     bandeira: dicionarioBandeiras[city.pais.toLowerCase()] || '',
-                    icon: '⛈️', time: prev ? prev.time : Date.now(),
-                    coords: [city.lng, city.lat], source: 'Open-Meteo',
+                    icon: '⛈️', time: Date.parse(x.current.time+'Z'),
+                    coords: [city.lng, city.lat], source: 'Open-Meteo', hazardNature: 'forecast',
+                    dataAt: Date.parse(x.current.time+'Z'), expiresAt: Date.parse(x.current.time+'Z')+90*60000,
                     detail: `Rajadas ${Math.round(x.current.wind_gusts_10m || 0)} km/h`
                 }, { fonte: 'globalStorm' });
                 if (isNew) {
                     nova = true;
-                    showToast(`⚡ Tempestade em ${city.nome}`, 'warning');
                 }
             } else {
                 knownAlertIds.delete(id);
                 globalAlerts = globalAlerts.filter(a => a.id !== id);
             }
         });
-        if (nova) playAlertTone('storm');
+
         applyFilters();
         marcarBooted('globalStorm');
     } catch (e) { console.error('Tempestades:', e); }
@@ -45,7 +45,7 @@ async function fetchGlobalWindGusts() {
         const amostra = CIDADES_MUNDO.filter((_, i) => i % 3 === 0);
         const la = amostra.map(c => c.lat).join(',');
         const lo = amostra.map(c => c.lng).join(',');
-        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=wind_gusts_10m,wind_speed_10m&timezone=auto`);
+        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=wind_gusts_10m,wind_speed_10m&timezone=UTC`);
         const d = await r.json();
         const res = Array.isArray(d) ? d : [d];
         let nova = false;
@@ -60,21 +60,21 @@ async function fetchGlobalWindGusts() {
                 const isNew = upsertAlert({
                     id, type: 'wind', place: city.nome,
                     bandeira: dicionarioBandeiras[city.pais.toLowerCase()] || '',
-                    icon: '💨', time: prev ? prev.time : Date.now(),
-                    coords: [city.lng, city.lat], source: 'Open-Meteo',
+                    icon: '💨', time: Date.parse(x.current.time+'Z'),
+                    coords: [city.lng, city.lat], source: 'Open-Meteo', hazardNature: 'forecast',
+                    dataAt: Date.parse(x.current.time+'Z'), expiresAt: Date.parse(x.current.time+'Z')+90*60000,
                     windKmh: Math.round(gust),
                     detail: `Rajadas ${Math.round(gust)} km/h`
                 }, { fonte: 'globalWind' });
                 if (isNew) {
                     nova = true;
-                    showToast(`💨 Rajadas fortes em ${city.nome} (${Math.round(gust)} km/h)`, 'warning');
                 }
             } else {
                 knownAlertIds.delete(id);
                 globalAlerts = globalAlerts.filter(a => a.id !== id);
             }
         });
-        if (nova) playAlertTone('wind');
+
         applyFilters();
         marcarBooted('globalWind');
     } catch (e) { console.error('Rajadas globais:', e); }
@@ -127,8 +127,9 @@ async function fetchBrazilStorms() {
                     id, type: 'storm', place: `${city.nome}, Brasil`,
                     bandeira: '🇧🇷', pais: 'Brasil',
                     icon: thunder ? '⛈️' : '🌧️',
-                    time: prev ? prev.time : Date.now(),
-                    coords: [city.lng, city.lat], source: 'WeatherAPI',
+                    time: c.last_updated_epoch*1000,
+                    coords: [city.lng, city.lat], source: 'WeatherAPI', hazardNature: 'forecast',
+                    dataAt: c.last_updated_epoch*1000, expiresAt: c.last_updated_epoch*1000+90*60000,
                     detail: thunder
                         ? `⛈️ Trovoadas • rajadas ${Math.round(gust)} km/h`
                         : `🌧️ Chuva ${rain} mm • rajadas ${Math.round(gust)} km/h`
@@ -137,7 +138,6 @@ async function fetchBrazilStorms() {
                 if (isNew) {
                     nova = true;
                     if (!novoBr) novoBr = obj;
-                    showToast(`⛈️ Tempestade em ${city.nome}`, 'warning');
                 }
             } else {
                 knownAlertIds.delete(id);
@@ -150,7 +150,7 @@ async function fetchBrazilStorms() {
         try {
             const la = CIDADES_BR.map(c => c.lat).join(',');
             const lo = CIDADES_BR.map(c => c.lng).join(',');
-            const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=weather_code,wind_gusts_10m,precipitation&timezone=auto`);
+            const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=weather_code,wind_gusts_10m,precipitation&timezone=UTC`);
             const d = await r.json();
             const res = Array.isArray(d) ? d : [d];
             res.forEach((x, i) => {
@@ -167,8 +167,9 @@ async function fetchBrazilStorms() {
                         id, type: 'storm', place: `${city.nome}, Brasil`,
                         bandeira: '🇧🇷', pais: 'Brasil',
                         icon: code >= 95 ? '⛈️' : '🌧️',
-                        time: prev ? prev.time : Date.now(),
-                        coords: [city.lng, city.lat], source: 'Open-Meteo',
+                        time: Date.parse(x.current.time+'Z'),
+                        coords: [city.lng, city.lat], source: 'Open-Meteo', hazardNature: 'forecast',
+                    dataAt: Date.parse(x.current.time+'Z'), expiresAt: Date.parse(x.current.time+'Z')+90*60000,
                         detail: code >= 95
                             ? `⛈️ Tempestade • rajadas ${Math.round(gust)} km/h`
                             : `🌧️ Chuva ${rain} mm • rajadas ${Math.round(gust)} km/h`
@@ -177,7 +178,6 @@ async function fetchBrazilStorms() {
                     if (isNew) {
                         nova = true;
                         if (!novoBr) novoBr = obj;
-                        showToast(`⛈️ Tempestade em ${city.nome}`, 'warning');
                     }
                 } else {
                     knownAlertIds.delete(id);
@@ -187,10 +187,7 @@ async function fetchBrazilStorms() {
         } catch (e) { console.warn('Tempestades BR (reserva):', e.message); }
     }
 
-    if (nova) {
-        playAlertTone('storm');
-        if (novoBr) showAlertDetails(novoBr, true);
-    }
+
     marcarBooted('brStorm');
     applyFilters();
 }
