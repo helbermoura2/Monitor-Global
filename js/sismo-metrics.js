@@ -567,14 +567,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // TAU_CAM_MS não deixar o anel escapar da tela.
             const camLookaheadMs = 1800;
             const kmAlvoCam = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
-            // Teto mínimo de abertura: mesmo um sismo pequeno, cujo alcance
-            // real caiba dentro do enquadramento "regional" de sempre,
-            // precisa abrir até ALI pelo menos — senão a câmera nunca se
-            // move (fica parecendo estática).
-            const zoomMin = (opts && opts.zoomFinalMinimo) || 6.6;
-            const zoomAlvoBruto = Math.min(
-                Math.max(1.5, zoomParaCaberRaio(lng, lat, kmAlvoCam)), zoomMin
-            );
+            // Enquadra o raio efetivamente desenhado, sem abertura regional forçada.
+            const raioVermelho = typeof raioCritico === 'function' ? raioCritico(mag,depth) : 0;
+            const zoomAlvoBruto = Math.max(1.5,Math.min(15,
+                zoomParaCaberRaio(lng,lat,Math.max(kmAlvoCam,raioVermelho))));
 
             if (camZoomAtual === null) camZoomAtual = map.getZoom();
             const agoraMs = performance.now();

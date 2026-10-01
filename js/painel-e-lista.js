@@ -1242,36 +1242,15 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag));
     if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag);
 
-    // Zoom alvo + voo cinematográfico. A zona crítica (raios "principais" —
-    // detectável/estimado/crítico, ver startFeltZone) agora aparece PRIMEIRO
-    // pra qualquer contexto (ao vivo, clique manual, ciclo automático) e fica
-    // sozinha na tela por alguns segundos antes da frente de onda P/S entrar
-    // (ver mais abaixo) — então o próprio voo cinematográfico já precisa
-    // enquadrar ela direito, calculando o zoom a partir do maior raio
-    // (raioDetectavel) em vez de um valor fixo "fechado de propósito" (esse
-    // desenho só fazia sentido quando só a frente de onda abria a câmera
-    // sozinha depois). Nunca fecha mais que o enquadramento "regional" de
-    // sempre — só abre além dele quando o raio detectável realmente precisa.
-    // Teto de "quanto no máximo dá pra fechar" — não é mais um zoom fixo de
-    // 8.0/8.3: isso deixava sismos pequenos (cujo raio detectável cabe MUITO
-    // mais fechado que isso) com a zona crítica perdida, minúscula, no meio
-    // de uma vista regional vazia — sobrava tela demais em volta dos anéis
-    // sem mostrar nada (visto no ciclo automático com um M3.0: o enquadramento
-    // "regional" parava o zoom bem antes do que o raio realmente precisava).
-    // 10.5/10.8 ainda mostra contexto geográfico (não é zoom de rua), mas
-    // deixa fechar bem mais que antes pra eventos pequenos.
-    let zoomAlvo = 10.5;
-    let zoomAberturaMin = 6.6; // enquadramento regional de sempre — teto mínimo de abertura da câmera
-    try {
-        if (window.matchMedia('(max-width:900px)').matches) { zoomAlvo = 10.8; zoomAberturaMin = 6.9; }
-    } catch (e) {}
+    // Voo inicial próximo aos anéis vermelho/de percepção; a câmera abre conforme a onda azul cresce.
+    let zoomAlvo = 12;
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
 
-    if (typeof calcZoomParaAlcance === 'function' && typeof raioDetectavel === 'function') {
+    if (typeof calcZoomParaAlcance === 'function' && typeof raioEstimado === 'function') {
         try {
-            const zoomFelt = calcZoomParaAlcance(lat, raioDetectavel(item.mag, item.depth));
-            if (Number.isFinite(zoomFelt)) zoomAlvo = Math.max(1.5, Math.min(zoomAlvo, zoomFelt));
+            const zoomFelt = calcZoomParaAlcance(lat, Math.max(raioEstimado(item.mag,item.depth),raioCritico(item.mag,item.depth)));
+            if (Number.isFinite(zoomFelt)) zoomAlvo = Math.max(1.5, Math.min(15, zoomFelt));
         } catch (e) {}
     }
 
@@ -1396,8 +1375,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                         if (typeof startWaveFront === 'function') {
                             startWaveFront(lng, lat, item.mag, item.depth, origemOnda, {
                                 chaseCam: true,
-                                camDelayMs,
-                                zoomFinalMinimo: zoomAberturaMin
+                                camDelayMs
                             });
                         }
                     } catch (e) {}
@@ -1415,8 +1393,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     const origemFallback = triggerVisualAlert ? Math.max(item.time, Date.now() - 60000) : Date.now();
                     startWaveFront(lng, lat, item.mag, item.depth, origemFallback, {
                         chaseCam: true,
-                        camDelayMs: triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150),
-                        zoomFinalMinimo: zoomAberturaMin
+                        camDelayMs: triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150)
                     });
                 }
             }
