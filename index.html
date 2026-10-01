@@ -122,12 +122,12 @@
     </div>
     <div class="pb-sep"></div>
     <div id="sp-live-card" class="sp-live-card">
-      <div class="sp-live-title">📍 <b id="sp-live-city">SÃO PAULO</b><span id="sp-live-source">Open-Meteo</span><button id="weather-shortcut-desktop" class="weather-header-shortcut" type="button" title="Abrir previsão, chuva chegando e qualidade do ar" aria-label="Abrir previsão meteorológica" >🌤️</button></div><div class="pro-location" id="pro-location-state">📍 SP padrão · localização aguardando</div>
+      <div class="sp-live-title">📍 <b id="sp-live-city">SÃO PAULO</b><span id="sp-live-source">Open-Meteo</span><button id="weather-shortcut-desktop" class="weather-header-shortcut" type="button" title="Abrir previsão meteorológica, observações e qualidade do ar" aria-label="Abrir previsão meteorológica" >🌤️</button></div><div class="pro-location" id="pro-location-state">📍 SP padrão · localização aguardando</div>
       <div class="sp-live-grid">
         <div class="sp-temp-cell"><span>🌡️</span><b id="sp-live-temp">--</b><b id="sp-live-feels" class="sp-feels">sens --</b><small>temp / sensação</small></div>
         <div><span>💨</span><b id="sp-live-gust">--</b><small>rajada</small></div>
         <div><span>💧</span><b id="sp-live-rain">--</b><small>chuva · modelo</small></div>
-        <div><span>💦</span><b id="sp-live-hum">--</b><small>umidade</small></div>
+        <div title="Umidade relativa do ar estimada pelo modelo"><span aria-hidden="true">💦</span><b id="sp-live-hum">--</b><small>umidade</small></div>
         <div id="flood-risk-chip" title="Ocorrências de alagamento: consulta ao CGE"><span>💧</span><b id="flood-risk-label">SEM DADOS</b><small>alagamento</small></div>
         <div id="sp-rain-eta-chip" class="rain-clear" title="Previsão/radar de chuva nas próximas horas"><span id="sp-rain-eta-ico">⏱️</span><b id="sp-rain-eta">--</b><small>chuva · modelo</small></div>
       </div>
@@ -164,7 +164,7 @@
       </div>
       <div class="mobile-weather-mini" title="Condições atuais de São Paulo">
         <b id="mobile-temp">--°</b><span id="mobile-feels">sens --</span>
-        <span id="mobile-gust">💨 --</span><span id="mobile-rain">🌧️ --</span><span id="mobile-hum">💧 --</span><button id="weather-shortcut" class="weather-shortcut" type="button" title="Abrir previsão, chuva chegando e qualidade do ar" aria-label="Abrir previsão meteorológica">🌤️</button>
+        <span id="mobile-gust">💨 --</span><span id="mobile-rain">🌧️ --</span><span id="mobile-hum">💧 --</span><button id="weather-shortcut" class="weather-shortcut" type="button" title="Abrir previsão meteorológica, observações e qualidade do ar" aria-label="Abrir previsão meteorológica">🌤️</button>
       </div>
       <div class="mobile-pro-actions">
         <button class="map-tool active" id="mobile-btn-radar" title="Radar meteorológico">🌧️ Radar</button>
@@ -588,6 +588,7 @@
 
 <link rel="stylesheet" href="css/source-evidence.css?v=20260930-1">
 <link rel="stylesheet" href="population-exposure.css?v=20261001-1">
+<link rel="stylesheet" href="css/weather-header.css?v=20261001-spacing">
 </body>
 </html>
 

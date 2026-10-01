@@ -1,0 +1,8 @@
+/* Cada informação ocupa sua própria área; textos longos não invadem os vizinhos. */
+#top-strip #sp-live-card .sp-live-title{flex:0 0 auto!important}
+#top-strip #sp-live-card .sp-live-grid{min-width:0!important;gap:8px!important;overflow:hidden!important}
+#top-strip #sp-live-card .sp-live-grid>div{flex:0 0 auto!important;min-width:0!important;white-space:nowrap!important}
+#top-strip #sp-live-card #flood-risk-chip{max-width:112px!important;gap:4px!important;padding-left:6px;border-left:1px solid rgba(149,209,236,.22)!important;overflow:hidden!important}
+#top-strip #sp-live-card #flood-risk-chip>b{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;line-height:1.4!important}
+#top-strip #sp-live-card #flood-risk-chip>span{flex:0 0 auto!important}
+#top-strip #sp-rain-eta-chip{display:none!important}
