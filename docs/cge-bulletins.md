@@ -1,0 +1,7 @@
+# Public CGE bulletins
+
+The Worker reads the public official CGE news page at https://www.cgesp.org/v3/noticias.jsp (one request, 10-second timeout, response cached 120 seconds). It extracts numeric article IDs, titles, publication timestamps in Brasília UTC−03 and plain-text paragraphs. Only the newest weather/rain bulletin published within six hours is returned. The six-hour limit is the app's display policy, not an official forecast validity. Future timestamps, missing paragraphs and unrecognized/blocked pages are rejected; source failure is distinct from a successful empty recent-bulletin result.
+
+The client refreshes every three minutes, expires records independently of source availability, replaces the previous bulletin and shows BOLETIM CGE / BOLETIM OFICIAL in the records list. Publication time is preserved. Complete source wording is available under Detalhes; a fixed official numeric URL links to the original. The municipal marker represents São Paulo and is not an exact rain location. Predictions in the text remain predictions. The record does not sound a siren, become a live event, or interrupt earthquake camera priority. It does not assert confirmed flooding or represent a 40199 SMS.
+
+The fixture is a public CGE bulletin from 01/10/2026 at 11:49 BRT (ID 56051). Tests cover real markup, timezone, age, page errors, deduplication, latest-only selection, UI tags, full text, source link and mobile access.

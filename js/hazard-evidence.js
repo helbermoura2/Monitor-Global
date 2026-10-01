@@ -3,8 +3,8 @@
  function classify(item){
   const source=String(item?.source||'');
   const nature=item?.hazardNature||(/Open-Meteo|WeatherAPI|GloFAS/i.test(source)?'forecast':/METAR|Aviation Weather/i.test(source)?'observed':/INMET|NWS|Meteoalarm/i.test(source)?'warning':/GDACS/i.test(source)?'report':null);
-  const labels={forecast:'Estimativa de modelo',observed:'Observação local',warning:'Aviso oficial',report:'Evento reportado',river:'Nível de rio observado'};
-  const notes={forecast:'Condição calculada por modelo; não confirma ocorrência nem alagamentos.',observed:'Medição no aeródromo indicado; não representa toda a cidade.',warning:'Aviso para uma área e período; não significa ocorrência confirmada em cada local.',report:'Registro institucional regional; consulte o boletim para a área afetada.',river:'Subida da régua não confirma transbordamento sem a cota local de inundação.'};
+  const labels={bulletin:'Boletim oficial',forecast:'Estimativa de modelo',observed:'Observação local',warning:'Aviso oficial',report:'Evento reportado',river:'Nível de rio observado'};
+  const notes={bulletin:'Boletim meteorológico municipal. Relatos e previsões referem-se ao texto e horário da publicação; não confirmam alagamentos.',forecast:'Condição calculada por modelo; não confirma ocorrência nem alagamentos.',observed:'Medição no aeródromo indicado; não representa toda a cidade.',warning:'Aviso para uma área e período; não significa ocorrência confirmada em cada local.',report:'Registro institucional regional; consulte o boletim para a área afetada.',river:'Subida da régua não confirma transbordamento sem a cota local de inundação.'};
   return {nature,label:labels[nature]||'Registro da fonte',note:notes[nature]||''};
  }
  function metar(station,now=Date.now()){

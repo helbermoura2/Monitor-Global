@@ -231,7 +231,7 @@ function confiancaFonte(item){
   else if(item&&(item.type==='storm'||item.type==='wind')&&item.id!=='sp-storm-soon'&&/OPEN-?METEO|WEATHERAPI|MODELO LOCAL/i.test(src)){}
   else if(/OPEN-?METEO|MODELO|NOWCAST/i.test(src)){nivel='modelo';cls='conf-modelo';}
   else if(fonteEhOficial(src)||(item&&item.type==='volcano'&&(item.usgsVona||item.usgsStatus))){nivel='oficial';cls='conf-oficial';}
-  const label=nivel==='radar'?'RADAR':e.origin;
+  const label=item?.hazardNature==='bulletin'?'BOLETIM OFICIAL':nivel==='radar'?'RADAR':e.origin;
   return {nivel,cls,label};
 }
 function isEventoCritico(item) {

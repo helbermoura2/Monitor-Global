@@ -561,7 +561,7 @@ function upsertAlert(obj, opts = {}) {
     obj._lastSeenAt = Date.now();
     if (!skipRemove) globalAlerts = globalAlerts.filter(a => a.id !== id);
     globalAlerts.push(obj);
-    if (obj.hazardNature === 'forecast' || obj.hazardNature === 'river') {
+    if (['forecast','river','bulletin'].includes(obj.hazardNature)) {
         activeAlertingIds.delete(id); activeUpdatedIds.delete(id);
         return false; // Informational model/river context cannot seize live-event priority.
     }

@@ -1,3 +1,4 @@
+import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
 import { SUMMARY_TYPOGRAPHY } from "./summary-typography.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
@@ -5211,6 +5212,7 @@ export default {
             catch (e) { return json({ error: 'Falha nos feeds globais', detail: e.message }, 502); }
         }
         if (reqUrl.pathname === '/weatherapi') return await handleWeatherApi(reqUrl, env);
+        if (reqUrl.pathname === '/cge-bulletins') return await handleCgeBulletins();
         if (reqUrl.pathname === '/metar-observed') return await handleWeatherObservations(reqUrl);
         if (reqUrl.pathname === '/redemet-metar') return await handleRedemet(reqUrl, env);
 

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {parseCgeBulletins,handleCgeBulletins} from '../../cge-bulletins-worker.mjs';
+const html=readFileSync(new URL('../fixtures/cge-bulletin.html',import.meta.url),'utf8'),now=Date.parse('2026-10-01T15:00:00Z');
+const rows=parseCgeBulletins(html,now);assert.equal(rows.length,1);assert.equal(rows[0].time,Date.parse('2026-10-01T14:49:00Z'));assert.equal(rows[0].sourceId,'56051');assert(rows[0].description.includes('Zonas Norte, Leste e Sul'));assert(rows[0].description.includes('podem superar os 50Km/h'));assert(!rows[0].description.includes('<p>'));
+assert.equal(parseCgeBulletins(html,now+7*3600000).length,0);assert.equal(parseCgeBulletins(html,now-3600000).length,0);assert.equal(parseCgeBulletins(html+html,now).length,1);
+assert.equal(parseCgeBulletins(html.replace('01/10/2026','31/02/2026'),now).length,0);assert.throws(()=>parseCgeBulletins('<html>Blocked</html>',now));
+const newer=html.replaceAll('56051','56052').replaceAll('11:49','11:55');assert.equal(parseCgeBulletins(html+newer,now)[0].sourceId,'56052');
+let calls=0;const ok=await handleCgeBulletins(async url=>{calls++;assert.equal(url,'https://www.cgesp.org/v3/noticias.jsp');return new Response(html);},now);assert.equal(ok.status,200);assert.equal((await ok.json()).items.length,1);assert.equal(calls,1);assert.equal(ok.headers.get('access-control-allow-origin'),'*');
+const fail=await handleCgeBulletins(async()=>new Response('<html>Unavailable</html>'),now);assert.equal(fail.status,502);assert.equal((await fail.json()).ok,false);
+const stale=await handleCgeBulletins(async()=>new Response(html),now+7*3600000);assert.equal(stale.status,200);assert.deepEqual((await stale.json()).items,[]);
+console.log('PASS: real CGE fixture, BRT publication time, complete source text, latest-only, dedup, freshness, invalid date/page and explicit upstream failure');
+let saved=null,upstream=0;
+const cache={match:async()=>saved?.clone(),put:async(_,value)=>{saved=value;}};
+const provider=async()=>{upstream++;return new Response(html);};
+await handleCgeBulletins(provider,now,cache);const cached=await handleCgeBulletins(provider,now+1000,cache);
+assert.equal(upstream,1);assert.equal((await cached.json()).consultedAt,now);
+console.log('PASS: successful edge cache avoids duplicate upstream fetches and preserves consultation timestamp');

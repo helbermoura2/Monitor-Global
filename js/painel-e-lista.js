@@ -228,7 +228,7 @@ function atualizarTickerUltimoEvento(item) {
     }
     const quake = item.type === 'earthquake' || (item.mag != null && !item.type);
     const kindLabels = {earthquake:'SISMO',wind:'VENTO',hurricane:'CICLONE',storm:'TEMPESTADE',fire:'INCÊNDIO',flood:'ENCHENTE',tsunami:'TSUNAMI',volcano:'VULCÃO',tornado:'TORNADO',civil:'ALERTA'};
-    if (typeEl) typeEl.textContent = quake ? 'SISMO' : (kindLabels[item.type] || meta.label || 'EVENTO');
+    if (typeEl) typeEl.textContent = quake ? 'SISMO' : (item.displayLabel || kindLabels[item.type] || meta.label || 'EVENTO');
     let metric = '';
     if (quake && item.mag != null && Number.isFinite(Number(item.mag))) metric = 'M' + Number(item.mag).toFixed(1).replace('.',',');
     else if (['wind','hurricane'].includes(item.type) && item.windKmh != null && Number.isFinite(Number(item.windKmh))) metric = Math.round(Number(item.windKmh)) + ' km/h';
@@ -304,7 +304,7 @@ function renderPainelTimeline(item) {
     if (!item) { box.style.display = 'none'; box.innerHTML = ''; return; }
     const steps = [];
     const det = item.time ? formatTime(item.time) : '—';
-    steps.push({ k: item.hazardNature==='warning'?'Emitido':item.hazardNature==='forecast'?'Modelo':item.hazardNature==='observed'?'Observado':'Detectado', v: det });
+    steps.push({ k: item.hazardNature==='bulletin'?'Publicado':item.hazardNature==='warning'?'Emitido':item.hazardNature==='forecast'?'Modelo':item.hazardNature==='observed'?'Observado':'Detectado', v: det });
     if (item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id))) {
         steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(item._deltaTxt).slice(0, 28) : 'revisão' });
     }
@@ -558,7 +558,7 @@ function renderSidebarList(items) {
                 const w = item.windKmh != null ? item.windKmh : extractWindKmh(item.detail || item.place || '');
                 cycClassif = classificarCiclone(w);
             }
-            const badgeTxt = isCyc ? rotuloCicloneCurto(item) : (item.cycloneLabel ? item.cycloneLabel : meta.label);
+            const badgeTxt = isCyc ? rotuloCicloneCurto(item) : (item.displayLabel || (item.cycloneLabel ? item.cycloneLabel : meta.label));
             const placeTxt = isCyc ? nomeCicloneLimpo(item.place)
                 : (item.type === 'volcano' ? traduzirTextoVulcanico(item.place)
                 : (item.type === 'flood' ? (typeof traduzirTextoEnchente==='function'?traduzirTextoEnchente(item.place):item.place)
@@ -761,6 +761,7 @@ function resolveOfficialLink(item) {
     const src = String(item.source || '');
     const id = String(item.id || '');
     const type = String(item.type || '');
+    if(item.hazardNature==='bulletin' && /^https:\/\/www\.cgesp\.org\/v3\/noticias\.jsp\?id=\d+$/.test(item.link||'')) return {url:item.link,label:'Boletim oficial CGE →',isOfficial:true,note:'Publicação do CGE, não mensagem do 40199.'};
 
     // Sismos
     if (type === 'earthquake' || src === 'USGS' || src === 'EMSC') {
@@ -924,7 +925,7 @@ function scheduleNextAutoCycle(ms) {
             if (typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) return;
             const sismos = getPriorityCameraEarthquakes();
             const m = sismos.length ? sismos :
-                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed().filter(x=>!['forecast','river'].includes(x.hazardNature)) : []);
+                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed().filter(x=>!['forecast','river','bulletin'].includes(x.hazardNature)) : []);
             if (!m || !m.length) {
                 scheduleNextAutoCycle(20000);
                 return;
@@ -1433,7 +1434,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
-    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river'].includes(item.hazardNature)) { window.__mgSoftCycle=false; return; }
+    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature)) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
     // módulos continuam independentes. Atualizações silenciosas e cliques
@@ -1504,8 +1505,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     const cor = meta.color;
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
-    setGauge(0, false, meta.icon, cor, 1);
-    document.getElementById('pd-source').textContent = meta.label || 'ALERTA';
+    setGauge(0, false, item.icon || meta.icon, cor, 1);
+    document.getElementById('pd-source').textContent = item.displayLabel || meta.label || 'ALERTA';
     try { enrichPainelDetalheUI(item); } catch (e) {}
     document.getElementById('pd-flag').innerHTML = item.bandeira || country.flag;
     const localTxt = item.type === 'flood' && typeof traduzirTextoEnchente === 'function'
@@ -1568,12 +1569,12 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         } catch (e) {}
     } else if (item.type === 'storm' || item.type === 'wind') {
         document.getElementById('pd-depth-label').textContent = 'Tipo';
-        document.getElementById('pd-depth').textContent = item.type === 'wind' ? 'Rajada' : 'Tempestade';
+        document.getElementById('pd-depth').textContent = item.hazardNature==='bulletin'?'Boletim':item.type === 'wind' ? 'Rajada' : 'Tempestade';
         document.getElementById('pd-mercalli-label').textContent = 'Intensidade';
         const wk = item.windKmh != null ? item.windKmh : null;
         document.getElementById('pd-mercalli').innerHTML = wk != null
             ? `<span style="color:${cor}">${wk} km/h</span>`
-            : `<span style="color:${cor}">Ativo</span>`;
+            : `<span style="color:${cor}">${item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     } else if (item.type === 'flood') {
@@ -1588,7 +1589,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').textContent = 'Incêndio';
         document.getElementById('pd-mercalli-label').textContent = 'Status';
-        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">Ativo</span>`;
+        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     } else if (item.type === 'civil') {
@@ -1632,7 +1633,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         item.type === 'volcano' ? 'Atividade vulcânica' :
         item.type === 'flood' ? 'Situação da enchente' : 'Detalhes do evento';
     document.getElementById('pd-fault-arrow').textContent = meta.icon;
-    document.getElementById('pd-fault-type').textContent = item.cycloneLabel || meta.label;
+    document.getElementById('pd-fault-type').textContent = item.displayLabel || item.cycloneLabel || meta.label;
     const detalhePt = item.type === 'volcano' ? traduzirTextoVulcanico(item.detail || '')
         : (item.type === 'flood' && typeof traduzirTextoEnchente === 'function' ? traduzirTextoEnchente(item.detail || '') : (item.detail || ''));
     document.getElementById('pd-fault-desc').textContent = detalhePt || 'Sem detalhes adicionais.';
