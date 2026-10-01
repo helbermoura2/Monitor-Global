@@ -136,7 +136,8 @@ async function fetchGdacsFloods() {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
         if (d && d.ok === false) throw new Error(d.error || 'gdacs-floods indisponível');
-        const items = Array.isArray(d?.items) ? d.items : [];
+        if (!Array.isArray(d?.items)) throw new Error('GDACS enchentes: catálogo inválido');
+        const items = d.items;
         const ids = new Set();
         let primeiroNovo = null;
 
