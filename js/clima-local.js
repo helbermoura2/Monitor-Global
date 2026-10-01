@@ -54,114 +54,8 @@ function isFcPopupOpen() {
     } catch (e) { return false; }
 }
 
-function showFcPopup(dur) {
-    dur = dur || 30000;
-    const el = document.getElementById('sp-forecast-air');
-    if (!el) {
-      console.warn('[meteo] #sp-forecast-air não encontrado no DOM');
-      return;
-    }
-    // Garante painel no body (fora de #mapWrap overflow:hidden) para DeX/desktop
-    if (el.parentElement !== document.body) {
-      try { document.body.appendChild(el); } catch (e) {}
-    }
-    const bd = document.getElementById('fc-backdrop');
-    if (bd && bd.parentElement !== document.body) {
-      try { document.body.appendChild(bd); } catch (e) {}
-    }
-    el.classList.add('open');
-    el.style.setProperty('display', 'block', 'important');
-    el.style.setProperty('position', 'fixed', 'important');
-    el.style.setProperty('visibility', 'visible', 'important');
-    el.style.setProperty('opacity', '1', 'important');
-    el.style.setProperty('pointer-events', 'auto', 'important');
-    el.style.setProperty('overflow-y', 'auto', 'important');
-    el.style.setProperty('z-index', '200000', 'important');
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const isMobile = vw <= 900;
-    const isTablet = vw > 900 && vw <= 1100;
-    // Limpa classes de modo anterior
-    el.classList.remove('fc-mode-mobile', 'fc-mode-tablet', 'fc-mode-desktop');
-    if (isMobile) {
-      el.classList.add('fc-mode-mobile');
-      // Folha inferior no celular
-      el.style.setProperty('top', 'auto', 'important');
-      el.style.setProperty('right', '0', 'important');
-      el.style.setProperty('left', '0', 'important');
-      el.style.setProperty('bottom', '0', 'important');
-      el.style.setProperty('width', '100%', 'important');
-      el.style.setProperty('max-width', '100%', 'important');
-      el.style.setProperty('max-height', '75vh', 'important');
-      el.style.setProperty('border-radius', '16px 16px 0 0', 'important');
-      el.style.setProperty('padding-bottom', 'calc(40px + env(safe-area-inset-bottom, 0px))', 'important');
-      document.body.classList.add('mobile-fc-open');
-    } else if (isTablet) {
-      el.classList.add('fc-mode-tablet');
-      // Tablet: card flutuante um pouco maior, canto superior direito
-      el.style.setProperty('top', '70px', 'important');
-      el.style.setProperty('right', '12px', 'important');
-      el.style.setProperty('left', 'auto', 'important');
-      el.style.setProperty('bottom', 'auto', 'important');
-      el.style.setProperty('width', '380px', 'important');
-      el.style.setProperty('max-width', 'min(400px, calc(100vw - 24px))', 'important');
-      el.style.setProperty('max-height', 'calc(100vh - 100px)', 'important');
-      el.style.setProperty('border-radius', '12px', 'important');
-      el.style.setProperty('padding-bottom', '28px', 'important');
-      document.body.classList.remove('mobile-fc-open');
-    } else {
-      el.classList.add('fc-mode-desktop');
-      // Desktop / DeX largo
-      el.style.setProperty('top', '64px', 'important');
-      el.style.setProperty('right', '12px', 'important');
-      el.style.setProperty('left', 'auto', 'important');
-      el.style.setProperty('bottom', 'auto', 'important');
-      el.style.setProperty('width', '360px', 'important');
-      el.style.setProperty('max-width', 'calc(100vw - 20px)', 'important');
-      el.style.setProperty('max-height', 'calc(100vh - 120px)', 'important');
-      el.style.setProperty('border-radius', '12px', 'important');
-      el.style.setProperty('padding-bottom', '28px', 'important');
-      document.body.classList.remove('mobile-fc-open');
-    }
-    // Backdrop só no mobile (sheet); no tablet/desktop fecha pelo X ou clique fora leve
-    if (bd) {
-      if (isMobile) {
-        bd.classList.add('fc-open');
-        bd.style.setProperty('display', 'block', 'important');
-        bd.style.setProperty('position', 'fixed', 'important');
-        bd.style.setProperty('inset', '0', 'important');
-        bd.style.setProperty('z-index', '199990', 'important');
-        bd.style.setProperty('background', 'rgba(0,0,0,0.45)', 'important');
-        bd.onclick = function(){ hideFcPopup(); };
-      } else {
-        bd.classList.remove('fc-open');
-        bd.style.setProperty('display', 'none', 'important');
-        bd.onclick = null;
-      }
-    }
-    if (fcPopupTimeout) clearTimeout(fcPopupTimeout);
-    if (!document.body.classList.contains('weather-panel-pinned')) {
-      fcPopupTimeout = setTimeout(() => { hideFcPopup(); }, dur);
-    }
-    console.log('[meteo] painel aberto');
-}
-
-function hideFcPopup() {
-    const el = document.getElementById('sp-forecast-air');
-    if (el) {
-      el.classList.remove('open', 'fc-mode-mobile', 'fc-mode-tablet', 'fc-mode-desktop');
-      el.style.setProperty('display', 'none', 'important');
-      el.style.removeProperty('visibility');
-      el.style.removeProperty('opacity');
-    }
-    document.body.classList.remove('mobile-fc-open');
-    const bd = document.getElementById('fc-backdrop');
-    if (bd) {
-      bd.classList.remove('fc-open');
-      bd.style.setProperty('display', 'none', 'important');
-    }
-    if (fcPopupTimeout) clearTimeout(fcPopupTimeout);
-    console.log('[meteo] painel fechado');
-}
+function showFcPopup() { window.WeatherPanel?.show(); }
+function hideFcPopup() { window.WeatherPanel?.hide(); }
 
 function toggleFcPopup() {
     if (isFcPopupOpen()) hideFcPopup();
@@ -286,7 +180,7 @@ function addNowcastAlert(texto, sev, opts) {
     if (isNew) playAlertTone('storm');
     marcarBooted('nowcast');
     applyFilters();
-    showFcPopup(20000);
+    // Radar updates the evidence; opening the panel remains manual.
 }
 
 async function fetchSPWeather() {

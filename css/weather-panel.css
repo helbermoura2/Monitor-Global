@@ -1,0 +1,17 @@
+#weather-event-tabs{position:fixed;z-index:90;display:flex;height:44px;padding:4px;gap:4px;box-sizing:border-box;background:linear-gradient(160deg,rgba(28,66,102,.45),rgba(10,22,38,.6));border:1px solid rgba(255,255,255,.16);border-radius:14px 14px 0 0}
+#weather-event-tabs button{flex:1;min-height:36px;color:#dcebf5;border:1px solid transparent;border-radius:9px;background:transparent;cursor:pointer;font:600 13px system-ui}
+#weather-event-tabs button[aria-pressed=true]{background:rgba(70,181,210,.18);border-color:rgba(100,220,243,.5);color:#9deaff}
+body.weather-view #painel-direito,body.weather-view #painel-direito *{visibility:hidden!important;pointer-events:none!important}
+#sp-forecast-air{display:none!important;background:linear-gradient(160deg,rgba(28,66,102,.42),rgba(10,22,38,.64))!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:1px solid rgba(255,255,255,.18)!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important;z-index:89!important;isolation:isolate;}
+body.weather-view #sp-forecast-air.open{display:block!important;position:fixed!important;visibility:visible!important;opacity:1!important;overflow-y:auto!important;box-sizing:border-box;max-width:none!important;border-radius:0 0 14px 14px!important;padding:12px!important}
+#weather-brief h3{font:600 17px system-ui;color:#edf8fc;margin:16px 0}
+#weather-brief p{display:grid;gap:5px;padding:12px 0;margin:0;border-bottom:1px solid rgba(180,220,240,.18);font:14px/1.45 system-ui;color:#d4e6ee}
+#weather-brief strong{font-size:11px;color:#8fd8ee;text-transform:uppercase;letter-spacing:.04em}
+#weather-brief small{display:block;color:#bfd2de;font:12px/1.5 system-ui;margin:14px 0}
+#weather-more summary{cursor:pointer;min-height:44px;padding:12px 0;color:#93e1f4;font:600 13px system-ui}
+#weather-more>div,#weather-more>section{background:rgba(10,25,40,.18)}
+#weather-pin-btn{display:none!important}
+@media(min-width:901px){body #painel-direito,body.mobile-details-mid #painel-direito,body.mobile-details-open #painel-direito{padding-top:60px!important}}
+@media(max-width:900px){#weather-event-tabs{display:none}body.weather-view #sp-forecast-air.open{border-radius:16px 16px 0 0!important;padding:16px 16px calc(24px + env(safe-area-inset-bottom))!important;z-index:200000!important}}
+body.weather-view #painel-direito{opacity:0!important}
+html body.weather-view #painel-direito #pd-focus-btn,html body.weather-view #painel-direito #pd-share-btn,html body.weather-view #painel-direito #painel-direito-close{visibility:hidden!important}

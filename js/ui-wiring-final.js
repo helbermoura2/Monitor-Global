@@ -518,21 +518,7 @@ window.addEventListener('load', () => {
     agendarBusca(fetchRealBrent, 0, 300000);
     agendarBusca(fetchMeteoAlerts, 34000, 600000);
 
-    /* Auto-abre previsão só em telas largas (tablet/desktop/TV).
-       No celular o usuário toca no 🌤️ — evita cobrir o mapa na abertura. */
-    setTimeout(() => {
-      try {
-        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-        if (vw > 900) showFcPopup(20000);
-      } catch (e) {}
-    }, 2800);
-    // Relembra o painel 1x por hora só no desktop (se não estiver fixado)
-    setInterval(() => {
-      try {
-        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-        if (vw > 900 && !document.body.classList.contains('weather-panel-pinned')) showFcPopup(20000);
-      } catch (e) {}
-    }, 3600000);
+    // Meteorologia abre somente por ação do usuário; as consultas continuam.
 
     // Tecla ESC fecha painéis abertos (clima, menus)
     document.addEventListener('keydown', (e) => {
