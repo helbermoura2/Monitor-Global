@@ -16,6 +16,9 @@
     const controls=panel.querySelector('.weather-control-row'),header=panel.querySelector('.topbar-card-header');
     for(const child of [...panel.children])if(child!==controls&&child!==header)details.appendChild(child);
     panel.append(brief,details);
+    const sources=document.createElement('div');sources.className='weather-official-links';
+    for(const [text,url]of [['Radar CGE/SP','https://www.cgesp.org/v3/mapas.jsp?arq=precipitacaoradar'],['SAISP/FCTH','https://www.saisp.br/online/']]){const a=document.createElement('a');a.textContent=text+' ↗';a.href=url;a.target='_blank';a.rel='noopener';sources.appendChild(a);}
+    const radarNote=document.createElement('small');radarNote.textContent='Consulta aos radares oficiais. A estimativa automática acima usa modelos; confira a data das imagens.';sources.appendChild(radarNote);details.appendChild(sources);
     $('weather-pin-btn')?.setAttribute('hidden','');
     document.body.classList.remove('weather-panel-pinned');
     window.addEventListener('resize',layout);new ResizeObserver(layout).observe(event);
@@ -36,7 +39,7 @@
   }
   function update(){
     if(!ready)return;const brief=$('weather-brief');brief.replaceChildren();
-    const state=window.__weatherEvidenceState,forecast=window.__weatherForecastBrief;
+    const state=window.__weatherEvidenceState,forecast=window.__weatherForecastBrief,outlook=window.__rainOutlook;
     const city=typeof weatherLoc!=='undefined'?weatherLoc.nome:'Meteorologia';
     if($('fc-city-name')?.textContent==='--')$('fc-city-name').textContent=city;
     const heading=document.createElement('h3');heading.textContent=($('fc-city-name')?.textContent||city)+' · '+($('sp-live-temp')?.textContent||'--')+' · '+($('sp-live-feels')?.textContent||'');brief.appendChild(heading);
@@ -44,7 +47,8 @@
     const observation=measured?(measured.chuvaIntensidade?'Chuva '+measured.chuvaIntensidade:measured.tempestade?'Trovoada observada':'Sem chuva reportada')+' · '+measured.icao+' · '+Math.round(measured.distance)+' km':'Sem leitura próxima recente';
     const rain=forecast?forecast.min.toFixed(1)+'–'+forecast.max.toFixed(1)+' mm previstos · '+forecast.rows.length+' modelo(s)':'Previsão indisponível ou desatualizada';
     const flood=state?.level==='confirmed'?state.label:state?.level==='none'?'Nenhum ponto ativo informado pelo CGE':'Consulta local indisponível';
-    for(const [label,text]of [['Chuva observada',observation],['Próximas 6 h',rain],['Alagamentos',flood]]){const row=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label;const span=document.createElement('span');span.textContent=text;row.append(strong,span);brief.appendChild(row);}
+    for(const [label,text]of [['Chuva observada',observation],['Chuva · curto prazo',outlook?.detail||'Previsão indisponível'],['Próximas 6 h',rain],['Alagamentos',flood]]){const row=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label;const span=document.createElement('span');span.textContent=text;row.append(strong,span);brief.appendChild(row);}
+    if(outlook?.status&&outlook.status!=='unknown'){const meta=document.createElement('small');meta.textContent=outlook.source+' · Consulta '+new Date(outlook.consultedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · Acumulado na próxima faixa horária completa';brief.appendChild(meta);}
     const note=document.createElement('small');note.textContent='Leitura do aeródromo é local. Previsão de chuva não confirma alagamentos.';brief.appendChild(note);
   }
   function show(){init();if(!ready)return;if(typeof fcPopupTimeout!=='undefined'&&fcPopupTimeout)clearTimeout(fcPopupTimeout);document.body.classList.add('weather-view');document.body.classList.toggle('mobile-fc-open',mobile());$('sp-forecast-air').classList.add('open');layout();update();nav?.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.weather==='true')));}

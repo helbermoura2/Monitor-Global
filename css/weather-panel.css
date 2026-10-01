@@ -15,3 +15,5 @@ body.weather-view #sp-forecast-air.open{display:block!important;position:fixed!i
 @media(max-width:900px){#weather-event-tabs{display:none}body.weather-view #sp-forecast-air.open{border-radius:16px 16px 0 0!important;padding:16px 16px calc(24px + env(safe-area-inset-bottom))!important;z-index:200000!important}}
 body.weather-view #painel-direito{opacity:0!important}
 html body.weather-view #painel-direito #pd-focus-btn,html body.weather-view #painel-direito #pd-share-btn,html body.weather-view #painel-direito #painel-direito-close{visibility:hidden!important}
+
+.weather-official-links{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}.weather-official-links a{color:#93e1f4;font:13px system-ui;min-height:44px;display:flex;align-items:center}.weather-official-links small{color:#bfd2de;font:12px/1.5 system-ui;width:100%}

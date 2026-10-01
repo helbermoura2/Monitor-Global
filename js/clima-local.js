@@ -268,7 +268,7 @@ async function fetchSPNowcast() {
     }
 
     // Horários de modelo e pixels coloridos de radar não sustentam ETA exato.
-    setRainEtaChip({label:'previsão',source:'modelo',title:'Consulte a previsão e a comparação de modelos. Sem horário exato de chegada.'});
+    // RainOutlook controls the chip; a background refresh must not overwrite it.
     const box=document.getElementById('sp-nowcast');
     if(box)box.textContent='Previsão de chuva: consulte os modelos abaixo. Radar é imagem de ecos, sem confirmação automática de chuva no bairro.';
     globalAlerts=globalAlerts.filter(x=>x.id!=='nc-rain' && x.id!=='nc-rain-model');
