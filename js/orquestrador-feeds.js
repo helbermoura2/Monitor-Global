@@ -12,6 +12,31 @@ let __fetchGlobalFeedsEmAndamento = false;
 
 
 // Revisões aguardam os eventos novos/ao vivo; maior magnitude vem primeiro.
+const pendingNewCameraQuakes = new Map();
+function queueNewCameraQuakes(items) {
+    for (const item of items || []) {
+        if (item && item.id != null) pendingNewCameraQuakes.set(item.id, {arrived:Date.now()});
+    }
+}
+function focusNextNewCameraQuake() {
+    if (!map) return false;
+    const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
+        Date.now() < (window.__mgRevisionProtectedUntil || 0);
+    if (protectedSelection) return false;
+    const candidates = [];
+    for (const [id, entry] of pendingNewCameraQuakes) {
+        const index = globalEvents.findIndex(e => e && e.id === id);
+        if (index < 0 || id === eventoSelecionadoId) { pendingNewCameraQuakes.delete(id); continue; }
+        candidates.push({index, event:globalEvents[index], arrived:entry.arrived});
+    }
+    candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
+    if (!candidates.length) return false;
+    const next=candidates[0];
+    pendingNewCameraQuakes.delete(next.event.id);
+    window.__mgSoftCycle=false;
+    showEventDetails(next.index,true);
+    return true;
+}
 const pendingQuakeRevisions = new Map();
 function queueQuakeRevisions(items) {
     for (const item of items || []) {
@@ -19,6 +44,9 @@ function queueQuakeRevisions(items) {
     }
 }
 function focusNextQuakeRevision(blocked = false) {
+    // Chegadas novas têm prioridade sobre todas as revisões pendentes.
+    if (focusNextNewCameraQuake()) return true;
+    if (pendingNewCameraQuakes.size) return false;
     const live = window.__mgLiveQuakeId === eventoSelecionadoId &&
         Date.now() < (window.__mgLiveQuakeUntil || 0);
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
@@ -396,21 +424,9 @@ async function fetchGlobalFeeds() {
         if (isFirstDisplay) {
             isFirstDisplay = false;
             if (globalEvents.length) showEventDetails(0, false);
-        } else if (novosRecentes.length) {
-            novosRecentes.sort((a, b) => b.mag - a.mag);
-            const maiorNovo = novosRecentes[0];
-            // Estilo GlobalQuake: um sismo em exibição (ver waveHoldMs em
-            // sismo-metrics.js / showEventDetails) só é interrompido por um
-            // sismo novo se ele for de magnitude MAIOR — senão o anel/câmera
-            // do que já está na tela é cortado no meio pra mostrar algo menor.
-            // O evento novo não se perde: já está em globalEvents e entra no
-            // ciclo automático normal assim que o "hold" atual acabar.
-            const holdAtivo = typeof window.__mgHoldEndsAt === 'number' && Date.now() < window.__mgHoldEndsAt;
-            const magAtual = typeof window.__mgHoldMag === 'number' ? window.__mgHoldMag : -Infinity;
-            if (!holdAtivo || maiorNovo.mag > magAtual) {
-                const i = globalEvents.findIndex(e => e.id === maiorNovo.id);
-                if (i !== -1) showEventDetails(i, true);
-            }
+        } else {
+            queueNewCameraQuakes(novosRecentes);
+            focusNextNewCameraQuake();
         }
 
         if (!firstRevisionDisplay) focusNextQuakeRevision(novosRecentes.length > 0);
