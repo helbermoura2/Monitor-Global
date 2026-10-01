@@ -182,6 +182,7 @@ function alertVisivelNaLista(a) {
         if (Number.isFinite(a.inicioTs)) return true;
     }
 
+    if (a.hazardNature === 'warning' && a.officialWeatherManaged && !Number.isFinite(a.expiresAt)) return (a.time || 0) <= now && (a._lastSeenAt || 0) > now - 20*60000;
     if (a.hazardNature === 'warning' && Number.isFinite(a.expiresAt)) return a.expiresAt > now && (a.time || 0) <= now;
     return (a.time || 0) >= cut && (a.time || 0) <= now;
 }

@@ -25,9 +25,9 @@
   return (s.rows||[]).filter(x=>x.expiresAt?x.expiresAt>now:true);
  }
  function sync(){
-  const rows=new Map();for(const s of sources.values())for(const x of active(s))if(Array.isArray(x.coords))rows.set(x.id,x);
+  const rows=new Map();for(const s of sources.values())for(const x of active(s))if(Number.isFinite(x.time))rows.set(x.id,x);
   const ids=new Set(rows.keys());globalAlerts=globalAlerts.filter(x=>!x.officialWeatherManaged||ids.has(x.id));
-  rows.forEach(x=>upsertAlert({...x,officialWeatherManaged:true},{fonte:'official-weather',expiraMs:0}));
+  rows.forEach(x=>upsertAlert({...x,officialWeatherManaged:true,regionalWarning:!RecordPresentation.located(x)},{fonte:'official-weather',expiraMs:0}));
   marcarBooted('official-weather');if(typeof invalidateUnifiedFeedCache==='function')invalidateUnifiedFeedCache();applyFilters();
  }
  function set(key,label,rows,opts={}){

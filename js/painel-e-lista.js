@@ -479,7 +479,7 @@ function renderSidebarList(items) {
     const frag = document.createDocumentFragment();
     renderItems.forEach(item => {
         const idadeH = (agora - item.time) / 36e5;
-        const grupo = idadeH < 1 ? '⏱️ Última hora' : idadeH < 6 ? '🕐 1–6h atrás' : '🕰️ 6–24h atrás';
+        const grupo = idadeH < 1 ? '⏱️ Última hora' : idadeH < 6 ? '🕐 1–6h atrás' : idadeH < 24 ? '🕰️ 6–24h atrás' : '🗓️ Emitido há mais de 24h';
 
         if (grupo !== grupoAtual) {
             grupoAtual = grupo;
@@ -492,7 +492,7 @@ function renderSidebarList(items) {
         const div = document.createElement('div');
         div.className = 'event event-card-v2';
         div.setAttribute('role','button');
-        div.setAttribute('aria-label',String(item.place||'Evento'));
+        div.setAttribute('aria-label',String(item.place||'Evento')+'. Ver no painel principal');
         div.dataset.eventId = String(item.id);
         div.dataset.eventType = item.type;
         div.tabIndex = 0;
@@ -547,18 +547,18 @@ function renderSidebarList(items) {
                 <div class="ev-footer">
                     <span class="event-source" title="${esc((item.sources||[]).join(' · ')||item.source)}">Fonte: ${esc(item.sourceSummary || item.source || 'Não informada')}</span>
                     <button type="button" class="conf-badge ${conf.cls} source-evidence-trigger" aria-label="Sobre as fontes deste registro">${esc(conf.label)}</button>
-                    <span class="ev-action" aria-hidden="true">Detalhes →</span>
+                    <span class="ev-action" aria-hidden="true">Ver no painel →</span>
                 </div>
                 </div>`;
             div.style.setProperty('--ev-color', getHexColor(item.mag));
         } else {
-            const isCyc = item.type === 'hurricane' || looksLikeCyclone(item);
+            const isCyc = item.hazardNature!=='warning' && (item.type === 'hurricane' || looksLikeCyclone(item));
             let cycClassif = null;
             if (isCyc) {
                 const w = item.windKmh != null ? item.windKmh : extractWindKmh(item.detail || item.place || '');
                 cycClassif = classificarCiclone(w);
             }
-            const badgeTxt = isCyc ? rotuloCicloneCurto(item) : (item.displayLabel || (item.cycloneLabel ? item.cycloneLabel : meta.label));
+            const badgeTxt = window.RecordPresentation?.label(item) || (isCyc ? rotuloCicloneCurto(item) : (item.displayLabel || (item.cycloneLabel ? item.cycloneLabel : meta.label)));
             const placeTxt = isCyc ? nomeCicloneLimpo(item.place)
                 : (item.type === 'volcano' ? traduzirTextoVulcanico(item.place)
                 : (item.type === 'flood' ? (typeof traduzirTextoEnchente==='function'?traduzirTextoEnchente(item.place):item.place)
@@ -586,6 +586,8 @@ function renderSidebarList(items) {
                     <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age">${esc(formatTime(item.time))}</span>
                     ${distVoce}
                     ${detailTxt ? `<span class="ev-description">${esc(detailTxt)}</span>` : ''}
+                    ${item.regionalWarning ? '<span class="ev-region">Área regional · sem ponto no mapa</span>' : ''}
+                    ${item.hazardNature==='warning'?'<span class="ev-warning-facts">Severidade: '+esc(item.severityLabel||'Não informada')+' · '+(Number.isFinite(item.expiresAt)?'Válido até '+esc(formatBrasiliaDateTime(item.expiresAt)):'Validade: consultar boletim')+'</span>':''}
                     ${staleTxt}
                     ${updatedTxt}
                     
@@ -593,7 +595,7 @@ function renderSidebarList(items) {
                 <div class="ev-footer">
                     <span class="event-source">Fonte: ${esc(item.source || 'Não informada')}</span>
                     <button type="button" class="conf-badge ${conf.cls} source-evidence-trigger" aria-label="Sobre as fontes deste registro">${esc(conf.label)}</button>
-                    <span class="ev-action" aria-hidden="true">${isCyc?'Trajetória':'Detalhes'} →</span>
+                    <span class="ev-action" aria-hidden="true">Ver no painel →</span>
                 </div>
                 </div>`;
             div.style.setProperty('--ev-color', badgeColor);
@@ -604,6 +606,8 @@ function renderSidebarList(items) {
             button.onkeydown=event=>event.stopPropagation();
         });
 
+        const bulletinUrl=window.RecordPresentation?.bulletin(item);
+        if(bulletinUrl){const a=document.createElement('a');a.className='ev-bulletin-link';a.href=bulletinUrl;a.target='_blank';a.rel='noopener';a.textContent='Boletim oficial ↗';a.onclick=e=>e.stopPropagation();a.onkeydown=e=>e.stopPropagation();div.querySelector('.ev-footer')?.append(a);}
         if (activeAlertingIds.has(item.id)) {
             const ex = activeAlertingIds.get(item.id);
             if (agora < ex) {
@@ -675,7 +679,7 @@ function renderSidebarList(items) {
 // id — sempre atualizado, sem closure presa a um item de um render antigo.
 function handleEventCardActivate(e, isKeyboard) {
     const div = e.target.closest('.event');
-    if (!div) return;
+    if (!div || e.target.closest('.ev-bulletin-link')) return;
     if (isKeyboard && !(e.key === 'Enter' || e.key === ' ')) return;
     const isExpandTarget = !!e.target.closest('.ev-expand');
     // Igual ao comportamento original: pelo teclado, o botão de expandir não
@@ -925,7 +929,7 @@ function scheduleNextAutoCycle(ms) {
             if (typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) return;
             const sismos = getPriorityCameraEarthquakes();
             const m = sismos.length ? sismos :
-                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed().filter(x=>!['forecast','river','bulletin'].includes(x.hazardNature)) : []);
+                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed().filter(x=>!['forecast','river','bulletin'].includes(x.hazardNature)&&Array.isArray(x.coords)&&x.coords.slice(0,2).length===2&&x.coords.slice(0,2).every(Number.isFinite)) : []);
             if (!m || !m.length) {
                 scheduleNextAutoCycle(20000);
                 return;
@@ -1046,6 +1050,7 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
 // atualizada. Centralizando aqui, só existe UM lugar pra lembrar "resetei
 // tudo que é compartilhado" antes de cada função preencher o que é do seu tipo.
 function resetPainelDetalheCompartilhado() {
+    window.RecordPresentation?.reset();
     if (typeof cancelarExposicaoPopulacional === 'function') cancelarExposicaoPopulacional();
     const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
     set('pd-depth-label', 'Profundidade');
@@ -1434,6 +1439,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle)) {window.__mgSoftCycle=false;return;}
     if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature)) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
@@ -1460,8 +1466,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // stopFeltZone/startWaveFront em sismo-metrics.js), sem isto aqui o
     // anel do ÚLTIMO sismo visto ficava preso na tela pra sempre assim que
     // o usuário saísse pra ver um furacão/vulcão/etc.
-    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
-    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+    try { if (item.coords && typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if (item.coords && typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     // Sempre resolve a cópia mais recente no store (evita card com versão velha)
     try {
         if (typeof EventStore !== 'undefined' && item.id != null) {
@@ -1506,7 +1512,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
     setGauge(0, false, item.icon || meta.icon, cor, 1);
-    document.getElementById('pd-source').textContent = item.displayLabel || meta.label || 'ALERTA';
+    document.getElementById('pd-source').textContent = window.RecordPresentation?.label(item) || item.displayLabel || meta.label || 'ALERTA';
     try { enrichPainelDetalheUI(item); } catch (e) {}
     document.getElementById('pd-flag').innerHTML = item.bandeira || country.flag;
     const localTxt = item.type === 'flood' && typeof traduzirTextoEnchente === 'function'
@@ -1754,12 +1760,13 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                 el.innerHTML = renderCidadesHTML(cidades, reserva);
             });
         } else {
-            document.getElementById('pd-cities').innerHTML = '<div class="city-item" style="color:#64748b;">Nenhuma cidade grande próxima</div>';
+            document.getElementById('pd-cities').innerHTML = '<div class="city-item" style="color:#64748b;">Sem coordenadas verificadas para consultar cidades próximas.</div>';
         }
     }
 
     document.getElementById('pd-history').innerHTML = '<div class="history-item" style="color:#64748b;">Histórico não aplicável a este tipo de evento.</div>';
     applyOfficialLinkToPanel(item);
+    window.RecordPresentation?.panel(item);
 
     try {
         const pdSrc = document.getElementById('pd-source');

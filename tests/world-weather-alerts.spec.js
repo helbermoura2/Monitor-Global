@@ -18,7 +18,7 @@ for(const width of [1280,390])test('lista oficial mantém foco sísmico e não i
   const e=OfficialWeatherAlerts.eccc(feature),unlocated={...e,id:'unlocated',place:'Área sem polígono',coords:undefined,warningDescription:'<img src=x onerror=alert(1)> texto original'};
   OfficialWeatherAlerts.set('test-eccc','ECCC Canadá',[e,e,unlocated]);OfficialWeatherAlerts.set('test-eccc','ECCC Canadá',[{...e,detail:'Aviso atualizado'},unlocated]);
   const separate=dedupeFeedItems([e,{...e,id:'other-warning',source:'Outra agência'},{...e,id:'reported-flood',source:'GDACS',hazardNature:'report'}]);if(separate.length!==3)throw Error('Avisos distintos foram fundidos');
-  const result={selected:EventStore.selectedId,mapped:globalAlerts.filter(x=>x.officialWeatherManaged).length,unlocatedOnMap:globalAlerts.some(x=>x.id==='unlocated')};
+  const result={selected:EventStore.selectedId,mapped:globalAlerts.filter(x=>x.officialWeatherManaged&&Array.isArray(x.coords)).length,unlocatedOnMap:globalAlerts.some(x=>x.id==='unlocated'&&Array.isArray(x.coords))};
   showEventDetails(0,false);WeatherPanel.show();document.getElementById('weather-more').open=true;document.querySelector('#official-weather-warnings details').open=true;OfficialWeatherAlerts.render();return result;
  },sample);
  expect(state.selected).toBe('quake-keep');expect(state.mapped).toBe(1);expect(state.unlocatedOnMap).toBe(false);
