@@ -171,10 +171,11 @@ async function fetchGdacsFloods() {
         });
 
         globalAlerts = globalAlerts.filter(a => a.type !== 'flood' || a.source !== 'GDACS' || ids.has(a.id));
+        setSource('GDACS enchentes','ok');
         marcarBooted('floodGdacs');
         applyFilters();
         if (primeiroNovo) showAlertDetails(primeiroNovo, true);
-    } catch (e) { console.error('GDACS FL:', e); }
+    } catch (e) { setSource('GDACS enchentes','off',null,e.message);console.error('GDACS FL:', e); }
 }
 
 /* ═══════════════ ENCHENTES — CGE São Paulo (alagamentos) ═══════════════

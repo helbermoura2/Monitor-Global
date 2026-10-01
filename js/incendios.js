@@ -5,6 +5,10 @@ function isSouthAmerica(lat, lng) {
 }
 
 async function fetchEonetFires() {
+    try {const result=await fetchEonetFiresData();setSource('EONET incêndios','ok');return result;}
+    catch(e){setSource('EONET incêndios','off',null,e.message);throw e;}
+}
+async function fetchEonetFiresData() {
     let events = null;
     try {
         const rc = await fetchWithCorsFallback(`${EONET}/categories`, 12000);
@@ -13,14 +17,16 @@ async function fetchEonetFires() {
         if (cat) {
             const r = await fetchWithCorsFallback(`${EONET}/events?category=${cat.id}&status=open&limit=250`, 15000);
             const d = await r.json();
-            events = d.events || [];
+            if(!Array.isArray(d.events))throw Error('EONET: catálogo inválido');
+            events = d.events;
         }
     } catch (e) { console.warn('EONET categorias falhou, tentando fallback:', e.message); }
 
     if (!events) {
         const r = await fetchWithCorsFallback(`${EONET}/events?status=open&limit=500`, 20000);
         const d = await r.json();
-        events = (d.events || []).filter(ev =>
+        if(!Array.isArray(d.events))throw Error('EONET: catálogo inválido');
+        events = d.events.filter(ev =>
             (ev.categories || []).some(c => /wildfire/i.test(c.title || ''))
         );
     }
@@ -111,14 +117,19 @@ async function fetchGdacsFires() {
 }
 
 async function fetchEonetStorms() {
+    try {const result=await fetchEonetStormsData();setSource('EONET tempestades','ok');return result;}
+    catch(e){setSource('EONET tempestades','off',null,e.message);throw e;}
+}
+async function fetchEonetStormsData() {
     try {
         const rc = await fetch(`${EONET}/categories`);
         const dc = await rc.json();
         const cat = (dc.categories || []).find(c => /severe storm/i.test(c.title || ''));
-        if (!cat) return;
+        if (!cat) throw Error('EONET: categoria de tempestades ausente');
 
         const r = await fetch(`${EONET}/events?category=${cat.id}&status=open&limit=100`);
         const d = await r.json();
+        if(!Array.isArray(d.events))throw Error('EONET: catálogo inválido');
         const ids = new Set();
         let novos = 0;
 
@@ -199,7 +210,7 @@ async function fetchEonetStorms() {
         globalAlerts = globalAlerts.filter(a => !(a.id || '').startsWith('eonet-st-') || ids.has(a.id));
         try { limparCiclonesEonetDuplicados(); } catch (e) {}
         applyFilters();
-    } catch (e) { console.warn('EONET storms:', e.message); }
+    } catch (e) { console.warn('EONET storms:', e.message); throw e; }
 }
 
 /* ── Queimadas BR: INPE (oficial) + FIRMS NASA (SA) ──
@@ -390,7 +401,7 @@ function limparGdacsFireGenericoBrasil() {
 
 async function fetchFires() {
     const results = await Promise.allSettled([
-        (async () => { try { await fetchInpeQueimadas(); } catch (e) { console.warn('INPE queimadas:', e.message || e); throw e; } })(),
+        (async () => { try { await fetchInpeQueimadas(); } catch (e) { setSource('INPE','off',null,e.message);console.warn('INPE queimadas:', e.message || e); throw e; } })(),
         (async () => { try { await fetchFirmsSouthAmerica(); } catch (e) { console.warn('FIRMS BR:', e.message || e); throw e; } })(),
         (async () => { try { await fetchEonetFires(); } catch (e) { console.warn('EONET fires:', e.message || e); throw e; } })(),
         (async () => { try { await fetchGdacsFires(); } catch (e) { console.warn('GDACS fires:', e.message || e); throw e; } })()

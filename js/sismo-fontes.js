@@ -63,6 +63,8 @@ function fetchEMSCData() {
 const SISMO_SOURCES = {
     USGS:  { rank: 50, label: 'USGS', color: '#60a5fa' },
     'USGS-RT': { rank: 48, label: 'USGS-RT', color: '#60a5fa' },
+    OVSICORI:{rank:60,label:'OVSICORI Costa Rica',color:'#34d399'},
+    'MARN-SV':{rank:60,label:'MARN El Salvador',color:'#34d399'},
     IGP:   { rank: 60, label: 'IGP', color: '#4ade80' },
     JMA:   { rank: 60, label: 'JMA', color: '#fbbf24' },
     'OSC-BOL': { rank: 60, label: 'OSC Bolívia', color: '#f97316' },
@@ -183,13 +185,14 @@ async function fetchGeofonData() {
     const endTime = new Date(Date.now() + 5 * 60000).toISOString();
     const minMagQuery = Math.max(0.1, typeof minMagnitude === 'number' ? minMagnitude : 0.1);
     const base =
-        `format=geojson` +
+        `format=text` +
         `&starttime=${encodeURIComponent(startTime)}` +
         `&endtime=${encodeURIComponent(endTime)}` +
         `&minmagnitude=${minMagQuery}` +
         `&limit=1000` +
         `&orderby=time`;
-    return fetchFdsnGeoJSON(`https://geofon.gfz-potsdam.de/fdsnws/event/1/query?${base}`, 'GEOFON');
+    const r=await fetchWithCorsFallback(`https://geofon.gfz-potsdam.de/fdsnws/event/1/query?${base}`,15000);
+    return RegionalSeismic.geofon(await r.text());
 }
 
 /* FUNVISIS (Venezuela) — a agência oficial não expõe FDSN/GeoJSON público estável.

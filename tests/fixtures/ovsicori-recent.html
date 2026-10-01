@@ -1,0 +1,104 @@
+<html>
+<head>
+  <meta name="keywords" content="OVSICORI" />
+  <meta name="title" content="Inicio" />
+  <meta name="author" content="Billy Burgoa Rosso y Christian Garita" />
+  <meta name="description" content="Observatorio Vulcanologico y Sismologico de Costa Rica. OVSICORI-UNA" />
+  <title>Mapa Sismicidad en Costa Rica y el Mundo</title>
+  <meta charset=utf-8 />
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/leaflet/0.7.3/leaflet.css" />
+  <script src="//cdn.jsdelivr.net/leaflet/0.7.3/leaflet.js"></script>
+  <script src="//cdn.jsdelivr.net/leaflet.esri/1.0.0/esri-leaflet.js"></script>
+
+  <style>
+    body { margin:0; padding:0; }
+    #map { position: absolute; top:0; bottom:0; right:0; left:0; }
+  </style>
+</head>
+<body>
+
+<style>
+  #basemaps-wrapper {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background: white;
+    padding: 10px;
+  }
+  #basemaps {
+    margin-bottom: 5px;
+  }
+</style>
+
+<div id="map" style="width: 100%; height: 100%"></div>
+
+<!--<div id="basemaps-wrapper" class="leaflet-bar">
+  <select name="basemaps" id="basemaps">  
+	<option value="Selecciona otro mapa...">Selecciona otro mapa...<options>
+    <option value="Topographic">Mapa Topográfico<options>
+    <option value="Streets">Mapa de Streets maps<options>
+    <option value="NationalGeographic">ESRI - National Geographic<options>
+  </select>
+</div>-->
+<div id="logo"style="position: absolute;right: 10%;top: 0%">
+<img class='logo' src="../../images/stories/imagenes/icons/logo_ovsi.png" height="150" width="150" />
+</div>
+<div id="tabla"style="position: absolute;left: 20%;top: 93%;background: rgba(225, 225, 225, .5);">
+<tr>
+                <td class='boxed'><img class='small_icon' src="../../images/stories/imagenes/icons/lasteq_small.png" />Epicentro - click para mas detalles</td>
+<!--                <td class='boxed'><img class='small_icon' src="../../images/stories/imagenes/icons/todayeq_small.png" />  < 24 horas</td>
+                <td class='boxed'><img class='small_icon' src="../../images/stories/imagenes/icons/last7days_small.png" />  1-7 dias</td>
+                <td class='boxed'><img class='small_icon' src="../../images/stories/imagenes/icons/morethan7_small.png" /> > de 7 a 15 dias</td> -->
+</tr>
+</div>
+
+<script>
+
+   var eq = new L.LayerGroup();
+
+	  var eq1450195 = L.icon({
+iconUrl:'../../images/stories/imagenes/icons/lasteq.png',
+iconSize: [35,35]
+});
+
+L.marker([9.2315,-84.2572],{icon: eq1450195}).bindPopup('<div><table> <col width="80"> <col width="180"><tr bgcolor=#DEDEEF><td width=50>Magnitud:</td> <td width=100>2.9</td></tr><tr><td width=90>Fecha y Hora Local:</td> <td>2026-10-01 13:44:40</td></tr><tr bgcolor=#DEDEEF><td width=90>Ubicacion:</td> <td>20.7 km al Suroeste de Quepos de Puntarenas</td></tr><tr><td width=90>Coordenadas:</td> <td>(9.2315 &deg;N ; 84.2572 &deg;O)</td></tr><tr bgcolor=#DEDEEF><td width=90>Prof. [km]:</td> <td>29</td></tr><tr><td width=90>Autor:</td> <td>olDbgMwpMl</td></tr><tr bgcolor=#DEDEEF><td width=90>Revisado:</td> <td>-</td></tr></table></div>',{minWidth:300}).addTo(eq);
+ 
+    
+  var overlays = { "Sismos": eq};
+  var map = L.map('map').setView([9.2315,-84.2572], 9);
+  map.options.minZoom = 3;
+  L.control.scale('metric').addTo(map);
+  var layer = L.esri.basemapLayer('NationalGeographic').addTo(map);
+  var layerLabels;
+  map.addLayer(eq);
+/*  function setBasemap(basemap) {
+    if (basemap=="Selecciona otro mapa..."){
+		return;
+		}
+    if (layer) {
+      map.removeLayer(layer);
+    }
+    layer = L.esri.basemapLayer(basemap);
+    map.addLayer(layer);
+    map.addlayer(eq);
+    if (layerLabels) {
+      map.removeLayer(layerLabels);
+    }
+
+    if (basemap === 'ShadedRelief' || basemap === 'Oceans' || basemap === 'Gray' || basemap === 'DarkGray' || basemap === 'Imagery' || basemap === 'Terrain') {
+
+      layerLabels = L.esri.basemapLayer(basemap + 'Labels');
+      map.addLayer(layerLabels);
+    }
+  }
+
+  var basemaps = document.getElementById('basemaps');
+
+  basemaps.addEventListener('change', function(){
+    setBasemap(basemaps.value);
+  });*/
+</script>
+
+</body>
+</html>

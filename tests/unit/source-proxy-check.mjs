@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+let source=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8');source=source.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
+const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const run=async(url,text,status=200)=>{globalThis.fetch=async()=>new Response(text,{status});return worker.fetch(new Request('https://worker.test/?url='+encodeURIComponent(url)),{});};
+assert.equal((await run('https://www.osc.org.bo/index.php/es','<!DOCTYPE HTML><html>catalogue</html>')).status,200);
+assert.equal((await run('https://www.cgesp.org/v3/alagamentos.jsp','<!DOCTYPE html><html>public page</html>')).status,200);
+assert.equal((await run('https://www.ovsicori.una.ac.cr/sistemas/mapa_sismicidad/mapa_sismos_inicio.php','<!DOCTYPE HTML><html>OVSICORI</html>')).status,200);
+assert.equal((await run('https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text','#EventID|Time|Latitude|Longitude|Depth/km|Author\n')).status,200);
+assert.equal((await run('https://geofon.gfz-potsdam.de/fdsnws/event/1/version','1.2.7')).status,200);
+assert.equal((await run('https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text','maintenance')).status,502);
+assert.equal((await run('https://earthquake.usgs.gov/fdsnws/event/1/query','<!DOCTYPE HTML><html>unexpected error</html>')).status,502);
+assert.equal((await run('https://www.osc.org.bo/index.php/es','<!DOCTYPE HTML><html>error</html>',503)).status,503);
+console.log('PASS: official HTML catalogues and GEOFON text allowed; malformed/failed upstream never reported as success');

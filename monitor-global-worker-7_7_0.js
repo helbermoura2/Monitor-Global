@@ -28,6 +28,8 @@ const ALLOWED_HOSTS = [
     'www.isc.ac.uk',
     'www.seismicportal.eu',
     'www.osc.org.bo',
+    'www.ovsicori.una.ac.cr',
+    'www.snet.gob.sv',
     'ide.igp.gob.pe',
     'data.bmkg.go.id',
     'api.geonet.org.nz',
@@ -1126,7 +1128,7 @@ async function handleSeismicStatus() {
         ['AFAD', 'https://api.orhanaydogdu.com.tr/deprem/afad/live'],
         ['INGV', 'https://webservices.ingv.it/fdsnws/event/1/query?format=geojson&limit=1&orderby=time'],
         ['JMA', 'https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml'],
-        ['GEOFON', 'https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=geojson&limit=1&orderby=time'],
+        ['GEOFON', 'https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=1&orderby=time'],
         ['ISC', 'https://www.isc.ac.uk/fdsnws/event/1/query?format=geojson&limit=1&orderby=time'],
         ['FUNVISIS', 'https://sismosve.rafnixg.dev/api/sismos/recent?limit=5'],
         ['EMSC', 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=1&orderby=time']
@@ -5253,8 +5255,11 @@ export default {
             const trimmed = (upstream.text || '').trim();
             const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[');
             const looksXml  = /^\s*<\?xml|^\s*<(rss|feed|entry|html)/i.test(trimmed);
+            const htmlCatalogue = ['www.osc.org.bo','www.ssn.unam.mx','www.cgesp.org','www.ovsicori.una.ac.cr','www.snet.gob.sv'].includes(targetUrl.hostname) && /^<!doctype\s+html/i.test(trimmed);
+            const fdsnText = targetUrl.hostname==='geofon.gfz-potsdam.de' && targetUrl.pathname==='/fdsnws/event/1/query' && targetUrl.searchParams.get('format')==='text' && /^#EventID\|Time\|Latitude\|Longitude\|Depth\/km/.test(trimmed);
+            const fdsnVersion = targetUrl.hostname==='geofon.gfz-potsdam.de' && /\/fdsnws\/event\/1\/version$/.test(targetUrl.pathname) && /^\d+\.\d+(?:\.\d+)?$/.test(trimmed);
 
-            if (upstream.ok && !looksJson && !looksXml) {
+            if (upstream.ok && !looksJson && !looksXml && !htmlCatalogue && !fdsnText && !fdsnVersion) {
                 return json({
                     error: 'Resposta upstream não-JSON',
                     host: targetUrl.hostname,
@@ -5265,7 +5270,7 @@ export default {
 
             // Se a fonte devolveu 4xx/5xx com corpo não-JSON (ex.: ISC manda
             // "Error 400:" em texto puro), normaliza pra JSON de erro limpo.
-            if (!upstream.ok && !looksJson && !looksXml) {
+            if (!upstream.ok && !looksJson && !looksXml && !htmlCatalogue && !fdsnText && !fdsnVersion) {
                 return json({
                     error: 'Upstream rejeitou',
                     host: targetUrl.hostname,

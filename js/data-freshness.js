@@ -2,7 +2,7 @@
 (function(root){
   'use strict';
   const sources=new Map();
-  const quakeNames=['USGS','USGS-RT','GEOFON','FUNVISIS','JMA','IGP','OSC-BOL','BMKG','GEONET','USP','CSN-Chile','SSN-Mexico','EMSC'];
+  const quakeNames=['USGS','USGS-RT','OVSICORI','MARN-SV','GEOFON','FUNVISIS','JMA','IGP','OSC-BOL','BMKG','GEONET','USP','CSN-Chile','SSN-Mexico','EMSC'];
   const settings={INMET:{label:'Avisos INMET',limit:12*60000},RainViewer:{label:'Radar de chuva',limit:20*60000}};
   let updating=false, dialog=null, opener=null;
   const get=name=>{if(!sources.has(name))sources.set(name,{lastOk:0,lastAttempt:0,status:'waiting',dataAt:0});return sources.get(name)};

@@ -31,6 +31,7 @@ jobs:
           node tests/unit/wave-camera-check.cjs
           node tests/unit/telegram-history-check.mjs
           node tests/unit/daily-summary-design-check.mjs
+          node tests/unit/source-proxy-check.mjs
           node tests/unit/weather-evidence-check.cjs
           node tests/unit/rain-outlook-check.cjs
           node tests/unit/weather-observations-check.mjs

@@ -106,6 +106,8 @@ async function fetchGlobalFeeds() {
         const tasks = [
             fetchFdsnGeoJSON(`https://earthquake.usgs.gov/fdsnws/event/1/query?${base}`, 'USGS'),
             fetchUsgsRealtimeFeeds(), // preliminares rápidos (all_hour / 2.5_day / all_day)
+            fetchOVSICORIData(),
+            fetchMARNSismos(),
             fetchGeofonData(),        // GEOFON/GFZ — boa cobertura Ásia/Pacífico
             fetchFunvisisData(),      // FUNVISIS Venezuela (espelho comunitário oficial)
             fetchJMAData(),
@@ -126,7 +128,7 @@ async function fetchGlobalFeeds() {
         ];
 
         const names = [
-            'USGS', 'USGS-RT', 'GEOFON', 'FUNVISIS', 'JMA',
+            'USGS', 'USGS-RT', 'OVSICORI', 'MARN-SV', 'GEOFON', 'FUNVISIS', 'JMA',
             'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP',
             'CSN-Chile', 'SSN-Mexico', 'EMSC'
         ];
@@ -155,7 +157,7 @@ async function fetchGlobalFeeds() {
 
         try {
             [
-                'USGS', 'USGS-RT', 'GEOFON', 'FUNVISIS', 'JMA',
+                'USGS', 'USGS-RT', 'OVSICORI', 'MARN-SV', 'GEOFON', 'FUNVISIS', 'JMA',
                 'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP',
                 'CSN-Chile', 'SSN-Mexico', 'EMSC'
             ].forEach(src => {

@@ -1,0 +1,2 @@
+#EventID|Time|Latitude|Longitude|Depth/km|Author|Catalog|Contributor|ContributorID|MagType|Magnitude|MagAuthor|EventLocationName|EventType
+gfz2026tghf|2026-10-01T19:38:01.05|-11.791|167.197|10.0|||GFZ|gfz2026tghf|mb|5.17||Santa Cruz Islands|earthquake

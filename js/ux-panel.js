@@ -17,7 +17,7 @@
     return keys.map(k => {
       const x = src[k] || {};
       const h = (window.SourceHealth && window.SourceHealth.get) ? window.SourceHealth.get(k) : {};
-      const status = x.status === 'ok' ? 'ONLINE' : x.status === 'warn' ? 'ATENÇÃO' : x.status === 'off' ? 'OFFLINE' : 'AGUARDANDO';
+      const status = x.status === 'ok' ? 'ONLINE' : x.status === 'warn' ? 'ATENÇÃO' : x.status === 'off' ? 'INDISPONÍVEL' : x.status === 'paused' ? 'PAUSADA' : 'AGUARDANDO';
       const cls = x.status === 'ok' ? 'ux-ok' : x.status === 'warn' ? 'ux-warn' : x.status === 'off' ? 'ux-off' : '';
       const failTimes = Array.isArray(h.failTimes) ? h.failTimes : [];
       const recentFails = failTimes.filter(t => now - t < 3600000).length;
@@ -26,18 +26,19 @@
       let story;
       if (x.status === 'off') {
         const downMs = h.lastOk ? now - h.lastOk : sessionAge;
-        story = `Fora do ar há ${fmtDur(downMs)}`;
+        story = `Consulta falhou · última tentativa ${x.time?'há '+fmtDur(now-x.time):'sem horário'}`;
         if (fallback[k]) story += ` · ${fallback[k]}`;
+      } else if (x.status === 'paused') {
+        story=x.error||'Integração pausada';
       } else if (x.status === 'warn') {
         story = recentFails ? `Instável — caiu ${recentFails}× na última hora` : 'Latência elevada no último ciclo';
         if (lastFailAt) story += ` · última queda há ${fmtDur(now - lastFailAt)}`;
       } else if (x.status === 'ok') {
-        if (recentFails) story = `Estabilizou — última queda há ${fmtDur(now - lastFailAt)}`;
-        else if (sessionAge < 120000) story = 'Estável desde que entrou na sessão · sem incidentes';
-        else story = `Estável há ${fmtDur(sessionAge)} · nenhuma falha nesta sessão`;
+        story = `Resposta válida há ${fmtDur(now-(x.time||now))}`;
       } else {
         story = 'Aguardando primeira checagem…';
       }
+      if(x.error && x.status!=='paused')story+=' · '+String(x.error).slice(0,180);
       const okC = Number(h.okCount) || 0, failC = Number(h.failCount) || 0, total = okC + failC;
       const okPct = total ? Math.round(okC / total * 100) : 100;
       const barColor = x.status === 'off' ? '#f87171' : '#facc15';

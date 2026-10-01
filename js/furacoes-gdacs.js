@@ -3,6 +3,11 @@
 function gdacsDateStr(d) { return d.toISOString().slice(0, 10); }
 
 async function fetchGdacsEvents(t) {
+    const name={TC:'GDACS ciclones',VO:'GDACS vulcões',WF:'GDACS incêndios',TS:'GDACS tsunamis'}[String(t).toUpperCase()]||'GDACS '+t;
+    try {const features=await fetchGdacsEventsData(t);setSource(name,'ok');return features;}
+    catch(e){setSource(name,'off',null,e.message);throw e;}
+}
+async function fetchGdacsEventsData(t) {
     const h = new Date();
     const de = new Date(h.getTime() - 30 * 864e5);
     // Vulcões usam rota dedicada do Worker: elimina dependência do proxy genérico
@@ -26,7 +31,9 @@ async function fetchGdacsEvents(t) {
         `https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=${t}&fromdate=${gdacsDateStr(de)}&todate=${gdacsDateStr(h)}`
     );
     const d = await r.json();
-    return d.features || (Array.isArray(d) ? d : []);
+    if(Array.isArray(d.features))return d.features;
+    if(Array.isArray(d))return d;
+    throw Error('GDACS: catálogo inválido');
 }
 
 
