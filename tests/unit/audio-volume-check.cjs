@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+const src=fs.readFileSync(path.join(__dirname,'../../js/audio.js'),'utf8');
+const saved=new Map(), spoken=[],levels=[];
+const ctx={localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>saved.set(k,v)},somVolume:.7,somAtivo:true,window:{speechSynthesis:{cancel(){},speak:u=>spoken.push(u)}},SpeechSynthesisUtterance:class{constructor(text){this.text=text}},setTimeout:fn=>fn(),escolherVoz:()=>null,avisarVozIndisponivel(){},workerBaseUrl:()=>'/worker',fetch:async()=>({ok:true,blob:async()=>({size:5})}),URL:{createObjectURL:()=>'/audio',revokeObjectURL(){}},Audio:class{addEventListener(_,fn){fn()}load(){}play(){return Promise.resolve()}pause(){}},audioContext:{state:'running',destination:{},createMediaElementSource:()=>({connect:g=>({connect(){}})}),createGain:()=>{const g={gain:{value:0}};levels.push(g);return g}}};
+vm.createContext(ctx);
+vm.runInContext(src.slice(src.indexOf('let vozVolume'),src.indexOf('function carregarVozesDisponiveis')),ctx);
+vm.runInContext(src.slice(src.indexOf('function falarTrechos'),src.indexOf('function speakAlert')),ctx);
+vm.runInContext(src.slice(src.indexOf('function falarAlertaGenerico'),src.indexOf('let vozIndisponivelAvisada')),ctx);
+(async()=>{
+vm.runInContext('setVozVolume(35); falarTrechos([{texto:"Prévia",lang:"pt-BR"}]);',ctx);
+assert.equal(spoken[0].volume,.35);assert.equal(ctx.somVolume,.7);assert.equal(saved.get('vozVolume'),'35');
+await vm.runInContext('falarNaNuvem("Prévia")',ctx);assert.equal(levels[0].gain.value,.35*2.4);
+vm.runInContext('setVozVolume(80)',ctx);assert.equal(levels[0].gain.value,.8*2.4);assert.equal(ctx.somVolume,.7);
+vm.runInContext('setVozVolume(0); falarTrechos([{texto:"Não tocar",lang:"pt-BR"}]);',ctx);assert.equal(spoken.length,1);
+assert.equal(await vm.runInContext('falarNaNuvem("Não tocar")',ctx),false);
+vm.runInContext('setVozVolume(150)',ctx);assert.equal(saved.get('vozVolume'),'100');vm.runInContext('setVozVolume("inválido")',ctx);assert.equal(saved.get('vozVolume'),'100');
+ctx.somVolume=0;ctx.audioContext.createOscillator=()=>{throw Error('Efeito silencioso não deve criar oscilador')};
+vm.runInContext(src.slice(src.indexOf('function tone('),src.indexOf('function noise(')),ctx);vm.runInContext('tone(880)',ctx);
+console.log('PASS: independent voice and effect volumes, saved preferences, native and cloud paths, live cloud adjustment, mute at zero, bounds');
+})().catch(e=>{console.error(e);process.exitCode=1});

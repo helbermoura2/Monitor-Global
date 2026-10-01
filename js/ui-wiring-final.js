@@ -152,6 +152,7 @@ function setSomVolume(v) {
     somVolume = Math.min(1, Math.max(0, parseInt(v, 10) / 100));
     localStorage.setItem('somVolume', String(Math.round(somVolume * 100)));
     document.getElementById('vol-value').textContent = Math.round(somVolume * 100) + '%';
+    document.getElementById('vol-slider').value = Math.round(somVolume * 100);
 }
 function toggleVolPanel(force) {
     const p = document.getElementById('ts-vol-panel');
@@ -238,36 +239,10 @@ atualizarChipsSomTipo();
     document.addEventListener('focusout', (e) => { const t = e.target.closest('[data-tt]'); if (t) hideTT(); });
 })();
 
-document.getElementById('btn-teste')?.addEventListener('click', () => {
-    unlockAudio();
-    setTimeout(() => {
-        if (!ensureAudio()) return;
-        showToast('🔊 Teste: M4 → M6 → tufão → tsunami → defesa civil', 'info');
-        // Espaçamento generoso pra cada som (e a voz do M6, que depende de
-        // uma chamada de rede e pode demorar alguns segundos) terminar antes
-        // do próximo começar — sem isso o M6 (mais alto) entrava em cima do
-        // M4 ainda tocando e mascarava o último bipe dele.
-        playEarthquakeSound(4.2, 'teste', 10, 0, true);
-        setTimeout(() => playEarthquakeSound(6.3, 'teste', 20, 0, true), 2500);
-        setTimeout(() => playAlertTone('hurricane'), 12000);
-        setTimeout(() => playAlertTone('tsunami'), 14000);
-        setTimeout(() => playAlertTone('civil'), 17500);
-    }, 300);
-});
-document.getElementById('btn-teste-faixas')?.addEventListener('click', () => {
-    unlockAudio();
-    setTimeout(() => {
-        if (!ensureAudio()) {
-            showToast('🔊 Toque novamente para liberar o áudio no Chrome/DeX.', 'warning');
-            return;
-        }
-        showToast('🎚️ ASSINATURAS: M3 = agudo (3x) → M4 = médio-grave (4x) → M5 = grave forte (5x) → M6 = emergência + voz', 'info');
-        playEarthquakeSound(3.2, 'teste M3', 10, 0, true);
-        setTimeout(() => playEarthquakeSound(4.5, 'teste M4', 12, 0, true), 2000);
-        setTimeout(() => playEarthquakeSound(5.5, 'teste M5', 15, 0, true), 4700);
-        setTimeout(() => playEarthquakeSound(6.3, 'teste M6', 20, 0, true), 8200);
-    }, 350);
-});
+// Entradas antigas abrem os controles, sem sequência de alarmes.
+for (const id of ['btn-teste', 'btn-teste-faixas']) {
+    document.getElementById(id)?.addEventListener('click', () => window.menuAcao?.('audio'));
+}
 document.getElementById('btn-voz-hist')?.addEventListener('click', () => {
     const linhas = (vozHistorico || []).slice().reverse().map((x, i) =>
         `<div style="padding:6px 0;border-bottom:1px solid #1e293b;font-size:12px;color:#cbd5e1"><b style="color:#38bdf8">${i + 1}.</b> ${x.txt}<br><small style="color:#64748b">${new Date(x.t).toLocaleString('pt-BR')}</small></div>`

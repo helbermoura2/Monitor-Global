@@ -1,0 +1,9 @@
+/* Controles de áudio sobre o mapa, mantendo o vidro. */
+#menu-float-panel:has(.mg-audio-settings){background:linear-gradient(145deg,rgba(20,49,65,.78),rgba(6,19,31,.82))!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-sizing:border-box}
+.mg-audio-settings label{display:grid!important;grid-template-columns:1fr auto;gap:6px;margin:18px 0!important;font-size:13px!important;color:#e0f2fe}
+.mg-audio-settings output{color:#7dd3fc;font-variant-numeric:tabular-nums}
+.mg-audio-settings input[type=range]{grid-column:1/-1;width:100%;min-height:44px!important;accent-color:#38bdf8;cursor:pointer}
+.mg-audio-settings .mg-audio-previews{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mg-audio-settings button{min-height:44px;background:rgba(58,137,176,.15)!important;border-color:rgba(151,219,249,.25)!important}
+.mg-audio-settings p{font-size:11px;color:#bdd4e2;line-height:1.5;margin:12px 0 0}
+.mg-audio-settings :focus-visible{outline:2px solid #7dd3fc;outline-offset:3px}

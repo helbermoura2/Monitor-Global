@@ -34,20 +34,7 @@
   function secondary(action) { return () => { close(); action(); }; }
   function audio(panel) {
     heading(panel, 'Áudio dos alertas');
-    const group = document.createElement('div'); group.className = 'mg-audio-controls'; panel.appendChild(group);
-    const enabled = () => typeof somAtivo !== 'undefined' ? somAtivo : localStorage.getItem('somAtivo') !== '0';
-    const sound = button(group, enabled() ? 'Som ligado · desligar' : 'Som desligado · ligar', () => {
-      if (typeof window.toggleSomAtivo === 'function') window.toggleSomAtivo({speak:true});
-      sound.textContent = enabled() ? 'Som ligado · desligar' : 'Som desligado · ligar';
-      sound.setAttribute('aria-pressed', String(enabled()));
-    });
-    sound.setAttribute('aria-pressed', String(enabled()));
-    button(group, 'Testar som', () => $('btn-teste')?.click());
-    const label = document.createElement('label'); label.textContent = 'Volume';
-    const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = '100'; slider.step = '5'; slider.setAttribute('aria-label', 'Volume dos alertas');
-    slider.value = String(typeof somVolume !== 'undefined' ? Math.round(somVolume * 100) : 70);
-    slider.oninput = () => { if (typeof setSomVolume === 'function') setSomVolume(slider.value); };
-    label.appendChild(slider); panel.appendChild(label);
+    window.renderAudioControls?.(panel);
     button(panel, 'Preferências de alertas', secondary(() => window.__uxShow?.('settings')));
   }
   function alerts() {

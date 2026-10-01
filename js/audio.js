@@ -1,5 +1,15 @@
 // === audio.js — Motor de áudio completo: vozes, tons, alertas sonoros, fala (TTS) (linhas originais 763-1306 do core-app.js) ===
 
+// Voz e efeitos têm volumes independentes, lembrados neste navegador.
+let vozVolume = (() => { const n = Number(localStorage.getItem('vozVolume') ?? 100); return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) / 100 : 1; })();
+let vozGanhoAtual = null;
+function setVozVolume(value) {
+    const n = Number(value); if (!Number.isFinite(n)) return;
+    vozVolume = Math.max(0, Math.min(100, n)) / 100;
+    localStorage.setItem('vozVolume', String(Math.round(vozVolume * 100)));
+    if (vozGanhoAtual) vozGanhoAtual.gain.value = vozVolume * 2.4;
+    else if (vozNuvemAtual) vozNuvemAtual.volume = vozVolume;
+}
 function carregarVozesDisponiveis() {
     if (window.speechSynthesis) vozesDisponiveis = window.speechSynthesis.getVoices();
 }
@@ -88,7 +98,7 @@ function getNoise() {
     return noiseBuf;
 }
 function tone(f0, { t = 0, dur = .3, type = 'sine', vol = .35, glide = null, attack = .02, release = .08 } = {}) {
-    if (!audioContext) return;
+    if (!audioContext || somVolume <= 0) return;
     const now = audioContext.currentTime + t;
     const o = audioContext.createOscillator(), g = audioContext.createGain();
     o.type = type;
@@ -102,7 +112,7 @@ function tone(f0, { t = 0, dur = .3, type = 'sine', vol = .35, glide = null, att
     o.start(now); o.stop(now + dur + .05);
 }
 function noise({ t = 0, dur = 1, vol = .35, fFrom = 800, fTo = 100, type = 'lowpass', q = 1 } = {}) {
-    if (!audioContext) return;
+    if (!audioContext || somVolume <= 0) return;
     const now = audioContext.currentTime + t;
     const src = audioContext.createBufferSource();
     src.buffer = getNoise();
@@ -225,7 +235,7 @@ function atualizarTodosBotoesSom() {
     const old = document.getElementById('btn-som');
     if (old) old.textContent = somAtivo ? '🔊 Som ativo' : '🔇 Som mudo';
     const menuAudio = document.getElementById('menu-btn-audio');
-    if (menuAudio) menuAudio.textContent = somAtivo ? '🔊 Áudio: ligado (tocar p/ desligar)' : '🔇 Áudio: desligado (tocar p/ ligar)';
+    if (menuAudio) menuAudio.textContent = somAtivo ? '🔊 Áudio: controles' : '🔇 Áudio: controles (desligado)';
 }
 function toggleSomAtivo(opts) {
     opts = opts || {};
@@ -241,6 +251,7 @@ function toggleSomAtivo(opts) {
         }
     } else {
         try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (err) {}
+        try { if (vozNuvemAtual) vozNuvemAtual.pause(); } catch (e) {}
         try { mostrarBannerSom(false); } catch (e) {}
         if (!opts.silent) {
             try { showToast('🔇 Alertas de voz desligados', 'info'); } catch (err) {}
@@ -303,7 +314,7 @@ window.addEventListener('pageshow', gestoParaAudio);
  * M6+ = alerta especial + voz | M7+ = alerta máximo + voz
  */
 function quakeBeep(freq, t, dur, vol, last = false) {
-    if (!audioContext || audioContext.state !== 'running') return;
+    if (!audioContext || audioContext.state !== 'running' || somVolume <= 0) return;
     const now = audioContext.currentTime + t;
     const g = audioContext.createGain();
     const level = Math.min(0.92, Math.max(0.02, vol * somVolume * 1.35));
@@ -515,18 +526,14 @@ function falarTrechos(trechos) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     setTimeout(() => {
+        if (!somAtivo || vozVolume <= 0) return;
         trechos.forEach((trecho) => {
             if (!trecho.texto) return;
             const u = new SpeechSynthesisUtterance(trecho.texto);
             u.lang = trecho.lang;
             u.rate = trecho.rate != null ? trecho.rate : .9;
             u.pitch = trecho.pitch != null ? trecho.pitch : 1.1;
-            // Fallback nativo (só entra se a voz na nuvem falhar): a API do
-            // navegador não tem reforço de ganho como a nuvem acima, e o
-            // teto dela já é 1.0 — então sempre fala no máximo, sem
-            // multiplicar de novo pelo volume dos bipes (que já deixava a
-            // voz nativa, sozinha mais baixa que a da nuvem, ainda pior).
-            u.volume = 1;
+            u.volume = vozVolume;
             const ehIngles = trecho.lang.toLowerCase().startsWith('en');
             const voz = escolherVoz(ehIngles ? ['en-us', 'en-gb', 'en'] : ['pt-br', 'pt']);
             if (voz) u.voice = voz;
@@ -544,7 +551,7 @@ function falarTrechos(trechos) {
 // sozinho, sem quebrar o alerta.
 let vozNuvemAtual = null;
 async function falarNaNuvem(texto) {
-    if (!texto || typeof workerBaseUrl !== 'function') return false;
+    if (!somAtivo || vozVolume <= 0 || !texto || typeof workerBaseUrl !== 'function') return false;
     // Interrompe um áudio de alerta anterior ainda tocando — mesmo
     // comportamento que window.speechSynthesis.cancel() já dava pra fila de
     // fala nativa, importante em sismos com atualizações rápidas seguidas.
@@ -560,27 +567,20 @@ async function falarNaNuvem(texto) {
         audio.addEventListener('error', () => URL.revokeObjectURL(url));
         vozNuvemAtual = audio;
         audio.src = url;
-        // Reforça o volume da voz na nuvem via Web Audio API — um <audio>
-        // sozinho não passa de volume=1 (100%), e mesmo nesse máximo a voz
-        // da Polly soa mais baixa que os bipes de alerta (que já saem com
-        // ganho extra, ver "vol * somVolume * 1.35" mais abaixo). Usuário
-        // relatou a voz ainda baixa mesmo com esse reforço — ganho e teto
-        // aumentados (1.8→2.4, teto 3→3.2) pra ficar audível de verdade sem
-        // chegar perto de distorcer. Só entra em ação se o AudioContext já
-        // estiver desbloqueado/rodando — sem isso, cai pro volume normal em
-        // vez de arriscar tocar mudo.
+        // Ganho da voz independente dos efeitos; preserva o reforço da nuvem.
         let boosted = false;
         try {
             if (audioContext && audioContext.state === 'running') {
                 const source = audioContext.createMediaElementSource(audio);
                 const gain = audioContext.createGain();
-                gain.gain.value = Math.min(3.2, somVolume * 2.4);
+                gain.gain.value = vozVolume * 2.4;
+                vozGanhoAtual = gain;
                 source.connect(gain).connect(audioContext.destination);
                 audio.volume = 1;
                 boosted = true;
             }
         } catch (e) {}
-        if (!boosted) audio.volume = somVolume;
+        if (!boosted) { vozGanhoAtual = null; audio.volume = vozVolume; }
         // Espera o navegador confirmar que o áudio já está pronto pra tocar
         // sem travar antes de dar play — sem isso, o começo da fala (ex.: a
         // palavra "Atenção") pode sair cortado em alguns aparelhos/navegadores,
@@ -592,6 +592,7 @@ async function falarNaNuvem(texto) {
             audio.load();
             setTimeout(resolve, 800);
         });
+        if (!somAtivo || vozVolume <= 0) { URL.revokeObjectURL(url); return true; }
         await audio.play();
         return true;
     } catch (e) {
@@ -621,7 +622,7 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
 
     const langLugar = pareceLugarEmIngles(place) ? 'en-US' : 'pt-BR';
     falarNaNuvem(`${intro} ${place}${outro}`).then(ok => {
-        if (ok || !window.speechSynthesis) return;
+        if (ok || !somAtivo || vozVolume <= 0 || !window.speechSynthesis) return;
         falarTrechos([
             { texto: intro, lang: 'pt-BR' },
             { texto: place, lang: langLugar, rate: langLugar === 'en-US' ? .95 : .9 },
@@ -632,15 +633,15 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
 function falarAlertaGenerico(txt) {
     if (!somAtivo) return;
     falarNaNuvem(txt).then(ok => {
-        if (ok || !window.speechSynthesis) return;
+        if (ok || !somAtivo || vozVolume <= 0 || !window.speechSynthesis) return;
         const u = new SpeechSynthesisUtterance(txt);
         u.lang = 'pt-BR';
         u.rate = .95;
-        u.volume = 1; // fallback nativo sem reforço de ganho — sempre no teto (ver falarTrechos)
+        u.volume = vozVolume;
         const v = escolherVoz(['pt-br']);
         if (v) u.voice = v; else avisarVozIndisponivel();
         window.speechSynthesis.cancel();
-        setTimeout(() => window.speechSynthesis.speak(u), 300);
+        setTimeout(() => { if (somAtivo && vozVolume > 0) window.speechSynthesis.speak(u); }, 300);
     });
 }
 let vozIndisponivelAvisada = false;
@@ -695,3 +696,35 @@ function triggerLightningFlash() {
 }
 
 /* ====== ✅ FIM DA PARTE 1 — cole a PARTE 2 logo abaixo ====== */
+
+// Mesmo painel no Menu e na aba Alertas do celular.
+window.renderAudioControls = function (host) {
+    const block = document.createElement('section'); block.className = 'mg-audio-settings'; host.appendChild(block);
+    const sound = document.createElement('button'); sound.type = 'button'; block.appendChild(sound);
+    function sync() { sound.textContent = somAtivo ? '🔊 Som ligado · desligar' : '🔇 Som desligado · ligar'; sound.setAttribute('aria-pressed', String(somAtivo)); }
+    sound.onclick = () => { toggleSomAtivo({speak:false}); sync(); }; sync();
+    for (const [name, get, set] of [['Voz', () => vozVolume, setVozVolume], ['Efeitos', () => somVolume, v => setSomVolume(v)]]) {
+        const label = document.createElement('label'); const text = document.createElement('span'); const output = document.createElement('output');
+        text.textContent = name; const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = '100'; slider.step = '5'; slider.value = Math.round(get() * 100); slider.setAttribute('aria-label', 'Volume de ' + name.toLowerCase());
+        const update = () => { output.textContent = Math.round(get() * 100) + '%'; }; update();
+        slider.oninput = () => { set(slider.value); update(); };
+        label.append(text, output, slider); block.appendChild(label);
+    }
+    const group = document.createElement('div'); group.className = 'mg-audio-previews'; block.appendChild(group);
+    for (const [label, kind] of [['Ouvir voz', 'voice'], ['Ouvir efeito', 'effect']]) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = () => window.previewMonitorAudio(kind); group.appendChild(b);
+    }
+    const note = document.createElement('p'); note.textContent = 'Ajustes salvos neste aparelho. 0% silencia apenas aquele canal. O volume do aparelho também influencia o som.'; block.appendChild(note);
+};
+window.previewMonitorAudio = function (kind) {
+    if (!somAtivo) { showToast('Ligue o som para ouvir a prévia.', 'info'); return; }
+    unlockAudio(false);
+    if (kind === 'voice') {
+        if (vozVolume <= 0) { showToast('Aumente o volume da voz para ouvir a prévia.', 'info'); return; }
+        falarAlertaGenerico('Este é o volume da voz do Monitor Global.');
+    } else {
+        if (somVolume <= 0) { showToast('Aumente o volume dos efeitos para ouvir a prévia.', 'info'); return; }
+        if (!ensureAudio()) { showToast('Toque novamente para liberar o áudio.', 'warning'); return; }
+        tone(660, {dur:.18, vol:.3}); tone(880, {t:.22, dur:.22, vol:.3});
+    }
+};

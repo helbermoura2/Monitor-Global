@@ -37,37 +37,8 @@
   }
 
   function openAudio() {
-    showFloat('Controles de áudio',
-      '<button type="button" id="mf-som">🔊 Ligar / Desligar som</button>' +
-      '<button type="button" id="mf-test">🔔 Testar som</button>' +
-      '<p style="font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.4">O som alerta sismos e eventos novos. No DeX, permita áudio no Chrome se pedir.</p>'
-    );
-    $('mf-som').onclick = function () {
-      if (typeof window.toggleSomAtivo === 'function') {
-        var on = window.toggleSomAtivo({ speak: true });
-        this.textContent = on ? '🔊 Som ligado (tocar p/ desligar)' : '🔇 Som desligado (tocar p/ ligar)';
-        return;
-      }
-      try {
-        var on2 = localStorage.getItem('somAtivo') !== '0';
-        on2 = !on2;
-        localStorage.setItem('somAtivo', on2 ? '1' : '0');
-        alert(on2 ? 'Som ligado' : 'Som desligado');
-      } catch (e) { alert('Não foi possível alternar o som'); }
-    };
-    $('mf-test').onclick = function () {
-      var b = $('btn-teste');
-      if (b) { b.click(); return; }
-      try {
-        if (window.speechSynthesis) {
-          var u = new SpeechSynthesisUtterance('Teste de áudio do Monitor Global');
-          u.lang = 'pt-BR';
-          speechSynthesis.speak(u);
-        } else {
-          alert('Teste de som indisponível neste dispositivo');
-        }
-      } catch (e) { alert('Falha no teste de som'); }
-    };
+    const panel = showFloat('Controles de áudio', '');
+    window.renderAudioControls?.(panel);
   }
 
   function openSummary() {
