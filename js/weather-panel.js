@@ -1,16 +1,12 @@
-/* Manual weather tab: event updates continue without switching the selected view. */
+/* Manual weather chip: event updates continue without switching the selected view. */
 (() => {
   const $=id=>document.getElementById(id);
-  let ready=false,nav;
+  let ready=false;
   const mobile=()=>window.innerWidth<=900;
   function init(){
     if(ready)return;const panel=$('sp-forecast-air'),event=$('painel-direito');if(!panel||!event)return;ready=true;
     document.body.appendChild(panel);
-    nav=document.createElement('nav');nav.id='weather-event-tabs';nav.setAttribute('aria-label','Informações do mapa');
-    for(const [label,weather] of [['Evento',false],['Meteorologia',true]]){
-      const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.weather=String(weather);b.setAttribute('aria-pressed',String(!weather));b.onclick=()=>weather?show():hide();nav.appendChild(b);
-    }
-    document.body.appendChild(nav);
+    $('chip-meteorologia')?.addEventListener('click',e=>{e.stopPropagation();document.body.classList.contains('weather-view')?hide():show();});
     const brief=document.createElement('section');brief.id='weather-brief';brief.setAttribute('aria-label','Resumo meteorológico');
     const details=document.createElement('details');details.id='weather-more';const summary=document.createElement('summary');summary.textContent='Ver fontes e detalhes';details.appendChild(summary);
     const controls=panel.querySelector('.weather-control-row'),header=panel.querySelector('.topbar-card-header');
@@ -28,11 +24,10 @@
   function layout(){
     if(!ready)return;const r=$('painel-direito').getBoundingClientRect();
     if(!mobile()){
-      for(const el of [nav,$('sp-forecast-air')]){
+      for(const el of [$('sp-forecast-air')]){
         el.style.setProperty('left',r.left+'px','important');el.style.setProperty('right','auto','important');el.style.setProperty('width',r.width+'px','important');
       }
-      nav.style.top=r.top+'px';
-      const panel=$('sp-forecast-air');panel.style.setProperty('top',(r.top+44)+'px','important');panel.style.setProperty('bottom','auto','important');panel.style.setProperty('max-height',Math.max(100,r.height-44)+'px','important');
+      const panel=$('sp-forecast-air');panel.style.setProperty('top',r.top+'px','important');panel.style.setProperty('bottom','auto','important');panel.style.setProperty('max-height',Math.max(100,r.height)+'px','important');
     }else{
       const panel=$('sp-forecast-air');for(const [key,value]of Object.entries({left:'0',right:'0',top:'auto',bottom:'0',width:'100%', 'max-height':'75dvh'}))panel.style.setProperty(key,value,'important');
     }
@@ -51,7 +46,8 @@
     if(outlook?.status&&outlook.status!=='unknown'){const meta=document.createElement('small');meta.textContent=outlook.source+' · Consulta '+new Date(outlook.consultedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · Acumulado na próxima faixa horária completa';brief.appendChild(meta);}
     const note=document.createElement('small');note.textContent='Leitura do aeródromo é local. Previsão de chuva não confirma alagamentos.';brief.appendChild(note);
   }
-  function show(){init();if(!ready)return;if(typeof fcPopupTimeout!=='undefined'&&fcPopupTimeout)clearTimeout(fcPopupTimeout);document.body.classList.add('weather-view');document.body.classList.toggle('mobile-fc-open',mobile());$('sp-forecast-air').classList.add('open');layout();update();nav?.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.weather==='true')));}
-  function hide(){document.body.classList.remove('weather-view','mobile-fc-open');$('sp-forecast-air')?.classList.remove('open');nav?.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.weather==='false')));}
+  function setChipState(open){const chip=$('chip-meteorologia');if(!chip)return;chip.classList.toggle('active',open);chip.setAttribute('aria-pressed',String(open));chip.setAttribute('aria-expanded',String(open));chip.title=open?'Fechar meteorologia':'Abrir meteorologia';}
+  function show(){init();if(!ready)return;if(typeof fcPopupTimeout!=='undefined'&&fcPopupTimeout)clearTimeout(fcPopupTimeout);document.body.classList.add('weather-view');document.body.classList.toggle('mobile-fc-open',mobile());$('sp-forecast-air').classList.add('open');layout();update();setChipState(true);}
+  function hide(){document.body.classList.remove('weather-view','mobile-fc-open');$('sp-forecast-air')?.classList.remove('open');setChipState(false);}
   window.WeatherPanel={show,hide,update};document.addEventListener('DOMContentLoaded',init,{once:true});
 })();
