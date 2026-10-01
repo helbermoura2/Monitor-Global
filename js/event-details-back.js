@@ -59,7 +59,7 @@
   if(item?.expiresAt){const p=document.createElement('p');p.textContent='Validade até '+new Date(item.expiresAt).toLocaleString('pt-BR');evidence.append(p);}
   for(const key of ['locationNote','warningDescription','warningInstruction'])if(item?.[key]){const p=document.createElement('p');p.textContent=item[key];evidence.append(p);}
   if(evidence.childNodes.length)back.append(section('Produto, área e validade',evidence,true));
-  if(item?.type==='flood'&&Array.isArray(item.coords)){const host=document.createElement('div');back.append(section('Rios · previsão de vazão',host,true));riverContext(item,host,token);}
+  if(item?.type==='flood'&&Array.isArray(item.coords)&&!/storm surge|coastal|lakeshore|tidal|tsunami/i.test(item.warningEvent||'')){const host=document.createElement('div');back.append(section('Rios · previsão de vazão',host,true));riverContext(item,host,token);}
   document.body.append(back);position();document.body.classList.add('pd-more-open');panel().classList.add('pd-flip-preparado');
   const btn=document.getElementById('pd-more-toggle');btn.textContent='Voltar ao evento ↶';btn.setAttribute('aria-expanded','true');
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!back)return;panel().classList.add('pd-flip-girado');back.classList.add('pd-flip-visivel');returnBtn.focus({preventScroll:true});}));
