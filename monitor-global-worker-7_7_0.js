@@ -4716,6 +4716,17 @@ async function getDailySummaryFonts(){
     for(const [name,data] of Object.entries(SUMMARY_TYPOGRAPHY)) fonts[name]={img:await decodePng(base64ToBytes(data.b64)),cellH:data.cellH,glyphs:data.glyphs};
     fonts.aq=await decodePng(base64ToBytes('iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAARVBMVEVHcEwmX7UmX7UmX7UmX7UmX7X///9ch8iTr9omX7XJ1+3x9fo0abpBc76gud/W4fG7zeiuw+N3m9Fqkczk6/ZPfcOFpdWLa0WiAAAABnRSTlMAv+9gIM+kpfmZAAABRUlEQVR4Xu3X2W6DMBCG0aQJ/8x4Zc37P2qXVKqclM7I9k0jvms4MkZYzOl1Ozq6nKWh8+WbuQ7S2HD9ct6kubdPaZAODR/7I126nM59oPNJOvX/IB4zkB23QmnFvTGKzLEamvFTBqZaKOGhWyXk8Zh3ickAbaGA8HtOh1xxTcROBqjYhWXHyTqUiv2c6h8tesBt5bt/zuvQ/eYURSQwdlt0SO63O+fwR6MBmmDIGaBthR4bIBE2QMECSYaad6MOhQxDqw4RLKVeEOlQhKVZhSjDklOh4GHK8GgjDHkdEmHosQWKti3SIVmhxTYoQYsUyPqVTGKDJEwt51FJETMT0Tx5wPua8+iZpJBsZ7ZeAY03qYZ8+caqIS4+jqBAxgWtm7SvyMMtbT+jkYiZ4kKyW7cf9m4jRK+hptuY1Wvw6zWKvmxHR++lCXjpbjMoUQAAAABJRU5ErkJggg=='));
     fonts.flags={img:await decodePng(base64ToBytes(SUMMARY_FLAGS.b64)),map:SUMMARY_FLAGS.map};
+    // Clip each flag to a softly rounded rectangle while preserving its colors.
+    for(const [sx,width,height] of Object.values(fonts.flags.map)){
+        const radius=Math.min(5,width/2,height/2),img=fonts.flags.img;
+        for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+            const cx=Math.max(radius,Math.min(width-radius,x+.5));
+            const cy=Math.max(radius,Math.min(height-radius,y+.5));
+            const coverage=Math.max(0,Math.min(1,radius+.5-Math.hypot(x+.5-cx,y+.5-cy)));
+            const index=(y*img.width+sx+x)*4+3;
+            img.rgba[index]=Math.round(img.rgba[index]*coverage);
+        }
+    }
     _dailySummaryFonts=fonts;return fonts;
 }
 function summaryCountry(place){
