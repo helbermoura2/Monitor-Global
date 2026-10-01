@@ -3,7 +3,7 @@ for(const [name,width,height]of [['desktop',1280,720],['mobile',390,844]])test('
  await page.setViewportSize({width,height});await page.goto('/',{waitUntil:'domcontentloaded'});
  const weather=page.locator('#sp-forecast-air'),event=page.locator('#painel-direito');
  await expect(page.locator('#weather-event-tabs')).toHaveCount(0);
- const neighbors=await page.locator('#chip-meteorologia').evaluate(el=>[el.previousElementSibling.id,el.nextElementSibling.id]);expect(neighbors).toEqual(['chip-criticos','chip-geo-br']);
+ const neighbors=await page.locator('#chip-meteorologia').evaluate(el=>[el.previousElementSibling.id,el.nextElementSibling.id]);expect(neighbors).toEqual(['chip-criticos','chip-radar']);
  await expect(weather).toBeHidden();await expect(page.locator('#weather-more')).toHaveJSProperty('open',false);
  if(width>900)await page.getByRole('button',{name:'Meteorologia',exact:true}).click();
  else await page.evaluate(()=>showFcPopup());
