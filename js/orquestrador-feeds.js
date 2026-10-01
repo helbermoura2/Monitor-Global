@@ -21,7 +21,9 @@ function queueQuakeRevisions(items) {
 function focusNextQuakeRevision(blocked = false) {
     const live = window.__mgLiveQuakeId === eventoSelecionadoId &&
         Date.now() < (window.__mgLiveQuakeUntil || 0);
-    if (blocked || live || !map) return false;
+    const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
+        Date.now() < (window.__mgRevisionProtectedUntil || 0);
+    if (blocked || live || protectedSelection || !map) return false;
     const candidates = [];
     for (const [id, revision] of pendingQuakeRevisions) {
         const index = globalEvents.findIndex(e => e && e.id === id);

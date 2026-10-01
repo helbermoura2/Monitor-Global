@@ -1324,6 +1324,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
+    // Ao vivo e clique manual mantêm câmera/cartão até terminar a exibição.
+    window.__mgRevisionProtectedId = (!soft || triggerVisualAlert) ? item.id : null;
+    window.__mgRevisionProtectedUntil = (!soft || triggerVisualAlert) ? window.__mgHoldEndsAt : 0;
     if (triggerVisualAlert) {
         window.__mgLiveQuakeId = item.id;
         window.__mgLiveQuakeUntil = window.__mgHoldEndsAt;
