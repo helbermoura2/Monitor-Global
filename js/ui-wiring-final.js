@@ -16,7 +16,7 @@ function showToast(m, t = 'info') {
     }
 
     if (window.MobileNotices?.enabled()) {
-        const type = t === 'warn' || t === 'warning' ? 'warning' : t === 'error' ? 'error' : 'info';
+        const type = /novo.*sismo|sismo.*novo/i.test(msg) ? 'newquake' : t === 'warn' || t === 'warning' ? 'warning' : t === 'error' ? 'error' : 'info';
         window.MobileNotices.push({title:msg,type,duration:/🔄/.test(msg)?10000:7000});
         return;
     }
@@ -69,7 +69,7 @@ const mobileRevisionHistory = [];
 function showSismoAtualizadoPill(ev) {
     if (!ev || !ev.place) return;
     if (window.MobileNotices?.enabled()) {
-        window.MobileNotices.push({title:'Sismo atualizado · '+ev.place,detail:ev._deltaTxt || 'Dados revisados pela fonte',type:'revision',duration:13000});
+        window.MobileNotices.push({title:'Sismo revisado',detail:(ev._deltaTxt || 'Dados revisados pela fonte')+' · '+ev.place,key:'revision:'+ev.id+':'+(ev._deltaTxt||''),type:'revision',duration:10000});
         return;
     }
 
@@ -568,4 +568,5 @@ window.addEventListener('load', () => {
 
     updateKPIs();
 });
+
 
