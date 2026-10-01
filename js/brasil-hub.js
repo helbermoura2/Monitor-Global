@@ -213,7 +213,7 @@
       const gust = $('sp-live-gust')?.textContent || '--';
       const flood = $('flood-risk-label')?.textContent || '--';
       const cem = $('cemaden-max24')?.textContent || '--';
-      el.textContent = 'SP agora: chuva ' + rain + ' · rajada ' + gust + ' · alagamento ' + flood + ' · máx.24h modelo ' + cem + ' mm. Confirme no CGE.';
+      el.textContent = 'SP · chuva de modelo ' + rain + ' · rajada ' + gust + ' · alagamento ' + flood + ' · máx.24h modelo ' + cem + ' mm. Confirme no CGE.';
     } catch (e) {
       el.textContent = 'Abra o site do CGE para a operação oficial da capital.';
     }

@@ -184,6 +184,8 @@ async function fetchGdacsFloods() {
 const SP_COORDS_FRONT = { lat: -23.55, lng: -46.63 };
 async function fetchCgeSP() {
     const id = 'cge-sp-alagamentos';
+    // Um registro antigo não permanece ativo indefinidamente após falha da fonte.
+    if (!window.__cgeEvidence || Date.now()-window.__cgeEvidence.at>20*60000) globalAlerts=globalAlerts.filter(a=>a.id!==id);
     try {
         const base = workerBaseUrl();
         const r = await fetch(base + '/sp-clima', { cache: 'no-store' });
@@ -194,9 +196,13 @@ async function fetchCgeSP() {
              try { if (typeof setSource === 'function') setSource('CGE', 'warn', null, 'portal acessível; dados CGE não retornaram neste ciclo'); } catch (_) {}
              return;
          }
-        const ativos = Number(cge.alagamentos_ativos) || 0;
+        const ativos = cge.alagamentos_ativos;
+        const at = Date.parse(d.atualizado_em);
+        if (!Number.isInteger(ativos) || ativos < 0 || !Number.isFinite(at) || Date.now()-at>20*60000 || at>Date.now()+60000) throw Error('CGE sem contagem ou horário válidos');
+        window.__cgeEvidence = {ok:true,count:ativos,at};
+        window.WeatherEvidence?.update();
         globalAlerts = globalAlerts.filter(a => a.id !== id);
-        if (cge.status !== 'normal' && ativos > 0) {
+        if (ativos > 0) {
             const sevTxt = cge.status === 'crise' ? 'Crise' : 'Atenção';
             const obj = {
                 id, type: 'flood', place: `Alagamentos ativos — São Paulo (CGE)`,

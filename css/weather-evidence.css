@@ -1,0 +1,5 @@
+#weather-evidence{margin:12px 0;display:grid;gap:8px;color:#d9eef9}
+#weather-evidence>div{padding:10px 12px;border:1px solid rgba(139,211,242,.24);border-radius:10px;background:rgba(13,46,65,.22)}
+#weather-evidence strong{font-size:10px;color:#8fd8ee;letter-spacing:.06em}
+#weather-evidence p{font-size:12px;line-height:1.5;margin:6px 0 0}
+#flood-risk-label{font-size:10px}

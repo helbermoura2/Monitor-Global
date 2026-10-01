@@ -1,3 +1,4 @@
+import { handleWeatherObservations } from "./weather-observations-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
@@ -274,13 +275,13 @@ async function buscarMetarSP(env) {
 }
 
 function extrairAlagamentosDoHtml(html) {
-    let m = html.match(/(\d+)\s*pontos?\s*de\s*alagamentos?\s*(ativos?)?/i);
+    let m = html.match(/(\d+)\s*pontos?\s*de\s*alagamentos?\s*ativos?/i);
     if (m) return parseInt(m[1], 10);
     m = html.match(/pontos?\s*de\s*alagamentos?\s*[:\-]?\s*(\d+)\s*ativos?/i);
     if (m) return parseInt(m[1], 10);
     const blobs = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(x => x[1]);
     for (const blob of blobs) {
-        const chave = blob.match(/"(alagamentos?_ativos|pontosAlagamento|totalAlagamentos)"\s*:\s*(\d+)/i);
+        const chave = blob.match(/"(alagamentos?_ativos)"\s*:\s*(\d+)/i);
         if (chave) return parseInt(chave[2], 10);
     }
     return null;
@@ -5187,6 +5188,7 @@ export default {
             catch (e) { return json({ error: 'Falha nos feeds globais', detail: e.message }, 502); }
         }
         if (reqUrl.pathname === '/weatherapi') return await handleWeatherApi(reqUrl, env);
+        if (reqUrl.pathname === '/metar-observed') return await handleWeatherObservations(reqUrl);
         if (reqUrl.pathname === '/redemet-metar') return await handleRedemet(reqUrl, env);
 
         const target = reqUrl.searchParams.get('url');

@@ -1,0 +1,26 @@
+const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const ctx={window:{},document:{addEventListener(){}},haversine:(a,b,c,d)=>Math.hypot(a-c,b-d)*111};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../../js/weather-evidence.js'),'utf8'),ctx);
+const {assess,summarize}=ctx.window.WeatherEvidence,now=Date.parse('2026-10-01T01:20Z'),loc={lat:-23.55,lng:-46.63};
+assert.equal(assess({now,loc,cge:null}).level,'unknown');
+assert.equal(assess({now,loc,cge:{ok:true,at:now,count:0}}).level,'none');
+assert.equal(assess({now,loc,cge:{ok:true,at:now,count:3}}).level,'confirmed');
+for(const cge of [{ok:true,at:now-21*60000,count:9},{ok:true,at:now+600000,count:2},{ok:true,at:now,count:null}])assert.equal(assess({now,loc,cge}).level,'unknown');
+assert.equal(assess({now,loc:{lat:-22.9,lng:-43.2},cge:{ok:true,at:now,count:2}}).level,'unknown');
+const station={lat:loc.lat,lng:loc.lng,icao:'SBSP',updatedAt:now,tempestade:false,chuvaIntensidade:null};
+assert.match(assess({now,loc,stations:[station]}).observation,/Sem chuva reportada/);
+assert.equal(assess({now,loc,stations:[{...station,updatedAt:now-76*60000}]}).measured,undefined);
+assert.equal(assess({now,loc,stations:[{...station,lat:loc.lat+1}]}).measured,undefined);
+assert.equal(assess({now,loc,stations:[{...station,chuvaIntensidade:'forte'}]}).level,'unknown'); // Rain alone does not establish flooding.
+const hourly={time:Array.from({length:6},(_,i)=>'2026-10-01T0'+(i+1)+':00')};for(const key of ['ecmwf_ifs025','gfs_seamless','icon_seamless'])hourly['precipitation_'+key]=Array(6).fill(0);
+assert.equal(summarize({hourly},now).max,0);hourly.precipitation_gfs_seamless=Array(6).fill(2);assert.match(summarize({hourly},now).agreement,/divergem/);
+hourly.precipitation_icon_seamless=Array(6).fill(null);assert.equal(summarize({hourly},now).rows.length,2);
+assert.throws(()=>summarize({hourly:{time:[]}},now));
+console.log('PASS: unknown versus zero, CGE occurrence and freshness, city coverage, airport locality, rainfall not flooding, model disagreement and missing forecasts');
+const workerSource=fs.readFileSync(path.join(__dirname,'../../monitor-global-worker-7_7_0.js'),'utf8');
+const parser=workerSource.slice(workerSource.indexOf('function extrairAlagamentosDoHtml'),workerSource.indexOf('async function buscarCgeSP'));
+vm.runInContext(parser,ctx);
+assert.equal(ctx.extrairAlagamentosDoHtml('12 pontos de alagamento registrados ontem'),null);
+assert.equal(ctx.extrairAlagamentosDoHtml('0 pontos de alagamento ativos'),0);
+assert.equal(ctx.extrairAlagamentosDoHtml('<script>{"totalAlagamentos":12}</script>'),null);
+assert.equal(ctx.extrairAlagamentosDoHtml('<script>{"alagamentos_ativos":2}</script>'),2);
+console.log('PASS: historical totals cannot become active CGE flooding');

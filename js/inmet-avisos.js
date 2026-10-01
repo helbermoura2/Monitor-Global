@@ -392,10 +392,7 @@ async function fetchInmetAvisos() {
             const riscoTxt = Array.isArray(a.riscos) && a.riscos[0] ? String(a.riscos[0]).slice(0, 140) : '';
             const riscosCompletos = Array.isArray(a.riscos) ? a.riscos.join(' ') : '';
             const me = inmetMeAtinge(a, ref);
-            // "Chuva Intensa" quase sempre cita alagamento/enxurrada no campo de
-            // riscos (não no título). Sem checar esse campo, todo aviso de chuva
-            // ficava só em 'storm', e o filtro 💧 Enchentes nunca via nada do Brasil.
-            const isFloodLike = /alag|inunda|enxurr/i.test(desc + ' ' + riscosCompletos);
+            const isFloodLike = /alag|inunda|enxurr/i.test(desc); // Risco citado em aviso de chuva não transforma previsão em enchente.
             // Tornado/tromba d'água tinham type 'storm' genérico — mesmo tendo um
             // tipo (TYPE_META.tornado) e ícone/cor próprios no app, ficavam
             // indistinguíveis de qualquer outro aviso de tempestade.

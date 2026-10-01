@@ -346,30 +346,8 @@ async function fetchSPWeather() {
     try { if (typeof avaliarAlertasLocaisSP === 'function') setTimeout(avaliarAlertasLocaisSP, 400); } catch (e) {}
 }
 
-// Busca a quantidade de chuva esperada (mm) em paralelo com a detecção de horário —
-// é o dado que faltava pra ficar parecido com apps tipo Rainbow Weather ("chuva chegando
-// + X mm previstos"). Usa o hourly (tem probabilidade) e o minutely_15 (mm por bloco de
-// 15min, mais fino que a soma da hora) quando disponível.
-async function estimarPrecipitacaoMM() {
-    try {
-        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&hourly=precipitation,precipitation_probability&forecast_days=1&timezone=auto`);
-        const d = await r.json();
-        const h = d && d.hourly;
-        if (!h || !h.time) return null;
-        let idx = h.time.findIndex(t => new Date(t).getTime() + 3600000 > Date.now());
-        if (idx < 0) idx = 0;
-        const mm1h = h.precipitation[idx] || 0;
-        const mm2h = mm1h + (h.precipitation[idx + 1] || 0);
-        const prob = Math.max(h.precipitation_probability[idx] || 0, h.precipitation_probability[idx + 1] || 0);
-        return { mm1h, mm2h, prob };
-    } catch (e) { return null; }
-}
-const mmTxt = (mm) => (mm != null && mm >= 0.1) ? ` (~${mm.toFixed(1)}mm)` : '';
-
 async function fetchSPNowcast() {
     const el = document.getElementById('sp-nowcast');
-    const nomeC = weatherLoc.nome;
-    const mostrar = (txt) => { if (el) { el.style.display = 'block'; el.textContent = txt; } };
 
     function setRainEtaChip(opts) {
         opts = opts || {};
@@ -395,155 +373,12 @@ async function fetchSPNowcast() {
         }
     }
 
-    const mmInfo = await estimarPrecipitacaoMM();
-    const mm1h = mmInfo && mmInfo.mm1h != null ? mmInfo.mm1h : null;
-
-    // Radar primeiro (mais concreto no Brasil)
-    try {
-        const res = await chuvaRadarRainViewer();
-        const mm = mmTxt(mm1h);
-        if (res.mins === null) {
-            mostrar(`⏱️ Radar: sem chuva sobre ${nomeC} (2h)`);
-            setRainEtaChip({ label: 'sem 2h', state: 'clear', source: 'radar', title: 'Radar: sem chuva nas próximas ~2h em ' + nomeC });
-        } else if (res.mins <= 5) {
-            mostrar(`🌧️ Radar: chuva chegando em ${nomeC} agora${mm}`);
-            setRainEtaChip({ label: 'agora', mm: mm1h, state: 'now', source: 'radar', title: 'Radar: chuva agora em ' + nomeC });
-            maybeSpeakWeatherAlert('nowcast', `Atenção. Radar detecta chuva chegando em ${nomeC}.`);
-            showToast(`🌧️ Chuva chegando agora em ${nomeC} (radar)${mm}`, 'warning');
-            addNowcastAlert(`🌧️ Radar: chuva chegando agora em ${nomeC}${mm}`, 2, { concrete: true, from: 'radar' });
-        } else {
-            mostrar(`🌧️ Radar: chuva em ~${Math.max(0, res.mins)} min sobre ${nomeC}${mm}`);
-            setRainEtaChip({
-                label: '~' + Math.max(0, res.mins) + 'm',
-                mm: mm1h,
-                state: res.mins <= 45 ? 'soon' : 'clear',
-                source: 'radar',
-                title: 'Radar: chuva em ~' + res.mins + ' min em ' + nomeC + (mm1h != null ? ' (~' + Number(mm1h).toFixed(1) + ' mm/h modelo)' : '')
-            });
-            if (res.mins <= 20) {
-                maybeSpeakWeatherAlert('nowcast', `Atenção. Radar indica chuva em ${nomeC} daqui a cerca de ${res.mins} minutos.`);
-                showToast(`🌧️ Chuva em ${nomeC} em ~${res.mins} min (radar)${mm}`, 'warning');
-                addNowcastAlert(`🌧️ Radar: chuva em ~${res.mins} min sobre ${nomeC}${mm}`, 2, { concrete: true, from: 'radar' });
-            }
-        }
-        return;
-    } catch (e) {}
-
-    // Fallback minutely_15 (modelo) — atualiza o chip, sem alerta oficial na lista
-    try {
-        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&minutely_15=precipitation&forecast_minutes=120&timezone=auto`);
-        const d = await r.json();
-        const m = d && d.minutely_15;
-        const vals = m && m.precipitation;
-        const times = m && m.time;
-        if (!vals || !vals.length) throw new Error('sem minutely');
-        const agora = Date.now();
-        let stepIdx = -1;
-        for (let i = 0; i < vals.length; i++) {
-            if (vals[i] <= 0.02) continue;
-            const tMs = times && times[i] ? new Date(times[i]).getTime() : (agora + i * 15 * 60000);
-            if (tMs >= agora - 5 * 60000) { stepIdx = i; break; }
-        }
-        let startMin = -1;
-        if (stepIdx >= 0) {
-            const tMs = times && times[stepIdx] ? new Date(times[stepIdx]).getTime() : (agora + stepIdx * 15 * 60000);
-            startMin = Math.max(0, Math.round((tMs - agora) / 60000));
-        }
-        const mmBlock = stepIdx >= 0 ? (vals[stepIdx] * 4) : null; // mm/15min → mm/h
-        const mmShow = mmBlock != null && mmBlock >= 0.05 ? mmBlock : mm1h;
-        const mm = mmTxt(mmShow);
-
-        if (stepIdx === -1 || startMin < 0) {
-            mostrar(`⏱️ Próx. 2h: sem chuva prevista (${nomeC})`);
-            setRainEtaChip({ label: 'sem 2h', state: 'clear', source: 'modelo', title: 'Modelo: sem chuva prevista em ~2h' });
-        } else if (startMin <= 5) {
-            mostrar(`🌧️ Chuva prevista para agora em ${nomeC}${mm}`);
-            setRainEtaChip({ label: 'agora', mm: mmShow, state: 'now', source: 'modelo', title: 'Modelo: chuva agora (não é radar oficial)' });
-            showToast(`🌧️ Chuva em ${nomeC} agora${mm} (modelo)`, 'warning');
-        } else {
-            mostrar(`🌧️ Chuva em ~${startMin} min em ${nomeC} (previsão)${mm}`);
-            setRainEtaChip({
-                label: '~' + startMin + 'm',
-                mm: mmShow,
-                state: startMin <= 45 ? 'soon' : 'clear',
-                source: 'modelo',
-                title: 'Modelo: chuva em ~' + startMin + ' min' + (mmShow != null ? ' (~' + Number(mmShow).toFixed(1) + ' mm)' : '') + ' — estimativa, não radar'
-            });
-            if (startMin <= 30) {
-                showToast(`🌧️ Chuva em ${nomeC} em ~${startMin} min${mm}`, 'warning');
-            }
-        }
-        return;
-    } catch (e) {}
-
-    // Só probabilidade
-    if (mmInfo) {
-        const { prob, mm1h: m1 } = mmInfo;
-        const mm = mmTxt(m1);
-        if (prob >= 50) {
-            mostrar(`⚠️ ${prob}% de chance de chuva em ${nomeC}${mm} (1h)`);
-            setRainEtaChip({
-                label: prob + '%',
-                mm: m1,
-                state: prob >= 70 ? 'soon' : 'clear',
-                source: 'modelo',
-                title: prob + '% de chance na próxima hora (modelo Open-Meteo)'
-            });
-        } else {
-            mostrar(`⏱️ Baixa chance de chuva em ${nomeC} (${prob}%)`);
-            setRainEtaChip({ label: prob + '%', state: 'clear', source: 'modelo', title: 'Baixa chance de chuva (' + prob + '%)' });
-        }
-    } else {
-        mostrar('⏱️ Nowcasting indisponível p/ região');
-        setRainEtaChip({ label: '--', state: 'clear', title: 'Nowcasting indisponível' });
-    }
-}
-
-async function chuvaRadarRainViewer() {
-    const r = await fetch('https://api.rainviewer.com/public/weather-maps.json');
-    if (!r.ok) throw new Error('rainviewer off');
-    const d = await r.json();
-    const frames = (d.radar && d.radar.nowcast) || [];
-    if (!frames.length) throw new Error('sem nowcast');
-
-    const z = 8, n = 1 << z;
-    const fx = (weatherLoc.lng + 180) / 360 * n;
-    const rad = weatherLoc.lat * Math.PI / 180;
-    const fy = (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n;
-    const x = Math.floor(fx), y = Math.floor(fy);
-    const px = Math.floor((fx - x) * 256), py = Math.floor((fy - y) * 256);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 256;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    let cobertura = false;
-
-    for (const f of frames.slice(0, 6)) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        await new Promise((res, rej) => {
-            img.onload = res;
-            img.onerror = rej;
-            img.src = `https://tilecache.rainviewer.com${f.path}/256/${z}/${x}/${y}/2/1_1.png`;
-        });
-        ctx.clearRect(0, 0, 256, 256);
-        ctx.drawImage(img, 0, 0);
-        let tile;
-        try {
-            tile = ctx.getImageData(0, 0, 256, 256).data;
-        } catch (e) {
-            console.warn('Radar: canvas bloqueado por CORS ao ler pixels do tile:', e.message);
-            throw e;
-        }
-        for (let i = 3; i < tile.length; i += 64) {
-            if (tile[i] > 40) { cobertura = true; break; }
-        }
-        if (tile[py * 256 * 4 + px * 4 + 3] > 40) {
-            return { mins: Math.max(0, Math.round((f.time * 1000 - Date.now()) / 60000)), cobertura: true };
-        }
-    }
-    if (!cobertura) throw new Error('sem cobertura de radar');
-    return { mins: null, cobertura: true };
+    // Horários de modelo e pixels coloridos de radar não sustentam ETA exato.
+    setRainEtaChip({label:'previsão',source:'modelo',title:'Consulte a previsão e a comparação de modelos. Sem horário exato de chegada.'});
+    const box=document.getElementById('sp-nowcast');
+    if(box)box.textContent='Previsão de chuva: consulte os modelos abaixo. Radar é imagem de ecos, sem confirmação automática de chuva no bairro.';
+    globalAlerts=globalAlerts.filter(x=>x.id!=='nc-rain' && x.id!=='nc-rain-model');
+    window.WeatherEvidence?.refresh();
 }
 
 const AQI_META = [
@@ -618,7 +453,8 @@ async function fetchSPForecast() {
         }
         if (strip) strip.innerHTML = html;
         const now = Date.now();
-        let idx = h.time.findIndex(t => new Date(t).getTime() >= now - 30 * 60000);
+        const forecastTime=t=>new Date(Date.parse(t+'Z')-Number(d.utc_offset_seconds||0)*1000);
+        let idx = h.time.findLastIndex(t => forecastTime(t).getTime() <= now);
         if (idx < 0) idx = 0;
         const pNow = Number(h.precipitation_probability[idx] || 0);
         const mmNow = Number(h.precipitation[idx] || 0);
@@ -636,13 +472,12 @@ async function fetchSPForecast() {
         if (gustEl) gustEl.textContent = `${Math.round(gustNow)} km/h`;
         if (arrival) arrival.className = 'weather-arrival ' + (pNow >= 70 ? 'alert' : pNow >= 40 ? 'warn' : 'ok');
         const summary = document.getElementById('weather-summary-text'), summaryMeta = document.getElementById('weather-summary-meta');
-        const summaryMain = rainIndex >= 0 ? `Chuva provável ${Math.max(0,Math.round((new Date(h.time[rainIndex]).getTime()-now)/60000))<=15?'agora':`em ${Math.max(0,Math.round((new Date(h.time[rainIndex]).getTime()-now)/60000))} min`}` : (pNow>=40?'Possibilidade de chuva nas próximas horas':'Sem chuva relevante no horizonte imediato');
+        const summaryMain = rainIndex >= 0 ? 'Possibilidade de chuva nas próximas horas (modelo)' : 'Pouco ou nenhum acumulado previsto nas próximas horas (modelo)';
         if(summary) summary.textContent = `${summaryMain}; ${pNow}% na hora atual; rajadas de ${Math.round(gustNow)} km/h.`;
         if(summaryMeta) summaryMeta.textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · modelo numérico Open-Meteo`;
         setWeatherConfidence(rainIndex>=0?'model':'model','MODELO');
         if (rainIndex >= 0) {
-            const mins = Math.max(0, Math.round((new Date(h.time[rainIndex]).getTime() - now) / 60000));
-            const quando = mins <= 15 ? 'agora ou nos próximos minutos' : `em aproximadamente ${mins} min`;
+            const quando = 'na faixa horária de '+forecastTime(h.time[rainIndex]).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' (horário deste aparelho; previsão)';
             if (title) title.textContent = `🌧️ Modelo: possibilidade de chuva ${quando}`;
             if (detail) detail.textContent = `${h.precipitation_probability[rainIndex] || 0}% (modelo Open-Meteo) · ~${Number(h.precipitation[rainIndex] || 0).toFixed(1)} mm/h estimados · NÃO é alerta oficial nem radar`;
             // 5.7.1: NÃO criar evento na lista a partir de % do Open-Meteo (evita falso "vai chover").
@@ -654,8 +489,8 @@ async function fetchSPForecast() {
         }
         if (hourlyEl) {
             hourlyEl.innerHTML = h.time.slice(idx, idx + 12).map((t, j) => {
-                const i = idx + j, dt = new Date(t), pp = Math.round(Number(h.precipitation_probability[i] || 0));
-                return `<div class="weather-hour ${j === 0 ? 'now' : ''}" title="Modelo Open-Meteo"><div class="weather-hour-time">${j === 0 ? 'agora' : dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div><div class="weather-hour-icon">${weatherEmoji(Number(h.weather_code[i] || 0))}</div><div class="weather-hour-temp">${Math.round(Number(h.temperature_2m[i] || 0))}°</div><div class="weather-hour-rain">💧${pp}%</div><div class="weather-hour-gust">💨${Math.round(Number(h.wind_gusts_10m[i] || 0))} km/h</div></div>`;
+                const i = idx + j, dt = forecastTime(t), pp = Math.round(Number(h.precipitation_probability[i] || 0));
+                return `<div class="weather-hour ${j === 0 ? 'now' : ''}" title="Modelo Open-Meteo"><div class="weather-hour-time">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div><div class="weather-hour-icon">${weatherEmoji(Number(h.weather_code[i] || 0))}</div><div class="weather-hour-temp">${Math.round(Number(h.temperature_2m[i] || 0))}°</div><div class="weather-hour-rain">💧${pp}%</div><div class="weather-hour-gust">💨${Math.round(Number(h.wind_gusts_10m[i] || 0))} km/h</div></div>`;
             }).join('');
         }
         const fu = document.getElementById('fc-update');

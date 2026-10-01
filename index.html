@@ -72,6 +72,7 @@
 <link rel="stylesheet" href="css/cascade-ripple.css">
 <script defer src="js/theme-toggle.js"></script>
 <link rel="stylesheet" href="css/audio-controls.css?v=20261001-audio-controls">
+<link rel="stylesheet" href="css/weather-evidence.css?v=20261001-evidence">
 </head>
 <body>
 <div id="app-status" role="status" aria-live="polite"><span id="app-status-text">Inicializando monitor…</span><button id="app-status-retry" type="button" hidden>Tentar novamente</button></div>
@@ -125,10 +126,10 @@
       <div class="sp-live-grid">
         <div class="sp-temp-cell"><span>🌡️</span><b id="sp-live-temp">--</b><b id="sp-live-feels" class="sp-feels">sens --</b><small>temp / sensação</small></div>
         <div><span>💨</span><b id="sp-live-gust">--</b><small>rajada</small></div>
-        <div><span>💧</span><b id="sp-live-rain">--</b><small>chuva</small></div>
+        <div><span>💧</span><b id="sp-live-rain">--</b><small>chuva · modelo</small></div>
         <div><span>💦</span><b id="sp-live-hum">--</b><small>umidade</small></div>
-        <div id="flood-risk-chip" title="Risco de alagamento local"><span>💧</span><b id="flood-risk-label">BAIXO</b><small>alagamento</small></div>
-        <div id="sp-rain-eta-chip" class="rain-clear" title="Previsão/radar de chuva nas próximas horas"><span id="sp-rain-eta-ico">⏱️</span><b id="sp-rain-eta">--</b><small>próx. chuva</small></div>
+        <div id="flood-risk-chip" title="Ocorrências de alagamento: consulta ao CGE"><span>💧</span><b id="flood-risk-label">SEM DADOS</b><small>alagamento</small></div>
+        <div id="sp-rain-eta-chip" class="rain-clear" title="Previsão/radar de chuva nas próximas horas"><span id="sp-rain-eta-ico">⏱️</span><b id="sp-rain-eta">--</b><small>chuva · modelo</small></div>
       </div>
     </div>
     <div class="pb-sep"></div>
@@ -232,10 +233,11 @@
       <div class="topbar-card-header"><span>🌤️ <span id="fc-city-name">--</span> — Previsão & Ar</span><span id="fc-update">--</span><button id="fc-close" onclick="hideFcPopup()" title="Fechar" aria-label="Fechar previsão">✕</button></div>
       <div class="weather-control-row"><select id="weather-city-select" class="weather-city-select" aria-label="Selecionar cidade brasileira"><option value="São Paulo">São Paulo</option><option value="Rio de Janeiro">Rio de Janeiro</option><option value="Belo Horizonte">Belo Horizonte</option><option value="Brasília">Brasília</option><option value="Curitiba">Curitiba</option><option value="Porto Alegre">Porto Alegre</option><option value="Salvador">Salvador</option><option value="Recife">Recife</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option><option value="Belém">Belém</option><option value="Goiânia">Goiânia</option></select><button id="weather-pin-btn" class="weather-pin-btn" type="button" title="Fixar painel meteorológico" aria-label="Fixar painel meteorológico">📌</button><span id="weather-confidence" class="weather-confidence model">MODELO</span></div>
       <div class="weather-summary" role="status" aria-live="polite"><div class="weather-summary-kicker">RESUMO OPERACIONAL</div><div id="weather-summary-text" class="weather-summary-text">Aguardando atualização meteorológica.</div><div id="weather-summary-meta" class="weather-summary-meta">Fonte e atualização serão exibidas aqui.</div></div>
+      <section id="weather-evidence" aria-label="Evidências meteorológicas"></section>
       <div class="sp-nowcast" id="sp-nowcast"></div>
-      <section class="weather-ops" aria-label="Nowcasting operacional">
-        <div class="weather-ops-head"><b>NOWCASTING OPERACIONAL</b><span id="weather-ops-source">MODELO · Open-Meteo (não oficial)</span></div>
-        <div class="weather-arrival" id="weather-arrival"><span class="weather-arrival-icon">🌧️</span><div><strong id="weather-arrival-title">Aguardando atualização</strong><small id="weather-arrival-detail">Probabilidade, chegada e intensidade serão calculadas.</small></div></div>
+      <section class="weather-ops" aria-label="Previsão meteorológica por modelo">
+        <div class="weather-ops-head"><b>PREVISÃO POR MODELO</b><span id="weather-ops-source">MODELO · Open-Meteo (não oficial)</span></div>
+        <div class="weather-arrival" id="weather-arrival"><span class="weather-arrival-icon">🌧️</span><div><strong id="weather-arrival-title">Aguardando atualização</strong><small id="weather-arrival-detail">Probabilidade e acumulado previsto, com fonte e horário.</small></div></div>
         <div class="weather-metrics" id="weather-metrics"><span>Prob. <b id="weather-prob">--</b></span><span>1h <b id="weather-mm1">--</b></span><span>Rajada <b id="weather-gust">--</b></span></div>
         <div class="weather-hourly-title"><span>PRÓXIMAS HORAS</span><small>estimativa de modelo</small></div>
         <div class="weather-hourly" id="weather-hourly"><span class="weather-loading">Carregando previsão horária…</span></div>
@@ -394,21 +396,21 @@
 <script defer src="js/sismo-fontes.js?v=20261001-new-priority"></script>
 <script defer src="js/orquestrador-feeds.js?v=20261001-new-priority"></script>
 <script defer src="js/brent.js"></script>
-<script defer src="js/clima-local.js"></script>
+<script defer src="js/clima-local.js?v=20261001-evidence"></script>
 <script defer src="js/tempestades.js"></script>
-<script defer src="js/inmet-avisos.js"></script>
+<script defer src="js/inmet-avisos.js?v=20261001-evidence"></script>
 <script defer src="js/furacoes-gdacs.js"></script>
 <script defer src="js/furacao-rota-oficial.js"></script>
-<script defer src="js/tsunami-enchente.js"></script>
+<script defer src="js/tsunami-enchente.js?v=20261001-evidence"></script>
 <script defer src="js/ana-rios.js"></script>
 <script defer src="js/vulcao.js"></script>
 <script defer src="js/tsunami-tornado.js"></script>
 <script defer src="js/incendios.js"></script>
-<script defer src="js/alertas-locais-sp.js"></script>
+<script defer src="js/alertas-locais-sp.js?v=20261001-evidence"></script>
 <script defer src="js/mobile-notices.js?v=20261001-glass-strip"></script>
 <script defer src="js/ui-wiring-final.js?v=20261001-audio-controls"></script>
 
-<script defer src="js/cemaden-risco.js"></script>
+<script defer src="js/cemaden-risco.js?v=20261001-evidence"></script>
 <script defer src="js/fetch-timeout.js"></script>
 <div id="ux-panel" role="dialog" aria-modal="false" aria-labelledby="ux-panel-title"><div class="ux-panel-head"><span id="ux-panel-title">Análise</span><button class="ux-close" id="ux-panel-close" type="button" aria-label="Fechar painel">✕</button></div><div id="ux-panel-content"></div></div>
 <script defer src="js/ux-panel.js"></script>
@@ -424,7 +426,8 @@
 
 <script defer src="js/mobile-desktop-cleanup.js"></script>
 
-<script defer src="js/enhancements-4413.js"></script>
+<script defer src="js/weather-evidence.js?v=20261001-evidence"></script>
+<script defer src="js/enhancements-4413.js?v=20261001-evidence"></script>
 
 <script defer src="js/flood-chip-click.js"></script>
 
@@ -493,7 +496,7 @@
   <p class="bh-foot">Lista à esquerda = eventos no <b>Brasil</b> (INMET, fogo, sismos, etc.). O mapa de severidade do site CPTEC não tem API pública — usamos avisos INMET (oficial) + previsão CPTEC nas capitais. Emergência: <b>199</b>.</p>
 </div>
 <link rel="stylesheet" href="css/brasil-hub.css">
-<script defer src="js/brasil-hub.js"></script>
+<script defer src="js/brasil-hub.js?v=20261001-evidence"></script>
 
 <!-- 5.8.1 médio impacto + técnico -->
 <div id="snooze-panel" role="dialog" aria-label="Snooze">

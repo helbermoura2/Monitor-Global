@@ -68,59 +68,8 @@ async function avaliarAlertasLocaisSP() {
             clearSpAlert('sp-frio');
         }
 
-        // —— Agora: tempestade / chuva forte ——
-        if (code >= SP_ALERT.codeTempestade || (code >= 95)) {
-            const novo = upsertSpAlert('sp-storm-now', 'storm',
-                `⛈️ Tempestade em ${nome} agora • rajadas ${Math.round(gust)} km/h`, 3);
-            if (novo) speakSpOnce('spStormNow', `Atenção. Tempestade em andamento em ${nome}.`, 20);
-        } else {
-            clearSpAlert('sp-storm-now');
-        }
-
-        // —— Próximas horas: tempestade / chuva chegando ——
-        let stormInMin = null, rainInMin = null, rainMm = 0, rainProb = 0;
-        if (h && Array.isArray(h.time)) {
-            const now = Date.now();
-            for (let i = 0; i < h.time.length; i++) {
-                const t = new Date(h.time[i]).getTime();
-                const mins = Math.round((t - now) / 60000);
-                if (mins < -20 || mins > 360) continue;
-                const wc = Number(h.weather_code[i] || 0);
-                const pp = Number(h.precipitation_probability[i] || 0);
-                const mm = Number(h.precipitation[i] || 0);
-                if (stormInMin == null && wc >= SP_ALERT.codeTempestade && mins >= 0) stormInMin = mins;
-                if (rainInMin == null && mins >= 0 && (pp >= SP_ALERT.chuvaProb1h || mm >= SP_ALERT.chuvaMm1h || wc >= SP_ALERT.codeChuvaForte)) {
-                    rainInMin = mins;
-                    rainMm = mm;
-                    rainProb = pp;
-                }
-            }
-        }
-
-        if (stormInMin != null) {
-            const quando = stormInMin <= 15 ? 'em breve' : `em ~${stormInMin} min`;
-            const novo = upsertSpAlert('sp-storm-soon', 'storm',
-                `⛈️ Tempestade chegando em ${nome} ${quando}`, 3);
-            if (novo) speakSpOnce('spStormSoon', `Atenção. Tempestade chegando em ${nome} ${quando}.`, 25);
-        } else {
-            clearSpAlert('sp-storm-soon');
-        }
-
-        if (rainInMin != null && stormInMin == null) {
-            const quando = rainInMin <= 10 ? 'agora / iminente' : `em ~${rainInMin} min`;
-            const extra = rainMm > 0 ? ` · ~${rainMm.toFixed(1)} mm` : (rainProb ? ` · ${rainProb}%` : '');
-            const novo = upsertSpAlert('sp-rain-soon', 'civil',
-                `🌧️ Chuva chegando em ${nome} ${quando}${extra}`, 2);
-            if (novo) speakSpOnce('spRainSoon', `Chuva chegando em ${nome} ${quando}.`, 25);
-        } else if (rainNow >= SP_ALERT.chuvaMm1h) {
-            const novo = upsertSpAlert('sp-rain-now', 'civil',
-                `🌧️ Chuva em ${nome} agora · ${rainNow.toFixed(1)} mm`, 2);
-            if (novo) speakSpOnce('spRainNow', `Chuva em andamento em ${nome}.`, 30);
-        } else {
-            clearSpAlert('sp-rain-soon');
-            clearSpAlert('sp-rain-now');
-        }
-
+        // Previsão de chuva/tempestade fica no painel meteorológico, sem sirene ou evento confirmado.
+        for(const id of ['sp-storm-now','sp-storm-soon','sp-rain-soon','sp-rain-now']) clearSpAlert(id);
         try { applyFilters(); } catch (e) {}
         marcarBooted('spAlert');
     } catch (e) {
@@ -151,8 +100,8 @@ async function fetchDefesaCivil() {
 
         if (c.temperature_2m >= 38) avisos.push(['calor', `Calor extremo ${Math.round(c.temperature_2m)}°C`, 2]);
         if (c.wind_gusts_10m >= 60) avisos.push(['vento', `Rajadas fortes ${Math.round(c.wind_gusts_10m)} km/h`, 2]);
-        if (c.precipitation >= 15) avisos.push(['chuva', `Chuva intensa ${c.precipitation} mm/h`, 2]);
-        if ((c.weather_code || 0) >= 95) avisos.push(['raios', `Tempestade com raios`, 3]);
+
+
 
         const idsNow = new Set(avisos.map(a => 'dc-' + a[0]));
 
@@ -164,13 +113,12 @@ async function fetchDefesaCivil() {
                 id, type: 'civil', place: cidade, bandeira: (weatherLoc.uf === 'SP' ? BANDEIRA_SP : ''),
                 time: prev ? prev.time : Date.now(),
                 coords: [weatherLoc.lng, weatherLoc.lat],
-                source: 'DEFESA CIVIL (critérios)', detail: a[1], sev: a[2]
+                source: 'MODELO LOCAL', detail: a[1], sev: a[2]
             }, { fonte: 'defesaCivil' });
 
             if (isNew) {
-                showToast(`🚨 Defesa Civil ${cidade}: ${a[1]}`, 'warning');
-                playAlertTone('civil');
-                falarAlertaGenerico(`Atenção. Alerta da Defesa Civil para ${cidade}: ${a[1]}.`);
+                showToast(`Modelo meteorológico ${cidade}: ${a[1]}`, 'info');
+                // Não atribuir aviso do modelo a um órgão oficial.
             }
         });
 

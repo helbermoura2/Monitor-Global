@@ -811,6 +811,7 @@ function boot(){
   // precisa ler METAR real (chuva/tempestade observada) pra reforçar o cálculo
   // que hoje só usa modelo Open-Meteo.
   window.REDEMET = REDEMET;
+  window.parseMetarBasico = parseMetarBasico;
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
