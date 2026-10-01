@@ -92,7 +92,12 @@ function normalizarSismoGeoJSON(features, source, mapper) {
             const p = f?.properties || {};
             const c = f?.geometry?.coordinates || [];
             const lon = Number(c[0]), lat = Number(c[1]);
-            const depth = Number(c[2]);
+            // EMSC GeoJSON: altitude negativa na geometria, profundidade positiva
+            // em properties.depth. USGS/FDSN convencionais usam c[2] positivo.
+            const propDepth = p.depth == null || String(p.depth).trim() === '' ? NaN : Number(p.depth);
+            const coordDepth = c[2] == null || String(c[2]).trim() === '' ? NaN : Number(c[2]);
+            const depth = Number.isFinite(propDepth) && propDepth >= 0 ? propDepth
+                : source === 'EMSC' && Number.isFinite(coordDepth) ? Math.abs(coordDepth) : coordDepth;
             const mag = Number(mapper?.mag?.(f, p));
             const time = Number(mapper?.time?.(f, p));
             if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(mag) || !Number.isFinite(time)) return;
