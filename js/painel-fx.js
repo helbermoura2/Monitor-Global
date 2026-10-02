@@ -58,7 +58,7 @@ function triggerCardFx(type, color, item) {
     if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
 
     if (type === 'hurricane') {
-        spinIcon(12000, 1800);
+        if(!atmospheric)spinIcon(12000, 1800);
         if(!atmospheric)triggerWindLetters(FX_DURATION.hurricane);
         if(!window.CinematicCard?.isActive())triggerRainEffect(FX_DURATION.hurricane);
     } else if (type === 'tornado') spinIcon(7000, 2160);

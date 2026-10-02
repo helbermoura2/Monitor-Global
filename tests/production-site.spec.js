@@ -8,9 +8,9 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   await expect.poll(async () => {
     const response = await request.get(base + '/index.html?verify=' + Date.now());
     if (!response.ok()) return false;
-    return (await response.text()).includes('js/painel-fx.js?v=20261002-shared-layer-fix');
+    return (await response.text()).includes('js/painel-fx.js?v=20261002-cyclone-cinema');
   }, { timeout: 120000, intervals: [5000] }).toBe(true);
-  const script = await request.get(base + '/js/painel-fx.js?v=20261002-shared-layer-fix');
+  const script = await request.get(base + '/js/painel-fx.js?v=20261002-cyclone-cinema');
   expect(script.ok()).toBe(true);
   const source = await script.text();
   expect(source).toContain('function ensureFallLayer()');
@@ -31,7 +31,7 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
     SeismicCinema.stop();
   });
   await expect(page.locator('#pd-local')).toContainText('Verificação da publicação');
-  for (const type of ['hurricane', 'wind', 'storm', 'volcano-ash', 'flood']) {
+  for (const type of ['hurricane', 'typhoon', 'wind', 'storm', 'volcano-ash', 'flood']) {
     await page.evaluate(type => CardEffectDemo.preview(type), type);
     await expect(page.locator('#card-fx-demo-status')).toContainText('DEMONSTRAÇÃO');
     await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo', 'true');
@@ -44,3 +44,4 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+

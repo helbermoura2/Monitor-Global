@@ -162,7 +162,7 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
 
 test('vento move as letras preservando o conteúdo do local',async({page})=>{
  await boot(page);
- for(const type of ['wind','hurricane']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);expect(await page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
+ for(const type of ['wind']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);expect(await page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
 });
 
 
