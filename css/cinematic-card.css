@@ -65,7 +65,7 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 #painel-direito.pd-fx-volcano .pd-cinema-footage{object-position:center 25%;mix-blend-mode:screen;opacity:.65}
 #painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-wrap::after{content:'ILUSTRAÇÃO';position:absolute;right:0;bottom:3px;color:#d9edf0;font-size:7px;letter-spacing:1px;opacity:.65;pointer-events:none}
 
-#painel-direito.pd-fx-volcano .pd-cinema-footage[src*="smoke"]{filter:brightness(2.6) contrast(1.05);opacity:.85}
+#painel-direito.pd-fx-volcano .pd-cinema-footage[src*="smoke"]{filter:brightness(1.1) contrast(1.08);opacity:.24;mask-image:linear-gradient(transparent 30%,#000 75%);-webkit-mask-image:linear-gradient(transparent 30%,#000 75%)}
 
 /* Full-frame atmosphere; light is graded across the whole frame, not cut into a band. */
 #painel-direito .pd-cinema-layer::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(3,12,20,.32),rgba(3,12,20,.08) 30%,rgba(3,12,20,.25) 70%,rgba(3,12,20,.18)),linear-gradient(90deg,rgba(3,12,20,.14),transparent 28%,transparent 75%,rgba(3,12,20,.16))}
@@ -82,3 +82,4 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 #painel-direito.pd-fx-hurricane .pd-cinema-footage{filter:saturate(.58) contrast(1.14);opacity:.9}
 #painel-direito .pd-cinema-layer[data-demo="true"]::before{content:'ILUSTRAÇÃO DE TESTE';position:absolute;right:8px;top:8px;z-index:5;color:#d6e9f2;font:8px system-ui;letter-spacing:.8px;pointer-events:none}
 #painel-direito .pd-cinema-demo-bolt{position:absolute;left:12%;top:0;width:33%;height:100%;z-index:3;fill:none;opacity:0;pointer-events:none;filter:drop-shadow(0 0 4px #acd7ff)}
+
