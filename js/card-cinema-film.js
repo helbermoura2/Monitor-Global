@@ -5,7 +5,11 @@
  const modes={storm:0,hurricane:1,tornado:2,fire:3,volcano:4,flood:5,tsunami:6,wind:7};
  const vertex=`attribute vec2 aPosition;varying vec2 vUV;void main(){vUV=aPosition*.5+.5;gl_Position=vec4(aPosition,0.,1.);}`;
  const fragment=`
+ #ifdef GL_FRAGMENT_PRECISION_HIGH
+ precision highp float;
+ #else
  precision mediump float;
+ #endif
  varying vec2 vUV;
  uniform vec2 uResolution;
 
@@ -126,20 +130,41 @@
    }else if(uFootage>.5&&uActivity.x<.5&&uActivity.y<.5){
     scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.12,vec3(.39,.48,.52)),scene);
    }else{
-   float mountain=.60-pow(abs(local.x-.5),.74)*.61+noise(vec2(local.x*31.,.3))*.025;
-   mountain-=exp(-pow((local.x-.5)*21.,2.))*.058;
-   float rock=(1.-smoothstep(mountain-.006,mountain+.007,local.y))*smoothstep(-.15,.04,local.y);
-   float texture=fbm(vec2(local.x*18.,local.y*13.));
-   float relief=clamp(.38+(texture-fbm(vec2(local.x*18.,local.y*13.)+vec2(.02,.04)))*8.,.06,1.);
-   vec3 color=mix(vec3(.045,.060,.070),vec3(.38,.39,.36),relief)*(.6+.5*texture);
-   float crater=exp(-pow((local.x-.5)*21.,2.)-pow((local.y-.51)*34.,2.));
-   color+=vec3(.96,.26,.025)*crater*uActivity.x*(.8+.16*sin(uTime*3.));
-   scene=over(vec4(color,rock*.88),scene);
+   // Oblique crater: a dark bowl, an uneven rim and radial erosion on the flanks.
+   // Geometry stays fixed; only the ash column moves with time.
+   float dx=local.x-.50;
+   float summit=.48;
+   float flank=summit-pow(max(abs(dx)-.115,0.),.82)*.92;
+   float ridge=fbm(vec2(local.x*23.,local.y*19.));
+   float silhouette=flank+(noise(vec2(local.x*67.,2.1))-.5)*.012;
+   float rock=1.-smoothstep(silhouette-.004,silhouette+.004,local.y);
+   vec2 bowl=vec2(dx/.145,(local.y-summit)/.046);
+   float radius=length(bowl);
+   float rimRadius=radius+(fbm(vec2(local.x*45.,local.y*50.))-.5)*.10;
+   float rim=exp(-pow(abs(rimRadius-1.)*10.,2.));
+   float inside=1.-smoothstep(.79,.97,rimRadius);
+   float angle=atan(dx,max(summit-local.y,.025));
+   float gullies=fbm(vec2(angle*15.,(summit-local.y)*18.));
+   float grain=noise(local*vec2(230.,180.));
+   float shade=clamp(.52-dx*.65+(ridge-.5)*.32+(gullies-.5)*.42,.12,.85);
+   vec3 color=mix(vec3(.055,.047,.043),vec3(.37,.32,.27),shade);
+   color*=.83+grain*.23;
+   color=mix(color,vec3(.018,.016,.015)+vec3(.075,.055,.04)*smoothstep(-1.,1.,bowl.y),inside);
+   color+=vec3(.20,.17,.13)*rim*(.65+.35*bowl.y);
+   rock=max(rock,(1.-smoothstep(1.,1.07,rimRadius)));
+   scene=over(vec4(color,rock*.97),scene);
    if(uActivity.y>.5){
-    float plume=exp(-pow((local.x-.5)/(max(local.y,.05)*.27+.03),2.));
-    vec4 ash=vapor(vec2(local.x*7.+sin(local.y*8.-uTime)*.2,local.y*7.-uTime*.35),.88,vec3(.56,.55,.52));
-    ash.a*=plume*smoothstep(.48,.60,local.y)*(1.-uFootage*.75);scene=over(ash,scene);
-   }else{scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.25,vec3(.39,.48,.52)),scene);}
+    float rise=max(local.y-summit,0.);
+    float axis=.50+rise*.19+sin(rise*9.-uTime*.32)*rise*.08;
+    float width=.018+rise*.32;
+    float column=exp(-pow(abs(local.x-axis)/width,2.));
+    vec2 flow=vec2((local.x-axis)*13.,rise*10.-uTime*.28);
+    vec4 ash=vapor(flow,1.,vec3(.51,.48,.44));
+    ash.a*=column*smoothstep(-.008,.025,local.y-summit);
+    // Keep the source attached to the crater instead of scattering smoke everywhere.
+    ash.a=max(ash.a,column*.25*exp(-rise*5.)*smoothstep(-.008,.015,local.y-summit));
+    scene=over(ash,scene);
+   }else{scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.18,vec3(.39,.48,.52)),scene);}
    }
   }else if(uMode<6.5){
    if(uFootage>.5){
@@ -191,3 +216,4 @@
  }
  window.CardCinemaFilm={create,footage};
 })();
+
