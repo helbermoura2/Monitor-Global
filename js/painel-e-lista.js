@@ -1247,7 +1247,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
 
     if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
-    if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag));
+    if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag), item);
     if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag);
 
     // Voo inicial próximo aos anéis vermelho/de percepção; a câmera abre conforme a onda azul cresce.
@@ -1784,7 +1784,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     if (silentRefresh) return;
 
-    if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?'bulletin':item.type, cor);
+    if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?'bulletin':item.type, cor, item);
 
     if (item.coords && map) {
         let zoomEvento = 6;

@@ -6,7 +6,7 @@
    Duração da "janela" do efeito por tipo — o padrão é 7s, mas fogo/vulcão
    (brasas) e enchente (maré subindo) pediram mais tempo pra dar pra notar
    direito o efeito. */
-const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200 };
+const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200, tsunami: 8000 };
 // Decorative discharge channels: thin, irregular, branching paths; no emoji or filled zigzag.
 const LIGHTNING_NS='http://www.w3.org/2000/svg';
 function lightningPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');}
@@ -36,7 +36,7 @@ function prepareStormLightning(item){
     document.getElementById('pd-mag')?.replaceChildren(icon);
 }
 
-function triggerCardFx(type, color) {
+function triggerCardFx(type, color, item) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
     try { clearTimeout(el._fxTimeout); } catch (e) {}
@@ -51,12 +51,14 @@ function triggerCardFx(type, color) {
     void el.offsetWidth;
     const cls = 'pd-fx-' + type;
     el.classList.add(cls);
+    window.CinematicCard?.start(item || {type}, FX_DURATION[type] || 7200);
     el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
 
     if (type === 'hurricane') {
         spinIcon(12000, 1800);
         triggerWindLetters(FX_DURATION.hurricane);
-        triggerRainEffect(FX_DURATION.hurricane);
+        if(!window.CinematicCard?.isActive())triggerRainEffect(FX_DURATION.hurricane);
     } else if (type === 'tornado') spinIcon(7000, 2160);
     else if (type === 'wind') triggerWindLetters(FX_DURATION.wind);
 }
