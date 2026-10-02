@@ -21,37 +21,39 @@
   const mmi=reported!=null?clamp(Number(reported),1,10):estimate(mag,depth);
   const full=mag>=6&&mode!=='auto',strength=clamp((mmi-2)/6,0,1);
   const tier=mag>=8?3:mag>=7?2:mag>=6?1:0;
-  const duration=full?[0,7200,10000,12500][tier]:mode==='auto'?1300:600+strength*2300;
+  const duration=full?[0,10000,13000,16000][tier]:mode==='auto'?1300:600+strength*2300;
   return {mag,depth,mmi,source:reported!=null?(known?.source||'MMI fornecido pela fonte'):'Estimativa epicentral · Allen et al. (2012)',mode,full,tier,strength,duration,
-   amplitude:full?1.5+strength*(tier===3?11:tier===2?8:5):mode==='auto'?Math.min(1.4,.3+strength*1.1):.25+strength*4.5,
-   pieces:full?Math.round((tier===3?22:tier===2?14:6)*(.3+.7*strength)):0};
+   amplitude:full?3+strength*(tier===3?37:tier===2?29:22):mode==='auto'?Math.min(1.4,.3+strength*1.1):.25+strength*4.5,
+   rotation:full?(tier===3?.65:tier===2?.48:.34):.045,
+   pieces:full?Math.round((tier===3?24:tier===2?18:12)*(.35+.65*strength)):0};
  }
  function envelope(t,p){
-  const attack=1-Math.exp(-t*12),decay=Math.pow(Math.max(0,1-t/(p.duration/1000)),1.5);
+  const attack=1-Math.exp(-t*12),decay=Math.pow(Math.max(0,1-t/(p.duration/1000)),p.full?.85:1.5);
   const primary=Math.exp(-Math.pow((t-.8)/.65,2));
-  const secondary=p.full?.42*Math.exp(-Math.pow((t-2.7)/.8,2)):0;
-  return attack*decay*(.18+.82*primary+secondary);
+  const secondary=p.full?.68*Math.exp(-Math.pow((t-3)/1.2,2))+.42*Math.exp(-Math.pow((t-5.6)/1.3,2)):0;
+  return attack*decay*(p.full?.25:.18)+attack*decay*(.82*primary+secondary);
  }
  function keyframes(p){
-  const frames=[],seed=Math.random()*6.28,n=Math.ceil(p.duration/35);
+  const frames=[],seed=Math.random()*6.28,n=Math.ceil(p.duration/25);
   for(let i=0;i<=n;i++){
    const t=i*p.duration/n/1000,e=envelope(t,p);
-   const x=(Math.sin(t*79+seed)*.42+Math.sin(t*113)*.25+Math.sin(t*17)*.33)*p.amplitude*e;
-   const y=(Math.sin(t*61+seed)*.65+Math.sin(t*11)*.35)*p.amplitude*e*.42;
-   frames.push({offset:i/n,translate:`${x.toFixed(3)}px ${y.toFixed(3)}px`,rotate:`${(Math.sin(t*13+seed)*e*(p.full?.16:.045)*p.strength).toFixed(4)}deg`});
+   const x=(Math.sin(t*38+seed)*.42+Math.sin(t*61)*.2+Math.sin(t*9)*.38)*p.amplitude*e;
+   const y=(Math.sin(t*42+seed)*.55+Math.sin(t*16)*.45)*p.amplitude*e*(p.full?.65:.42);
+   frames.push({offset:i/n,translate:`${x.toFixed(3)}px ${y.toFixed(3)}px`,rotate:`${(Math.sin(t*8+seed)*e*p.rotation*p.strength).toFixed(4)}deg`});
   }
   frames[0]={offset:0,translate:'0px 0px',rotate:'0deg'};frames[n]={offset:1,translate:'0px 0px',rotate:'0deg'};return frames;
  }
  function stop(){
-  if(job){cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animation?.cancel();job.layer?.remove();
+  if(job){cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animations.forEach(a=>a.cancel());job.layer?.remove();
+  job.swayTargets.forEach(el=>el.removeAttribute('data-seismic-sway'));
   job.target?.removeAttribute('data-seismic-motion');job=null;}
   if(previewBar){previewBar.remove();previewBar=null;}
  }
  function pieceCandidates(p){
-  const selectors=p.tier>=2?['.mg-logo-icon','#kpi-temp','#kpi-wind','#kpi-brent-label','#chips-row .chip','#events .event .event-mag','#pd-flag','.stat-card']:
-   ['.mg-logo-icon','#kpi-temp','#kpi-wind','#chips-row .chip','#pd-flag'];
+  const selectors=['.mg-logo-icon','#kpi-temp','#kpi-wind','#kpi-brent-label','#chips-row .chip','#pd-flag'];
+  if(p.tier>=2)selectors.push('#events .event-mag','#painel-direito .stat-card');
   const list=[...new Set(selectors.flatMap(s=>[...document.querySelectorAll(s)]))].filter(el=>{
-   const r=el.getBoundingClientRect();return r.width>5&&r.height>5&&r.width<innerWidth*.7&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&!el.closest('#seismic-demo-dialog');
+   const r=el.getBoundingClientRect(),cs=getComputedStyle(el);return cs.visibility!=='hidden'&&Number(cs.opacity)>0&&r.width>5&&r.height>5&&r.width<innerWidth*.7&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&!el.closest('#seismic-demo-dialog');
   });
   for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
   return list.slice(0,p.pieces);
@@ -74,26 +76,45 @@
   const ctx=canvas.getContext('2d'),w=innerWidth,h=innerHeight,dpr=Math.min(devicePixelRatio||1,1.5);
   canvas.width=Math.ceil(w*dpr);canvas.height=Math.ceil(h*dpr);ctx?.scale(dpr,dpr);
   const targets=pieceCandidates(p);const pieces=targets.map((el,i)=>copyPiece(el,i,targets.length,p,layer));
-  const dust=Array.from({length:innerWidth<700?45:90},()=>({x:Math.random()*w,y:Math.random()*h,r:.5+Math.random()*1.8,z:.25+Math.random()*.75,phase:Math.random()*6.28}));
-  document.body.append(layer);return {layer,ctx,w,h,pieces,dust};
+  // A reusable soft particle makes drifting dust volumetric without expensive
+  // per-frame CSS blurs. Clear centres leave the event text readable.
+  const plume=document.createElement('canvas');plume.width=plume.height=96;
+  const pc=plume.getContext('2d');if(pc){const g=pc.createRadialGradient(48,48,0,48,48,48);g.addColorStop(0,'rgba(191,178,156,.5)');g.addColorStop(.35,'rgba(168,154,132,.25)');g.addColorStop(1,'rgba(143,129,107,0)');pc.fillStyle=g;pc.fillRect(0,0,96,96);}
+  const dust=Array.from({length:innerWidth<700?90:180},()=>({x:Math.random()*w,y:Math.random()*h,r:.6+Math.random()*2.6,z:.25+Math.random()*.75,phase:Math.random()*6.28}));
+  const clouds=Array.from({length:innerWidth<700?12:20},()=>({x:Math.random()<.5?Math.random()*w*.12:w*(.88+Math.random()*.12),y:Math.random()*h,r:60+Math.random()*100,z:.4+Math.random()*.6,phase:Math.random()*6.28}));
+  const shards=Array.from({length:Math.round((innerWidth<700?18:32)*(.4+.6*p.strength)*p.tier)},(_,i)=>{
+   const source=pieces[i%Math.max(1,pieces.length)],x=source?source.x+source.w*Math.random():Math.random()*w;
+   return {x,y:source?source.y+source.h*.5:Math.random()*h*.2,start:.25+Math.random()*(p.duration/1000-4),vx:(Math.random()-.5)*110,g:220+Math.random()*200,spin:(Math.random()-.5)*10,r:2+Math.random()*5,points:[[-.8,-.3],[.4,-.9],[1,.3],[-.2,.7]],tone:Math.random()<.45?'#748a92':'#263e49'};
+  });
+  document.body.append(layer);return {layer,ctx,w,h,pieces,dust,clouds,shards,plume};
  }
  function draw(scene,t,p){
-  const {ctx,w,h,dust,pieces}=scene,fade=Math.min(1,t*2)*clamp((p.duration/1000-t)/1.7,0,1);
+  const {ctx,w,h,dust,pieces,clouds,shards,plume}=scene,fade=Math.min(1,t*2)*clamp((p.duration/1000-t)/2,0,1);
   if(ctx){
    ctx.clearRect(0,0,w,h);
    // Soft drifting occlusion around the perimeter, rather than black flashes.
    const shade=ctx.createRadialGradient(w*.5,h*.45,Math.min(w,h)*.28,w*.5,h*.5,Math.max(w,h)*.75);
    shade.addColorStop(0,'rgba(6,10,14,0)');shade.addColorStop(1,`rgba(6,10,14,${fade*(.12+p.strength*.13)})`);ctx.fillStyle=shade;ctx.fillRect(0,0,w,h);
+   for(const c of clouds){
+    const x=c.x+Math.sin(t*.7+c.phase)*22*c.z,y=c.y+t*12*c.z,size=c.r*(1+t*.04);
+    ctx.globalAlpha=fade*(.22+.26*p.strength)*c.z;ctx.drawImage(plume,x-size,y-size,size*2,size*2);
+   }
    for(const d of dust){
-    const x=d.x+Math.sin(t*1.1+d.phase)*12*d.z+t*8*d.z,y=d.y+t*19*d.z;
-    const edge=Math.pow(Math.abs(x-w/2)/(w/2),1.5);ctx.globalAlpha=fade*(.025+.13*edge)*d.z*p.strength;
+    const x=d.x+Math.sin(t*1.1+d.phase)*18*d.z+t*12*d.z,y=d.y+t*24*d.z;
+    const edge=Math.pow(Math.abs(x-w/2)/(w/2),1.5);ctx.globalAlpha=fade*(.07+.3*edge)*d.z*p.strength;
     ctx.fillStyle='#d4cec2';ctx.beginPath();ctx.ellipse(x%w,y%h,d.r,d.r*.6,.2,0,Math.PI*2);ctx.fill();
+   }
+   for(const s of shards){
+    const age=t-s.start;if(age<0||age>3.2)continue;
+    const x=s.x+s.vx*age,y=s.y+.5*s.g*age*age;
+    ctx.save();ctx.translate(x,y);ctx.rotate(s.spin*age);ctx.globalAlpha=fade*clamp((3.2-age)/.8,0,.85);ctx.fillStyle=s.tone;ctx.beginPath();s.points.forEach((pt,i)=>i?ctx.lineTo(pt[0]*s.r,pt[1]*s.r):ctx.moveTo(pt[0]*s.r,pt[1]*s.r));ctx.closePath();ctx.fill();ctx.strokeStyle='#bcc9ca';ctx.globalAlpha*=.35;ctx.lineWidth=.6;ctx.stroke();ctx.restore();
    }ctx.globalAlpha=1;
   }
   for(const piece of pieces){
    const age=t-piece.start;if(age<0){piece.el.style.opacity='0';continue;}
-   const travel=Math.min(age,2.5),dy=.5*(260+90*piece.depth)*travel*travel;
-   piece.el.style.opacity=String(clamp(1-Math.max(0,age-1.3)/1.2,0,1));
+   const travel=Math.min(age,3.2),g=260+90*piece.depth,floor=Math.max(0,h-piece.y-piece.h-8),hit=Math.sqrt(2*floor/g),after=Math.max(0,travel-hit);
+   const dy=travel<hit?.5*g*travel*travel:floor-Math.abs(Math.sin(after*7))*Math.min(50,Math.sqrt(2*g*floor)*.14)*Math.exp(-after*4);
+   piece.el.style.opacity=String(clamp(1-Math.max(0,age-2.2),0,1));
    piece.el.style.transform=`translate3d(${(piece.vx*travel).toFixed(1)}px,${dy.toFixed(1)}px,0) rotate(${(piece.spin*travel*travel*.3).toFixed(1)}deg)`;
   }
  }
@@ -105,8 +126,14 @@
   if(reduced()){if(demo)showPreviewBar(p,true);return p;}
   const scene=p.full?createScene(p):null;
   target.dataset.seismicMotion=p.full?'full':'discreet';
-  const animation=typeof target.animate==='function'?target.animate(keyframes(p),{duration:p.duration,easing:'linear',fill:'none'}):null;
-  const token=++seq;job={token,target,animation,layer:scene?.layer,raf:0,timer:null,profile:p,demo};
+  const animations=[],swayTargets=[];
+  const animate=(el,pr)=>{if(typeof el.animate==='function')animations.push(el.animate(keyframes(pr),{duration:p.duration,easing:'linear',fill:'none'}));};
+  animate(target,p);
+  if(p.full){for(const [id,factor] of [['top-strip',.22],['painel-direito',.32],['events',.18]]){
+   const el=document.getElementById(id);if(!el||!el.getClientRects().length)continue;
+   el.dataset.seismicSway='true';swayTargets.push(el);animate(el,{...p,amplitude:p.amplitude*factor,rotation:p.rotation*factor});
+  }}
+  const token=++seq;job={token,target,animations,swayTargets,layer:scene?.layer,raf:0,timer:null,profile:p,demo};
   const start=performance.now();
   if(scene){const tick=now=>{if(job?.token!==token)return;draw(scene,(now-start)/1000,p);job.raf=requestAnimationFrame(tick);};job.raf=requestAnimationFrame(tick);}
   if(demo)showPreviewBar(p,false);
@@ -121,7 +148,7 @@
  }
  function openDemo(){
   stop();dialog?.remove();dialog=document.createElement('section');dialog.id='seismic-demo-dialog';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-label','Demonstração de efeitos sísmicos');
-  dialog.innerHTML='<button type="button" class="seismic-demo-close" aria-label="Fechar demonstração">×</button><h3>Efeitos sísmicos · demonstração</h3><p>Compare os efeitos na tela atual. Sem criar evento, mover a câmera ou tocar alarme.</p><label>Magnitude<select id="seismic-demo-mag"><option value="2">M2.0 · Vibração leve</option><option value="5.9">M5.9 · Cartão</option><option value="6.5" selected>M6.5 · Tela inteira</option><option value="7.5">M7.5 · Caos</option><option value="8.2">M8.2 · Caos intenso</option></select></label><label>Profundidade<select id="seismic-demo-depth"><option value="10">10 km · Raso</option><option value="100">100 km · Intermediário</option><option value="500">500 km · Profundo</option></select></label><label>Apresentação<select id="seismic-demo-mode"><option value="manual">Evento novo / clique manual</option><option value="auto">Ciclo aleatório · discreto</option></select></label><p class="seismic-demo-intensity"></p><p class="seismic-demo-note">Intensidade estimada na região do epicentro. As quedas são uma ilustração, não confirmação de danos.</p><button type="button" id="seismic-demo-play">Reproduzir efeito</button>';
+  dialog.innerHTML='<button type="button" class="seismic-demo-close" aria-label="Fechar demonstração">×</button><h3>Efeitos sísmicos · demonstração</h3><p>Compare os efeitos na tela atual. Sem criar evento, mover a câmera ou tocar alarme.</p><label>Magnitude<select id="seismic-demo-mag"><option value="2">M2.0 · Vibração leve</option><option value="5.9">M5.9 · Cartão</option><option value="6.1" selected>M6.1 · Tela inteira</option><option value="6.5">M6.5 · Tela inteira</option><option value="7.5">M7.5 · Caos</option><option value="8.2">M8.2 · Caos intenso</option></select></label><label>Profundidade<select id="seismic-demo-depth"><option value="10">10 km · Raso</option><option value="43">43 km · Comparar com o vídeo</option><option value="100">100 km · Intermediário</option><option value="500">500 km · Profundo</option></select></label><label>Apresentação<select id="seismic-demo-mode"><option value="manual">Evento novo / clique manual</option><option value="auto">Ciclo aleatório · discreto</option></select></label><p class="seismic-demo-intensity"></p><p class="seismic-demo-note">Intensidade estimada na região do epicentro. As quedas são uma ilustração, não confirmação de danos.</p><button type="button" id="seismic-demo-play">Reproduzir efeito</button>';
   const close=()=>{dialog?.remove();dialog=null;document.getElementById('fab-menu')?.focus();};dialog.querySelector('.seismic-demo-close').onclick=close;
   const current=()=>({mag:Number(dialog.querySelector('#seismic-demo-mag').value),depth:Number(dialog.querySelector('#seismic-demo-depth').value)});
   const update=()=>{const p=profile(current(),dialog.querySelector('#seismic-demo-mode').value);dialog.querySelector('.seismic-demo-intensity').textContent=`MMI ${roman(p.mmi)} estimado · ${p.full?'Tela inteira':'Cartão'} · ${(p.duration/1000).toFixed(1)} s`;};

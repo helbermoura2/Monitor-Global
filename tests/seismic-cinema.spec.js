@@ -32,6 +32,23 @@ test('revisão silenciosa não repete efeito, e aba oculta/movimento reduzido ca
 
 test('sequência completa termina sozinha e devolve tela e camadas ao estado normal',async({page})=>{
  await boot(page,1280);await select(page,6.5,'manual');await expect(page.locator('.seismic-scene')).toHaveCount(1);
- await expect.poll(()=>page.evaluate(()=>SeismicCinema.state()),{timeout:10000}).toBe(null);await expect(page.locator('.seismic-scene')).toHaveCount(0);
+ await expect.poll(()=>page.evaluate(()=>SeismicCinema.state()),{timeout:15000}).toBe(null);await expect(page.locator('.seismic-scene')).toHaveCount(0);
  expect(await page.locator('#app').evaluate(el=>getComputedStyle(el).translate)).toBe('none');await expect(page.locator('#app')).not.toHaveAttribute('data-seismic-motion','full');
+ await expect(page.locator('[data-seismic-sway]')).toHaveCount(0);
+});
+for(const width of [1280,390])test('M6.1 a 43 km é visível na tela inteira e continua operável '+width,async({page})=>{
+ await boot(page,width);await select(page,6.1,'manual',43);
+ const motion=await page.evaluate(async()=>{
+  let max=0;const started=performance.now();
+  while(performance.now()-started<1600){
+   const t=getComputedStyle(document.getElementById('app')).translate.split(' ').map(parseFloat);
+   max=Math.max(max,Math.hypot(t[0]||0,t[1]||0));await new Promise(requestAnimationFrame);
+  }return max;
+ });
+ expect(motion).toBeGreaterThan(5);await expect(page.locator('.seismic-scene')).toHaveCount(1);
+ await expect(page.locator('#painel-direito')).toHaveAttribute('data-seismic-sway','true');
+ await page.screenshot({path:'/tmp/seismic-impact-61-'+width+'.png'});
+ expect(await page.locator('.seismic-piece').count()).toBeGreaterThanOrEqual(3);
+ await page.evaluate(()=>SeismicCinema.stop());await expect(page.locator('[data-seismic-sway]')).toHaveCount(0);
+ expect(await page.locator('#painel-direito').evaluate(el=>getComputedStyle(el).translate)).toBe('none');
 });

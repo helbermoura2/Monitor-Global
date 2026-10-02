@@ -11,6 +11,11 @@ test('profundidade regula força sem usar magnitude como confirmação de danos'
  const e=engine(),shallow=e.profile({mag:6.5,depth:10}),deep=e.profile({mag:6.5,depth:500});assert.ok(shallow.mmi>deep.mmi);assert.ok(shallow.amplitude>deep.amplitude);assert.ok(shallow.pieces>deep.pieces);
  const small=e.profile({mag:2,depth:10}),large=e.profile({mag:5.9,depth:10});assert.ok(small.amplitude<large.amplitude);assert.ok(small.duration<large.duration);assert.equal(e.estimate(6.5,0),e.estimate(6.5,10));
 });
+test('M6.1 a 43 km tem presença no modo completo e continua discreto na rotação',()=>{
+ const e=engine(),item={mag:6.1,depth:43},full=e.profile(item,'manual'),auto=e.profile(item,'auto');
+ assert.ok(full.amplitude>=10);assert.ok(full.pieces>=6);assert.equal(full.duration,10000);
+ assert.ok(auto.amplitude<=1.4);assert.equal(auto.duration,1300);assert.equal(auto.pieces,0);
+});
 test('modelo coincide com a exposição populacional existente',async()=>{
  const {intensityAt}=await import('../../population-exposure-worker.mjs');const e=engine();for(const mag of [2,5.9,6.5,7.5,8.2])for(const depth of [0,10,100,500])assert.ok(Math.abs(e.estimate(mag,depth)-Math.max(1,Math.min(10,intensityAt(mag,depth,0))))<1e-10);
 });
