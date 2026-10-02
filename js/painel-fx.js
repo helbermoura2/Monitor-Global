@@ -121,9 +121,9 @@ function restoreWindLetters() {
     if (__windLettersEl) {
         const spans = __windLettersEl.querySelectorAll('.pd-fx-windletter');
         if (spans.length) {
-            __windLettersEl.textContent = [...spans]
-                .map(s => s.textContent === ' ' ? ' ' : s.textContent)
-                .join('');
+            // Atualizações podem deixar texto novo fora dos spans antigos.
+            // Preserve todo o conteúdo atual, não apenas as letras embrulhadas.
+            __windLettersEl.textContent = __windLettersEl.textContent.replace(/\u00a0/g, ' ');
         }
     }
     __windLettersEl = null;

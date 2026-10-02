@@ -24,7 +24,7 @@ test('rajadas contínuas e chuva compartilham a camada sem perder dados ou contr
 
   await page.clock.runFor(1301);
   await expect(page.locator('.pd-fx-letter-blown')).toHaveCount(0);
-  await page.clock.runFor(21000);
+  await page.clock.runFor(20000);
   expect(await page.locator('.pd-fx-letter-blown').count()).toBeGreaterThan(0);
   await page.evaluate(() => restoreWindLetters());
   await expect(page.locator('.pd-fx-letter-blown')).toHaveCount(0);
@@ -40,6 +40,14 @@ test('rajadas contínuas e chuva compartilham a camada sem perder dados ou contr
   await expect(page.locator('.mg-rain-wrap')).toHaveCount(0);
   await page.clock.runFor(3000);
   await expect(page.locator('.mg-rain-drop')).toHaveCount(0);
+
+  // Uma revisão pode misturar letras antigas com texto recém-adicionado.
+  await page.evaluate(() => {
+    triggerWindLetters(Infinity);
+    document.getElementById('pd-local').append(' atualizado');
+    restoreWindLetters();
+  });
+  await expect(page.locator('#pd-local')).toHaveText('Vento de teste atualizado');
 
   const sampling = await page.evaluate(() => {
     const original = [1, 2, 3, 4];
