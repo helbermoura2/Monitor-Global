@@ -18,12 +18,14 @@
   else if(Number(item.sev)>0)strength=clamp(Number(item.sev)/3,.3,1);
   const hot=item.type==='fire'||item.type==='volcano'&&(eruptive||lava);
   const ash=item.type==='volcano'&&!quiet&&!/no ash|sem cinzas/i.test(text)&&(eruptive||/ash|cinza/i.test(text));
-  return {type:item.type,strength,hot,ash,lava:item.type==='volcano'&&lava,rain:['storm','hurricane'].includes(item.type),mist:['hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  const category=[item.category,item.classification,item.cycloneType,item.warningEvent,item.detail,item.place].filter(Boolean).join(' ');
+  const cycloneStage=/depress|depression/i.test(category)?'depression':/tempestade tropical|tropical storm/i.test(category)?'tropical-storm':'mature';
+  return {type:item.type,cycloneStage,strength,hot,ash,lava:item.type==='volcano'&&lava,rain:['storm','hurricane'].includes(item.type),mist:['hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  function stop(){
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
-  if(scene){scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
+  if(scene){scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active');removeGhost();
  }
  function fogTexture(){
@@ -71,7 +73,7 @@
   }
   if(cfg.hot)heatFilter(host);
   if(cfg.rain){
-   for(let i=0;i<(mobile?42:72);i++)s.rain.push({x:Math.random(),y:Math.random(),depth:rand(.15,1),phase:rand(0,6.3)});
+   for(let i=0;i<(mobile?76:128);i++)s.rain.push({x:Math.random(),y:Math.random(),depth:rand(.15,1),phase:rand(0,6.3)});
    const lenses=document.createElement('div');lenses.className='pd-cinema-lenses';host.append(lenses);
    for(let i=0;i<(mobile?12:18);i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
   }
@@ -79,9 +81,11 @@
   const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:['tornado','wind','earthquake'].includes(cfg.type)?mobile?12:20:0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
+  const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
+  if(['wind','hurricane','storm','tornado'].includes(cfg.type))window.triggerWindLetters?.(Infinity);
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
-  function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);s.film?.resize(w,h);s.footage?.resize(w,h);}
-  s.scroll=()=>{s.host.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
+  function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);s.contact.width=s.canvas.width;s.contact.height=s.canvas.height;s.contactCtx?.setTransform(dpr,0,0,dpr,0,0);s.film?.resize(w,h);s.footage?.resize(w,h);}
+  s.scroll=()=>{s.host.style.transform=s.front.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
  }
  function edge(x,w){return .28+.72*Math.pow(Math.abs(x/w-.5)*2,1.5);}
  function illuminate(s,t,envelope){
@@ -96,8 +100,8 @@
  function rainfall(s,t,dt,envelope){
   const {ctx,width:w,height:h,cfg}=s;const gust=cfg.type==='hurricane'?85+75*Math.sin(t*.85)+40*Math.sin(t*1.9):8+22*Math.sin(t*.67);
   for(const drop of s.rain){
-   const speed=(130+drop.depth*300)*(1+cfg.strength*.35);drop.y+=speed*dt/h;drop.x+=gust*dt/w*(.5+drop.depth);if(drop.y>1.06){drop.y=-.08;drop.x=Math.random();}if(drop.x>1.08)drop.x=-.08;if(drop.x<-.08)drop.x=1.08;
-   const x=drop.x*w,y=drop.y*h,len=8+drop.depth*25;ctx.strokeStyle='rgba(210,231,246,'+((.10+drop.depth*.34)*envelope*edge(x,w)).toFixed(3)+')';ctx.lineWidth=.45+drop.depth*.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-gust/speed*len,y-len);ctx.stroke();
+   const speed=(220+drop.depth*460)*(1+cfg.strength*.35);drop.y+=speed*dt/h;drop.x+=gust*dt/w*(.5+drop.depth);if(drop.y>1.06){drop.y=-.08;drop.x=Math.random();}if(drop.x>1.08)drop.x=-.08;if(drop.x<-.08)drop.x=1.08;
+   const x=drop.x*w,y=drop.y*h,len=8+drop.depth*25;ctx.strokeStyle='rgba(210,231,246,'+((.14+drop.depth*.38)*envelope*edge(x,w)).toFixed(3)+')';ctx.lineWidth=.45+drop.depth*.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-gust/speed*len,y-len);ctx.stroke();
   }
   // Gravity starts after a droplet accumulates mass. Nearby drops merge by volume.
   for(const b of s.beads){b.r+=dt*(.14+cfg.strength*.12);if(b.r>2.65)b.vy=Math.min(80,(b.vy+dt*20)*(1+dt*.4));b.y+=b.vy*dt/h;
@@ -168,6 +172,32 @@
    ctx.restore();
   }
  }
+ // Foreground contact uses the same video decoder and geometry as the scene.
+ function contactSurface(s,t,dt,envelope){
+  const ctx=s.contactCtx;if(!ctx)return;const {width:w,height:h,cfg}=s;
+  ctx.clearRect(0,0,w,h);const p=panel();
+  const gust=(.5+.5*Math.sin(t*.9))*cfg.strength;
+  p?.style.setProperty('--pd-gust',String(gust));
+  if(cfg.rain){
+   const old=s.ctx;s.ctx=ctx;rainfall(s,t,dt,envelope);s.ctx=old;
+   // Splashes hit the card's lower glass, rather than rain behind the words.
+   ctx.strokeStyle='rgba(217,237,247,.22)';ctx.lineWidth=.8;
+   for(let i=0;i<(s.mobile?9:16);i++){const phase=(t*1.8+i*.618)%1,x=((i*.381)%1)*w,y=h*(.78+.18*((i*.217)%1));ctx.globalAlpha=(1-phase)*envelope;ctx.beginPath();ctx.ellipse(x,y,phase*12,phase*3,0,Math.PI,2*Math.PI);ctx.stroke();}ctx.globalAlpha=1;
+  }
+  if(cfg.type==='wind'||cfg.type==='hurricane'){
+   ctx.strokeStyle='rgba(201,220,226,.13)';ctx.lineWidth=.7;
+   for(let i=0;i<18;i++){const x=((t*(.20+gust*.25)+i*.618)%1)*w,y=((i*.381)%1)*h;ctx.beginPath();ctx.moveTo(x-55,y+5);ctx.quadraticCurveTo(x-18,y-8,x,y);ctx.stroke();}
+  }
+  if(cfg.type==='flood'){
+   // Illustrative rise, unrelated to measured flood depth. Recede gently after crest.
+   const phase=t%26,rise=phase<12?phase/12:phase<18?1:1-(phase-18)/8;
+   const top=h*(.88-.48*rise);p?.style.setProperty('--pd-water-top',(top/h*100).toFixed(2)+'%');
+   ctx.save();ctx.beginPath();for(let x=0;x<=w+6;x+=6){const y=top+Math.sin(x*.035+t*1.2)*5+Math.sin(x*.08-t)*2;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.clip();
+   if(s.footage?.isReady()){ctx.globalAlpha=.27*envelope;ctx.drawImage(s.footage.video,0,0,w,h);}
+   const tint=ctx.createLinearGradient(0,top,0,h);tint.addColorStop(0,'rgba(148,163,144,.10)');tint.addColorStop(1,'rgba(36,57,57,.24)');ctx.globalAlpha=envelope;ctx.fillStyle=tint;ctx.fillRect(0,top-8,w,h);
+   ctx.strokeStyle='rgba(208,222,207,.36)';for(let i=0;i<7;i++){ctx.beginPath();for(let x=0;x<=w+6;x+=6){const y=top+i*10+Math.sin(x*.035+t*1.2+i)*5;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineWidth=i? .6:1.5;ctx.stroke();}ctx.restore();
+  }
+ }
  function frame(now){
   const s=scene;if(!s)return;const t=(now-s.start)/1000;
   if(t*1000>=s.duration){stop();return;}
@@ -182,7 +212,7 @@
   const fps=s.mobile?24:30;if(now-s.paintAt>=1000/fps&&s.width&&s.height){
    const dt=Math.min(.06,(now-s.last)/1000);s.last=now;s.paintAt=now;
    const fadeIn=clamp(t/.55,0,1),fadeOut=Number.isFinite(s.duration)?clamp((s.duration/1000-t)/.85,0,1):1,envelope=Math.min(fadeIn,fadeOut);s.host.style.opacity=envelope.toFixed(3);
-   s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);if(s.cfg.rain)rainfall(s,t,dt,envelope);if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);if(s.particles.length)debris(s,t,dt,envelope);if(s.cfg.water&&!s.film)water(s,t,envelope);if(s.floating.length)surfaceDebris(s,t,dt,envelope);s.film?.draw(t,s.cfg,(s.demoLightning||p?.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
+   s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);contactSurface(s,t,dt,envelope);if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);if(s.particles.length)debris(s,t,dt,envelope);if(s.cfg.water&&!s.film)water(s,t,envelope);if(s.floating.length)surfaceDebris(s,t,dt,envelope);s.film?.draw(t,s.cfg,(s.demoLightning||p?.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
   }
   raf=requestAnimationFrame(frame);
  }
@@ -193,8 +223,9 @@
   prepareSymbol(item);
   if(!scene||scene.itemId!==item?.id)return;
   const cfg=profile(item);if(!cfg){stop();return;}
-  if(cfg.type!==scene.cfg.type||['hot','ash','lava','rain','mist','water'].some(k=>cfg[k]!==scene.cfg[k])){start(item,scene.duration);return;}
+  if(cfg.type!==scene.cfg.type||['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){start(item,scene.duration);return;}
   scene.cfg=cfg;
  }
  window.CinematicCard={start,stop,refresh,prepareSymbol,isActive:()=>!!scene};
 })();
+
