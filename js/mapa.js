@@ -181,6 +181,7 @@ function setGeoVis(cls, vis) {
 
 
 function initMap() {
+    window.__mgMapReady = false;
     const estilo = { version: 8, sources: {}, layers: [ { id: 'ocean-bg', type: 'background', paint: { 'background-color': '#0b2a4a' } } ] };
 
     map = new GL.Map({
@@ -399,7 +400,9 @@ function initMap() {
             }
         });
 
+        window.__mgMapReady = true;
         syncAllMarkers();
+        requestInitialAutoDisplay();
     });
 }
 

@@ -459,7 +459,7 @@ if (navigator.geolocation) {
 }
 
 /* ═══════════════ INICIALIZAÇÃO ═══════════════ */
-window.addEventListener('load', () => {
+document.addEventListener('DOMContentLoaded', () => {
     // BUG CORRIGIDO: a ordem era restaurarCacheOffline() (que já renderiza a lista
     // com os dados salvos) seguido de renderEventsSkeleton() — que SOBRESCREVIA
     // essa lista recém-preenchida com 6 caixinhas cinzas vazias de "carregando".

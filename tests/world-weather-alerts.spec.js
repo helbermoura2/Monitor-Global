@@ -28,7 +28,7 @@ for(const width of [1280,390])test('lista oficial mantém foco sísmico e não i
 });
 test('aviso de inundação costeira não recebe previsão de cheia de rio',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!isFirstDisplay&&!__fetchGlobalFeedsEmAndamento);
+ await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{const now=Date.now();const item={id:'coastal-warning',type:'flood',coords:[-139,69],place:'Costa do Yukon',source:'ECCC / Environment Canada',hazardNature:'warning',warningEvent:'storm surge warning',severityLabel:'Moderada',time:now,expiresAt:now+3600000};upsertAlert(item);EventStore.setSelected(item.id);document.getElementById('painel-direito').style.display='block';window.__riverFetched=false;window.fetchWithCorsFallback=async(url)=>{if(String(url).includes('flood-api.open-meteo.com'))window.__riverFetched=true;throw Error('Rede bloqueada no teste de maré')};togglePainelMaisDetalhes(true);});
  await expect(page.locator('#pd-details-verso')).toBeVisible();await expect(page.locator('#pd-details-verso')).toContainText('Moderada');await expect(page.locator('#pd-details-verso')).not.toContainText('Rios · previsão de vazão');expect(await page.evaluate(()=>window.__riverFetched)).toBe(false);
 });

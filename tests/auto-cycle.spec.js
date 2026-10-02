@@ -1,10 +1,10 @@
 const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block',reducedMotion:'reduce'});
 for(const width of [1280,390])test('ciclo2+1 varia eventos e retoma o slot depois de nova chegada '+width,async({page})=>{
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!isFirstDisplay&&!__fetchGlobalFeedsEmAndamento);
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{
   const now=Date.now();globalEvents=Array.from({length:80},(_,i)=>({id:'rotation-q'+i,type:'earthquake',source:'Visual QA',coords:[-46,-23],mag:3,depth:10,time:now,place:'Sismo de teste '+i}));
-  globalAlerts=['fire','hurricane','flood','wind','volcano','storm'].map(type=>({id:'rotation-'+type,type,source:'Visual QA',coords:[-46,-23],time:now,place:'Evento de teste '+type,detail:'Registro demonstrativo',bandeira:'🇧🇷'}));
-  window.__mgAutoRotation=undefined;window.__mgRevisionProtectedUntil=0;window.__mgLiveQuakeUntil=0;pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();
+  globalAlerts=['fire','hurricane','flood','wind','volcano','storm'].map(type=>({id:'rotation-'+type,type,source:['wind','storm'].includes(type)?'Open-Meteo':'Visual QA',hazardNature:['wind','storm'].includes(type)?'forecast':undefined,coords:[-46,-23],time:now,place:'Evento de teste '+type,detail:'Registro demonstrativo',bandeira:'🇧🇷'}));
+  isFirstDisplay=false;window.__mgAutoRotation=undefined;window.__mgRevisionProtectedUntil=0;window.__mgLiveQuakeUntil=0;pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();
   map.flyTo=()=>{};map.isMoving=()=>false;window.softFlyToCoords=()=>0;
   window.__tickRotation=()=>{const original=window.setTimeout;let callback;window.setTimeout=(fn,ms)=>{callback=fn;return 0;};try{scheduleNextAutoCycle(5000);}finally{window.setTimeout=original;}callback();clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);return {id:EventStore.selectedId,type:EventStore.getSelected()?.type,phase:window.__mgAutoRotation?.phase,error:window.__lastPainelDetalheError};};
  });

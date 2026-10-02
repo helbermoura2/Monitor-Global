@@ -3,7 +3,7 @@ test.use({serviceWorkers:'block'});
 async function boot(page,width=1280){
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!isFirstDisplay&&!__fetchGlobalFeedsEmAndamento);
+ await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
 }
 async function select(page,type,extra={}){
  await page.evaluate(({type,extra})=>{

@@ -154,6 +154,7 @@ function applyFilters() {
     try { syncAllMarkers(); } catch (e) { console.error('[monitor] syncAllMarkers falhou:', e); }
     try { updateQuakeLabels(); } catch (e) { console.error('[monitor] updateQuakeLabels falhou:', e); }
     try { updateFreshnessBar(); } catch (e) {}
+    requestInitialAutoDisplay();
 }
 
 function selectMapEvent(item, speak = false) {
@@ -967,8 +968,8 @@ function selectNextAutoCycleItem() {
     const groups = new Map(), now = Date.now();
     for (const item of source || []) {
         if (!item || item.id == null || item.type === 'earthquake' || (!item.type && item.mag != null) ||
-            ['forecast', 'river', 'bulletin'].includes(item.hazardNature) ||
-            !Array.isArray(item.coords) || item.coords.length < 2 || !item.coords.slice(0, 2).every(Number.isFinite) ||
+            ['river', 'bulletin'].includes(item.hazardNature) ||
+            (!(Array.isArray(item.coords) && item.coords.length >= 2 && item.coords.slice(0, 2).every(Number.isFinite) && Math.abs(item.coords[0]) <= 180 && Math.abs(item.coords[1]) <= 90) && !(item.hazardNature === 'warning' && !item.coords)) ||
             (Number.isFinite(item.expiresAt) && item.expiresAt <= now) ||
             (Number.isFinite(item.fimTs) && item.fimTs <= now) ||
             (Number.isFinite(item.inicioTs) && item.inicioTs > now) ||
@@ -999,14 +1000,38 @@ function showNextAutoCycleItem() {
     const it = selectNextAutoCycleItem();
     if (!it) return false;
     window.__mgSoftCycle = true;
-    const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
-    if (ehSismo) {
-        const i = globalEvents.findIndex(e => e && e.id === it.id);
-        if (i !== -1) showEventDetails(i, false);
-        else showAlertDetails(it, false);
-    } else showAlertDetails(it, false);
-    return true;
+    window.__mgRotationDisplay = true;
+    try {
+        const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
+        if (ehSismo) {
+            const i = globalEvents.findIndex(e => e && e.id === it.id);
+            if (i !== -1) showEventDetails(i, false);
+            else showAlertDetails(it, false);
+        } else showAlertDetails(it, false);
+        window.__mgResumeRotation = false;
+        return true;
+    } finally { window.__mgRotationDisplay = false; }
 }
+function requestInitialAutoDisplay() {
+    if (!isFirstDisplay || !map || window.__mgInitialDisplayPending) return;
+    if (!window.__mgMapReady && typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded()) {
+        if (!window.__mgInitialMapWait) {
+            window.__mgInitialMapWait = true;
+            map.once('load', () => { window.__mgInitialMapWait = false; requestInitialAutoDisplay(); });
+        }
+        return;
+    }
+    window.__mgInitialDisplayPending = true;
+    setTimeout(() => {
+        window.__mgInitialDisplayPending = false;
+        if (!isFirstDisplay) return;
+        if (eventoSelecionadoId != null) { isFirstDisplay = false; return; }
+        // Set before rendering, which calls applyFilters again.
+        isFirstDisplay = false;
+        if (!showNextAutoCycleItem()) isFirstDisplay = true;
+    }, 0);
+}
+
 function scheduleNextAutoCycle(ms) {
     clearTimeout(cycleTimeout);
     try { clearTimeout(window.__mgCycleGuard); } catch (e) {}
@@ -1015,7 +1040,13 @@ function scheduleNextAutoCycle(ms) {
         try {
             const protectedMs = getAutoCycleProtectionRemaining();
             if (protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
-            if (typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) return;
+            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
+            // Resume one rotation slot between queued revisions, so a large
+            // backlog cannot monopolize the screen. Fresh arrivals still win.
+            if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
+                window.__mgResumeRotation = true;
+                return;
+            }
             if (map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
             if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
         } catch (e) {
@@ -1342,12 +1373,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // magnitude MAIOR que o que já está em tela).
     const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
     // Ciclo automático puro (revisitando um evento já conhecido, sem onda
-    // rodando — só a zona crítica): 1 minuto fixo pra qualquer magnitude,
+    // rodando — só a zona crítica): 30 segundos fixos pra qualquer magnitude,
     // não escalado como o evento novo/manual acima. Zona crítica e onda não
     // somem mais sozinhas (ver stopFeltZone/startWaveFront em
     // sismo-metrics.js) — quem decide quando trocar de evento no automático
     // é só este tempo aqui.
-    const HOLD_AUTO_MS = 60000;
+    const HOLD_AUTO_MS = 30000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
@@ -1506,8 +1537,8 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
-    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle)) {window.__mgSoftCycle=false;return;}
-    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature)) { window.__mgSoftCycle=false; return; }
+    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay) {window.__mgSoftCycle=false;return;}
+    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature) && !window.__mgRotationDisplay) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
     // módulos continuam independentes. Atualizações silenciosas e cliques
@@ -1533,8 +1564,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // stopFeltZone/startWaveFront em sismo-metrics.js), sem isto aqui o
     // anel do ÚLTIMO sismo visto ficava preso na tela pra sempre assim que
     // o usuário saísse pra ver um furacão/vulcão/etc.
-    try { if (item.coords && typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
-    try { if (item.coords && typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+    try { if ((item.coords || window.__mgRotationDisplay) && typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if ((item.coords || window.__mgRotationDisplay) && typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     // Sempre resolve a cópia mais recente no store (evita card com versão velha)
     try {
         if (typeof EventStore !== 'undefined' && item.id != null) {
@@ -1938,6 +1969,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             }
         }
     } else {
+        window.__mgSoftCycle = false;
         scheduleNextAutoCycle(30000);
     }
 }

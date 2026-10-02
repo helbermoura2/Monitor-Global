@@ -54,7 +54,7 @@ function focusNextQuakeRevision(blocked = false) {
         Date.now() < (window.__mgLiveQuakeUntil || 0);
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
         Date.now() < (window.__mgRevisionProtectedUntil || 0);
-    if (blocked || live || protectedSelection || !map) return false;
+    if (blocked || live || protectedSelection || window.__mgResumeRotation || !map) return false;
     const candidates = [];
     for (const [id, revision] of pendingQuakeRevisions) {
         const index = globalEvents.findIndex(e => e && e.id === id);
@@ -68,6 +68,7 @@ function focusNextQuakeRevision(blocked = false) {
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle = true;
     showEventDetails(next.index, false);
+    window.__mgResumeRotation = true;
     if (typeof showPanelRevisionFocus === 'function') showPanelRevisionFocus(next.revision);
     return true;
 }
@@ -133,7 +134,22 @@ async function fetchGlobalFeeds() {
             'CSN-Chile', 'SSN-Mexico', 'EMSC'
         ];
 
-        const settled = await Promise.allSettled(tasks);
+        // Publish the first successful catalog while slower agencies continue.
+        // Keep isFirstLoad true until the full merge, avoiding startup alarms.
+        const progressiveTasks = tasks.map(task => Promise.resolve(task).then(rows => {
+            if (isFirstLoad && isFirstDisplay && !window.__mgInitialCatalogReady && Array.isArray(rows) && rows.length) {
+                window.__mgInitialCatalogReady = true;
+                globalEvents = mergeEarthquakeReports(rows).map(ev => {
+                    ev.id = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
+                    knownEventIds.add(ev.id);
+                    return ev;
+                });
+                window.globalEvents = globalEvents;
+                applyFilters();
+            }
+            return rows;
+        }));
+        const settled = await Promise.allSettled(progressiveTasks);
         const reports = [];
         const sourceStatus = {};
         const sourceErrors = {};
@@ -213,8 +229,7 @@ async function fetchGlobalFeeds() {
             // novo re-seleciona o índice 0 e cancela qualquer voo/perseguição de
             // câmera que já esteja em andamento por outro motivo.
             if (isFirstDisplay) {
-                isFirstDisplay = false;
-                if (typeof showNextAutoCycleItem === 'function') showNextAutoCycleItem();
+                requestInitialAutoDisplay();
             }
 
             return;
@@ -427,8 +442,7 @@ async function fetchGlobalFeeds() {
         queueQuakeRevisions(atualizados);
         const firstRevisionDisplay = isFirstDisplay;
         if (isFirstDisplay) {
-            isFirstDisplay = false;
-            if (typeof showNextAutoCycleItem === 'function') showNextAutoCycleItem();
+            requestInitialAutoDisplay();
         } else {
             queueNewCameraQuakes(novosRecentes);
             focusNextNewCameraQuake();

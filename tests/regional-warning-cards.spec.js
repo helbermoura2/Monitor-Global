@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block'});
 for(const [width,height] of [[1280,800],[390,844]])test('aviso regional abre painel e boletim separado, sem câmera falsa '+width,async({page})=>{
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!isFirstDisplay&&!__fetchGlobalFeedsEmAndamento);
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
  const before=await page.evaluate(()=>{
   const now=Date.now();globalEvents=[{id:'keep-quake',type:'earthquake',mag:5.6,coords:[-90,13],depth:10,time:now,place:'Sismo de teste'}];showEventDetails(0,false);clearTimeout(cycleTimeout);
   // Isolate card activation from the quake setup timers, whose own wave replacement calls stopWaveFront.
