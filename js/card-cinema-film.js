@@ -14,7 +14,7 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(1.7,9.2);a*=.5;}return v;}
@@ -101,11 +101,15 @@
    scene.rgb+=vec3(.44,.57,.72)*flash*uLightning;
   }else if(uMode<1.5){
    vec2 center=vec2((uv.x-.5)*aspect,uv.y-.53);float r=length(center)/max(aspect*.48,.18),a=atan(center.y,center.x);
-   float bands=cloud(vec2(r*5.8,a*1.15+r*9.-uTime*(.45+.42*uStrength)));float eye=smoothstep(.10,.22,r);
+   float spiral=sin(a*3.+r*10.-uTime*(.32+.35*uStrength));
+   float bands=cloud(vec2(center.x*12.,center.y*12.)+vec2(spiral*.4,-uTime*.09));
+   bands=mix(bands,bands*.65+smoothstep(-.4,.8,spiral)*.35,uOrganized);
+   float eye=mix(1.,smoothstep(.10,.22,r),uOrganized);
    float ring=(1.-smoothstep(.60,.85,r))*eye;
    vec3 color=mix(vec3(.06,.095,.14),vec3(.63,.70,.76),bands*.88);
    float shadow=cloud(vec2(r*8.,a*2.+r*13.-uTime*.45));color*=.68+.32*shadow;
    scene=over(vec4(color,ring*smoothstep(.23,.67,bands)*mix(.94,.43,uFootage)),vapor(vec2(uv.x*4.-uTime*.25,uv.y*7.),mix(.67,.24,uFootage),vec3(.40,.54,.66)));
+   float eyeShade=(1.-smoothstep(.10,.23,r))*uOrganized;scene.rgb=mix(scene.rgb,vec3(.018,.035,.045),eyeShade*.94);scene.a=max(scene.a,eyeShade*.85);
   }else if(uMode<2.5){
    float y=clamp(local.y,0.,1.);float axis=.5+sin(y*4.+uTime*.58)*.045;
    float radius=mix(.024,.19,pow(y,.8));float radial=(local.x-axis)/radius;
@@ -195,15 +199,15 @@
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
    let last=-Infinity,width=1,height=1;
    function resize(w,h){width=w;height=h;const scale=Math.min(1,(mobile?176:240)/Math.max(w,1),(mobile?360:480)/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
  function footage(cfg){
-  if(!(cfg.type in modes))return null;
+  if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type))return null;
   const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?(cfg.ash||cfg.hot?'smoke':'terrain'):cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
   let failed=false,dead=false,playing=false,wanted=false;
@@ -216,4 +220,5 @@
  }
  window.CardCinemaFilm={create,footage};
 })();
+
 
