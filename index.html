@@ -65,7 +65,7 @@
 <link rel="stylesheet" href="css/volcano.css">
     <link rel="stylesheet" href="css/mobile-ultimate.css">
 <link rel="stylesheet" href="css/theme-dark-mode.css">
-<link rel="stylesheet" href="css/painel-fx.css?v=20261002-full-card">
+<link rel="stylesheet" href="css/painel-fx.css?v=20261002-cinema-materials">
 <link rel="stylesheet" href="css/felt-zone.css">
 <link rel="stylesheet" href="css/popup-alcance-sismo.css">
 <link rel="stylesheet" href="css/tsunami-wave.css">
@@ -98,7 +98,7 @@
 <button class="submenu-action" id="btn-voz-hist" title="Últimos alertas falados">🗣️ Histórico de voz</button>
 <button class="submenu-action" id="btn-share-resumo" title="Copiar resumo">📋 Copiar resumo</button></div></div>
       <div class="header-menu-group" id="events-menu-group"><button class="header-menu-trigger" type="button" aria-expanded="false" aria-controls="events-menu">📊 Eventos</button><div class="header-submenu" id="events-menu" role="menu"><div class="header-submenu-title">EVENTOS E DADOS</div><button class="submenu-action" id="btn-previsao" title="Previsão & qualidade do ar">🌤️ Previsão e ar</button><button class="submenu-action" id="mobile-events-btn" onclick="toggleMobileEventsModal(true)" title="Ver registros de eventos">📋 Abrir registros <span class="mobile-events-badge" id="mobile-events-fab-count">0</span></button><button class="submenu-action" id="events-sources-shortcut" type="button">📡 Status das fontes</button><button class="submenu-action" id="btn-resumo-dia" type="button" title="Gerar imagem com os 5 maiores sismos do dia" onclick="shareResumoDiarioStory()">🏆 Resumo do dia</button></div></div>
-      <div class="ts-more-wrap header-menu-group" id="ts-more-wrap"><button class="header-menu-trigger" id="ts-more-toggle" type="button" title="Mais opções" onclick="toggleMoreMenu()" aria-expanded="false">⋯ Mais</button><div class="header-submenu" id="ts-more-menu" role="menu"><div class="header-submenu-title">FERRAMENTAS</div><button class="submenu-action" type="button" id="seismic-demo-menu" onclick="event.stopPropagation();window.SeismicCinema?.openDemo();document.getElementById('ts-more-menu')?.classList.remove('open')">🎬 Testar efeitos sísmicos</button><button class="submenu-action" id="debug-toggle" title="Log de diagnóstico">🛠️ Diagnóstico</button><button class="submenu-action" id="ux-btn-summary" type="button" title="Abrir resumo executivo">📊 Resumo</button><button class="submenu-action" id="ux-btn-timeline" type="button" title="Abrir linha do tempo">◷ Timeline</button><button class="submenu-action" id="ux-btn-sources" type="button" title="Ver status das fontes">📡 Fontes</button><button class="submenu-action" id="ux-btn-legend" type="button" title="Abrir legenda do mapa">ⓘ Legenda</button><button class="submenu-action" id="ux-btn-changes" type="button" title="Ver o que mudou">↕ Mudanças</button><button class="submenu-action" id="ux-btn-settings" type="button" title="Configurar alertas">🔔 Alertas</button><button class="submenu-action" type="button" id="menu-btn-reload" onclick="event.stopPropagation();window.menuAcao&&window.menuAcao('reload')">🔄 Recarregar dados</button></div></div>
+      <div class="ts-more-wrap header-menu-group" id="ts-more-wrap"><button class="header-menu-trigger" id="ts-more-toggle" type="button" title="Mais opções" onclick="toggleMoreMenu()" aria-expanded="false">⋯ Mais</button><div class="header-submenu" id="ts-more-menu" role="menu"><div class="header-submenu-title">FERRAMENTAS</div><button class="submenu-action" type="button" id="seismic-demo-menu" onclick="event.stopPropagation();window.CardEffectDemo?.open();document.getElementById('ts-more-menu')?.classList.remove('open')">🎬 Testar efeitos</button><button class="submenu-action" id="debug-toggle" title="Log de diagnóstico">🛠️ Diagnóstico</button><button class="submenu-action" id="ux-btn-summary" type="button" title="Abrir resumo executivo">📊 Resumo</button><button class="submenu-action" id="ux-btn-timeline" type="button" title="Abrir linha do tempo">◷ Timeline</button><button class="submenu-action" id="ux-btn-sources" type="button" title="Ver status das fontes">📡 Fontes</button><button class="submenu-action" id="ux-btn-legend" type="button" title="Abrir legenda do mapa">ⓘ Legenda</button><button class="submenu-action" id="ux-btn-changes" type="button" title="Ver o que mudou">↕ Mudanças</button><button class="submenu-action" id="ux-btn-settings" type="button" title="Configurar alertas">🔔 Alertas</button><button class="submenu-action" type="button" id="menu-btn-reload" onclick="event.stopPropagation();window.menuAcao&&window.menuAcao('reload')">🔄 Recarregar dados</button></div></div>
     </div>
     <div class="ts-kpis">
       <div class="ts-kpi" id="kpibox-eventos"><span class="ts-kpi-label">REGISTROS 24H</span><span class="ts-kpi-value" id="kpi-eventos">--</span></div>
@@ -390,13 +390,15 @@
 <script defer src="js/populacao-sismo.js?v=20261001-unified-cities"></script>
 <script defer src="js/feed-utils.js?v=20261001-regional-cards"></script>
 <script defer src="js/confianca-fontes.js?v=20261001-world-alerts"></script>
-<script defer src="js/card-cinema-film.js?v=20261002-full-card"></script>
-<script defer src="js/cinematic-card.js?v=20261002-full-card"></script>
-<script defer src="js/painel-fx.js?v=20261002-seismic-impact"></script>
-<link rel="stylesheet" href="css/seismic-cinema.css?v=20261002-seismic-impact">
-<script defer src="js/seismic-cinema.js?v=20261002-seismic-impact"></script>
+<script defer src="js/card-cinema-film.js?v=20261002-cinema-materials"></script>
+<script defer src="js/cinematic-card.js?v=20261002-cinema-materials"></script>
+<script defer src="js/painel-fx.js?v=20261002-cinema-materials"></script>
+<link rel="stylesheet" href="css/seismic-cinema.css?v=20261002-cinema-materials">
+<script defer src="js/seismic-cinema.js?v=20261002-cinema-materials"></script>
+<link rel="stylesheet" href="css/card-effect-demo.css?v=20261002-cinema-materials">
+<script defer src="js/card-effect-demo.js?v=20261002-cinema-materials"></script>
 <script defer src="js/population-exposure.js?v=20261001-1"></script>
-<script defer src="js/painel-e-lista.js?v=20261002-seismic-impact"></script>
+<script defer src="js/painel-e-lista.js?v=20261002-cinema-materials"></script>
 <script defer src="js/kpis-ui.js"></script>
 <script defer src="js/regional-seismic.js?v=20261001-regional"></script>
 <script defer src="js/sismo-fontes.js?v=20261001-source-health"></script>
@@ -426,7 +428,7 @@
 <script defer src="js/header-menu-toggle.js"></script>
 
 <link rel="stylesheet" href="css/menu-fix.css">
-<script defer src="js/header-menu-pro.js?v=20261002-seismic-impact"></script>
+<script defer src="js/header-menu-pro.js?v=20261002-cinema-materials"></script>
 
 <link rel="stylesheet" href="css/mobile-header-v4412.css?v=20260930-mid-fix">
 
@@ -451,12 +453,12 @@
 <!-- mobile-menu-single-handler-2026-08-24 removido: mirava #header-main-menu-toggle,
      id que não existe no HTML (só existe #fab-menu). Nunca executava — dead code. -->
 
-<script defer src="js/mobile-fab-menu-handler.js?v=20261002-seismic-impact"></script>
+<script defer src="js/mobile-fab-menu-handler.js?v=20261002-cinema-materials"></script>
 <!-- ═══════════ MODO DIAGNÓSTICO (?debug=1) ═══════════ -->
 <script defer src="js/debug-overlay.js"></script>
 
 <link rel="stylesheet" href="css/intensity-filters.css">
-<script defer src="js/real-intensity.js?v=20261002-seismic-impact"></script>
+<script defer src="js/real-intensity.js?v=20261002-cinema-materials"></script>
 
 <script defer src="js/pwa-offline-tv.js"></script>
 
@@ -588,7 +590,7 @@
 <link rel="stylesheet" href="css/record-cards.css?v=20261002-header-bulletin">
 <link rel="stylesheet" href="css/detail-panel.css?v=20260930-2">
 <link rel="stylesheet" href="css/mobile-portrait.css?v=20260930-1">
-<script defer src="js/mobile-portrait.js?v=20261002-seismic-impact"></script>
+<script defer src="js/mobile-portrait.js?v=20261002-cinema-materials"></script>
 <link rel="stylesheet" href="css/mobile-detail-gesture.css?v=20260930-1">
 <script defer src="js/mobile-detail-gesture.js?v=20260930-1"></script>
 <link rel="stylesheet" href="css/latest-event-cutout.css?v=20260930-1">
@@ -607,7 +609,7 @@
 <script defer src="js/hazard-feeds.js?v=20261001-world-alerts"></script>
 <script defer src="js/event-details-back.js?v=20261002-header-bulletin"></script>
 <link rel="stylesheet" href="css/event-details-back.css?v=20261002-header-bulletin">
-<link rel="stylesheet" href="css/cinematic-card.css?v=20261002-full-card">
+<link rel="stylesheet" href="css/cinematic-card.css?v=20261002-cinema-materials">
 <script defer src="js/header-status-layout.js?v=20261001-status-layout"></script>
 </body>
 </html>

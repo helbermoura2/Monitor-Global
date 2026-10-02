@@ -26,3 +26,16 @@ A regressão de duração verifica todos os tipos atmosféricos após 20 segundo
 Vídeos de textura licenciados, identificados como “ILUSTRAÇÃO”, acrescentam chuva, nuvens, chamas, fumaça, ondulações e ondas costeiras. Não são filmagens do evento. As fontes e licenças estão em `media/card-fx/README.md`. Os clipes são locais, sem áudio, H.264, 360 × 640 e 20 quadros/s. O vídeo usa enquadramento que preenche toda a frente do cartão, sem recorte de transparência em uma faixa do medidor. Somente um vídeo fica ativo; troca, verso, recolhimento e aba oculta liberam ou pausam o decodificador. Erro de carregamento ou bloqueio de reprodução mantém a cena gráfica por toda a área. Vulcão em monitoramento usa terreno e nuvens, sem representar uma erupção inexistente.
 
 WebGL tem resolução limitada a 240 px de largura no computador e 176 px no celular, até 20/14 quadros por segundo respectivamente; partículas usam 30/24. A ausência de WebGL conserva as camadas 2D. Movimento reduzido desativa todas essas cenas e vídeos. Os testes também verificam avanço de reprodução, pausa no verso, troca, vídeo sem som e falha de carregamento.
+
+
+## Materiais cinematográficos e demonstrações
+
+A lava usa uma filmagem de escoamento real do USGS, com crosta escura e material incandescente; quando o vídeo falha, o shader desenha crosta e fissuras advectadas lentamente. Apenas menções positivas a lava/atividade efusiva ativam esse material. Erupção com cinzas sem menção a lava conserva fumaça e cinzas; “sem lava” não ativa lava, e “sem cinzas” não desliga uma erupção efusiva. Monitoramento usa paisagem fotográfica sem calor. Revisões que encerram erupção ou escoamento retiram as camadas correspondentes.
+
+Enchente usa correnteza barrenta real em todo o cartão. A reserva desenha água turva com normais, reflexos especulares, espuma e advecção; a camada de partículas acrescenta pequenos detritos imersos e espuma fragmentada. Ciclones usam chuva e rajadas fotográficas com nuvens em rotação; tempestade, fogo, tornado, tsunami e vento ganham textura, iluminação e movimento próprios, sem acrescentar chuva a vento isolado ou lava ao monitoramento.
+
+Menu → Testar efeitos permite comparar todos os tipos, inclusive três estados vulcânicos, ou entrar na demonstração de sismos. A demonstração usa somente camadas visuais sobre os dados atuais, com identificação externa, Parar/Trocar e duração de 20 s. Não insere registros, move a câmera, altera prioridade/rotação ou produz áudio. Um evento real interrompe a demonstração, e parar restaura a atmosfera do registro selecionado.
+
+Os créditos completos estão em `media/card-fx/credits.html`, acessível no teste. Vídeos são locais e sem áudio; somente um decodificador fica ativo. Testes adicionais cobrem lava/cinzas/monitoramento, materiais sem vídeo, demonstrações isoladas e tremor de M5.9 no cartão, incluindo o aleatório.
+
+O tornado combina filmagem licenciada de Ray Bohac com poeira advectada e turbulência. O fogo preserva o detalhe fotográfico das chamas, com reflexo quente variável e fumaça menos opaca. Em tempestades, os canais ramificados são renovados a cada ciclo de descarga, sem gerar novas animações em uma revisão silenciosa.

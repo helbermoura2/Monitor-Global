@@ -137,7 +137,7 @@ for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no 
  const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);
  await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
  const initial=await video.evaluate(v=>v.currentTime);await page.waitForTimeout(800);expect(await video.evaluate(v=>v.currentTime)).toBeGreaterThan(initial);
- const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/water.mp4'});
+ const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/current.mp4'});
  await expect(page.locator('#pd-mag svg.pd-cinema-symbol')).toHaveCount(1);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
@@ -156,7 +156,7 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
  await boot(page);await page.route('**/media/card-fx/*.mp4',r=>r.abort());await select(page,'flood');
  await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
  await expect.poll(async()=>{const coverage=await cardCoverage(page);return coverage.thirds.every(third=>third.mean>8&&third.covered>.3);}).toBe(true);
- await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/clouds.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
+ await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
 
 test('vento mantém o local estável enquanto a cena se move',async({page})=>{

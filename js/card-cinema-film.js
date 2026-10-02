@@ -10,7 +10,7 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(1.7,9.2);a*=.5;}return v;}
@@ -57,6 +57,31 @@
   color+=vec3(.16,.31,.32)*caustics*.3;
   return vec4(color,fill*(.64+spec*.19)+foam*.22);
  }
+ vec4 lava(vec2 uv){
+  vec2 p=vec2(uv.x*4.,uv.y*5.-uTime*.055);
+  vec2 warp=vec2(fbm(p*1.5+vec2(0.,uTime*.025)),fbm(p*1.2+vec2(6.,-uTime*.035)));
+  float crust=fbm(p+warp*1.6),grain=noise(p*32.);
+  float seams=1.-smoothstep(.016,.085,abs(crust-.48));
+  float heat=clamp(seams*(.65+.35*fbm(p*2.-uTime*.025)),0.,1.);
+  vec3 rock=mix(vec3(.023,.019,.017),vec3(.12,.075,.045),crust*.65+grain*.15);
+  vec3 molten=mix(vec3(.85,.085,.006),vec3(1.,.65,.12),pow(heat,2.));
+  vec3 color=mix(rock,molten,heat);
+  color+=vec3(.17,.035,.004)*seams;
+  return vec4(color,.88);
+ }
+ vec4 river(vec2 uv){
+  vec2 p=vec2(uv.x*4.+uTime*.28,uv.y*6.-uTime*.35);
+  vec2 curl=vec2(fbm(p+vec2(uTime*.08,0.)),fbm(p+vec2(4.,uTime*.1)));
+  float surface=fbm(p+curl*2.5),detail=noise(p*26.+curl*4.);
+  float gx=surface-fbm(p+vec2(.04,0.)+curl*2.5),gy=surface-fbm(p+vec2(0.,.04)+curl*2.5);
+  vec3 normal=normalize(vec3(gx*13.,gy*13.,1.));
+  float spec=pow(max(dot(normal,normalize(vec3(-.3,.5,1.))),0.),28.);
+  float foam=smoothstep(.61,.74,surface)*smoothstep(.3,.8,detail);
+  vec3 color=mix(vec3(.085,.057,.035),vec3(.42,.32,.19),surface);
+  color+=vec3(.52,.48,.39)*spec*.46;
+  color=mix(color,vec3(.69,.67,.57),foam*.7);
+  return vec4(color,.76);
+ }
  void main(){
   vec2 uv=vUV;float aspect=uResolution.x/uResolution.y;
   // A continuous scene across the viewport, including the area behind the data.
@@ -66,30 +91,41 @@
   vec4 scene=vec4(.012,.028,.043,.26);
   if(uMode<.5){
    vec2 p=vec2(uv.x*3.9,uv.y*4.8)+vec2(uTime*.036,-uTime*.018);
-   scene=over(vapor(p,mix(.76,.22,uFootage),vec3(.63,.72,.80)),scene);
+   scene=over(vapor(p,mix(.82,.27,uFootage),vec3(.63,.72,.80)),scene);
+   scene.rgb*=.78+.22*cloud(p+vec2(1.7,3.1));
    float phase=mod(uTime,10.);float flash=exp(-pow((phase-.61)*23.,2.))+exp(-pow((phase-4.30)*26.,2.))+exp(-pow((phase-8.3)*24.,2.));
    scene.rgb+=vec3(.44,.57,.72)*flash*uLightning;
   }else if(uMode<1.5){
    vec2 center=vec2((uv.x-.5)*aspect,uv.y-.53);float r=length(center)/max(aspect*.48,.18),a=atan(center.y,center.x);
-   float bands=cloud(vec2(r*5.8,a*1.15+r*9.-uTime*.68));float eye=smoothstep(.10,.22,r);
+   float bands=cloud(vec2(r*5.8,a*1.15+r*9.-uTime*(.45+.42*uStrength)));float eye=smoothstep(.10,.22,r);
    float ring=(1.-smoothstep(.60,.85,r))*eye;
    vec3 color=mix(vec3(.06,.095,.14),vec3(.63,.70,.76),bands*.88);
-   scene=over(vec4(color,ring*smoothstep(.23,.67,bands)*.94),vapor(vec2(uv.x*4.-uTime*.25,uv.y*7.),.67,vec3(.40,.54,.66)));
+   float shadow=cloud(vec2(r*8.,a*2.+r*13.-uTime*.45));color*=.68+.32*shadow;
+   scene=over(vec4(color,ring*smoothstep(.23,.67,bands)*mix(.94,.43,uFootage)),vapor(vec2(uv.x*4.-uTime*.25,uv.y*7.),mix(.67,.24,uFootage),vec3(.40,.54,.66)));
   }else if(uMode<2.5){
    float y=clamp(local.y,0.,1.);float axis=.5+sin(y*4.+uTime*.58)*.045;
    float radius=mix(.024,.19,pow(y,.8));float radial=(local.x-axis)/radius;
    float body=1.-smoothstep(.63,1.18,abs(radial));
-   float swirl=cloud(vec2(radial*1.9+sin(y*18.-uTime*4.)*.38,y*6.-uTime*.43));
+   float swirl=cloud(vec2(radial*1.9+sin(y*18.-uTime*4.)*.38,y*6.-uTime*(.35+.28*uStrength)));
    float light=.20+.50*sqrt(max(0.,1.-radial*radial));
    vec3 color=mix(vec3(.095,.10,.12),vec3(.55,.59,.62),light+swirl*.22);
    float root=smoothstep(-.05,.12,local.y)*(1.-smoothstep(.87,1.08,local.y));
-   scene=over(vec4(color,body*root*(.51+swirl*.39)),vapor(vec2(uv.x*4.-uTime*.1,uv.y*6.),.54,vec3(.39,.46,.51)));
+   float filament=fbm(vec2(radial*9.-uTime,y*18.+uTime*.6));color*=.67+.33*filament;
+   scene=over(vec4(color,body*root*(.51+swirl*.39)*mix(1.,.22,uFootage)),vapor(vec2(uv.x*4.-uTime*.1,uv.y*6.),mix(.54,.13,uFootage),vec3(.39,.46,.51)));
   }else if(uMode<3.5){
-   scene=over(vapor(vec2(uv.x*5.+sin(uTime*.2)*.2,uv.y*5.-uTime*.21),.67,vec3(.48,.43,.38)),scene);
+   scene=over(vapor(vec2(uv.x*5.+sin(uTime*.2)*.2,uv.y*5.-uTime*.21),mix(.67,.27,uFootage),vec3(.48,.43,.38)),scene);
    scene=over(flame(vec2(local.x,local.y*.95),.88*(1.-uFootage)),scene);
    float side=1.-smoothstep(.018,.13,min(uv.x,1.-uv.x));
    scene=over(flame(vec2(uv.x*2.7,uv.y*1.6),side*mix(.7,.26,uFootage)),scene);
+   float bounce=(.035+.045*fbm(vec2(uv.x*5.,uv.y*4.-uTime*.5)))*(1.-smoothstep(.05,.65,uv.y));
+   scene.rgb+=vec3(1.,.22,.025)*bounce;
   }else if(uMode<4.5){
+   if(uLava>.5){
+    scene=uFootage>.5?vec4(.11,.018,.003,.13):lava(local);
+    scene=over(vapor(vec2(uv.x*6.,uv.y*7.-uTime*.19),mix(.25,.09,uFootage),vec3(.42,.28,.16)),scene);
+   }else if(uFootage>.5&&uActivity.x<.5&&uActivity.y<.5){
+    scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.12,vec3(.39,.48,.52)),scene);
+   }else{
    float mountain=.60-pow(abs(local.x-.5),.74)*.61+noise(vec2(local.x*31.,.3))*.025;
    mountain-=exp(-pow((local.x-.5)*21.,2.))*.058;
    float rock=(1.-smoothstep(mountain-.006,mountain+.007,local.y))*smoothstep(-.15,.04,local.y);
@@ -104,15 +140,18 @@
     vec4 ash=vapor(vec2(local.x*7.+sin(local.y*8.-uTime)*.2,local.y*7.-uTime*.35),.88,vec3(.56,.55,.52));
     ash.a*=plume*smoothstep(.48,.60,local.y)*(1.-uFootage*.75);scene=over(ash,scene);
    }else{scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.25,vec3(.39,.48,.52)),scene);}
+   }
   }else if(uMode<6.5){
    if(uFootage>.5){
     // Grade the photographic surface; do not place a synthetic waterline over it.
-    scene=vec4(.035,.09,.125,.13+.04*noise(uv*8.+uTime*.035));
-   }else{scene=over(water(local,uMode>5.5),scene);}
+    scene=uMode<5.5?vec4(.11,.075,.035,.12):vec4(.035,.09,.125,.13+.04*noise(uv*8.+uTime*.035));
+   }else{scene=over(uMode<5.5?river(local):water(local,true),scene);}
    // A distant, textured reflection above the surface preserves the glass.
    scene=over(vapor(vec2(uv.x*3.+uTime*.03,uv.y*5.),.12,vec3(.36,.50,.58)),scene);
   }else{
-   scene=over(vapor(vec2(uv.x*2.-uTime*.55,uv.y*18.),.75,vec3(.56,.64,.66)),scene);
+   vec2 advect=vec2(uv.x*3.-uTime*(.3+.5*uStrength),uv.y*12.+sin(uTime*.7)*.2);
+   scene=over(vapor(advect,.65,vec3(.56,.64,.66)),scene);
+   scene.rgb*=.72+.28*fbm(advect*2.);
   }
   float vignette=1.-smoothstep(.32,.60,abs(uv.x-.5));
   scene.rgb*=.85+.15*vignette;
@@ -131,16 +170,16 @@
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
    let last=-Infinity,width=1,height=1;
    function resize(w,h){width=w;height=h;const scale=Math.min(1,(mobile?176:240)/Math.max(w,1),(mobile?360:480)/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
  function footage(cfg){
   if(!(cfg.type in modes))return null;
-  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'water':cfg.type==='tsunami'?'surge':cfg.type==='volcano'&&(cfg.ash||cfg.hot)?'smoke':cfg.type==='storm'?'storm':'clouds';
+  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?(cfg.ash||cfg.hot?'smoke':'terrain'):cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
   let failed=false,dead=false,playing=false,wanted=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}

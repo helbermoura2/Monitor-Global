@@ -54,7 +54,7 @@
       '<button type="button" id="mf-main-events">📋 Abrir registros</button>' +
       '<button type="button" id="mf-main-audio">🔊 Áudio / voz</button>' +
       '<button type="button" id="mf-main-resumo-dia">🏆 Resumo do dia</button>' +
-      '<button type="button" id="mf-main-seismic-demo">🎬 Testar efeitos sísmicos</button>' +
+      '<button type="button" id="mf-main-seismic-demo">🎬 Testar efeitos</button>' +
       '<button type="button" id="mf-main-tools">🛠️ Ferramentas (fontes, legenda, alertas)</button>' +
       '<button type="button" id="mf-main-reload">🔄 Recarregar dados</button>';
     if(window.TelegramAdmin?.isAuthenticated()){
@@ -70,7 +70,7 @@
     document.getElementById('mf-main-resumo-dia').onclick = acao(function () {
       if (typeof window.shareResumoDiarioStory === 'function') window.shareResumoDiarioStory();
     });
-    document.getElementById('mf-main-seismic-demo').onclick = acao(function () { window.SeismicCinema?.openDemo(); });
+    document.getElementById('mf-main-seismic-demo').onclick = acao(function () { window.CardEffectDemo?.open(); });
     document.getElementById('mf-main-tools').onclick = acao(function () { window.menuAcao && window.menuAcao('tools'); });
     document.getElementById('mf-main-reload').onclick = acao(function () { window.menuAcao && window.menuAcao('reload'); });
 

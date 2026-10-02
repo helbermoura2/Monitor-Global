@@ -58,7 +58,7 @@
     button(panel, 'Resumo do dia', secondary(() => window.shareResumoDiarioStory?.()));
     for (const [label,kind] of [['Linha do tempo','timeline'],['Mudanças recentes','changes'],['Status das fontes','sources'],['Legenda do mapa','legend']]) button(panel,label,secondary(() => window.__uxShow?.(kind)));
     for (const [label,kind] of [['Radar de chuva','radar'],['Reproduzir eventos','replay'],['Acompanhar eventos','follow']]) button(panel,label,secondary(() => window.menuAcao?.(kind)));
-    button(panel, 'Testar efeitos sísmicos', secondary(() => window.SeismicCinema?.openDemo()));
+    button(panel, 'Testar efeitos', secondary(() => window.CardEffectDemo?.open()));
     heading(panel, 'Configurações');
     button(panel, 'Avisos recentes', secondary(() => window.MobileNotices?.openHistory()));
     button(panel, 'Alertas e áudio', alerts);

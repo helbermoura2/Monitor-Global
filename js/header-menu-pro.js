@@ -113,9 +113,9 @@
       '<button type="button" id="mf-src">📡 Status das fontes</button>' +
       '<button type="button" id="mf-theme">' + (temaEscuro ? '🌑 Visual: Escuro' : '🪟 Visual: Vidro') + '</button>' +
       '<button type="button" id="mf-tv">📺 Modo TV</button>' +
-      '<button type="button" id="mf-seismic-demo">🎬 Testar efeitos sísmicos</button>'
+      '<button type="button" id="mf-seismic-demo">🎬 Testar efeitos</button>'
     );
-    $('mf-seismic-demo').onclick = function () { $('menu-float-panel').classList.remove('open'); $('menu-float-panel').style.display='none'; window.SeismicCinema?.openDemo(); };
+    $('mf-seismic-demo').onclick = function () { $('menu-float-panel').classList.remove('open'); $('menu-float-panel').style.display='none'; window.CardEffectDemo?.open(); };
     $('mf-leg').onclick = function () {
       if (typeof window.__uxShow === 'function') window.__uxShow('legend');
       else $('ux-btn-legend')?.click();
@@ -159,7 +159,7 @@
       else if (acao === 'replay') clickOp('btn-replay-pro', 'mobile-btn-replay');
       else if (acao === 'follow') clickOp('btn-follow-pro', 'mobile-btn-follow');
       else if (acao === 'tools') openTools();
-      else if (acao === 'seismic-demo') window.SeismicCinema?.openDemo();
+      else if (acao === 'seismic-demo') window.CardEffectDemo?.open();
       else if (acao === 'reload') {
         try {
           if (typeof showToast === 'function') showToast('🔄 Atualizando fontes…', 'info');

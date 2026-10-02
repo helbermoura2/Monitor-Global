@@ -1,0 +1,8 @@
+.card-effect-demo{position:fixed;right:14px;top:130px;z-index:500020;width:min(350px,calc(100vw - 28px));max-height:calc(100dvh - 150px);overflow:auto;box-sizing:border-box;padding:22px;background:#071623f5;border:1px solid #5596a88c;border-radius:15px;color:#f1f5f9;box-shadow:0 15px 50px #0008;font:13px/1.5 Inter,system-ui,sans-serif}
+.card-effect-demo h3{font-size:17px;margin:0 35px 12px 0}.card-effect-demo p{color:#c7d9e3}.card-effect-demo label{display:block;font-weight:600}
+.card-effect-demo select{display:block;width:100%;min-height:44px;margin-top:6px;padding:8px;border:1px solid #4e8299;border-radius:8px;background:#0c2433;color:white;font:inherit}
+.card-effect-demo button,.card-effect-status button{min-height:44px;border:1px solid #5b93a3;border-radius:8px;background:#103447;color:white;font:600 13px system-ui;cursor:pointer;padding:8px 12px}
+.card-effect-demo .effect-demo-close{position:absolute;right:8px;top:8px;width:44px;padding:0;font-size:24px;background:transparent}
+#card-fx-demo-play{width:100%;margin:6px 0 10px;background:#16526a}.card-effect-demo a{display:block;padding:8px 0;color:#b4d8e6}
+.card-effect-status{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:500030;width:max-content;max-width:calc(100vw - 24px);box-sizing:border-box;display:flex;align-items:center;gap:8px;background:#061726f5;border:1px solid #8eb8c1;padding:8px 10px;border-radius:12px;color:white;box-shadow:0 8px 30px #0007;font:12px/1.5 system-ui}
+@media(max-width:700px){.card-effect-demo{top:90px;max-height:calc(100dvh - 110px)}.card-effect-status{flex-wrap:wrap;width:calc(100vw - 24px)}.card-effect-status span{flex:1 0 100%}.card-effect-status button{flex:1}}

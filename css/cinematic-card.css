@@ -75,3 +75,10 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 #painel-direito.pd-cinema-active .pd-header-row{background:linear-gradient(rgba(4,16,27,.75),rgba(4,16,27,.56));text-shadow:0 1px 3px #000}
 #painel-direito.pd-fx-fire .pd-cinema-footage{opacity:.94;object-position:center bottom}
 #painel-direito.pd-fx-flood .pd-cinema-footage,#painel-direito.pd-fx-tsunami .pd-cinema-footage{filter:saturate(.65) contrast(1.12);opacity:.86}
+/* Photographic materials retain their texture; glass and data surfaces carry contrast. */
+#painel-direito .pd-cinema-layer[data-material="lava"] .pd-cinema-footage{mix-blend-mode:normal;opacity:.94;filter:saturate(.92) contrast(1.13);object-position:center}
+#painel-direito .pd-cinema-layer[data-activity="monitoring"] .pd-cinema-footage{mix-blend-mode:normal;opacity:.84;filter:saturate(.65) contrast(1.12);object-position:center}
+#painel-direito .pd-cinema-layer[data-material="muddy-current"] .pd-cinema-footage{opacity:.94;filter:saturate(.88) contrast(1.10)}
+#painel-direito.pd-fx-hurricane .pd-cinema-footage{filter:saturate(.58) contrast(1.14);opacity:.9}
+#painel-direito .pd-cinema-layer[data-demo="true"]::before{content:'ILUSTRAÇÃO DE TESTE';position:absolute;right:8px;top:8px;z-index:5;color:#d6e9f2;font:8px system-ui;letter-spacing:.8px;pointer-events:none}
+#painel-direito .pd-cinema-demo-bolt{position:absolute;left:12%;top:0;width:33%;height:100%;z-index:3;fill:none;opacity:0;pointer-events:none;filter:drop-shadow(0 0 4px #acd7ff)}
