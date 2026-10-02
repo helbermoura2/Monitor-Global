@@ -199,7 +199,9 @@
   }
  }
  function frame(now){
-  const s=scene;if(!s)return;const t=(now-s.start)/1000;
+  const s=scene;if(!s)return;// O timestamp do primeiro RAF pode preceder performance.now() do start.
+  // Tempos negativos geram raios inválidos nos respingos e interrompem a cena.
+  const t=Math.max(0,(now-s.start)/1000);
   if(t*1000>=s.duration){stop();return;}
   if(document.hidden){s.footage?.pause();raf=0;return;}
   const p=panel(),hidden=!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');

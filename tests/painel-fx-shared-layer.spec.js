@@ -81,3 +81,22 @@ test('letras ao vento não reiniciam a digitação nem truncam o título', async
   expect(await page.locator('#pd-local').evaluate(el => el._mgTypeId)).toBeFalsy();
   expect(errors).toEqual([]);
 });
+
+test('primeiro quadro anterior ao início não interrompe a chuva', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 844 });
+  await page.setContent('<div id="painel-direito" style="width:320px;height:400px"><div id="pd-mag"></div></div>');
+  await page.evaluate(() => {
+    window.requestAnimationFrame = callback => { window.__testFrame = callback; return 1; };
+    window.cancelAnimationFrame = () => {};
+  });
+  await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '../js/cinematic-card.js'), 'utf8') });
+  const result = await page.evaluate(() => {
+    const before = performance.now() - 100;
+    CinematicCard.start({ id: 'early-frame', type: 'storm', detail: 'Trovoada' }, Infinity);
+    window.__testFrame(before);
+    window.__testFrame(performance.now() + 700);
+    return { active: CinematicCard.isActive(), opacity: Number(document.querySelector('.pd-cinema-layer').style.opacity) };
+  });
+  expect(result.active).toBe(true);
+  expect(result.opacity).toBeGreaterThan(.8);
+});
