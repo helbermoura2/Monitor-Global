@@ -33,3 +33,15 @@
  #top-strip > .ts-mainrow > .ts-title{position:static!important;left:auto!important;top:auto!important;max-width:none!important;order:0!important}
  #top-strip > .ts-mainrow #sp-live-card{order:1!important}
 }
+
+/* Transparent weather text must not blur a full-width rectangle of the map. */
+#top-strip #sp-live-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:transparent!important;box-shadow:none!important}
+/* Style both possible scrollers, including Chromium's native fallback. */
+#top-strip #chips-row,#top-strip #chips-scroll-wrap{color-scheme:dark;scrollbar-width:thin!important;scrollbar-color:rgba(126,205,224,.48) transparent!important}
+#top-strip #chips-row::-webkit-scrollbar,#top-strip #chips-scroll-wrap::-webkit-scrollbar{height:4px!important;background:transparent!important}
+#top-strip #chips-row::-webkit-scrollbar-track,#top-strip #chips-scroll-wrap::-webkit-scrollbar-track{background:transparent!important}
+#top-strip #chips-row::-webkit-scrollbar-thumb,#top-strip #chips-scroll-wrap::-webkit-scrollbar-thumb{background:rgba(126,205,224,.48)!important;border:0!important;border-radius:8px!important}
+#top-strip #chips-row::-webkit-scrollbar-thumb:hover,#top-strip #chips-scroll-wrap::-webkit-scrollbar-thumb:hover{background:rgba(126,205,224,.75)!important}
+
+/* The legacy rain widget sits behind the current weather row on desktop. */
+#top-strip #cemaden-card{display:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}

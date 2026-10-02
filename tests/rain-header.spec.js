@@ -15,6 +15,7 @@ test('chuva por modelo separada de alagamentos e sem sobreposição',async({page
  });
  await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>WeatherEvidence.refresh());
  await expect(page.locator('#sp-rain-eta')).toContainText('Prev.');await expect(page.locator('#sp-rain-eta')).toContainText('3,0mm');
+ await expect(page.locator('#cemaden-card')).toBeHidden();await expect(page.locator('#sp-live-card')).toHaveCSS('backdrop-filter','none');await expect(page.locator('#sp-live-card')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await expect(page.locator('#chips-row')).toHaveCSS('color-scheme','dark');await expect(page.locator('#chips-row')).toHaveCSS('scrollbar-color','rgba(126, 205, 224, 0.48) rgba(0, 0, 0, 0)');await page.evaluate(()=>document.getElementById('chips-row').classList.add('expanded'));await page.locator('#chips-row').evaluate(el=>el.scrollTo({left:60,behavior:'instant'}));await expect.poll(()=>page.locator('#chips-row').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
  await expect(page.locator('#flood-risk-chip')).toBeHidden();await expect(page.locator('#sp-forecast-air')).toBeHidden();
  const chip=page.locator('#sp-rain-eta-chip');await expect(chip).toHaveAttribute('title',/resolução horária/);
  let visible=0;for(const width of [1101,1280,1920]){

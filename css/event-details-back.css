@@ -21,3 +21,9 @@ body.weather-view .pd-details-back{display:none!important}
 #painel-direito .pd-header-actions{position:relative;z-index:90;pointer-events:auto}
 body.pd-more-open #painel-direito{pointer-events:none}
 #painel-direito .pd-header-row{position:relative!important;z-index:90!important}
+
+.pd-bulletin-article{color:#edf7fb;font:14px/1.7 system-ui,sans-serif}
+.pd-bulletin-article .pd-bulletin-meta{font-size:11px;color:#b9dfe9;margin:8px 0 16px}
+.pd-bulletin-text{white-space:pre-line;overflow-wrap:anywhere}
+.pd-bulletin-article a{display:inline-flex;align-items:center;min-height:44px;margin-top:12px;color:#9ce9f4;font-size:12px}
+.pd-bulletin-article .pd-bulletin-note{font-size:11px;line-height:1.55;color:#c0d9e3;border-top:1px solid #72c6de33;padding-top:12px}

@@ -35,3 +35,15 @@
  body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-warning > #pd-horario {grid-column:1 / -1;grid-row:3}
  body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-warning > .record-notice-brief {grid-column:1 / -1;grid-row:4;margin:0;opacity:1!important;pointer-events:auto!important}
 }
+
+/* A publication has text, not a measured magnitude or impact. */
+#painel-direito.pd-bulletin > :is(.pd-gauge-wrap,.pd-scale-label,.stats-grid,.pd-impact-section,#pd-distvoce){display:none!important}
+#painel-direito .record-notice-brief button{min-height:44px;padding:8px 12px;border:1px solid rgba(133,209,232,.4);border-radius:10px;background:rgba(28,83,106,.3);color:#effaff;font:600 12px/1.4 system-ui;cursor:pointer}
+@media(max-width:700px) and (orientation:portrait){
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-bulletin > .stats-grid{display:none!important}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-bulletin > .pd-local{grid-column:1 / -1;grid-row:2}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-bulletin > #pd-horario{grid-column:1 / -1;grid-row:3}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-bulletin > #pd-bulletin-summary{grid-column:1 / -1;grid-row:4;margin:0;opacity:1!important;pointer-events:auto!important}
+}
+
+#painel-direito.pd-bulletin .pd-header::after{content:" • PUBLICADO"!important;color:#b9dfe9!important}

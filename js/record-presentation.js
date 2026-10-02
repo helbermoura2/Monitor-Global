@@ -17,13 +17,28 @@
   if(item?.hazardNature!=='warning')return null;
   try{const u=new URL(item.link);if(u.protocol!=='https:'||!['api.weather.gc.ca','api.weather.gov','www.weather.gov','meteoalarm.org','www.meteoalarm.org','www.bom.gov.au','reg.bom.gov.au'].includes(u.hostname)||u.username||u.password)return null;return u.href;}catch(e){return null;}
  }
+ function isBulletin(item){return item?.hazardNature==='bulletin'&&item.source==='CGE';}
+ function bulletinFront(item){
+  const p=document.getElementById('painel-direito');p?.classList.add('pd-bulletin');
+  const source=document.getElementById('pd-source');if(source)source.textContent='BOLETIM CGE';
+  const btn=document.getElementById('pd-more-toggle');if(btn&&!window.EventDetailsBack?.isOpen())btn.textContent='Ler boletim ↻';
+  const section=document.createElement('section');section.id='pd-bulletin-summary';section.className='bubble-section record-notice-brief';
+  const h=document.createElement('h3');h.textContent=item.detail||'Boletim meteorológico';section.append(h);
+  const summary=document.createElement('p');summary.textContent=item.bulletinSummary||'Consulte o texto publicado pelo CGE da Prefeitura de São Paulo.';section.append(summary);
+  const action=document.createElement('button');action.type='button';action.textContent='Ler boletim completo ↻';action.onclick=e=>{e.stopPropagation();window.EventDetailsBack?.toggle(true);};section.append(action);
+  document.getElementById('pd-horario')?.after(section);
+  window.EventDetailsBack?.refreshBulletin(item);
+ }
  function reset(){
-  document.getElementById('painel-direito')?.classList.remove('pd-warning');
+  document.getElementById('painel-direito')?.classList.remove('pd-warning','pd-bulletin');
+  document.getElementById('pd-bulletin-summary')?.remove();
+  const btn=document.getElementById('pd-more-toggle');if(btn&&!window.EventDetailsBack?.isOpen())btn.textContent='Detalhes ↻';
   document.getElementById('pd-notice-brief')?.remove();
   document.getElementById('pd-impact')?.parentNode?.style.removeProperty('display');
   for(const id of ['pd-focus-btn','pd-share-btn']){const el=document.getElementById(id);if(el){el.hidden=false;el.style.removeProperty('display');}}
  }
  function panel(item){
+  if(isBulletin(item)){bulletinFront(item);return;}
   const regional=!located(item);
   if(regional){const distance=document.getElementById('pd-distvoce');if(distance)distance.style.display='none';}
   for(const id of ['pd-focus-btn','pd-share-btn']){const el=document.getElementById(id);if(el&&regional){el.hidden=true;el.style.setProperty('display','none','important');}}
@@ -44,5 +59,5 @@
   const url=bulletin(item);if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.textContent='Abrir boletim oficial ↗';section.append(a);}
   document.getElementById('pd-impact')?.parentNode?.before(section);
  }
- window.RecordPresentation={located,label,bulletin,reset,panel};
+ window.RecordPresentation={located,label,bulletin,isBulletin,reset,panel};
 })();

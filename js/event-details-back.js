@@ -16,7 +16,7 @@
   if(more)more.hidden=true;
   back?.remove();back=null;openedId=null;
   panel()?.classList.remove('pd-flip-girado','pd-flip-preparado');document.body.classList.remove('pd-more-open');
-  const btn=document.getElementById('pd-more-toggle');if(btn){btn.textContent='Detalhes ↻';btn.setAttribute('aria-expanded','false');}
+  const btn=document.getElementById('pd-more-toggle');if(btn){btn.textContent=window.RecordPresentation?.isBulletin(selected())?'Ler boletim ↻':'Detalhes ↻';btn.setAttribute('aria-expanded','false');}
  }
  async function riverContext(item,host,token){
   host.textContent='Consultando vazão prevista dos rios…';
@@ -34,6 +34,16 @@
   }catch(e){if(token===generation&&host.isConnected)host.textContent='Vazão prevista indisponível. Isso não confirma nem descarta enchente.';}
  }
  function section(title,content,open=false){const d=document.createElement('details'),s=document.createElement('summary');s.textContent=title;d.open=open;d.append(s,content);return d;}
+ function renderBulletin(host,item){
+  host.querySelector('.pd-bulletin-article')?.remove();
+  const article=document.createElement('article');article.className='pd-bulletin-article';
+  const h=document.createElement('h2');h.textContent=item.detail||'Boletim meteorológico';article.append(h);
+  const meta=document.createElement('p');meta.className='pd-bulletin-meta';meta.textContent='CGE · Prefeitura de São Paulo · '+formatBrasiliaDateTime(item.time);article.append(meta);
+  const text=document.createElement('div');text.className='pd-bulletin-text';text.textContent=item.warningDescription||'Texto do boletim indisponível. Consulte a publicação original.';article.append(text);
+  try{const url=new URL(item.link);if(url.protocol==='https:'&&url.hostname==='www.cgesp.org'&&!url.username&&!url.password){const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener';a.textContent='Abrir publicação no CGE ↗';article.append(a);}}catch(e){}
+  const note=document.createElement('p');note.className='pd-bulletin-note';note.textContent='Texto original do CGE. Relatos e previsões referem-se ao horário da publicação; não confirmam alagamentos nem reproduzem o SMS da Defesa Civil.';article.append(note);host.append(article);
+ }
+ function refreshBulletin(item){if(back?.classList.contains('pd-bulletin-back')&&item.id===openedId)renderBulletin(back,item);}
  function toggle(force){
   const open=typeof force==='boolean'?force:!back;
   if(!open){close();return;}
@@ -45,6 +55,9 @@
   const item=selected();openedId=item?.id ?? window.EventStore?.selectedId ?? null;const token=++generation;
   back=document.createElement('section');back.id='pd-details-verso';back.className='pd-flip-verso pd-details-back';back.setAttribute('aria-label','Detalhes do evento');
   const header=document.createElement('header'),returnBtn=document.createElement('button');returnBtn.type='button';returnBtn.textContent='↶ Voltar ao evento';returnBtn.onclick=()=>close();header.append(returnBtn);back.append(header);
+  if(window.RecordPresentation?.isBulletin(item)){
+   back.classList.add('pd-bulletin-back');back.setAttribute('aria-label','Boletim do CGE');returnBtn.textContent='↶ Voltar ao boletim';renderBulletin(back,item);
+  }else{
   const title=document.createElement('h2');title.textContent=item?.place||'Detalhes do evento';back.append(title);
   // Wrap once, retaining each original section as the visibility authority.
   if(!more.dataset.grouped){
@@ -60,8 +73,9 @@
   for(const key of ['locationNote','warningDescription','warningInstruction'])if(item?.[key]){const p=document.createElement('p');p.textContent=item[key];evidence.append(p);}
   if(evidence.childNodes.length)back.append(section('Produto, área e validade',evidence,true));
   if(item?.type==='flood'&&Array.isArray(item.coords)&&!/storm surge|coastal|lakeshore|tidal|tsunami/i.test(item.warningEvent||'')){const host=document.createElement('div');back.append(section('Rios · previsão de vazão',host,true));riverContext(item,host,token);}
+  }
   document.body.append(back);position();document.body.classList.add('pd-more-open');panel().classList.add('pd-flip-preparado');
-  const btn=document.getElementById('pd-more-toggle');btn.textContent='Voltar ao evento ↶';btn.setAttribute('aria-expanded','true');
+  const btn=document.getElementById('pd-more-toggle');btn.textContent=window.RecordPresentation?.isBulletin(item)?'Voltar ao boletim ↶':'Voltar ao evento ↶';btn.setAttribute('aria-expanded','true');
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!back)return;panel().classList.add('pd-flip-girado');back.classList.add('pd-flip-visivel');returnBtn.focus({preventScroll:true});}));
  }
  document.addEventListener('DOMContentLoaded',()=>{
@@ -69,6 +83,6 @@
   window.EventStore?.subscribe((reason,payload)=>{if(back&&reason==='select'&&payload.id!==openedId)close();});
   new ResizeObserver(position).observe(panel());
  });
- window.EventDetailsBack={toggle,close,isOpen:()=>!!back};
+ window.EventDetailsBack={toggle,close,refreshBulletin,isOpen:()=>!!back};
  window.addEventListener('resize',position);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&back)close();});
 })();

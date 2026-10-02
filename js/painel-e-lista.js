@@ -1783,7 +1783,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     if (silentRefresh) return;
 
-    if (typeof triggerCardFx === 'function') triggerCardFx(item.type, cor);
+    if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?'bulletin':item.type, cor);
 
     if (item.coords && map) {
         let zoomEvento = 6;
