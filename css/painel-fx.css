@@ -61,7 +61,7 @@
   pointer-events: none;
   filter: drop-shadow(0 0 14px rgba(224,242,254,.9));
 }
-.pd-fx-bolt polygon { fill: #f0f9ff; }
+
 .pd-fx-bolt-1 { left: 22%; }
 .pd-fx-bolt-2 { left: 64%; transform: scaleX(-1); }
 .pd-fx-waterline {
@@ -1072,3 +1072,26 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
   #vignette-cinematic.mg-chaos-dark { animation: none !important; }
   #mg-fall-layer { display: none !important; }
 }
+
+/* Natural light channels along the glass edges, with a white core and blue corona. */
+.pd-fx-bolt{top:3%;height:88%;width:29%;overflow:visible;filter:drop-shadow(0 0 3px rgba(183,219,255,.75))}
+.pd-fx-bolt-1{left:0}
+.pd-fx-bolt-2{left:auto;right:0}
+.pd-bolt-core,.pd-bolt-halo,.pd-bolt-branch{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.pd-bolt-core{stroke:#f4fbff;stroke-width:1.35}
+.pd-bolt-halo{stroke:#9bd3ff;stroke-width:5;opacity:.28;filter:blur(2px)}
+.pd-bolt-branch{stroke:#c1e4ff;stroke-width:.65;opacity:.6}
+.pd-weather-symbol{width:48px;height:48px;overflow:visible;filter:drop-shadow(0 0 4px rgba(175,219,250,.38))}
+.pd-cloud-outline{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;opacity:.8}
+@keyframes pdNaturalBoltA{0%,5.7%,7.9%,82.5%,85%,100%{opacity:0}6.1%,83%{opacity:.95}6.6%,83.4%{opacity:.2}7.1%,83.9%{opacity:.5}}
+@keyframes pdNaturalBoltB{0%,42.6%,45.2%,100%{opacity:0}43%{opacity:.95}43.6%{opacity:.18}44.2%{opacity:.45}}
+@keyframes pdNaturalStormLight{0%,5.7%,8.3%,42.6%,45.5%,82.5%,85.2%,100%{opacity:0}6.1%,43%,83%{opacity:.22}6.7%,43.7%,83.7%{opacity:.04}7.2%,44.3%,84.2%{opacity:.1}}
+#painel-direito.pd-fx-storm .pd-fx-bolt-1{animation:pdNaturalBoltA 10s linear}
+#painel-direito.pd-fx-storm .pd-fx-bolt-2{animation:pdNaturalBoltB 10s linear}
+#painel-direito.pd-fx-storm #lightning-flash{animation:pdNaturalStormLight 10s linear;background:radial-gradient(ellipse at 0 15%,#d1ebff80,transparent 65%),radial-gradient(ellipse at 100% 65%,#c1deff60,transparent 60%)}
+#painel-direito.pd-fx-storm[data-lightning="off"] .pd-fx-bolt,
+#painel-direito.pd-fx-storm[data-lightning="off"] #lightning-flash{display:none!important}
+
+.pd-weather-symbol .pd-bolt-core,.pd-weather-symbol .pd-bolt-branch{vector-effect:non-scaling-stroke}
+.pd-weather-symbol .pd-bolt-core{stroke-width:1.1}
+.pd-weather-symbol .pd-bolt-branch{stroke-width:.45}

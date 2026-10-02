@@ -1512,6 +1512,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
     setGauge(0, false, item.icon || meta.icon, cor, 1);
+    if(typeof prepareStormLightning==='function')prepareStormLightning(item);
     document.getElementById('pd-source').textContent = window.RecordPresentation?.label(item) || item.displayLabel || meta.label || 'ALERTA';
     try { enrichPainelDetalheUI(item); } catch (e) {}
     document.getElementById('pd-flag').innerHTML = item.bandeira || country.flag;

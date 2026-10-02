@@ -7,6 +7,35 @@
    (brasas) e enchente (maré subindo) pediram mais tempo pra dar pra notar
    direito o efeito. */
 const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200 };
+// Decorative discharge channels: thin, irregular, branching paths; no emoji or filled zigzag.
+const LIGHTNING_NS='http://www.w3.org/2000/svg';
+function lightningPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');}
+function naturalLightning(svg){
+    const points=[];let x=42+Math.random()*14,y=0;
+    while(y<400){points.push([x,y]);x=Math.max(14,Math.min(86,x+(Math.random()-.5)*22));y=Math.min(400,y+9+Math.random()*12);}
+    points.push([x,400]);
+    const main=lightningPath(points),branches=[];
+    for(const fraction of [.22,.44,.67,.81]){
+        const root=points[Math.floor(points.length*fraction)],branch=[root];let [bx,by]=root;const direction=Math.random()<.5?-1:1;
+        for(let n=0;n<4+Math.floor(Math.random()*3);n++){bx=Math.max(2,Math.min(98,bx+direction*(3+Math.random()*7)));by+=7+Math.random()*11;branch.push([bx,Math.min(399,by)]);}
+        branches.push(lightningPath(branch));
+    }
+    svg.replaceChildren();
+    for(const [cls,d] of [['pd-bolt-halo',main],['pd-bolt-core',main],...branches.map(d=>['pd-bolt-branch',d])]){
+        const path=document.createElementNS(LIGHTNING_NS,'path');path.setAttribute('class',cls);path.setAttribute('d',d);svg.append(path);
+    }
+}
+function prepareStormLightning(item){
+    const enabled=item.type==='storm'&&item.hazardNature!=='bulletin'&&/thunder|trovoad|lightning|\braios?\b|tempestade|orage|gewitter/i.test([item.warningEvent,item.detail,item.place].filter(Boolean).join(' '));
+    document.getElementById('painel-direito')?.setAttribute('data-lightning',enabled?'on':'off');
+    if(item.type!=='storm'||item.hazardNature==='bulletin')return;
+    const icon=document.createElementNS(LIGHTNING_NS,'svg');icon.setAttribute('viewBox','0 0 64 64');icon.setAttribute('class','pd-weather-symbol');icon.setAttribute('role','img');icon.setAttribute('aria-label',enabled?'Ilustração de tempestade com relâmpagos':'Ilustração de chuva');
+    const cloud=document.createElementNS(LIGHTNING_NS,'path');cloud.setAttribute('d','M15 31 C5 31 6 17 16 17 C17 5 34 3 40 15 C53 10 62 22 55 30 C52 34 47 34 43 34');cloud.setAttribute('class','pd-cloud-outline');icon.append(cloud);
+    if(enabled){const channel=document.createElementNS(LIGHTNING_NS,'svg');channel.setAttribute('x','16');channel.setAttribute('y','28');channel.setAttribute('width','29');channel.setAttribute('height','33');channel.setAttribute('viewBox','0 0 100 400');channel.setAttribute('preserveAspectRatio','none');naturalLightning(channel);icon.append(channel);}
+    else{const rain=document.createElementNS(LIGHTNING_NS,'path');rain.setAttribute('d','M21 39 L18 47 M34 41 L31 49 M46 38 L43 46');rain.setAttribute('class','pd-cloud-outline');icon.append(rain);}
+    document.getElementById('pd-mag')?.replaceChildren(icon);
+}
+
 function triggerCardFx(type, color) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
@@ -16,6 +45,7 @@ function triggerCardFx(type, color) {
     stopRainEffect();
     el.className.split(' ').forEach(c => { if (c.indexOf('pd-fx-') === 0) el.classList.remove(c); });
     el.style.setProperty('--pd-fx-color', color || '#38bdf8');
+    if(['storm','tornado','hurricane'].includes(type))el.querySelectorAll('.pd-fx-bolt').forEach(naturalLightning);
     // Força reflow pra reiniciar a animação mesmo selecionando o mesmo tipo
     // de evento em seguida (senão a classe já presente não retrigger nada).
     void el.offsetWidth;
