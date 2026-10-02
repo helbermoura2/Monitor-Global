@@ -29,7 +29,7 @@ async function cardCoverage(page){
    thirds.push({mean:total/count,max,covered:covered/count});
   }
   const panel=layer.parentElement.getBoundingClientRect();
-  return {width:rect.width,height:rect.height,top:rect.top-panel.top,left:rect.left-panel.left,video:bounds(video),film:bounds(film),mask:getComputedStyle(video).maskImage,thirds};
+  return {width:rect.width,height:rect.height,top:rect.top-panel.top,left:rect.left-panel.left,video:bounds(video||film),film:bounds(film),mask:video?getComputedStyle(video).maskImage:"none",thirds};
  });
 }
 async function readableControls(page){
@@ -47,7 +47,7 @@ for(const width of [1280,390])test('cena ocupa o cartão inteiro e mantém os co
  for(const type of ['storm','flood','fire']){
   await select(page,type,type==='fire'?{detail:'Foco de incêndio reportado; equipes acompanham a ocorrência e as condições locais. '.repeat(12)}:{});
   if(width===390)await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
-  const video=page.locator('.pd-cinema-footage');await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
+  const video=page.locator('.pd-cinema-footage');if(type==='storm')await expect(video).toHaveCount(0);else await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
   await expect.poll(async()=>{const c=await cardCoverage(page);return Math.abs(c.video.height-c.height)<1&&Math.abs(c.video.top)<1;}).toBe(true);
   const coverage=await cardCoverage(page);
   for(const bounds of [coverage.video,coverage.film]){
@@ -159,7 +159,12 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
  await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
 
-test('vento mantém o local estável enquanto a cena se move',async({page})=>{
+test('vento move as letras preservando o conteúdo do local',async({page})=>{
  await boot(page);
- for(const type of ['wind','hurricane']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);await expect(page.locator('#pd-local .pd-fx-windletter')).toHaveCount(0);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');}
+ for(const type of ['wind','hurricane']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);expect(await page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
+});
+
+
+for(const width of [1280,390])test('água sobe pela frente do cartão e não bloqueia foco '+width,async({page})=>{
+ await boot(page,width);await select(page,'flood');const before=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));await page.waitForTimeout(2000);const after=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(after).toBeLessThan(before);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
 });
