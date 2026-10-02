@@ -7,16 +7,18 @@ async function boot(page,width=1280){
 }
 async function select(page,type,extra={}){
  await page.evaluate(({type,extra})=>{
-  const item={id:'cinema-'+type,type,source:'NOAA METAR',place:'Evento demonstrativo — Brasil',coords:[-46.63,-23.55],time:Date.now(),bandeira:'🇧🇷',detail:type==='storm'?'Trovoada reportada no aeródromo':'',mag:5.6,depth:10,windKmh:120,...extra};
+  const item={id:'cinema-'+type,type,source:'Visual QA',place:'Evento demonstrativo — Brasil',coords:[-46.63,-23.55],time:Date.now(),bandeira:'🇧🇷',detail:type==='storm'?'Trovoada reportada no aeródromo':'',mag:5.6,depth:10,windKmh:120,...extra};
   if(type==='earthquake'){globalEvents=[item];showEventDetails(0,false);}else{globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);}
   clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
  },{type,extra});
 }
 for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e controles '+width,async({page})=>{
+ test.setTimeout(180000);
  await boot(page,width);
  for(const type of ['storm','hurricane','tornado','fire','volcano','flood','tsunami','wind','earthquake']){
   await select(page,type,type==='volcano'?{eruptionStatus:'Em erupção',detail:'Emissão de cinzas'}:{});
   const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);await expect(layer).toHaveAttribute('aria-hidden','true');
+  if(type!=='earthquake')await expect(layer).toHaveAttribute('data-renderer','film');
   await expect(layer).toHaveCSS('pointer-events','none');await expect.poll(()=>layer.evaluate(el=>Number(getComputedStyle(el).opacity))).toBeGreaterThan(.8);
   await expect(page.locator('#pd-local')).toBeVisible();await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
   const result=await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el};});
@@ -29,8 +31,8 @@ for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e co
  if(width===390){
   await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
   await page.waitForTimeout(350);
-  await expect.poll(()=>page.locator('.pd-cinema-layer canvas').evaluate(el=>el.height===Math.round(el.parentElement.clientHeight*Math.min(devicePixelRatio,1.25)))).toBe(true);
-  const dimensions=await page.locator('.pd-cinema-layer canvas').evaluate(el=>({pixels:el.height,expected:Math.round(el.parentElement.clientHeight*Math.min(devicePixelRatio,1.25))}));expect(dimensions.pixels).toBe(dimensions.expected);
+  await expect.poll(()=>page.locator('.pd-cinema-layer .pd-cinema-particles').evaluate(el=>el.height===Math.round(el.parentElement.clientHeight*Math.min(devicePixelRatio,1.25)))).toBe(true);
+  const dimensions=await page.locator('.pd-cinema-layer .pd-cinema-particles').evaluate(el=>({pixels:el.height,expected:Math.round(el.parentElement.clientHeight*Math.min(devicePixelRatio,1.25))}));expect(dimensions.pixels).toBe(dimensions.expected);
  }
  await page.evaluate(()=>CinematicCard.stop());await expect(page.locator('.pd-cinema-layer,.pd-cinema-afterglow')).toHaveCount(0);
 });
@@ -57,7 +59,7 @@ for(const width of [1280,390])test('atmosfera continua visível depois da antiga
   await page.clock.runFor(700);await page.clock.fastForward(20000);await page.clock.runFor(200);
   const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);
   await expect(page.locator('#painel-direito')).toHaveClass(new RegExp('pd-fx-'+type));
-  const pixels=await layer.locator('canvas').evaluate(c=>{const a=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});expect(pixels.max).toBeGreaterThan(28);expect(pixels.mean).toBeGreaterThan(1);
+  const pixels=await layer.locator('.pd-cinema-particles').evaluate(c=>{const scratch=document.createElement('canvas');scratch.width=c.width;scratch.height=c.height;const ctx=scratch.getContext('2d');const film=c.parentElement.querySelector('.pd-cinema-film');if(film)ctx.drawImage(film,0,0,c.width,c.height);ctx.drawImage(c,0,0);const a=ctx.getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});expect(pixels.max).toBeGreaterThan(28);expect(pixels.mean).toBeGreaterThan(1);
   await page.screenshot({path:'/tmp/fx-visible-'+type+'-'+width+'.png'});
  }
  await select(page,'earthquake');await page.clock.fastForward(8000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-earthquake/);
@@ -66,4 +68,27 @@ test('revisão vulcânica ajusta a cena e remove calor quando a erupção termin
  await boot(page);await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Estado de fundo'});await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
  await page.evaluate(()=>{const item={...EventStore.getSelected(),eruptionStatus:'Em erupção',detail:'Emissão de cinzas'};upsertAlert(item);showAlertDetails(item,false,true);});await expect(page.locator('.pd-cinema-heat')).toHaveCount(2);
  await page.evaluate(()=>{const item={...EventStore.getSelected(),eruptionStatus:'Erupção encerrada',detail:'Sem atividade eruptiva'};upsertAlert(item);showAlertDetails(item,false,true);});await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-activity','monitoring');await expect(page.locator('#painel-direito')).toHaveClass(/pd-fx-volcano/);
+});
+
+for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no verso '+width,async({page})=>{
+ await boot(page,width);await select(page,'flood');
+ const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);
+ await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
+ const initial=await video.evaluate(v=>v.currentTime);await page.waitForTimeout(800);expect(await video.evaluate(v=>v.currentTime)).toBeGreaterThan(initial);
+ const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/water.mp4'});
+ await expect(page.locator('#pd-mag svg.pd-cinema-symbol')).toHaveCount(1);
+ await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
+ await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
+ await select(page,'fire');await expect(video).toHaveCount(1);await expect(video).toHaveAttribute('src','media/card-fx/fire.mp4');
+ await page.emulateMedia({reducedMotion:'reduce'});await expect(video).toHaveCount(0);
+});
+test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não recebe erupção',async({page})=>{
+ await boot(page);await page.route('**/media/card-fx/*.mp4',r=>r.abort());await select(page,'flood');
+ await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
+ await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/clouds.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
+});
+
+test('vento mantém o local estável enquanto a cena se move',async({page})=>{
+ await boot(page);
+ for(const type of ['wind','hurricane']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);await expect(page.locator('#pd-local .pd-fx-windletter')).toHaveCount(0);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');}
 });

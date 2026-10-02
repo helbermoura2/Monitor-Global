@@ -46,3 +46,23 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 
 /* Persistent rain/lightning while the selected storm is on the front. */
 #painel-direito.pd-cinema-active.pd-fx-storm .pd-fx-bolt,#painel-direito.pd-cinema-active.pd-fx-storm #lightning-flash{animation-iteration-count:infinite}
+
+/* More of the hero stays exposed; the measurements remain outside the strongest scene. */
+#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-wrap{min-height:134px!important}
+#painel-direito .pd-cinema-particles{z-index:3}
+#painel-direito .pd-cinema-film{z-index:2;image-rendering:auto}
+#painel-direito .pd-cinema-symbol{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 4px #001a25)}
+#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) .pd-gauge-glow{opacity:.15}
+#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-arc{stroke-width:5.5}
+#painel-direito .pd-cinema-lenses{z-index:4}
+@media(max-width:900px){
+ body.mobile-details-mid #painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-wrap{min-height:90px!important}
+ body.mobile-details-mid #painel-direito .pd-cinema-symbol{width:24px;height:24px}
+}
+
+#painel-direito .pd-cinema-footage{position:absolute;left:0;width:100%;object-fit:cover;object-position:center;z-index:1;opacity:.80;pointer-events:none;filter:saturate(.75) contrast(1.10);mask-image:linear-gradient(transparent,#000 22%,#000 74%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 22%,#000 74%,transparent)}
+#painel-direito.pd-fx-fire .pd-cinema-footage{object-position:center 65%;mix-blend-mode:screen;filter:saturate(.85) contrast(1.18)}
+#painel-direito.pd-fx-volcano .pd-cinema-footage{object-position:center 25%;mix-blend-mode:screen;opacity:.65}
+#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-wrap::after{content:'ILUSTRAÇÃO';position:absolute;right:0;bottom:3px;color:#d9edf0;font-size:7px;letter-spacing:1px;opacity:.65;pointer-events:none}
+
+#painel-direito.pd-fx-volcano .pd-cinema-footage[src*="smoke"]{filter:brightness(2.6) contrast(1.05);opacity:.85}

@@ -58,10 +58,10 @@ function triggerCardFx(type, color, item) {
 
     if (type === 'hurricane') {
         spinIcon(12000, 1800);
-        triggerWindLetters(FX_DURATION.hurricane);
+        if(!atmospheric)triggerWindLetters(FX_DURATION.hurricane);
         if(!window.CinematicCard?.isActive())triggerRainEffect(FX_DURATION.hurricane);
     } else if (type === 'tornado') spinIcon(7000, 2160);
-    else if (type === 'wind') triggerWindLetters(FX_DURATION.wind);
+    else if (type === 'wind' && !atmospheric) triggerWindLetters(FX_DURATION.wind);
 }
 
 // ═══════════ FURACÃO / VENTO — vento arrancando as letras do local do evento ═══════════
