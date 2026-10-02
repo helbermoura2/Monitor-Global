@@ -9,6 +9,7 @@ module.exports = defineConfig({
   retries: process.env.CI ? 1 : 0, // rede real (GDACS/USGS/etc.) pode falhar por instabilidade transitória
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
+    channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL || undefined,
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
   },
