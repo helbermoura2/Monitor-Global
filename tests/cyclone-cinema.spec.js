@@ -7,8 +7,9 @@ async function boot(page,width){
  await page.evaluate(()=>{const q={id:'cyclone-qa',type:'earthquake',mag:3,depth:10,source:'QA',coords:[-70,-20],place:'Evento real de teste',time:Date.now()};globalEvents=[q];showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);SeismicCinema.stop();});
 }
 for(const width of [1280,390])test('ciclones cinematográficos preservam dados e controles '+width,async({page})=>{
- await boot(page,width);const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
- await page.waitForTimeout(1200);
+ await boot(page,width);const errors=[];// External feeds are deliberately aborted by boot; retain all other browser errors.
+ page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
+ await expect(page.locator('#pd-local')).toHaveText('Evento real de teste — Bolívia');
  const before=await page.evaluate(()=>({id:eventoSelecionadoId,local:document.getElementById('pd-local').textContent,mag:document.getElementById('pd-mag').textContent}));
  for(const key of ['hurricane','typhoon']){
   await page.evaluate(k=>CardEffectDemo.preview(k),key);
