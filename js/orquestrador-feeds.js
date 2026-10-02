@@ -214,7 +214,7 @@ async function fetchGlobalFeeds() {
             // câmera que já esteja em andamento por outro motivo.
             if (isFirstDisplay) {
                 isFirstDisplay = false;
-                if (globalEvents.length) { window.__mgSoftCycle=true; showEventDetails(0, false); }
+                if (typeof showNextAutoCycleItem === 'function') showNextAutoCycleItem();
             }
 
             return;
@@ -428,7 +428,7 @@ async function fetchGlobalFeeds() {
         const firstRevisionDisplay = isFirstDisplay;
         if (isFirstDisplay) {
             isFirstDisplay = false;
-            if (globalEvents.length) { window.__mgSoftCycle=true; showEventDetails(0, false); }
+            if (typeof showNextAutoCycleItem === 'function') showNextAutoCycleItem();
         } else {
             queueNewCameraQuakes(novosRecentes);
             focusNextNewCameraQuake();

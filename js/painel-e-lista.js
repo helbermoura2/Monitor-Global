@@ -914,46 +914,112 @@ function getPriorityCameraEarthquakes() {
         e.coords.slice(0, 2).every(Number.isFinite));
 }
 
+// The rotation cursor and shuffled decks live independently of display timers.
+// Arrivals, revisions and manual selections may replace the timer, never these decks.
+function autoCycleRandomInt(size) {
+    if (size <= 1) return 0;
+    if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+        const value = new Uint32Array(1), ceiling = Math.floor(4294967296 / size) * size;
+        do { window.crypto.getRandomValues(value); } while (value[0] >= ceiling);
+        return value[0] % size;
+    }
+    return Math.floor(Math.random() * size);
+}
+function autoCycleDraw(deck, keys, avoid) {
+    const active = new Set(keys);
+    deck.remaining = (deck.remaining || []).filter(id => active.has(id));
+    deck.seen = (deck.seen || []).filter(id => active.has(id));
+    const known = new Set([...deck.remaining, ...deck.seen]);
+    for (const id of keys) if (!known.has(id)) {
+        deck.remaining.splice(autoCycleRandomInt(deck.remaining.length + 1), 0, id);
+        known.add(id);
+    }
+    // An externally selected final card already is on screen; don't repeat it.
+    if (deck.remaining.length === 1 && deck.remaining[0] === avoid && keys.length > 1) {
+        deck.seen.push(deck.remaining.pop());
+    }
+    if (!deck.remaining.length) {
+        deck.remaining = keys.slice(); deck.seen = [];
+        for (let i = deck.remaining.length - 1; i > 0; i--) {
+            const j = autoCycleRandomInt(i + 1);
+            [deck.remaining[i], deck.remaining[j]] = [deck.remaining[j], deck.remaining[i]];
+        }
+    }
+    if (deck.remaining[0] === avoid && deck.remaining.length > 1) {
+        const j = 1 + autoCycleRandomInt(deck.remaining.length - 1);
+        [deck.remaining[0], deck.remaining[j]] = [deck.remaining[j], deck.remaining[0]];
+    }
+    const id = deck.remaining.shift();
+    if (id != null) deck.seen.push(id);
+    return id;
+}
+function getAutoCycleProtectionRemaining() {
+    if (window.__mgRevisionProtectedId !== eventoSelecionadoId) return 0;
+    return Math.max(0, (window.__mgRevisionProtectedUntil || 0) - Date.now());
+}
+function selectNextAutoCycleItem() {
+    const state = window.__mgAutoRotation || (window.__mgAutoRotation = {
+        phase: 0, quakes: {}, types: {}, alerts: new Map(), lastType: null
+    });
+    const quakes = new Map(getPriorityCameraEarthquakes().filter(e => e.id != null).map(e => [e.id, e]));
+    const source = typeof globalAlerts !== 'undefined' ? globalAlerts :
+        (typeof buildUnifiedFeed === 'function' ? buildUnifiedFeed() : []);
+    const groups = new Map(), now = Date.now();
+    for (const item of source || []) {
+        if (!item || item.id == null || item.type === 'earthquake' || (!item.type && item.mag != null) ||
+            ['forecast', 'river', 'bulletin'].includes(item.hazardNature) ||
+            !Array.isArray(item.coords) || item.coords.length < 2 || !item.coords.slice(0, 2).every(Number.isFinite) ||
+            (Number.isFinite(item.expiresAt) && item.expiresAt <= now) ||
+            (Number.isFinite(item.fimTs) && item.fimTs <= now) ||
+            (Number.isFinite(item.inicioTs) && item.inicioTs > now) ||
+            (Number.isFinite(item.time) && item.time > now) ||
+            (typeof alertVisivelNaLista === 'function' && !alertVisivelNaLista(item))) continue;
+        const type = item.type || 'other';
+        if (!groups.has(type)) groups.set(type, new Map());
+        groups.get(type).set(item.id, item);
+    }
+    for (const type of state.alerts.keys()) if (!groups.has(type)) state.alerts.delete(type);
+    const wantQuake = state.phase < 2;
+    let item = null;
+    if ((wantQuake && quakes.size) || !groups.size) {
+        if (quakes.size) item = quakes.get(autoCycleDraw(state.quakes, [...quakes.keys()], eventoSelecionadoId));
+    } else {
+        const type = autoCycleDraw(state.types, [...groups.keys()], state.lastType);
+        const group = groups.get(type);
+        if (group) {
+            if (!state.alerts.has(type)) state.alerts.set(type, {});
+            item = group.get(autoCycleDraw(state.alerts.get(type), [...group.keys()], eventoSelecionadoId));
+            state.lastType = type;
+        }
+    }
+    if (item) state.phase = (state.phase + 1) % 3;
+    return item;
+}
+function showNextAutoCycleItem() {
+    const it = selectNextAutoCycleItem();
+    if (!it) return false;
+    window.__mgSoftCycle = true;
+    const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
+    if (ehSismo) {
+        const i = globalEvents.findIndex(e => e && e.id === it.id);
+        if (i !== -1) showEventDetails(i, false);
+        else showAlertDetails(it, false);
+    } else showAlertDetails(it, false);
+    return true;
+}
 function scheduleNextAutoCycle(ms) {
     clearTimeout(cycleTimeout);
     try { clearTimeout(window.__mgCycleGuard); } catch (e) {}
-    // ms = tempo ATÉ a próxima troca (já inclui o voo, se quiser)
-    const wait = (typeof ms === 'number' && ms >= 5000) ? ms : 30000;
+    const wait = Number.isFinite(ms) && ms > 0 ? Math.max(250, ms) : 30000;
     cycleTimeout = setTimeout(() => {
         try {
-            // Não troca no meio de um voo
-            if (map && map.isMoving && map.isMoving()) {
-                scheduleNextAutoCycle(4000);
-                return;
-            }
+            const protectedMs = getAutoCycleProtectionRemaining();
+            if (protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
             if (typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) return;
-            const sismos = getPriorityCameraEarthquakes();
-            const m = sismos.length ? sismos :
-                ((typeof buildUnifiedFeed === 'function') ? buildUnifiedFeed().filter(x=>!['forecast','river','bulletin'].includes(x.hazardNature)&&Array.isArray(x.coords)&&x.coords.slice(0,2).length===2&&x.coords.slice(0,2).every(Number.isFinite)) : []);
-            if (!m || !m.length) {
-                scheduleNextAutoCycle(20000);
-                return;
-            }
-            // Decide o tipo ANTES de limitar/excluir o selecionado. Mesmo um
-            // único sismo já selecionado vence todos os outros alertas.
-            const candidatos = m.slice(0, 50);
-            const pool = candidatos.filter(x => x && x.id !== eventoSelecionadoId);
-            const grupo = pool.length ? pool : candidatos;
-            const it = grupo[Math.floor(Math.random() * grupo.length)];
-            if (!it) {
-                scheduleNextAutoCycle(20000);
-                return;
-            }
-            window.__mgSoftCycle = true;
-            const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
-            if (ehSismo) {
-                const i = globalEvents.findIndex(e => e && e.id === it.id);
-                if (i !== -1) showEventDetails(i, false);
-                else showAlertDetails(it, false);
-            } else {
-                showAlertDetails(it, false);
-            }
+            if (map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
+            if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
         } catch (e) {
+            window.__mgSoftCycle = false;
             console.warn('[cycle]', e);
             scheduleNextAutoCycle(30000);
         }
@@ -1447,7 +1513,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // módulos continuam independentes. Atualizações silenciosas e cliques
     // manuais não são uma tomada automática de câmera.
     if (!silentRefresh && (triggerVisualAlert || window.__mgSoftCycle) &&
-        getPriorityCameraEarthquakes().length &&
+        getAutoCycleProtectionRemaining() > 0 &&
         !(item.type === 'earthquake' || (item.mag != null && !item.type))) {
         window.__mgSoftCycle = false;
         return;

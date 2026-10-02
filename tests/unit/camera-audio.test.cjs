@@ -19,12 +19,12 @@ function camera(events, selected, feed) {
     console, buildUnifiedFeed: () => feed,
     showEventDetails: (i) => shown.push(events[i].id),
     showAlertDetails: (e) => shown.push(e.id) });
-  vm.runInContext(fn(panel, 'getPriorityCameraEarthquakes') + '\n' + fn(panel, 'scheduleNextAutoCycle'), c);
+  vm.runInContext(['getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','scheduleNextAutoCycle'].map(name=>fn(panel,name)).join('\n'), c);
   c.scheduleNextAutoCycle(5000);
   timers.shift()();
   return { c, shown };
 }
-test('único sismo selecionado vence mais de 50 alertas', () => {
+test('primeiro slot sísmico não é tomado por mais de 50 alertas', () => {
   const q = quake('q');
   const feed = [...Array.from({ length: 60 }, (_, i) => alert(`a${i}`)), q];
   assert.deepEqual(camera([q], 'q', feed).shown, ['q']);
@@ -35,9 +35,9 @@ test('ciclo mantém alternância entre sismos e fallback sem sismos', () => {
   assert.deepEqual(camera([], null, []).shown, []);
 });
 test('todos os tipos são barrados antes de modificar painel/hold; manual e refresh passam', () => {
-  const c = vm.createContext({ globalEvents: [quake('q')], window: { __mgHoldMag: 6 },
+  const c = vm.createContext({ globalEvents: [quake('q')], eventoSelecionadoId:'q', window: { __mgHoldMag: 6, __mgRevisionProtectedId:'q', __mgRevisionProtectedUntil:Date.now()+90000 },
     fecharViradaCardAlcance() { throw new Error('passou pela barreira'); } });
-  vm.runInContext(fn(panel, 'getPriorityCameraEarthquakes') + '\n' + fn(panel, 'showAlertDetails'), c);
+  vm.runInContext(fn(panel, 'getAutoCycleProtectionRemaining') + '\n' + fn(panel, 'showAlertDetails'), c);
   // Um acesso ao DOM identifica que a chamada passou pelo guard central.
   for (const type of ['tornado', 'hurricane', 'storm', 'flood', 'volcano', 'tsunami', 'civil', 'future-type']) {
     c.showAlertDetails(alert('a', type), true);
@@ -49,6 +49,7 @@ test('todos os tipos são barrados antes de modificar painel/hold; manual e refr
   assert.throws(() => c.showAlertDetails(alert('a'), false), /not defined/);
   assert.throws(() => c.showAlertDetails(alert('a'), false, true), /not defined/);
   c.globalEvents = [];
+  c.window.__mgRevisionProtectedUntil=0;
   assert.throws(() => c.showAlertDetails(alert('a'), true), /not defined/);
 });
 function audio({ allowed = true, muted = false, ready = 'complete' } = {}) {
