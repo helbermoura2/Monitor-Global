@@ -52,7 +52,7 @@
     var local = document.getElementById('pd-local');
     var panel = document.getElementById('painel-direito');
     if (!local || !panel) return;
-    var lastCommitted = local.textContent;
+    var lastCommitted = local.textContent.replace(/\u00a0/g, ' ');
     // Rastreia o que está DE VERDADE pintado na tela agora — diferente de
     // lastCommitted, que só é atualizado quando um typeIn() termina. Sem
     // isso, uma segunda troca chegando NO MEIO de uma digitação em
@@ -61,7 +61,7 @@
     // "fantasma" mostrar lastCommitted, ou seja, o título de DUAS trocas
     // atrás, não o que o usuário via um instante antes — um "eco" de um
     // evento totalmente diferente do que estava na tela.
-    var lastRendered = local.textContent;
+    var lastRendered = local.textContent.replace(/\u00a0/g, ' ');
     var typing = false;
     var typingTarget = null;
 
@@ -116,7 +116,9 @@
     }
 
     var obs = new MutationObserver(function () {
-      var real = local.textContent;
+      // As letras do vento usam NBSP para preservar a largura dos espaços.
+      // Isso não é uma troca de título nem uma preempção da digitação.
+      var real = local.textContent.replace(/\u00a0/g, ' ');
       // passo do nosso próprio typewriter (real é sempre um prefixo do alvo)?
       if (typing && typingTarget && real.length <= typingTarget.length && typingTarget.slice(0, real.length) === real) {
         return;

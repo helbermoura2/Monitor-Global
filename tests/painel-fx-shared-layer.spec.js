@@ -58,3 +58,26 @@ test('rajadas contínuas e chuva compartilham a camada sem perder dados ou contr
   await page.locator('#control').click();
   expect(errors).toEqual([]);
 });
+
+test('letras ao vento não reiniciam a digitação nem truncam o título', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.setViewportSize({ width: 1280, height: 844 });
+  await page.clock.install();
+  await page.setContent('<div id="painel-direito" style="width:320px;height:400px"><div id="pd-local">Título inicial completo</div></div>');
+  for (const file of ['ui-motion.js', 'painel-fx.js']) {
+    await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '../js', file), 'utf8') });
+  }
+  await page.evaluate(() => triggerWindLetters(Infinity));
+  await page.clock.runFor(3000);
+  await expect(page.locator('#pd-local')).toHaveText('Título inicial completo');
+  await expect(page.locator('.mg-headline-ghost')).toHaveCount(0);
+  await page.evaluate(() => { document.getElementById('pd-local').textContent = 'Novo evento com rajadas de vento'; });
+  await page.clock.runFor(3000);
+  await expect(page.locator('#pd-local')).toHaveText('Novo evento com rajadas de vento');
+  await page.evaluate(() => restoreWindLetters());
+  await page.clock.runFor(3000);
+  await expect(page.locator('#pd-local')).toHaveText('Novo evento com rajadas de vento');
+  expect(await page.locator('#pd-local').evaluate(el => el._mgTypeId)).toBeFalsy();
+  expect(errors).toEqual([]);
+});
