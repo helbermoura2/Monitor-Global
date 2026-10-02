@@ -14,7 +14,7 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(1.7,9.2);a*=.5;}return v;}
@@ -86,6 +86,55 @@
   color=mix(color,vec3(.69,.67,.57),foam*.7);
   return vec4(color,.76);
  }
+
+ // Continuous Cartesian cloud texture avoids a seam at atan's -PI/PI boundary.
+ mat2 cycloneRotation(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+ float cycloneHeight(vec2 p,float time){
+  float r=length(p);
+  vec2 flow=cycloneRotation(uDirection*time*.038)*p;
+  vec2 warp=vec2(noise(flow*3.1),noise(flow*3.1+vec2(9.7,4.2)))-.5;
+  float billows=fbm(flow*8.5+warp*1.9+vec2(time*.011,-time*.008));
+  float broad=fbm(flow*2.8+warp*.6);
+  float angle=atan(p.y,p.x);
+  float spiral=.5+.5*cos(angle*3.+uDirection*(log(r+.18)*5.8-time*.114)+broad*2.1);
+  float bands=smoothstep(.24,.80,spiral)*(.48+.52*billows);
+  float disturbed=r+(noise(flow*7.)-.5)*.022;
+  float eyeRadius=.16;
+  float openEye=mix(1.,smoothstep(eyeRadius,eyeRadius+.075,disturbed),uOrganized);
+  float wall=exp(-pow((disturbed-.31)/.13,2.))*(.60+.40*billows)*uOrganized;
+  float canopy=mix(billows*.60,.20+billows*.28+bands*.49,uOrganized)*exp(-r*.22);
+  float outer=1.-smoothstep(1.35,2.10,r);
+  return clamp((canopy*.84+wall*.50+.05*broad)*openEye*outer,0.,1.);
+ }
+ vec4 cyclone(vec2 uv,float aspect){
+  // Scale by width: a round eye stays round on compact and expanded cards.
+  vec2 center=vec2(.52+.008*sin(uTime*.035),.62+.008*cos(uTime*.027));
+  vec2 p=(uv-center)*vec2(aspect,1.)/max(aspect*.66,.18);
+  float r=length(p),height=cycloneHeight(p,uTime);
+  float hx=cycloneHeight(p+vec2(.025,0.),uTime);
+  float hy=cycloneHeight(p+vec2(0.,.025),uTime);
+  vec3 normal=normalize(vec3((height-hx)*8.,(height-hy)*8.,.90));
+  vec3 sun=normalize(vec3(-.65,.72,.65));
+  float diffuse=max(dot(normal,sun),0.);
+  float valleys=clamp(.84+height*.24-(hx+hy)*.12,.65,1.);
+  vec3 albedo=mix(vec3(.23,.28,.32),vec3(.78,.81,.82),smoothstep(.07,.70,height));
+  vec3 clouds=albedo*(.48+.46*diffuse)*valleys;
+  clouds+=vec3(.12,.14,.15)*pow(diffuse,7.)*height;
+  float fine=fbm(cycloneRotation(uDirection*uTime*.027)*p*32.);
+  clouds*=.94+.10*fine;
+  float veil=smoothstep(.015,.62,height);
+  vec3 ocean=vec3(.014,.032,.044)+vec3(.025,.035,.038)*fbm(p*15.+uTime*.013);
+  vec3 color=mix(ocean,clouds,veil);
+  // The near wall casts a soft shadow into the open eye; no flat black disc.
+  float eye=1.-smoothstep(.10,.24,r);
+  float interiorLight=clamp(.5+p.x*1.5+p.y*1.7,0.,1.);
+  vec3 interior=mix(vec3(.008,.018,.025),vec3(.040,.070,.082),interiorLight);
+  color=mix(color,interior,eye*uOrganized*.86);
+  float haze=.035+.025*fbm(p*2.+vec2(uTime*.009,0.));
+  color=mix(color,vec3(.33,.40,.45),haze);
+  return vec4(color,.64+.25*smoothstep(.05,.60,height));
+ }
+
  void main(){
   vec2 uv=vUV;float aspect=uResolution.x/uResolution.y;
   // A continuous scene across the viewport, including the area behind the data.
@@ -100,16 +149,7 @@
    float phase=mod(uTime,10.);float flash=exp(-pow((phase-.61)*23.,2.))+exp(-pow((phase-4.30)*26.,2.))+exp(-pow((phase-8.3)*24.,2.));
    scene.rgb+=vec3(.44,.57,.72)*flash*uLightning;
   }else if(uMode<1.5){
-   vec2 center=vec2((uv.x-.5)*aspect,uv.y-.53);float r=length(center)/max(aspect*.48,.18),a=atan(center.y,center.x);
-   float spiral=sin(a*3.+r*10.-uTime*(.32+.35*uStrength));
-   float bands=cloud(vec2(center.x*12.,center.y*12.)+vec2(spiral*.4,-uTime*.09));
-   bands=mix(bands,bands*.65+smoothstep(-.4,.8,spiral)*.35,uOrganized);
-   float eye=mix(1.,smoothstep(.10,.22,r),uOrganized);
-   float ring=(1.-smoothstep(.60,.85,r))*eye;
-   vec3 color=mix(vec3(.06,.095,.14),vec3(.63,.70,.76),bands*.88);
-   float shadow=cloud(vec2(r*8.,a*2.+r*13.-uTime*.45));color*=.68+.32*shadow;
-   scene=over(vec4(color,ring*smoothstep(.23,.67,bands)*mix(.94,.43,uFootage)),vapor(vec2(uv.x*4.-uTime*.25,uv.y*7.),mix(.67,.24,uFootage),vec3(.40,.54,.66)));
-   float eyeShade=(1.-smoothstep(.10,.23,r))*uOrganized;scene.rgb=mix(scene.rgb,vec3(.018,.035,.045),eyeShade*.94);scene.a=max(scene.a,eyeShade*.85);
+   scene=cyclone(uv,aspect);
   }else if(uMode<2.5){
    float y=clamp(local.y,0.,1.);float axis=.5+sin(y*4.+uTime*.58)*.045;
    float radius=mix(.024,.19,pow(y,.8));float radial=(local.x-axis)/radius;
@@ -199,10 +239,10 @@
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
    let last=-Infinity,width=1,height=1;
-   function resize(w,h){width=w;height=h;const scale=Math.min(1,(mobile?176:240)/Math.max(w,1),(mobile?360:480)/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function resize(w,h){width=w;height=h;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
