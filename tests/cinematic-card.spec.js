@@ -81,7 +81,7 @@ for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e co
   await select(page,type,type==='volcano'?{eruptionStatus:'Em erupção',detail:'Emissão de cinzas'}:{});
   const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);await expect(layer).toHaveAttribute('aria-hidden','true');
   if(type!=='earthquake')await expect(layer).toHaveAttribute('data-renderer','film');
-  await expect(layer).toHaveCSS('pointer-events','none');await expect.poll(()=>layer.evaluate(el=>Number(getComputedStyle(el).opacity))).toBeGreaterThan(.8);
+  await expect(layer).toHaveCSS('pointer-events','none');await expect.poll(()=>layer.evaluate(el=>Number(getComputedStyle(el).opacity)),{message:'Cena visível: '+type+' / '+width}).toBeGreaterThan(.8);
   await expect(page.locator('#pd-local')).toBeVisible();await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
   const result=await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el};});
   expect(result.hit).toBe(true);

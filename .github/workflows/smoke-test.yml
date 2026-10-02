@@ -54,3 +54,16 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  card-visibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verificar visibilidade das cenas e helpers compartilhados
+        run: npx playwright test tests/painel-fx-shared-layer.spec.js tests/cinematic-card.spec.js --grep 'rajadas contínuas|todos os efeitos' --workers=1
