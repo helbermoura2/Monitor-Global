@@ -9,4 +9,4 @@ Trechos ilustrativos licenciados pela Mixkit Stock Video Free License, verificad
 - `media/card-fx/surge.mp4` — [fonte](https://mixkit.co/free-stock-video/waves-reaching-the-shore-1925/) · [licença](https://mixkit.co/license/#videoFree).
 - `media/card-fx/water.mp4` — [fonte](https://mixkit.co/free-stock-video/rain-falling-on-the-water-of-a-lake-seen-up-18312/) · [licença](https://mixkit.co/license/#videoFree).
 
-Adaptados para loops de até 9 segundos, 480 × 270, H.264, 20 quadros/s e sem áudio. Somente a cena selecionada é carregada. Não redistribuir como biblioteca de vídeos de estoque; uso integrado na ilustração do Monitor Global.
+Adaptados para loops de até 9 segundos, 360 × 640, H.264, 20 quadros/s e sem áudio. Somente a cena selecionada é carregada. Não redistribuir como biblioteca de vídeos de estoque; uso integrado na ilustração do Monitor Global.

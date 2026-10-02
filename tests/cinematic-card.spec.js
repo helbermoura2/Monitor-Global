@@ -12,6 +12,68 @@ async function select(page,type,extra={}){
   clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
  },{type,extra});
 }
+async function cardCoverage(page){
+ return page.locator('.pd-cinema-layer').evaluate(layer=>{
+  const rect=layer.getBoundingClientRect(),video=layer.querySelector('video'),film=layer.querySelector('.pd-cinema-film');
+  const bounds=el=>{const r=el.getBoundingClientRect();return {top:r.top-rect.top,left:r.left-rect.left,width:r.width,height:r.height};};
+  const width=film.width,height=film.height,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');ctx.drawImage(film,0,0,width,height);
+  const particles=layer.querySelector('.pd-cinema-particles');if(particles)ctx.drawImage(particles,0,0,width,height);
+  const pixels=ctx.getImageData(0,0,width,height).data,thirds=[];
+  // Ignore the edges: the previous hero band plus thin edge effects must fail this check.
+  for(let third=0;third<3;third++){
+   let total=0,max=0,count=0,covered=0;
+   for(let y=Math.floor(third*height/3);y<Math.floor((third+1)*height/3);y++)for(let x=Math.floor(width*.2);x<Math.floor(width*.8);x++){
+    const alpha=pixels[(y*width+x)*4+3];total+=alpha;max=Math.max(max,alpha);count++;if(alpha>=12)covered++;
+   }
+   thirds.push({mean:total/count,max,covered:covered/count});
+  }
+  const panel=layer.parentElement.getBoundingClientRect();
+  return {width:rect.width,height:rect.height,top:rect.top-panel.top,left:rect.left-panel.left,video:bounds(video),film:bounds(film),mask:getComputedStyle(video).maskImage,thirds};
+ });
+}
+async function readableControls(page){
+ await expect(page.locator('#pd-local')).toBeVisible();await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
+ const result=await page.locator('#pd-local').evaluate(el=>{
+  const style=getComputedStyle(el),rgb=style.color.match(/[\d.]+/g).slice(0,3).map(Number);
+  return {lightness:rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722,opacity:Number(style.opacity)};
+ });
+ expect(result.lightness).toBeGreaterThan(190);expect(result.opacity).toBeGreaterThanOrEqual(.9);
+ const focus=await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;});
+ expect(focus).toBe(true);
+}
+for(const width of [1280,390])test('cena ocupa o cartão inteiro e mantém os controles legíveis '+width,async({page})=>{
+ await boot(page,width);
+ for(const type of ['storm','flood','fire']){
+  await select(page,type,type==='fire'?{detail:'Foco de incêndio reportado; equipes acompanham a ocorrência e as condições locais. '.repeat(12)}:{});
+  if(width===390)await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
+  const video=page.locator('.pd-cinema-footage');await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
+  await expect.poll(async()=>{const c=await cardCoverage(page);return Math.abs(c.video.height-c.height)<1&&Math.abs(c.video.top)<1;}).toBe(true);
+  const coverage=await cardCoverage(page);
+  for(const bounds of [coverage.video,coverage.film]){
+   expect(Math.abs(bounds.top)).toBeLessThan(1);expect(Math.abs(bounds.left)).toBeLessThan(1);
+   expect(Math.abs(bounds.width-coverage.width)).toBeLessThan(1);expect(Math.abs(bounds.height-coverage.height)).toBeLessThan(1);
+  }
+  expect(coverage.mask).toBe('none');
+  for(const third of coverage.thirds){expect(third.mean).toBeGreaterThan(8);expect(third.covered).toBeGreaterThan(.3);}
+  await readableControls(page);
+  await page.screenshot({path:'/tmp/full-card-'+type+'-'+width+'.png'});
+ }
+ const beforeScroll=await cardCoverage(page);
+ const scrollTop=await page.locator('#painel-direito').evaluate(panel=>{panel.scrollTop=Math.min(120,panel.scrollHeight-panel.clientHeight);return panel.scrollTop;});
+ expect(scrollTop).toBeGreaterThan(20);
+ await expect.poll(async()=>Math.abs((await cardCoverage(page)).top-beforeScroll.top)).toBeLessThan(2);
+ const scrolled=await cardCoverage(page);expect(Math.abs(scrolled.video.height-scrolled.height)).toBeLessThan(1);
+ for(const third of scrolled.thirds)expect(third.mean).toBeGreaterThan(8);
+ await page.locator('#painel-direito').evaluate(panel=>{panel.scrollTop=0;});
+ if(width===390){
+  const expanded=await cardCoverage(page);
+  await page.evaluate(()=>{document.body.classList.remove('mobile-details-open');document.body.classList.add('mobile-details-mid');});
+  await expect.poll(async()=>{const c=await cardCoverage(page);return c.height<expanded.height&&Math.abs(c.video.height-c.height)<1;}).toBe(true);
+  const compact=await cardCoverage(page);for(const third of compact.thirds)expect(third.mean).toBeGreaterThan(8);
+  await readableControls(page);await page.screenshot({path:'/tmp/full-card-compact-390.png'});
+ }
+});
 for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e controles '+width,async({page})=>{
  test.setTimeout(180000);
  await boot(page,width);
@@ -79,12 +141,21 @@ for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no 
  await expect(page.locator('#pd-mag svg.pd-cinema-symbol')).toHaveCount(1);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
+ await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
+ if(width===390){
+  await page.evaluate(()=>document.body.classList.remove('mobile-details-mid','mobile-details-open'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
+  await page.evaluate(()=>document.body.classList.add('mobile-details-mid'));await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
+ }
+ const previous=await video.elementHandle();
  await select(page,'fire');await expect(video).toHaveCount(1);await expect(video).toHaveAttribute('src','media/card-fx/fire.mp4');
+ expect(await previous.evaluate(v=>({connected:v.isConnected,paused:v.paused,src:v.getAttribute('src')}))).toEqual({connected:false,paused:true,src:null});
  await page.emulateMedia({reducedMotion:'reduce'});await expect(video).toHaveCount(0);
 });
 test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não recebe erupção',async({page})=>{
  await boot(page);await page.route('**/media/card-fx/*.mp4',r=>r.abort());await select(page,'flood');
  await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
+ await expect.poll(async()=>{const coverage=await cardCoverage(page);return coverage.thirds.every(third=>third.mean>8&&third.covered>.3);}).toBe(true);
  await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/clouds.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
 

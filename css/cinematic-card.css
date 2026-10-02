@@ -47,7 +47,7 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 /* Persistent rain/lightning while the selected storm is on the front. */
 #painel-direito.pd-cinema-active.pd-fx-storm .pd-fx-bolt,#painel-direito.pd-cinema-active.pd-fx-storm #lightning-flash{animation-iteration-count:infinite}
 
-/* More of the hero stays exposed; the measurements remain outside the strongest scene. */
+/* The measurements keep their layout over the continuous full-card scene. */
 #painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-wrap{min-height:134px!important}
 #painel-direito .pd-cinema-particles{z-index:3}
 #painel-direito .pd-cinema-film{z-index:2;image-rendering:auto}
@@ -60,9 +60,18 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
  body.mobile-details-mid #painel-direito .pd-cinema-symbol{width:24px;height:24px}
 }
 
-#painel-direito .pd-cinema-footage{position:absolute;left:0;width:100%;object-fit:cover;object-position:center;z-index:1;opacity:.80;pointer-events:none;filter:saturate(.75) contrast(1.10);mask-image:linear-gradient(transparent,#000 22%,#000 74%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 22%,#000 74%,transparent)}
+#painel-direito .pd-cinema-footage{position:absolute;left:0;width:100%;object-fit:cover;object-position:center;z-index:1;opacity:.88;pointer-events:none;filter:saturate(.72) contrast(1.08);mask-image:none;-webkit-mask-image:none}
 #painel-direito.pd-fx-fire .pd-cinema-footage{object-position:center 65%;mix-blend-mode:screen;filter:saturate(.85) contrast(1.18)}
 #painel-direito.pd-fx-volcano .pd-cinema-footage{object-position:center 25%;mix-blend-mode:screen;opacity:.65}
 #painel-direito.pd-cinema-active:not(.pd-fx-earthquake) #pd-gauge-wrap::after{content:'ILUSTRAÇÃO';position:absolute;right:0;bottom:3px;color:#d9edf0;font-size:7px;letter-spacing:1px;opacity:.65;pointer-events:none}
 
 #painel-direito.pd-fx-volcano .pd-cinema-footage[src*="smoke"]{filter:brightness(2.6) contrast(1.05);opacity:.85}
+
+/* Full-frame atmosphere; light is graded across the whole frame, not cut into a band. */
+#painel-direito .pd-cinema-layer::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(3,12,20,.32),rgba(3,12,20,.08) 30%,rgba(3,12,20,.25) 70%,rgba(3,12,20,.18)),linear-gradient(90deg,rgba(3,12,20,.14),transparent 28%,transparent 75%,rgba(3,12,20,.16))}
+#painel-direito.pd-cinema-active .pd-local,#painel-direito.pd-cinema-active .pd-time{color:#f3f8fb;text-shadow:0 1px 3px #02080d,0 0 7px rgba(0,0,0,.8)}
+#painel-direito.pd-cinema-active .stat-card,#painel-direito.pd-cinema-active .bubble-section,#painel-direito.pd-cinema-active .source-trust-card{background:rgba(4,16,27,.68);border-color:rgba(204,230,241,.23)}
+#painel-direito.pd-cinema-active .pd-timeline,#painel-direito.pd-cinema-active .pd-chip{background:rgba(4,16,27,.72)}
+#painel-direito.pd-cinema-active .pd-header-row{background:linear-gradient(rgba(4,16,27,.75),rgba(4,16,27,.56));text-shadow:0 1px 3px #000}
+#painel-direito.pd-fx-fire .pd-cinema-footage{opacity:.94;object-position:center bottom}
+#painel-direito.pd-fx-flood .pd-cinema-footage,#painel-direito.pd-fx-tsunami .pd-cinema-footage{filter:saturate(.65) contrast(1.12);opacity:.86}

@@ -22,7 +22,7 @@
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  function stop(){
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
-  if(scene){scene.observer.disconnect();scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
+  if(scene){scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active');removeGhost();
  }
  function fogTexture(){
@@ -57,7 +57,7 @@
   const p=panel(),cfg=profile(item);let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
-  if(snapshot){ghost=document.createElement('div');ghost.className='pd-cinema-afterglow';ghost.setAttribute('aria-hidden','true');ghost.append(snapshot);p.append(ghost);ghostTimer=setTimeout(removeGhost,420);}
+  if(snapshot){ghost=document.createElement('div');ghost.className='pd-cinema-afterglow';ghost.setAttribute('aria-hidden','true');ghost.append(snapshot);ghost.style.transform='translate3d(0,'+p.scrollTop+'px,0)';p.append(ghost);ghostTimer=setTimeout(removeGhost,420);}
   const host=document.createElement('div');host.className='pd-cinema-layer';host.setAttribute('aria-hidden','true');host.dataset.scene=cfg.type;host.dataset.activity=cfg.type==='volcano'?(cfg.hot?'eruptive':cfg.ash?'ash':'monitoring'):'illustration';
   const canvas=document.createElement('canvas');canvas.className='pd-cinema-particles';host.append(canvas);const ctx=canvas.getContext('2d',{alpha:true});if(!ctx){host.remove();return false;}
   const mobile=matchMedia('(max-width:900px)').matches,now=performance.now();
@@ -74,8 +74,8 @@
   const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:['tornado','wind','earthquake'].includes(cfg.type)?mobile?12:20:0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
-  function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);const gauge=document.getElementById('pd-gauge-wrap');const center=(gauge?.offsetTop||h*.27)+(gauge?.offsetHeight||0)/2;s.film?.resize(w,h,center,gauge?.offsetHeight||1);s.footage?.resize(w,h,center,gauge?.offsetHeight||1);}
-  s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
+  function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);s.film?.resize(w,h);s.footage?.resize(w,h);}
+  s.scroll=()=>{s.host.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
  }
  function edge(x,w){return .28+.72*Math.pow(Math.abs(x/w-.5)*2,1.5);}
  function illuminate(s,t,envelope){
