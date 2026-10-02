@@ -65,6 +65,27 @@ function triggerCardFx(type, color, item) {
     else if (type === 'wind' && !atmospheric) triggerWindLetters(FX_DURATION.wind);
 }
 
+// Camada compartilhada pelas cópias das rajadas e pela chuva de fallback.
+// Estes efeitos continuam usando-a mesmo com o sismo em seismic-cinema.js.
+function ensureFallLayer() {
+    let layer = document.getElementById('mg-fall-layer');
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.id = 'mg-fall-layer';
+        layer.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(layer);
+    }
+    return layer;
+}
+
+function pickRandom(arr, n) {
+    const copy = arr.slice(), out = [];
+    while (copy.length && out.length < n) {
+        out.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
+    }
+    return out;
+}
+
 // ═══════════ FURACÃO / VENTO — vento arrancando as letras do local do evento ═══════════
 // Embrulha cada CARACTERE do texto REAL de #pd-local num <span> pra poder
 // tremer/voar sozinho via CSS (.pd-fx-windletter, css/painel-fx.css) —
@@ -158,8 +179,7 @@ function triggerWindLetters(durationMs) {
 // ═══════════ FURACÃO — chuva via camada fixa, fora do card ═══════════
 // Gotas de verdade (posição/tamanho/velocidade sorteados por gota, nunca um
 // padrão repetido) numa camada position:fixed direto no <body>
-// (ensureFallLayer/#mg-fall-layer, mais abaixo neste arquivo — a MESMA já
-// usada pelas letras/ícones caindo). Ver comentário grande em
+// (ensureFallLayer/#mg-fall-layer, a mesma usada pelas rajadas). Ver comentário grande em
 // css/painel-fx.css (mgRainFall) pro raciocínio completo de por que a
 // chuva antiga (dentro do card) não renderizava em alguns navegadores
 // mobile e essa camada fixa resolve.
@@ -214,9 +234,8 @@ window.triggerRainEffect = triggerRainEffect;
 // pdLetterBlowAway) — a letra REAL nunca some, só pisca/estremece um
 // instante (.pd-fx-windletter-hit) enquanto a cópia voa, então o nome do
 // evento nunca fica ilegível por muito tempo, só "treme" a cada rajada.
-// Reaproveita ensureFallLayer/pickRandom, definidas mais abaixo neste
-// arquivo pro caos de sismo M7+ — mesma técnica: nunca mexe no elemento
-// real, só clona.
+// Reaproveita ensureFallLayer/pickRandom: nunca mexe no elemento real,
+// só clona.
 let __letterGustInterval = null;
 let __letterGustTimeout = null;
 function spawnLetterGust(el) {
