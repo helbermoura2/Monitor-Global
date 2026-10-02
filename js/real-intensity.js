@@ -8,6 +8,7 @@
   function setIntensityUI(item, value, kind, sourceLabel, impactText, feltCount){
     const val=Number(value);
     if(!Number.isFinite(val)) return false;
+    window.SeismicCinema?.recordIntensity(item.id,val,kind==='shakemap'?'ShakeMap USGS':sourceLabel);
     const merc=$('pd-mercalli'), label=$('pd-mercalli-label'), impact=$('pd-impact');
     if(!merc||!label||!impact) return false;
     const roman=val>=10?'X':val>=9?'IX':val>=8?'VIII':val>=7?'VII':val>=6?'VI':val>=5?'V':val>=4?'IV':val>=3?'III':val>=2?'II':'I';
@@ -46,18 +47,19 @@
   }
 
   window.enriquecerIntensidadeSismicaReal=async function(item, fallback){
-    if(!item||item.type!=='earthquake') return;
+    if(!item || !(item.type==='earthquake' || (!item.type && Number.isFinite(item.mag)))) return;
     // Só fazemos consulta extra para o USGS, evitando custo/rede para todos os eventos.
-    if(String(item.source||'').toUpperCase()!=='USGS') {
+    const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||'')) || (/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);
+    if(!report) {
       const ml=$('pd-mercalli-label'), imp=$('pd-impact');
       if(ml) ml.innerHTML='Intensidade (MMI) <span class="pd-intensity-source estimated" title="Não há MMI oficial disponível para este evento nesta fonte">EST</span>';
       if(imp) imp.textContent=typeof fallback==='function'?fallback():'Estimativa do app.';
       return;
     }
-    const eventId=String(item.sourceEventId||item.id||'').replace(/^USGS-/i,'');
+    const eventId=String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,'');
     if(!eventId) return;
     const d=await fetchUSGS(eventId);
-    if(!d) return;
+    if(!d || (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id)) return;
     if(d.mmi!=null){
       setIntensityUI(item,d.mmi,'official','USGS',`MMI ${d.mmi} — intensidade reportada no registro USGS.`,d.felt);
       return;

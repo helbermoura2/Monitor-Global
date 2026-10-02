@@ -1208,7 +1208,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const item = globalEvents[index];
     const [lng, lat] = item.coords;
     const mec = item.mecanismoReal || calcularMecanismoFocal(item.depth, lat, lng, item.place);
-    const mer = estimarMercalli(item.mag, item.depth);
+    const mer = window.SeismicCinema?.intensitySummary(item) || estimarMercalli(item.mag, item.depth);
     const en = calcularEnergia(item.mag);
     const his = getHistoricoRegional(lat, lng, 500, 30);
     const country = getCountryByCoords(lat, lng);
@@ -1263,7 +1263,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
       const ml = document.getElementById('pd-mercalli-label');
       const el = document.getElementById('pd-energy-label');
       if (dl) dl.innerHTML = 'Profundidade <span class="estimativa-badge" style="background:rgba(74,222,128,.15);color:#86efac" title="Valor reportado pelas agências sísmicas">FONTE</span>';
-      if (ml) ml.innerHTML = 'Intensidade (MMI) <span class="estimativa-badge" title="Será substituída por MMI oficial/ShakeMap quando a fonte fornecer esse produto">AGUARDANDO</span>';
+      if (ml) ml.innerHTML = 'Intensidade (MMI) <span class="estimativa-badge" title="Estimativa na região do epicentro; substituída por MMI da fonte quando disponível">EST</span>';
       if (el) el.innerHTML = 'Energia <span class="estimativa-badge" title="Equivalente em TNT calculado a partir da magnitude">CALCULADA</span>';
     } catch (e) {}
     const depthClass = classificarProfundidade(Math.max(0, item.depth));
@@ -1294,7 +1294,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         });
     }
 
-    const impactoEstimadoApp = () => mer.desc + ' (estimativa do app com base em magnitude e profundidade; não substitui avaliação oficial.)';
+    const impactoEstimadoApp = () => mer.desc + ' Intensidade estimada na região do epicentro; não representa o local do visitante nem confirma danos.';
     document.getElementById('pd-impact').textContent = impactoEstimadoApp();
     // Enriquecimento assíncrono: quando o evento for USGS, consulta o registro
     // oficial selecionado e usa MMI/ShakeMap/felt se realmente existir.
@@ -1346,7 +1346,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag), item);
-    if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag);
+    if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag, {item, mode:triggerVisualAlert?'new':window.__mgSoftCycle?'auto':'manual'});
 
     // Voo inicial próximo aos anéis vermelho/de percepção; a câmera abre conforme a onda azul cresce.
     let zoomAlvo = 12;

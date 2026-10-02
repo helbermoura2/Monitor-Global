@@ -39,6 +39,7 @@ function prepareStormLightning(item){
 function triggerCardFx(type, color, item) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
+    window.SeismicCinema?.stop();
     try { clearTimeout(el._fxTimeout); } catch (e) {}
     stopIconSpin();
     restoreWindLetters();
@@ -306,208 +307,14 @@ function stopLetterGusts() {
 function triggerCardFxMag(mag) {
     const el = document.getElementById('painel-direito');
     if (!el) return;
-    // Piso de 6px (era 2px): sismos pequenos (M1, M2...) — bem comuns no
-    // ciclo automático — ficavam com um tremor quase imperceptível.
-    const amp = Math.max(6, Math.min(14, (Number(mag) || 3) * 2));
-    el.style.setProperty('--pd-fx-amp', amp + 'px');
+    const p = window.SeismicCinema?.profile({mag,depth:10}, 'manual');
+    el.style.setProperty('--pd-fx-amp', (p?.amplitude || .5) + 'px');
 }
 
-// ═══════════ CAOS DE SISMO GRANDE — ícones/letras caindo ═══════════
-// NUNCA mexe no elemento de verdade: só cria uma CÓPIA visual
-// (pointer-events:none) por cima, na posição exata, que cai e some
-// sozinha. O elemento real nunca sai do lugar nem perde o clique — só
-// #btn-som-header (silenciar o alarme) fica de fora da lista de
-// propósito, por ser o controle mais importante bem na hora do abalo.
-const FALL_POOL_BIG = [
-    '.mg-logo-icon', '#kpi-wx-icon', '#kpi-brent-label', '#btn-radar-header',
-    '.av-radar', '#kpi-relogio', '#sp-city-name', '#kpi-temp', '#kpi-wind', '.chip'
-];
-// M7+ (pedido do usuário): também cai gente da caixa de registros
-// (#events, "REGISTROS EXIBIDOS") e do próprio card principal
-// (#painel-direito) — sem isso o caos ficava só no cabeçalho, o resto da
-// tela parecia intocado.
-const FALL_POOL_CARD = ['#pd-mag', '#pd-flag', '.stat-card'];
-
-function ensureFallLayer() {
-    let layer = document.getElementById('mg-fall-layer');
-    if (!layer) {
-        layer = document.createElement('div');
-        layer.id = 'mg-fall-layer';
-        layer.setAttribute('aria-hidden', 'true');
-        document.body.appendChild(layer);
-    }
-    return layer;
-}
-
-// Solta uma peça (cópia de elemento OU span de 1 caractere) na posição
-// de `rect`, com queda/rotação levemente aleatórias pra não parecer tudo
-// igualzinho, e se autodestrói depois de cair.
-function spawnFallPiece(layer, rect, delaySec, pieceEl) {
-    pieceEl.classList.add('mg-fall-piece');
-    pieceEl.style.left = rect.left + 'px';
-    pieceEl.style.top = rect.top + 'px';
-    pieceEl.style.width = rect.width + 'px';
-    pieceEl.style.height = rect.height + 'px';
-    const dx = Math.round((Math.random() * 2 - 1) * 70);
-    const rot = Math.round((Math.random() * 2 - 1) * 420);
-    const dur = (1.6 + Math.random() * 1.2).toFixed(2);
-    pieceEl.style.setProperty('--fall-dx', dx + 'px');
-    pieceEl.style.setProperty('--fall-rot', rot + 'deg');
-    pieceEl.style.setProperty('--fall-dur', dur + 's');
-    pieceEl.style.setProperty('--fall-delay', delaySec.toFixed(2) + 's');
-    layer.appendChild(pieceEl);
-    setTimeout(() => { try { pieceEl.remove(); } catch (e) {} }, (delaySec + Number(dur) + 0.3) * 1000);
-}
-
-function dropElementClone(layer, el, delaySec) {
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const clone = el.cloneNode(true);
-    clone.removeAttribute('id');
-    clone.style.margin = '0';
-    spawnFallPiece(layer, rect, delaySec, clone);
-}
-
-// Mede a posição de cada caractere de um texto usando o próprio motor de
-// layout do navegador — um clone RASO (sem filhos) do elemento real,
-// invisível e fora da árvore visível, nunca o elemento que a pessoa vê.
-// Bem mais confiável que tentar recalcular fonte/kerning na mão.
-function measureCharRects(el) {
-    if (!el || !el.textContent) return [];
-    const rect = el.getBoundingClientRect();
-    const probe = el.cloneNode(false);
-    const chars = [...el.textContent];
-    const spans = chars.map(ch => {
-        const s = document.createElement('span');
-        s.textContent = ch;
-        probe.appendChild(s);
-        return s;
-    });
-    probe.style.position = 'fixed';
-    probe.style.left = rect.left + 'px';
-    probe.style.top = rect.top + 'px';
-    probe.style.margin = '0';
-    probe.style.visibility = 'hidden';
-    probe.style.pointerEvents = 'none';
-    document.body.appendChild(probe);
-    const out = spans.map(s => ({ char: s.textContent, rect: s.getBoundingClientRect(), cs: getComputedStyle(s) }));
-    document.body.removeChild(probe);
-    return out;
-}
-
-function dropTextChars(layer, el, baseDelaySec, spreadSec) {
-    measureCharRects(el).forEach(c => {
-        if (!c.char.trim()) return;
-        const span = document.createElement('span');
-        span.textContent = c.char;
-        span.style.font = c.cs.font;
-        span.style.color = c.cs.color;
-        span.style.letterSpacing = c.cs.letterSpacing;
-        spawnFallPiece(layer, c.rect, baseDelaySec + Math.random() * spreadSec, span);
-    });
-}
-
-function pickRandom(arr, n) {
-    const copy = arr.slice(), out = [];
-    while (copy.length && out.length < n) out.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
-    return out;
-}
-
-function triggerFallingIcons(mag, durationMs) {
-    const m = Number(mag) || 0;
-    if (m < 6) return;
-    const layer = ensureFallLayer();
-    const bigTargets = [];
-    FALL_POOL_BIG.forEach(sel => document.querySelectorAll(sel).forEach(el => bigTargets.push(el)));
-
-    if (m < 7) {
-        // M6-6.9: pedido do usuário — mais coisa caindo que antes (2-3 peças
-        // do pool pequeno virou 6-9 do pool grande), espalhado por boa parte
-        // da janela de 10s. Ainda bem mais discreto que o "caos completo" do
-        // M7+, mas já um susto de verdade, não só 2 ícones isolados.
-        const spreadSec = Math.max(3, durationMs / 1000 - 2);
-        const chosen = pickRandom(bigTargets, Math.min(bigTargets.length, 6 + Math.round(Math.random() * 3)));
-        chosen.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, chosen.length)) * spreadSec));
-        return;
-    }
-    // M7+: "caos completo" — quase tudo da lista grande, espalhado pela
-    // janela toda (nunca tudo de uma vez, senão perde a sensação de ir
-    // desmoronando aos poucos). M8+ ("caos generalizado", pedido do
-    // usuário): TUDO que existir no pool cai, não só até 22 peças.
-    const spreadSec = Math.max(4, durationMs / 1000 - 3);
-    const maxPecas = m >= 8 ? bigTargets.length : Math.min(bigTargets.length, 22);
-    const chosen = pickRandom(bigTargets, maxPecas);
-
-    // Peças da caixa de registros e do card principal — GARANTIDAS (não
-    // sujeitas ao sorteio do pool do cabeçalho acima), pra sempre aparecer
-    // nessas duas regiões da tela quando for M7+. Em telas onde a caixa de
-    // registros/card estão ocultos (ex.: mobile com a lista fechada), o
-    // guard de tamanho zero em dropElementClone já pula sozinho, sem erro.
-    const eventCards = pickRandom([...document.querySelectorAll('#events .event')], 4);
-    const cardPieces = [];
-    FALL_POOL_CARD.forEach(sel => document.querySelectorAll(sel).forEach(el => cardPieces.push(el)));
-    const todos = chosen.concat(eventCards, cardPieces);
-    todos.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, todos.length)) * spreadSec));
-
-    // Bônus M7+: nome do site e o preço do Brent caem letra por letra.
-    const wordEl = document.querySelector('.mg-logo-word');
-    const brentEl = document.getElementById('kpi-brent');
-    if (wordEl) dropTextChars(layer, wordEl, 1, spreadSec * 0.7);
-    if (brentEl) dropTextChars(layer, brentEl, 3, spreadSec * 0.5);
-
-    // M8+: uma SEGUNDA onda de peças cai pouco depois da primeira já ter
-    // sumido — dá a sensação de "ainda não parou de desmoronar", em vez de
-    // uma única rajada. Reaproveita o mesmo pool (clones novos; os
-    // elementos reais nunca saem do lugar).
-    if (m >= 8) {
-        setTimeout(() => {
-            const segunda = pickRandom(bigTargets, Math.min(bigTargets.length, 14));
-            segunda.forEach((el, i) => dropElementClone(layer, el, (i / Math.max(1, segunda.length)) * (spreadSec * 0.6)));
-        }, Math.round(durationMs * 0.55));
-    }
-}
-window.triggerFallingIcons = triggerFallingIcons;
-
-// M6+ treme o site INTEIRO (não só o card) por 10s — pedido do usuário
-// pra dar a sensação de "caos" num sismo grande de verdade. A amplitude do
-// tremor sobe em 3 degraus (10px / 20px / 26px) pra M6-6.9 / M7-7.9 / M8+ —
-// "caos generalizado" tem que parecer visivelmente mais forte que um caos
-// comum, não só um pouco mais. M7+ soma um escurecer piscando por cima
-// (reaproveita #vignette-cinematic, que já existe pra um efeito mais
-// discreto — aqui com uma classe própria bem mais forte) e os ícones/letras
-// caindo acima, e a janela sobe de 10 pra 15s (mais espaço pra tudo cair aos
-// poucos, sem amontoar). Roda no MESMO ponto onde o card já treme/muda de
-// cor (showEventDetails, js/painel-e-lista.js) — sismo novo de verdade,
-// clique manual no evento e revisita do ciclo automático disparam igual,
-// sem distinção.
-let __siteChaosTimeout = null;
-function triggerSiteChaos(mag) {
-    const m = Number(mag) || 0;
-    if (m < 6) return;
-    const durationMs = m >= 7 ? 15000 : 10000;
-    const app = document.getElementById('app');
-    const veil = document.getElementById('vignette-cinematic');
-    try { clearTimeout(__siteChaosTimeout); } catch (e) {}
-    if (app) {
-        app.classList.remove('mg-site-shake');
-        void app.offsetWidth;
-        const amp = m >= 8 ? 26 : m >= 7 ? 20 : 10;
-        app.style.setProperty('--mg-shake-amp', amp + 'px');
-        app.style.setProperty('--mg-chaos-dur', (durationMs / 1000) + 's');
-        app.classList.add('mg-site-shake');
-    }
-    if (veil) veil.classList.remove('mg-chaos-dark');
-    if (m >= 7 && veil) {
-        veil.style.setProperty('--mg-chaos-dur', (durationMs / 1000) + 's');
-        void veil.offsetWidth;
-        veil.classList.add('mg-chaos-dark');
-    }
-    try { triggerFallingIcons(m, durationMs); } catch (e) {}
-    __siteChaosTimeout = setTimeout(() => {
-        if (app) app.classList.remove('mg-site-shake');
-        if (veil) veil.classList.remove('mg-chaos-dark');
-    }, durationMs);
+// Whole-screen seismic effects are owned by seismic-cinema.js. The engine
+// distinguishes real arrivals, manual replay and the quiet automatic cycle.
+function triggerSiteChaos(mag, context = {}) {
+    return window.SeismicCinema?.play(context.item || {mag,depth:10},context.mode || 'manual');
 }
 window.triggerSiteChaos = triggerSiteChaos;
 
