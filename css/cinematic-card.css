@@ -43,3 +43,6 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
  #painel-direito .pd-cinema-layer,#painel-direito .pd-cinema-afterglow{display:none!important}
  #painel-direito.pd-fx-earthquake,body.mobile-details-mid #painel-direito.pd-fx-earthquake,body.mobile-details-open #painel-direito.pd-fx-earthquake{animation:none!important}
 }
+
+/* Persistent rain/lightning while the selected storm is on the front. */
+#painel-direito.pd-cinema-active.pd-fx-storm .pd-fx-bolt,#painel-direito.pd-cinema-active.pd-fx-storm #lightning-flash{animation-iteration-count:infinite}

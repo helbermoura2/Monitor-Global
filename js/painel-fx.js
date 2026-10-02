@@ -3,9 +3,9 @@
    disparada só quando o usuário troca de evento de verdade — nunca em
    silentRefresh (revisão de magnitude etc.), senão o card "tremeria" de novo
    sozinho a cada atualização periódica dos dados.
-   Duração da "janela" do efeito por tipo — o padrão é 7s, mas fogo/vulcão
-   (brasas) e enchente (maré subindo) pediram mais tempo pra dar pra notar
-   direito o efeito. */
+   Os impulsos de entrada (tremor, giro e letras ao vento) têm duração
+   limitada. A atmosfera do CinematicCard permanece enquanto o evento
+   estiver selecionado; os prazos abaixo também atendem ao fallback. */
 const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200, tsunami: 8000 };
 // Decorative discharge channels: thin, irregular, branching paths; no emoji or filled zigzag.
 const LIGHTNING_NS='http://www.w3.org/2000/svg';
@@ -50,9 +50,10 @@ function triggerCardFx(type, color, item) {
     // de evento em seguida (senão a classe já presente não retrigger nada).
     void el.offsetWidth;
     const cls = 'pd-fx-' + type;
+    const atmospheric = type!=='earthquake' && window.CinematicCard?.start(item || {type}, Infinity);
+    if(type==='earthquake')window.CinematicCard?.start(item || {type}, FX_DURATION[type] || 7200);
     el.classList.add(cls);
-    window.CinematicCard?.start(item || {type}, FX_DURATION[type] || 7200);
-    el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
+    if(!atmospheric)el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
     if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
 
     if (type === 'hurricane') {

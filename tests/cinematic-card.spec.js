@@ -48,3 +48,22 @@ test('vulcão só recebe calor com indicação eruptiva e movimento reduzido enc
  await select(page,'hurricane');await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#pd-local .pd-fx-windletter')).toHaveCount(0);await expect(page.locator('.pd-rain-overlay')).toHaveCount(0);
  await select(page,'earthquake');await expect(page.locator('#painel-direito')).toHaveCSS('animation-name','none');await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
 });
+
+for(const width of [1280,390])test('atmosfera continua visível depois da antiga duração '+width,async({page})=>{
+ test.setTimeout(120000);
+ await boot(page,width);await page.clock.install();
+ for(const type of ['fire','hurricane','tornado','flood','tsunami','wind','volcano','storm']){
+  await select(page,type,type==='volcano'?{eruptionStatus:'Em erupção',detail:'Emissão de cinzas'}:{});
+  await page.clock.runFor(700);await page.clock.fastForward(20000);await page.clock.runFor(200);
+  const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);
+  await expect(page.locator('#painel-direito')).toHaveClass(new RegExp('pd-fx-'+type));
+  const pixels=await layer.locator('canvas').evaluate(c=>{const a=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});expect(pixels.max).toBeGreaterThan(28);expect(pixels.mean).toBeGreaterThan(1);
+  await page.screenshot({path:'/tmp/fx-visible-'+type+'-'+width+'.png'});
+ }
+ await select(page,'earthquake');await page.clock.fastForward(8000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-earthquake/);
+});
+test('revisão vulcânica ajusta a cena e remove calor quando a erupção termina',async({page})=>{
+ await boot(page);await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Estado de fundo'});await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
+ await page.evaluate(()=>{const item={...EventStore.getSelected(),eruptionStatus:'Em erupção',detail:'Emissão de cinzas'};upsertAlert(item);showAlertDetails(item,false,true);});await expect(page.locator('.pd-cinema-heat')).toHaveCount(2);
+ await page.evaluate(()=>{const item={...EventStore.getSelected(),eruptionStatus:'Erupção encerrada',detail:'Sem atividade eruptiva'};upsertAlert(item);showAlertDetails(item,false,true);});await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-activity','monitoring');await expect(page.locator('#painel-direito')).toHaveClass(/pd-fx-volcano/);
+});

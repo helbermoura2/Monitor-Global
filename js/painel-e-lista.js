@@ -1243,6 +1243,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     if (silentRefresh) {
         // Só dados do card (revisão de magnitude etc.) — sem fly, sem radar, sem ciclo.
+        window.CinematicCard?.refresh(item);
         return;
     }
 
@@ -1782,7 +1783,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         }
     } catch (e) {}
 
-    if (silentRefresh) return;
+    if (silentRefresh) {window.CinematicCard?.refresh(item);return;}
 
     if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?'bulletin':item.type, cor, item);
 
