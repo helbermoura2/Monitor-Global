@@ -91,10 +91,15 @@ test('primeiro quadro anterior ao início não interrompe a chuva', async ({ pag
   });
   await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '../js/cinematic-card.js'), 'utf8') });
   const result = await page.evaluate(() => {
-    const before = performance.now() - 100;
+    const realNow = performance.now.bind(performance);
+    const now = realNow();
+    performance.now = () => now + 1000;
     CinematicCard.start({ id: 'early-frame', type: 'storm', detail: 'Trovoada' }, Infinity);
-    window.__testFrame(before);
-    window.__testFrame(performance.now() + 700);
+    performance.now = realNow;
+    // Positivo desde a navegação, mas anterior ao início da cena:
+    // força desenho no primeiro callback e reproduz o raio negativo antigo.
+    window.__testFrame(now + 500);
+    window.__testFrame(now + 1700);
     return { active: CinematicCard.isActive(), opacity: Number(document.querySelector('.pd-cinema-layer').style.opacity) };
   });
   expect(result.active).toBe(true);
