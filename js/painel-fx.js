@@ -136,11 +136,12 @@ function wrapWindLetters(el) {
     el.appendChild(frag);
 }
 function triggerWindLetters(durationMs) {
+    restoreWindLetters();
     const el = document.getElementById('pd-local');
     if (!el || !el.textContent) return;
     __windLettersEl = el;
     wrapWindLetters(el);
-    __windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
+    if(Number.isFinite(durationMs))__windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
     startLetterGusts(el, durationMs);
 
     // Auto-cura: se algo de fora (silentRefresh do card, por exemplo)
@@ -217,6 +218,7 @@ window.triggerRainEffect = triggerRainEffect;
 // arquivo pro caos de sismo M7+ — mesma técnica: nunca mexe no elemento
 // real, só clona.
 let __letterGustInterval = null;
+let __letterGustTimeout = null;
 function spawnLetterGust(el) {
     if (!el) return;
     const spans = el.querySelectorAll('.pd-fx-windletter');
@@ -233,6 +235,7 @@ function spawnLetterGust(el) {
         const cs = getComputedStyle(span);
         const clone = document.createElement('span');
         clone.className = 'pd-fx-letter-blown';
+        clone.setAttribute('aria-hidden','true');clone.style.pointerEvents='none';
         clone.textContent = span.textContent;
         clone.style.font = cs.font;
         clone.style.color = cs.color;
@@ -242,7 +245,7 @@ function spawnLetterGust(el) {
         clone.style.height = rect.height + 'px';
         // Direção sorteada em 360° (pedido do usuário: "várias direções, não
         // só uma") — antes dx era sempre positivo (só voava pra direita).
-        const ang = Math.random() * Math.PI * 2;
+        const ang = -.18 + (Math.random()-.5)*.5;
         const dist = 90 + Math.random() * 120;
         const dx = Math.round(Math.cos(ang) * dist);
         const dy = Math.round(Math.sin(ang) * dist);
@@ -263,7 +266,7 @@ function spawnLetterGust(el) {
 const WIND_DEBRIS_SELECTORS = ['#pd-flag', '#pd-mag', '.stat-card', '#pd-chips .chip'];
 function spawnCardDebris() {
     const candidatos = [];
-    WIND_DEBRIS_SELECTORS.forEach(sel => document.querySelectorAll(sel).forEach(el => candidatos.push(el)));
+    WIND_DEBRIS_SELECTORS.forEach(sel => document.getElementById('painel-direito')?.querySelectorAll(sel).forEach(el => candidatos.push(el)));
     const el = pickRandom(candidatos, 1)[0];
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -272,6 +275,8 @@ function spawnCardDebris() {
     const cs = getComputedStyle(el);
     const clone = el.cloneNode(true);
     clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
+    clone.setAttribute('aria-hidden','true');clone.style.pointerEvents='none';
     clone.className = 'pd-fx-letter-blown';
     clone.style.font = cs.font;
     clone.style.color = cs.color;
@@ -283,7 +288,7 @@ function spawnCardDebris() {
     // Mesma direção em 360° das letras (spawnLetterGust) — consistência
     // visual: tudo que voa na rajada segue a mesma física de "vento em
     // várias direções", não só uma.
-    const ang = Math.random() * Math.PI * 2;
+    const ang = -.18+(Math.random()-.5)*.5;
     const dist = 120 + Math.random() * 150;
     const dx = Math.round(Math.cos(ang) * dist);
     const dy = Math.round(Math.sin(ang) * dist);
@@ -296,10 +301,12 @@ function spawnCardDebris() {
 }
 function startLetterGusts(el, durationMs) {
     stopLetterGusts();
-    __letterGustInterval = setInterval(() => { spawnLetterGust(el); spawnCardDebris(); }, 1500);
-    setTimeout(stopLetterGusts, durationMs);
+    __letterGustInterval = setInterval(() => { const p=document.getElementById('painel-direito');if(document.hidden||p?.classList.contains('pd-flip-girado')||!p?.clientWidth||window.matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open'))return;spawnLetterGust(el); spawnCardDebris(); }, 2300);
+    if(Number.isFinite(durationMs))__letterGustTimeout=setTimeout(stopLetterGusts,durationMs);
 }
 function stopLetterGusts() {
+    clearTimeout(__letterGustTimeout);__letterGustTimeout=null;
+    document.querySelectorAll(".pd-fx-letter-blown").forEach(n=>n.remove());
     try { clearInterval(__letterGustInterval); } catch (e) {}
     __letterGustInterval = null;
 }
@@ -353,3 +360,4 @@ function spinIcon(durationMs, totalDeg) {
 
 window.triggerCardFx = triggerCardFx;
 window.triggerCardFxMag = triggerCardFxMag;
+
