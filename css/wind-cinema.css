@@ -1,0 +1,18 @@
+/* The gale loads the glass and its text without changing the card's hit areas. */
+#painel-direito.pd-cinema-active.pd-fx-wind{transform-origin:100% 0;border-color:rgba(196,213,218,calc(.24 + var(--pd-wind-pressure,0)*.34));box-shadow:inset 1px 0 1px rgba(226,238,238,.12),0 12px 34px rgba(0,0,0,.3)}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-fx-windword{display:inline-block;max-width:100%;white-space:normal;overflow-wrap:anywhere;vertical-align:baseline}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-fx-windletter{animation:none!important;will-change:auto;transform-origin:50% 90%}
+#painel-direito.pd-cinema-active.pd-fx-wind #pd-local .pd-fx-windletter{will-change:transform}
+#painel-direito.pd-cinema-active.pd-fx-wind .stat-card,#painel-direito.pd-cinema-active.pd-fx-wind .bubble-section{background:rgba(7,15,19,.9)!important}
+#painel-direito.pd-cinema-active.pd-fx-wind .stat-card{rotate:calc(var(--pd-wind-roll,0deg)*-.22)}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-layer::after{background:linear-gradient(90deg,rgba(1,7,11,.17),transparent 30%,transparent 72%,rgba(1,7,11,.16)),linear-gradient(180deg,rgba(1,7,11,.13),transparent 25%,rgba(1,7,11,.19))}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-symbol{animation:none;color:#d6dedb;filter:drop-shadow(0 1px 3px #061014);opacity:.85}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-gauge-glow{display:none}
+#painel-direito.pd-cinema-active.pd-fx-wind #pd-gauge{opacity:.28}
+#painel-direito.pd-cinema-active.pd-fx-wind #pd-gauge-arc{filter:none;stroke-width:3}
+#painel-direito.pd-cinema-active.pd-fx-wind #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:normal}
+@media(max-width:900px){body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-wind,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-wind{left:12px!important;right:12px!important;width:calc(100vw - 24px)!important}}
+@media(prefers-reduced-motion:reduce){
+ #painel-direito.pd-fx-wind,#painel-direito.pd-fx-wind .stat-card,#painel-direito.pd-fx-wind .pd-chip{translate:none!important;rotate:none!important}
+ #painel-direito.pd-fx-wind .pd-fx-windletter{transform:none!important}
+}
