@@ -40,6 +40,8 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
     await expect(page.locator('#pd-local')).toContainText('Verificação da publicação');
     await expect(page.locator('#pd-focus-btn')).toBeEnabled();
   }
+  // Dê à ação de parar uma janela nova, independente da duração das prévias anteriores.
+  await page.evaluate(() => CardEffectDemo.preview('wind'));
   await page.locator('#card-fx-demo-status').getByRole('button', { name: 'Parar', exact: true }).click();
   await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);
   expect(errors).toEqual([]);
