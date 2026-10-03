@@ -106,3 +106,16 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-wind,body.mobile-
 #painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-contact{opacity:calc(.5 + var(--pd-wind-pressure,0)*.5)}
 #painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-layer{filter:saturate(.55)}
 @media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-wind{translate:none!important;rotate:none!important}#painel-direito.pd-fx-wind .pd-chip{translate:none!important}}
+
+/* Wet glass follows gust pressure; lightning briefly lights the whole surface. */
+#painel-direito.pd-cinema-active.pd-fx-storm{animation:none;translate:var(--pd-wind-x,0px) var(--pd-wind-y,0px);rotate:var(--pd-wind-roll,0deg);transform-origin:50% 85%;border-color:rgba(201,220,232,calc(.25 + var(--pd-storm-flash,0)*.5))}
+body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-storm,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-storm{animation:sheetUp .22s ease}
+#painel-direito.pd-cinema-active.pd-fx-storm .pd-fx-windletter{animation:none!important;transform-origin:50% 90%;will-change:transform}
+#painel-direito.pd-cinema-active.pd-fx-storm .stat-card,#painel-direito.pd-cinema-active.pd-fx-storm .pd-chip{translate:var(--pd-wind-flex,0px) 0}
+#painel-direito.pd-cinema-active.pd-fx-storm .pd-fx-bolt,#painel-direito.pd-cinema-active.pd-fx-storm #lightning-flash{display:none!important}
+#painel-direito .pd-cinema-storm-bolt{animation:none!important;top:0;width:25%;height:72%;filter:drop-shadow(0 0 3px #dce7ef)}
+#painel-direito.pd-fx-storm .pd-cinema-contact::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 22% 4%,rgba(233,242,249,.55),rgba(186,210,225,.25) 48%,transparent 90%);opacity:calc(var(--pd-storm-flash,0)*.38)}
+#painel-direito.pd-fx-storm .pd-cinema-drop{background:linear-gradient(130deg,rgba(229,238,245,.16),transparent 35%,rgba(109,158,180,.06));border-color:rgba(218,233,242,.28)}
+@media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-storm{translate:none!important;rotate:none!important}#painel-direito.pd-fx-storm .pd-chip{translate:none!important}}
+
+#painel-direito.pd-cinema-active.pd-fx-storm #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:nowrap}

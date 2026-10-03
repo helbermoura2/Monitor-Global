@@ -77,6 +77,15 @@ jobs:
       - name: Verificar visibilidade das cenas e helpers compartilhados
         run: npx playwright test tests/painel-fx-shared-layer.spec.js tests/cinematic-card.spec.js --grep 'rajadas contínuas|letras ao vento|primeiro quadro|todos os efeitos|falha do vídeo' --workers=1
 
+      - name: Validar tempestades e capturar prévias
+        run: npx playwright test tests/storm-cinema.spec.js tests/storm-lightning.spec.js --workers=1
+      - name: Publicar prévias das tempestades
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storm-previews
+          path: /tmp/storm-scene-*.png
+          retention-days: 7
       - name: Validar rajadas e capturar prévias
         run: npx playwright test tests/wind-cinema.spec.js --workers=1
       - name: Publicar prévias das rajadas
