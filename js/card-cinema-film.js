@@ -14,7 +14,8 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel,uFlash;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel,uFlash,uTextureReady;
+ uniform sampler2D uCycloneTexture;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(1.7,9.2);a*=.5;}return v;}
@@ -87,52 +88,112 @@
   return vec4(color,.76);
  }
 
- // Continuous Cartesian cloud texture avoids a seam at atan's -PI/PI boundary.
+ // Twist a Cartesian field rather than repeating angular stripes. The cloud
+ // bands stay continuous across the whole vortex, with no atan seam or rings.
  mat2 cycloneRotation(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
- float cycloneHeight(vec2 p,float time){
+ vec2 cycloneFlow(vec2 p,float time){
   float r=length(p);
-  vec2 flow=cycloneRotation(uDirection*time*.038)*p;
-  vec2 warp=vec2(noise(flow*3.1),noise(flow*3.1+vec2(9.7,4.2)))-.5;
-  float billows=fbm(flow*8.5+warp*1.9+vec2(time*.011,-time*.008));
-  float broad=fbm(flow*2.8+warp*.6);
-  float angle=atan(p.y,p.x);
-  float spiral=.5+.5*cos(angle*3.+uDirection*(log(r+.18)*5.8-time*.114)+broad*2.1);
-  float bands=smoothstep(.24,.80,spiral)*(.48+.52*billows);
-  float disturbed=r+(noise(flow*7.)-.5)*.022;
-  float eyeRadius=.16;
-  float openEye=mix(1.,smoothstep(eyeRadius,eyeRadius+.075,disturbed),uOrganized);
-  float wall=exp(-pow((disturbed-.31)/.13,2.))*(.60+.40*billows)*uOrganized;
-  float canopy=mix(billows*.60,.20+billows*.28+bands*.49,uOrganized)*exp(-r*.22);
-  float outer=1.-smoothstep(1.35,2.10,r);
-  return clamp((canopy*.84+wall*.50+.05*broad)*openEye*outer,0.,1.);
+  // Inverse texture sampling gives counterclockwise motion in the north and
+  // clockwise motion in the south; outer cloud decks move more slowly.
+  return cycloneRotation(uDirection*time*(.018+.018/(1.+r*r*2.)))*p;
+ }
+ float cycloneEye(vec2 p,float time){
+  vec2 flow=cycloneFlow(p,time);
+  return length(p)+(noise(flow*9.1+vec2(4.7,2.1))-.5)*.024
+   +(noise(flow*21.+vec2(2.3,8.1))-.5)*.009;
+ }
+ vec2 cycloneHeight(vec2 p,float time){
+  float r=length(p),mature=smoothstep(.60,.90,uOrganized);
+  vec2 flow=cycloneFlow(p,time);
+  vec2 warp=vec2(noise(flow*3.6+vec2(1.8,7.1)),noise(flow*3.6+vec2(8.3,2.4)))-.5;
+  vec2 spiral=cycloneRotation(-uDirection*log(r+.22)*mix(.65,2.6,uOrganized))*flow;
+  // Long, broken bands curve into the dense central canopy. Anisotropic noise
+  // creates uneven arms and dry slots instead of a symmetric spiral stencil.
+  float band=noise(spiral*vec2(2.1,4.9)+warp*1.55+vec2(2.7,5.3));
+  float broad=noise(flow*3.1+warp*.65+vec2(3.2,9.5));
+  // Distinct scales share the same flow, so small billows travel with the
+  // large convective towers rather than flickering independently.
+  vec2 billow=flow+warp*.13;
+  float towers=noise(billow*8.2+vec2(5.7,1.2));
+  float lobes=noise(billow*18.5+vec2(1.3,8.7));
+  float folds=noise(billow*42.+vec2(7.9,3.6));
+  float cells=.58*towers+.32*lobes+.10*folds;
+  float core=(1.-smoothstep(.34,.83,r+(broad-.5)*.20))*mix(.53,.95,uOrganized);
+  float arms=smoothstep(.22,.66,band+(towers-.5)*.24+(lobes-.5)*.22+(folds-.5)*.10)*(.63+.37*broad);
+  float mass=core+(1.-core)*arms*(.72+.28*uOrganized);
+  float scud=smoothstep(.38,.75,towers*.65+lobes*.35)*.28;
+  mass=max(mass,scud);
+  float disturbed=cycloneEye(p,time);
+  float opening=mix(1.,smoothstep(.133,.215,disturbed),mature);
+  float wall=exp(-pow((disturbed-.231)/.071,2.))*mature;
+  // Coverage and relief are separate: a band is a field of billowing clouds,
+  // rather than a raised smooth ribbon with a polished edge.
+  float depth=(.20+cells*.46)*(.92+.08*mass)+wall*(.13+.13*lobes);
+  // A tropical storm has a turbulent, cloudy center, never a mature eye.
+  float immature=(1.-mature)*(1.-smoothstep(.10,.47,r))*(.10+.12*towers);
+  float outer=1.-smoothstep(1.30,2.05,r);
+  return vec2(clamp((depth+immature)*opening*outer,0.,1.),
+   clamp((mass+immature)*opening*outer,0.,1.));
  }
  vec4 cyclone(vec2 uv,float aspect){
   // Scale by width: a round eye stays round on compact and expanded cards.
   vec2 center=vec2(.52+.008*sin(uTime*.035),.62+.008*cos(uTime*.027));
   vec2 p=(uv-center)*vec2(aspect,1.)/max(aspect*.66,.18);
-  float r=length(p),height=cycloneHeight(p,uTime);
-  float hx=cycloneHeight(p+vec2(.025,0.),uTime);
-  float hy=cycloneHeight(p+vec2(0.,.025),uTime);
-  vec3 normal=normalize(vec3((height-hx)*8.,(height-hy)*8.,.90));
-  vec3 sun=normalize(vec3(-.65,.72,.65));
+  float r=length(p);vec2 field=cycloneHeight(p,uTime);float height=field.x;
+  float hx=cycloneHeight(p+vec2(.011,0.),uTime).x;
+  float hy=cycloneHeight(p+vec2(0.,.011),uTime).x;
+  vec3 normal=normalize(vec3((height-hx)*15.,(height-hy)*15.,.76));
+  vec3 sun=normalize(vec3(-.55,.68,.92));
   float diffuse=max(dot(normal,sun),0.);
-  float valleys=clamp(.84+height*.24-(hx+hy)*.12,.65,1.);
-  vec3 albedo=mix(vec3(.23,.28,.32),vec3(.78,.81,.82),smoothstep(.07,.70,height));
-  vec3 clouds=albedo*(.48+.46*diffuse)*valleys;
-  clouds+=vec3(.12,.14,.15)*pow(diffuse,7.)*height;
-  float fine=fbm(cycloneRotation(uDirection*uTime*.027)*p*32.);
-  clouds*=.94+.10*fine;
-  float veil=smoothstep(.015,.62,height);
-  vec3 ocean=vec3(.014,.032,.044)+vec3(.025,.035,.038)*fbm(p*15.+uTime*.013);
+  // One wider sample gives soft shadows between towers and inside the eye.
+  float upwind=cycloneHeight(p+vec2(-.045,.056),uTime).x;
+  float shadow=1.-smoothstep(.025,.23,upwind-height)*.31;
+  float valleys=clamp(.79+height*.45-(hx+hy)*.18,.67,1.);
+  vec3 albedo=mix(vec3(.48,.50,.51),vec3(.95,.96,.95),smoothstep(.035,.62,height));
+  vec3 clouds=albedo*(.57+.43*diffuse)*shadow*valleys;
+  clouds+=vec3(.13,.14,.14)*pow(diffuse,6.)*height;
+  vec2 flow=cycloneFlow(p,uTime);
+  float grain=noise(flow*86.+vec2(5.2,8.1));
+  clouds*=.96+.075*grain;
+  float veil=smoothstep(.025,.53,field.y);
+  // Muted water is visible only in the eye and the gaps between rainbands.
+  vec3 ocean=vec3(.016,.028,.031)+vec3(.021,.026,.025)*noise(p*23.+uTime*.009);
   vec3 color=mix(ocean,clouds,veil);
-  // The near wall casts a soft shadow into the open eye; no flat black disc.
-  float eye=1.-smoothstep(.10,.24,r);
-  float interiorLight=clamp(.5+p.x*1.5+p.y*1.7,0.,1.);
-  vec3 interior=mix(vec3(.008,.018,.025),vec3(.040,.070,.082),interiorLight);
-  color=mix(color,interior,eye*uOrganized*.86);
-  float haze=.035+.025*fbm(p*2.+vec2(uTime*.009,0.));
-  color=mix(color,vec3(.33,.40,.45),haze);
-  return vec4(color,.64+.25*smoothstep(.05,.60,height));
+  float mature=smoothstep(.60,.90,uOrganized);
+  float disturbed=cycloneEye(p,uTime);
+  float eye=(1.-smoothstep(.117,.199,disturbed))*mature;
+  float shadowSide=smoothstep(-.13,.12,dot(p,normalize(vec2(-.55,.68))));
+  float eyeMist=noise(flow*18.+vec2(2.1,5.3));
+  vec3 interior=mix(vec3(.015,.025,.029),vec3(.13,.16,.17),
+   (1.-shadowSide)*.64+eyeMist*.20);
+  // Low scud and a directional wall shadow keep the hollow eye dimensional.
+  interior+=vec3(.095,.103,.105)*smoothstep(.53,.74,eyeMist)*(1.-shadowSide)*.55;
+  interior+=vec3(.047,.051,.051)*smoothstep(.075,.18,disturbed)*(1.-shadowSide);
+  color=mix(color,interior,eye*.92);
+  float haze=.024+.018*noise(flow*2.7+vec2(8.1,4.2));
+  color=mix(color,vec3(.43,.47,.48),haze);
+  color+=vec3(.020,.022,.023)*uGust*height;
+  float alpha=.69+.20*smoothstep(.05,.60,height);
+  if(uTextureReady>.5&&mature>.5){
+   // NASA ISS007-E-14741: real cloud microstructure and the deep, shaded eye.
+   // A slow, coherent advection preserves the photograph's convective detail.
+   vec2 drift=cycloneRotation(uDirection*uTime*.007)*p;
+   drift.x*=uDirection;
+   drift+=vec2(noise(drift*3.1+vec2(uTime*.013,4.2))-.5,
+    noise(drift*3.1+vec2(7.1,-uTime*.011))-.5)*.011;
+   vec2 photoUV=vec2(.66,.42)+drift*vec2(.31,.46);
+   // The source's identification strip is outside this safe sampling window.
+   float softBoundary=photoUV.y+(noise(drift*5.1+vec2(1.8,7.1))-.5)*.060;
+   float edges=smoothstep(.015,.105,photoUV.x)*(1.-smoothstep(.905,.985,photoUV.x))
+    *smoothstep(.055,.275,softBoundary)*(1.-smoothstep(.835,.985,softBoundary));
+   vec3 photograph=texture2D(uCycloneTexture,clamp(photoUV,vec2(.015,.055),vec2(.985))).rgb;
+   float luminance=dot(photograph,vec3(.2126,.7152,.0722));
+   photograph=mix(vec3(luminance),photograph,.45)*(.95+.035*uGust);
+   float photographic=edges*.88;
+   color=mix(color,photograph,photographic);
+   alpha=mix(alpha,.89,photographic);
+  }
+  return vec4(color,alpha);
  }
 
  void main(){
@@ -246,16 +307,26 @@
   const canvas=document.createElement('canvas');canvas.className='pd-cinema-film';
   const gl=canvas.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
   if(!gl)return null;
-  let program,buffer,shaders=[],dead=false;
-  function destroy(){if(dead)return;dead=true;if(buffer)gl.deleteBuffer(buffer);if(program)gl.deleteProgram(program);for(const s of shaders)gl.deleteShader(s);gl.getExtension('WEBGL_lose_context')?.loseContext();canvas.remove();}
+  let program,buffer,texture,textureImage,textureReady=false,shaders=[],dead=false;
+  function destroy(){if(dead)return;dead=true;if(textureImage){textureImage.onload=null;textureImage.onerror=null;textureImage.removeAttribute('src');textureImage=null;}if(texture)gl.deleteTexture(texture);if(buffer)gl.deleteBuffer(buffer);if(program)gl.deleteProgram(program);for(const s of shaders)gl.deleteShader(s);gl.getExtension('WEBGL_lose_context')?.loseContext();canvas.remove();}
   try{
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel','Flash'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel','Flash','TextureReady'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   texture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
+   gl.uniform1i(gl.getUniformLocation(program,'uCycloneTexture'),0);
+   if(cfg.type==='hurricane'&&!['depression','tropical-storm'].includes(cfg.cycloneStage)){
+    textureImage=new Image();const image=textureImage;
+    image.onload=()=>{if(dead||gl.isContextLost()||textureImage!==image)return;try{gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);textureReady=gl.getError()===gl.NO_ERROR;if(textureReady)canvas.dataset.texture='nasa';}catch(error){textureReady=false;}image.onload=null;image.onerror=null;textureImage=null;};
+    image.onerror=()=>{image.onload=null;image.onerror=null;if(textureImage===image)textureImage=null;};
+    image.src='media/card-fx/cyclone-eye.jpg';
+   }
    let last=-Infinity,width=1,height=1;
    function resize(w,h){width=w;height=h;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.TextureReady,textureReady?1:0);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
@@ -273,5 +344,3 @@
  }
  window.CardCinemaFilm={create,footage};
 })();
-
-

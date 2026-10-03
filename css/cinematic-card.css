@@ -94,9 +94,23 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 @keyframes pdCloudVortex{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){#painel-direito .pd-cinema-contact{display:none!important}#painel-direito .pd-cinema-symbol{animation:none!important}#painel-direito .stat-card{translate:none!important;rotate:none!important}}
 
-/* Cyclone clouds carry the movement; the glass and measurements stay still. */
-#painel-direito.pd-cinema-active.pd-fx-hurricane{animation:none}
+/* Sustained wind and rainbands load the glass and its typography together. */
+#painel-direito.pd-cinema-active.pd-fx-hurricane{animation:none;translate:var(--pd-wind-x,0px) var(--pd-wind-y,0px);rotate:var(--pd-wind-roll,0deg);transform-origin:50% 85%;border-color:rgba(195,218,232,calc(.3 + var(--pd-wind-pressure,0)*.32))}
 body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-hurricane,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-hurricane{animation:sheetUp .22s ease}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-fx-windword{display:inline-block;max-width:100%;white-space:normal;overflow-wrap:anywhere;vertical-align:baseline}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-fx-windletter{animation:none!important;transform-origin:50% 90%;will-change:auto}
+#painel-direito.pd-cinema-active.pd-fx-hurricane #pd-local .pd-fx-windletter{will-change:transform}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .stat-card{translate:var(--pd-wind-flex,0px) 0;rotate:calc(var(--pd-wind-roll,0deg)*-.18)}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-cinema-layer::after{background:linear-gradient(180deg,rgba(2,9,15,.25),rgba(2,9,15,.04) 22%,rgba(2,9,15,.18) 64%,rgba(2,9,15,.22)),linear-gradient(90deg,rgba(2,9,15,.12),transparent 30%,transparent 70%,rgba(2,9,15,.12))}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-cinema-drop{border-color:rgba(224,238,246,.3);box-shadow:inset 0 1px 1px rgba(245,253,255,.6),inset 0 -1px 1px rgba(5,23,34,.3)}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-gauge-glow{display:none}
+#painel-direito.pd-cinema-active.pd-fx-hurricane #pd-gauge{opacity:.3}
+#painel-direito.pd-cinema-active.pd-fx-hurricane #pd-gauge-arc{filter:none;stroke-width:3}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-cinema-symbol{color:#dae8ee;filter:drop-shadow(0 1px 3px #001018)}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .stat-card,#painel-direito.pd-cinema-active.pd-fx-hurricane .bubble-section{background:rgba(3,12,20,.92)!important}
+#painel-direito.pd-cinema-active.pd-fx-hurricane .pd-fx-bolt,#painel-direito.pd-cinema-active.pd-fx-hurricane #lightning-flash{display:none!important}
+#painel-direito.pd-cinema-active.pd-fx-hurricane #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:normal}
+@media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-hurricane{translate:none!important;rotate:none!important}#painel-direito.pd-fx-hurricane .stat-card{translate:none!important;rotate:none!important}#painel-direito.pd-fx-hurricane .pd-fx-windletter{transform:none!important}}
 
 /* Wind moves the glass and its loose typography under the same pressure wave. */
 #painel-direito.pd-cinema-active.pd-fx-wind{animation:none;translate:var(--pd-wind-x,0px) var(--pd-wind-y,0px);rotate:var(--pd-wind-roll,0deg);transform-origin:50% 85%}
