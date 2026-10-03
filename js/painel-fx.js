@@ -113,11 +113,21 @@ function pickRandom(arr, n) {
 let __windLettersEl = null;
 let __windLettersTimeout = null;
 let __windLettersObserver = null;
+let __windTextTargets = [];
+const CYCLONE_TEXT_SELECTOR = '#pd-local, #pd-source, #pd-scale-label, .pd-time, .stat-card-label, .stat-card-value, #pd-fault-type, #pd-fault-section-label';
 function restoreWindLetters() {
     try { clearTimeout(__windLettersTimeout); } catch (e) {}
     stopLetterGusts();
     try { __windLettersObserver && __windLettersObserver.disconnect(); } catch (e) {}
     __windLettersObserver = null;
+    for (const el of __windTextTargets) {
+        // Unwrap only our nodes, keeping colored categories and feed formatting.
+        el.querySelectorAll('.pd-fx-windletter').forEach(span => span.replaceWith(document.createTextNode(span.textContent)));
+        el.querySelectorAll('.pd-fx-windword').forEach(word => word.replaceWith(...word.childNodes));
+        el.removeAttribute('data-cyclone-text');
+        el.normalize();
+    }
+    __windTextTargets = [];
     if (__windLettersEl) {
         const spans = __windLettersEl.querySelectorAll('.pd-fx-windletter');
         if (spans.length) {
@@ -156,8 +166,47 @@ function wrapWindLetters(el) {
     el.textContent = '';
     el.appendChild(frag);
 }
+function wrapCycloneText(el) {
+    el.setAttribute('data-cyclone-text', '');
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node.textContent.trim() && !node.parentElement.closest('.pd-fx-windword, .pd-fx-windletter')) nodes.push(node);
+    }
+    const segmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter('pt', {granularity:'grapheme'}) : null;
+    for (const node of nodes) {
+        const fragment = document.createDocumentFragment();
+        for (const token of node.textContent.split(/(\s+)/).flatMap(part => part.length > 24 ? part.match(/[^/\-\u2010]+[/\-\u2010]?|[/\-\u2010]/gu) || [part] : [part])) {
+            if (!token.trim()) { fragment.append(document.createTextNode(token)); continue; }
+            // Keep real spaces and normal line breaks between words, with intact emoji.
+            const word = document.createElement('span');word.className = 'pd-fx-windword';
+            const letters = segmenter ? Array.from(segmenter.segment(token), part => part.segment) : Array.from(token);
+            for (const char of letters) {
+                const letter = document.createElement('span');letter.className = 'pd-fx-windletter';letter.textContent = char;word.append(letter);
+            }
+            fragment.append(word);
+        }
+        node.replaceWith(fragment);
+    }
+}
 function triggerWindLetters(durationMs, options = {}) {
     restoreWindLetters();
+    if (options.allText) {
+        const card = document.getElementById('painel-direito');if (!card) return;
+        const wrap = () => {
+            __windLettersObserver?.disconnect();
+            card.querySelectorAll(CYCLONE_TEXT_SELECTOR).forEach(el => {
+                if (!__windTextTargets.includes(el)) __windTextTargets.push(el);
+                wrapCycloneText(el);
+            });
+            __windLettersObserver?.observe(card, {childList:true, subtree:true, characterData:true});
+        };
+        __windLettersObserver = new MutationObserver(wrap);
+        wrap();
+        if (Number.isFinite(durationMs)) __windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
+        return;
+    }
     const el = document.getElementById('pd-local');
     if (!el || !el.textContent) return;
     __windLettersEl = el;
@@ -380,4 +429,3 @@ function spinIcon(durationMs, totalDeg) {
 
 window.triggerCardFx = triggerCardFx;
 window.triggerCardFxMag = triggerCardFxMag;
-

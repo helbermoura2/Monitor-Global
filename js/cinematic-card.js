@@ -6,6 +6,22 @@
  let scene=null,ghost=null,ghostTimer=0,raf=0,idleTimer=0,serial=0;
  const rand=(a,b)=>a+Math.random()*(b-a),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  const panel=()=>document.getElementById('painel-direito');
+ function cycloneStage(item){
+  // Feed classifications win over historical mentions in a description or name.
+  const classify=value=>{
+   const text=String(value||'').trim();
+   if(/\bTD\b|depress/i.test(text))return 'depression';
+   if(/\b(?:TS|STS)\b|tempestade tropical|t\.?\s*tropical|tropical storm/i.test(text))return 'tropical-storm';
+   if(/\b(?:HU|TY|STY)\b|hurricane|typhoon|furac|tuf[aã]o/i.test(text))return 'mature';
+   return null;
+  };
+  for(const value of [item.classification,item.category,item.cycloneType,item.cycloneLabel,item.displayLabel]){
+   const stage=classify(value);if(stage)return stage;
+  }
+  const wind=Number(item.windKmh);
+  if(Number.isFinite(wind)&&wind>0)return wind<63?'depression':wind<119?'tropical-storm':'mature';
+  return classify(item.warningEvent)||classify(item.detail)||'mature';
+ }
  function profile(item){
   if(!item||!TYPES.has(item.type)||item.hazardNature==='bulletin')return null;
   const text=[item.eruptionStatus,item.activityStatus,item.vulcanicActivity,item.ashStatus,item.detail].filter(Boolean).join(' ');
@@ -18,10 +34,8 @@
   else if(Number(item.sev)>0)strength=clamp(Number(item.sev)/3,.3,1);
   const hot=item.type==='fire'||item.type==='volcano'&&(eruptive||lava);
   const ash=item.type==='volcano'&&!quiet&&!/no ash|sem cinzas/i.test(text)&&(eruptive||/ash|cinza/i.test(text));
-  const category=[item.category,item.classification,item.cycloneType,item.warningEvent,item.detail,item.place].filter(Boolean).join(' ');
-  const cycloneStage=/depress|depression/i.test(category)?'depression':/tempestade tropical|tropical storm/i.test(category)?'tropical-storm':'mature';
   const rotationDirection=Number(item.coords?.[1])<0?-1:1;
-  return {type:item.type,cycloneStage,rotationDirection,strength,hot,ash,lava:item.type==='volcano'&&lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:item.type==='volcano'&&lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
@@ -67,6 +81,7 @@
   stop();if(!p||!cfg||reduced.matches)return false;
   if(snapshot){ghost=document.createElement('div');ghost.className='pd-cinema-afterglow';ghost.setAttribute('aria-hidden','true');ghost.append(snapshot);ghost.style.transform='translate3d(0,'+p.scrollTop+'px,0)';p.append(ghost);ghostTimer=setTimeout(removeGhost,420);}
   const host=document.createElement('div');host.className='pd-cinema-layer';host.setAttribute('aria-hidden','true');host.dataset.scene=cfg.type;host.dataset.activity=cfg.type==='volcano'?(cfg.hot?'eruptive':cfg.ash?'ash':'monitoring'):'illustration';host.dataset.material=cfg.lava?'lava':cfg.type==='flood'?'muddy-current':cfg.type;host.dataset.demo=!!item.__cinemaDemo;
+  if(cfg.type==='hurricane'){host.dataset.cycloneStage=cfg.cycloneStage;host.dataset.rotationDirection=cfg.rotationDirection;}
   const canvas=document.createElement('canvas');canvas.className='pd-cinema-particles';host.append(canvas);const ctx=canvas.getContext('2d',{alpha:true});if(!ctx){host.remove();return false;}
   const mobile=matchMedia('(max-width:900px)').matches,now=performance.now();
   const film=window.CardCinemaFilm?.create(cfg,mobile);if(film)host.append(film.canvas);host.dataset.renderer=film?'film':'layers';
@@ -77,17 +92,17 @@
   }
   if(cfg.hot)heatFilter(host);
   if(cfg.rain){
-   for(let i=0;i<(mobile?76:128);i++)s.rain.push({x:Math.random(),y:Math.random(),depth:rand(.15,1),vx:0,phase:rand(0,6.3)});
+   for(let i=0;i<(mobile?76:128);i++)s.rain.push({x:Math.random(),y:Math.random(),depth:rand(.15,1),vx:0,vy:0,phase:rand(0,6.3)});
    const lenses=document.createElement('div');lenses.className='pd-cinema-lenses';host.append(lenses);
-   for(let i=0;i<(mobile?12:18);i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:cfg.type==='storm'&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
+   for(let i=0;i<(mobile?12:18);i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:['storm','hurricane'].includes(cfg.type)&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
   }
   if(cfg.mist)for(let i=0;i<(mobile?6:9);i++)s.smoke.push({x:Math.random()<.5?rand(-.12,.1):rand(.9,1.1),y:Math.random(),depth:rand(.45,1),phase:rand(0,6.3)});
   const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='wind'?mobile?58:90:['tornado','earthquake'].includes(cfg.type)?mobile?12:20:0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,leaf:cfg.type==='wind'&&i%10===0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
-  if(['wind','storm','tornado'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:['wind','storm'].includes(cfg.type)});
-  if(['wind','storm'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap()};
+  if(['wind','storm','tornado','hurricane'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:cfg.type!=='tornado',allText:cfg.type==='hurricane'});
+  if(['wind','storm','hurricane'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
   function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);s.contact.width=s.canvas.width;s.contact.height=s.canvas.height;s.contactCtx?.setTransform(dpr,0,0,dpr,0,0);s.film?.resize(w,h);s.footage?.resize(w,h);}
   s.scroll=()=>{s.host.style.transform=s.front.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
@@ -102,18 +117,43 @@
   const turbulence=1+.065*Math.sin(t*12.3-x*4)+.035*Math.sin(t*21.7+x*3);
   return clamp(burst*(.88+.12*Math.sin(cycle*2.17+.9))*turbulence,0,1.1);
  }
+ function pressureAt(s,t,x=0){
+  // Cyclone rainbands bring sustained wind, with lulls between stronger gusts.
+  return s.cfg.type==='hurricane'?.16+.84*windPressure(t,x):windPressure(t,x);
+ }
  function windResponse(s,t,dt,envelope){
   const state=s.wind,p=panel();if(!state||!p)return;
-  const pressure=windPressure(t,.45)*s.cfg.strength*(s.cfg.type==='storm'?.72:1)*envelope;
+  const cyclone=s.cfg.type==='hurricane';
+  const pressure=pressureAt(s,t,.45)*s.cfg.strength*(s.cfg.type==='storm'?.72:1)*envelope;
   state.pressure=pressure;state.travel+=dt*(.08+pressure*.80);
   // Damped springs resist the gust, then settle rather than vibrating forever.
-  state.vx+=((pressure*(s.mobile?4:7)-state.x)*78-state.vx*13)*dt;state.x+=state.vx*dt;
-  state.vr+=((pressure*.48-state.roll)*62-state.vr*12)*dt;state.roll+=state.vr*dt;
+  const buffeting=cyclone?Math.sin(t*17.2)*pressure*pressure*.65:0;
+  state.vx+=((pressure*(s.mobile?(cyclone?5:4):(cyclone?9:7))+buffeting-state.x)*78-state.vx*13)*dt;state.x+=state.vx*dt;
+  state.vr+=((pressure*(cyclone?.76:.48)-state.roll)*62-state.vr*12)*dt;state.roll+=state.vr*dt;
   p.style.setProperty('--pd-wind-x',state.x.toFixed(3)+'px');
   p.style.setProperty('--pd-wind-y',(-Math.abs(state.x)*.13).toFixed(3)+'px');
   p.style.setProperty('--pd-wind-roll',state.roll.toFixed(3)+'deg');
   p.style.setProperty('--pd-wind-pressure',pressure.toFixed(3));
   p.style.setProperty('--pd-wind-flex',(state.x*.35).toFixed(3)+'px');
+  if(cyclone){
+   if(!state.nextGroups||t>=state.nextGroups){
+    state.nextGroups=t+.25;
+    state.groups=Array.from(p.querySelectorAll('[data-cyclone-text]'),el=>({el,spans:Array.from(el.querySelectorAll('.pd-fx-windletter')),offset:(el.offsetTop||0)/Math.max(s.height,1)}));
+   }
+   for(const group of state.groups){
+    const title=group.el.id==='pd-local',length=Math.max(1,group.spans.length-1);
+    group.spans.forEach((el,i)=>{
+     let letter=state.letters.get(el);if(!letter){letter={x:0,v:0};state.letters.set(el,letter);}
+     const fraction=i/length,local=pressureAt(s,t-group.offset*.20,fraction)*s.cfg.strength*envelope;
+     const flutter=Math.sin(t*(9.5+fraction*2.1)-i*.52-group.offset*5)*local*local;
+     const target=local*(title?6+fraction*8:1.4+fraction*3.2)+flutter*(title?1.5:.5);
+     letter.v+=((target-letter.x)*105-letter.v*14)*dt;letter.x+=letter.v*dt;
+     const lift=-letter.x*.24+flutter*(title?.85:.25),roll=letter.x*.85+flutter*1.4;
+     el.style.transform='translate3d('+letter.x.toFixed(2)+'px,'+lift.toFixed(2)+'px,0) rotate('+roll.toFixed(2)+'deg)';
+    });
+   }
+   return;
+  }
   const spans=p.querySelectorAll('#pd-local .pd-fx-windletter'),length=Math.max(1,spans.length-1);
   spans.forEach((el,i)=>{
    let letter=state.letters.get(el);if(!letter){letter={x:0,v:0};state.letters.set(el,letter);}
@@ -186,6 +226,38 @@
    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-d.vx/speed*len,y-len);ctx.stroke();
   }
  }
+ function cycloneRain(s,t,dt,envelope,front){
+  const ctx=front?s.contactCtx:s.ctx,{width:w,height:h}=s;if(!ctx)return;
+  for(const drop of s.rain){
+   if((drop.depth>=.58)!==front)continue;
+   const force=pressureAt(s,t,clamp(drop.x,0,1))*s.cfg.strength;
+   const response=1-Math.exp(-dt*7);
+   const turbulence=Math.sin(t*4.6+drop.phase+drop.y*5)*force;
+   drop.vx+=((95+force*640)*(.35+drop.depth*.65)-drop.vx)*response;
+   drop.vy+=((170+drop.depth*410+turbulence*50)-drop.vy)*response;
+   drop.x+=drop.vx*dt/w;drop.y+=drop.vy*dt/h;
+   if(drop.x>1.12||drop.y>1.12){
+    if(Math.random()<.58){drop.x=rand(-.18,-.03);drop.y=Math.random();}
+    else{drop.y=rand(-.16,-.02);drop.x=Math.random();}
+   }
+   const exposure=.018+drop.depth*.022,x=drop.x*w,y=drop.y*h;
+   const alpha=(front?.11+drop.depth*.16:.045+drop.depth*.08)*envelope;
+   ctx.strokeStyle='rgba(218,232,239,'+alpha.toFixed(3)+')';ctx.lineWidth=.35+drop.depth*.85;
+   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-drop.vx*exposure,y-drop.vy*exposure);ctx.stroke();
+  }
+ }
+ function cycloneSpray(s,t,envelope){
+  const ctx=s.contactCtx,{width:w,height:h}=s,force=s.wind?.pressure||0;
+  // Thin wind-blown spray passes in front of the wet glass, with no opaque veil.
+  for(let i=0;i<(s.mobile?3:5);i++){
+   const progress=((s.wind?.travel||t*.2)*(.85+i*.11)+i*.317)%1;
+   const x=(progress*1.8-.4)*w,y=h*(.12+((i*.283)%1))+Math.sin(t*.8+i)*18;
+   const size=w*(.6+i*.06);
+   ctx.globalAlpha=envelope*(.025+force*.12);
+   ctx.drawImage(s.fog,x-size*.5,y-size*.15,size,size*.3);
+  }
+  ctx.globalAlpha=1;
+ }
 
  function edge(x,w){return .28+.72*Math.pow(Math.abs(x/w-.5)*2,1.5);}
  function illuminate(s,t,envelope){
@@ -200,16 +272,17 @@
  function rainfall(s,t,dt,envelope){
   const {ctx,width:w,height:h,cfg}=s;const gust=cfg.type==='hurricane'?110+28*Math.sin(t*.31)+16*Math.sin(t*.73):8+22*Math.sin(t*.67);
   if(cfg.type==='storm')stormRain(s,t,dt,envelope,true);
-  for(const drop of cfg.type==='storm'?[]:s.rain){
+  if(cfg.type==='hurricane')cycloneRain(s,t,dt,envelope,true);
+  for(const drop of ['storm','hurricane'].includes(cfg.type)?[]:s.rain){
    const speed=(220+drop.depth*460)*(1+cfg.strength*.35);drop.y+=speed*dt/h;drop.x+=gust*dt/w*(.5+drop.depth);if(drop.y>1.06){drop.y=-.08;drop.x=Math.random();}if(drop.x>1.08)drop.x=-.08;if(drop.x<-.08)drop.x=1.08;
    const x=drop.x*w,y=drop.y*h,len=8+drop.depth*25;ctx.strokeStyle='rgba(210,231,246,'+((cfg.type==='hurricane'?.06+drop.depth*.20:.14+drop.depth*.38)*envelope*edge(x,w)).toFixed(3)+')';ctx.lineWidth=.45+drop.depth*.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-gust/speed*len,y-len);ctx.stroke();
   }
   // Gravity starts after a droplet accumulates mass. Nearby drops merge by volume.
-  for(const b of s.beads){if(cfg.type==='storm')b.x=clamp(b.x+dt*(s.wind?.pressure||0)*.008,.015,.985);b.r+=dt*(.14+cfg.strength*.12);if(b.r>2.65)b.vy=Math.min(80,(b.vy+dt*20)*(1+dt*.4));b.y+=b.vy*dt/h;
+  for(const b of s.beads){if(['storm','hurricane'].includes(cfg.type))b.x=clamp(b.x+dt*(s.wind?.pressure||0)*(cfg.type==='hurricane'?.018:.008),.015,.985);b.r+=dt*(.14+cfg.strength*.12);if(b.r>2.65)b.vy=Math.min(80,(b.vy+dt*20)*(1+dt*.4));b.y+=b.vy*dt/h;
    if(b.y>1.04){b.y=rand(-.05,.05);b.r=rand(.9,1.6);b.vy=0;}
    for(const q of s.beads){if(q===b||q.r<.2)continue;const dx=(b.x-q.x)*w,dy=(b.y-q.y)*h;if(dx*dx+dy*dy<Math.pow((b.r+q.r)*.72,2)){b.r=Math.min(6.5,Math.cbrt(b.r**3+q.r**3));q.y=rand(-.06,.04);q.r=rand(.7,1.2);q.vy=0;b.vy=Math.max(b.vy,8);}}
    const x=b.x*w,y=b.y*h,stretch=1+Math.min(.5,b.vy/140);b.el.style.width=(b.r*2).toFixed(1)+'px';b.el.style.height=(b.r*2*stretch).toFixed(1)+'px';b.el.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0)';
-   if(b.vy>5){ctx.strokeStyle='rgba(209,232,245,'+(.12*envelope).toFixed(3)+')';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-Math.min(35,b.vy*.4));ctx.stroke();}
+   if(b.vy>5){const tail=Math.min(35,b.vy*.4);ctx.strokeStyle='rgba(209,232,245,'+(.12*envelope).toFixed(3)+')';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-(cfg.type==='hurricane'?(s.wind?.pressure||0)*tail*.25:0),y-tail);ctx.stroke();}
   }
  }
  function atmosphere(s,t,dt,envelope){
@@ -285,6 +358,7 @@
    ctx.strokeStyle='rgba(217,237,247,.22)';ctx.lineWidth=.8;
    for(let i=0;i<(s.mobile?9:16);i++){const phase=(t*1.8+i*.618)%1,x=((i*.381)%1)*w,y=h*(.78+.18*((i*.217)%1));ctx.globalAlpha=(1-phase)*envelope;ctx.beginPath();ctx.ellipse(x,y,phase*12,phase*3,0,Math.PI,2*Math.PI);ctx.stroke();}ctx.globalAlpha=1;
   }
+  if(cfg.type==='hurricane')cycloneSpray(s,t,envelope);
   if(cfg.type==='wind')windMatter(s,t,dt,envelope);
   if(cfg.type==='flood'){
    // Illustrative rise, unrelated to measured flood depth. Recede gently after crest.
@@ -310,7 +384,7 @@
    const fadeIn=clamp(t/.55,0,1),fadeOut=Number.isFinite(s.duration)?clamp((s.duration/1000-t)/.85,0,1):1,envelope=Math.min(fadeIn,fadeOut);s.host.style.opacity=envelope.toFixed(3);
    if(s.wind)windResponse(s,t,dt,envelope);
    if(s.cfg.type==='storm')stormLight(s,t);
-   s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);if(s.cfg.type==='storm')stormRain(s,t,dt,envelope,false);contactSurface(s,t,dt,envelope);if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);if(s.particles.length&&!s.wind)debris(s,t,dt,envelope);if(s.cfg.water&&!s.film)water(s,t,envelope);if(s.floating.length)surfaceDebris(s,t,dt,envelope);s.film?.draw(t,s.wind?{...s.cfg,gust:s.wind.pressure,windTravel:s.wind.travel,flash:s.flash||0}:s.cfg,(s.demoLightning||p?.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
+   s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);if(s.cfg.type==='storm')stormRain(s,t,dt,envelope,false);if(s.cfg.type==='hurricane')cycloneRain(s,t,dt,envelope,false);contactSurface(s,t,dt,envelope);if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);if(s.particles.length&&!s.wind)debris(s,t,dt,envelope);if(s.cfg.water&&!s.film)water(s,t,envelope);if(s.floating.length)surfaceDebris(s,t,dt,envelope);s.film?.draw(t,s.wind?{...s.cfg,gust:s.wind.pressure,windTravel:s.wind.travel,flash:s.flash||0}:s.cfg,(s.demoLightning||p?.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
   }
   raf=requestAnimationFrame(frame);
  }
@@ -323,7 +397,7 @@
   const cfg=profile(item);if(!cfg){stop();return;}
   if(cfg.type!==scene.cfg.type||['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){start(item,scene.duration);return;}
   scene.cfg=cfg;
+  if(cfg.type==='hurricane')scene.host.dataset.rotationDirection=cfg.rotationDirection;
  }
  window.CinematicCard={start,stop,refresh,prepareSymbol,isActive:()=>!!scene};
 })();
-

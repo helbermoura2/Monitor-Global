@@ -8,6 +8,7 @@ test('rajadas contínuas e chuva compartilham a camada sem perder dados ou contr
   page.on('pageerror', error => errors.push(error.message));
   await page.setViewportSize({ width: 1280, height: 844 });
   await page.clock.install();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await page.setContent('<div id="painel-direito" style="width:320px;height:400px"><div id="pd-local">Vento de teste</div><div id="pd-mag"><span id="magnitude-value">120</span></div><button id="control">Detalhes</button></div>');
   await page.addStyleTag({ content: fs.readFileSync(path.join(__dirname, '../css/painel-fx.css'), 'utf8') });
   await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '../js/painel-fx.js'), 'utf8') });

@@ -1,5 +1,11 @@
 # Texturas de vídeo do cartão
 
+## Fotografia do olho de ciclone
+
+- `cyclone-eye.jpg` — NASA / Expedition 7, ISS007-E-14741, olho do furacão Isabel fotografado da Estação Espacial Internacional em 13/09/2003. [Registro e crédito](https://images.nasa.gov/details/iss007e14741) · [arquivo original de resolução média](https://images-assets.nasa.gov/image/iss007e14741/iss007e14741~medium.jpg) · [política de uso da NASA](https://www.nasa.gov/nasa-brand-center/images-and-media/). Obra federal em domínio público, 67 KB, mantida sem transformação. O shader usa um enquadramento que exclui a faixa de identificação inferior, cor discretamente ajustada e movimento lento. Carregada somente em furacões e tufões; a ausência da imagem mantém as nuvens procedurais. É ilustração genérica do fenômeno, não fotografia do evento ou local selecionado. Verificada em 03/10/2026.
+
+## Vídeos
+
 Trechos ilustrativos licenciados pela Mixkit Stock Video Free License, verificados em 02/10/2026. A seção de download de cada item autoriza uso comercial e pessoal. Não são imagens do local do evento.
 
 - `media/card-fx/clouds.mp4` — [fonte](https://mixkit.co/free-stock-video/clouds-in-the-sky-flowing-with-the-wind-21584/) · [licença](https://mixkit.co/license/#videoFree).
