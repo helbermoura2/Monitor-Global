@@ -4462,6 +4462,67 @@ async function handleTelegramHistory(request,env){
     return json({ok:true,daily:daily.filter(Boolean),alerts:m6.filter(x=>x.at>=cutoff).sort((a,b)=>b.at-a.at),hasMore,retentionDays:30});
 }
 
+// EMSC (seismicportal.eu) como segunda fonte do alerta M6+ — o USGS sozinho
+// não é suficiente: sismos que outras agências registram mas o USGS nunca
+// chega a publicar no próprio catálogo (comum fora dos EUA, ex. Indonésia)
+// nunca disparavam o Telegram, mesmo aparecendo normalmente no site via
+// fusão multiagência (ver SISMO_SOURCES em js/sismo-fontes.js). Mesmo
+// formato de saída de fetchUsgsM6Recent(), pra poder mesclar as duas listas.
+async function fetchEmscM6Recent() {
+    const start = new Date(Date.now() - 6 * 3600000).toISOString(); // últimas 6h
+    const url =
+        'https://www.seismicportal.eu/fdsnws/event/1/query?format=json' +
+        `&start=${encodeURIComponent(start)}` +
+        `&minmag=${TELEGRAM_MIN_MAG}` +
+        '&orderby=time&limit=30';
+    const d = await fetchJson(url, {}, 15000);
+    const out = [];
+    for (const f of d.features || []) {
+        const p = f.properties || {};
+        const c = f.geometry?.coordinates || [];
+        const mag = Number(p.mag);
+        const lon = Number(c[0]);
+        const lat = Number(c[1]);
+        const depth = Number(c[2]);
+        if (![mag, lat, lon].every(Number.isFinite) || mag < TELEGRAM_MIN_MAG) continue;
+        const id = `EMSC-${String(f.id || p.unid || p.source_id || `${mag}-${lat}-${lon}-${p.time}`)}`;
+        out.push({
+            id,
+            mag,
+            place: p.flynn_region || p.place || 'Região não informada',
+            lat,
+            lon,
+            depth: Number.isFinite(depth) ? Math.round(depth) : null,
+            timeIso: p.time ? new Date(p.time).toISOString() : null,
+            source: 'EMSC',
+            reviewed: false,
+            url: p.unid ? `https://www.seismicportal.eu/eventdetails.html?unid=${encodeURIComponent(p.unid)}` : 'https://monitorglobal.top'
+        });
+    }
+    return out;
+}
+
+// Mescla listas de múltiplas fontes (ordem = prioridade) descartando, de
+// cada fonte seguinte, qualquer evento perto no espaço/tempo (mesmos
+// critérios de findNearDuplicateAlert) de um já aceito de uma fonte
+// anterior — evita mandar dois cards pro mesmo tremor só porque USGS e
+// EMSC publicaram o mesmo sismo.
+function dedupeMultiSourceEvents(lists) {
+    const out = [];
+    for (const list of lists) {
+        for (const ev of list) {
+            const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
+            const jaTem = out.some(o => {
+                const oTime = o.timeIso ? new Date(o.timeIso).getTime() : null;
+                if (evTime != null && oTime != null && Math.abs(evTime - oTime) > TELEGRAM_DUP_WINDOW_MS) return false;
+                return haversineKm(ev.lat, ev.lon, o.lat, o.lon) <= TELEGRAM_DUP_KM;
+            });
+            if (!jaTem) out.push(ev);
+        }
+    }
+    return out;
+}
+
 async function runTelegramM6Alerts(request, env) {
     if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         return {
@@ -4472,7 +4533,15 @@ async function runTelegramM6Alerts(request, env) {
         };
     }
 
-    const events = await fetchUsgsM6Recent();
+    // USGS continua como fonte primária (mais rápido pra eventos grandes),
+    // EMSC entra como reforço — se uma das duas falhar, a outra ainda cobre
+    // o ciclo (Promise.allSettled em vez de deixar tudo cair junto).
+    const [usgsResult, emscResult] = await Promise.allSettled([fetchUsgsM6Recent(), fetchEmscM6Recent()]);
+    const usgsEvents = usgsResult.status === 'fulfilled' ? usgsResult.value : [];
+    const emscEvents = emscResult.status === 'fulfilled' ? emscResult.value : [];
+    if (usgsResult.status === 'rejected') console.warn('Telegram M6: USGS falhou:', usgsResult.reason?.message);
+    if (emscResult.status === 'rejected') console.warn('Telegram M6: EMSC falhou:', emscResult.reason?.message);
+    const events = dedupeMultiSourceEvents([usgsEvents, emscEvents]);
     const sentRecords = await loadSentAlerts(request, env);
     const sentIds = new Set(sentRecords.map(r => r.id));
     const sent = [];
@@ -4528,6 +4597,10 @@ async function runTelegramM6Alerts(request, env) {
     return {
         ok: true,
         checked: events.length,
+        sources: {
+            usgs: { count: usgsEvents.length, failed: usgsResult.status === 'rejected' },
+            emsc: { count: emscEvents.length, failed: emscResult.status === 'rejected' }
+        },
         sent,
         updates,
         alreadySent: skipped.length,
