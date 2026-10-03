@@ -156,14 +156,15 @@ function wrapWindLetters(el) {
     el.textContent = '';
     el.appendChild(frag);
 }
-function triggerWindLetters(durationMs) {
+function triggerWindLetters(durationMs, options = {}) {
     restoreWindLetters();
     const el = document.getElementById('pd-local');
     if (!el || !el.textContent) return;
     __windLettersEl = el;
     wrapWindLetters(el);
     if(Number.isFinite(durationMs))__windLettersTimeout = setTimeout(restoreWindLetters, durationMs);
-    startLetterGusts(el, durationMs);
+    // The cinematic wind scene supplies one shared pressure field and its own clock.
+    if (!options.controlled) startLetterGusts(el, durationMs);
 
     // Auto-cura: se algo de fora (silentRefresh do card, por exemplo)
     // resetar #pd-local pra texto puro enquanto o efeito ainda devia

@@ -8,9 +8,9 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   await expect.poll(async () => {
     const response = await request.get(base + '/index.html?verify=' + Date.now());
     if (!response.ok()) return false;
-    return (await response.text()).includes('js/painel-fx.js?v=20261002-cyclone-cinema');
+    return (await response.text()).includes('js/painel-fx.js?v=20261002-wind-pressure');
   }, { timeout: 120000, intervals: [5000] }).toBe(true);
-  const script = await request.get(base + '/js/painel-fx.js?v=20261002-cyclone-cinema');
+  const script = await request.get(base + '/js/painel-fx.js?v=20261002-wind-pressure');
   expect(script.ok()).toBe(true);
   const source = await script.text();
   expect(source).toContain('function ensureFallLayer()');

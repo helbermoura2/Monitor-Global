@@ -58,7 +58,7 @@ jobs:
 
   card-visibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -77,6 +77,15 @@ jobs:
       - name: Verificar visibilidade das cenas e helpers compartilhados
         run: npx playwright test tests/painel-fx-shared-layer.spec.js tests/cinematic-card.spec.js --grep 'rajadas contínuas|letras ao vento|primeiro quadro|todos os efeitos' --workers=1
 
+      - name: Validar rajadas e capturar prévias
+        run: npx playwright test tests/wind-cinema.spec.js --workers=1
+      - name: Publicar prévias das rajadas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wind-previews
+          path: /tmp/wind-scene-*.png
+          retention-days: 7
       - name: Validar ciclones e capturar prévias
         run: npx playwright test tests/cyclone-cinema.spec.js --workers=1
       - name: Publicar prévias dos ciclones
