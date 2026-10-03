@@ -1196,6 +1196,14 @@ const TELEGRAM_ALERT_TTL = 86400 * 3; // 3 dias de memória anti-spam
 // tremor" pra virar uma mensagem de atualização em vez de um card novo.
 const TELEGRAM_DUP_KM = 150;
 const TELEGRAM_DUP_WINDOW_MS = 30 * 60000;
+// Magnitude preliminar de sismo grande costuma ser revisada nos primeiros
+// minutos (ex.: um M6.1 que baixa pra M5.9) — USGS/EMSC filtram a própria
+// consulta pela magnitude ATUAL, então um evento revisado pra baixo do
+// limiar simplesmente some da resposta no próximo ciclo. Em vez de mandar
+// o card no instante em que o sismo cruza TELEGRAM_MIN_MAG pela primeira
+// vez, ele vira um "candidato" por TELEGRAM_HOLD_MS; só dispara de
+// verdade se ainda aparecer com mag >= TELEGRAM_MIN_MAG depois da espera.
+const TELEGRAM_HOLD_MS = 3 * 60000;
 
 // ---------- Card PNG (gerado no Worker, sem dependência externa) ----------
 // =========================================================
@@ -4236,6 +4244,24 @@ function findNearDuplicateAlert(ev, sentRecords) {
     return null;
 }
 
+// Mesma lógica de "perto no espaço/tempo" acima, mas SEM excluir id igual —
+// usada pra achar o candidato pendente de um evento que está aguardando
+// confirmação (TELEGRAM_HOLD_MS). Ali o caso normal é a mesma fonte
+// reportando o MESMO id a cada ciclo (ex.: EMSC no mesmo evento), então
+// excluir por id igual (como findNearDuplicateAlert faz pra achar uma
+// solução DIFERENTE do mesmo tremor já enviado) faria o candidato nunca
+// ser reencontrado e reiniciaria o relógio de espera a cada ciclo.
+function findPendingMatch(ev, pendingRecords) {
+    const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
+    for (const r of pendingRecords) {
+        if (!r || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
+        const rTime = r.timeIso ? new Date(r.timeIso).getTime() : null;
+        if (evTime != null && rTime != null && Math.abs(evTime - rTime) > TELEGRAM_DUP_WINDOW_MS) continue;
+        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= TELEGRAM_DUP_KM) return r;
+    }
+    return null;
+}
+
 // Mensagem curta (sem card/imagem) pra quando o evento novo é uma provável
 // duplicata de rede de um alerta já mandado — deixa claro que é uma
 // ATUALIZAÇÃO de magnitude do mesmo tremor, não um sismo novo.
@@ -4375,6 +4401,64 @@ async function saveSentAlerts(request, records, env) {
     }
 }
 
+// Candidatos M6+ ainda em espera de confirmação (TELEGRAM_HOLD_MS) antes de
+// virarem alerta de verdade — mesmo padrão de KV (preferido) com fallback
+// em caches.default usado em loadSentAlerts/saveSentAlerts acima, pelo
+// mesmo motivo: o Cron Trigger pode cair num data-center diferente a cada
+// disparo, e o relógio da confirmação precisa ser visto igual em todos.
+const TELEGRAM_PENDING_KV_KEY = 'telegram-m6-pending';
+const TELEGRAM_PENDING_CACHE_PATH = '/__cache/monitor-global/telegram-m6-pending';
+const TELEGRAM_PENDING_TTL = 3600; // a espera é de minutos; 1h já é folga generosa
+
+async function loadPendingAlerts(request, env) {
+    if (env && env.TTS_USAGE) {
+        try {
+            const raw = await env.TTS_USAGE.get(TELEGRAM_PENDING_KV_KEY);
+            if (!raw) return [];
+            const d = JSON.parse(raw);
+            return Array.isArray(d.items) ? d.items : [];
+        } catch (e) {
+            console.warn('telegram pending KV read:', e?.message || e);
+        }
+    }
+    try {
+        const hit = await caches.default.match(cacheKey(request, TELEGRAM_PENDING_CACHE_PATH));
+        if (!hit) return [];
+        const d = await hit.json();
+        return Array.isArray(d.items) ? d.items : [];
+    } catch {
+        return [];
+    }
+}
+
+async function savePendingAlerts(request, records, env) {
+    const items = records.slice(-100);
+    if (env && env.TTS_USAGE) {
+        try {
+            await env.TTS_USAGE.put(
+                TELEGRAM_PENDING_KV_KEY,
+                JSON.stringify({ items, updatedAt: nowIso() }),
+                { expirationTtl: TELEGRAM_PENDING_TTL }
+            );
+            return;
+        } catch (e) {
+            console.warn('telegram pending KV write:', e?.message || e);
+        }
+    }
+    try {
+        const response = new Response(JSON.stringify({ items, updatedAt: nowIso() }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': `public, max-age=${TELEGRAM_PENDING_TTL}`
+            }
+        });
+        await caches.default.put(cacheKey(request, TELEGRAM_PENDING_CACHE_PATH), response);
+    } catch (e) {
+        console.warn('telegram pending cache write:', e?.message || e);
+    }
+}
+
 async function fetchUsgsM6Recent() {
     const start = new Date(Date.now() - 6 * 3600000).toISOString(); // últimas 6h
     const url =
@@ -4462,6 +4546,67 @@ async function handleTelegramHistory(request,env){
     return json({ok:true,daily:daily.filter(Boolean),alerts:m6.filter(x=>x.at>=cutoff).sort((a,b)=>b.at-a.at),hasMore,retentionDays:30});
 }
 
+// EMSC (seismicportal.eu) como segunda fonte do alerta M6+ — o USGS sozinho
+// não é suficiente: sismos que outras agências registram mas o USGS nunca
+// chega a publicar no próprio catálogo (comum fora dos EUA, ex. Indonésia)
+// nunca disparavam o Telegram, mesmo aparecendo normalmente no site via
+// fusão multiagência (ver SISMO_SOURCES em js/sismo-fontes.js). Mesmo
+// formato de saída de fetchUsgsM6Recent(), pra poder mesclar as duas listas.
+async function fetchEmscM6Recent() {
+    const start = new Date(Date.now() - 6 * 3600000).toISOString(); // últimas 6h
+    const url =
+        'https://www.seismicportal.eu/fdsnws/event/1/query?format=json' +
+        `&start=${encodeURIComponent(start)}` +
+        `&minmag=${TELEGRAM_MIN_MAG}` +
+        '&orderby=time&limit=30';
+    const d = await fetchJson(url, {}, 15000);
+    const out = [];
+    for (const f of d.features || []) {
+        const p = f.properties || {};
+        const c = f.geometry?.coordinates || [];
+        const mag = Number(p.mag);
+        const lon = Number(c[0]);
+        const lat = Number(c[1]);
+        const depth = Number(c[2]);
+        if (![mag, lat, lon].every(Number.isFinite) || mag < TELEGRAM_MIN_MAG) continue;
+        const id = `EMSC-${String(f.id || p.unid || p.source_id || `${mag}-${lat}-${lon}-${p.time}`)}`;
+        out.push({
+            id,
+            mag,
+            place: p.flynn_region || p.place || 'Região não informada',
+            lat,
+            lon,
+            depth: Number.isFinite(depth) ? Math.round(depth) : null,
+            timeIso: p.time ? new Date(p.time).toISOString() : null,
+            source: 'EMSC',
+            reviewed: false,
+            url: p.unid ? `https://www.seismicportal.eu/eventdetails.html?unid=${encodeURIComponent(p.unid)}` : 'https://monitorglobal.top'
+        });
+    }
+    return out;
+}
+
+// Mescla listas de múltiplas fontes (ordem = prioridade) descartando, de
+// cada fonte seguinte, qualquer evento perto no espaço/tempo (mesmos
+// critérios de findNearDuplicateAlert) de um já aceito de uma fonte
+// anterior — evita mandar dois cards pro mesmo tremor só porque USGS e
+// EMSC publicaram o mesmo sismo.
+function dedupeMultiSourceEvents(lists) {
+    const out = [];
+    for (const list of lists) {
+        for (const ev of list) {
+            const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
+            const jaTem = out.some(o => {
+                const oTime = o.timeIso ? new Date(o.timeIso).getTime() : null;
+                if (evTime != null && oTime != null && Math.abs(evTime - oTime) > TELEGRAM_DUP_WINDOW_MS) return false;
+                return haversineKm(ev.lat, ev.lon, o.lat, o.lon) <= TELEGRAM_DUP_KM;
+            });
+            if (!jaTem) out.push(ev);
+        }
+    }
+    return out;
+}
+
 async function runTelegramM6Alerts(request, env) {
     if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         return {
@@ -4472,44 +4617,95 @@ async function runTelegramM6Alerts(request, env) {
         };
     }
 
-    const events = await fetchUsgsM6Recent();
+    // USGS continua como fonte primária (mais rápido pra eventos grandes),
+    // EMSC entra como reforço — se uma das duas falhar, a outra ainda cobre
+    // o ciclo (Promise.allSettled em vez de deixar tudo cair junto).
+    const [usgsResult, emscResult] = await Promise.allSettled([fetchUsgsM6Recent(), fetchEmscM6Recent()]);
+    const usgsEvents = usgsResult.status === 'fulfilled' ? usgsResult.value : [];
+    const emscEvents = emscResult.status === 'fulfilled' ? emscResult.value : [];
+    if (usgsResult.status === 'rejected') console.warn('Telegram M6: USGS falhou:', usgsResult.reason?.message);
+    if (emscResult.status === 'rejected') console.warn('Telegram M6: EMSC falhou:', emscResult.reason?.message);
+    const events = dedupeMultiSourceEvents([usgsEvents, emscEvents]);
     const sentRecords = await loadSentAlerts(request, env);
     const sentIds = new Set(sentRecords.map(r => r.id));
+    const pendingRecords = await loadPendingAlerts(request, env);
+    const usedPendingIds = new Set();
+    const nextPending = [];
     const sent = [];
     const updates = [];
     const skipped = [];
+    const discarded = [];
 
     for (const ev of events) {
         if (sentIds.has(ev.id)) {
             skipped.push(ev.id);
             continue;
         }
+
+        // Candidato já visto antes (mesma área/janela, ver findNearDuplicateAlert)
+        // -- reaproveita o horário da PRIMEIRA vez que apareceu, senão o relógio
+        // de confirmação nunca andaria (o evento reaparece a cada ciclo).
+        const pendMatch = findPendingMatch(ev, pendingRecords);
+        if (pendMatch) usedPendingIds.add(pendMatch.id);
+
         // Antes de tratar como sismo novo, checa se é provavelmente a MESMA
         // ocorrência de um alerta já mandado sob outro ID de rede (ver
         // findNearDuplicateAlert) — nesse caso manda só uma atualização de
-        // magnitude, sem duplicar o card cheio.
+        // magnitude, sem duplicar o card cheio. Já passou pela espera de
+        // confirmação na primeira vez, então não precisa esperar de novo.
         const dup = findNearDuplicateAlert(ev, sentRecords);
-        const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
-        const history={kind:dup?'m6-update':'m6',at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
-        await telegramHistoryWrite(env,historyKey,history);
-        try {
-            if (dup) {
+        if (dup) {
+            const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
+            const history={kind:'m6-update',at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
+            await telegramHistoryWrite(env,historyKey,history);
+            try {
                 await telegramSendMessage(env, telegramUpdateMessage(ev, dup));
                 updates.push({ id: ev.id, mag: ev.mag, place: ev.place, comparedTo: dup.id, previousMag: dup.mag });
-            } else {
-                const caption = telegramCaption(ev);
-                try {
-                    await telegramSendPhoto(env, ev, caption);
-                } catch (photoErr) {
-                    // Fallback: só texto, se o mapa estático falhar
-                    console.warn('sendPhoto falhou, fallback texto:', photoErr.message);
-                    await telegramSendMessage(
-                        env,
-                        caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
-                    );
-                }
-                sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
+                history.status='sent';history.sentAt=Date.now();
+                history.events.push({at:history.sentAt,stage:'sent'});
+                await telegramHistoryWrite(env,historyKey,history);
+                sentIds.add(ev.id);
+                sentRecords.push({ id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source });
+            } catch (e) {
+                history.status='uncertain';
+                history.events.push({at:Date.now(),stage:'uncertain'});
+                await telegramHistoryWrite(env,historyKey,history);
+                console.error('Telegram alerta (atualização) falhou:', ev.id, e.message);
             }
+            continue;
+        }
+
+        const firstSeenAt = pendMatch ? pendMatch.firstSeenAt : Date.now();
+        const candidato = { id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source, firstSeenAt };
+
+        if (Date.now() - firstSeenAt < TELEGRAM_HOLD_MS) {
+            // Ainda dentro da janela de confirmação -- não manda nada agora,
+            // só guarda (ou atualiza) o candidato pra reavaliar no próximo ciclo.
+            nextPending.push(candidato);
+            continue;
+        }
+
+        // Já esperou TELEGRAM_HOLD_MS e CONTINUA aparecendo com mag >=
+        // TELEGRAM_MIN_MAG nas fontes -- se tivesse sido revisado pra baixo
+        // do limiar (ex.: 6.1 -> 5.9), USGS/EMSC já teriam parado de
+        // devolvê-lo nessa consulta, e o candidato simplesmente não estaria
+        // em `events` pra chegar até aqui. Pode mandar o card de verdade.
+        const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
+        const history={kind:'m6',at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
+        await telegramHistoryWrite(env,historyKey,history);
+        try {
+            const caption = telegramCaption(ev);
+            try {
+                await telegramSendPhoto(env, ev, caption);
+            } catch (photoErr) {
+                // Fallback: só texto, se o mapa estático falhar
+                console.warn('sendPhoto falhou, fallback texto:', photoErr.message);
+                await telegramSendMessage(
+                    env,
+                    caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
+                );
+            }
+            sent.push({ id: ev.id, mag: ev.mag, place: ev.place, waitedMs: Date.now() - firstSeenAt });
             history.status='sent';history.sentAt=Date.now();
             history.events.push({at:history.sentAt,stage:'sent'});
             await telegramHistoryWrite(env,historyKey,history);
@@ -4520,18 +4716,38 @@ async function runTelegramM6Alerts(request, env) {
             history.events.push({at:Date.now(),stage:'uncertain'});
             await telegramHistoryWrite(env,historyKey,history);
             console.error('Telegram alerta falhou:', ev.id, e.message);
+            // Envio falhou (não a confirmação) -- mantém o candidato pra
+            // tentar mandar de novo no próximo ciclo, sem reiniciar a espera.
+            nextPending.push(candidato);
         }
     }
 
+    // Candidatos do ciclo anterior que não reapareceram agora -- o caso real
+    // que motivou essa espera: magnitude revisada abaixo de TELEGRAM_MIN_MAG,
+    // então USGS/EMSC pararam de devolver o evento. Nunca chegam a virar
+    // alerta.
+    for (const p of pendingRecords) {
+        if (!usedPendingIds.has(p.id)) discarded.push({ id: p.id, mag: p.mag, place: p.place });
+    }
+    if (discarded.length) console.log('Telegram M6: candidatos descartados sem confirmação (provável revisão abaixo do limiar):', JSON.stringify(discarded));
+
+    await savePendingAlerts(request, nextPending, env);
     if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
     return {
         ok: true,
         checked: events.length,
+        sources: {
+            usgs: { count: usgsEvents.length, failed: usgsResult.status === 'rejected' },
+            emsc: { count: emscEvents.length, failed: emscResult.status === 'rejected' }
+        },
         sent,
         updates,
+        pending: nextPending.length,
+        discarded,
         alreadySent: skipped.length,
         minMag: TELEGRAM_MIN_MAG,
+        holdMs: TELEGRAM_HOLD_MS,
         updatedAt: nowIso()
     };
 }

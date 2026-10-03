@@ -37,6 +37,7 @@ jobs:
           node tests/unit/unified-cities-check.cjs
           node tests/unit/wave-camera-check.cjs
           node tests/unit/telegram-history-check.mjs
+          node tests/unit/telegram-m6-emsc-check.mjs
           node tests/unit/daily-summary-design-check.mjs
           node tests/unit/source-proxy-check.mjs
           node tests/unit/official-weather-alerts-check.mjs
