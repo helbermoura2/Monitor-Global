@@ -90,10 +90,19 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 #painel-direito .pd-cinema-contact>canvas{width:100%;height:100%;position:absolute;inset:0;pointer-events:none}
 #painel-direito.pd-fx-flood .pd-cinema-footage{clip-path:inset(var(--pd-water-top,88%) 0 0 0);opacity:.86}
 #painel-direito.pd-cinema-active.pd-fx-hurricane .pd-cinema-symbol{animation:none}
-#painel-direito.pd-fx-wind .stat-card{translate:calc(var(--pd-gust,0)*1.5px) 0;rotate:calc(var(--pd-gust,0)*.2deg)}
+
 @keyframes pdCloudVortex{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){#painel-direito .pd-cinema-contact{display:none!important}#painel-direito .pd-cinema-symbol{animation:none!important}#painel-direito .stat-card{translate:none!important;rotate:none!important}}
 
 /* Cyclone clouds carry the movement; the glass and measurements stay still. */
 #painel-direito.pd-cinema-active.pd-fx-hurricane{animation:none}
 body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-hurricane,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-hurricane{animation:sheetUp .22s ease}
+
+/* Wind moves the glass and its loose typography under the same pressure wave. */
+#painel-direito.pd-cinema-active.pd-fx-wind{animation:none;translate:var(--pd-wind-x,0px) var(--pd-wind-y,0px);rotate:var(--pd-wind-roll,0deg);transform-origin:50% 85%}
+body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-wind,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-wind{animation:sheetUp .22s ease}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-fx-windletter{animation:none!important;transform-origin:50% 90%;will-change:transform}
+#painel-direito.pd-cinema-active.pd-fx-wind .stat-card,#painel-direito.pd-cinema-active.pd-fx-wind .pd-chip{translate:var(--pd-wind-flex,0px) 0}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-contact{opacity:calc(.5 + var(--pd-wind-pressure,0)*.5)}
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-layer{filter:saturate(.55)}
+@media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-wind{translate:none!important;rotate:none!important}#painel-direito.pd-fx-wind .pd-chip{translate:none!important}}

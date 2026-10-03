@@ -14,7 +14,7 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(1.7,9.2);a*=.5;}return v;}
@@ -218,9 +218,13 @@
    // A distant, textured reflection above the surface preserves the glass.
    scene=over(vapor(vec2(uv.x*3.+uTime*.03,uv.y*5.),.12,vec3(.36,.50,.58)),scene);
   }else{
-   vec2 advect=vec2(uv.x*3.-uTime*(.3+.5*uStrength),uv.y*12.+sin(uTime*.7)*.2);
-   scene=over(vapor(advect,.65,vec3(.56,.64,.66)),scene);
-   scene.rgb*=.72+.28*fbm(advect*2.);
+   // Thin, wind-sheared haze, with broad light and fine suspended dust.
+   vec2 advect=vec2(uv.x*2.3-uTravel,uv.y*6.5+sin(uv.x*3.-uTime*.22)*.15);
+   float wisps=fbm(advect+vec2(fbm(advect*.7),0.)*.6);
+   float density=smoothstep(.30,.76,wisps)*(.20+.25*uGust);
+   float relief=clamp(.45+(wisps-fbm(advect+vec2(.04,.07)))*3.,.12,.85);
+   vec3 haze=mix(vec3(.12,.15,.17),vec3(.55,.57,.54),relief);
+   scene=over(vec4(haze,density),scene);
   }
   float vignette=1.-smoothstep(.32,.60,abs(uv.x-.5));
   scene.rgb*=.85+.15*vignette;
@@ -239,10 +243,10 @@
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
    let last=-Infinity,width=1,height=1;
    function resize(w,h){width=w;height=h;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
