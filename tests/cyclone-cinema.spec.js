@@ -106,17 +106,25 @@ test('rótulos dos feeds e códigos oficiais determinam o estágio e o hemisfér
  await expect(page.locator('.pd-cinema-layer,.pd-cinema-contact,.pd-cinema-afterglow,.pd-fx-windletter,.pd-fx-windword')).toHaveCount(0);
 });
 test('revisão silenciosa atualiza textos e hemisfério sem reiniciar a mesma fase',async({page})=>{
+ test.setTimeout(90000);
  await boot(page,1280);
+ // The independent cyclone feed removes alerts absent from its catalog when
+ // startup finishes. Insert this fixture after that cleanup, and advance the
+ // headline animation explicitly instead of depending on software-GPU speed.
+ await page.waitForFunction(()=>fonteBooted('hurricane'));
+ await page.clock.install();await page.clock.pauseAt(Date.now()+100);
  await page.evaluate(()=>{
   const item={id:'cyclone-live',type:'hurricane',source:'Visual QA',place:'JOANA',cycloneLabel:'Furacão',classification:'HU',windKmh:150,coords:[-45,18],time:Date.now()};
   globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
   document.querySelector('.pd-cinema-layer').dataset.testIdentity='retained';
  });
+ await page.clock.runFor(1500);
  const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveAttribute('data-cyclone-stage','mature');
  await page.evaluate(()=>{
   const item={...EventStore.getSelected(),place:'JOANA atualizado',windKmh:170,coords:[-45,-18]};
   upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);
  });
+ await page.clock.runFor(1500);
  await expect(layer).toHaveAttribute('data-test-identity','retained');await expect(layer).toHaveAttribute('data-rotation-direction','-1');
  await expect(page.locator('#pd-local')).toContainText('JOANA atualizado');
  for(const id of ['pd-local','pd-horario','pd-depth','pd-fault-type'])await expect(page.locator('#'+id+' .pd-fx-windletter')).not.toHaveCount(0);
@@ -126,6 +134,7 @@ test('revisão silenciosa atualiza textos e hemisfério sem reiniciar a mesma fa
   const item={...EventStore.getSelected(),classification:'TS',cycloneLabel:'T. Tropical',windKmh:85};
   upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);
  });
+ await page.clock.runFor(1500);
  await expect(layer).toHaveAttribute('data-cyclone-stage','tropical-storm');await expect(layer).not.toHaveAttribute('data-test-identity','retained');
  await expect(layer).toHaveCount(1);await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);
  await expect(page.locator('.pd-cinema-afterglow')).toHaveCount(0);
