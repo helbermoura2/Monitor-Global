@@ -14,7 +14,7 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel,uFlash;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(1.7,9.2);a*=.5;}return v;}
@@ -143,11 +143,20 @@
   vec2 local=uv;
   vec4 scene=vec4(.012,.028,.043,.26);
   if(uMode<.5){
-   vec2 p=vec2(uv.x*3.9,uv.y*4.8)+vec2(uTime*.036,-uTime*.018);
-   scene=over(vapor(p,mix(.82,.27,uFootage),vec3(.63,.72,.80)),scene);
-   scene.rgb*=.78+.22*cloud(p+vec2(1.7,3.1));
-   float phase=mod(uTime,10.);float flash=exp(-pow((phase-.61)*23.,2.))+exp(-pow((phase-4.30)*26.,2.))+exp(-pow((phase-8.3)*24.,2.));
-   scene.rgb+=vec3(.44,.57,.72)*flash*uLightning;
+   // Layered storm canopy, wind-driven rain haze and diffuse lightning.
+   vec2 p=vec2(uv.x*3.4-uTravel*.36,uv.y*4.2+uTime*.014);
+   float warp=fbm(p*1.4);
+   float mass=fbm(p+vec2(warp*1.2,warp*.25));
+   float neighbor=fbm(p+vec2(warp*1.2,warp*.25)+vec2(.06,.09));
+   float relief=clamp(.34+(mass-neighbor)*3.6,.08,.88);
+   vec3 clouds=mix(vec3(.035,.050,.062),vec3(.36,.40,.43),relief);
+   float canopy=.36+.42*smoothstep(.26,.70,mass)+.10*smoothstep(.1,.85,uv.y);
+   float haze=fbm(vec2(uv.x*5.-uTravel*.8,uv.y*2.+uTime*.03));
+   clouds*=.82+.18*haze;
+   clouds+=vec3(.025,.036,.044)*(.4+uGust)*haze;
+   float light=exp(-length((uv-vec2(.24,.86))*vec2(.8,1.))*.9);
+   clouds+=vec3(.40,.46,.52)*uFlash*light*uLightning;
+   scene=vec4(clouds,clamp(canopy,.34,.86));
   }else if(uMode<1.5){
    scene=cyclone(uv,aspect);
   }else if(uMode<2.5){
@@ -243,10 +252,10 @@
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel','Flash'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
    let last=-Infinity,width=1,height=1;
    function resize(w,h){width=w;height=h;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
