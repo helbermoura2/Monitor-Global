@@ -4,7 +4,7 @@ test.use({serviceWorkers:'block'});
 for(const width of [1280,390])test('tempestade tem profundidade, pressão e clarões breves '+width,async({page})=>{
  await page.setViewportSize({width,height:844});
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" data-lightning="on" style="position:absolute;left:20px;top:25px;width:320px;height:600px;background:#0b2231;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 16px;color:white;font:600 18px system-ui">Tempestade em São Paulo</div><button id="control">Detalhes</button></div></body>');
- for(const file of ['painel-fx.css','cinematic-card.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
+ for(const file of ['painel-fx.css','cinematic-card.css','storm-cinema.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
  await page.evaluate(()=>{window.__frame=null;window.requestAnimationFrame=cb=>{__frame=cb;return 1;};window.cancelAnimationFrame=()=>{__frame=null;};});
  for(const file of ['painel-fx.js','card-cinema-film.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
  const result=await page.evaluate(()=>{
@@ -17,7 +17,9 @@ for(const width of [1280,390])test('tempestade tem profundidade, pressão e clar
  expect(result.renderer).toBe('film');expect(result.flash).toBeGreaterThan(.3);expect(result.lit).toBeGreaterThan(0);expect(result.lit).toBeLessThan(25);
  expect(result.movement).toBeGreaterThan(width===390?.8:1.5);expect(result.calm).toBeLessThan(.2);
  expect(result.rear).toBeGreaterThan(100);expect(result.front).toBeGreaterThan(100);expect(result.text).toBe('Tempestade em São Paulo');
- await expect(page.locator('.pd-cinema-drop')).toHaveCount(width===390?12:18);await expect(page.locator('.pd-fx-letter-blown')).toHaveCount(0);
+ await expect(page.locator('.pd-cinema-drop')).toHaveCount(width===390?20:32);await expect(page.locator('.pd-fx-letter-blown')).toHaveCount(0);
+ await expect(page.locator('.pd-cinema-storm-bolt')).toHaveAttribute('data-channel','heavy');
+ await expect(page.locator('.pd-bolt-filament')).toHaveCount(8);
  const noLightning=await page.evaluate(()=>{document.getElementById('painel-direito').dataset.lightning='off';CinematicCard.start({id:'rain-only',type:'storm',detail:'Chuva forte'},Infinity);__frame(performance.now()+2310);return document.getElementById('painel-direito').style.getPropertyValue('--pd-storm-flash');});
  expect(Number(noLightning)).toBe(0);
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-cinema-layer,.pd-cinema-contact,.pd-fx-windletter')).toHaveCount(0);

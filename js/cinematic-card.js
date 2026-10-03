@@ -22,20 +22,46 @@
   if(Number.isFinite(wind)&&wind>0)return wind<63?'depression':wind<119?'tropical-storm':'mature';
   return classify(item.warningEvent)||classify(item.detail)||'mature';
  }
+ function volcanoActivity(item){
+  // The same feed profile serves the menu and real records. VAAC often uses
+  // aviation shorthand (VA TO FL150), while showAlertDetails translates USGS
+  // text before calling us. Alert colours and a VONA alone do not prove lava.
+  const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  const fields=[item.eruptionStatus,item.activityStatus,item.vulcanicActivity,item.ashStatus,item.vonaRemarks,item.detail].map(normalize).filter(Boolean);
+  const uncertain=/\bpossible\b|\bpossivel\b|\bpotential\b|\bsuspeit|\bhistor|\bprevious\b|\blast eruption\b|\bultima erupcao\b|\b(?:new activity|nova atividade eruptiva)\s*\/\s*unrest/;
+  // Keep negations inside a clause and attached to their material. Repeated
+  // qualifiers cover "sem evidências de emissão de cinzas ou fluxo de lava".
+  const qualifiers='(?:(?:visible|observed|active|ongoing|volcanic|evidence of|signs of|evidencias? de|sinais de|emiss(?:ao|oes) de|pluma de|nuvem de|fluxos? de|escoamento de|atividade)\\s+)*';
+  const absence='\\b(?:no|without|sem|nao ha|ausencia de)\\s+'+qualifiers;
+  const coordinated=other=>'(?:(?:'+other+')\\s+(?:or|and|ou|e)\\s+'+qualifiers+')?';
+  const ashAbsent=new RegExp(absence+coordinated('lava(?: flows?)?|fluxos? de lava|effusive activity|atividade efusiva')+'(?:ash\\b|cinzas?\\b|va\\b)');
+  const lavaAbsent=new RegExp(absence+coordinated('ash(?: emissions?)?|cinzas?')+'(?:lava\\b|effusiv|efusiv)');
+  const eruptionAbsent=new RegExp(absence+'(?:eruption\\b|erupcao\\b|eruptive activity\\b|atividade eruptiva\\b|eruptivo atividade\\b)');
+  const quiet=text=>eruptionAbsent.test(text)||/\bno eruptivo\b|\bnot erupt|\bnao\b.{0,24}\berup|\b(?:eruption|erupcao|eruptive activity|atividade eruptiva|eruptivo atividade)(?:\s+(?:has|have|is|was|currently|now|activity|foi|esta|se|encontra|atividade|ja)){0,4}\s+(?:ended|ceased|stopped|inactive|no longer active|not (?:been )?(?:obs|detec|confirmed)|nao (?:foi |foram )?(?:observ|detect|confirm)|encerrad|cessou|terminad|inativ)|\bdormant\b|\bextinct\b|\bdormente\b|\bextinto\b/.test(text);
+  const ashDenied=text=>ashAbsent.test(text)||/\b(?:ash|va|cinzas?)\b.{0,36}\b(?:not (?:been )?(?:obs|ident|detec|seen|report)|nao (?:foram |foi |sao )?(?:observ|detect|ident|vist|relat)|dissipat|dissipad|ceased|ended|cessou|encerrad)|\b(?:ash advisory|aviso de cinzas)\b.{0,20}\b(?:terminated|ended|encerrad)/.test(text);
+  const lavaDenied=text=>lavaAbsent.test(text)||/\b(?:inactive|no longer active|inativ[oa]s?)\s+(?:lava\b|effusiv|efusiv)|\b(?:lava|effusiv\w*|efusiv\w*)\b.{0,36}\b(?:ended|ceased|stopped|not (?:been )?(?:resumed|obs|detec|active)|inactive|no longer active|nao (?:foi |foram )?(?:observ|detect)|cessou|encerrad|terminad|inativ)/.test(text);
+  const clauses=fields.flatMap(text=>text.split(/[;,\n·.]+|\b(?:but|mas|porem|however)\b/)).map(text=>text.trim()).filter(text=>text&&!uncertain.test(text));
+  const isQuiet=clauses.some(quiet);
+  const eruptionConfirmed=clauses.some(text=>/\berupting\b|\b(?:ongoing|continuing|active) eruption\b|\beruption\b.{0,28}\b(?:ongoing|continues|continuing|started|observed)\b|\bem erupcao\b|\berupcao\b.{0,28}\b(?:continua|em andamento|ativa|inici|ocorr)|\b(?:active )?eruptive activity\b|\batividade eruptiva\b|\beruptiv[oa] atividade\b/.test(text)&&!quiet(text));
+  const ashEmission=clauses.some(text=>/\bash emissions?\b|\bemiss(?:ao|oes)\b.{0,25}\bcinzas?\b|\bva\b.{0,15}\b(?:eruptions?|emissions?)\b/.test(text)&&!ashDenied(text));
+  const eruptive=!isQuiet&&(eruptionConfirmed||ashEmission||/^(?:eruption|erupcao|erupting)$/.test(normalize(item.eruptionStatus)));
+  const lava=!isQuiet&&clauses.some(text=>/\blava\b|\beffusiv|\befusiv|\bmolten\b/.test(text)&&!lavaDenied(text));
+  const observedAsh=clauses.some(text=>/\bash\b|\bcinzas?\b|\bva\s+(?:plume|cld|cloud|to\b|emissions?|eruptions?|obs\b|at\b)/.test(text)&&!ashDenied(text));
+  const height=normalize(item.ashHeight);
+  const ashHeight=!uncertain.test(height)&&!ashDenied(height)&&(/\bfl\s*[1-9]\d*\b|\b[1-9]\d*(?:[.,]\d+)?\s*(?:m(?:eters?|etros?)?|km|ft|feet)\b/.test(height)||Number(height)>0);
+  return {eruptive,lava,ash:observedAsh||ashHeight||eruptive&&!clauses.some(ashDenied)};
+ }
  function profile(item){
   if(!item||!TYPES.has(item.type)||item.hazardNature==='bulletin')return null;
-  const text=[item.eruptionStatus,item.activityStatus,item.vulcanicActivity,item.ashStatus,item.detail].filter(Boolean).join(' ');
-  const quiet=/no eruptive|not erupt|sem (?:atividade eruptiva|erup)|não.*erup|nao.*erup|eruption (?:ended|ceased)|erup(?:ç|c)[aã]o.*(?:encerrada|cessou|histórica|historica)|dormant|extinct/i.test(text);
-  const eruptive=!quiet&&/erupting|eruption ongoing|eruption continues|ongoing eruption|em erup(?:ç|c)[aã]o|erup(?:ç|c)[aã]o.*(?:em andamento|ativa)|ash emission|emiss[aã]o.*cinza/i.test(text);
-  const lava=!quiet&&/lava|effusive|efusiv|molten/i.test(text)&&!/no (?:lava|effusiv)|sem (?:fluxo de |escoamento de |atividade )?(?:lava|efusiv)|lava (?:flow )?(?:ended|ceased)|lava.*(?:cessou|encerrad)/i.test(text);
+  const activity=item.type==='volcano'?volcanoActivity(item):{eruptive:false,lava:false,ash:false};
   let strength=.48;
   if(item.type==='earthquake'&&Number.isFinite(Number(item.mag)))strength=clamp((Number(item.mag)-1)/6,.15,1);
   else if(Number.isFinite(Number(item.windKmh))&&Number(item.windKmh)>0)strength=clamp(Number(item.windKmh)/180,.3,1);
   else if(Number(item.sev)>0)strength=clamp(Number(item.sev)/3,.3,1);
-  const hot=item.type==='fire'||item.type==='volcano'&&(eruptive||lava);
-  const ash=item.type==='volcano'&&!quiet&&!/no ash|sem cinzas/i.test(text)&&(eruptive||/ash|cinza/i.test(text));
+  const hot=item.type==='fire'||activity.eruptive||activity.lava;
+  const ash=activity.ash;
   const rotationDirection=Number(item.coords?.[1])<0?-1:1;
-  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:item.type==='volcano'&&lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
@@ -88,20 +114,20 @@
   const footage=window.CardCinemaFilm?.footage(cfg);if(footage)host.append(footage.video);
   const s={film,footage,id:++serial,itemId:item.id,cfg,host,canvas,ctx,start:now,last:now,paintAt:0,duration,width:0,height:0,mobile,fog:fogTexture(),rain:[],smoke:[],particles:[],beads:[],floating:[],boltCycle:0,demoLightning:!!item.__cinemaDemo&&cfg.type==='storm'};
   if(cfg.type==='storm'&&typeof window.naturalLightning==='function'){
-   s.demoBolt=document.createElementNS('http://www.w3.org/2000/svg','svg');s.demoBolt.setAttribute('viewBox','0 0 100 400');s.demoBolt.setAttribute('class','pd-cinema-demo-bolt pd-cinema-storm-bolt');s.demoBolt.setAttribute('preserveAspectRatio','none');window.naturalLightning(s.demoBolt);host.append(s.demoBolt);
+   s.demoBolt=document.createElementNS('http://www.w3.org/2000/svg','svg');s.demoBolt.setAttribute('viewBox','0 0 100 400');s.demoBolt.setAttribute('class','pd-cinema-demo-bolt pd-cinema-storm-bolt');s.demoBolt.setAttribute('preserveAspectRatio','none');window.naturalLightning(s.demoBolt,{heavy:true});host.append(s.demoBolt);
   }
   if(cfg.hot)heatFilter(host);
   if(cfg.rain){
-   for(let i=0;i<(mobile?76:128);i++)s.rain.push({x:Math.random(),y:Math.random(),depth:rand(.15,1),vx:0,vy:0,phase:rand(0,6.3)});
+   for(let i=0;i<(cfg.type==='storm'?(mobile?160:240):(mobile?76:128));i++)s.rain.push({x:Math.random(),y:Math.random(),depth:rand(.15,1),vx:0,vy:0,phase:rand(0,6.3)});
    const lenses=document.createElement('div');lenses.className='pd-cinema-lenses';host.append(lenses);
-   for(let i=0;i<(mobile?12:18);i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:['storm','hurricane'].includes(cfg.type)&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
+   for(let i=0;i<(cfg.type==='storm'?(mobile?20:32):(mobile?12:18));i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:['storm','hurricane'].includes(cfg.type)&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
   }
   if(cfg.mist)for(let i=0;i<(mobile?6:9);i++)s.smoke.push({x:Math.random()<.5?rand(-.12,.1):rand(.9,1.1),y:Math.random(),depth:rand(.45,1),phase:rand(0,6.3)});
-  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='wind'?mobile?58:90:['tornado','earthquake'].includes(cfg.type)?mobile?12:20:0;
+  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='wind'?mobile?110:170:['tornado','earthquake'].includes(cfg.type)?mobile?12:20:0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,leaf:cfg.type==='wind'&&i%10===0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
-  if(['wind','storm','tornado','hurricane'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:cfg.type!=='tornado',allText:cfg.type==='hurricane'});
+  if(['wind','storm','tornado','hurricane'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:cfg.type!=='tornado',allText:['hurricane','wind'].includes(cfg.type)});
   if(['wind','storm','hurricane'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
   function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);s.contact.width=s.canvas.width;s.contact.height=s.canvas.height;s.contactCtx?.setTransform(dpr,0,0,dpr,0,0);s.film?.resize(w,h);s.footage?.resize(w,h);}
@@ -119,23 +145,28 @@
  }
  function pressureAt(s,t,x=0){
   // Cyclone rainbands bring sustained wind, with lulls between stronger gusts.
+  // A gale never becomes still: two fast squalls pass over the steady air stream.
+  if(s.cfg.type==='wind')return clamp(.11+.92*windPressure(t,x)+.018*Math.sin(t*4.1-x*3),.08,1);
   return s.cfg.type==='hurricane'?.16+.84*windPressure(t,x):windPressure(t,x);
  }
  function windResponse(s,t,dt,envelope){
   const state=s.wind,p=panel();if(!state||!p)return;
-  const cyclone=s.cfg.type==='hurricane';
-  const pressure=pressureAt(s,t,.45)*s.cfg.strength*(s.cfg.type==='storm'?.72:1)*envelope;
-  state.pressure=pressure;state.travel+=dt*(.08+pressure*.80);
+  const cyclone=s.cfg.type==='hurricane',gale=s.cfg.type==='wind';
+  // Unknown wind speeds still look like a gale, while reported severity modulates it.
+  const strength=gale?.7+.3*s.cfg.strength:s.cfg.strength;
+  const pressure=pressureAt(s,t,.45)*strength*(s.cfg.type==='storm'?.72:1)*envelope;
+  state.pressure=pressure;state.travel+=dt*(gale?.24+pressure*1.85:.08+pressure*.80);
   // Damped springs resist the gust, then settle rather than vibrating forever.
-  const buffeting=cyclone?Math.sin(t*17.2)*pressure*pressure*.65:0;
-  state.vx+=((pressure*(s.mobile?(cyclone?5:4):(cyclone?9:7))+buffeting-state.x)*78-state.vx*13)*dt;state.x+=state.vx*dt;
-  state.vr+=((pressure*(cyclone?.76:.48)-state.roll)*62-state.vr*12)*dt;state.roll+=state.vr*dt;
+  const buffeting=cyclone?Math.sin(t*17.2)*pressure*pressure*.65:gale?(Math.sin(t*14.7)*.7+Math.sin(t*23.3)*.35)*pressure*pressure:0;
+  state.vx+=((pressure*(s.mobile?(gale?6.5:cyclone?5:4):(gale?11.5:cyclone?9:7))+buffeting-state.x)*78-state.vx*13)*dt;state.x+=state.vx*dt;
+  if(gale)state.x=clamp(state.x,-2,s.mobile?7:12);
+  state.vr+=((pressure*(gale?(s.mobile?.65:.9):cyclone?.76:.48)+(gale?buffeting*.07:0)-state.roll)*62-state.vr*12)*dt;state.roll+=state.vr*dt;
   p.style.setProperty('--pd-wind-x',state.x.toFixed(3)+'px');
   p.style.setProperty('--pd-wind-y',(-Math.abs(state.x)*.13).toFixed(3)+'px');
   p.style.setProperty('--pd-wind-roll',state.roll.toFixed(3)+'deg');
   p.style.setProperty('--pd-wind-pressure',pressure.toFixed(3));
   p.style.setProperty('--pd-wind-flex',(state.x*.35).toFixed(3)+'px');
-  if(cyclone){
+  if(cyclone||gale){
    if(!state.nextGroups||t>=state.nextGroups){
     state.nextGroups=t+.25;
     state.groups=Array.from(p.querySelectorAll('[data-cyclone-text]'),el=>({el,spans:Array.from(el.querySelectorAll('.pd-fx-windletter')),offset:(el.offsetTop||0)/Math.max(s.height,1)}));
@@ -144,11 +175,13 @@
     const title=group.el.id==='pd-local',length=Math.max(1,group.spans.length-1);
     group.spans.forEach((el,i)=>{
      let letter=state.letters.get(el);if(!letter){letter={x:0,v:0};state.letters.set(el,letter);}
-     const fraction=i/length,local=pressureAt(s,t-group.offset*.20,fraction)*s.cfg.strength*envelope;
-     const flutter=Math.sin(t*(9.5+fraction*2.1)-i*.52-group.offset*5)*local*local;
-     const target=local*(title?6+fraction*8:1.4+fraction*3.2)+flutter*(title?1.5:.5);
+     const fraction=i/length,local=pressureAt(s,t-group.offset*.20,fraction)*strength*envelope;
+     // The wave reaches each word in sequence; springs return the actual glyphs.
+     const gust=gale?Math.pow(clamp((local-.13)/.68,0,1),1.25):local;
+     const flutter=Math.sin(t*(gale?13.5+fraction*3.1:9.5+fraction*2.1)-i*.52-group.offset*5)*gust*gust;
+     const target=gale?(gust*(title?(8+fraction*11)*(s.mobile?.78:1):2+fraction*4)+flutter*(title?3.5:.8)):local*(title?6+fraction*8:1.4+fraction*3.2)+flutter*(title?1.5:.5);
      letter.v+=((target-letter.x)*105-letter.v*14)*dt;letter.x+=letter.v*dt;
-     const lift=-letter.x*.24+flutter*(title?.85:.25),roll=letter.x*.85+flutter*1.4;
+     const lift=-letter.x*(gale?.30:.24)+flutter*(title?(gale?1.2:.85):.25),roll=letter.x*(gale?.72:.85)+flutter*(gale?2:1.4);
      el.style.transform='translate3d('+letter.x.toFixed(2)+'px,'+lift.toFixed(2)+'px,0) rotate('+roll.toFixed(2)+'deg)';
     });
    }
@@ -166,27 +199,29 @@
  }
  function windMatter(s,t,dt,envelope){
   const ctx=s.contactCtx,{width:w,height:h}=s;if(!ctx)return;
-  for(const p of s.particles){
-   const pressure=windPressure(t,clamp(p.x,0,1))*s.cfg.strength;
-   const speed=(32+pressure*720)*(.25+p.depth*.85);
-   const response=1-Math.exp(-dt*(p.leaf?3.5:10));
+  for(let i=0;i<s.particles.length;i++){
+   const p=s.particles[i],pressure=pressureAt(s,t,clamp(p.x,0,1))*(.7+.3*s.cfg.strength);
+   // Near dust moves much faster than distant haze; broadside leaves lag the air.
+   const speed=(130+pressure*1550)*(.28+p.depth*.94);
+   const response=1-Math.exp(-dt*(p.leaf?4.5:13));
    p.vx+=(speed-p.vx)*response;
-   p.vy+=((-p.vx*.10+Math.sin(t*3.2+p.phase)*pressure*36+(p.leaf?16:3))-p.vy)*response;
+   p.vy+=((-p.vx*.13+Math.sin(t*5.2+p.phase)*pressure*(p.leaf?115:46)+(p.leaf?20:3))-p.vy)*response;
    p.x+=p.vx*dt/w;p.y+=p.vy*dt/h;
    if(p.x>1.12||p.y<-.12||p.y>1.12){p.x=rand(-.25,-.05);p.y=Math.random();}
-   const x=p.x*w,y=p.y*h,alpha=envelope*(.12+p.depth*.27)*(.45+pressure*.55);
+   const x=p.x*w,y=p.y*h,alpha=envelope*(.14+p.depth*.29)*(.55+pressure*.45)*edge(p.x*w,w);
    ctx.save();ctx.translate(x,y);
    if(p.leaf){
-    const angle=Math.atan2(p.vy,p.vx)+Math.sin(t*(1+p.depth*2)+p.phase)*.85;
-    ctx.rotate(angle);const r=1.5+p.depth*3;
+    const angle=Math.atan2(p.vy,p.vx)+Math.sin(t*(3+p.depth*5)+p.phase)*1.15;
+    ctx.rotate(angle);ctx.scale(1,.3+.7*Math.abs(Math.sin(t*8.4+p.phase)));const r=2+p.depth*4;
     ctx.fillStyle='rgba(142,132,99,'+alpha.toFixed(3)+')';
     ctx.beginPath();ctx.moveTo(-r,0);ctx.quadraticCurveTo(0,-r*.7,r,0);ctx.quadraticCurveTo(0,r*.45,-r,0);ctx.fill();
     ctx.strokeStyle='rgba(198,181,132,'+(alpha*.7).toFixed(3)+')';ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(-r,0);ctx.lineTo(r,0);ctx.stroke();
    }else{
     // Short exposure streaks belong to dust, never to the invisible air.
-    const length=Math.min(13,Math.max(.6,p.vx*.016));
-    ctx.strokeStyle='rgba(207,204,189,'+alpha.toFixed(3)+')';ctx.lineWidth=.35+p.depth*.6;
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-length,-p.vy*.016);ctx.stroke();
+    const length=Math.min(28,Math.max(1.2,p.vx*.019));
+    const spray=i%4===0;
+    ctx.strokeStyle=(spray?'rgba(223,234,232,':'rgba(207,204,189,')+alpha.toFixed(3)+')';ctx.lineWidth= spray?.6+p.depth:.3+p.depth*.55;
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-length,-p.vy*.019);ctx.stroke();
    }
    ctx.restore();
   }
@@ -196,35 +231,49 @@
  function stormLight(s,t){
   const cycle=Math.floor(t/14.7),phase=t%14.7,jitter=Math.sin(cycle*2.41)*.55;
   const times=[2.3+jitter,9.1+jitter*.6];
-  const pulse=d=>d>=0&&d<.45?Math.exp(-d*24)+.38*(d>.12?Math.exp(-(d-.12)*32):0):0;
+  // A return stroke lights the channels twice, then the cloud glow decays.
+  const pulse=d=>d>=0&&d<.42?Math.exp(-d*22)+.56*(d>.12?Math.exp(-(d-.12)*31):0):0;
   const enabled=s.demoLightning||panel()?.dataset.lightning==='on';
-  s.flash=enabled?Math.min(.88,pulse(phase-times[0])+pulse(phase-times[1])):0;
+  s.flash=enabled?Math.min(1,pulse(phase-times[0])+pulse(phase-times[1])):0;
   panel()?.style.setProperty('--pd-storm-flash',s.flash.toFixed(3));
   if(s.demoBolt){
    const strike=cycle*2+(phase>=times[1]?1:0);
    if(s.flash>.01&&s.lastStrike!==strike){
-    s.lastStrike=strike;window.naturalLightning?.(s.demoBolt);
-    s.demoBolt.style.left=(strike%2?67:9)+'%';
+    s.lastStrike=strike;window.naturalLightning?.(s.demoBolt,{heavy:true});
+    s.demoBolt.style.left='0';
    }
-   s.demoBolt.style.opacity=(s.flash*.65).toFixed(3);
+   s.demoBolt.style.opacity=(s.flash*.96).toFixed(3);
   }
  }
  function stormRain(s,t,dt,envelope,front){
   const ctx=front?s.contactCtx:s.ctx,{width:w,height:h}=s;if(!ctx)return;
   for(const d of s.rain){
    if((d.depth>=.58)!==front)continue;
-   const force=windPressure(t,clamp(d.x,0,1))*s.cfg.strength;
-   const speed=290+d.depth*650;
-   const target=(45+force*280)*(.4+d.depth*.6);
-   d.vx+=(target-d.vx)*(1-Math.exp(-dt*8));
-   d.y+=speed*dt/h;d.x+=d.vx*dt/w;
+   const force=windPressure(t,clamp(d.x,0,1))*(.45+.55*s.cfg.strength);
+   const turbulence=Math.sin(t*4.2+d.phase+d.y*6)*force;
+   const speed=370+d.depth*830+turbulence*55;
+   const target=(65+force*450+turbulence*65)*(.3+d.depth*.7);
+   d.vx+=(target-d.vx)*(1-Math.exp(-dt*9));
+   d.vy+=(speed-d.vy)*(1-Math.exp(-dt*11));
+   d.y+=d.vy*dt/h;d.x+=d.vx*dt/w;
    if(d.y>1.09){d.y=rand(-.15,-.03);d.x=Math.random();}
    if(d.x>1.1)d.x=-.1;
-   const len=7+d.depth*29,x=d.x*w,y=d.y*h;
-   const alpha=(front?.13+d.depth*.18:.055+d.depth*.10)*envelope*(1+(s.flash||0)*.65);
-   ctx.strokeStyle='rgba(209,222,231,'+alpha.toFixed(3)+')';ctx.lineWidth=.3+d.depth*.8;
-   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-d.vx/speed*len,y-len);ctx.stroke();
+   const exposure=.012+d.depth*.022,x=d.x*w,y=d.y*h;
+   const alpha=(front?.14+d.depth*.20:.07+d.depth*.11)*envelope*(1+(s.flash||0)*.9);
+   ctx.strokeStyle='rgba(216,230,237,'+alpha.toFixed(3)+')';ctx.lineWidth=.3+d.depth*.95;
+   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-d.vx*exposure,y-d.vy*exposure);ctx.stroke();
   }
+ }
+ function stormSpray(s,t,envelope){
+  const ctx=s.contactCtx,{width:w,height:h}=s,force=s.wind?.pressure||0;
+  // Low drifting water mist and highlights scatter the stroke over wet glass.
+  for(let i=0;i<(s.mobile?3:5);i++){
+   const progress=((s.wind?.travel||t*.2)*(.9+i*.17)+i*.281)%1;
+   const size=w*(.8+i*.08),x=(progress*1.8-.4)*w,y=h*(.54+((i*.163)%1)*.4);
+   ctx.globalAlpha=envelope*(.035+force*.11+(s.flash||0)*.14);
+   ctx.drawImage(s.fog,x-size*.5,y-size*.15,size,size*.3);
+  }
+  ctx.globalAlpha=1;
  }
  function cycloneRain(s,t,dt,envelope,front){
   const ctx=front?s.contactCtx:s.ctx,{width:w,height:h}=s;if(!ctx)return;
@@ -278,7 +327,7 @@
    const x=drop.x*w,y=drop.y*h,len=8+drop.depth*25;ctx.strokeStyle='rgba(210,231,246,'+((cfg.type==='hurricane'?.06+drop.depth*.20:.14+drop.depth*.38)*envelope*edge(x,w)).toFixed(3)+')';ctx.lineWidth=.45+drop.depth*.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-gust/speed*len,y-len);ctx.stroke();
   }
   // Gravity starts after a droplet accumulates mass. Nearby drops merge by volume.
-  for(const b of s.beads){if(['storm','hurricane'].includes(cfg.type))b.x=clamp(b.x+dt*(s.wind?.pressure||0)*(cfg.type==='hurricane'?.018:.008),.015,.985);b.r+=dt*(.14+cfg.strength*.12);if(b.r>2.65)b.vy=Math.min(80,(b.vy+dt*20)*(1+dt*.4));b.y+=b.vy*dt/h;
+  for(const b of s.beads){if(['storm','hurricane'].includes(cfg.type))b.x=clamp(b.x+dt*(s.wind?.pressure||0)*(cfg.type==='hurricane'?.018:.014),.015,.985);b.r+=dt*(cfg.type==='storm'?.32+cfg.strength*.2:.14+cfg.strength*.12);if(b.r>2.65)b.vy=Math.min(cfg.type==='storm'?115:80,(b.vy+dt*(cfg.type==='storm'?32:20))*(1+dt*.4));b.y+=b.vy*dt/h;
    if(b.y>1.04){b.y=rand(-.05,.05);b.r=rand(.9,1.6);b.vy=0;}
    for(const q of s.beads){if(q===b||q.r<.2)continue;const dx=(b.x-q.x)*w,dy=(b.y-q.y)*h;if(dx*dx+dy*dy<Math.pow((b.r+q.r)*.72,2)){b.r=Math.min(6.5,Math.cbrt(b.r**3+q.r**3));q.y=rand(-.06,.04);q.r=rand(.7,1.2);q.vy=0;b.vy=Math.max(b.vy,8);}}
    const x=b.x*w,y=b.y*h,stretch=1+Math.min(.5,b.vy/140);b.el.style.width=(b.r*2).toFixed(1)+'px';b.el.style.height=(b.r*2*stretch).toFixed(1)+'px';b.el.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0)';
@@ -359,6 +408,7 @@
    for(let i=0;i<(s.mobile?9:16);i++){const phase=(t*1.8+i*.618)%1,x=((i*.381)%1)*w,y=h*(.78+.18*((i*.217)%1));ctx.globalAlpha=(1-phase)*envelope;ctx.beginPath();ctx.ellipse(x,y,phase*12,phase*3,0,Math.PI,2*Math.PI);ctx.stroke();}ctx.globalAlpha=1;
   }
   if(cfg.type==='hurricane')cycloneSpray(s,t,envelope);
+  if(cfg.type==='storm')stormSpray(s,t,envelope);
   if(cfg.type==='wind')windMatter(s,t,dt,envelope);
   if(cfg.type==='flood'){
    // Illustrative rise, unrelated to measured flood depth. Recede gently after crest.

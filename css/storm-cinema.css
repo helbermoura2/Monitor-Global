@@ -1,0 +1,16 @@
+/* Heavy rain and electrical discharge share the scene's clock. */
+#painel-direito.pd-cinema-active.pd-fx-storm .pd-cinema-layer::after{background:linear-gradient(180deg,rgba(2,8,13,.13),rgba(2,8,13,.03) 30%,rgba(2,8,13,.16) 70%,rgba(2,8,13,.22))}
+#painel-direito.pd-cinema-active.pd-fx-storm .stat-card,#painel-direito.pd-cinema-active.pd-fx-storm .bubble-section{background:rgba(3,12,20,.92)!important;border-color:rgba(214,231,239,calc(.22 + var(--pd-storm-flash,0)*.35))}
+#painel-direito.pd-cinema-active.pd-fx-storm .pd-cinema-storm-bolt{left:0;top:0;width:100%;height:100%;filter:none;overflow:visible}
+#painel-direito .pd-cinema-storm-bolt path{fill:none;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+#painel-direito .pd-cinema-storm-bolt .pd-bolt-corona{stroke:#b8d0df;stroke-width:11;opacity:.22;filter:blur(4px)}
+#painel-direito .pd-cinema-storm-bolt .pd-bolt-halo{stroke:#d4e6f2;stroke-width:4.5;opacity:.64;filter:blur(1.2px)}
+#painel-direito .pd-cinema-storm-bolt .pd-bolt-core{stroke:#fffefa;stroke-width:1.9;opacity:1}
+#painel-direito .pd-cinema-storm-bolt .pd-bolt-branch{stroke:#edf4f7;stroke-width:.9;opacity:.82}
+#painel-direito .pd-cinema-storm-bolt .pd-bolt-filament{stroke:#dce9ef;stroke-width:.45;opacity:.55}
+#painel-direito.pd-fx-storm .pd-cinema-contact::after{background:radial-gradient(ellipse at 38% 2%,rgba(240,248,251,.8),rgba(195,218,231,.38) 40%,transparent 88%);opacity:calc(var(--pd-storm-flash,0)*.48)}
+#painel-direito.pd-fx-storm .pd-cinema-drop{border-radius:45% 47% 48% 52%;background:linear-gradient(138deg,rgba(238,248,253,.23),transparent 38%,rgba(151,188,203,.1));border-color:rgba(226,240,248,.42);box-shadow:inset 0 1px 1px rgba(248,254,255,.7),inset 0 -1px 1px rgba(7,26,36,.42)}
+#painel-direito.pd-fx-storm .pd-gauge-glow{opacity:.08}
+#painel-direito.pd-fx-storm #pd-gauge-arc{filter:none;stroke-width:3.5}
+@media(max-width:900px){#painel-direito .pd-cinema-storm-bolt .pd-bolt-core{stroke-width:1.6}#painel-direito .pd-cinema-storm-bolt .pd-bolt-corona{stroke-width:8}}
+@media(prefers-reduced-motion:reduce){#painel-direito .pd-cinema-storm-bolt,#painel-direito.pd-fx-storm .pd-cinema-contact::after{display:none!important}}

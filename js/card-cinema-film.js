@@ -196,6 +196,73 @@
   return vec4(color,alpha);
  }
 
+ // All scales travel together: convective lobes keep their fine billows instead
+ // of turning into independently sliding noise. Relief and cloud coverage are
+ // separate, so the deck has deep shaded folds rather than polished ribbons.
+ float stormBillows(vec2 p){
+  vec2 cell=floor(p);float mound=0.;
+  // Overlapping soft lobes have varied centers and heights. They create the
+  // rounded underside of convection without the grid-like ridges of noise.
+  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
+   vec2 id=cell+vec2(float(x),float(y));
+   vec2 seed=vec2(hash(id+vec2(2.7,6.1)),hash(id+vec2(8.2,1.9)));
+   vec2 delta=p-id-(.15+.70*seed);
+   float lobe=max(1.-dot(delta,delta)*.86,0.);
+   mound+=lobe*lobe*lobe*(.65+.35*seed.x);
+  }
+  return clamp(mound*.70,0.,1.);
+ }
+ vec2 stormCanopy(vec2 p){
+  vec2 warp=vec2(noise(p*.83+vec2(7.2,1.9)),noise(p*.83+vec2(2.8,8.6)))-.5;
+  vec2 q=p+warp*.72;
+  float broad=noise(q*1.21+vec2(5.7,2.1));
+  float towers=stormBillows(q*1.65+vec2(1.4,6.8));
+  float billows=noise(q*7.65+vec2(8.3,3.5));
+  float folds=noise(q*19.4+vec2(4.9,9.2));
+  float mass=smoothstep(.18,.68,broad*.53+towers*.42+billows*.05);
+  float relief=.16+broad*.24+towers*.40+billows*.047+folds*.013;
+  return vec2(relief,mass);
+ }
+ vec4 thunderstorm(vec2 uv,float aspect){
+  // Viewed from underneath a low cumulonimbus deck, not from above a vortex.
+  // Width-scaled coordinates preserve the size of billows on narrow cards.
+  vec2 p=vec2((uv.x-.5)*aspect*6.8-uTravel*.22,uv.y*3.8+uTime*.016);
+  vec2 field=stormCanopy(p);
+  float h=field.x,hx=stormCanopy(p+vec2(.025,0.)).x;
+  float hy=stormCanopy(p+vec2(0.,.025)).x;
+  vec3 normal=normalize(vec3((h-hx)*13.,(h-hy)*13.,.67));
+  float diffuse=max(dot(normal,normalize(vec3(-.46,.69,.57))),0.);
+  float blocker=stormCanopy(p+vec2(-.16,.19)).x;
+  float shadow=1.-smoothstep(.018,.145,blocker-h)*.49;
+  float depth=clamp(.68+.52*h-(hx+hy)*.26,.52,.93);
+  vec3 albedo=mix(vec3(.085,.096,.106),vec3(.36,.375,.385),
+   smoothstep(.25,.77,h));
+  vec3 clouds=albedo*(.31+.69*diffuse)*shadow*depth;
+  // Translucent, ragged scud crosses closer to the viewer below the main deck.
+  vec2 scudP=vec2((uv.x-.5)*aspect*11.-uTravel*.66,uv.y*7.1+uTime*.06);
+  float scud=noise(scudP+vec2(2.7,9.3))*.63
+   +noise(scudP*2.7+vec2(7.1,3.8))*.27+noise(scudP*6.3)*.10;
+  float scudMass=smoothstep(.48,.73,scud)*(.12+.48*(1.-smoothstep(.12,.87,uv.y)));
+  clouds=mix(clouds,vec3(.024,.031,.037)+vec3(.048,.050,.052)*scud,scudMass);
+  // Rain curtains lose contrast with distance. Sheared, very anisotropic noise
+  // suggests dense precipitation behind the individual foreground raindrops.
+  vec2 rainP=vec2(uv.x*aspect*25.+uv.y*3.3-uTravel*.72,uv.y*.62-uTime*.14);
+  float curtain=noise(rainP)*.72+noise(rainP*vec2(2.7,1.4)+vec2(4.1,8.2))*.28;
+  float lower=1.-smoothstep(.14,.93,uv.y);
+  float rainHaze=(.07+smoothstep(.28,.71,curtain)*.21)*(.30+.70*lower);
+  clouds=mix(clouds,vec3(.13,.15,.165),rainHaze*(.75+.25*uStrength));
+  // A discharge lights a volume of cloud from within. The broad white core
+  // and dim peripheral scatter remain tied to the actual lightning impulse.
+  vec2 source=vec2(.24+.08*sin(uTravel*.27),.84);
+  vec2 lightDelta=(uv-source)*vec2(aspect,1.);
+  float halo=exp(-dot(lightDelta,lightDelta)*5.5);
+  float scattering=.23+.77*smoothstep(.16,.73,field.y);
+  clouds+=vec3(.64,.68,.72)*uFlash*uLightning*halo*scattering;
+  float grain=noise(p*73.+vec2(6.1,2.3));
+  clouds*=.97+.06*grain;
+  return vec4(clouds,.78+.12*field.y+.025*scudMass);
+ }
+
  void main(){
   vec2 uv=vUV;float aspect=uResolution.x/uResolution.y;
   // A continuous scene across the viewport, including the area behind the data.
@@ -204,20 +271,7 @@
   vec2 local=uv;
   vec4 scene=vec4(.012,.028,.043,.26);
   if(uMode<.5){
-   // Layered storm canopy, wind-driven rain haze and diffuse lightning.
-   vec2 p=vec2(uv.x*3.4-uTravel*.36,uv.y*4.2+uTime*.014);
-   float warp=fbm(p*1.4);
-   float mass=fbm(p+vec2(warp*1.2,warp*.25));
-   float neighbor=fbm(p+vec2(warp*1.2,warp*.25)+vec2(.06,.09));
-   float relief=clamp(.34+(mass-neighbor)*3.6,.08,.88);
-   vec3 clouds=mix(vec3(.035,.050,.062),vec3(.36,.40,.43),relief);
-   float canopy=.36+.42*smoothstep(.26,.70,mass)+.10*smoothstep(.1,.85,uv.y);
-   float haze=fbm(vec2(uv.x*5.-uTravel*.8,uv.y*2.+uTime*.03));
-   clouds*=.82+.18*haze;
-   clouds+=vec3(.025,.036,.044)*(.4+uGust)*haze;
-   float light=exp(-length((uv-vec2(.24,.86))*vec2(.8,1.))*.9);
-   clouds+=vec3(.40,.46,.52)*uFlash*light*uLightning;
-   scene=vec4(clouds,clamp(canopy,.34,.86));
+   scene=thunderstorm(uv,aspect);
   }else if(uMode<1.5){
    scene=cyclone(uv,aspect);
   }else if(uMode<2.5){

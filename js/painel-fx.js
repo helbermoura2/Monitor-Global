@@ -10,18 +10,25 @@ const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, t
 // Decorative discharge channels: thin, irregular, branching paths; no emoji or filled zigzag.
 const LIGHTNING_NS='http://www.w3.org/2000/svg';
 function lightningPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');}
-function naturalLightning(svg){
-    const points=[];let x=42+Math.random()*14,y=0;
-    while(y<400){points.push([x,y]);x=Math.max(14,Math.min(86,x+(Math.random()-.5)*22));y=Math.min(400,y+9+Math.random()*12);}
+function naturalLightning(svg, options = {}){
+    const heavy=!!options.heavy,points=[];let x=heavy?27+Math.random()*46:42+Math.random()*14,y=0;
+    while(y<400){points.push([x,y]);x=Math.max(heavy?7:14,Math.min(heavy?93:86,x+(Math.random()-.5)*(heavy?13:22)));y=Math.min(400,y+9+Math.random()*12);}
     points.push([x,400]);
-    const main=lightningPath(points),branches=[];
+    const main=lightningPath(points),branches=[],filaments=[];
     for(const fraction of [.22,.44,.67,.81]){
         const root=points[Math.floor(points.length*fraction)],branch=[root];let [bx,by]=root;const direction=Math.random()<.5?-1:1;
         for(let n=0;n<4+Math.floor(Math.random()*3);n++){bx=Math.max(2,Math.min(98,bx+direction*(3+Math.random()*7)));by+=7+Math.random()*11;branch.push([bx,Math.min(399,by)]);}
         branches.push(lightningPath(branch));
+        if(heavy)for(const fraction of [.35,.7]){
+            const root=branch[Math.floor((branch.length-1)*fraction)],twig=[root];let [tx,ty]=root;
+            for(let n=0;n<4;n++){tx=Math.max(1,Math.min(99,tx+direction*(1+Math.random()*3)));ty=Math.min(400,ty+5+Math.random()*8);twig.push([tx,ty]);}
+            filaments.push(lightningPath(twig));
+        }
     }
     svg.replaceChildren();
-    for(const [cls,d] of [['pd-bolt-halo',main],['pd-bolt-core',main],...branches.map(d=>['pd-bolt-branch',d])]){
+    svg.dataset.channel=heavy?'heavy':'natural';
+    const paths=[...(heavy?[['pd-bolt-corona',main]]:[]),['pd-bolt-halo',main],['pd-bolt-core',main],...branches.map(d=>['pd-bolt-branch',d]),...filaments.map(d=>['pd-bolt-filament',d])];
+    for(const [cls,d] of paths){
         const path=document.createElementNS(LIGHTNING_NS,'path');path.setAttribute('class',cls);path.setAttribute('d',d);svg.append(path);
     }
 }

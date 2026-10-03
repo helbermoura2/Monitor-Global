@@ -1,5 +1,11 @@
 # Efeitos no cartão principal
 
+O Menu e os registros reais usam o mesmo perfil e renderer. A leitura vulcânica reconhece descrições traduzidas e boletins VAAC (`VA PLUME`, `VA TO FL150`, `VA ERUPTIONS`), altura de cinzas e observações VONA. Plumas observadas recebem cinzas, enquanto lava exige indicação positiva de escoamento/atividade efusiva; menções incertas, históricas ou negativas não ativam lava nem calor. Revisões silenciosas retiram essas camadas quando o estado muda. `tests/real-effects-parity.spec.js` compara as 13 variantes do Menu com o caminho real de seleção, no computador e celular.
+
+Tempestades têm cumulonimbus com sombras, nuvens baixas e cortinas distantes de precipitação. A chuva no cartão usa duas profundidades, velocidade e inclinação variáveis, gotas que acumulam volume, coalescem e escorrem no vidro e névoa soprada. Descargas ramificadas têm canal principal, corona, ramificações e filamentos; o mesmo pulso ilumina nuvens, chuva e vidro. Chuvas sem indicação de trovoadas continuam sem raios. `css/storm-cinema.css`, `tests/storm-cinema.spec.js`, `tests/storm-lightning.spec.js` e `tests/storm-atmosphere.spec.js` verificam os materiais, os breves clarões, a leitura e as interações.
+
+Rajadas de vento mantêm fluxo contínuo com dois picos por ciclo, poeira e folhas em diferentes planos. Vidro, título, fonte, horário e métricas respondem à mesma onda de pressão e retornam entre as rajadas. O texto usa os grafemas originais, conservando emojis, espaços e cores. A amplitude do vidro fica limitada a 12 px no computador e 7 px no celular, com ancoragem e margem que preservam o cartão dentro da tela; movimento reduzido, troca e parada restauram o conteúdo e as propriedades. `css/wind-cinema.css` e `tests/wind-cinema.spec.js` cobrem também registros sem velocidade de vento informada.
+
 `js/cinematic-card.js` desenha uma atmosfera transparente atrás dos textos do cartão; `css/cinematic-card.css` integra essa camada com o vidro, os relâmpagos ramificados e o tremor existentes. Não altera fontes, seleção, prioridade, som, mapa ou câmera. A ilustração não é uma imagem observada do local nem uma simulação física de impacto.
 
 - Tempestade: chuva com profundidades diferentes, gotas que acumulam massa, se juntam e escorrem pelo vidro; relâmpagos ramificados quando a descrição indica trovoadas.
