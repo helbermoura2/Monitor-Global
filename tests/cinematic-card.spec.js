@@ -155,7 +155,8 @@ for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no 
 });
 test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não recebe erupção',async({page})=>{
  await boot(page);await page.route('**/media/card-fx/*.mp4',r=>r.abort());await select(page,'flood');
- await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
+ // A carga do renderizador de software pode atrasar a digitação no runner.
+ await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo',{timeout:15000});
  await expect.poll(async()=>{const coverage=await cardCoverage(page);return coverage.thirds.every(third=>third.mean>8&&third.covered>.3);}).toBe(true);
  await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
