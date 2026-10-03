@@ -117,3 +117,5 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-storm,body.mobile
 #painel-direito.pd-fx-storm .pd-cinema-contact::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 22% 4%,rgba(233,242,249,.55),rgba(186,210,225,.25) 48%,transparent 90%);opacity:calc(var(--pd-storm-flash,0)*.38)}
 #painel-direito.pd-fx-storm .pd-cinema-drop{background:linear-gradient(130deg,rgba(229,238,245,.16),transparent 35%,rgba(109,158,180,.06));border-color:rgba(218,233,242,.28)}
 @media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-storm{translate:none!important;rotate:none!important}#painel-direito.pd-fx-storm .pd-chip{translate:none!important}}
+
+#painel-direito.pd-cinema-active.pd-fx-storm #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:nowrap}
