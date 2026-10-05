@@ -139,7 +139,9 @@ for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no 
  await boot(page,width);await select(page,'flood');
  const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);
  await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
- const initial=await video.evaluate(v=>v.currentTime);await page.waitForTimeout(800);expect(await video.evaluate(v=>v.currentTime)).toBeGreaterThan(initial);
+ const initial=await video.evaluate(v=>v.currentTime);
+ // A looping clip can advance through its end and return to a smaller time.
+ await expect.poll(()=>video.evaluate((v,time)=>Math.abs(v.currentTime-time)>.05,initial)).toBe(true);
  const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/current.mp4'});
  await expect(page.locator('#pd-mag svg.pd-cinema-symbol')).toHaveCount(1);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);

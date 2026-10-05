@@ -14,7 +14,7 @@
  uniform vec2 uResolution;
 
  uniform vec2 uActivity;
- uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel,uFlash,uTextureReady;
+ uniform float uTime,uMode,uStrength,uLightning,uFootage,uLava,uOrganized,uDirection,uGust,uTravel,uFlash,uTextureReady,uWaterTop;
  uniform sampler2D uCycloneTexture;
  float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
@@ -177,7 +177,7 @@
   if(uTextureReady>.5&&mature>.5){
    // NASA ISS007-E-14741: real cloud microstructure and the deep, shaded eye.
    // A slow, coherent advection preserves the photograph's convective detail.
-   vec2 drift=cycloneRotation(uDirection*uTime*.007)*p;
+   vec2 drift=cycloneRotation(uDirection*uTime*.018)*p;
    drift.x*=uDirection;
    drift+=vec2(noise(drift*3.1+vec2(uTime*.013,4.2))-.5,
     noise(drift*3.1+vec2(7.1,-uTime*.011))-.5)*.011;
@@ -189,78 +189,62 @@
    vec3 photograph=texture2D(uCycloneTexture,clamp(photoUV,vec2(.015,.055),vec2(.985))).rgb;
    float luminance=dot(photograph,vec3(.2126,.7152,.0722));
    photograph=mix(vec3(luminance),photograph,.45)*(.95+.035*uGust);
-   float photographic=edges*.88;
+   float photographic=edges*.73;
    color=mix(color,photograph,photographic);
    alpha=mix(alpha,.89,photographic);
   }
   return vec4(color,alpha);
  }
 
- // All scales travel together: convective lobes keep their fine billows instead
- // of turning into independently sliding noise. Relief and cloud coverage are
- // separate, so the deck has deep shaded folds rather than polished ribbons.
- float stormBillows(vec2 p){
-  vec2 cell=floor(p);float mound=0.;
-  // Overlapping soft lobes have varied centers and heights. They create the
-  // rounded underside of convection without the grid-like ridges of noise.
-  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
-   vec2 id=cell+vec2(float(x),float(y));
-   vec2 seed=vec2(hash(id+vec2(2.7,6.1)),hash(id+vec2(8.2,1.9)));
-   vec2 delta=p-id-(.15+.70*seed);
-   float lobe=max(1.-dot(delta,delta)*.86,0.);
-   mound+=lobe*lobe*lobe*(.65+.35*seed.x);
+ // Eight depth samples integrate extinction and directional illumination.
+ // Cells share one advected 3D field: lobes occlude one another instead of
+ // looking like a relief embossed onto a flat card.
+ float weatherNoise(vec3 p){
+  float z=floor(p.z),f=fract(p.z);f=f*f*(3.-2.*f);
+  return mix(noise(p.xy+z*vec2(37.2,19.1)),noise(p.xy+(z+1.)*vec2(37.2,19.1)),f);
+ }
+ float weatherDensity(vec3 p){
+  float broad=weatherNoise(p),detail=weatherNoise(p*2.73+vec3(7.1,2.8,1.4));
+  return smoothstep(.30,.73,broad*.76+detail*.24);
+ }
+ vec4 convectiveVolume(vec2 uv,float aspect,bool tropical){
+  vec2 p=vec2((uv.x-.5)*aspect*5.3-uTravel*.34,uv.y*3.4+uTime*.019);
+  if(tropical){
+   vec2 c=(uv-vec2(.52,.62))*vec2(aspect,1.)/max(aspect*.66,.18);
+   c=cycloneFlow(c,uTime*1.8);
+   c=cycloneRotation(-uDirection*log(length(c)+.25)*1.35)*c;
+   p=c*3.4+vec2(4.8,2.1);
   }
-  return clamp(mound*.70,0.,1.);
- }
- vec2 stormCanopy(vec2 p){
-  vec2 warp=vec2(noise(p*.83+vec2(7.2,1.9)),noise(p*.83+vec2(2.8,8.6)))-.5;
-  vec2 q=p+warp*.72;
-  float broad=noise(q*1.21+vec2(5.7,2.1));
-  float towers=stormBillows(q*1.65+vec2(1.4,6.8));
-  float billows=noise(q*7.65+vec2(8.3,3.5));
-  float folds=noise(q*19.4+vec2(4.9,9.2));
-  float mass=smoothstep(.18,.68,broad*.53+towers*.42+billows*.05);
-  float relief=.16+broad*.24+towers*.40+billows*.047+folds*.013;
-  return vec2(relief,mass);
- }
- vec4 thunderstorm(vec2 uv,float aspect){
-  // Viewed from underneath a low cumulonimbus deck, not from above a vortex.
-  // Width-scaled coordinates preserve the size of billows on narrow cards.
-  vec2 p=vec2((uv.x-.5)*aspect*6.8-uTravel*.22,uv.y*3.8+uTime*.016);
-  vec2 field=stormCanopy(p);
-  float h=field.x,hx=stormCanopy(p+vec2(.025,0.)).x;
-  float hy=stormCanopy(p+vec2(0.,.025)).x;
-  vec3 normal=normalize(vec3((h-hx)*13.,(h-hy)*13.,.67));
-  float diffuse=max(dot(normal,normalize(vec3(-.46,.69,.57))),0.);
-  float blocker=stormCanopy(p+vec2(-.16,.19)).x;
-  float shadow=1.-smoothstep(.018,.145,blocker-h)*.49;
-  float depth=clamp(.68+.52*h-(hx+hy)*.26,.52,.93);
-  vec3 albedo=mix(vec3(.085,.096,.106),vec3(.36,.375,.385),
-   smoothstep(.25,.77,h));
-  vec3 clouds=albedo*(.31+.69*diffuse)*shadow*depth;
-  // Translucent, ragged scud crosses closer to the viewer below the main deck.
-  vec2 scudP=vec2((uv.x-.5)*aspect*11.-uTravel*.66,uv.y*7.1+uTime*.06);
-  float scud=noise(scudP+vec2(2.7,9.3))*.63
-   +noise(scudP*2.7+vec2(7.1,3.8))*.27+noise(scudP*6.3)*.10;
-  float scudMass=smoothstep(.48,.73,scud)*(.12+.48*(1.-smoothstep(.12,.87,uv.y)));
-  clouds=mix(clouds,vec3(.024,.031,.037)+vec3(.048,.050,.052)*scud,scudMass);
-  // Rain curtains lose contrast with distance. Sheared, very anisotropic noise
-  // suggests dense precipitation behind the individual foreground raindrops.
-  vec2 rainP=vec2(uv.x*aspect*25.+uv.y*3.3-uTravel*.72,uv.y*.62-uTime*.14);
-  float curtain=noise(rainP)*.72+noise(rainP*vec2(2.7,1.4)+vec2(4.1,8.2))*.28;
-  float lower=1.-smoothstep(.14,.93,uv.y);
-  float rainHaze=(.07+smoothstep(.28,.71,curtain)*.21)*(.30+.70*lower);
-  clouds=mix(clouds,vec3(.13,.15,.165),rainHaze*(.75+.25*uStrength));
-  // A discharge lights a volume of cloud from within. The broad white core
-  // and dim peripheral scatter remain tied to the actual lightning impulse.
-  vec2 source=vec2(.24+.08*sin(uTravel*.27),.84);
-  vec2 lightDelta=(uv-source)*vec2(aspect,1.);
-  float halo=exp(-dot(lightDelta,lightDelta)*5.5);
-  float scattering=.23+.77*smoothstep(.16,.73,field.y);
-  clouds+=vec3(.64,.68,.72)*uFlash*uLightning*halo*scattering;
-  float grain=noise(p*73.+vec2(6.1,2.3));
-  clouds*=.97+.06*grain;
-  return vec4(clouds,.78+.12*field.y+.025*scudMass);
+  vec3 result=vec3(0.);float transmission=1.;
+  vec3 sun=normalize(vec3(-.54,.67,.62));
+  for(int i=0;i<8;i++){
+   float depth=float(i)*.24;
+   vec3 q=vec3(p*(1.+depth*.065)+vec2(depth*.15,-depth*.13),depth+uTime*.012);
+   float density=weatherDensity(q);
+   float lit=weatherDensity(q+sun*.29);
+   float shadow=exp(-max(lit-density,0.)*5.2);
+   float edgeLight=clamp(.32+(density-lit)*2.5,.08,.95);
+   vec3 albedo=mix(vec3(.055,.068,.079),vec3(.40,.412,.422),edgeLight);
+   vec3 color=albedo*(.42+.58*shadow)+vec3(.019,.021,.023)*depth;
+   float opacity=1.-exp(-density*.65);
+   result+=transmission*color*opacity;transmission*=1.-opacity;
+  }
+  vec3 distant=vec3(.075,.092,.106);
+  result+=distant*transmission;
+  float folds=weatherNoise(vec3(p*7.4,uTime*.024));
+  float grain=weatherNoise(vec3(p*23.1,1.8+uTime*.024));
+  result=max((result-vec3(.043))*1.32+vec3(.028),vec3(.014));
+  result*=.82+.30*folds+.06*grain;
+  // Ragged precipitation shafts scatter the low sky light at different depths.
+  vec2 rainP=vec2(uv.x*aspect*37.+uv.y*6.2-uTravel*.95,uv.y*.72-uTime*.24);
+  float rain=noise(rainP)*.75+noise(rainP*vec2(2.3,1.7))*.25;
+  float haze=smoothstep(.34,.75,rain)*(.08+.22*(1.-uv.y));
+  result=mix(result,vec3(.21,.235,.25),haze);
+  // Return strokes light the cloud volume from inside, following the same clock.
+  vec2 delta=(uv-vec2(.33,.80))*vec2(aspect,1.);
+  float scatter=.32+.68*(1.-transmission);
+  result+=vec3(.69,.72,.75)*uFlash*uLightning*exp(-dot(delta,delta)*3.2)*scatter;
+  return vec4(result,.83+.09*(1.-transmission));
  }
 
  void main(){
@@ -271,9 +255,9 @@
   vec2 local=uv;
   vec4 scene=vec4(.012,.028,.043,.26);
   if(uMode<.5){
-   scene=thunderstorm(uv,aspect);
+   scene=convectiveVolume(uv,aspect,false);
   }else if(uMode<1.5){
-   scene=cyclone(uv,aspect);
+   scene=uOrganized<.6?convectiveVolume(uv,aspect,true):cyclone(uv,aspect);
   }else if(uMode<2.5){
    float y=clamp(local.y,0.,1.);float axis=.5+sin(y*4.+uTime*.58)*.045;
    float radius=mix(.024,.19,pow(y,.8));float radial=(local.x-axis)/radius;
@@ -335,12 +319,20 @@
    }else{scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.18,vec3(.39,.48,.52)),scene);}
    }
   }else if(uMode<6.5){
-   if(uFootage>.5){
-    // Grade the photographic surface; do not place a synthetic waterline over it.
-    scene=uMode<5.5?vec4(.11,.075,.035,.12):vec4(.035,.09,.125,.13+.04*noise(uv*8.+uTime*.035));
-   }else{scene=over(uMode<5.5?river(local):water(local,true),scene);}
-   // A distant, textured reflection above the surface preserves the glass.
-   scene=over(vapor(vec2(uv.x*3.+uTime*.03,uv.y*5.),.12,vec3(.36,.50,.58)),scene);
+   if(uMode<5.5){
+    float line=1.-uWaterTop+.010*sin(uv.x*17.-uTime*1.65)+.004*sin(uv.x*45.+uTime*2.4);
+    float submerged=1.-smoothstep(line-.009,line+.006,uv.y);
+    vec4 current=river(local);
+    float depth=max(line-uv.y,0.);
+    // Sediment absorbs blue light; elongated specular reflections travel with flow.
+    current.rgb*=mix(vec3(1.14,1.06,.83),vec3(.52,.66,.55),clamp(depth*1.25,0.,.6));
+    current.a*=submerged*mix(1.,.48,uFootage);
+    vec4 air=vapor(vec2(uv.x*3.-uTime*.025,uv.y*5.),.11,vec3(.32,.38,.39));
+    scene=over(current,over(air,vec4(.045,.062,.065,.12)));
+   }else{
+    scene=uFootage>.5?vec4(.035,.09,.125,.13+.04*noise(uv*8.+uTime*.035)):over(water(local,true),scene);
+    scene=over(vapor(vec2(uv.x*3.+uTime*.03,uv.y*5.),.12,vec3(.36,.50,.58)),scene);
+   }
   }else{
    // Thin, wind-sheared haze, with broad light and fine suspended dust.
    vec2 advect=vec2(uv.x*2.3-uTravel,uv.y*6.5+sin(uv.x*3.-uTime*.22)*.15);
@@ -367,7 +359,7 @@
    function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);shaders.push(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
    program=gl.createProgram();gl.attachShader(program,compile(gl.VERTEX_SHADER,vertex));gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel','Flash','TextureReady'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
+   const uniforms={};for(const key of ['Resolution','Activity','Time','Mode','Strength','Lightning','Footage','Lava','Organized','Direction','Gust','Travel','Flash','TextureReady','WaterTop'])uniforms[key]=gl.getUniformLocation(program,'u'+key);
    texture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
@@ -379,8 +371,8 @@
     image.src='media/card-fx/cyclone-eye.jpg';
    }
    let last=-Infinity,width=1,height=1;
-   function resize(w,h){width=w;height=h;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.TextureReady,textureReady?1:0);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function resize(w,h){width=w;height=h;last=-Infinity;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.TextureReady,textureReady?1:0);gl.uniform1f(uniforms.WaterTop,current.waterTop??.55);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }

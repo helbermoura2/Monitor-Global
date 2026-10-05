@@ -69,7 +69,7 @@
  function stop(){
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
-  if(scene){scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
+  if(scene){scene.physics?.destroy();scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active');removeGhost();
  }
  function fogTexture(){
@@ -127,10 +127,20 @@
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,leaf:cfg.type==='wind'&&i%10===0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
-  if(['wind','storm','tornado','hurricane'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:cfg.type!=='tornado',allText:['hurricane','wind'].includes(cfg.type)});
+  if(['wind','storm','tornado','hurricane','flood'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:cfg.type!=='tornado',allText:cfg.type!=='tornado'});
   if(['wind','storm','hurricane'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
+  s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);host.dataset.weatherMaterial=cfg.type==='flood'?'refractive-current':cfg.type==='wind'?'turbulent-air':'wet-glass';}
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
-  function resize(){if(scene!==s)return;const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);s.ctx.setTransform(dpr,0,0,dpr,0,0);s.contact.width=s.canvas.width;s.contact.height=s.canvas.height;s.contactCtx?.setTransform(dpr,0,0,dpr,0,0);s.film?.resize(w,h);s.footage?.resize(w,h);}
+  function resize(){
+   if(scene!==s)return;
+   const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;
+   s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);
+   s.ctx.setTransform(dpr,0,0,dpr,0,0);s.contact.width=s.canvas.width;s.contact.height=s.canvas.height;s.contactCtx?.setTransform(dpr,0,0,dpr,0,0);
+   s.film?.resize(w,h);s.footage?.resize(w,h);s.physics?.resize(w,h);
+   // Resizing clears a canvas. Paint now so expansion never exposes a blank frame.
+   const time=Math.max(0,(performance.now()-s.start)/1000);
+   s.film?.draw(time,{...s.cfg,gust:s.wind?.pressure||0,windTravel:s.wind?.travel??time*.25,flash:s.flash||0,waterTop:s.waterTop??.90},(s.demoLightning||p.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
+  }
   s.scroll=()=>{s.host.style.transform=s.front.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
  }
 
@@ -166,7 +176,7 @@
   p.style.setProperty('--pd-wind-roll',state.roll.toFixed(3)+'deg');
   p.style.setProperty('--pd-wind-pressure',pressure.toFixed(3));
   p.style.setProperty('--pd-wind-flex',(state.x*.35).toFixed(3)+'px');
-  if(cyclone||gale){
+  if(cyclone||gale||s.cfg.type==='storm'){
    if(!state.nextGroups||t>=state.nextGroups){
     state.nextGroups=t+.25;
     state.groups=Array.from(p.querySelectorAll('[data-cyclone-text]'),el=>({el,spans:Array.from(el.querySelectorAll('.pd-fx-windletter')),offset:(el.offsetTop||0)/Math.max(s.height,1)}));
@@ -180,7 +190,8 @@
      const gust=gale?Math.pow(clamp((local-.13)/.68,0,1),1.25):local;
      const flutter=Math.sin(t*(gale?13.5+fraction*3.1:9.5+fraction*2.1)-i*.52-group.offset*5)*gust*gust;
      const target=gale?(gust*(title?(8+fraction*11)*(s.mobile?.78:1):2+fraction*4)+flutter*(title?3.5:.8)):local*(title?6+fraction*8:1.4+fraction*3.2)+flutter*(title?1.5:.5);
-     letter.v+=((target-letter.x)*105-letter.v*14)*dt;letter.x+=letter.v*dt;
+     const load=s.physics?(title?1.6:1.25):1;
+     letter.v+=((target*load-letter.x)*105-letter.v*14)*dt;letter.x+=letter.v*dt;
      const lift=-letter.x*(gale?.30:.24)+flutter*(title?(gale?1.2:.85):.25),roll=letter.x*(gale?.72:.85)+flutter*(gale?2:1.4);
      el.style.transform='translate3d('+letter.x.toFixed(2)+'px,'+lift.toFixed(2)+'px,0) rotate('+roll.toFixed(2)+'deg)';
     });
@@ -258,8 +269,8 @@
    d.y+=d.vy*dt/h;d.x+=d.vx*dt/w;
    if(d.y>1.09){d.y=rand(-.15,-.03);d.x=Math.random();}
    if(d.x>1.1)d.x=-.1;
-   const exposure=.012+d.depth*.022,x=d.x*w,y=d.y*h;
-   const alpha=(front?.14+d.depth*.20:.07+d.depth*.11)*envelope*(1+(s.flash||0)*.9);
+   const exposure=.007+d.depth*.014,x=d.x*w,y=d.y*h;
+   const alpha=(front?.075+d.depth*.15:.045+d.depth*.095)*envelope*(1+(s.flash||0)*.9);
    ctx.strokeStyle='rgba(216,230,237,'+alpha.toFixed(3)+')';ctx.lineWidth=.3+d.depth*.95;
    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-d.vx*exposure,y-d.vy*exposure);ctx.stroke();
   }
@@ -413,7 +424,8 @@
   if(cfg.type==='flood'){
    // Illustrative rise, unrelated to measured flood depth. Recede gently after crest.
    const phase=t%26,rise=phase<12?phase/12:phase<18?1:1-(phase-18)/8;
-   const top=h*(.88-.48*rise);p?.style.setProperty('--pd-water-top',(top/h*100).toFixed(2)+'%');
+   const top=h*(.90-.66*rise);s.waterTop=top/h;p?.style.setProperty('--pd-water-top',(top/h*100).toFixed(2)+'%');
+   if(s.physics)return;
    ctx.save();ctx.beginPath();for(let x=0;x<=w+6;x+=6){const y=top+Math.sin(x*.035+t*1.2)*5+Math.sin(x*.08-t)*2;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.clip();
    if(s.footage?.isReady()){ctx.globalAlpha=.27*envelope;ctx.drawImage(s.footage.video,0,0,w,h);}
    const tint=ctx.createLinearGradient(0,top,0,h);tint.addColorStop(0,'rgba(148,163,144,.10)');tint.addColorStop(1,'rgba(36,57,57,.24)');ctx.globalAlpha=envelope;ctx.fillStyle=tint;ctx.fillRect(0,top-8,w,h);
@@ -430,11 +442,21 @@
   if(hidden){s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},120);return;}
   s.footage?.play();
   const fps=s.mobile?24:30;if(now-s.paintAt>=1000/fps&&s.width&&s.height){
-   const dt=Math.min(.06,(now-s.last)/1000);s.last=now;s.paintAt=now;
+   const dt=Math.max(0,Math.min(.06,(now-s.last)/1000));s.last=now;s.paintAt=now;
    const fadeIn=clamp(t/.55,0,1),fadeOut=Number.isFinite(s.duration)?clamp((s.duration/1000-t)/.85,0,1):1,envelope=Math.min(fadeIn,fadeOut);s.host.style.opacity=envelope.toFixed(3);
    if(s.wind)windResponse(s,t,dt,envelope);
    if(s.cfg.type==='storm')stormLight(s,t);
-   s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);if(s.cfg.type==='storm')stormRain(s,t,dt,envelope,false);if(s.cfg.type==='hurricane')cycloneRain(s,t,dt,envelope,false);contactSurface(s,t,dt,envelope);if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);if(s.particles.length&&!s.wind)debris(s,t,dt,envelope);if(s.cfg.water&&!s.film)water(s,t,envelope);if(s.floating.length)surfaceDebris(s,t,dt,envelope);s.film?.draw(t,s.wind?{...s.cfg,gust:s.wind.pressure,windTravel:s.wind.travel,flash:s.flash||0}:s.cfg,(s.demoLightning||p?.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
+   s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);
+   if(s.cfg.type==='storm')stormRain(s,t,dt,envelope,false);
+   if(s.cfg.type==='hurricane')cycloneRain(s,t,dt,envelope,false);
+   contactSurface(s,t,dt,envelope);
+   if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);
+   if(s.particles.length&&!s.wind)debris(s,t,dt,envelope);
+   if(s.cfg.water&&!s.film)water(s,t,envelope);
+   if(s.floating.length&&!(s.physics&&s.cfg.type==='flood'))surfaceDebris(s,t,dt,envelope);
+   const ready=s.footage?.isReady();
+   s.physics?.draw(t,dt,envelope,{pressure:s.wind?.pressure||0,flash:s.flash||0,waterTop:s.waterTop,video:ready?s.footage.video:null});
+   s.film?.draw(t,{...s.cfg,gust:s.wind?.pressure||0,windTravel:s.wind?.travel??t*.25,flash:s.flash||0,waterTop:s.waterTop},(s.demoLightning||p.dataset.lightning==='on')&&s.cfg.type==='storm',ready);
   }
   raf=requestAnimationFrame(frame);
  }
