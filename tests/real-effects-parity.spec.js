@@ -46,11 +46,11 @@ for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam 
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
   expect(actual.profile,key).toEqual(demo);
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',extra.type);
-  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer','film');
+  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer',key==='volcano-monitoring'?'crater':'film');
   if(extra.type==='hurricane')await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-cyclone-stage',key==='tropical-storm'?'tropical-storm':key==='depression'?'depression':'mature');
   if(key==='volcano-lava')await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-material','lava');
   if(key==='volcano-ash')await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/smoke.mp4');
-  if(key==='volcano-monitoring')await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');
+  if(key==='volcano-monitoring'){await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);}
   expect(actual.selectedId).toBe('parity-'+extra.type);
   // Desktop also types each headline while the wind observer wraps graphemes.
   await expect(page.locator('#pd-local')).toHaveText('Evento real de teste',{timeout:12000});
@@ -82,7 +82,7 @@ test('VAAC real, tradução USGS e revisão silenciosa mantêm cinzas e removem 
  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-material','lava');
  await select({source:'USGS VHP',eruptionStatus:'Eruption ended',detail:'Lava flow ceased. No ash observed.'},true);
  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-activity','monitoring');
- await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');
+ await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);
  await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
 

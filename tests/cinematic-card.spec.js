@@ -162,7 +162,7 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
  // A carga do renderizador de software pode atrasar a digitação no runner.
  await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo',{timeout:15000});
  await expect.poll(async()=>{const coverage=await cardCoverage(page);return coverage.thirds.every(third=>third.mean>8&&third.covered>.3);}).toBe(true);
- await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
+ await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
 
 test('vento move as letras preservando o conteúdo do local',async({page})=>{

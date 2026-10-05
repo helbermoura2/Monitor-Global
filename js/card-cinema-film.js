@@ -349,7 +349,7 @@
  }
  `;
  function create(cfg,mobile){
-  if(!(cfg.type in modes))return null;
+  if(!(cfg.type in modes)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
   const canvas=document.createElement('canvas');canvas.className='pd-cinema-film';
   const gl=canvas.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
   if(!gl)return null;
@@ -377,8 +377,8 @@
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
  function footage(cfg){
-  if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type))return null;
-  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?(cfg.ash||cfg.hot?'smoke':'terrain'):cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
+  if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
+  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
   let failed=false,dead=false,playing=false,wanted=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}
