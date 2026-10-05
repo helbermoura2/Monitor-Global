@@ -134,7 +134,13 @@ test('desktop entre os cartões; mobile oculta e interrompe consultas; módulo e
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
   for (const width of [1101,1280,1600,1920]) {
     await page.setViewportSize({width,height:1000});
-    await page.clock.runFor(50);
+    // Resize/ResizeObserver delivery is asynchronous even with a fake clock.
+    await expect.poll(() => page.evaluate(() => {
+      const panel = document.getElementById('election-panel').getBoundingClientRect();
+      const left = document.getElementById('sidebar-left').getBoundingClientRect();
+      const right = document.getElementById('painel-direito').getBoundingClientRect();
+      return panel.left >= left.right && panel.right <= right.left;
+    })).toBe(true);
     const bounds = await page.evaluate(() => {
       const rect = id => {const r = document.getElementById(id).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
       return {panel:rect('election-panel'),left:rect('sidebar-left'),right:rect('painel-direito'),header:rect('top-strip'),overflow:document.documentElement.scrollWidth>innerWidth};
