@@ -32,3 +32,8 @@ Créditos acessíveis no teste de efeitos: [Fontes das imagens](credits.html). A
 ## Inundação por tsunami
 
 - `tsunami-inundation.mp4` — FBI, Honolulu office, câmera de segurança do tsunami de Pago Pago (Samoa Americana), 29/09/2009. [Original e crédito](https://commons.wikimedia.org/wiki/File:FBI_tsunami_video_-_Pago_Pago_parking_lot_-_end.ogv). Domínio público, verificado em 05/10/2026. Adaptado: trecho durante a entrada violenta da água, remoção da moldura e do horário da câmera, recorte vertical, ajuste de cor, 432 × 768, H.264, 24 quadros/s e sem áudio. Repetição de 8,75 s com ponte de 1,25 s incorporada ao arquivo, sem reprodução reversa. Um único vídeo ocupa todo o cartão; não é reamostrado no canvas ou coberto por uma segunda cena de ondas. É uma ilustração histórica do fenômeno, não imagem do evento selecionado. A cena procedural serve apenas de reserva enquanto não há quadro de vídeo disponível.
+
+
+## Rajadas sobre a vegetação
+
+- `gale-canopy.mp4` e `gale-canopy.jpg` — Christoph Waghubinger (Lewenstein), “Sturm in Leonstein 1”, Grünburg, Áustria, 21/08/2026. [Original e crédito](https://commons.wikimedia.org/wiki/File:Sturm_in_Leonstein_1.webm) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Verificado em 05/10/2026. Adaptado: recorte da copa da árvore, cor e exposição ajustadas, 432 × 768, H.264, 24 quadros/s e sem áudio. Repetição de 11 s com ponte de 1,5 s incorporada, sem reprodução reversa. A fotografia é um quadro do vídeo adaptado e serve de reserva. Ambos os arquivos adaptados permanecem sob CC BY-SA 4.0. Um vídeo ocupa todo o cartão, sem cópias em Canvas. Vegetação e materiais ilustram o fenômeno; não representam o local, velocidade medida ou danos do evento selecionado.

@@ -61,7 +61,7 @@
   const hot=item.type==='fire'||activity.eruptive||activity.lava;
   const ash=activity.ash;
   const rotationDirection=Number(item.coords?.[1])<0?-1:1;
-  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado','wind'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
@@ -126,7 +126,7 @@
    for(let i=0;i<(cfg.type==='storm'?(mobile?20:32):(mobile?12:18));i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:['storm','hurricane'].includes(cfg.type)&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
   }
   if(cfg.mist)for(let i=0;i<(mobile?6:9);i++)s.smoke.push({x:Math.random()<.5?rand(-.12,.1):rand(.9,1.1),y:Math.random(),depth:rand(.45,1),phase:rand(0,6.3)});
-  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='wind'?mobile?110:170:['tornado','earthquake'].includes(cfg.type)?mobile?12:20:0;
+  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:['tornado','earthquake'].includes(cfg.type)?mobile?12:20:0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,leaf:cfg.type==='wind'&&i%10===0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
@@ -159,27 +159,26 @@
  function pressureAt(s,t,x=0){
   // Cyclone rainbands bring sustained wind, with lulls between stronger gusts.
   // A gale never becomes still: two fast squalls pass over the steady air stream.
-  if(s.cfg.type==='wind')return clamp(.11+.92*windPressure(t,x)+.018*Math.sin(t*4.1-x*3),.08,1);
+  if(s.cfg.type==='wind')return window.CardGaleField?.pressure(t,x)||.1;
   return s.cfg.type==='hurricane'?.16+.84*windPressure(t,x):windPressure(t,x);
  }
  function windResponse(s,t,dt,envelope){
   const state=s.wind,p=panel();if(!state||!p)return;
-  const cyclone=s.cfg.type==='hurricane',gale=s.cfg.type==='wind';
-  // Unknown wind speeds still look like a gale, while reported severity modulates it.
-  const strength=gale?.7+.3*s.cfg.strength:s.cfg.strength;
+  if(s.cfg.type==='wind'){if(s.physics?.load){const flow=s.physics.load(t,dt,envelope);state.pressure=flow.pressure;state.travel=flow.travel;}return;}
+  const cyclone=s.cfg.type==='hurricane';
+  const strength=s.cfg.strength;
   const pressure=pressureAt(s,t,.45)*strength*(s.cfg.type==='storm'?.72:1)*envelope;
-  state.pressure=pressure;state.travel+=dt*(gale?.24+pressure*1.85:.08+pressure*.80);
+  state.pressure=pressure;state.travel+=dt*(.08+pressure*.80);
   // Damped springs resist the gust, then settle rather than vibrating forever.
-  const buffeting=cyclone?Math.sin(t*17.2)*pressure*pressure*.65:gale?(Math.sin(t*14.7)*.7+Math.sin(t*23.3)*.35)*pressure*pressure:0;
-  state.vx+=((pressure*(s.mobile?(gale?6.5:cyclone?5:4):(gale?11.5:cyclone?9:7))+buffeting-state.x)*78-state.vx*13)*dt;state.x+=state.vx*dt;
-  if(gale)state.x=clamp(state.x,-2,s.mobile?7:12);
-  state.vr+=((pressure*(gale?(s.mobile?.65:.9):cyclone?.76:.48)+(gale?buffeting*.07:0)-state.roll)*62-state.vr*12)*dt;state.roll+=state.vr*dt;
+  const buffeting=cyclone?Math.sin(t*17.2)*pressure*pressure*.65:0;
+  state.vx+=((pressure*(s.mobile?(cyclone?5:4):(cyclone?9:7))+buffeting-state.x)*78-state.vx*13)*dt;state.x+=state.vx*dt;
+  state.vr+=((pressure*(cyclone?.76:.48)-state.roll)*62-state.vr*12)*dt;state.roll+=state.vr*dt;
   p.style.setProperty('--pd-wind-x',state.x.toFixed(3)+'px');
   p.style.setProperty('--pd-wind-y',(-Math.abs(state.x)*.13).toFixed(3)+'px');
   p.style.setProperty('--pd-wind-roll',state.roll.toFixed(3)+'deg');
   p.style.setProperty('--pd-wind-pressure',pressure.toFixed(3));
   p.style.setProperty('--pd-wind-flex',(state.x*.35).toFixed(3)+'px');
-  if(cyclone||gale||s.cfg.type==='storm'){
+  if(cyclone||s.cfg.type==='storm'){
    if(!state.nextGroups||t>=state.nextGroups){
     state.nextGroups=t+.25;
     state.groups=Array.from(p.querySelectorAll('[data-cyclone-text]'),el=>({el,spans:Array.from(el.querySelectorAll('.pd-fx-windletter')),offset:(el.offsetTop||0)/Math.max(s.height,1)}));
@@ -190,12 +189,12 @@
      let letter=state.letters.get(el);if(!letter){letter={x:0,v:0};state.letters.set(el,letter);}
      const fraction=i/length,local=pressureAt(s,t-group.offset*.20,fraction)*strength*envelope;
      // The wave reaches each word in sequence; springs return the actual glyphs.
-     const gust=gale?Math.pow(clamp((local-.13)/.68,0,1),1.25):local;
-     const flutter=Math.sin(t*(gale?13.5+fraction*3.1:9.5+fraction*2.1)-i*.52-group.offset*5)*gust*gust;
-     const target=gale?(gust*(title?(8+fraction*11)*(s.mobile?.78:1):2+fraction*4)+flutter*(title?3.5:.8)):local*(title?6+fraction*8:1.4+fraction*3.2)+flutter*(title?1.5:.5);
+     const gust=local;
+     const flutter=Math.sin(t*(9.5+fraction*2.1)-i*.52-group.offset*5)*gust*gust;
+     const target=local*(title?6+fraction*8:1.4+fraction*3.2)+flutter*(title?1.5:.5);
      const load=s.physics?(title?1.6:1.25):1;
      letter.v+=((target*load-letter.x)*105-letter.v*14)*dt;letter.x+=letter.v*dt;
-     const lift=-letter.x*(gale?.30:.24)+flutter*(title?(gale?1.2:.85):.25),roll=letter.x*(gale?.72:.85)+flutter*(gale?2:1.4);
+     const lift=-letter.x*.24+flutter*(title?.85:.25),roll=letter.x*.85+flutter*1.4;
      el.style.transform='translate3d('+letter.x.toFixed(2)+'px,'+lift.toFixed(2)+'px,0) rotate('+roll.toFixed(2)+'deg)';
     });
    }
@@ -211,37 +210,6 @@
    el.style.transform='translate3d('+letter.x.toFixed(2)+'px,'+lift.toFixed(2)+'px,0) rotate('+(letter.x*.7).toFixed(2)+'deg)';
   });
  }
- function windMatter(s,t,dt,envelope){
-  const ctx=s.contactCtx,{width:w,height:h}=s;if(!ctx)return;
-  for(let i=0;i<s.particles.length;i++){
-   const p=s.particles[i],pressure=pressureAt(s,t,clamp(p.x,0,1))*(.7+.3*s.cfg.strength);
-   // Near dust moves much faster than distant haze; broadside leaves lag the air.
-   const speed=(130+pressure*1550)*(.28+p.depth*.94);
-   const response=1-Math.exp(-dt*(p.leaf?4.5:13));
-   p.vx+=(speed-p.vx)*response;
-   p.vy+=((-p.vx*.13+Math.sin(t*5.2+p.phase)*pressure*(p.leaf?115:46)+(p.leaf?20:3))-p.vy)*response;
-   p.x+=p.vx*dt/w;p.y+=p.vy*dt/h;
-   if(p.x>1.12||p.y<-.12||p.y>1.12){p.x=rand(-.25,-.05);p.y=Math.random();}
-   const x=p.x*w,y=p.y*h,alpha=envelope*(.14+p.depth*.29)*(.55+pressure*.45)*edge(p.x*w,w);
-   ctx.save();ctx.translate(x,y);
-   if(p.leaf){
-    const angle=Math.atan2(p.vy,p.vx)+Math.sin(t*(3+p.depth*5)+p.phase)*1.15;
-    ctx.rotate(angle);ctx.scale(1,.3+.7*Math.abs(Math.sin(t*8.4+p.phase)));const r=2+p.depth*4;
-    ctx.fillStyle='rgba(142,132,99,'+alpha.toFixed(3)+')';
-    ctx.beginPath();ctx.moveTo(-r,0);ctx.quadraticCurveTo(0,-r*.7,r,0);ctx.quadraticCurveTo(0,r*.45,-r,0);ctx.fill();
-    ctx.strokeStyle='rgba(198,181,132,'+(alpha*.7).toFixed(3)+')';ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(-r,0);ctx.lineTo(r,0);ctx.stroke();
-   }else{
-    // Short exposure streaks belong to dust, never to the invisible air.
-    const length=Math.min(28,Math.max(1.2,p.vx*.019));
-    const spray=i%4===0;
-    ctx.strokeStyle=(spray?'rgba(223,234,232,':'rgba(207,204,189,')+alpha.toFixed(3)+')';ctx.lineWidth= spray?.6+p.depth:.3+p.depth*.55;
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-length,-p.vy*.019);ctx.stroke();
-   }
-   ctx.restore();
-  }
- }
-
-
  function stormLight(s,t){
   const cycle=Math.floor(t/14.7),phase=t%14.7,jitter=Math.sin(cycle*2.41)*.55;
   const times=[2.3+jitter,9.1+jitter*.6];
@@ -325,7 +293,7 @@
  function edge(x,w){return .28+.72*Math.pow(Math.abs(x/w-.5)*2,1.5);}
  function illuminate(s,t,envelope){
   const {ctx,width:w,height:h,cfg}=s;
-  let color=cfg.hot?'255,139,61':cfg.type==='flood'?'202,176,128':cfg.water?'134,222,238':'176,215,239';
+  let color=cfg.type==='wind'?'207,214,198':cfg.hot?'255,139,61':cfg.type==='flood'?'202,176,128':cfg.water?'134,222,238':'176,215,239';
   const rhythm=.7+.16*Math.sin(t*1.17)+.11*Math.sin(t*2.31+.4);
   for(const x of [-w*.1,w*1.1]){const g=ctx.createRadialGradient(x,h*.65,0,x,h*.65,w*.65);g.addColorStop(0,'rgba('+color+','+((cfg.hot?.30:cfg.type==='volcano'?.17:.12)*rhythm*envelope).toFixed(3)+')');g.addColorStop(1,'rgba('+color+',0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);}
   if(cfg.type==='earthquake'){
@@ -411,7 +379,6 @@
   }
   if(cfg.type==='hurricane')cycloneSpray(s,t,envelope);
   if(cfg.type==='storm')stormSpray(s,t,envelope);
-  if(cfg.type==='wind')windMatter(s,t,dt,envelope);
   if(cfg.water){
    // One continuous full-card current; no second framing or moving cut line.
    s.waterTop=0;p?.style.setProperty('--pd-water-top','0%');

@@ -6,7 +6,7 @@ for(const width of [1280,390])test('pressão da rajada move vidro e letras e rec
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" style="position:absolute;left:20px;top:30px;width:320px;height:600px;background:#0b2231;border:1px solid #68808d;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 16px;color:white;font:600 18px system-ui">Rajadas de vento em São Paulo 🇧🇷</div><div id="pd-source" style="color:white">Estação local — atualização em tempo real</div><div class="stat-card" style="margin:16px;color:white"><span class="stat-card-label">Intensidade</span><span class="stat-card-value"><b style="color:rgb(240, 210, 120)">150</b> km/h</span></div><button id="control" style="margin:16px">Detalhes</button></div></body>');
  for(const file of ['painel-fx.css','cinematic-card.css','wind-cinema.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
  await page.evaluate(()=>{window.__frame=null;window.requestAnimationFrame=cb=>{__frame=cb;return 1;};window.cancelAnimationFrame=()=>{__frame=null;};});
- for(const file of ['painel-fx.js','card-cinema-film.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
+ for(const file of ['painel-fx.js','card-cinema-film.js','card-gale-field.js','card-weather-physics.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
  const result=await page.evaluate(()=>{
   const begin=performance.now();CinematicCard.start({id:'gust',type:'wind',windKmh:150},Infinity);
   const panel=document.getElementById('painel-direito');
@@ -40,6 +40,8 @@ for(const width of [1280,390])test('rajada cinematográfica no cartão completo 
  await page.evaluate(()=>{const item={id:'wind-preview',type:'wind',source:'Visual QA',place:'Rajadas de vento — São Paulo',coords:[-46.63,-23.55],windKmh:150,sev:3,time:Date.now(),bandeira:'🇧🇷'};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene','wind');
  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer','film');
+ const video=page.locator('.pd-cinema-footage');await expect(video).toHaveAttribute('src','media/card-fx/gale-canopy.mp4');await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused),{timeout:12000}).toBe(true);
+ await expect(page.locator('.pd-gale-field')).toHaveCount(1);await expect(page.locator('.pd-cinema-drop,.pd-weather-lens')).toHaveCount(0);
  await expect(page.locator('#pd-local')).toContainText('Rajadas de vento');
  const hit=()=>page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;});
  await expect.poll(hit).toBe(true);

@@ -319,13 +319,23 @@
     scene=uFootage>.5?vec4(0.):coastalBore(local);
    }
   }else{
-   // Thin, wind-sheared haze, with broad light and fine suspended dust.
-   vec2 advect=vec2(uv.x*2.3-uTravel,uv.y*6.5+sin(uv.x*3.-uTime*.22)*.15);
-   float wisps=fbm(advect+vec2(fbm(advect*.7),0.)*.6);
-   float density=smoothstep(.30,.76,wisps)*(.20+.25*uGust);
-   float relief=clamp(.45+(wisps-fbm(advect+vec2(.04,.07)))*3.,.12,.85);
-   vec3 haze=mix(vec3(.12,.15,.17),vec3(.55,.57,.54),relief);
-   scene=over(vec4(haze,density),scene);
+   // A photographic canopy, with the frame preserved through native loop seeks.
+   // The moving dust field is in front of the data; no old speed-stripe backdrop.
+   if(uFootage>.5){scene=vec4(.06,.075,.055,.045);}
+   else if(uTextureReady>.5){
+    vec2 st=uv;float photoAspect=.5625;
+    if(aspect>photoAspect)st.y=(st.y-.5)*photoAspect/aspect+.5;
+    else st.x=(st.x-.5)*aspect/photoAspect+.5;
+    float bend=uv.y*uv.y*uGust;
+    st.x=clamp(st.x+.008*bend*sin(uTime*.8)+.003*bend*noise(vec2(uv.y*8.,uTime*.4)),.003,.997);
+    st.y=clamp(st.y+.002*bend*sin(uTime*1.4),.003,.997);
+    vec3 canopy=texture2D(uCycloneTexture,st).rgb;
+    scene=vec4(canopy*(.91-.035*uGust),.9);
+   }else{
+    vec2 flow=vec2(uv.x*3.-uTravel*.18,uv.y*4.+uTime*.025);
+    float mass=fbm(flow),grain=noise(flow*29.);
+    scene=vec4(mix(vec3(.05,.085,.055),vec3(.23,.29,.22),mass)+grain*.015,.82);
+   }
   }
   float vignette=1.-smoothstep(.32,.60,abs(uv.x-.5));
   scene.rgb*=.85+.15*vignette;
@@ -349,11 +359,11 @@
    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
    gl.uniform1i(gl.getUniformLocation(program,'uCycloneTexture'),0);
-   if(cfg.type==='hurricane'&&!['depression','tropical-storm'].includes(cfg.cycloneStage)){
+   if(cfg.type==='wind'||cfg.type==='hurricane'&&!['depression','tropical-storm'].includes(cfg.cycloneStage)){
     textureImage=new Image();const image=textureImage;
-    image.onload=()=>{if(dead||gl.isContextLost()||textureImage!==image)return;try{gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);textureReady=gl.getError()===gl.NO_ERROR;if(textureReady)canvas.dataset.texture='nasa';}catch(error){textureReady=false;}image.onload=null;image.onerror=null;textureImage=null;};
+    image.onload=()=>{if(dead||gl.isContextLost()||textureImage!==image)return;try{gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);textureReady=gl.getError()===gl.NO_ERROR;if(textureReady)canvas.dataset.texture=cfg.type==='wind'?'gale-canopy':'nasa';}catch(error){textureReady=false;}image.onload=null;image.onerror=null;textureImage=null;};
     image.onerror=()=>{image.onload=null;image.onerror=null;if(textureImage===image)textureImage=null;};
-    image.src='media/card-fx/cyclone-eye.jpg';
+    image.src=cfg.type==='wind'?'media/card-fx/gale-canopy.jpg':'media/card-fx/cyclone-eye.jpg';
    }
    let last=-Infinity,width=1,height=1;
    function resize(w,h){width=w;height=h;last=-Infinity;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
@@ -362,9 +372,9 @@
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }
  function footage(cfg){
-  if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
-  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'tsunami-inundation':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
-  const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
+  if(!(cfg.type in modes)||['hurricane','storm'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
+  const key=cfg.type==='wind'?'gale-canopy':cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'tsunami-inundation':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
+  const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';if(cfg.type==='wind')video.poster='media/card-fx/gale-canopy.jpg';
   let failed=false,dead=false,playing=false,wanted=false,presented=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}
   function pause(){wanted=false;video.pause();}
@@ -372,8 +382,8 @@
   function destroy(){dead=true;pause();video.removeAttribute('src');video.load();video.remove();}
   video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{presented=true;if(wanted&&!document.hidden)play();});
   // Keep the last photographic frame through a loop seek or brief buffering.
-  // The procedural reserve must not flash over an already presented water video.
-  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','tsunami'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused)};
+  // The procedural reserve must not flash over an already presented photographic scene.
+  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','tsunami','wind'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused)};
  }
  window.CardCinemaFilm={create,footage};
 })();

@@ -3,13 +3,14 @@
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
  function create(cfg,mobile,panel){
-  if(!['storm','hurricane','wind','flood','tsunami'].includes(cfg.type))return null;
+  if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
+  if(!['storm','hurricane','flood','tsunami'].includes(cfg.type))return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material';canvas.setAttribute('aria-hidden','true');
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   let w=1,h=1,dead=false,measureAt=-1,ledges=[],groups=[],bolt=[],boltAt=-10;
   const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=['flood','tsunami'].includes(cfg.type);
   const drops=Array.from({length:rain?(mobile?150:300):0},()=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,seed:rand(0,TAU)}));
-  const matter=Array.from({length:cfg.type==='wind'?(mobile?85:155):flood?(mobile?35:65):0},(_,i)=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,phase:rand(0,TAU),leaf:i%5===0}));
+  const matter=Array.from({length:flood?(mobile?35:65):0},(_,i)=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,phase:rand(0,TAU),leaf:i%5===0}));
   const impacts=[],lenses=[];
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';
   const optics=document.createElementNS('http://www.w3.org/2000/svg','svg');optics.setAttribute('width','0');optics.setAttribute('height','0');optics.setAttribute('aria-hidden','true');
@@ -19,11 +20,6 @@
    const el=document.createElement('i');el.className='pd-weather-lens';lensLayer.append(el);
    lenses.push({el,x:rand(.03,.97),y:Math.random(),radius:rand(2,4),speed:0,phase:rand(0,TAU)});
   }
-  // Veins and uneven silhouettes rotate as actual surfaces, not wind symbols.
-  const leaf=document.createElement('canvas');leaf.width=48;leaf.height=32;const lc=leaf.getContext('2d');
-  const g=lc.createLinearGradient(0,0,48,32);g.addColorStop(0,'#544d22');g.addColorStop(.5,'#ada46c');g.addColorStop(1,'#5c4828');lc.fillStyle=g;
-  lc.beginPath();lc.moveTo(3,17);lc.bezierCurveTo(11,4,29,2,44,11);lc.bezierCurveTo(39,22,17,29,3,17);lc.fill();
-  lc.strokeStyle='rgba(40,37,17,.6)';lc.lineWidth=.7;lc.beginPath();lc.moveTo(2,18);lc.lineTo(43,11);for(let i=10;i<38;i+=7){lc.moveTo(i,18-i*.15);lc.lineTo(i+3,7);lc.moveTo(i,18-i*.15);lc.lineTo(i+5,24);}lc.stroke();
   function measure(t){
    if(t<measureAt)return;measureAt=t+.7;
    const pr=panel.getBoundingClientRect(),sx=w/Math.max(pr.width,1),sy=h/Math.max(pr.height,1);
@@ -78,19 +74,6 @@
    }
    ctx.restore();
   }
-  function airborne(t,dt,pressure,envelope){
-   // Vorticity carries leaves through the same passing gust, with inertial lag.
-   for(const p of matter){
-    const swirl=Math.sin(p.y*7+t*3.4+p.phase),speed=(140+pressure*1900)*(.25+p.z*.8),response=1-Math.exp(-dt*(p.leaf?3:12));
-    p.vx+=(speed-p.vx)*response;p.vy+=((-speed*.14+swirl*pressure*(p.leaf?230:95))-p.vy)*response;
-    p.x+=p.vx*dt/w;p.y+=p.vy*dt/h;
-    if(p.x>1.15||p.y<-.15||p.y>1.15){p.x=rand(-.3,-.03);p.y=Math.random();}
-    ctx.save();ctx.translate(p.x*w,p.y*h);ctx.rotate(Math.atan2(p.vy,p.vx));ctx.globalAlpha=envelope*(.12+p.z*.5);
-    if(p.leaf){ctx.rotate(Math.sin(t*6+p.phase)*1.7);ctx.scale(1,.18+.82*Math.abs(Math.sin(t*8+p.phase)));const size=6+p.z*13;ctx.drawImage(leaf,-size/2,-size/3,size,size*.67);}
-    else {ctx.strokeStyle=p.z>.7?'#ddd9c4':'#aaa798';ctx.lineWidth=.25+p.z*.65;ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(-p.vx*.007,swirl*3,-Math.min(38,p.vx*.019),swirl*6);ctx.stroke();}
-    ctx.restore();
-   }
-  }
   function inundation(t,dt,envelope,fallback){
    // The footage is displayed once, by its video element. Never sample or redraw it.
    if(fallback){
@@ -115,10 +98,9 @@
    if(dead)return;measure(t);ctx.clearRect(0,0,w,h);
    const pressure=current.pressure||0,flash=current.flash||0;
    if(rain){precipitation(t,dt,pressure,flash,envelope);if(cfg.type==='storm')lightning(t,flash);}
-   if(cfg.type==='wind')airborne(t,dt,pressure,envelope);
    if(flood)inundation(t,dt,envelope,current.fallback);
   }
-  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>el.style.removeProperty('transform'));}leaf.width=leaf.height=1;impacts.length=0;groups=[];ledges=[];}
+  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>el.style.removeProperty('transform'));}impacts.length=0;groups=[];ledges=[];}
   return {canvas,lensLayer,resize,draw,destroy};
  }
  window.CardWeatherPhysics={create};
