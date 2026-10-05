@@ -9,7 +9,9 @@ on:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The full suite now has 94 scenarios, including software-GPU scenes.
+    # Leave time for setup and cleanup after the tests print their result.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
