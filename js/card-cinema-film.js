@@ -320,15 +320,9 @@
    }
   }else if(uMode<6.5){
    if(uMode<5.5){
-    float line=1.-uWaterTop+.010*sin(uv.x*17.-uTime*1.65)+.004*sin(uv.x*45.+uTime*2.4);
-    float submerged=1.-smoothstep(line-.009,line+.006,uv.y);
-    vec4 current=river(local);
-    float depth=max(line-uv.y,0.);
-    // Sediment absorbs blue light; elongated specular reflections travel with flow.
-    current.rgb*=mix(vec3(1.14,1.06,.83),vec3(.52,.66,.55),clamp(depth*1.25,0.,.6));
-    current.a*=submerged*mix(1.,.48,uFootage);
-    vec4 air=vapor(vec2(uv.x*3.-uTime*.025,uv.y*5.),.11,vec3(.32,.38,.39));
-    scene=over(current,over(air,vec4(.045,.062,.065,.12)));
+    // A photographically continuous scene: the video already fills the entire card.
+    // Procedural current is a reserve only, never a second moving water image.
+    scene=uFootage>.5?vec4(0.):river(local);
    }else{
     scene=uFootage>.5?vec4(.035,.09,.125,.13+.04*noise(uv*8.+uTime*.035)):over(water(local,true),scene);
     scene=over(vapor(vec2(uv.x*3.+uTime*.03,uv.y*5.),.12,vec3(.36,.50,.58)),scene);
@@ -378,15 +372,17 @@
  }
  function footage(cfg){
   if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
-  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
+  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
-  let failed=false,dead=false,playing=false,wanted=false;
+  let failed=false,dead=false,playing=false,wanted=false,presented=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}
   function pause(){wanted=false;video.pause();}
   function resize(w,h){video.style.top='0px';video.style.height=h+'px';}
   function destroy(){dead=true;pause();video.removeAttribute('src');video.load();video.remove();}
-  video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{if(wanted&&!document.hidden)play();});
-  return {video,play,pause,resize,destroy,isReady:()=>!failed&&video.readyState>=2&&!video.paused};
+  video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{presented=true;if(wanted&&!document.hidden)play();});
+  // Keep the last photographic frame through a loop seek or brief buffering.
+  // The procedural reserve must not flash over an already presented flood video.
+  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(cfg.type==='flood'?presented:video.readyState>=2&&!video.paused)};
  }
  window.CardCinemaFilm={create,footage};
 })();

@@ -14,14 +14,14 @@ for(const mobile of [false,true])test('materiais sem GPU: chuva, vento e água p
  for(const type of ['storm','hurricane','wind','flood']){
   const result=await page.evaluate(type=>{
    const start=performance.now();CinematicCard.start({id:type,type,windKmh:150,classification:type==='hurricane'?'TS':undefined},Infinity);
-   // Draw actual frames at 30 Hz; flood crosses the metric after the crest.
-   const frames=type==='flood'?450:75;for(let i=1;i<=frames;i++)__weatherFrame(start+i*34);
+   // Draw actual frames at 30 Hz, including the full-frame flood reserve.
+   const frames=75;for(let i=1;i<=frames;i++)__weatherFrame(start+i*34);
    const c=document.querySelector('.pd-weather-material'),data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
    const topAlpha=Array.from(data.slice(0,c.width*20*4)).filter((v,i)=>i%4===3).reduce((a,b)=>a+b,0);
    return {wet:data.some((v,i)=>i%4===3&&v>15),topAlpha,submerged:document.querySelectorAll('.pd-water-submerged').length,secondary:Array.from(document.querySelectorAll('#pd-source .pd-fx-windletter,.stat-card .pd-fx-windletter')).some(el=>el.style.transform),waterTop:parseFloat(document.getElementById('painel-direito').style.getPropertyValue('--pd-water-top'))};
   },type);
   expect(result.wet,type).toBe(true);
-  if(type==='flood'){expect(result.topAlpha).toBe(0);expect(result.submerged).toBeGreaterThan(0);expect(result.waterTop).toBeLessThan(30);}
+  if(type==='flood'){expect(result.topAlpha).toBeGreaterThan(0);expect(result.submerged).toBeGreaterThan(0);expect(result.waterTop).toBe(0);}
   else expect(result.secondary,type).toBe(true);
   expect(await page.locator('#painel-direito').innerText()).toBe(original);
   await expect(page.locator('.stat-card-value b')).toHaveCSS('color','rgb(240, 210, 120)');
@@ -53,7 +53,7 @@ for(const width of [1280,390])test('cenas avançadas no evento real, revisão, r
   await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'São Paulo — boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
   await page.clock.runFor(1600);expect(await before.evaluate(el=>el.isConnected)).toBe(true);
   await expect(page.locator('#pd-local')).toContainText('boletim atualizado');
-  if(type==='flood'){await page.clock.fastForward(13000);await page.clock.runFor(200);}
+  if(type==='flood'){await expect.poll(()=>page.locator('.pd-cinema-footage').evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);await page.clock.runFor(200);}
   await page.screenshot({path:'/tmp/advanced-weather-'+key+'-'+width+'.png'});
  }
  if(width===390){await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});await page.clock.runFor(300);}

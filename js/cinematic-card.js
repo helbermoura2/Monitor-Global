@@ -378,6 +378,9 @@
  }
  function water(s,t,envelope){
   const {ctx,width:w,height:h,cfg}=s;
+  if(cfg.type==='flood'){
+   const current=ctx.createLinearGradient(0,0,w,h);current.addColorStop(0,'rgba(116,96,65,.94)');current.addColorStop(1,'rgba(46,42,31,.94)');ctx.fillStyle=current;ctx.fillRect(0,0,w,h);return;
+  }
   // Decorative reflection only: no inferred water level, arrival time or flood depth.
   const tsunami=cfg.type==='tsunami',phase=t%12,travel=tsunami?(phase<2?-phase*9:phase<7?Math.min(h*.2,(phase-2)*h*.04):h*.2*(12-phase)/5):Math.sin(t*.45)*5;
   const base=h*(s.mobile?.72:.84)-travel;
@@ -425,14 +428,8 @@
   if(cfg.type==='storm')stormSpray(s,t,envelope);
   if(cfg.type==='wind')windMatter(s,t,dt,envelope);
   if(cfg.type==='flood'){
-   // Illustrative rise, unrelated to measured flood depth. Recede gently after crest.
-   const phase=t%26,rise=phase<12?phase/12:phase<18?1:1-(phase-18)/8;
-   const top=h*(.90-.66*rise);s.waterTop=top/h;p?.style.setProperty('--pd-water-top',(top/h*100).toFixed(2)+'%');
-   if(s.physics)return;
-   ctx.save();ctx.beginPath();for(let x=0;x<=w+6;x+=6){const y=top+Math.sin(x*.035+t*1.2)*5+Math.sin(x*.08-t)*2;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.clip();
-   if(s.footage?.isReady()){ctx.globalAlpha=.27*envelope;ctx.drawImage(s.footage.video,0,0,w,h);}
-   const tint=ctx.createLinearGradient(0,top,0,h);tint.addColorStop(0,'rgba(148,163,144,.10)');tint.addColorStop(1,'rgba(36,57,57,.24)');ctx.globalAlpha=envelope;ctx.fillStyle=tint;ctx.fillRect(0,top-8,w,h);
-   ctx.strokeStyle='rgba(208,222,207,.36)';for(let i=0;i<7;i++){ctx.beginPath();for(let x=0;x<=w+6;x+=6){const y=top+i*10+Math.sin(x*.035+t*1.2+i)*5;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineWidth=i? .6:1.5;ctx.stroke();}ctx.restore();
+   // One continuous full-card current; no second framing or moving cut line.
+   s.waterTop=0;p?.style.setProperty('--pd-water-top','0%');
   }
  }
  function frame(now){
@@ -455,11 +452,11 @@
    contactSurface(s,t,dt,envelope);
    if(s.cfg.mist&&!s.film)atmosphere(s,t,dt,envelope);
    if(s.particles.length&&!s.wind)debris(s,t,dt,envelope);
-   if(s.cfg.water&&!s.film)water(s,t,envelope);
+   if(s.cfg.water&&!s.film&&!(s.cfg.type==='flood'&&(s.physics||s.footage?.isReady())))water(s,t,envelope);
    if(s.floating.length&&!(s.physics&&s.cfg.type==='flood'))surfaceDebris(s,t,dt,envelope);
    s.monitor?.draw(t);
    const ready=s.footage?.isReady();
-   s.physics?.draw(t,dt,envelope,{pressure:s.wind?.pressure||0,flash:s.flash||0,waterTop:s.waterTop,video:ready?s.footage.video:null});
+   s.physics?.draw(t,dt,envelope,{pressure:s.wind?.pressure||0,flash:s.flash||0,waterTop:s.waterTop,fallback:!ready&&!s.film});
    s.film?.draw(t,{...s.cfg,gust:s.wind?.pressure||0,windTravel:s.wind?.travel??t*.25,flash:s.flash||0,waterTop:s.waterTop},(s.demoLightning||p.dataset.lightning==='on')&&s.cfg.type==='storm',ready);
   }
   raf=requestAnimationFrame(frame);
