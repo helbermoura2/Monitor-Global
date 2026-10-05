@@ -374,13 +374,15 @@
   if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
   const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
-  let failed=false,dead=false,playing=false,wanted=false;
+  let failed=false,dead=false,playing=false,wanted=false,presented=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}
   function pause(){wanted=false;video.pause();}
   function resize(w,h){video.style.top='0px';video.style.height=h+'px';}
   function destroy(){dead=true;pause();video.removeAttribute('src');video.load();video.remove();}
-  video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{if(wanted&&!document.hidden)play();});
-  return {video,play,pause,resize,destroy,isReady:()=>!failed&&video.readyState>=2&&!video.paused};
+  video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{presented=true;if(wanted&&!document.hidden)play();});
+  // Keep the last photographic frame through a loop seek or brief buffering.
+  // The procedural reserve must not flash over an already presented flood video.
+  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(cfg.type==='flood'?presented:video.readyState>=2&&!video.paused)};
  }
  window.CardCinemaFilm={create,footage};
 })();

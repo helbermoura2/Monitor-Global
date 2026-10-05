@@ -16,6 +16,10 @@ for(const width of [1280,390])test('enchente tem um único vídeo sem cópia, fa
  const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);await expect(video).toHaveAttribute('src','media/card-fx/flood-current.mp4');
  await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);await expect(video).toHaveCSS('clip-path','none');
  await expect.poll(()=>page.locator('.pd-cinema-film').evaluate(c=>{const gl=c.getContext('webgl'),pixels=new Uint8Array(4);gl.readPixels(Math.floor(c.width/2),Math.floor(c.height/2),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixels);return pixels[3];})).toBe(0);
+ // Buffering keeps the last displayed frame, rather than revealing a second water scene.
+ await video.evaluate(v=>Object.defineProperty(v,'readyState',{value:1,configurable:true}));await page.waitForTimeout(250);
+ expect(await page.locator('.pd-cinema-film').evaluate(c=>{const gl=c.getContext('webgl'),p=new Uint8Array(4);gl.readPixels(c.width>>1,c.height>>1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return p[3];})).toBe(0);
+ await video.evaluate(v=>{delete v.readyState;});
  await expect.poll(()=>page.locator('.pd-weather-material').evaluate(c=>!c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v>0))).toBe(true);
  const before=await video.evaluate(v=>v.currentTime);await expect.poll(()=>video.evaluate((v,t)=>Math.abs(v.currentTime-t)>.15,before)).toBe(true);
  const first=await video.elementHandle();
