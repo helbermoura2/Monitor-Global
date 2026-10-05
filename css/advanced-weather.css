@@ -22,3 +22,4 @@
 #painel-direito.pd-cinema-active:is(.pd-fx-storm,.pd-fx-flood) #pd-gauge{opacity:.27}
 #painel-direito.pd-cinema-active:is(.pd-fx-storm,.pd-fx-flood) #pd-gauge-arc{filter:none;stroke-width:3}
 #painel-direito.pd-cinema-active:is(.pd-fx-storm,.pd-fx-flood) .pd-cinema-symbol{color:#d7e5e8;filter:drop-shadow(0 1px 3px #05121a)}
+#painel-direito.pd-cinema-active.pd-fx-flood #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:nowrap}
