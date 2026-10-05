@@ -112,7 +112,7 @@ test('revisão silenciosa atualiza textos e hemisfério sem reiniciar a mesma fa
  // startup finishes. Insert this fixture after that cleanup, and advance the
  // headline animation explicitly instead of depending on software-GPU speed.
  await page.waitForFunction(()=>fonteBooted('hurricane'));
- await page.clock.install();await page.clock.pauseAt(Date.now()+100);
+ await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+10000));
  await page.evaluate(()=>{
   const item={id:'cyclone-live',type:'hurricane',source:'Visual QA',place:'JOANA',cycloneLabel:'Furacão',classification:'HU',windKmh:150,coords:[-45,18],time:Date.now()};
   globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
