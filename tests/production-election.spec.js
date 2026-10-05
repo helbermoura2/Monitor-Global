@@ -16,6 +16,7 @@ test('apuração publicada usa TSE real e mostra votos e percentuais no desktop'
   });
   await page.goto(base, {waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => !!window.ElectionPanel);
+  expect(await page.evaluate(() => String(queueNewCameraQuakes).includes('ElectionPanel'))).toBe(true);
   await page.locator('#chip-election').click();
   await page.locator('[data-election-turn="1"]').click();
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results', {timeout: 30000});
