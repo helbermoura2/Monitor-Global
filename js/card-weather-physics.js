@@ -3,11 +3,11 @@
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
  function create(cfg,mobile,panel){
-  if(!['storm','hurricane','wind','flood'].includes(cfg.type))return null;
+  if(!['storm','hurricane','wind','flood','tsunami'].includes(cfg.type))return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material';canvas.setAttribute('aria-hidden','true');
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   let w=1,h=1,dead=false,measureAt=-1,ledges=[],groups=[],bolt=[],boltAt=-10;
-  const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=cfg.type==='flood';
+  const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=['flood','tsunami'].includes(cfg.type);
   const drops=Array.from({length:rain?(mobile?150:300):0},()=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,seed:rand(0,TAU)}));
   const matter=Array.from({length:cfg.type==='wind'?(mobile?85:155):flood?(mobile?35:65):0},(_,i)=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,phase:rand(0,TAU),leaf:i%5===0}));
   const impacts=[],lenses=[];
@@ -94,7 +94,7 @@
   function inundation(t,dt,envelope,fallback){
    // The footage is displayed once, by its video element. Never sample or redraw it.
    if(fallback){
-    const base=ctx.createLinearGradient(0,0,w,h);base.addColorStop(0,'#786447');base.addColorStop(.45,'#554934');base.addColorStop(1,'#342f25');ctx.globalAlpha=envelope;ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
+    const base=ctx.createLinearGradient(0,0,w,h);base.addColorStop(0,cfg.type==='tsunami'?'#656d63':'#786447');base.addColorStop(.45,cfg.type==='tsunami'?'#424b43':'#554934');base.addColorStop(1,cfg.type==='tsunami'?'#252e29':'#342f25');ctx.globalAlpha=envelope;ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
     for(let j=0;j<37;j++){
      const depth=(j*.618)%1,yy=h*depth+Math.sin(t*.7+j)*4,center=(((j*.381+t*(.025+depth*.025))%1)*1.3-.15)*w;
      ctx.strokeStyle='rgba(217,204,166,'+(.045+(1-depth)*.11).toFixed(3)+')';ctx.lineWidth=1+depth*2;
@@ -108,7 +108,7 @@
    }
    for(const g of groups){
     g.el.classList.add('pd-water-submerged');
-    g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*.85-fraction*3+g.y*.012;el.style.transform='translate3d('+(Math.sin(phase)*.65).toFixed(2)+'px,'+(Math.cos(phase*.8)*.4).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*.5).toFixed(2)+'deg)';});
+    g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*.85-fraction*3+g.y*.012;el.style.transform='translate3d('+(Math.sin(phase)*(cfg.type==='tsunami'?1.05:.65)).toFixed(2)+'px,'+(Math.cos(phase*.8)*(cfg.type==='tsunami'?.65:.4)).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*.5).toFixed(2)+'deg)';});
    }
   }
   function draw(t,dt,envelope,current){

@@ -38,29 +38,21 @@
   color=mix(color,vec3(1.,.91,.61),core*.82);
   return vec4(color,body*shape*amount*smoothstep(.025,.32,intensity));
  }
- vec4 water(vec2 p,bool surge){
-  float phase=mod(uTime,12.);
-  float advance=surge?(phase<2.?-phase*.013:phase<7.?(phase-2.)*.03:.15*(12.-phase)/5.):0.;
-  float line=.60+advance+.018*sin(p.x*7.+uTime*.7)+.009*sin(p.x*17.-uTime);
-  float fill=1.-smoothstep(line-.01,line+.013,p.y);
-  float depth=clamp(line-p.y,0.,1.);
-  vec2 ocean=vec2((p.x-.5)*(1.+depth*2.4),depth*4.5);
-  vec2 grad=vec2(0.);float crest=0.;
-  for(int i=0;i<5;i++){
-   float k=float(i)+1.,angle=k*1.24,frequency=10.+k*9.;vec2 direction=vec2(cos(angle),sin(angle));
-   float theta=dot(ocean,direction)*frequency+uTime*(.46+k*.19);
-   grad+=direction*cos(theta)*(.16/k);crest+=sin(theta)*(.10/k);
-  }
-  vec3 normal=normalize(vec3(grad.x,1.,grad.y));
-  float spec=pow(max(dot(normal,normalize(vec3(.24,1.,.3))),0.),38.);
-  float reflection=fbm(ocean*8.+vec2(uTime*.17,-uTime*.11));
-  vec3 color=mix(vec3(.025,.115,.17),vec3(.16,.40,.47),reflection*.65+crest*.8);
-  color+=vec3(.67,.87,.90)*spec*.65;
-  float foam=exp(-abs(p.y-line)*180.)*(.20+.50*noise(vec2(p.x*100.+uTime*3.,uTime*.8)));
-  if(surge)color=mix(color,vec3(.84,.94,.92),foam);
-  float caustics=pow(abs(sin(ocean.x*55.+crest*12.)*sin(ocean.y*44.-uTime*.4)),12.);
-  color+=vec3(.16,.31,.32)*caustics*.3;
-  return vec4(color,fill*(.64+spec*.19)+foam*.22);
+ // Turbulent coastal bore reserve: a broken front, entrained foam and eddies.
+ // It is replaced completely once the single photographic scene has presented.
+ vec4 coastalBore(vec2 p){
+  vec2 flow=vec2(p.x*3.6-uTime*.21,p.y*5.2+uTime*.36);
+  vec2 curl=vec2(fbm(flow),fbm(flow+vec2(4.1,7.3)))-.5;
+  float mass=fbm(flow+curl*2.8),grain=noise(flow*33.+curl*4.);
+  float crest=.50+.16*sin(uTime*.37)+.10*sin(p.x*4.1+uTime*.18);
+  float front=p.y-crest+(mass-.5)*.15;
+  float turbulence=exp(-abs(front)*9.);
+  float foam=smoothstep(.42,.70,mass+grain*.18+turbulence*.22);
+  float relief=mass-fbm(flow+vec2(.055,.04)+curl*2.8);
+  vec3 current=mix(vec3(.055,.064,.057),vec3(.31,.32,.27),mass);
+  current+=vec3(.23,.25,.23)*clamp(relief*6.+.12,0.,.75);
+  current=mix(current,vec3(.68,.71,.66),foam*(.36+turbulence*.48));
+  return vec4(current,.93);
  }
  vec4 lava(vec2 uv){
   vec2 p=vec2(uv.x*4.,uv.y*5.-uTime*.055);
@@ -324,8 +316,7 @@
     // Procedural current is a reserve only, never a second moving water image.
     scene=uFootage>.5?vec4(0.):river(local);
    }else{
-    scene=uFootage>.5?vec4(.035,.09,.125,.13+.04*noise(uv*8.+uTime*.035)):over(water(local,true),scene);
-    scene=over(vapor(vec2(uv.x*3.+uTime*.03,uv.y*5.),.12,vec3(.36,.50,.58)),scene);
+    scene=uFootage>.5?vec4(0.):coastalBore(local);
    }
   }else{
    // Thin, wind-sheared haze, with broad light and fine suspended dust.
@@ -372,7 +363,7 @@
  }
  function footage(cfg){
   if(!(cfg.type in modes)||['hurricane','storm','wind'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
-  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'surge':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
+  const key=cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'tsunami-inundation':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';
   let failed=false,dead=false,playing=false,wanted=false,presented=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}
@@ -381,8 +372,8 @@
   function destroy(){dead=true;pause();video.removeAttribute('src');video.load();video.remove();}
   video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{presented=true;if(wanted&&!document.hidden)play();});
   // Keep the last photographic frame through a loop seek or brief buffering.
-  // The procedural reserve must not flash over an already presented flood video.
-  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(cfg.type==='flood'?presented:video.readyState>=2&&!video.paused)};
+  // The procedural reserve must not flash over an already presented water video.
+  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','tsunami'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused)};
  }
  window.CardCinemaFilm={create,footage};
 })();
