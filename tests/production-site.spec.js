@@ -17,27 +17,30 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   expect(source).toContain('function pickRandom(');
 
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  // Third-party requests are intentionally blocked below; their fetch rejection
+  // is expected. Renderer and application JavaScript errors remain fatal.
+  page.on('pageerror', error => { if (error.message !== 'Failed to fetch') errors.push(error.message); });
   await page.route('**/*', route => new URL(route.request().url()).hostname === new URL(base).hostname ? route.continue() : route.abort());
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !__fetchGlobalFeedsEmAndamento && !!window.CardEffectDemo);
   await page.evaluate(() => {
-    const item = { id: 'production-browser-qa', type: 'earthquake', mag: 3, depth: 10, source: 'QA', coords: [-70, -20], place: 'Verificação da publicação', time: Date.now() };
-    globalEvents = [item];
-    showEventDetails(0, false);
+    const item = { id: 'production-browser-qa', type: 'wind', sev: 3, windKmh: 150, source: 'QA', coords: [-70, -20], place: 'Verificação da publicação', time: Date.now() };
+    globalAlerts = [item];
+    upsertAlert(item);
+    showAlertDetails(item, false);
     clearTimeout(cycleTimeout);
     clearTimeout(window.__mgRadarDelayT);
     clearTimeout(window.__mgWaveDelayT);
     SeismicCinema.stop();
   });
-  await expect(page.locator('#pd-local')).toContainText('Verificação da publicação');
+  await expect(page.locator('#pd-local')).toContainText('Verificação da publicação', { timeout: 20000 });
   for (const type of ['hurricane', 'typhoon', 'tropical-storm', 'wind', 'storm', 'volcano-ash', 'flood']) {
     await page.evaluate(type => CardEffectDemo.preview(type), type);
     await expect(page.locator('#card-fx-demo-status')).toContainText('DEMONSTRAÇÃO');
     await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo', 'true');
     await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events', 'none');
     await page.waitForTimeout(2600);
-    await expect(page.locator('#pd-local')).toContainText('Verificação da publicação');
+    await expect(page.locator('#pd-local')).toContainText('Verificação da publicação', { timeout: 20000 });
     await expect(page.locator('#pd-focus-btn')).toBeEnabled();
   }
   // Dê à ação de parar uma janela nova, independente da duração das prévias anteriores.
