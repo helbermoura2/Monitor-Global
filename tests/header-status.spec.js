@@ -3,6 +3,7 @@ test.use({serviceWorkers:'block'});
 test('status único, previsão completa e retorno ao cabeçalho móvel',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto('/',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#loading-indicator')).toHaveCount(0);
  await page.evaluate(()=>document.getElementById('sp-rain-eta').textContent='Prev. 15–60m · 1,5–4,2mm/1h');
  for(const width of [1101,1280,1920,390,844,1280]){
   await page.setViewportSize({width,height:width===390?844:720});
@@ -16,5 +17,12 @@ test('status único, previsão completa e retorno ao cabeçalho móvel',async({p
   if(width>1100){expect(state['sp-live-card'].x).toBeGreaterThanOrEqual(state.logo.x+state.logo.w);expect(state['sp-live-card'].x+state['sp-live-card'].w).toBeLessThanOrEqual(state['kpibox-brent'].x+1);expect(state['ao-vivo-badge'].y).toBeGreaterThanOrEqual(state['sp-live-card'].y+state['sp-live-card'].h);await expect(page.locator('#freshness-bar #ao-vivo-badge')).toBeVisible();await expect(page.locator('#fresh-sismo')).toBeHidden();expect(await page.locator('#sp-rain-eta').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBeTruthy();const rain=await page.locator('#sp-rain-eta').boundingBox();expect(rain.x+rain.width).toBeLessThanOrEqual(state['kpibox-brent'].x);expect(state['ao-vivo-badge'].x+state['ao-vivo-badge'].w).toBeLessThanOrEqual(width);}
   else {await expect(page.locator('.ts-mainrow > #ao-vivo-badge')).toHaveCount(1);if(width===390)await expect(page.locator('#ao-vivo-badge')).toBeVisible();}
  }
+ await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await page.evaluate(()=>{window.__lastSismoSuccess=Date.now();window.__sismoUsingCache=false;MonitorFreshness.beginQuakes();});
+ await expect(page.locator('#ao-vivo-badge .av-label')).toHaveText('ATUALIZANDO');
+ await expect(page.locator('#ao-vivo-badge #kpi-relogio')).toBeVisible();
+ await expect(page.locator('#loading-indicator')).toHaveCount(0);
+ await page.evaluate(()=>MonitorFreshness.endQuakes());
+ await expect(page.locator('#ao-vivo-badge .av-label')).not.toHaveText('ATUALIZANDO');
  await page.locator('#ao-vivo-badge').click();await expect(page.locator('#mg-fresh-dialog')).toBeVisible();
 });

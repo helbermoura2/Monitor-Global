@@ -84,9 +84,6 @@ async function fetchGlobalFeeds() {
     window.MonitorFreshness?.beginQuakes();
 
     try {
-        const loading = document.getElementById('loading-indicator');
-        if (loading) loading.style.display = 'flex';
-
         const startTime = new Date(Date.now() - 36 * 3600000).toISOString();
         const endTime = new Date(Date.now() + 5 * 60000).toISOString();
 
@@ -580,8 +577,6 @@ async function fetchGlobalFeeds() {
     } finally {
         __fetchGlobalFeedsEmAndamento = false;
         window.MonitorFreshness?.endQuakes();
-        const loading = document.getElementById('loading-indicator');
-        if (loading) loading.style.display = 'none';
         try {
             if (typeof updateFreshnessUI === 'function') updateFreshnessUI();
         } catch (e) {}
