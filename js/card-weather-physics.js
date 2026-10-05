@@ -11,10 +11,9 @@
   const drops=Array.from({length:rain?(mobile?150:300):0},()=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,seed:rand(0,TAU)}));
   const matter=Array.from({length:cfg.type==='wind'?(mobile?85:155):flood?(mobile?35:65):0},(_,i)=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,phase:rand(0,TAU),leaf:i%5===0}));
   const impacts=[],lenses=[];
-  const waterBuffer=document.createElement('canvas'),waterCtx=waterBuffer.getContext('2d');
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';
   const optics=document.createElementNS('http://www.w3.org/2000/svg','svg');optics.setAttribute('width','0');optics.setAttribute('height','0');optics.setAttribute('aria-hidden','true');
-  optics.innerHTML='<defs><filter id="pd-weather-drop-optics" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".15 .23" numOctaves="1" seed="7" result="surface"/><feDisplacementMap in="SourceGraphic" in2="surface" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter><filter id="pd-weather-water-optics" x="-4%" y="-12%" width="108%" height="124%"><feTurbulence type="fractalNoise" baseFrequency=".02 .09" numOctaves="1" seed="4" result="current"/><feDisplacementMap in="SourceGraphic" in2="current" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';
+  optics.innerHTML='<defs><filter id="pd-weather-drop-optics" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".15 .23" numOctaves="1" seed="7" result="surface"/><feDisplacementMap in="SourceGraphic" in2="surface" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter><filter id="pd-weather-water-optics" x="-4%" y="-12%" width="108%" height="124%"><feTurbulence type="fractalNoise" baseFrequency=".02 .09" numOctaves="1" seed="4" result="current"/><feDisplacementMap in="SourceGraphic" in2="current" scale=".9" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';
   lensLayer.append(optics);
   if(rain)for(let i=0;i<(mobile?6:10);i++){
    const el=document.createElement('i');el.className='pd-weather-lens';lensLayer.append(el);
@@ -31,7 +30,7 @@
    ledges=Array.from(panel.querySelectorAll('.stat-card,.bubble-section,.source-trust-card,.pd-header-row'),el=>{const r=el.getBoundingClientRect();return {x:(r.left-pr.left)*sx,y:(r.top-pr.top)*sy,width:r.width*sx};}).filter(r=>r.y>10&&r.y<h-8);
    if(flood)groups=Array.from(panel.querySelectorAll('[data-cyclone-text]'),el=>{const r=el.getBoundingClientRect();return {el,y:(r.top-pr.top)*sy,letters:Array.from(el.querySelectorAll('.pd-fx-windletter'))};});
   }
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(flood){waterBuffer.width=Math.round(w);waterBuffer.height=Math.round(h);}measureAt=-1;}
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
   function splash(x,y,force){if(impacts.length<(mobile?45:85))impacts.push({x,y,life:0,force,seed:rand(0,TAU)});}
   function precipitation(t,dt,pressure,flash,envelope){
    // Exposure and drag depend on depth: distant fine sheets, near fast drops.
@@ -92,37 +91,24 @@
     ctx.restore();
    }
   }
-  function waterline(x,t,top){return top+Math.sin(x*.027-t*1.65)*6+Math.sin(x*.071+t*2.4)*2.5+Math.sin(x*.13-t*3.2)*.8;}
-  function inundation(t,dt,top,envelope,video){
-   const y=top*h;ctx.save();ctx.beginPath();for(let x=-8;x<=w+8;x+=4){const wy=waterline(x,t,y);x===-8?ctx.moveTo(x,wy):ctx.lineTo(x,wy);}ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.clip();
-   // The existing local video decoder supplies texture; horizontal slices refract it.
-   if(video?.readyState>=2&&video.videoWidth){
-    waterCtx.clearRect(0,0,w,h);
-    const vw=video.videoWidth,vh=video.videoHeight;
-    // Composite once: overlaps must not create bright horizontal scanlines.
-    for(let sy=Math.max(0,Math.floor(y-10));sy<h;sy+=5){const shift=Math.sin(sy*.05-t*2.5)*4+Math.sin(sy*.13+t)*2;waterCtx.drawImage(video,0,sy/h*vh,vw,Math.min(5.8/h*vh,vh-sy/h*vh),shift,sy,w,5.8);}
-    ctx.globalAlpha=.34*envelope;ctx.drawImage(waterBuffer,0,0,w,h);
-   }
-   ctx.globalAlpha=envelope;const absorption=ctx.createLinearGradient(0,y,0,h);absorption.addColorStop(0,'rgba(159,135,84,.10)');absorption.addColorStop(.3,'rgba(91,77,44,.13)');absorption.addColorStop(1,'rgba(34,38,28,.31)');ctx.fillStyle=absorption;ctx.fillRect(0,y-10,w,h);
-   // Perspective stretches highlights and foam as they approach the observer.
-   for(let j=0;j<23;j++){const depth=((j*.618)%1),yy=y+(h-y)*depth,center=(((j*.381+t*(.03+depth*.02))%1)*1.2-.1)*w;
-    ctx.strokeStyle='rgba(225,217,181,'+(.025+(1-depth)*.09).toFixed(3)+')';ctx.lineWidth=.35+depth*.6;
-    const span=12+depth*40;ctx.beginPath();ctx.moveTo(center-span,yy);ctx.bezierCurveTo(center-span*.3,yy-2,center+span*.3,yy+2,center+span,yy-1);ctx.stroke();
-   }
-   ctx.setLineDash([]);
-   for(const p of matter){p.x+=dt*(.09+p.z*.17);if(p.x>1.1){p.x=-.1;p.y=Math.random();}const depth=.08+p.y*.92,xx=p.x*w,yy=y+(h-y)*depth+Math.sin(t*2+p.phase)*2;
-    ctx.save();ctx.translate(xx,yy);ctx.rotate(Math.sin(t+p.phase)*.3);ctx.globalAlpha=envelope*(.18+depth*.33);
-    if(p.leaf){ctx.fillStyle='#35291a';ctx.fillRect(-4*p.z,-1.5,12*p.z,2.6);ctx.strokeStyle='#b5a781';ctx.lineWidth=.5;ctx.strokeRect(-4*p.z,-1.5,12*p.z,2.6);}
-    else {ctx.strokeStyle='#e3debb';ctx.lineWidth=.55;ctx.beginPath();ctx.ellipse(0,0,2+p.z*5,.7+p.z,0,0,TAU);ctx.stroke();}ctx.restore();
-   }
-   ctx.restore();
-   // The contact angle at the glass gives a dark lip and an irregular bright rim.
-   for(const [offset,color,width] of [[3,'rgba(18,29,25,.65)',4],[0,'rgba(215,222,196,.56)',1.2],[-2,'rgba(240,240,219,.20)',.65]]){
-    ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();for(let x=-8;x<=w+8;x+=4){const yy=waterline(x,t,y)+offset;x===-8?ctx.moveTo(x,yy):ctx.lineTo(x,yy);}ctx.stroke();
+  function inundation(t,dt,envelope,fallback){
+   // The footage is displayed once, by its video element. Never sample or redraw it.
+   if(fallback){
+    const base=ctx.createLinearGradient(0,0,w,h);base.addColorStop(0,'#786447');base.addColorStop(.45,'#554934');base.addColorStop(1,'#342f25');ctx.globalAlpha=envelope;ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
+    for(let j=0;j<37;j++){
+     const depth=(j*.618)%1,yy=h*depth+Math.sin(t*.7+j)*4,center=(((j*.381+t*(.025+depth*.025))%1)*1.3-.15)*w;
+     ctx.strokeStyle='rgba(217,204,166,'+(.045+(1-depth)*.11).toFixed(3)+')';ctx.lineWidth=1+depth*2;
+     const span=18+depth*55;ctx.beginPath();ctx.moveTo(center-span,yy);ctx.bezierCurveTo(center-span*.3,yy-4,center+span*.3,yy+4,center+span,yy-2);ctx.stroke();
+    }
+    for(const p of matter){
+     p.x+=dt*(.09+p.z*.17);if(p.x>1.1){p.x=-.1;p.y=Math.random();}
+     ctx.strokeStyle='rgba(223,214,186,'+(.13+p.z*.23).toFixed(3)+')';ctx.lineWidth=.5+p.z;ctx.beginPath();ctx.ellipse(p.x*w,p.y*h,2+p.z*6,.6+p.z,0,0,TAU);ctx.stroke();
+    }
+    ctx.globalAlpha=1;
    }
    for(const g of groups){
-    const submerged=g.y>y+8;g.el.classList.toggle('pd-water-submerged',submerged);
-    g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*2.1-fraction*5+g.y*.018;if(submerged)el.style.transform='translate3d('+(Math.sin(phase)*2.4).toFixed(2)+'px,'+(Math.cos(phase*.8)*1.3).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*2.8).toFixed(2)+'deg)';else el.style.removeProperty('transform');});
+    g.el.classList.add('pd-water-submerged');
+    g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*.85-fraction*3+g.y*.012;el.style.transform='translate3d('+(Math.sin(phase)*.65).toFixed(2)+'px,'+(Math.cos(phase*.8)*.4).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*.5).toFixed(2)+'deg)';});
    }
   }
   function draw(t,dt,envelope,current){
@@ -130,9 +116,9 @@
    const pressure=current.pressure||0,flash=current.flash||0;
    if(rain){precipitation(t,dt,pressure,flash,envelope);if(cfg.type==='storm')lightning(t,flash);}
    if(cfg.type==='wind')airborne(t,dt,pressure,envelope);
-   if(flood)inundation(t,dt,current.waterTop??.88,envelope,current.video);
+   if(flood)inundation(t,dt,envelope,current.fallback);
   }
-  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>el.style.removeProperty('transform'));}leaf.width=leaf.height=waterBuffer.width=waterBuffer.height=1;impacts.length=0;groups=[];ledges=[];}
+  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>el.style.removeProperty('transform'));}leaf.width=leaf.height=1;impacts.length=0;groups=[];ledges=[];}
   return {canvas,lensLayer,resize,draw,destroy};
  }
  window.CardWeatherPhysics={create};

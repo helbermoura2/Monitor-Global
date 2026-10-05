@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v608-volcano-crater';
+const CACHE = 'monitor-global-pro-v609-seamless-flood';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

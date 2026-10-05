@@ -142,7 +142,7 @@ for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no 
  const initial=await video.evaluate(v=>v.currentTime);
  // A looping clip can advance through its end and return to a smaller time.
  await expect.poll(()=>video.evaluate((v,time)=>Math.abs(v.currentTime-time)>.05,initial)).toBe(true);
- const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/current.mp4'});
+ const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/flood-current.mp4'});
  await expect(page.locator('#pd-mag svg.pd-cinema-symbol')).toHaveCount(1);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
@@ -171,6 +171,6 @@ test('vento move as letras preservando o conteúdo do local',async({page})=>{
 });
 
 
-for(const width of [1280,390])test('água sobe pela frente do cartão e não bloqueia foco '+width,async({page})=>{
- await boot(page,width);await select(page,'flood');const before=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));await page.waitForTimeout(2000);const after=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(after).toBeLessThan(before);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
+for(const width of [1280,390])test('correnteza cobre o cartão continuamente e não bloqueia foco '+width,async({page})=>{
+ await boot(page,width);await select(page,'flood');await expect(page.locator('.pd-cinema-footage')).toHaveCSS('clip-path','none');await page.waitForTimeout(2000);const top=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(top).toBe(0);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
 });
