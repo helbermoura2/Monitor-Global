@@ -138,3 +138,8 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-storm,body.mobile
 @media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-storm{translate:none!important;rotate:none!important}#painel-direito.pd-fx-storm .pd-chip{translate:none!important}}
 
 #painel-direito.pd-cinema-active.pd-fx-storm #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:nowrap}
+
+/* Actual coastal inundation footage occupies the entire card with one decoder. */
+#painel-direito.pd-fx-tsunami .pd-cinema-footage{clip-path:none;object-fit:cover;object-position:center;filter:saturate(.92) contrast(1.04);opacity:.95}
+#painel-direito.pd-fx-tsunami .pd-cinema-layer::after{background:linear-gradient(180deg,rgba(6,13,17,.40),rgba(6,13,17,.25) 35%,rgba(6,13,17,.36))}
+#painel-direito.pd-fx-tsunami .pd-cinema-symbol{color:#d8e0d9;animation:none}

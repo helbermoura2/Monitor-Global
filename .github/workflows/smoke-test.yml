@@ -126,7 +126,7 @@ jobs:
             npx playwright install --with-deps chromium
           fi
       - name: Validar materiais, volume e eventos reais
-        run: npx playwright test tests/advanced-weather.spec.js tests/storm-atmosphere.spec.js tests/real-effects-parity.spec.js tests/volcano-monitoring.spec.js tests/flood-continuity.spec.js --workers=1
+        run: npx playwright test tests/advanced-weather.spec.js tests/storm-atmosphere.spec.js tests/real-effects-parity.spec.js tests/volcano-monitoring.spec.js tests/flood-continuity.spec.js tests/tsunami-inundation.spec.js --workers=1
       - name: Publicar prévias dos materiais
         if: always()
         uses: actions/upload-artifact@v4
@@ -136,6 +136,7 @@ jobs:
             /tmp/advanced-weather-*.png
             /tmp/volcano-monitoring-*.png
             /tmp/flood-continuous-*.png
+            /tmp/tsunami-inundation-*.png
           retention-days: 7
 
   production:

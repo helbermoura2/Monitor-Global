@@ -11,7 +11,7 @@ async function isolated(page,mobile=false){
 for(const mobile of [false,true])test('materiais sem GPU: chuva, vento e água preservam conteúdo, controles e limpeza '+mobile,async({page})=>{
  await isolated(page,mobile);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const original=await page.locator('#painel-direito').innerText();
- for(const type of ['storm','hurricane','wind','flood']){
+ for(const type of ['storm','hurricane','wind','flood','tsunami']){
   const result=await page.evaluate(type=>{
    const start=performance.now();CinematicCard.start({id:type,type,windKmh:150,classification:type==='hurricane'?'TS':undefined},Infinity);
    // Draw actual frames at 30 Hz, including the full-frame flood reserve.
@@ -21,7 +21,7 @@ for(const mobile of [false,true])test('materiais sem GPU: chuva, vento e água p
    return {wet:data.some((v,i)=>i%4===3&&v>15),topAlpha,submerged:document.querySelectorAll('.pd-water-submerged').length,secondary:Array.from(document.querySelectorAll('#pd-source .pd-fx-windletter,.stat-card .pd-fx-windletter')).some(el=>el.style.transform),waterTop:parseFloat(document.getElementById('painel-direito').style.getPropertyValue('--pd-water-top'))};
   },type);
   expect(result.wet,type).toBe(true);
-  if(type==='flood'){expect(result.topAlpha).toBeGreaterThan(0);expect(result.submerged).toBeGreaterThan(0);expect(result.waterTop).toBe(0);}
+  if(['flood','tsunami'].includes(type)){expect(result.topAlpha).toBeGreaterThan(0);expect(result.submerged).toBeGreaterThan(0);expect(result.waterTop).toBe(0);}
   else expect(result.secondary,type).toBe(true);
   expect(await page.locator('#painel-direito').innerText()).toBe(original);
   await expect(page.locator('.stat-card-value b')).toHaveCSS('color','rgb(240, 210, 120)');
