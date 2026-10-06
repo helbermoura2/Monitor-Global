@@ -9,9 +9,14 @@ on:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    # The full suite now has 98 scenarios, including software-GPU scenes.
-    # Leave time for setup and cleanup after the tests print their result.
-    timeout-minutes: 20
+    # A suíte inteira (98+ cenários) não cabe mais num job só dentro de um
+    # tempo razoável -- dividida em 3 shards paralelos (Playwright
+    # --shard=N/M) em vez de ficar só aumentando o timeout a cada PR.
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +38,7 @@ jobs:
           fi
 
       - name: Validar exposição populacional e reservas
+        if: matrix.shard == 1
         run: |
           node tests/unit/population-exposure-check.mjs
           node tests/unit/population-check.cjs
@@ -49,14 +55,14 @@ jobs:
           node tests/unit/weather-observations-check.mjs
           node tests/unit/tse-results-check.mjs
 
-      - name: Rodar testes de fumaça
-        run: npx playwright test
+      - name: Rodar testes de fumaça (shard ${{ matrix.shard }}/3)
+        run: npx playwright test --shard=${{ matrix.shard }}/3
 
       - name: Publicar relatório em caso de falha
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
 
