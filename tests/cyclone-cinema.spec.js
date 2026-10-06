@@ -25,7 +25,8 @@ for(const width of [1280,390])test('ciclones cinematográficos preservam dados e
   await page.waitForTimeout(1500);
   // O card da demonstração mostra o texto/gauge/seleção do TIPO escolhido (ver CardEffectDemo.preview()) -- só os dados reais por baixo precisam ficar intactos.
   expect(await page.evaluate(()=>({events:JSON.stringify(globalEvents)}))).toEqual(before);
-  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+  // Item de demonstração não tem coords reais -- "focar no mapa" ficaria sem destino, então o botão some (mesmo tratamento de qualquer alerta regional sem localização verificada). Condiz com "nunca mover a câmera" do diálogo da demonstração.
+  await expect(page.locator('#pd-focus-btn')).toBeHidden();
   await page.screenshot({path:'/tmp/cyclone-'+key+'-'+width+'.png'});
   if(width===390){
    await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});

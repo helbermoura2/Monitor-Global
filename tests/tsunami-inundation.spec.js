@@ -36,7 +36,8 @@ for(const width of [1280,390])test('tsunami invade o cartão com uma cena única
  expect(attributes).toEqual({muted:true,loop:true,inline:true,width:432,height:768});expect(duration).toBeCloseTo(8.68,1);
  await video.evaluate(v=>{v.currentTime=v.duration-.35;});await expect.poll(()=>video.evaluate(v=>v.currentTime<1&&!v.paused),{timeout:12000,intervals:[50,100,200]}).toBe(true);
  expect(await video.evaluate(v=>{const r=v.getBoundingClientRect(),p=document.getElementById('painel-direito');return Math.abs(r.height-p.clientHeight)<1&&r.width>=p.clientWidth-1;})).toBe(true);
- expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+ // Item de demonstração não tem coords reais -- "focar no mapa" ficaria sem destino, então o botão some (mesmo tratamento de qualquer alerta regional sem localização verificada).
+ await expect(page.locator('#pd-focus-btn')).toBeHidden();
  await video.evaluate(v=>{v.currentTime=4;});await expect.poll(()=>video.evaluate(v=>!v.seeking)).toBe(true);
  await page.locator('#painel-direito').screenshot({path:'/tmp/tsunami-inundation-'+width+'.png'});
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-cinema-footage,.pd-cinema-layer,.pd-weather-material')).toHaveCount(0);

@@ -33,7 +33,8 @@ for(const width of [1280,390])test('enchente tem um único vídeo sem cópia, fa
  expect(attributes).toEqual({muted:true,loop:true,inline:true,width:432,height:768});expect(duration).toBeCloseTo(9,1);
  await video.evaluate(v=>{v.currentTime=v.duration-.35;});await expect.poll(()=>video.evaluate(v=>v.currentTime<1&&!v.paused),{timeout:12000,intervals:[50,100,200]}).toBe(true);
  expect(await video.evaluate(v=>{const r=v.getBoundingClientRect(),p=document.getElementById('painel-direito');return Math.abs(r.height-p.clientHeight)<1&&r.width>=p.clientWidth-1;})).toBe(true);
- expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+ // Item de demonstração não tem coords reais -- "focar no mapa" ficaria sem destino, então o botão some (mesmo tratamento de qualquer alerta regional sem localização verificada).
+ await expect(page.locator('#pd-focus-btn')).toBeHidden();
  await page.locator('#painel-direito').screenshot({path:'/tmp/flood-continuous-'+width+'.png'});
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-cinema-footage,.pd-cinema-layer,.pd-weather-material')).toHaveCount(0);
  await expect(page.locator('#pd-local')).toHaveText(text);
