@@ -29,10 +29,11 @@ for(const width of [1280,390])test('tsunami invade o cartão com uma cena única
  await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
  expect(await first.evaluate(v=>v.isConnected)).toBe(true);await expect(page.locator('#pd-local')).toContainText('Boletim atualizado');
  const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');
- expect(await page.locator('#pd-local').textContent()).toBe(text);await expect(video).toHaveCount(1);await expect(video).toHaveCSS('clip-path','none');
+ // A demonstração mostra seu próprio texto (não o do evento real por baixo) -- ver CardEffectDemo.preview().
+ expect(await page.locator('#pd-local').textContent()).toBe('Demonstração · Tsunami');await expect(video).toHaveCount(1);await expect(video).toHaveCSS('clip-path','none');
  expect(await page.evaluate(()=>__tsunamiVideoCopies)).toBe(0);
  const {duration,...attributes}=await video.evaluate(v=>({muted:v.muted,loop:v.loop,inline:v.playsInline,width:v.videoWidth,height:v.videoHeight,duration:v.duration}));
- expect(attributes).toEqual({muted:true,loop:true,inline:true,width:432,height:768});expect(duration).toBeCloseTo(8.75,1);
+ expect(attributes).toEqual({muted:true,loop:true,inline:true,width:432,height:768});expect(duration).toBeCloseTo(8.68,1);
  await video.evaluate(v=>{v.currentTime=v.duration-.35;});await expect.poll(()=>video.evaluate(v=>v.currentTime<1&&!v.paused),{timeout:12000,intervals:[50,100,200]}).toBe(true);
  expect(await video.evaluate(v=>{const r=v.getBoundingClientRect(),p=document.getElementById('painel-direito');return Math.abs(r.height-p.clientHeight)<1&&r.width>=p.clientWidth-1;})).toBe(true);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);

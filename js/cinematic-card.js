@@ -409,7 +409,9 @@
   }
   raf=requestAnimationFrame(frame);
  }
- reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
+ // CardEffectDemo também precisa ser avisado -- senão o texto/seleção da
+ // demonstração (não só a cena) fica preso quando o movimento reduzido liga.
+ reduced.addEventListener('change',()=>{if(reduced.matches){window.CardEffectDemo?.stop();stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&scene&&!raf){scene.last=performance.now();raf=requestAnimationFrame(frame);}});
  window.addEventListener('pagehide',stop);
  function refresh(item){
