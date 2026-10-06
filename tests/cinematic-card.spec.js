@@ -50,11 +50,12 @@ for(const width of [1280,390])test('cena ocupa o cartão inteiro e mantém os co
   if(width===390)await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
   const video=page.locator('.pd-cinema-footage');if(type==='storm')await expect(video).toHaveCount(0);else await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
   await expect.poll(async()=>{const c=await cardCoverage(page);return Math.abs(c.video.height-c.height)<1&&Math.abs(c.video.top)<1;}).toBe(true);
-  // A primeira pintura do WebGL depois do vídeo/film ficar pronto pode não ter
-  // sido compositada ainda num runner sob carga -- reamostra em vez de um
-  // único snapshot, senão um frame momentaneamente em branco vira falso-negativo.
+  // No CI (canal "chrome", WebGL por software), este é o primeiro canvas
+  // WebGL do worker -- a primeira pintura real pode demorar mais que um
+  // runner ocioso pra compositar. Reamostra com folga maior em vez de 1
+  // snapshot só, senão um frame ainda em branco vira falso-negativo.
   let coverage;
-  await expect.poll(async()=>{coverage=await cardCoverage(page);return coverage.thirds.every(t=>t.mean>8&&t.covered>.3);},{timeout:10000}).toBe(true);
+  await expect.poll(async()=>{coverage=await cardCoverage(page);return coverage.thirds.every(t=>t.mean>8&&t.covered>.3);},{timeout:20000}).toBe(true);
   for(const bounds of [coverage.video,coverage.film]){
    expect(Math.abs(bounds.top)).toBeLessThan(1);expect(Math.abs(bounds.left)).toBeLessThan(1);
    expect(Math.abs(bounds.width-coverage.width)).toBeLessThan(1);expect(Math.abs(bounds.height-coverage.height)).toBeLessThan(1);
@@ -130,7 +131,7 @@ for(const width of [1280,390])test('atmosfera continua visível depois da antiga
   // Mesmo motivo do coverage.thirds acima: reamostra em vez de 1 snapshot só,
   // pra não cair num frame que o runner ainda não tinha compositado.
   let pixels;
-  await expect.poll(async()=>{pixels=await layer.locator('.pd-cinema-particles').evaluate(c=>{const scratch=document.createElement('canvas');scratch.width=c.width;scratch.height=c.height;const ctx=scratch.getContext('2d');const film=c.parentElement.querySelector('.pd-cinema-film');if(film)ctx.drawImage(film,0,0,c.width,c.height);ctx.drawImage(c,0,0);const a=ctx.getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});return pixels.max>28&&pixels.mean>1;},{timeout:8000}).toBe(true);
+  await expect.poll(async()=>{pixels=await layer.locator('.pd-cinema-particles').evaluate(c=>{const scratch=document.createElement('canvas');scratch.width=c.width;scratch.height=c.height;const ctx=scratch.getContext('2d');const film=c.parentElement.querySelector('.pd-cinema-film');if(film)ctx.drawImage(film,0,0,c.width,c.height);ctx.drawImage(c,0,0);const a=ctx.getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});return pixels.max>28&&pixels.mean>1;},{timeout:20000}).toBe(true);
   await page.screenshot({path:'/tmp/fx-visible-'+type+'-'+width+'.png'});
  }
  await select(page,'earthquake');await page.clock.fastForward(8000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-earthquake/);

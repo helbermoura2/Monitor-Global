@@ -22,8 +22,18 @@ jobs:
       fail-fast: false
       matrix:
         group:
-          - name: heavy
-            files: tests/cinematic-card.spec.js tests/cinema-materials.spec.js
+          # cinematic-card e cinema-materials iam juntos no mesmo grupo
+          # (ordem alfabética do shard antigo); juntos, os testes de
+          # "atmosfera continua visível"/"cena ocupa o cartão inteiro"
+          # falhavam de forma consistente (não só uma vez) com canvas WebGL
+          # em branco -- hipótese: os dois arquivos são os mais pesados em
+          # canvas/WebGL da suíte inteira, e rodar ambos nos mesmos 2
+          # workers acumula contextos WebGL até estourar o limite do
+          # processo. Cada um agora tem seu próprio grupo/par de workers.
+          - name: cinematic
+            files: tests/cinematic-card.spec.js
+          - name: materials
+            files: tests/cinema-materials.spec.js
           - name: mid
             files: tests/election-results.spec.js tests/seismic-cinema.spec.js tests/regional-warning-cards.spec.js tests/regional-sources.spec.js tests/details-back.spec.js tests/auto-cycle.spec.js
           - name: light
