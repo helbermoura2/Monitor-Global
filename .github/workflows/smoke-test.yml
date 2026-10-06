@@ -9,7 +9,9 @@ on:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The full suite now has 98 scenarios, including software-GPU scenes.
+    # Leave time for setup and cleanup after the tests print their result.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +47,7 @@ jobs:
           node tests/unit/weather-evidence-check.cjs
           node tests/unit/rain-outlook-check.cjs
           node tests/unit/weather-observations-check.mjs
+          node tests/unit/tse-results-check.mjs
 
       - name: Rodar testes de fumaça
         run: npx playwright test
@@ -106,6 +109,39 @@ jobs:
           path: /tmp/cyclone-*.png
           retention-days: 7
 
+  weather-materials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Preparar navegador do Playwright
+        timeout-minutes: 3
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_BROWSER_CHANNEL=chrome" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Validar materiais, volume e eventos reais
+        run: npx playwright test tests/advanced-weather.spec.js tests/storm-atmosphere.spec.js tests/real-effects-parity.spec.js tests/volcano-monitoring.spec.js tests/flood-continuity.spec.js tests/tsunami-inundation.spec.js tests/gale-material.spec.js tests/tornado-cinema.spec.js --workers=1
+      - name: Publicar prévias dos materiais
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advanced-weather-previews
+          path: |
+            /tmp/advanced-weather-*.png
+            /tmp/volcano-monitoring-*.png
+            /tmp/flood-continuous-*.png
+            /tmp/tsunami-inundation-*.png
+            /tmp/gale-material-*.png
+            /tmp/tornado-*.png
+          retention-days: 7
+
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -128,5 +164,5 @@ jobs:
       - name: Verificar site publicado
         env:
           PUBLIC_SITE_URL: https://monitorglobal.top
-        run: npx playwright test tests/production-site.spec.js
+        run: npx playwright test tests/production-site.spec.js tests/production-election.spec.js
 

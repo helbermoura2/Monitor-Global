@@ -103,7 +103,9 @@ test('gotas deslizam, transições limpam camadas e boletim não vira desastre',
  await boot(page);await select(page,'storm');const drops=page.locator('.pd-cinema-drop');await expect(drops).toHaveCount(32);await expect.poll(()=>drops.first().evaluate(el=>el.style.transform)).toContain('translate3d');const initial=await drops.evaluateAll(els=>els.map(e=>e.style.transform));await page.waitForTimeout(1200);expect(await drops.evaluateAll(els=>els.map(e=>e.style.transform))).not.toEqual(initial);
  await select(page,'fire');await select(page,'flood');await select(page,'tornado');await expect(page.locator('.pd-cinema-layer')).toHaveCount(1);expect(await page.locator('.pd-cinema-afterglow').count()).toBeLessThanOrEqual(1);await expect(page.locator('.pd-cinema-drop')).toHaveCount(0);await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
  await select(page,'storm',{id:'cge-bulletin',source:'CGE',hazardNature:'bulletin',detail:'Boletim municipal',warningDescription:'Texto publicado pelo CGE.'});await expect(page.locator('.pd-cinema-layer,.pd-cinema-afterglow')).toHaveCount(0);await expect(page.locator('#pd-bulletin-summary')).toBeVisible();
- await select(page,'flood');await page.evaluate(()=>CinematicCard.start(EventStore.getSelected(),600));await expect(page.locator('.pd-cinema-layer')).toHaveCount(0,{timeout:2000});await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-cinema-active/);
+ // Verify elapsed expiry with the browser clock, independent of the runner's
+ // software-GPU frame rate while other scene tests are rendering.
+ await select(page,'flood');await page.clock.install();await page.evaluate(()=>CinematicCard.start(EventStore.getSelected(),600));await page.clock.runFor(1000);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-cinema-active/);
 });
 test('vulcão só recebe calor com indicação eruptiva e movimento reduzido encerra tudo',async({page})=>{
  await boot(page);await select(page,'volcano',{eruptionStatus:'Sem atividade eruptiva',detail:'Em monitoramento'});await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);await expect(page.locator('.pd-fx-ember').first()).toHaveCSS('opacity','0');
@@ -137,8 +139,10 @@ for(const width of [1280,390])test('vídeo ilustra o evento, avança e pausa no 
  await boot(page,width);await select(page,'flood');
  const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);
  await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
- const initial=await video.evaluate(v=>v.currentTime);await page.waitForTimeout(800);expect(await video.evaluate(v=>v.currentTime)).toBeGreaterThan(initial);
- const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/current.mp4'});
+ const initial=await video.evaluate(v=>v.currentTime);
+ // A looping clip can advance through its end and return to a smaller time.
+ await expect.poll(()=>video.evaluate((v,time)=>Math.abs(v.currentTime-time)>.05,initial)).toBe(true);
+ const attributes=await video.evaluate(v=>({muted:v.muted,inline:v.playsInline,loop:v.loop,src:v.getAttribute('src')}));expect(attributes).toEqual({muted:true,inline:true,loop:true,src:'media/card-fx/flood-current.mp4'});
  await expect(page.locator('#pd-mag svg.pd-cinema-symbol')).toHaveCount(1);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
  await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
@@ -158,7 +162,7 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
  // A carga do renderizador de software pode atrasar a digitação no runner.
  await expect(page.locator('.pd-cinema-film')).toHaveCount(1);await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo',{timeout:15000});
  await expect.poll(async()=>{const coverage=await cardCoverage(page);return coverage.thirds.every(third=>third.mean>8&&third.covered>.3);}).toBe(true);
- await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/terrain.mp4');await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
+ await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Atividade vulcânica em andamento'});await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
 });
 
 test('vento move as letras preservando o conteúdo do local',async({page})=>{
@@ -167,6 +171,6 @@ test('vento move as letras preservando o conteúdo do local',async({page})=>{
 });
 
 
-for(const width of [1280,390])test('água sobe pela frente do cartão e não bloqueia foco '+width,async({page})=>{
- await boot(page,width);await select(page,'flood');const before=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));await page.waitForTimeout(2000);const after=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(after).toBeLessThan(before);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
+for(const width of [1280,390])test('correnteza cobre o cartão continuamente e não bloqueia foco '+width,async({page})=>{
+ await boot(page,width);await select(page,'flood');await expect(page.locator('.pd-cinema-footage')).toHaveCSS('clip-path','none');await page.waitForTimeout(2000);const top=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(top).toBe(0);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
 });

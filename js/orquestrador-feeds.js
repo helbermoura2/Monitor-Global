@@ -14,6 +14,10 @@ let __fetchGlobalFeedsEmAndamento = false;
 // Revisões aguardam os eventos novos/ao vivo; maior magnitude vem primeiro.
 const pendingNewCameraQuakes = new Map();
 function queueNewCameraQuakes(items) {
+    // New arrivals, including supplemental catalogs, can clear the election
+    // overlay before the map focuses a strong quake. Initial loads/rotation
+    // do not call this queue.
+    window.ElectionPanel?.newQuakes(items);
     for (const item of items || []) {
         if (item && item.id != null) pendingNewCameraQuakes.set(item.id, {arrived:Date.now()});
     }
@@ -80,9 +84,6 @@ async function fetchGlobalFeeds() {
     window.MonitorFreshness?.beginQuakes();
 
     try {
-        const loading = document.getElementById('loading-indicator');
-        if (loading) loading.style.display = 'flex';
-
         const startTime = new Date(Date.now() - 36 * 3600000).toISOString();
         const endTime = new Date(Date.now() + 5 * 60000).toISOString();
 
@@ -576,8 +577,6 @@ async function fetchGlobalFeeds() {
     } finally {
         __fetchGlobalFeedsEmAndamento = false;
         window.MonitorFreshness?.endQuakes();
-        const loading = document.getElementById('loading-indicator');
-        if (loading) loading.style.display = 'none';
         try {
             if (typeof updateFreshnessUI === 'function') updateFreshnessUI();
         } catch (e) {}
