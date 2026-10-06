@@ -26,7 +26,7 @@ Adaptados para loops de até 9 segundos, 360 × 640, H.264, 20 quadros/s e sem �
 
 Créditos acessíveis no teste de efeitos: [Fontes das imagens](credits.html). As cenas são genéricas e identificadas como ilustrações; não correspondem à localização selecionada, não indicam altura da água, área inundada, tipo de erupção ou danos medidos.
 
-- `tornado.mp4` — Ray Bohac, tornado de El Reno, 31/05/2013, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). [Original](https://commons.wikimedia.org/wiki/File:May_31,_2013_EF5_El_Reno,_OK_Tornado_showing_multiple_sub_vortices.ogv). Adaptado: trecho de 8 s, recorte vertical, redução de resolução e remoção de áudio. A atribuição e licença estão também na página de créditos acessível pelo Menu. A cena não identifica intensidade ou localização do tornado selecionado.
+- `tornado-vortex.mp4` e `tornado-vortex.jpg` — Dr. Sean Waugh, NOAA National Severe Storms Laboratory, tornado próximo a St. Libory, Nebraska, em 17/05/2026. [Original e crédito](https://commons.wikimedia.org/wiki/File:Sean_Waugh_NOAA_NSSL_-_Saint_Libory_Nebraska_EF3_Tornado_17_05_2026.webm) · [Política NOAA / domínio público](https://www.noaa.gov/disclaimer). Verificado em 05/10/2026. Adaptado: trecho de 3,5 a 11,5 s, recorte vertical acompanhando o enquadramento, ajuste de cor, 432 × 768, 24 quadros/s, H.264 e remoção de áudio. Repetição de 7 s com ponte de 1 s incorporada, sem reprodução reversa. A fotografia de reserva é o primeiro quadro do arquivo adaptado. A cena histórica ilustra o fenômeno, não o local, intensidade ou danos do evento selecionado.
 
 
 ## Inundação por tsunami

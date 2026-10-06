@@ -52,6 +52,7 @@ for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam 
   if(key==='volcano-ash')await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/smoke.mp4');
   if(key==='volcano-monitoring'){await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);}
   if(key==='tsunami')await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/tsunami-inundation.mp4');
+  if(key==='tornado'){await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/tornado-vortex.mp4');await expect(page.locator('.pd-tornado-field')).toHaveCount(1);}
   if(key==='wind'){await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/gale-canopy.mp4');await expect(page.locator('.pd-gale-field')).toHaveCount(1);}
   expect(actual.selectedId).toBe('parity-'+extra.type);
   // Desktop also types each headline while the wind observer wraps graphemes.
