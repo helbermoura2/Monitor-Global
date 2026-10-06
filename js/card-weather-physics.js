@@ -2,6 +2,12 @@
 (function(){
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
+ // Tsunami bate uma vez e passa -- não é uma ressaca ambiente contínua como
+ // enchente. TSUNAMI_CYCLE: intervalo entre ondas. TSUNAMI_SWEEP: segundos
+ // pra frente da onda atravessar o cartão de cima a baixo (golpeia cada
+ // linha de texto num instante diferente, conforme sua altura). TSUNAMI_IMPACT:
+ // duração do golpe em cada linha antes de sobrar só a ressaca residual.
+ const TSUNAMI_CYCLE=6,TSUNAMI_SWEEP=1.1,TSUNAMI_IMPACT=.8;
  function create(cfg,mobile,panel){
   if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel)||null;
   if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
@@ -92,7 +98,27 @@
    }
    for(const g of groups){
     g.el.classList.add('pd-water-submerged');
-    g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*.85-fraction*3+g.y*.012;el.style.transform='translate3d('+(Math.sin(phase)*(cfg.type==='tsunami'?1.05:.65)).toFixed(2)+'px,'+(Math.cos(phase*.8)*(cfg.type==='tsunami'?.65:.4)).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*.5).toFixed(2)+'deg)';});
+    if(cfg.type==='tsunami'){
+     const localT=((t%TSUNAMI_CYCLE)+TSUNAMI_CYCLE)%TSUNAMI_CYCLE,arrival=(g.y/h)*TSUNAMI_SWEEP,since=localT-arrival;
+     g.letters.forEach((el,i)=>{
+      const fraction=i/Math.max(1,g.letters.length-1);
+      let dx=0,dy=0,rot=0,op=1;
+      if(since<0){
+       dx=Math.sin(t*9+i*.7)*.15; // vibração de pressão antes da onda chegar, quase imperceptível
+      } else if(since<TSUNAMI_IMPACT){
+       const k=Math.exp(-since*5.5),osc=Math.sin(since*27-fraction*4+i*.6);
+       dx=osc*k*13;dy=-k*9+Math.sin(since*19)*k*4;rot=osc*k*9;
+       op=since<.16?.28+.72*(since/.16):Math.min(1,.55+.45*((since-.16)/(TSUNAMI_IMPACT-.16)));
+      } else {
+       const residual=since-TSUNAMI_IMPACT,k=Math.exp(-residual*.85);
+       dx=Math.sin(residual*2+fraction*2+g.y*.01)*1.1*k;dy=Math.cos(residual*1.6)*.6*k;rot=Math.sin(residual*1.9)*.55*k;
+      }
+      el.style.opacity=op.toFixed(2);
+      el.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) rotate('+rot.toFixed(2)+'deg)';
+     });
+    } else {
+     g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*.85-fraction*3+g.y*.012;el.style.transform='translate3d('+(Math.sin(phase)*.65).toFixed(2)+'px,'+(Math.cos(phase*.8)*.4).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*.5).toFixed(2)+'deg)';});
+    }
    }
   }
   function draw(t,dt,envelope,current){
@@ -101,7 +127,7 @@
    if(rain){precipitation(t,dt,pressure,flash,envelope);if(cfg.type==='storm')lightning(t,flash);}
    if(flood)inundation(t,dt,envelope,current.fallback);
   }
-  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>el.style.removeProperty('transform'));}impacts.length=0;groups=[];ledges=[];}
+  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>{el.style.removeProperty('transform');el.style.removeProperty('opacity');});}impacts.length=0;groups=[];ledges=[];}
   return {canvas,lensLayer,resize,draw,destroy};
  }
  window.CardWeatherPhysics={create};
