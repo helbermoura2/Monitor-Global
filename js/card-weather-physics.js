@@ -3,6 +3,7 @@
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
  function create(cfg,mobile,panel){
+  if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel)||null;
   if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
   if(!['storm','hurricane','flood','tsunami'].includes(cfg.type))return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material';canvas.setAttribute('aria-hidden','true');

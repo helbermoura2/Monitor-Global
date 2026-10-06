@@ -61,7 +61,7 @@
   const hot=item.type==='fire'||activity.eruptive||activity.lava;
   const ash=activity.ash;
   const rotationDirection=Number(item.coords?.[1])<0?-1:1;
-  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane','tornado'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
@@ -126,13 +126,13 @@
    for(let i=0;i<(cfg.type==='storm'?(mobile?20:32):(mobile?12:18));i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:['storm','hurricane'].includes(cfg.type)&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
   }
   if(cfg.mist)for(let i=0;i<(mobile?6:9);i++)s.smoke.push({x:Math.random()<.5?rand(-.12,.1):rand(.9,1.1),y:Math.random(),depth:rand(.45,1),phase:rand(0,6.3)});
-  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:['tornado','earthquake'].includes(cfg.type)?mobile?12:20:0;
-  for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,leaf:cfg.type==='wind'&&i%10===0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
+  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='earthquake'?mobile?12:20:0;
+  for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
-  if(['wind','storm','tornado','hurricane','flood','tsunami'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:cfg.type!=='tornado',allText:cfg.type!=='tornado'});
-  if(['wind','storm','hurricane'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
-  s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);host.dataset.weatherMaterial=cfg.water?'refractive-current':cfg.type==='wind'?'turbulent-air':'wet-glass';}
+  if(['wind','storm','tornado','hurricane','flood','tsunami'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:true,allText:true});
+  if(['wind','storm','hurricane','tornado'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
+  s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);if(s.physics.background)host.append(s.physics.background);host.dataset.weatherMaterial=cfg.water?'refractive-current':cfg.type==='wind'?'turbulent-air':cfg.type==='tornado'?'helical-debris':'wet-glass';}
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
   function resize(){
    if(scene!==s)return;
@@ -164,7 +164,7 @@
  }
  function windResponse(s,t,dt,envelope){
   const state=s.wind,p=panel();if(!state||!p)return;
-  if(s.cfg.type==='wind'){if(s.physics?.load){const flow=s.physics.load(t,dt,envelope);state.pressure=flow.pressure;state.travel=flow.travel;}return;}
+  if(['wind','tornado'].includes(s.cfg.type)){if(s.physics?.load){const flow=s.physics.load(t,dt,envelope,s.cfg);state.pressure=flow.pressure;state.travel=flow.travel;}return;}
   const cyclone=s.cfg.type==='hurricane';
   const strength=s.cfg.strength;
   const pressure=pressureAt(s,t,.45)*strength*(s.cfg.type==='storm'?.72:1)*envelope;
@@ -320,10 +320,8 @@
   const {ctx,width:w,height:h,cfg}=s;
   for(const puff of s.smoke){
    if(cfg.hot||cfg.ash){puff.y-=dt*(.04+puff.depth*.03);if(puff.y<-.2)puff.y=1.2;}
-   else if(cfg.type==='tornado'){puff.y=(puff.y+dt*.06)%1;}
    else{puff.x+=dt*(cfg.type==='hurricane'?.09:.04)*(1+cfg.strength);if(puff.x>1.2)puff.x=-.2;}
    let x=puff.x*w+Math.sin(t*.7+puff.phase)*12,y=puff.y*h,size=75+115*puff.depth;
-   if(cfg.type==='tornado'){const a=t*2+puff.phase;x=w*(.09+.05*Math.sin(a))+(1-puff.y)*13;y=puff.y*h;size=35+(1-puff.y)*65;}
    ctx.globalAlpha=envelope*(cfg.hot?.78:.70)*edge(x,w);ctx.drawImage(s.fog,x-size*.5,y-size*.5,size,size*(cfg.type==='hurricane'?.8:1.35));ctx.globalAlpha=1;
   }
   if(cfg.hot){
@@ -334,14 +332,12 @@
  function debris(s,t,dt,envelope){
   const {ctx,width:w,height:h,cfg}=s;
   for(const p of s.particles){
-   let x,y;
-   if(cfg.type==='tornado'){const angle=t*(1.6+p.depth)+p.phase,radius=8+(1-p.y)*w*.13;x=w*.09+Math.cos(angle)*radius;y=p.y*h+Math.sin(angle)*8;p.y-=dt*.06*p.speed;if(p.y<-.05)p.y=1.05;}
-   else{const rising=cfg.hot&&!p.ash;p.y+=(rising?-1:1)*dt*(cfg.type==='earthquake'?.08:.035)*p.speed;if(p.y<-.1)p.y=1.1;if(p.y>1.1)p.y=-.1;if(cfg.type==='wind'){p.x+=dt*.4*p.speed;if(p.x>1.1)p.x=-.1;}x=p.x*w+Math.sin(t*(.8+p.depth)+p.phase)*(cfg.hot?12:5);y=p.y*h;}
-   const r=.65+p.depth*(cfg.hot?2:cfg.type==='wind'||cfg.type==='tornado'?3:.9),alpha=envelope*edge(x,w)*(cfg.type==='earthquake'?Math.exp(-t*.32)*.6:.9);
+   const rising=cfg.hot&&!p.ash;p.y+=(rising?-1:1)*dt*(cfg.type==='earthquake'?.08:.035)*p.speed;if(p.y<-.1)p.y=1.1;if(p.y>1.1)p.y=-.1;
+   const x=p.x*w+Math.sin(t*(.8+p.depth)+p.phase)*(cfg.hot?12:5),y=p.y*h;
+   const r=.65+p.depth*(cfg.hot?2:.9),alpha=envelope*edge(x,w)*(cfg.type==='earthquake'?Math.exp(-t*.32)*.6:.9);
    ctx.fillStyle=cfg.hot&&!p.ash?'rgba(255,174,79,'+alpha.toFixed(3)+')':p.ash?'rgba(210,206,199,'+(alpha*.65).toFixed(3)+')':'rgba(194,220,228,'+(alpha*.4).toFixed(3)+')';
    if(cfg.hot&&!p.ash){ctx.shadowColor='rgba(255,145,60,.6)';ctx.shadowBlur=4;}
-   if(cfg.type==='wind'||cfg.type==='tornado'){ctx.fillStyle='rgba(119,113,91,'+(alpha*.75).toFixed(3)+')';ctx.save();ctx.translate(x,y);ctx.rotate(t*(.8+p.depth)+p.phase);ctx.beginPath();ctx.moveTo(-r*2,0);ctx.quadraticCurveTo(0,-r,r*2,0);ctx.quadraticCurveTo(0,r*.6,-r*2,0);ctx.fill();ctx.restore();}
-   else{ctx.beginPath();ctx.ellipse(x,y,r,r*.55,t+p.phase,0,Math.PI*2);ctx.fill();}ctx.shadowBlur=0;
+   ctx.beginPath();ctx.ellipse(x,y,r,r*.55,t+p.phase,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
   }
  }
  function water(s,t,envelope){
