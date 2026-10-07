@@ -5,13 +5,7 @@
  const labels={earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami',wind:'Rajadas de vento'};
  function removeControls(){clearTimeout(timer);timer=0;bar?.remove();bar=null;dialog?.remove();dialog=null;}
  function cancelForRealEvent(){active=false;removeControls();}
- function restore(){
-  const selected=window.EventStore?.getSelected();if(!selected)return;
-  const type=selected.type||(Number.isFinite(selected.mag)?'earthquake':null);
-  if(['flood','wind'].includes(type))return;
-  window.CinematicCard?.start({...selected,type},type==='earthquake'?7200:Infinity);
- }
- function stop(){const was=active;active=false;removeControls();if(was){window.CinematicCard?.stop();restore();}}
+ function stop(){const was=active;active=false;removeControls();if(was){window.CinematicCard?.stop();}}
  function preview(key){
   stop();window.SeismicCinema?.closeDemo();
   if(key==='earthquake'){window.SeismicCinema?.openDemo();return;}
@@ -24,7 +18,7 @@
   if(key==='volcano-ash')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Emissão de cinzas · sem lava'});
   if(key==='volcano-monitoring')Object.assign(item,{eruptionStatus:'Sem atividade eruptiva',detail:'Em monitoramento'});
   const panel=document.getElementById('painel-direito');if(!panel)return;
-  const duration=['flood','wind'].includes(type)?16000:20000;
+  const duration=16000;
   active=true;const played=window.CinematicCard?.start(item,duration);
   // Demo storm illumination is carried by its own scene, not the real event's metadata.
   bar=document.createElement('aside');bar.id='card-fx-demo-status';bar.className='card-effect-status';bar.setAttribute('aria-live','polite');

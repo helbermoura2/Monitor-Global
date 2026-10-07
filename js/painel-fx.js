@@ -4,9 +4,9 @@
    silentRefresh (revisão de magnitude etc.), senão o card "tremeria" de novo
    sozinho a cada atualização periódica dos dados.
    Os impulsos de entrada (tremor, giro e letras ao vento) têm duração
-   limitada. A atmosfera do CinematicCard permanece enquanto o evento
-   estiver selecionado; os prazos abaixo também atendem ao fallback. */
-const FX_DURATION = { fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200, tsunami: 8000 };
+   limitada. As cenas do CinematicCard restauram o cartão em 16 segundos;
+   os prazos abaixo também atendem ao fallback. */
+const FX_DURATION = { earthquake: 16000, fire: 15200, volcano: 15200, flood: 10200, storm: 10200, tornado: 10200, hurricane: 12200, wind: 7200, tsunami: 8000 };
 // Decorative discharge channels: thin, irregular, branching paths; no emoji or filled zigzag.
 const LIGHTNING_NS='http://www.w3.org/2000/svg';
 function lightningPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');}
