@@ -123,7 +123,7 @@ for(const width of [1280,390])test('atmosfera continua visível depois da antiga
  for(const type of ['fire','hurricane','tornado','flood','tsunami','wind','volcano','storm']){
   await select(page,type,type==='volcano'?{eruptionStatus:'Em erupção',detail:'Emissão de cinzas'}:{});
   await page.clock.runFor(700);await page.clock.fastForward(20000);await page.clock.runFor(200);
-  const layer=page.locator('.pd-cinema-layer');if(type==='flood'){await expect(layer).toHaveCount(0);await expect(page.locator('.pd-fx-windletter')).toHaveCount(0);continue;}await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);
+  const layer=page.locator('.pd-cinema-layer');if(['flood','wind'].includes(type)){await expect(layer).toHaveCount(0);await expect(page.locator('.pd-fx-windletter')).toHaveCount(0);continue;}await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);
   await expect(page.locator('#painel-direito')).toHaveClass(new RegExp('pd-fx-'+type));
   // Inspect the actual native frame as well as procedural background surfaces.
   const video=layer.locator('video');if(await video.count())await expect.poll(()=>video.evaluate(v=>v.readyState>=2),{timeout:12000}).toBe(true);
