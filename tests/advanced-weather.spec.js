@@ -4,9 +4,9 @@ test.use({serviceWorkers:'block'});
 async function isolated(page,mobile=false){
  await page.setViewportSize({width:mobile?390:1280,height:844});
  await page.setContent('<body class="mobile-details-open"><div id="painel-direito" data-lightning="on" style="position:absolute;left:12px;top:20px;width:320px;height:600px;background:#0b2231;border-radius:16px;isolation:isolate;overflow:hidden"><div id="pd-local" style="margin:65px 16px;font:600 19px system-ui;color:white">Evento extremo — São Paulo 🇧🇷</div><div id="pd-source" style="margin:16px;color:white">Fonte oficial · 02:15 BRT</div><div class="stat-card" style="margin:210px 16px 16px;color:white;padding:10px"><span class="stat-card-label">Vento</span><span class="stat-card-value"><b style="color:rgb(240,210,120)">150</b> km/h</span></div><button id="control" style="position:absolute;top:12px;right:12px">Detalhes</button></div></body>');
- for(const file of ['painel-fx.css','cinematic-card.css','storm-cinema.css','wind-cinema.css','tornado-cinema.css','advanced-weather.css','tsunami-cinema.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
+ for(const file of ['painel-fx.css','cinematic-card.css','storm-cinema.css','wind-cinema.css','tornado-cinema.css','advanced-weather.css','tsunami-cinema.css','flood-rise.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
  await page.evaluate(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)?null:get.call(this,type,...args);};window.__weatherFrame=null;window.requestAnimationFrame=cb=>{__weatherFrame=cb;return 1;};window.cancelAnimationFrame=()=>{__weatherFrame=null;};window.CardCinemaFilm={create:()=>null,footage:()=>null};});
- for(const file of ['painel-fx.js','card-gale-field.js','card-tornado-field.js','card-tsunami-surge.js','card-weather-physics.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
+ for(const file of ['painel-fx.js','card-gale-field.js','card-tornado-field.js','card-tsunami-surge.js','card-flood-rise.js','card-weather-physics.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
 }
 for(const mobile of [false,true])test('materiais sem GPU: chuva, vento e água preservam conteúdo, controles e limpeza '+mobile,async({page})=>{
  await isolated(page,mobile);const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -15,13 +15,13 @@ for(const mobile of [false,true])test('materiais sem GPU: chuva, vento e água p
   const result=await page.evaluate(type=>{
    const start=performance.now();CinematicCard.start({id:type,type,windKmh:150,classification:type==='hurricane'?'TS':undefined},Infinity);
    // Draw actual frames at 30 Hz, including the full-frame flood reserve.
-   const frames=75;for(let i=1;i<=frames;i++)__weatherFrame(start+i*34);
+   const frames=type==='flood'?210:75;for(let i=1;i<=frames;i++)__weatherFrame(start+i*34);
    const c=document.querySelector('.pd-weather-material'),data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
    const topAlpha=Array.from(data.slice(0,c.width*20*4)).filter((v,i)=>i%4===3).reduce((a,b)=>a+b,0);
    return {wet:data.some((v,i)=>i%4===3&&v>15),topAlpha,submerged:document.querySelectorAll('.pd-water-submerged').length,secondary:Array.from(document.querySelectorAll('#pd-source .pd-fx-windletter,.stat-card .pd-fx-windletter')).some(el=>el.style.transform),waterTop:parseFloat(document.getElementById('painel-direito').style.getPropertyValue('--pd-water-top'))};
   },type);
   expect(result.wet,type).toBe(true);
-  if(['flood','tsunami'].includes(type)){if(type==='flood')expect(result.topAlpha).toBeGreaterThan(0);expect(result.submerged).toBeGreaterThan(0);expect(result.waterTop).toBe(0);}
+  if(['flood','tsunami'].includes(type)){expect(result.submerged).toBeGreaterThan(0);if(type==='flood'){expect(result.topAlpha).toBe(0);expect(result.waterTop).toBeGreaterThan(0);expect(result.waterTop).toBeLessThan(60);}else expect(result.waterTop).toBe(0);}
   else expect(result.secondary,type).toBe(true);
   expect(await page.locator('#painel-direito').innerText()).toBe(original);
   await expect(page.locator('.stat-card-value b')).toHaveCSS('color','rgb(240, 210, 120)');

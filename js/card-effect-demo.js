@@ -8,6 +8,7 @@
  function restore(){
   const selected=window.EventStore?.getSelected();if(!selected)return;
   const type=selected.type||(Number.isFinite(selected.mag)?'earthquake':null);
+  if(type==='flood')return;
   window.CinematicCard?.start({...selected,type},type==='earthquake'?7200:Infinity);
  }
  function stop(){const was=active;active=false;removeControls();if(was){window.CinematicCard?.stop();restore();}}
@@ -23,13 +24,14 @@
   if(key==='volcano-ash')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Emissão de cinzas · sem lava'});
   if(key==='volcano-monitoring')Object.assign(item,{eruptionStatus:'Sem atividade eruptiva',detail:'Em monitoramento'});
   const panel=document.getElementById('painel-direito');if(!panel)return;
-  active=true;const played=window.CinematicCard?.start(item,20000);
+  const duration=type==='flood'?16000:20000;
+  active=true;const played=window.CinematicCard?.start(item,duration);
   // Demo storm illumination is carried by its own scene, not the real event's metadata.
   bar=document.createElement('aside');bar.id='card-fx-demo-status';bar.className='card-effect-status';bar.setAttribute('aria-live','polite');
-  const text=document.createElement('span');text.textContent='DEMONSTRAÇÃO · '+labels[key]+(played?' · 20 s':' · Movimento reduzido');
+  const text=document.createElement('span');text.textContent='DEMONSTRAÇÃO · '+labels[key]+(played?' · '+duration/1000+' s':' · Movimento reduzido');
   const change=document.createElement('button');change.type='button';change.textContent='Trocar';change.onclick=()=>{stop();open();};
   const end=document.createElement('button');end.type='button';end.textContent='Parar';end.onclick=stop;bar.append(text,change,end);document.body.append(bar);
-  if(played)timer=setTimeout(stop,20100);
+  if(played)timer=setTimeout(stop,duration);
  }
  function open(){
   stop();window.SeismicCinema?.closeDemo();
