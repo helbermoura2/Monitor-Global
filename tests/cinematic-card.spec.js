@@ -81,7 +81,8 @@ for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e co
  for(const type of ['storm','hurricane','tornado','fire','volcano','flood','tsunami','wind','earthquake']){
   await select(page,type,type==='volcano'?{eruptionStatus:'Em erupção',detail:'Emissão de cinzas'}:{});
   const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);await expect(layer).toHaveAttribute('aria-hidden','true');
-  if(type!=='earthquake')await expect(layer).toHaveAttribute('data-renderer','film');
+  if(type!=='earthquake')await expect(layer).toHaveAttribute('data-renderer',type==='tsunami'?'hydraulic-bore-webgl':'film');
+  if(type==='tsunami'){await expect(page.locator('.pd-tsunami-surface')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);}
   await expect(layer).toHaveCSS('pointer-events','none');try { await expect.poll(()=>layer.evaluate(el=>Number(getComputedStyle(el).opacity)),{message:'Cena visível: '+type+' / '+width}).toBeGreaterThan(.8); } catch(error) { console.log('Estado da cena',type,width,await page.evaluate(()=>({body:document.body.className,panel:document.getElementById('painel-direito').className,width:document.getElementById('painel-direito').clientWidth,hidden:document.hidden,layer:document.querySelector('.pd-cinema-layer')?.getAttribute('style')})));throw error; }
   await expect(page.locator('#pd-local')).toBeVisible();await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
   const result=await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el};});
@@ -124,7 +125,9 @@ for(const width of [1280,390])test('atmosfera continua visível depois da antiga
   await page.clock.runFor(700);await page.clock.fastForward(20000);await page.clock.runFor(200);
   const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);
   await expect(page.locator('#painel-direito')).toHaveClass(new RegExp('pd-fx-'+type));
-  const pixels=await layer.locator('.pd-cinema-particles').evaluate(c=>{const scratch=document.createElement('canvas');scratch.width=c.width;scratch.height=c.height;const ctx=scratch.getContext('2d');const film=c.parentElement.querySelector('.pd-cinema-film');if(film)ctx.drawImage(film,0,0,c.width,c.height);ctx.drawImage(c,0,0);const a=ctx.getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});expect(pixels.max).toBeGreaterThan(28);expect(pixels.mean).toBeGreaterThan(1);
+  // Inspect the actual native frame as well as procedural background surfaces.
+  const video=layer.locator('video');if(await video.count())await expect.poll(()=>video.evaluate(v=>v.readyState>=2),{timeout:12000}).toBe(true);
+  const pixels=await layer.locator('.pd-cinema-particles').evaluate(c=>{const scratch=document.createElement('canvas');scratch.width=c.width;scratch.height=c.height;const ctx=scratch.getContext('2d');const video=c.parentElement.querySelector('video');if(video?.readyState>=2)ctx.drawImage(video,0,0,c.width,c.height);const film=c.parentElement.querySelector('.pd-cinema-film,.pd-tsunami-surface');if(film)ctx.drawImage(film,0,0,c.width,c.height);ctx.drawImage(c,0,0);const a=ctx.getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});expect(pixels.max).toBeGreaterThan(28);expect(pixels.mean).toBeGreaterThan(1);
   await page.screenshot({path:'/tmp/fx-visible-'+type+'-'+width+'.png'});
  }
  await select(page,'earthquake');await page.clock.fastForward(8000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-earthquake/);
