@@ -137,6 +137,7 @@ jobs:
             /tmp/volcano-monitoring-*.png
             /tmp/flood-continuous-*.png
             /tmp/tsunami-inundation-*.png
+            /tmp/tsunami-reserve-*.png
             /tmp/gale-material-*.png
             /tmp/tornado-*.png
           retention-days: 7

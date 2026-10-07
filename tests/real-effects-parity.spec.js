@@ -46,12 +46,12 @@ for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam 
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
   expect(actual.profile,key).toEqual(demo);
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',extra.type);
-  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer',key==='volcano-monitoring'?'crater':'film');
+  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer',key==='volcano-monitoring'?'crater':key==='tsunami'?'hydraulic-bore-webgl':'film');
   if(extra.type==='hurricane')await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-cyclone-stage',key==='tropical-storm'?'tropical-storm':key==='depression'?'depression':'mature');
   if(key==='volcano-lava')await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-material','lava');
   if(key==='volcano-ash')await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/smoke.mp4');
   if(key==='volcano-monitoring'){await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);}
-  if(key==='tsunami')await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/tsunami-inundation.mp4');
+  if(key==='tsunami'){await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);await expect(page.locator('.pd-tsunami-surface')).toHaveCount(1);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-weather-material','hydraulic-bore');}
   if(key==='tornado'){await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/tornado-vortex.mp4');await expect(page.locator('.pd-tornado-field')).toHaveCount(1);}
   if(key==='wind'){await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/gale-canopy.mp4');await expect(page.locator('.pd-gale-field')).toHaveCount(1);}
   expect(actual.selectedId).toBe('parity-'+extra.type);
