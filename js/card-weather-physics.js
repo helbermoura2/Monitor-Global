@@ -2,12 +2,6 @@
 (function(){
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
- // Tsunami bate uma vez e passa -- não é uma ressaca ambiente contínua como
- // enchente. TSUNAMI_CYCLE: intervalo entre ondas. TSUNAMI_SWEEP: segundos
- // pra frente da onda atravessar o cartão de cima a baixo (golpeia cada
- // linha de texto num instante diferente, conforme sua altura). TSUNAMI_IMPACT:
- // duração do golpe em cada linha antes de sobrar só a ressaca residual.
- const TSUNAMI_CYCLE=6,TSUNAMI_SWEEP=1.1,TSUNAMI_IMPACT=.8;
  // Enchente é correnteza contínua, não um golpe único -- turbulência de
  // várias frequências somadas (não uma senoide só) pra parecer água de
  // verdade empurrando as letras, com arrancos de correnteza mais forte que
@@ -15,13 +9,14 @@
  // igual a tsunami usa pra onda, só que mais fraco e repetindo sem parar.
  const FLOOD_SURGE_CYCLE=4.5,FLOOD_SURGE_SWEEP=1,FLOOD_SURGE_SPAN=1.8;
  function create(cfg,mobile,panel){
+  if(cfg.type==='tsunami')return window.CardTsunamiSurge?.create(cfg,mobile,panel)||null;
   if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel)||null;
   if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
-  if(!['storm','hurricane','flood','tsunami'].includes(cfg.type))return null;
+  if(!['storm','hurricane','flood'].includes(cfg.type))return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material';canvas.setAttribute('aria-hidden','true');
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   let w=1,h=1,dead=false,measureAt=-1,ledges=[],groups=[],bolt=[],boltAt=-10;
-  const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=['flood','tsunami'].includes(cfg.type);
+  const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=cfg.type==='flood';
   const drops=Array.from({length:rain?(mobile?150:300):0},()=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,seed:rand(0,TAU)}));
   const matter=Array.from({length:flood?(mobile?35:65):0},(_,i)=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,phase:rand(0,TAU),leaf:i%5===0}));
   const impacts=[],lenses=[];
@@ -90,7 +85,7 @@
   function inundation(t,dt,envelope,fallback){
    // The footage is displayed once, by its video element. Never sample or redraw it.
    if(fallback){
-    const base=ctx.createLinearGradient(0,0,w,h);base.addColorStop(0,cfg.type==='tsunami'?'#656d63':'#786447');base.addColorStop(.45,cfg.type==='tsunami'?'#424b43':'#554934');base.addColorStop(1,cfg.type==='tsunami'?'#252e29':'#342f25');ctx.globalAlpha=envelope;ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
+    const base=ctx.createLinearGradient(0,0,w,h);base.addColorStop(0,'#786447');base.addColorStop(.45,'#554934');base.addColorStop(1,'#342f25');ctx.globalAlpha=envelope;ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
     for(let j=0;j<37;j++){
      const depth=(j*.618)%1,yy=h*depth+Math.sin(t*.7+j)*4,center=(((j*.381+t*(.025+depth*.025))%1)*1.3-.15)*w;
      ctx.strokeStyle='rgba(217,204,166,'+(.045+(1-depth)*.11).toFixed(3)+')';ctx.lineWidth=1+depth*2;
@@ -104,34 +99,14 @@
    }
    for(const g of groups){
     g.el.classList.add('pd-water-submerged');
-    if(cfg.type==='tsunami'){
-     const localT=((t%TSUNAMI_CYCLE)+TSUNAMI_CYCLE)%TSUNAMI_CYCLE,arrival=(g.y/h)*TSUNAMI_SWEEP,since=localT-arrival;
-     g.letters.forEach((el,i)=>{
-      const fraction=i/Math.max(1,g.letters.length-1);
-      let dx=0,dy=0,rot=0,op=1;
-      if(since<0){
-       dx=Math.sin(t*9+i*.7)*.15; // vibração de pressão antes da onda chegar, quase imperceptível
-      } else if(since<TSUNAMI_IMPACT){
-       const k=Math.exp(-since*5.5),osc=Math.sin(since*27-fraction*4+i*.6);
-       dx=osc*k*13;dy=-k*9+Math.sin(since*19)*k*4;rot=osc*k*9;
-       op=since<.16?.28+.72*(since/.16):Math.min(1,.55+.45*((since-.16)/(TSUNAMI_IMPACT-.16)));
-      } else {
-       const residual=since-TSUNAMI_IMPACT,k=Math.exp(-residual*.85);
-       dx=Math.sin(residual*2+fraction*2+g.y*.01)*1.1*k;dy=Math.cos(residual*1.6)*.6*k;rot=Math.sin(residual*1.9)*.55*k;
-      }
-      el.style.opacity=op.toFixed(2);
-      el.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) rotate('+rot.toFixed(2)+'deg)';
-     });
-    } else {
-     const localT=((t%FLOOD_SURGE_CYCLE)+FLOOD_SURGE_CYCLE)%FLOOD_SURGE_CYCLE,arrival=(g.y/h)*FLOOD_SURGE_SWEEP,since=localT-arrival;
-     const surge=since>=0&&since<FLOOD_SURGE_SPAN?Math.sin((since/FLOOD_SURGE_SPAN)*Math.PI):0;
-     g.letters.forEach((el,i)=>{
-      const fraction=i/Math.max(1,g.letters.length-1),base=t*.85-fraction*3+g.y*.012;
-      const turb=Math.sin(base)+Math.sin(base*2.3+i*1.7)*.55+Math.sin(base*3.7-i*.9)*.3,bob=Math.cos(base*.78+i*.4);
-      const dx=turb*1.4+surge*3.6*Math.sin(i*1.3+g.y*.02),dy=bob*.9+surge*1.3,skew=turb*.7+surge*1.8*Math.sin(i*.8+g.y*.02);
-      el.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) skewX('+skew.toFixed(2)+'deg)';
-     });
-    }
+    const localT=((t%FLOOD_SURGE_CYCLE)+FLOOD_SURGE_CYCLE)%FLOOD_SURGE_CYCLE,arrival=(g.y/h)*FLOOD_SURGE_SWEEP,since=localT-arrival;
+    const surge=since>=0&&since<FLOOD_SURGE_SPAN?Math.sin((since/FLOOD_SURGE_SPAN)*Math.PI):0;
+    g.letters.forEach((el,i)=>{
+     const fraction=i/Math.max(1,g.letters.length-1),base=t*.85-fraction*3+g.y*.012;
+     const turb=Math.sin(base)+Math.sin(base*2.3+i*1.7)*.55+Math.sin(base*3.7-i*.9)*.3,bob=Math.cos(base*.78+i*.4);
+     const dx=turb*1.4+surge*3.6*Math.sin(i*1.3+g.y*.02),dy=bob*.9+surge*1.3,skew=turb*.7+surge*1.8*Math.sin(i*.8+g.y*.02);
+     el.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) skewX('+skew.toFixed(2)+'deg)';
+    });
    }
   }
   function draw(t,dt,envelope,current){
