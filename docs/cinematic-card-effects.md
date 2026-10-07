@@ -93,3 +93,8 @@ O relógio e ciclo de vida pertencem a `CinematicCard`; não há RAF adicional. 
 `CardFloodRise` revela uma única correnteza de baixo para cima, com uma borda irregular, espuma fina e fragmentos flutuantes. A filmagem nativa não é copiada em Canvas; a máscara está no fundo, atrás dos dados. Quando a água alcança cada linha, os grafemas originais boiam, inclinam e derivam com molas amortecidas e limites laterais. Cores, bandeiras, conteúdo e controles são conservados. Sem vídeo e GPU, uma reserva 2D fica atrás do texto.
 
 Evento real e Menu duram no máximo 16 segundos. No final, as letras retornam e todas as camadas e estilos temporários são removidos. Revisões silenciosas preservam o tempo original e não reiniciam uma enchente encerrada; a prévia também não reinicia o evento de enchente selecionado ao terminar. Movimento reduzido mantém o cartão estático. `tests/flood-continuity.spec.js` verifica subida, contato progressivo, flutuação, revisão, controles, vídeo único sem cópias e restauração em desktop e celular.
+
+
+### Letras arrancadas pelas rajadas
+
+Alguns grafemas originais se soltam durante os picos de pressão: aceleram, giram e atravessam a borda do cartão, deixando seus espaços vazios por alguns segundos. Depois retornam e recompõem o texto antes da próxima rajada. Cada ciclo varia as letras escolhidas; título e textos secundários têm resistências diferentes. Não há duplicação de texto ou alteração dos dados: os espaços, estilos e grafemas permanecem no DOM, os botões continuam operantes e parada, troca ou movimento reduzido removem os estilos de voo. O relógio continua sendo o de `CinematicCard`, no evento real e no Menu.

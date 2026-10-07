@@ -19,3 +19,5 @@
  #painel-direito.pd-fx-wind,#painel-direito.pd-fx-wind .stat-card,#painel-direito.pd-fx-wind .pd-chip{translate:none!important;rotate:none!important}
  #painel-direito.pd-fx-wind .pd-fx-windletter{transform:none!important}
 }
+
+#painel-direito.pd-cinema-active.pd-fx-wind .pd-fx-windletter[data-gale-flight]{pointer-events:none;will-change:transform,opacity}

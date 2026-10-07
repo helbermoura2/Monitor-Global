@@ -139,6 +139,7 @@ jobs:
             /tmp/tsunami-inundation-*.png
             /tmp/tsunami-reserve-*.png
             /tmp/gale-material-*.png
+            /tmp/wind-missing-letters-*.png
             /tmp/tornado-*.png
           retention-days: 7
 
