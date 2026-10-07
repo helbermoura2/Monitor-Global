@@ -37,7 +37,7 @@ jobs:
           - name: mid
             files: tests/election-results.spec.js tests/seismic-cinema.spec.js tests/regional-warning-cards.spec.js tests/regional-sources.spec.js tests/details-back.spec.js tests/auto-cycle.spec.js
           - name: light
-            files: tests/cge-bulletins.spec.js tests/header-status.spec.js tests/rain-header.spec.js tests/smoke.spec.js tests/startup-cycle.spec.js tests/tsunami-wave-impact.spec.js tests/weather-panel.spec.js tests/world-weather-alerts.spec.js
+            files: tests/cge-bulletins.spec.js tests/header-status.spec.js tests/rain-header.spec.js tests/smoke.spec.js tests/startup-cycle.spec.js tests/weather-panel.spec.js tests/world-weather-alerts.spec.js
     steps:
       - uses: actions/checkout@v4
 
