@@ -128,11 +128,11 @@
   if(cfg.mist)for(let i=0;i<(mobile?6:9);i++)s.smoke.push({x:Math.random()<.5?rand(-.12,.1):rand(.9,1.1),y:Math.random(),depth:rand(.45,1),phase:rand(0,6.3)});
   const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='earthquake'?mobile?12:20:0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
-  if(cfg.water)for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
+  if(cfg.type==='flood')for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
   if(['wind','storm','tornado','hurricane','flood','tsunami'].includes(cfg.type))window.triggerWindLetters?.(Infinity,{controlled:true,allText:true});
-  if(['wind','storm','hurricane','tornado'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
-  s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);if(s.physics.background)host.append(s.physics.background);host.dataset.weatherMaterial=cfg.water?'refractive-current':cfg.type==='wind'?'turbulent-air':cfg.type==='tornado'?'helical-debris':'wet-glass';}
+  if(['wind','storm','hurricane','tornado','tsunami'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
+  s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);if(s.physics.background)host.append(s.physics.background);if(cfg.type==='tsunami')host.dataset.renderer=s.physics.background.dataset.renderer;host.dataset.weatherMaterial=cfg.type==='tsunami'?'hydraulic-bore':cfg.water?'refractive-current':cfg.type==='wind'?'turbulent-air':cfg.type==='tornado'?'helical-debris':'wet-glass';}
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
   function resize(){
    if(scene!==s)return;
@@ -164,7 +164,7 @@
  }
  function windResponse(s,t,dt,envelope){
   const state=s.wind,p=panel();if(!state||!p)return;
-  if(['wind','tornado'].includes(s.cfg.type)){if(s.physics?.load){const flow=s.physics.load(t,dt,envelope,s.cfg);state.pressure=flow.pressure;state.travel=flow.travel;}return;}
+  if(['wind','tornado','tsunami'].includes(s.cfg.type)){if(s.physics?.load){const flow=s.physics.load(t,dt,envelope,s.cfg);state.pressure=flow.pressure;state.travel=flow.travel;}return;}
   const cyclone=s.cfg.type==='hurricane';
   const strength=s.cfg.strength;
   const pressure=pressureAt(s,t,.45)*strength*(s.cfg.type==='storm'?.72:1)*envelope;

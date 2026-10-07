@@ -74,7 +74,7 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 #painel-direito.pd-cinema-active .pd-timeline,#painel-direito.pd-cinema-active .pd-chip{background:rgba(4,16,27,.72)}
 #painel-direito.pd-cinema-active .pd-header-row{background:linear-gradient(rgba(4,16,27,.75),rgba(4,16,27,.56));text-shadow:0 1px 3px #000}
 #painel-direito.pd-fx-fire .pd-cinema-footage{opacity:.94;object-position:center bottom}
-#painel-direito.pd-fx-flood .pd-cinema-footage,#painel-direito.pd-fx-tsunami .pd-cinema-footage{filter:saturate(.65) contrast(1.12);opacity:.86}
+#painel-direito.pd-fx-flood .pd-cinema-footage{filter:saturate(.65) contrast(1.12);opacity:.86}
 /* Photographic materials retain their texture; glass and data surfaces carry contrast. */
 #painel-direito .pd-cinema-layer[data-material="lava"] .pd-cinema-footage{mix-blend-mode:normal;opacity:.94;filter:saturate(.92) contrast(1.13);object-position:center}
 #painel-direito .pd-volcano-monitor{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
@@ -140,6 +140,5 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-storm,body.mobile
 #painel-direito.pd-cinema-active.pd-fx-storm #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:nowrap}
 
 /* Actual coastal inundation footage occupies the entire card with one decoder. */
-#painel-direito.pd-fx-tsunami .pd-cinema-footage{clip-path:none;object-fit:cover;object-position:center;filter:saturate(.92) contrast(1.04);opacity:.95}
 #painel-direito.pd-fx-tsunami .pd-cinema-layer::after{background:linear-gradient(180deg,rgba(6,13,17,.40),rgba(6,13,17,.25) 35%,rgba(6,13,17,.36))}
 #painel-direito.pd-fx-tsunami .pd-cinema-symbol{color:#d8e0d9;animation:none}

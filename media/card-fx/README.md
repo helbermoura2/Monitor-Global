@@ -29,9 +29,9 @@ Créditos acessíveis no teste de efeitos: [Fontes das imagens](credits.html). A
 - `tornado-vortex.mp4` e `tornado-vortex.jpg` — Dr. Sean Waugh, NOAA National Severe Storms Laboratory, tornado próximo a St. Libory, Nebraska, em 17/05/2026. [Original e crédito](https://commons.wikimedia.org/wiki/File:Sean_Waugh_NOAA_NSSL_-_Saint_Libory_Nebraska_EF3_Tornado_17_05_2026.webm) · [Política NOAA / domínio público](https://www.noaa.gov/disclaimer). Verificado em 05/10/2026. Adaptado: trecho de 3,5 a 11,5 s, recorte vertical acompanhando o enquadramento, ajuste de cor, 432 × 768, 24 quadros/s, H.264 e remoção de áudio. Repetição de 7 s com ponte de 1 s incorporada, sem reprodução reversa. A fotografia de reserva é o primeiro quadro do arquivo adaptado. A cena histórica ilustra o fenômeno, não o local, intensidade ou danos do evento selecionado.
 
 
-## Inundação por tsunami
+## Tsunami procedural
 
-- `tsunami-inundation.mp4` — FBI, Honolulu office, câmera de segurança do tsunami de Pago Pago (Samoa Americana), 29/09/2009. [Original e crédito](https://commons.wikimedia.org/wiki/File:FBI_tsunami_video_-_Pago_Pago_parking_lot_-_end.ogv). Domínio público, verificado em 05/10/2026. Adaptado: trecho durante a entrada violenta da água, remoção da moldura e do horário da câmera, recorte vertical, ajuste de cor, 432 × 768, H.264, 24 quadros/s e sem áudio. Repetição de 8,75 s com ponte de 1,25 s incorporada ao arquivo, sem reprodução reversa. Um único vídeo ocupa todo o cartão; não é reamostrado no canvas ou coberto por uma segunda cena de ondas. É uma ilustração histórica do fenômeno, não imagem do evento selecionado. A cena procedural serve apenas de reserva enquanto não há quadro de vídeo disponível.
+A filmagem de tsunami foi removida. `js/card-tsunami-surge.js` desenha uma frente hidráulica turbulenta contínua em WebGL, com relevo, iluminação, reflexo da luz difusa, espuma celular e correnteza. Uma superfície 2D mantém a mesma frente quando WebGL não está disponível ou perde o contexto. Respingos balísticos, detritos, gotas no vidro e o impacto no cartão e nos grafemas usam o mesmo relógio e campo de força. Nenhum vídeo, fotografia ou recurso externo é usado pelo tsunami. A cena é ilustrativa, sem inferir altura, velocidade, chegada, área inundada ou danos do evento selecionado.
 
 
 ## Rajadas sobre a vegetação

@@ -1,0 +1,15 @@
+/* The whole card meets one turbulent surge; data and controls stay on the glass. */
+#painel-direito .pd-tsunami-surface{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;image-rendering:auto}
+#painel-direito.pd-cinema-active.pd-fx-tsunami{animation:none!important;transform-origin:50% 60%;translate:var(--pd-surge-x,0px) var(--pd-surge-y,0px);rotate:var(--pd-surge-roll,0deg);border-color:rgba(171,196,186,calc(.28 + var(--pd-surge-load,0)*.42));box-shadow:inset 0 0 28px rgba(206,229,219,.07),inset 0 -18px 28px rgba(2,15,13,.28),0 14px 36px rgba(0,0,0,.40)}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .pd-cinema-layer{filter:none}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .pd-cinema-layer::after{background:linear-gradient(180deg,rgba(2,10,11,.25),rgba(3,12,13,.12) 34%,rgba(2,12,11,.16) 64%,rgba(2,10,10,.22))}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .pd-header-row{background:linear-gradient(180deg,rgba(3,14,14,.72),rgba(3,14,14,.39))!important}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .stat-card,#painel-direito.pd-cinema-active.pd-fx-tsunami .bubble-section{background:linear-gradient(135deg,rgba(3,16,16,.77),rgba(4,19,18,.53))!important;text-shadow:0 1px 3px #000}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .stat-card{translate:0 calc(var(--pd-surge-load,0)*2.5px);rotate:calc(var(--pd-surge-roll,0deg)*-.4)}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .pd-fx-windletter{animation:none!important;opacity:1;transform-origin:50% 70%;will-change:auto}
+#painel-direito.pd-cinema-active.pd-fx-tsunami #pd-local .pd-fx-windletter{will-change:transform}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .pd-water-submerged{filter:none;text-shadow:0 2px 3px #021211,0 -1px 1px rgba(204,225,216,.18)}
+#painel-direito .pd-tsunami-drop{position:absolute;top:0;left:0;border-radius:45% 48% 53% 51%;background:linear-gradient(130deg,rgba(233,248,240,.18),transparent 35%,rgba(3,18,17,.10) 74%,rgba(216,241,228,.18));border:.5px solid rgba(213,235,226,.23);box-shadow:inset .5px 1px 1px rgba(241,255,247,.42),inset -.5px -1px 1px rgba(1,16,15,.30);backdrop-filter:blur(.4px) brightness(1.14);-webkit-backdrop-filter:blur(.4px) brightness(1.14);pointer-events:none}
+#painel-direito.pd-cinema-active.pd-fx-tsunami .pd-cinema-symbol{animation:none;color:#d1ddd3;opacity:.78}
+@media(max-width:900px){body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-tsunami,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-tsunami{left:12px!important;right:12px!important;width:calc(100vw - 24px)!important}}
+@media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-tsunami,#painel-direito.pd-fx-tsunami .stat-card{translate:none!important;rotate:none!important}}

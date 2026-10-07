@@ -1,43 +1,37 @@
 const {test,expect}=require('@playwright/test');
+const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
-for(const width of [1280,390])test('tsunami invade o cartão com uma cena única e mantém o evento ativo '+width,async({page})=>{
- test.setTimeout(120000);
- await page.addInitScript(()=>{
-  window.__tsunamiVideoCopies=0;const draw=CanvasRenderingContext2D.prototype.drawImage;
-  CanvasRenderingContext2D.prototype.drawImage=function(source,...args){if(source instanceof HTMLVideoElement)__tsunamiVideoCopies++;return draw.call(this,source,...args);};
- });
+async function boot(page,width,cpu=false){
+ if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
- await page.evaluate(()=>{
-  const item={id:'continuous-tsunami',type:'tsunami',place:'Tsunami — boletim de teste',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};
-  globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
-  if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}
- });
- const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);await expect(video).toHaveAttribute('src','media/card-fx/tsunami-inundation.mp4');
- await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);await expect(video).toHaveCSS('clip-path','none');
- await expect.poll(()=>page.locator('.pd-cinema-film').evaluate(c=>{const gl=c.getContext('webgl'),pixels=new Uint8Array(4);gl.readPixels(Math.floor(c.width/2),Math.floor(c.height/2),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixels);return pixels[3];})).toBe(0);
- // Buffering keeps the last displayed frame, rather than revealing a second water scene.
- await video.evaluate(v=>Object.defineProperty(v,'readyState',{value:1,configurable:true}));await page.waitForTimeout(250);
- expect(await page.locator('.pd-cinema-film').evaluate(c=>{const gl=c.getContext('webgl'),p=new Uint8Array(4);gl.readPixels(c.width>>1,c.height>>1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return p[3];})).toBe(0);
- await video.evaluate(v=>{delete v.readyState;});
- await expect.poll(()=>page.locator('.pd-weather-material').evaluate(c=>!c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v>0))).toBe(true);
- const before=await video.evaluate(v=>v.currentTime);await expect.poll(()=>video.evaluate((v,t)=>Math.abs(v.currentTime-t)>.15,before)).toBe(true);
- // Real atmospheric scenes remain active beyond the Menu's 20-second preview.
- await page.clock.install();await page.clock.fastForward(21000);
- await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');await expect(video).toHaveCount(1);
- const first=await video.elementHandle();
- await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
- expect(await first.evaluate(v=>v.isConnected)).toBe(true);await expect(page.locator('#pd-local')).toContainText('Boletim atualizado');
- const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');
- expect(await page.locator('#pd-local').textContent()).toBe(text);await expect(video).toHaveCount(1);await expect(video).toHaveCSS('clip-path','none');
- expect(await page.evaluate(()=>__tsunamiVideoCopies)).toBe(0);
- const {duration,...attributes}=await video.evaluate(v=>({muted:v.muted,loop:v.loop,inline:v.playsInline,width:v.videoWidth,height:v.videoHeight,duration:v.duration}));
- expect(attributes).toEqual({muted:true,loop:true,inline:true,width:432,height:768});expect(duration).toBeCloseTo(8.75,1);
- await video.evaluate(v=>{v.currentTime=v.duration-.35;});await expect.poll(()=>video.evaluate(v=>v.currentTime<1&&!v.paused),{timeout:12000,intervals:[50,100,200]}).toBe(true);
- expect(await video.evaluate(v=>{const r=v.getBoundingClientRect(),p=document.getElementById('painel-direito');return Math.abs(r.height-p.clientHeight)<1&&r.width>=p.clientWidth-1;})).toBe(true);
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
+ await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
+ await expect(page.locator('#pd-local')).toContainText('boletim de teste');
+}
+async function picture(page,name){const r=await page.locator('#painel-direito').boundingBox(),v=page.viewportSize(),x=Math.max(0,r.x),y=Math.max(0,r.y);await page.screenshot({path:name,clip:{x,y,width:Math.min(r.width,v.width-x),height:Math.min(r.height,v.height-y)}});}
+async function surfaceEnergy(page){return page.locator('.pd-tsunami-surface').evaluate(c=>{let data;if(c.dataset.renderer.endsWith('webgl')){const gl=c.getContext('webgl');data=new Uint8Array(c.width*c.height*4);gl.readPixels(0,0,c.width,c.height,gl.RGBA,gl.UNSIGNED_BYTE,data);}else data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let min=255,max=0;for(let i=0;i<data.length;i+=4){min=Math.min(min,data[i]);max=Math.max(max,data[i]);}return {min,max,alpha:data[3]};});}
+for(const width of [1280,390])test('tsunami procedural: superfície única, impacto, dados, Menu e ciclo de vida '+width,async({page})=>{
+ test.setTimeout(120000);const errors=[],videos=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('request',r=>{if(/tsunami.*\.(?:mp4|webm|jpg)/.test(r.url()))videos.push(r.url());});await boot(page,width);
+ const surface=page.locator('.pd-tsunami-surface');await expect(surface).toHaveCount(1);await expect(surface).toHaveAttribute('data-renderer','hydraulic-bore-webgl');await expect(page.locator('.pd-cinema-film,.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-tsunami-contact')).toHaveCount(1);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-weather-material','hydraulic-bore');
+ const energy=await surfaceEnergy(page);expect(energy.max-energy.min).toBeGreaterThan(40);expect(energy.alpha).toBe(255);const time=await surface.getAttribute('data-time');await expect.poll(()=>surface.getAttribute('data-time')).not.toBe(time);
+ await expect.poll(()=>page.locator('#pd-local .pd-fx-windletter').evaluateAll(els=>els.some(el=>el.style.transform.includes('translate3d')&&el.style.transform!=='translate3d(0.00px,0.00px,0) rotate(0.00deg) skewX(0.00deg)'))).toBe(true);
+ const first=await surface.elementHandle();await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Tsunami — boletim atualizado 🇯🇵',sev:1};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-local')).toContainText('boletim atualizado');expect(await first.evaluate(el=>el.isConnected)).toBe(true);
+ // Hidden/back faces pause the one shared clock; no separate water RAF survives.
+ await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await page.waitForTimeout(220);const paused=await surface.getAttribute('data-time');await page.waitForTimeout(250);expect(await surface.getAttribute('data-time')).toBe(paused);await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>surface.getAttribute('data-time')).not.toBe(paused);
+ await page.clock.install();await page.clock.fastForward(21000);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');await expect(surface).toHaveCount(1);
+ const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');await expect(surface).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);expect(await page.locator('#pd-local').textContent()).toBe(text);await page.clock.runFor(2500);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
- await video.evaluate(v=>{v.currentTime=4;});await expect.poll(()=>video.evaluate(v=>!v.seeking)).toBe(true);
- await page.locator('#painel-direito').screenshot({path:'/tmp/tsunami-inundation-'+width+'.png'});
- await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-cinema-footage,.pd-cinema-layer,.pd-weather-material')).toHaveCount(0);
- await expect(page.locator('#pd-local')).toHaveText(text);
+ const bounds=await page.locator('#painel-direito').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(-1);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);expect(await surface.evaluate(c=>Math.abs(c.offsetHeight-document.getElementById('painel-direito').clientHeight)<1)).toBe(true);
+ await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(22000);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
+ await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-tsunami-surface,.pd-weather-material,.pd-weather-lenses,.pd-cinema-layer,.pd-fx-windletter,.pd-water-submerged')).toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(text);expect(await page.locator('#painel-direito').evaluate(p=>p.style.getPropertyValue('--pd-surge-y'))).toBe('');expect(videos).toEqual([]);expect(errors).toEqual([]);
+});
+for(const mode of ['2D','context-loss'])test('tsunami mantém correnteza, letras e controles sem GPU '+mode,async({page})=>{
+ test.setTimeout(90000);const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});await boot(page,1280,mode==='2D');if(mode==='context-loss'){await expect(page.locator('.pd-tsunami-surface')).toHaveAttribute('data-renderer','hydraulic-bore-webgl');await page.locator('.pd-tsunami-surface').evaluate(c=>c.getContext('webgl').getExtension('WEBGL_lose_context').loseContext());}
+ await expect(page.locator('.pd-tsunami-surface')).toHaveAttribute('data-renderer','hydraulic-bore-2d');await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer','hydraulic-bore-2d');await expect(page.locator('.pd-tsunami-surface')).toHaveCount(1);const e=await surfaceEnergy(page);expect(e.max-e.min).toBeGreaterThan(40);expect(e.alpha).toBe(255);await expect(page.locator('#pd-local')).toContainText('boletim de teste');await expect(page.locator('#pd-focus-btn')).toBeEnabled();await picture(page,'/tmp/tsunami-reserve-'+mode+'.png');await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-tsunami-surface,.pd-weather-material,.pd-fx-windletter')).toHaveCount(0);expect(errors).toEqual([]);
+});
+test('frente hidráulica carrega as letras originais na posição de cada linha e preserva estilos',async({page})=>{
+ await page.setContent('<div id="painel-direito" style="width:320px;height:600px;display:flow-root"><div id="pd-local" style="margin:240px 15px 20px">TSUNAMI 🇯🇵</div><div id="pd-source">Fonte oficial</div><div class="stat-card"><span class="stat-card-value"><b style="color:rgb(240,210,120)">3</b> ALERTA</span></div><button id="control">Detalhes</button></div>');
+ for(const name of ['painel-fx.js','card-tsunami-surge.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',name),'utf8')});
+ const original=await page.locator('#painel-direito').innerText();const samples=await page.evaluate(()=>{triggerWindLetters(Infinity,{controlled:true,allText:true});const p=document.getElementById('painel-direito'),s=CardTsunamiSurge.create({type:'tsunami',strength:1},false,p);p.append(s.background,s.canvas,s.lensLayer);s.resize(320,600);let max=0,secondary=0;for(let i=1;i<270;i++){const t=i/30;s.load(t,1/30,1,{strength:1});for(const el of p.querySelectorAll('.pd-fx-windletter')){const n=Math.abs(new DOMMatrix(el.style.transform).m42);if(el.closest('#pd-local'))max=Math.max(max,n);else secondary=Math.max(secondary,n);}}const low=s.load(3,1/30,1,{strength:.3}).pressure,high=s.load(3,1/30,1,{strength:1}).pressure;window.__surge=s;return {max,secondary,low,high,flags:Array.from(p.querySelectorAll('#pd-local .pd-fx-windletter')).filter(el=>el.textContent==='🇯🇵').length,frontLow:CardTsunamiSurge.front(1),frontHigh:CardTsunamiSurge.front(4.8)};});
+ expect(samples.flags).toBe(1);expect(samples.max).toBeGreaterThan(8);expect(samples.secondary).toBeGreaterThan(.5);expect(samples.high).toBeGreaterThan(samples.low);expect(samples.frontHigh-samples.frontLow).toBeGreaterThan(.5);expect(await page.locator('#painel-direito').innerText()).toBe(original);await expect(page.locator('.stat-card-value b')).toHaveCSS('color','rgb(240, 210, 120)');await page.locator('#control').click();await page.evaluate(()=>{__surge.destroy();restoreWindLetters();});await expect(page.locator('.pd-tsunami-surface,.pd-weather-material,.pd-fx-windletter')).toHaveCount(0);expect(await page.locator('#painel-direito').innerText()).toBe(original);
 });

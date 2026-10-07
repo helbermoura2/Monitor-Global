@@ -3,13 +3,14 @@
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
  function create(cfg,mobile,panel){
+  if(cfg.type==='tsunami')return window.CardTsunamiSurge?.create(cfg,mobile,panel)||null;
   if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel)||null;
   if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
-  if(!['storm','hurricane','flood','tsunami'].includes(cfg.type))return null;
+  if(!['storm','hurricane','flood'].includes(cfg.type))return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material';canvas.setAttribute('aria-hidden','true');
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   let w=1,h=1,dead=false,measureAt=-1,ledges=[],groups=[],bolt=[],boltAt=-10;
-  const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=['flood','tsunami'].includes(cfg.type);
+  const rain=cfg.type==='storm'||cfg.type==='hurricane',flood=cfg.type==='flood';
   const drops=Array.from({length:rain?(mobile?150:300):0},()=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,seed:rand(0,TAU)}));
   const matter=Array.from({length:flood?(mobile?35:65):0},(_,i)=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,phase:rand(0,TAU),leaf:i%5===0}));
   const impacts=[],lenses=[];

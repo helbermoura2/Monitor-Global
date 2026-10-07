@@ -2,7 +2,7 @@
    These scenes never claim to be footage of the event or change its measurements. */
 (function(){
  'use strict';
- const modes={storm:0,hurricane:1,tornado:2,fire:3,volcano:4,flood:5,tsunami:6,wind:7};
+ const modes={storm:0,hurricane:1,tornado:2,fire:3,volcano:4,flood:5,wind:7};
  const vertex=`attribute vec2 aPosition;varying vec2 vUV;void main(){vUV=aPosition*.5+.5;gl_Position=vec4(aPosition,0.,1.);}`;
  const fragment=`
  #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -37,22 +37,6 @@
   vec3 color=mix(vec3(.68,.07,.009),vec3(1.,.40,.027),smoothstep(.10,.8,intensity));
   color=mix(color,vec3(1.,.91,.61),core*.82);
   return vec4(color,body*shape*amount*smoothstep(.025,.32,intensity));
- }
- // Turbulent coastal bore reserve: a broken front, entrained foam and eddies.
- // It is replaced completely once the single photographic scene has presented.
- vec4 coastalBore(vec2 p){
-  vec2 flow=vec2(p.x*3.6-uTime*.21,p.y*5.2+uTime*.36);
-  vec2 curl=vec2(fbm(flow),fbm(flow+vec2(4.1,7.3)))-.5;
-  float mass=fbm(flow+curl*2.8),grain=noise(flow*33.+curl*4.);
-  float crest=.50+.16*sin(uTime*.37)+.10*sin(p.x*4.1+uTime*.18);
-  float front=p.y-crest+(mass-.5)*.15;
-  float turbulence=exp(-abs(front)*9.);
-  float foam=smoothstep(.42,.70,mass+grain*.18+turbulence*.22);
-  float relief=mass-fbm(flow+vec2(.055,.04)+curl*2.8);
-  vec3 current=mix(vec3(.055,.064,.057),vec3(.31,.32,.27),mass);
-  current+=vec3(.23,.25,.23)*clamp(relief*6.+.12,0.,.75);
-  current=mix(current,vec3(.68,.71,.66),foam*(.36+turbulence*.48));
-  return vec4(current,.93);
  }
  vec4 lava(vec2 uv){
   vec2 p=vec2(uv.x*4.,uv.y*5.-uTime*.055);
@@ -318,13 +302,8 @@
    }else{scene=over(vapor(vec2(uv.x*4.-uTime*.025,uv.y*6.),.18,vec3(.39,.48,.52)),scene);}
    }
   }else if(uMode<6.5){
-   if(uMode<5.5){
-    // A photographically continuous scene: the video already fills the entire card.
-    // Procedural current is a reserve only, never a second moving water image.
-    scene=uFootage>.5?vec4(0.):river(local);
-   }else{
-    scene=uFootage>.5?vec4(0.):coastalBore(local);
-   }
+   // Flood uses a single film; tsunami owns its independent hydraulic surface.
+   scene=uFootage>.5?vec4(0.):river(local);
   }else{
    // A photographic canopy, with the frame preserved through native loop seeks.
    // The moving dust field is in front of the data; no old speed-stripe backdrop.
@@ -380,7 +359,7 @@
  }
  function footage(cfg){
   if(!(cfg.type in modes)||['hurricane','storm'].includes(cfg.type)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
-  const key=cfg.type==='wind'?'gale-canopy':cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.type==='tsunami'?'tsunami-inundation':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado-vortex':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
+  const key=cfg.type==='wind'?'gale-canopy':cfg.type==='fire'?'fire':cfg.type==='flood'?'flood-current':cfg.lava?'lava':cfg.type==='volcano'?'smoke':cfg.type==='tornado'?'tornado-vortex':cfg.type==='hurricane'?'gusts':cfg.type==='storm'?'storm':'clouds';
   const video=document.createElement('video');video.className='pd-cinema-footage';video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-hidden','true');video.src='media/card-fx/'+key+'.mp4';if(['wind','tornado'].includes(cfg.type))video.poster='media/card-fx/'+key+'.jpg';
   let failed=false,dead=false,playing=false,wanted=false,presented=false;
   function play(){wanted=true;if(document.hidden)return;if(dead||failed||playing||!video.paused)return;playing=true;video.play().then(()=>{playing=false;if(!wanted||document.hidden)video.pause();}).catch(error=>{playing=false;if(error?.name!=='AbortError')failed=true;});}
@@ -390,7 +369,7 @@
   video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{presented=true;if(wanted&&!document.hidden)play();});
   // Keep the last photographic frame through a loop seek or brief buffering.
   // The procedural reserve must not flash over an already presented photographic scene.
-  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','tsunami','wind','tornado'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused)};
+  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','wind','tornado'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused)};
  }
  window.CardCinemaFilm={create,footage};
 })();
