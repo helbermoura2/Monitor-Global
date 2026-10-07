@@ -8,6 +8,12 @@
  // linha de texto num instante diferente, conforme sua altura). TSUNAMI_IMPACT:
  // duração do golpe em cada linha antes de sobrar só a ressaca residual.
  const TSUNAMI_CYCLE=6,TSUNAMI_SWEEP=1.1,TSUNAMI_IMPACT=.8;
+ // Enchente é correnteza contínua, não um golpe único -- turbulência de
+ // várias frequências somadas (não uma senoide só) pra parecer água de
+ // verdade empurrando as letras, com arrancos de correnteza mais forte que
+ // varrem o cartão de cima a baixo de tempos em tempos (FLOOD_SURGE_*),
+ // igual a tsunami usa pra onda, só que mais fraco e repetindo sem parar.
+ const FLOOD_SURGE_CYCLE=4.5,FLOOD_SURGE_SWEEP=1,FLOOD_SURGE_SPAN=1.8;
  function create(cfg,mobile,panel){
   if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel)||null;
   if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
@@ -117,7 +123,14 @@
       el.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) rotate('+rot.toFixed(2)+'deg)';
      });
     } else {
-     g.letters.forEach((el,i)=>{const fraction=i/Math.max(1,g.letters.length-1),phase=t*.85-fraction*3+g.y*.012;el.style.transform='translate3d('+(Math.sin(phase)*.65).toFixed(2)+'px,'+(Math.cos(phase*.8)*.4).toFixed(2)+'px,0) skewX('+(Math.sin(phase)*.5).toFixed(2)+'deg)';});
+     const localT=((t%FLOOD_SURGE_CYCLE)+FLOOD_SURGE_CYCLE)%FLOOD_SURGE_CYCLE,arrival=(g.y/h)*FLOOD_SURGE_SWEEP,since=localT-arrival;
+     const surge=since>=0&&since<FLOOD_SURGE_SPAN?Math.sin((since/FLOOD_SURGE_SPAN)*Math.PI):0;
+     g.letters.forEach((el,i)=>{
+      const fraction=i/Math.max(1,g.letters.length-1),base=t*.85-fraction*3+g.y*.012;
+      const turb=Math.sin(base)+Math.sin(base*2.3+i*1.7)*.55+Math.sin(base*3.7-i*.9)*.3,bob=Math.cos(base*.78+i*.4);
+      const dx=turb*1.4+surge*3.6*Math.sin(i*1.3+g.y*.02),dy=bob*.9+surge*1.3,skew=turb*.7+surge*1.8*Math.sin(i*.8+g.y*.02);
+      el.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) skewX('+skew.toFixed(2)+'deg)';
+     });
     }
    }
   }
