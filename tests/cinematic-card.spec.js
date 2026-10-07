@@ -17,7 +17,12 @@ async function cardCoverage(page){
   const rect=layer.getBoundingClientRect(),video=layer.querySelector('video'),film=layer.querySelector('.pd-cinema-film');
   const bounds=el=>{const r=el.getBoundingClientRect();return {top:r.top-rect.top,left:r.left-rect.left,width:r.width,height:r.height};};
   const width=film.width,height=film.height,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-  const ctx=canvas.getContext('2d');ctx.drawImage(film,0,0,width,height);
+  const ctx=canvas.getContext('2d');
+  // The procedural film legitimately goes transparent once real footage is
+  // confirmed playing (uFootage>.5) -- the video itself carries the scene
+  // then, so it must be sampled too, or coverage reads as blank by design.
+  if(video?.readyState>=2)ctx.drawImage(video,0,0,width,height);
+  ctx.drawImage(film,0,0,width,height);
   const particles=layer.querySelector('.pd-cinema-particles');if(particles)ctx.drawImage(particles,0,0,width,height);
   const pixels=ctx.getImageData(0,0,width,height).data,thirds=[];
   // Ignore the edges: the previous hero band plus thin edge effects must fail this check.
