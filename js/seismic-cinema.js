@@ -44,7 +44,7 @@
   frames[0]={offset:0,translate:'0px 0px',rotate:'0deg'};frames[n]={offset:1,translate:'0px 0px',rotate:'0deg'};return frames;
  }
  function stop(){
-  if(job){cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animations.forEach(a=>a.cancel());job.layer?.remove();
+  if(job){if(job.demo)root.CinematicCard?.stop();cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animations.forEach(a=>a.cancel());job.layer?.remove();
   job.swayTargets.forEach(el=>el.removeAttribute('data-seismic-sway'));
   job.target?.removeAttribute('data-seismic-motion');job=null;}
   if(previewBar){previewBar.remove();previewBar=null;}
@@ -119,11 +119,12 @@
   }
  }
  function play(item,mode='manual',demo=false){
-  stop();const p=profile(item,mode);
+  stop();const p={...profile(item,mode),...(demo?{duration:16000}:{})};
   const target=document.getElementById(p.full?'app':'painel-direito');
   if(!target)return p;
   // Reduced-motion users see the explanation/preview label, with no shake or debris.
   if(reduced()){if(demo)showPreviewBar(p,true);return p;}
+  if(demo)root.CinematicCard?.start({...item,id:'seismic-typography-demo',type:'earthquake',__cinemaDemo:true},16000);
   const scene=p.full?createScene(p):null;
   target.dataset.seismicMotion=p.full?'full':'discreet';
   const animations=[],swayTargets=[];
@@ -151,7 +152,7 @@
   dialog.innerHTML='<button type="button" class="seismic-demo-close" aria-label="Fechar demonstração">×</button><h3>Efeitos sísmicos · demonstração</h3><p>Compare os efeitos na tela atual. Sem criar evento, mover a câmera ou tocar alarme.</p><label>Magnitude<select id="seismic-demo-mag"><option value="2">M2.0 · Vibração leve</option><option value="5.9">M5.9 · Cartão</option><option value="6.1" selected>M6.1 · Tela inteira</option><option value="6.5">M6.5 · Tela inteira</option><option value="7.5">M7.5 · Caos</option><option value="8.2">M8.2 · Caos intenso</option></select></label><label>Profundidade<select id="seismic-demo-depth"><option value="10">10 km · Raso</option><option value="43">43 km · Comparar com o vídeo</option><option value="100">100 km · Intermediário</option><option value="500">500 km · Profundo</option></select></label><label>Apresentação<select id="seismic-demo-mode"><option value="manual">Evento novo / clique manual</option><option value="auto">Ciclo aleatório · cartão</option></select></label><p class="seismic-demo-intensity"></p><p class="seismic-demo-note">Intensidade estimada na região do epicentro. As quedas são uma ilustração, não confirmação de danos.</p><button type="button" id="seismic-demo-play">Reproduzir efeito</button>';
   const close=()=>{dialog?.remove();dialog=null;document.getElementById('fab-menu')?.focus();};dialog.querySelector('.seismic-demo-close').onclick=close;
   const current=()=>({mag:Number(dialog.querySelector('#seismic-demo-mag').value),depth:Number(dialog.querySelector('#seismic-demo-depth').value)});
-  const update=()=>{const p=profile(current(),dialog.querySelector('#seismic-demo-mode').value);dialog.querySelector('.seismic-demo-intensity').textContent=`MMI ${roman(p.mmi)} estimado · ${p.full?'Tela inteira':'Cartão'} · ${(p.duration/1000).toFixed(1)} s`;};
+  const update=()=>{const p=profile(current(),dialog.querySelector('#seismic-demo-mode').value);dialog.querySelector('.seismic-demo-intensity').textContent=`MMI ${roman(p.mmi)} estimado · ${p.full?'Tela inteira':'Cartão'} · 16 s`;};
   dialog.querySelectorAll('select').forEach(s=>s.onchange=update);dialog.querySelector('#seismic-demo-play').onclick=()=>{const item=current(),mode=dialog.querySelector('#seismic-demo-mode').value;close();play(item,mode,true);};
   document.body.append(dialog);update();dialog.querySelector('#seismic-demo-mag').focus();
  }
