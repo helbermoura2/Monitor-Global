@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block'});
 async function boot(page,width){const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname===new URL(base).hostname?r.continue():r.abort());await page.goto(base+'/?verify='+Date.now());await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&GlobalQuakeTravel?.status()==='ready');await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();SeismicCinema.stop();});await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));}
-async function start(page){return page.evaluate(()=>{const id='wave-final-qa',depth=10,end=GlobalQuakeTravel.endTime('p',depth);globalEvents=[{id,type:'earthquake',mag:5,depth,time:Date.now()-(end-1)*1000,coords:[120,-9],place:'Sismo QA',source:'QA'}];eventoSelecionadoId=id;window.__mgRevisionProtectedId=id;window.__mgRevisionProtectedUntil=Date.now()+90000;window.__mgHoldEndsAt=__mgRevisionProtectedUntil;window.__mgLiveQuakeId=id;window.__mgLiveQuakeUntil=__mgRevisionProtectedUntil;window.__finalRotation=[];window.scheduleNextAutoCycle=ms=>__finalRotation.push(ms);map.jumpTo({zoom:1.5,center:[120,-9]});startWaveFront(120,-9,5,depth,globalEvents[0].time,{id,mode:'live',chaseCam:true,protectUntilEnd:true});return {end,expectedP:GlobalQuakeTravel.radius('p',depth,end-.001)};});}
+async function start(page){return page.evaluate(()=>{const id='wave-final-qa',depth=10,end=Math.min(GlobalQuakeTravel.endTime('p',depth),waveDisplaySeconds(5,depth));globalEvents=[{id,type:'earthquake',mag:5,depth,time:Date.now()-(end-1)*1000,coords:[120,-9],place:'Sismo QA',source:'QA'}];eventoSelecionadoId=id;window.__mgRevisionProtectedId=id;window.__mgRevisionProtectedUntil=Date.now()+90000;window.__mgHoldEndsAt=__mgRevisionProtectedUntil;window.__mgLiveQuakeId=id;window.__mgLiveQuakeUntil=__mgRevisionProtectedUntil;window.__finalRotation=[];window.scheduleNextAutoCycle=ms=>__finalRotation.push(ms);map.jumpTo({zoom:1.5,center:[120,-9]});startWaveFront(120,-9,5,depth,globalEvents[0].time,{id,mode:'live',chaseCam:true,protectUntilEnd:true});return {end,expectedP:GlobalQuakeTravel.radius('p',depth,end-.001)};});}
 for(const width of [1280,390])test('final rays hold for five seconds after opening, then release '+width,async({page})=>{
  await boot(page,width);const expected=await start(page);await page.clock.runFor(1400);
  const s=await page.evaluate(()=>__mgWaveFrontState);expect(s.stage).toBe('holding');expect(s.radii.p).toBe(expected.expectedP);await expect(page.locator('.wave-front-status')).toContainText('Quadro final');
@@ -21,4 +21,25 @@ test('opening stays protected beyond the old fixed display timer',async({page})=
  await page.clock.fastForward(90100);await page.clock.runFor(40);
  expect(await page.evaluate(()=>getAutoCycleProtectionRemaining())).toBeGreaterThan(0);expect(await page.evaluate(()=>__mgWaveFrontState.stage)).toBe('opening');
  expect(await page.evaluate(()=>{queueNewCameraQuakes([globalEvents[1]]);return focusNextNewCameraQuake();})).toBe(false);await page.evaluate(()=>stopWaveFront());
+});
+test('GlobalQuake display deadline fades weak quakes, caps the final snapshot, and omits expired reports',async({page})=>{
+ await boot(page,1280);
+ const expected=await page.evaluate(()=>{
+  const id='display-limit-qa',depth=10,mag=3.2,end=waveDisplaySeconds(mag,depth);
+  eventoSelecionadoId=id;window.__mgRevisionProtectedId=id;window.__mgRevisionProtectedUntil=Date.now()+90000;window.__mgHoldEndsAt=__mgRevisionProtectedUntil;
+  window.__finalRotation=[];window.scheduleNextAutoCycle=ms=>__finalRotation.push(ms);
+  startWaveFront(120,-9,mag,depth,Date.now(),{id,mode:'live',protectUntilEnd:true});
+  return {end,p:GlobalQuakeTravel.radius('p',depth,end-.001)};
+ });
+ expect(expected.end).toBeGreaterThan(185);expect(expected.end).toBeLessThan(186);
+ await page.clock.fastForward(150000);await page.clock.runFor(100);
+ const faded=await page.evaluate(()=>({state:__mgWaveFrontState,paint:map.getPaintProperty('wave-front-p-line','line-opacity')}));
+ expect(faded.state.alpha).toBeCloseTo(2-2*faded.state.elapsedS/expected.end,10);expect(faded.paint).toBe(faded.state.alpha);expect(faded.state.radii.pkp).toBe(null);expect(faded.state.radii.pkikp).toBe(null);
+ await page.clock.fastForward((expected.end-150)*1000+300);await page.clock.runFor(100);
+ const held=await page.evaluate(()=>__mgWaveFrontState);expect(held.stage).toBe('holding');expect(held.radii.p).toBe(expected.p);expect(held.elapsedS).toBeLessThan(186);
+ await page.clock.fastForward(2000);await page.clock.runFor(100);expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBe(expected.p);
+ await page.clock.fastForward(3100);await expect(page.locator('.wave-front-status')).toHaveCount(0);
+ await page.evaluate(()=>startWaveFront(120,-9,3.2,10,Date.now()-11*60000,{id:'expired-qa',mode:'live',chaseCam:true}));await page.clock.runFor(400);
+ const expired=await page.evaluate(()=>({state:__mgWaveFrontState,camera:waveCamRAF}));expect(expired.state.alpha).toBe(0);expect(Object.values(expired.state.radii).every(r=>r===null)).toBe(true);expect(expired.camera).toBe(null);
+ await page.evaluate(()=>stopWaveFront());
 });

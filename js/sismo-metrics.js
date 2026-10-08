@@ -297,6 +297,13 @@ function startFeltZone(lng, lat, mag, depth, id) {
    do GlobalQuake. O tempo é real, sem aceleração ou limite por magnitude.
    Ao vivo usa a origem publicada; o replay manual reinicia o relógio.
    A zona estimada de percepção continua sendo uma métrica independente. */
+// GlobalQuake FeatureEarthquake.waveDisplayTimeMinutes / EarthquakeAnalysis.
+// This is a visibility limit, not a change to the physical travel tables.
+function waveDisplaySeconds(mag,depth){
+    const correction=Math.log10(Math.max(0,Number(depth)||0)+160)-Math.log10(160);
+    return 60*(2+.01*Math.pow((Number(mag)||0)+correction,4));
+}
+function waveDisplayAlpha(elapsed,limit){return Math.max(0,Math.min(1,2-2*elapsed/limit));}
 const WAVE_PHASES = ['p','s','pkp','pkikp'];
 const WAVE_LAYER_IDS = WAVE_PHASES.flatMap(phase=>['line','glow'].map(kind=>`wave-front-${phase}-${kind}`));
 
@@ -419,6 +426,7 @@ function refreshWaveFront(item){
     if(!waveFrontContext||waveFrontContext.id!==item.id)return;
     if(Array.isArray(item.coords)){waveFrontContext.lng=item.coords[0];waveFrontContext.lat=item.coords[1];}
     if(item.depth!=null&&Number.isFinite(Number(item.depth)))waveFrontContext.depth=Number(item.depth);
+    if(Number.isFinite(item.mag))waveFrontContext.mag=item.mag;
     if(waveFrontContext.mode==='live'&&Number.isFinite(item.time))waveFrontContext.originTime=item.time;
 }
 
@@ -497,7 +505,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
+    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
     function protect(until){
@@ -512,20 +520,24 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
     }
-    const radiusAt=(phase,elapsed)=>model?.radius(phase,context.depth,elapsed)??null;
+    const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
     // A câmera acompanha a frente azul até o próprio limite da onda P.
     // A zona de percepção permanece independente desse enquadramento.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
         const liveRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
-        const end=model?.endTime?.('p',context.depth);
+        const physicalEnd=model?.endTime?.('p',context.depth);
+        const displayLimit=waveDisplaySeconds(context.mag,context.depth);
+        const end=physicalEnd==null?null:Math.min(physicalEnd,displayLimit);
         if(end!=null&&elapsedS<end&&context.protectUntilEnd&&context.stage==='opening')protect(Math.max(context.previousProtection?.__mgRevisionProtectedUntil||0,context.originTime+end*1000+20000));
-        if(liveRadii.p!==null&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii};
+        if(liveRadii.p!==null&&end!=null&&elapsedS<end&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii};
         if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii};context.stage='settling';}
-        const radii=context.finalFrame?.radii||liveRadii;
+        const expired=end!=null&&elapsedS>=end&&!context.finalFrame;
+        const radii=context.finalFrame?.radii||(expired?Object.fromEntries(WAVE_PHASES.map(p=>[p,null])):liveRadii);
+        const alpha=context.finalFrame?1:waveDisplayAlpha(elapsedS,displayLimit);
         const status=model?.status()||'error';
-        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,radii,stage:context.stage,finalUntil:context.finalUntil||null};
+        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
             const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
@@ -534,6 +546,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(waveFrontStatus.style.top!==top)waveFrontStatus.style.top=top;
         }
         try {
+            WAVE_LAYER_IDS.forEach(id=>{if(map.getLayer(id))map.setPaintProperty(id,'line-opacity',alpha*(id.endsWith('-glow')?.5:1));});
             for(const phase of WAVE_PHASES){const km=radii[phase];map.getSource(`wave-front-${phase}`)?.setData({type:'Feature',geometry:{type:'LineString',coordinates:km===null?[]:anelGeodesico(context.lng,context.lat,km,256,model.EARTH_RADIUS)}});}
         } catch (e) {}
         if(context.finalFrame&&(!chaseCam||camAbortada)&&context.stage==='settling')finishOpening();
@@ -575,6 +588,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if (Date.now() < camStartAt) { waveCamRAF = requestAnimationFrame(camLoop); return; }
 
             const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
+            const limit=Math.min(model?.endTime?.('p',context.depth)??Infinity,waveDisplaySeconds(context.mag,context.depth));
+            if(elapsedS>=limit&&!context.finalFrame)place();
+            if(elapsedS>=limit&&!context.finalFrame){waveCamRAF=null;return;}
             const kmP=radiusAt('p',elapsedS);
             // Mira um pouco ADIANTE (camLookaheadMs) no raio que o anel terá
             // daqui a pouco, não no raio atual — senão a câmera sempre fica
@@ -582,7 +598,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // acima). 1800ms dá margem suficiente pro amortecimento de
             // TAU_CAM_MS não deixar o anel escapar da tela.
             const camLookaheadMs = 1800;
-            const predicted=radiusAt('p',elapsedS+camLookaheadMs/1000);
+            const predicted=radiusAt('p',Math.min(limit-.001,elapsedS+camLookaheadMs/1000));
             const kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
             if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
             lastTargetRadius=kmAlvoCam;
@@ -633,7 +649,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         if(!waveFrontAtivo||generation!==waveFrontGeneration)return;
         try {
             WAVE_LAYER_IDS.forEach(id => {
-                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id.endsWith('-glow') ? 0.5 : 1);
+                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', (window.__mgWaveFrontState?.alpha||0)*(id.endsWith('-glow') ? 0.5 : 1));
             });
         } catch (e) {}
     }));
