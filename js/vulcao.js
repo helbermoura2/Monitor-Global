@@ -479,6 +479,8 @@ async function fetchVolcanoes(){
             showToast('🌋 '+usgsElev.length+' vulcão(ões) USGS na lista','info');
           }
         } catch(_){}
+        const priorVolcanoes=window.VolcanoPriority?.capture(globalAlerts);
+        const priorityReady=['volcanoGdacs','volcanoUsgs','volcanoVaac'].some(f=>fontesBooted.has(f));
         const ids=new Set(); let primeiroNovo=null;
 
         // 1) Eventos GDACS VO (cobertura global) + enriquecimento USGS
@@ -512,7 +514,6 @@ async function fetchVolcanoes(){
             const isNew=upsertAlert(obj,{fonte:'volcanoGdacs'});
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
-                try{ playAlertTone('volcano'); }catch(_){}
                 try{ showToast(`🌋 Vulcanismo: ${nome}`,'warning'); }catch(_){}
                 try{ notificarNavegador(`🌋 Vulcanismo — ${nome}`,`GDACS${obj.aviationColor?' · VONA '+obj.aviationColor.toUpperCase():''}`); }catch(_){}
             } else if (activeUpdatedIds.has(id)) {
@@ -550,7 +551,6 @@ async function fetchVolcanoes(){
             const isNew=upsertAlert(obj,{fonte:'volcanoUsgs',skipRemove:true});
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
-                try{ playAlertTone('volcano'); }catch(_){}
                 try{ showToast(`🌋 USGS: ${r.name}${r.aviationColor?' · '+r.aviationColor.toUpperCase():''}`,'warning'); }catch(_){}
             } else if (activeUpdatedIds.has(id)) {
                 try{ showToast(`🔄 USGS atualizado: ${r.name}${obj._deltaTxt?' · '+obj._deltaTxt:''}`,'info'); }catch(_){}
@@ -570,7 +570,10 @@ async function fetchVolcanoes(){
             if(existing){
                 existing.sources=[...new Set([...(existing.sources||[]),v.source])];
                 existing.sourceSummary=existing.sources.join(' · ');
-                if(!existing.ashStatus && v.ashStatus) existing.ashStatus=v.ashStatus;
+                if(v.ashStatus) existing.ashStatus=v.ashStatus;
+                if(v.detail) existing.vulcanicActivity=v.detail;
+                if(v.aviationColor) existing.aviationColor=v.aviationColor;
+                if(v.alertLevel) existing.usgsAlertLevel=v.alertLevel;
                 if(v.time && (!existing.time||Number(v.time)>Number(existing.time))) existing.time=v.time;
                 // Esse merge substitui a chamada a upsertAlert() pra registros já
                 // existentes — e é upsertAlert() quem normalmente carimba
@@ -600,7 +603,6 @@ async function fetchVolcanoes(){
             const isNew=upsertAlert(obj,{fonte:'volcanoVaac',skipRemove:true});
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
-                try{ playAlertTone('volcano'); }catch(_){}
                 try{ showToast(`🌋 ${v.source}: ${v.name}`,'warning'); }catch(_){}
                 try{ notificarNavegador(`🌋 Vulcanismo — ${v.name}`,v.source); }catch(_){}
             } else if (activeUpdatedIds.has(id)) {
@@ -622,8 +624,11 @@ async function fetchVolcanoes(){
         marcarBooted('volcanoVaac');
         window.__lastVolcanoSuccess = Date.now();
         window.__lastVolcanoError = null;
+        window.VolcanoPriority?.observe(priorVolcanoes,globalAlerts,priorityReady);
+        if(primeiroNovo)window.VolcanoPriority?.enqueue(primeiroNovo,'Novo aviso vulcânico');
         applyFilters();
-        if(primeiroNovo) showAlertDetails(primeiroNovo,true);
+        if(window.VolcanoPriority)window.VolcanoPriority.focus();
+        else if(primeiroNovo)showAlertDetails(primeiroNovo,true);
     }catch(e){ window.__lastVolcanoError = e?.message||String(e); console.error('Vulcanismo profissional:',e); }
 }
 

@@ -20,7 +20,7 @@ function queueNewCameraQuakes(items) {
     // The election UI cannot prevent an arrival from entering the camera queue.
     try { window.ElectionPanel?.newQuakes(items); } catch(e) { console.warn('[prioridade sísmica] eleição:',e); }
 }
-function focusNextNewCameraQuake() {
+function focusNextNewCameraQuake(minMagnitude = 0) {
     if (!map) return false;
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
         Date.now() < (window.__mgRevisionProtectedUntil || 0);
@@ -40,13 +40,17 @@ function focusNextNewCameraQuake() {
         const revision=pendingQuakeRevisions.get(event.id);
         const freshBadge=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(event.id)||0)>Date.now();
         const presented=window.__mgQuakeCameraPresented?.get(event.id);
-        const raised=current&&revision&&Number(event.mag)>Number(revision._previousMag??presented??event.mag);
+        const raised=revision&&Number(event.mag)>Number(revision._previousMag??presented??event.mag);
         if(!raised&&(!freshBadge||(presented!=null&&presented>=Number(event.mag))))continue;
         candidates.push({index,event,arrived:Number(revision?._updatedAt||event._novoAt)||Date.now()});
     }
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
+    if (minMagnitude > 0) {
+        for (let i=candidates.length-1;i>=0;i--) if(Number(candidates[i].event.mag)<minMagnitude)candidates.splice(i,1);
+    }
     if (!candidates.length) return false;
     const next=candidates[0];
+    if(Number(next.event.mag)<5&&window.VolcanoPriority?.presentationActive())return false;
     // Automatic revisits never delay a newly arrived quake. A larger arrival
     // may interrupt a live/manual hold; equal or smaller arrivals wait.
     if (protectedSelection && Number(next.event.mag)<=currentMag) return false;
