@@ -47,8 +47,9 @@
   while(right-left>1e-4){const mid=left+(right-left)/2;midValue=travelTime(phase,depth,mid);if(midValue===NO_ARRIVAL)return null;if(midValue<time)left=mid;else right=mid;}
   return Math.abs(time-midValue)>.5?null:(left+right)/2;
  }
+ function endTime(phase,depth){const p=phases[phase],table=p&&tables?.[p.name];if(!table)return null;const t=travelTime(phase,depth,p.max);return t===NO_ARRIVAL?null:((phase==='p'||phase==='s')?Math.min(t,table.values[table.cols-1]):t);}
  function radius(phase,depth,time){const a=angle(phase,depth,time);return a===null?null:a/360*EARTH_CIRCUMFERENCE;}
- const api={load,travelTime,angle,radius,status:()=>status,model:'iasp91',revision:'00d63afae10fcb910f7609873bf85c8d80566eaa',EARTH_RADIUS,EARTH_CIRCUMFERENCE};
+ const api={load,travelTime,angle,radius,endTime,status:()=>status,model:'iasp91',revision:'00d63afae10fcb910f7609873bf85c8d80566eaa',EARTH_RADIUS,EARTH_CIRCUMFERENCE};
  root.GlobalQuakeTravel=api;
  // Start once, cache locally, and omit fronts if loading fails: never invent a radius.
  load().catch(()=>{});

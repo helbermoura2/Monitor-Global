@@ -32,3 +32,10 @@ implementation must agree to less than 1e-10 degrees. The fixture includes
 fractional depths, deep earthquakes, vertical travel delays, shadow zones and
 expired fronts. Time-real scenes use the published UTC origin; manual replay
 uses the same model at 1× speed with a separately labelled replay clock.
+
+The presentation protects a live/manual selection until the P-front camera
+finishes opening. It then holds the last model-calculated frame for five seconds,
+labelled "Quadro final", before resuming normal rotation. Larger newly arrived
+earthquakes can preempt that hold; equal/smaller arrivals wait. Manual selection
+and map interaction remain available. The final frame is a labelled snapshot,
+not a claim that the physical waves stopped.

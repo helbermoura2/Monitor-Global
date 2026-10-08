@@ -1372,6 +1372,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Guardado em window.__mgHoldMag/__mgHoldEndsAt pra orquestrador-feeds.js
     // saber se um sismo novo pode interromper esse tempo (só se for de
     // magnitude MAIOR que o que já está em tela).
+    // Prazo-base: a frente física pode estender a proteção até o fim da
+    // abertura, seguido de cinco segundos no quadro final.
     const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
     // Ciclo automático puro (revisitando um evento já conhecido, sem onda
     // rodando — só a zona crítica): 30 segundos fixos pra qualquer magnitude,
@@ -1449,6 +1451,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                             const current=globalEvents.find(event=>event.id===item.id)||item;
                             startWaveFront(current.coords[0],current.coords[1],current.mag,current.depth,waveMode==='live'?current.time:origemOnda,{
                                 chaseCam: !soft,
+                                protectUntilEnd:!soft,
                                 id:item.id,
                                 mode:waveMode,
                                 camDelayMs
@@ -1469,6 +1472,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     const fallbackMode=(triggerVisualAlert||soft)?'live':'replay';
                     const origemFallback=fallbackMode==='live'?item.time:Date.now();
                     startWaveFront(lng, lat, item.mag, item.depth, origemFallback, {
+                        protectUntilEnd:!soft,
                         id:item.id,
                         mode:fallbackMode,
                         chaseCam: !soft,
