@@ -125,6 +125,7 @@ function eventSeverityScore(item) {
 
 function passesGeoFilter(item) {
     if (geoFilter === 'all' || !geoFilter) return true;
+    if(item.municipalityLocations?.length)return item.municipalityLocations.some(city=>passesGeoFilter({...item,municipalityLocations:undefined,coords:city.coords}));
     if (!item.coords) {
         if (geoFilter === 'br' || geoFilter === 'me') {
             const txt = ((item.place || '') + ' ' + (item.pais || '')).toLowerCase();

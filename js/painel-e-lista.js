@@ -1838,6 +1838,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         } else {
             document.getElementById('pd-cities').innerHTML = dirHtml;
         }
+    } else if(Array.isArray(item.municipalities)&&window.InmetMunicipalities){
+        window.InmetMunicipalities.renderPanel(item);
     } else {
         // Todos os demais tipos de evento usam exatamente o mesmo resolvedor geográfico:
         // enchente, incêndio, tempestade, vento, alerta civil, sismo etc.
@@ -1965,6 +1967,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgSoftCycle = false;
         scheduleNextAutoCycle(30000);
     }
+    if(item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
 }
 
 /* Rede de segurança pras duas funções acima: cada uma é uma sequência
