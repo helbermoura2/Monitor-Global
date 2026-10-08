@@ -12,6 +12,6 @@ Entram eventos ativos e condições atuais de vento/tempestade modeladas, com se
 
 Verificação: `tests/unit/auto-cycle.test.cjs` cobre proporção, 80 sismos sem repetição, categorias raras, continuidade, renovação da base, espera/proteção, reservas e entropia. `tests/auto-cycle.spec.js` confere seleção real, câmera/cartão, chegada nova, permanência protegida e retomada no computador e celular.
 
-### Replay sísmico no ciclo automático
+### Radar sísmico no ciclo automático
 
-Eventos revisitados pelo aleatório exibem `Replay automático` e o tempo simulado em segundos. A reprodução começa três segundos depois da chegada vertical da onda P à superfície, calculada na tabela iasp91 do GlobalQuake para a profundidade do evento. Isso evita uma espera sem círculos nos sismos profundos. Depois, o relógio avança a 1×: cada raio é calculado pelo mesmo modelo, sem multiplicador de velocidade. A câmera acompanha P; o ciclo mantém os 30 segundos após o voo inicial e não recebe proteção até o fim das ondas. Eventos novos continuam usando o horário publicado e podem interromper o replay. Cliques manuais continuam reproduzindo desde t=0.
+O aleatório mostra apenas o radar de alcance estimado: vermelho para a zona crítica, azul para a região onde o sismo pode ter sido sentido, com varredura no epicentro. O rótulo identifica essas áreas como estimativas, sem afirmar medições de relatos. Revisões atualizam as áreas sem reiniciar o ciclo. A rotação mantém 30 segundos após o voo, sem proteção longa, e eventos novos podem interrompê-la. As frentes físicas do GlobalQuake aparecem exclusivamente nos eventos novos (horário publicado) e nas seleções manuais (replay desde t=0), preservando a abertura e a pausa final de cinco segundos.

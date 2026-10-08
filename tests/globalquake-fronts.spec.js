@@ -44,8 +44,8 @@ for(const width of [1280,390])test('live origin, manual replay, revision and geo
  await page.clock.fastForward(45000);await page.clock.runFor(100);state=await page.evaluate(()=>__mgWaveFrontState);expect(state.radii.p).toBeGreaterThan(0);
  const radii=await page.evaluate(()=>{const s=__mgWaveFrontState;return {actual:s.radii.p,expected:GlobalQuakeTravel.radius('p',s.depth,s.elapsedS)};});expect(radii.actual).toBe(radii.expected);
  await page.evaluate(()=>{__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);});await page.clock.fastForward(5600);await page.clock.fastForward(3300);await page.clock.runFor(100);
- await expect(page.locator('.wave-front-status')).toContainText('Replay automático');expect(await page.evaluate(()=>__mgWaveFrontState.originTime)).toBeGreaterThan(origin);expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBeGreaterThan(0);
- await page.evaluate(()=>stopWaveFront());await expect(page.locator('.wave-front-status')).toHaveCount(0);expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);
+ await expect(page.locator('.felt-zone-status')).toContainText('Radar');expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);expect(await page.evaluate(()=>__mgFeltZoneState.depth)).toBe(100);
+ await page.evaluate(()=>{stopWaveFront();stopFeltZone();});await page.clock.fastForward(2700);await expect(page.locator('.wave-front-status')).toHaveCount(0);expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);
 });
 test('failed model omits waves without inventing a radius',async({page})=>{
  await page.route('**/*',r=>{const u=new URL(r.request().url());return u.hostname==='127.0.0.1'&&!u.pathname.endsWith('.bin.gz')?r.continue():r.abort();});
@@ -71,25 +71,31 @@ test('revision during the initial delay uses the latest hypocenter',async({page}
  const s=await page.evaluate(()=>__mgWaveFrontState);expect(s.depth).toBe(expected.depth);expect(s.originTime).toBe(expected.originTime);
  await page.evaluate(()=>stopWaveFront());
 });
-test('automatic replay shows old deep quakes without extending rotation or blocking arrivals',async({page})=>{
- await boot(page);await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));
+for(const width of [1280,390])test('automatic radar estimates areas without GlobalQuake fronts '+width,async({page})=>{
+ await boot(page,width);await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));
  const original=await page.evaluate(()=>{
   const time=Date.now()-9*3600000;
-  globalEvents=[{id:'old-deep-qa',type:'earthquake',mag:1.7,depth:600,time,coords:[-155,19],place:'Sismo profundo antigo',source:'QA'}];
+  globalEvents=[{id:'old-radar-qa',type:'earthquake',mag:5,depth:10,time,coords:[-155,19],place:'Sismo antigo',source:'QA'}];
   isFirstDisplay=false;window.__automaticSchedule=[];window.scheduleNextAutoCycle=ms=>__automaticSchedule.push(ms);
   __mgSoftCycle=true;showEventDetails(0,false);return time;
  });
- await page.clock.fastForward(5600);await page.clock.fastForward(3300);await page.clock.runFor(100);
- await expect(page.locator('.wave-front-status')).toContainText('Replay automático');
- const before=await page.evaluate(()=>({state:__mgWaveFrontState,expected:GlobalQuakeTravel.radius('p',600,__mgWaveFrontState.elapsedS),schedule:__automaticSchedule,protected:getAutoCycleProtectionRemaining(),time:globalEvents[0].time}));
- expect(before.state.radii.p).toBeGreaterThan(0);expect(before.state.radii.p).toBe(before.expected);expect(before.schedule).toEqual([36000]);expect(before.protected).toBe(0);expect(before.time).toBe(original);
- await page.clock.fastForward(2000);await page.clock.runFor(100);
- const after=await page.evaluate(()=>__mgWaveFrontState);expect(after.elapsedS-before.state.elapsedS).toBeCloseTo(2.1,1);expect(after.radii.p).toBeGreaterThan(before.state.radii.p);
- await page.screenshot({path:'/tmp/automatic-wave-replay.png'});
- const replayOrigin=after.originTime;
- await page.evaluate(()=>{globalEvents[0].mag=1.9;showEventDetails(0,false,true);});expect(await page.evaluate(()=>__mgWaveFrontState.originTime)).toBe(replayOrigin);
+ await page.clock.fastForward(5600);await page.clock.runFor(100);
+ await expect(page.locator('.felt-zone-status')).toContainText('Estimativa');
+ expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);
+ expect(await page.evaluate(()=>['p','s','pkp','pkikp'].every(p=>map.getPaintProperty(`wave-front-${p}-line`,'line-opacity')===0))).toBe(true);
+ const state=await page.evaluate(()=>({state:__mgFeltZoneState,critical:raioCritico(5,10),felt:raioEstimado(5,10),schedule:__automaticSchedule,protected:getAutoCycleProtectionRemaining(),time:globalEvents[0].time}));
+ expect(state.state.criticalKm).toBe(state.critical);expect(state.state.feltKm).toBe(state.felt);expect(state.schedule).toEqual([36000]);expect(state.protected).toBe(0);expect(state.time).toBe(original);
+ await page.clock.runFor(2600);
+ if(width===390){const badge=await page.locator('.felt-zone-status').boundingBox(),ticker=await page.locator('#latest-event-ticker').boundingBox();expect(badge.y).toBeGreaterThan(ticker.y+ticker.height);}
+ await page.screenshot({path:'/tmp/automatic-felt-radar-'+width+'.png'});
+ await page.evaluate(()=>{globalEvents[0].mag=6;globalEvents[0].depth=100;showEventDetails(0,false,true);});
+ expect(await page.evaluate(()=>__mgFeltZoneState.criticalKm)).toBe(await page.evaluate(()=>raioCritico(6,100)));expect(await page.evaluate(()=>__automaticSchedule)).toEqual([36000]);
+ await page.evaluate(()=>{__mgSoftCycle=false;showEventDetails(0,false);});await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
+ expect(await page.evaluate(()=>__mgWaveFrontState.mode)).toBe('replay');await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);
+ await page.evaluate(()=>{__mgSoftCycle=true;showEventDetails(0,false);});await page.clock.fastForward(5600);await page.clock.runFor(100);
+ expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);
  const result=await page.evaluate(()=>{const item={id:'new-small-qa',type:'earthquake',mag:1,depth:10,time:Date.now(),coords:[-155,19],place:'Novo sismo',source:'QA'};globalEvents.push(item);queueNewCameraQuakes([item]);return focusNextNewCameraQuake();});expect(result).toBe(true);
  await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
- expect(await page.evaluate(()=>__mgWaveFrontState.mode)).toBe('live');await expect(page.locator('.wave-front-status')).toContainText('Tempo real');
+ expect(await page.evaluate(()=>__mgWaveFrontState.mode)).toBe('live');await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);await expect(page.locator('.wave-front-status')).toContainText('Tempo real');
  await page.evaluate(()=>stopWaveFront());
 });

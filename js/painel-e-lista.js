@@ -1342,6 +1342,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         // Só dados do card (revisão de magnitude etc.) — sem fly, sem radar, sem ciclo.
         window.CinematicCard?.refresh(item);
         if(typeof refreshWaveFront==='function')refreshWaveFront(item);
+        if(typeof refreshFeltZone==='function')refreshFeltZone(item);
         return;
     }
 
@@ -1353,6 +1354,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     let zoomAlvo = 12;
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
+    clearTimeout(window.__mgWaveDelayT);
+    if(soft && !triggerVisualAlert){
+        if(typeof stopWaveFront==='function')stopWaveFront();
+    }else if(typeof stopFeltZone==='function')stopFeltZone();
 
     if (typeof calcZoomParaAlcance === 'function' && typeof raioEstimado === 'function') {
         try {
@@ -1375,7 +1380,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Prazo-base: a frente física pode estender a proteção até o fim da
     // abertura, seguido de cinco segundos no quadro final.
     const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
-    // Replay automático: 30 segundos, sem proteção longa de evento ao vivo.
+    // Radar de alcance estimado no automático: 30 segundos, sem proteção longa.
     // Novos alertas continuam podendo assumir a câmera imediatamente.
     const HOLD_AUTO_MS = 30000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
@@ -1415,13 +1420,19 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + HOLD_AUTO_MS) : hold);
     }
 
-    // Display travel fronts only. Felt/critical radii remain estimates in
-    // the details/exposure calculation, not competing map wavefronts.
+    // Automatic revisits show estimated felt/critical zones; live/manual show travel fronts.
     try {
         clearTimeout(window.__mgRadarDelayT);
         window.__mgRadarDelayT = setTimeout(() => {
             try {
                 if (eventoSelecionadoId !== item.id) return;
+                clearTimeout(window.__mgWaveDelayT);
+                if(soft && !triggerVisualAlert){
+                    if(typeof stopWaveFront==='function')stopWaveFront();
+                    const current=globalEvents.find(event=>event.id===item.id)||item;
+                    if(typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
+                    return;
+                }
                 if (typeof stopFeltZone === 'function') stopFeltZone();
 
                 if (!soft && !triggerVisualAlert && typeof startCascadeRipple === 'function') {
@@ -1435,7 +1446,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
                 // Deixa o voo inicial assentar antes de exibir as frentes.
                 // Real fronts use the published origin, including delayed reports.
-                // Clicks replay from t=0; automatic scenes begin at surface arrival.
+                // Only manual clicks replay the model from t=0.
                 const waveMode=triggerVisualAlert?'live':'replay';
                 const origemOnda=waveMode==='live'?item.time:Date.now();
                 const camDelayMs = triggerVisualAlert ? 5850 : Math.max(0, totalDur - 150);
@@ -1447,7 +1458,6 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                             const current=globalEvents.find(event=>event.id===item.id)||item;
                             startWaveFront(current.coords[0],current.coords[1],current.mag,current.depth,waveMode==='live'?current.time:origemOnda,{
                                 chaseCam: true,
-                                autoReplay:soft && !triggerVisualAlert,
                                 protectUntilEnd:!soft,
                                 id:item.id,
                                 mode:waveMode,
@@ -1461,12 +1471,17 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     } catch (e) {
         try {
             if(typeof stopFeltZone==='function')stopFeltZone();
+            if(soft && !triggerVisualAlert){
+                clearTimeout(window.__mgWaveDelayT);
+                if(typeof stopWaveFront==='function')stopWaveFront();
+                if(typeof startFeltZone==='function')startFeltZone(lng,lat,item.mag,item.depth,item.id);
+                return;
+            }
             if (!soft && !triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
             if (typeof startWaveFront === 'function') {
                 const fallbackMode=triggerVisualAlert?'live':'replay';
                 startWaveFront(lng, lat, item.mag, item.depth, fallbackMode==='live'?item.time:Date.now(), {
                     protectUntilEnd:!soft,
-                    autoReplay:soft && !triggerVisualAlert,
                     id:item.id,
                     mode:fallbackMode,
                     chaseCam:true,
