@@ -36,10 +36,29 @@ test('GlobalQuake display deadline fades weak quakes, caps the final snapshot, a
  const faded=await page.evaluate(()=>({state:__mgWaveFrontState,paint:map.getPaintProperty('wave-front-p-line','line-opacity')}));
  expect(faded.state.alpha).toBeCloseTo(2-2*faded.state.elapsedS/expected.end,10);expect(faded.paint).toBe(faded.state.alpha);expect(faded.state.radii.pkp).toBe(null);expect(faded.state.radii.pkikp).toBe(null);
  await page.clock.fastForward((expected.end-150)*1000+300);await page.clock.runFor(100);
- const held=await page.evaluate(()=>__mgWaveFrontState);expect(held.stage).toBe('holding');expect(held.radii.p).toBe(expected.p);expect(held.elapsedS).toBeLessThan(186);
+ const held=await page.evaluate(()=>__mgWaveFrontState);expect(held.stage).toBe('holding');expect(held.radii.p).toBe(expected.p);expect(held.elapsedS).toBeLessThan(186);expect(held.alpha).toBeLessThan(faded.state.alpha);
+ await expect(page.locator('.wave-front-status')).toContainText('03:05 / 03:05');
  await page.clock.fastForward(2000);await page.clock.runFor(100);expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBe(expected.p);
  await page.clock.fastForward(3100);await expect(page.locator('.wave-front-status')).toHaveCount(0);
  await page.evaluate(()=>startWaveFront(120,-9,3.2,10,Date.now()-11*60000,{id:'expired-qa',mode:'live',chaseCam:true}));await page.clock.runFor(400);
  const expired=await page.evaluate(()=>({state:__mgWaveFrontState,camera:waveCamRAF}));expect(expired.state.alpha).toBe(0);expect(Object.values(expired.state.radii).every(r=>r===null)).toBe(true);expect(expired.camera).toBe(null);
  await page.evaluate(()=>stopWaveFront());
+});
+for(const mag of [1.9,4.1])test('manual chase stops at its display deadline '+mag,async({page})=>{
+ test.setTimeout(120000);await boot(page,1280);
+ const expected=await page.evaluate(mag=>{
+  const depth=mag===1.9?3:30,id='manual-stop-qa';
+  globalEvents=[{id,type:'earthquake',mag,depth,time:Date.now()-16*60000,coords:[142.9355,44.4099],place:'Japão QA',source:'QA'}];eventoSelecionadoId=id;
+  window.__mgRevisionProtectedId=id;window.__mgRevisionProtectedUntil=Date.now()+90000;window.__mgHoldEndsAt=__mgRevisionProtectedUntil;
+  window.__finalRotation=[];window.scheduleNextAutoCycle=ms=>__finalRotation.push(ms);
+  map.jumpTo({center:[142.9355,44.4099],zoom:9});
+  startWaveFront(142.9355,44.4099,mag,depth,Date.now(),{id,mode:'replay',chaseCam:true,protectUntilEnd:true});
+  return {end:waveDisplaySeconds(mag,depth),depth};
+ },mag);
+ await page.clock.fastForward(15000);await page.clock.runFor(100);await page.clock.fastForward(expected.end*1000-15000);await page.clock.runFor(5000);
+ const s=await page.evaluate(()=>__mgWaveFrontState);expect(s.stage).toBe('holding');expect(s.elapsedS).toBeCloseTo(expected.end-.001,8);expect(s.alpha).toBeLessThan(1);
+ await expect(page.locator('.wave-front-status')).toContainText(mag===1.9?'02:08 / 02:08':'05:02 / 05:02');
+ const radius=await page.evaluate(()=>__mgWaveFrontState.radii.p);await page.clock.runFor(1000);expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBe(radius);
+ await page.clock.fastForward(5100);await expect(page.locator('.wave-front-status')).toHaveCount(0);
+ console.log(JSON.stringify({mag,depth:expected.depth,stopsAfterSeconds:expected.end,finalRadiusKm:radius}));
 });
