@@ -955,8 +955,10 @@ function autoCycleDraw(deck, keys, avoid) {
     return id;
 }
 function getAutoCycleProtectionRemaining() {
-    if (window.__mgRevisionProtectedId !== eventoSelecionadoId) return 0;
-    return Math.max(0, (window.__mgRevisionProtectedUntil || 0) - Date.now());
+    const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
+    const strongUntil=Number(current?.mag)>=5 ? (window.__mgHoldEndsAt||0) : 0;
+    const protectedUntil=window.__mgRevisionProtectedId===eventoSelecionadoId ? (window.__mgRevisionProtectedUntil||0) : 0;
+    return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),window.VolcanoPriority?.protectionRemaining()||0);
 }
 function selectNextAutoCycleItem() {
     const state = window.__mgAutoRotation || (window.__mgAutoRotation = {
@@ -1038,6 +1040,8 @@ function scheduleNextAutoCycle(ms) {
     const wait = Number.isFinite(ms) && ms > 0 ? Math.max(250, ms) : 30000;
     cycleTimeout = setTimeout(() => {
         try {
+            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
+            if (window.VolcanoPriority?.focus()) return;
             if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
             const protectedMs = getAutoCycleProtectionRemaining();
             if (protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
@@ -1537,7 +1541,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // módulos continuam independentes. Atualizações silenciosas e cliques
     // manuais não são uma tomada automática de câmera.
     if (!silentRefresh && (triggerVisualAlert || window.__mgSoftCycle) &&
-        getAutoCycleProtectionRemaining() > 0 &&
+        getAutoCycleProtectionRemaining() > 0 && !window.VolcanoPriority?.canInterrupt(item) &&
         !(item.type === 'earthquake' || (item.mag != null && !item.type))) {
         window.__mgSoftCycle = false;
         return;
