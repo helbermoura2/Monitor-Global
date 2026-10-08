@@ -37,6 +37,7 @@ jobs:
           node tests/unit/population-exposure-check.mjs
           node tests/unit/population-check.cjs
           node tests/unit/unified-cities-check.cjs
+          node tests/unit/globalquake-travel-check.cjs
           node tests/unit/wave-camera-check.cjs
           node tests/unit/telegram-history-check.mjs
           node tests/unit/daily-summary-design-check.mjs
