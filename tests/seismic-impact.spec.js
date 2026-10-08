@@ -8,7 +8,7 @@ for(const width of [1280,390])test('M5+ land intensity follows S, holds five sec
  await page.clock.runFor(2000);
  expect(await page.evaluate(()=>__mgWaveFrontState.stage)).toBe('holding');await page.clock.fastForward(5100);
  expect(await page.evaluate(()=>__mgWaveFrontState.stage)).toBe('returning');expect(await page.evaluate(()=>map.getZoom())).toBe(7);expect(await page.evaluate(()=>map.getPaintProperty('wave-front-p-line','line-opacity'))).toBe(0);expect(await page.evaluate(()=>__mgSeismicImpactState.stage)).toBe('impact');
- await page.clock.runFor(100);await page.screenshot({path:'/tmp/seismic-impact-'+width+'.png'});
+ await page.clock.runFor(100);if(width===390){const legend=await page.locator('.seismic-impact-status').boundingBox(),ticker=await page.locator('#latest-event-ticker').boundingBox();expect(legend.y).toBeGreaterThan(ticker.y+ticker.height);}await page.screenshot({path:'/tmp/seismic-impact-'+width+'.png'});
  await page.clock.fastForward(15100);expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);
  await page.evaluate(()=>{globalEvents.push({id:'larger-impact-qa',type:'earthquake',mag:7,depth:10,time:Date.now(),coords:[140,36],place:'Larger QA',source:'QA'});queueNewCameraQuakes([globalEvents[1]]);focusNextNewCameraQuake();});await expect(page.locator('#pd-local')).toContainText('Larger QA');expect(await page.evaluate(()=>__mgSeismicImpactState)).toBe(null);
 });
