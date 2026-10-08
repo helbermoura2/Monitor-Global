@@ -425,14 +425,19 @@ function restoreWaveProtection(context){
 }
 
 function refreshWaveFront(item){
-    if(!waveFrontContext||waveFrontContext.id!==item.id)return;
+    if(!waveFrontContext||waveFrontContext.id!==item.id){
+        if(Array.isArray(item.coords))window.SeismicImpact?.refresh({id:item.id,lng:item.coords[0],lat:item.coords[1],mag:item.mag,depth:item.depth});
+        return;
+    }
     if(Array.isArray(item.coords)){waveFrontContext.lng=item.coords[0];waveFrontContext.lat=item.coords[1];}
     if(item.depth!=null&&Number.isFinite(Number(item.depth)))waveFrontContext.depth=Number(item.depth);
     if(Number.isFinite(item.mag))waveFrontContext.mag=item.mag;
     if(waveFrontContext.mode==='live'&&Number.isFinite(item.time))waveFrontContext.originTime=item.time;
+    window.SeismicImpact?.refresh(waveFrontContext);
 }
 
-function stopWaveFront() {
+function stopWaveFront(keepImpact = false) {
+    if(!keepImpact)window.SeismicImpact?.stop();
     waveFrontGeneration++;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(waveFrontContext);waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
     try { clearInterval(waveFrontInterval); } catch (e) {}
     waveFrontInterval = null;
@@ -499,7 +504,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (chaseCam) {
         // Só aborta em interação de VERDADE do usuário (originalEvent presente) —
         // chamadas programáticas nossas (jumpTo) não disparam com originalEvent.
-        waveCamAbortHandler = (e) => { if (e && e.originalEvent){camAbortada=true;context.protectUntilEnd=false;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(context);if(typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(Math.max(1000,(window.__mgRevisionProtectedUntil||0)-Date.now()));} };
+        waveCamAbortHandler = (e) => { if (e && e.originalEvent){camAbortada=true;context.protectUntilEnd=false;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(context);if(context.stage==='returning')stopWaveFront(true);if(typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(Math.max(1000,(window.__mgRevisionProtectedUntil||0)-Date.now()));} };
         map.on('dragstart', waveCamAbortHandler);
         map.on('wheel', waveCamAbortHandler);
         map.on('touchstart', waveCamAbortHandler);
@@ -507,7 +512,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
+    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom()};
+    if(context.returnToEpicenter)window.SeismicImpact?.start(context);
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
     function protect(until){
@@ -519,8 +525,17 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     function finishOpening(){
         if(context.stage==='holding'||!context.finalFrame)return;
         context.stage='holding';context.finalUntil=Date.now()+5000;protect(context.finalUntil);place();
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;if(context.returnToEpicenter&&!camAbortada){returnToEpicenter();return;}context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
-        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
+    }
+    function returnToEpicenter(){
+        if(generation!==waveFrontGeneration)return;
+        context.stage='returning';context.finalUntil=null;
+        const duration=reduceMotion?0:3500,until=Date.now()+duration+15000;
+        protect(until);window.SeismicImpact?.finish();place();
+        try{const camera={center:centroCompensado(context.lng,context.lat,context.epicenterZoom),zoom:context.epicenterZoom,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+15000);
+        if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+15020);
     }
     const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
     // A câmera acompanha a frente azul até o próprio limite da onda P.
@@ -542,15 +557,16 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             context.radarPending=true;
             Promise.resolve().then(()=>{
                 if(!waveFrontAtivo||generation!==waveFrontGeneration)return;
-                startFeltZone(context.lng,context.lat,context.mag,context.depth,context.id,true);
+                if(context.returnToEpicenter){stopWaveFront();window.SeismicImpact?.start(context,true);}else startFeltZone(context.lng,context.lat,context.mag,context.depth,context.id,true);
             });
         }
         const radii=context.finalFrame?.radii||(expired?Object.fromEntries(WAVE_PHASES.map(p=>[p,null])):liveRadii);
-        const alpha=context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
+        const alpha=context.stage==='returning'?0:context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
+        if(context.returnToEpicenter)window.SeismicImpact?.reveal(radii.s??0,context.stage==='returning');
         const status=model?.status()||'error';
         window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=context.stage==='returning'?'Retorno ao epicentro · Intensidade estimada':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
@@ -617,7 +633,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             const zoomAlvoBruto = Math.max(1.5,Math.min(15,
                 zoomParaCaberRaio(context.lng,context.lat,kmAlvoCam)));
 
-            if (camZoomAtual === null) camZoomAtual = map.getZoom();
+            if (camZoomAtual === null){camZoomAtual=map.getZoom();context.epicenterZoom=opts?.epicenterZoom??camZoomAtual;}
             const agoraMs = performance.now();
             // dt entre quadros — limitado a 200ms pra não dar um "salto"
             // gigante se a aba ficou em background (rAF pausa) e voltou.

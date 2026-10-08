@@ -39,3 +39,17 @@ labelled "Quadro final", before resuming normal rotation. Larger newly arrived
 earthquakes can preempt that hold; equal/smaller arrivals wait. Manual selection
 and map interaction remain available. The final frame is a labelled snapshot,
 not a claim that the physical waves stopped.
+
+## Estimated shaking on land (M5+)
+
+`js/seismic-impact.js` uses the pinned GlobalQuake `GeoUtils.pgaFunction`
+Gen2 and MMI thresholds/colors. The ground distance uses GlobalQuake's spherical chord between the
+hypocenter and the surface point (Earth radius 6379 km).
+There are no local soil corrections or observed intensity reports.
+48 geodesic intensity bands are intersected with land; the S wave reveals
+completed bands. The layer is explicitly labeled as estimated.
+
+`ne-50m-land.geojson` is Natural Earth 1:50m land, public domain:
+https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_land.geojson
+Coasts and small islands are limited by this scale.
+Intersection uses vendored polygon-clipping 0.15.7 (MIT license included).
