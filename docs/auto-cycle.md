@@ -21,3 +21,5 @@ As ondas P/S usam também o limite visual do GlobalQuake: `60 × (2 + 0,01 × (M
 O aviso mostra o tempo decorrido e o prazo de encerramento (mm:ss / mm:ss). O quadro final conserva a opacidade que as ondas tinham imediatamente antes de encerrar; não volta a acender círculos que já estavam apagando.
 
 Relatos recém-recebidos podem trazer horário de origem anterior ao prazo de exibição de P/S. Nessa chegada nova, o mapa mostra o radar de alcance estimado, com o aviso `Ondas já passaram`, sem alterar a origem ou fabricar ondas ao vivo. Esse radar também acompanha revisões silenciosas e desaparece ao selecionar outro evento. O replay manual continua acessível por clique.
+
+A prioridade de maior magnitude é conferida antes de aguardar a proteção do cartão. Além da fila de chegadas, considera revisões que elevam outro sismo acima do selecionado e registros com selo novo ainda não apresentados nessa magnitude. O histórico de apresentações impede que o mesmo selo volte a interromper a tela continuamente. A decisão usa a magnitude atual do registro, sem depender dos filtros da lista nem da idade da onda.

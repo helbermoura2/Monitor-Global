@@ -1038,9 +1038,9 @@ function scheduleNextAutoCycle(ms) {
     const wait = Number.isFinite(ms) && ms > 0 ? Math.max(250, ms) : 30000;
     cycleTimeout = setTimeout(() => {
         try {
+            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
             const protectedMs = getAutoCycleProtectionRemaining();
             if (protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
-            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
             // Resume one rotation slot between queued revisions, so a large
             // backlog cannot monopolize the screen. Fresh arrivals still win.
             if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
@@ -1345,6 +1345,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         if(typeof refreshFeltZone==='function')refreshFeltZone(item);
         return;
     }
+
+    const presented=window.__mgQuakeCameraPresented||(window.__mgQuakeCameraPresented=new Map());
+    presented.delete(item.id);presented.set(item.id,Number(item.mag));
+    if(presented.size>5000)presented.delete(presented.keys().next().value);
 
     if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag), item);
