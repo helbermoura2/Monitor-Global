@@ -99,3 +99,25 @@ for(const width of [1280,390])test('automatic radar estimates areas without Glob
  expect(await page.evaluate(()=>__mgWaveFrontState.mode)).toBe('live');await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);await expect(page.locator('.wave-front-status')).toContainText('Tempo real');
  await page.evaluate(()=>stopWaveFront());
 });
+for(const width of [1280,390])test('newly received late reports show estimated radar, then manual and fresh arrivals show fronts '+width,async({page})=>{
+ await boot(page,width);await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));
+ await page.evaluate(()=>{
+  globalEvents=[{id:'late-indonesia-qa',type:'earthquake',mag:4.2,depth:157,time:Date.now()-10*60000,coords:[128,-8],place:'Kepulauan Barat Daya',source:'QA'},{id:'late-india-qa',type:'earthquake',mag:3.7,depth:10,time:Date.now()-13*60000,coords:[92.4,27.4],place:'Arunachal Pradesh',source:'QA'}];isFirstDisplay=false;
+ });
+ for(const index of [0,1]){
+  await page.evaluate(index=>{showEventDetails(index,true);clearTimeout(cycleTimeout);},index);
+  await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
+  await expect(page.locator('.felt-zone-status').filter({hasText:'Ondas já passaram'})).toHaveCount(1);
+  const state=await page.evaluate(index=>({wave:__mgWaveFrontState,radar:__mgFeltZoneState,id:globalEvents[index].id,origin:globalEvents[index].time,critical:raioCritico(globalEvents[index].mag,globalEvents[index].depth),felt:raioEstimado(globalEvents[index].mag,globalEvents[index].depth)}),index);
+  expect(state.wave).toBe(null);expect(state.radar.id).toBe(state.id);expect(state.radar.criticalKm).toBe(state.critical);expect(state.radar.feltKm).toBe(state.felt);expect(state.radar.lateReport).toBe(true);
+ }
+ await page.evaluate(()=>{globalEvents[1].mag=3.8;showEventDetails(1,false,true);});expect(await page.evaluate(()=>__mgFeltZoneState.mag)).toBe(3.8);
+ await page.clock.runFor(2600);await page.screenshot({path:'/tmp/late-quake-radar-'+width+'.png'});
+ await page.evaluate(()=>{showEventDetails(1,false);clearTimeout(cycleTimeout);});await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
+ expect(await page.evaluate(()=>__mgWaveFrontState.mode)).toBe('replay');expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBeGreaterThan(0);await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);
+ await page.evaluate(()=>{globalEvents.push({id:'fresh-qa',type:'earthquake',mag:4,depth:10,time:Date.now()-30000,coords:[92.4,27.4],place:'Chegada recente QA',source:'QA'});showEventDetails(2,true);clearTimeout(cycleTimeout);});await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
+ const live=await page.evaluate(()=>__mgWaveFrontState);expect(live.mode).toBe('live');expect(live.radii.p).toBeGreaterThan(0);expect(live.radii.s).toBeGreaterThan(0);await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);
+ await page.evaluate(()=>{startWaveFront(128,-8,4.2,157,Date.now()-10*60000,{id:'stale-qa',mode:'live'});startWaveFront(92.4,27.4,4,10,Date.now()-30000,{id:'winning-qa',mode:'live'});});await page.clock.runFor(100);
+ expect(await page.evaluate(()=>__mgWaveFrontState.id)).toBe('winning-qa');await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);
+ await page.evaluate(()=>stopWaveFront());
+});

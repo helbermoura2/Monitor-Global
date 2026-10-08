@@ -232,7 +232,7 @@ function stopFeltZone() {
     window.__mgFeltZoneState=null;
 }
 
-function startFeltZone(lng, lat, mag, depth, id) {
+function startFeltZone(lng, lat, mag, depth, id, lateReport = false) {
     if (!map) return;
     stopFeltZone();
     if(typeof stopWaveFront==='function')stopWaveFront();
@@ -253,12 +253,13 @@ function startFeltZone(lng, lat, mag, depth, id) {
     sweep.className = 'felt-zone-sweep';
     const label=document.createElement('div');
     label.className='wave-front-status felt-zone-status';
-    label.textContent='Radar · Estimativa: vermelho crítico · azul sentido';
+    label.textContent=lateReport?'Ondas já passaram · Radar de alcance estimado':'Radar · Estimativa: vermelho crítico · azul sentido';
+    label.title='Vermelho: zona crítica estimada. Azul: alcance sentido estimado.';
     wrap.append(blue, red, sweep, label);
     host.appendChild(wrap);
     feltZoneEl = wrap;
 
-    const context=feltZoneContext={id,lng,lat,mag,depth};
+    const context=feltZoneContext={id,lng,lat,mag,depth,lateReport};
     const place = () => {
         if (!map) return;
         const {lng,lat,mag,depth}=context;
@@ -535,6 +536,15 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         if(liveRadii.p!==null&&end!=null&&elapsedS<end&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii,alpha:waveDisplayAlpha(elapsedS,displayLimit)};
         if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii,alpha:Math.min(context.lastFrame.alpha,waveDisplayAlpha(finalTime,displayLimit))};context.stage='settling';}
         const expired=end!=null&&elapsedS>=end&&!context.finalFrame;
+        // A newly received report can already be older than the wave display
+        // deadline. Show its estimated impact radar, without replaying live time.
+        if(expired&&mode==='live'&&!context.radarPending&&typeof startFeltZone==='function'){
+            context.radarPending=true;
+            Promise.resolve().then(()=>{
+                if(!waveFrontAtivo||generation!==waveFrontGeneration)return;
+                startFeltZone(context.lng,context.lat,context.mag,context.depth,context.id,true);
+            });
+        }
         const radii=context.finalFrame?.radii||(expired?Object.fromEntries(WAVE_PHASES.map(p=>[p,null])):liveRadii);
         const alpha=context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
         const status=model?.status()||'error';
