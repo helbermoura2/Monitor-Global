@@ -172,17 +172,14 @@ function metrosPorPixel(lat, z) {
     return 156543.03 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
 }
 
-/* ═══════════ ZONA DE ALCANCE — sismo NOVO ("Onda Dupla") ═══════════
-   Substitui o antigo updateFeltRadiusLayer (desenhava os 3 raios pra TODO sismo
-   M≥7 sempre visível, sem animação, poluindo o mapa) e o startContinuousRadar
-   de sismos (mapa.js) — agora só aparece quando o sismo é NOVO de verdade
-   (triggerVisualAlert em showEventDetails), com os raios reais em km de sempre
-   (raioCritico/raioEstimado) crescendo a partir do epicentro, e some sozinho
-   depois de um tempo proporcional à magnitude — quanto maior o sismo, mais
-   tempo o alcance fica visível, mas nunca fica pra sempre. Seleção manual ou
-   ciclo revisitando um evento antigo não chama nada disso (só o .quake-dot/
-   .quake-label padrão, que já existem e não mudam). */
-let feltZoneEl = null, feltZoneUpd = null, feltZoneFadeTimer = null;
+/* Radar do ciclo automático: estimativas de zona crítica (vermelho) e
+   alcance sentido (azul), independentes das frentes físicas do GlobalQuake. */
+let feltZoneEl = null, feltZoneUpd = null, feltZoneContext = null;
+function refreshFeltZone(item){
+    if(!feltZoneContext||feltZoneContext.id!==item.id)return;
+    Object.assign(feltZoneContext,{lng:item.coords[0],lat:item.coords[1],mag:item.mag,depth:item.depth});
+    feltZoneUpd?.();
+}
 
 // Quanto tempo um sismo NOVO/ao vivo (ou revisitado por clique manual) fica
 // "no ar" (frente de onda P/S + câmera acompanhando + ciclo automático
@@ -223,20 +220,22 @@ function waveHoldMs(mag) {
 // sempre (só com fade visual via CSS, nunca de fato removido).
 function stopFeltZone() {
     if (!feltZoneEl) return;
-    try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
     const elAntigo = feltZoneEl, updAntigo = feltZoneUpd;
     elAntigo.classList.add('fading');
-    feltZoneFadeTimer = setTimeout(() => {
+    setTimeout(() => {
         try { map && map.off('move', updAntigo); map && map.off('zoom', updAntigo); } catch (e) {}
         try { elAntigo.remove(); } catch (e) {}
     }, 2600);
     feltZoneEl = null;
     feltZoneUpd = null;
+    feltZoneContext=null;
+    window.__mgFeltZoneState=null;
 }
 
-function startFeltZone(lng, lat, mag, depth) {
+function startFeltZone(lng, lat, mag, depth, id) {
     if (!map) return;
     stopFeltZone();
+    if(typeof stopWaveFront==='function')stopWaveFront();
     try { if (typeof stopCascadeRipple === 'function') stopCascadeRipple(); } catch (e) {}
     try { if (typeof stopContinuousRadar === 'function') stopContinuousRadar(); } catch (e) {}
     try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
@@ -246,32 +245,38 @@ function startFeltZone(lng, lat, mag, depth) {
 
     const wrap = document.createElement('div');
     wrap.className = 'felt-zone-wrap';
-    const detect = document.createElement('div');
-    detect.className = 'felt-zone-detect';
     const blue = document.createElement('div');
     blue.className = 'felt-zone-blue';
     const red = document.createElement('div');
     red.className = 'felt-zone-red';
     const sweep = document.createElement('div');
     sweep.className = 'felt-zone-sweep';
-    wrap.append(detect, blue, red, sweep);
+    const label=document.createElement('div');
+    label.className='wave-front-status felt-zone-status';
+    label.textContent='Radar · Estimativa: vermelho crítico · azul sentido';
+    wrap.append(blue, red, sweep, label);
     host.appendChild(wrap);
     feltZoneEl = wrap;
 
-    const coords = [lng, lat];
+    const context=feltZoneContext={id,lng,lat,mag,depth};
     const place = () => {
         if (!map) return;
+        const {lng,lat,mag,depth}=context;
+        const coords=[lng,lat];
+        if(feltZoneContext===context)window.__mgFeltZoneState={...context,criticalKm:raioCritico(mag,depth),feltKm:raioEstimado(mag,depth)};
+        const headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
+        label.style.top=Math.max(12,headerBottom-host.getBoundingClientRect().top+10)+'px';
+        label.style.left=(host.clientWidth/2)+'px';
+        label.style.maxWidth=Math.max(0,host.clientWidth-24)+'px';
         const z = map.getZoom();
         const mpp = metrosPorPixel(lat, z);
-        const pxDetect = Math.max(30, (raioDetectavel(mag, depth) * 1000) / mpp * 2);
         const pxBlue = Math.max(24, (raioEstimado(mag, depth) * 1000) / mpp * 2);
         const pxRed = Math.max(10, (raioCritico(mag, depth) * 1000) / mpp * 2);
         const pt = map.project(coords);
-        detect.style.width = detect.style.height = pxDetect + 'px';
         blue.style.width = blue.style.height = pxBlue + 'px';
         red.style.width = red.style.height = pxRed + 'px';
         sweep.style.width = sweep.style.height = pxRed + 'px';
-        [detect, blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+        [blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
     };
     feltZoneUpd = place;
     place();
@@ -290,7 +295,7 @@ function startFeltZone(lng, lat, mag, depth) {
 
 /* Frentes P/S e ondas de núcleo: mesmos Float32 e algoritmo TauP iasp91
    do GlobalQuake. O tempo é real, sem aceleração ou limite por magnitude.
-   Ao vivo/ciclo usam a origem publicada; só o replay manual reinicia o relógio.
+   Ao vivo usa a origem publicada; o replay manual reinicia o relógio.
    A zona estimada de percepção continua sendo uma métrica independente. */
 const WAVE_PHASES = ['p','s','pkp','pkikp'];
 const WAVE_LAYER_IDS = WAVE_PHASES.flatMap(phase=>['line','glow'].map(kind=>`wave-front-${phase}-${kind}`));
@@ -492,7 +497,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,autoReplay:mode==='replay'&&!!opts?.autoReplay,replayInitialized:false,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
+    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
     function protect(until){
@@ -512,13 +517,6 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // A zona de percepção permanece independente desse enquadramento.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
-        // Skip the vertical travel wait only in the labelled automatic replay.
-        // Advance the real model at 1× from its first surface arrival; no scaling.
-        if(context.autoReplay&&!context.replayInitialized&&model?.status()==='ready'){
-            const arrival=model.travelTime('p',context.depth,0);
-            if(arrival>=0)context.originTime=Date.now()-(arrival+3)*1000;
-            context.replayInitialized=true;
-        }
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
         const liveRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
         const end=model?.endTime?.('p',context.depth);
@@ -527,9 +525,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii};context.stage='settling';}
         const radii=context.finalFrame?.radii||liveRadii;
         const status=model?.status()||'error';
-        window.__mgWaveFrontState={model:'iasp91',status,mode,autoReplay:context.autoReplay,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,radii,stage:context.stage,finalUntil:context.finalUntil||null};
+        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,radii,stage:context.stage,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${context.autoReplay?'Replay automático · '+Math.floor(elapsedS)+' s':mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
