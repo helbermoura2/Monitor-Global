@@ -304,6 +304,7 @@ function waveDisplaySeconds(mag,depth){
     return 60*(2+.01*Math.pow((Number(mag)||0)+correction,4));
 }
 function waveDisplayAlpha(elapsed,limit){return Math.max(0,Math.min(1,2-2*elapsed/limit));}
+function waveClock(seconds){const s=Math.max(0,Math.round(seconds));return Math.floor(s/60).toString().padStart(2,'0')+':'+(s%60).toString().padStart(2,'0');}
 const WAVE_PHASES = ['p','s','pkp','pkikp'];
 const WAVE_LAYER_IDS = WAVE_PHASES.flatMap(phase=>['line','glow'].map(kind=>`wave-front-${phase}-${kind}`));
 
@@ -531,15 +532,15 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const displayLimit=waveDisplaySeconds(context.mag,context.depth);
         const end=physicalEnd==null?null:Math.min(physicalEnd,displayLimit);
         if(end!=null&&elapsedS<end&&context.protectUntilEnd&&context.stage==='opening')protect(Math.max(context.previousProtection?.__mgRevisionProtectedUntil||0,context.originTime+end*1000+20000));
-        if(liveRadii.p!==null&&end!=null&&elapsedS<end&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii};
-        if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii};context.stage='settling';}
+        if(liveRadii.p!==null&&end!=null&&elapsedS<end&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii,alpha:waveDisplayAlpha(elapsedS,displayLimit)};
+        if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii,alpha:Math.min(context.lastFrame.alpha,waveDisplayAlpha(finalTime,displayLimit))};context.stage='settling';}
         const expired=end!=null&&elapsedS>=end&&!context.finalFrame;
         const radii=context.finalFrame?.radii||(expired?Object.fromEntries(WAVE_PHASES.map(p=>[p,null])):liveRadii);
-        const alpha=context.finalFrame?1:waveDisplayAlpha(elapsedS,displayLimit);
+        const alpha=context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
         const status=model?.status()||'error';
         window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
