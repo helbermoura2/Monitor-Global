@@ -492,7 +492,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
+    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,autoReplay:mode==='replay'&&!!opts?.autoReplay,replayInitialized:false,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
     function protect(until){
@@ -512,6 +512,13 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // A zona de percepção permanece independente desse enquadramento.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
+        // Skip the vertical travel wait only in the labelled automatic replay.
+        // Advance the real model at 1× from its first surface arrival; no scaling.
+        if(context.autoReplay&&!context.replayInitialized&&model?.status()==='ready'){
+            const arrival=model.travelTime('p',context.depth,0);
+            if(arrival>=0)context.originTime=Date.now()-(arrival+3)*1000;
+            context.replayInitialized=true;
+        }
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
         const liveRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
         const end=model?.endTime?.('p',context.depth);
@@ -520,9 +527,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii};context.stage='settling';}
         const radii=context.finalFrame?.radii||liveRadii;
         const status=model?.status()||'error';
-        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,radii,stage:context.stage,finalUntil:context.finalUntil||null};
+        window.__mgWaveFrontState={model:'iasp91',status,mode,autoReplay:context.autoReplay,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,radii,stage:context.stage,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${context.autoReplay?'Replay automático · '+Math.floor(elapsedS)+' s':mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';

@@ -44,7 +44,7 @@ for(const width of [1280,390])test('live origin, manual replay, revision and geo
  await page.clock.fastForward(45000);await page.clock.runFor(100);state=await page.evaluate(()=>__mgWaveFrontState);expect(state.radii.p).toBeGreaterThan(0);
  const radii=await page.evaluate(()=>{const s=__mgWaveFrontState;return {actual:s.radii.p,expected:GlobalQuakeTravel.radius('p',s.depth,s.elapsedS)};});expect(radii.actual).toBe(radii.expected);
  await page.evaluate(()=>{__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);});await page.clock.fastForward(5600);await page.clock.fastForward(3300);await page.clock.runFor(100);
- await expect(page.locator('.wave-front-status')).toContainText('Tempo real');expect(await page.evaluate(()=>__mgWaveFrontState.originTime)).toBe(origin);
+ await expect(page.locator('.wave-front-status')).toContainText('Replay automático');expect(await page.evaluate(()=>__mgWaveFrontState.originTime)).toBeGreaterThan(origin);expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBeGreaterThan(0);
  await page.evaluate(()=>stopWaveFront());await expect(page.locator('.wave-front-status')).toHaveCount(0);expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);
 });
 test('failed model omits waves without inventing a radius',async({page})=>{
@@ -69,5 +69,27 @@ test('revision during the initial delay uses the latest hypocenter',async({page}
  const expected=await page.evaluate(()=>{globalEvents[0]={...globalEvents[0],depth:100,time:globalEvents[0].time-2000,coords:[121,-9]};showEventDetails(0,false,true);return {depth:100,originTime:globalEvents[0].time};});
  await page.clock.fastForward(3300);await page.clock.runFor(100);
  const s=await page.evaluate(()=>__mgWaveFrontState);expect(s.depth).toBe(expected.depth);expect(s.originTime).toBe(expected.originTime);
+ await page.evaluate(()=>stopWaveFront());
+});
+test('automatic replay shows old deep quakes without extending rotation or blocking arrivals',async({page})=>{
+ await boot(page);await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));
+ const original=await page.evaluate(()=>{
+  const time=Date.now()-9*3600000;
+  globalEvents=[{id:'old-deep-qa',type:'earthquake',mag:1.7,depth:600,time,coords:[-155,19],place:'Sismo profundo antigo',source:'QA'}];
+  isFirstDisplay=false;window.__automaticSchedule=[];window.scheduleNextAutoCycle=ms=>__automaticSchedule.push(ms);
+  __mgSoftCycle=true;showEventDetails(0,false);return time;
+ });
+ await page.clock.fastForward(5600);await page.clock.fastForward(3300);await page.clock.runFor(100);
+ await expect(page.locator('.wave-front-status')).toContainText('Replay automático');
+ const before=await page.evaluate(()=>({state:__mgWaveFrontState,expected:GlobalQuakeTravel.radius('p',600,__mgWaveFrontState.elapsedS),schedule:__automaticSchedule,protected:getAutoCycleProtectionRemaining(),time:globalEvents[0].time}));
+ expect(before.state.radii.p).toBeGreaterThan(0);expect(before.state.radii.p).toBe(before.expected);expect(before.schedule).toEqual([36000]);expect(before.protected).toBe(0);expect(before.time).toBe(original);
+ await page.clock.fastForward(2000);await page.clock.runFor(100);
+ const after=await page.evaluate(()=>__mgWaveFrontState);expect(after.elapsedS-before.state.elapsedS).toBeCloseTo(2.1,1);expect(after.radii.p).toBeGreaterThan(before.state.radii.p);
+ await page.screenshot({path:'/tmp/automatic-wave-replay.png'});
+ const replayOrigin=after.originTime;
+ await page.evaluate(()=>{globalEvents[0].mag=1.9;showEventDetails(0,false,true);});expect(await page.evaluate(()=>__mgWaveFrontState.originTime)).toBe(replayOrigin);
+ const result=await page.evaluate(()=>{const item={id:'new-small-qa',type:'earthquake',mag:1,depth:10,time:Date.now(),coords:[-155,19],place:'Novo sismo',source:'QA'};globalEvents.push(item);queueNewCameraQuakes([item]);return focusNextNewCameraQuake();});expect(result).toBe(true);
+ await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
+ expect(await page.evaluate(()=>__mgWaveFrontState.mode)).toBe('live');await expect(page.locator('.wave-front-status')).toContainText('Tempo real');
  await page.evaluate(()=>stopWaveFront());
 });
