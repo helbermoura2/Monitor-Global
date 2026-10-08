@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v620-final-wave-hold';
+const CACHE = 'monitor-global-pro-v621-auto-wave-replay';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

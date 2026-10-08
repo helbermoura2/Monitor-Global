@@ -1375,12 +1375,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Prazo-base: a frente física pode estender a proteção até o fim da
     // abertura, seguido de cinco segundos no quadro final.
     const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
-    // Ciclo automático puro (revisitando um evento já conhecido, sem onda
-    // rodando — só a zona crítica): 30 segundos fixos pra qualquer magnitude,
-    // não escalado como o evento novo/manual acima. Zona crítica e onda não
-    // somem mais sozinhas (ver stopFeltZone/startWaveFront em
-    // sismo-metrics.js) — quem decide quando trocar de evento no automático
-    // é só este tempo aqui.
+    // Replay automático: 30 segundos, sem proteção longa de evento ao vivo.
+    // Novos alertas continuam podendo assumir a câmera imediatamente.
     const HOLD_AUTO_MS = 30000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
     window.__mgHoldMag = item.mag;
@@ -1439,8 +1435,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
                 // Deixa o voo inicial assentar antes de exibir as frentes.
                 // Real fronts use the published origin, including delayed reports.
-                // Explicit clicks replay the same physical model from t=0.
-                const waveMode=(triggerVisualAlert||soft)?'live':'replay';
+                // Clicks replay from t=0; automatic scenes begin at surface arrival.
+                const waveMode=triggerVisualAlert?'live':'replay';
                 const origemOnda=waveMode==='live'?item.time:Date.now();
                 const camDelayMs = triggerVisualAlert ? 5850 : Math.max(0, totalDur - 150);
                 clearTimeout(window.__mgWaveDelayT);
@@ -1450,11 +1446,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                         if (typeof startWaveFront === 'function') {
                             const current=globalEvents.find(event=>event.id===item.id)||item;
                             startWaveFront(current.coords[0],current.coords[1],current.mag,current.depth,waveMode==='live'?current.time:origemOnda,{
-                                chaseCam: !soft,
+                                chaseCam: true,
+                                autoReplay:soft && !triggerVisualAlert,
                                 protectUntilEnd:!soft,
                                 id:item.id,
                                 mode:waveMode,
-                                camDelayMs
+                                camDelayMs:soft?0:camDelayMs
                             });
                         }
                     } catch (e) {}
@@ -1464,21 +1461,17 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     } catch (e) {
         try {
             if(typeof stopFeltZone==='function')stopFeltZone();
-            if (soft) {
-                if (typeof stopWaveFront === 'function') stopWaveFront();
-            } else {
-                if (!triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
-                if (typeof startWaveFront === 'function') {
-                    const fallbackMode=(triggerVisualAlert||soft)?'live':'replay';
-                    const origemFallback=fallbackMode==='live'?item.time:Date.now();
-                    startWaveFront(lng, lat, item.mag, item.depth, origemFallback, {
-                        protectUntilEnd:!soft,
-                        id:item.id,
-                        mode:fallbackMode,
-                        chaseCam: !soft,
-                        camDelayMs: triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150)
-                    });
-                }
+            if (!soft && !triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
+            if (typeof startWaveFront === 'function') {
+                const fallbackMode=triggerVisualAlert?'live':'replay';
+                startWaveFront(lng, lat, item.mag, item.depth, fallbackMode==='live'?item.time:Date.now(), {
+                    protectUntilEnd:!soft,
+                    autoReplay:soft && !triggerVisualAlert,
+                    id:item.id,
+                    mode:fallbackMode,
+                    chaseCam:true,
+                    camDelayMs:soft?0:triggerVisualAlert?4350:Math.max(0,totalDur-150)
+                });
             }
         } catch (e2) {}
     }
