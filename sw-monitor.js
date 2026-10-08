@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v625-late-quake-radar';
+const CACHE = 'monitor-global-pro-v626-quake-priority';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

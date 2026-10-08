@@ -14,32 +14,44 @@ let __fetchGlobalFeedsEmAndamento = false;
 // Revisões aguardam os eventos novos/ao vivo; maior magnitude vem primeiro.
 const pendingNewCameraQuakes = new Map();
 function queueNewCameraQuakes(items) {
-    // New arrivals, including supplemental catalogs, can clear the election
-    // overlay before the map focuses a strong quake. Initial loads/rotation
-    // do not call this queue.
-    window.ElectionPanel?.newQuakes(items);
     for (const item of items || []) {
         if (item && item.id != null) pendingNewCameraQuakes.set(item.id, {arrived:Date.now()});
     }
+    // The election UI cannot prevent an arrival from entering the camera queue.
+    try { window.ElectionPanel?.newQuakes(items); } catch(e) { console.warn('[prioridade sísmica] eleição:',e); }
 }
 function focusNextNewCameraQuake() {
     if (!map) return false;
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
         Date.now() < (window.__mgRevisionProtectedUntil || 0);
-    const candidates = [];
+    const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
+    const currentMag=Number(current?.mag) || 0;
+    const candidates = [],included=new Set();
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
         if (index < 0 || id === eventoSelecionadoId) { pendingNewCameraQuakes.delete(id); continue; }
-        candidates.push({index, event:globalEvents[index], arrived:entry.arrived});
+        candidates.push({index, event:globalEvents[index], arrived:entry.arrived});included.add(id);
+    }
+    // Revisions can raise an already known event above the quake on screen.
+    // Also recover a newly badged arrival if its enqueue path was interrupted.
+    for(let index=0;index<globalEvents.length;index++){
+        const event=globalEvents[index];
+        if(!event||event.id===eventoSelecionadoId||included.has(event.id)||Number(event.mag)<=currentMag)continue;
+        const revision=pendingQuakeRevisions.get(event.id);
+        const freshBadge=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(event.id)||0)>Date.now();
+        const presented=window.__mgQuakeCameraPresented?.get(event.id);
+        const raised=current&&revision&&Number(event.mag)>Number(revision._previousMag??presented??event.mag);
+        if(!raised&&(!freshBadge||(presented!=null&&presented>=Number(event.mag))))continue;
+        candidates.push({index,event,arrived:Number(revision?._updatedAt||event._novoAt)||Date.now()});
     }
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
     if (!candidates.length) return false;
     const next=candidates[0];
-    const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
     // Automatic revisits never delay a newly arrived quake. A larger arrival
     // may interrupt a live/manual hold; equal or smaller arrivals wait.
-    if (protectedSelection && Number(next.event.mag)<=Number(current?.mag)) return false;
+    if (protectedSelection && Number(next.event.mag)<=currentMag) return false;
     pendingNewCameraQuakes.delete(next.event.id);
+    pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;
     showEventDetails(next.index,true);
     return true;
@@ -336,6 +348,7 @@ async function fetchGlobalFeeds() {
                         if (prelimMudou && prev.isPreliminary && !ev.isPreliminary) parts.push('preliminar → revisado');
                         if (fontesMudou && !magMudou) parts.push(`Fontes: ${ev.sourceSummary || ev.source}`);
                         if (qualityMudou && !magMudou && !prelimMudou) parts.push(`Qualidade ${prev.quality || '—'} → ${ev.quality || '—'}`);
+                        ev._previousMag = Number(prev.mag);
                         ev._deltaTxt = parts.join(' · ') || 'Dado atualizado pela fonte';
                         ev._updatedAt = Date.now();
                         atualizados.push(ev);
