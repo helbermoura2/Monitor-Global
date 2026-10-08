@@ -1,0 +1,24 @@
+const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block'});
+async function boot(page,width){const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname===new URL(base).hostname?r.continue():r.abort());await page.goto(base+'/?verify='+Date.now());await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&GlobalQuakeTravel?.status()==='ready');await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();SeismicCinema.stop();});await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));}
+async function start(page){return page.evaluate(()=>{const id='wave-final-qa',depth=10,end=GlobalQuakeTravel.endTime('p',depth);globalEvents=[{id,type:'earthquake',mag:5,depth,time:Date.now()-(end-1)*1000,coords:[120,-9],place:'Sismo QA',source:'QA'}];eventoSelecionadoId=id;window.__mgRevisionProtectedId=id;window.__mgRevisionProtectedUntil=Date.now()+90000;window.__mgHoldEndsAt=__mgRevisionProtectedUntil;window.__mgLiveQuakeId=id;window.__mgLiveQuakeUntil=__mgRevisionProtectedUntil;window.__finalRotation=[];window.scheduleNextAutoCycle=ms=>__finalRotation.push(ms);map.jumpTo({zoom:1.5,center:[120,-9]});startWaveFront(120,-9,5,depth,globalEvents[0].time,{id,mode:'live',chaseCam:true,protectUntilEnd:true});return {end,expectedP:GlobalQuakeTravel.radius('p',depth,end-.001)};});}
+for(const width of [1280,390])test('final rays hold for five seconds after opening, then release '+width,async({page})=>{
+ await boot(page,width);const expected=await start(page);await page.clock.runFor(1400);
+ const s=await page.evaluate(()=>__mgWaveFrontState);expect(s.stage).toBe('holding');expect(s.radii.p).toBe(expected.expectedP);await expect(page.locator('.wave-front-status')).toContainText('Quadro final');
+ const deadline=s.finalUntil;expect(await page.evaluate(()=>__mgRevisionProtectedUntil)).toBe(deadline);expect(await page.evaluate(()=>__finalRotation)).toEqual([5020]);
+ await page.clock.fastForward(deadline-await page.evaluate(()=>Date.now())-100);await page.clock.runFor(40);
+ expect(await page.evaluate(()=>__mgWaveFrontState.radii)).toEqual(s.radii);await page.screenshot({path:'/tmp/wave-final-hold-'+width+'.png'});
+ await page.clock.fastForward(150);await expect(page.locator('.wave-front-status')).toHaveCount(0);expect(await page.evaluate(()=>__mgWaveFrontState)).toBe(null);expect(await page.evaluate(()=>getAutoCycleProtectionRemaining())).toBe(0);
+});
+test('only a larger new quake interrupts the hold; manual changes cancel old timers',async({page})=>{
+ await boot(page,1280);await start(page);await page.clock.runFor(1400);
+ const result=await page.evaluate(()=>{for(const [id,mag] of [['equal-qa',5],['small-qa',4]])globalEvents.push({id,type:'earthquake',mag,depth:10,time:Date.now(),coords:[120,-9],place:'Novo QA',source:'QA'});queueNewCameraQuakes(globalEvents.slice(1));const smaller=focusNextNewCameraQuake();globalEvents.push({id:'large-qa',type:'earthquake',mag:6,depth:10,time:Date.now(),coords:[120,-9],place:'Maior QA',source:'QA'});queueNewCameraQuakes([globalEvents.at(-1)]);const larger=focusNextNewCameraQuake();return {smaller,larger,selected:eventoSelecionadoId};});
+ expect(result).toEqual({smaller:false,larger:true,selected:'large-qa'});await page.clock.runFor(200);await page.clock.fastForward(3100);await page.clock.runFor(50);expect(await page.evaluate(()=>__mgWaveFrontState.id)).toBe('large-qa');await page.clock.fastForward(3000);await page.clock.runFor(50);expect(await page.evaluate(()=>__mgWaveFrontState.id)).toBe('large-qa');
+ await page.evaluate(()=>stopWaveFront());
+});
+test('opening stays protected beyond the old fixed display timer',async({page})=>{
+ await boot(page,1280);
+ await page.evaluate(()=>{const id='opening-qa';globalEvents=[{id,type:'earthquake',mag:5,depth:10,time:Date.now(),coords:[120,-9],place:'QA',source:'QA'},{id:'equal-opening-qa',type:'earthquake',mag:5,depth:10,time:Date.now(),coords:[120,-9],place:'QA',source:'QA'}];eventoSelecionadoId=id;window.__mgRevisionProtectedId=id;window.__mgRevisionProtectedUntil=Date.now()+90000;window.__mgHoldEndsAt=__mgRevisionProtectedUntil;startWaveFront(120,-9,5,10,Date.now(),{id,mode:'replay',protectUntilEnd:true});});
+ await page.clock.fastForward(90100);await page.clock.runFor(40);
+ expect(await page.evaluate(()=>getAutoCycleProtectionRemaining())).toBeGreaterThan(0);expect(await page.evaluate(()=>__mgWaveFrontState.stage)).toBe('opening');
+ expect(await page.evaluate(()=>{queueNewCameraQuakes([globalEvents[1]]);return focusNextNewCameraQuake();})).toBe(false);await page.evaluate(()=>stopWaveFront());
+});

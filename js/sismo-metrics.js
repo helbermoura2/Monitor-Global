@@ -404,6 +404,12 @@ let waveCamRAF = null;
 let waveFrontGeneration = 0;
 let waveFrontStatus = null;
 let waveFrontContext = null;
+let waveFinalTimer = null;
+function restoreWaveProtection(context){
+    if(!context?.previousProtection||window.__mgRevisionProtectedId!==context.id||window.__mgRevisionProtectedUntil!==context.protectedUntil)return;
+    Object.assign(window,context.previousProtection);
+}
+
 function refreshWaveFront(item){
     if(!waveFrontContext||waveFrontContext.id!==item.id)return;
     if(Array.isArray(item.coords)){waveFrontContext.lng=item.coords[0];waveFrontContext.lat=item.coords[1];}
@@ -412,7 +418,7 @@ function refreshWaveFront(item){
 }
 
 function stopWaveFront() {
-    waveFrontGeneration++;waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
+    waveFrontGeneration++;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(waveFrontContext);waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
     try { clearInterval(waveFrontInterval); } catch (e) {}
     waveFrontInterval = null;
     if (waveCamRAF) {
@@ -478,7 +484,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (chaseCam) {
         // Só aborta em interação de VERDADE do usuário (originalEvent presente) —
         // chamadas programáticas nossas (jumpTo) não disparam com originalEvent.
-        waveCamAbortHandler = (e) => { if (e && e.originalEvent) camAbortada = true; };
+        waveCamAbortHandler = (e) => { if (e && e.originalEvent){camAbortada=true;context.protectUntilEnd=false;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(context);if(typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(Math.max(1000,(window.__mgRevisionProtectedUntil||0)-Date.now()));} };
         map.on('dragstart', waveCamAbortHandler);
         map.on('wheel', waveCamAbortHandler);
         map.on('touchstart', waveCamAbortHandler);
@@ -486,20 +492,37 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode};
+    const context=waveFrontContext={id:opts?.id,lng,lat,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null};
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
+    function protect(until){
+        if(!context.protectUntilEnd||context.id==null||window.__mgRevisionProtectedId!==context.id)return;
+        if(!context.previousProtection)context.previousProtection={__mgRevisionProtectedUntil:window.__mgRevisionProtectedUntil,__mgHoldEndsAt:window.__mgHoldEndsAt,__mgLiveQuakeUntil:window.__mgLiveQuakeUntil};
+        context.protectedUntil=until;window.__mgRevisionProtectedUntil=until;window.__mgHoldEndsAt=until;
+        if(window.__mgLiveQuakeId===context.id)window.__mgLiveQuakeUntil=until;
+    }
+    function finishOpening(){
+        if(context.stage==='holding'||!context.finalFrame)return;
+        context.stage='holding';context.finalUntil=Date.now()+5000;protect(context.finalUntil);place();
+        if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
+    }
     const radiusAt=(phase,elapsed)=>model?.radius(phase,context.depth,elapsed)??null;
     // A câmera acompanha a frente azul até o próprio limite da onda P.
     // A zona de percepção permanece independente desse enquadramento.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
-        const radii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
+        const liveRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
+        const end=model?.endTime?.('p',context.depth);
+        if(end!=null&&elapsedS<end&&context.protectUntilEnd&&context.stage==='opening')protect(Math.max(context.previousProtection?.__mgRevisionProtectedUntil||0,context.originTime+end*1000+20000));
+        if(liveRadii.p!==null&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii};
+        if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii};context.stage='settling';}
+        const radii=context.finalFrame?.radii||liveRadii;
         const status=model?.status()||'error';
-        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS,radii};
+        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,radii,stage:context.stage,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=status==='ready'?`Ondas sísmicas · ${mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
@@ -508,6 +531,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         try {
             for(const phase of WAVE_PHASES){const km=radii[phase];map.getSource(`wave-front-${phase}`)?.setData({type:'Feature',geometry:{type:'LineString',coordinates:km===null?[]:anelGeodesico(context.lng,context.lat,km,256,model.EARTH_RADIUS)}});}
         } catch (e) {}
+        if(context.finalFrame&&(!chaseCam||camAbortada)&&context.stage==='settling')finishOpening();
     };
     place();
     model?.load().then(()=>{if(waveFrontAtivo&&generation===waveFrontGeneration)place();}).catch(()=>{if(waveFrontAtivo&&generation===waveFrontGeneration)place();});
@@ -554,7 +578,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // TAU_CAM_MS não deixar o anel escapar da tela.
             const camLookaheadMs = 1800;
             const predicted=radiusAt('p',elapsedS+camLookaheadMs/1000);
-            const kmAlvoCam=predicted??kmP??lastTargetRadius;
+            const kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
             if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
             lastTargetRadius=kmAlvoCam;
             // Enquadra o raio efetivamente desenhado, sem abertura regional forçada.
@@ -579,9 +603,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // uma folga pequena) — antes disso continua ajustando quadro a
             // quadro, mesmo que o ajuste esteja ficando imperceptivelmente
             // pequeno (filtro exponencial nunca chega EXATAMENTE no alvo).
-            if(model?.status()==='ready'&&predicted===null&&lastTargetRadius!==null)camAtingiuTeto=true;
-            if (camAtingiuTeto && Math.abs(zoomAlvoBruto - camZoomAtual) < 0.003) {
-                waveCamRAF = null;
+            if(context.finalFrame)camAtingiuTeto=true;
+            if (camAtingiuTeto && camZoomAtual <= zoomAlvoBruto + 0.003) {
+                waveCamRAF = null;finishOpening();
                 return;
             }
             waveCamRAF = requestAnimationFrame(camLoop);
