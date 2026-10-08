@@ -1341,6 +1341,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (silentRefresh) {
         // Só dados do card (revisão de magnitude etc.) — sem fly, sem radar, sem ciclo.
         window.CinematicCard?.refresh(item);
+        if(typeof refreshWaveFront==='function')refreshWaveFront(item);
         return;
     }
 
@@ -1348,7 +1349,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag), item);
     if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag, {item, mode:triggerVisualAlert?'new':window.__mgSoftCycle?'auto':'manual'});
 
-    // Voo inicial próximo aos anéis vermelho/de percepção; a câmera abre conforme a onda azul cresce.
+    // Enquadramento regional inicial; depois a câmera acompanha a frente P calculada.
     let zoomAlvo = 12;
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
@@ -1416,71 +1417,40 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + HOLD_AUTO_MS) : hold);
     }
 
-    // Zona crítica (raios "principais" — detectável/estimado/crítico) SEMPRE
-    // aparece primeiro, pra qualquer sismo (ao vivo, clique manual ou ciclo
-    // automático): é instantânea (calcula o raio final direto, não anima),
-    // então já dá pra ver de cara enquanto a frente de onda P/S — bem mais
-    // lenta agora (ver WAVE_SPEED_MULT em sismo-metrics.js) — ainda nem
-    // começou. Sismo revisitado (ciclo automático ou clique manual) ganha
-    // também a onda em cascata de sempre, pra sempre ter algo pulsando no
-    // epicentro em vez de só o pontinho parado.
+    // Display travel fronts only. Felt/critical radii remain estimates in
+    // the details/exposure calculation, not competing map wavefronts.
     try {
         clearTimeout(window.__mgRadarDelayT);
         window.__mgRadarDelayT = setTimeout(() => {
             try {
                 if (eventoSelecionadoId !== item.id) return;
-                if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
+                if (typeof stopFeltZone === 'function') stopFeltZone();
 
-                if (soft) {
-                    // Ciclo automático: só os raios principais — a câmera fica
-                    // no enquadramento fechado deles (calculado lá em cima),
-                    // sem abrir pra frente de onda. Ela levaria segundos a
-                    // minutos pra abrir alguma coisa que valha a pena ver, e o
-                    // auto-ciclo já troca de evento rápido demais pra isso
-                    // fazer sentido — melhor deixar o próximo revisitar
-                    // manualmente pra ver a onda crescer de verdade.
-                    if (typeof stopWaveFront === 'function') stopWaveFront();
-                    return;
-                }
-
-                if (!triggerVisualAlert && typeof startCascadeRipple === 'function') {
+                if (!soft && !triggerVisualAlert && typeof startCascadeRipple === 'function') {
                     startCascadeRipple(lng, lat, getHexColor(item.mag), true);
                 }
 
-                // Virada do card "Alcance do sismo" (cidades + MMI + pessoas
-                // afetadas) — só ao vivo e clique manual (nunca ciclo
-                // automático, já filtrado pelo "return" do bloco soft acima).
-                if (typeof agendarViradaCardAlcance === 'function') {
+                // Exposição estimada fica no cartão; não vira um anel de propagação.
+                if (!soft && typeof agendarViradaCardAlcance === 'function') {
                     agendarViradaCardAlcance(lat, lng, item);
                 }
 
-                // Frente de onda P/S entra só alguns segundos DEPOIS da zona
-                // crítica — dá tempo dela "assentar" na tela antes da câmera
-                // dinâmica (chaseCam) começar a puxar o zoom pra trás atrás do
-                // anel crescendo. As duas coisas ao mesmo tempo ficava confuso:
-                // os raios da zona crítica já prontos e parados, enquanto a
-                // câmera saía abrindo pra acompanhar um anel ainda minúsculo.
-                // Ao vivo: origem = horário real do sismo (cresce visivelmente
-                // desde ~0, já que é recente) — mas NUNCA mais velha que
-                // MAX_LIVE_AGE_MS: uma fonte sísmica pode confirmar/publicar um
-                // sismo pequeno só minutos depois de ter ocorrido de verdade, e
-                // usar o horário real puro faria a onda já nascer enorme na
-                // hora (bug real visto: M1.5 na Espanha com 20min de atraso na
-                // fonte virou um anel quase do tamanho do planeta assim que
-                // apareceu). O "ao vivo" é sobre revelar um evento NOVO na
-                // tela — se a fonte já demorou, a revelação ainda merece
-                // parecer fresca, crescendo visivelmente, em vez de já nascer
-                // enorme. Clique manual: "replay" de sempre, origem = agora.
-                const MAX_LIVE_AGE_MS = 15000;
-                const origemOnda = triggerVisualAlert ? Math.max(item.time, Date.now() - MAX_LIVE_AGE_MS) : Date.now();
+                // Deixa o voo inicial assentar antes de exibir as frentes.
+                // Real fronts use the published origin, including delayed reports.
+                // Explicit clicks replay the same physical model from t=0.
+                const waveMode=(triggerVisualAlert||soft)?'live':'replay';
+                const origemOnda=waveMode==='live'?item.time:Date.now();
                 const camDelayMs = triggerVisualAlert ? 5850 : Math.max(0, totalDur - 150);
                 clearTimeout(window.__mgWaveDelayT);
                 window.__mgWaveDelayT = setTimeout(() => {
                     try {
                         if (eventoSelecionadoId !== item.id) return;
                         if (typeof startWaveFront === 'function') {
-                            startWaveFront(lng, lat, item.mag, item.depth, origemOnda, {
-                                chaseCam: true,
+                            const current=globalEvents.find(event=>event.id===item.id)||item;
+                            startWaveFront(current.coords[0],current.coords[1],current.mag,current.depth,waveMode==='live'?current.time:origemOnda,{
+                                chaseCam: !soft,
+                                id:item.id,
+                                mode:waveMode,
                                 camDelayMs
                             });
                         }
@@ -1490,15 +1460,18 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         }, soft ? Math.max(2500, totalDur - 600) : 150);
     } catch (e) {
         try {
-            startFeltZone(lng, lat, item.mag, item.depth);
+            if(typeof stopFeltZone==='function')stopFeltZone();
             if (soft) {
                 if (typeof stopWaveFront === 'function') stopWaveFront();
             } else {
                 if (!triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
                 if (typeof startWaveFront === 'function') {
-                    const origemFallback = triggerVisualAlert ? Math.max(item.time, Date.now() - 60000) : Date.now();
+                    const fallbackMode=(triggerVisualAlert||soft)?'live':'replay';
+                    const origemFallback=fallbackMode==='live'?item.time:Date.now();
                     startWaveFront(lng, lat, item.mag, item.depth, origemFallback, {
-                        chaseCam: true,
+                        id:item.id,
+                        mode:fallbackMode,
+                        chaseCam: !soft,
                         camDelayMs: triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150)
                     });
                 }

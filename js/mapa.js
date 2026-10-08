@@ -367,28 +367,13 @@ function initMap() {
         // não overlay HTML), sem precisarmos recalcular posição em cada
         // frame de 'move'/'zoom'. Camada de "glow" (mais larga e borrada)
         // por baixo simula o halo que o box-shadow fazia no <div> antigo.
-        map.addSource('wave-front-p', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-        map.addSource('wave-front-s', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-        map.addLayer({
-            id: 'wave-front-p-glow', type: 'line', source: 'wave-front-p',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#38bdf8', 'line-width': 9, 'line-blur': 4, 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
-        map.addLayer({
-            id: 'wave-front-p-line', type: 'line', source: 'wave-front-p',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#38bdf8', 'line-width': 3, 'line-dasharray': [2, 1.5], 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
-        map.addLayer({
-            id: 'wave-front-s-glow', type: 'line', source: 'wave-front-s',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#f87171', 'line-width': 9, 'line-blur': 4, 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
-        map.addLayer({
-            id: 'wave-front-s-line', type: 'line', source: 'wave-front-s',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#f87171', 'line-width': 3, 'line-dasharray': [2, 1.5], 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
+        for(const [phase,color] of [['p','#38bdf8'],['s','#f87171'],['pkp','#ff00ff'],['pkikp','#00ff00']]){
+            const source=`wave-front-${phase}`;
+            map.addSource(source,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+            for(const [kind,width,blur] of [['glow',9,4],['line',phase==='pkikp'?1:3,0]]){
+                map.addLayer({id:`${source}-${kind}`,type:'line',source,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':color,'line-width':width,'line-blur':blur,'line-opacity':0,'line-opacity-transition':{duration:600}}});
+            }
+        }
 
         map.on('movestart', (e) => {
             if (e.originalEvent) {
