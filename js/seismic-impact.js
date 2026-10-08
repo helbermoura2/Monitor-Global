@@ -31,7 +31,7 @@ function geometry(c,land){
   const inner=outer*i/48,r=outer*(i+1)/48,mid=(inner+r)/2;
   const band=[ring(r)];if(inner>0)band.push(ring(inner).reverse());
   const coordinates=polygonClipping.intersection(clipped,band);
-  if(coordinates.length)features.push({type:'Feature',properties:{distanceKm:inner,pga:pga(c.mag,c.depth,mid),color:color(pga(c.mag,c.depth,mid))},geometry:{type:'MultiPolygon',coordinates}});
+  if(coordinates.length)features.push({type:'Feature',properties:{distanceKm:r,pga:pga(c.mag,c.depth,mid),color:color(pga(c.mag,c.depth,mid))},geometry:{type:'MultiPolygon',coordinates}});
  }
  return {type:'FeatureCollection',features};
 }
@@ -41,9 +41,9 @@ function ensure(){
 }
 function label(text){if(!legend){legend=document.createElement('div');legend.className='wave-front-status seismic-impact-status';const host=document.getElementById('mapWrap')||document.body,headerBottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));legend.style.top=Math.max(12,headerBottom-host.getBoundingClientRect().top+42)+'px';legend.style.whiteSpace='normal';legend.style.textAlign='center';legend.style.maxWidth='calc(100% - 24px)';legend.title='Modelo de atenuação GlobalQuake Gen2 sobre terras Natural Earth. Sem correção local de solo, relatos ou confirmação de danos.';(document.getElementById('mapWrap')||document.body).append(legend);}legend.textContent=text;}
 function stop(){generation++;scene=null;legend?.remove();legend=null;window.__mgSeismicImpactState=null;try{if(map?.getLayer(LAYER))map.removeLayer(LAYER);if(map?.getSource(SOURCE))map.removeSource(SOURCE);}catch(e){}}
-function reveal(radius,full=false){if(!scene)return;scene.radius=Math.max(scene.radius,Number(radius)||0);scene.full=scene.full||full;try{if(map.getLayer(LAYER))map.setFilter(LAYER,scene.full?null:['<=',['get','distanceKm'],scene.radius]);}catch(e){}window.__mgSeismicImpactState={id:scene.id,stage:scene.full?'impact':'propagating',radius:scene.radius,estimated:true,features:scene.features||0};}
+function reveal(radius,full=false){if(!scene)return;scene.radius=Math.max(scene.radius,Number(radius)||0);scene.full=scene.full||full;try{if(map.getLayer(LAYER)){const bandWidth=scene.bandWidth||1,key=scene.full?-1:Math.min(48,Math.floor(scene.radius/bandWidth));if(scene.filterKey!==key){map.setFilter(LAYER,scene.full?null:['<=',['get','distanceKm'],key*bandWidth+.000001]);scene.filterKey=key;}}}catch(e){}window.__mgSeismicImpactState={id:scene.id,stage:scene.full?'impact':'propagating',radius:scene.radius,estimated:true,features:scene.features||0};}
 function start(context,full=false){
- stop();const token=generation;scene={...context,radius:0,full};
+ stop();const token=generation;scene={...context,radius:0,full,bandWidth:extent(context.mag,context.depth)/48};
  label('Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
  loadLand().then(land=>{
   if(token!==generation||!scene)return;
