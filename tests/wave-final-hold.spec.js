@@ -41,8 +41,9 @@ test('GlobalQuake display deadline fades weak quakes, caps the final snapshot, a
  await page.clock.fastForward(2000);await page.clock.runFor(100);expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBe(expected.p);
  await page.clock.fastForward(3100);await expect(page.locator('.wave-front-status')).toHaveCount(0);
  await page.evaluate(()=>startWaveFront(120,-9,3.2,10,Date.now()-11*60000,{id:'expired-qa',mode:'live',chaseCam:true}));await page.clock.runFor(400);
- const expired=await page.evaluate(()=>({state:__mgWaveFrontState,camera:waveCamRAF}));expect(expired.state.alpha).toBe(0);expect(Object.values(expired.state.radii).every(r=>r===null)).toBe(true);expect(expired.camera).toBe(null);
- await page.evaluate(()=>stopWaveFront());
+ const expired=await page.evaluate(()=>({state:__mgWaveFrontState,camera:waveCamRAF,radar:__mgFeltZoneState}));expect(expired.state).toBe(null);expect(expired.camera).toBe(null);expect(expired.radar.lateReport).toBe(true);
+ await expect(page.locator('.felt-zone-status')).toContainText('Ondas já passaram');
+ await page.evaluate(()=>{stopWaveFront();stopFeltZone();});
 });
 for(const mag of [1.9,4.1])test('manual chase stops at its display deadline '+mag,async({page})=>{
  test.setTimeout(120000);await boot(page,1280);
