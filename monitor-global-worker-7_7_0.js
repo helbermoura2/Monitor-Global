@@ -1,3 +1,5 @@
+import {imageMapFrame,imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion} from "./seismic-image-data.mjs";
+import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
@@ -409,37 +411,7 @@ async function getEonet() {
     } catch (e) { return { source: 'EONET', ok: false, items: [], error: e.message }; }
 }
 
-async function getTsunamiAlerts() {
-    const urls = [
-        'https://www.tsunami.gov/events/xml/PHEBAtom.xml',
-        'https://www.tsunami.gov/events/xml/PAAQAtom.xml'
-    ];
-    const out = [];
-    for (const u of urls) {
-        try {
-            const r = await fetchText(u, { headers: { 'User-Agent': 'MonitorGlobal/6.1', 'Accept': 'application/atom+xml,application/xml,text/xml,*/*' } }, 12000);
-            if (!r.ok) continue;
-            const blocks = xmlItems(r.text, 'entry');
-            for (const b of blocks.slice(0, 50)) {
-                const title = xmlTag(b, 'title') || 'Aviso de tsunami';
-                const summary = xmlTag(b, 'summary') || xmlTag(b, 'content') || '';
-                const updated = xmlTag(b, 'updated') || xmlTag(b, 'published') || '';
-                const id = xmlTag(b, 'id') || `${u}-${updated}-${title}`;
-                const linkMatch = b.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i);
-                out.push({
-                    id: `TS-${id}`.slice(0, 200),
-                    source: u.includes('PHEB') ? 'PTWC' : 'NTWC',
-                    type: 'tsunami',
-                    title: title.replace(/\s+/g, ' ').trim(),
-                    description: summary.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
-                    link: linkMatch ? linkMatch[1] : 'https://www.tsunami.gov/',
-                    time: Date.parse(updated) || Date.now()
-                });
-            }
-        } catch {}
-    }
-    return { source: 'TSUNAMI-GOV', ok: out.length > 0, items: out, error: out.length ? null : 'feeds indisponíveis' };
-}
+async function getTsunamiAlerts() { return getOfficialTsunamis(); }
 
 async function getNws() {
     try {
@@ -513,13 +485,7 @@ async function getOfficialTsunamiCorrelation(lat, lon) {
     const alerts = await getTsunamiAlerts();
     const now = Date.now();
     const fresh = (alerts.items || []).filter(x => now - (x.time || now) < 24*3600000);
-    const candidates = fresh.map(x => {
-        const t = normText(`${x.title} ${x.description}`);
-        let regionMatch = false;
-        if (Math.abs(lat) > 0 && (t.includes('pacific') || t.includes('hawaii') || t.includes('alaska') || t.includes('caribbean') || t.includes('japan') || t.includes('indonesia') || t.includes('chile') || t.includes('peru'))) regionMatch = true;
-        return { ...x, regionMatch };
-    });
-    const relevant = candidates.filter(x => x.regionMatch || /warning|advisory|watch|tsunami/.test(normText(`${x.title} ${x.description}`)));
+    const relevant = fresh.filter(x => x.hazardNature === 'warning' && Array.isArray(x.coords) && haversineKm(lat, lon, x.coords[1], x.coords[0]) <= 100);
     return { online: alerts.ok, alerts: relevant.slice(0, 12) };
 }
 
@@ -3830,8 +3796,8 @@ function niceScaleValueCard(x) {
     return nice * Math.pow(10, exp);
 }
 /** Barra de escala tipo "≈ 200 km" (mesma fórmula de projeção Web Mercator do site). */
-function drawScaleBarCard(rgba, w, h, font, x, y, lat, zoom) {
-    const metrosPorPx = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+function drawScaleBarCard(rgba, w, h, font, x, y, lat, zoom, frame) {
+    const metrosPorPx = frame ? imageMetersPerPixel(frame, lat) : 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
     if (!Number.isFinite(metrosPorPx) || metrosPorPx <= 0) return;
     const maxBarPx = 140;
     const kmAlvo = (maxBarPx * metrosPorPx) / 1000;
@@ -4006,9 +3972,9 @@ async function fetchBinaryWithTimeout(url, timeoutMs = 6000) {
 }
 
 /** Tenta cada URL de staticMapUrls em ordem até uma decodificar com sucesso. Retorna null se todas falharem. */
-async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440) {
+async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anchorY = imgH / 2) {
     if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
-    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH);
+    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH, anchorY);
     for (const url of urls) {
         try {
             const bytes = await fetchBinaryWithTimeout(url, 6000);
@@ -4027,7 +3993,7 @@ async function renderAlertCardPng(ev) {
     const fonts = await getFontAtlases();
     const mag = Number(ev.mag);
     const magColor = getHexColorFromMag(mag);
-    const zoom = 7; // zoom 7 = barra de escala ~100 km (zoom 6 dava ~200 km)
+    const frame = imageMapFrame(ev, W, H), zoom = frame.zoom;
 
     // --- mapa do epicentro: ocupa o cartão INTEIRO (0 a H) como plano de
     // fundo, igual à referência (o card da Indonésia) — sem faixa preta
@@ -4037,7 +4003,7 @@ async function renderAlertCardPng(ev) {
     fillRect(rgba, W, 0, 0, W, H, 8, 14, 26); // fallback sólido só se o mapa falhar
     let mapImg = null;
     if (Number.isFinite(Number(ev.lat)) && Number.isFinite(Number(ev.lon))) {
-        try { mapImg = await fetchEpicenterMap(ev.lat, ev.lon, zoom, W, H); }
+        try { mapImg = await fetchEpicenterMap(ev.lat, ev.lon, zoom, W, H, frame.anchorY); }
         catch (e) { console.warn('fetchEpicenterMap falhou:', e.message); }
     }
     if (mapImg) {
@@ -4048,14 +4014,15 @@ async function renderAlertCardPng(ev) {
         fillRect(rgba, W, 0, 0, W, H, 8, 14, 26, 112);
     }
 
-    // --- marcador do epicentro + escala, sempre no centro exato da caixa ---
-    const markerCx = W / 2, markerCy = Math.round(mapBoxH / 2);
+    const intensityPainted = mapImg ? await overlayImageIntensity(rgba, frame, ev) : false;
+    // --- marcador georreferenciado: mesma âncora usada no bbox da imagem ---
+    const markerCx = frame.anchorX, markerCy = frame.anchorY;
     fillCircle(rgba, W, H, markerCx, markerCy, 50, magColor[0], magColor[1], magColor[2], 55);
     fillCircle(rgba, W, H, markerCx, markerCy, 34, magColor[0], magColor[1], magColor[2], 110);
     fillCircle(rgba, W, H, markerCx, markerCy, 7, 255, 255, 255, 255);
     fillCircle(rgba, W, H, markerCx, markerCy, 4, magColor[0], magColor[1], magColor[2], 255);
     if (mapImg && Number.isFinite(ev.lat)) {
-        drawScaleBarCard(rgba, W, H, fonts.micro, 40, markerCy + 150, ev.lat, zoom);
+        drawScaleBarCard(rgba, W, H, fonts.micro, 40, markerCy + 150, ev.lat, zoom, frame);
     }
 
     // --- cabeçalho (texto com halo, sempre legível em cima do mapa) ---
@@ -4132,6 +4099,17 @@ async function renderAlertCardPng(ev) {
     });
     yCursor = cardTop + cardH + 20;
 
+    // --- exposição populacional: same-message refresh supplies late results ---
+    const exposure = ev.imageExposure;
+    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, 'POPULACAO NA AREA DE TREMOR - EST', W / 2, yCursor - 70, 148, 163, 184);
+    if (validImageExposure(exposure)) {
+        const counts = exposure.ranges.map((r, i) => ['III+', 'V+', 'VI+'][i] + ': ~' + Math.round(Number(r.population)).toLocaleString('pt-BR'));
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, counts.join(' | '), W / 2, yCursor - 42, 250, 204, 21);
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, (exposure.method === 'pager' ? 'USGS PAGER' : 'WorldPop 2020') + (exposure.partial ? ' - cobertura parcial' : '') + ' - nao somar faixas', W / 2, yCursor - 14, 148, 163, 184);
+    } else {
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, exposure?.status === 'pending' ? 'Em consulta - atualizacao pendente' : 'Dados indisponiveis no momento', W / 2, yCursor - 38, 226, 232, 240);
+    }
+    yCursor += 16;
     // --- mecanismo focal ---
     fillRect(rgba, W, cardMargin, yCursor, W - cardMargin * 2, 1, 100, 116, 139, 60);
     yCursor += 40;
@@ -4146,6 +4124,7 @@ async function renderAlertCardPng(ev) {
     drawTextFontHalo(rgba, W, H, fonts.micro, mec.desc, iconCx + 54, iconCy + 10, 148, 163, 184);
     yCursor = iconCy + 34 + 40;
 
+    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, intensityPainted ? 'Area central: intensidade estimada - nao confirma danos' : 'Populacao estimada - nao e contagem de vitimas', W / 2, H - 98, 148, 163, 184);
     // --- rodapé marca: translúcido, o mapa continua aparecendo por baixo
     // (texto com halo garante leitura mesmo sem fundo sólido) ---
     fillRect(rgba, W, 0, H - 64, W, 64, 10, 16, 28, 130);
@@ -4158,35 +4137,11 @@ async function renderAlertCardPng(ev) {
 }
 
 
-function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440) {
-    const la = Number(lat);
-    const lo = Number(lon);
-    const z = Math.max(3, Math.min(10, zoom | 0));
-    // bbox a partir do zoom (graus). O span horizontal só depende do zoom
-    // (é ele quem define o grau/pixel usado também na barra de escala);
-    // o span vertical é derivado da proporção imgH/imgW pra manter o
-    // mesmo grau/pixel nos dois eixos — assim o Esri não precisa
-    // esticar/cortar nada pra caber, seja numa caixa 800x440 ou, como
-    // agora, numa imagem 800x1440 (mapa cobrindo o cartão inteiro).
-    const span = 180 / Math.pow(2, z);
-    const minLon = lo - span;
-    const maxLon = lo + span;
-    const vSpan = span * (imgH / imgW);
-    const minLat = la - vSpan;
-    const maxLat = la + vSpan;
-    const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
-    const yandexLl = `${lo.toFixed(5)},${la.toFixed(5)}`;
-    return [
-        // 1) Esri World Imagery — satélite de verdade, sem chave, tamanho exato
-        // (evita upscaling/serrilhado e mantém o epicentro no centro exato)
-        `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=${imgW},${imgH}&format=png&f=image`,
-        // 2) Yandex satélite (fallback — hoje exige API key fora da Rússia
-        // pra uso comercial, então pode falhar; o drawImageCover recorta/
-        // estica pro tamanho do cartão mesmo se vier numa proporção diferente)
-        `https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${yandexLl}&z=${z}&l=sat&size=650,450`,
-        // 3) Yandex esquemático — último recurso, só pra não cair no fallback decorativo
-        `https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${yandexLl}&z=${z}&l=map&size=650,450`
-    ];
+function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440, anchorY = imgH / 2) {
+    const span = 180 / Math.pow(2, Math.max(3, Math.min(10, zoom | 0)));
+    const bbox = [Number(lon)-span, Number(lat)-2*span*(imgH-anchorY)/imgW, Number(lon)+span, Number(lat)+2*span*anchorY/imgW].join(',');
+    return ['World_Imagery', 'World_Topo_Map'].map(service =>
+        `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=${imgW},${imgH}&format=png&f=image`);
 }
 
 // Escapa os caracteres especiais do Markdown "legado" do Telegram
@@ -4267,7 +4222,7 @@ async function telegramSendPhoto(env, ev, caption) {
     if (!token || !chatId) throw new Error('TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não configurados');
 
     let png;
-    try { png = await renderAlertCardPng(ev); }
+    try { ev.imageExposure = await queryImageExposure(ev, env); png = await renderAlertCardPng(ev); }
     catch (error) { error.cardFailed = true; throw error; }
 
     const form = new FormData();
@@ -4329,6 +4284,7 @@ async function telegramEditAlert(env, ev, record) {
         body = JSON.stringify({chat_id: record.chatId, message_id: record.messageId, text: caption, parse_mode: 'Markdown'});
     } else {
         method = 'editMessageMedia';
+        ev.imageExposure = ev.imageExposure || await queryImageExposure(ev, env);
         const png = await renderAlertCardPng(ev);
         body = new FormData();
         body.append('chat_id', String(record.chatId));
@@ -4349,6 +4305,9 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
+    next.cardImageVersion = 'geo-impact-pop-v2';
+    next.imageExposureVersion = exposureVersion(ev.imageExposure);
+    next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
     const noticeBaseline = root.noticeBaseline || before;
     const important = telegramImportantChange(noticeBaseline, ev);
@@ -4536,7 +4495,7 @@ export class EarthquakeAlertDelivery {
         const operation = this.queue.then(async () => {
             const kv = this.env.TTS_USAGE;
             const storage = this.state.storage;
-            const env = {...this.env, EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
+            const env = {...this.env, IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
                         let value;
@@ -4763,6 +4722,9 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
+            reservation.cardImageVersion = 'geo-impact-pop-v2';
+            reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
+            reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
             reservation.noticeBaseline = ev;
             reservation.observedVersion = telegramEventVersion(ev);
@@ -4784,6 +4746,18 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
+    // Migrate recent confirmed photos once, then poll only pending exposure.
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'geo-impact-pop-v2' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+        root.imageExposureCheckedAt = Date.now();
+        const ev = {...(root.currentEvent || root)};
+        const data = await queryImageExposure(ev, env);
+        if (validImageExposure(data) || root.cardImageVersion !== 'geo-impact-pop-v2') {
+            ev.imageExposure = data;
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'geo-impact-pop-v2'; root.imageExposureVersion = exposureVersion(data); }
+            catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
+        } else root.imageExposureVersion = exposureVersion(data);
+        await saveSentAlerts(request, sentRecords, env);
+    }
     await telegramFlushRevisionNotices(request, env, sentRecords);
     if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
@@ -5395,6 +5369,7 @@ export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([

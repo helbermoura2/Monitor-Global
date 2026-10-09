@@ -59,5 +59,5 @@ function start(context,full=false){
 }
 function finish(){if(scene){reveal(scene.radius,true);label('Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
 function refresh(c){if(scene?.id!==c.id)return;if(['lng','lat','depth','mag'].some(k=>scene[k]!==c[k])){const r=scene.radius,full=scene.full;start(c,full);reveal(r,full);}}
-window.SeismicImpact={start,reveal,finish,refresh,stop,pga,extent,color};
+window.SeismicImpact={start,reveal,finish,refresh,stop,pga,extent,color,snapshot:context=>geometryCache.get(key(context))?.data||(active?.key===key(context)?active.promise:Promise.resolve(null))};
 })();

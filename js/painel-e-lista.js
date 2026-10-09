@@ -270,7 +270,7 @@ function severityClassForItem(item) {
         if (m >= 4) return 'pd-sev-mid';
         return 'pd-sev-low';
     }
-    if (item.type === 'tsunami') return 'pd-sev-crit';
+    if (item.type === 'tsunami') return item.hazardNature==='bulletin'?'pd-sev-low':item.sev===2?'pd-sev-mid':'pd-sev-crit';
     if (item.type === 'hurricane' || item.type === 'volcano') return 'pd-sev-high';
     if (item.type === 'tornado' || item.type === 'flood') return 'pd-sev-mid';
     return 'pd-sev-low';
@@ -1610,7 +1610,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // sismo do que uma tempestade, e cair em ⚡/"TEMPESTADE" sem bandeira
     // era o sintoma visível desse bug.
     const meta = TYPE_META[item.type] || TYPE_META.earthquake;
-    const cor = meta.color;
+    const cor = item.type === 'tsunami' ? (item.hazardNature==='bulletin'?'#38bdf8':corSeveridadeAlerta(item)) : meta.color;
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
     setGauge(0, false, item.icon || meta.icon, cor, 1);
@@ -1729,14 +1729,14 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').innerHTML = `<span style="color:${cor}">${meta.label}</span>`;
         document.getElementById('pd-mercalli-label').textContent = 'Status';
-        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">ATIVO</span>`;
+        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${esc(item.warningLevel || 'ATIVO')}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     }
 
     document.getElementById('pd-fault-section-label').textContent =
         item.type === 'hurricane' ? 'Dinâmica do sistema' :
-        item.type === 'tsunami' ? 'Aviso de tsunami' :
+        item.type === 'tsunami' ? (item.hazardNature==='bulletin'?'Boletim de tsunami':'Aviso de tsunami') :
         item.type === 'civil' ? 'Detalhe do alerta' :
         item.type === 'fire' ? 'Informações do foco' :
         item.type === 'volcano' ? 'Atividade vulcânica' :
@@ -1758,7 +1758,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             (detPt ? detPt + ' · ' : '') + `≈ ${Math.round(dYou)} km de ${refName}.`;
     }
 
-    if (item.type === 'tsunami' && item.coords) {
+    if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
         const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
         // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
         // — não é o ritmo do anel animado no mapa (esse é acelerado só pra dar pra

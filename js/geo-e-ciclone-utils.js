@@ -298,6 +298,7 @@ function extractWindKmh(texto) {
 // mesmo já tendo o dado de severidade disponível). Cobre também o campo
 // numérico `sev` que fontes como o CGE-SP usam em vez do texto do GDACS.
 function corSeveridadeAlerta(item) {
+    if(item?.type==='tsunami'&&item.hazardNature==='bulletin')return '#38bdf8';
     const nivel = String((item && item.gdacsAlertLevel) || '').toLowerCase();
     if (nivel === 'red') return '#ef4444';
     if (nivel === 'orange') return '#fb923c';

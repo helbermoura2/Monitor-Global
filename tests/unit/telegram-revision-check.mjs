@@ -5,6 +5,7 @@ let source = await readFile(workerURL, 'utf8');
 source = source.replace(/from "(\.\/[^\"]+)"/g, (_, path) => 'from '+JSON.stringify(new URL(path, workerURL).href));
 // Rendering is separately tested; capture the revised event supplied to the card generator.
 source = source.replace('async function renderAlertCardPng(ev) {', 'async function renderAlertCardPng(ev) { globalThis.rendered.push(structuredClone(ev)); return new Uint8Array([137,80,78,71]);');
+source = source.replaceAll('queryImageExposure(ev, env)', 'Promise.resolve(globalThis.__testExposure || {status: "unavailable"})');
 source += '\nexport {runTelegramM6Alerts};';
 const {EarthquakeAlertDelivery, runTelegramM6Alerts} = await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 globalThis.rendered=[];
@@ -79,6 +80,12 @@ assert(messages.at(-1).caption.includes('Agora: *M6.2*'));
 notices++;
 batch.properties.mag=6.5;await run(0);batch.properties.mag=6.2;await run(0);await run();
 assert.equal(messages.filter(m=>m.body.reply_parameters).length,notices);
+// Population arrives later: edit the same photo once, without a new alert/revision notice.
+globalThis.__testExposure={status:'pending'};world.push(quake('late-population',6.4,'us',clock-10000));await run();
+const latePhoto=messages.at(-1),lateID=nextID;assert.equal(latePhoto.method,'sendPhoto');
+globalThis.__testExposure={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};
+count=messages.length;await run();assert.equal(messages.length,count+1);assert.equal(messages.at(-1).method,'editMessageMedia');assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
+count=messages.length;await run();assert.equal(messages.length,count);delete globalThis.__testExposure;
 // Large state remains readable after restart and never exceeds the DO single-value limit.
 const state=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
 assert(state.items.find(r=>r.id==='initial').messageId===original);

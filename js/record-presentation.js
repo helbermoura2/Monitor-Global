@@ -2,6 +2,7 @@
 (function(){
  function located(item){return Array.isArray(item?.coords)&&item.coords.length>=2&&item.coords.slice(0,2).every(Number.isFinite)&&Math.abs(item.coords[0])<=180&&Math.abs(item.coords[1])<=90;}
  function label(item){
+  if(item?.type==='tsunami')return item.displayLabel|| (item.hazardNature==='bulletin'?'BOLETIM DE TSUNAMI':'AVISO DE TSUNAMI');
   if(item?.hazardNature==='warning'){
    if(item.type==='flood')return /storm surge|coastal|lakeshore|tidal/i.test(item.warningEvent||'')?'AVISO DE INUNDAÇÃO COSTEIRA':'ALERTA DE ENCHENTE';
    if(item.type==='wind')return 'AVISO DE VENTO';
@@ -15,7 +16,7 @@
  }
  function bulletin(item){
   if(item?.hazardNature!=='warning')return null;
-  try{const u=new URL(item.link);if(u.protocol!=='https:'||!['api.weather.gc.ca','api.weather.gov','www.weather.gov','meteoalarm.org','www.meteoalarm.org','www.bom.gov.au','reg.bom.gov.au'].includes(u.hostname)||u.username||u.password)return null;return u.href;}catch(e){return null;}
+  try{const u=new URL(item.link);if(u.protocol!=='https:'||!['api.weather.gc.ca','api.weather.gov','www.weather.gov','meteoalarm.org','www.meteoalarm.org','www.bom.gov.au','reg.bom.gov.au','www.tsunami.gov'].includes(u.hostname)||u.username||u.password)return null;return u.href;}catch(e){return null;}
  }
  function isBulletin(item){return item?.hazardNature==='bulletin'&&item.source==='CGE';}
  function bulletinFront(item){
