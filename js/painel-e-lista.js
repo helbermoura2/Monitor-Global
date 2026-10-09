@@ -908,8 +908,13 @@ function cinematicFlyTo(o, flash) {
 
 // Fonte central da prioridade automática: independe dos filtros da lista e
 // do limite de 50 registros. Cliques manuais continuam livres.
+function isWithinAutoCycleAge(item, now = Date.now()) {
+    // Usa o horário do evento, nunca o horário em que uma revisão chegou.
+    const time = item?.time;
+    return Number.isFinite(time) && time <= now && now - time <= 72 * 3600000;
+}
 function getPriorityCameraEarthquakes() {
-    return globalEvents.filter(e => e &&
+    return globalEvents.filter(e => e && isWithinAutoCycleAge(e) &&
         (e.type === 'earthquake' || (e.mag != null && !e.type)) &&
         Array.isArray(e.coords) && e.coords.length >= 2 &&
         e.coords.slice(0, 2).every(Number.isFinite));
@@ -969,7 +974,7 @@ function selectNextAutoCycleItem() {
         (typeof buildUnifiedFeed === 'function' ? buildUnifiedFeed() : []);
     const groups = new Map(), now = Date.now();
     for (const item of source || []) {
-        if (!item || item.id == null || item.type === 'earthquake' || (!item.type && item.mag != null) ||
+        if (!item || !isWithinAutoCycleAge(item, now) || item.id == null || item.type === 'earthquake' || (!item.type && item.mag != null) ||
             ['river', 'bulletin'].includes(item.hazardNature) ||
             (!(Array.isArray(item.coords) && item.coords.length >= 2 && item.coords.slice(0, 2).every(Number.isFinite) && Math.abs(item.coords[0]) <= 180 && Math.abs(item.coords[1]) <= 90) && !(item.hazardNature === 'warning' && !item.coords)) ||
             (Number.isFinite(item.expiresAt) && item.expiresAt <= now) ||

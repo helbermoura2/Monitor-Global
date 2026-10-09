@@ -83,7 +83,7 @@ function focusNextQuakeRevision(blocked = false) {
     const candidates = [];
     for (const [id, revision] of pendingQuakeRevisions) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0 || id===eventoSelecionadoId) { pendingQuakeRevisions.delete(id); continue; }
+        if (index < 0 || id===eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingQuakeRevisions.delete(id); continue; }
         candidates.push({index, revision, event:globalEvents[index]});
     }
     candidates.sort((a,b) => (Number(b.event.mag)||0)-(Number(a.event.mag)||0) ||
