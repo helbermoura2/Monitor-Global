@@ -48,8 +48,8 @@ body.mode-tv #freshness-bar .fresh-btn { font-size: 11px; padding: 4px 10px; }
 body.mode-tv #chips-row .advanced-filter,
 body.mode-tv #ux-search-wrap,
 body.mode-tv #mag-slider,
-body.mode-tv .mag-slider-row,
-body.mode-tv #more-filters-toggle { display: none !important; }
+body.mode-tv .mag-slider-row { display: none !important; }
+body.mode-tv #chips-row.expanded .advanced-filter { display: inline-flex !important; }
 body.mode-tv #brasil-hub { display: none !important; }
 body.mode-tv.geo-br.show-br-hub-tv #brasil-hub { display: block !important; }
 @media (max-width: 900px) {

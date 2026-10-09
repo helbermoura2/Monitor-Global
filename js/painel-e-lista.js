@@ -1542,6 +1542,8 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
+    if(!triggerVisualAlert&&!silentRefresh&&!window.__mgRotationDisplay)window.__mgSoftCycle=false;
     if (triggerVisualAlert && !silentRefresh && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
         window.NewEventPriority.queue([item]);window.NewEventPriority.focus();return;
     }
@@ -1560,8 +1562,12 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     if (!silentRefresh && item.type==='tsunami') {
         // Even a regional bulletin with no epicenter replaces the old map effects.
         stopMapCamera();
+        clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);
+        clearTimeout(window.__mgWaveDelayT);
         clearTimeout(window.returnCameraTimeout);window.preAlertCamera=null;
         stopWaveFront();stopFeltZone();
+        // Do not carry the old earthquake's 2.6s radar fade across this bulletin.
+        document.querySelectorAll('.felt-zone-wrap').forEach(el=>el.remove());
         if(typeof stopTsunamiWave==='function')stopTsunamiWave();
         if(typeof stopCascadeRipple==='function')stopCascadeRipple();
         if(typeof stopContinuousRadar==='function')stopContinuousRadar();
@@ -1777,7 +1783,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     if (item.type === 'tsunami' && item.official) {
         document.getElementById('pd-cities-title').textContent='🌊 Área do boletim oficial';
         document.getElementById('pd-cities').innerHTML='<div class="city-item">'+esc(item.place||'Consulte o boletim oficial')+'</div>'+
-            '<div class="city-item">'+esc(item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mantém a posição anterior, sem efeitos do sismo anterior.')+'</div>';
+            '<div class="city-item">'+esc(item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mostra uma visão geral, sem epicentro ou alcance inventado.')+'</div>';
     } else if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
         const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
         // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
@@ -1998,6 +2004,9 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     } else {
         window.__mgSoftCycle = false;
         scheduleNextAutoCycle(30000);
+    }
+    if(item.type==='tsunami'&&!item.coords&&map){
+        map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
     }
     if(item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);

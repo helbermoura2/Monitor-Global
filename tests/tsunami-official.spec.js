@@ -43,3 +43,29 @@ test('official warning map represents only the bulletin origin and has no invent
  await expect(page.locator('#pd-cities')).not.toContainText('2.000 km');
  await expect(page.locator('.tsunami-wave-wrap')).toHaveCount(0);
 });
+test('sidebar tsunami clicks replace a moving quake, cancel late callbacks and open the exact clicked bulletin',async({page})=>{
+ await boot(page);const regional={...bulletin('NTWC','Information'),coords:null,official:true,place:'Área do boletim oficial'},panama={...bulletin('PTWC','Information'),official:true};
+ await page.evaluate(({regional,panama})=>{
+  const q={id:'turkey-old',type:'earthquake',mag:2.5,depth:7,time:Date.now()-3*3600000,coords:[26,36],place:'Ege Denizi',source:'AFAD'};
+  globalEvents=[q];globalAlerts=[regional,panama];sidebarFilter='tsunami';geoFilter='all';soCriticos=false;soImportantes=false;applyFilters();
+  window.__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);
+  startFeltZone(26,36,2.5,7,q.id);
+  window.__mgWaveDelayT=setTimeout(()=>{startFeltZone(26,36,2.5,7,q.id);map.flyTo({center:[26,36],zoom:9,duration:0});},500);
+  window.__mgSoftCycle=true;
+ },{regional,panama});
+ await page.locator('#events .event').filter({hasText:'Área do boletim oficial'}).click();
+ await expect(page.locator('#pd-local')).toHaveText(regional.place);
+ await expect(page.locator('.felt-zone-wrap')).toHaveCount(0);
+ await expect(page.locator('#pd-notice-brief')).toContainText('visão geral');
+ await expect(page.locator('#pd-notice-brief a')).toHaveAttribute('href',regional.link);
+ await page.waitForTimeout(2100);
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(regional.id);
+ expect(await page.evaluate(()=>[map.getCenter().lng,map.getCenter().lat])).toEqual([0,0]);
+ expect(await page.evaluate(()=>window.__mgWaveFrontState)).toBeNull();
+ await expect(page.locator('.felt-zone-wrap,.tsunami-wave-wrap')).toHaveCount(0);
+ await page.locator('#events .event').filter({hasText:'Panamá'}).click();
+ await expect(page.locator('#pd-local')).toHaveText('Panamá');
+ await expect(page.locator('#pd-notice-brief')).toContainText('origem sísmica');
+ await expect.poll(()=>page.evaluate(()=>Math.abs(map.getCenter().lng+80.75))).toBeLessThan(3);
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(panama.id);
+});
