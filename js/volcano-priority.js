@@ -53,10 +53,11 @@ function focus(){
  const item=globalAlerts.find(a=>a.id===next[0]);
  dispatchId=item.id;window.__mgSoftCycle=false;
  try{showAlertDetails(item,true);}finally{dispatchId=null;}
- if(eventoSelecionadoId===item.id){try{playAlertTone('volcano');}catch(e){console.warn('[som vulcânico]',e);}presentingId=item.id;presentationUntil=Date.now()+45000;pending.delete(item.id);clearTimeout(retry);retry=null;arm();return true;}
+ if(eventoSelecionadoId===item.id){try{playAlertTone('volcano');}catch(e){console.warn('[som vulcânico]',e);}presentingId=item.id;presentationUntil=Date.now()+(window.PresentationLimits?.limitMs(item)||(evidence(item).lava?45000:40000));pending.delete(item.id);clearTimeout(retry);retry=null;arm();return true;}
  arm();return false;
 }
 function presentationActive(){return eventoSelecionadoId===presentingId&&Date.now()<presentationUntil;}
 function protectionRemaining(){return presentationActive()?Math.max(0,presentationUntil-Date.now()):0;}
-window.VolcanoPriority={protectionRemaining,presentationActive,capture,evidence,escalation,enqueue,observe,focus,canInterrupt};
+function finishPresentation(id){if(presentingId===id)presentationUntil=0;}
+window.VolcanoPriority={finishPresentation,protectionRemaining,presentationActive,capture,evidence,escalation,enqueue,observe,focus,canInterrupt};
 })();

@@ -1038,27 +1038,29 @@ function scheduleNextAutoCycle(ms) {
     clearTimeout(cycleTimeout);
     try { clearTimeout(window.__mgCycleGuard); } catch (e) {}
     const wait = Number.isFinite(ms) && ms > 0 ? Math.max(250, ms) : 30000;
-    cycleTimeout = setTimeout(() => {
-        try {
-            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
-            if (window.VolcanoPriority?.focus()) return;
-            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
-            const protectedMs = getAutoCycleProtectionRemaining();
-            if (protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
-            // Resume one rotation slot between queued revisions, so a large
-            // backlog cannot monopolize the screen. Fresh arrivals still win.
-            if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
-                window.__mgResumeRotation = true;
-                return;
-            }
-            if (map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
-            if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
-        } catch (e) {
-            window.__mgSoftCycle = false;
-            console.warn('[cycle]', e);
-            scheduleNextAutoCycle(30000);
+    cycleTimeout = setTimeout(() => runAutoCycle(),window.PresentationLimits?.wait(wait)||wait);
+}
+function runAutoCycle(forced = false) {
+    try {
+        if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
+        if (window.VolcanoPriority?.focus()) return;
+        if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
+        const protectedMs = getAutoCycleProtectionRemaining();
+        if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
+        // Resume one rotation slot between queued revisions, so a large
+        // backlog cannot monopolize the screen. Fresh arrivals still win.
+        if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
+            window.__mgResumeRotation = true;
+            return;
         }
-    }, wait);
+        if (!forced && map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
+        if(forced)stopMapCamera();
+        if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
+    } catch (e) {
+        window.__mgSoftCycle = false;
+        console.warn('[cycle]', e);
+        scheduleNextAutoCycle(30000);
+    }
 }
 
 function stopMapCamera() {
@@ -1210,6 +1212,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (!silentRefresh) renderSidebarList(lastMerged);
 
     const item = globalEvents[index];
+    if(!silentRefresh)window.PresentationLimits?.begin(item,window.__mgSoftCycle&&!triggerVisualAlert?'auto':'quake');
     const [lng, lat] = item.coords;
     const mec = item.mecanismoReal || calcularMecanismoFocal(item.depth, lat, lng, item.place);
     const mer = window.SeismicCinema?.intensitySummary(item) || estimarMercalli(item.mag, item.depth);
@@ -1571,6 +1574,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         }
     } catch (e) {}
     if (!silentRefresh) {
+        window.PresentationLimits?.begin(item,triggerVisualAlert?'priority':window.__mgSoftCycle?'auto':'manual');
         closeMobileEventsModalIfOpen();
         scrollToDetailsIfMobile();
         const isMobileVp = (typeof window.matchMedia === 'function' && window.matchMedia('(max-width:900px)').matches);
@@ -1922,6 +1926,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             if (item.type === 'storm' && typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
             if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
             window.returnCameraTimeout = setTimeout(() => {
+                if(eventoSelecionadoId!==item.id)return;
                 if (getPriorityCameraEarthquakes().length) {
                     window.preAlertCamera = null;
                     return;
@@ -1941,7 +1946,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                     userInteractingWithGlobe = false;
                 }
             }, 45000);
-            scheduleNextAutoCycle(45000);
+            scheduleNextAutoCycle(window.PresentationLimits?.limitMs(item)||40000);
             try {
                 clearTimeout(window.__mgRadarDelayT);
                 window.__mgRadarDelayT = setTimeout(() => {
@@ -1956,7 +1961,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             // continua mostrando o efeito no mapa (onda em cascata/radar do
             // furacão), só o sismo é que fica reservado pra quando é novo.
             const totalDur = softFlyToCoords(item.coords[0], item.coords[1], zA, softA);
-            scheduleNextAutoCycle(softA ? (totalDur + 30000) : 30000);
+            scheduleNextAutoCycle(window.VolcanoPriority?.evidence(item).lava&&item.type==='volcano'?45000:softA?(totalDur+30000):30000);
             try {
                 clearTimeout(window.__mgRadarDelayT);
                 window.__mgRadarDelayT = setTimeout(() => {

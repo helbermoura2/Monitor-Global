@@ -1,8 +1,8 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
 const source=fs.readFileSync('js/painel-e-lista.js','utf8');
-const names=['getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','requestInitialAutoDisplay','scheduleNextAutoCycle'];
+const names=['getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','requestInitialAutoDisplay','scheduleNextAutoCycle','runAutoCycle'];
 const code=names.map(name=>{const start=source.indexOf('function '+name+'(');assert.ok(start>=0);return source.slice(start,source.indexOf('\n}',start)+2);}).join('\n');
-const quake=id=>({id,type:'earthquake',mag:3,coords:[-70,-20]});
+const quake=id=>({id,type:'earthquake',mag:3,time:Date.now(),coords:[-70,-20]});
 const alert=(id,type='fire',extra={})=>({id,type,coords:[-60,-10],time:Date.now(),...extra});
 function setup(quakes=[],alerts=[]){
  const shown=[],timers=[];const c=vm.createContext({window:{},isFirstDisplay:true,globalEvents:quakes,globalAlerts:alerts,eventoSelecionadoId:null,cycleTimeout:null,map:{isMoving:()=>false},console,
@@ -73,7 +73,7 @@ test('fila real do orquestrador retoma 2+1 entre revisões sem esvaziar a priori
  const s=setup([quake('q1'),quake('q2'),quake('q3')],[alert('f')]);
  const orchestration=fs.readFileSync('js/orquestrador-feeds.js','utf8');
  s.c.pendingNewCameraQuakes=new Map();s.c.pendingQuakeRevisions=new Map(s.c.globalEvents.map(x=>[x.id,{...x,_updatedAt:Date.now()}]));
- for(const name of ['focusNextNewCameraQuake','focusNextQuakeRevision']){const start=orchestration.indexOf('function '+name+'(');vm.runInContext(orchestration.slice(start,orchestration.indexOf('\n}',start)+2),s.c);}
- const rotation=[];for(let i=0;i<6;i++){s.tick();if(i%2)rotation.push(s.shown.at(-1).type);}
+ for(const name of ['isRecentCameraQuake','focusNextNewCameraQuake','focusNextQuakeRevision']){const start=orchestration.indexOf('function '+name+'(');vm.runInContext(orchestration.slice(start,orchestration.indexOf('\n}',start)+2),s.c);}
+ const rotation=[];for(let i=0;i<12&&rotation.length<3;i++){s.tick();if(!s.c.window.__mgResumeRotation)rotation.push(s.shown.at(-1).type);}
  assert.deepEqual(rotation,['earthquake','earthquake','fire']);assert.equal(s.c.window.__mgAutoRotation.phase,0);
 });

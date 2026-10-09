@@ -20,6 +20,11 @@ function queueNewCameraQuakes(items) {
     // The election UI cannot prevent an arrival from entering the camera queue.
     try { window.ElectionPanel?.newQuakes(items); } catch(e) { console.warn('[prioridade sísmica] eleição:',e); }
 }
+function isRecentCameraQuake(event){
+    const age=Date.now()-Number(event?.time);
+    const limit=typeof SISMO_NOVO_RECENTE_MS==='number'?SISMO_NOVO_RECENTE_MS:30*60000;
+    return Number.isFinite(age)&&age>=-5*60000&&age<=limit;
+}
 function focusNextNewCameraQuake(minMagnitude = 0) {
     if (!map) return false;
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
@@ -29,14 +34,14 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     const candidates = [],included=new Set();
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0 || id === eventoSelecionadoId) { pendingNewCameraQuakes.delete(id); continue; }
+        if (index < 0 || id === eventoSelecionadoId || !isRecentCameraQuake(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
         candidates.push({index, event:globalEvents[index], arrived:entry.arrived});included.add(id);
     }
     // Revisions can raise an already known event above the quake on screen.
     // Also recover a newly badged arrival if its enqueue path was interrupted.
     for(let index=0;index<globalEvents.length;index++){
         const event=globalEvents[index];
-        if(!event||event.id===eventoSelecionadoId||included.has(event.id)||Number(event.mag)<=currentMag)continue;
+        if(!event||!isRecentCameraQuake(event)||event.id===eventoSelecionadoId||included.has(event.id)||Number(event.mag)<=currentMag)continue;
         const revision=pendingQuakeRevisions.get(event.id);
         const freshBadge=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(event.id)||0)>Date.now();
         const presented=window.__mgQuakeCameraPresented?.get(event.id);
@@ -78,7 +83,7 @@ function focusNextQuakeRevision(blocked = false) {
     const candidates = [];
     for (const [id, revision] of pendingQuakeRevisions) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0) { pendingQuakeRevisions.delete(id); continue; }
+        if (index < 0 || id===eventoSelecionadoId) { pendingQuakeRevisions.delete(id); continue; }
         candidates.push({index, revision, event:globalEvents[index]});
     }
     candidates.sort((a,b) => (Number(b.event.mag)||0)-(Number(a.event.mag)||0) ||
