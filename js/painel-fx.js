@@ -43,15 +43,22 @@ function prepareStormLightning(item){
     document.getElementById('pd-mag')?.replaceChildren(icon);
 }
 
+// End the previous event before replacing its text, gauge and flag.
+function resetCardEventFx(item) {
+    const el = document.getElementById('painel-direito');
+    window.SeismicCinema?.stop();
+    window.CinematicCard?.stop();
+    if (typeof stopLightningFlash === 'function') stopLightningFlash();
+    if (!el) return;
+    clearTimeout(el._fxTimeout); el._fxTimeout = null;
+    stopIconSpin(); restoreWindLetters(); stopRainEffect();
+    el.className.split(' ').forEach(c => { if (c.indexOf('pd-fx-') === 0) el.classList.remove(c); });
+    if (item?.type !== 'storm') el.dataset.lightning = 'off';
+}
 function triggerCardFx(type, color, item) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
-    window.SeismicCinema?.stop();
-    try { clearTimeout(el._fxTimeout); } catch (e) {}
-    stopIconSpin();
-    restoreWindLetters();
-    stopRainEffect();
-    el.className.split(' ').forEach(c => { if (c.indexOf('pd-fx-') === 0) el.classList.remove(c); });
+    resetCardEventFx(item || {type});
     el.style.setProperty('--pd-fx-color', color || '#38bdf8');
     if(['storm','tornado','hurricane'].includes(type))el.querySelectorAll('.pd-fx-bolt').forEach(naturalLightning);
     // Força reflow pra reiniciar a animação mesmo selecionando o mesmo tipo

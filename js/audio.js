@@ -682,16 +682,28 @@ function reproduzirAlertaSismicoManual(item) {
 // Compatibilidade com chamadas antigas do projeto.
 // Agora clicar em um sismo nunca fala abaixo de M6.0.
 
+let lightningFlashTimer = null, lightningVignetteTimer = null;
+function stopLightningFlash() {
+    clearTimeout(lightningFlashTimer); clearTimeout(lightningVignetteTimer);
+    lightningFlashTimer = lightningVignetteTimer = null;
+    document.getElementById('lightning-flash')?.classList.remove('lightning-flash-active');
+    document.getElementById('vignette-cinematic')?.classList.remove('vignette-active');
+}
 function triggerLightningFlash() {
+    const panel = document.getElementById('painel-direito');
+    // Ignore stale callbacks and rain-only bulletins after a selection change.
+    if (!panel?.classList.contains('pd-fx-storm') || panel.dataset.lightning !== 'on') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    stopLightningFlash();
     const el = document.getElementById('lightning-flash');
     if (!el) return;
-    el.classList.remove('lightning-flash-active');
     void el.offsetWidth;
     el.classList.add('lightning-flash-active');
+    lightningFlashTimer = setTimeout(() => { el.classList.remove('lightning-flash-active'); lightningFlashTimer = null; }, 13000);
     const v = document.getElementById('vignette-cinematic');
     if (v) {
         v.classList.add('vignette-active');
-        setTimeout(() => v.classList.remove('vignette-active'), 3200);
+        lightningVignetteTimer = setTimeout(() => { v.classList.remove('vignette-active'); lightningVignetteTimer = null; }, 3200);
     }
 }
 
