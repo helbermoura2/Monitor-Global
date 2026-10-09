@@ -29,15 +29,15 @@
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=cartographic-v5-rounded-km');await asset('js/quake-image-paint.js?v=cartographic-v5-rounded-km');await asset('js/story-share.js?v=cartographic-v5-rounded-km');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
+ window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=cartographic-v6-portuguese');await asset('js/quake-image-paint.js?v=cartographic-v6-portuguese');await asset('js/story-share.js?v=cartographic-v6-portuguese');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
  function init(){
   const button=document.getElementById('pd-share-btn');
   button?.addEventListener('click',async event=>{
    event.stopPropagation();const item=selected();
    if(!item){window.showToast?.('Selecione um evento na lista primeiro.','info');return;}
    button.disabled=true;button.textContent='Carregando…';
-   try{await asset('js/quake-card-layout.js?v=cartographic-v5-rounded-km');await asset('js/quake-image-paint.js?v=cartographic-v5-rounded-km');await asset('js/story-share.js?v=cartographic-v5-rounded-km');await window.shareEventAsStory(item);}catch(error){failure(error);}
-   finally{button.disabled=false;button.textContent='📤 Story';}
+   try{await asset('js/quake-card-layout.js?v=cartographic-v6-portuguese');await asset('js/quake-image-paint.js?v=cartographic-v6-portuguese');await asset('js/story-share.js?v=cartographic-v6-portuguese');await window.shareEventAsStory(item);}catch(error){failure(error);}
+   finally{button.disabled=false;button.textContent='📤 Imagem';}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;
   const desktop=matchMedia('(min-width:1101px)'),retireAt=Date.parse('2026-11-01T00:00:00-03:00');

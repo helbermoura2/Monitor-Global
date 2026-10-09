@@ -234,7 +234,7 @@ function atualizarTickerUltimoEvento(item) {
     if (quake && item.mag != null && Number.isFinite(Number(item.mag))) metric = 'M' + Number(item.mag).toFixed(1).replace('.',',');
     else if (['wind','hurricane'].includes(item.type) && item.windKmh != null && Number.isFinite(Number(item.windKmh))) metric = Math.round(Number(item.windKmh)) + ' km/h';
     if (metricEl) { metricEl.textContent = metric; metricEl.hidden = !metric; }
-    textEl.textContent = (item.place || 'Local não informado').replace(/\s+/g, ' ').trim();
+    textEl.textContent = (window.EventPortuguese?.place(item.place)||item.place || 'Local não informado').replace(/\s+/g, ' ').trim();
     if (ageEl) ageEl.textContent = item.time ? formatTime(item.time) : 'Horário não informado';
     let k = 'Em monitoramento';
     if (activeUpdatedIds && activeUpdatedIds.has(item.id)) k = 'Atualizado';
@@ -482,7 +482,8 @@ function renderSidebarList(items) {
 
     let grupoAtual = '';
     c.__sidebarEmptyMarkup=null;
-    renderItems.forEach(item => {
+    renderItems.forEach(rawItem => {
+        const item=window.EventPortuguese?.view(rawItem)||rawItem;
         const idadeH = (agora - item.time) / 36e5;
         const grupo = idadeH < 1 ? '⏱️ Última hora' : idadeH < 6 ? '🕐 1–6h atrás' : idadeH < 24 ? '🕰️ 6–24h atrás' : '🗓️ Emitido há mais de 24h';
 
@@ -1209,7 +1210,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     try { if (typeof syncAllMarkers === 'function') syncAllMarkers(); } catch (e) {}
     if (!silentRefresh) renderSidebarList(lastMerged);
 
-    const item = globalEvents[index];
+    const rawItem=globalEvents[index];
+    const item=window.EventPortuguese?.view(rawItem)||rawItem;
+    window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){const current=globalEvents.findIndex(e=>e.id===rawItem.id);if(current!==-1)showEventDetails(current,false,true);renderSidebarList(lastMerged);}});
     if(!silentRefresh)window.PresentationLimits?.begin(item,window.__mgSoftCycle&&!triggerVisualAlert?'auto':'quake');
     const [lng, lat] = item.coords;
     const mec = item.mecanismoReal || calcularMecanismoFocal(item.depth, lat, lng, item.place);
@@ -1542,6 +1545,8 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    const rawItem=item;
+    window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
     // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
     if(!triggerVisualAlert&&!silentRefresh&&!window.__mgRotationDisplay)window.__mgSoftCycle=false;
     if (triggerVisualAlert && !silentRefresh && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
@@ -1597,6 +1602,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             if (fresh) item = fresh;
         }
     } catch (e) {}
+    item=window.EventPortuguese?.view(item)||item;
     if (!silentRefresh) {
         window.PresentationLimits?.begin(item,triggerVisualAlert?'priority':window.__mgSoftCycle?'auto':'manual');
         closeMobileEventsModalIfOpen();

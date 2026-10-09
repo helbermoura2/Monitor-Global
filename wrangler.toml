@@ -21,3 +21,6 @@ class_name = "EarthquakeAlertDelivery"
 [[migrations]]
 tag = "earthquake-alerts-v1"
 new_sqlite_classes = ["EarthquakeAlertDelivery"]
+
+[ai]
+binding = "AI"

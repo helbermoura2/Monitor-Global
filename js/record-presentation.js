@@ -50,15 +50,17 @@
   const section=document.createElement('section');section.id='pd-notice-brief';section.className='bubble-section record-notice-brief';
   const title=document.createElement('h3');title.textContent=label(item);section.append(title);
   const add=text=>{const p=document.createElement('p');p.textContent=text;section.append(p);};
+  if(item._translatedAutomatically)add('Texto traduzido automaticamente para português. A redação oficial está no boletim da fonte.');
   add('Aviso oficial · '+(item.source||'Fonte não informada'));
   add((item.type==='tsunami'?'Categoria: ':'Severidade: ')+(item.severityLabel||item.warningLevel||'Não informada'));
   if(item.type==='tsunami'&&item.detail)add(item.detail.length>650?item.detail.slice(0,650)+'…':item.detail);
   if(Number.isFinite(item.onset)&&item.onset>Date.now())add('Início previsto: '+formatBrasiliaDateTime(item.onset));
-  add(Number.isFinite(item.expiresAt)?'Válido até: '+formatBrasiliaDateTime(item.expiresAt):'Validade não informada pelo feed; confira o boletim oficial.');
+  add(Number.isFinite(item.expiresAt)?'Válido até: '+formatBrasiliaDateTime(item.expiresAt):'Validade não informada pela fonte; confira o boletim oficial.');
   if(item.type==='tsunami')add(regional?'Sem epicentro verificado. O mapa mostra uma visão geral; não representa a área de tsunami.':'O mapa mostra a origem sísmica do boletim; as costas sob aviso estão descritas no boletim oficial.');
   if(regional)add('Aviso para a região indicada. A fonte não fornece um ponto verificado no mapa.');
   else if(item.locationNote)add(item.locationNote);
   if(item.warningDescription)add(item.warningDescription.length>450?item.warningDescription.slice(0,450)+'…':item.warningDescription);
+  if(item.warningInstruction)add('Orientações da fonte: '+item.warningInstruction);
   const url=bulletin(item);if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.textContent='Abrir boletim oficial ↗';section.append(a);}
   document.getElementById('pd-impact')?.parentNode?.before(section);
  }

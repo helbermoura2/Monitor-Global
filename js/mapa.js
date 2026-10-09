@@ -429,7 +429,7 @@ function syncAllMarkers() {
                 el.style.width = el.style.height = size + 'px';
                 el.style.background = cor;
                 el.style.boxShadow = `0 0 ${size}px ${cor}`;
-                el.title = `M${ev.mag.toFixed(1)} — ${ev.place}`;
+                el.title = `M${ev.mag.toFixed(1)} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const i = globalEvents.findIndex(x => x.id === ev.id);
@@ -590,7 +590,7 @@ function syncAllMarkers() {
         syncType(markerStores.storm, globalAlerts.filter(a => a.type === 'storm'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.storm};box-shadow:0 0 6px ${RADAR_COR.storm};"></div><span class="mg-tipo-full" style="display:none;font-size:20px;">⚡</span>`;
             const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
@@ -608,7 +608,7 @@ function syncAllMarkers() {
         syncType(markerStores.wind, globalAlerts.filter(a => a.type === 'wind'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.wind};box-shadow:0 0 6px ${RADAR_COR.wind};"></div><span class="mg-tipo-full" style="display:none;font-size:22px;">💨</span>`;
             const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
@@ -626,7 +626,7 @@ function syncAllMarkers() {
         syncType(markerStores.flood, globalAlerts.filter(a => a.type === 'flood'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.flood};box-shadow:0 0 6px ${RADAR_COR.flood};"></div><div class="mg-tipo-full" style="display:none;"><span class="severity-badge"><span style="font-size:18px;">💧</span></span></div>`;
             const full = el.querySelector('.mg-tipo-full');
             const badge = full.querySelector('.severity-badge');
@@ -647,7 +647,7 @@ function syncAllMarkers() {
         syncType(markerStores.civil, globalAlerts.filter(a => a.type === 'civil'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.civil};box-shadow:0 0 6px ${RADAR_COR.civil};"></div><span class="mg-tipo-full" style="display:none;font-size:22px;">🚨</span>`;
             const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });

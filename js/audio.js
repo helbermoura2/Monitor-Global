@@ -602,6 +602,7 @@ async function falarNaNuvem(texto) {
 }
 function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '') {
     if (!somAtivo) return;
+    place=window.EventPortuguese?.place(place)||place;
     const prof = (typeof depth === 'number' && !isNaN(depth)) ? `, a ${depth.toFixed(0)} quilômetros de profundidade` : '';
     let intro;
     if (isUpdate) {
@@ -620,7 +621,7 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
     let outro = `${prof}.`;
     if (!isUpdate && qtd > 0) outro += ` Mais ${qtd} evento(s) nesta atualização.`;
 
-    const langLugar = pareceLugarEmIngles(place) ? 'en-US' : 'pt-BR';
+    const langLugar = 'pt-BR';
     falarNaNuvem(`${intro} ${place}${outro}`).then(ok => {
         if (ok || !somAtivo || vozVolume <= 0 || !window.speechSynthesis) return;
         falarTrechos([
@@ -632,6 +633,7 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
 }
 function falarAlertaGenerico(txt) {
     if (!somAtivo) return;
+    txt=window.EventPortuguese?.local(txt)||txt;
     falarNaNuvem(txt).then(ok => {
         if (ok || !somAtivo || vozVolume <= 0 || !window.speechSynthesis) return;
         const u = new SpeechSynthesisUtterance(txt);

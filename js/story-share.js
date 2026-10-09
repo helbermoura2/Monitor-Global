@@ -1225,6 +1225,8 @@
         if (fresh) item = fresh;
       }
     } catch (e) {}
+    await window.EventPortuguese?.ensure(item);
+    item=window.EventPortuguese?.view(item)||item;
     if((item.type==='earthquake'||(item.mag!=null&&!item.type))&&Array.isArray(item.coords)&&item.coords.length>=2&&item.coords.slice(0,2).every(Number.isFinite))return buildCartographicQuake(item);
     const W = 1080, H = 1920;
     const canvas = document.createElement('canvas');
@@ -1799,7 +1801,7 @@
     if (storyBusy) return;
     storyBusy = true;
     const btn = document.getElementById('pd-share-btn');
-    const originalLabel = '📤 Story';
+    const originalLabel = '📤 Imagem';
     if (btn) { btn.textContent = '⏳ Gerando…'; btn.disabled = true; }
     try {
       const canvas = await comTimeout(buildStoryCanvas(item), 15000, 'geração da imagem demorou demais');
@@ -1834,7 +1836,7 @@
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 8000);
         if (typeof showToast === 'function') {
-          showToast('Imagem pronta — salva nos downloads pra postar no Story.', 'info');
+          showToast('Imagem pronta — salva nos downloads para compartilhar.', 'info');
         }
       }
     } catch (e) {

@@ -1,3 +1,4 @@
+import './js/event-portuguese.js';
 import './js/seismic-impact-model.js';
 import './js/quake-image-paint.js';
 import './js/quake-card-layout.js';
