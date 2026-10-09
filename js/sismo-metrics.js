@@ -572,7 +572,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         }
         return impactExtentCache.radius;
     }
-    function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,impactRadius());}
+    function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,Math.max(10,window.SeismicImpactModel.extent(context.mag,context.depth,2.1)));}
     const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
     // O Mapbox reprojeta as coordenadas durante pan/zoom. Enviar a mesma
     // geometria de novo só repete trabalho no worker, especialmente no quadro final.

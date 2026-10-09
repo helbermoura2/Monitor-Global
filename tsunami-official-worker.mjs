@@ -46,7 +46,34 @@ export async function getOfficialTsunamis(){
    try{const r=await fetch(product?'https://www.tsunami.gov/events/js/PHEB'+code+'.js':'https://www.tsunami.gov/events/xml/'+code+'Atom.xml',{signal:controller.signal,headers:{Accept:'application/atom+xml'}});if(!r.ok)throw Error('HTTP '+r.status);const text=await r.text();if(!product&&!/<(?:[\w-]+:)?feed\b/i.test(text))throw Error('Feed inválido');const items=(product?parseTsunamiProduct(text,code):parseTsunamiAtom(text,source)).map(item=>({...item,feedKey}));return {source,feedKey,ok:true,items:items.filter(item=>Date.now()-item.time<=72*3600000)};}
    catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}finally{clearTimeout(timer);}
   }));
+  if(sources.some(s=>!s.ok))sources.push(...await getNwsTsunamis());
   const data={source:'TSUNAMI-GOV',ok:sources.some(s=>s.ok),sources,items:sources.flatMap(s=>s.items).sort((a,b)=>b.time-a.time)};
   cache={at:Date.now(),data};return data;
  })().finally(()=>inflight=null);return inflight;
+}
+
+// NWS republishes PTWC/NTWC text products on a separate official infrastructure.
+// Read the latest bulletin for each product, never replay a superseded warning.
+export function parseNwsTsunamiProduct(p){
+ const source=p.issuingOffice==='PHEB'?'PTWC':p.issuingOffice==='PAAQ'?'NTWC':null;
+ const time=Date.parse(p.issuanceTime),text=String(p.productText||'');
+ if(!source||!Number.isFinite(time)||!text.trim()||!/^\w{6}$/.test(p.wmoCollectiveId||''))throw Error('Boletim NWS inválido');
+ const evaluation=clean(text.split(/EVALUATION\s*\n[-]+/i)[1]?.split(/\n[A-Z][A-Z .-]+\n[-]+/)[0]||text.slice(0,1800));
+ const cancelled=p.productCode!=='TIB'&&/THREAT HAS (?:NOW )?PASSED|NO (?:LONGER A |FURTHER )?TSUNAMI THREAT|(?:WARNING|WATCH|ADVISORY)[\s\S]{0,60}(?:CANCELLED|CANCELED)|FINAL (?:TSUNAMI )?MESSAGE/i.test(evaluation);
+ const threat=!cancelled&&/HAZARDOUS TSUNAMI WAVES (?:ARE|FROM)|TSUNAMI (?:WARNING|WATCH|ADVISORY) (?:IS|IN EFFECT|REMAINS)|WIDESPREAD\s+HAZARDOUS TSUNAMI WAVES/i.test(evaluation);
+ const level=cancelled?'Encerrado':threat?'Ameaça oficial':'Informativo';
+ const match=text.match(/COORDINATES\s+(\d+(?:\.\d+)?)\s+(NORTH|SOUTH)\s+(\d+(?:\.\d+)?)\s+(EAST|WEST)/i);
+ const coords=match?[Number(match[3])*(match[4].toUpperCase()==='WEST'?-1:1),Number(match[1])*(match[2].toUpperCase()==='SOUTH'?-1:1)]:null;
+ const forecast=text.split(/TSUNAMI THREAT FORECAST[^\n]*\n[-]+/i)[1]?.split(/RECOMMENDED ACTIONS/)[0]||evaluation;
+ const location=text.match(/\* LOCATION\s+([^\n]+)/)?.[1]?.trim()||'Área do boletim oficial';
+ return [{id:'TS-NWS-'+p.id,feedKey:source+'-NWS-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
+}
+async function nwsJson(url){const r=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/geo+json','User-Agent':'MonitorGlobal (https://monitorglobal.top)'}});if(!r.ok)throw Error('NWS HTTP '+r.status);return r.json();}
+export async function getNwsTsunamis(){
+ const catalogs=await Promise.all(['TSU','TIB'].map(async type=>{try{return {ok:true,entries:(await nwsJson('https://api.weather.gov/products/types/'+type))['@graph']||[]};}catch(e){return {ok:false,error:e.message,entries:[]};}}));
+ const latest=new Map();
+ for(const p of catalogs.flatMap(c=>c.entries).sort((a,b)=>Date.parse(b.issuanceTime)-Date.parse(a.issuanceTime))){if(!['PHEB','PAAQ'].includes(p.issuingOffice)||Date.now()-Date.parse(p.issuanceTime)>72*3600000||!/^[a-f\d-]{36}$/.test(p.id))continue;const key=p.issuingOffice+'-'+p.wmoCollectiveId;if(!latest.has(key))latest.set(key,p);}
+ const sources=await Promise.all([...latest.values()].slice(0,12).map(async p=>{const source=p.issuingOffice==='PHEB'?'PTWC':'NTWC',feedKey=source+'-NWS-'+p.wmoCollectiveId;try{return {source,feedKey,ok:true,items:parseNwsTsunamiProduct(await nwsJson('https://api.weather.gov/products/'+p.id))};}catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}}));
+ if(!sources.length)sources.push({source:'PTWC',feedKey:'PTWC-NWS',ok:catalogs.every(c=>c.ok),items:[],error:catalogs.find(c=>!c.ok)?.error});
+ return sources;
 }

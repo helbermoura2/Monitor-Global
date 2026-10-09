@@ -18,3 +18,13 @@ test('Pacific threat product carries Panama 1–3m even when the general Atom sa
  const [old]=parseTsunamiProduct(data.replaceAll('1-3 meters','Cancellation').replaceAll('0.3-1 meters','Cancellation'),'WEPA40');assert.equal(old.warningLevel,'Encerrado');assert.equal(old.hazardNature,'bulletin');
  assert.throws(()=>parseTsunamiProduct('var x = (()=> { globalThis.hacked=true })();','WEPA40'));assert.equal(globalThis.hacked,undefined);
 });
+test('official NWS bulletin is a live Panama threat despite the international information-only disclaimer',async()=>{
+ const {parseNwsTsunamiProduct}=await import('../../tsunami-official-worker.mjs');const p=JSON.parse(readFileSync('tests/fixtures/tsunami/NWS-WEPA40.json','utf8'));
+ const [item]=parseNwsTsunamiProduct(p);assert.equal(item.hazardNature,'warning');assert.deepEqual(item.coords,[-80.8,7.5]);assert.match(item.detail,/1 TO 3 METERS/);assert.equal(item.cancelled,false);
+ const [cancel]=parseNwsTsunamiProduct({...p,productText:p.productText.replace(/EVALUATION[\s\S]*?TSUNAMI THREAT FORECAST/,'EVALUATION\n----------\n THE TSUNAMI THREAT HAS NOW PASSED.\n\nTSUNAMI THREAT FORECAST')});assert.equal(cancel.cancelled,true);assert.equal(cancel.sev,0);
+});
+test('blocked tsunami.gov falls back to latest official NWS revision, not the older warning',async()=>{
+ const saved=globalThis.fetch,p=JSON.parse(readFileSync('tests/fixtures/tsunami/NWS-WEPA40.json','utf8'));const now=new Date().toISOString();p.issuanceTime=now;
+ globalThis.fetch=async url=>{url=String(url);if(url.includes('tsunami.gov'))return new Response('',{status:403});if(url.endsWith('/types/TIB'))return Response.json({'@graph':[]});if(url.endsWith('/types/TSU'))return Response.json({'@graph':[{...p,productText:undefined},{...p,id:'11111111-1111-1111-1111-111111111111',issuanceTime:'2026-10-06T00:00:00Z'}]});return Response.json(p);};
+ try{const {getOfficialTsunamis}=await import('../../tsunami-official-worker.mjs?fallback-test');const data=await getOfficialTsunamis();assert.equal(data.ok,true);assert.equal(data.items.length,1);assert.equal(data.items[0].hazardNature,'warning');assert.equal(data.items[0].feedKey,'PTWC-NWS-WEPA40');}finally{globalThis.fetch=saved;}
+});

@@ -8,7 +8,7 @@ function pga(mag,depth,km){
  const adjusted=mag+.4*correction,distance=Math.sqrt(h*h+4*6379*(6379-h)*Math.sin(km/(2*6379))**2)/(1+.75*correction);
  return Math.pow(10,adjusted*.575)/(.36*Math.pow(distance,1.25+adjusted/22)+10);
 }
-function extent(mag,depth){let lo=0,hi=12000;for(let i=0;i<32;i++){const mid=(lo+hi)/2;if(pga(mag,depth,mid)>=.5)lo=mid;else hi=mid;}return lo;}
+function extent(mag,depth,threshold=.5){let lo=0,hi=12000;for(let i=0;i<32;i++){const mid=(lo+hi)/2;if(pga(mag,depth,mid)>=threshold)lo=mid;else hi=mid;}return lo;}
 function color(value){let i=0;while(i<SCALE.length-1&&value>=SCALE[i+1][0])i++;const a=SCALE[i],b=SCALE[Math.min(i+1,SCALE.length-1)];const t=a===b?0:Math.max(0,Math.min(1,Math.log(value/a[0])/Math.log(b[0]/a[0])));return 'rgb('+a[2].map((v,j)=>Math.round(v+(b[2][j]-v)*t)).join(',')+')';}
 function destinoGeodesico(lat, lng, distanciaKm, azimuteGraus, earthRadius = 6371) {
     const R = earthRadius; // km; as frentes usam o mesmo raio do GlobalQuake
