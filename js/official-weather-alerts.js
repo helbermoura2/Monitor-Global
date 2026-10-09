@@ -32,7 +32,7 @@
  }
  function set(key,label,rows,opts={}){
   const previous=sources.get(key);sources.set(key,opts.error?{...previous,label,error:opts.error,rows:previous?.rows||[],checkedAt:previous?.checkedAt||0}:{label,rows,checkedAt:opts.checkedAt||Date.now(),credit:opts.credit});
-  try{setSource(opts.healthName||label,opts.error?'off':'ok',null,opts.error);}catch(e){}
+  try{setSource(opts.healthName||label,opts.error?'off':'ok',null,opts.error,{checkedAt:opts.checkedAt});}catch(e){}
   sync();render();
  }
  function render(){

@@ -453,7 +453,8 @@ const REGIONAL_SEISMIC_FALLBACK = {
   'CSN-Chile': 'Chile — USGS/EMSC seguem cobrindo a região',
   'SSN-Mexico': 'México — USGS/EMSC seguem cobrindo a região'
 };
-function setSource(name,status,ms,error){
+function setSource(name,status,ms,error,meta={}){
+  window.MonitorFreshness?.recordStatus(name,status,error,meta.dataAt,meta.checkedAt);
   // 2 falhas seguidas → OFF; 1 falha → LENTO. Sucesso zera.
   // SourceHealth: 3ª falha abre cooldown 90s (não martela a fonte).
   const prev = PRO.sourceState[name] || {};
@@ -473,7 +474,7 @@ function setSource(name,status,ms,error){
   }
   renderSources();
 }
-function renderSources(){const c=q('source-list');const keys=[...new Set([...Object.keys(SRC),...Object.keys(PRO.sourceState)])];let ok=0,warn=0,off=0;const offNames=[];const rows=keys.map(k=>{const s=PRO.sourceState[k]||{};if(s.status==='ok')ok++;else if(s.status==='warn')warn++;else if(s.status==='off'){off++;offNames.push(k);}const cls=s.status==='ok'?'source-ok':s.status==='warn'?'source-warn':s.status==='off'?'source-off':'';const label=s.status==='ok'?'ONLINE':s.status==='warn'?'LENTO':s.status==='off'?'INDISPONÍVEL':s.status==='paused'?'PAUSADA':'--';const ms=s.ms?Math.round(s.ms)+'ms':'--';const age=s.time?Math.max(0,Math.round((Date.now()-s.time)/1000))+'s':'--';const title=s.error?` title="${String(s.error).replace(/"/g,'&quot;')}"`:'';return `<div class="source-row"><span>${k}</span><b class="${cls}"${title}>${label}</b><span>${ms} · ${age}</span></div>`}).join('');if(c)c.innerHTML=rows;const sum=`${ok} online · ${warn} atenção · ${off} offline`;safeText('source-summary',sum);try{const el=document.getElementById('ts-meta-fresh');if(el&&offNames.length)el.title='Offline: '+offNames.join(', ');const strip=document.getElementById('ts-meta-fontes');if(strip&&off){strip.style.color='#f87171';}else if(strip){strip.style.color='';}}catch(e){}// Toast discreto quando uma fonte cai
+function renderSources(){const c=q('source-list');const keys=[...new Set([...Object.keys(SRC),...Object.keys(PRO.sourceState)])];let ok=0,warn=0,off=0;const offNames=[];const rows=keys.map(k=>{const s=PRO.sourceState[k]||{};if(s.status==='ok')ok++;else if(s.status==='warn')warn++;else if(s.status==='off'){off++;offNames.push(k);}const cls=s.status==='ok'?'source-ok':s.status==='warn'?'source-warn':s.status==='off'?'source-off':'';const label=window.MonitorFreshness?.sourceStatus(k)||(s.status==='ok'?'ONLINE':s.status==='warn'?'LENTO':s.status==='off'?'INDISPONÍVEL':s.status==='paused'?'PAUSADA':'--');const ms=s.ms?Math.round(s.ms)+'ms':'--';const age=s.time?Math.max(0,Math.round((Date.now()-s.time)/1000))+'s':'--';const title=s.error?` title="${String(s.error).replace(/"/g,'&quot;')}"`:'';return `<div class="source-row"><span>${k}</span><b class="${cls}"${title}>${label}</b><span>${ms} · ${age}</span></div>`}).join('');if(c)c.innerHTML=rows;const sum=`${ok} online · ${warn} atenção · ${off} offline`;safeText('source-summary',sum);try{const el=document.getElementById('ts-meta-fresh');if(el&&offNames.length)el.title='Offline: '+offNames.join(', ');const strip=document.getElementById('ts-meta-fontes');if(strip&&off){strip.style.color='#f87171';}else if(strip){strip.style.color='';}}catch(e){}// Toast discreto quando uma fonte cai
 try{const prev=window.__srcOffCount|0;window.__srcOffCount=off;if(off>prev&&off>0&&typeof showToast==='function'){(()=>{const n=offNames.find(x=>x!=='OpenMeteo'); if(!n) return; const fallback=REGIONAL_SEISMIC_FALLBACK[n]; showToast('⚠️ Fonte offline: '+n+(fallback?' · '+fallback:''),'warn');})();}}catch(e){}}
 async function checkSources(){
   // Only real catalogue/product consultations may update source health.

@@ -34,6 +34,7 @@ jobs:
 
       - name: Validar exposição populacional e reservas
         run: |
+          node --test tests/unit/source-freshness.test.cjs
           node tests/unit/population-exposure-check.mjs
           node tests/unit/population-check.cjs
           node tests/unit/unified-cities-check.cjs
