@@ -568,7 +568,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,impactRadius());}
     const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
     // M5+: S até o alcance sentido → P por 6s → área pintada por 8s
-    // → P até o fim → área pintada por 10s. A física continua em todas as fases.
+    // → repete P/área até o fim → área pintada por 10s. A física não pausa.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
@@ -670,7 +670,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                         window.SeismicImpact?.finish();
                         kmAlvoCam=predicted??kmP??lastTargetRadius;
                     }
-                }else if(context.cameraPhase==='p-first'&&Date.now()>=context.phaseUntil){
+                }else if(['p-first','p-rest'].includes(context.cameraPhase)&&Date.now()>=context.phaseUntil){
                     context.cameraPhase='impact';context.phaseUntil=null;context.impactHoldUntil=null;
                 }
                 if(context.cameraPhase==='impact')kmAlvoCam=felt;
@@ -698,7 +698,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(context.returnToEpicenter&&context.cameraPhase==='impact'){
                 // Count the eight seconds only once the whole affected area fits.
                 if(context.impactHoldUntil===null&&Math.abs(camZoomAtual-zoomAlvoBruto)<.015){context.impactHoldUntil=Date.now()+8000;context.phaseUntil=context.impactHoldUntil;}
-                if(context.impactHoldUntil!==null&&Date.now()>=context.impactHoldUntil){context.cameraPhase='p-rest';context.phaseUntil=null;}
+                if(context.impactHoldUntil!==null&&Date.now()>=context.impactHoldUntil){context.cameraPhase='p-rest';context.phaseUntil=Date.now()+6000;}
             }
             // Termina quando não há nova chegada P e a câmera convergiu (dentro de
             // uma folga pequena) — antes disso continua ajustando quadro a
