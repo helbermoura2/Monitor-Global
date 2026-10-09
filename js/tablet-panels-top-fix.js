@@ -1,25 +1,14 @@
 (function () {
-  /* Mesma raiz do bug corrigido em js/header-v72.js (top:50px fixo do
-     ticker, calibrado pra um cabeçalho mais baixo do que o atual): aqui é
-     #sidebar-left/#painel-direito, com "top:178px" fixo em
-     css/desktop-layout-lock.css (901-1100px) — calibrado pra encostar
-     logo abaixo do cabeçalho, mas sem contar com o #latest-event-ticker
-     (o balão "AO VIVO"/alerta) quando ele está visível, ~58px mais alto.
-     Nessa faixa de largura — a mesma que tablets reais usam e que o
-     "Solicitar site para computador" do Chrome força num celular — a
-     sidebar e o painel de detalhes ficavam parcialmente escondidos atrás
-     do próprio ticker.
-
-     Independente do resto do cabeçalho de propósito: script isolado, sem
-     mexer em js/header-v72.js nem em nenhum "ativo()"/reflow existente —
-     só mede a borda inferior real do cabeçalho (e do ticker, quando
-     visível) e usa isso como "top" da sidebar/painel, com o mesmo respiro
-     de 13px que o valor fixo original já usava (178 - 165). */
-  var MIN_W = 901, MAX_W = 1100;
+  /* Measure header/ticker space on every desktop viewport, including TV
+     browsers and changes between compact desktop and mobile layouts. */
+  var MIN_W = 901, appliedTop = null;
 
   function sync() {
     var w = window.innerWidth;
-    if (w <= MIN_W - 1 || w > MAX_W) return;
+    if (w < MIN_W) {
+      ['sidebar-left','painel-direito'].forEach(function(id){var el=document.getElementById(id);if(el&&appliedTop&&el.style.top===appliedTop)el.style.removeProperty('top');});
+      appliedTop=null;return;
+    }
     var strip = document.getElementById('top-strip');
     var sidebar = document.getElementById('sidebar-left');
     var painel = document.getElementById('painel-direito');
@@ -31,7 +20,7 @@
       if (tb > bottom) bottom = tb;
     }
     if (bottom <= 0) return;
-    var top = Math.round(bottom + 13) + 'px';
+    var top = Math.round(bottom + 13) + 'px';appliedTop=top;
     if (sidebar) sidebar.style.setProperty('top', top, 'important');
     if (painel) painel.style.setProperty('top', top, 'important');
   }
