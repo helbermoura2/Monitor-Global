@@ -8,3 +8,5 @@ test('translation cache preserves numbers, rejects altered numeric facts and enf
  assert.equal((await worker.fetch(request(['x'.repeat(12001)]),env)).status,400);
  assert.equal((await worker.fetch(request(['Text']),{})).status,503);
 });
+
+test('separate sentences retain every instruction instead of dropping later sentences',async()=>{const input=[];const data=new Map(),env={TTS_USAGE:{get:async k=>data.get(k),put:async(k,v)=>data.set(k,v)},AI:{run:async(model,args)=>{input.push(args.text);return {translated_text:args.text.startsWith('There')?'Não há ameaça de tsunami.':'Nenhuma ação é necessária.'};}}};const out=await (await worker.fetch(request(['There is no tsunami threat. No action is needed.']),env)).json();assert.equal(input.length,2);assert.equal(out.translations[0],'Não há ameaça de tsunami. Nenhuma ação é necessária.');});
