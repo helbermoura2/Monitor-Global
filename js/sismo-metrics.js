@@ -190,7 +190,7 @@ function refreshFeltZone(item){
 // cedo demais, enquanto um fundo demorava bem mais — o usuário queria algo
 // previsível, só pela magnitude). Só vale pra evento NOVO ao vivo e pro
 // replay manual — o ciclo automático (revisitando um evento já conhecido)
-// usa HOLD_AUTO_MS, fixo em 1 minuto pra qualquer magnitude (ver
+// usa HOLD_AUTO_MS (30s após o voo), com teto de 40s desde a seleção (ver
 // painel-e-lista.js). Ver também orquestrador-feeds.js: um sismo novo só
 // interrompe esse tempo se for de magnitude MAIOR que o que já está em tela.
 function waveHoldMs(mag) {

@@ -8,7 +8,7 @@ function setup(current,protectedUntil=0){
  const c=vm.createContext({window,Date,map:{},globalEvents:[current],eventoSelecionadoId:current.id,showEventDetails(i,live){shown.push([c.globalEvents[i].id,live]);c.eventoSelecionadoId=c.globalEvents[i].id;window.__mgRevisionProtectedId=c.eventoSelecionadoId;window.__mgRevisionProtectedUntil=Date.now()+90000;},showPanelRevisionFocus(){},console});
  vm.runInContext(code,c);return {c,shown};
 }
-const q=(id,mag)=>({id,mag});
+const q=(id,mag)=>({id,mag,time:Date.now()});
 test('novo M3 interrompe M2 protegido imediatamente, sem esperar o ciclo',()=>{
  const {c,shown}=setup(q('old',2),Date.now()+90000);c.globalEvents.push(q('new',3));c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['new',true]]);
 });
@@ -24,3 +24,4 @@ test('ao vivo/manual maior protege contra menores até o fim, mas admite maior',
 test('duplicata selecionada ou registro removido não captura câmera novamente',()=>{
  const {c,shown}=setup(q('old',3));c.queueNewCameraQuakes([c.globalEvents[0],q('gone',6)]);assert.equal(c.focusNextNewCameraQuake(),false);assert.equal(shown.length,0);
 });
+test('32h magnitude revision never competes as a new quake or blocks fresh M2.8',()=>{const {c,shown}=setup(q('current',1.8));const old={...q('old32h',4.8),time:Date.now()-32*3600000},fresh=q('fresh',2.8);c.globalEvents.push(old,fresh);c.queueQuakeRevisions([{...old,_previousMag:4.5}]);c.queueNewCameraQuakes([fresh]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['fresh',true]]);assert.equal(vm.runInContext("pendingQuakeRevisions.has('old32h')",c),true);});
