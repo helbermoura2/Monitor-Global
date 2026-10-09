@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 const workerURL = new URL('../../monitor-global-worker-7_7_0.js', import.meta.url);
 let source = await readFile(workerURL, 'utf8');
 source = source.replace(/from "(\.\/[^\"]+)"/g, (_, path) => 'from '+JSON.stringify(new URL(path, workerURL).href));
+source = source.replaceAll('queryImageExposure(ev, env)', 'Promise.resolve({status: "unavailable"})');
 source += '\nexport {runTelegramM6Alerts, telegramIsBrazil, telegramBrazilEvents};';
 const {EarthquakeAlertDelivery, runTelegramM6Alerts, telegramIsBrazil, telegramBrazilEvents} = await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 for (const [lat,lon] of [[-15.79,-47.88],[-8.05,-34.9],[-3.73,-38.53],[-23.55,-46.63],[-5.8,-35.2]]) assert(telegramIsBrazil(lat,lon));

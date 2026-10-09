@@ -122,6 +122,10 @@
 
   function zoomForItem(item) {
     const lat = (item.coords && isFinite(item.coords[1])) ? item.coords[1] : 0;
+    if(item.type==='earthquake'&&Number(item.mag)>=5&&window.SeismicImpact){
+      const radius=SeismicImpact.extent(item.mag,item.depth||0);
+      return Math.max(2,Math.min(zoomFor50km(lat),Math.floor(Math.log2(156543.03392*Math.cos(lat*Math.PI/180)*330/(Math.max(80,radius)*1000)))));
+    }
     return zoomFor50km(lat);
   }
 
@@ -1212,6 +1216,18 @@
       drawBackground(ctx, W, H, cor);
     }
 
+    // Full land footprint from the same scene model; no new map or scene state.
+    if(usouMapa&&isQuake&&Number(item.mag)>=5&&window.SeismicImpact?.snapshot){
+      try{
+        const data=await SeismicImpact.snapshot({lng,lat,mag:item.mag,depth:item.depth||0});
+        if(data?.features?.length){
+          const [wx,wy]=lonLatToWorldPx(lng,lat,mapZoom);ctx.save();ctx.globalAlpha=.56;
+          for(const feature of data.features){ctx.fillStyle=feature.properties.color;
+            for(const polygon of feature.geometry.coordinates){ctx.beginPath();for(const ring of polygon)ring.forEach(([x,y],i)=>{const wrapped=lng+((x-lng+540)%360-180),p=lonLatToWorldPx(wrapped,y,mapZoom);if(i===0)ctx.moveTo(p[0]-wx+markerCx,p[1]-wy+markerCy);else ctx.lineTo(p[0]-wx+markerCx,p[1]-wy+markerCy);});ctx.fill('evenodd');}
+          }ctx.restore();
+        }
+      }catch(e){}
+    }
     // Degradê escuro cobrindo a parte de baixo, onde fica o card — deixa o
     // mapa visível em cima e o texto legível embaixo
     const grad = ctx.createLinearGradient(0, H * 0.10, 0, H);
@@ -1533,33 +1549,24 @@
       });
       y += cardH + 36;
 
-      // Pessoas que podem ter sentido o tremor — mesma conta usada no pop-up
-      // "Alcance do sismo" ao vivo (estimarPessoasAfetadas, base GeoNames em
-      // js/populacao-sismo.js), pra manter consistência entre o que o app
-      // mostra ao vivo e o que sai na imagem compartilhada. Omitido em
-      // silêncio se não achou nenhuma cidade cadastrada no alcance (área
-      // remota) — um "0 pessoas" destacado ficaria estranho numa imagem que
-      // já vai sair do app.
-      if (located && typeof estimarPessoasAfetadas === 'function') {
-        try {
-          const dadosPessoas = await estimarPessoasAfetadas(lat, lng, item.mag, depth);
-          if (dadosPessoas && dadosPessoas.totalPessoas > 0) {
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#64748b';
-            ctx.font = '700 18px system-ui, sans-serif';
-            haloFillText(ctx, 'PESSOAS QUE PODEM TER SENTIDO O TREMOR', W / 2, y);
-
-            ctx.fillStyle = '#facc15';
-            ctx.font = '800 46px "JetBrains Mono", monospace';
-            haloFillText(ctx, formatarPessoasHeadline(dadosPessoas.totalPessoas), W / 2, y + 58);
-
-            ctx.fillStyle = '#475569';
-            ctx.font = '500 15px system-ui, sans-serif';
-            haloFillText(ctx, 'Dados de população: GeoNames.org (CC BY 4.0)', W / 2, y + 86);
-
-            y += 118;
-          }
-        } catch (e) {}
+      // Prefer the same gridded/PAGER exposure used by the live card.
+      if(located){
+        const exposure=await window.obterExposicaoPopulacionalImagem?.(item);
+        ctx.textAlign='center';ctx.fillStyle='#94a3b8';ctx.font='700 18px system-ui, sans-serif';
+        haloFillText(ctx,'POPULAÇÃO NA ÁREA DE TREMOR · ESTIMATIVA',W/2,y);
+        if(exposure){
+          ctx.fillStyle='#facc15';ctx.font='700 27px "JetBrains Mono", monospace';
+          exposure.ranges.forEach((r,i)=>haloFillText(ctx,['III+','V+','VI+'][i]+': ~'+Math.round(Number(r.population)).toLocaleString('pt-BR'),W/2,y+34+i*34));
+          ctx.fillStyle='#94a3b8';ctx.font='500 15px system-ui, sans-serif';
+          haloFillText(ctx,(exposure.method==='pager'?'USGS PAGER':'WorldPop 2020')+(exposure.partial?' · cobertura parcial':'')+' · faixas sobrepostas; não somar',W/2,y+142);y+=178;
+        }else{
+          let fallback=null;try{fallback=await estimarPessoasAfetadas(lat,lng,item.mag,depth);}catch(e){}
+          ctx.fillStyle='#facc15';ctx.font='700 30px "JetBrains Mono", monospace';
+          haloFillText(ctx,fallback?.totalPessoas>0?formatarPessoasHeadline(fallback.totalPessoas):'Dados indisponíveis no momento',W/2,y+40);
+          ctx.fillStyle='#94a3b8';ctx.font='500 15px system-ui, sans-serif';
+          haloFillText(ctx,fallback?.totalPessoas>0?'Reserva por localidades · GeoNames · raio ~'+Math.round(fallback.raioKm)+' km':'Não significa população zero.',W/2,y+70);y+=110;
+        }
+        ctx.fillStyle='#94a3b8';ctx.font='500 15px system-ui, sans-serif';haloFillText(ctx,'Estimativa de exposição; não é contagem de vítimas ou relatos.',W/2,y-12);
       }
 
       // Alcance real da onda P/S no instante em que o Story foi gerado (só

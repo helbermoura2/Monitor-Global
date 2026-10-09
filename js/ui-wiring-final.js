@@ -494,6 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
     agendarBusca(fetchAfadQuakes, 5000, 60000);       // AFAD Turquia (incl. M baixas)
     agendarBusca(fetchPlanetReinforcementQuakes, 7000, 60000);     // reforço planetário (5 fatias de longitude, mesmo USGS, sem teto global)
     agendarBusca(fetchEmscPlanetReinforcementQuakes, 7500, 60000); // idem, mas pro EMSC (cobertura melhor de eventos menores)
+    agendarBusca(fetchOfficialTsunamiAlerts, 1000, 30000); // PTWC/NTWC internacional
     agendarBusca(fetchTsunamiAlerts, 2000, 180000);     // tsunami NWS
     agendarBusca(fetchTsunamiAlertsGDACS, 4000, 180000);
     agendarBusca(fetchTornadoAlerts, 6000, 180000);

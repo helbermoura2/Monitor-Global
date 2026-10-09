@@ -42,6 +42,15 @@
  window.cancelarExposicaoPopulacional=cancel;
  window.exposicaoPopulacionalDoEvento=item=>{const hit=cache.get(signature(item));return hit&&hit.until>Date.now()?hit.data:null;};
  window.renderExposicaoPopulacionalHTML=markup;
+ window.obterExposicaoPopulacionalImagem=async function(item){
+  const hit=window.exposicaoPopulacionalDoEvento(item);if(hit)return hit;
+  const url=new URL(WORKER_PROXY(''));url.pathname='/population-exposure';url.search='';
+  const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);
+  const eventId=report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';
+  Object.entries({lat:item.coords[1],lng:item.coords[0],mag:item.mag,depth:item.depth??0,time:item.time,...(eventId?{eventId}:{})}).forEach(([name,value])=>url.searchParams.set(name,String(value)));
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);
+  try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error();const data=await r.json();return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
+ };
  window.carregarExposicaoPopulacional=function(item){
   cancel();if(!item||item.type!=='earthquake')return;
   const key=signature(item),job={item,key,attempt:0,timer:null,controller:null};current=job;

@@ -818,6 +818,7 @@ function stopCascadeRipple() {
    de sempre (RADAR_COR), os demais tipos (menos sismo, tratado à parte)
    ganham a onda em cascata. */
 function triggerEventoMapaFx(item, corFallback) {
+    if(item.hazardNature==='bulletin')return;
     if(item.municipalityLocations?.length||item.warningGeometry)return;
     try {
         const cor = RADAR_COR[item.type] || corFallback;

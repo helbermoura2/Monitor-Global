@@ -1,0 +1,63 @@
+// Generated: Thu Oct 08 09:09:01 UTC 2026
+// File: /tsunami_ops_data/web/htdocs/events/js/PHEBWEPA42.js
+// Event Dir: /events/PHEB/2026/10/08/26281001/1/WEPA42/
+
+// ----------------------------------------------------
+
+var PHEBWEPA42 = {
+  "eventDir" : "/events/PHEB/2026/10/08/26281001/1/WEPA42/",
+  "thisDocGenerated" : "Thu Oct 08 09:09:01 UTC 2026",
+  "thisDoc" : "/tsunami_ops_data/web/htdocs/events/js/PHEBWEPA42.js",
+  "TWCID" : "PHEB",
+  "WMOID" : "WEPA42",
+  "eventMagnitude" : 6.6,
+  "eventMagnitudeType" : "Mwp",
+  "eventDepth" : 10,
+  "eventDepthType" : "kilometers",
+  "eventLat" : -15.484,
+  "eventLon" : 168.177,
+  "originTime" : "2026-10-08T09:00:08Z",
+  "bulletinIssueTime" : "2026-10-08T09:08:47Z",
+  "quakeLocation" : "VANUATU",
+  "issueYear" : "2026",
+  "issueMonth" : "10",
+  "issueDay" : "08",
+  "twcEventID" : "26281001",
+  "bulletinNr" : "1",
+  "rootURL" : "/events/",
+   "alerts" : {"areaList":[[]]},
+   "segments" : [ 
+  
+    {
+       "id" : 1, 
+       "category" : "Information", 
+       "NWSZones" : "", 
+
+       "headline" : " &lt;![CDATA[ ...PTWC TSUNAMI INFORMATION STATEMENT... ]]&gt; ",
+
+
+       "bkp_start_location" : "","bkp_start_lat" : 0.0,
+
+          "bkp_start_lon" : 0.0,
+"bkp_end_location" : "","bkp_end_lat" : 0.0,
+
+          "bkp_end_lon" : 0.0,
+"recommendedActions" : " ",
+       "productDefinition" : "" } 
+   ], 
+  "actions" : [ 
+  
+    {
+       "otherCenterActions" : "N/A", 
+       "nextActions" : " N/A " } 
+   ], 
+  
+ "breakpointZones" : [ 
+ ], 
+ "breakpointLocations" : [ 
+ ] 
+ }; 
+
+  
+
+
