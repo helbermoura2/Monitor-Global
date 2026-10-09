@@ -6,6 +6,7 @@ const code=fs.readFileSync('js/orquestrador-feeds.js','utf8').split('async funct
 function setup(current,protectedUntil=0){
  const shown=[],window={__mgRevisionProtectedId:current.id,__mgRevisionProtectedUntil:protectedUntil};
  const c=vm.createContext({window,Date,map:{},globalEvents:[current],eventoSelecionadoId:current.id,showEventDetails(i,live){shown.push([c.globalEvents[i].id,live]);c.eventoSelecionadoId=c.globalEvents[i].id;window.__mgRevisionProtectedId=c.eventoSelecionadoId;window.__mgRevisionProtectedUntil=Date.now()+90000;},showPanelRevisionFocus(){},console});
+ const panel=fs.readFileSync('js/painel-e-lista.js','utf8'),start=panel.indexOf('function isWithinAutoCycleAge(');vm.runInContext(panel.slice(start,panel.indexOf('\n}',start)+2),c);
  vm.runInContext(code,c);return {c,shown};
 }
 const q=(id,mag)=>({id,mag,time:Date.now()});

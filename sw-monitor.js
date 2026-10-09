@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v636-radar-default-off';
+const CACHE = 'monitor-global-pro-v637-auto-age-72h';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
