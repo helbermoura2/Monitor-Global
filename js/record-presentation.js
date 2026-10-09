@@ -15,7 +15,7 @@
   return null;
  }
  function bulletin(item){
-  if(item?.hazardNature!=='warning')return null;
+  if(item?.hazardNature!=='warning'&&item?.type!=='tsunami')return null;
   try{const u=new URL(item.link);if(u.protocol!=='https:'||!['api.weather.gc.ca','api.weather.gov','www.weather.gov','meteoalarm.org','www.meteoalarm.org','www.bom.gov.au','reg.bom.gov.au','www.tsunami.gov'].includes(u.hostname)||u.username||u.password)return null;return u.href;}catch(e){return null;}
  }
  function isBulletin(item){return item?.hazardNature==='bulletin'&&item.source==='CGE';}
@@ -44,17 +44,18 @@
   for(const id of ['pd-focus-btn']){const el=document.getElementById(id);if(el&&regional){el.hidden=true;el.style.setProperty('display','none','important');}}
   const cities=document.getElementById('pd-cities-section');if(cities&&regional)cities.style.display='none';
   if(isBulletin(item)){bulletinFront(item);return;}
-  if(item?.hazardNature!=='warning')return;
+  if(item?.hazardNature!=='warning'&&item?.type!=='tsunami')return;
   document.getElementById('painel-direito')?.classList.add('pd-warning');
   const impact=document.getElementById('pd-impact')?.parentNode;if(impact)impact.style.display='none';
   const section=document.createElement('section');section.id='pd-notice-brief';section.className='bubble-section record-notice-brief';
   const title=document.createElement('h3');title.textContent=label(item);section.append(title);
   const add=text=>{const p=document.createElement('p');p.textContent=text;section.append(p);};
   add('Aviso oficial · '+(item.source||'Fonte não informada'));
-  add('Severidade: '+(item.severityLabel||'Não informada'));
+  add((item.type==='tsunami'?'Categoria: ':'Severidade: ')+(item.severityLabel||item.warningLevel||'Não informada'));
+  if(item.type==='tsunami'&&item.detail)add(item.detail.length>650?item.detail.slice(0,650)+'…':item.detail);
   if(Number.isFinite(item.onset)&&item.onset>Date.now())add('Início previsto: '+formatBrasiliaDateTime(item.onset));
   add(Number.isFinite(item.expiresAt)?'Válido até: '+formatBrasiliaDateTime(item.expiresAt):'Validade não informada pelo feed; confira o boletim oficial.');
-  if(item.type==='tsunami')add(regional?'Sem epicentro verificado. O mapa mantém a posição anterior, sem representar a área de tsunami.':'O mapa mostra a origem sísmica do boletim; as costas sob aviso estão descritas no boletim oficial.');
+  if(item.type==='tsunami')add(regional?'Sem epicentro verificado. O mapa mostra uma visão geral; não representa a área de tsunami.':'O mapa mostra a origem sísmica do boletim; as costas sob aviso estão descritas no boletim oficial.');
   if(regional)add('Aviso para a região indicada. A fonte não fornece um ponto verificado no mapa.');
   else if(item.locationNote)add(item.locationNote);
   if(item.warningDescription)add(item.warningDescription.length>450?item.warningDescription.slice(0,450)+'…':item.warningDescription);

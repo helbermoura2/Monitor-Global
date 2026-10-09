@@ -297,6 +297,14 @@
     setImp(e.chipsScrollRight, {display:'flex',flex:'0 0 22px',width:'22px',height:'26px',
       position:'static',top:'auto',bottom:'auto',margin:'0'});
 
+    // The portrait navigation owns the first row. Respect its explicit filter drawer.
+    if(document.body.classList.contains('mg-mobile-primary')){
+      var filtersOpen=document.body.classList.contains('mg-mobile-filters');
+      setImp(e.controlbar,{'flex-wrap':'wrap','max-height':'none',overflow:'visible'});
+      setImp(e.controls,{display:filtersOpen?'flex':'none'});
+      setImp(e.chipsWrap,{display:filtersOpen?'flex':'none'});
+    }
+
     /* position:absolute (era relative) + inset:0 — mapa preenche a tela
        toda por baixo do cabeçalho/ticker, em vez de só o espaço que
        sobrava depois deles no fluxo normal (ver comentário equivalente
@@ -304,6 +312,11 @@
     setImp(e.mapWrap, {position:'absolute',inset:'0','min-height':'0',height:'auto',overflow:'hidden'});
   }
 
+  var filterMode='';
+  new MutationObserver(function(){
+    var next=(document.body.classList.contains('mg-mobile-primary')?'primary':'')+(document.body.classList.contains('mg-mobile-filters')?'filters':'');
+    if(next!==filterMode){filterMode=next;if(mq.matches)apply();}
+  }).observe(document.body,{attributes:true,attributeFilter:['class']});
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', apply, {once:true});
   } else { apply(); }

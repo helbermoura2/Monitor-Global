@@ -5,7 +5,17 @@
   const filtersToggle = document.getElementById('more-filters-toggle');
   const chipsRow = document.getElementById('chips-row');
   moreToggle?.addEventListener('click', (event) => { event.stopPropagation(); const open = advancedMenu?.classList.toggle('open'); moreToggle.setAttribute('aria-expanded', String(!!open)); });
-  filtersToggle?.addEventListener('click', () => { const open = chipsRow?.classList.toggle('expanded'); filtersToggle.setAttribute('aria-expanded', String(!!open)); filtersToggle.textContent = open ? '− Menos filtros' : '＋ Mais filtros'; });
+  function updateFiltersToggle(){
+    if(!filtersToggle||!chipsRow)return;
+    const open=chipsRow.classList.contains('expanded');
+    const count=chipsRow.querySelectorAll('.advanced-filter.active,.advanced-filter.on').length;
+    if(filtersToggle.getAttribute('aria-expanded')!==String(open))filtersToggle.setAttribute('aria-expanded',String(open));
+    const text=(open?'− Menos filtros':'＋ Mais filtros')+(!open&&count?' ('+count+')':'');
+    if(filtersToggle.textContent!==text)filtersToggle.textContent=text;
+  }
+  filtersToggle?.addEventListener('click',()=>{chipsRow?.classList.toggle('expanded');updateFiltersToggle();});
+  if(chipsRow){new MutationObserver(updateFiltersToggle).observe(chipsRow,{attributes:true,attributeFilter:['class'],subtree:true});updateFiltersToggle();}
+
   document.addEventListener('click', (event) => { if (advancedMenu && !advancedMenu.contains(event.target) && event.target !== moreToggle) { advancedMenu.classList.remove('open'); moreToggle?.setAttribute('aria-expanded','false'); } });
 })();
 
