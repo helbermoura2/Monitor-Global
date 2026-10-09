@@ -6,3 +6,13 @@ test('negated/historical/ended activity is not escalation, increased official le
 test('protected M5 blocks volcano, retains queue and presents after release; M4 can be interrupted',()=>{for(const mag of [4,5,7]){const s=setup();s.globalAlerts=[volcano('Lava eruption')];s.globalEvents=[{id:'q',mag}];s.eventoSelecionadoId='q';s.protectedMs=60000;s.VolcanoPriority.enqueue(s.globalAlerts[0],'Lava');s.VolcanoPriority.focus();assert.equal(s.shown.length,mag>=5?0:1);assert.deepEqual(s.focusCalls,[5]);if(mag>=5){s.protectedMs=0;s.VolcanoPriority.focus();assert.deepEqual(s.shown,['v']);}}});
 test('pending strong quake wins first, missing records are discarded, successive volcanoes get time',()=>{const s=setup();s.globalAlerts=[volcano(),{...volcano(),id:'v2'}];s.VolcanoPriority.enqueue(s.globalAlerts[0],'Lava');s.VolcanoPriority.enqueue(s.globalAlerts[1],'Cinzas');s.focusNextNewCameraQuake=min=>min===5;s.VolcanoPriority.focus();assert.equal(s.shown.length,0);s.focusNextNewCameraQuake=()=>false;s.VolcanoPriority.focus();assert.deepEqual(s.shown,['v']);s.VolcanoPriority.focus();assert.deepEqual(s.shown,['v']);s.now+=45001;s.VolcanoPriority.focus();assert.deepEqual(s.shown,['v','v2']);});
 test('UI translations do not create repeated official-level escalation',()=>{const s=setup(),a={...volcano(),usgsAlertLevel:'WATCH'};s.globalAlerts=[a];s.VolcanoPriority.observe(new Map(),s.globalAlerts,false);a.usgsAlertLevel='VIGILÂNCIA';const before=s.VolcanoPriority.capture(s.globalAlerts);a.usgsAlertLevel='WATCH';s.VolcanoPriority.observe(before,s.globalAlerts,true);assert.equal(s.sounds.length,0);});
+test('urgent polling rejects routine changes and accepts known or new eruptive activity',()=>{
+ const p=setup().VolcanoPriority,old=volcano('Atividade monitorada');
+ assert.equal(p.acceptsUrgent({...old,detail:'Monitoramento diário atualizado'},old),false);
+ assert.equal(p.acceptsUrgent(volcano('Atividade monitorada'),null),false);
+ assert.equal(p.acceptsUrgent(volcano('No explosive activity observed'),null),false);
+ for(const detail of ['Lava eruption resumes','Ash plume observed','Explosive eruption detected'])assert.equal(p.acceptsUrgent(volcano(detail),old),true,detail);
+ const active={...volcano('Explosive eruption detected'),time:100};
+ assert.equal(p.acceptsUrgent(active,active),false);
+ assert.equal(p.acceptsUrgent({...active,time:200},active),true);
+});
