@@ -1560,7 +1560,7 @@
       const cardW = 300, cardH = 170, gap = 30, cardsTotalW = cardW * 3 + gap * 2;
       const cardX0 = (W - cardsTotalW) / 2;
       const cards = [
-        { label: 'PROFUNDIDADE', value: `${depth.toFixed(1)} km`, sub: depthInfo.label, subCor: depthInfo.cor },
+        { label: 'PROFUNDIDADE', value: `${depth.toFixed(0)} km`, sub: depthInfo.label, subCor: depthInfo.cor },
         { label: 'INTENSIDADE (MMI)', value: mer.nivel, sub: '', subCor: mer.cor, valCor: mer.cor },
         { label: 'ENERGIA', value: en.tnt.replace(' de TNT', ''), sub: 'TNT equiv.', subCor: '#94a3b8' }
       ];
