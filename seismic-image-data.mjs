@@ -1,9 +1,9 @@
 import './js/seismic-impact-model.js';
 import {handlePopulationExposure} from './population-exposure-worker.mjs';
 const model=globalThis.SeismicImpactModel;
-export function imageMapFrame(ev,width,height,anchorY=220){
+export function imageMapFrame(ev,width,height,anchorY=350){
  let radius=80;
- if(Number(ev.mag)>=5){let lo=0,hi=5000;for(let i=0;i<32;i++){const mid=(lo+hi)/2;if(model.pga(Number(ev.mag),Number(ev.depth)||0,mid)>=11)lo=mid;else hi=mid;}radius=Math.max(80,lo*1.5);}
+ if(Number(ev.mag)>=5){let lo=0,hi=5000;for(let i=0;i<32;i++){const mid=(lo+hi)/2;if(model.pga(Number(ev.mag),Number(ev.depth)||0,mid)>=11)lo=mid;else hi=mid;}radius=Math.max(80,lo*1.25);}
  // Keep the affected region in the clear map area above the statistics.
  const zoom=Math.max(3,Math.min(7,Math.floor(Math.log2(2*180*111.32*Math.min(anchorY,width/2)/(Math.max(80,radius)*width)))));
  const span=180/2**zoom;

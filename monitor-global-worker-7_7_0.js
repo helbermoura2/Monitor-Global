@@ -3763,15 +3763,8 @@ function calcularEnergiaCard(m) {
     return f;
 }
 function calcularMecanismoFocalCard(depth, lat, lng, place) {
-    const n = String(place || '').toLowerCase();
-    if (n.includes('califórnia') || n.includes('california') || n.includes('san andreas') || n.includes('turquia') || n.includes('caribe')) {
-        return { tipo: 'Lateral (Transcorrência)', desc: 'As placas deslizaram horizontalmente.', kind: 'leftright' };
-    }
-    if (depth > 70) return { tipo: 'Inversa (Para Cima)', desc: 'Ação compressiva extrema.', kind: 'up' };
-    if (n.includes('islândia') || n.includes('iceland') || n.includes('ocean')) {
-        return { tipo: 'Normal (Para Baixo)', desc: 'Força de extensão.', kind: 'down' };
-    }
-    return { tipo: 'Não determinado (estimativa)', desc: 'Sem dados suficientes.', kind: 'unknown' };
+    // Location/depth alone cannot identify a focal mechanism.
+    return { tipo: 'Mecanismo focal indisponivel', desc: 'Tipo de falha sem dados oficiais.', kind: 'unknown' };
 }
 function formatCoordCard(lat, lon) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
@@ -4101,15 +4094,18 @@ async function renderAlertCardPng(ev) {
 
     // --- exposição populacional: same-message refresh supplies late results ---
     const exposure = ev.imageExposure;
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, 'POPULACAO NA AREA DE TREMOR - EST', W / 2, yCursor - 70, 148, 163, 184);
+    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, 'POPULACAO POTENCIALMENTE EXPOSTA', W / 2, yCursor - 78, 148, 163, 184);
     if (validImageExposure(exposure)) {
-        const counts = exposure.ranges.map((r, i) => ['III+', 'V+', 'VI+'][i] + ': ~' + Math.round(Number(r.population)).toLocaleString('pt-BR'));
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, counts.join(' | '), W / 2, yCursor - 42, 250, 204, 21);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, (exposure.method === 'pager' ? 'USGS PAGER' : 'WorldPop 2020') + (exposure.partial ? ' - cobertura parcial' : '') + ' - nao somar faixas', W / 2, yCursor - 14, 148, 163, 184);
+        const count = n => '~' + Math.round(Number(n)).toLocaleString('pt-BR');
+        drawTextFontCenteredHalo(rgba, W, H, fonts.small, count(exposure.ranges[0].population) + ' pessoas - III+', W / 2, yCursor - 54, 250, 204, 21);
+        const bands = 'V+: ' + count(exposure.ranges[1].population) + ' - VI+: ' + count(exposure.ranges[2].population);
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, bands, W / 2, yCursor - 20, 226, 232, 240);
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, (exposure.method === 'pager' ? 'USGS PAGER' : 'WorldPop 2020') + (exposure.partial ? ' - cobertura parcial' : '') + ' - faixas cumulativas', W / 2, yCursor + 4, 148, 163, 184);
     } else {
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, exposure?.status === 'pending' ? 'Em consulta - atualizacao pendente' : 'Dados indisponiveis no momento', W / 2, yCursor - 38, 226, 232, 240);
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, exposure?.status === 'pending' ? 'Estimativa populacional em consulta' : 'Estimativa populacional indisponivel', W / 2, yCursor - 42, 226, 232, 240);
+        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, exposure?.status === 'pending' ? 'A imagem sera atualizada quando houver dados' : 'Sem dados suficientes; nao significa zero', W / 2, yCursor - 14, 148, 163, 184);
     }
-    yCursor += 16;
+    yCursor += 32;
     // --- mecanismo focal ---
     fillRect(rgba, W, cardMargin, yCursor, W - cardMargin * 2, 1, 100, 116, 139, 60);
     yCursor += 40;
@@ -4305,7 +4301,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'geo-impact-pop-v2';
+    next.cardImageVersion = 'geo-impact-pop-v3';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
@@ -4722,7 +4718,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'geo-impact-pop-v2';
+            reservation.cardImageVersion = 'geo-impact-pop-v3';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4747,13 +4743,13 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'geo-impact-pop-v2' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'geo-impact-pop-v3' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const data = await queryImageExposure(ev, env);
-        if (validImageExposure(data) || root.cardImageVersion !== 'geo-impact-pop-v2') {
+        if (validImageExposure(data) || root.cardImageVersion !== 'geo-impact-pop-v3') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'geo-impact-pop-v2'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'geo-impact-pop-v3'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
