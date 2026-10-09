@@ -23,17 +23,20 @@
   const c=document.createElement('canvas');c.width=c.height=96;const g=c.getContext('2d');
   for(let i=0;i<14;i++){const x=rand(28,68),y=rand(26,70),r=rand(17,30),v=g.createRadialGradient(x,y,0,x,y,r);v.addColorStop(0,'rgba(143,127,105,.12)');v.addColorStop(.55,'rgba(105,96,81,.055)');v.addColorStop(1,'rgba(85,79,70,0)');g.fillStyle=v;g.fillRect(0,0,96,96);}return c;
  }
- function create(cfg,mobile,panel){
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type!=='tornado')return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material pd-tornado-field';canvas.dataset.material='helical-debris';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;
   const background=document.createElement('canvas');background.className='pd-tornado-reserve';background.setAttribute('aria-hidden','true');const bg=background.getContext('2d');let poster=null,posterRequested=false;
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';lensLayer.setAttribute('aria-hidden','true');
   const sprites=Array.from({length:3},(_,i)=>[chipTexture(i,false),chipTexture(i,true)]),dust=dustTexture();
   const matter=Array.from({length:mobile?150:230},(_,i)=>({angle:rand(0,TAU),height:rand(0,1.1),radius:rand(.18,1),speed:rand(.65,1.45),phase:rand(0,TAU),roll:rand(0,TAU),spin:rand(-3,3),kind:i%3,chip:i<(mobile?22:34),size:rand(7,19),previous:null}));
+  detail.track(matter);
   const clouds=Array.from({length:mobile?16:24},()=>({angle:rand(0,TAU),height:rand(0,.38),radius:rand(.6,1.2),phase:rand(0,TAU),size:rand(35,85)}));
+  detail.track(clouds);
   let w=1,h=1,dead=false,groups=[],measureAt=-1,x=0,vx=0,roll=0,vr=0,travel=0,force=.4;
   const dynamics=new WeakMap();
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);background.width=Math.round(w);background.height=Math.round(h);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;for(const p of matter)p.previous=null;}
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);background.width=Math.round(w*detail.resolution);background.height=Math.round(h*detail.resolution);bg.setTransform(detail.resolution,0,0,detail.resolution,0,0);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;for(const p of matter)p.previous=null;}
   function measure(t){
    if(t<measureAt)return;measureAt=t+.65;
    for(const g of groups)for(const l of g.letters)l.el.style.removeProperty('transform');

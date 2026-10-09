@@ -92,6 +92,7 @@ test('VAAC real, tradução USGS e revisão silenciosa mantêm cinzas e removem 
 test('atividade vulcânica exige sinais positivos em EN/PT e abreviações VAAC',async({page})=>{
  await page.setContent('<div id="painel-direito" style="width:320px;height:500px"><span id="pd-mag"></span></div>');
  await page.evaluate(()=>{window.CardCinemaFilm={create:cfg=>{window.__profile={...cfg};return null;},footage:()=>null};window.requestAnimationFrame=()=>1;window.cancelAnimationFrame=()=>{};});
+ await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js/card-effect-quality.js'),'utf8')});
  await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js/cinematic-card.js'),'utf8')});
  const samples=[
   [{detail:'VA PLUME TO FL070 LAST OBS AT 03/0850Z'},[false,true,false]],

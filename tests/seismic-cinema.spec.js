@@ -57,7 +57,7 @@ for(const width of [1280,390])test('M6.1 a 43 km é visível na tela inteira e c
 async function collapseFixture(page,width=1280){
  await page.setViewportSize({width,height:844});await page.clock.install();
  await page.setContent(`<style>#app{height:800px}#painel-direito{position:absolute;right:12px;top:190px;width:300px;height:480px;background:#173b50;color:white;padding:12px;box-sizing:border-box}#chips-row{display:flex;gap:10px}.chip{padding:12px;background:#234;color:white}.stat-card{padding:16px}body{background:#0b1721;color:white}</style><div id="app"><div id="top-strip"><div id="chips-row"><button class="chip">Brasil</button><button class="chip">Eleição</button><button class="chip">Radar</button></div><span id="kpi-temp">25 °C</span><span id="kpi-wind">10 km/h</span></div><div id="events">Eventos</div><aside id="painel-direito" style="opacity:.93"><h2>Sismo de teste</h2><span id="pd-flag">Chile</span><div class="stat-card">Magnitude 7.5</div></aside></div>`);
- await page.addStyleTag({path:'css/seismic-cinema.css'});await page.addScriptTag({path:'js/seismic-cinema.js'});
+ await page.addStyleTag({path:'css/seismic-cinema.css'});await page.addScriptTag({path:'js/card-effect-quality.js'});await page.addScriptTag({path:'js/seismic-cinema.js'});
  await page.clock.pauseAt(new Date(Date.now()+100));
 }
 for(const width of [1280,390])test('queda M6 mantém originais ausentes até encerrar e preserva cartão '+width,async({page})=>{

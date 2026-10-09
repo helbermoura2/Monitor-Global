@@ -59,13 +59,15 @@
  const hash=(x,y)=>{const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n);};
  function noise(x,y){const ix=Math.floor(x),iy=Math.floor(y);let a=x-ix,b=y-iy;a=a*a*(3-2*a);b=b*b*(3-2*b);return (hash(ix,iy)*(1-a)+hash(ix+1,iy)*a)*(1-b)+(hash(ix,iy+1)*(1-a)+hash(ix+1,iy+1)*a)*b;}
  function fbm(x,y){return noise(x,y)*.57+noise(x*2.17+8.3,y*2.17+1.2)*.28+noise(x*4.71+2.8,y*4.71+5.1)*.15;}
- function create(cfg,mobile,panel){
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type!=='tsunami')return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material pd-tsunami-contact';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;
   let background=document.createElement('canvas');background.className='pd-tsunami-surface';background.setAttribute('aria-hidden','true');
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses pd-tsunami-lenses';lensLayer.setAttribute('aria-hidden','true');
-  let gl,program,buffer,shaders=[],uniforms,cpuctx,cpuframe,w=1,h=1,dead=false,last=-Infinity,measureAt=-1,groups=[],ledges=[],state={x:0,vx:0,y:0,vy:0,r:0,vr:0},strength=cfg.strength||.7;
+  let gl,program,buffer,shaders=[],uniforms,cpuctx,cpuframe,w=1,h=1,dead=false,last=-Infinity,surfaceTime=0,measureAt=-1,groups=[],ledges=[],state={x:0,vx:0,y:0,vy:0,r:0,vr:0},strength=cfg.strength||.7;
   const dynamics=new WeakMap(),spray=[],debris=Array.from({length:mobile?18:30},()=>({x:rand(-.1,1.1),y:Math.random(),z:rand(.2,1),angle:rand(0,TAU),spin:rand(-1.7,1.7),size:rand(3,11)}));
+  detail.track(debris);
   const drops=Array.from({length:mobile?5:8},()=>{const el=document.createElement('i');el.className='pd-tsunami-drop';lensLayer.append(el);return {el,x:rand(.02,.98),y:Math.random(),size:rand(1.4,3.2),speed:rand(10,25)};});
   function disposeGL(){if(!gl)return;for(const s of shaders)gl.deleteShader(s);if(buffer)gl.deleteBuffer(buffer);if(program)gl.deleteProgram(program);shaders=[];program=buffer=null;}
   function useCPU(){
@@ -81,11 +83,11 @@
    uniforms={size:gl.getUniformLocation(program,'uSize'),time:gl.getUniformLocation(program,'uTime'),strength:gl.getUniformLocation(program,'uStrength')};background.dataset.renderer='hydraulic-bore-webgl';background.addEventListener('webglcontextlost',lost);
   }catch(error){useCPU();}
   function resize(width,height){
-   w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
-   const scale=Math.min(1,(gl?(mobile?192:256):(mobile?90:112))/Math.max(w,1),(gl?(mobile?384:512):240)/Math.max(h,1));background.width=Math.max(1,Math.round(w*scale));background.height=Math.max(1,Math.round(h*scale));if(gl)gl.viewport(0,0,background.width,background.height);else if(cpuctx)cpuframe=cpuctx.createImageData(background.width,background.height);last=-Infinity;measureAt=-1;surface(0,true);
+   w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+   const scale=detail.resolution*Math.min(1,(gl?(mobile?192:256):(mobile?90:112))/Math.max(w,1),(gl?(mobile?384:512):240)/Math.max(h,1));background.width=Math.max(1,Math.round(w*scale));background.height=Math.max(1,Math.round(h*scale));if(gl)gl.viewport(0,0,background.width,background.height);else if(cpuctx)cpuframe=cpuctx.createImageData(background.width,background.height);last=-Infinity;measureAt=-1;surface(surfaceTime,true);
   }
   function surface(t,force=false){
-   if(dead||!force&&t-last<(gl?(mobile?1/18:1/24):1/12))return;last=t;
+   if(dead||!force&&t-last<(1/detail.fps(gl?(mobile?18:24):12)))return;last=t;surfaceTime=t;
    if(gl){if(gl.isContextLost())return;gl.uniform2f(uniforms.size,w,h);gl.uniform1f(uniforms.time,t);gl.uniform1f(uniforms.strength,strength);gl.drawArrays(gl.TRIANGLES,0,6);background.dataset.time=t.toFixed(3);return;}
    if(!cpuctx||!cpuframe)return;const bw=background.width,bh=background.height,data=cpuframe.data;
    for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){
@@ -117,7 +119,7 @@
   function draw(t,dt,envelope){
    if(dead)return;surface(t);ctx.clearRect(0,0,w,h);
    // Foam spray has ballistic flight; thin glints cross the data, not a second sea.
-   for(let i=0;i<(mobile?2:3);i++)if(spray.length<(mobile?90:150)){
+   for(let i=0;i<detail.count(mobile?2:3);i++)if(spray.length<detail.count(mobile?90:150)){
     const x=rand(-.03,1.03),y=front(t,x)*h;spray.push({x:x*w,y,vx:rand(-65,65),vy:rand(-115,-25),life:0,ttl:rand(.4,.9),z:rand(.2,1)});
    }
    for(let i=spray.length-1;i>=0;i--){const s=spray[i];s.life+=dt;if(s.life>s.ttl){spray.splice(i,1);continue;}s.vy+=dt*220;const old=s.y;s.x+=s.vx*dt;s.y+=s.vy*dt;

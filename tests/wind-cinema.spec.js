@@ -6,7 +6,7 @@ for(const width of [1280,390])test('pressão da rajada move vidro e letras e rec
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" style="position:absolute;left:20px;top:30px;width:320px;height:600px;background:#0b2231;border:1px solid #68808d;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 16px;color:white;font:600 18px system-ui">Rajadas de vento em São Paulo 🇧🇷</div><div id="pd-source" style="color:white">Estação local — atualização em tempo real</div><div class="stat-card" style="margin:16px;color:white"><span class="stat-card-label">Intensidade</span><span class="stat-card-value"><b style="color:rgb(240, 210, 120)">150</b> km/h</span></div><button id="control" style="margin:16px">Detalhes</button></div></body>');
  for(const file of ['painel-fx.css','cinematic-card.css','wind-cinema.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
  await page.evaluate(()=>{window.__frame=null;window.requestAnimationFrame=cb=>{__frame=cb;return 1;};window.cancelAnimationFrame=()=>{__frame=null;};});
- for(const file of ['painel-fx.js','card-cinema-film.js','card-gale-field.js','card-weather-physics.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
+ for(const file of ['painel-fx.js','card-effect-quality.js','card-cinema-film.js','card-gale-field.js','card-weather-physics.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
  const result=await page.evaluate(()=>{
   const begin=performance.now();CinematicCard.start({id:'gust',type:'wind',windKmh:150},Infinity);
   const panel=document.getElementById('painel-direito');
@@ -59,7 +59,7 @@ for(const width of [1280,390])test('letras voam, deixam lacunas e permanecem aus
  await page.setViewportSize({width,height:844});
  await page.setContent('<div id="painel-direito" style="position:relative;margin:20px;width:320px;height:600px;overflow:hidden;background:#102931;color:white;font:18px system-ui"><div id="pd-local" style="margin:80px 18px">Rajadas fortes em São Paulo 🇧🇷</div><div id="pd-source">Fonte oficial e boletim atualizado</div><div class="stat-card"><span class="stat-card-value"><b style="color:rgb(240,210,120)">150</b> km/h</span></div><button id="control">Detalhes</button></div>');
  for(const file of ['painel-fx.css','wind-cinema.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
- for(const file of ['painel-fx.js','card-gale-field.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
+ for(const file of ['painel-fx.js','card-effect-quality.js','card-gale-field.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
  const before=await page.locator('#painel-direito').innerText();
  const result=await page.evaluate(()=>{
   let seed=12345;Math.random=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
