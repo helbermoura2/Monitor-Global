@@ -67,7 +67,13 @@ async function fetchOfficialTsunamiAlerts(){
   let chip=document.getElementById('chip-tsunami-official');
   if(!chip){chip=document.createElement('button');chip.id='chip-tsunami-official';chip.type='button';chip.className='chip';document.getElementById('chips-row')?.append(chip);}
   chip.hidden=!sorted.length;chip.style.setProperty('display',sorted.length?'inline-flex':'none','important');chip.textContent='🌊 Tsunami: '+(sorted[0]?.warningLevel||'Boletim');chip.title=sorted.map(item=>item.source+' · '+item.displayLabel+' · '+item.place).join('\n');
-  chip.onclick=()=>{if(sorted[0])showAlertDetails(sorted[0],false);};
+  chip.onclick=()=>{
+   // A manual bulletin selection must not inherit an automatic replay flag.
+   const current=globalAlerts.filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)).sort((a,b)=>(b.sev||0)-(a.sev||0)||b.time-a.time)[0];
+   if(!current)return;
+   window.__mgSoftCycle=false;window.__mgRotationDisplay=false;
+   showAlertDetails(current,false);
+  };
   marcarBooted('tsunamiOfficial');window.NewEventPriority?.focus();
  }catch(error){console.error('Tsunami oficial:',error);}
 }
