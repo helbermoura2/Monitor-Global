@@ -1,4 +1,4 @@
-import {imageMapFrame,imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion} from "./seismic-image-data.mjs";
+import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
@@ -3981,155 +3981,56 @@ async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anc
 }
 
 async function renderAlertCardPng(ev) {
-    const W = 800, H = 1440;
-    const rgba = new Uint8Array(W * H * 4);
-    const fonts = await getFontAtlases();
-    const mag = Number(ev.mag);
-    const magColor = getHexColorFromMag(mag);
-    const frame = imageMapFrame(ev, W, H), zoom = frame.zoom;
-
-    // --- mapa do epicentro: ocupa o cartão INTEIRO (0 a H) como plano de
-    // fundo, igual à referência (o card da Indonésia) — sem faixa preta
-    // nenhuma. mapBoxH só serve de referência de layout (onde o marcador/
-    // gauge/textos ficam), não corta mais a imagem em lugar nenhum.
-    const mapBoxH = 440;
-    fillRect(rgba, W, 0, 0, W, H, 8, 14, 26); // fallback sólido só se o mapa falhar
-    let mapImg = null;
-    if (Number.isFinite(Number(ev.lat)) && Number.isFinite(Number(ev.lon))) {
-        try { mapImg = await fetchEpicenterMap(ev.lat, ev.lon, zoom, W, H, frame.anchorY); }
-        catch (e) { console.warn('fetchEpicenterMap falhou:', e.message); }
+    const W=800,H=1440,rgba=new Uint8Array(W*H*4),fonts=await getFontAtlases();
+    const frame=globalThis.QuakeCardLayout.frame(ev);
+    fillRect(rgba,W,0,0,W,H,9,33,48);
+    const mapImg=await fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY);
+    if(mapImg){
+        drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
+        fillRect(rgba,W,0,0,W,frame.height,0,0,0,51);
+        await overlayImageIntensity(rgba,frame,ev);
+        // Labels and administrative boundaries stay above the intensity colors.
+        try{
+            const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
+            const url='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=800,820&format=png32&transparent=true&f=image';
+            const labels=await decodePng(await fetchBinaryWithTimeout(url,4000));
+            drawImageCover(rgba,W,H,labels,0,0,W,frame.height);
+        }catch(e){console.warn('map labels unavailable:',e.message);}
     }
-    if (mapImg) {
-        drawImageCover(rgba, W, H, mapImg, 0, 0, W, H);
-        // tinta azul-escura uniforme por cima do mapa INTEIRO — o mapa
-        // continua visível (apagado) do topo ao rodapé, sem virar preto
-        // sólido em nenhum trecho, igual à referência.
-        fillRect(rgba, W, 0, 0, W, H, 8, 14, 26, 112);
-    }
-
-    const intensityPainted = mapImg ? await overlayImageIntensity(rgba, frame, ev) : false;
-    // --- marcador georreferenciado: mesma âncora usada no bbox da imagem ---
-    const markerCx = frame.anchorX, markerCy = frame.anchorY;
-    fillCircle(rgba, W, H, markerCx, markerCy, 50, magColor[0], magColor[1], magColor[2], 55);
-    fillCircle(rgba, W, H, markerCx, markerCy, 34, magColor[0], magColor[1], magColor[2], 110);
-    fillCircle(rgba, W, H, markerCx, markerCy, 7, 255, 255, 255, 255);
-    fillCircle(rgba, W, H, markerCx, markerCy, 4, magColor[0], magColor[1], magColor[2], 255);
-    if (mapImg && Number.isFinite(ev.lat)) {
-        drawScaleBarCard(rgba, W, H, fonts.micro, 40, markerCy + 150, ev.lat, zoom, frame);
-    }
-
-    // --- cabeçalho (texto com halo, sempre legível em cima do mapa) ---
-    drawTextFontHalo(rgba, W, H, fonts.small, 'MONITOR GLOBAL', 32, 40, 56, 189, 248);
-    const aoVivoW = textFontWidth(fonts.small, 'AO VIVO');
-    drawTextFontHalo(rgba, W, H, fonts.small, 'AO VIVO', W - 32 - aoVivoW, 40, 248, 113, 113);
-
-    // --- velocímetro de magnitude + número, centralizados ---
-    const gaugeR = 100, gaugeThick = 22, gaugeOuterR = gaugeR + gaugeThick / 2;
-    const magStr = `M${mag.toFixed(1)}`;
-    const magStrW = textFontWidth(fonts.hero, magStr);
-    const gaugeGap = 40;
-    const groupW = gaugeOuterR * 2 + gaugeGap + magStrW;
-    const gaugeCx = Math.round(W / 2 - groupW / 2 + gaugeOuterR);
-    const gaugeCy = mapBoxH + 40 + gaugeOuterR;
-    const frac = Math.max(0.04, Math.min(1, (mag - 2) / 7));
-    drawArc(rgba, W, H, gaugeCx, gaugeCy, gaugeR, gaugeThick, 135, 270, 100, 116, 139, 100); // trilho
-    drawArc(rgba, W, H, gaugeCx, gaugeCy, gaugeR, gaugeThick, 135, 270 * frac, magColor[0], magColor[1], magColor[2], 255);
-    drawTextFontHalo(rgba, W, H, fonts.hero, magStr,
-        gaugeCx + gaugeR + gaugeGap, gaugeCy - Math.round(fonts.hero.cellH / 2),
-        magColor[0], magColor[1], magColor[2]);
-
-    let yCursor = gaugeCy + gaugeOuterR + 60;
-
-    // --- local do evento (centralizado, até 2 linhas) ---
-    const place = String(ev.place || 'Local desconhecido');
-    const availCharsPlace = Math.floor((W - 140) / fonts.small.cellW);
-    const placeLines = wrapText(place, availCharsPlace, 2);
-    const placeLineH = fonts.small.cellH + 6;
-    placeLines.forEach((line, i) => {
-        drawTextFontCenteredHalo(rgba, W, H, fonts.small, line, W / 2, yCursor + i * placeLineH, 241, 245, 249);
+    const rgb=color=>color.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16));
+    const fontFor=(size,bold)=>bold?fonts.titleProp:fonts.captionProp;
+    const textWidth=(text,size,bold)=>textFontWidthProp(fontFor(size,bold),sanitizeFontText(text),0)*size/(bold?26:16);
+    const painter={
+        gradient:(x,y,w,h,from,to)=>{const a=rgb(from),b=rgb(to);for(let row=0;row<h;row++)fillRect(rgba,W,x,y+row,w,1,...a.map((v,i)=>Math.round(v+(b[i]-v)*row/h)));},
+        roundRect:(x,y,w,h,c)=>{const r=8,color=rgb(c);fillRect(rgba,W,x+r,y,w-2*r,h,...color);fillRect(rgba,W,x,y+r,w,h-2*r,...color);for(const xx of [x+r,x+w-r])for(const yy of [y+r,y+h-r])fillCircle(rgba,W,H,xx,yy,r,...color,255);},
+        rect:(x,y,w,h,c)=>fillRect(rgba,W,x,y,w,h,...rgb(c)),
+        dot:(x,y,r,c)=>fillCircle(rgba,W,H,x,y,r,...rgb(c),255),
+        arc:(x,y,r,t,a,s,c)=>drawArc(rgba,W,H,x,y,r,t,a,s,...rgb(c),255),
+        measure:textWidth,
+        text:(text,x,y,size,c,bold=false)=>{
+            text=sanitizeFontText(text);const f=fontFor(size,bold),tw=Math.ceil(textFontWidthProp(f,text,0))+2;
+            const pixels=new Uint8Array(tw*f.cellH*4);
+            drawTextFontProp(pixels,tw,f.cellH,f,text,0,0,...rgb(c),0);
+            const scale=size/(bold?26:16);
+            const color=rgb(c),channel=color.indexOf(Math.max(...color)),dh=Math.ceil(f.cellH*scale),dw=Math.ceil(tw*scale);
+            // Bilinear alpha keeps the shared sans-serif typography smooth at any size.
+            for(let yy=0;yy<dh;yy++)for(let xx=0;xx<dw;xx++){
+                const dx=Math.round(x)+xx,dy=Math.round(y)+yy;if(dx<0||dx>=W||dy<0||dy>=H)continue;
+                const sx=xx/scale,sy=yy/scale,x0=Math.floor(sx),y0=Math.floor(sy),tx=sx-x0,ty=sy-y0;
+                const alpha=(ix,iy)=>ix>=0&&ix<tw&&iy>=0&&iy<f.cellH?pixels[(iy*tw+ix)*4+channel]/color[channel]:0;
+                const a=alpha(x0,y0)*(1-tx)*(1-ty)+alpha(x0+1,y0)*tx*(1-ty)+alpha(x0,y0+1)*(1-tx)*ty+alpha(x0+1,y0+1)*tx*ty;
+                const index=(dy*W+dx)*4;for(let k=0;k<3;k++)rgba[index+k]=Math.round(rgba[index+k]*(1-a)+color[k]*a);
+            }
+        }
+    };
+    const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
+    globalThis.QuakeCardLayout.draw(painter,{...ev,
+        color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
+        when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
+        sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),
+        mmi:mmi.nivel,energy:calcularEnergiaCard(Number(ev.mag)),exposure:ev.imageExposure
     });
-    yCursor += placeLines.length * placeLineH + 26;
-
-    // --- data/hora, hora local aprox. + coordenadas, fonte ---
-    const when = ev.timeIso
-        ? new Date(ev.timeIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' BRT'
-        : '--';
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, when, W / 2, yCursor, 226, 232, 240);
-    yCursor += fonts.micro.cellH + 8;
-
-    const localInfo = [approxLocalTimeCard(ev.timeIso, ev.lon), formatCoordCard(ev.lat, ev.lon)]
-        .filter(Boolean).join(' - ');
-    if (localInfo) {
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, localInfo, W / 2, yCursor, 148, 163, 184);
-        yCursor += fonts.micro.cellH + 8;
-    }
-
-    const src = `Fonte: ${ev.source || 'USGS'} - ${ev.reviewed ? 'revisado' : 'automatico'}`;
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, src, W / 2, yCursor, 148, 163, 184);
-    yCursor += fonts.micro.cellH + 56;
-
-    // --- 3 cards de estatística: profundidade, intensidade (MMI), energia ---
-    const depthVal = Number.isFinite(ev.depth) ? ev.depth : null;
-    const prof = depthVal !== null ? classificarProfundidadeCard(depthVal) : { label: '--', cor: [148, 163, 184] };
-    const mmi = estimarMercalliCard(mag, depthVal || 0);
-    const energiaStr = calcularEnergiaCard(mag);
-
-    const cardGap = 24, cardMargin = 60;
-    const cardW = Math.round((W - cardMargin * 2 - cardGap * 2) / 3);
-    const cardTop = yCursor, cardH = 190;
-    const stats = [
-        { label: 'PROFUNDIDADE', value: depthVal !== null ? `${depthVal} km` : '--', sub: prof.label, cor: prof.cor },
-        { label: 'INTENSIDADE (MMI)', value: mmi.nivel, sub: 'estimada', cor: mmi.cor },
-        { label: 'ENERGIA', value: energiaStr, sub: 'TNT equiv.', cor: [226, 232, 240] }
-    ];
-    stats.forEach((s, i) => {
-        const cx0 = cardMargin + i * (cardW + cardGap);
-        const cxMid = cx0 + cardW / 2;
-        if (i > 0) fillRect(rgba, W, cx0 - cardGap / 2, cardTop, 1, cardH, 100, 116, 139, 70);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, s.label, cxMid, cardTop + 4, 148, 163, 184);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.small, s.value, cxMid, cardTop + 44, s.cor[0], s.cor[1], s.cor[2]);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, s.sub, cxMid, cardTop + 88, s.cor[0], s.cor[1], s.cor[2]);
-    });
-    yCursor = cardTop + cardH + 20;
-
-    // --- exposição populacional: same-message refresh supplies late results ---
-    const exposure = ev.imageExposure;
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, 'POPULACAO POTENCIALMENTE EXPOSTA', W / 2, yCursor - 78, 148, 163, 184);
-    if (validImageExposure(exposure)) {
-        const count = n => '~' + Math.round(Number(n)).toLocaleString('pt-BR');
-        drawTextFontCenteredHalo(rgba, W, H, fonts.small, count(exposure.ranges[0].population) + ' pessoas - III+', W / 2, yCursor - 54, 250, 204, 21);
-        const bands = 'V+: ' + count(exposure.ranges[1].population) + ' - VI+: ' + count(exposure.ranges[2].population);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, bands, W / 2, yCursor - 20, 226, 232, 240);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, (exposure.method === 'pager' ? 'USGS PAGER' : 'WorldPop 2020') + (exposure.partial ? ' - cobertura parcial' : '') + ' - faixas cumulativas', W / 2, yCursor + 4, 148, 163, 184);
-    } else {
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, exposure?.status === 'pending' ? 'Estimativa populacional em consulta' : 'Estimativa populacional indisponivel', W / 2, yCursor - 42, 226, 232, 240);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, exposure?.status === 'pending' ? 'A imagem sera atualizada quando houver dados' : 'Sem dados suficientes; nao significa zero', W / 2, yCursor - 14, 148, 163, 184);
-    }
-    yCursor += 32;
-    // --- mecanismo focal ---
-    fillRect(rgba, W, cardMargin, yCursor, W - cardMargin * 2, 1, 100, 116, 139, 60);
-    yCursor += 40;
-    const mec = calcularMecanismoFocalCard(depthVal || 0, ev.lat, ev.lon, place);
-    const iconCx = cardMargin + 34, iconCy = yCursor + 20;
-    fillCircle(rgba, W, H, iconCx, iconCy, 34, 30, 41, 59, 255);
-    drawMechanismIcon(rgba, W, H, iconCx, iconCy, 30, mec.kind, 226, 232, 240);
-    if (mec.kind === 'unknown') {
-        drawTextFontHalo(rgba, W, H, fonts.small, '?', iconCx - Math.round(fonts.small.cellW / 2), iconCy - Math.round(fonts.small.cellH / 2), 226, 232, 240);
-    }
-    drawTextFontHalo(rgba, W, H, fonts.small, mec.tipo, iconCx + 54, iconCy - fonts.small.cellH + 4, 226, 232, 240);
-    drawTextFontHalo(rgba, W, H, fonts.micro, mec.desc, iconCx + 54, iconCy + 10, 148, 163, 184);
-    yCursor = iconCy + 34 + 40;
-
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, intensityPainted ? 'Area central: intensidade estimada - nao confirma danos' : 'Populacao estimada - nao e contagem de vitimas', W / 2, H - 98, 148, 163, 184);
-    // --- rodapé marca: translúcido, o mapa continua aparecendo por baixo
-    // (texto com halo garante leitura mesmo sem fundo sólido) ---
-    fillRect(rgba, W, 0, H - 64, W, 64, 10, 16, 28, 130);
-    drawTextFontHalo(rgba, W, H, fonts.small, 'monitorglobal.top', cardMargin, Math.round(H - 64 + (64 - fonts.small.cellH) / 2), 56, 189, 248);
-    const subtitle = 'Telegram: Monitor Global';
-    const subtitleW = textFontWidth(fonts.micro, subtitle);
-    drawTextFontHalo(rgba, W, H, fonts.micro, subtitle, W - cardMargin - subtitleW, Math.round(H - 64 + (64 - fonts.micro.cellH) / 2), 100, 116, 139);
-
-    return rgbaToPng(rgba, W, H);
+    return rgbaToPng(rgba,W,H);
 }
 
 
@@ -4301,7 +4202,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'geo-impact-pop-v3';
+    next.cardImageVersion = 'cartographic-v4';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
@@ -4718,7 +4619,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'geo-impact-pop-v3';
+            reservation.cardImageVersion = 'cartographic-v4';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4743,16 +4644,16 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'geo-impact-pop-v3' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v4' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
         const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
         if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
-        if (validImageExposure(data) || root.cardImageVersion !== 'geo-impact-pop-v3') {
+        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v4') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'geo-impact-pop-v3'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v4'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
