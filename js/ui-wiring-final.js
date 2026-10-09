@@ -265,7 +265,7 @@ document.getElementById('btn-share-resumo')?.addEventListener('click', () => {
         const txt = [
             `Monitor Global`,
             `Eventos filtrados: ${n}`,
-            `Sismos: ${eq.length} · maior M${max ? max.toFixed(1) : '--'}`,
+            `Sismos: ${eq.length} · maior M${max ? max.toFixed(1).replace('.', ',') : '--'}`,
             `Ciclones ativos: ${cyc.length}${cyc[0] ? ' · ' + cyc.map(c => c.place).slice(0, 3).join(', ') : ''}`,
             `Alagamento local: ${(flood.level || '--').toUpperCase()} — ${flood.reason || ''}`,
             `Clima: ${(window.__proWeather && window.__proWeather.temp != null) ? Math.round(window.__proWeather.temp) + '°C' : '--'}`,

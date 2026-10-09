@@ -107,7 +107,7 @@ async function fetchWeatherApiObservado(){
     const mm=Number(d?.current?.precip_mm);
     const cond=d?.current?.condition?.text||'';
     if(Number.isFinite(mm)){
-      safeText('cemaden-observed',`👁️ Observado: ${mm.toFixed(1)} mm/h${cond?' • '+cond:''}`);
+      safeText('cemaden-observed',`👁️ Observado: ${mm.toFixed(1).replace('.', ',')} mm/h${cond?' • '+cond:''}`);
       const cc=q('cemaden-card');
       if(cc)cc.title=(q('cemaden-last')?.textContent||'')+' — '+(q('cemaden-observed')?.textContent||'');
     }
@@ -197,7 +197,7 @@ async function fetchCemaden(){
 
   const max24=Math.max(...data.map(x=>x.rain24).filter(Number.isFinite),0);
   safeText('cemaden-stations',data.length);
-  safeText('cemaden-max24',max24.toFixed(1));
+  safeText('cemaden-max24',max24.toFixed(1).replace('.', ','));
 
   safeText(
     'cemaden-last',
@@ -524,7 +524,7 @@ function riskScore(){
     else if(d>2000){ pts*=0.1; }
     else { pts*=0.35; }
     if(isLocal) localScore=Math.max(localScore,pts); else globalScore=Math.max(globalScore,pts);
-    if(pts>=4) pushR(pts,'🌍 M'+mag.toFixed(1)+' '+(e.place||'').slice(0,40),isLocal);
+    if(pts>=4) pushR(pts,'🌍 M'+mag.toFixed(1).replace('.', ',')+' '+(e.place||'').slice(0,40),isLocal);
   });
 
   const w=window.__proWeather||{};
@@ -601,7 +601,7 @@ async function fetchProSP(){
     try{ const elT=q('sp-live-temp'); if(elT) elT.title='Fonte: '+tempFonte; }catch(_){}
     safeText('sp-live-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
     safeText('sp-live-gust',Number.isFinite(gust)?Math.round(gust)+' km/h':'--');
-    safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1)+' mm':'--');
+    safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1).replace('.', ',')+' mm':'--');
     safeText('sp-live-hum',Number.isFinite(hum)?Math.round(hum)+'%':'--');
     // Mantém o KPI legado sincronizado caso ele seja exibido em algum breakpoint.
     safeText('kpi-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
@@ -631,7 +631,7 @@ async function fetchProSP(){
       safeText('sp-live-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
       safeText('sp-live-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
       safeText('sp-live-gust',Number.isFinite(gust)?Math.round(gust)+' km/h':'--');
-      safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1)+' mm':'--');
+      safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1).replace('.', ',')+' mm':'--');
       safeText('sp-live-hum',Number.isFinite(hum)?Math.round(hum)+'%':'--');
       safeText('kpi-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
       safeText('kpi-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
@@ -674,7 +674,7 @@ function syncMobileWeather(){
   if(Number.isFinite(w.feels) && q('sp-live-feels')){
     safeText('sp-live-feels','sens '+Math.round(w.feels)+'°');
   }
-  safeText('mobile-gust','💨 '+(Number.isFinite(w.gust)?Math.round(w.gust)+' km/h':'--'));safeText('mobile-rain','🌧️ '+(Number.isFinite(w.rain)?Number(w.rain).toFixed(1)+' mm':'--'));safeText('mobile-hum','💧 '+(Number.isFinite(w.hum)?Math.round(w.hum)+'%':'--'));
+  safeText('mobile-gust','💨 '+(Number.isFinite(w.gust)?Math.round(w.gust)+' km/h':'--'));safeText('mobile-rain','🌧️ '+(Number.isFinite(w.rain)?Number(w.rain).toFixed(1).replace('.', ',')+' mm':'--'));safeText('mobile-hum','💧 '+(Number.isFinite(w.hum)?Math.round(w.hum)+'%':'--'));
 }
 function syncMobileCemaden(status){
   const b=q('mobile-btn-cemaden'), s=q('mobile-cemaden-status');if(!b||!s)return;

@@ -87,7 +87,7 @@
       const fires = feed.filter(function (x) { return x.type === 'fire'; });
       const radar = feed.filter(function (x) { return String(x.source || '').toUpperCase() === 'RADAR'; });
       const topEq = eqs.slice(0, 3).map(function (e) {
-        return 'M' + Number(e.mag).toFixed(1) + ' ' + (e.place || '') + (e.sourceSummary ? ' (' + e.sourceSummary + ')' : '');
+        return 'M' + Number(e.mag).toFixed(1).replace('.', ',') + ' ' + (e.place || '') + (e.sourceSummary ? ' (' + e.sourceSummary + ')' : '');
       }).join('; ');
       const lines = [
         'Monitor Global',

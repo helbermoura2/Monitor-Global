@@ -9,19 +9,21 @@
   return {width:800,height:MAP_HEIGHT,zoom,anchorX:400,anchorY:ANCHOR_Y,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:Number(ev.lat)-2*span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+2*span*ANCHOR_Y/800};
  }
  function draw(p,ev){
+  const pt=globalThis.EventPortuguese,fmt=(n,d=0)=>pt?.number(n,d)??Number(n).toFixed(d).replace('.',',');
   ev={...ev,place:globalThis.EventPortuguese?.place(ev.place)||ev.place};
   const white='#edf6fa',muted='#b4ceda',line='#315365',red=Number(ev.mag)>=6?'#ff6151':Number(ev.mag)>=5?'#fb923c':Number(ev.mag)>=4?'#facc15':'#4ade80';
   const box=(...args)=>(p.roundRect||p.rect)(...args);
   if(p.gradient)p.gradient(0,820,800,620,'#102b3d','#06131f');else p.rect(0,820,800,620,'#0b2232');p.rect(0,820,800,1,line);
   p.text('MONITOR GLOBAL',32,30,19,white,true);
-  p.text(ev.test?'TESTE':'AO VIVO',660,30,13,muted,true);
+  const revision=pt?.revision(ev)||ev.revisionText||'';
+  p.text(ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO',revision?620:660,30,13,revision?'#ffe078':muted,true);
   p.dot(400,550,10,'#ffffff');p.dot(400,550,7,red);
-  p.text('M'+Number(ev.mag).toFixed(1)+' · '+Math.round(Math.max(0,Number(ev.depth)))+' km',420,540,13,white,true);
+  p.text('M'+fmt(ev.mag,1)+' · '+fmt(Math.max(0,Number(ev.depth)))+' km',420,540,13,white,true);
   box(32,720,365,88,'#396274');box(33,721,363,86,'#071722');p.text('INTENSIDADE ESTIMADA DO TREMOR',50,734,12,muted,true);
   ['#93b8e4','#88d3eb','#68dc2c','#efef20','#ffb52b','#ff5540'].forEach((c,i)=>p.rect(50+i*54,760,54,9,c));
   p.text('Fraca',50,778,12,muted);p.text('Moderada',181,778,12,muted);p.text('Forte',344,778,12,muted);
   p.arc(98,916,50,9,180,180,'#294757');p.arc(98,916,50,9,180,180,red);
-  p.text('MAGNITUDE DO SISMO',182,849,13,'#e5a996');p.text('M'+Number(ev.mag).toFixed(1),182,870,68,red,true);
+  p.text('MAGNITUDE DO SISMO',182,849,13,'#e5a996');p.text('M'+fmt(ev.mag,1),182,870,68,red,true);
   // Wrap long locations without allowing them into the statistics.
   const words=String(ev.place||'Local desconhecido').split(/\s+/),lines=[];let current='';
   for(const word of words){const next=(current+' '+word).trim();if(p.measure(next,26,true)>728&&current){lines.push(current);current=word;}else current=next;}if(current)lines.push(current);
@@ -29,8 +31,9 @@
   p.text(ev.when||'Horário não informado',36,1024,15,muted);
   let source=ev.sourceLine||ev.source||'Fonte não informada';
   while(p.measure(source,15)>728&&source.length>3)source=source.slice(0,-4)+'...';p.text(source,36,1050,15,muted);
+  if(revision){let caption='REVISÃO · '+revision;while(p.measure(caption,13,true)>728&&caption.length>3)caption=caption.slice(0,-4)+'...';p.text(caption,36,1075,13,'#ffe078',true);}
   p.rect(36,1093,728,1,line);p.rect(36,1209,728,1,line);
-  const stats=[['PROFUNDIDADE',Math.round(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—','Estimada'],['ENERGIA',ev.energy||'—','TNT equivalente']];
+  const stats=[['PROFUNDIDADE',fmt(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—','Estimada'],['ENERGIA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'TNT equivalente']];
   stats.forEach((s,i)=>{const x=36+i*246;if(i)p.rect(x-12,1110,1,85,line);p.text(s[0],x,1114,11,muted);p.text(s[1],x,1138,25,white,true);p.text(s[2],x,1178,13,muted);});
   box(36,1228,728,163,'#416879');box(37,1229,726,161,'#0b2232');
   p.text('POPULAÇÃO POTENCIALMENTE EXPOSTA · III+',56,1246,12,muted);
@@ -41,5 +44,5 @@
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v6-portuguese'};
+ globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v7-numbers-revisions'};
 })();

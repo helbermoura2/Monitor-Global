@@ -66,7 +66,7 @@
    if(!list.length)body.append(n('p','Nenhum envio registrado neste período. Os próximos aparecerão aqui.','tg-empty'));
    list.forEach(row=>{
      const card=n('button',null,'tg-history-row');card.type='button';
-     const title=active==='daily'?'Resumo de '+row.day.split('-').reverse().join('/'):(row.kind?.endsWith('-update')?'Atualização':'Sismo')+' M'+Number(row.mag).toFixed(1)+' · '+row.place;
+     const title=active==='daily'?'Resumo de '+row.day.split('-').reverse().join('/'):(row.kind?.endsWith('-update')?'Atualização':'Sismo')+' M'+Number(row.mag).toFixed(1).replace('.', ',')+' · '+row.place;
      card.append(n('strong',title),n('span',labels[row.status]||'Pendente','tg-status'),n('small',row.legacy?'Registro anterior · detalhes de tentativas não disponíveis':fmt(row.at)));
      card.onclick=()=>details(row);body.append(card);
    });
@@ -80,7 +80,7 @@
      try{row=(await request('/telegram-history-detail?key='+encodeURIComponent(row.key))).record;message.textContent=''}
      catch(error){message.textContent=error.message;return}
    }
-   body.append(n('h3',row.kind==='daily'?'Resumo de '+row.day.split('-').reverse().join('/'):'Alerta M'+Number(row.mag).toFixed(1)),n('p',labels[row.status]||'Pendente'));
+   body.append(n('h3',row.kind==='daily'?'Resumo de '+row.day.split('-').reverse().join('/'):'Alerta M'+Number(row.mag).toFixed(1).replace('.', ',')),n('p',labels[row.status]||'Pendente'));
    if(row.attempts)body.append(n('p',row.attempts+' tentativa(s) registrada(s)'));
    if(row.total!=null)body.append(n('p',row.total+' sismos · '+(row.format==='text'?'envio em texto':'envio com imagem')));
    if(row.legacy)body.append(n('p','Envio anterior confirmado. Não há histórico detalhado dessas tentativas.','tg-note'));

@@ -41,11 +41,11 @@ assert.equal(messages.length,1);assert.equal(messages[0].method,'sendPhoto');ass
 const original=101;
 world=[quake('initial',6.3)];await run();
 assert.equal(messages[1].method,'editMessageMedia');assert.equal(Number(messages[1].body.message_id),original);
-assert.equal(rendered.at(-1).mag,6.3);assert(messages[1].caption.includes('Inicial: *M6.6* · Atual: *M6.3*'));
+assert.equal(rendered.at(-1).mag,6.3);assert.equal(rendered.at(-1).revisionText,'M6,6 → M6,3');assert(messages[1].caption.includes('Inicial: *M6,6* · Atual: *M6,3*'));
 assert(messages[1].caption.includes('Revisão da fonte'));
 assert.equal(messages.length,2);await run();
 assert.equal(messages[2].body.reply_parameters.message_id,original);
-assert(messages[2].caption.includes('Agora: *M6.3*'));
+assert(messages[2].caption.includes('Agora: *M6,3*'));
 await run();assert.equal(messages.length,3);
 world=[quake('initial',6.2)];await run();assert.equal(messages.length,4);assert.equal(messages.at(-1).method,'editMessageMedia');
 // New ID from another network updates the original instead of adding another photo.
@@ -76,7 +76,7 @@ const batch=world.find(f=>f.id==='batch');let notices=messages.filter(m=>m.body.
 batch.properties.mag=6.4;await run(0);batch.properties.mag=6.2;await run(0);
 assert.equal(messages.filter(m=>m.body.reply_parameters).length,notices);
 await run();assert.equal(messages.filter(m=>m.body.reply_parameters).length,notices+1);
-assert(messages.at(-1).caption.includes('Agora: *M6.2*'));
+assert(messages.at(-1).caption.includes('Agora: *M6,2*'));
 notices++;
 batch.properties.mag=6.5;await run(0);batch.properties.mag=6.2;await run(0);await run();
 assert.equal(messages.filter(m=>m.body.reply_parameters).length,notices);

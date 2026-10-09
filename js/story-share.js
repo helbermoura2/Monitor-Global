@@ -131,7 +131,7 @@
 
   function titleForItem(item) {
     const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || {};
-    if (item.type === 'earthquake') return `M ${Number(item.mag).toFixed(1)}`;
+    if (item.type === 'earthquake') return `M ${Number(item.mag).toFixed(1).replace('.', ',')}`;
     return (window.RecordPresentation?.isBulletin(item) ? 'Boletim CGE' : window.RecordPresentation?.label(item) || item.displayLabel || item.cycloneLabel || meta.label || item.type || 'EVENTO').toUpperCase();
   }
 
@@ -254,7 +254,7 @@
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '600 22px system-ui, sans-serif';
-    haloFillText(ctx, `≈ ${km >= 1 ? km : km.toFixed(1)} km`, x, y - 16);
+    haloFillText(ctx, `≈ ${km >= 1 ? km : km.toFixed(1).replace('.', ',')} km`, x, y - 16);
     ctx.restore();
   }
 
@@ -264,7 +264,7 @@
     if (!isFinite(lat) || !isFinite(lon)) return '';
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'L' : 'O';
-    return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lon).toFixed(2)}°${lonDir}`;
+    return `${Math.abs(lat).toFixed(2).replace('.', ',')}°${latDir}, ${Math.abs(lon).toFixed(2).replace('.', ',')}°${lonDir}`;
   }
 
   // Hora local aproximada no epicentro, estimada só pela longitude (sem base
@@ -820,7 +820,7 @@
     function rotuloBrasilCompleto(item) {
       const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || {};
       if (item.type === 'earthquake') {
-        return `M${Number(item.mag).toFixed(1)} · ${polirLocalResumo(item.place || '')}`;
+        return `M${Number(item.mag).toFixed(1).replace('.', ',')} · ${polirLocalResumo(item.place || '')}`;
       }
       const isFire = item.type === 'fire' || /queimada|inpe|foco/i.test(String(item.place || '') + String(item.descOnly || ''));
       if (isFire) {
@@ -932,7 +932,7 @@
       ctx.textAlign = 'left';
       ctx.fillStyle = cor;
       ctx.font = '800 68px "JetBrains Mono", monospace';
-      const magStr = `M${Number(top1.mag).toFixed(1)}`;
+      const magStr = `M${Number(top1.mag).toFixed(1).replace('.', ',')}`;
       const magW = ctx.measureText(magStr).width;
       haloFillText(ctx, magStr, boxX + 36, y + 72);
       ctx.fillStyle = '#94a3b8';
@@ -961,7 +961,7 @@
 
         ctx.fillStyle = getHexColor(ev.mag);
         ctx.font = '800 32px "JetBrains Mono", monospace';
-        haloFillText(ctx, `M${Number(ev.mag).toFixed(1)}`, boxX + 48, rowTop + 8);
+        haloFillText(ctx, `M${Number(ev.mag).toFixed(1).replace('.', ',')}`, boxX + 48, rowTop + 8);
 
         ctx.fillStyle = '#e2e8f0';
         ctx.font = '600 26px system-ui, sans-serif';
@@ -1211,8 +1211,8 @@
       text:(text,x,y,size,color,bold)=>{ctx.font=font(size,bold);ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);}
     };
     const mmi=estimarMercalli(ev.mag,ev.depth),energy=calcularEnergia(ev.mag);
-    layout.draw(p,{...ev,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
-      sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2)+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2)+'° '+(ev.lon<0?'O':'L'),
+    layout.draw(p,{...ev,_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+      sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
       mmi:mmi.nivel,energy:energy.tnt.replace(' de TNT',''),exposure});
     return canvas;
   }
@@ -1334,7 +1334,7 @@
     if (isUpdatedStory && item._deltaTxt) {
       ctx.fillStyle = '#fbbf24';
       ctx.font = '700 22px system-ui, sans-serif';
-      haloFillText(ctx, String(item._deltaTxt).slice(0, 42), 56, 136);
+      haloFillText(ctx, String(EventPortuguese.revision(item)||item._deltaTxt).slice(0, 42), 56, 136);
     }
 
     // Gauge estilo velocímetro do painel — o anel e o texto (M5.5 etc.) são
@@ -1344,7 +1344,7 @@
     const frac = isQuake ? Math.max(0.04, Math.min(1, (item.mag - 2) / 7)) : 1;
     const gapGaugeText = 40;
     let mainFont = isQuake ? '800 96px "JetBrains Mono", monospace' : '800 42px "JetBrains Mono", monospace';
-    const mainText = isQuake ? `M${Number(item.mag).toFixed(1)}` : titleForItem(item);
+    const mainText = isQuake ? `M${Number(item.mag).toFixed(1).replace('.', ',')}` : titleForItem(item);
     ctx.font = mainFont;
     if (!isQuake) {
       let size = 42;
@@ -1423,7 +1423,7 @@
     // Fontes + selo de qualidade (mesma lógica do painel: várias fontes com
     // magnitude cada, ou uma fonte só; selo A/B/C explicado por extenso)
     if (isQuake) {
-      const magLines = (item.magnitudes || []).map(x => `${x.source} M${Number(x.mag).toFixed(1)}`).join(' · ');
+      const magLines = (item.magnitudes || []).map(x => `${x.source} M${Number(x.mag).toFixed(1).replace('.', ',')}`).join(' · ');
       const fontLine = item.sourceCount > 1 && magLines
         ? `Fontes: ${magLines}`
         : `Fonte: ${item.sourceSummary || item.source || '—'}`;
@@ -1487,7 +1487,7 @@
         const cardX0 = (W - cardsTotalW) / 2;
         const cards = [
           { label: 'CATEGORIA', value: classif.cat.replace('Categoria ', 'CAT '), valCor: classif.cor },
-          { label: 'VENTO MÁXIMO', value: item.windKmh != null ? `${item.windKmh} km/h` : '—' },
+          { label: 'VENTO MÁXIMO', value: item.windKmh != null ? `${EventPortuguese.number(item.windKmh)} km/h` : '—' },
           { label: 'PRESSÃO', value: item.pressureMb != null ? `${item.pressureMb} hPa` : '—' }
         ];
         cards.forEach((c, i) => {

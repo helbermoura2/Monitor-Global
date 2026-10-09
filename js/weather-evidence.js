@@ -48,7 +48,7 @@
     if(rain)rain.textContent=outlook?.header||'Chuva: s/ previsão';
     if(rainChip){rainChip.title=(outlook?.detail||'Previsão indisponível')+' · '+(outlook?.source||'Modelos');rainChip.setAttribute('aria-label',rainChip.title);}
     window.WeatherPanel?.update();
-    entries.push(['PREVISÃO · COMPARAÇÃO DE MODELOS',valid?forecast.agreement+' · '+forecast.min.toFixed(1)+'–'+forecast.max.toFixed(1)+' mm nas próximas ~6 h. '+forecast.rows.map(x=>x.name+': '+x.total.toFixed(1)+' mm').join(' · ')+'. Consulta '+new Date(forecast.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'. Previsão, não certeza; não determina horário exato nem risco de alagamento.':'Comparação indisponível ou desatualizada. A previsão individual abaixo continua identificada como modelo.']);
+    entries.push(['PREVISÃO · COMPARAÇÃO DE MODELOS',valid?forecast.agreement+' · '+forecast.min.toFixed(1).replace('.', ',')+'–'+forecast.max.toFixed(1).replace('.', ',')+' mm nas próximas ~6 h. '+forecast.rows.map(x=>x.name+': '+x.total.toFixed(1).replace('.', ',')+' mm').join(' · ')+'. Consulta '+new Date(forecast.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'. Previsão, não certeza; não determina horário exato nem risco de alagamento.':'Comparação indisponível ou desatualizada. A previsão individual abaixo continua identificada como modelo.']);
     entries.push(['CHUVA · CURTO PRAZO',outlook?.detail||'Estimativa indisponível.']);
     for(const [title,detail]of entries){const row=document.createElement('div');const heading=document.createElement('strong'),text=document.createElement('p');heading.textContent=title;text.textContent=detail;row.append(heading,text);panel.appendChild(row);}
   }

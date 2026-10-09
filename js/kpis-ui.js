@@ -26,7 +26,7 @@ function updateKPIs() {
         const sismos = feed.filter(i => i.type === 'earthquake');
         if (sismos.length) {
             const m = sismos.reduce((a, b) => (a.mag > b.mag ? a : b));
-            maior.textContent = 'M' + m.mag.toFixed(1);
+            maior.textContent = 'M' + m.mag.toFixed(1).replace('.', ',');
             maior.style.color = getHexColor(m.mag);
         } else {
             maior.textContent = '--';
@@ -60,7 +60,7 @@ function carregarMagnitudeSalva() {
                 const slider = document.getElementById('mag-slider');
                 const label = document.getElementById('mag-value');
                 if (slider) slider.value = val;
-                if (label) label.textContent = 'M ' + val.toFixed(1);
+                if (label) label.textContent = 'M ' + val.toFixed(1).replace('.', ',');
             }
         }
     } catch (e) {}
@@ -68,7 +68,7 @@ function carregarMagnitudeSalva() {
 
 function updateMagFilter(val) {
     minMagnitude = parseFloat(val);
-    document.getElementById('mag-value').textContent = 'M ' + minMagnitude.toFixed(1);
+    document.getElementById('mag-value').textContent = 'M ' + minMagnitude.toFixed(1).replace('.', ',');
     try { localStorage.setItem('monitor_min_mag', minMagnitude); } catch (e) {}
     applyFilters();
 }
