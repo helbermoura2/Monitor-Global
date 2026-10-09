@@ -95,7 +95,7 @@ function clampFdsnParams(url) {
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
     'Access-Control-Allow-Headers': '*',
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
     'Pragma': 'no-cache',
@@ -4052,7 +4052,7 @@ function escapeMdLegacy(str) {
 
 function telegramCaption(ev, record) {
     const mag = Number(ev.mag).toFixed(1);
-    const place = escapeMdLegacy(ev.place || 'Local desconhecido');
+    const place = escapeMdLegacy(globalThis.EventPortuguese.place(ev.place || 'Local desconhecido'));
     const depth = Number.isFinite(ev.depth) ? `${Math.round(Math.max(0,ev.depth))} km` : '—';
     const when = ev.timeIso
         ? new Date(ev.timeIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' BRT'
@@ -4096,7 +4096,7 @@ function findNearDuplicateAlert(ev, sentRecords) {
 // duplicata de rede de um alerta já mandado — deixa claro que é uma
 // ATUALIZAÇÃO de magnitude do mesmo tremor, não um sismo novo.
 function telegramUpdateMessage(ev, dup) {
-    const place = escapeMdLegacy(ev.place || dup.place || 'Local desconhecido');
+    const place = escapeMdLegacy(globalThis.EventPortuguese.place(ev.place || dup.place || 'Local desconhecido'));
     const newMag = Number(ev.mag).toFixed(1);
     const oldMag = Number(dup.mag).toFixed(1);
     const newSrc = escapeMdLegacy(ev.source || 'USGS');
@@ -4202,7 +4202,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v5-rounded-km';
+    next.cardImageVersion = 'cartographic-v6-portuguese';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
@@ -4390,6 +4390,14 @@ export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
     fetch(request) {
         const operation = this.queue.then(async () => {
+            if(new URL(request.url).pathname==='/translate-pt'){
+                const kv=this.env.TTS_USAGE,storage=this.state.storage;
+                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:kv&&{
+                    get:async key=>{if(!key.startsWith('pt-translation-chars:'))return kv.get(key);const q=await storage.get('pt-translation-quota');return q?.day===key?q.used:0;},
+                    put:async(key,value,options)=>{if(key.startsWith('pt-translation-chars:'))return storage.put('pt-translation-quota',{day:key,used:Number(value)});return kv.put(key,value,options);}
+                }};
+                return handlePortugueseTranslation(request,env);
+            }
             const kv = this.env.TTS_USAGE;
             const storage = this.state.storage;
             const env = {...this.env, IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
@@ -4619,7 +4627,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v5-rounded-km';
+            reservation.cardImageVersion = 'cartographic-v6-portuguese';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4644,16 +4652,16 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v5-rounded-km' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v6-portuguese' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
         const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
         if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
-        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v5-rounded-km') {
+        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v6-portuguese') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v5-rounded-km'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v6-portuguese'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
@@ -4851,6 +4859,7 @@ function summaryPlace(place) {
     const directions={N:'ao norte',S:'ao sul',E:'a leste',W:'a oeste',NE:'a nordeste',NW:'a noroeste',SE:'a sudeste',SW:'a sudoeste',NNE:'a norte-nordeste',ENE:'a leste-nordeste',ESE:'a leste-sudeste',SSE:'a sul-sudeste',SSW:'a sul-sudoeste',WSW:'a oeste-sudoeste',WNW:'a oeste-noroeste',NNW:'a norte-noroeste'};
     let title=match?match[3]:place;
     title=title.replace(/New Caledonia/g,'Nova Caledônia').replace(/Canada/g,'Canadá').replace(/north of Svalbard/i,'Norte de Svalbard');
+    title=globalThis.EventPortuguese.place(title);
     return {title,detail:match?`${match[1]} km ${directions[match[2].toUpperCase()]||match[2]}`:''};
 }
 let _dailySummaryFonts=null;
@@ -5025,7 +5034,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
         await delivery.confirm({messageId:response.result?.message_id});
     } else {
         const text=caption+'\n\nTop 5:\n'+(top.map((e,i)=>
-            `${i+1}. M${e.mag.toFixed(1)} — ${e.place}`).join('\n')||'Sem registro');
+            `${i+1}. M${e.mag.toFixed(1)} — ${globalThis.EventPortuguese.place(e.place)}`).join('\n')||'Sem registro');
         const form=new FormData();
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('text',text.slice(0,4096));
@@ -5265,10 +5274,44 @@ async function handleTts(reqUrl, env) {
     }
 }
 
+async function handlePortugueseTranslation(request,env){
+ if(request.method!=='POST')return json({error:'Use POST para traduzir o boletim.'},405);
+ if(Number(request.headers.get('Content-Length'))>40000)return json({error:'Texto acima do limite de tradução.'},413);
+ let body;try{const raw=await request.text();if(raw.length>24000)return json({error:'Texto acima do limite de tradução.'},413);body=JSON.parse(raw);}catch{return json({error:'Pedido de tradução inválido.'},400);}
+ const texts=body?.texts;
+ if(!Array.isArray(texts)||!texts.length||texts.length>6||texts.some(t=>typeof t!=='string'||!t.trim()||t.length>12000)||texts.reduce((n,t)=>n+t.length,0)>20000)return json({error:'Envie até seis textos, com no máximo 20 mil caracteres no total.'},400);
+ if(!env.AI||!env.TTS_USAGE)return json({error:'Tradução temporariamente indisponível.'},503);
+ const translations=[];
+ for(const text of texts){
+  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
+  const key='pt-translation-v1:'+digest;
+  const cached=await env.TTS_USAGE.get(key);if(cached){translations.push(cached);continue;}
+  const quota='pt-translation-chars:'+new Date().toISOString().slice(0,10),used=Number(await env.TTS_USAGE.get(quota))||0;
+  if(used+text.length>50000){translations.push(null);continue;}
+  await env.TTS_USAGE.put(quota,String(used+text.length),{expirationTtl:172800});
+  try{
+   const lang=/\b(?:profundidad|magnitud|lluvias|peligro|terremoto|sequia|hacia|fuerte)\b/i.test(text)?'es':/\b(?:nord|ouest|seisme|pluie|avec|sans|alerte)\b/i.test(text)?'fr':'en';
+   const chunks=[];let rest=text;while(rest.length>700){let cut=rest.lastIndexOf(' ',700);if(cut<100)cut=700;chunks.push(rest.slice(0,cut));rest=rest.slice(cut).trimStart();}if(rest)chunks.push(rest);
+   const output=[];
+   for(const chunk of chunks){const result=await env.AI.run('@cf/meta/m2m100-1.2b',{text:chunk,source_lang:lang,target_lang:'pt'});output.push(String(result?.translated_text||'').trim());}
+   const translated=output.join(' ').trim();
+   // Reject altered numeric facts. Translation never drives hazard classification.
+   const nums=v=>(v.match(/\d+(?:[.,]\d+)*/g)||[]).map(n=>n.replace(/,/g,'.')).sort().join('|');
+   if(!translated||nums(text)!==nums(translated)){translations.push(null);continue;}
+   await env.TTS_USAGE.put(key,translated,{expirationTtl:2592000});translations.push(translated);
+  }catch(e){console.warn('[tradução em português]',e.message);translations.push(null);}
+ }
+ return json({translations,language:'pt-BR'});
+}
+
 export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(reqUrl.pathname==='/translate-pt'){
+            if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
+            return handlePortugueseTranslation(request,env);
+        }
         if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
 

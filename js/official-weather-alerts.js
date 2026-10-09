@@ -42,19 +42,20 @@
   const note=document.createElement('p');note.textContent='EUA, Canadá, Austrália e 16 países europeus. Avisos indicam uma área e um período; não confirmam ocorrência em cada local. Somente áreas com coordenadas verificadas entram no mapa.';host.append(note);
   for(const [key,s] of sources){
    const rows=[...new Map(active(s).map(x=>[x.id,x])).values()].sort((a,b)=>b.time-a.time),details=document.createElement('details'),summary=document.createElement('summary');details.dataset.source=key;details.open=opened.has(key);
-   const stale=Date.now()-s.checkedAt>maxAge;summary.textContent=s.label+' · '+(s.error?'Consulta indisponível':stale?'Aguardando atualização':rows.length+' aviso(s) no feed');details.append(summary);
+   const stale=Date.now()-s.checkedAt>maxAge;summary.textContent=(window.EventPortuguese?.local(s.label)||s.label)+' · '+(s.error?'Consulta indisponível':stale?'Aguardando atualização':rows.length+' aviso(s) na fonte');details.append(summary);
    if(s.error||stale){const p=document.createElement('p');p.textContent=s.error?'A consulta falhou. '+(rows.length?'Os avisos abaixo são do último retorno válido.':'Isso não significa ausência de alertas.'):'Dados sem consulta recente; avisos retirados até novo retorno válido.';details.append(p);}
    if(s.checkedAt){const p=document.createElement('small');p.textContent='Consultado '+new Date(s.checkedAt).toLocaleString('pt-BR');details.append(p);}
-   let shown=0;const append=()=>{rows.slice(shown,shown+20).forEach(x=>{
+   let shown=0;const append=()=>{rows.slice(shown,shown+20).forEach(raw=>{
+    const x=window.EventPortuguese?.view(raw)||raw;
     const item=document.createElement('article'),heading=document.createElement('p');heading.textContent=(x.bandeira||'')+' '+(x.warningEvent||x.event||x.detail);item.append(heading);
     const area=document.createElement('p');area.textContent=x.place||x.area;item.append(area);
     const evidence=document.createElement('small');evidence.textContent='Aviso oficial · '+(x.warningLevel||'Aviso')+' · Severidade: '+(x.severityLabel||'Não informada');item.append(evidence);
     const dates=document.createElement('p');dates.textContent=(Number.isFinite(x.time)?'Emitido '+new Date(x.time).toLocaleString('pt-BR')+' · ':'')+(Number.isFinite(x.onset)&&x.onset>Date.now()?'Início previsto '+new Date(x.onset).toLocaleString('pt-BR')+' · ':'')+(x.expiresAt?'Válido até '+new Date(x.expiresAt).toLocaleString('pt-BR'):'Validade não informada pelo RSS; confira o boletim');item.append(dates);
-    if(x.warningDescription){const d=document.createElement('details'),label=document.createElement('summary'),p=document.createElement('p');label.textContent='Texto original do aviso';p.textContent=x.warningDescription;d.append(label,p);item.append(d);}
+    if(x.warningDescription){const d=document.createElement('details'),label=document.createElement('summary'),p=document.createElement('p');label.textContent='Boletim em português';p.textContent=x.warningDescription;d.append(label,p);d.addEventListener('toggle',()=>{if(d.open)window.EventPortuguese?.ensure(raw).then(()=>{p.textContent=window.EventPortuguese?.view(raw).warningDescription||x.warningDescription;});});item.append(d);}
     const link=document.createElement('a');link.href=x.link;link.target='_blank';link.rel='noopener';link.textContent='Abrir aviso oficial ↗';item.append(link);details.append(item);
    });shown+=20;};append();
    if(rows.length>shown){const more=document.createElement('button');more.type='button';more.textContent='Mostrar mais avisos';more.onclick=()=>{append();if(shown>=rows.length)more.remove();};details.append(more);}
-   if(s.credit){const p=document.createElement('small');p.textContent=s.credit;details.append(p);}host.append(details);
+   if(s.credit){const p=document.createElement('small');p.textContent=window.EventPortuguese?.local(s.credit)||s.credit;details.append(p);}host.append(details);
   }
  }
  async function loadEccc(){try{

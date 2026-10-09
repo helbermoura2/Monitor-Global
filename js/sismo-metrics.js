@@ -605,7 +605,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const status=model?.status()||'error';
         window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,cameraPhase:context.cameraPhase,phaseUntil:context.phaseUntil,impactRadius:context.returnToEpicenter?impactRadius():null,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=context.stage==='returning'?'Área afetada · Intensidade estimada · Quadro final':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=context.stage==='returning'?'Área afetada · Intensidade estimada · Quadro final':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Reprodução':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';

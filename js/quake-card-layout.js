@@ -9,6 +9,7 @@
   return {width:800,height:MAP_HEIGHT,zoom,anchorX:400,anchorY:ANCHOR_Y,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:Number(ev.lat)-2*span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+2*span*ANCHOR_Y/800};
  }
  function draw(p,ev){
+  ev={...ev,place:globalThis.EventPortuguese?.place(ev.place)||ev.place};
   const white='#edf6fa',muted='#b4ceda',line='#315365',red=Number(ev.mag)>=6?'#ff6151':Number(ev.mag)>=5?'#fb923c':Number(ev.mag)>=4?'#facc15':'#4ade80';
   const box=(...args)=>(p.roundRect||p.rect)(...args);
   if(p.gradient)p.gradient(0,820,800,620,'#102b3d','#06131f');else p.rect(0,820,800,620,'#0b2232');p.rect(0,820,800,1,line);
@@ -40,5 +41,5 @@
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v4'};
+ globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v6-portuguese'};
 })();
