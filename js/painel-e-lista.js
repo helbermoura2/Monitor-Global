@@ -1557,6 +1557,16 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgSoftCycle = false;
         return;
     }
+    if (!silentRefresh && item.type==='tsunami') {
+        // Even a regional bulletin with no epicenter replaces the old map effects.
+        stopMapCamera();
+        clearTimeout(window.returnCameraTimeout);window.preAlertCamera=null;
+        stopWaveFront();stopFeltZone();
+        if(typeof stopTsunamiWave==='function')stopTsunamiWave();
+        if(typeof stopCascadeRipple==='function')stopCascadeRipple();
+        if(typeof stopContinuousRadar==='function')stopContinuousRadar();
+        if(typeof stopHurricaneOfficialRoute==='function')stopHurricaneOfficialRoute();
+    }
     if (!silentRefresh && item.id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     try { if (!window.EventDetailsBack?.isOpen() && typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
     // "Alcance do sismo" é conceito exclusivo de sismo (MMI por distância) —
@@ -1764,7 +1774,11 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             (detPt ? detPt + ' · ' : '') + `≈ ${Math.round(dYou)} km de ${refName}.`;
     }
 
-    if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
+    if (item.type === 'tsunami' && item.official) {
+        document.getElementById('pd-cities-title').textContent='🌊 Área do boletim oficial';
+        document.getElementById('pd-cities').innerHTML='<div class="city-item">'+esc(item.place||'Consulte o boletim oficial')+'</div>'+
+            '<div class="city-item">'+esc(item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mantém a posição anterior, sem efeitos do sismo anterior.')+'</div>';
+    } else if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
         const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
         // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
         // — não é o ritmo do anel animado no mapa (esse é acelerado só pra dar pra

@@ -22,3 +22,24 @@ test('a new warning enters the presentation queue while an informational bulleti
  const info=bulletin('PTWC','Information');await page.evaluate(info=>{globalAlerts=[info];upsertAlert(info);showAlertDetails(info,false);clearTimeout(cycleTimeout);},info);await expect(page.locator('#pd-mercalli')).toHaveText('Informativo');await expect(page.locator('#pd-source')).toContainText('Informativo');await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);expect(await page.evaluate(()=>{triggerEventoMapaFx(globalAlerts[0]);return tsunamiWaveEl===null;})).toBe(true);
  await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',ok:true},{source:'NTWC',ok:true}],items:[]}}));await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect(page.locator('#chip-tsunami-official')).toBeHidden();
 });
+test('manual tsunami chip clears replay state and obsolete map effects, including a regional bulletin',async({page})=>{
+ await boot(page);const info={...bulletin('PTWC','Information'),coords:null,official:true};
+ await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',ok:true}],items:[info]}}));
+ await page.evaluate(()=>{globalEvents=[{id:'old-quake',type:'earthquake',mag:2.4,depth:9,time:Date.now(),coords:[-80.75,7.54],place:'Old quake',source:'QA'}];showEventDetails(0,false);clearTimeout(cycleTimeout);});
+ await page.evaluate(()=>fetchOfficialTsunamiAlerts());
+ await page.evaluate(()=>{window.__mgSoftCycle=true;window.__mgRotationDisplay=false;window.returnCameraTimeout=setTimeout(()=>showEventDetails(0,false),1000);});
+ await page.locator('#chip-tsunami-official').click();
+ await expect(page.locator('#pd-source')).toContainText('Informativo');
+ await page.waitForTimeout(1300);
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(info.id);
+ expect(await page.evaluate(()=>window.__mgWaveFrontState)).toBeNull();
+ await expect(page.locator('.seismic-impact-status')).toHaveCount(0);
+ expect(await page.evaluate(()=>window.__mgSoftCycle)).toBe(false);
+});
+test('official warning map represents only the bulletin origin and has no invented tsunami sweep',async({page})=>{
+ await boot(page);const warning={...bulletin('PTWC','Warning'),official:true};
+ await page.evaluate(item=>{globalAlerts=[item];showAlertDetails(item,false);clearTimeout(cycleTimeout);triggerEventoMapaFx(item);},warning);
+ await expect(page.locator('#pd-cities')).toContainText('Não representa a extensão do tsunami');
+ await expect(page.locator('#pd-cities')).not.toContainText('2.000 km');
+ await expect(page.locator('.tsunami-wave-wrap')).toHaveCount(0);
+});
