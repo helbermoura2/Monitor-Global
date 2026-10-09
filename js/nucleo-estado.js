@@ -424,7 +424,7 @@ function scrollToDetailsIfMobile() {
     const pd = document.getElementById('painel-direito');
     if (pd) pd.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-let expandedIds = new Set(), lastMerged = [], lastListSig = '';
+let expandedIds = new Set(), lastMerged = [];
 /* ═══ Controle centralizado de "primeira carga" por fonte de alerta ═══
    Cada fonte de alerta automático (INMET, GDACS, tsunami, tempestades locais etc.)
    só deve tocar som/voz para o que muda DEPOIS que ela já rodou pela 1ª vez —
