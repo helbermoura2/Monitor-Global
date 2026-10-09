@@ -429,7 +429,7 @@ function syncAllMarkers() {
                 el.style.width = el.style.height = size + 'px';
                 el.style.background = cor;
                 el.style.boxShadow = `0 0 ${size}px ${cor}`;
-                el.title = `M${ev.mag.toFixed(1)} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
+                el.title = `M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const i = globalEvents.findIndex(x => x.id === ev.id);

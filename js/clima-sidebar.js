@@ -41,10 +41,10 @@
     }
     var html = '';
     h.slice(0,4).forEach(function(x){
-      html += '<div class="cgp-row cgp-hot"><span>🔥 ' + esc(x.city) + '</span><b>' + Number(x.current!=null?x.current:x.max).toFixed(1) + ' °C</b></div>';
+      html += '<div class="cgp-row cgp-hot"><span>🔥 ' + esc(x.city) + '</span><b>' + Number(x.current!=null?x.current:x.max).toFixed(1).replace('.', ',') + ' °C</b></div>';
     });
     c.slice(0,4).forEach(function(x){
-      html += '<div class="cgp-row cgp-cold"><span>❄️ ' + esc(x.city) + '</span><b>' + Number(x.current!=null?x.current:x.min).toFixed(1) + ' °C</b></div>';
+      html += '<div class="cgp-row cgp-cold"><span>❄️ ' + esc(x.city) + '</span><b>' + Number(x.current!=null?x.current:x.min).toFixed(1).replace('.', ',') + ' °C</b></div>';
     });
     box.innerHTML = html;
   }
@@ -60,7 +60,7 @@
     box.innerHTML = rows.slice(0,6).map(function(x){
       var cls = Number(x.anomaly) >= 0 ? 'cgp-pos' : 'cgp-neg';
       var sign = Number(x.anomaly) >= 0 ? '+' : '';
-      return '<div class="cgp-row ' + cls + '"><span>' + esc(x.name) + '</span><b>' + sign + Number(x.anomaly).toFixed(1) + '°</b></div>';
+      return '<div class="cgp-row ' + cls + '"><span>' + esc(x.name) + '</span><b>' + sign + Number(x.anomaly).toFixed(1).replace('.', ',') + '°</b></div>';
     }).join('') + '<div class="cgp-note">' + esc((state.anom && state.anom.disclaimer) || 'Comparado à climatologia histórica.') + '</div>';
   }
 

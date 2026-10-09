@@ -23,6 +23,19 @@ function place(value){
  for(const [re,to] of countryRules)s=s.replace(re,to);
  return remember(placeMemo,original,s.trim());
 }
+// Only format presentation values; source numbers and identifiers stay numeric.
+const numberFormats=new Map();
+function number(value,digits=0){
+ if(value===null||value===undefined||value===''||!Number.isFinite(Number(value)))return '—';
+ digits=Math.max(0,Math.min(3,digits));
+ try{if(!numberFormats.has(digits))numberFormats.set(digits,new Intl.NumberFormat('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits}));return numberFormats.get(digits).format(Number(value));}
+ catch{return Number(value).toFixed(digits).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+}
+function revision(item){
+ if(!item?._deltaTxt)return '';
+ return local(item._deltaTxt).replace(/\bM(-?\d+(?:[.,]\d+)?)\b/g,(_,v)=>'M'+number(Number(v.replace(',','.')),1))
+  .replace(/(?<![\d.])(\d+)\.(\d{1,2})(?![\d.])/g,'$1,$2');
+}
 // Spoken text uses Portuguese names and units on both cloud and device voices.
 function speech(value){return local(value).normalize('NFC')
  .replace(/\b(\d+)\.(\d+)\b/g,'$1 vírgula $2')
@@ -55,5 +68,5 @@ async function ensure(item){
  const promise=(async()=>{let changed=false;for(let i=0;i<values.length;i+=6){const batch=values.slice(i,i+6);batch.forEach(s=>retryAfter.set(s,Date.now()+300000));while(retryAfter.size>512)retryAfter.delete(retryAfter.keys().next().value);try{const base=typeof workerBaseUrl==='function'?workerBaseUrl():'';if(!base)return changed;const c=new AbortController(),timer=setTimeout(()=>c.abort(),20000);try{const r=await fetch(base+'/translate-pt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texts:batch}),signal:c.signal});if(!r.ok)continue;const d=await r.json();d.translations?.forEach((t,n)=>{if(t&&batch[n]){cache.set(batch[n],t);retryAfter.delete(batch[n]);changed=true;}else if(batch[n])retryAfter.set(batch[n],Date.now()+300000);});while(cache.size>512)cache.delete(cache.keys().next().value);}finally{clearTimeout(timer);}}catch(e){console.warn('[tradução do boletim]',e.message);}}return changed;})().finally(()=>inflight.delete(key));
  inflight.set(key,promise);return promise;
 }
-root.EventPortuguese={place,local,text,speech,view,ensure,foreign,directions,kinds:{earthquake:'Sismo',hurricane:'Ciclone',storm:'Tempestade',volcano:'Vulcão',fire:'Incêndio',flood:'Enchente',wind:'Vento',tornado:'Tornado',tsunami:'Tsunami',civil:'Alerta da Defesa Civil'}};
+root.EventPortuguese={place,local,text,speech,number,revision,view,ensure,foreign,directions,kinds:{earthquake:'Sismo',hurricane:'Ciclone',storm:'Tempestade',volcano:'Vulcão',fire:'Incêndio',flood:'Enchente',wind:'Vento',tornado:'Tornado',tsunami:'Tsunami',civil:'Alerta da Defesa Civil'}};
 })(globalThis);

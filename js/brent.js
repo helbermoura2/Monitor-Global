@@ -5,8 +5,8 @@ function renderBrent(p, cp, cv, label, real, closed) {
     const lb = document.getElementById('kpi-brent-label');
     if (el) {
         if (Number.isFinite(p)) {
-            const price = p.toFixed(2);
-            const change = Number.isFinite(cp) ? `${cp >= 0 ? '▲ +' : '▼ '}${cp.toFixed(1)}%` : '';
+            const price = p.toFixed(2).replace('.', ',');
+            const change = Number.isFinite(cp) ? `${cp >= 0 ? '▲ +' : '▼ '}${cp.toFixed(1).replace('.', ',')}%` : '';
             el.innerHTML = `<span class="brent-price">${price}</span>${change ? ` <span class="brent-change ${cp >= 0 ? 'brent-up' : 'brent-down'}">${change}</span>` : ''}`;
             el.style.color = '#f1f7ff';
         } else {

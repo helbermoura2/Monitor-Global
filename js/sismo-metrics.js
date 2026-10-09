@@ -22,10 +22,10 @@ function estimarMercalli(m, d) {
 function calcularEnergia(m) {
     const j = Math.pow(10, 1.5 * m + 4.8);
     const t = j / 4.184e9;
-    const f = t < 1 ? (t * 1000).toFixed(1) + " kg" :
-              t < 1000 ? t.toFixed(1) + " ton" :
-              t < 1e6 ? (t / 1000).toFixed(1) + " kt" :
-              (t / 1e6).toFixed(1) + " Mt";
+    const f = t < 1 ? (t * 1000).toFixed(1).replace('.', ',') + " kg" :
+              t < 1000 ? t.toFixed(1).replace('.', ',') + " ton" :
+              t < 1e6 ? (t / 1000).toFixed(1).replace('.', ',') + " kt" :
+              (t / 1e6).toFixed(1).replace('.', ',') + " Mt";
     // Comparações de escala humana pra dar noção real do tamanho, só a partir de
     // M5 (abaixo disso a comparação não ajuda, fica um número solto sem contexto).
     let comparativo = '';
@@ -34,7 +34,7 @@ function calcularEnergia(m) {
     else if (m >= 6.5 && m < 7.5) comparativo = '≈ bomba atômica de Hiroshima (1945)';
     else if (m >= 7.5 && m < 8.5) comparativo = '≈ dezenas de bombas de Hiroshima somadas';
     else if (m >= 8.5) comparativo = '≈ maior bomba nuclear já testada (Tsar Bomba)';
-    return { joules: j.toExponential(2), tnt: f + " de TNT", comparativo };
+    return { joules: j.toExponential(2).replace('.', ','), tnt: f + " de TNT", comparativo };
 }
 
 function classificarProfundidade(km) {
@@ -51,7 +51,7 @@ function animateMagNumber(el, target) {
     if (!el) return;
     if (el._mgAnimId) { cancelAnimationFrame(el._mgAnimId); el._mgAnimId = null; }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        el.textContent = 'M' + target.toFixed(1);
+        el.textContent = 'M' + target.toFixed(1).replace('.', ',');
         return;
     }
     const prev = parseFloat(String(el.textContent || '').replace('M', '').replace(',', '.'));
@@ -61,7 +61,7 @@ function animateMagNumber(el, target) {
     function tick(now) {
         const p = Math.min(1, (now - t0) / duration);
         const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = 'M' + (from + (target - from) * eased).toFixed(1);
+        el.textContent = 'M' + (from + (target - from) * eased).toFixed(1).replace('.', ',');
         el._mgAnimId = p < 1 ? requestAnimationFrame(tick) : null;
     }
     el._mgAnimId = requestAnimationFrame(tick);
@@ -772,7 +772,7 @@ function updateQuakeLabels() {
             if (!quakeLabelStore.has(ev.id)) {
                 const el = document.createElement('div');
                 el.className = 'quake-label';
-                el.textContent = `M${ev.mag.toFixed(1)} • ${Math.max(0, ev.depth).toFixed(0)} km`;
+                el.textContent = `M${ev.mag.toFixed(1).replace('.', ',')} • ${Math.max(0, ev.depth).toFixed(0)} km`;
                 quakeLabelStore.set(ev.id, new GL.Marker({
                     element: el,
                     anchor: 'left',

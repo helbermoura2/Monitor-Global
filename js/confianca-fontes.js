@@ -183,9 +183,9 @@ function evidenciasFontes(item){
     if(item.isPreliminary) badges.push('Magnitude preliminar');
     const values=reports.map(x=>x.mag);
     if(values.length>1&&Math.max(...values)-Math.min(...values)>=0.099){
-      badges.push('Magnitudes divergentes · M'+Math.min(...values).toFixed(1)+' a M'+Math.max(...values).toFixed(1));
+      badges.push('Magnitudes divergentes · M'+Math.min(...values).toFixed(1).replace('.', ',')+' a M'+Math.max(...values).toFixed(1).replace('.', ','));
     }
-    const revision=String(item._deltaTxt||'').match(/M[\d.,]+\s*→\s*M[\d.,]+/);
+    const revision=String(globalThis.EventPortuguese?.revision(item)||item._deltaTxt||'').match(/M[\d.,]+\s*→\s*M[\d.,]+/);
     if(revision) badges.push('Magnitude revisada · '+revision[0]);
   }
   return {sources,reports,institutional,modeled,origin,badges};
@@ -197,7 +197,7 @@ function preencherEvidenciasFontes(box,item){
   add('h3','source-evidence-title','Fontes e natureza dos dados');
   e.badges.forEach(label=>add('p','source-evidence-fact',label));
   add('p','source-evidence-text','Fontes: '+(e.sources.join(' · ')||'não identificadas'));
-  e.reports.forEach(r=>add('p','source-evidence-report',r.source+' · M'+r.mag.toFixed(1)));
+  e.reports.forEach(r=>add('p','source-evidence-report',r.source+' · M'+r.mag.toFixed(1).replace('.', ',')));
   if(e.sources.length>1) add('p','source-evidence-text','As fontes podem compartilhar dados. A contagem não representa confirmações independentes.');
   add('h4','source-evidence-label','Dados da fonte');
   add('p','source-evidence-text',leg.fonte);

@@ -3363,6 +3363,7 @@ function textFontWidthProp(font, text, tracking = 1) {
 function sanitizeFontText(text) {
     let s = String(text ?? '')
         .replace(/[–—−]/g, '-')
+        .replace(/→/g, 'para')
         .replace(/[“”«»]/g, '"')
         .replace(/[‘’‚‛]/g, "'")
         .replace(/…/g, '...')
@@ -3756,10 +3757,10 @@ function estimarMercalliCard(m, d) {
 function calcularEnergiaCard(m) {
     const j = Math.pow(10, 1.5 * m + 4.8);
     const t = j / 4.184e9;
-    const f = t < 1 ? (t * 1000).toFixed(1) + ' kg' :
-        t < 1000 ? t.toFixed(1) + ' ton' :
-            t < 1e6 ? (t / 1000).toFixed(1) + ' kt' :
-                (t / 1e6).toFixed(1) + ' Mt';
+    const f = t < 1 ? (t * 1000).toFixed(1).replace('.', ',') + ' kg' :
+        t < 1000 ? t.toFixed(1).replace('.', ',') + ' ton' :
+            t < 1e6 ? (t / 1000).toFixed(1).replace('.', ',') + ' kt' :
+                (t / 1e6).toFixed(1).replace('.', ',') + ' Mt';
     return f;
 }
 function calcularMecanismoFocalCard(depth, lat, lng, place) {
@@ -3770,7 +3771,7 @@ function formatCoordCard(lat, lon) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'L' : 'O';
-    return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lon).toFixed(2)}°${lonDir}`;
+    return `${Math.abs(lat).toFixed(2).replace('.', ',')}°${latDir}, ${Math.abs(lon).toFixed(2).replace('.', ',')}°${lonDir}`;
 }
 function approxLocalTimeCard(timeIso, lon) {
     if (!Number.isFinite(lon) || !timeIso) return '';
@@ -3799,7 +3800,7 @@ function drawScaleBarCard(rgba, w, h, font, x, y, lat, zoom, frame) {
     fillRect(rgba, w, x, y - 8, 2, 8, 226, 232, 240);
     fillRect(rgba, w, x, y, barPx, 2, 226, 232, 240);
     fillRect(rgba, w, x + barPx - 2, y - 8, 2, 8, 226, 232, 240);
-    drawTextFontHalo(rgba, w, h, font, `~${km >= 1 ? km : km.toFixed(1)} km`, x, y - 8 - font.cellH - 2, 226, 232, 240);
+    drawTextFontHalo(rgba, w, h, font, `~${km >= 1 ? km : km.toFixed(1).replace('.', ',')} km`, x, y - 8 - font.cellH - 2, 226, 232, 240);
 }
 
 
@@ -4051,7 +4052,7 @@ function escapeMdLegacy(str) {
 }
 
 function telegramCaption(ev, record) {
-    const mag = Number(ev.mag).toFixed(1);
+    const mag = Number(ev.mag).toFixed(1).replace('.', ',');
     const place = escapeMdLegacy(globalThis.EventPortuguese.place(ev.place || 'Local desconhecido'));
     const depth = Number.isFinite(ev.depth) ? `${Math.round(Math.max(0,ev.depth))} km` : '—';
     const when = ev.timeIso
@@ -4065,9 +4066,9 @@ function telegramCaption(ev, record) {
         `🕒 ${when}\n` +
         `📡 Fonte: ${src} · ${status}\n` +
         `Magnitude sujeita a revisão.\n` +
-        (record?.revisions?.length ? `\nInicial: *M${Number(record.initialMag).toFixed(1)}* · Atual: *M${mag}*\n` +
+        (record?.revisions?.length ? `\nInicial: *M${Number(record.initialMag).toFixed(1).replace('.', ',')}* · Atual: *M${mag}*\n` +
             `Atualizado às ${new Date(record.updatedAt).toLocaleTimeString("pt-BR", {timeZone: "America/Sao_Paulo"})} BRT\n` +
-            record.revisions.slice(-3).map(r => `${r.sameSource ? "Revisão da fonte" : "Nova estimativa"}: M${Number(r.mag).toFixed(1)} (${escapeMdLegacy(r.source)})`).join("\n") + "\n" : "") +
+            record.revisions.slice(-3).map(r => `${r.sameSource ? "Revisão da fonte" : "Nova estimativa"}: M${Number(r.mag).toFixed(1).replace('.', ',')} (${escapeMdLegacy(r.source)})`).join("\n") + "\n" : "") +
         `\n📢 Canal: @monitor\\_global\n` +
         `🌐 https://monitorglobal.top`
     );
@@ -4097,8 +4098,8 @@ function findNearDuplicateAlert(ev, sentRecords) {
 // ATUALIZAÇÃO de magnitude do mesmo tremor, não um sismo novo.
 function telegramUpdateMessage(ev, dup) {
     const place = escapeMdLegacy(globalThis.EventPortuguese.place(ev.place || dup.place || 'Local desconhecido'));
-    const newMag = Number(ev.mag).toFixed(1);
-    const oldMag = Number(dup.mag).toFixed(1);
+    const newMag = Number(ev.mag).toFixed(1).replace('.', ',');
+    const oldMag = Number(dup.mag).toFixed(1).replace('.', ',');
     const newSrc = escapeMdLegacy(ev.source || 'USGS');
     const oldSrc = escapeMdLegacy(dup.source || 'USGS');
     const arrow = ev.mag > dup.mag ? '⬆️' : ev.mag < dup.mag ? '⬇️' : '➡️';
@@ -4182,7 +4183,9 @@ async function telegramEditAlert(env, ev, record) {
     } else {
         method = 'editMessageMedia';
         ev.imageExposure = ev.imageExposure || await queryImageExposure(ev, env);
-        const png = await renderAlertCardPng(ev);
+        const revisions=record.revisions||[],previous= revisions.length>1?revisions[revisions.length-2].mag:record.initialMag;
+        const revisionText=revisions.length?'M'+globalThis.EventPortuguese.number(previous,1)+' → M'+globalThis.EventPortuguese.number(ev.mag,1):'';
+        const png = await renderAlertCardPng({...ev,revisionText});
         body = new FormData();
         body.append('chat_id', String(record.chatId));
         body.append('message_id', String(record.messageId));
@@ -4202,7 +4205,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v6-portuguese';
+    next.cardImageVersion = 'cartographic-v7-numbers-revisions';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
@@ -4621,13 +4624,13 @@ async function runTelegramM6Alerts(request, env) {
                 console.warn('sendPhoto rejeitado, fallback texto');
                 const response = await telegramSendMessage(
                     env,
-                    caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
+                    caption + `\n\n🗺 ${ev.lat.toFixed(2).replace('.', ',')}, ${ev.lon.toFixed(2).replace('.', ',')}\n${escapeMdLegacy(ev.url)}`
                 );
                 reservation.messageId = response.result?.message_id;
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v6-portuguese';
+            reservation.cardImageVersion = 'cartographic-v7-numbers-revisions';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4652,16 +4655,16 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v6-portuguese' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v7-numbers-revisions' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
         const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
         if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
-        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v6-portuguese') {
+        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v7-numbers-revisions') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v6-portuguese'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v7-numbers-revisions'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
@@ -5007,7 +5010,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
     const caption =
         `📊 Resumo do dia — ${day.split('-').reverse().join('/')}` +
         `\n🌍 ${quakes.events.length} sismos registrados` +
-        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1)} — ${top[0].place}`:'sem registro'}` +
+        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${top[0].place}`:'sem registro'}` +
         '\n🌐 monitorglobal.top';
     let pack;
     try {
@@ -5034,7 +5037,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
         await delivery.confirm({messageId:response.result?.message_id});
     } else {
         const text=caption+'\n\nTop 5:\n'+(top.map((e,i)=>
-            `${i+1}. M${e.mag.toFixed(1)} — ${globalThis.EventPortuguese.place(e.place)}`).join('\n')||'Sem registro');
+            `${i+1}. M${e.mag.toFixed(1).replace('.', ',')} — ${globalThis.EventPortuguese.place(e.place)}`).join('\n')||'Sem registro');
         const form=new FormData();
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('text',text.slice(0,4096));

@@ -358,7 +358,7 @@ async function fetchGlobalFeeds() {
                     const prelimMudou = !!prev.isPreliminary !== !!ev.isPreliminary;
                     if (magMudou || depthMudou || fontesMudou || qualityMudou || prelimMudou) {
                         const parts = [];
-                        if (magMudou) parts.push(`M${Number(prev.mag).toFixed(1)} → M${Number(ev.mag).toFixed(1)}`);
+                        if (magMudou) parts.push(`M${Number(prev.mag).toFixed(1).replace('.', ',')} → M${Number(ev.mag).toFixed(1).replace('.', ',')}`);
                         if (depthMudou) parts.push(`${Number(prev.depth).toFixed(0)} → ${Number(ev.depth).toFixed(0)} km`);
                         if (prelimMudou && prev.isPreliminary && !ev.isPreliminary) parts.push('preliminar → revisado');
                         if (fontesMudou && !magMudou) parts.push(`Fontes: ${ev.sourceSummary || ev.source}`);
@@ -509,7 +509,7 @@ async function fetchGlobalFeeds() {
 
             if (max.mag >= 5) {
                 notificarNavegador(
-                    `🌍 M${max.mag.toFixed(1)} — ${max.place}`,
+                    `🌍 M${max.mag.toFixed(1).replace('.', ',')} — ${max.place}`,
                     `${novosRecentes.length} novo(s) • ${max.sourceSummary || max.source}`
                 );
             }

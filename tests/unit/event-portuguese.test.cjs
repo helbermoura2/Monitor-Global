@@ -25,3 +25,10 @@ test('Portuguese speech names work without Intl.DisplayNames and preserve place 
  assert.equal(p.place('PANAMA'),'Panamá');
  assert.equal(p.speech('West Yellowstone, Montana'),'West Yellowstone, Montana');
 });
+
+
+test('Brazilian numeric presentation retains precision in raw data and normalizes revisions',()=>{
+ assert.equal(p.number(6.6,1),'6,6');assert.equal(p.number(1427358),'1.427.358');assert.equal(p.number(12.647),'13');assert.equal(p.number(-81.47,2),'-81,47');assert.equal(p.number(null),'—');assert.equal(p.number(NaN),'—');
+ const raw={mag:6.3,depth:12.647,_deltaTxt:'M6.6 → M6.3 · 10 → 13 km'};
+ assert.equal(p.revision(raw),'M6,6 → M6,3 · 10 → 13 km');assert.equal(raw.mag,6.3);assert.equal(raw.depth,12.647);assert.equal(raw._deltaTxt,'M6.6 → M6.3 · 10 → 13 km');
+});

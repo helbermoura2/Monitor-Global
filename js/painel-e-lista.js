@@ -307,7 +307,7 @@ function renderPainelTimeline(item) {
     const det = item.time ? formatTime(item.time) : '—';
     steps.push({ k: item.hazardNature==='bulletin'?'Publicado':item.hazardNature==='warning'?'Emitido':item.hazardNature==='forecast'?'Modelo':item.hazardNature==='observed'?'Observado':'Detectado', v: det });
     if (item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id))) {
-        steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(item._deltaTxt).slice(0, 28) : 'revisão' });
+        steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(window.EventPortuguese?.revision(item)||item._deltaTxt) : 'revisão' });
     }
     const src = item.sourceSummary || item.source || 'rede';
     steps.push({ k: 'Fontes', v: String(src).slice(0, 24) });
@@ -324,10 +324,9 @@ function showPanelRevisionFocus(item) {
     const note = document.getElementById('pd-revision-note');
     if (!note || !item) return;
     clearTimeout(panelRevisionTimer);
-    note.textContent = 'SISMO ATUALIZADO · ' + (item._deltaTxt || 'Dados revisados pela fonte');
+    note.textContent = 'EVENTO ATUALIZADO · ' + (window.EventPortuguese?.revision(item) || 'Dados revisados pela fonte');
     note.hidden = false;
-    // O aviso permanece durante o destaque; outra seleção limpa o aviso.
-    panelRevisionTimer = setTimeout(() => { note.hidden = true; }, 60000);
+    // Keep the revision readable until another event is selected.
 }
 
 function syncPanelPresentation(item) {
@@ -355,7 +354,7 @@ function syncPanelPresentation(item) {
             changes.push({id:'pd-depth',text:'Profundidade: '+previous.depth.toFixed(0)+' → '+current.depth.toFixed(0)+' km'});
     }
     panelPresentationPrevious=current;
-    if(!changes.length)return;
+    if(!changes.length){if(item._deltaTxt&&(item._updatedAt||activeUpdatedIds?.has(item.id)))showPanelRevisionFocus(item);return;}
     if(note){note.textContent='Revisão · '+changes.map(x=>x.text).join(' · ');note.hidden=false;}
     const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if(!reduce)changes.forEach(change=>{
@@ -364,7 +363,7 @@ function syncPanelPresentation(item) {
         el?.animate?.([{textShadow:'0 0 0 transparent'},{textShadow:'0 0 14px rgba(251,191,36,.95)'},{textShadow:'0 0 0 transparent'}],{duration:1600,easing:'ease-out'});
     });
     clearTimeout(panelRevisionTimer);
-    panelRevisionTimer=setTimeout(()=>{if(note)note.hidden=true;},8000);
+    // The static revision note persists; only the changed value briefly illuminates.
 }
 
 function enrichPainelDetalheUI(item) {
@@ -551,12 +550,12 @@ function renderSidebarList(items) {
         // enquanto o selo "ATUALIZADO" estiver ativo.
         let updatedTxt = '';
         if (activeUpdatedIds.has(item.id) && item._deltaTxt) {
-            updatedTxt = `<span class="stale-badge updated-delta">🔄 ${item._deltaTxt}</span>`;
+            updatedTxt = `<span class="stale-badge updated-delta">🔄 ${esc(window.EventPortuguese?.revision(item)||item._deltaTxt)}</span>`;
         }
 
         if (item.type === 'earthquake') {
             markup = `
-                <span class="event-icon ev-magnitude" aria-hidden="true"><small>M</small>${item.mag.toFixed(1)}</span>
+                <span class="event-icon ev-magnitude" aria-hidden="true"><small>M</small>${item.mag.toFixed(1).replace('.', ',')}</span>
                 <div class="event-body">
                 <div class="event-header">
                     <span class="ev-kind">SISMO</span>${item.isPreliminary?'<span class="ev-status">PRELIMINAR</span>':''}
@@ -1260,7 +1259,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     let magNote=document.getElementById('pd-mag-sources');
     if(!magNote){ magNote=document.createElement('div'); magNote.id='pd-mag-sources'; magNote.style.cssText='font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.45;text-align:center;'; const anchor=document.getElementById('pd-horario'); anchor && anchor.parentNode.insertBefore(magNote,anchor.nextSibling); }
     const evidence=evidenciasFontes(item);
-    const magLines=evidence.reports.map(x=>x.source+' M'+x.mag.toFixed(1)).join(' · ');
+    const magLines=evidence.reports.map(x=>x.source+' M'+x.mag.toFixed(1).replace('.', ',')).join(' · ');
     magNote.textContent=magLines ? 'Fontes: '+magLines : 'Fonte: '+(evidence.sources.join(' · ')||'não identificada');
     magNote.style.display='block';
     renderConsolidacaoFonte(item);
@@ -1321,9 +1320,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     let hh = '';
     if (his.total > 0) {
         hh += `<div class="history-item"><span>📊 Total na região:</span><span class="history-mag">${his.total}</span></div>`;
-        if (his.maior) hh += `<div class="history-item"><span>🔴 Maior:</span><span class="history-mag" style="color:${getHexColor(his.maior.mag)}">M${his.maior.mag.toFixed(1)}</span></div>`;
+        if (his.maior) hh += `<div class="history-item"><span>🔴 Maior:</span><span class="history-mag" style="color:${getHexColor(his.maior.mag)}">M${his.maior.mag.toFixed(1).replace('.', ',')}</span></div>`;
         his.eventos.slice(0, 3).forEach(e => {
-            hh += `<div class="history-item"><span style="color:#94a3b8;">• ${esc(e.place.substring(0, 25))}...</span><span class="history-mag" style="color:${getHexColor(e.mag)}">M${e.mag.toFixed(1)}</span></div>`;
+            hh += `<div class="history-item"><span style="color:#94a3b8;">• ${esc(e.place.substring(0, 25))}...</span><span class="history-mag" style="color:${getHexColor(e.mag)}">M${e.mag.toFixed(1).replace('.', ',')}</span></div>`;
         });
     } else {
         hh = '<div class="history-item" style="color:#64748b;">Nenhum evento recente (30 dias)</div>';
@@ -1340,7 +1339,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 const b = document.createElement('span');
                 b.className = 'pd-updated-badge';
                 b.style.cssText = 'margin-left:8px;padding:2px 7px;border-radius:4px;background:#475569;color:#e2e8f0;font-size:9px;font-weight:800;letter-spacing:.4px;vertical-align:middle;';
-                b.textContent = 'ATUALIZADO · ' + String(item._deltaTxt).slice(0, 48);
+                b.textContent = 'ATUALIZADO · ' + String(window.EventPortuguese?.revision(item)||item._deltaTxt).slice(0, 80);
                 pdSrc.appendChild(b);
             }
         }
@@ -1667,7 +1666,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth').innerHTML = `<span style="color:${classif.cor}">${classif.cat}</span>`;
         document.getElementById('pd-mercalli-label').textContent = 'Vento Máx.';
         document.getElementById('pd-mercalli').innerHTML = windKmh
-            ? `<span style="color:${classif.cor}">${windKmh} km/h</span>`
+            ? `<span style="color:${classif.cor}">${EventPortuguese.number(windKmh)} km/h</span>`
             : `<span style="color:#94a3b8">Sem dado</span>`;
         document.getElementById('pd-energy-label').textContent = item.pressureMb != null ? 'Pressão' : 'Fonte';
         document.getElementById('pd-energy').textContent = item.pressureMb != null
@@ -1795,7 +1794,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
         // — não é o ritmo do anel animado no mapa (esse é acelerado só pra dar pra
         // ver a revelação da zona; a onda real leva mesmo horas pra cruzar isso).
-        const etaTxt = dist => (typeof TSUNAMI_KMH === 'number') ? ` · ≈${(dist / TSUNAMI_KMH).toFixed(1)}h de viagem` : '';
+        const etaTxt = dist => (typeof TSUNAMI_KMH === 'number') ? ` · ≈${(dist / TSUNAMI_KMH).toFixed(1).replace('.', ',')}h de viagem` : '';
         document.getElementById('pd-cities-title').textContent = '🌊 Países e cidades próximas';
         document.getElementById('pd-cities').innerHTML =
             '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🌊 Países potencialmente afetados (2.000 km)</div>' +
@@ -1912,7 +1911,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                 const b = document.createElement('span');
                 b.className = 'pd-updated-badge';
                 b.style.cssText = 'margin-left:8px;padding:2px 7px;border-radius:4px;background:#475569;color:#e2e8f0;font-size:9px;font-weight:800;letter-spacing:.4px;vertical-align:middle;';
-                b.textContent = 'ATUALIZADO · ' + String(item._deltaTxt).slice(0, 48);
+                b.textContent = 'ATUALIZADO · ' + String(window.EventPortuguese?.revision(item)||item._deltaTxt).slice(0, 80);
                 pdSrc.appendChild(b);
             }
         }
