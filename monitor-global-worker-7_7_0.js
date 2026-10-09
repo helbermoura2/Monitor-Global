@@ -1188,14 +1188,10 @@ const TELEGRAM_ALERT_TTL = 86400 * 3; // 3 dias de memória anti-spam
 // nos primeiros minutos — cada rede sismológica que contribui pro catálogo
 // (ex.: "us", "pt"/IPMA, etc.) publica sua própria solução de magnitude/
 // profundidade, com ID próprio, antes do ComCat mesclar tudo numa única
-// entrada "preferida". O dedup abaixo é só por ID, então cada solução vira
-// um alerta M6+ separado — foi o que aconteceu com M7.0 (rede PT) e M6.6
-// (rede US) do mesmo tremor perto de Tadine, Nova Caledônia, chegando como
-// dois cards de ~2s de diferença. TELEGRAM_DUP_KM/TELEGRAM_DUP_WINDOW_MS
-// definem quando duas dessas soluções contam como "provavelmente o mesmo
-// tremor" pra virar uma mensagem de atualização em vez de um card novo.
-const TELEGRAM_DUP_KM = 150;
-const TELEGRAM_DUP_WINDOW_MS = 30 * 60000;
+// entrada "preferida". Antes, cada ID produzia um cartão separado, inclusive
+// M7.0 (PT) e M6.6 (US) do mesmo tremor perto de Tadine, Nova Caledônia.
+// Agora, rede, horário de origem e epicentro identificam estimativas do mesmo
+// tremor para atualizar o cartão original, preservando os eventos distintos.
 
 // ---------- Card PNG (gerado no Worker, sem dependência externa) ----------
 // =========================================================
@@ -4202,7 +4198,7 @@ function escapeMdLegacy(str) {
     return String(str ?? '').replace(/([_*`[])/g, '\\$1');
 }
 
-function telegramCaption(ev) {
+function telegramCaption(ev, record) {
     const mag = Number(ev.mag).toFixed(1);
     const place = escapeMdLegacy(ev.place || 'Local desconhecido');
     const depth = Number.isFinite(ev.depth) ? `${ev.depth} km` : '—';
@@ -4216,13 +4212,17 @@ function telegramCaption(ev) {
         `📐 Profundidade: ${depth}\n` +
         `🕒 ${when}\n` +
         `📡 Fonte: ${src} · ${status}\n` +
+        `Magnitude sujeita a revisão.\n` +
+        (record?.revisions?.length ? `\nInicial: *M${Number(record.initialMag).toFixed(1)}* · Atual: *M${mag}*\n` +
+            `Atualizado às ${new Date(record.updatedAt).toLocaleTimeString("pt-BR", {timeZone: "America/Sao_Paulo"})} BRT\n` +
+            record.revisions.slice(-3).map(r => `${r.sameSource ? "Revisão da fonte" : "Nova estimativa"}: M${Number(r.mag).toFixed(1)} (${escapeMdLegacy(r.source)})`).join("\n") + "\n" : "") +
         `\n📢 Canal: @monitor\\_global\n` +
         `🌐 https://monitorglobal.top`
     );
 }
 
 // Procura, entre os alertas M6+ já enviados recentemente, um que esteja
-// perto (TELEGRAM_DUP_KM) e próximo no tempo (TELEGRAM_DUP_WINDOW_MS) do
+// de outra rede, com até 30 segundos de diferença na origem e epicentro próximo do
 // evento novo — sinal forte de que é a MESMA ocorrência sob outro ID de
 // rede, e não um sismo novo de verdade.
 function findNearDuplicateAlert(ev, sentRecords) {
@@ -4230,12 +4230,12 @@ function findNearDuplicateAlert(ev, sentRecords) {
     for (const r of sentRecords) {
         if (!r || r.id === ev.id || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
         const rTime = r.timeIso ? new Date(r.timeIso).getTime() : null;
-        if (r.baseline || !Number.isFinite(evTime) || !Number.isFinite(rTime)) continue;
+        if (r.baseline || r.delivery === 'uncertain' || r.delivery === 'sending' || !Number.isFinite(evTime) || !Number.isFinite(rTime)) continue;
         const small = ev.brazil || r.brazil;
-        if (small && (ev.provider || ev.source) === (r.provider || r.source)) continue;
-        if (Math.abs(evTime - rTime) > (small ? 30000 : TELEGRAM_DUP_WINDOW_MS)) continue;
-        if (small && Math.abs(ev.mag - r.mag) > 0.6) continue;
-        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= (small ? 20 : TELEGRAM_DUP_KM)) return r;
+        if ((ev.source || ev.provider) === (r.source || r.provider)) continue;
+        if (Math.abs(evTime - rTime) > 30000) continue;
+        if (Math.abs(ev.mag - r.mag) > (small ? 0.6 : 1)) continue;
+        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= (small ? 20 : 50)) return r;
     }
     return null;
 }
@@ -4251,11 +4251,11 @@ function telegramUpdateMessage(ev, dup) {
     const oldSrc = escapeMdLegacy(dup.source || 'USGS');
     const arrow = ev.mag > dup.mag ? '⬆️' : ev.mag < dup.mag ? '⬇️' : '➡️';
     return (
-        `🔄 *Atualização de magnitude* ${arrow}\n` +
+        `🔄 *${ev.source === dup.source ? "Revisão da fonte" : "Nova estimativa de outra rede"}* ${arrow}\n` +
         `${place}\n\n` +
         `Antes: *M${oldMag}* (rede ${oldSrc})\n` +
         `Agora: *M${newMag}* (rede ${newSrc})\n\n` +
-        `_Provavelmente o mesmo tremor, calculado por redes sísmicas diferentes._\n` +
+        `O cartão do alerta foi atualizado.\n` +
         `📢 Canal: @monitor\\_global`
     );
 }
@@ -4287,7 +4287,7 @@ async function telegramSendPhoto(env, ev, caption) {
     return data;
 }
 
-async function telegramSendMessage(env, text) {
+async function telegramSendMessage(env, text, replyTo) {
     const token = env.TELEGRAM_BOT_TOKEN;
     const chatId = env.TELEGRAM_CHAT_ID;
     if (!token || !chatId) throw new Error('TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não configurados');
@@ -4300,7 +4300,8 @@ async function telegramSendMessage(env, text) {
             chat_id: chatId,
             text: text.slice(0, 4000),
             parse_mode: 'Markdown',
-            disable_web_page_preview: false
+            disable_web_page_preview: false,
+            ...(replyTo ? {reply_parameters: {message_id: replyTo, allow_sending_without_reply: false}} : {})
         })
     });
     const data = await r.json().catch(() => ({}));
@@ -4310,6 +4311,78 @@ async function telegramSendMessage(env, text) {
         throw error;
     }
     return data;
+}
+
+// Edição é idempotente: uma falha pode ser tentada novamente sem duplicar o alerta.
+function telegramEventVersion(ev) {
+    return JSON.stringify([ev.mag, ev.depth, ev.lat, ev.lon, ev.timeIso, ev.source, !!ev.reviewed]);
+}
+function telegramImportantChange(before, after) {
+    return Math.abs(after.mag - before.mag) >= 0.3 - 1e-8 ||
+        [6, 7].some(limit => (before.mag >= limit) !== (after.mag >= limit));
+}
+async function telegramEditAlert(env, ev, record) {
+    const caption = telegramCaption(ev, record).slice(0, 1024);
+    let body, method;
+    if (record.messageType === 'text') {
+        method = 'editMessageText';
+        body = JSON.stringify({chat_id: record.chatId, message_id: record.messageId, text: caption, parse_mode: 'Markdown'});
+    } else {
+        method = 'editMessageMedia';
+        const png = await renderAlertCardPng(ev);
+        body = new FormData();
+        body.append('chat_id', String(record.chatId));
+        body.append('message_id', String(record.messageId));
+        body.append('media', JSON.stringify({type: 'photo', media: 'attach://card', caption, parse_mode: 'Markdown'}));
+        body.append('card', new Blob([png], {type: 'image/png'}), 'monitor-global-atualizado.png');
+    }
+    const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
+        method: 'POST', ...(typeof body === 'string' ? {headers: {'Content-Type': 'application/json'}} : {}), body
+    });
+    const data = await response.json().catch(() => ({}));
+    if ((!response.ok || !data.ok) && !/message is not modified/i.test(data.description || ''))
+        throw new Error(data.description || `Telegram edição HTTP ${response.status}`);
+}
+async function telegramReviseAlert(request, env, ev, observed, root, records) {
+    const before = {...(root.currentEvent || root)};
+    const revision = {mag: ev.mag, source: ev.source, sameSource: ev.source === before.source, at: nowIso()};
+    const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
+        revisions: [...(root.revisions || []), revision].slice(-12)};
+    if (root.messageId) await telegramEditAlert(env, ev, next);
+    // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
+    const noticeBaseline = root.noticeBaseline || before;
+    const important = telegramImportantChange(noticeBaseline, ev);
+    Object.assign(root, next, {currentEvent: ev});
+    observed.observedVersion = telegramEventVersion(ev);
+    if (important || root.pendingNotice) root.pendingNotice = {
+        before: root.pendingNotice?.before || noticeBaseline, after: ev,
+        at: root.pendingNotice?.at || Date.now()
+    };
+    await saveSentAlerts(request, records, env);
+    await telegramHistoryWrite(env, 'telegram-history-m6:' + new Date().toISOString() + ':' + crypto.randomUUID(), {
+        kind: ev.brazil ? 'br-update' : 'm6-update', at: Date.now(), status: 'sent', mag: ev.mag, place: ev.place,
+        previousMag: before.mag, messageId: root.messageId, sameSource: revision.sameSource,
+        events: [{at: Date.now(), stage: root.messageId ? 'edited' : 'legacy-update'}]
+    });
+
+}
+
+// Agrupa mudanças por pelo menos 30s. O próximo cron publica somente a estimativa final.
+async function telegramFlushRevisionNotices(request, env, records) {
+    for (const root of records) {
+        const notice = root.pendingNotice;
+        if (!notice || Date.now() - notice.at < 30000) continue;
+        delete root.pendingNotice;
+        const important = telegramImportantChange(notice.before, notice.after);
+        if (important) root.noticeBaseline = notice.after;
+        // Reserva antes do envio: timeout não provoca um aviso repetido na próxima consulta.
+        await saveSentAlerts(request, records, env);
+        if (!important) continue;
+        try {
+            await telegramSendMessage({...env, TELEGRAM_CHAT_ID: root.chatId ?? env.TELEGRAM_CHAT_ID}, root.messageId ? telegramUpdateMessage(notice.after, notice.before) :
+                telegramUpdateMessage(notice.after, notice.before).replace('O cartão do alerta foi atualizado.', 'Atualização de alerta anterior.'), root.messageId);
+        } catch (error) { console.error('Telegram aviso de revisão:', error.message); }
+    }
 }
 
 // Chave dentro do KV "TTS_USAGE" (já existe pra outra coisa — cota de
@@ -4410,7 +4483,7 @@ function telegramBrazilEvents(data, provider, format) {
     const entries = format === 'text' ? data.split(/\r?\n/).filter(line => line && !line.startsWith('#')).map(line => {
         const c = line.split('|');
         return {id: c[0], time: c[1], lat: c[2], lon: c[3], depth: c[4], mag: c[10], place: c[12], type: c[13]};
-    }) : (data.features || []).map(f => ({id: f.id, time: f.properties?.time, lat: f.geometry?.coordinates?.[1], lon: f.geometry?.coordinates?.[0], depth: f.geometry?.coordinates?.[2], mag: f.properties?.mag, place: f.properties?.place || f.properties?.flynn_region, type: f.properties?.type || ({ke: 'earthquake', se: 'earthquake'}[f.properties?.evtype] || f.properties?.evtype), reviewed: f.properties?.status === 'reviewed', url: f.properties?.url}));
+    }) : (data.features || []).map(f => ({id: f.id, time: f.properties?.time, lat: f.geometry?.coordinates?.[1], lon: f.geometry?.coordinates?.[0], depth: f.geometry?.coordinates?.[2], mag: f.properties?.mag, place: f.properties?.place || f.properties?.flynn_region, type: f.properties?.type || ({ke: 'earthquake', se: 'earthquake'}[f.properties?.evtype] || f.properties?.evtype), source: f.properties?.net?.toUpperCase(), reviewed: f.properties?.status === 'reviewed', url: f.properties?.url}));
     for (const e of entries) {
         if ([e.lat, e.lon, e.mag].some(v => v == null || String(v).trim() === '')) continue;
         const lat = Number(e.lat), lon = Number(e.lon), mag = Number(e.mag);
@@ -4421,7 +4494,7 @@ function telegramBrazilEvents(data, provider, format) {
         out.push({id: provider === 'USGS' ? String(e.id) : provider + '-' + e.id,
             provider, brazil: true, mag, lat, lon, depth: e.depth != null && e.depth !== '' && Number.isFinite(Number(e.depth)) ? Math.round(Math.abs(Number(e.depth))) : null,
             place: (e.place || 'Local não informado') + (/brazil|brasil/i.test(e.place || '') ? '' : ', Brasil'),
-            timeIso: date.toISOString(), source: provider, reviewed: provider === 'USP' || !!e.reviewed,
+            timeIso: date.toISOString(), source: e.source || provider, reviewed: provider === 'USP' || !!e.reviewed,
             url: e.url || 'https://monitorglobal.top'});
     }
     return out;
@@ -4466,13 +4539,30 @@ export class EarthquakeAlertDelivery {
             const env = {...this.env, EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
-                        const value = await storage.get(key);
+                        let value;
+                        if (key === TELEGRAM_SENT_KV_KEY) {
+                            const chunks = await storage.get(key + ':chunks');
+                            if (Number.isInteger(chunks)) {
+                                const parts = await Promise.all(Array.from({length: chunks}, (_, i) => storage.get(key + ':part:' + i)));
+                                if (parts.some(part => typeof part !== 'string')) throw new Error('Histórico Telegram incompleto');
+                                return parts.join('');
+                            }
+                        }
+                        value = await storage.get(key);
                         return value === undefined ? kv?.get(key, ...args) : value;
                     }
                     return kv?.get(key, ...args);
                 },
                 put: async (key, value, opts) => {
-                    if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) await storage.put(key, value);
+                    if (key === TELEGRAM_SENT_KV_KEY) {
+                        // 24 mil caracteres cabem no limite mesmo com UTF-8 de quatro bytes.
+                        const parts = Array.from({length: Math.ceil(value.length / 24000)}, (_, i) => value.slice(i * 24000, (i + 1) * 24000));
+                        const write = async target => {
+                            for (let i = 0; i < parts.length; i++) await target.put(key + ':part:' + i, parts[i]);
+                            await target.put(key + ':chunks', parts.length);
+                        };
+                        if (storage.transaction) await storage.transaction(write); else await write(storage);
+                    } else if (key.startsWith('telegram-brazil-baseline:')) await storage.put(key, value);
                     else await kv?.put(key, value, opts);
                 }
             }};
@@ -4483,16 +4573,16 @@ export class EarthquakeAlertDelivery {
     }
 }
 
-async function fetchUsgsM6Recent() {
+async function fetchUsgsM6Recent(eventId) {
     const start = new Date(Date.now() - 6 * 3600000).toISOString(); // últimas 6h
     const url =
         'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson' +
         `&starttime=${encodeURIComponent(start)}` +
         `&minmagnitude=${TELEGRAM_MIN_MAG}` +
         '&orderby=time&limit=30';
-    const d = await fetchJson(url, {}, 15000);
+    const d = await fetchJson(eventId ? "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventid=" + encodeURIComponent(eventId) : url, {}, 15000);
     const out = [];
-    for (const f of d.features || []) {
+    for (const f of (eventId ? [d] : d.features || [])) {
         const p = f.properties || {};
         const c = f.geometry?.coordinates || [];
         if (p.mag == null || p.type && p.type !== 'earthquake') continue;
@@ -4500,7 +4590,7 @@ async function fetchUsgsM6Recent() {
         const lon = Number(c[0]);
         const lat = Number(c[1]);
         const depth = Number(c[2]);
-        if (![mag, lat, lon].every(Number.isFinite) || mag < TELEGRAM_MIN_MAG) continue;
+        if (![mag, lat, lon].every(Number.isFinite) || (!eventId && mag < TELEGRAM_MIN_MAG)) continue;
         const id = String(f.id || p.code || `${mag}-${lat}-${lon}-${p.time}`);
         out.push({
             id,
@@ -4587,12 +4677,19 @@ async function runTelegramM6Alerts(request, env) {
         };
     }
 
+    const sentRecords = await loadSentAlerts(request, env);
     const [globalResult, brazil] = await Promise.all([
         fetchUsgsM6Recent().then(events => ({events})).catch(() => ({events: [], failed: true})),
         fetchTelegramBrazilRecent(env)
     ]);
     const events = [...globalResult.events];
-    const sentRecords = await loadSentAlerts(request, env);
+    // O filtro M6 deixa de retornar revisões M5.9: consultar os IDs já anunciados por 72h.
+    const tracked = sentRecords.filter(r => (r.provider === 'USGS' || !r.provider && r.url?.includes('earthquake.usgs.gov')) && !r.baseline &&
+        Date.parse(r.timeIso) >= Date.now() - 72 * 3600000 && !events.some(ev => ev.id === r.id));
+    for (let i = 0; i < tracked.length; i += 5) {
+        const results = await Promise.allSettled(tracked.slice(i, i + 5).map(r => fetchUsgsM6Recent(r.id)));
+        for (const result of results) if (result.status === 'fulfilled') events.push(...result.value);
+    }
     const sentIds = new Set(sentRecords.map(r => r.id));
     for (const source of brazil.sources) {
         if (!source.ready) {
@@ -4611,18 +4708,34 @@ async function runTelegramM6Alerts(request, env) {
 
     for (const ev of events) {
         if (sentIds.has(ev.id)) {
-            skipped.push(ev.id);
+            const observed = sentRecords.find(r => r.id === ev.id);
+            const root = observed.aliasOf ? sentRecords.find(r => r.id === observed.aliasOf) : observed;
+            if (!observed.baseline && Number.isFinite(observed.mag) && observed.delivery !== 'uncertain' && observed.delivery !== 'sending' && root &&
+                (observed.observedVersion || telegramEventVersion(observed)) !== telegramEventVersion(ev)) {
+                try {
+                    const previousMag = (root.currentEvent || root).mag;
+                    await telegramReviseAlert(request, env, ev, observed, root, sentRecords);
+                    updates.push({id: ev.id, mag: ev.mag, previousMag});
+                } catch (error) { console.error('Telegram edição pendente:', ev.id, error.message); }
+            } else skipped.push(ev.id);
             continue;
         }
-        // Antes de tratar como sismo novo, checa se é provavelmente a MESMA
-        // ocorrência de um alerta já mandado sob outro ID de rede (ver
-        // findNearDuplicateAlert) — nesse caso manda só uma atualização de
-        // magnitude, sem duplicar o card cheio.
+        // Estimativa de outra rede para a mesma origem: editar o cartão original.
+        // Horário de origem, epicentro e redes diferentes evitam juntar réplicas.
         const dup = findNearDuplicateAlert(ev, sentRecords);
-        if (dup && ev.brazil && Math.abs(ev.mag - dup.mag) < 0.1) {
-            sentIds.add(ev.id); sentRecords.push({...ev, aliasOf: dup.id});
-            await saveSentAlerts(request, sentRecords, env);
-            skipped.push(ev.id); continue;
+        if (dup) {
+            const root = (dup.aliasOf ? sentRecords.find(r => r.id === dup.aliasOf) : dup) || dup;
+            const alias = {...ev, aliasOf: root.id};
+            sentRecords.push(alias);
+            try {
+                const before = {...(root.currentEvent || root)};
+                if (telegramEventVersion(ev) !== telegramEventVersion(before))
+                    await telegramReviseAlert(request, env, ev, alias, root, sentRecords);
+                else await saveSentAlerts(request, sentRecords, env);
+                sentIds.add(ev.id);
+                updates.push({id: ev.id, mag: ev.mag, comparedTo: root.id, previousMag: before.mag});
+            } catch (error) { sentRecords.splice(sentRecords.indexOf(alias), 1); console.error('Telegram edição pendente:', ev.id, error.message); }
+            continue;
         }
         const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
         const history={kind:ev.brazil?(dup?'br-update':'br'):(dup?'m6-update':'m6'),at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
@@ -4632,24 +4745,28 @@ async function runTelegramM6Alerts(request, env) {
         sentRecords.push(reservation); sentIds.add(ev.id);
         await saveSentAlerts(request, sentRecords, env);
         try {
-            if (dup) {
-                await telegramSendMessage(env, telegramUpdateMessage(ev, dup));
-                updates.push({ id: ev.id, mag: ev.mag, place: ev.place, comparedTo: dup.id, previousMag: dup.mag });
-            } else {
-                const caption = telegramCaption(ev);
-                try {
-                    await telegramSendPhoto(env, ev, caption);
-                } catch (photoErr) {
-                    // Fallback: só texto, se o mapa estático falhar
-                    if (!photoErr.telegramRejected && !photoErr.cardFailed) throw photoErr;
-                    console.warn('sendPhoto rejeitado, fallback texto');
-                    await telegramSendMessage(
-                        env,
-                        caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
-                    );
-                }
-                sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
+            const caption = telegramCaption(ev);
+            try {
+                const response = await telegramSendPhoto(env, ev, caption);
+                reservation.messageId = response.result?.message_id;
+                reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
+                reservation.messageType = "photo";
+            } catch (photoErr) {
+                // Fallback: só texto, se o mapa estático falhar
+                if (!photoErr.telegramRejected && !photoErr.cardFailed) throw photoErr;
+                console.warn('sendPhoto rejeitado, fallback texto');
+                const response = await telegramSendMessage(
+                    env,
+                    caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
+                );
+                reservation.messageId = response.result?.message_id;
+                reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
+                reservation.messageType = "text";
             }
+            reservation.initialMag = ev.mag;
+            reservation.noticeBaseline = ev;
+            reservation.observedVersion = telegramEventVersion(ev);
+            sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
             history.status='sent';history.sentAt=Date.now();
             history.events.push({at:history.sentAt,stage:'sent'});
             await telegramHistoryWrite(env,historyKey,history);
@@ -4667,6 +4784,7 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
+    await telegramFlushRevisionNotices(request, env, sentRecords);
     if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
     return {
