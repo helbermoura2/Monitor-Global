@@ -1,6 +1,6 @@
 /* Reuse the same status button and clock; retain mobile header ownership. */
 (function(){
-  const desktop=matchMedia('(min-width:1101px)');
+  const desktop=matchMedia('(min-width:901px)');
   let badgeHome,weatherHome;
   function apply(){
     const badge=document.getElementById('ao-vivo-badge'),weather=document.getElementById('sp-live-card'),row=document.querySelector('#top-strip > .ts-mainrow'),fresh=document.getElementById('freshness-bar');
