@@ -2,17 +2,18 @@
 (function(){
  'use strict';
  let dialog=null,bar=null,timer=0,active=false;
- const labels={earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami',wind:'Rajadas de vento'};
+ const labels={civil:'Alerta · varredura',dry:'Baixa umidade',earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami',wind:'Rajadas de vento'};
  function removeControls(){clearTimeout(timer);timer=0;bar?.remove();bar=null;dialog?.remove();dialog=null;}
  function cancelForRealEvent(){active=false;removeControls();}
  function stop(){const was=active;active=false;removeControls();if(was){window.CinematicCard?.stop();}}
  function preview(key){
   stop();window.SeismicCinema?.closeDemo();
   if(key==='earthquake'){window.SeismicCinema?.openDemo();return;}
-  const type=key.startsWith('volcano')?'volcano':['typhoon','tropical-storm','depression'].includes(key)?'hurricane':key;
+  const type=key==='dry'?'civil':key.startsWith('volcano')?'volcano':['typhoon','tropical-storm','depression'].includes(key)?'hurricane':key;
   const item={id:'effect-demo-'+key,type,__cinemaDemo:true,sev:3,windKmh:140,detail:labels[key]};
   if(key==='depression')item.windKmh=45;
   if(key==='tropical-storm')item.windKmh=85;
+  if(key==='dry')item.descOnly='Baixa Umidade';
   if(key==='storm')item.detail='Trovoadas e chuva intensa';
   if(key==='volcano-lava')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Fluxo de lava ativo · emissão de cinzas'});
   if(key==='volcano-ash')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Emissão de cinzas · sem lava'});
