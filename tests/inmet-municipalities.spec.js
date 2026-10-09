@@ -36,3 +36,27 @@ for(const width of [1280,390])test('storm and dry-air icons follow all INMET sev
  const board=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=360;c.height=160;const ctx=c.getContext('2d');ctx.fillStyle='#071d2d';ctx.fillRect(0,0,360,160);for(const [j,kind] of ['lightning','dry'].entries())for(const [i,color] of ['facc15','fb923c','ef4444'].entries()){const data=map.getImage('inmet-'+kind+'-'+color).data;ctx.putImageData(new ImageData(new Uint8ClampedArray(data.data),64,64),i*120+28,j*80+8);}return c.toDataURL();});
  require('fs').writeFileSync('/tmp/inmet-warning-icons-'+width+'.png',Buffer.from(board.split(',')[1],'base64'));
 });
+
+for(const width of [1280,390])test('official alert areas replace emoji crowds, severity overlap and one focus icon '+width,async({page})=>{
+ await boot(page,width);
+ await page.evaluate(async()=>{
+  const local=t=>new Date(t-3*3600000).toISOString().slice(0,19).replace('T',' ');
+  const polygon=(x0,x1)=>JSON.stringify({type:'Polygon',coordinates:[[[x0,-24],[x1,-24],[x1,-23],[x0,-23],[x0,-24]]]});
+  const base={estados:'São Paulo',municipios:'São Paulo - SP, Santo André - SP, Guarulhos - SP',inicio:local(Date.now()-60000),fim:local(Date.now()+3600000)};
+  __fixtureWarnings=[{...base,id:'dry-area',id_aviso:'dry-area',descricao:'Baixa Umidade',severidade:'Perigo',poligono:polygon(-47,-46)},{...base,id:'rain-area',id_aviso:'rain-area',descricao:'Tempestade',severidade:'Grande Perigo',poligono:polygon(-46.7,-46.3)}];
+  await fetchInmetAvisos();clearTimeout(cycleTimeout);eventoSelecionadoId=null;syncAllMarkers();map.jumpTo({center:[-46.6,-23.55],zoom:8});
+ });
+ let data=await page.evaluate(async()=>({areas:(await map.getSource('inmet-warning-areas').getData()).features,focus:(await map.getSource('inmet-warning-focus').getData()).features,icons:map.queryRenderedFeatures({layers:['inmet-municipality-icons']}).length}));
+ expect(data.areas.length).toBe(2);expect(data.focus).toEqual([]);expect(data.icons).toBe(0);
+ const overlap=await page.evaluate(async()=>{const f=(await map.getSource('inmet-warning-areas').getData()).features;return polygonClipping.intersection(f[0].geometry.coordinates,f[1].geometry.coordinates);});expect(overlap).toEqual([]);
+ expect(data.areas.find(f=>f.properties.kind==='dry').properties.color).toBe('#fb923c');expect(data.areas.find(f=>f.properties.kind==='rain').properties.color).toBe('#ef4444');
+ for(const mode of ['manual','auto','new']){
+  await page.evaluate(mode=>{PresentationLimits.clear();eventoSelecionadoId=null;window.__mgSoftCycle=mode==='auto';showAlertDetails(globalAlerts.find(a=>a.id==='inmet-rain-area'),mode==='new');clearTimeout(cycleTimeout);syncAllMarkers();},mode);
+  expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-focus').getData()).features.length)).toBe(1);
+  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('inmet-rain-area');
+ }
+ await page.evaluate(()=>{eventoSelecionadoId='unrelated-earthquake';syncAllMarkers();});expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-focus').getData()).features)).toEqual([]);
+ await page.evaluate(()=>{layerVisibility.lightning=false;syncAllMarkers();});data=await page.evaluate(async()=>(await map.getSource('inmet-warning-areas').getData()).features);expect(data.length).toBe(1);expect(data[0].properties.kind).toBe('dry');
+ await page.evaluate(()=>{globalAlerts.forEach(a=>a.fimTs=Date.now()-1);syncAllMarkers();});expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-areas').getData()).features)).toEqual([]);
+ expect(await page.evaluate(()=>InmetAreas.geometry('{broken'))).toBe(null);
+});

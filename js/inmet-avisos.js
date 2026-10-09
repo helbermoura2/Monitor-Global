@@ -446,6 +446,7 @@ async function fetchInmetAvisos() {
                 // precisar tentar desmontar o `place` já formatado.
                 descOnly: desc,
                 municipalities:window.InmetMunicipalities?.resolve(pick.munis,ufs)||pick.munis.map(m=>({name:m.nome,uf:m.uf,coords:null})),
+                warningGeometry:window.InmetAreas?.geometry(a.poligono)||null,
                 hazardNature:'warning'
             };
             obj.municipalityLocations=obj.municipalities.filter(m=>Array.isArray(m.coords));
