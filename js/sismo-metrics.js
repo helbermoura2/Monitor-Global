@@ -438,7 +438,6 @@ let waveFrontAtivo = false, waveFrontInterval = null;
 // GlobalQuake) — guarda a referência do handler de interação pra poder
 // remover no stopWaveFront, senão cada sismo novo empilha mais um listener.
 let waveCamAbortHandler = null;
-let waveFrontPlaceHandler = null;
 let waveCamRAF = null;
 let waveFrontGeneration = 0;
 let waveFrontStatus = null;
@@ -477,10 +476,6 @@ function stopWaveFront(keepImpact = false) {
             map && map.off('touchstart', waveCamAbortHandler);
         } catch (e) {}
         waveCamAbortHandler = null;
-    }
-    if (waveFrontPlaceHandler) {
-        try { map && map.off('move', waveFrontPlaceHandler); map && map.off('zoom', waveFrontPlaceHandler); } catch (e) {}
-        waveFrontPlaceHandler = null;
     }
     if (waveFrontAtivo) {
         try {
@@ -564,9 +559,18 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
-    function impactRadius(){return Math.max(1,window.SeismicImpact?.extent(context.mag,context.depth)||1);}
+    let impactExtentCache=null;
+    function impactRadius(){
+        if(!impactExtentCache||impactExtentCache.mag!==context.mag||impactExtentCache.depth!==context.depth){
+            impactExtentCache={mag:context.mag,depth:context.depth,radius:Math.max(1,window.SeismicImpact?.extent(context.mag,context.depth)||1)};
+        }
+        return impactExtentCache.radius;
+    }
     function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,impactRadius());}
     const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
+    // O Mapbox reprojeta as coordenadas durante pan/zoom. Enviar a mesma
+    // geometria de novo só repete trabalho no worker, especialmente no quadro final.
+    const renderedWaves=new Map(),renderedOpacity=new Map();
     // M5+: S até o alcance sentido → P por 6s → área pintada por 8s
     // → repete P/área até o fim → área pintada por 10s. A física não pausa.
     const place = () => {
@@ -602,8 +606,17 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(waveFrontStatus.style.top!==top)waveFrontStatus.style.top=top;
         }
         try {
-            WAVE_LAYER_IDS.forEach(id=>{if(map.getLayer(id))map.setPaintProperty(id,'line-opacity',alpha*(id.endsWith('-glow')?.5:1));});
-            for(const phase of WAVE_PHASES){const km=radii[phase];map.getSource(`wave-front-${phase}`)?.setData({type:'Feature',geometry:{type:'LineString',coordinates:km===null?[]:anelGeodesico(context.lng,context.lat,km,256,model.EARTH_RADIUS)}});}
+            WAVE_LAYER_IDS.forEach(id=>{
+                const opacity=alpha*(id.endsWith('-glow')?.5:1);
+                if(map.getLayer(id)&&renderedOpacity.get(id)!==opacity){map.setPaintProperty(id,'line-opacity',opacity);renderedOpacity.set(id,opacity);}
+            });
+            for(const phase of WAVE_PHASES){
+                const km=radii[phase],source=map.getSource(`wave-front-${phase}`),previous=renderedWaves.get(phase);
+                if(!source)continue;
+                if(previous&&previous.source===source&&previous.km===km&&(km===null||(previous.lng===context.lng&&previous.lat===context.lat)))continue;
+                source.setData({type:'Feature',geometry:{type:'LineString',coordinates:km===null?[]:anelGeodesico(context.lng,context.lat,km,256,model.EARTH_RADIUS)}});
+                renderedWaves.set(phase,{source,km,lng:context.lng,lat:context.lat});
+            }
         } catch (e) {}
         if(context.finalFrame&&(!chaseCam||camAbortada)&&context.stage==='settling')finishOpening();
     };
@@ -700,6 +713,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 if(context.impactHoldUntil===null&&Math.abs(camZoomAtual-zoomAlvoBruto)<.015){context.impactHoldUntil=Date.now()+8000;context.phaseUntil=context.impactHoldUntil;}
                 if(context.impactHoldUntil!==null&&Date.now()>=context.impactHoldUntil){context.cameraPhase='p-rest';context.phaseUntil=Date.now()+6000;}
             }
+            // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.
+            if(window.__mgWaveFrontState){window.__mgWaveFrontState.cameraPhase=context.cameraPhase;window.__mgWaveFrontState.phaseUntil=context.phaseUntil;}
             // Termina quando não há nova chegada P e a câmera convergiu (dentro de
             // uma folga pequena) — antes disso continua ajustando quadro a
             // quadro, mesmo que o ajuste esteja ficando imperceptivelmente
@@ -713,18 +728,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         };
         waveCamRAF = requestAnimationFrame(camLoop);
     }
-    // A geometria em si (lng/lat real) o Mapbox reprojeta sozinho em
-    // qualquer pan/zoom — mas o chase-cam (dentro de place()) ainda precisa
-    // rodar em cada frame de câmera, não só no tick de 300ms: só no
-    // setInterval, a correção perdia ritmo justamente durante a própria
-    // easeTo do chase-cam (que dispara 'move'/'zoom' em cada frame dela),
-    // deixando a câmera acumular atraso atrás do crescimento real do anel
-    // (raio em tela chegando a passar de 650px, medido). Recalcular o anel
-    // geodésico a mais vezes por causa disso é barato, sai bem mais barato
-    // que a câmera vazando atrás do anel.
-    waveFrontPlaceHandler = place;
-    map.on('move', place);
-    map.on('zoom', place);
+    // Câmera: amortecimento e previsão em cada frame, calculados acima.
+    // Ondas: relógio físico a cada 300ms (1500ms com movimento reduzido).
+    // Pan/zoom não recalculam a geometria nem reenviam GeoJSON ao worker.
     requestAnimationFrame(() => requestAnimationFrame(() => {
         if(!waveFrontAtivo||generation!==waveFrontGeneration)return;
         try {
