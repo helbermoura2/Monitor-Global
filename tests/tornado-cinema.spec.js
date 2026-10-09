@@ -29,7 +29,7 @@ async function captureCard(page,options){
  await page.screenshot({...options,clip:{x,y,width:Math.min(r.width,v.width-x),height:Math.min(r.height,v.height-y)}});
 }
 async function boot(page,width=1280,controlled=false){
- await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.fallback():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTornadoField);
+ await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.fallback():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tornado"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTornadoField);
  if(controlled){await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));}
  await page.evaluate(()=>{const item={id:'real-tornado-qa',type:'tornado',source:'Defesa Civil',place:'Tornado — São Paulo 🇧🇷',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
  if(controlled)await page.clock.runFor(1800);

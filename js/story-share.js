@@ -1833,7 +1833,10 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
-  else install();
+  window.shareEventAsStory=shareEventAsStory;
+  if(!window.OptionalFeatures){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
+    else install();
+  }
 })();
 

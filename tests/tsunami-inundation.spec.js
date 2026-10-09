@@ -4,7 +4,7 @@ test.use({serviceWorkers:'block'});
 async function boot(page,width,cpu=false){
  if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
  await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
  await expect(page.locator('#pd-local')).toContainText('boletim de teste');
 }

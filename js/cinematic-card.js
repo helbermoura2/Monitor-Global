@@ -3,7 +3,7 @@
  'use strict';
  const TYPES=new Set(['storm','hurricane','tornado','fire','volcano','flood','tsunami','earthquake','wind','civil']);
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
- let scene=null,ghost=null,ghostTimer=0,raf=0,idleTimer=0,serial=0;
+ let scene=null,pending=null,ghost=null,ghostTimer=0,raf=0,idleTimer=0,serial=0;
  const rand=(a,b)=>a+Math.random()*(b-a),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  const panel=()=>document.getElementById('painel-direito');
  function cycloneStage(item){
@@ -69,6 +69,7 @@
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
  function clearWind(){const p=panel();for(const key of WIND_PROPERTIES)p?.style.removeProperty(key);}
  function stop(){
+  if(pending){clearTimeout(pending.timer);panel()?.classList.remove('pd-fx-'+pending.type);pending=null;}
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
   if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
@@ -103,13 +104,24 @@
   const monitoring=activity&&!activity.eruptive&&!activity.ash&&!activity.lava;
   path.setAttribute('d',monitoring?'M7 28 C7 14 57 14 57 28 C57 46 7 46 7 28 Z M15 27 C15 20 49 20 49 27 C49 36 15 36 15 27 Z M7 29 L10 44 C20 55 45 53 55 43 L57 29 M19 30 C23 41 41 41 46 30':symbolPaths[item.type]);svg.append(path);el.replaceChildren(svg);
  }
- function start(item,duration=Infinity){
+ function start(item,duration=Infinity,resourcesFailed=false){
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
   const p=panel(),cfg=profile(item);let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
   duration=Math.min(duration,16000);
+  if(!resourcesFailed&&window.OptionalFeatures&&!OptionalFeatures.effectReady(cfg.type)){
+   const token=serial,deadline=performance.now()+duration;
+   pending={type:cfg.type,item,timer:setTimeout(()=>{if(serial===token)stop();},duration)};
+   OptionalFeatures.effect(cfg.type).then(()=>resume(false)).catch(error=>{console.warn('[efeito opcional]',error);resume(true);});
+   function resume(failed){
+    if(serial!==token||!pending)return;
+    const remaining=deadline-performance.now(),latest=pending.item;
+    if(remaining>0&&!reduced.matches)start(latest,remaining,failed);else stop();
+   }
+   return true;
+  }
   if(snapshot){ghost=document.createElement('div');ghost.className='pd-cinema-afterglow';ghost.setAttribute('aria-hidden','true');ghost.append(snapshot);ghost.style.transform='translate3d(0,'+p.scrollTop+'px,0)';p.append(ghost);ghostTimer=setTimeout(removeGhost,420);}
   const host=document.createElement('div');host.className='pd-cinema-layer';host.setAttribute('aria-hidden','true');host.dataset.scene=cfg.type;host.dataset.activity=cfg.type==='volcano'?(cfg.hot?'eruptive':cfg.ash?'ash':'monitoring'):'illustration';host.dataset.material=cfg.lava?'lava':cfg.type==='flood'?'muddy-current':cfg.type;host.dataset.demo=!!item.__cinemaDemo;
   if(cfg.type==='hurricane'){host.dataset.cycloneStage=cfg.cycloneStage;host.dataset.rotationDirection=cfg.rotationDirection;}
@@ -427,5 +439,6 @@
   scene.cfg=cfg;
   if(cfg.type==='hurricane')scene.host.dataset.rotationDirection=cfg.rotationDirection;
  }
- window.CinematicCard={start,stop,refresh,prepareSymbol,isActive:()=>!!scene};
+ const refreshCurrent=refresh;
+ window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending};
 })();
