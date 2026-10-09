@@ -1198,6 +1198,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
     currentIndex = index;
     const idAnteriorSismo = eventoSelecionadoId;
+    if (!silentRefresh || idAnteriorSismo !== globalEvents[index].id) window.resetCardEventFx?.(globalEvents[index]);
     eventoSelecionadoId = globalEvents[index].id;
     // Trocou de evento sísmico de verdade (não é o mesmo já em tela) —
     // limpa a zona crítica/onda do evento ANTERIOR AGORA, em vez de deixar
@@ -1602,6 +1603,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             } catch (e) {}
         }
     }
+    if (!silentRefresh || eventoSelecionadoId !== item.id) window.resetCardEventFx?.(item);
     eventoSelecionadoId = item.id;
     try { if (typeof EventStore !== 'undefined') EventStore.setSelected(item.id); } catch (e) {}
     // Troca o ícone "pontinho" pelo cheio (e devolve o anterior a pontinho)
