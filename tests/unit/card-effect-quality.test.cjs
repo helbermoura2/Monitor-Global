@@ -20,3 +20,13 @@ test('smooth frames, brief spikes and suspended tabs do not lower quality',()=>{
 test('missed frame budgets are detected even when GPU submission is cheap',()=>{
  const q=create(false,{});assert.equal(frames(q,0,3000,{gap:100}),1);assert.equal(q.name,'balanced');
 });
+test('manual economy applies to an active desktop scene without replacing particles',()=>{
+ let enabled=false;sandbox.window.MobileEnergyBudget={economy:()=>enabled};
+ try{
+  const q=create(false,{}),particles=q.track(Array.from({length:300},(_,i)=>({i}))),first=particles[0];
+  enabled=true;assert.equal(q.fps(60),20);assert.equal(q.sample(0,1,16,60),true);
+  assert.equal(q.name,'balanced');assert.equal(particles.length,210);assert.equal(particles[0],first);
+  assert.equal(create(false,{}).name,'balanced');enabled=false;
+  assert.equal(create(false,{}).name,'full');assert.equal(q.fps(60),60);
+ }finally{delete sandbox.window.MobileEnergyBudget;}
+});

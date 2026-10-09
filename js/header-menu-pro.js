@@ -108,6 +108,7 @@
     if (b) try { b.click(); } catch (e) {}
     var temaEscuro = document.documentElement.classList.contains('mg-theme-dark');
     showFloat('Mais ferramentas',
+      (window.MobileEnergyBudget?.buttonHTML() || '') +
       '<button type="button" id="mf-leg">ⓘ Legenda do mapa</button>' +
       '<button type="button" id="mf-set">🔔 Alertas</button>' +
       '<button type="button" id="mf-src">📡 Status das fontes</button>' +
