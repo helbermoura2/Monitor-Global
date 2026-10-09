@@ -51,7 +51,7 @@ function start(context,full=false){
   ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;reveal(scene.radius,scene.full);
  }).catch(e=>{if(token===generation){label('Intensidade estimada · Camada indisponível');console.warn('[intensidade estimada]',e);}});
 }
-function finish(){if(scene){reveal(scene.radius,true);label('Intensidade estimada · I fraca → IX+ forte · Epicentro');}}
+function finish(){if(scene){reveal(scene.radius,true);label('Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
 function refresh(c){if(scene?.id!==c.id)return;if(['lng','lat','depth','mag'].some(k=>scene[k]!==c[k])){const r=scene.radius,full=scene.full;start(c,full);reveal(r,full);}}
 window.SeismicImpact={start,reveal,finish,refresh,stop,pga,extent,color};
 })();

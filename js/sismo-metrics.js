@@ -408,6 +408,31 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
     } catch (e) { return map.getZoom(); }
 }
 
+// Fit the painted area in the visible map space, clear of header and cards.
+function zoomParaAreaPintada(lng,lat,raioKm){
+    let margem=.8;
+    try{
+        const box=map.getContainer().getBoundingClientRect(),frac=getEventoTelaFrac();
+        const cx=box.width*frac.x,cy=box.height*frac.y;
+        let left=0,right=box.width,top=0,bottom=box.height;
+        for(const id of ['top-strip','ux-controlbar','latest-event-ticker']){
+            const el=document.getElementById(id);if(!el||getComputedStyle(el).display==='none')continue;
+            top=Math.max(top,el.getBoundingClientRect().bottom-box.top);
+        }
+        for(const id of ['events','painel-direito']){
+            const el=document.getElementById(id);if(!el)continue;
+            const style=getComputedStyle(el),r=el.getBoundingClientRect();
+            if(style.display==='none'||style.visibility==='hidden'||r.width<=0||r.height<=0)continue;
+            if(r.width>=box.width*.85){if(r.top-box.top>cy)bottom=Math.min(bottom,r.top-box.top);}
+            else if(r.right-box.left<cx)left=Math.max(left,r.right-box.left);
+            else if(r.left-box.left>cx)right=Math.min(right,r.left-box.left);
+        }
+        const room=Math.min(cx-left,right-cx,cy-top,bottom-cy);
+        if(room>0)margem=Math.min(.8,1.7*room/Math.min(box.width,box.height));
+    }catch(e){}
+    return Math.max(1.5,Math.min(15,zoomParaCaberRaio(lng,lat,raioKm,margem)));
+}
+
 let waveFrontAtivo = false, waveFrontInterval = null;
 // Câmera "persegue" a frente de onda P conforme ela cresce (efeito tipo
 // GlobalQuake) — guarda a referência do handler de interação pra poder
@@ -512,8 +537,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom()};
-    if(context.returnToEpicenter)window.SeismicImpact?.start(context);
+    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:opts?.returnToEpicenter&&mag>=5?'s':'p',phaseUntil:null,impactHoldUntil:null};
+    if(context.returnToEpicenter){context.cameraPhase='s';window.SeismicImpact?.start(context);}
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
     function protect(until){
@@ -524,22 +549,26 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
     function finishOpening(){
         if(context.stage==='holding'||!context.finalFrame)return;
+        if(context.returnToEpicenter&&!camAbortada){returnToImpactArea();return;}
         context.stage='holding';context.finalUntil=Date.now()+5000;protect(context.finalUntil);place();
-        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;if(context.returnToEpicenter&&!camAbortada){returnToEpicenter();return;}context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;if(context.returnToEpicenter&&!camAbortada){returnToImpactArea();return;}context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
     }
-    function returnToEpicenter(){
+    function returnToImpactArea(){
         if(generation!==waveFrontGeneration)return;
         context.stage='returning';context.finalUntil=null;
-        const duration=reduceMotion?0:3500,until=Date.now()+duration+15000;
+        const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
+        context.cameraPhase='impact-final';context.phaseUntil=until;
         protect(until);window.SeismicImpact?.finish();place();
-        try{const camera={center:centroCompensado(context.lng,context.lat,context.epicenterZoom),zoom:context.epicenterZoom,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
-        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+15000);
-        if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+15020);
+        try{const zoom=impactZoom(),camera={center:centroCompensado(context.lng,context.lat,zoom),zoom,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
+        if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
+    function impactRadius(){return Math.max(1,window.SeismicImpact?.extent(context.mag,context.depth)||1);}
+    function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,impactRadius());}
     const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
-    // A câmera acompanha a frente azul até o próprio limite da onda P.
-    // A zona de percepção permanece independente desse enquadramento.
+    // M5+: S até o alcance sentido → P por 6s → área pintada por 8s
+    // → P até o fim → área pintada por 10s. A física continua em todas as fases.
     const place = () => {
         if (!map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
@@ -547,7 +576,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const physicalEnd=model?.endTime?.('p',context.depth);
         const displayLimit=waveDisplaySeconds(context.mag,context.depth);
         const end=physicalEnd==null?null:Math.min(physicalEnd,displayLimit);
-        if(end!=null&&elapsedS<end&&context.protectUntilEnd&&context.stage==='opening')protect(Math.max(context.previousProtection?.__mgRevisionProtectedUntil||0,context.originTime+end*1000+20000));
+        if(end!=null&&elapsedS<end&&context.protectUntilEnd&&context.stage==='opening')protect(Math.max(context.previousProtection?.__mgRevisionProtectedUntil||0,context.originTime+end*1000+16000));
         if(liveRadii.p!==null&&end!=null&&elapsedS<end&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii,alpha:waveDisplayAlpha(elapsedS,displayLimit)};
         if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii,alpha:Math.min(context.lastFrame.alpha,waveDisplayAlpha(finalTime,displayLimit))};context.stage='settling';}
         const expired=end!=null&&elapsedS>=end&&!context.finalFrame;
@@ -564,9 +593,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const alpha=context.stage==='returning'?0:context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
         if(context.returnToEpicenter)window.SeismicImpact?.reveal(radii.s??0,context.stage==='returning');
         const status=model?.status()||'error';
-        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,finalUntil:context.finalUntil||null};
+        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,cameraPhase:context.cameraPhase,phaseUntil:context.phaseUntil,impactRadius:context.returnToEpicenter?impactRadius():null,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=context.stage==='returning'?'Retorno ao epicentro · Intensidade estimada':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=context.stage==='returning'?'Área afetada · Intensidade estimada · Quadro final':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Replay':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
@@ -611,7 +640,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         // do anel, que já tem seu próprio lookahead embutido abaixo).
         const TAU_CAM_MS = 650;
         const camLoop = () => {
-            if (!map || !waveFrontAtivo || camAbortada) { waveCamRAF = null; return; }
+            if (!map || !waveFrontAtivo || camAbortada || context.stage==='returning') { waveCamRAF = null; return; }
             if (Date.now() < camStartAt) { waveCamRAF = requestAnimationFrame(camLoop); return; }
 
             const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
@@ -626,11 +655,30 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // TAU_CAM_MS não deixar o anel escapar da tela.
             const camLookaheadMs = 1800;
             const predicted=radiusAt('p',Math.min(limit-.001,elapsedS+camLookaheadMs/1000));
-            const kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
+            let kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
+            if(context.returnToEpicenter){
+                const felt=impactRadius(),kmS=radiusAt('s',elapsedS);
+                if(context.finalFrame){
+                    // Once propagation ends, return directly to the complete painted area.
+                    waveCamRAF=null;returnToImpactArea();return;
+                }
+                if(context.cameraPhase==='s'){
+                    const redTarget=radiusAt('s',Math.min(limit-.001,elapsedS+camLookaheadMs/1000))??kmS;
+                    kmAlvoCam=redTarget===null?null:Math.min(felt,redTarget);
+                    if(kmS!==null&&kmS>=felt){
+                        context.cameraPhase='p-first';context.phaseUntil=Date.now()+6000;
+                        window.SeismicImpact?.finish();
+                        kmAlvoCam=predicted??kmP??lastTargetRadius;
+                    }
+                }else if(context.cameraPhase==='p-first'&&Date.now()>=context.phaseUntil){
+                    context.cameraPhase='impact';context.phaseUntil=null;context.impactHoldUntil=null;
+                }
+                if(context.cameraPhase==='impact')kmAlvoCam=felt;
+            }
             if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
             lastTargetRadius=kmAlvoCam;
             // Enquadra o raio efetivamente desenhado, sem abertura regional forçada.
-            const zoomAlvoBruto = Math.max(1.5,Math.min(15,
+            const zoomAlvoBruto = context.returnToEpicenter&&context.cameraPhase==='impact' ? impactZoom() : Math.max(1.5,Math.min(15,
                 zoomParaCaberRaio(context.lng,context.lat,kmAlvoCam)));
 
             if (camZoomAtual === null){camZoomAtual=map.getZoom();context.epicenterZoom=opts?.epicenterZoom??camZoomAtual;}
@@ -641,12 +689,17 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             camUltimoFrameEm = agoraMs;
             const fatorSuavizacao = 1 - Math.exp(-dt / TAU_CAM_MS);
             const proximoZoom = camZoomAtual + (zoomAlvoBruto - camZoomAtual) * fatorSuavizacao;
-            // Só abre (zoom out) — nunca fecha de volta (a onda só cresce).
-            camZoomAtual = Math.min(camZoomAtual, proximoZoom);
+            // O passeio M5+ pode fechar para rever a área; os demais só abrem.
+            camZoomAtual = context.returnToEpicenter ? proximoZoom : Math.min(camZoomAtual, proximoZoom);
             try {
                 map.jumpTo({ center: centroCompensado(context.lng, context.lat, camZoomAtual), zoom: camZoomAtual });
             } catch (e) {}
 
+            if(context.returnToEpicenter&&context.cameraPhase==='impact'){
+                // Count the eight seconds only once the whole affected area fits.
+                if(context.impactHoldUntil===null&&Math.abs(camZoomAtual-zoomAlvoBruto)<.015){context.impactHoldUntil=Date.now()+8000;context.phaseUntil=context.impactHoldUntil;}
+                if(context.impactHoldUntil!==null&&Date.now()>=context.impactHoldUntil){context.cameraPhase='p-rest';context.phaseUntil=null;}
+            }
             // Termina quando não há nova chegada P e a câmera convergiu (dentro de
             // uma folga pequena) — antes disso continua ajustando quadro a
             // quadro, mesmo que o ajuste esteja ficando imperceptivelmente
