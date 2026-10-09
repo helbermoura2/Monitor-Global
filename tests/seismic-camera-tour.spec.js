@@ -1,10 +1,10 @@
 const {test,expect}=require('@playwright/test');
 test.use({serviceWorkers:'block',reducedMotion:'no-preference'});
-for(const width of [1280,390])test('M5 camera follows red, blue 6s, painted area 8s, blue, final area 10s '+width,async({page})=>{
+for(const width of [1280,390])test('M5 camera follows red, blue 6s, painted area 8s, repeats blue/area, final area 10s '+width,async({page})=>{
  test.setTimeout(180000);
  const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
  await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-camera-tour',{waitUntil:'domcontentloaded'});
+ await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-camera-repeat',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&GlobalQuakeTravel.status()==='ready');
  await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();stopFeltZone();SeismicCinema.stop();});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
@@ -36,7 +36,19 @@ for(const width of [1280,390])test('M5 camera follows red, blue 6s, painted area
  const waveBefore=area.radii.p;
  await page.clock.runFor(3000);expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('impact');expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBeGreaterThan(waveBefore);
  await page.clock.runFor(area.phaseUntil-area.now-3000+100);expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('p-rest');
+ const repeatBlue=await page.evaluate(()=>({...__mgWaveFrontState,now:Date.now()}));
+ expect(repeatBlue.phaseUntil-repeatBlue.now).toBeGreaterThan(5800);expect(repeatBlue.phaseUntil-repeatBlue.now).toBeLessThanOrEqual(6000);
  await page.clock.runFor(4000);expect(await page.evaluate(()=>map.getZoom())).toBeLessThan(area.zoom-.3);
+ expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('p-rest');
+ await page.clock.runFor(6000);
+ let second=await page.evaluate(()=>({...__mgWaveFrontState,now:Date.now()}));
+ for(let i=0;i<6&&second.phaseUntil===null;i++){await page.clock.runFor(1000);second=await page.evaluate(()=>({...__mgWaveFrontState,now:Date.now()}));}
+ expect(second.cameraPhase).toBe('impact');expect(second.phaseUntil-second.now).toBeGreaterThan(4000);expect(second.phaseUntil-second.now).toBeLessThanOrEqual(8000);
+ expect(second.radii.p).toBeGreaterThan(area.radii.p);expect(await page.evaluate(()=>__mgSeismicImpactState.stage)).toBe('impact');
+ await page.clock.fastForward(second.phaseUntil-second.now-100);await page.clock.runFor(50);
+ expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('impact');
+ await page.clock.runFor(200);expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('p-rest');
+ expect(await page.evaluate(()=>__mgWaveFrontState.phaseUntil-Date.now())).toBeGreaterThan(5800);
  await page.clock.fastForward(expected.origin+expected.end*1000-await page.evaluate(()=>Date.now())+100);await page.clock.runFor(3700);
  const final=await page.evaluate(()=>({...__mgWaveFrontState,zoom:map.getZoom(),now:Date.now(),until:__mgRevisionProtectedUntil,target:zoomParaAreaPintada(125.2,1.1,SeismicImpact.extent(5.1,10))}));
  expect(final.stage).toBe('returning');expect(final.cameraPhase).toBe('impact-final');expect(final.zoom).toBeLessThanOrEqual(final.target+.05);expect(final.zoom).toBeGreaterThan(1.5);expect(final.until-final.now).toBeGreaterThan(9500);expect(final.until-final.now).toBeLessThanOrEqual(10000);

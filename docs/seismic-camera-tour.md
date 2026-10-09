@@ -5,7 +5,7 @@ Eventos novos e cliques manuais com magnitude a partir de 5 seguem esta sequênc
 1. Acompanha a frente S (vermelha) até alcançar o limite da área de intensidade estimada.
 2. Acompanha a frente P (azul) durante 6 segundos.
 3. Retorna a um enquadramento de toda a área pintada. Conta 8 segundos depois que o enquadramento converge.
-4. Volta à frente P até o fim da exibição física.
+4. Volta à frente P por 6 segundos e repete as etapas 3 e 4 até o fim da exibição física.
 5. Retorna à área pintada em 3,5 segundos, permanece mais 10 segundos e libera a rotação.
 
 A propagação não pausa durante a visita à área. A pintura usa o modelo de atenuação GlobalQuake Gen2, não relatos de tremor: abre com S e fica completa quando a frente chega ao limite estimado. Permanece até a seleção seguinte. O enquadramento considera o cabeçalho e os painéis, em desktop e celular.
