@@ -30,7 +30,11 @@ function getCidadesProximas(lat, lng, maxD = 800, maxC = 6) {
 // a consulta real falhava, a reserva mostrava apenas grandes centros como
 // Nagoya/Tóquio/Osaka, mesmo podendo existir cidades muito menores e mais
 // próximas do ponto do evento.
-const _cidadesRealCache = new Map();
+class CityResultCache extends Map {
+    set(key,value){this.delete(key);super.set(key,value);if(this.size>128)this.delete(this.keys().next().value);return this;}
+    get(key){const value=super.get(key);if(this.has(key)){this.delete(key);super.set(key,value);}return value;}
+}
+const _cidadesRealCache = new CityResultCache();
 const _cidadesRealInflight = new Map();
 const PHOTON_CITY_URL = 'https://photon.komoot.io/reverse';
 const OVERPASS_MIRRORS = [
@@ -53,7 +57,7 @@ const CIDADES_BLOQUEADAS = new Set([
     'nova heliopolis'
 ]);
 
-const _eventoCidadeAdminCache = new Map();
+const _eventoCidadeAdminCache = new CityResultCache();
 const _eventoCidadeAdminInflight = new Map();
 
 function cidadeEhBloqueada(nome) {
@@ -80,6 +84,7 @@ async function eventoEhNoMunicipioSaoPaulo(lat, lng) {
     const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
     if (_eventoCidadeAdminCache.has(key)) return _eventoCidadeAdminCache.get(key);
     if (_eventoCidadeAdminInflight.has(key)) return _eventoCidadeAdminInflight.get(key);
+    if(document.hidden)return false;
 
     const job = (async () => {
         try {
@@ -242,6 +247,7 @@ async function getCidadesProximasReal(lat, lng, maxC = 8, minDistKm = 0) {
     const cacheKey = `${Number(lat).toFixed(3)},${Number(lng).toFixed(3)}|${maxC}|${Number(minDistKm || 0)}`;
     if (_cidadesRealCache.has(cacheKey)) return _cidadesRealCache.get(cacheKey);
     if (_cidadesRealInflight.has(cacheKey)) return _cidadesRealInflight.get(cacheKey);
+    if(document.hidden)return null;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
 
     const job = (async () => {

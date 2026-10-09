@@ -1008,6 +1008,7 @@ function showNextAutoCycleItem() {
     } finally { window.__mgRotationDisplay = false; }
 }
 function requestInitialAutoDisplay() {
+    if(document.hidden)return;
     if (!isFirstDisplay || !map || window.__mgInitialDisplayPending) return;
     if (!window.__mgMapReady && typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded()) {
         if (!window.__mgInitialMapWait) {
@@ -1034,6 +1035,7 @@ function scheduleNextAutoCycle(ms) {
     cycleTimeout = setTimeout(() => runAutoCycle(),window.PresentationLimits?.wait(wait)||wait);
 }
 function runAutoCycle(forced = false) {
+    if(document.hidden)return;
     try {
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
         if (window.VolcanoPriority?.focus()) return;

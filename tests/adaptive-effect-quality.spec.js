@@ -18,17 +18,17 @@ for(const width of [1280,390])test('sustained frame delays resize the live effec
   globalAlerts=[item];showAlertDetails(item,false);clearTimeout(cycleTimeout);
   if(innerWidth<900)document.body.classList.add('mobile-details-open');
  });
- const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveAttribute('data-quality','full');
+ const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveAttribute('data-quality',width<900?'balanced':'full');
  const first=await layer.elementHandle(),letter=await page.locator('.pd-fx-windletter').first().elementHandle();
  const full=await page.locator('.pd-gale-field').evaluate(c=>({w:c.width,h:c.height}));
- await page.clock.runFor(2900);await expect(layer).toHaveAttribute('data-quality','balanced');
- const balanced=await page.locator('.pd-gale-field').evaluate(c=>({w:c.width,h:c.height}));expect(balanced.w).toBeCloseTo(full.w*.8,0);
+ await page.clock.runFor(2900);await expect(layer).toHaveAttribute('data-quality',width<900?'light':'balanced');
+ const balanced=await page.locator('.pd-gale-field').evaluate(c=>({w:c.width,h:c.height}));expect(balanced.w).toBeCloseTo(full.w*(width<900?.75:.8),0);
  await page.clock.runFor(2900);await expect(layer).toHaveAttribute('data-quality','light');
- const light=await page.locator('.pd-gale-field').evaluate(c=>({w:c.width,h:c.height}));expect(light.w).toBeCloseTo(full.w*.6,0);
+ const light=await page.locator('.pd-gale-field').evaluate(c=>({w:c.width,h:c.height}));expect(light.w).toBeCloseTo(full.w*(width<900?.75:.6),0);
  expect(await first.evaluate(el=>el.isConnected)).toBe(true);expect(await letter.evaluate(el=>el.isConnected)).toBe(true);
  await page.clock.fastForward(10500);expect(await page.evaluate(()=>CinematicCard.isActive())).toBe(false);
  await expect(page.locator('.pd-cinema-layer,.pd-gale-field,.pd-fx-windletter')).toHaveCount(0);
- await page.evaluate(()=>{CinematicCard.start({id:'new-quality',type:'storm',detail:'Trovoadas'});});await expect(layer).toHaveAttribute('data-quality','full');
+ await page.evaluate(()=>{CinematicCard.start({id:'new-quality',type:'storm',detail:'Trovoadas'});});await expect(layer).toHaveAttribute('data-quality',width<900?'balanced':'full');
  await page.emulateMedia({reducedMotion:'reduce'});await expect(layer).toHaveCount(0);expect(errors).toEqual([]);
 });
 test('all material renderers honor the shared resolution without changing CSS bounds',async({page})=>{

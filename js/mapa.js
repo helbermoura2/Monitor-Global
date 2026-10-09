@@ -191,6 +191,7 @@ function initMap() {
         zoom: 1.6,
         maxZoom: ZOOM_MAX,
         attributionControl: false,
+        pixelRatio: window.MobileEnergyBudget?.mapPixelRatio() || devicePixelRatio || 1,
         // Sem isso, o navegador descarta o buffer de desenho do WebGL logo
         // depois de cada frame — e o backdrop-filter (blur do vidro em
         // css/desktop-layout-lock.css) não consegue "ler" um canvas WebGL
