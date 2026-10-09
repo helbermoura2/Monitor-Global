@@ -2,10 +2,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const sandbox={window:{},navigator:{}};vm.runInNewContext(fs.readFileSync('js/card-effect-quality.js','utf8'),sandbox);
 const create=sandbox.window.CardEffectQuality.create;
 function frames(q,start,end,{cost=1,gap=1000/30}={}){let changes=0;for(let t=start;t<end;t+=gap)if(q.sample(t,cost,gap,30))changes++;return changes;}
-test('unknown hardware and narrow screens retain full budgets; low hardware starts balanced',()=>{
- for(const mobile of [false,true]){const q=create(mobile,{});assert.equal(q.name,'full');assert.equal(q.count(300),300);assert.equal(q.resolution,1);assert.equal(q.fps(30),30);}
+test('mobile starts balanced and caps frame rate; desktop keeps full budgets',()=>{
+ const desktop=create(false,{});assert.equal(desktop.name,'full');assert.equal(desktop.fps(30),30);
+ for(const hints of [{},{deviceMemory:8,hardwareConcurrency:8}]){const q=create(true,hints);assert.equal(q.name,'balanced');assert.equal(q.count(300),210);assert.equal(q.resolution,.8);assert.equal(q.fps(60),20);}
  for(const hints of [{deviceMemory:2},{hardwareConcurrency:2}])assert.equal(create(false,hints).name,'balanced');
- assert.equal(create(true,{deviceMemory:8,hardwareConcurrency:8}).name,'full');
 });
 test('sustained rendering load reduces particles and pixel area before frame rate',()=>{
  const q=create(false,{}),particles=q.track(Array.from({length:300},(_,i)=>({i}))),first=particles[0];

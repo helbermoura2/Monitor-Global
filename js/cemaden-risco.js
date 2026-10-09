@@ -706,7 +706,7 @@ function operationalTick(){
     localStorage.setItem('monitor_last_snap', JSON.stringify(snap));
   } catch (e) {}
 }
-setInterval(operationalTick,15000);
+PeriodicScheduler.every('cemaden-operational-ui',operationalTick,15000,15000,'ui');
 function bind(){q('btn-radar-pro')?.addEventListener('click',toggleRadar);q('chip-radar')?.addEventListener('click',toggleRadar);/* btn-crisis-pro removido */q('btn-replay-pro')?.addEventListener('click',()=>PRO.replay?stopReplay():startReplay());q('btn-follow-pro')?.addEventListener('click',()=>{PRO.follow=true;q('btn-follow-pro').classList.add('active');showToast&&showToast('🎯 Câmera automática retomada','info')});q('btn-sources')?.addEventListener('click',()=>q('source-card').classList.toggle('open'));document.querySelectorAll('.replay-actions [data-speed]').forEach(b=>b.addEventListener('click',()=>setReplaySpeed(Number(b.dataset.speed))));q('replay-stop-pro')?.addEventListener('click',stopReplay);q('replay-range-pro')?.addEventListener('input',e=>{buildReplay();if(PRO.events.length){PRO.idx=Math.floor(Number(e.target.value)/100*PRO.events.length);const x=PRO.events[Math.min(PRO.idx,PRO.events.length-1)];if(x&&map)map.flyTo({center:x.coords,zoom:6,duration:700})}});window.addEventListener('resize',()=>{if(map&&map.resize)map.resize()});q('btn-cemaden-layer')?.addEventListener('click',toggleCemadenLayer);bindMobilePro();syncMobileRisk();syncMobileWeather();syncMobileCemaden();window.addEventListener('resize',()=>{if(map&&map.resize)map.resize()});}
 function hookMap(){if(!map)return;map.on('dragstart',()=>{PRO.follow=false;q('btn-follow-pro')?.classList.remove('active')});map.on('zoomstart',()=>{if(!PRO.replay){PRO.follow=false;q('btn-follow-pro')?.classList.remove('active')}});// O mapa pode já ter carregado quando este hook é instalado.
 const startRadar=()=>setTimeout(radarOn,900);
@@ -734,7 +734,7 @@ function boot(){
   agendarBusca(fetchCemaden, 1500, 120000);
   agendarBusca(fetchRedemetMetar, 3000, 600000);   // METAR REDEMET/DECEA (~30 aeródromos)
 
-  setInterval(updateRisk,15000);setTimeout(()=>{if(map){hookMap()}else{const x=setInterval(()=>{if(map){clearInterval(x);hookMap()}},500)}},1500);
+  PeriodicScheduler.every('cemaden-risk-ui',updateRisk,15000,15000,'ui');setTimeout(()=>{if(map){hookMap()}else{const x=setInterval(()=>{if(map){clearInterval(x);hookMap()}},500)}},1500);
   // Expõe para o menu ☰ "Recarregar dados"
   window.checkSources = checkSources;
   window.fetchProSP = fetchProSP;

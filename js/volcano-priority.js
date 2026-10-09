@@ -37,8 +37,9 @@ function canInterrupt(item){
  const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
  return item?.type==='volcano'&&item.id===dispatchId&&!(Number(current?.mag)>=5);
 }
-function arm(){if(retry||!pending.size)return;retry=setTimeout(()=>{retry=null;focus();},2000);}
+function arm(){if(document.hidden||retry||!pending.size)return;retry=setTimeout(()=>{retry=null;focus();},2000);}
 function focus(){
+ if(document.hidden)return false;
  if(!pending.size)return false;
  // A strong arrival/revision takes the camera before any volcano in this queue.
  if(typeof focusNextNewCameraQuake==='function'&&focusNextNewCameraQuake(5)){arm();return true;}

@@ -26,6 +26,7 @@ function isRecentCameraQuake(event){
     return Number.isFinite(age)&&age>=-5*60000&&age<=limit;
 }
 function focusNextNewCameraQuake(minMagnitude = 0) {
+    if(document.hidden)return false;
     if (!map) return false;
     const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
     const currentMag=Number(current?.mag) || 0;
@@ -76,6 +77,7 @@ function queueQuakeRevisions(items) {
     }
 }
 function focusNextQuakeRevision(blocked = false) {
+    if(document.hidden)return false;
     // Chegadas novas têm prioridade sobre todas as revisões pendentes.
     if (focusNextNewCameraQuake()) return true;
     if (pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) return false;

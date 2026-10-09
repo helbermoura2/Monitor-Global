@@ -1,0 +1,10 @@
+/* Invisible CSS animations must not keep compositing. */
+.mg-tab-hidden *, .mg-tab-hidden *::before, .mg-tab-hidden *::after {
+  animation-play-state: paused !important;
+}
+/* During mobile scenes, avoid repainting the moving map through blurred glass. */
+.mg-mobile-budget #painel-direito.pd-cinema-active {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-color: rgba(6, 24, 35, .94) !important;
+}

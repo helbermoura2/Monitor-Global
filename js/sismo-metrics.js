@@ -443,6 +443,10 @@ let waveFrontGeneration = 0;
 let waveFrontStatus = null;
 let waveFrontContext = null;
 let waveFinalTimer = null;
+let waveCamResume = null;
+document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&waveCamResume){const resume=waveCamResume;waveCamResume=null;resume();}
+});
 function restoreWaveProtection(context){
     if(!context?.previousProtection||window.__mgRevisionProtectedId!==context.id||window.__mgRevisionProtectedUntil!==context.protectedUntil)return;
     Object.assign(window,context.previousProtection);
@@ -461,6 +465,7 @@ function refreshWaveFront(item){
 }
 
 function stopWaveFront(keepImpact = false) {
+    waveCamResume=null;
     if(!keepImpact)window.SeismicImpact?.stop();
     waveFrontGeneration++;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(waveFrontContext);waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
     try { clearInterval(waveFrontInterval); } catch (e) {}
@@ -550,6 +555,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
     }
     function returnToImpactArea(){
+        if(document.hidden)return;
         if(generation!==waveFrontGeneration)return;
         context.stage='returning';context.finalUntil=null;
         const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
@@ -574,7 +580,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // M5+: S até o alcance sentido → P por 6s → área pintada por 8s
     // → repete P/área até o fim → área pintada por 10s. A física não pausa.
     const place = () => {
-        if (!map || !waveFrontAtivo) return;
+        if (document.hidden || !map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
         const liveRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
         const physicalEnd=model?.endTime?.('p',context.depth);
@@ -653,6 +659,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         // do anel, que já tem seu próprio lookahead embutido abaixo).
         const TAU_CAM_MS = 650;
         const camLoop = () => {
+            if(document.hidden){waveCamRAF=null;waveCamResume=()=>{camUltimoFrameEm=0;waveCamRAF=requestAnimationFrame(camLoop);};return;}
+            if(window.MobileEnergyBudget?.mobile()&&camUltimoFrameEm&&performance.now()-camUltimoFrameEm<50){waveCamRAF=requestAnimationFrame(camLoop);return;}
             if (!map || !waveFrontAtivo || camAbortada || context.stage==='returning') { waveCamRAF = null; return; }
             if (Date.now() < camStartAt) { waveCamRAF = requestAnimationFrame(camLoop); return; }
 

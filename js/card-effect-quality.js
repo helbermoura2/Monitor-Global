@@ -4,11 +4,11 @@
  const levels=[{name:'full',resolution:1,particles:1},{name:'balanced',resolution:.8,particles:.7},{name:'light',resolution:.6,particles:.45}];
  function create(mobile,hints=navigator){
   const limited=(hints.deviceMemory>0&&hints.deviceMemory<=2)||(hints.hardwareConcurrency>0&&hints.hardwareConcurrency<=2);
-  let level=limited?1:0,since=null,total=0,slow=0,warmup=null;
+  let level=mobile||limited?1:0,since=null,total=0,slow=0,warmup=null;
   const arrays=[];
   const policy={
    get name(){return levels[level].name;},get resolution(){return levels[level].resolution;},
-   fps(base){return level===2?Math.min(base,20):base;},
+   fps(base){return mobile||level===2?Math.min(base,20):base;},
    reset(){since=warmup=null;total=slow=0;},
    count(n){return n?Math.max(1,Math.round(n*levels[level].particles)):0;},
    track(array){arrays.push({array,size:array.length});array.length=policy.count(array.length);return array;},

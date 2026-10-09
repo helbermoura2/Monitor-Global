@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const code=fs.readFileSync('js/orquestrador-feeds.js','utf8').split('async function fetchGlobalFeeds()')[0];
 function setup(current,protectedUntil=0){
  const shown=[],window={__mgRevisionProtectedId:current.id,__mgRevisionProtectedUntil:protectedUntil};
- const c=vm.createContext({window,Date,map:{},globalEvents:[current],eventoSelecionadoId:current.id,showEventDetails(i,live){shown.push([c.globalEvents[i].id,live]);c.eventoSelecionadoId=c.globalEvents[i].id;window.__mgRevisionProtectedId=c.eventoSelecionadoId;window.__mgRevisionProtectedUntil=Date.now()+90000;},showPanelRevisionFocus(){},console});
+ const c=vm.createContext({document:{hidden:false},window,Date,map:{},globalEvents:[current],eventoSelecionadoId:current.id,showEventDetails(i,live){shown.push([c.globalEvents[i].id,live]);c.eventoSelecionadoId=c.globalEvents[i].id;window.__mgRevisionProtectedId=c.eventoSelecionadoId;window.__mgRevisionProtectedUntil=Date.now()+90000;},showPanelRevisionFocus(){},console});
  const panel=fs.readFileSync('js/painel-e-lista.js','utf8'),start=panel.indexOf('function isWithinAutoCycleAge(');vm.runInContext(panel.slice(start,panel.indexOf('\n}',start)+2),c);
  vm.runInContext(code,c);return {c,shown};
 }
@@ -48,3 +48,4 @@ test('badge recovery saves every unpresented quake before the badges and 30-minu
  assert(c.focusNextNewCameraQuake());assert.equal(vm.runInContext('pendingNewCameraQuakes.size',c),2);
  stamp+=4*60000;c.window.__mgRevisionProtectedUntil=0;assert(c.focusNextNewCameraQuake());c.window.__mgRevisionProtectedUntil=0;assert(c.focusNextNewCameraQuake());assert.deepEqual(shown.map(x=>x[0]),['big','small','tiny']);
 });
+test('hidden queued quakes are not consumed before the visible priority presentation',()=>{const{c,shown}=setup(q('old',1));c.document.hidden=true;c.globalEvents.push(q('new',6));c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),false);assert.equal(vm.runInContext('pendingNewCameraQuakes.size',c),1);assert.equal(shown.length,0);c.document.hidden=false;assert(c.focusNextNewCameraQuake());assert.deepEqual(shown,[['new',true]]);});
