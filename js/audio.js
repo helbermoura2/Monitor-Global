@@ -517,11 +517,8 @@ function escolherVoz(prefixos) {
     return null;
 }
 
-// Fala uma sequência de trechos, cada um podendo ter idioma/voz própria —
-// é assim que a gente troca de pt-BR pro inglês só no nome do lugar e volta,
-// numa frase só, sem precisar de nenhuma API paga de voz. speechSynthesis já
-// enfileira .speak() chamados em sequência, então basta disparar todos na
-// ordem certa depois do mesmo delay de acomodação que já existia.
+// Todos os trechos usam português, inclusive os nomes geográficos.
+// A mesma normalização atende a voz do aparelho e a voz da nuvem.
 function falarTrechos(trechos) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -529,7 +526,7 @@ function falarTrechos(trechos) {
         if (!somAtivo || vozVolume <= 0) return;
         trechos.forEach((trecho) => {
             if (!trecho.texto) return;
-            const u = new SpeechSynthesisUtterance(trecho.texto);
+            const u = new SpeechSynthesisUtterance(window.EventPortuguese?.speech(trecho.texto) || trecho.texto);
             u.lang = trecho.lang;
             u.rate = trecho.rate != null ? trecho.rate : .9;
             u.pitch = trecho.pitch != null ? trecho.pitch : 1.1;
@@ -552,6 +549,7 @@ function falarTrechos(trechos) {
 let vozNuvemAtual = null;
 async function falarNaNuvem(texto) {
     if (!somAtivo || vozVolume <= 0 || !texto || typeof workerBaseUrl !== 'function') return false;
+    texto = window.EventPortuguese?.speech(texto) || texto;
     // Interrompe um áudio de alerta anterior ainda tocando — mesmo
     // comportamento que window.speechSynthesis.cancel() já dava pra fila de
     // fala nativa, importante em sismos com atualizações rápidas seguidas.
@@ -602,7 +600,7 @@ async function falarNaNuvem(texto) {
 }
 function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '') {
     if (!somAtivo) return;
-    place=window.EventPortuguese?.place(place)||place;
+    place=window.EventPortuguese?.speech(place)||place;
     const prof = (typeof depth === 'number' && !isNaN(depth)) ? `, a ${depth.toFixed(0)} quilômetros de profundidade` : '';
     let intro;
     if (isUpdate) {
@@ -626,14 +624,14 @@ function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '')
         if (ok || !somAtivo || vozVolume <= 0 || !window.speechSynthesis) return;
         falarTrechos([
             { texto: intro, lang: 'pt-BR' },
-            { texto: place, lang: langLugar, rate: langLugar === 'en-US' ? .95 : .9 },
+            { texto: place, lang: langLugar, rate: .9 },
             { texto: outro, lang: 'pt-BR' }
         ]);
     });
 }
 function falarAlertaGenerico(txt) {
     if (!somAtivo) return;
-    txt=window.EventPortuguese?.local(txt)||txt;
+    txt=window.EventPortuguese?.speech(txt)||txt;
     falarNaNuvem(txt).then(ok => {
         if (ok || !somAtivo || vozVolume <= 0 || !window.speechSynthesis) return;
         const u = new SpeechSynthesisUtterance(txt);

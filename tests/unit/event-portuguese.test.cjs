@@ -14,3 +14,14 @@ test('all event categories share translated labels and raw hazard data stays unc
 test('native Portuguese contractions and verb forms never request foreign translation',()=>{const text='Quando houver chuva forte no Brasil e for necessário, consulte as orientações da Defesa Civil.';assert.equal(p.foreign(text),false);assert.equal(p.view({detail:text}).detail,text);assert.equal(p.foreign('Aviso de tsunami'),false);});
 
 test('short foreign instructions are translated, proper names remain intact in volcano text',()=>{assert.equal(p.foreign('No action is needed.'),true);assert.equal(p.text('Washington'),'Washington');const vm=require('node:vm'),fs=require('node:fs');const context={EventPortuguese:p};vm.createContext(context);vm.runInContext(fs.readFileSync('js/confianca-fontes.js','utf8'),context);assert.equal(context.traduzirTextoVulcanico('Washington'),'Washington');});
+
+
+test('Portuguese speech names work without Intl.DisplayNames and preserve place names',()=>{
+ const vm=require('node:vm'),fs=require('node:fs'),context={Intl:{}};
+ vm.createContext(context);vm.runInContext(fs.readFileSync('js/event-portuguese.js','utf8'),context);
+ const p=context.EventPortuguese;
+ assert.equal(p.speech('Terremoto de magnitude 6.6 em Panama, a 13 km de profundidade.'),'Terremoto de magnitude 6 vírgula 6 em Panamá, a 13 quilômetros de profundidade.');
+ assert.equal(p.speech('12 km WSW of Pitaloza Arriba, Panama'),'12 quilômetros a oeste-sudoeste de Pitaloza Arriba, Panamá');
+ assert.equal(p.place('PANAMA'),'Panamá');
+ assert.equal(p.speech('West Yellowstone, Montana'),'West Yellowstone, Montana');
+});
