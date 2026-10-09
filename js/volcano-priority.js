@@ -59,5 +59,5 @@ function focus(){
 function presentationActive(){return eventoSelecionadoId===presentingId&&Date.now()<presentationUntil;}
 function protectionRemaining(){return presentationActive()?Math.max(0,presentationUntil-Date.now()):0;}
 function finishPresentation(id){if(presentingId===id)presentationUntil=0;}
-window.VolcanoPriority={finishPresentation,protectionRemaining,presentationActive,capture,evidence,escalation,enqueue,observe,focus,canInterrupt};
+window.VolcanoPriority={dispatching:item=>dispatchId===item?.id,finishPresentation,protectionRemaining,presentationActive,capture,evidence,escalation,enqueue,observe,focus,canInterrupt};
 })();

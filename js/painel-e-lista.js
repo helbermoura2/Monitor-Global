@@ -961,8 +961,8 @@ function autoCycleDraw(deck, keys, avoid) {
 }
 function getAutoCycleProtectionRemaining() {
     const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
-    const strongUntil=Number(current?.mag)>=5 ? (window.__mgHoldEndsAt||0) : 0;
-    const protectedUntil=window.__mgRevisionProtectedId===eventoSelecionadoId ? (window.__mgRevisionProtectedUntil||0) : 0;
+    const strongUntil=Number(current?.mag)>=5 && window.__mgQuakePresentationMode!=='auto' ? (window.__mgHoldEndsAt||0) : 0;
+    const protectedUntil=window.__mgQuakePresentationMode!=='auto' && window.__mgRevisionProtectedId===eventoSelecionadoId && (window.__mgQuakePresentationMode==='new' || Number(current?.mag)>=5 || (typeof isRecentCameraQuake==='function'?isRecentCameraQuake(current):true)) ? (window.__mgRevisionProtectedUntil||0) : 0;
     return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),window.VolcanoPriority?.protectionRemaining()||0);
 }
 function selectNextAutoCycleItem() {
@@ -1050,8 +1050,10 @@ function runAutoCycle(forced = false) {
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
+        if (window.NewEventPriority?.focusAlert()) return;
         const protectedMs = getAutoCycleProtectionRemaining();
         if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
+        if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) { scheduleNextAutoCycle(2000); return; }
         // Resume one rotation slot between queued revisions, so a large
         // backlog cannot monopolize the screen. Fresh arrivals still win.
         if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
@@ -1400,6 +1402,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Novos alertas continuam podendo assumir a câmera imediatamente.
     const HOLD_AUTO_MS = 30000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
+    window.__mgQuakePresentationMode=soft&&!triggerVisualAlert?'auto':triggerVisualAlert?'new':'manual';
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
     // Ao vivo e clique manual mantêm câmera/cartão até terminar a exibição.
@@ -1542,7 +1545,10 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
-    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay) {window.__mgSoftCycle=false;return;}
+    if (triggerVisualAlert && !silentRefresh && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
+        window.NewEventPriority.queue([item]);window.NewEventPriority.focus();return;
+    }
+    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay && !window.NewEventPriority?.dispatching(item)) {window.__mgSoftCycle=false;return;}
     if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature) && !window.__mgRotationDisplay) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
@@ -1982,6 +1988,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         scheduleNextAutoCycle(30000);
     }
     if(item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
+    if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 
 /* Rede de segurança pras duas funções acima: cada uma é uma sequência

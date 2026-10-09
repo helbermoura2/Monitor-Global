@@ -168,6 +168,7 @@ async function fetchRealHurricanes() {
             gdObj.detail = detalheCicloneLista(gdObj);
             const { obj, isNew } = upsertHurricane(gdObj);
             if (isNew && fonteBooted('hurricane')) {
+                window.NewEventPriority?.queue([obj]);
                 showToast(`🌀 ${cyc.label} ${nome} monitorado`, 'warning');
                 novo = obj; playAlertTone('hurricane');
                 notificarNavegador(`🌀 ${cyc.label} ${nome}`, sev);
@@ -217,6 +218,7 @@ async function fetchRealHurricanes() {
             nhcObj.cycloneLabel = rotuloCicloneCurto(nhcObj);
             const { obj, isNew } = upsertHurricane(nhcObj);
             if (isNew && fonteBooted('hurricane')) {
+                window.NewEventPriority?.queue([obj]);
                 showToast(`🌀 ${cyc.label} ${nome} (NHC)`, 'warning');
                 novo = obj; playAlertTone('hurricane');
                 notificarNavegador(`🌀 ${cyc.label} ${nome}`, parts.join(' • '));
