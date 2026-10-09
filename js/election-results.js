@@ -2,14 +2,14 @@ import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261005-elec
 
 // A non-modal, desktop-only scoreboard. It never participates in map filters.
 const desktop = matchMedia('(min-width: 1101px)');
-const client = new TseResultsClient();
+const client = new TseResultsClient(window.OptionalFeatures?.fetch);
 const number = new Intl.NumberFormat('pt-BR');
 const percentage = new Intl.NumberFormat('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const dateTime = new Intl.DateTimeFormat('pt-BR', {timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'});
 const ballot = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16v8H4zM7 12l-2-3h4m7 0h3l2 3M10 3l7 4-4 7-7-4z"/><path d="m10 8 1 2 3-1M8 17h8"/></svg>';
 let chip, panel, announcement, opened = false, timer, expiryTimer, request, revision = 0;
 let turn = Date.now() >= ELECTION_2026.secondTurnAt ? 2 : 1;
-const seenArrivals = new Set();
+const seenArrivals = new Set(window.ElectionPanel?.arrivalIds || []);
 
 function expired() {
   const final = client.lastGood.get(2);
@@ -171,7 +171,7 @@ function newQuakes(items) {
 function init() {
   const brazil = document.getElementById('chip-geo-br');
   if (!brazil) return;
-  chip = document.createElement('button');
+  chip = document.getElementById('chip-election') || document.createElement('button');
   chip.id = 'chip-election';
   chip.className = 'chip chip-toggle';
   chip.type = 'button';
@@ -216,7 +216,7 @@ function init() {
   window.addEventListener('resize', position, {passive: true});
   const observer = new ResizeObserver(position);
   ['top-strip', 'sidebar-left', 'painel-direito'].forEach(id => {const element = document.getElementById(id); if (element) observer.observe(element);});
-  window.ElectionPanel = Object.freeze({newQuakes});
+  window.ElectionPanel = Object.freeze({newQuakes,open,close});
   visibility();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});

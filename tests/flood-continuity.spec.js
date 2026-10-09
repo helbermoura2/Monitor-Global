@@ -5,7 +5,7 @@ for(const width of [1280,390])test('enchente sobe, faz letras boiarem e devolve 
  await page.addInitScript(()=>{window.__floodVideoCopies=0;const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(source,...args){if(source instanceof HTMLVideoElement)__floodVideoCopies++;return draw.call(this,source,...args);};});
  const site=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
  await page.route('**/*',r=>new URL(r.request().url()).hostname===new URL(site).hostname?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto(site+'/?verify=flood-rise-'+Date.now(),{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardFloodRise);
+ await page.setViewportSize({width,height:844});await page.goto(site+'/?verify=flood-rise-'+Date.now(),{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("flood"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardFloodRise);
  await page.evaluate(()=>{pausarBuscas();globalEvents=[];pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  await page.evaluate(()=>{const item={id:'continuous-flood',type:'flood',place:'Enchente — boletim de teste 🇧🇷',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});

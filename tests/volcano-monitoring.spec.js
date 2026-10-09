@@ -3,7 +3,7 @@ test.use({serviceWorkers:'block'});
 for(const width of [1280,390])test('cratera de monitoramento no Menu e no evento real preserva dados, revisão e controles '+width,async({page})=>{
  test.setTimeout(120000);
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("volcano"));
  await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardVolcanoMonitoring);
  const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});
  await page.evaluate(()=>{
@@ -39,7 +39,7 @@ for(const width of [1280,390])test('cratera de monitoramento no Menu e no evento
 });
 test('sem fotografia, a reserva desenha uma cratera detalhada e limpa a carga pendente',async({page})=>{
  await page.route('**/volcano-crater.jpg',r=>r.abort());
- await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!window.CardVolcanoMonitoring);
+ await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("volcano"));await page.waitForFunction(()=>!!window.CardVolcanoMonitoring);
  const result=await page.evaluate(()=>{
   const scene=CardVolcanoMonitoring.create({type:'volcano',hot:false,ash:false,lava:false},false);scene.resize(320,600);scene.draw(2);
   const ctx=scene.canvas.getContext('2d'),data=ctx.getImageData(0,0,scene.canvas.width,scene.canvas.height).data;

@@ -11,7 +11,7 @@ for(const width of [1280,390])test('rajada usa um vídeo e um campo de matéria,
  test.setTimeout(120000);await page.setViewportSize({width,height:844});
  await page.addInitScript(()=>{window.__windCopies=0;const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(source,...args){if(source instanceof HTMLVideoElement)__windCopies++;return draw.call(this,source,...args);};});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));await select(page);await page.clock.runFor(1800);
+ await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));await select(page);await page.clock.runFor(1800);
  const video=page.locator('.pd-cinema-footage');await expect(video).toHaveCount(1);await expect(video).toHaveAttribute('src','media/card-fx/gale-canopy.mp4');await expect(page.locator('.pd-gale-field')).toHaveCount(1);await expect(page.locator('.pd-cinema-drop,.pd-weather-lens')).toHaveCount(0);
  await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused),{timeout:12000}).toBe(true);await expect(video).toHaveCSS('clip-path','none');await page.clock.runFor(100);
  const {duration,...attrs}=await video.evaluate(v=>({muted:v.muted,loop:v.loop,inline:v.playsInline,width:v.videoWidth,height:v.videoHeight,duration:v.duration}));expect(attrs).toEqual({muted:true,loop:true,inline:true,width:432,height:768});expect(duration).toBeCloseTo(11,1);
@@ -27,7 +27,7 @@ for(const width of [1280,390])test('rajada usa um vídeo e um campo de matéria,
 });
 test('falha da filmagem da rajada usa a fotografia e conserva o campo e os controles',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.route('**/media/card-fx/gale-canopy.mp4',r=>r.abort());
- await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);await select(page);
+ await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);await select(page);
  await expect(page.locator('.pd-cinema-film')).toHaveAttribute('data-texture','gale-canopy');await expect(page.locator('.pd-gale-field')).toHaveCount(1);
  await expect.poll(()=>page.locator('.pd-cinema-film').evaluate(c=>{const gl=c.getContext('webgl'),p=new Uint8Array(4);gl.readPixels(c.width>>1,c.height>>1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return p[3];})).toBeGreaterThan(200);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
@@ -35,7 +35,7 @@ test('falha da filmagem da rajada usa a fotografia e conserva o campo e os contr
 for(const width of [1280,390])test('rajada real e Menu arrancam letras e mantêm as lacunas até o fim do cartão '+width,async({page})=>{
  test.setTimeout(120000);const site=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
  await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname===new URL(site).hostname?r.continue():r.abort());
- await page.goto(site+'/?verify=flying-letters-'+Date.now(),{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);
+ await page.goto(site+'/?verify=flying-letters-'+Date.now(),{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);
  await page.evaluate(()=>{pausarBuscas();globalEvents=[];pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();});await select(page);
  await expect(page.locator('#pd-local')).toContainText('teste de publicação',{timeout:20000});const original=await page.locator('#pd-local').textContent();
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
