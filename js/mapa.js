@@ -459,7 +459,7 @@ function syncAllMarkers() {
         const want = new Set();
         list.forEach(item => {
             if (!item.coords) return;
-            if (item.municipalityLocations?.length) return;
+            if (item.municipalityLocations?.length || item.warningGeometry) return;
             if (item.time < cut && !SEM_LIMITE_TEMPO.has(item.type)) return;
             want.add(item.id);
             if (!store.has(item.id)) {
@@ -817,7 +817,7 @@ function stopCascadeRipple() {
    de sempre (RADAR_COR), os demais tipos (menos sismo, tratado à parte)
    ganham a onda em cascata. */
 function triggerEventoMapaFx(item, corFallback) {
-    if(item.municipalityLocations?.length)return;
+    if(item.municipalityLocations?.length||item.warningGeometry)return;
     try {
         const cor = RADAR_COR[item.type] || corFallback;
         if (item.type === 'hurricane') {
