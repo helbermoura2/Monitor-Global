@@ -449,7 +449,7 @@ async function fetchInmetAvisos() {
                 warningGeometry:window.InmetAreas?.geometry(a.poligono)||null,
                 hazardNature:'warning'
             };
-            obj.municipalityLocations=obj.municipalities.filter(m=>Array.isArray(m.coords));
+            obj.municipalityLocations=prev?.municipalities===obj.municipalities&&prev.municipalityLocations?prev.municipalityLocations:obj.municipalities.filter(m=>Array.isArray(m.coords));
             const isNew = upsertAlert(obj, { fonte: 'inmet', expiraMs: 300000 });
 
             if (isNew) {
