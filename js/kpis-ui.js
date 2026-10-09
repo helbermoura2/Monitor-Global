@@ -35,7 +35,7 @@ function updateKPIs() {
 }
 
 let nextRefresh = Date.now() + 60000;
-setInterval(() => {
+PeriodicScheduler.every('header-clock', () => {
     const r = document.getElementById('kpi-relogio');
     if (r) r.textContent = new Date().toLocaleTimeString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
@@ -46,8 +46,8 @@ setInterval(() => {
     document.querySelectorAll('.bs-count').forEach(el => {
         el.textContent = `0:${String(s).padStart(2, '0')}`;
     });
-    updateKPIs();
-}, 1000);
+}, 1000, 1000, 'ui');
+PeriodicScheduler.every('header-kpis',updateKPIs,15000,15000,'ui');
 
 /* ═══════════════ LOCALSTORAGE (magnitude salva) ═══════════════ */
 function carregarMagnitudeSalva() {

@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ciclos por criticidade (4.1.0): sismos e alertas graves mais rápidos;
     // clima/contexto mais espaçados pra reduzir 429 e carga de proxy.
     agendarBusca(fetchGlobalFeeds, 0, 45000);
-    setInterval(function(){ try{updateFreshnessBar();}catch(e){} }, 15000);           // sismos — crítico
+    PeriodicScheduler.every('source-freshness',updateFreshnessBar,15000,15000,'ui');           // sismos — crítico
     agendarBusca(fetchAfadQuakes, 5000, 60000);       // AFAD Turquia (incl. M baixas)
     agendarBusca(fetchPlanetReinforcementQuakes, 7000, 60000);     // reforço planetário (5 fatias de longitude, mesmo USGS, sem teto global)
     agendarBusca(fetchEmscPlanetReinforcementQuakes, 7500, 60000); // idem, mas pro EMSC (cobertura melhor de eventos menores)

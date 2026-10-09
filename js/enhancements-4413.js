@@ -133,11 +133,11 @@
     document.querySelectorAll('#painel-direito').forEach(() => {});
   }
 
-  setInterval(() => {
+  PeriodicScheduler.every('weather-risk-ui',() => {
     try { updateFreshnessUI(); } catch (e) {}
     try { atualizarRiscoAlagamento(); } catch (e) {}
     try { avaliarCriseAutomatica(); } catch (e) {}
-  }, 20000);
+  },20000,20000,'ui');
 
   // Marcar fetch times quando applyFilters roda (proxy de atividade)
   const _af = window.applyFilters;

@@ -2,9 +2,8 @@
   const syncHeaderEventCount = () => {
     const source = document.getElementById('events-count-label');
     const target = document.getElementById('ux-events-total-value');
-    if (source && target) target.textContent = source.textContent || '-- eventos';
+    if (source && target && target.textContent !== source.textContent) target.textContent = source.textContent || '-- eventos';
   };
-  setTimeout(syncHeaderEventCount, 1200);
-  setInterval(syncHeaderEventCount, 3000);
+  PeriodicScheduler.every('header-event-count',syncHeaderEventCount,1200,3000,'ui');
 })();
 

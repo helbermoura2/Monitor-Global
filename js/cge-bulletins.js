@@ -19,6 +19,6 @@
   finally{fetching=false;}
  }
  function expire(){const n=globalAlerts.length;globalAlerts=globalAlerts.filter(x=>!String(x.id).startsWith(prefix)||x.displayUntil>Date.now());if(n!==globalAlerts.length)applyFilters();}
- document.addEventListener('DOMContentLoaded',()=>{setTimeout(refresh,12000);setInterval(refresh,180000);setInterval(expire,60000);});
+ document.addEventListener('DOMContentLoaded',()=>{PeriodicScheduler.every('cge-bulletins',refresh,12000,180000);PeriodicScheduler.every('cge-expiry',expire,60000,60000,'ui');});
  window.CgeBulletins={refresh,fromBulletin,expire};
 })();

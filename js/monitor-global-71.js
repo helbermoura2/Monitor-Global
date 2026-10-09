@@ -24,7 +24,7 @@
   function installHeader(){
     if(!$('v70-header-row'))return;
     $('v70h-ext')?.addEventListener('click',()=>renderDetail('ext'));$('v70h-anom')?.addEventListener('click',()=>renderDetail('anom'));$('v70h-cyc')?.addEventListener('click',()=>renderDetail('cyc'));$('v70hd-close')?.addEventListener('click',()=>{if($('v70-header-detail'))$('v70-header-detail').hidden=true;openKey=null});
-    loadAll();setInterval(loadAll,900000);
+    PeriodicScheduler.every('global-header',loadAll,0,900000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installHeader,{once:true});else setTimeout(installHeader,80);
 

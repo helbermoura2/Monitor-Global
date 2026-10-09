@@ -128,7 +128,7 @@
     }
   }
   applySomSnoozeState();
-  setInterval(function () {
+  PeriodicScheduler.every('sound-snooze',function () {
     if (window.__somSnoozeUntil && Date.now() >= window.__somSnoozeUntil) {
       window.__somSnoozeUntil = 0;
       try { localStorage.removeItem('monitor_som_snooze'); } catch (e) {}
@@ -139,8 +139,7 @@
         if (typeof showToast === 'function') showToast('🔊 Som retomado', 'info');
       }
     }
-    try { if (typeof updateFreshnessBar === 'function') updateFreshnessBar(); } catch (e) {}
-  }, 20000);
+  },20000,20000,'ui');
 
   window.snoozeSom = function (min) {
     window.__somSnoozeUntil = Date.now() + min * 60000;
@@ -200,7 +199,7 @@
   }
 
   // Hook fire dedupe after filters periodically
-  setInterval(function () {
+  PeriodicScheduler.every('fire-dedupe',function () {
     try {
       if (typeof dedupeFireAlerts === 'function') {
         const before = (globalAlerts || []).length;
@@ -208,7 +207,7 @@
         if ((globalAlerts || []).length !== before && typeof applyFilters === 'function') applyFilters();
       }
     } catch (e) {}
-  }, 45000);
+  },45000,45000,'ui');
 
   // Offline banner text
   try {

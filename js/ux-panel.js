@@ -58,6 +58,6 @@
   // Expõe para o menu ☰ chamar direto (DeX/desktop)
   window.__uxShow = show;
   $('ux-search')?.addEventListener('input', e => { const q=e.target.value.trim().toLowerCase(); document.querySelectorAll('#events .event').forEach(card=>card.hidden=q && !card.textContent.toLowerCase().includes(q)); });
-  const refreshSummary=()=>{ if($('ux-summary-text')) $('ux-summary-text').innerHTML=summary(); }; setTimeout(refreshSummary,2500); setInterval(refreshSummary,15000);
+  const refreshSummary=()=>{ const el=$('ux-summary-text'); if(el){ const html=summary(); if(el.innerHTML!==html) el.innerHTML=html; } }; PeriodicScheduler.every('ux-summary',refreshSummary,2500,15000,'ui');
 })();
 
