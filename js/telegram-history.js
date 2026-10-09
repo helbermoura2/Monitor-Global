@@ -56,7 +56,7 @@
  function render(){
    clearPreview();body.replaceChildren();message.textContent='';
    const controls=n('div',null,'tg-controls');
-   for(const [key,text] of [['daily','Resumos diários'],['alerts','Alertas M6+']]){
+   for(const [key,text] of [['daily','Resumos diários'],['alerts','Sismos M6+ e Brasil']]){
      const btn=n('button',text);btn.type='button';btn.setAttribute('aria-pressed',String(active===key));btn.onclick=()=>{active=key;render()};controls.append(btn);
    }
    const update=n('button','Atualizar');update.type='button';update.onclick=refresh;
@@ -66,7 +66,7 @@
    if(!list.length)body.append(n('p','Nenhum envio registrado neste período. Os próximos aparecerão aqui.','tg-empty'));
    list.forEach(row=>{
      const card=n('button',null,'tg-history-row');card.type='button';
-     const title=active==='daily'?'Resumo de '+row.day.split('-').reverse().join('/'):(row.kind==='m6-update'?'Atualização':'Sismo')+' M'+Number(row.mag).toFixed(1)+' · '+row.place;
+     const title=active==='daily'?'Resumo de '+row.day.split('-').reverse().join('/'):(row.kind?.endsWith('-update')?'Atualização':'Sismo')+' M'+Number(row.mag).toFixed(1)+' · '+row.place;
      card.append(n('strong',title),n('span',labels[row.status]||'Pendente','tg-status'),n('small',row.legacy?'Registro anterior · detalhes de tentativas não disponíveis':fmt(row.at)));
      card.onclick=()=>details(row);body.append(card);
    });

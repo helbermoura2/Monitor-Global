@@ -40,6 +40,7 @@ jobs:
           node tests/unit/globalquake-travel-check.cjs
           node tests/unit/wave-camera-check.cjs
           node tests/unit/telegram-history-check.mjs
+          node tests/unit/telegram-brazil-check.mjs
           node tests/unit/daily-summary-design-check.mjs
           node tests/unit/source-proxy-check.mjs
           node tests/unit/official-weather-alerts-check.mjs
