@@ -39,10 +39,11 @@ async function fetchTsunamiAlerts() {
         globalAlerts = globalAlerts.filter(al =>
             al.source !== 'NWS/NOAA' || al.type !== 'tsunami' || ids.has(al.id)
         );
+        window.MonitorFreshness?.recordStatus('NWS tsunami','ok');
         marcarBooted('tsunamiNws');
         applyFilters();
         if (primeiroNovo) showAlertDetails(primeiroNovo, true);
-    } catch (e) { console.error('NWS tsunami:', e); }
+    } catch (e) { window.MonitorFreshness?.recordStatus('NWS tsunami','off',e.message);console.error('NWS tsunami:', e); }
 }
 
 // Independent international feed: NWS domestic cleanup must never erase it.
@@ -50,7 +51,9 @@ async function fetchOfficialTsunamiAlerts(){
  try{
   const url=new URL(WORKER_PROXY(''));url.pathname='/tsunami-alerts';url.search='';
   const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);
-  const data=await response.json();if(!data.ok)throw Error('Centros oficiais indisponíveis');
+  const data=await response.json();
+  for(const name of ['PTWC','NTWC']){const rows=(data.sources||[]).filter(s=>s.source===name);const ok=rows.some(s=>s.ok);const partial=ok&&rows.some(s=>!s.ok);window.MonitorFreshness?.recordStatus(name+' boletins',partial?'warn':ok?'ok':'off',rows.filter(s=>!s.ok).map(s=>s.error||'Produto indisponível').join(' · '));}
+  if(!data.ok)throw Error('Centros oficiais indisponíveis');
   const online=new Set((data.sources||[]).filter(s=>s.ok).map(s=>s.feedKey||s.source));
   const items=(data.items||[]).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)&&Number.isFinite(item.time)&&Date.now()-item.time<=72*3600000);
   const ids=new Set(items.map(item=>item.id));
@@ -75,7 +78,7 @@ async function fetchOfficialTsunamiAlerts(){
    showAlertDetails(current,false);
   };
   marcarBooted('tsunamiOfficial');window.NewEventPriority?.focus();
- }catch(error){console.error('Tsunami oficial:',error);}
+ }catch(error){for(const name of ['PTWC boletins','NTWC boletins'])window.MonitorFreshness?.recordStatus(name,'off',error.message);console.error('Tsunami oficial:',error);}
 }
 
 async function fetchTornadoAlerts() {
@@ -115,10 +118,11 @@ async function fetchTornadoAlerts() {
         });
 
         globalAlerts = globalAlerts.filter(al => al.type !== 'tornado' || ids.has(al.id));
+        window.MonitorFreshness?.recordStatus('NWS tornados','ok');
         marcarBooted('tornado');
         applyFilters();
         if (grave) showAlertDetails(grave, true);
-    } catch (e) { console.error('NWS tornado:', e); }
+    } catch (e) { window.MonitorFreshness?.recordStatus('NWS tornados','off',e.message);console.error('NWS tornado:', e); }
 }
 
 /* ═══════════════ INCÊNDIOS + EONET ═══════════════ */
