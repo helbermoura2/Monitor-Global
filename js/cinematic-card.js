@@ -1,7 +1,7 @@
 /* Illustrative atmosphere inside the glass card. No map, feed, voice or camera writes. */
 (function(){
  'use strict';
- const TYPES=new Set(['storm','hurricane','tornado','fire','volcano','flood','tsunami','earthquake','wind']);
+ const TYPES=new Set(['storm','hurricane','tornado','fire','volcano','flood','tsunami','earthquake','wind','civil']);
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let scene=null,ghost=null,ghostTimer=0,raf=0,idleTimer=0,serial=0;
  const rand=(a,b)=>a+Math.random()*(b-a),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -61,7 +61,9 @@
   const hot=item.type==='fire'||activity.eruptive||activity.lava;
   const ash=activity.ash;
   const rotationDirection=Number(item.coords?.[1])<0?-1:1;
-  return {type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  const text=[item.descOnly,item.place,item.detail].filter(Boolean).join(' ');
+  const alertEffect=item.type==='civil'?(/baixa\s+umidade|umidade\s+baixa/i.test(text)?'dry':'alert'):null;
+  return {alertEffect,alertColor:typeof corSeveridadeAlerta==='function'?corSeveridadeAlerta(item):'#fb923c',type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
@@ -69,7 +71,7 @@
  function stop(){
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
-  if(scene){scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
+  if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active','pd-volcano-monitoring');removeGhost();
  }
  function fogTexture(){
@@ -134,6 +136,7 @@
   window.triggerWindLetters?.(Infinity,{controlled:true,allText:true});
   if(['wind','storm','hurricane','tornado','tsunami'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
   s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);if(s.physics.background)host.append(s.physics.background);if(cfg.type==='tsunami')host.dataset.renderer=s.physics.background.dataset.renderer;host.dataset.weatherMaterial=cfg.type==='tsunami'?'hydraulic-bore':cfg.water?'refractive-current':cfg.type==='wind'?'turbulent-air':cfg.type==='tornado'?'helical-debris':'wet-glass';}
+  s.artifacts=window.CardArtifactEffects?.create(cfg,mobile,p);if(s.artifacts)front.append(s.artifacts.canvas);
   s.typography=window.CardEventTypography?.create(cfg,mobile,p);if(s.typography)front.append(s.typography.canvas);
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
   function resize(){
@@ -141,7 +144,7 @@
    const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5);if(!w||!h)return;
    s.width=w;s.height=h;s.canvas.width=Math.round(w*dpr);s.canvas.height=Math.round(h*dpr);
    s.ctx.setTransform(dpr,0,0,dpr,0,0);s.contact.width=s.canvas.width;s.contact.height=s.canvas.height;s.contactCtx?.setTransform(dpr,0,0,dpr,0,0);
-   s.film?.resize(w,h);s.footage?.resize(w,h);s.physics?.resize(w,h);s.monitor?.resize(w,h);s.typography?.resize(w,h);
+   s.film?.resize(w,h);s.footage?.resize(w,h);s.physics?.resize(w,h);s.monitor?.resize(w,h);s.typography?.resize(w,h);s.artifacts?.resize(w,h);
    // Resizing clears a canvas. Paint now so expansion never exposes a blank frame.
    const time=Math.max(0,(performance.now()-s.start)/1000);
    s.film?.draw(time,{...s.cfg,gust:s.wind?.pressure||0,windTravel:s.wind?.travel??time*.25,flash:s.flash||0,waterTop:s.waterTop??.90},(s.demoLightning||p.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
@@ -407,6 +410,7 @@
    s.monitor?.draw(t);
    const ready=s.footage?.isReady();
    s.physics?.draw(t,dt,envelope,{pressure:s.wind?.pressure||0,flash:s.flash||0,waterTop:s.waterTop,fallback:!ready&&!s.film});
+   s.artifacts?.draw(t,dt,envelope);
    s.typography?.draw(t,dt,envelope,{cfg:s.cfg,pressure:s.wind?.pressure||0,flash:s.flash||0,waterTop:s.waterTop});
    s.film?.draw(t,{...s.cfg,gust:s.wind?.pressure||0,windTravel:s.wind?.travel??t*.25,flash:s.flash||0,waterTop:s.waterTop},(s.demoLightning||p.dataset.lightning==='on')&&s.cfg.type==='storm',ready);
   }
