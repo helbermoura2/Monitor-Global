@@ -9,7 +9,7 @@ for(const width of [1280,390])test('Story disponível e exportável para todos o
  await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.RecordPresentation);
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.evaluate(()=>{
-  pausarBuscas=true;clearTimeout(cycleTimeout);
+  pausarBuscas();clearTimeout(cycleTimeout);
   Object.defineProperty(navigator,'canShare',{value:()=>false,configurable:true});
   window.__storyTexts=[];
   const fill=CanvasRenderingContext2D.prototype.fillText;
