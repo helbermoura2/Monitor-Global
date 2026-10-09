@@ -28,7 +28,7 @@ const get=name=>{if(!sources.has(name))sources.set(name,{lastOk:0,lastAttempt:0,
 const cfg=name=>settings[name]||{group:/^(ECCC|BOM|MeteoAlarm)/.test(name)?'Meteorologia':'Outras fontes',interval:600000,limit:25*60000};
 function age(ts,now=Date.now()){if(!ts)return 'sem consulta válida';const seconds=Math.max(0,Math.floor((now-ts)/1000));return seconds<60?seconds+' s':seconds<3600?Math.floor(seconds/60)+' min':Math.floor(seconds/3600)+' h';}
 function recordStatus(name,status,error='',dataAt=0,checkedAt=0){
- const s=get(name);s.lastAttempt=Date.now();s.status=status==='ok'?'ok':status==='paused'?'paused':status==='warn'?'warn':'error';s.error=String(error||'');
+ const s=get(name);if(status!=='paused')s.lastAttempt=Date.now();s.status=status==='ok'?'ok':status==='paused'?'paused':status==='warn'?'warn':'error';s.error=String(error||'');
  if(status==='ok'){s.lastOk=Number.isFinite(Number(checkedAt))&&Number(checkedAt)>0?Math.min(s.lastAttempt,Number(checkedAt)):s.lastAttempt;s.dataAt=Number(dataAt)||0;}
  scheduleRender();
 }
@@ -72,7 +72,7 @@ function renderDetails(){
  body.append(node('p',overall.available+' de '+overall.expected+' fontes sísmicas com consulta válida recente.','mg-fresh-note'));
  const pending=[...sources.keys()].filter(n=>!quakeNames.includes(n)&&['error','partial','stale'].includes(snapshot(n).state));if(pending.length)body.append(node('p','Outras consultas com pendências: '+pending.join(', ')+'.','mg-fresh-missing'));
  if(overall.missing.length)body.append(node('p','Fontes sísmicas sem atualização válida recente: '+overall.missing.join(', ')+'.','mg-fresh-missing'));
- body.append(node('p','Consulta válida é o retorno do catálogo ou boletim, inclusive quando não há eventos. Os horários abaixo não são os horários dos eventos. Uma falha não apaga os dados anteriores.','mg-fresh-note'));
+ body.append(node('p','Consulta válida é o retorno do catálogo ou boletim, inclusive quando não há eventos. Os horários abaixo não são os horários dos eventos. Uma falha não renova o horário da consulta válida.','mg-fresh-note'));
  const groups=new Map();for(const name of sources.keys()){const s=snapshot(name);if(!groups.has(s.group))groups.set(s.group,[]);groups.get(s.group).push(s);}
  for(const [title,rows] of groups){
   body.append(node('h3',title));
