@@ -41,6 +41,7 @@ jobs:
           node tests/unit/wave-camera-check.cjs
           node tests/unit/telegram-history-check.mjs
           node tests/unit/telegram-brazil-check.mjs
+          node --test tests/unit/new-event-priority.test.cjs tests/unit/new-quake-priority.test.cjs
           node tests/unit/daily-summary-design-check.mjs
           node tests/unit/source-proxy-check.mjs
           node tests/unit/official-weather-alerts-check.mjs

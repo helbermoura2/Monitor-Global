@@ -204,10 +204,11 @@ async function fetchEonetStormsData() {
                     detail: 'Tempestade severa (EONET)', link
                 });
             }
-            if (isNew) novos++;
+            if (isNew) {novos++;if(fonteBooted('eonetStorms'))window.NewEventPriority?.queue(globalAlerts.filter(a=>a.id===id));}
         });
 
         globalAlerts = globalAlerts.filter(a => !(a.id || '').startsWith('eonet-st-') || ids.has(a.id));
+        marcarBooted('eonetStorms');
         try { limparCiclonesEonetDuplicados(); } catch (e) {}
         applyFilters();
     } catch (e) { console.warn('EONET storms:', e.message); throw e; }
@@ -361,6 +362,7 @@ async function fetchFirmsSouthAmerica() {
             return;
         }
         const id = 'firms-br-' + Math.round(c.lat * 100) + '-' + Math.round(c.lng * 100);
+        const isNew=!knownAlertIds.has(id);
         knownAlertIds.add(id);
         globalAlerts.push({
             id, type: 'fire',
@@ -374,7 +376,9 @@ async function fetchFirmsSouthAmerica() {
             detail: c.n + ' focos VIIRS · 24h · América do Sul (filtro BR)',
             link: 'https://firms.modaps.eosdis.nasa.gov/map/'
         });
+        if(isNew&&fonteBooted('firmsFires'))window.NewEventPriority?.queue(globalAlerts.filter(a=>a.id===id));
     });
+    marcarBooted('firmsFires');
     return clusters.length;
 }
 

@@ -906,11 +906,11 @@ function anunciarSismosSuplementares(items) {
             activeLateIds.set(ev.id, now + 180000);
         }
     }
-    if (!recent.length) return;
     if (typeof queueNewCameraQuakes === 'function' && (typeof isFirstDisplay === 'undefined' || !isFirstDisplay)) {
-        queueNewCameraQuakes(recent);
+        queueNewCameraQuakes([...recent,...late].filter(ev=>isWithinAutoCycleAge(ev)));
         if (typeof focusNextNewCameraQuake === 'function') focusNextNewCameraQuake();
     }
+    if (!recent.length) return;
     try { if (typeof mostrarNovosSismosNoMapa === 'function') mostrarNovosSismosNoMapa(recent); } catch (e) { console.warn('[sismo suplementar] mapa:', e); }
     const candidates = recent.filter(ev => Number(ev.mag) >= Math.max(SOM_SISMO_MIN, minMagnitude))
         .sort((a,b) => Number(b.mag) - Number(a.mag));

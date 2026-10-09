@@ -568,6 +568,7 @@ function upsertAlert(obj, opts = {}) {
     if (isNew) {
         activeAlertingIds.set(id, Date.now() + expiraMs);
         activeUpdatedIds.delete(id);
+        if(fonte)window.NewEventPriority?.queue([obj]);
     } else if (prev && !activeAlertingIds.has(id)) {
         // "Atualizado" só quando algo que o usuário notaria realmente mudou —
         // não a cada vez que a fonte apenas reconfirma o mesmo dado no ciclo

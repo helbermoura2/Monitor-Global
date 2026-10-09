@@ -27,27 +27,31 @@ function isRecentCameraQuake(event){
 }
 function focusNextNewCameraQuake(minMagnitude = 0) {
     if (!map) return false;
-    const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
-        Date.now() < (window.__mgRevisionProtectedUntil || 0);
     const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
     const currentMag=Number(current?.mag) || 0;
+    const protectedSelection = window.__mgQuakePresentationMode !== 'auto' &&
+        window.__mgRevisionProtectedId === eventoSelecionadoId && Date.now() < (window.__mgRevisionProtectedUntil || 0) &&
+        (window.__mgQuakePresentationMode==='new' || currentMag>=5 || isRecentCameraQuake(current));
     const candidates = [],included=new Set();
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0 || id === eventoSelecionadoId || !isRecentCameraQuake(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
+        if (index < 0 || id === eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
         candidates.push({index, event:globalEvents[index], arrived:entry.arrived});included.add(id);
     }
     // Revisions can raise an already known event above the quake on screen.
     // Also recover a newly badged arrival if its enqueue path was interrupted.
     for(let index=0;index<globalEvents.length;index++){
         const event=globalEvents[index];
-        if(!event||!isRecentCameraQuake(event)||event.id===eventoSelecionadoId||included.has(event.id)||Number(event.mag)<=currentMag)continue;
+        if(!event||!isRecentCameraQuake(event)||event.id===eventoSelecionadoId||included.has(event.id))continue;
         const revision=pendingQuakeRevisions.get(event.id);
         const freshBadge=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(event.id)||0)>Date.now();
         const presented=window.__mgQuakeCameraPresented?.get(event.id);
         const raised=revision&&Number(event.mag)>Number(revision._previousMag??presented??event.mag);
+        if(raised&&Number(event.mag)<=currentMag&&!freshBadge)continue;
         if(!raised&&(!freshBadge||(presented!=null&&presented>=Number(event.mag))))continue;
-        candidates.push({index,event,arrived:Number(revision?._updatedAt||event._novoAt)||Date.now()});
+        const arrived=Number(revision?._updatedAt||event._novoAt)||Date.now();
+        candidates.push({index,event,arrived});
+        if(freshBadge&&!pendingNewCameraQuakes.has(event.id))pendingNewCameraQuakes.set(event.id,{arrived});
     }
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
     if (minMagnitude > 0) {
@@ -74,7 +78,7 @@ function queueQuakeRevisions(items) {
 function focusNextQuakeRevision(blocked = false) {
     // Chegadas novas têm prioridade sobre todas as revisões pendentes.
     if (focusNextNewCameraQuake()) return true;
-    if (pendingNewCameraQuakes.size) return false;
+    if (pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) return false;
     const live = window.__mgLiveQuakeId === eventoSelecionadoId &&
         Date.now() < (window.__mgLiveQuakeUntil || 0);
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
@@ -371,9 +375,9 @@ async function fetchGlobalFeeds() {
 
         // "Novo pra esta sessão" (isNew) não é o mesmo que "aconteceu agora": uma
         // rede regional pode publicar um sismo pequeno horas depois da origem real
-        // (revisão humana, sincronização atrasada). Só o que de fato aconteceu
-        // dentro da janela recente ganha o alarme completo (som, voo de câmera,
-        // radar no mapa); o resto só recebe um selo discreto, sem susto.
+        // (revisão humana, sincronização atrasada). O som e o selo de chegada
+        // recente continuam usando a origem; a fila de apresentação inclui
+        // todos os registros novos válidos até 72h, mesmo publicados com atraso.
         const novoAgora = Date.now();
         const novosRecentes = [];
         const novosTardios = [];
@@ -467,7 +471,7 @@ async function fetchGlobalFeeds() {
         if (isFirstDisplay) {
             requestInitialAutoDisplay();
         } else {
-            queueNewCameraQuakes(novosRecentes);
+            queueNewCameraQuakes(novos.filter(ev=>isWithinAutoCycleAge(ev)));
             focusNextNewCameraQuake();
         }
 
