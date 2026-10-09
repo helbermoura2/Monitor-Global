@@ -4747,6 +4747,9 @@ async function runTelegramM6Alerts(request, env) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const data = await queryImageExposure(ev, env);
+        // A slow refresh must not replace previously available population with a pending label.
+        const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
+        if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
         if (validImageExposure(data) || root.cardImageVersion !== 'geo-impact-pop-v3') {
             ev.imageExposure = data;
             try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'geo-impact-pop-v3'; root.imageExposureVersion = exposureVersion(data); }
