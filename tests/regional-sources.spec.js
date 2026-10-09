@@ -7,14 +7,14 @@ test('catálogos oficiais: fusos, coordenadas, profundidade e validação',async
  for(const method of ['geofon','ovsicori','marn'])expect(await page.evaluate(method=>{try{RegionalSeismic[method]('<html>maintenance</html>');return false}catch(e){return true}},method)).toBeTruthy();
 });
 test('status de fonte não é sobrescrito por pings e explica falha/pausa',async({page})=>{
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);await page.evaluate(()=>pausarBuscas());
  await page.evaluate(async()=>{setSource('OSC-BOL','ok');const before=PRO.sourceState['OSC-BOL'].time;const native=fetch;window.fetch=()=>{throw Error('ping indevido')};try{await checkSources()}finally{window.fetch=native}if(before!==PRO.sourceState['OSC-BOL'].time)throw Error('ping alterou saúde');setSource('GDACS enchentes','off',0,'HTTP 502');setSource('GDACS enchentes','off',0,'HTTP 502');await fetchAnaRios();window.__uxShow('sources');});
- await expect(page.locator('#ux-panel-content')).toContainText('Consulta falhou');await expect(page.locator('#ux-panel-content')).toContainText('HTTP 502');await expect(page.locator('#ux-panel-content')).toContainText('PAUSADA');await expect(page.locator('#ux-panel-content')).toContainText('Resposta válida');await expect(page.locator('#ux-panel-content')).not.toContainText('Fora do ar há');
+ await expect(page.locator('#mg-fresh-dialog')).toContainText('Consulta indisponível');await expect(page.locator('#mg-fresh-dialog')).toContainText('HTTP 502');await expect(page.locator('#mg-fresh-dialog')).toContainText('Integração pausada');await expect(page.locator('#mg-fresh-dialog')).toContainText('Última consulta válida');await expect(page.locator('#mg-fresh-dialog')).not.toContainText('Fora do ar há');
 });
 test('EONET registra falha de catálogo e aceita catálogo vazio válido',async({page})=>{
  await page.goto('about:blank');await page.addScriptTag({path:'js/incendios.js'});
  const result=await page.evaluate(async()=>{
-  window.EONET='https://example.test';window.globalAlerts=[];window.applyFilters=()=>{};const states=[];window.setSource=(name,status,ms,error)=>states.push({name,status,error});
+  window.EONET='https://example.test';window.globalAlerts=[];window.applyFilters=()=>{};window.marcarBooted=()=>{};const states=[];window.setSource=(name,status,ms,error)=>states.push({name,status,error});
   let valid=false;window.fetch=async url=>({json:async()=>url.endsWith('/categories')?{categories:[{id:'severeStorms',title:'Severe Storms'}]}:valid?{events:[]}:{error:'indisponível'}});
   let rejected=false;try{await fetchEonetStorms()}catch(e){rejected=true}valid=true;await fetchEonetStorms();return {rejected,states};
  });
