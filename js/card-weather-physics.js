@@ -2,17 +2,19 @@
 (function(){
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
- function create(cfg,mobile,panel){
-  if(cfg.type==='flood')return window.CardFloodRise?.create(cfg,mobile,panel)||null;
-  if(cfg.type==='tsunami')return window.CardTsunamiSurge?.create(cfg,mobile,panel)||null;
-  if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel)||null;
-  if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel)||null;
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
+  if(cfg.type==='flood')return window.CardFloodRise?.create(cfg,mobile,panel,quality)||null;
+  if(cfg.type==='tsunami')return window.CardTsunamiSurge?.create(cfg,mobile,panel,quality)||null;
+  if(cfg.type==='tornado')return window.CardTornadoField?.create(cfg,mobile,panel,quality)||null;
+  if(cfg.type==='wind')return window.CardGaleField?.create(cfg,mobile,panel,quality)||null;
   if(!['storm','hurricane'].includes(cfg.type))return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material';canvas.setAttribute('aria-hidden','true');
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   let w=1,h=1,dead=false,measureAt=-1,ledges=[],groups=[],bolt=[],boltAt=-10;
   const rain=true;
   const drops=Array.from({length:rain?(mobile?150:300):0},()=>({x:Math.random(),y:Math.random(),z:rand(.2,1),vx:0,vy:0,seed:rand(0,TAU)}));
+  detail.track(drops);
   const impacts=[],lenses=[];
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';
   const optics=document.createElementNS('http://www.w3.org/2000/svg','svg');optics.setAttribute('width','0');optics.setAttribute('height','0');optics.setAttribute('aria-hidden','true');
@@ -27,8 +29,8 @@
    const pr=panel.getBoundingClientRect(),sx=w/Math.max(pr.width,1),sy=h/Math.max(pr.height,1);
    ledges=Array.from(panel.querySelectorAll('.stat-card,.bubble-section,.source-trust-card,.pd-header-row'),el=>{const r=el.getBoundingClientRect();return {x:(r.left-pr.left)*sx,y:(r.top-pr.top)*sy,width:r.width*sx};}).filter(r=>r.y>10&&r.y<h-8);
   }
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
-  function splash(x,y,force){if(impacts.length<(mobile?45:85))impacts.push({x,y,life:0,force,seed:rand(0,TAU)});}
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
+  function splash(x,y,force){if(impacts.length<detail.count(mobile?45:85))impacts.push({x,y,life:0,force,seed:rand(0,TAU)});}
   function precipitation(t,dt,pressure,flash,envelope){
    // Exposure and drag depend on depth: distant fine sheets, near fast drops.
    for(const d of drops){

@@ -91,8 +91,8 @@
  function createScene(p){
   const layer=document.createElement('div');layer.className='seismic-scene';layer.dataset.tier=p.tier;layer.setAttribute('aria-hidden','true');layer.inert=true;
   const canvas=document.createElement('canvas');canvas.className='seismic-atmosphere';layer.append(canvas);
-  const ctx=canvas.getContext('2d'),w=innerWidth,h=innerHeight,dpr=Math.min(devicePixelRatio||1,1.5);
-  canvas.width=Math.ceil(w*dpr);canvas.height=Math.ceil(h*dpr);ctx?.scale(dpr,dpr);
+  const ctx=canvas.getContext('2d'),w=innerWidth,h=innerHeight,quality=root.CardEffectQuality.create(innerWidth<700);
+  const resize=()=>{const dpr=Math.min(devicePixelRatio||1,1.5)*quality.resolution;canvas.width=Math.ceil(w*dpr);canvas.height=Math.ceil(h*dpr);ctx?.setTransform(dpr,0,0,dpr,0,0);layer.dataset.quality=quality.name;};resize();
   const targets=pieceCandidates(p);const pieces=targets.map((el,i)=>copyPiece(el,i,targets.length,p,layer));
   // A reusable soft particle makes drifting dust volumetric without expensive
   // per-frame CSS blurs. Clear centres leave the event text readable.
@@ -104,9 +104,10 @@
    const source=pieces[i%Math.max(1,pieces.length)],x=source?source.x+source.w*Math.random():Math.random()*w;
    return {x,y:source?source.y+source.h*.5:Math.random()*h*.2,start:.25+Math.random()*(p.duration/1000-4),vx:(Math.random()-.5)*110,g:220+Math.random()*200,spin:(Math.random()-.5)*10,r:2+Math.random()*5,points:[[-.8,-.3],[.4,-.9],[1,.3],[-.2,.7]],tone:Math.random()<.45?'#748a92':'#263e49'};
   });
+  for(const array of [dust,clouds,shards])quality.track(array);
   let power=null;
   if(p.tier>=2){power=document.createElement('div');power.className='seismic-power-failure';power.dataset.state='normal';layer.append(power);}
-  document.body.append(layer);return {layer,power,ctx,w,h,pieces,dust,clouds,shards,plume};
+  document.body.append(layer);return {quality,resize,layer,power,ctx,w,h,pieces,dust,clouds,shards,plume};
  }
  // Sparse, irregular outages: no looping strobe, and no lights below M7.
  function drawPower(scene,t,p){
@@ -169,7 +170,16 @@
   }}
   const token=++seq;job={token,target,animations,swayTargets,layer:scene?.layer,scene,raf:0,timer:null,profile:p,demo};
   const start=performance.now();
-  if(scene){const tick=now=>{if(job?.token!==token)return;draw(scene,(now-start)/1000,p);job.raf=requestAnimationFrame(tick);};job.raf=requestAnimationFrame(tick);}
+  if(scene){let last=start;const tick=now=>{
+   if(job?.token!==token)return;
+   if(document.hidden){scene.quality.reset();last=now;}
+   else if(now-last>=1000/scene.quality.fps(60)-1){
+    const gap=now-last,costStart=performance.now();last=now;
+    draw(scene,Math.max(0,(now-start)/1000),p);
+    if(scene.quality.sample(now,performance.now()-costStart,gap,60))scene.resize();
+   }
+   job.raf=requestAnimationFrame(tick);
+  };job.raf=requestAnimationFrame(tick);}
   if(demo)showPreviewBar(p,false);
   job.timer=setTimeout(()=>{if(job?.token!==token)return;stop();if(demo)showPreviewBar(p,false,true);},p.duration+50);
   return p;

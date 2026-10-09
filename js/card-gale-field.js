@@ -24,17 +24,20 @@
   if(!blur)return c;
   const out=document.createElement('canvas');out.width=96;out.height=72;const b=out.getContext('2d');b.filter='blur('+blur+'px)';b.drawImage(c,0,0);c.width=c.height=1;return out;
  }
- function create(cfg,mobile,panel){
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type!=='wind')return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material pd-gale-field';canvas.setAttribute('aria-hidden','true');canvas.dataset.material='inertial-debris';
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';lensLayer.setAttribute('aria-hidden','true');
   const leaves=Array.from({length:mobile?17:27},(_,i)=>({x:rand(-.25,1.1),y:rand(-.1,1.1),z:rand(.18,1),vx:0,vy:0,angle:rand(0,TAU),spin:rand(-4,4),phase:rand(0,TAU),kind:i%3,size:rand(11,24)}));
+  detail.track(leaves);
   const grains=Array.from({length:mobile?105:175},()=>({x:rand(-.1,1.1),y:Math.random(),z:rand(.05,1),vx:0,vy:0,phase:rand(0,TAU)}));
+  detail.track(grains);
   const sprites=Array.from({length:3},(_,i)=>[leafTexture(i,0),leafTexture(i,1.7)]);
   let w=1,h=1,dead=false,measureAt=-1,groups=[],travel=0,drag=0,velocity=0,roll=0,rollVelocity=0;
   const strength=.72+.28*cfg.strength,letterDynamics=new WeakMap();
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
   function measure(t){
    if(t<measureAt)return;measureAt=t+.6;
    // Clear only our glyph transforms to measure their original, current layout.

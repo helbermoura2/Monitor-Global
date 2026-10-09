@@ -2,7 +2,8 @@
 (function(){
 'use strict';
 const rand=(a,b)=>a+Math.random()*(b-a),clamp=x=>Math.max(0,Math.min(1,x));
-function create(cfg,mobile,panel){
+function create(cfg,mobile,panel,quality){
+ const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
  const canvas=document.createElement('canvas');canvas.className='pd-letter-fragments';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;
  const dry=cfg.alertEffect==='dry',alarm=cfg.alertEffect==='alert',quiet=cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava;
  let w=1,h=1,dead=false;
@@ -10,9 +11,10 @@ function create(cfg,mobile,panel){
  const selected=candidates.map(el=>({el,ticket:Math.random()})).sort((a,b)=>a.ticket-b.ticket).slice(0,Math.min(candidates.length,Math.floor(rand(2,4))));
  const actors=selected.map(({el})=>({el,at:rand(.7,4.8),vx:rand(-75,75),lift:rand(30,90),spin:rand(-85,85),phase:rand(0,Math.PI*2),variant:Math.floor(rand(0,3)),saved:['transform','opacity','filter','pointer-events'].map(key=>[key,el.style.getPropertyValue(key),el.style.getPropertyPriority(key)])}));
  const dust=Array.from({length:mobile?45:75},()=>({x:Math.random(),y:Math.random(),speed:rand(8,40),phase:rand(0,6.28),r:rand(.4,1.7)}));
+  detail.track(dust);
  const cracks=Array.from({length:Math.floor(rand(5,10))},()=>({x:Math.random(),y:Math.random(),at:rand(1,8),angle:rand(-3,3),length:rand(25,110),bend:rand(-25,25)}));
  const direction=Math.random()<.5?-1:1,scanRate=rand(.12,.25),color=cfg.alertColor||'#fb923c';
- function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+ function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
  function draw(t,dt,envelope){if(dead)return;ctx.clearRect(0,0,w,h);
   if(dry){const glow=ctx.createLinearGradient(0,h,0,0);glow.addColorStop(0,'rgba(194,108,28,'+(.16*envelope)+')');glow.addColorStop(1,'rgba(235,190,72,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
    ctx.lineWidth=.7;for(const c of cracks){const age=clamp((t-c.at)/3);if(!age)continue;ctx.strokeStyle='rgba(240,188,108,'+(.30*age*envelope)+')';ctx.beginPath();ctx.moveTo(c.x*w,c.y*h);ctx.lineTo(c.x*w+Math.cos(c.angle)*c.length*age,c.y*h+Math.sin(c.angle)*c.length*age);ctx.lineTo(c.x*w+Math.cos(c.angle)*c.length*age+c.bend,c.y*h+Math.sin(c.angle)*c.length*age+15);ctx.stroke();}

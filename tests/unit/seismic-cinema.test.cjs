@@ -13,7 +13,7 @@ test('profundidade regula força sem usar magnitude como confirmação de danos'
 });
 test('M6.1 a 43 km tem presença no modo completo e fica no cartão na rotação',()=>{
  const e=engine(),item={mag:6.1,depth:43},full=e.profile(item,'manual'),auto=e.profile(item,'auto');
- assert.ok(full.amplitude>=10);assert.ok(full.pieces>=6);assert.equal(full.duration,10000);
+ assert.ok(full.amplitude>=10);assert.ok(full.pieces>=6);assert.equal(full.duration,16000);
  assert.ok(auto.amplitude<=16);assert.ok(auto.duration>=1200&&auto.duration<=4800);assert.equal(auto.pieces,0);
 });
 test('modelo coincide com a exposição populacional existente',async()=>{

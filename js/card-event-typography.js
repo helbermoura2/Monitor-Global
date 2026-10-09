@@ -4,11 +4,12 @@
  'use strict';
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),ease=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
  function mode(cfg){return cfg.alertEffect|| (cfg.type==='volcano'?(cfg.lava?'lava':cfg.ash?'ash':'monitoring'):cfg.type==='hurricane'?(cfg.cycloneStage==='mature'?'cyclone':'tropical'):cfg.type);}
- function create(cfg,mobile,panel){
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type==='wind')return null;
   const canvas=document.createElement('canvas');canvas.className='pd-letter-fragments';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;
   let w=1,h=1,groups=[],nextMeasure=-1,dead=false,currentMode=mode(cfg);const memory=new WeakMap(),touched=new Set(),fragments=[];
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);nextMeasure=-1;}
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);nextMeasure=-1;}
   function measure(t){
    if(t<nextMeasure)return;nextMeasure=t+.55;
    for(const el of touched)el.style.removeProperty('transform');
@@ -22,7 +23,7 @@
    });
   }
   function scatter(s,t,burning){
-   const count=mobile?7:12;for(let i=0;i<count&&fragments.length<(mobile?130:220);i++)fragments.push({x:s.x+rand(0,s.width),y:s.y+rand(0,s.height),at:t,ttl:rand(.7,1.8),vx:rand(12,75),vy:burning?rand(-65,-18):rand(-20,35),r:rand(.5,1.7),burning});
+   const count=detail.count(mobile?7:12);for(let i=0;i<count&&fragments.length<detail.count(mobile?130:220);i++)fragments.push({x:s.x+rand(0,s.width),y:s.y+rand(0,s.height),at:t,ttl:rand(.7,1.8),vx:rand(12,75),vy:burning?rand(-65,-18):rand(-20,35),r:rand(.5,1.7),burning});
   }
   function draw(t,dt,envelope,signals={}){
    if(dead)return;currentMode=mode(signals.cfg||cfg);measure(t);ctx.clearRect(0,0,w,h);

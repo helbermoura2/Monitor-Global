@@ -4,13 +4,15 @@
  'use strict';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function level(t){const p=clamp((t-.4)/10,0,1);return 1.035-.97*(p*p*(3-2*p));}
- function create(cfg,mobile,panel){
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material pd-flood-rise-contact';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';lensLayer.setAttribute('aria-hidden','true');
   const background=document.createElement('canvas');background.className='pd-flood-reserve';background.setAttribute('aria-hidden','true');const reserve=background.getContext('2d');
   let w=1,h=1,groups=[],measureAt=-1,dead=false;const states=new WeakMap();
   const debris=Array.from({length:mobile?14:24},(_,i)=>({x:Math.random(),y:Math.random(),size:3+Math.random()*7,phase:i*2.399}));
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);background.width=Math.max(1,Math.round(w*.5));background.height=Math.max(1,Math.round(h*.5));measureAt=-1;}
+  detail.track(debris);
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);background.width=Math.max(1,Math.round(w*.5*detail.resolution));background.height=Math.max(1,Math.round(h*.5*detail.resolution));measureAt=-1;}
   function measure(t){
    if(t<measureAt)return;measureAt=t+.7;for(const g of groups)for(const l of g.letters)l.el.style.removeProperty('transform');
    const pr=panel.getBoundingClientRect(),sy=h/Math.max(1,pr.height),sx=w/Math.max(1,pr.width);
