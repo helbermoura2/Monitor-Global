@@ -47,7 +47,7 @@ feeds.USGS=[quake('small',1.9,-23.55,-46.63),quake('neighbor',4.2,-25.3,-57.6),q
 world.push(quake('world-five',5.9,35,140),quake('world-six',6.2,35,140,now-300000));
 // fetchUsgsM6Recent filters world-five itself, even with a malformed upstream response.
 result=await run();assert.equal(messages.length,4);assert.equal(result.sent.length,4);
-assert(messages.some(m=>m.caption.includes('M0.0')));assert(messages.some(m=>m.caption.includes('M1.9')));
+assert(messages.some(m=>m.caption.includes('M0,0')));assert(messages.some(m=>m.caption.includes('M1,9')));
 assert(messages.filter(m=>m.caption.includes('Sismo no Brasil')).length===3);
 // Restart and ten concurrent cron/manual calls cannot send the records again.
 object=new EarthquakeAlertDelivery({storage},env);
