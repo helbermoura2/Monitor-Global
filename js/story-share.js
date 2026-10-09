@@ -128,7 +128,7 @@
   function titleForItem(item) {
     const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || {};
     if (item.type === 'earthquake') return `M ${Number(item.mag).toFixed(1)}`;
-    return (meta.label || item.type || 'EVENTO').toUpperCase();
+    return (window.RecordPresentation?.isBulletin(item) ? 'Boletim CGE' : window.RecordPresentation?.label(item) || item.displayLabel || item.cycloneLabel || meta.label || item.type || 'EVENTO').toUpperCase();
   }
 
   // Extrai o tamanho em px de uma string de ctx.font (ex: '700 32px "X"')
@@ -1189,19 +1189,21 @@
     const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || { color: '#38bdf8', icon: '🌍' };
     const isQuake = item.type === 'earthquake' || (item.mag != null && !item.type);
     const isUpdatedStory = !!(item && item._deltaTxt && typeof activeUpdatedIds !== 'undefined' && activeUpdatedIds.has(item.id));
-    const cor = isQuake && typeof getHexColor === 'function' ? getHexColor(item.mag) : (meta.color || '#38bdf8');
-    const [lng, lat] = item.coords || [0, 0];
+    const located = window.RecordPresentation?.located(item) ?? (Array.isArray(item.coords) && item.coords.length >= 2 && item.coords.slice(0, 2).every(Number.isFinite) && Math.abs(item.coords[0]) <= 180 && Math.abs(item.coords[1]) <= 90);
+    const cor = isQuake && typeof getHexColor === 'function' ? getHexColor(item.mag) : (item.hazardNature === 'warning' && typeof corSeveridadeAlerta === 'function' ? corSeveridadeAlerta(item) : meta.color || '#38bdf8');
+    const [lng, lat] = located ? item.coords : [null, null];
 
     // Mapa de satélite com o epicentro centralizado — a referência que fica no
     // topo, com o resto do card sobreposto por baixo (degradê escuro).
     const markerCx = W / 2, markerCy = H * 0.27;
     const mapZoom = zoomForItem(item);
-    let usouMapa = true;
-    try {
+    let usouMapa = false;
+    if (located) try {
       await drawMapBackground(ctx, lng, lat, mapZoom, W, H, markerCx, markerCy);
       // Se der SecurityError na hora de exportar (canvas contaminado por tile
       // sem CORS liberado), cai no catch e refaz tudo sem mapa.
       canvas.getContext('2d').getImageData(0, 0, 1, 1);
+      usouMapa = true;
     } catch (e) {
       usouMapa = false;
     }
@@ -1229,23 +1231,30 @@
     // Frente de onda P/S (só M6+) — desenhada ANTES do marcador, pra ficar
     // por baixo dele visualmente.
     const isBigQuake = isQuake && Number(item.mag) >= 6;
-    if (isBigQuake) drawWaveRingsStory(ctx, markerCx, markerCy, 210, 130);
+    if (located && isBigQuake) drawWaveRingsStory(ctx, markerCx, markerCy, 210, 130);
 
-    // Marcador no epicentro — anel externo suave + anel principal com brilho +
-    // ponto central, pra ficar claramente em destaque mesmo com o mapa por trás
-    ctx.beginPath(); ctx.arc(markerCx, markerCy, 68, 0, Math.PI * 2);
-    ctx.strokeStyle = cor; ctx.globalAlpha = .35; ctx.lineWidth = 3; ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.beginPath(); ctx.arc(markerCx, markerCy, 46, 0, Math.PI * 2);
-    ctx.strokeStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 22; ctx.lineWidth = 6; ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(markerCx, markerCy, 7, 0, Math.PI * 2);
-    ctx.fillStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 16; ctx.fill();
-    ctx.shadowBlur = 0;
+    if (located) {
+      // Marcador no epicentro — anel externo suave + anel principal com brilho +
+      // ponto central, pra ficar claramente em destaque mesmo com o mapa por trás
+      ctx.beginPath(); ctx.arc(markerCx, markerCy, 68, 0, Math.PI * 2);
+      ctx.strokeStyle = cor; ctx.globalAlpha = .35; ctx.lineWidth = 3; ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(markerCx, markerCy, 46, 0, Math.PI * 2);
+      ctx.strokeStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 22; ctx.lineWidth = 6; ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(markerCx, markerCy, 7, 0, Math.PI * 2);
+      ctx.fillStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 16; ctx.fill();
+      ctx.shadowBlur = 0;
 
-    // Escala de distância no mapa (ex: "≈ 100 km"), calculada a partir do
-    // zoom real dos tiles — dá noção de proporção sem precisar conhecer a região
-    drawScaleBar(ctx, 60, 700, lat, mapZoom, cor);
+      // Escala de distância no mapa (ex: "≈ 100 km"), calculada a partir do
+      // zoom real dos tiles — dá noção de proporção sem precisar conhecer a região
+      drawScaleBar(ctx, 60, 700, lat, mapZoom, cor);
+
+    } else {
+      ctx.textAlign = 'center'; ctx.fillStyle = '#cbd5e1';
+      ctx.font = '600 30px system-ui, sans-serif';
+      wrapText(ctx, 'Aviso regional · localização pontual não informada pela fonte', markerCx, markerCy, W - 160, 40);
+    }
 
     // Texto: usamos halo (contorno sólido, ver haloFillText/wrapText) em vez
     // de sombra desfocada — mais nítido e sem vazar a cor do mapa por trás
@@ -1276,9 +1285,16 @@
     const gy = isQuake ? 860 : 1080, gr = 130;
     const frac = isQuake ? Math.max(0.04, Math.min(1, (item.mag - 2) / 7)) : 1;
     const gapGaugeText = 40;
-    const mainFont = isQuake ? '800 96px "JetBrains Mono", monospace' : '800 42px "JetBrains Mono", monospace';
-    const mainText = isQuake ? `M${Number(item.mag).toFixed(1)}` : (meta.label || item.type || '').toUpperCase();
+    let mainFont = isQuake ? '800 96px "JetBrains Mono", monospace' : '800 42px "JetBrains Mono", monospace';
+    const mainText = isQuake ? `M${Number(item.mag).toFixed(1)}` : titleForItem(item);
     ctx.font = mainFont;
+    if (!isQuake) {
+      let size = 42;
+      while (ctx.measureText(mainText).width > W - 440 && size > 18) {
+        mainFont = `800 ${--size}px "JetBrains Mono", monospace`;
+        ctx.font = mainFont;
+      }
+    }
     const mainTextW = ctx.measureText(mainText).width;
     const gaugeOuterR = gr + 14; // raio + metade da espessura do traço
     const groupW = gaugeOuterR * 2 + gapGaugeText + mainTextW;
@@ -1338,7 +1354,7 @@
 
     // Horário local aproximado do epicentro (estimado pela longitude) +
     // coordenadas — informação extra útil pra quem tá fora do fuso do evento
-    const infoExtra = [approxLocalTime(item.time, lng), formatCoord(lat, lng)].filter(Boolean).join(' · ');
+    const infoExtra = located ? [approxLocalTime(item.time, lng), formatCoord(lat, lng)].filter(Boolean).join(' · ') : '';
     if (infoExtra) {
       ctx.fillStyle = '#64748b';
       ctx.font = '500 21px system-ui, sans-serif';
@@ -1389,7 +1405,17 @@
         ? ` · Mov: ${item.movementInfo.compass}${item.movementInfo.speedKmh != null ? ' ' + item.movementInfo.speedKmh + ' km/h' : ''}`
         : '';
       haloFillText(ctx, `Fonte: ${item.sourceSummary || item.source || '—'}${movTxt}`, W / 2, y);
-      y += 90;
+      y += 55;
+      if (item.hazardNature === 'warning' && item.severityLabel) {
+        ctx.fillStyle = cor; ctx.font = '700 25px system-ui, sans-serif';
+        y += wrapText(ctx, `Severidade: ${item.severityLabel}`, W / 2, y, W - 140, 32) + 16;
+      }
+      const summary = String(item.bulletinSummary || item.descOnly || item.detail || '').trim();
+      if (summary) {
+        ctx.fillStyle = '#cbd5e1'; ctx.font = '500 25px system-ui, sans-serif';
+        y += wrapText(ctx, summary.length > 160 ? summary.slice(0, 157) + '…' : summary, W / 2, y, W - 140, 32) + 25;
+      }
+      y += 20;
 
       if (item.type === 'hurricane') {
         // Cartões de estatística iguais aos do sismo (mesmo layout de 3
@@ -1461,7 +1487,7 @@
       }
 
       // Cidades próximas (até 2) — mesmo bloco do sismo, com margem segura
-      if (item.coords) {
+      if (located) {
         const rC2 = await resolverCidadesStory(item.coords[1], item.coords[0], 2);
         y = drawCidadesProximasStory(ctx, y, rC2, W, H);
       }
@@ -1514,7 +1540,7 @@
       // silêncio se não achou nenhuma cidade cadastrada no alcance (área
       // remota) — um "0 pessoas" destacado ficaria estranho numa imagem que
       // já vai sair do app.
-      if (item.coords && typeof estimarPessoasAfetadas === 'function') {
+      if (located && typeof estimarPessoasAfetadas === 'function') {
         try {
           const dadosPessoas = await estimarPessoasAfetadas(lat, lng, item.mag, depth);
           if (dadosPessoas && dadosPessoas.totalPessoas > 0) {
@@ -1568,7 +1594,7 @@
 
       // Mecanismo focal (mesma função usada no painel — sem esperar a consulta
       // real ao USGS, que é assíncrona; usa direto a estimativa geométrica)
-      if (typeof calcularMecanismoFocal === 'function' && item.coords) {
+      if (typeof calcularMecanismoFocal === 'function' && located) {
         const mec = item.mecanismoReal || calcularMecanismoFocal(depth, item.coords[1], item.coords[0], item.place);
         // boxH maior: a descrição ("As placas…") ficava colada no ícone/título
         const boxH = 158;
@@ -1605,7 +1631,7 @@
       }
 
       // Cidades próximas (até 2) — bloco sobe sozinho se o rodapé cortar
-      if (item.coords) {
+      if (located) {
         const rC = await resolverCidadesStory(item.coords[1], item.coords[0], 2);
         y = drawCidadesProximasStory(ctx, y, rC, W, H);
       }
@@ -1799,7 +1825,7 @@
             item = lastMerged.find(x => x.id === id) || null;
         }
       }
-      if (!item || !item.coords) {
+      if (!item) {
         if (typeof showToast === 'function') showToast('Selecione um evento na lista primeiro.', 'info');
         return;
       }

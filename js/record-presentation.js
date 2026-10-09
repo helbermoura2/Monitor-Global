@@ -38,11 +38,11 @@
   for(const id of ['pd-focus-btn','pd-share-btn']){const el=document.getElementById(id);if(el){el.hidden=false;el.style.removeProperty('display');}}
  }
  function panel(item){
-  if(isBulletin(item)){bulletinFront(item);return;}
   const regional=!located(item);
   if(regional){const distance=document.getElementById('pd-distvoce');if(distance)distance.style.display='none';}
-  for(const id of ['pd-focus-btn','pd-share-btn']){const el=document.getElementById(id);if(el&&regional){el.hidden=true;el.style.setProperty('display','none','important');}}
+  for(const id of ['pd-focus-btn']){const el=document.getElementById(id);if(el&&regional){el.hidden=true;el.style.setProperty('display','none','important');}}
   const cities=document.getElementById('pd-cities-section');if(cities&&regional)cities.style.display='none';
+  if(isBulletin(item)){bulletinFront(item);return;}
   if(item?.hazardNature!=='warning')return;
   document.getElementById('painel-direito')?.classList.add('pd-warning');
   const impact=document.getElementById('pd-impact')?.parentNode;if(impact)impact.style.display='none';
