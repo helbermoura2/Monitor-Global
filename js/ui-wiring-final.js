@@ -500,13 +500,14 @@ document.addEventListener('DOMContentLoaded', () => {
     agendarBusca(fetchTornadoAlerts, 6000, 180000);
     agendarBusca(fetchGdacsFloods, 8000, 300000);
     agendarBusca(fetchCgeSP, 9000, 600000);        // alagamentos ativos — CGE São Paulo
-    agendarBusca(fetchVolcanoes, 3000, 120000);
+    agendarBusca(fetchVolcanoes, 3000, 3600000); // catálogo normal: 1 hora
+    agendarBusca(fetchVolcanoUrgentUpdates, 63000, 60000); // apenas erupção/escalada: 1 minuto
     agendarBusca(fetchDefesaCivil, 10000, 300000);
     agendarBusca(fetchBrazilStorms, 12000, 300000);
     agendarBusca(fetchAnaRios, 13000, 300000);     // ANA — nível de rios (RS/AM)
     agendarBusca(fetchInmetAvisos, 11000, 300000);     // avisos oficiais INMET Brasil
-    agendarBusca(fetchRealHurricanes, 14000, 600000);   // ciclones GDACS+NHC 10min
-    agendarBusca(fetchEonetStorms, 16000, 900000);
+    agendarBusca(fetchRealHurricanes, 14000, 3600000); // ciclones GDACS+NHC: 1 hora
+    agendarBusca(fetchEonetStorms, 16000, 3600000); // reforço NASA: 1 hora
     agendarBusca(fetchFires, 8000, 21600000);          // incêndios/queimadas a cada 6 horas
     agendarBusca(fetchGlobalStormCities, 20000, 600000);
     agendarBusca(fetchGlobalWindGusts, 22000, 600000);

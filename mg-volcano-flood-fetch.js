@@ -132,10 +132,12 @@
 
   const _fetchVolcanoesOrig = typeof fetchVolcanoes === 'function' ? fetchVolcanoes : null;
 
-  async function fetchVolcanoesGlobal() {
+  async function fetchVolcanoesGlobal(options = {}) {
     if (typeof _fetchVolcanoesOrig === 'function') {
-      try { await _fetchVolcanoesOrig(); } catch (e) { console.warn('vulcões USGS/GDACS:', e); }
+      try { await _fetchVolcanoesOrig(options); } catch (e) { console.warn('vulcões USGS/GDACS:', e); }
     }
+    // Urgent polling only applies confirmed escalation through the priority-aware collector.
+    if (options.urgentOnly) return;
     try {
       const [vaac, eonet] = await Promise.all([fetchVaacGlobal(), fetchEonetVolcanoes()]);
       const extra = vaac.concat(eonet);
@@ -178,7 +180,17 @@
     }
   }
 
-  window.fetchVolcanoes = fetchVolcanoesGlobal;
+  let running = null;
+  window.fetchVolcanoes = async function(options = {}) {
+    if (running) {
+      if (options.urgentOnly) return;
+      await running;
+    }
+    const request = fetchVolcanoesGlobal(options);
+    running = request;
+    try { await request; } finally { if (running === request) running = null; }
+  };
+  window.fetchVolcanoUrgentUpdates = () => window.fetchVolcanoes({ urgentOnly: true });
 
   const _fetchGdacsFloodsOrig = typeof fetchGdacsFloods === 'function' ? fetchGdacsFloods : null;
 

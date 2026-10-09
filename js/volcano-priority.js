@@ -7,22 +7,29 @@ const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
 function evidence(item){
  const text=normalize([item.eruptionStatus,item.vulcanicActivity,item.activityStatus,item.ashStatus,item.detail,item.vonaRemarks].filter(Boolean).join('. '));
  // Ignore negated/historical statements rather than treating every mention as activity.
- const current=text.split(/[.!;,\n]+/).filter(s=>!/(?:no|not|without|sem|nao|nenhum|nenhuma)\b.{0,65}(?:erupt|erup|lava|ash|cinza)|(?:last erupted|ultima erupcao|historical|historico|possible|potential|could|might|possivel)|(?:erupt|erup|lava).{0,50}(?:ceased|stopped|ended|paused|encerr|cessou|interromp)|(?:old|cooled|solidified) lava/.test(s)).join('. ');
+ const current=text.split(/[.!;,\n]+/).filter(s=>!/(?:no|not|without|sem|nao|nenhum|nenhuma)\b.{0,65}(?:erupt|erup|lava|ash|cinza|explosi|explod|explosao)|(?:last erupted|ultima erupcao|historical|historico|possible|potential|could|might|possivel)|(?:erupt|erup|lava).{0,50}(?:ceased|stopped|ended|paused|encerr|cessou|interromp)|(?:old|cooled|solidified) lava/.test(s)).join('. ');
  const lava=/\blava\b/.test(current),ash=/ash (?:emission|plume|cloud)|emiss.{0,18}(?:ash|cinza)|(?:pluma|nuvem).{0,18}cinza/.test(current);
  const erupting=/erupt(?:ion|ing|ive)|erupcao|eruptiv/.test(current);
  const aviation={green:0,yellow:1,orange:2,red:3}[normalize(item.aviationColor)]||0;
  const alert={normal:0,advisory:1,watch:2,warning:3}[normalize(item.usgsAlertLevel)]||0;
  const gdacs={green:0,orange:2,red:3}[normalize(item.gdacsAlertLevel)]||0;
- return {lava,ash,erupting,level:Math.max(aviation,alert,gdacs),start:String(item.eruptionStart||'')};
+ const explosive=/explos(?:ion|ao|iv[aeo]\b)|explod/.test(current);
+ return {lava,ash,erupting,explosive,notice:String(item.noticeId||item.time||''),level:Math.max(aviation,alert,gdacs),start:String(item.eruptionStart||'')};
 }
 function capture(alerts){return new Map((alerts||[]).filter(a=>a.type==='volcano').map(a=>[a.id,a._volcanoPriorityEvidence||evidence(a)]));}
 function escalation(old,next){
+ if(next.explosive&&(!old.explosive||(next.notice&&old.notice&&next.notice!==old.notice&&(!Number.isFinite(Number(next.notice))||!Number.isFinite(Number(old.notice))||Number(next.notice)>Number(old.notice)))))return 'Explosão reportada pela fonte';
  if(next.level>old.level)return 'Elevação do nível de alerta';
  if(next.lava&&!old.lava)return 'Lava reportada pela fonte';
  if(next.erupting&&!old.erupting)return 'Atividade eruptiva reportada';
  if(next.ash&&!old.ash)return 'Emissão de cinzas reportada';
  if(next.erupting&&old.start&&next.start&&old.start!==next.start)return 'Novo início de atividade eruptiva';
  return '';
+}
+function acceptsUrgent(item,previous){
+ const next=evidence(item);
+ return previous?Boolean(escalation(previous._volcanoPriorityEvidence||evidence(previous),next)):
+  Boolean(next.lava||next.ash||next.erupting||next.explosive||next.level>=3);
 }
 function enqueue(item,reason){if(!item?.coords)return;pending.set(item.id,{reason,arrived:Date.now(),level:evidence(item).level});}
 function observe(before,alerts,ready){
@@ -60,5 +67,5 @@ function focus(){
 function presentationActive(){return eventoSelecionadoId===presentingId&&Date.now()<presentationUntil;}
 function protectionRemaining(){return presentationActive()?Math.max(0,presentationUntil-Date.now()):0;}
 function finishPresentation(id){if(presentingId===id)presentationUntil=0;}
-window.VolcanoPriority={dispatching:item=>dispatchId===item?.id,finishPresentation,protectionRemaining,presentationActive,capture,evidence,escalation,enqueue,observe,focus,canInterrupt};
+window.VolcanoPriority={dispatching:item=>dispatchId===item?.id,finishPresentation,protectionRemaining,presentationActive,capture,evidence,escalation,acceptsUrgent,enqueue,observe,focus,canInterrupt};
 })();

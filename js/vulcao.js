@@ -450,7 +450,9 @@ async function fetchGlobalVolcanoAdvisories(){
         return [];
     }
 }
-async function fetchVolcanoes(){
+async function fetchVolcanoes(options={}){
+    const urgentOnly=options.urgentOnly===true;
+    const accept=(next,previous)=>!urgentOnly||window.VolcanoPriority?.acceptsUrgent(next,previous);
     window.__lastVolcanoAttempt = Date.now();
     try{
         const [feats,usgsPack,vaacItems]=await Promise.all([
@@ -511,6 +513,7 @@ async function fetchVolcanoes(){
                 link:(p.url&&p.url.report)?p.url.report:(p.url||'#')
             };
             enriquecerVulcaoComUSGS(obj,usgsAll);
+            if(!accept(obj,prev))return;
             const isNew=upsertAlert(obj,{fonte:'volcanoGdacs'});
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
@@ -529,7 +532,11 @@ async function fetchVolcanoes(){
                 vulcaoNomeIgual(a.place,r.name)||
                 (a.coords&&haversine(a.coords[1],a.coords[0],r.coords[1],r.coords[0])<80)
             ));
-            if(existing){ enriquecerVulcaoComUSGS(existing,[r]); existing._lastSeenAt=Date.now(); return; }
+            if(existing){
+                const next=enriquecerVulcaoComUSGS({...existing,sources:[...(existing.sources||[])]},[r]);
+                if(!accept(next,existing))return;
+                Object.assign(existing,next); existing._lastSeenAt=Date.now(); return;
+            }
             const id=`usgs-volcano-${r.vnum||String(r.name||'').replace(/[^a-z0-9]+/gi,'-')}`;
             ids.add(id);
             const ct=(typeof getCountryByCoords==='function')?getCountryByCoords(r.coords[1],r.coords[0]):{flag:'🇺🇸',nome:'EUA'};
@@ -548,6 +555,7 @@ async function fetchVolcanoes(){
                 vei:r.veI||null,detail:r.detail||'Status do USGS Volcano Hazards Program',
                 link:r.usgsUrl||r.volcanoUrl||'https://volcanoes.usgs.gov/'
             };
+            if(!accept(obj,null))return;
             const isNew=upsertAlert(obj,{fonte:'volcanoUsgs',skipRemove:true});
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
@@ -568,6 +576,8 @@ async function fetchVolcanoes(){
                 (a.coords&&haversine(a.coords[1],a.coords[0],lat,lng)<80)
             ));
             if(existing){
+                const next={...existing,ashStatus:v.ashStatus||existing.ashStatus,vulcanicActivity:v.detail||existing.vulcanicActivity,aviationColor:v.aviationColor||existing.aviationColor,usgsAlertLevel:v.alertLevel||existing.usgsAlertLevel,time:v.time||existing.time};
+                if(!accept(next,existing))return;
                 existing.sources=[...new Set([...(existing.sources||[]),v.source])];
                 existing.sourceSummary=existing.sources.join(' · ');
                 if(v.ashStatus) existing.ashStatus=v.ashStatus;
@@ -600,6 +610,7 @@ async function fetchVolcanoes(){
                 detail:v.detail||'Aviso de cinzas vulcânicas',
                 vei:null,link:/tokyo/i.test(v.source||'')?'https://www.data.jma.go.jp/vaac/data/vaac_list.html':'https://www.bom.gov.au/products/Volc_ash_latest.shtml'
             };
+            if(!accept(obj,null))return;
             const isNew=upsertAlert(obj,{fonte:'volcanoVaac',skipRemove:true});
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
@@ -611,7 +622,7 @@ async function fetchVolcanoes(){
         });
 
         // Mantém GDACS atuais + qualquer vulcão USGS (elevado/VONA) + VAAC/EONET globais
-        globalAlerts=globalAlerts.filter(a=>{
+        if(!urgentOnly)globalAlerts=globalAlerts.filter(a=>{
             if(a.type!=='volcano') return true;
             if(/VAAC|EONET|NASA|GVP|Smithsonian/i.test(String(a.source||'')) || (a.sources||[]).some(s=>/VAAC|EONET|NASA|GVP|Smithsonian/i.test(String(s)))) return true;
             if(a.source==='GDACS') return ids.has(a.id) || (a.sources||[]).includes('USGS VHP');

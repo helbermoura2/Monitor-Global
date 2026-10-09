@@ -3,7 +3,7 @@
   const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const workerBase=()=>{try{return typeof WORKER_PROXY==='function'?WORKER_PROXY('').split('?')[0].replace(/\/$/,''):''}catch(e){return ''}};
   async function getJson(path,timeout){const base=workerBase();if(!base)throw new Error('Worker não encontrado');const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout||30000);try{const r=await fetch(base+path,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
-  let ext=null,anom=null,cyc=null,openKey=null;
+  let ext=null,anom=null,cyc=null,openKey=null,lastCycloneAttempt=0;
   function setStatus(id,state){const e=$(id);if(!e)return;e.className='v70h-status '+(state||'');e.textContent=state==='off'?'●':'●'}
   function renderExt(){const h=ext?.hottest||[],c=ext?.coldest||[];const hh=h[0],cc=c[0];$('v70h-ext-main').textContent=hh&&cc?`🔥 ${hh.city} ${Number(hh.current??hh.max).toFixed(1)}° · ❄️ ${cc.city} ${Number(cc.current??cc.min).toFixed(1)}°`:'dados indisponíveis';setStatus('v70h-ext-status',h.length&&c.length?'':'warn')}
   function renderAnom(){const rows=(anom?.rows||[]).slice().sort((a,b)=>Math.abs(b.anomaly)-Math.abs(a.anomaly));const x=rows[0];$('v70h-anom-main').textContent=x?`${x.name} ${x.anomaly>=0?'+':''}${Number(x.anomaly).toFixed(1)}°`:'dados indisponíveis';setStatus('v70h-anom-status',rows.length?'':'warn')}
@@ -16,7 +16,7 @@
   }
   async function loadAll(){
     setStatus('v70h-ext-status','warn');setStatus('v70h-anom-status','warn');setStatus('v70h-cyc-status','warn');
-    const results=await Promise.allSettled([getJson('/v70-extremes',22000),getJson('/v70-anomaly',50000),getJson('/v70-cyclones',22000)]);
+    const results=await Promise.allSettled([getJson('/v70-extremes',22000),getJson('/v70-anomaly',50000),(!lastCycloneAttempt||Date.now()-lastCycloneAttempt>=3600000)?(lastCycloneAttempt=Date.now(),getJson('/v70-cyclones',22000)):Promise.resolve(cyc)]);
     if(results[0].status==='fulfilled'){ext=results[0].value;renderExt()}else{$('v70h-ext-main').textContent='indisponível';setStatus('v70h-ext-status','off')}
     if(results[1].status==='fulfilled'){anom=results[1].value;renderAnom()}else{$('v70h-anom-main').textContent='indisponível';setStatus('v70h-anom-status','off')}
     if(results[2].status==='fulfilled'){cyc=results[2].value;renderCyc()}else{$('v70h-cyc-main').textContent='indisponível';setStatus('v70h-cyc-status','off')}
