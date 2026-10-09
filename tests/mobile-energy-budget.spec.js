@@ -13,3 +13,18 @@ for(const width of [1280,390])test('hidden rotation stays still and queued M5 wi
  await page.clock.fastForward(180000);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('old-small');expect(await page.evaluate(()=>__moves)).toBe(0);expect(await page.evaluate(()=>pendingNewCameraQuakes.has('new-major')&&NewEventPriority.hasPending())).toBe(true);
  await page.evaluate(()=>{__testHidden=false;document.dispatchEvent(new Event('visibilitychange'));pausarBuscas();});await page.clock.fastForward(500);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('new-major');expect(await page.evaluate(()=>NewEventPriority.hasPending())).toBe(true);
 });
+test('DeX menu economy saves preference and immediately reduces desktop map and active scene budgets',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:1280,height:800},deviceScaleFactor:3,hasTouch:false,serviceWorkers:'block'}),page=await context.newPage();await boot(page);
+ expect(await page.evaluate(()=>map.getPixelRatio())).toBe(3);
+ await page.evaluate(()=>{window.__economyScene=CardEffectQuality.create(false,{deviceMemory:8,hardwareConcurrency:8});window.__economyParticles=__economyScene.track(Array.from({length:100},()=>({})));window.__firstParticle=__economyParticles[0];});
+ await page.locator('#chip-menu-desktop').click();const button=page.locator('#menu-float-panel [data-energy-saving]');await expect(button).toBeVisible();await expect(button).toHaveAttribute('aria-pressed','false');await button.click();
+ await expect(button).toHaveText('🔋 Economia: ligada');await expect(button).toHaveAttribute('aria-pressed','true');
+ expect(await page.evaluate(()=>map.getPixelRatio())).toBe(1.25);
+ expect(await page.evaluate(()=>{const resized=__economyScene.sample(0,1,16,60);return {resized,fps:__economyScene.fps(60),particles:__economyParticles.length,same:__economyParticles[0]===__firstParticle};})).toEqual({resized:true,fps:20,particles:70,same:true});
+ await boot(page);expect(await page.evaluate(()=>MobileEnergyBudget.economy()&&map.getPixelRatio()===1.25)).toBe(true);
+ await page.locator('#chip-menu-desktop').click();await button.click();await expect(button).toHaveAttribute('aria-pressed','false');expect(await page.evaluate(()=>map.getPixelRatio())).toBe(3);
+ await boot(page);expect(await page.evaluate(()=>MobileEnergyBudget.economy())).toBe(false);await context.close();
+});
+test('portrait menu toggle preserves automatic mobile savings when manually switched off',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await boot(page);await page.evaluate(()=>MobilePortraitUI.menu());const button=page.locator('#menu-float-panel [data-energy-saving]');await expect(button).toBeVisible();await button.click();await expect(button).toHaveAttribute('aria-pressed','true');await button.click();await expect(button).toHaveAttribute('aria-pressed','false');expect(await page.evaluate(()=>MobileEnergyBudget.mobile()&&map.getPixelRatio()<=1.25)).toBe(true);
+});

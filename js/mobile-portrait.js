@@ -60,6 +60,7 @@
     for (const [label,kind] of [['Radar de chuva','radar'],['Reproduzir eventos','replay'],['Acompanhar eventos','follow']]) button(panel,label,secondary(() => window.menuAcao?.(kind)));
     button(panel, 'Testar efeitos', secondary(() => window.CardEffectDemo?.open()));
     heading(panel, 'Configurações');
+    if(window.MobileEnergyBudget)panel.insertAdjacentHTML('beforeend',window.MobileEnergyBudget.buttonHTML());
     button(panel, 'Avisos recentes', secondary(() => window.MobileNotices?.openHistory()));
     button(panel, 'Alertas e áudio', alerts);
     button(panel, 'Filtros de eventos', secondary(() => {
