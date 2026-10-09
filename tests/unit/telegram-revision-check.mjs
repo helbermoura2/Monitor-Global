@@ -86,6 +86,12 @@ const latePhoto=messages.at(-1),lateID=nextID;assert.equal(latePhoto.method,'sen
 globalThis.__testExposure={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};
 count=messages.length;await run();assert.equal(messages.length,count+1);assert.equal(messages.at(-1).method,'editMessageMedia');assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
 count=messages.length;await run();assert.equal(messages.length,count);delete globalThis.__testExposure;
+// A layout migration never erases already available population on a slow refresh.
+const migrating=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
+const populationRoot=migrating.items.find(r=>r.id==='late-population');populationRoot.cardImageVersion='geo-impact-pop-v2';
+storage.data.set('telegram-m6-sent-ids:chunks',1);storage.data.set('telegram-m6-sent-ids:part:0',JSON.stringify(migrating));object=new EarthquakeAlertDelivery({storage},env);
+globalThis.__testExposure={status:'pending'};count=messages.length;await run();assert.equal(messages.length,count);
+globalThis.__testExposure={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};await run();assert.equal(messages.length,count+1);assert.equal(Number(messages.at(-1).body.message_id),lateID);delete globalThis.__testExposure;
 // Large state remains readable after restart and never exceeds the DO single-value limit.
 const state=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
 assert(state.items.find(r=>r.id==='initial').messageId===original);
