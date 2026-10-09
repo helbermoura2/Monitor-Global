@@ -10,3 +10,5 @@ test('all event categories share translated labels and raw hazard data stays unc
  const raw={id:'v',type:'volcano',place:'Japan',detail:'No ash observed. Eruption has stopped.',usgsAlertLevel:'WARNING',depth:12.647};const next=p.view(raw);
  assert.equal(next.place,'Japão');assert.equal(next.usgsAlertLevel,'Alerta');assert.equal(next.detail,'Tradução do boletim em andamento. Consulte a fonte oficial.');assert.equal(raw.detail,'No ash observed. Eruption has stopped.');assert.equal(raw.usgsAlertLevel,'WARNING');assert.equal(next.depth,12.647);
 });
+
+test('native Portuguese contractions and verb forms never request foreign translation',()=>{const text='Quando houver chuva forte no Brasil e for necessário, consulte as orientações da Defesa Civil.';assert.equal(p.foreign(text),false);assert.equal(p.view({detail:text}).detail,text);assert.equal(p.foreign('Aviso de tsunami'),false);});
