@@ -15,7 +15,7 @@
   p.text('MONITOR GLOBAL',32,30,19,white,true);
   p.text(ev.test?'TESTE':'AO VIVO',660,30,13,muted,true);
   p.dot(400,550,10,'#ffffff');p.dot(400,550,7,red);
-  p.text('M'+Number(ev.mag).toFixed(1)+' · '+ev.depth+' km',420,540,13,white,true);
+  p.text('M'+Number(ev.mag).toFixed(1)+' · '+Math.round(Math.max(0,Number(ev.depth)))+' km',420,540,13,white,true);
   box(32,720,365,88,'#396274');box(33,721,363,86,'#071722');p.text('INTENSIDADE ESTIMADA DO TREMOR',50,734,12,muted,true);
   ['#93b8e4','#88d3eb','#68dc2c','#efef20','#ffb52b','#ff5540'].forEach((c,i)=>p.rect(50+i*54,760,54,9,c));
   p.text('Fraca',50,778,12,muted);p.text('Moderada',181,778,12,muted);p.text('Forte',344,778,12,muted);
@@ -29,7 +29,7 @@
   let source=ev.sourceLine||ev.source||'Fonte não informada';
   while(p.measure(source,15)>728&&source.length>3)source=source.slice(0,-4)+'...';p.text(source,36,1050,15,muted);
   p.rect(36,1093,728,1,line);p.rect(36,1209,728,1,line);
-  const stats=[['PROFUNDIDADE',ev.depth+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—','Estimada'],['ENERGIA',ev.energy||'—','TNT equivalente']];
+  const stats=[['PROFUNDIDADE',Math.round(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—','Estimada'],['ENERGIA',ev.energy||'—','TNT equivalente']];
   stats.forEach((s,i)=>{const x=36+i*246;if(i)p.rect(x-12,1110,1,85,line);p.text(s[0],x,1114,11,muted);p.text(s[1],x,1138,25,white,true);p.text(s[2],x,1178,13,muted);});
   box(36,1228,728,163,'#416879');box(37,1229,726,161,'#0b2232');
   p.text('POPULAÇÃO POTENCIALMENTE EXPOSTA · III+',56,1246,12,muted);

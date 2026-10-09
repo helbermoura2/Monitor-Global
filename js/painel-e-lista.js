@@ -352,7 +352,7 @@ function syncPanelPresentation(item) {
         if(Number.isFinite(previous.mag)&&Number.isFinite(current.mag)&&previous.mag!==current.mag)
             changes.push({id:'pd-mag',text:'Magnitude: '+previous.mag.toFixed(1).replace('.',',')+' → '+current.mag.toFixed(1).replace('.',',')});
         if(Number.isFinite(previous.depth)&&Number.isFinite(current.depth)&&previous.depth!==current.depth)
-            changes.push({id:'pd-depth',text:'Profundidade: '+previous.depth.toFixed(1)+' → '+current.depth.toFixed(1)+' km'});
+            changes.push({id:'pd-depth',text:'Profundidade: '+previous.depth.toFixed(0)+' → '+current.depth.toFixed(0)+' km'});
     }
     panelPresentationPrevious=current;
     if(!changes.length)return;
@@ -1272,7 +1272,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
       if (el) el.innerHTML = 'Energia <span class="estimativa-badge" title="Equivalente em TNT calculado a partir da magnitude">CALCULADA</span>';
     } catch (e) {}
     const depthClass = classificarProfundidade(Math.max(0, item.depth));
-    document.getElementById('pd-depth').innerHTML = `${Math.max(0, item.depth).toFixed(1)} km <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${depthClass.label}</span>`;
+    document.getElementById('pd-depth').innerHTML = `${Math.max(0, item.depth).toFixed(0)} km <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${depthClass.label}</span>`;
     document.getElementById('pd-mercalli').innerHTML = `<span style="color:${mer.cor}">${mer.nivel}</span>`;
     // BUG CORRIGIDO: .split(' ')[0] cortava a unidade — "1.9 kg de TNT" virava só
     // "1.9", sem dar pra saber se era kg, ton, kt ou Mt. Agora mostra o valor com
