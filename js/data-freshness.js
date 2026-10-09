@@ -22,14 +22,15 @@ configure(['CGE boletins'],'Meteorologia',180000,10*60000);
 configure(['ECCC Canadá'],'Meteorologia',300000,12*60000);
 configure(['REDEMET'],'Clima e observações',600000,25*60000);
 configure(['Chuva SP · modelo (Open-Meteo)'],'Clima e observações',120000,10*60000);
-let updating=false,dialog=null,opener=null;
+let updating=false,dialog=null,opener=null,renderPending=false;
+function scheduleRender(){if(renderPending)return;if(typeof root.queueMicrotask!=='function'){render();return;}renderPending=true;root.queueMicrotask(()=>{renderPending=false;render();});}
 const get=name=>{if(!sources.has(name))sources.set(name,{lastOk:0,lastAttempt:0,status:'waiting',dataAt:0,error:''});return sources.get(name)};
 const cfg=name=>settings[name]||{group:/^(ECCC|BOM|MeteoAlarm)/.test(name)?'Meteorologia':'Outras fontes',interval:600000,limit:25*60000};
 function age(ts,now=Date.now()){if(!ts)return 'sem consulta válida';const seconds=Math.max(0,Math.floor((now-ts)/1000));return seconds<60?seconds+' s':seconds<3600?Math.floor(seconds/60)+' min':Math.floor(seconds/3600)+' h';}
 function recordStatus(name,status,error='',dataAt=0,checkedAt=0){
  const s=get(name);s.lastAttempt=Date.now();s.status=status==='ok'?'ok':status==='paused'?'paused':status==='warn'?'warn':'error';s.error=String(error||'');
  if(status==='ok'){s.lastOk=Number.isFinite(Number(checkedAt))&&Number(checkedAt)>0?Math.min(s.lastAttempt,Number(checkedAt)):s.lastAttempt;s.dataAt=Number(dataAt)||0;}
- render();
+ scheduleRender();
 }
 function record(name,ok,dataAt=0){recordStatus(name,ok?'ok':'off','',dataAt);}
 function beginQuakes(){updating=true;quakeNames.forEach(get);render();}
