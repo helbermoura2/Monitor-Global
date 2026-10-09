@@ -27,6 +27,6 @@
    catch(e){OfficialWeatherAlerts.set('meteoalarm-'+code,label,[],{error:e.message});}
   }));}finally{loading=false;}
  }
- document.addEventListener('DOMContentLoaded',()=>{setTimeout(load,30000);setInterval(load,600000);});
+ document.addEventListener('DOMContentLoaded',()=>{PeriodicScheduler.every('meteoalarm',load,30000,600000);});
  window.MeteoalarmWarnings={parse,load,countries};
 })();

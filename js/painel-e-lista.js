@@ -1246,12 +1246,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
     // NOVO: "há Xmin atrás" ficava congelado no momento em que o painel foi aberto.
     // Agora atualiza sozinho a cada minuto enquanto o painel estiver aberto no mesmo evento.
-    if (window.__pdTimeTicker) clearInterval(window.__pdTimeTicker);
-    window.__pdTimeTicker = setInterval(() => {
+    if (window.__pdTimeTicker) PeriodicScheduler.cancel(window.__pdTimeTicker);
+    window.__pdTimeTicker = PeriodicScheduler.every('selected-event-time',() => {
         const el = document.getElementById('pd-horario');
-        if (!el || eventoSelecionadoId !== item.id) { clearInterval(window.__pdTimeTicker); return; }
+        if (!el || eventoSelecionadoId !== item.id) { PeriodicScheduler.cancel(window.__pdTimeTicker); return; }
         el.textContent = `${formatBrasiliaDateTime(item.time)} (${formatTime(item.time)})`;
-    }, 60000);
+    },60000,60000,'ui');
     let magNote=document.getElementById('pd-mag-sources');
     if(!magNote){ magNote=document.createElement('div'); magNote.id='pd-mag-sources'; magNote.style.cssText='font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.45;text-align:center;'; const anchor=document.getElementById('pd-horario'); anchor && anchor.parentNode.insertBefore(magNote,anchor.nextSibling); }
     const evidence=evidenciasFontes(item);

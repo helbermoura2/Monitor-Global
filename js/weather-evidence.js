@@ -73,5 +73,5 @@
     }catch(e){console.warn('Comparação meteorológica:',e.message);}finally{await metarTask;fetching=false;update();}
   }
   window.WeatherEvidence={assess,summarize,update,refresh};
-  document.addEventListener('DOMContentLoaded',()=>{update();setTimeout(refresh,6000);setInterval(()=>{update();refresh();},60000);},{once:true});
+  document.addEventListener('DOMContentLoaded',()=>{update();PeriodicScheduler.every('weather-evidence',refresh,6000,60000);},{once:true});
 })();

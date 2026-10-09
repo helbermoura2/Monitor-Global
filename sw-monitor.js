@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v649-heavy-map';
+const CACHE = 'monitor-global-pro-v650-scheduler';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

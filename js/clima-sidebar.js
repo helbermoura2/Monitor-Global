@@ -142,8 +142,7 @@
     if (refresh) refresh.addEventListener('click', function(){ loadAll(true); });
 
     // pré-carrega em background; refresh a cada 6h
-    setTimeout(function(){ loadAll(false); }, 4000);
-    state.timer = setInterval(function(){ loadAll(false); }, 6 * 60 * 60 * 1000);
+    state.timer = PeriodicScheduler.every('climate-sidebar',function(){ return loadAll(false); },4000,6 * 60 * 60 * 1000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });

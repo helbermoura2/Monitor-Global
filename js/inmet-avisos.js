@@ -324,12 +324,11 @@ if (!window.__offlineNetBound) {
   });
 
   // Snapshot periódico (a cada 3 min) enquanto a aba está visível — reforça offline
-  setInterval(() => {
+  PeriodicScheduler.every('offline-snapshot',() => {
     try {
-      if (document.hidden) return;
       if (typeof salvarCacheOffline === 'function') salvarCacheOffline();
     } catch (e) {}
-  }, 180000);
+  },180000,180000,'ui');
 }
 
 function inmetMeAtinge(a, ref) {

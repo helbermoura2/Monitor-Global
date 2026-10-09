@@ -96,9 +96,9 @@
   function install(){
     ensureHud();
     if(!$('mg-global-card'))return;
-    loadFeeds(false); refreshFromLocal();
-    MG.timer=setInterval(()=>{loadFeeds(false);refreshFromLocal();},120000);
-    setInterval(refreshFromLocal,15000);
+    refreshFromLocal();
+    MG.timer=PeriodicScheduler.every('global-dashboard-feed',()=>loadFeeds(false),0,120000);
+    PeriodicScheduler.every('global-dashboard-ui',refreshFromLocal,15000,15000,'ui');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else setTimeout(install,50);
   window.MonitorGlobal6={reload:()=>loadFeeds(true),toggle:togglePanel};
