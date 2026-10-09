@@ -1,6 +1,7 @@
 // === confianca-fontes.js — Textos de vulcão + score de confiança/consolidação de fontes (linhas originais 3317-3522 do core-app.js) ===
 
 function traduzirTextoVulcanico(valor){
+  if(globalThis.EventPortuguese)return globalThis.EventPortuguese.text(valor);
   if(valor==null || valor==='') return valor;
   let s=String(valor);
   const repl=[

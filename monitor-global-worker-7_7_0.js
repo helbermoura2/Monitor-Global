@@ -5284,14 +5284,18 @@ async function handlePortugueseTranslation(request,env){
  const translations=[];
  for(const text of texts){
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
-  const key='pt-translation-v1:'+digest;
+  const key='pt-translation-v2:'+digest;
   const cached=await env.TTS_USAGE.get(key);if(cached){translations.push(cached);continue;}
   const quota='pt-translation-chars:'+new Date().toISOString().slice(0,10),used=Number(await env.TTS_USAGE.get(quota))||0;
   if(used+text.length>50000){translations.push(null);continue;}
   await env.TTS_USAGE.put(quota,String(used+text.length),{expirationTtl:172800});
   try{
    const lang=/\b(?:profundidad|magnitud|lluvias|peligro|terremoto|sequia|hacia|fuerte)\b/i.test(text)?'es':/\b(?:nord|ouest|seisme|pluie|avec|sans|alerte)\b/i.test(text)?'fr':'en';
-   const chunks=[];let rest=text;while(rest.length>700){let cut=rest.lastIndexOf(' ',700);if(cut<100)cut=700;chunks.push(rest.slice(0,cut));rest=rest.slice(cut).trimStart();}if(rest)chunks.push(rest);
+   const protectedText=text.replace(/(?:\b[A-Za-z]\.){2,}|\b(?:Dr|Mr|Mrs|Ms|St|Mt|No)\./g,part=>part.replace(/\./g,'\uFFF0'));
+   const chunks=[];
+   for(const sentence of protectedText.split(/(?<=[.!?])\s+(?=[\p{Lu}\d])|\n\s*\n/u)){
+    let rest=sentence.replace(/\uFFF0/g,'.').trim();while(rest.length>700){let cut=rest.lastIndexOf(' ',700);if(cut<100)cut=700;chunks.push(rest.slice(0,cut));rest=rest.slice(cut).trimStart();}if(rest)chunks.push(rest);
+   }
    const output=[];
    for(const chunk of chunks){const result=await env.AI.run('@cf/meta/m2m100-1.2b',{text:chunk,source_lang:lang,target_lang:'pt'});output.push(String(result?.translated_text||'').trim());}
    const translated=output.join(' ').trim();
