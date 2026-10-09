@@ -31,7 +31,7 @@ for(const width of [1280,390])test('M5 camera follows red, blue 6s, painted area
  await page.clock.runFor(5000);expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('p-first');
  expect(await page.evaluate(()=>map.getZoom())).toBeLessThan(redZoom);
  await page.clock.runFor(5000);
- const area=await page.evaluate(()=>({...__mgWaveFrontState,zoom:map.getZoom(),now:Date.now(),target:zoomParaAreaPintada(125.2,1.1,SeismicImpact.extent(5.1,10))}));
+ const area=await page.evaluate(()=>({...__mgWaveFrontState,zoom:map.getZoom(),now:Date.now(),target:zoomParaAreaPintada(125.2,1.1,Math.max(10,SeismicImpactModel.extent(5.1,10,2.1)))}));
  expect(area.cameraPhase).toBe('impact');expect(area.phaseUntil).not.toBeNull();expect(area.phaseUntil-area.now).toBeGreaterThan(4000);expect(area.phaseUntil-area.now).toBeLessThanOrEqual(8000);expect(area.zoom).toBeCloseTo(area.target,1);
  const waveBefore=area.radii.p;
  await page.clock.runFor(3000);expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('impact');expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBeGreaterThan(waveBefore);
@@ -50,7 +50,7 @@ for(const width of [1280,390])test('M5 camera follows red, blue 6s, painted area
  await page.clock.runFor(200);expect(await page.evaluate(()=>__mgWaveFrontState.cameraPhase)).toBe('p-rest');
  expect(await page.evaluate(()=>__mgWaveFrontState.phaseUntil-Date.now())).toBeGreaterThan(5800);
  await page.clock.fastForward(expected.origin+expected.end*1000-await page.evaluate(()=>Date.now())+100);await page.clock.runFor(3700);
- const final=await page.evaluate(()=>({...__mgWaveFrontState,zoom:map.getZoom(),now:Date.now(),until:__mgRevisionProtectedUntil,target:zoomParaAreaPintada(125.2,1.1,SeismicImpact.extent(5.1,10))}));
+ const final=await page.evaluate(()=>({...__mgWaveFrontState,zoom:map.getZoom(),now:Date.now(),until:__mgRevisionProtectedUntil,target:zoomParaAreaPintada(125.2,1.1,Math.max(10,SeismicImpactModel.extent(5.1,10,2.1)))}));
  expect(final.stage).toBe('returning');expect(final.cameraPhase).toBe('impact-final');expect(final.zoom).toBeLessThanOrEqual(final.target+.05);expect(final.zoom).toBeGreaterThan(1.5);expect(final.until-final.now).toBeGreaterThan(9500);expect(final.until-final.now).toBeLessThanOrEqual(10000);
  expect(await page.evaluate(()=>map.getFilter('quake-impact-fill')??null)).toBeNull();
  await page.screenshot({path:'/tmp/seismic-camera-tour-'+width+'.png'});

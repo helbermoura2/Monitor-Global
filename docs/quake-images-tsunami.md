@@ -17,3 +17,7 @@ Um chip informa a categoria de maior gravidade e permite abrir o boletim. Avisos
 ## Verificação
 
 Fixtures oficiais de 09/10/2026 reproduzem a diferença entre Atom informativo e WEPA40 com ameaça de 1–3 metros no Panamá. Testes cobrem coordenadas, escala, terra/oceano/lacunas, falhas parciais, categorias, população, edição da mesma foto e comportamento no navegador. Toda entrega Telegram nos testes é simulada; prévias locais não enviam mensagens.
+
+Quando tsunami.gov estiver inacessível ao Worker, a coleta usa a API oficial NWS `/products/types/TSU` e `/products/types/TIB`, consultando somente a revisão mais recente por centro/código WMO (até 12 produtos recentes). O texto de avaliação determina ameaça/cancelamento; o aviso internacional “information only” dirigido às autoridades não neutraliza uma ameaça prevista para a costa. Links apontam para o produto oficial.
+
+A câmera retorna ao alcance III+ do modelo, destacando a região colorida principal; a pintura I+ completa permanece no mapa. Alternância azul 6s / região 8s e quadro final 10s continuam. Replays automáticos M5,5+ mostram a pintura completa sem reiniciar P/S e sem ampliar o limite de 40s; eventos menores mantêm o radar.

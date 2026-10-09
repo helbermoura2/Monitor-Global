@@ -1440,7 +1440,12 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 if(soft && !triggerVisualAlert){
                     if(typeof stopWaveFront==='function')stopWaveFront();
                     const current=globalEvents.find(event=>event.id===item.id)||item;
-                    if(typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
+                    if(current.mag>=5.5&&window.SeismicImpact){
+                        if(typeof stopFeltZone==='function')stopFeltZone();
+                        SeismicImpact.start({id:current.id,lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth},true);
+                        const zoom=zoomParaAreaPintada(current.coords[0],current.coords[1],Math.max(10,SeismicImpactModel.extent(current.mag,current.depth,2.1)));
+                        map.easeTo({center:centroCompensado(current.coords[0],current.coords[1],zoom),zoom,duration:2500,essential:true});
+                    }else if(typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
                     return;
                 }
                 if (typeof stopFeltZone === 'function') stopFeltZone();
@@ -1486,7 +1491,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
             if(soft && !triggerVisualAlert){
                 clearTimeout(window.__mgWaveDelayT);
                 if(typeof stopWaveFront==='function')stopWaveFront();
-                if(typeof startFeltZone==='function')startFeltZone(lng,lat,item.mag,item.depth,item.id);
+                if(item.mag>=5.5&&window.SeismicImpact)SeismicImpact.start({id:item.id,lng,lat,mag:item.mag,depth:item.depth},true);
+                else if(typeof startFeltZone==='function')startFeltZone(lng,lat,item.mag,item.depth,item.id);
                 return;
             }
             if (!soft && !triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
