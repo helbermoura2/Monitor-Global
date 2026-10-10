@@ -15,7 +15,7 @@ for(const width of [1280,390])test('major quake keeps focus when bulletin arrive
 test('regional coastal polygons and a different origin time never attach to a nearby quake',async({page})=>{
  await boot(page);const {q,a}=fixtures();await page.evaluate(({q,a})=>{globalEvents=[q];globalAlerts=[a];showAlertDetails({...a,id:'regional',coordinateRole:'warning-area'},false);clearTimeout(cycleTimeout);},{q,a});
  await expect(page.locator('#pd-tsunami-link')).toContainText('permanece regional');await expect(page.locator('#pd-tsunami-link button')).toHaveCount(0);await expect(page.locator('#pd-notice-brief')).toContainText('não o epicentro');
- await page.evaluate(a=>{showAlertDetails({...a,originTime:a.originTime-17*3600000},false);clearTimeout(cycleTimeout);},a);await expect(page.locator('#pd-tsunami-link')).toContainText('Nenhum sismo');await expect(page.locator('#pd-tsunami-link button')).toHaveCount(0);
+ await page.evaluate(a=>{const older={...a,originTime:a.originTime-17*3600000};globalAlerts=[older];showAlertDetails(older,false);clearTimeout(cycleTimeout);},a);await expect(page.locator('#pd-tsunami-link')).toContainText('Nenhum sismo');await expect(page.locator('#pd-tsunami-link button')).toHaveCount(0);
 });
 test('cancellation replaces its product while an independent bulletin and the quake remain visible',async({page})=>{
  await boot(page);const {q,a}=fixtures(),info={...a,id:'NTWC-info',source:'NTWC',feedKey:'NTWC-General',hazardNature:'bulletin',warningLevel:'Informativo',sev:0};let items=[a,info];await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',feedKey:a.feedKey,ok:true},{source:'NTWC',feedKey:info.feedKey,ok:true}],items}}));
