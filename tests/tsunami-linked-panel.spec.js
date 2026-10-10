@@ -29,3 +29,16 @@ test('a late quake correlation response cannot rewrite the tsunami card',async({
  await page.evaluate(q=>{globalEvents=[q];eventoSelecionadoId=q.id;window.__linkCorrelation=monitorGlobalCorrelate(q);},q);await expect.poll(()=>Boolean(resolveResponse)).toBe(true);
  await page.evaluate(a=>{globalAlerts=[a];showAlertDetails(a,false);clearTimeout(cycleTimeout);},a);resolveResponse();await page.evaluate(()=>window.__linkCorrelation);await expect(page.locator('#mg-correlation-box')).toHaveCount(0);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(a.id);
 });
+for(const regional of [false,true])test('a manual bulletin after a random quake survives rotation and a minor arrival '+regional,async({page})=>{
+ await boot(page);const {q,a}=fixtures(),info={...a,id:'panama-info',time:Date.now()-7*3600000,hazardNature:'bulletin',warningLevel:'Informativo',sev:0},regionalInfo={...info,id:'regional-info',source:'NTWC',feedKey:'NTWC-General',coords:null,place:'Área do boletim oficial'};
+ await page.evaluate(({q,info,regionalInfo})=>{
+  globalEvents=[{...q,id:'chile-old',mag:2.5,time:Date.now()-27*3600000,coords:[-69.4,-20],place:'Tarapaca, Chile'}];globalAlerts=[info,regionalInfo];pendingQuakeRevisions.clear();sidebarFilter='tsunami';applyFilters();window.__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);map.stop();
+ },{q,info,regionalInfo});
+ const item=regional?regionalInfo:info;await page.locator('#events .event').filter({hasText:item.place==='Panama'?'Panamá':item.place}).click();await expect(page.locator('#pd-local')).toHaveText(regional?'Área do boletim oficial':'Panamá');
+ expect(await page.evaluate(()=>getAutoCycleProtectionRemaining())).toBeGreaterThan(25000);
+ await page.evaluate(()=>{map.stop();runAutoCycle();clearTimeout(cycleTimeout);});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(item.id);
+ await page.clock.setFixedTime(await page.evaluate(()=>window.PresentationLimits.state().startedAt+35000));
+ await page.evaluate(()=>{queueQuakeRevisions([{...globalEvents[0],_previousMag:2.4,_updatedAt:Date.now()}]);focusNextQuakeRevision();});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(item.id);
+ await page.evaluate(()=>{const small={id:'new-small',type:'earthquake',mag:2.8,depth:10,time:Date.now(),coords:[26,36],place:'Turkey',source:'QA'};globalEvents.push(small);queueNewCameraQuakes([small]);focusNextNewCameraQuake();});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(item.id);
+ await page.evaluate(()=>{const major={id:'new-major',type:'earthquake',mag:5.2,depth:10,time:Date.now(),coords:[26,36],place:'Turkey',source:'QA'};globalEvents.push(major);queueNewCameraQuakes([major]);focusNextNewCameraQuake();clearTimeout(cycleTimeout);});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('new-major');
+});

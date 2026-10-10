@@ -948,11 +948,16 @@ function autoCycleDraw(deck, keys, avoid) {
     if (id != null) deck.seen.push(id);
     return id;
 }
+function getAlertSelectionProtectionRemaining() {
+    const active=window.PresentationLimits?.state();
+    if(!active||active.id!==eventoSelecionadoId||!['manual','priority'].includes(active.mode))return 0;
+    return Math.max(0,active.deadline-Date.now());
+}
 function getAutoCycleProtectionRemaining() {
     const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
     const strongUntil=Number(current?.mag)>=5 && window.__mgQuakePresentationMode!=='auto' ? (window.__mgHoldEndsAt||0) : 0;
     const protectedUntil=window.__mgQuakePresentationMode!=='auto' && window.__mgRevisionProtectedId===eventoSelecionadoId && (window.__mgQuakePresentationMode==='new' || Number(current?.mag)>=5 || (typeof isRecentCameraQuake==='function'?isRecentCameraQuake(current):true)) ? (window.__mgRevisionProtectedUntil||0) : 0;
-    return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),window.VolcanoPriority?.protectionRemaining()||0);
+    return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),getAlertSelectionProtectionRemaining(),window.VolcanoPriority?.protectionRemaining()||0);
 }
 function selectNextAutoCycleItem() {
     const state = window.__mgAutoRotation || (window.__mgAutoRotation = {
