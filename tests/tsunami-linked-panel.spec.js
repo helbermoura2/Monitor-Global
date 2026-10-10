@@ -22,7 +22,7 @@ test('cancellation replaces its product while an independent bulletin and the qu
  await page.evaluate(q=>{globalEvents=[q];showEventDetails(0,true);clearTimeout(cycleTimeout);},q);await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect(page.locator('#pd-tsunami-link .tsunami-link-row')).toHaveCount(2);
  const ended={...a,id:'PTWC-ended',time:Date.now()+1000,cancelled:true,hazardNature:'bulletin',warningLevel:'Encerrado',sev:0};items=[a,info,ended];await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect(page.locator('#pd-tsunami-link')).toContainText('Encerrado');await expect(page.locator('#pd-tsunami-link')).not.toContainText('Ameaça oficial');expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(q.id);await expect(page.locator('#pd-tsunami-link .tsunami-link-row')).toHaveCount(2);
  await page.evaluate(ended=>{showAlertDetails(ended,false);clearTimeout(cycleTimeout);},ended);
- const revision={...ended,id:'PTWC-end-revision',time:Date.now()+2000};items=[info,revision];await page.evaluate(()=>fetchOfficialTsunamiAlerts());expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(revision.id);
+ const revision={...ended,id:'PTWC-end-revision',time:Date.now()+2000};items=[info,revision];await page.evaluate(()=>fetchOfficialTsunamiAlerts());expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(revision.id);expect(await page.evaluate(()=>window.__mgRevisionProtectedId)).toBe(revision.id);
 });
 test('a late quake correlation response cannot rewrite the tsunami card',async({page})=>{
  await boot(page);const {q,a}=fixtures();let resolveResponse;await page.route('**/correlate?**',async route=>{await new Promise(r=>resolveResponse=r);await route.fulfill({json:{tsunami:{level:'ALTO',score:90,action:'Old quake analysis'}}});});

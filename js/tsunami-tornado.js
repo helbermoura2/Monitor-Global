@@ -78,7 +78,11 @@ async function fetchOfficialTsunamiAlerts(){
   if(beforeSignature!==afterSignature)window.monitorGlobalCorrelationInvalidate?.();
   if(selectedBefore&&!globalAlerts.some(item=>item.id===selectedBefore.id)){
    const replacement=latestOfficial.find(item=>(item.feedKey||item.source)===(selectedBefore.feedKey||selectedBefore.source)&&window.TsunamiLink.sameEvent(item,selectedBefore));
-   if(replacement)showAlertDetails(replacement,false,true);
+   if(replacement){
+    showAlertDetails(replacement,false,true);
+    if(window.__mgRevisionProtectedId===selectedBefore.id)window.__mgRevisionProtectedId=replacement.id;
+    if(window.__mgLiveQuakeId===selectedBefore.id)window.__mgLiveQuakeId=replacement.id;
+   }
   }
   window.NewEventPriority?.queue(items);applyFilters();
   const sorted=latestOfficial.sort((a,b)=>(b.sev||0)-(a.sev||0)||b.time-a.time);
