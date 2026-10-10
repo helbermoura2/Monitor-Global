@@ -4,7 +4,7 @@ export const RAINBOW_MONTHLY_LIMIT = 4500;
 export const RAINBOW_DAILY_LIMIT = 150;
 const TTL = 600000;
 const SOURCE = 'Rainbow Weather';
-const DIAGNOSTIC_VERSION = 2;
+const DIAGNOSTIC_VERSION = 3;
 function credential(env){
   const value=env.RAINBOW_API_KEY;
   return typeof value==='string' && value.trim() && !/[\x00-\x1f\x7f]/.test(value) ? value.trim() : null;
@@ -68,7 +68,7 @@ export async function handleRainbowNowcast(request,env) {
   }
 }
 
-export async function handleRainbowInObject(request,env,storage,{fetcher=fetch,now=Date.now()}={}) {
+export async function handleRainbowInObject(request,env,storage,{fetcher=globalThis.fetch.bind(globalThis),now=Date.now()}={}) {
   const url=new URL(request.url),loc=rainbowLocation(url);
   if(request.method!=='GET'||!loc)return reply({ok:false,reason:'location',detail:'Consulta inválida.'},400);
   if(!env.RAINBOW_API_KEY)return missing('not_configured','Previsão por minuto ainda não configurada.');
