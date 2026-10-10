@@ -48,6 +48,7 @@ function shiftedLand(polygons,minLng,maxLng){
  return bounds.flatMap(({p,lo,hi})=>[-360,0,360].filter(s=>hi+s>=minLng&&lo+s<=maxLng).map(s=>p.map(r=>r.map(([x,y])=>[x+s,y]))));
 }
 function* bands(c,land){
+ if(c.shaking&&globalThis.RuptureShakingModel?.valid(c.shaking.grid)){yield* RuptureShakingModel.bands(c,land);return;}
  const outer=extent(c.mag,c.depth);if(outer<1)return;
  const ring=r=>{
   const points=anelGeodesico(c.lng,c.lat,r,160),first=points[0],last=points[points.length-1];

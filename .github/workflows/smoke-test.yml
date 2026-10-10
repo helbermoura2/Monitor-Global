@@ -34,7 +34,7 @@ jobs:
 
       - name: Validar exposição populacional e reservas
         run: |
-          node --test tests/unit/source-freshness.test.cjs
+          node --test tests/unit/source-freshness.test.cjs tests/unit/rupture-shaking.test.mjs
           node --test tests/unit/tsunami-link.test.cjs tests/unit/tsunami-official.test.mjs tests/unit/tsunami-map.test.cjs
           node tests/unit/tsunami-correlation-check.mjs
           node tests/unit/population-exposure-check.mjs

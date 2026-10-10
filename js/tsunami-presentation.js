@@ -44,8 +44,8 @@
  }
  function quakeCamera(j,duration=4000){
   const q=j.quake,c=paintContext(q),radius=Math.max(10,window.SeismicImpactModel?.extent(q.mag,q.depth,2.1)||30);
-  const zoom=typeof zoomParaAreaPintada==='function'?zoomParaAreaPintada(c.lng,c.lat,radius):6;
-  const center=typeof centroCompensado==='function'?centroCompensado(c.lng,c.lat,zoom):q.coords;
+  const focus=window.SeismicFocus?.frame(c),zoom=focus?.zoom??(typeof zoomParaAreaPintada==='function'?zoomParaAreaPintada(c.lng,c.lat,radius):6);
+  const center=focus?.center||(typeof centroCompensado==='function'?centroCompensado(c.lng,c.lat,zoom):q.coords);
   j.cameraUntil=Date.now()+(reduce()?0:duration);map.stop();map.flyTo({center,zoom,padding:0,pitch:0,bearing:0,duration:reduce()?0:duration,curve:1.25,essential:true});
  }
  function phase(j,value,move=true){

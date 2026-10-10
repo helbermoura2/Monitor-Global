@@ -1,0 +1,7 @@
+# Pintura com ruptura publicada e câmera da sequência
+
+Quando o sismo selecionado tem M5+, a aplicação consulta sob demanda o USGS ShakeMap. Só usa a distribuição MMI publicada quando o produto preferido inclui uma ruptura finita (Polygon/MultiPolygon), grade geográfica CRS84 válida e origem compatível: até 80 km, cinco minutos e diferença de magnitude até 1,5. Sem identificador USGS, a busca precisa encontrar uma única correspondência. Um modelo pontual, produto incompatível ou indisponível mantém a estimativa radial GlobalQuake; não se deduz direção a partir da magnitude ou das possíveis réplicas.
+
+As bandas de intensidade são recortadas em terra Natural Earth. O mapa identifica a fonte e informa que a intensidade é estimada, sem confirmar relatos ou danos. A grade tem no máximo 60 mil células, o desenho no máximo 100 mil vértices, e a consulta usa cache de cinco minutos. Não há nova consulta periódica nem animação extra da pintura.
+
+A câmera enquadra os limites reais da área pintada (MMI III+), o epicentro e os eventos associados como possíveis réplicas. Respeita os cartões e o espaço útil da tela. Mantém o acompanhamento do vermelho, o azul somente nos seis segundos finais e a permanência final de dez segundos na área pintada. Atualizações de geometria usam transição suave, não reiniciam o relógio físico e não trocam a seleção. Interação manual interrompe o enquadramento automático; Foco permite retomá-lo. Dados atrasados de outra seleção não alteram o mapa atual.
