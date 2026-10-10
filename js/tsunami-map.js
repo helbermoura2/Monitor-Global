@@ -1,18 +1,16 @@
 /* Static layers, loaded on demand. No wave animation, timers or network polling. */
 (function(){
  'use strict';
- const SOURCE='tsunami-official-regions',layers=['tsunami-regions-fill','tsunami-coasts-glow','tsunami-coasts-line'];
+ const SOURCE='tsunami-official-regions',layers=['tsunami-regions-fill'];
  let assetPromise=null,generation=0,legend=null,current=null,signature=null;
  const empty=()=>({type:'FeatureCollection',features:[]});
  function stop(){generation++;current=null;signature=null;legend?.remove();legend=null;try{for(const id of layers)if(map.getLayer(id))map.removeLayer(id);if(map.getSource(SOURCE))map.removeSource(SOURCE);}catch(e){}}
  function selected(id){return typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId===id;}
- function load(){return assetPromise||(assetPromise=fetch('assets/tsunami/ne-50m-coastal-regions.geojson?v=1').then(r=>{if(!r.ok)throw Error('Contornos indisponíveis');return r.json();}).catch(e=>{assetPromise=null;throw e;}));}
+ function load(){return assetPromise||(assetPromise=fetch('assets/tsunami/ne-50m-coastal-regions.geojson?v=2').then(r=>{if(!r.ok)throw Error('Contornos indisponíveis');return r.json();}).catch(e=>{assetPromise=null;throw e;}));}
  function ensure(){
   if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:empty(),attribution:'Costas: Natural Earth 1:50m (domínio público)'});
   const before=map.getLayer('esri-boundaries-places')?'esri-boundaries-places':undefined;
-  if(!map.getLayer(layers[0]))map.addLayer({id:layers[0],type:'fill',source:SOURCE,filter:['==',['get','kind'],'official'],paint:{'fill-color':['get','color'],'fill-opacity':.2}},before);
-  if(!map.getLayer(layers[1]))map.addLayer({id:layers[1],type:'line',source:SOURCE,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','color'],'line-width':10,'line-blur':4,'line-opacity':.35}},before);
-  if(!map.getLayer(layers[2]))map.addLayer({id:layers[2],type:'line',source:SOURCE,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],1,2,7,4],'line-opacity':.95}},before);
+  if(!map.getLayer(layers[0]))map.addLayer({id:layers[0],type:'fill',source:SOURCE,paint:{'fill-color':['get','color'],'fill-opacity':['case',['==',['get','kind'],'official'],.2,['==',['get','band'],'inner'],.3,.13],'fill-antialias':true}},before);
  }
  function node(tag,text,host){const n=document.createElement(tag);n.textContent=text;host.append(n);return n;}
  function label(item,result,failed=false){

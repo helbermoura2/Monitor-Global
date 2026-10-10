@@ -13,7 +13,7 @@ for filename in ['ne_50m_admin_0_countries','ne_50m_admin_1_states_provinces']:
  for f in json.loads((root/(filename+'.geojson')).read_text())['features']:
   p=f['properties'];state='admin_1' in filename
   if state and not ((p.get('iso_a2')=='US' and p.get('name') in ['Alaska','Hawaii','Washington','Oregon','California']) or (p.get('iso_a2')=='CA' and p.get('name')=='British Columbia')):continue
-  geometry=shape(f['geometry']).buffer(.001)
+  land=shape(f['geometry']);geometry=land.buffer(.001)
   coast=coasts.intersection(geometry).simplify(.025,preserve_topology=True)
   if coast.is_empty:continue
   def lines(g):
@@ -22,7 +22,17 @@ for filename in ['ne_50m_admin_0_countries','ne_50m_admin_1_states_provinces']:
   coords=lines(coast)
   if not coords:continue
   names=[p.get(k) for k in (['name','name_en'] if state else ['ADMIN','NAME','NAME_LONG','NAME_EN','FORMAL_EN']) if p.get(k)]
-  features.append({'type':'Feature','properties':{'name':names[0],'aliases':list(dict.fromkeys(names)),'kind':'region' if state else 'country'},'geometry':{'type':'MultiLineString','coordinates':[[[round(x,4),round(y,4)] for x,y in part] for part in coords]}})
+  def polygon_band(width):
+   # A cartographic coastal highlight on land, never a tsunami flood model.
+   g=land.intersection(coast.buffer(width,quad_segs=3)).simplify(.015,preserve_topology=True)
+   def polygons(g):
+    if g.geom_type=='Polygon':return [g] if g.area>.00001 else []
+    return [p for sub in getattr(g,'geoms',[]) for p in polygons(sub)]
+   from shapely.geometry import MultiPolygon
+   data=mapping(MultiPolygon(polygons(g)))
+   def rounded(c):return [round(x,5) if isinstance(x,(int,float)) else rounded(x) for x in c]
+   return {'type':data['type'],'coordinates':rounded(data['coordinates'])}
+  features.append({'type':'Feature','properties':{'name':names[0],'aliases':list(dict.fromkeys(names)),'kind':'region' if state else 'country'},'geometry':polygon_band(.22),'innerGeometry':polygon_band(.10)})
 out=Path('assets/tsunami/ne-50m-coastal-regions.geojson');out.write_text(json.dumps({'type':'FeatureCollection','features':features},separators=(',',':'))+'\n')
 print(len(features),'regions;',out.stat().st_size,'bytes')
 for f in ['ne_50m_coastline','ne_50m_admin_0_countries','ne_50m_admin_1_states_provinces']:print(f,hashlib.sha256((root/(f+'.geojson')).read_bytes()).hexdigest())
