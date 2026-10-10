@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v686-rain-arrival-notice';
+const CACHE = 'monitor-global-pro-v687-notice-top-position';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

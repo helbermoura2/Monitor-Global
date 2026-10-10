@@ -17,6 +17,8 @@
       if(stack.parentNode!==document.body)document.body.appendChild(stack);
       stack.classList.toggle('notice-inline',false);
       stack.style.removeProperty('--notice-bottom');
+      const headerBottom=Math.max($('top-strip')?.getBoundingClientRect().bottom||0,$('ux-controlbar')?.getBoundingClientRect().bottom||0,$('latest-event-ticker')?.getBoundingClientRect().bottom||0);
+      stack.style.setProperty('--notice-top',Math.max(6,headerBottom+6)+'px');
       const left=$('sidebar-left')?.getBoundingClientRect(),right=$('painel-direito')?.getBoundingClientRect();
       const start=left&&left.width>0?left.right+18:18;
       const end=right&&right.width>0?right.left-18:window.innerWidth-18;
@@ -24,6 +26,7 @@
       stack.style.setProperty('--notice-width',Math.max(280,Math.min(540,end-start))+'px');
       return;
     }
+    stack.style.removeProperty('--notice-top');
     const panel=$('painel-direito'),rect=panel?.getBoundingClientRect();
     const headerBottom=Math.max($('top-strip')?.getBoundingClientRect().bottom||0,$('latest-event-ticker')?.getBoundingClientRect().bottom||0);
     const expanded=document.body.classList.contains('mobile-details-open');
@@ -87,7 +90,7 @@
   }
   window.MobileNotices={enabled:()=>true,push,openHistory};
   function install(){
-    for(const id of ['painel-direito','sidebar-left']){const panel=$(id);if(panel&&window.ResizeObserver)new ResizeObserver(layout).observe(panel);}
+    for(const id of ['painel-direito','sidebar-left','top-strip','ux-controlbar','latest-event-ticker']){const panel=$(id);if(panel&&window.ResizeObserver)new ResizeObserver(layout).observe(panel);}
     if(window.MutationObserver)new MutationObserver(layout).observe(document.body,{attributes:true,attributeFilter:['class']});
     window.addEventListener('resize',layout);window.visualViewport?.addEventListener('resize',layout);media.addEventListener('change',render);
     const old=$('toast-stack');if(old)for(const toast of [...old.children]){push({title:toast.textContent,type:toast.classList.contains('toast-warning')?'warning':'info'});toast.remove();}
