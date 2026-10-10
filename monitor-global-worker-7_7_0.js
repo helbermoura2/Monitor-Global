@@ -6,6 +6,7 @@ import { SUMMARY_FLAGS } from "./summary-flags.mjs";
 import { SUMMARY_EDITORIAL_TYPOGRAPHY } from "./summary-editorial-assets.mjs";
 import { renderEditorialDailySummary, DAILY_SUMMARY_DESIGN } from "./daily-summary-renderer.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
+import {handleRainbowProducts,handleRainbowProductInObject} from "./rainbow-products-worker.mjs";
 import { handleRainbowNowcast, handleRainbowInObject } from "./rainbow-nowcast-worker.mjs";
 import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
@@ -684,7 +685,7 @@ function volcanoReport(p, extra={}) {
         volcanoUrl:p?.vUrl ?? p?.volcanoUrl ?? extra.volcanoUrl ?? '',
         detail:p?.noticeSynopsis ?? p?.status ?? p?.description ?? extra.detail ?? 'Status do USGS Volcano Hazards Program',
         lastActivity:last || '', noticeId:p?.noticeId ?? extra.noticeId ?? '',
-        usgsUrl:extra.usgsUrl || '', time:volcanoTs(last) || Date.now(),
+        usgsUrl:extra.usgsUrl || '', time:volcanoTs(last) || 0,
         hasVona:Boolean(extra.hasVona), usgsVona:extra.usgsVona || null,
         ashStatus:extra.ashStatus || '', ashHeight:extra.ashHeight || '', ashSource:extra.ashSource || '',
         vonaRemarks:extra.vonaRemarks || '', vonaMovement:extra.vonaMovement || '', vonaDuration:extra.vonaDuration || '',
@@ -736,7 +737,10 @@ async function getUsgsVolcanoProfessional() {
         if (!base._vonaTs || t >= base._vonaTs) {
             base.hasVona=true; base.elevated=true; base.usgsVona=n; base.noticeId=n?.noticeId || base.noticeId;
             base.usgsUrl=n?.noticeUrl || n?.noticeUrl || '';
-            base.lastActivity=sent || base.lastActivity; base.time=t || base.time;
+            base.lastActivity=sent || base.lastActivity; base.noticeSent=sent; base.time=t || base.time;
+            base.vonaRemarks=n?.remarks||n?.noticeRemarks||base.vonaRemarks;
+            base.ashHeight=n?.ashHeight||n?.ashCloudHeight||base.ashHeight;
+            base.ashStatus=n?.ashStatus||n?.activityStatus||base.ashStatus;
             base.detail=n?.noticeSynopsis || n?.summary || n?.description || base.detail;
             base.aviationColor=volcanoColor(n?.colorCode) || base.aviationColor;
             base.alertLevel=volcanoAlert(n?.alertLevel) || base.alertLevel;
@@ -785,6 +789,7 @@ function parseVolcanoAdvisoryText(text, source) {
         const adv = get(/ADVISORY NR:\s*([^\r\n]+)/i);
         const dtg = get(/DTG:\s*([0-9]{8}\/[0-9]{4}Z)/i);
         const eruption = get(/ERUPTION DETAILS:\s*([^\r\n]+)/i);
+        const ashHeight=get(/OBS VA CLD:\s*([^\r\n]+)/i);
         let lat = NaN, lon = NaN;
         const pm = psn.match(/([NS])(\d{2})(\d{2})\s+([EW])(\d{3})(\d{2})/i);
         if (pm) {
@@ -802,7 +807,7 @@ function parseVolcanoAdvisoryText(text, source) {
         out.push({
             id: `vaac-${source}-${adv || name}-${time || Date.now()}`.replace(/\s+/g,'-'),
             type: 'volcano', name, vnum, coords:[lon,lat],
-            source:`VAAC ${source}`, area, advisory:adv, time:time || Date.now(),
+            source:`VAAC ${source}`, area, advisory:adv, noticeId:adv, ashHeight, time:time || 0,
             detail:eruption || 'Aviso de cinzas vulcânicas',
             ashStatus:eruption || 'Aviso de cinzas vulcânicas',
             aviationColor:'', alertLevel:'WARNING', elevated:true
@@ -837,7 +842,7 @@ function parseWeeklyVolcanicReport(html) {
         out.push({
             id: `gvp-weekly-${vnum || name}`.replace(/\s+/g, '-'),
             type: 'volcano', name, vnum, coords: [known[1], known[0]],
-            source: 'Smithsonian GVP', country, startDate, time: Date.now(),
+            source: 'Smithsonian GVP', country, startDate, noticeId:`gvp-${vnum||name}-${startDate}-${reportType}`, time:0,
             detail: `Nova atividade eruptiva/unrest (${country || 'relatório semanal'})${startDate && startDate !== '—' ? ' desde ' + startDate : ''}`,
             ashStatus: reportType, aviationColor: '', alertLevel: 'WARNING', elevated: true
         });
@@ -4397,6 +4402,7 @@ export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
     fetch(request) {
         const operation = this.queue.then(async () => {
+            if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(new URL(request.url).pathname))return handleRainbowProductInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
                 const kv=this.env.TTS_USAGE,storage=this.state.storage;
@@ -5275,6 +5281,7 @@ export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(reqUrl.pathname))return handleRainbowProducts(request,env);
         if(reqUrl.pathname==='/rain-nowcast')return handleRainbowNowcast(request,env);
         if(reqUrl.pathname==='/translate-pt'){
             if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
@@ -5305,6 +5312,7 @@ export default {
                 service: 'Monitor Global Worker',
                 version: '7.6.0',
                 dailySummaryDesign: DAILY_SUMMARY_DESIGN,
+                rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),
                 cacheApi: true,

@@ -16,7 +16,8 @@ configure(['NHC','GDACS ciclones','EONET tempestades'],'Ciclones',3600000,75*600
 configure(['USGS-Volcano','VAAC-Global','GDACS vulcões'],'Vulcões',3600000,75*60000);
 configure(['INPE','EONET incêndios','GDACS incêndios'],'Incêndios',21600000,7*3600000);
 configure(['OpenMeteo','Chuva SP · modelo (Open-Meteo)','CPTEC','REDEMET','NOAA METAR'],'Clima e observações',300000,15*60000);
-configure(['RainViewer'],'Radar de chuva',300000,20*60000);
+configure(['RainViewer','RainbowTiles'],'Mapa de chuva',600000,25*60000);
+configure(['RainbowWeather'],'Clima e observações',3600000,75*60000);
 configure(['ANA'],'Outras integrações',300000,15*60000);
 configure(['NWS'],'Avisos oficiais',300000,12*60000);
 configure(['CGE boletins'],'Meteorologia',180000,10*60000);
@@ -38,7 +39,7 @@ function beginQuakes(){updating=true;quakeNames.forEach(get);render();}
 function endQuakes(){updating=false;render();}
 function snapshot(name,now=Date.now()){
  const s=get(name),config=cfg(name);let state,label;
- if(name==='RainViewer'&&typeof PRO!=='undefined'&&!PRO.radar){state='disabled';label='Desativado';}
+ if(['RainViewer','RainbowTiles'].includes(name)&&typeof PRO!=='undefined'&&!PRO.radar){state='disabled';label='Desativado';}
  else if(s.status==='paused'){state='paused';label='Integração pausada';}
  else if(root.navigator?.onLine===false){state='offline';label='Sem conexão';}
  else if(s.status==='error'){state='error';label='Consulta indisponível';}

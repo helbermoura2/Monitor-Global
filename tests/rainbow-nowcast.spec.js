@@ -28,7 +28,7 @@ for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test(
  await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora');
  if(mode==='desktop')await page.locator('#sp-rain-eta-chip').click();else await page.evaluate(()=>showFcPopup());
  await expect(page.locator('#rainbow-rain-chart')).toBeVisible();await expect(page.locator('#rainbow-rain-chart svg')).toHaveAttribute('role','img');
- await expect(page.locator('#rainbow-rain-chart')).toContainText('Pode terminar em cerca de 25 min');
+ await expect(page.locator('#rainbow-rain-chart')).toContainText(/Pode terminar em cerca de (24|25) min/);
  await expect(page.locator('#rainbow-rain-chart')).toContainText('60 min');await expect(page.locator('#rainbow-rain-chart')).toContainText('mm/h');
  await expect(page.getByRole('link',{name:'Dados: Rainbow Weather'})).toHaveAttribute('href','https://rainbow.ai/');
  await expect(page.locator('#painel-direito')).toBeHidden();

@@ -256,7 +256,7 @@
       </div>
       <div class="fc-strip" id="fc-strip"></div>
     </div>
-    <div id="radar-legend-pro"><b>RADAR DE PRECIPITAÇÃO</b><span>Dados observados · RainViewer</span><i><em></em>chuva fraca&nbsp;&nbsp;<em></em>chuva forte&nbsp;&nbsp;<em></em>intensa</i><small id="radar-time-pro">--</small></div>
+    <div id="radar-legend-pro"><b>MAPA DE CHUVA · RAINBOW</b><span>Precipitação estimada · Rainbow Weather</span><i><em></em>chuva fraca&nbsp;&nbsp;<em></em>chuva forte&nbsp;&nbsp;<em></em>intensa</i><small id="radar-time-pro">--</small></div>
     <div id="replay-panel-pro"><div><b>🎬 REPLAY 24H</b><span id="replay-status-pro">Parado</span></div><input id="replay-range-pro" type="range" min="0" max="100" value="0"><div class="replay-actions"><button data-speed="1">×1</button><button data-speed="5">×5</button><button data-speed="20">×20</button><button id="replay-stop-pro">■ Parar</button></div></div>
 
   </main>
@@ -346,6 +346,7 @@
     </div>
     <div id="pd-revision-note" class="pd-revision-note" role="status" hidden></div>
     <div class="pd-local" id="pd-local">Selecione um evento na lista</div>
+    <section id="pd-volcano-activity" class="pd-volcano-activity" role="status" hidden><strong></strong><p></p></section>
     <div class="pd-time" id="pd-horario">--</div>
     <div class="pd-timeline" id="pd-timeline" style="display:none" aria-label="Linha do tempo do evento"></div>
     <div class="pd-time" id="pd-distvoce" style="display:none;color:#38bdf8;font-weight:600"></div>
@@ -385,7 +386,7 @@
 </div>
 
 <script defer src="js/debug-panel.js"></script>
-<script defer src="js/data-freshness.js?v=20261010-tornado-45m"></script>
+<script defer src="js/data-freshness.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/nucleo-estado.js?v=20261010-mobile-event-chips"></script>
 <script defer src="js/audio.js?v=20261009-voice-portuguese"></script>
 <script defer src="js/mapa.js?v=20261010-aftershocks"></script>
@@ -433,13 +434,15 @@
 <script defer src="js/tsunami-presentation.js?v=20261010-seismic-scenarios"></script>
 <script defer src="js/tsunami-linked-panel.js?v=20261010-linked-tsunami-tour"></script>
 <script defer src="js/mobile-event-chips.js?v=20261010-1"></script>
-<script defer src="js/painel-e-lista.js?v=20261010-mobile-event-chips"></script>
+<script defer src="js/painel-e-lista.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/kpis-ui.js?v=20261009-numbers-revisions"></script>
 <script defer src="js/regional-seismic.js?v=20261001-regional"></script>
 <script defer src="js/sismo-fontes.js?v=20261009-new-event-queue"></script>
 <script defer src="js/orquestrador-feeds.js?v=20261010-manual-tsunami-focus"></script>
 <script defer src="js/brent.js?v=20261009-numbers-revisions"></script>
-<script defer src="js/clima-local.js?v=20261009-numbers-revisions"></script>
+<script defer src="js/rainbow-weather.js?v=20261010-1"></script>
+<script defer src="js/rainbow-radar.js?v=20261010-1"></script>
+<script defer src="js/clima-local.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/record-presentation.js?v=20261010-tsunami-link"></script>
 <script defer src="js/hazard-evidence.js?v=20261001-world-alerts"></script>
 <script defer src="js/tempestades.js"></script>
@@ -450,23 +453,23 @@
 <script defer src="js/furacao-rota-oficial.js"></script>
 <script defer src="js/tsunami-enchente.js?v=20261009-source-health-v2"></script>
 <script defer src="js/ana-rios.js?v=20261001-source-health"></script>
-<script defer src="js/volcano-priority.js?v=20261009-hourly-hazards"></script>
-<script defer src="js/vulcao.js?v=20261009-hourly-hazards"></script>
+<script defer src="js/volcano-priority.js?v=20261010-rainbow-volcano"></script>
+<script defer src="js/vulcao.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/tsunami-tornado.js?v=20261010-tsunami-coastal-paint"></script>
 <script defer src="js/incendios.js?v=20261009-new-event-queue"></script>
 <script defer src="js/alertas-locais-sp.js?v=20261001-evidence"></script>
 <script defer src="js/mobile-notices.js?v=20261001-glass-strip"></script>
 <script defer src="js/ui-wiring-final.js?v=20261010-tornado-45m"></script>
 
-<script defer src="js/cemaden-risco.js?v=20261009-source-health-v3"></script>
+<script defer src="js/cemaden-risco.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/fetch-timeout.js"></script>
 <div id="ux-panel" role="dialog" aria-modal="false" aria-labelledby="ux-panel-title"><div class="ux-panel-head"><span id="ux-panel-title">Análise</span><button class="ux-close" id="ux-panel-close" type="button" aria-label="Fechar painel">✕</button></div><div id="ux-panel-content"></div></div>
-<script defer src="js/ux-panel.js?v=20261009-source-health-v2"></script>
+<script defer src="js/ux-panel.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/header-event-count-sync.js?v=20261009-scheduler"></script>
 <script defer src="js/header-menu-toggle.js?v=20261009-tsunami-records"></script>
 
 <link rel="stylesheet" href="css/menu-fix.css">
-<script defer src="js/header-menu-pro.js?v=20261009-dex-economy"></script>
+<script defer src="js/header-menu-pro.js?v=20261010-rainbow-volcano"></script>
 
 <link rel="stylesheet" href="css/mobile-header-v4412.css?v=20260930-mid-fix">
 
@@ -626,7 +629,7 @@
 <link rel="stylesheet" href="css/telegram-history.css">
 <script defer src="js/telegram-history.js?v=20261009-numbers-revisions"></script>
 <link rel="stylesheet" href="css/record-cards.css?v=20261002-header-bulletin">
-<link rel="stylesheet" href="css/detail-panel.css?v=20261009-numbers-revisions">
+<link rel="stylesheet" href="css/detail-panel.css?v=20261010-volcano-activity">
 <link rel="stylesheet" href="css/mobile-portrait.css?v=20260930-1">
 <script defer src="js/mobile-portrait.js?v=20261009-dex-economy"></script>
 <link rel="stylesheet" href="css/mobile-detail-gesture.css?v=20260930-1">
@@ -642,7 +645,7 @@
 <link rel="stylesheet" href="css/compact-desktop.css?v=20261009-tv">
 <link rel="stylesheet" href="css/unified-cities.css?v=20261001-unified-cities">
 <link rel="stylesheet" href="css/weather-panel.css?v=20261010-rainbow">
-<script defer src="js/weather-panel.js?v=20261010-rainbow"></script>
+<script defer src="js/weather-panel.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/official-weather-alerts.js?v=20261009-source-health-v2"></script>
 <script defer src="js/meteoalarm-warnings.js?v=20261009-scheduler"></script>
 <script defer src="js/cge-bulletins.js?v=20261009-scheduler"></script>
