@@ -8,7 +8,8 @@ function configure(names,group,interval,limit){names.forEach(name=>settings[name
 configure(quakeNames,'Sismos',45000,120000);
 configure(['AFAD','USGS-REFORCO-GLOBAL','EMSC-REFORCO-GLOBAL'],'Sismos',60000,180000);
 configure(['PTWC boletins','NTWC boletins'],'Tsunamis',30000,120000);
-configure(['NWS tsunami','GDACS tsunamis','NWS tornados','NWS'],'Avisos oficiais',180000,600000);
+configure(['NWS tsunami','GDACS tsunamis','NWS'],'Avisos oficiais',180000,600000);
+configure(['NWS tornados'],'Avisos oficiais',45*60000,55*60000);
 configure(['INMET','GDACS enchentes'],'Avisos oficiais',300000,12*60000);
 configure(['CGE','CGE boletins','ECCC','BOM','MeteoAlarm'],'Meteorologia',600000,25*60000);
 configure(['NHC','GDACS ciclones','EONET tempestades'],'Ciclones',3600000,75*60000);
