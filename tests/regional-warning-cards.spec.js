@@ -25,8 +25,24 @@ for(const [width,height] of [[1280,800],[390,844]])test('aviso regional abre pai
 test('sem coordenadas não captura seleção automática nem ganha distância fictícia',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});
  const result=await page.evaluate(()=>{
-  const now=Date.now(),item={id:'unlocated',type:'flood',hazardNature:'warning',source:'Meteoalarm',time:now,expiresAt:now+3600000,place:'Região de teste'};EventStore.setSelected('keep');showAlertDetails(item,true);const triggered=EventStore.selectedId;window.__mgSoftCycle=true;showAlertDetails(item,false);const cycle=EventStore.selectedId;
-  const invalid=RecordPresentation.bulletin({...item,link:'https://meteoalarm.org.evil.test/'});return {triggered,cycle,invalid,labels:[RecordPresentation.label({...item,hazardNature:'report'}),RecordPresentation.label({type:'wind',hazardNature:'observed'}),RecordPresentation.label({type:'wind',hazardNature:'forecast'})]};
+  // hazardNature 'report' (não 'warning') é a única forma real de um item sem
+  // coordenadas: a exceção deliberada em new-event-priority.js/painel-e-lista.js
+  // é só para 'warning' (ver tests/new-event-priority.spec.js).
+  const now=Date.now(),item={id:'unlocated',type:'flood',hazardNature:'report',source:'Meteoalarm',time:now,expiresAt:now+3600000,place:'Região de teste'};
+  EventStore.setSelected('keep');globalAlerts=[item];upsertAlert(item);
+  // Caminho real de chegada de alerta novo (furacoes-gdacs.js, inmet-avisos.js etc.
+  // chamam showAlertDetails(novo,true) direto ao detectar um item novo pelo feed).
+  showAlertDetails(item,true);
+  const triggered=EventStore.selectedId;
+  // Caminho real da rotação automática: selectNextAutoCycleItem já filtra na
+  // origem qualquer item sem coordenadas que não seja hazardNature 'warning'
+  // (painel-e-lista.js, dentro de selectNextAutoCycleItem), então a rotação
+  // nunca chega a escolhê-lo pra exibição.
+  clearTimeout(cycleTimeout);window.__mgAutoRotation=null;
+  const rotated=showNextAutoCycleItem();
+  const cycle=EventStore.selectedId;
+  const invalid=RecordPresentation.bulletin({...item,link:'https://meteoalarm.org.evil.test/'});
+  return {triggered,rotated,cycle,invalid,labels:[RecordPresentation.label({...item,hazardNature:'report'}),RecordPresentation.label({type:'wind',hazardNature:'observed'}),RecordPresentation.label({type:'wind',hazardNature:'forecast'})]};
  });
- expect(result.triggered).toBe('keep');expect(result.cycle).toBe('keep');expect(result.invalid).toBeNull();expect(result.labels).toEqual(['ENCHENTE REPORTADA','RAJADA OBSERVADA','RAJADA PREVISTA']);
+ expect(result.triggered).toBe('keep');expect(result.rotated).toBe(false);expect(result.cycle).toBe('keep');expect(result.invalid).toBeNull();expect(result.labels).toEqual(['ENCHENTE REPORTADA','RAJADA OBSERVADA','RAJADA PREVISTA']);
 });
