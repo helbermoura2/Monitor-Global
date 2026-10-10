@@ -22,6 +22,8 @@ O cliente utiliza intervalos presentes/futuros, não `summary.intensity` (máxim
 
 Dados ausentes, de outro ponto, vencidos, futuros, negativos, nulos, com intervalo irregular ou série descontínua não são usados. Sem cobertura não significa sem chuva. “Chuva: s/ previsão” foi substituído por “Previsão indisponível”. Fonte com link ao Rainbow é exibida junto ao gráfico, conforme termos de atribuição.
 
+Falhas incluem apenas diagnóstico seguro: código HTTP e etapa (`request`, `http` ou `payload`), sem corpo da fonte ou mensagem interna. Na migração para esse diagnóstico, entradas negativas antigas sem diagnóstico são substituídas uma vez, preservando integralmente os contadores e tetos de consultas.
+
 ## Validação
 
 `node tests/unit/rainbow-nowcast-check.mjs` verifica limites persistentes, concorrência real através do Worker/DO, reinício, reservas em falhas, isolamento de credenciais e interpretação da série. Playwright cobre gráfico/barra em computador e celular, abertura pelo chip, reserva por modelos, troca de ponto e resposta tardia. Testes utilizam dados simulados identificados como fixtures; validar disponibilidade real exige cadastrar a chave e consultar o endpoint.

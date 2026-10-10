@@ -26,6 +26,14 @@ assert.equal((await (await handleRainbowInObject(request(),env,failed,{now,fetch
 await handleRainbowInObject(request(-23.6,-46.6),env,failed,{now:now+1,fetcher:reject});assert.equal(failures,1);assert.equal(failed.map.get('rainbow:budget').used,1);
 const timeout=memory();await handleRainbowInObject(request(),env,timeout,{now,fetcher:async()=>{throw Error('secret in upstream error');}});
 assert.equal(timeout.map.get('rainbow:budget').used,1);assert(!JSON.stringify(timeout.map.get(key)).includes('secret'));
+assert.deepEqual(timeout.map.get(key).diagnostic,{httpStatus:null,stage:'request'});
+for(const [status,stage] of [[503,'http'],[200,'payload']]){
+ const diagnosticStorage=memory();const response=await (await handleRainbowInObject(request(),env,diagnosticStorage,{now,fetcher:async()=>Response.json({private:env.RAINBOW_API_KEY},{status})})).json();
+ assert.deepEqual(response.diagnostic,{httpStatus:status,stage});assert(!JSON.stringify(response).includes(env.RAINBOW_API_KEY));
+}
+const legacy=memory();await legacy.put(key,{ok:false,at:now,expiresAt:now+600000});await legacy.put('rainbow:pause',{until:now+600000,reason:'provider_unavailable'});
+await legacy.put('rainbow:budget',{month:'2026-10',day:'2026-10-10',used:12,dailyUsed:12});
+await handleRainbowInObject(request(),env,legacy,{now,fetcher:async()=>Response.json(fixture())});assert.equal(legacy.map.get('rainbow:budget').used,13);assert.equal(legacy.map.get(key).ok,true);
 const corrupt=memory();await corrupt.put('rainbow:budget',{month:'2026-10',day:'2026-10-10',used:NaN,dailyUsed:0});assert.equal((await (await handleRainbowInObject(request(),env,corrupt,{now,fetcher})).json()).reason,'storage_unavailable');
 const noStorage={get:async()=>undefined,put:async()=>{throw Error('write failed');}};assert.equal((await (await handleRainbowInObject(request(),env,noStorage,{now,fetcher})).json()).reason,'storage_unavailable');assert.equal(calls,1);
 const rollover=memory();await rollover.put('rainbow:budget',{month:'2026-09',used:4500,day:'2026-09-30',dailyUsed:150});await handleRainbowInObject(request(),env,rollover,{now,fetcher});assert.equal(rollover.map.get('rainbow:budget').used,1);
