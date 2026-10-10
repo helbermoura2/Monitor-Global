@@ -1,0 +1,11 @@
+# Possíveis réplicas
+
+O catálogo consolidado é associado localmente, por eventos, sem novas buscas, alarmes ou movimentos de câmera. A relação é uma hipótese e aparece como **possíveis réplicas**, nunca como confirmação da autoridade.
+
+O principal deve ter M5 ou mais. O sucessor precisa ter magnitude pelo menos 0,1 menor, origem mais de dois minutos depois, diferença de profundidade de até 75 km, dados numéricos válidos e estar no raio de busca. Ambos devem estar no catálogo das últimas 72 horas. Esse raio usa uma escala empírica de comprimento de ruptura `2 × 10^(-2,44 + 0,59 M)`, limitada a 25–200 km; serve exclusivamente para procurar eventos, sem desenhar uma falha ou afirmar extensão de ruptura. Candidatos principais de magnitudes semelhantes e proximidades comparáveis deixam a associação ambígua. Um sucessor menor não substitui a raiz da sequência. O agrupamento usa os IDs consolidados pelos coletores existentes.
+
+O cartão resume quantidade e maior magnitude; **Ver sequência** abre os detalhes com o principal e as oito possíveis réplicas mais recentes. Cada botão abre o evento real. O mapa usa no máximo 41 marcadores: principal, até 20 mais recentes e até 20 maiores, retirando sobreposições com o marcador genérico do mesmo ID. Em zoom distante, os rótulos se limitam a seis ou doze sucessores, alternando mais recentes e maiores e conservando o evento selecionado. Os demais continuam nos registros. Os eventos não são removidos ou reordenados.
+
+Chegadas posteriores ao catálogo inicial recebem NOVA por dez segundos, com duas animações curtas. Revisões de magnitude, localização e horário recalculam a associação sem marcar uma nova chegada, sem som e sem alterar a seleção. IDs já vistos são lembrados dentro de 72 horas para evitar repetir o destaque ao recuperar uma fonte. Movimento reduzido omite a animação. A fase costeira do tsunami oculta esses marcadores, e sua volta os restaura; a demonstração do tsunami não recebe os marcadores do evento real. Outra seleção limpa a sequência anterior. Nenhum temporizador de renderização contínua foi adicionado.
+
+Testes: `tests/unit/aftershock-model.test.cjs` cobre candidatos, ambiguidades, revisões, IDs repetidos, datas e antimeridiano. `tests/aftershock-sequence.spec.js` cobre navegação, atualização discreta, destaque com prazo, limite de marcadores e limpeza no computador e celular.

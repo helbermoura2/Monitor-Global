@@ -448,6 +448,8 @@ function syncAllMarkers() {
         }
     });
 
+    window.AftershockSequence?.syncMarkers();
+
     // --- OUTROS TIPOS ---
     // Incêndio/ciclone/vulcão "abertos" na fonte: a data da geometria pode ser
     // antiga (às vezes dias) mesmo pro evento continuar ativo — mesma exceção
