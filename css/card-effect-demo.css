@@ -8,3 +8,5 @@
 @media(max-width:700px){.card-effect-demo{top:90px;max-height:calc(100dvh - 110px)}.card-effect-status{flex-wrap:wrap;width:calc(100vw - 24px)}.card-effect-status span{flex:1 0 100%}.card-effect-status button{flex:1}}
 
 @media(max-width:700px){.card-effect-status-map{flex-wrap:nowrap;gap:6px;font-size:10px;padding:6px 8px}.card-effect-status-map span{flex:1 1 140px;min-width:0}.card-effect-status-map button{flex:0 0 auto;min-height:40px;padding:6px 9px;font-size:11px}}
+
+.seismic-scenario-active .quake-dot{visibility:hidden!important}

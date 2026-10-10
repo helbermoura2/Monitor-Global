@@ -1047,7 +1047,7 @@ function runAutoCycle(forced = false) {
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
         if (window.NewEventPriority?.focusAlert()) return;
-        if(window.TsunamiMap?.isPreview()){scheduleNextAutoCycle(60000);return;}
+        if(window.TsunamiMap?.isPreview()||window.SeismicScenarioDemo?.isActive()){scheduleNextAutoCycle(60000);return;}
         const protectedMs = getAutoCycleProtectionRemaining();
         if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
         if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) { scheduleNextAutoCycle(2000); return; }
@@ -1175,6 +1175,7 @@ function resetPainelDetalheCompartilhado() {
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
+    if(!silentRefresh&&window.SeismicScenarioDemo?.isActive())window.CardEffectDemo?.cancelForRealEvent();
     if (!silentRefresh && globalEvents[index].id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     if (!silentRefresh) {
         try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
@@ -1556,6 +1557,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    if(!silentRefresh&&window.SeismicScenarioDemo?.isActive())window.CardEffectDemo?.cancelForRealEvent();
     const rawItem=item;
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
     // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
