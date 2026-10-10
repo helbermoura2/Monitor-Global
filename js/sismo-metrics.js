@@ -553,7 +553,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:'s',phaseUntil:null,impactHoldUntil:null};
+    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterFirst:!!opts?.epicenterFirst&&mag<5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:'s',phaseUntil:null,impactHoldUntil:null};
     if(context.returnToEpicenter){context.cameraPhase='s';window.SeismicImpact?.start(context);}
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
@@ -565,9 +565,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     }
     function finishOpening(){
         if(context.stage==='holding'||!context.finalFrame)return;
-        if(context.returnToEpicenter&&!camAbortada){returnToImpactArea();return;}
+        if((context.returnToEpicenter||context.epicenterFirst)&&!camAbortada){returnToImpactArea();return;}
         context.stage='holding';context.finalUntil=Date.now()+5000;protect(context.finalUntil);place();
-        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;if(context.returnToEpicenter&&!camAbortada){returnToImpactArea();return;}context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;if((context.returnToEpicenter||context.epicenterFirst)&&!camAbortada){returnToImpactArea();return;}context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
     }
     function returnToImpactArea(){
@@ -576,9 +576,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         window.TsunamiPresentation?.finalize(context.id);
         context.stage='returning';context.finalUntil=null;
         const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
-        context.cameraPhase='impact-final';context.phaseUntil=until;
-        protect(until);window.SeismicImpact?.finish();place();
-        try{const focus=impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        context.cameraPhase=context.epicenterFirst?'epicenter-final':'impact-final';context.phaseUntil=until;
+        protect(until);if(context.returnToEpicenter)window.SeismicImpact?.finish();place();
+        try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
@@ -594,7 +594,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // O Mapbox reprojeta as coordenadas durante pan/zoom. Enviar a mesma
     // geometria de novo só repete trabalho no worker, especialmente no quadro final.
     const renderedWaves=new Map(),renderedOpacity=new Map();
-    // Focus S and the estimated felt area. P gets the last six seconds only.
+    // M5+ follows S/the painted area; smaller events keep the epicenter.
+    // P gets only the last six seconds (M5+) or ten seconds (below M5).
     // Wave propagation continues during the linked tsunami camera tour.
     const place = () => {
         if (document.hidden || !map || !waveFrontAtivo) return;
@@ -622,7 +623,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const status=model?.status()||'error';
         window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,cameraPhase:context.cameraPhase,phaseUntil:context.phaseUntil,impactRadius:context.returnToEpicenter?impactRadius():null,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
-            const text=context.stage==='returning'?'Área afetada · Intensidade estimada · Quadro final':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Reprodução':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            const text=context.stage==='returning'?(context.epicenterFirst?'Epicentro · Quadro final':'Área afetada · Intensidade estimada · Quadro final'):status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Reprodução':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
             const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
@@ -695,14 +696,18 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             const predicted=radiusAt('p',Math.min(limit-.001,elapsedS+camLookaheadMs/1000));
             let kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
             const linkedCamera=window.TsunamiPresentation;
-            if(elapsedS>=limit-6)linkedCamera?.finalize(context.id);
+            const blueSeconds=context.epicenterFirst?10:6;
+            if(elapsedS>=limit-blueSeconds)linkedCamera?.finalize(context.id);
             if(linkedCamera?.ownsCamera(context.id)){camZoomAtual=null;camCenter=null;camUltimoFrameEm=0;waveCamRAF=requestAnimationFrame(camLoop);return;}
             const felt=context.returnToEpicenter?impactRadius():Math.max(1,raioEstimado(context.mag,context.depth));
             const kmS=radiusAt('s',elapsedS);
-            if(context.finalFrame&&context.returnToEpicenter){waveCamRAF=null;returnToImpactArea();return;}
-            if(elapsedS>=Math.max(0,limit-6)){
+            if(context.finalFrame&&(context.returnToEpicenter||context.epicenterFirst)){waveCamRAF=null;returnToImpactArea();return;}
+            if(elapsedS>=Math.max(0,limit-blueSeconds)){
                 context.cameraPhase='p-final';context.phaseUntil=context.originTime+limit*1000;
                 kmAlvoCam=predicted??kmP??lastTargetRadius;
+            }else if(context.epicenterFirst){
+                context.cameraPhase='epicenter';context.phaseUntil=context.originTime+Math.max(0,limit-blueSeconds)*1000;
+                kmAlvoCam=felt;
             }else if(kmS!==null&&kmS>=felt||context.cameraPhase==='impact'){
                 context.cameraPhase='impact';context.phaseUntil=context.originTime+Math.max(0,limit-6)*1000;
                 if(context.returnToEpicenter)window.SeismicImpact?.finish();
@@ -715,11 +720,11 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
             lastTargetRadius=kmAlvoCam;
             // Enquadra o raio efetivamente desenhado, sem abertura regional forçada.
-            const focus=context.returnToEpicenter&&context.cameraPhase==='impact'?impactFrame():null;
+            if(camZoomAtual===null){camZoomAtual=map.getZoom();context.epicenterZoom=opts?.epicenterZoom??camZoomAtual;}
+            const focus=context.epicenterFirst&&context.cameraPhase==='epicenter'?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:context.returnToEpicenter&&context.cameraPhase==='impact'?impactFrame():null;
             const zoomAlvoBruto = focus ? focus.zoom : Math.max(1.5,Math.min(15,
                 zoomParaCaberRaio(context.lng,context.lat,kmAlvoCam)));
 
-            if (camZoomAtual === null){camZoomAtual=map.getZoom();context.epicenterZoom=opts?.epicenterZoom??camZoomAtual;}
             const agoraMs = performance.now();
             // dt entre quadros — limitado a 200ms pra não dar um "salto"
             // gigante se a aba ficou em background (rAF pausa) e voltou.

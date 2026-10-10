@@ -1489,6 +1489,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                             startWaveFront(current.coords[0],current.coords[1],current.mag,current.depth,waveMode==='live'?current.time:origemOnda,{
                                 chaseCam: true,
                                 returnToEpicenter:current.mag>=5,
+                                epicenterFirst:current.mag<5,
                                 epicenterZoom:zoomAlvo,
                                 protectUntilEnd:!soft,
                                 id:item.id,
@@ -1519,6 +1520,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                     mode:fallbackMode,
                     chaseCam:true,
                     returnToEpicenter:item.mag>=5,
+                    epicenterFirst:item.mag<5,
                     epicenterZoom:zoomAlvo,
                     camDelayMs:soft?0:triggerVisualAlert?4350:Math.max(0,totalDur-150)
                 });
