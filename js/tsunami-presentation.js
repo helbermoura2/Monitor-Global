@@ -59,6 +59,7 @@
  function schedule(j,ms){clearTimeout(j.timer);if(!valid(j)||j.final||j.paused||document.hidden)return;j.deadline=Date.now()+ms;j.timer=setTimeout(()=>{if(!valid(j)||document.hidden)return;phase(j,j.phase==='coast'?'quake':'coast');schedule(j,j.phase==='coast'?COAST_MS:QUAKE_MS);},ms);}
  function prepare(j){if(j.demo)return Promise.resolve();return window.TsunamiMap.showLinked(j.alert,j.hostId).then(()=>{if(valid(j)){window.TsunamiMap.setVisible(j.phase==='coast');render(j);}});}
  function update(item,restart=false){
+  if(window.SeismicScenarioDemo?.isActive())return false;
   if(job?.demo){if(valid(job)&&selected()===job.hostId)return true;stop();}
   const T=window.TsunamiLink;let q=item,related;
   if(item?.type==='earthquake')related=T?.forQuake(item,alerts(),quakes()).find(r=>r.kind==='origin'&&!r.alert.cancelled);
