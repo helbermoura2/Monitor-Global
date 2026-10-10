@@ -22,7 +22,10 @@
  document.addEventListener('visibilitychange',()=>{
   update();clearTimeout(resumeTimer);
   if(document.hidden){
-   window.CinematicCard?.stop();
+   // CinematicCard already pauses its own footage and freezes its rAF loop on
+   // document.hidden (see its frame()/visibilitychange handling), resuming on
+   // its own when the tab comes back. Calling stop() here tore the whole scene
+   // down instead of pausing it -- the card vanished and never came back.
    window.stopRainEffect?.();window.stopIconSpin?.();
    try{if(typeof cycleTimeout!=='undefined')clearTimeout(cycleTimeout);if(typeof stopMapCamera==='function')stopMapCamera();else if(typeof map!=='undefined')map?.stop();}catch(e){}
   }else{
