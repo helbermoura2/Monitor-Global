@@ -5,7 +5,7 @@ const tag=(s,n)=>{const m=s.match(new RegExp('<(?:[\\w-]+:)?'+n+'\\b[^>]*>([\\s\
 const numeric=value=>value!==null&&value!==undefined&&String(value).trim()!==''&&Number.isFinite(Number(value))?Number(value):null;
 function originText(text){
  // Read only the origin field and its continuation lines, not the issuance date.
- const field=text.match(/ORIGIN TIME\s+([^\n]+(?:\n[ \t]+\d[^\n]*)*)/i)?.[1]||'';
+ const field=text.match(/(?:ORIGIN TIME|TIEMPO DE ORIGEN)\s+([^\n]+(?:\n[ \t]+\d[^\n]*)*)/i)?.[1]||'';
  const offsets={UTC:0,CHST:10,HST:-10,AKDT:-8,AKST:-9,PDT:-7,PST:-8};
  const matches=[...field.matchAll(/(\d{1,2})(\d{2})(?::?(\d{2}))?\s*(AM|PM)?\s+(UTC|CHST|HST|AKDT|AKST|PDT|PST)\s+([A-Z]{3})\s+(\d{1,2})\s+(\d{4})/gi)];
  const m=matches.find(m=>m[5].toUpperCase()==='UTC')||matches[0];if(!m)return null;
@@ -71,19 +71,40 @@ export async function getOfficialTsunamis(){
 
 // NWS republishes PTWC/NTWC text products on a separate official infrastructure.
 // Read the latest bulletin for each product, never replay a superseded warning.
+export function tsunamiForecastAreas(text){
+ const section=String(text).split(/TSUNAMI THREAT FORECAST[^\n]*\n[-]+/i)[1]?.split(/RECOMMENDED ACTIONS/i)[0]||'';
+ const areas=[];
+ for(const block of section.split(/\n\s*\*/)){
+  const m=block.match(/(?:POSSIBLE ALONG SOME COASTS OF|FOR THE COASTS OF)\s+([\s\S]+?)(?=(?<!\.)\.(?!\.)|$)/i);
+  if(!m)continue;
+  const category=block.match(/(?:REACHING|BE|TO BE)\s+((?:LESS THAN |MORE THAN )?\d+(?:\.\d+)?(?:\s+TO\s+\d+(?:\.\d+)?)?\s+METERS)/i)?.[1];
+  if(!category)continue;
+  for(const name of m[1].split(/\.{3}/).map(n=>clean(n).replace(/^AND\s+/i,'')).filter(Boolean))areas.push({name,category});
+ }
+ return areas;
+}
+function informationAreas(evaluation,text){
+ // Only the scope of an explicit no-threat statement; never use quake location.
+ let scope=evaluation.match(/(?:NO TSUNAMI (?:THREAT|DANGER)(?: EXISTS)? (?:TO|FOR)|NO TSUNAMI DANGER FOR)\s+([\s\S]+?)(?=\.\s*(?:\*|$))/i)?.[1]||'';
+ if(!scope&&/no existe peligro de tsunami/i.test(evaluation))scope=text.match(/MENSAJE INFORMATIVO DE TSUNAMI PARA\s+([\s\S]+?)\.\.\./i)?.[1]?.replace(/COLUMBIA BRITANICA/gi,'British Columbia')||'';
+ const names=['Alaska','British Columbia','Washington','Oregon','California','Guam','Rota','Tinian','Saipan','Hawaii','American Samoa','Samoa'];
+ const areas=names.filter(name=>new RegExp('\\b'+name+'\\b','i').test(scope)&&!(name==='Samoa'&&/American Samoa/i.test(scope)&&!/(?:or|and|\.\.\.)\s+Samoa/i.test(scope))).map(name=>({name,category:'Information'}));
+ if(/U\.S\. West Coast/i.test(evaluation)&&/no tsunami danger/i.test(evaluation))for(const name of ['Washington','Oregon','California'])if(!areas.some(a=>a.name===name))areas.push({name,category:'Information'});
+ return areas;
+}
 export function parseNwsTsunamiProduct(p){
  const source=p.issuingOffice==='PHEB'?'PTWC':p.issuingOffice==='PAAQ'?'NTWC':null;
  const time=Date.parse(p.issuanceTime),text=String(p.productText||'');
  if(!source||!Number.isFinite(time)||!text.trim()||!/^\w{6}$/.test(p.wmoCollectiveId||''))throw Error('Boletim NWS inválido');
- const evaluation=clean(text.split(/EVALUATION\s*\n[-]+/i)[1]?.split(/\n[A-Z][A-Z .-]+\n[-]+/)[0]||text.slice(0,1800));
+ const evaluation=clean(text.split(/(?:EVALUATION|EVALUACI[ÓO]N)\s*\n[-]+/i)[1]?.split(/\n[A-Z][A-Z .-]+\n[-]+/)[0]||text.slice(0,1800));
  const cancelled=p.productCode!=='TIB'&&/THREAT HAS (?:NOW )?PASSED|NO (?:LONGER A |FURTHER )?TSUNAMI THREAT|(?:WARNING|WATCH|ADVISORY)[\s\S]{0,60}(?:CANCELLED|CANCELED)|FINAL (?:TSUNAMI )?MESSAGE/i.test(evaluation);
  const threat=!cancelled&&/HAZARDOUS TSUNAMI WAVES (?:ARE|FROM)|TSUNAMI (?:WARNING|WATCH|ADVISORY) (?:IS|IN EFFECT|REMAINS)|WIDESPREAD\s+HAZARDOUS TSUNAMI WAVES/i.test(evaluation);
  const level=cancelled?'Encerrado':threat?'Ameaça oficial':'Informativo';
- const match=text.match(/COORDINATES\s+(\d+(?:\.\d+)?)\s+(NORTH|SOUTH)\s+(\d+(?:\.\d+)?)\s+(EAST|WEST)/i);
- const coords=match?[Number(match[3])*(match[4].toUpperCase()==='WEST'?-1:1),Number(match[1])*(match[2].toUpperCase()==='SOUTH'?-1:1)]:null;
+ const match=text.match(/(?:COORDINATES|COORDENADAS)\s+(\d+(?:\.\d+)?)\s+(NORTH|SOUTH|NORTE|SUR)\s+(\d+(?:\.\d+)?)\s+(EAST|WEST|ESTE|OESTE)/i);
+ const coords=match?[Number(match[3])*(/^(WEST|OESTE)$/i.test(match[4])?-1:1),Number(match[1])*(/^(SOUTH|SUR)$/i.test(match[2])?-1:1)]:null;
  const forecast=text.split(/TSUNAMI THREAT FORECAST[^\n]*\n[-]+/i)[1]?.split(/RECOMMENDED ACTIONS/)[0]||evaluation;
- const location=text.match(/\* LOCATION\s+([^\n]+)/i)?.[1]?.trim().replace(/^in\s+/i,'')||'Área do boletim oficial';
- return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,coordinateRole:'earthquake-origin',originTime:originText(text),originMag:numeric(text.match(/\* MAGNITUDE\s+(\d+(?:\.\d+)?)/i)?.[1]),detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
+ const location=text.match(/\* (?:LOCATION|LOCALIZACION)\s+([^\n]+)/i)?.[1]?.trim().replace(/^(?:in|en)\s+/i,'')||'Área do boletim oficial';
+ return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,coordinateRole:'earthquake-origin',affectedAreas:tsunamiForecastAreas(text),coverageAreas:informationAreas(evaluation,text),originTime:originText(text),originMag:numeric(text.match(/\* (?:MAGNITUDE|MAGNITUD)\s+(\d+(?:\.\d+)?)/i)?.[1]),detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
 }
 async function nwsJson(url){const r=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/geo+json','User-Agent':'MonitorGlobal (https://monitorglobal.top)'}});if(!r.ok)throw Error('NWS HTTP '+r.status);return r.json();}
 export async function getNwsTsunamis(){

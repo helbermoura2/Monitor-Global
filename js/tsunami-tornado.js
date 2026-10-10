@@ -24,7 +24,7 @@ async function fetchTsunamiAlerts() {
                 place: pr.areaDesc || 'Área não especificada',
                 bandeira: '🇺🇸',
                 time: new Date(pr.sent || Date.now()).getTime(),
-                coords, coordinateRole:'warning-area', source: 'NWS/NOAA', detail: pr.event,
+                coords, warningGeometry:['Polygon','MultiPolygon'].includes(a.geometry?.type)?a.geometry:null, coordinateRole:'warning-area', source: 'NWS/NOAA', detail: pr.event,
                 official:true,hazardNature:'warning',warningLevel:/Watch/i.test(pr.event)?'Vigilância':/Advisory/i.test(pr.event)?'Atenção':'Aviso',
                 expiresAt:Date.parse(pr.expires),warningDescription:pr.description,warningInstruction:pr.instruction,
                 link:/^https:\/\/api\.weather\.gov\/alerts\//.test(a.id)?a.id:'https://www.weather.gov/',

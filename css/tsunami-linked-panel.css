@@ -26,3 +26,12 @@
 .tsunami-bulletin-origin{display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;z-index:4}
 .tsunami-bulletin-origin span{font-size:32px;line-height:1;color:#7dd3fc;text-shadow:0 0 3px #071c2b}
 .tsunami-bulletin-origin strong{font:600 11px sans-serif;color:#e0f2fe;background:#071c2be6;border:1px solid #38bdf877;border-radius:5px;padding:5px 8px;white-space:nowrap}
+
+#tsunami-map-legend{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;box-sizing:border-box;width:min(480px,calc(100% - 700px));padding:12px 15px;border:1px solid #38bdf855;border-radius:12px;background:linear-gradient(135deg,#071e2bf2,#071520ef);color:#e2e8f0;box-shadow:0 8px 25px #0005;font:12px/1.45 sans-serif}
+#tsunami-map-legend strong{display:block;color:#bae6fd;margin-bottom:5px}
+#tsunami-map-legend small{display:block;color:#a9bdcd;font-size:10px;margin-top:5px}
+.tsunami-map-colors{display:flex;flex-wrap:wrap;gap:5px 13px}
+.tsunami-map-colors span:before{content:'';display:inline-block;width:16px;height:4px;margin-right:6px;border-radius:3px;background:var(--tsunami-area-color);vertical-align:middle}
+#tsunami-map-legend button{display:block;margin-top:7px;min-height:30px;border:1px solid #38bdf866;border-radius:6px;padding:5px 10px;background:#0c4a6e66;color:#e0f2fe;font:inherit;cursor:pointer}
+#tsunami-map-legend button:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
+@media(max-width:1000px){#tsunami-map-legend{bottom:90px;width:min(430px,calc(100% - 24px));padding:10px}}
