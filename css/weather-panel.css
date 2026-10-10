@@ -13,3 +13,15 @@ body.weather-view #painel-direito{opacity:0!important}
 html body.weather-view #painel-direito #pd-focus-btn,html body.weather-view #painel-direito #pd-share-btn,html body.weather-view #painel-direito #painel-direito-close{visibility:hidden!important}
 
 .weather-official-links{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}.weather-official-links a{color:#93e1f4;font:13px system-ui;min-height:44px;display:flex;align-items:center}.weather-official-links small{color:#bfd2de;font:12px/1.5 system-ui;width:100%}
+.rainbow-chart-card{background:linear-gradient(145deg,#0c2638,#081923);border:1px solid #28516a;border-radius:12px;padding:14px;margin:12px 0;color:#eff9ff}
+#weather-brief .rainbow-chart-card>strong{display:block;font:600 17px/1.4 system-ui;letter-spacing:0;text-transform:none;color:#74d2ff}
+#weather-brief .rainbow-chart-card>p{font-size:12px;border:0;padding:8px 0;color:#bbd4e1}
+.rainbow-chart-card svg{display:block;width:100%;height:auto;margin:8px 0}
+.rainbow-grid{stroke:#2b4656;stroke-width:1}
+.rainbow-axis{font:10px system-ui;fill:#b2c9d6}
+.rainbow-area{fill:#168bd6;fill-opacity:.24}
+.rainbow-line{fill:none;stroke:#63caff;stroke-width:2;stroke-linejoin:round}
+.rainbow-chart-card a{display:inline-block;color:#8ad7ff;font:12px system-ui;line-height:2.5}
+#weather-brief .rainbow-chart-card small{margin:8px 0;font-size:11px}
+#sp-rain-eta-chip{cursor:pointer}
+#sp-rain-eta-chip:focus-visible{outline:2px solid #8ad7ff;outline-offset:3px}

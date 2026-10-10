@@ -313,6 +313,7 @@ document.getElementById('chip-menu-desktop')?.addEventListener('click', (event) 
         if (right) { right.style.opacity = overflow && row.scrollLeft < max - 2 ? '1' : '.35'; right.disabled = !(overflow && row.scrollLeft < max - 2); }
     };
     row.addEventListener('scroll', updateButtons, { passive: true });
+    new MutationObserver(updateButtons).observe(row,{attributes:true,attributeFilter:['class']});
     window.addEventListener('resize', updateButtons);
     requestAnimationFrame(updateButtons);
 })();

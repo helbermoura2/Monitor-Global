@@ -6,6 +6,7 @@ import { SUMMARY_FLAGS } from "./summary-flags.mjs";
 import { SUMMARY_EDITORIAL_TYPOGRAPHY } from "./summary-editorial-assets.mjs";
 import { renderEditorialDailySummary, DAILY_SUMMARY_DESIGN } from "./daily-summary-renderer.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
+import { handleRainbowNowcast, handleRainbowInObject } from "./rainbow-nowcast-worker.mjs";
 import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
 // =========================================================
@@ -4396,6 +4397,7 @@ export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
     fetch(request) {
         const operation = this.queue.then(async () => {
+            if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
                 const kv=this.env.TTS_USAGE,storage=this.state.storage;
                 const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:kv&&{
@@ -5273,6 +5275,7 @@ export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(reqUrl.pathname==='/rain-nowcast')return handleRainbowNowcast(request,env);
         if(reqUrl.pathname==='/translate-pt'){
             if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
             return handlePortugueseTranslation(request,env);
@@ -5302,6 +5305,7 @@ export default {
                 service: 'Monitor Global Worker',
                 version: '7.6.0',
                 dailySummaryDesign: DAILY_SUMMARY_DESIGN,
+                rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),
                 cacheApi: true,
                 kv: false,

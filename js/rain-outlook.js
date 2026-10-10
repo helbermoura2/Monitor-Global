@@ -3,7 +3,7 @@
   const HOUR=3600000;
   const mm=v=>Number(v).toFixed(1).replace('.',',');
   function summarize({forecast,loc,now=Date.now()}){
-    const unknown={status:'unknown',header:'Chuva: s/ previsão',detail:'Previsão indisponível ou desatualizada. Não é possível estimar horário ou acumulado.',source:'ECMWF · NOAA/GFS · DWD/ICON via Open-Meteo',arrival:null};
+    const unknown={status:'unknown',header:'Previsão indisponível',detail:'Previsão indisponível ou desatualizada. Não é possível estimar horário ou acumulado.',source:'ECMWF · NOAA/GFS · DWD/ICON via Open-Meteo',arrival:null};
     if(!forecast||!loc||!Number.isFinite(forecast.at)||forecast.at>now+60000||now-forecast.at>20*60000||!forecast.loc||Math.abs(forecast.loc.lat-loc.lat)>=.02||Math.abs(forecast.loc.lng-loc.lng)>=.02)return unknown;
     const rows=(forecast.rows||[]).filter(row=>Array.isArray(row.hours)&&row.hours.filter(h=>h.end>now&&h.end<=now+6*HOUR&&Number.isFinite(h.mm)&&h.mm>=0).length>=5);
     if(!rows.length)return unknown;
