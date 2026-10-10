@@ -4,7 +4,7 @@ O Menu e os registros reais usam o mesmo perfil e renderer. A leitura vulcânica
 
 Tempestades têm cumulonimbus com sombras, nuvens baixas e cortinas distantes de precipitação. A chuva no cartão usa duas profundidades, velocidade e inclinação variáveis, gotas que acumulam volume, coalescem e escorrem no vidro e névoa soprada. Descargas ramificadas têm canal principal, corona, ramificações e filamentos; o mesmo pulso ilumina nuvens, chuva e vidro. Chuvas sem indicação de trovoadas continuam sem raios. `css/storm-cinema.css`, `tests/storm-cinema.spec.js`, `tests/storm-lightning.spec.js` e `tests/storm-atmosphere.spec.js` verificam os materiais, os breves clarões, a leitura e as interações.
 
-Rajadas de vento mantêm fluxo contínuo com dois picos por ciclo, poeira e folhas em diferentes planos. Vidro, título, fonte, horário e métricas respondem à mesma onda de pressão e retornam entre as rajadas. O texto usa os grafemas originais, conservando emojis, espaços e cores. A amplitude do vidro fica limitada a 12 px no computador e 7 px no celular, com ancoragem e margem que preservam o cartão dentro da tela; movimento reduzido, troca e parada restauram o conteúdo e as propriedades. `css/wind-cinema.css` e `tests/wind-cinema.spec.js` cobrem também registros sem velocidade de vento informada.
+Rajadas de vento mantêm fluxo contínuo com dois picos por ciclo, poeira e folhas em diferentes planos. O vidro responde à pressão; letras sorteadas saem e permanecem ausentes até a cena terminar. O texto usa os grafemas originais, conservando emojis, espaços e cores. A amplitude do vidro fica limitada a 12 px no computador e 7 px no celular, com ancoragem e margem que preservam o cartão dentro da tela; movimento reduzido, troca e parada restauram o conteúdo e as propriedades. `css/wind-cinema.css` e `tests/wind-cinema.spec.js` cobrem também registros sem velocidade de vento informada.
 
 `js/cinematic-card.js` desenha uma atmosfera transparente atrás dos textos do cartão; `css/cinematic-card.css` integra essa camada com o vidro, os relâmpagos ramificados e o tremor existentes. Não altera fontes, seleção, prioridade, som, mapa ou câmera. A ilustração não é uma imagem observada do local nem uma simulação física de impacto.
 
@@ -17,13 +17,13 @@ Rajadas de vento mantêm fluxo contínuo com dois picos por ciclo, poeira e folh
 - Tsunami: frente hidráulica procedural contínua em todo o cartão, sem vídeo. Espuma turbulenta, relevo e reflexos difusos acompanham o mesmo campo que carrega os detritos, lança respingos, escorre pelo vidro e aplica força às letras e ao cartão. WebGL tem reserva 2D e recuperação após perda de contexto. Não infere chegada, altura ou velocidade real.
 - Sismo: impulso inicial seguido de tremor residual, com partículas discretas e iluminação que diminui. O semicírculo de magnitude permanece intacto.
 
-A atmosfera permanece enquanto o evento estiver selecionado no cartão. O impulso do sismo termina após cerca de sete segundos. As cenas entram e saem gradualmente ao trocar de evento. Uma troca de evento pode manter uma única imagem residual por 400 ms; a cena anterior, seus filtros e seu observador são descartados. A revisão silenciosa preserva a cena; mudanças de atividade eruptiva ajustam suas camadas, retirando calor e brasas quando a erupção termina. O boletim do CGE mantém sua apresentação textual.
+Todas as cenas do cartão terminam em 16 segundos e restauram sua apresentação normal. A tipografia sísmica permanece por 16 segundos; o tremor mantém sua intensidade e duração calculadas para o sismo. As cenas entram e saem gradualmente ao trocar de evento. Uma troca de evento pode manter uma única imagem residual por 400 ms; a cena anterior, seus filtros e seu observador são descartados. A revisão silenciosa preserva a cena; mudanças de atividade eruptiva ajustam suas camadas, retirando calor e brasas quando a erupção termina. O boletim do CGE mantém sua apresentação textual.
 
 O desenho usa até 30 quadros por segundo no computador e 24 no celular, com menos partículas e resolução limitada no celular. O tamanho acompanha a expansão do cartão. O verso e o cartão recolhido deixam de desenhar; uma aba oculta pausa o ciclo. `prefers-reduced-motion` desativa a atmosfera animada e interrompe também as gotas, o giro e o vento sobre as letras. As camadas ignoram cliques e ficam fora da árvore de acessibilidade.
 
 Verificação: `tests/cinematic-card.spec.js` cobre os nove tipos no computador e celular, atualização silenciosa, áreas de toque, expansão, troca e limpeza de camadas, boletins, indicação eruptiva e movimento reduzido. A regressão de cobertura compara os limites do vídeo e do canvas com todo o cartão e mede pixels no centro dos terços superior, intermediário e inferior; efeitos restritos ao medidor ou às bordas não passam. Também verifica texto claro, o botão de foco livre de sobreposições, redimensionamento entre cartão aberto e compacto, pausa no verso, recolhimento e aba oculta, além da liberação do vídeo anterior na troca. `tests/storm-lightning.spec.js` mantém a verificação dos canais de descarga e da ausência de relâmpagos em um aviso de chuva simples.
 
-A regressão de duração verifica todos os tipos atmosféricos após 20 segundos, incluindo pixels efetivamente desenhados no computador e no celular. O cartão não perde suas camadas ao fim da antiga janela de entrada.
+A regressão de duração verifica a restauração de todos os cartões após 16 segundos, no computador e no celular.
 
 ## Cenas e texturas em todo o cartão
 
@@ -44,9 +44,9 @@ A tipografia do ciclone envolve os grafemas existentes, preservando espaços, em
 
 A lava usa uma filmagem de escoamento real do USGS, com crosta escura e material incandescente; quando o vídeo falha, o shader desenha crosta e fissuras advectadas lentamente. Apenas menções positivas a lava/atividade efusiva ativam esse material. Erupção com cinzas sem menção a lava conserva fumaça e cinzas; “sem lava” não ativa lava, e “sem cinzas” não desliga uma erupção efusiva. Monitoramento usa uma observação próxima da cratera, com fotografia de Areuland (CC BY 4.0), mostrando Hverfjall, textura de rocha, sombras frias, movimento lento de câmera e névoa baixa. O vídeo de montanhas foi removido. A reserva sem fotografia desenha uma bacia erodida com iluminação do relevo, em Canvas 2D; o estado não usa WebGL, vídeo, calor, cinzas ou lava. A cena compartilha o relógio e a limpeza do cartão. Revisões que encerram erupção ou escoamento retiram as camadas correspondentes.
 
-Enchente usa um único vídeo de correnteza barrenta real em todo o cartão, de Dadjosm (CC BY-SA 4.0). O trecho vertical tem 9 s, com ponte dissolvida de 1,5 s no próprio arquivo para suavizar a repetição. Não há recorte por linha de água, cópia em Canvas ou segunda correnteza procedural sobre a filmagem. A repetição e o buffering conservam o último quadro da filmagem, sem reintroduzir a reserva. Falha do vídeo mantém água contínua em WebGL; a ausência simultânea de vídeo e WebGL usa a reserva 2D. Ciclones usam chuva e rajadas fotográficas com nuvens em rotação; tempestade, fogo, tornado, tsunami e vento ganham textura, iluminação e movimento próprios, sem acrescentar chuva a vento isolado ou lava ao monitoramento.
+Enchente usa um único vídeo de correnteza barrenta real em todo o cartão, de Dadjosm (CC BY-SA 4.0). O trecho vertical tem 9 s, com ponte dissolvida de 1,5 s no próprio arquivo para suavizar a repetição. O fundo é revelado por uma linha de água crescente; não há cópia em Canvas nem segunda correnteza sobre a filmagem. A repetição e o buffering conservam o último quadro da filmagem, sem reintroduzir a reserva. Falha do vídeo mantém água contínua em WebGL; a ausência simultânea de vídeo e WebGL usa a reserva 2D. Ciclones usam chuva e rajadas fotográficas com nuvens em rotação; tempestade, fogo, tornado, tsunami e vento ganham textura, iluminação e movimento próprios, sem acrescentar chuva a vento isolado ou lava ao monitoramento.
 
-Menu → Testar efeitos permite comparar todos os tipos, inclusive três estados vulcânicos, ou entrar na demonstração de sismos. A demonstração usa somente camadas visuais sobre os dados atuais, com identificação externa, Parar/Trocar e duração de 20 s. Não insere registros, move a câmera, altera prioridade/rotação ou produz áudio. Um evento real interrompe a demonstração, e parar restaura a atmosfera do registro selecionado.
+Menu → Testar efeitos permite comparar todos os tipos, inclusive três estados vulcânicos, ou entrar na demonstração de sismos. A demonstração usa somente camadas visuais sobre os dados atuais, com identificação externa, Parar/Trocar e duração de 16 s. Não insere registros, move a câmera, altera prioridade/rotação ou produz áudio. Um evento real interrompe a demonstração, e parar restaura a atmosfera do registro selecionado.
 
 Os créditos completos estão em `media/card-fx/credits.html`, acessível no teste. Vídeos são locais e sem áudio; somente um decodificador fica ativo. Testes adicionais cobrem lava/cinzas/monitoramento, materiais sem vídeo, demonstrações isoladas e tremor de M5.9 no cartão, incluindo o aleatório.
 
@@ -60,7 +60,7 @@ Tempestades e tempestades tropicais usam integração de oito planos de densidad
 
 A ventania tem poeira e folhas com silhueta e nervuras, rotação, orientação e atraso de resposta ao escoamento. O campo de pressão movimenta o vidro e os grafemas de título, fonte, horário e métricas; a amplitude da tipografia é maior, mantendo as palavras, emojis e formatação originais. As amplitudes do cartão continuam limitadas para conservar seus controles dentro da tela.
 
-A enchente mantém uma única correnteza fotográfica ocupando todo o cartão. A cena não representa um nível medido de inundação. A tipografia recebe refração e deslocamento discretos; a filmagem não é duplicada nas camadas de contato. Troca e movimento reduzido limpam o vídeo, os filtros e os estilos de texto. `tests/flood-continuity.spec.js` verifica a ausência de cópias de vídeo em Canvas, o enquadramento contínuo, o decoder único e o caminho real/Menu no desktop e celular.
+A enchente revela uma única correnteza fotográfica subindo pelo cartão durante 16 segundos. A cena não representa um nível medido de inundação. A tipografia boia e deriva quando alcançada pela água; a filmagem não é duplicada nas camadas de contato. Troca e movimento reduzido limpam o vídeo, os filtros e os estilos de texto. `tests/flood-continuity.spec.js` verifica a ausência de cópias de vídeo em Canvas, o enquadramento contínuo, o decoder único e o caminho real/Menu no desktop e celular.
 
 `css/advanced-weather.css` integra os materiais às superfícies de informação, mantém contraste e ignora entrada de mouse/toque. A ausência de WebGL mantém os materiais de contato em 2D. Redimensionar o cartão repinta imediatamente o fundo, evitando uma imagem vazia durante a expansão. Somente uma cena, textura e conjunto de filtros permanece ativo; parada, troca, revisão de estágio e movimento reduzido liberam os recursos e restauram o texto atual. `tests/advanced-weather.spec.js` cobre os materiais sem GPU, os eventos reais, revisão, leitura, controles, expansão e limpeza no desktop e celular.
 
@@ -85,4 +85,41 @@ A animação é ilustrativa: não calcula intensidade, danos ou direção de rot
 
 `CardTsunamiSurge` renderiza uma única superfície atrás dos dados. A frente desigual avança e recua continuamente; não há cortes ou repetição de arquivo. O shader deriva normais do relevo para iluminação e reflexo Fresnel, com espuma celular e sombra da frente. Um Canvas frontal adiciona apenas respingos e detritos, sem repetir a água nem cobrir o texto com uma segunda superfície. O caminho 2D usa o mesmo campo temporal quando WebGL falta ou perde o contexto.
 
-O relógio e ciclo de vida pertencem a `CinematicCard`; não há RAF adicional. As letras originais mantêm texto, estilos, grafemas e controles; molas amortecidas propagam o impacto pela posição de cada linha. Atualizações silenciosas preservam a superfície, alterações de força entram no próximo quadro, e movimento reduzido/fechamento do cartão liberam os recursos. O efeito real usa duração ilimitada; a prévia do Menu usa 20 segundos.
+O relógio e ciclo de vida pertencem a `CinematicCard`; não há RAF adicional. As letras originais mantêm texto, estilos, grafemas e controles; molas amortecidas propagam o impacto pela posição de cada linha. Atualizações silenciosas preservam a superfície, alterações de força entram no próximo quadro, e movimento reduzido/fechamento do cartão liberam os recursos. Evento real e prévia do Menu duram 16 segundos.
+
+
+### Enchente crescente — 16 segundos
+
+`CardFloodRise` revela uma única correnteza de baixo para cima, com uma borda irregular, espuma fina e fragmentos flutuantes. A filmagem nativa não é copiada em Canvas; a máscara está no fundo, atrás dos dados. Quando a água alcança cada linha, os grafemas originais boiam, inclinam e derivam com molas amortecidas e limites laterais. Cores, bandeiras, conteúdo e controles são conservados. Sem vídeo e GPU, uma reserva 2D fica atrás do texto.
+
+Evento real e Menu duram no máximo 16 segundos. No final, as letras retornam e todas as camadas e estilos temporários são removidos. Revisões silenciosas preservam o tempo original e não reiniciam uma enchente encerrada; a prévia também não reinicia o evento de enchente selecionado ao terminar. Movimento reduzido mantém o cartão estático. `tests/flood-continuity.spec.js` verifica subida, contato progressivo, flutuação, revisão, controles, vídeo único sem cópias e restauração em desktop e celular.
+
+
+### Letras arrancadas pelas rajadas
+
+Alguns grafemas originais, sorteados por cena, se soltam durante os picos de pressão: aceleram, giram e atravessam a borda do cartão. Permanecem ausentes até encerrar a cena aos 16 segundos, quando o texto completo é restaurado sem animação de volta. Dados, estilos, grafemas e controles são preservados; troca, parada e movimento reduzido também limpam os estados de voo.
+
+
+### Rajada: saída definitiva durante a cena
+
+As letras são sorteadas por cena, com trajetórias e rotação aleatórias. Saem uma única vez e permanecem invisíveis nos espaços originais até o cartão voltar ao normal. Não retornam entre rajadas. O efeito real e o Menu agora duram 16 segundos; encerrar restaura o texto completo de uma vez, sem voo de retorno. Revisões silenciosas mantêm o relógio; parar a prévia não reinicia outra rajada no evento selecionado.
+
+
+### Tipografia por fenômeno — outubro de 2026
+
+`CardEventTypography` usa o relógio e ciclo de vida de `CinematicCard`. Reage sobre grafemas e palavras originais, preservando seus espaços no layout, as cores e os dados. A camada de fragmentos desenha somente pequenas brasas/cinzas, nunca outro vídeo ou cópia do texto. Botões ficam fora da seleção e os elementos animados ignoram cliques. Movimento reduzido, troca, parada e expiração removem nós e estilos temporários.
+
+| Perfil | Tipografia |
+| --- | --- |
+| Tempestade | Chuva pesa e desloca letras; algumas escorregam. Descargas existentes iluminam o texto. |
+| Furacão/tufão | Letras sorteadas descrevem trajetórias espirais e saem do cartão. |
+| Tempestade/depressão tropical | Letras cedem ao vento e à chuva e deslizam nas rajadas. |
+| Tornado | Letras giram, sobem e desaparecem na circulação. |
+| Tsunami | Palavras inteiras tombam e são arrastadas pela frente da água. |
+| Enchente | Letras alcançadas pelo nível crescente boiam e derivam; algumas afundam. |
+| Incêndio/lava | Calor ondula o texto, bordas brilham e caracteres se desfazem em brasas. |
+| Cinzas vulcânicas | Caracteres ficam encobertos e se desfazem em fragmentos de cinza. |
+| Vulcão em monitoramento | Vibração discreta, mantendo todas as letras, sem lava/cinzas artificiais. |
+| Sismo | O impacto chega às linhas em sequência; letras selecionadas caem e permanecem deslocadas. |
+
+Letras e palavras removidas permanecem ausentes até a restauração aos 16 segundos. Menu e seleção real usam a mesma camada. A demonstração sísmica integra a camada mantendo as fontes e métricas do evento selecionado. `tests/card-event-typography.spec.js` cobre os 12 perfis, controles, conteúdo, grafemas, cores, quietude do monitoramento, duração e limpeza nas duas larguras, além do Menu e da demonstração sísmica.

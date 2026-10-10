@@ -8,8 +8,8 @@ function fn(source, name) {
   assert.ok(start >= 0, name);
   return source.slice(start, source.indexOf('\n}', start) + 2);
 }
-const quake = (id) => ({ id, mag: 3, coords: [10, 20] });
-const alert = (id, type = 'storm') => ({ id, type, coords: [30, 40] });
+const quake = (id) => ({ id, time: Date.now(), mag: 3, coords: [10, 20] });
+const alert = (id, type = 'storm') => ({ id, type, time: Date.now(), coords: [30, 40] });
 function camera(events, selected, feed) {
   const timers = [];
   const shown = [];
@@ -19,7 +19,7 @@ function camera(events, selected, feed) {
     console, buildUnifiedFeed: () => feed,
     showEventDetails: (i) => shown.push(events[i].id),
     showAlertDetails: (e) => shown.push(e.id) });
-  vm.runInContext(['getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','scheduleNextAutoCycle'].map(name=>fn(panel,name)).join('\n'), c);
+  vm.runInContext(['isWithinAutoCycleAge','getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','scheduleNextAutoCycle','runAutoCycle'].map(name=>fn(panel,name)).join('\n'), c);
   c.scheduleNextAutoCycle(5000);
   timers.shift()();
   return { c, shown };

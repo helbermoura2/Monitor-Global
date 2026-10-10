@@ -1,0 +1,67 @@
+/* All municipalities named in an INMET warning, without duplicating alerts. */
+(function(){
+'use strict';
+const SOURCE='inmet-municipalities',DOTS='inmet-municipality-points',ICONS='inmet-municipality-icons',FOCUS='inmet-warning-focus',LABELS='inmet-municipality-labels';
+let index=null,loading=null,boundMap=null,popup=null,sourceIdentity,sourceData,focusIdentity,focusFingerprint='',dotsIdentity,labelsIdentity,selectedFilters,diagnosticsData;
+const cityTokens=new WeakMap(),resolved=new Map(),grouped=new WeakMap();let nextCityToken=0,resolvedCities=0,lastCollectionKey='',lastCollection;
+function cityToken(cities){if(!cities||typeof cities!=='object')return 0;if(!cityTokens.has(cities))cityTokens.set(cities,++nextCityToken);return cityTokens.get(cities);}
+
+const key=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+async function load(){if(index)return index;if(loading)return loading;loading=Promise.all([window.InmetAreas?.load().catch(e=>console.warn('INMET areas:',e.message)),fetch('assets/weather/br-municipalities.json?v=1',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Municipality coordinates unavailable');return r.json();})]).then(([,rows])=>{index=new Map();for(const [code,name,uf,lng,lat] of rows){const k=key(name);if(!index.has(k))index.set(k,[]);index.get(k).push({code,name,uf,coords:[lng,lat]});}return index;}).catch(e=>{loading=null;throw e;});return loading;}
+function resolve(munis,ufs=[]){const fp=JSON.stringify([(munis||[]).map(m=>[m.nome,m.uf]),ufs]);if(index&&resolved.has(fp)){const hit=resolved.get(fp);resolved.delete(fp);resolved.set(fp,hit);return hit;}const seen=new Set(),all=[];for(const m of munis||[]){const name=String(m.nome||'').trim(),uf=m.uf?String(m.uf).toUpperCase():null,k=key(name)+'|'+(uf||'');if(!name||seen.has(k))continue;seen.add(k);const matches=(index?.get(key(name))||[]).filter(c=>uf?c.uf===uf:!ufs.length||ufs.includes(c.uf));const city=matches.length===1?matches[0]:null;all.push({name,uf:city?.uf||uf,code:city?.code||null,coords:city?.coords||null});}if(index){resolved.set(fp,all);resolvedCities+=all.length;while(resolved.size>16||resolvedCities>12000){const first=resolved.keys().next().value;resolvedCities-=resolved.get(first).length;resolved.delete(first);}}return all;}
+const kind=a=>/baixa\s+umidade|umidade\s+baixa/i.test(a.descOnly||a.place||'')?'dry':/chuva|tempestade|trovoad|raio|granizo/i.test(a.descOnly||a.place||'')?'lightning':'siren';
+function visible(a){if((!a.municipalityLocations?.length&&!a.warningGeometry)||!alertVisivelNaLista(a)||(a.inicioTs||0)>Date.now())return false;const layer={storm:'lightning',civil:'civil',wind:'wind',flood:'flood',tornado:'tornado'}[a.type];return layer&&layerVisibility[layer]&&(sidebarFilter==='all'||sidebarFilter===a.type)&&(!soCriticos||isEventoCritico(a));}
+function collection(alerts){
+ const eligible=alerts.filter(visible),ref=minhaPosicao||(typeof weatherLoc==='undefined'?null:weatherLoc);
+ const fp=JSON.stringify([eligible.map(a=>[a.id,cityToken(a.municipalityLocations),a.municipalityLocations?.length||0,kind(a),corSeveridadeAlerta(a),Number(a.sev)||0,!!a.warningGeometry&&!!window.InmetAreas?.ready(),a.meAtinge]),geoFilter,ref?.lat,ref?.lng]);
+ if(fp===lastCollectionKey&&lastCollection)return lastCollection;
+ const features=[];for(const a of eligible){const cor=typeof corSeveridadeAlerta==='function'?corSeveridadeAlerta(a):'#fbbf24',icon=kind(a);for(const city of a.municipalityLocations||[]){if(!passesGeoFilter({...a,municipalityLocations:undefined,coords:city.coords}))continue;features.push({type:'Feature',geometry:{type:'Point',coordinates:city.coords},properties:{alertId:a.id,city:city.name,uf:city.uf,code:city.code,icon,color:cor,image:'inmet-'+icon+'-'+cor.slice(1),area:!!a.warningGeometry&&!!window.InmetAreas?.ready(),priority:Number(a.sev)||0}});}}
+ const groups=new Map();for(const f of features){const id=f.properties.alertId;if(!groups.has(id))groups.set(id,[]);groups.get(id).push(f);}const data={type:'FeatureCollection',features};grouped.set(data,groups);lastCollectionKey=fp;return lastCollection=data;
+}
+
+const PALETTE=['#facc15','#fb923c','#ef4444','#4ade80','#94a3b8'];
+function drawIcon(ctx,type,color){
+ ctx.fillStyle='#071d2ded';ctx.beginPath();ctx.arc(32,32,27,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+ if(type==='lightning'){
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(36,9);ctx.lineTo(19,35);ctx.lineTo(30,35);ctx.lineTo(25,55);ctx.lineTo(46,27);ctx.lineTo(34,27);ctx.closePath();ctx.fill();
+ }else if(type==='dry'){
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(32,10);ctx.bezierCurveTo(27,21,16,29,16,37);ctx.bezierCurveTo(16,55,48,55,48,37);ctx.bezierCurveTo(48,29,37,21,32,10);ctx.closePath();ctx.fill();
+  ctx.lineCap='round';ctx.beginPath();ctx.moveTo(18,49);ctx.lineTo(47,19);ctx.strokeStyle='#071d2d';ctx.lineWidth=9;ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=4;ctx.stroke();
+ }else{
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(19,42);ctx.lineTo(21,27);ctx.bezierCurveTo(21,13,43,13,43,27);ctx.lineTo(45,42);ctx.closePath();ctx.fill();ctx.fillRect(16,44,32,5);
+  ctx.strokeStyle=color;ctx.lineWidth=3;for(const [x,y,u,v] of [[32,7,32,12],[10,20,15,23],[49,23,54,20]]){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(u,v);ctx.stroke();}
+ }
+}
+function iconCanvas(type,color){const c=document.createElement('canvas');c.width=c.height=64;drawIcon(c.getContext('2d'),type,color);return c;}
+function image(type,color){const name='inmet-'+type+'-'+color.slice(1);if(map.hasImage(name))return;const c=iconCanvas(type,color);map.addImage(name,c.getContext('2d').getImageData(0,0,64,64),{pixelRatio:2});}
+function inlineIcon(item){const c=iconCanvas(kind(item),corSeveridadeAlerta(item));c.style.cssText='width:22px;height:22px;vertical-align:middle;margin-right:6px';c.setAttribute('aria-hidden','true');return c;}
+function ensure(){
+ for(const type of ['lightning','dry','siren'])for(const color of PALETTE)image(type,color);
+ if(!map.getSource(SOURCE)){map.addSource(SOURCE,{type:'geojson',data:{type:'FeatureCollection',features:[]}});sourceIdentity=null;}
+ if(!map.getLayer(DOTS)){selectedFilters=undefined;map.addLayer({id:DOTS,type:'circle',source:SOURCE,layout:{'circle-sort-key':['get','priority']},paint:{'circle-radius':['interpolate',['linear'],['zoom'],1,2,6,4,10,5],'circle-color':['get','color'],'circle-stroke-color':'#071d2d','circle-stroke-width':1}});}
+ if(!map.getSource(FOCUS))map.addSource(FOCUS,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+ if(!map.getLayer(ICONS))map.addLayer({id:ICONS,type:'symbol',source:FOCUS,layout:{'icon-image':['get','image'],'symbol-sort-key':['get','priority'],'icon-size':.85,'icon-allow-overlap':true,'icon-ignore-placement':true}});
+ if(!map.getLayer(LABELS)){selectedFilters=undefined;map.addLayer({id:LABELS,type:'symbol',source:SOURCE,minzoom:7,layout:{'text-field':['get','city'],'text-size':12,'text-offset':[0,1.2],'text-allow-overlap':false},paint:{'text-color':'#e2e8f0','text-halo-color':'#071d2d','text-halo-width':1.5}});}
+ if(boundMap!==map){boundMap=map;map.on('click',DOTS,e=>{if(!map.queryRenderedFeatures(e.point,{layers:[ICONS]}).length)onClick(e);});map.on('click',ICONS,e=>{const a=globalAlerts.find(a=>a.id===e.features?.[0]?.properties.alertId);if(a)selectMapEvent(a,false);});map.on('click',LABELS,onClick);map.on('mouseenter',ICONS,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',ICONS,()=>map.getCanvas().style.cursor='');}
+}
+function sync(){if(!map)return;const data=collection(globalAlerts);if(!data.features.length&&!globalAlerts.some(a=>a.warningGeometry&&visible(a))&&!map.getSource(SOURCE))return;ensure();const source=map.getSource(SOURCE);if(sourceIdentity!==source||sourceData!==data){source.setData(data);sourceIdentity=source;sourceData=data;}
+ const selected=eventoSelecionadoId==null?'':String(eventoSelecionadoId),cities=grouped.get(data)?.get(selected)||[],item=globalAlerts.find(a=>a.id===selected);
+ const anchor=cities.length?{...cities[0],geometry:{type:'Point',coordinates:item?.coords||cities[0].geometry.coordinates}}:item?.warningGeometry&&visible(item)&&item.coords?{type:'Feature',geometry:{type:'Point',coordinates:item.coords},properties:{alertId:item.id,priority:Number(item.sev)||0,image:'inmet-'+kind(item)+'-'+corSeveridadeAlerta(item).slice(1)}}:null;
+ const focus=map.getSource(FOCUS),fp=JSON.stringify(anchor);if(focusIdentity!==focus||focusFingerprint!==fp){focus.setData({type:'FeatureCollection',features:anchor?[anchor]:[]});focusIdentity=focus;focusFingerprint=fp;}
+ const dots=source,labels=map.getSource(FOCUS);if(dotsIdentity!==dots||labelsIdentity!==labels||selectedFilters!==selected){
+ map.setFilter(DOTS,['all',['==',['get','area'],false],['!=',['get','alertId'],selected]]);
+ map.setPaintProperty(DOTS,'circle-radius',2);map.setPaintProperty(DOTS,'circle-opacity',.55);
+ map.setFilter(LABELS,['==',['get','alertId'],selected]);dotsIdentity=dots;labelsIdentity=labels;selectedFilters=selected;}
+ window.InmetAreas?.sync(globalAlerts.filter(visible));
+ if(!window.__mgInmetMunicipalities||window.__mgInmetMunicipalities.points!==data.features.length||diagnosticsData!==data){window.__mgInmetMunicipalities={points:data.features.length,alerts:grouped.get(data)?.size||0};diagnosticsData=data;}if(popup&&!data.features.some(f=>f.properties.alertId===popup._inmetAlertId&&f.properties.code===popup._inmetCityCode)){popup.remove();popup=null;}}
+
+function openCity(alertId,city){const item=globalAlerts.find(a=>a.id===alertId);if(!item||!city?.coords)return;selectMapEvent(item,false);map.flyTo({center:centroCompensado(city.coords[0],city.coords[1],7),zoom:7,duration:1200,essential:true});showPopup(item,city);}
+function showPopup(item,city){popup?.remove();const content=document.createElement('div');content.style.color='#0f172a';const name=document.createElement('strong');name.textContent=city.name+' / '+city.uf;const desc=document.createElement('p');desc.textContent=(item.descOnly||'Aviso meteorológico')+' · '+(item.inmetSeveridade||'INMET');const note=document.createElement('small');note.textContent='Município citado no aviso INMET. Ponto da sede municipal.';const button=document.createElement('button');button.textContent='Ver aviso completo';button.onclick=()=>openCity(item.id,city);content.append(inlineIcon(item),name,desc,note,document.createElement('br'),button);popup=new GL.Popup({offset:18,maxWidth:'290px'}).setLngLat(city.coords).setDOMContent(content).addTo(map);popup._inmetAlertId=item.id;popup._inmetCityCode=city.code;}
+function onClick(e){const p=e.features?.[0]?.properties,item=globalAlerts.find(a=>a.id===p?.alertId);if(!item)return;const city=item.municipalityLocations.find(c=>c.code===p.code);if(city)showPopup(item,city);}
+function fitArea(item){const cities=item.municipalityLocations?.filter(c=>passesGeoFilter({...item,municipalityLocations:undefined,coords:c.coords}));if(!map||!cities?.length)return;const xs=cities.map(c=>c.coords[0]),ys=cities.map(c=>c.coords[1]),wide=map.getContainer().clientWidth>900;map.fitBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:{top:wide?225:220,bottom:wide?50:120,left:wide?335:35,right:wide?370:35},maxZoom:7,duration:window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:2000,essential:true});}
+function renderPanel(item){const title=document.getElementById('pd-cities-title'),host=document.getElementById('pd-cities');if(!host)return;title.textContent='🏙️ Municípios citados no aviso';host.replaceChildren();const all=item.municipalities||[],located=all.filter(c=>c.coords).length,summary=document.createElement('div');summary.className='city-item';summary.textContent=all.length+' municípios citados · '+located+' localizados'+(located<all.length?' · '+(all.length-located)+' sem coordenadas verificadas':'');const search=document.createElement('input');search.type='search';search.placeholder='Buscar município ou UF';search.setAttribute('aria-label','Buscar município citado no aviso');search.style.cssText='box-sizing:border-box;width:100%;margin:8px 0;padding:8px;border:1px solid #38bdf850;background:#071d2d;color:#e2e8f0;border-radius:6px';const list=document.createElement('div'),more=document.createElement('button');more.textContent='Mostrar mais municípios';more.type='button';let limit=50;
+ function paint(){list.replaceChildren();const q=key(search.value),matches=all.filter(c=>key(c.name+' '+(c.uf||'')).includes(q));for(const city of matches.slice(0,limit)){const row=document.createElement('button');row.type='button';row.className='city-item';row.style.cssText='width:100%;text-align:left;color:inherit;background:transparent;border:0;cursor:pointer';row.textContent=city.name+(city.uf?' / '+city.uf:'')+(city.coords?'':' · Sem coordenadas');row.prepend(inlineIcon(item));row.title=(item.descOnly||'Aviso INMET')+' · '+(item.inmetSeveridade||'');row.disabled=!city.coords;row.onclick=()=>openCity(item.id,city);list.append(row);}if(!matches.length)list.textContent='Nenhum município encontrado.';more.hidden=matches.length<=limit;}
+ search.oninput=()=>{limit=50;paint();};more.onclick=()=>{limit+=50;paint();};host.append(summary,search,list,more);paint();}
+window.InmetMunicipalities={load,resolve,collection,sync,fitArea,renderPanel,openCity};
+})();

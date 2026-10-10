@@ -1095,3 +1095,6 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 .pd-weather-symbol .pd-bolt-core,.pd-weather-symbol .pd-bolt-branch{vector-effect:non-scaling-stroke}
 .pd-weather-symbol .pd-bolt-core{stroke-width:1.1}
 .pd-weather-symbol .pd-bolt-branch{stroke-width:.45}
+
+/* Civil warning scenes carry their own severity-colored light and dry-air material. */
+#painel-direito.pd-cinema-active.pd-fx-civil #pd-fx-overlay { animation:none; box-shadow:none; opacity:0; }

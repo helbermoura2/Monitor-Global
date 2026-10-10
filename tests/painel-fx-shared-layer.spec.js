@@ -90,6 +90,7 @@ test('primeiro quadro anterior ao início não interrompe a chuva', async ({ pag
     window.requestAnimationFrame = callback => { window.__testFrame = callback; return 1; };
     window.cancelAnimationFrame = () => {};
   });
+ await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js/card-effect-quality.js'),'utf8')});
   await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '../js/cinematic-card.js'), 'utf8') });
   const result = await page.evaluate(() => {
     const realNow = performance.now.bind(performance);

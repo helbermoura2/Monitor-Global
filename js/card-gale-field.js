@@ -24,17 +24,20 @@
   if(!blur)return c;
   const out=document.createElement('canvas');out.width=96;out.height=72;const b=out.getContext('2d');b.filter='blur('+blur+'px)';b.drawImage(c,0,0);c.width=c.height=1;return out;
  }
- function create(cfg,mobile,panel){
+ function create(cfg,mobile,panel,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type!=='wind')return null;
   const canvas=document.createElement('canvas');canvas.className='pd-weather-material pd-gale-field';canvas.setAttribute('aria-hidden','true');canvas.dataset.material='inertial-debris';
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   const lensLayer=document.createElement('div');lensLayer.className='pd-weather-lenses';lensLayer.setAttribute('aria-hidden','true');
   const leaves=Array.from({length:mobile?17:27},(_,i)=>({x:rand(-.25,1.1),y:rand(-.1,1.1),z:rand(.18,1),vx:0,vy:0,angle:rand(0,TAU),spin:rand(-4,4),phase:rand(0,TAU),kind:i%3,size:rand(11,24)}));
+  detail.track(leaves);
   const grains=Array.from({length:mobile?105:175},()=>({x:rand(-.1,1.1),y:Math.random(),z:rand(.05,1),vx:0,vy:0,phase:rand(0,TAU)}));
+  detail.track(grains);
   const sprites=Array.from({length:3},(_,i)=>[leafTexture(i,0),leafTexture(i,1.7)]);
   let w=1,h=1,dead=false,measureAt=-1,groups=[],travel=0,drag=0,velocity=0,roll=0,rollVelocity=0;
   const strength=.72+.28*cfg.strength,letterDynamics=new WeakMap();
-  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
+  function resize(width,height){w=width;h=height;const dpr=Math.min(devicePixelRatio||1,mobile?1:1.35)*detail.resolution;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureAt=-1;}
   function measure(t){
    if(t<measureAt)return;measureAt=t+.6;
    // Clear only our glyph transforms to measure their original, current layout.
@@ -42,7 +45,8 @@
    const bounds=panel.getBoundingClientRect();
    groups=Array.from(panel.querySelectorAll('[data-cyclone-text]'),el=>{
     const rect=el.getBoundingClientRect(),title=el.id==='pd-local';
-    const letters=Array.from(el.querySelectorAll('.pd-fx-windletter'),span=>{const r=span.getBoundingClientRect();let l=letterDynamics.get(span);if(!l){l={el:span,x:0,vx:0,y:0,vy:0,roll:0,vr:0};letterDynamics.set(span,l);}l.room=Math.max(0,w-15-(r.right-bounds.left));return l;});
+    const letters=Array.from(el.querySelectorAll('.pd-fx-windletter'),span=>{const r=span.getBoundingClientRect();let l=letterDynamics.get(span);if(!l){l={el:span,x:0,vx:0,y:0,vy:0,roll:0,vr:0,ticket:Math.random(),selected:false,launch:null};letterDynamics.set(span,l);}l.room=Math.max(0,w-15-(r.right-bounds.left));return l;});
+    const chosen=letters.slice().sort((a,b)=>a.ticket-b.ticket).slice(0,Math.max(1,Math.floor(letters.length*(title?.33:.20))));for(const l of letters)l.selected=chosen.includes(l);
     return {el,title,offset:clamp((rect.top-bounds.top)/h,0,1),letters};
    });
   }
@@ -59,6 +63,21 @@
     g.letters.forEach((letter,i)=>{
      const fraction=i/count,local=pressure(t-g.offset*.24,fraction)*strength*envelope;
      const gust=Math.pow(clamp((local-.14)/.75,0,1),1.15),flutter=Math.sin(t*(7.8+fraction*2.5)-i*.39-g.offset*3)*gust*gust;
+     // A few original glyphs tear loose; their layout slots and accessible text stay intact.
+     const phase=t%11.8,attack=phase>=1&&phase<2.1||phase>=7&&phase<7.9;
+     if(!letter.launch&&letter.selected&&attack&&local>.48+letter.ticket*.12){
+      letter.launch={at:t,x:letter.x,y:letter.y,roll:letter.roll,exit:Math.max(w*.8,letter.room+90),lift:rand(45,100),spin:rand(145,230)*(Math.random()<.5?-1:1)};
+     }
+     if(letter.launch){
+      const flight=letter.launch,age=t-flight.at,progress=clamp(age/1.05,0,1),out=ease(progress);
+      // One-way departure: the glyph stays absent until the entire scene stops.
+      const distance=flight.exit*(progress*progress*.8+progress*.2);
+      letter.x=flight.x+distance;letter.y=flight.y-flight.lift*out-Math.sin(Math.min(age,1.05)*5+i)*out*12;
+      letter.roll=flight.roll+flight.spin*Math.min(age,1.05)+90*out;
+      letter.el.dataset.galeFlight=age>=1.05?'away':'flying';letter.el.style.opacity=age>=1.05?'0':'1';
+      letter.el.style.transform='translate3d('+letter.x.toFixed(2)+'px,'+letter.y.toFixed(2)+'px,0) rotate('+letter.roll.toFixed(2)+'deg)';
+      return;
+     }
      const desired=Math.min(letter.room,gust*(g.title?(17+fraction*15)*(mobile?.85:1):3+fraction*5)+flutter*(g.title?3:.65));
      letter.vx+=((desired-letter.x)*75-letter.vx*11.8)*dt;letter.x+=letter.vx*dt;
      const lift=-letter.x*(g.title?.28:.19)+flutter*(g.title?1.7:.3);
@@ -100,7 +119,7 @@
    }
    ctx.globalAlpha=1;
   }
-  function destroy(){if(dead)return;dead=true;canvas.remove();lensLayer.remove();for(const g of groups)for(const l of g.letters)l.el.style.removeProperty('transform');for(const variants of sprites)for(const s of variants)s.width=s.height=1;groups=[];leaves.length=grains.length=0;}
+  function destroy(){if(dead)return;dead=true;canvas.remove();lensLayer.remove();for(const g of groups)for(const l of g.letters){l.el.style.removeProperty('transform');l.el.style.removeProperty('opacity');delete l.el.dataset.galeFlight;}for(const variants of sprites)for(const s of variants)s.width=s.height=1;groups=[];leaves.length=grains.length=0;}
   return {canvas,lensLayer,resize,load,draw,destroy};
  }
  window.CardGaleField={create,pressure};

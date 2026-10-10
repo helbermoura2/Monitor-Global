@@ -40,7 +40,7 @@ html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family
   69%   { opacity: 0; }
   100%  { opacity: 0; }
 }
-.lightning-flash-active { animation: lightningFlash 13s ease-out; }
+#painel-direito.pd-fx-storm[data-lightning="on"] #lightning-flash.lightning-flash-active { animation: lightningFlash 13s ease-out; }
 #vignette-cinematic { position: fixed; inset: 0; pointer-events: none; z-index: 9998; transition: box-shadow 1.2s ease; }
 .vignette-active { box-shadow: inset 0 0 180px rgba(0,0,0,0.55); }
 .ts-kpi-row { display: flex; align-items: baseline; gap: 7px; }

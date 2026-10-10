@@ -28,7 +28,8 @@
   }
   ctx.putImageData(pixels,0,0);return c;
  }
- function create(cfg,mobile){
+ function create(cfg,mobile,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type!=='volcano'||cfg.hot||cfg.ash||cfg.lava)return null;
   const canvas=document.createElement('canvas');canvas.className='pd-volcano-monitor';canvas.dataset.texture='procedural';
   const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return null;
@@ -59,7 +60,7 @@
   image.onload=()=>{if(dead)return;ready=true;canvas.dataset.texture='photograph';image.onload=image.onerror=null;draw(last);};
   image.onerror=()=>{if(dead)return;image.onload=image.onerror=null;};
   image.src='media/card-fx/volcano-crater.jpg';
-  function resize(width,height){w=width;h=height;const scale=Math.min(1,(mobile?320:480)/Math.max(w,1),(mobile?640:960)/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));ctx.setTransform(scale,0,0,scale,0,0);draw(last);}
+  function resize(width,height){w=width;h=height;const scale=detail.resolution*Math.min(1,(mobile?320:480)/Math.max(w,1),(mobile?640:960)/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));ctx.setTransform(scale,0,0,scale,0,0);draw(last);}
   function destroy(){if(dead)return;dead=true;image.onload=image.onerror=null;image.removeAttribute('src');image=null;reserve.width=reserve.height=haze.width=haze.height=1;canvas.remove();}
   return {canvas,resize,draw,destroy};
  }

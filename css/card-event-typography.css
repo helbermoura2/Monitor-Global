@@ -1,0 +1,4 @@
+#painel-direito.pd-cinema-active .pd-fx-windletter[data-event-reaction],#painel-direito.pd-cinema-active .pd-fx-windword[data-event-reaction]{pointer-events:none;animation:none!important;transform-origin:50% 70%;will-change:transform,opacity}
+#painel-direito.pd-cinema-active .pd-fx-windword[data-event-reaction=word-wash]{display:inline-block}
+.pd-letter-fragments{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+@media(prefers-reduced-motion:reduce){.pd-letter-fragments{display:none!important}}

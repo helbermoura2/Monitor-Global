@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#" xmlns:georss="http://www.georss.org/georss">
+    <id>urn:uuid:a55087fe-60de-4aa8-9fa2-41b961cfbb1c</id><title>        TSUNAMI INFORMATION STATEMENT NUMBER   2        </title>
+    <updated>2026-10-09T18:39:14Z</updated>
+    <author>
+      <name>NWS PACIFIC TSUNAMI WARNING CENTER HONOLULU HI</name>
+<uri>https://www.tsunami.gov/</uri>
+     <email>ntwc@noaa.gov</email>
+    </author>
+<icon>https://www.tsunami.gov/images/favicon.ico</icon>
+<link type="application/atom+xml" rel="self" title="self" href="https://www.tsunami.gov/events/xml/PAAQAtom.xml"/>
+ <link rel="related" title="Energy Map" href="https://www.tsunami.gov/events/PHEB/2026/10/09/26282000/2/WEZS42/ " type="image/jpeg" /> 
+
+   <entry>
+
+    <title>PANAMA</title><updated>2026-10-09T18:39:14Z</updated>
+<geo:lat>7.54</geo:lat>
+<geo:long>-80.75</geo:long>
+<summary type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">
+     <strong>Category:</strong> Information<br/><strong>Bulletin Issue Time: </strong> 2026.10.09 18:39:14 UTC <br/><strong>Preliminary Magnitude: </strong>7.6(Mwp)<br/><strong>Lat/Lon: </strong>7.54 / -80.75<br/><strong>Affected Region: </strong>PANAMA<br/><b>Note:</b>  <br/><strong>Definition: </strong><a href="https://www.tsunami.gov/events/PHEB/2026/10/09/26282000/2/WEZS42/WEZS42.txt">View bulletin</a><img src="https://www.tsunami.gov/events/PHEB/2026/10/09/26282000/2/WEZS42/ " alt="Energy Map" /> 
+ </div></summary>
+    <id>urn:uuid:6b8f854f-5a54-425c-9d45-a9cd052a4fea</id><link rel="related" title="CapXML document" href="https://www.tsunami.gov/events/PHEB/2026/10/09/26282000/2/WEZS42/PHEBCAP.xml" type="application/cap+xml" />
+<link rel="alternate" title="Bulletin" href="https://www.tsunami.gov/events/PHEB/2026/10/09/26282000/2/WEZS42/WEZS42.txt" type="application/xml" />
+</entry>
+</feed>

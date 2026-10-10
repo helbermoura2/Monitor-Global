@@ -122,13 +122,17 @@
 
   function zoomForItem(item) {
     const lat = (item.coords && isFinite(item.coords[1])) ? item.coords[1] : 0;
+    if(item.type==='earthquake'&&Number(item.mag)>=5&&window.SeismicImpact){
+      const radius=SeismicImpact.extent(item.mag,item.depth||0);
+      return Math.max(2,Math.min(zoomFor50km(lat),Math.floor(Math.log2(156543.03392*Math.cos(lat*Math.PI/180)*330/(Math.max(80,radius)*1000)))));
+    }
     return zoomFor50km(lat);
   }
 
   function titleForItem(item) {
     const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || {};
-    if (item.type === 'earthquake') return `M ${Number(item.mag).toFixed(1)}`;
-    return (meta.label || item.type || 'EVENTO').toUpperCase();
+    if (item.type === 'earthquake') return `M ${Number(item.mag).toFixed(1).replace('.', ',')}`;
+    return (window.RecordPresentation?.isBulletin(item) ? 'Boletim CGE' : window.RecordPresentation?.label(item) || item.displayLabel || item.cycloneLabel || meta.label || item.type || 'EVENTO').toUpperCase();
   }
 
   // Extrai o tamanho em px de uma string de ctx.font (ex: '700 32px "X"')
@@ -250,7 +254,7 @@
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '600 22px system-ui, sans-serif';
-    haloFillText(ctx, `≈ ${km >= 1 ? km : km.toFixed(1)} km`, x, y - 16);
+    haloFillText(ctx, `≈ ${km >= 1 ? km : km.toFixed(1).replace('.', ',')} km`, x, y - 16);
     ctx.restore();
   }
 
@@ -260,7 +264,7 @@
     if (!isFinite(lat) || !isFinite(lon)) return '';
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'L' : 'O';
-    return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lon).toFixed(2)}°${lonDir}`;
+    return `${Math.abs(lat).toFixed(2).replace('.', ',')}°${latDir}, ${Math.abs(lon).toFixed(2).replace('.', ',')}°${lonDir}`;
   }
 
   // Hora local aproximada no epicentro, estimada só pela longitude (sem base
@@ -816,7 +820,7 @@
     function rotuloBrasilCompleto(item) {
       const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || {};
       if (item.type === 'earthquake') {
-        return `M${Number(item.mag).toFixed(1)} · ${polirLocalResumo(item.place || '')}`;
+        return `M${Number(item.mag).toFixed(1).replace('.', ',')} · ${polirLocalResumo(item.place || '')}`;
       }
       const isFire = item.type === 'fire' || /queimada|inpe|foco/i.test(String(item.place || '') + String(item.descOnly || ''));
       if (isFire) {
@@ -928,7 +932,7 @@
       ctx.textAlign = 'left';
       ctx.fillStyle = cor;
       ctx.font = '800 68px "JetBrains Mono", monospace';
-      const magStr = `M${Number(top1.mag).toFixed(1)}`;
+      const magStr = `M${Number(top1.mag).toFixed(1).replace('.', ',')}`;
       const magW = ctx.measureText(magStr).width;
       haloFillText(ctx, magStr, boxX + 36, y + 72);
       ctx.fillStyle = '#94a3b8';
@@ -957,7 +961,7 @@
 
         ctx.fillStyle = getHexColor(ev.mag);
         ctx.font = '800 32px "JetBrains Mono", monospace';
-        haloFillText(ctx, `M${Number(ev.mag).toFixed(1)}`, boxX + 48, rowTop + 8);
+        haloFillText(ctx, `M${Number(ev.mag).toFixed(1).replace('.', ',')}`, boxX + 48, rowTop + 8);
 
         ctx.fillStyle = '#e2e8f0';
         ctx.font = '600 26px system-ui, sans-serif';
@@ -1174,6 +1178,45 @@
   // o botão parecia simplesmente não fazer nada.
   window.shareResumoDiarioStory = shareResumoDiarioStory;
 
+  let storyLandPromise;
+  async function buildCartographicQuake(item){
+    const ev={mag:Number(item.mag),depth:Number(item.depth)||0,lon:item.coords[0],lat:item.coords[1],place:item.place};
+    const layout=window.QuakeCardLayout,frame=layout.frame(ev),canvas=document.createElement('canvas');
+    canvas.width=1080;canvas.height=1920;
+    const ctx=canvas.getContext('2d');ctx.scale(1.35,4/3);ctx.fillStyle='#092130';ctx.fillRect(0,0,800,1440);
+    const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
+    const base='https://server.arcgisonline.com/ArcGIS/rest/services/';
+    const params='?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=800,820&format=png32&transparent=true&f=image';
+    const [sat,labels,exposure]=await Promise.all([
+      loadImgCORS(base+'World_Imagery/MapServer/export'+params,5000).catch(()=>null),
+      loadImgCORS(base+'Reference/World_Boundaries_and_Places/MapServer/export'+params,5000).catch(()=>null),
+      window.obterExposicaoPopulacionalImagem?.(item)
+    ]);
+    // Paint at the shared reference resolution before scaling for Story export.
+    if(sat){
+      const surface=document.createElement('canvas');surface.width=800;surface.height=820;const c=surface.getContext('2d');
+      c.drawImage(sat,0,0,800,820);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,800,820);
+      if(ev.mag>=5)try{
+        if(!storyLandPromise)storyLandPromise=fetch('assets/seismic/ne-50m-land.geojson').then(r=>{if(!r.ok)throw Error('Coastlines');return r.json();}).then(d=>d.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates)).catch(e=>{storyLandPromise=null;throw e;});
+        const pixels=c.getImageData(0,0,800,820);QuakeImagePaint.paint(pixels.data,frame,ev,await storyLandPromise);c.putImageData(pixels,0,0);
+      }catch(e){console.warn('Story intensity unavailable',e);}
+      if(labels)c.drawImage(labels,0,0,800,820);ctx.drawImage(surface,0,0,800,820);
+    }
+    const font=(size,bold)=>`${bold?'700':'400'} ${size}px Arial, sans-serif`;
+    const p={gradient:(x,y,w,h,a,b)=>{const g=ctx.createLinearGradient(x,y,x,y+h);g.addColorStop(0,a);g.addColorStop(1,b);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);},
+      roundRect:(x,y,w,h,color)=>{ctx.fillStyle=color;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,8);else ctx.rect(x,y,w,h);ctx.fill();},rect:(x,y,w,h,color)=>{ctx.fillStyle=color;ctx.fillRect(x,y,w,h);},
+      dot:(x,y,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();},
+      arc:(x,y,r,t,a,s,color)=>{ctx.strokeStyle=color;ctx.lineWidth=t;ctx.lineCap='round';ctx.beginPath();ctx.arc(x,y,r,a*Math.PI/180,(a+s)*Math.PI/180);ctx.stroke();},
+      measure:(text,size,bold)=>{ctx.font=font(size,bold);return ctx.measureText(text).width;},
+      text:(text,x,y,size,color,bold)=>{ctx.font=font(size,bold);ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);}
+    };
+    const mmi=estimarMercalli(ev.mag,ev.depth),energy=calcularEnergia(ev.mag);
+    layout.draw(p,{...ev,_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+      sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
+      mmi:mmi.nivel,energy:energy.tnt.replace(' de TNT',''),exposure});
+    return canvas;
+  }
+
   async function buildStoryCanvas(item) {
     // Sempre a versão mais recente (revisão de mag etc.) — evita Story com dado velho
     try {
@@ -1182,6 +1225,9 @@
         if (fresh) item = fresh;
       }
     } catch (e) {}
+    await window.EventPortuguese?.ensure(item);
+    item=window.EventPortuguese?.view(item)||item;
+    if((item.type==='earthquake'||(item.mag!=null&&!item.type))&&Array.isArray(item.coords)&&item.coords.length>=2&&item.coords.slice(0,2).every(Number.isFinite))return buildCartographicQuake(item);
     const W = 1080, H = 1920;
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
@@ -1189,19 +1235,21 @@
     const meta = (typeof TYPE_META !== 'undefined' && TYPE_META[item.type]) || { color: '#38bdf8', icon: '🌍' };
     const isQuake = item.type === 'earthquake' || (item.mag != null && !item.type);
     const isUpdatedStory = !!(item && item._deltaTxt && typeof activeUpdatedIds !== 'undefined' && activeUpdatedIds.has(item.id));
-    const cor = isQuake && typeof getHexColor === 'function' ? getHexColor(item.mag) : (meta.color || '#38bdf8');
-    const [lng, lat] = item.coords || [0, 0];
+    const located = window.RecordPresentation?.located(item) ?? (Array.isArray(item.coords) && item.coords.length >= 2 && item.coords.slice(0, 2).every(Number.isFinite) && Math.abs(item.coords[0]) <= 180 && Math.abs(item.coords[1]) <= 90);
+    const cor = isQuake && typeof getHexColor === 'function' ? getHexColor(item.mag) : (item.hazardNature === 'warning' && typeof corSeveridadeAlerta === 'function' ? corSeveridadeAlerta(item) : meta.color || '#38bdf8');
+    const [lng, lat] = located ? item.coords : [null, null];
 
     // Mapa de satélite com o epicentro centralizado — a referência que fica no
     // topo, com o resto do card sobreposto por baixo (degradê escuro).
     const markerCx = W / 2, markerCy = H * 0.27;
     const mapZoom = zoomForItem(item);
-    let usouMapa = true;
-    try {
+    let usouMapa = false;
+    if (located) try {
       await drawMapBackground(ctx, lng, lat, mapZoom, W, H, markerCx, markerCy);
       // Se der SecurityError na hora de exportar (canvas contaminado por tile
       // sem CORS liberado), cai no catch e refaz tudo sem mapa.
       canvas.getContext('2d').getImageData(0, 0, 1, 1);
+      usouMapa = true;
     } catch (e) {
       usouMapa = false;
     }
@@ -1210,6 +1258,18 @@
       drawBackground(ctx, W, H, cor);
     }
 
+    // Full land footprint from the same scene model; no new map or scene state.
+    if(usouMapa&&isQuake&&Number(item.mag)>=5&&window.SeismicImpact?.snapshot){
+      try{
+        const data=await SeismicImpact.snapshot({lng,lat,mag:item.mag,depth:item.depth||0});
+        if(data?.features?.length){
+          const [wx,wy]=lonLatToWorldPx(lng,lat,mapZoom);ctx.save();ctx.globalAlpha=.56;
+          for(const feature of data.features){ctx.fillStyle=feature.properties.color;
+            for(const polygon of feature.geometry.coordinates){ctx.beginPath();for(const ring of polygon)ring.forEach(([x,y],i)=>{const wrapped=lng+((x-lng+540)%360-180),p=lonLatToWorldPx(wrapped,y,mapZoom);if(i===0)ctx.moveTo(p[0]-wx+markerCx,p[1]-wy+markerCy);else ctx.lineTo(p[0]-wx+markerCx,p[1]-wy+markerCy);});ctx.fill('evenodd');}
+          }ctx.restore();
+        }
+      }catch(e){}
+    }
     // Degradê escuro cobrindo a parte de baixo, onde fica o card — deixa o
     // mapa visível em cima e o texto legível embaixo
     const grad = ctx.createLinearGradient(0, H * 0.10, 0, H);
@@ -1229,23 +1289,30 @@
     // Frente de onda P/S (só M6+) — desenhada ANTES do marcador, pra ficar
     // por baixo dele visualmente.
     const isBigQuake = isQuake && Number(item.mag) >= 6;
-    if (isBigQuake) drawWaveRingsStory(ctx, markerCx, markerCy, 210, 130);
+    if (located && isBigQuake) drawWaveRingsStory(ctx, markerCx, markerCy, 210, 130);
 
-    // Marcador no epicentro — anel externo suave + anel principal com brilho +
-    // ponto central, pra ficar claramente em destaque mesmo com o mapa por trás
-    ctx.beginPath(); ctx.arc(markerCx, markerCy, 68, 0, Math.PI * 2);
-    ctx.strokeStyle = cor; ctx.globalAlpha = .35; ctx.lineWidth = 3; ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.beginPath(); ctx.arc(markerCx, markerCy, 46, 0, Math.PI * 2);
-    ctx.strokeStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 22; ctx.lineWidth = 6; ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(markerCx, markerCy, 7, 0, Math.PI * 2);
-    ctx.fillStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 16; ctx.fill();
-    ctx.shadowBlur = 0;
+    if (located) {
+      // Marcador no epicentro — anel externo suave + anel principal com brilho +
+      // ponto central, pra ficar claramente em destaque mesmo com o mapa por trás
+      ctx.beginPath(); ctx.arc(markerCx, markerCy, 68, 0, Math.PI * 2);
+      ctx.strokeStyle = cor; ctx.globalAlpha = .35; ctx.lineWidth = 3; ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(markerCx, markerCy, 46, 0, Math.PI * 2);
+      ctx.strokeStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 22; ctx.lineWidth = 6; ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(markerCx, markerCy, 7, 0, Math.PI * 2);
+      ctx.fillStyle = cor; ctx.shadowColor = cor; ctx.shadowBlur = 16; ctx.fill();
+      ctx.shadowBlur = 0;
 
-    // Escala de distância no mapa (ex: "≈ 100 km"), calculada a partir do
-    // zoom real dos tiles — dá noção de proporção sem precisar conhecer a região
-    drawScaleBar(ctx, 60, 700, lat, mapZoom, cor);
+      // Escala de distância no mapa (ex: "≈ 100 km"), calculada a partir do
+      // zoom real dos tiles — dá noção de proporção sem precisar conhecer a região
+      drawScaleBar(ctx, 60, 700, lat, mapZoom, cor);
+
+    } else {
+      ctx.textAlign = 'center'; ctx.fillStyle = '#cbd5e1';
+      ctx.font = '600 30px system-ui, sans-serif';
+      wrapText(ctx, 'Aviso regional · localização pontual não informada pela fonte', markerCx, markerCy, W - 160, 40);
+    }
 
     // Texto: usamos halo (contorno sólido, ver haloFillText/wrapText) em vez
     // de sombra desfocada — mais nítido e sem vazar a cor do mapa por trás
@@ -1267,7 +1334,7 @@
     if (isUpdatedStory && item._deltaTxt) {
       ctx.fillStyle = '#fbbf24';
       ctx.font = '700 22px system-ui, sans-serif';
-      haloFillText(ctx, String(item._deltaTxt).slice(0, 42), 56, 136);
+      haloFillText(ctx, String(EventPortuguese.revision(item)||item._deltaTxt).slice(0, 42), 56, 136);
     }
 
     // Gauge estilo velocímetro do painel — o anel e o texto (M5.5 etc.) são
@@ -1276,9 +1343,16 @@
     const gy = isQuake ? 860 : 1080, gr = 130;
     const frac = isQuake ? Math.max(0.04, Math.min(1, (item.mag - 2) / 7)) : 1;
     const gapGaugeText = 40;
-    const mainFont = isQuake ? '800 96px "JetBrains Mono", monospace' : '800 42px "JetBrains Mono", monospace';
-    const mainText = isQuake ? `M${Number(item.mag).toFixed(1)}` : (meta.label || item.type || '').toUpperCase();
+    let mainFont = isQuake ? '800 96px "JetBrains Mono", monospace' : '800 42px "JetBrains Mono", monospace';
+    const mainText = isQuake ? `M${Number(item.mag).toFixed(1).replace('.', ',')}` : titleForItem(item);
     ctx.font = mainFont;
+    if (!isQuake) {
+      let size = 42;
+      while (ctx.measureText(mainText).width > W - 440 && size > 18) {
+        mainFont = `800 ${--size}px "JetBrains Mono", monospace`;
+        ctx.font = mainFont;
+      }
+    }
     const mainTextW = ctx.measureText(mainText).width;
     const gaugeOuterR = gr + 14; // raio + metade da espessura do traço
     const groupW = gaugeOuterR * 2 + gapGaugeText + mainTextW;
@@ -1338,7 +1412,7 @@
 
     // Horário local aproximado do epicentro (estimado pela longitude) +
     // coordenadas — informação extra útil pra quem tá fora do fuso do evento
-    const infoExtra = [approxLocalTime(item.time, lng), formatCoord(lat, lng)].filter(Boolean).join(' · ');
+    const infoExtra = located ? [approxLocalTime(item.time, lng), formatCoord(lat, lng)].filter(Boolean).join(' · ') : '';
     if (infoExtra) {
       ctx.fillStyle = '#64748b';
       ctx.font = '500 21px system-ui, sans-serif';
@@ -1349,7 +1423,7 @@
     // Fontes + selo de qualidade (mesma lógica do painel: várias fontes com
     // magnitude cada, ou uma fonte só; selo A/B/C explicado por extenso)
     if (isQuake) {
-      const magLines = (item.magnitudes || []).map(x => `${x.source} M${Number(x.mag).toFixed(1)}`).join(' · ');
+      const magLines = (item.magnitudes || []).map(x => `${x.source} M${Number(x.mag).toFixed(1).replace('.', ',')}`).join(' · ');
       const fontLine = item.sourceCount > 1 && magLines
         ? `Fontes: ${magLines}`
         : `Fonte: ${item.sourceSummary || item.source || '—'}`;
@@ -1389,7 +1463,17 @@
         ? ` · Mov: ${item.movementInfo.compass}${item.movementInfo.speedKmh != null ? ' ' + item.movementInfo.speedKmh + ' km/h' : ''}`
         : '';
       haloFillText(ctx, `Fonte: ${item.sourceSummary || item.source || '—'}${movTxt}`, W / 2, y);
-      y += 90;
+      y += 55;
+      if (item.hazardNature === 'warning' && item.severityLabel) {
+        ctx.fillStyle = cor; ctx.font = '700 25px system-ui, sans-serif';
+        y += wrapText(ctx, `Severidade: ${item.severityLabel}`, W / 2, y, W - 140, 32) + 16;
+      }
+      const summary = String(item.bulletinSummary || item.descOnly || item.detail || '').trim();
+      if (summary) {
+        ctx.fillStyle = '#cbd5e1'; ctx.font = '500 25px system-ui, sans-serif';
+        y += wrapText(ctx, summary.length > 160 ? summary.slice(0, 157) + '…' : summary, W / 2, y, W - 140, 32) + 25;
+      }
+      y += 20;
 
       if (item.type === 'hurricane') {
         // Cartões de estatística iguais aos do sismo (mesmo layout de 3
@@ -1403,7 +1487,7 @@
         const cardX0 = (W - cardsTotalW) / 2;
         const cards = [
           { label: 'CATEGORIA', value: classif.cat.replace('Categoria ', 'CAT '), valCor: classif.cor },
-          { label: 'VENTO MÁXIMO', value: item.windKmh != null ? `${item.windKmh} km/h` : '—' },
+          { label: 'VENTO MÁXIMO', value: item.windKmh != null ? `${EventPortuguese.number(item.windKmh)} km/h` : '—' },
           { label: 'PRESSÃO', value: item.pressureMb != null ? `${item.pressureMb} hPa` : '—' }
         ];
         cards.forEach((c, i) => {
@@ -1461,7 +1545,7 @@
       }
 
       // Cidades próximas (até 2) — mesmo bloco do sismo, com margem segura
-      if (item.coords) {
+      if (located) {
         const rC2 = await resolverCidadesStory(item.coords[1], item.coords[0], 2);
         y = drawCidadesProximasStory(ctx, y, rC2, W, H);
       }
@@ -1478,7 +1562,7 @@
       const cardW = 300, cardH = 170, gap = 30, cardsTotalW = cardW * 3 + gap * 2;
       const cardX0 = (W - cardsTotalW) / 2;
       const cards = [
-        { label: 'PROFUNDIDADE', value: `${depth.toFixed(1)} km`, sub: depthInfo.label, subCor: depthInfo.cor },
+        { label: 'PROFUNDIDADE', value: `${depth.toFixed(0)} km`, sub: depthInfo.label, subCor: depthInfo.cor },
         { label: 'INTENSIDADE (MMI)', value: mer.nivel, sub: '', subCor: mer.cor, valCor: mer.cor },
         { label: 'ENERGIA', value: en.tnt.replace(' de TNT', ''), sub: 'TNT equiv.', subCor: '#94a3b8' }
       ];
@@ -1507,33 +1591,24 @@
       });
       y += cardH + 36;
 
-      // Pessoas que podem ter sentido o tremor — mesma conta usada no pop-up
-      // "Alcance do sismo" ao vivo (estimarPessoasAfetadas, base GeoNames em
-      // js/populacao-sismo.js), pra manter consistência entre o que o app
-      // mostra ao vivo e o que sai na imagem compartilhada. Omitido em
-      // silêncio se não achou nenhuma cidade cadastrada no alcance (área
-      // remota) — um "0 pessoas" destacado ficaria estranho numa imagem que
-      // já vai sair do app.
-      if (item.coords && typeof estimarPessoasAfetadas === 'function') {
-        try {
-          const dadosPessoas = await estimarPessoasAfetadas(lat, lng, item.mag, depth);
-          if (dadosPessoas && dadosPessoas.totalPessoas > 0) {
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#64748b';
-            ctx.font = '700 18px system-ui, sans-serif';
-            haloFillText(ctx, 'PESSOAS QUE PODEM TER SENTIDO O TREMOR', W / 2, y);
-
-            ctx.fillStyle = '#facc15';
-            ctx.font = '800 46px "JetBrains Mono", monospace';
-            haloFillText(ctx, formatarPessoasHeadline(dadosPessoas.totalPessoas), W / 2, y + 58);
-
-            ctx.fillStyle = '#475569';
-            ctx.font = '500 15px system-ui, sans-serif';
-            haloFillText(ctx, 'Dados de população: GeoNames.org (CC BY 4.0)', W / 2, y + 86);
-
-            y += 118;
-          }
-        } catch (e) {}
+      // Prefer the same gridded/PAGER exposure used by the live card.
+      if(located){
+        const exposure=await window.obterExposicaoPopulacionalImagem?.(item);
+        ctx.textAlign='center';ctx.fillStyle='#94a3b8';ctx.font='700 18px system-ui, sans-serif';
+        haloFillText(ctx,'POPULAÇÃO NA ÁREA DE TREMOR · ESTIMATIVA',W/2,y);
+        if(exposure){
+          ctx.fillStyle='#facc15';ctx.font='700 27px "JetBrains Mono", monospace';
+          exposure.ranges.forEach((r,i)=>haloFillText(ctx,['III+','V+','VI+'][i]+': ~'+Math.round(Number(r.population)).toLocaleString('pt-BR'),W/2,y+34+i*34));
+          ctx.fillStyle='#94a3b8';ctx.font='500 15px system-ui, sans-serif';
+          haloFillText(ctx,(exposure.method==='pager'?'USGS PAGER':'WorldPop 2020')+(exposure.partial?' · cobertura parcial':'')+' · faixas sobrepostas; não somar',W/2,y+142);y+=178;
+        }else{
+          let fallback=null;try{fallback=await estimarPessoasAfetadas(lat,lng,item.mag,depth);}catch(e){}
+          ctx.fillStyle='#facc15';ctx.font='700 30px "JetBrains Mono", monospace';
+          haloFillText(ctx,fallback?.totalPessoas>0?formatarPessoasHeadline(fallback.totalPessoas):'Dados indisponíveis no momento',W/2,y+40);
+          ctx.fillStyle='#94a3b8';ctx.font='500 15px system-ui, sans-serif';
+          haloFillText(ctx,fallback?.totalPessoas>0?'Reserva por localidades · GeoNames · raio ~'+Math.round(fallback.raioKm)+' km':'Não significa população zero.',W/2,y+70);y+=110;
+        }
+        ctx.fillStyle='#94a3b8';ctx.font='500 15px system-ui, sans-serif';haloFillText(ctx,'Estimativa de exposição; não é contagem de vítimas ou relatos.',W/2,y-12);
       }
 
       // Alcance real da onda P/S no instante em que o Story foi gerado (só
@@ -1568,7 +1643,7 @@
 
       // Mecanismo focal (mesma função usada no painel — sem esperar a consulta
       // real ao USGS, que é assíncrona; usa direto a estimativa geométrica)
-      if (typeof calcularMecanismoFocal === 'function' && item.coords) {
+      if (typeof calcularMecanismoFocal === 'function' && located) {
         const mec = item.mecanismoReal || calcularMecanismoFocal(depth, item.coords[1], item.coords[0], item.place);
         // boxH maior: a descrição ("As placas…") ficava colada no ícone/título
         const boxH = 158;
@@ -1605,7 +1680,7 @@
       }
 
       // Cidades próximas (até 2) — bloco sobe sozinho se o rodapé cortar
-      if (item.coords) {
+      if (located) {
         const rC = await resolverCidadesStory(item.coords[1], item.coords[0], 2);
         y = drawCidadesProximasStory(ctx, y, rC, W, H);
       }
@@ -1726,7 +1801,7 @@
     if (storyBusy) return;
     storyBusy = true;
     const btn = document.getElementById('pd-share-btn');
-    const originalLabel = '📤 Story';
+    const originalLabel = '📤 Imagem';
     if (btn) { btn.textContent = '⏳ Gerando…'; btn.disabled = true; }
     try {
       const canvas = await comTimeout(buildStoryCanvas(item), 15000, 'geração da imagem demorou demais');
@@ -1761,7 +1836,7 @@
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 8000);
         if (typeof showToast === 'function') {
-          showToast('Imagem pronta — salva nos downloads pra postar no Story.', 'info');
+          showToast('Imagem pronta — salva nos downloads para compartilhar.', 'info');
         }
       }
     } catch (e) {
@@ -1799,7 +1874,7 @@
             item = lastMerged.find(x => x.id === id) || null;
         }
       }
-      if (!item || !item.coords) {
+      if (!item) {
         if (typeof showToast === 'function') showToast('Selecione um evento na lista primeiro.', 'info');
         return;
       }
@@ -1807,7 +1882,10 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
-  else install();
+  window.shareEventAsStory=shareEventAsStory;
+  if(!window.OptionalFeatures){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
+    else install();
+  }
 })();
 

@@ -40,7 +40,7 @@
     const heading=document.createElement('h3');heading.textContent=($('fc-city-name')?.textContent||city)+' · '+($('sp-live-temp')?.textContent||'--')+' · '+($('sp-live-feels')?.textContent||'');brief.appendChild(heading);
     const measured=state?.measured;
     const observation=measured?(measured.chuvaIntensidade?'Chuva '+measured.chuvaIntensidade:measured.tempestade?'Trovoada observada':'Sem chuva reportada')+' · '+measured.icao+' · '+Math.round(measured.distance)+' km':'Sem leitura próxima recente';
-    const rain=forecast?forecast.min.toFixed(1)+'–'+forecast.max.toFixed(1)+' mm previstos · '+forecast.rows.length+' modelo(s)':'Previsão indisponível ou desatualizada';
+    const rain=forecast?forecast.min.toFixed(1).replace('.', ',')+'–'+forecast.max.toFixed(1).replace('.', ',')+' mm previstos · '+forecast.rows.length+' modelo(s)':'Previsão indisponível ou desatualizada';
     const flood=state?.level==='confirmed'?state.label:state?.level==='none'?'Nenhum ponto ativo informado pelo CGE':'Consulta local indisponível';
     for(const [label,text]of [['Chuva observada',observation],['Chuva · curto prazo',outlook?.detail||'Previsão indisponível'],['Próximas 6 h',rain],['Alagamentos',flood]]){const row=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label;const span=document.createElement('span');span.textContent=text;row.append(strong,span);brief.appendChild(row);}
     if(outlook?.status&&outlook.status!=='unknown'){const meta=document.createElement('small');meta.textContent=outlook.source+' · Consulta '+new Date(outlook.consultedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · Acumulado na próxima faixa horária completa';brief.appendChild(meta);}

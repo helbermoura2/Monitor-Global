@@ -7,6 +7,11 @@ html.mg-seismic-managed body.mobile-details-open #painel-direito.pd-fx-earthquak
 .seismic-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:100020;contain:strict}
 .seismic-atmosphere{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .seismic-piece{position:absolute;pointer-events:none;user-select:none;opacity:0;filter:drop-shadow(2px 5px 4px #0008);will-change:transform,opacity;transform-origin:43% 65%;overflow:hidden}
+.seismic-displaced{opacity:0!important;visibility:hidden!important}
+.seismic-power-failure{position:absolute;inset:0;pointer-events:none;--seismic-dark:0;--seismic-glow:0}
+.seismic-power-failure::before,.seismic-power-failure::after{content:"";position:absolute;inset:0;pointer-events:none}
+.seismic-power-failure::before{background:#010408;opacity:var(--seismic-dark)}
+.seismic-power-failure::after{background:radial-gradient(ellipse at 48% 25%,#e6f2ff,#adc4dc);opacity:var(--seismic-glow)}
 .seismic-piece *{pointer-events:none!important}
 #seismic-demo-dialog{position:fixed;right:14px;top:140px;z-index:500020;width:min(340px,calc(100vw - 28px));max-height:calc(100dvh - 165px);overflow:auto;box-sizing:border-box;padding:22px;background:#071623f5;border:1px solid #5596a88c;border-radius:15px;color:#f1f5f9;box-shadow:0 15px 50px #0008;font:13px/1.5 Inter,system-ui,sans-serif}
 #seismic-demo-dialog h3{font-size:16px;margin:0 35px 10px 0}

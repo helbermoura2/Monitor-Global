@@ -329,7 +329,8 @@
   gl_FragColor=vec4(scene.rgb,opacity);
  }
  `;
- function create(cfg,mobile){
+ function create(cfg,mobile,quality){
+  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(!(cfg.type in modes)||cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava)return null;
   const canvas=document.createElement('canvas');canvas.className='pd-cinema-film';
   const gl=canvas.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
@@ -352,8 +353,8 @@
     image.src=cfg.type==='wind'?'media/card-fx/gale-canopy.jpg':cfg.type==='tornado'?'media/card-fx/tornado-vortex.jpg':'media/card-fx/cyclone-eye.jpg';
    }
    let last=-Infinity,width=1,height=1;
-   function resize(w,h){width=w;height=h;last=-Infinity;const cyclone=cfg.type==='hurricane';const scale=Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
-   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(mobile?1/14:1/20))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.TextureReady,textureReady?1:0);gl.uniform1f(uniforms.WaterTop,current.waterTop??.55);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
+   function resize(w,h){width=w;height=h;last=-Infinity;const cyclone=cfg.type==='hurricane';const scale=detail.resolution*Math.min(1,(mobile?(cyclone?224:176):(cyclone?320:240))/Math.max(w,1),(mobile?(cyclone?448:360):(cyclone?640:480))/Math.max(h,1));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));gl.viewport(0,0,canvas.width,canvas.height);}
+   function draw(t,current,lightning,footage){if(dead||gl.isContextLost()||t-last<(1/detail.fps(mobile?14:20)))return;last=t;gl.uniform2f(uniforms.Resolution,width,height);gl.uniform2f(uniforms.Activity,current.hot?1:0,current.ash?1:0);gl.uniform1f(uniforms.Time,t);gl.uniform1f(uniforms.Mode,modes[current.type]);gl.uniform1f(uniforms.Strength,current.strength);gl.uniform1f(uniforms.Lightning,lightning?1:0);gl.uniform1f(uniforms.Footage,footage?1:0);gl.uniform1f(uniforms.Lava,current.lava?1:0);gl.uniform1f(uniforms.Direction,current.rotationDirection||1);gl.uniform1f(uniforms.Flash,current.flash||0);gl.uniform1f(uniforms.Gust,current.gust||0);gl.uniform1f(uniforms.Travel,current.windTravel??t*.25);gl.uniform1f(uniforms.TextureReady,textureReady?1:0);gl.uniform1f(uniforms.WaterTop,current.waterTop??.55);gl.uniform1f(uniforms.Organized,current.cycloneStage==='depression'?0:current.cycloneStage==='tropical-storm'?.35:1);gl.drawArrays(gl.TRIANGLES,0,6);}
    return {canvas,resize,draw,destroy};
   }catch(error){destroy();console.warn('[CardCinema] Cena gráfica indisponível; usando camadas 2D.',error.message);return null;}
  }

@@ -280,13 +280,13 @@
       };
       window.applyFilters._bhWrapped = true;
     }
-    setInterval(function () {
+    PeriodicScheduler.every('brazil-summary',function () {
       if (typeof geoFilter !== 'undefined' && geoFilter === 'br') {
         refreshInmetSummary();
         refreshCgeLocal();
         refreshCemadenSum();
       }
-    }, 60000);
+    },60000,60000,'ui');
     setTimeout(fetchCptecBrasil, 2000);
   }
 

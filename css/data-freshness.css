@@ -43,3 +43,12 @@
 #mg-fresh-dialog[open] { display:flex; flex-direction:column; }
 #mg-fresh-dialog .mg-fresh-head { flex:0 0 auto; }
 #mg-fresh-dialog .mg-fresh-body { overflow-y:auto; min-height:0; overscroll-behavior:contain; }
+
+.mg-fresh-missing {color:#ffe078;background:#62470d33;border:1px solid #8b6d324d;border-radius:8px;padding:10px;overflow-wrap:anywhere;}
+.mg-fresh-row {display:grid;grid-template-columns:minmax(100px,1fr) minmax(180px,1.6fr);align-items:start;}
+.mg-fresh-row[data-state="fresh"] .mg-fresh-state {color:#86efac;}
+.mg-fresh-row[data-state="error"] .mg-fresh-state,.mg-fresh-row[data-state="offline"] .mg-fresh-state {color:#fca5a5;}
+.mg-fresh-row[data-state="stale"] .mg-fresh-state,.mg-fresh-row[data-state="partial"] .mg-fresh-state {color:#fcd34d;}
+.mg-fresh-row details {grid-column:1/-1;font-size:12px;overflow-wrap:anywhere;}
+.mg-fresh-reason {color:#e8c68d!important;}
+@media(max-width:560px){.mg-fresh-row {grid-template-columns:1fr!important;gap:6px!important;}.mg-fresh-times {text-align:left!important;}}

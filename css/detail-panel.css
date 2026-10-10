@@ -151,3 +151,6 @@
 @media(prefers-reduced-motion:reduce){
   #painel-direito .pd-more-toggle {transition:none}
 }
+
+#painel-direito .pd-revision-note {background:rgba(251,191,36,.09);border-left:3px solid #fbd077;font-size:11px;text-align:left;}
+#painel-direito .pd-tl-v {overflow-wrap:anywhere;}

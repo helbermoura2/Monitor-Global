@@ -4,7 +4,7 @@ test.use({serviceWorkers:'block'});
 async function boot(page,width,cpu=false){
  if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
  await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
  await expect(page.locator('#pd-local')).toContainText('boletim de teste');
 }
@@ -18,14 +18,14 @@ for(const width of [1280,390])test('tsunami procedural: superfície única, impa
  const first=await surface.elementHandle();await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Tsunami — boletim atualizado 🇯🇵',sev:1};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-local')).toContainText('boletim atualizado');expect(await first.evaluate(el=>el.isConnected)).toBe(true);
  // Hidden/back faces pause the one shared clock; no separate water RAF survives.
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await page.waitForTimeout(220);const paused=await surface.getAttribute('data-time');await page.waitForTimeout(250);expect(await surface.getAttribute('data-time')).toBe(paused);await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>surface.getAttribute('data-time')).not.toBe(paused);
- await page.clock.install();await page.clock.fastForward(21000);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');await expect(surface).toHaveCount(1);
+ await page.clock.install();await page.clock.fastForward(16100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
  const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');await expect(surface).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);
  // A demonstração mostra seu próprio texto (não o do evento real por baixo) -- ver CardEffectDemo.preview().
  await expect(page.locator('#pd-local')).toHaveText('Demonstração · Tsunami');await page.clock.runFor(2500);
  // Item de demonstração não tem coords reais -- "focar no mapa" ficaria sem destino, então o botão some (mesmo tratamento de qualquer alerta regional sem localização verificada).
  await expect(page.locator('#pd-focus-btn')).toBeHidden();
  const bounds=await page.locator('#painel-direito').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(-1);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);expect(await surface.evaluate(c=>Math.abs(c.offsetHeight-document.getElementById('painel-direito').clientHeight)<1)).toBe(true);
- await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(22000);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
+ await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(22000);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-tsunami-surface,.pd-weather-material,.pd-weather-lenses,.pd-cinema-layer,.pd-fx-windletter,.pd-water-submerged')).toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(text);expect(await page.locator('#painel-direito').evaluate(p=>p.style.getPropertyValue('--pd-surge-y'))).toBe('');expect(videos).toEqual([]);expect(errors).toEqual([]);
 });
 for(const mode of ['2D','context-loss'])test('tsunami mantém correnteza, letras e controles sem GPU '+mode,async({page})=>{

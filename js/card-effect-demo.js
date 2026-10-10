@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  let dialog=null,bar=null,timer=0,active=false,savedSelectedId;
- const labels={earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami',wind:'Rajadas de vento'};
+ const labels={civil:'Alerta · varredura',dry:'Baixa umidade',earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami',wind:'Rajadas de vento'};
  function removeControls(){clearTimeout(timer);timer=0;bar?.remove();bar=null;dialog?.remove();dialog=null;}
  function cancelForRealEvent(){active=false;savedSelectedId=undefined;removeControls();}
  // Restaura o painel de TEXTO (não só o fundo) pro evento real que estava
@@ -25,10 +25,11 @@
  function preview(key){
   stop();window.SeismicCinema?.closeDemo();
   if(key==='earthquake'){window.SeismicCinema?.openDemo();return;}
-  const type=key.startsWith('volcano')?'volcano':['typhoon','tropical-storm','depression'].includes(key)?'hurricane':key;
+  const type=key==='dry'?'civil':key.startsWith('volcano')?'volcano':['typhoon','tropical-storm','depression'].includes(key)?'hurricane':key;
   const item={id:'effect-demo-'+key,type,__cinemaDemo:true,sev:3,windKmh:140,detail:labels[key],place:'Demonstração · '+labels[key],time:Date.now(),source:'Ilustração',coords:null};
   if(key==='depression')item.windKmh=45;
   if(key==='tropical-storm')item.windKmh=85;
+  if(key==='dry')item.descOnly='Baixa Umidade';
   if(key==='storm')item.detail='Trovoadas e chuva intensa';
   if(key==='volcano-lava')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Fluxo de lava ativo · emissão de cinzas'});
   if(key==='volcano-ash')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Emissão de cinzas · sem lava'});
@@ -37,14 +38,16 @@
   // Guarda o id real ANTES de sobrescrever a seleção com o item fake, pra
   // restore() saber pra onde voltar quando a demonstração acabar.
   savedSelectedId=window.EventStore?.selectedId;
+  const duration=16000;
   active=true;
   try{if(typeof window.showAlertDetails==='function')window.showAlertDetails(item,false,true);}catch(e){}
-  const played=window.CinematicCard?.start(item,20000);
+  // Demo storm illumination is carried by its own scene, not the real event's metadata.
+  const played=window.CinematicCard?.start(item,duration);
   bar=document.createElement('aside');bar.id='card-fx-demo-status';bar.className='card-effect-status';bar.setAttribute('aria-live','polite');
-  const text=document.createElement('span');text.textContent='DEMONSTRAÇÃO · '+labels[key]+(played?' · 20 s':' · Movimento reduzido');
+  const text=document.createElement('span');text.textContent='DEMONSTRAÇÃO · '+labels[key]+(played?' · '+duration/1000+' s':' · Movimento reduzido');
   const change=document.createElement('button');change.type='button';change.textContent='Trocar';change.onclick=()=>{stop();open();};
   const end=document.createElement('button');end.type='button';end.textContent='Parar';end.onclick=stop;bar.append(text,change,end);document.body.append(bar);
-  if(played)timer=setTimeout(stop,20100);
+  if(played)timer=setTimeout(stop,duration);
  }
  function open(){
   stop();window.SeismicCinema?.closeDemo();

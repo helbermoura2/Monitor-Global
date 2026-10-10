@@ -191,6 +191,7 @@ function initMap() {
         zoom: 1.6,
         maxZoom: ZOOM_MAX,
         attributionControl: false,
+        pixelRatio: window.MobileEnergyBudget?.mapPixelRatio() || devicePixelRatio || 1,
         // Sem isso, o navegador descarta o buffer de desenho do WebGL logo
         // depois de cada frame — e o backdrop-filter (blur do vidro em
         // css/desktop-layout-lock.css) não consegue "ler" um canvas WebGL
@@ -367,28 +368,13 @@ function initMap() {
         // não overlay HTML), sem precisarmos recalcular posição em cada
         // frame de 'move'/'zoom'. Camada de "glow" (mais larga e borrada)
         // por baixo simula o halo que o box-shadow fazia no <div> antigo.
-        map.addSource('wave-front-p', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-        map.addSource('wave-front-s', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-        map.addLayer({
-            id: 'wave-front-p-glow', type: 'line', source: 'wave-front-p',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#38bdf8', 'line-width': 9, 'line-blur': 4, 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
-        map.addLayer({
-            id: 'wave-front-p-line', type: 'line', source: 'wave-front-p',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#38bdf8', 'line-width': 3, 'line-dasharray': [2, 1.5], 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
-        map.addLayer({
-            id: 'wave-front-s-glow', type: 'line', source: 'wave-front-s',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#f87171', 'line-width': 9, 'line-blur': 4, 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
-        map.addLayer({
-            id: 'wave-front-s-line', type: 'line', source: 'wave-front-s',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#f87171', 'line-width': 3, 'line-dasharray': [2, 1.5], 'line-opacity': 0, 'line-opacity-transition': { duration: 600 } }
-        });
+        for(const [phase,color] of [['p','#38bdf8'],['s','#f87171'],['pkp','#ff00ff'],['pkikp','#00ff00']]){
+            const source=`wave-front-${phase}`;
+            map.addSource(source,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+            for(const [kind,width,blur] of [['glow',9,4],['line',phase==='pkikp'?1:3,0]]){
+                map.addLayer({id:`${source}-${kind}`,type:'line',source,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':color,'line-width':width,'line-blur':blur,'line-opacity':0,'line-opacity-transition':{duration:600}}});
+            }
+        }
 
         map.on('movestart', (e) => {
             if (e.originalEvent) {
@@ -443,7 +429,7 @@ function syncAllMarkers() {
                 el.style.width = el.style.height = size + 'px';
                 el.style.background = cor;
                 el.style.boxShadow = `0 0 ${size}px ${cor}`;
-                el.title = `M${ev.mag.toFixed(1)} — ${ev.place}`;
+                el.title = `M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const i = globalEvents.findIndex(x => x.id === ev.id);
@@ -474,6 +460,7 @@ function syncAllMarkers() {
         const want = new Set();
         list.forEach(item => {
             if (!item.coords) return;
+            if (item.municipalityLocations?.length || item.warningGeometry) return;
             if (item.time < cut && !SEM_LIMITE_TEMPO.has(item.type)) return;
             want.add(item.id);
             if (!store.has(item.id)) {
@@ -603,7 +590,7 @@ function syncAllMarkers() {
         syncType(markerStores.storm, globalAlerts.filter(a => a.type === 'storm'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.storm};box-shadow:0 0 6px ${RADAR_COR.storm};"></div><span class="mg-tipo-full" style="display:none;font-size:20px;">⚡</span>`;
             const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
@@ -621,7 +608,7 @@ function syncAllMarkers() {
         syncType(markerStores.wind, globalAlerts.filter(a => a.type === 'wind'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.wind};box-shadow:0 0 6px ${RADAR_COR.wind};"></div><span class="mg-tipo-full" style="display:none;font-size:22px;">💨</span>`;
             const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
@@ -639,7 +626,7 @@ function syncAllMarkers() {
         syncType(markerStores.flood, globalAlerts.filter(a => a.type === 'flood'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.flood};box-shadow:0 0 6px ${RADAR_COR.flood};"></div><div class="mg-tipo-full" style="display:none;"><span class="severity-badge"><span style="font-size:18px;">💧</span></span></div>`;
             const full = el.querySelector('.mg-tipo-full');
             const badge = full.querySelector('.severity-badge');
@@ -660,7 +647,7 @@ function syncAllMarkers() {
         syncType(markerStores.civil, globalAlerts.filter(a => a.type === 'civil'), (item) => {
             const el = document.createElement('div');
             el.className = 'emoji-marker';
-            el.title = item.place;
+            el.title = window.EventPortuguese?.place(item.place)||item.place;
             el.innerHTML = `<div class="mg-tipo-dot" style="background:${RADAR_COR.civil};box-shadow:0 0 6px ${RADAR_COR.civil};"></div><span class="mg-tipo-full" style="display:none;font-size:22px;">🚨</span>`;
             const full = el.querySelector('.mg-tipo-full');
             el.addEventListener('click', (e) => { e.stopPropagation(); selectMapEvent(item, false); });
@@ -673,6 +660,7 @@ function syncAllMarkers() {
         markerStores.civil.forEach(r => r.marker.remove());
         markerStores.civil.clear();
     }
+    window.InmetMunicipalities?.sync();
 }
 
 
@@ -830,6 +818,8 @@ function stopCascadeRipple() {
    de sempre (RADAR_COR), os demais tipos (menos sismo, tratado à parte)
    ganham a onda em cascata. */
 function triggerEventoMapaFx(item, corFallback) {
+    if(item.hazardNature==='bulletin'||(item.type==='tsunami'&&item.official))return;
+    if(item.municipalityLocations?.length||item.warningGeometry)return;
     try {
         const cor = RADAR_COR[item.type] || corFallback;
         if (item.type === 'hurricane') {

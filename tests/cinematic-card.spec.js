@@ -126,20 +126,15 @@ test('vulcão só recebe calor com indicação eruptiva e movimento reduzido enc
  await select(page,'earthquake');await expect(page.locator('#painel-direito')).toHaveCSS('animation-name','none');await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
 });
 
-for(const width of [1280,390])test('atmosfera continua visível depois da antiga duração '+width,async({page})=>{
- test.setTimeout(120000);
- await boot(page,width);await page.clock.install();
- for(const type of ['fire','hurricane','tornado','flood','tsunami','wind','volcano','storm']){
+for(const width of [1280,390])test('todos os cartões voltam ao normal após 16 segundos '+width,async({page})=>{
+ test.setTimeout(120000);await boot(page,width);await page.clock.install();
+ for(const type of ['fire','hurricane','tornado','flood','tsunami','wind','volcano','storm','earthquake']){
   await select(page,type,type==='volcano'?{eruptionStatus:'Em erupção',detail:'Emissão de cinzas'}:{});
-  await page.clock.runFor(700);await page.clock.fastForward(20000);await page.clock.runFor(200);
-  const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveCount(1);await expect(layer).toHaveAttribute('data-scene',type);
-  await expect(page.locator('#painel-direito')).toHaveClass(new RegExp('pd-fx-'+type));
-  // Inspect the actual native frame as well as procedural background surfaces.
-  const video=layer.locator('video');if(await video.count())await expect.poll(()=>video.evaluate(v=>v.readyState>=2),{timeout:12000}).toBe(true);
-  const pixels=await layer.locator('.pd-cinema-particles').evaluate(c=>{const scratch=document.createElement('canvas');scratch.width=c.width;scratch.height=c.height;const ctx=scratch.getContext('2d');const video=c.parentElement.querySelector('video');if(video?.readyState>=2)ctx.drawImage(video,0,0,c.width,c.height);const film=c.parentElement.querySelector('.pd-cinema-film,.pd-tsunami-surface');if(film)ctx.drawImage(film,0,0,c.width,c.height);ctx.drawImage(c,0,0);const a=ctx.getImageData(0,0,c.width,c.height).data;let max=0,total=0;for(let i=3;i<a.length;i+=4){max=Math.max(max,a[i]);total+=a[i];}return {max,mean:total/(a.length/4)};});expect(pixels.max).toBeGreaterThan(28);expect(pixels.mean).toBeGreaterThan(1);
-  await page.screenshot({path:'/tmp/fx-visible-'+type+'-'+width+'.png'});
+  await page.clock.runFor(700);await expect(page.locator('.pd-cinema-layer')).toHaveCount(1);
+  await page.clock.fastForward(16000);await page.clock.runFor(100);
+  await expect(page.locator('.pd-cinema-layer,.pd-fx-windletter,.pd-letter-fragments,[data-event-reaction]')).toHaveCount(0);
+  await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-cinema-active/);
  }
- await select(page,'earthquake');await page.clock.fastForward(8000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-earthquake/);
 });
 test('revisão vulcânica ajusta a cena e remove calor quando a erupção termina',async({page})=>{
  await boot(page);await select(page,'volcano',{eruptionStatus:'Em monitoramento',detail:'Estado de fundo'});await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
@@ -190,5 +185,5 @@ test('vento move as letras preservando o conteúdo do local',async({page})=>{
 
 
 for(const width of [1280,390])test('correnteza cobre o cartão continuamente e não bloqueia foco '+width,async({page})=>{
- await boot(page,width);await select(page,'flood');await expect(page.locator('.pd-cinema-footage')).toHaveCSS('clip-path','none');await page.waitForTimeout(2000);const top=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(top).toBe(0);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
+ await boot(page,width);await select(page,'flood');await expect(page.locator('.pd-cinema-footage')).toHaveCSS('clip-path','none');await page.waitForTimeout(2000);const top=await page.locator('#painel-direito').evaluate(p=>parseFloat(p.style.getPropertyValue('--pd-water-top')));expect(top).toBeGreaterThan(0);expect(top).toBeLessThan(100);await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events','none');await readableControls(page);await select(page,'storm');await expect(page.locator('.pd-cinema-contact .pd-cinema-lenses')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
 });

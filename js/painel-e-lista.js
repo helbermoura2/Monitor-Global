@@ -234,7 +234,7 @@ function atualizarTickerUltimoEvento(item) {
     if (quake && item.mag != null && Number.isFinite(Number(item.mag))) metric = 'M' + Number(item.mag).toFixed(1).replace('.',',');
     else if (['wind','hurricane'].includes(item.type) && item.windKmh != null && Number.isFinite(Number(item.windKmh))) metric = Math.round(Number(item.windKmh)) + ' km/h';
     if (metricEl) { metricEl.textContent = metric; metricEl.hidden = !metric; }
-    textEl.textContent = (item.place || 'Local não informado').replace(/\s+/g, ' ').trim();
+    textEl.textContent = (window.EventPortuguese?.place(item.place)||item.place || 'Local não informado').replace(/\s+/g, ' ').trim();
     if (ageEl) ageEl.textContent = item.time ? formatTime(item.time) : 'Horário não informado';
     let k = 'Em monitoramento';
     if (activeUpdatedIds && activeUpdatedIds.has(item.id)) k = 'Atualizado';
@@ -270,7 +270,7 @@ function severityClassForItem(item) {
         if (m >= 4) return 'pd-sev-mid';
         return 'pd-sev-low';
     }
-    if (item.type === 'tsunami') return 'pd-sev-crit';
+    if (item.type === 'tsunami') return item.hazardNature==='bulletin'?'pd-sev-low':item.sev===2?'pd-sev-mid':'pd-sev-crit';
     if (item.type === 'hurricane' || item.type === 'volcano') return 'pd-sev-high';
     if (item.type === 'tornado' || item.type === 'flood') return 'pd-sev-mid';
     return 'pd-sev-low';
@@ -307,7 +307,7 @@ function renderPainelTimeline(item) {
     const det = item.time ? formatTime(item.time) : '—';
     steps.push({ k: item.hazardNature==='bulletin'?'Publicado':item.hazardNature==='warning'?'Emitido':item.hazardNature==='forecast'?'Modelo':item.hazardNature==='observed'?'Observado':'Detectado', v: det });
     if (item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id))) {
-        steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(item._deltaTxt).slice(0, 28) : 'revisão' });
+        steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(window.EventPortuguese?.revision(item)||item._deltaTxt) : 'revisão' });
     }
     const src = item.sourceSummary || item.source || 'rede';
     steps.push({ k: 'Fontes', v: String(src).slice(0, 24) });
@@ -324,10 +324,9 @@ function showPanelRevisionFocus(item) {
     const note = document.getElementById('pd-revision-note');
     if (!note || !item) return;
     clearTimeout(panelRevisionTimer);
-    note.textContent = 'SISMO ATUALIZADO · ' + (item._deltaTxt || 'Dados revisados pela fonte');
+    note.textContent = 'EVENTO ATUALIZADO · ' + (window.EventPortuguese?.revision(item) || 'Dados revisados pela fonte');
     note.hidden = false;
-    // O aviso permanece durante o destaque; outra seleção limpa o aviso.
-    panelRevisionTimer = setTimeout(() => { note.hidden = true; }, 60000);
+    // Keep the revision readable until another event is selected.
 }
 
 function syncPanelPresentation(item) {
@@ -352,10 +351,10 @@ function syncPanelPresentation(item) {
         if(Number.isFinite(previous.mag)&&Number.isFinite(current.mag)&&previous.mag!==current.mag)
             changes.push({id:'pd-mag',text:'Magnitude: '+previous.mag.toFixed(1).replace('.',',')+' → '+current.mag.toFixed(1).replace('.',',')});
         if(Number.isFinite(previous.depth)&&Number.isFinite(current.depth)&&previous.depth!==current.depth)
-            changes.push({id:'pd-depth',text:'Profundidade: '+previous.depth.toFixed(1)+' → '+current.depth.toFixed(1)+' km'});
+            changes.push({id:'pd-depth',text:'Profundidade: '+previous.depth.toFixed(0)+' → '+current.depth.toFixed(0)+' km'});
     }
     panelPresentationPrevious=current;
-    if(!changes.length)return;
+    if(!changes.length){if(item._deltaTxt&&(item._updatedAt||activeUpdatedIds?.has(item.id)))showPanelRevisionFocus(item);return;}
     if(note){note.textContent='Revisão · '+changes.map(x=>x.text).join(' · ');note.hidden=false;}
     const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if(!reduce)changes.forEach(change=>{
@@ -364,7 +363,7 @@ function syncPanelPresentation(item) {
         el?.animate?.([{textShadow:'0 0 0 transparent'},{textShadow:'0 0 14px rgba(251,191,36,.95)'},{textShadow:'0 0 0 transparent'}],{duration:1600,easing:'ease-out'});
     });
     clearTimeout(panelRevisionTimer);
-    panelRevisionTimer=setTimeout(()=>{if(note)note.hidden=true;},8000);
+    // The static revision note persists; only the changed value briefly illuminates.
 }
 
 function enrichPainelDetalheUI(item) {
@@ -401,10 +400,39 @@ function marcarEventoComoVisto(id, el){
     activeAlertingIds.delete(id);
     activeUpdatedIds.delete(id);
     if (activeLateIds) activeLateIds.delete(id);
-    if (el) el.classList.remove('new-event','new-event-major','new-event-critical','new-event-info','updated-event','late-event');
+    if (el) {el.classList.remove('new-event','new-event-major','new-event-critical','new-event-info','updated-event','late-event');el.removeAttribute('title');clearSidebarCardTimer(el);}
 }
 
 const LIST_RENDER_CAP = 120; // evita milhares de nós DOM num dia agitado
+const sidebarCardStates=new WeakMap();
+function setSidebarText(node,text){if(node&&node.textContent!==text)node.textContent=text;}
+function clearSidebarCardTimer(node){
+    const state=sidebarCardStates.get(node);
+    if(state){clearTimeout(state.timer);state.timer=null;state.badgeKey=null;}
+}
+function updateSidebarCardBadge(div,item,now){
+    let state=sidebarCardStates.get(div);
+    if(!state){state={};sidebarCardStates.set(div,state);}
+    state.item=item;
+    const maps=[activeAlertingIds,activeUpdatedIds,activeLateIds];
+    maps.forEach(m=>{if(m.has(item.id)&&m.get(item.id)<=now)m.delete(item.id);});
+    const index=maps.findIndex(m=>m.has(item.id));
+    const expires=index<0?null:maps[index].get(item.id);
+    const classes=index===0?['new-event',item.type==='earthquake'?(Number(item.mag)>=6?'new-event-critical':Number(item.mag)>=5?'new-event-major':'new-event-info'):null]:index===1?['updated-event']:index===2?['late-event']:[];
+    for(const name of ['new-event','new-event-major','new-event-critical','new-event-info','updated-event','late-event']){
+        const on=classes.includes(name);if(div.classList.contains(name)!==on)div.classList.toggle(name,on);
+    }
+    const title=index===0?'Evento novo — clique para marcar como visto':index===1?'Este registro foi atualizado — clique para marcar como visto':index===2?'Sismo antigo publicado agora pela fonte — não acabou de acontecer':null;
+    if(title){if(div.getAttribute('title')!==title)div.title=title;}else if(div.hasAttribute('title'))div.removeAttribute('title');
+    const key=index<0?null:index+':'+expires;
+    if(state.badgeKey!==key){
+        clearSidebarCardTimer(div);state.badgeKey=key;
+        if(expires!==null)state.timer=setTimeout(()=>{
+            state.timer=null;state.badgeKey=null;
+            if(div.isConnected)updateSidebarCardBadge(div,state.item,Date.now());
+        },expires-now);
+    }
+}
 
 function recordCardTime(time) {
     const date=new Date(time);
@@ -415,48 +443,19 @@ function renderSidebarList(items) {
     const c = document.getElementById('events');
     if (!c) return;
     const scrollSalvo = c.scrollTop;
+    const focused=document.activeElement,focusedCard=c.contains(focused)?focused.closest('.event'):null;
+    const focusedControl=focusedCard&&focused!==focusedCard?(focused.closest('.source-evidence-trigger')?'.source-evidence-trigger':focused.closest('.ev-bulletin-link')?'.ev-bulletin-link':null):null;
     const agora = Date.now();
     const totalItems = items ? items.length : 0;
     // Cap de render: mantém lastMerged completo (filtros/Story), só limita o DOM
     const renderItems = totalItems > LIST_RENDER_CAP ? items.slice(0, LIST_RENDER_CAP) : (items || []);
 
-    // Assinatura leve: pula rebuild se nada visível mudou (id, selo novo/atualizado, seleção)
-    try {
-        const sigParts = [
-            totalItems,
-            eventoSelecionadoId || '',
-            sidebarFilter || '',
-            geoFilter || '',
-            soImportantes ? '1' : '0',
-            soCriticos ? '1' : '0'
-        ];
-        for (let i = 0; i < Math.min(renderItems.length, 40); i++) {
-            const it = renderItems[i];
-            if (!it) continue;
-            sigParts.push(
-                String(it.id),
-                activeAlertingIds.has(it.id) ? 'n' : '',
-                activeUpdatedIds.has(it.id) ? 'u' : '',
-                (activeLateIds && activeLateIds.has(it.id)) ? 'l' : '',
-                it._deltaTxt || ''
-            );
-        }
-        const sig = sigParts.join('|');
-        if (sig === lastListSig && c.childElementCount > 0) {
-            // Só restaura destaque do ativo, sem recriar centenas de cards
-            try {
-                c.querySelectorAll('.event.active').forEach(el => el.classList.remove('active'));
-                if (eventoSelecionadoId != null) {
-                    const act = c.querySelector('.event[data-event-id="' + CSS.escape(String(eventoSelecionadoId)) + '"]');
-                    if (act) act.classList.add('active');
-                }
-            } catch (e) {}
-            return;
-        }
-        lastListSig = sig;
-    } catch (e) { lastListSig = ''; }
-
-    c.innerHTML = '';
+    const existingCards=new Map(),existingHeaders=new Map();
+    for(const node of c.children){
+        if(node.classList.contains('event'))existingCards.set(node.dataset.eventId,node);
+        else if(node.dataset.sidebarKey)existingHeaders.set(node.dataset.sidebarKey,node);
+    }
+    const desired=[],groupOccurrences=new Map();
 
     if (!totalItems) {
         // NOVO: antes o "Nenhum evento neste filtro" não dizia qual filtro estava
@@ -472,39 +471,64 @@ function renderSidebarList(items) {
         const aviso = motivos.length
             ? `<div style="font-size:11px;color:#fbbf24;margin-top:10px">⚠️ ${motivos.join(' + ')} — pode estar escondendo eventos que existem.<br><button onclick="geoFilter='all';soImportantes=false;soCriticos=false;try{localStorage.setItem('monitor_geo_filter','all');localStorage.setItem('monitor_so_criticos','0')}catch(e){};document.querySelectorAll('#chips-row [data-geo]').forEach(x=>x.classList.remove('on'));document.getElementById('chip-importantes')&&document.getElementById('chip-importantes').classList.remove('on');document.getElementById('chip-criticos')&&document.getElementById('chip-criticos').classList.remove('on');applyFilters();" style="margin-top:8px;padding:6px 14px;border-radius:8px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer">Limpar filtros</button></div>`
             : '';
-        c.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#64748b;"><div style="font-size:40px;">📭</div><div style="font-size:13px;">Nenhum evento neste filtro</div>${aviso}</div>`;
+        const emptyMarkup = `<div style="text-align:center;padding:40px 20px;color:#64748b;"><div style="font-size:40px;">📭</div><div style="font-size:13px;">Nenhum evento neste filtro</div>${aviso}</div>`;
+        if(c.__sidebarEmptyMarkup!==emptyMarkup){
+            existingCards.forEach(clearSidebarCardTimer);
+            c.innerHTML=emptyMarkup;c.__sidebarEmptyMarkup=emptyMarkup;
+        }
         return;
     }
 
     let grupoAtual = '';
-    const frag = document.createDocumentFragment();
-    renderItems.forEach(item => {
+    c.__sidebarEmptyMarkup=null;
+    renderItems.forEach(rawItem => {
+        const item=window.EventPortuguese?.view(rawItem)||rawItem;
         const idadeH = (agora - item.time) / 36e5;
         const grupo = idadeH < 1 ? '⏱️ Última hora' : idadeH < 6 ? '🕐 1–6h atrás' : idadeH < 24 ? '🕰️ 6–24h atrás' : '🗓️ Emitido há mais de 24h';
 
         if (grupo !== grupoAtual) {
             grupoAtual = grupo;
-            const gh = document.createElement('div');
-            gh.className = 'group-header';
-            gh.textContent = grupo;
-            frag.appendChild(gh);
+            const occurrence=(groupOccurrences.get(grupo)||0)+1;groupOccurrences.set(grupo,occurrence);
+            const key='group:'+grupo+':'+occurrence;
+            const gh=existingHeaders.get(key)||document.createElement('div');
+            if(!gh.dataset.sidebarKey){gh.dataset.sidebarKey=key;gh.className='group-header';}
+            setSidebarText(gh,grupo);desired.push(gh);
         }
 
-        const div = document.createElement('div');
-        div.className = 'event event-card-v2';
-        div.setAttribute('role','button');
-        div.setAttribute('aria-label',String(item.place||'Evento')+'. Ver no painel principal');
-        div.dataset.eventId = String(item.id);
-        div.dataset.eventType = item.type;
-        div.tabIndex = 0;
-        if (item.id === eventoSelecionadoId) div.classList.add('active');
+        const div=existingCards.get(String(item.id))||document.createElement('div');
+        if(!div.classList.contains('event'))div.className='event event-card-v2';
+        if(!div.hasAttribute('role'))div.setAttribute('role','button');
+        const accessibleLabel=String(item.place||'Evento')+'. Ver no painel principal';
+        if(div.getAttribute('aria-label')!==accessibleLabel)div.setAttribute('aria-label',accessibleLabel);
+        if(div.dataset.eventId!==String(item.id))div.dataset.eventId=String(item.id);
+        if(div.dataset.eventType!==item.type)div.dataset.eventType=item.type;
+        if(div.tabIndex!==0)div.tabIndex=0;
+        const active=item.id===eventoSelecionadoId;
+        if(div.classList.contains('active')!==active)div.classList.toggle('active',active);
+        updateSidebarCardBadge(div,item,agora);
+        let markup,color;
 
         const meta = TYPE_META[item.type] || TYPE_META.earthquake;
         const conf=confiancaFonte(item);
+        const state=sidebarCardStates.get(div),seenAge=(agora-item._lastSeenAt)/60000;
+        const staleKey=item.type==='earthquake'||!item._lastSeenAt?'':seenAge>=120?'off:'+Math.floor(seenAge/60):seenAge>=30?'warn:'+Math.round(seenAge):'';
+        const bulletinUrl=window.RecordPresentation?.bulletin(item),presentationLabel=window.RecordPresentation?.label(item);
+        // Somente campos que afetam este cartão. Não serializa polígonos,
+        // histórico de fontes ou outras cargas grandes do registro completo.
+        const fingerprint=JSON.stringify([
+            item.type,item.mag,item.depth,item.time,item.place,item.bandeira,item.source,item.sourceSummary,item.sources,
+            item.isPreliminary,item.correlationLevel,item.coords,minhaPosicao?.lat,minhaPosicao?.lng,
+            item.hazardNature,item.warningEvent,item.title,item.displayLabel,item.cycloneLabel,item.classification,
+            item.windKmh,item.pressureMb,item.basin,item.movementInfo?.compass,item.detail,item.activityStatus,item.vulcanicActivity,
+            item.regionalWarning,item.severityLabel,item.expiresAt,bulletinUrl,presentationLabel,
+            activeUpdatedIds.has(item.id)?item._deltaTxt:null,staleKey,conf.cls,conf.label,meta.icon,meta.label,meta.color
+        ]);
+        if(state.fingerprint===fingerprint){
+            setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));desired.push(div);return;
+        }
         const distVoce = minhaPosicao && item.coords
             ? `<span title="Distância de você">${Math.round(haversine(minhaPosicao.lat, minhaPosicao.lng, item.coords[1], item.coords[0]))} km de você</span>`
             : '';
-        const expandido = expandedIds.has(item.id);
 
         // Fase 3 — dado desatualizado: quando a fonte para de reconfirmar um
         // alerta em andamento (falha de fetch, mudança de critério etc.) sem
@@ -526,12 +550,12 @@ function renderSidebarList(items) {
         // enquanto o selo "ATUALIZADO" estiver ativo.
         let updatedTxt = '';
         if (activeUpdatedIds.has(item.id) && item._deltaTxt) {
-            updatedTxt = `<span class="stale-badge updated-delta">🔄 ${item._deltaTxt}</span>`;
+            updatedTxt = `<span class="stale-badge updated-delta">🔄 ${esc(window.EventPortuguese?.revision(item)||item._deltaTxt)}</span>`;
         }
 
         if (item.type === 'earthquake') {
-            div.innerHTML = `
-                <span class="event-icon ev-magnitude" aria-hidden="true"><small>M</small>${item.mag.toFixed(1)}</span>
+            markup = `
+                <span class="event-icon ev-magnitude" aria-hidden="true"><small>M</small>${item.mag.toFixed(1).replace('.', ',')}</span>
                 <div class="event-body">
                 <div class="event-header">
                     <span class="ev-kind">SISMO</span>${item.isPreliminary?'<span class="ev-status">PRELIMINAR</span>':''}
@@ -539,7 +563,7 @@ function renderSidebarList(items) {
                     <span class="event-place">${esc(item.bandeira)} ${esc(item.place)}</span>
                 </div>
                 <div class="event-meta">
-                    <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age">${esc(formatTime(item.time))}</span>
+                    <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age"></span>
                     <span title="Profundidade">${Number.isFinite(Number(item.depth))&&item.depth!=null?Math.max(0,Number(item.depth)).toFixed(0)+' km de profundidade':'Profundidade não informada'}</span>
                     ${distVoce}
 
@@ -551,7 +575,7 @@ function renderSidebarList(items) {
                     <span class="ev-action" aria-hidden="true">Ver no painel →</span>
                 </div>
                 </div>`;
-            div.style.setProperty('--ev-color', getHexColor(item.mag));
+            color=getHexColor(item.mag);
         } else {
             const isCyc = item.hazardNature!=='warning' && (item.type === 'hurricane' || looksLikeCyclone(item));
             let cycClassif = null;
@@ -559,7 +583,7 @@ function renderSidebarList(items) {
                 const w = item.windKmh != null ? item.windKmh : extractWindKmh(item.detail || item.place || '');
                 cycClassif = classificarCiclone(w);
             }
-            const badgeTxt = window.RecordPresentation?.label(item) || (isCyc ? rotuloCicloneCurto(item) : (item.displayLabel || (item.cycloneLabel ? item.cycloneLabel : meta.label)));
+            const badgeTxt = presentationLabel || (isCyc ? rotuloCicloneCurto(item) : (item.displayLabel || (item.cycloneLabel ? item.cycloneLabel : meta.label)));
             const placeTxt = isCyc ? nomeCicloneLimpo(item.place)
                 : (item.type === 'volcano' ? traduzirTextoVulcanico(item.place)
                 : (item.type === 'flood' ? (typeof traduzirTextoEnchente==='function'?traduzirTextoEnchente(item.place):item.place)
@@ -574,7 +598,7 @@ function renderSidebarList(items) {
             // pra tudo — antes um furacão Cat.4 e uma tempestade tropical ficavam
             // visualmente idênticos na lista, só o texto do badge diferenciava.
             const badgeColor = (isCyc && cycClassif) ? cycClassif.cor : meta.color;
-            div.innerHTML = `
+            markup = `
                 <span class="event-icon" aria-hidden="true">${isCyc ? '🌀' : meta.icon}</span>
                 <div class="event-body">
                 <div class="event-header">
@@ -584,7 +608,7 @@ function renderSidebarList(items) {
                     <span class="event-place">${esc(flagTxt)} ${esc(placeTxt)}</span>
                 </div>
                 <div class="event-meta">
-                    <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age">${esc(formatTime(item.time))}</span>
+                    <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age"></span>
                     ${distVoce}
                     ${detailTxt ? `<span class="ev-description">${esc(detailTxt)}</span>` : ''}
                     ${item.regionalWarning ? '<span class="ev-region">Área regional · sem ponto no mapa</span>' : ''}
@@ -599,77 +623,35 @@ function renderSidebarList(items) {
                     <span class="ev-action" aria-hidden="true">Ver no painel →</span>
                 </div>
                 </div>`;
-            div.style.setProperty('--ev-color', badgeColor);
+            color=badgeColor;
         }
 
-        div.querySelectorAll('.source-evidence-trigger').forEach(button=>{
-            button.onclick=event=>{event.stopPropagation();abrirEvidenciasFontes(item);};
-            button.onkeydown=event=>event.stopPropagation();
-        });
-
-        const bulletinUrl=window.RecordPresentation?.bulletin(item);
-        if(bulletinUrl){const a=document.createElement('a');a.className='ev-bulletin-link';a.href=bulletinUrl;a.target='_blank';a.rel='noopener';a.textContent='Boletim oficial ↗';a.onclick=e=>e.stopPropagation();a.onkeydown=e=>e.stopPropagation();div.querySelector('.ev-footer')?.append(a);}
-        if (activeAlertingIds.has(item.id)) {
-            const ex = activeAlertingIds.get(item.id);
-            if (agora < ex) {
-                div.classList.add('new-event');
-                div.title = 'Evento novo — clique para marcar como visto';
-                if (item.type === 'earthquake') {
-                    if (Number(item.mag) >= 6) div.classList.add('new-event-critical');
-                    else if (Number(item.mag) >= 5) div.classList.add('new-event-major');
-                    else div.classList.add('new-event-info');
-                }
-                setTimeout(() => {
-                    div.classList.remove('new-event','new-event-major','new-event-critical','new-event-info');
-                    div.removeAttribute('title');
-                    activeAlertingIds.delete(item.id);
-                }, ex - agora);
-            } else {
-                activeAlertingIds.delete(item.id);
-            }
-        } else if (activeUpdatedIds.has(item.id)) {
-            const ex = activeUpdatedIds.get(item.id);
-            if (agora < ex) {
-                div.classList.add('updated-event');
-                div.title = 'Este registro foi atualizado — clique para marcar como visto';
-                setTimeout(() => {
-                    // O timer global de marcarAtualizadoNoTopo é o responsável por
-                    // devolver o card ao lugar original. Este apenas remove a classe
-                    // visual se ainda for a mesma revisão.
-                    if (activeUpdatedIds.get(item.id) === ex) {
-                        div.classList.remove('updated-event');
-                        div.removeAttribute('title');
-                    }
-                }, ex - agora);
-            } else {
-                activeUpdatedIds.delete(item.id);
-            }
-        } else if (activeLateIds && activeLateIds.has(item.id)) {
-            const ex = activeLateIds.get(item.id);
-            if (agora < ex) {
-                div.classList.add('late-event');
-                div.title = 'Sismo antigo publicado agora pela fonte — não acabou de acontecer';
-                setTimeout(() => {
-                    if (activeLateIds.get(item.id) === ex) {
-                        div.classList.remove('late-event');
-                        div.removeAttribute('title');
-                    }
-                }, ex - agora);
-            } else {
-                activeLateIds.delete(item.id);
-            }
+        if(state.markup!==markup||state.bulletinUrl!==bulletinUrl){
+            div.innerHTML=markup;state.markup=markup;state.bulletinUrl=bulletinUrl;
+            if(bulletinUrl){const a=document.createElement('a');a.className='ev-bulletin-link';a.href=bulletinUrl;a.target='_blank';a.rel='noopener';a.textContent='Boletim oficial ↗';div.querySelector('.ev-footer')?.append(a);}
         }
-        frag.appendChild(div);
+        if(div.style.getPropertyValue('--ev-color')!==color)div.style.setProperty('--ev-color',color);
+        state.fingerprint=fingerprint;
+        setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));
+        desired.push(div);
     });
     if (totalItems > LIST_RENDER_CAP) {
-        const more = document.createElement('div');
-        more.className = 'group-header';
-        more.style.cssText = 'text-align:center;color:#94a3b8;font-size:11px;padding:10px 8px;';
-        more.textContent = 'Mostrando ' + LIST_RENDER_CAP + ' de ' + totalItems + ' — use filtros (tipo, M4.5+, geo) para refinar';
-        frag.appendChild(more);
+        const more=existingHeaders.get('more')||document.createElement('div');
+        if(!more.dataset.sidebarKey){more.dataset.sidebarKey='more';more.className='group-header';}
+        if(!more.style.cssText)more.style.cssText='text-align:center;color:#94a3b8;font-size:11px;padding:10px 8px;';
+        setSidebarText(more,'Mostrando '+LIST_RENDER_CAP+' de '+totalItems+' — use filtros (tipo, M4.5+, geo) para refinar');
+        desired.push(more);
     }
-    c.appendChild(frag);
-    c.scrollTop = scrollSalvo;
+    // Retira apenas os registros fora do filtro/limite; move só os que mudaram de posição.
+    const wanted=new Set(desired);
+    for(const node of Array.from(c.childNodes))if(!wanted.has(node)){clearSidebarCardTimer(node);node.remove();}
+    let cursor=c.firstChild;
+    for(const node of desired){if(node===cursor)cursor=cursor.nextSibling;else c.insertBefore(node,cursor);}
+    if(focusedCard&&wanted.has(focusedCard)){
+        const target=focused.isConnected?focused:focusedControl?focusedCard.querySelector(focusedControl):focusedCard;
+        if(target&&document.activeElement!==target)target.focus({preventScroll:true});
+    }
+    if(c.scrollTop!==scrollSalvo)c.scrollTop=scrollSalvo;
 }
 
 // Delegação de clique/teclado em #events: antes, cada card de evento ganhava
@@ -680,7 +662,8 @@ function renderSidebarList(items) {
 // id — sempre atualizado, sem closure presa a um item de um render antigo.
 function handleEventCardActivate(e, isKeyboard) {
     const div = e.target.closest('.event');
-    if (!div || e.target.closest('.ev-bulletin-link')) return;
+    if (!div) return;
+    if(e.target.closest('.ev-bulletin-link')){e.stopPropagation();return;}
     if (isKeyboard && !(e.key === 'Enter' || e.key === ' ')) return;
     const isExpandTarget = !!e.target.closest('.ev-expand');
     // Igual ao comportamento original: pelo teclado, o botão de expandir não
@@ -688,6 +671,11 @@ function handleEventCardActivate(e, isKeyboard) {
     if (isKeyboard && isExpandTarget) return;
     const idStr = div.dataset.eventId;
     const item = lastMerged.find(x => String(x.id) === idStr);
+    if(e.target.closest('.source-evidence-trigger')){
+        e.stopPropagation();
+        if(!isKeyboard&&item)abrirEvidenciasFontes(item);
+        return;
+    }
     if (isExpandTarget) {
         e.stopPropagation();
         toggleExpand(item ? item.id : idStr);
@@ -908,8 +896,13 @@ function cinematicFlyTo(o, flash) {
 
 // Fonte central da prioridade automática: independe dos filtros da lista e
 // do limite de 50 registros. Cliques manuais continuam livres.
+function isWithinAutoCycleAge(item, now = Date.now()) {
+    // Usa o horário do evento, nunca o horário em que uma revisão chegou.
+    const time = item?.time;
+    return Number.isFinite(time) && time <= now && now - time <= 72 * 3600000;
+}
 function getPriorityCameraEarthquakes() {
-    return globalEvents.filter(e => e &&
+    return globalEvents.filter(e => e && isWithinAutoCycleAge(e) &&
         (e.type === 'earthquake' || (e.mag != null && !e.type)) &&
         Array.isArray(e.coords) && e.coords.length >= 2 &&
         e.coords.slice(0, 2).every(Number.isFinite));
@@ -955,8 +948,10 @@ function autoCycleDraw(deck, keys, avoid) {
     return id;
 }
 function getAutoCycleProtectionRemaining() {
-    if (window.__mgRevisionProtectedId !== eventoSelecionadoId) return 0;
-    return Math.max(0, (window.__mgRevisionProtectedUntil || 0) - Date.now());
+    const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
+    const strongUntil=Number(current?.mag)>=5 && window.__mgQuakePresentationMode!=='auto' ? (window.__mgHoldEndsAt||0) : 0;
+    const protectedUntil=window.__mgQuakePresentationMode!=='auto' && window.__mgRevisionProtectedId===eventoSelecionadoId && (window.__mgQuakePresentationMode==='new' || Number(current?.mag)>=5 || (typeof isRecentCameraQuake==='function'?isRecentCameraQuake(current):true)) ? (window.__mgRevisionProtectedUntil||0) : 0;
+    return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),window.VolcanoPriority?.protectionRemaining()||0);
 }
 function selectNextAutoCycleItem() {
     const state = window.__mgAutoRotation || (window.__mgAutoRotation = {
@@ -967,7 +962,7 @@ function selectNextAutoCycleItem() {
         (typeof buildUnifiedFeed === 'function' ? buildUnifiedFeed() : []);
     const groups = new Map(), now = Date.now();
     for (const item of source || []) {
-        if (!item || item.id == null || item.type === 'earthquake' || (!item.type && item.mag != null) ||
+        if (!item || !isWithinAutoCycleAge(item, now) || item.id == null || item.type === 'earthquake' || (!item.type && item.mag != null) ||
             ['river', 'bulletin'].includes(item.hazardNature) ||
             (!(Array.isArray(item.coords) && item.coords.length >= 2 && item.coords.slice(0, 2).every(Number.isFinite) && Math.abs(item.coords[0]) <= 180 && Math.abs(item.coords[1]) <= 90) && !(item.hazardNature === 'warning' && !item.coords)) ||
             (Number.isFinite(item.expiresAt) && item.expiresAt <= now) ||
@@ -1013,6 +1008,7 @@ function showNextAutoCycleItem() {
     } finally { window.__mgRotationDisplay = false; }
 }
 function requestInitialAutoDisplay() {
+    if(document.hidden)return;
     if (!isFirstDisplay || !map || window.__mgInitialDisplayPending) return;
     if (!window.__mgMapReady && typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded()) {
         if (!window.__mgInitialMapWait) {
@@ -1036,25 +1032,32 @@ function scheduleNextAutoCycle(ms) {
     clearTimeout(cycleTimeout);
     try { clearTimeout(window.__mgCycleGuard); } catch (e) {}
     const wait = Number.isFinite(ms) && ms > 0 ? Math.max(250, ms) : 30000;
-    cycleTimeout = setTimeout(() => {
-        try {
-            const protectedMs = getAutoCycleProtectionRemaining();
-            if (protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
-            if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
-            // Resume one rotation slot between queued revisions, so a large
-            // backlog cannot monopolize the screen. Fresh arrivals still win.
-            if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
-                window.__mgResumeRotation = true;
-                return;
-            }
-            if (map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
-            if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
-        } catch (e) {
-            window.__mgSoftCycle = false;
-            console.warn('[cycle]', e);
-            scheduleNextAutoCycle(30000);
+    cycleTimeout = setTimeout(() => runAutoCycle(),window.PresentationLimits?.wait(wait)||wait);
+}
+function runAutoCycle(forced = false) {
+    if(document.hidden)return;
+    try {
+        if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
+        if (window.VolcanoPriority?.focus()) return;
+        if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
+        if (window.NewEventPriority?.focusAlert()) return;
+        const protectedMs = getAutoCycleProtectionRemaining();
+        if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
+        if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) { scheduleNextAutoCycle(2000); return; }
+        // Resume one rotation slot between queued revisions, so a large
+        // backlog cannot monopolize the screen. Fresh arrivals still win.
+        if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
+            window.__mgResumeRotation = true;
+            return;
         }
-    }, wait);
+        if (!forced && map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
+        if(forced)stopMapCamera();
+        if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
+    } catch (e) {
+        window.__mgSoftCycle = false;
+        console.warn('[cycle]', e);
+        scheduleNextAutoCycle(30000);
+    }
 }
 
 function stopMapCamera() {
@@ -1185,6 +1188,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
     currentIndex = index;
     const idAnteriorSismo = eventoSelecionadoId;
+    if (!silentRefresh || idAnteriorSismo !== globalEvents[index].id) window.resetCardEventFx?.(globalEvents[index]);
     eventoSelecionadoId = globalEvents[index].id;
     // Trocou de evento sísmico de verdade (não é o mesmo já em tela) —
     // limpa a zona crítica/onda do evento ANTERIOR AGORA, em vez de deixar
@@ -1205,7 +1209,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     try { if (typeof syncAllMarkers === 'function') syncAllMarkers(); } catch (e) {}
     if (!silentRefresh) renderSidebarList(lastMerged);
 
-    const item = globalEvents[index];
+    const rawItem=globalEvents[index];
+    const item=window.EventPortuguese?.view(rawItem)||rawItem;
+    window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){const current=globalEvents.findIndex(e=>e.id===rawItem.id);if(current!==-1)showEventDetails(current,false,true);renderSidebarList(lastMerged);}});
+    if(!silentRefresh)window.PresentationLimits?.begin(item,window.__mgSoftCycle&&!triggerVisualAlert?'auto':'quake');
     const [lng, lat] = item.coords;
     const mec = item.mecanismoReal || calcularMecanismoFocal(item.depth, lat, lng, item.place);
     const mer = window.SeismicCinema?.intensitySummary(item) || estimarMercalli(item.mag, item.depth);
@@ -1243,16 +1250,16 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
     // NOVO: "há Xmin atrás" ficava congelado no momento em que o painel foi aberto.
     // Agora atualiza sozinho a cada minuto enquanto o painel estiver aberto no mesmo evento.
-    if (window.__pdTimeTicker) clearInterval(window.__pdTimeTicker);
-    window.__pdTimeTicker = setInterval(() => {
+    if (window.__pdTimeTicker) PeriodicScheduler.cancel(window.__pdTimeTicker);
+    window.__pdTimeTicker = PeriodicScheduler.every('selected-event-time',() => {
         const el = document.getElementById('pd-horario');
-        if (!el || eventoSelecionadoId !== item.id) { clearInterval(window.__pdTimeTicker); return; }
+        if (!el || eventoSelecionadoId !== item.id) { PeriodicScheduler.cancel(window.__pdTimeTicker); return; }
         el.textContent = `${formatBrasiliaDateTime(item.time)} (${formatTime(item.time)})`;
-    }, 60000);
+    },60000,60000,'ui');
     let magNote=document.getElementById('pd-mag-sources');
     if(!magNote){ magNote=document.createElement('div'); magNote.id='pd-mag-sources'; magNote.style.cssText='font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.45;text-align:center;'; const anchor=document.getElementById('pd-horario'); anchor && anchor.parentNode.insertBefore(magNote,anchor.nextSibling); }
     const evidence=evidenciasFontes(item);
-    const magLines=evidence.reports.map(x=>x.source+' M'+x.mag.toFixed(1)).join(' · ');
+    const magLines=evidence.reports.map(x=>x.source+' M'+x.mag.toFixed(1).replace('.', ',')).join(' · ');
     magNote.textContent=magLines ? 'Fontes: '+magLines : 'Fonte: '+(evidence.sources.join(' · ')||'não identificada');
     magNote.style.display='block';
     renderConsolidacaoFonte(item);
@@ -1267,7 +1274,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
       if (el) el.innerHTML = 'Energia <span class="estimativa-badge" title="Equivalente em TNT calculado a partir da magnitude">CALCULADA</span>';
     } catch (e) {}
     const depthClass = classificarProfundidade(Math.max(0, item.depth));
-    document.getElementById('pd-depth').innerHTML = `${Math.max(0, item.depth).toFixed(1)} km <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${depthClass.label}</span>`;
+    document.getElementById('pd-depth').innerHTML = `${Math.max(0, item.depth).toFixed(0)} km <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${depthClass.label}</span>`;
     document.getElementById('pd-mercalli').innerHTML = `<span style="color:${mer.cor}">${mer.nivel}</span>`;
     // BUG CORRIGIDO: .split(' ')[0] cortava a unidade — "1.9 kg de TNT" virava só
     // "1.9", sem dar pra saber se era kg, ton, kt ou Mt. Agora mostra o valor com
@@ -1313,9 +1320,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     let hh = '';
     if (his.total > 0) {
         hh += `<div class="history-item"><span>📊 Total na região:</span><span class="history-mag">${his.total}</span></div>`;
-        if (his.maior) hh += `<div class="history-item"><span>🔴 Maior:</span><span class="history-mag" style="color:${getHexColor(his.maior.mag)}">M${his.maior.mag.toFixed(1)}</span></div>`;
+        if (his.maior) hh += `<div class="history-item"><span>🔴 Maior:</span><span class="history-mag" style="color:${getHexColor(his.maior.mag)}">M${his.maior.mag.toFixed(1).replace('.', ',')}</span></div>`;
         his.eventos.slice(0, 3).forEach(e => {
-            hh += `<div class="history-item"><span style="color:#94a3b8;">• ${esc(e.place.substring(0, 25))}...</span><span class="history-mag" style="color:${getHexColor(e.mag)}">M${e.mag.toFixed(1)}</span></div>`;
+            hh += `<div class="history-item"><span style="color:#94a3b8;">• ${esc(e.place.substring(0, 25))}...</span><span class="history-mag" style="color:${getHexColor(e.mag)}">M${e.mag.toFixed(1).replace('.', ',')}</span></div>`;
         });
     } else {
         hh = '<div class="history-item" style="color:#64748b;">Nenhum evento recente (30 dias)</div>';
@@ -1332,7 +1339,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 const b = document.createElement('span');
                 b.className = 'pd-updated-badge';
                 b.style.cssText = 'margin-left:8px;padding:2px 7px;border-radius:4px;background:#475569;color:#e2e8f0;font-size:9px;font-weight:800;letter-spacing:.4px;vertical-align:middle;';
-                b.textContent = 'ATUALIZADO · ' + String(item._deltaTxt).slice(0, 48);
+                b.textContent = 'ATUALIZADO · ' + String(window.EventPortuguese?.revision(item)||item._deltaTxt).slice(0, 80);
                 pdSrc.appendChild(b);
             }
         }
@@ -1341,17 +1348,27 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (silentRefresh) {
         // Só dados do card (revisão de magnitude etc.) — sem fly, sem radar, sem ciclo.
         window.CinematicCard?.refresh(item);
+        if(typeof refreshWaveFront==='function')refreshWaveFront(item);
+        if(typeof refreshFeltZone==='function')refreshFeltZone(item);
         return;
     }
+
+    const presented=window.__mgQuakeCameraPresented||(window.__mgQuakeCameraPresented=new Map());
+    presented.delete(item.id);presented.set(item.id,Number(item.mag));
+    if(presented.size>5000)presented.delete(presented.keys().next().value);
 
     if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
     if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag), item);
     if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag, {item, mode:triggerVisualAlert?'new':window.__mgSoftCycle?'auto':'manual'});
 
-    // Voo inicial próximo aos anéis vermelho/de percepção; a câmera abre conforme a onda azul cresce.
+    // Enquadramento regional inicial; depois a câmera acompanha a frente P calculada.
     let zoomAlvo = 12;
     const soft = !!window.__mgSoftCycle;
     window.__mgSoftCycle = false;
+    clearTimeout(window.__mgWaveDelayT);
+    if(soft && !triggerVisualAlert){
+        if(typeof stopWaveFront==='function')stopWaveFront();
+    }else if(typeof stopFeltZone==='function')stopFeltZone();
 
     if (typeof calcZoomParaAlcance === 'function' && typeof raioEstimado === 'function') {
         try {
@@ -1371,15 +1388,14 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Guardado em window.__mgHoldMag/__mgHoldEndsAt pra orquestrador-feeds.js
     // saber se um sismo novo pode interromper esse tempo (só se for de
     // magnitude MAIOR que o que já está em tela).
+    // Prazo-base: a frente física pode estender a proteção até o fim da
+    // abertura, seguido de cinco segundos no quadro final.
     const holdNovo = (typeof waveHoldMs === 'function') ? waveHoldMs(item.mag) : 30000;
-    // Ciclo automático puro (revisitando um evento já conhecido, sem onda
-    // rodando — só a zona crítica): 30 segundos fixos pra qualquer magnitude,
-    // não escalado como o evento novo/manual acima. Zona crítica e onda não
-    // somem mais sozinhas (ver stopFeltZone/startWaveFront em
-    // sismo-metrics.js) — quem decide quando trocar de evento no automático
-    // é só este tempo aqui.
+    // Radar de alcance estimado no automático: 30 segundos, sem proteção longa.
+    // Novos alertas continuam podendo assumir a câmera imediatamente.
     const HOLD_AUTO_MS = 30000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
+    window.__mgQuakePresentationMode=soft&&!triggerVisualAlert?'auto':triggerVisualAlert?'new':'manual';
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
     // Ao vivo e clique manual mantêm câmera/cartão até terminar a exibição.
@@ -1416,72 +1432,55 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + HOLD_AUTO_MS) : hold);
     }
 
-    // Zona crítica (raios "principais" — detectável/estimado/crítico) SEMPRE
-    // aparece primeiro, pra qualquer sismo (ao vivo, clique manual ou ciclo
-    // automático): é instantânea (calcula o raio final direto, não anima),
-    // então já dá pra ver de cara enquanto a frente de onda P/S — bem mais
-    // lenta agora (ver WAVE_SPEED_MULT em sismo-metrics.js) — ainda nem
-    // começou. Sismo revisitado (ciclo automático ou clique manual) ganha
-    // também a onda em cascata de sempre, pra sempre ter algo pulsando no
-    // epicentro em vez de só o pontinho parado.
+    // Automatic revisits show estimated felt/critical zones; live/manual show travel fronts.
     try {
         clearTimeout(window.__mgRadarDelayT);
         window.__mgRadarDelayT = setTimeout(() => {
             try {
                 if (eventoSelecionadoId !== item.id) return;
-                if (typeof startFeltZone === 'function') startFeltZone(lng, lat, item.mag, item.depth);
-
-                if (soft) {
-                    // Ciclo automático: só os raios principais — a câmera fica
-                    // no enquadramento fechado deles (calculado lá em cima),
-                    // sem abrir pra frente de onda. Ela levaria segundos a
-                    // minutos pra abrir alguma coisa que valha a pena ver, e o
-                    // auto-ciclo já troca de evento rápido demais pra isso
-                    // fazer sentido — melhor deixar o próximo revisitar
-                    // manualmente pra ver a onda crescer de verdade.
-                    if (typeof stopWaveFront === 'function') stopWaveFront();
+                clearTimeout(window.__mgWaveDelayT);
+                if(soft && !triggerVisualAlert){
+                    if(typeof stopWaveFront==='function')stopWaveFront();
+                    const current=globalEvents.find(event=>event.id===item.id)||item;
+                    if(current.mag>=5.5&&window.SeismicImpact){
+                        if(typeof stopFeltZone==='function')stopFeltZone();
+                        SeismicImpact.start({id:current.id,lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth},true);
+                        const zoom=zoomParaAreaPintada(current.coords[0],current.coords[1],Math.max(10,SeismicImpactModel.extent(current.mag,current.depth,2.1)));
+                        map.easeTo({center:centroCompensado(current.coords[0],current.coords[1],zoom),zoom,duration:2500,essential:true});
+                    }else if(typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
                     return;
                 }
+                if (typeof stopFeltZone === 'function') stopFeltZone();
 
-                if (!triggerVisualAlert && typeof startCascadeRipple === 'function') {
+                if (!soft && !triggerVisualAlert && typeof startCascadeRipple === 'function') {
                     startCascadeRipple(lng, lat, getHexColor(item.mag), true);
                 }
 
-                // Virada do card "Alcance do sismo" (cidades + MMI + pessoas
-                // afetadas) — só ao vivo e clique manual (nunca ciclo
-                // automático, já filtrado pelo "return" do bloco soft acima).
-                if (typeof agendarViradaCardAlcance === 'function') {
+                // Exposição estimada fica no cartão; não vira um anel de propagação.
+                if (!soft && typeof agendarViradaCardAlcance === 'function') {
                     agendarViradaCardAlcance(lat, lng, item);
                 }
 
-                // Frente de onda P/S entra só alguns segundos DEPOIS da zona
-                // crítica — dá tempo dela "assentar" na tela antes da câmera
-                // dinâmica (chaseCam) começar a puxar o zoom pra trás atrás do
-                // anel crescendo. As duas coisas ao mesmo tempo ficava confuso:
-                // os raios da zona crítica já prontos e parados, enquanto a
-                // câmera saía abrindo pra acompanhar um anel ainda minúsculo.
-                // Ao vivo: origem = horário real do sismo (cresce visivelmente
-                // desde ~0, já que é recente) — mas NUNCA mais velha que
-                // MAX_LIVE_AGE_MS: uma fonte sísmica pode confirmar/publicar um
-                // sismo pequeno só minutos depois de ter ocorrido de verdade, e
-                // usar o horário real puro faria a onda já nascer enorme na
-                // hora (bug real visto: M1.5 na Espanha com 20min de atraso na
-                // fonte virou um anel quase do tamanho do planeta assim que
-                // apareceu). O "ao vivo" é sobre revelar um evento NOVO na
-                // tela — se a fonte já demorou, a revelação ainda merece
-                // parecer fresca, crescendo visivelmente, em vez de já nascer
-                // enorme. Clique manual: "replay" de sempre, origem = agora.
-                const MAX_LIVE_AGE_MS = 15000;
-                const origemOnda = triggerVisualAlert ? Math.max(item.time, Date.now() - MAX_LIVE_AGE_MS) : Date.now();
+                // Deixa o voo inicial assentar antes de exibir as frentes.
+                // Real fronts use the published origin, including delayed reports.
+                // Only manual clicks replay the model from t=0.
+                const waveMode=triggerVisualAlert?'live':'replay';
+                const origemOnda=waveMode==='live'?item.time:Date.now();
                 const camDelayMs = triggerVisualAlert ? 5850 : Math.max(0, totalDur - 150);
                 clearTimeout(window.__mgWaveDelayT);
                 window.__mgWaveDelayT = setTimeout(() => {
                     try {
                         if (eventoSelecionadoId !== item.id) return;
                         if (typeof startWaveFront === 'function') {
-                            startWaveFront(lng, lat, item.mag, item.depth, origemOnda, {
+                            const current=globalEvents.find(event=>event.id===item.id)||item;
+                            startWaveFront(current.coords[0],current.coords[1],current.mag,current.depth,waveMode==='live'?current.time:origemOnda,{
                                 chaseCam: true,
-                                camDelayMs
+                                returnToEpicenter:current.mag>=5,
+                                epicenterZoom:zoomAlvo,
+                                protectUntilEnd:!soft,
+                                id:item.id,
+                                mode:waveMode,
+                                camDelayMs:soft?0:camDelayMs
                             });
                         }
                     } catch (e) {}
@@ -1490,18 +1489,26 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         }, soft ? Math.max(2500, totalDur - 600) : 150);
     } catch (e) {
         try {
-            startFeltZone(lng, lat, item.mag, item.depth);
-            if (soft) {
-                if (typeof stopWaveFront === 'function') stopWaveFront();
-            } else {
-                if (!triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
-                if (typeof startWaveFront === 'function') {
-                    const origemFallback = triggerVisualAlert ? Math.max(item.time, Date.now() - 60000) : Date.now();
-                    startWaveFront(lng, lat, item.mag, item.depth, origemFallback, {
-                        chaseCam: true,
-                        camDelayMs: triggerVisualAlert ? 4350 : Math.max(0, totalDur - 150)
-                    });
-                }
+            if(typeof stopFeltZone==='function')stopFeltZone();
+            if(soft && !triggerVisualAlert){
+                clearTimeout(window.__mgWaveDelayT);
+                if(typeof stopWaveFront==='function')stopWaveFront();
+                if(item.mag>=5.5&&window.SeismicImpact)SeismicImpact.start({id:item.id,lng,lat,mag:item.mag,depth:item.depth},true);
+                else if(typeof startFeltZone==='function')startFeltZone(lng,lat,item.mag,item.depth,item.id);
+                return;
+            }
+            if (!soft && !triggerVisualAlert) startCascadeRipple(lng, lat, getHexColor(item.mag), true);
+            if (typeof startWaveFront === 'function') {
+                const fallbackMode=triggerVisualAlert?'live':'replay';
+                startWaveFront(lng, lat, item.mag, item.depth, fallbackMode==='live'?item.time:Date.now(), {
+                    protectUntilEnd:!soft,
+                    id:item.id,
+                    mode:fallbackMode,
+                    chaseCam:true,
+                    returnToEpicenter:item.mag>=5,
+                    epicenterZoom:zoomAlvo,
+                    camDelayMs:soft?0:triggerVisualAlert?4350:Math.max(0,totalDur-150)
+                });
             }
         } catch (e2) {}
     }
@@ -1537,17 +1544,38 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
-    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay) {window.__mgSoftCycle=false;return;}
+    const rawItem=item;
+    window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
+    // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
+    if(!triggerVisualAlert&&!silentRefresh&&!window.__mgRotationDisplay)window.__mgSoftCycle=false;
+    if (triggerVisualAlert && !silentRefresh && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
+        window.NewEventPriority.queue([item]);window.NewEventPriority.focus();return;
+    }
+    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay && !window.NewEventPriority?.dispatching(item)) {window.__mgSoftCycle=false;return;}
     if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature) && !window.__mgRotationDisplay) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
     // módulos continuam independentes. Atualizações silenciosas e cliques
     // manuais não são uma tomada automática de câmera.
     if (!silentRefresh && (triggerVisualAlert || window.__mgSoftCycle) &&
-        getAutoCycleProtectionRemaining() > 0 &&
+        getAutoCycleProtectionRemaining() > 0 && !window.VolcanoPriority?.canInterrupt(item) &&
         !(item.type === 'earthquake' || (item.mag != null && !item.type))) {
         window.__mgSoftCycle = false;
         return;
+    }
+    if (!silentRefresh && item.type==='tsunami') {
+        // Even a regional bulletin with no epicenter replaces the old map effects.
+        stopMapCamera();
+        clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);
+        clearTimeout(window.__mgWaveDelayT);
+        clearTimeout(window.returnCameraTimeout);window.preAlertCamera=null;
+        stopWaveFront();stopFeltZone();
+        // Do not carry the old earthquake's 2.6s radar fade across this bulletin.
+        document.querySelectorAll('.felt-zone-wrap').forEach(el=>el.remove());
+        if(typeof stopTsunamiWave==='function')stopTsunamiWave();
+        if(typeof stopCascadeRipple==='function')stopCascadeRipple();
+        if(typeof stopContinuousRadar==='function')stopContinuousRadar();
+        if(typeof stopHurricaneOfficialRoute==='function')stopHurricaneOfficialRoute();
     }
     if (!silentRefresh && item.id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     try { if (!window.EventDetailsBack?.isOpen() && typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
@@ -1573,7 +1601,9 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             if (fresh) item = fresh;
         }
     } catch (e) {}
+    item=window.EventPortuguese?.view(item)||item;
     if (!silentRefresh) {
+        window.PresentationLimits?.begin(item,triggerVisualAlert?'priority':window.__mgSoftCycle?'auto':'manual');
         closeMobileEventsModalIfOpen();
         scrollToDetailsIfMobile();
         const isMobileVp = (typeof window.matchMedia === 'function' && window.matchMedia('(max-width:900px)').matches);
@@ -1590,6 +1620,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             } catch (e) {}
         }
     }
+    if (!silentRefresh || eventoSelecionadoId !== item.id) window.resetCardEventFx?.(item);
     eventoSelecionadoId = item.id;
     try { if (typeof EventStore !== 'undefined') EventStore.setSelected(item.id); } catch (e) {}
     // Troca o ícone "pontinho" pelo cheio (e devolve o anterior a pontinho)
@@ -1606,7 +1637,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // sismo do que uma tempestade, e cair em ⚡/"TEMPESTADE" sem bandeira
     // era o sintoma visível desse bug.
     const meta = TYPE_META[item.type] || TYPE_META.earthquake;
-    const cor = meta.color;
+    const cor = item.type === 'tsunami' ? (item.hazardNature==='bulletin'?'#38bdf8':corSeveridadeAlerta(item)) : meta.color;
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
     setGauge(0, false, item.icon || meta.icon, cor, 1);
@@ -1635,7 +1666,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth').innerHTML = `<span style="color:${classif.cor}">${classif.cat}</span>`;
         document.getElementById('pd-mercalli-label').textContent = 'Vento Máx.';
         document.getElementById('pd-mercalli').innerHTML = windKmh
-            ? `<span style="color:${classif.cor}">${windKmh} km/h</span>`
+            ? `<span style="color:${classif.cor}">${EventPortuguese.number(windKmh)} km/h</span>`
             : `<span style="color:#94a3b8">Sem dado</span>`;
         document.getElementById('pd-energy-label').textContent = item.pressureMb != null ? 'Pressão' : 'Fonte';
         document.getElementById('pd-energy').textContent = item.pressureMb != null
@@ -1725,14 +1756,14 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').innerHTML = `<span style="color:${cor}">${meta.label}</span>`;
         document.getElementById('pd-mercalli-label').textContent = 'Status';
-        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">ATIVO</span>`;
+        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${esc(item.warningLevel || 'ATIVO')}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     }
 
     document.getElementById('pd-fault-section-label').textContent =
         item.type === 'hurricane' ? 'Dinâmica do sistema' :
-        item.type === 'tsunami' ? 'Aviso de tsunami' :
+        item.type === 'tsunami' ? (item.hazardNature==='bulletin'?'Boletim de tsunami':'Aviso de tsunami') :
         item.type === 'civil' ? 'Detalhe do alerta' :
         item.type === 'fire' ? 'Informações do foco' :
         item.type === 'volcano' ? 'Atividade vulcânica' :
@@ -1754,12 +1785,16 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             (detPt ? detPt + ' · ' : '') + `≈ ${Math.round(dYou)} km de ${refName}.`;
     }
 
-    if (item.type === 'tsunami' && item.coords) {
+    if (item.type === 'tsunami' && item.official) {
+        document.getElementById('pd-cities-title').textContent='🌊 Área do boletim oficial';
+        document.getElementById('pd-cities').innerHTML='<div class="city-item">'+esc(item.place||'Consulte o boletim oficial')+'</div>'+
+            '<div class="city-item">'+esc(item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mostra uma visão geral, sem epicentro ou alcance inventado.')+'</div>';
+    } else if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
         const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
         // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
         // — não é o ritmo do anel animado no mapa (esse é acelerado só pra dar pra
         // ver a revelação da zona; a onda real leva mesmo horas pra cruzar isso).
-        const etaTxt = dist => (typeof TSUNAMI_KMH === 'number') ? ` · ≈${(dist / TSUNAMI_KMH).toFixed(1)}h de viagem` : '';
+        const etaTxt = dist => (typeof TSUNAMI_KMH === 'number') ? ` · ≈${(dist / TSUNAMI_KMH).toFixed(1).replace('.', ',')}h de viagem` : '';
         document.getElementById('pd-cities-title').textContent = '🌊 Países e cidades próximas';
         document.getElementById('pd-cities').innerHTML =
             '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🌊 Países potencialmente afetados (2.000 km)</div>' +
@@ -1845,6 +1880,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         } else {
             document.getElementById('pd-cities').innerHTML = dirHtml;
         }
+    } else if(Array.isArray(item.municipalities)&&window.InmetMunicipalities){
+        window.InmetMunicipalities.renderPanel(item);
     } else {
         // Todos os demais tipos de evento usam exatamente o mesmo resolvedor geográfico:
         // enchente, incêndio, tempestade, vento, alerta civil, sismo etc.
@@ -1874,7 +1911,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                 const b = document.createElement('span');
                 b.className = 'pd-updated-badge';
                 b.style.cssText = 'margin-left:8px;padding:2px 7px;border-radius:4px;background:#475569;color:#e2e8f0;font-size:9px;font-weight:800;letter-spacing:.4px;vertical-align:middle;';
-                b.textContent = 'ATUALIZADO · ' + String(item._deltaTxt).slice(0, 48);
+                b.textContent = 'ATUALIZADO · ' + String(window.EventPortuguese?.revision(item)||item._deltaTxt).slice(0, 80);
                 pdSrc.appendChild(b);
             }
         }
@@ -1945,6 +1982,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             if (item.type === 'storm' && typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
             if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
             window.returnCameraTimeout = setTimeout(() => {
+                if(eventoSelecionadoId!==item.id)return;
                 if (getPriorityCameraEarthquakes().length) {
                     window.preAlertCamera = null;
                     return;
@@ -1964,7 +2002,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
                     userInteractingWithGlobe = false;
                 }
             }, 45000);
-            scheduleNextAutoCycle(45000);
+            scheduleNextAutoCycle(window.PresentationLimits?.limitMs(item)||40000);
             try {
                 clearTimeout(window.__mgRadarDelayT);
                 window.__mgRadarDelayT = setTimeout(() => {
@@ -1979,7 +2017,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             // continua mostrando o efeito no mapa (onda em cascata/radar do
             // furacão), só o sismo é que fica reservado pra quando é novo.
             const totalDur = softFlyToCoords(item.coords[0], item.coords[1], zA, softA);
-            scheduleNextAutoCycle(softA ? (totalDur + 30000) : 30000);
+            scheduleNextAutoCycle(window.VolcanoPriority?.evidence(item).lava&&item.type==='volcano'?45000:softA?(totalDur+30000):30000);
             try {
                 clearTimeout(window.__mgRadarDelayT);
                 window.__mgRadarDelayT = setTimeout(() => {
@@ -1994,6 +2032,11 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgSoftCycle = false;
         scheduleNextAutoCycle(30000);
     }
+    if(item.type==='tsunami'&&!item.coords&&map){
+        map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
+    }
+    if(item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
+    if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 
 /* Rede de segurança pras duas funções acima: cada uma é uma sequência

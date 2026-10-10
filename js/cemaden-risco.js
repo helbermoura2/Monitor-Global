@@ -107,7 +107,7 @@ async function fetchWeatherApiObservado(){
     const mm=Number(d?.current?.precip_mm);
     const cond=d?.current?.condition?.text||'';
     if(Number.isFinite(mm)){
-      safeText('cemaden-observed',`👁️ Observado: ${mm.toFixed(1)} mm/h${cond?' • '+cond:''}`);
+      safeText('cemaden-observed',`👁️ Observado: ${mm.toFixed(1).replace('.', ',')} mm/h${cond?' • '+cond:''}`);
       const cc=q('cemaden-card');
       if(cc)cc.title=(q('cemaden-last')?.textContent||'')+' — '+(q('cemaden-observed')?.textContent||'');
     }
@@ -197,7 +197,7 @@ async function fetchCemaden(){
 
   const max24=Math.max(...data.map(x=>x.rain24).filter(Number.isFinite),0);
   safeText('cemaden-stations',data.length);
-  safeText('cemaden-max24',max24.toFixed(1));
+  safeText('cemaden-max24',max24.toFixed(1).replace('.', ','));
 
   safeText(
     'cemaden-last',
@@ -430,7 +430,7 @@ function renderRedemetLayer() {
   map.on('mouseleave', 'redemet-stations-layer', onRedemetLeave);
 }
 
-const PRO={radar:true,follow:true,replay:false,speed:1,timer:null,events:[],idx:0,radarLayer:false,sourceState:{}};
+const PRO={radar:false,follow:true,replay:false,speed:1,timer:null,events:[],idx:0,radarLayer:false,sourceState:{}};
 const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe','GDACS enchentes':'https://www.gdacs.org','GDACS ciclones':'https://www.gdacs.org','GDACS vulcões':'https://www.gdacs.org','GDACS incêndios':'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com','EONET incêndios':'https://eonet.gsfc.nasa.gov','EONET tempestades':'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com','Chuva SP · modelo (Open-Meteo)':'https://api.open-meteo.com',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',OVSICORI:'https://www.ovsicori.una.ac.cr','MARN-SV':'https://www.snet.gob.sv',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br','CSN-Chile':'https://api.gael.cloud','SSN-Mexico':'https://www.ssn.unam.mx',ANA:'https://www.snirh.gov.br'};
 function q(id){return document.getElementById(id)}
 function safeText(id,v){const e=q(id);if(e)e.textContent=v==null?'--':v}
@@ -453,7 +453,8 @@ const REGIONAL_SEISMIC_FALLBACK = {
   'CSN-Chile': 'Chile — USGS/EMSC seguem cobrindo a região',
   'SSN-Mexico': 'México — USGS/EMSC seguem cobrindo a região'
 };
-function setSource(name,status,ms,error){
+function setSource(name,status,ms,error,meta={}){
+  window.MonitorFreshness?.recordStatus(name,status,error,meta.dataAt,meta.checkedAt);
   // 2 falhas seguidas → OFF; 1 falha → LENTO. Sucesso zera.
   // SourceHealth: 3ª falha abre cooldown 90s (não martela a fonte).
   const prev = PRO.sourceState[name] || {};
@@ -473,7 +474,7 @@ function setSource(name,status,ms,error){
   }
   renderSources();
 }
-function renderSources(){const c=q('source-list');const keys=[...new Set([...Object.keys(SRC),...Object.keys(PRO.sourceState)])];let ok=0,warn=0,off=0;const offNames=[];const rows=keys.map(k=>{const s=PRO.sourceState[k]||{};if(s.status==='ok')ok++;else if(s.status==='warn')warn++;else if(s.status==='off'){off++;offNames.push(k);}const cls=s.status==='ok'?'source-ok':s.status==='warn'?'source-warn':s.status==='off'?'source-off':'';const label=s.status==='ok'?'ONLINE':s.status==='warn'?'LENTO':s.status==='off'?'INDISPONÍVEL':s.status==='paused'?'PAUSADA':'--';const ms=s.ms?Math.round(s.ms)+'ms':'--';const age=s.time?Math.max(0,Math.round((Date.now()-s.time)/1000))+'s':'--';const title=s.error?` title="${String(s.error).replace(/"/g,'&quot;')}"`:'';return `<div class="source-row"><span>${k}</span><b class="${cls}"${title}>${label}</b><span>${ms} · ${age}</span></div>`}).join('');if(c)c.innerHTML=rows;const sum=`${ok} online · ${warn} atenção · ${off} offline`;safeText('source-summary',sum);try{const el=document.getElementById('ts-meta-fresh');if(el&&offNames.length)el.title='Offline: '+offNames.join(', ');const strip=document.getElementById('ts-meta-fontes');if(strip&&off){strip.style.color='#f87171';}else if(strip){strip.style.color='';}}catch(e){}// Toast discreto quando uma fonte cai
+function renderSources(){const c=q('source-list');const keys=[...new Set([...Object.keys(SRC),...Object.keys(PRO.sourceState)])];let ok=0,warn=0,off=0;const offNames=[];const rows=keys.map(k=>{const s=PRO.sourceState[k]||{};if(s.status==='ok')ok++;else if(s.status==='warn')warn++;else if(s.status==='off'){off++;offNames.push(k);}const cls=s.status==='ok'?'source-ok':s.status==='warn'?'source-warn':s.status==='off'?'source-off':'';const label=window.MonitorFreshness?.sourceStatus(k)||(s.status==='ok'?'ONLINE':s.status==='warn'?'LENTO':s.status==='off'?'INDISPONÍVEL':s.status==='paused'?'PAUSADA':'--');const ms=s.ms?Math.round(s.ms)+'ms':'--';const age=s.time?Math.max(0,Math.round((Date.now()-s.time)/1000))+'s':'--';const title=s.error?` title="${String(s.error).replace(/"/g,'&quot;')}"`:'';return `<div class="source-row"><span>${k}</span><b class="${cls}"${title}>${label}</b><span>${ms} · ${age}</span></div>`}).join('');if(c)c.innerHTML=rows;const sum=`${ok} online · ${warn} atenção · ${off} offline`;safeText('source-summary',sum);try{const el=document.getElementById('ts-meta-fresh');if(el&&offNames.length)el.title='Offline: '+offNames.join(', ');const strip=document.getElementById('ts-meta-fontes');if(strip&&off){strip.style.color='#f87171';}else if(strip){strip.style.color='';}}catch(e){}// Toast discreto quando uma fonte cai
 try{const prev=window.__srcOffCount|0;window.__srcOffCount=off;if(off>prev&&off>0&&typeof showToast==='function'){(()=>{const n=offNames.find(x=>x!=='OpenMeteo'); if(!n) return; const fallback=REGIONAL_SEISMIC_FALLBACK[n]; showToast('⚠️ Fonte offline: '+n+(fallback?' · '+fallback:''),'warn');})();}}catch(e){}}
 async function checkSources(){
   // Only real catalogue/product consultations may update source health.
@@ -524,7 +525,7 @@ function riskScore(){
     else if(d>2000){ pts*=0.1; }
     else { pts*=0.35; }
     if(isLocal) localScore=Math.max(localScore,pts); else globalScore=Math.max(globalScore,pts);
-    if(pts>=4) pushR(pts,'🌍 M'+mag.toFixed(1)+' '+(e.place||'').slice(0,40),isLocal);
+    if(pts>=4) pushR(pts,'🌍 M'+mag.toFixed(1).replace('.', ',')+' '+(e.place||'').slice(0,40),isLocal);
   });
 
   const w=window.__proWeather||{};
@@ -601,7 +602,7 @@ async function fetchProSP(){
     try{ const elT=q('sp-live-temp'); if(elT) elT.title='Fonte: '+tempFonte; }catch(_){}
     safeText('sp-live-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
     safeText('sp-live-gust',Number.isFinite(gust)?Math.round(gust)+' km/h':'--');
-    safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1)+' mm':'--');
+    safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1).replace('.', ',')+' mm':'--');
     safeText('sp-live-hum',Number.isFinite(hum)?Math.round(hum)+'%':'--');
     // Mantém o KPI legado sincronizado caso ele seja exibido em algum breakpoint.
     safeText('kpi-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
@@ -631,7 +632,7 @@ async function fetchProSP(){
       safeText('sp-live-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
       safeText('sp-live-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
       safeText('sp-live-gust',Number.isFinite(gust)?Math.round(gust)+' km/h':'--');
-      safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1)+' mm':'--');
+      safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1).replace('.', ',')+' mm':'--');
       safeText('sp-live-hum',Number.isFinite(hum)?Math.round(hum)+'%':'--');
       safeText('kpi-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
       safeText('kpi-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
@@ -646,9 +647,9 @@ async function fetchProSP(){
     }
   }
 }
-async function radarOn(){if(!map||!PRO.radar)return;try{const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'});if(!r.ok)throw Error('radar '+r.status);const d=await r.json();if(!PRO.radar)return;const past=(d.radar&&d.radar.past)||[];if(!past.length)throw Error('sem frames');const frame=past[past.length-1];const host=d.host;const url=host+frame.path+'/256/{z}/{x}/{y}/2/1_1.png';if(map.getLayer('pro-radar-layer'))map.removeLayer('pro-radar-layer');if(map.getSource('pro-radar-source'))map.removeSource('pro-radar-source');map.addSource('pro-radar-source',{type:'raster',tiles:[url],tileSize:256,maxzoom:7,attribution:'Weather data by RainViewer'});map.addLayer({id:'pro-radar-layer',type:'raster',source:'pro-radar-source',paint:{'raster-opacity':.62,'raster-fade-duration':0}});PRO.radarLayer=true;const time=new Date(frame.time*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});safeText('radar-time-pro','Último quadro: '+time);if(q('radar-legend-pro'))q('radar-legend-pro').style.display='block';q('btn-radar-pro')?.classList.add('active');q('chip-radar')?.classList.add('active');setSource('RainViewer','ok',0);window.MonitorFreshness?.record('RainViewer',true,frame.time*1000)}catch(e){window.MonitorFreshness?.record('RainViewer',false);setSource('RainViewer','warn',null);safeText('radar-time-pro','Radar indisponível no momento')}}
+async function radarOn(){if(!map||!PRO.radar)return;try{const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'});if(!r.ok)throw Error('radar '+r.status);const d=await r.json();if(!PRO.radar)return;const past=(d.radar&&d.radar.past)||[];if(!past.length)throw Error('sem frames');const frame=past[past.length-1];const host=d.host;const url=host+frame.path+'/256/{z}/{x}/{y}/2/1_1.png';if(map.getLayer('pro-radar-layer'))map.removeLayer('pro-radar-layer');if(map.getSource('pro-radar-source'))map.removeSource('pro-radar-source');map.addSource('pro-radar-source',{type:'raster',tiles:[url],tileSize:256,maxzoom:7,attribution:'Weather data by RainViewer'});map.addLayer({id:'pro-radar-layer',type:'raster',source:'pro-radar-source',paint:{'raster-opacity':.62,'raster-fade-duration':0}});PRO.radarLayer=true;const time=new Date(frame.time*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});safeText('radar-time-pro','Último quadro: '+time);if(q('radar-legend-pro'))q('radar-legend-pro').style.display='block';q('btn-radar-pro')?.classList.add('active');q('chip-radar')?.classList.add('active');setSource('RainViewer','ok',0);window.MonitorFreshness?.record('RainViewer',true,frame.time*1000)}catch(e){window.MonitorFreshness?.record('RainViewer',false);setSource('RainViewer','off',null,e?.message||'Consulta do radar sem resposta válida');safeText('radar-time-pro','Radar indisponível no momento')}}
 function radarOff(){if(!map)return;try{if(map.getLayer('pro-radar-layer'))map.removeLayer('pro-radar-layer');if(map.getSource('pro-radar-source'))map.removeSource('pro-radar-source')}catch(e){}PRO.radarLayer=false;if(q('radar-legend-pro'))q('radar-legend-pro').style.display='none';q('btn-radar-pro')?.classList.remove('active')}
-function toggleRadar(){PRO.radar=!PRO.radar;if(PRO.radar)radarOn();else radarOff();q('chip-radar')?.classList.toggle('active',PRO.radar);q('chip-radar')?.setAttribute('aria-pressed',String(PRO.radar))}
+function toggleRadar(){PRO.radar=!PRO.radar;if(PRO.radar)radarOn();else radarOff();['chip-radar','btn-radar-pro','mobile-btn-radar'].forEach(id=>{q(id)?.classList.toggle('active',PRO.radar);q(id)?.setAttribute('aria-pressed',String(PRO.radar))})}
 function toggleCrisis(fromAuto){
   /* Modo crise removido permanentemente — site sempre em modo normal */
   if (typeof PRO !== 'undefined') PRO.crisis = false;
@@ -674,7 +675,7 @@ function syncMobileWeather(){
   if(Number.isFinite(w.feels) && q('sp-live-feels')){
     safeText('sp-live-feels','sens '+Math.round(w.feels)+'°');
   }
-  safeText('mobile-gust','💨 '+(Number.isFinite(w.gust)?Math.round(w.gust)+' km/h':'--'));safeText('mobile-rain','🌧️ '+(Number.isFinite(w.rain)?Number(w.rain).toFixed(1)+' mm':'--'));safeText('mobile-hum','💧 '+(Number.isFinite(w.hum)?Math.round(w.hum)+'%':'--'));
+  safeText('mobile-gust','💨 '+(Number.isFinite(w.gust)?Math.round(w.gust)+' km/h':'--'));safeText('mobile-rain','🌧️ '+(Number.isFinite(w.rain)?Number(w.rain).toFixed(1).replace('.', ',')+' mm':'--'));safeText('mobile-hum','💧 '+(Number.isFinite(w.hum)?Math.round(w.hum)+'%':'--'));
 }
 function syncMobileCemaden(status){
   const b=q('mobile-btn-cemaden'), s=q('mobile-cemaden-status');if(!b||!s)return;
@@ -682,7 +683,7 @@ function syncMobileCemaden(status){
   b.classList.remove('online','warn','off');if(st==='ok'){b.classList.add('online');s.textContent='CHUVA ✓'}else if(st==='warn'){b.classList.add('warn');s.textContent='CHUVA !'}else if(st==='off'){b.classList.add('off');s.textContent='CHUVA ×'}else{s.textContent='CHUVA'}
 }
 function bindMobilePro(){
-  q('mobile-btn-radar')?.addEventListener('click',()=>{toggleRadar();q('mobile-btn-radar').classList.toggle('active',PRO.radar)});
+  q('mobile-btn-radar')?.addEventListener('click',toggleRadar);
   /* mobile-btn-crisis removido */
   q('mobile-btn-replay')?.addEventListener('click',()=>{PRO.replay?stopReplay():startReplay();q('mobile-btn-replay').classList.toggle('active',PRO.replay)});
   q('mobile-btn-follow')?.addEventListener('click',()=>{PRO.follow=true;q('mobile-btn-follow').classList.add('active');showToast&&showToast('🎯 Câmera automática retomada','info')});
@@ -706,7 +707,7 @@ function operationalTick(){
     localStorage.setItem('monitor_last_snap', JSON.stringify(snap));
   } catch (e) {}
 }
-setInterval(operationalTick,15000);
+PeriodicScheduler.every('cemaden-operational-ui',operationalTick,15000,15000,'ui');
 function bind(){q('btn-radar-pro')?.addEventListener('click',toggleRadar);q('chip-radar')?.addEventListener('click',toggleRadar);/* btn-crisis-pro removido */q('btn-replay-pro')?.addEventListener('click',()=>PRO.replay?stopReplay():startReplay());q('btn-follow-pro')?.addEventListener('click',()=>{PRO.follow=true;q('btn-follow-pro').classList.add('active');showToast&&showToast('🎯 Câmera automática retomada','info')});q('btn-sources')?.addEventListener('click',()=>q('source-card').classList.toggle('open'));document.querySelectorAll('.replay-actions [data-speed]').forEach(b=>b.addEventListener('click',()=>setReplaySpeed(Number(b.dataset.speed))));q('replay-stop-pro')?.addEventListener('click',stopReplay);q('replay-range-pro')?.addEventListener('input',e=>{buildReplay();if(PRO.events.length){PRO.idx=Math.floor(Number(e.target.value)/100*PRO.events.length);const x=PRO.events[Math.min(PRO.idx,PRO.events.length-1)];if(x&&map)map.flyTo({center:x.coords,zoom:6,duration:700})}});window.addEventListener('resize',()=>{if(map&&map.resize)map.resize()});q('btn-cemaden-layer')?.addEventListener('click',toggleCemadenLayer);bindMobilePro();syncMobileRisk();syncMobileWeather();syncMobileCemaden();window.addEventListener('resize',()=>{if(map&&map.resize)map.resize()});}
 function hookMap(){if(!map)return;map.on('dragstart',()=>{PRO.follow=false;q('btn-follow-pro')?.classList.remove('active')});map.on('zoomstart',()=>{if(!PRO.replay){PRO.follow=false;q('btn-follow-pro')?.classList.remove('active')}});// O mapa pode já ter carregado quando este hook é instalado.
 const startRadar=()=>setTimeout(radarOn,900);
@@ -734,7 +735,7 @@ function boot(){
   agendarBusca(fetchCemaden, 1500, 120000);
   agendarBusca(fetchRedemetMetar, 3000, 600000);   // METAR REDEMET/DECEA (~30 aeródromos)
 
-  setInterval(updateRisk,15000);setTimeout(()=>{if(map){hookMap()}else{const x=setInterval(()=>{if(map){clearInterval(x);hookMap()}},500)}},1500);
+  PeriodicScheduler.every('cemaden-risk-ui',updateRisk,15000,15000,'ui');setTimeout(()=>{if(map){hookMap()}else{const x=setInterval(()=>{if(map){clearInterval(x);hookMap()}},500)}},1500);
   // Expõe para o menu ☰ "Recarregar dados"
   window.checkSources = checkSources;
   window.fetchProSP = fetchProSP;

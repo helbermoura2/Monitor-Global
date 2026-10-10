@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v613-hydraulic-bore';
+const CACHE = 'monitor-global-pro-v668-source-health-v4';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

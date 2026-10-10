@@ -14,32 +14,58 @@ let __fetchGlobalFeedsEmAndamento = false;
 // Revisões aguardam os eventos novos/ao vivo; maior magnitude vem primeiro.
 const pendingNewCameraQuakes = new Map();
 function queueNewCameraQuakes(items) {
-    // New arrivals, including supplemental catalogs, can clear the election
-    // overlay before the map focuses a strong quake. Initial loads/rotation
-    // do not call this queue.
-    window.ElectionPanel?.newQuakes(items);
     for (const item of items || []) {
         if (item && item.id != null) pendingNewCameraQuakes.set(item.id, {arrived:Date.now()});
     }
+    // The election UI cannot prevent an arrival from entering the camera queue.
+    try { window.ElectionPanel?.newQuakes(items); } catch(e) { console.warn('[prioridade sísmica] eleição:',e); }
 }
-function focusNextNewCameraQuake() {
+function isRecentCameraQuake(event){
+    const age=Date.now()-Number(event?.time);
+    const limit=typeof SISMO_NOVO_RECENTE_MS==='number'?SISMO_NOVO_RECENTE_MS:30*60000;
+    return Number.isFinite(age)&&age>=-5*60000&&age<=limit;
+}
+function focusNextNewCameraQuake(minMagnitude = 0) {
+    if(document.hidden)return false;
     if (!map) return false;
-    const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
-        Date.now() < (window.__mgRevisionProtectedUntil || 0);
-    const candidates = [];
+    const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
+    const currentMag=Number(current?.mag) || 0;
+    const protectedSelection = window.__mgQuakePresentationMode !== 'auto' &&
+        window.__mgRevisionProtectedId === eventoSelecionadoId && Date.now() < (window.__mgRevisionProtectedUntil || 0) &&
+        (window.__mgQuakePresentationMode==='new' || currentMag>=5 || isRecentCameraQuake(current));
+    const candidates = [],included=new Set();
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0 || id === eventoSelecionadoId) { pendingNewCameraQuakes.delete(id); continue; }
-        candidates.push({index, event:globalEvents[index], arrived:entry.arrived});
+        if (index < 0 || id === eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
+        candidates.push({index, event:globalEvents[index], arrived:entry.arrived});included.add(id);
+    }
+    // Revisions can raise an already known event above the quake on screen.
+    // Also recover a newly badged arrival if its enqueue path was interrupted.
+    for(let index=0;index<globalEvents.length;index++){
+        const event=globalEvents[index];
+        if(!event||!isRecentCameraQuake(event)||event.id===eventoSelecionadoId||included.has(event.id))continue;
+        const revision=pendingQuakeRevisions.get(event.id);
+        const freshBadge=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(event.id)||0)>Date.now();
+        const presented=window.__mgQuakeCameraPresented?.get(event.id);
+        const raised=revision&&Number(event.mag)>Number(revision._previousMag??presented??event.mag);
+        if(raised&&Number(event.mag)<=currentMag&&!freshBadge)continue;
+        if(!raised&&(!freshBadge||(presented!=null&&presented>=Number(event.mag))))continue;
+        const arrived=Number(revision?._updatedAt||event._novoAt)||Date.now();
+        candidates.push({index,event,arrived});
+        if(freshBadge&&!pendingNewCameraQuakes.has(event.id))pendingNewCameraQuakes.set(event.id,{arrived});
     }
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
+    if (minMagnitude > 0) {
+        for (let i=candidates.length-1;i>=0;i--) if(Number(candidates[i].event.mag)<minMagnitude)candidates.splice(i,1);
+    }
     if (!candidates.length) return false;
     const next=candidates[0];
-    const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
+    if(Number(next.event.mag)<5&&window.VolcanoPriority?.presentationActive())return false;
     // Automatic revisits never delay a newly arrived quake. A larger arrival
     // may interrupt a live/manual hold; equal or smaller arrivals wait.
-    if (protectedSelection && Number(next.event.mag)<=Number(current?.mag)) return false;
+    if (protectedSelection && Number(next.event.mag)<=currentMag) return false;
     pendingNewCameraQuakes.delete(next.event.id);
+    pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;
     showEventDetails(next.index,true);
     return true;
@@ -51,9 +77,10 @@ function queueQuakeRevisions(items) {
     }
 }
 function focusNextQuakeRevision(blocked = false) {
+    if(document.hidden)return false;
     // Chegadas novas têm prioridade sobre todas as revisões pendentes.
     if (focusNextNewCameraQuake()) return true;
-    if (pendingNewCameraQuakes.size) return false;
+    if (pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) return false;
     const live = window.__mgLiveQuakeId === eventoSelecionadoId &&
         Date.now() < (window.__mgLiveQuakeUntil || 0);
     const protectedSelection = window.__mgRevisionProtectedId === eventoSelecionadoId &&
@@ -62,7 +89,7 @@ function focusNextQuakeRevision(blocked = false) {
     const candidates = [];
     for (const [id, revision] of pendingQuakeRevisions) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0) { pendingQuakeRevisions.delete(id); continue; }
+        if (index < 0 || id===eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingQuakeRevisions.delete(id); continue; }
         candidates.push({index, revision, event:globalEvents[index]});
     }
     candidates.sort((a,b) => (Number(b.event.mag)||0)-(Number(a.event.mag)||0) ||
@@ -331,11 +358,12 @@ async function fetchGlobalFeeds() {
                     const prelimMudou = !!prev.isPreliminary !== !!ev.isPreliminary;
                     if (magMudou || depthMudou || fontesMudou || qualityMudou || prelimMudou) {
                         const parts = [];
-                        if (magMudou) parts.push(`M${Number(prev.mag).toFixed(1)} → M${Number(ev.mag).toFixed(1)}`);
+                        if (magMudou) parts.push(`M${Number(prev.mag).toFixed(1).replace('.', ',')} → M${Number(ev.mag).toFixed(1).replace('.', ',')}`);
                         if (depthMudou) parts.push(`${Number(prev.depth).toFixed(0)} → ${Number(ev.depth).toFixed(0)} km`);
                         if (prelimMudou && prev.isPreliminary && !ev.isPreliminary) parts.push('preliminar → revisado');
                         if (fontesMudou && !magMudou) parts.push(`Fontes: ${ev.sourceSummary || ev.source}`);
                         if (qualityMudou && !magMudou && !prelimMudou) parts.push(`Qualidade ${prev.quality || '—'} → ${ev.quality || '—'}`);
+                        ev._previousMag = Number(prev.mag);
                         ev._deltaTxt = parts.join(' · ') || 'Dado atualizado pela fonte';
                         ev._updatedAt = Date.now();
                         atualizados.push(ev);
@@ -349,9 +377,9 @@ async function fetchGlobalFeeds() {
 
         // "Novo pra esta sessão" (isNew) não é o mesmo que "aconteceu agora": uma
         // rede regional pode publicar um sismo pequeno horas depois da origem real
-        // (revisão humana, sincronização atrasada). Só o que de fato aconteceu
-        // dentro da janela recente ganha o alarme completo (som, voo de câmera,
-        // radar no mapa); o resto só recebe um selo discreto, sem susto.
+        // (revisão humana, sincronização atrasada). O som e o selo de chegada
+        // recente continuam usando a origem; a fila de apresentação inclui
+        // todos os registros novos válidos até 72h, mesmo publicados com atraso.
         const novoAgora = Date.now();
         const novosRecentes = [];
         const novosTardios = [];
@@ -445,7 +473,7 @@ async function fetchGlobalFeeds() {
         if (isFirstDisplay) {
             requestInitialAutoDisplay();
         } else {
-            queueNewCameraQuakes(novosRecentes);
+            queueNewCameraQuakes(novos.filter(ev=>isWithinAutoCycleAge(ev)));
             focusNextNewCameraQuake();
         }
 
@@ -481,7 +509,7 @@ async function fetchGlobalFeeds() {
 
             if (max.mag >= 5) {
                 notificarNavegador(
-                    `🌍 M${max.mag.toFixed(1)} — ${max.place}`,
+                    `🌍 M${max.mag.toFixed(1).replace('.', ',')} — ${max.place}`,
                     `${novosRecentes.length} novo(s) • ${max.sourceSummary || max.source}`
                 );
             }

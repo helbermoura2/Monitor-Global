@@ -172,10 +172,10 @@ function traduzirEIdentificar(t0) {
     // dos chamadores, então um sismo perto do Equador sem texto de local virava
     // "Oceano Global" mesmo estando em terra/costa conhecida.
     if (!t0) return { nome: "", bandeira: "", pais: "" };
-    let out = t0, pais = "";
+    let out = window.EventPortuguese?.place(t0)||t0, pais = "";
     const txt = t0.toLowerCase();
     for (const [e, p] of Object.entries(traducoesLocais)) {
-        if (txt.includes(e)) { out = t0.replace(new RegExp(e, 'gi'), p); break; }
+        if (txt.includes(e)) { out = out.replace(new RegExp(e, 'gi'), p); break; }
     }
     const low = out.toLowerCase();
     // Ordena chaves por tamanho (maior primeiro) para "coreia do sul" vencer "coreia"
@@ -298,6 +298,7 @@ function extractWindKmh(texto) {
 // mesmo já tendo o dado de severidade disponível). Cobre também o campo
 // numérico `sev` que fontes como o CGE-SP usam em vez do texto do GDACS.
 function corSeveridadeAlerta(item) {
+    if(item?.type==='tsunami'&&item.hazardNature==='bulletin')return '#38bdf8';
     const nivel = String((item && item.gdacsAlertLevel) || '').toLowerCase();
     if (nivel === 'red') return '#ef4444';
     if (nivel === 'orange') return '#fb923c';

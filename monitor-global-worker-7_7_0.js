@@ -1,3 +1,5 @@
+import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion} from "./seismic-image-data.mjs";
+import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
@@ -93,7 +95,7 @@ function clampFdsnParams(url) {
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
     'Access-Control-Allow-Headers': '*',
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
     'Pragma': 'no-cache',
@@ -409,37 +411,7 @@ async function getEonet() {
     } catch (e) { return { source: 'EONET', ok: false, items: [], error: e.message }; }
 }
 
-async function getTsunamiAlerts() {
-    const urls = [
-        'https://www.tsunami.gov/events/xml/PHEBAtom.xml',
-        'https://www.tsunami.gov/events/xml/PAAQAtom.xml'
-    ];
-    const out = [];
-    for (const u of urls) {
-        try {
-            const r = await fetchText(u, { headers: { 'User-Agent': 'MonitorGlobal/6.1', 'Accept': 'application/atom+xml,application/xml,text/xml,*/*' } }, 12000);
-            if (!r.ok) continue;
-            const blocks = xmlItems(r.text, 'entry');
-            for (const b of blocks.slice(0, 50)) {
-                const title = xmlTag(b, 'title') || 'Aviso de tsunami';
-                const summary = xmlTag(b, 'summary') || xmlTag(b, 'content') || '';
-                const updated = xmlTag(b, 'updated') || xmlTag(b, 'published') || '';
-                const id = xmlTag(b, 'id') || `${u}-${updated}-${title}`;
-                const linkMatch = b.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i);
-                out.push({
-                    id: `TS-${id}`.slice(0, 200),
-                    source: u.includes('PHEB') ? 'PTWC' : 'NTWC',
-                    type: 'tsunami',
-                    title: title.replace(/\s+/g, ' ').trim(),
-                    description: summary.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
-                    link: linkMatch ? linkMatch[1] : 'https://www.tsunami.gov/',
-                    time: Date.parse(updated) || Date.now()
-                });
-            }
-        } catch {}
-    }
-    return { source: 'TSUNAMI-GOV', ok: out.length > 0, items: out, error: out.length ? null : 'feeds indisponíveis' };
-}
+async function getTsunamiAlerts() { return getOfficialTsunamis(); }
 
 async function getNws() {
     try {
@@ -513,13 +485,7 @@ async function getOfficialTsunamiCorrelation(lat, lon) {
     const alerts = await getTsunamiAlerts();
     const now = Date.now();
     const fresh = (alerts.items || []).filter(x => now - (x.time || now) < 24*3600000);
-    const candidates = fresh.map(x => {
-        const t = normText(`${x.title} ${x.description}`);
-        let regionMatch = false;
-        if (Math.abs(lat) > 0 && (t.includes('pacific') || t.includes('hawaii') || t.includes('alaska') || t.includes('caribbean') || t.includes('japan') || t.includes('indonesia') || t.includes('chile') || t.includes('peru'))) regionMatch = true;
-        return { ...x, regionMatch };
-    });
-    const relevant = candidates.filter(x => x.regionMatch || /warning|advisory|watch|tsunami/.test(normText(`${x.title} ${x.description}`)));
+    const relevant = fresh.filter(x => x.hazardNature === 'warning' && Array.isArray(x.coords) && haversineKm(lat, lon, x.coords[1], x.coords[0]) <= 100);
     return { online: alerts.ok, alerts: relevant.slice(0, 12) };
 }
 
@@ -1177,7 +1143,7 @@ async function handleRedemet(reqUrl, env) {
 
 
 // =========================================================
-// TELEGRAM — alertas M6+ com CARD (magnitude + textos na imagem)
+// TELEGRAM — M6+ globais e todos os sismos brasileiros com CARD (magnitude + textos na imagem)
 // Secrets no Cloudflare: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 // =========================================================
 
@@ -1188,22 +1154,10 @@ const TELEGRAM_ALERT_TTL = 86400 * 3; // 3 dias de memória anti-spam
 // nos primeiros minutos — cada rede sismológica que contribui pro catálogo
 // (ex.: "us", "pt"/IPMA, etc.) publica sua própria solução de magnitude/
 // profundidade, com ID próprio, antes do ComCat mesclar tudo numa única
-// entrada "preferida". O dedup abaixo é só por ID, então cada solução vira
-// um alerta M6+ separado — foi o que aconteceu com M7.0 (rede PT) e M6.6
-// (rede US) do mesmo tremor perto de Tadine, Nova Caledônia, chegando como
-// dois cards de ~2s de diferença. TELEGRAM_DUP_KM/TELEGRAM_DUP_WINDOW_MS
-// definem quando duas dessas soluções contam como "provavelmente o mesmo
-// tremor" pra virar uma mensagem de atualização em vez de um card novo.
-const TELEGRAM_DUP_KM = 150;
-const TELEGRAM_DUP_WINDOW_MS = 30 * 60000;
-// Magnitude preliminar de sismo grande costuma ser revisada nos primeiros
-// minutos (ex.: um M6.1 que baixa pra M5.9) — USGS/EMSC filtram a própria
-// consulta pela magnitude ATUAL, então um evento revisado pra baixo do
-// limiar simplesmente some da resposta no próximo ciclo. Em vez de mandar
-// o card no instante em que o sismo cruza TELEGRAM_MIN_MAG pela primeira
-// vez, ele vira um "candidato" por TELEGRAM_HOLD_MS; só dispara de
-// verdade se ainda aparecer com mag >= TELEGRAM_MIN_MAG depois da espera.
-const TELEGRAM_HOLD_MS = 3 * 60000;
+// entrada "preferida". Antes, cada ID produzia um cartão separado, inclusive
+// M7.0 (PT) e M6.6 (US) do mesmo tremor perto de Tadine, Nova Caledônia.
+// Agora, rede, horário de origem e epicentro identificam estimativas do mesmo
+// tremor para atualizar o cartão original, preservando os eventos distintos.
 
 // ---------- Card PNG (gerado no Worker, sem dependência externa) ----------
 // =========================================================
@@ -3409,6 +3363,7 @@ function textFontWidthProp(font, text, tracking = 1) {
 function sanitizeFontText(text) {
     let s = String(text ?? '')
         .replace(/[–—−]/g, '-')
+        .replace(/→/g, 'para')
         .replace(/[“”«»]/g, '"')
         .replace(/[‘’‚‛]/g, "'")
         .replace(/…/g, '...')
@@ -3802,28 +3757,21 @@ function estimarMercalliCard(m, d) {
 function calcularEnergiaCard(m) {
     const j = Math.pow(10, 1.5 * m + 4.8);
     const t = j / 4.184e9;
-    const f = t < 1 ? (t * 1000).toFixed(1) + ' kg' :
-        t < 1000 ? t.toFixed(1) + ' ton' :
-            t < 1e6 ? (t / 1000).toFixed(1) + ' kt' :
-                (t / 1e6).toFixed(1) + ' Mt';
+    const f = t < 1 ? (t * 1000).toFixed(1).replace('.', ',') + ' kg' :
+        t < 1000 ? t.toFixed(1).replace('.', ',') + ' ton' :
+            t < 1e6 ? (t / 1000).toFixed(1).replace('.', ',') + ' kt' :
+                (t / 1e6).toFixed(1).replace('.', ',') + ' Mt';
     return f;
 }
 function calcularMecanismoFocalCard(depth, lat, lng, place) {
-    const n = String(place || '').toLowerCase();
-    if (n.includes('califórnia') || n.includes('california') || n.includes('san andreas') || n.includes('turquia') || n.includes('caribe')) {
-        return { tipo: 'Lateral (Transcorrência)', desc: 'As placas deslizaram horizontalmente.', kind: 'leftright' };
-    }
-    if (depth > 70) return { tipo: 'Inversa (Para Cima)', desc: 'Ação compressiva extrema.', kind: 'up' };
-    if (n.includes('islândia') || n.includes('iceland') || n.includes('ocean')) {
-        return { tipo: 'Normal (Para Baixo)', desc: 'Força de extensão.', kind: 'down' };
-    }
-    return { tipo: 'Não determinado (estimativa)', desc: 'Sem dados suficientes.', kind: 'unknown' };
+    // Location/depth alone cannot identify a focal mechanism.
+    return { tipo: 'Mecanismo focal indisponivel', desc: 'Tipo de falha sem dados oficiais.', kind: 'unknown' };
 }
 function formatCoordCard(lat, lon) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'L' : 'O';
-    return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lon).toFixed(2)}°${lonDir}`;
+    return `${Math.abs(lat).toFixed(2).replace('.', ',')}°${latDir}, ${Math.abs(lon).toFixed(2).replace('.', ',')}°${lonDir}`;
 }
 function approxLocalTimeCard(timeIso, lon) {
     if (!Number.isFinite(lon) || !timeIso) return '';
@@ -3842,8 +3790,8 @@ function niceScaleValueCard(x) {
     return nice * Math.pow(10, exp);
 }
 /** Barra de escala tipo "≈ 200 km" (mesma fórmula de projeção Web Mercator do site). */
-function drawScaleBarCard(rgba, w, h, font, x, y, lat, zoom) {
-    const metrosPorPx = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+function drawScaleBarCard(rgba, w, h, font, x, y, lat, zoom, frame) {
+    const metrosPorPx = frame ? imageMetersPerPixel(frame, lat) : 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
     if (!Number.isFinite(metrosPorPx) || metrosPorPx <= 0) return;
     const maxBarPx = 140;
     const kmAlvo = (maxBarPx * metrosPorPx) / 1000;
@@ -3852,7 +3800,7 @@ function drawScaleBarCard(rgba, w, h, font, x, y, lat, zoom) {
     fillRect(rgba, w, x, y - 8, 2, 8, 226, 232, 240);
     fillRect(rgba, w, x, y, barPx, 2, 226, 232, 240);
     fillRect(rgba, w, x + barPx - 2, y - 8, 2, 8, 226, 232, 240);
-    drawTextFontHalo(rgba, w, h, font, `~${km >= 1 ? km : km.toFixed(1)} km`, x, y - 8 - font.cellH - 2, 226, 232, 240);
+    drawTextFontHalo(rgba, w, h, font, `~${km >= 1 ? km : km.toFixed(1).replace('.', ',')} km`, x, y - 8 - font.cellH - 2, 226, 232, 240);
 }
 
 
@@ -4018,9 +3966,9 @@ async function fetchBinaryWithTimeout(url, timeoutMs = 6000) {
 }
 
 /** Tenta cada URL de staticMapUrls em ordem até uma decodificar com sucesso. Retorna null se todas falharem. */
-async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440) {
+async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anchorY = imgH / 2) {
     if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
-    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH);
+    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH, anchorY);
     for (const url of urls) {
         try {
             const bytes = await fetchBinaryWithTimeout(url, 6000);
@@ -4034,171 +3982,64 @@ async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440) {
 }
 
 async function renderAlertCardPng(ev) {
-    const W = 800, H = 1440;
-    const rgba = new Uint8Array(W * H * 4);
-    const fonts = await getFontAtlases();
-    const mag = Number(ev.mag);
-    const magColor = getHexColorFromMag(mag);
-    const zoom = 7; // zoom 7 = barra de escala ~100 km (zoom 6 dava ~200 km)
-
-    // --- mapa do epicentro: ocupa o cartão INTEIRO (0 a H) como plano de
-    // fundo, igual à referência (o card da Indonésia) — sem faixa preta
-    // nenhuma. mapBoxH só serve de referência de layout (onde o marcador/
-    // gauge/textos ficam), não corta mais a imagem em lugar nenhum.
-    const mapBoxH = 440;
-    fillRect(rgba, W, 0, 0, W, H, 8, 14, 26); // fallback sólido só se o mapa falhar
-    let mapImg = null;
-    if (Number.isFinite(Number(ev.lat)) && Number.isFinite(Number(ev.lon))) {
-        try { mapImg = await fetchEpicenterMap(ev.lat, ev.lon, zoom, W, H); }
-        catch (e) { console.warn('fetchEpicenterMap falhou:', e.message); }
+    const W=800,H=1440,rgba=new Uint8Array(W*H*4),fonts=await getFontAtlases();
+    const frame=globalThis.QuakeCardLayout.frame(ev);
+    fillRect(rgba,W,0,0,W,H,9,33,48);
+    const mapImg=await fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY);
+    if(mapImg){
+        drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
+        fillRect(rgba,W,0,0,W,frame.height,0,0,0,51);
+        await overlayImageIntensity(rgba,frame,ev);
+        // Labels and administrative boundaries stay above the intensity colors.
+        try{
+            const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
+            const url='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=800,820&format=png32&transparent=true&f=image';
+            const labels=await decodePng(await fetchBinaryWithTimeout(url,4000));
+            drawImageCover(rgba,W,H,labels,0,0,W,frame.height);
+        }catch(e){console.warn('map labels unavailable:',e.message);}
     }
-    if (mapImg) {
-        drawImageCover(rgba, W, H, mapImg, 0, 0, W, H);
-        // tinta azul-escura uniforme por cima do mapa INTEIRO — o mapa
-        // continua visível (apagado) do topo ao rodapé, sem virar preto
-        // sólido em nenhum trecho, igual à referência.
-        fillRect(rgba, W, 0, 0, W, H, 8, 14, 26, 112);
-    }
-
-    // --- marcador do epicentro + escala, sempre no centro exato da caixa ---
-    const markerCx = W / 2, markerCy = Math.round(mapBoxH / 2);
-    fillCircle(rgba, W, H, markerCx, markerCy, 50, magColor[0], magColor[1], magColor[2], 55);
-    fillCircle(rgba, W, H, markerCx, markerCy, 34, magColor[0], magColor[1], magColor[2], 110);
-    fillCircle(rgba, W, H, markerCx, markerCy, 7, 255, 255, 255, 255);
-    fillCircle(rgba, W, H, markerCx, markerCy, 4, magColor[0], magColor[1], magColor[2], 255);
-    if (mapImg && Number.isFinite(ev.lat)) {
-        drawScaleBarCard(rgba, W, H, fonts.micro, 40, markerCy + 150, ev.lat, zoom);
-    }
-
-    // --- cabeçalho (texto com halo, sempre legível em cima do mapa) ---
-    drawTextFontHalo(rgba, W, H, fonts.small, 'MONITOR GLOBAL', 32, 40, 56, 189, 248);
-    const aoVivoW = textFontWidth(fonts.small, 'AO VIVO');
-    drawTextFontHalo(rgba, W, H, fonts.small, 'AO VIVO', W - 32 - aoVivoW, 40, 248, 113, 113);
-
-    // --- velocímetro de magnitude + número, centralizados ---
-    const gaugeR = 100, gaugeThick = 22, gaugeOuterR = gaugeR + gaugeThick / 2;
-    const magStr = `M${mag.toFixed(1)}`;
-    const magStrW = textFontWidth(fonts.hero, magStr);
-    const gaugeGap = 40;
-    const groupW = gaugeOuterR * 2 + gaugeGap + magStrW;
-    const gaugeCx = Math.round(W / 2 - groupW / 2 + gaugeOuterR);
-    const gaugeCy = mapBoxH + 40 + gaugeOuterR;
-    const frac = Math.max(0.04, Math.min(1, (mag - 2) / 7));
-    drawArc(rgba, W, H, gaugeCx, gaugeCy, gaugeR, gaugeThick, 135, 270, 100, 116, 139, 100); // trilho
-    drawArc(rgba, W, H, gaugeCx, gaugeCy, gaugeR, gaugeThick, 135, 270 * frac, magColor[0], magColor[1], magColor[2], 255);
-    drawTextFontHalo(rgba, W, H, fonts.hero, magStr,
-        gaugeCx + gaugeR + gaugeGap, gaugeCy - Math.round(fonts.hero.cellH / 2),
-        magColor[0], magColor[1], magColor[2]);
-
-    let yCursor = gaugeCy + gaugeOuterR + 60;
-
-    // --- local do evento (centralizado, até 2 linhas) ---
-    const place = String(ev.place || 'Local desconhecido');
-    const availCharsPlace = Math.floor((W - 140) / fonts.small.cellW);
-    const placeLines = wrapText(place, availCharsPlace, 2);
-    const placeLineH = fonts.small.cellH + 6;
-    placeLines.forEach((line, i) => {
-        drawTextFontCenteredHalo(rgba, W, H, fonts.small, line, W / 2, yCursor + i * placeLineH, 241, 245, 249);
+    const rgb=color=>color.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16));
+    const fontFor=(size,bold)=>bold?fonts.titleProp:fonts.captionProp;
+    const textWidth=(text,size,bold)=>textFontWidthProp(fontFor(size,bold),sanitizeFontText(text),0)*size/(bold?26:16);
+    const painter={
+        gradient:(x,y,w,h,from,to)=>{const a=rgb(from),b=rgb(to);for(let row=0;row<h;row++)fillRect(rgba,W,x,y+row,w,1,...a.map((v,i)=>Math.round(v+(b[i]-v)*row/h)));},
+        roundRect:(x,y,w,h,c)=>{const r=8,color=rgb(c);fillRect(rgba,W,x+r,y,w-2*r,h,...color);fillRect(rgba,W,x,y+r,w,h-2*r,...color);for(const xx of [x+r,x+w-r])for(const yy of [y+r,y+h-r])fillCircle(rgba,W,H,xx,yy,r,...color,255);},
+        rect:(x,y,w,h,c)=>fillRect(rgba,W,x,y,w,h,...rgb(c)),
+        dot:(x,y,r,c)=>fillCircle(rgba,W,H,x,y,r,...rgb(c),255),
+        arc:(x,y,r,t,a,s,c)=>drawArc(rgba,W,H,x,y,r,t,a,s,...rgb(c),255),
+        measure:textWidth,
+        text:(text,x,y,size,c,bold=false)=>{
+            text=sanitizeFontText(text);const f=fontFor(size,bold),tw=Math.ceil(textFontWidthProp(f,text,0))+2;
+            const pixels=new Uint8Array(tw*f.cellH*4);
+            drawTextFontProp(pixels,tw,f.cellH,f,text,0,0,...rgb(c),0);
+            const scale=size/(bold?26:16);
+            const color=rgb(c),channel=color.indexOf(Math.max(...color)),dh=Math.ceil(f.cellH*scale),dw=Math.ceil(tw*scale);
+            // Bilinear alpha keeps the shared sans-serif typography smooth at any size.
+            for(let yy=0;yy<dh;yy++)for(let xx=0;xx<dw;xx++){
+                const dx=Math.round(x)+xx,dy=Math.round(y)+yy;if(dx<0||dx>=W||dy<0||dy>=H)continue;
+                const sx=xx/scale,sy=yy/scale,x0=Math.floor(sx),y0=Math.floor(sy),tx=sx-x0,ty=sy-y0;
+                const alpha=(ix,iy)=>ix>=0&&ix<tw&&iy>=0&&iy<f.cellH?pixels[(iy*tw+ix)*4+channel]/color[channel]:0;
+                const a=alpha(x0,y0)*(1-tx)*(1-ty)+alpha(x0+1,y0)*tx*(1-ty)+alpha(x0,y0+1)*(1-tx)*ty+alpha(x0+1,y0+1)*tx*ty;
+                const index=(dy*W+dx)*4;for(let k=0;k<3;k++)rgba[index+k]=Math.round(rgba[index+k]*(1-a)+color[k]*a);
+            }
+        }
+    };
+    const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
+    globalThis.QuakeCardLayout.draw(painter,{...ev,
+        color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
+        when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
+        sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),
+        mmi:mmi.nivel,energy:calcularEnergiaCard(Number(ev.mag)),exposure:ev.imageExposure
     });
-    yCursor += placeLines.length * placeLineH + 26;
-
-    // --- data/hora, hora local aprox. + coordenadas, fonte ---
-    const when = ev.timeIso
-        ? new Date(ev.timeIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' BRT'
-        : '--';
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, when, W / 2, yCursor, 226, 232, 240);
-    yCursor += fonts.micro.cellH + 8;
-
-    const localInfo = [approxLocalTimeCard(ev.timeIso, ev.lon), formatCoordCard(ev.lat, ev.lon)]
-        .filter(Boolean).join(' - ');
-    if (localInfo) {
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, localInfo, W / 2, yCursor, 148, 163, 184);
-        yCursor += fonts.micro.cellH + 8;
-    }
-
-    const src = `Fonte: ${ev.source || 'USGS'} - ${ev.reviewed ? 'revisado' : 'automatico'}`;
-    drawTextFontCenteredHalo(rgba, W, H, fonts.micro, src, W / 2, yCursor, 148, 163, 184);
-    yCursor += fonts.micro.cellH + 56;
-
-    // --- 3 cards de estatística: profundidade, intensidade (MMI), energia ---
-    const depthVal = Number.isFinite(ev.depth) ? ev.depth : null;
-    const prof = depthVal !== null ? classificarProfundidadeCard(depthVal) : { label: '--', cor: [148, 163, 184] };
-    const mmi = estimarMercalliCard(mag, depthVal || 0);
-    const energiaStr = calcularEnergiaCard(mag);
-
-    const cardGap = 24, cardMargin = 60;
-    const cardW = Math.round((W - cardMargin * 2 - cardGap * 2) / 3);
-    const cardTop = yCursor, cardH = 190;
-    const stats = [
-        { label: 'PROFUNDIDADE', value: depthVal !== null ? `${depthVal} km` : '--', sub: prof.label, cor: prof.cor },
-        { label: 'INTENSIDADE (MMI)', value: mmi.nivel, sub: 'estimada', cor: mmi.cor },
-        { label: 'ENERGIA', value: energiaStr, sub: 'TNT equiv.', cor: [226, 232, 240] }
-    ];
-    stats.forEach((s, i) => {
-        const cx0 = cardMargin + i * (cardW + cardGap);
-        const cxMid = cx0 + cardW / 2;
-        if (i > 0) fillRect(rgba, W, cx0 - cardGap / 2, cardTop, 1, cardH, 100, 116, 139, 70);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, s.label, cxMid, cardTop + 4, 148, 163, 184);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.small, s.value, cxMid, cardTop + 44, s.cor[0], s.cor[1], s.cor[2]);
-        drawTextFontCenteredHalo(rgba, W, H, fonts.micro, s.sub, cxMid, cardTop + 88, s.cor[0], s.cor[1], s.cor[2]);
-    });
-    yCursor = cardTop + cardH + 20;
-
-    // --- mecanismo focal ---
-    fillRect(rgba, W, cardMargin, yCursor, W - cardMargin * 2, 1, 100, 116, 139, 60);
-    yCursor += 40;
-    const mec = calcularMecanismoFocalCard(depthVal || 0, ev.lat, ev.lon, place);
-    const iconCx = cardMargin + 34, iconCy = yCursor + 20;
-    fillCircle(rgba, W, H, iconCx, iconCy, 34, 30, 41, 59, 255);
-    drawMechanismIcon(rgba, W, H, iconCx, iconCy, 30, mec.kind, 226, 232, 240);
-    if (mec.kind === 'unknown') {
-        drawTextFontHalo(rgba, W, H, fonts.small, '?', iconCx - Math.round(fonts.small.cellW / 2), iconCy - Math.round(fonts.small.cellH / 2), 226, 232, 240);
-    }
-    drawTextFontHalo(rgba, W, H, fonts.small, mec.tipo, iconCx + 54, iconCy - fonts.small.cellH + 4, 226, 232, 240);
-    drawTextFontHalo(rgba, W, H, fonts.micro, mec.desc, iconCx + 54, iconCy + 10, 148, 163, 184);
-    yCursor = iconCy + 34 + 40;
-
-    // --- rodapé marca: translúcido, o mapa continua aparecendo por baixo
-    // (texto com halo garante leitura mesmo sem fundo sólido) ---
-    fillRect(rgba, W, 0, H - 64, W, 64, 10, 16, 28, 130);
-    drawTextFontHalo(rgba, W, H, fonts.small, 'monitorglobal.top', cardMargin, Math.round(H - 64 + (64 - fonts.small.cellH) / 2), 56, 189, 248);
-    const subtitle = 'Telegram: Monitor Global';
-    const subtitleW = textFontWidth(fonts.micro, subtitle);
-    drawTextFontHalo(rgba, W, H, fonts.micro, subtitle, W - cardMargin - subtitleW, Math.round(H - 64 + (64 - fonts.micro.cellH) / 2), 100, 116, 139);
-
-    return rgbaToPng(rgba, W, H);
+    return rgbaToPng(rgba,W,H);
 }
 
 
-function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440) {
-    const la = Number(lat);
-    const lo = Number(lon);
-    const z = Math.max(3, Math.min(10, zoom | 0));
-    // bbox a partir do zoom (graus). O span horizontal só depende do zoom
-    // (é ele quem define o grau/pixel usado também na barra de escala);
-    // o span vertical é derivado da proporção imgH/imgW pra manter o
-    // mesmo grau/pixel nos dois eixos — assim o Esri não precisa
-    // esticar/cortar nada pra caber, seja numa caixa 800x440 ou, como
-    // agora, numa imagem 800x1440 (mapa cobrindo o cartão inteiro).
-    const span = 180 / Math.pow(2, z);
-    const minLon = lo - span;
-    const maxLon = lo + span;
-    const vSpan = span * (imgH / imgW);
-    const minLat = la - vSpan;
-    const maxLat = la + vSpan;
-    const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
-    const yandexLl = `${lo.toFixed(5)},${la.toFixed(5)}`;
-    return [
-        // 1) Esri World Imagery — satélite de verdade, sem chave, tamanho exato
-        // (evita upscaling/serrilhado e mantém o epicentro no centro exato)
-        `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=${imgW},${imgH}&format=png&f=image`,
-        // 2) Yandex satélite (fallback — hoje exige API key fora da Rússia
-        // pra uso comercial, então pode falhar; o drawImageCover recorta/
-        // estica pro tamanho do cartão mesmo se vier numa proporção diferente)
-        `https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${yandexLl}&z=${z}&l=sat&size=650,450`,
-        // 3) Yandex esquemático — último recurso, só pra não cair no fallback decorativo
-        `https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${yandexLl}&z=${z}&l=map&size=650,450`
-    ];
+function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440, anchorY = imgH / 2) {
+    const span = 180 / Math.pow(2, Math.max(3, Math.min(10, zoom | 0)));
+    const bbox = [Number(lon)-span, Number(lat)-2*span*(imgH-anchorY)/imgW, Number(lon)+span, Number(lat)+2*span*anchorY/imgW].join(',');
+    return ['World_Imagery', 'World_Topo_Map'].map(service =>
+        `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=${imgW},${imgH}&format=png&f=image`);
 }
 
 // Escapa os caracteres especiais do Markdown "legado" do Telegram
@@ -4210,27 +4051,31 @@ function escapeMdLegacy(str) {
     return String(str ?? '').replace(/([_*`[])/g, '\\$1');
 }
 
-function telegramCaption(ev) {
-    const mag = Number(ev.mag).toFixed(1);
-    const place = escapeMdLegacy(ev.place || 'Local desconhecido');
-    const depth = Number.isFinite(ev.depth) ? `${ev.depth} km` : '—';
+function telegramCaption(ev, record) {
+    const mag = Number(ev.mag).toFixed(1).replace('.', ',');
+    const place = escapeMdLegacy(globalThis.EventPortuguese.place(ev.place || 'Local desconhecido'));
+    const depth = Number.isFinite(ev.depth) ? `${Math.round(Math.max(0,ev.depth))} km` : '—';
     const when = ev.timeIso
         ? new Date(ev.timeIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' BRT'
         : '—';
     const src = escapeMdLegacy(ev.source || 'USGS');
     const status = ev.reviewed ? 'revisado' : 'automático';
     return (
-        `🌍 *M${mag}* — ${place}\n` +
+        `${ev.brazil ? "🇧🇷 Sismo no Brasil" : "🌍 Alerta sísmico"}\n*M${mag}* — ${place}\n` +
         `📐 Profundidade: ${depth}\n` +
         `🕒 ${when}\n` +
         `📡 Fonte: ${src} · ${status}\n` +
+        `Magnitude sujeita a revisão.\n` +
+        (record?.revisions?.length ? `\nInicial: *M${Number(record.initialMag).toFixed(1).replace('.', ',')}* · Atual: *M${mag}*\n` +
+            `Atualizado às ${new Date(record.updatedAt).toLocaleTimeString("pt-BR", {timeZone: "America/Sao_Paulo"})} BRT\n` +
+            record.revisions.slice(-3).map(r => `${r.sameSource ? "Revisão da fonte" : "Nova estimativa"}: M${Number(r.mag).toFixed(1).replace('.', ',')} (${escapeMdLegacy(r.source)})`).join("\n") + "\n" : "") +
         `\n📢 Canal: @monitor\\_global\n` +
         `🌐 https://monitorglobal.top`
     );
 }
 
 // Procura, entre os alertas M6+ já enviados recentemente, um que esteja
-// perto (TELEGRAM_DUP_KM) e próximo no tempo (TELEGRAM_DUP_WINDOW_MS) do
+// de outra rede, com até 30 segundos de diferença na origem e epicentro próximo do
 // evento novo — sinal forte de que é a MESMA ocorrência sob outro ID de
 // rede, e não um sismo novo de verdade.
 function findNearDuplicateAlert(ev, sentRecords) {
@@ -4238,26 +4083,12 @@ function findNearDuplicateAlert(ev, sentRecords) {
     for (const r of sentRecords) {
         if (!r || r.id === ev.id || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
         const rTime = r.timeIso ? new Date(r.timeIso).getTime() : null;
-        if (evTime != null && rTime != null && Math.abs(evTime - rTime) > TELEGRAM_DUP_WINDOW_MS) continue;
-        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= TELEGRAM_DUP_KM) return r;
-    }
-    return null;
-}
-
-// Mesma lógica de "perto no espaço/tempo" acima, mas SEM excluir id igual —
-// usada pra achar o candidato pendente de um evento que está aguardando
-// confirmação (TELEGRAM_HOLD_MS). Ali o caso normal é a mesma fonte
-// reportando o MESMO id a cada ciclo (ex.: EMSC no mesmo evento), então
-// excluir por id igual (como findNearDuplicateAlert faz pra achar uma
-// solução DIFERENTE do mesmo tremor já enviado) faria o candidato nunca
-// ser reencontrado e reiniciaria o relógio de espera a cada ciclo.
-function findPendingMatch(ev, pendingRecords) {
-    const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
-    for (const r of pendingRecords) {
-        if (!r || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
-        const rTime = r.timeIso ? new Date(r.timeIso).getTime() : null;
-        if (evTime != null && rTime != null && Math.abs(evTime - rTime) > TELEGRAM_DUP_WINDOW_MS) continue;
-        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= TELEGRAM_DUP_KM) return r;
+        if (r.baseline || r.delivery === 'uncertain' || r.delivery === 'sending' || !Number.isFinite(evTime) || !Number.isFinite(rTime)) continue;
+        const small = ev.brazil || r.brazil;
+        if ((ev.source || ev.provider) === (r.source || r.provider)) continue;
+        if (Math.abs(evTime - rTime) > 30000) continue;
+        if (Math.abs(ev.mag - r.mag) > (small ? 0.6 : 1)) continue;
+        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= (small ? 20 : 50)) return r;
     }
     return null;
 }
@@ -4266,18 +4097,18 @@ function findPendingMatch(ev, pendingRecords) {
 // duplicata de rede de um alerta já mandado — deixa claro que é uma
 // ATUALIZAÇÃO de magnitude do mesmo tremor, não um sismo novo.
 function telegramUpdateMessage(ev, dup) {
-    const place = escapeMdLegacy(ev.place || dup.place || 'Local desconhecido');
-    const newMag = Number(ev.mag).toFixed(1);
-    const oldMag = Number(dup.mag).toFixed(1);
+    const place = escapeMdLegacy(globalThis.EventPortuguese.place(ev.place || dup.place || 'Local desconhecido'));
+    const newMag = Number(ev.mag).toFixed(1).replace('.', ',');
+    const oldMag = Number(dup.mag).toFixed(1).replace('.', ',');
     const newSrc = escapeMdLegacy(ev.source || 'USGS');
     const oldSrc = escapeMdLegacy(dup.source || 'USGS');
     const arrow = ev.mag > dup.mag ? '⬆️' : ev.mag < dup.mag ? '⬇️' : '➡️';
     return (
-        `🔄 *Atualização de magnitude* ${arrow}\n` +
+        `🔄 *${ev.source === dup.source ? "Revisão da fonte" : "Nova estimativa de outra rede"}* ${arrow}\n` +
         `${place}\n\n` +
         `Antes: *M${oldMag}* (rede ${oldSrc})\n` +
         `Agora: *M${newMag}* (rede ${newSrc})\n\n` +
-        `_Provavelmente o mesmo tremor, calculado por redes sísmicas diferentes._\n` +
+        `O cartão do alerta foi atualizado.\n` +
         `📢 Canal: @monitor\\_global`
     );
 }
@@ -4288,7 +4119,9 @@ async function telegramSendPhoto(env, ev, caption) {
     const chatId = env.TELEGRAM_CHAT_ID;
     if (!token || !chatId) throw new Error('TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não configurados');
 
-    const png = await renderAlertCardPng(ev);
+    let png;
+    try { ev.imageExposure = await queryImageExposure(ev, env); png = await renderAlertCardPng(ev); }
+    catch (error) { error.cardFailed = true; throw error; }
 
     const form = new FormData();
     form.append('chat_id', String(chatId));
@@ -4300,12 +4133,14 @@ async function telegramSendPhoto(env, ev, caption) {
     const r = await fetch(api, { method: 'POST', body: form });
     const data = await r.json().catch(() => ({}));
     if (!r.ok || !data.ok) {
-        throw new Error(data.description || `Telegram HTTP ${r.status}`);
+        const error = new Error(data.description || `Telegram HTTP ${r.status}`);
+        error.telegramRejected = !r.ok && r.status >= 400 && r.status < 500 || data.ok === false;
+        throw error;
     }
     return data;
 }
 
-async function telegramSendMessage(env, text) {
+async function telegramSendMessage(env, text, replyTo) {
     const token = env.TELEGRAM_BOT_TOKEN;
     const chatId = env.TELEGRAM_CHAT_ID;
     if (!token || !chatId) throw new Error('TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não configurados');
@@ -4318,14 +4153,95 @@ async function telegramSendMessage(env, text) {
             chat_id: chatId,
             text: text.slice(0, 4000),
             parse_mode: 'Markdown',
-            disable_web_page_preview: false
+            disable_web_page_preview: false,
+            ...(replyTo ? {reply_parameters: {message_id: replyTo, allow_sending_without_reply: false}} : {})
         })
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok || !data.ok) {
-        throw new Error(data.description || `Telegram HTTP ${r.status}`);
+        const error = new Error(data.description || `Telegram HTTP ${r.status}`);
+        error.telegramRejected = !r.ok && r.status >= 400 && r.status < 500 || data.ok === false;
+        throw error;
     }
     return data;
+}
+
+// Edição é idempotente: uma falha pode ser tentada novamente sem duplicar o alerta.
+function telegramEventVersion(ev) {
+    return JSON.stringify([ev.mag, ev.depth, ev.lat, ev.lon, ev.timeIso, ev.source, !!ev.reviewed]);
+}
+function telegramImportantChange(before, after) {
+    return Math.abs(after.mag - before.mag) >= 0.3 - 1e-8 ||
+        [6, 7].some(limit => (before.mag >= limit) !== (after.mag >= limit));
+}
+async function telegramEditAlert(env, ev, record) {
+    const caption = telegramCaption(ev, record).slice(0, 1024);
+    let body, method;
+    if (record.messageType === 'text') {
+        method = 'editMessageText';
+        body = JSON.stringify({chat_id: record.chatId, message_id: record.messageId, text: caption, parse_mode: 'Markdown'});
+    } else {
+        method = 'editMessageMedia';
+        ev.imageExposure = ev.imageExposure || await queryImageExposure(ev, env);
+        const revisions=record.revisions||[],previous= revisions.length>1?revisions[revisions.length-2].mag:record.initialMag;
+        const revisionText=revisions.length?'M'+globalThis.EventPortuguese.number(previous,1)+' → M'+globalThis.EventPortuguese.number(ev.mag,1):'';
+        const png = await renderAlertCardPng({...ev,revisionText});
+        body = new FormData();
+        body.append('chat_id', String(record.chatId));
+        body.append('message_id', String(record.messageId));
+        body.append('media', JSON.stringify({type: 'photo', media: 'attach://card', caption, parse_mode: 'Markdown'}));
+        body.append('card', new Blob([png], {type: 'image/png'}), 'monitor-global-atualizado.png');
+    }
+    const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
+        method: 'POST', ...(typeof body === 'string' ? {headers: {'Content-Type': 'application/json'}} : {}), body
+    });
+    const data = await response.json().catch(() => ({}));
+    if ((!response.ok || !data.ok) && !/message is not modified/i.test(data.description || ''))
+        throw new Error(data.description || `Telegram edição HTTP ${response.status}`);
+}
+async function telegramReviseAlert(request, env, ev, observed, root, records) {
+    const before = {...(root.currentEvent || root)};
+    const revision = {mag: ev.mag, source: ev.source, sameSource: ev.source === before.source, at: nowIso()};
+    const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
+        revisions: [...(root.revisions || []), revision].slice(-12)};
+    if (root.messageId) await telegramEditAlert(env, ev, next);
+    next.cardImageVersion = 'cartographic-v7-numbers-revisions';
+    next.imageExposureVersion = exposureVersion(ev.imageExposure);
+    next.imageExposureCheckedAt = Date.now();
+    // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
+    const noticeBaseline = root.noticeBaseline || before;
+    const important = telegramImportantChange(noticeBaseline, ev);
+    Object.assign(root, next, {currentEvent: ev});
+    observed.observedVersion = telegramEventVersion(ev);
+    if (important || root.pendingNotice) root.pendingNotice = {
+        before: root.pendingNotice?.before || noticeBaseline, after: ev,
+        at: root.pendingNotice?.at || Date.now()
+    };
+    await saveSentAlerts(request, records, env);
+    await telegramHistoryWrite(env, 'telegram-history-m6:' + new Date().toISOString() + ':' + crypto.randomUUID(), {
+        kind: ev.brazil ? 'br-update' : 'm6-update', at: Date.now(), status: 'sent', mag: ev.mag, place: ev.place,
+        previousMag: before.mag, messageId: root.messageId, sameSource: revision.sameSource,
+        events: [{at: Date.now(), stage: root.messageId ? 'edited' : 'legacy-update'}]
+    });
+
+}
+
+// Agrupa mudanças por pelo menos 30s. O próximo cron publica somente a estimativa final.
+async function telegramFlushRevisionNotices(request, env, records) {
+    for (const root of records) {
+        const notice = root.pendingNotice;
+        if (!notice || Date.now() - notice.at < 30000) continue;
+        delete root.pendingNotice;
+        const important = telegramImportantChange(notice.before, notice.after);
+        if (important) root.noticeBaseline = notice.after;
+        // Reserva antes do envio: timeout não provoca um aviso repetido na próxima consulta.
+        await saveSentAlerts(request, records, env);
+        if (!important) continue;
+        try {
+            await telegramSendMessage({...env, TELEGRAM_CHAT_ID: root.chatId ?? env.TELEGRAM_CHAT_ID}, root.messageId ? telegramUpdateMessage(notice.after, notice.before) :
+                telegramUpdateMessage(notice.after, notice.before).replace('O cartão do alerta foi atualizado.', 'Atualização de alerta anterior.'), root.messageId);
+        } catch (error) { console.error('Telegram aviso de revisão:', error.message); }
+    }
 }
 
 // Chave dentro do KV "TTS_USAGE" (já existe pra outra coisa — cota de
@@ -4374,7 +4290,7 @@ async function loadSentAlerts(request, env) {
 }
 
 async function saveSentAlerts(request, records, env) {
-    const items = records.slice(-200); // mantém os 200 mais recentes
+    const items = records.slice(-5000); // inclui a linha de base brasileira e os pequenos tremores
     if (env && env.TTS_USAGE) {
         try {
             await env.TTS_USAGE.put(
@@ -4401,84 +4317,152 @@ async function saveSentAlerts(request, records, env) {
     }
 }
 
-// Candidatos M6+ ainda em espera de confirmação (TELEGRAM_HOLD_MS) antes de
-// virarem alerta de verdade — mesmo padrão de KV (preferido) com fallback
-// em caches.default usado em loadSentAlerts/saveSentAlerts acima, pelo
-// mesmo motivo: o Cron Trigger pode cair num data-center diferente a cada
-// disparo, e o relógio da confirmação precisa ser visto igual em todos.
-const TELEGRAM_PENDING_KV_KEY = 'telegram-m6-pending';
-const TELEGRAM_PENDING_CACHE_PATH = '/__cache/monitor-global/telegram-m6-pending';
-const TELEGRAM_PENDING_TTL = 3600; // a espera é de minutos; 1h já é folga generosa
-
-async function loadPendingAlerts(request, env) {
-    if (env && env.TTS_USAGE) {
-        try {
-            const raw = await env.TTS_USAGE.get(TELEGRAM_PENDING_KV_KEY);
-            if (!raw) return [];
-            const d = JSON.parse(raw);
-            return Array.isArray(d.items) ? d.items : [];
-        } catch (e) {
-            console.warn('telegram pending KV read:', e?.message || e);
+// IBGE, malha nacional BR, qualidade intermediária (API v3, 2026-10-09).
+// Mantida localmente: a seleção do país não depende de geocodificação online.
+const TELEGRAM_BRAZIL_BORDER = [[[[-62.4177,-13.1189],[-62.2785,-13.1555],[-62.2148,-13.1113],[-62.1152,-13.1637],[-62.1157,-13.2585],[-61.8874,-13.4408],[-61.8171,-13.5274],[-61.5789,-13.5099],[-61.4699,-13.5553],[-61.2483,-13.4963],[-61.1943,-13.5364],[-61.009,-13.5064],[-60.919,-13.5483],[-60.8798,-13.6175],[-60.7093,-13.693],[-60.4727,-13.7937],[-60.4509,-13.9364],[-60.3831,-13.9929],[-60.4806,-14.0958],[-60.4536,-14.3141],[-60.2736,-14.621],[-60.245,-15.0975],[-60.5757,-15.0975],[-60.2395,-15.4746],[-60.1741,-16.2669],[-59.4692,-16.2796],[-58.7857,-16.308],[-58.4306,-16.3227],[-58.3222,-16.2664],[-58.3441,-16.5184],[-58.4362,-16.5929],[-58.4768,-16.9367],[-58.392,-17.0401],[-58.3989,-17.184],[-58.2467,-17.3552],[-57.9964,-17.5156],[-57.8834,-17.4495],[-57.7523,-17.5645],[-57.783,-17.6368],[-57.7113,-17.7287],[-57.7214,-17.829],[-57.5741,-18.1316],[-57.4548,-18.2334],[-57.5583,-18.2407],[-57.7667,-18.8995],[-57.7104,-19.0347],[-57.7833,-19.0351],[-58.1314,-19.7594],[-57.8591,-19.9717],[-58.1686,-20.1658],[-58.0966,-20.2539],[-58.0732,-20.388],[-57.9965,-20.4434],[-58.0131,-20.6083],[-57.9582,-20.7049],[-57.8647,-20.7464],[-57.9595,-20.7979],[-57.8594,-20.8249],[-57.9289,-20.8952],[-57.8337,-20.9363],[-57.8664,-21.0393],[-57.8547,-21.3169],[-57.9616,-21.5624],[-57.8852,-21.6836],[-57.9698,-21.8443],[-57.9162,-21.8763],[-57.9951,-22.0887],[-57.7477,-22.139],[-57.6101,-22.0954],[-57.5168,-22.1736],[-57.3202,-22.2456],[-57.0497,-22.232],[-56.844,-22.3011],[-56.5691,-22.2066],[-56.5034,-22.0974],[-56.3929,-22.075],[-56.3455,-22.1813],[-56.2091,-22.2782],[-55.8431,-22.2871],[-55.7667,-22.3842],[-55.7236,-22.5518],[-55.6136,-22.6928],[-55.6659,-22.8525],[-55.5968,-23.1526],[-55.5391,-23.2412],[-55.5045,-23.3785],[-55.5604,-23.4831],[-55.5304,-23.6278],[-55.4363,-23.7168],[-55.4463,-23.9169],[-55.4029,-23.9742],[-55.262,-23.9917],[-55.0623,-23.9933],[-54.6838,-23.8305],[-54.4268,-23.9311],[-54.2862,-24.0682],[-54.3456,-24.157],[-54.2616,-24.375],[-54.2956,-24.4276],[-54.3185,-24.5907],[-54.3269,-24.6595],[-54.3323,-24.6945],[-54.3899,-24.7773],[-54.4572,-25.0393],[-54.4249,-25.1533],[-54.4736,-25.2115],[-54.6191,-25.4507],[-54.5935,-25.5922],[-54.4453,-25.6657],[-54.2963,-25.5576],[-54.1764,-25.5844],[-54.144,-25.521],[-53.9912,-25.5861],[-53.8498,-25.6908],[-53.8427,-25.7707],[-53.8189,-25.9123],[-53.8368,-25.9699],[-53.7342,-26.0428],[-53.6721,-26.1762],[-53.6514,-26.2068],[-53.639,-26.2508],[-53.6888,-26.4286],[-53.6884,-26.4433],[-53.7209,-26.5378],[-53.7307,-26.6007],[-53.7144,-26.7508],[-53.6773,-26.8439],[-53.6754,-26.8928],[-53.6717,-26.9428],[-53.7327,-27.0042],[-53.8371,-27.1684],[-53.9466,-27.1513],[-54.055,-27.264],[-54.1115,-27.3025],[-54.1866,-27.2649],[-54.2174,-27.385],[-54.2839,-27.4478],[-54.4114,-27.4053],[-54.4746,-27.4812],[-54.5894,-27.4582],[-54.632,-27.5457],[-54.7233,-27.5635],[-54.8171,-27.5356],[-54.9029,-27.6989],[-54.9993,-27.7905],[-55.0517,-27.8524],[-55.2027,-27.8579],[-55.2778,-27.9329],[-55.3398,-27.966],[-55.3755,-28.034],[-55.4384,-28.0863],[-55.7712,-28.2415],[-55.6692,-28.3408],[-55.6922,-28.4164],[-55.8506,-28.3554],[-55.884,-28.4792],[-56.0232,-28.5228],[-56.0024,-28.5783],[-56.1942,-28.7752],[-56.2997,-28.8081],[-56.3233,-28.9247],[-56.4304,-29.0795],[-56.5888,-29.1198],[-56.6645,-29.295],[-56.78,-29.42],[-56.9711,-29.6434],[-57.1319,-29.7702],[-57.2354,-29.7808],[-57.3297,-29.8876],[-57.3281,-29.9719],[-57.4646,-30.1103],[-57.5941,-30.179],[-57.568,-30.2522],[-57.3894,-30.3025],[-57.2042,-30.2851],[-57.1152,-30.1137],[-56.8504,-30.0889],[-56.6581,-30.2013],[-56.5461,-30.3606],[-56.4622,-30.3845],[-56.3781,-30.5015],[-56.2899,-30.5323],[-56.1877,-30.6047],[-56.1501,-30.7055],[-56.0236,-30.7857],[-56.0111,-31.0816],[-55.8708,-31.0716],[-55.6662,-30.954],[-55.5786,-30.8329],[-55.437,-31.0047],[-55.3514,-31.0376],[-55.2468,-31.2522],[-55.0745,-31.3321],[-55.0358,-31.2839],[-54.8365,-31.4419],[-54.7013,-31.4357],[-54.5869,-31.4565],[-54.4729,-31.5704],[-54.4546,-31.6528],[-54.088,-31.9312],[-53.9475,-31.9546],[-53.7256,-32.0984],[-53.6765,-32.2381],[-53.644,-32.3849],[-53.4369,-32.5482],[-53.1764,-32.6585],[-52.9974,-32.5912],[-52.968,-32.4905],[-52.8024,-32.447],[-52.7242,-32.37],[-52.8211,-32.3341],[-52.7189,-32.1542],[-52.6229,-32.1456],[-52.6884,-32.3195],[-52.6023,-32.4606],[-52.6209,-32.6379],[-52.7234,-32.8339],[-52.8322,-32.915],[-53.0016,-32.7975],[-53.1239,-32.7938],[-53.1744,-33.0035],[-53.2602,-33.1074],[-53.3253,-33.0652],[-53.4692,-33.2554],[-53.4248,-33.4376],[-53.5078,-33.5311],[-53.5228,-33.6893],[-53.422,-33.7438],[-53.37,-33.7439],[-52.7767,-33.2831],[-52.6239,-33.1042],[-52.4952,-32.8672],[-52.4229,-32.6288],[-52.293,-32.3383],[-52.0972,-32.1617],[-52.1148,-31.942],[-52.2566,-31.8498],[-52.2236,-31.7889],[-52.1524,-31.6993],[-52.036,-31.6958],[-52.0135,-31.5972],[-52.0102,-31.5009],[-51.9195,-31.3108],[-51.8117,-31.2857],[-51.6191,-31.269],[-51.6287,-31.153],[-51.5378,-31.115],[-51.442,-31.0874],[-51.4993,-30.9758],[-51.4488,-30.8722],[-51.3727,-30.8725],[-51.3809,-30.6435],[-51.3188,-30.6461],[-51.2654,-30.4798],[-51.1358,-30.4368],[-51.2101,-30.3013],[-51.3283,-30.2265],[-51.3012,-30.0542],[-51.2719,-30.039],[-51.2327,-30.1827],[-51.0629,-30.2596],[-51.0556,-30.392],[-50.93,-30.4358],[-50.9148,-30.3264],[-50.6561,-30.286],[-50.6208,-30.1984],[-50.5426,-30.2523],[-50.5827,-30.4901],[-50.7295,-30.3681],[-50.6864,-30.5008],[-50.6901,-30.7069],[-50.7538,-30.8189],[-50.9668,-30.8961],[-50.9546,-31.0032],[-51.179,-31.1342],[-51.1575,-31.2847],[-51.2375,-31.4574],[-51.3611,-31.532],[-51.4282,-31.492],[-51.6587,-31.7669],[-51.8377,-31.801],[-51.9028,-31.8705],[-52.0981,-31.8359],[-52.0152,-31.9224],[-52.0772,-32.1432],[-51.8309,-31.9192],[-51.4272,-31.6956],[-51.186,-31.5044],[-50.8421,-31.19],[-50.7672,-31.1101],[-50.3343,-30.5008],[-50.2519,-30.3049],[-50.2241,-30.2363],[-50.1703,-30.0971],[-50.1192,-29.9762],[-50.0753,-29.8845],[-50.0637,-29.86],[-50.0176,-29.7725],[-49.9337,-29.6251],[-49.9222,-29.6072],[-49.8035,-29.4436],[-49.7129,-29.3256],[-49.6451,-29.2384],[-49.516,-29.0957],[-49.3764,-28.9561],[-49.2901,-28.8832],[-49.1879,-28.8022],[-48.858,-28.6157],[-48.7465,-28.5051],[-48.7063,-28.3414],[-48.6343,-28.113],[-48.6209,-27.9449],[-48.587,-27.9044],[-48.5766,-27.844],[-48.5176,-27.7815],[-48.3706,-27.4498],[-48.4172,-27.3806],[-48.5263,-27.4083],[-48.5948,-27.3161],[-48.6027,-27.2179],[-48.5784,-27.2115],[-48.4953,-27.1985],[-48.508,-27.1105],[-48.5856,-27.1449],[-48.5891,-27.061],[-48.6283,-26.9601],[-48.6422,-26.9127],[-48.6212,-26.8262],[-48.6613,-26.7712],[-48.6819,-26.7184],[-48.6648,-26.5809],[-48.6507,-26.5473],[-48.5943,-26.4522],[-48.4931,-26.2186],[-48.5694,-26.1677],[-48.5953,-25.9768],[-48.5496,-25.8523],[-48.4771,-25.7137],[-48.3583,-25.5859],[-48.3097,-25.4933],[-48.214,-25.473],[-48.0961,-25.3089],[-47.9141,-25.1594],[-47.9095,-25.0529],[-47.7315,-24.8806],[-47.4153,-24.6756],[-47.0779,-24.4482],[-46.8976,-24.2529],[-46.7094,-24.1441],[-46.6044,-24.0897],[-46.3919,-23.9986],[-46.3551,-23.9711],[-46.3063,-23.9931],[-46.1848,-23.9922],[-46.1332,-23.8565],[-45.8424,-23.7582],[-45.5551,-23.795],[-45.5146,-23.8421],[-45.3963,-23.8081],[-45.427,-23.7084],[-45.4066,-23.6239],[-45.2767,-23.5783],[-45.0669,-23.4926],[-44.9082,-23.3342],[-44.8442,-23.387],[-44.7242,-23.3676],[-44.583,-23.3576],[-44.5358,-23.2921],[-44.6527,-23.1884],[-44.7212,-23.2018],[-44.6686,-23.0542],[-44.5211,-23.0273],[-44.3449,-22.922],[-44.347,-23.0302],[-44.1657,-23.0339],[-44.0059,-22.9421],[-43.8806,-22.9158],[-43.796,-22.9171],[-43.5624,-23.0532],[-43.2855,-23.015],[-43.1615,-22.9053],[-43.2728,-22.8098],[-43.2146,-22.7277],[-43.0389,-22.6926],[-43.0259,-22.7261],[-43.0266,-22.7431],[-43.1034,-22.8559],[-43.1104,-22.9536],[-43.0138,-22.9768],[-42.6412,-22.9375],[-42.3816,-22.9357],[-42.2812,-22.9395],[-42.0373,-22.9331],[-41.9694,-22.8228],[-41.9735,-22.7296],[-41.9914,-22.5981],[-41.9792,-22.5625],[-41.8178,-22.417],[-41.6891,-22.3],[-41.5424,-22.2346],[-41.1338,-22.0955],[-41.004,-22.0211],[-40.9818,-21.9111],[-41.0481,-21.6178],[-41.0689,-21.4976],[-40.961,-21.3011],[-40.9261,-21.1902],[-40.8092,-20.9958],[-40.7589,-20.8657],[-40.7012,-20.8346],[-40.5709,-20.7652],[-40.3772,-20.5355],[-40.2744,-20.32],[-40.2149,-20.2426],[-40.1918,-20.0545],[-40.1545,-20.0121],[-40.0548,-19.8148],[-39.9117,-19.687],[-39.8108,-19.6496],[-39.6891,-19.3049],[-39.7193,-19.097],[-39.7465,-18.7062],[-39.7282,-18.5183],[-39.6678,-18.3372],[-39.6354,-18.2323],[-39.4912,-17.9979],[-39.2575,-17.828],[-39.1373,-17.685],[-39.1917,-17.446],[-39.2121,-17.1613],[-39.1175,-16.8925],[-39.1416,-16.7615],[-39.1038,-16.6981],[-39.0621,-16.4358],[-39.0088,-16.3457],[-39.0111,-16.2458],[-38.9484,-16.0924],[-38.8528,-15.8494],[-38.8936,-15.7667],[-38.9349,-15.6654],[-38.9732,-15.3855],[-38.9963,-15.0852],[-39.0274,-14.783],[-39.0622,-14.747],[-39.0343,-14.5153],[-39.0177,-14.4185],[-38.9889,-14.2174],[-38.9288,-13.9068],[-38.9517,-13.8724],[-38.9678,-13.8488],[-38.9722,-13.8424],[-38.9884,-13.7168],[-38.9685,-13.6721],[-38.8911,-13.6405],[-38.9329,-13.546],[-38.8924,-13.4606],[-38.9508,-13.3899],[-38.9188,-13.2136],[-38.7975,-13.1375],[-38.6433,-13.0153],[-38.5856,-13.0127],[-38.4687,-13.0149],[-38.3043,-12.9109],[-38.2802,-12.8807],[-38.0302,-12.5972],[-37.8933,-12.4082],[-37.7699,-12.2387],[-37.6857,-12.099],[-37.5128,-11.7407],[-37.3411,-11.4423],[-37.2602,-11.2896],[-37.1545,-11.1616],[-37.0346,-10.9573],[-36.8527,-10.7442],[-36.6729,-10.6308],[-36.4862,-10.5364],[-36.3959,-10.4969],[-36.3014,-10.3446],[-36.2596,-10.2641],[-36.0315,-10.0508],[-35.9627,-9.9407],[-35.9047,-9.8559],[-35.8553,-9.7883],[-35.7898,-9.7112],[-35.7237,-9.6847],[-35.5585,-9.4875],[-35.5246,-9.4426],[-35.4725,-9.358],[-35.3868,-9.2863],[-35.3391,-9.2307],[-35.2951,-9.1555],[-35.2413,-9.0647],[-35.1527,-8.9139],[-35.1302,-8.8623],[-35.1028,-8.7849],[-35.0878,-8.6908],[-35.0482,-8.6094],[-34.9609,-8.3667],[-34.9286,-8.2253],[-34.9088,-8.1551],[-34.8605,-8.0445],[-34.828,-7.9591],[-34.8411,-7.8451],[-34.8451,-7.8164],[-34.8482,-7.6878],[-34.8339,-7.5486],[-34.8027,-7.3879],[-34.8058,-7.2445],[-34.8424,-7.056],[-34.859,-7.0297],[-34.8691,-6.9781],[-34.8987,-6.8659],[-34.9248,-6.7676],[-34.9315,-6.7211],[-34.965,-6.6029],[-34.9685,-6.4872],[-35.0319,-6.3108],[-35.0334,-6.2864],[-35.0939,-6.1834],[-35.0978,-6.1398],[-35.121,-5.9817],[-35.1541,-5.8978],[-35.2036,-5.7432],[-35.2271,-5.6121],[-35.2558,-5.5169],[-35.326,-5.3813],[-35.3824,-5.27],[-35.4895,-5.157],[-35.6171,-5.114],[-35.7909,-5.0774],[-35.9083,-5.0595],[-36.0375,-5.0515],[-36.0995,-5.0772],[-36.3083,-5.1021],[-36.4068,-5.0807],[-36.7156,-5.0809],[-36.8557,-4.9723],[-36.96,-4.9186],[-37.1386,-4.9479],[-37.221,-4.8814],[-37.2527,-4.8314],[-37.3259,-4.7003],[-37.5404,-4.6447],[-37.6031,-4.6173],[-37.7695,-4.4264],[-37.8451,-4.3817],[-38.1477,-4.1021],[-38.2233,-4.0072],[-38.4018,-3.8238],[-38.4638,-3.7072],[-38.5876,-3.6964],[-38.6524,-3.6822],[-38.8066,-3.5485],[-38.9321,-3.4654],[-39.0646,-3.4067],[-39.1648,-3.3262],[-39.257,-3.2195],[-39.3793,-3.1833],[-39.5506,-3.0792],[-39.721,-2.9969],[-39.9424,-2.8664],[-40.1853,-2.8117],[-40.3719,-2.8124],[-40.455,-2.8034],[-40.5901,-2.8464],[-40.7604,-2.8488],[-41.1017,-2.9009],[-41.2712,-2.8872],[-41.3227,-2.9213],[-41.4362,-2.906],[-41.6496,-2.8644],[-41.7818,-2.7583],[-41.826,-2.7573],[-41.8072,-2.73],[-42.043,-2.7296],[-42.0713,-2.687],[-42.2226,-2.6922],[-42.2636,-2.7579],[-42.4876,-2.7033],[-42.6415,-2.6253],[-43.0148,-2.4567],[-43.2374,-2.3587],[-43.3116,-2.3387],[-43.3781,-2.3422],[-43.4833,-2.3853],[-43.4617,-2.4864],[-43.5374,-2.4219],[-43.5786,-2.5061],[-43.6968,-2.5149],[-43.7412,-2.4351],[-43.6446,-2.4013],[-43.5943,-2.2827],[-43.7204,-2.2914],[-43.7619,-2.4187],[-43.8381,-2.4167],[-43.8502,-2.51],[-43.9312,-2.5616],[-44.0788,-2.7438],[-44.1484,-2.7681],[-44.2658,-2.7604],[-44.1757,-2.7021],[-44.0928,-2.5747],[-44.0362,-2.5567],[-44.0523,-2.4661],[-44.0318,-2.4063],[-44.1738,-2.458],[-44.1837,-2.461],[-44.2208,-2.4739],[-44.3046,-2.4875],[-44.41,-2.7992],[-44.4248,-2.9439],[-44.4955,-3.026],[-44.5481,-3.0451],[-44.5916,-3.0409],[-44.6625,-3.0129],[-44.652,-2.893],[-44.6501,-2.805],[-44.5553,-2.5965],[-44.358,-2.3405],[-44.4626,-2.145],[-44.6444,-2.2963],[-44.6777,-2.2805],[-44.4973,-2.0253],[-44.5777,-2.0292],[-44.4821,-1.9883],[-44.5517,-1.8885],[-44.5341,-1.8222],[-44.6153,-1.7633],[-44.7594,-1.783],[-44.7016,-1.725],[-44.7998,-1.7043],[-44.6363,-1.6166],[-44.7234,-1.5567],[-44.8537,-1.6175],[-44.8899,-1.6036],[-44.8604,-1.4113],[-44.9531,-1.56],[-45.0082,-1.4856],[-45.196,-1.4881],[-45.2682,-1.5986],[-45.3238,-1.597],[-45.3086,-1.3329],[-45.4755,-1.4798],[-45.5144,-1.3081],[-45.6108,-1.2746],[-45.6899,-1.2736],[-45.7813,-1.1926],[-45.7891,-1.1873],[-45.7965,-1.1826],[-45.8467,-1.213],[-45.8539,-1.0528],[-45.954,-1.2022],[-45.9946,-1.053],[-46.1041,-1.202],[-46.0634,-1.1062],[-46.0946,-1.0206],[-46.1935,-1.0796],[-46.2076,-0.8856],[-46.3374,-1.0215],[-46.4691,-1.0253],[-46.4958,-0.8722],[-46.5313,-0.953],[-46.6364,-0.9691],[-46.6293,-0.8008],[-46.796,-0.8705],[-46.836,-0.7467],[-46.9426,-0.8593],[-46.9907,-0.7119],[-47.0637,-0.7946],[-47.092,-0.6741],[-47.1605,-0.7623],[-47.1747,-0.6729],[-47.2619,-0.6478],[-47.3863,-0.6047],[-47.426,-0.6573],[-47.4744,-0.5923],[-47.4816,-0.7391],[-47.5898,-0.5761],[-47.6081,-0.6978],[-47.6315,-0.7063],[-47.6327,-0.6021],[-47.7562,-0.6063],[-47.9171,-0.5664],[-47.977,-0.6862],[-48.0514,-0.6595],[-48.1416,-0.7542],[-48.1716,-0.8164],[-48.2938,-0.9197],[-48.4096,-0.9058],[-48.4747,-0.8739],[-48.5061,-0.7509],[-48.4411,-0.4122],[-48.3746,-0.3031],[-48.4288,-0.2272],[-48.7437,-0.2499],[-48.9179,-0.2296],[-49.1646,-0.1303],[-49.3826,-0.1915],[-49.4386,-0.1265],[-49.3589,-0.0259],[-49.397,0.0622],[-49.6322,0.0749],[-49.6996,0.1505],[-49.6333,0.2414],[-49.4886,0.3342],[-49.5732,0.4166],[-49.8892,0.3225],[-50.1678,0.3403],[-50.1727,0.3976],[-50.0364,0.5342],[-50.0726,0.6358],[-50.2261,0.6962],[-49.9884,0.8748],[-49.989,0.9395],[-49.8898,1.0136],[-49.9016,1.2403],[-49.8817,1.5001],[-49.9206,1.6879],[-50.1587,1.8112],[-50.4237,1.8045],[-50.684,2.1437],[-50.7942,2.4985],[-50.827,2.5128],[-50.8873,2.7462],[-50.9542,2.8372],[-51.0328,3.2137],[-51.1093,3.4506],[-51.0818,3.5595],[-51.0807,3.8848],[-51.1508,3.9138],[-51.2164,4.15],[-51.2834,4.2503],[-51.4859,4.4372],[-51.6376,4.5088],[-51.6768,4.3327],[-51.6231,4.2256],[-51.6561,4.0539],[-51.7823,3.9641],[-51.7986,3.887],[-51.9726,3.7055],[-51.9888,3.6269],[-52.2336,3.2407],[-52.3529,3.1265],[-52.3269,3.0805],[-52.4778,2.7818],[-52.5521,2.52],[-52.6606,2.374],[-52.8422,2.2912],[-52.9043,2.1885],[-53.0845,2.2127],[-53.2792,2.186],[-53.2295,2.2624],[-53.3233,2.3471],[-53.4731,2.2567],[-53.7488,2.3128],[-53.7672,2.3789],[-53.9424,2.2424],[-54.1891,2.1788],[-54.4366,2.2099],[-54.6017,2.3372],[-54.6921,2.3614],[-54.744,2.4715],[-54.8723,2.4337],[-54.9543,2.5837],[-55.1031,2.5257],[-55.1729,2.5594],[-55.3203,2.5155],[-55.3854,2.4185],[-55.4998,2.4433],[-55.7077,2.4032],[-55.718,2.4021],[-55.9347,2.5335],[-56.0507,2.3351],[-56.139,2.2658],[-56.043,2.2279],[-55.9669,2.0885],[-55.9039,1.8881],[-55.999,1.8314],[-56.1527,1.8908],[-56.2415,1.8797],[-56.4371,1.9518],[-56.5798,1.906],[-56.721,1.9259],[-56.7881,1.8544],[-56.9198,1.9304],[-57.0008,1.9074],[-57.0868,2.0265],[-57.253,1.9485],[-57.3044,1.9975],[-57.4335,1.906],[-57.451,1.8064],[-57.5772,1.6904],[-57.7924,1.7267],[-57.7977,1.6873],[-57.9902,1.6585],[-58.0043,1.5031],[-58.1295,1.499],[-58.1607,1.5602],[-58.3172,1.5685],[-58.3719,1.4816],[-58.5088,1.463],[-58.458,1.3715],[-58.4963,1.268],[-58.7105,1.2899],[-58.7252,1.2188],[-58.8252,1.1713],[-58.8955,1.2277],[-58.9236,1.318],[-59.0486,1.3227],[-59.2533,1.3882],[-59.3299,1.5138],[-59.4127,1.5516],[-59.5336,1.7163],[-59.6902,1.7563],[-59.6624,1.8619],[-59.7461,1.8519],[-59.7344,1.9996],[-59.7404,2.2929],[-59.8444,2.321],[-59.9884,2.6798],[-59.9844,2.9288],[-59.9083,3.2119],[-59.8064,3.3539],[-59.8052,3.5098],[-59.8727,3.5638],[-59.6626,3.715],[-59.5265,3.9246],[-59.709,4.1619],[-59.7319,4.2865],[-59.6762,4.3469],[-59.7359,4.4237],[-59.972,4.5093],[-60.1615,4.5178],[-60.0259,4.7057],[-59.972,5.0749],[-60.0958,5.1407],[-60.1352,5.2482],[-60.2125,5.2718],[-60.3283,5.2055],[-60.5772,5.198],[-60.6972,5.2288],[-60.5841,4.9557],[-60.6524,4.8846],[-60.7509,4.7537],[-60.9476,4.6555],[-60.9979,4.5156],[-61.1493,4.4832],[-61.2698,4.5397],[-61.3516,4.4188],[-61.4483,4.4391],[-61.5083,4.3218],[-61.5619,4.251],[-61.7377,4.2568],[-61.8189,4.1677],[-61.9933,4.1749],[-62.1436,4.0752],[-62.3897,4.178],[-62.5527,4.1088],[-62.533,4.0474],[-62.7361,4.0399],[-62.7889,3.8932],[-62.7291,3.8046],[-62.7486,3.6727],[-62.8102,3.7327],[-62.9861,3.6099],[-63.0814,3.6932],[-63.0608,3.7518],[-63.2044,3.8116],[-63.205,3.9513],[-63.4522,3.9555],[-63.4119,3.9118],[-63.5111,3.8471],[-63.6769,4.0191],[-63.7141,3.9038],[-63.7569,3.9405],[-63.9261,3.926],[-63.9658,3.8682],[-64.1089,4.0855],[-64.1719,4.1288],[-64.4316,4.1346],[-64.5605,4.1016],[-64.7805,4.2866],[-64.8105,4.1746],[-64.4786,3.7832],[-64.2891,3.6996],[-64.1963,3.5789],[-64.1844,3.4893],[-64.1179,3.3374],[-64.2187,3.0906],[-64.1446,3.0257],[-64.0147,2.8122],[-63.9862,2.6487],[-64.0617,2.5044],[-63.9601,2.4731],[-63.8458,2.4965],[-63.7619,2.4439],[-63.6036,2.4572],[-63.4657,2.4017],[-63.4147,2.4542],[-63.3554,2.3823],[-63.3721,2.2119],[-63.3977,2.1469],[-63.5619,2.1324],[-63.8297,1.9682],[-63.9755,1.9913],[-64.0619,1.9307],[-64.0652,1.676],[-64.3261,1.436],[-64.4,1.3949],[-64.3975,1.5268],[-64.5533,1.4168],[-64.5908,1.3374],[-64.7639,1.2308],[-64.823,1.2785],[-64.9516,1.2315],[-65.0222,1.1149],[-65.1551,1.125],[-65.165,0.9505],[-65.3291,0.9316],[-65.443,0.6899],[-65.5405,0.6488],[-65.5914,0.7216],[-65.5003,0.8424],[-65.5856,1.0089],[-65.7394,0.9996],[-65.9254,0.8913],[-65.9644,0.8095],[-66.1511,0.7445],[-66.213,0.7806],[-66.3165,0.7361],[-66.3185,0.755],[-66.8569,1.2302],[-67.0882,1.1669],[-67.0723,1.4426],[-67.0974,1.7326],[-67.1571,1.8488],[-67.2781,1.8757],[-67.3893,2.244],[-67.5219,2.1703],[-67.6198,2.0237],[-67.7794,2.0311],[-67.9413,1.8307],[-68.0875,1.9013],[-68.1407,1.9848],[-68.2433,1.9267],[-68.2669,1.8273],[-68.1568,1.7316],[-69.3913,1.7296],[-69.5344,1.777],[-69.6538,1.7181],[-69.8458,1.7077],[-69.8466,1.0779],[-69.7026,1.1183],[-69.7035,1.075],[-69.3219,1.0884],[-69.2457,1.0465],[-69.1401,0.8838],[-69.1876,0.7469],[-69.1157,0.644],[-69.3498,0.6141],[-69.481,0.735],[-69.6281,0.6275],[-69.687,0.6632],[-69.8235,0.5911],[-70.0465,0.5621],[-70.0464,0.0683],[-70.0574,-0.1868],[-69.9232,-0.3315],[-69.8449,-0.3458],[-69.6111,-0.5135],[-69.5643,-0.6398],[-69.6264,-0.7497],[-69.5274,-0.922],[-69.4217,-1.0004],[-69.3984,-1.1444],[-69.4297,-1.3873],[-69.6134,-2.4402],[-69.8376,-3.6866],[-69.9507,-4.2693],[-70.0454,-4.3738],[-70.1328,-4.282],[-70.2004,-4.356],[-70.3079,-4.2468],[-70.2932,-4.1599],[-70.5221,-4.1373],[-70.6163,-4.1934],[-70.759,-4.1587],[-70.865,-4.2533],[-70.938,-4.3832],[-71.2665,-4.3845],[-71.2617,-4.4247],[-71.5023,-4.4386],[-71.6169,-4.5289],[-71.7788,-4.4847],[-71.9151,-4.5307],[-71.9476,-4.609],[-72.2421,-4.7804],[-72.3722,-4.8077],[-72.4146,-4.9009],[-72.5971,-4.9827],[-72.8871,-5.1616],[-72.8701,-5.2994],[-72.9638,-5.4981],[-72.9618,-5.6546],[-73.151,-5.8634],[-73.2502,-6.1449],[-73.1089,-6.41],[-73.213,-6.5778],[-73.3545,-6.5949],[-73.6428,-6.7621],[-73.7546,-6.9419],[-73.7268,-7.0225],[-73.8016,-7.1118],[-73.6989,-7.2957],[-73.8765,-7.3823],[-73.9671,-7.3598],[-73.9193,-7.4653],[-73.9833,-7.5662],[-73.8217,-7.7175],[-73.6935,-7.7709],[-73.704,-7.8726],[-73.7672,-7.8609],[-73.7288,-7.9691],[-73.6322,-8.059],[-73.537,-8.3455],[-73.3321,-8.4754],[-73.344,-8.6021],[-73.128,-8.7712],[-73.0562,-8.9069],[-72.9948,-8.9198],[-72.9402,-9.069],[-73.1008,-9.3042],[-73.2119,-9.4117],[-72.7197,-9.4117],[-72.518,-9.4916],[-72.3404,-9.5087],[-72.2529,-9.6228],[-72.2709,-9.7448],[-72.1529,-9.7968],[-72.1805,-10],[-71.3774,-10],[-71.2108,-9.9664],[-71.0777,-9.8277],[-70.9977,-9.8184],[-70.8688,-9.6646],[-70.7996,-9.6425],[-70.5698,-9.4322],[-70.5056,-9.4222],[-70.598,-9.6065],[-70.5247,-9.7153],[-70.6206,-9.8323],[-70.6206,-10.0793],[-70.6205,-10.425],[-70.6209,-10.7055],[-70.621,-10.9996],[-70.5301,-10.9348],[-70.4247,-11.0378],[-70.3022,-11.0688],[-70.161,-11.0426],[-69.9339,-10.9212],[-69.7357,-10.9745],[-69.4235,-10.9266],[-69.2326,-10.94],[-68.9121,-11.0217],[-68.7486,-11.0187],[-68.7161,-11.1456],[-68.543,-11.1114],[-68.3882,-11.0406],[-68.2394,-10.9578],[-68.0022,-10.6484],[-67.8641,-10.6408],[-67.7046,-10.7004],[-67.5673,-10.5095],[-67.3108,-10.3774],[-67.316,-10.3187],[-67.1778,-10.3394],[-67.0023,-10.2297],[-66.8986,-10.1114],[-66.6269,-9.898],[-66.2133,-9.8343],[-66.152,-9.7856],[-65.9821,-9.8088],[-65.8859,-9.7525],[-65.7042,-9.7638],[-65.5541,-9.832],[-65.4434,-9.6693],[-65.3569,-9.7202],[-65.2887,-9.8657],[-65.333,-9.9443],[-65.2888,-10.2199],[-65.3918,-10.3744],[-65.3815,-10.4291],[-65.4297,-10.4809],[-65.4051,-10.6406],[-65.3436,-10.6996],[-65.3625,-10.8016],[-65.2756,-10.8712],[-65.2509,-10.9845],[-65.3635,-11.1473],[-65.3049,-11.5016],[-65.2119,-11.5305],[-65.2048,-11.7495],[-65.0905,-11.7078],[-65.0289,-11.9976],[-64.8396,-12.0107],[-64.6984,-12.1036],[-64.7129,-12.1736],[-64.5946,-12.2157],[-64.5128,-12.2229],[-64.5131,-12.3438],[-64.4062,-12.447],[-64.2345,-12.4555],[-63.9634,-12.5297],[-63.8873,-12.4473],[-63.6848,-12.4531],[-63.4372,-12.5644],[-63.2994,-12.6818],[-63.0906,-12.636],[-63.0071,-12.8396],[-62.8922,-12.8588],[-62.7944,-12.9952],[-62.6607,-12.9695],[-62.6126,-13.0413],[-62.4177,-13.1189]],[[-53.4308,-26.282],[-53.4304,-26.2819],[-53.4309,-26.2821],[-53.4308,-26.282]],[[-51.4195,-14.9904],[-51.3499,-14.9903],[-51.3413,-14.9805],[-51.3474,-14.9877],[-51.3531,-14.9939],[-51.4195,-14.9904]],[[-51.3071,-14.981],[-51.3387,-14.9751],[-51.3331,-14.9701],[-51.3071,-14.981]]],[[[-50.5088,2.1852],[-50.5077,2.0999],[-50.4226,2.1185],[-50.5088,2.1852]]],[[[-50.4501,2.1092],[-50.5212,2.0054],[-50.4549,1.8885],[-50.3174,1.9475],[-50.3608,2.0574],[-50.4501,2.1092]]],[[[-44.4815,-2.7266],[-44.5862,-2.8147],[-44.6381,-2.981],[-44.5609,-3.0225],[-44.479,-2.9579],[-44.4815,-2.7266]]],[[[-44.9662,-1.2711],[-45.0288,-1.318],[-44.9891,-1.4016],[-44.8669,-1.3287],[-44.9662,-1.2711]]],[[[-44.3498,-23.2155],[-44.14,-23.167],[-44.2334,-23.0907],[-44.373,-23.1682],[-44.3498,-23.2155]]],[[[-43.7931,-23.0615],[-43.9733,-23.0453],[-43.9543,-23.087],[-43.793,-23.0639],[-43.6678,-23.0531],[-43.6666,-23.0426],[-43.7931,-23.0615]]],[[[-45.2904,-23.8691],[-45.2303,-23.778],[-45.3415,-23.7278],[-45.4443,-23.9341],[-45.2485,-23.9032],[-45.2904,-23.8691]]],[[[-53.6542,-25.3509],[-53.6251,-25.3464],[-53.6265,-25.3466],[-53.6542,-25.3509]]],[[[-53.3778,-23.2407],[-53.3781,-23.2409],[-53.3763,-23.2398],[-53.3778,-23.2407]]]];
+function telegramIsBrazil(lat, lon) {
+    function ringContains(ring) {
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const [x, y] = ring[i], [px, py] = ring[j];
+            if ((y > lat) !== (py > lat) && lon < (px - x) * (lat - y) / (py - y) + x) inside = !inside;
         }
+        return inside;
     }
-    try {
-        const hit = await caches.default.match(cacheKey(request, TELEGRAM_PENDING_CACHE_PATH));
-        if (!hit) return [];
-        const d = await hit.json();
-        return Array.isArray(d.items) ? d.items : [];
-    } catch {
-        return [];
+    return TELEGRAM_BRAZIL_BORDER.some(poly => ringContains(poly[0]) && !poly.slice(1).some(ringContains));
+}
+const TELEGRAM_BRAZIL_SOURCES = [
+    ['USP', 'https://moho.iag.usp.br/fdsnws/event/1/query', 'text'],
+    ['USGS', 'https://earthquake.usgs.gov/fdsnws/event/1/query', 'geojson'],
+    ['EMSC', 'https://www.seismicportal.eu/fdsnws/event/1/query', 'json'],
+    ['GEOFON', 'https://geofon.gfz.de/fdsnws/event/1/query', 'text']
+];
+function telegramBrazilEvents(data, provider, format) {
+    const out = [];
+    const entries = format === 'text' ? data.split(/\r?\n/).filter(line => line && !line.startsWith('#')).map(line => {
+        const c = line.split('|');
+        return {id: c[0], time: c[1], lat: c[2], lon: c[3], depth: c[4], mag: c[10], place: c[12], type: c[13]};
+    }) : (data.features || []).map(f => ({id: f.id, time: f.properties?.time, lat: f.geometry?.coordinates?.[1], lon: f.geometry?.coordinates?.[0], depth: f.geometry?.coordinates?.[2], mag: f.properties?.mag, place: f.properties?.place || f.properties?.flynn_region, type: f.properties?.type || ({ke: 'earthquake', se: 'earthquake'}[f.properties?.evtype] || f.properties?.evtype), source: f.properties?.net?.toUpperCase(), reviewed: f.properties?.status === 'reviewed', url: f.properties?.url}));
+    for (const e of entries) {
+        if ([e.lat, e.lon, e.mag].some(v => v == null || String(v).trim() === '')) continue;
+        const lat = Number(e.lat), lon = Number(e.lon), mag = Number(e.mag);
+        if (![lat, lon, mag].every(Number.isFinite) || !telegramIsBrazil(lat, lon)) continue;
+        if (e.type && e.type.trim().toLowerCase() !== 'earthquake') continue;
+        const date = typeof e.time === 'number' ? new Date(e.time) : new Date(/(?:Z|[+-]\d\d:\d\d)$/i.test(e.time || '') ? e.time : (e.time || '') + 'Z');
+        if (!e.id || !Number.isFinite(date.getTime())) continue;
+        out.push({id: provider === 'USGS' ? String(e.id) : provider + '-' + e.id,
+            provider, brazil: true, mag, lat, lon, depth: e.depth != null && e.depth !== '' && Number.isFinite(Number(e.depth)) ? Math.round(Math.abs(Number(e.depth))) : null,
+            place: (e.place || 'Local não informado') + (/brazil|brasil/i.test(e.place || '') ? '' : ', Brasil'),
+            timeIso: date.toISOString(), source: e.source || provider, reviewed: provider === 'USP' || !!e.reviewed,
+            url: e.url || 'https://monitorglobal.top'});
     }
+    return out;
+}
+async function fetchTelegramBrazilRecent(env) {
+    const start = new Date(Date.now() - 72 * 3600000).toISOString();
+    const end = new Date(Date.now() + 5 * 60000).toISOString();
+    const results = await Promise.allSettled(TELEGRAM_BRAZIL_SOURCES.map(async ([provider, endpoint, format]) => {
+        const url = new URL(endpoint);
+        for (const [key, value] of Object.entries({format, starttime: start, endtime: end, minlatitude: -34, maxlatitude: 6, minlongitude: -74, maxlongitude: -28, orderby: 'time', limit: 1000})) url.searchParams.set(key, value);
+        const events = [];
+        for (let page = 0; page < 10; page++) {
+            if (page) url.searchParams.set('offset', String(page * 1000 + 1));
+            const response = await fetchText(url.href, {}, 15000);
+            if (!response.ok) throw new Error(provider + ' HTTP ' + response.status);
+            const data = format === 'text' ? response.text : response.status === 204 ? {features: []} : JSON.parse(response.text);
+            if (format !== 'text' && !Array.isArray(data.features)) throw new Error(provider + ' catálogo inválido');
+            const count = format === 'text' ? data.split(/\r?\n/).filter(line => line.trim() && !line.trim().startsWith('#')).length : data.features.length;
+            events.push(...telegramBrazilEvents(data, provider, format));
+            if (count < 1000) break;
+            if (page === 9) throw new Error(provider + ' catálogo incompleto');
+        }
+        // Primeira consulta de cada fonte: cria uma linha de base, sem anunciar o catálogo antigo.
+        // Depois disso, IDs novos entram mesmo quando a publicação tem atraso de muitas horas.
+        const key = 'telegram-brazil-baseline:' + provider;
+        if (!env.TTS_USAGE) throw new Error('Histórico persistente indisponível');
+        const ready = await env.TTS_USAGE.get(key);
+        return {provider, events, key, ready: !!ready};
+    }));
+    return {sources: results.filter(r => r.status === 'fulfilled').map(r => r.value),
+        failedSources: results.flatMap((r, i) => r.status === 'rejected' ? [TELEGRAM_BRAZIL_SOURCES[i][0]] : [])};
 }
 
-async function savePendingAlerts(request, records, env) {
-    const items = records.slice(-100);
-    if (env && env.TTS_USAGE) {
-        try {
-            await env.TTS_USAGE.put(
-                TELEGRAM_PENDING_KV_KEY,
-                JSON.stringify({ items, updatedAt: nowIso() }),
-                { expirationTtl: TELEGRAM_PENDING_TTL }
-            );
-            return;
-        } catch (e) {
-            console.warn('telegram pending KV write:', e?.message || e);
-        }
-    }
-    try {
-        const response = new Response(JSON.stringify({ items, updatedAt: nowIso() }), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': `public, max-age=${TELEGRAM_PENDING_TTL}`
+// Um único Durable Object serializa cron e chamadas manuais; o histórico de envio
+// é consistente imediatamente, sem a janela de replicação do KV.
+export class EarthquakeAlertDelivery {
+    constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
+    fetch(request) {
+        const operation = this.queue.then(async () => {
+            if(new URL(request.url).pathname==='/translate-pt'){
+                const kv=this.env.TTS_USAGE,storage=this.state.storage;
+                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:kv&&{
+                    get:async key=>{if(!key.startsWith('pt-translation-chars:'))return kv.get(key);const q=await storage.get('pt-translation-quota');return q?.day===key?q.used:0;},
+                    put:async(key,value,options)=>{if(key.startsWith('pt-translation-chars:'))return storage.put('pt-translation-quota',{day:key,used:Number(value)});return kv.put(key,value,options);}
+                }};
+                return handlePortugueseTranslation(request,env);
             }
+            const kv = this.env.TTS_USAGE;
+            const storage = this.state.storage;
+            const env = {...this.env, IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
+                get: async (key, ...args) => {
+                    if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
+                        let value;
+                        if (key === TELEGRAM_SENT_KV_KEY) {
+                            const chunks = await storage.get(key + ':chunks');
+                            if (Number.isInteger(chunks)) {
+                                const parts = await Promise.all(Array.from({length: chunks}, (_, i) => storage.get(key + ':part:' + i)));
+                                if (parts.some(part => typeof part !== 'string')) throw new Error('Histórico Telegram incompleto');
+                                return parts.join('');
+                            }
+                        }
+                        value = await storage.get(key);
+                        return value === undefined ? kv?.get(key, ...args) : value;
+                    }
+                    return kv?.get(key, ...args);
+                },
+                put: async (key, value, opts) => {
+                    if (key === TELEGRAM_SENT_KV_KEY) {
+                        // 24 mil caracteres cabem no limite mesmo com UTF-8 de quatro bytes.
+                        const parts = Array.from({length: Math.ceil(value.length / 24000)}, (_, i) => value.slice(i * 24000, (i + 1) * 24000));
+                        const write = async target => {
+                            for (let i = 0; i < parts.length; i++) await target.put(key + ':part:' + i, parts[i]);
+                            await target.put(key + ':chunks', parts.length);
+                        };
+                        if (storage.transaction) await storage.transaction(write); else await write(storage);
+                    } else if (key.startsWith('telegram-brazil-baseline:')) await storage.put(key, value);
+                    else await kv?.put(key, value, opts);
+                }
+            }};
+            return Response.json(await runTelegramM6Alerts(request, env));
         });
-        await caches.default.put(cacheKey(request, TELEGRAM_PENDING_CACHE_PATH), response);
-    } catch (e) {
-        console.warn('telegram pending cache write:', e?.message || e);
+        this.queue = operation.catch(() => {});
+        return operation;
     }
 }
 
-async function fetchUsgsM6Recent() {
+async function fetchUsgsM6Recent(eventId) {
     const start = new Date(Date.now() - 6 * 3600000).toISOString(); // últimas 6h
     const url =
         'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson' +
         `&starttime=${encodeURIComponent(start)}` +
         `&minmagnitude=${TELEGRAM_MIN_MAG}` +
         '&orderby=time&limit=30';
-    const d = await fetchJson(url, {}, 15000);
+    const d = await fetchJson(eventId ? "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventid=" + encodeURIComponent(eventId) : url, {}, 15000);
     const out = [];
-    for (const f of d.features || []) {
+    for (const f of (eventId ? [d] : d.features || [])) {
         const p = f.properties || {};
         const c = f.geometry?.coordinates || [];
+        if (p.mag == null || p.type && p.type !== 'earthquake') continue;
         const mag = Number(p.mag);
         const lon = Number(c[0]);
         const lat = Number(c[1]);
         const depth = Number(c[2]);
-        if (![mag, lat, lon].every(Number.isFinite) || mag < TELEGRAM_MIN_MAG) continue;
+        if (![mag, lat, lon].every(Number.isFinite) || (!eventId && mag < TELEGRAM_MIN_MAG)) continue;
         const id = String(f.id || p.code || `${mag}-${lat}-${lon}-${p.time}`);
         out.push({
             id,
+            provider: 'USGS',
+            brazil: telegramIsBrazil(lat, lon),
             mag,
             place: p.place || 'Região não informada',
             lat,
@@ -4546,68 +4530,11 @@ async function handleTelegramHistory(request,env){
     return json({ok:true,daily:daily.filter(Boolean),alerts:m6.filter(x=>x.at>=cutoff).sort((a,b)=>b.at-a.at),hasMore,retentionDays:30});
 }
 
-// EMSC (seismicportal.eu) como segunda fonte do alerta M6+ — o USGS sozinho
-// não é suficiente: sismos que outras agências registram mas o USGS nunca
-// chega a publicar no próprio catálogo (comum fora dos EUA, ex. Indonésia)
-// nunca disparavam o Telegram, mesmo aparecendo normalmente no site via
-// fusão multiagência (ver SISMO_SOURCES em js/sismo-fontes.js). Mesmo
-// formato de saída de fetchUsgsM6Recent(), pra poder mesclar as duas listas.
-async function fetchEmscM6Recent() {
-    const start = new Date(Date.now() - 6 * 3600000).toISOString(); // últimas 6h
-    const url =
-        'https://www.seismicportal.eu/fdsnws/event/1/query?format=json' +
-        `&start=${encodeURIComponent(start)}` +
-        `&minmag=${TELEGRAM_MIN_MAG}` +
-        '&orderby=time&limit=30';
-    const d = await fetchJson(url, {}, 15000);
-    const out = [];
-    for (const f of d.features || []) {
-        const p = f.properties || {};
-        const c = f.geometry?.coordinates || [];
-        const mag = Number(p.mag);
-        const lon = Number(c[0]);
-        const lat = Number(c[1]);
-        const depth = Number(c[2]);
-        if (![mag, lat, lon].every(Number.isFinite) || mag < TELEGRAM_MIN_MAG) continue;
-        const id = `EMSC-${String(f.id || p.unid || p.source_id || `${mag}-${lat}-${lon}-${p.time}`)}`;
-        out.push({
-            id,
-            mag,
-            place: p.flynn_region || p.place || 'Região não informada',
-            lat,
-            lon,
-            depth: Number.isFinite(depth) ? Math.round(depth) : null,
-            timeIso: p.time ? new Date(p.time).toISOString() : null,
-            source: 'EMSC',
-            reviewed: false,
-            url: p.unid ? `https://www.seismicportal.eu/eventdetails.html?unid=${encodeURIComponent(p.unid)}` : 'https://monitorglobal.top'
-        });
-    }
-    return out;
-}
-
-// Mescla listas de múltiplas fontes (ordem = prioridade) descartando, de
-// cada fonte seguinte, qualquer evento perto no espaço/tempo (mesmos
-// critérios de findNearDuplicateAlert) de um já aceito de uma fonte
-// anterior — evita mandar dois cards pro mesmo tremor só porque USGS e
-// EMSC publicaram o mesmo sismo.
-function dedupeMultiSourceEvents(lists) {
-    const out = [];
-    for (const list of lists) {
-        for (const ev of list) {
-            const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
-            const jaTem = out.some(o => {
-                const oTime = o.timeIso ? new Date(o.timeIso).getTime() : null;
-                if (evTime != null && oTime != null && Math.abs(evTime - oTime) > TELEGRAM_DUP_WINDOW_MS) return false;
-                return haversineKm(ev.lat, ev.lon, o.lat, o.lon) <= TELEGRAM_DUP_KM;
-            });
-            if (!jaTem) out.push(ev);
-        }
-    }
-    return out;
-}
-
 async function runTelegramM6Alerts(request, env) {
+    if (env.EARTHQUAKE_ALERTS) {
+        const stub = env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('earthquake-alerts'));
+        return (await stub.fetch(request)).json();
+    }
     if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         return {
             ok: false,
@@ -4617,137 +4544,143 @@ async function runTelegramM6Alerts(request, env) {
         };
     }
 
-    // USGS continua como fonte primária (mais rápido pra eventos grandes),
-    // EMSC entra como reforço — se uma das duas falhar, a outra ainda cobre
-    // o ciclo (Promise.allSettled em vez de deixar tudo cair junto).
-    const [usgsResult, emscResult] = await Promise.allSettled([fetchUsgsM6Recent(), fetchEmscM6Recent()]);
-    const usgsEvents = usgsResult.status === 'fulfilled' ? usgsResult.value : [];
-    const emscEvents = emscResult.status === 'fulfilled' ? emscResult.value : [];
-    if (usgsResult.status === 'rejected') console.warn('Telegram M6: USGS falhou:', usgsResult.reason?.message);
-    if (emscResult.status === 'rejected') console.warn('Telegram M6: EMSC falhou:', emscResult.reason?.message);
-    const events = dedupeMultiSourceEvents([usgsEvents, emscEvents]);
     const sentRecords = await loadSentAlerts(request, env);
+    const [globalResult, brazil] = await Promise.all([
+        fetchUsgsM6Recent().then(events => ({events})).catch(() => ({events: [], failed: true})),
+        fetchTelegramBrazilRecent(env)
+    ]);
+    const events = [...globalResult.events];
+    // O filtro M6 deixa de retornar revisões M5.9: consultar os IDs já anunciados por 72h.
+    const tracked = sentRecords.filter(r => (r.provider === 'USGS' || !r.provider && r.url?.includes('earthquake.usgs.gov')) && !r.baseline &&
+        Date.parse(r.timeIso) >= Date.now() - 72 * 3600000 && !events.some(ev => ev.id === r.id));
+    for (let i = 0; i < tracked.length; i += 5) {
+        const results = await Promise.allSettled(tracked.slice(i, i + 5).map(r => fetchUsgsM6Recent(r.id)));
+        for (const result of results) if (result.status === 'fulfilled') events.push(...result.value);
+    }
     const sentIds = new Set(sentRecords.map(r => r.id));
-    const pendingRecords = await loadPendingAlerts(request, env);
-    const usedPendingIds = new Set();
-    const nextPending = [];
+    for (const source of brazil.sources) {
+        if (!source.ready) {
+            for (const ev of source.events) {
+                if (ev.mag >= TELEGRAM_MIN_MAG || sentIds.has(ev.id)) continue;
+                sentRecords.push({...ev, baseline: true}); sentIds.add(ev.id);
+            }
+            await saveSentAlerts(request, sentRecords, env);
+            await env.TTS_USAGE.put(source.key, nowIso());
+        }
+        events.push(...source.events.filter(ev => source.ready || ev.mag >= TELEGRAM_MIN_MAG));
+    }
     const sent = [];
     const updates = [];
     const skipped = [];
-    const discarded = [];
 
     for (const ev of events) {
         if (sentIds.has(ev.id)) {
-            skipped.push(ev.id);
+            const observed = sentRecords.find(r => r.id === ev.id);
+            const root = observed.aliasOf ? sentRecords.find(r => r.id === observed.aliasOf) : observed;
+            if (!observed.baseline && Number.isFinite(observed.mag) && observed.delivery !== 'uncertain' && observed.delivery !== 'sending' && root &&
+                (observed.observedVersion || telegramEventVersion(observed)) !== telegramEventVersion(ev)) {
+                try {
+                    const previousMag = (root.currentEvent || root).mag;
+                    await telegramReviseAlert(request, env, ev, observed, root, sentRecords);
+                    updates.push({id: ev.id, mag: ev.mag, previousMag});
+                } catch (error) { console.error('Telegram edição pendente:', ev.id, error.message); }
+            } else skipped.push(ev.id);
             continue;
         }
-
-        // Candidato já visto antes (mesma área/janela, ver findNearDuplicateAlert)
-        // -- reaproveita o horário da PRIMEIRA vez que apareceu, senão o relógio
-        // de confirmação nunca andaria (o evento reaparece a cada ciclo).
-        const pendMatch = findPendingMatch(ev, pendingRecords);
-        if (pendMatch) usedPendingIds.add(pendMatch.id);
-
-        // Antes de tratar como sismo novo, checa se é provavelmente a MESMA
-        // ocorrência de um alerta já mandado sob outro ID de rede (ver
-        // findNearDuplicateAlert) — nesse caso manda só uma atualização de
-        // magnitude, sem duplicar o card cheio. Já passou pela espera de
-        // confirmação na primeira vez, então não precisa esperar de novo.
+        // Estimativa de outra rede para a mesma origem: editar o cartão original.
+        // Horário de origem, epicentro e redes diferentes evitam juntar réplicas.
         const dup = findNearDuplicateAlert(ev, sentRecords);
         if (dup) {
-            const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
-            const history={kind:'m6-update',at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
-            await telegramHistoryWrite(env,historyKey,history);
+            const root = (dup.aliasOf ? sentRecords.find(r => r.id === dup.aliasOf) : dup) || dup;
+            const alias = {...ev, aliasOf: root.id};
+            sentRecords.push(alias);
             try {
-                await telegramSendMessage(env, telegramUpdateMessage(ev, dup));
-                updates.push({ id: ev.id, mag: ev.mag, place: ev.place, comparedTo: dup.id, previousMag: dup.mag });
-                history.status='sent';history.sentAt=Date.now();
-                history.events.push({at:history.sentAt,stage:'sent'});
-                await telegramHistoryWrite(env,historyKey,history);
+                const before = {...(root.currentEvent || root)};
+                if (telegramEventVersion(ev) !== telegramEventVersion(before))
+                    await telegramReviseAlert(request, env, ev, alias, root, sentRecords);
+                else await saveSentAlerts(request, sentRecords, env);
                 sentIds.add(ev.id);
-                sentRecords.push({ id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source });
-            } catch (e) {
-                history.status='uncertain';
-                history.events.push({at:Date.now(),stage:'uncertain'});
-                await telegramHistoryWrite(env,historyKey,history);
-                console.error('Telegram alerta (atualização) falhou:', ev.id, e.message);
-            }
+                updates.push({id: ev.id, mag: ev.mag, comparedTo: root.id, previousMag: before.mag});
+            } catch (error) { sentRecords.splice(sentRecords.indexOf(alias), 1); console.error('Telegram edição pendente:', ev.id, error.message); }
             continue;
         }
-
-        const firstSeenAt = pendMatch ? pendMatch.firstSeenAt : Date.now();
-        const candidato = { id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source, firstSeenAt };
-
-        if (Date.now() - firstSeenAt < TELEGRAM_HOLD_MS) {
-            // Ainda dentro da janela de confirmação -- não manda nada agora,
-            // só guarda (ou atualiza) o candidato pra reavaliar no próximo ciclo.
-            nextPending.push(candidato);
-            continue;
-        }
-
-        // Já esperou TELEGRAM_HOLD_MS e CONTINUA aparecendo com mag >=
-        // TELEGRAM_MIN_MAG nas fontes -- se tivesse sido revisado pra baixo
-        // do limiar (ex.: 6.1 -> 5.9), USGS/EMSC já teriam parado de
-        // devolvê-lo nessa consulta, e o candidato simplesmente não estaria
-        // em `events` pra chegar até aqui. Pode mandar o card de verdade.
         const historyKey='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
-        const history={kind:'m6',at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
+        const history={kind:ev.brazil?(dup?'br-update':'br'):(dup?'m6-update':'m6'),at:Date.now(),status:'sending',mag:ev.mag,place:ev.place,events:[{at:Date.now(),stage:'sending'}]};
         await telegramHistoryWrite(env,historyKey,history);
+        // Reserva persistente antes do envio: um timeout ambíguo não reenvia a mesma ocorrência.
+        const reservation = {...ev, delivery: 'sending'};
+        sentRecords.push(reservation); sentIds.add(ev.id);
+        await saveSentAlerts(request, sentRecords, env);
         try {
             const caption = telegramCaption(ev);
             try {
-                await telegramSendPhoto(env, ev, caption);
+                const response = await telegramSendPhoto(env, ev, caption);
+                reservation.messageId = response.result?.message_id;
+                reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
+                reservation.messageType = "photo";
             } catch (photoErr) {
                 // Fallback: só texto, se o mapa estático falhar
-                console.warn('sendPhoto falhou, fallback texto:', photoErr.message);
-                await telegramSendMessage(
+                if (!photoErr.telegramRejected && !photoErr.cardFailed) throw photoErr;
+                console.warn('sendPhoto rejeitado, fallback texto');
+                const response = await telegramSendMessage(
                     env,
-                    caption + `\n\n🗺 ${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}\n${escapeMdLegacy(ev.url)}`
+                    caption + `\n\n🗺 ${ev.lat.toFixed(2).replace('.', ',')}, ${ev.lon.toFixed(2).replace('.', ',')}\n${escapeMdLegacy(ev.url)}`
                 );
+                reservation.messageId = response.result?.message_id;
+                reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
+                reservation.messageType = "text";
             }
-            sent.push({ id: ev.id, mag: ev.mag, place: ev.place, waitedMs: Date.now() - firstSeenAt });
+            reservation.cardImageVersion = 'cartographic-v7-numbers-revisions';
+            reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
+            reservation.imageExposureCheckedAt = Date.now();
+            reservation.initialMag = ev.mag;
+            reservation.noticeBaseline = ev;
+            reservation.observedVersion = telegramEventVersion(ev);
+            sent.push({ id: ev.id, mag: ev.mag, place: ev.place });
             history.status='sent';history.sentAt=Date.now();
             history.events.push({at:history.sentAt,stage:'sent'});
             await telegramHistoryWrite(env,historyKey,history);
             sentIds.add(ev.id);
-            sentRecords.push({ id: ev.id, mag: ev.mag, lat: ev.lat, lon: ev.lon, timeIso: ev.timeIso, place: ev.place, source: ev.source });
+            reservation.delivery = 'sent';
+            await saveSentAlerts(request, sentRecords, env);
         } catch (e) {
-            history.status='uncertain';
-            history.events.push({at:Date.now(),stage:'uncertain'});
+            history.status = e.telegramRejected ? 'failed' : 'uncertain';
+            reservation.delivery = history.status;
+            if (e.telegramRejected) { sentIds.delete(ev.id); sentRecords.splice(sentRecords.indexOf(reservation), 1); }
+            await saveSentAlerts(request, sentRecords, env);
+            history.events.push({at:Date.now(),stage:history.status});
             await telegramHistoryWrite(env,historyKey,history);
             console.error('Telegram alerta falhou:', ev.id, e.message);
-            // Envio falhou (não a confirmação) -- mantém o candidato pra
-            // tentar mandar de novo no próximo ciclo, sem reiniciar a espera.
-            nextPending.push(candidato);
         }
     }
 
-    // Candidatos do ciclo anterior que não reapareceram agora -- o caso real
-    // que motivou essa espera: magnitude revisada abaixo de TELEGRAM_MIN_MAG,
-    // então USGS/EMSC pararam de devolver o evento. Nunca chegam a virar
-    // alerta.
-    for (const p of pendingRecords) {
-        if (!usedPendingIds.has(p.id)) discarded.push({ id: p.id, mag: p.mag, place: p.place });
+    // Migrate recent confirmed photos once, then poll only pending exposure.
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v7-numbers-revisions' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+        root.imageExposureCheckedAt = Date.now();
+        const ev = {...(root.currentEvent || root)};
+        const data = await queryImageExposure(ev, env);
+        // A slow refresh must not replace previously available population with a pending label.
+        const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
+        if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
+        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v7-numbers-revisions') {
+            ev.imageExposure = data;
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v7-numbers-revisions'; root.imageExposureVersion = exposureVersion(data); }
+            catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
+        } else root.imageExposureVersion = exposureVersion(data);
+        await saveSentAlerts(request, sentRecords, env);
     }
-    if (discarded.length) console.log('Telegram M6: candidatos descartados sem confirmação (provável revisão abaixo do limiar):', JSON.stringify(discarded));
-
-    await savePendingAlerts(request, nextPending, env);
+    await telegramFlushRevisionNotices(request, env, sentRecords);
     if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
     return {
         ok: true,
         checked: events.length,
-        sources: {
-            usgs: { count: usgsEvents.length, failed: usgsResult.status === 'rejected' },
-            emsc: { count: emscEvents.length, failed: emscResult.status === 'rejected' }
-        },
         sent,
         updates,
-        pending: nextPending.length,
-        discarded,
         alreadySent: skipped.length,
         minMag: TELEGRAM_MIN_MAG,
-        holdMs: TELEGRAM_HOLD_MS,
+        brazil: {allMagnitudes: true, initializedSources: brazil.sources.map(s => s.provider), failedSources: brazil.failedSources},
+        globalSourceFailed: !!globalResult.failed,
         updatedAt: nowIso()
     };
 }
@@ -4929,6 +4862,7 @@ function summaryPlace(place) {
     const directions={N:'ao norte',S:'ao sul',E:'a leste',W:'a oeste',NE:'a nordeste',NW:'a noroeste',SE:'a sudeste',SW:'a sudoeste',NNE:'a norte-nordeste',ENE:'a leste-nordeste',ESE:'a leste-sudeste',SSE:'a sul-sudeste',SSW:'a sul-sudoeste',WSW:'a oeste-sudoeste',WNW:'a oeste-noroeste',NNW:'a norte-noroeste'};
     let title=match?match[3]:place;
     title=title.replace(/New Caledonia/g,'Nova Caledônia').replace(/Canada/g,'Canadá').replace(/north of Svalbard/i,'Norte de Svalbard');
+    title=globalThis.EventPortuguese.place(title);
     return {title,detail:match?`${match[1]} km ${directions[match[2].toUpperCase()]||match[2]}`:''};
 }
 let _dailySummaryFonts=null;
@@ -5076,7 +5010,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
     const caption =
         `📊 Resumo do dia — ${day.split('-').reverse().join('/')}` +
         `\n🌍 ${quakes.events.length} sismos registrados` +
-        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1)} — ${top[0].place}`:'sem registro'}` +
+        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${top[0].place}`:'sem registro'}` +
         '\n🌐 monitorglobal.top';
     let pack;
     try {
@@ -5103,7 +5037,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
         await delivery.confirm({messageId:response.result?.message_id});
     } else {
         const text=caption+'\n\nTop 5:\n'+(top.map((e,i)=>
-            `${i+1}. M${e.mag.toFixed(1)} — ${e.place}`).join('\n')||'Sem registro');
+            `${i+1}. M${e.mag.toFixed(1).replace('.', ',')} — ${globalThis.EventPortuguese.place(e.place)}`).join('\n')||'Sem registro');
         const form=new FormData();
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('text',text.slice(0,4096));
@@ -5343,10 +5277,49 @@ async function handleTts(reqUrl, env) {
     }
 }
 
+async function handlePortugueseTranslation(request,env){
+ if(request.method!=='POST')return json({error:'Use POST para traduzir o boletim.'},405);
+ if(Number(request.headers.get('Content-Length'))>40000)return json({error:'Texto acima do limite de tradução.'},413);
+ let body;try{const raw=await request.text();if(raw.length>24000)return json({error:'Texto acima do limite de tradução.'},413);body=JSON.parse(raw);}catch{return json({error:'Pedido de tradução inválido.'},400);}
+ const texts=body?.texts;
+ if(!Array.isArray(texts)||!texts.length||texts.length>6||texts.some(t=>typeof t!=='string'||!t.trim()||t.length>12000)||texts.reduce((n,t)=>n+t.length,0)>20000)return json({error:'Envie até seis textos, com no máximo 20 mil caracteres no total.'},400);
+ if(!env.AI||!env.TTS_USAGE)return json({error:'Tradução temporariamente indisponível.'},503);
+ const translations=[];
+ for(const text of texts){
+  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
+  const key='pt-translation-v2:'+digest;
+  const cached=await env.TTS_USAGE.get(key);if(cached){translations.push(cached);continue;}
+  const quota='pt-translation-chars:'+new Date().toISOString().slice(0,10),used=Number(await env.TTS_USAGE.get(quota))||0;
+  if(used+text.length>50000){translations.push(null);continue;}
+  await env.TTS_USAGE.put(quota,String(used+text.length),{expirationTtl:172800});
+  try{
+   const lang=/\b(?:profundidad|magnitud|lluvias|peligro|terremoto|sequia|hacia|fuerte)\b/i.test(text)?'es':/\b(?:nord|ouest|seisme|pluie|avec|sans|alerte)\b/i.test(text)?'fr':'en';
+   const protectedText=text.replace(/(?:\b[A-Za-z]\.){2,}|\b(?:Dr|Mr|Mrs|Ms|St|Mt|No)\./g,part=>part.replace(/\./g,'\uFFF0'));
+   const chunks=[];
+   for(const sentence of protectedText.split(/(?<=[.!?])\s+(?=[\p{Lu}\d])|\n\s*\n/u)){
+    let rest=sentence.replace(/\uFFF0/g,'.').trim();while(rest.length>700){let cut=rest.lastIndexOf(' ',700);if(cut<100)cut=700;chunks.push(rest.slice(0,cut));rest=rest.slice(cut).trimStart();}if(rest)chunks.push(rest);
+   }
+   const output=[];
+   for(const chunk of chunks){const result=await env.AI.run('@cf/meta/m2m100-1.2b',{text:chunk,source_lang:lang,target_lang:'pt'});output.push(String(result?.translated_text||'').trim());}
+   const translated=output.join(' ').trim();
+   // Reject altered numeric facts. Translation never drives hazard classification.
+   const nums=v=>(v.match(/\d+(?:[.,]\d+)*/g)||[]).map(n=>n.replace(/,/g,'.')).sort().join('|');
+   if(!translated||nums(text)!==nums(translated)){translations.push(null);continue;}
+   await env.TTS_USAGE.put(key,translated,{expirationTtl:2592000});translations.push(translated);
+  }catch(e){console.warn('[tradução em português]',e.message);translations.push(null);}
+ }
+ return json({translations,language:'pt-BR'});
+}
+
 export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(reqUrl.pathname==='/translate-pt'){
+            if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
+            return handlePortugueseTranslation(request,env);
+        }
+        if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([

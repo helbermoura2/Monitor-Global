@@ -79,7 +79,7 @@
   }
   window.monitorGlobalCorrelate=correlate;
   window.monitorGlobalCorrelationSweep=sweep;
-  function boot(){setTimeout(sweep,3500);setInterval(sweep,90000);}
+  function boot(){PeriodicScheduler.every('correlation',sweep,3500,90000);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
 

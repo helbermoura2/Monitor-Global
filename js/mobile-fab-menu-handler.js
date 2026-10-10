@@ -51,6 +51,7 @@
     el.innerHTML =
       '<button type="button" class="close-x" id="menu-float-close">✕</button>' +
       '<h3>Menu</h3>' +
+      (window.MobileEnergyBudget?.buttonHTML() || '') +
       '<button type="button" id="mf-main-events">📋 Abrir registros</button>' +
       '<button type="button" id="mf-main-audio">🔊 Áudio / voz</button>' +
       '<button type="button" id="mf-main-resumo-dia">🏆 Resumo do dia</button>' +

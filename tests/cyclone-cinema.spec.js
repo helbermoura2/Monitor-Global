@@ -45,7 +45,7 @@ async function isolatedCyclone(page,width=1280){
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" style="position:absolute;left:20px;top:30px;width:320px;height:600px;background:#0b2231;border:1px solid #68808d;border-radius:16px;isolation:isolate"><div id="pd-mag"></div><div id="pd-local">Furacão JOANA — São Paulo</div><div id="pd-horario" class="pd-time">03/10/2026 às 12:30 UTC</div><div id="pd-depth" class="stat-card-value"><strong style="color:rgb(235,189,82)">Categoria 3</strong></div><div id="pd-fault-type">Furacão do Atlântico</div><button id="control">Detalhes oficiais</button></div></body>');
  for(const file of ['painel-fx.css','cinematic-card.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
  await page.evaluate(()=>{window.__cycloneFrame=null;window.requestAnimationFrame=cb=>{__cycloneFrame=cb;return 1;};window.cancelAnimationFrame=()=>{__cycloneFrame=null;};});
- for(const file of ['painel-fx.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
+ for(const file of ['painel-fx.js','card-effect-quality.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
 }
 for(const width of [1280,390])test('ciclone move vidro e tipografia, preservando palavras e fallback '+width,async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));

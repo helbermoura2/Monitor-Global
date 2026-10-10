@@ -424,7 +424,7 @@ function scrollToDetailsIfMobile() {
     const pd = document.getElementById('painel-direito');
     if (pd) pd.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-let expandedIds = new Set(), lastMerged = [], lastListSig = '';
+let expandedIds = new Set(), lastMerged = [];
 /* ═══ Controle centralizado de "primeira carga" por fonte de alerta ═══
    Cada fonte de alerta automático (INMET, GDACS, tsunami, tempestades locais etc.)
    só deve tocar som/voz para o que muda DEPOIS que ela já rodou pela 1ª vez —
@@ -568,6 +568,7 @@ function upsertAlert(obj, opts = {}) {
     if (isNew) {
         activeAlertingIds.set(id, Date.now() + expiraMs);
         activeUpdatedIds.delete(id);
+        if(fonte)window.NewEventPriority?.queue([obj]);
     } else if (prev && !activeAlertingIds.has(id)) {
         // "Atualizado" só quando algo que o usuário notaria realmente mudou —
         // não a cada vez que a fonte apenas reconfirma o mesmo dado no ciclo
@@ -620,7 +621,7 @@ function limparIdsAntigos() {
         feedArrivalAt.forEach((_, key) => { if (!feedPreviousKeys.has(key)) feedArrivalAt.delete(key); });
     } catch (e) { console.warn('[limpeza] falhou:', e && e.message); }
 }
-setInterval(limparIdsAntigos, 3600000); // a cada 1h — bem espaçado, não é urgente
+PeriodicScheduler.every('old-id-cleanup',limparIdsAntigos,3600000,3600000,'ui'); // a cada 1h — bem espaçado, não é urgente
 let fcPopupTimeout = null;
 const cycloneHistory = new Map();
 // Guarda em que coordenadas o anel de destaque/cone oficial do furacão
@@ -676,53 +677,31 @@ function notificarNavegador(titulo, corpo, tipo = 'info') {
     } catch (e) {}
 }
 
-/* Na carga inicial, muitas funções de busca chamavam fetch() + setInterval() ao mesmo
-   tempo — isso disparava umas 18 requisições de uma vez, todas competindo pelos mesmos
-   proxies de CORS gratuitos (que têm limite de requisições por minuto), estourando a
-   cota logo de cara. E como o setInterval sempre soma a partir do momento da primeira
-   chamada, isso se repetia a cada ciclo. Aqui a primeira chamada é escalonada com um
-   pequeno atraso — o que também desincroniza automaticamente as repetições seguintes. */
-/* ── AGENDAMENTO DE BUSCAS ────────────────────────────────────
-   Para mudar intervalos, edite as chamadas agendarBusca(...) no boot (final do arquivo).
-   Pausado automaticamente quando a aba fica oculta (economiza bateria/dados). */
-const __buscasAgendadas = []; // { fn, intervalId, intervaloMs, paused }
+/* Buscas escalonadas compartilham um único timer. A pausa também cobre as
+   fontes complementares, e a retomada não repete ciclos perdidos. Animações,
+   prazos dos eventos e o watchdog de sismos continuam independentes. */
+const __buscasAgendadas = [];
 let __buscasPausadasPorAba = false;
-
 function agendarBusca(fn, atrasoInicialMs, intervaloMs) {
-    const entry = { fn, intervalId: null, intervaloMs, paused: false };
-    __buscasAgendadas.push(entry);
-    setTimeout(() => {
-        if (!__buscasPausadasPorAba) {
-            try { fn(); } catch (e) { console.warn('[busca]', e); }
-        }
-        entry.intervalId = setInterval(() => {
-            if (__buscasPausadasPorAba || entry.paused) return;
-            try { fn(); } catch (e) { console.warn('[busca]', e); }
-        }, intervaloMs);
-    }, atrasoInicialMs);
+    const existing = __buscasAgendadas.find(e => e.fn === fn);
+    if (existing) return existing.key;
+    const key = 'core-feed-' + __buscasAgendadas.length;
+    __buscasAgendadas.push({fn, key});
+    return PeriodicScheduler.every(key, fn, atrasoInicialMs, intervaloMs);
 }
-
 function pausarBuscas() {
     __buscasPausadasPorAba = true;
-    console.log('[monitor] buscas pausadas (aba oculta)');
+    PeriodicScheduler.pause('feeds');
 }
 function retomarBuscas() {
-    const jaEstavaPausado = __buscasPausadasPorAba;
+    if (document.hidden) return;
     __buscasPausadasPorAba = false;
-    if (jaEstavaPausado) console.log('[monitor] buscas retomadas (aba visível)');
-    // 'focus', 'pageshow' e 'visibilitychange' costumam disparar juntos no
-    // mesmo instante de "voltar" — sem isso, dispararíamos 2-3 buscas
-    // idênticas de uma vez só.
+    PeriodicScheduler.resume('feeds');
     const agora = Date.now();
     if (window.__ultimoRetomarBuscas && agora - window.__ultimoRetomarBuscas < 4000) return;
     window.__ultimoRetomarBuscas = agora;
-    // Dispara uma rodada imediata das fontes críticas ao voltar. Sismos é o
-    // motivo do app existir, então ele SEMPRE dispara aqui, garantido — não
-    // fica na dependência de estar entre "os 3 primeiros" registrados.
-    try { if (typeof fetchGlobalFeeds === 'function') fetchGlobalFeeds(); } catch (err) {}
-    __buscasAgendadas.slice(0, 3).forEach(e => {
-        if (e.fn !== fetchGlobalFeeds) { try { e.fn(); } catch (err) {} }
-    });
+    const critical = __buscasAgendadas.filter((e, i) => i < 3 || e.fn === fetchGlobalFeeds);
+    critical.forEach(e => PeriodicScheduler.trigger(e.key));
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -755,6 +734,7 @@ setInterval(() => {
         if (paradoHaMuito && semTentativaRecente) {
             console.warn('[monitor] watchdog: sismos parados há mais de 2min, forçando nova busca');
             __buscasPausadasPorAba = false;
+            PeriodicScheduler.resume('feeds');
             if (typeof fetchGlobalFeeds === 'function') fetchGlobalFeeds();
         }
     } catch (e) {}

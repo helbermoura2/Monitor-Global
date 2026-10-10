@@ -21,7 +21,7 @@
 
  }catch(e){OfficialWeatherAlerts.set('nws','NWS EUA',[],{error:e.message,healthName:'NWS'}); }}
  // Even if a provider fails, an expired warning/observation cannot remain active.
- setInterval(()=>{const now=Date.now(),n=globalAlerts.length;globalAlerts=globalAlerts.filter(x=>!x.expiresAt||x.expiresAt>now);if(n!==globalAlerts.length)applyFilters();},60000);
- document.addEventListener('DOMContentLoaded',()=>{setTimeout(observed,18000);setTimeout(warnings,24000);setInterval(observed,300000);setInterval(warnings,300000);});
+ PeriodicScheduler.every('hazard-expiry',()=>{const now=Date.now(),n=globalAlerts.length;globalAlerts=globalAlerts.filter(x=>!x.expiresAt||x.expiresAt>now);if(n!==globalAlerts.length)applyFilters();},60000,60000,'ui');
+ document.addEventListener('DOMContentLoaded',()=>{PeriodicScheduler.every('metar-observed',observed,18000,300000);PeriodicScheduler.every('nws-warnings',warnings,24000,300000);});
  window.HazardFeeds={observed,warnings};
 })();

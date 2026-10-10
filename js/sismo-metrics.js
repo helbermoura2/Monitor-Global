@@ -22,10 +22,10 @@ function estimarMercalli(m, d) {
 function calcularEnergia(m) {
     const j = Math.pow(10, 1.5 * m + 4.8);
     const t = j / 4.184e9;
-    const f = t < 1 ? (t * 1000).toFixed(1) + " kg" :
-              t < 1000 ? t.toFixed(1) + " ton" :
-              t < 1e6 ? (t / 1000).toFixed(1) + " kt" :
-              (t / 1e6).toFixed(1) + " Mt";
+    const f = t < 1 ? (t * 1000).toFixed(1).replace('.', ',') + " kg" :
+              t < 1000 ? t.toFixed(1).replace('.', ',') + " ton" :
+              t < 1e6 ? (t / 1000).toFixed(1).replace('.', ',') + " kt" :
+              (t / 1e6).toFixed(1).replace('.', ',') + " Mt";
     // Comparações de escala humana pra dar noção real do tamanho, só a partir de
     // M5 (abaixo disso a comparação não ajuda, fica um número solto sem contexto).
     let comparativo = '';
@@ -34,7 +34,7 @@ function calcularEnergia(m) {
     else if (m >= 6.5 && m < 7.5) comparativo = '≈ bomba atômica de Hiroshima (1945)';
     else if (m >= 7.5 && m < 8.5) comparativo = '≈ dezenas de bombas de Hiroshima somadas';
     else if (m >= 8.5) comparativo = '≈ maior bomba nuclear já testada (Tsar Bomba)';
-    return { joules: j.toExponential(2), tnt: f + " de TNT", comparativo };
+    return { joules: j.toExponential(2).replace('.', ','), tnt: f + " de TNT", comparativo };
 }
 
 function classificarProfundidade(km) {
@@ -51,7 +51,7 @@ function animateMagNumber(el, target) {
     if (!el) return;
     if (el._mgAnimId) { cancelAnimationFrame(el._mgAnimId); el._mgAnimId = null; }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        el.textContent = 'M' + target.toFixed(1);
+        el.textContent = 'M' + target.toFixed(1).replace('.', ',');
         return;
     }
     const prev = parseFloat(String(el.textContent || '').replace('M', '').replace(',', '.'));
@@ -61,7 +61,7 @@ function animateMagNumber(el, target) {
     function tick(now) {
         const p = Math.min(1, (now - t0) / duration);
         const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = 'M' + (from + (target - from) * eased).toFixed(1);
+        el.textContent = 'M' + (from + (target - from) * eased).toFixed(1).replace('.', ',');
         el._mgAnimId = p < 1 ? requestAnimationFrame(tick) : null;
     }
     el._mgAnimId = requestAnimationFrame(tick);
@@ -172,17 +172,14 @@ function metrosPorPixel(lat, z) {
     return 156543.03 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
 }
 
-/* ═══════════ ZONA DE ALCANCE — sismo NOVO ("Onda Dupla") ═══════════
-   Substitui o antigo updateFeltRadiusLayer (desenhava os 3 raios pra TODO sismo
-   M≥7 sempre visível, sem animação, poluindo o mapa) e o startContinuousRadar
-   de sismos (mapa.js) — agora só aparece quando o sismo é NOVO de verdade
-   (triggerVisualAlert em showEventDetails), com os raios reais em km de sempre
-   (raioCritico/raioEstimado) crescendo a partir do epicentro, e some sozinho
-   depois de um tempo proporcional à magnitude — quanto maior o sismo, mais
-   tempo o alcance fica visível, mas nunca fica pra sempre. Seleção manual ou
-   ciclo revisitando um evento antigo não chama nada disso (só o .quake-dot/
-   .quake-label padrão, que já existem e não mudam). */
-let feltZoneEl = null, feltZoneUpd = null, feltZoneFadeTimer = null;
+/* Radar do ciclo automático: estimativas de zona crítica (vermelho) e
+   alcance sentido (azul), independentes das frentes físicas do GlobalQuake. */
+let feltZoneEl = null, feltZoneUpd = null, feltZoneContext = null;
+function refreshFeltZone(item){
+    if(!feltZoneContext||feltZoneContext.id!==item.id)return;
+    Object.assign(feltZoneContext,{lng:item.coords[0],lat:item.coords[1],mag:item.mag,depth:item.depth});
+    feltZoneUpd?.();
+}
 
 // Quanto tempo um sismo NOVO/ao vivo (ou revisitado por clique manual) fica
 // "no ar" (frente de onda P/S + câmera acompanhando + ciclo automático
@@ -193,7 +190,7 @@ let feltZoneEl = null, feltZoneUpd = null, feltZoneFadeTimer = null;
 // cedo demais, enquanto um fundo demorava bem mais — o usuário queria algo
 // previsível, só pela magnitude). Só vale pra evento NOVO ao vivo e pro
 // replay manual — o ciclo automático (revisitando um evento já conhecido)
-// usa HOLD_AUTO_MS, fixo em 1 minuto pra qualquer magnitude (ver
+// usa HOLD_AUTO_MS (30s após o voo), com teto de 40s desde a seleção (ver
 // painel-e-lista.js). Ver também orquestrador-feeds.js: um sismo novo só
 // interrompe esse tempo se for de magnitude MAIOR que o que já está em tela.
 function waveHoldMs(mag) {
@@ -223,20 +220,22 @@ function waveHoldMs(mag) {
 // sempre (só com fade visual via CSS, nunca de fato removido).
 function stopFeltZone() {
     if (!feltZoneEl) return;
-    try { clearTimeout(feltZoneFadeTimer); } catch (e) {}
     const elAntigo = feltZoneEl, updAntigo = feltZoneUpd;
     elAntigo.classList.add('fading');
-    feltZoneFadeTimer = setTimeout(() => {
+    setTimeout(() => {
         try { map && map.off('move', updAntigo); map && map.off('zoom', updAntigo); } catch (e) {}
         try { elAntigo.remove(); } catch (e) {}
     }, 2600);
     feltZoneEl = null;
     feltZoneUpd = null;
+    feltZoneContext=null;
+    window.__mgFeltZoneState=null;
 }
 
-function startFeltZone(lng, lat, mag, depth) {
+function startFeltZone(lng, lat, mag, depth, id, lateReport = false) {
     if (!map) return;
     stopFeltZone();
+    if(typeof stopWaveFront==='function')stopWaveFront();
     try { if (typeof stopCascadeRipple === 'function') stopCascadeRipple(); } catch (e) {}
     try { if (typeof stopContinuousRadar === 'function') stopContinuousRadar(); } catch (e) {}
     try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
@@ -246,32 +245,39 @@ function startFeltZone(lng, lat, mag, depth) {
 
     const wrap = document.createElement('div');
     wrap.className = 'felt-zone-wrap';
-    const detect = document.createElement('div');
-    detect.className = 'felt-zone-detect';
     const blue = document.createElement('div');
     blue.className = 'felt-zone-blue';
     const red = document.createElement('div');
     red.className = 'felt-zone-red';
     const sweep = document.createElement('div');
     sweep.className = 'felt-zone-sweep';
-    wrap.append(detect, blue, red, sweep);
+    const label=document.createElement('div');
+    label.className='wave-front-status felt-zone-status';
+    label.textContent=lateReport?'Ondas já passaram · Radar de alcance estimado':'Radar · Estimativa: vermelho crítico · azul sentido';
+    label.title='Vermelho: zona crítica estimada. Azul: alcance sentido estimado.';
+    wrap.append(blue, red, sweep, label);
     host.appendChild(wrap);
     feltZoneEl = wrap;
 
-    const coords = [lng, lat];
+    const context=feltZoneContext={id,lng,lat,mag,depth,lateReport};
     const place = () => {
         if (!map) return;
+        const {lng,lat,mag,depth}=context;
+        const coords=[lng,lat];
+        if(feltZoneContext===context)window.__mgFeltZoneState={...context,criticalKm:raioCritico(mag,depth),feltKm:raioEstimado(mag,depth)};
+        const headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
+        label.style.top=Math.max(12,headerBottom-host.getBoundingClientRect().top+10)+'px';
+        label.style.left=(host.clientWidth/2)+'px';
+        label.style.maxWidth=Math.max(0,host.clientWidth-24)+'px';
         const z = map.getZoom();
         const mpp = metrosPorPixel(lat, z);
-        const pxDetect = Math.max(30, (raioDetectavel(mag, depth) * 1000) / mpp * 2);
         const pxBlue = Math.max(24, (raioEstimado(mag, depth) * 1000) / mpp * 2);
         const pxRed = Math.max(10, (raioCritico(mag, depth) * 1000) / mpp * 2);
         const pt = map.project(coords);
-        detect.style.width = detect.style.height = pxDetect + 'px';
         blue.style.width = blue.style.height = pxBlue + 'px';
         red.style.width = red.style.height = pxRed + 'px';
         sweep.style.width = sweep.style.height = pxRed + 'px';
-        [detect, blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
+        [blue, red, sweep].forEach(el => { el.style.left = pt.x + 'px'; el.style.top = pt.y + 'px'; });
     };
     feltZoneUpd = place;
     place();
@@ -288,44 +294,20 @@ function startFeltZone(lng, lat, mag, depth) {
     // chamado pra um evento diferente.
 }
 
-/* ═══════════ FRENTE DE ONDA SÍSMICA (P/S) — estilo GlobalQuake ═══════════
-   Elemento visual SEPARADO da zona sentida acima: aqui o raio não é uma
-   estimativa de "até onde seria sentido" — representa a frente da onda
-   sísmica se afastando do epicentro, do jeito que apps tipo GlobalQuake
-   mostram (por isso os círculos de lá aparecem bem maiores que a zona
-   sentida: são métricas diferentes).
-   Alcance = velocidade REAL da onda (WAVE_P_KMS/WAVE_S_KMS) × tempo real
-   decorrido desde a origem verdadeira do sismo, acelerado por
-   WAVE_SPEED_MULT — nada de alcance-alvo estilizado por magnitude: na vida
-   real a onda P não anda mais rápido num M7 do que num M3 (a diferença
-   entre eles é o quanto ainda é PERCEPTÍVEL numa dada distância, não a
-   posição geométrica da frente de onda). Comparado com um vídeo do
-   GlobalQuake, cujo círculo reflete essa mesma distância real, um sismo de
-   ~6-15min de idade já alcança uns 4500-6750km na velocidade real (7.5km/s)
-   — sem aceleração, ficar preso nessa distância levaria literalmente esse
-   tempo todo de tela parada. WAVE_SPEED_MULT comprime isso: com 2.5x
-   (18.75km/s efetivos), o mesmo alcance sai em 2.5x menos tempo (~2.5-6min),
-   ainda realista mas praticável. */
-const WAVE_P_KMS = 7.5;
-const WAVE_S_KMS = 4.3;
-const WAVE_SPEED_MULT = 2.5; // aceleração sobre a velocidade real, só pra não prender o evento em tela por dezenas de minutos
-const WAVE_MAX_KM = 20000; // distância antípoda aproximada — teto físico absoluto (a onda já passou por todo o planeta)
-
-// A velocidade da onda P/S não muda com a magnitude (isso é real — um M0.8 e
-// um M8 propagam na mesma velocidade física), mas mostrar o anel de um M0.8
-// crescendo até centenas de km é enganoso: essa onda já está muito abaixo do
-// ruído sísmico de fundo bem antes disso, ninguém (pessoa ou instrumento)
-// registraria nada ali. O que varia com a magnitude é até onde a onda seria
-// DETECTÁVEL/relevante mostrar — daí esse teto (não a velocidade), crescendo
-// de poucos km num M0-1 até o teto físico absoluto (WAVE_MAX_KM, a distância
-// antípoda) só perto de M8, que já é registrado pelo planeta inteiro de
-// verdade. Curva ajustada por dois pontos-âncora (M0.8→~15km, M8→~19km mil,
-// saturando em WAVE_MAX_KM logo depois).
-function waveFrontMaxKm(mag) {
-    const m = Number(mag);
-    if (!Number.isFinite(m)) return WAVE_MAX_KM;
-    return Math.min(WAVE_MAX_KM, Math.pow(10, 0.43 * m + 0.83));
+/* Frentes P/S e ondas de núcleo: mesmos Float32 e algoritmo TauP iasp91
+   do GlobalQuake. O tempo é real, sem aceleração ou limite por magnitude.
+   Ao vivo usa a origem publicada; o replay manual reinicia o relógio.
+   A zona estimada de percepção continua sendo uma métrica independente. */
+// GlobalQuake FeatureEarthquake.waveDisplayTimeMinutes / EarthquakeAnalysis.
+// This is a visibility limit, not a change to the physical travel tables.
+function waveDisplaySeconds(mag,depth){
+    const correction=Math.log10(Math.max(0,Number(depth)||0)+160)-Math.log10(160);
+    return 60*(2+.01*Math.pow((Number(mag)||0)+correction,4));
 }
+function waveDisplayAlpha(elapsed,limit){return Math.max(0,Math.min(1,2-2*elapsed/limit));}
+function waveClock(seconds){const s=Math.max(0,Math.round(seconds));return Math.floor(s/60).toString().padStart(2,'0')+':'+(s%60).toString().padStart(2,'0');}
+const WAVE_PHASES = ['p','s','pkp','pkikp'];
+const WAVE_LAYER_IDS = WAVE_PHASES.flatMap(phase=>['line','glow'].map(kind=>`wave-front-${phase}-${kind}`));
 
 // Ponto de destino a partir de um centro, dado um azimute (graus, 0=norte,
 // sentido horário) e uma distância (km) — fórmula esférica padrão de
@@ -335,9 +317,9 @@ function waveFrontMaxKm(mag) {
 // torto pra raios grandes (M7/M8 passam de milhares de km) numa projeção
 // Mercator/globo — cada ponto aqui é calculado na esfera real, então fica
 // certo em qualquer raio e em qualquer projeção.
-function destinoGeodesico(lat, lng, distanciaKm, azimuteGraus) {
-    const R = 6371; // raio médio da Terra em km
-    const delta = Math.min(Math.max(0, distanciaKm), Math.PI * R - 1) / R;
+function destinoGeodesico(lat, lng, distanciaKm, azimuteGraus, earthRadius = 6371) {
+    const R = earthRadius; // km; as frentes usam o mesmo raio do GlobalQuake
+    const delta = Math.max(0, distanciaKm) / R;
     const theta = azimuteGraus * Math.PI / 180;
     const phi1 = lat * Math.PI / 180;
     const lambda1 = lng * Math.PI / 180;
@@ -366,12 +348,12 @@ function destinoGeodesico(lat, lng, distanciaKm, azimuteGraus) {
 // subtrai 360° pra manter a longitude contínua (pode passar de ±180 — o
 // motor do mapa lida bem com isso, é só a normalização por ponto isolado que
 // não podia se aplicar a uma sequência).
-function anelGeodesico(lng, lat, raioKm, pontos = 128) {
+function anelGeodesico(lng, lat, raioKm, pontos = 128, earthRadius = 6371) {
     const coords = [];
     let ajuste = 0;
     let lngAnterior = null;
     for (let i = 0; i <= pontos; i++) {
-        const [lngBruto, latPonto] = destinoGeodesico(lat, lng, raioKm, (360 * i) / pontos);
+        const [lngBruto, latPonto] = destinoGeodesico(lat, lng, raioKm, (360 * i) / pontos, earthRadius);
         if (lngAnterior !== null) {
             const salto = lngBruto + ajuste - lngAnterior;
             if (salto > 180) ajuste -= 360;
@@ -426,15 +408,66 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
     } catch (e) { return map.getZoom(); }
 }
 
+// Fit the painted area in the visible map space, clear of header and cards.
+function zoomParaAreaPintada(lng,lat,raioKm){
+    let margem=.8;
+    try{
+        const box=map.getContainer().getBoundingClientRect(),frac=getEventoTelaFrac();
+        const cx=box.width*frac.x,cy=box.height*frac.y;
+        let left=0,right=box.width,top=0,bottom=box.height;
+        for(const id of ['top-strip','ux-controlbar','latest-event-ticker']){
+            const el=document.getElementById(id);if(!el||getComputedStyle(el).display==='none')continue;
+            top=Math.max(top,el.getBoundingClientRect().bottom-box.top);
+        }
+        for(const id of ['events','painel-direito']){
+            const el=document.getElementById(id);if(!el)continue;
+            const style=getComputedStyle(el),r=el.getBoundingClientRect();
+            if(style.display==='none'||style.visibility==='hidden'||r.width<=0||r.height<=0)continue;
+            if(r.width>=box.width*.85){if(r.top-box.top>cy)bottom=Math.min(bottom,r.top-box.top);}
+            else if(r.right-box.left<cx)left=Math.max(left,r.right-box.left);
+            else if(r.left-box.left>cx)right=Math.min(right,r.left-box.left);
+        }
+        const room=Math.min(cx-left,right-cx,cy-top,bottom-cy);
+        if(room>0)margem=Math.min(.8,1.7*room/Math.min(box.width,box.height));
+    }catch(e){}
+    return Math.max(1.5,Math.min(15,zoomParaCaberRaio(lng,lat,raioKm,margem)));
+}
+
 let waveFrontAtivo = false, waveFrontInterval = null;
 // Câmera "persegue" a frente de onda P conforme ela cresce (efeito tipo
 // GlobalQuake) — guarda a referência do handler de interação pra poder
 // remover no stopWaveFront, senão cada sismo novo empilha mais um listener.
 let waveCamAbortHandler = null;
-let waveFrontPlaceHandler = null;
 let waveCamRAF = null;
+let waveFrontGeneration = 0;
+let waveFrontStatus = null;
+let waveFrontContext = null;
+let waveFinalTimer = null;
+let waveCamResume = null;
+document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&waveCamResume){const resume=waveCamResume;waveCamResume=null;resume();}
+});
+function restoreWaveProtection(context){
+    if(!context?.previousProtection||window.__mgRevisionProtectedId!==context.id||window.__mgRevisionProtectedUntil!==context.protectedUntil)return;
+    Object.assign(window,context.previousProtection);
+}
 
-function stopWaveFront() {
+function refreshWaveFront(item){
+    if(!waveFrontContext||waveFrontContext.id!==item.id){
+        if(Array.isArray(item.coords))window.SeismicImpact?.refresh({id:item.id,lng:item.coords[0],lat:item.coords[1],mag:item.mag,depth:item.depth});
+        return;
+    }
+    if(Array.isArray(item.coords)){waveFrontContext.lng=item.coords[0];waveFrontContext.lat=item.coords[1];}
+    if(item.depth!=null&&Number.isFinite(Number(item.depth)))waveFrontContext.depth=Number(item.depth);
+    if(Number.isFinite(item.mag))waveFrontContext.mag=item.mag;
+    if(waveFrontContext.mode==='live'&&Number.isFinite(item.time))waveFrontContext.originTime=item.time;
+    window.SeismicImpact?.refresh(waveFrontContext);
+}
+
+function stopWaveFront(keepImpact = false) {
+    waveCamResume=null;
+    if(!keepImpact)window.SeismicImpact?.stop();
+    waveFrontGeneration++;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(waveFrontContext);waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
     try { clearInterval(waveFrontInterval); } catch (e) {}
     waveFrontInterval = null;
     if (waveCamRAF) {
@@ -449,13 +482,9 @@ function stopWaveFront() {
         } catch (e) {}
         waveCamAbortHandler = null;
     }
-    if (waveFrontPlaceHandler) {
-        try { map && map.off('move', waveFrontPlaceHandler); map && map.off('zoom', waveFrontPlaceHandler); } catch (e) {}
-        waveFrontPlaceHandler = null;
-    }
     if (waveFrontAtivo) {
         try {
-            ['wave-front-p-line', 'wave-front-p-glow', 'wave-front-s-line', 'wave-front-s-glow'].forEach(id => {
+            WAVE_LAYER_IDS.forEach(id => {
                 if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0);
             });
         } catch (e) {}
@@ -474,13 +503,8 @@ function stopWaveFront() {
 function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (!map) return;
     stopWaveFront();
-    // originTime agora DEFINE o tamanho do anel: alcance = velocidade real
-    // (acelerada) × tempo decorrido desde originTime. Quem chama decide o
-    // que "origem" significa em cada caso — item.time (origem verdadeira do
-    // sismo) pro ao vivo e pro ciclo automático (o anel já nasce na
-    // distância real que a onda alcançou, por mais velho que o sismo seja),
-    // ou Date.now() pro "replay" do clique manual (nasce pequeno e cresce
-    // visivelmente, de propósito, como uma re-exibição).
+    // Published origin for live scenes; an explicit replay starts at zero.
+    // The same GlobalQuake table is inverted using the elapsed seconds.
     if (!map.getSource('wave-front-p') || !map.getSource('wave-front-s')) return;
     waveFrontAtivo = true;
     // Sem timer de auto-expiração: o anel fica na tela (mesmo já parado no
@@ -505,26 +529,105 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (chaseCam) {
         // Só aborta em interação de VERDADE do usuário (originalEvent presente) —
         // chamadas programáticas nossas (jumpTo) não disparam com originalEvent.
-        waveCamAbortHandler = (e) => { if (e && e.originalEvent) camAbortada = true; };
+        waveCamAbortHandler = (e) => { if (e && e.originalEvent){camAbortada=true;context.protectUntilEnd=false;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(context);if(context.stage==='returning')stopWaveFront(true);if(typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(Math.max(1000,(window.__mgRevisionProtectedUntil||0)-Date.now()));} };
         map.on('dragstart', waveCamAbortHandler);
         map.on('wheel', waveCamAbortHandler);
         map.on('touchstart', waveCamAbortHandler);
     }
 
-    const alcanceMaxKm = waveFrontMaxKm(mag);
-    // A câmera acompanha a frente azul até o próprio limite da onda P.
-    // A zona de percepção permanece independente desse enquadramento.
+    const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
+    const mode=opts?.mode==='replay'?'replay':'live';
+    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:opts?.returnToEpicenter&&mag>=5?'s':'p',phaseUntil:null,impactHoldUntil:null};
+    if(context.returnToEpicenter){context.cameraPhase='s';window.SeismicImpact?.start(context);}
+    waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
+    (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
+    function protect(until){
+        if(!context.protectUntilEnd||context.id==null||window.__mgRevisionProtectedId!==context.id)return;
+        if(!context.previousProtection)context.previousProtection={__mgRevisionProtectedUntil:window.__mgRevisionProtectedUntil,__mgHoldEndsAt:window.__mgHoldEndsAt,__mgLiveQuakeUntil:window.__mgLiveQuakeUntil};
+        context.protectedUntil=until;window.__mgRevisionProtectedUntil=until;window.__mgHoldEndsAt=until;
+        if(window.__mgLiveQuakeId===context.id)window.__mgLiveQuakeUntil=until;
+    }
+    function finishOpening(){
+        if(context.stage==='holding'||!context.finalFrame)return;
+        if(context.returnToEpicenter&&!camAbortada){returnToImpactArea();return;}
+        context.stage='holding';context.finalUntil=Date.now()+5000;protect(context.finalUntil);place();
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;if(context.returnToEpicenter&&!camAbortada){returnToImpactArea();return;}context.stage='complete';context.previousProtection=null;stopWaveFront();},5000);
+        if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(5020);
+    }
+    function returnToImpactArea(){
+        if(document.hidden)return;
+        if(generation!==waveFrontGeneration)return;
+        context.stage='returning';context.finalUntil=null;
+        const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
+        context.cameraPhase='impact-final';context.phaseUntil=until;
+        protect(until);window.SeismicImpact?.finish();place();
+        try{const zoom=impactZoom(),camera={center:centroCompensado(context.lng,context.lat,zoom),zoom,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
+        if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
+    }
+    let impactExtentCache=null;
+    function impactRadius(){
+        if(!impactExtentCache||impactExtentCache.mag!==context.mag||impactExtentCache.depth!==context.depth){
+            impactExtentCache={mag:context.mag,depth:context.depth,radius:Math.max(1,window.SeismicImpact?.extent(context.mag,context.depth)||1)};
+        }
+        return impactExtentCache.radius;
+    }
+    function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,Math.max(10,window.SeismicImpactModel.extent(context.mag,context.depth,2.1)));}
+    const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
+    // O Mapbox reprojeta as coordenadas durante pan/zoom. Enviar a mesma
+    // geometria de novo só repete trabalho no worker, especialmente no quadro final.
+    const renderedWaves=new Map(),renderedOpacity=new Map();
+    // M5+: S até o alcance sentido → P por 6s → área pintada por 8s
+    // → repete P/área até o fim → área pintada por 10s. A física não pausa.
     const place = () => {
-        if (!map || !waveFrontAtivo) return;
-        const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
-        const kmP = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
-        const kmS = Math.min(alcanceMaxKm, WAVE_S_KMS * WAVE_SPEED_MULT * elapsedS);
+        if (document.hidden || !map || !waveFrontAtivo) return;
+        const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
+        const liveRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,elapsedS)]));
+        const physicalEnd=model?.endTime?.('p',context.depth);
+        const displayLimit=waveDisplaySeconds(context.mag,context.depth);
+        const end=physicalEnd==null?null:Math.min(physicalEnd,displayLimit);
+        if(end!=null&&elapsedS<end&&context.protectUntilEnd&&context.stage==='opening')protect(Math.max(context.previousProtection?.__mgRevisionProtectedUntil||0,context.originTime+end*1000+16000));
+        if(liveRadii.p!==null&&end!=null&&elapsedS<end&&!context.finalFrame)context.lastFrame={elapsedS,radii:liveRadii,alpha:waveDisplayAlpha(elapsedS,displayLimit)};
+        if(end!=null&&elapsedS>=end&&context.lastFrame&&!context.finalFrame){const finalTime=Math.max(0,end-.001),finalRadii=Object.fromEntries(WAVE_PHASES.map(phase=>[phase,radiusAt(phase,finalTime)]));context.finalFrame=finalRadii.p===null?context.lastFrame:{elapsedS:finalTime,radii:finalRadii,alpha:Math.min(context.lastFrame.alpha,waveDisplayAlpha(finalTime,displayLimit))};context.stage='settling';}
+        const expired=end!=null&&elapsedS>=end&&!context.finalFrame;
+        // A newly received report can already be older than the wave display
+        // deadline. Show its estimated impact radar, without replaying live time.
+        if(expired&&mode==='live'&&!context.radarPending&&typeof startFeltZone==='function'){
+            context.radarPending=true;
+            Promise.resolve().then(()=>{
+                if(!waveFrontAtivo||generation!==waveFrontGeneration)return;
+                if(context.returnToEpicenter){stopWaveFront();window.SeismicImpact?.start(context,true);}else startFeltZone(context.lng,context.lat,context.mag,context.depth,context.id,true);
+            });
+        }
+        const radii=context.finalFrame?.radii||(expired?Object.fromEntries(WAVE_PHASES.map(p=>[p,null])):liveRadii);
+        const alpha=context.stage==='returning'?0:context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
+        if(context.returnToEpicenter)window.SeismicImpact?.reveal(radii.s??0,context.stage==='returning');
+        const status=model?.status()||'error';
+        window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,cameraPhase:context.cameraPhase,phaseUntil:context.phaseUntil,impactRadius:context.returnToEpicenter?impactRadius():null,finalUntil:context.finalUntil||null};
+        if(waveFrontStatus){
+            const text=context.stage==='returning'?'Área afetada · Intensidade estimada · Quadro final':status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Reprodução':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
+            if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
+            const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
+            const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
+            if(waveFrontStatus.style.top!==top)waveFrontStatus.style.top=top;
+        }
         try {
-            map.getSource('wave-front-p').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmP) } });
-            map.getSource('wave-front-s').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anelGeodesico(lng, lat, kmS) } });
+            WAVE_LAYER_IDS.forEach(id=>{
+                const opacity=alpha*(id.endsWith('-glow')?.5:1);
+                if(map.getLayer(id)&&renderedOpacity.get(id)!==opacity){map.setPaintProperty(id,'line-opacity',opacity);renderedOpacity.set(id,opacity);}
+            });
+            for(const phase of WAVE_PHASES){
+                const km=radii[phase],source=map.getSource(`wave-front-${phase}`),previous=renderedWaves.get(phase);
+                if(!source)continue;
+                if(previous&&previous.source===source&&previous.km===km&&(km===null||(previous.lng===context.lng&&previous.lat===context.lat)))continue;
+                source.setData({type:'Feature',geometry:{type:'LineString',coordinates:km===null?[]:anelGeodesico(context.lng,context.lat,km,256,model.EARTH_RADIUS)}});
+                renderedWaves.set(phase,{source,km,lng:context.lng,lat:context.lat});
+            }
         } catch (e) {}
+        if(context.finalFrame&&(!chaseCam||camAbortada)&&context.stage==='settling')finishOpening();
     };
     place();
+    model?.load().then(()=>{if(waveFrontAtivo&&generation===waveFrontGeneration)place();}).catch(()=>{if(waveFrontAtivo&&generation===waveFrontGeneration)place();});
 
     // ═══ Chase-cam: suavização exponencial contínua (quadro a quadro), NÃO
     // mais uma cadeia de easeTo() curtos reiniciados a cada correção. ═══
@@ -548,6 +651,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     if (chaseCam) {
         let camZoomAtual = null;
         let camUltimoFrameEm = 0;
+        let lastTargetRadius = null;
         // Constante de tempo do amortecimento: quanto maior, mais lenta/
         // "pesada" a câmera reage ao alvo — 650ms dá uma sensação de
         // câmera de cinema (nunca "gruda" instantaneamente no alvo, mas
@@ -555,24 +659,50 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         // do anel, que já tem seu próprio lookahead embutido abaixo).
         const TAU_CAM_MS = 650;
         const camLoop = () => {
-            if (!map || !waveFrontAtivo || camAbortada) { waveCamRAF = null; return; }
+            if(document.hidden){waveCamRAF=null;waveCamResume=()=>{camUltimoFrameEm=0;waveCamRAF=requestAnimationFrame(camLoop);};return;}
+            if(window.MobileEnergyBudget?.mobile()&&camUltimoFrameEm&&performance.now()-camUltimoFrameEm<50){waveCamRAF=requestAnimationFrame(camLoop);return;}
+            if (!map || !waveFrontAtivo || camAbortada || context.stage==='returning') { waveCamRAF = null; return; }
             if (Date.now() < camStartAt) { waveCamRAF = requestAnimationFrame(camLoop); return; }
 
-            const elapsedS = Math.max(0, Date.now() - originTime) / 1000;
-            const kmP = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * elapsedS);
+            const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
+            const limit=Math.min(model?.endTime?.('p',context.depth)??Infinity,waveDisplaySeconds(context.mag,context.depth));
+            if(elapsedS>=limit&&!context.finalFrame)place();
+            if(elapsedS>=limit&&!context.finalFrame){waveCamRAF=null;return;}
+            const kmP=radiusAt('p',elapsedS);
             // Mira um pouco ADIANTE (camLookaheadMs) no raio que o anel terá
             // daqui a pouco, não no raio atual — senão a câmera sempre fica
             // um passo atrás do crescimento real (ver histórico de bugs
             // acima). 1800ms dá margem suficiente pro amortecimento de
             // TAU_CAM_MS não deixar o anel escapar da tela.
             const camLookaheadMs = 1800;
-            const kmAlvoCam = Math.min(alcanceMaxKm, WAVE_P_KMS * WAVE_SPEED_MULT * (elapsedS + camLookaheadMs / 1000));
+            const predicted=radiusAt('p',Math.min(limit-.001,elapsedS+camLookaheadMs/1000));
+            let kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
+            if(context.returnToEpicenter){
+                const felt=impactRadius(),kmS=radiusAt('s',elapsedS);
+                if(context.finalFrame){
+                    // Once propagation ends, return directly to the complete painted area.
+                    waveCamRAF=null;returnToImpactArea();return;
+                }
+                if(context.cameraPhase==='s'){
+                    const redTarget=radiusAt('s',Math.min(limit-.001,elapsedS+camLookaheadMs/1000))??kmS;
+                    kmAlvoCam=redTarget===null?null:Math.min(felt,redTarget);
+                    if(kmS!==null&&kmS>=felt){
+                        context.cameraPhase='p-first';context.phaseUntil=Date.now()+6000;
+                        window.SeismicImpact?.finish();
+                        kmAlvoCam=predicted??kmP??lastTargetRadius;
+                    }
+                }else if(['p-first','p-rest'].includes(context.cameraPhase)&&Date.now()>=context.phaseUntil){
+                    context.cameraPhase='impact';context.phaseUntil=null;context.impactHoldUntil=null;
+                }
+                if(context.cameraPhase==='impact')kmAlvoCam=felt;
+            }
+            if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
+            lastTargetRadius=kmAlvoCam;
             // Enquadra o raio efetivamente desenhado, sem abertura regional forçada.
-            const raioVermelho = typeof raioCritico === 'function' ? raioCritico(mag,depth) : 0;
-            const zoomAlvoBruto = Math.max(1.5,Math.min(15,
-                zoomParaCaberRaio(lng,lat,Math.max(kmAlvoCam,raioVermelho))));
+            const zoomAlvoBruto = context.returnToEpicenter&&context.cameraPhase==='impact' ? impactZoom() : Math.max(1.5,Math.min(15,
+                zoomParaCaberRaio(context.lng,context.lat,kmAlvoCam)));
 
-            if (camZoomAtual === null) camZoomAtual = map.getZoom();
+            if (camZoomAtual === null){camZoomAtual=map.getZoom();context.epicenterZoom=opts?.epicenterZoom??camZoomAtual;}
             const agoraMs = performance.now();
             // dt entre quadros — limitado a 200ms pra não dar um "salto"
             // gigante se a aba ficou em background (rAF pausa) e voltou.
@@ -580,49 +710,47 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             camUltimoFrameEm = agoraMs;
             const fatorSuavizacao = 1 - Math.exp(-dt / TAU_CAM_MS);
             const proximoZoom = camZoomAtual + (zoomAlvoBruto - camZoomAtual) * fatorSuavizacao;
-            // Só abre (zoom out) — nunca fecha de volta (a onda só cresce).
-            camZoomAtual = Math.min(camZoomAtual, proximoZoom);
+            // O passeio M5+ pode fechar para rever a área; os demais só abrem.
+            camZoomAtual = context.returnToEpicenter ? proximoZoom : Math.min(camZoomAtual, proximoZoom);
             try {
-                map.jumpTo({ center: centroCompensado(lng, lat, camZoomAtual), zoom: camZoomAtual });
+                map.jumpTo({ center: centroCompensado(context.lng, context.lat, camZoomAtual), zoom: camZoomAtual });
             } catch (e) {}
 
-            // "Termina" (para de recalcular) só quando a onda já bateu no
-            // teto físico dela E a câmera já convergiu pro alvo (dentro de
+            if(context.returnToEpicenter&&context.cameraPhase==='impact'){
+                // Count the eight seconds only once the whole affected area fits.
+                if(context.impactHoldUntil===null&&Math.abs(camZoomAtual-zoomAlvoBruto)<.015){context.impactHoldUntil=Date.now()+8000;context.phaseUntil=context.impactHoldUntil;}
+                if(context.impactHoldUntil!==null&&Date.now()>=context.impactHoldUntil){context.cameraPhase='p-rest';context.phaseUntil=Date.now()+6000;}
+            }
+            // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.
+            if(window.__mgWaveFrontState){window.__mgWaveFrontState.cameraPhase=context.cameraPhase;window.__mgWaveFrontState.phaseUntil=context.phaseUntil;}
+            // Termina quando não há nova chegada P e a câmera convergiu (dentro de
             // uma folga pequena) — antes disso continua ajustando quadro a
             // quadro, mesmo que o ajuste esteja ficando imperceptivelmente
             // pequeno (filtro exponencial nunca chega EXATAMENTE no alvo).
-            if (kmP >= alcanceMaxKm) camAtingiuTeto = true;
-            if (camAtingiuTeto && Math.abs(zoomAlvoBruto - camZoomAtual) < 0.003) {
-                waveCamRAF = null;
+            if(context.finalFrame)camAtingiuTeto=true;
+            if (camAtingiuTeto && camZoomAtual <= zoomAlvoBruto + 0.003) {
+                waveCamRAF = null;finishOpening();
                 return;
             }
             waveCamRAF = requestAnimationFrame(camLoop);
         };
         waveCamRAF = requestAnimationFrame(camLoop);
     }
-    // A geometria em si (lng/lat real) o Mapbox reprojeta sozinho em
-    // qualquer pan/zoom — mas o chase-cam (dentro de place()) ainda precisa
-    // rodar em cada frame de câmera, não só no tick de 300ms: só no
-    // setInterval, a correção perdia ritmo justamente durante a própria
-    // easeTo do chase-cam (que dispara 'move'/'zoom' em cada frame dela),
-    // deixando a câmera acumular atraso atrás do crescimento real do anel
-    // (raio em tela chegando a passar de 650px, medido). Recalcular o anel
-    // geodésico a mais vezes por causa disso é barato, sai bem mais barato
-    // que a câmera vazando atrás do anel.
-    waveFrontPlaceHandler = place;
-    map.on('move', place);
-    map.on('zoom', place);
+    // Câmera: amortecimento e previsão em cada frame, calculados acima.
+    // Ondas: relógio físico a cada 300ms (1500ms com movimento reduzido).
+    // Pan/zoom não recalculam a geometria nem reenviam GeoJSON ao worker.
     requestAnimationFrame(() => requestAnimationFrame(() => {
+        if(!waveFrontAtivo||generation!==waveFrontGeneration)return;
         try {
-            ['wave-front-p-line', 'wave-front-p-glow', 'wave-front-s-line', 'wave-front-s-glow'].forEach(id => {
-                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id.endsWith('-glow') ? 0.5 : 1);
+            WAVE_LAYER_IDS.forEach(id => {
+                if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', (window.__mgWaveFrontState?.alpha||0)*(id.endsWith('-glow') ? 0.5 : 1));
             });
         } catch (e) {}
     }));
     // Atualização periódica pra crescer com o tempo real — sem exagerar o
     // ritmo com prefers-reduced-motion, mas continua fisicamente correto.
     // Sem timer de auto-expiração ao final (ver comentário lá em cima): o
-    // anel fica visível, já parado no teto, até outro startWaveFront() ser
+    // anel acompanha as chegadas válidas até outro startWaveFront() ser
     // chamado — o interval só para de rodar quando isso acontecer (via
     // stopWaveFront no início da próxima chamada).
     waveFrontInterval = setInterval(place, reduceMotion ? 1500 : 300);
@@ -644,7 +772,7 @@ function updateQuakeLabels() {
             if (!quakeLabelStore.has(ev.id)) {
                 const el = document.createElement('div');
                 el.className = 'quake-label';
-                el.textContent = `M${ev.mag.toFixed(1)} • ${Math.max(0, ev.depth).toFixed(0)} km`;
+                el.textContent = `M${ev.mag.toFixed(1).replace('.', ',')} • ${Math.max(0, ev.depth).toFixed(0)} km`;
                 quakeLabelStore.set(ev.id, new GL.Marker({
                     element: el,
                     anchor: 'left',

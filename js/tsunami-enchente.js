@@ -41,10 +41,11 @@ async function fetchTsunamiAlertsGDACS() {
         });
 
         window.__gdacsTsIds = ids;
+        window.MonitorFreshness?.recordStatus('GDACS tsunamis','ok');
         marcarBooted('tsunamiGdacs');
         applyFilters();
         if (primeiroNovo) showAlertDetails(primeiroNovo, true);
-    } catch (e) { console.error('GDACS TS:', e); }
+    } catch (e) { window.MonitorFreshness?.recordStatus('GDACS tsunamis','off',e.message);console.error('GDACS TS:', e); }
 }
 
 /* ═══════════ FRENTE DE ONDA DE TSUNAMI — anel único, revelação acelerada ═══════════

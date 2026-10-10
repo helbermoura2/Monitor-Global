@@ -99,11 +99,11 @@ function pointInUfBbox(lng, lat, uf) {
 }
 function parseMunicipiosUF(municipiosStr) {
     const out = [];
-    String(municipiosStr || '').split(',').forEach(raw => {
+    String(municipiosStr || '').split(/[,;\n]+/).forEach(raw => {
         const s = raw.trim();
         if (!s) return;
         // "Abdon Batista - SC" ou "Abdon Batista (SC)" ou "Abdon Batista-SC"
-        let m = s.match(/^(.+?)\s*[-–]\s*([A-Z]{2})\b/);
+        let m = s.match(/^(.+?)\s*[-–/]\s*([A-Z]{2})\b/);
         if (!m) m = s.match(/^(.+?)\s*\(([A-Z]{2})\)\s*$/);
         if (!m) m = s.match(/^(.+?)\s+([A-Z]{2})\s*$/);
         if (m) out.push({ nome: m[1].replace(/\s*\(\d+\)$/, '').trim(), uf: m[2] });
@@ -324,12 +324,11 @@ if (!window.__offlineNetBound) {
   });
 
   // Snapshot periódico (a cada 3 min) enquanto a aba está visível — reforça offline
-  setInterval(() => {
+  PeriodicScheduler.every('offline-snapshot',() => {
     try {
-      if (document.hidden) return;
       if (typeof salvarCacheOffline === 'function') salvarCacheOffline();
     } catch (e) {}
-  }, 180000);
+  },180000,180000,'ui');
 }
 
 function inmetMeAtinge(a, ref) {
@@ -360,6 +359,7 @@ async function fetchInmetAvisos() {
         const lista = []
             .concat(Array.isArray(d.hoje) ? d.hoje : [])
             .concat(Array.isArray(d.futuro) ? d.futuro : []);
+        try{await window.InmetMunicipalities?.load();}catch(e){console.warn('[municípios INMET]',e.message);}
         const ids = new Set();
         let novoCritico = null, novos = 0;
         const ref = (typeof minhaPosicao !== 'undefined' && minhaPosicao && minhaPosicao.lat != null)
@@ -377,7 +377,7 @@ async function fetchInmetAvisos() {
             const pick = inmetPickCoords(a, ufs);
             const coords = pick.coords;
             const primaryUf = pick.primaryUf;
-            const munisRaw = String(a.municipios || '').split(',').map(s => s.trim()).filter(Boolean);
+            const munisRaw = String(a.municipios || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
             // Prioriza, na amostra exibida, os municípios da mesma UF onde o
             // pino foi ancorado — sem isso, a amostra pegava sempre os 3
             // primeiros em ordem alfabética da lista combinada (que pode
@@ -443,8 +443,12 @@ async function fetchInmetAvisos() {
                 // Descrição "crua" (sem prefixo ⏳/📍 nem amostra de municípios),
                 // pra quem for montar um texto próprio (ex.: Resumo do Dia) sem
                 // precisar tentar desmontar o `place` já formatado.
-                descOnly: desc
+                descOnly: desc,
+                municipalities:window.InmetMunicipalities?.resolve(pick.munis,ufs)||pick.munis.map(m=>({name:m.nome,uf:m.uf,coords:null})),
+                warningGeometry:window.InmetAreas?.geometry(a.poligono)||null,
+                hazardNature:'warning'
             };
+            obj.municipalityLocations=prev?.municipalities===obj.municipalities&&prev.municipalityLocations?prev.municipalityLocations:obj.municipalities.filter(m=>Array.isArray(m.coords));
             const isNew = upsertAlert(obj, { fonte: 'inmet', expiraMs: 300000 });
 
             if (isNew) {

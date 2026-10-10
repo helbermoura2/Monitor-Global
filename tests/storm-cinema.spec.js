@@ -6,7 +6,7 @@ for(const width of [1280,390])test('tempestade tem profundidade, pressão e clar
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" data-lightning="on" style="position:absolute;left:20px;top:25px;width:320px;height:600px;background:#0b2231;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 16px;color:white;font:600 18px system-ui">Tempestade em São Paulo</div><button id="control">Detalhes</button></div></body>');
  for(const file of ['painel-fx.css','cinematic-card.css','storm-cinema.css'])await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../css',file),'utf8')});
  await page.evaluate(()=>{window.__frame=null;window.requestAnimationFrame=cb=>{__frame=cb;return 1;};window.cancelAnimationFrame=()=>{__frame=null;};});
- for(const file of ['painel-fx.js','card-cinema-film.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
+ for(const file of ['painel-fx.js','card-effect-quality.js','card-cinema-film.js','cinematic-card.js'])await page.addScriptTag({content:fs.readFileSync(path.join(__dirname,'../js',file),'utf8')});
  const result=await page.evaluate(()=>{
   CinematicCard.start({id:'storm-qa',type:'storm',windKmh:150,detail:'Trovoadas'},Infinity);const start=performance.now(),panel=document.getElementById('painel-direito');
   let flash=0,lit=0,movement=0,calm=0;

@@ -1,0 +1,14 @@
+const {test,expect}=require('@playwright/test');
+test.use({serviceWorkers:'block',reducedMotion:'reduce'});
+for(const size of [{width:960,height:540},{width:1024,height:576},{width:1280,height:720}])test('desktop fits TV viewport and keeps header, detail and map separate '+size.width,async({page})=>{
+ const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';await page.setViewportSize(size);await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());
+ await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);globalEvents=[{id:'tv-layout-qa',type:'earthquake',mag:5.9,depth:10,time:Date.now()-3600000,coords:[165,-64],place:'Balleny Islands',source:'EMSC'}];window.__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgWaveDelayT);clearTimeout(window.__mgRadarDelayT);document.getElementById('sp-rain-eta').textContent='Prev. 15–60m · 1,5–4,2mm/1h';});
+ await page.waitForTimeout(1300);
+ const boxes=await page.evaluate(()=>Object.fromEntries(['top-strip','painel-direito','sidebar-left','ao-vivo-badge','sp-live-card','kpibox-brent','pd-local'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return [id,{x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,right:r.right}];})));
+ expect(boxes['top-strip'].h).toBeLessThanOrEqual(size.width<=1100?115:130);expect(boxes['painel-direito'].y).toBeGreaterThan(boxes['top-strip'].bottom);expect(boxes['painel-direito'].bottom).toBeLessThanOrEqual(size.height);
+ expect(boxes['painel-direito'].x-boxes['sidebar-left'].right).toBeGreaterThan(size.width*.38);expect(boxes['painel-direito'].h).toBeGreaterThan(size.height*.65);
+ expect(boxes['sp-live-card'].right).toBeLessThanOrEqual(boxes['kpibox-brent'].x+1);expect(boxes['ao-vivo-badge'].right).toBeLessThanOrEqual(size.width);await expect(page.locator('#pd-local')).toContainText('Balleny Islands');
+ const scroll=await page.locator('#painel-direito').evaluate(e=>{e.scrollTop=e.scrollHeight;return {top:e.scrollTop,overflow:getComputedStyle(e).overflowY};});expect(scroll.top).toBeGreaterThan(0);expect(scroll.overflow).toBe('auto');
+ if(size.width===960){await page.locator('#painel-direito').evaluate(e=>e.scrollTop=0);await page.screenshot({path:'/tmp/tv-layout-960.png'});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);expect(await page.locator('#painel-direito').evaluate(e=>e.style.top)).toBe('');await expect(page.locator('#ao-vivo-badge')).toBeVisible();await page.setViewportSize(size);await expect.poll(()=>page.locator('#top-strip').evaluate(e=>e.getBoundingClientRect().height)).toBeLessThanOrEqual(115);}
+});

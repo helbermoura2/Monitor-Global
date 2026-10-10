@@ -13,3 +13,14 @@ class_name = "DailySummaryDelivery"
 [[migrations]]
 tag = "daily-summary-v1"
 new_sqlite_classes = ["DailySummaryDelivery"]
+
+[[durable_objects.bindings]]
+name = "EARTHQUAKE_ALERTS"
+class_name = "EarthquakeAlertDelivery"
+
+[[migrations]]
+tag = "earthquake-alerts-v1"
+new_sqlite_classes = ["EarthquakeAlertDelivery"]
+
+[ai]
+binding = "AI"
