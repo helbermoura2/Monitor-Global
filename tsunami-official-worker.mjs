@@ -1,6 +1,16 @@
+import './js/tsunami-link.js';
 // NOAA Atom entries carry the region in <title>; bulletin category is in summary/feed.
 const clean=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]*>/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/\s+/g,' ').trim();
 const tag=(s,n)=>{const m=s.match(new RegExp('<(?:[\\w-]+:)?'+n+'\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?'+n+'>','i'));return m?clean(m[1]):'';};
+const numeric=value=>value!==null&&value!==undefined&&String(value).trim()!==''&&Number.isFinite(Number(value))?Number(value):null;
+function originText(text){
+ const m=text.match(/ORIGIN TIME\s+(\d{2})(\d{2})(?::?(\d{2}))?\s+UTC\s+([A-Z]{3})\s+(\d{1,2})\s+(\d{4})/i);
+ if(!m)return null;
+ const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],month=months.indexOf(m[4].toUpperCase());
+ if(month<0||Number(m[1])>23||Number(m[2])>59||Number(m[3]||0)>59||Number(m[5])<1||Number(m[5])>31)return null;
+ const time=Date.UTC(Number(m[6]),month,Number(m[5]),Number(m[1]),Number(m[2]),Number(m[3]||0));
+ return new Date(time).getUTCMonth()===month?time:null;
+}
 export function parseTsunamiAtom(xml,source){
  const feed=xml.split(/<(?:[\w-]+:)?entry\b/i)[0],feedTitle=tag(feed,'title');
  return [...xml.matchAll(/<(?:[\w-]+:)?entry\b[^>]*>([\s\S]*?)<\/(?:[\w-]+:)?entry>/gi)].flatMap(([,entry])=>{
@@ -15,7 +25,9 @@ export function parseTsunamiAtom(xml,source){
   const links=[...entry.matchAll(/<link\b([^>]*)>/gi)].map(([,attrs])=>({rel:attrs.match(/rel=["']([^"']*)/i)?.[1],url:attrs.match(/href=["']([^"']*)/i)?.[1]}));
   const link=links.find(l=>l.rel==='alternate')?.url||links.find(l=>l.url)?.url||'https://www.tsunami.gov/';
   const bulletinId=tag(entry,'id')||link;
-  return [{id:'TS-'+source+'-'+bulletinId,source,type:'tsunami',title:feedTitle||'Boletim de tsunami',place:region||'Área do boletim oficial',description:summary,detail:summary,link,time,coords,hazardNature:warning?'warning':'bulletin',warningLevel,severityLabel:warningLevel,displayLabel:'Tsunami · '+warningLevel,sev:warningLevel==='Aviso'?4:warningLevel==='Vigilância'?3:warning?2:0,cancelled,official:true}];
+  const officialEventId=link.match(/\/events\/(PHEB|PAAQ)\/\d{4}\/\d{2}\/\d{2}\/([^/]+)\//)?.slice(1).join(':')||null;
+  const originMag=numeric(summary.match(/(?:Preliminary )?Magnitude:\s*(\d+(?:\.\d+)?)/i)?.[1]);
+  return [{id:'TS-'+source+'-'+bulletinId,source,type:'tsunami',title:feedTitle||'Boletim de tsunami',place:region||'Área do boletim oficial',description:summary,detail:summary,link,time,coords,coordinateRole:'earthquake-origin',originTime:originText(summary),originMag,officialEventId,hazardNature:warning?'warning':'bulletin',warningLevel,severityLabel:warningLevel,displayLabel:'Tsunami · '+warningLevel,sev:warningLevel==='Aviso'?4:warningLevel==='Vigilância'?3:warning?2:0,cancelled,official:true}];
  });
 }
 export function parseTsunamiProduct(text,code){
@@ -28,11 +40,11 @@ export function parseTsunamiProduct(text,code){
  const threat=categories.some(c=>!/cancel|no threat|no tsunami/i.test(c)&&/meters|metres|warning|watch|advisory|threat/i.test(c));
  const cancelled=!threat&&categories.some(c=>/cancel|no threat|no tsunami/i.test(c));
  const label=cancelled?'Encerrado':threat?'Ameaça oficial':'Informativo';
- const lat=Number(p.eventLat),lng=Number(p.eventLon),coords=Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?[lng,lat]:null;
+ const lat=numeric(p.eventLat),lng=numeric(p.eventLon),coords=Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?[lng,lat]:null;
  const details=area.map(a=>clean(a.zone)+': '+clean(a.category));
  const dir=String(p.eventDir||'');if(!/^\/events\/PHEB\/\d{4}\/\d{2}\/\d{2}\/[a-zA-Z0-9_-]+\/\d+\/[A-Z0-9]+\/$/.test(dir))throw Error('Caminho inválido');
  const source='PTWC',feedKey='PTWC-'+code;
- return [{id:'TS-'+feedKey+'-'+p.twcEventID+'-'+p.bulletinNr,feedKey,source,type:'tsunami',title:'PTWC · '+label,place:area.length?[...new Set(area.map(a=>clean(a.zone)))].join(' · '):clean(p.quakeLocation)||'Região do boletim PTWC',time,coords,originTime:Date.parse(p.originTime),affectedAreas:area.map(a=>({name:clean(a.zone),category:clean(a.category)})),detail:(threat?'Ameaça de tsunami estimada pelo PTWC. Autoridades locais definem as medidas para cada costa. ':'Boletim informativo do PTWC. ')+(details.length?'Faixas previstas no boletim: '+details.join('; ')+'. ':segments.map(a=>clean(a.recommendedActions||a.headline)).join(' ')),link:'https://www.tsunami.gov'+dir+code+'.txt',hazardNature:threat?'warning':'bulletin',warningLevel:label,displayLabel:'Tsunami · '+label,severityLabel:label,sev:threat?4:0,cancelled,official:true}];
+ return [{id:'TS-'+feedKey+'-'+p.twcEventID+'-'+p.bulletinNr,feedKey,source,type:'tsunami',title:'PTWC · '+label,place:area.length?[...new Set(area.map(a=>clean(a.zone)))].join(' · '):clean(p.quakeLocation)||'Região do boletim PTWC',time,coords,coordinateRole:'earthquake-origin',originTime:Date.parse(p.originTime),originMag:numeric(p.eventMagnitude),officialEventId:'PHEB:'+p.twcEventID,affectedAreas:area.map(a=>({name:clean(a.zone),category:clean(a.category)})),detail:(threat?'Ameaça de tsunami estimada pelo PTWC. Autoridades locais definem as medidas para cada costa. ':'Boletim informativo do PTWC. ')+(details.length?'Faixas previstas no boletim: '+details.join('; ')+'. ':segments.map(a=>clean(a.recommendedActions||a.headline)).join(' ')),link:'https://www.tsunami.gov'+dir+code+'.txt',hazardNature:threat?'warning':'bulletin',warningLevel:label,displayLabel:'Tsunami · '+label,severityLabel:label,sev:threat?4:0,cancelled,official:true}];
 }
 let cache=null,inflight=null;
 export async function getOfficialTsunamis(){
@@ -47,7 +59,7 @@ export async function getOfficialTsunamis(){
    catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}finally{clearTimeout(timer);}
   }));
   if(sources.some(s=>!s.ok))sources.push(...await getNwsTsunamis());
-  const data={source:'TSUNAMI-GOV',ok:sources.some(s=>s.ok),sources,items:sources.flatMap(s=>s.items).sort((a,b)=>b.time-a.time)};
+  const data={source:'TSUNAMI-GOV',ok:sources.some(s=>s.ok),sources,items:globalThis.TsunamiLink.latest(sources.flatMap(s=>s.items))};
   cache={at:Date.now(),data};return data;
  })().finally(()=>inflight=null);return inflight;
 }
@@ -66,14 +78,14 @@ export function parseNwsTsunamiProduct(p){
  const coords=match?[Number(match[3])*(match[4].toUpperCase()==='WEST'?-1:1),Number(match[1])*(match[2].toUpperCase()==='SOUTH'?-1:1)]:null;
  const forecast=text.split(/TSUNAMI THREAT FORECAST[^\n]*\n[-]+/i)[1]?.split(/RECOMMENDED ACTIONS/)[0]||evaluation;
  const location=text.match(/\* LOCATION\s+([^\n]+)/)?.[1]?.trim()||'Área do boletim oficial';
- return [{id:'TS-NWS-'+p.id,feedKey:source+'-NWS-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
+ return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,coordinateRole:'earthquake-origin',originTime:originText(text),originMag:numeric(text.match(/\* MAGNITUDE\s+(\d+(?:\.\d+)?)/)?.[1]),detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
 }
 async function nwsJson(url){const r=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/geo+json','User-Agent':'MonitorGlobal (https://monitorglobal.top)'}});if(!r.ok)throw Error('NWS HTTP '+r.status);return r.json();}
 export async function getNwsTsunamis(){
  const catalogs=await Promise.all(['TSU','TIB'].map(async type=>{try{return {ok:true,entries:(await nwsJson('https://api.weather.gov/products/types/'+type))['@graph']||[]};}catch(e){return {ok:false,error:e.message,entries:[]};}}));
  const latest=new Map();
  for(const p of catalogs.flatMap(c=>c.entries).sort((a,b)=>Date.parse(b.issuanceTime)-Date.parse(a.issuanceTime))){if(!['PHEB','PAAQ'].includes(p.issuingOffice)||Date.now()-Date.parse(p.issuanceTime)>72*3600000||!/^[a-f\d-]{36}$/.test(p.id))continue;const key=p.issuingOffice+'-'+p.wmoCollectiveId;if(!latest.has(key))latest.set(key,p);}
- const sources=await Promise.all([...latest.values()].slice(0,12).map(async p=>{const source=p.issuingOffice==='PHEB'?'PTWC':'NTWC',feedKey=source+'-NWS-'+p.wmoCollectiveId;try{return {source,feedKey,ok:true,items:parseNwsTsunamiProduct(await nwsJson('https://api.weather.gov/products/'+p.id))};}catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}}));
+ const sources=await Promise.all([...latest.values()].slice(0,12).map(async p=>{const source=p.issuingOffice==='PHEB'?'PTWC':'NTWC',feedKey=source+'-'+p.wmoCollectiveId;try{return {source,feedKey,ok:true,items:parseNwsTsunamiProduct(await nwsJson('https://api.weather.gov/products/'+p.id))};}catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}}));
  if(!sources.length)sources.push({source:'PTWC',feedKey:'PTWC-NWS',ok:catalogs.every(c=>c.ok),items:[],error:catalogs.find(c=>!c.ok)?.error});
  return sources;
 }

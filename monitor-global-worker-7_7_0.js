@@ -481,11 +481,11 @@ async function queryNearbyPlaces(lat, lon) {
     try { return await fetchJson(u, {}, 9000); } catch { return null; }
 }
 
-async function getOfficialTsunamiCorrelation(lat, lon) {
+async function getOfficialTsunamiCorrelation(lat, lon, time, mag) {
     const alerts = await getTsunamiAlerts();
     const now = Date.now();
-    const fresh = (alerts.items || []).filter(x => now - (x.time || now) < 24*3600000);
-    const relevant = fresh.filter(x => x.hazardNature === 'warning' && Array.isArray(x.coords) && haversineKm(lat, lon, x.coords[1], x.coords[0]) <= 100);
+    const quake={id:'correlation-query',type:'earthquake',coords:[lon,lat],time,mag};
+    const relevant = Number.isFinite(time)?globalThis.TsunamiLink.forQuake(quake,alerts.items||[],[quake],now).filter(x=>x.alert.hazardNature==='warning'&&!x.alert.cancelled).map(x=>x.alert):[];
     return { online: alerts.ok, alerts: relevant.slice(0, 12) };
 }
 
@@ -495,12 +495,13 @@ async function handleCorrelation(reqUrl, env) {
     const lat = Number(reqUrl.searchParams.get('lat'));
     const lon = Number(reqUrl.searchParams.get('lon'));
     const place = reqUrl.searchParams.get('place') || '';
+    const time = reqUrl.searchParams.has('time')?Number(reqUrl.searchParams.get('time')):NaN;
     if (![mag, depth, lat, lon].every(Number.isFinite)) return json({ error: 'Parâmetros obrigatórios: mag, depth, lat, lon' }, 400);
 
     const [regions, places, official] = await Promise.all([
         queryUsGeoRegions(lat, lon),
         queryNearbyPlaces(lat, lon),
-        getOfficialTsunamiCorrelation(lat, lon)
+        getOfficialTsunamiCorrelation(lat, lon, time, mag)
     ]);
 
     const offshoreText = JSON.stringify(regions || {}).toLowerCase();

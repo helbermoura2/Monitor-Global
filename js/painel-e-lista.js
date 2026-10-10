@@ -121,6 +121,7 @@ function applyFilters() {
     // é por causa dessa linha vir antes que o filtro "BR" e outros consumidores
     // de lastMerged não ficam presos a dados velhos só porque o DOM travou.
     lastMerged = merged;
+    window.TsunamiLinkedPanel?.refresh();
     try {
         if (typeof EventStore !== 'undefined') {
             EventStore.syncFromLegacy();
@@ -1151,6 +1152,8 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
 // tudo que é compartilhado" antes de cada função preencher o que é do seu tipo.
 function resetPainelDetalheCompartilhado() {
     window.RecordPresentation?.reset();
+    window.TsunamiLinkedPanel?.clear();
+    document.getElementById('mg-correlation-box')?.remove();
     if (typeof cancelarExposicaoPopulacional === 'function') cancelarExposicaoPopulacional();
     const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
     set('pd-depth-label', 'Profundidade');
@@ -1330,6 +1333,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     document.getElementById('pd-history').innerHTML = hh;
 
     applyOfficialLinkToPanel(item);
+
+    window.TsunamiLinkedPanel?.render(rawItem);
 
     // Badge ATUALIZADO no card principal quando o store marcou revisão
     try {
@@ -1788,7 +1793,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     if (item.type === 'tsunami' && item.official) {
         document.getElementById('pd-cities-title').textContent='🌊 Área do boletim oficial';
         document.getElementById('pd-cities').innerHTML='<div class="city-item">'+esc(item.place||'Consulte o boletim oficial')+'</div>'+
-            '<div class="city-item">'+esc(item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mostra uma visão geral, sem epicentro ou alcance inventado.')+'</div>';
+            '<div class="city-item">'+esc(item.coordinateRole==='warning-area'?'O mapa aponta uma referência da área costeira sob aviso, não o epicentro do sismo.':item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mostra uma visão geral, sem epicentro ou alcance inventado.')+'</div>';
     } else if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
         const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
         // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
@@ -1903,6 +1908,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     document.getElementById('pd-history').innerHTML = '<div class="history-item" style="color:#64748b;">Histórico não aplicável a este tipo de evento.</div>';
     applyOfficialLinkToPanel(item);
     window.RecordPresentation?.panel(item);
+    window.TsunamiLinkedPanel?.render(rawItem);
 
     try {
         const pdSrc = document.getElementById('pd-source');

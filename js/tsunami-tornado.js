@@ -24,7 +24,11 @@ async function fetchTsunamiAlerts() {
                 place: pr.areaDesc || 'Área não especificada',
                 bandeira: '🇺🇸',
                 time: new Date(pr.sent || Date.now()).getTime(),
-                coords, source: 'NWS/NOAA', detail: pr.event
+                coords, coordinateRole:'warning-area', source: 'NWS/NOAA', detail: pr.event,
+                official:true,hazardNature:'warning',warningLevel:/Watch/i.test(pr.event)?'Vigilância':/Advisory/i.test(pr.event)?'Atenção':'Aviso',
+                expiresAt:Date.parse(pr.expires),warningDescription:pr.description,warningInstruction:pr.instruction,
+                link:/^https:\/\/api\.weather\.gov\/alerts\//.test(a.id)?a.id:'https://www.weather.gov/',
+                locationNote:'O mapa aponta uma referência da área costeira sob aviso, não o epicentro do sismo.'
             };
             const isNew = upsertAlert(obj, { fonte: 'tsunamiNws' });
 
@@ -55,7 +59,9 @@ async function fetchOfficialTsunamiAlerts(){
   for(const name of ['PTWC','NTWC']){const rows=(data.sources||[]).filter(s=>s.source===name);const ok=rows.some(s=>s.ok);const partial=ok&&rows.some(s=>!s.ok);window.MonitorFreshness?.recordStatus(name+' boletins',partial?'warn':ok?'ok':'off',rows.filter(s=>!s.ok).map(s=>s.error||'Produto indisponível').join(' · '));}
   if(!data.ok)throw Error('Centros oficiais indisponíveis');
   const online=new Set((data.sources||[]).filter(s=>s.ok).map(s=>s.feedKey||s.source));
-  const items=(data.items||[]).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)&&Number.isFinite(item.time)&&Date.now()-item.time<=72*3600000);
+  const selectedBefore=globalAlerts.find(item=>item.id===eventoSelecionadoId);
+  const beforeSignature=globalAlerts.filter(item=>['PTWC','NTWC'].includes(item.source)).map(item=>item.id+'|'+item.time+'|'+item.warningLevel).sort().join(';');
+  const items=window.TsunamiLink.latest((data.items||[]).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)));
   const ids=new Set(items.map(item=>item.id));
   globalAlerts=globalAlerts.filter(item=>!online.has(item.feedKey||item.source)||item.type!=='tsunami'||ids.has(item.id));
   for(const item of items){
@@ -65,14 +71,23 @@ async function fetchOfficialTsunamiAlerts(){
     notificarNavegador(item.displayLabel,item.place);
    }
   }
+  const latestOfficial=window.TsunamiLink.latest(globalAlerts.filter(item=>['PTWC','NTWC'].includes(item.source)));
+  const latestIds=new Set(latestOfficial.map(item=>item.id));
+  globalAlerts=globalAlerts.filter(item=>!['PTWC','NTWC'].includes(item.source)||item.type!=='tsunami'||latestIds.has(item.id));
+  const afterSignature=latestOfficial.map(item=>item.id+'|'+item.time+'|'+item.warningLevel).sort().join(';');
+  if(beforeSignature!==afterSignature)window.monitorGlobalCorrelationInvalidate?.();
+  if(selectedBefore&&!globalAlerts.some(item=>item.id===selectedBefore.id)){
+   const replacement=latestOfficial.find(item=>(item.feedKey||item.source)===(selectedBefore.feedKey||selectedBefore.source)&&window.TsunamiLink.sameEvent(item,selectedBefore));
+   if(replacement)showAlertDetails(replacement,false,true);
+  }
   window.NewEventPriority?.queue(items);applyFilters();
-  const sorted=globalAlerts.filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)).sort((a,b)=>(b.sev||0)-(a.sev||0)||b.time-a.time);
+  const sorted=latestOfficial.sort((a,b)=>(b.sev||0)-(a.sev||0)||b.time-a.time);
   let chip=document.getElementById('chip-tsunami-official');
   if(!chip){chip=document.createElement('button');chip.id='chip-tsunami-official';chip.type='button';chip.className='chip';document.getElementById('chips-row')?.append(chip);}
   chip.hidden=!sorted.length;chip.style.setProperty('display',sorted.length?'inline-flex':'none','important');chip.textContent='🌊 Tsunami: '+(sorted[0]?.warningLevel||'Boletim');chip.title=sorted.map(item=>item.source+' · '+item.displayLabel+' · '+item.place).join('\n');
   chip.onclick=()=>{
    // A manual bulletin selection must not inherit an automatic replay flag.
-   const current=globalAlerts.filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)).sort((a,b)=>(b.sev||0)-(a.sev||0)||b.time-a.time)[0];
+   const current=window.TsunamiLinkedPanel?.preferred()||window.TsunamiLink.latest(globalAlerts.filter(item=>['PTWC','NTWC'].includes(item.source))).sort((a,b)=>(b.sev||0)-(a.sev||0)||b.time-a.time)[0];
    if(!current)return;
    window.__mgSoftCycle=false;window.__mgRotationDisplay=false;
    showAlertDetails(current,false);

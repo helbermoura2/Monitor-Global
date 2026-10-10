@@ -1,0 +1,31 @@
+const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block',reducedMotion:'reduce'});
+async function boot(page){const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());await page.goto(base+'/?verify=tsunami-link',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento&&window.TsunamiLinkedPanel);await page.evaluate(()=>{pausarBuscas();PeriodicScheduler.cancel('correlation');clearTimeout(cycleTimeout);stopWaveFront();stopFeltZone();map.stop();globalAlerts=[];globalEvents=[];pendingNewCameraQuakes.clear();PresentationLimits.clear();});}
+function fixtures(){const now=Date.now(),q={id:'panama-major',type:'earthquake',mag:7.7,depth:13,coords:[-80.75,7.54],time:now-3600000,place:'Panama',source:'QA'};return {q,a:{id:'PTWC-warning',type:'tsunami',source:'PTWC',feedKey:'PTWC-WEPA40',official:true,originTime:q.time,originMag:7.6,coords:[-80.8,7.5],time:now,place:'Panama',detail:'Aviso para as costas indicadas no boletim',hazardNature:'warning',warningLevel:'Ameaça oficial',displayLabel:'Tsunami · Ameaça oficial',sev:4,affectedAreas:[{name:'Panama',category:'1-3 meters'}],link:'https://www.tsunami.gov/'}};}
+for(const width of [1280,390])test('major quake keeps focus when bulletin arrives; exact two-way navigation '+width,async({page})=>{
+ await page.setViewportSize({width,height:900});await boot(page);const {q,a}=fixtures();
+ await page.evaluate(q=>{globalEvents=[q,{...q,id:'old',time:q.time-19*3600000,mag:4.8}];showEventDetails(0,true);clearTimeout(cycleTimeout);},q);
+ await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',feedKey:'PTWC-WEPA40',ok:true}],items:[a]}}));await page.evaluate(()=>fetchOfficialTsunamiAlerts());
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(q.id);await expect(page.locator('#pd-tsunami-link')).toContainText('Ameaça oficial');await expect(page.locator('#pd-tsunami-link')).toContainText('1-3 metros');await expect(page.locator('#pd-tsunami-link')).toContainText('Panamá');
+ if(width===390){expect(await page.evaluate(()=>{const b=document.getElementById('pd-share-btn'),r=b.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')?.id;})).toBe('pd-share-btn');await page.locator('#mobile-detail-handle').click();}
+ await page.locator('#pd-tsunami-link button').click();await expect(page.locator('#pd-tsunami-link')).toHaveAttribute('data-quake-id',q.id);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(a.id);
+ if(width===390)await page.locator('#mobile-detail-handle').click();
+ await page.locator('#pd-tsunami-link button').click();expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(q.id);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+test('regional coastal polygons and a different origin time never attach to a nearby quake',async({page})=>{
+ await boot(page);const {q,a}=fixtures();await page.evaluate(({q,a})=>{globalEvents=[q];globalAlerts=[a];showAlertDetails({...a,id:'regional',coordinateRole:'warning-area'},false);clearTimeout(cycleTimeout);},{q,a});
+ await expect(page.locator('#pd-tsunami-link')).toContainText('permanece regional');await expect(page.locator('#pd-tsunami-link button')).toHaveCount(0);await expect(page.locator('#pd-notice-brief')).toContainText('não o epicentro');
+ await page.evaluate(a=>{showAlertDetails({...a,originTime:a.originTime-17*3600000},false);clearTimeout(cycleTimeout);},a);await expect(page.locator('#pd-tsunami-link')).toContainText('Nenhum sismo');await expect(page.locator('#pd-tsunami-link button')).toHaveCount(0);
+});
+test('cancellation replaces its product while an independent bulletin and the quake remain visible',async({page})=>{
+ await boot(page);const {q,a}=fixtures(),info={...a,id:'NTWC-info',source:'NTWC',feedKey:'NTWC-General',hazardNature:'bulletin',warningLevel:'Informativo',sev:0};let items=[a,info];await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',feedKey:a.feedKey,ok:true},{source:'NTWC',feedKey:info.feedKey,ok:true}],items}}));
+ await page.evaluate(q=>{globalEvents=[q];showEventDetails(0,true);clearTimeout(cycleTimeout);},q);await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect(page.locator('#pd-tsunami-link .tsunami-link-row')).toHaveCount(2);
+ const ended={...a,id:'PTWC-ended',time:Date.now()+1000,cancelled:true,hazardNature:'bulletin',warningLevel:'Encerrado',sev:0};items=[a,info,ended];await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect(page.locator('#pd-tsunami-link')).toContainText('Encerrado');await expect(page.locator('#pd-tsunami-link')).not.toContainText('Ameaça oficial');expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(q.id);await expect(page.locator('#pd-tsunami-link .tsunami-link-row')).toHaveCount(2);
+ await page.evaluate(ended=>{showAlertDetails(ended,false);clearTimeout(cycleTimeout);},ended);
+ const revision={...ended,id:'PTWC-end-revision',time:Date.now()+2000};items=[info,revision];await page.evaluate(()=>fetchOfficialTsunamiAlerts());expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(revision.id);
+});
+test('a late quake correlation response cannot rewrite the tsunami card',async({page})=>{
+ await boot(page);const {q,a}=fixtures();let resolveResponse;await page.route('**/correlate?**',async route=>{await new Promise(r=>resolveResponse=r);await route.fulfill({json:{tsunami:{level:'ALTO',score:90,action:'Old quake analysis'}}});});
+ await page.evaluate(q=>{globalEvents=[q];eventoSelecionadoId=q.id;window.__linkCorrelation=monitorGlobalCorrelate(q);},q);await expect.poll(()=>Boolean(resolveResponse)).toBe(true);
+ await page.evaluate(a=>{globalAlerts=[a];showAlertDetails(a,false);clearTimeout(cycleTimeout);},a);resolveResponse();await page.evaluate(()=>window.__linkCorrelation);await expect(page.locator('#mg-correlation-box')).toHaveCount(0);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(a.id);
+});

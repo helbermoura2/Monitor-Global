@@ -38,3 +38,11 @@ Descrições livres de boletins são traduzidas pelo modelo de tradução M2M100
 
 
 Apresentação numérica e revisões: magnitudes e medidas decimais usam vírgula em português; população usa ponto nos milhares; quilômetros de profundidade continuam arredondados apenas para apresentação. O aviso de revisão acompanha o evento selecionado até trocar a seleção, sem animação contínua. Telegram e Imagem usam a mesma composição, com uma linha de revisão anterior → atual quando há histórico real de mudança; o backend continua editando a mensagem original. Os números dos registros, identificadores, cálculos, cronologia e prioridade não são convertidos em texto localizado.
+
+### Ligação entre sismo e tsunami
+
+`js/tsunami-link.js` é compartilhado pelo navegador e Worker. A associação exige um epicentro publicado a até 100 km e hora de origem a até 10 minutos do registro sísmico; diferenças de magnitude de até 1,5 admitem revisões entre redes. Sem hora de origem, apenas um candidato compatível até duas horas antes da publicação permite uma associação explicitamente provável. Candidatos ambíguos permanecem sem vínculo. Polígonos costeiros NWS são marcados como áreas de aviso e não são tratados como epicentros.
+
+O cartão sísmico apresenta os boletins relacionados, suas categorias, horários e áreas publicadas. Cada botão abre o boletim exato; o cartão do boletim permite retornar ao sismo associado. A entrada de um aviso não interrompe a apresentação protegida de um sismo M5+. A pintura de intensidade sísmica não representa inundação ou alcance de tsunami.
+
+Revisões substituem apenas o mesmo produto e evento oficial. Um informativo de outro centro/produto não encerra a ameaça publicada em um produto independente. Cancelamentos aparecem como Encerrado. A seleção de um boletim revisado acompanha a nova edição silenciosamente, sem mover a câmera. Respostas atrasadas de correlação não podem substituir o cartão de outro evento; mudanças de boletim invalidam a análise anterior. A integração reutiliza o ciclo de coleta existente, sem consultas ou animações periódicas adicionais.
