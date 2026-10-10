@@ -40,3 +40,13 @@ test('local CHST and NTWC multiline origin fields resolve the same Panama quake 
   assert.equal(missing.originTime,null);
  }
 });
+test('NWS coastal forecasts preserve per-region amplitudes and informative scope excludes the origin country',async()=>{
+ const {parseNwsTsunamiProduct}=await import('../../tsunami-official-worker.mjs');
+ const [warning]=parseNwsTsunamiProduct(JSON.parse(readFileSync('tests/fixtures/tsunami/NWS-WEPA40.json','utf8')));
+ assert.equal(warning.affectedAreas.find(a=>a.name==='PANAMA').category,'1 TO 3 METERS');assert.equal(warning.affectedAreas.find(a=>a.name==='PERU').category,'LESS THAN 0.3 METERS');assert(warning.affectedAreas.some(a=>a.name==='WALLIS AND FUTUNA'));assert(warning.affectedAreas.length>40);
+ const [info]=parseNwsTsunamiProduct(JSON.parse(readFileSync('tests/fixtures/tsunami/NWS-WEAK53.json','utf8')));assert.deepEqual(info.coverageAreas.map(a=>a.name),['Alaska','British Columbia','Washington','Oregon','California']);assert(!info.coverageAreas.some(a=>/panama/i.test(a.name)));
+});
+test('Spanish NTWC product uses the same origin and published regional scope as the English bulletin',async()=>{
+ const {parseNwsTsunamiProduct}=await import('../../tsunami-official-worker.mjs');const [a]=parseNwsTsunamiProduct(JSON.parse(readFileSync('tests/fixtures/tsunami/NWS-WEAK63.json','utf8')));
+ assert.equal(a.originTime,Date.parse('2026-10-09T20:26:00Z'));assert.deepEqual(a.coords,[-81.4,7.8]);assert.equal(a.originMag,6.9);assert.equal(a.place,'Panama');assert.equal(a.hazardNature,'bulletin');assert.equal(a.coverageAreas.length,5);
+});
