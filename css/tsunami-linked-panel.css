@@ -35,3 +35,32 @@
 #tsunami-map-legend button{display:block;margin-top:7px;min-height:30px;border:1px solid #38bdf866;border-radius:6px;padding:5px 10px;background:#0c4a6e66;color:#e0f2fe;font:inherit;cursor:pointer}
 #tsunami-map-legend button:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
 @media(max-width:1000px){#tsunami-map-legend{bottom:90px;width:min(430px,calc(100% - 24px));padding:10px}}
+
+#pd-linked-presentation{padding:12px;margin:10px 0;border:1px solid #38bdf85c;border-radius:12px;background:#071d2de8;grid-column:1 / -1;grid-row:2;min-width:0;color:#dbeafe;font:12px/1.5 system-ui}
+#pd-linked-presentation>strong,#pd-linked-presentation>small{display:block;overflow-wrap:anywhere}
+#pd-linked-presentation>small{color:#b4c8d5;font-size:11px}
+#pd-linked-presentation button{min-height:36px;margin-top:8px;padding:6px 10px;background:#0c3448;border:1px solid #38bdf855;border-radius:7px;color:#e0f2fe;font:inherit;cursor:pointer}
+#pd-linked-presentation button:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
+.tsunami-presentation-content{animation:tsunami-content-enter .6s ease both;text-align:center;overflow-wrap:anywhere}
+.tsunami-presentation-content:empty{display:none}
+.tsunami-presentation-content svg{display:block;width:140px;height:85px;margin:20px auto 0}
+.tsunami-presentation-content h2{font-size:27px;color:var(--presentation-tone);margin:0 0 12px}
+.tsunami-presentation-content h3{font-size:17px;color:#f0f9ff;margin:12px 0}
+.tsunami-presentation-content p{color:#bdd6e6;font-size:12px}
+.tsunami-presentation-content ul{padding:0;list-style:none;text-align:left;font-size:12px;line-height:1.8}
+.tsunami-presentation-content small{display:block;color:#9db9cc;line-height:1.5}
+#painel-direito.tsunami-presenting>:not(.pd-header-row):not(#painel-direito-close):not(#mobile-detail-handle):not(#pd-linked-presentation){display:none!important}
+#painel-direito.tsunami-presenting #pd-linked-presentation{display:block!important}
+@keyframes tsunami-content-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.tsunami-presentation-content{animation:none}}
+#painel-direito #pd-linked-presentation{opacity:1!important;pointer-events:auto!important}
+@media(max-width:700px) and (orientation:portrait){
+ body.mg-mobile-primary.mobile-details-mid #painel-direito #pd-linked-presentation{grid-row:6;margin:4px 0;padding:8px}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.tsunami-presenting #pd-linked-presentation{grid-row:2}
+ .tsunami-presentation-content svg{float:left;width:64px;height:40px;margin:5px 8px 0 0}
+ .tsunami-presentation-content h2{font-size:19px;min-height:40px;margin:6px 0}
+ .tsunami-presentation-content h3{font-size:13px;margin:6px 0}
+ .tsunami-presentation-content p{font-size:11px;margin:6px 0}
+ .tsunami-presentation-content ul{font-size:10px;line-height:1.5;margin:6px 0}
+ .tsunami-presentation-content small{font-size:10px}
+}

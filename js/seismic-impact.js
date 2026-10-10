@@ -4,7 +4,7 @@
 'use strict';
 const SOURCE='quake-impact',LAYER='quake-impact-fill';
 const {pga,extent,color}=window.SeismicImpactModel;
-let landPromise,generation=0,scene=null,legend=null;
+let landPromise,generation=0,scene=null,legend=null,visible=true;
 function loadLand(){return landPromise||(landPromise=fetch('assets/seismic/ne-50m-land.geojson?v=50m1',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Coastlines unavailable');return r.json();}).then(d=>d.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates)).catch(e=>{landPromise=null;throw e;}));}
 
 // Four footprints / 100k vertices at most. Keys include every physical input.
@@ -44,10 +44,11 @@ function calculate(context){
 window.addEventListener('pagehide',()=>{cancelCalculation();worker?.terminate();worker=null;});
 function ensure(){
  if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
- if(!map.getLayer(LAYER))map.addLayer({id:LAYER,type:'fill',source:SOURCE,paint:{'fill-color':['get','color'],'fill-opacity':.56,'fill-antialias':false}},map.getLayer('wave-front-p-glow')?'wave-front-p-glow':undefined);
+ if(!map.getLayer(LAYER))map.addLayer({id:LAYER,type:'fill',source:SOURCE,layout:{visibility:visible?'visible':'none'},paint:{'fill-color':['get','color'],'fill-opacity':.56,'fill-antialias':false}},map.getLayer('wave-front-p-glow')?'wave-front-p-glow':undefined);
 }
-function label(text){if(!legend){legend=document.createElement('div');legend.className='seismic-impact-status';const host=document.getElementById('mapWrap')||document.body,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));legend.style.top=Math.max(12,headerBottom-host.getBoundingClientRect().top+42)+'px';legend.style.whiteSpace='normal';legend.style.textAlign='center';legend.style.maxWidth='calc(100% - 24px)';legend.title='Modelo de atenuação GlobalQuake Gen2 sobre terras Natural Earth. Sem correção local de solo, relatos ou confirmação de danos.';(document.getElementById('mapWrap')||document.body).append(legend);}legend.textContent=text;}
+function label(text){if(!legend){legend=document.createElement('div');legend.className='seismic-impact-status';const host=document.getElementById('mapWrap')||document.body,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));legend.style.top=Math.max(12,headerBottom-host.getBoundingClientRect().top+42)+'px';legend.style.whiteSpace='normal';legend.style.textAlign='center';legend.style.maxWidth='calc(100% - 24px)';legend.title='Modelo de atenuação GlobalQuake Gen2 sobre terras Natural Earth. Sem correção local de solo, relatos ou confirmação de danos.';(document.getElementById('mapWrap')||document.body).append(legend);}legend.textContent=text;legend.style.display=visible?'':'none';}
 function stop(keepCalculation=false){if(!keepCalculation)cancelCalculation();generation++;scene=null;legend?.remove();legend=null;window.__mgSeismicImpactState=null;try{if(map?.getLayer(LAYER))map.removeLayer(LAYER);if(map?.getSource(SOURCE))map.removeSource(SOURCE);}catch(e){}}
+function setVisible(value){visible=!!value;if(legend)legend.style.display=visible?'':'none';try{if(map.getLayer(LAYER))map.setLayoutProperty(LAYER,'visibility',visible?'visible':'none');}catch(e){}}
 function reveal(radius,full=false){if(!scene)return;scene.radius=Math.max(scene.radius,Number(radius)||0);scene.full=scene.full||full;try{if(map.getLayer(LAYER)){const bandWidth=scene.bandWidth||1,key=scene.full?-1:Math.min(48,Math.floor(scene.radius/bandWidth));if(scene.filterKey!==key){map.setFilter(LAYER,scene.full?null:['<=',['get','distanceKm'],key*bandWidth+.000001]);scene.filterKey=key;}}}catch(e){}window.__mgSeismicImpactState={id:scene.id,stage:scene.full?'impact':'propagating',radius:scene.radius,estimated:true,features:scene.features||0};}
 function start(context,full=false){
  stop(true);const token=generation;scene={...context,radius:0,full,bandWidth:extent(context.mag,context.depth)/48};
@@ -59,5 +60,5 @@ function start(context,full=false){
 }
 function finish(){if(scene){reveal(scene.radius,true);label('Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
 function refresh(c){if(scene?.id!==c.id)return;if(['lng','lat','depth','mag'].some(k=>scene[k]!==c[k])){const r=scene.radius,full=scene.full;start(c,full);reveal(r,full);}}
-window.SeismicImpact={start,reveal,finish,refresh,stop,pga,extent,color,snapshot:context=>geometryCache.get(key(context))?.data||(active?.key===key(context)?active.promise:Promise.resolve(null))};
+window.SeismicImpact={start,reveal,finish,refresh,stop,setVisible,pga,extent,color,snapshot:context=>geometryCache.get(key(context))?.data||(active?.key===key(context)?active.promise:Promise.resolve(null))};
 })();
