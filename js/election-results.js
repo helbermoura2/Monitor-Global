@@ -10,6 +10,9 @@ const ballot = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 let chip, panel, announcement, opened = false, timer, expiryTimer, request, revision = 0;
 let turn = Date.now() >= ELECTION_2026.secondTurnAt ? 2 : 1;
 const seenArrivals = new Set(window.ElectionPanel?.arrivalIds || []);
+// Descreve só o que o TSE já apurou desde que o placar foi aberto -- nunca
+// uma projeção do resultado final (sem base histórica de 2022, sem modelo).
+const trendPoints = new Map();
 
 function expired() {
   const final = client.lastGood.get(2);
@@ -85,6 +88,35 @@ function candidateNode(candidate, index) {
   article.append(avatar, details);
   return article;
 }
+function updateTrend(result) {
+  const section = panel.querySelector('#election-trend');
+  if (!result || result.status !== 'results' || result.turn !== turn || result.candidates.length < 2) {
+    section.hidden = true;
+    return;
+  }
+  const [a, b] = result.candidates;
+  if (!trendPoints.has(turn)) trendPoints.set(turn, []);
+  const points = trendPoints.get(turn);
+  const last = points[points.length - 1];
+  if (!last || result.percentageCounted > last.counted) {
+    points.push({counted: result.percentageCounted, margin: a.percentage - b.percentage, leaderId: a.id});
+    if (points.length > 500) points.shift();
+  }
+  if (points.length < 2) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+  const first = points[0], current = points[points.length - 1], delta = current.margin - first.margin;
+  text('election-trend-note', first.leaderId !== current.leaderId
+    ? 'A liderança mudou de mãos desde que este placar foi aberto.'
+    : Math.abs(delta) < .05
+      ? 'Margem de ' + a.name + ' segue estável desde a abertura (' + percentage.format(current.margin) + ' p.p.).'
+      : 'Margem de ' + a.name + (delta > 0 ? ' ampliou ' : ' diminuiu ') + percentage.format(Math.abs(delta)) + ' p.p. desde a abertura (' + percentage.format(first.margin) + ' → ' + percentage.format(current.margin) + ' p.p.).');
+  const width = 100, height = 32, span = Math.max(.1, current.counted - first.counted), maxMargin = Math.max(1, ...points.map(p => p.margin));
+  const path = points.map(p => ((p.counted - first.counted) / span * width).toFixed(1) + ',' + (height - p.margin / maxMargin * height).toFixed(1)).join(' ');
+  panel.querySelector('#election-trend-line').setAttribute('points', path);
+}
 function render(result = client.lastGood.get(turn), failed = false, loading = false) {
   panel.querySelectorAll('[data-election-turn]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.electionTurn) === turn)));
   text('election-scope', turn === 1 ? 'DOIS PRIMEIROS' : '2º TURNO');
@@ -109,7 +141,9 @@ function render(result = client.lastGood.get(turn), failed = false, loading = fa
     panel.querySelector('#election-tse-time').title = 'Horário da apuração informado pelo TSE';
     text('election-result-status', result.finished ? 'TOTALIZADO' : 'PARCIAL');
     panel.querySelector('#election-result-status').title = result.finished ? 'Totalização encerrada pelo TSE' : 'Apuração ainda em andamento';
+    updateTrend(result);
   } else {
+    updateTrend(null);
     candidates.replaceChildren();
     text('election-empty', failed ? 'Não foi possível consultar o TSE. Tentaremos novamente em 30 s.' : loading ? 'Consultando a apuração oficial…' : `Aguardando dados oficiais do ${turn}º turno.`);
   }
@@ -190,6 +224,7 @@ function init() {
   panel.innerHTML = `<div class="election-head"><div class="election-heading">${ballot}<h2 id="election-title">PRESIDENTE</h2><span id="election-scope"></span></div><div class="election-actions"><div class="election-turns" aria-label="Turno da eleição"><button type="button" data-election-turn="1">1º turno</button><button type="button" data-election-turn="2">2º turno</button></div><button id="election-close" type="button" aria-label="Fechar placar da eleição">×</button></div></div>
     <div id="election-candidates"></div><p id="election-empty" role="status"></p>
     <div id="election-totalization"><div class="election-total-row"><strong id="election-counted"></strong><div id="election-progress" role="progressbar" aria-label="Seções totalizadas" aria-valuemin="0" aria-valuemax="100"><span></span></div><span id="election-result-status"></span></div><div class="election-time-row"><a id="election-source" href="https://resultados.tse.jus.br/oficial/app/index.html" target="_blank" rel="noopener noreferrer">Fonte: TSE ↗</a><time id="election-tse-time"></time></div></div>
+    <div id="election-trend" hidden role="status"><div class="election-trend-head"><span>Tendência desta sessão</span></div><svg id="election-trend-chart" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true"><polyline id="election-trend-line" fill="none"></polyline></svg><p id="election-trend-note"></p><p id="election-trend-disclaimer">Mostra só como o apurado oficial mudou desde que este placar foi aberto, sem comparação com eleições anteriores — não é uma projeção do resultado final.</p></div>
     <p id="election-feedback" role="status" hidden></p><div id="election-refresh-info"></div>`;
   announcement = document.createElement('div');
   announcement.className = 'election-announcement';
