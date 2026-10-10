@@ -1160,6 +1160,7 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
 // atualizada. Centralizando aqui, só existe UM lugar pra lembrar "resetei
 // tudo que é compartilhado" antes de cada função preencher o que é do seu tipo.
 function resetPainelDetalheCompartilhado() {
+    const volcanoActivity=document.getElementById('pd-volcano-activity');if(volcanoActivity)volcanoActivity.hidden=true;
     window.RecordPresentation?.reset();
     window.TsunamiLinkedPanel?.clear();
     document.getElementById('mg-correlation-box')?.remove();
@@ -1674,7 +1675,16 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     document.getElementById('pd-energy').textContent = 'Ativo';
     renderConsolidacaoFonte(item);
 
-    if (item.type === 'volcano') prepararTextoVulcao(item);
+    if (item.type === 'volcano') {
+        prepararTextoVulcao(item);
+        const activityBox=document.getElementById('pd-volcano-activity');
+        if(activityBox){
+            const recent=item._volcanoEscalation&&Date.now()-item._updatedAt<180000;
+            activityBox.querySelector('strong').textContent=recent?'🌋 NOVA ATIVIDADE · '+item._volcanoEscalation:'🌋 Atividade reportada pela fonte';
+            activityBox.querySelector('p').textContent=traduzirTextoVulcanico(item.vulcanicActivity||item.activityStatus||item.ashStatus||item.detail||item.eruptionStatus||'Atividade monitorada');
+            activityBox.hidden=false;
+        }
+    }
     if (item.type === 'flood' && typeof prepararTextoEnchente === 'function') prepararTextoEnchente(item);
 
     // Layout do painel adaptado por tipo (4.1.0)
@@ -1851,10 +1861,11 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         const dist=eventDistanceKm(item);
         const vona=item.usgsVona||null;
         const vonaUrl=item.usgsVonaUrl||'';
-        const activity=item.activityStatus||item.vulcanicActivity||item.ashStatus||item.detail;
+        const activity=item.vulcanicActivity||item.activityStatus||item.ashStatus||item.detail;
         const ash=item.ashHeight||item.ashStatus||'N/D';
         const citiesTitle='Cidades próximas';
         document.getElementById('pd-cities').innerHTML=`
+          ${item._volcanoEscalation?`<div class="volcano-pro-note" role="status" style="padding:12px;margin-bottom:10px;border-left:3px solid #fb923c;background:rgba(251,146,60,.12)"><b>🌋 NOVA ATIVIDADE</b><div>${esc(item._volcanoEscalation)}</div><small>Reportada pela fonte · ${new Date(item._updatedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</small></div>`:''}
           <div class="volcano-pro-grid">
             <div><div class="volcano-pro-k">Alerta GDACS</div><div class="volcano-pro-v">${badge}</div></div>
             <div><div class="volcano-pro-k">Código de aviação</div><div class="volcano-pro-v">${avBadge}</div></div>

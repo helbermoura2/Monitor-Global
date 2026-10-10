@@ -431,7 +431,7 @@ function renderRedemetLayer() {
 }
 
 const PRO={radar:false,follow:true,replay:false,speed:1,timer:null,events:[],idx:0,radarLayer:false,sourceState:{}};
-const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe','GDACS enchentes':'https://www.gdacs.org','GDACS ciclones':'https://www.gdacs.org','GDACS vulcões':'https://www.gdacs.org','GDACS incêndios':'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com','EONET incêndios':'https://eonet.gsfc.nasa.gov','EONET tempestades':'https://eonet.gsfc.nasa.gov',RainViewer:'https://www.rainviewer.com','Chuva SP · modelo (Open-Meteo)':'https://api.open-meteo.com',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',OVSICORI:'https://www.ovsicori.una.ac.cr','MARN-SV':'https://www.snet.gob.sv',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br','CSN-Chile':'https://api.gael.cloud','SSN-Mexico':'https://www.ssn.unam.mx',ANA:'https://www.snirh.gov.br'};
+const SRC={USGS:'https://earthquake.usgs.gov',EMSC:'https://www.emsc-csem.org',JMA:'https://www.data.jma.go.jp',IGP:'https://ide.igp.gob.pe','GDACS enchentes':'https://www.gdacs.org','GDACS ciclones':'https://www.gdacs.org','GDACS vulcões':'https://www.gdacs.org','GDACS incêndios':'https://www.gdacs.org',NHC:'https://www.nhc.noaa.gov',INMET:'https://apiprevmet3.inmet.gov.br',NWS:'https://api.weather.gov',OpenMeteo:'https://api.open-meteo.com','EONET incêndios':'https://eonet.gsfc.nasa.gov','EONET tempestades':'https://eonet.gsfc.nasa.gov',RainbowWeather:'https://rainbow.ai',RainbowTiles:'https://rainbow.ai',RainViewer:'https://www.rainviewer.com','Chuva SP · modelo (Open-Meteo)':'https://api.open-meteo.com',CPTEC:'https://servicos.cptec.inpe.br',CGE:'https://www.cgesp.org',AFAD:'https://deprem.afad.gov.tr',REDEMET:'https://api-redemet.decea.mil.br',USP:'https://moho.iag.usp.br','USGS-Volcano':'https://volcanoes.usgs.gov','VAAC-Global':'https://www.data.jma.go.jp',OVSICORI:'https://www.ovsicori.una.ac.cr','MARN-SV':'https://www.snet.gob.sv',GEOFON:'https://geofon.gfz-potsdam.de','OSC-BOL':'https://www.osc.org.bo',BMKG:'https://data.bmkg.go.id',GEONET:'https://api.geonet.org.nz',FUNVISIS:'https://sismosve.rafnixg.dev',INPE:'https://dataserver-coids.inpe.br','CSN-Chile':'https://api.gael.cloud','SSN-Mexico':'https://www.ssn.unam.mx',ANA:'https://www.snirh.gov.br'};
 function q(id){return document.getElementById(id)}
 function safeText(id,v){const e=q(id);if(e)e.textContent=v==null?'--':v}
 // Fontes sísmicas REGIONAIS (rede nacional de um país específico): quando
@@ -558,6 +558,8 @@ function riskScore(){
 }
 function updateRisk(){const r=riskScore(),card=q('risk-card');if(!card)return;card.className='risk-card risk-'+r.level;safeText('risk-icon',r.icon);safeText('risk-label',r.label);safeText('risk-reason',r.reason);safeText('risk-confidence','Confiança: '+r.confidence);card.title=r.reason+' • Confiança: '+r.confidence;if(q('kpibox-sp'))q('kpibox-sp').style.borderLeftColor=r.level==='critical'?'#ef4444':r.level==='alert'?'#fb923c':r.level==='attention'?'#facc15':'#4ade80';syncMobileRisk()}
 async function fetchProSP(){
+  const rainbow=await window.RainbowWeather?.refresh();
+  if(rainbow&&window.RainbowWeather.applyCurrent(rainbow))return;
   const u=`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&current=temperature_2m,apparent_temperature,weather_code,wind_gusts_10m,precipitation,relative_humidity_2m&timezone=auto`;
   const t=performance.now();
   try{
@@ -647,8 +649,8 @@ async function fetchProSP(){
     }
   }
 }
-async function radarOn(){if(!map||!PRO.radar)return;try{const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'});if(!r.ok)throw Error('radar '+r.status);const d=await r.json();if(!PRO.radar)return;const past=(d.radar&&d.radar.past)||[];if(!past.length)throw Error('sem frames');const frame=past[past.length-1];const host=d.host;const url=host+frame.path+'/256/{z}/{x}/{y}/2/1_1.png';if(map.getLayer('pro-radar-layer'))map.removeLayer('pro-radar-layer');if(map.getSource('pro-radar-source'))map.removeSource('pro-radar-source');map.addSource('pro-radar-source',{type:'raster',tiles:[url],tileSize:256,maxzoom:7,attribution:'Weather data by RainViewer'});map.addLayer({id:'pro-radar-layer',type:'raster',source:'pro-radar-source',paint:{'raster-opacity':.62,'raster-fade-duration':0}});PRO.radarLayer=true;const time=new Date(frame.time*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});safeText('radar-time-pro','Último quadro: '+time);if(q('radar-legend-pro'))q('radar-legend-pro').style.display='block';q('btn-radar-pro')?.classList.add('active');q('chip-radar')?.classList.add('active');setSource('RainViewer','ok',0);window.MonitorFreshness?.record('RainViewer',true,frame.time*1000)}catch(e){window.MonitorFreshness?.record('RainViewer',false);setSource('RainViewer','off',null,e?.message||'Consulta do radar sem resposta válida');safeText('radar-time-pro','Radar indisponível no momento')}}
-function radarOff(){if(!map)return;try{if(map.getLayer('pro-radar-layer'))map.removeLayer('pro-radar-layer');if(map.getSource('pro-radar-source'))map.removeSource('pro-radar-source')}catch(e){}PRO.radarLayer=false;if(q('radar-legend-pro'))q('radar-legend-pro').style.display='none';q('btn-radar-pro')?.classList.remove('active')}
+async function radarOn(){if(!map||!PRO.radar||document.hidden)return;await window.RainbowRadar.on(map,()=>PRO.radar);PRO.radarLayer=Boolean(PRO.radar&&map.getLayer('pro-radar-layer'));if(PRO.radarLayer){q('btn-radar-pro')?.classList.add('active');q('chip-radar')?.classList.add('active');}}
+function radarOff(){window.RainbowRadar?.off();if(!map)return;try{if(map.getLayer('pro-radar-layer'))map.removeLayer('pro-radar-layer');if(map.getSource('pro-radar-source'))map.removeSource('pro-radar-source')}catch(e){}PRO.radarLayer=false;if(q('radar-legend-pro'))q('radar-legend-pro').style.display='none';q('btn-radar-pro')?.classList.remove('active')}
 function toggleRadar(){PRO.radar=!PRO.radar;if(PRO.radar)radarOn();else radarOff();['chip-radar','btn-radar-pro','mobile-btn-radar'].forEach(id=>{q(id)?.classList.toggle('active',PRO.radar);q(id)?.setAttribute('aria-pressed',String(PRO.radar))})}
 function toggleCrisis(fromAuto){
   /* Modo crise removido permanentemente — site sempre em modo normal */
@@ -714,7 +716,7 @@ const startRadar=()=>setTimeout(radarOn,900);
 if(map.loaded())startRadar();else map.once('load',startRadar);
 if(!PRO.radarRefreshTimer)PRO.radarRefreshTimer=setInterval(()=>{
   if(PRO.radar && !document.hidden)radarOn();
-},300000);}
+},600000);}
 function boot(){
   bind();
   renderSources();

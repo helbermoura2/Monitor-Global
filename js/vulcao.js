@@ -178,8 +178,9 @@ async function fetchUSGSVolcanoProfessional(){
                     elevated:isElev(x),observatory:x.observatory||'',
                     volcanoUrl:x.volcanoUrl||'',detail:x.detail||'',
                     lastActivity:x.lastActivity||'',noticeId:x.noticeId||'',
-                    usgsUrl:x.usgsUrl||'',time:x.time||Date.now(),
-                    usgsVona:x.hasVona?{noticeId:x.noticeId}:null
+                    usgsUrl:x.usgsUrl||'',time:x.time||0,
+                    noticeSent:x.noticeSent||'',ashStatus:x.ashStatus||'',ashHeight:x.ashHeight||'',ashSource:x.ashSource||'',vonaRemarks:x.vonaRemarks||'',vonaMovement:x.vonaMovement||'',vonaDuration:x.vonaDuration||'',eruptionStatus:x.eruptionStatus||'',
+                    usgsVona:x.usgsVona||(x.hasVona?{noticeId:x.noticeId}:null)
                 })).filter(x=>x.name && Array.isArray(x.coords) && x.coords.length>=2);
                 const elevated=(pack.elevated||[]).map(x=>({
                     name:x.name,vnum:x.vnum||'',coords:x.coords,
@@ -187,8 +188,9 @@ async function fetchUSGSVolcanoProfessional(){
                     elevated:true,observatory:x.observatory||'',
                     volcanoUrl:x.volcanoUrl||'',detail:x.detail||'',
                     lastActivity:x.lastActivity||'',noticeId:x.noticeId||'',
-                    usgsUrl:x.usgsUrl||'',time:x.time||Date.now(),
-                    usgsVona:x.hasVona?{noticeId:x.noticeId}:null
+                    usgsUrl:x.usgsUrl||'',time:x.time||0,
+                    noticeSent:x.noticeSent||'',ashStatus:x.ashStatus||'',ashHeight:x.ashHeight||'',ashSource:x.ashSource||'',vonaRemarks:x.vonaRemarks||'',vonaMovement:x.vonaMovement||'',vonaDuration:x.vonaDuration||'',eruptionStatus:x.eruptionStatus||'',
+                    usgsVona:x.usgsVona||(x.hasVona?{noticeId:x.noticeId}:null)
                 })).filter(x=>x.name && Array.isArray(x.coords) && isElev(x));
                 // se elevated veio vazio, deriva de all
                 const elevFinal = elevated.length ? elevated : all.filter(isElev);
@@ -246,7 +248,7 @@ async function fetchUSGSVolcanoProfessional(){
                 eruptionStart:'',
                 lastActivity:vulcaoPick(p,['alertDate','colorDate','alert_date','color_date'],''),
                 ashStatus:'',
-                time:vulcaoData(vulcaoPick(p,['alertDate','colorDate','alert_date','color_date'],'')) || Date.now()
+                time:vulcaoData(vulcaoPick(p,['alertDate','colorDate','alert_date','color_date'],'')) || 0
             };
             if(vnum) byVnum.set(vnum,report);
             byName.set(normalizarNomeVulcao(name),report);
@@ -265,7 +267,7 @@ async function fetchUSGSVolcanoProfessional(){
                 observatory:vulcaoObservatorio(vulcaoPick(p,['obs','observatory','obs_fullname'],'')),
                 volcanoUrl:vulcaoPick(p,['vUrl','volcanoUrl'],''),
                 detail:vulcaoPick(p,['noticeSynopsis','status','description'],'')||'Vulcão elevado (USGS)',
-                time:Date.now()
+                time:vulcaoData(vulcaoPick(p,['alertDate','colorDate','sent_utc'],''))||0
             },{
                 aviationColor:color|| (base&&base.aviationColor)||'',
                 alertLevel:alert|| (base&&base.alertLevel)||'',
@@ -312,7 +314,7 @@ async function fetchUSGSVolcanoProfessional(){
                 usgsUrl:vulcaoPick(n,['noticeUrl','noticeData','notice_url','notice_data'],''),
                 noticeSent:vulcaoPick(n,['sentUtc','sent_utc'],''),
                 _sentTs:sent||0,
-                time:sent||Date.now()
+                time:sent||0
             });
         });
 
@@ -412,6 +414,8 @@ function enriquecerVulcaoComUSGS(obj,reports){
     obj.vonaMovement=hit.vonaMovement||obj.vonaMovement||'';
     obj.vonaDuration=hit.vonaDuration||obj.vonaDuration||'';
     obj.noticeId=hit.noticeId||obj.noticeId||'';
+    obj.noticeSent=hit.noticeSent||obj.noticeSent||'';
+    obj.reportAt=Number(hit.time)||Date.parse(hit.noticeSent||'')||obj.reportAt||0;
     obj.usgsVonaUrl=hit.usgsUrl||obj.usgsVonaUrl||'';
     obj.usgsVolcanoUrl=hit.volcanoUrl||obj.usgsVolcanoUrl||'';
     if(!obj.eruptionStatus && hit.eruptionStatus) obj.eruptionStatus=hit.eruptionStatus;
@@ -452,7 +456,7 @@ async function fetchGlobalVolcanoAdvisories(){
 }
 async function fetchVolcanoes(options={}){
     const urgentOnly=options.urgentOnly===true;
-    const accept=(next,previous)=>!urgentOnly||window.VolcanoPriority?.acceptsUrgent(next,previous);
+    const accept=(next,previous)=>{const p=window.VolcanoPriority;if(p&&previous){const old=p.evidence(previous),fresh=p.evidence(next);if(old.reportAt&&fresh.reportAt&&fresh.reportAt<old.reportAt)return false;}return !urgentOnly||p?.acceptsUrgent(next,previous);};
     window.__lastVolcanoAttempt = Date.now();
     try{
         const [feats,usgsPack,vaacItems]=await Promise.all([
@@ -548,7 +552,7 @@ async function fetchVolcanoes(options={}){
                 usgsVnum:r.vnum,aviationColor:r.aviationColor,usgsAlertLevel:r.alertLevel,
                 observatory:r.observatory,vulcanicActivity:r.detail,activityStatus:r.ashStatus,
                 ashHeight:r.ashHeight,ashSource:r.ashSource,vonaRemarks:r.vonaRemarks,
-                vonaMovement:r.vonaMovement,vonaDuration:r.vonaDuration,noticeId:r.noticeId,
+                vonaMovement:r.vonaMovement,vonaDuration:r.vonaDuration,noticeId:r.noticeId,noticeSent:r.noticeSent,reportAt:Number(r.time)||0,
                 usgsVonaUrl:r.usgsUrl,usgsVolcanoUrl:r.volcanoUrl,
                 eruptionStatus:r.eruptionStatus||'Atividade monitorada',
                 eruptionStart:r.eruptionStart||'',lastActivity:r.lastActivity||'',
@@ -576,8 +580,9 @@ async function fetchVolcanoes(options={}){
                 (a.coords&&haversine(a.coords[1],a.coords[0],lat,lng)<80)
             ));
             if(existing){
-                const next={...existing,ashStatus:v.ashStatus||existing.ashStatus,vulcanicActivity:v.detail||existing.vulcanicActivity,aviationColor:v.aviationColor||existing.aviationColor,usgsAlertLevel:v.alertLevel||existing.usgsAlertLevel,time:v.time||existing.time};
+                const next={...existing,ashStatus:v.ashStatus||existing.ashStatus,vulcanicActivity:v.detail||existing.vulcanicActivity,aviationColor:v.aviationColor||existing.aviationColor,usgsAlertLevel:v.alertLevel||existing.usgsAlertLevel,time:v.time||existing.time,noticeId:v.noticeId||v.advisory||existing.noticeId,reportAt:Number(v.time)||existing.reportAt,ashHeight:v.ashHeight||existing.ashHeight};
                 if(!accept(next,existing))return;
+                existing.noticeId=next.noticeId;existing.reportAt=next.reportAt;existing.ashHeight=next.ashHeight;
                 existing.sources=[...new Set([...(existing.sources||[]),v.source])];
                 existing.sourceSummary=existing.sources.join(' · ');
                 if(v.ashStatus) existing.ashStatus=v.ashStatus;
@@ -602,7 +607,7 @@ async function fetchVolcanoes(options={}){
             const infoT=(typeof traduzirEIdentificar==='function')?traduzirEIdentificar(v.name):{bandeira:'',pais:''};
             const obj={
                 id,type:'volcano',place:v.name,bandeira:infoT.bandeira||ct.flag||getFlagByCoords(lat,lng),pais:infoT.pais||ct.nome||'',
-                time:v.time||Date.now(),coords:[lng,lat],source:v.source,sources:[v.source],
+                noticeId:v.noticeId||v.advisory||'',reportAt:Number(v.time)||0,ashHeight:v.ashHeight||'',time:v.time||Date.now(),coords:[lng,lat],source:v.source,sources:[v.source],
                 sourceSummary:v.source,
                 aviationColor:v.aviationColor||'',usgsAlertLevel:v.alertLevel||'',
                 vulcanicActivity:v.detail,activityStatus:v.ashStatus,ashStatus:v.ashStatus,

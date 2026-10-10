@@ -7,23 +7,25 @@ const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
 function evidence(item){
  const text=normalize([item.eruptionStatus,item.vulcanicActivity,item.activityStatus,item.ashStatus,item.detail,item.vonaRemarks].filter(Boolean).join('. '));
  // Ignore negated/historical statements rather than treating every mention as activity.
- const current=text.split(/[.!;,\n]+/).filter(s=>!/(?:no|not|without|sem|nao|nenhum|nenhuma)\b.{0,65}(?:erupt|erup|lava|ash|cinza|explosi|explod|explosao)|(?:last erupted|ultima erupcao|historical|historico|possible|potential|could|might|possivel)|(?:erupt|erup|lava).{0,50}(?:ceased|stopped|ended|paused|encerr|cessou|interromp)|(?:old|cooled|solidified) lava/.test(s)).join('. ');
- const lava=/\blava\b/.test(current),ash=/ash (?:emission|plume|cloud)|emiss.{0,18}(?:ash|cinza)|(?:pluma|nuvem).{0,18}cinza/.test(current);
+ const current=text.split(/[.!;,\n]+/).filter(s=>!/(?:no|not|without|sem|nao|nenhum|nenhuma)\b.{0,65}(?:erupt|erup|lava|ash|va|cinza|explosi|explod|explosao)|(?:last erupted|ultima erupcao|historical|historico|possible|potential|could|might|possivel)|(?:erupt|erup|lava).{0,50}(?:ceased|stopped|ended|paused|encerr|cessou|interromp)|(?:old|cooled|solidified) lava|(?:va|ash|cinza).{0,30}(?:not obs|not detect|not ident|dissipat|nao obser|nao detect)/.test(s)).join('. ');
+ const lava=/\blava\b/.test(current),ash=/ash (?:emission|plume|cloud)|emiss.{0,18}(?:ash|cinza)|(?:pluma|nuvem).{0,18}cinza|(?:aviso|emissao).{0,25}cinza|\bva (?:obs|emission|cld|cloud|to|at)\b/.test(current);
  const erupting=/erupt(?:ion|ing|ive)|erupcao|eruptiv/.test(current);
  const aviation={green:0,yellow:1,orange:2,red:3}[normalize(item.aviationColor)]||0;
  const alert={normal:0,advisory:1,watch:2,warning:3}[normalize(item.usgsAlertLevel)]||0;
  const gdacs={green:0,orange:2,red:3}[normalize(item.gdacsAlertLevel)]||0;
  const explosive=/explos(?:ion|ao|iv[aeo]\b)|explod/.test(current);
- return {lava,ash,erupting,explosive,notice:String(item.noticeId||item.time||''),level:Math.max(aviation,alert,gdacs),start:String(item.eruptionStart||'')};
+ return {lava,ash,erupting,explosive,reportAt:Number(item.reportAt)||Date.parse(item.noticeSent||'')||Number(item.time)||0,activity:normalize([item.activityStatus,item.vulcanicActivity,item.ashStatus,item.ashHeight,item.vonaRemarks].filter(Boolean).join('. ')),notice:String(item.noticeId||item.time||''),level:Math.max(aviation,alert,gdacs),start:String(item.eruptionStart||'')};
 }
 function capture(alerts){return new Map((alerts||[]).filter(a=>a.type==='volcano').map(a=>[a.id,a._volcanoPriorityEvidence||evidence(a)]));}
 function escalation(old,next){
+ if(old.reportAt&&next.reportAt&&next.reportAt<old.reportAt)return "";
  if(next.explosive&&(!old.explosive||(next.notice&&old.notice&&next.notice!==old.notice&&(!Number.isFinite(Number(next.notice))||!Number.isFinite(Number(old.notice))||Number(next.notice)>Number(old.notice)))))return 'Explosão reportada pela fonte';
  if(next.level>old.level)return 'Elevação do nível de alerta';
  if(next.lava&&!old.lava)return 'Lava reportada pela fonte';
  if(next.erupting&&!old.erupting)return 'Atividade eruptiva reportada';
  if(next.ash&&!old.ash)return 'Emissão de cinzas reportada';
  if(next.erupting&&old.start&&next.start&&old.start!==next.start)return 'Novo início de atividade eruptiva';
+ if(next.notice&&old.notice&&next.notice!==old.notice&&next.activity!==old.activity&&(next.lava||next.ash||next.erupting))return next.lava?'Nova atividade de lava reportada':next.ash?'Novo boletim de cinzas vulcânicas':'Nova atividade eruptiva reportada';
  return '';
 }
 function acceptsUrgent(item,previous){
@@ -34,8 +36,10 @@ function acceptsUrgent(item,previous){
 function enqueue(item,reason){if(!item?.coords)return;pending.set(item.id,{reason,arrived:Date.now(),level:evidence(item).level});}
 function observe(before,alerts,ready){
  for(const item of alerts||[]){if(item.type!=='volcano')continue;const next=evidence(item);item._volcanoPriorityEvidence=next;if(!ready||!before.has(item.id))continue;const reason=escalation(before.get(item.id),next);if(!reason)continue;
-  item._volcanoEscalation=reason;item._deltaTxt=reason;item._updatedAt=Date.now();
-  if(typeof marcarAtualizadoNoTopo==='function')marcarAtualizadoNoTopo(item.id,reason,180000);
+  item._volcanoEscalation=reason;item._deltaTxt=reason;item._updatedAt=Date.now();item._novoAt=Date.now();
+  if(typeof activeAlertingIds!=='undefined')activeAlertingIds.set(item.id,Date.now()+180000);
+  if(typeof activeUpdatedIds!=='undefined')activeUpdatedIds.delete(item.id);
+  // A new episode at a known volcano is a new activity, not a duplicate volcano.
   enqueue(item,reason);
   try{showToast('🌋 '+item.place+' · '+reason,'warning');notificarNavegador('🌋 '+item.place,reason);}catch(e){console.warn('[prioridade vulcânica]',e);}
  }

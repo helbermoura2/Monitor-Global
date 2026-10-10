@@ -184,6 +184,8 @@ function addNowcastAlert(texto, sev, opts) {
 }
 
 async function fetchSPWeather() {
+    const rainbow=await window.RainbowWeather?.refresh();
+    if(rainbow&&window.RainbowWeather.applyCurrent(rainbow))return;
     // Antes buscava uma grade de 9 pontos só pra usar o [0] — desnecessário pra esse
     // KPI simples (a grade faz sentido só pra funções que precisam de área, não pra
     // "temperatura atual de um ponto"). Simplificado pra 1 ponto só, com fallback de
@@ -334,8 +336,9 @@ async function fetchSPForecast() {
     const hourlyEl = document.getElementById('weather-hourly');
     const params = 'hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=5&forecast_hours=18&timezone=auto';
     try {
-        const r = await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&${params}`);
-        const d = await r.json();
+        const rainbow=await window.RainbowWeather?.refresh();
+        const d=rainbow?window.RainbowWeather.forecastAdapter(rainbow):await (await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&${params}`)).json();
+        const forecastSource=d.rainbow?'Rainbow Weather':'Open-Meteo';
         const dl = d && d.daily, h = d && d.hourly;
         if (!dl || !Array.isArray(dl.time) || !h || !Array.isArray(h.time)) throw new Error('sem previsão detalhada');
         let html = '';
@@ -368,12 +371,12 @@ async function fetchSPForecast() {
         const summary = document.getElementById('weather-summary-text'), summaryMeta = document.getElementById('weather-summary-meta');
         const summaryMain = rainIndex >= 0 ? 'Possibilidade de chuva nas próximas horas (modelo)' : 'Pouco ou nenhum acumulado previsto nas próximas horas (modelo)';
         if(summary) summary.textContent = `${summaryMain}; ${pNow}% na hora atual; rajadas de ${Math.round(gustNow)} km/h.`;
-        if(summaryMeta) summaryMeta.textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · modelo numérico Open-Meteo`;
+        if(summaryMeta) summaryMeta.textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · previsão horária ${forecastSource}`;
         setWeatherConfidence(rainIndex>=0?'model':'model','MODELO');
         if (rainIndex >= 0) {
             const quando = 'na faixa horária de '+forecastTime(h.time[rainIndex]).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' (horário deste aparelho; previsão)';
             if (title) title.textContent = `🌧️ Modelo: possibilidade de chuva ${quando}`;
-            if (detail) detail.textContent = `${h.precipitation_probability[rainIndex] || 0}% (modelo Open-Meteo) · ~${Number(h.precipitation[rainIndex] || 0).toFixed(1).replace('.', ',')} mm/h estimados · NÃO é alerta oficial nem radar`;
+            if (detail) detail.textContent = `${h.precipitation_probability[rainIndex] || 0}% (previsão ${forecastSource}) · ~${Number(h.precipitation[rainIndex] || 0).toFixed(1).replace('.', ',')} mm/h estimados · NÃO é alerta oficial nem radar`;
             // 5.7.1: NÃO criar evento na lista a partir de % do Open-Meteo (evita falso "vai chover").
             // Painel de clima continua mostrando a probabilidade com rótulo de modelo.
             try { clearModelRainListAlerts(); applyFilters(); } catch (e) {}
@@ -384,7 +387,7 @@ async function fetchSPForecast() {
         if (hourlyEl) {
             hourlyEl.innerHTML = h.time.slice(idx, idx + 12).map((t, j) => {
                 const i = idx + j, dt = forecastTime(t), pp = Math.round(Number(h.precipitation_probability[i] || 0));
-                return `<div class="weather-hour ${j === 0 ? 'now' : ''}" title="Modelo Open-Meteo"><div class="weather-hour-time">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div><div class="weather-hour-icon">${weatherEmoji(Number(h.weather_code[i] || 0))}</div><div class="weather-hour-temp">${Math.round(Number(h.temperature_2m[i] || 0))}°</div><div class="weather-hour-rain">💧${pp}%</div><div class="weather-hour-gust">💨${Math.round(Number(h.wind_gusts_10m[i] || 0))} km/h</div></div>`;
+                return `<div class="weather-hour ${j === 0 ? 'now' : ''}" title="Previsão ${forecastSource}"><div class="weather-hour-time">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div><div class="weather-hour-icon">${weatherEmoji(Number(h.weather_code[i] || 0))}</div><div class="weather-hour-temp">${Math.round(Number(h.temperature_2m[i] || 0))}°</div><div class="weather-hour-rain">💧${pp}%</div><div class="weather-hour-gust">💨${Math.round(Number(h.wind_gusts_10m[i] || 0))} km/h</div></div>`;
             }).join('');
         }
         const fu = document.getElementById('fc-update');

@@ -154,3 +154,8 @@
 
 #painel-direito .pd-revision-note {background:rgba(251,191,36,.09);border-left:3px solid #fbd077;font-size:11px;text-align:left;}
 #painel-direito .pd-tl-v {overflow-wrap:anywhere;}
+
+#painel-direito .pd-volcano-activity {margin:10px 0;padding:10px 12px;border-left:3px solid #fb923c;border-radius:8px;background:rgba(251,146,60,.1);color:#e2e8f0;font-size:12px;line-height:1.5;}
+#painel-direito .pd-volcano-activity[hidden] {display:none!important;}
+#painel-direito .pd-volcano-activity strong {display:block;color:#fdba74;font-size:11px;}
+#painel-direito .pd-volcano-activity p {margin:5px 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}

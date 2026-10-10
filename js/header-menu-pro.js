@@ -89,7 +89,7 @@
     var b = $('ux-btn-sources');
     if (b) try { b.click(); } catch (e) {}
     showFloat('Eventos e fontes',
-      '<p style="font-size:13px;line-height:1.5;color:#e2e8f0">Fontes: USGS · EMSC · GDACS · Open-Meteo · EONET · RainViewer · GeoNames (CC BY 4.0)</p>' +
+      '<p style="font-size:13px;line-height:1.5;color:#e2e8f0">Fontes: USGS · EMSC · GDACS · Open-Meteo · EONET · Rainbow Weather · RainViewer (reserva) · GeoNames (CC BY 4.0)</p>' +
       '<button type="button" id="mf-src-native">📡 Abrir status por fonte</button>' +
       '<p style="font-size:11px;color:#94a3b8;margin-top:8px">A lista de eventos fica na coluna da esquerda.</p>'
     );
