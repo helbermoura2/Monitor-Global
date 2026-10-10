@@ -408,7 +408,8 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
     } catch (e) { return map.getZoom(); }
 }
 
-// Fit the painted area in the visible map space, clear of header and cards.
+// Fit independently of the current globe zoom, clear of header and cards.
+let paintedAreaZoomCache=null;
 function zoomParaAreaPintada(lng,lat,raioKm){
     let margem=.8;
     try{
@@ -429,6 +430,16 @@ function zoomParaAreaPintada(lng,lat,raioKm){
         }
         const room=Math.min(cx-left,right-cx,cy-top,bottom-cy);
         if(room>0)margem=Math.min(.8,1.7*room/Math.min(box.width,box.height));
+    }catch(e){}
+    try{
+        const box=map.getContainer().getBoundingClientRect(),key=[lng,lat,raioKm,box.width,box.height,margem.toFixed(4)].join('|');
+        if(paintedAreaZoomCache?.key===key)return paintedAreaZoomCache.zoom;
+        if(typeof map.cameraForBounds==='function'){
+            const points=[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
+            const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),size=Math.min(box.width,box.height)*margem;
+            const camera=map.cameraForBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:{left:(box.width-size)/2,right:(box.width-size)/2,top:(box.height-size)/2,bottom:(box.height-size)/2},bearing:0,maxZoom:15});
+            if(Number.isFinite(camera?.zoom)){const zoom=Math.max(1.5,Math.min(15,camera.zoom));paintedAreaZoomCache={key,zoom};return zoom;}
+        }
     }catch(e){}
     return Math.max(1.5,Math.min(15,zoomParaCaberRaio(lng,lat,raioKm,margem)));
 }
@@ -464,6 +475,10 @@ function refreshWaveFront(item){
     window.SeismicImpact?.refresh(waveFrontContext);
 }
 
+function setWaveFrontVisible(visible){
+    try{WAVE_LAYER_IDS.forEach(id=>{if(map?.getLayer(id))map.setLayoutProperty(id,'visibility',visible?'visible':'none');});}catch(e){}
+    if(waveFrontStatus)waveFrontStatus.style.display=visible?'':'none';
+}
 function stopWaveFront(keepImpact = false) {
     waveCamResume=null;
     if(!keepImpact)window.SeismicImpact?.stop();
@@ -507,6 +522,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // The same GlobalQuake table is inverted using the elapsed seconds.
     if (!map.getSource('wave-front-p') || !map.getSource('wave-front-s')) return;
     waveFrontAtivo = true;
+    setWaveFrontVisible(true);
     // Sem timer de auto-expiração: o anel fica na tela (mesmo já parado no
     // teto) até outro startWaveFront() ser chamado pra um evento diferente —
     // quem decide QUANDO trocar de evento é scheduleNextAutoCycle
@@ -537,7 +553,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
 
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
-    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:opts?.returnToEpicenter&&mag>=5?'s':'p',phaseUntil:null,impactHoldUntil:null};
+    const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:'s',phaseUntil:null,impactHoldUntil:null};
     if(context.returnToEpicenter){context.cameraPhase='s';window.SeismicImpact?.start(context);}
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
@@ -557,11 +573,12 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     function returnToImpactArea(){
         if(document.hidden)return;
         if(generation!==waveFrontGeneration)return;
+        window.TsunamiPresentation?.finalize(context.id);
         context.stage='returning';context.finalUntil=null;
         const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
         context.cameraPhase='impact-final';context.phaseUntil=until;
         protect(until);window.SeismicImpact?.finish();place();
-        try{const zoom=impactZoom(),camera={center:centroCompensado(context.lng,context.lat,zoom),zoom,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        try{const zoom=impactZoom(),camera={center:centroCompensado(context.lng,context.lat,zoom),zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
@@ -577,8 +594,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // O Mapbox reprojeta as coordenadas durante pan/zoom. Enviar a mesma
     // geometria de novo só repete trabalho no worker, especialmente no quadro final.
     const renderedWaves=new Map(),renderedOpacity=new Map();
-    // M5+: S até o alcance sentido → P por 6s → área pintada por 8s
-    // → repete P/área até o fim → área pintada por 10s. A física não pausa.
+    // Focus S and the estimated felt area. P gets the last six seconds only.
+    // Wave propagation continues during the linked tsunami camera tour.
     const place = () => {
         if (document.hidden || !map || !waveFrontAtivo) return;
         const elapsedS = Math.max(0, Date.now() - context.originTime) / 1000;
@@ -677,24 +694,23 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             const camLookaheadMs = 1800;
             const predicted=radiusAt('p',Math.min(limit-.001,elapsedS+camLookaheadMs/1000));
             let kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
-            if(context.returnToEpicenter){
-                const felt=impactRadius(),kmS=radiusAt('s',elapsedS);
-                if(context.finalFrame){
-                    // Once propagation ends, return directly to the complete painted area.
-                    waveCamRAF=null;returnToImpactArea();return;
-                }
-                if(context.cameraPhase==='s'){
-                    const redTarget=radiusAt('s',Math.min(limit-.001,elapsedS+camLookaheadMs/1000))??kmS;
-                    kmAlvoCam=redTarget===null?null:Math.min(felt,redTarget);
-                    if(kmS!==null&&kmS>=felt){
-                        context.cameraPhase='p-first';context.phaseUntil=Date.now()+6000;
-                        window.SeismicImpact?.finish();
-                        kmAlvoCam=predicted??kmP??lastTargetRadius;
-                    }
-                }else if(['p-first','p-rest'].includes(context.cameraPhase)&&Date.now()>=context.phaseUntil){
-                    context.cameraPhase='impact';context.phaseUntil=null;context.impactHoldUntil=null;
-                }
-                if(context.cameraPhase==='impact')kmAlvoCam=felt;
+            const linkedCamera=window.TsunamiPresentation;
+            if(elapsedS>=limit-6)linkedCamera?.finalize(context.id);
+            if(linkedCamera?.ownsCamera(context.id)){camZoomAtual=null;camUltimoFrameEm=0;waveCamRAF=requestAnimationFrame(camLoop);return;}
+            const felt=context.returnToEpicenter?impactRadius():Math.max(1,raioEstimado(context.mag,context.depth));
+            const kmS=radiusAt('s',elapsedS);
+            if(context.finalFrame&&context.returnToEpicenter){waveCamRAF=null;returnToImpactArea();return;}
+            if(elapsedS>=Math.max(0,limit-6)){
+                context.cameraPhase='p-final';context.phaseUntil=context.originTime+limit*1000;
+                kmAlvoCam=predicted??kmP??lastTargetRadius;
+            }else if(kmS!==null&&kmS>=felt||context.cameraPhase==='impact'){
+                context.cameraPhase='impact';context.phaseUntil=context.originTime+Math.max(0,limit-6)*1000;
+                if(context.returnToEpicenter)window.SeismicImpact?.finish();
+                kmAlvoCam=felt;
+            }else{
+                context.cameraPhase='s';context.phaseUntil=null;
+                const redTarget=radiusAt('s',Math.min(limit-.001,elapsedS+camLookaheadMs/1000))??kmS;
+                kmAlvoCam=redTarget===null?null:Math.min(felt,Math.max(1,redTarget));
             }
             if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
             lastTargetRadius=kmAlvoCam;
@@ -710,17 +726,12 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             camUltimoFrameEm = agoraMs;
             const fatorSuavizacao = 1 - Math.exp(-dt / TAU_CAM_MS);
             const proximoZoom = camZoomAtual + (zoomAlvoBruto - camZoomAtual) * fatorSuavizacao;
-            // O passeio M5+ pode fechar para rever a área; os demais só abrem.
-            camZoomAtual = context.returnToEpicenter ? proximoZoom : Math.min(camZoomAtual, proximoZoom);
+            // Recenter on the red front/painted area; open to P only at the end.
+            camZoomAtual = proximoZoom;
             try {
-                map.jumpTo({ center: centroCompensado(context.lng, context.lat, camZoomAtual), zoom: camZoomAtual });
+                map.jumpTo({ center: centroCompensado(context.lng, context.lat, camZoomAtual), zoom: camZoomAtual, padding:0 });
             } catch (e) {}
 
-            if(context.returnToEpicenter&&context.cameraPhase==='impact'){
-                // Count the eight seconds only once the whole affected area fits.
-                if(context.impactHoldUntil===null&&Math.abs(camZoomAtual-zoomAlvoBruto)<.015){context.impactHoldUntil=Date.now()+8000;context.phaseUntil=context.impactHoldUntil;}
-                if(context.impactHoldUntil!==null&&Date.now()>=context.impactHoldUntil){context.cameraPhase='p-rest';context.phaseUntil=Date.now()+6000;}
-            }
             // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.
             if(window.__mgWaveFrontState){window.__mgWaveFrontState.cameraPhase=context.cameraPhase;window.__mgWaveFrontState.phaseUntil=context.phaseUntil;}
             // Termina quando não há nova chegada P e a câmera convergiu (dentro de

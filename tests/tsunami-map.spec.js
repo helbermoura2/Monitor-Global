@@ -25,7 +25,7 @@ test('official warning polygons are filled without downloading a coastal referen
 for(const width of [1280,390])test('repeatable tsunami demo paints without records and restores camera '+width,async({page})=>{
  await page.setViewportSize({width,height:900});await boot(page);
  const before=await page.evaluate(()=>{map.jumpTo({center:[12,32],zoom:4});return {center:map.getCenter().toArray(),zoom:map.getZoom(),selected:eventoSelecionadoId,events:globalEvents.length,alerts:globalAlerts.length};});
- await page.evaluate(()=>CardEffectDemo.open());await page.locator('#card-fx-demo-type').selectOption('tsunami');await expect(page.locator('#card-fx-demo-tsunami-options')).toBeVisible();await page.locator('#card-fx-demo-play').click();
+ await page.evaluate(()=>CardEffectDemo.open());await page.locator('#card-fx-demo-type').selectOption('tsunami');await expect(page.locator('#card-fx-demo-tsunami-options')).toBeVisible();await page.locator('#card-fx-demo-tsunami-mode').selectOption('warning');await page.locator('#card-fx-demo-play').click();
  await expect(page.locator('#tsunami-map-legend')).toContainText('Cenário fictício');await expect(page.locator('#card-fx-demo-status')).toContainText('TESTE');
  expect(await page.evaluate(()=>[...new Set(map.getSource('tsunami-official-regions').serialize().data.features.map(f=>f.properties.color))])).toEqual(['#fb7148','#fbbf24','#2dd4bf']);
  expect(await page.evaluate(()=>({selected:eventoSelecionadoId,events:globalEvents.length,alerts:globalAlerts.length}))).toEqual({selected:before.selected,events:before.events,alerts:before.alerts});

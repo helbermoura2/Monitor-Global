@@ -1340,7 +1340,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     applyOfficialLinkToPanel(item);
 
-    window.TsunamiLinkedPanel?.render(rawItem);
+    window.TsunamiLinkedPanel?.render(rawItem,!silentRefresh);
 
     // Badge ATUALIZADO no card principal quando o store marcou revisão
     try {
@@ -1914,7 +1914,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     document.getElementById('pd-history').innerHTML = '<div class="history-item" style="color:#64748b;">Histórico não aplicável a este tipo de evento.</div>';
     applyOfficialLinkToPanel(item);
     window.RecordPresentation?.panel(item);
-    window.TsunamiLinkedPanel?.render(rawItem);
+    window.TsunamiLinkedPanel?.render(rawItem,!silentRefresh);
 
     try {
         const pdSrc = document.getElementById('pd-source');

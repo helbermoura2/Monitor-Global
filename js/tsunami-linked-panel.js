@@ -6,7 +6,7 @@
  function allQuakes(){return typeof globalEvents!=='undefined'?globalEvents:[];}
  function allAlerts(){return typeof globalAlerts!=='undefined'?globalAlerts:[];}
  function selected(){return typeof eventoSelecionadoId!=='undefined'?eventoSelecionadoId:null;}
- function clear(keepMap=false){document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;if(!keepMap&&!window.TsunamiMap?.isPreview())window.TsunamiMap?.stop();}
+ function clear(keepMap=false){document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;if(!keepMap&&!window.TsunamiMap?.isPreview()&&window.TsunamiPresentation?.state()?.hostId!==selected())window.TsunamiMap?.stop();}
  function open(item){
   if(!item)return;
   window.__mgSoftCycle=false;window.__mgRotationDisplay=false;
@@ -18,8 +18,8 @@
  function magnitude(q){return 'M'+(window.EventPortuguese?.number(q.mag,1)||Number(q.mag).toFixed(1).replace('.',','));}
  function local(item){return window.EventPortuguese?.place(item.place)||item.place||'Local não informado';}
  function date(time){return typeof formatBrasiliaDateTime==='function'?formatBrasiliaDateTime(time):new Date(time).toLocaleString('pt-BR');}
- function render(item){
-  clear(true);window.TsunamiMap?.show(item);if(!item||!['earthquake','tsunami'].includes(item.type)||item.id!==selected())return;
+ function render(item,restart=false){
+  clear(true);if(!window.TsunamiPresentation?.update(item,restart))window.TsunamiMap?.show(item).then(()=>{if(item?.type==='tsunami'&&selected()===item.id&&!window.TsunamiPresentation?.state())window.TsunamiMap.startTour();});if(!item||!['earthquake','tsunami'].includes(item.type)||item.id!==selected())return;
   item=(item.type==='earthquake'?allQuakes():allAlerts()).find(a=>a.id===item.id)||item;
   const T=window.TsunamiLink;if(!T)return;
   const relations=item.type==='earthquake'?T.forQuake(item,allAlerts(),allQuakes()):[];
