@@ -37,6 +37,7 @@
    if(brief)brief.textContent='👥 '+count(data.ranges[0].population)+' · população em área de tremor fraco ou maior · EST';
   }
   else {node.textContent=data.note||'População em grade indisponível; consulte abaixo a cobertura por localidades.';node.className='population-exposure-status';}
+  window.SeismicFinalSummary?.refresh();
  }
  function cancel(){if(current){clearTimeout(current.timer);current.controller?.abort();}current=null;document.getElementById('pd-exposure-brief')?.remove();}
  window.cancelarExposicaoPopulacional=cancel;

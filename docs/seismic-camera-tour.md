@@ -21,3 +21,9 @@ A câmera calcula seu alvo e amortecimento a cada frame, independentemente da ge
 ## Sismos abaixo de M5
 
 A câmera mantém o enquadramento inicial do epicentro até faltarem 10 segundos para o fim físico/exibido das ondas. Nesse trecho final acompanha a onda P azul. Ao terminar, retorna ao epicentro em 3,5 segundos e permanece mais 10 segundos antes da troca. O enquadramento pintado e os 6 segundos finais do azul nos M5+ permanecem iguais. Interação manual cancela a condução automática; a origem real continua sendo usada em eventos novos, sem reiniciar ondas de relatos atrasados.
+
+## Enquadramento estável e resumo final
+
+Quando a câmera converge para o epicentro ou a área pintada, suspende a sequência de frames de câmera e verifica alterações no máximo uma vez por segundo. Correções imperceptíveis não chamam `jumpTo`; revisões, mudanças no enquadramento e possíveis réplicas podem atualizar o alvo. O movimento suave retoma no prazo do azul, sem pausar as ondas. Interação manual continua cancelando a condução.
+
+Após o retorno final, os 10 segundos apresentam um resumo no cartão: intensidade, população potencialmente exposta em III+ (com cobertura parcial identificada) e quantidade/maior magnitude das possíveis réplicas, somente quando houver dados. Usa o cache de exposição e a sequência já calculada, sem requisições ou animações novas. Seleção seguinte ou cancelamento limpa o resumo e seus temporizadores.

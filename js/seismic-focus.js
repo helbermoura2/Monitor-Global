@@ -16,7 +16,17 @@
   }else{const zoom=zoomParaAreaPintada(c.lng,c.lat,Math.max(10,SeismicImpactModel.extent(c.mag,c.depth,2.1)));camera={zoom,center:centroCompensado(c.lng,c.lat,zoom)};}
   cached={key,bounds,points,layout,camera};return camera;
  }
- function ready(c){if(window.SeismicScenarioDemo?.isActive()||document.hidden||blocked===c.id||typeof eventoSelecionadoId==='undefined'||eventoSelecionadoId!==c.id||window.TsunamiMap?.isPreview()||window.__mgWaveFrontState?.id===c.id||window.TsunamiPresentation?.ownsCamera(c.id))return;const camera=frame(c),signature=[c.id,...camera.center,camera.zoom].join('|');if(signature===lastFit)return;lastFit=signature;map.easeTo({...camera,padding:0,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:3500,essential:true});}
+ function ready(c){
+  const wave=window.__mgWaveFrontState;
+  // Active propagation owns the camera; a settled final frame can fit new evidence.
+  const waveOwnsCamera=wave?.id===c.id&&(wave.stage!=='returning'||Date.now()<wave.phaseUntil-10000);
+  if(window.SeismicScenarioDemo?.isActive()||document.hidden||blocked===c.id||typeof eventoSelecionadoId==='undefined'||eventoSelecionadoId!==c.id||window.TsunamiMap?.isPreview()||waveOwnsCamera||window.TsunamiPresentation?.ownsCamera(c.id))return;
+  const camera=frame(c),signature=[c.id,...camera.center,camera.zoom].join('|');
+  if(signature===lastFit)return;lastFit=signature;
+  const center=map.getCenter();
+  if(Math.abs(map.getZoom()-camera.zoom)<.005&&Math.abs(((center.lng-camera.center[0]+540)%360)-180)<.00001&&Math.abs(center.lat-camera.center[1])<.00001)return;
+  map.easeTo({...camera,padding:0,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:3500,essential:true});
+ }
  window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&p.id!==lastId){lastId=p.id;blocked=null;cached=null;lastFit=null;}});
  function install(){if(typeof map==='undefined'||!map)return;for(const event of ['dragstart','wheel','touchstart'])map.on(event,e=>{if(e?.originalEvent)blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;});}
  if(typeof map!=='undefined'&&map)install();else window.addEventListener('load',install,{once:true});
