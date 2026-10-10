@@ -26,10 +26,10 @@ assert.equal((await (await handleRainbowInObject(request(),env,failed,{now,fetch
 await handleRainbowInObject(request(-23.6,-46.6),env,failed,{now:now+1,fetcher:reject});assert.equal(failures,1);assert.equal(failed.map.get('rainbow:budget').used,1);
 const timeout=memory();await handleRainbowInObject(request(),env,timeout,{now,fetcher:async()=>{throw Error('secret in upstream error');}});
 assert.equal(timeout.map.get('rainbow:budget').used,1);assert(!JSON.stringify(timeout.map.get(key)).includes('secret'));
-assert.deepEqual(timeout.map.get(key).diagnostic,{version:2,httpStatus:null,stage:'request',code:'unknown'});
+assert.deepEqual(timeout.map.get(key).diagnostic,{version:3,httpStatus:null,stage:'request',code:'unknown'});
 for(const [status,stage] of [[503,'http'],[200,'payload']]){
  const diagnosticStorage=memory();const response=await (await handleRainbowInObject(request(),env,diagnosticStorage,{now,fetcher:async()=>Response.json({private:env.RAINBOW_API_KEY},{status})})).json();
- assert.deepEqual(response.diagnostic,{version:2,httpStatus:status,stage});assert(!JSON.stringify(response).includes(env.RAINBOW_API_KEY));
+ assert.deepEqual(response.diagnostic,{version:3,httpStatus:status,stage});assert(!JSON.stringify(response).includes(env.RAINBOW_API_KEY));
 }
 for(const value of ['line\nbreak','line\rbreak','\u0000',{},' ']){
  const response=await (await handleRainbowInObject(request(),{RAINBOW_API_KEY:value},memory(),{now,fetcher:async()=>{throw Error('Must not query');}})).json();assert.equal(response.reason,'authentication');
@@ -49,7 +49,7 @@ let source=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.
 source=source.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
 const {default:worker,EarthquakeAlertDelivery}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const nativeFetch=globalThis.fetch,nativeNow=Date.now;Date.now=()=>now;
-let parallelCalls=0;globalThis.fetch=async(url,options)=>{assert(String(url).startsWith('https://api.rainbow.ai/'));parallelCalls++;await new Promise(r=>setTimeout(r,15));return fetcher(url,options);};
+let parallelCalls=0;globalThis.fetch=async function(url,options){assert.equal(this,globalThis,'Worker fetch requires its global receiver');assert(String(url).startsWith('https://api.rainbow.ai/'));parallelCalls++;await new Promise(r=>setTimeout(r,15));return fetcher(url,options);};
 const persisted=memory();let object=new EarthquakeAlertDelivery({storage:persisted},env);
 const bound={...env,EARTHQUAKE_ALERTS:{idFromName:name=>{assert.equal(name,'global-rainbow-nowcast-v1');return name;},get:()=>({fetch:r=>object.fetch(r)})}};
 const concurrent=await Promise.all(Array.from({length:20},()=>worker.fetch(request(),bound)));
