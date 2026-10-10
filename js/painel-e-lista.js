@@ -1341,6 +1341,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     applyOfficialLinkToPanel(item);
 
     window.TsunamiLinkedPanel?.render(rawItem,!silentRefresh);
+    window.AftershockSequence?.render();
 
     // Badge ATUALIZADO no card principal quando o store marcou revisão
     try {
@@ -1915,6 +1916,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     applyOfficialLinkToPanel(item);
     window.RecordPresentation?.panel(item);
     window.TsunamiLinkedPanel?.render(rawItem,!silentRefresh);
+    window.AftershockSequence?.render();
 
     try {
         const pdSrc = document.getElementById('pd-source');

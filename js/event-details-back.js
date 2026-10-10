@@ -33,7 +33,7 @@
    dates.forEach((date,i)=>{const tr=document.createElement('tr');for(const t of [date,Number.isFinite(values[i])?values[i].toLocaleString('pt-BR',{maximumFractionDigits:1})+' m³/s':'Sem dado']){const td=document.createElement('td');td.textContent=t;tr.append(td);}table.append(tr);});host.append(table);
   }catch(e){if(token===generation&&host.isConnected)host.textContent='Vazão prevista indisponível. Isso não confirma nem descarta enchente.';}
  }
- function section(title,content,open=false){const d=document.createElement('details'),s=document.createElement('summary');s.textContent=title;d.open=open;d.append(s,content);return d;}
+ function section(title,content,open=false){const d=document.createElement('details'),s=document.createElement('summary');s.textContent=title;d.open=open;d.append(s,content);if(content.id==='pd-aftershock-details'&&content.dataset.empty==='true')d.style.display='none';return d;}
  function renderBulletin(host,item){
   host.querySelector('.pd-bulletin-article')?.remove();
   const article=document.createElement('article');article.className='pd-bulletin-article';

@@ -13,7 +13,7 @@
  function number(value,digits=0){return window.EventPortuguese?.number(value,digits)||Number(value).toLocaleString('pt-BR',{maximumFractionDigits:digits,minimumFractionDigits:digits});}
  function paintContext(q){return {id:q.id,lng:q.coords[0],lat:q.coords[1],mag:q.mag,depth:q.depth};}
  function clearTimers(j){clearTimeout(j?.timer);clearTimeout(j?.finalTimer);clearTimeout(j?.blueTimer);}
- function layerVisibility(coast){window.SeismicImpact?.setVisible(!coast);if(typeof setWaveFrontVisible==='function')setWaveFrontVisible(!coast);window.TsunamiMap?.setVisible(coast);}
+ function layerVisibility(coast){window.AftershockSequence?.setVisible(!coast);window.SeismicImpact?.setVisible(!coast);if(typeof setWaveFrontVisible==='function')setWaveFrontVisible(!coast);window.TsunamiMap?.setVisible(coast);}
  function stop(){const previous=job;job=null;clearTimers(previous);box?.remove();box=null;document.getElementById('painel-direito')?.classList.remove('tsunami-presenting');if(previous)layerVisibility(false);
   if(previous?.demo){if(typeof stopWaveFront==='function')stopWaveFront();window.SeismicImpact?.stop();}
  }
