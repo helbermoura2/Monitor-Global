@@ -18,7 +18,8 @@
       stack.classList.toggle('notice-inline',false);
       stack.style.removeProperty('--notice-bottom');
       const headerBottom=Math.max($('top-strip')?.getBoundingClientRect().bottom||0,$('ux-controlbar')?.getBoundingClientRect().bottom||0,$('latest-event-ticker')?.getBoundingClientRect().bottom||0);
-      stack.style.setProperty('--notice-top',Math.max(6,headerBottom+6)+'px');
+      const waveBottom=Math.max(0,...[...(document.querySelectorAll?.('.wave-front-status,.seismic-impact-status')||[])].map(el=>el.getBoundingClientRect().bottom));
+      stack.style.setProperty('--notice-top',Math.max(6,headerBottom+6,waveBottom+6)+'px');
       const left=$('sidebar-left')?.getBoundingClientRect(),right=$('painel-direito')?.getBoundingClientRect();
       const start=left&&left.width>0?left.right+18:18;
       const end=right&&right.width>0?right.left-18:window.innerWidth-18;
@@ -90,7 +91,10 @@
   }
   window.MobileNotices={enabled:()=>true,push,openHistory};
   function install(){
-    for(const id of ['painel-direito','sidebar-left','top-strip','ux-controlbar','latest-event-ticker']){const panel=$(id);if(panel&&window.ResizeObserver)new ResizeObserver(layout).observe(panel);}
+    const observer=window.ResizeObserver?new ResizeObserver(layout):null;
+    for(const id of ['painel-direito','sidebar-left','top-strip','ux-controlbar','latest-event-ticker']){const panel=$(id);if(panel)observer?.observe(panel);}
+    const mapHost=$('mapWrap');
+    if(mapHost&&window.MutationObserver)new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1&&node.matches('.wave-front-status,.seismic-impact-status'))observer?.observe(node);layout();}).observe(mapHost,{childList:true});
     if(window.MutationObserver)new MutationObserver(layout).observe(document.body,{attributes:true,attributeFilter:['class']});
     window.addEventListener('resize',layout);window.visualViewport?.addEventListener('resize',layout);media.addEventListener('change',render);
     const old=$('toast-stack');if(old)for(const toast of [...old.children]){push({title:toast.textContent,type:toast.classList.contains('toast-warning')?'warning':'info'});toast.remove();}
