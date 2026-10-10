@@ -56,7 +56,7 @@
   if(item.type==='tsunami'&&item.detail)add(item.detail.length>650?item.detail.slice(0,650)+'…':item.detail);
   if(Number.isFinite(item.onset)&&item.onset>Date.now())add('Início previsto: '+formatBrasiliaDateTime(item.onset));
   add(Number.isFinite(item.expiresAt)?'Válido até: '+formatBrasiliaDateTime(item.expiresAt):'Validade não informada pela fonte; confira o boletim oficial.');
-  if(item.type==='tsunami')add(regional?'Sem epicentro verificado. O mapa mostra uma visão geral; não representa a área de tsunami.':'O mapa mostra a origem sísmica do boletim; as costas sob aviso estão descritas no boletim oficial.');
+  if(item.type==='tsunami')add(regional?'Sem epicentro verificado. O mapa mostra uma visão geral; não representa a área de tsunami.':item.coordinateRole==='warning-area'?'O mapa aponta uma referência da área costeira sob aviso, não o epicentro do sismo.':'O mapa mostra a origem sísmica do boletim; as costas sob aviso estão descritas no boletim oficial.');
   if(regional)add('Aviso para a região indicada. A fonte não fornece um ponto verificado no mapa.');
   else if(item.locationNote)add(item.locationNote);
   if(item.warningDescription)add(item.warningDescription.length>450?item.warningDescription.slice(0,450)+'…':item.warningDescription);
