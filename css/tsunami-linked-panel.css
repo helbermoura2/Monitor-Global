@@ -14,3 +14,15 @@
  #painel-direito:has(#pd-tsunami-link) #mobile-detail-handle{z-index:110!important}
  body.mg-mobile-primary.mobile-details-mid #painel-direito:has(#pd-tsunami-link) #mobile-detail-handle{position:absolute!important;left:0!important;top:0!important}
 }
+
+#tsunami-bulletin-picker{box-sizing:border-box;width:min(540px,calc(100vw - 24px));max-height:80vh;padding:20px;border:1px solid #38bdf877;border-radius:14px;background:#071c2b;color:#e2e8f0;overflow:auto}
+#tsunami-bulletin-picker::backdrop{background:#020b14b3}
+#tsunami-bulletin-picker h2{font-size:18px;margin:0 0 10px}
+#tsunami-bulletin-picker p{font-size:13px;line-height:1.5;color:#b8cddc}
+#tsunami-bulletin-picker button{display:block;width:100%;padding:12px;margin-top:9px;text-align:left;font:inherit;color:inherit;background:#0c354b;border:1px solid #38bdf844;border-radius:8px;cursor:pointer}
+#tsunami-bulletin-picker strong,#tsunami-bulletin-picker small{display:block;overflow-wrap:anywhere}
+#tsunami-bulletin-picker small{font-size:12px;color:#a8c4d6;margin-top:6px}
+#tsunami-bulletin-picker button:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
+.tsunami-bulletin-origin{display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;z-index:4}
+.tsunami-bulletin-origin span{font-size:32px;line-height:1;color:#7dd3fc;text-shadow:0 0 3px #071c2b}
+.tsunami-bulletin-origin strong{font:600 11px sans-serif;color:#e0f2fe;background:#071c2be6;border:1px solid #38bdf877;border-radius:5px;padding:5px 8px;white-space:nowrap}

@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v670-manual-tsunami-focus';
+const CACHE = 'monitor-global-pro-v671-tsunami-presentation';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

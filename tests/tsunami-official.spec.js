@@ -13,7 +13,7 @@ test('international warning is visible during protected M8, survives NWS cleanup
  await page.evaluate(()=>{const q={id:'major',type:'earthquake',mag:8,depth:33,time:Date.now(),coords:[-80.75,7.54],place:'Panamá',source:'QA'};globalEvents=[q];window.__mgSoftCycle=false;showEventDetails(0,true);clearTimeout(cycleTimeout);});
  await page.evaluate(()=>fetchOfficialTsunamiAlerts());expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('major');await expect(page.locator('#chip-tsunami-official')).toHaveText('🌊 Tsunami: Aviso');
  await page.evaluate(()=>fetchTsunamiAlerts());expect(await page.evaluate(()=>globalAlerts.filter(a=>['PTWC','NTWC'].includes(a.source)).length)).toBe(2);
- await page.locator('#chip-tsunami-official').click();expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(warning.id);await expect(page.locator('#pd-mercalli')).toHaveText('Aviso');
+ await page.locator('#chip-tsunami-official').click();await page.locator('#tsunami-bulletin-picker button[data-bulletin-id="'+warning.id+'"]').click();expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(warning.id);await expect(page.locator('#pd-mercalli')).toHaveText('Aviso');
  await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',feedKey:'PTWC-General',ok:true},{source:'PTWC',feedKey:'PTWC-WEPA40',ok:false},{source:'NTWC',feedKey:'NTWC-General',ok:true}],items:[info]}}));await page.evaluate(()=>fetchOfficialTsunamiAlerts());expect(await page.evaluate(id=>globalAlerts.some(a=>a.id===id),warning.id)).toBe(true);
 });
 test('a new warning enters the presentation queue while an informational bulletin has no tsunami effect',async({page})=>{

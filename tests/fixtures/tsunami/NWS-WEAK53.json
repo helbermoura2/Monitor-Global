@@ -1,0 +1,14 @@
+{
+  "@context": {
+    "@version": "1.1",
+    "@vocab": "https://api.weather.gov/ontology#"
+  },
+  "@id": "https://api.weather.gov/products/feda704b-1752-4609-8e03-4ef8d801d10d",
+  "id": "feda704b-1752-4609-8e03-4ef8d801d10d",
+  "wmoCollectiveId": "WEAK53",
+  "issuingOffice": "PAAQ",
+  "issuanceTime": "2026-10-09T20:37:00+00:00",
+  "productCode": "TIB",
+  "productName": "Tsunami Bulletin",
+  "productText": "\n000\nWEAK53 PAAQ 092037\nTIBAK1\n\nTsunami Information Statement Number 1\nNWS National Tsunami Warning Center Palmer AK\n137 PM PDT Fri Oct 9 2026\n\n...THIS IS A TSUNAMI INFORMATION STATEMENT FOR ALASKA, BRITISH\n   COLUMBIA, WASHINGTON, OREGON AND CALIFORNIA...\n\nEVALUATION\n----------\n * There is no tsunami danger for the U.S. West Coast, British \n   Columbia, or Alaska. \n\n * Based on earthquake information and historic tsunami records, \n   the earthquake is not expected to generate a tsunami. \n\n * An earthquake has occurred with parameters listed below. \n\n\nPRELIMINARY EARTHQUAKE PARAMETERS\n---------------------------------\n\n * The following parameters are based on a rapid preliminary\n   assessment of the earthquake and changes may occur.\n\n * Magnitude      6.9\n * Origin Time    1226 AKDT Oct 09 2026\n                  1326  PDT Oct 09 2026\n                  2026  UTC Oct 09 2026\n * Coordinates    7.8 North 81.4 West\n * Depth          6 miles\n * Location       in Panama\n\n\nADDITIONAL INFORMATION AND NEXT UPDATE\n--------------------------------------\n * Refer to the internet site tsunami.gov for more information. \n\n * Pacific coastal regions outside California, Oregon, Washington, \n   British Columbia, and Alaska should refer to the Pacific Tsunami \n   Warning Center messages at tsunami.gov. \n\n * This will be the only U.S. National Tsunami Warning Center \n   message issued for this event unless additional information \n   becomes available. \n\n$$\n\n"
+}

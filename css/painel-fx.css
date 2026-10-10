@@ -1098,3 +1098,10 @@ body.mobile-details-open #painel-direito.pd-fx-earthquake {
 
 /* Civil warning scenes carry their own severity-colored light and dry-air material. */
 #painel-direito.pd-cinema-active.pd-fx-civil #pd-fx-overlay { animation:none; box-shadow:none; opacity:0; }
+
+/* Informative bulletins: finite blue entrance, without flashes or threat simulation. */
+#painel-direito.pd-fx-tsunami-info #pd-fx-overlay{background:linear-gradient(160deg,#38bdf824,transparent 65%);animation:pdBulletinEntrance 8s ease-out both}
+#painel-direito.pd-fx-tsunami-info #pd-mag{animation:pdBulletinSymbol 8s ease-out both}
+@keyframes pdBulletinEntrance{0%{opacity:0}20%,55%{opacity:1}100%{opacity:0}}
+@keyframes pdBulletinSymbol{0%{transform:translateY(5px)}25%{transform:translateY(0);filter:drop-shadow(0 0 10px #38bdf888)}100%{transform:none;filter:none}}
+@media(prefers-reduced-motion:reduce){#painel-direito.pd-fx-tsunami-info #pd-fx-overlay,#painel-direito.pd-fx-tsunami-info #pd-mag{animation:none}}
