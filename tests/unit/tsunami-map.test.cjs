@@ -17,3 +17,6 @@ test('official polygons preserve the published coordinates, without geocoding or
 });
 
 test('amplitude bands keep decimal 0.3–1 separate from 3+ metres',()=>{assert.equal(M.category({category:'0.3 TO 1 METERS'},{hazardNature:'warning'}).rank,3);assert.equal(M.category({category:'3 TO 5 METERS'},{hazardNature:'warning'}).rank,5);});
+test('Alaska and Aleutian references fit across the date line without opening the whole world',()=>{
+ const [west,east]=M.longitudeBounds([170,179,-179,-150,-124]);assert.equal(east-west,66);assert(west<=-150&&east>=-124);assert.deepEqual(M.longitudeBounds([-83,-78]),[-83,-78]);
+});

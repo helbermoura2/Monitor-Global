@@ -31,8 +31,8 @@
  }
  function fit(){if(!current||!selected(current.id))return;const points=[];const scan=c=>{if(typeof c[0]==='number')points.push(c);else c.forEach(scan);};current.data.features.forEach(f=>scan(f.geometry.coordinates));if(!points.length)return;
   const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),wide=innerWidth>1000;
-  // Full-world references safely use the world extent rather than crossing the date line.
-  map.stop();map.fitBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:{top:wide?225:220,bottom:wide?100:150,left:wide?315:35,right:wide?355:35},maxZoom:7,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:1500,essential:true});
+  const [west,east]=window.TsunamiMapModel.longitudeBounds(xs);
+  map.stop();map.fitBounds([[west,Math.min(...ys)],[east,Math.max(...ys)]],{padding:{top:wide?225:220,bottom:wide?100:150,left:wide?315:35,right:wide?355:35},maxZoom:7,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:1500,essential:true});
  }
  async function show(item){
   if(item?.type!=='tsunami'||!window.TsunamiLink?.official(item)||!selected(item.id)){stop();return;}

@@ -29,5 +29,12 @@
   for(const {region,c} of chosen.values()){features.push({...region,properties:{...c,name:region.properties.name,kind:'reference'}});entries.push(c);}
   return {data:{type:'FeatureCollection',features},entries:[...new Map(entries.map(c=>[c.label,c])).values()].sort((a,b)=>b.rank-a.rank),unmapped};
  }
- const api={build,category,normalize};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
+ function longitudeBounds(values){
+  const xs=values.map(x=>(x%360+360)%360).sort((a,b)=>a-b);if(!xs.length)return [-180,180];
+  let gap=-1,start=0,end=360;
+  for(let i=0;i<xs.length;i++){const next=xs[(i+1)%xs.length]+(i===xs.length-1?360:0),size=next-xs[i];if(size>gap){gap=size;start=next%360;end=xs[i];if(end<start)end+=360;}}
+  if(end-start>350)return [-180,180];if((start+end)/2>180){start-=360;end-=360;}
+  return [start,end];
+ }
+ const api={build,category,normalize,longitudeBounds};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:window);
