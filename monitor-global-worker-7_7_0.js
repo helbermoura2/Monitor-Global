@@ -5,6 +5,7 @@ import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
 import { SUMMARY_TYPOGRAPHY } from "./summary-typography.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
+import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
@@ -5321,6 +5322,7 @@ export default {
             return handlePortugueseTranslation(request,env);
         }
         if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
+        if (reqUrl.pathname === '/rupture-shaking') return handleRuptureShaking(request);
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([

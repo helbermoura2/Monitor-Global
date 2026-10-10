@@ -410,7 +410,7 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
 
 // Fit independently of the current globe zoom, clear of header and cards.
 let paintedAreaZoomCache=null;
-function zoomParaAreaPintada(lng,lat,raioKm){
+function zoomParaAreaPintada(lng,lat,raioKm,bounds=null){
     let margem=.8;
     try{
         const box=map.getContainer().getBoundingClientRect(),frac=getEventoTelaFrac();
@@ -432,10 +432,10 @@ function zoomParaAreaPintada(lng,lat,raioKm){
         if(room>0)margem=Math.min(.8,1.7*room/Math.min(box.width,box.height));
     }catch(e){}
     try{
-        const box=map.getContainer().getBoundingClientRect(),key=[lng,lat,raioKm,box.width,box.height,margem.toFixed(4)].join('|');
+        const box=map.getContainer().getBoundingClientRect(),key=[lng,lat,raioKm,box.width,box.height,margem.toFixed(4),bounds?.join(',')||'radial'].join('|');
         if(paintedAreaZoomCache?.key===key)return paintedAreaZoomCache.zoom;
         if(typeof map.cameraForBounds==='function'){
-            const points=[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
+            const points=bounds?[[bounds[0],bounds[1]],[bounds[2],bounds[3]]]:[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
             const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),size=Math.min(box.width,box.height)*margem;
             const camera=map.cameraForBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:{left:(box.width-size)/2,right:(box.width-size)/2,top:(box.height-size)/2,bottom:(box.height-size)/2},bearing:0,maxZoom:15});
             if(Number.isFinite(camera?.zoom)){const zoom=Math.max(1.5,Math.min(15,camera.zoom));paintedAreaZoomCache={key,zoom};return zoom;}
@@ -578,7 +578,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
         context.cameraPhase='impact-final';context.phaseUntil=until;
         protect(until);window.SeismicImpact?.finish();place();
-        try{const zoom=impactZoom(),camera={center:centroCompensado(context.lng,context.lat,zoom),zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        try{const focus=impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
@@ -589,7 +589,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         }
         return impactExtentCache.radius;
     }
-    function impactZoom(){return zoomParaAreaPintada(context.lng,context.lat,Math.max(10,window.SeismicImpactModel.extent(context.mag,context.depth,2.1)));}
+    function impactFrame(){if(window.SeismicFocus)return window.SeismicFocus.frame(context);const zoom=zoomParaAreaPintada(context.lng,context.lat,Math.max(10,window.SeismicImpactModel.extent(context.mag,context.depth,2.1)));return {zoom,center:centroCompensado(context.lng,context.lat,zoom)};}
     const radiusAt=(phase,elapsed)=>(phase==='pkp'||phase==='pkikp')?null:model?.radius(phase,context.depth,elapsed)??null;
     // O Mapbox reprojeta as coordenadas durante pan/zoom. Enviar a mesma
     // geometria de novo só repete trabalho no worker, especialmente no quadro final.
@@ -666,7 +666,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // início/fim pra brigar com o próximo quadro). Sem reinícios, sem
     // "pernas" — uma curva de velocidade contínua do início ao fim.
     if (chaseCam) {
-        let camZoomAtual = null;
+        let camZoomAtual = null,camCenter=null;
         let camUltimoFrameEm = 0;
         let lastTargetRadius = null;
         // Constante de tempo do amortecimento: quanto maior, mais lenta/
@@ -696,7 +696,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             let kmAlvoCam=context.finalFrame?.radii.p??predicted??kmP??lastTargetRadius;
             const linkedCamera=window.TsunamiPresentation;
             if(elapsedS>=limit-6)linkedCamera?.finalize(context.id);
-            if(linkedCamera?.ownsCamera(context.id)){camZoomAtual=null;camUltimoFrameEm=0;waveCamRAF=requestAnimationFrame(camLoop);return;}
+            if(linkedCamera?.ownsCamera(context.id)){camZoomAtual=null;camCenter=null;camUltimoFrameEm=0;waveCamRAF=requestAnimationFrame(camLoop);return;}
             const felt=context.returnToEpicenter?impactRadius():Math.max(1,raioEstimado(context.mag,context.depth));
             const kmS=radiusAt('s',elapsedS);
             if(context.finalFrame&&context.returnToEpicenter){waveCamRAF=null;returnToImpactArea();return;}
@@ -715,7 +715,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(kmAlvoCam===null){waveCamRAF=model?.status()==='error'?null:requestAnimationFrame(camLoop);return;}
             lastTargetRadius=kmAlvoCam;
             // Enquadra o raio efetivamente desenhado, sem abertura regional forçada.
-            const zoomAlvoBruto = context.returnToEpicenter&&context.cameraPhase==='impact' ? impactZoom() : Math.max(1.5,Math.min(15,
+            const focus=context.returnToEpicenter&&context.cameraPhase==='impact'?impactFrame():null;
+            const zoomAlvoBruto = focus ? focus.zoom : Math.max(1.5,Math.min(15,
                 zoomParaCaberRaio(context.lng,context.lat,kmAlvoCam)));
 
             if (camZoomAtual === null){camZoomAtual=map.getZoom();context.epicenterZoom=opts?.epicenterZoom??camZoomAtual;}
@@ -729,7 +730,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             // Recenter on the red front/painted area; open to P only at the end.
             camZoomAtual = proximoZoom;
             try {
-                map.jumpTo({ center: centroCompensado(context.lng, context.lat, camZoomAtual), zoom: camZoomAtual, padding:0 });
+                const target=focus?.center||centroCompensado(context.lng,context.lat,camZoomAtual);
+                if(!camCenter)camCenter=map.getCenter().toArray();
+                camCenter=[camCenter[0]+(((target[0]-camCenter[0]+540)%360)-180)*fatorSuavizacao,camCenter[1]+(target[1]-camCenter[1])*fatorSuavizacao];
+                map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:0 });
             } catch (e) {}
 
             // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.

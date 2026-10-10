@@ -1,0 +1,27 @@
+import './js/rupture-shaking-model.js';
+import {distanceKm} from './population-exposure-worker.mjs';
+const cache=new Map(),pending=new Map();
+const response=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Cache-Control':'public, max-age=60'}});
+async function remote(url){const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);try{const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='earthquake.usgs.gov'||u.username||u.password)throw Error('Fonte inválida');const r=await fetch(u,{signal:c.signal,redirect:'error'});if(!r.ok||Number(r.headers.get('content-length'))>1500000)throw Error('Produto indisponível');const s=await r.text();if(s.length>1500000)throw Error('Produto muito grande');return JSON.parse(s);}finally{clearTimeout(t);}}
+function compatible(d,p){const c=d.geometry?.coordinates,v=d.properties;return c?.length>=2&&v&&Number.isFinite(v.time)&&Number.isFinite(v.mag)&&distanceKm(p.lat,p.lng,c[1],c[0])<=80&&Math.abs(v.time-p.time)<=300000&&Math.abs(v.mag-p.mag)<=1.5;}
+export function hasFiniteRupture(d){return d?.type==='FeatureCollection'&&Array.isArray(d.features)&&d.features.some(f=>{const g=f.geometry;if(!['Polygon','MultiPolygon'].includes(g?.type)||!Array.isArray(g.coordinates))return false;const polygons=g.type==='Polygon'?[g.coordinates]:g.coordinates;let count=0;return polygons.length>0&&polygons.every(p=>Array.isArray(p)&&p.length>0&&p.every(r=>Array.isArray(r)&&r.length>=4&&r.every(v=>++count<=10000&&Array.isArray(v)&&v.length>=2&&v.every(Number.isFinite)&&Math.abs(v[0])<=360&&Math.abs(v[1])<=90)&&r[0][0]===r.at(-1)[0]&&r[0][1]===r.at(-1)[1]))&&polygons.some(p=>p[0].some(v=>v[0]!==p[0][0][0]||v[1]!==p[0][0][1]));});}
+async function load(p){
+ let detail;
+ if(p.eventId)detail=await remote('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventid='+encodeURIComponent(p.eventId));
+ else{const u=new URL('https://earthquake.usgs.gov/fdsnws/event/1/query');for(const [k,v]of Object.entries({format:'geojson',starttime:new Date(p.time-300000).toISOString(),endtime:new Date(p.time+300000).toISOString(),latitude:p.lat,longitude:p.lng,maxradiuskm:80,minmagnitude:Math.max(0,p.mag-1.5),limit:20}))u.searchParams.set(k,String(v));const found=await remote(u),matches=(found.features||[]).filter(d=>compatible(d,p));if(matches.length!==1)return {status:'unavailable',note:'Origem sem associação única no USGS.'};detail=await remote('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventid='+encodeURIComponent(matches[0].id));}
+ if(!compatible(detail,p))return {status:'unavailable',note:'Origem do produto não corresponde ao sismo.'};
+ const products=(detail.properties.products?.shakemap||[]).filter(p=>p.status!=='DELETE').sort((a,b)=>Number(b.preferredWeight||0)-Number(a.preferredWeight||0)||Number(b.updateTime||0)-Number(a.updateTime||0));
+ const product=products[0],contents=product?.contents,ruptureURL=contents?.['download/rupture.json']?.url,gridURL=contents?.['download/coverage_mmi_low_res.covjson']?.url;
+ if(!ruptureURL||!gridURL)return {status:'unavailable',note:'O USGS ainda não publicou ruptura e grade de intensidade compatíveis.'};
+ const rupture=await remote(ruptureURL);if(!hasFiniteRupture(rupture))return {status:'unavailable',note:'O ShakeMap disponível usa fonte pontual; direção de ruptura não inferida.'};
+ const grid=globalThis.RuptureShakingModel.normalize(await remote(gridURL));if(!grid||globalThis.RuptureShakingModel.sample(grid,detail.geometry.coordinates[0],detail.geometry.coordinates[1])===null)return {status:'unavailable',note:'Grade fora dos limites suportados.'};
+ return {status:'available',method:'usgs-shakemap-finite',grid,eventId:detail.id,updatedAt:product.updateTime,version:String(product.code)+'-'+product.updateTime,provider:'USGS ShakeMap · ruptura publicada',url:'https://earthquake.usgs.gov/earthquakes/eventpage/'+encodeURIComponent(detail.id)+'/shakemap',note:'Intensidade estimada publicada pelo USGS, com modelo de ruptura finita. Resolução reduzida; não confirma relatos ou danos.'};
+}
+export async function handleRuptureShaking(request){
+ if(request.method!=='GET')return response({status:'invalid'},405);const url=new URL(request.url),p={};for(const k of ['lat','lng','mag','time']){const v=url.searchParams.get(k);if(v===null||!v.trim()||!Number.isFinite(Number(v)))return response({status:'invalid'},400);p[k]=Number(v);}p.eventId=url.searchParams.get('eventId')||'';
+ if(Math.abs(p.lat)>90||Math.abs(p.lng)>180||p.mag<5||p.mag>10||p.time<=0||p.time>Date.now()+60000||p.eventId&&!/^[a-zA-Z0-9_-]{2,100}$/.test(p.eventId))return response({status:'invalid'},400);
+ const key=JSON.stringify(p),hit=cache.get(key);if(hit&&hit.until>Date.now())return response(hit.data);
+ if(!pending.has(key)&&pending.size>=8)return response({status:'unavailable',note:'Consulta ocupada; tente novamente.'},503);
+ if(!pending.has(key))pending.set(key,load(p).catch(()=>({status:'unavailable',note:'Produto de ruptura indisponível no momento.'})).then(data=>{cache.set(key,{data,until:Date.now()+300000});if(cache.size>12)cache.delete(cache.keys().next().value);return data;}).finally(()=>pending.delete(key)));
+ return response(await pending.get(key));
+}

@@ -41,9 +41,9 @@
   }
   syncMarkers();
  }
- function refresh(){ingest();render();}
+ function refresh(){ingest();render();const q=events().find(q=>q.id===chosen());if(q?.mag>=5&&window.SeismicImpact?.bounds(q.id))window.SeismicFocus?.ready({id:q.id,lng:q.coords[0],lat:q.coords[1],mag:q.mag,depth:q.depth});}
  window.EventStore?.subscribe(reason=>{if(['filter','replace','revise'].includes(reason))refresh();else if(reason==='select')render();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  window.addEventListener('pagehide',()=>{clearTimeout(timer);clear();});
- window.AftershockSequence={render,refresh,clear,setVisible,syncMarkers,state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size})};
+ window.AftershockSequence={render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size})};
 })();
