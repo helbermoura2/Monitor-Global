@@ -18,3 +18,8 @@
 .pd-details-back details:has(> #pd-aftershock-details[data-empty="true"]){display:none}
 #painel-direito #pd-aftershocks-summary{opacity:1!important;pointer-events:auto!important}
 @media(max-width:700px) and (orientation:portrait){body.mobile-details-mid #painel-direito #pd-aftershocks-summary{grid-row:7;margin:2px 0;padding:6px;font-size:11px}}
+
+.aftershock-pin.cluster{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:6px 9px;border-radius:22px;background:#082637f2;border:2px solid var(--quake-tone);font-size:18px;line-height:1.15}
+.aftershock-pin.cluster span{font-size:9px;font-weight:500;color:#c8e4ed;margin-top:2px}
+.aftershock-pin.cluster em{margin:3px 0 0;color:#86efac}
+.aftershock-pin:focus-visible{outline:2px solid #7dd3fc;outline-offset:3px}
