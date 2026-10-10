@@ -22,7 +22,7 @@ O cliente utiliza intervalos presentes/futuros, não `summary.intensity` (máxim
 
 Dados ausentes, de outro ponto, vencidos, futuros, negativos, nulos, com intervalo irregular ou série descontínua não são usados. Sem cobertura não significa sem chuva. “Chuva: s/ previsão” foi substituído por “Previsão indisponível”. Fonte com link ao Rainbow é exibida junto ao gráfico, conforme termos de atribuição.
 
-Falhas incluem apenas diagnóstico seguro: código HTTP e etapa (`request`, `http` ou `payload`), sem corpo da fonte ou mensagem interna. Na migração para esse diagnóstico, entradas negativas antigas sem diagnóstico são substituídas uma vez, preservando integralmente os contadores e tetos de consultas.
+Falhas incluem apenas diagnóstico seguro: código HTTP, etapa (`request`, `http` ou `payload`) e categoria predefinida de falha de requisição, sem corpo da fonte ou mensagem interna. Na migração para esse diagnóstico, entradas negativas antigas são substituídas uma vez, preservando integralmente os contadores e tetos de consultas. Credenciais com quebras de linha ou caracteres de controle são rejeitadas antes de consultar a fonte. Redirecionamentos retornam como HTTP 3xx sem encaminhar a chave a outro endereço.
 
 ## Validação
 
