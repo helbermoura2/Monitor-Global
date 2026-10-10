@@ -56,7 +56,7 @@ function start(context,full=false){
  label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':context.shaking?'USGS ShakeMap · ruptura publicada · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
  calculate(context).then(data=>{
   if(token!==generation||!scene)return;
-  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':'USGS ShakeMap · ruptura publicada · intensidade estimada');if(!context.keepCamera)window.SeismicFocus?.ready(context);
+  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':'USGS ShakeMap · ruptura publicada · intensidade estimada');if(!context.keepCamera)window.SeismicFocus?.ready(context);if(context.demo)window.SeismicScenarioDemo?.paintReady(context);
  }).catch(e=>{if(token===generation){if(context.shaking){start({...context,shaking:null,skipOfficial:true},full);return;}label('Intensidade estimada · Camada indisponível');console.warn('[intensidade estimada]',e);}});
  if(item&&!context.skipOfficial&&!context.shaking&&context.mag>=5)window.RuptureShaking?.query(item).then(shaking=>{if(shaking&&token===generation&&scene?.id===context.id){const r=scene.radius;start({...context,shaking},scene.full);reveal(r,true);}});
 }
