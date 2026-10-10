@@ -43,9 +43,12 @@
     const entries=[['CHUVA OBSERVADA',state.observation],['ALAGAMENTOS · CGE',samePlace(weatherLoc,{lat:-23.55,lng:-46.63})?state.reason:'CGE cobre a capital paulista. Sem dados de ocorrências para a cidade selecionada.']];
     const valid=forecast && samePlace(forecast.loc,weatherLoc) && fresh(forecast.at,Date.now(),20);
     window.__weatherForecastBrief=valid?forecast:null;
-    window.__rainOutlook=window.RainOutlook?.summarize({forecast:valid?forecast:null,loc:weatherLoc,now:Date.now()});
+    window.__rainOutlook=window.RainbowNowcast?.outlook(weatherLoc)||window.RainOutlook?.summarize({forecast:valid?forecast:null,loc:weatherLoc,now:Date.now()});
+    window.__rainbowStatus=window.RainbowNowcast?.status(weatherLoc);
     const rain=$('sp-rain-eta'),rainChip=$('sp-rain-eta-chip'),outlook=window.__rainOutlook;
-    if(rain)rain.textContent=outlook?.header||'Chuva: s/ previsão';
+    if(rain&&rain.textContent!==(outlook?.header||'Previsão indisponível'))rain.textContent=outlook?.header||'Previsão indisponível';
+    const ico=$('sp-rain-eta-ico'),icon=outlook?.provider==='rainbow'?(outlook.status==='now'?'🌧️':outlook.status==='soon'?'🌦️':'⏱️'):'⏱️';if(ico&&ico.textContent!==icon)ico.textContent=icon;
+    const badge=rainChip?.querySelector('small'),caption=outlook?.provider==='rainbow'?'chuva · por minuto':'chuva · modelo';if(badge&&badge.textContent!==caption)badge.textContent=caption;
     if(rainChip){rainChip.title=(outlook?.detail||'Previsão indisponível')+' · '+(outlook?.source||'Modelos');rainChip.setAttribute('aria-label',rainChip.title);}
     window.WeatherPanel?.update();
     entries.push(['PREVISÃO · COMPARAÇÃO DE MODELOS',valid?forecast.agreement+' · '+forecast.min.toFixed(1).replace('.', ',')+'–'+forecast.max.toFixed(1).replace('.', ',')+' mm nas próximas ~6 h. '+forecast.rows.map(x=>x.name+': '+x.total.toFixed(1).replace('.', ',')+' mm').join(' · ')+'. Consulta '+new Date(forecast.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'. Previsão, não certeza; não determina horário exato nem risco de alagamento.':'Comparação indisponível ou desatualizada. A previsão individual abaixo continua identificada como modelo.']);
@@ -55,7 +58,9 @@
   async function refresh() {
     if(typeof weatherLoc==='undefined' || !weatherLoc)return;
     update();if(fetching)return;
-    const loc={...weatherLoc};if(forecast && samePlace(forecast.loc,loc) && fresh(forecast.at,Date.now(),5)){update();return;}
+    const loc={...weatherLoc};
+    const rainbowTask=window.RainbowNowcast?.refresh(loc);
+    if(forecast && samePlace(forecast.loc,loc) && fresh(forecast.at,Date.now(),5)){await rainbowTask;update();return;}
     fetching=true;
     const metarTask=(async()=>{
       try{
@@ -70,7 +75,8 @@
       let data;
       try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lng+'&hourly=precipitation&forecast_hours=8&models='+MODELS.map(x=>x[0]).join(',')+'&timezone=UTC',{signal:controller.signal});if(!r.ok)throw Error('HTTP '+r.status);data=await r.json();}finally{clearTimeout(timer);}
       forecast={...summarize(data,Date.now()),at:Date.now(),loc};
-    }catch(e){console.warn('Comparação meteorológica:',e.message);}finally{await metarTask;fetching=false;update();}
+    }catch(e){console.warn('Comparação meteorológica:',e.message);}finally{await Promise.all([metarTask,rainbowTask]);fetching=false;update();}
+    if(!samePlace(loc,weatherLoc))return refresh();
   }
   window.WeatherEvidence={assess,summarize,update,refresh};
   document.addEventListener('DOMContentLoaded',()=>{update();PeriodicScheduler.every('weather-evidence',refresh,6000,60000);},{once:true});

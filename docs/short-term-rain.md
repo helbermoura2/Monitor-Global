@@ -1,6 +1,6 @@
 # Chuva de curto prazo
 
-A barra mostra previsão de chuva por modelos. Alagamentos permanecem separados no painel meteorológico, com consulta CGE identificada.
+A barra prefere a previsão por minuto do Rainbow quando configurada e válida; consulte [rainbow-nowcast.md](rainbow-nowcast.md) para ativação, limites e interpretação. O comportamento abaixo é a reserva por modelos horários. Alagamentos permanecem separados no painel meteorológico, com consulta CGE identificada.
 
 Fontes: ECMWF, NOAA/GFS e DWD/ICON, consultados via API Open-Meteo. As previsões de precipitação são acumulados da hora anterior ao timestamp. A janela de chuva engloba as horas onde os modelos indicam >=0,2 mm/h; não é uma previsão de minuto exato. Se modelos divergem sobre chuva ou o início varia por mais de uma hora, o sistema não apresenta chegada consensual. Um modelo sozinho não produz chegada consensual. Valores nulos, negativos, desatualizados ou de outra localização não são utilizáveis.
 

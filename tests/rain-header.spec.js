@@ -21,9 +21,12 @@ test('chuva por modelo separada de alagamentos e sem sobreposição',async({page
   expect(await page.locator('#'+id).evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar').display)).toBe('none');
  }
  await page.locator('#more-filters-toggle').click();await expect(page.locator('#chips-row')).toHaveClass(/expanded/);
- await page.locator('#chips-scroll-right').click();await expect.poll(()=>page.locator('#chips-row').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
- await page.locator('#chips-row').evaluate(el=>el.scrollTo({left:0,behavior:'instant'}));
- await page.locator('#chips-row').hover();await page.mouse.wheel(0,100);await expect.poll(()=>page.locator('#chips-row').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+ const overflow=await page.locator('#chips-row').evaluate(el=>el.scrollWidth>el.clientWidth+4);
+ if(overflow){
+  await page.locator('#chips-scroll-right').click();await expect.poll(()=>page.locator('#chips-row').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+  await page.locator('#chips-row').evaluate(el=>el.scrollTo({left:0,behavior:'instant'}));
+  await page.locator('#chips-row').hover();await page.mouse.wheel(0,100);await expect.poll(()=>page.locator('#chips-row').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+ }else await expect(page.locator('#chips-scroll-right')).toBeDisabled(); // Expanded filters can wrap instead of overflow.
  await expect(page.locator('#flood-risk-chip')).toBeHidden();await expect(page.locator('#sp-forecast-air')).toBeHidden();
  const chip=page.locator('#sp-rain-eta-chip');await expect(chip).toHaveAttribute('title',/resolução horária/);
  let visible=0;for(const width of [1101,1280,1920]){

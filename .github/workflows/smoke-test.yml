@@ -52,6 +52,7 @@ jobs:
           node tests/unit/hazard-evidence-check.cjs
           node tests/unit/weather-evidence-check.cjs
           node tests/unit/rain-outlook-check.cjs
+          node tests/unit/rainbow-nowcast-check.mjs
           node tests/unit/weather-observations-check.mjs
           node tests/unit/tse-results-check.mjs
 
