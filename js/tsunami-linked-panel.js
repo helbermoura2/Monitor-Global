@@ -6,7 +6,7 @@
  function allQuakes(){return typeof globalEvents!=='undefined'?globalEvents:[];}
  function allAlerts(){return typeof globalAlerts!=='undefined'?globalAlerts:[];}
  function selected(){return typeof eventoSelecionadoId!=='undefined'?eventoSelecionadoId:null;}
- function clear(keepMap=false){document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;if(!keepMap)window.TsunamiMap?.stop();}
+ function clear(keepMap=false){document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;if(!keepMap&&!window.TsunamiMap?.isPreview())window.TsunamiMap?.stop();}
  function open(item){
   if(!item)return;
   window.__mgSoftCycle=false;window.__mgRotationDisplay=false;
@@ -56,7 +56,7 @@
   }
  }
  function areaLabel(value){const s=String(value||'');return s.replace(/less than/gi,'menos de').replace(/greater than/gi,'mais de').replace(/meters|metres/gi,'metros').replace(/Cancellation/gi,'Encerrado').replace(/No (?:tsunami )?threat/gi,'Sem ameaça').replace(/Warning/gi,'Alerta').replace(/Watch/gi,'Vigilância').replace(/Advisory/gi,'Atenção').replace(/Information/gi,'Informativo').replace(/(\d)\.(\d)/g,'$1,$2');}
- function refresh(){const item=[...allQuakes(),...allAlerts()].find(a=>a.id===selected());render(item);}
+ function refresh(){if(window.TsunamiMap?.isPreview())return;const item=[...allQuakes(),...allAlerts()].find(a=>a.id===selected());render(item);}
  function preferred(){const q=allQuakes().find(a=>a.id===selected());return q?window.TsunamiLink?.forQuake(q,allAlerts(),allQuakes())[0]?.alert:null;}
  function choose(items){
   if(!items.length)return;

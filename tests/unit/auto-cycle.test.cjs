@@ -1,11 +1,11 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
 const source=fs.readFileSync('js/painel-e-lista.js','utf8');
-const names=['isWithinAutoCycleAge','getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','requestInitialAutoDisplay','scheduleNextAutoCycle','runAutoCycle'];
+const names=['isWithinAutoCycleAge','getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAlertSelectionProtectionRemaining','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','requestInitialAutoDisplay','scheduleNextAutoCycle','runAutoCycle'];
 const code=names.map(name=>{const start=source.indexOf('function '+name+'(');assert.ok(start>=0);return source.slice(start,source.indexOf('\n}',start)+2);}).join('\n');
 const quake=id=>({id,type:'earthquake',mag:3,time:Date.now(),coords:[-70,-20]});
 const alert=(id,type='fire',extra={})=>({id,type,coords:[-60,-10],time:Date.now(),...extra});
 function setup(quakes=[],alerts=[]){
- const shown=[],timers=[];const c=vm.createContext({window:{},isFirstDisplay:true,globalEvents:quakes,globalAlerts:alerts,eventoSelecionadoId:null,cycleTimeout:null,map:{isMoving:()=>false},console,
+ const shown=[],timers=[];const c=vm.createContext({document:{hidden:false},window:{},isFirstDisplay:true,globalEvents:quakes,globalAlerts:alerts,eventoSelecionadoId:null,cycleTimeout:null,map:{isMoving:()=>false},console,
  setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){}});vm.runInContext(code,c);
  c.showEventDetails=i=>{shown.push(c.globalEvents[i]);c.eventoSelecionadoId=c.globalEvents[i].id;c.window.__mgSoftCycle=false;};c.showAlertDetails=item=>{shown.push(item);c.eventoSelecionadoId=item.id;c.window.__mgSoftCycle=false;};
  return {c,shown,timers,next(){c.showNextAutoCycleItem();return shown.at(-1);},tick(){c.scheduleNextAutoCycle(5000);timers.at(-1).fn();}};
@@ -99,4 +99,11 @@ test('revisão recebida agora não ressuscita sismo de 222h na câmera automáti
  const orchestration=fs.readFileSync('js/orquestrador-feeds.js','utf8');
  for(const name of ['isRecentCameraQuake','focusNextNewCameraQuake','focusNextQuakeRevision']){const start=orchestration.indexOf('function '+name+'(');vm.runInContext(orchestration.slice(start,orchestration.indexOf('\n}',start)+2),s.c);}
  assert.equal(s.c.focusNextQuakeRevision(),false);assert.equal(s.shown.length,0);assert.equal(s.c.pendingQuakeRevisions.size,0);
+});
+
+test('prévia do mapa aguarda o aleatório sem bloquear a prioridade de eventos novos',()=>{
+ const s=setup([quake('old')]);s.c.window.TsunamiMap={isPreview:()=>true};
+ s.c.runAutoCycle();assert.equal(s.shown.length,0);assert.equal(s.timers.at(-1).ms,60000);
+ let focused=0;s.c.focusNextNewCameraQuake=()=>{focused++;return true;};
+ s.c.runAutoCycle();assert.equal(focused,1);assert.equal(s.shown.length,0);
 });
