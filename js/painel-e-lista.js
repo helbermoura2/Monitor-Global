@@ -1884,6 +1884,28 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?'bulletin':item.type, cor, item);
 
+    // Protege a seleção manual (ou alerta novo/ao vivo) contra o foco de sismo
+    // ser roubado por engano -- igual ao que showEventDetails já faz (ver
+    // window.__mgRevisionProtectedId lá). SEM isto, QUALQUER alerta (tsunami,
+    // tempestade, enchente, furacão...) selecionado nunca ficava protegido:
+    // focusNextNewCameraQuake/focusNextQuakeRevision (orquestrador-feeds.js)
+    // são chamados direto a cada rodada de fetchGlobalFeeds -- não só pelo
+    // timer de 30s do ciclo automático -- e, sem proteção, trocavam pra um
+    // sismo aleatório (geralmente uma REVISÃO de magnitude de um sismo
+    // antigo, não um evento novo) quase na hora seguinte à seleção. Bug
+    // relatado pelo usuário: "clico no tsunami e ele vai pra um evento
+    // aleatório" -- reproduzido e confirmado: a cada clique num alerta, a
+    // primeira rodada de revisão de sismos subsequente roubava o foco.
+    const softAlert = !!window.__mgSoftCycle;
+    const holdAlert = triggerVisualAlert ? 45000 : 30000;
+    window.__mgHoldEndsAt = Date.now() + holdAlert;
+    window.__mgRevisionProtectedId = (!softAlert || triggerVisualAlert) ? item.id : null;
+    window.__mgRevisionProtectedUntil = (!softAlert || triggerVisualAlert) ? window.__mgHoldEndsAt : 0;
+    if (triggerVisualAlert) {
+        window.__mgLiveQuakeId = item.id;
+        window.__mgLiveQuakeUntil = window.__mgHoldEndsAt;
+    }
+
     if (item.coords && map) {
         let zoomEvento = 6;
         if (item.type === 'earthquake') {
