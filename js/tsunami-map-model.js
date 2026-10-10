@@ -26,7 +26,11 @@
    if(!region){unmapped.push(area.name);continue;}
    const prev=chosen.get(region.properties.name);if(!prev||prev.c.rank<c.rank)chosen.set(region.properties.name,{region,c});
   }
-  for(const {region,c} of chosen.values()){features.push({...region,properties:{...c,name:region.properties.name,kind:'reference'}});entries.push(c);}
+  for(const {region,c} of chosen.values()){
+   features.push({type:'Feature',geometry:region.geometry,properties:{...c,name:region.properties.name,kind:'reference',band:'outer'}});
+   if(region.innerGeometry)features.push({type:'Feature',geometry:region.innerGeometry,properties:{...c,name:region.properties.name,kind:'reference',band:'inner'}});
+   entries.push(c);
+  }
   return {data:{type:'FeatureCollection',features},entries:[...new Map(entries.map(c=>[c.label,c])).values()].sort((a,b)=>b.rank-a.rank),unmapped};
  }
  function longitudeBounds(values){
