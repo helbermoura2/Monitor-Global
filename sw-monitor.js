@@ -2,7 +2,7 @@
    Shell = cache para abertura offline.
    APIs de dados = network-first (tempo quase real).
    NÃO promete alerta ao vivo sem rede. */
-const CACHE = 'monitor-global-pro-v683-rainbow-nowcast';
+const CACHE = 'monitor-global-pro-v684-tornado-45m';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

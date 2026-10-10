@@ -498,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     agendarBusca(fetchOfficialTsunamiAlerts, 1000, 30000); // PTWC/NTWC internacional
     agendarBusca(fetchTsunamiAlerts, 2000, 180000);     // tsunami NWS
     agendarBusca(fetchTsunamiAlertsGDACS, 4000, 180000);
-    agendarBusca(fetchTornadoAlerts, 6000, 180000);
+    agendarBusca(fetchTornadoAlerts, 6000, 45*60000); // tornados NWS: 45 minutos
     agendarBusca(fetchGdacsFloods, 8000, 300000);
     agendarBusca(fetchCgeSP, 9000, 600000);        // alagamentos ativos — CGE São Paulo
     agendarBusca(fetchVolcanoes, 3000, 3600000); // catálogo normal: 1 hora
