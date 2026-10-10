@@ -76,6 +76,28 @@ test('consulta a cada 30 s mantém abertura; falha preserva votos e aponta indis
   await expect(page.locator('#election-panel')).toBeHidden();
 });
 
+test('tendência da sessão aparece só após duas leituras e nunca compara com eleições anteriores', async ({page}) => {
+  const state = await setup(page);await open(page);
+  await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
+  await expect(page.locator('#election-trend')).toBeHidden();
+  state.first.s.st = String(Number(state.first.s.st) + 50);state.first.s.pst = '99,96';
+  state.first.hg = '22:52:26';state.first.ht = '22:52:01';
+  state.first.carg[0].agr[0].par[0].cand[0].vap = '56200000';state.first.carg[0].agr[0].par[0].cand[0].pvap = '47,20';
+  await page.clock.runFor(30050);
+  await expect(page.locator('#election-trend')).toBeVisible();
+  await expect(page.locator('#election-trend-note')).toContainText('desde a abertura');
+  await expect(page.locator('#election-trend-disclaimer')).toContainText('não é uma projeção');
+  const points = await page.locator('#election-trend-line').getAttribute('points');
+  expect(points.trim().split(' ')).toHaveLength(2);
+  // Fechar e reabrir preserva a tendência já observada nesta sessão.
+  await page.locator('#election-close').click();
+  await open(page);
+  await expect(page.locator('#election-trend')).toBeVisible();
+  // O 2º turno ainda não tem leituras suficientes nesta sessão pra ter tendência própria.
+  await page.locator('[data-election-turn="2"]').click();
+  await expect(page.locator('#election-trend')).toBeHidden();
+});
+
 test('só chegada nova acima de M6 fecha; catálogo inicial, seleção e M6,0 mantêm aberto', async ({page}) => {
   await setup(page);await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
