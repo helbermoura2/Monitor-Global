@@ -455,6 +455,7 @@ let waveFrontStatus = null;
 let waveFrontContext = null;
 let waveFinalTimer = null;
 let waveCamResume = null;
+let waveCamIdleTimer = null;
 document.addEventListener('visibilitychange',()=>{
     if(!document.hidden&&waveCamResume){const resume=waveCamResume;waveCamResume=null;resume();}
 });
@@ -480,7 +481,8 @@ function setWaveFrontVisible(visible){
     if(waveFrontStatus)waveFrontStatus.style.display=visible?'':'none';
 }
 function stopWaveFront(keepImpact = false) {
-    waveCamResume=null;
+    waveCamResume=null;clearTimeout(waveCamIdleTimer);waveCamIdleTimer=null;
+    window.SeismicFinalSummary?.stop();
     if(!keepImpact)window.SeismicImpact?.stop();
     waveFrontGeneration++;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(waveFrontContext);waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
     try { clearInterval(waveFrontInterval); } catch (e) {}
@@ -578,6 +580,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
         context.cameraPhase=context.epicenterFirst?'epicenter-final':'impact-final';context.phaseUntil=until;
         protect(until);if(context.returnToEpicenter)window.SeismicImpact?.finish();place();
+        window.SeismicFinalSummary?.start(context,duration);
         try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
@@ -738,7 +741,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 const target=focus?.center||centroCompensado(context.lng,context.lat,camZoomAtual);
                 if(!camCenter)camCenter=map.getCenter().toArray();
                 camCenter=[camCenter[0]+(((target[0]-camCenter[0]+540)%360)-180)*fatorSuavizacao,camCenter[1]+(target[1]-camCenter[1])*fatorSuavizacao];
-                map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:0 });
+                const actualCenter=map.getCenter().toArray(),zoomError=Math.abs(map.getZoom()-camZoomAtual),centerError=Math.max(Math.abs(((camCenter[0]-actualCenter[0]+540)%360)-180),Math.abs(camCenter[1]-actualCenter[1]));
+                // Settled scenes do not repaint the map for imperceptible corrections.
+                if(zoomError>.0002||centerError>.000002)map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:0 });
             } catch (e) {}
 
             // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.
@@ -752,7 +757,16 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 waveCamRAF = null;finishOpening();
                 return;
             }
-            waveCamRAF = requestAnimationFrame(camLoop);
+            const stable=focus&&Math.abs(camZoomAtual-zoomAlvoBruto)<.001&&camCenter&&Math.max(Math.abs(((focus.center[0]-camCenter[0]+540)%360)-180),Math.abs(focus.center[1]-camCenter[1]))<.00001;
+            if(stable){
+                // Finish convergence once, instead of creeping by tiny steps during idle checks.
+                const current=map.getCenter().toArray();
+                if(Math.abs(map.getZoom()-zoomAlvoBruto)>.0002||Math.max(Math.abs(((focus.center[0]-current[0]+540)%360)-180),Math.abs(focus.center[1]-current[1]))>.000002)map.jumpTo({center:focus.center,zoom:zoomAlvoBruto,padding:0});
+                camZoomAtual=zoomAlvoBruto;camCenter=focus.center.slice();
+                waveCamRAF=null;camUltimoFrameEm=0;
+                const boundary=context.phaseUntil-Date.now();
+                waveCamIdleTimer=setTimeout(()=>{waveCamIdleTimer=null;if(generation===waveFrontGeneration)camLoop();},Math.max(1,Math.min(1000,Number.isFinite(boundary)?boundary:1000)));
+            }else waveCamRAF = requestAnimationFrame(camLoop);
         };
         waveCamRAF = requestAnimationFrame(camLoop);
     }

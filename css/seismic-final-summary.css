@@ -1,0 +1,12 @@
+#painel-direito #pd-seismic-final-summary{display:block!important;opacity:1!important;grid-column:1 / -1;grid-row:6;padding:12px;margin:8px 0;border:1px solid #7dd3fc70;border-radius:12px;background:#071d2ded;color:#e2f2fc;font:12px/1.4 system-ui;min-width:0;pointer-events:auto!important}
+#pd-seismic-final-summary>strong{display:block;color:#7dd3fc;font-size:13px;margin-bottom:8px}
+#pd-seismic-final-summary>div{margin:6px 0}
+#pd-seismic-final-summary small,#pd-seismic-final-summary b{display:block;overflow-wrap:anywhere}
+#pd-seismic-final-summary small{color:#a9bfce;font-size:10px}
+#pd-seismic-final-summary b{font-size:13px;font-weight:600}
+#pd-seismic-final-summary .seismic-final-note{margin-top:8px}
+@media(max-width:700px) and (orientation:portrait){
+ body.mg-mobile-primary.mobile-details-mid #painel-direito #pd-seismic-final-summary{grid-row:2;margin:3px 0;padding:7px 9px}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.seismic-final-summary>:is(.pd-gauge-wrap,.pd-local,#pd-horario,.stats-grid,.pd-revision-note,#pd-aftershocks-summary){display:none!important}
+ #pd-seismic-final-summary>div{margin:3px 0}#pd-seismic-final-summary b{font-size:11px}#pd-seismic-final-summary>strong{font-size:11px;margin-bottom:4px}
+}

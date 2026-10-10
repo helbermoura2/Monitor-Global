@@ -39,11 +39,11 @@
    const el=document.createElement('button');el.type='button';el.className='aftershock-pin'+(q.id===group.main.id?' main':'')+(fresh.has(q.id)?' fresh':'');el.style.setProperty('--quake-tone',typeof getHexColor==='function'?getHexColor(q.mag):'#fbbf24');el.textContent=(q.id===group.main.id?'Principal · ':'')+mag(q);
    if(fresh.has(q.id))node(el,'em','NOVA');el.title=(q.id===group.main.id?'Sismo principal':'Possível réplica')+' · '+local(q);el.onclick=e=>{e.stopPropagation();open(q.id);};pins.set(q.id,new GL.Marker({element:el,anchor:'bottom',offset:[0,-5]}).setLngLat(q.coords).addTo(map));
   }
-  syncMarkers();
+  syncMarkers();window.SeismicFinalSummary?.refresh();
  }
- function refresh(){ingest();render();const q=events().find(q=>q.id===chosen());if(q?.mag>=5&&window.SeismicImpact?.bounds(q.id))window.SeismicFocus?.ready({id:q.id,lng:q.coords[0],lat:q.coords[1],mag:q.mag,depth:q.depth});}
+ function refresh(){ingest();render();window.SeismicFinalSummary?.refresh();const q=events().find(q=>q.id===chosen());if(q?.mag>=5&&window.SeismicImpact?.bounds(q.id))window.SeismicFocus?.ready({id:q.id,lng:q.coords[0],lat:q.coords[1],mag:q.mag,depth:q.depth});}
  window.EventStore?.subscribe(reason=>{if(['filter','replace','revise'].includes(reason))refresh();else if(reason==='select')render();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  window.addEventListener('pagehide',()=>{clearTimeout(timer);clear();});
- window.AftershockSequence={render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size})};
+ window.AftershockSequence={summary:id=>{const g=model?.forEvent(id);return g?.children.length?{count:g.children.length,strongest:Math.max(...g.children.map(q=>q.mag))}:null;},render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size})};
 })();
