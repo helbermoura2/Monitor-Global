@@ -227,6 +227,7 @@ function posicionarVersoCard(verso) {
 // automático (mesmo padrão já usado pra frente de onda P/S: o auto-ciclo
 // troca de evento rápido demais pra essa animação fazer sentido).
 function agendarViradaCardAlcance(lat, lng, item) {
+    window.RainArrivalNotice?.close(true);
     if (window.EventDetailsBack?.isOpen()) return;
     fecharViradaCardAlcance();
     const generation=window.__mgFlipPopulationGeneration;
@@ -250,6 +251,7 @@ function agendarViradaCardAlcance(lat, lng, item) {
         const corpo = `<div id="pd-flip-grid-exposure">${exposure?renderExposicaoPopulacionalHTML(exposure):''}</div><div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +
             (dados.cidades.length ? `<div class="pd-flip-verso-list"><div class="pd-flip-verso-listhead"><span>Localidade / distância / população</span><span>Área estimada</span></div>${dados.cidades.map(linhaCidadePopup).join('')}</div>` : '') + creditoPopulacaoHTML(dados);
 
+        window.RainArrivalNotice?.close(true);
         const verso = document.createElement('div');
         verso.id = 'pd-flip-verso';
         verso.className = 'pd-flip-verso';

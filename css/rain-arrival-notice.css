@@ -1,0 +1,32 @@
+.rain-arrival-notice{box-sizing:border-box;padding:18px;background:linear-gradient(155deg,#0c2435,#06121e);color:#e9f4fc;border:1px solid #28516a;border-radius:14px;font-family:system-ui,sans-serif;box-shadow:0 14px 45px rgba(0,0,0,.4);overflow:auto;}
+.rain-arrival-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;}
+.rain-arrival-tag{font-size:10px;letter-spacing:.1em;color:#f5c65e;}
+.rain-arrival-close{background:transparent;border:0;color:#bdd1df;font-size:25px;width:36px;min-height:36px;cursor:pointer;}
+.rain-arrival-hero{display:flex;align-items:center;gap:14px;margin:14px 0 6px;}
+.rain-arrival-icon{font-size:40px;}
+.rain-arrival-time{font-size:clamp(30px,3.5vw,48px);line-height:1.15;margin:0;letter-spacing:-.04em;}
+.rain-arrival-city{margin:8px 0 16px;font-size:16px;font-weight:600;}
+.rain-arrival-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 0;border-top:1px solid #294453;border-bottom:1px solid #294453;}
+.rain-arrival-metrics small{display:block;font-size:10px;color:#aec6d6;margin-bottom:7px;line-height:1.4;}
+.rain-arrival-metrics strong{font-size:18px;}
+.rain-arrival-chart{flex:1 1 auto;min-height:100px;margin:8px 0;}
+.rain-arrival-chart .rainbow-chart-card{border:0;background:transparent;margin:0;padding:0;}
+.rain-arrival-chart svg{display:block;width:100%;height:auto;max-height:170px;}
+.rain-arrival-actions{display:flex;gap:10px;align-items:center;flex-shrink:0;}
+.rain-arrival-actions button{cursor:pointer;font:600 12px system-ui;border-radius:9px;min-height:44px;padding:10px 12px;}
+.rain-arrival-return{background:transparent;border:1px solid #345264;color:#c6dce9;flex:1;}
+.rain-arrival-details{background:#36b9f4;border:1px solid #36b9f4;color:#041a29;flex:1;}
+.rain-arrival-note{display:block;color:#93b0c3;font-size:10px;line-height:1.5;margin-top:12px;flex-shrink:0;}
+.rain-arrival-notice button:focus-visible{outline:2px solid #b5eaff;outline-offset:3px;}
+.rain-arrival-mobile{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:500130;max-height:min(65dvh,460px);transform:translateY(calc(100% + 40px));opacity:0;transition:transform .35s ease,opacity .35s ease;}
+.rain-arrival-mobile.rain-arrival-visible{transform:translateY(0);opacity:1;}
+.rain-arrival-mobile .rain-arrival-hero{margin:3px 0;gap:10px;}
+.rain-arrival-mobile .rain-arrival-icon{font-size:30px;}
+.rain-arrival-mobile .rain-arrival-time{font-size:28px;}
+.rain-arrival-mobile .rain-arrival-city{font-size:13px;margin:6px 0 10px;}
+.rain-arrival-mobile .rain-arrival-chart{min-height:80px;margin:4px 0;}
+.rain-arrival-mobile .rain-arrival-chart svg{max-height:112px;}
+.rain-arrival-mobile .rain-arrival-metrics{padding:10px 0;}
+.rain-arrival-mobile .rain-arrival-metrics strong{font-size:16px;}
+@media(prefers-reduced-motion:reduce){.rain-arrival-mobile{transition:none;}}
+@media(max-height:600px) and (min-width:901px){.rain-arrival-desktop{padding:12px;}.rain-arrival-desktop .rain-arrival-hero{margin-top:5px;}.rain-arrival-desktop .rain-arrival-time{font-size:30px;}.rain-arrival-desktop .rain-arrival-city{margin:5px 0 10px;}.rain-arrival-desktop .rain-arrival-metrics{padding:8px 0;}.rain-arrival-desktop .rain-arrival-chart svg{max-height:100px;}}

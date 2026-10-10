@@ -55,7 +55,7 @@
     const note=document.createElement('small');note.textContent='Leitura do aeródromo é local. Previsão de chuva não confirma alagamentos.';brief.appendChild(note);
   }
   function setChipState(open){const chip=$('chip-meteorologia');if(!chip)return;chip.classList.toggle('active',open);chip.setAttribute('aria-pressed',String(open));chip.setAttribute('aria-expanded',String(open));chip.title=open?'Fechar meteorologia':'Abrir meteorologia';}
-  function show(){window.EventDetailsBack?.close();init();if(!ready)return;if(typeof fcPopupTimeout!=='undefined'&&fcPopupTimeout)clearTimeout(fcPopupTimeout);document.body.classList.add('weather-view');document.body.classList.toggle('mobile-fc-open',mobile());$('sp-forecast-air').classList.add('open');layout();update();setChipState(true);}
+  function show(){window.RainArrivalNotice?.close(true);window.EventDetailsBack?.close();init();if(!ready)return;if(typeof fcPopupTimeout!=='undefined'&&fcPopupTimeout)clearTimeout(fcPopupTimeout);document.body.classList.add('weather-view');document.body.classList.toggle('mobile-fc-open',mobile());$('sp-forecast-air').classList.add('open');layout();update();setChipState(true);}
   function hide(){document.body.classList.remove('weather-view','mobile-fc-open');$('sp-forecast-air')?.classList.remove('open');setChipState(false);}
   window.WeatherPanel={show,hide,update};document.addEventListener('DOMContentLoaded',init,{once:true});
 })();
