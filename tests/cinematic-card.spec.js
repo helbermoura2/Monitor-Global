@@ -95,8 +95,11 @@ for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e co
  if(width===390){
   await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
   await page.waitForTimeout(350);
-  await expect.poll(()=>page.locator('.pd-cinema-layer .pd-cinema-particles').evaluate(el=>el.height===Math.round(el.parentElement.clientHeight*Math.min(devicePixelRatio,1.25)))).toBe(true);
-  const dimensions=await page.locator('.pd-cinema-layer .pd-cinema-particles').evaluate(el=>({pixels:el.height,expected:Math.round(el.parentElement.clientHeight*Math.min(devicePixelRatio,1.25))}));expect(dimensions.pixels).toBe(dimensions.expected);
+  // #237 made mobile cards start at CardEffectQuality's 'balanced' level (resolution .8, not 1)
+  // and sustained load during this loop can degrade it further to 'light' (.6) -- read the
+  // resolution the card actually picked (host.dataset.quality) instead of assuming full-res.
+  await expect.poll(()=>page.locator('.pd-cinema-layer').evaluate(host=>{const el=host.querySelector('.pd-cinema-particles'),resolution=({full:1,balanced:.8,light:.6})[host.dataset.quality]??1;return el.height===Math.round(host.clientHeight*Math.min(devicePixelRatio,1.25)*resolution);})).toBe(true);
+  const dimensions=await page.locator('.pd-cinema-layer').evaluate(host=>{const el=host.querySelector('.pd-cinema-particles'),resolution=({full:1,balanced:.8,light:.6})[host.dataset.quality]??1;return {pixels:el.height,expected:Math.round(host.clientHeight*Math.min(devicePixelRatio,1.25)*resolution)};});expect(dimensions.pixels).toBe(dimensions.expected);
  }
  await page.evaluate(()=>CinematicCard.stop());await expect(page.locator('.pd-cinema-layer,.pd-cinema-afterglow')).toHaveCount(0);
 });
