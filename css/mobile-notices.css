@@ -1,6 +1,6 @@
 /* Modelo 1: faixa compacta de vidro, um aviso visível em qualquer tela. */
 #toast-stack,#mobile-notice-stack[hidden]{display:none!important}
-#mobile-notice-stack{display:block;position:fixed;left:var(--notice-left,18px);bottom:20px;width:var(--notice-width,540px);max-width:calc(100vw - 36px);z-index:500070;pointer-events:none;box-sizing:border-box}
+#mobile-notice-stack{display:block;position:fixed;left:var(--notice-left,18px);top:var(--notice-top,110px);bottom:auto;width:var(--notice-width,540px);max-width:calc(100vw - 36px);z-index:500070;pointer-events:none;box-sizing:border-box}
 #mobile-notice-stack .mobile-notice{--notice-color:#8acde9;pointer-events:auto;display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid rgba(149,215,240,.36);border-radius:18px;background:linear-gradient(135deg,rgba(17,46,64,.55),rgba(5,22,36,.73));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#eff8fc;box-shadow:0 6px 24px #0003;font:12px/1.45 system-ui,sans-serif}
 #mobile-notice-stack .notice-revision,#mobile-notice-stack .notice-warning{--notice-color:#ffbd4b}
 #mobile-notice-stack .notice-error{--notice-color:#fb8181}
@@ -24,7 +24,7 @@
 .notice-history-row p{margin:5px 0;line-height:1.5;overflow-wrap:anywhere}
 .notice-history-row small,#mobile-notice-history>p{color:#b2d0e0;font-size:11px}
 @media(max-width:900px){
- #mobile-notice-stack{bottom:var(--notice-bottom,78px)!important;left:10px!important;right:10px!important;width:auto;max-width:none}
+ #mobile-notice-stack{top:auto!important;bottom:var(--notice-bottom,78px)!important;left:10px!important;right:10px!important;width:auto;max-width:none}
  #mobile-notice-stack .mobile-notice{padding:8px 9px;gap:7px;border-radius:16px}
  #mobile-notice-stack .notice-copy strong{font-size:11px}
  #mobile-notice-stack .notice-copy span{font-size:10px}
