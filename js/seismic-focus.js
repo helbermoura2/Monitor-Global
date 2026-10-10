@@ -31,5 +31,5 @@
  function install(){if(typeof map==='undefined'||!map)return;for(const event of ['dragstart','wheel','touchstart'])map.on(event,e=>{if(e?.originalEvent)blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;});}
  if(typeof map!=='undefined'&&map)install();else window.addEventListener('load',install,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest?.('#pd-focus-btn')){blocked=null;cached=null;lastFit=null;}},true);
- window.SeismicFocus={frame,ready};
+ window.SeismicFocus={frame,ready,pause(){blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;}};
 })();
