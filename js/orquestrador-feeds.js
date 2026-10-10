@@ -60,6 +60,10 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     }
     if (!candidates.length) return false;
     const next=candidates[0];
+    // An alert selected by the user has its own presentation deadline. It
+    // cannot inherit the previous quake's automatic/manual mode or magnitude.
+    const alertProtection=typeof getAlertSelectionProtectionRemaining==='function'?getAlertSelectionProtectionRemaining():0;
+    if(alertProtection>0&&(Number(next.event.mag)<5||!isRecentCameraQuake(next.event)))return false;
     if(Number(next.event.mag)<5&&window.VolcanoPriority?.presentationActive())return false;
     // Automatic revisits never delay a newly arrived quake. A larger arrival
     // may interrupt a live/manual hold; equal or smaller arrivals wait.
@@ -80,6 +84,7 @@ function focusNextQuakeRevision(blocked = false) {
     if(document.hidden)return false;
     // Chegadas novas têm prioridade sobre todas as revisões pendentes.
     if (focusNextNewCameraQuake()) return true;
+    if(typeof getAlertSelectionProtectionRemaining==='function'&&getAlertSelectionProtectionRemaining()>0)return false;
     if (pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) return false;
     const live = window.__mgLiveQuakeId === eventoSelecionadoId &&
         Date.now() < (window.__mgLiveQuakeUntil || 0);
