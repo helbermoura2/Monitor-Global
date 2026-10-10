@@ -1047,6 +1047,7 @@ function runAutoCycle(forced = false) {
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
         if (window.NewEventPriority?.focusAlert()) return;
+        if(window.TsunamiMap?.isPreview()){scheduleNextAutoCycle(60000);return;}
         const protectedMs = getAutoCycleProtectionRemaining();
         if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
         if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) { scheduleNextAutoCycle(2000); return; }
