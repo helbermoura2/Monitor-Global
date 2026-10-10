@@ -144,6 +144,8 @@ function applyFilters() {
         if (l) l.textContent = `${merged.length} registro${merged.length === 1 ? '' : 's'}`;
     } catch (e) { console.error('[monitor] events-count-label falhou:', e); }
 
+    window.MobileEventChips?.update(merged);
+
     try { atualizarTickerUltimoEvento(merged[0]); }
     catch (e) { console.error('[monitor] atualizarTickerUltimoEvento falhou:', e); }
 
@@ -441,6 +443,7 @@ function recordCardTime(time) {
     return date.toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})+' BRT';
 }
 function renderSidebarList(items) {
+    items=window.MobileEventChips?.filter(items)||items;
     const c = document.getElementById('events');
     if (!c) return;
     const scrollSalvo = c.scrollTop;
