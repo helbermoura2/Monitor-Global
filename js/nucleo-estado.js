@@ -356,6 +356,7 @@ const sortBySeverity = false; // mantido só por compatibilidade; nunca altera a
    em tela cheia (retrato ou paisagem), em vez de deixá-la espremida no grid. */
 function toggleMobileEventsModal(open) {
     document.body.classList.toggle('mobile-events-open', open);
+    window.MobileEventChips?.redraw();
 }
 function alternarPainelDetalhesMobile() {
     // Toque na caixa avança um estágio: fechada→meio→completa. Na completa,

@@ -214,6 +214,7 @@
 </div>
 
   <aside id="sidebar-left"><button id="sidebar-events-close" onclick="toggleMobileEventsModal(false)" title="Fechar" aria-label="Fechar lista de eventos">✕</button><div id="events-label" onclick="alternarCaixaRegistrosMobile()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarCaixaRegistrosMobile()}" role="button" tabindex="0" aria-label="Registros exibidos — expandir lista"><span>REGISTROS EXIBIDOS · 24–72H</span><span class="events-count" id="events-count-label" aria-live="polite"></span><span id="events-peek-arrow" aria-hidden="true">▲</span></div>
+<div id="mobile-event-chips" role="group" aria-label="Filtrar registros por tipo de evento"></div>
 <div id="clima-global-panel" aria-label="Inteligência climática global">
   <div class="cgp-head">
     <span class="cgp-title">🌡️ Clima global</span>
@@ -385,7 +386,7 @@
 
 <script defer src="js/debug-panel.js"></script>
 <script defer src="js/data-freshness.js?v=20261009-source-health-v4"></script>
-<script defer src="js/nucleo-estado.js?v=20261009-scheduler"></script>
+<script defer src="js/nucleo-estado.js?v=20261010-mobile-event-chips"></script>
 <script defer src="js/audio.js?v=20261009-voice-portuguese"></script>
 <script defer src="js/mapa.js?v=20261010-aftershocks"></script>
 <script defer src="js/event-portuguese.js?v=20261009-numbers-revisions"></script>
@@ -431,7 +432,8 @@
 <script defer src="js/aftershock-sequence.js?v=20261010-clusters"></script>
 <script defer src="js/tsunami-presentation.js?v=20261010-seismic-scenarios"></script>
 <script defer src="js/tsunami-linked-panel.js?v=20261010-linked-tsunami-tour"></script>
-<script defer src="js/painel-e-lista.js?v=20261010-small-epicenter"></script>
+<script defer src="js/mobile-event-chips.js?v=20261010-1"></script>
+<script defer src="js/painel-e-lista.js?v=20261010-mobile-event-chips"></script>
 <script defer src="js/kpis-ui.js?v=20261009-numbers-revisions"></script>
 <script defer src="js/regional-seismic.js?v=20261001-regional"></script>
 <script defer src="js/sismo-fontes.js?v=20261009-new-event-queue"></script>
@@ -629,6 +631,7 @@
 <link rel="stylesheet" href="css/mobile-detail-gesture.css?v=20260930-1">
 <script defer src="js/mobile-detail-gesture.js?v=20260930-1"></script>
 <link rel="stylesheet" href="css/latest-event-cutout.css?v=20260930-1">
+<link rel="stylesheet" href="css/mobile-event-chips.css?v=20261010-1">
 <link rel="stylesheet" href="css/mobile-touch-targets.css?v=20260930-1">
 <link rel="stylesheet" href="css/mobile-notices.css?v=20261001-glass-strip">
 
