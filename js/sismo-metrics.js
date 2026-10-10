@@ -266,7 +266,7 @@ function startFeltZone(lng, lat, mag, depth, id, lateReport = false) {
         const coords=[lng,lat];
         if(feltZoneContext===context)window.__mgFeltZoneState={...context,criticalKm:raioCritico(mag,depth),feltKm:raioEstimado(mag,depth)};
         const headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
-        label.style.top=Math.max(12,headerBottom-host.getBoundingClientRect().top+10)+'px';
+        label.style.top=Math.max(6,headerBottom-host.getBoundingClientRect().top+6)+'px';
         label.style.left=(host.clientWidth/2)+'px';
         label.style.maxWidth=Math.max(0,host.clientWidth-24)+'px';
         const z = map.getZoom();
@@ -485,6 +485,7 @@ function stopWaveFront(keepImpact = false) {
     window.SeismicFinalSummary?.stop();
     if(!keepImpact)window.SeismicImpact?.stop();
     waveFrontGeneration++;clearTimeout(waveFinalTimer);waveFinalTimer=null;restoreWaveProtection(waveFrontContext);waveFrontContext=null;waveFrontStatus?.remove();waveFrontStatus=null;window.__mgWaveFrontState=null;
+    if(keepImpact)window.SeismicImpact?.positionStatus?.();
     try { clearInterval(waveFrontInterval); } catch (e) {}
     waveFrontInterval = null;
     if (waveCamRAF) {
@@ -629,8 +630,9 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             const text=context.stage==='returning'?(context.epicenterFirst?'Epicentro · Quadro final':'Área afetada · Intensidade estimada · Quadro final'):status==='ready'?`Ondas sísmicas · ${context.finalFrame?'Quadro final · ':''}${mode==='replay'?'Reprodução':'Tempo real'} · ${waveClock(context.finalFrame?.elapsedS??elapsedS)} / ${waveClock(end??displayLimit)}`:status==='error'?'Ondas sísmicas · Modelo indisponível':'Ondas sísmicas · Carregando modelo';
             if(waveFrontStatus.textContent!==text)waveFrontStatus.textContent=text;
             const parent=waveFrontStatus.parentElement,headerBottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));
-            const top=Math.max(12,headerBottom-(parent?.getBoundingClientRect().top||0)+10)+'px';
+            const top=Math.max(6,headerBottom-(parent?.getBoundingClientRect().top||0)+6)+'px';
             if(waveFrontStatus.style.top!==top)waveFrontStatus.style.top=top;
+            window.SeismicImpact?.positionStatus?.();
         }
         try {
             WAVE_LAYER_IDS.forEach(id=>{
