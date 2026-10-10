@@ -60,11 +60,11 @@
     })();
     try{await inFlight;}finally{inFlight=null;}
   }
-  function appendChart(parent,summary){
-    const section=document.createElement('section');section.className='rainbow-chart-card';section.id='rainbow-rain-chart';
+  function appendChart(parent,summary,{id='rainbow-rain-chart',compact=false}={}){
+    const section=document.createElement('section');section.className='rainbow-chart-card';section.id=id;
     section.setAttribute('aria-label','Previsão de precipitação para os próximos 60 minutos');
-    const heading=document.createElement('strong');heading.textContent=summary.header;section.append(heading);
-    const description=document.createElement('p');description.textContent=summary.detail;section.append(description);
+    if(!compact){const heading=document.createElement('strong');heading.textContent=summary.header;section.append(heading);
+    const description=document.createElement('p');description.textContent=summary.detail;section.append(description);}
     const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
     svg.setAttribute('viewBox','0 0 320 150');svg.setAttribute('role','img');
     const title=document.createElementNS(NS,'title');title.textContent='Intensidade prevista: '+summary.header+'. Próximos 60 minutos, em milímetros por hora.';svg.append(title);
@@ -81,8 +81,8 @@
       ' L'+x(summary.series.at(-1).end)+','+y(summary.series.at(-1).rate);
     add('path',{d:line+' L304,112 L28,112 Z',class:'rainbow-area'});
     add('path',{d:line,class:'rainbow-line'});section.append(svg);
-    const meta=document.createElement('small');meta.textContent=summary.amount.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mm estimados na próxima hora · Consulta '+new Date(summary.consultedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});section.append(meta);
-    const a=document.createElement('a');a.href='https://rainbow.ai/';a.target='_blank';a.rel='noopener';a.textContent='Dados: Rainbow Weather ↗';section.append(a);parent.append(section);
+    if(!compact){const meta=document.createElement('small');meta.textContent=summary.amount.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mm estimados na próxima hora · Consulta '+new Date(summary.consultedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});section.append(meta);
+    const a=document.createElement('a');a.href='https://rainbow.ai/';a.target='_blank';a.rel='noopener';a.textContent='Dados: Rainbow Weather ↗';section.append(a);}parent.append(section);
   }
   window.RainbowNowcast={refresh,outlook,status,summarize,appendChart};
 })();

@@ -48,6 +48,7 @@
   const open=typeof force==='boolean'?force:!back;
   if(!open){close();return;}
   if(back)return;
+  window.RainArrivalNotice?.close(true);
   const more=document.getElementById('pd-more-details');if(!more||!panel())return;
   if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();
   if(matchMedia('(max-width:900px)').matches){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}
