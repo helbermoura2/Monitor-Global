@@ -1,0 +1,60 @@
+{
+  "day": "2026-10-01",
+  "source": "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2026-10-01T03%3A00%3A00&endtime=2026-10-02T03%3A00%3A00&minmagnitude=5&orderby=magnitude",
+  "events": [
+    {
+      "id": "us6000tytg",
+      "mag": 5.3,
+      "place": "0 km NNE of Yōkaichiba, Japan",
+      "time": 1790857631864,
+      "lon": 140.5507,
+      "lat": 35.7025,
+      "depth": 41.649
+    },
+    {
+      "id": "us6000tyw6",
+      "mag": 5.1,
+      "place": "108 km ENE of Miyako, Japan",
+      "time": 1790875040097,
+      "lon": 143.1734,
+      "lat": 39.8778,
+      "depth": 35
+    },
+    {
+      "id": "us6000tywu",
+      "mag": 5.1,
+      "place": "171 km SE of Lata, Solomon Islands",
+      "time": 1790883481795,
+      "lon": 166.961,
+      "lat": -11.7706,
+      "depth": 10
+    },
+    {
+      "id": "us6000tyx0",
+      "mag": 5.1,
+      "place": "176 km SE of Lata, Solomon Islands",
+      "time": 1790884834322,
+      "lon": 167.0918,
+      "lat": -11.6728,
+      "depth": 10
+    },
+    {
+      "id": "us6000tyq7",
+      "mag": 5,
+      "place": "38 km WSW of Palimbang, Philippines",
+      "time": 1790832850634,
+      "lon": 123.8599,
+      "lat": 6.1116,
+      "depth": 10
+    },
+    {
+      "id": "us6000tyua",
+      "mag": 5,
+      "place": "176 km NNE of Ruteng, Indonesia",
+      "time": 1790864399078,
+      "lon": 120.9136,
+      "lat": -7.0805,
+      "depth": 10
+    }
+  ]
+}

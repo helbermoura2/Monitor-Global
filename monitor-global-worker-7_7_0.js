@@ -3,7 +3,8 @@ import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
-import { SUMMARY_TYPOGRAPHY } from "./summary-typography.mjs";
+import { SUMMARY_EDITORIAL_TYPOGRAPHY } from "./summary-editorial-assets.mjs";
+import { renderEditorialDailySummary, DAILY_SUMMARY_DESIGN } from "./daily-summary-renderer.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
 import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
@@ -3343,7 +3344,7 @@ function drawTextFontProp(rgba, w, h, font, text, x, y, r, g, b, tracking = 1) {
     for (const ch of text) {
         const g_ = font.glyphs[ch] || font.glyphs['?'];
         if (g_) {
-            blitGlyph(rgba, w, h, font.img, g_[0], 0, g_[1], font.cellH, cx - (g_[2] != null ? 1 : 0), y, r, g, b);
+            blitGlyph(rgba, w, h, font.img, g_[0], 0, g_[1], font.cellH, cx - (g_[2] != null ? (g_[3] ?? 1) : 0), y, r, g, b);
             cx += (g_[2] ?? g_[1]) + tracking;
         } else {
             cx += 6 + tracking;
@@ -4757,7 +4758,9 @@ async function fetchDailyQuakesBrt() {
     const d=await fetchJson(u,{},20000);
     const events=(d.features||[]).map(f=>{
         const p=f.properties||{}, c=f.geometry?.coordinates||[];
-        return {mag:Number(p.mag),place:p.place||'Região não informada',time:Number(p.time),depth:Number(c[2]),source:(p.net||'USGS').toUpperCase()};
+        return {id:f.id,mag:Number(p.mag),place:p.place||'Região não informada',time:Number(p.time),
+            lat:Number.isFinite(c[1])&&Math.abs(c[1])<=90?c[1]:null,lon:Number.isFinite(c[0])&&Math.abs(c[0])<=180?c[0]:null,
+            depth:Number.isFinite(c[2])?c[2]:null,source:(p.net||'USGS').toUpperCase()};
     }).filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time));
     return {day,events};
 }
@@ -4871,7 +4874,7 @@ let _dailySummaryFonts=null;
 async function getDailySummaryFonts(){
     if(_dailySummaryFonts)return _dailySummaryFonts;
     const fonts={};
-    for(const [name,data] of Object.entries(SUMMARY_TYPOGRAPHY)) fonts[name]={img:await decodePng(base64ToBytes(data.b64)),cellH:data.cellH,glyphs:data.glyphs};
+    for(const [name,data] of Object.entries(SUMMARY_EDITORIAL_TYPOGRAPHY)) fonts[name]={img:await decodePng(base64ToBytes(data.b64)),cellH:data.cellH,glyphs:data.glyphs};
     fonts.aq=await decodePng(base64ToBytes('iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAARVBMVEVHcEwmX7UmX7UmX7UmX7UmX7X///9ch8iTr9omX7XJ1+3x9fo0abpBc76gud/W4fG7zeiuw+N3m9Fqkczk6/ZPfcOFpdWLa0WiAAAABnRSTlMAv+9gIM+kpfmZAAABRUlEQVR4Xu3X2W6DMBCG0aQJ/8x4Zc37P2qXVKqclM7I9k0jvms4MkZYzOl1Ozq6nKWh8+WbuQ7S2HD9ct6kubdPaZAODR/7I126nM59oPNJOvX/IB4zkB23QmnFvTGKzLEamvFTBqZaKOGhWyXk8Zh3ickAbaGA8HtOh1xxTcROBqjYhWXHyTqUiv2c6h8tesBt5bt/zuvQ/eYURSQwdlt0SO63O+fwR6MBmmDIGaBthR4bIBE2QMECSYaad6MOhQxDqw4RLKVeEOlQhKVZhSjDklOh4GHK8GgjDHkdEmHosQWKti3SIVmhxTYoQYsUyPqVTGKDJEwt51FJETMT0Tx5wPua8+iZpJBsZ7ZeAY03qYZ8+caqIS4+jqBAxgWtm7SvyMMtbT+jkYiZ4kKyW7cf9m4jRK+hptuY1Wvw6zWKvmxHR++lCXjpbjMoUQAAAABJRU5ErkJggg=='));
     fonts.flags={img:await decodePng(base64ToBytes(SUMMARY_FLAGS.b64)),map:SUMMARY_FLAGS.map};
     // Clip each flag to a softly rounded rectangle while preserving its colors.
@@ -4896,7 +4899,7 @@ function summaryCountry(place){
     return {code,label};
 }
 function summaryCleanText(value,font){
-    return [...String(value??'').replace(/[–—]/g,'-')].map(ch=>font.glyphs[ch]?ch:ch.normalize('NFD').replace(/[\u0300-\u036f]/g,'')).join('');
+    return [...String(value??'').replace(/[–—]/g,ch=>font.glyphs[ch]?ch:'-')].map(ch=>font.glyphs[ch]?ch:ch.normalize('NFD').replace(/[\u0300-\u036f]/g,'')).join('');
 }
 function summaryCardWrap(font,text,width){
     const lines=[];let line='';
@@ -4908,59 +4911,12 @@ function summaryCardWrap(font,text,width){
     if(line)lines.push(line);return lines;
 }
 async function renderDailySummaryPng(quakes = null) {
-    const {day,events}=quakes||await fetchDailyQuakesBrt(),fonts=await getDailySummaryFonts();
-    const W=800,X=32,CW=736,CYAN=[85,203,235],WHITE=[235,244,251],MUTED=[171,198,217],AMBER=[255,185,65],PX=250,TW=410;
-    const top=events.slice().sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5);
-    const layouts=top.map(e=>{
-        const country=summaryCountry(e.place),place=summaryPlace(e.place);
-        if(country.code&&place.title.includes(',')){
-            const suffix=place.title.slice(place.title.lastIndexOf(',')+1).trim();
-            if(summaryCountry(suffix).code===country.code||/^(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)$/.test(suffix))place.title=place.title.slice(0,place.title.lastIndexOf(','));
-        }
-        place.title=place.title.replace(/Balleny Islands region/i,'Ilhas Balleny').replace(/north of Svalbard/i,'Norte de Svalbard');
-        const names=summaryCardWrap(fonts.title,place.title,TW),detail=place.detail?summaryCardWrap(fonts.caption,place.detail,TW):[];
-        const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-        const meta=summaryCardWrap(fonts.caption,when+' · Profundidade: '+(Number.isFinite(e.depth)?Math.round(e.depth)+' km':'não informada'),TW);
-        const countries=summaryCardWrap(fonts.country,country.label,TW);
-        return {country,names,detail,meta,countries,height:Math.max(146,34+countries.length*fonts.country.cellH+names.length*fonts.title.cellH+(detail.length+meta.length)*fonts.caption.cellH)};
+    const data=quakes||await fetchDailyQuakesBrt(),fonts=await getDailySummaryFonts();
+    return renderEditorialDailySummary(data,fonts,{
+        fillRect,fillRoundRect,fillCircle,fillRadialGlow,drawArc,drawRadar:drawRadarIcon,
+        drawText:drawTextFontProp,textWidth:textFontWidthProp,clean:summaryCleanText,wrap:summaryCardWrap,
+        country:summaryCountry,place:summaryPlace,png:rgbaToPng
     });
-    const statsY=270+(top.length?layouts.reduce((sum,l)=>sum+l.height+14,0):130)+8,H=statsY+240;
-    const rgba=new Uint8Array(W*H*4);fillRect(rgba,W,0,0,W,H,5,20,35);
-    fillRadialGlow(rgba,W,H,660,35,430,18,111,178,.16);
-    const write=(font,text,x,y,color)=>drawTextFontProp(rgba,W,H,font,summaryCleanText(text,font),x,y,...color,0);
-    drawRadarIcon(rgba,W,H,70,75,38,...CYAN);
-    write(fonts.brand,'MONITOR GLOBAL',125,31,WHITE);
-    write(fonts.title,'Resumo sísmico diário',125,84,MUTED);
-    write(fonts.caption,day.split('-').reverse().join('/')+' · 00:00-23:59 BRT',125,128,MUTED);
-    fillRect(rgba,W,X,185,CW,1,...CYAN,150);
-    write(fonts.title,'Os 5 maiores sismos',X,211,WHITE);
-    let y=270;
-    if(!top.length){fillRoundRect(rgba,W,H,X,y,CW,110,18,10,36,55);write(fonts.title,'Nenhum sismo registrado no período',X+20,y+32,MUTED);}
-    top.forEach((e,i)=>{
-        const L=layouts[i];fillRoundRect(rgba,W,H,X,y,CW,L.height,18,36,92,121);fillRoundRect(rgba,W,H,X+1,y+1,CW-2,L.height-2,17,10,34,54);
-        write(fonts.caption,String(i+1).padStart(2,'0'),X+17,y+L.height/2-fonts.caption.cellH/2,MUTED);
-        write(fonts.magnitude,'M'+e.mag.toFixed(1).replace('.',','),92,y+L.height/2-fonts.magnitude.cellH/2,AMBER);
-        let ty=y+16;
-        L.countries.forEach(line=>{write(fonts.country,line,PX,ty,CYAN);ty+=fonts.country.cellH;});
-        L.names.forEach(line=>{write(fonts.title,line,PX,ty,WHITE);ty+=fonts.title.cellH;});
-        L.detail.forEach(line=>{write(fonts.caption,line,PX,ty,MUTED);ty+=fonts.caption.cellH;});
-        L.meta.forEach(line=>{write(fonts.caption,line,PX,ty,MUTED);ty+=fonts.caption.cellH;});
-        const fx=688,fy=y+L.height/2-25;
-        if(L.country.code==='AQ')blitIcon(rgba,W,H,fonts.aq,0,0,72,72,fx-6,fy-11);
-        else if(L.country.code&&fonts.flags.map[L.country.code]){
-            const flag=fonts.flags.map[L.country.code];
-            blitIcon(rgba,W,H,fonts.flags.img,flag[0],0,flag[1],flag[2],fx, y+L.height/2-flag[2]/2);
-        }
-        y+=L.height+14;
-    });
-    fillRoundRect(rgba,W,H,X,statsY,CW,96,15,32,78,105);fillRoundRect(rgba,W,H,X+1,statsY+1,CW-2,94,14,8,31,48);
-    write(fonts.title,events.length+' '+(events.length===1?'registro':'registros'),X+19,statsY+8,WHITE);
-    const bands=[['M6+',events.filter(e=>e.mag>=6).length],['M5-5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],['M4-4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],['Outros',events.filter(e=>e.mag<4).length]];
-    bands.forEach(([label,count],i)=>write(fonts.country,label+': '+count,X+19+i*178,statsY+57,MUTED));
-    write(fonts.caption,'Fonte: USGS · Dados sujeitos a revisão',X,statsY+115,MUTED);
-    write(fonts.caption,'Resumo diário + alertas de sismos M6+',X,statsY+150,MUTED);
-    const domain='monitorglobal.top';write(fonts.country,domain,W-X-textFontWidthProp(fonts.country,domain,0),statsY+195,CYAN);
-    return {day,png:await rgbaToPng(rgba,W,H),top,total:events.length};
 }
 
 const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary';
@@ -5345,6 +5301,7 @@ export default {
                 ok: true,
                 service: 'Monitor Global Worker',
                 version: '7.6.0',
+                dailySummaryDesign: DAILY_SUMMARY_DESIGN,
                 time: nowIso(),
                 cacheApi: true,
                 kv: false,

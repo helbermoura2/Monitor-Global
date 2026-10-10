@@ -10,8 +10,9 @@ globalThis.fetch=async(url,opts)=>{
  if(String(url).includes('api.telegram.org')){sends++;if(mode==='timeout')throw Error('timeout');return Response.json({ok:mode==='ok',result:{message_id:42}},{status:mode==='ok'?200:400})}
  throw Error('Unexpected network call '+url);
 };
-const {default:worker,DailySummaryDelivery}=await import('data:text/javascript;base64,'+Buffer.from((await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8')).replace('"./cge-bulletins-worker.mjs"',JSON.stringify(new URL('../../cge-bulletins-worker.mjs',import.meta.url).href)).replace('"./summary-flags.mjs"', JSON.stringify(new URL('../../summary-flags.mjs', import.meta.url).href))
-    .replace('"./summary-typography.mjs"',JSON.stringify(new URL('../../summary-typography.mjs',import.meta.url).href)).replace('"./rupture-shaking-worker.mjs"',JSON.stringify(new URL('../../rupture-shaking-worker.mjs',import.meta.url).href)).replace('"./weather-observations-worker.mjs"',JSON.stringify(new URL('../../weather-observations-worker.mjs',import.meta.url).href)).replace('"./official-weather-alerts-worker.mjs"',JSON.stringify(new URL('../../official-weather-alerts-worker.mjs',import.meta.url).href)).replace('"./seismic-image-data.mjs"',JSON.stringify(new URL('../../seismic-image-data.mjs',import.meta.url).href)).replace('"./tsunami-official-worker.mjs"',JSON.stringify(new URL('../../tsunami-official-worker.mjs',import.meta.url).href)).replace('"./population-exposure-worker.mjs"',JSON.stringify(new URL('../../population-exposure-worker.mjs',import.meta.url).href))).toString('base64'));
+let workerSource=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8');
+workerSource=workerSource.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
+const {default:worker,DailySummaryDelivery}=await import('data:text/javascript;base64,'+Buffer.from(workerSource).toString('base64'));
 const objects=new Map();
 const env={TTS_USAGE:kv,ADMIN_TOKEN:'test-admin',TELEGRAM_BOT_TOKEN:'fake',TELEGRAM_CHAT_ID:'fake'};
 env.DAILY_SUMMARY={idFromName:day=>day,get:day=>{if(!objects.has(day))objects.set(day,new DailySummaryDelivery({storage:new Store()},env));return {fetch:url=>objects.get(day).fetch(new Request(url))}}};
