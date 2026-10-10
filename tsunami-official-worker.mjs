@@ -4,12 +4,17 @@ const clean=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace
 const tag=(s,n)=>{const m=s.match(new RegExp('<(?:[\\w-]+:)?'+n+'\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?'+n+'>','i'));return m?clean(m[1]):'';};
 const numeric=value=>value!==null&&value!==undefined&&String(value).trim()!==''&&Number.isFinite(Number(value))?Number(value):null;
 function originText(text){
- const m=text.match(/ORIGIN TIME\s+(\d{2})(\d{2})(?::?(\d{2}))?\s+UTC\s+([A-Z]{3})\s+(\d{1,2})\s+(\d{4})/i);
- if(!m)return null;
- const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],month=months.indexOf(m[4].toUpperCase());
- if(month<0||Number(m[1])>23||Number(m[2])>59||Number(m[3]||0)>59||Number(m[5])<1||Number(m[5])>31)return null;
- const time=Date.UTC(Number(m[6]),month,Number(m[5]),Number(m[1]),Number(m[2]),Number(m[3]||0));
- return new Date(time).getUTCMonth()===month?time:null;
+ // Read only the origin field and its continuation lines, not the issuance date.
+ const field=text.match(/ORIGIN TIME\s+([^\n]+(?:\n[ \t]+\d[^\n]*)*)/i)?.[1]||'';
+ const offsets={UTC:0,CHST:10,HST:-10,AKDT:-8,AKST:-9,PDT:-7,PST:-8};
+ const matches=[...field.matchAll(/(\d{1,2})(\d{2})(?::?(\d{2}))?\s*(AM|PM)?\s+(UTC|CHST|HST|AKDT|AKST|PDT|PST)\s+([A-Z]{3})\s+(\d{1,2})\s+(\d{4})/gi)];
+ const m=matches.find(m=>m[5].toUpperCase()==='UTC')||matches[0];if(!m)return null;
+ const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],month=months.indexOf(m[6].toUpperCase());
+ let hour=Number(m[1]);
+ if(month<0||hour>23||Number(m[2])>59||Number(m[3]||0)>59||Number(m[7])<1||Number(m[7])>31)return null;
+ if(m[4]){if(hour<1||hour>12)return null;hour=hour%12+(m[4].toUpperCase()==='PM'?12:0);}
+ const local=Date.UTC(Number(m[8]),month,Number(m[7]),hour,Number(m[2]),Number(m[3]||0));
+ return new Date(local).getUTCMonth()===month?local-offsets[m[5].toUpperCase()]*3600000:null;
 }
 export function parseTsunamiAtom(xml,source){
  const feed=xml.split(/<(?:[\w-]+:)?entry\b/i)[0],feedTitle=tag(feed,'title');
@@ -77,8 +82,8 @@ export function parseNwsTsunamiProduct(p){
  const match=text.match(/COORDINATES\s+(\d+(?:\.\d+)?)\s+(NORTH|SOUTH)\s+(\d+(?:\.\d+)?)\s+(EAST|WEST)/i);
  const coords=match?[Number(match[3])*(match[4].toUpperCase()==='WEST'?-1:1),Number(match[1])*(match[2].toUpperCase()==='SOUTH'?-1:1)]:null;
  const forecast=text.split(/TSUNAMI THREAT FORECAST[^\n]*\n[-]+/i)[1]?.split(/RECOMMENDED ACTIONS/)[0]||evaluation;
- const location=text.match(/\* LOCATION\s+([^\n]+)/)?.[1]?.trim()||'Área do boletim oficial';
- return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,coordinateRole:'earthquake-origin',originTime:originText(text),originMag:numeric(text.match(/\* MAGNITUDE\s+(\d+(?:\.\d+)?)/)?.[1]),detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
+ const location=text.match(/\* LOCATION\s+([^\n]+)/i)?.[1]?.trim().replace(/^in\s+/i,'')||'Área do boletim oficial';
+ return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,coordinateRole:'earthquake-origin',originTime:originText(text),originMag:numeric(text.match(/\* MAGNITUDE\s+(\d+(?:\.\d+)?)/i)?.[1]),detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
 }
 async function nwsJson(url){const r=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/geo+json','User-Agent':'MonitorGlobal (https://monitorglobal.top)'}});if(!r.ok)throw Error('NWS HTTP '+r.status);return r.json();}
 export async function getNwsTsunamis(){

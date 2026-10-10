@@ -42,3 +42,15 @@ for(const regional of [false,true])test('a manual bulletin after a random quake 
  await page.evaluate(()=>{const small={id:'new-small',type:'earthquake',mag:2.8,depth:10,time:Date.now(),coords:[26,36],place:'Turkey',source:'QA'};globalEvents.push(small);queueNewCameraQuakes([small]);focusNextNewCameraQuake();});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(item.id);
  await page.evaluate(()=>{const major={id:'new-major',type:'earthquake',mag:5.2,depth:10,time:Date.now(),coords:[26,36],place:'Turkey',source:'QA'};globalEvents.push(major);queueNewCameraQuakes([major]);focusNextNewCameraQuake();clearTimeout(cycleTimeout);});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('new-major');
 });
+test('toolbar lets the user choose the exact bulletin; information effect clears on the next quake',async({page})=>{
+ await boot(page);await page.emulateMedia({reducedMotion:'no-preference'});const {q,a}=fixtures(),info={...a,id:'panama-info',hazardNature:'bulletin',warningLevel:'Informativo',sev:0},regional={...info,id:'regional-info',source:'NTWC',feedKey:'NTWC-General',coords:null,place:'Área do boletim oficial'};
+ await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',ok:true},{source:'NTWC',ok:true}],items:[info,regional]}}));
+ await page.evaluate(q=>{globalEvents=[q];showEventDetails(0,false);clearTimeout(cycleTimeout);},q);await page.evaluate(()=>fetchOfficialTsunamiAlerts());
+ await page.locator('#chip-tsunami-official').click();await expect(page.locator('#tsunami-bulletin-picker')).toBeVisible();
+ await page.locator('#tsunami-bulletin-picker button[data-bulletin-id="panama-info"]').click();
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(info.id);await expect(page.locator('#painel-direito')).toHaveClass(/pd-fx-tsunami-info/);await expect(page.locator('#pd-fx-overlay')).toHaveCSS('animation-name','pdBulletinEntrance');
+ await expect(page.locator('.tsunami-bulletin-origin')).toHaveCount(1);await expect(page.locator('#pd-tsunami-link')).toHaveAttribute('data-quake-id',q.id);await expect(page.locator('#painel-direito .pd-cinema-layer')).toHaveCount(0);
+ await page.evaluate(()=>{showEventDetails(0,false);clearTimeout(cycleTimeout);});await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-tsunami-info/);await expect(page.locator('.tsunami-bulletin-origin')).toHaveCount(0);
+ await page.locator('#chip-tsunami-official').click();await page.locator('#tsunami-bulletin-picker button[data-bulletin-id="regional-info"]').click();
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(regional.id);await expect(page.locator('#pd-tsunami-link')).toContainText('permanece regional');
+});

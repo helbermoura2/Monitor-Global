@@ -28,3 +28,15 @@ test('blocked tsunami.gov falls back to latest official NWS revision, not the ol
  globalThis.fetch=async url=>{url=String(url);if(url.includes('tsunami.gov'))return new Response('',{status:403});if(url.endsWith('/types/TIB'))return Response.json({'@graph':[]});if(url.endsWith('/types/TSU'))return Response.json({'@graph':[{...p,productText:undefined},{...p,id:'11111111-1111-1111-1111-111111111111',issuanceTime:'2026-10-06T00:00:00Z'}]});return Response.json(p);};
  try{const {getOfficialTsunamis}=await import('../../tsunami-official-worker.mjs?fallback-test');const data=await getOfficialTsunamis();assert.equal(data.ok,true);assert.equal(data.items.length,1);assert.equal(data.items[0].hazardNature,'warning');assert.equal(data.items[0].feedKey,'PTWC-WEPA40');assert.equal(data.items[0].originTime,Date.parse('2026-10-09T17:56:00Z'));assert.equal(data.items[0].originMag,7.6);}finally{globalThis.fetch=saved;}
 });
+test('local CHST and NTWC multiline origin fields resolve the same Panama quake in UTC',async()=>{
+ const {parseNwsTsunamiProduct}=await import('../../tsunami-official-worker.mjs');
+ for(const name of ['NWS-WEGM42','NWS-WEAK53']){
+  const p=JSON.parse(readFileSync('tests/fixtures/tsunami/'+name+'.json','utf8'));
+  const [item]=parseNwsTsunamiProduct(p);
+  assert.equal(item.originTime,Date.parse('2026-10-09T20:26:00Z'));
+  assert.equal(item.originMag,6.9);assert.deepEqual(item.coords,[-81.4,7.8]);
+  assert.match(item.place,/panama/i);assert.equal(item.hazardNature,'bulletin');
+  const [missing]=parseNwsTsunamiProduct({...p,productText:p.productText.replace(/\* Origin Time[^*]*/i,'')});
+  assert.equal(missing.originTime,null);
+ }
+});

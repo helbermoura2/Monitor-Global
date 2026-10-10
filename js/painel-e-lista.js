@@ -1930,7 +1930,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     if (silentRefresh) {window.CinematicCard?.refresh(item);return;}
 
-    if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?'bulletin':item.type, cor, item);
+    if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?(item.type==='tsunami'?'tsunami-info':'bulletin'):item.type, cor, item);
 
     // Protege a seleção manual (ou alerta novo/ao vivo) contra o foco de sismo
     // ser roubado por engano -- igual ao que showEventDetails já faz (ver

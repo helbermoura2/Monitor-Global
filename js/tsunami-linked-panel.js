@@ -2,10 +2,11 @@
 (function(){
  'use strict';
  const id='pd-tsunami-link';
+ let originMarker=null;
  function allQuakes(){return typeof globalEvents!=='undefined'?globalEvents:[];}
  function allAlerts(){return typeof globalAlerts!=='undefined'?globalAlerts:[];}
  function selected(){return typeof eventoSelecionadoId!=='undefined'?eventoSelecionadoId:null;}
- function clear(){document.getElementById(id)?.remove();}
+ function clear(){document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;}
  function open(item){
   if(!item)return;
   window.__mgSoftCycle=false;window.__mgRotationDisplay=false;
@@ -38,6 +39,11 @@
    }
    text(box,'small','O aviso se refere às costas indicadas pela autoridade. A pintura no mapa é a intensidade estimada do tremor, não a área de tsunami.');
   }else{
+   if(T.origin(item)&&typeof GL!=='undefined'&&typeof map!=='undefined'&&map){
+    const pin=document.createElement('div');pin.className='tsunami-bulletin-origin';
+    text(pin,'span','◎');text(pin,'strong','Origem do sismo · '+item.source);
+    originMarker=new GL.Marker({element:pin,anchor:'top',offset:[0,-16]}).setLngLat(item.coords).addTo(map);
+   }
    const relation=T.match(item,allQuakes());
    if(relation){
     const q=relation.quake;box.dataset.quakeId=q.id;
@@ -52,5 +58,22 @@
  function areaLabel(value){const s=String(value||'');return s.replace(/less than/gi,'menos de').replace(/greater than/gi,'mais de').replace(/meters|metres/gi,'metros').replace(/Cancellation/gi,'Encerrado').replace(/No (?:tsunami )?threat/gi,'Sem ameaça').replace(/Warning/gi,'Alerta').replace(/Watch/gi,'Vigilância').replace(/Advisory/gi,'Atenção').replace(/Information/gi,'Informativo').replace(/(\d)\.(\d)/g,'$1,$2');}
  function refresh(){const item=[...allQuakes(),...allAlerts()].find(a=>a.id===selected());render(item);}
  function preferred(){const q=allQuakes().find(a=>a.id===selected());return q?window.TsunamiLink?.forQuake(q,allAlerts(),allQuakes())[0]?.alert:null;}
- window.TsunamiLinkedPanel={render,refresh,clear,open,preferred};
+ function choose(items){
+  if(!items.length)return;
+  if(items.length===1){open(items[0]);return;}
+  document.getElementById('tsunami-bulletin-picker')?.remove();
+  const dialog=document.createElement('dialog');dialog.id='tsunami-bulletin-picker';
+  text(dialog,'h2','Boletins oficiais de tsunami');
+  text(dialog,'p','Escolha a fonte e a região. Informativo não significa alerta de ameaça.');
+  const related=preferred();
+  for(const item of items){
+   const row=document.createElement('button');row.type='button';row.dataset.bulletinId=item.id;
+   text(row,'strong',item.source+' · '+(item.warningLevel||'Informativo')+' · '+local(item));
+   text(row,'small',date(item.time)+' · '+(window.TsunamiLink.origin(item)?'Origem sísmica publicada':'Sem coordenadas de origem')+(related?.id===item.id?' · Relacionado ao sismo selecionado':''));
+   row.onclick=()=>{dialog.close();open(item);};dialog.append(row);
+  }
+  const close=text(dialog,'button','Fechar');close.type='button';close.onclick=()=>dialog.close();
+  dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
+ }
+ window.TsunamiLinkedPanel={render,refresh,clear,open,preferred,choose};
 })();
