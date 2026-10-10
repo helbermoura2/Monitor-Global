@@ -17,7 +17,12 @@ async function cardCoverage(page){
   const rect=layer.getBoundingClientRect(),video=layer.querySelector('video'),film=layer.querySelector('.pd-cinema-film');
   const bounds=el=>{const r=el.getBoundingClientRect();return {top:r.top-rect.top,left:r.left-rect.left,width:r.width,height:r.height};};
   const width=film.width,height=film.height,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-  const ctx=canvas.getContext('2d');ctx.drawImage(film,0,0,width,height);
+  const ctx=canvas.getContext('2d');
+  // The procedural film legitimately goes transparent once real footage is
+  // confirmed playing (uFootage>.5) -- the video itself carries the scene
+  // then, so it must be sampled too, or coverage reads as blank by design.
+  if(video?.readyState>=2)ctx.drawImage(video,0,0,width,height);
+  ctx.drawImage(film,0,0,width,height);
   const particles=layer.querySelector('.pd-cinema-particles');if(particles)ctx.drawImage(particles,0,0,width,height);
   const pixels=ctx.getImageData(0,0,width,height).data,thirds=[];
   // Ignore the edges: the previous hero band plus thin edge effects must fail this check.
@@ -50,13 +55,17 @@ for(const width of [1280,390])test('cena ocupa o cartão inteiro e mantém os co
   if(width===390)await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
   const video=page.locator('.pd-cinema-footage');if(type==='storm')await expect(video).toHaveCount(0);else await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
   await expect.poll(async()=>{const c=await cardCoverage(page);return Math.abs(c.video.height-c.height)<1&&Math.abs(c.video.top)<1;}).toBe(true);
-  const coverage=await cardCoverage(page);
+  // No CI (canal "chrome", WebGL por software), este é o primeiro canvas
+  // WebGL do worker -- a primeira pintura real pode demorar mais que um
+  // runner ocioso pra compositar. Reamostra com folga maior em vez de 1
+  // snapshot só, senão um frame ainda em branco vira falso-negativo.
+  let coverage;
+  await expect.poll(async()=>{coverage=await cardCoverage(page);return coverage.thirds.every(t=>t.mean>8&&t.covered>.3);},{timeout:20000}).toBe(true);
   for(const bounds of [coverage.video,coverage.film]){
    expect(Math.abs(bounds.top)).toBeLessThan(1);expect(Math.abs(bounds.left)).toBeLessThan(1);
    expect(Math.abs(bounds.width-coverage.width)).toBeLessThan(1);expect(Math.abs(bounds.height-coverage.height)).toBeLessThan(1);
   }
   expect(coverage.mask).toBe('none');
-  for(const third of coverage.thirds){expect(third.mean).toBeGreaterThan(8);expect(third.covered).toBeGreaterThan(.3);}
   await readableControls(page);
   await page.screenshot({path:'/tmp/full-card-'+type+'-'+width+'.png'});
  }
@@ -165,7 +174,13 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
 
 test('vento move as letras preservando o conteúdo do local',async({page})=>{
  await boot(page);
- for(const type of ['wind']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);expect(await page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
+ for(const type of ['wind']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);
+  // #pd-local entra com efeito de teletipo (js/ui-motion.js, watchPanelSwap) -- o texto
+  // é digitado progressivamente, então uma leitura única de .count() pode pegar o DOM
+  // no meio da digitação (letras "perdidas" ainda não tipadas). Mesmo padrão de
+  // expect.poll já usado pra essa corrida em flood-continuity/tsunami-inundation.
+  await expect.poll(()=>page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);
+  await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
 });
 
 

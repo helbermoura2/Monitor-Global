@@ -314,6 +314,13 @@ document.getElementById('chip-menu-desktop')?.addEventListener('click', (event) 
     };
     row.addEventListener('scroll', updateButtons, { passive: true });
     window.addEventListener('resize', updateButtons);
+    // Expandir/recolher "+ Mais filtros" (#more-filters-toggle, em
+    // header-menu-toggle.js) alterna a classe "expanded", revelando chips
+    // que passam a transbordar DENTRO da mesma caixa -- a própria #chips-row
+    // não muda de tamanho, só o conteúdo rolável dela, então ResizeObserver
+    // nunca dispara aqui. Sem isso, os botões de seta ficavam com o estado
+    // de antes da expansão até o usuário rolar manualmente.
+    if (window.MutationObserver) new MutationObserver(updateButtons).observe(row, { attributes: true, attributeFilter: ['class'] });
     requestAnimationFrame(updateButtons);
 })();
 

@@ -25,10 +25,12 @@ for(const width of [1280,390])test('cratera de monitoramento no Menu e no evento
  const original=await canvas.elementHandle();
  await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
  expect(await original.evaluate(el=>el.isConnected)).toBe(true);await expect(page.locator('#pd-local')).toContainText('Boletim atualizado');
- const before=await page.evaluate(()=>({events:JSON.stringify(globalAlerts),selected:EventStore.selectedId,text:document.getElementById('pd-local').textContent}));
+ const before=await page.evaluate(()=>({events:JSON.stringify(globalAlerts)}));
  await page.evaluate(()=>CardEffectDemo.preview('volcano-monitoring'));
  await expect(canvas).toHaveAttribute('data-texture','photograph');await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');
- expect(await page.evaluate(()=>({events:JSON.stringify(globalAlerts),selected:EventStore.selectedId,text:document.getElementById('pd-local').textContent}))).toEqual(before);
+ // A demonstração assume a seleção/texto do TIPO escolhido (ver CardEffectDemo.preview()) -- só os dados reais por baixo precisam ficar intactos.
+ expect(await page.evaluate(()=>({events:JSON.stringify(globalAlerts)}))).toEqual(before);
+ await expect(page.locator('#pd-local')).toHaveText('Demonstração · Vulcão · monitoramento');
  expect(await page.evaluate(()=>[__craterSound,__craterFlight])).toEqual([0,0]);
  await page.evaluate(()=>CardEffectDemo.stop());await expect(canvas).toHaveCount(1);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
  await page.evaluate(()=>{const item={...EventStore.getSelected(),eruptionStatus:'Em erupção',detail:'Fluxo de lava ativo · sem cinzas'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});

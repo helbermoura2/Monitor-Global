@@ -9,9 +9,35 @@ on:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    # The full suite now has 98 scenarios, including software-GPU scenes.
-    # Leave time for setup and cleanup after the tests print their result.
-    timeout-minutes: 20
+    # Rodar a suíte inteira aqui duplicava quase tudo que card-visibility e
+    # weather-materials já cobrem em jobs separados (storm/wind/cyclone/
+    # advanced-weather/volcano/flood/tsunami/gale/tornado) -- inclusive
+    # arquivos pesados como real-effects-parity.spec.js (testes de 2,5min).
+    # Sharding por --shard=N/M não ajudava porque os arquivos mais lentos
+    # (cinematic-card/cinema-materials) ficavam todos no mesmo shard por
+    # ordem alfabética. Agora cada grupo lista exatamente os arquivos que
+    # só rodam aqui, balanceados manualmente por peso conhecido.
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          # cinematic-card e cinema-materials iam juntos no mesmo grupo
+          # (ordem alfabética do shard antigo); juntos, os testes de
+          # "atmosfera continua visível"/"cena ocupa o cartão inteiro"
+          # falhavam de forma consistente (não só uma vez) com canvas WebGL
+          # em branco -- hipótese: os dois arquivos são os mais pesados em
+          # canvas/WebGL da suíte inteira, e rodar ambos nos mesmos 2
+          # workers acumula contextos WebGL até estourar o limite do
+          # processo. Cada um agora tem seu próprio grupo/par de workers.
+          - name: cinematic
+            files: tests/cinematic-card.spec.js
+          - name: materials
+            files: tests/cinema-materials.spec.js
+          - name: mid
+            files: tests/election-results.spec.js tests/seismic-cinema.spec.js tests/regional-warning-cards.spec.js tests/regional-sources.spec.js tests/details-back.spec.js tests/auto-cycle.spec.js
+          - name: light
+            files: tests/cge-bulletins.spec.js tests/header-status.spec.js tests/rain-header.spec.js tests/smoke.spec.js tests/startup-cycle.spec.js tests/weather-panel.spec.js tests/world-weather-alerts.spec.js
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +59,7 @@ jobs:
           fi
 
       - name: Validar exposição populacional e reservas
+        if: matrix.group.name == 'light'
         run: |
           node --test tests/unit/source-freshness.test.cjs
           node tests/unit/population-exposure-check.mjs
@@ -53,14 +80,14 @@ jobs:
           node tests/unit/weather-observations-check.mjs
           node tests/unit/tse-results-check.mjs
 
-      - name: Rodar testes de fumaça
-        run: npx playwright test
+      - name: Rodar testes de fumaça (${{ matrix.group.name }})
+        run: npx playwright test ${{ matrix.group.files }}
 
       - name: Publicar relatório em caso de falha
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.group.name }}
           path: playwright-report/
           retention-days: 7
 

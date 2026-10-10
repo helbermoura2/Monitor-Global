@@ -51,7 +51,8 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
       await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);
     }
     await page.waitForTimeout(2600);
-    await expect(page.locator('#pd-local')).toContainText('Verificação da publicação', { timeout: 20000 });
+    // A demonstração mostra seu próprio texto, não o do evento real por baixo (ver CardEffectDemo.preview()).
+    await expect(page.locator('#pd-local')).toContainText('Demonstração', { timeout: 20000 });
     await expect(page.locator('#pd-focus-btn')).toBeEnabled();
   }
   // Dê à ação de parar uma janela nova, independente da duração das prévias anteriores.

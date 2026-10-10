@@ -82,7 +82,7 @@
    const pressure=current.pressure||0,flash=current.flash||0;
    if(rain){precipitation(t,dt,pressure,flash,envelope);if(cfg.type==='storm')lightning(t,flash);}
   }
-  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>el.style.removeProperty('transform'));}impacts.length=0;groups=[];ledges=[];}
+  function destroy(){dead=true;canvas.remove();lensLayer.remove();for(const el of panel.querySelectorAll('.pd-water-submerged'))el.classList.remove('pd-water-submerged');for(const g of groups){g.el.classList.remove('pd-water-submerged');g.letters.forEach(el=>{el.style.removeProperty('transform');el.style.removeProperty('opacity');});}impacts.length=0;groups=[];ledges=[];}
   return {canvas,lensLayer,resize,draw,destroy};
  }
  window.CardWeatherPhysics={create};

@@ -11,7 +11,7 @@ for(const width of [1280,390])test('ciclones cinematográficos preservam dados e
  await boot(page,width);const errors=[];// External feeds are deliberately aborted by boot; retain all other browser errors.
  page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
  await expect(page.locator('#pd-local')).toHaveText('Evento real de teste — Bolívia');
- const before=await page.evaluate(()=>({id:eventoSelecionadoId,local:document.getElementById('pd-local').textContent,mag:document.getElementById('pd-mag').textContent}));
+ const before=await page.evaluate(()=>({events:JSON.stringify(globalEvents)}));
  for(const key of ['hurricane','typhoon','tropical-storm']){
   await page.evaluate(k=>CardEffectDemo.preview(k),key);
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene','hurricane');
@@ -23,8 +23,10 @@ for(const width of [1280,390])test('ciclones cinematográficos preservam dados e
   await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);
   await expect(page.locator('#painel-direito')).toHaveCSS('animation-name',width===390?'sheetUp':'none');
   await page.waitForTimeout(1500);
-  expect(await page.evaluate(()=>({id:eventoSelecionadoId,local:document.getElementById('pd-local').textContent,mag:document.getElementById('pd-mag').textContent}))).toEqual(before);
-  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+  // O card da demonstração mostra o texto/gauge/seleção do TIPO escolhido (ver CardEffectDemo.preview()) -- só os dados reais por baixo precisam ficar intactos.
+  expect(await page.evaluate(()=>({events:JSON.stringify(globalEvents)}))).toEqual(before);
+  // Item de demonstração não tem coords reais -- "focar no mapa" ficaria sem destino, então o botão some (mesmo tratamento de qualquer alerta regional sem localização verificada). Condiz com "nunca mover a câmera" do diálogo da demonstração.
+  await expect(page.locator('#pd-focus-btn')).toBeHidden();
   await page.screenshot({path:'/tmp/cyclone-'+key+'-'+width+'.png'});
   if(width===390){
    await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
