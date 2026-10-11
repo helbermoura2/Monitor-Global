@@ -259,6 +259,16 @@ async function handlePollsAverage(env) {
     return json({ ok: true, ...JSON.parse(raw) });
 }
 
+// Temporário: força o recálculo agora (urgente -- dados antigos mostravam o
+// líder errado) e mostra as linhas da tabela pra conferir se atualizaram.
+// Remover depois de corrigido.
+async function handlePollsUrgentRecheck(env) {
+    const wikitext = await fetchPollsWikitext();
+    const rows = parsePollsAggregatorTable(wikitext);
+    const record = await refreshPollsAverage(env);
+    return json({ ok: true, rowsFound: rows.length, rows, newAverage: record });
+}
+
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -5433,6 +5443,11 @@ export default {
         }
         if (reqUrl.pathname === '/polls-average') {
             try { return await handlePollsAverage(env); }
+            catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
+        // Temporário: recálculo urgente.
+        if (reqUrl.pathname === '/polls-urgent-recheck') {
+            try { return await handlePollsUrgentRecheck(env); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
         }
         if (reqUrl.pathname === '/health') {
