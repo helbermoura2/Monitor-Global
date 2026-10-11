@@ -17,7 +17,14 @@ function focusAlert(){
  if(document.hidden)return false;
  reconcile();if(!pending.size||!map)return false;
  const active=window.PresentationLimits?.state();
- if(getAutoCycleProtectionRemaining()>0||active?.mode==='priority'&&active.id===eventoSelecionadoId&&active.deadline>Date.now()){arm();return false;}
+ // Same cold-load settle window as focusNextNewCameraQuake() (orquestrador-feeds.js):
+ // several parallel hazard sources (GDACS, EONET, tsunami/tornado feeds...) queue their
+ // own "new-looking" alerts moments after the first display, just because the page is
+ // new. Without this, an alert could steal the camera from whatever a quake's own
+ // cold-load guard just settled on, right after it -- still "mudando loucamente".
+ const coldLoad=(typeof isFirstLoad!=='undefined'&&isFirstLoad)||
+  (Number.isFinite(window.__mgColdLoadGraceUntil)&&Date.now()<window.__mgColdLoadGraceUntil);
+ if(getAutoCycleProtectionRemaining()>0||active?.mode==='priority'&&active.id===eventoSelecionadoId&&active.deadline>Date.now()||coldLoad&&eventoSelecionadoId!=null){arm();return false;}
  const entries=[...pending].map(([id,entry])=>({item:globalAlerts.find(a=>a.id===id),...entry}));
  entries.sort((a,b)=>(Number(b.item.sev)||0)-(Number(a.item.sev)||0)||a.arrived-b.arrived);
  const item=entries[0].item;dispatchId=item.id;window.__mgSoftCycle=false;
