@@ -4340,7 +4340,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v7-numbers-revisions';
+    next.cardImageVersion = 'cartographic-v8-all-magnitudes';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
@@ -4767,7 +4767,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v7-numbers-revisions';
+            reservation.cardImageVersion = 'cartographic-v8-all-magnitudes';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4792,16 +4792,16 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v7-numbers-revisions' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v8-all-magnitudes' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
         const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
         if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
-        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v7-numbers-revisions') {
+        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v8-all-magnitudes') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v7-numbers-revisions'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v8-all-magnitudes'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);

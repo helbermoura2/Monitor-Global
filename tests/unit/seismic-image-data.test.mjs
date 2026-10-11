@@ -27,3 +27,14 @@ test('offscreen land scanlines never spill into ocean pixels through negative ar
  assert.equal(paintImageIntensity(pixels,f,{lat:0,lon:0,mag:8,depth:10},[[farWest]]),0);
  assert.deepEqual(pixels,before);
 });
+
+test('Telegram overlay paints a shallow M3.4 instead of rejecting magnitudes below five',async()=>{
+ const {overlayImageIntensity}=await import('../../seismic-image-data.mjs');
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>new Response(JSON.stringify({features:[{geometry:{type:'Polygon',coordinates:[[[-48,-21],[-47,-21],[-47,-20],[-48,-20],[-48,-21]]]}}]}));
+ try{const ev={lat:-20.71,lon:-47.66,mag:3.4,depth:4},frame=imageMapFrame(ev),pixels=new Uint8Array(frame.width*frame.height*4).fill(90);
+ assert.equal(await overlayImageIntensity(pixels,frame,ev),true);
+ assert.ok(frame.zoom>7,'Small events need a closer view of their actual estimated footprint');
+ assert.equal(await overlayImageIntensity(pixels,frame,{...ev,mag:null}),false);
+ }finally{globalThis.fetch=original;}
+});

@@ -3,8 +3,10 @@
  const MAP_HEIGHT=820,ANCHOR_Y=550;
  function frame(ev){
   const model=globalThis.SeismicImpactModel;
-  const radius=Math.max(80,Number(ev.mag)>=5?model.extent(Number(ev.mag),Number(ev.depth)||0,11)*1.25:80);
-  const zoom=Math.max(3,Math.min(7,Math.floor(Math.log2(180*111.32/radius))));
+  const magnitude=Number(ev.mag),depth=Math.max(0,Number(ev.depth)||0);
+  const threshold=magnitude>=5?11:model.pga(magnitude,depth,0)>=2.1?2.1:.5;
+  const radius=Math.max(magnitude>=5?80:5,model.extent(magnitude,depth,threshold)*1.25);
+  const zoom=Math.max(3,Math.min(magnitude>=5?7:10,Math.floor(Math.log2(180*111.32/radius))));
   const span=180/2**zoom;
   return {width:800,height:MAP_HEIGHT,zoom,anchorX:400,anchorY:ANCHOR_Y,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:Number(ev.lat)-2*span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+2*span*ANCHOR_Y/800};
  }
@@ -44,5 +46,5 @@
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v7-numbers-revisions'};
+ globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v8-all-magnitudes'};
 })();
