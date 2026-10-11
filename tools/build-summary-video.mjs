@@ -97,7 +97,7 @@ try{
      const source=exposure?.method==='worldpop'?'WorldPop 2020':'USGS PAGER';
      text(available?source+(exposure.partial?' · cobertura parcial':'')+' · não confirma quem sentiu':event.reports!==null?event.reports.toLocaleString('pt-BR')+' '+(event.reports===1?'relato':'relatos')+' no USGS · não é contagem total de pessoas':'Sem estimativa; não significa zero pessoas.',32,1120,14,muted);
      text('TIPO DE FALHA · MECANISMO FOCAL',32,1150,13,muted);
-     text(event.mechanism?event.mechanism.label+' · USGS':'Sem dados oficiais',32,1180,23,white);
+     text(event.mechanism?event.mechanism.label+' · '+event.mechanism.provider:'Sem solução nas fontes consultadas',32,1180,20,white);
      if(event.mechanism){
       const kind=event.mechanism.kind,arrow=(x,y,dx,dy)=>{ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dx,y+dy);ctx.stroke();const a=Math.atan2(dy,dx);ctx.beginPath();ctx.moveTo(x+dx-8*Math.cos(a-.5),y+dy-8*Math.sin(a-.5));ctx.lineTo(x+dx,y+dy);ctx.lineTo(x+dx-8*Math.cos(a+.5),y+dy-8*Math.sin(a+.5));ctx.stroke();};
       if(kind==='strike-slip'){arrow(599,1156,49,0);arrow(648,1178,-49,0);}else{const d=kind==='normal'?1:-1;arrow(609,1166,-15,-d*16);arrow(642,1166,15,d*16);}
@@ -106,7 +106,7 @@ try{
     if(!valid(event))text('Epicentro sem coordenadas disponíveis',32,755,16,muted);
    }
    for(let i=0;i<events.length;i++)circle(310+i*24,impact?1215:1190,4,intro||closing?muted:i===index?color(event):'#294052');
-   text('Fonte: USGS · Dados sujeitos a revisão',30,1250,14,muted);ctx.font='400 17px Inter';text('monitorglobal.top',W-30-ctx.measureText('monitorglobal.top').width,1250,17,cyan);
+   text(impact?'Fontes: USGS · EMSC · Dados sujeitos a revisão':'Fonte: USGS · Dados sujeitos a revisão',30,1250,14,muted);ctx.font='400 17px Inter';text('monitorglobal.top',W-30-ctx.measureText('monitorglobal.top').width,1250,17,cyan);
   }
   draw(0);
   const stream=canvas.captureStream(25),mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
