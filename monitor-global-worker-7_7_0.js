@@ -133,6 +133,23 @@ function json(data, status = 200) {
 
 function nowIso() { return new Date().toISOString(); }
 
+// Endpoint temporário de diagnóstico: mostra o wikitext bruto das tabelas de
+// pesquisas eleitorais, pra desenhar o parser contra o formato real da página
+// (sem acesso à internet no ambiente de desenvolvimento). Remover depois.
+async function handlePollsDebug() {
+    const title = 'Pesquisas_de_opinião_para_a_eleição_presidencial_no_Brasil_em_2026';
+    const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&prop=wikitext&format=json&formatversion=2`;
+    const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobalDebug/1.0 (teste temporário; https://monitorglobal.top)' } });
+    if (!res.ok) return resposta('Falha ao buscar Wikipedia: HTTP ' + res.status, 502, 'text/plain; charset=utf-8');
+    const data = await res.json();
+    const wikitext = data?.parse?.wikitext || '';
+    if (!wikitext) return resposta('Sem wikitext na resposta: ' + JSON.stringify(data).slice(0, 800), 502, 'text/plain; charset=utf-8');
+    const tables = wikitext.match(/\{\|[\s\S]*?\n\|\}/g) || [];
+    const out = `wikitext total: ${wikitext.length} caracteres\ntabelas encontradas: ${tables.length}\n\n` +
+        tables.map((t, i) => `===== TABELA ${i + 1} (${t.length} chars) =====\n` + t.slice(0, 4000)).join('\n\n');
+    return resposta(out, 200, 'text/plain; charset=utf-8');
+}
+
 
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
@@ -5305,6 +5322,10 @@ export default {
                 return json({error:'Acesso administrativo não autorizado'},401);
             try {return await handleTelegramHistory(request,env);}
             catch {return json({ok:false,error:'Não foi possível consultar o histórico'},502);}
+        }
+        if (reqUrl.pathname === '/polls-debug') {
+            try { return await handlePollsDebug(); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
             return json({
