@@ -178,7 +178,7 @@ async function handleOpovoRepoProbe() {
     const data = await res.json();
     const files = (data.tree || []).filter(f => f.type === 'blob');
     const csvs = files.filter(f => /\.csv$/i.test(f.path));
-    let out = `repo tem ${files.length} arquivos, ${csvs.length} .csv:\n` + csvs.map(f => f.path).join('\n');
+    let out = `repo tem ${files.length} arquivos, ${csvs.length} .csv:\n` + files.map(f => f.path).join('\n');
     if (csvs.length) {
         const sample = csvs.find(f => /2026|presiden/i.test(f.path)) || csvs[0];
         const rawUrl = `https://raw.githubusercontent.com/datadoc-opovo/agregador-de-pesquisas-opovo/main/${sample.path}`;
