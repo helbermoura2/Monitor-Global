@@ -1,4 +1,4 @@
-/* Priority for confirmed volcanic escalation; M5+ presentations always win. */
+/* Priority for confirmed volcanic escalation; only M6+ presentations win. */
 (function(){
 'use strict';
 const pending=new Map();
@@ -46,16 +46,16 @@ function observe(before,alerts,ready){
 }
 function canInterrupt(item){
  const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
- return item?.type==='volcano'&&item.id===dispatchId&&!(Number(current?.mag)>=5);
+ return item?.type==='volcano'&&item.id===dispatchId&&!(Number(current?.mag)>=6);
 }
 function arm(){if(document.hidden||retry||!pending.size)return;retry=setTimeout(()=>{retry=null;focus();},2000);}
 function focus(){
  if(document.hidden)return false;
  if(!pending.size)return false;
  // A strong arrival/revision takes the camera before any volcano in this queue.
- if(typeof focusNextNewCameraQuake==='function'&&focusNextNewCameraQuake(5)){arm();return true;}
+ if(typeof focusNextNewCameraQuake==='function'&&focusNextNewCameraQuake(6)){arm();return true;}
  const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
- const strong=Number(current?.mag)>=5;
+ const strong=Number(current?.mag)>=6;
  const live=window.__mgLiveQuakeId===eventoSelecionadoId&&Date.now()<(window.__mgLiveQuakeUntil||0);
  if(!map||(strong&&(getAutoCycleProtectionRemaining()>0||live))){arm();return false;}
  if(presentationActive()){arm();return false;}
