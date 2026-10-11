@@ -1034,6 +1034,12 @@ function requestInitialAutoDisplay() {
         // Set before rendering, which calls applyFilters again.
         isFirstDisplay = false;
         if (!showNextAutoCycleItem()) isFirstDisplay = true;
+        // Marks when the page actually put something on screen for the first
+        // time -- used by orquestrador-feeds.js to tell a real live arrival
+        // apart from the burst of "new-looking" quakes that several parallel
+        // sources (USGS, EMSC, ...) queue moments later, right after this,
+        // just because the page itself is new.
+        else window.__mgFirstDisplayShownAt = Date.now();
     }, 0);
 }
 
