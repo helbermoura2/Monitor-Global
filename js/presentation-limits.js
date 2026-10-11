@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 let active=null,timer=null;
-function limitMs(item){return item?.type==='volcano'&&window.VolcanoPriority?.evidence(item).lava?45000:40000;}
+function limitMs(item){return 20000;}
 function clear(){clearTimeout(timer);timer=null;active=null;}
 function begin(item,mode){
  if(mode==='quake'){clear();return;}
