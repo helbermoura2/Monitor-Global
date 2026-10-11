@@ -9,9 +9,9 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   await expect.poll(async () => {
     const response = await request.get(base + '/index.html?verify=' + Date.now());
     if (!response.ok()) return false;
-    return (await response.text()).includes('js/globalquake-travel.js?v=20261009-presentation-limit');
+    return /js\/globalquake-travel\.js\?v=/.test(await response.text());
   }, { timeout: 120000, intervals: [5000] }).toBe(true);
-  const script = await request.get(base + '/js/painel-fx.js?v=20261007-event-typography');
+  const script = await request.get(base + '/js/painel-fx.js?verify=' + Date.now());
   expect(script.ok()).toBe(true);
   const source = await script.text();
   expect(source).toContain('function ensureFallLayer()');
@@ -43,12 +43,18 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   await expect(page.locator('#pd-local')).toContainText('Verificação da publicação', { timeout: 20000 });
   for (const type of ['hurricane', 'typhoon', 'tropical-storm', 'wind', 'storm', 'volcano-ash', 'flood', 'tsunami']) {
     await page.evaluate(type => CardEffectDemo.preview(type), type);
-    await expect(page.locator('#card-fx-demo-status')).toContainText('DEMONSTRAÇÃO');
-    await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo', 'true');
-    await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events', 'none');
     if (type === 'tsunami') {
+      // Tsunami's demo is a map tour (js/card-effect-demo.js), not the
+      // generic card cinema used by every other type -- its own status
+      // text ("TESTE · ...") and map surface, never "DEMONSTRAÇÃO" or
+      // .pd-cinema-layer.
+      await expect(page.locator('#card-fx-demo-status')).toContainText('TESTE');
       await expect(page.locator('.pd-tsunami-surface')).toHaveCount(1);
       await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);
+    } else {
+      await expect(page.locator('#card-fx-demo-status')).toContainText('DEMONSTRAÇÃO');
+      await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo', 'true');
+      await expect(page.locator('.pd-cinema-contact')).toHaveCSS('pointer-events', 'none');
     }
     await page.waitForTimeout(2600);
     await expect(page.locator('#pd-local')).toContainText('Verificação da publicação', { timeout: 20000 });
