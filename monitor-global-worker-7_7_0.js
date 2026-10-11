@@ -226,10 +226,21 @@ async function refreshPollsAverage(env) {
     const lula = rows.reduce((s, r) => s + r.lula, 0) / rows.length;
     const flavio = rows.reduce((s, r) => s + r.flavio, 0) / rows.length;
     const dates = rows.map(r => parsePtDate(r.data)).filter(Number.isFinite);
+    const latestPollAt = dates.length ? new Date(Math.max(...dates)).toISOString() : null;
+    // Nunca regride: se já tínhamos uma pesquisa mais recente gravada (ex.
+    // correção manual enquanto a Wikipedia está atrasada), não sobrescreve
+    // com uma tabela que ainda não alcançou essa data.
+    if (env && env.TTS_USAGE) {
+        const previousRaw = await env.TTS_USAGE.get(POLLS_KV_KEY);
+        const previous = previousRaw ? JSON.parse(previousRaw) : null;
+        if (previous?.latestPollAt && latestPollAt && new Date(latestPollAt) < new Date(previous.latestPollAt)) {
+            return previous;
+        }
+    }
     const record = {
         updatedAt: nowIso(),
         sources: rows.length,
-        latestPollAt: dates.length ? new Date(Math.max(...dates)).toISOString() : null,
+        latestPollAt,
         candidates: [
             { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: Number(lula.toFixed(2)) },
             { id: 'flavio', name: 'Flávio Bolsonaro', party: 'PL', percentage: Number(flavio.toFixed(2)) }
@@ -267,6 +278,29 @@ async function handlePollsUrgentRecheck(env) {
     const rows = parsePollsAggregatorTable(wikitext);
     const record = await refreshPollsAverage(env);
     return json({ ok: true, rowsFound: rows.length, rows, newAverage: record });
+}
+
+// Correção manual única e urgente: a tabela da Wikipedia ainda não tinha as
+// pesquisas de 8-9/10 (confirmado via /polls-urgent-recheck), então o cálculo
+// automático estava mostrando o líder errado numa eleição real e apertada.
+// Usa 3 pesquisas verificadas via busca, com matéria jornalística citando
+// cada uma: Datafolha (8/10, Flávio 52% x Lula 48%), AtlasIntel (9/10,
+// Flávio 52,8% x Lula 47,2%), PoderData/Aya (pós 1º turno, Flávio 53% x
+// Lula 47%) -- todas em % dos votos válidos. Remover depois que o cálculo
+// automático (Wikipedia) alcançar esses números sozinho.
+async function handlePollsManualCorrection(env) {
+    if (!env.TTS_USAGE) return json({ ok: false, error: 'KV indisponível' }, 503);
+    const record = {
+        updatedAt: nowIso(),
+        sources: 3,
+        latestPollAt: '2026-10-09T00:00:00.000Z',
+        candidates: [
+            { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: 47.4 },
+            { id: 'flavio', name: 'Flávio Bolsonaro', party: 'PL', percentage: 52.6 }
+        ]
+    };
+    await env.TTS_USAGE.put(POLLS_KV_KEY, JSON.stringify(record));
+    return json({ ok: true, ...record });
 }
 
 async function fetchText(url, options = {}, timeoutMs = 12000) {
@@ -5448,6 +5482,10 @@ export default {
         // Temporário: recálculo urgente.
         if (reqUrl.pathname === '/polls-urgent-recheck') {
             try { return await handlePollsUrgentRecheck(env); }
+            catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
+        if (reqUrl.pathname === '/polls-manual-correction') {
+            try { return await handlePollsManualCorrection(env); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
         }
         if (reqUrl.pathname === '/health') {
