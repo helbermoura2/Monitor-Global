@@ -140,6 +140,33 @@ const POLLS_WIKIPEDIA_TITLE = 'Pesquisas_de_opinião_para_a_eleição_presidenci
 const POLLS_KV_KEY = 'polls-2nd-round-average';
 const POLLS_RAN_TODAY_KV_KEY = 'polls-2nd-round-ran-on';
 
+// Temporário: lista as tabelas da página com seus cabeçalhos de seção, pra
+// achar se existe uma tabela específica (e mais atual) só do 2º turno --
+// a única que usamos até agora (TABELA 1) pode ser só do 1º turno/geral.
+// Remover depois de checado.
+async function handlePollsListTables() {
+    const wikitext = await fetchPollsWikitext();
+    const headingRe = /^(={2,4})\s*(.+?)\s*\1\s*$/gm;
+    const headings = [];
+    let hm;
+    while ((hm = headingRe.exec(wikitext))) headings.push({ pos: hm.index, text: hm[2] });
+    function headingFor(pos) {
+        let best = null;
+        for (const h of headings) { if (h.pos < pos) best = h; else break; }
+        return best ? best.text : '(sem seção)';
+    }
+    const tableRe = /\{\|[\s\S]*?\n\|\}/g;
+    const tables = [];
+    let tm;
+    while ((tm = tableRe.exec(wikitext))) tables.push({ i: tables.length + 1, heading: headingFor(tm.index), text: tm[0] });
+    const candidates = tables.filter(t => /segundo turno|2[ºo]\s*turno|segundo-turno/i.test(t.heading + ' ' + t.text.slice(0, 400)));
+    const out = `total de tabelas: ${tables.length}\n\nTODAS (índice -- seção):\n` +
+        tables.map(t => `${t.i} -- ${t.heading}`).join('\n') +
+        `\n\nCANDIDATAS A "2º TURNO" (${candidates.length}):\n` +
+        candidates.map(t => `===== TABELA ${t.i} -- ${t.heading} =====\n${t.text.slice(0, 2500)}`).join('\n\n');
+    return resposta(out, 200, 'text/plain; charset=utf-8');
+}
+
 async function fetchPollsWikitext() {
     const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(POLLS_WIKIPEDIA_TITLE)}&prop=wikitext&format=json&formatversion=2`;
     const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobal/1.0 (https://monitorglobal.top)' } });
@@ -5446,6 +5473,10 @@ export default {
         if (reqUrl.pathname === '/polls-average') {
             try { return await handlePollsAverage(env); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
+        if (reqUrl.pathname === '/polls-list-tables') {
+            try { return await handlePollsListTables(); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
             return json({
