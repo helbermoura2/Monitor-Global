@@ -226,10 +226,22 @@ async function refreshPollsAverage(env) {
     const lula = rows.reduce((s, r) => s + r.lula, 0) / rows.length;
     const flavio = rows.reduce((s, r) => s + r.flavio, 0) / rows.length;
     const dates = rows.map(r => parsePtDate(r.data)).filter(Number.isFinite);
+    const latestPollAt = dates.length ? new Date(Math.max(...dates)).toISOString() : null;
+    // Nunca regride: se já tínhamos uma pesquisa mais recente gravada (ex.
+    // uma correção manual enquanto a Wikipedia está atrasada em relação aos
+    // institutos), não sobrescreve com uma tabela que ainda não alcançou
+    // essa data.
+    if (env && env.TTS_USAGE) {
+        const previousRaw = await env.TTS_USAGE.get(POLLS_KV_KEY);
+        const previous = previousRaw ? JSON.parse(previousRaw) : null;
+        if (previous?.latestPollAt && latestPollAt && new Date(latestPollAt) < new Date(previous.latestPollAt)) {
+            return previous;
+        }
+    }
     const record = {
         updatedAt: nowIso(),
         sources: rows.length,
-        latestPollAt: dates.length ? new Date(Math.max(...dates)).toISOString() : null,
+        latestPollAt,
         candidates: [
             { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: Number(lula.toFixed(2)) },
             { id: 'flavio', name: 'Flávio Bolsonaro', party: 'PL', percentage: Number(flavio.toFixed(2)) }
