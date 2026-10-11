@@ -30,8 +30,14 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     if (!map) return false;
     const current=globalEvents.find(e=>e && e.id===eventoSelecionadoId);
     const currentMag=Number(current?.mag) || 0;
+    // getAutoCycleProtectionRemaining() (painel-e-lista.js) já reconcilia
+    // __mgRevisionProtectedUntil com __mgHoldEndsAt (tirando o máximo) --
+    // o estágio "opening" da frente de onda estende a proteção via
+    // __mgHoldEndsAt sem necessariamente tocar __mgRevisionProtectedUntil,
+    // então checar só este último destrava a câmera cedo demais.
     const protectedSelection = window.__mgQuakePresentationMode !== 'auto' &&
-        window.__mgRevisionProtectedId === eventoSelecionadoId && Date.now() < (window.__mgRevisionProtectedUntil || 0) &&
+        window.__mgRevisionProtectedId === eventoSelecionadoId &&
+        Date.now() < Math.max(window.__mgRevisionProtectedUntil || 0, window.__mgHoldEndsAt || 0) &&
         (window.__mgQuakePresentationMode==='new' || currentMag>=5 || isRecentCameraQuake(current));
     const candidates = [],included=new Set();
     for (const [id, entry] of pendingNewCameraQuakes) {
@@ -99,7 +105,13 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     // to this fresh page: during cold load the whole "new always interrupts"
     // fast path is suspended, whatever its magnitude, and only resumes once
     // the page has actually settled.
-    const coldLoad = (typeof isFirstLoad!=='undefined' && isFirstLoad) ||
+    // Teto absoluto de 60s desde o carregamento da página: isFirstLoad fica
+    // true pra sempre numa falha persistente de toda fonte (de propósito,
+    // ver nucleo-estado.js), mas isso não pode bloquear pra sempre uma
+    // chegada genuinamente nova/maior -- depois do teto, coldLoad desarma
+    // mesmo que a primeira rodada de busca nunca tenha de fato terminado.
+    const coldLoad = ((typeof isFirstLoad!=='undefined' && isFirstLoad) &&
+            Date.now() - (window.__mgPageLoadAt || 0) < 60000) ||
         (Number.isFinite(window.__mgColdLoadGraceUntil) && Date.now() < window.__mgColdLoadGraceUntil);
     if (protectedSelection && (coldLoad || (!next.isNew && Number(next.event.mag)<=currentMag))) return false;
     pendingNewCameraQuakes.delete(next.event.id);
