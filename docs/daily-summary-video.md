@@ -25,3 +25,21 @@ node tools/build-summary-video.mjs caminho/resumo.json /tmp/resumo-satelite.mp4 
 Usa as mesmas fontes do mapa principal: Esri World Imagery e Reference/World Boundaries and Places. O mapa ocupa mais espaço, com título compacto, fundo levemente escurecido e créditos visíveis. A câmera aproxima cada epicentro e retorna ao panorama no encerramento. As camadas representam imagens de satélite, nomes e fronteiras; os anéis identificam epicentros e não representam área afetada.
 
 `tools/summary-video-satellite.mjs` calcula todas as posições da câmera e baixa antecipadamente os tiles necessários. Cache local em `/tmp/monitor-global-satellite-tiles`, sem chaves ou consultas às APIs meteorológicas. A opção requer rede durante o preparo; depois, o vídeo é gravado com os mapas já carregados. Interrupções ou respostas inválidas impedem a geração em vez de produzir um mapa vazio. Não altera o site ou a programação de envio no Telegram.
+
+## População e mecanismo focal
+
+Acrescente `--impact` para exibir dois campos adicionais. Cada evento passa a durar cinco segundos (30 segundos para cinco sismos), dando tempo de leitura às legendas.
+
+```sh
+node tools/build-summary-video.mjs caminho/resumo.json /tmp/resumo-impacto.mp4 --satellite --impact
+```
+
+O preparo consulta os detalhes oficiais de cada identificador no USGS e confere origem, horário e magnitude. A exposição III+ vem do XML PAGER ou de um resultado PAGER/WorldPop válido já presente em `imageExposure`/`exposure` no JSON. São faixas cumulativas: não somar III+, V+ e VI+. O número representa população potencialmente exposta, não pessoas confirmadamente atingidas ou relatos de tremor.
+
+Se não houver exposição disponível, o campo informa a ausência. Relatos DYFI aparecem separados e identificados como relatos no USGS, sem substituir população exposta nem converter ausência em zero. Não são iniciadas consultas novas ao WorldPop pelo gerador.
+
+O tipo de falha usa exclusivamente o rake de uma solução publicada de moment tensor ou mecanismo focal: inversa, normal ou predominantemente transcorrente. Produtos retirados são ignorados e preferências oficiais respeitadas. Setas são um esquema do deslocamento na falha; não demonstram a direção de movimento de uma placa inteira. Sem solução oficial, aparece “Sem dados oficiais”, sem inferência por localização ou profundidade.
+
+Validação: `node tests/unit/summary-video-impact-check.mjs`, com soluções válidas/ausentes, produtos removidos, preferência oficial, divergência de origem e distinção entre relatos e população. Amostra de 01/10/2026 consultada: 25 relatos no primeiro evento, sem PAGER ou mecanismo focal; ausência preservada.
+
+Também foi gerada e inspecionada a amostra de 09/10/2026 a partir dos cinco maiores registros da consulta USGS (janela BRT), com PAGER disponível nos cinco e mecanismo focal nos três primeiros. MP4 H.264 vertical validado, 29,96 s, 25 fps, ~3,5 MB. Os dois eventos sem solução focal mantêm o estado ausente. Essa consulta é apenas a seleção de uma amostra e não cria agendamento de entrega.
