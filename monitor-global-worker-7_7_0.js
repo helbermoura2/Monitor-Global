@@ -5420,13 +5420,6 @@ export default {
             try { return await handlePollsAverage(env); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
         }
-        // Temporário: força o recálculo fora da janela noturna do cron, só pra
-        // validar em produção que a busca+parser da Wikipedia funciona de verdade
-        // (sem acesso à internet no ambiente de dev). Remover depois de validado.
-        if (reqUrl.pathname === '/polls-average-refresh-now') {
-            try { return json({ ok: true, ...(await refreshPollsAverage(env)) }); }
-            catch (e) { return json({ ok: false, error: e.message }, 502); }
-        }
         if (reqUrl.pathname === '/health') {
             return json({
                 ok: true,
