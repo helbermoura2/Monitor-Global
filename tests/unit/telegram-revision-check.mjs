@@ -4,12 +4,16 @@ const workerURL = new URL('../../monitor-global-worker-7_7_0.js', import.meta.ur
 let source = await readFile(workerURL, 'utf8');
 source = source.replace(/from "(\.\/[^\"]+)"/g, (_, path) => 'from '+JSON.stringify(new URL(path, workerURL).href));
 // Rendering is separately tested; capture the revised event supplied to the card generator.
-source = source.replace('async function renderAlertCardPng(ev) {', 'async function renderAlertCardPng(ev) { globalThis.rendered.push(structuredClone(ev)); return new Uint8Array([137,80,78,71]);');
+source = source.replace('async function renderAlertCardPng(ev) {', 'async function renderAlertCardPng(ev) { globalThis.rendered.push(structuredClone(ev)); return globalThis.__testHdPng.slice();');
 source = source.replaceAll('queryImageExposure(ev, env)', 'Promise.resolve(ev.id === "late-population" ? (globalThis.__testExposure || {status: "unavailable"}) : {status: "unavailable"})');
 source = source.replaceAll('queryImageShaking(ev)', 'Promise.resolve(ev.id === "late-population" ? (globalThis.__testShaking || {status: "unavailable"}) : {status: "unavailable"})');
 source += '\nexport {runTelegramM6Alerts};';
 const {EarthquakeAlertDelivery, runTelegramM6Alerts} = await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 globalThis.rendered=[];
+globalThis.__testHdPng=new Uint8Array(48);
+__testHdPng.set([137,80,78,71,13,10,26,10]);
+new DataView(__testHdPng.buffer).setUint32(16,1080);
+new DataView(__testHdPng.buffer).setUint32(20,1920);
 const now=Date.now(), messages=[], queried=[];
 let clock=now; Date.now=()=>clock;
 const quake=(id,mag,net='pt',time=now-60000)=>({id,properties:{mag,net,place:'Vanuatu',time,type:'earthquake',status:'reviewed'},geometry:{coordinates:[168.18,-15.48,10]}});
@@ -31,7 +35,12 @@ globalThis.fetch=async(input,options)=>{
  if(url.searchParams.has('minmagnitude'))return Response.json({features:world.filter(f=>f.properties.mag>=6)});
  return url.searchParams.get('format')==='text'?new Response(''):Response.json({features:[]});
 };
-class Store{data=new Map();async get(key){return structuredClone(this.data.get(key))}async put(key,value){assert(Buffer.byteLength(String(value))<128*1024);this.data.set(key,structuredClone(value))}}
+class Store {
+ data=new Map();
+ async get(key){if(Array.isArray(key))return new Map(key.filter(k=>this.data.has(k)).map(k=>[k,structuredClone(this.data.get(k))]));return structuredClone(this.data.get(key));}
+ async put(key,value){if(typeof key==='object'){assert(Object.keys(key).length<=128);for(const [k,v] of Object.entries(key))await this.put(k,v);return;}assert(Buffer.byteLength(String(value))<128*1024);this.data.set(key,structuredClone(value));}
+ async delete(key){for(const k of Array.isArray(key)?key:[key])this.data.delete(k);}
+}
 const storage=new Store(),kv=new Store();
 const env={TELEGRAM_BOT_TOKEN:'fake-test-token',TELEGRAM_CHAT_ID:-100123,TTS_USAGE:kv};
 let object=new EarthquakeAlertDelivery({storage},env);
@@ -40,7 +49,13 @@ const run=(advance=31000)=>{clock+=advance;return runTelegramM6Alerts(new Reques
 world=[quake('initial',6.6)];await run();
 assert.equal(messages.length,1);assert.equal(messages[0].method,'sendPhoto');assert(messages[0].caption.includes('sujeita a revisão'));
 const original=101;
+const originalURL=JSON.parse(messages[0].body.reply_markup).inline_keyboard[0][0].url;
+assert(originalURL.includes('/telegram-image/'));
+const originalDownload=await object.fetch(new Request(originalURL));
+assert.equal(originalDownload.headers.get('X-Image-Resolution'),'1080x1920');
+assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),__testHdPng);
 world=[quake('initial',6.3)];await run();
+assert.equal(JSON.parse(messages[1].body.reply_markup).inline_keyboard[0][0].url,originalURL);
 assert.equal(messages[1].method,'editMessageMedia');assert.equal(Number(messages[1].body.message_id),original);
 assert.equal(rendered.at(-1).mag,6.3);assert.equal(rendered.at(-1).revisionText,'M6,6 → M6,3');assert(messages[1].caption.includes('Inicial: *M6,6* · Atual: *M6,3*'));
 assert(messages[1].caption.includes('Revisão da fonte'));

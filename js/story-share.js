@@ -1178,16 +1178,18 @@
   // o botão parecia simplesmente não fazer nada.
   window.shareResumoDiarioStory = shareResumoDiarioStory;
 
-  let storyLandPromise;
+  let storyLandPromise,storyHdFontPromise;
   async function buildCartographicQuake(item){
     const ev={mag:Number(item.mag),depth:Number(item.depth)||0,lon:item.coords[0],lat:item.coords[1],place:item.place};
     ev.shaking=await window.RuptureShaking?.query(item);
-    const layout=window.QuakeCardLayout,frame=layout.frame(ev),canvas=document.createElement('canvas');
+    const layout=window.QuakeCardLayout,frame=layout.frame(ev),nativeFrame={...frame,width:1080,height:1093},canvas=document.createElement('canvas');
+    let fontFamily='Arial';
+    if(window.FontFace)try{if(!storyHdFontPromise)storyHdFontPromise=new FontFace('MonitorGlobalInter','url(assets/summary-fonts/Inter.ttf)',{weight:'100 900'}).load().then(font=>{document.fonts.add(font);return true;}).catch(()=>false);let timer;try{if(await Promise.race([storyHdFontPromise,new Promise(resolve=>{timer=setTimeout(()=>resolve(false),4000)})]))fontFamily='MonitorGlobalInter';}finally{clearTimeout(timer);}}catch{}
     canvas.width=1080;canvas.height=1920;
     const ctx=canvas.getContext('2d');ctx.scale(1.35,4/3);ctx.fillStyle='#092130';ctx.fillRect(0,0,800,1440);
     const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
     const base='https://server.arcgisonline.com/ArcGIS/rest/services/';
-    const params='?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=800,820&format=png32&transparent=true&f=image';
+    const params='?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=1080,1093&dpi=144&format=png32&transparent=true&f=image';
     const [sat,labels,exposure]=await Promise.all([
       loadImgCORS(base+'World_Imagery/MapServer/export'+params,5000).catch(()=>null),
       loadImgCORS(base+'Reference/World_Boundaries_and_Places/MapServer/export'+params,5000).catch(()=>null),
@@ -1195,15 +1197,15 @@
     ]);
     // Paint at the shared reference resolution before scaling for Story export.
     if(sat){
-      const surface=document.createElement('canvas');surface.width=800;surface.height=820;const c=surface.getContext('2d');
-      c.drawImage(sat,0,0,800,820);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,800,820);
+      const surface=document.createElement('canvas');surface.width=1080;surface.height=1093;const c=surface.getContext('2d');
+      c.drawImage(sat,0,0,1080,1093);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,1080,1093);
       try{
         if(!storyLandPromise)storyLandPromise=fetch('assets/seismic/ne-50m-land.geojson').then(r=>{if(!r.ok)throw Error('Coastlines');return r.json();}).then(d=>d.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates)).catch(e=>{storyLandPromise=null;throw e;});
-        const pixels=c.getImageData(0,0,800,820);QuakeImagePaint.paint(pixels.data,frame,ev,await storyLandPromise);c.putImageData(pixels,0,0);
+        const pixels=c.getImageData(0,0,1080,1093);QuakeImagePaint.paint(pixels.data,nativeFrame,ev,await storyLandPromise);c.putImageData(pixels,0,0);
       }catch(e){console.warn('Story intensity unavailable',e);}
-      if(labels)c.drawImage(labels,0,0,800,820);ctx.drawImage(surface,0,0,800,820);
+      if(labels)c.drawImage(labels,0,0,1080,1093);ctx.imageSmoothingQuality='high';ctx.drawImage(surface,0,0,800,820);
     }
-    const font=(size,bold)=>`${bold?'700':'400'} ${size}px Arial, sans-serif`;
+    const font=(size,bold)=>`${bold?'700':'400'} ${size}px ${fontFamily}, sans-serif`;
     const p={gradient:(x,y,w,h,a,b)=>{const g=ctx.createLinearGradient(x,y,x,y+h);g.addColorStop(0,a);g.addColorStop(1,b);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);},
       roundRect:(x,y,w,h,color)=>{ctx.fillStyle=color;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,8);else ctx.rect(x,y,w,h);ctx.fill();},rect:(x,y,w,h,color)=>{ctx.fillStyle=color;ctx.fillRect(x,y,w,h);},
       dot:(x,y,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();},
