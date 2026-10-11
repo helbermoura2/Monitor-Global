@@ -244,6 +244,76 @@ async function handlePollsAverage(env) {
     return json({ ok: true, ...JSON.parse(raw) });
 }
 
+// Temporário: investiga o dataset oficial de pesquisas eleitorais do TSE
+// (Portal de Dados Abertos, atualizado diariamente a partir do PesqEle),
+// pra ver se dá pra substituir a Wikipedia por uma fonte mais confiável e
+// atual. Extrai o CSV de dentro do .zip e mostra cabeçalho + amostra.
+// Remover depois de investigado.
+function readUint32LE(view, offset) { return view.getUint32(offset, true); }
+function readUint16LE(view, offset) { return view.getUint16(offset, true); }
+
+function parseZipEntries(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const view = new DataView(buffer);
+    // Acha o End Of Central Directory (EOCD), procurando de trás pra frente
+    // pela assinatura -- o jeito padrão de abrir um zip sem index externo.
+    let eocd = -1;
+    for (let i = bytes.length - 22; i >= 0; i--) {
+        if (readUint32LE(view, i) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('EOCD não encontrado -- não parece ser um .zip válido');
+    const entryCount = readUint16LE(view, eocd + 10);
+    let cdOffset = readUint32LE(view, eocd + 16);
+    const entries = [];
+    for (let i = 0; i < entryCount; i++) {
+        if (readUint32LE(view, cdOffset) !== 0x02014b50) throw new Error('Registro de diretório central inválido');
+        const method = readUint16LE(view, cdOffset + 10);
+        const compressedSize = readUint32LE(view, cdOffset + 20);
+        const uncompressedSize = readUint32LE(view, cdOffset + 24);
+        const nameLen = readUint16LE(view, cdOffset + 28);
+        const extraLen = readUint16LE(view, cdOffset + 30);
+        const commentLen = readUint16LE(view, cdOffset + 32);
+        const localHeaderOffset = readUint32LE(view, cdOffset + 42);
+        const name = new TextDecoder().decode(bytes.subarray(cdOffset + 46, cdOffset + 46 + nameLen));
+        entries.push({ name, method, compressedSize, uncompressedSize, localHeaderOffset });
+        cdOffset += 46 + nameLen + extraLen + commentLen;
+    }
+    return { bytes, view, entries };
+}
+
+async function extractZipEntry(zip, entry) {
+    const { bytes, view } = zip;
+    const off = entry.localHeaderOffset;
+    if (readUint32LE(view, off) !== 0x04034b50) throw new Error('Cabeçalho local inválido para ' + entry.name);
+    const nameLen = readUint16LE(view, off + 26);
+    const extraLen = readUint16LE(view, off + 28);
+    const dataStart = off + 30 + nameLen + extraLen;
+    const compressed = bytes.subarray(dataStart, dataStart + entry.compressedSize);
+    if (entry.method === 0) return compressed;
+    if (entry.method !== 8) throw new Error('Método de compressão não suportado (' + entry.method + ') em ' + entry.name);
+    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function handleTsePollsDatasetProbe() {
+    const url = 'https://cdn.tse.jus.br/estatistica/sead/odsele/pesquisa_eleitoral/pesquisa_eleitoral_2026.zip';
+    const res = await fetch(url, { headers: { 'User-Agent': 'MonitorGlobalDebug/1.0 (teste temporário; https://monitorglobal.top)' } });
+    if (!res.ok) return resposta('Falha ao baixar dataset do TSE: HTTP ' + res.status, 502, 'text/plain; charset=utf-8');
+    const buffer = await res.arrayBuffer();
+    const zip = parseZipEntries(buffer);
+    const header = `zip: ${buffer.byteLength} bytes, ${zip.entries.length} entradas\n` +
+        zip.entries.map(e => `- ${e.name} (${e.uncompressedSize} bytes, método ${e.method})`).join('\n') + '\n\n';
+    const csvEntry = zip.entries.find(e => e.name.toLowerCase().endsWith('.csv'));
+    if (!csvEntry) return resposta(header + 'Nenhum .csv encontrado dentro do zip.', 200, 'text/plain; charset=utf-8');
+    const csvBytes = await extractZipEntry(zip, csvEntry);
+    let text;
+    try { text = new TextDecoder('latin1').decode(csvBytes); } catch (e) { text = new TextDecoder().decode(csvBytes); }
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    const out = header + `CSV extraído: ${csvEntry.name} (${lines.length} linhas)\n\nCabeçalho:\n${lines[0]}\n\nAmostra (10 primeiras linhas de dados):\n` +
+        lines.slice(1, 11).join('\n');
+    return resposta(out, 200, 'text/plain; charset=utf-8');
+}
+
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -5419,6 +5489,11 @@ export default {
         if (reqUrl.pathname === '/polls-average') {
             try { return await handlePollsAverage(env); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
+        // Temporário: investigar o dataset oficial do TSE como fonte melhor.
+        if (reqUrl.pathname === '/tse-polls-dataset-probe') {
+            try { return await handleTsePollsDatasetProbe(); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
             return json({
