@@ -8,7 +8,7 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
 const normal=await mod.renderDailySummaryPng({day:fixture.day,events});
-assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'observatorio-editorial-v1');
+assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'observatorio-editorial-v2');
 const image=await mod.decodePng(normal.png);assert.equal(image.width,900);assert.equal(image.height,1600);assert(normal.png.length>50000);
 assert.equal(normal.layout.rowHeights.length,4);assert(normal.layout.rowsEnd<=normal.layout.totalsY);
 assert.deepEqual(normal.epicenters.map(e=>[e.id,e.lat,e.lon]),fixture.events.slice(0,5).map(e=>[e.id,e.lat,e.lon]));
