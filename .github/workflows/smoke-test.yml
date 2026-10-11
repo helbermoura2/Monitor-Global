@@ -9,9 +9,11 @@ on:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    # The full suite now has 98 scenarios, including software-GPU scenes.
+    # Suite grew well past the 98 scenarios this comment used to say (69 spec
+    # files now); recent runs were hitting 118+ scenarios and still going
+    # when the old 20min timeout cancelled them mid-run.
     # Leave time for setup and cleanup after the tests print their result.
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
