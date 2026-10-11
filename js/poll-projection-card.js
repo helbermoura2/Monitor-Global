@@ -18,7 +18,8 @@
  async function load() {
   if (cache && Date.now() - cacheAt < 10 * 60000) return cache;
   const fetcher = window.OptionalFeatures?.fetch || window.fetch;
-  const res = await fetcher('/polls-average');
+  const base = typeof workerBaseUrl === 'function' ? workerBaseUrl() : 'https://black-sky-9ba0.terrestre.workers.dev';
+  const res = await fetcher(base + '/polls-average');
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || 'sem dados');

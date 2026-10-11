@@ -155,7 +155,8 @@ async function loadPolls() {
   if (activeTab === 'polls') renderPolls();
   try {
     const fetcher = window.OptionalFeatures?.fetch || window.fetch;
-    const res = await fetcher('/polls-average');
+    const base = typeof workerBaseUrl === 'function' ? workerBaseUrl() : 'https://black-sky-9ba0.terrestre.workers.dev';
+    const res = await fetcher(base + '/polls-average');
     const data = await res.json();
     if (data.ok) pollsCache = data;
   } catch (error) {
