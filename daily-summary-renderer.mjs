@@ -1,7 +1,7 @@
 import { SUMMARY_MAP_LAND } from './summary-editorial-assets.mjs';
 
 const COLORS={bg:[2,16,31],white:[232,236,238],cyan:[152,231,232],muted:[149,172,187],line:[36,55,70],map:[2,16,31],land:[20,43,64],coast:[30,59,80]};
-export const DAILY_SUMMARY_DESIGN='referencia-editorial-v3';
+export const DAILY_SUMMARY_DESIGN='referencia-editorial-v4';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -87,7 +87,7 @@ function drawMap(ctx,x,y,frame){
     for(const [name,lon,lat] of (reference?[]:countries)){const p=frame.project(lon,lat),tw=gfx.textWidth(fonts.small,name,1);if(p.x>=5&&p.x+tw<clip.w-5&&p.y>=8&&p.y<clip.h-18&&!frame.labels.some(q=>Math.hypot(q.x-(p.x+tw/2),q.y-p.y)<45))text('small',name,x+p.x,y+p.y,[104,152,174],1);}
     const placed=[];
     for(const m of frame.markers){
-        const color=COLORS.cyan,item=items[m.rank-1],names=reference&&item?[...gfx.wrap(fonts.small,item.place.title,124),...gfx.wrap(fonts.small,item.country.label,124)]:[];
+        const item=items[m.rank-1],color=item?gfx.magColor(item.event.mag):COLORS.cyan,names=reference&&item?[...gfx.wrap(fonts.small,item.place.title,124),...gfx.wrap(fonts.small,item.country.label,124)]:[];
         let label=frame.labels.find(q=>q.rank===m.rank);
         if(reference){
             const height=32+names.length*(fonts.small.cellH+2),options=[];
@@ -121,7 +121,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
   if(country.code&&place.title.includes(',')){const suffix=place.title.slice(place.title.lastIndexOf(',')+1).trim();if(suffix.toLocaleUpperCase('pt-BR')===country.label.toLocaleUpperCase('pt-BR')||gfx.country(suffix).code===country.code||/^(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)$/.test(suffix))place.title=place.title.slice(0,place.title.lastIndexOf(','));}
   const when=Number.isFinite(e.time)?new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}):'—';
   const names=[...wrap('title',place.title,164),...wrap('title',country.label,164)];
-  return {event:e,country,place,when,depth:km(e.depth),distance:km(distance(e)),names,height:Math.max(92,28+names.length*(fonts.title.cellH+2))};
+  return {event:e,color:gfx.magColor(e.mag),country,place,when,depth:km(e.depth),distance:km(distance(e)),names,height:Math.max(92,28+names.length*(fonts.title.cellH+2))};
  });
  const first=layouts[0],heroNames=first?wrap('heroName',first.place.title,278):[],heroCountries=first?wrap('country',first.country.label,278):[];
  const extraHero=Math.max(0,(heroNames.length-1)*(fonts.heroName.cellH+4)+(heroCountries.length-1)*(fonts.country.cellH+3));
@@ -141,17 +141,18 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
  const missing=top.length-frame.markers.length;if(missing)text('small',missing+' '+(missing===1?'registro sem coordenadas':'registros sem coordenadas'),38,725,COLORS.muted);
  const cx=714,cy=340;
  if(first){
+  const heroColor=first.color;
   gfx.drawArc(rgba,W,H,cx,cy,156,1,0,360,34,62,77,120);
   // Continuous radial coverage avoids visible seams between short arc segments.
   for(let py=cy-164;py<=cy+164;py++)for(let px=cx-164;px<=cx+164;px++){
    const dx=px-cx,dy=py-cy,d=Math.abs(Math.hypot(dx,dy)-156),angle=Math.atan2(dy,dx)*180/Math.PI;
    if(angle< -90||angle>68||d>8)continue;
    const fade=Math.min(1,(68-angle)/33),edge=Math.max(0,Math.min(1,2-d));
-   pixel(rgba,W,H,px,py,[89,220,231],Math.max(0,1-d/8)*.08*fade);
-   if(edge)pixel(rgba,W,H,px,py,[144,242,239],edge*.82*fade);
+   pixel(rgba,W,H,px,py,heroColor,Math.max(0,1-d/8)*.08*fade);
+   if(edge)pixel(rgba,W,H,px,py,heroColor,edge*.82*fade);
   }
   flag(first.country.code,cx-22,218);center('tag','EVENTO PRINCIPAL',cx,279,COLORS.white,1.4);
-  const magnitude='M '+first.event.mag.toFixed(1).replace('.',',');center('hero',magnitude,cx,306,COLORS.cyan);
+  const magnitude='M '+first.event.mag.toFixed(1).replace('.',',');center('hero',magnitude,cx,306,heroColor);
   let yy=409;for(const s of heroNames){center('heroName',s,cx,yy);yy+=fonts.heroName.cellH+4;}
   yy+=5;for(const s of heroCountries){center('country',s,cx,yy,COLORS.cyan);yy+=fonts.country.cellH+3;}
   const metaY=Math.max(520,yy+24);line(rgba,W,H,624,metaY-9,829,metaY-9,COLORS.line);
@@ -164,15 +165,15 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
  let rowY=rowsY;
  layouts.slice(1).forEach((l,i)=>{
   if(i)line(rgba,W,H,X+1,rowY,W-X-1,rowY,COLORS.line);
-  const middle=rowY+l.height/2; border(47,middle-25,45,50,9,[97,156,168]);center('caption',String(i+2),69,middle-fonts.caption.cellH/2,COLORS.cyan);
-  border(109,middle-25,102,50,19,[83,142,157]);center('magnitude','M'+l.event.mag.toFixed(1).replace('.',','),160,middle-fonts.magnitude.cellH/2,COLORS.cyan);
+  const middle=rowY+l.height/2; border(47,middle-25,45,50,9,l.color);center('caption',String(i+2),69,middle-fonts.caption.cellH/2,l.color);
+  border(109,middle-25,102,50,19,l.color);center('magnitude','M'+l.event.mag.toFixed(1).replace('.',','),160,middle-fonts.magnitude.cellH/2,l.color);
   let yy=middle-l.names.length*(fonts.title.cellH+2)/2;for(const name of l.names){text('title',name,230,yy);yy+=fonts.title.cellH+2;}
   for(const [x,label,value]of [[414,'DISTÂNCIA',l.distance],[541,'HORA',l.when+' BRT'],[688,'PROFUNDIDADE',l.depth]]){text('columnLabel',label,x,middle-26,COLORS.muted,.4);text('detail',value,x,middle-2);}
   flag(l.country.code,802,middle-15);rowY+=l.height;
  });
  const cells=[['EVENTOS HOJE',events.length],['M6,0 OU MAIS',events.filter(e=>e.mag>=6).length],['M5,0 – M5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],['M4,0 – M4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],['ABAIXO DE M4,0',events.filter(e=>e.mag<4).length]];
  border(X,totalsY,CW,140);
- cells.forEach(([label,count],i)=>{const x=X+CW/5*(i+.5);if(i)line(rgba,W,H,X+CW/5*i,totalsY+24,X+CW/5*i,totalsY+111,COLORS.line);center(i?'band':'total',count.toLocaleString('pt-BR'),x,totalsY+18,COLORS.cyan);center('tag',label,x,totalsY+91,COLORS.white);});
+ cells.forEach(([label,count],i)=>{const x=X+CW/5*(i+.5);if(i)line(rgba,W,H,X+CW/5*i,totalsY+24,X+CW/5*i,totalsY+111,COLORS.line);center(i?'band':'total',count.toLocaleString('pt-BR'),x,totalsY+18,i?gfx.magColor([null,6,5,4,3][i]):COLORS.cyan);center('tag',label,x,totalsY+91,COLORS.white);});
  text('small','Fonte: USGS · Dados sujeitos a revisão · Distâncias a São Paulo',X,H-30,COLORS.muted);
  const domain='monitorglobal.top';text('tag',domain,W-X-measure('tag',domain),H-31,COLORS.cyan);
  return {day,png:await gfx.png(rgba,W,H),top,total:events.length,layout:{width:W,height:H,splitH:435,rowsY,rowsEnd,totalsY,rowHeights},epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),design:DAILY_SUMMARY_DESIGN};

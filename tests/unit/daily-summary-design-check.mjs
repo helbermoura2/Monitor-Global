@@ -8,7 +8,7 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
 const normal=await mod.renderDailySummaryPng({day:fixture.day,events});
-assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'referencia-editorial-v3');
+assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'referencia-editorial-v4');
 const image=await mod.decodePng(normal.png);assert.equal(image.width,900);assert.equal(image.height,1344);assert(normal.png.length>50000);
 const brightRegion=(x0,y0,x1,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*image.width+x)*4;if(image.rgba[i]>100&&image.rgba[i+1]>100&&image.rgba[i+2]>100)n++;}return n;};
 assert(brightRegion(35,120,555,295)>8000,'Two-line heading must remain visible');
@@ -19,6 +19,15 @@ assert.deepEqual([events.filter(e=>e.mag>=6).length,events.filter(e=>e.mag>=5&&e
 if(process.env.SUMMARY_PREVIEW_PATH)await writeFile(process.env.SUMMARY_PREVIEW_PATH,normal.png);
 const colors=new Set();for(let y=350;y<760;y+=7)for(let x=60;x<500;x+=7){const i=(y*image.width+x)*4;colors.add([...image.rgba.subarray(i,i+3)].join(','));}
 assert(colors.has('20,43,64'));assert(colors.has('2,16,31'));assert(colors.size>15);
+const mixed=await mod.renderDailySummaryPng({day:fixture.day,events:fixture.events.slice(0,4).map((e,i)=>({...e,mag:[6.6,5.3,4.2,3.1][i],lat:[35,-20,15,-40][i],lon:[140,-70,30,170][i]}))});
+const colored=await mod.decodePng(mixed.png);
+for(const [rank,rgb]of [[1,[239,68,68]],[2,[251,146,60]],[3,[250,204,21]],[4,[74,222,128]]]){
+ const marker=mixed.epicenters.find(m=>m.rank===rank),x=Math.round(26+marker.x),y=Math.round(348+marker.y);let found=false;
+ for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){const index=((y+dy)*colored.width+x+dx)*4;if(rgb.every((v,i)=>colored.rgba[index+i]===v))found=true;}
+ assert(found,'Epicenter must use project magnitude color for rank '+rank);
+}
+if(process.env.SUMMARY_COLOR_PREVIEW_PATH){const preview=await mod.renderDailySummaryPng({day:fixture.day,events:fixture.events.slice(0,5).map((e,i)=>({...e,mag:[6.6,5.3,4.2,3.1,2.8][i]}))});await writeFile(process.env.SUMMARY_COLOR_PREVIEW_PATH,preview.png);}
+
 for(const rows of [[],[{...events[0],lat:null,lon:null,depth:null}],Array.from({length:5},(_,i)=>({...events[i],place:'A very long earthquake location with an extraordinarilylongunbrokentokenandadditionalregionalinformationwhichmustwrapsafely, Japan'}))]){
  const result=await mod.renderDailySummaryPng({day:fixture.day,events:rows});const png=await mod.decodePng(result.png);
  assert.equal(result.total,rows.length);assert.equal(png.width,900);assert(png.height>=1344&&png.height<3000);assert(result.layout.rowsEnd<=result.layout.totalsY);

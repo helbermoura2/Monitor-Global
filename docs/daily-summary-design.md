@@ -8,6 +8,8 @@ Os cinco epicentros usam as coordenadas oficiais preservadas pela consulta diár
 
 O gerador nativo em `daily-summary-renderer.mjs` produz PNG de 900 × 1344 px e aumenta a altura para nomes longos. Fontes e terra simplificada Natural Earth (domínio público) ficam embutidas em `summary-editorial-assets.mjs`; não há downloads durante a renderização. Reconstrução: `python3 tools/build-summary-editorial-assets.py` (Pillow). Bandeiras mantêm o atlas existente Flagpedia/flagcdn.com e Twemoji para Antártida.
 
-Janela de envio BRT, persistência no Durable Object, proteção contra duplicação e timeouts permanecem. Resumos anteriores armazenados mantêm suas imagens. `/health` informa `dailySummaryDesign: referencia-editorial-v3`.
+Janela de envio BRT, persistência no Durable Object, proteção contra duplicação e timeouts permanecem. Resumos anteriores armazenados mantêm suas imagens. `/health` informa `dailySummaryDesign: referencia-editorial-v4`.
 
 Validação: `node tests/unit/daily-summary-design-check.mjs` e `node tests/unit/telegram-history-check.mjs`. Abrange coordenadas reais, agrupamentos, meridiano de 180°, nomes longos, dia vazio, dados ausentes e renderização sem rede. Prévia: `SUMMARY_PREVIEW_PATH=/tmp/resumo.png node tests/unit/daily-summary-design-check.mjs`.
+
+Cores por magnitude, usando a mesma função dos alertas do projeto: abaixo de M4 verde (#4ade80), M4–4,9 amarelo (#facc15), M5–5,9 laranja (#fb923c), M6+ vermelho (#ef4444). Aplicadas aos epicentros e seus números, magnitude principal e arco, números e contornos da tabela e totais por faixa. O total geral e a identidade do projeto mantêm o ciano.
