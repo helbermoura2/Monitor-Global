@@ -133,6 +133,116 @@ function json(data, status = 200) {
 
 function nowIso() { return new Date().toISOString(); }
 
+// Média de pesquisas eleitorais (2º turno), fonte: tabela "Agregação de pesquisas"
+// da página da Wikipédia sobre as pesquisas pra presidente. Refeita 1x por noite
+// pelo cron (ver scheduled()); resultado fica em KV (env.TTS_USAGE) pro frontend ler.
+const POLLS_WIKIPEDIA_TITLE = 'Pesquisas_de_opinião_para_a_eleição_presidencial_no_Brasil_em_2026';
+const POLLS_KV_KEY = 'polls-2nd-round-average';
+const POLLS_RAN_TODAY_KV_KEY = 'polls-2nd-round-ran-on';
+
+async function fetchPollsWikitext() {
+    const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(POLLS_WIKIPEDIA_TITLE)}&prop=wikitext&format=json&formatversion=2`;
+    const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobal/1.0 (https://monitorglobal.top)' } });
+    if (!res.ok) throw new Error('Falha ao buscar Wikipedia: HTTP ' + res.status);
+    const data = await res.json();
+    const wikitext = data?.parse?.wikitext || '';
+    if (!wikitext) throw new Error('Sem wikitext na resposta da Wikipedia');
+    return wikitext;
+}
+
+function findAggregatorTable(wikitext) {
+    const tableRe = /\{\|[\s\S]*?\n\|\}/g;
+    let tm;
+    while ((tm = tableRe.exec(wikitext))) {
+        if (/Agregador/i.test(tm[0]) && /Lula/i.test(tm[0])) return tm[0];
+    }
+    return null;
+}
+
+// Linhas da tabela começam em "\n|-" (separador), terminam na próxima "\n|-" ou "\n|}".
+// Dentro de cada linha, cada célula começa numa linha própria com "|" (não "|}" nem "|-"),
+// podendo ter um prefixo "style=...|" e continuar em linhas seguintes sem "|" no começo.
+function parsePollsAggregatorTable(wikitext) {
+    const table = findAggregatorTable(wikitext);
+    if (!table) throw new Error('Tabela de agregação de pesquisas não encontrada');
+    const rowBlocks = table.split(/\n\|-/).slice(1);
+    const rows = [];
+    for (const block of rowBlocks) {
+        if (/^\s*!/.test(block) || !/^\s*\|/.test(block)) continue;
+        const cells = [];
+        let cur = null;
+        for (const line of block.split('\n')) {
+            if (line === '') continue;
+            if (/^\s*\|(?!\})/.test(line)) {
+                if (cur !== null) cells.push(cur);
+                cur = line.replace(/^\s*\|/, '');
+            } else if (cur !== null) {
+                cur += ' ' + line.trim();
+            }
+        }
+        if (cur !== null) cells.push(cur);
+        if (cells.length >= 11) rows.push(cells);
+    }
+
+    function cleanName(raw) { return raw.replace(/<ref[^]*?<\/ref>/g, '').trim(); }
+    function cleanPct(raw) {
+        if (raw == null) return null;
+        let v = raw.replace(/^style="[^"]*"\s*\|/, '').trim();
+        v = v.replace(/\{\{N\/A\}\}/i, '').trim();
+        v = v.replace(/\{\{Nre\|[^}]*\}\}/gi, '').trim();
+        const m = v.match(/-?\d+[.,]?\d*/);
+        return m ? parseFloat(m[0].replace(',', '.')) : null;
+    }
+
+    const results = [];
+    for (const cells of rows) {
+        const agregador = cleanName(cells[0]);
+        const data = cells[1].trim();
+        const lula = cleanPct(cells[3]);
+        const flavio = cleanPct(cells[4]);
+        if (lula == null || flavio == null) continue;
+        results.push({ agregador, data, lula, flavio });
+    }
+    return results;
+}
+
+async function refreshPollsAverage(env) {
+    const wikitext = await fetchPollsWikitext();
+    const rows = parsePollsAggregatorTable(wikitext);
+    if (rows.length < 2) throw new Error('Poucas linhas válidas na tabela de agregação (' + rows.length + ')');
+    const lula = rows.reduce((s, r) => s + r.lula, 0) / rows.length;
+    const flavio = rows.reduce((s, r) => s + r.flavio, 0) / rows.length;
+    const record = {
+        updatedAt: nowIso(),
+        sources: rows.length,
+        candidates: [
+            { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: Number(lula.toFixed(2)) },
+            { id: 'flavio', name: 'Flávio Bolsonaro', party: 'PL', percentage: Number(flavio.toFixed(2)) }
+        ]
+    };
+    if (env && env.TTS_USAGE) await env.TTS_USAGE.put(POLLS_KV_KEY, JSON.stringify(record));
+    return record;
+}
+
+// Rodar só 1x por noite (perto das 22h BRT = 01h UTC); a cron do Worker dispara
+// a cada tick de qualquer tarefa, então o gate é por data (marcador no KV).
+async function maybeRefreshPollsAverageNightly(env) {
+    if (!env || !env.TTS_USAGE) return;
+    const now = new Date();
+    if (now.getUTCHours() !== 1) return;
+    const today = now.toISOString().slice(0, 10);
+    const ranOn = await env.TTS_USAGE.get(POLLS_RAN_TODAY_KV_KEY);
+    if (ranOn === today) return;
+    await refreshPollsAverage(env);
+    await env.TTS_USAGE.put(POLLS_RAN_TODAY_KV_KEY, today);
+}
+
+async function handlePollsAverage(env) {
+    if (!env.TTS_USAGE) return json({ ok: false, error: 'KV indisponível' }, 503);
+    const raw = await env.TTS_USAGE.get(POLLS_KV_KEY);
+    if (!raw) return json({ ok: false, error: 'Ainda sem pesquisas calculadas' }, 404);
+    return json({ ok: true, ...JSON.parse(raw) });
+}
 
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
@@ -5306,6 +5416,10 @@ export default {
             try {return await handleTelegramHistory(request,env);}
             catch {return json({ok:false,error:'Não foi possível consultar o histórico'},502);}
         }
+        if (reqUrl.pathname === '/polls-average') {
+            try { return await handlePollsAverage(env); }
+            catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
         if (reqUrl.pathname === '/health') {
             return json({
                 ok: true,
@@ -5458,6 +5572,7 @@ export default {
             try { await refreshSpClimaCache(cacheRequest, env); } catch (e) { console.error('Cron SP:', e); }
             try { await refreshGlobalFeedsCache(cacheRequest, env); } catch (e) { console.error('Cron global:', e); }
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
+            try { await maybeRefreshPollsAverageNightly(env); } catch (e) { console.error('Cron pesquisas 2º turno:', e); }
         })());
     }
 };
