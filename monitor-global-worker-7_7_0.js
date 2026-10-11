@@ -190,6 +190,22 @@ async function handleOpovoRepoProbe() {
     return resposta(out, 200, 'text/plain; charset=utf-8');
 }
 
+// Temporário: investiga a matéria do Poder360 que lista as últimas pesquisas
+// divulgadas de Lula x Flávio -- pode ser uma fonte gratuita e atualizada a
+// cada pesquisa nova (ao contrário do agregador completo, que é pago).
+// Remover depois de checado.
+async function handlePoder360ArticleProbe() {
+    const url = 'https://www.poder360.com.br/poder-eleicoes-2026/saiba-como-estao-lula-e-flavio-nas-ultimas-14-pesquisas-divulgadas/';
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MonitorGlobalDebug/1.0)' } });
+    if (!res.ok) return resposta('Falha ao buscar matéria: HTTP ' + res.status, 502, 'text/plain; charset=utf-8');
+    const html = await res.text();
+    // Mostra o corpo do artigo bruto (sem parsear ainda) pra entender a estrutura real.
+    const bodyMatch = html.match(/<article[\s\S]*?<\/article>/i) || html.match(/<body[\s\S]*?<\/body>/i);
+    const body = bodyMatch ? bodyMatch[0] : html;
+    const textOnly = body.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return resposta(`HTML total: ${html.length} chars\n\nTEXTO EXTRAÍDO (primeiros 6000 chars):\n${textOnly.slice(0, 6000)}`, 200, 'text/plain; charset=utf-8');
+}
+
 async function fetchPollsWikitext() {
     const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(POLLS_WIKIPEDIA_TITLE)}&prop=wikitext&format=json&formatversion=2`;
     const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobal/1.0 (https://monitorglobal.top)' } });
@@ -5503,6 +5519,10 @@ export default {
         }
         if (reqUrl.pathname === '/polls-opovo-repo-probe') {
             try { return await handleOpovoRepoProbe(); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
+        }
+        if (reqUrl.pathname === '/polls-poder360-probe') {
+            try { return await handlePoder360ArticleProbe(); }
             catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
