@@ -71,19 +71,25 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     // already on screen) always gets shown, whatever its magnitude: every
     // new quake must appear, with the biggest taking priority when several
     // are queued at once.
-    // On cold load/reload, several parallel sources (USGS, EMSC, ...) resolve
-    // seconds after the very first display already went up, each queueing
-    // its own batch of quakes that look "new" only because the page itself
-    // is new -- not because they're a real live arrival. Letting every one
-    // of those bypass protection made the camera jump-cut across the globe
-    // several times a second right after load -- reported by the user as
-    // the page "going crazy". During a short grace window after the first
-    // display, a new arrival still queues and still wins once the window
-    // ends, but doesn't forcibly interrupt smaller/equal protected content;
-    // past that window, every new arrival keeps interrupting immediately,
-    // as requested.
-    const coldLoad = Number.isFinite(window.__mgFirstDisplayShownAt) &&
-        Date.now() - window.__mgFirstDisplayShownAt < 8000;
+    // On cold load/reload, several parallel sources (USGS, EMSC, AFAD, ...)
+    // resolve seconds after the very first display already went up, each
+    // queueing its own batch of quakes that look "new" only because the
+    // page itself is new -- not because they're a real live arrival.
+    // Letting every one of those bypass protection made the camera
+    // jump-cut across the globe several times a second right after load --
+    // reported by the user as the page "going crazy". A fixed few-second
+    // timer isn't enough: the comment atop this file notes the full
+    // multi-source fetch (11 sources with fallback) "pode levar dezenas de
+    // segundos" (tens of seconds), so a 8s guess left the flood going well
+    // past it, exactly as reported ("ainda continua"). isFirstLoad (shared
+    // module scope, nucleo-estado.js) stays true for as long as that real
+    // first fetch actually takes, however long -- plus a buffer afterwards
+    // for straggling parallel sources still resolving. During that window,
+    // a new arrival still queues and still wins once the window ends, but
+    // doesn't forcibly interrupt smaller/equal protected content; past it,
+    // every new arrival keeps interrupting immediately, as requested.
+    const coldLoad = (typeof isFirstLoad!=='undefined' && isFirstLoad) ||
+        (Number.isFinite(window.__mgColdLoadGraceUntil) && Date.now() < window.__mgColdLoadGraceUntil);
     if (protectedSelection && Number(next.event.mag)<=currentMag && (!next.isNew || coldLoad)) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     pendingQuakeRevisions.delete(next.event.id);
@@ -501,6 +507,10 @@ async function fetchGlobalFeeds() {
 
         if (!firstRevisionDisplay) focusNextQuakeRevision(novosRecentes.length > 0);
 
+        // Buffer after the real first full fetch finishes (whatever that
+        // took), for straggling parallel/supplemental sources (AFAD etc.)
+        // still resolving moments later -- see focusNextNewCameraQuake().
+        if (isFirstLoad) window.__mgColdLoadGraceUntil = Date.now() + 10000;
         isFirstLoad = false;
 
         // Atualização (revisão de magnitude/profundidade/fonte) não toca mais
