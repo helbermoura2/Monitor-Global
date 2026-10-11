@@ -58,5 +58,5 @@
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v10-official-intensity'};
+ globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v11-full-hd'};
 })();

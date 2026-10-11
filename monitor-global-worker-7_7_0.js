@@ -1,3 +1,5 @@
+import {QUAKE_HD_FONTS} from "./quake-hd-fonts.mjs";
+import {archiveTelegramOriginal,serveTelegramOriginal,originalImageButton} from "./telegram-image-archive.mjs";
 import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
 import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
@@ -4099,9 +4101,9 @@ async function fetchBinaryWithTimeout(url, timeoutMs = 6000) {
 }
 
 /** Tenta cada URL de staticMapUrls em ordem até uma decodificar com sucesso. Retorna null se todas falharem. */
-async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anchorY = imgH / 2) {
+async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anchorY = imgH / 2, bounds = null) {
     if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
-    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH, anchorY);
+    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH, anchorY, bounds);
     for (const url of urls) {
         try {
             const bytes = await fetchBinaryWithTimeout(url, 6000);
@@ -4114,13 +4116,19 @@ async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anc
     return null;
 }
 
+let quakeHdFonts;
+async function getQuakeHdFonts(){
+ if(!quakeHdFonts){quakeHdFonts=Promise.all(Object.entries(QUAKE_HD_FONTS).map(async([key,data])=>[key,{...data,img:await decodePng(base64ToBytes(data.b64))}])).then(entries=>Object.fromEntries(entries));}
+ return quakeHdFonts;
+}
 async function renderAlertCardPng(ev) {
     await enrichBrazilEpicenter(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const W=800,H=1440,rgba=new Uint8Array(W*H*4),fonts=await getFontAtlases();
-    const frame=globalThis.QuakeCardLayout.frame(ev);
+    const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
+    const logicalFrame=globalThis.QuakeCardLayout.frame(ev);
+    const frame={...logicalFrame,width:W,height:Math.round(logicalFrame.height*sy),anchorX:logicalFrame.anchorX*sx,anchorY:logicalFrame.anchorY*sy};
     fillRect(rgba,W,0,0,W,H,9,33,48);
-    const mapImg=await fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY);
+    const mapImg=await fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat]);
     if(mapImg){
         drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
         fillRect(rgba,W,0,0,W,frame.height,0,0,0,51);
@@ -4128,31 +4136,32 @@ async function renderAlertCardPng(ev) {
         // Labels and administrative boundaries stay above the intensity colors.
         try{
             const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
-            const url='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=800,820&format=png32&transparent=true&f=image';
+            const url='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size='+W+','+frame.height+'&dpi=144&format=png32&transparent=true&f=image';
             const labels=await decodePng(await fetchBinaryWithTimeout(url,4000));
             drawImageCover(rgba,W,H,labels,0,0,W,frame.height);
         }catch(e){console.warn('map labels unavailable:',e.message);}
     }
     const rgb=color=>color.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16));
-    const fontFor=(size,bold)=>bold?fonts.titleProp:fonts.captionProp;
-    const textWidth=(text,size,bold)=>textFontWidthProp(fontFor(size,bold),sanitizeFontText(text),0)*size/(bold?26:16);
+    const fontFor=(size,bold)=>fonts[(size*sy>50?96:size*sy>24?40:20)+(bold?'-bold':'-regular')];
+    const textWidth=(text,size,bold)=>{const font=fontFor(size,bold);return textFontWidthProp(font,sanitizeFontText(text),0)*size/font.size;};
+    const nativeRect=(x,y,w,h,c)=>fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy),Math.round(w*sx),Math.round(h*sy),...rgb(c));
     const painter={
-        gradient:(x,y,w,h,from,to)=>{const a=rgb(from),b=rgb(to);for(let row=0;row<h;row++)fillRect(rgba,W,x,y+row,w,1,...a.map((v,i)=>Math.round(v+(b[i]-v)*row/h)));},
-        roundRect:(x,y,w,h,c)=>{const r=8,color=rgb(c);fillRect(rgba,W,x+r,y,w-2*r,h,...color);fillRect(rgba,W,x,y+r,w,h-2*r,...color);for(const xx of [x+r,x+w-r])for(const yy of [y+r,y+h-r])fillCircle(rgba,W,H,xx,yy,r,...color,255);},
-        rect:(x,y,w,h,c)=>fillRect(rgba,W,x,y,w,h,...rgb(c)),
-        dot:(x,y,r,c)=>fillCircle(rgba,W,H,x,y,r,...rgb(c),255),
-        arc:(x,y,r,t,a,s,c)=>drawArc(rgba,W,H,x,y,r,t,a,s,...rgb(c),255),
+        gradient:(x,y,w,h,from,to)=>{const a=rgb(from),b=rgb(to),rows=Math.round(h*sy);for(let row=0;row<rows;row++)fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy)+row,Math.round(w*sx),1,...a.map((v,i)=>Math.round(v+(b[i]-v)*row/rows)));},
+        roundRect:(x,y,w,h,c)=>{x*=sx;y*=sy;w*=sx;h*=sy;const r=8*sy,color=rgb(c);fillRect(rgba,W,Math.round(x+r),Math.round(y),Math.round(w-2*r),Math.round(h),...color);fillRect(rgba,W,Math.round(x),Math.round(y+r),Math.round(w),Math.round(h-2*r),...color);for(const xx of [x+r,x+w-r])for(const yy of [y+r,y+h-r])fillCircle(rgba,W,H,xx,yy,r,...color,255);},
+        rect:nativeRect,
+        dot:(x,y,r,c)=>fillCircle(rgba,W,H,x*sx,y*sy,r*sy,...rgb(c),255),
+        arc:(x,y,r,t,a,s,c)=>drawArc(rgba,W,H,x*sx,y*sy,r*sy,t*sy,a,s,...rgb(c),255),
         measure:textWidth,
         text:(text,x,y,size,c,bold=false)=>{
             text=sanitizeFontText(text);const f=fontFor(size,bold),tw=Math.ceil(textFontWidthProp(f,text,0))+2;
             const pixels=new Uint8Array(tw*f.cellH*4);
             drawTextFontProp(pixels,tw,f.cellH,f,text,0,0,...rgb(c),0);
-            const scale=size/(bold?26:16);
-            const color=rgb(c),channel=color.indexOf(Math.max(...color)),dh=Math.ceil(f.cellH*scale),dw=Math.ceil(tw*scale);
+            const scaleX=size*sx/f.size,scaleY=size*sy/f.size;
+            const color=rgb(c),channel=color.indexOf(Math.max(...color)),dh=Math.ceil(f.cellH*scaleY),dw=Math.ceil(tw*scaleX);
             // Bilinear alpha keeps the shared sans-serif typography smooth at any size.
             for(let yy=0;yy<dh;yy++)for(let xx=0;xx<dw;xx++){
-                const dx=Math.round(x)+xx,dy=Math.round(y)+yy;if(dx<0||dx>=W||dy<0||dy>=H)continue;
-                const sx=xx/scale,sy=yy/scale,x0=Math.floor(sx),y0=Math.floor(sy),tx=sx-x0,ty=sy-y0;
+                const dx=Math.round(x*sx)+xx,dy=Math.round(y*sy)+yy;if(dx<0||dx>=W||dy<0||dy>=H)continue;
+                const sourceX=xx/scaleX,sourceY=yy/scaleY,x0=Math.floor(sourceX),y0=Math.floor(sourceY),tx=sourceX-x0,ty=sourceY-y0;
                 const alpha=(ix,iy)=>ix>=0&&ix<tw&&iy>=0&&iy<f.cellH?pixels[(iy*tw+ix)*4+channel]/color[channel]:0;
                 const a=alpha(x0,y0)*(1-tx)*(1-ty)+alpha(x0+1,y0)*tx*(1-ty)+alpha(x0,y0+1)*(1-tx)*ty+alpha(x0+1,y0+1)*tx*ty;
                 const index=(dy*W+dx)*4;for(let k=0;k<3;k++)rgba[index+k]=Math.round(rgba[index+k]*(1-a)+color[k]*a);
@@ -4170,9 +4179,9 @@ async function renderAlertCardPng(ev) {
 }
 
 
-function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440, anchorY = imgH / 2) {
+function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440, anchorY = imgH / 2, bounds = null) {
     const span = 180 / Math.pow(2, Math.max(3, Math.min(10, zoom | 0)));
-    const bbox = [Number(lon)-span, Number(lat)-2*span*(imgH-anchorY)/imgW, Number(lon)+span, Number(lat)+2*span*anchorY/imgW].join(',');
+    const bbox = (bounds || [Number(lon)-span, Number(lat)-2*span*(imgH-anchorY)/imgW, Number(lon)+span, Number(lat)+2*span*anchorY/imgW]).join(',');
     return ['World_Imagery', 'World_Topo_Map'].map(service =>
         `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=${imgW},${imgH}&format=png&f=image`);
 }
@@ -4262,6 +4271,7 @@ async function telegramSendPhoto(env, ev, caption) {
     form.append('chat_id', String(chatId));
     form.append('caption', caption.slice(0, 1024));
     form.append('parse_mode', 'Markdown');
+    if(env.ARCHIVE_TELEGRAM_IMAGE)try{ev.originalImageKey=await env.ARCHIVE_TELEGRAM_IMAGE(png,ev.originalImageKey);form.append('reply_markup',JSON.stringify(originalImageButton(ev.originalImageKey)));}catch(error){console.warn('Original Full HD indisponível');}
     form.append('photo', new Blob([png], { type: 'image/png' }), 'monitor-global-alerta.png');
 
     const api = `https://api.telegram.org/bot${token}/sendPhoto`;
@@ -4324,11 +4334,13 @@ async function telegramEditAlert(env, ev, record) {
         ev.imageExposure = ev.imageExposure || await queryImageExposure(ev, env);
         const revisions=record.revisions||[],previous= revisions.length>1?revisions[revisions.length-2].mag:record.initialMag;
         const revisionText=revisions.length?'M'+globalThis.EventPortuguese.number(previous,1)+' → M'+globalThis.EventPortuguese.number(ev.mag,1):'';
+        ev.originalImageKey=record.originalImageKey||record.currentEvent?.originalImageKey;
         const png = await renderAlertCardPng({...ev,revisionText});
         body = new FormData();
         body.append('chat_id', String(record.chatId));
         body.append('message_id', String(record.messageId));
         body.append('media', JSON.stringify({type: 'photo', media: 'attach://card', caption, parse_mode: 'Markdown'}));
+        if(env.ARCHIVE_TELEGRAM_IMAGE)try{ev.originalImageKey=await env.ARCHIVE_TELEGRAM_IMAGE(png,ev.originalImageKey);record.originalImageKey=ev.originalImageKey;body.append('reply_markup',JSON.stringify(originalImageButton(ev.originalImageKey)));}catch(error){console.warn('Original Full HD indisponível');}
         body.append('card', new Blob([png], {type: 'image/png'}), 'monitor-global-atualizado.png');
     }
     const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
@@ -4344,7 +4356,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v10-official-intensity';
+    next.cardImageVersion = 'cartographic-v11-full-hd';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     next.imageShakingVersion = shakingVersion(ev.shaking);
@@ -4535,6 +4547,7 @@ export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
     fetch(request) {
         const operation = this.queue.then(async () => {
+            if(new URL(request.url).pathname.startsWith('/telegram-image/'))return serveTelegramOriginal(request,this.state.storage);
             if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(new URL(request.url).pathname))return handleRainbowProductInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
@@ -4547,7 +4560,7 @@ export class EarthquakeAlertDelivery {
             }
             const kv = this.env.TTS_USAGE;
             const storage = this.state.storage;
-            const env = {...this.env, IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
+            const env = {...this.env, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
                         let value;
@@ -4775,10 +4788,11 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v10-official-intensity';
+            reservation.cardImageVersion = 'cartographic-v11-full-hd';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.currentEvent = ev;
+            reservation.originalImageKey = ev.originalImageKey;
             reservation.imageShakingVersion = shakingVersion(ev.shaking);
             reservation.imageShakingCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4803,7 +4817,7 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent photos; recheck official products at most once per five minutes.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v10-official-intensity' || Date.now()-(r.imageShakingCheckedAt||0)>=300000 || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v11-full-hd' || Date.now()-(r.imageShakingCheckedAt||0)>=300000 || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const shaking=await queryImageShaking(ev);root.imageShakingCheckedAt=Date.now();
@@ -4819,9 +4833,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else {await saveSentAlerts(request, sentRecords, env);continue;}
         }
-        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'cartographic-v10-official-intensity') {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'cartographic-v11-full-hd') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'cartographic-v10-official-intensity'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'cartographic-v11-full-hd'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
@@ -5439,6 +5453,10 @@ export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(reqUrl.pathname.startsWith('/telegram-image/')){
+            if(!env.EARTHQUAKE_ALERTS)return new Response('Original indisponível',{status:503});
+            return env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('earthquake-alerts')).fetch(request);
+        }
         if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(reqUrl.pathname))return handleRainbowProducts(request,env);
         if(reqUrl.pathname==='/rain-nowcast')return handleRainbowNowcast(request,env);
         if(reqUrl.pathname==='/translate-pt'){
@@ -5476,6 +5494,7 @@ export default {
                 dailySummaryDesign: DAILY_SUMMARY_DESIGN,
                 brazilEpicenterLocation: BRAZIL_EPICENTER_VERSION,
                 earthquakePaint: "official-shakemap-v1",
+                telegramImageQuality: "full-hd-1080x1920-original-png",
                 rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),
