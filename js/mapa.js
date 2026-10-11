@@ -368,11 +368,17 @@ function initMap() {
         // não overlay HTML), sem precisarmos recalcular posição em cada
         // frame de 'move'/'zoom'. Camada de "glow" (mais larga e borrada)
         // por baixo simula o halo que o box-shadow fazia no <div> antigo.
+        // Pedido do usuário: tirar os anéis azul/vermelho (frente P/S) do
+        // mapa. As camadas continuam existindo -- startWaveFront() ainda
+        // calcula o alcance real da onda pra guiar a câmera (chase-cam) e
+        // pra ligar com o resumo final/tsunami -- só a renderização visual
+        // do anel fica permanentemente desligada (visibility 'none'), nunca
+        // mais ligada por setWaveFrontVisible(true).
         for(const [phase,color] of [['p','#38bdf8'],['s','#f87171'],['pkp','#ff00ff'],['pkikp','#00ff00']]){
             const source=`wave-front-${phase}`;
             map.addSource(source,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
             for(const [kind,width,blur] of [['glow',9,4],['line',phase==='pkikp'?1:3,0]]){
-                map.addLayer({id:`${source}-${kind}`,type:'line',source,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':color,'line-width':width,'line-blur':blur,'line-opacity':0,'line-opacity-transition':{duration:600}}});
+                map.addLayer({id:`${source}-${kind}`,type:'line',source,layout:{'line-cap':'round','line-join':'round','visibility':'none'},paint:{'line-color':color,'line-width':width,'line-blur':blur,'line-opacity':0,'line-opacity-transition':{duration:600}}});
             }
         }
 

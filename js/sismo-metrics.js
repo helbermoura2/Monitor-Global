@@ -526,7 +526,10 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     // The same GlobalQuake table is inverted using the elapsed seconds.
     if (!map.getSource('wave-front-p') || !map.getSource('wave-front-s')) return;
     waveFrontAtivo = true;
-    setWaveFrontVisible(true);
+    // Pedido do usuário: sem anéis azul/vermelho (P/S) -- a camada em si
+    // fica permanentemente invisível (mapa.js); mantém só o texto de status
+    // (não controlado por setWaveFrontVisible) e toda a lógica de câmera/
+    // alcance que o resto deste arquivo calcula a partir do anel.
     // Sem timer de auto-expiração: o anel fica na tela (mesmo já parado no
     // teto) até outro startWaveFront() ser chamado pra um evento diferente —
     // quem decide QUANDO trocar de evento é scheduleNextAutoCycle

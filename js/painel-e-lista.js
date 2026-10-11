@@ -1178,6 +1178,36 @@ function resetPainelDetalheCompartilhado() {
     if (trustBox) { trustBox.style.display='none'; trustBox.innerHTML=''; }
 }
 
+// Abre a câmera pra mostrar a área pintada de intensidade sentida inteira
+// e, uns segundos depois, fecha de volta no epicentro e segura ali ~10s
+// antes de liberar o ciclo -- pedido direto do usuário, igual nos três
+// modos (aleatório, novo e manual). Usada diretamente no ciclo automático
+// e como rede de segurança pro ao vivo/manual: o sistema de frente de
+// onda P/S (startWaveFront) calcula a mesma coisa sozinho quando o
+// modelo de tempo de viagem (globalquake-travel.js, um arquivo buscado
+// via rede) carrega -- mas se essa busca falhar ou nunca responder,
+// window.__mgWaveFrontState nunca é preenchido e a câmera ficava presa
+// no enquadramento inicial pra sempre, sem abrir nem voltar. Chamar isto
+// como fallback garante que o comportamento pedido aconteça de qualquer
+// jeito, sem depender daquele recurso externo.
+function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
+    if (!map || !window.SeismicImpact || !current?.coords) return false;
+    if (typeof stopWaveFront === 'function') stopWaveFront();
+    if (typeof stopFeltZone === 'function') stopFeltZone();
+    SeismicImpact.start({ id: current.id, lng: current.coords[0], lat: current.coords[1], mag: current.mag, depth: current.depth }, true);
+    const zoom = zoomParaAreaPintada(current.coords[0], current.coords[1], Math.max(10, SeismicImpactModel.extent(current.mag, current.depth, 2.1)));
+    map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoom), zoom, duration: 2500, essential: true });
+    clearTimeout(window.__mgFeltZoneReturnT);
+    window.__mgFeltZoneReturnT = setTimeout(() => {
+        if (eventoSelecionadoId !== current.id || !map) return;
+        try {
+            window.SeismicFocus?.pause?.();
+            map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoomAlvo), zoom: zoomAlvo, pitch: 0, bearing: 0, duration: 2500, essential: true });
+        } catch (e) {}
+    }, 6000);
+    return true;
+}
+
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
     if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
@@ -1460,27 +1490,8 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 if (eventoSelecionadoId !== item.id) return;
                 clearTimeout(window.__mgWaveDelayT);
                 if(soft && !triggerVisualAlert){
-                    if(typeof stopWaveFront==='function')stopWaveFront();
                     const current=globalEvents.find(event=>event.id===item.id)||item;
-                    if(window.SeismicImpact){
-                        if(typeof stopFeltZone==='function')stopFeltZone();
-                        SeismicImpact.start({id:current.id,lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth},true);
-                        const zoom=zoomParaAreaPintada(current.coords[0],current.coords[1],Math.max(10,SeismicImpactModel.extent(current.mag,current.depth,2.1)));
-                        map.easeTo({center:centroCompensado(current.coords[0],current.coords[1],zoom),zoom,duration:2500,essential:true});
-                        // Abre pra mostrar a pintura inteira (acima) e, antes de liberar
-                        // o ciclo pro próximo evento, fecha de volta no epicentro e
-                        // segura ali uns 10s -- pedido direto do usuário: a câmera
-                        // não pode ficar parada aberta até o cartão trocar sozinho
-                        // (e, sem isto, só reabria com um sismo novo interrompendo).
-                        clearTimeout(window.__mgFeltZoneReturnT);
-                        window.__mgFeltZoneReturnT = setTimeout(() => {
-                            if (eventoSelecionadoId !== current.id || !map) return;
-                            try {
-                                window.SeismicFocus?.pause?.();
-                                map.easeTo({center:centroCompensado(current.coords[0],current.coords[1],zoomAlvo),zoom:zoomAlvo,pitch:0,bearing:0,duration:2500,essential:true});
-                            } catch (e) {}
-                        }, 6000);
-                    }else if(typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
+                    if(!abrirPinturaEVoltarEpicentro(current,zoomAlvo)&&typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
                     return;
                 }
                 if (typeof stopFeltZone === 'function') stopFeltZone();
@@ -1516,6 +1527,20 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                                 mode:waveMode,
                                 camDelayMs:soft?0:camDelayMs
                             });
+                            // Rede de segurança: a frente P/S depende de um arquivo buscado
+                            // via rede (globalquake-travel.js); se essa busca falhar ou nunca
+                            // responder, window.__mgWaveFrontState nunca é preenchido e a
+                            // câmera fica presa no enquadramento inicial pra sempre, sem abrir
+                            // nem voltar -- pedido do usuário pra funcionar em todos os modos.
+                            // Se nada chegou depois de tempo suficiente pro carregamento
+                            // normal, assume que falhou e toma conta sozinho da mesma
+                            // escolha de câmera usada no ciclo automático.
+                            setTimeout(() => {
+                                if (eventoSelecionadoId !== item.id) return;
+                                const state = window.__mgWaveFrontState;
+                                if (state && state.id === item.id && state.status !== 'error') return;
+                                abrirPinturaEVoltarEpicentro(current, zoomAlvo);
+                            }, 5000);
                         }
                     } catch (e) {}
                 }, 3000);
@@ -2088,7 +2113,12 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // abre pra uma visão global neutra.
         if (map) map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
     }
-    if(item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
+    // Só em seleção manual/ao vivo: no ciclo automático isto sobrescrevia o
+    // enquadramento no LUGAR do alerta (acima) com um fitBounds ao redor de
+    // TODOS os municípios do aviso -- pra um aviso estadual isso podia
+    // acabar mostrando o mapa inteiro em vez do lugar, pedido do usuário
+    // pra não fazer (ex.: "Rajada de Vento" indo pro mapa todo no aleatório).
+    if(!softAlert&&item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 
