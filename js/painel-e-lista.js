@@ -1062,6 +1062,7 @@ function runAutoCycle(forced = false) {
         }
         if (!forced && map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
         if(forced)stopMapCamera();
+        if (!window.CinematicCard?.isActive() && window.PollProjectionCard?.due() && window.PollProjectionCard.show(() => scheduleNextAutoCycle(20000))) { scheduleNextAutoCycle(31000); return; }
         if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
     } catch (e) {
         window.__mgSoftCycle = false;
@@ -1179,6 +1180,7 @@ function resetPainelDetalheCompartilhado() {
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
+    if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
     if(!silentRefresh&&window.SeismicScenarioDemo?.isActive())window.CardEffectDemo?.cancelForRealEvent();
     if (!silentRefresh && globalEvents[index].id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     if (!silentRefresh) {
@@ -1563,6 +1565,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
     if(!silentRefresh&&window.SeismicScenarioDemo?.isActive())window.CardEffectDemo?.cancelForRealEvent();
     const rawItem=item;
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
