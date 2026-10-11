@@ -5420,6 +5420,12 @@ export default {
             try { return await handlePollsAverage(env); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
         }
+        // Temporário: força o 1º cálculo logo após o deploy, sem esperar o
+        // cron noturno (~22h BRT). Remover depois que o KV estiver populado.
+        if (reqUrl.pathname === '/polls-average-refresh-now') {
+            try { return json({ ok: true, ...(await refreshPollsAverage(env)) }); }
+            catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
         if (reqUrl.pathname === '/health') {
             return json({
                 ok: true,
