@@ -1224,6 +1224,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (idAnteriorSismo !== eventoSelecionadoId) {
         try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
         try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+        clearTimeout(window.__mgFeltZoneReturnT);
     }
     try { if (typeof EventStore !== 'undefined') EventStore.setSelected(eventoSelecionadoId); } catch (e) {}
     // Devolve a pontinho o ícone "outro tipo" (furacão/vulcão/etc) que
@@ -1472,6 +1473,19 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                         SeismicImpact.start({id:current.id,lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth},true);
                         const zoom=zoomParaAreaPintada(current.coords[0],current.coords[1],Math.max(10,SeismicImpactModel.extent(current.mag,current.depth,2.1)));
                         map.easeTo({center:centroCompensado(current.coords[0],current.coords[1],zoom),zoom,duration:2500,essential:true});
+                        // Abre pra mostrar a pintura inteira (acima) e, antes de liberar
+                        // o ciclo pro próximo evento, fecha de volta no epicentro e
+                        // segura ali uns 10s -- pedido direto do usuário: a câmera
+                        // não pode ficar parada aberta até o cartão trocar sozinho
+                        // (e, sem isto, só reabria com um sismo novo interrompendo).
+                        clearTimeout(window.__mgFeltZoneReturnT);
+                        window.__mgFeltZoneReturnT = setTimeout(() => {
+                            if (eventoSelecionadoId !== current.id || !map) return;
+                            try {
+                                window.SeismicFocus?.pause?.();
+                                map.easeTo({center:centroCompensado(current.coords[0],current.coords[1],zoomAlvo),zoom:zoomAlvo,pitch:0,bearing:0,duration:2500,essential:true});
+                            } catch (e) {}
+                        }, 6000);
                     }else if(typeof startFeltZone==='function')startFeltZone(current.coords[0],current.coords[1],current.mag,current.depth,current.id);
                     return;
                 }
@@ -2072,9 +2086,13 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     } else {
         window.__mgSoftCycle = false;
         scheduleNextAutoCycle(30000);
-    }
-    if(item.type==='tsunami'&&!item.coords&&map){
-        map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
+        // Sem coordenadas (boletim regional/nacional sem epicentro, ex.:
+        // Meteoalarm, NWS por estado) a câmera não tem pra onde ir -- mas
+        // não pode ficar presa num sismo anterior sem relação nenhuma com
+        // o alerta agora em tela, como se ainda fosse o evento mostrado.
+        // Mesmo tratamento que só existia pra tsunami sem coords (abaixo):
+        // abre pra uma visão global neutra.
+        if (map) map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
     }
     if(item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
