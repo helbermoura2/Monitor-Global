@@ -13,14 +13,14 @@ const q=(id,mag)=>({id,mag,time:Date.now()});
 test('novo M3 interrompe M2 protegido imediatamente, sem esperar o ciclo',()=>{
  const {c,shown}=setup(q('old',2),Date.now()+90000);c.globalEvents.push(q('new',3));c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['new',true]]);
 });
-test('maior do lote vence revisões e menores continuam na fila',()=>{
- const {c,shown}=setup(q('old',2),Date.now()+90000);const items=[q('small',3),q('big',5.6),q('revision',7)];c.globalEvents.push(...items);c.queueQuakeRevisions([items[2]]);c.queueNewCameraQuakes(items.slice(0,2));assert.equal(c.focusNextQuakeRevision(),true);assert.deepEqual(shown,[['big',true]]);assert.equal(c.focusNextQuakeRevision(),false);assert.equal(shown.length,1);c.window.__mgRevisionProtectedUntil=0;assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown[1],['small',true]);
+test('maior do lote vence primeiro, mas o menor que sobra na fila ainda é exibido em seguida (toda chegada nova aparece)',()=>{
+ const {c,shown}=setup(q('old',2),Date.now()+90000);const items=[q('small',3),q('big',5.6),q('revision',7)];c.globalEvents.push(...items);c.queueQuakeRevisions([items[2]]);c.queueNewCameraQuakes(items.slice(0,2));assert.equal(c.focusNextQuakeRevision(),true);assert.deepEqual(shown,[['big',true]]);assert.equal(c.focusNextQuakeRevision(),true);assert.deepEqual(shown[1],['small',true]);
 });
 test('revisita automática maior não bloqueia chegada nova menor',()=>{
  const {c,shown}=setup(q('old',6));c.globalEvents.push(q('new',3));c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['new',true]]);
 });
-test('ao vivo/manual maior protege contra menores até o fim, mas admite maior',()=>{
- const {c,shown}=setup(q('old',5),Date.now()+90000);c.globalEvents.push(q('equal',5),q('small',3));c.queueNewCameraQuakes(c.globalEvents.slice(1));assert.equal(c.focusNextNewCameraQuake(),false);c.globalEvents.push(q('larger',6));c.queueNewCameraQuakes([c.globalEvents[3]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['larger',true]]);
+test('toda chegada nova aparece mesmo sob proteção ao vivo/manual; a maior do lote vai primeiro',()=>{
+ const {c,shown}=setup(q('old',5),Date.now()+90000);c.globalEvents.push(q('equal',5),q('small',3));c.queueNewCameraQuakes(c.globalEvents.slice(1));assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['equal',true]]);
 });
 test('duplicata selecionada ou registro removido não captura câmera novamente',()=>{
  const {c,shown}=setup(q('old',3));c.queueNewCameraQuakes([c.globalEvents[0],q('gone',6)]);assert.equal(c.focusNextNewCameraQuake(),false);assert.equal(shown.length,0);
@@ -31,10 +31,9 @@ test('M0.9 fresh badge recovers before protected historical M4.8, without higher
  c.globalEvents.push(q('small',0.9));c.activeAlertingIds=new Map([['small',Date.now()+180000]]);
  assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['small',true]]);
 });
-test('pending quake still wins after its 30-minute origin window expires while waiting for M6',()=>{
+test('pending quake wins immediately even past its 30-minute origin window, despite a protected M6 on screen',()=>{
  const {c,shown}=setup(q('strong',6),Date.now()+90000);const waiting={...q('waiting',1.2),time:Date.now()-31*60000};c.globalEvents.push(waiting);c.queueNewCameraQuakes([waiting]);
- assert.equal(c.focusNextNewCameraQuake(),false);assert.equal(vm.runInContext('pendingNewCameraQuakes.size',c),1);
- c.window.__mgRevisionProtectedUntil=0;assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['waiting',true]]);
+ assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['waiting',true]]);
 });
 test('all new magnitudes precede old revisits and greatest magnitude is selected first',()=>{
  const {c,shown}=setup({...q('historical',4.8),time:Date.now()-19*3600000},Date.now()+90000);

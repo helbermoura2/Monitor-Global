@@ -37,7 +37,7 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
         if (index < 0 || id === eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
-        candidates.push({index, event:globalEvents[index], arrived:entry.arrived});included.add(id);
+        candidates.push({index, event:globalEvents[index], arrived:entry.arrived, isNew:true});included.add(id);
     }
     // Revisions can raise an already known event above the quake on screen.
     // Also recover a newly badged arrival if its enqueue path was interrupted.
@@ -51,7 +51,7 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
         if(raised&&Number(event.mag)<=currentMag&&!freshBadge)continue;
         if(!raised&&(!freshBadge||(presented!=null&&presented>=Number(event.mag))))continue;
         const arrived=Number(revision?._updatedAt||event._novoAt)||Date.now();
-        candidates.push({index,event,arrived});
+        candidates.push({index,event,arrived,isNew:freshBadge&&!raised});
         if(freshBadge&&!pendingNewCameraQuakes.has(event.id))pendingNewCameraQuakes.set(event.id,{arrived});
     }
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
@@ -66,8 +66,12 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     if(alertProtection>0&&(Number(next.event.mag)<5||!isRecentCameraQuake(next.event)))return false;
     if(Number(next.event.mag)<5&&window.VolcanoPriority?.presentationActive())return false;
     // Automatic revisits never delay a newly arrived quake. A larger arrival
-    // may interrupt a live/manual hold; equal or smaller arrivals wait.
-    if (protectedSelection && Number(next.event.mag)<=currentMag) return false;
+    // may interrupt a live/manual hold; equal or smaller arrivals wait -- but
+    // a genuinely new arrival (not just a magnitude revision of something
+    // already on screen) always gets shown, whatever its magnitude: every
+    // new quake must appear, with the biggest taking priority when several
+    // are queued at once.
+    if (protectedSelection && Number(next.event.mag)<=currentMag && !next.isNew) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;
