@@ -1461,7 +1461,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
                 if(soft && !triggerVisualAlert){
                     if(typeof stopWaveFront==='function')stopWaveFront();
                     const current=globalEvents.find(event=>event.id===item.id)||item;
-                    if(current.mag>=5.5&&window.SeismicImpact){
+                    if(window.SeismicImpact){
                         if(typeof stopFeltZone==='function')stopFeltZone();
                         SeismicImpact.start({id:current.id,lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth},true);
                         const zoom=zoomParaAreaPintada(current.coords[0],current.coords[1],Math.max(10,SeismicImpactModel.extent(current.mag,current.depth,2.1)));
@@ -1513,7 +1513,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
             if(soft && !triggerVisualAlert){
                 clearTimeout(window.__mgWaveDelayT);
                 if(typeof stopWaveFront==='function')stopWaveFront();
-                if(item.mag>=5.5&&window.SeismicImpact)SeismicImpact.start({id:item.id,lng,lat,mag:item.mag,depth:item.depth},true);
+                if(window.SeismicImpact)SeismicImpact.start({id:item.id,lng,lat,mag:item.mag,depth:item.depth},true);
                 else if(typeof startFeltZone==='function')startFeltZone(lng,lat,item.mag,item.depth,item.id);
                 return;
             }

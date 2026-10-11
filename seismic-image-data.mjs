@@ -15,7 +15,7 @@ async function land(){
 const distance=(a,b,c,d)=>{const rad=Math.PI/180,x=Math.sin((c-a)*rad/2)**2+Math.cos(a*rad)*Math.cos(c*rad)*Math.sin((d-b)*rad/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));};
 // Scanline land mask, including holes. Paint only on land, at a bounded 4px grid.
 export const paintImageIntensity=(...args)=>globalThis.QuakeImagePaint.paint(...args);
-export async function overlayImageIntensity(rgba,frame,ev){if(Number(ev.mag)<5)return false;try{return paintImageIntensity(rgba,frame,ev,await land())>0;}catch{return false;}}
+export async function overlayImageIntensity(rgba,frame,ev){if(![ev.mag,ev.lat,ev.lon,ev.depth].every(v=>v!=null&&Number.isFinite(Number(v))))return false;try{return paintImageIntensity(rgba,frame,ev,await land())>0;}catch{return false;}}
 export function validImageExposure(data){return data?.status==='available'&&['pager','worldpop'].includes(data.method)&&data.ranges?.length===3&&data.ranges.every((r,i)=>r.population!==null&&Number.isFinite(Number(r.population))&&Number(r.population)>=0&&(!i||Number(r.population)<=Number(data.ranges[i-1].population)));}
 export async function queryImageExposure(ev,env){
  const url=new URL('https://internal/population-exposure');

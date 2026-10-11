@@ -122,7 +122,7 @@
 
   function zoomForItem(item) {
     const lat = (item.coords && isFinite(item.coords[1])) ? item.coords[1] : 0;
-    if(item.type==='earthquake'&&Number(item.mag)>=5&&window.SeismicImpact){
+    if(item.type==='earthquake'&&window.SeismicImpact){
       const radius=SeismicImpact.extent(item.mag,item.depth||0);
       return Math.max(2,Math.min(zoomFor50km(lat),Math.floor(Math.log2(156543.03392*Math.cos(lat*Math.PI/180)*330/(Math.max(80,radius)*1000)))));
     }
@@ -1196,7 +1196,7 @@
     if(sat){
       const surface=document.createElement('canvas');surface.width=800;surface.height=820;const c=surface.getContext('2d');
       c.drawImage(sat,0,0,800,820);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,800,820);
-      if(ev.mag>=5)try{
+      try{
         if(!storyLandPromise)storyLandPromise=fetch('assets/seismic/ne-50m-land.geojson').then(r=>{if(!r.ok)throw Error('Coastlines');return r.json();}).then(d=>d.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates)).catch(e=>{storyLandPromise=null;throw e;});
         const pixels=c.getImageData(0,0,800,820);QuakeImagePaint.paint(pixels.data,frame,ev,await storyLandPromise);c.putImageData(pixels,0,0);
       }catch(e){console.warn('Story intensity unavailable',e);}
@@ -1259,7 +1259,7 @@
     }
 
     // Full land footprint from the same scene model; no new map or scene state.
-    if(usouMapa&&isQuake&&Number(item.mag)>=5&&window.SeismicImpact?.snapshot){
+    if(usouMapa&&isQuake&&window.SeismicImpact?.snapshot){
       try{
         const data=await SeismicImpact.snapshot({lng,lat,mag:item.mag,depth:item.depth||0});
         if(data?.features?.length){

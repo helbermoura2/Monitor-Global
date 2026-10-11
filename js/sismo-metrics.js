@@ -240,6 +240,7 @@ function startFeltZone(lng, lat, mag, depth, id, lateReport = false) {
     try { if (typeof stopContinuousRadar === 'function') stopContinuousRadar(); } catch (e) {}
     try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
     try { if (typeof stopTsunamiWave === 'function') stopTsunamiWave(); } catch (e) {}
+    if(window.SeismicImpact){window.SeismicImpact.start({id,lng,lat,mag,depth},true);return;}
     const host = document.getElementById('mapContainer');
     if (!host) return;
 
@@ -557,7 +558,8 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
     const generation=waveFrontGeneration,model=window.GlobalQuakeTravel;
     const mode=opts?.mode==='replay'?'replay':'live';
     const context=waveFrontContext={id:opts?.id,lng,lat,mag,depth:depth!=null&&Number.isFinite(Number(depth))?Number(depth):10,originTime,mode,protectUntilEnd:!!opts?.protectUntilEnd,stage:'opening',lastFrame:null,finalFrame:null,returnToEpicenter:!!opts?.returnToEpicenter&&mag>=5,epicenterFirst:!!opts?.epicenterFirst&&mag<5,epicenterZoom:opts?.epicenterZoom??map.getZoom(),cameraPhase:'s',phaseUntil:null,impactHoldUntil:null};
-    if(context.returnToEpicenter){context.cameraPhase='s';window.SeismicImpact?.start(context);}
+    if(context.returnToEpicenter)context.cameraPhase='s';
+    window.SeismicImpact?.start(context);
     waveFrontStatus=document.createElement('div');waveFrontStatus.className='wave-front-status';waveFrontStatus.setAttribute('aria-live','polite');
     (document.getElementById('mapWrap')||document.body).append(waveFrontStatus);
     function protect(until){
@@ -580,7 +582,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         context.stage='returning';context.finalUntil=null;
         const duration=reduceMotion?0:3500,until=Date.now()+duration+10000;
         context.cameraPhase=context.epicenterFirst?'epicenter-final':'impact-final';context.phaseUntil=until;
-        protect(until);if(context.returnToEpicenter)window.SeismicImpact?.finish();place();
+        protect(until);window.SeismicImpact?.finish();place();
         window.SeismicFinalSummary?.start(context,duration);
         try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
@@ -623,7 +625,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         }
         const radii=context.finalFrame?.radii||(expired?Object.fromEntries(WAVE_PHASES.map(p=>[p,null])):liveRadii);
         const alpha=context.stage==='returning'?0:context.finalFrame?context.finalFrame.alpha:waveDisplayAlpha(elapsedS,displayLimit);
-        if(context.returnToEpicenter)window.SeismicImpact?.reveal(radii.s??0,context.stage==='returning');
+        window.SeismicImpact?.reveal(radii.s??0,context.stage==='returning');
         const status=model?.status()||'error';
         window.__mgWaveFrontState={model:'iasp91',status,mode,originTime:context.originTime,depth:context.depth,id:context.id,elapsedS:context.finalFrame?.elapsedS??elapsedS,displayLimit,end,alpha,radii,stage:context.stage,cameraPhase:context.cameraPhase,phaseUntil:context.phaseUntil,impactRadius:context.returnToEpicenter?impactRadius():null,finalUntil:context.finalUntil||null};
         if(waveFrontStatus){
@@ -715,7 +717,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 kmAlvoCam=felt;
             }else if(kmS!==null&&kmS>=felt||context.cameraPhase==='impact'){
                 context.cameraPhase='impact';context.phaseUntil=context.originTime+Math.max(0,limit-6)*1000;
-                if(context.returnToEpicenter)window.SeismicImpact?.finish();
+                window.SeismicImpact?.finish();
                 kmAlvoCam=felt;
             }else{
                 context.cameraPhase='s';context.phaseUntil=null;
