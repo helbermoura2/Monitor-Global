@@ -1,5 +1,5 @@
 import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
-import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion} from "./seismic-image-data.mjs";
+import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
@@ -4116,6 +4116,7 @@ async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anc
 
 async function renderAlertCardPng(ev) {
     await enrichBrazilEpicenter(ev);
+    if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
     const W=800,H=1440,rgba=new Uint8Array(W*H*4),fonts=await getFontAtlases();
     const frame=globalThis.QuakeCardLayout.frame(ev);
     fillRect(rgba,W,0,0,W,H,9,33,48);
@@ -4163,7 +4164,7 @@ async function renderAlertCardPng(ev) {
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
         when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
         sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),
-        mmi:mmi.nivel,energy:calcularEnergiaCard(Number(ev.mag)),exposure:ev.imageExposure
+        mmi:imageEpicenterMmi(ev,mmi.nivel),energy:calcularEnergiaCard(Number(ev.mag)),exposure:ev.imageExposure
     });
     return rgbaToPng(rgba,W,H);
 }
@@ -4343,9 +4344,11 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v9-epicenter-municipality';
+    next.cardImageVersion = 'cartographic-v10-official-intensity';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
+    next.imageShakingVersion = shakingVersion(ev.shaking);
+    next.imageShakingCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
     const noticeBaseline = root.noticeBaseline || before;
     const important = telegramImportantChange(noticeBaseline, ev);
@@ -4433,7 +4436,7 @@ async function saveSentAlerts(request, records, env) {
         try {
             await env.TTS_USAGE.put(
                 TELEGRAM_SENT_KV_KEY,
-                JSON.stringify({ items, updatedAt: nowIso() }),
+                JSON.stringify({ items, updatedAt: nowIso() }, (key,value)=>key==='shaking'?undefined:value),
                 { expirationTtl: TELEGRAM_ALERT_TTL }
             );
             return;
@@ -4442,7 +4445,7 @@ async function saveSentAlerts(request, records, env) {
         }
     }
     try {
-        const response = new Response(JSON.stringify({ items, updatedAt: nowIso() }), {
+        const response = new Response(JSON.stringify({ items, updatedAt: nowIso() }, (key,value)=>key==='shaking'?undefined:value), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
@@ -4772,9 +4775,12 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v9-epicenter-municipality';
+            reservation.cardImageVersion = 'cartographic-v10-official-intensity';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
+            reservation.currentEvent = ev;
+            reservation.imageShakingVersion = shakingVersion(ev.shaking);
+            reservation.imageShakingCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
             reservation.noticeBaseline = ev;
             reservation.observedVersion = telegramEventVersion(ev);
@@ -4796,10 +4802,16 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
-    // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v9-epicenter-municipality' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    // Migrate recent photos; recheck official products at most once per five minutes.
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v10-official-intensity' || Date.now()-(r.imageShakingCheckedAt||0)>=300000 || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
+        const shaking=await queryImageShaking(ev);root.imageShakingCheckedAt=Date.now();
+        const previousShakingVersion=root.imageShakingVersion||'unavailable';
+        // Do not replace a published grid with a radial model during a provider outage.
+        if(!validImageShaking(shaking)&&previousShakingVersion!=='unavailable'){await saveSentAlerts(request,sentRecords,env);continue;}
+        if(validImageShaking(shaking))ev.shaking=shaking;
+        const nextShakingVersion=shakingVersion(ev.shaking);
         let data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
         const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
@@ -4807,9 +4819,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else {await saveSentAlerts(request, sentRecords, env);continue;}
         }
-        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v9-epicenter-municipality') {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'cartographic-v10-official-intensity') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.place = ev.place; root.cardImageVersion = 'cartographic-v9-epicenter-municipality'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'cartographic-v10-official-intensity'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
@@ -5463,6 +5475,7 @@ export default {
                 version: '7.6.0',
                 dailySummaryDesign: DAILY_SUMMARY_DESIGN,
                 brazilEpicenterLocation: BRAZIL_EPICENTER_VERSION,
+                earthquakePaint: "official-shakemap-v1",
                 rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),

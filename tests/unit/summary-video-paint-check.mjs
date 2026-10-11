@@ -7,11 +7,11 @@ const detail={geometry:{coordinates:[0,0]},properties:{time:event.time,mag:6,pro
 const read=async url=>url.endsWith('/rupture')?rupture:url.endsWith('/grid')?coverage:detail;
 assert.equal((await publishedVideoShaking(event,read)).method,'usgs-shakemap-finite');
 assert.equal(await publishedVideoShaking({...event,time:4000000},read),null,'Unrelated ShakeMaps must not be attached');
-assert.equal(await publishedVideoShaking(event,async url=>url.endsWith('/rupture')?{type:'FeatureCollection',features:[{geometry:{type:'Point',coordinates:[0,0]}}]}:read(url)),null,'Point sources do not establish finite rupture');
+assert.equal((await publishedVideoShaking(event,async url=>url.endsWith('/rupture')?{type:'FeatureCollection',features:[{geometry:{type:'Point',coordinates:[0,0]}}]}:read(url))).method,'usgs-shakemap-grid','Published intensity remains usable without a finite rupture');
 assert.equal(await publishedVideoShaking(event,async()=>{throw Error('offline');}),null);
 const [missing,panama]=await prepareVideoPaint([{...event,lat:null},{...event,lat:7.59,lon:-80.77,mag:7.7,depthKm:12.647,depth:'13 km'}]);
 assert.equal(missing.paint,null);
 assert.ok(panama.paint.features.length>0);
 assert.equal(panama.depthKm,12.647,'The physical model must retain unrounded depth');
 assert.ok(Number.isFinite(panama.videoCamera.scale)&&panama.videoCamera.scale>0);
-console.log('PASS: published finite rupture only, matching origin, offline fallback, invalid coordinates and numerical depth preserved');
+console.log('PASS: published intensity with/without finite rupture, matching origin, offline fallback, invalid coordinates and numerical depth preserved');

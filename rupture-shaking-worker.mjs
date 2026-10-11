@@ -12,14 +12,15 @@ async function load(p){
  if(!compatible(detail,p))return {status:'unavailable',note:'Origem do produto não corresponde ao sismo.'};
  const products=(detail.properties.products?.shakemap||[]).filter(p=>p.status!=='DELETE').sort((a,b)=>Number(b.preferredWeight||0)-Number(a.preferredWeight||0)||Number(b.updateTime||0)-Number(a.updateTime||0));
  const product=products[0],contents=product?.contents,ruptureURL=contents?.['download/rupture.json']?.url,gridURL=contents?.['download/coverage_mmi_low_res.covjson']?.url;
- if(!ruptureURL||!gridURL)return {status:'unavailable',note:'O USGS ainda não publicou ruptura e grade de intensidade compatíveis.'};
- const rupture=await remote(ruptureURL);if(!hasFiniteRupture(rupture))return {status:'unavailable',note:'O ShakeMap disponível usa fonte pontual; direção de ruptura não inferida.'};
- const grid=globalThis.RuptureShakingModel.normalize(await remote(gridURL));if(!grid||globalThis.RuptureShakingModel.sample(grid,detail.geometry.coordinates[0],detail.geometry.coordinates[1])===null)return {status:'unavailable',note:'Grade fora dos limites suportados.'};
- return {status:'available',method:'usgs-shakemap-finite',grid,eventId:detail.id,updatedAt:product.updateTime,version:String(product.code)+'-'+product.updateTime,provider:'USGS ShakeMap · ruptura publicada',url:'https://earthquake.usgs.gov/earthquakes/eventpage/'+encodeURIComponent(detail.id)+'/shakemap',note:'Intensidade estimada publicada pelo USGS, com modelo de ruptura finita. Resolução reduzida; não confirma relatos ou danos.'};
+ if(!gridURL)return {status:'unavailable',note:'O USGS ainda não publicou uma grade de intensidade compatível.'};
+ const grid=globalThis.RuptureShakingModel.normalize(await remote(gridURL));if(!grid||globalThis.RuptureShakingModel.sample(grid,detail.geometry.coordinates[0],detail.geometry.coordinates[1])===null||globalThis.RuptureShakingModel.sample(grid,p.lng,p.lat)===null)return {status:'unavailable',note:'Grade fora dos limites suportados.'};
+ let finite=false;
+ if(ruptureURL)try{finite=hasFiniteRupture(await remote(ruptureURL));}catch{}
+ return {status:'available',method:finite?'usgs-shakemap-finite':'usgs-shakemap-grid',finiteRupture:finite,grid,eventId:detail.id,updatedAt:product.updateTime,version:String(product.code)+'-'+product.updateTime,provider:finite?'USGS ShakeMap · ruptura publicada':'USGS ShakeMap · intensidade publicada',url:'https://earthquake.usgs.gov/earthquakes/eventpage/'+encodeURIComponent(detail.id)+'/shakemap',note:'Intensidade estimada publicada pelo USGS. '+(finite?'Modelo de ruptura finita publicado. ':'Sem direção de ruptura confirmada. ')+'Resolução reduzida; não confirma relatos ou danos.'};
 }
 export async function handleRuptureShaking(request){
  if(request.method!=='GET')return response({status:'invalid'},405);const url=new URL(request.url),p={};for(const k of ['lat','lng','mag','time']){const v=url.searchParams.get(k);if(v===null||!v.trim()||!Number.isFinite(Number(v)))return response({status:'invalid'},400);p[k]=Number(v);}p.eventId=url.searchParams.get('eventId')||'';
- if(Math.abs(p.lat)>90||Math.abs(p.lng)>180||p.mag<5||p.mag>10||p.time<=0||p.time>Date.now()+60000||p.eventId&&!/^[a-zA-Z0-9_-]{2,100}$/.test(p.eventId))return response({status:'invalid'},400);
+ if(Math.abs(p.lat)>90||Math.abs(p.lng)>180||p.mag<0||p.mag>10||p.time<=0||p.time>Date.now()+60000||p.eventId&&!/^[a-zA-Z0-9_-]{2,100}$/.test(p.eventId))return response({status:'invalid'},400);
  const key=JSON.stringify(p),hit=cache.get(key);if(hit&&hit.until>Date.now())return response(hit.data);
  if(!pending.has(key)&&pending.size>=8)return response({status:'unavailable',note:'Consulta ocupada; tente novamente.'},503);
  if(!pending.has(key))pending.set(key,load(p).catch(error=>({status:'unavailable',note:'Produto de ruptura indisponível no momento.',reason:error.reason||String(error.name||'Error')+': '+String(error.message||'USGS_NETWORK_OR_PRODUCT').slice(0,160)})).then(data=>{cache.set(key,{data,until:Date.now()+300000});if(cache.size>12)cache.delete(cache.keys().next().value);return data;}).finally(()=>pending.delete(key)));

@@ -12,15 +12,16 @@ const run=promisify(execFile);
 async function json(url){const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='earthquake.usgs.gov'||u.username||u.password)throw Error('Unexpected ShakeMap host');return JSON.parse((await run('curl',['-fsS','--max-time','20',url],{maxBuffer:2*1024*1024})).stdout);}
 export async function publishedVideoShaking(event,read=json){
  const id=String(event.id||'').replace(/^USGS-(?:RT-)?/i,'');
- if(!/^[a-z0-9_-]{2,100}$/i.test(id)||event.mag<5)return null;
+ if(!/^[a-z0-9_-]{2,100}$/i.test(id)||event.mag<0)return null;
  try{
   const detail=await read('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventid='+encodeURIComponent(id)),p=detail.properties,c=detail.geometry?.coordinates;
   if(!c||![c[0],c[1],p?.time,p?.mag,event.time,event.lat,event.lon,event.mag].every(Number.isFinite)||Math.abs(p.time-event.time)>300000||distanceKm(event.lat,event.lon,c[1],c[0])>80||Math.abs(p.mag-event.mag)>1.5)return null;
   const product=(p.products?.shakemap||[]).filter(p=>p.status!=='DELETE').sort((a,b)=>Number(b.preferredWeight||0)-Number(a.preferredWeight||0)||Number(b.updateTime||0)-Number(a.updateTime||0))[0];
   const ruptureURL=product?.contents?.['download/rupture.json']?.url,gridURL=product?.contents?.['download/coverage_mmi_low_res.covjson']?.url;
-  if(!ruptureURL||!gridURL||!hasFiniteRupture(await read(ruptureURL)))return null;
+  if(!gridURL)return null;
+  let finite=false;if(ruptureURL)try{finite=hasFiniteRupture(await read(ruptureURL));}catch{}
   const grid=globalThis.RuptureShakingModel.normalize(await read(gridURL));
-  return grid&&globalThis.RuptureShakingModel.sample(grid,c[0],c[1])!==null?{grid,method:'usgs-shakemap-finite'}:null;
+  return grid&&globalThis.RuptureShakingModel.sample(grid,c[0],c[1])!==null?{grid,method:finite?'usgs-shakemap-finite':'usgs-shakemap-grid'}:null;
  }catch{return null;}
 }
 export async function prepareVideoPaint(events,{official=false}={}){

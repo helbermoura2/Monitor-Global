@@ -16,14 +16,18 @@ function paintImageIntensity(rgba,frame,ev,polygons){
    hits.sort((a,b)=>a-b);for(let i=0;i+1<hits.length;i+=2){const left=Math.max(0,Math.min(W,Math.ceil(hits[i]/step)*step)),right=Math.max(0,Math.min(W,Math.floor(hits[i+1]/step)*step));if(right>left)mask.fill(1,y*W+left,y*W+right);}
   }
  }
+ const grid=globalThis.RuptureShakingModel?.valid(ev.shaking?.grid)?ev.shaking.grid:null;
  let painted=0;
  for(let y=0;y<rows;y+=step)for(let x=0;x<W;x+=step){
   if(!mask[y*W+x])continue;
   const lng=frame.minLon+(x+step/2)/W*(frame.maxLon-frame.minLon),lat=frame.maxLat-(y+step/2)/H*(frame.maxLat-frame.minLat);
-  const pga=model.pga(Number(ev.mag),Number(ev.depth)||0,distance(Number(ev.lat),Number(ev.lon),lat,lng));if(pga<.5)continue;
+  let rgb;
+  if(grid){const mmi=globalThis.RuptureShakingModel.sample(grid,lng,lat);if(mmi===null||mmi<3)continue;rgb=globalThis.RuptureShakingModel.color(Math.round(mmi*2)/2).match(/\d+/g).map(Number);}
+  else{const pga=model.pga(Number(ev.mag),Number(ev.depth)||0,distance(Number(ev.lat),Number(ev.lon),lat,lng));if(pga<.5)continue;
   const bands=[.5,1,2.1,5,11,26,60,140,321.8,740];let b=0;while(b+1<bands.length&&pga>=bands[b+1])b++;
   const value=Math.min(model.pga(Number(ev.mag),Number(ev.depth)||0,0),Math.sqrt(bands[b]*(bands[b+1]||bands[b])));
-  const rgb=model.color(value).match(/\d+/g).map(Number);painted++;
+  rgb=model.color(value).match(/\d+/g).map(Number);}
+  painted++;
   for(let yy=y;yy<Math.min(rows,y+step);yy++)for(let xx=x;xx<Math.min(W,x+step);xx++){const i=(yy*W+xx)*4;for(let c=0;c<3;c++)rgba[i+c]=Math.round(rgba[i+c]*.36+rgb[c]*.64);}
  }
  return painted;
