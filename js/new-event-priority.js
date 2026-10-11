@@ -22,7 +22,10 @@ function focusAlert(){
  // own "new-looking" alerts moments after the first display, just because the page is
  // new. Without this, an alert could steal the camera from whatever a quake's own
  // cold-load guard just settled on, right after it -- still "mudando loucamente".
- const coldLoad=(typeof isFirstLoad!=='undefined'&&isFirstLoad)||
+ // Mesmo teto absoluto de 60s do orquestrador-feeds.js: numa falha
+ // persistente de toda fonte, isFirstLoad nunca vira false de propósito,
+ // mas isso não pode travar pra sempre um alerta genuinamente novo.
+ const coldLoad=((typeof isFirstLoad!=='undefined'&&isFirstLoad)&&Date.now()-(window.__mgPageLoadAt||0)<60000)||
   (Number.isFinite(window.__mgColdLoadGraceUntil)&&Date.now()<window.__mgColdLoadGraceUntil);
  if(getAutoCycleProtectionRemaining()>0||active?.mode==='priority'&&active.id===eventoSelecionadoId&&active.deadline>Date.now()||coldLoad&&eventoSelecionadoId!=null){arm();return false;}
  const entries=[...pending].map(([id,entry])=>({item:globalAlerts.find(a=>a.id===id),...entry}));

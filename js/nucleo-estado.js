@@ -71,6 +71,14 @@ let activeLateIds = new Map();
 const ATUALIZADO_EXPIRA_MS = 10 * 60 * 1000; // 10 minutos
 const updatedReturnTimers = new Map();
 let currentIndex = -1, isFirstLoad = true, minMagnitude = 0.1;
+// Timestamp real de quando este módulo carregou — usado só pra impor um
+// teto absoluto no "coldLoad" (orquestrador-feeds.js/new-event-priority.js):
+// isFirstLoad fica true pra sempre quando toda fonte falha sempre (de
+// propósito, ver comentário abaixo), mas isso não pode travar PARA SEMPRE a
+// proteção contra chegadas novas que o coldLoad também controla -- numa
+// falha persistente de rede, sismos genuinamente grandes/ao vivo ainda
+// precisam conseguir interromper depois de um tempo razoável.
+window.__mgPageLoadAt = Date.now();
 // Separado de isFirstLoad: isFirstLoad controla se um lote de eventos deve
 // disparar "novo" (só falso depois de um ciclo com pelo menos 1 fonte OK) —
 // se todas as fontes falharem sempre, isFirstLoad fica true pra sempre de
