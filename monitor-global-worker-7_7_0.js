@@ -4493,9 +4493,9 @@ function telegramBrazilEvents(data, provider, format) {
     }
     return out;
 }
-async function fetchTelegramBrazilRecent(env) {
-    const start = new Date(Date.now() - 72 * 3600000).toISOString();
-    const end = new Date(Date.now() + 5 * 60000).toISOString();
+async function fetchTelegramBrazilRecent(env, window = null) {
+    const start = window?.start || new Date(Date.now() - 72 * 3600000).toISOString();
+    const end = window?.end || new Date(Date.now() + 5 * 60000).toISOString();
     const results = await Promise.allSettled(TELEGRAM_BRAZIL_SOURCES.map(async ([provider, endpoint, format]) => {
         const url = new URL(endpoint);
         for (const [key, value] of Object.entries({format, starttime: start, endtime: end, minlatitude: -34, maxlatitude: 6, minlongitude: -74, maxlongitude: -28, orderby: 'time', limit: 1000})) url.searchParams.set(key, value);
@@ -4513,6 +4513,7 @@ async function fetchTelegramBrazilRecent(env) {
         }
         // Primeira consulta de cada fonte: cria uma linha de base, sem anunciar o catálogo antigo.
         // Depois disso, IDs novos entram mesmo quando a publicação tem atraso de muitas horas.
+        if(window?.summary)return {provider,events};
         const key = 'telegram-brazil-baseline:' + provider;
         if (!env.TTS_USAGE) throw new Error('Histórico persistente indisponível');
         const ready = await env.TTS_USAGE.get(key);
@@ -4895,8 +4896,18 @@ async function fetchDailyQuakesBrt() {
         return {id:f.id,mag:Number(p.mag),place:p.place||'Região não informada',time:Number(p.time),
             lat:Number.isFinite(c[1])&&Math.abs(c[1])<=90?c[1]:null,lon:Number.isFinite(c[0])&&Math.abs(c[0])<=180?c[0]:null,
             depth:Number.isFinite(c[2])?c[2]:null,source:(p.net||'USGS').toUpperCase()};
-    }).filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time));
-    return {day,events};
+    }).filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time)&&e.time>=Date.parse(start)&&e.time<Date.parse(end));
+    const brazilFeed=await fetchTelegramBrazilRecent(null,{start,end,summary:true});
+    const startMs=Date.parse(start),endMs=Date.parse(end);
+    for(const event of events){event.sources=['USGS'];event.brazil=Number.isFinite(event.lat)&&Number.isFinite(event.lon)&&telegramIsBrazil(event.lat,event.lon);}
+    for(const source of brazilFeed.sources)for(const candidate of source.events){
+        const time=Date.parse(candidate.timeIso);if(time<startMs||time>=endMs)continue;
+        const matches=events.filter(e=>e.id===candidate.id||e.brazil&&Math.abs(e.time-time)<=30000&&Math.abs(e.mag-candidate.mag)<=1&&Math.hypot((e.lon-candidate.lon)*Math.cos(candidate.lat*Math.PI/180),e.lat-candidate.lat)*111.32<=50);
+        if(matches.length===1){const existing=matches[0];existing.sources=[...new Set([...(existing.sources||[existing.source]),source.provider])];continue;}
+        events.push({...candidate,time,source:source.provider,sources:[source.provider]});
+    }
+    const brazilEvents=events.filter(e=>e.brazil).sort((a,b)=>b.mag-a.mag||a.time-b.time);
+    return {day,events,brazilEvents,brazilFailedSources:brazilFeed.failedSources};
 }
 /** Layout de cada cartão do Top 5 é todo calculado ANTES de desenhar —
  * a fonte é monoespaçada (largura por caractere é exata, sem precisar
@@ -5049,7 +5060,7 @@ async function renderDailySummaryPng(quakes = null) {
     return renderEditorialDailySummary(data,fonts,{
         fillRect,fillRoundRect,fillCircle,fillRadialGlow,drawArc,drawRadar:drawRadarIcon,
         drawText:drawTextFontProp,textWidth:textFontWidthProp,clean:summaryCleanText,wrap:summaryCardWrap,
-        country:summaryCountry,place:summaryPlace,png:rgbaToPng,magColor:getHexColorFromMag
+        country:summaryCountry,place:summaryPlace,png:rgbaToPng,magColor:getHexColorFromMag,isBrazil:telegramIsBrazil
     });
 }
 
@@ -5103,6 +5114,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
         `📊 Resumo do dia — ${day.split('-').reverse().join('/')}` +
         `\n🌍 ${quakes.events.length} sismos registrados` +
         `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${top[0].place}`:'sem registro'}` +
+        (quakes.brazilEvents?.length?`\n🇧🇷 Brasil: ${quakes.brazilEvents.length} sismo${quakes.brazilEvents.length===1?'':'s'} · maior M${quakes.brazilEvents[0].mag.toFixed(1).replace('.', ',')}`:'') +
         '\n🌐 monitorglobal.top';
     let pack;
     try {

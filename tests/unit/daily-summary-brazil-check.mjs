@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const RealDate=Date;const now=Date.parse('2026-10-11T03:06:00Z');globalThis.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[now]));}static now(){return now;}};
+let src=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8');src=src.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
+const mod=await import('data:text/javascript;base64,'+Buffer.from(src+'\nexport {fetchDailyQuakesBrt};').toString('base64'));
+const time=Date.parse('2026-10-10T20:41:54Z');
+const feature=(id,lat=-20.71,lon=-47.66,t=time,mag=3.4)=>({id,properties:{mag,place:'MINAS GERAIS-SAO PAULO',time:t,net:'us',type:'earthquake'},geometry:{coordinates:[lon,lat,4]}});
+const queries=[];let fail=false;
+globalThis.fetch=async input=>{const u=new URL(String(input));queries.push(u);if(u.hostname==='moho.iag.usp.br'||u.hostname==='geofon.gfz.de')return new Response('# empty');if(u.hostname==='www.seismicportal.eu'){if(fail)throw Error('network');return Response.json({features:[feature('emsc-alias'),feature('emsc-only',-10,-50,time+3600000,2.1),feature('outside-brasil',-12,-77,time,4),feature('next-day',-20,-48,Date.parse('2026-10-11T03:00:00Z'))]});}return Response.json({features:[feature('us-brazil'),feature('world',35,140,time,6),feature('boundary-global',35,140,Date.parse('2026-10-11T03:00:00Z'),9)]});};
+const data=await mod.fetchDailyQuakesBrt();assert.equal(data.day,'2026-10-10');assert.equal(data.brazilEvents.length,2);assert.equal(data.events.length,3);assert(data.brazilEvents[0].sources.includes('EMSC'));assert(data.brazilEvents.some(e=>e.id==='EMSC-emsc-only'));assert(!data.events.some(e=>/outside-brasil|next-day|emsc-alias/.test(e.id)));
+for(const u of queries){assert.equal(u.searchParams.get('starttime'),'2026-10-10T03:00:00.000Z');assert.equal(u.searchParams.get('endtime'),'2026-10-11T03:00:00.000Z');}
+fail=true;const partial=await mod.fetchDailyQuakesBrt();assert.equal(partial.brazilEvents.length,1);assert.deepEqual(partial.brazilFailedSources,['EMSC']);
+console.log('PASS: Brazil below global top five, multiple catalogs deduplicated, coordinate border, BRT half-open window and source failure fallback');
