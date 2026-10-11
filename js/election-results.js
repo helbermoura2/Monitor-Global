@@ -141,12 +141,15 @@ function renderPolls() {
   }
   const [a, b] = [...pollsCache.candidates].sort((x, y) => y.percentage - x.percentage);
   const updated = dateTime.format(new Date(pollsCache.updatedAt));
+  const ageDays = pollsCache.latestPollAt ? Math.floor((Date.now() - new Date(pollsCache.latestPollAt).getTime()) / 86400000) : null;
+  const stale = ageDays != null && ageDays >= 4;
   box.innerHTML = `<div id="election-polls-candidates">${[a, b].map((c, i) => `<div class="election-poll-candidate"${i === 0 ? ' data-leader' : ''}>
       <span class="election-poll-avatar">${initials(c.name)}</span>
       <strong class="election-poll-name">${c.name}</strong>
       <span class="election-poll-party">${c.party}</span>
       <b class="election-poll-pct">${percentage.format(c.percentage)}%</b>
     </div>`).join('')}</div>
+    ${stale ? `<p id="election-polls-stale" role="status">⚠ A pesquisa mais recente usada nesta média é de ${ageDays} dias atrás — pode não refletir o cenário mais atual.</p>` : ''}
     <p id="election-polls-foot">Média de ${pollsCache.sources} agregadores de pesquisas (Wikipedia) · atualizado ${updated} BRT · não é o apurado oficial do TSE.</p>`;
 }
 async function loadPolls() {

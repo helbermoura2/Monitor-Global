@@ -67,3 +67,4 @@
 .election-poll-party{color:#9ebbd0;font-size:9px}
 .election-poll-pct{font-size:22px;font-weight:700;color:#edf8ff;font-variant-numeric:tabular-nums}
 #election-polls-foot{margin:4px 0 0;line-height:1.5;color:#7fa0b5;font-size:9.5px;text-align:center;border-top:1px solid #396077;padding-top:9px}
+#election-polls-stale{margin:10px 0 0;line-height:1.5;color:#f2d29b;font-size:10px;text-align:center}
