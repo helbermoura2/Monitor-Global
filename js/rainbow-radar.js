@@ -20,11 +20,11 @@ async function on(m,enabled){
   if(!valid()||fallback)return false;fallback=true;failedUntil=Date.now()+600000;
   if(errorHandler)m.off('error',errorHandler);errorHandler=null;
   try{
-   const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'});if(!r.ok)throw Error('reserve');const d=await r.json(),frame=d.radar?.past?.at(-1);
+   const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'});if(!r.ok)throw Error('reserve '+r.status);const d=await r.json(),frame=d.radar?.past?.at(-1);
    if(!frame||!/^https:\/\/[^/]+/.test(d.host))throw Error('frame');
    if(!install(d.host+frame.path+'/256/{z}/{x}/{y}/2/1_1.png','Dados meteorológicos: RainViewer'))return false;
    legend('RainViewer',frame.time*1000);window.MonitorFreshness?.record('RainViewer',true,frame.time*1000);return true;
-  }catch{if(valid()){remove(m);const el=document.getElementById('radar-time-pro');if(el)el.textContent='Camada de chuva indisponível';}return false;}
+  }catch(e){window.MonitorFreshness?.recordStatus?.('RainViewer','error',String(e?.message||e||''));if(valid()){remove(m);const el=document.getElementById('radar-time-pro');if(el)el.textContent='Camada de chuva indisponível';}return false;}
  }
  if(Date.now()<failedUntil)return reserve();
  try{
