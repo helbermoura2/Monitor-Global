@@ -5046,7 +5046,7 @@ async function renderDailySummaryPng(quakes = null) {
     return renderEditorialDailySummary(data,fonts,{
         fillRect,fillRoundRect,fillCircle,fillRadialGlow,drawArc,drawRadar:drawRadarIcon,
         drawText:drawTextFontProp,textWidth:textFontWidthProp,clean:summaryCleanText,wrap:summaryCardWrap,
-        country:summaryCountry,place:summaryPlace,png:rgbaToPng
+        country:summaryCountry,place:summaryPlace,png:rgbaToPng,magColor:getHexColorFromMag
     });
 }
 
