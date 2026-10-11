@@ -6,7 +6,18 @@
   const magnitude=Number(ev.mag),depth=Math.max(0,Number(ev.depth)||0);
   const threshold=magnitude>=5?11:model.pga(magnitude,depth,0)>=2.1?2.1:.5;
   const radius=Math.max(magnitude>=5?80:5,model.extent(magnitude,depth,threshold)*1.25);
-  const zoom=Math.max(3,Math.min(magnitude>=5?7:10,Math.floor(Math.log2(180*111.32/radius))));
+  let zoom=Math.max(3,Math.min(magnitude>=5?7:10,Math.floor(Math.log2(180*111.32/radius))));
+  const grid=globalThis.RuptureShakingModel?.valid(ev.shaking?.grid)?ev.shaking.grid:null;
+  if(grid){
+   let spanNeeded=0,found=false;const threshold=magnitude>=5?4:3;
+   for(let y=0;y<grid.ny;y++)for(let x=0;x<grid.nx;x++){
+    const mmi=grid.values[y*grid.nx+x];if(mmi===null||mmi<threshold)continue;
+    let lng=grid.x0+x*(grid.x1-grid.x0)/(grid.nx-1),lat=grid.y0+y*(grid.y1-grid.y0)/(grid.ny-1);
+    lng+=360*Math.round((Number(ev.lon)-lng)/360);const dy=lat-Number(ev.lat);
+    spanNeeded=Math.max(spanNeeded,Math.abs(lng-Number(ev.lon)),Math.abs(dy)*800/(2*(dy>=0?ANCHOR_Y:MAP_HEIGHT-ANCHOR_Y)));found=true;
+   }
+   if(found)zoom=Math.max(3,Math.min(10,Math.floor(Math.log2(180/Math.max(.03,spanNeeded*1.12)))));
+  }
   const span=180/2**zoom;
   return {width:800,height:MAP_HEIGHT,zoom,anchorX:400,anchorY:ANCHOR_Y,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:Number(ev.lat)-2*span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+2*span*ANCHOR_Y/800};
  }
@@ -24,6 +35,7 @@
   box(32,720,365,88,'#396274');box(33,721,363,86,'#071722');p.text('INTENSIDADE ESTIMADA DO TREMOR',50,734,12,muted,true);
   ['#93b8e4','#88d3eb','#68dc2c','#efef20','#ffb52b','#ff5540'].forEach((c,i)=>p.rect(50+i*54,760,54,9,c));
   p.text('Fraca',50,778,12,muted);p.text('Moderada',181,778,12,muted);p.text('Forte',344,778,12,muted);
+  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · intensidade publicada':'Modelo aproximado · magnitude e profundidade',50,795,10,muted);
   p.arc(98,916,50,9,180,180,'#294757');p.arc(98,916,50,9,180,180,red);
   p.text('MAGNITUDE DO SISMO',182,849,13,'#e5a996');p.text('M'+fmt(ev.mag,1),182,870,68,red,true);
   // Wrap long locations without allowing them into the statistics.
@@ -35,7 +47,7 @@
   while(p.measure(source,15)>728&&source.length>3)source=source.slice(0,-4)+'...';p.text(source,36,1050,15,muted);
   if(revision){let caption='REVISÃO · '+revision;while(p.measure(caption,13,true)>728&&caption.length>3)caption=caption.slice(0,-4)+'...';p.text(caption,36,1075,13,'#ffe078',true);}
   p.rect(36,1093,728,1,line);p.rect(36,1209,728,1,line);
-  const stats=[['PROFUNDIDADE',fmt(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—','Estimada'],['ENERGIA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'TNT equivalente']];
+  const stats=[['PROFUNDIDADE',fmt(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—',ev.shaking?.status==='available'?'USGS ShakeMap':'Estimada'],['ENERGIA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'TNT equivalente']];
   stats.forEach((s,i)=>{const x=36+i*246;if(i)p.rect(x-12,1110,1,85,line);p.text(s[0],x,1114,11,muted);p.text(s[1],x,1138,25,white,true);p.text(s[2],x,1178,13,muted);});
   box(36,1228,728,163,'#416879');box(37,1229,726,161,'#0b2232');
   p.text('POPULAÇÃO POTENCIALMENTE EXPOSTA · III+',56,1246,12,muted);
@@ -46,5 +58,5 @@
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v8-all-magnitudes'};
+ globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v10-official-intensity'};
 })();

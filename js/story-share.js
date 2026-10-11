@@ -1181,6 +1181,7 @@
   let storyLandPromise;
   async function buildCartographicQuake(item){
     const ev={mag:Number(item.mag),depth:Number(item.depth)||0,lon:item.coords[0],lat:item.coords[1],place:item.place};
+    ev.shaking=await window.RuptureShaking?.query(item);
     const layout=window.QuakeCardLayout,frame=layout.frame(ev),canvas=document.createElement('canvas');
     canvas.width=1080;canvas.height=1920;
     const ctx=canvas.getContext('2d');ctx.scale(1.35,4/3);ctx.fillStyle='#092130';ctx.fillRect(0,0,800,1440);
@@ -1211,9 +1212,11 @@
       text:(text,x,y,size,color,bold)=>{ctx.font=font(size,bold);ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);}
     };
     const mmi=estimarMercalli(ev.mag,ev.depth),energy=calcularEnergia(ev.mag);
+    const publishedMmi=ev.shaking?.status==='available'?RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat):null;
+    const mmiLabel=ev.shaking?.status==='available'?(publishedMmi===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(publishedMmi)-1))]):mmi.nivel;
     layout.draw(p,{...ev,_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
       sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
-      mmi:mmi.nivel,energy:energy.tnt.replace(' de TNT',''),exposure});
+      mmi:mmiLabel,energy:energy.tnt.replace(' de TNT',''),exposure});
     return canvas;
   }
 

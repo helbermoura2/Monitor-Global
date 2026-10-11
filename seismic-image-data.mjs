@@ -1,3 +1,4 @@
+import {handleRuptureShaking} from './rupture-shaking-worker.mjs';
 import './js/event-portuguese.js';
 import './js/seismic-impact-model.js';
 import './js/quake-image-paint.js';
@@ -26,3 +27,20 @@ export async function queryImageExposure(ev,env){
  let timer;try{return await Promise.race([job,new Promise(resolve=>{timer=setTimeout(()=>resolve({status:'pending'}),2500);})]);}catch{return {status:'unavailable'};}finally{clearTimeout(timer);}
 }
 export const exposureVersion=data=>validImageExposure(data)?JSON.stringify([data.method,data.partial,data.ranges.map(r=>r.population)]):data?.status||'pending';
+
+export async function queryImageShaking(ev){
+ const time=Number.isFinite(ev.time)?ev.time:Date.parse(ev.timeIso);
+ if(![ev.lat,ev.lon,ev.mag,time].every(Number.isFinite))return {status:'unavailable'};
+ const provider=ev.provider||ev.source||'',eventId=/^(USGS|US|PT)$/i.test(provider)?String(ev.id||'').replace(/^USGS-(?:RT-)?/i,''):'';
+ const url=new URL('https://internal/rupture-shaking');
+ for(const [key,value]of Object.entries({lat:ev.lat,lng:ev.lon,mag:ev.mag,time,...(eventId?{eventId}:{})}))url.searchParams.set(key,String(value));
+ try{return await handleRuptureShaking(new Request(url)).then(r=>r.json());}catch{return {status:'unavailable'};}
+}
+export const validImageShaking=data=>data?.status==='available'&&['usgs-shakemap-grid','usgs-shakemap-finite'].includes(data.method)&&globalThis.RuptureShakingModel.valid(data.grid);
+export const shakingVersion=data=>validImageShaking(data)?String(data.version):data?.status||'unavailable';
+
+export function imageEpicenterMmi(ev,fallback){
+ if(!validImageShaking(ev.shaking))return fallback;
+ const value=globalThis.RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat);
+ return value===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(value)-1))];
+}

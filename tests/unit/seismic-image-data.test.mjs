@@ -38,3 +38,26 @@ test('Telegram overlay paints a shallow M3.4 instead of rejecting magnitudes bel
  assert.equal(await overlayImageIntensity(pixels,frame,{...ev,mag:null}),false);
  }finally{globalThis.fetch=original;}
 });
+test('official pixel intensity varies by the published grid, not distance; no extrapolation into NoData',()=>{
+ const frame={width:80,height:80,minLon:-1,maxLon:1,minLat:-1,maxLat:1};
+ const land=[[[[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]]]];
+ const grid={nx:3,ny:3,x0:-1,x1:1,y0:-1,y1:1,values:[3,5,8,3,5,8,3,5,8]};
+ const ev={mag:6,depth:10,lat:0,lon:0,shaking:{status:'available',method:'usgs-shakemap-grid',grid}};
+ const pixels=new Uint8Array(80*80*4).fill(90);
+ paintImageIntensity(pixels,frame,ev,land);
+ const rgb=(x,y)=>[...pixels.slice((y*80+x)*4,(y*80+x)*4+3)];
+ assert.notDeepEqual(rgb(20,40),rgb(60,40),'Equidistant points must retain differing official intensities');
+ const missing=new Uint8Array(80*80*4).fill(90);
+ paintImageIntensity(missing,frame,{...ev,shaking:{...ev.shaking,grid:{...grid,values:Array(9).fill(null)}}},land);
+ assert(missing.every(v=>v===90),'NoData must not be filled with the radial estimate');
+ const outside=new Uint8Array(80*80*4).fill(90);
+ paintImageIntensity(outside,{...frame,minLon:2,maxLon:4},ev,[[[[2,-1],[4,-1],[4,1],[2,1],[2,-1]]]]);
+ assert(outside.every(v=>v===90),'Do not invent intensity outside the official grid');
+});
+test('official camera retains epicenter anchor and covers non-circular strong footprint',()=>{
+ const grid={nx:3,ny:3,x0:-82,x1:-79,y0:7,y1:9,values:[3,4,7,3,4,7,3,4,7]};
+ const event={lat:7.6,lon:-81,mag:6,depth:10,shaking:{status:'available',grid}};
+ const frame=imageMapFrame(event),point=imageProject(frame,event.lon,event.lat);
+ assert.deepEqual(point.map(Math.round),[400,550]);
+ assert(frame.minLon<=-81.5&&frame.maxLon>=-79&&frame.minLat<=7&&frame.maxLat>=9);
+});

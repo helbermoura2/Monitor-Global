@@ -5,7 +5,8 @@ let source = await readFile(workerURL, 'utf8');
 source = source.replace(/from "(\.\/[^\"]+)"/g, (_, path) => 'from '+JSON.stringify(new URL(path, workerURL).href));
 // Rendering is separately tested; capture the revised event supplied to the card generator.
 source = source.replace('async function renderAlertCardPng(ev) {', 'async function renderAlertCardPng(ev) { globalThis.rendered.push(structuredClone(ev)); return new Uint8Array([137,80,78,71]);');
-source = source.replaceAll('queryImageExposure(ev, env)', 'Promise.resolve(globalThis.__testExposure || {status: "unavailable"})');
+source = source.replaceAll('queryImageExposure(ev, env)', 'Promise.resolve(ev.id === "late-population" ? (globalThis.__testExposure || {status: "unavailable"}) : {status: "unavailable"})');
+source = source.replaceAll('queryImageShaking(ev)', 'Promise.resolve(ev.id === "late-population" ? (globalThis.__testShaking || {status: "unavailable"}) : {status: "unavailable"})');
 source += '\nexport {runTelegramM6Alerts};';
 const {EarthquakeAlertDelivery, runTelegramM6Alerts} = await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 globalThis.rendered=[];
@@ -99,6 +100,13 @@ const populationRoot=migrating.items.find(r=>r.id==='late-population');populatio
 storage.data.set('telegram-m6-sent-ids:chunks',1);storage.data.set('telegram-m6-sent-ids:part:0',JSON.stringify(migrating));object=new EarthquakeAlertDelivery({storage},env);
 globalThis.__testExposure={status:'pending'};count=messages.length;await run();assert.equal(messages.length,count+1);assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
 globalThis.__testExposure={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};await run();assert.equal(messages.length,count+1);delete globalThis.__testExposure;
+// Official intensity arriving later edits the existing image once and survives provider outages.
+globalThis.__testShaking={status:'available',method:'usgs-shakemap-grid',version:'qa-grid-1',grid:{nx:2,ny:2,x0:167,x1:169,y0:-16,y1:-15,values:[5,6,7,8]}};
+count=messages.length;await run(300001);for(let i=0;i<8;i++)await run(0);assert.equal(messages.length,count+1);assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).shaking.version,'qa-grid-1');
+const officialState=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
+assert.equal(officialState.items.find(r=>r.id==='late-population').currentEvent.shaking,undefined,'Large grids must not be persisted in Telegram history');
+count=messages.length;await run();assert.equal(messages.length,count);delete globalThis.__testShaking;
+await run(300001);assert.equal(messages.length,count,'A temporary provider outage must not replace the official image');
 // Large state remains readable after restart and never exceeds the DO single-value limit.
 const state=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
 assert(state.items.find(r=>r.id==='initial').messageId===original);
