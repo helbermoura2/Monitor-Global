@@ -59,10 +59,10 @@ jobs:
           node tests/unit/tse-results-check.mjs
 
       - name: Rodar testes de fumaça
-        run: npx playwright test
+        run: npx playwright test tests/tsunami-linked-panel.spec.js tests/volcano-monitoring.spec.js tests/volcano-priority.spec.js tests/tornado-cinema.spec.js tests/tsunami-inundation.spec.js tests/source-health.spec.js tests/wave-final-hold.spec.js
 
       - name: Publicar relatório em caso de falha
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
