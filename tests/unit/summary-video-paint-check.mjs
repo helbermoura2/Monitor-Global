@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {publishedVideoShaking,prepareVideoPaint} from '../../tools/summary-video-paint.mjs';
+const event={id:'us-example',lat:0,lon:0,mag:6,time:1000000,depthKm:10};
+const rupture={type:'FeatureCollection',features:[{geometry:{type:'Polygon',coordinates:[[[0,0],[1,0],[1,1],[0,0]]]}}]};
+const coverage={type:'Coverage',domain:{axes:{x:{start:-1,stop:1,num:2},y:{start:-1,stop:1,num:2}},referencing:[{coordinates:['x','y'],system:{type:'GeographicCRS',id:'http://www.opengis.net/def/crs/OGC/1.3/CRS84'}}]},ranges:{MMI:{axisNames:['y','x'],shape:[2,2],values:[4,5,6,7]}}};
+const detail={geometry:{coordinates:[0,0]},properties:{time:event.time,mag:6,products:{shakemap:[{contents:{'download/rupture.json':{url:'https://earthquake.usgs.gov/rupture'},'download/coverage_mmi_low_res.covjson':{url:'https://earthquake.usgs.gov/grid'}}}]}}};
+const read=async url=>url.endsWith('/rupture')?rupture:url.endsWith('/grid')?coverage:detail;
+assert.equal((await publishedVideoShaking(event,read)).method,'usgs-shakemap-finite');
+assert.equal(await publishedVideoShaking({...event,time:4000000},read),null,'Unrelated ShakeMaps must not be attached');
+assert.equal(await publishedVideoShaking(event,async url=>url.endsWith('/rupture')?{type:'FeatureCollection',features:[{geometry:{type:'Point',coordinates:[0,0]}}]}:read(url)),null,'Point sources do not establish finite rupture');
+assert.equal(await publishedVideoShaking(event,async()=>{throw Error('offline');}),null);
+const [missing,panama]=await prepareVideoPaint([{...event,lat:null},{...event,lat:7.59,lon:-80.77,mag:7.7,depthKm:12.647,depth:'13 km'}]);
+assert.equal(missing.paint,null);
+assert.ok(panama.paint.features.length>0);
+assert.equal(panama.depthKm,12.647,'The physical model must retain unrounded depth');
+assert.ok(Number.isFinite(panama.videoCamera.scale)&&panama.videoCamera.scale>0);
+console.log('PASS: published finite rupture only, matching origin, offline fallback, invalid coordinates and numerical depth preserved');

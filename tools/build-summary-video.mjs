@@ -9,6 +9,7 @@ import {SUMMARY_MAP_LAND} from '../summary-editorial-assets.mjs';
 import {SUMMARY_FLAGS} from '../summary-flags.mjs';
 import {preloadSatellite} from './summary-video-satellite.mjs';
 import {enrichVideoEvents} from './summary-video-impact.mjs';
+import {prepareVideoPaint} from './summary-video-paint.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const input=resolve(process.argv[2]||resolve(root,'tests/fixtures/daily-summary/2026-10-01-usgs.json'));
 const output=resolve(process.argv[3]||'/tmp/monitor-global-resumo.mp4');
@@ -21,6 +22,11 @@ let events=data.events.filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time)
 for(const event of events){const country=helpers.summaryCountry(event.place||'');event.code=country.code;const suffix=event.location.slice(event.location.lastIndexOf(',')+1).trim();if(event.location.includes(',')&&suffix.toLocaleUpperCase('pt-BR')===event.country)event.location=event.location.slice(0,event.location.lastIndexOf(','));}
 if(!events.length)throw new Error('No dated earthquakes to render');
 const impact=process.argv.includes('--impact');if(impact)events=await enrichVideoEvents(events);
+const painted=process.argv.includes('--paint')||process.argv.includes('--satellite');
+if(painted)events=await prepareVideoPaint(events.map(e=>({...e,depthKm:data.events.find(original=>original.id===e.id)?.depth})),{official:process.argv.includes('--satellite')});
+const logo=(await readFile(resolve(root,'index.html'),'utf8')).match(/<svg class="mg-logo-icon"[\s\S]*?<\/svg>/)?.[0];
+if(!logo)throw new Error('Project radar logo missing');
+const logoURL='data:image/svg+xml;base64,'+Buffer.from(logo.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ')).toString('base64');
 const hold=impact?5:4;
 const fonts=await Promise.all(['CormorantGaramond','Inter'].map(async name=>({name,url:'data:font/ttf;base64,'+(await readFile(resolve(root,'assets/summary-fonts/'+name+'.ttf'))).toString('base64')})));
 const satellite=process.argv.includes('--satellite')?await preloadSatellite(events,resolve(tmpdir(),'monitor-global-satellite-tiles'),{hold,mapHeight:impact?460:560}):null;
@@ -29,16 +35,18 @@ const temp=await mkdtemp(resolve(tmpdir(),'monitor-video-'));
 try{
  const page=await browser.newPage({viewport:{width:720,height:1280},deviceScaleFactor:1});
  await page.setContent('<canvas id="video" width="720" height="1280"></canvas>');
- const result=await page.evaluate(async({events,day,land,fonts,flags,satellite,impact,hold})=>{
+ const result=await page.evaluate(async({events,day,land,fonts,flags,satellite,impact,hold,logoURL,painted})=>{
   for(const f of fonts){const face=new FontFace(f.name,'url('+f.url+')',{weight:'100 900'});await face.load();document.fonts.add(face);}
   const flagImage=new Image();flagImage.src='data:image/png;base64,'+flags.b64;await flagImage.decode();
+  const logoImage=new Image();logoImage.src=logoURL;await logoImage.decode();
   const tileImages={};if(satellite)await Promise.all(Object.entries(satellite.tiles).map(async([key,tile])=>{const imgs={};await Promise.all(Object.entries(tile).map(async([layer,url])=>{const img=new Image();img.src=url;await img.decode();imgs[layer]=img;}));tileImages[key]=imgs;}));
   const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),W=720,H=1280,bg='#02101f',white='#e8ecee',cyan='#98e7e8',muted='#95acbb';
   const merc=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-75,Math.min(75,lat))*Math.PI/360));
   const valid=e=>Number.isFinite(e.lat)&&Math.abs(e.lat)<=90&&Number.isFinite(e.lon)&&Math.abs(e.lon)<=180;
   const world={lon:0,lat:18,scale:6.7/660},date=day.split('-').reverse().join('/');
   const duration=2+events.length*hold+3,ease=t=>t*t*(3-2*t);
-  const camera=e=>valid(e)?{lon:e.lon,lat:e.lat,scale:.6/660}:world;
+  const camera=e=>valid(e)?e.videoCamera||{lon:e.lon,lat:e.lat,scale:.6/660}:world;
+  const paintPaths=new Map(events.filter(e=>e.paint).map(e=>[e.rank,e.paint.features.map(f=>{const path=new Path2D();for(const polygon of f.geometry.coordinates)for(const ring of polygon){ring.forEach(([lon,lat],i)=>{if(i)path.lineTo(lon*Math.PI/180,merc(lat));else path.moveTo(lon*Math.PI/180,merc(lat));});path.closePath();}return {path,color:f.properties.color};})]));
   const mix=(a,b,t)=>{let delta=((b.lon-a.lon+540)%360)-180;return {lon:a.lon+delta*t,lat:a.lat+(b.lat-a.lat)*t,scale:Math.exp(Math.log(a.scale)*(1-t)+Math.log(b.scale)*t)};};
   const color=e=>'rgb('+e.color.join(',')+')';
   function text(s,x,y,size=20,fill=white,family='Inter',weight=400){ctx.fillStyle=fill;ctx.font=weight+' '+size+'px '+family;ctx.fillText(s,x,y);}
@@ -49,24 +57,27 @@ try{
    const project=(lon,lat)=>{let delta=lon*Math.PI/180-cx;while(delta>Math.PI)delta-=Math.PI*2;while(delta< -Math.PI)delta+=Math.PI*2;return [box.x+box.w/2+delta/cam.scale,box.y+box.h/2-(merc(lat)-cy)/cam.scale];};
    ctx.save();ctx.beginPath();ctx.rect(box.x,box.y,box.w,box.h);ctx.clip();
    ctx.fillStyle=bg;ctx.fillRect(box.x,box.y,box.w,box.h);
+   const visible=[];let tileSize=0;
    if(satellite){
     const n=2**cam.z,unit=2*Math.PI/n,tx=(cx+Math.PI)/unit,ty=(Math.PI-cy)/unit,rx=box.w/2*cam.scale/unit,ry=box.h/2*cam.scale/unit,size=unit/cam.scale;
-    const visible=[];
+    tileSize=size;
     for(let x=Math.floor(tx-rx);x<=Math.floor(tx+rx);x++)for(let y=Math.max(0,Math.floor(ty-ry));y<=Math.min(n-1,Math.floor(ty+ry));y++){
      const key=cam.z+'/'+y+'/'+((x%n)+n)%n,tile=tileImages[key];if(!tile)throw new Error('Uncached satellite tile: '+key);
      const px=box.x+box.w/2+(x-tx)*size,py=box.y+box.h/2+(y-ty)*size;ctx.drawImage(tile.imagery,px,py,size+.4,size+.4);visible.push({tile,px,py});
     }
     ctx.fillStyle='rgba(2,16,31,.22)';ctx.fillRect(box.x,box.y,box.w,box.h);
-    for(const {tile,px,py}of visible)ctx.drawImage(tile.labels,px,py,size+.4,size+.4);
    }else{
    ctx.strokeStyle='#183149';ctx.lineWidth=.7;
    for(let lon=-180;lon<180;lon+=20){const [x]=project(lon,0);ctx.beginPath();ctx.moveTo(x,box.y);ctx.lineTo(x,box.y+box.h);ctx.stroke();}
    for(let lat=-60;lat<=60;lat+=20){const [,y]=project(cam.lon,lat);ctx.beginPath();ctx.moveTo(box.x,y);ctx.lineTo(box.x+box.w,y);ctx.stroke();}
    for(const polygon of land){ctx.beginPath();for(const ring of polygon){let previous=null;for(const [lon,lat]of ring){const point=project(lon,lat);if(!previous||Math.abs(point[0]-previous[0])>box.w*2)ctx.moveTo(...point);else ctx.lineTo(...point);previous=point;}ctx.closePath();}ctx.fillStyle='#142b40';ctx.fill('evenodd');ctx.strokeStyle='#294b60';ctx.lineWidth=.7;ctx.stroke();}
    }
-   for(const e of events.filter(valid)){const [x,y]=project(e.lon,e.lat),c=color(e),selected=e.rank===active?.rank;ctx.globalAlpha=selected||!active?1:.5;circle(x,y,selected?25+Math.sin(time*2)*3:14,null,c,1.5);circle(x,y,selected?7:5,c);if(selected||!active){circle(x+20,y-22,13,bg,c);text(String(e.rank),x+15,y-17,14,c);}}
+   if(painted&&active){ctx.save();const lon=active.lon+((cam.lon-active.lon+540)%360)-180;ctx.translate(box.x+box.w/2-lon*Math.PI/180/cam.scale,box.y+box.h/2+cy/cam.scale);ctx.scale(1/cam.scale,-1/cam.scale);ctx.globalAlpha=.64;for(const band of paintPaths.get(active.rank)||[]){ctx.fillStyle=band.color;ctx.fill(band.path,'evenodd');}ctx.restore();}
+   for(const {tile,px,py}of visible)ctx.drawImage(tile.labels,px,py,tileSize+.4,tileSize+.4);
+   for(const e of events.filter(valid)){const [x,y]=project(e.lon,e.lat),c=painted?'#ff6151':color(e),selected=e.rank===active?.rank;ctx.globalAlpha=selected||!active?1:.5;if(!painted)circle(x,y,selected?25+Math.sin(time*2)*3:14,null,c,1.5);circle(x,y,selected?8:5,selected&&painted?'#ffffff':c);if(selected&&painted)circle(x,y,5,c);if(selected||!active){circle(x+20,y-22,13,bg,c);text(String(e.rank),x+15,y-17,14,c);}}
    ctx.restore();ctx.globalAlpha=1;
    if(satellite){ctx.fillStyle='rgba(2,16,31,.75)';ctx.fillRect(30,box.y+box.h-25,660,25);text('© Esri · Maxar · Earthstar Geographics · HERE · Garmin · © OpenStreetMap',38,box.y+box.h-8,11,white);}
+   if(painted&&active){ctx.fillStyle='rgba(2,16,31,.88)';ctx.fillRect(42,box.y+box.h-94,365,62);text('INTENSIDADE ESTIMADA · NÃO CONFIRMA DANOS',52,box.y+box.h-76,12,muted);['#84a2e8','#82d6ff','#55f20f','#ffff00','#ffc800','#ff0000'].forEach((c,i)=>{ctx.fillStyle=c;ctx.fillRect(52+i*55,box.y+box.h-65,55,7);});text('Fraca',52,box.y+box.h-41,12,white);text('Moderada',181,box.y+box.h-41,12,white);text('Forte',350,box.y+box.h-41,12,white);}
   }
   function draw(time){
    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -75,7 +86,7 @@ try{
    if(!intro&&!closing){const local=time-2-index*hold,from=index?camera(events[index-1]):world;cam=mix(from,camera(event),ease(Math.min(1,local/1.4)));}
    if(closing)cam=mix(camera(events.at(-1)),world,ease(Math.min(1,(time-2-events.length*hold)/1.4)));
    if(satellite)cam=satellite.cameras[Math.min(satellite.cameras.length-1,Math.max(0,Math.round(time*25)))];
-   circle(56,62,24,null,cyan);circle(56,62,16,null,cyan);circle(56,62,8,null,cyan);circle(56,62,3,cyan);
+   ctx.drawImage(logoImage,30,36,52,52);
    text('MONITOR GLOBAL',98,69,23,white);text('AMOSTRA · '+date+' · BRT',30,113,15,muted);
    if(satellite||impact){text('Resumo sísmico diário.',30,190,57,white,'CormorantGaramond',600);text('OS '+events.length+' MAIORES SISMOS DO DIA',32,229,17,muted);}
    else{text('Resumo sísmico',30,203,76,white,'CormorantGaramond',600);text('diário.',30,282,76,cyan,'CormorantGaramond',600);text('OS '+events.length+' MAIORES SISMOS DO DIA',32,323,17,muted);}
@@ -118,7 +129,7 @@ try{
   recorder.stop();await done;stream.getTracks().forEach(t=>t.stop());
   const bytes=new Uint8Array(await new Blob(chunks,{type:mime}).arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));
   return {b64:btoa(binary),duration};
- },{events,day:data.day,land:SUMMARY_MAP_LAND,fonts,flags:SUMMARY_FLAGS,satellite,impact,hold});
+ },{events,day:data.day,land:SUMMARY_MAP_LAND,fonts,flags:SUMMARY_FLAGS,satellite,impact,hold,logoURL,painted});
  await mkdir(dirname(output),{recursive:true});await writeFile(resolve(temp,'preview.webm'),Buffer.from(result.b64,'base64'));
  const encoded=spawnSync('ffmpeg',['-hide_banner','-loglevel','warning','-y','-i',resolve(temp,'preview.webm'),'-an','-vf','fps=25','-c:v','libx264','-preset','fast','-crf','20','-pix_fmt','yuv420p','-movflags','+faststart',output],{encoding:'utf8'});
  if(encoded.status!==0)throw new Error(encoded.stderr||'ffmpeg encoding failed');
