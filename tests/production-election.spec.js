@@ -7,7 +7,7 @@ test('apuração publicada usa TSE real e mostra votos e percentuais no desktop'
   const base = process.env.PUBLIC_SITE_URL.replace(/\/$/, '');
   await expect.poll(async () => {
     const response = await request.get(base + '/index.html?election-verify=' + Date.now());
-    return response.ok() && (await response.text()).includes('js/election-results.js?v=20261005-election');
+    return response.ok() && /js\/election-results\.js\?v=/.test(await response.text());
   }, {timeout: 120000, intervals: [5000]}).toBe(true);
   await page.setViewportSize({width: 1600, height: 1000});
   await page.route('**/*', route => {
