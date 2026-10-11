@@ -133,104 +133,91 @@ function json(data, status = 200) {
 
 function nowIso() { return new Date().toISOString(); }
 
-// Média de pesquisas eleitorais (2º turno), fonte: tabela "Agregação de pesquisas"
-// da página da Wikipédia sobre as pesquisas pra presidente. Refeita 1x por noite
-// pelo cron (ver scheduled()); resultado fica em KV (env.TTS_USAGE) pro frontend ler.
-const POLLS_WIKIPEDIA_TITLE = 'Pesquisas_de_opinião_para_a_eleição_presidencial_no_Brasil_em_2026';
+// Média de pesquisas eleitorais (2º turno), fonte: feed RSS do Poder360
+// (cobre qualquer instituto que divulgue pesquisa nacional -- cada pesquisa
+// nova vira uma notícia individual, com os números no próprio título).
+// Rechecada a cada ~15min pelo cron (ver scheduled()); resultado fica em KV
+// (env.TTS_USAGE) pro frontend ler.
+const POLLS_FEED_URL = 'https://www.poder360.com.br/feed/';
 const POLLS_KV_KEY = 'polls-2nd-round-average';
 const POLLS_RAN_TODAY_KV_KEY = 'polls-2nd-round-ran-on';
 
-async function fetchPollsWikitext() {
-    const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(POLLS_WIKIPEDIA_TITLE)}&prop=wikitext&format=json&formatversion=2`;
-    const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobal/1.0 (https://monitorglobal.top)' } });
-    if (!res.ok) throw new Error('Falha ao buscar Wikipedia: HTTP ' + res.status);
-    const data = await res.json();
-    const wikitext = data?.parse?.wikitext || '';
-    if (!wikitext) throw new Error('Sem wikitext na resposta da Wikipedia');
-    return wikitext;
+async function fetchPoder360Feed() {
+    const res = await fetch(POLLS_FEED_URL, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MonitorGlobal/1.0; +https://monitorglobal.top)' } });
+    if (!res.ok) throw new Error('Falha ao buscar feed do Poder360: HTTP ' + res.status);
+    const xml = await res.text();
+    const items = [];
+    for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+        const block = m[1];
+        const titleM = block.match(/<title>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([\s\S]*?))<\/title>/);
+        const dateM = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+        const linkM = block.match(/<link>([\s\S]*?)<\/link>/);
+        const title = titleM ? (titleM[1] ?? titleM[2] ?? '').trim() : '';
+        const pubDate = dateM ? Date.parse(dateM[1].trim()) : NaN;
+        const link = linkM ? linkM[1].trim() : '';
+        if (title) items.push({ title, pubDate, link });
+    }
+    return items;
 }
 
-function findAggregatorTable(wikitext) {
-    const tableRe = /\{\|[\s\S]*?\n\|\}/g;
-    let tm;
-    while ((tm = tableRe.exec(wikitext))) {
-        if (/Agregador/i.test(tm[0]) && /Lula/i.test(tm[0])) return tm[0];
+// Título do Poder360 pra pesquisa de 2º turno segue o padrão "[Candidato]
+// tem X% ... Y% de [Candidato2] no 2º turno" (ordem de nome e número pode
+// variar, e o jornalista às vezes omite o "%" do segundo número). Exige
+// escopo nacional -- descarta pesquisas estaduais ("em MG", "no AP" etc.).
+function parsePoder360Title(title) {
+    if (!/2[ºo]\s*turno/i.test(title)) return null;
+    if (!title.includes('%')) return null;
+    if (/\bem\s+[A-Z]{2}\b|\bno\s+[A-Z]{2}\b/.test(title)) return null;
+    const pctRe = /(\d{1,2}(?:,\d{1,2})?)\s*%?/g;
+    const pctPositions = [...title.matchAll(pctRe)].map(m => ({ val: parseFloat(m[1].replace(',', '.')), pos: m.index }));
+    if (pctPositions.length < 2) return null;
+    const nameRe = /(Lula|Flávio|Flavio)/gi;
+    const nameIdx = [];
+    let nm;
+    while ((nm = nameRe.exec(title))) nameIdx.push({ name: nm[1], pos: nm.index });
+    if (nameIdx.length < 2) return null;
+    const used = new Set();
+    function nearestPct(namePos) {
+        let bestIdx = -1, bestDist = Infinity;
+        pctPositions.forEach((p, i) => {
+            if (used.has(i)) return;
+            const dist = Math.abs(p.pos - namePos);
+            if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+        });
+        if (bestIdx === -1) return null;
+        used.add(bestIdx);
+        return pctPositions[bestIdx].val;
     }
-    return null;
-}
-
-// Linhas da tabela começam em "\n|-" (separador), terminam na próxima "\n|-" ou "\n|}".
-// Dentro de cada linha, cada célula começa numa linha própria com "|" (não "|}" nem "|-"),
-// podendo ter um prefixo "style=...|" e continuar em linhas seguintes sem "|" no começo.
-function parsePollsAggregatorTable(wikitext) {
-    const table = findAggregatorTable(wikitext);
-    if (!table) throw new Error('Tabela de agregação de pesquisas não encontrada');
-    const rowBlocks = table.split(/\n\|-/).slice(1);
-    const rows = [];
-    for (const block of rowBlocks) {
-        if (/^\s*!/.test(block) || !/^\s*\|/.test(block)) continue;
-        const cells = [];
-        let cur = null;
-        for (const line of block.split('\n')) {
-            if (line === '') continue;
-            if (/^\s*\|(?!\})/.test(line)) {
-                if (cur !== null) cells.push(cur);
-                cur = line.replace(/^\s*\|/, '');
-            } else if (cur !== null) {
-                cur += ' ' + line.trim();
-            }
-        }
-        if (cur !== null) cells.push(cur);
-        if (cells.length >= 11) rows.push(cells);
+    const result = {};
+    for (const n of nameIdx) {
+        const key = /fl[aá]v/i.test(n.name) ? 'flavio' : 'lula';
+        if (result[key] != null) continue;
+        const pct = nearestPct(n.pos);
+        if (pct != null) result[key] = pct;
     }
-
-    function cleanName(raw) { return raw.replace(/<ref[^]*?<\/ref>/g, '').trim(); }
-    function cleanPct(raw) {
-        if (raw == null) return null;
-        let v = raw.replace(/^style="[^"]*"\s*\|/, '').trim();
-        v = v.replace(/\{\{N\/A\}\}/i, '').trim();
-        v = v.replace(/\{\{Nre\|[^}]*\}\}/gi, '').trim();
-        const m = v.match(/-?\d+[.,]?\d*/);
-        return m ? parseFloat(m[0].replace(',', '.')) : null;
-    }
-
-    const results = [];
-    for (const cells of rows) {
-        const agregador = cleanName(cells[0]);
-        const data = cells[1].trim();
-        const lula = cleanPct(cells[3]);
-        const flavio = cleanPct(cells[4]);
-        if (lula == null || flavio == null) continue;
-        results.push({ agregador, data, lula, flavio });
-    }
-    return results;
-}
-
-// Linhas da tabela trazem data em português abreviado ("4 Out 2026"). Usado
-// só pra sinalizar no frontend quando a pesquisa mais recente está velha --
-// a tabela da Wikipedia é mantida por editores, nem sempre no mesmo ritmo
-// dos institutos.
-const PT_MONTHS = { jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5, jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11 };
-function parsePtDate(text) {
-    const m = String(text).trim().match(/^(\d{1,2})\s+([A-Za-zçÇ]+)\s+(\d{4})$/);
-    if (!m) return null;
-    const month = PT_MONTHS[m[2].toLowerCase().slice(0, 3)];
-    if (month == null) return null;
-    return Date.UTC(Number(m[3]), month, Number(m[1]));
+    if (result.lula == null || result.flavio == null) return null;
+    return result;
 }
 
 async function refreshPollsAverage(env) {
-    const wikitext = await fetchPollsWikitext();
-    const rows = parsePollsAggregatorTable(wikitext);
-    if (rows.length < 2) throw new Error('Poucas linhas válidas na tabela de agregação (' + rows.length + ')');
-    const lula = rows.reduce((s, r) => s + r.lula, 0) / rows.length;
-    const flavio = rows.reduce((s, r) => s + r.flavio, 0) / rows.length;
-    const dates = rows.map(r => parsePtDate(r.data)).filter(Number.isFinite);
+    const items = await fetchPoder360Feed();
+    const polls = [];
+    const seenLinks = new Set();
+    for (const item of items) {
+        if (seenLinks.has(item.link)) continue;
+        const parsed = parsePoder360Title(item.title);
+        if (!parsed) continue;
+        seenLinks.add(item.link);
+        polls.push({ ...parsed, pubDate: item.pubDate });
+    }
+    if (polls.length < 1) throw new Error('Nenhuma pesquisa de 2º turno encontrada no feed');
+    const lula = polls.reduce((s, p) => s + p.lula, 0) / polls.length;
+    const flavio = polls.reduce((s, p) => s + p.flavio, 0) / polls.length;
+    const dates = polls.map(p => p.pubDate).filter(Number.isFinite);
     const latestPollAt = dates.length ? new Date(Math.max(...dates)).toISOString() : null;
     // Nunca regride: se já tínhamos uma pesquisa mais recente gravada (ex.
-    // uma correção manual enquanto a Wikipedia está atrasada em relação aos
-    // institutos), não sobrescreve com uma tabela que ainda não alcançou
-    // essa data.
+    // uma correção manual enquanto o feed ainda não trouxe pesquisa mais
+    // nova), não sobrescreve com dados mais antigos.
     if (env && env.TTS_USAGE) {
         const previousRaw = await env.TTS_USAGE.get(POLLS_KV_KEY);
         const previous = previousRaw ? JSON.parse(previousRaw) : null;
@@ -240,7 +227,7 @@ async function refreshPollsAverage(env) {
     }
     const record = {
         updatedAt: nowIso(),
-        sources: rows.length,
+        sources: polls.length,
         latestPollAt,
         candidates: [
             { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: Number(lula.toFixed(2)) },
@@ -251,17 +238,16 @@ async function refreshPollsAverage(env) {
     return record;
 }
 
-// Rodar só 1x por noite (perto das 22h BRT = 01h UTC); a cron do Worker dispara
-// a cada tick de qualquer tarefa, então o gate é por data (marcador no KV).
+// Rechecar o feed a cada ~15min (não 1x por noite): a fonte agora é leve
+// (RSS, não mais raspagem pesada da Wikipedia), então dá pra pegar pesquisa
+// nova no mesmo dia que ela sai. A cron do Worker dispara a cada tick de
+// qualquer tarefa, então o gate é por tempo (marcador no KV), não por data.
 async function maybeRefreshPollsAverageNightly(env) {
     if (!env || !env.TTS_USAGE) return;
-    const now = new Date();
-    if (now.getUTCHours() !== 1) return;
-    const today = now.toISOString().slice(0, 10);
-    const ranOn = await env.TTS_USAGE.get(POLLS_RAN_TODAY_KV_KEY);
-    if (ranOn === today) return;
+    const lastRun = Number(await env.TTS_USAGE.get(POLLS_RAN_TODAY_KV_KEY)) || 0;
+    if (Date.now() - lastRun < 15 * 60000) return;
     await refreshPollsAverage(env);
-    await env.TTS_USAGE.put(POLLS_RAN_TODAY_KV_KEY, today);
+    await env.TTS_USAGE.put(POLLS_RAN_TODAY_KV_KEY, String(Date.now()));
 }
 
 async function handlePollsAverage(env) {

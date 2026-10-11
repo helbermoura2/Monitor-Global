@@ -14,8 +14,9 @@ const seenArrivals = new Set(window.ElectionPanel?.arrivalIds || []);
 // Descreve só o que o TSE já apurou desde que o placar foi aberto -- nunca
 // uma projeção do resultado final (sem base histórica de 2022, sem modelo).
 const trendPoints = new Map();
-// Aba separada: média de pesquisas (Wikipedia) pro 2º turno, nunca comparada
-// com o apurado oficial do TSE -- só a aba "projeção final" mostra o TSE.
+// Aba separada: média de pesquisas divulgadas na imprensa pro 2º turno,
+// nunca comparada com o apurado oficial do TSE -- só a aba "projeção final"
+// mostra o TSE.
 let activeTab = 'final', pollsCache = null, pollsLoading = false;
 
 function expired() {
@@ -150,7 +151,7 @@ function renderPolls() {
       <b class="election-poll-pct">${percentage.format(c.percentage)}%</b>
     </div>`).join('')}</div>
     ${stale ? `<p id="election-polls-stale" role="status">⚠ A pesquisa mais recente usada nesta média é de ${ageDays} dias atrás — pode não refletir o cenário mais atual.</p>` : ''}
-    <p id="election-polls-foot">Média de ${pollsCache.sources} agregadores de pesquisas (Wikipedia) · atualizado ${updated} BRT · não é o apurado oficial do TSE.</p>`;
+    <p id="election-polls-foot">Média de ${pollsCache.sources} pesquisas divulgadas na imprensa · atualizado ${updated} BRT · não é o apurado oficial do TSE.</p>`;
 }
 async function loadPolls() {
   if (pollsCache || pollsLoading) return;
