@@ -88,9 +88,20 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     // a new arrival still queues and still wins once the window ends, but
     // doesn't forcibly interrupt smaller/equal protected content; past it,
     // every new arrival keeps interrupting immediately, as requested.
+    //
+    // Blocking only equal/smaller cold-load candidates wasn't enough: a
+    // catalog scan naturally turns up a bunch of different "running max"
+    // magnitudes as sources resolve in whatever order they finish in, and
+    // each one is a genuinely BIGGER arrival by that same magnitude-wins
+    // rule above, so it kept interrupting too -- still several jump-cuts in
+    // the first few seconds, exactly what was reported as "ainda continua".
+    // None of these are real live arrivals though, just history that's new
+    // to this fresh page: during cold load the whole "new always interrupts"
+    // fast path is suspended, whatever its magnitude, and only resumes once
+    // the page has actually settled.
     const coldLoad = (typeof isFirstLoad!=='undefined' && isFirstLoad) ||
         (Number.isFinite(window.__mgColdLoadGraceUntil) && Date.now() < window.__mgColdLoadGraceUntil);
-    if (protectedSelection && Number(next.event.mag)<=currentMag && (!next.isNew || coldLoad)) return false;
+    if (protectedSelection && (coldLoad || (!next.isNew && Number(next.event.mag)<=currentMag))) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;
