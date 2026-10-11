@@ -71,7 +71,20 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     // already on screen) always gets shown, whatever its magnitude: every
     // new quake must appear, with the biggest taking priority when several
     // are queued at once.
-    if (protectedSelection && Number(next.event.mag)<=currentMag && !next.isNew) return false;
+    // On cold load/reload, several parallel sources (USGS, EMSC, ...) resolve
+    // seconds after the very first display already went up, each queueing
+    // its own batch of quakes that look "new" only because the page itself
+    // is new -- not because they're a real live arrival. Letting every one
+    // of those bypass protection made the camera jump-cut across the globe
+    // several times a second right after load -- reported by the user as
+    // the page "going crazy". During a short grace window after the first
+    // display, a new arrival still queues and still wins once the window
+    // ends, but doesn't forcibly interrupt smaller/equal protected content;
+    // past that window, every new arrival keeps interrupting immediately,
+    // as requested.
+    const coldLoad = Number.isFinite(window.__mgFirstDisplayShownAt) &&
+        Date.now() - window.__mgFirstDisplayShownAt < 8000;
+    if (protectedSelection && Number(next.event.mag)<=currentMag && (!next.isNew || coldLoad)) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;
