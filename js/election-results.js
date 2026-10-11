@@ -6,6 +6,7 @@ const client = new TseResultsClient(window.OptionalFeatures?.fetch);
 const number = new Intl.NumberFormat('pt-BR');
 const percentage = new Intl.NumberFormat('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const dateTime = new Intl.DateTimeFormat('pt-BR', {timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'});
+const dayMonth = new Intl.DateTimeFormat('pt-BR', {timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit'});
 const ballot = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16v8H4zM7 12l-2-3h4m7 0h3l2 3M10 3l7 4-4 7-7-4z"/><path d="m10 8 1 2 3-1M8 17h8"/></svg>';
 let chip, panel, announcement, opened = false, timer, expiryTimer, request, revision = 0;
 let turn = Date.now() >= ELECTION_2026.secondTurnAt ? 2 : 1;
@@ -200,7 +201,13 @@ function render(result = client.lastGood.get(turn), failed = false, loading = fa
   } else {
     updateTrend(null);
     candidates.replaceChildren();
-    text('election-empty', failed ? 'Não foi possível consultar o TSE. Tentaremos novamente em 30 s.' : loading ? 'Consultando a apuração oficial…' : `Aguardando dados oficiais do ${turn}º turno.`);
+    text('election-empty', failed
+      ? 'Não foi possível consultar o TSE. Tentaremos novamente em 30 s.'
+      : loading
+        ? 'Consultando a apuração oficial…'
+        : turn === 2 && Date.now() < ELECTION_2026.secondTurnAt
+          ? `O 2º turno começa em ${dayMonth.format(ELECTION_2026.secondTurnAt)} — ainda não há dados oficiais do TSE.`
+          : `Aguardando dados oficiais do ${turn}º turno.`);
   }
   const feedback = panel.querySelector('#election-feedback');
   feedback.hidden = !failed || !hasResults;
