@@ -1,7 +1,7 @@
 import { SUMMARY_MAP_LAND } from './summary-editorial-assets.mjs';
 
 const COLORS={bg:[2,16,31],white:[232,236,238],cyan:[152,231,232],muted:[149,172,187],line:[36,55,70],map:[2,16,31],land:[20,43,64],coast:[30,59,80]};
-export const DAILY_SUMMARY_DESIGN='referencia-editorial-v4';
+export const DAILY_SUMMARY_DESIGN='referencia-editorial-v5-brasil';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -126,7 +126,10 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
  const first=layouts[0],heroNames=first?wrap('heroName',first.place.title,278):[],heroCountries=first?wrap('country',first.country.label,278):[];
  const extraHero=Math.max(0,(heroNames.length-1)*(fonts.heroName.cellH+4)+(heroCountries.length-1)*(fonts.country.cellH+3));
  const rowsY=760+extraHero,rowHeights=layouts.slice(1).map(l=>l.height),rowsEnd=rowsY+rowHeights.reduce((a,b)=>a+b,0);
- const totalsY=Math.max(1150+extraHero,rowsEnd+22),H=Math.max(1344,totalsY+194);
+ const brazil=events.filter(e=>e.brazil===true||Number.isFinite(e.lat)&&Number.isFinite(e.lon)&&gfx.isBrazil?.(e.lat,e.lon)).sort((a,b)=>b.mag-a.mag||a.time-b.time);
+ const brazilRows=brazil.map(e=>({event:e,names:wrap('detail',gfx.place(e.place).title,470)}));
+ const brazilY=Math.max(1150+extraHero,rowsEnd+22),brazilHeight=brazil.length?66+brazilRows.reduce((n,r)=>n+Math.max(60,24+r.names.length*(fonts.detail.cellH+3)),0)+16:0;
+ const totalsY=brazilY+(brazilHeight?brazilHeight+22:0),H=Math.max(1344,totalsY+194);
  const rgba=new Uint8Array(W*H*4);gfx.fillRect(rgba,W,0,0,W,H,...COLORS.bg);
  const text=(key,s,x,y,color=COLORS.white,tracking=0)=>gfx.drawText(rgba,W,H,fonts[key],gfx.clean(s,fonts[key]),x,y,...color,tracking);
  const center=(key,s,x,y,color=COLORS.white,tracking=0)=>text(key,s,x-measure(key,s,tracking)/2,y,color,tracking);
@@ -172,9 +175,23 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
   flag(l.country.code,802,middle-15);rowY+=l.height;
  });
  const cells=[['EVENTOS HOJE',events.length],['M6,0 OU MAIS',events.filter(e=>e.mag>=6).length],['M5,0 – M5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],['M4,0 – M4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],['ABAIXO DE M4,0',events.filter(e=>e.mag<4).length]];
+ if(brazil.length){
+  border(X,brazilY,CW,brazilHeight,11,[74,222,128]);flag('BR',X+18,brazilY+18);
+  text('caption','SISMOS NO BRASIL · '+brazil.length,X+82,brazilY+20,COLORS.white);
+  let by=brazilY+66;
+  for(const {event:e,names}of brazilRows){
+   const height=Math.max(60,24+names.length*(fonts.detail.cellH+3));
+   text('magnitude','M'+e.mag.toFixed(1).replace('.',','),X+18,by+5,gfx.magColor(e.mag));
+   names.forEach((name,i)=>text('detail',name,X+112,by+5+i*(fonts.detail.cellH+3)));
+   const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+   text('small',when+' BRT · '+km(e.depth),X+610,by+5,COLORS.white);
+   text('small',(e.sources||[e.source||'USGS']).join(' · '),X+610,by+27,COLORS.muted);
+   by+=height;
+  }
+ }
  border(X,totalsY,CW,140);
  cells.forEach(([label,count],i)=>{const x=X+CW/5*(i+.5);if(i)line(rgba,W,H,X+CW/5*i,totalsY+24,X+CW/5*i,totalsY+111,COLORS.line);center(i?'band':'total',count.toLocaleString('pt-BR'),x,totalsY+18,i?gfx.magColor([null,6,5,4,3][i]):COLORS.cyan);center('tag',label,x,totalsY+91,COLORS.white);});
- text('small','Fonte: USGS · Dados sujeitos a revisão · Distâncias a São Paulo',X,H-30,COLORS.muted);
+ text('small',(brazil.length?'Fontes: '+[...new Set(['USGS',...brazil.flatMap(e=>e.sources||[e.source||'USGS'])])].join(' · '):'Fonte: USGS')+' · Dados sujeitos a revisão',X,H-30,COLORS.muted);
  const domain='monitorglobal.top';text('tag',domain,W-X-measure('tag',domain),H-31,COLORS.cyan);
- return {day,png:await gfx.png(rgba,W,H),top,total:events.length,layout:{width:W,height:H,splitH:435,rowsY,rowsEnd,totalsY,rowHeights},epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),design:DAILY_SUMMARY_DESIGN};
+ return {day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,layout:{width:W,height:H,splitH:435,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight},epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),design:DAILY_SUMMARY_DESIGN};
 }

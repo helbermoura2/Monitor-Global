@@ -8,7 +8,7 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
 const normal=await mod.renderDailySummaryPng({day:fixture.day,events});
-assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'referencia-editorial-v4');
+assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'referencia-editorial-v5-brasil');
 const image=await mod.decodePng(normal.png);assert.equal(image.width,900);assert.equal(image.height,1344);assert(normal.png.length>50000);
 const brightRegion=(x0,y0,x1,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*image.width+x)*4;if(image.rgba[i]>100&&image.rgba[i+1]>100&&image.rgba[i+2]>100)n++;}return n;};
 assert(brightRegion(35,120,555,295)>8000,'Two-line heading must remain visible');
@@ -33,6 +33,13 @@ for(const rows of [[],[{...events[0],lat:null,lon:null,depth:null}],Array.from({
  assert.equal(result.total,rows.length);assert.equal(png.width,900);assert(png.height>=1344&&png.height<3000);assert(result.layout.rowsEnd<=result.layout.totalsY);
  assert.equal(result.epicenters.length,rows.filter(e=>Number.isFinite(e.lat)&&Number.isFinite(e.lon)).length);
 }
+const brazilQuake={id:'brazil-small',mag:3.4,place:'Minas Gerais–São Paulo, Brasil',time:Date.parse('2026-10-01T20:41:54Z'),lat:-20.71,lon:-47.66,depth:4,source:'EMSC'};
+const withBrazil=await mod.renderDailySummaryPng({day:fixture.day,events:[...fixture.events,brazilQuake]});
+assert.equal(withBrazil.brazilEvents.length,1);assert.equal(withBrazil.brazilEvents[0].id,brazilQuake.id);
+assert(!withBrazil.top.some(e=>e.id===brazilQuake.id),'Small Brazil events must appear outside the global top five');
+assert(withBrazil.layout.brazilHeight>0);assert(withBrazil.layout.totalsY>=withBrazil.layout.brazilY+withBrazil.layout.brazilHeight);
+assert.equal(normal.brazilEvents.length,0);assert.equal(normal.layout.brazilHeight,0);
+if(process.env.SUMMARY_BRAZIL_PREVIEW_PATH)await writeFile(process.env.SUMMARY_BRAZIL_PREVIEW_PATH,withBrazil.png);
 const fonts=await mod.getDailySummaryFonts();assert(fonts.hero.glyphs[',']);assert(fonts.title.glyphs['ñ']);assert(fonts.subtitle.glyphs['í']);assert(fonts.heading.glyphs['R'][3]>=1);
 assert.equal(mod.summaryCountry('Balleny Islands region').code,'AQ');assert.equal(mod.summaryCountry('8 km ESE of Valle Vista, CA').code,'US');assert.equal(mod.summaryCountry('central Atlantic Ocean').code,null);
 for(const line of mod.summaryCardWrap(fonts.title,'extraordinarilylongunbrokentokenxxxxxxxxxxxxxx',280))assert(mod.textFontWidthProp(fonts.title,line,0)<=280);
@@ -43,7 +50,7 @@ for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)assert(Math.hypot(clustered.labels[i].
 for(const data of [fixture.events,[{lat:85,lon:-179},{lat:-85,lon:179},{lat:0,lon:0}],Array.from({length:5},(_,i)=>({lat:(i-2)*23,lon:i*72-180}))]){
  for(const world of [false,true]){const frame=summaryMapFrame(data,575,390,{world});for(const point of frame.markers)assert(point.x>=0&&point.x<=frame.width&&point.y>=0&&point.y<=frame.height);}
 }
-globalThis.fetch=async()=>Response.json({features:fixture.events.map(e=>({id:e.id,properties:{mag:e.mag,place:e.place,time:e.time,net:'us'},geometry:{coordinates:[e.lon,e.lat,e.depth]}}))});
+globalThis.fetch=async()=>Response.json({features:fixture.events.map(e=>({id:e.id,properties:{mag:e.mag,place:e.place,time:Date.now()-24*3600000,net:'us'},geometry:{coordinates:[e.lon,e.lat,e.depth]}}))});
 const queried=await mod.fetchDailyQuakesBrt();assert.deepEqual(queried.events.map(e=>[e.id,e.lat,e.lon]),fixture.events.map(e=>[e.id,e.lat,e.lon]));
 globalThis.fetch=savedFetch;
 console.log('PASS: editorial PNG, official top-five epicentres, offline geography/fonts, long/empty/missing data, close labels, dateline and USGS coordinate ingestion');
