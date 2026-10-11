@@ -167,6 +167,29 @@ async function handlePollsListTables() {
     return resposta(out, 200, 'text/plain; charset=utf-8');
 }
 
+// Temporário: investiga o repositório GitHub público do agregador do O POVO
+// (datadoc-opovo/agregador-de-pesquisas-opovo), que parece publicar CSVs
+// abertos de pesquisas -- pode ser uma fonte mais confiável e atual que a
+// Wikipedia. Remover depois de checado.
+async function handleOpovoRepoProbe() {
+    const apiUrl = 'https://api.github.com/repos/datadoc-opovo/agregador-de-pesquisas-opovo/git/trees/main?recursive=1';
+    const res = await fetch(apiUrl, { headers: { 'User-Agent': 'MonitorGlobalDebug/1.0', 'Accept': 'application/vnd.github+json' } });
+    if (!res.ok) return resposta('Falha ao listar repo: HTTP ' + res.status + '\n' + (await res.text()).slice(0, 500), 502, 'text/plain; charset=utf-8');
+    const data = await res.json();
+    const files = (data.tree || []).filter(f => f.type === 'blob');
+    const csvs = files.filter(f => /\.csv$/i.test(f.path));
+    let out = `repo tem ${files.length} arquivos, ${csvs.length} .csv:\n` + csvs.map(f => f.path).join('\n');
+    if (csvs.length) {
+        const sample = csvs.find(f => /2026|presiden/i.test(f.path)) || csvs[0];
+        const rawUrl = `https://raw.githubusercontent.com/datadoc-opovo/agregador-de-pesquisas-opovo/main/${sample.path}`;
+        const csvRes = await fetch(rawUrl, { headers: { 'User-Agent': 'MonitorGlobalDebug/1.0' } });
+        const csvText = csvRes.ok ? await csvRes.text() : 'HTTP ' + csvRes.status;
+        const lines = csvText.split(/\r?\n/).filter(Boolean);
+        out += `\n\n--- amostra: ${sample.path} (${lines.length} linhas) ---\n` + lines.slice(0, 12).join('\n');
+    }
+    return resposta(out, 200, 'text/plain; charset=utf-8');
+}
+
 async function fetchPollsWikitext() {
     const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(POLLS_WIKIPEDIA_TITLE)}&prop=wikitext&format=json&formatversion=2`;
     const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobal/1.0 (https://monitorglobal.top)' } });
@@ -5476,6 +5499,10 @@ export default {
         }
         if (reqUrl.pathname === '/polls-list-tables') {
             try { return await handlePollsListTables(); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
+        }
+        if (reqUrl.pathname === '/polls-opovo-repo-probe') {
+            try { return await handleOpovoRepoProbe(); }
             catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
