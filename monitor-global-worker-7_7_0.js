@@ -244,6 +244,15 @@ async function handlePollsAverage(env) {
     return json({ ok: true, ...JSON.parse(raw) });
 }
 
+// Temporário: mostra as linhas da tabela de agregação da Wikipedia (sem
+// gravar no KV), pra conferir se há pesquisas mais novas que as já usadas.
+// Remover depois de checado.
+async function handlePollsRecheck() {
+    const wikitext = await fetchPollsWikitext();
+    const rows = parsePollsAggregatorTable(wikitext);
+    return json({ ok: true, rows, count: rows.length });
+}
+
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -5418,6 +5427,11 @@ export default {
         }
         if (reqUrl.pathname === '/polls-average') {
             try { return await handlePollsAverage(env); }
+            catch (e) { return json({ ok: false, error: e.message }, 502); }
+        }
+        // Temporário: ver linhas da tabela da Wikipedia sem gravar no KV.
+        if (reqUrl.pathname === '/polls-recheck') {
+            try { return await handlePollsRecheck(); }
             catch (e) { return json({ ok: false, error: e.message }, 502); }
         }
         if (reqUrl.pathname === '/health') {
