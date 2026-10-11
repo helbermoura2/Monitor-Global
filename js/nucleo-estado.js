@@ -534,8 +534,8 @@ function marcarAtualizadoNoTopo(id, deltaTxt = '', ttl = ATUALIZADO_EXPIRA_MS) {
 // chegado (activeAlertingIds, já usado pro selo "NOVO") fica em destaque por
 // alguns minutos e depois se encaixa sozinho no horário real de ocorrência —
 // "atualizado" continua com seu próprio selo no card (activeUpdatedIds, não
-// mexido aqui), só não reordena mais a lista; a informação da revisão agora
-// vai pra pílula de atualização (ver showSismoAtualizadoPill).
+// mexido aqui), só não reordena mais a lista; a revisão não dispara nenhum
+// pop-up (removido a pedido do usuário, aparecia em lote a cada carregamento).
 function ordenarNovosNoTopo(items) {
     const arr = Array.isArray(items) ? items.slice() : [];
     const agora = Date.now();

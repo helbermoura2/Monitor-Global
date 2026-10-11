@@ -537,24 +537,11 @@ async function fetchGlobalFeeds() {
         isFirstLoad = false;
 
         // Atualização (revisão de magnitude/profundidade/fonte) não toca mais
-        // som nem pula pro topo da lista — mantém a distinção entre um
-        // "sismo novo" quando na real era um registro antigo só sendo
-        // corrigido. A informação agora vai pra uma pílula maior no rodapé
-        // (mesmo estilo dos toasts, só que com o card inteiro: lugar, M
-        // antiga → nova etc.), sem som e sem reordenar nada.
-        if (atualizados.length) {
-            const jaAvisados = new Set();
-            atualizados.forEach(ev => {
-                const pillKey = ev.id + '|updpill|' + (ev._deltaTxt || '');
-                if (jaAvisados.has(pillKey) || sismosSonorizados.has(pillKey)) return;
-                jaAvisados.add(pillKey);
-                sismosSonorizados.add(pillKey);
-                try { if (typeof showSismoAtualizadoPill === 'function') showSismoAtualizadoPill(ev); } catch (e) {}
-            });
-            if (sismosSonorizados.size > 300) {
-                sismosSonorizados = new Set([...sismosSonorizados].slice(-150));
-            }
-        }
+        // som nem pula pro topo da lista nem mostra pop-up/pílula nenhuma --
+        // pedido do usuário: o pop-up de "sismo atualizado" aparecia em
+        // lote (um por item revisado) toda vez que a página carregava ou
+        // recarregava, enchendo a tela. A revisão continua refletida nos
+        // dados (card/lista/mapa) silenciosamente, sem nenhum aviso.
 
         // Som, voz e notificação são o "alarme de aconteceu agora" — só cabem
         // pros sismos recentes de verdade (novosTardios só ganha o selo discreto

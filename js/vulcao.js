@@ -523,8 +523,6 @@ async function fetchVolcanoes(options={}){
                 primeiroNovo=primeiroNovo||obj;
                 try{ showToast(`🌋 Vulcanismo: ${nome}`,'warning'); }catch(_){}
                 try{ notificarNavegador(`🌋 Vulcanismo — ${nome}`,`GDACS${obj.aviationColor?' · VONA '+obj.aviationColor.toUpperCase():''}`); }catch(_){}
-            } else if (activeUpdatedIds.has(id)) {
-                try{ showToast(`🔄 Vulcão atualizado: ${nome}${obj._deltaTxt?' · '+obj._deltaTxt:''}`,'info'); }catch(_){}
             }
         });
 
@@ -564,8 +562,6 @@ async function fetchVolcanoes(options={}){
             if(isNew){
                 primeiroNovo=primeiroNovo||obj;
                 try{ showToast(`🌋 USGS: ${r.name}${r.aviationColor?' · '+r.aviationColor.toUpperCase():''}`,'warning'); }catch(_){}
-            } else if (activeUpdatedIds.has(id)) {
-                try{ showToast(`🔄 USGS atualizado: ${r.name}${obj._deltaTxt?' · '+obj._deltaTxt:''}`,'info'); }catch(_){}
             }
         });
 
@@ -621,8 +617,6 @@ async function fetchVolcanoes(options={}){
                 primeiroNovo=primeiroNovo||obj;
                 try{ showToast(`🌋 ${v.source}: ${v.name}`,'warning'); }catch(_){}
                 try{ notificarNavegador(`🌋 Vulcanismo — ${v.name}`,v.source); }catch(_){}
-            } else if (activeUpdatedIds.has(id)) {
-                try{ showToast(`🔄 ${v.source} atualizado: ${v.name}`,'info'); }catch(_){}
             }
         });
 
