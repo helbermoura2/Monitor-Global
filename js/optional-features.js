@@ -55,7 +55,7 @@
    if(busy||chip.hidden)return;busy=true;const token=generation;chip.disabled=true;chip.setAttribute('aria-busy','true');
    try{
     await asset('css/election-results.css?v=20261011-polls-tab');
-    await asset('js/election-results.js?v=20261011-pending-2nd-turn',true);
+    await asset('js/election-results.js?v=20261011-polls-worker-base',true);
     chip.removeEventListener('click',open);desktop.removeEventListener('change',visibility);document.removeEventListener('visibilitychange',visibility);clearTimeout(expiryTimer);
     if(token===generation&&desktop.matches&&Date.now()<retireAt)window.ElectionPanel.open();
    }catch(error){failure(error);}
