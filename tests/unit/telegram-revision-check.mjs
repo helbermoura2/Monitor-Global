@@ -49,9 +49,16 @@ assert(messages[2].caption.includes('Agora: *M6,3*'));
 await run();assert.equal(messages.length,3);
 world=[quake('initial',6.2)];await run();assert.equal(messages.length,4);assert.equal(messages.at(-1).method,'editMessageMedia');
 // New ID from another network updates the original instead of adding another photo.
-world.push(quake('us-alias',6.1,'us'));await run();assert.equal(messages.length,5);assert.equal(Number(messages.at(-1).body.message_id),original);
-assert(messages.at(-1).caption.includes('Nova estimativa'));
-await run();assert.equal(messages.length,5); // unchanged PT estimate cannot flip the card back
+world.push(quake('us-alias',6.1,'us'));await run();
+assert.equal(messages.length,6);
+assert.equal(messages[4].method,'editMessageMedia');assert.equal(Number(messages[4].body.message_id),original);
+assert(messages[4].caption.includes('Nova estimativa'));
+// M6+ now always gets a follow-up notice on any magnitude revision, even a
+// small one (ex.: 6.1 -> 6.2) -- not just silently updating the card. The
+// pending 6.3->6.2 change flushes together with this fresh alias estimate.
+assert.equal(messages[5].method,'sendMessage');assert.equal(messages[5].body.reply_parameters.message_id,original);
+assert(messages[5].caption.includes('Agora: *M6,1*'));
+await run();assert.equal(messages.length,6); // unchanged PT estimate cannot flip the card back
 // Below M6 still fetched by known ID and edits the same card, including a threshold notice.
 world=world.filter(f=>f.id!=='us-alias');details.set('us-alias',quake('us-alias',5.9,'us'));await run();
 assert(queried.includes('us-alias'));assert.equal(rendered.at(-1).mag,5.9);await run();assert.equal(messages.at(-1).method,'sendMessage');

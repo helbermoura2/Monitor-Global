@@ -4304,7 +4304,10 @@ function telegramEventVersion(ev) {
 }
 function telegramImportantChange(before, after) {
     return Math.abs(after.mag - before.mag) >= 0.3 - 1e-8 ||
-        [6, 7].some(limit => (before.mag >= limit) !== (after.mag >= limit));
+        [6, 7].some(limit => (before.mag >= limit) !== (after.mag >= limit)) ||
+        // M6+ já é raro o bastante pra qualquer revisão de magnitude valer um
+        // aviso novo, mesmo pequena (ex.: 6.1 -> 6.2) -- não só silenciar no card.
+        (after.mag >= TELEGRAM_MIN_MAG && after.mag !== before.mag);
 }
 async function telegramEditAlert(env, ev, record) {
     const caption = telegramCaption(ev, record).slice(0, 1024);
