@@ -45,6 +45,8 @@
   host.className = 'pd-poll-projection';
   host.setAttribute('aria-hidden', 'true');
   const updated = new Intl.DateTimeFormat('pt-BR', {timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}).format(new Date(data.updatedAt));
+  const ageDays = data.latestPollAt ? Math.floor((Date.now() - new Date(data.latestPollAt).getTime()) / 86400000) : null;
+  const stale = ageDays != null && ageDays >= 4;
   host.innerHTML = `<div class="pd-poll-head"><strong>Pesquisas · 2º turno</strong><br>Média de ${data.sources} agregadores</div>
    <div class="pd-poll-candidates">
     ${[a, b].map((c, i) => `<div class="pd-poll-candidate"${i === 0 ? ' data-leader' : ''}>
@@ -55,6 +57,7 @@
       <div class="pd-poll-bar"><span style="width:${c.percentage}%"></span></div>
      </div>`).join('')}
    </div>
+   ${stale ? `<div class="pd-poll-stale">⚠ Pesquisa mais recente usada é de ${ageDays} dias atrás</div>` : ''}
    <div class="pd-poll-foot">Média de pesquisas eleitorais (não é o apurado oficial) · atualizado ${updated} BRT</div>`;
   return host;
  }

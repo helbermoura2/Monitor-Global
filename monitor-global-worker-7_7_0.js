@@ -206,15 +206,30 @@ function parsePollsAggregatorTable(wikitext) {
     return results;
 }
 
+// Linhas da tabela trazem data em português abreviado ("4 Out 2026"). Usado
+// só pra sinalizar no frontend quando a pesquisa mais recente está velha --
+// a tabela da Wikipedia é mantida por editores, nem sempre no mesmo ritmo
+// dos institutos.
+const PT_MONTHS = { jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5, jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11 };
+function parsePtDate(text) {
+    const m = String(text).trim().match(/^(\d{1,2})\s+([A-Za-zçÇ]+)\s+(\d{4})$/);
+    if (!m) return null;
+    const month = PT_MONTHS[m[2].toLowerCase().slice(0, 3)];
+    if (month == null) return null;
+    return Date.UTC(Number(m[3]), month, Number(m[1]));
+}
+
 async function refreshPollsAverage(env) {
     const wikitext = await fetchPollsWikitext();
     const rows = parsePollsAggregatorTable(wikitext);
     if (rows.length < 2) throw new Error('Poucas linhas válidas na tabela de agregação (' + rows.length + ')');
     const lula = rows.reduce((s, r) => s + r.lula, 0) / rows.length;
     const flavio = rows.reduce((s, r) => s + r.flavio, 0) / rows.length;
+    const dates = rows.map(r => parsePtDate(r.data)).filter(Number.isFinite);
     const record = {
         updatedAt: nowIso(),
         sources: rows.length,
+        latestPollAt: dates.length ? new Date(Math.max(...dates)).toISOString() : null,
         candidates: [
             { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: Number(lula.toFixed(2)) },
             { id: 'flavio', name: 'Flávio Bolsonaro', party: 'PL', percentage: Number(flavio.toFixed(2)) }

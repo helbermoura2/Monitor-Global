@@ -14,5 +14,6 @@
 .pd-poll-pct{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
 .pd-poll-bar{width:100%;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
 .pd-poll-bar>span{display:block;height:100%;background:#68d5f7;border-radius:3px;transition:width .4s ease}
+.pd-poll-stale{text-align:center;font-size:10px;color:#f2d29b;margin-bottom:4px}
 .pd-poll-foot{text-align:center;font-size:9.5px;color:#7fa0b5;line-height:1.5}
 @media (max-width:900px){.pd-poll-projection{display:none}}
