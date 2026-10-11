@@ -22,7 +22,7 @@ A validação do gerador verifica codec, dimensões e duração com ffprobe. Pr�
 node tools/build-summary-video.mjs caminho/resumo.json /tmp/resumo-satelite.mp4 --satellite
 ```
 
-Usa as mesmas fontes do mapa principal: Esri World Imagery e Reference/World Boundaries and Places. O mapa ocupa mais espaço, com título compacto, fundo levemente escurecido e créditos visíveis. A câmera aproxima cada epicentro e retorna ao panorama no encerramento. As camadas representam imagens de satélite, nomes e fronteiras; os anéis identificam epicentros e não representam área afetada.
+Usa as mesmas fontes do mapa principal: Esri World Imagery e Reference/World Boundaries and Places. O mapa ocupa mais espaço, com título compacto, fundo levemente escurecido e créditos visíveis. A câmera aproxima cada epicentro e retorna ao panorama no encerramento. As camadas representam imagens de satélite, nomes e fronteiras. A modalidade de satélite inclui a pintura de intensidade estimada e os pontos dos epicentros, sem os anéis pulsantes.
 
 `tools/summary-video-satellite.mjs` calcula todas as posições da câmera e baixa antecipadamente os tiles necessários. Cache local em `/tmp/monitor-global-satellite-tiles`, sem chaves ou consultas às APIs meteorológicas. A opção requer rede durante o preparo; depois, o vídeo é gravado com os mapas já carregados. Interrupções ou respostas inválidas impedem a geração em vez de produzir um mapa vazio. Não altera o site ou a programação de envio no Telegram.
 
@@ -43,3 +43,15 @@ O tipo de falha usa exclusivamente o rake de uma solução publicada de moment t
 Validação: `node tests/unit/summary-video-impact-check.mjs`, com soluções válidas/ausentes, produtos removidos, preferência oficial, divergência de origem e distinção entre relatos e população. Amostra de 01/10/2026 consultada: 25 relatos no primeiro evento, sem PAGER ou mecanismo focal; ausência preservada.
 
 Também foi gerada e inspecionada a amostra de 09/10/2026 a partir dos cinco maiores registros da consulta USGS (janela BRT), com PAGER disponível nos cinco e mecanismo focal nos três primeiros. MP4 H.264 vertical validado, 29,96 s, 25 fps, ~3,5 MB. Os dois eventos sem solução focal mantêm o estado ausente. Essa consulta é apenas a seleção de uma amostra e não cria agendamento de entrega.
+
+## Pintura do mapa ao vivo e identidade do projeto
+
+```sh
+node tools/build-summary-video.mjs caminho/resumo.json /tmp/resumo-pintado.mp4 --satellite --impact --paint
+```
+
+A pintura é padrão com `--satellite`; `--paint` também permite aplicá-la ao mapa vetorial. Substitui os anéis pulsantes por um epicentro vermelho e branco e a pintura de intensidade estimada. Reutiliza `SeismicImpactModel` e as terras Natural Earth de 50 m do mapa ao vivo: as cores ficam nas terras, sem pintar o oceano. Nomes e fronteiras são desenhados sobre a pintura. A câmera aproxima a região de intensidade V+ e o epicentro, com margem, enquanto a legenda informa que intensidade estimada não confirma danos. O parâmetro numérico de profundidade original é preservado para os cálculos, apesar do arredondamento na apresentação.
+
+Com satélite, o preparo também procura uma grade USGS ShakeMap com ruptura finita publicada e origem compatível, como o mapa ao vivo. Se o JSON incluir uma grade de ruptura `shaking.grid` validada pelo modelo compartilhado, ela é reutilizada. Essas grades têm precedência sobre a atenuação radial; o gerador não inventa direção de ruptura. Sem essa grade, utiliza a estimativa radial do mapa ao vivo. Não representa relatos confirmados de percepção ou extensão de tsunami.
+
+O cabeçalho agora usa o SVG Radar Scope extraído diretamente de `index.html`, com a cunha azul e os três anéis do logo oficial, em todas as modalidades do vídeo. Previews são gerados fora do navegador do usuário; o mapa ao vivo e seu consumo gráfico não mudam.
