@@ -1,3 +1,4 @@
+import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
 import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
@@ -4114,6 +4115,7 @@ async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anc
 }
 
 async function renderAlertCardPng(ev) {
+    await enrichBrazilEpicenter(ev);
     const W=800,H=1440,rgba=new Uint8Array(W*H*4),fonts=await getFontAtlases();
     const frame=globalThis.QuakeCardLayout.frame(ev);
     fillRect(rgba,W,0,0,W,H,9,33,48);
@@ -4300,7 +4302,7 @@ async function telegramSendMessage(env, text, replyTo) {
 
 // Edição é idempotente: uma falha pode ser tentada novamente sem duplicar o alerta.
 function telegramEventVersion(ev) {
-    return JSON.stringify([ev.mag, ev.depth, ev.lat, ev.lon, ev.timeIso, ev.source, !!ev.reviewed]);
+    return JSON.stringify([ev.mag, ev.depth, ev.lat, ev.lon, ev.timeIso, ev.source, !!ev.reviewed, ev.place]);
 }
 function telegramImportantChange(before, after) {
     return Math.abs(after.mag - before.mag) >= 0.3 - 1e-8 ||
@@ -4310,6 +4312,7 @@ function telegramImportantChange(before, after) {
         (after.mag >= TELEGRAM_MIN_MAG && after.mag !== before.mag);
 }
 async function telegramEditAlert(env, ev, record) {
+    await enrichBrazilEpicenter(ev);
     const caption = telegramCaption(ev, record).slice(0, 1024);
     let body, method;
     if (record.messageType === 'text') {
@@ -4340,7 +4343,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v8-all-magnitudes';
+    next.cardImageVersion = 'cartographic-v9-epicenter-municipality';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     // Mensagens antigas não guardavam o ID: não é seguro apagar ou editar um ID adivinhado.
@@ -4712,6 +4715,7 @@ async function runTelegramM6Alerts(request, env) {
     const skipped = [];
 
     for (const ev of events) {
+        await enrichBrazilEpicenter(ev);
         if (sentIds.has(ev.id)) {
             const observed = sentRecords.find(r => r.id === ev.id);
             const root = observed.aliasOf ? sentRecords.find(r => r.id === observed.aliasOf) : observed;
@@ -4768,7 +4772,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v8-all-magnitudes';
+            reservation.cardImageVersion = 'cartographic-v9-epicenter-municipality';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.initialMag = ev.mag;
@@ -4793,16 +4797,19 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // Migrate recent confirmed photos once, then poll only pending exposure.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v8-all-magnitudes' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v9-epicenter-municipality' || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
-        const data = await queryImageExposure(ev, env);
+        let data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
         const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
-        if (keepKnownPopulation) { await saveSentAlerts(request, sentRecords, env); continue; }
-        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v8-all-magnitudes') {
+        if (keepKnownPopulation) {
+            if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
+            else {await saveSentAlerts(request, sentRecords, env);continue;}
+        }
+        if (validImageExposure(data) || root.cardImageVersion !== 'cartographic-v9-epicenter-municipality') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.cardImageVersion = 'cartographic-v8-all-magnitudes'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.place = ev.place; root.cardImageVersion = 'cartographic-v9-epicenter-municipality'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
         await saveSentAlerts(request, sentRecords, env);
@@ -4907,6 +4914,7 @@ async function fetchDailyQuakesBrt() {
         events.push({...candidate,time,source:source.provider,sources:[source.provider]});
     }
     const brazilEvents=events.filter(e=>e.brazil).sort((a,b)=>b.mag-a.mag||a.time-b.time);
+    for(const event of brazilEvents)await enrichBrazilEpicenter(event);
     return {day,events,brazilEvents,brazilFailedSources:brazilFeed.failedSources};
 }
 /** Layout de cada cartão do Top 5 é todo calculado ANTES de desenhar —
@@ -5454,6 +5462,7 @@ export default {
                 service: 'Monitor Global Worker',
                 version: '7.6.0',
                 dailySummaryDesign: DAILY_SUMMARY_DESIGN,
+                brazilEpicenterLocation: BRAZIL_EPICENTER_VERSION,
                 rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),
