@@ -206,6 +206,32 @@ async function handlePoder360ArticleProbe() {
     return resposta(`HTML total: ${html.length} chars\n\nTEXTO EXTRAÍDO (primeiros 6000 chars):\n${textOnly.slice(0, 6000)}`, 200, 'text/plain; charset=utf-8');
 }
 
+// Temporário: tenta achar um feed RSS da categoria de eleições do Poder360
+// (padrão comum em sites WordPress: /categoria/feed/). Se existir, cada
+// pesquisa nova vira uma notícia individual no feed, com os números no
+// próprio título -- cobre qualquer instituto automaticamente, sem raspar
+// o site de cada um. Remover depois de checado.
+async function handlePoder360FeedProbe() {
+    const candidates = [
+        'https://www.poder360.com.br/poder-eleicoes-2026/feed/',
+        'https://www.poder360.com.br/feed/',
+        'https://www.poder360.com.br/poderdata/feed/',
+        'https://www.poder360.com.br/eleicoes2026/feed/'
+    ];
+    const results = [];
+    for (const url of candidates) {
+        try {
+            const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MonitorGlobalDebug/1.0)' } });
+            const text = res.ok ? await res.text() : '';
+            const items = [...text.matchAll(/<title>([\s\S]*?)<\/title>/g)].map(m => m[1]).slice(0, 8);
+            results.push(`${url} -> HTTP ${res.status}, ${text.length} chars\n` + items.map(t => '  - ' + t).join('\n'));
+        } catch (e) {
+            results.push(`${url} -> erro: ${e.message}`);
+        }
+    }
+    return resposta(results.join('\n\n'), 200, 'text/plain; charset=utf-8');
+}
+
 async function fetchPollsWikitext() {
     const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(POLLS_WIKIPEDIA_TITLE)}&prop=wikitext&format=json&formatversion=2`;
     const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobal/1.0 (https://monitorglobal.top)' } });
@@ -5523,6 +5549,10 @@ export default {
         }
         if (reqUrl.pathname === '/polls-poder360-probe') {
             try { return await handlePoder360ArticleProbe(); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
+        }
+        if (reqUrl.pathname === '/polls-poder360-feed-probe') {
+            try { return await handlePoder360FeedProbe(); }
             catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
