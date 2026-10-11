@@ -133,6 +133,44 @@ function json(data, status = 200) {
 
 function nowIso() { return new Date().toISOString(); }
 
+// Endpoint temporário de diagnóstico: mostra o wikitext bruto das tabelas de
+// pesquisas eleitorais, pra desenhar o parser contra o formato real da página
+// (sem acesso à internet no ambiente de desenvolvimento). Remover depois.
+async function handlePollsDebug(request) {
+    const url = new URL(request.url);
+    const q = (url.searchParams.get('q') || '').toLowerCase();
+    const only = url.searchParams.get('t');
+    const title = 'Pesquisas_de_opinião_para_a_eleição_presidencial_no_Brasil_em_2026';
+    const api = `https://pt.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&prop=wikitext&format=json&formatversion=2`;
+    const res = await fetch(api, { headers: { 'User-Agent': 'MonitorGlobalDebug/1.0 (teste temporário; https://monitorglobal.top)' } });
+    if (!res.ok) return resposta('Falha ao buscar Wikipedia: HTTP ' + res.status, 502, 'text/plain; charset=utf-8');
+    const data = await res.json();
+    const wikitext = data?.parse?.wikitext || '';
+    if (!wikitext) return resposta('Sem wikitext na resposta: ' + JSON.stringify(data).slice(0, 800), 502, 'text/plain; charset=utf-8');
+    // Pra cada tabela, acha o cabeçalho de seção (== ... ==) mais próximo antes dela.
+    const headingRe = /^(={2,4})\s*(.+?)\s*\1\s*$/gm;
+    const headings = [];
+    let hm;
+    while ((hm = headingRe.exec(wikitext))) headings.push({ pos: hm.index, level: hm[1].length, text: hm[2] });
+    function headingFor(pos) {
+        let best = null;
+        for (const h of headings) { if (h.pos < pos) best = h; else break; }
+        return best ? best.text : '(sem seção)';
+    }
+    const tableRe = /\{\|[\s\S]*?\n\|\}/g;
+    const tables = [];
+    let tm;
+    while ((tm = tableRe.exec(wikitext))) tables.push({ pos: tm.index, text: tm[0] });
+    let selected = tables.map((t, i) => ({ i: i + 1, heading: headingFor(t.pos), text: t.text }));
+    if (only) selected = selected.filter(t => t.i === Number(only));
+    else if (q) selected = selected.filter(t => t.text.toLowerCase().includes(q) || t.heading.toLowerCase().includes(q));
+    const header = `wikitext total: ${wikitext.length} caracteres\ntabelas encontradas: ${tables.length}\nfiltro: ${only ? 't=' + only : q ? 'q=' + q : '(nenhum -- use ?q=termo pra filtrar ou ?t=N pra ver uma tabela inteira)'}\n\n`;
+    const out = header + (only || q
+        ? selected.map(t => `===== TABELA ${t.i} -- ${t.heading} (${t.text.length} chars) =====\n` + t.text.slice(0, 6000)).join('\n\n')
+        : selected.map(t => `TABELA ${t.i} -- ${t.heading} (${t.text.length} chars)`).join('\n'));
+    return resposta(out, 200, 'text/plain; charset=utf-8');
+}
+
 
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
@@ -5305,6 +5343,10 @@ export default {
                 return json({error:'Acesso administrativo não autorizado'},401);
             try {return await handleTelegramHistory(request,env);}
             catch {return json({ok:false,error:'Não foi possível consultar o histórico'},502);}
+        }
+        if (reqUrl.pathname === '/polls-debug') {
+            try { return await handlePollsDebug(request); }
+            catch (e) { return resposta('Erro: ' + e.message, 502, 'text/plain; charset=utf-8'); }
         }
         if (reqUrl.pathname === '/health') {
             return json({
