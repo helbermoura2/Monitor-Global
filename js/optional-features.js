@@ -54,8 +54,8 @@
   async function open(){
    if(busy||chip.hidden)return;busy=true;const token=generation;chip.disabled=true;chip.setAttribute('aria-busy','true');
    try{
-    await asset('css/election-results.css?v=20261010-session-trend');
-    await asset('js/election-results.js?v=20261010-session-trend',true);
+    await asset('css/election-results.css?v=20261011-polls-tab');
+    await asset('js/election-results.js?v=20261011-polls-tab',true);
     chip.removeEventListener('click',open);desktop.removeEventListener('change',visibility);document.removeEventListener('visibilitychange',visibility);clearTimeout(expiryTimer);
     if(token===generation&&desktop.matches&&Date.now()<retireAt)window.ElectionPanel.open();
    }catch(error){failure(error);}

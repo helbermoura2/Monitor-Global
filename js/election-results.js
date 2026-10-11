@@ -13,6 +13,9 @@ const seenArrivals = new Set(window.ElectionPanel?.arrivalIds || []);
 // Descreve só o que o TSE já apurou desde que o placar foi aberto -- nunca
 // uma projeção do resultado final (sem base histórica de 2022, sem modelo).
 const trendPoints = new Map();
+// Aba separada: média de pesquisas (Wikipedia) pro 2º turno, nunca comparada
+// com o apurado oficial do TSE -- só a aba "projeção final" mostra o TSE.
+let activeTab = 'final', pollsCache = null, pollsLoading = false;
 
 function expired() {
   const final = client.lastGood.get(2);
@@ -116,6 +119,58 @@ function updateTrend(result) {
   const width = 100, height = 32, span = Math.max(.1, current.counted - first.counted), maxMargin = Math.max(1, ...points.map(p => p.margin));
   const path = points.map(p => ((p.counted - first.counted) / span * width).toFixed(1) + ',' + (height - p.margin / maxMargin * height).toFixed(1)).join(' ');
   panel.querySelector('#election-trend-line').setAttribute('points', path);
+}
+function initials(name) {
+  return String(name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+function renderPolls() {
+  const box = panel.querySelector('#election-polls-body');
+  if (!box) return;
+  if (turn !== 2) {
+    box.innerHTML = '<p id="election-polls-empty">A projeção de pesquisas só está disponível no 2º turno.</p>';
+    return;
+  }
+  if (pollsLoading && !pollsCache) {
+    box.innerHTML = '<p id="election-polls-empty">Carregando pesquisas…</p>';
+    return;
+  }
+  if (!pollsCache) {
+    box.innerHTML = '<p id="election-polls-empty">Ainda sem pesquisas calculadas.</p>';
+    return;
+  }
+  const [a, b] = [...pollsCache.candidates].sort((x, y) => y.percentage - x.percentage);
+  const updated = dateTime.format(new Date(pollsCache.updatedAt));
+  box.innerHTML = `<div id="election-polls-candidates">${[a, b].map((c, i) => `<div class="election-poll-candidate"${i === 0 ? ' data-leader' : ''}>
+      <span class="election-poll-avatar">${initials(c.name)}</span>
+      <strong class="election-poll-name">${c.name}</strong>
+      <span class="election-poll-party">${c.party}</span>
+      <b class="election-poll-pct">${percentage.format(c.percentage)}%</b>
+    </div>`).join('')}</div>
+    <p id="election-polls-foot">Média de ${pollsCache.sources} agregadores de pesquisas (Wikipedia) · atualizado ${updated} BRT · não é o apurado oficial do TSE.</p>`;
+}
+async function loadPolls() {
+  if (pollsCache || pollsLoading) return;
+  pollsLoading = true;
+  if (activeTab === 'polls') renderPolls();
+  try {
+    const fetcher = window.OptionalFeatures?.fetch || window.fetch;
+    const res = await fetcher('/polls-average');
+    const data = await res.json();
+    if (data.ok) pollsCache = data;
+  } catch (error) {
+    console.warn('[Eleição] Consulta às pesquisas:', error.message);
+  } finally {
+    pollsLoading = false;
+    if (activeTab === 'polls') renderPolls();
+  }
+}
+function setTab(next) {
+  if (activeTab === next) return;
+  activeTab = next;
+  panel.querySelectorAll('[data-election-tab]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.electionTab === next)));
+  panel.querySelector('#election-tab-final').hidden = next !== 'final';
+  panel.querySelector('#election-tab-polls').hidden = next !== 'polls';
+  if (next === 'polls') { renderPolls(); loadPolls(); }
 }
 function render(result = client.lastGood.get(turn), failed = false, loading = false) {
   panel.querySelectorAll('[data-election-turn]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.electionTurn) === turn)));
@@ -222,10 +277,14 @@ function init() {
   panel.setAttribute('aria-modal', 'false');
   panel.setAttribute('aria-labelledby', 'election-title');
   panel.innerHTML = `<div class="election-head"><div class="election-heading">${ballot}<h2 id="election-title">PRESIDENTE</h2><span id="election-scope"></span></div><div class="election-actions"><div class="election-turns" aria-label="Turno da eleição"><button type="button" data-election-turn="1">1º turno</button><button type="button" data-election-turn="2">2º turno</button></div><button id="election-close" type="button" aria-label="Fechar placar da eleição">×</button></div></div>
+    <div class="election-tabs" aria-label="Visão da eleição"><button type="button" data-election-tab="final" aria-pressed="true">Projeção final (TSE)</button><button type="button" data-election-tab="polls" aria-pressed="false">Pesquisa projetada</button></div>
+    <div id="election-tab-final">
     <div id="election-candidates"></div><p id="election-empty" role="status"></p>
     <div id="election-totalization"><div class="election-total-row"><strong id="election-counted"></strong><div id="election-progress" role="progressbar" aria-label="Seções totalizadas" aria-valuemin="0" aria-valuemax="100"><span></span></div><span id="election-result-status"></span></div><div class="election-time-row"><a id="election-source" href="https://resultados.tse.jus.br/oficial/app/index.html" target="_blank" rel="noopener noreferrer">Fonte: TSE ↗</a><time id="election-tse-time"></time></div></div>
     <div id="election-trend" hidden role="status"><div class="election-trend-head"><span>Tendência desta sessão</span></div><svg id="election-trend-chart" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true"><polyline id="election-trend-line" fill="none"></polyline></svg><p id="election-trend-note"></p><p id="election-trend-disclaimer">Mostra só como o apurado oficial mudou desde que este placar foi aberto, sem comparação com eleições anteriores — não é uma projeção do resultado final.</p></div>
-    <p id="election-feedback" role="status" hidden></p><div id="election-refresh-info"></div>`;
+    <p id="election-feedback" role="status" hidden></p><div id="election-refresh-info"></div>
+    </div>
+    <div id="election-tab-polls" hidden role="status"><div id="election-polls-body"></div></div>`;
   announcement = document.createElement('div');
   announcement.className = 'election-announcement';
   announcement.setAttribute('role', 'status');
@@ -238,7 +297,9 @@ function init() {
     turn = next;
     render(client.lastGood.get(turn), false, true);
     refresh();
+    if (activeTab === 'polls') renderPolls();
   }));
+  panel.querySelectorAll('[data-election-tab]').forEach(button => button.addEventListener('click', () => setTab(button.dataset.electionTab)));
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && opened) {event.preventDefault(); close();}
   });

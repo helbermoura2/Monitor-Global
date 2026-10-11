@@ -54,3 +54,16 @@
 #election-panel.election-compact #election-candidates{gap:13px}
 #election-panel.election-compact .election-candidate-percentage{font-size:25px}
 #election-panel.election-compact .election-candidate-name{font-size:11px}
+.election-tabs{display:flex;gap:6px;margin:10px 0 2px;background:#081c2c;border-radius:6px;padding:2px}
+.election-tabs button{flex:1;border:0;border-radius:4px;background:transparent;color:#9ab9ce;font-family:inherit;font-size:10px;padding:6px 8px;cursor:pointer}
+.election-tabs button[aria-pressed=true]{background:#20516b;color:#f0faff}
+#election-tab-polls{padding-top:4px}
+#election-polls-empty{margin:23px 0;line-height:1.6;color:#bfd9e8;text-align:center;font-size:12px}
+#election-polls-candidates{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:14px 0 10px}
+.election-poll-candidate{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(104,185,215,.25);text-align:center}
+.election-poll-candidate[data-leader]{background:rgba(104,213,247,.08);border-color:rgba(104,213,247,.45)}
+.election-poll-avatar{width:36px;height:36px;border-radius:50%;background:#184b67;border:1px solid #579dbd;color:#c0edff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.election-poll-name{font-size:11px;font-weight:700;line-height:1.25}
+.election-poll-party{color:#9ebbd0;font-size:9px}
+.election-poll-pct{font-size:22px;font-weight:700;color:#edf8ff;font-variant-numeric:tabular-nums}
+#election-polls-foot{margin:4px 0 0;line-height:1.5;color:#7fa0b5;font-size:9.5px;text-align:center;border-top:1px solid #396077;padding-top:9px}
