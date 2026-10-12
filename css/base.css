@@ -199,7 +199,8 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 }
 #fc-backdrop { display: none; z-index: 11990 !important; }
 #sp-forecast-air .weather-ops,#sp-forecast-air .aqi-row,#sp-forecast-air .fc-strip { position: relative; z-index: 1; }
-.maplibregl-marker,.mapboxgl-marker { z-index: 20; }
+/* The map engine owns marker translation; keep its wrapper out of document flow. */
+.maplibregl-marker,.mapboxgl-marker { position: absolute !important; top: 0; left: 0; z-index: 20; }
 .maplibregl-popup { z-index: 50 !important; }
 .maplibregl-popup-content { z-index: 51 !important; }
 @media(max-width:900px) {
