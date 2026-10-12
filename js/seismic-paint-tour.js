@@ -43,7 +43,7 @@ function start(item,zoom){
  const steps=timeline(item.mag,window.__mgQuakePresentationMode,window.EventCamera?.durationFor(item.id)||6000),total=steps.reduce((n,p)=>n+p[1],0);
  const j=job={id:item.id,steps,context,focusZoom:Math.max(8,Math.min(12,zoom+2)),endsAt:Date.now()+total,past:Date.now()-item.time>30*60000,paused:false};
  window.__mgHoldEndsAt=j.endsAt;if(window.__mgRevisionProtectedId===j.id)window.__mgRevisionProtectedUntil=j.endsAt;
- SeismicImpact.start(context,false);SeismicImpact.setVisible(true);phase(j,0);scheduleNextAutoCycle(total+250);return true;
+ SeismicImpact.start(context,j.past);SeismicImpact.setVisible(true);phase(j,0);scheduleNextAutoCycle(total+250);return true;
 }
 function ready(c){if(!job||job.id!==c.id||!valid(job))return;const name=job.steps[job.index][0];if(name==='paint-opening'||name==='area-final-opening')move(job,area(job),Math.max(3500,(window.__mgPaintTourState?.until||Date.now())-Date.now()));else if(name==='area-hold'||name==='area-final-hold')move(job,area(job),3500);}
 function pause(){if(job){job.paused=true;map.stop();}}

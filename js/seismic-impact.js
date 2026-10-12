@@ -32,7 +32,7 @@ function calculate(context){
  const useFallback=()=>fallback(job).catch(error=>{if(active===job){active=null;reject(error);}});
  if(!workerUnavailable&&typeof Worker==='function'){
   try{
-   if(!worker){worker=new Worker('js/seismic-impact-worker.js?v=20261011-official-paint');
+   if(!worker){worker=new Worker('js/seismic-impact-worker.js?v=20261012-visible-history');
     const engine=worker;worker.onmessage=({data})=>{if(worker!==engine)return;const current=active;if(!current||data.id!==current.id)return;if(data.error){active=null;current.reject(Error(data.error));}else complete(current,data);};
     worker.onerror=event=>{event.preventDefault();if(worker!==engine)return;worker?.terminate();worker=null;workerUnavailable=true;const current=active;if(current)fallback(current).catch(error=>{if(active===current){active=null;current.reject(error);}});};
    }
@@ -73,11 +73,11 @@ function start(context,full=false){
  label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':context.presentation?'Reprodução visual · Intensidade estimada':context.shaking?(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
  calculate(context).then(data=>{
   if(token!==generation||!scene)return;
-  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada');if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);if(context.demo)window.SeismicScenarioDemo?.paintReady(context);
+  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(!scene.features)label('Intensidade estimada · Sem área em terra estimada para pintar');else if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada');if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);if(context.demo)window.SeismicScenarioDemo?.paintReady(context);
  }).catch(e=>{if(token===generation){if(context.shaking){start({...context,shaking:null,skipOfficial:true},full);return;}label('Intensidade estimada · Camada indisponível');console.warn('[intensidade estimada]',e);}});
  if(item&&!context.skipOfficial&&!context.shaking&&context.mag>=0)window.RuptureShaking?.query(item).then(shaking=>{if(shaking&&token===generation&&scene?.id===context.id){const r=scene.radius;start({...context,shaking},scene.full);reveal(r,true);}});
 }
-function finish(){if(scene){reveal(scene.radius,true);label(scene.demo?'TESTE · ruptura alongada · intensidade fictícia':scene.shaking?(scene.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
+function finish(){if(scene){reveal(scene.radius,true);label(scene.features===0?'Intensidade estimada · Sem área em terra estimada para pintar':scene.demo?'TESTE · ruptura alongada · intensidade fictícia':scene.shaking?(scene.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
 function footprintBounds(data,c){let w=Infinity,e=-Infinity,s=Infinity,n=-Infinity;for(const f of data.features){for(const p of f.geometry.coordinates)for(const ring of p)for(const [x,y]of ring){const lng=c.lng+((x-c.lng+540)%360)-180;w=Math.min(w,lng);e=Math.max(e,lng);s=Math.min(s,y);n=Math.max(n,y);}}return w<e&&s<n?[w,s,e,n]:null;}
 function refresh(c){if(scene?.id!==c.id)return;if(['lng','lat','depth','mag'].some(k=>scene[k]!==c[k])){const r=scene.radius,full=scene.full;start(c,full);reveal(r,full);}}
 window.SeismicImpact={start,reveal,finish,refresh,stop,setVisible,positionStatus,bounds:id=>scene?.id===id?scene.bounds||null:null,pga,extent,color,snapshot:context=>geometryCache.get(key(context))?.data||(active?.key===key(context)?active.promise:Promise.resolve(null))};
