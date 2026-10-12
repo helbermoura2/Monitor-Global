@@ -7,15 +7,33 @@ test.use({serviceWorkers:'block'});
 async function silenceBaseTileRetry(page){
  await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
 }
+// PNG 1x1 transparente — ver comentário no route() abaixo.
+const TRANSPARENT_PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=','base64');
 async function boot(page,width,cpu=false){
  if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
+ // server.arcgisonline.com (tiles satellite/esri-boundaries-places, js/mapa.js)
+ // recebe um PNG 1x1 em vez de abort(): abortar faz o MapLibre emitir 'error'
+ // pra essas fontes, o que arma o retry nativo de 4s (setTimeout agendado
+ // antes de qualquer page.clock.install — issue #327) que, ao disparar, pode
+ // achar o mapa num estado que o faz crashar ("Cannot read properties of
+ // undefined (reading 'bind')"). silenceBaseTileRetry (abaixo) neutraliza
+ // esse retry depois que a fonte já existe, mas é uma corrida contra esse
+ // timer de 4s — inofensiva quando o resto do boot() é rápido, mas num CI
+ // real mais carregado (ou mais tarde numa bateria longa de testes, como
+ // "sem GPU" roda depois dos dois testes de ciclo de vida) o próprio
+ // waitForFunction abaixo pode levar mais que 4s pra resolver, e o retry
+ // dispara antes do patch. Responder com um tile válido (em vez de abortar)
+ // evita o 'error' na largada — sem erro, sem retry nenhum agendado — então
+ // não existe corrida pra ganhar ou perder, em qualquer máquina.
+ await page.route('**/*',r=>{
+  const u=new URL(r.request().url());
+  if(u.hostname==='127.0.0.1')return r.continue();
+  if(u.hostname==='server.arcgisonline.com')return r.fulfill({status:200,contentType:'image/png',body:TRANSPARENT_PNG});
+  return r.abort();
+ });
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
- // Rede bloqueada (route acima) == tiles do ArcGIS falhando desde o primeiro
- // frame; sem isto o retry de 4s do mapa (js/mapa.js, issue #327) crasha o
- // MapLibre ("Cannot read properties of undefined (reading 'bind')") bem
- // antes da linha que instala o clock — silenciar só ali era tarde demais,
- // inclusive pro teste "sem GPU" abaixo, que nunca chamava isto.
+ // Mantido como segunda camada de defesa (ex.: algum outro tile-id futuro
+ // acabar caindo no mesmo map.on('error',...) por outro motivo que não rede).
  await silenceBaseTileRetry(page);
  await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
  await expect(page.locator('#pd-local')).toContainText('boletim de teste');
