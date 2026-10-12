@@ -1654,8 +1654,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // stopFeltZone/startWaveFront em sismo-metrics.js), sem isto aqui o
     // anel do ÚLTIMO sismo visto ficava preso na tela pra sempre assim que
     // o usuário saísse pra ver um furacão/vulcão/etc.
-    try { if ((item.coords || window.__mgRotationDisplay) && typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
-    try { if ((item.coords || window.__mgRotationDisplay) && typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
+    try { if ((item.coords || window.__mgRotationDisplay || ['storm','wind'].includes(item.type)) && typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
+    try { if ((item.coords || window.__mgRotationDisplay || ['storm','wind'].includes(item.type)) && typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
     // Sempre resolve a cópia mais recente no store (evita card com versão velha)
     try {
         if (typeof EventStore !== 'undefined' && item.id != null) {
@@ -2113,7 +2113,9 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // "Rajada de Vento"/aviso de tempestade iam pro mapa todo no
         // aleatório exatamente por pularem isto antes). Só cai na visão
         // global quando não há NENHUM dado de localização.
-        if (item.municipalityLocations?.length) {
+        if (item.type==='storm'||item.type==='wind') {
+            window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
+        } else if (item.municipalityLocations?.length) {
             window.InmetMunicipalities?.fitArea(item);
         } else if (map) {
             map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
@@ -2125,7 +2127,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // pra um aviso estadual isso podia acabar mostrando o mapa inteiro em
     // vez do lugar, pedido do usuário pra não fazer. Sem item.coords, o
     // fitArea já rodou (ou não havia dado nenhum) no ramo acima.
-    if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
+    if(item.coords&&['storm','wind'].includes(item.type)&&item.hazardNature==='warning'&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length))window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
+    else if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 
