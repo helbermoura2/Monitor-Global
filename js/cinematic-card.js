@@ -406,7 +406,7 @@
   if(t*1000>=s.duration){stop();return;}
   if(document.hidden){s.quality.reset();s.footage?.pause();raf=0;return;}
   const p=panel(),hidden=!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');
-  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},120);return;}
+  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
   s.footage?.play();
   const fps=s.quality.fps(s.mobile?24:30);if(now-s.paintAt>=1000/fps&&s.width&&s.height){
    const renderStart=performance.now(),gap=now-s.last;
