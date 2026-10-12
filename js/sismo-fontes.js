@@ -1,3 +1,16 @@
+// Cada canal paralelo tem sua própria primeira fotografia do catálogo.
+// Uma fonte lenta não transforma seu histórico em novidade após o feed principal.
+const supplementalCatalogBaselines = new Set();
+function beginSupplementalCatalog(source, rows) {
+    const initial = !supplementalCatalogBaselines.has(source);
+    if (Array.isArray(rows) && rows.length) supplementalCatalogBaselines.add(source);
+    return initial;
+}
+function isNewSupplementalEvent(ev, canonical, initial) {
+    return !knownEventIds.has(canonical) && !isFirstLoad &&
+        (!initial || Number(ev.time) > window.__mgPageLoadAt);
+}
+
 // === sismo-fontes.js — Todos os fetchers de sismo: EMSC, USGS, GEOFON, FUNVISIS, JMA, BMKG, GeoNet, IGP, AFAD, USP (linhas originais 5127-6037 do core-app.js) ===
 
 function fetchEMSCData() {
@@ -801,6 +814,7 @@ async function fetchAfadQuakes() {
     // cada um dos até 100 sismos da AFAD, a cada 60s.
     const cut = Date.now() - 36 * 3600000;
     list = list.filter(e => e.time >= cut);
+    const initialCatalog = beginSupplementalCatalog('AFAD', list);
     const indiceAfad = construirIndiceEspacial(globalEvents, 0.15);
     let novos = 0;
     const newSupplemental = [];
@@ -814,7 +828,7 @@ async function fetchAfadQuakes() {
             if (hit.source !== 'AFAD') hit.quality = hit.quality === 'A' ? 'A' : 'B';
             return;
         }
-        const isNew = !knownEventIds.has(canonical) && !isFirstLoad;
+        const isNew = isNewSupplementalEvent(ev, canonical, initialCatalog);
         knownEventIds.add(canonical);
         ev.id = canonical;
         globalEvents.push(ev);
@@ -928,6 +942,7 @@ function anunciarSismosSuplementares(items) {
 }
 
 function planetReinforcementDedupEAdiciona(lista, origemLabel) {
+    const initialCatalog = beginSupplementalCatalog('reinforcement:'+origemLabel, lista);
     // Mesmo índice espacial de fetchAfadQuakes acima — aqui importa ainda
     // mais: cada fatia manda até 1000 sismos, 5 fatias por ciclo (USGS) mais
     // 5 do EMSC, então sem isso eram até milhares de comparações completas
@@ -941,7 +956,7 @@ function planetReinforcementDedupEAdiciona(lista, origemLabel) {
             Math.abs(g.coords[1] - ev.coords[1]) < 0.15 && Math.abs(g.coords[0] - ev.coords[0]) < 0.15;
         if (indice.encontrar(ev.coords, combina)) return;
         const canonical = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
-        const isNew = !knownEventIds.has(canonical) && !isFirstLoad;
+        const isNew = isNewSupplementalEvent(ev, canonical, initialCatalog);
         knownEventIds.add(canonical);
         ev.id = canonical;
         globalEvents.push(ev);

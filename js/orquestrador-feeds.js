@@ -158,6 +158,7 @@ function focusNextQuakeRevision(blocked = false) {
 async function fetchGlobalFeeds() {
     if (__fetchGlobalFeedsEmAndamento) return;
     __fetchGlobalFeedsEmAndamento = true;
+    const initialCatalog = isFirstLoad;
     window.__lastSismoAttempt = Date.now();
     window.MonitorFreshness?.beginQuakes();
 
@@ -519,16 +520,19 @@ async function fetchGlobalFeeds() {
             }
         } catch (e) { console.warn('[sismo] EventStore revise:', e); }
 
-        queueQuakeRevisions(atualizados);
+        // O catálogo completo pode revisar a prévia já mostrada. Isso atualiza
+        // os dados, mas não transforma os demais registros iniciais em uma fila
+        // de apresentações nem reinicia a câmera.
+        if (!initialCatalog) queueQuakeRevisions(atualizados);
         const firstRevisionDisplay = isFirstDisplay;
         if (isFirstDisplay) {
             requestInitialAutoDisplay();
-        } else {
+        } else if (!initialCatalog) {
             queueNewCameraQuakes(novos.filter(ev=>isWithinAutoCycleAge(ev)));
             focusNextNewCameraQuake();
         }
 
-        if (!firstRevisionDisplay) focusNextQuakeRevision(novosRecentes.length > 0);
+        if (!initialCatalog && !firstRevisionDisplay) focusNextQuakeRevision(novosRecentes.length > 0);
 
         // Buffer after the real first full fetch finishes (whatever that
         // took), for straggling parallel/supplemental sources (AFAD etc.)
