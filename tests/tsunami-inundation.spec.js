@@ -11,6 +11,12 @@ async function boot(page,width,cpu=false){
  if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
+ // Rede bloqueada (route acima) == tiles do ArcGIS falhando desde o primeiro
+ // frame; sem isto o retry de 4s do mapa (js/mapa.js, issue #327) crasha o
+ // MapLibre ("Cannot read properties of undefined (reading 'bind')") bem
+ // antes da linha que instala o clock — silenciar só ali era tarde demais,
+ // inclusive pro teste "sem GPU" abaixo, que nunca chamava isto.
+ await silenceBaseTileRetry(page);
  await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
  await expect(page.locator('#pd-local')).toContainText('boletim de teste');
 }
@@ -43,7 +49,21 @@ for(const width of [1280,390])test('tsunami procedural: superfície única, impa
  // (scheduleNextAutoCycle em js/painel-e-lista.js) — recriando um
  // .pd-cinema-layer real (não-demo) antes da hora.
  const elapsedBeforeClock=await page.evaluate(()=>performance.now());
- await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+500));await page.clock.fastForward(elapsedBeforeClock+16000+2000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
+ await page.clock.install();
+ // O requestAnimationFrame que a cena já tinha agendado (via rAF nativo,
+ // antes do install acima) continua pendente no compositor real do browser
+ // até o próprio browser decidir pintar o próximo frame — isso não entra na
+ // fila de timers do clock falso, então fastForward/runFor não têm como
+ // adiantá-lo. Só quando esse frame nativo finalmente dispara é que o loop
+ // (cinematic-card.js) chama requestAnimationFrame de novo e cai, agora sim,
+ // na versão fake instalada — virando um timer "AnimationFrame" rastreável
+ // pelo clock. Sem esperar essa transição (uma corrida de tempo real, não
+ // simulado — por isso mais visível em CI real/carregado do que aqui),
+ // fastForward avança o relógio falso sem que ninguém esteja de fato
+ // escutando, e a cena nunca bate o Math.min(duration,16000) de
+ // cinematic-card.js: .pd-cinema-layer sobrevive ao teardown esperado.
+ await page.waitForFunction(()=>{const c=window.__pwClock&&window.__pwClock.controller;if(!c)return false;for(const t of c._timers.values())if(t.type==='AnimationFrame')return true;return false;},null,{timeout:2000});
+ await page.clock.pauseAt(await page.evaluate(()=>Date.now()+500));await page.clock.fastForward(elapsedBeforeClock+16000+2000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
  const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');await expect(surface).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);expect(await page.locator('#pd-local').textContent()).toBe(text);await page.clock.runFor(2500);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
  const bounds=await page.locator('#painel-direito').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(-1);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);expect(await surface.evaluate(c=>Math.abs(c.offsetHeight-document.getElementById('painel-direito').clientHeight)<1)).toBe(true);
