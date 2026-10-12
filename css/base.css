@@ -206,7 +206,7 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 #sp-forecast-air { z-index: 12000 !important; }
 #fc-backdrop { z-index: 11990 !important; }
 }
-.quake-dot { border: 2px solid #fff; border-radius: 50%; cursor: pointer; }
+.quake-dot { position: relative; border: 2px solid #fff; border-radius: 50%; cursor: pointer; }
 /* Pontinho discreto pros tipos "outros" (furacão, tufão, vulcão, tornado,
    tempestade, vento, enchente, alerta civil) quando NÃO estão em foco — ver
    marcarFocoOuPonto em mapa.js. O ícone grande (emoji+nome) só aparece pro
@@ -215,7 +215,23 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
    grande e chamativo "andando" na tela durante o zoom de um evento
    totalmente diferente (o pontinho também se desloca com a câmera, mas é
    pequeno e discreto o bastante pra não incomodar). */
-.mg-tipo-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+.mg-tipo-dot { position: relative; width: 9px; height: 9px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+/* Pedido do usuário: o pontinho visual (8-18px) é bom demais pra mirar com o
+   dedo -- toques perto do sismo "erravam" e caíam no mapa (ou num marcador
+   vizinho sem querer). Um ::after invisível, maior, centralizado por cima do
+   ponto real, amplia só a ÁREA DE TOQUE sem mudar o visual: cliques nele
+   disparam no elemento real (pseudo-elemento não tem nó de evento próprio),
+   então o listener existente em quake-dot/no wrapper (mg-tipo-dot) continua
+   funcionando sem nenhuma mudança de JS. */
+.quake-dot::after, .mg-tipo-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  transform: translate(-50%, -50%);
+}
 .quake-label { pointer-events: none; white-space: nowrap; font-size: 10px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000,0 0 6px #000; }
 .emoji-marker { cursor: pointer; line-height: 1; text-align: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,.95)); }
 .cyclone-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }

@@ -54,6 +54,12 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
         const freshBadge=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(event.id)||0)>Date.now();
         const presented=window.__mgQuakeCameraPresented?.get(event.id);
         const raised=revision&&Number(event.mag)>Number(revision._previousMag??presented??event.mag);
+        // Pedido do usuário: revisão de magnitude de um sismo já exibido NÃO
+        // pode roubar a câmera do giro automático, a menos que a magnitude
+        // revisada chegue a M6+ (erupção vulcânica continua interrompendo via
+        // VolcanoPriority, caminho separado). Chegada genuinamente nova
+        // (freshBadge) não é afetada por esta regra.
+        if(raised&&!freshBadge&&Number(event.mag)<6)continue;
         if(raised&&Number(event.mag)<=currentMag&&!freshBadge)continue;
         if(!raised&&(!freshBadge||(presented!=null&&presented>=Number(event.mag))))continue;
         const arrived=Number(revision?._updatedAt||event._novoAt)||Date.now();
@@ -141,6 +147,10 @@ function focusNextQuakeRevision(blocked = false) {
     for (const [id, revision] of pendingQuakeRevisions) {
         const index = globalEvents.findIndex(e => e && e.id === id);
         if (index < 0 || id===eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingQuakeRevisions.delete(id); continue; }
+        // Mesma regra de focusNextNewCameraQuake: só revisão de M6+ toma um
+        // slot do giro automático. Abaixo disso a revisão fica só registrada
+        // (painel/lista refletem o novo valor), sem interromper a câmera.
+        if (Number(globalEvents[index].mag) < 6) continue;
         candidates.push({index, revision, event:globalEvents[index]});
     }
     candidates.sort((a,b) => (Number(b.event.mag)||0)-(Number(a.event.mag)||0) ||
