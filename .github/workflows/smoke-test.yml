@@ -13,7 +13,13 @@ jobs:
     # files now, 350+ scenarios). A 40min timeout still cancelled the run
     # one spec file short of the end (test #354 of the last file).
     # Leave time for setup and cleanup after the tests print their result.
-    timeout-minutes: 50
+    # Bumped 50->65min: PR #336 fixed a Playwright-clock/MapLibre tile-retry
+    # race that used to crash several specs (storm/tornado/tsunami/wind)
+    # early -- now that they run to their real, full duration instead of
+    # failing fast, the whole suite takes noticeably longer and was hitting
+    # the old 50min cap (confirmed: the run after #336 merged got killed by
+    # the timeout, not by a real test failure).
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
 
@@ -71,7 +77,10 @@ jobs:
 
   card-visibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    # Bumped 7->15min -- same reason as the playwright job above: storm/wind/
+    # cyclone specs here used to crash fast on the clock/tile-retry race
+    # (issue #327, fixed in PR #336) and now run their real full duration.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -120,7 +129,13 @@ jobs:
 
   weather-materials:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Bumped 10->20->28min -- same reason as above: tornado-cinema and
+    # tsunami-inundation here used to crash fast on the clock/tile-retry
+    # race (issue #327, fixed in PR #336) and now run their real full
+    # duration, alongside the other 10 specs in this job's single step.
+    # 20min still got cancelled at 20min18s on the very next run -- not
+    # enough margin, bumping further.
+    timeout-minutes: 28
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
