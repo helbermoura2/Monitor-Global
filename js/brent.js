@@ -29,7 +29,29 @@ function renderBrent(p, cp, cv, label, real, closed) {
     }
 }
 
+// Retry rápido específico pro estado "sem dados": o ciclo normal
+// (agendarBusca em ui-wiring-final.js) só tenta de novo a cada 5min, o
+// mesmo intervalo de quando está tudo ok -- não acelera quando as fontes
+// estão fora do ar. Pedido do usuário: perceber que ficou sem dado e
+// tentar de novo depois de alguns minutos, não só na próxima rodada normal.
+let brentRetryTimer = null;
+function limparBrentRetry() {
+    if (brentRetryTimer) { clearTimeout(brentRetryTimer); brentRetryTimer = null; }
+}
+function agendarBrentRetry() {
+    if (brentRetryTimer) return;
+    brentRetryTimer = setTimeout(() => {
+        brentRetryTimer = null;
+        // Aba em segundo plano: não gasta a tentativa -- a troca de aba já
+        // força uma busca (retomarBuscas), e o ciclo normal de 5min cobre o
+        // resto.
+        if (document.hidden) return;
+        fetchRealBrent();
+    }, 90000);
+}
+
 function salvarBrentReal(price, prevClose, source) {
+    limparBrentRetry();
     brentBasePrice = price;
     brentPrevClose = Number.isFinite(prevClose) && prevClose > 0 ? prevClose : price;
     brentLastRealAt = Date.now();
@@ -122,11 +144,13 @@ async function fetchRealBrent() {
         const pc = brentPrevClose;
         const ch = brentBasePrice - pc;
         renderBrent(brentBasePrice, ch / pc * 100, ch, `REAL • ÚLTIMA (${ageMin} min)`, true, brentMercadoFechado());
+        agendarBrentRetry();
         return;
     }
 
     // Sem fonte e sem cache recente: informar indisponibilidade, sem simulação.
     renderBrent(null, null, null, 'SEM DADOS • FONTES OFFLINE', false, brentMercadoFechado());
+    agendarBrentRetry();
 }
 
 /* ═══════════════ CLIMA LOCAL ═══════════════ */
