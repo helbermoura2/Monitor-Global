@@ -433,7 +433,7 @@
   raf=requestAnimationFrame(frame);
  }
  reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
- document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause();raf=0;}else if(scene&&!raf){scene.last=performance.now();raf=requestAnimationFrame(frame);}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause();raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
  window.addEventListener('pagehide',stop);
  function refresh(item){
   prepareSymbol(item);
