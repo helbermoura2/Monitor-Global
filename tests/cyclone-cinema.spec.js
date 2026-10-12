@@ -1,10 +1,20 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
+// Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
+// corrida do Playwright Clock com o retry (agendado antes do clock.install, logo
+// imune a ele) de tiles base do mapa quando a rede do ArcGIS falha/está bloqueada.
+// Chamado logo após o boot, independente de um teste instalar o clock ou não --
+// a rede fica bloqueada o teste inteiro, então o retry pode colidir com um
+// render em andamento mesmo em tempo real (mesmo caso de wind-cinema.spec.js).
+async function silenceBaseTileRetry(page){
+ await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
+}
 async function boot(page,width){
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
+ await silenceBaseTileRetry(page);
  await page.evaluate(()=>{const q={id:'cyclone-qa',type:'earthquake',mag:3,depth:10,source:'QA',coords:[-70,-20],place:'Evento real de teste',time:Date.now()};globalEvents=[q];showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);SeismicCinema.stop();});
 }
 for(const width of [1280,390])test('ciclones cinematográficos preservam dados e controles '+width,async({page})=>{

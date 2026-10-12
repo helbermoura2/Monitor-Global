@@ -1,6 +1,12 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
+// Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
+// corrida do Playwright Clock com o retry (agendado antes do clock.install, logo
+// imune a ele) de tiles base do mapa quando a rede do ArcGIS falha/está bloqueada.
+async function silenceBaseTileRetry(page){
+ await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
+}
 for(const width of [1280,390])test('circulação do tornado alterna a carga e conserva grafemas e métricas sem GPU '+width,async({page})=>{
  await page.setViewportSize({width,height:844});
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" style="position:absolute;left:20px;top:25px;width:320px;height:620px;background:#202a25;border:1px solid #777;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 25px;color:white;font:600 18px system-ui">Tornado — São Paulo 🇧🇷</div><div id="pd-source" style="margin:24px;color:white">Defesa Civil · fonte oficial</div><div class="stat-card" style="margin:24px;color:white"><span class="stat-card-label">Intensidade</span><span class="stat-card-value"><b style="color:rgb(240, 210, 120)">150</b> km/h</span></div><button id="control" style="margin:24px">Detalhes</button></div></body>');
@@ -30,7 +36,7 @@ async function captureCard(page,options){
 }
 async function boot(page,width=1280,controlled=false){
  await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.fallback():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tornado"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTornadoField);
- if(controlled){await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));}
+ if(controlled){await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));}
  await page.evaluate(()=>{const item={id:'real-tornado-qa',type:'tornado',source:'Defesa Civil',place:'Tornado — São Paulo 🇧🇷',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
  if(controlled)await page.clock.runFor(1800);
 }

@@ -1,6 +1,12 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
+// Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
+// corrida do Playwright Clock com o retry (agendado antes do clock.install, logo
+// imune a ele) de tiles base do mapa quando a rede do ArcGIS falha/está bloqueada.
+async function silenceBaseTileRetry(page){
+ await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
+}
 for(const width of [1280,390])test('tempestade tem profundidade, pressão e clarões breves '+width,async({page})=>{
  await page.setViewportSize({width,height:844});
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" data-lightning="on" style="position:absolute;left:20px;top:25px;width:320px;height:600px;background:#0b2231;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 16px;color:white;font:600 18px system-ui">Tempestade em São Paulo</div><button id="control">Detalhes</button></div></body>');
@@ -29,7 +35,7 @@ for(const width of [1280,390])test('tempestade tem profundidade, pressão e clar
 for(const width of [1280,390])test('tempestade no cartão completo mantém leitura e controles '+width,async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
- await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+200));
+ await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+200));
  const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
  await page.evaluate(()=>{const item={id:'storm-preview',type:'storm',source:'Visual QA',place:'Tempestade — São Paulo',detail:'Trovoadas e chuva intensa',coords:[-46.63,-23.55],windKmh:150,sev:3,time:Date.now(),bandeira:'🇧🇷'};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
  await page.clock.runFor(2100);
