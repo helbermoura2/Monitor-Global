@@ -1051,7 +1051,7 @@ function runAutoCycle(forced = false) {
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
         if (window.NewEventPriority?.focusAlert()) return;
         if(window.TsunamiMap?.isPreview()||window.SeismicScenarioDemo?.isActive()){scheduleNextAutoCycle(60000);return;}
-        const protectedMs = getAutoCycleProtectionRemaining();
+        const protectedMs = Math.max(getAutoCycleProtectionRemaining(),window.SeismicPaintTour?.remaining()||0);
         if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
         if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) { scheduleNextAutoCycle(2000); return; }
         // Resume one rotation slot between queued revisions, so a large
@@ -1482,7 +1482,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         scheduleNextAutoCycle(soft ? (totalDur + HOLD_AUTO_MS) : hold);
     }
 
-    // Automatic revisits show estimated felt/critical zones; live/manual show travel fronts.
+    // The painted-area presentation owns the camera in all earthquake modes.
+    if(window.SeismicPaintTour?.start(item,zoomAlvo))return;
+
+    // Fallback for environments without the painted-area presentation module.
     try {
         clearTimeout(window.__mgRadarDelayT);
         window.__mgRadarDelayT = setTimeout(() => {

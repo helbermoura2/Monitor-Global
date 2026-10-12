@@ -17,6 +17,7 @@
   cached={key,bounds,points,layout,camera};return camera;
  }
  function ready(c){
+  if(window.SeismicPaintTour?.owns(c.id)){window.SeismicPaintTour.ready(c);return;}
   const wave=window.__mgWaveFrontState;
   // Active propagation owns the camera; a settled final frame can fit new evidence.
   const waveOwnsCamera=wave?.id===c.id&&(wave.stage!=='returning'||Date.now()<wave.phaseUntil-10000);
