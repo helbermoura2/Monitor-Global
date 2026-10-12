@@ -37,7 +37,18 @@ async function captureCard(page,options){
 async function boot(page,width=1280,controlled=false){
  await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.fallback():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tornado"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTornadoField);
  if(controlled){await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));}
- await page.evaluate(()=>{const item={id:'real-tornado-qa',type:'tornado',source:'Defesa Civil',place:'Tornado — São Paulo 🇧🇷',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
+ // PresentationLimits.begin() (chamado de dentro de showAlertDetails pra toda
+ // seleção não-silenciosa) arma seu PRÓPRIO setTimeout privado de 20000ms,
+ // separado do `cycleTimeout` global já limpo abaixo — e PresentationLimits.clear()
+ // é o único jeito de cancelá-lo (ver js/presentation-limits.js). Sob o clock
+ // controlado, esse timer cai bem no meio do teste 'tornado real...' (16100+
+ // ~4350ms de runFor já consumidos até a asserção de teardown, >16000 — ver
+ // duration cap em cinematic-card.js — e também >20000): ele dispara dentro do
+ // mesmo fastForward que deveria encerrar a cena, chama runAutoCycle(true) (que
+ // ignora a proteção porque forced=true) e esse ciclo automático recria um
+ // .pd-cinema-layer de verdade pro mesmo alerta — daí o count ficar 1 em vez de
+ // 0 mesmo com a cena original já tendo sido encerrada pelo seu próprio prazo.
+ await page.evaluate(()=>{const item={id:'real-tornado-qa',type:'tornado',source:'Defesa Civil',place:'Tornado — São Paulo 🇧🇷',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);PresentationLimits.clear();});
  if(controlled)await page.clock.runFor(1800);
 }
 for(const width of [1280,390])test('tornado real usa cena única e circulação, mantém revisão, controles e pausa '+width,async({page})=>{
