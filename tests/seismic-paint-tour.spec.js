@@ -38,9 +38,9 @@ test('eventos novos mantêm tempos por magnitude e intercalam foco e área pinta
  await page.clock.runFor(56000);expect(await page.evaluate(()=>SeismicPaintTour.remaining())).toBe(154000);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('new-m6');
  await page.clock.runFor(154000);expect(await page.evaluate(()=>SeismicPaintTour.remaining())).toBe(0);expect(await page.evaluate(()=>__mgPaintTourState)).toBe(null);
 });
-for(const width of [1280,390])test('M2,4 histórico no aleatório já chega pintado em azul e mantém a área até sair '+width,async({page})=>{
+for(const [width,ageMinutes] of [[1280,1080],[390,1080],[1280,10],[390,10]])test('M2,4 histórico no aleatório já chega pintado em azul e mantém a área até sair '+width+' idade '+ageMinutes+' min',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
- await page.evaluate(()=>{pausarBuscas();map._render=()=>{};clearTimeout(cycleTimeout);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();isFirstLoad=false;isFirstDisplay=false;globalAlerts=[];globalEvents=[{id:'past-australia-small',type:'earthquake',source:'QA',coords:[117.04,-31.15],mag:2.4,depth:3,time:Date.now()-18*3600000,place:'Oeste da Austrália'}];});
+ await page.evaluate(ageMinutes=>{pausarBuscas();map._render=()=>{};clearTimeout(cycleTimeout);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();isFirstLoad=false;isFirstDisplay=false;globalAlerts=[];globalEvents=[{id:'past-australia-small',type:'earthquake',source:'QA',coords:[117.04,-31.15],mag:2.4,depth:3,time:Date.now()-ageMinutes*60000,place:'Oeste da Austrália'}];},ageMinutes);
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  await page.evaluate(()=>{window.__mgSoftCycle=true;window.__mgRotationDisplay=true;showEventDetails(0,false);window.__mgRotationDisplay=false;});
  await page.waitForFunction(()=>__mgSeismicImpactState?.id==='past-australia-small'&&__mgSeismicImpactState.features>0);
