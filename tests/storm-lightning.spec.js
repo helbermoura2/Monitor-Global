@@ -1,8 +1,21 @@
 const {test,expect}=require('@playwright/test');
 test.use({serviceWorkers:'block'});
+// Evita a corrida do Playwright Clock com o retry de tiles base do mapa (issue #327):
+// com a rede dos tiles ArcGIS bloqueada/indisponível, o mapa agenda um retry via
+// setTimeout ANTES do clock.install() (portanto imune ao clock falso); quando o
+// clock.runFor/fastForward avança por vários frames seguidos, esse retry real
+// pode disparar entre dois frames e chamar src.setTiles(), invalidando o tile em
+// renderização — o MapLibre então tenta desenhar uma textura já destruída e
+// quebra com "Cannot read properties of undefined (reading 'bind')". Neutralizar
+// o retry nessas fontes antes de instalar o clock elimina a corrida sem mudar o
+// comportamento real (fora dos testes esse retry nunca corre contra um clock
+// congelado).
+async function silenceBaseTileRetry(page){
+ await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
+}
 for(const width of [1280,390])test('relâmpagos ramificados, informação legível e troca de evento '+width,async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
- await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+200));
+ await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+200));
  await page.evaluate(()=>{const item={id:'storm-observed',type:'storm',source:'NOAA METAR',hazardNature:'observed',detail:'Trovoada reportada no aeródromo',place:'São Paulo — Brasil',bandeira:'🇧🇷',coords:[-46.63,-23.55],time:Date.now()};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);});
  await page.clock.runFor(1000);
  await expect(page.locator('#painel-direito')).toHaveAttribute('data-lightning','on');await expect(page.locator('#pd-mag')).not.toContainText('⚡');await expect(page.locator('#pd-mag svg[role="img"]')).toHaveAttribute('aria-label',/relâmpagos/);await expect(page.locator('.pd-fx-bolt polygon')).toHaveCount(0);await expect(page.locator('.pd-cinema-storm-bolt .pd-bolt-branch')).toHaveCount(4);await expect(page.locator('#pd-local')).toContainText('São Paulo');
@@ -29,7 +42,7 @@ for(const width of [1280,390])test('flash da tempestade não vaza para sismo nov
  await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-flash-isolation',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);});
- await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
+ await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  for(const silent of [false,true]){
   await page.evaluate(()=>{
    window.__mgRevisionProtectedId=null;window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;window.__mgLiveQuakeUntil=0;

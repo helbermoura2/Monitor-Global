@@ -1,6 +1,15 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
+// Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: aqui a rede
+// dos tiles base fica bloqueada o teste inteiro (page.route abort), então o
+// retry de js/mapa.js dispara repetidamente; cada setTiles() pode colidir com um
+// render em andamento e invalidar a textura que o MapLibre ia desenhar, mesmo
+// sem clock mockado (o console/pageerror listener deste teste captura o
+// "Cannot read properties of undefined (reading 'bind')" resultante).
+async function silenceBaseTileRetry(page){
+ await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
+}
 for(const width of [1280,390])test('pressão da rajada move vidro e letras e recupera o repouso '+width,async({page})=>{
  await page.setViewportSize({width,height:844});
  await page.setContent('<body class="mobile-details-mid"><div id="painel-direito" style="position:absolute;left:20px;top:30px;width:320px;height:600px;background:#0b2231;border:1px solid #68808d;border-radius:16px;isolation:isolate"><div id="pd-local" style="margin:80px 16px;color:white;font:600 18px system-ui">Rajadas de vento em São Paulo 🇧🇷</div><div id="pd-source" style="color:white">Estação local — atualização em tempo real</div><div class="stat-card" style="margin:16px;color:white"><span class="stat-card-label">Intensidade</span><span class="stat-card-value"><b style="color:rgb(240, 210, 120)">150</b> km/h</span></div><button id="control" style="margin:16px">Detalhes</button></div></body>');
@@ -36,6 +45,7 @@ for(const width of [1280,390])test('pressão da rajada move vidro e letras e rec
 for(const width of [1280,390])test('rajada cinematográfica no cartão completo mantém controles '+width,async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await silenceBaseTileRetry(page);
  const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
  await page.evaluate(()=>{const item={id:'wind-preview',type:'wind',source:'Visual QA',place:'Rajadas de vento — São Paulo',coords:[-46.63,-23.55],windKmh:150,sev:3,time:Date.now(),bandeira:'🇧🇷'};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene','wind');

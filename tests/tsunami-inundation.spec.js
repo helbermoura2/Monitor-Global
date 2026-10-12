@@ -1,6 +1,12 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
+// Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
+// corrida do Playwright Clock com o retry (agendado antes do clock.install, logo
+// imune a ele) de tiles base do mapa quando a rede do ArcGIS falha/está bloqueada.
+async function silenceBaseTileRetry(page){
+ await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
+}
 async function boot(page,width,cpu=false){
  if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
@@ -18,7 +24,7 @@ for(const width of [1280,390])test('tsunami procedural: superfície única, impa
  const first=await surface.elementHandle();await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Tsunami — boletim atualizado 🇯🇵',sev:1};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-local')).toContainText('boletim atualizado');expect(await first.evaluate(el=>el.isConnected)).toBe(true);
  // Hidden/back faces pause the one shared clock; no separate water RAF survives.
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await page.waitForTimeout(220);const paused=await surface.getAttribute('data-time');await page.waitForTimeout(250);expect(await surface.getAttribute('data-time')).toBe(paused);await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>surface.getAttribute('data-time')).not.toBe(paused);
- await page.clock.install();await page.clock.fastForward(16100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
+ await silenceBaseTileRetry(page);await page.clock.install();await page.clock.fastForward(16100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
  const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');await expect(surface).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);expect(await page.locator('#pd-local').textContent()).toBe(text);await page.clock.runFor(2500);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
  const bounds=await page.locator('#painel-direito').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(-1);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);expect(await surface.evaluate(c=>Math.abs(c.offsetHeight-document.getElementById('painel-direito').clientHeight)<1)).toBe(true);

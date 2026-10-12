@@ -4917,8 +4917,9 @@ function saoPauloYmdOffset(days=0) {
     const d=new Date(Date.UTC(+p.year,+p.month-1,+p.day+days));
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
 }
-async function fetchDailyQuakesBrt() {
-    const day=saoPauloYmdOffset(-1), today=saoPauloYmdOffset(0);
+async function fetchDailyQuakesBrt(day=saoPauloYmdOffset(-1)) {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day+'T12:00:00Z')))throw new Error('Data do boletim inválida');
+    const today=new Date(Date.parse(day+'T12:00:00Z')+86400000).toISOString().slice(0,10);
     const start=`${day}T03:00:00.000Z`, end=`${today}T03:00:00.000Z`;
     const u='https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson' +
       `&starttime=${encodeURIComponent(start)}&endtime=${encodeURIComponent(end)}` +
@@ -5133,6 +5134,63 @@ async function telegramDailyRequest(env, method, body) {
         clearTimeout(timer);
     }
 }
+function dailyBrazilFingerprint(quakes){
+    return JSON.stringify((quakes.brazilEvents||[]).map(e=>[e.id,e.time,e.mag,e.lat,e.lon,e.depth,e.place]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
+}
+function dailySummaryCaption(quakes){
+    const top=quakes.events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5),br=quakes.brazilEvents||[];
+    return `📊 Resumo do dia — ${quakes.day.split('-').reverse().join('/')}`+
+        `\n🌍 ${quakes.events.length} sismos registrados`+
+        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${globalThis.EventPortuguese.place(top[0].place)}`:'sem registro'}`+
+        (br.length?`\n🇧🇷 Brasil: ${br.length} sismo${br.length===1?'':'s'} · maior M${br[0].mag.toFixed(1).replace('.', ',')}`:
+        quakes.brazilFailedSources?.length?'\n🇧🇷 Brasil: consulta incompleta; atualização pendente':'\n🇧🇷 Brasil: nenhum sismo registrado nas fontes consultadas')+
+        '\n🌐 monitorglobal.top';
+}
+// Reconcilia publicações brasileiras atrasadas com o mesmo boletim, sem reenviá-lo.
+async function refreshDailyBrazilSummary(request,env,storage){
+    const day=new URL(request.url).searchParams.get('day');
+    if(![1,2,3].map(n=>saoPauloYmdOffset(-n)).includes(day))return Response.json({ok:false,error:'Data fora do período de revisão'},{status:400});
+    const token=crypto.randomUUID(),now=Date.now();
+    const claimed=await storage.transaction(async tx=>{
+        const history=await tx.get('history'),delivery=await tx.get('delivery'),refresh=await tx.get('brazil-refresh');
+        if(delivery?.status!=='sent'||!history?.messageId||history.format!=='photo'||!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID)return false;
+        if(refresh?.until>now)return false;
+        await tx.put('brazil-refresh',{token,until:now+120000});return true;
+    });
+    if(!claimed)return Response.json({ok:true,skipped:true});
+    try{
+        const quakes=await fetchDailyQuakesBrt(day),fingerprint=dailyBrazilFingerprint(quakes),history=await storage.get('history');
+        // Não substituir dados conhecidos por um catálogo parcial ou vazio.
+        if(quakes.brazilFailedSources.length)throw new Error('Consulta brasileira incompleta');
+        if(!quakes.brazilEvents.length||history.brazilFingerprint===fingerprint){
+            await storage.put('brazil-refresh',{token,until:Date.now()+1800000});
+            return Response.json({ok:true,skipped:true,day});
+        }
+        const pack=await renderDailySummaryPng(quakes),form=new FormData();
+        form.append('chat_id',String(env.TELEGRAM_CHAT_ID));form.append('message_id',String(history.messageId));
+        form.append('media',JSON.stringify({type:'photo',media:'attach://summary',caption:dailySummaryCaption(quakes).slice(0,1024)}));
+        form.append('summary',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo-atualizado.png');
+        try{await telegramDailyRequest(env,'editMessageMedia',form);}catch(error){if(!/message is not modified/i.test(error.message))throw error;}
+        await storage.transaction(async tx=>{
+            const h=await tx.get('history');h.brazilFingerprint=fingerprint;h.brazilRevisedAt=Date.now();h.total=quakes.events.length;
+            h.events=(h.events||[]).slice(-199);h.events.push({at:Date.now(),stage:'brazil-revised'});
+            await tx.put('history',h);await tx.put('brazil-refresh',{token,until:Date.now()+1800000});
+        });
+        try{await env.TTS_USAGE?.put('telegram-history-preview:'+day,pack.png,{expirationTtl:TG_HISTORY_TTL});}catch{}
+        return Response.json({ok:true,day,brazil:quakes.brazilEvents.length,messageId:history.messageId});
+    }catch(error){
+        await storage.put('brazil-refresh',{token,until:Date.now()+300000});
+        console.warn('Revisão do resumo brasileiro pendente:',day);
+        return Response.json({ok:false,error:'Revisão brasileira pendente'},{status:502});
+    }
+}
+async function refreshRecentDailyBrazilSummaries(env){
+    if(!env.DAILY_SUMMARY)return;
+    for(const offset of [1,2,3]){
+        const day=saoPauloYmdOffset(-offset),id=env.DAILY_SUMMARY.idFromName(day);
+        await env.DAILY_SUMMARY.get(id).fetch('https://summary.internal/refresh-brazil?day='+day);
+    }
+}
 async function deliverTelegramDailySummary(request,env,delivery){
     if(!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID) {
         console.error('Telegram resumo diário: secrets ausentes');
@@ -5142,14 +5200,9 @@ async function deliverTelegramDailySummary(request,env,delivery){
     if(await dailySummarySent(request,day,env)) return {ok:true,skipped:true,reason:'resumo já enviado',day};
     await delivery.note('query');
     const quakes=await fetchDailyQuakesBrt();
-    await delivery.note('data',{total:quakes.events.length});
+    await delivery.note('data',{day:quakes.day,total:quakes.events.length,brazilFingerprint:dailyBrazilFingerprint(quakes)});
     const top=quakes.events.slice().sort((a,b)=>b.mag-a.mag).slice(0,5);
-    const caption =
-        `📊 Resumo do dia — ${day.split('-').reverse().join('/')}` +
-        `\n🌍 ${quakes.events.length} sismos registrados` +
-        `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${top[0].place}`:'sem registro'}` +
-        (quakes.brazilEvents?.length?`\n🇧🇷 Brasil: ${quakes.brazilEvents.length} sismo${quakes.brazilEvents.length===1?'':'s'} · maior M${quakes.brazilEvents[0].mag.toFixed(1).replace('.', ',')}`:'') +
-        '\n🌐 monitorglobal.top';
+    const caption=dailySummaryCaption(quakes);
     let pack;
     try {
         await delivery.note('render');
@@ -5210,6 +5263,7 @@ async function runTelegramDailySummary(request,env){
 export class DailySummaryDelivery {
     constructor(ctx,env) { this.ctx=ctx; this.env=env; }
     async fetch(request) {
+        if(new URL(request.url||request).pathname==='/refresh-brazil')return refreshDailyBrazilSummary(request,this.env,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/history'){
             const history=await this.ctx.storage.get('history');
             const state=await this.ctx.storage.get('delivery');
@@ -5492,6 +5546,7 @@ export default {
                 service: 'Monitor Global Worker',
                 version: '7.6.0',
                 dailySummaryDesign: DAILY_SUMMARY_DESIGN,
+                dailyBrazilRevision: "same-message-72h-v1",
                 brazilEpicenterLocation: BRAZIL_EPICENTER_VERSION,
                 earthquakePaint: "official-shakemap-v1",
                 telegramImageQuality: "full-hd-1080x1920-original-png",
@@ -5641,6 +5696,7 @@ export default {
             try { await refreshSpClimaCache(cacheRequest, env); } catch (e) { console.error('Cron SP:', e); }
             try { await refreshGlobalFeedsCache(cacheRequest, env); } catch (e) { console.error('Cron global:', e); }
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
+            try { await refreshRecentDailyBrazilSummaries(env); } catch (e) { console.warn('Cron revisão brasileira: pendente'); }
             try { await maybeRefreshPollsAverageNightly(env); } catch (e) { console.error('Cron pesquisas 2º turno:', e); }
         })());
     }
