@@ -20,11 +20,11 @@ test('aviso sem ponto entra na terceira vaga, sem inventar voo ou epicentro',asy
  const result=await page.evaluate(()=>{
   isFirstDisplay=false;const now=Date.now();globalEvents=[1,2].map(i=>({id:'q'+i,type:'earthquake',source:'QA',coords:[-70,-20],time:now,mag:3,depth:10,place:'Sismo'}));
   globalAlerts=[{id:'regional-cycle',type:'flood',hazardNature:'warning',coords:null,source:'NWS / NOAA',time:now,expiresAt:now+60000,place:'Região de teste',warningDescription:'Aviso regional',severityLabel:'Moderada'}];
-  window.__mgAutoRotation=undefined;window.__mgRevisionProtectedUntil=0;map.isMoving=()=>false;map.flyTo=()=>{};window.__flights=0;window.softFlyToCoords=()=>{window.__flights++;return 0;};
+  window.__mgAutoRotation=undefined;window.__mgRevisionProtectedUntil=0;map.isMoving=()=>false;map.flyTo=()=>{};window.__flights=0;window.EventCamera.enter=(id,camera)=>{window.__flights++;window.__lastEntry=camera;return 6000;};
   const rows=[];for(let i=0;i<3;i++){showNextAutoCycleItem();clearTimeout(cycleTimeout);rows.push(EventStore.getSelected()?.type);}
-  return {rows,flights:window.__flights,soft:window.__mgSoftCycle,error:window.__lastPainelDetalheError};
+  return {rows,flights:window.__flights,lastEntry:window.__lastEntry,soft:window.__mgSoftCycle,error:window.__lastPainelDetalheError};
  });
- expect(result.rows).toEqual(['earthquake','earthquake','flood']);expect(result.flights).toBe(2);expect(result.soft).toBe(false);expect(result.error).toBeFalsy();await expect(page.locator('#pd-local')).toContainText('Região de teste');await expect(page.locator('#pd-notice-brief')).toContainText('não fornece um ponto verificado');
+ expect(result.rows).toEqual(['earthquake','earthquake','flood']);expect(result.flights).toBe(3);expect(result.lastEntry.zoom).toBe(1.1);expect(result.soft).toBe(false);expect(result.error).toBeFalsy();await expect(page.locator('#pd-local')).toContainText('Região de teste');await expect(page.locator('#pd-notice-brief')).toContainText('não fornece um ponto verificado');
 });
 for(const width of [1280,390])for(const reload of [false,true])test('catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária '+width+(reload?' após refresh':''),async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());

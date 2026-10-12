@@ -6,6 +6,7 @@ for(const width of [1280,390])test('avisos regionais de tempestade e vento focam
  const result=await page.evaluate(async()=>{
   isFirstLoad=false;isFirstDisplay=false;window.__mgColdLoadGraceUntil=0;pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();globalEvents=[];
   const g={type:'Polygon',coordinates:[[[-98,35],[-97,35],[-97,36],[-98,36],[-98,35]]]};
+  EventCamera.enter=(id,camera,arrive)=>{if(arrive)arrive();return 6000;};
   const calls=[],fetches=[];map.fitBounds=(b,o)=>calls.push({b,o});map.flyTo=o=>calls.push({fly:o});map.easeTo=()=>{};map.stop=()=>{};
   fetchWithCorsFallback=async url=>{fetches.push(url);return Response.json({geometry:g});};
   let focused;
@@ -13,7 +14,7 @@ for(const width of [1280,390])test('avisos regionais de tempestade e vento focam
   const rows=[];
   for(const type of ['storm','wind'])for(const mode of ['auto','priority','manual']){
    const item={id:type+'-'+mode,type,hazardNature:'warning',source:'NWS / NOAA',place:'Área oficial Oklahoma',severity:'Severe',sev:3,time:Date.now(),expiresAt:Date.now()+3600000,affectedZones:['https://api.weather.gov/zones/forecast/OKZ025']};
-   globalAlerts=[item];PresentationLimits.clear();window.__mgHoldEndsAt=0;window.__mgRevisionProtectedUntil=0;window.__mgSoftCycle=mode==='auto';window.__mgRotationDisplay=mode==='auto';
+   globalAlerts=[item];PresentationLimits.clear();window.__mgHoldEndsAt=0;window.__mgRevisionProtectedUntil=0;window.__mgSoftCycle=mode==='auto';window.__mgRotationDisplay=mode!=='manual';
    calls.length=0;focused=null;showAlertDetails(item,mode==='priority');window.__mgRotationDisplay=false;
    if(!focused)throw Error("Seleção não disparou o foco meteorológico");await focused;clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);
    rows.push({type,mode,id:eventoSelecionadoId,fit:calls.find(c=>c.b),world:calls.some(c=>c.fly?.zoom===1.5)});
