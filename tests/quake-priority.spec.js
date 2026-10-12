@@ -8,8 +8,9 @@ for(const width of [1280,390])test('new M5.2 interrupts M2.4 card and late-repor
  expect(await page.evaluate(()=>__mgWaveFrontState.id)).toBe('high-priority-qa');expect(await page.evaluate(()=>__mgWaveFrontState.radii.p)).toBeGreaterThan(0);await page.clock.runFor(2600);await page.screenshot({path:'/tmp/quake-priority-'+width+'.png'});
  const waiting=await page.evaluate(()=>{globalEvents.push({...globalEvents[0],id:'equal-priority-qa',mag:5.2},{...globalEvents[0],id:'small-priority-qa',mag:1.9});queueNewCameraQuakes(globalEvents.slice(2));return focusNextNewCameraQuake();});expect(waiting).toBe(false);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('high-priority-qa');
 });
-test('known quake magnitude increase gains priority, and badge recovery runs before hold timer',async({page})=>{
- await boot(page);const revised=await page.evaluate(()=>{queueQuakeRevisions([{...globalEvents[1],_previousMag:2.3}]);return focusNextQuakeRevision(true);});expect(revised).toBe(true);await expect(page.locator('#pd-local')).toContainText('Northern Mid-Atlantic');
+test('known quake magnitude increase below M6 no longer gains priority; M6+ still does, and badge recovery runs before hold timer',async({page})=>{
+ await boot(page);const revisedSmall=await page.evaluate(()=>{queueQuakeRevisions([{...globalEvents[1],_previousMag:2.3}]);return focusNextQuakeRevision(true);});expect(revisedSmall).toBe(false);
+ const revised=await page.evaluate(()=>{pendingQuakeRevisions.clear();globalEvents[1].mag=6.2;queueQuakeRevisions([{...globalEvents[1],_previousMag:2.3}]);return focusNextQuakeRevision(true);});expect(revised).toBe(true);await expect(page.locator('#pd-local')).toContainText('Northern Mid-Atlantic');
  await page.evaluate(()=>{pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();showEventDetails(0,true);window.__mgQuakeCameraPresented.delete('high-priority-qa');activeAlertingIds.set('high-priority-qa',Date.now()+180000);scheduleNextAutoCycle(250);});await page.clock.runFor(300);
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('high-priority-qa');
  await page.evaluate(()=>{showEventDetails(0,true);scheduleNextAutoCycle(250);});await page.clock.runFor(300);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('low-priority-qa');
@@ -23,6 +24,6 @@ test('actual merged feed arrival and a raised revision preempt the low protected
   somAtivo=false;
  });await page.evaluate(()=>fetchGlobalFeeds());
  expect(await page.evaluate(()=>EventStore.getSelected()?.mag)).toBe(5.2);await expect(page.locator('#pd-local')).toContainText('Northern Mid-Atlantic');
- await page.evaluate(()=>{const low=globalEvents.find(e=>e.sourceEventId==='low-native-qa'),high=globalEvents.find(e=>e.sourceEventId==='high-native-qa');high.mag=2.3;high.magnitudeMin=2.3;high.magnitudeMax=2.3;pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();showEventDetails(globalEvents.indexOf(low),true);window.__priorityReports=[{...low},{...high,mag:5.2}];});await page.evaluate(()=>fetchGlobalFeeds());
- expect(await page.evaluate(()=>EventStore.getSelected()?.mag)).toBe(5.2);await expect(page.locator('#pd-local')).toContainText('Northern Mid-Atlantic');
+ await page.evaluate(()=>{const low=globalEvents.find(e=>e.sourceEventId==='low-native-qa'),high=globalEvents.find(e=>e.sourceEventId==='high-native-qa');high.mag=2.3;high.magnitudeMin=2.3;high.magnitudeMax=2.3;pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();showEventDetails(globalEvents.indexOf(low),true);window.__priorityReports=[{...low},{...high,mag:6.2}];});await page.evaluate(()=>fetchGlobalFeeds());
+ expect(await page.evaluate(()=>EventStore.getSelected()?.mag)).toBe(6.2);await expect(page.locator('#pd-local')).toContainText('Northern Mid-Atlantic');
 });
