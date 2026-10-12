@@ -129,11 +129,13 @@ jobs:
 
   weather-materials:
     runs-on: ubuntu-latest
-    # Bumped 10->20min -- same reason as above: tornado-cinema and
+    # Bumped 10->20->28min -- same reason as above: tornado-cinema and
     # tsunami-inundation here used to crash fast on the clock/tile-retry
     # race (issue #327, fixed in PR #336) and now run their real full
     # duration, alongside the other 10 specs in this job's single step.
-    timeout-minutes: 20
+    # 20min still got cancelled at 20min18s on the very next run -- not
+    # enough margin, bumping further.
+    timeout-minutes: 28
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
