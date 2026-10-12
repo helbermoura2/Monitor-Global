@@ -24,11 +24,41 @@ for(const width of [1280,390])test('tsunami procedural: superfície única, impa
  const first=await surface.elementHandle();await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Tsunami — boletim atualizado 🇯🇵',sev:1};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-local')).toContainText('boletim atualizado');expect(await first.evaluate(el=>el.isConnected)).toBe(true);
  // Hidden/back faces pause the one shared clock; no separate water RAF survives.
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await page.waitForTimeout(220);const paused=await surface.getAttribute('data-time');await page.waitForTimeout(250);expect(await surface.getAttribute('data-time')).toBe(paused);await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>surface.getAttribute('data-time')).not.toBe(paused);
- await silenceBaseTileRetry(page);await page.clock.install();await page.clock.fastForward(16100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
+ // A cena compara performance.now() (real, capturado em scene.start na criação)
+ // contra o "agora" do rAF pra saber quando bateu os 16000ms de duração
+ // (Math.min(duration,16000) em cinematic-card.js). O Clock do Playwright não
+ // é contínuo com o tempo real: ao instalar, suas ticks reiniciam de ~0 em vez
+ // de herdar o performance.now() já decorrido. Por isso só é seguro avançar o
+ // clock por "tempo real já gasto até aqui + duração + margem" — nunca por um
+ // valor fixo pequeno, senão o salto nunca alcança scene.start+16000 e a cena
+ // (e .pd-cinema-layer) nunca é removida.
+ // page.clock.install() por si só não congela o tempo: sem um pauseAt(),
+ // o relógio falso continua avançando em sincronia com o relógio real entre
+ // cada await daqui pra frente (storm-lightning.spec.js/storm-cinema.spec.js
+ // já fazem pauseAt logo após install por isso). Sem congelar, os próximos
+ // fastForward/runFor ficam sujeitos ao tempo real gasto pelos passos do
+ // teste (screenshots, round-trips de evaluate etc.), o que mais abaixo
+ // chega a adiantar o fim do demo (60000ms) o bastante pra cair dentro da
+ // janela de 30000ms que o próprio app usa pra retomar o ciclo automático
+ // (scheduleNextAutoCycle em js/painel-e-lista.js) — recriando um
+ // .pd-cinema-layer real (não-demo) antes da hora.
+ const elapsedBeforeClock=await page.evaluate(()=>performance.now());
+ await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+500));await page.clock.fastForward(elapsedBeforeClock+16000+2000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
  const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');await expect(surface).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);expect(await page.locator('#pd-local').textContent()).toBe(text);await page.clock.runFor(2500);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
  const bounds=await page.locator('#painel-direito').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(-1);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);expect(await surface.evaluate(c=>Math.abs(c.offsetHeight-document.getElementById('painel-direito').clientHeight)<1)).toBe(true);
- await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(22000);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
+ // CardEffectDemo.preview('tsunami') sem modo explícito usa 'warning', cuja
+ // duração (js/card-effect-demo.js) é 60000ms desde #269/#275 (antes era o
+ // genérico 16000ms) — a barra '#card-fx-demo-status' só desaparece no
+ // próprio setTimeout(stop,60000) do demo, independente da cena visual
+ // (.pd-cinema-layer), que já se encerra antes por ter duração própria
+ // capada em 16000ms. 22000 não alcança os 60000, daí a barra sobrava.
+ // Alvo: total de 70000ms avançados desde a chamada de preview() (2500 do
+ // runFor acima + 67500 aqui). Isso fica bem acima dos 60000ms do timer do
+ // demo (margem de 10s) e, com o relógio já congelado por pauseAt(), bem
+ // abaixo dos 90000ms (60000+30000) em que o ciclo automático do app
+ // recriaria um .pd-cinema-layer real pra esse mesmo alerta (margem de 20s).
+ await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(67500);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-tsunami-surface,.pd-weather-material,.pd-weather-lenses,.pd-cinema-layer,.pd-fx-windletter,.pd-water-submerged')).toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(text);expect(await page.locator('#painel-direito').evaluate(p=>p.style.getPropertyValue('--pd-surge-y'))).toBe('');expect(videos).toEqual([]);expect(errors).toEqual([]);
 });
 for(const mode of ['2D','context-loss'])test('tsunami mantém correnteza, letras e controles sem GPU '+mode,async({page})=>{
