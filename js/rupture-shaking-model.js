@@ -1,7 +1,7 @@
 /* Published ShakeMap grid; no inferred fault direction. Shared with image exports. */
 (function(root){
  'use strict';
- const colors=[[3,[132,162,232]],[4,[130,214,255]],[5,[85,242,15]],[6,[255,255,0]],[7,[255,200,0]],[8,[255,120,0]],[9,[255,0,0]],[10,[190,0,0]],[11,[130,0,0]],[12,[65,0,0]]];
+ const colors=[[3,[102,192,239]],[4,[130,214,255]],[5,[85,242,15]],[6,[255,255,0]],[7,[255,200,0]],[8,[255,120,0]],[9,[255,0,0]],[10,[190,0,0]],[11,[130,0,0]],[12,[65,0,0]]];
  function color(mmi){const i=Math.max(0,Math.min(colors.length-2,Math.floor(mmi)-3)),a=colors[i],b=colors[i+1],t=Math.max(0,Math.min(1,mmi-a[0]));return 'rgb('+a[1].map((v,j)=>Math.round(v+(b[1][j]-v)*t)).join(',')+')';}
  function valid(g){return g&&Number.isInteger(g.nx)&&Number.isInteger(g.ny)&&g.nx>=2&&g.ny>=2&&g.nx*g.ny<=60000&&[g.x0,g.x1,g.y0,g.y1].every(Number.isFinite)&&g.x1>g.x0&&g.x1-g.x0<=60&&g.y1>g.y0&&g.y0>=-90&&g.y1<=90&&g.y1-g.y0<=60&&Array.isArray(g.values)&&g.values.length===g.nx*g.ny&&g.values.every(v=>v===null||Number.isFinite(v)&&v>=0&&v<=12);}
  function normalize(d){const a=d?.domain?.axes,r=d?.ranges?.MMI;if(!d?.domain?.referencing?.some(r=>r.coordinates?.join(',')==='x,y'&&r.system?.type==='GeographicCRS'&&/\/CRS84$/.test(r.system.id||''))||d?.type!=='Coverage'||r?.axisNames?.join(',')!=='y,x'||r.shape?.join(',')!==[a?.y?.num,a?.x?.num].join(','))return null;const g={x0:a.x.start,x1:a.x.stop,nx:a.x.num,y0:a.y.start,y1:a.y.stop,ny:a.y.num,values:r.values};return valid(g)?g:null;}

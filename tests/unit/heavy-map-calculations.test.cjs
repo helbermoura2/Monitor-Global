@@ -23,10 +23,10 @@ test('footprint cache has a four-entry bound and refuses oversized results',asyn
  const {api,workers}=engine();for(let i=0;i<5;i++){api.start(context(i));workers.at(-1).reply();await flush();}
  const worker=workers.at(-1),before=worker.requests.length;api.start(context());assert.equal(worker.requests.length,before+1);worker.reply(undefined,100001);await flush();api.start(context());assert.equal(worker.requests.length,before+2);
 });
-test('the shared model preserves exact pre-optimization results near Japan, Indonesia, dateline and poles',()=>{
+test('the shared model preserves physical geometry and intensity near Japan, Indonesia, dateline and poles independently of palette',()=>{
  const crypto=require('node:crypto'),clip=require('../../js/vendor/polygon-clipping.min.js'),reference=require('../fixtures/impact-model-reference.json');
  const c=vm.createContext({polygonClipping:clip});vm.runInContext(fs.readFileSync('js/seismic-impact-model.js','utf8'),c);
- for(const {context,hash} of reference.cases){const data=c.SeismicImpactModel.geometry(context,reference.land),actual=crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');assert.equal(actual,hash,JSON.stringify(context));}
+ for(const {context,physicalHash} of reference.cases){const data=c.SeismicImpactModel.geometry(context,reference.land);for(const f of data.features)delete f.properties.color;const actual=crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');assert.equal(actual,physicalHash,JSON.stringify(context));}
 });
 test('magnitude, depth, latitude and longitude each invalidate cached geometry',async()=>{
  const {api,workers}=engine();api.start(context());workers.at(-1).reply();await flush();
@@ -35,4 +35,10 @@ test('magnitude, depth, latitude and longitude each invalidate cached geometry',
 test('aggregate vertex budget evicts old footprints before exceeding 100k vertices',async()=>{
  const {api,workers}=engine();for(let i=0;i<3;i++){api.start(context(i));workers.at(-1).reply(undefined,40000);await flush();}
  const worker=workers.at(-1),before=worker.requests.length;api.start(context());assert.equal(worker.requests.length,before+1);
+});
+test('a sub-kilometer weak footprint is painted instead of being discarded as too small',()=>{
+ const c=vm.createContext({polygonClipping:require('../../js/vendor/polygon-clipping.min.js')});vm.runInContext(fs.readFileSync('js/seismic-impact-model.js','utf8'),c);
+ const context={lng:0,lat:0,mag:1.22,depth:0},extent=c.SeismicImpactModel.extent(context.mag,context.depth);
+ assert(extent>0&&extent<1);const land=[[[[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]]]],data=c.SeismicImpactModel.geometry(context,land);
+ assert(data.features.length>0);for(const feature of data.features){assert(feature.properties.distanceKm<=extent);assert(feature.properties.pga>=.5);}
 });
