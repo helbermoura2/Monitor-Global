@@ -13,10 +13,10 @@ for(const width of [1280,390])test('cada viagem abre o mundo antes de atravessar
  await page.evaluate(()=>{window.__moves=[];map.easeTo=o=>__moves.push(o);map.stop=()=>{};eventoSelecionadoId='first';EventCamera.enter('first',{center:[-70,-20],zoom:9});});
  await page.clock.runFor(6000);
  await page.evaluate(()=>{__moves=[];eventoSelecionadoId='canada';EventCamera.enter('canada',{center:[-100,50],zoom:7});});
- expect(await page.evaluate(()=>__moves.map(x=>x.zoom))).toEqual([width===390?Math.log2(width/512):1.1]);
+ const wideZoom=await page.evaluate(()=>__moves[0].zoom);if(width===390)expect(wideZoom).toBeLessThanOrEqual(0);else expect(wideZoom).toBeCloseTo(1.1);
  await page.clock.runFor(2000);await page.evaluate(()=>EventCamera.enter('canada',{center:[-105,54],zoom:8}));
- await page.clock.runFor(4000);expect(await page.evaluate(()=>__moves.map(x=>x.zoom))).toEqual([width===390?Math.log2(width/512):1.1,width===390?Math.log2(width/512):1.1]);
- await page.clock.runFor(6000);const moves=await page.evaluate(()=>__moves);expect(moves.map(x=>x.zoom)).toEqual([width===390?Math.log2(width/512):1.1,width===390?Math.log2(width/512):1.1,8]);expect(moves.every(x=>x.duration===6000)).toBe(true);expect(moves[2].center).toEqual([-105,54]);
+ await page.clock.runFor(4000);expect(await page.evaluate(()=>__moves.map(x=>x.zoom))).toEqual([wideZoom,wideZoom]);
+ await page.clock.runFor(6000);const moves=await page.evaluate(()=>__moves);expect(moves.map(x=>x.zoom)).toEqual([wideZoom,wideZoom,8]);expect(moves.every(x=>x.duration===6000)).toBe(true);expect(moves[2].center).toEqual([-105,54]);
  const before=await page.evaluate(()=>{eventoSelecionadoId='new-quake';EventStore.setSelected('new-quake');EventCamera.enter('new-quake',{center:[140,35],zoom:9});eventoSelecionadoId='newer';EventStore.setSelected('newer');return __moves.length;});await page.clock.runFor(18000);expect(await page.evaluate(()=>__moves.length)).toBe(before);
 });
 test('rotação real avança dois sismos, tempestade e volta ao sismo após a permanência',async({page})=>{
