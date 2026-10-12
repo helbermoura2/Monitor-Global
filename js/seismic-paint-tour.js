@@ -10,7 +10,7 @@ function move(j,camera,ms){if(!owned(j))return;clearTimeout(window.__mgRecenterT
 function area(j){return window.SeismicFocus.frame(j.context);}
 function phase(j,index){
  if(!valid(j)){if(job===j)stop();return;}
- const current=globalEvents.find(q=>q.id===j.id);if(current?.coords)Object.assign(j.context,{lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth});
+ const current=globalEvents.find(q=>q.id===j.id);if(current?.coords){Object.assign(j.context,{lng:current.coords[0],lat:current.coords[1],mag:current.mag,depth:current.depth});window.SeismicImpact?.refresh(j.context);}
  if(index===phases.length){window.SeismicImpact?.finish();stop();scheduleNextAutoCycle(250);return;}
  j.index=index;const [name,ms]=phases[index];window.__mgPaintTourState={id:j.id,stage:name,until:Date.now()+ms,endsAt:j.endsAt,past:j.past};
  clearInterval(j.revealTimer);
