@@ -1,0 +1,41 @@
+const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block',reducedMotion:'reduce'});
+async function boot(page,width){await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);await page.evaluate(()=>{pausarBuscas();map._render=()=>{};clearTimeout(cycleTimeout);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();isFirstLoad=false;isFirstDisplay=false;window.__mgColdLoadGraceUntil=0;globalAlerts=[];globalEvents=[];SeismicPaintTour.stop();PresentationLimits.clear();});await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));}
+for(const width of [1280,390])test('dois sismos e outro tipo repetem sem serem sequestrados pelos avisos canadenses '+width,async({page})=>{
+ await boot(page,width);const r=await page.evaluate(()=>{
+  const now=Date.now();globalEvents=[1,2,3,4].map(i=>({id:'q'+i,type:'earthquake',source:'QA',mag:2+i*.1,depth:10,time:now-i*3600000,coords:[-70+i,-20],place:'Sismo '+i}));
+  globalAlerts=[{id:'canada-1',type:'storm',source:'ECCC',hazardNature:'warning',time:now-60000,expiresAt:now+3600000,coords:[-100,50],place:'Canadá'},{id:'canada-2',type:'storm',source:'ECCC',hazardNature:'warning',time:now-60000,expiresAt:now+3600000,coords:[-110,55],place:'Canadá'},{id:'volcano-ordinary',type:'volcano',source:'QA',time:now-60000,coords:[140,35],place:'Vulcão sem explosão'}];
+  window.__mgAutoRotation=undefined;const rows=[];for(let i=0;i<12;i++){const q=selectNextAutoCycleItem();rows.push(q.type);eventoSelecionadoId=q.id;NewEventPriority.queue(globalAlerts.filter(a=>a.type==='storm'));NewEventPriority.focus();}
+  return {rows,pending:NewEventPriority.hasPending()};
+ });for(let i=0;i<r.rows.length;i++)expect(i%3<2?r.rows[i]==='earthquake':['storm','volcano'].includes(r.rows[i])).toBe(true);expect(new Set(r.rows.filter((_,i)=>i%3===2)).size).toBe(2);expect(r.pending).toBe(false);
+});
+for(const width of [1280,390])test('cada viagem abre o mundo antes de atravessar e aproximar; geometria tardia não acelera '+width,async({page})=>{
+ await boot(page,width);await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.evaluate(()=>{window.__moves=[];map.easeTo=o=>__moves.push(o);map.stop=()=>{};eventoSelecionadoId='first';EventCamera.enter('first',{center:[-70,-20],zoom:9});});
+ await page.clock.runFor(6000);
+ await page.evaluate(()=>{__moves=[];eventoSelecionadoId='canada';EventCamera.enter('canada',{center:[-100,50],zoom:7});});
+ expect(await page.evaluate(()=>__moves.map(x=>x.zoom))).toEqual([width===390?Math.log2(width/512):1.1]);
+ await page.clock.runFor(2000);await page.evaluate(()=>EventCamera.enter('canada',{center:[-105,54],zoom:8}));
+ await page.clock.runFor(4000);expect(await page.evaluate(()=>__moves.map(x=>x.zoom))).toEqual([width===390?Math.log2(width/512):1.1,width===390?Math.log2(width/512):1.1]);
+ await page.clock.runFor(6000);const moves=await page.evaluate(()=>__moves);expect(moves.map(x=>x.zoom)).toEqual([width===390?Math.log2(width/512):1.1,width===390?Math.log2(width/512):1.1,8]);expect(moves.every(x=>x.duration===6000)).toBe(true);expect(moves[2].center).toEqual([-105,54]);
+ const before=await page.evaluate(()=>{eventoSelecionadoId='new-quake';EventStore.setSelected('new-quake');EventCamera.enter('new-quake',{center:[140,35],zoom:9});eventoSelecionadoId='newer';EventStore.setSelected('newer');return __moves.length;});await page.clock.runFor(18000);expect(await page.evaluate(()=>__moves.length)).toBe(before);
+});
+test('rotação real avança dois sismos, tempestade e volta ao sismo após a permanência',async({page})=>{
+ await boot(page,1280);
+ await page.evaluate(()=>{const now=Date.now();globalEvents=[1,2,3,4].map(i=>({id:'real-q'+i,type:'earthquake',source:'QA',mag:3,depth:10,time:now-3*3600000,coords:[-70+i*.1,-20],place:'Sismo '+i}));globalAlerts=[{id:'real-weather',type:'storm',source:'ECCC',coords:[-100,50],hazardNature:'warning',time:now-60000,expiresAt:now+3600000,place:'Canadá',sev:2}];SeismicImpact.start=()=>{};SeismicImpact.reveal=()=>{};SeismicImpact.finish=()=>{};SeismicImpact.bounds=()=>[-71,-21,-69,-19];map.easeTo=()=>{};map.flyTo=()=>{};map.stop=()=>{};map.isMoving=()=>false;window.__mgAutoRotation=undefined;showNextAutoCycleItem();});
+ const first=await page.evaluate(()=>eventoSelecionadoId);expect(first.startsWith('real-q')).toBe(true);
+ await page.clock.runFor(56250);const second=await page.evaluate(()=>eventoSelecionadoId);expect(second.startsWith('real-q')).toBe(true);expect(second).not.toBe(first);
+ await page.clock.runFor(68250);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('real-weather');
+ await page.clock.runFor(38000);expect((await page.evaluate(()=>eventoSelecionadoId)).startsWith('real-q')).toBe(true);
+});
+test('sismo novo e explosão vulcânica interrompem com saída ampla e suave',async({page})=>{
+ await boot(page,1280);await page.emulateMedia({reducedMotion:'no-preference'});
+ const r=await page.evaluate(()=>{const now=Date.now();globalEvents=[{id:'old-world-qa',type:'earthquake',source:'QA',mag:3.4,depth:10,time:now-4*3600000,coords:[-70,-20],place:'Passado'},{id:'new-world-qa',type:'earthquake',source:'QA',mag:6.3,depth:10,time:now-60000,coords:[140,35],place:'Novo'}];SeismicImpact.start=()=>{};SeismicImpact.reveal=()=>{};SeismicImpact.finish=()=>{};SeismicImpact.bounds=()=>[-71,-21,-69,-19];window.__urgentMoves=[];map.easeTo=o=>__urgentMoves.push(o);map.flyTo=o=>__urgentMoves.push(o);map.stop=()=>{};window.__mgSoftCycle=true;showEventDetails(0,false);__urgentMoves=[];queueNewCameraQuakes([globalEvents[1]]);const newFocused=focusNextNewCameraQuake();const quake={id:eventoSelecionadoId,first:__urgentMoves[0],time:SeismicPaintTour.remaining()};window.__mgSoftCycle=true;showEventDetails(0,false);__urgentMoves=[];globalAlerts=[{id:'eruption-world-qa',type:'volcano',source:'QA',coords:[-155,19],time:now,place:'Explosão vulcânica',sev:3,vulcanicActivity:'Explosive eruption'}];VolcanoPriority.enqueue(globalAlerts[0],'Explosão reportada');const eruptionFocused=VolcanoPriority.focus();clearTimeout(cycleTimeout);return {newFocused,quake,eruptionFocused,eruption:{id:eventoSelecionadoId,first:__urgentMoves[0]}};});
+ expect(r.newFocused).toBe(true);expect(r.quake.id).toBe('new-world-qa');expect(r.quake.time).toBe(210000);expect(r.quake.first.zoom).toBe(1.1);expect(r.quake.first.duration).toBe(6000);expect(r.eruptionFocused).toBe(true);expect(r.eruption.id).toBe('eruption-world-qa');expect(r.eruption.first.zoom).toBe(1.1);expect(r.eruption.first.duration).toBe(6000);
+});
+test('aviso regional mantém vinte segundos de exibição depois da viagem, mesmo com temporizador antigo',async({page})=>{
+ await boot(page,390);
+ await page.evaluate(()=>{const now=Date.now();globalEvents=[{id:'before-region',type:'earthquake',source:'QA',mag:3,depth:10,time:now-3*3600000,coords:[-70,-20],place:'Anterior'}];globalAlerts=[{id:'regional-trip',type:'wind',source:'QA',hazardNature:'warning',time:now,expiresAt:now+3600000,place:'Área oficial',warningGeometry:{type:'Polygon',coordinates:[[[-106,41],[-105,41],[-105,42],[-106,42],[-106,41]]]}}];SeismicImpact.start=()=>{};SeismicImpact.reveal=()=>{};SeismicImpact.finish=()=>{};map.easeTo=()=>{};map.fitBounds=()=>{};map.stop=()=>{};map.isMoving=()=>false;window.__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);window.__mgRotationDisplay=true;window.__mgSoftCycle=true;showAlertDetails(globalAlerts[0],false);window.__mgRotationDisplay=false;});
+ await expect.poll(()=>page.evaluate(()=>PresentationLimits.state()?.deadline-Date.now())).toBe(38000);
+ await page.clock.runFor(30000);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('regional-trip');
+ await page.clock.runFor(8000);expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('before-region');
+});

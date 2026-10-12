@@ -1011,7 +1011,7 @@ function showNextAutoCycleItem() {
             const i = globalEvents.findIndex(e => e && e.id === it.id);
             if (i !== -1) showEventDetails(i, false);
             else showAlertDetails(it, false);
-        } else showAlertDetails(it, false);
+        } else {showAlertDetails(it, false);window.NewEventPriority?.markPresented(it);}
         window.__mgResumeRotation = false;
         return true;
     } finally { window.__mgRotationDisplay = false; }
@@ -1049,17 +1049,11 @@ function runAutoCycle(forced = false) {
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
-        if (window.NewEventPriority?.focusAlert()) return;
         if(window.TsunamiMap?.isPreview()||window.SeismicScenarioDemo?.isActive()){scheduleNextAutoCycle(60000);return;}
-        const protectedMs = Math.max(getAutoCycleProtectionRemaining(),window.SeismicPaintTour?.remaining()||0);
+        const activePresentation=window.PresentationLimits?.state();
+        const protectedMs = Math.max(getAutoCycleProtectionRemaining(),window.SeismicPaintTour?.remaining()||0,activePresentation?.id===eventoSelecionadoId?activePresentation.deadline-Date.now():0);
         if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
-        if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size || window.NewEventPriority?.hasPending()) { scheduleNextAutoCycle(2000); return; }
-        // Resume one rotation slot between queued revisions, so a large
-        // backlog cannot monopolize the screen. Fresh arrivals still win.
-        if (!window.__mgResumeRotation && typeof focusNextQuakeRevision === 'function' && focusNextQuakeRevision()) {
-            window.__mgResumeRotation = true;
-            return;
-        }
+        if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size) { scheduleNextAutoCycle(2000); return; }
         if (!forced && map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
         if(forced)stopMapCamera();
         if (!window.CinematicCard?.isActive() && window.PollProjectionCard?.due() && window.PollProjectionCard.show(() => scheduleNextAutoCycle(20000))) { scheduleNextAutoCycle(31000); return; }
@@ -1087,6 +1081,7 @@ function stopMapCamera() {
  */
 function softFlyToCoords(lng, lat, zoomAlvo, soft) {
     if (!map) return 0;
+    if(window.EventCamera){stopMapCamera();return EventCamera.enter(eventoSelecionadoId,{center:centroCompensado(lng,lat,zoomAlvo),zoom:zoomAlvo});}
     userInteractingWithGlobe = true;
     // trava o spin por bastante tempo (voo + um pouco depois)
     try { clearTimeout(window.__mgUnlockSpin); } catch (e) {}
@@ -1457,7 +1452,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
 
     let totalDur = 1800;
-    if (triggerVisualAlert) {
+    if(window.SeismicPaintTour){totalDur=0;} else if (triggerVisualAlert) {
         // EVENTO NOVO — voo destacado + permanência escalada por magnitude
         stopMapCamera();
         try {
@@ -1613,8 +1608,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
     // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
     if(!triggerVisualAlert&&!silentRefresh&&!window.__mgRotationDisplay)window.__mgSoftCycle=false;
-    if (triggerVisualAlert && !silentRefresh && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
-        window.NewEventPriority.queue([item]);window.NewEventPriority.focus();return;
+    if (triggerVisualAlert && !silentRefresh && !window.__mgRotationDisplay && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
+        window.NewEventPriority.queue([item]);if(item.type==='volcano')window.NewEventPriority.focus();return;
     }
     if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay && !window.NewEventPriority?.dispatching(item)) {window.__mgSoftCycle=false;return;}
     if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature) && !window.__mgRotationDisplay) { window.__mgSoftCycle=false; return; }
@@ -2044,21 +2039,15 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             userInteractingWithGlobe = true;
             stopMapCamera();
             try {
-                map.flyTo({
-                    center: centro,
-                    zoom: zA,
-                    pitch: 0,
-                    duration: 6000,
-                    curve: 1.6,
-                    essential: true
-                });
+                if(window.EventCamera)EventCamera.enter(item.id,{center:centro,zoom:zA});
+                else map.flyTo({center:centro,zoom:zA,pitch:0,duration:6000,essential:true});
             } catch (e) {}
             // Flash de raio é exclusivo de tempestade — outros tipos (furacão,
             // tsunami, vulcão...) usam seus próprios efeitos de entrada
             // (js/painel-fx.js), sem flash genérico de "evento novo".
             if (item.type === 'storm' && typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
             if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
-            window.returnCameraTimeout = setTimeout(() => {
+            if(!window.EventCamera)window.returnCameraTimeout = setTimeout(() => {
                 if(eventoSelecionadoId!==item.id)return;
                 if (getPriorityCameraEarthquakes().length) {
                     window.preAlertCamera = null;
@@ -2117,11 +2106,11 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // aleatório exatamente por pularem isto antes). Só cai na visão
         // global quando não há NENHUM dado de localização.
         if (item.type==='storm'||item.type==='wind') {
-            window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
+            window.WeatherWarningCamera?.focus(item).then(focused=>{if(!focused&&eventoSelecionadoId===item.id&&window.EventCamera)EventCamera.enter(item.id,{center:[map.getCenter().lng,0],zoom:EventCamera.worldZoom()});}).catch(e=>console.warn('[área meteorológica]',e.message));
         } else if (item.municipalityLocations?.length) {
-            window.InmetMunicipalities?.fitArea(item);
+            window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
         } else if (map) {
-            map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
+            if(window.EventCamera)EventCamera.enter(item.id,{center:[0,0],zoom:EventCamera.worldZoom()});else map.flyTo({center:[0,0],zoom:1.1,pitch:0,bearing:0,duration:6000,essential:true});
         }
     }
     // Só quando item.coords já posicionou a câmera no LUGAR certo (acima):
@@ -2131,7 +2120,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // vez do lugar, pedido do usuário pra não fazer. Sem item.coords, o
     // fitArea já rodou (ou não havia dado nenhum) no ramo acima.
     if(item.coords&&['storm','wind'].includes(item.type)&&item.hazardNature==='warning'&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length))window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
-    else if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
+    else if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 

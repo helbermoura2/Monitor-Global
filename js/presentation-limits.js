@@ -15,6 +15,11 @@ function begin(item,mode){
   clear();runAutoCycle(true);
  },ms);
 }
+function delayEntry(id,ms){
+ if(active?.id!==id)return;
+ clearTimeout(timer);const context=active;context.startedAt=Date.now();context.deadline=context.startedAt+context.ms+ms;
+ timer=setTimeout(()=>{if(active!==context||eventoSelecionadoId!==id)return;window.VolcanoPriority?.finishPresentation?.(id);clear();runAutoCycle(true);},context.deadline-Date.now());
+}
 function wait(ms){return active?.id===eventoSelecionadoId?Math.min(ms,Math.max(1,active.deadline-Date.now())):ms;}
-window.PresentationLimits={begin,clear,wait,limitMs,state:()=>active};
+window.PresentationLimits={begin,clear,wait,delayEntry,limitMs,state:()=>active};
 })();

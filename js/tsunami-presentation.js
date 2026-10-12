@@ -42,7 +42,8 @@
   const button=text(box,'button',j.paused?'Retomar passeio':'Pausar passeio');button.type='button';button.onclick=e=>{e.stopPropagation();if(j.paused){j.paused=false;phase(j,'quake',true);schedule(j,QUAKE_MS);}else pause();};
   const header=panel.querySelector('.pd-header-row');if(header)header.after(box);else panel.prepend(box);
  }
- function quakeCamera(j,duration=4000){
+ function quakeCamera(j,duration=6000){
+  if(window.EventCamera?.owns(j.hostId))return;duration=Math.max(6000,duration);
   const q=j.quake,c=paintContext(q),radius=Math.max(10,window.SeismicImpactModel?.extent(q.mag,q.depth,2.1)||30);
   const focus=window.SeismicFocus?.frame(c),zoom=focus?.zoom??(typeof zoomParaAreaPintada==='function'?zoomParaAreaPintada(c.lng,c.lat,radius):6);
   const center=focus?.center||(typeof centroCompensado==='function'?centroCompensado(c.lng,c.lat,zoom):q.coords);

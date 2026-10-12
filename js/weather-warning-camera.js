@@ -32,13 +32,15 @@ async function resolve(item,active=()=>true){
  // A failed area request never invents an epicenter or changes to a global view.
  return pts.length?bounds(pts):null;
 }
-function fit(b){
+function fit(b,id){
  if(!b||!map)return false;const c=map.getContainer(),w=c.clientWidth||root.innerWidth,h=c.clientHeight||root.innerHeight,wide=w>900;
  const padding={top:Math.min(wide?225:215,h*.25),bottom:Math.min(wide?60:300,h*.36),left:Math.min(wide?335:32,w*.27),right:Math.min(wide?380:32,w*.30)};
  clearTimeout(root.__mgRecenterT);clearTimeout(root.__mgRecenterAlertT);clearTimeout(root.__mgSoftFlyT);
  if(typeof userInteractingWithGlobe!=='undefined')userInteractingWithGlobe=true;
- map.stop?.();map.fitBounds(b,{padding,maxZoom:8,pitch:0,bearing:0,duration:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:2600,essential:true});return true;
+ const options={padding,maxZoom:8,pitch:0,bearing:0,duration:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true};
+ if(root.EventCamera){const camera=map.cameraForBounds(b,options);root.EventCamera.enter(id,camera,()=>map.fitBounds(b,options));}
+ else map.fitBounds(b,options);return true;
 }
-async function focus(item){const token=++generation;const b=await resolve(item,()=>token===generation&&eventoSelecionadoId===item.id);if(token!==generation||eventoSelecionadoId!==item.id)return false;return fit(b);}
+async function focus(item){const token=++generation;const b=await resolve(item,()=>token===generation&&eventoSelecionadoId===item.id);if(token!==generation||eventoSelecionadoId!==item.id)return false;return fit(b,item.id);}
 root.WeatherWarningCamera={focus,resolve,bounds,geometryPoints};
 })(typeof window!=='undefined'?window:globalThis);
