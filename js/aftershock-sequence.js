@@ -43,7 +43,7 @@
    }
   }
   for(const pin of pins.values())pin.getElement().style.display=allowed?'':'none';
-  if(allowed&&typeof markerStores!=='undefined')for(const id of represented)markerStores.quake.get(id)?.getElement().classList.add('aftershock-covered');
+  if(allowed&&typeof markerStores!=='undefined')for(const id of represented)if(id!==chosen())markerStores.quake.get(id)?.getElement().classList.add('aftershock-covered');
  }
 
  function ingest(){

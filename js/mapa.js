@@ -448,7 +448,9 @@ function syncAllMarkers() {
     const wantQ = new Set();
     if (layerVisibility.earthquakes) {
         globalEvents.forEach(ev => {
-            if (ev.time < eventDisplayCutMs(ev) || ev.mag < dynMin) return;
+            if (!Array.isArray(ev.coords) || ev.coords.length<2 || !ev.coords.slice(0,2).every(Number.isFinite) || Math.abs(ev.coords[0])>180 || Math.abs(ev.coords[1])>90) return;
+            const selected = ev.id === eventoSelecionadoId;
+            if (!selected && (ev.time < eventDisplayCutMs(ev) || ev.mag < dynMin)) return;
             wantQ.add(ev.id);
             if (!markerStores.quake.has(ev.id)) {
                 const el = document.createElement('div');
@@ -467,6 +469,15 @@ function syncAllMarkers() {
                     }
                 });
                 markerStores.quake.set(ev.id, new GL.Marker({ element: el }).setLngLat(ev.coords).addTo(map));
+            }
+            const marker=markerStores.quake.get(ev.id),position=marker.getLngLat();
+            if(position.lng!==ev.coords[0]||position.lat!==ev.coords[1])marker.setLngLat(ev.coords);
+            const visualKey=ev.mag+'|'+ev.place;
+            if(marker.__mgQuakeVisualKey!==visualKey){
+                const el=marker.getElement(),size=ev.mag>=6?18:ev.mag>=5?14:ev.mag>=4?11:8,cor=getHexColor(ev.mag);
+                el.style.width=el.style.height=size+'px';el.style.background=cor;el.style.boxShadow=`0 0 ${size}px ${cor}`;
+                el.title=`M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
+                marker.__mgQuakeVisualKey=visualKey;
             }
         });
     }
@@ -490,7 +501,7 @@ function syncAllMarkers() {
     const syncType = (store, list, builder) => {
         const want = new Set();
         list.forEach(item => {
-            if (!item.coords) return;
+            if (!Array.isArray(item.coords) || item.coords.length<2 || !item.coords.slice(0,2).every(Number.isFinite) || Math.abs(item.coords[0])>180 || Math.abs(item.coords[1])>90) return;
             if (item.municipalityLocations?.length || item.warningGeometry) return;
             if (item.time < cut && !SEM_LIMITE_TEMPO.has(item.type)) return;
             want.add(item.id);
@@ -501,6 +512,8 @@ function syncAllMarkers() {
             } else if (store.get(item.id).update) {
                 store.get(item.id).update(item);
             }
+            const marker=store.get(item.id).marker,position=marker.getLngLat();
+            if(position.lng!==item.coords[0]||position.lat!==item.coords[1])marker.setLngLat(item.coords);
         });
         store.forEach((rec, id) => {
             if (!want.has(id)) {
