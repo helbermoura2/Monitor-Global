@@ -1,8 +1,42 @@
-const{test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-function setup(){const now=Date.now(),shown=[],timers=[];const c={window:null,document:{hidden:false},globalAlerts:[],globalEvents:[],eventoSelecionadoId:'historic',map:{},Date,console,protected:0,isWithinAutoCycleAge:a=>Number.isFinite(a?.time)&&a.time<=Date.now()&&Date.now()-a.time<=72*3600000,getAutoCycleProtectionRemaining:()=>c.protected,setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout(){},focusNextNewCameraQuake:()=>false,showAlertDetails:item=>{shown.push(item.id);c.eventoSelecionadoId=item.id;c.PresentationLimits={state:()=>({id:item.id,mode:'priority',deadline:Date.now()+40000})}}};c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync('js/new-event-priority.js','utf8'),c);return{c,shown,timers,alert:(id,sev=1,extra={})=>({id,type:'storm',coords:[1,2],time:now,sev,...extra})};}
-test('every newly registered alert is queued, severity wins and duplicate reconfirmations do not replay',()=>{const{c,shown,alert}=setup();c.globalAlerts=[alert('a'),alert('b',3),alert('c',2)];c.NewEventPriority.queue(c.globalAlerts);assert(c.NewEventPriority.focus());assert.deepEqual(shown,['b']);assert.equal(c.NewEventPriority.focus(),false);c.PresentationLimits=null;assert(c.NewEventPriority.focus());c.PresentationLimits=null;assert(c.NewEventPriority.focus());assert.deepEqual(shown,['b','c','a']);c.NewEventPriority.queue(c.globalAlerts);assert.equal(c.NewEventPriority.hasPending(),false)});
-test('protected M5 keeps all alert arrivals until release, and larger queued earthquake wins',()=>{const{c,shown,alert}=setup();c.globalAlerts=[alert('rain')];c.protected=120000;c.NewEventPriority.queue(c.globalAlerts);assert.equal(c.NewEventPriority.focus(),false);assert(c.NewEventPriority.hasPending());c.focusNextNewCameraQuake=min=>min===5;assert(c.NewEventPriority.focus());assert.equal(shown.length,0);c.focusNextNewCameraQuake=()=>false;c.protected=0;assert(c.NewEventPriority.focus());assert.deepEqual(shown,['rain'])});
-test('expired/removed/future/old/model records cannot monopolize priority; warning without coordinates is shown',()=>{const{c,shown,alert}=setup();const now=Date.now();c.globalAlerts=[alert('old',3,{time:now-73*3600000}),alert('past',3,{expiresAt:now-1}),alert('future',3,{inicioTs:now+60000}),alert('forecast',3,{hazardNature:'forecast'}),alert('model',3,{source:'MODELO LOCAL'}),alert('warning',2,{hazardNature:'warning',coords:null})];c.NewEventPriority.queue(c.globalAlerts);assert(c.NewEventPriority.focus());assert.deepEqual(shown,['warning']);assert.equal(c.NewEventPriority.hasPending(),false);c.PresentationLimits=null;c.NewEventPriority.queue([alert('missing')]);assert.equal(c.NewEventPriority.hasPending(),false)});
-test('cyclone source consolidation preserves a waiting new event when its canonical ID changes',()=>{const{c,shown,alert}=setup(),item=alert('GDACS');c.globalAlerts=[item];c.protected=120000;c.NewEventPriority.queue([item]);item.id='NHC';assert(c.NewEventPriority.hasPending());c.protected=0;assert(c.NewEventPriority.focus());assert.deepEqual(shown,['NHC'])});
-test('source bootstrap is silent and upsert queues every post-boot row, without queuing reconfirmations',()=>{const{c,alert}=setup(),core=fs.readFileSync('js/nucleo-estado.js','utf8'),start=core.indexOf('function upsertAlert(');c.knownAlertIds=new Set();c.activeAlertingIds=new Map();c.activeUpdatedIds=new Map();c.booted=new Set();c.isNovoPosBoot=(source,id)=>c.booted.has(source)&&!c.knownAlertIds.has(id);c.marcarAtualizadoNoTopo=()=>{};vm.runInContext(core.slice(start,core.indexOf('\n}',start)+2),c);assert.equal(c.upsertAlert(alert('baseline'),{fonte:'INMET'}),false);assert.equal(c.NewEventPriority.hasPending(),false);c.booted.add('INMET');assert.equal(c.upsertAlert(alert('new-a'),{fonte:'INMET'}),true);assert.equal(c.upsertAlert(alert('new-b'),{fonte:'INMET'}),true);assert(c.NewEventPriority.hasPending());assert.equal(c.upsertAlert(alert('new-a'),{fonte:'INMET'}),false)});
-test('hidden arrivals stay queued without retry polling and are presented on resume',()=>{const{c,shown,timers,alert}=setup();c.document.hidden=true;c.globalAlerts=[alert('hidden-alert',3)];c.NewEventPriority.queue(c.globalAlerts);assert.equal(timers.length,0);assert.equal(c.NewEventPriority.focusAlert(),false);assert(c.NewEventPriority.hasPending());assert.equal(shown.length,0);c.document.hidden=false;assert(c.NewEventPriority.focusAlert());assert.deepEqual(shown,['hidden-alert']);});
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+function setup(){
+ const now=Date.now(),shown=[],timers=[],urgent=[];
+ const c={window:null,document:{hidden:false},globalAlerts:[],globalEvents:[],eventoSelecionadoId:'historic',map:{},Date,console,protected:0,
+  isWithinAutoCycleAge:a=>Number.isFinite(a?.time)&&a.time<=Date.now()&&Date.now()-a.time<=72*3600000,
+  getAutoCycleProtectionRemaining:()=>c.protected,setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout(){},
+  focusNextNewCameraQuake:()=>false,showAlertDetails:item=>{shown.push(item.id);c.eventoSelecionadoId=item.id},
+  VolcanoPriority:{acceptsUrgent:item=>item.eruptionStatus==='explosive',enqueue:item=>urgent.push(item.id),focus:()=>false}};
+ c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync('js/new-event-priority.js','utf8'),c);
+ return {c,shown,timers,urgent,alert:(id,sev=1,extra={})=>({id,type:'storm',coords:[1,2],time:now,sev,...extra})};
+}
+test('repeated severe weather arrivals remain in the catalog without taking the camera or polling',()=>{
+ const {c,shown,timers,alert}=setup();c.globalAlerts=[alert('rain'),alert('wind',4,{type:'wind'}),alert('cyclone',4,{type:'cyclone'})];
+ for(let i=0;i<10;i++){c.NewEventPriority.queue(c.globalAlerts);assert.equal(c.NewEventPriority.focus(),false);}
+ assert.equal(c.NewEventPriority.hasPending(),false);assert.deepEqual(shown,[]);assert.deepEqual(timers,[]);assert.equal(c.globalAlerts.length,3);
+});
+test('new earthquake focus wins before volcanic escalation, without presenting ordinary weather',()=>{
+ const {c,shown,urgent,alert}=setup();c.globalAlerts=[alert('rain'),alert('eruption',3,{type:'volcano',eruptionStatus:'explosive'})];
+ c.NewEventPriority.queue(c.globalAlerts);assert.deepEqual(urgent,['eruption']);
+ let volcanoCalls=0;c.VolcanoPriority.focus=()=>{volcanoCalls++;return true;};c.focusNextNewCameraQuake=min=>min===5;
+ assert(c.NewEventPriority.focus());assert.equal(volcanoCalls,0);c.focusNextNewCameraQuake=()=>false;assert(c.NewEventPriority.focus());assert.equal(volcanoCalls,1);assert.deepEqual(shown,[]);
+});
+test('expired, future, old, forecast and model eruptions cannot enter urgent presentation; reconfirmation does not replay',()=>{
+ const {c,urgent,alert}=setup(),now=Date.now(),eruption=(id,extra={})=>alert(id,3,{type:'volcano',eruptionStatus:'explosive',...extra});
+ c.NewEventPriority.queue([null,eruption('old',{time:now-73*3600000}),eruption('expired',{expiresAt:now-1}),eruption('future',{inicioTs:now+60000}),eruption('forecast',{hazardNature:'forecast'}),eruption('model',{source:'MODELO LOCAL'}),eruption('live')]);
+ assert.deepEqual(urgent,['live']);c.NewEventPriority.markPresented(eruption('live'));c.NewEventPriority.queue([eruption('live')]);assert.deepEqual(urgent,['live']);
+});
+test('cyclone source consolidation leaves its canonical record available for rotation without urgent focus',()=>{
+ const {c,shown,alert}=setup(),item=alert('GDACS',3,{type:'cyclone'});c.globalAlerts=[item];c.NewEventPriority.queue([item]);item.id='NHC';
+ assert.equal(c.NewEventPriority.focus(),false);assert.equal(c.globalAlerts[0].id,'NHC');assert.deepEqual(shown,[]);
+});
+test('source bootstrap is silent and post-boot weather rows stay stored and badged without interrupting',()=>{
+ const {c,alert}=setup(),core=fs.readFileSync('js/nucleo-estado.js','utf8'),start=core.indexOf('function upsertAlert(');
+ c.knownAlertIds=new Set();c.activeAlertingIds=new Map();c.activeUpdatedIds=new Map();c.booted=new Set();c.isNovoPosBoot=(source,id)=>c.booted.has(source)&&!c.knownAlertIds.has(id);c.marcarAtualizadoNoTopo=()=>{};
+ vm.runInContext(core.slice(start,core.indexOf('\n}',start)+2),c);assert.equal(c.upsertAlert(alert('baseline'),{fonte:'INMET'}),false);
+ c.booted.add('INMET');assert.equal(c.upsertAlert(alert('new-a'),{fonte:'INMET'}),true);assert.equal(c.upsertAlert(alert('new-b'),{fonte:'INMET'}),true);
+ assert.equal(c.NewEventPriority.hasPending(),false);assert.equal(c.globalAlerts.length,3);assert(c.activeAlertingIds.has('new-a'));assert.equal(c.upsertAlert(alert('new-a'),{fonte:'INMET'}),false);
+});
+test('hidden weather arrivals remain stored without retry polling or takeover on resume',()=>{
+ const {c,shown,timers,alert}=setup();c.document.hidden=true;c.globalAlerts=[alert('hidden-alert',3)];c.NewEventPriority.queue(c.globalAlerts);
+ assert.deepEqual(timers,[]);assert.equal(c.NewEventPriority.focusAlert(),false);c.document.hidden=false;assert.equal(c.NewEventPriority.focusAlert(),false);assert.equal(c.globalAlerts.length,1);assert.deepEqual(shown,[]);
+});
