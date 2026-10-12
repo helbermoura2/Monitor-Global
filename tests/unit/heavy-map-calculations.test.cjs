@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 function engine(){
  const workers=[],writes=[],sources=new Map(),layers=new Set(),host={append(){},getBoundingClientRect:()=>({top:0,bottom:0})};
  class FakeWorker{constructor(url){this.url=url;this.requests=[];workers.push(this);}postMessage(m){this.requests.push(m);}terminate(){this.terminated=true;}reply(request=this.requests.at(-1),vertices=0){this.onmessage({data:{id:request.id,vertices,data:{type:'FeatureCollection',features:[]}}});}}
- const c={window:{addEventListener(){}},Worker:FakeWorker,setTimeout,console,document:{createElement:()=>({style:{},remove(){}}),getElementById:()=>host,body:host},map:{getLayer:id=>layers.has(id),addLayer:l=>layers.add(l.id),removeLayer:id=>layers.delete(id),getSource:id=>sources.get(id),addSource:id=>sources.set(id,{setData:d=>writes.push(d)}),removeSource:id=>sources.delete(id),setFilter(){}},polygonClipping:{intersection:()=>[]}};
+ const c={window:{addEventListener(){}},Worker:FakeWorker,setTimeout,clearTimeout,console,document:{createElement:()=>({style:{},remove(){}}),getElementById:()=>host,body:host},map:{getLayer:id=>layers.has(id),addLayer:l=>layers.add(l.id),removeLayer:id=>layers.delete(id),getSource:id=>sources.get(id),addSource:id=>sources.set(id,{setData:d=>writes.push(d)}),removeSource:id=>sources.delete(id),setFilter(){}},polygonClipping:{intersection:()=>[]}};
  vm.createContext(c);vm.runInContext(fs.readFileSync('js/seismic-impact-model.js','utf8'),c);c.window.SeismicImpactModel=c.SeismicImpactModel;vm.runInContext(fs.readFileSync('js/seismic-impact.js','utf8'),c);
  return {api:c.window.SeismicImpact,workers,writes,c};
 }
