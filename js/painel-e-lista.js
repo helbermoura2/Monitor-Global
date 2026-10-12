@@ -2105,20 +2105,27 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     } else {
         window.__mgSoftCycle = false;
         scheduleNextAutoCycle(30000);
-        // Sem coordenadas (boletim regional/nacional sem epicentro, ex.:
-        // Meteoalarm, NWS por estado) a câmera não tem pra onde ir -- mas
-        // não pode ficar presa num sismo anterior sem relação nenhuma com
-        // o alerta agora em tela, como se ainda fosse o evento mostrado.
-        // Mesmo tratamento que só existia pra tsunami sem coords (abaixo):
-        // abre pra uma visão global neutra.
-        if (map) map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
+        // Sem item.coords (boletim regional/nacional sem epicentro, ex.:
+        // Meteoalarm, NWS por estado, ou INMET com só municipalityLocations)
+        // a câmera não tem um ponto único pra onde ir -- mas tem os
+        // municípios do próprio aviso, que mostram o lugar de verdade (bem
+        // melhor que a visão global neutra, inclusive no ciclo automático:
+        // "Rajada de Vento"/aviso de tempestade iam pro mapa todo no
+        // aleatório exatamente por pularem isto antes). Só cai na visão
+        // global quando não há NENHUM dado de localização.
+        if (item.municipalityLocations?.length) {
+            window.InmetMunicipalities?.fitArea(item);
+        } else if (map) {
+            map.flyTo({center:[0,0],zoom:1.5,pitch:0,bearing:0,duration:1600,essential:true});
+        }
     }
-    // Só em seleção manual/ao vivo: no ciclo automático isto sobrescrevia o
-    // enquadramento no LUGAR do alerta (acima) com um fitBounds ao redor de
-    // TODOS os municípios do aviso -- pra um aviso estadual isso podia
-    // acabar mostrando o mapa inteiro em vez do lugar, pedido do usuário
-    // pra não fazer (ex.: "Rajada de Vento" indo pro mapa todo no aleatório).
-    if(!softAlert&&item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
+    // Só quando item.coords já posicionou a câmera no LUGAR certo (acima):
+    // no ciclo automático, um fitBounds ao redor de TODOS os municípios do
+    // aviso sobrescrevia esse enquadramento certo com algo bem mais largo --
+    // pra um aviso estadual isso podia acabar mostrando o mapa inteiro em
+    // vez do lugar, pedido do usuário pra não fazer. Sem item.coords, o
+    // fitArea já rodou (ou não havia dado nenhum) no ramo acima.
+    if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.InmetMunicipalities?.fitArea(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 
