@@ -8,16 +8,18 @@ for(const width of [1280,390])test('avisos regionais de tempestade e vento focam
   const g={type:'Polygon',coordinates:[[[-98,35],[-97,35],[-97,36],[-98,36],[-98,35]]]};
   const calls=[],fetches=[];map.fitBounds=(b,o)=>calls.push({b,o});map.flyTo=o=>calls.push({fly:o});map.easeTo=()=>{};map.stop=()=>{};
   fetchWithCorsFallback=async url=>{fetches.push(url);return Response.json({geometry:g});};
+  let focused;
+  const actualFocus=WeatherWarningCamera.focus;WeatherWarningCamera.focus=item=>(focused=actualFocus(item));
   const rows=[];
   for(const type of ['storm','wind'])for(const mode of ['auto','priority','manual']){
    const item={id:type+'-'+mode,type,hazardNature:'warning',source:'NWS / NOAA',place:'Área oficial Oklahoma',severity:'Severe',sev:3,time:Date.now(),expiresAt:Date.now()+3600000,affectedZones:['https://api.weather.gov/zones/forecast/OKZ025']};
    globalAlerts=[item];PresentationLimits.clear();window.__mgHoldEndsAt=0;window.__mgRevisionProtectedUntil=0;window.__mgSoftCycle=mode==='auto';window.__mgRotationDisplay=mode==='auto';
-   calls.length=0;showAlertDetails(item,mode==='priority');window.__mgRotationDisplay=false;
-   await WeatherWarningCamera.focus(item);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);
+   calls.length=0;focused=null;showAlertDetails(item,mode==='priority');window.__mgRotationDisplay=false;
+   if(!focused)throw Error("Seleção não disparou o foco meteorológico");await focused;clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);
    rows.push({type,mode,id:eventoSelecionadoId,fit:calls.find(c=>c.b),world:calls.some(c=>c.fly?.zoom===1.5)});
   }
   const inmet={id:'inmet-no-anchor',type:'wind',hazardNature:'warning',place:'Municípios brasileiros',source:'INMET',time:Date.now(),municipalityLocations:[{coords:[-48,-22]},{coords:[-47,-21]}]};
-  globalAlerts=[inmet];PresentationLimits.clear();window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;calls.length=0;window.__mgSoftCycle=true;window.__mgRotationDisplay=true;showAlertDetails(inmet,false);window.__mgRotationDisplay=false;await WeatherWarningCamera.focus(inmet);clearTimeout(cycleTimeout);
+  globalAlerts=[inmet];PresentationLimits.clear();window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;calls.length=0;focused=null;window.__mgSoftCycle=true;window.__mgRotationDisplay=true;showAlertDetails(inmet,false);window.__mgRotationDisplay=false;if(!focused)throw Error("Seleção municipal não disparou o foco");await focused;clearTimeout(cycleTimeout);
   return {rows,fetches,inmet:calls.find(c=>c.b),error:window.__lastPainelDetalheError};
  });
  expect(result.rows).toHaveLength(6);for(const row of result.rows){expect(row.id).toBe(row.type+'-'+row.mode);expect(row.fit.b).toEqual([[-98,35],[-97,36]]);expect(row.world).toBe(false);expect(row.fit.o.padding.left+row.fit.o.padding.right).toBeLessThan(width);expect(row.fit.o.maxZoom).toBe(8);}
