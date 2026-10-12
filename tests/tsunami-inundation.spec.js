@@ -7,10 +7,34 @@ test.use({serviceWorkers:'block'});
 async function silenceBaseTileRetry(page){
  await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
 }
+// PNG 1x1 transparente — ver comentário no route() abaixo.
+const TRANSPARENT_PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=','base64');
 async function boot(page,width,cpu=false){
  if(cpu)await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)&&this.classList.contains('pd-tsunami-surface')?null:get.call(this,type,...args);};});
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
+ // server.arcgisonline.com (tiles satellite/esri-boundaries-places, js/mapa.js)
+ // recebe um PNG 1x1 em vez de abort(): abortar faz o MapLibre emitir 'error'
+ // pra essas fontes, o que arma o retry nativo de 4s (setTimeout agendado
+ // antes de qualquer page.clock.install — issue #327) que, ao disparar, pode
+ // achar o mapa num estado que o faz crashar ("Cannot read properties of
+ // undefined (reading 'bind')"). silenceBaseTileRetry (abaixo) neutraliza
+ // esse retry depois que a fonte já existe, mas é uma corrida contra esse
+ // timer de 4s — inofensiva quando o resto do boot() é rápido, mas num CI
+ // real mais carregado (ou mais tarde numa bateria longa de testes, como
+ // "sem GPU" roda depois dos dois testes de ciclo de vida) o próprio
+ // waitForFunction abaixo pode levar mais que 4s pra resolver, e o retry
+ // dispara antes do patch. Responder com um tile válido (em vez de abortar)
+ // evita o 'error' na largada — sem erro, sem retry nenhum agendado — então
+ // não existe corrida pra ganhar ou perder, em qualquer máquina.
+ await page.route('**/*',r=>{
+  const u=new URL(r.request().url());
+  if(u.hostname==='127.0.0.1')return r.continue();
+  if(u.hostname==='server.arcgisonline.com')return r.fulfill({status:200,contentType:'image/png',body:TRANSPARENT_PNG});
+  return r.abort();
+ });
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
+ // Mantido como segunda camada de defesa (ex.: algum outro tile-id futuro
+ // acabar caindo no mesmo map.on('error',...) por outro motivo que não rede).
+ await silenceBaseTileRetry(page);
  await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
  await expect(page.locator('#pd-local')).toContainText('boletim de teste');
 }
@@ -24,11 +48,55 @@ for(const width of [1280,390])test('tsunami procedural: superfície única, impa
  const first=await surface.elementHandle();await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Tsunami — boletim atualizado 🇯🇵',sev:1};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-local')).toContainText('boletim atualizado');expect(await first.evaluate(el=>el.isConnected)).toBe(true);
  // Hidden/back faces pause the one shared clock; no separate water RAF survives.
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await page.waitForTimeout(220);const paused=await surface.getAttribute('data-time');await page.waitForTimeout(250);expect(await surface.getAttribute('data-time')).toBe(paused);await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await expect.poll(()=>surface.getAttribute('data-time')).not.toBe(paused);
- await silenceBaseTileRetry(page);await page.clock.install();await page.clock.fastForward(16100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
+ // A cena compara performance.now() (real, capturado em scene.start na criação)
+ // contra o "agora" do rAF pra saber quando bateu os 16000ms de duração
+ // (Math.min(duration,16000) em cinematic-card.js). O Clock do Playwright não
+ // é contínuo com o tempo real: ao instalar, suas ticks reiniciam de ~0 em vez
+ // de herdar o performance.now() já decorrido. Por isso só é seguro avançar o
+ // clock por "tempo real já gasto até aqui + duração + margem" — nunca por um
+ // valor fixo pequeno, senão o salto nunca alcança scene.start+16000 e a cena
+ // (e .pd-cinema-layer) nunca é removida.
+ // page.clock.install() por si só não congela o tempo: sem um pauseAt(),
+ // o relógio falso continua avançando em sincronia com o relógio real entre
+ // cada await daqui pra frente (storm-lightning.spec.js/storm-cinema.spec.js
+ // já fazem pauseAt logo após install por isso). Sem congelar, os próximos
+ // fastForward/runFor ficam sujeitos ao tempo real gasto pelos passos do
+ // teste (screenshots, round-trips de evaluate etc.), o que mais abaixo
+ // chega a adiantar o fim do demo (60000ms) o bastante pra cair dentro da
+ // janela de 30000ms que o próprio app usa pra retomar o ciclo automático
+ // (scheduleNextAutoCycle em js/painel-e-lista.js) — recriando um
+ // .pd-cinema-layer real (não-demo) antes da hora.
+ const elapsedBeforeClock=await page.evaluate(()=>performance.now());
+ await page.clock.install();
+ // O requestAnimationFrame que a cena já tinha agendado (via rAF nativo,
+ // antes do install acima) continua pendente no compositor real do browser
+ // até o próprio browser decidir pintar o próximo frame — isso não entra na
+ // fila de timers do clock falso, então fastForward/runFor não têm como
+ // adiantá-lo. Só quando esse frame nativo finalmente dispara é que o loop
+ // (cinematic-card.js) chama requestAnimationFrame de novo e cai, agora sim,
+ // na versão fake instalada — virando um timer "AnimationFrame" rastreável
+ // pelo clock. Sem esperar essa transição (uma corrida de tempo real, não
+ // simulado — por isso mais visível em CI real/carregado do que aqui),
+ // fastForward avança o relógio falso sem que ninguém esteja de fato
+ // escutando, e a cena nunca bate o Math.min(duration,16000) de
+ // cinematic-card.js: .pd-cinema-layer sobrevive ao teardown esperado.
+ await page.waitForFunction(()=>{const c=window.__pwClock&&window.__pwClock.controller;if(!c)return false;for(const t of c._timers.values())if(t.type==='AnimationFrame')return true;return false;},null,{timeout:2000});
+ await page.clock.pauseAt(await page.evaluate(()=>Date.now()+500));await page.clock.fastForward(elapsedBeforeClock+16000+2000);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);await expect(surface).toHaveCount(0);
  const text=await page.locator('#pd-local').textContent();await page.evaluate(()=>CardEffectDemo.preview('tsunami'));await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');await expect(surface).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);expect(await page.locator('#pd-local').textContent()).toBe(text);await page.clock.runFor(2500);
  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
  const bounds=await page.locator('#painel-direito').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(-1);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);expect(await surface.evaluate(c=>Math.abs(c.offsetHeight-document.getElementById('painel-direito').clientHeight)<1)).toBe(true);
- await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(22000);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
+ // CardEffectDemo.preview('tsunami') sem modo explícito usa 'warning', cuja
+ // duração (js/card-effect-demo.js) é 60000ms desde #269/#275 (antes era o
+ // genérico 16000ms) — a barra '#card-fx-demo-status' só desaparece no
+ // próprio setTimeout(stop,60000) do demo, independente da cena visual
+ // (.pd-cinema-layer), que já se encerra antes por ter duração própria
+ // capada em 16000ms. 22000 não alcança os 60000, daí a barra sobrava.
+ // Alvo: total de 70000ms avançados desde a chamada de preview() (2500 do
+ // runFor acima + 67500 aqui). Isso fica bem acima dos 60000ms do timer do
+ // demo (margem de 10s) e, com o relógio já congelado por pauseAt(), bem
+ // abaixo dos 90000ms (60000+30000) em que o ciclo automático do app
+ // recriaria um .pd-cinema-layer real pra esse mesmo alerta (margem de 20s).
+ await picture(page,'/tmp/tsunami-inundation-'+width+'.png');await page.clock.fastForward(67500);await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-tsunami-surface,.pd-weather-material,.pd-weather-lenses,.pd-cinema-layer,.pd-fx-windletter,.pd-water-submerged')).toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(text);expect(await page.locator('#painel-direito').evaluate(p=>p.style.getPropertyValue('--pd-surge-y'))).toBe('');expect(videos).toEqual([]);expect(errors).toEqual([]);
 });
 for(const mode of ['2D','context-loss'])test('tsunami mantém correnteza, letras e controles sem GPU '+mode,async({page})=>{
