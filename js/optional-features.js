@@ -3,7 +3,7 @@
  'use strict';
  const loaded=new Map();
  const effects={
-  wind:['js/card-gale-field.js?v=20261009-adaptive-quality','css/wind-cinema.css?v=20261007-flying-letters'],
+  wind:['js/card-gale-field.js?v=20261009-adaptive-quality','css/wind-cinema.css?v=20261013-mobile-gale-bounds'],
   tornado:['js/card-tornado-field.js?v=20261009-adaptive-quality','css/tornado-cinema.css?v=20261005-tornado-vortex'],
   flood:['js/card-flood-rise.js?v=20261009-adaptive-quality','css/flood-rise.css?v=20261007-flood-rise'],
   tsunami:['js/card-tsunami-surge.js?v=20261009-adaptive-quality','css/tsunami-cinema.css?v=20261007-hydraulic-bore'],

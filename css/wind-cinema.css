@@ -14,7 +14,7 @@
 #painel-direito.pd-cinema-active.pd-fx-wind #pd-gauge{opacity:.24}
 #painel-direito.pd-cinema-active.pd-fx-wind #pd-gauge-arc{filter:none;stroke-width:3}
 #painel-direito.pd-cinema-active.pd-fx-wind #pd-depth{font:600 14px/1.35 system-ui!important;letter-spacing:0;white-space:normal}
-@media(max-width:900px){body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-wind,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-wind{left:12px!important;right:12px!important;width:calc(100vw - 24px)!important}}
+@media(max-width:900px){body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-wind,body.mobile-details-open #painel-direito.pd-cinema-active.pd-fx-wind{left:12px!important;right:12px!important;width:calc(100vw - 24px)!important;rotate:clamp(-.35deg,var(--pd-wind-roll,0deg),.35deg)}}
 @media(prefers-reduced-motion:reduce){
  #painel-direito.pd-fx-wind,#painel-direito.pd-fx-wind .stat-card,#painel-direito.pd-fx-wind .pd-chip{translate:none!important;rotate:none!important}
  #painel-direito.pd-fx-wind .pd-fx-windletter{transform:none!important}
