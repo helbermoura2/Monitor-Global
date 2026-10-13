@@ -1,0 +1,4 @@
+#site-effect-demo-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:950000;pointer-events:none;contain:strict}
+body.site-effect-demo-active #card-fx-demo-status{z-index:950010}
+.site-effect-texture-video{position:fixed;left:-2px;top:-2px;width:1px;height:1px;opacity:0;pointer-events:none}
+@media(prefers-reduced-motion:reduce){#site-effect-demo-canvas{display:none}}
