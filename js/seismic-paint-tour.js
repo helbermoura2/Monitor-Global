@@ -39,8 +39,10 @@ function phase(j,index){
 function start(item,zoom){
  stop();if(!map||!window.SeismicImpact||!window.SeismicFocus)return false;
  clearTimeout(cycleTimeout);window.PresentationLimits?.clear();stopMapCamera();stopWaveFront();stopFeltZone();clearTimeout(window.__mgFeltZoneReturnT);clearTimeout(window.__mgWaveDelayT);clearTimeout(window.__mgRadarDelayT);
- const context={id:item.id,lng:item.coords[0],lat:item.coords[1],mag:item.mag,depth:item.depth,keepCamera:true,presentation:true};
- const steps=timeline(item.mag,window.__mgQuakePresentationMode,window.EventCamera?.durationFor(item.id)||6000),total=steps.reduce((n,p)=>n+p[1],0);
+ const official=window.OfficialMapPriority?.presentationFor(item.id);
+ const context={...(official?{shaking:official.shaking}:{}),id:item.id,lng:item.coords[0],lat:item.coords[1],mag:item.mag,depth:item.depth,keepCamera:true,presentation:true};
+ const entryMs=window.EventCamera?.durationFor(item.id)||6000;
+ const steps=official?[['epicenter-enter',entryMs],['paint-opening',4000],['area-hold',20000]]:timeline(item.mag,window.__mgQuakePresentationMode,entryMs),total=steps.reduce((n,p)=>n+p[1],0);
  const j=job={id:item.id,steps,context,focusZoom:Math.max(8,Math.min(12,zoom+2)),endsAt:Date.now()+total,past:Date.now()-item.time>30*60000,paused:false};
  window.__mgHoldEndsAt=j.endsAt;if(window.__mgRevisionProtectedId===j.id)window.__mgRevisionProtectedUntil=j.endsAt;
  SeismicImpact.start(context,window.__mgQuakePresentationMode!=='new'||j.past);SeismicImpact.setVisible(true);phase(j,0);scheduleNextAutoCycle(total+250);return true;
