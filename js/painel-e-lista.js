@@ -1050,6 +1050,7 @@ function runAutoCycle(forced = false) {
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
         if(window.TsunamiMap?.isPreview()||window.SeismicScenarioDemo?.isActive()){scheduleNextAutoCycle(60000);return;}
+        if(window.OfficialMapPriority?.focus())return;
         const activePresentation=window.PresentationLimits?.state();
         const protectedMs = Math.max(getAutoCycleProtectionRemaining(),window.SeismicPaintTour?.remaining()||0,activePresentation?.id===eventoSelecionadoId?activePresentation.deadline-Date.now():0);
         if (!forced && protectedMs > 0) { scheduleNextAutoCycle(protectedMs + 20); return; }
