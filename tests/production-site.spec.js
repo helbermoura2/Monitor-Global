@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 test.use({ serviceWorkers: 'block' });
 
 // Executado após o merge, contra os arquivos realmente publicados.
@@ -23,7 +24,7 @@ test('site publicado carrega a correção e mantém os efeitos e controles opera
   page.on('pageerror', error => { if (error.message !== 'Failed to fetch') errors.push(error.message); });
   await page.route('**/*', route => new URL(route.request().url()).hostname === new URL(base).hostname ? route.continue() : route.abort());
   await page.goto(base, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => !__fetchGlobalFeedsEmAndamento && !!window.CardEffectDemo);
+  await page.waitForFunction(() => window.__cardRendererFixtureReady && !__fetchGlobalFeedsEmAndamento && !!window.CardEffectDemo);
   await page.evaluate(() => {
     const item = { id: 'production-browser-qa', type: 'wind', sev: 3, windKmh: 150, source: 'QA', coords: [-70, -20], place: 'Verificação da publicação', time: Date.now() };
     // Pending real quakes from boot must not replace the seeded browser fixture.
