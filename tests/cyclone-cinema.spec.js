@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
 // Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
@@ -13,7 +14,7 @@ async function silenceBaseTileRetry(page){
 async function boot(page,width){
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
  await silenceBaseTileRetry(page);
  await page.evaluate(()=>{const q={id:'cyclone-qa',type:'earthquake',mag:3,depth:10,source:'QA',coords:[-70,-20],place:'Evento real de teste',time:Date.now()};globalEvents=[q];showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);SeismicCinema.stop();});
 }

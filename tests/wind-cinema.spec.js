@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
 // Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: aqui a rede
@@ -44,7 +45,7 @@ for(const width of [1280,390])test('pressão da rajada move vidro e letras e rec
 });
 for(const width of [1280,390])test('rajada cinematográfica no cartão completo mantém controles '+width,async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
  await silenceBaseTileRetry(page);
  const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
  await page.evaluate(()=>{const item={id:'wind-preview',type:'wind',source:'Visual QA',place:'Rajadas de vento — São Paulo',coords:[-46.63,-23.55],windKmh:150,sev:3,time:Date.now(),bandeira:'🇧🇷'};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});

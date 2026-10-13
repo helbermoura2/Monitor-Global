@@ -243,6 +243,7 @@
     t = t.replace(/\bLAST REP(?:ORTED)? AT\b/gi, 'último relatório em');
     t = t.replace(/\bLAST OBS(?:ERVED)? AT\b/gi, 'última observação em');
     t = t.replace(/\bOBS AT\b/gi, 'observado em');
+    t = t.replace(/\bERUPTION REP(?:ORTED)? AT\b/gi, 'erupção relatada em');
     t = t.replace(/\bREP AT\b/gi, 'relatado em');
     t = t.replace(/\bMOV\b/gi, 'movimento');
     t = t.replace(/\bEXT\b/gi, 'extensão');

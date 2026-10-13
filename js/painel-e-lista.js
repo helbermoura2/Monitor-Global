@@ -1207,7 +1207,7 @@ function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if (!globalEvents[index] || !map) return;
     if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
-    if(!silentRefresh&&window.SeismicScenarioDemo?.isActive())window.CardEffectDemo?.cancelForRealEvent();
+    if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
     if (!silentRefresh && globalEvents[index].id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     if (!silentRefresh) {
         try { if (typeof fecharViradaCardAlcance === 'function') fecharViradaCardAlcance(); } catch (e) {}
@@ -1403,9 +1403,13 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     presented.delete(item.id);presented.set(item.id,Number(item.mag));
     if(presented.size>5000)presented.delete(presented.keys().next().value);
 
-    if (typeof triggerCardFxMag === 'function') triggerCardFxMag(item.mag);
-    if (typeof triggerCardFx === 'function') triggerCardFx('earthquake', getHexColor(item.mag), item);
-    if (typeof triggerSiteChaos === 'function') triggerSiteChaos(item.mag, {item, mode:triggerVisualAlert?'new':window.__mgSoftCycle?'auto':'manual'});
+    const fxMode=triggerVisualAlert?'new':window.__mgSoftCycle?'auto':'manual';
+    const startQuakeFx=current=>{
+        if(typeof triggerCardFxMag==='function')triggerCardFxMag(current.mag);
+        if(typeof triggerCardFx==='function')triggerCardFx('earthquake',getHexColor(current.mag),current);
+        if(typeof triggerSiteChaos==='function')triggerSiteChaos(current.mag,{item:current,mode:fxMode});
+    };
+    if(typeof deferCardEventFx==='function')deferCardEventFx(item,startQuakeFx);else startQuakeFx(item);
 
     // Enquadramento regional inicial; depois a câmera acompanha a frente P calculada.
     let zoomAlvo = 12;
@@ -1604,7 +1608,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
     if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
-    if(!silentRefresh&&window.SeismicScenarioDemo?.isActive())window.CardEffectDemo?.cancelForRealEvent();
+    if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
     const rawItem=item;
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
     // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
@@ -1921,7 +1925,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             <div class="volcano-pro-wide"><div class="volcano-pro-k">Cinzas / atividade observada</div><div class="volcano-pro-v">${fmt(traduzirTextoVulcanico(activity))}</div></div>
             <div class="volcano-pro-wide"><div class="volcano-pro-k">Cinzas / pluma</div><div class="volcano-pro-v">${fmt(traduzirTextoVulcanico(ash))}${item.ashSource?' · fonte: '+fmt(item.ashSource):''}</div></div>
             ${item.vonaMovement||item.vonaDuration?`<div class="volcano-pro-wide"><div class="volcano-pro-k">VONA — movimento / duração</div><div class="volcano-pro-v">${fmt(traduzirTextoVulcanico(item.vonaMovement||'N/D'))} · ${fmt(traduzirTextoVulcanico(item.vonaDuration||'N/D'))}</div></div>`:''}
-            ${item.vonaRemarks?`<div class="volcano-pro-wide"><div class="volcano-pro-k">Observação VONA</div><div class="volcano-pro-v volcano-pro-note">${fmt(traduzirTextoVulcanico(item.vonaRemarks))}</div></div>`:''}
+            ${item.vonaRemarks?`<div class="volcano-pro-wide"><div class="volcano-pro-k">Observação do boletim</div><div class="volcano-pro-v volcano-pro-note">${fmt(traduzirTextoVulcanico(item.vonaRemarks))}</div></div>`:''}
             <div class="volcano-pro-wide"><div class="volcano-pro-k">Fontes consolidadas</div><div class="volcano-pro-v">${fmt(item.sourceSummary||item.source)}</div></div>
             <div class="volcano-pro-wide volcano-pro-links">
               ${vonaUrl?`<a href="${esc(vonaUrl)}" target="_blank" rel="noopener">✈️ Abrir VONA oficial</a>`:''}
@@ -1992,7 +1996,11 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     if (silentRefresh) {window.CinematicCard?.refresh(item);return;}
 
-    if (typeof triggerCardFx === 'function') triggerCardFx(item.hazardNature==='bulletin'?(item.type==='tsunami'?'tsunami-info':'bulletin'):item.type, cor, item);
+    const startAlertFx=current=>{
+        if(typeof triggerCardFx==='function')triggerCardFx(current.hazardNature==='bulletin'?(current.type==='tsunami'?'tsunami-info':'bulletin'):current.type,cor,current);
+        if(triggerVisualAlert&&current.type==='storm'&&typeof triggerLightningFlash==='function')triggerLightningFlash();
+    };
+    if(typeof deferCardEventFx==='function')deferCardEventFx(item,startAlertFx);else startAlertFx(item);
 
     // Protege a seleção manual (ou alerta novo/ao vivo) contra o foco de sismo
     // ser roubado por engano -- igual ao que showEventDetails já faz (ver
@@ -2046,7 +2054,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             // Flash de raio é exclusivo de tempestade — outros tipos (furacão,
             // tsunami, vulcão...) usam seus próprios efeitos de entrada
             // (js/painel-fx.js), sem flash genérico de "evento novo".
-            if (item.type === 'storm' && typeof triggerLightningFlash === 'function') try { triggerLightningFlash(); } catch (e) {}
+            // Card and lightning entry effects start after EventCamera arrival.
             if (window.returnCameraTimeout) clearTimeout(window.returnCameraTimeout);
             if(!window.EventCamera)window.returnCameraTimeout = setTimeout(() => {
                 if(eventoSelecionadoId!==item.id)return;

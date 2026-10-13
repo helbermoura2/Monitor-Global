@@ -1,13 +1,14 @@
 /* Temporary, isolated visual previews. Never insert records or play audio. Tsunami map previews restore the camera. */
 (function(){
  'use strict';
- let dialog=null,bar=null,timer=0,active=false;
+ let dialog=null,bar=null,timer=0,active=false,restoreId=null;
  const labels={'seismic-official':'Teste · mapa oficial USGS (M7,8 histórico)','seismic-rupture':'Teste · ruptura alongada','seismic-aftershocks':'Teste · novas réplicas','seismic-tsunami':'Teste · sismo com tsunami',civil:'Alerta · varredura',dry:'Baixa umidade',earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami · pintura no mapa',wind:'Rajadas de vento'};
  function removeControls(){clearTimeout(timer);timer=0;bar?.remove();bar=null;dialog?.remove();dialog=null;}
- function cancelForRealEvent(){window.SeismicScenarioDemo?.stop(false);if(window.TsunamiPresentation?.state()?.demo)window.TsunamiPresentation.stop();window.TsunamiMap?.closePreview(false);active=false;removeControls();}
- function stop(){window.SeismicScenarioDemo?.stop();const mapPreview=window.TsunamiMap?.isPreview();window.TsunamiMap?.closePreview();if(mapPreview&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(30000);const was=active;active=false;removeControls();if(was){window.CinematicCard?.stop();}}
+ function cancelForRealEvent(){window.SeismicScenarioDemo?.stop(false);if(window.TsunamiPresentation?.state()?.demo)window.TsunamiPresentation.stop();window.TsunamiMap?.closePreview(false);active=false;restoreId=null;removeControls();}
+ function stop(restore=true){window.SeismicScenarioDemo?.stop();const mapPreview=window.TsunamiMap?.isPreview();window.TsunamiMap?.closePreview();if(mapPreview&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(30000);const was=active,id=restoreId;active=false;restoreId=null;removeControls();if(was){window.CinematicCard?.stop();if(restore&&id===window.EventStore?.selectedId&&!window.EventCamera?.owns(id)){const item=window.EventStore.getSelected();if(item)window.CinematicCard?.start(window.EventPortuguese?.view(item)||item);}}}
  function preview(key,mode='warning'){
-  stop();window.SeismicCinema?.closeDemo();
+  const previous=active?restoreId:window.CinematicCard?.isActive()?window.EventStore?.selectedId:null;
+  stop(false);restoreId=previous;window.SeismicCinema?.closeDemo();
   if(key==='seismic-tsunami'){key='tsunami';mode='linked';}
   if(['seismic-official','seismic-rupture','seismic-aftershocks'].includes(key)){const duration=window.SeismicScenarioDemo?.start(key==='seismic-official'?'official':key==='seismic-rupture'?'rupture':'replicas');if(!duration)return;active=true;controls('TESTE · '+(key==='seismic-official'?'USGS ShakeMap · Turquia M7,8 · 60 s':key==='seismic-rupture'?'Ruptura alongada · 45 s':'Novas réplicas · 60 s'),true);timer=setTimeout(stop,duration);return;}
   if(key==='earthquake'){window.SeismicCinema?.openDemo();return;}
@@ -33,7 +34,8 @@
   const change=document.createElement('button');change.type='button';change.textContent='Trocar';change.onclick=()=>{stop();open();};const end=document.createElement('button');end.type='button';end.textContent='Parar';end.onclick=stop;bar.append(text);if(window.SeismicScenarioDemo?.isActive()){const pause=document.createElement('button');pause.type='button';pause.id='seismic-scenario-pause';pause.textContent='Pausar câmera';pause.onclick=()=>window.SeismicScenarioDemo.togglePause();bar.append(pause);}bar.append(change,end);document.body.append(bar);
  }
  function open(){
-  stop();window.SeismicCinema?.closeDemo();
+  const previous=active?restoreId:window.CinematicCard?.isActive()?window.EventStore?.selectedId:null;
+  stop(false);restoreId=previous;window.SeismicCinema?.closeDemo();
   dialog=document.createElement('section');dialog.id='card-fx-demo-dialog';dialog.className='card-effect-demo';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-label','Demonstração dos efeitos');
   dialog.innerHTML='<button class="effect-demo-close" type="button" aria-label="Fechar demonstração">×</button><h3>Efeitos · demonstração</h3><p>Escolha um efeito no cartão ou um teste no mapa. Os testes sísmicos mostram pintura, novas réplicas e passeio pelas regiões de tsunami.</p><label>Evento<select id="card-fx-demo-type"></select></label><label id="card-fx-demo-tsunami-options" hidden>Cenário de tsunami<select id="card-fx-demo-tsunami-mode"><option value="linked" selected>Sismo + tsunami · passeio</option><option value="warning">Aviso · faixas coloridas</option><option value="information">Informativo · azul</option><option value="cancelled">Encerrado · cinza</option></select></label><p>Sem criar registros ou tocar alarmes. Os testes no mapa movem a câmera e restauram a vista ao terminar. Ruptura e réplicas usam dados fictícios. O mapa oficial usa a grade histórica do USGS para a Turquia em 06/02/2023. As imagens ilustrativas não são filmagens do evento selecionado.</p><button id="card-fx-demo-play" type="button">Reproduzir efeito</button><a href="media/card-fx/credits.html" target="_blank" rel="noopener">Fontes e créditos das imagens</a>';
   const select=dialog.querySelector('select');for(const [value,label] of Object.entries(labels)){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);}
