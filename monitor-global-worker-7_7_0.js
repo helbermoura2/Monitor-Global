@@ -1,7 +1,8 @@
+import {selectImageRefreshes} from "./telegram-image-refresh.mjs";
 import {QUAKE_HD_FONTS} from "./quake-hd-fonts.mjs";
 import {archiveTelegramOriginal,serveTelegramOriginal,originalImageButton} from "./telegram-image-archive.mjs";
 import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
-import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
+import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureQuality,exposureVersionQuality,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
@@ -4816,8 +4817,8 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
-    // Migrate recent photos; recheck official products at most once per five minutes.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v11-full-hd' || Date.now()-(r.imageShakingCheckedAt||0)>=300000 || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    // One-minute checks for M5.5+ in the first hour; five minutes thereafter.
+    for (const root of selectImageRefreshes(sentRecords)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const shaking=await queryImageShaking(ev);root.imageShakingCheckedAt=Date.now();
@@ -4828,7 +4829,7 @@ async function runTelegramM6Alerts(request, env) {
         const nextShakingVersion=shakingVersion(ev.shaking);
         let data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
-        const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
+        const keepKnownPopulation = String(root.imageExposureVersion || '').startsWith('[') && (!validImageExposure(data)||exposureQuality(data)<Math.max(exposureQuality(ev.imageExposure),exposureVersionQuality(root.imageExposureVersion)));
         if (keepKnownPopulation) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else {await saveSentAlerts(request, sentRecords, env);continue;}
@@ -5550,6 +5551,8 @@ export default {
                 brazilEpicenterLocation: BRAZIL_EPICENTER_VERSION,
                 earthquakePaint: "official-shakemap-v1",
                 telegramImageQuality: "full-hd-1080x1920-original-png",
+                telegramPopulationReserve: "geonames-localities-v1",
+                telegramImageRefresh: "m55-first-hour-1min",
                 rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),

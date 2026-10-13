@@ -1,3 +1,4 @@
+import {queryLocalityExposure} from './locality-exposure.mjs';
 import {handleRuptureShaking} from './rupture-shaking-worker.mjs';
 import './js/event-portuguese.js';
 import './js/seismic-impact-model.js';
@@ -17,14 +18,18 @@ const distance=(a,b,c,d)=>{const rad=Math.PI/180,x=Math.sin((c-a)*rad/2)**2+Math
 // Scanline land mask, including holes. Paint only on land, at a bounded 4px grid.
 export const paintImageIntensity=(...args)=>globalThis.QuakeImagePaint.paint(...args);
 export async function overlayImageIntensity(rgba,frame,ev){if(![ev.mag,ev.lat,ev.lon,ev.depth].every(v=>v!=null&&Number.isFinite(Number(v))))return false;try{return paintImageIntensity(rgba,frame,ev,await land())>0;}catch{return false;}}
-export function validImageExposure(data){return data?.status==='available'&&['pager','worldpop'].includes(data.method)&&data.ranges?.length===3&&data.ranges.every((r,i)=>r.population!==null&&Number.isFinite(Number(r.population))&&Number(r.population)>=0&&(!i||Number(r.population)<=Number(data.ranges[i-1].population)));}
+export const validImageExposure=data=>globalThis.QuakeCardLayout.validExposure(data);
+const exposureRanks={pager:3,worldpop:2,'geonames-localities':1};
+export const exposureQuality=data=>validImageExposure(data)?exposureRanks[data.method]:0;
+export function exposureVersionQuality(version){try{return exposureRanks[JSON.parse(version)?.[0]]||0;}catch{return 0;}}
 export async function queryImageExposure(ev,env){
  const url=new URL('https://internal/population-exposure');
  const provider=ev.provider||ev.source||'',eventId=/^(USGS|US|PT)$/i.test(provider)?String(ev.id||'').replace(/^USGS-(?:RT-)?/i,''):'';
  for(const [k,v] of Object.entries({lat:ev.lat,lng:ev.lon,mag:ev.mag,depth:ev.depth??0,time:Date.parse(ev.timeIso),...(eventId?{eventId}:{})}))url.searchParams.set(k,String(v));
  const job=handlePopulationExposure(new Request(url),env||{}).then(r=>r.json());
  if(env?.IMAGE_WAIT_UNTIL)env.IMAGE_WAIT_UNTIL(job);
- let timer;try{return await Promise.race([job,new Promise(resolve=>{timer=setTimeout(()=>resolve({status:'pending'}),2500);})]);}catch{return {status:'unavailable'};}finally{clearTimeout(timer);}
+ let timer,data;try{data=await Promise.race([job,new Promise(resolve=>{timer=setTimeout(()=>resolve({status:'pending'}),2500);})]);}catch{data={status:'unavailable'};}finally{clearTimeout(timer);}
+ if(validImageExposure(data))return data;const reserve=await queryLocalityExposure(ev);return reserve?{...reserve,upstreamStatus:data.status}:data;
 }
 export const exposureVersion=data=>validImageExposure(data)?JSON.stringify([data.method,data.partial,data.ranges.map(r=>r.population)]):data?.status||'pending';
 

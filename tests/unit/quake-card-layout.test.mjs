@@ -17,3 +17,8 @@ test('shared Telegram and image layout shows Portuguese numbers and actual revis
  assert(text.some(t=>t.s==='M6,3'));assert(text.some(t=>t.s==='13 km'));assert(text.some(t=>t.s==='119,8 kt'));assert(text.some(t=>t.s==='ATUALIZADO'));assert(text.some(t=>t.s==='REVISÃO · M6,6 → M6,3'));assert(text.every(t=>t.y+t.z<=1440));
  text.length=0;layout.draw(p,{mag:6.3,depth:10,place:'Panamá',revisionText:'M6,6 → M6,3'});assert(text.some(t=>t.s==='REVISÃO · M6,6 → M6,3'));
 });
+test('locality reserve is visibly preliminary, rounded and partial, without fictitious zero intensity bands',()=>{
+ const text=[],p={rect(){},dot(){},arc(){},measure:(s,z)=>s.length*z*.55,text:(s,x,y,z)=>text.push({s,x,y,z})};
+ layout.draw(p,{mag:6.1,depth:10,place:'Panamá',exposure:{status:'available',method:'geonames-localities',partial:true,ranges:[{population:3579788,localities:516},{population:118641,localities:55},{population:null,localities:0}]}});
+ assert(text.some(t=>t.s==='~ 3.600.000 pessoas'));assert(text.some(t=>t.s.includes('Estimativa preliminar')));assert(text.some(t=>t.s.includes('GeoNames · cobertura parcial')));assert(!text.some(t=>t.s.includes('VI+: ~ 0')));assert(text.filter(t=>t.y>=1228&&t.y<1391).every(t=>t.x+p.measure(t.s,t.z)<=800));
+});

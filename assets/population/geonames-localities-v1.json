@@ -1,0 +1,10 @@
+{
+  "source": "GeoNames cities500",
+  "sourceUrl": "https://raw.githubusercontent.com/lmfmaier/cities-json/aed0822519df832873f6cca8e05d5224c418e657/cities500.json",
+  "license": "GeoNames CC BY 3.0",
+  "licenseUrl": "https://www.geonames.org/about.html",
+  "records": 177708,
+  "sha256": "4e04b14a9f4b966c18eb1fb0704d4e76fdfb2511fe41995c06c2cfee37cbf57a",
+  "format": "MGP1; little-endian header and 16-byte records (id, latitude, longitude, population), sorted by latitude",
+  "note": "Populations are registered locality values from a pinned catalog, not a current census grid. Rural coverage is incomplete; urban areas may overlap. No matched localities does not mean zero residents."
+}

@@ -106,14 +106,18 @@ assert.equal(messages.filter(m=>m.body.reply_parameters).length,notices);
 // Population arrives later: edit the same photo once, without a new alert/revision notice.
 globalThis.__testExposure={status:'pending'};world.push(quake('late-population',6.4,'us',clock-10000));await run();
 const latePhoto=messages.at(-1),lateID=nextID;assert.equal(latePhoto.method,'sendPhoto');
+globalThis.__testExposure={status:'available',method:'geonames-localities',partial:true,preliminary:true,ranges:[{population:6000,localities:3},{population:3000,localities:2},{population:1000,localities:1}]};
+count=messages.length;await run(60001);for(let i=0;i<8;i++)await run(0);assert.equal(messages.length,count+1);assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.method,'geonames-localities');
+globalThis.__testExposure={status:'available',method:'worldpop',ranges:[{population:7000},{population:3000},{population:1000}]};count=messages.length;await run(60001);for(let i=0;i<8;i++)await run(0);assert.equal(messages.length,count+1);assert.equal(rendered.at(-1).imageExposure.method,'worldpop');
+globalThis.__testExposure={status:'available',method:'geonames-localities',partial:true,ranges:[{population:6000,localities:3},{population:null,localities:0},{population:null,localities:0}]};count=messages.length;await run(60001);for(let i=0;i<8;i++)await run(0);assert.equal(messages.length,count,'A partial reserve must not replace known WorldPop');
 globalThis.__testExposure={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};
-count=messages.length;await run();assert.equal(messages.length,count+1);assert.equal(messages.at(-1).method,'editMessageMedia');assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
+count=messages.length;await run(60001);for(let i=0;i<8;i++)await run(0);assert.equal(messages.length,count+1);assert.equal(messages.at(-1).method,'editMessageMedia');assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
 count=messages.length;await run();assert.equal(messages.length,count);delete globalThis.__testExposure;
 // A layout migration never erases already available population on a slow refresh.
 const migrating=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
 const populationRoot=migrating.items.find(r=>r.id==='late-population');populationRoot.cardImageVersion='geo-impact-pop-v2';
 storage.data.set('telegram-m6-sent-ids:chunks',1);storage.data.set('telegram-m6-sent-ids:part:0',JSON.stringify(migrating));object=new EarthquakeAlertDelivery({storage},env);
-globalThis.__testExposure={status:'pending'};count=messages.length;await run();assert.equal(messages.length,count+1);assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
+globalThis.__testExposure={status:'pending'};count=messages.length;await run();for(let i=0;i<8;i++)await run(0);assert.equal(messages.length,count+1);assert.equal(Number(messages.at(-1).body.message_id),lateID);assert.equal(rendered.at(-1).imageExposure.ranges[0].population,100);
 globalThis.__testExposure={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};await run();assert.equal(messages.length,count+1);delete globalThis.__testExposure;
 // Official intensity arriving later edits the existing image once and survives provider outages.
 globalThis.__testShaking={status:'available',method:'usgs-shakemap-grid',version:'qa-grid-1',grid:{nx:2,ny:2,x0:167,x1:169,y0:-16,y1:-15,values:[5,6,7,8]}};
