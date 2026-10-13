@@ -1,10 +1,11 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 test.use({serviceWorkers:'block'});
 for(const width of [1280,390])test('cratera de monitoramento no Menu e no evento real preserva dados, revisão e controles '+width,async({page})=>{
  test.setTimeout(120000);
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("volcano"));
- await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardVolcanoMonitoring);
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardVolcanoMonitoring);
  const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});
  await page.evaluate(()=>{
   const item={id:'crater-real',type:'volcano',eruptionStatus:'Sem atividade eruptiva',detail:'Em monitoramento',source:'QA',coords:[-155.29,19.42],time:Date.now(),place:'Vulcão de teste'};

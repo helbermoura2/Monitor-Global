@@ -23,6 +23,8 @@
   return classify(item.warningEvent)||classify(item.detail)||'mature';
  }
  function volcanoActivity(item){
+  // Physical evidence must survive pending translations and display wording.
+  if(item._volcanoActivitySource)item={...item,...item._volcanoActivitySource};
   // The same feed profile serves the menu and real records. VAAC often uses
   // aviation shorthand (VA TO FL150), while showAlertDetails translates USGS
   // text before calling us. Alert colours and a VONA alone do not prove lava.
@@ -42,7 +44,7 @@
   const lavaDenied=text=>lavaAbsent.test(text)||/\b(?:inactive|no longer active|inativ[oa]s?)\s+(?:lava\b|effusiv|efusiv)|\b(?:lava|effusiv\w*|efusiv\w*)\b.{0,36}\b(?:ended|ceased|stopped|not (?:been )?(?:resumed|obs|detec|active)|inactive|no longer active|nao (?:foi |foram )?(?:observ|detect)|cessou|encerrad|terminad|inativ)/.test(text);
   const clauses=fields.flatMap(text=>text.split(/[;,\n·.]+|\b(?:but|mas|porem|however)\b/)).map(text=>text.trim()).filter(text=>text&&!uncertain.test(text));
   const isQuiet=clauses.some(quiet);
-  const eruptionConfirmed=clauses.some(text=>/\berupting\b|\b(?:ongoing|continuing|active) eruption\b|\beruption\b.{0,28}\b(?:ongoing|continues|continuing|started|observed)\b|\bem erupcao\b|\berupcao\b.{0,28}\b(?:continua|em andamento|ativa|inici|ocorr)|\b(?:active )?eruptive activity\b|\batividade eruptiva\b|\beruptiv[oa] atividade\b/.test(text)&&!quiet(text));
+  const eruptionConfirmed=clauses.some(text=>/\berupting\b|\beruption\s+(?:rep(?:orted)?|obs(?:erved)?)\s+at\b|\berupcao\s+relatad[oa]\b|\b(?:ongoing|continuing|active) eruption\b|\beruption\b.{0,28}\b(?:ongoing|continues|continuing|started|observed)\b|\bem erupcao\b|\berupcao\b.{0,28}\b(?:continua|em andamento|ativa|inici|ocorr)|\b(?:active )?eruptive activity\b|\batividade eruptiva\b|\beruptiv[oa] atividade\b/.test(text)&&!quiet(text));
   const ashEmission=clauses.some(text=>/\bash emissions?\b|\bemiss(?:ao|oes)\b.{0,25}\bcinzas?\b|\bva\b.{0,15}\b(?:eruptions?|emissions?)\b/.test(text)&&!ashDenied(text));
   const eruptive=!isQuiet&&(eruptionConfirmed||ashEmission||/^(?:eruption|erupcao|erupting)$/.test(normalize(item.eruptionStatus)));
   const lava=!isQuiet&&clauses.some(text=>/\blava\b|\beffusiv|\befusiv|\bmolten\b/.test(text)&&!lavaDenied(text));

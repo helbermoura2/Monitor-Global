@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 test.use({serviceWorkers:'block'});
 // Evita a corrida do Playwright Clock com o retry de tiles base do mapa (issue #327):
 // com a rede dos tiles ArcGIS bloqueada/indisponível, o mapa agenda um retry via
@@ -14,7 +15,7 @@ async function silenceBaseTileRetry(page){
  await page.evaluate(()=>{for(const id of ['satellite','esri-boundaries-places']){try{const src=map.getSource(id);if(src)src.setTiles=()=>{};}catch(e){}}});
 }
 for(const width of [1280,390])test('relâmpagos ramificados, informação legível e troca de evento '+width,async({page})=>{
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
  await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+200));
  await page.evaluate(()=>{const item={id:'storm-observed',type:'storm',source:'NOAA METAR',hazardNature:'observed',detail:'Trovoada reportada no aeródromo',place:'São Paulo — Brasil',bandeira:'🇧🇷',coords:[-46.63,-23.55],time:Date.now()};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);});
  await page.clock.runFor(1000);
@@ -30,7 +31,7 @@ for(const width of [1280,390])test('relâmpagos ramificados, informação legív
  await page.evaluate(()=>{globalEvents=[{id:'after-storm',type:'earthquake',place:'Sismo de teste',coords:[-90,13],time:Date.now(),depth:10,mag:4.8}];showEventDetails(0,false);clearTimeout(cycleTimeout);});await page.clock.runFor(700);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-storm/);await expect(page.locator('#pd-mag svg')).toHaveCount(0);await expect(page.locator('.pd-cinema-storm-bolt')).toHaveCount(0);expect(await page.locator('#painel-direito').evaluate(el=>el.style.getPropertyValue('--pd-storm-flash'))).toBe('');
 });
 test('aviso de chuva não ganha relâmpagos, e movimento reduzido não pisca',async({page})=>{
- await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{const item={id:'rain-warning',type:'storm',hazardNature:'warning',warningEvent:'Heavy Rainfall Warning',detail:'Aviso de chuva intensa',source:'ECCC',place:'Região de teste',time:Date.now(),coords:[-90,50]};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);});await expect(page.locator('#painel-direito')).toHaveAttribute('data-lightning','off');await expect(page.locator('.pd-fx-bolt-1')).toHaveCSS('display','none');await expect(page.locator('#lightning-flash')).toBeHidden();
  await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>{const item={...EventStore.getSelected(),id:'thunder-warning',warningEvent:'Severe Thunderstorm Warning'};upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);});await expect(page.locator('#painel-direito')).toHaveAttribute('data-lightning','on');await expect(page.locator('.pd-fx-bolt-1')).toHaveCSS('animation-name','none');await expect(page.locator('#lightning-flash')).toHaveCSS('animation-name','none');
 });
@@ -40,7 +41,7 @@ for(const width of [1280,390])test('flash da tempestade não vaza para sismo nov
  const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
  await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-flash-isolation',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);});
  await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  for(const silent of [false,true]){

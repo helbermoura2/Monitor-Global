@@ -812,7 +812,7 @@ function volcanoReport(p, extra={}) {
         volcanoUrl:p?.vUrl ?? p?.volcanoUrl ?? extra.volcanoUrl ?? '',
         detail:p?.noticeSynopsis ?? p?.status ?? p?.description ?? extra.detail ?? 'Status do USGS Volcano Hazards Program',
         lastActivity:last || '', noticeId:p?.noticeId ?? extra.noticeId ?? '',
-        usgsUrl:extra.usgsUrl || '', time:volcanoTs(last) || 0,
+        usgsUrl:p?.noticeUrl || extra.usgsUrl || '', time:volcanoTs(last) || 0,
         hasVona:Boolean(extra.hasVona), usgsVona:extra.usgsVona || null,
         ashStatus:extra.ashStatus || '', ashHeight:extra.ashHeight || '', ashSource:extra.ashSource || '',
         vonaRemarks:extra.vonaRemarks || '', vonaMovement:extra.vonaMovement || '', vonaDuration:extra.vonaDuration || '',
@@ -862,8 +862,11 @@ async function getUsgsVolcanoProfessional() {
         const sent=n?.sentUtc ?? n?.sent ?? n?.issued ?? n?.date ?? '';
         const t=volcanoTs(sent);
         if (!base._vonaTs || t >= base._vonaTs) {
-            base.hasVona=true; base.elevated=true; base.usgsVona=n; base.noticeId=n?.noticeId || base.noticeId;
-            base.usgsUrl=n?.noticeUrl || n?.noticeUrl || '';
+            base.hasVona=true; base.elevated=true; base.usgsVona=n; base._vonaTs=t;
+            // An older aviation notice stays accessible without replacing today's status.
+            if(base.time&&t<base.time)continue;
+            base.noticeId=n?.noticeId || base.noticeId;
+            base.usgsUrl=n?.noticeUrl || base.usgsUrl || '';
             base.lastActivity=sent || base.lastActivity; base.noticeSent=sent; base.time=t || base.time;
             base.vonaRemarks=n?.remarks||n?.noticeRemarks||base.vonaRemarks;
             base.ashHeight=n?.ashHeight||n?.ashCloudHeight||base.ashHeight;
@@ -916,7 +919,8 @@ function parseVolcanoAdvisoryText(text, source) {
         const adv = get(/ADVISORY NR:\s*([^\r\n]+)/i);
         const dtg = get(/DTG:\s*([0-9]{8}\/[0-9]{4}Z)/i);
         const eruption = get(/ERUPTION DETAILS:\s*([^\r\n]+)/i);
-        const ashHeight=get(/OBS VA CLD:\s*([^\r\n]+)/i);
+        const ashHeight=get(/(?:OBS|EST) VA CLD:\s*([^\r\n]+)/i);
+        const vonaRemarks=get(/RMK:\s*([\s\S]*?)(?=\n\s*(?:NXT ADVISORY|VA ADVISORY)|$)/i).replace(/\s+/g,' ');
         let lat = NaN, lon = NaN;
         const pm = psn.match(/([NS])(\d{2})(\d{2})\s+([EW])(\d{3})(\d{2})/i);
         if (pm) {
@@ -934,7 +938,7 @@ function parseVolcanoAdvisoryText(text, source) {
         out.push({
             id: `vaac-${source}-${adv || name}-${time || Date.now()}`.replace(/\s+/g,'-'),
             type: 'volcano', name, vnum, coords:[lon,lat],
-            source:`VAAC ${source}`, area, advisory:adv, noticeId:adv, ashHeight, time:time || 0,
+            source:`VAAC ${source}`, area, advisory:adv, noticeId:adv, ashHeight, vonaRemarks, time:time || 0,
             detail:eruption || 'Aviso de cinzas vulcânicas',
             ashStatus:eruption || 'Aviso de cinzas vulcânicas',
             aviationColor:'', alertLevel:'WARNING', elevated:true

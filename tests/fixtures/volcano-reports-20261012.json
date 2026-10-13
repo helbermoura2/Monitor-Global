@@ -1,0 +1,41 @@
+{
+  "Great Sitkin": {
+    "name": "Great Sitkin",
+    "coords": [
+      -176.1109,
+      52.0765
+    ],
+    "time": 1791831738000,
+    "detail": "AVO Great Sitkin ORANGE/WATCH - Slow eruption of lava within the summit crater continues.",
+    "eruptionStatus": "Atividade elevada / monitorada",
+    "aviationColor": "ORANGE",
+    "alertLevel": "WATCH",
+    "noticeId": "DOI-USGS-AVO-2026-10-12T18:56:41+00:00"
+  },
+  "Shishaldin": {
+    "name": "Shishaldin",
+    "coords": [
+      -163.9711,
+      54.7554
+    ],
+    "time": 1791831738000,
+    "detail": "AVO Shishaldin YELLOW/ADVISORY - Low-level unrest continues.",
+    "eruptionStatus": "Atividade elevada / monitorada",
+    "aviationColor": "YELLOW",
+    "alertLevel": "ADVISORY",
+    "noticeId": "DOI-USGS-AVO-2026-10-12T18:56:41+00:00"
+  },
+  "Ibu": {
+    "name": "IBU",
+    "coords": [
+      127.63333333333334,
+      1.4833333333333334
+    ],
+    "time": 1791853200000,
+    "detail": "ERUPTION REP AT 12/2252Z",
+    "ashStatus": "ERUPTION REP AT 12/2252Z",
+    "ashHeight": "",
+    "noticeId": "2026/1161",
+    "source": "VAAC DARWIN"
+  }
+}
