@@ -26,3 +26,13 @@ test('M5,4 fica com a estimativa e não consulta o mapa oficial',async({page})=>
  await boot(page);let calls=0;await page.route('**/rupture-shaking?**',r=>{calls++;return r.fulfill({json:{status:'unavailable'}});});
  await page.evaluate(()=>{globalEvents=[{id:'below-official',type:'earthquake',source:'QA',coords:[37,37],mag:5.4,depth:10,time:Date.now(),place:'Turquia'}];showEventDetails(0,true);});await page.waitForFunction(()=>__mgSeismicImpactState?.id==='below-official'&&__mgSeismicImpactState.features>0);expect(calls).toBe(0);expect(await page.evaluate(()=>__mgSeismicImpactState.method)).toBe('radial');
 });
+
+test('grade oficial fraca preserva a fonte e não inventa uma pintura radial em terra',async({page})=>{
+ await boot(page);await page.route('**/rupture-shaking?**',r=>r.fulfill({json:{status:'available',method:'usgs-shakemap-grid',version:'weak-official-qa',provider:'USGS ShakeMap · intensidade publicada',grid:{nx:3,ny:3,x0:36,x1:38,y0:36,y1:38,values:Array(9).fill(2.6)}}}));
+ await page.evaluate(()=>{globalEvents=[{id:'weak-official',type:'earthquake',source:'QA',coords:[37,37],mag:5.5,depth:195,time:Date.now()-3600000,place:'Evento profundo'}];showEventDetails(0,false);});
+ await page.waitForFunction(()=>__mgSeismicImpactState?.method==='usgs-shakemap-grid'&&__mgSeismicImpactState.features===0&&map.getSource('quake-impact')?.serialize().data.features.length===0&&document.querySelector('.seismic-impact-status')?.textContent.includes('nesta resolução'));
+ expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features)).toEqual([]);
+ await expect(page.locator('.seismic-impact-status')).toContainText('USGS ShakeMap');await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra para pintar nesta resolução');
+ await page.evaluate(()=>SeismicImpact.finish());await expect(page.locator('.seismic-impact-status')).toContainText('USGS ShakeMap');
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('weak-official');
+});
