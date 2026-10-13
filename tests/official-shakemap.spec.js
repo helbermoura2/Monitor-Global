@@ -36,3 +36,17 @@ test('grade oficial fraca preserva a fonte e não inventa uma pintura radial em 
  await page.evaluate(()=>SeismicImpact.finish());await expect(page.locator('.seismic-impact-status')).toContainText('USGS ShakeMap');
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('weak-official');
 });
+
+for(const width of [1280,390])test('aviso oficial é discreto, não repete versão e dá prioridade aos eventos novos '+width,async({page})=>{
+ await boot(page,width);await page.evaluate(()=>{for(let i=0;i<30;i++){const close=document.querySelector('#mobile-notice-stack .notice-close');if(!close)break;close.click();}});
+ await page.route('**/rupture-shaking?**',r=>r.fulfill({json:{status:'available',method:'usgs-shakemap-grid',version:'notice-v1',provider:'USGS ShakeMap · intensidade publicada',grid:{nx:3,ny:3,x0:36,x1:38,y0:36,y1:38,values:[3,4,3,4,7,4,3,4,3]}}}));
+ await page.evaluate(()=>{globalEvents=[{id:'official-notice',type:'earthquake',source:'QA',coords:[37,37],mag:5.5,depth:10,time:Date.now()-3600000,place:'Turquia'},{id:'new-notice-quake',type:'earthquake',source:'QA',coords:[38,38],mag:7,depth:10,time:Date.now(),place:'Novo sismo'}];showEventDetails(0,false);});
+ await expect(page.locator('#mobile-notice-stack')).toContainText('Mapa oficial atualizado');await expect(page.locator('#mobile-notice-stack')).toContainText('USGS ShakeMap · M5,5 · Turquia');
+ await page.evaluate(()=>{window.__noticeBefore={selected:eventoSelecionadoId,hold:__mgHoldEndsAt,tour:__mgPaintTourState.endsAt};window.__noticeContext={id:'official-notice',lng:37,lat:37,mag:5.5,depth:10,keepCamera:true,presentation:true};MobileNotices.push({key:'newquake-priority-qa',type:'newquake',title:'Novo sismo prioritário',duration:20000});SeismicImpact.start(__noticeContext,true);});
+ await page.waitForFunction(()=>__mgSeismicImpactState?.features>0);await expect(page.locator('#mobile-notice-stack')).toContainText('Novo sismo prioritário');
+ expect(await page.evaluate(()=>({selected:eventoSelecionadoId,hold:__mgHoldEndsAt,tour:__mgPaintTourState.endsAt}))).toEqual(await page.evaluate(()=>__noticeBefore));
+ await page.evaluate(()=>{const shaking={...RuptureShaking.get(globalEvents[0]),version:'notice-v2'};SeismicImpact.start({...__noticeContext,shaking},true);});await page.waitForFunction(()=>__mgSeismicImpactState?.version==='notice-v2'&&__mgSeismicImpactState.features>0);
+ await expect(page.locator('#mobile-notice-stack')).toContainText('Novo sismo prioritário');
+ await page.evaluate(()=>MobileNotices.openHistory());expect(await page.locator('.notice-history-row').filter({hasText:'Mapa oficial atualizado'}).count()).toBe(2);await page.locator('#mobile-notice-history').evaluate(el=>el.close());
+ await page.evaluate(()=>showEventDetails(1,true));expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('new-notice-quake');
+});

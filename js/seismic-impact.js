@@ -68,13 +68,26 @@ function positionStatus(){
 function stop(keepCalculation=false,keepLayer=false){clearTimeout(officialTimer);officialTimer=null;officialCheck=null;if(!keepCalculation){cancelCalculation();window.RuptureShaking?.cancel();}generation++;scene=null;if(!keepLayer){legend?.remove();legend=null;}window.__mgSeismicImpactState=null;try{if(!keepLayer){if(map?.getLayer(LAYER))map.removeLayer(LAYER);if(map?.getSource(SOURCE))map.removeSource(SOURCE);}}catch(e){}}
 function setVisible(value){visible=!!value;if(!visible){clearTimeout(officialTimer);officialTimer=null;}else officialCheck?.();if(legend)legend.style.display=visible?'':'none';try{if(map.getLayer(LAYER))map.setLayoutProperty(LAYER,'visibility',visible?'visible':'none');}catch(e){}}
 function reveal(radius,full=false){if(!scene)return;scene.radius=Math.max(scene.radius,Number(radius)||0);scene.full=scene.full||full||!!scene.shaking;try{if(map.getLayer(LAYER)){const bandWidth=scene.bandWidth||1,key=scene.full?-1:Math.min(48,Math.floor(scene.radius/bandWidth));if(scene.filterKey!==key){map.setFilter(LAYER,scene.full?null:['<=',['get','distanceKm'],key*bandWidth+.000001]);scene.filterKey=key;}}}catch(e){}window.__mgSeismicImpactState={id:scene.id,stage:scene.full?'impact':'propagating',radius:scene.radius,estimated:true,features:scene.features||0,method:scene.demo?'simulation':scene.shaking?(scene.shaking.method||'usgs-shakemap-grid'):'radial',version:scene.shaking?.version||null};}
+// Informational only: no selection, camera, sound or presentation timers.
+const announcedOfficial=new Map();
+function announceOfficial(c,features){
+ if(!features||!c.shaking||c.demo||c.demoPreview||!window.MobileNotices)return;
+ const version=String(c.shaking.version||c.shaking.updatedAt||'published');
+ if(announcedOfficial.get(c.id)===version)return;
+ announcedOfficial.delete(c.id);announcedOfficial.set(c.id,version);
+ if(announcedOfficial.size>64)announcedOfficial.delete(announcedOfficial.keys().next().value);
+ const item=typeof globalEvents==='undefined'?null:globalEvents.find(q=>q.id===c.id);
+ const place=window.EventPortuguese?.place(item?.place)||item?.place||'Local do sismo';
+ window.MobileNotices.push({key:'official-map|'+c.id+'|'+version,type:'info',duration:8000,
+  title:'Mapa oficial atualizado',detail:'USGS ShakeMap · M'+Number(c.mag).toFixed(1).replace('.',',')+' · '+place});
+}
 function start(context,full=false){
  const item=typeof globalEvents==='undefined'?null:globalEvents.find(q=>q.id===context.id);context={...context,...(!context.skipOfficial&&!context.shaking&&item&&window.RuptureShaking?.get(item)?{shaking:window.RuptureShaking.get(item)}:{})};
  const previous=scene?.id===context.id?scene:null;stop(true,!!previous);const token=generation;scene={...context,bounds:previous?.bounds||null,radius:0,full,bandWidth:extent(context.mag,context.depth)/48};
  label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':context.presentation?'Reprodução visual · Intensidade estimada':context.shaking?(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
  calculate(context).then(data=>{
   if(token!==generation||!scene)return;
-  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(!scene.features)label(emptyLabel(context));else if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada');if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);if(context.demo||context.demoPreview)window.SeismicScenarioDemo?.paintReady(context);
+  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(!scene.features)label(emptyLabel(context));else if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada');if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);announceOfficial(context,scene.features);if(context.demo||context.demoPreview)window.SeismicScenarioDemo?.paintReady(context);
  }).catch(e=>{if(token===generation){if(context.shaking){start({...context,shaking:null,skipOfficial:true},full);return;}label('Intensidade estimada · Camada indisponível');console.warn('[intensidade estimada]',e);}});
  if(item&&!context.skipOfficial&&!context.shaking&&context.mag>=5.5&&window.RuptureShaking){
   let requesting=false;const check=()=>{clearTimeout(officialTimer);officialTimer=null;if(requesting||token!==generation||scene?.id!==context.id||document.hidden||!visible)return;requesting=true;
