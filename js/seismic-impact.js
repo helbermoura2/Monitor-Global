@@ -23,7 +23,7 @@ async function fallback(job){
  }
  const data={type:'FeatureCollection',features};complete(job,{data,vertices:window.SeismicImpactModel.vertices(data)});
 }
-function complete(job,result){if(active!==job||job.cancelled)return;active=null;if(job.context.shaking&&(result.vertices>100000||!result.data.features.length)){job.reject(Error('Grade de intensidade fora dos limites de desenho'));return;}remember(job.key,result);job.resolve(result.data);}
+function complete(job,result){if(active!==job||job.cancelled)return;active=null;if(job.context.shaking&&result.vertices>100000){job.reject(Error('Grade de intensidade fora dos limites de desenho'));return;}remember(job.key,result);job.resolve(result.data);}
 function calculate(context){
  const k=key(context);if(active?.key===k)return active.promise;if(active)cancelCalculation();
  if(geometryCache.has(k)){const result=geometryCache.get(k);geometryCache.delete(k);geometryCache.set(k,result);return Promise.resolve(result.data);}
@@ -74,7 +74,7 @@ function start(context,full=false){
  label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':context.presentation?'Reprodução visual · Intensidade estimada':context.shaking?(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
  calculate(context).then(data=>{
   if(token!==generation||!scene)return;
-  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(!scene.features)label('Intensidade estimada · Sem área em terra estimada para pintar');else if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada');if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);if(context.demo||context.demoPreview)window.SeismicScenarioDemo?.paintReady(context);
+  ensure();map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(!scene.features)label(emptyLabel(context));else if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':(context.shaking.provider||'USGS ShakeMap')+' · intensidade estimada');if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);if(context.demo||context.demoPreview)window.SeismicScenarioDemo?.paintReady(context);
  }).catch(e=>{if(token===generation){if(context.shaking){start({...context,shaking:null,skipOfficial:true},full);return;}label('Intensidade estimada · Camada indisponível');console.warn('[intensidade estimada]',e);}});
  if(item&&!context.skipOfficial&&!context.shaking&&context.mag>=5.5&&window.RuptureShaking){
   let requesting=false;const check=()=>{clearTimeout(officialTimer);officialTimer=null;if(requesting||token!==generation||scene?.id!==context.id||document.hidden||!visible)return;requesting=true;
@@ -83,7 +83,8 @@ function start(context,full=false){
  }
 }
 document.addEventListener?.('visibilitychange',()=>{if(document.hidden){clearTimeout(officialTimer);officialTimer=null;}else officialCheck?.();});
-function finish(){if(scene){reveal(scene.radius,true);label(scene.features===0?'Intensidade estimada · Sem área em terra estimada para pintar':scene.demo?'TESTE · ruptura alongada · intensidade fictícia':scene.shaking?(scene.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
+function emptyLabel(c){return c.shaking?(c.shaking.provider||'USGS ShakeMap')+' · Sem área em terra para pintar nesta resolução (III+)':'Intensidade estimada · Sem área em terra estimada para pintar';}
+function finish(){if(scene){reveal(scene.radius,true);label(scene.features===0?emptyLabel(scene):scene.demo?'TESTE · ruptura alongada · intensidade fictícia':scene.shaking?(scene.shaking.provider||'USGS ShakeMap')+' · intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
 function footprintBounds(data,c){let w=Infinity,e=-Infinity,s=Infinity,n=-Infinity;for(const f of data.features){for(const p of f.geometry.coordinates)for(const ring of p)for(const [x,y]of ring){const lng=c.lng+((x-c.lng+540)%360)-180;w=Math.min(w,lng);e=Math.max(e,lng);s=Math.min(s,y);n=Math.max(n,y);}}return w<e&&s<n?[w,s,e,n]:null;}
 function refresh(c){if(scene?.id!==c.id)return;if(['lng','lat','depth','mag'].some(k=>scene[k]!==c[k])){const r=scene.radius,full=scene.full;start(c,full);reveal(r,full);}}
 window.SeismicImpact={start,reveal,finish,refresh,stop,setVisible,positionStatus,bounds:id=>scene?.id===id?scene.bounds||null:null,pga,extent,color,snapshot:context=>geometryCache.get(key(context))?.data||(active?.key===key(context)?active.promise:Promise.resolve(null))};
