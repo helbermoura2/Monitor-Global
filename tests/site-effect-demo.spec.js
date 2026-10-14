@@ -9,12 +9,13 @@ async function boot(page,width=1280){
  await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
  await page.evaluate(()=>{
   clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);stopWaveFront();stopFeltZone();window.SeismicPaintTour?.stop();
-  globalEvents=[{id:'site-scene-real',type:'earthquake',mag:4.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Registro preservado',source:'QA'}];globalAlerts=[];
+  globalEvents=Array.from({length:4},(_,i)=>({id:'site-scene-real-'+i,type:'earthquake',mag:4.2-i*.2,depth:10,coords:[-70+i,-20],time:Date.now()-i*240000,place:'Registro preservado '+i,source:'QA'}));globalAlerts=[];document.getElementById('clima-global-panel').style.display='none';renderSidebarList(globalEvents);
   showEventDetails(0,false);clearTimeout(cycleTimeout);window.SeismicPaintTour?.stop();map.stop();
   if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}
   window.__siteSceneBefore=JSON.stringify({events:globalEvents,alerts:globalAlerts,id:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom()});
   window.__siteSceneSounds=0;window.playEarthquakeSound=()=>__siteSceneSounds++;
  });
+ await expect(page.locator('#sidebar-left .event')).toHaveCount(4);
 }
 for(const width of [1280,390])test('menu de cenas realistas conserva registros, câmera e controles '+width,async({page})=>{
  test.setTimeout(90000);await boot(page,width);
@@ -25,10 +26,10 @@ for(const width of [1280,390])test('menu de cenas realistas conserva registros, 
  for(const kind of ['lava','quake','rain','tsunami']){
   if(kind!=='lava')await page.evaluate(k=>CardEffectDemo.preview('site-'+k),kind);
   const canvas=page.locator('#site-effect-demo-canvas');await expect(canvas).toHaveAttribute('data-scene',kind);await expect(canvas).toHaveCSS('pointer-events','none');
-  await expect(page.locator('#card-fx-demo-status')).toContainText('Cena ilustrativa');await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');
+  await expect(page.locator('#card-fx-demo-status')).toContainText('Cena ilustrativa');await expect(page.locator('#painel-direito .pd-cinema-layer')).toHaveAttribute('data-demo','true');
   await page.waitForTimeout(kind==='tsunami'||kind==='quake'?3300:1900);
   expect(await canvas.evaluate(c=>{const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;for(let i=3;i<pixels.length;i+=4)if(pixels[i]>20)return true;return false;})).toBe(true);
-  if(['quake','tsunami'].includes(kind))expect(await page.locator(width<900?'#painel-direito':'#sidebar-left').evaluate(el=>el.getAnimations().length)).toBeGreaterThan(0);
+  if(kind==='quake'){await expect(page.locator('.seismic-scene')).toHaveCount(1);expect(await page.evaluate(()=>SeismicCinema.state().recordPieces)).toBe(true);}if(kind==='tsunami'){expect(await page.locator(width<900?'#painel-direito':'#sidebar-left').evaluate(el=>el.getAnimations().length)).toBeGreaterThan(0);await expect(page.locator('.site-effect-floats')).toHaveCount(1);}
   await page.screenshot({path:'/tmp/site-scene-'+kind+'-'+width+'.png'});
   const hit=await page.locator('#card-fx-demo-status').getByRole('button',{name:'Parar',exact:true}).evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;});expect(hit).toBe(true);
  }
@@ -38,14 +39,14 @@ for(const width of [1280,390])test('menu de cenas realistas conserva registros, 
  expect(await page.evaluate(()=>__siteSceneSounds)).toBe(0);
  expect(await page.evaluate(()=>['header','#sidebar-left','#painel-direito'].flatMap(s=>[...document.querySelectorAll(s)]).every(el=>el.getAnimations().every(a=>a.effect?.getKeyframes().every(k=>!k.translate))))).toBe(true);
 });
-test('cena termina em dez segundos e restaura elementos sem alterar estilos',async({page})=>{
+test('M8+ dura 24 segundos, derruba registros por partes e restaura estilos',async({page})=>{
  await boot(page);await page.evaluate(()=>OptionalFeatures.siteEffectDemo());
  const before=await page.locator('#sidebar-left').getAttribute('style');
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+100));
  await page.evaluate(()=>CardEffectDemo.preview('site-quake'));await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
- await page.clock.runFor(9900);await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
+ expect(await page.locator('.seismic-piece[data-kind=record]').count()).toBeGreaterThan(2);await page.clock.runFor(7000);expect(await page.locator('#sidebar-left .event.seismic-displaced').count()).toBeGreaterThan(0);expect(await page.locator('#sidebar-left .event:not(.seismic-displaced)').count()).toBeGreaterThan(0);await page.screenshot({path:"/tmp/site-scene-records-staged.png"});await page.clock.fastForward(16900);await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
  await page.clock.runFor(150);await expect(page.locator('#site-effect-demo-canvas,#card-fx-demo-status,.site-effect-texture-video')).toHaveCount(0);
- expect(await page.locator('#sidebar-left').getAttribute('style')).toBe(before);expect(await page.locator('#sidebar-left').evaluate(el=>el.getAnimations().length)).toBe(0);
+ await expect(page.locator('.seismic-scene,.seismic-displaced')).toHaveCount(0);expect(await page.locator('#sidebar-left').getAttribute('style')).toBe(before);expect(await page.locator('#sidebar-left').evaluate(el=>el.getAnimations().length)).toBe(0);
 });
 test('cancelamento durante carregamento não ressuscita a cena e evento real interrompe teste',async({page})=>{
  await boot(page);let release;
@@ -62,4 +63,15 @@ test('movimento reduzido e aba oculta suspendem a cena; redimensionamento manté
  await page.evaluate(()=>CardEffectDemo.preview('site-lava'));await expect(page.locator('#card-fx-demo-status')).toContainText('Movimento reduzido');await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(0);
  await page.emulateMedia({reducedMotion:'no-preference'});await page.evaluate(()=>CardEffectDemo.preview('site-tsunami'));await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});await expect(page.locator('#site-effect-demo-canvas,#card-fx-demo-status,.site-effect-texture-video')).toHaveCount(0);
+});
+
+
+test('tsunami procedural não carrega vídeo, arrasta fragmentos e limpa o cenário; chuva tem clarões isolados',async({page})=>{
+ await boot(page);await page.evaluate(()=>OptionalFeatures.siteEffectDemo());await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+100));
+ const videos=[];page.on('request',r=>{if(r.url().includes('flood-current.mp4'))videos.push(r.url());});
+ await page.evaluate(()=>CardEffectDemo.preview('site-tsunami'));await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);await page.clock.runFor(6500);
+ await expect(page.locator('.site-effect-fragment')).not.toHaveCount(0);expect(await page.locator('.site-effect-fragment').evaluateAll(a=>a.some(el=>parseFloat(getComputedStyle(el).opacity)>.5))).toBe(true);expect(videos).toEqual([]);await expect(page.locator('.site-effect-texture-video')).toHaveCount(0);
+ await page.clock.fastForward(13550);await expect(page.locator('.site-effect-floats,.site-effect-swept,#site-effect-demo-canvas')).toHaveCount(0);
+ await page.evaluate(()=>CardEffectDemo.preview('site-rain'));await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);await page.clock.runFor(2350);await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-lightning','flash');await page.clock.runFor(700);await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-lightning','off');
+ await page.evaluate(()=>CardEffectDemo.preview('site-lava'));await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-scene','lava');expect(await page.locator('#site-effect-demo-canvas').getAttribute('data-lightning')).toBeNull();await page.evaluate(()=>CardEffectDemo.stop());
 });
