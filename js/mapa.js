@@ -435,6 +435,95 @@ function marcarFocoOuPonto(dotEl, fullEl, item, displayEmFoco = 'flex') {
     fullEl.style.display = emFoco ? displayEmFoco : 'none';
 }
 
+// Consulta do epicentro sem selecionar o evento nem iniciar a câmera/áudio.
+const QuakeMarkerPreview = (() => {
+    let active = null, leaveTimer = null, installed = false;
+    const eventFor = id => globalEvents.find(item => item.id === id);
+    function close() {
+        clearTimeout(leaveTimer);
+        const previous = active;
+        active = null;
+        previous?.popup.remove();
+    }
+    function leave() {
+        if (active && !active.touch) leaveTimer = setTimeout(close, 160);
+    }
+    function install() {
+        if (installed) return;
+        installed = true;
+        document.addEventListener('pointerdown', e => {
+            if (active && !active.element.contains(e.target) && !active.content.contains(e.target)) close();
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+        for (const name of ['dragstart', 'zoomstart']) map.on(name, e => { if (e?.originalEvent) close(); });
+        window.EventStore?.subscribe(reason => { if (reason === 'select') close(); });
+        window.addEventListener('pagehide', close);
+    }
+    function show(id, element, touch) {
+        const item = eventFor(id);
+        if (!item) return;
+        install();
+        close();
+        const content = document.createElement('section');
+        content.className = 'quake-preview-content';
+        content.setAttribute('aria-label', 'Informações do epicentro');
+        content.style.setProperty('--quake-tone', getHexColor(item.mag));
+        const add = (tag, className, text) => {
+            const node = document.createElement(tag);
+            node.className = className; node.textContent = text; content.append(node); return node;
+        };
+        add('small', 'quake-preview-caption', item.id === eventoSelecionadoId ? 'SISMO SELECIONADO' : 'EPICENTRO');
+        add('strong', 'quake-preview-magnitude', 'M' + Number(item.mag).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}));
+        add('span', 'quake-preview-place', window.EventPortuguese?.place(item.place) || item.place || 'Local não informado');
+        const depth = Number.isFinite(item.depth) ? Math.max(0, Math.round(item.depth)).toLocaleString('pt-BR') + ' km' : 'Não informada';
+        add('span', 'quake-preview-depth', 'Profundidade: ' + depth);
+        if (touch) {
+            const button = add('button', 'quake-preview-open', 'Ver evento');
+            button.type = 'button';
+            button.addEventListener('click', e => {
+                e.stopPropagation();
+                const latest = eventFor(id);
+                close();
+                if (latest) selectMapEvent(latest, true);
+            });
+        }
+        content.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
+        content.addEventListener('pointerleave', leave);
+        const popup = new GL.Popup({className:'map-quake-preview',closeButton:touch,closeOnClick:false,focusAfterOpen:false,maxWidth:'260px',offset:18})
+            .setLngLat(item.coords).setDOMContent(content).addTo(map);
+        popup.getElement().style.setProperty('--quake-tone', getHexColor(item.mag));
+        const closeButton = popup.getElement().querySelector('.maplibregl-popup-close-button');
+        if (closeButton) { closeButton.setAttribute('aria-label', 'Fechar informações'); closeButton.title = 'Fechar informações'; }
+        active = {id, element, content, popup, touch};
+        popup.on('close', () => { if (active?.popup === popup) { clearTimeout(leaveTimer); active = null; } });
+    }
+    function bind(element, id) {
+        let pointer = null;
+        element.dataset.quakeId = id;
+        element.tabIndex = 0;
+        element.setAttribute('role', 'button');
+        element.addEventListener('pointerdown', e => { pointer = {type:e.pointerType,x:e.clientX,y:e.clientY}; });
+        element.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') show(id, element, false); });
+        element.addEventListener('pointerleave', leave);
+        element.addEventListener('focus', () => { if (!pointer) show(id, element, false); });
+        element.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(id, element, true); }
+        });
+        element.addEventListener('click', e => {
+            e.stopPropagation();
+            if (pointer && Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y)>8) return;
+            if (pointer?.type === 'touch' || pointer?.type === 'pen' || e.sourceCapabilities?.firesTouchEvents) {
+                show(id, element, true);
+            } else {
+                const latest = eventFor(id);
+                close();
+                if (latest) selectMapEvent(latest, true);
+            }
+        });
+    }
+    return {bind, close, prune(ids) { if (active && !ids.has(active.id)) close(); }};
+})();
+
 /* ============================ MARKERS ============================ */
 function syncAllMarkers() {
     if (!map) return;
@@ -460,14 +549,7 @@ function syncAllMarkers() {
                 el.style.width = el.style.height = size + 'px';
                 el.style.background = cor;
                 el.style.boxShadow = `0 0 ${size}px ${cor}`;
-                el.title = `M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const i = globalEvents.findIndex(x => x.id === ev.id);
-                    if (i !== -1) {
-                        selectMapEvent(globalEvents[i], true);
-                    }
-                });
+                QuakeMarkerPreview.bind(el, ev.id);
                 markerStores.quake.set(ev.id, new GL.Marker({ element: el }).setLngLat(ev.coords).addTo(map));
             }
             const marker=markerStores.quake.get(ev.id),position=marker.getLngLat();
@@ -476,7 +558,7 @@ function syncAllMarkers() {
             if(marker.__mgQuakeVisualKey!==visualKey){
                 const el=marker.getElement(),size=ev.mag>=6?18:ev.mag>=5?14:ev.mag>=4?11:8,cor=getHexColor(ev.mag);
                 el.style.width=el.style.height=size+'px';el.style.background=cor;el.style.boxShadow=`0 0 ${size}px ${cor}`;
-                el.title=`M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`;
+                el.setAttribute('aria-label', `Consultar sismo M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`);
                 marker.__mgQuakeVisualKey=visualKey;
             }
         });
@@ -488,6 +570,7 @@ function syncAllMarkers() {
         }
     });
 
+    QuakeMarkerPreview.prune(wantQ);
     window.AftershockSequence?.syncMarkers();
 
     // --- OUTROS TIPOS ---
