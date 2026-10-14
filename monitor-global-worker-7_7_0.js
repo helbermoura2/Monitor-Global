@@ -14,6 +14,7 @@ import {handleRainbowProducts,handleRainbowProductInObject} from "./rainbow-prod
 import { handleRainbowNowcast, handleRainbowInObject } from "./rainbow-nowcast-worker.mjs";
 import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
+import {translationStorage} from "./translation-storage.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
 // Versão 7.7.0 — Telegram diário + vulcanismo global (GDACS/USGS/VAAC/GVP) + FUNVISIS + clamp FDSN
@@ -4557,10 +4558,7 @@ export class EarthquakeAlertDelivery {
             if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
                 const kv=this.env.TTS_USAGE,storage=this.state.storage;
-                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:kv&&{
-                    get:async key=>{if(!key.startsWith('pt-translation-chars:'))return kv.get(key);const q=await storage.get('pt-translation-quota');return q?.day===key?q.used:0;},
-                    put:async(key,value,options)=>{if(key.startsWith('pt-translation-chars:'))return storage.put('pt-translation-quota',{day:key,used:Number(value)});return kv.put(key,value,options);}
-                }};
+                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:translationStorage(storage,kv)};
                 return handlePortugueseTranslation(request,env);
             }
             const kv = this.env.TTS_USAGE;
