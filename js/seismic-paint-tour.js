@@ -48,9 +48,10 @@ function start(item,zoom){
  SeismicImpact.start(context,window.__mgQuakePresentationMode!=='new'||j.past);SeismicImpact.setVisible(true);phase(j,0);scheduleNextAutoCycle(total+250);return true;
 }
 function ready(c){if(!job||job.id!==c.id||!valid(job))return;const name=job.steps[job.index][0];if(name==='paint-opening'||name==='area-final-opening')move(job,area(job),Math.max(3500,(window.__mgPaintTourState?.until||Date.now())-Date.now()));else if(name==='area-hold'||name==='area-final-hold')move(job,area(job),3500);}
-function pause(){if(job){job.paused=true;map.stop();}}
+// MapLibre owns native gestures: stop() inside dragstart cancels its handlers.
+function pause(stopCamera=true){if(job){job.paused=true;if(stopCamera)map.stop();}}
 window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&job&&p.id!==job.id)stop();});
-function install(){if(!map)return;for(const name of ['dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)pause();});}
+function install(){if(!map)return;for(const name of ['dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)pause(false);});}
 window.addEventListener('load',install,{once:true});window.addEventListener('pagehide',stop);
 window.SeismicPaintTour={start,stop,ready,pause,owns:id=>job?.id===id,remaining:()=>job?Math.max(0,job.endsAt-Date.now()):0,duration,phases,timeline};
 })();
