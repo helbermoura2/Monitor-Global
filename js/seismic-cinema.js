@@ -53,20 +53,21 @@
  function pieceCandidates(p){
   const card=document.getElementById('painel-direito');
   const selectors=['.mg-logo-icon','#kpi-temp','#kpi-wind','#kpi-brent-label','#chips-row .chip','#pd-flag'];
-  if(p.tier>=2)selectors.push('#events .event-mag','#painel-direito .stat-card');
+  if(p.tier>=2)selectors.push(...(p.recordPieces?['#painel-direito .stat-card']:['#events .event-mag','#painel-direito .stat-card']));
   const list=[...new Set(selectors.flatMap(s=>[...document.querySelectorAll(s)]))].filter(el=>{
    const r=el.getBoundingClientRect(),cs=getComputedStyle(el);return !card?.contains(el)&&cs.visibility!=='hidden'&&Number(cs.opacity)>0&&r.width>5&&r.height>5&&r.width<innerWidth*.7&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&!el.closest('#seismic-demo-dialog');
   });
   for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
   const r=card?.getBoundingClientRect(),cs=card&&getComputedStyle(card);
   const visibleCard=card&&cs.visibility!=='hidden'&&Number(cs.opacity)>0&&r.width>5&&r.height>5&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;
-  return (visibleCard?[card,...list]:list).slice(0,p.pieces);
+  const records=p.recordPieces?[...document.querySelectorAll('#sidebar-left .event,#sidebar-left .group-header,#events-label')].filter(el=>{const r=el.getBoundingClientRect(),cs=getComputedStyle(el);return cs.visibility!=='hidden'&&r.width>5&&r.height>5&&r.top<innerHeight&&r.bottom>0;}).slice(0,innerWidth<700?5:8):[];
+  return [...records,...(visibleCard?[card]:[]),...list].slice(0,p.pieces);
  }
  function snapshotPiece(piece){
   const el=piece.source,rect=el.getBoundingClientRect(),cs=getComputedStyle(el),copy=el.cloneNode(true);
   const isCard=el.id==='painel-direito';
   // Freeze the card's appearance before dropping it; cloned IDs cannot be kept.
-  if(isCard){const originals=[el,...el.querySelectorAll('*')],copies=[copy,...copy.querySelectorAll('*')];
+  if(isCard||piece.isRecord){const originals=[el,...el.querySelectorAll('*')],copies=[copy,...copy.querySelectorAll('*')];
    originals.forEach((original,i)=>{const style=getComputedStyle(original),snapshot=copies[i];
     for(const property of style)snapshot.style.setProperty(property,style.getPropertyValue(property));
     snapshot.style.setProperty('animation','none','important');snapshot.style.setProperty('transition','none','important');
@@ -83,9 +84,10 @@
  }
  function copyPiece(el,index,total,p,layer){
   const rect=el.getBoundingClientRect(),shell=document.createElement('div'),isCard=el.id==='painel-direito';
-  shell.className='seismic-piece';shell.dataset.kind=isCard?'card':'element';shell.setAttribute('aria-hidden','true');shell.inert=true;
+  const isRecord=!!p.recordPieces&&!!el.closest('#sidebar-left');
+  shell.className='seismic-piece';shell.dataset.kind=isCard?'card':isRecord?'record':'element';shell.setAttribute('aria-hidden','true');shell.inert=true;
   Object.assign(shell.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});layer.append(shell);
-  return {el:shell,source:el,wasInert:el.inert,displaced:false,isCard,x:rect.left,y:rect.top,w:rect.width,h:rect.height,start:.55+index/Math.max(1,total)*(p.duration/1000-3)+Math.random()*.22,
+  return {el:shell,source:el,wasInert:el.inert,displaced:false,isCard,isRecord,slow:!!p.slowPieces,x:rect.left,y:rect.top,w:rect.width,h:rect.height,start:p.recordPieces&&isRecord?3+index*1.35:.55+index/Math.max(1,total)*(p.duration/1000-3)+Math.random()*.22,
    vx:(Math.random()-.5)*(45+p.tier*20),spin:(Math.random()-.5)*(60+p.tier*45),depth:.65+Math.random()*.65};
  }
  function createScene(p){
@@ -146,19 +148,19 @@
   for(const piece of pieces){
    const age=t-piece.start;if(age<0){piece.el.style.opacity='0';continue;}
    if(!piece.displaced){snapshotPiece(piece);piece.source.classList.add('seismic-displaced');piece.source.inert=true;piece.displaced=true;}
-   const travel=Math.min(age,3.2),g=260+90*piece.depth,floor=Math.max(0,h-piece.y-piece.h-8),hit=Math.sqrt(2*floor/g),after=Math.max(0,travel-hit);
+   const travel=Math.min(age,piece.slow?8:3.2),g=piece.slow?65+22*piece.depth:260+90*piece.depth,floor=Math.max(0,h-piece.y-piece.h-8),hit=Math.sqrt(2*floor/g),after=Math.max(0,travel-hit);
    const dy=piece.isCard?.5*g*travel*travel:travel<hit?.5*g*travel*travel:floor-Math.abs(Math.sin(after*7))*Math.min(50,Math.sqrt(2*g*floor)*.14)*Math.exp(-after*4);
-   piece.el.style.opacity=String(clamp(1-Math.max(0,age-2.2),0,1));
-   piece.el.style.transform=`translate3d(${(piece.vx*travel).toFixed(1)}px,${dy.toFixed(1)}px,0) rotate(${(piece.spin*travel*travel*.3).toFixed(1)}deg)`;
+   piece.el.style.opacity=String(clamp(1-Math.max(0,age-(piece.slow?6.2:2.2))/(piece.slow?2:1),0,1));
+   piece.el.style.transform=`translate3d(${(piece.vx*travel*(piece.slow?.35:1)).toFixed(1)}px,${dy.toFixed(1)}px,0) rotate(${(piece.spin*travel*travel*(piece.slow?.035:.3)).toFixed(1)}deg)`;
   }
  }
- function play(item,mode='manual',demo=false){
-  stop();const p={...profile(item,mode),...(demo?{duration:16000}:{})};
+ function play(item,mode='manual',demo=false,previewOptions={}){
+  stop();const p={...profile(item,mode),...(demo?{duration:previewOptions.duration||16000,recordPieces:!!previewOptions.recordPieces,slowPieces:!!previewOptions.slowPieces}:{})};
   const target=document.getElementById(p.full?'app':'painel-direito');
   if(!target)return p;
   // Reduced-motion users see the explanation/preview label, with no shake or debris.
-  if(reduced()){if(demo)showPreviewBar(p,true);return p;}
-  if(demo)root.CinematicCard?.start({...item,id:'seismic-typography-demo',type:'earthquake',__cinemaDemo:true},16000);
+  if(reduced()){if(demo&&!previewOptions.quietControls)showPreviewBar(p,true);return p;}
+  if(demo)root.CinematicCard?.start({...item,id:'seismic-typography-demo',type:'earthquake',__cinemaDemo:true},p.duration);
   const scene=p.full?createScene(p):null;
   target.dataset.seismicMotion=p.full?'full':'discreet';
   const animations=[],swayTargets=[];
@@ -180,8 +182,8 @@
    }
    job.raf=requestAnimationFrame(tick);
   };job.raf=requestAnimationFrame(tick);}
-  if(demo)showPreviewBar(p,false);
-  job.timer=setTimeout(()=>{if(job?.token!==token)return;stop();if(demo)showPreviewBar(p,false,true);},p.duration+50);
+  if(demo&&!previewOptions.quietControls)showPreviewBar(p,false);
+  job.timer=setTimeout(()=>{if(job?.token!==token)return;stop();if(demo&&!previewOptions.quietControls)showPreviewBar(p,false,true);},p.duration+50);
   return p;
  }
  function showPreviewBar(p,motionOff,done=false){

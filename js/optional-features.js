@@ -22,7 +22,7 @@
  function effect(type){
   return Promise.all((effects[type]||[]).map(url=>asset(url))).then(()=>ready.add(type));
  }
- window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261013-1','js/site-effect-demo.js?v=20261013-1'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
+ window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261014-procedural-bore','js/site-effect-demo.js?v=20261014-procedural-bore'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
  function selected(){
   try{EventStore.syncFromLegacy();const item=EventStore.getSelected();if(item)return item;}catch(e){}
   const id=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
