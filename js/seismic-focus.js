@@ -11,7 +11,7 @@
   if(bounds){
    let [w,s,e,n]=bounds;const unwrap=x=>c.lng+((x-c.lng+540)%360)-180;
    const include=([x,y])=>{x=unwrap(x);w=Math.min(w,x);e=Math.max(e,x);s=Math.min(s,y);n=Math.max(n,y);};include([c.lng,c.lat]);for(const p of points||[])include(p);
-   const fit=map.cameraForBounds([[w,s],[e,n]],{padding:0,bearing:0,maxZoom:15}),lng=fit.center.lng,lat=fit.center.lat;
+   const {lng,lat}=paintedAreaGeoFrame([w,s,e,n]);
    const zoom=zoomParaAreaPintada(lng,lat,1,[w,s,e,n]);camera={zoom,center:centroCompensado(lng,lat,zoom),bounds:[w,s,e,n]};
   }else{const zoom=zoomParaAreaPintada(c.lng,c.lat,Math.max(10,SeismicImpactModel.extent(c.mag,c.depth,2.1)));camera={zoom,center:centroCompensado(c.lng,c.lat,zoom)};}
   cached={key,bounds,points,layout,camera};return camera;
