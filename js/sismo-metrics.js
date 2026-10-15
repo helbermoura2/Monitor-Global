@@ -409,6 +409,15 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
     } catch (e) { return map.getZoom(); }
 }
 
+// Geographic target shared by the camera centre and zoom. Never sample the
+// current globe transform: its cameraForBounds result depends on approach zoom.
+function paintedAreaGeoFrame(bounds){
+    const [w,s,e,n]=bounds;
+    const y=lat=>(1-Math.log(Math.tan(Math.PI/4+Math.max(-85.05112878,Math.min(85.05112878,lat))*Math.PI/360))/Math.PI)/2;
+    const north=y(n),south=y(s);
+    return {lng:(w+e)/2,lat:Math.atan(Math.sinh(Math.PI*(1-north-south)))*180/Math.PI,spanX:Math.max(1e-9,(e-w)/360),spanY:Math.max(1e-9,south-north)};
+}
+
 // Fit independently of the current globe zoom, clear of header and cards.
 let paintedAreaZoomCache=null;
 function zoomParaAreaPintada(lng,lat,raioKm,bounds=null){
@@ -435,12 +444,12 @@ function zoomParaAreaPintada(lng,lat,raioKm,bounds=null){
     try{
         const box=map.getContainer().getBoundingClientRect(),key=[lng,lat,raioKm,box.width,box.height,margem.toFixed(4),bounds?.join(',')||'radial'].join('|');
         if(paintedAreaZoomCache?.key===key)return paintedAreaZoomCache.zoom;
-        if(typeof map.cameraForBounds==='function'){
-            const points=bounds?[[bounds[0],bounds[1]],[bounds[2],bounds[3]]]:[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
-            const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),size=Math.min(box.width,box.height)*margem;
-            const camera=map.cameraForBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:{left:(box.width-size)/2,right:(box.width-size)/2,top:(box.height-size)/2,bottom:(box.height-size)/2},bearing:0,maxZoom:15});
-            if(Number.isFinite(camera?.zoom)){const zoom=Math.max(1.5,Math.min(15,camera.zoom));paintedAreaZoomCache={key,zoom};return zoom;}
-        }
+        const points=bounds?[[bounds[0],bounds[1]],[bounds[2],bounds[3]]]:[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
+        const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
+        const geographic=paintedAreaGeoFrame([Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]);
+        const size=Math.max(16,Math.min(box.width,box.height)*margem-24);
+        const fitted=Math.log2(Math.min(size/(512*geographic.spanX),size/(512*geographic.spanY)));
+        if(Number.isFinite(fitted)){const zoom=Math.max(1.5,Math.min(15,fitted));paintedAreaZoomCache={key,zoom};return zoom;}
     }catch(e){}
     return Math.max(1.5,Math.min(15,zoomParaCaberRaio(lng,lat,raioKm,margem)));
 }
