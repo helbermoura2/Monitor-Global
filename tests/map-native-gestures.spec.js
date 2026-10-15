@@ -23,6 +23,8 @@ for(const mobile of [false,true])test.describe(mobile?'native touch':'native mou
   for(let attempt=0;attempt<2;attempt++){
    await page.evaluate(({x,y})=>{window.__gestureActive=true;window.__gestureAnchor=map.unproject([x,y]).toArray();},{x,y});
    if(mobile)await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});else{await page.mouse.move(x,y);await page.mouse.down();}
+   // Pause the scenario on press, before rendering delays can allow an auto refocus.
+   if(scene==='scenario')expect(await page.evaluate(()=>SeismicScenarioDemo.state().paused)).toBe(true);
    for(let step=1;step<=12;step++){
     const point={x:x+dx*step/12,y:y+20*step/12};
     if(mobile)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[point]});else await page.mouse.move(point.x,point.y);

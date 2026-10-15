@@ -1,0 +1,13 @@
+# Globo, mapa e Sistema Solar
+
+Os chips Planeta e Mapa trocam a projeção da mesma instância MapLibre, sem alterar os filtros ou recriar os eventos. Planeta também centraliza o globo no retângulo livre entre cabeçalho, lista e cartão principal. A antiga caixa inferior foi retirada; radar meteorológico e tempestades continuam em Mais filtros. No celular, o menu Globo e mapa plano permanece disponível.
+
+Anéis de radar e ondas em cascata deixaram de ser criados pelos seletores antigos, inclusive pelos avisos de novos sismos. Os pontos selecionados usam o selo de vidro. Os tipos não sísmicos mostram o nome do evento, com sinal estável. Incêndios mostram somente o ponto selecionado para evitar a poluição do mapa. Avisos regionais recebem uma referência visual no centro do enquadramento da área oficial, explicitamente identificada como área, sem inventar um epicentro. A referência desaparece ao mudar de seleção. Áreas sem geometria válida permanecem sem ponto inventado. Efeitos do cartão, pinturas sísmicas, regiões oficiais de tsunami e trajetórias oficiais de ciclones são preservados.
+
+O menu Globo e mapa plano oferece Sistema Solar · escala real. A antiga decoração de planetas em torno de uma Terra ampliada foi substituída por uma vista heliocêntrica separada; estrelas permanecem no globo de monitoramento. Astronomy Engine 2.1.19 calcula vetores heliocêntricos no instante atual. A projeção superior usa o plano da eclíptica J2000, com coordenadas em UA e raios equatoriais físicos em quilômetros. O eixo vertical orbital é projetado, não corresponde a uma vista 3D. O relógio exibe BRT; as posições atualizam a cada minuto.
+
+Uma única escala é usada para centros e discos físicos: UA = 149.597.870,7 km. Raios equatoriais: NASA Planetary Fact Sheet (https://nssdc.gsfc.nasa.gov/planetary/factsheet/); Sol: raio nominal IAU de 695.700 km. Círculos finos de 5 px são indicadores de localização, separados dos discos físicos e identificados na interface. Não existe amplificação silenciosa dos planetas. O controle de astros permite aproximar os corpos pequenos; Todos os planetas retorna ao Sol com 34 UA de alcance. A Lua mantém sua posição calculada em torno da Terra, sem posicionamento artificial por ser dia ou noite.
+
+O passeio e o cenário histórico pausam já no pressionar do mouse, antes do primeiro movimento, para impedir reposicionamentos automáticos entre o início do gesto e o dragstart. A pausa não chama map.stop no gesto nativo.
+
+Verificações: testes de escala, distâncias orbitais e distância Terra–Lua; Playwright em 1280 e 390 px para mudança de projeção, persistência, pins, áreas oficiais, enquadramento, Sistema Solar e arrasto nativo.

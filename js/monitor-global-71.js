@@ -28,11 +28,6 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installHeader,{once:true});else setTimeout(installHeader,80);
 
-  /* Radar persistente para cada sismo novo — não interfere no radar do evento selecionado. */
-  const radars=new Map();
-  function corMag(m){m=Number(m)||0;return m>=6?'#ef4444':m>=5?'#fb923c':m>=4?'#facc15':m>=3?'#22d3ee':'#4ade80'}
-  function removeRadar(id){const r=radars.get(id);if(!r)return;try{map?.off('move',r.upd);map?.off('zoom',r.upd);map?.off('resize',r.upd)}catch(e){};r.el?.remove();radars.delete(id)}
-  function addRadar(ev){if(!window.map||!ev?.coords||radars.has(ev.id))return;const host=document.getElementById('mapContainer');if(!host)return;const wrap=document.createElement('div');wrap.className='new-quake-radar-wrap';const core=document.createElement('div');core.className='new-quake-radar-core';const r1=document.createElement('div');r1.className='new-quake-radar-ring';const r2=document.createElement('div');r2.className='new-quake-radar-ring r2';const color=corMag(ev.mag);core.style.color=color;core.style.background=color;r1.style.color=color;r2.style.color=color;wrap.append(core,r1,r2);host.appendChild(wrap);const upd=()=>{try{const p=map.project(ev.coords);wrap.style.left=p.x+'px';wrap.style.top=p.y+'px'}catch(e){}};upd();map.on('move',upd);map.on('zoom',upd);map.on('resize',upd);const timer=setTimeout(()=>removeRadar(ev.id),180000);radars.set(ev.id,{el:wrap,upd,timer});}
-  window.mostrarNovosSismosNoMapa=function(list){if(!Array.isArray(list))return;list.slice().sort((a,b)=>(b.mag||0)-(a.mag||0)).slice(0,8).forEach(addRadar)};
+  // Native pins and the selected glass badge replace the old per-event rings.
+  window.mostrarNovosSismosNoMapa=function(){window.EventPinBadge?.refresh();};
 })();
-
