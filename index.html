@@ -102,7 +102,7 @@
 <button class="submenu-action" id="btn-voz-hist" title="Últimos alertas falados">🗣️ Histórico de voz</button>
 <button class="submenu-action" id="btn-share-resumo" title="Copiar resumo">📋 Copiar resumo</button></div></div>
       <div class="header-menu-group" id="events-menu-group"><button class="header-menu-trigger" type="button" aria-expanded="false" aria-controls="events-menu">📊 Eventos</button><div class="header-submenu" id="events-menu" role="menu"><div class="header-submenu-title">EVENTOS E DADOS</div><button class="submenu-action" id="btn-previsao" title="Previsão & qualidade do ar">🌤️ Previsão e ar</button><button class="submenu-action" id="mobile-events-btn" onclick="toggleMobileEventsModal(true)" title="Ver registros de eventos">📋 Abrir registros <span class="mobile-events-badge" id="mobile-events-fab-count">0</span></button><button class="submenu-action" id="events-sources-shortcut" type="button">📡 Situação das fontes</button><button class="submenu-action" id="btn-resumo-dia" type="button" title="Gerar imagem com os 5 maiores sismos do dia" onclick="shareResumoDiarioStory()">🏆 Resumo do dia</button></div></div>
-      <div class="ts-more-wrap header-menu-group" id="ts-more-wrap"><button class="header-menu-trigger" id="ts-more-toggle" type="button" title="Mais opções" onclick="toggleMoreMenu()" aria-expanded="false">⋯ Mais</button><div class="header-submenu" id="ts-more-menu" role="menu"><div class="header-submenu-title">FERRAMENTAS</div><button class="submenu-action" type="button" id="globe-preview-menu" onclick="event.stopPropagation();window.GlobePreview?.open();document.getElementById('ts-more-menu')?.classList.remove('open')">🌐 Globo — teste</button><button class="submenu-action" type="button" id="seismic-demo-menu" onclick="event.stopPropagation();window.CardEffectDemo?.open();document.getElementById('ts-more-menu')?.classList.remove('open')">🎬 Testar efeitos</button><button class="submenu-action" id="debug-toggle" title="Log de diagnóstico">🛠️ Diagnóstico</button><button class="submenu-action" id="ux-btn-summary" type="button" title="Abrir resumo executivo">📊 Resumo</button><button class="submenu-action" id="ux-btn-timeline" type="button" title="Abrir linha do tempo">◷ Timeline</button><button class="submenu-action" id="ux-btn-sources" type="button" title="Ver status das fontes">📡 Fontes</button><button class="submenu-action" id="ux-btn-legend" type="button" title="Abrir legenda do mapa">ⓘ Legenda</button><button class="submenu-action" id="ux-btn-changes" type="button" title="Ver o que mudou">↕ Mudanças</button><button class="submenu-action" id="ux-btn-settings" type="button" title="Configurar alertas">🔔 Alertas</button><button class="submenu-action" type="button" id="menu-btn-reload" onclick="event.stopPropagation();window.menuAcao&&window.menuAcao('reload')">🔄 Recarregar dados</button></div></div>
+      <div class="ts-more-wrap header-menu-group" id="ts-more-wrap"><button class="header-menu-trigger" id="ts-more-toggle" type="button" title="Mais opções" onclick="toggleMoreMenu()" aria-expanded="false">⋯ Mais</button><div class="header-submenu" id="ts-more-menu" role="menu"><div class="header-submenu-title">FERRAMENTAS</div><button class="submenu-action" type="button" id="globe-preview-menu" onclick="event.stopPropagation();window.GlobePreview?.open();document.getElementById('ts-more-menu')?.classList.remove('open')">🌐 Globo e mapa plano</button><button class="submenu-action" type="button" id="seismic-demo-menu" onclick="event.stopPropagation();window.CardEffectDemo?.open();document.getElementById('ts-more-menu')?.classList.remove('open')">🎬 Testar efeitos</button><button class="submenu-action" id="debug-toggle" title="Log de diagnóstico">🛠️ Diagnóstico</button><button class="submenu-action" id="ux-btn-summary" type="button" title="Abrir resumo executivo">📊 Resumo</button><button class="submenu-action" id="ux-btn-timeline" type="button" title="Abrir linha do tempo">◷ Timeline</button><button class="submenu-action" id="ux-btn-sources" type="button" title="Ver status das fontes">📡 Fontes</button><button class="submenu-action" id="ux-btn-legend" type="button" title="Abrir legenda do mapa">ⓘ Legenda</button><button class="submenu-action" id="ux-btn-changes" type="button" title="Ver o que mudou">↕ Mudanças</button><button class="submenu-action" id="ux-btn-settings" type="button" title="Configurar alertas">🔔 Alertas</button><button class="submenu-action" type="button" id="menu-btn-reload" onclick="event.stopPropagation();window.menuAcao&&window.menuAcao('reload')">🔄 Recarregar dados</button></div></div>
     </div>
     <div class="ts-kpis">
       <div class="ts-kpi" id="kpibox-eventos"><span class="ts-kpi-label">REGISTROS 24H</span><span class="ts-kpi-value" id="kpi-eventos">--</span></div>
@@ -389,11 +389,11 @@
 <script defer src="js/data-freshness.js?v=20261010-rainbow-volcano"></script>
 <script defer src="js/nucleo-estado.js?v=20261011-no-update-popup"></script>
 <script defer src="js/audio.js?v=20261009-voice-portuguese"></script>
-<script defer src="js/mapa.js?v=20261015-glass-pins"></script>
+<script defer src="js/mapa.js?v=20261015-globe-default"></script>
 <link rel="stylesheet" href="css/globe-preview.css?v=20261015-celestial">
 <script defer src="js/globe-space-model.js?v=20261015-celestial"></script>
 <script defer src="js/globe-space.js?v=20261015-celestial"></script>
-<script defer src="js/globe-preview.js?v=20261015-mobile-focus"></script>
+<script defer src="js/globe-preview.js?v=20261015-globe-default"></script>
 <script defer src="js/event-portuguese.js?v=20261013-arrival-volcano"></script>
 <script defer src="js/geo-e-ciclone-utils.js?v=20261009-portuguese"></script>
 <script defer src="js/cidades-proximas.js?v=20261009-mobile-energy"></script>
@@ -480,7 +480,7 @@
 <script defer src="js/header-menu-toggle.js?v=20261009-tsunami-records"></script>
 
 <link rel="stylesheet" href="css/menu-fix.css">
-<script defer src="js/header-menu-pro.js?v=20261015-globe-test"></script>
+<script defer src="js/header-menu-pro.js?v=20261015-globe-default"></script>
 
 <link rel="stylesheet" href="css/mobile-header-v4412.css?v=20260930-mid-fix">
 
@@ -507,7 +507,7 @@
 <!-- mobile-menu-single-handler-2026-08-24 removido: mirava #header-main-menu-toggle,
      id que não existe no HTML (só existe #fab-menu). Nunca executava — dead code. -->
 
-<script defer src="js/mobile-fab-menu-handler.js?v=20261015-globe-test"></script>
+<script defer src="js/mobile-fab-menu-handler.js?v=20261015-globe-default"></script>
 <!-- ═══════════ MODO DIAGNÓSTICO (?debug=1) ═══════════ -->
 <script defer src="js/debug-overlay.js"></script>
 
@@ -643,7 +643,7 @@
 <link rel="stylesheet" href="css/record-cards.css?v=20261002-header-bulletin">
 <link rel="stylesheet" href="css/detail-panel.css?v=20261010-volcano-activity">
 <link rel="stylesheet" href="css/mobile-portrait.css?v=20260930-1">
-<script defer src="js/mobile-portrait.js?v=20261015-globe-test"></script>
+<script defer src="js/mobile-portrait.js?v=20261015-globe-default"></script>
 <link rel="stylesheet" href="css/mobile-detail-gesture.css?v=20260930-1">
 <script defer src="js/mobile-detail-gesture.js?v=20260930-1"></script>
 <link rel="stylesheet" href="css/latest-event-cutout.css?v=20260930-1">

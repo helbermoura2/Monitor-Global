@@ -22,10 +22,10 @@ for(const width of [1280,390])test.describe('globe '+width,()=>{
    window.__originalMap=map;window.__originalMarkers=[...markerStores.quake.values()];window.__globeErrors=[];map.on('error',e=>{if(/projection|sky|WebGL|shader/i.test(e.error?.message||''))__globeErrors.push(e.error.message);});
   },realTiles);
  }
- test('menu toggles the same map, preserves data, hides far-side pins and resets on reload',async({page})=>{
-  await boot(page);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');
+ test('menu toggles the same map, preserves data, hides far-side pins and remembers projection on reload',async({page})=>{
+  await boot(page);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('globe');
   const before=await page.evaluate(()=>({events:JSON.stringify(globalEvents),selected:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom(),layers:map.getStyle().layers.map(l=>l.id)}));
-  await page.evaluate(()=>window.__openMobileMenu());await page.getByRole('button',{name:/Globo — teste/}).click();await expect(page.locator('#globe-preview-panel')).toBeVisible();await page.getByRole('button',{name:'Usar globo — teste',exact:true}).click();
+  await page.evaluate(()=>window.__openMobileMenu());await page.getByRole('button',{name:/Globo e mapa plano/}).click();await expect(page.locator('#globe-preview-panel')).toBeVisible();await page.getByRole('button',{name:'Usar globo',exact:true}).click();
   await expect(page.locator('#globe-preview-status')).toBeVisible();await page.waitForTimeout(700);
   expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('globe');
   expect(await page.evaluate(()=>({events:JSON.stringify(globalEvents),selected:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom(),layers:map.getStyle().layers.map(l=>l.id)}))).toEqual(before);
@@ -53,7 +53,8 @@ for(const width of [1280,390])test.describe('globe '+width,()=>{
   await expect.poll(()=>page.evaluate(old=>Math.abs(map.getCenter().lng-old),old)).toBeGreaterThan(5);
   await page.getByRole('button',{name:'Voltar ao mapa plano',exact:true}).click();expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');await expect(page.locator('#globe-preview-status')).toHaveCount(0);await expect(page.locator('#globe-space-canvas,#globe-space-note')).toHaveCount(0);expect(await page.evaluate(()=>map.getSky())).toBeUndefined();
   expect(await page.evaluate(()=>__globeErrors)).toEqual([]);
-  await page.evaluate(()=>GlobePreview.setMode('globe'));await page.reload();await page.waitForFunction(()=>__mgMapReady);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');
+  await page.reload();await page.waitForFunction(()=>__mgMapReady);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');
+  await page.evaluate(()=>GlobePreview.setMode('globe'));await page.reload();await page.waitForFunction(()=>__mgMapReady);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('globe');await expect(page.locator('#globe-preview-status')).toBeVisible();
  });
  test('official ShakeMap and tsunami polygons render on the globe and survive switching back',async({page})=>{
   await boot(page);await page.evaluate(()=>{GlobePreview.setMode('globe');SeismicScenarioDemo.start('official');});
