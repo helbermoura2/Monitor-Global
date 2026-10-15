@@ -109,7 +109,15 @@
  function start(item,duration=Infinity,resourcesFailed=false){
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
-  const p=panel(),cfg=profile(item);let snapshot=null;
+  const p=panel(),cfg=profile(item);
+  // A re-selection of the SAME item (e.g. a deferred "camera arrival" callback
+  // firing after the visual is already up, or any other redundant re-trigger)
+  // must never tear the active scene down: that drops the footage back to an
+  // unstarted <video> and loses playback continuity for no visual benefit,
+  // since the card already shows this exact event. Only a genuine type change
+  // still goes through the full rebuild below.
+  if(scene&&p&&cfg&&scene.itemId===item?.id&&scene.cfg.type===cfg.type&&!resourcesFailed){scene.cfg=cfg;return true;}
+  let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
   duration=Math.min(duration,16000);
@@ -408,7 +416,7 @@
   if(t*1000>=s.duration){stop();return;}
   if(document.hidden){s.quality.reset();s.footage?.pause();raf=0;return;}
   const p=panel(),hidden=!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');
-  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},120);return;}
+  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
   s.footage?.play();
   const fps=s.quality.fps(s.mobile?24:30);if(now-s.paintAt>=1000/fps&&s.width&&s.height){
    const renderStart=performance.now(),gap=now-s.last;
@@ -435,7 +443,7 @@
   raf=requestAnimationFrame(frame);
  }
  reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
- document.addEventListener('visibilitychange',()=>{if(!document.hidden&&scene&&!raf){scene.last=performance.now();raf=requestAnimationFrame(frame);}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause();raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
  window.addEventListener('pagehide',stop);
  function refresh(item){
   prepareSymbol(item);
@@ -446,5 +454,5 @@
   if(cfg.type==='hurricane')scene.host.dataset.rotationDirection=cfg.rotationDirection;
  }
  const refreshCurrent=refresh;
- window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending};
+ window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending,isShowing:(id,type)=>!!scene&&scene.itemId===id&&scene.cfg.type===type};
 })();
