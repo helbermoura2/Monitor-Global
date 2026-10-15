@@ -58,7 +58,7 @@
     button(panel, 'Resumo do dia', secondary(() => window.shareResumoDiarioStory?.()));
     for (const [label,kind] of [['Linha do tempo','timeline'],['Mudanças recentes','changes'],['Status das fontes','sources'],['Legenda do mapa','legend']]) button(panel,label,secondary(() => window.__uxShow?.(kind)));
     for (const [label,kind] of [['Radar de chuva','radar'],['Reproduzir eventos','replay'],['Acompanhar eventos','follow']]) button(panel,label,secondary(() => window.menuAcao?.(kind)));
-    button(panel, 'Globo — teste', secondary(() => window.GlobePreview?.open()));
+    button(panel, 'Globo e mapa plano', secondary(() => window.GlobePreview?.open()));
     button(panel, 'Testar efeitos', secondary(() => window.CardEffectDemo?.open()));
     heading(panel, 'Configurações');
     if(window.MobileEnergyBudget)panel.insertAdjacentHTML('beforeend',window.MobileEnergyBudget.buttonHTML());

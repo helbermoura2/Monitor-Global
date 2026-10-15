@@ -114,7 +114,7 @@
       '<button type="button" id="mf-src">📡 Status das fontes</button>' +
       '<button type="button" id="mf-theme">' + (temaEscuro ? '🌑 Visual: Escuro' : '🪟 Visual: Vidro') + '</button>' +
       '<button type="button" id="mf-tv">📺 Modo TV</button>' +
-      '<button type="button" id="mf-globe-preview">🌐 Globo — teste</button>' +
+      '<button type="button" id="mf-globe-preview">🌐 Globo e mapa plano</button>' +
       '<button type="button" id="mf-seismic-demo">🎬 Testar efeitos</button>'
     );
     $('mf-globe-preview').onclick = function () { $('menu-float-panel').classList.remove('open'); $('menu-float-panel').style.display='none'; window.GlobePreview?.open(); };

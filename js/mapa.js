@@ -182,7 +182,7 @@ function setGeoVis(cls, vis) {
 
 function initMap() {
     window.__mgMapReady = false;
-    const estilo = { version: 8, sources: {}, layers: [ { id: 'ocean-bg', type: 'background', paint: { 'background-color': '#0b2a4a' } } ] };
+    const estilo = { version: 8, projection:{type:window.GlobePreview?.initialProjection?.()||'globe'}, sources: {}, layers: [ { id: 'ocean-bg', type: 'background', paint: { 'background-color': '#0b2a4a' } } ] };
 
     map = new GL.Map({
         container: 'mapContainer',
@@ -204,9 +204,8 @@ function initMap() {
     // Attribution removido: o app é de uso pessoal, então o botão "ⓘ" de
     // créditos (Esri/HERE/OSM etc.) do MapLibre não precisa aparecer no mapa.
 
-    // Mapa plano é o padrão. GlobePreview troca a projeção na mesma instância
-    // apenas durante o teste opcional, sem recriar fontes, camadas ou pins.
-    try { map.setProjection({ type: 'mercator' }); } catch (e) {}
+    // A projeção já nasce no estilo inicial para não piscar do plano ao globo.
+    // GlobePreview mantém a troca na mesma instância, sem recriar os dados.
 
     // Botão de zoom +/- removido a pedido do usuário (pinça no celular e
     // scroll no desktop já bastam) — em todas as versões, não só mobile.
@@ -408,6 +407,7 @@ function initMap() {
         });
 
         window.__mgMapReady = true;
+        window.GlobePreview?.initialize?.();
         syncAllMarkers();
         requestInitialAutoDisplay();
     });

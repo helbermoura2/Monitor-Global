@@ -23,7 +23,7 @@ for(const globe of [false,true])test('real camera descends over its destination 
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto('/');await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(globe=>{pausarBuscas();clearTimeout(cycleTimeout);EventCamera.cancel();SeismicPaintTour.stop();SeismicImpact.stop();stopMapCamera();for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
- if(globe)map.setProjection({type:'globe'});
+ GlobePreview.setMode(globe?'globe':'mercator');
  map.jumpTo({center:[-80,-55],zoom:8,padding:0,pitch:0,bearing:0});eventoSelecionadoId='camera-start';EventCamera.enter('camera-start',{center:[-80,-55],zoom:8});EventCamera.cancel();
  eventoSelecionadoId='camera-polar';window.__arrivalCount=0;EventCamera.afterArrival('camera-polar',()=>__arrivalCount++);window.__tripStarted=Date.now();EventCamera.enter('camera-polar',{center:[27,67.25],zoom:10});},globe);
  await page.waitForFunction(()=>map.getZoom()>8&&Date.now()-__tripStarted>12000);

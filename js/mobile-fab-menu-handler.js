@@ -55,7 +55,7 @@
       '<button type="button" id="mf-main-events">📋 Abrir registros</button>' +
       '<button type="button" id="mf-main-audio">🔊 Áudio / voz</button>' +
       '<button type="button" id="mf-main-resumo-dia">🏆 Resumo do dia</button>' +
-      '<button type="button" id="mf-main-globe-preview">🌐 Globo — teste</button>' +
+      '<button type="button" id="mf-main-globe-preview">🌐 Globo e mapa plano</button>' +
       '<button type="button" id="mf-main-seismic-demo">🎬 Testar efeitos</button>' +
       '<button type="button" id="mf-main-tools">🛠️ Ferramentas (fontes, legenda, alertas)</button>' +
       '<button type="button" id="mf-main-reload">🔄 Recarregar dados</button>';
