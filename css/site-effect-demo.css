@@ -1,0 +1,7 @@
+#site-effect-demo-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:950000;pointer-events:none;contain:strict}
+body.site-effect-demo-active #card-fx-demo-status{z-index:950010}
+.site-effect-floats{position:fixed;inset:0;z-index:950002;pointer-events:none;overflow:hidden;contain:strict}
+.site-effect-fragment{position:absolute;pointer-events:none;opacity:0;filter:drop-shadow(0 7px 9px #001a24aa);will-change:transform,opacity}
+.site-effect-swept{visibility:hidden!important}
+body.site-effect-demo-active .seismic-scene{z-index:950001}
+@media(prefers-reduced-motion:reduce){#site-effect-demo-canvas{display:none}}

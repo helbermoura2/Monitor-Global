@@ -42,7 +42,8 @@
   const button=text(box,'button',j.paused?'Retomar passeio':'Pausar passeio');button.type='button';button.onclick=e=>{e.stopPropagation();if(j.paused){j.paused=false;phase(j,'quake',true);schedule(j,QUAKE_MS);}else pause();};
   const header=panel.querySelector('.pd-header-row');if(header)header.after(box);else panel.prepend(box);
  }
- function quakeCamera(j,duration=4000){
+ function quakeCamera(j,duration=6000){
+  if(window.EventCamera?.owns(j.hostId))return;duration=Math.max(6000,duration);
   const q=j.quake,c=paintContext(q),radius=Math.max(10,window.SeismicImpactModel?.extent(q.mag,q.depth,2.1)||30);
   const focus=window.SeismicFocus?.frame(c),zoom=focus?.zoom??(typeof zoomParaAreaPintada==='function'?zoomParaAreaPintada(c.lng,c.lat,radius):6);
   const center=focus?.center||(typeof centroCompensado==='function'?centroCompensado(c.lng,c.lat,zoom):q.coords);
@@ -71,7 +72,7 @@
   render(j);prepare(j).then(()=>{if(!valid(j))return;if(item.type==='tsunami')phase(j,'coast');else layerVisibility(false);schedule(j,j.phase==='coast'?COAST_MS:QUAKE_MS);});return true;
  }
  function finalize(id){const j=job;if(!j||j.demo||j.quake.id!==id||j.final||j.paused)return;j.final=true;clearTimers(j);j.cameraUntil=0;map.stop();phase(j,'quake',false);}
- function pause(){const j=job;if(!j||!valid(j)||j.final)return;j.paused=true;clearTimeout(j.timer);map.stop();render(j);}
+ function pause(stopCamera=true){const j=job;if(!j||!valid(j)||j.final)return;j.paused=true;clearTimeout(j.timer);if(stopCamera)map.stop();render(j);}
  function preview(alert){
   stop();const quake={id:'tsunami-linked-demo-quake',type:'earthquake',coords:[-80.8,7.5],place:'Panamá',mag:6.6,depth:10,time:Date.now(),source:'DEMONSTRAÇÃO'};
   const j=job={hostId:selected(),quake,alert,phase:'quake',visitIndex:0,paused:false,final:false,demo:true,cameraUntil:0};
@@ -85,7 +86,7 @@
  }
  function ownsCamera(id){return !!job&&valid(job)&&job.quake.id===id&&(job.paused||job.phase==='coast'||Date.now()<job.cameraUntil);}
  function state(){return job?{hostId:job.hostId,quakeId:job.quake.id,alertId:job.alert.id,phase:job.phase,visitIndex:job.visitIndex,stopName:job.stopName,paused:job.paused,final:job.final,demo:!!job.demo}:null;}
- function install(){if(typeof map==='undefined'||!map)return;['dragstart','wheel','touchstart'].forEach(name=>map.on(name,e=>{if(e?.originalEvent)pause();}));}
+ function install(){if(typeof map==='undefined'||!map)return;['dragstart','wheel','touchstart'].forEach(name=>map.on(name,e=>{if(job&&!job.paused&&e?.originalEvent)pause(false);}));}
  if(typeof map!=='undefined'&&map)install();else window.addEventListener('load',install,{once:true});
  document.addEventListener('click',e=>{if(job&&e.target.closest?.('#pd-focus-btn')){phase(job,'quake',false);pause();}},true);
  document.addEventListener('visibilitychange',()=>{const j=job;if(!j||j.demo)return;if(document.hidden){j.remaining=Math.max(1,(j.deadline||Date.now())-Date.now());clearTimeout(j.timer);}else if(valid(j))schedule(j,j.remaining||QUAKE_MS);});

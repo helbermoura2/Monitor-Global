@@ -272,7 +272,7 @@
        já dá largura cheia direto, sem precisar de calc()/margem
        negativa. */
     setImp(e.ticker, {display:'flex',position:'absolute',left:'8px',right:'8px',bottom:'auto',
-      width:'auto','max-width':'none',height:'auto','min-height':'76px',margin:'6px 0 0',padding:'10px 12px 26px','z-index':'25'});
+      width:'auto','max-width':'none',height:'auto','min-height':'76px',margin:'6px 0 0',padding:'12px','z-index':'25'});
 
     /* Linha 3 — magnitude + chips na MESMA linha, como pediu o Helber:
        o slider fica compacto (só "M 0.0", sem o rótulo "Magnitude

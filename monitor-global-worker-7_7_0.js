@@ -1,7 +1,8 @@
+import {selectImageRefreshes} from "./telegram-image-refresh.mjs";
 import {QUAKE_HD_FONTS} from "./quake-hd-fonts.mjs";
 import {archiveTelegramOriginal,serveTelegramOriginal,originalImageButton} from "./telegram-image-archive.mjs";
 import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
-import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
+import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureQuality,exposureVersionQuality,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
@@ -13,6 +14,7 @@ import {handleRainbowProducts,handleRainbowProductInObject} from "./rainbow-prod
 import { handleRainbowNowcast, handleRainbowInObject } from "./rainbow-nowcast-worker.mjs";
 import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure } from "./population-exposure-worker.mjs";
+import {translationStorage} from "./translation-storage.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
 // Versão 7.7.0 — Telegram diário + vulcanismo global (GDACS/USGS/VAAC/GVP) + FUNVISIS + clamp FDSN
@@ -811,7 +813,7 @@ function volcanoReport(p, extra={}) {
         volcanoUrl:p?.vUrl ?? p?.volcanoUrl ?? extra.volcanoUrl ?? '',
         detail:p?.noticeSynopsis ?? p?.status ?? p?.description ?? extra.detail ?? 'Status do USGS Volcano Hazards Program',
         lastActivity:last || '', noticeId:p?.noticeId ?? extra.noticeId ?? '',
-        usgsUrl:extra.usgsUrl || '', time:volcanoTs(last) || 0,
+        usgsUrl:p?.noticeUrl || extra.usgsUrl || '', time:volcanoTs(last) || 0,
         hasVona:Boolean(extra.hasVona), usgsVona:extra.usgsVona || null,
         ashStatus:extra.ashStatus || '', ashHeight:extra.ashHeight || '', ashSource:extra.ashSource || '',
         vonaRemarks:extra.vonaRemarks || '', vonaMovement:extra.vonaMovement || '', vonaDuration:extra.vonaDuration || '',
@@ -861,8 +863,11 @@ async function getUsgsVolcanoProfessional() {
         const sent=n?.sentUtc ?? n?.sent ?? n?.issued ?? n?.date ?? '';
         const t=volcanoTs(sent);
         if (!base._vonaTs || t >= base._vonaTs) {
-            base.hasVona=true; base.elevated=true; base.usgsVona=n; base.noticeId=n?.noticeId || base.noticeId;
-            base.usgsUrl=n?.noticeUrl || n?.noticeUrl || '';
+            base.hasVona=true; base.elevated=true; base.usgsVona=n; base._vonaTs=t;
+            // An older aviation notice stays accessible without replacing today's status.
+            if(base.time&&t<base.time)continue;
+            base.noticeId=n?.noticeId || base.noticeId;
+            base.usgsUrl=n?.noticeUrl || base.usgsUrl || '';
             base.lastActivity=sent || base.lastActivity; base.noticeSent=sent; base.time=t || base.time;
             base.vonaRemarks=n?.remarks||n?.noticeRemarks||base.vonaRemarks;
             base.ashHeight=n?.ashHeight||n?.ashCloudHeight||base.ashHeight;
@@ -915,7 +920,8 @@ function parseVolcanoAdvisoryText(text, source) {
         const adv = get(/ADVISORY NR:\s*([^\r\n]+)/i);
         const dtg = get(/DTG:\s*([0-9]{8}\/[0-9]{4}Z)/i);
         const eruption = get(/ERUPTION DETAILS:\s*([^\r\n]+)/i);
-        const ashHeight=get(/OBS VA CLD:\s*([^\r\n]+)/i);
+        const ashHeight=get(/(?:OBS|EST) VA CLD:\s*([^\r\n]+)/i);
+        const vonaRemarks=get(/RMK:\s*([\s\S]*?)(?=\n\s*(?:NXT ADVISORY|VA ADVISORY)|$)/i).replace(/\s+/g,' ');
         let lat = NaN, lon = NaN;
         const pm = psn.match(/([NS])(\d{2})(\d{2})\s+([EW])(\d{3})(\d{2})/i);
         if (pm) {
@@ -933,7 +939,7 @@ function parseVolcanoAdvisoryText(text, source) {
         out.push({
             id: `vaac-${source}-${adv || name}-${time || Date.now()}`.replace(/\s+/g,'-'),
             type: 'volcano', name, vnum, coords:[lon,lat],
-            source:`VAAC ${source}`, area, advisory:adv, noticeId:adv, ashHeight, time:time || 0,
+            source:`VAAC ${source}`, area, advisory:adv, noticeId:adv, ashHeight, vonaRemarks, time:time || 0,
             detail:eruption || 'Aviso de cinzas vulcânicas',
             ashStatus:eruption || 'Aviso de cinzas vulcânicas',
             aviationColor:'', alertLevel:'WARNING', elevated:true
@@ -4552,10 +4558,7 @@ export class EarthquakeAlertDelivery {
             if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,this.env,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
                 const kv=this.env.TTS_USAGE,storage=this.state.storage;
-                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:kv&&{
-                    get:async key=>{if(!key.startsWith('pt-translation-chars:'))return kv.get(key);const q=await storage.get('pt-translation-quota');return q?.day===key?q.used:0;},
-                    put:async(key,value,options)=>{if(key.startsWith('pt-translation-chars:'))return storage.put('pt-translation-quota',{day:key,used:Number(value)});return kv.put(key,value,options);}
-                }};
+                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:translationStorage(storage,kv)};
                 return handlePortugueseTranslation(request,env);
             }
             const kv = this.env.TTS_USAGE;
@@ -4816,8 +4819,8 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
-    // Migrate recent photos; recheck official products at most once per five minutes.
-    for (const root of sentRecords.filter(r => !r.aliasOf && !r.baseline && r.delivery === 'sent' && r.messageType === 'photo' && r.messageId && Date.now() - (r.imageExposureCheckedAt || 0) >= 30000 && Date.now() - Date.parse(r.timeIso) < 24 * 3600000 && (r.cardImageVersion !== 'cartographic-v11-full-hd' || Date.now()-(r.imageShakingCheckedAt||0)>=300000 || r.imageExposureVersion === 'pending' && Date.now() - Date.parse(r.timeIso) < 20 * 60000)).slice(0, 3)) {
+    // One-minute checks for M5.5+ in the first hour; five minutes thereafter.
+    for (const root of selectImageRefreshes(sentRecords)) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const shaking=await queryImageShaking(ev);root.imageShakingCheckedAt=Date.now();
@@ -4828,7 +4831,7 @@ async function runTelegramM6Alerts(request, env) {
         const nextShakingVersion=shakingVersion(ev.shaking);
         let data = await queryImageExposure(ev, env);
         // A slow refresh must not replace previously available population with a pending label.
-        const keepKnownPopulation = !validImageExposure(data) && String(root.imageExposureVersion || '').startsWith('[');
+        const keepKnownPopulation = String(root.imageExposureVersion || '').startsWith('[') && (!validImageExposure(data)||exposureQuality(data)<Math.max(exposureQuality(ev.imageExposure),exposureVersionQuality(root.imageExposureVersion)));
         if (keepKnownPopulation) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else {await saveSentAlerts(request, sentRecords, env);continue;}
@@ -5550,6 +5553,8 @@ export default {
                 brazilEpicenterLocation: BRAZIL_EPICENTER_VERSION,
                 earthquakePaint: "official-shakemap-v1",
                 telegramImageQuality: "full-hd-1080x1920-original-png",
+                telegramPopulationReserve: "geonames-localities-v1",
+                telegramImageRefresh: "m55-first-hour-1min",
                 rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),

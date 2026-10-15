@@ -47,7 +47,7 @@
   return current.route=[{name:'Todas as regiões indicadas',bounds:bounds(current.data.features)},...rows];
  }
  function visit(index=0,duration=6000){if(!current||!selected(current.id))return null;const rows=stops();if(!rows.length)return null;const target=rows[index%rows.length],camera=map.cameraForBounds(target.bounds,{padding:padding(),maxZoom:index%rows.length?7:5.5});if(!camera)return null;
-  setVisible(true);map.stop();map.flyTo({...camera,padding:padding(),pitch:0,bearing:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:duration,curve:1.25,essential:true});
+  setVisible(true);if(!window.EventCamera?.owns(linkedHost||current.id)){map.stop();map.flyTo({...camera,padding:padding(),pitch:0,bearing:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:duration,curve:1.25,essential:true});}
   const heading=legend?.querySelector('strong');if(heading)heading.textContent=(current.item.__tsunamiMapDemo?'🌊 TESTE':'🌊 '+current.item.source)+' · '+target.name;
   return target;
  }

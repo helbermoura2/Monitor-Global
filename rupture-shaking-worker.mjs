@@ -21,8 +21,9 @@ async function load(p){
 export async function handleRuptureShaking(request){
  if(request.method!=='GET')return response({status:'invalid'},405);const url=new URL(request.url),p={};for(const k of ['lat','lng','mag','time']){const v=url.searchParams.get(k);if(v===null||!v.trim()||!Number.isFinite(Number(v)))return response({status:'invalid'},400);p[k]=Number(v);}p.eventId=url.searchParams.get('eventId')||'';
  if(Math.abs(p.lat)>90||Math.abs(p.lng)>180||p.mag<0||p.mag>10||p.time<=0||p.time>Date.now()+60000||p.eventId&&!/^[a-zA-Z0-9_-]{2,100}$/.test(p.eventId))return response({status:'invalid'},400);
+ if(p.mag<5.5)return response({status:'below-threshold',note:'Mapa oficial habilitado para sismos M5,5 ou maiores.'});
  const key=JSON.stringify(p),hit=cache.get(key);if(hit&&hit.until>Date.now())return response(hit.data);
  if(!pending.has(key)&&pending.size>=8)return response({status:'unavailable',note:'Consulta ocupada; tente novamente.'},503);
- if(!pending.has(key))pending.set(key,load(p).catch(error=>({status:'unavailable',note:'Produto de ruptura indisponível no momento.',reason:error.reason||String(error.name||'Error')+': '+String(error.message||'USGS_NETWORK_OR_PRODUCT').slice(0,160)})).then(data=>{cache.set(key,{data,until:Date.now()+300000});if(cache.size>12)cache.delete(cache.keys().next().value);return data;}).finally(()=>pending.delete(key)));
+ if(!pending.has(key))pending.set(key,load(p).catch(error=>({status:'unavailable',note:'Produto de ruptura indisponível no momento.',reason:error.reason||String(error.name||'Error')+': '+String(error.message||'USGS_NETWORK_OR_PRODUCT').slice(0,160)})).then(data=>{cache.set(key,{data,until:Date.now()+(data.status==='available'?300000:60000)});if(cache.size>12)cache.delete(cache.keys().next().value);return data;}).finally(()=>pending.delete(key)));
  return response(await pending.get(key));
 }

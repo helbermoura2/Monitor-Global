@@ -199,7 +199,8 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 }
 #fc-backdrop { display: none; z-index: 11990 !important; }
 #sp-forecast-air .weather-ops,#sp-forecast-air .aqi-row,#sp-forecast-air .fc-strip { position: relative; z-index: 1; }
-.maplibregl-marker,.mapboxgl-marker { z-index: 20; }
+/* The map engine owns marker translation; keep its wrapper out of document flow. */
+.maplibregl-marker,.mapboxgl-marker { position: absolute !important; top: 0; left: 0; z-index: 20; }
 .maplibregl-popup { z-index: 50 !important; }
 .maplibregl-popup-content { z-index: 51 !important; }
 @media(max-width:900px) {
@@ -1427,3 +1428,20 @@ input[type=range]::-webkit-slider-thumb { background: var(--cyan) !important; bo
 .stale-badge.stale-off { background: rgba(248,113,113,.16) !important; color: #f87171 !important; }
 .stale-badge.updated-delta { background: rgba(71,85,105,.28) !important; color: #cbd5e1 !important; }
 
+
+/* Etiqueta de consulta: hover no mouse, primeiro toque no celular. */
+.map-quake-preview { z-index: 15; }
+.map-quake-preview .maplibregl-popup-content { padding: 16px 18px; background: #071c2b; color: #eaf5fb; border: 1px solid var(--quake-tone, #496273); border-radius: 13px; box-shadow: 0 10px 32px #0009; }
+.map-quake-preview.maplibregl-popup-anchor-top .maplibregl-popup-tip, .map-quake-preview.maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .map-quake-preview.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #071c2b; }
+.map-quake-preview.maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .map-quake-preview.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .map-quake-preview.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #071c2b; }
+.map-quake-preview.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #071c2b; }
+.map-quake-preview.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #071c2b; }
+.map-quake-preview .maplibregl-popup-close-button { color: #d6e8f4; font-size: 23px; width: 36px; height: 36px; border-radius: 10px; }
+.quake-preview-content { display: flex; flex-direction: column; gap: 6px; font-family: Arial, sans-serif; }
+.quake-preview-caption { font-size: 10px; font-weight: 700; letter-spacing: 1.1px; color: #a6c9dc; padding-right: 16px; }
+.quake-preview-magnitude { font-size: 36px; line-height: 1.1; font-weight: 800; color: var(--quake-tone); }
+.quake-preview-place { font-size: 14px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
+.quake-preview-depth { font-size: 13px; color: #b6cad8; }
+.quake-preview-open { margin-top: 8px; min-height: 44px; padding: 10px 18px; border: 1px solid #49b9d7; border-radius: 8px; background: #123a50; color: #eefaff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.quake-preview-open:hover { background: #1a4c65; }
+.quake-dot:focus-visible, .quake-preview-open:focus-visible { outline: 2px solid #72d6ee; outline-offset: 4px; }

@@ -3,7 +3,7 @@
  'use strict';
  const loaded=new Map();
  const effects={
-  wind:['js/card-gale-field.js?v=20261009-adaptive-quality','css/wind-cinema.css?v=20261007-flying-letters'],
+  wind:['js/card-gale-field.js?v=20261009-adaptive-quality','css/wind-cinema.css?v=20261013-mobile-gale-bounds'],
   tornado:['js/card-tornado-field.js?v=20261009-adaptive-quality','css/tornado-cinema.css?v=20261005-tornado-vortex'],
   flood:['js/card-flood-rise.js?v=20261009-adaptive-quality','css/flood-rise.css?v=20261007-flood-rise'],
   tsunami:['js/card-tsunami-surge.js?v=20261009-adaptive-quality','css/tsunami-cinema.css?v=20261007-hydraulic-bore'],
@@ -22,21 +22,21 @@
  function effect(type){
   return Promise.all((effects[type]||[]).map(url=>asset(url))).then(()=>ready.add(type));
  }
- window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),fetch:window.fetch.bind(window)};
+ window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261014-procedural-bore','js/site-effect-demo.js?v=20261014-procedural-bore'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
  function selected(){
   try{EventStore.syncFromLegacy();const item=EventStore.getSelected();if(item)return item;}catch(e){}
   const id=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=cartographic-v11-full-hd');await asset('js/quake-image-paint.js?v=cartographic-v11-full-hd');await asset('js/story-share.js?v=cartographic-v11-full-hd');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
+ window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=20261013-locality-reserve');await asset('js/quake-image-paint.js?v=cartographic-v11-full-hd');await asset('js/story-share.js?v=cartographic-v11-full-hd');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
  function init(){
   const button=document.getElementById('pd-share-btn');
   button?.addEventListener('click',async event=>{
    event.stopPropagation();const item=selected();
    if(!item){window.showToast?.('Selecione um evento na lista primeiro.','info');return;}
    button.disabled=true;button.textContent='Carregando…';
-   try{await asset('js/quake-card-layout.js?v=cartographic-v11-full-hd');await asset('js/quake-image-paint.js?v=cartographic-v11-full-hd');await asset('js/story-share.js?v=cartographic-v11-full-hd');await window.shareEventAsStory(item);}catch(error){failure(error);}
+   try{await asset('js/quake-card-layout.js?v=20261013-locality-reserve');await asset('js/quake-image-paint.js?v=cartographic-v11-full-hd');await asset('js/story-share.js?v=cartographic-v11-full-hd');await window.shareEventAsStory(item);}catch(error){failure(error);}
    finally{button.disabled=false;button.textContent='📤 Imagem';}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;

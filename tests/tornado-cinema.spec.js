@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
 // Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
@@ -35,7 +36,7 @@ async function captureCard(page,options){
  await page.screenshot({...options,clip:{x,y,width:Math.min(r.width,v.width-x),height:Math.min(r.height,v.height-y)}});
 }
 async function boot(page,width=1280,controlled=false){
- await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.fallback():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tornado"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTornadoField);
+ await page.setViewportSize({width,height:844});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.fallback():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tornado"));await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardTornadoField);
  if(controlled){await silenceBaseTileRetry(page);await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));}
  // PresentationLimits.begin() (chamado de dentro de showAlertDetails pra toda
  // seleção não-silenciosa) arma seu PRÓPRIO setTimeout privado de 20000ms,

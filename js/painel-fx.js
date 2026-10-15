@@ -55,6 +55,18 @@ function resetCardEventFx(item) {
     el.className.split(' ').forEach(c => { if (c.indexOf('pd-fx-') === 0) el.classList.remove(c); });
     if (item?.type !== 'storm') el.dataset.lightning = 'off';
 }
+// Start card scenes at the end of the approach, not during the world trip.
+function deferCardEventFx(item, action) {
+    const run = () => {
+        if (eventoSelecionadoId !== item.id || window.CardEffectDemo?.isActive()) return;
+        const latest = window.EventStore?.getById(item.id) || item;
+        action(window.EventPortuguese?.view(latest) || latest);
+    };
+    if (window.EventCamera && (item.coords || window.WeatherWarningCamera && ['storm','wind'].includes(item.type))) {
+        window.OptionalFeatures?.effect(item.type).catch(e => console.warn('[pré-carga do efeito]', e.message));
+        EventCamera.afterArrival(item.id, run);
+    } else run();
+}
 function triggerCardFx(type, color, item) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;

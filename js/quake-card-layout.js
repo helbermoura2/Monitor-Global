@@ -21,6 +21,11 @@
   const span=180/2**zoom;
   return {width:800,height:MAP_HEIGHT,zoom,anchorX:400,anchorY:ANCHOR_Y,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:Number(ev.lat)-2*span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+2*span*ANCHOR_Y/800};
  }
+ function validExposure(e){
+  if(e?.status!=='available'||!['pager','worldpop','geonames-localities'].includes(e.method)||e.ranges?.length!==3)return false;
+  const reserve=e.method==='geonames-localities';if(reserve&&(!e.partial||!(Number(e.ranges[0].population)>0)||!Number.isInteger(e.ranges[0].localities)||e.ranges[0].localities<1))return false;
+  return e.ranges.every((r,i)=>reserve&&i&&r.population===null||r.population!=null&&Number.isFinite(Number(r.population))&&Number(r.population)>=0&&(!i||Number(r.population)<=Number(e.ranges[i-1].population)));
+ }
  function draw(p,ev){
   const pt=globalThis.EventPortuguese,fmt=(n,d=0)=>pt?.number(n,d)??Number(n).toFixed(d).replace('.',',');
   ev={...ev,place:globalThis.EventPortuguese?.place(ev.place)||ev.place};
@@ -50,13 +55,14 @@
   const stats=[['PROFUNDIDADE',fmt(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['INTENSIDADE · MMI',ev.mmi||'—',ev.shaking?.status==='available'?'USGS ShakeMap':'Estimada'],['ENERGIA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'TNT equivalente']];
   stats.forEach((s,i)=>{const x=36+i*246;if(i)p.rect(x-12,1110,1,85,line);p.text(s[0],x,1114,11,muted);p.text(s[1],x,1138,25,white,true);p.text(s[2],x,1178,13,muted);});
   box(36,1228,728,163,'#416879');box(37,1229,726,161,'#0b2232');
-  p.text('POPULAÇÃO POTENCIALMENTE EXPOSTA · III+',56,1246,12,muted);
-  const e=ev.exposure,valid=e?.status==='available'&&['pager','worldpop'].includes(e.method)&&e.ranges?.length===3&&e.ranges.every((r,i)=>r.population!=null&&Number.isFinite(Number(r.population))&&Number(r.population)>=0&&(!i||Number(r.population)<=Number(e.ranges[i-1].population)));
+  const e=ev.exposure,reserve=e?.method==='geonames-localities',valid=validExposure(e);
+  p.text(reserve?'POPULAÇÃO NAS LOCALIDADES DA ÁREA · EST':'POPULAÇÃO POTENCIALMENTE EXPOSTA · III+',56,1246,12,muted);
   const count=n=>Math.round(Number(n)).toLocaleString('pt-BR');
-  if(valid){p.text('~ '+count(e.ranges[0].population)+' pessoas',56,1272,31,'#ffe078',true);p.text('V+: ~ '+count(e.ranges[1].population)+' · VI+: ~ '+count(e.ranges[2].population),56,1315,13,muted);p.text((e.method==='pager'?'USGS PAGER':'WorldPop 2020')+(e.partial?' · cobertura parcial':'')+' · faixas cumulativas',56,1338,13,muted);}
+  if(valid&&reserve){const n=Number(e.ranges[0].population),scale=10**Math.max(0,Math.floor(Math.log10(n))-1);p.text('~ '+count(Math.round(n/scale)*scale)+' pessoas',56,1272,31,'#ffe078',true);p.text('Estimativa preliminar · '+count(e.ranges[0].localities)+' localidades cadastradas',56,1315,13,muted);p.text('GeoNames · cobertura parcial · população rural incompleta',56,1338,13,muted);}
+  else if(valid){p.text('~ '+count(e.ranges[0].population)+' pessoas',56,1272,31,'#ffe078',true);p.text('V+: ~ '+count(e.ranges[1].population)+' · VI+: ~ '+count(e.ranges[2].population),56,1315,13,muted);p.text((e.method==='pager'?'USGS PAGER':'WorldPop 2020')+(e.partial?' · cobertura parcial':'')+' · faixas cumulativas',56,1338,13,muted);}
   else{p.text(e?.status==='pending'?'Estimativa em consulta':'Estimativa indisponível',56,1277,25,'#ffe078',true);p.text(e?.status==='pending'?'A imagem será atualizada quando houver dados.':'Sem dados suficientes; não significa zero.',56,1320,13,muted);}
-  p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
+  p.text(reserve?'Pode haver sobreposição; não confirma quem sentiu ou danos.':'Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v11-full-hd'};
+ globalThis.QuakeCardLayout={frame,draw,validExposure,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v11-full-hd'};
 })();

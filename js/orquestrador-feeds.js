@@ -79,10 +79,8 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     if(Number(next.event.mag)<6&&window.VolcanoPriority?.presentationActive())return false;
     // Automatic revisits never delay a newly arrived quake. A larger arrival
     // may interrupt a live/manual hold; equal or smaller arrivals wait -- but
-    // a genuinely new arrival (not just a magnitude revision of something
-    // already on screen) always gets shown, whatever its magnitude: every
-    // new quake must appear, with the biggest taking priority when several
-    // are queued at once.
+    // every new quake remains queued until shown, whatever its magnitude,
+    // with larger arrivals taking priority over smaller protected arrivals.
     // On cold load/reload, several parallel sources (USGS, EMSC, AFAD, ...)
     // resolve seconds after the very first display already went up, each
     // queueing its own batch of quakes that look "new" only because the
@@ -98,8 +96,8 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     // first fetch actually takes, however long -- plus a buffer afterwards
     // for straggling parallel sources still resolving. During that window,
     // a new arrival still queues and still wins once the window ends, but
-    // doesn't forcibly interrupt smaller/equal protected content; past it,
-    // every new arrival keeps interrupting immediately, as requested.
+    // does not forcibly interrupt protected content. After startup, new
+    // arrivals interrupt historical visits; larger ones also interrupt live holds.
     //
     // Blocking only equal/smaller cold-load candidates wasn't enough: a
     // catalog scan naturally turns up a bunch of different "running max"
@@ -119,7 +117,7 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     const coldLoad = ((typeof isFirstLoad!=='undefined' && isFirstLoad) &&
             Date.now() - (window.__mgPageLoadAt || 0) < 60000) ||
         (Number.isFinite(window.__mgColdLoadGraceUntil) && Date.now() < window.__mgColdLoadGraceUntil);
-    if (protectedSelection && (coldLoad || (!next.isNew && Number(next.event.mag)<=currentMag))) return false;
+    if (protectedSelection && (coldLoad || Number(next.event.mag)<=currentMag)) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;

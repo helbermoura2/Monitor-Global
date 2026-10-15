@@ -802,24 +802,29 @@ const quakeLabelStore = new Map();
 
 function updateQuakeLabels() {
     if (!map) return;
-    const cut = Date.now() - 864e5;
-    const z = map.getZoom();
+    if(window.EventPinBadge){quakeLabelStore.forEach(m=>m.remove());quakeLabelStore.clear();window.EventPinBadge.refresh();return;}
     const want = new Set();
 
-    if (layerVisibility.earthquakes && z >= 3) {
+    if (layerVisibility.earthquakes) {
         globalEvents.forEach(ev => {
-            if (ev.time < cut || ev.mag < 5 || ev.mag < minMagnitude) return;
+            const selected=ev.id===eventoSelecionadoId;
+            if(!selected)return;
+            if(!Array.isArray(ev.coords)||ev.coords.length<2||!ev.coords.slice(0,2).every(Number.isFinite)||Math.abs(ev.coords[0])>180||Math.abs(ev.coords[1])>90||!Number.isFinite(ev.mag))return;
             want.add(ev.id);
             if (!quakeLabelStore.has(ev.id)) {
                 const el = document.createElement('div');
                 el.className = 'quake-label';
-                el.textContent = `M${ev.mag.toFixed(1).replace('.', ',')} • ${Math.max(0, ev.depth).toFixed(0)} km`;
                 quakeLabelStore.set(ev.id, new GL.Marker({
                     element: el,
                     anchor: 'left',
                     offset: [10, 0]
                 }).setLngLat(ev.coords).addTo(map));
             }
+            const marker=quakeLabelStore.get(ev.id),el=marker.getElement();
+            el.classList.toggle('map-label-secondary',!selected);
+            const label=`M${ev.mag.toFixed(1).replace('.', ',')} • ${ev.depth!=null&&Number.isFinite(Number(ev.depth))?Math.max(0,Number(ev.depth)).toFixed(0)+' km':'profundidade não informada'}`;
+            if(el.textContent!==label)el.textContent=label;
+            const pos=marker.getLngLat();if(pos.lng!==ev.coords[0]||pos.lat!==ev.coords[1])marker.setLngLat(ev.coords);
         });
     }
 

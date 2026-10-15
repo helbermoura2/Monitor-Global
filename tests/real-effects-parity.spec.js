@@ -1,11 +1,12 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
 
 async function boot(page,width=1280){
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);
  await page.evaluate(()=>{
   const q={id:'parity-quake',type:'earthquake',mag:3,depth:10,source:'QA',coords:[-70,-20],place:'Sismo inicial QA',time:Date.now()};
   globalEvents=[q];showEventDetails(0,false);clearTimeout(cycleTimeout);SeismicCinema.stop();

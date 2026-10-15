@@ -1,0 +1,20 @@
+/* The marker wrapper belongs to MapLibre. Only the reflection and underline animate. */
+.event-focus-beacon {position:absolute;left:50%;top:50%;width:0;height:0;margin:0;border:0;border-radius:0;transform:none;animation:none;opacity:1;pointer-events:none;}
+.event-pin-stem {position:absolute;left:-.5px;bottom:2px;width:1px;height:18px;background:var(--event-pin-tone,#6de4f5);opacity:.65;pointer-events:none;}
+.event-pin-surface {--glass-tone:var(--event-pin-tone,var(--quake-tone,#6de4f5));box-sizing:border-box;overflow:hidden;border:1px solid color-mix(in srgb,var(--glass-tone) 65%,#9ab8c5);border-radius:10px;background:linear-gradient(125deg,#b4ffe72c,#2d6a6830 48%,#081e30ed);background-color:#082131;color:var(--glass-tone);box-shadow:inset 0 1px 0 #e4fff333,0 5px 18px #0004;}
+.event-pin-glass {position:absolute;left:0;bottom:20px;transform:translateX(-50%);display:inline-flex;align-items:center;justify-content:center;min-width:100px;min-height:42px;padding:7px 12px;font:700 22px/1.2 system-ui;letter-spacing:.2px;white-space:nowrap;pointer-events:none;}
+.event-pin-value {position:relative;z-index:1;}
+.event-pin-glass::before,.event-pin-active-sequence::before {content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 30%,#dcfff525 50%,transparent 70%);animation:event-pin-glass-shine 3s ease-in-out infinite;}
+.event-pin-glass::after,.event-pin-active-sequence::after {content:'';position:absolute;height:2px;left:50%;bottom:4px;transform:translateX(-50%);background:var(--glass-tone);box-shadow:0 0 7px var(--glass-tone);pointer-events:none;animation:event-pin-glass-line 3s ease-in-out infinite;}
+.event-focus-beacon:not([data-kind="earthquake"]) .event-pin-glass {font-size:14px;min-width:88px;min-height:38px;}
+.has-glass-pin:is(.emoji-marker,.cyclone-marker) {width:12px!important;height:12px!important;}
+.has-glass-pin > :is(.mg-tipo-full,.cyclone-full) {display:none!important;}
+.has-glass-pin > .mg-tipo-dot {display:block!important;width:12px!important;height:12px!important;border:2px solid #fff;background:var(--event-pin-tone)!important;box-shadow:0 0 9px color-mix(in srgb,var(--event-pin-tone) 50%,transparent)!important;}
+.quake-preview-magnitude.event-pin-glass {position:relative;left:auto;bottom:auto;transform:none;--event-pin-tone:var(--quake-tone);font-size:28px!important;line-height:1.2!important;margin:6px 0 10px!important;padding:8px 14px 10px!important;min-width:112px;}
+.aftershock-pin.event-pin-surface {position:relative;color:var(--glass-tone);border-color:var(--glass-tone);}
+.aftershock-pin.event-pin-active-sequence {font-size:20px;padding:8px 12px;}
+.aftershock-pin.cluster {z-index:24;}
+.tsunami-bulletin-origin.event-pin-surface {--event-pin-tone:#38bdf8;}
+@keyframes event-pin-glass-shine {0%,100%{transform:translateX(-110%);opacity:0}20%{opacity:.7}65%{transform:translateX(110%);opacity:0}}
+@keyframes event-pin-glass-line {0%,100%{width:20%;opacity:.4}50%{width:75%;opacity:1}}
+@media(prefers-reduced-motion:reduce){.event-pin-glass::before,.event-pin-glass::after,.event-pin-active-sequence::before,.event-pin-active-sequence::after {animation:none!important;}.event-pin-glass::before,.event-pin-active-sequence::before{display:none;}.event-pin-glass::after,.event-pin-active-sequence::after{width:55%;opacity:.7;}}

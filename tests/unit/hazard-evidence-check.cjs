@@ -11,3 +11,5 @@ assert.equal(h.nws({...warning,properties:{...warning.properties,status:'Test'}}
 assert.equal(h.nws(warning,now+3600001),null);
 assert.equal(h.warningType('Wind Chill Warning'),null);
 console.log('PASS: provenance, METAR freshness/current groups, official warning geometry and expiry');
+const areaWarning=h.nws({id:'zone-test',geometry:null,properties:{status:'Actual',event:'Wind Advisory',sent:new Date(now).toISOString(),expires:new Date(now+60000).toISOString(),areaDesc:'Oklahoma',affectedZones:['https://api.weather.gov/zones/forecast/OKZ025']}},now);
+assert.deepEqual(areaWarning.affectedZones,['https://api.weather.gov/zones/forecast/OKZ025']);assert(!areaWarning.coords);assert.equal(areaWarning.type,'wind');
