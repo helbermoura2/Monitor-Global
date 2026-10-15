@@ -2030,7 +2030,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgLiveQuakeUntil = window.__mgHoldEndsAt;
     }
 
-    if (item.coords && map) {
+    if (item.coords && map && !(['storm','wind'].includes(item.type)&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length))) {
         let zoomEvento = 6;
         if (item.type === 'earthquake') {
             const rDetKm = raioDetectavel(item.mag, item.depth);
