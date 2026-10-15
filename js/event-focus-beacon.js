@@ -5,7 +5,7 @@ function clearArea(){areaMarker?.remove();areaMarker=null;areaId=null;areaPendin
 function regional(item){
  if(areaId!==item.id||areaItem!==item||areaGeometry!==item.warningGeometry){clearArea();areaId=item.id;areaItem=item;areaGeometry=item.warningGeometry;}
  if(areaMarker)return areaMarker;
- if(areaPending||!(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length))return null;
+ if(areaPending||!(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea))return null;
  areaPending=item.id;const generation=areaGeneration;
  window.WeatherWarningCamera?.resolve(item,()=>generation===areaGeneration&&eventoSelecionadoId===item.id).then(bounds=>{
   if(generation!==areaGeneration||areaId!==item.id||eventoSelecionadoId!==item.id||!bounds)return;
