@@ -57,9 +57,7 @@ function resetCardEventFx(item) {
 }
 // Start card scenes at the end of the approach, not during the world trip.
 function deferCardEventFx(item, action) {
-    window.__mgDeferCalls=(window.__mgDeferCalls||[]).slice(-6);window.__mgDeferCalls.push({t:performance.now(),itemId:item.id,hasCoords:!!item.coords,hasCamera:!!window.EventCamera,stack:(new Error().stack||'').split('\n').slice(1,7).join('|')});
     const run = () => {
-        window.__mgRunCalls=(window.__mgRunCalls||[]).slice(-6);window.__mgRunCalls.push({t:performance.now(),itemId:item.id,eventoSelecionadoId,blocked:eventoSelecionadoId!==item.id||!!window.CardEffectDemo?.isActive(),stack:(new Error().stack||'').split('\n').slice(1,7).join('|')});
         if (eventoSelecionadoId !== item.id || window.CardEffectDemo?.isActive()) return;
         const latest = window.EventStore?.getById(item.id) || item;
         action(window.EventPortuguese?.view(latest) || latest);

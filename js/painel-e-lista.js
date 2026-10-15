@@ -1007,11 +1007,17 @@ function showNextAutoCycleItem() {
     window.__mgRotationDisplay = true;
     try {
         const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
+        // The rotation can land back on the item already on screen (a lone
+        // alert cycling to itself, or the "next" slot wrapping around). That
+        // is not a real selection change, so it must not replay the entrance
+        // effect or tear down and restart the cinematic scene -- same
+        // silentRefresh path the manual revision flow already uses for this.
+        const alreadySelected = it.id === eventoSelecionadoId;
         if (ehSismo) {
             const i = globalEvents.findIndex(e => e && e.id === it.id);
             if (i !== -1) showEventDetails(i, false);
-            else showAlertDetails(it, false);
-        } else {showAlertDetails(it, false);window.NewEventPriority?.markPresented(it);}
+            else showAlertDetails(it, false, alreadySelected);
+        } else {showAlertDetails(it, false, alreadySelected);window.NewEventPriority?.markPresented(it);}
         window.__mgResumeRotation = false;
         return true;
     } finally { window.__mgRotationDisplay = false; }
