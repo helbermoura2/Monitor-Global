@@ -4,6 +4,7 @@ function cancel(keepId=null){token++;for(const t of timers)clearTimeout(t);timer
 function worldZoom(latitude){if(window.GlobePreview?.state().testing)return GlobePreview.worldZoom(latitude);const width=map.getContainer().clientWidth||window.innerWidth;return Math.max(map.getMinZoom(),Math.min(1.1,Math.log2(width/512)));}
 function durationFor(id){return lastId!==null&&lastId!==id?18000:6000;}
 function enter(id,camera,arrive){
+ window.__mgEnterCalls=(window.__mgEnterCalls||[]).slice(-6);window.__mgEnterCalls.push({t:Date.now(),id,lastId,sameTripActive:trip?.id===id&&Date.now()<trip?.endsAt});
  if(trip?.id===id&&Date.now()<trip.endsAt){trip.camera=camera;trip.arrive=arrive;return Math.max(0,trip.endsAt-Date.now());}
  const ms=durationFor(id);cancel(id);const generation=token;lastId=id;const journey=trip={id,camera,arrive,endsAt:Date.now()+ms};
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;

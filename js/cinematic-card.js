@@ -456,5 +456,5 @@
  }
  const refreshCurrent=refresh;
  window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending,isShowing:(id,type)=>!!scene&&scene.itemId===id&&scene.cfg.type===type};
- window.__mgCinematicDebug=()=>({sceneItemId:scene?.itemId,sceneType:scene?.cfg?.type,sceneStart:scene?.start,footagePaused:scene?.footage?.video?.paused,startCalls:window.__mgStartCalls||[]});
+ window.__mgCinematicDebug=()=>({sceneItemId:scene?.itemId,sceneType:scene?.cfg?.type,sceneStart:scene?.start,footagePaused:scene?.footage?.video?.paused,startCalls:(window.__mgStartCalls||[]).map(c=>({itemId:c.itemId})),deferCalls:window.__mgDeferCalls||[],runCalls:window.__mgRunCalls||[],enterCalls:window.__mgEnterCalls||[]});
 })();
