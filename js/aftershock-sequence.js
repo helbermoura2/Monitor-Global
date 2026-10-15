@@ -23,7 +23,7 @@
     const shown=[{q:group.main},...entries.slice(0,40)];clusterCount=0;
     for(const entry of shown){
      const c=entry.cluster,q=entry.q,members=c?.members||[q],isMain=q?.id===group.main.id;
-     const el=document.createElement('button');el.type='button';el.className='aftershock-pin'+(isMain?' main':'')+(c?' cluster':'')+(members.some(q=>fresh.has(q.id))?' fresh':'');
+     const el=document.createElement('button');el.type='button';el.className='aftershock-pin event-pin-surface'+(isMain?' main':'')+(c?' cluster':'')+(members.some(q=>fresh.has(q.id))?' fresh':'');
      el.style.setProperty('--quake-tone',typeof getHexColor==='function'?getHexColor(c?.mag??q.mag):'#fbbf24');
      el.textContent=c?c.members.length.toLocaleString('pt-BR'):(isMain?'Principal · ':'')+mag(q);
      if(c){clusterCount++;node(el,'span','possíveis réplicas');el.title=c.members.length.toLocaleString('pt-BR')+' possíveis réplicas · clique para aproximar';el.setAttribute('aria-label',el.title);}
@@ -38,7 +38,7 @@
       map.easeTo({center,zoom:z,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:2200,essential:true});
      };
      const id=c?.id??q.id;for(const member of members)represented.add(member.id);
-     pins.set(id,new GL.Marker({element:el,anchor:c?'center':'bottom',offset:c?[0,16]:[0,-5]}).setLngLat(c?.coords||q.coords).addTo(map));
+     pins.set(id,new GL.Marker({element:el,anchor:c?'center':'bottom',offset:c?[0,44]:[0,-5]}).setLngLat(c?.coords||q.coords).addTo(map));
     }
    }
   }
@@ -74,5 +74,5 @@
  window.EventStore?.subscribe(reason=>{if(['filter','replace','revise'].includes(reason))refresh();else if(reason==='select')render();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  window.addEventListener('pagehide',()=>{clearTimeout(timer);clear();});
- window.AftershockSequence={summary:id=>{const g=model?.forEvent(id);return g?.children.length?{count:g.children.length,strongest:Math.max(...g.children.map(q=>q.mag))}:null;},render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size,clusters:clusterCount,represented:represented.size})};
+ window.AftershockSequence={marker:id=>pins.get(id)||null,summary:id=>{const g=model?.forEvent(id);return g?.children.length?{count:g.children.length,strongest:Math.max(...g.children.map(q=>q.mag))}:null;},render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size,clusters:clusterCount,represented:represented.size})};
 })();

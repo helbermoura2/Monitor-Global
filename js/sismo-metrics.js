@@ -802,6 +802,7 @@ const quakeLabelStore = new Map();
 
 function updateQuakeLabels() {
     if (!map) return;
+    if(window.EventPinBadge){quakeLabelStore.forEach(m=>m.remove());quakeLabelStore.clear();window.EventPinBadge.refresh();return;}
     const want = new Set();
 
     if (layerVisibility.earthquakes) {

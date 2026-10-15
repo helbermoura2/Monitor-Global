@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 test.use({serviceWorkers:'block',reducedMotion:'no-preference'});
-for(const width of [1280,390])test('selected unpainted point pulses without moving its native anchor '+width,async({page})=>{
+for(const width of [1280,390])test('glass badge stays anchored with and without paint '+width,async({page})=>{
  await page.setViewportSize({width,height:900});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto('/');await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
@@ -11,11 +11,11 @@ for(const width of [1280,390])test('selected unpainted point pulses without movi
  expect(await anchor()).toBeLessThan(2);await page.waitForTimeout(700);expect(await anchor()).toBeLessThan(2);
  expect(await beacon.evaluate(el=>getComputedStyle(el).pointerEvents)).toBe('none');
  await page.evaluate(()=>{map.addSource('quake-impact',{type:'geojson',data:{type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[[[-48,-22],[-46,-22],[-46,-20],[-48,-20],[-48,-22]]]}}});map.addLayer({id:'quake-impact-fill',type:'fill',source:'quake-impact',paint:{'fill-color':'#41db8a','fill-opacity':.56}});window.__mgSeismicImpactState={id:'beacon-0',features:1};});
- await expect(beacon).toHaveCount(0);
+ await expect(beacon).toHaveCount(1);await expect(beacon.locator('.event-pin-value')).toHaveText('M 2,4');
  await page.evaluate(()=>map.setLayoutProperty('quake-impact-fill','visibility','none'));await expect(beacon).toHaveCount(1);
  await page.evaluate(()=>{eventoSelecionadoId='beacon-1';syncAllMarkers();});await expect(page.locator('[data-quake-id="beacon-1"] > .event-focus-beacon')).toHaveCount(1);await expect(beacon).toHaveCount(1);
  await expect(page.locator('[data-quake-id="beacon-1"]')).toHaveAttribute('aria-label',/M2,4/);
- await page.emulateMedia({reducedMotion:'reduce'});expect(await beacon.evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+ await page.emulateMedia({reducedMotion:'reduce'});expect(await beacon.locator('.event-pin-glass').evaluate(el=>getComputedStyle(el,'::after').animationName)).toBe('none');
  await page.evaluate(()=>{layerVisibility.earthquakes=false;syncAllMarkers();});await expect(beacon).toHaveCount(0);
 });
 for(const globe of [false,true])test('real camera descends over its destination '+(globe?'mobile globe':'desktop flat'),async({page})=>{
