@@ -40,7 +40,7 @@
    text(box,'small','O aviso se refere às costas indicadas pela autoridade. A pintura no mapa é a intensidade estimada do tremor, não a área de tsunami.');
   }else{
    if(T.origin(item)&&typeof GL!=='undefined'&&typeof map!=='undefined'&&map){
-    const pin=document.createElement('div');pin.className='tsunami-bulletin-origin';
+    const pin=document.createElement('div');pin.className='tsunami-bulletin-origin event-pin-surface';
     text(pin,'span','◎');text(pin,'strong','Origem do sismo · '+item.source);
     originMarker=new GL.Marker({element:pin,anchor:'top',offset:[0,-16]}).setLngLat(item.coords).addTo(map);
    }

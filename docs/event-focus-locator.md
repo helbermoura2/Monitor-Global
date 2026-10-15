@@ -10,13 +10,14 @@ do deslocamento, pois o temporizador pode disparar antes desse frame.
 O enquadramento continua considerando os painéis. A chegada mantém os efeitos
 do cartão no prazo original, e o arraste manual cancela o passeio.
 
-`EventFocusBeacon` acrescenta um localizador pequeno ao elemento do pin
-selecionado. Não altera o `transform` usado pelo MapLibre para posicionar o pin.
-Consulta a camada de intensidade renderizada junto ao ponto: havendo pintura,
-retira o localizador; sem pintura, inclusive nos sismos fracos, mantém o pulso.
-Nos outros tipos usa o pin existente, sem inventar um epicentro para boletins
-regionais sem coordenadas. O pulso não recebe cliques e fica estático com a
-preferência de movimento reduzido. Não representa propagação nem alcance.
+`EventFocusBeacon` aplica agora o modelo 12: selo de vidro com reflexo e uma
+linha pulsante, ligado ao ponto selecionado. O selo permanece com ou sem
+pintura e mostra magnitude, tipo ou vento disponível conforme o evento.
+Não altera o `transform` usado pelo MapLibre para posicionar o pin. Nos outros
+tipos usa o pin existente, sem inventar um epicentro para boletins regionais
+sem coordenadas. Somente os elementos internos animam; com movimento reduzido
+ficam estáticos. Não representa propagação nem alcance. Detalhes em
+[glass-event-pins.md](glass-event-pins.md).
 
 Verificação: alinhamento das etapas em projeção plana/globo, aproximação no
 renderizador real e localização em desktop/celular, ocultação por pintura,
