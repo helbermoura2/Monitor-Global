@@ -9,13 +9,24 @@ function enter(id,camera,arrive){
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&eventoSelecionadoId===id;
- const ease=o=>{if(valid())map.easeTo({...o,bearing:0,pitch:0,padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,easing:t=>t*t*(3-2*t)});};
- const final=()=>{if(!valid())return;if(journey.arrive)journey.arrive();else ease(journey.camera);};
+ const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
+ const final=()=>{
+  if(!valid())return;
+  // A timer can run before the renderer's last pan frame. Finish that tiny
+  // residual at world scale, so it cannot turn into a large slide at close zoom.
+  if(ms===18000)map.jumpTo({center:journey.camera.center});
+  // flyTo spends the geographical correction high above the destination,
+  // including the latitude limits imposed by Mercator at whole-world zoom.
+  if(journey.arrive)journey.arrive();else ease(journey.camera,true);
+ };
  timers.push(setTimeout(()=>{if(!valid())return;const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();},ms));
  if(ms===6000){final();return ms;}
- const current=map.getCenter(),zoom=window.GlobePreview?.state().testing?Math.min(worldZoom(Math.max(-25,Math.min(25,current.lat))),worldZoom(Math.max(-25,Math.min(25,(Array.isArray(camera.center)?camera.center[1]:camera.center.lat))))):worldZoom();
- ease({center:[current.lng,Math.max(-25,Math.min(25,current.lat))],zoom});
- timers.push(setTimeout(()=>{const c=journey.camera.center,target=Array.isArray(c)?c:[c.lng,c.lat];ease({center:[target[0],Math.max(-25,Math.min(25,target[1]))],zoom});},6000));
+ // Align with the real destination while still high above the surface. Clamping
+ // its latitude made high-latitude events slide sideways during the descent.
+ const current=map.getCenter(),latitude=c=>Array.isArray(c)?c[1]:c.lat;
+ const zoom=window.GlobePreview?.state().testing?Math.min(worldZoom(current.lat),worldZoom(latitude(camera.center))):worldZoom();
+ ease({center:[current.lng,current.lat],zoom});
+ timers.push(setTimeout(()=>ease({center:journey.camera.center,zoom}),6000));
  timers.push(setTimeout(final,12000));return ms;
 }
 window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&p.id!==lastId)cancel();});
