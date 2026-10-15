@@ -370,7 +370,7 @@
   video.addEventListener('error',()=>{failed=true;});video.addEventListener('loadeddata',()=>{presented=true;if(wanted&&!document.hidden)play();});
   // Keep the last photographic frame through a loop seek or brief buffering.
   // The procedural reserve must not flash over an already presented photographic scene.
-  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','wind','tornado'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused)};
+  return {video,play,pause,resize,destroy,isReady:()=>!dead&&!failed&&(['flood','wind','tornado'].includes(cfg.type)?presented:video.readyState>=2&&!video.paused),__mgDebug:()=>({failed,dead,playing,wanted,presented,paused:video.paused,readyState:video.readyState})};
  }
  window.CardCinemaFilm={create,footage};
 })();
