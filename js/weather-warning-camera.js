@@ -23,11 +23,39 @@ async function zone(url){
  const task=(async()=>{const r=await fetchWithCorsFallback(url,6000);if(!r.ok)throw Error('Área oficial indisponível');const d=await r.json(),pts=geometryPoints(d.geometry);if(!pts.length)throw Error('Área sem geometria válida');zones.delete(url);zones.set(url,{points:pts,until:Date.now()+86400000});while(zones.size>64)zones.delete(zones.keys().next().value);return pts;})();
  inflight.set(url,task);try{return await task;}finally{inflight.delete(url);}
 }
+// Administrative reference bounds are refreshed server-side every six hours.
+// They locate a live Atom warning; they are never themselves weather alerts.
+let catalogue=null,catalogueUntil=0,cataloguePending=null;
+const codes=new Set('DE FR ES PT IT UK AT BE NL CH PL NO SE FI DK IE'.split(' '));
+const validBounds=b=>Array.isArray(b)&&b.length===2&&b.every(point)&&b[0][0]<b[1][0]&&b[0][1]<b[1][1];
+const areaName=s=>String(s||'').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR');
+async function reference(item){
+ if(!item.meteoalarmArea||!codes.has(item.countryCode))return null;
+ if(catalogueUntil<=Date.now()&&!cataloguePending){
+  cataloguePending=(async()=>{try{
+   const r=await fetch('data/meteoalarm-areas.json',{cache:'no-cache',signal:AbortSignal.timeout(6000)});
+   if(!r.ok)throw Error('Catálogo de áreas indisponível');
+   const d=await r.json();if(!d.countries||!d.areas)throw Error('Catálogo inválido');
+   catalogue=d;catalogueUntil=Date.now()+21600000;
+  }catch{catalogueUntil=Date.now()+60000;}finally{cataloguePending=null;}})();
+ }
+ if(cataloguePending)await cataloguePending;
+ const code=item.countryCode,rows=catalogue?.areas?.[code]||{},name=areaName(item.meteoalarmArea);
+ const matches=Object.entries(rows).filter(([key,row])=>areaName(key)===name&&validBounds(row.bb)&&Date.parse(row.verified)>=Date.now()-90*86400000);
+ if(matches.length===1)return {bounds:matches[0][1].bb,exact:true};
+ const b=catalogue?.countries?.[code];return validBounds(b)?{bounds:b,exact:false}:null;
+}
+function locationNote(item,text){
+ if(eventoSelecionadoId!==item.id)return;
+ let el=document.getElementById('pd-warning-location');
+ if(!el){const anchor=document.getElementById('pd-horario');if(!anchor)return;el=document.createElement('p');el.id='pd-warning-location';el.style.cssText='font-size:11px;line-height:1.45;color:#b6d9e5;margin:8px 0;text-align:center';el.setAttribute('role','status');anchor.insertAdjacentElement('afterend',el);}
+ el.textContent=text;
+}
 function localPoints(item){const pts=geometryPoints(item.warningGeometry);if(pts.length)return pts;return (item.municipalityLocations||[]).map(c=>c.coords).filter(point);}
 async function resolve(item,active=()=>true){
  const local=localPoints(item);if(local.length)return bounds(local);
  const urls=[...new Set((item.affectedZones||[]).map(zoneURL).filter(Boolean))].slice(0,40);
- if(!urls.length)return point(item.coords)?bounds([item.coords]):null;
+ if(!urls.length){if(point(item.coords))return bounds([item.coords]);const ref=await reference(item);return active()&&ref?.exact?ref.bounds:null;}
  const pts=[];for(let i=0;i<urls.length;i+=4){if(!active())return null;const rows=await Promise.allSettled(urls.slice(i,i+4).map(zone));for(const r of rows)if(r.status==='fulfilled')pts.push(...r.value);}
  // A failed area request never invents an epicenter or changes to a global view.
  return pts.length?bounds(pts):null;
@@ -51,6 +79,15 @@ function fit(b,id){
  if(root.EventCamera)root.EventCamera.enter(id,camera);
  else map.flyTo({...camera,duration:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true});return true;
 }
-async function focus(item){const token=++generation;const b=await resolve(item,()=>token===generation&&eventoSelecionadoId===item.id);if(token!==generation||eventoSelecionadoId!==item.id)return false;return fit(b,item.id);}
+async function focus(item){
+ const token=++generation,active=()=>token===generation&&eventoSelecionadoId===item.id;
+ let b=await resolve(item,active);if(!active())return false;
+ if(!b&&item.meteoalarmArea){
+  const ref=await reference(item);if(!active())return false;
+  if(ref){b=ref.bounds;locationNote(item,ref.exact?'Enquadramento da área oficial · Meteoalarm':'Visão geral: '+item.country+' · área exata indisponível. Consulte o boletim oficial.');}
+ }else if(b&&item.meteoalarmArea)locationNote(item,'Enquadramento da área oficial · Meteoalarm');
+ if(!b)locationNote(item,'Aviso sem localização verificável no mapa. Consulte a região descrita no boletim oficial.');
+ return fit(b,item.id);
+}
 root.WeatherWarningCamera={focus,resolve,bounds,geometryPoints,frame};
 })(typeof window!=='undefined'?window:globalThis);
