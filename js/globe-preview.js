@@ -36,6 +36,7 @@
   let left=0,right=w,top=0,bottom=h;
   const box=id=>{const e=document.getElementById(id);if(!e||getComputedStyle(e).display==='none'||getComputedStyle(e).visibility==='hidden')return null;const b=e.getBoundingClientRect();return b.width&&b.height?{left:b.left-mr.left,right:b.right-mr.left,top:b.top-mr.top,bottom:b.bottom-mr.top,width:b.width}:null;};
   for(const id of ['top-strip','latest-event-ticker']){const b=box(id);if(b&&b.top<h/2)top=Math.max(top,b.bottom);}
+  if(matchMedia('(max-width:700px) and (orientation:portrait)').matches)for(const e of document.querySelectorAll('.wave-front-status,.seismic-impact-status')){if(getComputedStyle(e).display!=='none'){const b=e.getBoundingClientRect();top=Math.max(top,b.bottom-mr.top);}}
   const sidebar=box('sidebar-left');if(sidebar&&sidebar.width<w*.5&&sidebar.left<w*.2)left=Math.max(left,sidebar.right);
   const card=box('painel-direito');if(card){if(card.width<w*.7&&card.left>w*.4)right=Math.min(right,card.left);else if(card.width>w*.8&&card.top>h*.35)bottom=Math.min(bottom,card.top);}
   const controls=box('globe-preview-status');if(controls&&controls.top>h/2)bottom=Math.min(bottom,controls.top-8);

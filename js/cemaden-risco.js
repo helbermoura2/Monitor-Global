@@ -412,16 +412,17 @@ function renderRedemetLayer() {
   map.addLayer({
     id: 'redemet-stations-layer', type: 'circle', source: 'redemet-stations-source',
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 8, 7, 12, 11, 16],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 6, 4, 7, 10, 11, 14],
       'circle-color': ['get', 'cor'], 'circle-stroke-color': '#fff',
-      'circle-stroke-width': 1.2, 'circle-opacity': .85
+      'circle-stroke-width': .8, 'circle-opacity': .65
     }
   });
   map.addLayer({
     id: 'redemet-stations-label', type: 'symbol', source: 'redemet-stations-source',
+    minzoom:7,
     layout: {
       'text-field': ['get', 'tempLabel'], 'text-size': 11, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-      'text-allow-overlap': true, 'text-ignore-placement': true
+      'text-allow-overlap': false, 'text-ignore-placement': false
     },
     paint: { 'text-color': '#0b1220' }
   });

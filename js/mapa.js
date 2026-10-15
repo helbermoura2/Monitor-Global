@@ -545,11 +545,14 @@ function syncAllMarkers() {
                 markerStores.quake.set(ev.id, new GL.Marker({ element: el }).setLngLat(ev.coords).addTo(map));
             }
             const marker=markerStores.quake.get(ev.id),position=marker.getLngLat();
+            marker.getElement().classList.toggle('map-pin-secondary',!selected);
+            marker.getElement().classList.toggle('map-pin-selected',selected);
             if(position.lng!==ev.coords[0]||position.lat!==ev.coords[1])marker.setLngLat(ev.coords);
             const visualKey=ev.mag+'|'+ev.place;
             if(marker.__mgQuakeVisualKey!==visualKey){
                 const el=marker.getElement(),size=ev.mag>=6?18:ev.mag>=5?14:ev.mag>=4?11:8,cor=getHexColor(ev.mag);
                 el.style.width=el.style.height=size+'px';el.style.background=cor;el.style.boxShadow=`0 0 ${size}px ${cor}`;
+                el.style.setProperty('--pin-color',cor);
                 el.setAttribute('aria-label', `Consultar sismo M${ev.mag.toFixed(1).replace('.', ',')} — ${window.EventPortuguese?.place(ev.place)||ev.place}`);
                 marker.__mgQuakeVisualKey=visualKey;
             }
@@ -588,6 +591,8 @@ function syncAllMarkers() {
                 store.get(item.id).update(item);
             }
             const marker=store.get(item.id).marker,position=marker.getLngLat();
+            marker.getElement().classList.toggle('map-pin-secondary',item.id!==eventoSelecionadoId);
+            marker.getElement().classList.toggle('map-pin-selected',item.id===eventoSelecionadoId);
             if(position.lng!==item.coords[0]||position.lat!==item.coords[1])marker.setLngLat(item.coords);
         });
         store.forEach((rec, id) => {
@@ -780,6 +785,7 @@ function syncAllMarkers() {
         markerStores.civil.clear();
     }
     window.InmetMunicipalities?.sync();
+    updateQuakeLabels();
     window.EventFocusBeacon?.refresh();
 }
 
