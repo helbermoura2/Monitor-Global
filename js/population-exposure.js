@@ -24,22 +24,29 @@
   return node;
  }
  function selected(job){return current===job&&typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId===job.item.id&&signature(job.item)===job.key;}
+ function brief(job,data){
+  if(!selected(job))return;
+  let el=document.getElementById('pd-exposure-brief');
+  if(!el){const anchor=document.getElementById('pd-horario');if(!anchor)return;el=document.createElement('button');el.type='button';el.id='pd-exposure-brief';el.style.cssText='display:block;width:100%;margin:8px 0;padding:9px 10px;border:1px solid #315365;border-radius:9px;background:rgba(7,29,44,.88);color:#d1eaf3;font-size:12px;line-height:1.4;text-align:center;white-space:normal;cursor:pointer';el.onclick=event=>{event.stopPropagation();const more=document.getElementById('pd-more-details');if(more?.hidden&&typeof togglePainelMaisDetalhes==='function')togglePainelMaisDetalhes();box()?.scrollIntoView({block:'nearest',behavior:'smooth'});};anchor.insertAdjacentElement('afterend',el);}
+  const available=valid(data),pending=data?.status==='pending';
+  el.dataset.status=available?'available':pending?'pending':'unavailable';
+  el.textContent=available?'👥 '+(Number(data.ranges[0].population)>0?'≈ ':'')+Math.round(Number(data.ranges[0].population)).toLocaleString('pt-BR')+' pessoas potencialmente expostas · III+ · EST'+(data.partial?' · parcial':''):pending?'👥 Estimativa de população: consultando…':'👥 Estimativa de população indisponível · ver detalhes';
+  el.title=available?(data.method==='pager'?'USGS PAGER / ShakeMap':'WorldPop · intensidade estimada pelo app')+' · População potencialmente exposta; não confirma quem sentiu o sismo ou danos.':data?.note||'Aguardando a estimativa de exposição populacional.';
+ }
  function paint(job,data){
   if(!selected(job))return;
-  const node=box();if(!node)return;
+  brief(job,data);const node=box();if(!node)return;
   if(valid(data)){
    node.className='';node.innerHTML=markup(data);cache.set(job.key,{data,until:Date.now()+(data.method==='pager'?300000:3600000)});
    if(cache.size>80)cache.delete(cache.keys().next().value);
    const flip=document.getElementById('pd-flip-grid-exposure');
    if(flip){flip.innerHTML=markup(data);const number=document.querySelector('#pd-flip-verso .pd-flip-verso-num'),sub=document.querySelector('#pd-flip-verso .pd-flip-verso-sub');if(number)number.textContent=count(data.ranges[0].population);if(sub)sub.textContent='população em área de tremor fraco ou maior · EST';}
-   let brief=document.getElementById('pd-exposure-brief');
-   if(!brief){const anchor=document.getElementById('pd-impact');if(anchor){brief=document.createElement('button');brief.type='button';brief.id='pd-exposure-brief';brief.onclick=event=>{event.stopPropagation();const more=document.getElementById('pd-more-details');if(more?.hidden&&typeof togglePainelMaisDetalhes==='function')togglePainelMaisDetalhes();node.scrollIntoView({block:'nearest',behavior:'smooth'});};anchor.insertAdjacentElement('afterend',brief);}}
-   if(brief)brief.textContent='👥 '+count(data.ranges[0].population)+' · população em área de tremor fraco ou maior · EST';
+
   }
   else {node.textContent=data.note||'População em grade indisponível; consulte abaixo a cobertura por localidades.';node.className='population-exposure-status';}
   window.SeismicFinalSummary?.refresh();
  }
- function cancel(){if(current){clearTimeout(current.timer);current.controller?.abort();}current=null;document.getElementById('pd-exposure-brief')?.remove();}
+ function cancel(preserveBrief=false){if(current){clearTimeout(current.timer);current.controller?.abort();}current=null;if(!preserveBrief)document.getElementById('pd-exposure-brief')?.remove();}
  window.cancelarExposicaoPopulacional=cancel;
  window.exposicaoPopulacionalDoEvento=item=>{const hit=cache.get(signature(item));return hit&&hit.until>Date.now()?hit.data:null;};
  window.renderExposicaoPopulacionalHTML=markup;
@@ -53,9 +60,9 @@
   try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error();const data=await r.json();return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
  };
  window.carregarExposicaoPopulacional=function(item){
-  cancel();if(!item||item.type!=='earthquake')return;
+  cancel();if(!item||!(item.type==='earthquake'||(!item.type&&item.mag!=null&&Number.isFinite(Number(item.mag)))))return;
   const key=signature(item),job={item,key,attempt:0,timer:null,controller:null};current=job;
-  const node=box();if(!node)return;node.className='';node.textContent='Consultando exposição populacional…';
+  brief(job,{status:'pending'});const node=box();if(!node)return;node.className='';node.textContent='Consultando exposição populacional…';
   const hit=cache.get(key);if(hit&&hit.until>Date.now()){paint(job,hit.data);return;}
   let url;
   try{
@@ -78,5 +85,6 @@
   }
   void poll();
  };
- document.addEventListener('visibilitychange',()=>{if(document.hidden)cancel();});
+ let resumeItem=null;
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){resumeItem=current?.item||null;cancel(true);}else{const item=resumeItem;resumeItem=null;if(item&&eventoSelecionadoId===item.id)window.carregarExposicaoPopulacional(window.EventStore?.getById(item.id)||item);}});
 })();

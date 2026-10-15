@@ -22,7 +22,7 @@ function paintImageIntensity(rgba,frame,ev,polygons){
   if(!mask[y*W+x])continue;
   const lng=frame.minLon+(x+step/2)/W*(frame.maxLon-frame.minLon),lat=frame.maxLat-(y+step/2)/H*(frame.maxLat-frame.minLat);
   let rgb;
-  if(grid){const mmi=globalThis.RuptureShakingModel.sample(grid,lng,lat);if(mmi===null||mmi<3)continue;rgb=globalThis.RuptureShakingModel.color(Math.round(mmi*2)/2).match(/\d+/g).map(Number);}
+  if(grid){const mmi=globalThis.RuptureShakingModel.sample(grid,lng,lat);if(mmi===null||mmi<(globalThis.RuptureShakingModel.minimumMmi||3))continue;rgb=globalThis.RuptureShakingModel.color(Math.round(mmi*2)/2).match(/\d+/g).map(Number);}
   else{const pga=model.pga(Number(ev.mag),Number(ev.depth)||0,distance(Number(ev.lat),Number(ev.lon),lat,lng));if(pga<.5)continue;
   const bands=[.5,1,2.1,5,11,26,60,140,321.8,740];let b=0;while(b+1<bands.length&&pga>=bands[b+1])b++;
   const value=Math.min(model.pga(Number(ev.mag),Number(ev.depth)||0,0),Math.sqrt(bands[b]*(bands[b+1]||bands[b])));
