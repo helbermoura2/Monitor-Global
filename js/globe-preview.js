@@ -58,7 +58,7 @@
  function open(){
   close();panel=document.createElement('section');panel.id='globe-preview-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Visualização do mapa');
   const title=document.createElement('h3');title.textContent='Visualização do mapa';panel.append(title);
-  const text=document.createElement('p');text.textContent='Experimente o globo com os mesmos eventos, pins e áreas pintadas. O céu acompanha o horário do site. As direções são calculadas; tamanhos e distâncias são ilustrativos. Astros podem ficar atrás da Terra ou fora da vista. O mapa plano continua sendo o padrão ao recarregar.';panel.append(text);
+  const text=document.createElement('p');text.textContent='Experimente o globo com os mesmos eventos, pins e áreas pintadas. O céu acompanha o horário do site. As direções são calculadas; tamanhos e distâncias são ilustrativos. Astros podem ficar atrás da Terra ou fora da vista. A Lua pode aparecer de dia e ficar abaixo do horizonte durante a noite. O mapa plano continua sendo o padrão ao recarregar.';panel.append(text);
   const hint=document.createElement('p');hint.className='globe-preview-current';hint.textContent='Atual: '+(mode==='globe'?'Globo · teste':'Mapa plano');panel.append(hint);
   for(const [value,label]of [['globe','Usar globo — teste'],['mercator','Usar mapa plano']]){
    const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-pressed',String(mode===value));b.onclick=()=>setMode(value);panel.append(b);

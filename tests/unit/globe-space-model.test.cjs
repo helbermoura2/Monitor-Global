@@ -32,3 +32,14 @@ test('celestial projection rotates with camera bearing without moving astronomic
  const view={...M.sphere(1,0,900),x:500,y:450,lng:0,lat:0,bearing:0},east=M.project([0,1,0],0,view),north=M.project([0,1,0],0,{...view,bearing:90});
  assert.ok(east.x>500);assert.equal(east.y,450);assert.ok(Math.abs(north.x-500)<1e-9);assert.ok(north.y<450);
 });
+
+test('02:31 BRT on 15 October: the Moon is over Australia and below the São Paulo horizon',()=>{
+ const t=new Date('2026-10-15T05:31:00Z'),moon=M.ephemeris(A,+t).bodies.find(b=>b.id==='Moon'),v=M.rotate(moon.direction,A.SiderealTime(t));
+ const lat=Math.asin(v[2])/rad,lng=Math.atan2(v[1],v[0])/rad;
+ assert.ok(lat>-28&&lat<-27);assert.ok(lng>145&&lng<147);assert.ok(moon.phase>.19&&moon.phase<.21);
+ const observer=new A.Observer(-23.55,-46.63,760),eq=A.Equator('Moon',t,observer,true,true),horizon=A.Horizon(t,observer,eq.ra,eq.dec,'normal');
+ assert.ok(horizon.altitude < -37&&horizon.altitude>-39);
+ // Full Moon is opposite the Sun; the crescent in this report is not.
+ const sun=M.ephemeris(A,+t).bodies.find(b=>b.id==='Sun'),elongation=Math.acos(Math.max(-1,Math.min(1,moon.direction.reduce((s,x,i)=>s+x*sun.direction[i],0))))/rad;
+ assert.ok(elongation<90);
+});

@@ -21,3 +21,7 @@ O instante é `Date.now()`, o mesmo relógio civil que alimenta o cabeçalho em 
 A área da Terra e os painéis ficam transparentes no canvas celeste, preservando mapas, pinturas, pins e leitura dos dados. O céu desaparece ao aproximar ou inclinar a câmera e é removido ao retornar ao plano. Atualiza no máximo cerca de 22 vezes por segundo durante movimento e uma vez por segundo em repouso; as efemérides são recalculadas uma vez por minuto. Em aba oculta não desenha. O DPR é limitado a 1,5.
 
 Referências dos testes independentes: equações solares NOAA (https://gml.noaa.gov/grad/solcalc/calcdetails.html), Lua cheia no eclipse de 21/01/2019 e Lua nova no eclipse solar de 08/04/2024. Os testes verificam também a geometria de enquadramento contra a projeção real do MapLibre no desktop/celular, relógio, remoção da camada celeste, arrasto e preservação das camadas oficiais e de tsunami.
+
+### Conferência da Lua na captura de 15/10/2026
+
+Às 02:31 BRT (05:31 UTC), o ponto sublunar calculado é aproximadamente 27,39° S / 145,90° E, na Austrália, com cerca de 20% da Lua iluminada. Para São Paulo (23,55° S / 46,63° O), a Lua está aproximadamente 38° abaixo do horizonte. A presença da Lua depende da fase e da geometria orbital; noite local não implica Lua acima do horizonte. O teste unitário conserva esse instante para detectar inversões de longitude ou aplicação indevida do fuso horário.
