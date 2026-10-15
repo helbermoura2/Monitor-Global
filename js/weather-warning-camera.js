@@ -32,15 +32,25 @@ async function resolve(item,active=()=>true){
  // A failed area request never invents an epicenter or changes to a global view.
  return pts.length?bounds(pts):null;
 }
-function fit(b,id){
- if(!b||!map)return false;const c=map.getContainer(),w=c.clientWidth||root.innerWidth,h=c.clientHeight||root.innerHeight,wide=w>900;
+// Compute the destination independently of the current globe orientation.
+// cameraForBounds/fitBounds on the globe can frame a remote region around the pole.
+function frame(b){
+ const c=map.getContainer(),w=c.clientWidth||root.innerWidth,h=c.clientHeight||root.innerHeight,wide=w>900;
  const padding={top:Math.min(wide?225:215,h*.25),bottom:Math.min(wide?60:300,h*.36),left:Math.min(wide?335:32,w*.27),right:Math.min(wide?380:32,w*.30)};
+ const y=lat=>(1-Math.log(Math.tan(Math.PI/4+Math.max(-85.05112878,Math.min(85.05112878,lat))*Math.PI/360))/Math.PI)/2;
+ const north=y(b[1][1]),south=y(b[0][1]),dx=Math.max(1e-8,(b[1][0]-b[0][0])/360),dy=Math.max(1e-8,south-north);
+ const zoom=Math.max(map.getMinZoom(),Math.min(8,Math.log2(Math.min(Math.max(1,w-padding.left-padding.right-32)/(512*dx),Math.max(1,h-padding.top-padding.bottom-32)/(512*dy)))));
+ const latitude=Math.atan(Math.sinh(Math.PI*(1-north-south)))*180/Math.PI;
+ return {center:[(b[0][0]+b[1][0])/2,latitude],zoom,padding,bearing:0,pitch:0};
+}
+function fit(b,id){
+ if(!b||!map)return false;
  clearTimeout(root.__mgRecenterT);clearTimeout(root.__mgRecenterAlertT);clearTimeout(root.__mgSoftFlyT);
  if(typeof userInteractingWithGlobe!=='undefined')userInteractingWithGlobe=true;
- const options={padding,maxZoom:8,pitch:0,bearing:0,duration:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true};
- if(root.EventCamera){const camera=map.cameraForBounds(b,options);root.EventCamera.enter(id,camera,()=>map.fitBounds(b,options));}
- else map.fitBounds(b,options);return true;
+ const camera=frame(b);
+ if(root.EventCamera)root.EventCamera.enter(id,camera);
+ else map.flyTo({...camera,duration:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true});return true;
 }
 async function focus(item){const token=++generation;const b=await resolve(item,()=>token===generation&&eventoSelecionadoId===item.id);if(token!==generation||eventoSelecionadoId!==item.id)return false;return fit(b,item.id);}
-root.WeatherWarningCamera={focus,resolve,bounds,geometryPoints};
+root.WeatherWarningCamera={focus,resolve,bounds,geometryPoints,frame};
 })(typeof window!=='undefined'?window:globalThis);
