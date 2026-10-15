@@ -33,13 +33,25 @@ for(const width of [1280,390])test.describe('globe '+width,()=>{
   const pins=await page.evaluate(()=>[...markerStores.quake].map(([id,m])=>{const b=m.getElement().getBoundingClientRect(),c=map.getContainer().getBoundingClientRect(),p=map.project(m.getLngLat());return {id,error:Math.hypot(b.x+b.width/2-c.x-p.x,b.y+b.height/2-c.y-p.y),visibility:getComputedStyle(m.getElement()).visibility};}));
   for(const p of pins)if(p.id!=='globe-2'){expect(p.error).toBeLessThan(2);expect(p.visibility).toBe('visible');}
   expect(pins.find(p=>p.id==='globe-2').visibility).toBe('hidden');
-  await page.getByRole('button',{name:'Ver planeta',exact:true}).click();await expect.poll(()=>page.evaluate(()=>Math.abs(map.getZoom()-0.5))).toBeLessThan(0.001);if(fs.existsSync('/tmp/globe-world-tile.jpg'))await page.waitForFunction(()=>map.isSourceLoaded('qa-world'),null,{timeout:5000});await page.waitForTimeout(500);await page.screenshot({path:'/tmp/globe-preview-'+width+'.png'});
+  await page.getByRole('button',{name:'Ver planeta',exact:true}).click();await expect.poll(()=>page.evaluate(()=>Math.abs(map.getZoom()-GlobePreview.worldZoom()))).toBeLessThan(0.001);await page.waitForFunction(()=>GlobeSpace.state().epoch&&document.getElementById('globe-space-canvas')?.dataset.epoch);
+  expect(await page.evaluate(()=>GlobeSpace.state().bodies.length)).toBe(9);expect(await page.evaluate(()=>getComputedStyle(document.getElementById('globe-space-canvas')).pointerEvents)).toBe('none');expect(await page.evaluate(()=>Math.abs(EventCamera.worldZoom()-GlobePreview.worldZoom()))).toBeLessThan(.001);expect(await page.evaluate(()=>Math.abs(Number(document.getElementById('globe-space-canvas').dataset.epoch)-Date.now()))).toBeLessThan(2000);
+  const framing=await page.evaluate(()=>{const c=map.getCenter(),p=map.project(c),r=GlobePreview.availableRadius().radius;let actual=0;for(const az of [0,90,180,270])for(let d=40;d<=100;d+=4){const q=destinoGeodesico(c.lat,c.lng,d*Math.PI/180*6371,az),s=map.project(q);actual=Math.max(actual,Math.hypot(s.x-p.x,s.y-p.y));}return {actual,r,zoom:map.getZoom()};});
+  expect(framing.actual).toBeGreaterThan(framing.r*.85);expect(framing.actual).toBeLessThan(framing.r*1.08);expect(framing.zoom).toBeGreaterThan(.7);
+  if(fs.existsSync('/tmp/globe-world-tile.jpg'))await page.waitForFunction(()=>map.isSourceLoaded('qa-world'),null,{timeout:5000});await page.waitForTimeout(500);await page.screenshot({path:'/tmp/globe-preview-'+width+'.png'});
+  // Rotate toward a calculated direction, rather than moving an astro to a fake slot.
+  await page.evaluate(()=>{
+   document.getElementById('mobile-notice-stack')?.remove();
+   const epoch=Date.now(),sun=GlobeSpace.state().bodies.find(b=>b.id==='Sun'),sidereal=Astronomy.SiderealTime(new Date(epoch)),v=GlobeSpaceModel.rotate(sun.direction,sidereal),lng=Math.atan2(v[1],v[0])*180/Math.PI,dec=Math.asin(v[2])*180/Math.PI,h=map.getContainer().clientHeight,r=GlobePreview.availableRadius().radius,size=innerWidth<600?14.45:17;
+   for(let offset=10;offset<60;offset+=.25){const lat=dec+offset,zoom=GlobePreview.worldZoom(lat),view={...GlobeSpaceModel.sphere(zoom,lat,h,map.getVerticalFieldOfView()),x:0,y:0,lng,lat},p=GlobeSpaceModel.project(sun.direction,sidereal,view);if(p&&p.y>r+size+10&&p.y<r+size+15){map.jumpTo({center:[lng,lat],zoom,bearing:0,pitch:0,padding:0});break;}}
+  });
+  await expect.poll(()=>page.locator('#globe-space-canvas').getAttribute('data-bodies')).toContain('Sun');await page.screenshot({path:'/tmp/globe-celestial-sun-'+width+'.png'});
+
   // Native drag must rotate the globe without being cancelled by preview code.
   const x=width===390?160:600,y=460,old=await page.evaluate(()=>map.getCenter().lng);
   if(width===390){const c=await page.context().newCDPSession(page);await c.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});for(let i=1;i<=10;i++){await c.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+70*i/10,y}]});await page.waitForTimeout(25);}await c.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
   else{await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+100,y,{steps:12});await page.mouse.up();}
   await expect.poll(()=>page.evaluate(old=>Math.abs(map.getCenter().lng-old),old)).toBeGreaterThan(5);
-  await page.getByRole('button',{name:'Voltar ao mapa plano',exact:true}).click();expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');await expect(page.locator('#globe-preview-status')).toHaveCount(0);expect(await page.evaluate(()=>map.getSky())).toBeUndefined();
+  await page.getByRole('button',{name:'Voltar ao mapa plano',exact:true}).click();expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');await expect(page.locator('#globe-preview-status')).toHaveCount(0);await expect(page.locator('#globe-space-canvas,#globe-space-note')).toHaveCount(0);expect(await page.evaluate(()=>map.getSky())).toBeUndefined();
   expect(await page.evaluate(()=>__globeErrors)).toEqual([]);
   await page.evaluate(()=>GlobePreview.setMode('globe'));await page.reload();await page.waitForFunction(()=>__mgMapReady);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('mercator');
  });

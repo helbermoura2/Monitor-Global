@@ -25,11 +25,26 @@
    if(next==='globe')map.setSky({'sky-color':'#030b17','horizon-color':'#75b8df','sky-horizon-blend':0.08,'fog-color':'#10243a','fog-ground-blend':0,'horizon-fog-blend':0,'atmosphere-blend':['interpolate',['linear'],['zoom'],0,1,4,0]});
    else map.setSky(copy(originalSky));
    mode=next;document.body.classList.toggle('map-globe-test',mode==='globe');
-   refresh();close();map.triggerRepaint();return true;
+   refresh();close();if(mode==='globe')window.GlobeSpace?.start();else window.GlobeSpace?.stop();map.triggerRepaint();return true;
   } catch(error){
    try{map.setProjection({type:mode});if(mode==='mercator')map.setSky(copy(originalSky));}catch(_){}
    message('Não foi possível trocar a visualização. O mapa anterior foi mantido.');return false;
   }
+ }
+ function availableRadius(){
+  const container=map.getContainer(),mr=container.getBoundingClientRect(),w=mr.width,h=mr.height;
+  let left=0,right=w,top=0,bottom=h;
+  const box=id=>{const e=document.getElementById(id);if(!e||getComputedStyle(e).display==='none'||getComputedStyle(e).visibility==='hidden')return null;const b=e.getBoundingClientRect();return b.width&&b.height?{left:b.left-mr.left,right:b.right-mr.left,top:b.top-mr.top,bottom:b.bottom-mr.top,width:b.width}:null;};
+  for(const id of ['top-strip','latest-event-ticker']){const b=box(id);if(b&&b.top<h/2)top=Math.max(top,b.bottom);}
+  const sidebar=box('sidebar-left');if(sidebar&&sidebar.width<w*.5&&sidebar.left<w*.2)left=Math.max(left,sidebar.right);
+  const card=box('painel-direito');if(card){if(card.width<w*.7&&card.left>w*.4)right=Math.min(right,card.left);else if(card.width>w*.8&&card.top>h*.35)bottom=Math.min(bottom,card.top);}
+  const controls=box('globe-preview-status');if(controls&&controls.top>h/2)bottom=Math.min(bottom,controls.top-8);
+  const radius=Math.max(45,Math.min(w/2-left,right-w/2,h/2-top,bottom-h/2)-18);
+  return {radius,height:h};
+ }
+ function worldZoom(latitude=map.getCenter().lat){
+  const area=availableRadius();
+  return Math.max(map.getMinZoom(),Math.min(3.8,GlobeSpaceModel.fitZoom(area.radius,latitude,area.height,map.getVerticalFieldOfView())));
  }
  function overview(){
   if(!ready()||mode!=='globe')return;
@@ -38,12 +53,12 @@
   if(typeof waveCamAbortHandler==='function')waveCamAbortHandler({originalEvent:{type:'globe-overview'}});
   if(typeof stopMapCamera==='function')stopMapCamera();
   const c=map.getCenter();
-  map.easeTo({center:[c.lng,Math.max(-65,Math.min(65,c.lat))],zoom:0.5,bearing:0,pitch:0,padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:4500,essential:true});
+  map.easeTo({center:[c.lng,Math.max(-65,Math.min(65,c.lat))],zoom:worldZoom(Math.max(-65,Math.min(65,c.lat))),bearing:0,pitch:0,padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:4500,essential:true});
  }
  function open(){
   close();panel=document.createElement('section');panel.id='globe-preview-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Visualização do mapa');
   const title=document.createElement('h3');title.textContent='Visualização do mapa';panel.append(title);
-  const text=document.createElement('p');text.textContent='Experimente o globo com os mesmos eventos, pins e áreas pintadas. O mapa plano continua sendo o padrão ao recarregar.';panel.append(text);
+  const text=document.createElement('p');text.textContent='Experimente o globo com os mesmos eventos, pins e áreas pintadas. O céu acompanha o horário do site. As direções são calculadas; tamanhos e distâncias são ilustrativos. Astros podem ficar atrás da Terra ou fora da vista. O mapa plano continua sendo o padrão ao recarregar.';panel.append(text);
   const hint=document.createElement('p');hint.className='globe-preview-current';hint.textContent='Atual: '+(mode==='globe'?'Globo · teste':'Mapa plano');panel.append(hint);
   for(const [value,label]of [['globe','Usar globo — teste'],['mercator','Usar mapa plano']]){
    const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-pressed',String(mode===value));b.onclick=()=>setMode(value);panel.append(b);
@@ -52,5 +67,5 @@
  }
  document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
  window.addEventListener('pagehide',close);
- window.GlobePreview={open,close,setMode,overview,state:()=>({mode,testing:mode==='globe'})};
+ window.GlobePreview={open,close,setMode,overview,worldZoom,availableRadius,state:()=>({mode,testing:mode==='globe'})};
 })();
