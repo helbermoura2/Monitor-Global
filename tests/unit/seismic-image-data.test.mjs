@@ -61,3 +61,11 @@ test('official camera retains epicenter anchor and covers non-circular strong fo
  assert.deepEqual(point.map(Math.round),[400,550]);
  assert(frame.minLon<=-81.5&&frame.maxLon>=-79&&frame.minLat<=7&&frame.maxLat>=9);
 });
+test('weak official grids below III still paint images, with blue tones and their actual extent',()=>{
+ const grid={nx:3,ny:3,x0:-82,x1:-79,y0:7,y1:9,values:[1.6,2,2.5,1.6,2,2.5,1.6,2,2.5]};
+ const event={mag:5.7,depth:269,lat:7.6,lon:-81,shaking:{status:'available',grid}};
+ const frame={width:80,height:80,minLon:-82,maxLon:-79,minLat:7,maxLat:9};
+ const pixels=new Uint8Array(80*80*4).fill(90),land=[[[[-82,7],[-79,7],[-79,9],[-82,9],[-82,7]]]];
+ assert(paintImageIntensity(pixels,frame,event,land)>0);const i=(40*80+40)*4;assert(pixels[i+2]>pixels[i],'Weak published shaking remains blue');
+ const f=imageMapFrame(event);assert(f.minLon<=grid.x0&&f.maxLon>=grid.x1&&f.minLat<=grid.y0&&f.maxLat>=grid.y1);
+});
