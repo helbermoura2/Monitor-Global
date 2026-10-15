@@ -208,6 +208,9 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 #fc-backdrop { z-index: 11990 !important; }
 }
 .quake-dot { position: relative; border: 2px solid #fff; border-radius: 50%; cursor: pointer; }
+.event-focus-beacon { position:absolute; left:50%; top:50%; width:34px; height:34px; margin:-17px 0 0 -17px; border:2px solid var(--beacon-color,#6de4f5); border-radius:50%; box-sizing:border-box; pointer-events:none; animation:event-focus-beacon 2.4s ease-out infinite; }
+@keyframes event-focus-beacon { 0% {transform:scale(.65);opacity:.9} 85%,100% {transform:scale(1.65);opacity:0} }
+@media (prefers-reduced-motion:reduce) { .event-focus-beacon { animation:none; opacity:.8; } }
 /* Pontinho discreto pros tipos "outros" (furacão, tufão, vulcão, tornado,
    tempestade, vento, enchente, alerta civil) quando NÃO estão em foco — ver
    marcarFocoOuPonto em mapa.js. O ícone grande (emoji+nome) só aparece pro

@@ -780,6 +780,7 @@ function syncAllMarkers() {
         markerStores.civil.clear();
     }
     window.InmetMunicipalities?.sync();
+    window.EventFocusBeacon?.refresh();
 }
 
 
