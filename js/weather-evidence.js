@@ -46,10 +46,11 @@
     window.__rainOutlook=window.RainbowNowcast?.outlook(weatherLoc)||window.RainOutlook?.summarize({forecast:valid?forecast:null,loc:weatherLoc,now:Date.now()});
     window.__rainbowStatus=window.RainbowNowcast?.status(weatherLoc);
     const rain=$('sp-rain-eta'),rainChip=$('sp-rain-eta-chip'),outlook=window.__rainOutlook;
-    if(rain&&rain.textContent!==(outlook?.header||'Previsão indisponível'))rain.textContent=outlook?.header||'Previsão indisponível';
+    const rainText=outlook?.status&&outlook.status!=='unknown'?outlook.header:fetching?'Chuva: carregando':'Chuva: previsão indisponível';if(rain&&rain.textContent!==rainText)rain.textContent=rainText;
     const ico=$('sp-rain-eta-ico'),icon=outlook?.provider==='rainbow'?(outlook.status==='now'?'🌧️':outlook.status==='soon'?'🌦️':'⏱️'):'⏱️';if(ico&&ico.textContent!==icon)ico.textContent=icon;
     const badge=rainChip?.querySelector('small'),caption=outlook?.provider==='rainbow'?'chuva · por minuto':'chuva · modelo';if(badge&&badge.textContent!==caption)badge.textContent=caption;
-    if(rainChip){rainChip.title=(outlook?.detail||'Previsão indisponível')+' · '+(outlook?.source||'Modelos');rainChip.setAttribute('aria-label',rainChip.title);}
+    if(rainChip){rainChip.dataset.rainDetail=outlook?.detail||'Previsão de chuva indisponível';rainChip.title=(outlook?.detail||'Previsão indisponível')+' · '+(outlook?.source||'Modelos');rainChip.setAttribute('aria-label',rainChip.title);}
+    window.WeatherDataStatus?.record('rain',outlook?.status&&outlook.status!=='unknown'?'updated':fetching?'loading':forecast&&!valid?'stale':'error',{at:outlook?.consultedAt||forecast?.at,source:outlook?.source||'Previsão de chuva',loc:{...weatherLoc}});
     window.WeatherPanel?.update();
     window.RainArrivalNotice?.consider(outlook);
     entries.push(['PREVISÃO · COMPARAÇÃO DE MODELOS',valid?forecast.agreement+' · '+forecast.min.toFixed(1).replace('.', ',')+'–'+forecast.max.toFixed(1).replace('.', ',')+' mm nas próximas ~6 h. '+forecast.rows.map(x=>x.name+': '+x.total.toFixed(1).replace('.', ',')+' mm').join(' · ')+'. Consulta '+new Date(forecast.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'. Previsão, não certeza; não determina horário exato nem risco de alagamento.':'Comparação indisponível ou desatualizada. A previsão individual abaixo continua identificada como modelo.']);
@@ -58,11 +59,11 @@
   }
   async function refresh() {
     if(typeof weatherLoc==='undefined' || !weatherLoc)return;
-    update();if(fetching)return;
+    if(fetching)return;
     const loc={...weatherLoc};
     const rainbowTask=window.RainbowNowcast?.refresh(loc);
     if(forecast && samePlace(forecast.loc,loc) && fresh(forecast.at,Date.now(),5)){await rainbowTask;update();return;}
-    fetching=true;
+    fetching=true;update();
     const metarTask=(async()=>{
       try{
         if(typeof workerBaseUrl!=='function')return;

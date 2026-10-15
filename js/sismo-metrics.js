@@ -12,6 +12,8 @@ function getHistoricoRegional(lat, lng, raio = 500, dias = 30) {
     };
 }
 function estimarMercalli(m, d) {
+    if(window.SeismicCinema?.intensitySummary)return window.SeismicCinema.intensitySummary({mag:m,depth:d});
+    if(m==null||d==null||!Number.isFinite(Number(m))||!Number.isFinite(Number(d)))return {nivel:'Intensidade não informada',desc:'Sem dados suficientes para estimar a intensidade.',cor:'#94a3b8',kind:'unavailable'};
     const b = m - Math.max(0, d) / 50;
     if (b < 2) return { nivel: "I - II", desc: "Não sentido.", cor: "#4ade80" };
     if (b < 4) return { nivel: "III - IV", desc: "Vibração leve.", cor: "#facc15" };

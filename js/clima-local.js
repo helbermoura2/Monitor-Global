@@ -184,6 +184,7 @@ function addNowcastAlert(texto, sev, opts) {
 }
 
 async function fetchSPWeather() {
+    if(typeof fetchProSP==='function')return fetchProSP();
     const rainbow=await window.RainbowWeather?.refresh();
     if(rainbow&&window.RainbowWeather.applyCurrent(rainbow))return;
     // Antes buscava uma grade de 9 pontos só pra usar o [0] — desnecessário pra esse
@@ -332,45 +333,51 @@ async function fetchSPAirQuality() {
 }
 
 async function fetchSPForecast() {
+    const statusLoc={...weatherLoc};window.WeatherDataStatus?.record('forecast','loading',{loc:statusLoc});
     const strip = document.getElementById('fc-strip');
     const hourlyEl = document.getElementById('weather-hourly');
     const params = 'hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=5&forecast_hours=18&timezone=auto';
     try {
         const rainbow=await window.RainbowWeather?.refresh();
         const d=rainbow?window.RainbowWeather.forecastAdapter(rainbow):await (await fetchWithCorsFallback(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&${params}`)).json();
+        if(Math.abs(statusLoc.lat-weatherLoc.lat)>.02||Math.abs(statusLoc.lng-weatherLoc.lng)>.02)return;
         const forecastSource=d.rainbow?'Rainbow Weather':'Open-Meteo';
         const dl = d && d.daily, h = d && d.hourly;
-        if (!dl || !Array.isArray(dl.time) || !h || !Array.isArray(h.time)) throw new Error('sem previsão detalhada');
+        if (!dl || !Array.isArray(dl.time) || !dl.time.length || !h || !Array.isArray(h.time) || !h.time.length || !h.temperature_2m?.some(v=>v!=null&&Number.isFinite(Number(v))) || !dl.temperature_2m_max?.some(v=>v!=null&&Number.isFinite(Number(v)))) throw new Error('sem previsão detalhada');
+        const number=v=>v!=null&&String(v).trim()!==''&&Number.isFinite(Number(v))?Number(v):null;
+        const tempValue=v=>number(v)==null?'—':Math.round(number(v))+'°';
+        const forecastTime=t=>new Date(window.WeatherDataStatus?.modelTime(t,d.utc_offset_seconds)??Date.parse(t));
+        if(!h.time.some(t=>forecastTime(t).getTime()>=Date.now()-3600000))throw Error('previsão expirada');
         let html = '';
         for (let i = 0; i < dl.time.length; i++) {
             const dow = new Date(dl.time[i] + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
             const prob = dl.precipitation_probability_max && dl.precipitation_probability_max[i] != null ? `${dl.precipitation_probability_max[i]}%` : '—';
             const mm = dl.precipitation_sum && dl.precipitation_sum[i] != null ? `${Number(dl.precipitation_sum[i]).toFixed(1).replace('.', ',')}mm` : '—';
-            html += `<div class="fc-day"><div class="fc-dow">${i === 0 ? 'hoje' : dow}</div><div class="fc-ico">${weatherEmoji(dl.weather_code[i])}</div><div class="fc-max">${Math.round(dl.temperature_2m_max[i])}°</div><div class="fc-min">${Math.round(dl.temperature_2m_min[i])}°</div><div class="fc-rain">💧${prob}</div><div class="fc-rain">${mm}</div></div>`;
+            html += `<div class="fc-day"><div class="fc-dow">${i === 0 ? 'hoje' : dow}</div><div class="fc-ico">${dl.weather_code?.[i]!=null?weatherEmoji(dl.weather_code[i]):'—'}</div><div class="fc-max">${tempValue(dl.temperature_2m_max?.[i])}</div><div class="fc-min">${tempValue(dl.temperature_2m_min?.[i])}</div><div class="fc-rain">💧${prob}</div><div class="fc-rain">${mm}</div></div>`;
         }
         if (strip) strip.innerHTML = html;
         const now = Date.now();
-        const forecastTime=t=>new Date(Date.parse(t+'Z')-Number(d.utc_offset_seconds||0)*1000);
         let idx = h.time.findLastIndex(t => forecastTime(t).getTime() <= now);
         if (idx < 0) idx = 0;
-        const pNow = Number(h.precipitation_probability[idx] || 0);
-        const mmNow = Number(h.precipitation[idx] || 0);
-        const gustNow = Number(h.wind_gusts_10m[idx] || 0);
-        const rainIndex = h.precipitation_probability.findIndex((p, i) => i >= idx && Number(p || 0) >= 40 && Number(h.precipitation[i] || 0) >= 0.1);
-        const next2 = h.precipitation.slice(idx,idx+2).reduce((a,v)=>a+Number(v||0),0), next6 = h.precipitation.slice(idx,idx+6).reduce((a,v)=>a+Number(v||0),0);
+        const pNow = number(h.precipitation_probability?.[idx]);
+        const mmNow = number(h.precipitation?.[idx]);
+        const gustNow = number(h.wind_gusts_10m?.[idx]);
+        const rainIndex = (h.precipitation_probability||[]).findIndex((p, i) => i >= idx && Number(p || 0) >= 40 && Number(h.precipitation[i] || 0) >= 0.1);
+        const total=n=>{const values=h.precipitation?.slice(idx,idx+n)||[];return values.length===n&&values.every(v=>number(v)!=null)?values.reduce((a,v)=>a+number(v),0).toFixed(1).replace('.', ',')+' mm':'—';};
+        const next2=total(2),next6=total(6);
         const temp6 = h.temperature_2m[idx+6]!=null ? Math.round(Number(h.temperature_2m[idx+6]))+'°' : '--';
-        safeText('weather-trend-2h',next2.toFixed(1).replace('.', ',')+' mm'); safeText('weather-trend-6h',next6.toFixed(1).replace('.', ',')+' mm'); safeText('weather-trend-temp',temp6);
+        safeText('weather-trend-2h',next2); safeText('weather-trend-6h',next6); safeText('weather-trend-temp',temp6);
         const arrival = document.getElementById('weather-arrival');
         const title = document.getElementById('weather-arrival-title');
         const detail = document.getElementById('weather-arrival-detail');
         const probEl = document.getElementById('weather-prob'), mmEl = document.getElementById('weather-mm1'), gustEl = document.getElementById('weather-gust');
-        if (probEl) probEl.textContent = `${pNow}%`;
-        if (mmEl) mmEl.textContent = `${mmNow.toFixed(1).replace('.', ',')} mm`;
-        if (gustEl) gustEl.textContent = `${Math.round(gustNow)} km/h`;
+        if (probEl) probEl.textContent = pNow==null?'—':`${pNow}%`;
+        if (mmEl) mmEl.textContent = mmNow==null?'—':`${mmNow.toFixed(1).replace('.', ',')} mm`;
+        if (gustEl) gustEl.textContent = gustNow==null?'—':`${Math.round(gustNow)} km/h`;
         if (arrival) arrival.className = 'weather-arrival ' + (pNow >= 70 ? 'alert' : pNow >= 40 ? 'warn' : 'ok');
         const summary = document.getElementById('weather-summary-text'), summaryMeta = document.getElementById('weather-summary-meta');
-        const summaryMain = rainIndex >= 0 ? 'Possibilidade de chuva nas próximas horas (modelo)' : 'Pouco ou nenhum acumulado previsto nas próximas horas (modelo)';
-        if(summary) summary.textContent = `${summaryMain}; ${pNow}% na hora atual; rajadas de ${Math.round(gustNow)} km/h.`;
+        const summaryMain = mmNow==null||pNow==null?'Previsão de chuva incompleta nesta hora':rainIndex >= 0 ? 'Possibilidade de chuva nas próximas horas (modelo)' : 'Pouco ou nenhum acumulado previsto nas próximas horas (modelo)';
+        if(summary) summary.textContent = `${summaryMain}; ${pNow==null?'probabilidade indisponível':pNow+'%'} na hora atual; rajadas ${gustNow==null?'indisponíveis':'de '+Math.round(gustNow)+' km/h'}.`;
         if(summaryMeta) summaryMeta.textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · previsão horária ${forecastSource}`;
         setWeatherConfidence(rainIndex>=0?'model':'model','MODELO');
         if (rainIndex >= 0) {
@@ -381,22 +388,26 @@ async function fetchSPForecast() {
             // Painel de clima continua mostrando a probabilidade com rótulo de modelo.
             try { clearModelRainListAlerts(); applyFilters(); } catch (e) {}
         } else {
-            if (title) title.textContent = pNow >= 40 ? `🌦️ Possibilidade de chuva em ${weatherLoc.nome}` : `☀️ Sem chuva relevante nas próximas horas`;
-            if (detail) detail.textContent = `${pNow}% na hora atual · acumulado estimado de ${mmNow.toFixed(1).replace('.', ',')} mm · rajada ${Math.round(gustNow)} km/h`;
+            if (title) title.textContent = pNow==null||mmNow==null?'Previsão de chuva incompleta nesta hora':pNow >= 40 ? `🌦️ Possibilidade de chuva em ${weatherLoc.nome}` : `☀️ Sem chuva relevante nas próximas horas`;
+            if (detail) detail.textContent = `${pNow==null?'Probabilidade indisponível':pNow+'% na hora atual'} · acumulado ${mmNow==null?'indisponível':mmNow.toFixed(1).replace('.', ',')+' mm'} · rajada ${gustNow==null?'indisponível':Math.round(gustNow)+' km/h'}`;
         }
         if (hourlyEl) {
             hourlyEl.innerHTML = h.time.slice(idx, idx + 12).map((t, j) => {
-                const i = idx + j, dt = forecastTime(t), pp = Math.round(Number(h.precipitation_probability[i] || 0));
-                return `<div class="weather-hour ${j === 0 ? 'now' : ''}" title="Previsão ${forecastSource}"><div class="weather-hour-time">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div><div class="weather-hour-icon">${weatherEmoji(Number(h.weather_code[i] || 0))}</div><div class="weather-hour-temp">${Math.round(Number(h.temperature_2m[i] || 0))}°</div><div class="weather-hour-rain">💧${pp}%</div><div class="weather-hour-gust">💨${Math.round(Number(h.wind_gusts_10m[i] || 0))} km/h</div></div>`;
+                const i = idx + j, dt = forecastTime(t), pp = number(h.precipitation_probability?.[i]);
+                return `<div class="weather-hour ${j === 0 ? 'now' : ''}" title="Previsão ${forecastSource}"><div class="weather-hour-time">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div><div class="weather-hour-icon">${h.weather_code?.[i]!=null?weatherEmoji(Number(h.weather_code[i])):'—'}</div><div class="weather-hour-temp">${tempValue(h.temperature_2m?.[i])}</div><div class="weather-hour-rain">💧${pp==null?'—':pp+'%'}</div><div class="weather-hour-gust">💨${number(h.wind_gusts_10m?.[i])==null?'—':Math.round(number(h.wind_gusts_10m[i]))+' km/h'}</div></div>`;
             }).join('');
         }
         const fu = document.getElementById('fc-update');
         if (fu) fu.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        window.WeatherDataStatus?.record('forecast','updated',{at:d.generatedAt||Date.now(),source:forecastSource,loc:statusLoc});
     } catch (e) {
-        if (strip) strip.innerHTML = '<div style="font-size:10px;color:#64748b;padding:6px;">Previsão indisponível</div>';
+        if(Math.abs(statusLoc.lat-weatherLoc.lat)>.02||Math.abs(statusLoc.lng-weatherLoc.lng)>.02)return;
+        window.WeatherDataStatus?.record('forecast','error',{loc:statusLoc});
+        for(const id of ['weather-trend-2h','weather-trend-6h','weather-trend-temp','fc-update']){const el=document.getElementById(id);if(el)el.textContent='—';}
+        if (strip) strip.innerHTML = '<div style="font-size:10px;color:#64748b;padding:6px;">Previsão horária indisponível</div>';
         if (hourlyEl) hourlyEl.innerHTML = '<span class="weather-loading">Previsão horária indisponível.</span>';
         const title = document.getElementById('weather-arrival-title');
-        if (title) title.textContent = '⚠️ Dados meteorológicos indisponíveis';
+        if (title) title.textContent = 'Previsão de chuva indisponível';
     }
 }
 

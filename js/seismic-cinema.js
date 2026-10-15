@@ -6,7 +6,7 @@
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const knownIntensity=new Map();let job=null,seq=0,dialog=null,previewBar=null;
  const reduced=()=>root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- const roman=n=>['I','II','III','IV','V','VI','VII','VIII','IX','X'][clamp(Math.round(n),1,10)-1];
+ const roman=n=>['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][clamp(Math.round(n),1,12)-1];
  // Same hypocentral model as population-exposure-worker.mjs (Allen et al., 2012).
  // This is the epicentral estimate, not shaking at the viewer's location.
  function estimate(mag,depth,distance=0){
@@ -17,8 +17,8 @@
  function profile(item,mode='manual'){
   const mag=clamp(Number(item.mag)||0,0,10),depth=Number.isFinite(Number(item.depth))?Math.max(0,Number(item.depth)):10;
   const known=knownIntensity.get(item.id);
-  const reported=[known?.value,item.maxmmi,item.mmi].find(x=>x!=null&&Number.isFinite(Number(x))&&Number(x)>0);
-  const mmi=reported!=null?clamp(Number(reported),1,10):estimate(mag,depth);
+  const reported=[known?.value,item.sourceMmi,item.maxmmi,item.mmi].find(x=>x!=null&&String(x).trim()!==''&&Number.isFinite(Number(x))&&Number(x)>=1&&Number(x)<=12);
+  const mmi=reported!=null?clamp(Number(reported),1,12):estimate(mag,depth);
   const full=mag>=6&&mode!=='auto',strength=clamp((mmi-2)/6,0,1);
   const tier=mag>=8?3:mag>=7?2:mag>=6?1:0;
   const duration=full?16000:1200+strength*(mode==='auto'?3600:5200);
@@ -201,8 +201,8 @@
   dialog.querySelectorAll('select').forEach(s=>s.onchange=update);dialog.querySelector('#seismic-demo-play').onclick=()=>{const item=current(),mode=dialog.querySelector('#seismic-demo-mode').value;close();play(item,mode,true);};
   document.body.append(dialog);update();dialog.querySelector('#seismic-demo-mag').focus();
  }
- const api={profile,estimate,play,stop,openDemo,closeDemo(){stop();dialog?.remove();dialog=null;},intensitySummary(item){const p=profile(item,'auto'),n=clamp(Math.round(p.mmi),1,10);return {nivel:roman(p.mmi),desc:['Não perceptível','Muito fraco','Fraco','Leve','Moderado','Forte','Muito forte','Severo','Violento','Extremo'][n-1]+'.',cor:n<3?'#4ade80':n<5?'#facc15':n<7?'#fb923c':'#ef4444'};},state:()=>job?{...job.profile,demo:job.demo}:null,
-  recordIntensity(id,value,source){if(id!=null&&Number.isFinite(Number(value))&&Number(value)>0){knownIntensity.set(id,{value:Number(value),source});if(knownIntensity.size>200)knownIntensity.delete(knownIntensity.keys().next().value);}}};
+ const api={profile,estimate,play,stop,openDemo,closeDemo(){stop();dialog?.remove();dialog=null;},intensitySummary(item){const p=profile(item,'auto'),reported=!p.source.startsWith('Estimativa');if(!reported&&(item.mag==null||item.depth==null||String(item.mag).trim()===''||String(item.depth).trim()===''||!Number.isFinite(Number(item.mag))||!Number.isFinite(Number(item.depth))))return {nivel:'Intensidade não informada',desc:'Sem dados suficientes para estimar a intensidade.',cor:'#94a3b8',kind:'unavailable'};const n=clamp(Math.round(p.mmi),1,12);return {kind:reported?'official':'estimated',source:p.source,nivel:roman(p.mmi),desc:['Não perceptível','Muito fraco','Fraco','Leve','Moderado','Forte','Muito forte','Severo','Violento','Extremo','Extremo','Extremo'][n-1]+'.',cor:n<3?'#4ade80':n<5?'#facc15':n<7?'#fb923c':'#ef4444'};},state:()=>job?{...job.profile,demo:job.demo}:null,
+  recordIntensity(id,value,source){if(id!=null&&value!=null&&String(value).trim()!==''&&Number.isFinite(Number(value))&&Number(value)>=1&&Number(value)<=12){knownIntensity.set(id,{value:Number(value),source});if(knownIntensity.size>200)knownIntensity.delete(knownIntensity.keys().next().value);}}};
  root.SeismicCinema=api;
  root.triggerSiteChaos=(mag,context={})=>play(context.item||{mag,depth:10},context.mode||'manual');
  document.documentElement.classList.add('mg-seismic-managed');

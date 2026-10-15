@@ -23,13 +23,14 @@ async function refresh(){
 }
 const current=d=>d?.hourly.find(p=>p.start<=Date.now()&&p.start+3600000>Date.now());
 function applyCurrent(data){
- if(!same(data?.loc,loc()))return false;const p=current(data);if(!p)return false;
+ if(!same(data?.loc,loc())||!data?.ok||!(data.expiresAt>Date.now())||!Number.isFinite(data.generatedAt)||Date.now()-data.generatedAt>90*60000)return false;const p=current(data);if(!p||!['temperature','feels','gust','humidity','amount'].every(k=>window.WeatherDataStatus?.valid(p[k])??(p[k]!=null&&Number.isFinite(p[k]))))return false;
  const set=(id,value)=>{const el=document.getElementById(id);if(el){el.textContent=value;el.title='Previsão horária · Rainbow Weather';}};
  const num=n=>n==null?'—':Math.round(n),city=weatherLoc.nome||'São Paulo';
  set('sp-live-city',city.toUpperCase());if(typeof siglaCidade==='function')set('sp-city-name',siglaCidade(city));
  set('sp-live-temp',num(p.temperature)+'°');set('sp-live-feels','sens '+num(p.feels)+'°');set('sp-live-gust',num(p.gust)+' km/h');set('sp-live-hum',num(p.humidity)+'%');set('sp-live-rain',p.amount.toLocaleString('pt-BR',{maximumFractionDigits:1})+' mm previstos/h');
  set('kpi-temp',num(p.temperature)+'°');set('kpi-feels','sens '+num(p.feels)+'°');set('kpi-wind','💨 '+num(p.gust)+' km/h');set('kpi-wx-icon',p.chance>=50?'🌧️':'🌤️');
  window.__proWeather={temp:p.temperature,feels:p.feels,gust:p.gust,rain:p.amount,hum:p.humidity,code:p.chance>=50?61:2,source:'Rainbow Weather',forecast:true};
+ window.WeatherDataStatus?.record('current','updated',{at:data.generatedAt,sourceAt:p.start,source:'Rainbow Weather · condições modeladas',loc:data.loc});
  if(typeof syncMobileWeather==='function')syncMobileWeather();if(typeof updateRisk==='function')updateRisk();return true;
 }
 const codes={Clear:0,MostlyClear:1,PartlyCloudy:2,MostlyCloudy:3,Cloudy:3,Foggy:45,Haze:45,Drizzle:51,Rain:61,HeavyRain:65,Thunderstorms:95,StrongStorms:95,ScatteredThunderstorms:95,IsolatedThunderstorms:95,Snow:71,HeavySnow:75};
