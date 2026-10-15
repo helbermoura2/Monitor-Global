@@ -11,3 +11,8 @@
    No teste ficam ocultos, em vez de transparecer através da Terra. */
 .map-globe-test .maplibregl-marker[style*="opacity: 0.2;"] { visibility:hidden; pointer-events:none!important; }
 @media(max-width:600px){ #globe-preview-status { bottom:104px; gap:6px; padding:8px; } #globe-preview-status strong { max-width:56px; white-space:normal; } }
+
+#globe-space-canvas { position:absolute; inset:0; z-index:1; pointer-events:none!important; }
+#globe-preview-status { width:min(420px,calc(100vw - 24px)); flex-wrap:wrap; justify-content:center; }
+#globe-space-note { flex-basis:100%; margin:0; padding:0; color:#8ea8c2; font:10px/1.5 Arial,sans-serif; text-align:center; pointer-events:none; }
+#globe-space-note[hidden] { display:none; }
