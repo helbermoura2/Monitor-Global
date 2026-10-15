@@ -3,7 +3,7 @@
  let cached=null,blocked=null,lastId=null,lastFit=null;
  function frame(c){
   const bounds=window.SeismicImpact?.bounds(c.id),points=window.SeismicScenarioDemo?.framePoints(c.id)||window.AftershockSequence?.framePoints(c.id)||null;
-  const key=[c.id,c.lng,c.lat,c.mag,c.depth,innerWidth,innerHeight].join('|');
+  const key=[c.id,c.lng,c.lat,c.mag,c.depth,innerWidth,innerHeight,map.getProjection()?.type].join('|');
   // Fit from scratch on layout changes; never derive the target from current zoom.
   const layout=typeof getEventoTelaFrac==='function'?JSON.stringify(getEventoTelaFrac()):'';
   if(cached?.key===key&&cached.bounds===bounds&&cached.points===points&&cached.layout===layout)return cached.camera;

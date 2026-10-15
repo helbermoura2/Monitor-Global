@@ -204,16 +204,8 @@ function initMap() {
     // Attribution removido: o app é de uso pessoal, então o botão "ⓘ" de
     // créditos (Esri/HERE/OSM etc.) do MapLibre não precisa aparecer no mapa.
 
-    // Projeção Mercator de propósito, NÃO globo — marcadores HTML (furacão,
-    // tufão, ciclone etc.) usam a posição em pixel calculada por
-    // map.project(), que é exata em Mercator mas fica visivelmente errada
-    // em globo: perto do zoom bem aberto, a perspectiva 3D "comprime"
-    // pontos de latitude alta (ex: um ciclone a -45° e outro a -75°
-    // projetavam quase no MESMO pixel), fazendo o marcador aparecer
-    // deslocado — visto num caso real, um ciclone a sul da Austrália
-    // aparecendo em cima da Antártida no zoom aberto, corrigindo sozinho só
-    // ao dar zoom in. Sem conserto fino possível combinando globo com
-    // marcador HTML simples — Mercator não tem esse problema.
+    // Mapa plano é o padrão. GlobePreview troca a projeção na mesma instância
+    // apenas durante o teste opcional, sem recriar fontes, camadas ou pins.
     try { map.setProjection({ type: 'mercator' }); } catch (e) {}
 
     // Botão de zoom +/- removido a pedido do usuário (pinça no celular e
@@ -489,7 +481,7 @@ const QuakeMarkerPreview = (() => {
         }
         content.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
         content.addEventListener('pointerleave', leave);
-        const popup = new GL.Popup({className:'map-quake-preview',closeButton:touch,closeOnClick:false,focusAfterOpen:false,maxWidth:'260px',offset:18})
+        const popup = new GL.Popup({className:'map-quake-preview',closeButton:touch,closeOnClick:false,focusAfterOpen:false,locationOccludedOpacity:0,maxWidth:'260px',offset:18})
             .setLngLat(item.coords).setDOMContent(content).addTo(map);
         popup.getElement().style.setProperty('--quake-tone', getHexColor(item.mag));
         const closeButton = popup.getElement().querySelector('.maplibregl-popup-close-button');

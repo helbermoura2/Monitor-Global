@@ -1,0 +1,13 @@
+#globe-preview-panel { position:fixed; z-index:10050; top:50%; left:50%; transform:translate(-50%,-50%); box-sizing:border-box; width:min(360px,calc(100vw - 32px)); padding:24px; border:1px solid #36718d; border-radius:16px; background:#071b2bf5; color:#e9f6ff; box-shadow:0 18px 70px #0009; font-family:Arial,sans-serif; }
+#globe-preview-panel h3 { margin:0 22px 14px 0; font-size:20px; }
+#globe-preview-panel p { font-size:14px; line-height:1.6; color:#b7d2e2; }
+#globe-preview-panel button:not(.globe-preview-close) { display:block; width:100%; min-height:46px; margin-top:10px; padding:10px; border:1px solid #33738d; border-radius:9px; background:#10384d; color:#e9faff; font-size:14px; font-weight:700; cursor:pointer; }
+#globe-preview-panel button[aria-pressed=true] { border-color:#59d9ec; background:#18546a; }
+#globe-preview-panel .globe-preview-close { position:absolute; right:10px; top:8px; width:36px; height:36px; border:0; background:none; color:#c7ddea; font-size:25px; cursor:pointer; }
+#globe-preview-status { position:fixed; z-index:3500; bottom:16px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; box-sizing:border-box; max-width:calc(100vw - 24px); padding:10px 12px; border:1px solid #39738d; border-radius:12px; background:#071b2bf2; color:#c3edf7; box-shadow:0 6px 24px #0006; font:12px Arial,sans-serif; }
+#globe-preview-status strong { white-space:nowrap; }
+#globe-preview-status button { min-height:40px; padding:7px 10px; border:1px solid #3e7892; border-radius:8px; background:#123c51; color:#f1fbff; font-size:12px; cursor:pointer; }
+/* MapLibre 5.13 marca pins atrás da esfera com a opacidade nativa 0,2.
+   No teste ficam ocultos, em vez de transparecer através da Terra. */
+.map-globe-test .maplibregl-marker[style*="opacity: 0.2;"] { visibility:hidden; pointer-events:none!important; }
+@media(max-width:600px){ #globe-preview-status { bottom:104px; gap:6px; padding:8px; } #globe-preview-status strong { max-width:56px; white-space:normal; } }
