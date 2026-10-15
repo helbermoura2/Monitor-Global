@@ -454,5 +454,5 @@
   if(cfg.type==='hurricane')scene.host.dataset.rotationDirection=cfg.rotationDirection;
  }
  const refreshCurrent=refresh;
- window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending};
+ window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending,isShowing:(id,type)=>!!scene&&scene.itemId===id&&scene.cfg.type===type};
 })();

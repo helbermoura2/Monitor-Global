@@ -70,6 +70,12 @@ function deferCardEventFx(item, action) {
 function triggerCardFx(type, color, item) {
     const el = document.getElementById('painel-direito');
     if (!el || !type) return;
+    // A deferred "camera arrival" effect (deferCardEventFx) can fire after the
+    // card already shows this exact item/type -- e.g. a second EventCamera
+    // arrival for a selection that never changed. Tearing the scene down again
+    // here would restart its footage from scratch for no visual benefit, since
+    // the card already correctly presents this event.
+    if (type !== 'earthquake' && item?.id != null && window.CinematicCard?.isShowing(item.id, type)) return;
     resetCardEventFx(item || {type});
     el.style.setProperty('--pd-fx-color', color || '#38bdf8');
     if(['storm','tornado','hurricane'].includes(type))el.querySelectorAll('.pd-fx-bolt').forEach(naturalLightning);
