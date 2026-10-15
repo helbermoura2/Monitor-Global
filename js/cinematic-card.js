@@ -107,6 +107,7 @@
   path.setAttribute('d',monitoring?'M7 28 C7 14 57 14 57 28 C57 46 7 46 7 28 Z M15 27 C15 20 49 20 49 27 C49 36 15 36 15 27 Z M7 29 L10 44 C20 55 45 53 55 43 L57 29 M19 30 C23 41 41 41 46 30':symbolPaths[item.type]);svg.append(path);el.replaceChildren(svg);
  }
  function start(item,duration=Infinity,resourcesFailed=false){
+  window.__mgStartCalls=(window.__mgStartCalls||[]).slice(-4);window.__mgStartCalls.push({itemId:item?.id,prevItemId:scene?.itemId,stack:(new Error().stack||'').split('\n').slice(1,5).join('|')});
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
   const p=panel(),cfg=profile(item);
@@ -455,4 +456,5 @@
  }
  const refreshCurrent=refresh;
  window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending,isShowing:(id,type)=>!!scene&&scene.itemId===id&&scene.cfg.type===type};
+ window.__mgCinematicDebug=()=>({sceneItemId:scene?.itemId,sceneType:scene?.cfg?.type,sceneStart:scene?.start,footagePaused:scene?.footage?.video?.paused,startCalls:window.__mgStartCalls||[]});
 })();
