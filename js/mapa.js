@@ -118,7 +118,10 @@ function getEventoTelaFrac() {
         const mh = mapRect.height, mw = mapRect.width;
         if (mh <= 0) return { x, y };
 
-        let topBoundary = 0;
+        let topBoundary = Math.max(0,-mapRect.top);
+        let leftBoundary=Math.max(0,-mapRect.left),rightBoundary=Math.min(mw,innerWidth-mapRect.left);
+        const sidebar=document.getElementById('sidebar-left');
+        if(sidebar&&getComputedStyle(sidebar).display!=='none'&&getComputedStyle(sidebar).visibility!=='hidden'){const r=sidebar.getBoundingClientRect();if(r.width<mw*.5&&r.left-mapRect.left<mw*.2)leftBoundary=Math.max(leftBoundary,r.right-mapRect.left);}
         const header = document.getElementById('top-strip');
         if (header) topBoundary = Math.max(topBoundary, header.getBoundingClientRect().bottom - mapRect.top);
         const ticker = document.getElementById('latest-event-ticker');
@@ -133,10 +136,11 @@ function getEventoTelaFrac() {
         // vira uma barra no rodapé (largura quase toda a tela) — como
         // painel lateral (desktop/paisagem) ele fica do lado, sem tirar
         // altura útil do mapa.
-        let bottomBoundary = mh;
+        let bottomBoundary = Math.min(mh,innerHeight-mapRect.top);
         const painel = document.getElementById('painel-direito');
-        if (painel && mw > 0) {
+        if (painel && mw > 0 && getComputedStyle(painel).display!=='none' && getComputedStyle(painel).visibility!=='hidden') {
             const pr = painel.getBoundingClientRect();
+            if(getComputedStyle(painel).display!=='none'&&pr.width>0&&pr.width<mw*.7&&pr.left-mapRect.left>mw*.4)rightBoundary=Math.min(rightBoundary,pr.left-mapRect.left);
             if (pr.width >= mw * 0.85) {
                 x = 0.5;
                 const t = pr.top - mapRect.top;
@@ -144,6 +148,7 @@ function getEventoTelaFrac() {
             }
         }
 
+        if(rightBoundary>leftBoundary)x=(leftBoundary+rightBoundary)/2/mw;
         if (bottomBoundary > topBoundary) {
             y = Math.min(0.85, Math.max(0.08, (topBoundary + (bottomBoundary - topBoundary) / 2) / mh));
         }
@@ -160,7 +165,7 @@ function centroCompensado(lng, lat, zoom) {
         const py = (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * world;
         const cx = px + (w / 2 - w * frac.x);
         const cy = py + (h / 2 - h * frac.y);
-        const clng = Math.max(-180, Math.min(180, cx / world * 360 - 180));
+        const clng = ((cx / world * 360) % 360 + 360) % 360 - 180;
         const clat = (2 * Math.atan(Math.exp(Math.PI * (1 - 2 * cy / world))) - Math.PI / 2) * 180 / Math.PI;
         return [clng, clat];
     } catch (e) { return [lng, lat]; }

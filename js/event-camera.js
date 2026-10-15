@@ -9,7 +9,8 @@ function enter(id,camera,arrive){
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&eventoSelecionadoId===id;
- const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:approach?(o.padding||0):window.GlobePreview?.state().testing?GlobePreview.availableRadius().padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
+ // MapLibre ignores numeric padding:0; reset every edge to avoid double compensation.
+ const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:approach?(o.padding||{top:0,right:0,bottom:0,left:0}):window.GlobePreview?.state().testing?GlobePreview.availableRadius().padding:{top:0,right:0,bottom:0,left:0},duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
  const final=()=>{
   if(!valid())return;
   // A timer can run before the renderer's last pan frame. Finish that tiny
