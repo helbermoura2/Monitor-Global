@@ -15,10 +15,10 @@ for(const globe of [false,true])test(`align destination before descending (${glo
  c.eventoSelecionadoId='polar';let effects=0;c.window.EventCamera.afterArrival('polar',()=>effects++);
  const destination=[27,67.25];c.window.EventCamera.enter('polar',{center:destination,zoom:10});
  assert.equal(calls[0].center[1],-55,'outward leg must not slide toward the equator');
- assert.deepEqual(calls[0].padding,globe?padding:0,'whole-globe leg uses the visible space between panels');
+ assert.deepEqual(JSON.parse(JSON.stringify(calls[0].padding)),globe?padding:{top:0,right:0,bottom:0,left:0},'whole-globe leg uses the visible space between panels');
  advance(6000);assert.deepEqual(calls[1].center,destination,'travel reaches full latitude before descent');
  center.lng-=.05; // Renderer has not quite reached its last pan frame.
- advance(6000);assert.deepEqual(calls[2].center,calls[1].center,'descent keeps exactly the same center');assert.equal(calls[2].zoom,10);assert.equal(calls[2].padding,0,'event approach restores the event camera framing');assert.equal(effects,0);
+ advance(6000);assert.deepEqual(calls[2].center,calls[1].center,'descent keeps exactly the same center');assert.equal(calls[2].zoom,10);assert.deepEqual(JSON.parse(JSON.stringify(calls[2].padding)),{top:0,right:0,bottom:0,left:0},'event approach restores the event camera framing');assert.equal(effects,0);
  assert.deepEqual(descentOrigin,destination,'finish residual at world scale before descending');
  assert.equal(approaches,1,'use a flight approach to resolve world-view latitude constraints at distance');
  advance(6000);assert.equal(effects,1);

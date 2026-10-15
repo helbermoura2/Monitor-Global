@@ -1113,6 +1113,7 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
     try {
         const opts = {
             center: target,
+            padding:{top:0,right:0,bottom:0,left:0},
             zoom: zoomAlvo,
             pitch: 0,
             bearing: 0,
@@ -1198,13 +1199,13 @@ function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
     if (typeof stopFeltZone === 'function') stopFeltZone();
     SeismicImpact.start({ id: current.id, lng: current.coords[0], lat: current.coords[1], mag: current.mag, depth: current.depth }, true);
     const zoom = zoomParaAreaPintada(current.coords[0], current.coords[1], Math.max(10, SeismicImpactModel.extent(current.mag, current.depth, 2.1)));
-    map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoom), zoom, duration: 2500, essential: true });
+    map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoom), zoom, padding:{top:0,right:0,bottom:0,left:0}, duration: 2500, essential: true });
     clearTimeout(window.__mgFeltZoneReturnT);
     window.__mgFeltZoneReturnT = setTimeout(() => {
         if (eventoSelecionadoId !== current.id || !map) return;
         try {
             window.SeismicFocus?.pause?.();
-            map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoomAlvo), zoom: zoomAlvo, pitch: 0, bearing: 0, duration: 2500, essential: true });
+            map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoomAlvo), zoom: zoomAlvo, padding:{top:0,right:0,bottom:0,left:0}, pitch: 0, bearing: 0, duration: 2500, essential: true });
         } catch (e) {}
     }, 6000);
     return true;
@@ -1469,6 +1470,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         try {
             map.flyTo({
                 center: centroCompensado(lng, lat, zoomAlvo),
+                padding:{top:0,right:0,bottom:0,left:0},
                 zoom: zoomAlvo,
                 pitch: 0,
                 duration: 6000,
@@ -1599,6 +1601,7 @@ function focarEventoNoMapa() {
         stopMapCamera();
         map.flyTo({
             center: centroCompensado(lng, lat, z),
+            padding:{top:0,right:0,bottom:0,left:0},
             zoom: z,
             pitch: 0,
             duration: 1200,

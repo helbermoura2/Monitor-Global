@@ -596,7 +596,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         context.cameraPhase=context.epicenterFirst?'epicenter-final':'impact-final';context.phaseUntil=until;
         protect(until);window.SeismicImpact?.finish();place();
         window.SeismicFinalSummary?.start(context,duration);
-        try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
@@ -759,7 +759,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 camCenter=[camCenter[0]+(((target[0]-camCenter[0]+540)%360)-180)*fatorSuavizacao,camCenter[1]+(target[1]-camCenter[1])*fatorSuavizacao];
                 const actualCenter=map.getCenter().toArray(),zoomError=Math.abs(map.getZoom()-camZoomAtual),centerError=Math.max(Math.abs(((camCenter[0]-actualCenter[0]+540)%360)-180),Math.abs(camCenter[1]-actualCenter[1]));
                 // Settled scenes do not repaint the map for imperceptible corrections.
-                if(zoomError>.0002||centerError>.000002)map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:0 });
+                if(zoomError>.0002||centerError>.000002)map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:{top:0,right:0,bottom:0,left:0} });
             } catch (e) {}
 
             // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.
@@ -777,7 +777,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(stable){
                 // Finish convergence once, instead of creeping by tiny steps during idle checks.
                 const current=map.getCenter().toArray();
-                if(Math.abs(map.getZoom()-zoomAlvoBruto)>.0002||Math.max(Math.abs(((focus.center[0]-current[0]+540)%360)-180),Math.abs(focus.center[1]-current[1]))>.000002)map.jumpTo({center:focus.center,zoom:zoomAlvoBruto,padding:0});
+                if(Math.abs(map.getZoom()-zoomAlvoBruto)>.0002||Math.max(Math.abs(((focus.center[0]-current[0]+540)%360)-180),Math.abs(focus.center[1]-current[1]))>.000002)map.jumpTo({center:focus.center,zoom:zoomAlvoBruto,padding:{top:0,right:0,bottom:0,left:0}});
                 camZoomAtual=zoomAlvoBruto;camCenter=focus.center.slice();
                 waveCamRAF=null;camUltimoFrameEm=0;
                 const boundary=context.phaseUntil-Date.now();

@@ -17,7 +17,7 @@ function timeline(mag,mode,entryMs=6000){
 const valid=j=>job===j&&eventoSelecionadoId===j.id;
 function stop(){if(job){clearTimeout(job.timer);clearInterval(job.revealTimer);}job=null;window.__mgPaintTourState=null;}
 function owned(j){return !window.TsunamiPresentation?.ownsCamera(j.id)&&!document.hidden&&!j.paused;}
-function move(j,camera,ms){if(!owned(j))return;clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();map.easeTo({...camera,padding:0,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms,essential:true,easing:t=>t*t*(3-2*t)});}
+function move(j,camera,ms){if(!owned(j))return;clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();map.easeTo({...camera,padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms,essential:true,easing:t=>t*t*(3-2*t)});}
 function area(j){return window.SeismicFocus.frame(j.context);}
 function phase(j,index){
  if(!valid(j)){if(job===j)stop();return;}

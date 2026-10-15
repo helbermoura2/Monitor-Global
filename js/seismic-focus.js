@@ -26,7 +26,7 @@
   if(signature===lastFit)return;lastFit=signature;
   const center=map.getCenter();
   if(Math.abs(map.getZoom()-camera.zoom)<.005&&Math.abs(((center.lng-camera.center[0]+540)%360)-180)<.00001&&Math.abs(center.lat-camera.center[1])<.00001)return;
-  map.easeTo({...camera,padding:0,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:3500,essential:true});
+  map.easeTo({...camera,padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:3500,essential:true});
  }
  window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&p.id!==lastId){lastId=p.id;blocked=null;cached=null;lastFit=null;}});
  function install(){if(typeof map==='undefined'||!map)return;for(const event of ['dragstart','wheel','touchstart'])map.on(event,e=>{if(e?.originalEvent)blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;});}
