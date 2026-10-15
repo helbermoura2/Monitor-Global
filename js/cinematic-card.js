@@ -105,10 +105,17 @@
   path.setAttribute('d',monitoring?'M7 28 C7 14 57 14 57 28 C57 46 7 46 7 28 Z M15 27 C15 20 49 20 49 27 C49 36 15 36 15 27 Z M7 29 L10 44 C20 55 45 53 55 43 L57 29 M19 30 C23 41 41 41 46 30':symbolPaths[item.type]);svg.append(path);el.replaceChildren(svg);
  }
  function start(item,duration=Infinity,resourcesFailed=false){
-  window.__mgRestartStacks=(window.__mgRestartStacks||[]).slice(-4);window.__mgRestartStacks.push('itemId='+item?.id+',prevSceneItemId='+scene?.itemId+' :: '+(new Error().stack||'').split('\n').slice(1,6).join('|'));
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
-  const p=panel(),cfg=profile(item);let snapshot=null;
+  const p=panel(),cfg=profile(item);
+  // A re-selection of the SAME item (e.g. a deferred "camera arrival" callback
+  // firing after the visual is already up, or any other redundant re-trigger)
+  // must never tear the active scene down: that drops the footage back to an
+  // unstarted <video> and loses playback continuity for no visual benefit,
+  // since the card already shows this exact event. Only a genuine type change
+  // still goes through the full rebuild below.
+  if(scene&&p&&cfg&&scene.itemId===item?.id&&scene.cfg.type===cfg.type&&!resourcesFailed){scene.cfg=cfg;return true;}
+  let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
   duration=Math.min(duration,16000);
@@ -401,15 +408,14 @@
   }
  }
  function frame(now){
-  window.__mgFrameRunCount=(window.__mgFrameRunCount||0)+1;
   const s=scene;if(!s)return;// O timestamp do primeiro RAF pode preceder performance.now() do start.
   // Tempos negativos geram raios inválidos nos respingos e interrompem a cena.
   const t=Math.max(0,(now-s.start)/1000);
   if(t*1000>=s.duration){stop();return;}
-  if(document.hidden){s.quality.reset();s.footage?.pause('frame-doc-hidden');raf=0;return;}
+  if(document.hidden){s.quality.reset();s.footage?.pause();raf=0;return;}
   const p=panel(),hidden=!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');
-  if(hidden){s.quality.reset();s.footage?.pause('frame-layout-hidden');raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
-  s.footage?.play('frame-visible');
+  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
+  s.footage?.play();
   const fps=s.quality.fps(s.mobile?24:30);if(now-s.paintAt>=1000/fps&&s.width&&s.height){
    const renderStart=performance.now(),gap=now-s.last;
    const dt=Math.max(0,Math.min(.06,gap/1000));s.last=now;s.paintAt=now;
@@ -435,8 +441,7 @@
   raf=requestAnimationFrame(frame);
  }
  reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
- document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause('visibilitychange-hide');raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
- window.__mgCinematicDebug=()=>{const p=panel();return{raf,idleTimer,hidden:document.hidden,sceneExists:!!scene,layoutHidden:!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open'),clientWidth:p?.clientWidth,panelClasses:p?.className,bodyClasses:document.body.className,frameRunCount:window.__mgFrameRunCount||0,rafIsNative:requestAnimationFrame.toString().includes('[native code]'),sceneDuration:scene?.duration,sceneStart:scene?.start,restartStacks:window.__mgRestartStacks||[],footage:scene?.footage?.__mgDebug?.()||null};};
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause();raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
  window.addEventListener('pagehide',stop);
  function refresh(item){
   prepareSymbol(item);

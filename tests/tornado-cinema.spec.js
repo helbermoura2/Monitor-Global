@@ -64,14 +64,7 @@ for(const width of [1280,390])test('tornado real usa cena única e circulação,
  await safe();await page.screenshot({path:'/tmp/tornado-scene-'+width+'.png'});
  if(width===390){await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});await page.clock.runFor(500);await safe();}await captureCard(page,{path:'/tmp/tornado-card-'+width+'.png'});
  await page.evaluate(()=>document.getElementById('painel-direito').classList.add('pd-flip-girado'));await page.clock.runFor(100);await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);await page.evaluate(()=>document.getElementById('painel-direito').classList.remove('pd-flip-girado'));await page.clock.runFor(100);await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
- const diagA=await page.evaluate(()=>window.__mgCinematicDebug?.());console.log('MG_DIAG_A',JSON.stringify(diagA));
- await page.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});await page.clock.runFor(100);await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);
- const diagB=await page.evaluate(()=>window.__mgCinematicDebug?.());console.log('MG_DIAG_B',JSON.stringify(diagB));
- await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});
- const diagC=await page.evaluate(()=>window.__mgCinematicDebug?.());console.log('MG_DIAG_C',JSON.stringify(diagC));
- await page.clock.runFor(100);
- const diagD=await page.evaluate(()=>window.__mgCinematicDebug?.());console.log('MG_DIAG_D',JSON.stringify(diagD));
- try{await expect.poll(()=>video.evaluate(v=>!v.paused),{timeout:5000}).toBe(true);}catch(e){const diag=await page.evaluate(()=>window.__mgCinematicDebug?.());throw new Error('MG_DIAG '+JSON.stringify(diag)+' :: '+e.message);}
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});await page.clock.runFor(100);await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(true);await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await page.clock.runFor(100);await expect.poll(()=>video.evaluate(v=>!v.paused)).toBe(true);
  await page.clock.fastForward(16100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);expect(await page.evaluate(()=>__tornadoVideoCopies)).toBe(0);
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-cinema-layer,.pd-cinema-contact,.pd-fx-windletter')).toHaveCount(0);expect(await original.evaluate(v=>({connected:v.isConnected,paused:v.paused,src:v.getAttribute('src')}))).toEqual({connected:false,paused:true,src:null});await expect(page.locator('#pd-local')).toContainText('boletim atualizado');expect(errors).toEqual([]);
 });
