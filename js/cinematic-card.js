@@ -114,9 +114,11 @@
   // firing after the visual is already up, or any other redundant re-trigger)
   // must never tear the active scene down: that drops the footage back to an
   // unstarted <video> and loses playback continuity for no visual benefit,
-  // since the card already shows this exact event. Only a genuine type change
-  // still goes through the full rebuild below.
-  if(scene&&p&&cfg&&scene.itemId===item?.id&&scene.cfg.type===cfg.type&&!resourcesFailed){scene.cfg=cfg;return true;}
+  // since the card already shows this exact event. Mirrors refresh()'s own
+  // criteria below for when a rebuild is actually warranted (a visually
+  // meaningful change, not just the same type with a flipped hot/ash/lava
+  // flag -- e.g. a volcano moving from monitoring to an active lava flow).
+  if(scene&&p&&cfg&&scene.itemId===item?.id&&!resourcesFailed&&cfg.type===scene.cfg.type&&!['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){scene.cfg=cfg;return true;}
   let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
