@@ -603,13 +603,13 @@ function syncAllMarkers() {
         });
     };
 
-    // Ícones de incêndio removidos do MAPA de propósito — em temporada de
-    // queimadas na América do Sul (INPE+FIRMS+EONET+GDACS somados) a
-    // quantidade de focos poluía demais o mapa com dezenas de 🔥 amontoados.
-    // O dado continua existindo normalmente (fetchFires, lista lateral,
-    // filtros) — só o marcador no mapa em si foi desativado.
-    markerStores.fire.forEach(r => r.marker.remove());
-    markerStores.fire.clear();
+    // Keep the fire layer quiet, but always identify the selected verified point.
+    syncType(markerStores.fire,globalAlerts.filter(a=>a.type==='fire'&&a.id===eventoSelecionadoId),item=>{
+        const el=document.createElement('div');el.className='emoji-marker';
+        const dot=document.createElement('div');dot.className='mg-tipo-dot';dot.style.background=RADAR_COR.fire||'#fb923c';el.append(dot);
+        el.setAttribute('aria-label','Incêndio — '+(window.EventPortuguese?.place(item.place)||item.place||''));
+        return {el};
+    });
 
     if (layerVisibility.hurricanes) {
         syncType(markerStores.cyclone, globalAlerts.filter(a => a.type === 'hurricane'), (item) => {
@@ -791,52 +791,9 @@ function syncAllMarkers() {
 
 
 /* ============================ RADAR PULSANTE ============================ */
-function startContinuousRadar(lng, lat, mag, corOverride) {
-    stopContinuousRadar();
-    stopCascadeRipple();
-    try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {}
-    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
-    try { if (typeof stopTsunamiWave === 'function') stopTsunamiWave(); } catch (e) {}
-    if (!map) return;
-    const cor = corOverride || getHexColor(mag);
-    const mc = document.getElementById('mapContainer');
-    const w = document.createElement('div');
-    w.style.cssText = 'position:absolute;left:0;top:0;z-index:9999;pointer-events:none;';
-    mc.appendChild(w);
-
-    const t = document.createElement('div');
-    t.className = 'radar-center';
-    t.style.background = cor;
-    t.style.boxShadow = `0 0 10px ${cor},0 0 20px ${cor}`;
-    w.appendChild(t);
-
-    const dur = Math.max(1.4, 7.2 - Math.min(mag, 7));
-    const p = document.createElement('div');
-    p.className = 'radar-ring';
-    p.style.borderColor = cor;
-    p.style.animationDuration = dur.toFixed(2) + 's';
-    w.appendChild(p);
-
-    let _radarRaf = 0;
-    const updCore = () => {
-        if (!map) return;
-        const pt = map.project([lng, lat]);
-        if (pt) {
-            w.style.left = pt.x + 'px';
-            w.style.top = pt.y + 'px';
-        }
-    };
-    const upd = () => {
-        if (_radarRaf) return;
-        _radarRaf = requestAnimationFrame(() => {
-            _radarRaf = 0;
-            updCore();
-        });
-    };
-    setTimeout(updCore, 50);
-    map.on('move', upd);
-    map.on('zoom', upd);
-    currentRadar = { wrapper: w, h: upd };
+function startContinuousRadar() {
+    // Retired map rings: the native selected marker now carries the glass badge.
+    stopContinuousRadar(); stopCascadeRipple(); window.EventPinBadge?.refresh();
 }
 
 function stopContinuousRadar() {
@@ -864,67 +821,10 @@ const RADAR_COR = {
     volcano: '#dc2626'
 };
 
-/* ============================ ONDAS EM CASCATA ============================
-   Substitui o radar de anel único (startContinuousRadar) pra todo tipo de
-   alerta MENOS furacão/ciclone (que segue com o radar simples por enquanto,
-   até decidirmos como mostrar a rota prevista) e sismo (que tem seu próprio
-   sistema, ver startFeltZone em sismo-metrics.js). 3 ondas finas saem em
-   sequência (delay escalonado) em vez de um anel duro solitário — mesma
-   ideia de "Ondas em Cascata" já usada como referência de design pro
-   marcador de epicentro. Fica rodando enquanto esse evento for o
-   selecionado/exibido (novo ou revisitado no ciclo automático), substituído
-   assim que outro evento tomar seu lugar — nunca mais de um por vez. */
-// manterFeltZone: pula o stopFeltZone() — usado quando startFeltZone já
-// rodou logo antes pra ESSE MESMO evento (ver showEventDetails) e as duas
-// devem coexistir, em vez do exclusivismo de sempre entre os efeitos.
-function startCascadeRipple(lng, lat, color, manterFeltZone) {
-    stopContinuousRadar();
-    stopCascadeRipple();
-    if (!manterFeltZone) { try { if (typeof stopFeltZone === 'function') stopFeltZone(); } catch (e) {} }
-    try { if (typeof stopWaveFront === 'function') stopWaveFront(); } catch (e) {}
-    try { if (typeof stopHurricaneOfficialRoute === 'function') stopHurricaneOfficialRoute(); } catch (e) {}
-    try { if (typeof stopTsunamiWave === 'function') stopTsunamiWave(); } catch (e) {}
-    if (!map) return;
-    const mc = document.getElementById('mapContainer');
-    const w = document.createElement('div');
-    w.className = 'cascade-wrap';
-    w.style.cssText = 'position:absolute;left:0;top:0;z-index:9999;pointer-events:none;';
-    mc.appendChild(w);
-
-    const core = document.createElement('div');
-    core.className = 'cascade-core';
-    core.style.background = color;
-    core.style.boxShadow = `0 0 10px ${color},0 0 20px ${color}`;
-    w.appendChild(core);
-
-    ['', 'r2', 'r3'].forEach(cls => {
-        const r = document.createElement('div');
-        r.className = 'cascade-ring' + (cls ? ' ' + cls : '');
-        r.style.borderColor = color;
-        r.style.boxShadow = `0 0 6px 0 ${color}`;
-        w.appendChild(r);
-    });
-
-    let _cascadeRaf = 0;
-    const updCore = () => {
-        if (!map) return;
-        const pt = map.project([lng, lat]);
-        if (pt) {
-            w.style.left = pt.x + 'px';
-            w.style.top = pt.y + 'px';
-        }
-    };
-    const upd = () => {
-        if (_cascadeRaf) return;
-        _cascadeRaf = requestAnimationFrame(() => {
-            _cascadeRaf = 0;
-            updCore();
-        });
-    };
-    setTimeout(updCore, 50);
-    map.on('move', upd);
-    map.on('zoom', upd);
-    currentCascade = { wrapper: w, h: upd };
+/* Compatibility entry point: selected events now use steady native glass badges. */
+function startCascadeRipple() {
+    // Retired map rings: the native selected marker now carries the glass badge.
+    stopContinuousRadar(); stopCascadeRipple(); window.EventPinBadge?.refresh();
 }
 
 function stopCascadeRipple() {
@@ -940,23 +840,11 @@ function stopCascadeRipple() {
     }
 }
 
-/* Escolhe o efeito certo por tipo — furacão/ciclone mantém o radar simples
-   de sempre (RADAR_COR), os demais tipos (menos sismo, tratado à parte)
-   ganham a onda em cascata. */
-function triggerEventoMapaFx(item, corFallback) {
+/* Official geometry remains independent of the selected glass locator. */
+function triggerEventoMapaFx(item) {
+    window.EventPinBadge?.refresh();
     if(item.hazardNature==='bulletin'||(item.type==='tsunami'&&item.official))return;
     if(item.municipalityLocations?.length||item.warningGeometry)return;
-    try {
-        const cor = RADAR_COR[item.type] || corFallback;
-        if (item.type === 'hurricane') {
-            startContinuousRadar(item.coords[0], item.coords[1], 5, cor);
-            if (typeof startHurricaneOfficialRoute === 'function') startHurricaneOfficialRoute(item);
-        } else if (item.type === 'tsunami' && typeof startTsunamiWave === 'function') {
-            const corSev = (typeof corSeveridadeAlerta === 'function') ? corSeveridadeAlerta(item) : cor;
-            startTsunamiWave(item.coords[0], item.coords[1], corSev);
-        } else {
-            startCascadeRipple(item.coords[0], item.coords[1], cor);
-        }
-    } catch (e) {}
+    if(item.type==='hurricane'&&typeof startHurricaneOfficialRoute==='function')startHurricaneOfficialRoute(item);
 }
-/* ====== ✅ FIM DA PARTE 2 — cole a PARTE 3 logo abaixo ====== */
+/* ====== FIM DA PARTE 2 ====== */

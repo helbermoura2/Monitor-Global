@@ -9,7 +9,7 @@ function enter(id,camera,arrive){
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&eventoSelecionadoId===id;
- const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
+ const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:!approach&&window.GlobePreview?.state().testing?GlobePreview.availableRadius().padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
  const final=()=>{
   if(!valid())return;
   // A timer can run before the renderer's last pan frame. Finish that tiny
@@ -31,6 +31,6 @@ function enter(id,camera,arrive){
 }
 window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&p.id!==lastId)cancel();});
 window.addEventListener('pagehide',()=>cancel());
-window.addEventListener('load',()=>{if(!map)return;for(const name of ['dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)cancel();});},{once:true});
+window.addEventListener('load',()=>{if(!map)return;for(const name of ['mousedown','dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)cancel();});},{once:true});
 window.EventCamera={enter,durationFor,cancel,worldZoom,afterArrival:(id,effect)=>arrivalEffects.set(id,effect),owns:id=>trip?.id===id&&Date.now()<trip.endsAt};
 })();
