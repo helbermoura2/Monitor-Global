@@ -405,10 +405,10 @@
   // Tempos negativos geram raios inválidos nos respingos e interrompem a cena.
   const t=Math.max(0,(now-s.start)/1000);
   if(t*1000>=s.duration){stop();return;}
-  if(document.hidden){s.quality.reset();s.footage?.pause();raf=0;return;}
+  if(document.hidden){s.quality.reset();s.footage?.pause('frame-doc-hidden');raf=0;return;}
   const p=panel(),hidden=!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');
-  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
-  s.footage?.play();
+  if(hidden){s.quality.reset();s.footage?.pause('frame-layout-hidden');raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
+  s.footage?.play('frame-visible');
   const fps=s.quality.fps(s.mobile?24:30);if(now-s.paintAt>=1000/fps&&s.width&&s.height){
    const renderStart=performance.now(),gap=now-s.last;
    const dt=Math.max(0,Math.min(.06,gap/1000));s.last=now;s.paintAt=now;
@@ -434,7 +434,7 @@
   raf=requestAnimationFrame(frame);
  }
  reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
- document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause();raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause('visibilitychange-hide');raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
  window.__mgCinematicDebug=()=>{const p=panel();return{raf,idleTimer,hidden:document.hidden,sceneExists:!!scene,layoutHidden:!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open'),clientWidth:p?.clientWidth,panelClasses:p?.className,bodyClasses:document.body.className,frameRunCount:window.__mgFrameRunCount||0,rafIsNative:requestAnimationFrame.toString().includes('[native code]'),sceneDuration:scene?.duration,sceneStart:scene?.start,footage:scene?.footage?.__mgDebug?.()||null};};
  window.addEventListener('pagehide',stop);
  function refresh(item){
