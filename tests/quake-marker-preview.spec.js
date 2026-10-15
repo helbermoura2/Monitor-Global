@@ -32,8 +32,11 @@ test.describe('touch preview',()=>{
   expect(await page.evaluate(()=>({id:eventoSelecionadoId,audio:__previewAudio,center:map.getCenter().toArray()}))).toEqual({id:'preview-before',audio:0,center:before});
   await page.screenshot({path:'/tmp/quake-preview-mobile.png'});
   const box=await page.locator('.map-quake-preview').boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(391);
+  // Separate deliberate consultations from the map's native double-tap zoom.
+  await page.waitForTimeout(350);
   await pin(page).tap();expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('preview-before');
   await page.touchscreen.tap(50,760);await expect(page.locator('.map-quake-preview')).toHaveCount(0);
+  await page.waitForTimeout(350);await page.waitForFunction(()=>!map.isMoving());
   await pin(page).tap();await page.getByRole('button',{name:'Ver evento',exact:true}).tap();expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('preview-target');expect(await page.evaluate(()=>__previewAudio)).toBe(1);await expect(page.locator('.map-quake-preview')).toHaveCount(0);
  });
  test('drag from a pin moves the map without opening or selecting it',async({page,context})=>{
