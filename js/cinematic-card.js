@@ -105,6 +105,7 @@
   path.setAttribute('d',monitoring?'M7 28 C7 14 57 14 57 28 C57 46 7 46 7 28 Z M15 27 C15 20 49 20 49 27 C49 36 15 36 15 27 Z M7 29 L10 44 C20 55 45 53 55 43 L57 29 M19 30 C23 41 41 41 46 30':symbolPaths[item.type]);svg.append(path);el.replaceChildren(svg);
  }
  function start(item,duration=Infinity,resourcesFailed=false){
+  window.__mgRestartStacks=(window.__mgRestartStacks||[]).slice(-4);window.__mgRestartStacks.push('itemId='+item?.id+',prevSceneItemId='+scene?.itemId+' :: '+(new Error().stack||'').split('\n').slice(1,6).join('|'));
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
   const p=panel(),cfg=profile(item);let snapshot=null;
@@ -435,7 +436,7 @@
  }
  reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
  document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause('visibilitychange-hide');raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
- window.__mgCinematicDebug=()=>{const p=panel();return{raf,idleTimer,hidden:document.hidden,sceneExists:!!scene,layoutHidden:!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open'),clientWidth:p?.clientWidth,panelClasses:p?.className,bodyClasses:document.body.className,frameRunCount:window.__mgFrameRunCount||0,rafIsNative:requestAnimationFrame.toString().includes('[native code]'),sceneDuration:scene?.duration,sceneStart:scene?.start,footage:scene?.footage?.__mgDebug?.()||null};};
+ window.__mgCinematicDebug=()=>{const p=panel();return{raf,idleTimer,hidden:document.hidden,sceneExists:!!scene,layoutHidden:!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open'),clientWidth:p?.clientWidth,panelClasses:p?.className,bodyClasses:document.body.className,frameRunCount:window.__mgFrameRunCount||0,rafIsNative:requestAnimationFrame.toString().includes('[native code]'),sceneDuration:scene?.duration,sceneStart:scene?.start,restartStacks:window.__mgRestartStacks||[],footage:scene?.footage?.__mgDebug?.()||null};};
  window.addEventListener('pagehide',stop);
  function refresh(item){
   prepareSymbol(item);
