@@ -558,7 +558,10 @@ function riskScore(){
   };
 }
 function updateRisk(){const r=riskScore(),card=q('risk-card');if(!card)return;card.className='risk-card risk-'+r.level;safeText('risk-icon',r.icon);safeText('risk-label',r.label);safeText('risk-reason',r.reason);safeText('risk-confidence','Confiança: '+r.confidence);card.title=r.reason+' • Confiança: '+r.confidence;if(q('kpibox-sp'))q('kpibox-sp').style.borderLeftColor=r.level==='critical'?'#ef4444':r.level==='alert'?'#fb923c':r.level==='attention'?'#facc15':'#4ade80';syncMobileRisk()}
-async function fetchProSP(){
+let proWeatherPending=null,proWeatherKey='';
+function fetchProSP(){const key=weatherLoc.lat+','+weatherLoc.lng;if(proWeatherPending&&proWeatherKey===key)return proWeatherPending;const task=fetchProSPRequest();proWeatherKey=key;proWeatherPending=task;task.finally(()=>{if(proWeatherPending===task)proWeatherPending=null;});return task;}
+async function fetchProSPRequest(){
+  const statusLoc={...weatherLoc};window.WeatherDataStatus?.record('current','loading',{loc:statusLoc});
   const rainbow=await window.RainbowWeather?.refresh();
   if(rainbow&&window.RainbowWeather.applyCurrent(rainbow))return;
   const u=`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&current=temperature_2m,apparent_temperature,weather_code,wind_gusts_10m,precipitation,relative_humidity_2m&timezone=auto`;
@@ -576,9 +579,11 @@ async function fetchProSP(){
       }catch(e){ lastErr=e; d=null; }
     }
     if(!d || !d.current) throw (lastErr || new Error('sem current'));
-    const c=d.current;
+    if(Math.abs(statusLoc.lat-weatherLoc.lat)>.02||Math.abs(statusLoc.lng-weatherLoc.lng)>.02)return;
+    const c=d.current;if(![c.temperature_2m,c.apparent_temperature].every(v=>v!=null&&Number.isFinite(Number(v))))throw Error('Condições atuais vazias');
     let temp=Number(c.temperature_2m), feels=Number(c.apparent_temperature);
-    const gust=Number(c.wind_gusts_10m), rain=Number(c.precipitation), hum=Number(c.relative_humidity_2m);
+    const num=v=>v!=null&&String(v).trim()!==''&&Number.isFinite(Number(v))?Number(v):NaN;
+    const gust=num(c.wind_gusts_10m), rain=num(c.precipitation), hum=num(c.relative_humidity_2m);
     // O Open-Meteo "current" é um valor de modelo/nowcast — em mudanças rápidas de
     // tempo (frente fria, tempestade) ele pode ficar defasado da rua por vários
     // graus. A estação de Congonhas (SBSP) é medição real de instrumento; quando
@@ -593,8 +598,8 @@ async function fetchProSP(){
     }catch(_){}
     window.__proWeather={
       temp, feels,
-      gust:Number.isFinite(gust)?gust:0,
-      rain:Number.isFinite(rain)?rain:0,
+      gust:c.wind_gusts_10m!=null&&Number.isFinite(gust)?gust:null,
+      rain:c.precipitation!=null&&Number.isFinite(rain)?rain:null,
       hum:Number.isFinite(hum)?hum:null,
       code:Number(c.weather_code)||0
     };
@@ -614,7 +619,7 @@ async function fetchProSP(){
     safeText('kpi-wind',Number.isFinite(gust)?'💨 '+Math.round(gust)+' km/h':'💨 --');
     syncMobileWeather();
     setSource('OpenMeteo','ok',performance.now()-t);
-    updateRisk();
+    updateRisk();window.WeatherDataStatus?.record('current','updated',{at:Date.now(),sourceAt:window.WeatherDataStatus?.modelTime(c.time,d.utc_offset_seconds),source:tempFonte+' · condições modeladas / estação quando disponível',loc:statusLoc});
   }catch(e){
     console.warn('Open-Meteo painel PRO:',e&&e.message||e);
     // Backup wttr.in — evita cabeçalho "--" e toast de offline em blip do Open-Meteo
@@ -628,6 +633,8 @@ async function fetchProSP(){
       const gust=Number(cc.WindGustKmph!=null?cc.WindGustKmph:cc.windspeedKmph)||0;
       const rain=Number(cc.precipMM)||0;
       const hum=Number(cc.humidity);
+      if(Math.abs(statusLoc.lat-weatherLoc.lat)>.02||Math.abs(statusLoc.lng-weatherLoc.lng)>.02)return;
+      if(!Number.isFinite(temp)||!Number.isFinite(feels))throw Error('Condições atuais vazias');
       window.__proWeather={temp,feels,gust,rain,hum:Number.isFinite(hum)?hum:null,code:0};
       const city=(weatherLoc.nome||'São Paulo').toUpperCase();
       safeText('sp-city-name',siglaCidade(weatherLoc.nome||'São Paulo'));
@@ -643,10 +650,11 @@ async function fetchProSP(){
       syncMobileWeather();
       setSource('OpenMeteo','ok',performance.now()-t);
       try{ if(typeof updateRisk==='function') updateRisk(); }catch(_){}
+      window.WeatherDataStatus?.record('current','updated',{at:Date.now(),sourceAt:null,source:'wttr.in · consulta de condições atuais',loc:statusLoc});
       return;
     }catch(e2){
       console.warn('Open-Meteo+wttr painel PRO falhou:',e2&&e2.message||e2);
-      setSource('OpenMeteo','off',null);
+      setSource('OpenMeteo','off',null);window.WeatherDataStatus?.record('current','error',{loc:statusLoc});
     }
   }
 }

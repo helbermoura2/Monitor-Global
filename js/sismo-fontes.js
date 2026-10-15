@@ -144,7 +144,7 @@ function normalizarSismoGeoJSON(features, source, mapper) {
                 // Mantém identificadores/produtos nativos para enriquecimento posterior
                 // (ex.: MMI/ShakeMap do USGS) sem alterar o feed principal.
                 sourceEventId: String(f?.id || p.eventid || p.publicid || ''),
-                sourceMmi: Number.isFinite(Number(p.mmi)) ? Number(p.mmi) : null,
+                sourceMmi: p.mmi!=null && p.mmi!=='' && Number.isFinite(Number(p.mmi)) && Number(p.mmi)>=1 && Number(p.mmi)<=12 ? Number(p.mmi) : null,
                 sourceFelt: Number.isFinite(Number(p.felt)) ? Number(p.felt) : null,
                 detailUrl: mapper?.detailUrl ? mapper.detailUrl(f, p) : null
             });
@@ -720,7 +720,7 @@ function mergeEarthquakeReports(reports) {
             g.quality = 'B';
         }
     });
-    return groups.sort((a,b)=>b.time-a.time);
+    return groups.map(g=>window.CountryBoundaries?.apply(g)||g).sort((a,b)=>b.time-a.time);
 }
 
 
@@ -831,6 +831,7 @@ async function fetchAfadQuakes() {
         const isNew = isNewSupplementalEvent(ev, canonical, initialCatalog);
         knownEventIds.add(canonical);
         ev.id = canonical;
+        window.CountryBoundaries?.apply(ev);
         globalEvents.push(ev);
         indiceAfad.inserir(ev);
         if (isNew) {
@@ -959,6 +960,7 @@ function planetReinforcementDedupEAdiciona(lista, origemLabel) {
         const isNew = isNewSupplementalEvent(ev, canonical, initialCatalog);
         knownEventIds.add(canonical);
         ev.id = canonical;
+        window.CountryBoundaries?.apply(ev);
         globalEvents.push(ev);
         indice.inserir(ev);
         if (isNew) { novos++; newSupplemental.push(ev); }

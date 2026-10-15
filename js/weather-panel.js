@@ -15,7 +15,7 @@
     const details=document.createElement('details');details.id='weather-more';const summary=document.createElement('summary');summary.textContent='Ver fontes e detalhes';details.appendChild(summary);
     const controls=panel.querySelector('.weather-control-row'),header=panel.querySelector('.topbar-card-header');
     for(const child of [...panel.children])if(child!==controls&&child!==header)details.appendChild(child);
-    panel.append(brief,details);
+    const status=document.createElement('section');status.id='weather-data-status';status.setAttribute('aria-label','Estado dos dados meteorológicos');panel.append(status,brief,details);window.WeatherDataStatus?.render();
     const sources=document.createElement('div');sources.className='weather-official-links';
     for(const [text,url]of [['Radar CGE/SP','https://www.cgesp.org/v3/mapas.jsp?arq=precipitacaoradar'],['SAISP/FCTH','https://www.saisp.br/online/']]){const a=document.createElement('a');a.textContent=text+' ↗';a.href=url;a.target='_blank';a.rel='noopener';sources.appendChild(a);}
     const radarNote=document.createElement('small');radarNote.textContent='Consulta aos radares oficiais. Previsões por minuto e por modelos são identificadas separadamente; confira a data das imagens.';sources.appendChild(radarNote);details.appendChild(sources);

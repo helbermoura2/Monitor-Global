@@ -190,20 +190,7 @@ function traduzirEIdentificar(t0) {
 }
 
 function getCountryByCoords(lat, lng) {
-    let mp = null, md = Infinity;
-    PAISES_COSTEIROS.forEach(p => {
-        const d = haversine(lat, lng, p.lat, p.lng);
-        if (d < md) { md = d; mp = p; }
-    });
-    if (mp) return { nome: mp.n[0].toUpperCase() + mp.n.slice(1), flag: dicionarioBandeiras[mp.n] || '' };
-
-    let mc = null, mcd = Infinity;
-    CIDADES_MUNDO.forEach(c => {
-        const d = haversine(lat, lng, c.lat, c.lng);
-        if (d < mcd) { mcd = d; mc = c; }
-    });
-    if (mc) return { nome: mc.pais[0].toUpperCase() + mc.pais.slice(1), flag: dicionarioBandeiras[mc.pais.toLowerCase()] || '' };
-    return { nome: '', flag: '🌐' };
+    return window.CountryBoundaries?.lookup(lat,lng) || {nome:'',flag:'',countryCode:null};
 }
 
 function getFlagByCoords(lat, lng) { return getCountryByCoords(lat, lng).flag; }
