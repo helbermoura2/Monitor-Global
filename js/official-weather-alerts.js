@@ -59,10 +59,10 @@
   }
  }
  async function loadEccc(){try{
-  const r=await fetch(base()+'/official-weather-alerts?provider=eccc');if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(!Array.isArray(d.features)||d.complete!==true||!Number.isFinite(d.checkedAt))throw Error('Catálogo ECCC incompleto');set('eccc','ECCC Canadá',d.features.map(x=>eccc(x)).filter(Boolean),{checkedAt:d.checkedAt,credit:'Environment and Climate Change Canada · MSC Open Data'});
+  const r=await (window.SharedSourceDelivery?.fetch||fetch)(base()+'/official-weather-alerts?provider=eccc');if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(!Array.isArray(d.features)||d.complete!==true||!Number.isFinite(d.checkedAt))throw Error('Catálogo ECCC incompleto');set('eccc','ECCC Canadá',d.features.map(x=>eccc(x)).filter(Boolean),{checkedAt:d.checkedAt,credit:'Environment and Climate Change Canada · MSC Open Data'});
  }catch(e){set('eccc','ECCC Canadá',[],{error:e.message});}}
  async function loadBom(){try{
-  const r=await fetch(base()+'/official-weather-alerts?provider=bom');if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(!Array.isArray(d.feeds)||!d.feeds.length||!Number.isFinite(d.checkedAt))throw Error('Feeds BOM inválidos');
+  const r=await (window.SharedSourceDelivery?.fetch||fetch)(base()+'/official-weather-alerts?provider=bom');if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(!Array.isArray(d.feeds)||!d.feeds.length||!Number.isFinite(d.checkedAt))throw Error('Feeds BOM inválidos');
   d.feeds.forEach(f=>{try{if(f.error)throw Error(f.error);set('bom-'+f.code,'BOM '+f.region,bom(f.xml,f.region,d.checkedAt),{checkedAt:d.checkedAt,credit:'Bureau of Meteorology, © Commonwealth of Australia · RSS público; títulos e links para a fonte'});}catch(e){set('bom-'+f.code,'BOM '+f.region,[],{error:e.message});}});
  }catch(e){for(const [code,region] of [['NSW-ACT','New South Wales / ACT'],['VIC','Victoria'],['QLD','Queensland'],['WA','Western Australia'],['SA','South Australia'],['TAS','Tasmania'],['NT','Northern Territory']])set('bom-'+code,'BOM '+region,[],{error:e.message});}}
  document.addEventListener('DOMContentLoaded',()=>{render();PeriodicScheduler.every('eccc-warnings',loadEccc,26000,300000);PeriodicScheduler.every('bom-warnings',loadBom,28000,600000);PeriodicScheduler.every('official-warning-expiry',()=>{sync();render();},60000,60000,'ui');});

@@ -79,7 +79,7 @@
     if(MG.busy)return; const base=workerBase(); if(!base)return;
     MG.busy=true;
     try{
-      const r=await fetch(base+'/global-feeds'+(force?'?t='+Date.now():''),{cache:'no-store'});
+      const r=await (window.SharedSourceDelivery?.fetch||fetch)(base+'/global-feeds'+(force?'?t='+Date.now():''),{cache:'no-store'});
       if(!r.ok)throw new Error('HTTP '+r.status);
       MG.feeds=await r.json();
       renderCounts();renderFeeds();mapNaturalEvents();

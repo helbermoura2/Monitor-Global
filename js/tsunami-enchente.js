@@ -133,7 +133,7 @@ function startTsunamiWave(lng, lat, cor) {
 async function fetchGdacsFloods() {
     try {
         const base = workerBaseUrl();
-        const r = await fetch(base + '/gdacs-floods?t=' + Date.now(), { cache: 'no-store', mode: 'cors' });
+        const r = await (window.SharedSourceDelivery?.fetch||fetch)(base + '/gdacs-floods?t=' + Date.now(), { cache: 'no-store', mode: 'cors' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
         if (d && d.ok === false) throw new Error(d.error || 'gdacs-floods indisponível');
@@ -191,7 +191,7 @@ async function fetchCgeSP() {
     if (!window.__cgeEvidence || Date.now()-window.__cgeEvidence.at>20*60000) globalAlerts=globalAlerts.filter(a=>a.id!==id);
     try {
         const base = workerBaseUrl();
-        const r = await fetch(base + '/sp-clima', { cache: 'no-store' });
+        const r = await (window.SharedSourceDelivery?.fetch||fetch)(base + '/sp-clima', { cache: 'no-store' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
         const cge = d && d.cge;

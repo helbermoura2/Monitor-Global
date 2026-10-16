@@ -54,7 +54,7 @@ async function fetchTsunamiAlerts() {
 async function fetchOfficialTsunamiAlerts(){
  try{
   const url=new URL(WORKER_PROXY(''));url.pathname='/tsunami-alerts';url.search='';
-  const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);
+  const response=await (window.SharedSourceDelivery?.fetch||fetch)(url);if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();
   for(const name of ['PTWC','NTWC']){const rows=(data.sources||[]).filter(s=>s.source===name);const ok=rows.some(s=>s.ok);const partial=ok&&rows.some(s=>!s.ok);window.MonitorFreshness?.recordStatus(name+' boletins',partial?'warn':ok?'ok':'off',rows.filter(s=>!s.ok).map(s=>s.error||'Produto indisponível').join(' · '));}
   if(!data.ok)throw Error('Centros oficiais indisponíveis');

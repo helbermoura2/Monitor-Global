@@ -30,7 +30,9 @@ const get=name=>{if(!sources.has(name))sources.set(name,{lastOk:0,lastAttempt:0,
 const cfg=name=>settings[name]||{group:/^(ECCC|BOM|MeteoAlarm)/.test(name)?'Meteorologia':'Outras fontes',interval:600000,limit:25*60000};
 function age(ts,now=Date.now()){if(!ts)return 'sem consulta válida';const seconds=Math.max(0,Math.floor((now-ts)/1000));return seconds<60?seconds+' s':seconds<3600?Math.floor(seconds/60)+' min':Math.floor(seconds/3600)+' h';}
 function recordStatus(name,status,error='',dataAt=0,checkedAt=0){
- const s=get(name);if(status!=='paused')s.lastAttempt=Date.now();s.status=status==='ok'?'ok':status==='paused'?'paused':status==='warn'?'warn':'error';s.error=String(error||'');
+ const delivery=status==='ok'?root.SharedSourceDelivery?.forName(name):null;
+ if(delivery){if(delivery.at>0)checkedAt=delivery.at;if(['stale','partial','unavailable'].includes(delivery.state)){status='warn';error=delivery.state==='stale'?'Fonte indisponível; exibindo a última resposta válida.':delivery.state==='partial'?'Resposta compartilhada parcial.':'Fonte aguardando nova tentativa.';}}
+ const s=get(name);if(delivery?.at>0&&status==='warn')s.lastOk=delivery.at;s.sharedRetained=delivery?.state==='stale';if(status!=='paused')s.lastAttempt=Date.now();s.status=status==='ok'?'ok':status==='paused'?'paused':status==='warn'?'warn':'error';s.error=String(error||'');
  if(status==='ok'){s.lastOk=Number.isFinite(Number(checkedAt))&&Number(checkedAt)>0?Math.min(s.lastAttempt,Number(checkedAt)):s.lastAttempt;s.dataAt=Number(dataAt)||0;}
  scheduleRender();
 }
@@ -43,6 +45,7 @@ function snapshot(name,now=Date.now()){
  else if(s.status==='paused'){state='paused';label='Integração pausada';}
  else if(root.navigator?.onLine===false){state='offline';label='Sem conexão';}
  else if(s.status==='error'){state='error';label='Consulta indisponível';}
+ else if(s.sharedRetained){state='stale';label='Dados anteriores · nova tentativa pendente';}
  else if(s.status==='warn'){state='partial';label='Consulta parcial';}
  else if(!s.lastOk){state='waiting';label='Aguardando consulta';}
  else if(now-s.lastOk>config.limit||(s.dataAt&&now-s.dataAt>config.limit)){state='stale';label='Dados atrasados';}
