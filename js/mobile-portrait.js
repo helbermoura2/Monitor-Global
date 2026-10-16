@@ -55,6 +55,7 @@
   function menu() {
     const panel = shell('Menu'); $('fab-menu')?.setAttribute('aria-expanded','true');
     heading(panel, 'Análises');
+    button(panel, 'Meus lugares', secondary(() => window.MonitorWorkbench?.open('places')));
     button(panel, 'Resumo do dia', secondary(() => window.shareResumoDiarioStory?.()));
     for (const [label,kind] of [['Linha do tempo','timeline'],['Mudanças recentes','changes'],['Status das fontes','sources'],['Legenda do mapa','legend']]) button(panel,label,secondary(() => window.__uxShow?.(kind)));
     for (const [label,kind] of [['Radar de chuva','radar'],['Reproduzir eventos','replay'],['Acompanhar eventos','follow']]) button(panel,label,secondary(() => window.menuAcao?.(kind)));
