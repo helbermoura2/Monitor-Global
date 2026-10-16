@@ -32,7 +32,7 @@ function calculate(context){
  const useFallback=()=>fallback(job).catch(error=>{if(active===job){active=null;reject(error);}});
  if(!workerUnavailable&&typeof Worker==='function'){
   try{
-   if(!worker){worker=new Worker('js/seismic-impact-worker.js?v=20261016-weak-official');
+   if(!worker){worker=new Worker('js/seismic-impact-worker.js?v=20261016-multi-source');
     const engine=worker;worker.onmessage=({data})=>{if(worker!==engine)return;const current=active;if(!current||data.id!==current.id)return;if(data.error){active=null;current.reject(Error(data.error));}else complete(current,data);};
     worker.onerror=event=>{event.preventDefault();if(worker!==engine)return;worker?.terminate();worker=null;workerUnavailable=true;const current=active;if(current)fallback(current).catch(error=>{if(active===current){active=null;current.reject(error);}});};
    }
@@ -49,11 +49,11 @@ function ensure(){
 function ruptureTrace(c){
  const projection=c.shaking?.rupture;
  // Only normalized official finite geometry can appear in a real scene.
- const lines=!c.demo&&c.shaking?.method==='usgs-shakemap-finite'&&projection?.type==='FeatureCollection'?projection.features.filter(f=>f.properties?.provider==='USGS'&&f.properties?.projection===true&&f.geometry?.type==='LineString'):[];
+ const lines=!c.demo&&(['available','rupture-only'].includes(c.shaking?.status)||c.shaking?.method==='usgs-shakemap-finite')&&projection?.type==='FeatureCollection'?projection.features.filter(f=>['USGS','INGV','ShakeMap-EU'].includes(f.properties?.provider)&&f.properties?.projection===true&&f.geometry?.type==='LineString'):[];
  if(!lines.length){for(const id of RUPTURE_LAYERS)if(map.getLayer(id))map.removeLayer(id);if(map.getSource(RUPTURE))map.removeSource(RUPTURE);return;}
  const data={type:'FeatureCollection',features:lines};
  if(!map.getSource(RUPTURE))map.addSource(RUPTURE,{type:'geojson',data});else map.getSource(RUPTURE).setData(data);
- RUPTURE_LAYERS.forEach((id,i)=>{if(!map.getLayer(id))map.addLayer({id,type:'line',source:RUPTURE,layout:{visibility:visible?'visible':'none','line-join':'round','line-cap':'round'},paint:{'line-color':i?'#fff2c6':'#152331','line-width':i?2.5:5,'line-opacity':i?.95:.8}},map.getLayer('wave-front-p-glow')?'wave-front-p-glow':undefined);});
+ RUPTURE_LAYERS.forEach((id,i)=>{if(!map.getLayer(id))map.addLayer({id,type:'line',source:RUPTURE,layout:{visibility:visible?'visible':'none','line-join':'round','line-cap':'round'},paint:{'line-color':i?'#fff2c6':'#152331','line-width':lines.length>100?(i?1:2.5):(i?2.5:5),'line-opacity':i?.95:.8}},map.getLayer('wave-front-p-glow')?'wave-front-p-glow':undefined);});
 }
 function label(text){
  if(scene?.mag>=5.5&&!scene.shaking&&!scene.skipOfficial&&!scene.demo&&!scene.demoPreview)text+=' · Aguardando mapa oficial USGS';
@@ -63,8 +63,8 @@ function label(text){
   (document.getElementById('mapWrap')||document.body).append(legend);
  }
  legend.title=scene?.demo?'Cenário fictício para testar a pintura. Não é um produto do USGS nem um evento real.':scene?.shaking?.note||'Modelo de atenuação GlobalQuake Gen2 sobre terras Natural Earth. Sem correção local de solo, relatos ou confirmação de danos.';
- if(!scene?.demo&&scene?.shaking?.rupture?.features?.length)text+=' · Projeção da ruptura USGS';
- if(scene?.shaking?.rupture?.features?.length)legend.title+=' Projeção em superfície do modelo de ruptura finita publicado pelo USGS. A falha pode estar em profundidade; não representa necessariamente uma rachadura observada no solo.';
+ if(!scene?.demo&&scene?.shaking?.rupture?.features?.length)text+=' · Projeção da ruptura '+scene.shaking.rupture.features[0].properties.provider;
+ if(scene?.shaking?.rupture?.features?.length)legend.title+=' Projeção em superfície do modelo de ruptura finita publicado pela fonte. A falha pode estar em profundidade; não representa necessariamente uma rachadura observada no solo.';
  legend.textContent=text;legend.style.display=visible?'':'none';
  positionStatus();
 }
@@ -82,7 +82,7 @@ function reveal(radius,full=false){if(!scene)return;scene.radius=Math.max(scene.
 // Informational only: no selection, camera, sound or presentation timers.
 const announcedOfficial=new Map();
 function announceOfficial(c,features){
- if(!features||!c.shaking||c.demo||c.demoPreview||!window.MobileNotices)return;
+ if((!features&&!c.shaking?.rupture?.features?.length)||!c.shaking||c.demo||c.demoPreview||!window.MobileNotices)return;
  const version=String(c.shaking.version||c.shaking.updatedAt||'published');
  if(announcedOfficial.get(c.id)===version)return;
  announcedOfficial.delete(c.id);announcedOfficial.set(c.id,version);
@@ -90,31 +90,32 @@ function announceOfficial(c,features){
  const item=typeof globalEvents==='undefined'?null:globalEvents.find(q=>q.id===c.id);
  const place=window.EventPortuguese?.place(item?.place)||item?.place||'Local do sismo';
  window.MobileNotices.push({key:'official-map|'+c.id+'|'+version,type:'info',duration:8000,
-  title:'Mapa oficial atualizado',detail:'USGS ShakeMap · M'+Number(c.mag).toFixed(1).replace('.',',')+' · '+place});
+  title:c.shaking.status==='rupture-only'?'Ruptura publicada disponível':'Mapa oficial atualizado',detail:(c.shaking.source==='eu'?'ShakeMap-EU':c.shaking.source==='ingv'?'INGV ShakeMap':c.shaking.status==='rupture-only'?'USGS · ruptura':'USGS ShakeMap')+' · M'+Number(c.mag).toFixed(1).replace('.',',')+' · '+place});
 }
 function start(context,full=false){
  const item=typeof globalEvents==='undefined'?null:globalEvents.find(q=>q.id===context.id);context={...context,...(!context.skipOfficial&&!context.shaking&&item&&window.RuptureShaking?.get(item)?{shaking:window.RuptureShaking.get(item)}:{})};
  const previous=scene?.id===context.id?scene:null;stop(true,!!previous);const token=generation;scene={...context,bounds:previous?.bounds||null,radius:0,full,bandWidth:extent(context.mag,context.depth)/48};
- label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':context.presentation?'Reprodução visual · Intensidade estimada':context.shaking?officialLabel(context):'Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
+ label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':context.shaking?officialLabel(context):context.presentation?'Reprodução visual · Intensidade estimada':'Intensidade estimada · I fraca → IX+ forte · '+(full?'Ondas já passaram':'Acompanhando a onda S'));
  calculate(context).then(data=>{
   if(token!==generation||!scene)return;
   ensure();ruptureTrace(context);map.getSource(SOURCE).setData(data);scene.features=data.features.length;scene.bounds=footprintBounds(data,context);reveal(scene.radius,scene.full);if(!scene.features)label(emptyLabel(context));else if(context.shaking)label(context.demo?'TESTE · ruptura alongada · intensidade fictícia':officialLabel(context));if(context.keepCamera)window.SeismicPaintTour?.ready(context);else window.SeismicFocus?.ready(context);announceOfficial(context,scene.features);if(context.demo||context.demoPreview)window.SeismicScenarioDemo?.paintReady(context);
  }).catch(e=>{if(token===generation){if(context.shaking){start({...context,shaking:null,skipOfficial:true},full);return;}label('Intensidade estimada · Camada indisponível');console.warn('[intensidade estimada]',e);}});
- if(item&&!context.skipOfficial&&!context.shaking&&context.mag>=5.5&&window.RuptureShaking){
+ if(item&&!context.skipOfficial&&(!context.shaking||context.shaking.status==='rupture-only')&&context.mag>=5.5&&window.RuptureShaking){
   let requesting=false;const check=()=>{clearTimeout(officialTimer);officialTimer=null;if(requesting||token!==generation||scene?.id!==context.id||document.hidden||!visible)return;requesting=true;
-   window.RuptureShaking.query(item).then(shaking=>{requesting=false;if(token!==generation||scene?.id!==context.id||document.hidden||!visible)return;if(shaking){const r=scene.radius;start({...context,shaking},scene.full);reveal(r,true);}else officialTimer=setTimeout(check,60000);});
+   window.RuptureShaking.query(item).then(shaking=>{requesting=false;if(token!==generation||scene?.id!==context.id||document.hidden||!visible)return;if(shaking&&shaking.version!==context.shaking?.version){const r=scene.radius;start({...context,shaking},scene.full);reveal(r,true);}else officialTimer=setTimeout(check,60000);});
   };officialCheck=check;check();
  }
 }
 document.addEventListener?.('visibilitychange',()=>{if(document.hidden){clearTimeout(officialTimer);officialTimer=null;}else officialCheck?.();});
 function officialLabel(c){
+ if(c.shaking?.status==='rupture-only')return c.shaking.provider+' · Sem mapa oficial de intensidade · Não delimita a área sentida';
  const values=c.shaking?.grid?.values?.filter(v=>v!=null&&v>=1.5)||[],max=values.length?Math.max(...values):null;
  const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
  return (c.shaking.provider||'USGS ShakeMap')+(max!=null?' · faixas MMI II–'+roman[Math.max(0,Math.min(11,Math.round(max)-1))]+(max<3.5?' · fraca':''):'');
 }
-function emptyLabel(c){return c.shaking?(c.shaking.provider||'USGS ShakeMap')+' · Sem faixa II+ em terra nesta grade':'Intensidade estimada · Sem área em terra estimada para pintar';}
+function emptyLabel(c){if(c.shaking?.status==='rupture-only')return officialLabel(c);return c.shaking?(c.shaking.provider||'USGS ShakeMap')+' · Sem faixa II+ em terra nesta grade':'Intensidade estimada · Sem área em terra estimada para pintar';}
 function finish(){if(scene){reveal(scene.radius,true);label(scene.features===0?emptyLabel(scene):scene.demo?'TESTE · ruptura alongada · intensidade fictícia':scene.shaking?officialLabel(scene):'Intensidade estimada · I fraca → IX+ forte · Área afetada');}}
-function footprintBounds(data,c){let w=Infinity,e=-Infinity,s=Infinity,n=-Infinity;for(const f of data.features){for(const p of f.geometry.coordinates)for(const ring of p)for(const [x,y]of ring){const lng=c.lng+((x-c.lng+540)%360)-180;w=Math.min(w,lng);e=Math.max(e,lng);s=Math.min(s,y);n=Math.max(n,y);}}for(const f of c.shaking?.rupture?.features||[]){if(f.geometry?.type!=='LineString')continue;for(const [x,y]of f.geometry.coordinates){const lng=c.lng+((x-c.lng+540)%360)-180;w=Math.min(w,lng);e=Math.max(e,lng);s=Math.min(s,y);n=Math.max(n,y);}}return w<e&&s<n?[w,s,e,n]:null;}
+function footprintBounds(data,c){let w=Infinity,e=-Infinity,s=Infinity,n=-Infinity;for(const f of data.features){for(const p of f.geometry.coordinates)for(const ring of p)for(const [x,y]of ring){const lng=c.lng+((x-c.lng+540)%360)-180;w=Math.min(w,lng);e=Math.max(e,lng);s=Math.min(s,y);n=Math.max(n,y);}}for(const f of c.shaking?.rupture?.features||[]){if(f.geometry?.type!=='LineString')continue;for(const [x,y]of f.geometry.coordinates){const lng=c.lng+((x-c.lng+540)%360)-180;w=Math.min(w,lng);e=Math.max(e,lng);s=Math.min(s,y);n=Math.max(n,y);}}if(Number.isFinite(w)&&Number.isFinite(s)){if(w===e){w-=.01;e+=.01;}if(s===n){s=Math.max(-90,s-.01);n=Math.min(90,n+.01);}}return w<e&&s<n?[w,s,e,n]:null;}
 function refresh(c){if(scene?.id!==c.id)return;if(['lng','lat','depth','mag'].some(k=>scene[k]!==c[k])){const r=scene.radius,full=scene.full;start(c,full);reveal(r,full);}}
 window.SeismicImpact={start,reveal,finish,refresh,stop,setVisible,positionStatus,bounds:id=>scene?.id===id?scene.bounds||null:null,pga,extent,color,snapshot:context=>geometryCache.get(key(context))?.data||(active?.key===key(context)?active.promise:Promise.resolve(null))};
 })();
