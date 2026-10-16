@@ -4,7 +4,7 @@ test('only published names map to coastal references, never the epicentre countr
  const item={type:'tsunami',place:'Panama',coords:[-80.8,7.5],hazardNature:'warning',affectedAreas:[{name:'PANAMA',category:'1 TO 3 METERS'},{name:'PERU',category:'LESS THAN 0.3 METERS'},{name:'unknown island',category:'Warning'}]};
  const r=M.build(item,regions);assert.deepEqual([...new Set(r.data.features.map(f=>f.properties.name))],['Panama','Peru']);assert(r.data.features.filter(f=>f.properties.name==='Panama').every(f=>f.properties.color==='#fb7148'));assert(r.data.features.filter(f=>f.properties.name==='Peru').every(f=>f.properties.color==='#2dd4bf'));assert.deepEqual(r.unmapped,['unknown island']);
  assert.equal(M.build({...item,affectedAreas:[]},regions).data.features.length,0);
- assert(r.data.features.every(f=>f.geometry.type==='MultiPolygon'));assert(r.data.features.some(f=>f.properties.band==='inner'));assert(r.data.features.some(f=>f.properties.band==='outer'));
+ assert(r.data.features.filter(f=>f.properties.band!=='shoreline').every(f=>f.geometry.type==='MultiPolygon'));assert(r.data.features.filter(f=>f.properties.band==='shoreline').every(f=>f.geometry.type==='MultiLineString'));assert(r.data.features.some(f=>f.properties.band==='inner'));assert(r.data.features.some(f=>f.properties.band==='outer'));
  const panama=r.data.features[0].geometry.coordinates.flat(2);assert(panama.some(([x,y])=>x<-81&&y<8));assert(panama.every(([x,y])=>x>-84&&x<-77&&y>7&&y<10));
 });
 test('information and cancellation do not inherit threat colors; strongest category wins per coast',()=>{
@@ -20,3 +20,17 @@ test('amplitude bands keep decimal 0.3–1 separate from 3+ metres',()=>{assert.
 test('Alaska and Aleutian references fit across the date line without opening the whole world',()=>{
  const [west,east]=M.longitudeBounds([170,179,-179,-150,-124]);assert.equal(east-west,66);assert(west<=-150&&east>=-124);assert.deepEqual(M.longitudeBounds([-83,-78]),[-83,-78]);
 });
+
+test('Russia/Pacific named sectors paint only those shores with published category colors',()=>{
+ const item={hazardNature:'warning',coords:[157.4,51.9],affectedAreas:[{name:'Kamchatka',category:'GREATER THAN 3 METERS'},{name:'Kuril Islands',category:'1 TO 3 METERS'},{name:'Aleutian Islands',category:'0.3 TO 1 METERS'}]};
+ const result=M.build(item,regions),names=[...new Set(result.data.features.map(f=>f.properties.name))];assert.deepEqual(names,['Kamchatka','Kuril Islands','Aleutian Islands']);assert.equal(result.unmapped.length,0);
+ const kamchatka=result.data.features.filter(f=>f.properties.name==='Kamchatka');assert(kamchatka.every(f=>f.properties.color==='#ef4444'));assert(kamchatka.some(f=>f.geometry.type==='MultiPolygon'));assert(kamchatka.some(f=>f.geometry.type==='MultiLineString'));
+ const points=kamchatka.filter(f=>f.geometry.type==='MultiPolygon').flatMap(f=>f.geometry.coordinates.flat(2));assert(points.every(([x,y])=>x>=155&&x<=164&&y>=50&&y<=61.5));
+ const aleutians=result.data.features.filter(f=>f.properties.name==='Aleutian Islands'&&f.properties.band==='shoreline').flatMap(f=>f.geometry.coordinates.flat());const [w,e]=M.longitudeBounds(aleutians.map(p=>p[0]));assert(e-w<30);assert(aleutians.some(p=>p[0]>170)&&aleutians.some(p=>p[0]<-170));
+ assert(!names.includes('Russia'));assert(!names.includes('Japan'));assert(!names.includes('Alaska'));
+});
+test('a geographic name with no source category does not import colors from a different region',()=>{
+ const r=M.build({hazardNature:'warning',affectedAreas:[{name:'Kamchatka',category:'GREATER THAN 3 METERS'},{name:'Hokkaido',category:'LESS THAN 0.3 METERS'}]},regions);assert(r.data.features.filter(f=>f.properties.name==='Hokkaido').every(f=>f.properties.color==='#2dd4bf'));
+});
+
+test('official decimal and inequality category text keeps the right level; no-threat is informational',()=>{assert.equal(M.category({category:'3.0 TO 5.0 METERS'},{hazardNature:'warning'}).rank,5);assert.equal(M.category({category:'0.30 TO 1.00 METERS'},{hazardNature:'warning'}).rank,3);assert.equal(M.category({category:'<0.3 m'},{hazardNature:'warning'}).rank,2);assert.equal(M.category({category:'>3 m'},{hazardNature:'warning'}).rank,5);assert.equal(M.category({category:'NO TSUNAMI THREAT'},{hazardNature:'warning'}).label,'Sem ameaça no boletim');});

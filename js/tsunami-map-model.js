@@ -4,11 +4,12 @@
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const aliases={panama:'panama',brasil:'brazil',peru:'peru',equador:'ecuador',colombia:'colombia',mexico:'mexico',chile:'chile',japao:'japan',indonesia:'indonesia',filipinas:'philippines',novazelandia:'newzealand',australia:'australia',russia:'russia',polinesiafrancesa:'frenchpolynesia',novacaledonia:'newcaledonia',ilhascook:'cookislands',ilhassalomao:'solomonislands',marshalls:'marshallislands',micronesia:'federatedstatesofmicronesia',chuuk:'federatedstatesofmicronesia',kosrae:'federatedstatesofmicronesia',pohnpei:'federatedstatesofmicronesia',rota:'northernmarianaislands',tinian:'northernmarianaislands',saipan:'northernmarianaislands',northernmarianas:'northernmarianaislands',columbiabritanica:'britishcolumbia',havaí:'hawaii',havai:'hawaii',samoaamericana:'americansamoa',alasca:'alaska'};
  function category(area,item){
-  const value=String(area.category||item.warningLevel||'');
-  if(item.cancelled||/cancel|encerrad|no (?:tsunami )?threat/i.test(value))return {color:'#94a3b8',label:'Encerrado',rank:0};
+  const value=String(area.category||item.warningLevel||'').replace(/\b(\d+)[.,]0+\b/g,'$1').replace(/\b0[.,]30+\b/g,'0.3');
+  if(item.cancelled||/cancel|encerrad/i.test(value))return {color:'#94a3b8',label:'Encerrado',rank:0};
+  if(/no (?:tsunami )?(?:threat|danger)|sem amea[cç]a/i.test(value))return {color:'#38bdf8',label:'Sem ameaça no boletim',rank:1};
   if(/information|informativ/i.test(value)||item.hazardNature==='bulletin')return {color:'#38bdf8',label:'Informativo',rank:1};
-  if(/(?:less than|menos de)\s*0[.,]3/i.test(value))return {color:'#2dd4bf',label:'Previsão menor que 0,3 m',rank:2};
-  if(/(?:greater than|more than|mais de)\s*3|(?:(?:^|[^\d.,])3\s*(?:to|a|-)\s*\d)/i.test(value))return {color:'#ef4444',label:'Previsão acima de 3 m',rank:5};
+  if(/(?:less than|menos de|<)\s*0[.,]3/i.test(value))return {color:'#2dd4bf',label:'Previsão menor que 0,3 m',rank:2};
+  if(/(?:greater than|more than|mais de|>|≥)\s*3|(?:(?:^|[^\d.,])3\s*(?:to|a|-)\s*\d)/i.test(value))return {color:'#ef4444',label:'Previsão acima de 3 m',rank:5};
   if(/1\s*(?:to|a|-)\s*3/i.test(value))return {color:'#fb7148',label:'Previsão de 1 a 3 m',rank:4};
   if(/0[.,]3\s*(?:to|a|-)\s*1/i.test(value))return {color:'#fbbf24',label:'Previsão de 0,3 a 1 m',rank:3};
   if(/watch|vigilancia|advisory|atencao/i.test(normalize(value)))return {color:'#fbbf24',label:item.warningLevel||'Atenção',rank:3};
@@ -29,6 +30,7 @@
   for(const {region,c} of chosen.values()){
    features.push({type:'Feature',geometry:region.geometry,properties:{...c,name:region.properties.name,kind:'reference',band:'outer'}});
    if(region.innerGeometry)features.push({type:'Feature',geometry:region.innerGeometry,properties:{...c,name:region.properties.name,kind:'reference',band:'inner'}});
+   if(region.coastlineGeometry)features.push({type:'Feature',geometry:region.coastlineGeometry,properties:{...c,name:region.properties.name,kind:'reference',band:'shoreline'}});
    entries.push(c);
   }
   return {data:{type:'FeatureCollection',features},entries:[...new Map(entries.map(c=>[c.label,c])).values()].sort((a,b)=>b.rank-a.rank),unmapped};
@@ -40,5 +42,6 @@
   if(end-start>350)return [-180,180];if((start+end)/2>180){start-=360;end-=360;}
   return [start,end];
  }
- const api={build,category,normalize,longitudeBounds};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
+ function placeLabel(name){return {kurilislands:'Ilhas Curilas',northeasternjapan:'Nordeste do Japão',aleutianislands:'Ilhas Aleutas',southernalaska:'Sul do Alasca',pacificcoastofrussia:'Costa pacífica da Rússia'}[normalize(name)]||root.EventPortuguese?.place(name)||name;}
+ const api={build,category,normalize,longitudeBounds,placeLabel};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:window);

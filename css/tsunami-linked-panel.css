@@ -74,3 +74,21 @@
 .tsunami-status-strip[data-level="ended"]::before{animation:none;opacity:.3}
 @keyframes tsunami-status-water{0%,100%{transform:translateX(-7%) rotate(-2deg)}50%{transform:translateX(7%) rotate(2deg)}}
 @media(prefers-reduced-motion:reduce){.tsunami-status-strip::before{animation:none}}
+
+/* Modelo 1: faixas costeiras preenchidas; aviso contínuo, sem estrobos. */
+#tsunami-coastal-frame{position:fixed;inset:2px;z-index:500004;border:2px solid var(--tsunami-frame-color,#fbbf24);border-radius:14px;box-shadow:inset 0 0 20px color-mix(in srgb,var(--tsunami-frame-color) 18%,transparent);pointer-events:none}
+#tsunami-coastal-frame[data-level=information],#tsunami-coastal-frame[data-level=ended]{opacity:.45;box-shadow:none;border-width:1px}
+#tsunami-coastal-notice{position:absolute;left:50%;transform:translateX(-50%);z-index:500;box-sizing:border-box;width:min(490px,calc(100% - 700px));padding:9px 12px;border:1px solid var(--tsunami-frame-color,#fbbf24);border-radius:9px;background:linear-gradient(125deg,#102736f5,#071421f5);color:#e9f3f8;box-shadow:0 4px 16px #0004;font:12px/1.4 system-ui}
+#tsunami-coastal-notice strong{display:block;color:var(--tsunami-frame-color);font-size:11px;letter-spacing:.5px}
+#tsunami-coastal-notice small{display:block;font-size:10px;color:#c7d9e4;margin-top:2px}
+#tsunami-coastal-notice button{display:none}
+.tsunami-map-colors span:before{height:8px}
+@media(max-width:1000px){#tsunami-coastal-notice{width:min(460px,calc(100% - 24px));padding:8px 10px}}
+@media(max-width:700px){#tsunami-coastal-frame{border-radius:9px}#tsunami-coastal-notice{padding-right:94px;min-height:56px}#tsunami-coastal-notice button{display:block;position:absolute;right:6px;top:6px;min-height:44px;padding:7px;border:1px solid #8bb2ca66;border-radius:7px;background:#0b2b3d;color:#e3eff8;font:11px system-ui}#tsunami-map-legend{z-index:501;max-height:40vh;overflow:auto}}
+#pd-coastal-demo{padding:18px 14px;color:#e7f1f7;font:13px/1.6 system-ui;overflow:auto;grid-column:1/-1;grid-row:2}
+#pd-coastal-demo>small{display:block;color:#bdccd8;font-size:11px}#pd-coastal-demo>small:first-child{color:#fbbf24;font-weight:800;letter-spacing:.6px}
+#pd-coastal-demo h2{font-size:24px;margin:12px 0 4px}#pd-coastal-demo h3{font-size:16px;margin:4px 0 12px}#pd-coastal-demo ul{padding-left:18px}#pd-coastal-demo li{margin:10px 0}
+#painel-direito.tsunami-coastal-demo>:not(.pd-header-row):not(#painel-direito-close):not(#mobile-detail-handle):not(#pd-coastal-demo):not(.pd-cinema-layer):not(.pd-cinema-afterglow){display:none!important}
+.tsunami-demo-origin{display:flex;align-items:center;flex-direction:column-reverse;gap:8px;pointer-events:none}.tsunami-demo-origin i{display:block;width:12px;height:12px;border:3px solid #fff;background:#ef4444;border-radius:50%;box-shadow:0 0 0 5px #ffffff35}.tsunami-demo-origin strong{padding:5px 8px;background:#071b2dec;border:1px solid #e2e8f088;border-radius:6px;font:600 11px system-ui;color:#fff;white-space:nowrap}
+#painel-direito #pd-coastal-demo{opacity:1!important;pointer-events:auto!important;min-height:0}
+@media(max-width:900px){body.mg-mobile-primary.mobile-details-mid #painel-direito.tsunami-coastal-demo{grid-template-columns:1fr!important;grid-template-rows:auto minmax(0,1fr)!important;height:min(36vh,330px)!important;max-height:36vh!important}body.mg-mobile-primary.mobile-details-mid #painel-direito.tsunami-coastal-demo #pd-coastal-demo{grid-column:1/-1;grid-row:2;padding:8px 12px;overflow-y:auto}#pd-coastal-demo h2{font-size:19px;margin-top:6px}#pd-coastal-demo h3{font-size:13px}#pd-coastal-demo li{margin:5px 0;font-size:11px}}
