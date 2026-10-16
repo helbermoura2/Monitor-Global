@@ -1069,7 +1069,6 @@ function runAutoCycle(forced = false) {
         if (typeof pendingNewCameraQuakes!=='undefined' && pendingNewCameraQuakes.size) { scheduleNextAutoCycle(2000); return; }
         if (!forced && map && map.isMoving && map.isMoving()) { scheduleNextAutoCycle(4000); return; }
         if(forced)stopMapCamera();
-        if (!window.CinematicCard?.isActive() && window.PollProjectionCard?.due() && window.PollProjectionCard.show(() => scheduleNextAutoCycle(20000))) { scheduleNextAutoCycle(31000); return; }
         if (!showNextAutoCycleItem()) scheduleNextAutoCycle(20000);
     } catch (e) {
         window.__mgSoftCycle = false;
@@ -1222,7 +1221,6 @@ function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if(!silentRefresh)window.EventReplay?.stop(false);
     if (!globalEvents[index] || !map) return;
-    if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
     if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
     if (!silentRefresh && globalEvents[index].id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     if (!silentRefresh) {
@@ -1628,7 +1626,6 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     if(!silentRefresh)window.EventReplay?.stop(false);
     if (!item) return;
     const normalized=window.TsunamiBulletinOrigin?.normalize(item);if(normalized&&normalized!==item){Object.assign(item,normalized);}
-    if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
     if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
     const rawItem=item;
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});

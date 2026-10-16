@@ -63,3 +63,21 @@ Validação: `node tests/unit/tse-results-check.mjs` e
 assinados coletados em 05/10/2026 para testes, não resultados publicados na UI.
 Os cenários de atualização e segundo turno usam uma chave efêmera apenas nas
 rotas interceptadas dos testes. A validação de produção consulta o TSE real.
+
+## Pesquisas removidas em 16/10/2026
+
+Removidos a aba de pesquisas, o cartão de rotação e o coletor periódico do
+Worker. `/polls-average` responde 410 sem consultar KV, inclusive para clientes
+antigos. O código não lê, grava nem apaga as duas chaves antigas de pesquisas.
+Os dados antigos podem permanecer armazenados sem gerar gravações periódicas.
+A apuração oficial continua consultada diretamente no TSE a cada 30 segundos
+enquanto o placar está aberto e visível, incluindo o segundo turno quando o
+TSE publicar o arquivo. Não usa KV nem o Worker para essa consulta.
+
+A publicação do frontend e a implantação do Worker são etapas separadas. Para
+cessar as gravações do coletor, implantar o bundle atualizado no Worker existente
+`black-sky-9ba0`, mantendo segredos e bindings. `/health` deve informar
+`electionPolls: removed-no-kv-v1`. Sem acesso Cloudflare, entregar o bundle para
+implantação manual e não declarar que a economia de KV já começou.
+
+Pacote compilado para implantação manual: [Worker sem pesquisas](../downloads/monitor-global-worker-sem-pesquisas.zip). Inclui o JavaScript único e instruções; `/health` identifica a implantação.

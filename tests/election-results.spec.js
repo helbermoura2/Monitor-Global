@@ -33,7 +33,9 @@ async function setup(page, {realSignature = false, date = '2026-10-05T02:00:00Z'
     return route.fulfill({status: 200, body: realSignature ? resultFixture : signed(state.first)});
   });
   await page.goto('/', {waitUntil: 'domcontentloaded'});
-  await page.waitForFunction(() => !!window.ElectionPanel && !__fetchGlobalFeedsEmAndamento);
+  await page.waitForFunction(() => !!window.ElectionPanel && window.__mgMapReady && !__fetchGlobalFeedsEmAndamento);
+  // Raster requests are blocked in this fixture; keep clock advancement independent of GPU textures.
+  await page.evaluate(() => {for (const layer of map.getStyle().layers) if (layer.type === 'raster') map.removeLayer(layer.id);});
   return state;
 }
 async function open(page) {
@@ -45,10 +47,13 @@ test('assinatura real do TSE, votos e porcentagens no placar; chip não altera f
   const errors = [];page.on('pageerror', error => errors.push(error.message));
   const state = await setup(page, {realSignature: true});
   expect(state.calls).toBe(0);
+  await expect(page.locator('script[src*="poll-projection"],link[href*="poll-projection"]')).toHaveCount(0);
   expect(await page.locator('#chip-election').evaluate(e => e.previousElementSibling.id)).toBe('chip-geo-br');
   const filter = await page.evaluate(() => ({type: sidebarFilter, geo: geoFilter}));
   await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
+  await expect(page.locator('#election-panel')).toContainText('Apuração oficial · TSE');
+  await expect(page.locator('[data-election-tab="polls"]')).toHaveCount(0);
   await expect(page.locator('.election-candidate-votes')).toHaveText(['56.095.679 votos', '53.838.430 votos']);
   await expect(page.locator('.election-candidate-percentage')).toHaveText(['47,04%', '45,15%']);
   await expect(page.locator('#election-counted')).toHaveText('99,95% apurado');
@@ -122,7 +127,7 @@ test('segundo turno aguarda fonte, não inventa participantes e recebe votos ofi
   const state = await setup(page);await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
   await page.locator('[data-election-turn="2"]').click();
-  await expect(page.locator('#election-empty')).toHaveText('Aguardando dados oficiais do 2º turno.');
+  await expect(page.locator('#election-empty')).toContainText('ainda não há dados oficiais do TSE.');
   await expect(page.locator('.election-candidate')).toHaveCount(0);
   await expect(page.locator('#election-totalization')).toBeHidden();
   state.second = structuredClone(state.first);state.second.ele = '6258';state.second.t = '2';
@@ -147,7 +152,7 @@ test('respostas atrasadas não trocam o turno nem reabrem painel fechado', async
   await expect(page.locator('#election-panel')).toBeHidden();
   await open(page);await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
   await page.locator('[data-election-turn="2"]').click();
-  await expect(page.locator('#election-empty')).toHaveText('Aguardando dados oficiais do 2º turno.');
+  await expect(page.locator('#election-empty')).toContainText('ainda não há dados oficiais do TSE.');
   await expect(page.locator('.election-candidate')).toHaveCount(0);
 });
 

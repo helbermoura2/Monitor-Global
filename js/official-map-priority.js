@@ -10,7 +10,7 @@ function automatic(){
  return quake?window.__mgQuakePresentationMode==='auto':p?.id===eventoSelecionadoId&&p.mode==='auto';
 }
 function focus(){
- if(document.hidden||window.EventReplay?.isActive()||!map||!automatic()||window.SeismicScenarioDemo?.isActive()||window.TsunamiMap?.isPreview()||window.TsunamiPresentation?.ownsCamera(eventoSelecionadoId)||window.PollProjectionCard?.isActive())return false;
+ if(document.hidden||window.EventReplay?.isActive()||!map||!automatic()||window.SeismicScenarioDemo?.isActive()||window.TsunamiMap?.isPreview()||window.TsunamiPresentation?.ownsCamera(eventoSelecionadoId))return false;
  reconcile();if(!pending.size)return false;
  if(window.NewEventPriority?.focus())return true;
  if(pendingNewCameraQuakes.size||window.NewEventPriority?.hasPending()||window.VolcanoPriority?.presentationActive()||getAutoCycleProtectionRemaining()>0)return false;

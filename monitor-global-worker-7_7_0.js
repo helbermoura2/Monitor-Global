@@ -138,130 +138,6 @@ function json(data, status = 200) {
 
 function nowIso() { return new Date().toISOString(); }
 
-// Média de pesquisas eleitorais (2º turno), fonte: feed RSS do Poder360
-// (cobre qualquer instituto que divulgue pesquisa nacional -- cada pesquisa
-// nova vira uma notícia individual, com os números no próprio título).
-// Rechecada a cada ~15min pelo cron (ver scheduled()); resultado fica em KV
-// (env.TTS_USAGE) pro frontend ler.
-const POLLS_FEED_URL = 'https://www.poder360.com.br/feed/';
-const POLLS_KV_KEY = 'polls-2nd-round-average';
-const POLLS_RAN_TODAY_KV_KEY = 'polls-2nd-round-ran-on';
-
-async function fetchPoder360Feed() {
-    const res = await fetch(POLLS_FEED_URL, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MonitorGlobal/1.0; +https://monitorglobal.top)' } });
-    if (!res.ok) throw new Error('Falha ao buscar feed do Poder360: HTTP ' + res.status);
-    const xml = await res.text();
-    const items = [];
-    for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
-        const block = m[1];
-        const titleM = block.match(/<title>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([\s\S]*?))<\/title>/);
-        const dateM = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-        const linkM = block.match(/<link>([\s\S]*?)<\/link>/);
-        const title = titleM ? (titleM[1] ?? titleM[2] ?? '').trim() : '';
-        const pubDate = dateM ? Date.parse(dateM[1].trim()) : NaN;
-        const link = linkM ? linkM[1].trim() : '';
-        if (title) items.push({ title, pubDate, link });
-    }
-    return items;
-}
-
-// Título do Poder360 pra pesquisa de 2º turno segue o padrão "[Candidato]
-// tem X% ... Y% de [Candidato2] no 2º turno" (ordem de nome e número pode
-// variar, e o jornalista às vezes omite o "%" do segundo número). Exige
-// escopo nacional -- descarta pesquisas estaduais ("em MG", "no AP" etc.).
-function parsePoder360Title(title) {
-    if (!/2[ºo]\s*turno/i.test(title)) return null;
-    if (!title.includes('%')) return null;
-    if (/\bem\s+[A-Z]{2}\b|\bno\s+[A-Z]{2}\b/.test(title)) return null;
-    const pctRe = /(\d{1,2}(?:,\d{1,2})?)\s*%?/g;
-    const pctPositions = [...title.matchAll(pctRe)].map(m => ({ val: parseFloat(m[1].replace(',', '.')), pos: m.index }));
-    if (pctPositions.length < 2) return null;
-    const nameRe = /(Lula|Flávio|Flavio)/gi;
-    const nameIdx = [];
-    let nm;
-    while ((nm = nameRe.exec(title))) nameIdx.push({ name: nm[1], pos: nm.index });
-    if (nameIdx.length < 2) return null;
-    const used = new Set();
-    function nearestPct(namePos) {
-        let bestIdx = -1, bestDist = Infinity;
-        pctPositions.forEach((p, i) => {
-            if (used.has(i)) return;
-            const dist = Math.abs(p.pos - namePos);
-            if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-        });
-        if (bestIdx === -1) return null;
-        used.add(bestIdx);
-        return pctPositions[bestIdx].val;
-    }
-    const result = {};
-    for (const n of nameIdx) {
-        const key = /fl[aá]v/i.test(n.name) ? 'flavio' : 'lula';
-        if (result[key] != null) continue;
-        const pct = nearestPct(n.pos);
-        if (pct != null) result[key] = pct;
-    }
-    if (result.lula == null || result.flavio == null) return null;
-    return result;
-}
-
-async function refreshPollsAverage(env) {
-    const items = await fetchPoder360Feed();
-    const polls = [];
-    const seenLinks = new Set();
-    for (const item of items) {
-        if (seenLinks.has(item.link)) continue;
-        const parsed = parsePoder360Title(item.title);
-        if (!parsed) continue;
-        seenLinks.add(item.link);
-        polls.push({ ...parsed, pubDate: item.pubDate });
-    }
-    if (polls.length < 1) throw new Error('Nenhuma pesquisa de 2º turno encontrada no feed');
-    const lula = polls.reduce((s, p) => s + p.lula, 0) / polls.length;
-    const flavio = polls.reduce((s, p) => s + p.flavio, 0) / polls.length;
-    const dates = polls.map(p => p.pubDate).filter(Number.isFinite);
-    const latestPollAt = dates.length ? new Date(Math.max(...dates)).toISOString() : null;
-    // Nunca regride: se já tínhamos uma pesquisa mais recente gravada (ex.
-    // uma correção manual enquanto o feed ainda não trouxe pesquisa mais
-    // nova), não sobrescreve com dados mais antigos.
-    if (env && env.TTS_USAGE) {
-        const previousRaw = await env.TTS_USAGE.get(POLLS_KV_KEY);
-        const previous = previousRaw ? JSON.parse(previousRaw) : null;
-        if (previous?.latestPollAt && latestPollAt && new Date(latestPollAt) < new Date(previous.latestPollAt)) {
-            return previous;
-        }
-    }
-    const record = {
-        updatedAt: nowIso(),
-        sources: polls.length,
-        latestPollAt,
-        candidates: [
-            { id: 'lula', name: 'Luiz Inácio Lula da Silva', party: 'PT', percentage: Number(lula.toFixed(2)) },
-            { id: 'flavio', name: 'Flávio Bolsonaro', party: 'PL', percentage: Number(flavio.toFixed(2)) }
-        ]
-    };
-    if (env && env.TTS_USAGE) await env.TTS_USAGE.put(POLLS_KV_KEY, JSON.stringify(record));
-    return record;
-}
-
-// Rechecar o feed a cada ~15min (não 1x por noite): a fonte agora é leve
-// (RSS, não mais raspagem pesada da Wikipedia), então dá pra pegar pesquisa
-// nova no mesmo dia que ela sai. A cron do Worker dispara a cada tick de
-// qualquer tarefa, então o gate é por tempo (marcador no KV), não por data.
-async function maybeRefreshPollsAverageNightly(env) {
-    if (!env || !env.TTS_USAGE) return;
-    const lastRun = Number(await env.TTS_USAGE.get(POLLS_RAN_TODAY_KV_KEY)) || 0;
-    if (Date.now() - lastRun < 15 * 60000) return;
-    await refreshPollsAverage(env);
-    await env.TTS_USAGE.put(POLLS_RAN_TODAY_KV_KEY, String(Date.now()));
-}
-
-async function handlePollsAverage(env) {
-    if (!env.TTS_USAGE) return json({ ok: false, error: 'KV indisponível' }, 503);
-    const raw = await env.TTS_USAGE.get(POLLS_KV_KEY);
-    if (!raw) return json({ ok: false, error: 'Ainda sem pesquisas calculadas' }, 404);
-    return json({ ok: true, ...JSON.parse(raw) });
-}
-
 async function fetchText(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -5550,10 +5426,8 @@ export default {
             try {return await handleTelegramHistory(request,env);}
             catch {return json({ok:false,error:'Não foi possível consultar o histórico'},502);}
         }
-        if (reqUrl.pathname === '/polls-average') {
-            try { return await handlePollsAverage(env); }
-            catch (e) { return json({ ok: false, error: e.message }, 502); }
-        }
+        // Retired: stale clients receive no data and never touch KV.
+        if (reqUrl.pathname === '/polls-average') return json({ok:false,retired:true,error:'Pesquisas removidas; consulte a apuração oficial do TSE.'},410);
         if (reqUrl.pathname === '/health') {
             return json({
                 ok: true,
@@ -5571,6 +5445,7 @@ export default {
                 time: nowIso(),
                 cacheApi: true,
                 kv: false,
+                electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
                 telegramM6: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
             });
@@ -5713,7 +5588,6 @@ export default {
             try { await refreshGlobalFeedsCache(cacheRequest, env); } catch (e) { console.error('Cron global:', e); }
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
             try { await refreshRecentDailyBrazilSummaries(env); } catch (e) { console.warn('Cron revisão brasileira: pendente'); }
-            try { await maybeRefreshPollsAverageNightly(env); } catch (e) { console.error('Cron pesquisas 2º turno:', e); }
         })());
     }
 };
