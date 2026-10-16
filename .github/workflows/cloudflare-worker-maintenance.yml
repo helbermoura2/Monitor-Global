@@ -1,0 +1,32 @@
+name: Cloudflare Worker maintenance
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Inspect account metrics or deploy the reviewed no-polls bundle
+        type: choice
+        options: [inspect, deploy]
+        default: inspect
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-black-sky-maintenance
+  cancel-in-progress: false
+jobs:
+  maintain:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate maintenance safeguards
+        run: python -m unittest discover -s tests/unit -p test_cloudflare_maintenance.py
+      - name: Inspect or update the existing Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MAINTENANCE_MODE: ${{ inputs.mode }}
+        run: python tools/cloudflare-worker-maintenance.py
