@@ -32,3 +32,7 @@ e https://developers.cloudflare.com/kv/observability/metrics-analytics/.
 `verify` confirma a configuração atual e a saúde pública sem novo upload. A
 checagem pública tolera até dois minutos de propagação entre regiões. Uma falha
 nesse prazo não implica falha do upload; use verify para concluir a confirmação.
+
+A consulta pública identifica o cliente como MonitorGlobal-maintenance/1.0;
+o cliente Python padrão recebeu HTTP 403 durante a primeira confirmação.
+Falhas finais distinguem status HTTP de resposta inválida/versão anterior.

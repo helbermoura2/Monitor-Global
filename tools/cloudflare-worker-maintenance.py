@@ -82,16 +82,19 @@ def analytics(client, now=None):
     return {'queriedAt':now.isoformat(),'calendar':'UTC; daily reset 00:00 UTC / 21:00 Sao Paulo','rows':rows,'note':'Adaptive analytics can be delayed or sampled; not an invoice or real-time quota meter.'}
 
 def public_health():
-    with urllib.request.urlopen(PUBLIC+'/health?maintenance='+str(time.time_ns()),timeout=20) as r:return json.load(r)
+    request=urllib.request.Request(PUBLIC+'/health?maintenance='+str(time.time_ns()),headers={'User-Agent':'MonitorGlobal-maintenance/1.0','Accept':'application/json','Cache-Control':'no-cache'})
+    with urllib.request.urlopen(request,timeout=20) as r:return json.load(r)
 
 def verify_public(check=public_health, wait=time.sleep, attempts=25):
+    failure='previous public version'
     for attempt in range(attempts):
         try:
             health=check()
             if health.get('electionPolls')==MARKER:return health
-        except (OSError,ValueError):pass
+        except urllib.error.HTTPError as e:failure='public HTTP '+str(e.code)
+        except (OSError,ValueError):failure='public response unavailable or invalid'
         if attempt+1<attempts:wait(5)
-    raise MaintenanceError('Public health has not confirmed the no-polls marker; use verify mode without redeploying')
+    raise MaintenanceError('Public health has not confirmed the no-polls marker ('+failure+'); use verify mode without redeploying')
 
 def main():
     token,account=credentials(os.environ);client=Client(token,account);mode=os.environ.get('MAINTENANCE_MODE','inspect')

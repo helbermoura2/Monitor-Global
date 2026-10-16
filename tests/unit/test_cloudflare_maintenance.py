@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import json
 import unittest
+from unittest import mock
+import io
 spec=importlib.util.spec_from_file_location('maintenance',Path(__file__).resolve().parents[2]/'tools/cloudflare-worker-maintenance.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class MaintenanceTests(unittest.TestCase):
@@ -36,4 +38,9 @@ class MaintenanceTests(unittest.TestCase):
         self.assertEqual(result['electionPolls'],m.MARKER);self.assertEqual(waits,[5])
         with self.assertRaisesRegex(m.MaintenanceError,'without redeploying'):
             m.verify_public(check=lambda:{},wait=lambda seconds:None,attempts=1)
+    def test_health_client_identifies_the_application_to_the_public_endpoint(self):
+        with mock.patch.object(m.urllib.request,'urlopen',return_value=io.BytesIO(json.dumps({'electionPolls':m.MARKER}).encode())) as call:
+            self.assertEqual(m.public_health()['electionPolls'],m.MARKER)
+            request=call.call_args.args[0]
+            self.assertEqual(request.get_header('User-agent'),'MonitorGlobal-maintenance/1.0')
 if __name__=='__main__':unittest.main()
