@@ -16,6 +16,7 @@ import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
 import { handlePopulationExposure, expirePopulation } from "./population-exposure-worker.mjs";
 import {withKvUsage,handleKvUsageObject,handleKvUsageRead} from "./kv-operation-metrics.mjs";
 import {handleSharedVoice,pruneVoiceCache} from "./shared-voice-cache.mjs";
+import {telegramHistoryStorage,handlePersistentHistory,persistentHistoryGet,prunePersistentHistory} from "./telegram-history-storage.mjs";
 import {translationStorage} from "./translation-storage.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
@@ -4429,11 +4430,12 @@ async function fetchTelegramBrazilRecent(env, window = null) {
 // é consistente imediatamente, sem a janela de replicação do KV.
 export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
-    async alarm(){await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
+    async alarm(){await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
             return withKvUsage(this.env,async measuredEnv=>{
+            if(new URL(request.url).pathname.startsWith('/__telegram-history/'))return handlePersistentHistory(request,this.state.storage);
             if(new URL(request.url).pathname==='/population-exposure')return handlePopulationExposure(request,{...measuredEnv,EARTHQUAKE_ALERTS:undefined,POPULATION_COORDINATOR:undefined},this.state.storage);
             if(new URL(request.url).pathname==='/tts')return handleTts(new URL(request.url),measuredEnv,this.state.storage);
             if(new URL(request.url).pathname.startsWith('/telegram-image/'))return serveTelegramOriginal(request,this.state.storage);
@@ -4444,8 +4446,8 @@ export class EarthquakeAlertDelivery {
                 const env={...measuredEnv,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:translationStorage(storage,kv)};
                 return handlePortugueseTranslation(request,env);
             }
-            const kv = measuredEnv.TTS_USAGE;
             const storage = this.state.storage;
+            const kv = telegramHistoryStorage(storage,measuredEnv.TTS_USAGE);
             const env = {...measuredEnv, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
@@ -4537,6 +4539,8 @@ async function handleTelegramHistory(request,env){
     if(u.pathname==='/telegram-history-preview'){
         const day=u.searchParams.get('day')||'';
         if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return json({error:'Data inválida'},400);
+        const current=await env.DAILY_SUMMARY.get(env.DAILY_SUMMARY.idFromName(day)).fetch('https://summary.internal/preview?day='+day);
+        if(current.status!==404)return new Response(current.body,{status:current.status,headers:{...CORS_HEADERS,'Content-Type':'image/png'}});
         const png=await env.TTS_USAGE.get('telegram-history-preview:'+day,'arrayBuffer');
         if(!png)return json({error:'Prévia não disponível para esta data'},404);
         return new Response(png,{headers:{...CORS_HEADERS,'Content-Type':'image/png'}});
@@ -4544,6 +4548,7 @@ async function handleTelegramHistory(request,env){
     if(u.pathname==='/telegram-history-detail'){
         const key=u.searchParams.get('key')||'';
         if(!/^telegram-history-m6:[0-9TZ:.\-]+:[a-f0-9-]+$/.test(key))return json({error:'Registro inválido'},400);
+        if(env.EARTHQUAKE_ALERTS){const current=await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('earthquake-alerts')).fetch('https://alerts.internal/__telegram-history/get?key='+encodeURIComponent(key));if(current.status!==404)return new Response(current.body,{status:current.status,headers:{...CORS_HEADERS,'Content-Type':'application/json'}});}
         const raw=await env.TTS_USAGE.get(key);
         return raw?json({ok:true,record:JSON.parse(raw)}):json({error:'Registro não encontrado'},404);
     }
@@ -4558,20 +4563,23 @@ async function handleTelegramHistory(request,env){
     }));
     // Metadados permitem listar alertas sem uma leitura KV por mensagem.
     const m6=[];let cursor,hasMore=false;
-    for(let page=0;page<5;page++){
+    if(env.EARTHQUAKE_ALERTS){for(let page=0;page<5;page++){const r=await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('earthquake-alerts')).fetch('https://alerts.internal/__telegram-history/list'+(cursor?'?cursor='+encodeURIComponent(cursor):''));if(!r.ok)throw Error('Histórico persistente indisponível');const list=await r.json();list.keys.forEach(k=>m6.push({key:k.name,...k.metadata}));hasMore=!list.list_complete;if(!hasMore)break;cursor=list.cursor;}}
+    const currentHasMore=hasMore;cursor=undefined;
+    let legacyUnavailable=false;try {for(let page=0;page<5;page++){
         const list=await env.TTS_USAGE.list({prefix:'telegram-history-m6:',limit:1000,...(cursor?{cursor}:{})});
         list.keys.forEach(k=>{if(k.metadata)m6.push({key:k.name,...k.metadata});});
         hasMore=!list.list_complete;
         if(!hasMore)break;cursor=list.cursor;
     }
+    }catch{legacyUnavailable=true;hasMore=true;}
     const cutoff=Date.now()-30*86400000;
-    const old=await env.TTS_USAGE.get(TELEGRAM_DAILY_KV_KEY);
+    let old;try{old=await env.TTS_USAGE.get(TELEGRAM_DAILY_KV_KEY);}catch{legacyUnavailable=true;}
     if(old){
         const confirmed=JSON.parse(old);
         if(confirmed.day && Date.parse(confirmed.sentAt)>=cutoff && !daily.some(x=>x?.day===confirmed.day))
             daily.push({kind:'daily',day:confirmed.day,status:'sent',at:Date.parse(confirmed.sentAt),legacy:true,events:[]});
     }
-    return json({ok:true,daily:daily.filter(Boolean),alerts:m6.filter(x=>x.at>=cutoff).sort((a,b)=>b.at-a.at),hasMore,retentionDays:30});
+    return json({ok:true,daily:daily.filter(Boolean),alerts:[...new Map(m6.filter(x=>x.at>=cutoff).reverse().map(x=>[x.key,x])).values()].sort((a,b)=>b.at-a.at),hasMore:hasMore||currentHasMore,legacyUnavailable,retentionDays:30});
 }
 
 async function runTelegramM6Alerts(request, env) {
@@ -5129,7 +5137,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
         await delivery.confirm({messageId:response.result?.message_id});
     }
     try { await markDailySummarySent(request,day,env); }
-    catch { console.error('Resumo confirmado; falha ao atualizar histórico KV'); }
+    catch { console.error('Resumo confirmado; falha ao atualizar marcador persistente'); }
     console.log('Telegram resumo diário: enviado', {day,total:quakes.events.length,format:pack?'photo':'text'});
     return {ok:true,day,total:quakes.events.length};
 }
@@ -5153,9 +5161,11 @@ async function runTelegramDailySummary(request,env){
 // "sending" não expira: um timeout pode acontecer depois da entrega.
 export class DailySummaryDelivery {
     constructor(ctx,env) { this.ctx=ctx; this.env=env; }
-    async alarm(){await pruneTelegramOriginals(this.ctx.storage);}
+    async alarm(){await prunePersistentHistory(this.ctx.storage);await pruneTelegramOriginals(this.ctx.storage);}
     async fetch(request){return withKvUsage(this.env,env=>this.handleRequest(request,env),this.ctx);}
     async handleRequest(request,env) {
+        env={...env,TTS_USAGE:telegramHistoryStorage(this.ctx.storage,env.TTS_USAGE,{summary:true})};
+        if(new URL(request.url).pathname==='/preview'){const day=new URL(request.url).searchParams.get('day')||'';if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return Response.json({error:'day'},{status:400});const png=await persistentHistoryGet(this.ctx.storage,'telegram-history-preview:'+day,'arrayBuffer');return png===undefined?new Response(null,{status:404}):new Response(png,{headers:{'Content-Type':'image/png'}});}
         if(new URL(request.url||request).pathname.startsWith('/telegram-summary-image/'))return serveTelegramOriginal(request,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/refresh-brazil')return refreshDailyBrazilSummary(request,env,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/history'){
@@ -5413,6 +5423,7 @@ async function handleWorkerRequest(request,env){
                 cacheApi: true,
                 kv: Boolean(env.TTS_USAGE),
                 kvOptimization: 'shared-population-voice-v1',
+                telegramStorage: 'durable-history-v1',
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,

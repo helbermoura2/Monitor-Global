@@ -32,7 +32,7 @@ await Promise.all(Array.from({length:10},()=>run()));assert.equal(edits.length,1
 assert.equal(edits[0].message_id,'47');const media=JSON.parse(edits[0].media);
 assert(media.caption.includes('10/10/2026'));assert(media.caption.includes('🇧🇷 Brasil: 1 sismo · maior M3,4'));
 assert.equal(__summaryRender.brazilEvents.length,1);assert.equal(__summaryRender.brazilEvents[0].place,'Nuporanga/SP, Brasil');
-assert.equal(__summaryRender.events.length,2);assert.equal(previews[0][0],'telegram-history-preview:2026-10-10');
+assert.equal(__summaryRender.events.length,2);assert.equal(previews.length,0);assert(storage.data.has('tg-history-store:meta:telegram-history-preview:2026-10-10'));
 assert.equal((await storage.get('history')).status,'sent');assert.equal((await storage.get('history')).messageId,47);
 for(const u of queries){assert.equal(u.searchParams.get('starttime'),'2026-10-10T03:00:00.000Z');assert.equal(u.searchParams.get('endtime'),'2026-10-11T03:00:00.000Z');}
 await run();assert.equal(edits.length,1);

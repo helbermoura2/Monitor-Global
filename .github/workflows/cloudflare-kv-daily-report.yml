@@ -1,0 +1,32 @@
+name: Daily KV health and feature usage
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '25 3 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-kv-daily-report
+  cancel-in-progress: false
+jobs:
+  report:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test report calculations
+        run: python -m unittest discover -s tests/unit -p test_kv_daily_report.py
+      - name: Read quotas and feature counters without changing the Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python tools/cloudflare-kv-daily-report.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kv-daily-health
+          path: audit-results/kv-daily-report.json
+          retention-days: 30
