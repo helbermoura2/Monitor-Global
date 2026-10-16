@@ -118,7 +118,12 @@
   // criteria below for when a rebuild is actually warranted (a visually
   // meaningful change, not just the same type with a flipped hot/ash/lava
   // flag -- e.g. a volcano moving from monitoring to an active lava flow).
-  if(scene&&p&&cfg&&scene.itemId===item?.id&&!resourcesFailed&&cfg.type===scene.cfg.type&&!['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){scene.cfg=cfg;return true;}
+  // scene.duration is also refreshed here: frame() measures elapsed time
+  // since scene.start against it to decide when to auto-stop, so a caller
+  // passing a new duration on this same-scene path (e.g. resuming with the
+  // remaining time) must still have that budget honored -- counted from
+  // now, not from the scene's original creation time.
+  if(scene&&p&&cfg&&scene.itemId===item?.id&&!resourcesFailed&&cfg.type===scene.cfg.type&&!['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){scene.cfg=cfg;scene.duration=(performance.now()-scene.start)+Math.min(duration,16000);return true;}
   let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
