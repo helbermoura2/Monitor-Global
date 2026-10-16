@@ -12,14 +12,14 @@ for(const width of [1280,390])test('deep NZ official weak footprint and populati
  },{shaking});
  await expect.poll(()=>page.evaluate(()=>__mgSeismicImpactState?.features||0)).toBeGreaterThan(0);
  await expect(page.locator('.seismic-impact-status')).toContainText('II–III');await expect(page.locator('.seismic-impact-status')).not.toContainText('Sem área');
- const brief=page.locator('#pd-exposure-brief');await expect(brief).toHaveAttribute('data-status','available');await expect(brief).toContainText('19.661');await expect(brief).toContainText('EST');
- expect(await brief.evaluate(el=>el.previousElementSibling?.id)).toBe('pd-horario');
+ await expect(page.locator('#pd-exposure-brief')).toHaveCount(0);
+ await expect(page.locator('#pd-grid-exposure')).toHaveAttribute('data-status','available');
  await expect(page.locator('#pd-grid-exposure')).toContainText('USGS PAGER');
  const info=await page.evaluate(async()=>{const data=await SeismicImpact.snapshot({id:'nz-deep',lng:175.3814,lat:-38.5478,mag:5.7,depth:269,shaking:window.__nzShaking});return{official:data.features.every(f=>f.properties.official),max:Math.max(...data.features.map(f=>f.properties.mmi)),selected:eventoSelecionadoId};});expect(info.official).toBe(true);expect(info.max).toBeLessThanOrEqual(2.5);expect(info.selected).toBe('nz-deep');
  await page.screenshot({path:'/tmp/nz-weak-official-'+width+'.png'});
 });
-test('population query shows loading and failure in the main card instead of disappearing or becoming zero',async({page})=>{
+test('population details retain loading and failure without a misleading front summary',async({page})=>{
  let release;await page.route('**/*',r=>{if(new URL(r.request().url()).pathname==='/population-exposure')return new Promise(resolve=>{release=()=>r.fulfill({json:{status:'unavailable',note:'Consulta indisponível.'}}).then(resolve);});return new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort();});
  await page.goto('/');await page.waitForFunction(()=>__mgMapReady&&!__fetchGlobalFeedsEmAndamento);await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);EventCamera.cancel();stopMapCamera();const item={id:'pop-loading',type:'earthquake',mag:5.7,depth:269,time:Date.now(),coords:[175.38,-38.54]};globalEvents=[item];eventoSelecionadoId=item.id;carregarExposicaoPopulacional(item);});
- await expect(page.locator('#pd-exposure-brief')).toHaveAttribute('data-status','pending');await expect.poll(()=>!!release).toBe(true);await release();await expect(page.locator('#pd-exposure-brief')).toHaveAttribute('data-status','unavailable');await expect(page.locator('#pd-exposure-brief')).toContainText('indisponível');await expect(page.locator('#pd-exposure-brief')).not.toContainText('0 pessoas');
+ await expect(page.locator('#pd-grid-exposure')).toHaveAttribute('data-status','pending');await expect.poll(()=>!!release).toBe(true);await release();await expect(page.locator('#pd-grid-exposure')).toHaveAttribute('data-status','unavailable');await expect(page.locator('#pd-grid-exposure')).toContainText('indisponível');await expect(page.locator('#pd-grid-exposure')).not.toContainText('0 pessoas');
 });

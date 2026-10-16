@@ -121,3 +121,7 @@
   color: #7d93a6;
   text-align: center;
 }
+
+/* O verso inteiro rola: população, método e cidades permanecem acessíveis. */
+#pd-flip-verso .pd-flip-verso-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#pd-flip-verso .pd-flip-verso-list{overflow:visible}
