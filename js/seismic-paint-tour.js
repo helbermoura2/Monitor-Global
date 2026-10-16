@@ -15,7 +15,7 @@ function timeline(mag,mode,entryMs=6000){
  return steps;
 }
 const valid=j=>job===j&&eventoSelecionadoId===j.id;
-function stop(){if(job){clearTimeout(job.timer);clearInterval(job.revealTimer);}job=null;window.__mgPaintTourState=null;}
+function stop(){if(job){clearTimeout(job.timer);clearInterval(job.revealTimer);if(job.flipScheduled&&!window.EventDetailsBack?.isOpen())window.fecharViradaCardAlcance?.();}job=null;window.__mgPaintTourState=null;}
 function owned(j){return !window.TsunamiPresentation?.ownsCamera(j.id)&&!document.hidden&&!j.paused;}
 function move(j,camera,ms){if(!owned(j))return;clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();map.easeTo({...camera,padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms,essential:true,easing:t=>t*t*(3-2*t)});}
 function area(j){return window.SeismicFocus.frame(j.context);}
@@ -45,6 +45,7 @@ function start(item,zoom){
  const steps=official?[['epicenter-enter',entryMs],['paint-opening',4000],['area-hold',20000]]:timeline(item.mag,window.__mgQuakePresentationMode,entryMs),total=steps.reduce((n,p)=>n+p[1],0);
  const j=job={id:item.id,steps,context,focusZoom:Math.max(8,Math.min(12,zoom+2)),endsAt:Date.now()+total,past:Date.now()-item.time>30*60000,paused:false};
  window.__mgHoldEndsAt=j.endsAt;if(window.__mgRevisionProtectedId===j.id)window.__mgRevisionProtectedUntil=j.endsAt;
+ if(typeof agendarViradaCardAlcance==='function'){j.flipScheduled=true;agendarViradaCardAlcance(context.lat,context.lng,item,entryMs+(official?7000:Number(item.mag)>=8?26000:18000));}
  SeismicImpact.start(context,window.__mgQuakePresentationMode!=='new'||j.past);SeismicImpact.setVisible(true);phase(j,0);scheduleNextAutoCycle(total+250);return true;
 }
 function ready(c){if(!job||job.id!==c.id||!valid(job))return;const name=job.steps[job.index][0];if(name==='paint-opening'||name==='area-final-opening')move(job,area(job),Math.max(3500,(window.__mgPaintTourState?.until||Date.now())-Date.now()));else if(name==='area-hold'||name==='area-final-hold')move(job,area(job),3500);}

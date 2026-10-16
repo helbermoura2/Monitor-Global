@@ -213,25 +213,15 @@ function posicionarVersoCard(verso) {
     verso.style.height = r.height + 'px';
 }
 
-// Agenda a "virada" do card principal (como uma carta de baralho) pra
-// mostrar o alcance do sismo (cidades + MMI + total de pessoas): o tremor de
-// entrada (pdQuakeShake, 7s, ver painel-fx.js) acontece normal, 7s depois
-// disso (14s desde a seleção) o card vira mostrando o verso, e 12s depois
-// (26s desde a seleção) vira de volta pra frente e fica assim — bem menos
-// que o tempo total em tela do evento (pedido do usuário: substituir o
-// antigo pop-up/slidebar por essa animação no próprio card). A MESMA
-// informação já fica disponível de forma permanente em #pd-cities/
-// #pd-alcance ("Mais detalhes"), então a virada é só um destaque temporário.
-// Busca os dados desde já (t=0) pra já estarem prontos quando a virada
-// acontecer aos 14s. Só ao vivo e clique manual chamam isto — nunca o ciclo
-// automático (mesmo padrão já usado pra frente de onda P/S: o auto-ciclo
-// troca de evento rápido demais pra essa animação fazer sentido).
-function agendarViradaCardAlcance(lat, lng, item) {
+// O tour agenda a virada depois do voo e do efeito inicial. O verso fica
+// por 12 segundos; seleção nova ou abertura manual dos detalhes cancela-o.
+// A busca começa antes da espera, sem bloquear o movimento da câmera.
+function agendarViradaCardAlcance(lat, lng, item, delayMs=14000) {
     window.RainArrivalNotice?.close(true);
     if (window.EventDetailsBack?.isOpen()) return;
     fecharViradaCardAlcance();
     const generation=window.__mgFlipPopulationGeneration;
-    const dadosPromise = estimarPessoasAfetadas(lat, lng, item.mag, item.depth).catch(() => null);
+    const dadosPromise = estimarPessoasAfetadas(lat, lng, item.mag, item.depth).catch(() => ({status:'unavailable',totalPessoas:null,cidades:[],sources:[]}));
 
     window.__mgFlipAbrirT = setTimeout(async () => {
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return;
@@ -239,16 +229,16 @@ function agendarViradaCardAlcance(lat, lng, item) {
         if (!painel) return;
         const dados = await dadosPromise;
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
-        if (!dados || generation!==window.__mgFlipPopulationGeneration) return;
+        if (!dados || generation!==window.__mgFlipPopulationGeneration || document.hidden || window.EventDetailsBack?.isOpen()) return;
 
-        // Sempre vira o card pra TODO evento novo (ao vivo/manual) — mesmo
-        // sem nenhuma cidade cadastrada no alcance (área muito remota —
+        // Vira também no aleatório e em áreas sem cidades cadastradas
+        // no alcance (área muito remota —
         // oceano aberto, deserto etc.), com uma mensagem explicando em vez
         // de simplesmente não virar nada.
         const exposure=typeof exposicaoPopulacionalDoEvento==='function'?exposicaoPopulacionalDoEvento(item):null;
         const headlinePopulation=exposure?Number(exposure.ranges[0].population):dados.totalPessoas;
         const semDados = headlinePopulation == null;
-        const corpo = `<div id="pd-flip-grid-exposure">${exposure?renderExposicaoPopulacionalHTML(exposure):''}</div><div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +
+        const corpo = `<div id="pd-flip-grid-exposure">${typeof renderExposicaoPopulacionalHTML==='function'?renderExposicaoPopulacionalHTML(exposure||window.estadoExposicaoPopulacionalDoEvento?.(item)):''}</div><div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +
             (dados.cidades.length ? `<div class="pd-flip-verso-list"><div class="pd-flip-verso-listhead"><span>Localidade / distância / população</span><span>Área estimada</span></div>${dados.cidades.map(linhaCidadePopup).join('')}</div>` : '') + creditoPopulacaoHTML(dados);
 
         window.RainArrivalNotice?.close(true);
@@ -263,7 +253,7 @@ function agendarViradaCardAlcance(lat, lng, item) {
                 <span class="pd-flip-verso-num">${semDados ? '—' : '~'+formatarPessoasHeadline(headlinePopulation)}</span>
                 <span class="pd-flip-verso-sub">${semDados ? 'população sem dados suficientes' : exposure ? 'população em área de tremor fraco ou maior · EST' : 'moradores nas localidades da área estimada'}</span>
             </div>
-            ${corpo}`;
+            <div class="pd-flip-verso-body">${corpo}</div>`;
         posicionarVersoCard(verso);
         document.body.appendChild(verso);
         // Reposiciona se a janela mudar de tamanho/orientação enquanto o
@@ -274,6 +264,7 @@ function agendarViradaCardAlcance(lat, lng, item) {
         painel.classList.add('pd-flip-preparado');
         void painel.offsetWidth; // força reflow pra garantir a transição
         requestAnimationFrame(() => requestAnimationFrame(() => {
+            if(generation!==window.__mgFlipPopulationGeneration || !verso.isConnected)return;
             painel.classList.add('pd-flip-girado');
             verso.classList.add('pd-flip-visivel');
         }));
@@ -288,7 +279,7 @@ function agendarViradaCardAlcance(lat, lng, item) {
                 painel.classList.remove('pd-flip-preparado');
             }, 750);
         }, 12000);
-    }, 14000);
+    }, delayMs);
 }
 
 
