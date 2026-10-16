@@ -64,8 +64,15 @@ class Client:
         try:
             with urllib.request.urlopen(req,timeout=60) as r:data=json.load(r)
         except urllib.error.HTTPError as e:
-            # Do not print raw provider responses or the request headers/body.
-            raise MaintenanceError('Cloudflare HTTP '+str(e.code)+' for '+('analytics' if path=='/graphql' else 'Worker API')+'; verify token permissions, account scope and expiry') from None
+            # Only structured error codes/messages, never raw responses or request bodies.
+            detail=''
+            try:
+                errors=json.load(e).get('errors',[])
+                detail='; '.join(str(x.get('code','unknown'))+': '+str(x.get('message','request rejected')) for x in errors if isinstance(x,dict))
+                for private in [self.token,self.account,metrics_token(self.token,self.account)]:detail=detail.replace(private,'[redacted]')
+            except (ValueError,AttributeError):pass
+            endpoint='analytics' if path=='/graphql' else method+' Worker '+path.split('/scripts/'+WORKER)[-1].split('?')[0]
+            raise MaintenanceError('Cloudflare HTTP '+str(e.code)+' for '+endpoint+('; '+detail[:600] if detail else '; check permissions and configuration')) from None
         if data.get('success') is False or data.get('errors'):
             details=[str(e.get('code','unknown'))+': '+str(e.get('message','request rejected')) for e in data.get('errors',[]) if isinstance(e,dict)]
             safe='; '.join(details).replace(self.token,'[token]').replace(self.account,'[account]')[:600]
