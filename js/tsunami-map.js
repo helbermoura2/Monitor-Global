@@ -37,7 +37,7 @@
   node('small',failed?'Contornos indisponíveis. Consulte o boletim oficial.':!result.data.features.length?'Este boletim não fornece regiões com contornos identificáveis.':reference?'Costas das regiões citadas: referência geográfica. Trechos sob aviso seguem o boletim oficial.':official?'Área publicada pela autoridade.':'',legend);
   node('small','Faixa cartográfica costeira · Não representa inundação nem intensidade do tremor.',legend);
   if(result.unmapped.length)node('small',result.unmapped.length+' região(ões) sem contorno nesta escala.',legend);
-  if(result.data.features.length){const b=node('button','Ver regiões',legend);b.type='button';b.onclick=()=>fit();}
+  if(result.data.features.length){const b=node('button','Ver regiões',legend);b.type='button';b.onclick=()=>fit();if(!item.__tsunamiMapDemo){const info=node('button','Costas e horários',legend);info.type='button';info.onclick=()=>window.EventInsights?.open('coasts');}}
   decorate(item,result);
   const host=document.getElementById('mapWrap');
   if(innerWidth<700&&host){const bottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));legend.style.top=Math.max(12,bottom-host.getBoundingClientRect().top+8)+'px';legend.style.bottom='auto';}
@@ -65,6 +65,7 @@
  function visit(index=0,duration=6000){if(!current||!selected(current.id))return null;const rows=stops();if(!rows.length)return null;const target=rows[index%rows.length],camera=cameraFor(target.bounds,index%rows.length?7:5.5);if(!camera)return null;
   setVisible(true);if(!window.EventCamera?.owns(linkedHost||current.id)){map.stop();map.flyTo({...camera,pitch:0,bearing:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:duration,curve:1.25,essential:true});}
   if(demo?.mode==='russia'){const h=document.querySelector('#pd-coastal-demo h3');if(h)h.textContent=target.name;}
+  window.EventInsights?.setCoastTarget(target.name);
   const heading=legend?.querySelector('strong');if(heading)heading.textContent=(current.item.__tsunamiMapDemo?'🌊 TESTE':'🌊 '+current.item.source)+' · '+target.name;
   return target;
  }

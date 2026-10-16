@@ -29,20 +29,20 @@
     return true;
   }
 
-  async function fetchUSGS(eventId){
-    const base=workerBase(); if(!base||!eventId) return null;
+  async function fetchUSGS(eventId,item){
+    const base=workerBase(); if((!base&&!window.EventProducts)||!eventId) return null;
     const cached=cache.get(eventId);if(cached&&Date.now()-cached.at<600000)return cached.data;
     const url='https://earthquake.usgs.gov/fdsnws/event/1/query?eventid='+encodeURIComponent(eventId)+'&format=geojson';
     try{
-      const r=await fetch(base+'?url='+encodeURIComponent(url),{cache:'no-store'});
-      if(!r.ok) return null;
-      const d=await r.json();
+      let d;
+      if(window.EventProducts){d=await window.EventProducts.detail(item);if(!d)return null;window.EventInsights?.products(item,d);}
+      else{const r=await fetch(base+'?url='+encodeURIComponent(url),{cache:'no-store'});if(!r.ok)return null;d=await r.json();}
       const p=d?.properties||{};
       const products=p.products||{};
-      const sm=Array.isArray(products.shakemap)?products.shakemap[0]:null;
+      const sm=window.EventProducts?EventProducts.products(d,'shakemap')[0]:(Array.isArray(products.shakemap)?products.shakemap[0]:null);
       const sp=sm?.properties||{};
       const mmi=v=>v!=null&&String(v).trim()!==''&&Number.isFinite(Number(v))&&Number(v)>=1&&Number(v)<=12?Number(v):null;
-      const out={mmi:mmi(p.mmi), felt:Number.isFinite(Number(p.felt))?Number(p.felt):null, maxmmi:mmi(sp.maxmmi), hasShake:!!sm};
+      const out={mmi:mmi(p.mmi), felt:p.felt!=null&&String(p.felt).trim()!==''&&Number.isFinite(Number(p.felt))?Number(p.felt):null, maxmmi:mmi(sp.maxmmi), hasShake:!!sm};
       cache.set(eventId,{at:Date.now(),data:out});if(cache.size>200)cache.delete(cache.keys().next().value);return out;
     }catch(e){ return null; }
   }
@@ -61,7 +61,7 @@
     }
     const eventId=String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,'');
     if(!eventId) return;
-    const d=await fetchUSGS(eventId);
+    const d=await fetchUSGS(eventId,item);
     if(!d || (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id)) return;
     if(d.mmi!=null){
       setIntensityUI(item,d.mmi,'official','USGS','Intensidade reportada no registro USGS.',d.felt);

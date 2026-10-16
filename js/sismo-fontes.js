@@ -145,7 +145,8 @@ function normalizarSismoGeoJSON(features, source, mapper) {
                 // (ex.: MMI/ShakeMap do USGS) sem alterar o feed principal.
                 sourceEventId: String(f?.id || p.eventid || p.publicid || ''),
                 sourceMmi: p.mmi!=null && p.mmi!=='' && Number.isFinite(Number(p.mmi)) && Number(p.mmi)>=1 && Number(p.mmi)<=12 ? Number(p.mmi) : null,
-                sourceFelt: Number.isFinite(Number(p.felt)) ? Number(p.felt) : null,
+                sourceFelt: p.felt!=null && String(p.felt).trim()!=='' && Number.isFinite(Number(p.felt)) ? Number(p.felt) : null,
+                sourceUpdatedAt: p.updated!=null && Number.isFinite(Number(p.updated)) ? Number(p.updated) : null,
                 detailUrl: mapper?.detailUrl ? mapper.detailUrl(f, p) : null
             });
         } catch (e) {}
