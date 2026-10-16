@@ -28,3 +28,7 @@ instantâneo. Falha ou falta de conta não é convertida em consumo zero.
 
 Referências: https://developers.cloudflare.com/workers/configuration/multipart-upload-metadata/
 e https://developers.cloudflare.com/kv/observability/metrics-analytics/.
+
+`verify` confirma a configuração atual e a saúde pública sem novo upload. A
+checagem pública tolera até dois minutos de propagação entre regiões. Uma falha
+nesse prazo não implica falha do upload; use verify para concluir a confirmação.

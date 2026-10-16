@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Inspect account metrics or deploy the reviewed no-polls bundle
+        description: Inspect metrics, deploy the reviewed bundle, or verify without redeploying
         type: choice
-        options: [inspect, deploy]
+        options: [inspect, deploy, verify]
         default: inspect
 permissions:
   contents: read
