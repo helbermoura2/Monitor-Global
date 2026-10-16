@@ -49,7 +49,7 @@
 .tsunami-presentation-content p{color:#bdd6e6;font-size:12px}
 .tsunami-presentation-content ul{padding:0;list-style:none;text-align:left;font-size:12px;line-height:1.8}
 .tsunami-presentation-content small{display:block;color:#9db9cc;line-height:1.5}
-#painel-direito.tsunami-presenting>:not(.pd-header-row):not(#painel-direito-close):not(#mobile-detail-handle):not(#pd-linked-presentation){display:none!important}
+#painel-direito.tsunami-presenting>:not(.pd-header-row):not(#painel-direito-close):not(#mobile-detail-handle):not(#pd-linked-presentation):not(.pd-cinema-layer):not(.pd-cinema-afterglow){display:none!important}
 #painel-direito.tsunami-presenting #pd-linked-presentation{display:block!important}
 @keyframes tsunami-content-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.tsunami-presentation-content{animation:none}}
@@ -64,3 +64,13 @@
  .tsunami-presentation-content ul{font-size:10px;line-height:1.5;margin:6px 0}
  .tsunami-presentation-content small{font-size:10px}
 }
+
+.tsunami-status-strip{position:relative;overflow:hidden;isolation:isolate;border:1px solid #38bdf870;border-radius:10px;padding:12px;margin:8px 0;background:linear-gradient(135deg,#082a40e6,#071b2be6);color:#b9e9ff}
+.tsunami-status-strip strong,.tsunami-status-strip small{display:block;position:relative;z-index:1;line-height:1.5}
+.tsunami-status-strip small{font-size:10px;margin-top:4px;color:#c5dce8}
+.tsunami-status-strip::before{content:"";position:absolute;inset:auto -50% -22px;height:45px;border-radius:45% 55% 0 0;background:linear-gradient(180deg,#38bdf82b,#0284c750);animation:tsunami-status-water 5s ease-in-out 2}
+.tsunami-status-strip[data-level="warning"]{border-color:#fb923c;background:linear-gradient(135deg,#42200ce6,#162b3be6);color:#ffce99}
+.tsunami-status-strip[data-level="ended"]{border-color:#64748b;color:#cbd5e1}
+.tsunami-status-strip[data-level="ended"]::before{animation:none;opacity:.3}
+@keyframes tsunami-status-water{0%,100%{transform:translateX(-7%) rotate(-2deg)}50%{transform:translateX(7%) rotate(2deg)}}
+@media(prefers-reduced-motion:reduce){.tsunami-status-strip::before{animation:none}}

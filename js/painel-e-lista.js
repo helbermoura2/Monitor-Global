@@ -962,7 +962,7 @@ function getAutoCycleProtectionRemaining() {
     const current=globalEvents.find(e=>e.id===eventoSelecionadoId);
     const strongUntil=Number(current?.mag)>=5 && window.__mgQuakePresentationMode!=='auto' ? (window.__mgHoldEndsAt||0) : 0;
     const protectedUntil=window.__mgQuakePresentationMode!=='auto' && window.__mgRevisionProtectedId===eventoSelecionadoId && (window.__mgQuakePresentationMode==='new' || Number(current?.mag)>=5 || (typeof isRecentCameraQuake==='function'?isRecentCameraQuake(current):true)) ? (window.__mgRevisionProtectedUntil||0) : 0;
-    return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),getAlertSelectionProtectionRemaining(),window.VolcanoPriority?.protectionRemaining()||0);
+    return Math.max(0,Math.max(strongUntil,protectedUntil)-Date.now(),getAlertSelectionProtectionRemaining(),window.VolcanoPriority?.protectionRemaining()||0,window.TsunamiPriority?.protectionRemaining()||0);
 }
 function selectNextAutoCycleItem() {
     const state = window.__mgAutoRotation || (window.__mgAutoRotation = {
@@ -1054,6 +1054,8 @@ function scheduleNextAutoCycle(ms) {
 function runAutoCycle(forced = false) {
     if(document.hidden)return;
     try {
+        if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(6)) return;
+        if(window.TsunamiPriority?.focus())return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake(5)) return;
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
@@ -1621,23 +1623,24 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
     if (!item) return;
+    const normalized=window.TsunamiBulletinOrigin?.normalize(item);if(normalized&&normalized!==item){Object.assign(item,normalized);}
     if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
     if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
     const rawItem=item;
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){showAlertDetails(rawItem,false,true);renderSidebarList(lastMerged);}});
     // Only the rotation dispatcher owns automatic mode; ordinary clicks are manual.
     if(!triggerVisualAlert&&!silentRefresh&&!window.__mgRotationDisplay)window.__mgSoftCycle=false;
-    if (triggerVisualAlert && !silentRefresh && !window.__mgRotationDisplay && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && item.type!=='earthquake') {
-        window.NewEventPriority.queue([item]);if(item.type==='volcano')window.NewEventPriority.focus();return;
+    if (triggerVisualAlert && !silentRefresh && !window.__mgRotationDisplay && window.NewEventPriority && !window.NewEventPriority.dispatching(item) && !window.VolcanoPriority?.dispatching(item) && !window.TsunamiPriority?.dispatching(item) && item.type!=='earthquake') {
+        window.NewEventPriority.queue([item]);if(item.type==='volcano'||item.type==='tsunami')window.NewEventPriority.focus();return;
     }
-    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay && !window.NewEventPriority?.dispatching(item)) {window.__mgSoftCycle=false;return;}
-    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature) && !window.__mgRotationDisplay) { window.__mgSoftCycle=false; return; }
+    if (!item.coords && (triggerVisualAlert || window.__mgSoftCycle) && !window.__mgRotationDisplay && !window.NewEventPriority?.dispatching(item) && !window.TsunamiPriority?.dispatching(item)) {window.__mgSoftCycle=false;return;}
+    if ((triggerVisualAlert || window.__mgSoftCycle) && ['forecast','river','bulletin'].includes(item.hazardNature) && !window.__mgRotationDisplay && !window.TsunamiPriority?.dispatching(item)) { window.__mgSoftCycle=false; return; }
     // Todos os feeds passam por aqui. Barre a tomada automática ANTES de
     // alterar seleção, hold, painel, ondas ou timers; som/toast/registro dos
     // módulos continuam independentes. Atualizações silenciosas e cliques
     // manuais não são uma tomada automática de câmera.
     if (!silentRefresh && (triggerVisualAlert || window.__mgSoftCycle) &&
-        getAutoCycleProtectionRemaining() > 0 && !window.VolcanoPriority?.canInterrupt(item) &&
+        getAutoCycleProtectionRemaining() > 0 && !window.VolcanoPriority?.canInterrupt(item) && !window.TsunamiPriority?.canInterrupt(item) &&
         !(item.type === 'earthquake' || (item.mag != null && !item.type))) {
         window.__mgSoftCycle = false;
         return;
@@ -2144,6 +2147,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // fitArea já rodou (ou não havia dado nenhum) no ramo acima.
     if(item.coords&&(['storm','wind'].includes(item.type)||item.meteoalarmArea)&&item.hazardNature==='warning'&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea))window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
     else if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
+    if(item.type==='tsunami')window.TsunamiPriority?.markPresented(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }
 

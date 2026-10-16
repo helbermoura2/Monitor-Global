@@ -39,6 +39,11 @@
    }
    text(box,'small','O aviso se refere às costas indicadas pela autoridade. A pintura no mapa é a intensidade estimada do tremor, não a área de tsunami.');
   }else{
+   const status=document.createElement('div');status.className='tsunami-status-strip';status.dataset.level=item.cancelled?'ended':item.hazardNature==='warning'?'warning':'information';
+   status.setAttribute('role','status');
+   text(status,'strong',item.cancelled?'Boletim encerrado':item.hazardNature==='warning'?'Aviso oficial de tsunami':/no tsunami (?:threat|danger)|no existe peligro de tsunami|não há ameaça de tsunami/i.test(item.description||item.detail||'')?'Sem ameaça de tsunami, segundo o boletim':'Boletim informativo de tsunami');
+   text(status,'small',(item.source||'Fonte oficial')+' · '+date(item.time));
+   text(status,'small',item.hazardNature==='warning'?'Siga as orientações da autoridade local. As regiões pintadas seguem o boletim.':'Informativo não é confirmação de tsunami. O ponto indica a origem do sismo.');box.append(status);
    if(T.origin(item)&&typeof GL!=='undefined'&&typeof map!=='undefined'&&map){
     const pin=document.createElement('div');pin.className='tsunami-bulletin-origin event-pin-surface';
     text(pin,'span','◎');text(pin,'strong','Origem do sismo · '+item.source);

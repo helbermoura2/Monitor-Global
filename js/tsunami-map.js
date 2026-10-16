@@ -34,9 +34,9 @@
  function padding(){const wide=innerWidth>1000;return {top:wide?225:220,bottom:wide?100:150,left:wide?315:35,right:wide?355:35};}
  function stopTour(){clearTimeout(tour?.timer);tour=null;}
  function startTour(){
-  if(!current||demo||linkedHost||current.item.cancelled||!selected(current.id)||!stops().length)return;
+  if(!current||demo||linkedHost||current.item.hazardNature==='bulletin'||current.item.cancelled||!selected(current.id)||!stops().length)return;
   if(tour?.id===current.id)return;stopTour();const t=tour={id:current.id,index:0};
-  const next=()=>{if(tour!==t||!current||!selected(t.id)){stopTour();return;}if(document.hidden){t.timer=null;return;}visit(t.index++,6000);t.timer=setTimeout(next,10000);};t.next=next;next();
+  const next=()=>{if(tour!==t||!current||!selected(t.id)){stopTour();return;}if(document.hidden){t.timer=null;return;}if(window.EventCamera?.owns(current.id)){t.timer=setTimeout(next,1000);return;}if(!t.arrived){t.arrived=true;t.timer=setTimeout(next,6000);return;}visit(t.index++,6000);t.timer=setTimeout(next,10000);};t.next=next;next();
  }
  function fit(){stopTour();if(!current||!selected(current.id))return;const box=bounds(current.data.features);if(!box)return;map.stop();map.fitBounds(box,{padding:padding(),maxZoom:7,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:1500,essential:true});}
  function stops(){if(!current)return [];if(current.route)return current.route;const groups=new Map();for(const f of current.data.features){if(f.properties.band==='inner')continue;const name=f.properties.name||current.item.place||'Área do boletim';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(f);}

@@ -1,13 +1,13 @@
 import {selectImageRefreshes} from "./telegram-image-refresh.mjs";
 import {QUAKE_HD_FONTS} from "./quake-hd-fonts.mjs";
-import {archiveTelegramOriginal,serveTelegramOriginal,originalImageButton} from "./telegram-image-archive.mjs";
+import {archiveTelegramOriginal,serveTelegramOriginal,originalImageButton,pruneTelegramOriginals} from "./telegram-image-archive.mjs";
 import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
 import {imageMetersPerPixel,overlayImageIntensity,queryImageExposure,validImageExposure,exposureQuality,exposureVersionQuality,exposureVersion,queryImageShaking,validImageShaking,shakingVersion,imageEpicenterMmi} from "./seismic-image-data.mjs";
 import { getOfficialTsunamis } from "./tsunami-official-worker.mjs";
 import { handleOfficialWeatherAlerts } from "./official-weather-alerts-worker.mjs";
 import { handleCgeBulletins } from "./cge-bulletins-worker.mjs";
 import { SUMMARY_FLAGS } from "./summary-flags.mjs";
-import { SUMMARY_EDITORIAL_TYPOGRAPHY } from "./summary-editorial-assets.mjs";
+import { SUMMARY_EDITORIAL_TYPOGRAPHY, SUMMARY_EDITORIAL_TYPOGRAPHY_HD } from "./summary-editorial-assets.mjs";
 import { renderEditorialDailySummary, DAILY_SUMMARY_DESIGN } from "./daily-summary-renderer.mjs";
 import { handleWeatherObservations } from "./weather-observations-worker.mjs";
 import {handleRainbowProducts,handleRainbowProductInObject} from "./rainbow-products-worker.mjs";
@@ -5058,6 +5058,7 @@ async function getDailySummaryFonts(){
     if(_dailySummaryFonts)return _dailySummaryFonts;
     const fonts={};
     for(const [name,data] of Object.entries(SUMMARY_EDITORIAL_TYPOGRAPHY)) fonts[name]={img:await decodePng(base64ToBytes(data.b64)),cellH:data.cellH,glyphs:data.glyphs};
+    for(const [name,data] of Object.entries(SUMMARY_EDITORIAL_TYPOGRAPHY_HD))fonts[name].hd={img:await decodePng(base64ToBytes(data.b64)),cellH:data.cellH,glyphs:data.glyphs};
     fonts.aq=await decodePng(base64ToBytes('iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAARVBMVEVHcEwmX7UmX7UmX7UmX7UmX7X///9ch8iTr9omX7XJ1+3x9fo0abpBc76gud/W4fG7zeiuw+N3m9Fqkczk6/ZPfcOFpdWLa0WiAAAABnRSTlMAv+9gIM+kpfmZAAABRUlEQVR4Xu3X2W6DMBCG0aQJ/8x4Zc37P2qXVKqclM7I9k0jvms4MkZYzOl1Ozq6nKWh8+WbuQ7S2HD9ct6kubdPaZAODR/7I126nM59oPNJOvX/IB4zkB23QmnFvTGKzLEamvFTBqZaKOGhWyXk8Zh3ickAbaGA8HtOh1xxTcROBqjYhWXHyTqUiv2c6h8tesBt5bt/zuvQ/eYURSQwdlt0SO63O+fwR6MBmmDIGaBthR4bIBE2QMECSYaad6MOhQxDqw4RLKVeEOlQhKVZhSjDklOh4GHK8GgjDHkdEmHosQWKti3SIVmhxTYoQYsUyPqVTGKDJEwt51FJETMT0Tx5wPua8+iZpJBsZ7ZeAY03qYZ8+caqIS4+jqBAxgWtm7SvyMMtbT+jkYiZ4kKyW7cf9m4jRK+hptuY1Wvw6zWKvmxHR++lCXjpbjMoUQAAAABJRU5ErkJggg=='));
     fonts.flags={img:await decodePng(base64ToBytes(SUMMARY_FLAGS.b64)),map:SUMMARY_FLAGS.map};
     // Clip each flag to a softly rounded rectangle while preserving its colors.
@@ -5099,7 +5100,7 @@ async function renderDailySummaryPng(quakes = null) {
         fillRect,fillRoundRect,fillCircle,fillRadialGlow,drawArc,drawRadar:drawRadarIcon,
         drawText:drawTextFontProp,textWidth:textFontWidthProp,clean:summaryCleanText,wrap:summaryCardWrap,
         country:summaryCountry,place:summaryPlace,png:rgbaToPng,magColor:getHexColorFromMag,isBrazil:telegramIsBrazil
-    });
+    },{scale:2});
 }
 
 const TELEGRAM_DAILY_CACHE_PATH='/__cache/monitor-global/telegram-daily-summary';
@@ -5173,9 +5174,11 @@ async function refreshDailyBrazilSummary(request,env,storage){
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));form.append('message_id',String(history.messageId));
         form.append('media',JSON.stringify({type:'photo',media:'attach://summary',caption:dailySummaryCaption(quakes).slice(0,1024)}));
         form.append('summary',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo-atualizado.png');
+        let originalImageKey=history.originalImageKey;
+        try{originalImageKey=await archiveTelegramOriginal(storage,pack.png,originalImageKey,{summary:true});await storage.setAlarm?.(Date.now()+72*3600000+1000);form.append('reply_markup',JSON.stringify(originalImageButton(originalImageKey,day)));}catch{console.warn('Original revisado do resumo indisponível');}
         try{await telegramDailyRequest(env,'editMessageMedia',form);}catch(error){if(!/message is not modified/i.test(error.message))throw error;}
         await storage.transaction(async tx=>{
-            const h=await tx.get('history');h.brazilFingerprint=fingerprint;h.brazilRevisedAt=Date.now();h.total=quakes.events.length;
+            const h=await tx.get('history');h.brazilFingerprint=fingerprint;if(originalImageKey)h.originalImageKey=originalImageKey;h.brazilRevisedAt=Date.now();h.total=quakes.events.length;
             h.events=(h.events||[]).slice(-199);h.events.push({at:Date.now(),stage:'brazil-revised'});
             await tx.put('history',h);await tx.put('brazil-refresh',{token,until:Date.now()+1800000});
         });
@@ -5220,6 +5223,7 @@ async function deliverTelegramDailySummary(request,env,delivery){
         form.append('chat_id',String(env.TELEGRAM_CHAT_ID));
         form.append('caption',caption.slice(0,1024));
         form.append('photo',new Blob([pack.png],{type:'image/png'}),'monitor-global-resumo.png');
+        if(env.ARCHIVE_TELEGRAM_SUMMARY_IMAGE)try{const key=await env.ARCHIVE_TELEGRAM_SUMMARY_IMAGE(pack.png);form.append('reply_markup',JSON.stringify(originalImageButton(key,day)));await delivery.note('original-ready',{originalImageKey:key});}catch{console.warn('Original do resumo indisponível');}
         let hasPreview=false;
         try {
             await env.TTS_USAGE.put('telegram-history-preview:'+day,pack.png,{expirationTtl:TG_HISTORY_TTL});
@@ -5265,7 +5269,9 @@ async function runTelegramDailySummary(request,env){
 // "sending" não expira: um timeout pode acontecer depois da entrega.
 export class DailySummaryDelivery {
     constructor(ctx,env) { this.ctx=ctx; this.env=env; }
+    async alarm(){await pruneTelegramOriginals(this.ctx.storage);}
     async fetch(request) {
+        if(new URL(request.url||request).pathname.startsWith('/telegram-summary-image/'))return serveTelegramOriginal(request,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/refresh-brazil')return refreshDailyBrazilSummary(request,this.env,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/history'){
             const history=await this.ctx.storage.get('history');
@@ -5305,7 +5311,7 @@ export class DailySummaryDelivery {
             await tx.put('delivery',{status,token,at:Date.now()});
         });
         try {
-            const result=await deliverTelegramDailySummary(request,this.env,{
+            const result=await deliverTelegramDailySummary(request,{...this.env,ARCHIVE_TELEGRAM_SUMMARY_IMAGE:async(png,key)=>{const saved=await archiveTelegramOriginal(storage,png,key,{summary:true});await storage.setAlarm?.(Date.now()+72*3600000+1000);return saved;}},{
                 note,
                 beforeSend:async()=>{await change('sending');await note('sending');},
                 confirm:async details=>{await change('sent');await note('sent',details);}
@@ -5510,6 +5516,11 @@ export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(reqUrl.pathname.startsWith('/telegram-summary-image/')){
+            const match=reqUrl.pathname.match(/^\/telegram-summary-image\/(\d{4}-\d{2}-\d{2})\/([a-f0-9-]{36})$/);
+            if(!match||!env.DAILY_SUMMARY)return new Response('Imagem não encontrada',{status:404});
+            return env.DAILY_SUMMARY.get(env.DAILY_SUMMARY.idFromName(match[1])).fetch(request);
+        }
         if(reqUrl.pathname.startsWith('/telegram-image/')){
             if(!env.EARTHQUAKE_ALERTS)return new Response('Original indisponível',{status:503});
             return env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('earthquake-alerts')).fetch(request);

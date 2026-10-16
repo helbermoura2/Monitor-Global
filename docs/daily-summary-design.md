@@ -6,9 +6,9 @@ Cormorant Garamond no título principal e Inter nos demais textos, números e le
 
 Os cinco epicentros usam as coordenadas oficiais preservadas pela consulta diária USGS. A numeração corresponde à magnitude decrescente e ao horário crescente nos empates: evento principal 1 e demais eventos 2–5. Rótulos próximos recebem linhas até os pontos sem alterar coordenadas. Ausências de coordenadas ou país não geram dados nem bandeiras inventados. A coluna distância mede a distância geodésica a São Paulo, identificada no rodapé.
 
-O gerador nativo em `daily-summary-renderer.mjs` produz PNG de 900 × 1344 px e aumenta a altura para nomes longos. Fontes e terra simplificada Natural Earth (domínio público) ficam embutidas em `summary-editorial-assets.mjs`; não há downloads durante a renderização. Reconstrução: `python3 tools/build-summary-editorial-assets.py` (Pillow). Bandeiras mantêm o atlas existente Flagpedia/flagcdn.com e Twemoji para Antártida.
+O gerador nativo em `daily-summary-renderer.mjs` usa base lógica de 900 × 1344 px e produz PNG de 1800 × 2688 px no Worker e aumenta a altura para nomes longos. Fontes e terra simplificada Natural Earth (domínio público) ficam embutidas em `summary-editorial-assets.mjs`; não há downloads durante a renderização. Reconstrução: `python3 tools/build-summary-editorial-assets.py` (Pillow). Bandeiras mantêm o atlas existente Flagpedia/flagcdn.com e Twemoji para Antártida.
 
-Janela de envio BRT, persistência no Durable Object, proteção contra duplicação e timeouts permanecem. Resumos anteriores armazenados mantêm suas imagens. `/health` informa `dailySummaryDesign: referencia-editorial-v5-brasil`.
+Janela de envio BRT, persistência no Durable Object, proteção contra duplicação e timeouts permanecem. Resumos anteriores armazenados mantêm suas imagens. `/health` informa `dailySummaryDesign: referencia-editorial-v6-hd`.
 
 Validação: `node tests/unit/daily-summary-design-check.mjs` e `node tests/unit/telegram-history-check.mjs`. Abrange coordenadas reais, agrupamentos, meridiano de 180°, nomes longos, dia vazio, dados ausentes e renderização sem rede. Prévia: `SUMMARY_PREVIEW_PATH=/tmp/resumo.png node tests/unit/daily-summary-design-check.mjs`.
 
@@ -16,3 +16,5 @@ Cores por magnitude, usando a mesma função dos alertas do projeto: abaixo de M
 
 
 Quando houver sismos no Brasil no dia BRT, o boletim acrescenta uma seção própria, com quantidade, magnitude, localização, horário, profundidade e fontes de cada evento, mesmo abaixo dos cinco maiores. O catálogo global USGS é complementado com USP, EMSC e GEOFON, usando o mesmo limite geográfico do envio de alertas brasileiros. Associações únicas por origem evitam contar novamente o mesmo tremor entre redes; a janela brasileira exclui a meia-noite do dia seguinte. Falhas individuais de fontes preservam os resultados das demais. A legenda do Telegram também informa a quantidade de sismos no Brasil e a maior magnitude. Nenhum bloco de ausência é incluído quando não houver registro brasileiro.
+
+Atualização de alta resolução: o arquivo original passa a 1800 px de largura, altura mínima de 2688 px, com fontes rasterizadas em 2x e botão de download sem compressão. Veja `tsunami-priority-summary-hd.md` para publicação no Worker.

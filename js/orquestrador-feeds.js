@@ -66,6 +66,7 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
         candidates.push({index,event,arrived,isNew:freshBadge&&!raised});
         if(freshBadge&&!pendingNewCameraQuakes.has(event.id))pendingNewCameraQuakes.set(event.id,{arrived});
     }
+    if(window.TsunamiPriority?.protectionRemaining()>0)for(let i=candidates.length-1;i>=0;i--)if(Number(candidates[i].event.mag)<6||!isRecentCameraQuake(candidates[i].event))candidates.splice(i,1);
     candidates.sort((a,b)=>Number(b.event.mag)-Number(a.event.mag) || b.arrived-a.arrived);
     if (minMagnitude > 0) {
         for (let i=candidates.length-1;i>=0;i--) if(Number(candidates[i].event.mag)<minMagnitude)candidates.splice(i,1);

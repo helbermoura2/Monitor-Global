@@ -12,6 +12,7 @@ const countryRules=Object.entries(countries).filter(([a,b])=>a!==b).sort((a,b)=>
 function place(value){
  const original=String(value??'');if(placeMemo.has(original))return placeMemo.get(original);
  let s=original;
+ s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*(?:miles?|millas?)\b/gi,(_,n)=>Math.round(Number(n.replace(',','.'))*1.609344)+' km');
  s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*km\s+(?:al|a)\s+(NNE|ENE|ESE|SSE|SSO|OSO|ONO|NNO|NE|SE|SO|NO|N|E|S|O)\s+de\s+/gi,(_,n,d)=>Math.round(Number(n.replace(',','.')))+' km a '+directions[d.toUpperCase().replace(/O/g,'W')]+' de ');
  s=s.replace(/\b(?:al|a) (norte|sur|este|oeste) de\b/gi,(_,d)=>'a '+({norte:'norte',sur:'sul',este:'leste',oeste:'oeste'})[d.toLowerCase()]+' de');
  s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*km\s+(NNE|ENE|ESE|SSE|SSW|WSW|WNW|NNW|NE|SE|SW|NW|N|E|S|W)\s+(?:of|de)\s+/gi,(_,n,d)=>Math.round(Number(n.replace(',','.')))+' km a '+directions[d.toUpperCase()]+' de ');
