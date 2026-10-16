@@ -25,7 +25,9 @@ R2 não foi provisionado nem exige contratação nesta etapa.
 Workflow `Daily KV health and feature usage`, manual ou diariamente às 03:25 UTC
 (00:25 São Paulo). Publica um resumo no GitHub Actions e JSON em artefato por 30 dias.
 Consulta o dia UTC anterior e o dia atual; não modifica Worker, dados KV ou cron do
-Worker. Usa os segredos de manutenção existentes, que precisam permanecer válidos.
+Worker. Usa os segredos de manutenção existentes, que precisam permanecer válidos. A
+implantação preserva o segredo de métricas já válido; só o cria ou atualiza quando
+o acesso exige isso, após o upload revisado.
 
 Os níveis são atenção a partir de 70%, alto em 85%, crítico em 95% e esgotado em
 100%. São indicadores no relatório, não mensagens externas nem monitoramento em

@@ -57,6 +57,21 @@ class MaintenanceTests(unittest.TestCase):
             m.main()
         provision.assert_not_called();self.assertTrue(all(len(c.args)==1 for c in client.call.call_args_list))
         self.assertNotIn('private',out.getvalue())
+    def test_deploy_preserves_valid_metrics_secret_when_newer_preview_exists(self):
+        settings=self.settings();settings['bindings'].append({'name':'KV_METRICS_READ_TOKEN','type':'secret_text'})
+        client=mock.Mock();client.worker.side_effect=lambda suffix='':'/worker'+suffix
+        def call(path,*args):
+            if path=='/worker/settings':return settings
+            if path=='/worker/schedules':return []
+            if path=='/worker/deployments':return {'deployments':[{'versions':[{'version_id':'old','percentage':100}]}]}
+            if path.startswith('/worker?'):return {'deployment_id':'new'}
+            raise AssertionError(path)
+        client.call.side_effect=call
+        env={'CLOUDFLARE_API_TOKEN':'private','CLOUDFLARE_ACCOUNT_ID':'a'*32,'MAINTENANCE_MODE':'deploy'}
+        with mock.patch.dict(m.os.environ,env,clear=True),mock.patch.object(m,'Client',return_value=client),mock.patch.object(m,'analytics',return_value={}),mock.patch.object(m,'bundle',return_value=b'reviewed'),mock.patch.object(m,'read_usage',return_value={'available':True}),mock.patch.object(m,'verify_public',return_value={}),mock.patch.object(m,'provision_metrics') as provision,mock.patch('sys.stdout',new_callable=io.StringIO):
+            m.main()
+        provision.assert_not_called()
+        self.assertEqual(sum(c.args[0].startswith('/worker?') for c in client.call.call_args_list),1)
     def test_health_client_identifies_the_application_to_the_public_endpoint(self):
         with mock.patch.object(m.urllib.request,'urlopen',return_value=io.BytesIO(json.dumps({'electionPolls':m.MARKER}).encode())) as call:
             self.assertEqual(m.public_health()['electionPolls'],m.MARKER)
