@@ -932,7 +932,7 @@ function anunciarSismosSuplementares(items) {
     for (const ev of candidates) {
         if (sismosSonorizados.has(ev.id)) continue;
         if (somJaTocadoParaRegiao(ev)) { sismosSonorizados.add(ev.id); continue; }
-        const accepted = playEarthquakeSound(ev.mag, ev.place, ev.depth, recent.length - 1);
+        const accepted = playEarthquakePresentationSound(ev, recent.length - 1);
         if (accepted) {
             sismosSonorizados.add(ev.id);
             registrarSomSismo(ev);

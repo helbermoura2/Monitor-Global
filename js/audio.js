@@ -82,8 +82,9 @@ function flushPendingSounds() {
     setTimeout(() => {
         fila.forEach((ps, i) => {
             setTimeout(() => {
-                if (ps.type === 'tone') playAlertTone(ps.kind);
-                else playEarthquakeSound(ps.mag, ps.place, ps.depth, ps.qtd, false, !!ps.isUpdate, ps.deltaTxt || '');
+                if(ps.eventId!=null&&typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId!==ps.eventId)return;
+                if (ps.type === 'tone') playAlertTone(ps.kind,ps.eventId,true);
+                else playEarthquakeSound(ps.mag, ps.place, ps.depth, ps.qtd, false, !!ps.isUpdate, ps.deltaTxt || '',ps.eventId);
             }, i * 1200);
         });
     }, 150);
@@ -338,7 +339,13 @@ function quakeBeep(freq, t, dur, vol, last = false) {
 }
 
 
-function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, isUpdate = false, deltaTxt = '') {
+function playEarthquakePresentationSound(item,qtd=0){
+    if(!item||!somAtivo||somMutedTypes.has('quake')||Number(item.mag)<Math.max(SOM_SISMO_MIN,minMagnitude))return false;
+    const start=()=>playEarthquakeSound(item.mag,item.place,item.depth,qtd,false,false,'',item.id);
+    return window.EventCamera?.afterWorldView?EventCamera.afterWorldView(item.id,start):start();
+}
+function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, isUpdate = false, deltaTxt = '',eventId=null) {
+    if(eventId!=null&&typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId!==eventId)return false;
     if (!somAtivo || somMutedTypes.has('quake')) return false;
     if (!forceManual && mag < Math.max(SOM_SISMO_MIN, minMagnitude)) return false;
     // Áudio ainda não desbloqueado (comum logo após abrir a página) — sem
@@ -346,12 +353,13 @@ function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, is
     // variável (`pendingSound`, singular) que nada nunca lia. flushPendingSounds()
     // já sabe tocar isso da fila (pendingSounds, plural) assim que o áudio
     // desbloquear — só faltava usar a fila certa.
-    if (!ensureAudio()) { queuePendingSound({ type: 'quake', mag, place, depth, qtd, isUpdate, deltaTxt }); return true; }
+    if (!ensureAudio()) { queuePendingSound({ type: 'quake', mag, place, depth, qtd, isUpdate, deltaTxt, eventId }); return true; }
     // Guardamos no closure para a fila de som (M6+ fala "Atualização" se for revisão)
     const _isUpdate = !!isUpdate;
     const _deltaTxt = deltaTxt || '';
 
     agendarSom(() => {
+        if(eventId!=null&&typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId!==eventId)return;
         /*
          * ASSINATURAS SONORAS DOS SISMOS
          * M3 = 3 bipes agudos / atenção
@@ -376,7 +384,7 @@ function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, is
             }
             noise({ t: 1.75, dur: 2.0, vol: .48, fFrom: 360, fTo: 55 });
             tone(110, { t: 1.75, dur: 2.0, type: 'sine', vol: .48, glide: 72, attack: .04, release: .22 });
-            agendarFala(mag, place, depth, qtd, 1800, _isUpdate, _deltaTxt);
+            agendarFala(mag, place, depth, qtd, 1800, _isUpdate, _deltaTxt,eventId);
         } else if (mag >= 6) {
             // M6: emergência — dois pares graves + ruído/impacto + voz
             tone(560, { t: 0, dur: .24, type: 'square', vol: .52, attack: .015, release: .08 });
@@ -385,7 +393,7 @@ function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, is
             tone(430, { t: 1.04, dur: .28, type: 'sawtooth', vol: .56, attack: .015, release: .10 });
             noise({ t: 1.42, dur: 1.25, vol: .45, fFrom: 260, fTo: 55 });
             tone(105, { t: 1.42, dur: 1.25, type: 'sine', vol: .42, glide: 72, attack: .03, release: .20 });
-            agendarFala(mag, place, depth, qtd, 1450, _isUpdate, _deltaTxt);
+            agendarFala(mag, place, depth, qtd, 1450, _isUpdate, _deltaTxt,eventId);
         } else if (mag >= 5.0) {
             // M5: grave, encorpado e claramente mais forte. 5º pulso é prolongado.
             const gap = .57;
@@ -432,10 +440,13 @@ function playEarthquakeSound(mag, place, depth, qtd = 0, forceManual = false, is
     });
     return true;
 }
-function playAlertTone(kind) {
+function playAlertTone(kind,eventId=null,cameraReady=false) {
+    if(eventId!=null&&!cameraReady&&window.EventCamera?.afterWorldView){if(!somAtivo||somMutedTypes.has(kind))return;return EventCamera.afterWorldView(eventId,()=>playAlertTone(kind,eventId,true));}
+    if(eventId!=null&&typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId!==eventId)return;
     if (!somAtivo || somMutedTypes.has(kind)) return;
-    if (!ensureAudio()) { queuePendingSound({ type: 'tone', kind }); return; }
+    if (!ensureAudio()) { queuePendingSound({ type: 'tone', kind, eventId }); return; }
     agendarSom(() => {
+        if(eventId!=null&&typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId!==eventId)return;
         switch (kind) {
             case 'fire':
                 for (let i = 0; i < 6; i++) noise({ t: i * .11, dur: .07, vol: .3, fFrom: 2500, fTo: 900, type: 'bandpass', q: 2 });
@@ -480,10 +491,10 @@ function playAlertTone(kind) {
         }
     });
 }
-function agendarFala(mag, place, depth, qtd, delay, isUpdate = false, deltaTxt = '') {
+function agendarFala(mag, place, depth, qtd, delay, isUpdate = false, deltaTxt = '',eventId=null) {
     if (speakAlertTimeoutId) clearTimeout(speakAlertTimeoutId);
     speakAlertTimeoutId = setTimeout(() => {
-        speakAlert(mag, place, depth, qtd, isUpdate, deltaTxt);
+        if(eventId==null||typeof eventoSelecionadoId==='undefined'||eventoSelecionadoId===eventId)speakAlert(mag, place, depth, qtd, isUpdate, deltaTxt);
         speakAlertTimeoutId = null;
     }, delay);
 }

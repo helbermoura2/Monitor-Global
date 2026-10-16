@@ -1,0 +1,9 @@
+# Som de chegada após a abertura do planeta
+
+Os sismos realmente novos, tanto do feed principal quanto dos canais suplementares, e as erupções apresentadas por prioridade aguardam a etapa de visão global do `EventCamera`. Na transição entre eventos existente (18 s), a abertura ocupa os primeiros 6 s; o som começa ao concluir essa etapa e segue a viagem para o destino. Os efeitos do cartão continuam sendo liberados somente na chegada, aos 18 s. Sem uma etapa de abertura — entrada inicial ou mesmo alvo, 6 s — o som é liberado na chegada.
+
+A voz de M6+ conserva seu intervalo após o início do som. O caminho de voz alternativo do feed também aguarda a visão global. A função `afterWorldView` mantém a intenção por ID para eventos que aguardam apresentação, de forma limitada (32 entradas, 15 min), sem mudar prioridade, deduplicação, trajetória, duração da câmera ou permanência do cartão. Atualizar o destino da mesma viagem não reinicia o relógio nem repete o som.
+
+Interromper a viagem pelo mapa, selecionar outro evento ou sair da página cancela seu som pendente. Uma intenção de outro evento ainda aguardando na fila continua vinculada ao próprio ID. Áudio bloqueado pelo navegador só entra na fila de desbloqueio depois da etapa global; desbloqueios e falas pendentes não reproduzem um evento que já perdeu a seleção. Volume, filtros, tipos silenciados e reprodução manual continuam sendo respeitados. A reprodução manual solicitada pelo usuário continua imediata.
+
+Validação: testes do navegador verificam os caminhos reais de anúncio suplementar e prioridade vulcânica no desktop e celular, com som após a visão global, voz depois do som e efeito do cartão na chegada. Casos unitários cobrem espera na fila, cancelamento, redirecionamento da mesma viagem, entrada inicial, silêncio, limites de magnitude, desbloqueio de áudio e reprodução manual.
