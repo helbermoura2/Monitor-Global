@@ -4,7 +4,7 @@ function alert(){return {id:'PTWC-coasts',type:'tsunami',source:'PTWC',official:
 for(const width of [1280,390])test('published regions paint coasts, cancellation changes color and next event clears layers '+width,async({page})=>{
  await page.setViewportSize({width,height:900});await boot(page);const a=alert();await page.evaluate(a=>{globalAlerts=[a];showAlertDetails(a,false);clearTimeout(cycleTimeout);map.stop();},a);
  await expect(page.locator('#tsunami-map-legend')).toContainText('Previsão de 1 a 3 m');await expect(page.locator('#tsunami-map-legend')).toContainText('referência geográfica');
- expect(await page.evaluate(()=>[...new Set(map.getSource('tsunami-official-regions').serialize().data.features.map(f=>f.properties.color))])).toEqual(['#fb7148','#2dd4bf']);expect(await page.evaluate(()=>map.getStyle().layers.filter(l=>l.source==='tsunami-official-regions').every(l=>l.type==='fill'))).toBe(true);
+ expect(await page.evaluate(()=>[...new Set(map.getSource('tsunami-official-regions').serialize().data.features.map(f=>f.properties.color))])).toEqual(['#fb7148','#2dd4bf']);expect(await page.evaluate(()=>map.getStyle().layers.some(l=>l.source==='tsunami-official-regions'&&l.type==='fill')&&map.getStyle().layers.some(l=>l.source==='tsunami-official-regions'&&l.type==='line'))).toBe(true);
  await expect(page.locator('#tsunami-map-legend')).toContainText('Não representa inundação');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  if(width===390)await page.screenshot({path:'/tmp/tsunami-painted-mobile.png'});

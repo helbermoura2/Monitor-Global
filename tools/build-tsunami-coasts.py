@@ -36,3 +36,7 @@ for filename in ['ne_50m_admin_0_countries','ne_50m_admin_1_states_provinces']:
 out=Path('assets/tsunami/ne-50m-coastal-regions.geojson');out.write_text(json.dumps({'type':'FeatureCollection','features':features},separators=(',',':'))+'\n')
 print(len(features),'regions;',out.stat().st_size,'bytes')
 for f in ['ne_50m_coastline','ne_50m_admin_0_countries','ne_50m_admin_1_states_provinces']:print(f,hashlib.sha256((root/(f+'.geojson')).read_bytes()).hexdigest())
+
+# Add source shorelines and explicit Pacific reference sectors.
+import subprocess
+subprocess.run([sys.executable,str(Path(__file__).with_name("build-tsunami-paint.py")),str(root/"ne_50m_coastline.geojson")],check=True)

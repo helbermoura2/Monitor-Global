@@ -7,7 +7,7 @@ function clear(){clearTimeout(timer);timer=null;active=null;}
 function begin(item,mode){
  if(mode==='quake'){clear();return;}
  const ms=limitMs(item);
- if(active?.id===item.id&&active.mode===mode&&active.ms===ms)return;
+ if(active?.id===item.id&&active.mode===mode&&active.ms>=ms)return;
  clear();const context=active={id:item.id,mode,ms,startedAt:Date.now(),deadline:Date.now()+ms};
  timer=setTimeout(()=>{
   if(active!==context||eventoSelecionadoId!==context.id)return;
@@ -20,6 +20,12 @@ function delayEntry(id,ms){
  clearTimeout(timer);const context=active;context.startedAt=Date.now();context.deadline=context.startedAt+context.ms+ms;
  timer=setTimeout(()=>{if(active!==context||eventoSelecionadoId!==id)return;window.VolcanoPriority?.finishPresentation?.(id);clear();runAutoCycle(true);},context.deadline-Date.now());
 }
+function extendStay(id,ms){
+ if(active?.id!==id||!Number.isFinite(ms)||ms<=active.ms)return;
+ const context=active,stay=Math.min(180000,ms);if(stay<=context.ms)return;
+ context.deadline+=stay-context.ms;context.ms=stay;clearTimeout(timer);
+ timer=setTimeout(()=>{if(active!==context||eventoSelecionadoId!==id)return;window.VolcanoPriority?.finishPresentation?.(id);clear();runAutoCycle(true);},Math.max(1,context.deadline-Date.now()));
+}
 function wait(ms){return active?.id===eventoSelecionadoId?Math.min(ms,Math.max(1,active.deadline-Date.now())):ms;}
-window.PresentationLimits={begin,clear,wait,delayEntry,limitMs,state:()=>active};
+window.PresentationLimits={begin,clear,wait,delayEntry,extendStay,limitMs,state:()=>active};
 })();
