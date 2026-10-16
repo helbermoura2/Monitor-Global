@@ -84,9 +84,18 @@ def analytics(client, now=None):
 def public_health():
     with urllib.request.urlopen(PUBLIC+'/health?maintenance='+str(time.time_ns()),timeout=20) as r:return json.load(r)
 
+def verify_public(check=public_health, wait=time.sleep, attempts=25):
+    for attempt in range(attempts):
+        try:
+            health=check()
+            if health.get('electionPolls')==MARKER:return health
+        except (OSError,ValueError):pass
+        if attempt+1<attempts:wait(5)
+    raise MaintenanceError('Public health has not confirmed the no-polls marker; use verify mode without redeploying')
+
 def main():
     token,account=credentials(os.environ);client=Client(token,account);mode=os.environ.get('MAINTENANCE_MODE','inspect')
-    if mode not in ['inspect','deploy']:raise MaintenanceError('Invalid maintenance mode')
+    if mode not in ['inspect','deploy','verify']:raise MaintenanceError('Invalid maintenance mode')
     settings=client.call(client.worker('/settings'));schedules=client.call(client.worker('/schedules'))
     report={'mode':mode,'worker':WORKER,'bindings':[{'name':b.get('name'),'type':b.get('type')} for b in settings.get('bindings',[])],'schedules':schedules,'compatibilityDate':settings.get('compatibility_date')}
     try:report['kv']=analytics(client)
@@ -104,19 +113,15 @@ def main():
         after=client.call(client.worker('/settings'))
         if sorted(after.get('bindings',[]),key=lambda b:b.get('name',''))!=sorted(settings.get('bindings',[]),key=lambda b:b.get('name','')):raise MaintenanceError('Post-deployment binding mismatch; inspect version history immediately')
         if client.call(client.worker('/schedules'))!=schedules:raise MaintenanceError('Post-deployment cron mismatch; inspect schedules immediately')
-        health=None
-        for attempt in range(8):
-            try:
-                health=public_health()
-                if health.get('electionPolls')==MARKER:break
-            except (OSError,ValueError):pass
-            if attempt<7:time.sleep(5)
-        if not health or health.get('electionPolls')!=MARKER:raise MaintenanceError('Code uploaded, but public health has not confirmed the no-polls marker; inspect deployment')
+        health=verify_public()
         report['verified']={'electionPolls':health.get('electionPolls'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
     else:
         # Verify compatibility now; inspection never modifies anything.
         metadata(settings)
         report['deploymentReady']=True
+        if mode=='verify':
+            health=verify_public()
+            report['verified']={'electionPolls':health.get('electionPolls'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
     # Keep binding values, tokens, account ID and raw settings out of logs/artifacts.
     print(json.dumps(report,ensure_ascii=False,indent=2))
     summary=os.environ.get('GITHUB_STEP_SUMMARY')

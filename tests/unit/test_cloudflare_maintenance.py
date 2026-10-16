@@ -30,4 +30,10 @@ class MaintenanceTests(unittest.TestCase):
             account='a'*32
             def call(self,*args):return {'data':{'viewer':{'accounts':[]}}}
         with self.assertRaises(m.MaintenanceError):m.analytics(Client())
+    def test_public_propagation_can_be_verified_without_a_second_upload(self):
+        values=iter([{'electionPolls':'old'},{'electionPolls':m.MARKER}]);waits=[]
+        result=m.verify_public(check=lambda:next(values),wait=waits.append,attempts=2)
+        self.assertEqual(result['electionPolls'],m.MARKER);self.assertEqual(waits,[5])
+        with self.assertRaisesRegex(m.MaintenanceError,'without redeploying'):
+            m.verify_public(check=lambda:{},wait=lambda seconds:None,attempts=1)
 if __name__=='__main__':unittest.main()
