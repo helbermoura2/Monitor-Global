@@ -44,7 +44,7 @@ class Store {
 const storage=new Store(),kv=new Store();
 const env={TELEGRAM_BOT_TOKEN:'fake-test-token',TELEGRAM_CHAT_ID:-100123,TTS_USAGE:kv};
 let object=new EarthquakeAlertDelivery({storage},env);
-env.EARTHQUAKE_ALERTS={idFromName:name=>name,get:()=>({fetch:request=>object.fetch(request)})};
+env.EARTHQUAKE_ALERTS={idFromName:name=>name,get:name=>({fetch:request=>name==='kv-operation-metrics-v1'?Promise.resolve(Response.json({ok:true})):object.fetch(request)})};
 const run=(advance=31000)=>{clock+=advance;return runTelegramM6Alerts(new Request('https://worker.test/telegram-m6-check'),env)};
 world=[quake('initial',6.6)];await run();
 assert.equal(messages.length,1);assert.equal(messages[0].method,'sendPhoto');assert(messages[0].caption.includes('sujeita a revisão'));

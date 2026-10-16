@@ -1,7 +1,8 @@
+import {activity} from './kv-operation-metrics.mjs';
 // Population exposure: WorldPop gridded stats and USGS PAGER products.
 // Independent implementation of the published Allen/Wald/Worden (2012)
 // hypocentral intensity equation. See docs/population-exposure.md.
-const pending=new Map(),memory=new Map();
+const pending=new Map(),memory=new Map(),persistentMemory=new WeakMap(),pagerChecks=new Map();
 const YEAR=2020,VERSION='exposure-v1';
 const headers={'Access-Control-Allow-Origin':'*','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
 const response=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
@@ -94,29 +95,43 @@ export function worldPopResult(data){
  if(data.taskid&&/^[a-zA-Z0-9_-]{1,120}$/.test(String(data.taskid)))return {state:'pending',taskid:String(data.taskid)};
  return {state:'pending'};
 }
-async function storageRead(env,key){
- const hit=memory.get(key);if(hit&&hit.until>Date.now())return hit.value;
- try{const stored=await env.TTS_USAGE?.get(key,'json');if(stored&&stored.until>Date.now()){memory.set(key,stored);return stored.value;}}catch{}
+async function storageRead(env,key,storage){
+ const local=storage?persistentMemory.get(storage):memory.get(key);
+ if(local&&local.until>Date.now())return local.value;
+ if(storage){const entry=await storage.get('population-state');if(entry&&entry.until>Date.now()){persistentMemory.set(storage,entry);return entry.value;}}
  return null;
 }
-async function storageWrite(env,key,value,seconds){
- const entry={until:Date.now()+seconds*1000,value};memory.set(key,entry);
- if(memory.size>200)memory.delete(memory.keys().next().value);
- try{await env.TTS_USAGE?.put(key,JSON.stringify(entry),{expirationTtl:Math.max(60,seconds)});}catch{}
+function signature(value){const copy={...value};delete copy.nextPollAt;return JSON.stringify(copy);}
+async function storageWrite(env,key,value,seconds,storage){
+ const previous=storage?persistentMemory.get(storage):memory.get(key),same=previous?.signature===signature(value)&&previous.until>Date.now();
+ const until=same?previous.until:value.status==='pending'?value.created+240000:Date.now()+seconds*1000;
+ const entry={until,value,signature:signature(value)};
+ if(storage){persistentMemory.set(storage,entry);if(!same){await storage.put('population-state',entry);await storage.setAlarm?.(until+1000);activity(env,'populationStateWrites');}}
+ else{memory.set(key,entry);if(memory.size>200)memory.delete(memory.keys().next().value);}
 }
-async function runExposure(params,env,key){
- let state=await storageRead(env,key);
+export async function expirePopulation(storage,now=Date.now()){
+ const entry=await storage.get('population-state');if(entry&&entry.until<=now){await storage.delete('population-state');persistentMemory.delete(storage);}else if(entry)await storage.setAlarm?.(entry.until+1000);
+}
+async function runExposure(params,env,key,storage){
+ activity(env,'populationRequests');
+ let state=await storageRead(env,key,storage);
+ if(state)activity(env,'populationCacheHits');
+ if(state?.status==='available'&&state.method!=='pager'&&params.eventId&&Date.now()-(pagerChecks.get(key)||0)>=300000){
+  pagerChecks.set(key,Date.now());if(pagerChecks.size>400)pagerChecks.delete(pagerChecks.keys().next().value);
+  try{const pager=await officialPager(params);if(pager){await storageWrite(env,key,pager,300,storage);return pager;}}catch{}
+ }
  if(state?.status==='available'||state?.status==='unsupported'||state?.status==='unavailable')return state;
  if(state?.status==='pending'&&Date.now()<state.nextPollAt)return {status:'pending',retryAfter:10,note:'Consultando população em grade…'};
  if(!state){
-  try{const pager=await officialPager(params);if(pager){await storageWrite(env,key,pager,300);return pager;}}catch{}
+  try{pagerChecks.set(key,Date.now());if(pagerChecks.size>400)pagerChecks.delete(pagerChecks.keys().next().value);const pager=await officialPager(params);if(pager){await storageWrite(env,key,pager,300,storage);return pager;}}catch{}
   if(params.mag<3||params.mag>8.5||params.depth>70||Math.abs(params.lat)>85){
    const unsupported={status:'unsupported',note:'Sem PAGER disponível. O modelo do app não foi aplicado: magnitude, profundidade ou latitude fora da faixa utilizada.'};
-   await storageWrite(env,key,unsupported,180);return unsupported;
+   await storageWrite(env,key,unsupported,300,storage);return unsupported;
   }
   state={status:'pending',created:Date.now(),ranges:exposureRadii(params.mag,params.depth)};
  }
- if(Date.now()-state.created>180000){const failed={status:'unavailable',note:'WorldPop não concluiu a consulta no prazo. A estimativa por localidades continua disponível.'};await storageWrite(env,key,failed,180);return failed;}
+ if(Date.now()-state.created>180000){const failed={status:'unavailable',note:'WorldPop não concluiu a consulta no prazo. A estimativa por localidades continua disponível.'};await storageWrite(env,key,failed,300,storage);return failed;}
+ if(state.ranges.some(r=>r.taskid))activity(env,'populationPendingPolls');
  let failed=false;
  // No máximo 3 consultas por sismo; tarefas pendentes são reutilizadas.
  for(const range of state.ranges){
@@ -131,18 +146,18 @@ async function runExposure(params,env,key){
    else if(result.taskid)range.taskid=result.taskid;
   }catch{failed=true;break;}
  }
- if(failed){const unavailable={status:'unavailable',note:'A consulta à população em grade está indisponível. A estimativa por localidades continua disponível.'};await storageWrite(env,key,unavailable,180);return unavailable;}
+ if(failed){const unavailable={status:'unavailable',note:'A consulta à população em grade está indisponível. A estimativa por localidades continua disponível.'};await storageWrite(env,key,unavailable,300,storage);return unavailable;}
  if(state.ranges.every(r=>r.population!==undefined)){
   // Círculos são inclusivos: nunca somar as faixas nem forçar monotonicidade.
   if(state.ranges.some((r,i)=>i&&r.population>state.ranges[i-1].population+1)){
-   const unavailable={status:'unavailable',note:'As consultas retornaram populações inconsistentes; o total não foi exibido.'};await storageWrite(env,key,unavailable,180);return unavailable;
+   const unavailable={status:'unavailable',note:'As consultas retornaram populações inconsistentes; o total não foi exibido.'};await storageWrite(env,key,unavailable,300,storage);return unavailable;
   }
   const available={status:'available',provider:'WorldPop',method:'worldpop',year:YEAR,ranges:state.ranges.map(({taskid,...r})=>r),partial:state.ranges.some(r=>r.limited),model:'Allen, Wald e Worden (2012), distância hipocentral',depthAssumed:params.depth===0,note:(params.depth===0?'Profundidade informada como zero: adotados 10 km no modelo; essa suposição pode alterar os totais. ':'')+'População em grade dentro de áreas de intensidade estimada pelo app. Inclui áreas rurais. Modelo radial sem efeitos locais do solo, direção da ruptura ou incerteza estatística; não equivale ao ShakeMap.'};
-  await storageWrite(env,key,available,86400);return available;
+  await storageWrite(env,key,available,86400,storage);return available;
  }
- state.nextPollAt=Date.now()+10000;await storageWrite(env,key,state,180);return {status:'pending',retryAfter:10,note:'Consultando população em grade…'};
+ state.nextPollAt=Date.now()+10000;await storageWrite(env,key,state,240,storage);return {status:'pending',retryAfter:10,note:'Consultando população em grade…'};
 }
-export async function handlePopulationExposure(request,env){
+export async function handlePopulationExposure(request,env,storage){
  if(request.method!=='GET')return response({status:'invalid',note:'Método não permitido'},405);
  const url=new URL(request.url),params={};
  for(const field of ['lat','lng','mag','depth','time']){
@@ -155,6 +170,8 @@ export async function handlePopulationExposure(request,env){
  const canonical=[params.lat.toFixed(4),params.lng.toFixed(4),params.mag.toFixed(2),params.depth.toFixed(1),params.eventId,Math.floor(params.time/1000)].join('|');
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical));
  const key=VERSION+':'+[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
- if(!pending.has(key))pending.set(key,runExposure(params,env,key).finally(()=>pending.delete(key)));
+ const coordinator=env.POPULATION_COORDINATOR||env.EARTHQUAKE_ALERTS;
+ if(!storage&&coordinator){try{return await coordinator.get(coordinator.idFromName('population-exposure-v2:'+key)).fetch(request);}catch{return response({status:'unavailable',note:'Consulta populacional temporariamente indisponível; a estimativa por localidades permanece disponível.'},503);}}
+ if(!pending.has(key))pending.set(key,runExposure(params,env,key,storage).finally(()=>pending.delete(key)));
  try{return response(await pending.get(key));}catch{return response({status:'unavailable',note:'A consulta de exposição está temporariamente indisponível.'},502);}
 }

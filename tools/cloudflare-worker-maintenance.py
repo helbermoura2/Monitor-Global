@@ -1,6 +1,7 @@
 """Manual account maintenance. Never prints credentials or changes cron/bindings."""
 import datetime as dt
 import hashlib
+import hmac
 import json
 import os
 from pathlib import Path
@@ -16,7 +17,8 @@ API = 'https://api.cloudflare.com/client/v4'
 WORKER = 'black-sky-9ba0'
 PUBLIC = 'https://black-sky-9ba0.terrestre.workers.dev'
 MARKER = 'removed-no-kv-v1'
-BUNDLE_SHA256 = 'e6def3c7ee29ae8d06baff31f336cdda99a5fa3a6d6140606b099b0b5980f670'
+OPTIMIZATION = 'shared-population-voice-v1'
+BUNDLE_SHA256 = '40ac7e20cf28315810ac3e85982d4c37e9d95d587ef087938794568c39a58925'
 
 class MaintenanceError(Exception):
     pass
@@ -35,7 +37,7 @@ def metadata(settings):
     if any(by_name.get(k)!=v for k,v in required.items()): raise MaintenanceError('Existing storage bindings differ from the reviewed Worker; deployment refused')
     date=settings.get('compatibility_date')
     if not isinstance(date,str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',date):raise MaintenanceError('Existing compatibility date unavailable; deployment refused')
-    result={'main_module':'worker.mjs','compatibility_date':date,'keep_bindings':sorted(set(b['type'] for b in bindings)),'keep_assets':True,'annotations':{'workers/message':'Monitor Global: remove electoral polling collector and its KV operations'}}
+    result={'main_module':'worker.mjs','compatibility_date':date,'keep_bindings':sorted(set(b['type'] for b in bindings)),'keep_assets':True,'annotations':{'workers/message':'Monitor Global: shared population and voice cache, private KV metrics'}}
     for k in ['compatibility_flags','limits','logpush','observability','placement','tail_consumers']:
         if k in settings and settings[k] is not None:result[k]=settings[k]
     return result
@@ -44,7 +46,7 @@ def bundle(path):
     data=Path(path).read_bytes()
     if hashlib.sha256(data).hexdigest()!=BUNDLE_SHA256:raise MaintenanceError('Reviewed bundle checksum mismatch')
     with zipfile.ZipFile(path) as z:source=z.read('monitor-global-worker-7_7_0.js')
-    if MARKER.encode() not in source or b'maybeRefreshPollsAverageNightly' in source or b'POLLS_KV_KEY' in source:raise MaintenanceError('Bundle still contains polling collector or lacks the health marker')
+    if OPTIMIZATION.encode() not in source or MARKER.encode() not in source or b'maybeRefreshPollsAverageNightly' in source or b'POLLS_KV_KEY' in source:raise MaintenanceError('Bundle still contains polling collector or lacks the health marker')
     return source
 
 def multipart(meta, source):
@@ -90,11 +92,25 @@ def verify_public(check=public_health, wait=time.sleep, attempts=25):
     for attempt in range(attempts):
         try:
             health=check()
-            if health.get('electionPolls')==MARKER:return health
+            if health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True:return health
         except urllib.error.HTTPError as e:failure='public HTTP '+str(e.code)
         except (OSError,ValueError):failure='public response unavailable or invalid'
         if attempt+1<attempts:wait(5)
-    raise MaintenanceError('Public health has not confirmed the no-polls marker ('+failure+'); use verify mode without redeploying')
+    raise MaintenanceError('Public health has not confirmed the optimization markers ('+failure+'); use verify mode without redeploying')
+
+def metrics_token(token,account):
+    # A separate read-only credential; the Cloudflare API credential never reaches the Worker.
+    return hmac.new(token.encode(),('MonitorGlobal:kv-metrics:'+account).encode(),hashlib.sha256).hexdigest()
+
+def provision_metrics(client,token):
+    client.call(client.worker('/secrets'),'PUT',json.dumps({'name':'KV_METRICS_READ_TOKEN','type':'secret_text','text':token}).encode())
+
+def read_usage(token):
+    request=urllib.request.Request(PUBLIC+'/kv-usage',headers={'Authorization':'Bearer '+token,'User-Agent':'MonitorGlobal-maintenance/1.0','Accept':'application/json','Cache-Control':'no-cache'})
+    try:
+        with urllib.request.urlopen(request,timeout=20) as r:return json.load(r)
+    except urllib.error.HTTPError as e:return {'available':False,'httpStatus':e.code}
+    except (OSError,ValueError):return {'available':False,'note':'Application metrics unavailable; not interpreted as zero.'}
 
 def main():
     token,account=credentials(os.environ);client=Client(token,account);mode=os.environ.get('MAINTENANCE_MODE','inspect')
@@ -104,12 +120,15 @@ def main():
     try:report['kv']=analytics(client)
     except MaintenanceError as e:report['analyticsUnavailable']=str(e)
     if mode=='deploy':
-        meta=metadata(settings);source=bundle('downloads/monitor-global-worker-sem-pesquisas.zip')
+        metadata(settings);source=bundle('downloads/monitor-global-worker-otimizado.zip')
         # Preflight all required GETs before any mutation. Leave rollout history intact.
         deployments=client.call(client.worker('/deployments'))
         previous=deployments.get('deployments',[])
         if not previous or len(previous[0].get('versions',[]))!=1 or previous[0]['versions'][0].get('percentage')!=100:raise MaintenanceError('Expected a single active version at 100%; deployment refused')
         report['previousVersion']=previous[0]['versions'][0]['version_id']
+        provision_metrics(client,metrics_token(token,account))
+        settings=client.call(client.worker('/settings'))
+        meta=metadata(settings)
         body,content_type=multipart(meta,source)
         result=client.call(client.worker()+'?bindings_inherit=strict','PUT',body,content_type)
         report['uploaded']=True;report['deploymentId']=result.get('deployment_id')
@@ -117,14 +136,15 @@ def main():
         if sorted(after.get('bindings',[]),key=lambda b:b.get('name',''))!=sorted(settings.get('bindings',[]),key=lambda b:b.get('name','')):raise MaintenanceError('Post-deployment binding mismatch; inspect version history immediately')
         if client.call(client.worker('/schedules'))!=schedules:raise MaintenanceError('Post-deployment cron mismatch; inspect schedules immediately')
         health=verify_public()
-        report['verified']={'electionPolls':health.get('electionPolls'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
+        report['verified']={'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
     else:
         # Verify compatibility now; inspection never modifies anything.
         metadata(settings)
         report['deploymentReady']=True
         if mode=='verify':
             health=verify_public()
-            report['verified']={'electionPolls':health.get('electionPolls'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
+            report['verified']={'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
+    report['applicationUsage']=read_usage(metrics_token(token,account))
     # Keep binding values, tokens, account ID and raw settings out of logs/artifacts.
     print(json.dumps(report,ensure_ascii=False,indent=2))
     summary=os.environ.get('GITHUB_STEP_SUMMARY')

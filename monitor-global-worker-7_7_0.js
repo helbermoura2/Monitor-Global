@@ -13,7 +13,9 @@ import { handleWeatherObservations } from "./weather-observations-worker.mjs";
 import {handleRainbowProducts,handleRainbowProductInObject} from "./rainbow-products-worker.mjs";
 import { handleRainbowNowcast, handleRainbowInObject } from "./rainbow-nowcast-worker.mjs";
 import { handleRuptureShaking } from "./rupture-shaking-worker.mjs";
-import { handlePopulationExposure } from "./population-exposure-worker.mjs";
+import { handlePopulationExposure, expirePopulation } from "./population-exposure-worker.mjs";
+import {withKvUsage,handleKvUsageObject,handleKvUsageRead} from "./kv-operation-metrics.mjs";
+import {handleSharedVoice,pruneVoiceCache} from "./shared-voice-cache.mjs";
 import {translationStorage} from "./translation-storage.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
@@ -4427,19 +4429,24 @@ async function fetchTelegramBrazilRecent(env, window = null) {
 // é consistente imediatamente, sem a janela de replicação do KV.
 export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
+    async alarm(){await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
     fetch(request) {
         const operation = this.queue.then(async () => {
+            if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
+            return withKvUsage(this.env,async measuredEnv=>{
+            if(new URL(request.url).pathname==='/population-exposure')return handlePopulationExposure(request,{...measuredEnv,EARTHQUAKE_ALERTS:undefined,POPULATION_COORDINATOR:undefined},this.state.storage);
+            if(new URL(request.url).pathname==='/tts')return handleTts(new URL(request.url),measuredEnv,this.state.storage);
             if(new URL(request.url).pathname.startsWith('/telegram-image/'))return serveTelegramOriginal(request,this.state.storage);
-            if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(new URL(request.url).pathname))return handleRainbowProductInObject(request,this.env,this.state.storage);
-            if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,this.env,this.state.storage);
+            if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(new URL(request.url).pathname))return handleRainbowProductInObject(request,measuredEnv,this.state.storage);
+            if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,measuredEnv,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
-                const kv=this.env.TTS_USAGE,storage=this.state.storage;
-                const env={...this.env,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:translationStorage(storage,kv)};
+                const kv=measuredEnv.TTS_USAGE,storage=this.state.storage;
+                const env={...measuredEnv,EARTHQUAKE_ALERTS:undefined,TTS_USAGE:translationStorage(storage,kv)};
                 return handlePortugueseTranslation(request,env);
             }
-            const kv = this.env.TTS_USAGE;
+            const kv = measuredEnv.TTS_USAGE;
             const storage = this.state.storage;
-            const env = {...this.env, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
+            const env = {...measuredEnv, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
                         let value;
@@ -4470,6 +4477,7 @@ export class EarthquakeAlertDelivery {
                 }
             }};
             return Response.json(await runTelegramM6Alerts(request, env));
+            },this.state);
         });
         this.queue = operation.catch(() => {});
         return operation;
@@ -5146,9 +5154,10 @@ async function runTelegramDailySummary(request,env){
 export class DailySummaryDelivery {
     constructor(ctx,env) { this.ctx=ctx; this.env=env; }
     async alarm(){await pruneTelegramOriginals(this.ctx.storage);}
-    async fetch(request) {
+    async fetch(request){return withKvUsage(this.env,env=>this.handleRequest(request,env),this.ctx);}
+    async handleRequest(request,env) {
         if(new URL(request.url||request).pathname.startsWith('/telegram-summary-image/'))return serveTelegramOriginal(request,this.ctx.storage);
-        if(new URL(request.url||request).pathname==='/refresh-brazil')return refreshDailyBrazilSummary(request,this.env,this.ctx.storage);
+        if(new URL(request.url||request).pathname==='/refresh-brazil')return refreshDailyBrazilSummary(request,env,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/history'){
             const history=await this.ctx.storage.get('history');
             const state=await this.ctx.storage.get('delivery');
@@ -5187,7 +5196,7 @@ export class DailySummaryDelivery {
             await tx.put('delivery',{status,token,at:Date.now()});
         });
         try {
-            const result=await deliverTelegramDailySummary(request,{...this.env,ARCHIVE_TELEGRAM_SUMMARY_IMAGE:async(png,key)=>{const saved=await archiveTelegramOriginal(storage,png,key,{summary:true});await storage.setAlarm?.(Date.now()+72*3600000+1000);return saved;}},{
+            const result=await deliverTelegramDailySummary(request,{...env,ARCHIVE_TELEGRAM_SUMMARY_IMAGE:async(png,key)=>{const saved=await archiveTelegramOriginal(storage,png,key,{summary:true});await storage.setAlarm?.(Date.now()+72*3600000+1000);return saved;}},{
                 note,
                 beforeSend:async()=>{await change('sending');await note('sending');},
                 confirm:async details=>{await change('sent');await note('sent',details);}
@@ -5264,7 +5273,7 @@ function bytesToHex(bytes) {
     return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function pollySynthesize(texto, accessKeyId, secretAccessKey) {
+async function pollySynthesize(texto, accessKeyId, secretAccessKey, {signal}={}) {
     const service = 'polly';
     const host = `polly.${AWS_REGION}.amazonaws.com`;
     const canonicalUri = '/v1/speech';
@@ -5297,61 +5306,19 @@ async function pollySynthesize(texto, accessKeyId, secretAccessKey) {
     const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
     return fetch(`https://${host}${canonicalUri}`, {
-        method: 'POST',
+        method: 'POST', signal,
         headers: { 'Content-Type': 'application/json', 'X-Amz-Date': amzDate, 'Authorization': authorization },
         body
     });
 }
 
-// Segurança extra além da cota grátis da própria AWS: um teto MUITO abaixo
-// dela (uso real esperado é uns 3 mil caracteres/mês, contra sismos M6+),
-// guardado no KV do Cloudflare (grátis) por mês corrente. Se algum dia a
-// rota for abusada (alguém martelando a URL direto), ela trava sozinha bem
-// antes de chegar perto de gerar qualquer cobrança de verdade na AWS.
-const TTS_LIMITE_MENSAL = 300000;
-async function verificarEIncrementarCotaTts(env, tamanhoTexto) {
-    if (!env.TTS_USAGE) return { ok: true }; // KV ainda não configurado — não bloqueia, só sem essa camada extra
-    const agora = new Date();
-    const chave = `usage-${agora.getUTCFullYear()}-${String(agora.getUTCMonth() + 1).padStart(2, '0')}`;
-    const atual = Number(await env.TTS_USAGE.get(chave)) || 0;
-    if (atual + tamanhoTexto > TTS_LIMITE_MENSAL) return { ok: false, usado: atual };
-    await env.TTS_USAGE.put(chave, String(atual + tamanhoTexto), { expirationTtl: 40 * 24 * 3600 });
-    return { ok: true };
-}
-
-// Sem token de admin aqui de propósito: essa rota é chamada pelo navegador
-// de qualquer visitante do site (pra tocar o alerta de voz), não só pelo
-// dono — não dá pra exigir um secret que teria que ficar exposto no JS do
-// cliente. O limite de tamanho do texto, o teto mensal acima e a cota
-// grátis da AWS seguram o abuso: se algum deles travar, a API responde
-// erro e o site cai de volta pra voz nativa do navegador sozinho
-// (falarNaNuvem no audio.js já trata isso), sem custo nem quebra pro
-// usuário.
-async function handleTts(reqUrl, env) {
-    // Diagnóstico temporário: ?debug=1 mostra qual voz está configurada no
-    // Worker sem gastar nada da cota do Polly — só abrir o link no navegador,
-    // sem precisar de DevTools nem conseguir distinguir vozes no ouvido.
-    if (reqUrl.searchParams.get('debug') === '1') {
-        return json({ ok: true, vozConfigurada: POLLY_VOICE });
-    }
-    const texto = String(reqUrl.searchParams.get('text') || '').trim();
-    if (!texto) return json({ ok: false, error: 'texto vazio' }, 400);
-    if (texto.length > 400) return json({ ok: false, error: 'texto longo demais (máx. 400 caracteres)' }, 400);
-    const cota = await verificarEIncrementarCotaTts(env, texto.length);
-    if (!cota.ok) return json({ ok: false, error: `Limite de segurança mensal atingido (${cota.usado} caracteres já usados este mês) — voz na nuvem pausada até o mês seguinte.` }, 429);
-    const accessKeyId = env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY;
-    if (!accessKeyId || !secretAccessKey) return json({ ok: false, error: 'AWS Polly não configurado' }, 501);
-    try {
-        const r = await pollySynthesize(texto, accessKeyId, secretAccessKey);
-        if (!r.ok) {
-            const detalhe = await r.text().catch(() => '');
-            return json({ ok: false, error: `AWS Polly HTTP ${r.status}: ${detalhe.slice(0, 200)}` }, 502);
-        }
-        return resposta(r.body, 200, 'audio/mpeg');
-    } catch (e) {
-        return json({ ok: false, error: e?.message || String(e) }, 502);
-    }
+async function handleTts(reqUrl,env,storage){
+ if(reqUrl.searchParams.get('debug')==='1')return json({ok:true,vozConfigurada:POLLY_VOICE});
+ const text=String(reqUrl.searchParams.get('text')||'').trim();
+ if(!text||text.length>400)return json({ok:false,error:!text?'texto vazio':'texto longo demais (máx. 400 caracteres)'},400);
+ if(storage)return handleSharedVoice(reqUrl,env,storage,pollySynthesize,{voice:POLLY_VOICE});
+ if(!env.EARTHQUAKE_ALERTS)return json({ok:false,error:'Voz compartilhada indisponível; usando a voz do navegador.'},503);
+ try{return await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('global-shared-voice-v1')).fetch(new Request(reqUrl));}catch{return json({ok:false,error:'Voz temporariamente indisponível; usando a voz do navegador.'},503);}
 }
 
 async function handlePortugueseTranslation(request,env){
@@ -5388,8 +5355,7 @@ async function handlePortugueseTranslation(request,env){
  return json({translations,language:'pt-BR'});
 }
 
-export default {
-    async fetch(request, env) {
+async function handleWorkerRequest(request,env){
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
         if(reqUrl.pathname.startsWith('/telegram-summary-image/')){
@@ -5428,6 +5394,7 @@ export default {
         }
         // Retired: stale clients receive no data and never touch KV.
         if (reqUrl.pathname === '/polls-average') return json({ok:false,retired:true,error:'Pesquisas removidas; consulte a apuração oficial do TSE.'},410);
+        if(reqUrl.pathname==='/kv-usage')return handleKvUsageRead(request,env);
         if (reqUrl.pathname === '/health') {
             return json({
                 ok: true,
@@ -5444,7 +5411,9 @@ export default {
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),
                 cacheApi: true,
-                kv: false,
+                kv: Boolean(env.TTS_USAGE),
+                kvOptimization: 'shared-population-voice-v1',
+                kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
                 telegramM6: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
@@ -5575,19 +5544,21 @@ export default {
         } catch (e) {
             return json({ error: 'Falha ao consultar fonte externa', host: targetUrl.hostname, detail: e.message, timestamp: nowIso() }, 502);
         }
-    },
+}
 
+export default {
+    async fetch(request,env,ctx){return withKvUsage(env,tracked=>handleWorkerRequest(request,tracked),ctx);},
 
     async scheduled(event, env, ctx) {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';
         const cacheRequest = new Request(baseUrl, { method: 'GET' });
-        ctx.waitUntil((async () => {
+        ctx.waitUntil(withKvUsage(env,async env => {
             // Prioridade ao resumo; consultas de outros feeds não atrasam sua tentativa.
             try { await runTelegramDailySummary(cacheRequest, env); } catch (e) { console.error('Cron Telegram resumo diário: envio pendente; nova tentativa no próximo cron'); }
             try { await refreshSpClimaCache(cacheRequest, env); } catch (e) { console.error('Cron SP:', e); }
             try { await refreshGlobalFeedsCache(cacheRequest, env); } catch (e) { console.error('Cron global:', e); }
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
             try { await refreshRecentDailyBrazilSummaries(env); } catch (e) { console.warn('Cron revisão brasileira: pendente'); }
-        })());
+        }));
     }
 };
