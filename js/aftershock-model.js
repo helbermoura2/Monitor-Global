@@ -2,7 +2,7 @@
 (function(root){
  'use strict';
  const WINDOW=72*3600000;
- function valid(q,now){return q?.type==='earthquake'&&q.id!=null&&Number.isFinite(q.mag)&&Number.isFinite(q.time)&&q.time>=now-WINDOW&&q.time<=now+60000&&Array.isArray(q.coords)&&q.coords.length===2&&q.coords.every(Number.isFinite)&&Math.abs(q.coords[1])<=90&&Math.abs(q.coords[0])<=180;}
+ function valid(q,now){return (q?.type==='earthquake'||q&&!q.type&&Number.isFinite(q.mag))&&q.id!=null&&Number.isFinite(q.mag)&&Number.isFinite(q.time)&&q.time>=now-WINDOW&&q.time<=now+60000&&Array.isArray(q.coords)&&q.coords.length===2&&q.coords.every(Number.isFinite)&&Math.abs(q.coords[1])<=90&&Math.abs(q.coords[0])<=180;}
  function distance(a,b){const rad=Math.PI/180,dlat=(b[1]-a[1])*rad,dlng=(b[0]-a[0])*rad,s=Math.sin(dlat/2)**2+Math.cos(a[1]*rad)*Math.cos(b[1]*rad)*Math.sin(dlng/2)**2;return 12742*Math.asin(Math.sqrt(Math.min(1,s)));}
  // Broad empirical rupture-length scale, used only as a bounded search radius.
  function radius(mag){return Math.min(200,Math.max(25,2*Math.pow(10,-2.44+.59*mag)));}

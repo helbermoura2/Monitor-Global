@@ -78,7 +78,7 @@ async function renderReports(q){const host=$('event-insights-content'),my=++toke
 }
 function close(){token++;dialog?.close();dialog?.remove();dialog=null;view=null;coastShown=null;}
 function open(mode,q=selected()){
- if(!q)return;close();history.observe(q);persist();selectedId=q.id;view=mode;
+ if(!q)return;window.EventReplay?.pause();close();history.observe(q);persist();selectedId=q.id;view=mode;
  dialog=document.createElement('dialog');dialog.id='event-insights-dialog';dialog.setAttribute('aria-label','Informações do evento');const header=node(dialog,'header');node(header,'h2',mode==='evolution'?'Evolução do evento':mode==='coasts'?'Tsunami · costas e estações':'Onde foi sentido');button(header,'Fechar',close);node(dialog,'p',q.place||'Evento selecionado','insights-location');const content=node(dialog,'section');content.id='event-insights-content';content.setAttribute('aria-live','polite');document.body.append(dialog);dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.showModal();
  if(mode==='evolution')renderEvolution(q);else if(mode==='coasts')renderCoasts(q);else renderReports(q);
 }

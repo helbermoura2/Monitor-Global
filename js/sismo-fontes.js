@@ -129,6 +129,7 @@ function normalizarSismoGeoJSON(features, source, mapper) {
                 || (statusRaw === '' && source === 'USGS-RT'); // feeds rápidos costumam ser automáticos
             const quality = isPreliminary ? 'C' : 'B';
             out.push({
+                type:'earthquake',
                 id: `${source}-${f.id || p.eventid || p.publicid || `${time}-${lat.toFixed(3)}-${lon.toFixed(3)}`}`,
                 place: info.nome || placeRaw || 'Evento sísmico',
                 bandeira: info.bandeira || getFlagByCoords(lat, lon),
@@ -700,6 +701,7 @@ function mergeEarthquakeReports(reports) {
         g.strongMagnitudeDivergence = g.magnitudeSpread >= SISMO_MAG_DIVERGENCIA_FORTE;
     }
     groups.forEach(g=>{
+        g.type='earthquake';
         // Normaliza nomes de fonte (USGS-RT conta como USGS na UI)
         const srcNorm = (s) => (s === 'USGS-RT' ? 'USGS' : s);
         g.sources = [...new Set(g.sources.map(srcNorm))].sort((a,b)=>sismoSourceRank(b)-sismoSourceRank(a));

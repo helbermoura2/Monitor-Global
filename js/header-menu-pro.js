@@ -159,7 +159,7 @@
       else if (acao === 'timeline') openTimeline();
       else if (acao === 'radar') clickOp('btn-radar-pro', 'mobile-btn-radar');
       /* acao crisis removida */
-      else if (acao === 'replay') clickOp('btn-replay-pro', 'mobile-btn-replay');
+      else if (acao === 'replay') {if(window.EventReplay){if(!EventReplay.start(window.EventStore?.getSelected())){if(typeof toggleMobileEventsModal==='function')toggleMobileEventsModal(true);if(typeof showToast==='function')showToast('Selecione um evento para rever a apresentação.','info');}}else clickOp('btn-replay-pro','mobile-btn-replay');}
       else if (acao === 'follow') clickOp('btn-follow-pro', 'mobile-btn-follow');
       else if (acao === 'tools') openTools();
       else if (acao === 'seismic-demo') window.CardEffectDemo?.open();

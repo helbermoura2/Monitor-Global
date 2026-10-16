@@ -1,0 +1,34 @@
+name: Refresh current Cemaden municipal alerts
+on:
+  schedule:
+    - cron: '6,21,36,51 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: cemaden-current-alerts
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests/unit -p 'test_cemaden_alerts.py'
+      - run: python tools/update-cemaden-alerts.py
+      - name: Publish checked municipal alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- data/cemaden-alerts.json; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/cemaden-alerts.json
+          git commit -m 'Refresh current official Cemaden municipal alerts'
+          git pull --rebase origin main
+          git push origin HEAD:main
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"

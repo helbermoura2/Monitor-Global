@@ -1061,7 +1061,7 @@ function runAutoCycle(forced = false) {
         if (window.VolcanoPriority?.focus()) return;
         if (typeof focusNextNewCameraQuake === 'function' && focusNextNewCameraQuake()) return;
         if(window.TsunamiMap?.isPreview()||window.SeismicScenarioDemo?.isActive()){scheduleNextAutoCycle(60000);return;}
-        if(window.EventInsights?.isOpen()||window.MonitorWorkbench?.isOpen()){scheduleNextAutoCycle(5000);return;}
+        if(window.EventInsights?.isOpen()||window.MonitorWorkbench?.isOpen()||window.EventReplay?.isActive()){scheduleNextAutoCycle(5000);return;}
         if(window.OfficialMapPriority?.focus())return;
         const activePresentation=window.PresentationLimits?.state();
         const protectedMs = Math.max(getAutoCycleProtectionRemaining(),window.SeismicPaintTour?.remaining()||0,activePresentation?.id===eventoSelecionadoId?activePresentation.deadline-Date.now():0);
@@ -1220,6 +1220,7 @@ function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
 }
 
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
+    if(!silentRefresh)window.EventReplay?.stop(false);
     if (!globalEvents[index] || !map) return;
     if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
     if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
@@ -1624,6 +1625,7 @@ try { window.focarEventoNoMapa = focarEventoNoMapa; } catch (e) {}
 
 /* ═══════════ PREENCHE O PAINEL DIREITO — ALERTA (não-sismo) ═══════════ */
 function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = false) {
+    if(!silentRefresh)window.EventReplay?.stop(false);
     if (!item) return;
     const normalized=window.TsunamiBulletinOrigin?.normalize(item);if(normalized&&normalized!==item){Object.assign(item,normalized);}
     if (!window.__mgRotationDisplay) window.PollProjectionCard?.isActive() && window.PollProjectionCard._abort?.();
