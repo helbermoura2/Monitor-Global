@@ -133,8 +133,8 @@ def main():
         previous=deployments.get('deployments',[])
         if not previous or len(previous[0].get('versions',[]))!=1 or previous[0]['versions'][0].get('percentage')!=100:raise MaintenanceError('Expected a single active version at 100%; deployment refused')
         report['previousVersion']=previous[0]['versions'][0]['version_id']
-        provision_metrics(client,metrics_token(token,account))
-        settings=client.call(client.worker('/settings'))
+        # A newer undeployed preview blocks unnecessary secret edits (error 10215).
+        # Preserve the valid secret and all other bindings during the upload.
         meta=metadata(settings)
         body,content_type=multipart(meta,source)
         result=client.call(client.worker()+'?bindings_inherit=strict','PUT',body,content_type)
@@ -142,6 +142,11 @@ def main():
         after=client.call(client.worker('/settings'))
         if sorted(after.get('bindings',[]),key=lambda b:b.get('name',''))!=sorted(settings.get('bindings',[]),key=lambda b:b.get('name','')):raise MaintenanceError('Post-deployment binding mismatch; inspect version history immediately')
         if client.call(client.worker('/schedules'))!=schedules:raise MaintenanceError('Post-deployment cron mismatch; inspect schedules immediately')
+        access=read_usage(metrics_token(token,account))
+        if access.get('httpStatus')==401:
+            # Provision only when needed, after deploying the reviewed source.
+            provision_metrics(client,metrics_token(token,account))
+            report['metricsReadCredentialUpdated']=True
         health=verify_public()
         report['verified']={'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
     else:
