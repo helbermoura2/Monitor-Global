@@ -588,12 +588,7 @@ async function fetchGlobalFeeds() {
                     if (somJaTocadoParaRegiao(alvo)) {
                         sismosSonorizados.add(alvo.id);
                     } else {
-                        const disparado = playEarthquakeSound(
-                            alvo.mag,
-                            alvo.place,
-                            alvo.depth,
-                            novosComSom.length - 1
-                        );
+                        const disparado = playEarthquakePresentationSound(alvo,novosComSom.length - 1);
 
                         if (disparado) {
                             sismosSonorizados.add(alvo.id);
@@ -619,13 +614,8 @@ async function fetchGlobalFeeds() {
                 // Mesma checagem de quase-duplicata do som (ver acima) — não repete
                 // o anúncio de voz pro mesmo tremor sob outro ID de rede.
                 if (!somJaTocadoParaRegiao(alvoVoz)) {
-                    agendarFala(
-                        Number(alvoVoz.mag),
-                        alvoVoz.place,
-                        alvoVoz.depth,
-                        Math.max(0, novosComVoz.length - 1),
-                        1400
-                    );
+                    const falar=()=>agendarFala(Number(alvoVoz.mag),alvoVoz.place,alvoVoz.depth,Math.max(0,novosComVoz.length-1),1400,false,'',alvoVoz.id);
+                    if(window.EventCamera?.afterWorldView)EventCamera.afterWorldView(alvoVoz.id,falar);else falar();
                     registrarSomSismo(alvoVoz);
                 }
             }

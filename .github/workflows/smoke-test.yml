@@ -45,7 +45,7 @@ jobs:
 
       - name: Validar exposição populacional e reservas
         run: |
-          node --test tests/unit/full-screen-effects.test.cjs tests/unit/event-data-quality.test.cjs tests/unit/event-camera-alignment.test.cjs tests/unit/source-freshness.test.cjs tests/unit/globe-space-model.test.cjs tests/unit/solar-system.test.cjs tests/unit/rupture-shaking.test.mjs tests/unit/rupture-shaking-client.test.cjs tests/unit/official-map-sources.test.cjs tests/unit/volcano-advisory-parser.test.cjs tests/unit/translation-storage.test.mjs tests/unit/portuguese-translation-worker.test.mjs
+          node --test tests/unit/world-view-audio.test.cjs tests/unit/full-screen-effects.test.cjs tests/unit/event-data-quality.test.cjs tests/unit/event-camera-alignment.test.cjs tests/unit/source-freshness.test.cjs tests/unit/globe-space-model.test.cjs tests/unit/solar-system.test.cjs tests/unit/rupture-shaking.test.mjs tests/unit/rupture-shaking-client.test.cjs tests/unit/official-map-sources.test.cjs tests/unit/volcano-advisory-parser.test.cjs tests/unit/translation-storage.test.mjs tests/unit/portuguese-translation-worker.test.mjs
           node --test tests/unit/tsunami-link.test.cjs tests/unit/tsunami-official.test.mjs tests/unit/tsunami-map.test.cjs
           node tests/unit/tsunami-correlation-check.mjs
           node tests/unit/population-exposure-check.mjs
