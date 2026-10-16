@@ -1,6 +1,6 @@
 # Pintura oficial e câmera da sequência
 
-O sismo selecionado consulta sob demanda a intensidade MMI publicada pelo USGS ShakeMap, incluindo magnitudes abaixo de cinco quando o produto existir. Uma grade geográfica CRS84 válida, associada à origem do evento, é suficiente: uma ruptura finita não é mais obrigatória para aproveitar a intensidade oficial. A associação exige até 80 km, cinco minutos e diferença de magnitude de até 1,5; sem identificador USGS, a busca precisa encontrar uma única correspondência.
+O sismo selecionado consulta sob demanda a intensidade MMI publicada pelo USGS ShakeMap, para magnitudes M5,5 ou maiores. Uma grade geográfica CRS84 válida, associada à origem do evento, é suficiente: uma ruptura finita não é mais obrigatória para aproveitar a intensidade oficial. A associação exige até 80 km, cinco minutos e diferença de magnitude de até 1,5; sem identificador USGS, a busca precisa encontrar uma única correspondência.
 
 Quando o produto inclui ruptura finita válida, a distribuição publicada já incorpora o modelo dessa ruptura. Quando há somente fonte pontual/grade, usa-se a intensidade oficial sem afirmar direção de falha. Produto incompatível, ausente ou inválido mantém a estimativa radial GlobalQuake, explicitamente identificada como modelo aproximado; não se deduz direção da magnitude, das réplicas ou do mecanismo focal.
 
@@ -10,4 +10,14 @@ As cores são recortadas em terra Natural Earth. Intensidade é estimada, mesmo 
 
 Cartões do Telegram publicados nas últimas 24 horas são verificados em lotes de no máximo três, com intervalo mínimo de cinco minutos por cartão para novos produtos. Um novo ShakeMap altera a imagem existente; dados iguais não geram edição repetida. Falha temporária do provedor preserva a imagem oficial já publicada e a população disponível. Grades completas não são persistidas no histórico Telegram, apenas sua versão e os dados básicos do evento. Não são enviados testes ao canal por essa rotina.
 
-A câmera ao vivo enquadra os limites da área pintada (MMI III+), o epicentro e os eventos associados como possíveis réplicas. Respeita os cartões e o espaço útil da tela. Mantém vermelho, azul nos segundos finais e permanência final na área pintada. Atualizações de geometria não reiniciam o relógio físico nem trocam a seleção; interação manual interrompe o enquadramento automático. Dados atrasados de outra seleção não alteram o mapa atual.
+A câmera ao vivo enquadra os limites da área pintada (MMI II+), o epicentro e os eventos associados como possíveis réplicas. Respeita os cartões e o espaço útil da tela. Mantém vermelho, azul nos segundos finais e permanência final na área pintada. Atualizações de geometria não reiniciam o relógio físico nem trocam a seleção; interação manual interrompe o enquadramento automático. Dados atrasados de outra seleção não alteram o mapa atual.
+
+## Projeção da ruptura publicada
+
+Quando o produto oficial informa ruptura finita, o navegador busca o `rupture.json` do **mesmo evento e da mesma versão** do ShakeMap. O perímetro dos polígonos é projetado em longitude/latitude e desenhado como um traçado claro com borda escura sobre a pintura. Não há elipse sintética nem inferência de orientação por magnitude, nome do local, mecanismo focal ou réplicas. O traçado pode ser irregular e conter vários segmentos; sua forma depende dos dados daquele sismo. A pintura MMI permanece a grade oficial, não uma distribuição recalculada a partir do traçado.
+
+A identificação “Projeção da ruptura USGS” distingue o modelo publicado. A falha pode estar em profundidade: o desenho **não significa necessariamente uma rachadura observada na superfície**, nem confirma extensão de danos. Sem geometria finita disponível/compatível, mostra-se somente a pintura existente. Há no máximo duas consultas extras por produto, seis segundos de limite total para a geometria e o mesmo cache de cinco minutos. Falhas preservam o mapa oficial; troca de seleção cancela consultas pendentes. Nenhum novo consumo de Workers KV ou mensagem ao Telegram é introduzido.
+
+A geometria valida limites de tamanho, coordenadas, fechamento, continuidade no antimeridiano e proximidade à grade associada. O traçado entra nos limites usados pelo enquadramento, acompanha a visibilidade da camada e é removido na troca de evento.
+
+O teste **Mapa oficial USGS** agora inclui a geometria real de Pazarcık (`us6000jllz`), versão `us6000jllz-1756921940993`, obtida de https://earthquake.usgs.gov/product/shakemap/us6000jllz/us/1756921940993/download/rupture.json . A amostra bruta está em `tests/fixtures/shaking/turkey-us6000jllz-rupture.json`. O cenário **Ruptura alongada fictícia** permanece separado para testar câmera e pintura simuladas; não é aplicado aos eventos reais.
