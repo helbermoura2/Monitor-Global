@@ -22,3 +22,5 @@ test('modelo coincide com a exposição populacional existente',async()=>{
 test('MMI disponível tem precedência; registro tardio não inicia outra animação',()=>{
  const e=engine();e.recordIntensity('q',4,'ShakeMap USGS');const p=e.profile({id:'q',mag:7.5,depth:10});assert.equal(p.mmi,4);assert.equal(p.source,'ShakeMap USGS');assert.equal(e.state(),null);assert.equal(e.profile({mag:7.5,depth:10,maxmmi:5}).mmi,5);
 });
+
+test('M8+ live full scenes last 24 seconds and include slow record pieces; rotation stays discreet',()=>{const e=engine(),full=e.profile({mag:8.1,depth:10},'new'),auto=e.profile({mag:8.1,depth:10},'auto');assert.equal(full.duration,24000);assert.equal(full.recordPieces,true);assert.equal(full.slowPieces,true);assert.equal(auto.recordPieces,false);assert.equal(auto.full,false);});

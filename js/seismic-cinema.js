@@ -21,8 +21,8 @@
   const mmi=reported!=null?clamp(Number(reported),1,12):estimate(mag,depth);
   const full=mag>=6&&mode!=='auto',strength=clamp((mmi-2)/6,0,1);
   const tier=mag>=8?3:mag>=7?2:mag>=6?1:0;
-  const duration=full?16000:1200+strength*(mode==='auto'?3600:5200);
-  return {mag,depth,mmi,source:reported!=null?(known?.source||'MMI fornecido pela fonte'):'Estimativa epicentral · Allen et al. (2012)',mode,full,tier,strength,duration,
+  const duration=full?(mag>=8?24000:16000):1200+strength*(mode==='auto'?3600:5200);
+  return {mag,depth,mmi,recordPieces:full&&mag>=8,slowPieces:full&&mag>=8,source:reported!=null?(known?.source||'MMI fornecido pela fonte'):'Estimativa epicentral · Allen et al. (2012)',mode,full,tier,strength,duration,
    amplitude:full?3+strength*(tier===3?37:tier===2?29:22):1+strength*(mode==='auto'?15:18),
    rotation:full?(tier===3?.65:tier===2?.48:.34):.24,
    pieces:full?Math.round((tier===3?24:tier===2?18:12)*(.35+.65*strength)):0};
@@ -44,6 +44,7 @@
   frames[0]={offset:0,translate:'0px 0px',rotate:'0deg'};frames[n]={offset:1,translate:'0px 0px',rotate:'0deg'};return frames;
  }
  function stop(){
+  if(job&&!job.demo&&job.profile.mag>=8)root.FullScreenEffects?.stop('quake');
   if(job){if(job.demo)root.CinematicCard?.stop();cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animations.forEach(a=>a.cancel());
   job.scene?.pieces.forEach(piece=>{if(piece.displaced){piece.source.classList.remove('seismic-displaced');piece.source.inert=piece.wasInert;}});job.layer?.remove();
   job.swayTargets.forEach(el=>el.removeAttribute('data-seismic-sway'));
@@ -87,7 +88,7 @@
   const isRecord=!!p.recordPieces&&!!el.closest('#sidebar-left');
   shell.className='seismic-piece';shell.dataset.kind=isCard?'card':isRecord?'record':'element';shell.setAttribute('aria-hidden','true');shell.inert=true;
   Object.assign(shell.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});layer.append(shell);
-  return {el:shell,source:el,wasInert:el.inert,displaced:false,isCard,isRecord,slow:!!p.slowPieces,x:rect.left,y:rect.top,w:rect.width,h:rect.height,start:p.recordPieces&&isRecord?3+index*1.35:.55+index/Math.max(1,total)*(p.duration/1000-3)+Math.random()*.22,
+  return {el:shell,source:el,sourceEventId:isRecord?el.dataset.eventId:null,sourceSidebarKey:isRecord?el.dataset.sidebarKey:null,wasInert:el.inert,displaced:false,isCard,isRecord,slow:!!p.slowPieces,x:rect.left,y:rect.top,w:rect.width,h:rect.height,start:p.recordPieces&&isRecord?3+index*1.35:.55+index/Math.max(1,total)*(p.duration/1000-3)+Math.random()*.22,
    vx:(Math.random()-.5)*(45+p.tier*20),spin:(Math.random()-.5)*(60+p.tier*45),depth:.65+Math.random()*.65};
  }
  function createScene(p){
@@ -145,7 +146,12 @@
     ctx.save();ctx.translate(x,y);ctx.rotate(s.spin*age);ctx.globalAlpha=fade*clamp((3.2-age)/.8,0,.85);ctx.fillStyle=s.tone;ctx.beginPath();s.points.forEach((pt,i)=>i?ctx.lineTo(pt[0]*s.r,pt[1]*s.r):ctx.moveTo(pt[0]*s.r,pt[1]*s.r));ctx.closePath();ctx.fill();ctx.strokeStyle='#bcc9ca';ctx.globalAlpha*=.35;ctx.lineWidth=.6;ctx.stroke();ctx.restore();
    }ctx.globalAlpha=1;
   }
+  const records=p.recordPieces?new Map([...document.querySelectorAll('#sidebar-left .event[data-event-id]')].map(el=>[el.dataset.eventId,el])):null;
+  const headers=p.recordPieces?new Map([...document.querySelectorAll('#sidebar-left [data-sidebar-key]')].map(el=>[el.dataset.sidebarKey,el])):null;
   for(const piece of pieces){
+   const replacement=piece.sourceEventId?records?.get(piece.sourceEventId):piece.sourceSidebarKey?headers?.get(piece.sourceSidebarKey):null;
+   if(replacement&&replacement!==piece.source){piece.source.classList.remove('seismic-displaced');piece.source.inert=piece.wasInert;piece.source=replacement;piece.wasInert=replacement.inert;}
+   if(piece.displaced&&piece.source.isConnected){piece.source.classList.add('seismic-displaced');piece.source.inert=true;}
    const age=t-piece.start;if(age<0){piece.el.style.opacity='0';continue;}
    if(!piece.displaced){snapshotPiece(piece);piece.source.classList.add('seismic-displaced');piece.source.inert=true;piece.displaced=true;}
    const travel=Math.min(age,piece.slow?8:3.2),g=piece.slow?65+22*piece.depth:260+90*piece.depth,floor=Math.max(0,h-piece.y-piece.h-8),hit=Math.sqrt(2*floor/g),after=Math.max(0,travel-hit);
@@ -182,6 +188,7 @@
    }
    job.raf=requestAnimationFrame(tick);
   };job.raf=requestAnimationFrame(tick);}
+  if(!demo&&p.full&&p.mag>=8)root.FullScreenEffects?.quake(item,mode);
   if(demo&&!previewOptions.quietControls)showPreviewBar(p,false);
   job.timer=setTimeout(()=>{if(job?.token!==token)return;stop();if(demo&&!previewOptions.quietControls)showPreviewBar(p,false,true);},p.duration+50);
   return p;

@@ -71,6 +71,7 @@
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
  function clearWind(){const p=panel();for(const key of WIND_PROPERTIES)p?.style.removeProperty(key);}
  function stop(){
+  if(scene?.cfg.type==='volcano')window.FullScreenEffects?.stop('lava');
   if(pending){clearTimeout(pending.timer);panel()?.classList.remove('pd-fx-'+pending.type);pending=null;}
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
@@ -116,7 +117,7 @@
   // unstarted <video> and loses playback continuity for no visual benefit,
   // since the card already shows this exact event. Only a genuine type change
   // still goes through the full rebuild below.
-  if(scene&&p&&cfg&&scene.itemId===item?.id&&scene.cfg.type===cfg.type&&!resourcesFailed){scene.cfg=cfg;return true;}
+  if(scene&&p&&cfg&&scene.itemId===item?.id&&scene.cfg.type===cfg.type&&!resourcesFailed){scene.cfg=cfg;if(!item.__cinemaDemo)window.FullScreenEffects?.volcano(item,cfg);return true;}
   let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
@@ -161,7 +162,7 @@
   s.artifacts=window.CardArtifactEffects?.create(cfg,mobile,p,quality);if(s.artifacts)front.append(s.artifacts.canvas);
   s.typography=window.CardEventTypography?.create(cfg,mobile,p,quality);if(s.typography)front.append(s.typography.canvas);
   for(const array of [s.rain,s.smoke,s.particles,s.floating])quality.track(array);
-  p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;
+  p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;if(!item.__cinemaDemo)window.FullScreenEffects?.volcano(item,cfg);
   function resize(){
    if(scene!==s)return;
    const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.5)*quality.resolution;if(!w||!h)return;
