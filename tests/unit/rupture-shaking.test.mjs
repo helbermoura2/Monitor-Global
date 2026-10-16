@@ -30,3 +30,24 @@ test('real deep NZ ShakeMap retains published weak II–III bands and never subs
  assert.equal([...m.bands({shaking},[])].length,0);
  const noData={...shaking,grid:{...shaking.grid,values:shaking.grid.values.map(()=>null)}};assert.equal([...m.bands({shaking:noData},land)].length,0);
 });
+
+test('published rupture projection preserves each fault and refuses invented, oversized or unrelated traces',()=>{
+ const g=m.normalize(coverage),trace=m.ruptureProjection(finite,g);
+ assert.deepEqual(trace.features[0].geometry.coordinates,[[0,0],[1,0],[1,1],[0,0]]);
+ assert.equal(trace.features[0].properties.projection,true);
+ assert.equal(m.ruptureProjection({type:'FeatureCollection',features:[{geometry:{type:'Point',coordinates:[1,1]}}]},g),null);
+ assert.equal(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[20,20],[21,20],[21,21],[20,20]]]}}]},g),null);
+ assert.equal(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[0,0],[1,0],[1,1],[0,1]]]}}]},g),null);
+ assert.equal(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[0,0],[NaN,0],[1,1],[0,0]]]}}]},g),null);
+ const vertical={...finite,features:[{geometry:{type:'Polygon',coordinates:[[[0,0,0],[1,1,0],[1,1,10],[0,0,10],[0,0,0]]]}}]};
+ assert.equal(m.ruptureProjection(vertical,g).features.length,1);
+ const wrapped={...g,x0:179,x1:181,y0:0,y1:2};
+ assert.deepEqual(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[179,0],[-179,0],[-179,1],[179,0]]]}}]},wrapped).features[0].geometry.coordinates,[[179,0],[181,0],[181,1],[179,0]]);
+});
+
+test('historical menu uses the real Turkey finite rupture and the matching published intensity version',()=>{
+ const demo=JSON.parse(fs.readFileSync('assets/seismic/usgs-shakemap-turkey-20230206.json','utf8'));
+ const raw=JSON.parse(fs.readFileSync('tests/fixtures/shaking/turkey-us6000jllz-rupture.json','utf8'));
+ assert.equal(demo.shaking.version,'us6000jllz-1756921940993');assert.equal(raw.metadata.id,demo.shaking.eventId);
+ assert.deepEqual(demo.shaking.rupture,m.ruptureProjection(raw,demo.shaking.grid));assert.equal(demo.shaking.rupture.features.length,2);
+});
