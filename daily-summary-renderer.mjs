@@ -1,7 +1,8 @@
+import {summaryGraphicsAtScale} from './daily-summary-hd.mjs';
 import { SUMMARY_MAP_LAND } from './summary-editorial-assets.mjs';
 
 const COLORS={bg:[2,16,31],white:[232,236,238],cyan:[152,231,232],muted:[149,172,187],line:[36,55,70],map:[2,16,31],land:[20,43,64],coast:[30,59,80]};
-export const DAILY_SUMMARY_DESIGN='referencia-editorial-v5-brasil';
+export const DAILY_SUMMARY_DESIGN='referencia-editorial-v6-hd';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -36,7 +37,8 @@ export function summaryMapFrame(events,width=465,height=432,{world=false}={}){
 
 function pixel(rgba,w,h,x,y,color,alpha=1){
     x=Math.round(x);y=Math.round(y);if(x<0||x>=w||y<0||y>=h)return;
-    const i=(y*w+x)*4;for(let c=0;c<3;c++)rgba[i+c]=rgba[i+c]*(1-alpha)+color[c]*alpha;rgba[i+3]=255;
+    const scale=rgba.summaryScale||1;
+    for(let dy=0;dy<scale;dy++)for(let dx=0;dx<scale;dx++){const i=((y*scale+dy)*w*scale+x*scale+dx)*4;for(let c=0;c<3;c++)rgba[i+c]=rgba[i+c]*(1-alpha)+color[c]*alpha;rgba[i+3]=255;}
 }
 function line(rgba,w,h,x1,y1,x2,y2,color,alpha=1,clip=null){
     let dx=x2-x1,dy=y2-y1;
@@ -108,7 +110,9 @@ function drawMap(ctx,x,y,frame){
     }
 }
 
-export async function renderEditorialDailySummary(quakes,fonts,gfx){
+export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={}){
+ if(![1,2].includes(scale))throw Error('Escala inválida');
+ gfx=summaryGraphicsAtScale(gfx,scale);
  const {day,events}=quakes,W=900,X=29,CW=842;
  const top=events.slice().sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5);
  const measure=(key,s,tracking=0)=>gfx.textWidth(fonts[key],gfx.clean(s,fonts[key]),tracking);
@@ -130,7 +134,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
  const brazilRows=brazil.map(e=>({event:e,names:wrap('detail',gfx.place(e.place).title,470)}));
  const brazilY=Math.max(1150+extraHero,rowsEnd+22),brazilHeight=brazil.length?66+brazilRows.reduce((n,r)=>n+Math.max(60,24+r.names.length*(fonts.detail.cellH+3)),0)+16:0;
  const totalsY=brazilY+(brazilHeight?brazilHeight+22:0),H=Math.max(1344,totalsY+194);
- const rgba=new Uint8Array(W*H*4);gfx.fillRect(rgba,W,0,0,W,H,...COLORS.bg);
+ const rgba=new Uint8Array(W*H*4*scale*scale);rgba.summaryScale=scale;gfx.fillRect(rgba,W,0,0,W,H,...COLORS.bg);
  const text=(key,s,x,y,color=COLORS.white,tracking=0)=>gfx.drawText(rgba,W,H,fonts[key],gfx.clean(s,fonts[key]),x,y,...color,tracking);
  const center=(key,s,x,y,color=COLORS.white,tracking=0)=>text(key,s,x-measure(key,s,tracking)/2,y,color,tracking);
  const flag=(code,x,y)=>{if(code==='AQ')scaledIcon(rgba,W,H,fonts.aq,0,72,72,x,y,45,38);else if(fonts.flags.map[code]){const[sx,w,h]=fonts.flags.map[code];scaledIcon(rgba,W,H,fonts.flags.img,sx,w,h,x,y,45,30);}};
@@ -193,5 +197,5 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx){
  cells.forEach(([label,count],i)=>{const x=X+CW/5*(i+.5);if(i)line(rgba,W,H,X+CW/5*i,totalsY+24,X+CW/5*i,totalsY+111,COLORS.line);center(i?'band':'total',count.toLocaleString('pt-BR'),x,totalsY+18,i?gfx.magColor([null,6,5,4,3][i]):COLORS.cyan);center('tag',label,x,totalsY+91,COLORS.white);});
  text('small',(brazil.length?'Fontes: '+[...new Set(['USGS',...brazil.flatMap(e=>e.sources||[e.source||'USGS'])])].join(' · '):'Fonte: USGS')+' · Dados sujeitos a revisão',X,H-30,COLORS.muted);
  const domain='monitorglobal.top';text('tag',domain,W-X-measure('tag',domain),H-31,COLORS.cyan);
- return {day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,layout:{width:W,height:H,splitH:435,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight},epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),design:DAILY_SUMMARY_DESIGN};
+ return {day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,layout:{width:W*scale,height:H*scale,scale,splitH:435,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight},epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),design:DAILY_SUMMARY_DESIGN};
 }

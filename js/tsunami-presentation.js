@@ -53,7 +53,7 @@
   if(!valid(j))return;j.phase=value;
   if(value==='quake'&&!j.demo&&j.hostId!==j.quake.id)window.SeismicImpact?.start(paintContext(j.quake),true);
   layerVisibility(value==='coast');
-  if(value==='coast'){if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();window.EventDetailsBack?.close();window.SeismicCinema?.stop();window.CinematicCard?.stop();const target=window.TsunamiMap?.visit(j.visitIndex++,6000);j.stopName=target?.name||'Contornos indisponíveis · consulte o boletim';}
+  if(value==='coast'){if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();window.EventDetailsBack?.close();window.SeismicCinema?.stop();if(j.hostId===j.quake.id)window.CinematicCard?.stop();const target=window.TsunamiMap?.visit(j.visitIndex++,6000);j.stopName=target?.name||'Contornos indisponíveis · consulte o boletim';}
   else if(move)quakeCamera(j);
   render(j);
  }
@@ -67,6 +67,7 @@
   else if(T?.official(item)&&!item.cancelled){const r=T.match(item,quakes());if(r?.kind==='origin'){q=r.quake;related={...r,alert:item};}}
   if(!related||!q?.coords){const previous=job;stop();if(previous&&!previous.demo&&previous.hostId===selected()&&previous.phase==='coast')quakeCamera(previous);return false;}
   const a=related.alert;
+  if(a.hazardNature==='bulletin'){stop();return false;}
   if(!restart&&job?.hostId===item.id&&job.quake.id===q.id){job.quake=q;job.alert=a;prepare(job);render(job);return true;}
   stop();const j=job={hostId:item.id,quake:q,alert:a,phase:item.type==='tsunami'?'coast':'quake',visitIndex:0,paused:false,final:false,cameraUntil:0};
   render(j);prepare(j).then(()=>{if(!valid(j))return;if(item.type==='tsunami')phase(j,'coast');else layerVisibility(false);schedule(j,j.phase==='coast'?COAST_MS:QUAKE_MS);});return true;

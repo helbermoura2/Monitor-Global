@@ -52,6 +52,7 @@ function arm(){if(document.hidden||retry||!pending.size)return;retry=setTimeout(
 function focus(){
  if(document.hidden)return false;
  if(!pending.size)return false;
+ if(window.TsunamiPriority?.protectionRemaining()>0){arm();return false;}
  // A strong arrival/revision takes the camera before any volcano in this queue.
  if(typeof focusNextNewCameraQuake==='function'&&focusNextNewCameraQuake(6)){arm();return true;}
  const current=globalEvents.find(e=>e.id===eventoSelecionadoId);

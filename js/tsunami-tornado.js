@@ -34,7 +34,7 @@ async function fetchTsunamiAlerts() {
 
             if (isNew) {
                 primeiroNovo = primeiroNovo || obj;
-                playAlertTone('tsunami');
+                playAlertTone('tsunami',obj.id);
                 showToast(`🌊 TSUNAMI: ${pr.event}`, 'error');
                 notificarNavegador(`🌊 TSUNAMI — ${pr.event}`, pr.areaDesc || '');
             }
@@ -61,13 +61,13 @@ async function fetchOfficialTsunamiAlerts(){
   const online=new Set((data.sources||[]).filter(s=>s.ok).map(s=>s.feedKey||s.source));
   const selectedBefore=globalAlerts.find(item=>item.id===eventoSelecionadoId);
   const beforeSignature=globalAlerts.filter(item=>['PTWC','NTWC'].includes(item.source)).map(item=>item.id+'|'+item.time+'|'+item.warningLevel).sort().join(';');
-  const items=window.TsunamiLink.latest((data.items||[]).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)));
+  const items=window.TsunamiLink.latest((data.items||[]).map(item=>window.TsunamiBulletinOrigin?.normalize(item)||item).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)));
   const ids=new Set(items.map(item=>item.id));
   globalAlerts=globalAlerts.filter(item=>!online.has(item.feedKey||item.source)||item.type!=='tsunami'||ids.has(item.id));
   for(const item of items){
    const isNew=upsertAlert(item,{fonte:'tsunamiOfficial'});
    if(isNew&&item.hazardNature==='warning'){
-    playAlertTone('tsunami');showToast('🌊 '+item.displayLabel+' · '+item.place,'error');
+    playAlertTone('tsunami',item.id);showToast('🌊 '+item.displayLabel+' · '+item.place,'error');
     notificarNavegador(item.displayLabel,item.place);
    }
   }

@@ -16,7 +16,7 @@ for(const width of [1280,390])for(const mode of ['manual','auto','new'])test('ca
  await page.clock.runFor(23900);await expect(page.locator('#pd-flip-verso')).toHaveCount(0);
  await page.clock.runFor(1000);await expect(page.locator('#painel-direito')).toHaveClass(/pd-flip-girado/);
  await expect(page.locator('#pd-flip-verso')).toContainText('Cidade próxima');await expect(page.locator('#pd-flip-verso')).toContainText('USGS PAGER');await expect(page.locator('#pd-flip-grid-exposure')).toContainText('12 mil');
- if(mode==='manual'){await expect(page.locator('#pd-flip-verso .pd-flip-verso-body')).toHaveCSS('overflow-y','auto');await page.screenshot({path:'/tmp/earthquake-card-flip-'+width+'.png'});}
+ if(mode==='manual'){await expect(page.locator('#pd-flip-verso .pd-flip-verso-body')).toHaveCSS('overflow-y','auto');await expect(page.locator('#pd-flip-verso')).toBeInViewport();await page.screenshot({path:'/tmp/earthquake-card-flip-'+width+'.png',animations:'disabled'});}
  await page.clock.runFor(13000);await expect(page.locator('#pd-flip-verso')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-flip-girado/);
 });
 test('selection and manually opened details cancel pending population flip',async({page})=>{

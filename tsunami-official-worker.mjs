@@ -1,4 +1,5 @@
 import './js/tsunami-link.js';
+import './js/tsunami-bulletin-origin.js';
 // NOAA Atom entries carry the region in <title>; bulletin category is in summary/feed.
 const clean=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]*>/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/\s+/g,' ').trim();
 const tag=(s,n)=>{const m=s.match(new RegExp('<(?:[\\w-]+:)?'+n+'\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?'+n+'>','i'));return m?clean(m[1]):'';};
@@ -104,7 +105,8 @@ export function parseNwsTsunamiProduct(p){
  const coords=match?[Number(match[3])*(/^(WEST|OESTE)$/i.test(match[4])?-1:1),Number(match[1])*(/^(SOUTH|SUR)$/i.test(match[2])?-1:1)]:null;
  const forecast=text.split(/TSUNAMI THREAT FORECAST[^\n]*\n[-]+/i)[1]?.split(/RECOMMENDED ACTIONS/)[0]||evaluation;
  const location=text.match(/\* (?:LOCATION|LOCALIZACION)\s+([^\n]+)/i)?.[1]?.trim().replace(/^(?:in|en)\s+/i,'')||'Área do boletim oficial';
- return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location,time,coords,coordinateRole:'earthquake-origin',affectedAreas:tsunamiForecastAreas(text),coverageAreas:informationAreas(evaluation,text),originTime:originText(text),originMag:numeric(text.match(/\* (?:MAGNITUDE|MAGNITUD)\s+(\d+(?:\.\d+)?)/i)?.[1]),detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
+ const explicit=globalThis.TsunamiBulletinOrigin.parse(text);
+ return [{id:'TS-NWS-'+p.id,feedKey:source+'-'+p.wmoCollectiveId,source,type:'tsunami',title:source+' · '+level,place:location==='Área do boletim oficial'?(explicit.place||location):location,time,coords:coords||explicit.coords,originDepth:explicit.originDepth,coordinateRole:'earthquake-origin',affectedAreas:tsunamiForecastAreas(text),coverageAreas:informationAreas(evaluation,text),originTime:originText(text)||explicit.originTime,originMag:numeric(text.match(/\* (?:MAGNITUDE|MAGNITUD)\s+(\d+(?:\.\d+)?)/i)?.[1])??explicit.originMag,detail:'Boletim oficial '+source+', republicado pelo NWS. '+clean(forecast)+' Autoridades nacionais definem as medidas para cada costa.',description:clean(text),link:'https://api.weather.gov/products/'+p.id,bulletinUrl:'https://api.weather.gov/products/'+p.id,hazardNature:threat?'warning':'bulletin',warningLevel:level,severityLabel:level,displayLabel:'Tsunami · '+level,sev:threat?4:0,cancelled,official:true}];
 }
 async function nwsJson(url){const r=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/geo+json','User-Agent':'MonitorGlobal (https://monitorglobal.top)'}});if(!r.ok)throw Error('NWS HTTP '+r.status);return r.json();}
 export async function getNwsTsunamis(){
