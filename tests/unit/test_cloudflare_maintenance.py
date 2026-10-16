@@ -24,7 +24,7 @@ class MaintenanceTests(unittest.TestCase):
         settings=self.settings();settings['bindings'].pop(0)
         with self.assertRaises(m.MaintenanceError):m.metadata(settings)
     def test_reviewed_bundle_and_multipart_preserve_module(self):
-        source=m.bundle(Path(__file__).resolve().parents[2]/'downloads/monitor-global-worker-sem-pesquisas.zip')
+        source=m.bundle(Path(__file__).resolve().parents[2]/'downloads/monitor-global-worker-otimizado.zip')
         body,content_type=m.multipart(m.metadata(self.settings()),source)
         self.assertIn('boundary=',content_type);self.assertIn(b'name="metadata"',body);self.assertIn(b'application/javascript+module',body);self.assertIn(source,body)
     def test_analytics_missing_account_is_not_zero(self):
@@ -33,11 +33,30 @@ class MaintenanceTests(unittest.TestCase):
             def call(self,*args):return {'data':{'viewer':{'accounts':[]}}}
         with self.assertRaises(m.MaintenanceError):m.analytics(Client())
     def test_public_propagation_can_be_verified_without_a_second_upload(self):
-        values=iter([{'electionPolls':'old'},{'electionPolls':m.MARKER}]);waits=[]
+        values=iter([{'electionPolls':'old'},{'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True}]);waits=[]
         result=m.verify_public(check=lambda:next(values),wait=waits.append,attempts=2)
         self.assertEqual(result['electionPolls'],m.MARKER);self.assertEqual(waits,[5])
         with self.assertRaisesRegex(m.MaintenanceError,'without redeploying'):
             m.verify_public(check=lambda:{},wait=lambda seconds:None,attempts=1)
+    def test_metrics_credential_is_scoped_and_never_the_parent_token(self):
+        token=m.metrics_token('private','a'*32)
+        self.assertEqual(len(token),64);self.assertNotIn('private',token)
+        self.assertEqual(token,m.metrics_token('private','a'*32))
+        self.assertNotEqual(token,m.metrics_token('private','b'*32))
+        client=mock.Mock();client.worker.return_value='/worker/secrets'
+        m.provision_metrics(client,token)
+        args=client.call.call_args.args
+        self.assertEqual(args[:2],('/worker/secrets','PUT'))
+        self.assertEqual(json.loads(args[2]),{'name':'KV_METRICS_READ_TOKEN','type':'secret_text','text':token})
+    def test_inspection_is_read_only_and_does_not_provision_a_secret(self):
+        client=mock.Mock();client.worker.side_effect=lambda suffix='':'/worker'+suffix
+        settings=self.settings()
+        client.call.side_effect=lambda path,*args: settings if path=='/worker/settings' else []
+        env={'CLOUDFLARE_API_TOKEN':'private','CLOUDFLARE_ACCOUNT_ID':'a'*32,'MAINTENANCE_MODE':'inspect'}
+        with mock.patch.dict(m.os.environ,env,clear=True),mock.patch.object(m,'Client',return_value=client),mock.patch.object(m,'analytics',return_value={}),mock.patch.object(m,'read_usage',return_value={'available':False}),mock.patch.object(m,'provision_metrics') as provision,mock.patch('sys.stdout',new_callable=io.StringIO) as out:
+            m.main()
+        provision.assert_not_called();self.assertTrue(all(len(c.args)==1 for c in client.call.call_args_list))
+        self.assertNotIn('private',out.getvalue())
     def test_health_client_identifies_the_application_to_the_public_endpoint(self):
         with mock.patch.object(m.urllib.request,'urlopen',return_value=io.BytesIO(json.dumps({'electionPolls':m.MARKER}).encode())) as call:
             self.assertEqual(m.public_health()['electionPolls'],m.MARKER)

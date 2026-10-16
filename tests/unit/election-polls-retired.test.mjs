@@ -8,7 +8,7 @@ test('retired polls endpoint serves stale clients without any KV access',async()
  const health=await (await worker.fetch(new Request('https://worker.test/health'),env)).json();assert.equal(health.electionPolls,'removed-no-kv-v1');
 });
 test('real scheduled handler preserves background jobs while retiring the polling collector',async()=>{
- const calls=[],pending=[],context={Request,console,maybeRefreshPollsAverageNightly:async()=>calls.push('retired-polls')};
+ const calls=[],pending=[],context={Request,console,withKvUsage:(env,fn)=>fn(env),maybeRefreshPollsAverageNightly:async()=>calls.push('retired-polls')};
  for(const key of ['runTelegramDailySummary','refreshSpClimaCache','refreshGlobalFeedsCache','runTelegramM6Alerts','refreshRecentDailyBrazilSummaries'])context[key]=async()=>calls.push(key);
  const method=source.slice(source.lastIndexOf('    async scheduled('),source.lastIndexOf('\n};'));
  const scheduled=vm.runInNewContext('({'+method+'}).scheduled',context);await scheduled({}, {}, {waitUntil:p=>pending.push(p)});await Promise.all(pending);

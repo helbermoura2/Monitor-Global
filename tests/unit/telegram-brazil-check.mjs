@@ -33,7 +33,7 @@ class Store{data=new Map();async get(key){return structuredClone(this.data.get(k
 const storage=new Store(),kv=new Store();
 const env={TELEGRAM_BOT_TOKEN:'test-fake-token',TELEGRAM_CHAT_ID:'test-channel',TTS_USAGE:kv};
 let object=new EarthquakeAlertDelivery({storage},env);
-env.EARTHQUAKE_ALERTS={idFromName:name=>name,get:()=>({fetch:request=>object.fetch(request)})};
+env.EARTHQUAKE_ALERTS={idFromName:name=>name,get:name=>({fetch:request=>name==='kv-operation-metrics-v1'?Promise.resolve(Response.json({ok:true})):object.fetch(request)})};
 const request=new Request('https://worker.test/telegram-m6-check');
 const run=()=>runTelegramM6Alerts(request,env);
 // Baseline silently absorbs old Brazilian records, preserves legacy M6 history.
