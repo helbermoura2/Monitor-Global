@@ -17,6 +17,7 @@ import { handlePopulationExposure, expirePopulation } from "./population-exposur
 import {withKvUsage,handleKvUsageObject,handleKvUsageRead} from "./kv-operation-metrics.mjs";
 import {handleSharedVoice,pruneVoiceCache} from "./shared-voice-cache.mjs";
 import {telegramHistoryStorage,handlePersistentHistory,persistentHistoryGet,prunePersistentHistory} from "./telegram-history-storage.mjs";
+import {sourcePolicy,sourceGroups,sharedSourceResponse,handleSourceInObject,sourceObjectHealth,pruneSources} from "./shared-source-cache.mjs";
 import {translationStorage} from "./translation-storage.mjs";
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
@@ -161,6 +162,13 @@ async function fetchJson(url, options = {}, timeoutMs = 12000) {
 }
 
 
+async function sharedProviderText(url,env,options={},timeout=12000){
+    if(!env?.EARTHQUAKE_ALERTS)return fetchText(url,options,timeout);
+    const request=new Request('https://black-sky-9ba0.terrestre.workers.dev/?url='+encodeURIComponent(url));
+    const r=await sharedSourceResponse(request,{...env,SHARED_SOURCE_INTERNAL:false},()=>fetchText(url,options,timeout).then(x=>new Response(x.text,{status:x.status,headers:{'Content-Type':x.contentType}})),ALLOWED_HOSTS);
+    return {ok:r.ok,status:r.status,text:await r.text(),retained:['stale','partial'].includes(r.headers.get('X-Monitor-Source-State')),lastOk:Number(r.headers.get('X-Monitor-Source-Last-Ok'))||0};
+}
+
 function cacheKey(request, pathname) {
     const u = new URL(request.url);
     u.pathname = pathname;
@@ -197,6 +205,7 @@ async function cachePutJson(request, pathname, value, ttl) {
 }
 
 async function refreshSpClimaCache(request, env) {
+    if(env?.EARTHQUAKE_ALERTS&&!env.SHARED_SOURCE_INTERNAL){const u=new URL(request.url);u.pathname='/sp-clima';u.search='';const r=await sharedSourceResponse(new Request(u),env,()=>handleSpClima(new Request(u),{...env,SHARED_SOURCE_INTERNAL:true}),ALLOWED_HOSTS);if(!r.ok)throw Error('Clima compartilhado indisponível');return r.json();}
     if (!spRefreshPromise) {
         spRefreshPromise = (async () => {
             try {
@@ -212,14 +221,15 @@ async function refreshSpClimaCache(request, env) {
 }
 
 async function refreshGlobalFeedsCache(request, env) {
+    if(env?.EARTHQUAKE_ALERTS&&!env.SHARED_SOURCE_INTERNAL){const u=new URL(request.url);u.pathname='/global-feeds';u.search='';const r=await sharedSourceResponse(new Request(u),env,()=>handleGlobalFeeds(new Request(u),{...env,SHARED_SOURCE_INTERNAL:true}),ALLOWED_HOSTS);if(!r.ok)throw Error('Feeds compartilhados indisponíveis');return r.json();}
     if (!globalRefreshPromise) {
         globalRefreshPromise = (async () => {
             try {
-                const settled = await Promise.all([getNhc(env), getGdacs(), getEonet(), getNws(), getTsunamiAlerts()]);
+                const settled = await Promise.all([getNhc(env), getGdacs(env), getEonet(env), getNws(env), getTsunamiAlerts(env)]);
                 const items = settled.flatMap(x => x.items || []).sort((a,b) => (b.time || 0) - (a.time || 0));
                 const data = {
                     atualizado_em: nowIso(),
-                    fontes: settled.map(x => ({ source: x.source, online: x.ok, error: x.error || null, count: x.items?.length || 0 })),
+                    fontes: settled.map(x => ({ source: x.source, online: x.ok, lastOk:x.lastOk||null, error: x.error || null, count: x.items?.length || 0 })),
                     eventos: items.slice(0, 350)
                 };
                 await cachePutJson(request, GLOBAL_CACHE_PATH, data, GLOBAL_CACHE_TTL);
@@ -340,7 +350,7 @@ async function buscarDadosSP(env) {
 }
 
 async function handleSpClima(request, env) {
-    const cached = await cacheGetJson(request, SP_CACHE_PATH);
+    const cached = env?.SHARED_SOURCE_INTERNAL?null:await cacheGetJson(request, SP_CACHE_PATH);
     if (cached) return resposta(JSON.stringify(cached), 200, 'application/json; charset=utf-8', {
         'Cache-Control': `public, max-age=${SP_CACHE_TTL}, s-maxage=${SP_CACHE_TTL}, stale-while-revalidate=120`
     });
@@ -383,30 +393,30 @@ async function getNhc(env) {
     ];
     for (const u of urls) {
         try {
-            const r = await fetchText(u, { headers: { 'User-Agent': 'MonitorGlobal/6.1' } }, 12000);
-            if (r.ok) return { source: 'NHC', ok: true, items: parseRss(r.text, 'NHC', 'cyclone') };
+            const r = await sharedProviderText(u, env, { headers: { 'User-Agent': 'MonitorGlobal/6.1' } }, 12000);
+            if (r.ok) return { source: 'NHC', ok: !r.retained, lastOk:r.lastOk, items: parseRss(r.text, 'NHC', 'cyclone') };
         } catch {}
     }
     return { source: 'NHC', ok: false, items: [], error: 'feed indisponível' };
 }
 
-async function getGdacs() {
+async function getGdacs(env) {
     const urls = [
         'https://www.gdacs.org/xml/rss.xml',
         'https://www.gdacs.org/rss.aspx'
     ];
     for (const u of urls) {
         try {
-            const r = await fetchText(u, { headers: { 'User-Agent': 'MonitorGlobal/6.1', 'Accept': 'application/rss+xml,application/xml,text/xml,*/*' } }, 12000);
-            if (r.ok) return { source: 'GDACS', ok: true, items: parseRss(r.text, 'GDACS', 'disaster') };
+            const r = await sharedProviderText(u, env, { headers: { 'User-Agent': 'MonitorGlobal/6.1', 'Accept': 'application/rss+xml,application/xml,text/xml,*/*' } }, 12000);
+            if (r.ok) return { source: 'GDACS', ok: !r.retained, lastOk:r.lastOk, items: parseRss(r.text, 'GDACS', 'disaster') };
         } catch {}
     }
     return { source: 'GDACS', ok: false, items: [], error: 'feed indisponível' };
 }
 
-async function getEonet() {
+async function getEonet(env) {
     try {
-        const d = await fetchJson('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100', {}, 12000);
+        const r=await sharedProviderText('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100',env);if(!r.ok)throw Error('EONET indisponível');const d=JSON.parse(r.text);
         const items = (d.events || []).map(e => ({
             id: `EONET-${e.id}`,
             source: 'EONET',
@@ -418,15 +428,15 @@ async function getEonet() {
             categories: (e.categories || []).map(c => c.title),
             geometry: e.geometry?.[e.geometry.length - 1]?.coordinates || null
         }));
-        return { source: 'EONET', ok: true, items };
+        return { source: 'EONET', ok: !r.retained, lastOk:r.lastOk, items };
     } catch (e) { return { source: 'EONET', ok: false, items: [], error: e.message }; }
 }
 
-async function getTsunamiAlerts() { return getOfficialTsunamis(); }
+async function getTsunamiAlerts(env) { if(!env?.EARTHQUAKE_ALERTS)return getOfficialTsunamis();const request=new Request('https://black-sky-9ba0.terrestre.workers.dev/tsunami-alerts');const r=await sharedSourceResponse(request,{...env,SHARED_SOURCE_INTERNAL:false},async()=>json(await getOfficialTsunamis()),ALLOWED_HOSTS);if(!r.ok)return {source:'Tsunami',ok:false,items:[],error:'Boletins indisponíveis'};const data=await r.json();return {...data,ok:data.ok&&!['stale','partial'].includes(r.headers.get('X-Monitor-Source-State'))}; }
 
-async function getNws() {
+async function getNws(env) {
     try {
-        const d = await fetchJson('https://api.weather.gov/alerts/active', { headers: { 'User-Agent': 'MonitorGlobal/6.1 contact@example.invalid', 'Accept': 'application/geo+json' } }, 12000);
+        const r=await sharedProviderText('https://api.weather.gov/alerts/active',env);if(!r.ok)throw Error('NWS indisponível');const d=JSON.parse(r.text);
         const items = (d.features || []).slice(0, 200).map(f => ({
             id: `NWS-${f.id || Math.random()}`,
             source: 'NWS',
@@ -438,15 +448,17 @@ async function getNws() {
             severity: f.properties?.severity || null,
             area: f.properties?.areaDesc || null
         }));
-        return { source: 'NWS', ok: true, items };
+        return { source: 'NWS', ok: !r.retained, lastOk:r.lastOk, items };
     } catch (e) { return { source: 'NWS', ok: false, items: [], error: e.message }; }
 }
 
 async function getGlobalFeeds(request, env) {
-    const cached = await cacheGetJson(request, GLOBAL_CACHE_PATH);
+    const cached = env?.SHARED_SOURCE_INTERNAL?null:await cacheGetJson(request, GLOBAL_CACHE_PATH);
     if (cached) return cached;
     return refreshGlobalFeedsCache(request, env);
 }
+
+async function handleGlobalFeeds(request,env){const feeds=await getGlobalFeeds(request,env);return json({...feeds,risco:calculateGlobalRisk(feeds)});}
 
 function calculateGlobalRisk(feeds) {
     const items = feeds?.eventos || [];
@@ -4430,11 +4442,13 @@ async function fetchTelegramBrazilRecent(env, window = null) {
 // é consistente imediatamente, sem a janela de replicação do KV.
 export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
-    async alarm(){await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
+    async alarm(){await pruneSources(this.state.storage);await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
             return withKvUsage(this.env,async measuredEnv=>{
+            if(new URL(request.url).pathname==='/__source-health')return Response.json(await sourceObjectHealth(this.state.storage));
+            if(sourcePolicy(request,ALLOWED_HOSTS))return handleSourceInObject(request,measuredEnv,this.state.storage,()=>handleWorkerRequest(request,{...measuredEnv,SHARED_SOURCE_INTERNAL:true}),ALLOWED_HOSTS);
             if(new URL(request.url).pathname.startsWith('/__telegram-history/'))return handlePersistentHistory(request,this.state.storage);
             if(new URL(request.url).pathname==='/population-exposure')return handlePopulationExposure(request,{...measuredEnv,EARTHQUAKE_ALERTS:undefined,POPULATION_COORDINATOR:undefined},this.state.storage);
             if(new URL(request.url).pathname==='/tts')return handleTts(new URL(request.url),measuredEnv,this.state.storage);
@@ -5404,6 +5418,16 @@ async function handleWorkerRequest(request,env){
         }
         // Retired: stale clients receive no data and never touch KV.
         if (reqUrl.pathname === '/polls-average') return json({ok:false,retired:true,error:'Pesquisas removidas; consulte a apuração oficial do TSE.'},410);
+        if(reqUrl.pathname==='/source-health'){
+            if(request.method!=='GET')return json({error:'Método não permitido'},405);
+            if(!env.ADMIN_TOKEN||request.headers.get('X-Admin-Token')!==env.ADMIN_TOKEN)return json({error:'Não autorizado'},401);
+            if(!env.EARTHQUAKE_ALERTS)return json({error:'Coleta compartilhada não configurada'},503);
+            const page=Number(reqUrl.searchParams.get('page')||0);if(!Number.isInteger(page)||page<0||page>4)return json({error:'Página inválida'},400);
+            const groups=sourceGroups(ALLOWED_HOSTS),selected=groups.slice(page*20,(page+1)*20);
+            const sources=await Promise.all(selected.map(async group=>{try{const r=await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('shared-source-v1:'+group)).fetch('https://internal/__source-health');return {group,...await r.json()};}catch{return {group,state:'unavailable'};}}));
+            const usage=await handleKvUsageRead(new Request(reqUrl.origin+'/kv-usage',{headers:{Authorization:'Bearer '+env.KV_METRICS_READ_TOKEN}}),env);
+            return json({ok:true,version:'shared-sources-v1',sources,page,pages:Math.ceil(groups.length/20),usage:usage.ok?await usage.json():{available:false},note:'Horários da coleta compartilhada; não são horários dos eventos. Métricas KV observadas não equivalem ao total faturado.'});
+        }
         if(reqUrl.pathname==='/kv-usage')return handleKvUsageRead(request,env);
         if (reqUrl.pathname === '/health') {
             return json({
@@ -5424,6 +5448,7 @@ async function handleWorkerRequest(request,env){
                 kv: Boolean(env.TTS_USAGE),
                 kvOptimization: 'shared-population-voice-v1',
                 telegramStorage: 'durable-history-v1',
+                sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
@@ -5486,7 +5511,7 @@ async function handleWorkerRequest(request,env){
         }
         if (reqUrl.pathname === '/weatherapi') return await handleWeatherApi(reqUrl, env);
         if (reqUrl.pathname === '/cge-bulletins') return await handleCgeBulletins();
-        if (reqUrl.pathname === '/official-weather-alerts') return await handleOfficialWeatherAlerts(reqUrl);
+        if (reqUrl.pathname === '/official-weather-alerts') return await handleOfficialWeatherAlerts(reqUrl,fetch,env.SHARED_SOURCE_INTERNAL?null:globalThis.caches?.default);
         if (reqUrl.pathname === '/metar-observed') return await handleWeatherObservations(reqUrl);
         if (reqUrl.pathname === '/redemet-metar') return await handleRedemet(reqUrl, env);
 
@@ -5528,7 +5553,7 @@ async function handleWorkerRequest(request,env){
             const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[');
             const looksXml  = /^\s*<\?xml|^\s*<(rss|feed|entry|html)/i.test(trimmed);
             const htmlCatalogue = ['www.osc.org.bo','www.ssn.unam.mx','www.cgesp.org','www.ovsicori.una.ac.cr','www.snet.gob.sv'].includes(targetUrl.hostname) && /^<!doctype\s+html/i.test(trimmed);
-            const fdsnText = targetUrl.hostname==='geofon.gfz-potsdam.de' && targetUrl.pathname==='/fdsnws/event/1/query' && targetUrl.searchParams.get('format')==='text' && /^#EventID\|Time\|Latitude\|Longitude\|Depth\/km/.test(trimmed);
+            const fdsnText = /^\/fdsnws\/event\/\d+\/query\/?$/.test(targetUrl.pathname) && targetUrl.searchParams.get('format')==='text' && /^#EventID\|Time\|Latitude\|Longitude\|Depth\/km/.test(trimmed);
             const fdsnVersion = targetUrl.hostname==='geofon.gfz-potsdam.de' && /\/fdsnws\/event\/1\/version$/.test(targetUrl.pathname) && /^\d+\.\d+(?:\.\d+)?$/.test(trimmed);
 
             if (upstream.ok && !looksJson && !looksXml && !htmlCatalogue && !fdsnText && !fdsnVersion) {
@@ -5558,7 +5583,7 @@ async function handleWorkerRequest(request,env){
 }
 
 export default {
-    async fetch(request,env,ctx){return withKvUsage(env,tracked=>handleWorkerRequest(request,tracked),ctx);},
+    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,()=>handleWorkerRequest(request,tracked),ALLOWED_HOSTS),ctx);},
 
     async scheduled(event, env, ctx) {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';

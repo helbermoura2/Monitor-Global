@@ -9,7 +9,7 @@
   if(fetching)return;fetching=true;
   try{
    const base=typeof workerBaseUrl==='function'?workerBaseUrl():'https://black-sky-9ba0.terrestre.workers.dev';
-   const r=await fetch(base+'/cge-bulletins',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+   const r=await (window.SharedSourceDelivery?.fetch||fetch)(base+'/cge-bulletins',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
    const d=await r.json();if(d.ok!==true||!Array.isArray(d.items))throw Error('Resposta inválida');
    const rows=d.items.map(x=>fromBulletin(x)).filter(Boolean).sort((a,b)=>b.time-a.time).slice(0,1);
    globalAlerts=globalAlerts.filter(x=>!String(x.id).startsWith(prefix));rows.forEach(x=>upsertAlert(x,{fonte:'cgeBulletin',expiraMs:0}));

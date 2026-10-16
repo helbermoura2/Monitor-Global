@@ -1,6 +1,6 @@
 // Application-observed KV attempts. No raw keys, texts, locations or KV counter writes.
 const measured=new WeakSet(),ops={get:'read',getWithMetadata:'read',put:'write',delete:'delete',list:'list'};
-const activities=new Set(['populationRequests','populationCacheHits','populationPendingPolls','populationStateWrites','voiceRequests','voiceCacheHits','voiceSyntheses','voiceQuotaDenied']);
+const activities=new Set(['populationRequests','populationCacheHits','populationPendingPolls','populationStateWrites','voiceRequests','voiceCacheHits','voiceSyntheses','voiceQuotaDenied','sourceRequests','sourceCacheHits','sourceFetches','sourceFailures','sourceRetained','sourceStateWrites','sourceBodyWrites']);
 export function kvFamily(key){
  key=String(key||'');
  if(key.startsWith('exposure-'))return 'population';

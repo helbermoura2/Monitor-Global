@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const base='https://black-sky-9ba0.terrestre.workers.dev';
- let token='',authorized=false,dialog,body,message,objectUrl,active='daily',data;
+ let token='',authorized=false,dialog,body,message,objectUrl,active='daily',data,healthGeneration=0;
  const labels={sent:'Enviado',sending:'Envio em andamento',uncertain:'Entrega sem confirmação',failed:'Falhou',preparing:'Preparando',pending:'Pendente',unavailable:'Histórico indisponível',query:'Consultando USGS',data:'Dados obtidos',render:'Gerando imagem',prepared:'Resumo preparado','text-fallback':'Imagem falhou — usando texto','legacy-confirmed':'Envio anterior confirmado','missing-secrets':'Configuração do Telegram ausente'};
  const fmt=at=>at?new Date(at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'medium'}):'Horário não registrado';
  const n=(tag,text,cls)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(cls)el.className=cls;return el};
@@ -16,7 +16,7 @@
    document.querySelectorAll('#admin-telegram-history').forEach(btn=>btn.hidden=!authorized);
  }
  function logout(){
-   token='';authorized=false;data=null;clearPreview();menuButtons();login();
+   token='';authorized=false;data=null;healthGeneration++;clearPreview();menuButtons();login();
  }
  async function request(path,blob=false){
    const credential=token;
@@ -50,17 +50,20 @@
    show();input.focus();
  }
  async function refresh(){
+   if(active==='health'){render();return;}
    message.textContent='Consultando histórico…';
    try{data=await request('/telegram-history');render()}catch(error){message.textContent=error.name==='AbortError'?'A consulta demorou demais.':error.message;if(!authorized)login()}
  }
  function render(){
    clearPreview();body.replaceChildren();message.textContent='';
    const controls=n('div',null,'tg-controls');
-   for(const [key,text] of [['daily','Resumos diários'],['alerts','Sismos M6+ e Brasil']]){
+   for(const [key,text] of [['daily','Resumos diários'],['alerts','Sismos M6+ e Brasil'],['health','Saúde do serviço']]){
      const btn=n('button',text);btn.type='button';btn.setAttribute('aria-pressed',String(active===key));btn.onclick=()=>{active=key;render()};controls.append(btn);
    }
    const update=n('button','Atualizar');update.type='button';update.onclick=refresh;
    const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(update,exit);body.append(controls);
+   if(active==='health'){loadHealth();return;}
+   healthGeneration++;
    body.append(n('p','Últimos 30 dias · horários de Brasília. O registro detalhado começa com esta atualização.','tg-note'));
    const list=active==='daily'?[...(data.daily||[])].sort((a,b)=>b.day.localeCompare(a.day)):data.alerts||[];
    if(!list.length)body.append(n('p','Nenhum envio registrado neste período. Os próximos aparecerão aqui.','tg-empty'));
@@ -71,6 +74,20 @@
      card.onclick=()=>details(row);body.append(card);
    });
    if(data.hasMore)body.append(n('p','Há mais alertas que o limite desta consulta.','tg-note'));
+ }
+ async function loadHealth(page=0){
+   const generation=++healthGeneration,host=n('section');body.append(host);message.textContent='Consultando a coleta compartilhada…';
+   try{
+     const health=await request('/source-health?page='+page);
+     if(generation!==healthGeneration||active!=='health'||!authorized)return;
+     message.textContent='';host.append(n('h3','Coleta compartilhada'),n('p','A última resposta válida pode ser mantida por pouco tempo durante uma falha. Estes horários são das consultas, não dos eventos.','tg-note'));
+     const labels={fresh:'Resposta recente',partial:'Resposta parcial',retrying:'Nova tentativa pendente',stale:'Última resposta anterior',waiting:'Ainda não consultada',unavailable:'Consulta indisponível'};
+     for(const source of health.sources||[]){const row=n('article',null,'tg-history-row');row.append(n('strong',source.group),n('span',labels[source.state]||source.state),n('small','Última resposta válida: '+fmt(source.lastOk)),n('small','Última tentativa: '+fmt(source.attempt)));if(source.next>Date.now())row.append(n('small','Próxima tentativa permitida: '+fmt(source.next)));host.append(row);}
+     const nav=n('div',null,'tg-controls');for(const [label,next]of [['Anterior',page-1],['Próxima',page+1]]){const button=n('button',label);button.type='button';button.disabled=next<0||next>=health.pages;button.onclick=()=>{host.remove();loadHealth(next);};nav.append(button);}host.append(nav);
+     host.append(n('h3','Operações observadas pela aplicação'));
+     if(health.usage?.available){const counts=health.usage.counts||{};host.append(n('p','Dia UTC: '+health.usage.day+' · a medição pode ser parcial e não é o total da conta Cloudflare.','tg-note'));const familyNames={voice:'Voz',population:'População',translation:'Tradução',telegramSummaryPreview:'Prévias dos resumos',telegramAlertHistory:'Histórico dos alertas',telegramSummaryDelivery:'Resumos',namespaceList:'Listagens do arquivo antigo',other:'Outras funções'},operationNames={read:'leituras',write:'gravações',delete:'exclusões',list:'listagens'};const groups=new Map();for(const [key,value]of Object.entries(counts)){if(!key.endsWith('.attempted'))continue;const [family,operation]=key.split('.');groups.set(family,(groups.get(family)||[]).concat((operationNames[operation]||operation)+': '+value));}for(const [family,values]of groups)host.append(n('p',(familyNames[family]||family)+' · '+values.join(' · ')));const a=health.usage.activity||{};host.append(n('p','Pedidos de fontes: '+(a.sourceRequests||0)+' · reutilizações: '+(a.sourceCacheHits||0)+' · coletas: '+(a.sourceFetches||0)+' · falhas: '+(a.sourceFailures||0)));}else host.append(n('p','Medição por função indisponível. Isso não significa consumo zero.','tg-note'));
+     const link=n('a','Ver relatórios diários e limites da conta');link.href='https://github.com/helbermoura2/Monitor-Global/actions/workflows/cloudflare-kv-daily-report.yml';link.target='_blank';link.rel='noopener';host.append(link);
+   }catch(error){if(generation===healthGeneration)message.textContent=error.message;}
  }
  async function details(row){
    clearPreview();body.replaceChildren();message.textContent='';

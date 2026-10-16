@@ -9,7 +9,7 @@
   marcarBooted(prefix);applyFilters();
  }
  async function observed(){try{
-  const r=await fetch(base()+'/metar-observed?ids='+airports);if(!r.ok)throw Error('HTTP '+r.status);
+  const r=await (window.SharedSourceDelivery?.fetch||fetch)(base()+'/metar-observed?ids='+airports);if(!r.ok)throw Error('HTTP '+r.status);
   const d=await r.json();if(!Array.isArray(d.stations))throw Error('Sem estações');
   ingest('metar-',d.stations.flatMap(x=>HazardEvidence.metar(x)));
   try{setSource('NOAA METAR','ok');}catch(e){}

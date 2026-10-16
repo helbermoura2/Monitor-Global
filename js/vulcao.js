@@ -109,7 +109,7 @@ async function fetchUsgsVolcanoUrl(url, timeoutMs=18000){
     async function tryOne(alvo){
         const {c,t}=cAbort(timeoutMs);
         try{
-            const r=await fetch(alvo,{signal:c.signal,cache:'no-store'});
+            const r=await (window.SharedSourceDelivery?.fetch||fetch)(alvo,{signal:c.signal,cache:'no-store'});
             clearTimeout(t);
             if(!r.ok) return null;
             const txt=await r.text();
@@ -157,7 +157,7 @@ async function fetchUSGSVolcanoProfessional(){
             let pack=null;
             for(const u of urls){
               try{
-                const r=await fetch(u,{cache:'no-store',mode:'cors'});
+                const r=await (window.SharedSourceDelivery?.fetch||fetch)(u,{cache:'no-store',mode:'cors'});
                 if(!r.ok) continue;
                 const j=await r.json();
                 if(j && j.ok!==false && (Array.isArray(j.elevated)||Array.isArray(j.all))){ pack=j; break; }
@@ -440,7 +440,7 @@ async function fetchGlobalVolcanoAdvisories(){
         const urls=[base+'/global-volcano?t='+Date.now(), base+'/global-volcano'];
         for(const u of urls){
             try{
-                const r=await fetch(u,{cache:'no-store',mode:'cors'});
+                const r=await (window.SharedSourceDelivery?.fetch||fetch)(u,{cache:'no-store',mode:'cors'});
                 if(!r.ok) continue;
                 const j=await r.json();
                 if(j && Array.isArray(j.items)){

@@ -456,6 +456,8 @@ const REGIONAL_SEISMIC_FALLBACK = {
 };
 function setSource(name,status,ms,error,meta={}){
   window.MonitorFreshness?.recordStatus(name,status,error,meta.dataAt,meta.checkedAt);
+  const delivery=status==='ok'?window.SharedSourceDelivery?.forName(name):null;
+  if(delivery&&['stale','partial','unavailable'].includes(delivery.state)){status='warn';error=error||'Resposta compartilhada anterior ou parcial';}
   // 2 falhas seguidas → OFF; 1 falha → LENTO. Sucesso zera.
   // SourceHealth: 3ª falha abre cooldown 90s (não martela a fonte).
   const prev = PRO.sourceState[name] || {};
