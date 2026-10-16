@@ -22,7 +22,7 @@ todos os tipos de bindings já existentes, incluindo segredos e variáveis.
 Não envia migrações nem muda cron, rotas, domínios, preços ou recursos.
 Após o upload, compara bindings e cron e consulta `/health` até encontrar
 `electionPolls: removed-no-kv-v1`, `kvOptimization: shared-population-voice-v1`
-e `kvUsageMetrics: true`. Histórico de versões Cloudflare permanece
+e `kvUsageMetrics: true`, além de `telegramStorage: durable-history-v1`. Histórico de versões Cloudflare permanece
 para reversão. Falhas de confirmação são reportadas como implantação não
 verificada, sem reenvios cegos.
 

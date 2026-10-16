@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 let stamp=Date.parse('2026-10-01T03:06:00Z'),sends=0,queryFail=false,mode='ok',originalUrl=null;
 const RealDate=Date;globalThis.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[stamp]))}static now(){return stamp}};
-const kvData=new Map();
-const kv={async get(k,type){const x=kvData.get(k)?.value;if(x==null)return null;if(type==='arrayBuffer')return new Uint8Array(x).buffer;return x},async put(k,value,opts={}){kvData.set(k,{value:structuredClone(value),metadata:opts.metadata})},async list({prefix}){return {keys:[...kvData].filter(([k])=>k.startsWith(prefix)).map(([name,x])=>({name,metadata:x.metadata})),list_complete:true}}};
+let blockKvWrites=true;const kvData=new Map();
+const kv={async get(k,type){const x=kvData.get(k)?.value;if(x==null)return null;if(type==='arrayBuffer')return new Uint8Array(x).buffer;return x},async put(k,value,opts={}){if(blockKvWrites)throw Error('KV write quota exhausted');kvData.set(k,{value:structuredClone(value),metadata:opts.metadata})},async list({prefix}){return {keys:[...kvData].filter(([k])=>k.startsWith(prefix)).map(([name,x])=>({name,metadata:x.metadata})),list_complete:true}}};
 class Store{constructor(){this.data=new Map();this.queue=Promise.resolve()}async get(k){return Array.isArray(k)?new Map(k.filter(x=>this.data.has(x)).map(x=>[x,structuredClone(this.data.get(x))])):structuredClone(this.data.get(k))}async put(k,v){if(typeof k==='object'){for(const [key,value]of Object.entries(k))this.data.set(key,structuredClone(value));}else this.data.set(k,structuredClone(v))}async delete(k){for(const key of Array.isArray(k)?k:[k])this.data.delete(key)}transaction(fn){const p=this.queue.then(()=>fn(this));this.queue=p.catch(()=>{});return p}}
 globalThis.fetch=async(url,opts)=>{
  if(String(url).includes('earthquake.usgs.gov')){if(queryFail)throw Error('query failed');return Response.json({features:[{id:'test',properties:{mag:5.4,place:'231 km WSW of Port McNeill, Canada',time:stamp-3600000,net:'us'},geometry:{coordinates:[-127,50,10]}}]})}
@@ -37,7 +37,7 @@ history=await (await worker.fetch(admin('/telegram-history'),env)).json();assert
 mode='ok';stamp+=12*3600000;await run();assert.equal(sends,3);
 const key='telegram-history-m6:'+new Date().toISOString()+':'+crypto.randomUUID();
 const alert={kind:'m6',at:Date.now(),status:'sent',mag:6.2,place:'Test region',events:[{at:Date.now(),stage:'sent'}]};
-await kv.put(key,JSON.stringify(alert),{metadata:{kind:alert.kind,at:alert.at,status:alert.status,mag:alert.mag,place:alert.place}});
+blockKvWrites=false;await kv.put(key,JSON.stringify(alert),{metadata:{kind:alert.kind,at:alert.at,status:alert.status,mag:alert.mag,place:alert.place}});
 history=await (await worker.fetch(admin('/telegram-history'),env)).json();
 assert.equal(history.alerts.length,1);
 const detail=await (await worker.fetch(admin('/telegram-history-detail?key='+encodeURIComponent(key)),env)).json();

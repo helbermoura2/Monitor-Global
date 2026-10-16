@@ -67,7 +67,7 @@ world.push(brazilSix);feeds.USGS.push(brazilSix);await run();assert.equal(messag
 // Ambiguous timeout is never followed by a duplicate text or automatic resend.
 sendMode='timeout';feeds.USP.push(quake('uncertain',1.5,-8.05,-34.9,now-600000));
 await run();assert.equal(messages.length,9);await run();assert.equal(messages.length,9);
-assert([...kv.data.values()].some(v=>String(v).includes('"status":"uncertain"')));
+assert([...storage.data.values()].some(v=>v instanceof Uint8Array&&new TextDecoder().decode(v).includes('"status":"uncertain"')));
 // Definite Telegram rejection is retried on a later poll, not silently discarded.
 sendMode='rejected';feeds.USP.push(quake('retry',1.4,-8.05,-34.9,now-1200000));
 await run();assert.equal(messages.length,11);sendMode='ok';await run();assert.equal(messages.length,12);
