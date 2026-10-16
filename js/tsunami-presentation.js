@@ -47,7 +47,7 @@
   const q=j.quake,c=paintContext(q),radius=Math.max(10,window.SeismicImpactModel?.extent(q.mag,q.depth,2.1)||30);
   const focus=window.SeismicFocus?.frame(c),zoom=focus?.zoom??(typeof zoomParaAreaPintada==='function'?zoomParaAreaPintada(c.lng,c.lat,radius):6);
   const center=focus?.center||(typeof centroCompensado==='function'?centroCompensado(c.lng,c.lat,zoom):q.coords);
-  j.cameraUntil=Date.now()+(reduce()?0:duration);map.stop();map.flyTo({center,zoom,padding:0,pitch:0,bearing:0,duration:reduce()?0:duration,curve:1.25,essential:true});
+  j.cameraUntil=Date.now()+(reduce()?0:duration);map.stop();map.flyTo({center,zoom,padding:{top:0,right:0,bottom:0,left:0},pitch:0,bearing:0,duration:reduce()?0:duration,curve:1.25,essential:true});
  }
  function phase(j,value,move=true){
   if(!valid(j))return;j.phase=value;
@@ -80,7 +80,7 @@
   if(typeof startWaveFront==='function')startWaveFront(...quake.coords,quake.mag,quake.depth,quake.time,{id:quake.id,mode:'replay',chaseCam:true,returnToEpicenter:true});
   window.SeismicImpact?.start(paintContext(quake),true);phase(j,'quake');schedule(j,QUAKE_MS);
   j.finalTimer=setTimeout(()=>{if(!valid(j)||j.paused)return;j.final=true;clearTimeout(j.timer);phase(j,'blue',false);j.cameraUntil=Infinity;
-   const radius=window.GlobalQuakeTravel?.radius('p',quake.depth,(Date.now()-quake.time)/1000);if(radius){const zoom=zoomParaCaberRaio(...quake.coords,radius);map.stop();map.flyTo({center:centroCompensado(...quake.coords,zoom),zoom,padding:0,duration:reduce()?0:6000,curve:1.25,essential:true});}
+   const radius=window.GlobalQuakeTravel?.radius('p',quake.depth,(Date.now()-quake.time)/1000);if(radius){const zoom=zoomParaCaberRaio(...quake.coords,radius);map.stop();map.flyTo({center:centroCompensado(...quake.coords,zoom),zoom,padding:{top:0,right:0,bottom:0,left:0},duration:reduce()?0:6000,curve:1.25,essential:true});}
    j.blueTimer=setTimeout(()=>{if(!valid(j))return;window.SeismicImpact?.finish();phase(j,'quake');j.cameraUntil=Infinity;},6000);
   },104000);
  }

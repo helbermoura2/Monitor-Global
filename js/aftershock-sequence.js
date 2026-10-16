@@ -35,7 +35,7 @@
       window.SeismicFocus?.pause();if(typeof waveCamAbortHandler==='function')waveCamAbortHandler({originalEvent:e});if(typeof stopMapCamera==='function')stopMapCamera();
       const fit=typeof zoomParaAreaPintada==='function'?zoomParaAreaPintada(c.coords[0],c.coords[1],1,[...c.bounds[0],...c.bounds[1]]):map.cameraForBounds(c.bounds,{padding:0,maxZoom:10.5}).zoom,z=Math.min(10.5,Math.max(map.getZoom()+1.5,fit));
       const center=typeof centroCompensado==='function'?centroCompensado(c.coords[0],c.coords[1],z):c.coords;
-      map.easeTo({center,zoom:z,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:2200,essential:true});
+      map.easeTo({center,zoom:z,padding:{top:0,right:0,bottom:0,left:0},duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:2200,essential:true});
      };
      const id=c?.id??q.id;for(const member of members)represented.add(member.id);
      pins.set(id,new GL.Marker({element:el,anchor:c?'center':'bottom',offset:c?[0,44]:[0,-5]}).setLngLat(c?.coords||q.coords).addTo(map));

@@ -39,6 +39,8 @@
     ERUPTING: 'EM ERUPÇÃO', ERUPTION: 'ERUPÇÃO', ACTIVE: 'ATIVO',
     DORMANT: 'DORMENTE', EXTINCT: 'EXTINTO', UNREST: 'PERTURBAÇÃO VULCÂNICA',
     GREEN: 'VERDE', YELLOW: 'AMARELO', ORANGE: 'LARANJA', RED: 'VERMELHO',
+    ENDED: 'ENCERRADO', CEASED: 'ENCERRADO',
+    'RE-SUSPENDED': 'CINZAS RESSUSPENSAS (levantadas novamente pelo vento)',
     UNASSIGNED: 'SEM NÍVEL'
   };
 
@@ -285,6 +287,10 @@
     let s = traduzirDataEN(String(valor));
     s = traduzirEnchenteGDACS(s);
     s = traduzirVaac(s);
+    s = s.replace(/\bre[- ]?suspended(?:\s+ash)?\b/gi,'cinzas ressuspensas (levantadas novamente pelo vento)')
+      .replace(/\b(?:eruption\s+)?ended\b/gi,'atividade encerrada')
+      .replace(/\b(?:eruption\s+)?ceased\b/gi,'atividade cessou')
+      .replace(/\bno further advisories\b/gi,'sem novos boletins previstos');
     for (const [re, to] of FRASES) s = s.replace(re, to);
     s = s.replace(/\bORANGE\/WATCH\b/gi, 'LARANJA/VIGILÂNCIA');
     s = s.replace(/\bYELLOW\/ADVISORY\b/gi, 'AMARELO/ATENÇÃO');
@@ -295,7 +301,8 @@
     s = s.replace(/\bWATCH\b/g, 'VIGILÂNCIA');
     s = s.replace(/\bWARNING\b/g, 'AVISO');
     s = s.replace(/\bADVISORY\b/g, 'ATENÇÃO');
-    for (const [re, to] of PALAVRAS) s = s.replace(re, to);
+    for (const [re, to] of PALAVRAS) s = s.replace(new RegExp('\\b(?:'+re.source+')\\b',re.flags), to);
+    s = s.replace(/\balertaa+\b/gi, 'alerta').replace(/\balerta\s+(laranja|amarelo|verde|vermelho)\b/gi,(_,cor)=>'Alerta '+cor.toLowerCase());
     s = s.replace(/nível de alerta nível/gi, 'nível de alerta');
     s = s.replace(/\s{2,}/g, ' ').trim();
     return s;

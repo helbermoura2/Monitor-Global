@@ -20,3 +20,34 @@ test('official endpoint matches origins, uses point-source grids without claimin
  globalThis.fetch=async (input,options)=>{assert.equal(typeof input,'string');assert.equal(options.redirect,'manual');calls++;const u=new URL(input);assert.equal(u.hostname,'earthquake.usgs.gov');let d;if(u.pathname.includes('/query'))d={id:'us-test',geometry:{coordinates:[1,1]},properties:{time:mode==='wrong'?time-3600000:time,mag:6,products:{shakemap:[{preferredWeight:2,code:'qa',updateTime:1,contents:{'download/rupture.json':{url:'https://earthquake.usgs.gov/rupture.json'},'download/coverage_mmi_low_res.covjson':{url:mode==='host'?'https://example.com/grid.json':'https://earthquake.usgs.gov/grid.json'}}}]}}};else if(u.pathname==='/rupture.json')d=mode==='point'?{type:'FeatureCollection',features:[{geometry:{type:'Point',coordinates:[1,1]}}]}:finite;else d=coverage;if(u.pathname.includes('/query')&&mode==='grid-only')delete d.properties.products.shakemap[0].contents['download/rupture.json'];if(u.pathname.includes('/query')&&mode==='small')d.properties.mag=3.4;return new Response(JSON.stringify(d));};
  try{for(const state of ['finite','wrong','point','grid-only','small','host']){mode=state;const r=await handleRuptureShaking(new Request('https://local/rupture-shaking?lat=1&lng=1&mag='+(state==='small'?3.4:6)+'&time='+time+'&eventId=us-'+state));const d=await r.json();assert.equal(d.status,state==='small'?'below-threshold':['finite','point','grid-only'].includes(state)?'available':'unavailable');if(['point','grid-only'].includes(state)){assert.equal(d.method,'usgs-shakemap-grid');assert.equal(d.finiteRupture,false);assert.doesNotMatch(d.provider,/ruptura publicada/);}}const n=calls;assert.equal((await handleRuptureShaking(new Request('https://local/rupture-shaking?lat=NaN'))).status,400);assert.equal(calls,n);}finally{globalThis.fetch=oldFetch;}
 });
+test('real deep NZ ShakeMap retains published weak II–III bands and never substitutes strong model shaking',()=>{
+ const sandbox={};vm.createContext(sandbox);vm.runInContext(fs.readFileSync('js/vendor/polygon-clipping.min.js','utf8'),sandbox);globalThis.polygonClipping=sandbox.polygonClipping;
+ const shaking=JSON.parse(fs.readFileSync('tests/fixtures/shaking/nz-us6000u2ev.json','utf8'));
+ const land=JSON.parse(fs.readFileSync('assets/seismic/ne-50m-land.geojson','utf8')).features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates);
+ assert.equal(Math.max(...shaking.grid.values.filter(v=>v!=null)),2.5);
+ const features=[...m.bands({shaking},land)];assert(features.length>0);
+ for(const f of features){assert.equal(f.properties.official,true);assert(f.properties.mmi>=1.5&&f.properties.mmi<=2.5);assert.notEqual(f.properties.color,m.color(5));}
+ assert.equal([...m.bands({shaking},[])].length,0);
+ const noData={...shaking,grid:{...shaking.grid,values:shaking.grid.values.map(()=>null)}};assert.equal([...m.bands({shaking:noData},land)].length,0);
+});
+
+test('published rupture projection preserves each fault and refuses invented, oversized or unrelated traces',()=>{
+ const g=m.normalize(coverage),trace=m.ruptureProjection(finite,g);
+ assert.deepEqual(trace.features[0].geometry.coordinates,[[0,0],[1,0],[1,1],[0,0]]);
+ assert.equal(trace.features[0].properties.projection,true);
+ assert.equal(m.ruptureProjection({type:'FeatureCollection',features:[{geometry:{type:'Point',coordinates:[1,1]}}]},g),null);
+ assert.equal(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[20,20],[21,20],[21,21],[20,20]]]}}]},g),null);
+ assert.equal(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[0,0],[1,0],[1,1],[0,1]]]}}]},g),null);
+ assert.equal(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[0,0],[NaN,0],[1,1],[0,0]]]}}]},g),null);
+ const vertical={...finite,features:[{geometry:{type:'Polygon',coordinates:[[[0,0,0],[1,1,0],[1,1,10],[0,0,10],[0,0,0]]]}}]};
+ assert.equal(m.ruptureProjection(vertical,g).features.length,1);
+ const wrapped={...g,x0:179,x1:181,y0:0,y1:2};
+ assert.deepEqual(m.ruptureProjection({...finite,features:[{geometry:{type:'Polygon',coordinates:[[[179,0],[-179,0],[-179,1],[179,0]]]}}]},wrapped).features[0].geometry.coordinates,[[179,0],[181,0],[181,1],[179,0]]);
+});
+
+test('historical menu uses the real Turkey finite rupture and the matching published intensity version',()=>{
+ const demo=JSON.parse(fs.readFileSync('assets/seismic/usgs-shakemap-turkey-20230206.json','utf8'));
+ const raw=JSON.parse(fs.readFileSync('tests/fixtures/shaking/turkey-us6000jllz-rupture.json','utf8'));
+ assert.equal(demo.shaking.version,'us6000jllz-1756921940993');assert.equal(raw.metadata.id,demo.shaking.eventId);
+ assert.deepEqual(demo.shaking.rupture,m.ruptureProjection(raw,demo.shaking.grid));assert.equal(demo.shaking.rupture.features.length,2);
+});

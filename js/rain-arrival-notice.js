@@ -88,6 +88,7 @@ function show(c){
 function consider(summary){
  clearTimeout(retryTimer);retryTimer=null;
  const now=Date.now(),locKey=key(location()),c=candidate(summary,now);
+ window.FullScreenEffects?.rain(summary,c);
  if(root&&(currentKey!==locKey||!c||blocked()))close(true);
  if(!c){
   if(summary?.provider==='rainbow'&&summary.status==='dry'&&key(summary.loc)===locKey&&now-summary.consultedAt<20*MINUTE){

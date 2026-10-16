@@ -1,0 +1,34 @@
+name: Refresh official European and INGV shaking maps
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: official-shaking-catalogue
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests/unit -p 'test_official_shaking.py'
+      - run: python tools/update-official-shaking.py
+      - name: Publish compact official products
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if test -z "$(git status --porcelain -- data/official-shaking)"; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/official-shaking
+          git commit -m 'Refresh published European and INGV intensity products'
+          git pull --rebase origin main
+          git push origin HEAD:main
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"

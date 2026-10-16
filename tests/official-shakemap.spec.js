@@ -4,9 +4,10 @@ for(const width of [1280,390])test('menu oficial mostra a grade histórica real,
  await boot(page,width);await page.evaluate(()=>{map.jumpTo({center:[12,32],zoom:4});});const before=await page.evaluate(()=>({events:JSON.stringify(globalEvents),alerts:JSON.stringify(globalAlerts),selected:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom()}));
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  await page.evaluate(()=>CardEffectDemo.open());await page.locator('#card-fx-demo-type').selectOption('seismic-official');await page.locator('#card-fx-demo-play').click();
+ await expect.poll(()=>page.evaluate(()=>!!map.getLayer('quake-rupture-line'))).toBe(true);await expect(page.locator('.seismic-impact-status')).toContainText('Projeção da ruptura USGS');
  await expect(page.locator('#pd-linked-presentation')).toContainText('TESTE HISTÓRICO');await expect(page.locator('#pd-linked-presentation')).toContainText('M7,8');await expect(page.locator('#pd-linked-presentation')).toContainText('USGS ShakeMap');
  await page.waitForFunction(()=>__mgSeismicImpactState?.id==='seismic-scenario-official'&&__mgSeismicImpactState.features>0,{},{timeout:25000});
- expect(await page.evaluate(()=>__mgSeismicImpactState.method)).toBe('usgs-shakemap-grid');await expect(page.locator('.seismic-impact-status')).toContainText('USGS ShakeMap');await expect(page.locator('.seismic-impact-status')).not.toContainText('fictícia');
+ expect(await page.evaluate(()=>__mgSeismicImpactState.method)).toBe('usgs-shakemap-finite');await expect(page.locator('.seismic-impact-status')).toContainText('USGS ShakeMap');await expect(page.locator('.seismic-impact-status')).not.toContainText('fictícia');
  expect(await page.evaluate(()=>['wave-front-p-line','wave-front-s-line'].map(id=>map.getLayoutProperty(id,'visibility')))).toEqual(['none','none']);
  await page.clock.runFor(6600);expect(await page.evaluate(()=>SeismicImpact.bounds('seismic-scenario-official'))).not.toBeNull();
  await page.getByRole('button',{name:'Parar',exact:true}).click();expect(await page.evaluate(()=>({events:JSON.stringify(globalEvents),alerts:JSON.stringify(globalAlerts),selected:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom()}))).toEqual(before);

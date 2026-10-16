@@ -7,12 +7,12 @@
 
   function setIntensityUI(item, value, kind, sourceLabel, impactText, feltCount){
     const val=Number(value);
-    if(!Number.isFinite(val)) return false;
+    if(value==null||String(value).trim()===''||!Number.isFinite(val)||val<1||val>12) return false;
     window.SeismicCinema?.recordIntensity(item.id,val,kind==='shakemap'?'ShakeMap USGS':sourceLabel);
     const merc=$('pd-mercalli'), label=$('pd-mercalli-label'), impact=$('pd-impact');
     if(!merc||!label||!impact) return false;
-    const roman=val>=10?'X':val>=9?'IX':val>=8?'VIII':val>=7?'VII':val>=6?'VI':val>=5?'V':val>=4?'IV':val>=3?'III':val>=2?'II':'I';
-    const desc={I:'Não perceptível',II:'Muito fraco',III:'Fraco',IV:'Leve',V:'Moderado',VI:'Forte',VII:'Muito forte',VIII:'Severo',IX:'Violento',X:'Extremo'}[roman]||'';
+    const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(1,Math.min(12,Math.round(val)))-1];
+    const desc={I:'Não perceptível',II:'Muito fraco',III:'Fraco',IV:'Leve',V:'Moderado',VI:'Forte',VII:'Muito forte',VIII:'Severo',IX:'Violento',X:'Extremo',XI:'Extremo',XII:'Extremo'}[roman]||'';
     const cls=kind==='official'?'official':kind==='shakemap'?'shakemap':kind==='observed'?'observed':'estimated';
     const badge=kind==='official'?'FONTE':kind==='shakemap'?'SHAKEMAP':kind==='observed'?'OBSERVADO':'EST';
     const title=kind==='official'?`MMI fornecido pela fonte ${sourceLabel}`:kind==='shakemap'?'MMI do produto ShakeMap':kind==='observed'?'Dados de pessoas que relataram o tremor':'Estimativa automática do Monitor Global';
@@ -31,7 +31,7 @@
 
   async function fetchUSGS(eventId){
     const base=workerBase(); if(!base||!eventId) return null;
-    if(cache.has(eventId)) return cache.get(eventId);
+    const cached=cache.get(eventId);if(cached&&Date.now()-cached.at<600000)return cached.data;
     const url='https://earthquake.usgs.gov/fdsnws/event/1/query?eventid='+encodeURIComponent(eventId)+'&format=geojson';
     try{
       const r=await fetch(base+'?url='+encodeURIComponent(url),{cache:'no-store'});
@@ -41,18 +41,21 @@
       const products=p.products||{};
       const sm=Array.isArray(products.shakemap)?products.shakemap[0]:null;
       const sp=sm?.properties||{};
-      const out={mmi:Number.isFinite(Number(p.mmi))?Number(p.mmi):null, felt:Number.isFinite(Number(p.felt))?Number(p.felt):null, maxmmi:Number.isFinite(Number(sp.maxmmi))?Number(sp.maxmmi):null, hasShake:!!sm};
-      cache.set(eventId,out); return out;
+      const mmi=v=>v!=null&&String(v).trim()!==''&&Number.isFinite(Number(v))&&Number(v)>=1&&Number(v)<=12?Number(v):null;
+      const out={mmi:mmi(p.mmi), felt:Number.isFinite(Number(p.felt))?Number(p.felt):null, maxmmi:mmi(sp.maxmmi), hasShake:!!sm};
+      cache.set(eventId,{at:Date.now(),data:out});if(cache.size>200)cache.delete(cache.keys().next().value);return out;
     }catch(e){ return null; }
   }
 
   window.enriquecerIntensidadeSismicaReal=async function(item, fallback){
     if(!item || !(item.type==='earthquake' || (!item.type && Number.isFinite(item.mag)))) return;
+    const direct=[item.sourceMmi,item.maxmmi,item.mmi].find(v=>v!=null&&String(v).trim()!==''&&Number.isFinite(Number(v))&&Number(v)>=1&&Number(v)<=12);
+    if(direct!=null){setIntensityUI(item,direct,'official',item.source||'agência sísmica','Intensidade reportada pela fonte.');return;}
     // Só fazemos consulta extra para o USGS, evitando custo/rede para todos os eventos.
     const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||'')) || (/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);
     if(!report) {
       const ml=$('pd-mercalli-label'), imp=$('pd-impact');
-      if(ml) ml.innerHTML='Intensidade (MMI) <span class="pd-intensity-source estimated" title="Não há MMI oficial disponível para este evento nesta fonte">EST</span>';
+      if(ml&&window.SeismicCinema?.intensitySummary(item).kind==='estimated') ml.innerHTML='Intensidade estimada (MMI) <span class="pd-intensity-source estimated" title="Modelo epicentral de Allen et al. (2012); não confirma percepção ou danos">EST</span>';
       if(imp) imp.textContent=typeof fallback==='function'?fallback():'Estimativa do app.';
       return;
     }
@@ -61,17 +64,17 @@
     const d=await fetchUSGS(eventId);
     if(!d || (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id)) return;
     if(d.mmi!=null){
-      setIntensityUI(item,d.mmi,'official','USGS',`MMI ${d.mmi} — intensidade reportada no registro USGS.`,d.felt);
+      setIntensityUI(item,d.mmi,'official','USGS','Intensidade reportada no registro USGS.',d.felt);
       return;
     }
     if(d.maxmmi!=null){
-      setIntensityUI(item,d.maxmmi,'shakemap','USGS',`MMI máximo do ShakeMap: ${d.maxmmi}.`,d.felt);
+      setIntensityUI(item,d.maxmmi,'shakemap','USGS','Intensidade máxima publicada no ShakeMap USGS.',d.felt);
       return;
     }
     if(d.felt!=null && d.felt>0){
       const ml=$('pd-mercalli-label'), merc=$('pd-mercalli'), imp=$('pd-impact');
       if(ml) ml.innerHTML='Intensidade (MMI) <span class="pd-intensity-source observed" title="Há relatos de pessoas que sentiram o evento, mas a fonte não forneceu um MMI consolidado">OBSERVADO</span>';
-      if(merc) merc.innerHTML='<span style="color:#d8b4fe">Relatos de tremor</span>';
+      if(merc) merc.innerHTML='<span style="color:#d8b4fe">Intensidade não informada</span>';
       if(imp) imp.textContent=`O evento possui ${d.felt.toLocaleString('pt-BR')} relato${d.felt===1?'':'s'} de pessoas que sentiram o sismo; não há MMI consolidado disponível.`;
       return;
     }

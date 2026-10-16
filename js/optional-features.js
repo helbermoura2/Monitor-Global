@@ -22,21 +22,21 @@
  function effect(type){
   return Promise.all((effects[type]||[]).map(url=>asset(url))).then(()=>ready.add(type));
  }
- window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261014-procedural-bore','js/site-effect-demo.js?v=20261014-procedural-bore'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
+ window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261016-live-effects','js/site-effect-demo.js?v=20261016-live-effects'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
  function selected(){
   try{EventStore.syncFromLegacy();const item=EventStore.getSelected();if(item)return item;}catch(e){}
   const id=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=20261013-locality-reserve');await asset('js/quake-image-paint.js?v=cartographic-v11-full-hd');await asset('js/story-share.js?v=cartographic-v11-full-hd');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
+ window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=20261016-weak-official');await asset('js/quake-image-paint.js?v=20261016-weak-official');await asset('js/story-share.js?v=cartographic-v11-full-hd');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
  function init(){
   const button=document.getElementById('pd-share-btn');
   button?.addEventListener('click',async event=>{
    event.stopPropagation();const item=selected();
    if(!item){window.showToast?.('Selecione um evento na lista primeiro.','info');return;}
    button.disabled=true;button.textContent='Carregando…';
-   try{await asset('js/quake-card-layout.js?v=20261013-locality-reserve');await asset('js/quake-image-paint.js?v=cartographic-v11-full-hd');await asset('js/story-share.js?v=cartographic-v11-full-hd');await window.shareEventAsStory(item);}catch(error){failure(error);}
+   try{await asset('js/quake-card-layout.js?v=20261016-weak-official');await asset('js/quake-image-paint.js?v=20261016-weak-official');await asset('js/story-share.js?v=cartographic-v11-full-hd');await window.shareEventAsStory(item);}catch(error){failure(error);}
    finally{button.disabled=false;button.textContent='📤 Imagem';}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;

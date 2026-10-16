@@ -6,7 +6,7 @@
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const knownIntensity=new Map();let job=null,seq=0,dialog=null,previewBar=null;
  const reduced=()=>root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- const roman=n=>['I','II','III','IV','V','VI','VII','VIII','IX','X'][clamp(Math.round(n),1,10)-1];
+ const roman=n=>['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][clamp(Math.round(n),1,12)-1];
  // Same hypocentral model as population-exposure-worker.mjs (Allen et al., 2012).
  // This is the epicentral estimate, not shaking at the viewer's location.
  function estimate(mag,depth,distance=0){
@@ -17,12 +17,12 @@
  function profile(item,mode='manual'){
   const mag=clamp(Number(item.mag)||0,0,10),depth=Number.isFinite(Number(item.depth))?Math.max(0,Number(item.depth)):10;
   const known=knownIntensity.get(item.id);
-  const reported=[known?.value,item.maxmmi,item.mmi].find(x=>x!=null&&Number.isFinite(Number(x))&&Number(x)>0);
-  const mmi=reported!=null?clamp(Number(reported),1,10):estimate(mag,depth);
+  const reported=[known?.value,item.sourceMmi,item.maxmmi,item.mmi].find(x=>x!=null&&String(x).trim()!==''&&Number.isFinite(Number(x))&&Number(x)>=1&&Number(x)<=12);
+  const mmi=reported!=null?clamp(Number(reported),1,12):estimate(mag,depth);
   const full=mag>=6&&mode!=='auto',strength=clamp((mmi-2)/6,0,1);
   const tier=mag>=8?3:mag>=7?2:mag>=6?1:0;
-  const duration=full?16000:1200+strength*(mode==='auto'?3600:5200);
-  return {mag,depth,mmi,source:reported!=null?(known?.source||'MMI fornecido pela fonte'):'Estimativa epicentral · Allen et al. (2012)',mode,full,tier,strength,duration,
+  const duration=full?(mag>=8?24000:16000):1200+strength*(mode==='auto'?3600:5200);
+  return {mag,depth,mmi,recordPieces:full&&mag>=8,slowPieces:full&&mag>=8,source:reported!=null?(known?.source||'MMI fornecido pela fonte'):'Estimativa epicentral · Allen et al. (2012)',mode,full,tier,strength,duration,
    amplitude:full?3+strength*(tier===3?37:tier===2?29:22):1+strength*(mode==='auto'?15:18),
    rotation:full?(tier===3?.65:tier===2?.48:.34):.24,
    pieces:full?Math.round((tier===3?24:tier===2?18:12)*(.35+.65*strength)):0};
@@ -44,6 +44,7 @@
   frames[0]={offset:0,translate:'0px 0px',rotate:'0deg'};frames[n]={offset:1,translate:'0px 0px',rotate:'0deg'};return frames;
  }
  function stop(){
+  if(job&&!job.demo&&job.profile.mag>=8)root.FullScreenEffects?.stop('quake');
   if(job){if(job.demo)root.CinematicCard?.stop();cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animations.forEach(a=>a.cancel());
   job.scene?.pieces.forEach(piece=>{if(piece.displaced){piece.source.classList.remove('seismic-displaced');piece.source.inert=piece.wasInert;}});job.layer?.remove();
   job.swayTargets.forEach(el=>el.removeAttribute('data-seismic-sway'));
@@ -87,7 +88,7 @@
   const isRecord=!!p.recordPieces&&!!el.closest('#sidebar-left');
   shell.className='seismic-piece';shell.dataset.kind=isCard?'card':isRecord?'record':'element';shell.setAttribute('aria-hidden','true');shell.inert=true;
   Object.assign(shell.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});layer.append(shell);
-  return {el:shell,source:el,wasInert:el.inert,displaced:false,isCard,isRecord,slow:!!p.slowPieces,x:rect.left,y:rect.top,w:rect.width,h:rect.height,start:p.recordPieces&&isRecord?3+index*1.35:.55+index/Math.max(1,total)*(p.duration/1000-3)+Math.random()*.22,
+  return {el:shell,source:el,sourceEventId:isRecord?el.dataset.eventId:null,sourceSidebarKey:isRecord?el.dataset.sidebarKey:null,wasInert:el.inert,displaced:false,isCard,isRecord,slow:!!p.slowPieces,x:rect.left,y:rect.top,w:rect.width,h:rect.height,start:p.recordPieces&&isRecord?3+index*1.35:.55+index/Math.max(1,total)*(p.duration/1000-3)+Math.random()*.22,
    vx:(Math.random()-.5)*(45+p.tier*20),spin:(Math.random()-.5)*(60+p.tier*45),depth:.65+Math.random()*.65};
  }
  function createScene(p){
@@ -145,7 +146,12 @@
     ctx.save();ctx.translate(x,y);ctx.rotate(s.spin*age);ctx.globalAlpha=fade*clamp((3.2-age)/.8,0,.85);ctx.fillStyle=s.tone;ctx.beginPath();s.points.forEach((pt,i)=>i?ctx.lineTo(pt[0]*s.r,pt[1]*s.r):ctx.moveTo(pt[0]*s.r,pt[1]*s.r));ctx.closePath();ctx.fill();ctx.strokeStyle='#bcc9ca';ctx.globalAlpha*=.35;ctx.lineWidth=.6;ctx.stroke();ctx.restore();
    }ctx.globalAlpha=1;
   }
+  const records=p.recordPieces?new Map([...document.querySelectorAll('#sidebar-left .event[data-event-id]')].map(el=>[el.dataset.eventId,el])):null;
+  const headers=p.recordPieces?new Map([...document.querySelectorAll('#sidebar-left [data-sidebar-key]')].map(el=>[el.dataset.sidebarKey,el])):null;
   for(const piece of pieces){
+   const replacement=piece.sourceEventId?records?.get(piece.sourceEventId):piece.sourceSidebarKey?headers?.get(piece.sourceSidebarKey):null;
+   if(replacement&&replacement!==piece.source){piece.source.classList.remove('seismic-displaced');piece.source.inert=piece.wasInert;piece.source=replacement;piece.wasInert=replacement.inert;}
+   if(piece.displaced&&piece.source.isConnected){piece.source.classList.add('seismic-displaced');piece.source.inert=true;}
    const age=t-piece.start;if(age<0){piece.el.style.opacity='0';continue;}
    if(!piece.displaced){snapshotPiece(piece);piece.source.classList.add('seismic-displaced');piece.source.inert=true;piece.displaced=true;}
    const travel=Math.min(age,piece.slow?8:3.2),g=piece.slow?65+22*piece.depth:260+90*piece.depth,floor=Math.max(0,h-piece.y-piece.h-8),hit=Math.sqrt(2*floor/g),after=Math.max(0,travel-hit);
@@ -182,6 +188,7 @@
    }
    job.raf=requestAnimationFrame(tick);
   };job.raf=requestAnimationFrame(tick);}
+  if(!demo&&p.full&&p.mag>=8)root.FullScreenEffects?.quake(item,mode);
   if(demo&&!previewOptions.quietControls)showPreviewBar(p,false);
   job.timer=setTimeout(()=>{if(job?.token!==token)return;stop();if(demo&&!previewOptions.quietControls)showPreviewBar(p,false,true);},p.duration+50);
   return p;
@@ -201,8 +208,8 @@
   dialog.querySelectorAll('select').forEach(s=>s.onchange=update);dialog.querySelector('#seismic-demo-play').onclick=()=>{const item=current(),mode=dialog.querySelector('#seismic-demo-mode').value;close();play(item,mode,true);};
   document.body.append(dialog);update();dialog.querySelector('#seismic-demo-mag').focus();
  }
- const api={profile,estimate,play,stop,openDemo,closeDemo(){stop();dialog?.remove();dialog=null;},intensitySummary(item){const p=profile(item,'auto'),n=clamp(Math.round(p.mmi),1,10);return {nivel:roman(p.mmi),desc:['Não perceptível','Muito fraco','Fraco','Leve','Moderado','Forte','Muito forte','Severo','Violento','Extremo'][n-1]+'.',cor:n<3?'#4ade80':n<5?'#facc15':n<7?'#fb923c':'#ef4444'};},state:()=>job?{...job.profile,demo:job.demo}:null,
-  recordIntensity(id,value,source){if(id!=null&&Number.isFinite(Number(value))&&Number(value)>0){knownIntensity.set(id,{value:Number(value),source});if(knownIntensity.size>200)knownIntensity.delete(knownIntensity.keys().next().value);}}};
+ const api={profile,estimate,play,stop,openDemo,closeDemo(){stop();dialog?.remove();dialog=null;},intensitySummary(item){const p=profile(item,'auto'),reported=!p.source.startsWith('Estimativa');if(!reported&&(item.mag==null||item.depth==null||String(item.mag).trim()===''||String(item.depth).trim()===''||!Number.isFinite(Number(item.mag))||!Number.isFinite(Number(item.depth))))return {nivel:'Intensidade não informada',desc:'Sem dados suficientes para estimar a intensidade.',cor:'#94a3b8',kind:'unavailable'};const n=clamp(Math.round(p.mmi),1,12);return {kind:reported?'official':'estimated',source:p.source,nivel:roman(p.mmi),desc:['Não perceptível','Muito fraco','Fraco','Leve','Moderado','Forte','Muito forte','Severo','Violento','Extremo','Extremo','Extremo'][n-1]+'.',cor:n<3?'#4ade80':n<5?'#facc15':n<7?'#fb923c':'#ef4444'};},state:()=>job?{...job.profile,demo:job.demo}:null,
+  recordIntensity(id,value,source){if(id!=null&&value!=null&&String(value).trim()!==''&&Number.isFinite(Number(value))&&Number(value)>=1&&Number(value)<=12){knownIntensity.set(id,{value:Number(value),source});if(knownIntensity.size>200)knownIntensity.delete(knownIntensity.keys().next().value);}}};
  root.SeismicCinema=api;
  root.triggerSiteChaos=(mag,context={})=>play(context.item||{mag,depth:10},context.mode||'manual');
  document.documentElement.classList.add('mg-seismic-managed');

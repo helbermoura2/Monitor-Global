@@ -9,7 +9,7 @@
   let zoom=Math.max(3,Math.min(magnitude>=5?7:10,Math.floor(Math.log2(180*111.32/radius))));
   const grid=globalThis.RuptureShakingModel?.valid(ev.shaking?.grid)?ev.shaking.grid:null;
   if(grid){
-   let spanNeeded=0,found=false;const threshold=magnitude>=5?4:3;
+   let spanNeeded=0,found=false;const preferred=magnitude>=5?4:3,maximum=Math.max(...grid.values.filter(v=>v!=null));const threshold=maximum>=preferred?preferred:(globalThis.RuptureShakingModel.minimumMmi||3);
    for(let y=0;y<grid.ny;y++)for(let x=0;x<grid.nx;x++){
     const mmi=grid.values[y*grid.nx+x];if(mmi===null||mmi<threshold)continue;
     let lng=grid.x0+x*(grid.x1-grid.x0)/(grid.nx-1),lat=grid.y0+y*(grid.y1-grid.y0)/(grid.ny-1);

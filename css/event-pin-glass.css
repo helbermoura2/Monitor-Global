@@ -18,3 +18,8 @@
 @keyframes event-pin-glass-shine {0%,100%{transform:translateX(-110%);opacity:0}20%{opacity:.7}65%{transform:translateX(110%);opacity:0}}
 @keyframes event-pin-glass-line {0%,100%{width:20%;opacity:.4}50%{width:75%;opacity:1}}
 @media(prefers-reduced-motion:reduce){.event-pin-glass::before,.event-pin-glass::after,.event-pin-active-sequence::before,.event-pin-active-sequence::after {animation:none!important;}.event-pin-glass::before,.event-pin-active-sequence::before{display:none;}.event-pin-glass::after,.event-pin-active-sequence::after{width:55%;opacity:.7;}}
+
+/* Non-seismic alerts use a steady glass sign, without flashing locator rings. */
+.event-focus-beacon:not([data-kind="earthquake"]) .event-pin-glass::before {animation:none;display:none;}
+.event-focus-beacon:not([data-kind="earthquake"]) .event-pin-glass::after {animation:none;width:55%;opacity:.7;}
+.event-area-reference.has-glass-pin > .mg-tipo-dot {border-radius:2px;background:transparent!important;box-shadow:none!important;}

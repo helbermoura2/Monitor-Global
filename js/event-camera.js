@@ -1,6 +1,14 @@
 /* Every event-to-event trip leaves the surface before approaching its destination. */
-(function(){'use strict';let lastId=null,token=0,timers=[],trip=null;const arrivalEffects=new Map();
-function cancel(keepId=null){token++;for(const t of timers)clearTimeout(t);timers=[];trip=null;for(const id of arrivalEffects.keys())if(id!==keepId)arrivalEffects.delete(id);}
+(function(){'use strict';let lastId=null,token=0,timers=[],trip=null;const arrivalEffects=new Map(),worldEffects=new Map();
+function cancel(keepId=null){if(trip?.id!==keepId)worldEffects.delete(trip?.id);token++;for(const t of timers)clearTimeout(t);timers=[];trip=null;for(const id of arrivalEffects.keys())if(id!==keepId)arrivalEffects.delete(id);}
+function worldEffect(effect){try{effect();}catch(error){console.warn('[som na visão global]',error);}}
+function releaseWorld(id){if(trip?.id!==id||eventoSelecionadoId!==id)return;trip.worldReady=true;const entry=worldEffects.get(id);worldEffects.delete(id);if(entry&&entry.until>Date.now())worldEffect(entry.effect);}
+function afterWorldView(id,effect){
+ if(id==null||typeof effect!=='function')return false;
+ for(const [key,entry]of worldEffects)if(entry.until<=Date.now())worldEffects.delete(key);
+ if(trip?.id===id&&trip.worldReady&&eventoSelecionadoId===id){worldEffect(effect);return true;}
+ worldEffects.set(id,{effect,until:Date.now()+15*60000});if(worldEffects.size>32)worldEffects.delete(worldEffects.keys().next().value);return true;
+}
 function worldZoom(latitude){if(window.GlobePreview?.state().testing)return GlobePreview.worldZoom(latitude);const width=map.getContainer().clientWidth||window.innerWidth;return Math.max(map.getMinZoom(),Math.min(1.1,Math.log2(width/512)));}
 function durationFor(id){return lastId!==null&&lastId!==id?18000:6000;}
 function enter(id,camera,arrive){
@@ -9,7 +17,8 @@ function enter(id,camera,arrive){
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&eventoSelecionadoId===id;
- const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
+ // MapLibre ignores numeric padding:0; reset every edge to avoid double compensation.
+ const ease=(o,approach=false)=>{if(valid())map[approach?'flyTo':'easeTo']({...o,bearing:0,pitch:0,padding:approach?(o.padding||{top:0,right:0,bottom:0,left:0}):window.GlobePreview?.state().testing?GlobePreview.availableRadius().padding:{top:0,right:0,bottom:0,left:0},duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true,curve:1.42,easing:t=>t*t*(3-2*t)});};
  const final=()=>{
   if(!valid())return;
   // A timer can run before the renderer's last pan frame. Finish that tiny
@@ -19,18 +28,18 @@ function enter(id,camera,arrive){
   // including the latitude limits imposed by Mercator at whole-world zoom.
   if(journey.arrive)journey.arrive();else ease(journey.camera,true);
  };
- timers.push(setTimeout(()=>{if(!valid())return;const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();},ms));
+ timers.push(setTimeout(()=>{if(!valid())return;if(ms===6000)releaseWorld(id);const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();},ms));
  if(ms===6000){final();return ms;}
  // Align with the real destination while still high above the surface. Clamping
  // its latitude made high-latitude events slide sideways during the descent.
  const current=map.getCenter(),latitude=c=>Array.isArray(c)?c[1]:c.lat;
  const zoom=window.GlobePreview?.state().testing?Math.min(worldZoom(current.lat),worldZoom(latitude(camera.center))):worldZoom();
  ease({center:[current.lng,current.lat],zoom});
- timers.push(setTimeout(()=>ease({center:journey.camera.center,zoom}),6000));
+ timers.push(setTimeout(()=>{if(!valid())return;releaseWorld(id);ease({center:journey.camera.center,zoom});},6000));
  timers.push(setTimeout(final,12000));return ms;
 }
 window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&p.id!==lastId)cancel();});
-window.addEventListener('pagehide',()=>cancel());
-window.addEventListener('load',()=>{if(!map)return;for(const name of ['dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)cancel();});},{once:true});
-window.EventCamera={enter,durationFor,cancel,worldZoom,afterArrival:(id,effect)=>arrivalEffects.set(id,effect),owns:id=>trip?.id===id&&Date.now()<trip.endsAt};
+window.addEventListener('pagehide',()=>{cancel();worldEffects.clear();});
+window.addEventListener('load',()=>{if(!map)return;for(const name of ['mousedown','dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)cancel();});},{once:true});
+window.EventCamera={enter,durationFor,cancel,worldZoom,afterWorldView,afterArrival:(id,effect)=>arrivalEffects.set(id,effect),owns:id=>trip?.id===id&&Date.now()<trip.endsAt};
 })();

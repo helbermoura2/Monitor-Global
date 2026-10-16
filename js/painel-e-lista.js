@@ -90,6 +90,7 @@ function updateFreshnessBar() {
 }
 
 function applyFilters() {
+    globalEvents.forEach(item=>window.CountryBoundaries?.apply(item));
     try { if (typeof dedupeFireAlerts === 'function') dedupeFireAlerts(); } catch (e) { console.error('[monitor] dedupeFireAlerts falhou:', e); }
     const mergedAll = buildUnifiedFeed();
     const cnt = { earthquake: 0, fire: 0, storm: 0, hurricane: 0, tornado: 0, tsunami: 0, civil: 0, wind: 0, flood: 0, volcano: 0 };
@@ -486,6 +487,7 @@ function renderSidebarList(items) {
     let grupoAtual = '';
     c.__sidebarEmptyMarkup=null;
     renderItems.forEach(rawItem => {
+        window.CountryBoundaries?.apply(rawItem);
         const item=window.EventPortuguese?.view(rawItem)||rawItem;
         const idadeH = (agora - item.time) / 36e5;
         const grupo = idadeH < 1 ? '⏱️ Última hora' : idadeH < 6 ? '🕐 1–6h atrás' : idadeH < 24 ? '🕰️ 6–24h atrás' : '🗓️ Emitido há mais de 24h';
@@ -1113,6 +1115,7 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
     try {
         const opts = {
             center: target,
+            padding:{top:0,right:0,bottom:0,left:0},
             zoom: zoomAlvo,
             pitch: 0,
             bearing: 0,
@@ -1163,6 +1166,8 @@ function softFlyToCoords(lng, lat, zoomAlvo, soft) {
 // atualizada. Centralizando aqui, só existe UM lugar pra lembrar "resetei
 // tudo que é compartilhado" antes de cada função preencher o que é do seu tipo.
 function resetPainelDetalheCompartilhado() {
+    document.getElementById('pd-warning-location')?.remove();
+    document.querySelectorAll('.pd-impact-source').forEach(el=>el.remove());
     const volcanoActivity=document.getElementById('pd-volcano-activity');if(volcanoActivity)volcanoActivity.hidden=true;
     window.RecordPresentation?.reset();
     window.TsunamiLinkedPanel?.clear();
@@ -1198,13 +1203,13 @@ function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
     if (typeof stopFeltZone === 'function') stopFeltZone();
     SeismicImpact.start({ id: current.id, lng: current.coords[0], lat: current.coords[1], mag: current.mag, depth: current.depth }, true);
     const zoom = zoomParaAreaPintada(current.coords[0], current.coords[1], Math.max(10, SeismicImpactModel.extent(current.mag, current.depth, 2.1)));
-    map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoom), zoom, duration: 2500, essential: true });
+    map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoom), zoom, padding:{top:0,right:0,bottom:0,left:0}, duration: 2500, essential: true });
     clearTimeout(window.__mgFeltZoneReturnT);
     window.__mgFeltZoneReturnT = setTimeout(() => {
         if (eventoSelecionadoId !== current.id || !map) return;
         try {
             window.SeismicFocus?.pause?.();
-            map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoomAlvo), zoom: zoomAlvo, pitch: 0, bearing: 0, duration: 2500, essential: true });
+            map.easeTo({ center: centroCompensado(current.coords[0], current.coords[1], zoomAlvo), zoom: zoomAlvo, padding:{top:0,right:0,bottom:0,left:0}, pitch: 0, bearing: 0, duration: 2500, essential: true });
         } catch (e) {}
     }, 6000);
     return true;
@@ -1259,6 +1264,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if (!silentRefresh) renderSidebarList(lastMerged);
 
     const rawItem=globalEvents[index];
+    window.CountryBoundaries?.apply(rawItem);
     const item=window.EventPortuguese?.view(rawItem)||rawItem;
     window.EventPortuguese?.ensure(rawItem).then(changed=>{if(changed&&eventoSelecionadoId===rawItem.id){const current=globalEvents.findIndex(e=>e.id===rawItem.id);if(current!==-1)showEventDetails(current,false,true);renderSidebarList(lastMerged);}});
     if(!silentRefresh)window.PresentationLimits?.begin(item,window.__mgSoftCycle&&!triggerVisualAlert?'auto':'quake');
@@ -1268,7 +1274,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     const en = calcularEnergia(item.mag);
     const his = getHistoricoRegional(lat, lng, 500, 30);
     const country = getCountryByCoords(lat, lng);
-    const paisTxt = item.pais || country.nome;
+    const paisTxt = country.nome;
 
     let titulo = item.place;
     if (item.pais) {
@@ -1283,7 +1289,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     try { enrichPainelDetalheUI(item); } catch (e) {}
 
     const regiaoIgual = paisTxt && titulo.toLowerCase().includes(paisTxt.toLowerCase());
-    document.getElementById('pd-local').textContent = `${titulo}${regiaoIgual ? '' : ' — ' + paisTxt}`;
+    document.getElementById('pd-local').textContent = `${titulo}${!paisTxt || regiaoIgual ? '' : ' — ' + paisTxt}`;
     document.getElementById('pd-horario').textContent = `${formatBrasiliaDateTime(item.time)} (${formatTime(item.time)})`;
     // NOVO: distância até sua localização real (a mesma usada no "km de você" da
     // lista lateral), agora também visível no card grande de detalhes.
@@ -1319,7 +1325,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
       const ml = document.getElementById('pd-mercalli-label');
       const el = document.getElementById('pd-energy-label');
       if (dl) dl.innerHTML = 'Profundidade <span class="estimativa-badge" style="background:rgba(74,222,128,.15);color:#86efac" title="Valor reportado pelas agências sísmicas">FONTE</span>';
-      if (ml) ml.innerHTML = 'Intensidade (MMI) <span class="estimativa-badge" title="Estimativa na região do epicentro; substituída por MMI da fonte quando disponível">EST</span>';
+      if(ml){ml.textContent=mer.kind==='unavailable'?'Intensidade (MMI)':mer.kind==='official'?'Intensidade da fonte (MMI)':'Intensidade estimada (MMI)';if(mer.kind!=='unavailable'){const badge=document.createElement('span');badge.className='estimativa-badge';badge.textContent=mer.kind==='official'?'FONTE':'EST';badge.title=mer.source||'Modelo epicentral; não confirma percepção ou danos';ml.append(' ',badge);}}
       if (el) el.innerHTML = 'Energia <span class="estimativa-badge" title="Equivalente em TNT calculado a partir da magnitude">CALCULADA</span>';
     } catch (e) {}
     const depthClass = classificarProfundidade(Math.max(0, item.depth));
@@ -1469,6 +1475,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
         try {
             map.flyTo({
                 center: centroCompensado(lng, lat, zoomAlvo),
+                padding:{top:0,right:0,bottom:0,left:0},
                 zoom: zoomAlvo,
                 pitch: 0,
                 duration: 6000,
@@ -1599,6 +1606,7 @@ function focarEventoNoMapa() {
         stopMapCamera();
         map.flyTo({
             center: centroCompensado(lng, lat, z),
+            padding:{top:0,right:0,bottom:0,left:0},
             zoom: z,
             pitch: 0,
             duration: 1200,
@@ -2030,7 +2038,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgLiveQuakeUntil = window.__mgHoldEndsAt;
     }
 
-    if (item.coords && map) {
+    if (item.coords && map && !((['storm','wind'].includes(item.type)||item.meteoalarmArea)&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea))) {
         let zoomEvento = 6;
         if (item.type === 'earthquake') {
             const rDetKm = raioDetectavel(item.mag, item.depth);
@@ -2120,8 +2128,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // "Rajada de Vento"/aviso de tempestade iam pro mapa todo no
         // aleatório exatamente por pularem isto antes). Só cai na visão
         // global quando não há NENHUM dado de localização.
-        if (item.type==='storm'||item.type==='wind') {
-            window.WeatherWarningCamera?.focus(item).then(focused=>{if(!focused&&eventoSelecionadoId===item.id&&window.EventCamera)EventCamera.enter(item.id,{center:[map.getCenter().lng,0],zoom:EventCamera.worldZoom()});}).catch(e=>console.warn('[área meteorológica]',e.message));
+        if (item.type==='storm'||item.type==='wind'||item.meteoalarmArea) {
+            window.WeatherWarningCamera?.focus(item).then(focused=>{if(!focused&&eventoSelecionadoId===item.id&&window.EventCamera)EventCamera.enter(item.id,{center:[0,0],zoom:EventCamera.worldZoom(),padding:{top:0,right:0,bottom:0,left:0}});}).catch(e=>console.warn('[área meteorológica]',e.message));
         } else if (item.municipalityLocations?.length) {
             window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
         } else if (map) {
@@ -2134,7 +2142,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // pra um aviso estadual isso podia acabar mostrando o mapa inteiro em
     // vez do lugar, pedido do usuário pra não fazer. Sem item.coords, o
     // fitArea já rodou (ou não havia dado nenhum) no ramo acima.
-    if(item.coords&&['storm','wind'].includes(item.type)&&item.hazardNature==='warning'&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length))window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
+    if(item.coords&&(['storm','wind'].includes(item.type)||item.meteoalarmArea)&&item.hazardNature==='warning'&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea))window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
     else if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }

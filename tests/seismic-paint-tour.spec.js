@@ -16,6 +16,7 @@ for(const width of [1280,390])test('sequência do epicentro à pintura respeita 
  }
  const check=await page.evaluate(()=>({remaining:SeismicPaintTour.remaining(),calls:__cameraCalls,paint:__paintCalls,startState:__mgPaintTourState,layers:['wave-front-p-line','wave-front-s-line'].map(id=>map.getLayoutProperty(id,'visibility'))}));
  expect(check.paint[0].full).toBe(true);expect(check.remaining).toBe(7000);expect(check.startState.past).toBe(true);expect(check.layers).toEqual(['none','none']);expect(check.paint.some(c=>c.finish)).toBe(true);expect(check.calls.some(c=>c.bounds?.join(',')==='-71,-21,-69,-19')).toBe(true);
+ const area=check.calls.find(c=>c.bounds?.join(',')==='-71,-21,-69,-19'),focus=check.calls.find(c=>!c.bounds&&c.zoom>=8);expect(area.zoom).toBeLessThan(focus.zoom-1);expect(area.padding).toEqual({top:0,right:0,bottom:0,left:0});expect(area.center[0]).toBeGreaterThan(-71);expect(area.center[0]).toBeLessThan(-69);expect(area.center[1]).toBeGreaterThan(-22);expect(area.center[1]).toBeLessThan(-18);
  await page.clock.runFor(7000);expect(await page.evaluate(()=>__mgPaintTourState)).toBe(null);
 });
 test('troca de seleção cancela todos os movimentos pendentes da pintura',async({page})=>{

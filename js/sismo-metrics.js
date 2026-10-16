@@ -12,6 +12,8 @@ function getHistoricoRegional(lat, lng, raio = 500, dias = 30) {
     };
 }
 function estimarMercalli(m, d) {
+    if(window.SeismicCinema?.intensitySummary)return window.SeismicCinema.intensitySummary({mag:m,depth:d});
+    if(m==null||d==null||!Number.isFinite(Number(m))||!Number.isFinite(Number(d)))return {nivel:'Intensidade não informada',desc:'Sem dados suficientes para estimar a intensidade.',cor:'#94a3b8',kind:'unavailable'};
     const b = m - Math.max(0, d) / 50;
     if (b < 2) return { nivel: "I - II", desc: "Não sentido.", cor: "#4ade80" };
     if (b < 4) return { nivel: "III - IV", desc: "Vibração leve.", cor: "#facc15" };
@@ -409,6 +411,15 @@ function zoomParaCaberRaio(lng, lat, raioKm, margem = 0.8) {
     } catch (e) { return map.getZoom(); }
 }
 
+// Geographic target shared by the camera centre and zoom. Never sample the
+// current globe transform: its cameraForBounds result depends on approach zoom.
+function paintedAreaGeoFrame(bounds){
+    const [w,s,e,n]=bounds;
+    const y=lat=>(1-Math.log(Math.tan(Math.PI/4+Math.max(-85.05112878,Math.min(85.05112878,lat))*Math.PI/360))/Math.PI)/2;
+    const north=y(n),south=y(s);
+    return {lng:(w+e)/2,lat:Math.atan(Math.sinh(Math.PI*(1-north-south)))*180/Math.PI,spanX:Math.max(1e-9,(e-w)/360),spanY:Math.max(1e-9,south-north)};
+}
+
 // Fit independently of the current globe zoom, clear of header and cards.
 let paintedAreaZoomCache=null;
 function zoomParaAreaPintada(lng,lat,raioKm,bounds=null){
@@ -435,12 +446,12 @@ function zoomParaAreaPintada(lng,lat,raioKm,bounds=null){
     try{
         const box=map.getContainer().getBoundingClientRect(),key=[lng,lat,raioKm,box.width,box.height,margem.toFixed(4),bounds?.join(',')||'radial'].join('|');
         if(paintedAreaZoomCache?.key===key)return paintedAreaZoomCache.zoom;
-        if(typeof map.cameraForBounds==='function'){
-            const points=bounds?[[bounds[0],bounds[1]],[bounds[2],bounds[3]]]:[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
-            const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),size=Math.min(box.width,box.height)*margem;
-            const camera=map.cameraForBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:{left:(box.width-size)/2,right:(box.width-size)/2,top:(box.height-size)/2,bottom:(box.height-size)/2},bearing:0,maxZoom:15});
-            if(Number.isFinite(camera?.zoom)){const zoom=Math.max(1.5,Math.min(15,camera.zoom));paintedAreaZoomCache={key,zoom};return zoom;}
-        }
+        const points=bounds?[[bounds[0],bounds[1]],[bounds[2],bounds[3]]]:[0,90,180,270].map(az=>{const [x,y]=destinoGeodesico(lat,lng,raioKm,az);return [lng+((x-lng+540)%360)-180,y];});
+        const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
+        const geographic=paintedAreaGeoFrame([Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]);
+        const size=Math.max(16,Math.min(box.width,box.height)*margem-24);
+        const fitted=Math.log2(Math.min(size/(512*geographic.spanX),size/(512*geographic.spanY)));
+        if(Number.isFinite(fitted)){const zoom=Math.max(1.5,Math.min(15,fitted));paintedAreaZoomCache={key,zoom};return zoom;}
     }catch(e){}
     return Math.max(1.5,Math.min(15,zoomParaCaberRaio(lng,lat,raioKm,margem)));
 }
@@ -587,7 +598,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
         context.cameraPhase=context.epicenterFirst?'epicenter-final':'impact-final';context.phaseUntil=until;
         protect(until);window.SeismicImpact?.finish();place();
         window.SeismicFinalSummary?.start(context,duration);
-        try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:0,bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
+        try{const focus=context.epicenterFirst?{zoom:context.epicenterZoom,center:centroCompensado(context.lng,context.lat,context.epicenterZoom)}:impactFrame(),camera={center:focus.center,zoom:focus.zoom,padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration,essential:true};if(reduceMotion)map.jumpTo(camera);else map.easeTo(camera);}catch(e){}
         waveFinalTimer=setTimeout(()=>{if(generation!==waveFrontGeneration)return;context.stage='complete';context.previousProtection=null;stopWaveFront(true);},duration+10000);
         if(context.protectUntilEnd&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(duration+10020);
     }
@@ -750,7 +761,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
                 camCenter=[camCenter[0]+(((target[0]-camCenter[0]+540)%360)-180)*fatorSuavizacao,camCenter[1]+(target[1]-camCenter[1])*fatorSuavizacao];
                 const actualCenter=map.getCenter().toArray(),zoomError=Math.abs(map.getZoom()-camZoomAtual),centerError=Math.max(Math.abs(((camCenter[0]-actualCenter[0]+540)%360)-180),Math.abs(camCenter[1]-actualCenter[1]));
                 // Settled scenes do not repaint the map for imperceptible corrections.
-                if(zoomError>.0002||centerError>.000002)map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:0 });
+                if(zoomError>.0002||centerError>.000002)map.jumpTo({ center:camCenter, zoom:camZoomAtual, padding:{top:0,right:0,bottom:0,left:0} });
             } catch (e) {}
 
             // Diagnóstico acompanha as fases da câmera sem recalcular os anéis.
@@ -768,7 +779,7 @@ function startWaveFront(lng, lat, mag, depth, originTime, opts) {
             if(stable){
                 // Finish convergence once, instead of creeping by tiny steps during idle checks.
                 const current=map.getCenter().toArray();
-                if(Math.abs(map.getZoom()-zoomAlvoBruto)>.0002||Math.max(Math.abs(((focus.center[0]-current[0]+540)%360)-180),Math.abs(focus.center[1]-current[1]))>.000002)map.jumpTo({center:focus.center,zoom:zoomAlvoBruto,padding:0});
+                if(Math.abs(map.getZoom()-zoomAlvoBruto)>.0002||Math.max(Math.abs(((focus.center[0]-current[0]+540)%360)-180),Math.abs(focus.center[1]-current[1]))>.000002)map.jumpTo({center:focus.center,zoom:zoomAlvoBruto,padding:{top:0,right:0,bottom:0,left:0}});
                 camZoomAtual=zoomAlvoBruto;camCenter=focus.center.slice();
                 waveCamRAF=null;camUltimoFrameEm=0;
                 const boundary=context.phaseUntil-Date.now();
