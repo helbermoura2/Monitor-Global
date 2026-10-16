@@ -17,12 +17,16 @@
    if(!url)return null;return window.RuptureShakingModel.ruptureProjection(await read(url),data.grid);
   }catch{return null;}finally{clearTimeout(timer);signal.removeEventListener('abort',abort);}
  }
+ async function primaryProduct(url,signal){
+  const controller=new AbortController(),abort=()=>controller.abort(),timer=setTimeout(abort,20000);signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+  try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)return null;const d=await r.json();return d.status==='available'&&['usgs-shakemap-finite','usgs-shakemap-grid'].includes(d.method)&&window.RuptureShakingModel.valid(d.grid)?d:null;}catch{return null;}finally{clearTimeout(timer);signal.removeEventListener('abort',abort);}
+ }
  function query(q,options={}){
   const channel=options.background?'background':'foreground';
   if(!q?.coords||!Number.isFinite(Number(q.mag))||q.mag<5.5||!Number.isFinite(q.time))return Promise.resolve(null);const key=signature(q),hit=cache.get(key);if(hit&&hit.until>Date.now())return Promise.resolve(hit.data);for(const job of Object.values(jobs))if(job?.key===key)return job.promise;cancel(channel);
   const u=new URL(WORKER_PROXY(''));u.pathname='/rupture-shaking';u.search='';const report=(q.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(q.source||'')?q:null),id=report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';
   for(const [k,v]of Object.entries({lat:q.coords[1],lng:q.coords[0],mag:q.mag,time:q.time,...(id?{eventId:id}:{})}))u.searchParams.set(k,String(v));
-  const controller=new AbortController(),job={key,controller};jobs[channel]=job;job.promise=(async()=>{const timer=setTimeout(()=>controller.abort(),28000);try{const r=await fetch(u,{signal:controller.signal});if(!r.ok)throw Error('Produto indisponível');const d=await r.json(),data=d.status==='available'&&['usgs-shakemap-finite','usgs-shakemap-grid'].includes(d.method)&&window.RuptureShakingModel.valid(d.grid)?d:null;if(data){const projection=await publishedRupture(data,controller.signal);if(controller.signal.aborted)return null;if(projection)data.rupture=projection;}cache.set(key,{data,until:Date.now()+(data?300000:60000)});if(cache.size>4)cache.delete(cache.keys().next().value);return data;}catch{return null;}finally{clearTimeout(timer);if(jobs[channel]===job)jobs[channel]=null;}})();return job.promise;
+  const controller=new AbortController(),job={key,controller};jobs[channel]=job;job.promise=(async()=>{const timer=setTimeout(()=>controller.abort(),42000);try{let data=await primaryProduct(u,controller.signal);if(!data&&!controller.signal.aborted)data=await window.OfficialMapSources?.query(q,controller.signal)||null;if(data){const projection=data.rupture?null:await publishedRupture(data,controller.signal);if(controller.signal.aborted)return null;if(projection)data.rupture=projection;}cache.set(key,{data,until:Date.now()+(data?.status==='available'?300000:60000)});if(cache.size>4)cache.delete(cache.keys().next().value);return data;}catch{return null;}finally{clearTimeout(timer);if(jobs[channel]===job)jobs[channel]=null;}})();return job.promise;
  }
  window.addEventListener('pagehide',()=>{cancel();cancel('background');});window.RuptureShaking={query,get,cancel};
 })();

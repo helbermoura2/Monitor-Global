@@ -9,8 +9,8 @@
  function sample(g,lng,lat){lng+=360*Math.round(((g.x0+g.x1)/2-lng)/360);const x=(lng-g.x0)/(g.x1-g.x0)*(g.nx-1),y=(lat-g.y0)/(g.y1-g.y0)*(g.ny-1);if(x<0||x>g.nx-1||y<0||y>g.ny-1)return null;const ix=Math.min(g.nx-2,Math.floor(x)),iy=Math.min(g.ny-2,Math.floor(y)),v=[g.values[iy*g.nx+ix],g.values[iy*g.nx+ix+1],g.values[(iy+1)*g.nx+ix],g.values[(iy+1)*g.nx+ix+1]];if(v.some(n=>n===null))return null;const tx=x-ix,ty=y-iy;return (v[0]*(1-tx)+v[1]*tx)*(1-ty)+(v[2]*(1-tx)+v[3]*tx)*ty;}
  // Surface projection of published finite-fault polygons. Never infer a
  // strike from magnitude, a place name, nodal planes or nearby earthquakes.
- function ruptureProjection(d,g){
-  if(!valid(g)||d?.type!=='FeatureCollection'||!Array.isArray(d.features)||d.features.length>100)return null;
+ function ruptureProjection(d,g,provider='USGS'){
+  if(!valid(g)||d?.type!=='FeatureCollection'||!Array.isArray(d.features)||d.features.length>2000)return null;
   const features=[];let count=0;
   for(const f of d.features){const geom=f?.geometry;if(!['Polygon','MultiPolygon'].includes(geom?.type))continue;
    const polygons=geom.type==='Polygon'?[geom.coordinates]:geom.coordinates;
@@ -22,7 +22,7 @@
       if(x<g.x0-1||x>g.x1+1||y<g.y0-1||y>g.y1+1)return null;line.push([x,y]);
      }
      if(line[0][0]!==line.at(-1)[0]||line[0][1]!==line.at(-1)[1]||!line.some(v=>v[0]!==line[0][0]||v[1]!==line[0][1]))return null;
-     features.push({type:'Feature',properties:{provider:'USGS',projection:true},geometry:{type:'LineString',coordinates:line}});
+     features.push({type:'Feature',properties:{provider,projection:true},geometry:{type:'LineString',coordinates:line}});
     }
    }
   }

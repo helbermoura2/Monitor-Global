@@ -4,3 +4,6 @@
 node_modules/
 test-results/
 playwright-report/
+
+# Python catalogue refresh tools
+__pycache__/

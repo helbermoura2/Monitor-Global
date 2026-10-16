@@ -34,9 +34,9 @@ async function scan(){
   const shaking=await window.RuptureShaking.query(q,{background:true});
   const current=globalEvents.find(e=>e.id===q.id);if(!eligible(current)||signature(current)!==sig)return;
   const version=shaking?.version||null;
-  checked.delete(q.id);checked.set(q.id,{version:version||previous?.version||null,due:Date.now()+(shaking?300000:60000)});
+  checked.delete(q.id);checked.set(q.id,{version:version||previous?.version||null,due:Date.now()+(shaking?.status==='available'?300000:60000)});
   if(checked.size>64)checked.delete(checked.keys().next().value);
-  if(version&&version!==previous?.version&&(!baseline.has(q.id)||previous)&&shaking.grid.values.some(v=>v!==null&&v>=3)){
+  if(version&&version!==previous?.version&&(!baseline.has(q.id)||previous)&&(shaking.grid?.values?.some(v=>v!==null&&v>=1.5)||shaking.rupture?.features?.length)){
    // A live/manual presentation already showing this quake does not need a replay.
    if(q.id!==eventoSelecionadoId||automatic())pending.set(q.id,{id:q.id,mag:q.mag,signature:sig,shaking,at:Date.now()});
    if(pending.size>8)pending.delete(pending.keys().next().value);

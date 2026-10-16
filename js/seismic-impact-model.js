@@ -48,6 +48,7 @@ function shiftedLand(polygons,minLng,maxLng){
  return bounds.flatMap(({p,lo,hi})=>[-360,0,360].filter(s=>hi+s>=minLng&&lo+s<=maxLng).map(s=>p.map(r=>r.map(([x,y])=>[x+s,y]))));
 }
 function* bands(c,land){
+ if(c.shaking?.status==='rupture-only')return; // A fault trace is not an intensity distribution.
  if(c.shaking&&globalThis.RuptureShakingModel?.valid(c.shaking.grid)){yield* RuptureShakingModel.bands(c,land);return;}
  const outer=extent(c.mag,c.depth);if(outer<.001)return;
  const ring=r=>{
