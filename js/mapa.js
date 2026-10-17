@@ -530,11 +530,18 @@ function syncAllMarkers() {
     // Performance: no zoom baixo só mostra sismos mais fortes
     const dynMin = z < 3 ? 5.5 : (z < 5 ? 4.0 : minMagnitude);
 
+    const validPoint=item=>Array.isArray(item.coords)&&item.coords.length>=2&&item.coords.slice(0,2).every(Number.isFinite)&&Math.abs(item.coords[0])<=180&&Math.abs(item.coords[1])<=90;
+    const layerFor={hurricane:'hurricanes',volcano:'volcano',tornado:'tornado',storm:'lightning',wind:'wind',flood:'flood',civil:'civil'};
+    const clusterCandidates=[...(layerVisibility.earthquakes?globalEvents.filter(ev=>validPoint(ev)&&(ev.id===eventoSelecionadoId||(ev.time>=eventDisplayCutMs(ev)&&ev.mag>=dynMin))):[]),
+        ...globalAlerts.filter(item=>layerFor[item.type]&&layerVisibility[layerFor[item.type]]&&validPoint(item)&&!item.municipalityLocations?.length&&!item.warningGeometry&&(item.time>=cut||['hurricane','volcano'].includes(item.type)))];
+    const clustered=window.MobileMapClusters?.sync(clusterCandidates,eventoSelecionadoId,z)||new Set();
+
     // --- SISMOS ---
     const wantQ = new Set();
     if (layerVisibility.earthquakes) {
         globalEvents.forEach(ev => {
             if (!Array.isArray(ev.coords) || ev.coords.length<2 || !ev.coords.slice(0,2).every(Number.isFinite) || Math.abs(ev.coords[0])>180 || Math.abs(ev.coords[1])>90) return;
+            if(clustered.has(ev.id))return;
             const selected = ev.id === eventoSelecionadoId;
             if (!selected && (ev.time < eventDisplayCutMs(ev) || ev.mag < dynMin)) return;
             wantQ.add(ev.id);
@@ -584,6 +591,7 @@ function syncAllMarkers() {
     const syncType = (store, list, builder) => {
         const want = new Set();
         list.forEach(item => {
+            if(clustered.has(item.id))return;
             if (!Array.isArray(item.coords) || item.coords.length<2 || !item.coords.slice(0,2).every(Number.isFinite) || Math.abs(item.coords[0])>180 || Math.abs(item.coords[1])>90) return;
             if (item.municipalityLocations?.length || item.warningGeometry) return;
             if (item.time < cut && !SEM_LIMITE_TEMPO.has(item.type)) return;

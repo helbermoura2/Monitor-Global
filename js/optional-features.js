@@ -37,6 +37,19 @@
    finally{adminOpening=null;}
   })();return adminOpening;
  }};
+ let demoOpening,demoGeneration=0;
+ const demoStub={isActive:()=>false,stop(){demoGeneration++;},cancelForRealEvent(){demoGeneration++;}};
+ async function demo(method,args){
+  const token=demoGeneration;
+  try{
+   if(!demoOpening)demoOpening=(async()=>{await asset('css/card-effect-demo.css?v=20261017-mobile-six');await asset('js/card-effect-demo.js?v=20261017-mobile-six');})().finally(()=>demoOpening=null);
+   await demoOpening;
+   if(token!==demoGeneration||document.hidden)return false;
+   return window.CardEffectDemo[method](...args);
+  }catch(error){failure(error);return false;}
+ }
+ demoStub.open=(...args)=>demo('open',args);demoStub.preview=(...args)=>demo('preview',args);
+ window.CardEffectDemo=demoStub;
  function selected(){
   try{EventStore.syncFromLegacy();const item=EventStore.getSelected();if(item)return item;}catch(e){}
   const id=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;

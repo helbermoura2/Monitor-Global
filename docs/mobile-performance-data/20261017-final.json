@@ -1,0 +1,65 @@
+[
+  {
+    "dcl": 2040.800000011921,
+    "catalog": 800,
+    "cards": 30,
+    "markers": 12,
+    "firstRenderMs": 246.09999999403954,
+    "repeatMs": [
+      23.400000005960464,
+      8.399999976158142,
+      11.300000011920929,
+      8.900000005960464,
+      6
+    ],
+    "nodes": 1702,
+    "scriptsAndStyles": {
+      "count": 215,
+      "bytes": 3316241
+    },
+    "particlesWeak": 135,
+    "mainHeapBytes": 21992712
+  },
+  {
+    "dcl": 2089.2999999821186,
+    "catalog": 800,
+    "cards": 30,
+    "markers": 12,
+    "firstRenderMs": 212.40000000596046,
+    "repeatMs": [
+      17.200000017881393,
+      6.699999988079071,
+      9.900000005960464,
+      5.699999988079071,
+      6.800000011920929
+    ],
+    "nodes": 1703,
+    "scriptsAndStyles": {
+      "count": 215,
+      "bytes": 3316241
+    },
+    "particlesWeak": 135,
+    "mainHeapBytes": 22420260
+  },
+  {
+    "dcl": 2047.9000000059605,
+    "catalog": 800,
+    "cards": 30,
+    "markers": 12,
+    "firstRenderMs": 221.69999998807907,
+    "repeatMs": [
+      17.200000017881393,
+      8.099999994039536,
+      6.5999999940395355,
+      4.800000011920929,
+      5.5
+    ],
+    "nodes": 1703,
+    "scriptsAndStyles": {
+      "count": 215,
+      "bytes": 3316241
+    },
+    "particlesWeak": 135,
+    "mainHeapBytes": 21982256
+  }
+]

@@ -5,7 +5,7 @@
  function create(mobile,hints=navigator){
   const limited=(hints.deviceMemory>0&&hints.deviceMemory<=2)||(hints.hardwareConcurrency>0&&hints.hardwareConcurrency<=2);
   const economy=()=>!!window.MobileEnergyBudget?.economy();
-  let level=mobile||limited||economy()?1:0,since=null,total=0,slow=0,warmup=null;
+  let level=limited?2:mobile||economy()?1:0,since=null,total=0,slow=0,warmup=null;
   const arrays=[];
   const policy={
    get name(){return levels[level].name;},get resolution(){return levels[level].resolution;},

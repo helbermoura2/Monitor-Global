@@ -409,6 +409,7 @@ function marcarEventoComoVisto(id, el){
 }
 
 const LIST_RENDER_CAP = 120; // evita milhares de nós DOM num dia agitado
+let mobileListLimit=30,mobileListFilter='',mobileListObserver=null;
 const sidebarCardStates=new WeakMap();
 function setSidebarText(node,text){if(node&&node.textContent!==text)node.textContent=text;}
 function clearSidebarCardTimer(node){
@@ -454,7 +455,12 @@ function renderSidebarList(items) {
     const agora = Date.now();
     const totalItems = items ? items.length : 0;
     // Cap de render: mantém lastMerged completo (filtros/Story), só limita o DOM
-    const renderItems = totalItems > LIST_RENDER_CAP ? items.slice(0, LIST_RENDER_CAP) : (items || []);
+    const mobileList=matchMedia('(max-width:900px)').matches;
+    const filterKey=[sidebarFilter,geoFilter,minMagnitude,soImportantes,soCriticos,...(window.MobileEventChips?.state?.()||[])].join('|');
+    if(filterKey!==mobileListFilter){mobileListFilter=filterKey;mobileListLimit=30;}
+    mobileListObserver?.disconnect();mobileListObserver=null;
+    const renderLimit=mobileList?mobileListLimit:LIST_RENDER_CAP;
+    const renderItems = totalItems > renderLimit ? items.slice(0, renderLimit) : (items || []);
 
     const existingCards=new Map(),existingHeaders=new Map();
     for(const node of c.children){
@@ -642,11 +648,17 @@ function renderSidebarList(items) {
         setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));
         desired.push(div);
     });
-    if (totalItems > LIST_RENDER_CAP) {
+    if (totalItems > renderLimit) {
         const more=existingHeaders.get('more')||document.createElement('div');
         if(!more.dataset.sidebarKey){more.dataset.sidebarKey='more';more.className='group-header';}
         if(!more.style.cssText)more.style.cssText='text-align:center;color:#94a3b8;font-size:11px;padding:10px 8px;';
-        setSidebarText(more,'Mostrando '+LIST_RENDER_CAP+' de '+totalItems+' — use filtros (tipo, M4.5+, geo) para refinar');
+        if(mobileList){
+            let button=more.querySelector('button');
+            if(!button){more.replaceChildren();button=document.createElement('button');button.type='button';button.className='sidebar-load-more';more.append(button);}
+            setSidebarText(button,'Carregar mais · '+Math.min(renderLimit,totalItems)+' de '+totalItems);
+            button.onclick=()=>{mobileListLimit+=30;renderSidebarList(items);};
+            if(typeof IntersectionObserver==='function'){const observer=new IntersectionObserver(entries=>{if(mobileListObserver===observer&&entries.some(e=>e.isIntersecting)){observer.disconnect();button.click();}},{rootMargin:'100px'});mobileListObserver=observer;observer.observe(more);}
+        }else setSidebarText(more,'Mostrando '+renderLimit+' de '+totalItems+' — use filtros (tipo, M4.5+, geo) para refinar');
         desired.push(more);
     }
     // Retira apenas os registros fora do filtro/limite; move só os que mudaram de posição.

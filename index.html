@@ -45,8 +45,8 @@
 <!-- MapLibre GL hospedado localmente (vendor/) em vez do unpkg — o mapa é o
      coração do app; depender de um CDN externo pra ele carregar é um ponto
      único de falha desnecessário quando o arquivo cabe tranquilo no repo. -->
-<link href='vendor/maplibre-gl.css' rel='stylesheet' />
-<script defer src='vendor/maplibre-gl.js'></script>
+<link href='vendor/maplibre-gl.css?v=1dae8925ee59' rel='stylesheet' />
+<script defer src='vendor/maplibre-gl.js?v=8eb4bc2a47ea'></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
@@ -391,10 +391,12 @@
 <script defer src="js/data-freshness.js?v=20261017-shared-sources"></script>
 <script defer src="js/nucleo-estado.js?v=20261017-shared-sources"></script>
 <script defer src="js/audio.js?v=20261016-world-audio"></script>
-<script defer src="js/mapa.js?v=20261015-screen-centering"></script>
+<link rel="stylesheet" href="css/mobile-performance.css?v=20261017-mobile-six">
+<script defer src="js/mobile-map-clusters.js?v=20261017-mobile-six"></script>
+<script defer src="js/mapa.js?v=20261017-mobile-six"></script>
 <link rel="stylesheet" href="css/globe-preview.css?v=20261017-light-globe">
 <script defer src="js/globe-space-model.js?v=20261017-light-globe"></script>
-<script defer src="js/globe-space.js?v=20261017-light-globe"></script>
+<script defer src="js/globe-space.js?v=20261017-mobile-six"></script>
 <script defer src="js/globe-preview.js?v=20261017-light-globe"></script>
 <script defer src="js/event-portuguese.js?v=20261016-tsunami-priority"></script>
 <script defer src="js/country-boundaries.js?v=20261015-quality"></script>
@@ -419,20 +421,18 @@
 <script defer src="js/feed-utils.js?v=20261009-presentation-limit"></script>
 <script defer src="js/confianca-fontes.js?v=20261009-numbers-revisions"></script>
 <link rel="stylesheet" href="css/optional-features.css?v=20261009-on-demand">
-<script defer src="js/optional-features.js?v=20261017-light-globe"></script>
+<script defer src="js/optional-features.js?v=20261017-mobile-six"></script>
 <script defer src="js/full-screen-effects.js?v=20261016-live-effects"></script>
-<script defer src="js/card-effect-quality.js?v=20261009-dex-economy"></script>
+<script defer src="js/card-effect-quality.js?v=20261017-mobile-six"></script>
 <script defer src="js/card-cinema-film.js?v=20261009-adaptive-quality"></script>
 <script defer src="js/card-weather-physics.js?v=20261009-adaptive-quality"></script>
 <script defer src="js/card-artifact-effects.js?v=20261009-adaptive-quality"></script>
 <script defer src="js/card-event-typography.js?v=20261009-adaptive-quality"></script>
-<script defer src="js/cinematic-card.js?v=20261016-live-effects"></script>
+<script defer src="js/cinematic-card.js?v=20261017-mobile-six"></script>
 <script defer src="js/painel-fx.js?v=20261013-arrival-volcano"></script>
 <link rel="stylesheet" href="css/seismic-cinema.css?v=20261008-persistent-collapse">
 <script defer src="js/seismic-cinema.js?v=20261016-live-effects"></script>
-<link rel="stylesheet" href="css/card-effect-demo.css?v=20261010-seismic-scenarios">
 <script defer src="js/seismic-scenario-demo.js?v=20261016-multi-source"></script>
-<script defer src="js/card-effect-demo.js?v=20261016-coastal-model1"></script>
 <script defer src="js/population-exposure.js?v=20261016-card-flip"></script>
 <script defer src="js/tsunami-priority.js?v=20261016-tsunami-priority"></script>
 <script defer src="js/new-event-priority.js?v=20261016-tsunami-priority"></script>
@@ -448,9 +448,9 @@
 <script defer src="js/aftershock-sequence.js?v=20261016-places-sequence"></script>
 <script defer src="js/tsunami-presentation.js?v=20261016-coastal-model1"></script>
 <script defer src="js/tsunami-linked-panel.js?v=20261016-tsunami-priority"></script>
-<script defer src="js/mobile-event-chips.js?v=20261016-mobile-magnitude"></script>
+<script defer src="js/mobile-event-chips.js?v=20261017-mobile-six"></script>
 <script defer src="js/weather-warning-camera.js?v=20261015-meteoalarm-area"></script>
-<script defer src="js/painel-e-lista.js?v=20261016-no-polls"></script>
+<script defer src="js/painel-e-lista.js?v=20261017-mobile-six"></script>
 <script defer src="js/kpis-ui.js?v=20261009-numbers-revisions"></script>
 <script defer src="js/regional-seismic.js?v=20261001-regional"></script>
 <script defer src="js/sismo-fontes.js?v=20261016-hazard-workbench"></script>
@@ -605,7 +605,7 @@
 <link rel="stylesheet" href="css/correlation.css">
 <script defer src="js/correlation-engine.js?v=20261010-tsunami-link"></script>
 <link rel="stylesheet" href="css/monitor-global-70.css">
-<script defer src="vendor/jszip.min.js"></script>
+<script defer src="vendor/jszip.min.js?v=acc7e41455a8"></script>
 <script defer src="js/monitor-global-70.js?v=20261009-numbers-revisions"></script>
 
 <link rel="stylesheet" href="css/radar-v71.css">
