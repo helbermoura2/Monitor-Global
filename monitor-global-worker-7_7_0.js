@@ -1172,8 +1172,17 @@ export class EarthquakeAlertDelivery {
                 },
                 put: async (key, value, opts) => {
                     if (key === TELEGRAM_SENT_KV_KEY) {
-                        // 24 mil caracteres cabem no limite mesmo com UTF-8 de quatro bytes.
-                        const parts = Array.from({length: Math.ceil(value.length / 24000)}, (_, i) => value.slice(i * 24000, (i + 1) * 24000));
+                        // Valor cabe folgado no limite de 2 MiB por linha do armazenamento
+                        // SQLite do Durable Object (classe migrada em new_sqlite_classes) —
+                        // 400 mil caracteres ainda deixa margem mesmo com UTF-8 de quatro
+                        // bytes. Esse fatiamento era herdado do limite de 128 KiB por valor
+                        // do backend clássico de key-value, de antes da migração; mantido
+                        // como rede de segurança, mas com blocos bem maiores, porque
+                        // saveSentAlerts regrava o histórico inteiro a cada chamada (e é
+                        // chamado várias vezes por execução do cron, a cada ~15min) — com
+                        // blocos de 24 mil caracteres isso multiplicava uma única gravação
+                        // lógica em dezenas de linhas gravadas no Durable Object por vez.
+                        const parts = Array.from({length: Math.ceil(value.length / 400000)}, (_, i) => value.slice(i * 400000, (i + 1) * 400000));
                         const write = async target => {
                             for (let i = 0; i < parts.length; i++) await target.put(key + ':part:' + i, parts[i]);
                             await target.put(key + ':chunks', parts.length);
@@ -1380,13 +1389,19 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     // One-minute checks for M5.5+ in the first hour; five minutes thereafter.
-    for (const root of selectImageRefreshes(sentRecords)) {
+    // A single save after the loop (not one per root) avoids rewriting the
+    // whole history up to 3x per cron tick for what's usually just a
+    // checked-at timestamp refresh -- losing an unsaved root mid-loop to a
+    // crash only costs a redundant re-check next tick, never a duplicate or
+    // missed Telegram edit (telegramEditAlert is itself version-guarded).
+    const dueForRefresh = selectImageRefreshes(sentRecords);
+    for (const root of dueForRefresh) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
         const shaking=await queryImageShaking(ev);root.imageShakingCheckedAt=Date.now();
         const previousShakingVersion=root.imageShakingVersion||'unavailable';
         // Do not replace a published grid with a radial model during a provider outage.
-        if(!validImageShaking(shaking)&&previousShakingVersion!=='unavailable'){await saveSentAlerts(request,sentRecords,env);continue;}
+        if(!validImageShaking(shaking)&&previousShakingVersion!=='unavailable')continue;
         if(validImageShaking(shaking))ev.shaking=shaking;
         const nextShakingVersion=shakingVersion(ev.shaking);
         let data = await queryImageExposure(ev, env);
@@ -1394,15 +1409,15 @@ async function runTelegramM6Alerts(request, env) {
         const keepKnownPopulation = String(root.imageExposureVersion || '').startsWith('[') && (!validImageExposure(data)||exposureQuality(data)<Math.max(exposureQuality(ev.imageExposure),exposureVersionQuality(root.imageExposureVersion)));
         if (keepKnownPopulation) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
-            else {await saveSentAlerts(request, sentRecords, env);continue;}
+            else continue;
         }
         if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'cartographic-v11-full-hd') {
             ev.imageExposure = data;
             try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'cartographic-v11-full-hd'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
-        await saveSentAlerts(request, sentRecords, env);
     }
+    if (dueForRefresh.length) await saveSentAlerts(request, sentRecords, env);
     await telegramFlushRevisionNotices(request, env, sentRecords);
     if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
