@@ -4,7 +4,7 @@ async function boot(page,query=''){
  await page.goto('/__optional-panels'+query);
  await page.addScriptTag({path:'js/optional-features.js'});
 }
-test('public startup defers private history and solar panel; repeated opens share assets',async({page})=>{
+test('public startup defers private history; repeated opens share assets',async({page})=>{
  const requests=[];page.on('request',r=>requests.push(r.url()));await boot(page);
  expect(requests.filter(u=>/telegram-history|solar-system/.test(u))).toEqual([]);
  expect(await page.evaluate(()=>TelegramAdmin.isAuthenticated())).toBe(false);
@@ -17,11 +17,7 @@ test('public startup defers private history and solar panel; repeated opens shar
  await page.evaluate(()=>TelegramAdmin.open());await expect(page.locator('#tg-admin-dialog')).toBeVisible();
  expect(requests.filter(u=>/js\/telegram-history/.test(u))).toHaveLength(1);
  await page.getByRole('button',{name:'Fechar histórico'}).click();
- await page.evaluate(()=>Promise.all([SolarSystem.open(),SolarSystem.open()]));
- await expect(page.getByRole('dialog',{name:'Sistema Solar em escala real'})).toBeVisible();
- expect(requests.filter(u=>/js\/solar-system/.test(u))).toHaveLength(1);
- await page.getByRole('button',{name:'Fechar Sistema Solar'}).click();
- await expect(page.locator('#solar-system-panel')).toHaveCount(0);
+ expect(await page.evaluate(()=>typeof window.SolarSystem)).toBe('undefined');
 });
 test('admin link opens login after deferred loading without storing a token',async({page})=>{
  await boot(page,'?admin=1');await expect(page.locator('#tg-admin-key')).toBeVisible();

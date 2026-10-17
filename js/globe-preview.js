@@ -65,7 +65,6 @@
   for(const [value,label]of [['globe','Usar globo'],['mercator','Usar mapa plano']]){
    const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-pressed',String(mode===value));b.onclick=()=>setMode(value);panel.append(b);
   }
-  const solar=document.createElement('button');solar.type='button';solar.textContent='Sistema Solar · escala real';solar.onclick=()=>{close();window.SolarSystem?.open();};panel.append(solar);
   const planet=document.createElement('button');planet.type='button';planet.textContent='Centralizar planeta';planet.onclick=()=>{close();setMode('globe');overview();};panel.append(planet);
   const exit=document.createElement('button');exit.type='button';exit.className='globe-preview-close';exit.setAttribute('aria-label','Fechar visualização do mapa');exit.textContent='×';exit.onclick=close;panel.append(exit);document.body.append(panel);exit.focus();
  }

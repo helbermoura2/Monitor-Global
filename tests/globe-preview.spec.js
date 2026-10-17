@@ -36,19 +36,14 @@ for(const width of [1280,390])test.describe('globe '+width,()=>{
   for(const p of pins)if(p.id!=='globe-2'){expect(p.error).toBeLessThan(2);expect(p.visibility).toBe('visible');}
   expect(pins.find(p=>p.id==='globe-2').visibility).toBe('hidden');
   if(width===1280){await page.locator('#chip-map').click();await expect(page.locator('#chip-map')).toHaveAttribute('aria-pressed','true');expect(await page.evaluate(()=>sidebarFilter)).toBe('all');await page.locator('#chip-planet').click();await expect(page.locator('#chip-planet')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#chip-radar')).toBeHidden();await expect(page.locator('[data-f=storm]')).toBeHidden();}else await page.evaluate(()=>GlobePreview.overview());await expect.poll(()=>page.evaluate(()=>Math.abs(map.getZoom()-GlobePreview.worldZoom()))).toBeLessThan(0.001);await page.waitForFunction(()=>GlobeSpace.state().epoch&&document.getElementById('globe-space-canvas')?.dataset.epoch);
-  expect(await page.evaluate(()=>GlobeSpace.state().bodies.length)).toBe(9);expect(await page.evaluate(()=>getComputedStyle(document.getElementById('globe-space-canvas')).pointerEvents)).toBe('none');expect(await page.evaluate(()=>Math.abs(EventCamera.worldZoom()-GlobePreview.worldZoom()))).toBeLessThan(.001);expect(await page.evaluate(()=>Math.abs(Number(document.getElementById('globe-space-canvas').dataset.epoch)-Date.now()))).toBeLessThan(2000);
+  expect(await page.evaluate(()=>GlobeSpace.state().bodies.length)).toBe(0);expect(await page.evaluate(()=>getComputedStyle(document.getElementById('globe-space-canvas')).pointerEvents)).toBe('none');expect(await page.evaluate(()=>Math.abs(EventCamera.worldZoom()-GlobePreview.worldZoom()))).toBeLessThan(.001);expect(await page.evaluate(()=>Math.abs(Number(document.getElementById('globe-space-canvas').dataset.epoch)-Date.now()))).toBeLessThan(2000);
   const framing=await page.evaluate(()=>{const c=map.getCenter(),p=map.project(c),r=GlobePreview.availableRadius().radius;let actual=0;for(const az of [0,90,180,270])for(let d=40;d<=100;d+=4){const q=destinoGeodesico(c.lat,c.lng,d*Math.PI/180*6371,az),s=map.project(q);actual=Math.max(actual,Math.hypot(s.x-p.x,s.y-p.y));}return {actual,r,zoom:map.getZoom(),center:[p.x,p.y],expected:GlobePreview.availableRadius().center};});
   expect(framing.actual).toBeGreaterThan(framing.r*.85);expect(framing.actual).toBeLessThan(framing.r*1.08);expect(framing.zoom).toBeGreaterThan(.7);expect(framing.center[0]).toBeCloseTo(framing.expected[0],0);expect(framing.center[1]).toBeCloseTo(framing.expected[1],0);
   if(fs.existsSync('/tmp/globe-world-tile.jpg'))await page.waitForFunction(()=>map.isSourceLoaded('qa-world'),null,{timeout:5000});await page.waitForTimeout(500);await page.screenshot({path:'/tmp/globe-preview-'+width+'.png'});
-  // Planetary positions now live in a separate, heliocentric physical-scale explorer.
-  await page.evaluate(()=>GlobePreview.open());await page.getByRole('button',{name:'Sistema Solar · escala real',exact:true}).click();
-  await expect(page.getByRole('dialog',{name:'Sistema Solar em escala real'})).toBeVisible();await page.waitForFunction(()=>SolarSystem.state().rows.length===10);
-  const solar=await page.evaluate(()=>SolarSystem.state());expect(solar.center).toEqual([0,0]);expect(solar.radius).toBe(34);expect(solar.rows.find(b=>b.id==='Sun').distance).toBe(0);
-  await page.getByRole('combobox',{name:'Explorar astro'}).selectOption('Earth');await expect(page.locator('[data-solar-info]')).toContainText('Terra');
-  const earth=await page.evaluate(()=>SolarSystem.state());expect(earth.radius).toBe(.003);expect(earth.rows.find(b=>b.id==='Earth').distance).toBeGreaterThan(.98);
-  await page.getByRole('button',{name:'Aproximar Sistema Solar',exact:true}).click();await expect.poll(()=>page.evaluate(()=>SolarSystem.state().radius)).toBe(.0015);
-  await page.getByRole('button',{name:'Todos os planetas',exact:true}).click();await expect.poll(()=>page.evaluate(()=>SolarSystem.state().radius)).toBe(34);
-  await page.screenshot({path:'/tmp/solar-system-'+width+'.png'});await page.getByRole('button',{name:'Fechar Sistema Solar',exact:true}).click();await expect(page.locator('#solar-system-panel')).toHaveCount(0);
+  await page.evaluate(()=>GlobePreview.open());
+  await expect(page.getByRole('button',{name:'Sistema Solar · escala real',exact:true})).toHaveCount(0);
+  expect(await page.evaluate(()=>performance.getEntriesByType('resource').some(r=>/astronomy-engine|solar-system/.test(r.name)))).toBe(false);
+  await page.locator('.globe-preview-close').click();
 
   // Native drag must rotate the globe without being cancelled by preview code.
   const x=width===390?160:600,y=460,old=await page.evaluate(()=>map.getCenter().lng);

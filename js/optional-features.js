@@ -25,7 +25,7 @@
  window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261016-live-effects','js/site-effect-demo.js?v=20261016-live-effects'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
  // Menu-only panels do not need code, styles or DOM during public startup.
  // Keep small entry points for existing menu handlers; failed loads can retry.
- let adminOpening,solarOpening;
+ let adminOpening;
  window.TelegramAdmin={isAuthenticated:()=>false,open(){
   if(adminOpening)return adminOpening;
   adminOpening=(async()=>{
@@ -36,14 +36,6 @@
    }catch(error){failure(error);}
    finally{adminOpening=null;}
   })();return adminOpening;
- }};
- window.SolarSystem={open(){
-  if(solarOpening)return solarOpening;
-  solarOpening=(async()=>{
-   try{await asset('js/solar-system.js?v=20261017-lazy-panels');return window.SolarSystem.open();}
-   catch(error){failure(error);}
-   finally{solarOpening=null;}
-  })();return solarOpening;
  }};
  function selected(){
   try{EventStore.syncFromLegacy();const item=EventStore.getSelected();if(item)return item;}catch(e){}
