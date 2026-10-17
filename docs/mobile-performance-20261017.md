@@ -41,3 +41,19 @@ Solar pelo menu, calcular os dez astros, fechar, arrastar o globo e persistir a
 projeção na recarga. O preparo desse teste agora aguarda a base de países e aplica
 as bandeiras aos registros de teste antes de comparar o estado do catálogo, evitando
 uma disputa entre identificação geográfica assíncrona e a asserção de preservação.
+
+## Atualização: retirada do Sistema Solar
+
+A pedido do usuário, o explorador heliocêntrico foi retirado do menu e do código.
+Também foi removido o download automático do Astronomy Engine: o fundo só exibia
+estrelas decorativas, mas ainda calculava posições de nove astros invisíveis.
+As estrelas mantêm a projeção e passam a usar a fórmula de tempo sideral médio,
+validada contra o exemplo de Meeus de 10/04/1987. Enquadramento, satélite, pins,
+pinturas e gestos continuam no mesmo MapLibre.
+
+Nova execução do mesmo roteiro (três contextos móveis): 215 recursos e 3.322.296
+bytes JS/CSS em cada rodada, contra 216 e 3.441.911 na medição anterior. Redução
+líquida: **119.615 bytes descomprimidos**, aproximadamente 3,5%. DOMContentLoaded
+mediano: 2.210 ms; bloqueio mediano: 1.538 ms. Esses tempos variam e não demonstram
+redução de CPU nem justificam promessa de fluidez em aparelhos físicos. O ganho
+confirmado é a retirada da biblioteca e do cálculo de astros não exibidos.

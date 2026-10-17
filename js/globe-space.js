@@ -1,17 +1,11 @@
-/* Lightweight celestial overlay: no network ephemerides, no map input handlers. */
+/* Decorative stars only: no astronomy download or map input handlers. */
 (function(){'use strict';
- let canvas,ctx,timer,frame,loading,data,lastDraw=0,active=false,generation=0;
+ let canvas,ctx,timer,frame,epoch=0,lastDraw=0,active=false;
  const stars=[];let seed=71837;const rand=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
  for(let i=0;i<650;i++){const z=rand()*2-1,a=rand()*Math.PI*2,r=Math.sqrt(1-z*z);stars.push({direction:[r*Math.cos(a),r*Math.sin(a),z],size:rand()<.07?1.25:.35+rand()*.6,alpha:.25+rand()*.55});}
- function load(){return loading||(loading=new Promise((resolve,reject)=>{
-  if(window.Astronomy){resolve();return;}
-  const script=document.createElement('script');script.src='vendor/astronomy-engine-2.1.19.min.js';script.onload=resolve;script.onerror=()=>{script.remove();loading=null;reject(Error('Cálculo celeste indisponível'));};document.head.append(script);
- }));}
- function stop(){active=false;generation++;clearInterval(timer);cancelAnimationFrame(frame);frame=null;map?.off('render',schedule);canvas?.remove();canvas=ctx=null;data=null;}
- async function start(){
-  stop();active=true;const token=generation;
-  try{await load();}catch(_){return;}
-  if(!active||token!==generation)return;
+ function stop(){active=false;clearInterval(timer);cancelAnimationFrame(frame);frame=null;map?.off('render',schedule);canvas?.remove();canvas=ctx=null;epoch=0;lastDraw=0;}
+ function start(){
+  stop();active=true;
   canvas=document.createElement('canvas');canvas.id='globe-space-canvas';canvas.setAttribute('aria-hidden','true');ctx=canvas.getContext('2d');map.getContainer().append(canvas);
   map.on('render',schedule);timer=setInterval(schedule,1000);schedule();
  }
@@ -24,8 +18,8 @@
   if(!alpha||map.getPitch()>5){ctx.clearRect(0,0,canvas.width,canvas.height);return;}
   if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';}
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
-  const epoch=Date.now();if(!data||Math.abs(epoch-data.epoch)>=60000)data=GlobeSpaceModel.ephemeris(Astronomy,epoch);
-  const sidereal=Astronomy.SiderealTime(new Date(epoch)),center=map.getCenter(),pixel=map.project(center),s=GlobeSpaceModel.sphere(zoom,center.lat,h,map.getVerticalFieldOfView());
+  epoch=Date.now();
+  const sidereal=GlobeSpaceModel.siderealTime(epoch),center=map.getCenter(),pixel=map.project(center),s=GlobeSpaceModel.sphere(zoom,center.lat,h,map.getVerticalFieldOfView());
   const view={...s,x:pixel.x,y:pixel.y,lng:center.lng,lat:center.lat,bearing:map.getBearing()};
   // Sparse, deterministic decorative stars, anchored in the equatorial frame.
   for(const star of stars.slice(0,w<600?350:650)){
@@ -42,5 +36,5 @@
   canvas.dataset.epoch=String(epoch);canvas.dataset.bodies='';
  }
  window.addEventListener('pagehide',stop);window.addEventListener('pageshow',e=>{if(e.persisted&&window.GlobePreview?.state().testing)start();});document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
- window.GlobeSpace={start,stop,load,state:()=>({active,epoch:data?.epoch||null,bodies:data?.bodies.map(b=>({id:b.id,phase:b.phase,direction:b.direction}))||[]})};
+ window.GlobeSpace={start,stop,state:()=>({active,epoch,bodies:[]})};
 })();
