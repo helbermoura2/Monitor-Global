@@ -130,7 +130,7 @@
    body=n('div',null,'tg-admin-body');dialog.append(head,message,body);document.body.append(dialog);
    dialog.addEventListener('close',clearPreview);
    window.TelegramAdmin={open,isAuthenticated:()=>authorized};
-   if(new URLSearchParams(location.search).get('admin')==='1')login();
+   // The optional loader opens the requested panel after initialization.
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
