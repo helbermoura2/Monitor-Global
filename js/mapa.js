@@ -206,6 +206,8 @@ function initMap() {
         preserveDrawingBuffer: true
     });
 
+    window.AppRecovery?.attach(map);
+
     // Attribution removido: o app é de uso pessoal, então o botão "ⓘ" de
     // créditos (Esri/HERE/OSM etc.) do MapLibre não precisa aparecer no mapa.
 
@@ -256,29 +258,6 @@ function initMap() {
             attribution: '© Esri, HERE, Garmin, © OpenStreetMap contributors'
         });
         map.addLayer({ id: 'esri-boundaries-places', type: 'raster', source: 'esri-boundaries-places' });
-
-        // Retry pros dois tiles-base (satélite/fronteiras) do ArcGIS: sem
-        // isto, uma falha de rede passageira no servidor deles (visto na
-        // prática -- "o mapa as vezes some") deixava o mapa pra sempre sem
-        // base nenhuma, só com o fundo escuro + camadas vetoriais por cima
-        // (placas tectônicas, marcadores) até o usuário recarregar a
-        // página inteira. setTiles() força o MapLibre a re-pedir os tiles
-        // da fonte; limitado a 1 retry a cada 8s por fonte pra não
-        // martelar o servidor numa queda real/prolongada.
-        const baseTileRetryAt = { satellite: 0, 'esri-boundaries-places': 0 };
-        map.on('error', e => {
-            const id = e?.sourceId;
-            if (!(id in baseTileRetryAt)) return;
-            const now = Date.now();
-            if (now - baseTileRetryAt[id] < 8000) return;
-            baseTileRetryAt[id] = now;
-            setTimeout(() => {
-                try {
-                    const src = map.getSource(id);
-                    if (src && typeof src.setTiles === 'function') src.setTiles(src.tiles);
-                } catch (err) {}
-            }, 4000);
-        });
 
         // Ruas via OpenFreeMap (vetor, só aparece em zoom alto)
         map.addSource('ofm', {

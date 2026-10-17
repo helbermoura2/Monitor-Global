@@ -33,8 +33,8 @@
       if (!button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
       button.addEventListener('click', () => button.setAttribute('aria-pressed', button.classList.contains('active') || button.classList.contains('chip-toggle') ? 'true' : 'false'));
     });
-    document.getElementById('app-status-retry')?.addEventListener('click', () => location.reload());
-    document.getElementById('empty-map-retry')?.addEventListener('click', () => location.reload());
+    document.getElementById('app-status-retry')?.addEventListener('click', () => window.AppRecovery?.retryFeeds());
+    document.getElementById('empty-map-retry')?.addEventListener('click', () => window.AppRecovery?.retryFeeds());
     window.addEventListener('keydown', event => {
       if (event.key !== 'Escape') return;
       document.body.classList.remove('mobile-events-open', 'mobile-fc-open');

@@ -96,7 +96,7 @@ function renderDetails(){
  }
  body.append(node('p','Falha de um produto não significa que a instituição inteira esteja indisponível. As consultas pausam com a aba em segundo plano; ao voltar, os dados podem aparecer como atrasados até a próxima consulta.','mg-fresh-note'));
  body.append(node('p','Vulcões: catálogo a cada hora, com verificações mais rápidas de erupção ou escalada. Radar desativado e integrações pausadas não contam como falha.','mg-fresh-note'));
- body.scrollTop=scroll;
+ root.AppRecovery?.mountFeeds(body);body.scrollTop=scroll;
 }
 function render(){if(typeof document==='undefined')return;const badge=document.getElementById('ao-vivo-badge');if(!badge)return;
  const result=summary(),label=badge.querySelector('.av-label'),elapsed=badge.querySelector('.av-age');badge.dataset.freshness=result.state;if(label)label.textContent=result.label;if(elapsed)elapsed.textContent=result.at?'há '+age(result.at):'';
