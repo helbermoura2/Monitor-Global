@@ -38,7 +38,7 @@ globalThis.fetch=async(input,options)=>{
 class Store {
  data=new Map();
  async get(key){if(Array.isArray(key))return new Map(key.filter(k=>this.data.has(k)).map(k=>[k,structuredClone(this.data.get(k))]));return structuredClone(this.data.get(key));}
- async put(key,value){if(typeof key==='object'){assert(Object.keys(key).length<=128);for(const [k,v] of Object.entries(key))await this.put(k,v);return;}assert(Buffer.byteLength(String(value))<128*1024);this.data.set(key,structuredClone(value));}
+ async put(key,value){if(typeof key==='object'){assert(Object.keys(key).length<=128);for(const [k,v] of Object.entries(key))await this.put(k,v);return;}assert(Buffer.byteLength(String(value))<2*1024*1024,'Chave+valor combinados devem caber no limite de 2 MB por linha das classes SQLite de Durable Object');this.data.set(key,structuredClone(value));}
  async delete(key){for(const k of Array.isArray(key)?key:[key])this.data.delete(k);}
 }
 const storage=new Store(),kv=new Store();
@@ -130,7 +130,7 @@ await run(300001);assert.equal(messages.length,count,'A temporary provider outag
 const state=JSON.parse(Array.from({length:storage.data.get('telegram-m6-sent-ids:chunks')},(_,i)=>storage.data.get('telegram-m6-sent-ids:part:'+i)).join(''));
 assert(state.items.find(r=>r.id==='initial').messageId===original);
 assert(state.items.find(r=>r.id==='us-alias').aliasOf==='initial');
-kv.data.set('telegram-m6-sent-ids',JSON.stringify({items:Array.from({length:1000},(_,i)=>({id:'legacy-'+i,place:'x'.repeat(180)}))}));
+kv.data.set('telegram-m6-sent-ids',JSON.stringify({items:Array.from({length:1000},(_,i)=>({id:'legacy-'+i,place:'x'.repeat(400)}))}));
 const bigStorage=new Store();object=new EarthquakeAlertDelivery({storage:bigStorage},env);world=[];details.clear();await run();
 assert(bigStorage.data.get('telegram-m6-sent-ids:chunks')>1);
 object=new EarthquakeAlertDelivery({storage:bigStorage},env);await run();

@@ -1172,8 +1172,17 @@ export class EarthquakeAlertDelivery {
                 },
                 put: async (key, value, opts) => {
                     if (key === TELEGRAM_SENT_KV_KEY) {
-                        // 24 mil caracteres cabem no limite mesmo com UTF-8 de quatro bytes.
-                        const parts = Array.from({length: Math.ceil(value.length / 24000)}, (_, i) => value.slice(i * 24000, (i + 1) * 24000));
+                        // Valor cabe folgado no limite de 2 MiB por linha do armazenamento
+                        // SQLite do Durable Object (classe migrada em new_sqlite_classes) —
+                        // 400 mil caracteres ainda deixa margem mesmo com UTF-8 de quatro
+                        // bytes. Esse fatiamento era herdado do limite de 128 KiB por valor
+                        // do backend clássico de key-value, de antes da migração; mantido
+                        // como rede de segurança, mas com blocos bem maiores, porque
+                        // saveSentAlerts regrava o histórico inteiro a cada chamada (e é
+                        // chamado várias vezes por execução do cron, a cada ~15min) — com
+                        // blocos de 24 mil caracteres isso multiplicava uma única gravação
+                        // lógica em dezenas de linhas gravadas no Durable Object por vez.
+                        const parts = Array.from({length: Math.ceil(value.length / 400000)}, (_, i) => value.slice(i * 400000, (i + 1) * 400000));
                         const write = async target => {
                             for (let i = 0; i < parts.length; i++) await target.put(key + ':part:' + i, parts[i]);
                             await target.put(key + ':chunks', parts.length);
