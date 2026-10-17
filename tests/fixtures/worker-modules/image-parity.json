@@ -1,0 +1,29 @@
+{
+  "daily": {
+    "width": 1800,
+    "height": 2688,
+    "pixelsBefore": "5b8b7e286657d0608b4ff39680f7fc91ddd4d1a22eb1d78a1ff91aa92429703f",
+    "pixelsAfter": "5b8b7e286657d0608b4ff39680f7fc91ddd4d1a22eb1d78a1ff91aa92429703f",
+    "pngEqual": true,
+    "pngBefore": "c273b827ce1c5828fcc5b148fc7b151b1d088aa69ada5ee41a9c329d37c31825",
+    "pngAfter": "c273b827ce1c5828fcc5b148fc7b151b1d088aa69ada5ee41a9c329d37c31825"
+  },
+  "empty": {
+    "width": 1800,
+    "height": 2688,
+    "pixelsBefore": "a531a825921d1489bf76c42bff807a344993bab7981e3677161a435b312016f2",
+    "pixelsAfter": "a531a825921d1489bf76c42bff807a344993bab7981e3677161a435b312016f2",
+    "pngEqual": true,
+    "pngBefore": "d9b86bfaf9eacd59498d9e0574ba0a56954b8b17496b1ef85481b6175adb18ed",
+    "pngAfter": "d9b86bfaf9eacd59498d9e0574ba0a56954b8b17496b1ef85481b6175adb18ed"
+  },
+  "alert": {
+    "width": 1080,
+    "height": 1920,
+    "pixelsBefore": "75e5815d65fa9c2ccff6a7f99d56efdeef047c1a15c2744cae7b21b35e858041",
+    "pixelsAfter": "75e5815d65fa9c2ccff6a7f99d56efdeef047c1a15c2744cae7b21b35e858041",
+    "pngEqual": true,
+    "pngBefore": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
+    "pngAfter": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595"
+  }
+}

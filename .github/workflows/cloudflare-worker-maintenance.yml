@@ -27,8 +27,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Validate source cache and failure recovery
-        run: node --test tests/unit/shared-source-cache.test.mjs tests/unit/shared-source-delivery.test.cjs tests/unit/shared-kv-optimization.test.mjs tests/unit/telegram-history-storage.test.mjs
+      - name: Validate modular Worker services and delivery safeguards
+        run: npm run worker:test
       - name: Inspect or update the existing Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
