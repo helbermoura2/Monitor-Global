@@ -1,0 +1,62 @@
+[
+  {
+    "path": "/afad-earthquakes?limit=1",
+    "failure": false,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/ingv-earthquakes?minmagnitude=0.1",
+    "failure": false,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/jma-earthquakes",
+    "failure": false,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/funvisis-earthquakes",
+    "failure": false,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/seismic-status",
+    "failure": false,
+    "identical": true,
+    "upstreamCalls": 8
+  },
+  {
+    "path": "/afad-earthquakes?limit=1",
+    "failure": true,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/ingv-earthquakes?minmagnitude=0.1",
+    "failure": true,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/jma-earthquakes",
+    "failure": true,
+    "identical": true,
+    "upstreamCalls": 1
+  },
+  {
+    "path": "/funvisis-earthquakes",
+    "failure": true,
+    "identical": true,
+    "upstreamCalls": 2
+  },
+  {
+    "path": "/seismic-status",
+    "failure": true,
+    "identical": true,
+    "upstreamCalls": 8
+  }
+]

@@ -2,14 +2,17 @@
   "name": "monitor-global",
   "private": true,
   "version": "1.0.0",
-  "description": "Monitor Global — monitoramento de desastres em tempo real (monitorglobal.top). Site estático sem build step; este package.json existe só pra rodar os testes de fumaça (Playwright).",
+  "description": "Monitor Global — site estático, testes e ferramentas de empacotamento do Worker (monitorglobal.top).",
   "scripts": {
     "test": "playwright test",
     "test:telegram": "node tests/unit/telegram-history-check.mjs",
-    "summary:video": "node tools/build-summary-video.mjs"
+    "summary:video": "node tools/build-summary-video.mjs",
+    "worker:bundle": "node tools/build-worker-bundle.mjs",
+    "worker:test": "node tools/test-worker-services.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
+    "esbuild": "0.28.2",
     "serve": "^14.2.1"
   }
 }

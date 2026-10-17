@@ -3,7 +3,7 @@ import {readFile,writeFile,mkdir,mkdtemp,rm} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
-import {fileURLToPath,pathToFileURL} from 'node:url';
+import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
 import {SUMMARY_MAP_LAND} from '../summary-editorial-assets.mjs';
 import {SUMMARY_FLAGS} from '../summary-flags.mjs';
@@ -15,9 +15,7 @@ const input=resolve(process.argv[2]||resolve(root,'tests/fixtures/daily-summary/
 const output=resolve(process.argv[3]||'/tmp/monitor-global-resumo.mp4');
 const data=JSON.parse(await readFile(input,'utf8'));
 if(!/^\d{4}-\d{2}-\d{2}$/.test(data.day)||!Array.isArray(data.events))throw new Error('Expected daily summary JSON: {day,events}');
-let source=await readFile(resolve(root,'monitor-global-worker-7_7_0.js'),'utf8');
-source=source.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(pathToFileURL(resolve(root,p)).href));
-const helpers=await import('data:text/javascript;base64,'+Buffer.from(source+'\nexport {summaryPlace,summaryCountry,getHexColorFromMag};').toString('base64'));
+const helpers=await import('../worker/image-rendering.mjs');
 let events=data.events.filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time)).sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5).map((e,i)=>({...e,rank:i+1,location:helpers.summaryPlace(e.place||'Local não informado').title,country:helpers.summaryCountry(e.place||'').label,color:helpers.getHexColorFromMag(e.mag),when:new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hourCycle:'h23'}),depth:Number.isFinite(e.depth)?Math.round(Math.max(0,e.depth))+' km':'Não informada'}));
 for(const event of events){const country=helpers.summaryCountry(event.place||'');event.code=country.code;const suffix=event.location.slice(event.location.lastIndexOf(',')+1).trim();if(event.location.includes(',')&&suffix.toLocaleUpperCase('pt-BR')===event.country)event.location=event.location.slice(0,event.location.lastIndexOf(','));}
 if(!events.length)throw new Error('No dated earthquakes to render');

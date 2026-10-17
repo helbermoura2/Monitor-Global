@@ -17,8 +17,9 @@ API = 'https://api.cloudflare.com/client/v4'
 WORKER = 'black-sky-9ba0'
 PUBLIC = 'https://black-sky-9ba0.terrestre.workers.dev'
 MARKER = 'removed-no-kv-v1'
+WORKER_MODULES = 'maintenance-modules-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = 'a3cac9792015e3a3518a3b2f55bf5fb46537f63bd9d6692fd8c69167b95580fc'
+BUNDLE_SHA256 = '0a67f2ed6fd62b9a02f378178da88759c624177f2e0ec9a85825aba516c39eee'
 
 class MaintenanceError(Exception):
     pass
@@ -37,7 +38,7 @@ def metadata(settings):
     if any(by_name.get(k)!=v for k,v in required.items()): raise MaintenanceError('Existing storage bindings differ from the reviewed Worker; deployment refused')
     date=settings.get('compatibility_date')
     if not isinstance(date,str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',date):raise MaintenanceError('Existing compatibility date unavailable; deployment refused')
-    result={'main_module':'worker.mjs','compatibility_date':date,'keep_bindings':sorted(set(b['type'] for b in bindings)),'keep_assets':True,'annotations':{'workers/message':'Monitor Global: shared population and voice cache, private KV metrics'}}
+    result={'main_module':'worker.mjs','compatibility_date':date,'keep_bindings':sorted(set(b['type'] for b in bindings)),'keep_assets':True,'annotations':{'workers/message':'Monitor Global: modular rendering, seismic adapters and Telegram transport'}}
     for k in ['compatibility_flags','limits','logpush','observability','placement','tail_consumers']:
         if k in settings and settings[k] is not None:result[k]=settings[k]
     return result
@@ -46,7 +47,7 @@ def bundle(path):
     data=Path(path).read_bytes()
     if hashlib.sha256(data).hexdigest()!=BUNDLE_SHA256:raise MaintenanceError('Reviewed bundle checksum mismatch')
     with zipfile.ZipFile(path) as z:source=z.read('monitor-global-worker-7_7_0.js')
-    if b'shared-sources-v1' not in source or b'durable-history-v1' not in source or OPTIMIZATION.encode() not in source or MARKER.encode() not in source or b'maybeRefreshPollsAverageNightly' in source or b'POLLS_KV_KEY' in source:raise MaintenanceError('Bundle still contains polling collector or lacks the health marker')
+    if WORKER_MODULES.encode() not in source or b'shared-sources-v1' not in source or b'durable-history-v1' not in source or OPTIMIZATION.encode() not in source or MARKER.encode() not in source or b'maybeRefreshPollsAverageNightly' in source or b'POLLS_KV_KEY' in source:raise MaintenanceError('Bundle still contains polling collector or lacks the health marker')
     return source
 
 def multipart(meta, source):
@@ -99,7 +100,7 @@ def verify_public(check=public_health, wait=time.sleep, attempts=25):
     for attempt in range(attempts):
         try:
             health=check()
-            if health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True and health.get('telegramStorage')=='durable-history-v1' and health.get('sharedSources',{}).get('version')=='shared-sources-v1' and health.get('sharedSources',{}).get('enabled') is True:return health
+            if health.get('workerModules')==WORKER_MODULES and health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True and health.get('telegramStorage')=='durable-history-v1' and health.get('sharedSources',{}).get('version')=='shared-sources-v1' and health.get('sharedSources',{}).get('enabled') is True:return health
         except urllib.error.HTTPError as e:failure='public HTTP '+str(e.code)
         except (OSError,ValueError):failure='public response unavailable or invalid'
         if attempt+1<attempts:wait(5)
@@ -148,14 +149,14 @@ def main():
             provision_metrics(client,metrics_token(token,account))
             report['metricsReadCredentialUpdated']=True
         health=verify_public()
-        report['verified']={'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
+        report['verified']={'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
     else:
         # Verify compatibility now; inspection never modifies anything.
         metadata(settings)
         report['deploymentReady']=True
         if mode=='verify':
             health=verify_public()
-            report['verified']={'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
+            report['verified']={'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
     report['applicationUsage']=read_usage(metrics_token(token,account))
     # Keep binding values, tokens, account ID and raw settings out of logs/artifacts.
     print(json.dumps(report,ensure_ascii=False,indent=2))

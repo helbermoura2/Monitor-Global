@@ -3,7 +3,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {summaryMapFrame} from '../../daily-summary-renderer.mjs';
 let source=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8');
 source=source.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
-const mod=await import('data:text/javascript;base64,'+Buffer.from(source+'\nexport {renderDailySummaryPng,decodePng,summaryCountry,getDailySummaryFonts,summaryCardWrap,textFontWidthProp,fetchDailyQuakesBrt};').toString('base64'));
+const mod={...await import('../../worker/image-rendering.mjs'),...await import('data:text/javascript;base64,'+Buffer.from(source+'\nexport {renderDailySummaryPng,fetchDailyQuakesBrt};').toString('base64'))};
 const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-10-01-usgs.json',import.meta.url),'utf8'));
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
