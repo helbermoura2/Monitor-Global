@@ -1,0 +1,47 @@
+{
+  "method": {
+    "viewport": "390x844",
+    "dpr": 3,
+    "cpuSlowdown": 4,
+    "windowSeconds": 5,
+    "externalRequests": "blocked",
+    "tiles": "unavailable",
+    "heap": "main JS heap only; sampled after workload, includes uncollected allocations",
+    "effects": "real local renderers; no production events"
+  },
+  "results": [
+    {
+      "repeat": 0,
+      "scenario": "paint",
+      "windowMs": 5007,
+      "heapBytes": 21819644,
+      "TaskDurationMs": 941,
+      "ScriptDurationMs": 170,
+      "LayoutDurationMs": 10,
+      "RecalcStyleDurationMs": 28,
+      "nodes": 1267
+    },
+    {
+      "repeat": 1,
+      "scenario": "paint",
+      "windowMs": 5005,
+      "heapBytes": 22677148,
+      "TaskDurationMs": 380,
+      "ScriptDurationMs": 72,
+      "LayoutDurationMs": 3,
+      "RecalcStyleDurationMs": 15,
+      "nodes": 1295
+    },
+    {
+      "repeat": 2,
+      "scenario": "paint",
+      "windowMs": 5004,
+      "heapBytes": 22279372,
+      "TaskDurationMs": 195,
+      "ScriptDurationMs": 48,
+      "LayoutDurationMs": 0,
+      "RecalcStyleDurationMs": 8,
+      "nodes": 1295
+    }
+  ]
+}
