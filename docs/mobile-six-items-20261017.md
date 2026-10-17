@@ -26,11 +26,11 @@ uso durante horas. Tempos abaixo são medianas; não extrapolar para todo celula
 
 - Montagem: aproximadamente 70% menos tempo; atualizações repetidas: 80% menos.
 - Marcadores/grupos: 800 → 12 neste catálogo concentrado; cartões: 120 → 30.
-- Elementos HTML: aproximadamente 60% menos. Heap principal: cerca de 3% menos;
+- Elementos HTML: aproximadamente 60% menos. Heap principal: cerca de 5% menos;
   a medida não inclui workers, buffers gráficos, vídeo ou toda a RAM do navegador.
 - JS/CSS iniciais: apenas 6.055 bytes líquidos a menos (0.18%). O carregamento frio
   permaneceu perto de 2,2 s, sem ganho conclusivo. O maior ganho desta rodada está
-  na renderização. Não afirmar que o site inteiro abre 67% ou 79% mais rápido.
+  na renderização. Não afirmar que o site inteiro abre 70% ou 80% mais rápido.
 - Cache: em teste real de service worker, duas solicitações do mesmo arquivo
   resultaram em duas chamadas de fetch à rede antes e uma depois. Isso não prova
   redução de 50% em todo o tráfego; dados ao vivo e arquivos novos continuam na rede.
