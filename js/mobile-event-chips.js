@@ -34,5 +34,5 @@
  const sort=document.createElement('select');sort.setAttribute('aria-label','Ordenar registros');for(const [value,text]of [['recent','Mais recentes'],['magnitude','Maiores magnitudes']]){const o=document.createElement('option');o.value=value;o.textContent=text;sort.append(o);}field('Ordenar',sort);sort.onchange=()=>{order=sort.value;redraw();};
  const search=document.createElement('input');search.type='search';search.placeholder='Cidade, país ou fonte';search.setAttribute('aria-label','Buscar local nos registros');field('Buscar local',search).parentElement.className='mobile-event-search';search.oninput=()=>{query=search.value.trim().slice(0,100);redraw();};host.after(tools);
  media.addEventListener('change',redraw);
- window.MobileEventChips={filter,update,redraw};update();
+ window.MobileEventChips={filter,update,redraw,state:()=>[chosen,minimum,order,query]};update();
 })();

@@ -75,7 +75,7 @@
   if(pending){clearTimeout(pending.timer);panel()?.classList.remove('pd-fx-'+pending.type);pending=null;}
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
-  if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
+  if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();scene.visibilityObserver?.disconnect();scene.visibilityMutations?.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active','pd-volcano-monitoring');removeGhost();
  }
  function fogTexture(){
@@ -124,7 +124,7 @@
   // passing a new duration on this same-scene path (e.g. resuming with the
   // remaining time) must still have that budget honored -- counted from
   // now, not from the scene's original creation time.
-  if(scene&&p&&cfg&&scene.itemId===item?.id&&!resourcesFailed&&cfg.type===scene.cfg.type&&!['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){scene.cfg=cfg;scene.duration=(performance.now()-scene.start)+Math.min(duration,16000);if(!item.__cinemaDemo)window.FullScreenEffects?.volcano(item,cfg);return true;}
+  if(scene&&p&&cfg&&scene.itemId===item?.id&&!resourcesFailed&&cfg.type===scene.cfg.type&&!['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){scene.cfg=cfg;scene.duration=(performance.now()-scene.start)+Math.min(duration,16000);scene.wake?.();if(!item.__cinemaDemo)window.FullScreenEffects?.volcano(item,cfg);return true;}
   let snapshot=null;
   if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
@@ -181,7 +181,15 @@
    s.film?.draw(time,{...s.cfg,gust:s.wind?.pressure||0,windTravel:s.wind?.travel??time*.25,flash:s.flash||0,waterTop:s.waterTop??.90},(s.demoLightning||p.dataset.lightning==='on')&&s.cfg.type==='storm',s.footage?.isReady());
   }
   s.resize=resize;
-  s.scroll=()=>{s.host.style.transform=s.front.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(resize);s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
+  function wake(){
+   if(scene!==s||document.hidden)return;
+   clearTimeout(idleTimer);idleTimer=0;
+   if(!raf){s.last=performance.now();raf=requestAnimationFrame(frame);}
+  }
+  s.wake=wake;s.inViewport=true;
+  s.visibilityMutations=new MutationObserver(wake);s.visibilityMutations.observe(p,{attributes:true,attributeFilter:['class']});s.visibilityMutations.observe(document.body,{attributes:true,attributeFilter:['class']});
+  if('IntersectionObserver' in window){s.visibilityObserver=new IntersectionObserver(entries=>{s.inViewport=entries.some(entry=>entry.isIntersecting);wake();});s.visibilityObserver.observe(p);}
+  s.scroll=()=>{s.host.style.transform=s.front.style.transform='translate3d(0,'+p.scrollTop+'px,0)';};p.addEventListener('scroll',s.scroll,{passive:true});s.scroll();s.observer=new ResizeObserver(()=>{resize();wake();});s.observer.observe(p);resize();raf=requestAnimationFrame(frame);return true;
  }
 
  // One pressure wave drives the suspended glass, text, haze and airborne matter.
@@ -423,8 +431,8 @@
   const t=Math.max(0,(now-s.start)/1000);
   if(t*1000>=s.duration){stop();return;}
   if(document.hidden){s.quality.reset();s.footage?.pause();raf=0;return;}
-  const p=panel(),hidden=!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');
-  if(hidden){s.quality.reset();s.footage?.pause();raf=0;idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s){s.last=performance.now();raf=requestAnimationFrame(frame);}},80);return;}
+  const p=panel(),hidden=s.inViewport===false||!p?.clientWidth||p?.classList.contains('pd-flip-girado')||matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open');
+  if(hidden){s.quality.reset();s.footage?.pause();raf=0;clearTimeout(idleTimer);idleTimer=setTimeout(()=>{idleTimer=0;if(scene===s)stop();},Math.max(1,s.duration-(now-s.start)));return;}
   s.footage?.play();
   const fps=s.quality.fps(s.mobile?24:30);if(now-s.paintAt>=1000/fps&&s.width&&s.height){
    const renderStart=performance.now(),gap=now-s.last;
@@ -451,7 +459,7 @@
   raf=requestAnimationFrame(frame);
  }
  reduced.addEventListener('change',()=>{if(reduced.matches){stop();window.restoreWindLetters?.();window.stopIconSpin?.();window.stopRainEffect?.();}});
- document.addEventListener('visibilitychange',()=>{if(document.hidden){scene?.footage?.pause();raf=0;}else if(scene){scene.last=performance.now();if(!raf)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}});
+ document.addEventListener('visibilitychange',()=>{cancelAnimationFrame(raf);raf=0;clearTimeout(idleTimer);idleTimer=0;if(document.hidden){scene?.footage?.pause();}else scene?.wake?.();});
  window.addEventListener('pagehide',stop);
  function refresh(item){
   prepareSymbol(item);

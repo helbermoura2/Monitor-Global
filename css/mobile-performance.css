@@ -1,0 +1,3 @@
+.mg-mobile-cluster{width:38px;height:38px;border-radius:50%;border:1px solid #7dc8df;background:#10384ded;color:#effbff;font:bold 13px system-ui;box-shadow:0 2px 8px #0007;cursor:pointer}
+.mg-mobile-cluster:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.sidebar-load-more{display:block;width:100%;padding:14px;border:1px solid #36718d;border-radius:10px;background:#102b3b;color:#e6f5fa;font:14px system-ui;cursor:pointer}

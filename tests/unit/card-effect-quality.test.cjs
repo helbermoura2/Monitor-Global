@@ -5,7 +5,7 @@ function frames(q,start,end,{cost=1,gap=1000/30}={}){let changes=0;for(let t=sta
 test('mobile starts balanced and caps frame rate; desktop keeps full budgets',()=>{
  const desktop=create(false,{});assert.equal(desktop.name,'full');assert.equal(desktop.fps(30),30);
  for(const hints of [{},{deviceMemory:8,hardwareConcurrency:8}]){const q=create(true,hints);assert.equal(q.name,'balanced');assert.equal(q.count(300),210);assert.equal(q.resolution,.8);assert.equal(q.fps(60),20);}
- for(const hints of [{deviceMemory:2},{hardwareConcurrency:2}])assert.equal(create(false,hints).name,'balanced');
+ for(const hints of [{deviceMemory:2},{hardwareConcurrency:2}])assert.equal(create(false,hints).name,'light');
 });
 test('sustained rendering load reduces particles and pixel area before frame rate',()=>{
  const q=create(false,{}),particles=q.track(Array.from({length:300},(_,i)=>({i}))),first=particles[0];

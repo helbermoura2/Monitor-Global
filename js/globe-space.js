@@ -7,7 +7,7 @@
  function start(){
   stop();active=true;
   canvas=document.createElement('canvas');canvas.id='globe-space-canvas';canvas.setAttribute('aria-hidden','true');ctx=canvas.getContext('2d');map.getContainer().append(canvas);
-  map.on('render',schedule);timer=setInterval(schedule,1000);schedule();
+  map.on('render',schedule);if(!document.hidden)timer=setInterval(schedule,1000);schedule();
  }
  function schedule(){if(!active||!ctx||document.hidden||frame)return;frame=requestAnimationFrame(draw);}
  function draw(now){
@@ -35,6 +35,6 @@
 
   canvas.dataset.epoch=String(epoch);canvas.dataset.bodies='';
  }
- window.addEventListener('pagehide',stop);window.addEventListener('pageshow',e=>{if(e.persisted&&window.GlobePreview?.state().testing)start();});document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
+ window.addEventListener('pagehide',stop);window.addEventListener('pageshow',e=>{if(e.persisted&&window.GlobePreview?.state().testing)start();});document.addEventListener('visibilitychange',()=>{clearInterval(timer);if(document.hidden){cancelAnimationFrame(frame);frame=null;}else if(active){timer=setInterval(schedule,1000);schedule();}});
  window.GlobeSpace={start,stop,state:()=>({active,epoch,bodies:[]})};
 })();
