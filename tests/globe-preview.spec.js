@@ -12,11 +12,13 @@ for(const width of [1280,390])test.describe('globe '+width,()=>{
    return u.origin==='http://127.0.0.1:4173'?r.continue():r.abort();
   });
   await page.goto('/');await page.waitForFunction(()=>window.GlobePreview&&__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
+  await page.evaluate(()=>CountryBoundaries.ready);
   await page.evaluate(realTiles=>{
    pausarBuscas();PeriodicScheduler.cancel('correlation');clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();NewEventPriority.clear?.();stopMapCamera();stopWaveFront();stopFeltZone();SeismicCinema.stop();PresentationLimits.clear();
    for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
    map.addSource('qa-world',{type:'raster',tiles:['http://127.0.0.1:4173/qa-world-tile?z={z}&x={x}&y={y}'],tileSize:256,maxzoom:realTiles?4:0});map.addLayer({id:'qa-world',type:'raster',source:'qa-world'});
    globalAlerts=[];globalEvents=[[37,37.2],[37,65],[-143,-37.2]].map((coords,i)=>({id:'globe-'+i,type:'earthquake',mag:6.1,depth:10,coords,time:Date.now()-3600000,place:'Teste '+i,source:'QA'}));
+   globalEvents.forEach(item=>CountryBoundaries.apply(item));
    showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);clearTimeout(window.__mgWaveDelayT);clearTimeout(window.__mgRadarDelayT);SeismicPaintTour.stop();EventCamera.cancel();stopMapCamera();stopWaveFront();stopFeltZone();SeismicCinema.stop();CinematicCard.stop();
    document.body.classList.remove('mobile-details-open','mobile-details-mid');map.jumpTo({center:[37,37.2],zoom:1.3,bearing:0,pitch:0,padding:0});syncAllMarkers();
    window.__originalMap=map;window.__originalMarkers=[...markerStores.quake.values()];window.__globeErrors=[];map.on('error',e=>{if(/projection|sky|WebGL|shader/i.test(e.error?.message||''))__globeErrors.push(e.error.message);});

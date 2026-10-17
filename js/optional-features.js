@@ -23,6 +23,28 @@
   return Promise.all((effects[type]||[]).map(url=>asset(url))).then(()=>ready.add(type));
  }
  window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261016-live-effects','js/site-effect-demo.js?v=20261016-live-effects'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
+ // Menu-only panels do not need code, styles or DOM during public startup.
+ // Keep small entry points for existing menu handlers; failed loads can retry.
+ let adminOpening,solarOpening;
+ window.TelegramAdmin={isAuthenticated:()=>false,open(){
+  if(adminOpening)return adminOpening;
+  adminOpening=(async()=>{
+   try{
+    await asset('css/telegram-history.css?v=20261017-lazy-panels');
+    await asset('js/telegram-history.js?v=20261017-lazy-panels');
+    return window.TelegramAdmin.open();
+   }catch(error){failure(error);}
+   finally{adminOpening=null;}
+  })();return adminOpening;
+ }};
+ window.SolarSystem={open(){
+  if(solarOpening)return solarOpening;
+  solarOpening=(async()=>{
+   try{await asset('js/solar-system.js?v=20261017-lazy-panels');return window.SolarSystem.open();}
+   catch(error){failure(error);}
+   finally{solarOpening=null;}
+  })();return solarOpening;
+ }};
  function selected(){
   try{EventStore.syncFromLegacy();const item=EventStore.getSelected();if(item)return item;}catch(e){}
   const id=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
@@ -31,6 +53,7 @@
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
  window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-card-layout.js?v=20261016-weak-official');await asset('js/quake-image-paint.js?v=20261016-weak-official');await asset('js/story-share.js?v=cartographic-v11-full-hd');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
  function init(){
+  if(new URLSearchParams(location.search).get('admin')==='1')window.TelegramAdmin.open();
   const button=document.getElementById('pd-share-btn');
   button?.addEventListener('click',async event=>{
    event.stopPropagation();const item=selected();
