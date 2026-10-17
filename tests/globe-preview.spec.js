@@ -56,7 +56,7 @@ for(const width of [1280,390])test.describe('globe '+width,()=>{
   await page.evaluate(()=>GlobePreview.setMode('globe'));await page.reload();await page.waitForFunction(()=>__mgMapReady);expect(await page.evaluate(()=>(map.getProjection()?.type||'mercator'))).toBe('globe');await expect(page.locator('#globe-preview-status')).toHaveCount(0);
  });
  test('official ShakeMap and tsunami polygons render on the globe and survive switching back',async({page})=>{
-  await boot(page);await page.evaluate(()=>{GlobePreview.setMode('globe');SeismicScenarioDemo.start('official');});
+  await boot(page);await page.evaluate(()=>OptionalFeatures.seismicScenarios());await page.evaluate(()=>{GlobePreview.setMode('globe');SeismicScenarioDemo.start('official');});
   await page.waitForFunction(()=>__mgSeismicImpactState?.method==='usgs-shakemap-grid'&&map.getSource('quake-impact')?.serialize().data.features.length>0,null,{timeout:15000}).catch(async e=>{throw Error(e.message+' '+JSON.stringify(await page.evaluate(()=>({state:window.__mgSeismicImpactState,scenario:SeismicScenarioDemo.state(),panel:document.getElementById('pd-linked-presentation')?.textContent,errors:__globeErrors}))));});
   await page.evaluate(()=>{SeismicScenarioDemo.togglePause();map.stop();map.jumpTo({center:[37,37.2],zoom:4,padding:0});window.__officialSource=map.getSource('quake-impact');window.__officialData=JSON.stringify(__officialSource.serialize().data);});
   await page.waitForTimeout(600);expect(await page.evaluate(()=>map.getLayer('quake-impact-fill')||map.getStyle().layers.find(l=>l.source==='quake-impact'))).toBeTruthy();

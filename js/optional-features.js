@@ -22,7 +22,7 @@
  function effect(type){
   return Promise.all((effects[type]||[]).map(url=>asset(url))).then(()=>ready.add(type));
  }
- window.OptionalFeatures={effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261016-live-effects','js/site-effect-demo.js?v=20261016-live-effects'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
+ window.OptionalFeatures={zip:()=>asset('vendor/jszip.min.js?v=acc7e41455a8'),seismicScenarios:()=>asset('js/seismic-scenario-demo.js?v=20261016-multi-source'),effect,effectReady:type=>!effects[type]||ready.has(type),siteEffectDemo:()=>Promise.all(['css/site-effect-demo.css?v=20261016-live-effects','js/site-effect-demo.js?v=20261016-live-effects'].map(url=>asset(url))),fetch:window.fetch.bind(window)};
  // Menu-only panels do not need code, styles or DOM during public startup.
  // Keep small entry points for existing menu handlers; failed loads can retry.
  let adminOpening;
@@ -42,7 +42,7 @@
  async function demo(method,args){
   const token=demoGeneration;
   try{
-   if(!demoOpening)demoOpening=(async()=>{await asset('css/card-effect-demo.css?v=20261017-mobile-six');await asset('js/card-effect-demo.js?v=20261017-mobile-six');})().finally(()=>demoOpening=null);
+   if(!demoOpening)demoOpening=(async()=>{await asset('css/card-effect-demo.css?v=20261017-mobile-six');await window.OptionalFeatures.seismicScenarios();await asset('js/card-effect-demo.js?v=20261017-lazy-map-tools');})().finally(()=>demoOpening=null);
    await demoOpening;
    if(token!==demoGeneration||document.hidden)return false;
    return window.CardEffectDemo[method](...args);

@@ -1,0 +1,854 @@
+[
+  {
+    "file": "vendor/maplibre-gl.js",
+    "bytes": 1015688
+  },
+  {
+    "file": "js/painel-e-lista.js",
+    "bytes": 133979
+  },
+  {
+    "file": "css/base.css",
+    "bytes": 122725
+  },
+  {
+    "file": "vendor/jszip.min.js",
+    "bytes": 97630
+  },
+  {
+    "file": "vendor/maplibre-gl.css",
+    "bytes": 69449
+  },
+  {
+    "file": "css/painel-fx.css",
+    "bytes": 64209
+  },
+  {
+    "file": "js/sismo-fontes.js",
+    "bytes": 64042
+  },
+  {
+    "file": "css/mobile-late-patches.css",
+    "bytes": 61946
+  },
+  {
+    "file": "js/mapa.js",
+    "bytes": 60523
+  },
+  {
+    "file": "js/sismo-metrics.js",
+    "bytes": 54859
+  },
+  {
+    "file": "js/cemaden-risco.js",
+    "bytes": 48396
+  },
+  {
+    "file": "js/nucleo-estado.js",
+    "bytes": 42840
+  },
+  {
+    "file": "js/cinematic-card.js",
+    "bytes": 40052
+  },
+  {
+    "file": "js/audio.js",
+    "bytes": 37630
+  },
+  {
+    "file": "js/vulcao.js",
+    "bytes": 37414
+  },
+  {
+    "file": "js/orquestrador-feeds.js",
+    "bytes": 35364
+  },
+  {
+    "file": "js/geo-e-ciclone-utils.js",
+    "bytes": 34703
+  },
+  {
+    "file": "js/vendor/polygon-clipping.min.js",
+    "bytes": 29106
+  },
+  {
+    "file": "js/painel-fx.js",
+    "bytes": 25611
+  },
+  {
+    "file": "js/inmet-avisos.js",
+    "bytes": 25358
+  },
+  {
+    "file": "js/ui-wiring-final.js",
+    "bytes": 25323
+  },
+  {
+    "file": "js/clima-local.js",
+    "bytes": 24422
+  },
+  {
+    "file": "css/ui-motion.css",
+    "bytes": 24371
+  },
+  {
+    "file": "js/card-cinema-film.js",
+    "bytes": 24116
+  },
+  {
+    "file": "js/populacao-sismo.js",
+    "bytes": 22407
+  },
+  {
+    "file": "js/feed-utils.js",
+    "bytes": 21405
+  },
+  {
+    "file": "js/mobile-portrait-clean-toggle.js",
+    "bytes": 21137
+  },
+  {
+    "file": "js/seismic-cinema.js",
+    "bytes": 21115
+  },
+  {
+    "file": "js/incendios.js",
+    "bytes": 20945
+  },
+  {
+    "file": "mg-volcano-flood-pt.js",
+    "bytes": 19550
+  },
+  {
+    "file": "js/header-v72.js",
+    "bytes": 19484
+  },
+  {
+    "file": "css/mobile-early.css",
+    "bytes": 18278
+  },
+  {
+    "file": "js/tsunami-map.js",
+    "bytes": 18177
+  },
+  {
+    "file": "js/event-insights.js",
+    "bytes": 17616
+  },
+  {
+    "file": "css/cinematic-card.css",
+    "bytes": 16228
+  },
+  {
+    "file": "js/furacoes-gdacs.js",
+    "bytes": 15633
+  },
+  {
+    "file": "js/cidades-proximas.js",
+    "bytes": 14809
+  },
+  {
+    "file": "js/seismic-impact.js",
+    "bytes": 14726
+  },
+  {
+    "file": "js/monitor-workbench.js",
+    "bytes": 14626
+  },
+  {
+    "file": "js/event-portuguese.js",
+    "bytes": 14452
+  },
+  {
+    "file": "js/confianca-fontes.js",
+    "bytes": 13817
+  },
+  {
+    "file": "js/brasil-hub.js",
+    "bytes": 13465
+  },
+  {
+    "file": "js/inmet-municipalities.js",
+    "bytes": 13401
+  },
+  {
+    "file": "js/monitor-global-70.js",
+    "bytes": 13137
+  },
+  {
+    "file": "css/desktop-layout-lock.css",
+    "bytes": 12959
+  },
+  {
+    "file": "js/tsunami-enchente.js",
+    "bytes": 12584
+  },
+  {
+    "file": "js/data-freshness.js",
+    "bytes": 12480
+  },
+  {
+    "file": "mg-volcano-flood-fetch.js",
+    "bytes": 12101
+  },
+  {
+    "file": "css/mobile-header-v4412.css",
+    "bytes": 11566
+  },
+  {
+    "file": "js/tempestades.js",
+    "bytes": 11464
+  },
+  {
+    "file": "js/seismic-scenario-demo.js",
+    "bytes": 11351
+  },
+  {
+    "file": "js/header-menu-pro.js",
+    "bytes": 11048
+  },
+  {
+    "file": "css/tsunami-linked-panel.css",
+    "bytes": 10848
+  },
+  {
+    "file": "js/tsunami-presentation.js",
+    "bytes": 10601
+  },
+  {
+    "file": "js/ux-panel.js",
+    "bytes": 10064
+  },
+  {
+    "file": "css/mobile-layout-lock.css",
+    "bytes": 9806
+  },
+  {
+    "file": "js/official-weather-alerts.js",
+    "bytes": 9790
+  },
+  {
+    "file": "js/furacao-rota-oficial.js",
+    "bytes": 9423
+  },
+  {
+    "file": "js/rain-arrival-notice.js",
+    "bytes": 9373
+  },
+  {
+    "file": "js/hazard-workbench.js",
+    "bytes": 9369
+  },
+  {
+    "file": "js/mid-tech-features.js",
+    "bytes": 9258
+  },
+  {
+    "file": "css/header-v71.css",
+    "bytes": 9237
+  },
+  {
+    "file": "js/aftershock-sequence.js",
+    "bytes": 9041
+  },
+  {
+    "file": "js/event-details-back.js",
+    "bytes": 8958
+  },
+  {
+    "file": "js/tsunami-tornado.js",
+    "bytes": 8815
+  },
+  {
+    "file": "js/mobile-notices.js",
+    "bytes": 8696
+  },
+  {
+    "file": "css/features-misc.css",
+    "bytes": 8677
+  },
+  {
+    "file": "css/mobile-ultimate.css",
+    "bytes": 8621
+  },
+  {
+    "file": "js/weather-evidence.js",
+    "bytes": 8562
+  },
+  {
+    "file": "js/alertas-locais-sp.js",
+    "bytes": 8442
+  },
+  {
+    "file": "js/ui-motion.js",
+    "bytes": 8158
+  },
+  {
+    "file": "js/card-event-typography.js",
+    "bytes": 7913
+  },
+  {
+    "file": "css/detail-panel.css",
+    "bytes": 7845
+  },
+  {
+    "file": "js/population-exposure.js",
+    "bytes": 7817
+  },
+  {
+    "file": "js/mobile-portrait.js",
+    "bytes": 7799
+  },
+  {
+    "file": "js/tsunami-linked-panel.js",
+    "bytes": 7713
+  },
+  {
+    "file": "css/mobile-portrait.css",
+    "bytes": 7569
+  },
+  {
+    "file": "js/weather-panel.js",
+    "bytes": 7562
+  },
+  {
+    "file": "js/card-weather-physics.js",
+    "bytes": 7355
+  },
+  {
+    "file": "js/weather-warning-camera.js",
+    "bytes": 7265
+  },
+  {
+    "file": "js/rainbow-nowcast.js",
+    "bytes": 7101
+  },
+  {
+    "file": "js/brent.js",
+    "bytes": 6950
+  },
+  {
+    "file": "js/correlation-engine.js",
+    "bytes": 6911
+  },
+  {
+    "file": "js/globe-preview.js",
+    "bytes": 6861
+  },
+  {
+    "file": "js/optional-features.js",
+    "bytes": 6794
+  },
+  {
+    "file": "js/volcano-priority.js",
+    "bytes": 6601
+  },
+  {
+    "file": "js/monitor-global-6.js",
+    "bytes": 6588
+  },
+  {
+    "file": "js/enhancements-4413.js",
+    "bytes": 6432
+  },
+  {
+    "file": "js/monitor-global-71.js",
+    "bytes": 6283
+  },
+  {
+    "file": "js/record-presentation.js",
+    "bytes": 6224
+  },
+  {
+    "file": "js/real-intensity.js",
+    "bytes": 6184
+  },
+  {
+    "file": "js/event-replay.js",
+    "bytes": 6146
+  },
+  {
+    "file": "js/clima-sidebar.js",
+    "bytes": 6116
+  },
+  {
+    "file": "js/inmet-areas.js",
+    "bytes": 6040
+  },
+  {
+    "file": "js/debug-overlay.js",
+    "bytes": 5953
+  },
+  {
+    "file": "js/official-map-sources.js",
+    "bytes": 5916
+  },
+  {
+    "file": "js/pwa-offline-tv.js",
+    "bytes": 5803
+  },
+  {
+    "file": "css/record-cards.css",
+    "bytes": 5729
+  },
+  {
+    "file": "js/seismic-paint-tour.js",
+    "bytes": 5476
+  },
+  {
+    "file": "css/intensity-filters.css",
+    "bytes": 5365
+  },
+  {
+    "file": "css/mobile-mid.css",
+    "bytes": 5363
+  },
+  {
+    "file": "js/mobile-fab-menu-handler.js",
+    "bytes": 5263
+  },
+  {
+    "file": "js/rupture-shaking-model.js",
+    "bytes": 5193
+  },
+  {
+    "file": "css/compact-desktop.css",
+    "bytes": 5100
+  },
+  {
+    "file": "js/hazard-evidence.js",
+    "bytes": 5027
+  },
+  {
+    "file": "js/seismic-impact-model.js",
+    "bytes": 4828
+  },
+  {
+    "file": "js/card-artifact-effects.js",
+    "bytes": 4808
+  },
+  {
+    "file": "js/event-focus-beacon.js",
+    "bytes": 4780
+  },
+  {
+    "file": "js/tsunami-map-model.js",
+    "bytes": 4742
+  },
+  {
+    "file": "css/popup-alcance-sismo.css",
+    "bytes": 4710
+  },
+  {
+    "file": "js/mobile-event-chips.js",
+    "bytes": 4604
+  },
+  {
+    "file": "js/full-screen-effects.js",
+    "bytes": 4479
+  },
+  {
+    "file": "js/meteoalarm-warnings.js",
+    "bytes": 4373
+  },
+  {
+    "file": "js/rupture-shaking.js",
+    "bytes": 4340
+  },
+  {
+    "file": "js/rainbow-weather.js",
+    "bytes": 4333
+  },
+  {
+    "file": "js/globalquake-travel.js",
+    "bytes": 4329
+  },
+  {
+    "file": "css/theme-dark-mode.css",
+    "bytes": 4288
+  },
+  {
+    "file": "js/event-camera.js",
+    "bytes": 4277
+  },
+  {
+    "file": "css/ao-vivo-badge.css",
+    "bytes": 4250
+  },
+  {
+    "file": "css/weather-header.css",
+    "bytes": 4182
+  },
+  {
+    "file": "js/event-products.js",
+    "bytes": 4172
+  },
+  {
+    "file": "css/advanced-weather.css",
+    "bytes": 4156
+  },
+  {
+    "file": "css/mobile-notices.css",
+    "bytes": 4099
+  },
+  {
+    "file": "js/official-map-priority.js",
+    "bytes": 4065
+  },
+  {
+    "file": "js/new-event-priority.js",
+    "bytes": 4046
+  },
+  {
+    "file": "css/felt-zone.css",
+    "bytes": 4022
+  },
+  {
+    "file": "js/mobile-detail-gesture.js",
+    "bytes": 3946
+  },
+  {
+    "file": "css/event-insights.css",
+    "bytes": 3928
+  },
+  {
+    "file": "js/event-evolution-model.js",
+    "bytes": 3928
+  },
+  {
+    "file": "js/mobile-focus-summary.js",
+    "bytes": 3879
+  },
+  {
+    "file": "css/event-pin-glass.css",
+    "bytes": 3757
+  },
+  {
+    "file": "css/data-freshness.css",
+    "bytes": 3739
+  },
+  {
+    "file": "js/globe-space.js",
+    "bytes": 3731
+  },
+  {
+    "file": "js/kpis-ui.js",
+    "bytes": 3661
+  },
+  {
+    "file": "js/weather-data-status.js",
+    "bytes": 3577
+  },
+  {
+    "file": "js/regional-seismic.js",
+    "bytes": 3506
+  },
+  {
+    "file": "js/shared-source-delivery.js",
+    "bytes": 3458
+  },
+  {
+    "file": "css/menu-fix.css",
+    "bytes": 3437
+  },
+  {
+    "file": "css/monitor-global-6.css",
+    "bytes": 3434
+  },
+  {
+    "file": "css/map-focus-layout.css",
+    "bytes": 3417
+  },
+  {
+    "file": "js/rainbow-radar.js",
+    "bytes": 3393
+  },
+  {
+    "file": "css/seismic-cinema.css",
+    "bytes": 3375
+  },
+  {
+    "file": "css/rain-arrival-notice.css",
+    "bytes": 3266
+  },
+  {
+    "file": "js/country-boundaries.js",
+    "bytes": 3252
+  },
+  {
+    "file": "js/tsunami-priority.js",
+    "bytes": 3209
+  },
+  {
+    "file": "js/rain-outlook.js",
+    "bytes": 3199
+  },
+  {
+    "file": "js/seismic-focus.js",
+    "bytes": 3193
+  },
+  {
+    "file": "js/tsunami-link.js",
+    "bytes": 3133
+  },
+  {
+    "file": "css/event-details-back.css",
+    "bytes": 3124
+  },
+  {
+    "file": "css/latest-event-cutout.css",
+    "bytes": 3096
+  },
+  {
+    "file": "css/monitor-workbench.css",
+    "bytes": 3082
+  },
+  {
+    "file": "css/weather-panel.css",
+    "bytes": 3010
+  },
+  {
+    "file": "js/seismic-final-summary.js",
+    "bytes": 2954
+  },
+  {
+    "file": "js/header-menu-toggle.js",
+    "bytes": 2941
+  },
+  {
+    "file": "js/debug-panel.js",
+    "bytes": 2884
+  },
+  {
+    "file": "css/brasil-hub.css",
+    "bytes": 2845
+  },
+  {
+    "file": "js/aftershock-model.js",
+    "bytes": 2823
+  },
+  {
+    "file": "js/tsunami-coastal-model.js",
+    "bytes": 2671
+  },
+  {
+    "file": "js/mobile-map-clusters.js",
+    "bytes": 2663
+  },
+  {
+    "file": "css/monitor-global-70.css",
+    "bytes": 2623
+  },
+  {
+    "file": "js/monitor-workbench-model.js",
+    "bytes": 2573
+  },
+  {
+    "file": "js/mobile-energy-budget.js",
+    "bytes": 2558
+  },
+  {
+    "file": "js/tsunami-bulletin-origin.js",
+    "bytes": 2494
+  },
+  {
+    "file": "js/fetch-timeout.js",
+    "bytes": 2478
+  },
+  {
+    "file": "css/aftershock-sequence.css",
+    "bytes": 2419
+  },
+  {
+    "file": "js/cge-bulletins.js",
+    "bytes": 2358
+  },
+  {
+    "file": "js/hazard-feeds.js",
+    "bytes": 2277
+  },
+  {
+    "file": "css/storm-cinema.css",
+    "bytes": 2204
+  },
+  {
+    "file": "js/hazard-context-model.js",
+    "bytes": 2089
+  },
+  {
+    "file": "js/periodic-scheduler.js",
+    "bytes": 2084
+  },
+  {
+    "file": "js/mobile-v77.js",
+    "bytes": 2008
+  },
+  {
+    "file": "css/tv-mode.css",
+    "bytes": 2002
+  },
+  {
+    "file": "js/card-effect-quality.js",
+    "bytes": 1983
+  },
+  {
+    "file": "js/tablet-panels-top-fix.js",
+    "bytes": 1982
+  },
+  {
+    "file": "js/mobile-desktop-cleanup.js",
+    "bytes": 1941
+  },
+  {
+    "file": "css/mobile-touch-targets.css",
+    "bytes": 1937
+  },
+  {
+    "file": "js/aftershock-cluster-model.js",
+    "bytes": 1891
+  },
+  {
+    "file": "js/globe-space-model.js",
+    "bytes": 1876
+  },
+  {
+    "file": "css/source-evidence.css",
+    "bytes": 1807
+  },
+  {
+    "file": "css/correlation.css",
+    "bytes": 1770
+  },
+  {
+    "file": "js/mobile-final-fix.js",
+    "bytes": 1736
+  },
+  {
+    "file": "js/presentation-limits.js",
+    "bytes": 1727
+  },
+  {
+    "file": "css/mobile-detail-gesture.css",
+    "bytes": 1676
+  },
+  {
+    "file": "css/brand-logo.css",
+    "bytes": 1652
+  },
+  {
+    "file": "js/inmet-detail.js",
+    "bytes": 1641
+  },
+  {
+    "file": "css/globe-preview.css",
+    "bytes": 1600
+  },
+  {
+    "file": "css/hazard-workbench.css",
+    "bytes": 1595
+  },
+  {
+    "file": "population-exposure.css",
+    "bytes": 1460
+  },
+  {
+    "file": "css/desktop-header-scale.css",
+    "bytes": 1445
+  },
+  {
+    "file": "js/mobile-v73.js",
+    "bytes": 1426
+  },
+  {
+    "file": "css/volcano.css",
+    "bytes": 1399
+  },
+  {
+    "file": "css/cascade-ripple.css",
+    "bytes": 1292
+  },
+  {
+    "file": "js/theme-toggle.js",
+    "bytes": 1260
+  },
+  {
+    "file": "css/seismic-final-summary.css",
+    "bytes": 1246
+  },
+  {
+    "file": "css/mobile-event-chips.css",
+    "bytes": 1101
+  },
+  {
+    "file": "css/tsunami-wave.css",
+    "bytes": 1005
+  },
+  {
+    "file": "css/audio-controls.css",
+    "bytes": 1004
+  },
+  {
+    "file": "js/header-status-layout.js",
+    "bytes": 983
+  },
+  {
+    "file": "css/mobile-event-search.css",
+    "bytes": 977
+  },
+  {
+    "file": "js/adaptive-panel.js",
+    "bytes": 894
+  },
+  {
+    "file": "js/flood-chip-click.js",
+    "bytes": 851
+  },
+  {
+    "file": "css/official-weather-alerts.css",
+    "bytes": 847
+  },
+  {
+    "file": "css/radar-v71.css",
+    "bytes": 712
+  },
+  {
+    "file": "css/unified-cities.css",
+    "bytes": 563
+  },
+  {
+    "file": "css/card-event-typography.css",
+    "bytes": 530
+  },
+  {
+    "file": "css/header-v72.css",
+    "bytes": 459
+  },
+  {
+    "file": "css/mobile-energy-budget.css",
+    "bytes": 444
+  },
+  {
+    "file": "css/mobile-performance.css",
+    "bytes": 434
+  },
+  {
+    "file": "js/header-v71.js",
+    "bytes": 426
+  },
+  {
+    "file": "js/header-event-count-sync.js",
+    "bytes": 408
+  },
+  {
+    "file": "css/weather-evidence.css",
+    "bytes": 374
+  },
+  {
+    "file": "css/optional-features.css",
+    "bytes": 320
+  },
+  {
+    "file": "js/ana-rios.js",
+    "bytes": 293
+  }
+]

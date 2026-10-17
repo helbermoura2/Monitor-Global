@@ -1,0 +1,212 @@
+{
+  "method": {
+    "viewport": "390x844",
+    "dpr": 3,
+    "cpuSlowdown": 4,
+    "windowSeconds": 5,
+    "externalRequests": "blocked",
+    "tiles": "unavailable",
+    "heap": "main JS heap only; sampled after workload, includes uncollected allocations",
+    "effects": "real local renderers; no production events"
+  },
+  "results": [
+    {
+      "repeat": 0,
+      "scenario": "globe-idle",
+      "windowMs": 5003,
+      "heapBytes": 21265724,
+      "TaskDurationMs": 1569,
+      "ScriptDurationMs": 126,
+      "LayoutDurationMs": 8,
+      "RecalcStyleDurationMs": 28,
+      "nodes": 1266
+    },
+    {
+      "repeat": 0,
+      "scenario": "globe-moving",
+      "windowMs": 5003,
+      "heapBytes": 25264344,
+      "TaskDurationMs": 4973,
+      "ScriptDurationMs": 679,
+      "LayoutDurationMs": 25,
+      "RecalcStyleDurationMs": 38,
+      "nodes": 1312
+    },
+    {
+      "repeat": 0,
+      "scenario": "flat-idle",
+      "windowMs": 5004,
+      "heapBytes": 20467892,
+      "TaskDurationMs": 43,
+      "ScriptDurationMs": 24,
+      "LayoutDurationMs": 0,
+      "RecalcStyleDurationMs": 1,
+      "nodes": 1315
+    },
+    {
+      "repeat": 0,
+      "scenario": "rain",
+      "windowMs": 5002,
+      "heapBytes": 22591668,
+      "TaskDurationMs": 3423,
+      "ScriptDurationMs": 380,
+      "LayoutDurationMs": 33,
+      "RecalcStyleDurationMs": 171,
+      "nodes": 1321
+    },
+    {
+      "repeat": 0,
+      "scenario": "lava",
+      "windowMs": 5006,
+      "heapBytes": 21283448,
+      "TaskDurationMs": 2625,
+      "ScriptDurationMs": 282,
+      "LayoutDurationMs": 61,
+      "RecalcStyleDurationMs": 252,
+      "nodes": 1321
+    },
+    {
+      "repeat": 0,
+      "scenario": "quake",
+      "windowMs": 5035,
+      "heapBytes": 21256168,
+      "TaskDurationMs": 4669,
+      "ScriptDurationMs": 2920,
+      "LayoutDurationMs": 19,
+      "RecalcStyleDurationMs": 466,
+      "nodes": 1726
+    },
+    {
+      "repeat": 1,
+      "scenario": "globe-idle",
+      "windowMs": 5004,
+      "heapBytes": 21265656,
+      "TaskDurationMs": 109,
+      "ScriptDurationMs": 45,
+      "LayoutDurationMs": 1,
+      "RecalcStyleDurationMs": 8,
+      "nodes": 1320
+    },
+    {
+      "repeat": 1,
+      "scenario": "globe-moving",
+      "windowMs": 5001,
+      "heapBytes": 26550448,
+      "TaskDurationMs": 4979,
+      "ScriptDurationMs": 751,
+      "LayoutDurationMs": 36,
+      "RecalcStyleDurationMs": 47,
+      "nodes": 1326
+    },
+    {
+      "repeat": 1,
+      "scenario": "flat-idle",
+      "windowMs": 5005,
+      "heapBytes": 21473960,
+      "TaskDurationMs": 112,
+      "ScriptDurationMs": 21,
+      "LayoutDurationMs": 1,
+      "RecalcStyleDurationMs": 1,
+      "nodes": 1329
+    },
+    {
+      "repeat": 1,
+      "scenario": "rain",
+      "windowMs": 5008,
+      "heapBytes": 22723172,
+      "TaskDurationMs": 3285,
+      "ScriptDurationMs": 349,
+      "LayoutDurationMs": 35,
+      "RecalcStyleDurationMs": 155,
+      "nodes": 1335
+    },
+    {
+      "repeat": 1,
+      "scenario": "lava",
+      "windowMs": 5003,
+      "heapBytes": 21870540,
+      "TaskDurationMs": 2569,
+      "ScriptDurationMs": 316,
+      "LayoutDurationMs": 71,
+      "RecalcStyleDurationMs": 248,
+      "nodes": 1335
+    },
+    {
+      "repeat": 1,
+      "scenario": "quake",
+      "windowMs": 5005,
+      "heapBytes": 22849060,
+      "TaskDurationMs": 4466,
+      "ScriptDurationMs": 2771,
+      "LayoutDurationMs": 14,
+      "RecalcStyleDurationMs": 503,
+      "nodes": 1740
+    },
+    {
+      "repeat": 2,
+      "scenario": "globe-idle",
+      "windowMs": 5006,
+      "heapBytes": 21761760,
+      "TaskDurationMs": 133,
+      "ScriptDurationMs": 44,
+      "LayoutDurationMs": 2,
+      "RecalcStyleDurationMs": 8,
+      "nodes": 1334
+    },
+    {
+      "repeat": 2,
+      "scenario": "globe-moving",
+      "windowMs": 5007,
+      "heapBytes": 26455428,
+      "TaskDurationMs": 4951,
+      "ScriptDurationMs": 600,
+      "LayoutDurationMs": 21,
+      "RecalcStyleDurationMs": 39,
+      "nodes": 1334
+    },
+    {
+      "repeat": 2,
+      "scenario": "flat-idle",
+      "windowMs": 5002,
+      "heapBytes": 21655504,
+      "TaskDurationMs": 153,
+      "ScriptDurationMs": 29,
+      "LayoutDurationMs": 2,
+      "RecalcStyleDurationMs": 3,
+      "nodes": 1333
+    },
+    {
+      "repeat": 2,
+      "scenario": "rain",
+      "windowMs": 5003,
+      "heapBytes": 22982408,
+      "TaskDurationMs": 3261,
+      "ScriptDurationMs": 381,
+      "LayoutDurationMs": 29,
+      "RecalcStyleDurationMs": 142,
+      "nodes": 1335
+    },
+    {
+      "repeat": 2,
+      "scenario": "lava",
+      "windowMs": 5005,
+      "heapBytes": 22360392,
+      "TaskDurationMs": 2562,
+      "ScriptDurationMs": 289,
+      "LayoutDurationMs": 59,
+      "RecalcStyleDurationMs": 245,
+      "nodes": 1335
+    },
+    {
+      "repeat": 2,
+      "scenario": "quake",
+      "windowMs": 5011,
+      "heapBytes": 22841880,
+      "TaskDurationMs": 4449,
+      "ScriptDurationMs": 2593,
+      "LayoutDurationMs": 18,
+      "RecalcStyleDurationMs": 612,
+      "nodes": 1740
+    }
+  ]
+}

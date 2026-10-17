@@ -80,7 +80,8 @@ function kmlToGeoJSONRota(xml) {
 }
 
 async function fetchKmzGeoJSON(kmzUrl) {
-    if (!window.JSZip || typeof WORKER_PROXY !== 'function') return null;
+    if (typeof WORKER_PROXY !== 'function') return null;
+    await window.OptionalFeatures.zip();
     const r = await fetch(WORKER_PROXY(kmzUrl), { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const ab = await r.arrayBuffer();

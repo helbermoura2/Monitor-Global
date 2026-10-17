@@ -4,7 +4,7 @@ for(const mobile of [false,true])test.describe(mobile?'native touch':'native mou
  for(const scene of ['paint','scenario','tsunami'])test(`${scene} preserves the entire drag`,async({page,context})=>{
   await page.route('**/*',r=>new URL(r.request().url()).origin==='http://127.0.0.1:4173'?r.continue():r.abort());
   await page.goto('/');
-  await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento&&window.TsunamiPresentation&&window.SeismicScenarioDemo);
+  await page.evaluate(()=>OptionalFeatures.seismicScenarios());await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento&&window.TsunamiPresentation&&window.SeismicScenarioDemo);
   await page.evaluate(scene=>{
    pausarBuscas();PeriodicScheduler.cancel('correlation');clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();NewEventPriority.clear?.();stopWaveFront();stopFeltZone();SeismicCinema.stop();PresentationLimits.clear();
    // Keep the real renderer and native handlers. Remove only offline raster tiles.

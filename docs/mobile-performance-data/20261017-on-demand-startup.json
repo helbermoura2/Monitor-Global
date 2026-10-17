@@ -1,0 +1,32 @@
+[
+  {
+    "dcl": 2267,
+    "resources": 213,
+    "bytes": 3207585,
+    "longTasks": 16,
+    "blockingMs": 1456,
+    "heap": 59727284,
+    "optional": [],
+    "pixelRatio": 1.25
+  },
+  {
+    "dcl": 2136.4000000059605,
+    "resources": 213,
+    "bytes": 3207585,
+    "longTasks": 18,
+    "blockingMs": 1401,
+    "heap": 59555855,
+    "optional": [],
+    "pixelRatio": 1.25
+  },
+  {
+    "dcl": 1988.1000000238419,
+    "resources": 213,
+    "bytes": 3207585,
+    "longTasks": 16,
+    "blockingMs": 1257,
+    "heap": 59712723,
+    "optional": [],
+    "pixelRatio": 1.25
+  }
+]
