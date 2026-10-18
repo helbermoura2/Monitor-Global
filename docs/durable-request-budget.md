@@ -1,6 +1,6 @@
 # Durable Objects: controle de solicitações e cache
 
-A cota de solicitações é separada das cotas de linhas lidas/escritas e do Workers KV. A auditoria de 18/10 às 00:13 UTC encontrou 93.053 invocações em 17/10, incluindo 42.998 com `scriptThrewException`. Isso comprova falhas, mas não identifica sozinho a mensagem ou causa de cada exceção.
+A cota de solicitações é separada das cotas de linhas lidas/escritas e do Workers KV. A auditoria de 18/10 às 00:13 UTC encontrou 93.053 invocações em 17/10, incluindo 42.998 com `scriptThrewException`. A auditoria posterior por nome atribuiu 40.857 chamadas (43,9%) ao contador `kv-operation-metrics-v1` e 8.018 aos alarmes de fontes públicas. Isso comprova falhas, mas não identifica sozinho a mensagem ou causa de cada exceção.
 
 ## Mudanças
 

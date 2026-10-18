@@ -60,6 +60,14 @@ def main():
             report['results'][name]={'sumFields':sums,'dimensionFields':dimensions,'rows':rows}
         except (m.MaintenanceError,KeyError,TypeError,ValueError) as error:report['unavailable'][name]=str(error).replace(token,'[token]').replace(account,'[account]')[:600]
     try:
+        begin=(now-dt.timedelta(minutes=30)).isoformat().replace('+00:00','Z')
+        query='query{viewer{accounts(filter:{accountTag:'+json.dumps(account)+'}){durableObjectsInvocationsAdaptiveGroups(limit:10000,filter:{datetime_geq:'+json.dumps(begin)+',datetime_leq:'+json.dumps(now.isoformat().replace('+00:00','Z'))+'}){sum{requests errors} dimensions{datetimeMinute name status type}}}}}'
+        accounts=graphql(client,query).get('viewer',{}).get('accounts',[])
+        rows=accounts[0].get('durableObjectsInvocationsAdaptiveGroups') if len(accounts)==1 else None
+        if not isinstance(rows,list) or len(rows)>=10000:raise m.MaintenanceError('Missing or truncated recent invocations')
+        report['lastThirtyMinutes']={'since':begin,'rows':rows}
+    except Exception as error:report['unavailable']['recentInvocations']=str(error).replace(token,'[token]').replace(account,'[account]')[:600]
+    try:
         report['deployments']=client.call(client.worker('/deployments'))
         req=urllib.request.Request(m.API+client.worker(),headers={'Authorization':'Bearer '+token})
         with urllib.request.urlopen(req,timeout=30) as response: source=response.read().decode('utf8',errors='replace')
@@ -82,7 +90,7 @@ def main():
                     category=next((label for words,label in [(['exceeded','limit'],'quota exceeded'),(['too many','request'],'request limit'),(['sqlite','full'],'SQLite full'),(['too large'],'value too large'),(['memory'],'memory'),(['cpu'],'CPU'),(['recursive'],'recursion'),(['overloaded'],'overloaded')] if all(w in text for w in words)),'other (message withheld)')
                     categories[category]=categories.get(category,0)+(row.get('count') or row.get('value') or 0)
             report['errorCategoriesLastHour']=categories
-    except Exception as error:report['unavailable']['telemetry']=type(error).__name__
+    except Exception as error:report['unavailable']['telemetry']=str(error).replace(token,'[token]').replace(account,'[account]')[:600]
     path=Path('audit-results');path.mkdir(exist_ok=True)
     text=json.dumps(report,ensure_ascii=False,indent=2);(path/'durable-requests.json').write_text(text);print(text)
     if not report['results']:raise SystemExit('Durable analytics unavailable; do not infer zero usage.')
