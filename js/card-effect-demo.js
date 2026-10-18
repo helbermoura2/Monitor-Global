@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  let dialog=null,bar=null,timer=0,active=false,restoreId=null,generation=0;
- const labels={'site-lava':'Tela inteira · lava incandescente · 10 s','site-quake':'Tela inteira · desabamento M8+ · 24 s','site-rain':'Tela inteira · chuva intensa · 10 s','seismic-official':'Teste · mapa oficial USGS (M7,8 histórico)','seismic-rupture-only':'Teste · ruptura real sem mapa de intensidade','seismic-rupture':'Teste · ruptura alongada fictícia','seismic-aftershocks':'Teste · novas réplicas','seismic-tsunami':'Teste · sismo com tsunami',civil:'Alerta · varredura',dry:'Baixa umidade',earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami · modelo 1 · costas pintadas',wind:'Rajadas de vento'};
+ const labels={'site-tsunami-1':'tsunami - tela toda - Jules - 1','site-tsunami-2':'tsunami - tela toda - Jules - 2','site-tsunami-3':'tsunami - tela toda - Jules - 3','site-lava':'Tela inteira · lava incandescente · 10 s','site-quake':'Tela inteira · desabamento M8+ · 24 s','site-rain':'Tela inteira · chuva intensa · 10 s','seismic-official':'Teste · mapa oficial USGS (M7,8 histórico)','seismic-rupture-only':'Teste · ruptura real sem mapa de intensidade','seismic-rupture':'Teste · ruptura alongada fictícia','seismic-aftershocks':'Teste · novas réplicas','seismic-tsunami':'Teste · sismo com tsunami',civil:'Alerta · varredura',dry:'Baixa umidade',earthquake:'Sismo',storm:'Tempestade',hurricane:'Furacão',typhoon:'Tufão','tropical-storm':'Tempestade tropical',depression:'Depressão tropical',tornado:'Tornado',fire:'Incêndio','volcano-lava':'Vulcão · lava','volcano-ash':'Vulcão · cinzas','volcano-monitoring':'Vulcão · monitoramento',flood:'Enchente',tsunami:'Tsunami · modelo 1 · costas pintadas',wind:'Rajadas de vento'};
  function removeControls(){clearTimeout(timer);timer=0;bar?.remove();bar=null;dialog?.remove();dialog=null;}
  function cancelForRealEvent(){if(!active&&!dialog&&!bar&&!window.SeismicScenarioDemo?.isActive()&&!window.TsunamiPresentation?.state()?.demo&&!window.TsunamiMap?.isPreview())return;generation++;window.SiteEffectDemo?.stop();window.SeismicScenarioDemo?.stop(false);if(window.TsunamiPresentation?.state()?.demo)window.TsunamiPresentation.stop();window.TsunamiMap?.closePreview(false);active=false;restoreId=null;removeControls();}
  function stop(restore=true){generation++;window.SiteEffectDemo?.stop();window.SeismicScenarioDemo?.stop();const mapPreview=window.TsunamiMap?.isPreview();window.TsunamiMap?.closePreview();if(mapPreview&&typeof scheduleNextAutoCycle==='function')scheduleNextAutoCycle(30000);const was=active,id=restoreId;active=false;restoreId=null;removeControls();if(was){window.CinematicCard?.stop();if(restore&&id===window.EventStore?.selectedId&&!window.EventCamera?.owns(id)){const item=window.EventStore.getSelected();if(item)window.CinematicCard?.start(window.EventPortuguese?.view(item)||item);}}}
@@ -11,16 +11,19 @@
   const previous=active?restoreId:window.CinematicCard?.isActive()?window.EventStore?.selectedId:null;
   stop(false);restoreId=previous;window.SeismicCinema?.closeDemo();
   if(key.startsWith('site-')){
-   const kind=key.slice(5),token=generation;
+   const rawKind=key.slice(5);
+   const kind=rawKind.startsWith('tsunami')?'tsunami':rawKind;
+   const variant=rawKind==='tsunami-1'?1:rawKind==='tsunami-2'?2:rawKind==='tsunami-3'?3:1;
+   const token=generation;
    active=true;controls('TESTE · '+labels[key]+' · Carregando materiais');
    const type={lava:'volcano',quake:'earthquake',rain:'hurricane',tsunami:'tsunami'}[kind];
    Promise.all([window.OptionalFeatures.siteEffectDemo(),window.OptionalFeatures.effect(type)]).then(()=>{
     if(!active||generation!==token)return;
-    const item={id:'site-demo-'+kind,type,__cinemaDemo:true,mag:8.2,depth:10,windKmh:45,sev:4,detail:'Cenário visual de teste'};
+    const item={id:'site-demo-'+rawKind,type,__cinemaDemo:true,mag:8.2,depth:10,windKmh:45,sev:4,detail:'Cenário visual de teste ('+labels[key]+')'};
     if(kind==='lava')Object.assign(item,{eruptionStatus:'Em erupção',detail:'Lava incandescente ativa · sem cinzas'});
     const duration=window.SiteEffectDemo.durationFor(kind);
     window.CinematicCard?.start(item,duration);
-    const played=window.SiteEffectDemo.start(kind);
+    const played=window.SiteEffectDemo.start(kind,{variant});
     bar?.querySelector('span')?.replaceChildren(document.createTextNode('TESTE · '+labels[key]+(played?' · Cena ilustrativa':' · Movimento reduzido')));
     timer=setTimeout(stop,duration);
    }).catch(()=>{if(generation!==token)return;window.SiteEffectDemo?.stop();window.CinematicCard?.stop();bar?.querySelector('span')?.replaceChildren(document.createTextNode('Não foi possível carregar a cena. Tente novamente.'));});
