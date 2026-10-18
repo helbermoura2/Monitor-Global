@@ -1903,6 +1903,7 @@ async function handleWorkerRequest(request,env){
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",
+                sourceEdgeBudget: "shared-source-edge-v2",
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
                 telegramM6: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
