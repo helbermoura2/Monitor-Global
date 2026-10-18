@@ -5,17 +5,17 @@
  const reduced=()=>root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  const selected=id=>typeof eventoSelecionadoId!=='undefined'&&eventoSelecionadoId===id;
  function stop(kind){if(kind&&active?.kind!==kind)return;serial++;active=null;if(root.SiteEffectDemo?.state?.()?.live)root.SiteEffectDemo.stop();}
- async function play(kind,key,current,options={}){
+ async function play(kind,key,current,options={},eventId=null){
   if(!allowed.has(kind)||document.hidden||reduced()||seen.has(key)||!current()||root.CardEffectDemo?.isActive())return false;
   if(active&&active.until>Date.now()&&priority[active.kind]>priority[kind])return false;
   if(active?.key===key&&active.until>Date.now())return false;
-  stop();const token=++serial;active={kind,key,until:Date.now()+(kind==='quake'?24000:10000)};
+  stop();const token=++serial;active={kind,key,eventId,until:Date.now()+(kind==='quake'?24000:10000)};
   try{await root.OptionalFeatures.siteEffectDemo();if(token!==serial||document.hidden||reduced()||!current()||root.CardEffectDemo?.isActive()){if(token===serial)active=null;return false;}
    const ok=root.SiteEffectDemo.start(kind,{live:true,...options});if(!ok){if(token===serial)active=null;return false;}
    active.until=Date.now()+root.SiteEffectDemo.durationFor(kind);seen.set(key,Date.now());while(seen.size>128)seen.delete(seen.keys().next().value);return true;
   }catch(e){if(token===serial)active=null;console.warn('[efeito de tela inteira]',e.message);return false;}
  }
- function quake(item,mode){if(!item||item.__cinemaDemo||!Number.isFinite(Number(item.mag))||Number(item.mag)<8||mode==='auto')return Promise.resolve(false);return play('quake','quake|'+item.id+'|'+item.time,()=>selected(item.id));}
+ function quake(item,mode){if(!item||item.__cinemaDemo||!Number.isFinite(Number(item.mag))||Number(item.mag)<8||mode==='auto')return Promise.resolve(false);return play('quake','quake|'+item.id+'|'+item.time,()=>selected(item.id),{},item.id);}
  function volcano(item,cfg){
   if(!item||item.__cinemaDemo||item.type!=='volcano')return Promise.resolve(false);
   const evidence=root.VolcanoPriority?.evidence(item);
@@ -23,7 +23,7 @@
   // eruption need not explicitly mention lava to receive its visual overlay.
   if(!cfg?.hot&&!cfg?.lava&&!evidence?.explosive)return Promise.resolve(false);
   const version=item.noticeId||item.eruptionStart||item._updatedAt||item.time||'episode';
-  return play('lava','lava|'+item.id+'|'+version,()=>selected(item.id));
+  return play('lava','lava|'+item.id+'|'+version,()=>selected(item.id),{},item.id);
  }
  function rain(summary,candidate){
   if(summary?.provider!=='rainbow'||!summary.loc||typeof weatherLoc==='undefined')return;
@@ -39,7 +39,7 @@
   return play('rain','rain|'+key,current,{lightning,rate});
  }
  function suspend(){const quake=active?.kind==='quake';stop();if(quake)root.SeismicCinema?.stop();}
- document.addEventListener('DOMContentLoaded',()=>root.EventStore?.subscribe(reason=>{if(reason==='select')suspend();}));
+ document.addEventListener('DOMContentLoaded',()=>root.EventStore?.subscribe((reason,payload)=>{if(reason==='select'&&active?.eventId!==payload?.id)suspend();}));
  document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend();});document.addEventListener('keydown',e=>{if(e.key==='Escape')suspend();});root.addEventListener('pagehide',suspend);
  root.FullScreenEffects={quake,volcano,rain,stop,state:()=>active&&active.until>Date.now()?{...active}:null};
 })(window);

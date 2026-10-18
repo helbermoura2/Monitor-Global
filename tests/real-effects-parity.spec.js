@@ -13,7 +13,7 @@ async function boot(page,width=1280){
   // Capture the profile at the shared renderer boundary, preserving the renderer.
   const create=CardCinemaFilm.create;CardCinemaFilm.create=function(cfg,...args){window.__effectProfile={...cfg};return create.call(this,cfg,...args);};
  });
- await expect(page.locator('#pd-local')).toHaveText('Sismo inicial QA — Bolívia',{timeout:12000});
+ await expect(page.locator('#pd-local')).toHaveText('Sismo inicial QA — Chile',{timeout:12000});
 }
 
 const realSamples=[
@@ -44,6 +44,12 @@ for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam 
    return {profile:{...__effectProfile},selectedId:EventStore.selectedId,text:text()};
   },extra);
   await expect(page.locator('#card-fx-demo-status')).toHaveCount(0);
+  if(extra.type==='volcano'){
+   await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
+   if(key!=='volcano-monitoring')await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-scene','lava');
+   else await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(0);
+   await expect(page.locator('#pd-local')).toHaveText('Evento real de teste',{timeout:12000});continue;
+  }
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
   expect(actual.profile,key).toEqual(demo);
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',extra.type);
@@ -64,30 +70,20 @@ for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam 
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-cinema-layer,.pd-cinema-contact')).toHaveCount(0);
 });
 
-test('VAAC real, tradução USGS e revisão silenciosa mantêm cinzas e removem lava encerrada',async({page})=>{
+test('revisão silenciosa inicia lava na erupção confirmada e encerra ao cessar a atividade',async({page})=>{
  await boot(page);
  async function select(extra,silent=false){
   await page.evaluate(({extra,silent})=>{
    const item={id:'parity-feed-volcano',type:'volcano',source:'VAAC DARWIN',coords:[145.033,-4.083],place:'MANAM',time:Date.now(),...extra};
-   globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false,silent);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
+   globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false,silent);clearTimeout(cycleTimeout);
   },{extra,silent});
  }
- // A real Darwin record uses VA, not the word ash; old profiles showed terrain.
- await select({eruptionStatus:'VA PLUME TO FL070 LAST OBS AT 03/0850Z',ashStatus:'VA PLUME TO FL070 LAST OBS AT 03/0850Z',detail:'VA PLUME TO FL070 LAST OBS AT 03/0850Z'});
- await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-activity','ash');
- await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/smoke.mp4');
- await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
- // showAlertDetails translates this synopsis before invoking CinematicCard.
- await select({source:'USGS VHP',eruptionStatus:'Atividade elevada / monitorada',detail:'Eruption continues with frequent explosions and ash emissions.'},true);
- await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-activity','eruptive');
- await expect(page.locator('.pd-cinema-heat')).toHaveCount(2);
- await expect(page.locator('.pd-cinema-layer')).not.toHaveAttribute('data-material','lava');
- await select({source:'USGS VHP',eruptionStatus:'ERUPTING',detail:'Active lava flow, no ash.'},true);
- await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-material','lava');
- await select({source:'USGS VHP',eruptionStatus:'Eruption ended',detail:'Lava flow ceased. No ash observed.'},true);
- await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-activity','monitoring');
- await expect(page.locator('.pd-cinema-footage')).toHaveCount(0);await expect(page.locator('.pd-volcano-monitor')).toHaveCount(1);
- await expect(page.locator('.pd-cinema-heat')).toHaveCount(0);
+ await select({noticeId:'ash',detail:'VA PLUME TO FL070 LAST OBS AT 03/0850Z'});
+ await expect(page.locator('.pd-cinema-layer,#site-effect-demo-canvas')).toHaveCount(0);
+ await select({noticeId:'eruption',detail:'Eruption continues with frequent explosions and ash emissions.'},true);
+ await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-scene','lava');await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
+ await select({noticeId:'ended',eruptionStatus:'Eruption ended',detail:'Lava flow ceased. No ash observed.'},true);
+ await expect(page.locator('.pd-cinema-layer,#site-effect-demo-canvas')).toHaveCount(0);
 });
 
 test('atividade vulcânica exige sinais positivos em EN/PT e abreviações VAAC',async({page})=>{
@@ -147,7 +143,7 @@ test('atividade vulcânica exige sinais positivos em EN/PT e abreviações VAAC'
   [{eruptionStatus:'Eruption ended',detail:'Residual ash cloud drifting east'},[false,true,false]],
  ];
  for(const [extra,expected] of samples){
-  const actual=await page.evaluate(extra=>{CinematicCard.start({id:'profile',type:'volcano',...extra});const {hot,ash,lava}=__profile;CinematicCard.stop();return [hot,ash,lava];},extra);
+  const actual=await page.evaluate(extra=>{CinematicCard.start({id:'profile',type:'volcano',__cinemaDemo:true,...extra});const {hot,ash,lava}=__profile;CinematicCard.stop();return [hot,ash,lava];},extra);
   expect(actual,JSON.stringify(extra)).toEqual(expected);
  }
 });

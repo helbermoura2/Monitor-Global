@@ -7,3 +7,6 @@ playwright-report/
 
 # Python catalogue refresh tools
 __pycache__/
+
+# Persisted CI diagnostics
+test-logs/

@@ -15,3 +15,5 @@ MONITOR_TEST_OFFLINE=1 NODE_OPTIONS='--require ./tools/test-network-guard.cjs' n
 Os testes básicos usam um evento simulado, não exigem um registro real. O bloqueio de rede não transforma falhas antigas em sucesso: testes que precisavam de serviços reais precisam receber fixtures explícitas.
 
 Essa configuração pertence aos testes. Ela não altera o site publicado, os alertas, nem os workflows separados de coleta de dados e auditoria de cotas.
+
+Cada job publica os nomes das falhas no resumo da execução do GitHub Actions e preserva o diagnóstico em um artefato `test-diagnostics-…`. Falhas nos testes internos também ficam registradas, mesmo quando impedem a abertura do navegador.

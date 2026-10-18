@@ -10,7 +10,7 @@ function install(){
  for(const [transport,protocol] of [[http,'http:'],[https,'https:']]){
   const request=transport.request;
   transport.request=function(input,...args){
-   const url=typeof input==='string'||input instanceof URL?input:protocol+'//'+(input.hostname||input.host||'localhost')+(input.port?':'+input.port:'')+(input.path||'/');
+   const url=typeof input==='string'||input instanceof URL?input:protocol+'//'+(input.hostname||input.host||'localhost')+(input.port?':'+input.port:'')+'/';
    if(!local(url))throw denied();return request.call(this,input,...args);
   };
   transport.get=function(...args){const req=transport.request(...args);req.end();return req;};

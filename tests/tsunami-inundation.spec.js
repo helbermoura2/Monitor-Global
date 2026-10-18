@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
 // Veja storm-lightning.spec.js (silenceBaseTileRetry) — issue #327: evita a
@@ -31,7 +32,7 @@ async function boot(page,width,cpu=false){
   if(u.hostname==='server.arcgisonline.com')return r.fulfill({status:200,contentType:'image/png',body:TRANSPARENT_PNG});
   return r.abort();
  });
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("tsunami"));await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardTsunamiSurge);
  // Mantido como segunda camada de defesa (ex.: algum outro tile-id futuro
  // acabar caindo no mesmo map.on('error',...) por outro motivo que não rede).
  await silenceBaseTileRetry(page);

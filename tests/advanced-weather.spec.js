@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 const fs=require('node:fs'),path=require('node:path');
 test.use({serviceWorkers:'block'});
 async function isolated(page,mobile=false){
@@ -36,7 +37,7 @@ for(const width of [1280,390])test('cenas avançadas no evento real, revisão, r
  test.setTimeout(180000);
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardWeatherPhysics);
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardWeatherPhysics);
  const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+10000));
  for(const [key,type,classification] of [['storm','storm',null],['tropical-storm','hurricane','TS'],['typhoon','hurricane','TY'],['wind','wind',null],['flood','flood',null]]){
@@ -51,7 +52,7 @@ for(const width of [1280,390])test('cenas avançadas no evento real, revisão, r
   expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
   const before=await page.locator('.pd-weather-material').elementHandle();
   await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'São Paulo — boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
-  await page.clock.runFor(1600);expect(await before.evaluate(el=>el.isConnected)).toBe(true);
+  await page.clock.runFor(1600);expect(await before.evaluate(el=>el.isConnected),key).toBe(true);
   await expect(page.locator('#pd-local')).toContainText('boletim atualizado');
   if(type==='flood'){await expect.poll(()=>page.locator('.pd-cinema-footage').evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);await page.clock.runFor(200);}
   await page.screenshot({path:'/tmp/advanced-weather-'+key+'-'+width+'.png'});
