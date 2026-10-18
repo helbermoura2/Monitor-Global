@@ -55,3 +55,10 @@ test('global aggregate route is implemented and reuses the same provider coordin
  const f=fixture(),old=fetch,calls=new Map();globalThis.fetch=async u=>{const url=new URL(u);calls.set(url.hostname,(calls.get(url.hostname)||0)+1);if(url.hostname==='eonet.gsfc.nasa.gov')return Response.json({events:[]});if(url.hostname==='api.weather.gov')return Response.json({features:[]});return new Response('<?xml version="1.0"?><rss><channel><title>Official feed</title></channel></rss>',{headers:{'Content-Type':'application/xml'}});};
  try{const r=await worker.fetch(new Request('https://worker.test/global-feeds'),f.env);assert.equal(r.status,200);const data=await r.json();assert.equal(data.fontes.length,5);assert.equal(data.risco.level,'NORMAL');assert(f.items.has('shared-source-v1:www.nhc.noaa.gov'));assert.equal(calls.get('www.nhc.noaa.gov'),1);await worker.fetch(new Request('https://worker.test/?url='+encodeURIComponent('https://www.nhc.noaa.gov/gis/forecast/archive/atl/latest/track_latest.xml')),f.env);assert.equal(calls.get('www.nhc.noaa.gov'),1);await f.flush();}finally{globalThis.fetch=old;}
 });
+
+test('real Worker serves a valid source even when durable cache reads and writes exceed quota',async()=>{
+ const f=fixture(),original=globalThis.fetch,get=f.env.EARTHQUAKE_ALERTS.get;let calls=0,writes=0;
+ f.env.EARTHQUAKE_ALERTS.get=name=>{const object=get(name),storage=f.items.get(name).storage;storage.get=async()=>{throw Error('quota exceeded');};storage.put=async()=>{writes++;throw Error('quota exceeded');};storage.setAlarm=async()=>{throw Error('unexpected alarm');};return object;};
+ globalThis.fetch=async()=>{calls++;return Response.json(feed('current'));};
+ try{for(let i=0;i<20;i++){const response=await worker.fetch(request(),f.env);assert.equal(response.status,200);assert.equal(response.headers.get('X-Monitor-Source-State'),'fresh');assert.equal((await response.json()).features[0].id,'current');}assert.equal(calls,1);assert.equal(writes,1);assert.equal(f.items.has('kv-operation-metrics-v1'),false);await f.flush();}finally{globalThis.fetch=original;}
+});
