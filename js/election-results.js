@@ -1,4 +1,4 @@
-import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261005-election';
+import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261018-election-window';
 
 // A non-modal, desktop-only scoreboard. It never participates in map filters.
 const desktop = matchMedia('(min-width: 1101px)');
@@ -37,13 +37,13 @@ function close(reason = '') {
   if (focused && !chip.hidden) chip.focus({preventScroll: true});
 }
 function visibility() {
-  const available = desktop.matches && !expired();
+  const available = desktop.matches && Date.now()>=ELECTION_2026.activateAt && !expired();
   chip.hidden = !available;
   if (!available) close();
   clearTimeout(expiryTimer);
-  if (available) {
+  if (desktop.matches && !expired()) {
     const final = client.lastGood.get(2);
-    const deadline = Math.min(ELECTION_2026.retireAt, final?.finished ? final.generatedAt + 86400000 : Infinity);
+    const deadline = Date.now()<ELECTION_2026.activateAt?ELECTION_2026.activateAt:Math.min(ELECTION_2026.retireAt, final?.finished ? final.generatedAt + 86400000 : Infinity);
     // Timers are capped to avoid the browser's 32-bit timeout overflow.
     expiryTimer = setTimeout(visibility, Math.min(3600000, Math.max(1, deadline - Date.now())));
   }
@@ -160,7 +160,7 @@ function render(result = client.lastGood.get(turn), failed = false, loading = fa
   position();
 }
 async function refresh() {
-  if (!opened || !desktop.matches || expired() || document.hidden) return;
+  if (!opened || !desktop.matches || Date.now()<ELECTION_2026.activateAt || expired() || document.hidden) return;
   stop();
   const currentRevision = revision, currentTurn = turn, startedAt = Date.now();
   request = new AbortController();

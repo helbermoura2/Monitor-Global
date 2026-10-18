@@ -12,7 +12,7 @@ function signed(payload) {
   return encoded + '.' + sign(null, Buffer.from(encoded), privateKey).toString('base64url');
 }
 test.use({serviceWorkers: 'block', viewport: {width: 1600, height: 1000}});
-async function setup(page, {realSignature = false, date = '2026-10-05T02:00:00Z'} = {}) {
+async function setup(page, {realSignature = false, date = '2026-10-25T17:01:00Z'} = {}) {
   await page.clock.install({time: new Date(date)});
   const state = {config: decode(configFixture), first: decode(resultFixture), second: null, failure: false, hold: false, calls: 0};
   await page.route('**/*', async route => {
@@ -28,8 +28,8 @@ async function setup(page, {realSignature = false, date = '2026-10-05T02:00:00Z'
     if (url.pathname.includes('/config/')) return route.fulfill({status: 200, body: realSignature ? configFixture : signed(state.config)});
     state.calls++;
     if (state.failure) return route.fulfill({status: 503, body: 'maintenance'});
-    if (state.hold) return new Promise(resolve => {state.release = async () => {await route.fulfill({status: 200, body: signed(state.first)}).catch(() => {});resolve();};});
     if (url.pathname.includes('/6258/')) return route.fulfill(state.second ? {status: 200, body: signed(state.second)} : {status: 404, body: ''});
+    if (state.hold) return new Promise(resolve => {state.release = async () => {await route.fulfill({status: 200, body: signed(state.first)}).catch(() => {});resolve();};});
     return route.fulfill({status: 200, body: realSignature ? resultFixture : signed(state.first)});
   });
   await page.goto('/', {waitUntil: 'domcontentloaded'});
@@ -41,6 +41,7 @@ async function setup(page, {realSignature = false, date = '2026-10-05T02:00:00Z'
 async function open(page) {
   await page.locator('#chip-election').click();
   await expect(page.locator('#election-panel')).toBeVisible();
+  await page.locator('[data-election-turn="1"]').click();
 }
 
 test('assinatura real do TSE, votos e porcentagens no placar; chip não altera filtros', async ({page}) => {
@@ -65,12 +66,13 @@ test('assinatura real do TSE, votos e porcentagens no placar; chip não altera f
 test('consulta a cada 30 s mantém abertura; falha preserva votos e aponta indisponibilidade', async ({page}) => {
   const state = await setup(page);await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
+  const initialCalls=state.calls;
   state.first.hg = '22:52:26';state.first.ht = '22:52:01';
   state.first.carg[0].agr[0].par[0].cand[0].vap = '56099999';state.first.carg[0].agr[0].par[0].cand[0].pvap = '47,08';
   await page.clock.runFor(30050);
   await expect(page.locator('.election-candidate-votes').first()).toHaveText('56.099.999 votos');
   await expect(page.locator('.election-candidate-percentage').first()).toHaveText('47,08%');
-  expect(state.calls).toBe(2);
+  expect(state.calls).toBe(initialCalls+1);
   state.failure = true;
   await page.clock.runFor(30050);
   await expect(page.locator('#election-feedback')).toContainText('últimos números válidos preservados');
@@ -127,7 +129,7 @@ test('segundo turno aguarda fonte, não inventa participantes e recebe votos ofi
   const state = await setup(page);await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
   await page.locator('[data-election-turn="2"]').click();
-  await expect(page.locator('#election-empty')).toContainText('ainda não há dados oficiais do TSE.');
+  await expect(page.locator('#election-empty')).toContainText('Aguardando dados oficiais do 2º turno.');
   await expect(page.locator('.election-candidate')).toHaveCount(0);
   await expect(page.locator('#election-totalization')).toBeHidden();
   state.second = structuredClone(state.first);state.second.ele = '6258';state.second.t = '2';
@@ -152,7 +154,7 @@ test('respostas atrasadas não trocam o turno nem reabrem painel fechado', async
   await expect(page.locator('#election-panel')).toBeHidden();
   await open(page);await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
   await page.locator('[data-election-turn="2"]').click();
-  await expect(page.locator('#election-empty')).toContainText('ainda não há dados oficiais do TSE.');
+  await expect(page.locator('#election-empty')).toContainText('Aguardando dados oficiais do 2º turno.');
   await expect(page.locator('.election-candidate')).toHaveCount(0);
 });
 
@@ -188,4 +190,15 @@ test('desktop entre os cartões; mobile oculta e interrompe consultas; módulo e
   await page.setViewportSize({width:1600,height:1000});
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(page.locator('#chip-election')).toBeHidden();
+});
+
+test('chip and TSE requests stay disabled until 25/10 14h BRT and enable without reloading',async({page})=>{
+ const state=await setup(page,{date:'2026-10-25T16:58:00Z'});await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);});
+ await page.clock.pauseAt(new Date('2026-10-25T16:59:00Z'));
+ await expect(page.locator('#chip-election')).toBeHidden();expect(state.calls).toBe(0);
+ await expect(page.locator('script[src*="election-results.js"]')).toHaveCount(0);
+ await page.clock.runFor(59000);await expect(page.locator('#chip-election')).toBeHidden();expect(state.calls).toBe(0);
+ await page.clock.runFor(1100);await expect(page.locator('#chip-election')).toBeVisible();expect(state.calls).toBe(0);
+ await page.locator('#chip-election').click();await expect(page.locator('#election-panel')).toBeVisible();
+ await expect(page.locator('[data-election-turn="2"]')).toHaveAttribute('aria-pressed','true');await expect.poll(()=>state.calls).toBeGreaterThan(0);
 });

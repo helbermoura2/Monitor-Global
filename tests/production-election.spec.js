@@ -2,12 +2,13 @@ const {test, expect} = require('@playwright/test');
 
 test('apuração publicada usa TSE real e mostra votos e percentuais no desktop', async ({page, request}) => {
   test.skip(!process.env.PUBLIC_SITE_URL, 'Verificação apenas após publicação.');
+  test.skip(Date.now() < Date.parse('2026-10-25T17:00:00Z'), 'Apuração desativada até 25/10 às 14h BRT.');
   test.skip(Date.now() >= Date.parse('2026-11-01T03:00:00Z'), 'Módulo eleitoral temporário encerrado.');
   test.setTimeout(180000);
   const base = process.env.PUBLIC_SITE_URL.replace(/\/$/, '');
   await expect.poll(async () => {
     const response = await request.get(base + '/index.html?election-verify=' + Date.now());
-    return response.ok() && /js\/election-results\.js\?v=/.test(await response.text());
+    return response.ok() && (await response.text()).includes('js/optional-features.js?v=');
   }, {timeout: 120000, intervals: [5000]}).toBe(true);
   await page.setViewportSize({width: 1600, height: 1000});
   await page.route('**/*', route => {

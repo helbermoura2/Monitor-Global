@@ -1,6 +1,6 @@
 # Apuração presidencial temporária · desktop
 
-O chip **Eleição** fica imediatamente depois de **BR**, sem alterar filtros.
+O chip **Eleição** fica imediatamente depois de **BR**, sem alterar filtros. Fica desativado e oculto até **25/10/2026 às 14h de Brasília (17h UTC)**. Antes disso não carrega o painel nem consulta configuração ou resultados do TSE. Uma aba já aberta habilita o chip ao chegar ao horário, sem recarregar, e o segundo turno é a seleção inicial.
 Abre um placar não modal entre a lista de eventos e o cartão principal, logo
 abaixo do cabeçalho. Exibe os dois primeiros colocados no primeiro turno e os
 dois candidatos no segundo: nome de urna, partido, número, votos e percentual
@@ -35,7 +35,7 @@ são valores oficiais. `dt/ht` é apuração; `dg/hg` é geração. Recusa respo
 anteriores ao último horário aceito, assinaturas desconhecidas, dados de outra
 abrangência e contagens inválidas. `idg` não é tratado como contador crescente.
 
-Consulta enquanto aberto e visível a cada 30 s, com uma requisição por vez,
+Após a ativação programada, consulta enquanto aberto e visível a cada 30 s, com uma requisição por vez,
 timeout de 12 s e `nocache` como no aplicativo oficial. Ao fechar, entrar no
 mobile ou ocultar a aba, cancela a requisição e o agendamento. Voltar à aba
 consulta novamente se o painel continuar aberto. Uma falha preserva o último
