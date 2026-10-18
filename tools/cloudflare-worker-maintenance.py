@@ -22,7 +22,7 @@ REQUEST_BUDGET = 'durable-request-budget-v1'
 SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
 DEMAND_BUDGET = 'demand-enrichment-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = 'a72ff725da6bb3a504739696d18f573f0a5fbb5a5c43363dded6dc500890fe97'
+BUNDLE_SHA256 = '70a7a1775bca734d8adc7bcd762f31aff307cdcef13e636045dc927ffed75b47'
 
 class MaintenanceError(Exception):
     pass
