@@ -1,6 +1,7 @@
 const {test,expect}=require('@playwright/test');
 test.use({serviceWorkers:'block'});
-async function boot(page,width,requests){
+async function boot(page,width,requests,election=false){
+ if(election)await page.clock.install({time:new Date('2026-10-25T17:01:00Z')});
  const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
  page.on('request',r=>requests.push(new URL(r.url()).pathname));
  await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());
@@ -19,7 +20,7 @@ test('pending renderer respects the original 16 second deadline',async({page})=>
  await release();await page.waitForFunction(()=>OptionalFeatures.effectReady('wind'));await expect(page.locator('.pd-cinema-layer[data-scene="wind"],.pd-gale-field')).toHaveCount(0);
 });
 test('critical new quake cancels a pending election opening',async({page})=>{
- const requests=[];await boot(page,1280,requests);
+ const requests=[];await boot(page,1280,requests,true);
  let held,release;await page.route('**/js/election-results.js?*',route=>{held=route;return new Promise(resolve=>release=async()=>{await route.continue();resolve();});});
  await page.locator('#chip-election').click();await expect.poll(()=>!!held).toBe(true);
  await page.evaluate(()=>ElectionPanel.newQuakes([{id:'critical-during-load',mag:6.6}]));

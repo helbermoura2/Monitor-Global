@@ -1,6 +1,7 @@
 // The same signed public files used by resultados.tse.jus.br. No API key.
 export const ELECTION_2026 = Object.freeze({
   cycle: 'ele2026',
+  activateAt: Date.parse('2026-10-25T14:00:00-03:00'),
   secondTurnAt: Date.parse('2026-10-25T00:00:00-03:00'),
   // Temporary election feature; a final second-turn result retires it sooner.
   retireAt: Date.parse('2026-11-01T00:00:00-03:00'),
@@ -99,6 +100,7 @@ export class TseResultsClient {
     this.lastGood = new Map();
   }
   async signed(path, signal) {
+    if(this.now()<ELECTION_2026.activateAt||this.now()>=ELECTION_2026.retireAt)return null;
     const controller = new AbortController();
     const abort = () => controller.abort();
     if (signal?.aborted) abort();
@@ -117,6 +119,8 @@ export class TseResultsClient {
   }
   async load(turn, {signal} = {}) {
     if (![1, 2].includes(turn)) throw Error('Turno inválido');
+    if(this.now()<ELECTION_2026.activateAt)return {status:'scheduled',turn,availableAt:ELECTION_2026.activateAt};
+    if(this.now()>=ELECTION_2026.retireAt)return {status:'inactive',turn};
     if (!this.elections || this.now() - this.configAt >= 600000) {
       try {
         const config = await this.signed('comum/config/ele-c.jws', signal);

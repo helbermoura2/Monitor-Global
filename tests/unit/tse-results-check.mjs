@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {verifyTseJws, resolvePresidentialElections, normalizePresidentialResults, TseResultsClient, tseTimestamp} from '../../js/tse-results.mjs';
+import {verifyTseJws, resolvePresidentialElections, normalizePresidentialResults, TseResultsClient, tseTimestamp, ELECTION_2026} from '../../js/tse-results.mjs';
 
 const configText = fs.readFileSync('tests/fixtures/tse2026-config.jws', 'utf8');
 const resultText = fs.readFileSync('tests/fixtures/tse2026-president-1.jws', 'utf8');
@@ -38,7 +38,7 @@ const result2 = normalizePresidentialResults(second, elections.get(2));
 assert.equal(result2.turn, 2);assert.equal(result2.finished, true);assert.equal(result2.candidates.length, 2);
 assert.equal(result2.candidates[0].votes, 60000000);
 
-let mode = 'ok', calls = [], now = result.generatedAt;
+let mode = 'ok', calls = [], now = ELECTION_2026.activateAt;
 const client = new TseResultsClient(async (url, options) => {
   calls.push(url);assert.equal(options.credentials, 'omit');assert.equal(options.cache, 'no-store');
   if (url.includes('/config/')) return new Response(configText);
@@ -63,5 +63,13 @@ await assert.rejects(client.load(1), /anterior/);
 const canceled = new AbortController();canceled.abort();
 await assert.rejects(new TseResultsClient(async (_url, options) => {
   assert.equal(options.signal.aborted, true);throw new DOMException('Aborted', 'AbortError');
-}).load(1, {signal: canceled.signal}), {name: 'AbortError'});
+},()=>ELECTION_2026.activateAt).load(1, {signal: canceled.signal}), {name: 'AbortError'});
 console.log('PASS: real TSE signatures, votes/percentages, national scope, two turns, missing results, tampering, failed requests, old responses and cancellation');
+
+let scheduledCalls=0,scheduledNow=ELECTION_2026.activateAt-1;
+const scheduled=new TseResultsClient(async()=>{scheduledCalls++;return new Response(configText);},()=>scheduledNow);
+assert.equal(ELECTION_2026.activateAt,Date.parse('2026-10-25T17:00:00Z'));
+assert.equal((await scheduled.load(2)).status,'scheduled');
+await scheduled.signed('comum/config/ele-c.jws');assert.equal(scheduledCalls,0);
+scheduledNow=ELECTION_2026.activateAt;await scheduled.load(2).catch(()=>{});assert(scheduledCalls>0);
+console.log('PASS: no TSE traffic before 25/10 14:00 BRT; client enables at the exact boundary');
