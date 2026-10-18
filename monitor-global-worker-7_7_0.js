@@ -1,7 +1,7 @@
 import {SourceWritebackCache} from "./source-writeback-cache.mjs";
 // Worker entrypoint: routes, coordination and existing Durable Object classes.
 import {fetchText, nowIso, fetchJson, resposta, json, CORS_HEADERS} from "./worker/http.mjs";
-import {sharedSourceResponse, pruneSources, sourceObjectHealth, sourcePolicy, handleSourceInObject, sourceGroups} from "./shared-source-cache.mjs";
+import {sharedSourceResponse, publicSourceHealth, pruneSources, sourceObjectHealth, sourcePolicy, handleSourceInObject, sourceGroups} from "./shared-source-cache.mjs";
 import {xmlItems, xmlTag} from "./worker/xml.mjs";
 import {getOfficialTsunamis} from "./tsunami-official-worker.mjs";
 import {TELEGRAM_MIN_MAG, saoPauloYmdOffset, fetchUsgsM6Recent, fetchTelegramBrazilRecent, fetchDailyQuakesBrt, saoPauloParts} from "./worker/telegram-seismic-data.mjs";
@@ -101,7 +101,7 @@ const SP_METAR_ICAO = ['SBSP', 'SBGR', 'SBKP', 'SBMT'];
 async function sharedProviderText(url,env,options={},timeout=12000){
     if(!env?.EARTHQUAKE_ALERTS)return fetchText(url,options,timeout);
     const request=new Request('https://black-sky-9ba0.terrestre.workers.dev/?url='+encodeURIComponent(url));
-    const r=await sharedSourceResponse(request,{...env,SHARED_SOURCE_INTERNAL:false},()=>fetchText(url,options,timeout).then(x=>new Response(x.text,{status:x.status,headers:{'Content-Type':x.contentType}})),ALLOWED_HOSTS);
+    const r=await sharedSourceResponse(request,{...env,SHARED_SOURCE_INTERNAL:false},()=>fetchText(url,options,timeout).then(x=>new Response(x.text,{status:x.status,headers:{'Content-Type':x.contentType,...(x.retryAfter?{'Retry-After':x.retryAfter}:{})}})),ALLOWED_HOSTS);
     return {ok:r.ok,status:r.status,text:await r.text(),retained:['stale','partial'].includes(r.headers.get('X-Monitor-Source-State')),lastOk:Number(r.headers.get('X-Monitor-Source-Last-Ok'))||0};
 }
 
@@ -1909,9 +1909,9 @@ async function handleWorkerRequest(request,env){
             if(!env.EARTHQUAKE_ALERTS)return json({error:'Coleta compartilhada não configurada'},503);
             const page=Number(reqUrl.searchParams.get('page')||0);if(!Number.isInteger(page)||page<0||page>4)return json({error:'Página inválida'},400);
             const groups=sourceGroups(ALLOWED_HOSTS),selected=groups.slice(page*20,(page+1)*20);
-            const sources=await Promise.all(selected.map(async group=>{try{const r=await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('shared-source-v1:'+group)).fetch('https://internal/__source-health');return {group,...await r.json()};}catch{return {group,state:'unavailable'};}}));
+            const sources=await Promise.all(selected.map(async group=>{try{return {group,...await publicSourceHealth(env,group)};}catch{return {group,state:'unavailable'};}}));
             const usage=await handleKvUsageRead(new Request(reqUrl.origin+'/kv-usage',{headers:{Authorization:'Bearer '+env.KV_METRICS_READ_TOKEN}}),env);
-            return json({ok:true,version:'shared-sources-v1',sources,page,pages:Math.ceil(groups.length/20),usage:usage.ok?await usage.json():{available:false},note:'Horários da coleta compartilhada; não são horários dos eventos. Métricas KV observadas não equivalem ao total faturado.'});
+            return json({ok:true,version:'shared-sources-v1',sources,page,pages:Math.ceil(groups.length/20),usage:usage.ok?await usage.json():{available:false},note:'Coleta pública em cache por ponto de rede; a visão deste datacenter não é global. Horários da coleta não são horários dos eventos. Métricas KV observadas não equivalem ao total faturado.'});
         }
         if(reqUrl.pathname==='/kv-usage')return handleKvUsageRead(request,env);
         if (reqUrl.pathname === '/health') {
@@ -1939,6 +1939,7 @@ async function handleWorkerRequest(request,env){
                 durableRequestBudget: "durable-request-budget-v1",
                 sourceEdgeBudget: "shared-source-edge-v2",
                 demandBudget: "demand-enrichment-v1",
+                publicSourceRuntime: env.PUBLIC_SOURCE_MODE==='durable'?'durable':'edge-collectors-v1',
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
                 telegramM6: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
@@ -2034,6 +2035,7 @@ async function handleWorkerRequest(request,env){
 
         try {
             const upstream = await fetchText(targetUrl.toString(), { method: 'GET', headers }, 15000);
+            const retryHeaders=upstream.retryAfter?{'Retry-After':upstream.retryAfter}:{};
 
             // Se a fonte devolveu 2xx mas o corpo não é JSON nem XML, é resposta
             // inválida disfarçada de sucesso (ex.: página de bloqueio, texto puro).
@@ -2057,22 +2059,22 @@ async function handleWorkerRequest(request,env){
             // Se a fonte devolveu 4xx/5xx com corpo não-JSON (ex.: ISC manda
             // "Error 400:" em texto puro), normaliza pra JSON de erro limpo.
             if (!upstream.ok && !looksJson && !looksXml && !htmlCatalogue && !fdsnText && !fdsnVersion) {
-                return json({
+                return resposta(JSON.stringify({
                     error: 'Upstream rejeitou',
                     host: targetUrl.hostname,
                     status: upstream.status,
                     preview: trimmed.slice(0, 120)
-                }, upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502);
+                }), upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502, 'application/json', retryHeaders);
             }
 
-            return resposta(upstream.text, upstream.status, upstream.contentType || 'application/json');
+            return resposta(upstream.text, upstream.status, upstream.contentType || 'application/json',retryHeaders);
         } catch (e) {
             return json({ error: 'Falha ao consultar fonte externa', host: targetUrl.hostname, detail: e.message, timestamp: nowIso() }, 502);
         }
 }
 
 export default {
-    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,()=>handleWorkerRequest(request,tracked),ALLOWED_HOSTS),ctx);},
+    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked),ALLOWED_HOSTS),ctx);},
 
     async scheduled(event, env, ctx) {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';

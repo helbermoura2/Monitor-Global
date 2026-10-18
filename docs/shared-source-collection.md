@@ -2,17 +2,30 @@
 
 ## Arquitetura
 
-O navegador consulta primeiro o Worker para os feeds públicos selecionados. Uma
-camada curta de Cache API atende repetições no mesmo datacenter. A chave interna é canônica entre endereços públicos do Worker. Uma cópia em memória, limitada a 48 entradas e 6 MiB por binding/isolate, e o compartilhamento das consultas simultâneas evitam invocações repetidas durante o preenchimento do cache. Até oito identidades podem ser agrupadas em voo; acima disso novas identidades seguem diretamente ao coletor para limitar memória sem bloquear alertas. Quando ela não
-tem o resultado, um Durable Object existente, nomeado por fonte/produto, serializa
-a coleta. Visitantes de datacenters distintos reutilizam o mesmo resultado.
-O cron de São Paulo e dos feeds globais usa esse mesmo caminho; o agregador global
-reutiliza os coletores de NHC, GDACS, EONET, NWS e boletins de tsunami.
+O navegador consulta o Worker para os feeds públicos selecionados. O caminho
+padrão `edge-collectors-v1` não invoca Durable Objects: consultas simultâneas
+compartilham uma coleta e as respostas recentes ficam em memória (48 entradas,
+6 MiB). Até oito identidades são agrupadas em voo; outras seguem ao coletor sem
+bloquear alertas. O estado de cada fonte (corpos validados, horários e espera após
+falhas) é compartilhado pelo Cache API **dentro do mesmo datacenter**.
 
-Isso resolve duas limitações anteriores: promessas em memória e Cache API isolavam
-apenas o processo/datacenter, e cada navegador tentava a fonte diretamente antes
-do proxy. A rota `/global-feeds` também apontava para um handler ausente; agora
-retorna o agregado e seu risco calculado.
+`edge-source-store.mjs` serializa as alterações locais por fonte. Guarda um
+snapshot binário limitado por grupo e recupera-o em um isolate frio, mantendo os
+horários absolutos. Não há coordenação global entre datacenters: uma fonte pode
+receber uma coleta de cada região. Se o cache for perdido/recusar operações, a
+cópia local ainda funciona; um isolate frio pode precisar consultar a fonte outra
+vez. Falta de resposta válida retorna falha, não um catálogo vazio saudável.
+
+O agregado global reutiliza os coletores de NHC, GDACS, EONET, NWS e tsunami. Seu
+teste com fontes simuladas usa 25 subconsultas a frio, abaixo das 50 permitidas no
+Worker gratuito. O cache de resposta por URL não duplica o snapshot de grupo nesse
+caminho, reduzindo subconsultas. Clima/painel global são coletados sob demanda; o
+cron não os pré-carrega. O Telegram mantém seu caminho persistente independente.
+
+O caminho antigo permanece disponível para reversão explícita com
+`PUBLIC_SOURCE_MODE=durable`; ele continua coberto pelos testes. A manutenção
+normal exige `publicSourceRuntime: edge-collectors-v1` e sinaliza a reversão em vez
+de declarar a nova arquitetura ativa.
 
 A coleta fica em `shared-source-cache.mjs`; o cliente preserva os horários em
 `js/shared-source-delivery.js`. O Worker mantém validações de domínio, formato e
@@ -28,8 +41,8 @@ o horário de entrada é preservado para que a fila não altere sua identidade.
 | Feed rápido USGS | 15 s | 120 s |
 | Boletins de tsunami | 10 s | 60 s |
 | Avisos meteorológicos e CGE | 60 s | 180 s |
-| Open-Meteo e CPTEC | 120 s | 600 s |
-| METAR | 120 s | 300 s |
+| Open-Meteo e CPTEC | 300 s | 900 s |
+| METAR | 300 s | 600 s |
 | Vulcões e ciclones normalizados | 120 s | 600 s |
 | São Paulo | 300 s | 900 s |
 | Agregado global | 120 s | 300 s |
@@ -40,7 +53,7 @@ sem apresentar um catálogo vazio como se não houvesse eventos. Avisos mantêm 
 próprios vencimentos e regras de cancelamento; não há previsão de tsunami gerada.
 
 Falhas usam espera progressiva de 30, 60, 120, 240 e até 300 segundos, compartilhada
-por fonte e preservada após reinício. `Retry-After` do provedor é respeitado até
+por fonte/datacenter e recuperada após reinício quando o Cache API está disponível. `Retry-After` do provedor é respeitado até
 uma hora. Erros de parâmetro 4xx, exceto 429, não abrem o circuito para outros
 usuários. Uma resposta 200 com erro/GeoJSON inválido não substitui o último dado
 válido. Um catálogo oficial vazio, mas válido, é aceito normalmente.
@@ -53,13 +66,19 @@ O TSE continua consultado a cada 30 segundos. URLs com credenciais não são arm
 
 ## Armazenamento e saúde
 
-Não há operações KV nesse cache. Cada coletor mantém até 16 variantes, até 3 MiB
-por resultado e 12 MiB no total, em fragmentos de 60 kB. Transações preservam a
-consistência. O estado recente fica em memória e é salvo em checkpoints a cada 15 minutos; a limpeza ocorre nas consultas, sem novos alarmes recorrentes. Após reinício pode haver nova consulta ao provedor, sempre respeitando o horário original dos dados restaurados. Falhas de checkpoint não derrubam os feeds; o circuito de falhas recebe persistência prioritária para evitar tempestade de tentativas após reinício. Corpos idênticos reutilizam os
-fragmentos existentes. Durable Objects e Worker continuam tendo cotas próprias:
-a economia de consultas externas não significa recursos ilimitados ou custo zero.
+Não há operações KV nem invocações de Durable Objects no caminho padrão desses
+feeds. Cada fonte mantém até 16 variantes, com até 3 MiB por resposta. O snapshot
+de grupo guarda até 4 MiB de corpos; cópias locais de grupos somam até 8 MiB por
+binding/isolate, com remoção das mais antigas. Metadados binários ficam limitados
+a 64 KiB. Leituras de estado corrompido ou grande demais são rejeitadas antes da
+restauração. Estado/índice e espera são atualizados sem alarmes de limpeza.
 
-`GET /source-health?page=0` exige `X-Admin-Token`. Consulta no máximo 20 coletores
+O cache é descartável. Histórico e deduplicação do Telegram, tarefas de população
+e cotas pagas mantêm persistência no Durable. As requisições HTTP continuam
+consumindo recursos do Worker; retirar invocações do Durable não elimina a cota
+separada de Workers nem as limitações dos provedores externos.
+
+`GET /source-health?page=0` exige `X-Admin-Token`. Lê o estado de no máximo 20 fontes neste datacenter
 por página, sem retornar URLs, coordenadas, textos dos eventos ou credenciais.
 A aba **Saúde do serviço**, no acesso administrativo existente, mostra estado,
 última coleta válida, última tentativa e próxima tentativa permitida. Exibe também
@@ -72,7 +91,7 @@ O envio de contadores detalhados de atividade foi desativado: cada lote criava u
 
 A manutenção manual verifica o checksum do pacote e exige o marcador
 `sharedSources: {version: shared-sources-v1, enabled: true}` em produção, além dos
-marcadores anteriores, `durableRequestBudget: durable-request-budget-v1` e `sourceEdgeBudget: shared-source-edge-v2`. O workflow executa os testes de concorrência, falha,
+marcadores anteriores, `durableRequestBudget: durable-request-budget-v1`, `sourceEdgeBudget: shared-source-edge-v2` e `publicSourceRuntime: edge-collectors-v1`. O workflow executa os testes de concorrência, falha,
 retenção, isolamento e persistência antes do upload. Preserva bindings, segredos,
 cron e histórico de versões para reversão.
 

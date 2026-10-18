@@ -57,6 +57,29 @@ def consumption_summary(report):
     result['recentCompleteMinutes']={'since':start.isoformat(),'until':end.isoformat(),'minutes':minutes,'requests':total,'families':families,'statuses':statuses,'types':types,'projectedRequestsPerDay':round(total/minutes*1440),'topObjects':[{'name':name,'type':kind,'requests':count} for (name,kind),count in groups.most_common(15)]}
     return result
 
+def budget_summary(report,policy):
+    """Judge complete calendar days; a quiet sample never proves the daily goal."""
+    target,ceiling=policy['targetRequestsPerDay'],policy['ceilingRequestsPerDay']
+    if not isinstance(target,int) or not isinstance(ceiling,int) or not 0<target<=ceiling:raise ValueError('Invalid request budget')
+    result={'targetRequestsPerDay':target,'ceilingRequestsPerDay':ceiling,'firstFullUtcDay':policy['firstFullUtcDay'],'baseline':policy['baseline'],'confirmation':'waiting-first-complete-day','note':'UTC calendar days; partial days and short-window projections do not confirm the goal. Analytics can be delayed or sampled.'}
+    if 'durableObjectsInvocationsAdaptiveGroups' not in report.get('results',{}):return {**result,'available':False,'confirmation':'analytics-unavailable'}
+    today=dt.datetime.fromisoformat(report['queriedAt']).date().isoformat();days=[]
+    for day,data in sorted(report.get('consumptionSummary',{}).get('daily',{}).items()):
+        n=data['requests'];complete=day<today;post=day>=policy['firstFullUtcDay']
+        days.append({'day':day,'requests':n,'complete':complete,'fullDayAfterRollout':complete and post,'status':'above-ceiling' if n>ceiling else 'above-target' if n>target else 'within-target','families':data['families']})
+    result.update(available=True,days=days)
+    eligible=[day for day in days if day['fullDayAfterRollout']]
+    if eligible:result.update(confirmation=eligible[-1]['status'],latestCompleteDay=eligible[-1]['day'])
+    return result
+
+def write_summary(report,path):
+    budget=report['requestBudget'];lines=['## Consumo de Durable Objects','',f"Meta: **{budget['targetRequestsPerDay']:,}/dia**; teto de projeto: **{budget['ceilingRequestsPerDay']:,}/dia**.",'',f"Confirmação: `{budget['confirmation']}`. Primeiro dia UTC completo após a mudança: {budget['firstFullUtcDay']}.",'','| Dia UTC | Solicitações | Período | Estado |','| --- | ---: | --- | --- |']
+    for day in budget.get('days',[]):
+        period='completo após mudança' if day['fullDayAfterRollout'] else 'histórico/transição' if day['complete'] else 'parcial'
+        lines.append(f"| {day['day']} | {day['requests']:,} | {period} | {day['status']} |")
+    lines+=['','Amostras curtas e dias parciais não confirmam a meta. Confira as famílias no artefato JSON; a base histórica inclui correções anteriores.','']
+    with open(path,'a') as stream:stream.write('\n'.join(lines))
+
 def main():
     token,account=m.credentials(os.environ);client=m.Client(token,account)
     now=dt.datetime.now(dt.timezone.utc);start=(now-dt.timedelta(days=1)).date()
@@ -108,7 +131,7 @@ def main():
         report['schedules']=client.call(client.worker('/schedules'))
         req=urllib.request.Request(m.API+client.worker(),headers={'Authorization':'Bearer '+token})
         with urllib.request.urlopen(req,timeout=30) as response: source=response.read().decode('utf8',errors='replace')
-        report['deployedSource']={'largeTelegramChunks':large_telegram_chunks(source),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source,'alarmRetryGuard':'cleanup-alarm-backoff-v1' in source}
+        report['deployedSource']={'largeTelegramChunks':large_telegram_chunks(source),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source,'alarmRetryGuard':'cleanup-alarm-backoff-v1' in source,'edgeCollectors':'edge-collectors-v1' in source}
     except Exception as error:report['unavailable']['deployedSource']=type(error).__name__
     try:
         base='/accounts/'+account+'/workers/observability/telemetry/'
@@ -129,6 +152,9 @@ def main():
             report['errorCategoriesLastHour']=categories
     except Exception as error:report['unavailable']['telemetry']=str(error).replace(token,'[token]').replace(account,'[account]')[:600]
     report['consumptionSummary']=consumption_summary(report)
+    policy=json.loads(Path(__file__).with_name('durable-budget-policy.json').read_text())
+    report['requestBudget']=budget_summary(report,policy)
+    if os.environ.get('GITHUB_STEP_SUMMARY'):write_summary(report,os.environ['GITHUB_STEP_SUMMARY'])
     path=Path('audit-results');path.mkdir(exist_ok=True)
     text=json.dumps(report,ensure_ascii=False,indent=2);(path/'durable-requests.json').write_text(text);print(text)
     if not report['results']:raise SystemExit('Durable analytics unavailable; do not infer zero usage.')

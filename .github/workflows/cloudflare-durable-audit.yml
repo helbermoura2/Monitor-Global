@@ -2,7 +2,7 @@ name: Audit Durable Object requests and storage
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 0 * * *' # Previous UTC day is complete; analytics never invoke objects.
+    - cron: '15 0,6,12,18 * * *' # Read-only progress every six hours; full UTC days confirm the goal.
 permissions:
   contents: read
 concurrency:

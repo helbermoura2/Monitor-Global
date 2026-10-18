@@ -1,4 +1,5 @@
 import {sourceEdgeResponse} from './source-edge-cache.mjs';
+import {edgeSourceStore} from './edge-source-store.mjs';
 // Public feed snapshots only. No KV, user credentials, admin actions or paid products.
 import {activity} from './kv-operation-metrics.mjs';
 const VERSION='shared-sources-v1',MAX_BODY=3*1024*1024,MAX_TOTAL=12*1024*1024,MAX_ENTRIES=16,CHUNK=60000;
@@ -116,11 +117,23 @@ export async function sourceObjectHealth(storage){
  return {...state,version:VERSION,entries:index.filter(x=>x.until>now).length,bytes:index.filter(x=>x.until>now).reduce((n,x)=>n+x.bytes,0),state:state?.failures?'retrying':index.some(x=>now-x.at<x.ttl)?(index.some(x=>now-x.at<x.ttl&&x.partial)?'partial':'fresh'):state?.lastOk?'stale':'waiting'};
 }
 export async function sharedSourceResponse(request,env,compute,allowed){
- const policy=sourcePolicy(request,allowed);if(!policy||env.SHARED_SOURCE_INTERNAL||!env.EARTHQUAKE_ALERTS)return compute();
+ const receivedAt=Date.now(),policy=sourcePolicy(request,allowed,receivedAt);if(!policy||env.SHARED_SOURCE_INTERNAL||!env.EARTHQUAKE_ALERTS)return compute();
  const binding=env.EARTHQUAKE_ALERTS,key=policy.group+'|'+policy.key;
  // One canonical internal key also shares snapshots across public aliases.
  const edgeKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__shared-source-cache/v2/'+await hash(key));
  const unavailable=()=>Response.json({error:'Coleta compartilhada temporariamente indisponível'},{status:503,headers:{...headers,'X-Monitor-Source-State':'unavailable','Retry-After':'30'}});
+ if(env.PUBLIC_SOURCE_MODE!=='durable'){
+  const store=edgeSourceStore(binding,policy.group,new Request('https://black-sky-9ba0.terrestre.workers.dev/__source-state/v1/'+await hash(policy.group)));
+  const internalRequest=new Request(request.url,{headers:{'X-Monitor-Request-At':String(receivedAt)}});
+  // The group snapshot already shares bytes/backoff through Cache API. Avoid a
+  // second per-response cache roundtrip, especially inside aggregated routes.
+  try{return await sourceEdgeResponse(binding,key,{...policy,origin:'collector',skipResponseCache:true},edgeKey,()=>store.run(storage=>handleSourceInObject(internalRequest,env,storage,()=>compute(true),allowed)));}catch{return unavailable();}
+ }
  try{return await sourceEdgeResponse(binding,key,policy,edgeKey,async()=>{try{return await binding.get(binding.idFromName('shared-source-v1:'+policy.group)).fetch(new Request(request.url,{headers:{'X-Monitor-Request-At':String(Date.now())}}));}catch{return unavailable();}});}
  catch{return unavailable();}
+}
+export async function publicSourceHealth(env,group){
+ if(env.PUBLIC_SOURCE_MODE==='durable')return (await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('shared-source-v1:'+group)).fetch('https://internal/__source-health')).json();
+ const store=edgeSourceStore(env.EARTHQUAKE_ALERTS,group,new Request('https://black-sky-9ba0.terrestre.workers.dev/__source-state/v1/'+await hash(group)));
+ return store.run(async storage=>({...await sourceObjectHealth(storage),runtime:'edge',scope:'current-datacenter',persistenceDegraded:store.persistenceDegraded}));
 }

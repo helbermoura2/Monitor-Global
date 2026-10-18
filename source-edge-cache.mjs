@@ -34,7 +34,7 @@ export async function sourceEdgeResponse(binding,key,policy,edgeKey,load){
  if(existing){state.entries.delete(key);state.bytes-=existing.body.byteLength;}
  const pending=state.pending.get(key);if(pending)return restore(await pending,'joined');
  const work=async()=>{
-  const cache=globalThis.caches?.default;
+  const cache=policy.skipResponseCache?null:globalThis.caches?.default;
   if(cache)try{
    const cached=await cache.match(edgeKey),until=Number(cached?.headers.get('X-Monitor-Source-Cache-Until'));
    if(cached&&until>Date.now()){
@@ -44,7 +44,7 @@ export async function sourceEdgeResponse(binding,key,policy,edgeKey,load){
     if(deadline(restored,policy,Date.now())>Date.now()){const value=await snapshot(restored,policy);value.until=Math.min(value.until,until);value.via='edge';remember(state,key,value);return value;}
    }
   }catch{}
-  const value=await snapshot(await load(),policy);remember(state,key,value);
+  const value=await snapshot(await load(),policy);value.via=policy.origin||'coordinator';remember(state,key,value);
   if(cache&&value.until>Date.now())try{
    const headers=new Headers(value.headers);headers.set('Cache-Control','public, max-age='+Math.max(1,Math.floor((value.until-Date.now())/1000)));
    // Store failures as internal 200 envelopes; restore their HTTP status on reads.

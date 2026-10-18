@@ -1,0 +1,15 @@
+{
+  "targetRequestsPerDay": 35000,
+  "ceilingRequestsPerDay": 45000,
+  "firstFullUtcDay": "2026-10-19",
+  "baseline": {
+    "auditRun": 39102190528,
+    "queriedAt": "2026-10-18T05:55:06.352202+00:00",
+    "day": "2026-10-17",
+    "requests": 93053,
+    "publicSources": 48547,
+    "metrics": 40857,
+    "other": 3649,
+    "note": "Baseline includes the retired metrics amplification and earlier alarm behavior. Compare families; do not attribute the whole difference to the edge runtime."
+  }
+}

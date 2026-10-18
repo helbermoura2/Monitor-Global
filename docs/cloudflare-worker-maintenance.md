@@ -42,3 +42,10 @@ nesse prazo não implica falha do upload; use verify para concluir a confirmaç�
 A consulta pública identifica o cliente como MonitorGlobal-maintenance/1.0;
 o cliente Python padrão recebeu HTTP 403 durante a primeira confirmação.
 Falhas finais distinguem status HTTP de resposta inválida/versão anterior.
+
+A publicação dos coletores públicos também exige `publicSourceRuntime: edge-collectors-v1`.
+Se `PUBLIC_SOURCE_MODE=durable` estiver configurado para reversão, a verificação não
+confirma a arquitetura nova. `verify` faz três leituras públicas não pagas para
+conferir o funcionamento; esse teste não envia Telegram nem consulta população/voz.
+Os resultados diários da meta de 35 mil/teto de 45 mil ficam no workflow
+`cloudflare-durable-audit.yml`, independente da publicação.
