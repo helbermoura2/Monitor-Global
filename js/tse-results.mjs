@@ -4,7 +4,7 @@ export const ELECTION_2026 = Object.freeze({
   activateAt: Date.parse('2026-10-25T14:00:00-03:00'),
   secondTurnAt: Date.parse('2026-10-25T00:00:00-03:00'),
   // Temporary election feature; a final second-turn result retires it sooner.
-  retireAt: Date.parse('2026-11-01T00:00:00-03:00'),
+  retireAt: Date.parse('2026-10-26T06:00:00-03:00'),
   interval: 30000
 });
 const BASE = 'https://resultados.tse.jus.br/oficial';

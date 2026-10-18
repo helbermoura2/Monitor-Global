@@ -1,4 +1,4 @@
-import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261018-election-window';
+import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261018-visible-election-window';
 
 // A non-modal, desktop-only scoreboard. It never participates in map filters.
 const desktop = matchMedia('(min-width: 901px)');
@@ -37,7 +37,7 @@ function close(reason = '') {
   if (focused && !chip.hidden) chip.focus({preventScroll: true});
 }
 function visibility() {
-  const available = desktop.matches && Date.now()>=ELECTION_2026.activateAt && !expired();
+  const available = desktop.matches && !expired();
   chip.hidden = !available;
   if (!available) close();
   clearTimeout(expiryTimer);
@@ -185,7 +185,7 @@ async function refresh() {
 }
 function open() {
   visibility();
-  if (chip.hidden) return;
+  if (chip.hidden || Date.now()<ELECTION_2026.activateAt) return;
   opened = true;
   panel.hidden = false;
   chip.setAttribute('aria-expanded', 'true');
