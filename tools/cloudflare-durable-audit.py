@@ -7,7 +7,7 @@ from pathlib import Path
 
 spec=importlib.util.spec_from_file_location('maintenance',Path(__file__).with_name('cloudflare-worker-maintenance.py'))
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-TYPE='name kind ofType{name kind ofType{name kind}}'
+TYPE='name kind ofType{name kind ofType{name kind ofType{name kind}}}'
 def graphql(client,query):
     result=client.call('/graphql','POST',json.dumps({'query':query}).encode())
     if result.get('errors'):raise m.MaintenanceError('Analytics query rejected: '+json.dumps(result['errors'])[:500])
@@ -22,9 +22,13 @@ def typename(value):
 def main():
     token,account=m.credentials(os.environ);client=m.Client(token,account)
     now=dt.datetime.now(dt.timezone.utc);start=(now-dt.timedelta(days=1)).date()
-    fields=schema(client,'Account').get('fields',[])
-    datasets=[f for f in fields if f['name'].startswith('durableObjects')]
-    report={'queriedAt':now.isoformat(),'readOnly':True,'reset':'00:00 UTC / 21:00 Sao Paulo','datasets':[f['name'] for f in datasets],'results':{},'unavailable':{},'note':'Aggregate analytics may be delayed or sampled. Requests and storage rows are distinct quotas; missing analytics is not zero.'}
+    root=graphql(client,'query{__schema{queryType{fields{name type{'+TYPE+'}}}}}')
+    viewer=next(f for f in root['__schema']['queryType']['fields'] if f['name']=='viewer')
+    accounts=next(f for f in schema(client,typename(viewer['type']))['fields'] if f['name']=='accounts')
+    account_type=typename(accounts['type'])
+    fields=schema(client,account_type).get('fields',[])
+    datasets=[f for f in fields if 'durable' in f['name'].lower()]
+    report={'queriedAt':now.isoformat(),'readOnly':True,'reset':'00:00 UTC / 21:00 Sao Paulo','accountType':account_type,'accountFieldCount':len(fields),'datasets':[f['name'] for f in datasets],'results':{},'unavailable':{},'note':'Aggregate analytics may be delayed or sampled. Requests and storage rows are distinct quotas; missing analytics is not zero.'}
     for dataset in datasets:
         name=dataset['name']
         if not any(part in name.lower() for part in ['invocation','storage']):continue
