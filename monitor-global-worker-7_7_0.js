@@ -1134,7 +1134,41 @@ async function saveSentAlerts(request, records, env) {
 // é consistente imediatamente, sem a janela de replicação do KV.
 export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); this.sourceCache=new SourceWritebackCache(state.storage); }
-    async alarm(){await pruneSources(this.sourceCache);await this.sourceCache.flush();await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
+    async alarm(){
+        // These alarms clean expired caches/history; live delivery is driven by cron/HTTP.
+        // Keep their existing expiry deadlines instead of inventing a periodic delivery alarm.
+        const operation=this.queue.then(async()=>{
+            const storage=this.state.storage;
+            let failures=this.alarmFailures||0;
+            try{
+                const persisted=await storage.get('consecutiveFailures');
+                if(Number.isSafeInteger(persisted)&&persisted>=0)failures=Math.max(failures,Math.min(10,persisted));
+                await pruneSources(this.sourceCache);await this.sourceCache.flush();
+                await prunePersistentHistory(storage);await expirePopulation(storage);await pruneVoiceCache(storage);
+                if(failures)await storage.put('consecutiveFailures',0);
+                this.alarmFailures=0;
+            }catch(error){
+                failures=Math.min(10,failures+1);this.alarmFailures=failures;
+                let saved=false;
+                try{await storage.put('consecutiveFailures',failures);saved=true;}catch{}
+                if(failures>=10){
+                    // A helper may have scheduled cleanup before a later helper failed.
+                    try{await storage.deleteAlarm?.();}catch{}
+                    console.error('cleanup-alarm-backoff-v1: retries stopped',{failures,error:String(error?.message||error).slice(0,240)});
+                    return;
+                }
+                const delays=[300000,900000,1800000,3600000,7200000];
+                // If the counter cannot be persisted, use the ceiling rather than restarting
+                // a five-minute loop after each eviction. Never rethrow into native retries.
+                const delay=saved?delays[Math.min(failures-1,delays.length-1)]:7200000;
+                try{await storage.setAlarm(Date.now()+delay);}catch{
+                    console.error('cleanup-alarm-backoff-v1: retry could not be scheduled',{failures});
+                }
+                console.error('cleanup-alarm-backoff-v1: cleanup failed',{failures,retrySeconds:delay/1000,error:String(error?.message||error).slice(0,240)});
+            }
+        });
+        this.queue=operation.catch(()=>{});return operation;
+    }
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
