@@ -23,7 +23,7 @@ test('13 pending population polls persist tasks once, survive object restart and
   for(let i=0;i<12;i++){now+=10000;assert.equal((await(await worker.fetch(population(-41),f.env)).json()).status,'pending');}
   assert.equal(item.storage.writes.filter(k=>k==='population-state').length,1);assert.equal(f.reads,0);assert.equal(f.writes,0);assert.equal(posts,3);
   f.restart();now+=11000;done=true;assert.equal((await(await worker.fetch(population(-41),f.env)).json()).status,'available');assert.equal(posts,3);assert(gets>0);
-  await f.flush();const stats=await(await handleKvUsageRead(new Request('https://worker.test/kv-usage',{headers:{Authorization:'Bearer secret'}}),{...f.env,KV_METRICS_READ_TOKEN:'secret'})).json();assert(stats.activity.populationCacheHits>=12);assert.equal(stats.counts['population.write.attempted'],undefined);
+  await f.flush();const stats=await(await handleKvUsageRead(new Request('https://worker.test/kv-usage',{headers:{Authorization:'Bearer secret'}}),{...f.env,KV_METRICS_READ_TOKEN:'secret'})).json();assert.equal(stats.available,false);assert.equal(f.items.has('kv-operation-metrics-v1'),true);assert.equal([...f.items.get('kv-operation-metrics-v1').storage.data].length,0);
  }finally{globalThis.fetch=originalFetch;Date.now=originalNow;}
 });
 

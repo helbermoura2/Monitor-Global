@@ -55,7 +55,7 @@ O TSE continua consultado a cada 30 segundos. URLs com credenciais não são arm
 
 Não há operações KV nesse cache. Cada coletor mantém até 16 variantes, até 3 MiB
 por resultado e 12 MiB no total, em fragmentos de 60 kB. Transações preservam a
-consistência; alarmes removem conteúdo expirado. Corpos idênticos reutilizam os
+consistência. O estado recente fica em memória e é salvo em checkpoints a cada 15 minutos; a limpeza ocorre nas consultas, sem novos alarmes recorrentes. Após reinício pode haver nova consulta ao provedor, sempre respeitando o horário original dos dados restaurados. Falhas de checkpoint não derrubam os feeds; o circuito de falhas recebe persistência prioritária para evitar tempestade de tentativas após reinício. Corpos idênticos reutilizam os
 fragmentos existentes. Durable Objects e Worker continuam tendo cotas próprias:
 a economia de consultas externas não significa recursos ilimitados ou custo zero.
 
@@ -66,16 +66,13 @@ A aba **Saúde do serviço**, no acesso administrativo existente, mostra estado,
 contadores observados e link para os relatórios da conta. Esses contadores não são
 uma fatura e não incluem atendimentos que ficaram apenas no cache de borda.
 
-Atividades `sourceRequests`, `sourceCacheHits`, `sourceFetches`, `sourceFailures`,
-`sourceRetained`, `sourceStateWrites` e `sourceBodyWrites` são agregadas pelas
-métricas já existentes, sem contadores KV. As duas últimas medem operações de
-persistência da aplicação, não representam a cobrança exata de linhas SQL.
+O envio de contadores detalhados de atividade foi desativado: cada lote criava uma chamada adicional e uma gravação em Durable Objects. Os contadores de operações KV reais continuam sendo enviados, sem amostragem intencional, mas com entrega de melhor esforço. Valores de atividade anteriores à mudança são históricos, não consumo atual. As métricas agregadas da Cloudflare continuam sendo a referência para solicitações e linhas SQL.
 
 ## Publicação e validação
 
 A manutenção manual verifica o checksum do pacote e exige o marcador
 `sharedSources: {version: shared-sources-v1, enabled: true}` em produção, além dos
-marcadores anteriores. O workflow executa os testes de concorrência, falha,
+marcadores anteriores e `durableRequestBudget: durable-request-budget-v1`. O workflow executa os testes de concorrência, falha,
 retenção, isolamento e persistência antes do upload. Preserva bindings, segredos,
 cron e histórico de versões para reversão.
 

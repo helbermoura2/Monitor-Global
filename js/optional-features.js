@@ -31,7 +31,7 @@
   adminOpening=(async()=>{
    try{
     await asset('css/telegram-history.css?v=20261017-lazy-panels');
-    await asset('js/telegram-history.js?v=20261017-lazy-panels');
+    await asset('js/telegram-history.js?v=20261018-request-budget');
     return window.TelegramAdmin.open();
    }catch(error){failure(error);}
    finally{adminOpening=null;}

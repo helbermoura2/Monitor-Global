@@ -16,17 +16,18 @@ export function kvFamily(key){
 export const activity=(env,name)=>env?.__kvUsage?.observe(name);
 export async function withKvUsage(env,work,ctx){
  if(env?.__kvUsage&&measured.has(env.__kvUsage))return work(env);
- const rows={},activityCounts={};let finished=false,queued=false;
+ const rows={};let finished=false,queued=false;
  const add=(key,count=1)=>{rows[key]=(rows[key]||0)+count;if(finished)schedule();};
  async function flush(){
-  const counts={...rows},observations={...activityCounts};for(const key of Object.keys(rows))delete rows[key];for(const key of Object.keys(activityCounts))delete activityCounts[key];
-  if(!Object.keys(counts).length&&!Object.keys(observations).length)return;
+  const counts={...rows};for(const key of Object.keys(rows))delete rows[key];
+  // Activity-only traffic must not double every public source/population request.
+  if(!Object.keys(counts).length)return;
   if(!env?.EARTHQUAKE_ALERTS)return;
-  const payload={id:crypto.randomUUID(),day:new Date().toISOString().slice(0,10),counts,activity:observations};
+  const payload={id:crypto.randomUUID(),day:new Date().toISOString().slice(0,10),counts,activity:{},activityCollection:'disabled-request-budget-v1'};
   try{const binding=env.EARTHQUAKE_ALERTS;const r=await binding.get(binding.idFromName('kv-operation-metrics-v1')).fetch(new Request('https://internal/__kv-usage/record',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}));if(!r.ok)throw Error();}catch{console.warn('Contagem KV: lote de métricas não confirmado.');}
  }
  function schedule(){if(queued)return;queued=true;const p=Promise.resolve().then(()=>{queued=false;return flush();});ctx?.waitUntil?.(p);return p;}
- const meter={observe(name){if(!activities.has(name))return;activityCounts[name]=(activityCounts[name]||0)+1;if(finished)schedule();}};measured.add(meter);
+ const meter={observe(){}};measured.add(meter);
  const original=env?.TTS_USAGE;
  const scoped={...env,__kvUsage:meter};
  if(original)scoped.TTS_USAGE=new Proxy(original,{get(target,property){const value=Reflect.get(target,property);if(typeof value!=='function')return value;const op=ops[property];if(!op)return value.bind(target);return async(...args)=>{
@@ -57,7 +58,7 @@ export async function handleKvUsageObject(request,storage){
  const day=url.searchParams.get('day')||new Date(now).toISOString().slice(0,10);
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return Response.json({error:'day'},{status:400});
  const data=await storage.get('kv-usage:'+day);if(!data)return Response.json({available:false,day,note:'Nenhuma medição registrada para esta data; não representa histórico anterior à implantação.'});
- const {recent,...report}=data;return Response.json({available:true,...report,note:'Operações observadas pela aplicação; entrega de métricas pode falhar. Não é fatura nem atribuição retrospectiva.'});
+ const {recent,...report}=data;return Response.json({available:true,...report,activityCollection:'disabled-request-budget-v1',note:'Operações observadas pela aplicação; entrega de métricas pode falhar. Não é fatura nem atribuição retrospectiva.'});
 }
 export async function handleKvUsageRead(request,env){
  const supplied=request.headers.get('Authorization')||'',secret=env.KV_METRICS_READ_TOKEN;
