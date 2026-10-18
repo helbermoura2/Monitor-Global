@@ -46,3 +46,19 @@ O `alarm()` dessa classe executa limpeza de snapshots, histórico, estados popul
 O handler agora captura falhas, persiste `consecutiveFailures`, espera 5/15/30/60/120 minutos e cancela o agendamento ao chegar a dez falhas. Usa a mesma fila das requisições para não perder incrementos concorrentes. Uma limpeza bem-sucedida zera o contador e mantém somente os prazos de expiração que os componentes já calculavam; não cria agendamento periódico. Uma nova operação externa que gere dados com expiração pode reativar a limpeza. Se nem o contador puder ser salvo, tenta o teto de duas horas, sem propagar a falha para retentativas nativas. Quando o storage também recusa o agendamento, registra a falha e não promete uma recuperação automática que o storage não permite.
 
 Essa proteção é preventiva: a economia histórica de ~70 mil por dia atribuída a loops não foi comprovada. O caminho da meta de 40 mil continua exigindo reduzir as consultas HTTP aos coletores públicos sob uso ativo.
+
+## Feeds públicos fora do Durable — meta diária
+
+A partir de `publicSourceRuntime: edge-collectors-v1`, as rotas públicas elegíveis executam no Worker com compartilhamento local de consultas e snapshots por fonte no Cache API. O fluxo padrão não invoca o namespace de Durable Objects para coletar feeds ou ler sua saúde. Não aumenta TTLs nem muda a lógica dos alertas. A coleta do Telegram, o histórico/deduplicação, as tarefas de população e cotas continuam no Durable.
+
+A coordenação agora é por datacenter/isolate, não global. Pode haver uma consulta de origem em cada região; perder o cache pode causar nova coleta. Preservados a validação do corpo, o horário da última coleta válida, a espera progressiva, `Retry-After`, retenção absoluta e falha 503 quando não há dado válido. Não há fallback automático ao Durable ao perder o cache: isso evitaria a economia justamente durante falhas. A reversão explícita `PUBLIC_SOURCE_MODE=durable` continua disponível e é identificada no health.
+
+Verificações reproduzíveis: 200 leituras reais do handler do Worker usam uma coleta de origem e **zero invocações do Durable**. Um teste de carga com relógio simulado cobre **48.000 leituras em 24 horas** (25 feeds a cada 45 segundos), também sem invocação do Durable. Isso mede esse caminho de código, não o consumo total da conta em produção. São testados recuperação em isolate frio, espera compartilhada por filtros, respostas parciais/corrompidas, falhas do Cache API, limites de memória e agregação dentro do limite de subconsultas. A entrega do Telegram e paridade dos PNGs continuam nos testes completos.
+
+### Como a meta será confirmada
+
+`tools/durable-budget-policy.json` registra a base auditada, **meta operacional de 35.000/dia** e **teto de projeto de 45.000/dia**. A auditoria roda às 00:15, 06:15, 12:15 e 18:15 UTC, sem acionar objetos nem gerar tráfego de testes. Mostra o orçamento no resumo do GitHub Actions e no artefato JSON; a área administrativa oferece o link desse relatório.
+
+O dia 18/10 inclui a transição. O primeiro dia UTC inteiro da arquitetura nova é **19/10/2026**; sua confirmação estará disponível na auditoria de **20/10 às 00:15 UTC (19/10 às 21:15 BRT)**, sujeita ao atraso/amostragem da Cloudflare. Dias parciais e amostras curtas não confirmam a meta. O relatório distingue `waiting-first-complete-day`, `within-target`, `above-target` e `above-ceiling`. Esses estados são diagnósticos; não interrompem alertas para forçar um número menor.
+
+A base de 17/10 teve 93.053 solicitações: 48.547 de fontes públicas, 40.857 do antigo contador e 3.649 de outras funções. Essa base inclui correções anteriores; não atribuir toda a diferença futura a esta migração. A auditoria anterior à publicação (workflow `39102190528`, 18/10 05:55 UTC) ficou registrada na política. A meta de 30–35 mil é margem de projeto, não uma medição prometida.

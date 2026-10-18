@@ -24,4 +24,12 @@ class AuditTests(unittest.TestCase):
         report={'results':{'durableObjectsInvocationsAdaptiveGroups':{'rows':rows}}}
         summary=m.consumption_summary(report)['daily']['2026-10-17']
         self.assertEqual(summary['requests'],34);self.assertEqual(summary['families']['population'],30);self.assertEqual(summary['types']['alarm'],4)
+    def test_budget_requires_a_complete_day_after_rollout_and_not_a_quiet_sample(self):
+        policy={'targetRequestsPerDay':35000,'ceilingRequestsPerDay':45000,'firstFullUtcDay':'2026-10-19','baseline':{}}
+        report={'queriedAt':'2026-10-19T12:00:00+00:00','results':{'durableObjectsInvocationsAdaptiveGroups':{}},'consumptionSummary':{'daily':{'2026-10-18':{'requests':100,'families':{}},'2026-10-19':{'requests':200,'families':{}}}}}
+        summary=m.budget_summary(report,policy);self.assertEqual(summary['confirmation'],'waiting-first-complete-day');self.assertFalse(summary['days'][-1]['complete'])
+        report['queriedAt']='2026-10-20T00:15:00+00:00';summary=m.budget_summary(report,policy);self.assertEqual(summary['confirmation'],'within-target');self.assertEqual(summary['latestCompleteDay'],'2026-10-19')
+        report['consumptionSummary']['daily']['2026-10-19']['requests']=40000;self.assertEqual(m.budget_summary(report,policy)['confirmation'],'above-target')
+        report['consumptionSummary']['daily']['2026-10-19']['requests']=45001;self.assertEqual(m.budget_summary(report,policy)['confirmation'],'above-ceiling')
+        del report['results']['durableObjectsInvocationsAdaptiveGroups'];self.assertEqual(m.budget_summary(report,policy)['confirmation'],'analytics-unavailable')
 if __name__=='__main__':unittest.main()

@@ -29,7 +29,7 @@ async function fetchText(url, options = {}, timeoutMs = 12000) {
     try {
         const r = await fetch(url, { ...options, signal: controller.signal });
         const text = await r.text();
-        return { ok: r.ok, status: r.status, text, contentType: r.headers.get('Content-Type') || '' };
+        return { ok: r.ok, status: r.status, text, contentType: r.headers.get('Content-Type') || '', retryAfter: r.headers.get('Retry-After') || '' };
     } finally {
         clearTimeout(timer);
     }
