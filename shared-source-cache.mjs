@@ -1,3 +1,4 @@
+import {sourceEdgeResponse} from './source-edge-cache.mjs';
 // Public feed snapshots only. No KV, user credentials, admin actions or paid products.
 import {activity} from './kv-operation-metrics.mjs';
 const VERSION='shared-sources-v1',MAX_BODY=3*1024*1024,MAX_TOTAL=12*1024*1024,MAX_ENTRIES=16,CHUNK=60000;
@@ -119,13 +120,10 @@ export async function sourceObjectHealth(storage){
 }
 export async function sharedSourceResponse(request,env,compute,allowed){
  const policy=sourcePolicy(request,allowed);if(!policy||env.SHARED_SOURCE_INTERNAL||!env.EARTHQUAKE_ALERTS)return compute();
- const cache=globalThis.caches?.default;
- const edgeKey=cache?new Request(new URL('/__shared-source-cache/'+await hash(policy.group+'|'+policy.key),request.url)):null;
- if(cache){try{const cached=await cache.match(edgeKey),at=Number(cached?.headers.get('X-Monitor-Source-Last-Ok'));if(cached&&at>0&&Date.now()-at<policy.ttl&&['fresh','partial'].includes(cached.headers.get('X-Monitor-Source-State')))return cached;}catch{}}
- try{
-  const result=await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('shared-source-v1:'+policy.group)).fetch(new Request(request.url,{headers:{'X-Monitor-Request-At':String(Date.now())}}));
-  if(cache&&result.ok&&['fresh','partial'].includes(result.headers.get('X-Monitor-Source-State'))){try{const ttl=Math.floor((Number(result.headers.get('X-Monitor-Source-Last-Ok'))+Math.min(policy.ttl,result.headers.get('X-Monitor-Source-State')==='partial'?30000:policy.ttl)-Date.now())/1000);if(ttl>0){const cached=result.clone(),h=new Headers(cached.headers);h.set('Cache-Control','public, max-age='+ttl);await cache.put(edgeKey,new Response(cached.body,{status:cached.status,headers:h}));}}catch{}}
-  return result;
- }
- catch{return Response.json({error:'Coleta compartilhada temporariamente indisponível'},{status:503,headers:{...headers,'X-Monitor-Source-State':'unavailable','Retry-After':'30'}});}
+ const binding=env.EARTHQUAKE_ALERTS,key=policy.group+'|'+policy.key;
+ // One canonical internal key also shares snapshots across public aliases.
+ const edgeKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__shared-source-cache/v2/'+await hash(key));
+ const unavailable=()=>Response.json({error:'Coleta compartilhada temporariamente indisponível'},{status:503,headers:{...headers,'X-Monitor-Source-State':'unavailable','Retry-After':'30'}});
+ try{return await sourceEdgeResponse(binding,key,policy,edgeKey,async()=>{try{return await binding.get(binding.idFromName('shared-source-v1:'+policy.group)).fetch(new Request(request.url,{headers:{'X-Monitor-Request-At':String(Date.now())}}));}catch{return unavailable();}});}
+ catch{return unavailable();}
 }

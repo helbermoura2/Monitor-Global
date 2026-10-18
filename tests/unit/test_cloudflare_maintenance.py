@@ -33,7 +33,7 @@ class MaintenanceTests(unittest.TestCase):
             def call(self,*args):return {'data':{'viewer':{'accounts':[]}}}
         with self.assertRaises(m.MaintenanceError):m.analytics(Client())
     def test_public_propagation_can_be_verified_without_a_second_upload(self):
-        values=iter([{'electionPolls':'old'},{'durableRequestBudget':m.REQUEST_BUDGET,'workerModules':m.WORKER_MODULES,'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True,'telegramStorage':'durable-history-v1','sharedSources':{'version':'shared-sources-v1','enabled':True}}]);waits=[]
+        values=iter([{'electionPolls':'old'},{'sourceEdgeBudget':m.SOURCE_EDGE_BUDGET,'durableRequestBudget':m.REQUEST_BUDGET,'workerModules':m.WORKER_MODULES,'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True,'telegramStorage':'durable-history-v1','sharedSources':{'version':'shared-sources-v1','enabled':True}}]);waits=[]
         result=m.verify_public(check=lambda:next(values),wait=waits.append,attempts=2)
         self.assertEqual(result['electionPolls'],m.MARKER);self.assertEqual(waits,[5])
         with self.assertRaisesRegex(m.MaintenanceError,'without redeploying'):
@@ -72,6 +72,15 @@ class MaintenanceTests(unittest.TestCase):
             m.main()
         provision.assert_not_called()
         self.assertEqual(sum(c.args[0].startswith('/worker?') for c in client.call.call_args_list),1)
+    def test_public_source_probe_only_reads_public_feed_and_reports_cache_without_bodies(self):
+        response=mock.MagicMock();response.status=200;response.headers={'X-Monitor-Source-State':'fresh','X-Monitor-Source-Edge':'memory'}
+        response.__enter__.return_value=response
+        with mock.patch.object(m.urllib.request,'urlopen',return_value=response) as call:
+            result=m.public_source_probe()
+        self.assertEqual(len(result['reads']),3);self.assertEqual(call.call_count,3)
+        self.assertTrue(all(row['edge']=='memory' for row in result['reads']))
+        self.assertTrue(all(c.args[0].get_method()=='GET' and '/?url=' in c.args[0].full_url for c in call.call_args_list))
+
     def test_health_client_identifies_the_application_to_the_public_endpoint(self):
         with mock.patch.object(m.urllib.request,'urlopen',return_value=io.BytesIO(json.dumps({'electionPolls':m.MARKER}).encode())) as call:
             self.assertEqual(m.public_health()['electionPolls'],m.MARKER)

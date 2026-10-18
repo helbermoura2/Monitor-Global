@@ -3,7 +3,7 @@
 ## Arquitetura
 
 O navegador consulta primeiro o Worker para os feeds públicos selecionados. Uma
-camada curta de Cache API atende repetições no mesmo datacenter. Quando ela não
+camada curta de Cache API atende repetições no mesmo datacenter. A chave interna é canônica entre endereços públicos do Worker. Uma cópia em memória, limitada a 48 entradas e 6 MiB por binding/isolate, e o compartilhamento das consultas simultâneas evitam invocações repetidas durante o preenchimento do cache. Até oito identidades podem ser agrupadas em voo; acima disso novas identidades seguem diretamente ao coletor para limitar memória sem bloquear alertas. Quando ela não
 tem o resultado, um Durable Object existente, nomeado por fonte/produto, serializa
 a coleta. Visitantes de datacenters distintos reutilizam o mesmo resultado.
 O cron de São Paulo e dos feeds globais usa esse mesmo caminho; o agregador global
@@ -72,7 +72,7 @@ O envio de contadores detalhados de atividade foi desativado: cada lote criava u
 
 A manutenção manual verifica o checksum do pacote e exige o marcador
 `sharedSources: {version: shared-sources-v1, enabled: true}` em produção, além dos
-marcadores anteriores e `durableRequestBudget: durable-request-budget-v1`. O workflow executa os testes de concorrência, falha,
+marcadores anteriores, `durableRequestBudget: durable-request-budget-v1` e `sourceEdgeBudget: shared-source-edge-v2`. O workflow executa os testes de concorrência, falha,
 retenção, isolamento e persistência antes do upload. Preserva bindings, segredos,
 cron e histórico de versões para reversão.
 
@@ -83,3 +83,11 @@ reuso da borda e de fragmentos; privacidade do painel; prioridade do proxy no
 cliente; preservação de idade e estado; acesso administrativo em 390 e 1280 px.
 Serviços externos são simulados nesses testes. A implantação usa somente consultas
 públicas de leitura para sua conferência; não envia mensagens ou sintetiza áudio.
+
+## Prazo do cache de borda
+
+O prazo é absoluto, calculado a partir da coleta original; atendimentos não o renovam. Respostas parciais ficam no máximo 30 segundos. Respostas retidas com estado `stale` só são reutilizadas até o menor prazo entre o próximo retry do provedor e o limite de retenção original. HTTP 503 pode ser compartilhado por até cinco segundos e continua HTTP 503 para o cliente, inclusive após leitura de outro isolate. O envelope HTTP 200 usado exclusivamente na Cache API interna é desfeito antes da resposta pública. Erros de cache não impedem a consulta ao coletor.
+
+Voz paga, Telegram, população, TSE, administração e consultas com credenciais continuam fora desta camada. Tsunami conserva os dez segundos de cache recente. Não há novas gravações no KV ou nos Durable Objects nesta camada.
+
+Verificação comparativa com Cache API indisponível: 100 requisições simultâneas e 100 sequenciais dentro do prazo original precisavam de 200 invocações no código anterior e uma no novo (99,5% de redução nesse cenário). Não é projeção do total diário. O cabeçalho `X-Monitor-Source-Edge` identifica `coordinator`, `joined`, `memory`, `edge` ou `bypass`, sem criar contadores ou gravações. A manutenção em modo `verify` faz três leituras públicas não pagas para conferir os cabeçalhos em produção.
