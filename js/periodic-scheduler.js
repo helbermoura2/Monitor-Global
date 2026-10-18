@@ -30,7 +30,7 @@
   }
   function pause(group){paused.add(group);arm();}
   function resume(group){if(paused.delete(group))stagger(group);arm();}
-  function trigger(key){const j=jobs.get(key);if(!j||j.running||(j.last!==null&&Date.now()-j.last<4000))return; j.due=Date.now();arm();}
+  function trigger(key,force=false){const j=jobs.get(key);if(!j||j.running||(!force&&j.last!==null&&Date.now()-j.last<4000))return; j.due=Date.now();arm();}
   function cancel(key){jobs.delete(key);arm();}
   document.addEventListener('visibilitychange',()=>{if(visible())stagger();arm();});
   root.PeriodicScheduler={every,pause,resume,trigger,cancel};

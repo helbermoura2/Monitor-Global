@@ -27,6 +27,7 @@ function fetchEMSCData() {
     // ciclo de fetch. Agora usamos a mesma janela de 36h e minmagnitude=2.5 das outras
     // fontes FDSN, com limit alto o suficiente pra não cortar nada nesse intervalo.
     function umaTentativa(timeoutMs) {
+        if(document.hidden)return Promise.resolve(null);
         return new Promise(res => {
             const s = document.createElement('script');
             const cb = 'emscCb_' + Math.round(Math.random() * 1e6);
@@ -35,10 +36,13 @@ function fetchEMSCData() {
                 if (acabou) return;
                 acabou = true;
                 clearTimeout(timer);
+                document.removeEventListener('visibilitychange',onVisibility);
                 delete window[cb];
                 if (s.parentNode) s.parentNode.removeChild(s);
             };
+            const onVisibility=()=>{if(document.hidden){limpar();res(null);}};
             const timer = setTimeout(() => { limpar(); res(null); }, timeoutMs);
+            document.addEventListener('visibilitychange',onVisibility);
             window[cb] = d => { limpar(); res(d.features || []); };
             s.onerror = () => { limpar(); res(null); };
             const start = new Date(Date.now() - 36 * 3600000).toISOString();
@@ -55,7 +59,7 @@ function fetchEMSCData() {
     }
     return (async () => {
         let r = await umaTentativa(8000);
-        if (r === null) {
+        if (r === null && !document.hidden) {
             await new Promise(res => setTimeout(res, 1500));
             r = await umaTentativa(8000);
         }

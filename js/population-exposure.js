@@ -2,7 +2,8 @@
 (function(){
  'use strict';
  const cache=new Map();let current=null;
- const signature=item=>[item.id,item.coords?.[1],item.coords?.[0],item.mag,item.depth,item.time].join('|');
+ function usgsId(item){const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);return report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';}
+ const signature=item=>[item.id,item.coords?.[1],item.coords?.[0],item.mag,item.depth,item.time,usgsId(item)].join('|');
  const escape=text=>String(text??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
  const count=n=>Number.isFinite(Number(n))&&Number(n)>=0?(Number(n)===0?'0':Number(n)<1000?'~'+Math.round(Number(n)).toLocaleString('pt-BR'):'~'+formatarPessoasHeadline(Number(n))):'—';
  function valid(data){
@@ -29,7 +30,7 @@
   job.data=data;const node=box();if(!node)return;node.dataset.status=valid(data)?'available':data?.status==='pending'?'pending':'unavailable';
   const flip=document.getElementById('pd-flip-grid-exposure');if(flip)flip.innerHTML=markup(data);
   if(valid(data)){
-   node.className='';node.innerHTML=markup(data);cache.set(job.key,{data,until:Date.now()+(data.method==='pager'?300000:3600000)});
+   node.className='';node.innerHTML=markup(data);job.finished=true;if(cache.get(job.key)?.data!==data)cache.set(job.key,{data,until:Date.now()+(data.method==='pager'?300000:3600000)});
    if(cache.size>80)cache.delete(cache.keys().next().value);
    if(flip){const number=document.querySelector('#pd-flip-verso .pd-flip-verso-num'),sub=document.querySelector('#pd-flip-verso .pd-flip-verso-sub');if(number)number.textContent=count(data.ranges[0].population);if(sub)sub.textContent='população em área de tremor fraco ou maior · EST';}
 
@@ -45,23 +46,24 @@
  window.obterExposicaoPopulacionalImagem=async function(item){
   const hit=window.exposicaoPopulacionalDoEvento(item);if(hit)return hit;
   const url=new URL(WORKER_PROXY(''));url.pathname='/population-exposure';url.search='';
-  const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);
-  const eventId=report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';
+  const eventId=usgsId(item);
   Object.entries({lat:item.coords[1],lng:item.coords[0],mag:item.mag,depth:item.depth??0,time:item.time,...(eventId?{eventId}:{})}).forEach(([name,value])=>url.searchParams.set(name,String(value)));
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);
   try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error();const data=await r.json();return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
  };
  window.carregarExposicaoPopulacional=function(item){
-  cancel();if(!item||!(item.type==='earthquake'||(!item.type&&item.mag!=null&&Number.isFinite(Number(item.mag)))))return;
-  const key=signature(item),job={item,key,attempt:0,timer:null,controller:null};current=job;
+  if(!item||!(item.type==='earthquake'||(!item.type&&item.mag!=null&&Number.isFinite(Number(item.mag))))){cancel();return;}
+  if(document.hidden)return;
+  const key=signature(item);
+  if(current?.key===key&&(!current.finished||Date.now()-current.started<10000)){current.item=item;if(current.data)paint(current,current.data);return;}
+  cancel();const job={item,key,attempt:0,timer:null,controller:null,started:Date.now(),finished:false};current=job;
   paint(job,{status:'pending'});
   const hit=cache.get(key);if(hit&&hit.until>Date.now()){paint(job,hit.data);return;}
   let url;
   try{
    url=new URL(WORKER_PROXY(''));url.pathname='/population-exposure';url.search='';
-   const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);
-   const eventId=report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';
-   Object.entries({lat:item.coords[1],lng:item.coords[0],mag:item.mag,depth:item.depth,time:item.time,...(eventId?{eventId}:{})}).forEach(([name,value])=>url.searchParams.set(name,String(value)));
+   const eventId=usgsId(item);
+   Object.entries({lat:item.coords[1],lng:item.coords[0],mag:item.mag,depth:item.depth??0,time:item.time,...(eventId?{eventId}:{})}).forEach(([name,value])=>url.searchParams.set(name,String(value)));
   }catch{paint(job,{note:'Serviço de exposição populacional indisponível.'});return;}
   async function poll(){
    if(!selected(job))return;
@@ -71,8 +73,8 @@
     const data=await response.json();if(!selected(job))return;
     if(data.status==='pending'&&job.attempt++<12){paint(job,data);job.timer=setTimeout(poll,10000);return;}
     if(data.status==='available'&&!valid(data))throw Error('Exposição inválida');
-    paint(job,data.status==='pending'?{note:'A consulta ainda não concluiu. A cobertura por localidades está disponível abaixo.'}:data);
-   }catch(error){if(selected(job))paint(job,{note:'População em grade indisponível no momento; a estimativa por localidades permanece abaixo.'});}
+    job.finished=true;paint(job,data.status==='pending'?{note:'A consulta ainda não concluiu. A cobertura por localidades está disponível abaixo.'}:data);
+   }catch(error){job.finished=true;if(selected(job))paint(job,{note:'População em grade indisponível no momento; a estimativa por localidades permanece abaixo.'});}
    finally{clearTimeout(timeout);}
   }
   void poll();
