@@ -76,8 +76,10 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     // An alert selected by the user has its own presentation deadline. It
     // cannot inherit the previous quake's automatic/manual mode or magnitude.
     const alertProtection=typeof getAlertSelectionProtectionRemaining==='function'?getAlertSelectionProtectionRemaining():0;
-    if(alertProtection>0&&(Number(next.event.mag)<5||!isRecentCameraQuake(next.event)))return false;
-    if(Number(next.event.mag)<6&&window.VolcanoPriority?.presentationActive())return false;
+    const selectedAlert=typeof globalAlerts!=='undefined'?globalAlerts.find(a=>a.id===eventoSelecionadoId):null;
+    const volcanoWithoutLava=selectedAlert?.type==='volcano'&&window.VolcanoPriority&&!window.VolcanoPriority.evidence(selectedAlert).lava;
+    if(alertProtection>0&&!volcanoWithoutLava&&(Number(next.event.mag)<5||!isRecentCameraQuake(next.event)))return false;
+    if(Number(next.event.mag)<5&&window.VolcanoPriority?.presentationActive())return false;
     // Automatic revisits never delay a newly arrived quake. A larger arrival
     // may interrupt a live/manual hold; equal or smaller arrivals wait -- but
     // every new quake remains queued until shown, whatever its magnitude,

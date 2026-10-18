@@ -49,3 +49,12 @@ test('badge recovery saves every unpresented quake before the badges and 30-minu
  stamp+=4*60000;c.window.__mgRevisionProtectedUntil=0;assert(c.focusNextNewCameraQuake());c.window.__mgRevisionProtectedUntil=0;assert(c.focusNextNewCameraQuake());assert.deepEqual(shown.map(x=>x[0]),['big','small','tiny']);
 });
 test('hidden queued quakes are not consumed before the visible priority presentation',()=>{const{c,shown}=setup(q('old',1));c.document.hidden=true;c.globalEvents.push(q('new',6));c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),false);assert.equal(vm.runInContext('pendingNewCameraQuakes.size',c),1);assert.equal(shown.length,0);c.document.hidden=false;assert(c.focusNextNewCameraQuake());assert.deepEqual(shown,[['new',true]]);});
+
+test('ash volcano cannot block a new quake; lava holds only quakes below M5',()=>{
+ for(const lava of [false,true])for(const mag of [3.5,5]){
+  const {c,shown}=setup(q('old',2));c.globalEvents=[];c.globalAlerts=[{id:'volcano',type:'volcano'}];c.eventoSelecionadoId='volcano';
+  c.getAlertSelectionProtectionRemaining=()=>60000;c.window.VolcanoPriority={evidence:()=>({lava}),presentationActive:()=>lava};
+  c.globalEvents.push(q('new',mag));c.queueNewCameraQuakes(c.globalEvents);
+  assert.equal(c.focusNextNewCameraQuake(),!lava||mag>=5);assert.equal(shown.length,!lava||mag>=5?1:0);
+ }
+});
