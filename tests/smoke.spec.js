@@ -20,6 +20,7 @@ test.describe('Monitor Global — smoke', () => {
     await page.goto('/index.html');
     await expect(page.locator('.mg-logo-word')).toHaveText('MONITOR GLOBAL');
     await expect(page.locator('#mapContainer')).toBeVisible({ timeout: 15000 });
+    await page.locator('#desktop-records-toggle').click();
     await expect(page.locator('#events')).toBeVisible();
   });
 

@@ -207,6 +207,8 @@ document.getElementById('btn-share-resumo')?.addEventListener('click', () => {
 document.querySelectorAll('#chips-row .chip[data-f]').forEach(ch => {
     ch.addEventListener('click', () => {
         sidebarFilter = ch.dataset.f;
+        if (sidebarFilter === 'all') resetEventFilters();
+        window.DesktopRecords?.filter(sidebarFilter);
         document.querySelectorAll('#chips-row .chip[data-f]').forEach(x => x.classList.toggle('active', x === ch));
         applyFilters();
     });
@@ -247,20 +249,18 @@ document.getElementById('chip-menu-desktop')?.addEventListener('click', (event) 
     requestAnimationFrame(updateButtons);
 })();
 
-document.getElementById('chip-importantes').addEventListener('click', function () {
-    soImportantes = !soImportantes;
-    this.classList.toggle('on', soImportantes);
-    applyFilters();
-});
-document.getElementById('chip-criticos') && document.getElementById('chip-criticos').addEventListener('click', function () {
-    soCriticos = !soCriticos;
-    this.classList.toggle('on', soCriticos);
-    try { localStorage.setItem('monitor_so_criticos', soCriticos ? '1' : '0'); } catch (e) {}
-    applyFilters();
-    if (typeof showToast === 'function') showToast(soCriticos ? '⚡ Só eventos críticos (global)' : 'Mostrando todos os eventos', 'info');
-});
-try { var _cc = document.getElementById('chip-criticos'); if (_cc) _cc.classList.toggle('on', !!soCriticos); } catch (e) {}
-
+// Tudo restores event filters, without changing audio or the chosen projection.
+function resetEventFilters() {
+    soImportantes = false; soCriticos = false; geoFilter = 'all'; minMagnitude = 0.1;
+    window.WeatherPanel?.hide();
+    const slider = document.getElementById('mag-slider'); if (slider) slider.value = '0.1';
+    const value = document.getElementById('mag-value'); if (value) value.textContent = 'M 0,1';
+    const search = document.getElementById('ux-search'); if (search) search.value = '';
+    document.querySelectorAll('#events .event[hidden]').forEach(card => card.hidden = false);
+    document.getElementById('chips-row')?.classList.remove('expanded');
+    syncGeoChips();
+    try { localStorage.setItem('monitor_geo_filter','all'); localStorage.setItem('monitor_min_mag','0.1'); localStorage.removeItem('monitor_so_criticos'); } catch (_) {}
+}
 
 function syncGeoChips() {
     document.querySelectorAll('#chips-row [data-geo]').forEach(ch => {

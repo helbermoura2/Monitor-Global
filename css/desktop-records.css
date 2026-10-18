@@ -1,0 +1,36 @@
+/* The mobile records sheet keeps its existing layout and gestures. */
+#desktop-records-toggle,#desktop-records-status{display:none}
+#desktop-extra-filters{display:contents}
+@media(min-width:901px){
+ body.desktop-records-ready #top-strip,body.desktop-records-ready #ux-controlbar,body.desktop-records-ready #chips-scroll-wrap{overflow:visible!important}
+ body.desktop-records-ready #chips-row{position:relative!important;display:flex!important;overflow:visible!important;flex-wrap:nowrap!important;padding:0!important;gap:5px!important}
+ body.desktop-records-ready #chips-scroll-wrap .chips-scroll-btn{display:none!important}
+ body.desktop-records-ready #chips-row>.chip{flex:0 0 auto!important;white-space:nowrap}
+ body.desktop-records-ready #chips-row>[data-f="all"]{order:0}
+ body.desktop-records-ready #chips-row>[data-f="earthquake"]{order:1}
+ body.desktop-records-ready #chips-row>[data-f="volcano"]{order:2}
+ body.desktop-records-ready #chips-row>[data-f="tsunami"]{order:3}
+ body.desktop-records-ready #chips-row>#chip-election:not([hidden]){display:inline-flex!important;order:4}
+ body.desktop-records-ready #chip-election svg{display:none}
+ body.desktop-records-ready #chips-row>#more-filters-toggle{order:5}
+ body.desktop-records-ready #chips-row>#desktop-records-toggle{display:inline-flex;order:6}
+ body.desktop-records-ready #chips-row>#chip-menu-desktop{order:7}
+ body.desktop-records-ready #chips-row>#desktop-extra-filters{display:none;position:absolute;top:calc(100% + 10px);left:0;z-index:60;width:360px;max-width:calc(100vw - 32px);padding:12px;gap:8px;flex-wrap:wrap;border:1px solid #396077;border-radius:0 0 14px 14px;background:#081d2bf5;box-shadow:0 14px 30px #0008}
+ body.desktop-records-ready #chips-row.expanded>#desktop-extra-filters{display:flex!important}
+ body.desktop-records-ready #chips-row.expanded #desktop-extra-filters>.chip{display:inline-flex!important;font-size:12px!important;padding:8px 11px!important;white-space:nowrap}
+ body.desktop-records-ready #sidebar-left{top:var(--desktop-records-top,110px)!important;bottom:14px!important;left:12px!important;width:300px!important;height:auto!important;max-height:calc(100dvh - var(--desktop-records-top,110px) - 14px)!important;border-radius:0 0 16px 16px!important;z-index:25!important;visibility:hidden!important;pointer-events:none!important;opacity:0;transform:translateY(-12px);transition:opacity .18s ease,transform .22s ease,visibility .22s;}
+ body.desktop-records-ready.desktop-records-open #sidebar-left{visibility:visible!important;pointer-events:auto!important;opacity:1;transform:translateY(0)}
+ body.desktop-records-ready #events-label{position:relative;display:flex;flex-wrap:wrap;gap:5px;padding-right:30px!important}
+ body.desktop-records-ready #desktop-records-status{display:block;width:100%;font:10px/1.4 system-ui;color:#9db6c6}
+ body.desktop-records-ready #sidebar-events-close{display:block!important;position:absolute!important;right:7px;top:7px;z-index:2;width:24px;height:24px;padding:0;border:0;border-radius:6px;color:#bdd5e1;background:#102a3a;cursor:pointer}
+ body.desktop-records-pinned #sidebar-events-close{display:none!important}
+ body.desktop-records-ready #events-peek-arrow{display:none}
+ body.desktop-records-ready #desktop-records-toggle[aria-expanded="true"]{border-color:#64cde0;background:#16445a}
+}
+@media(min-width:901px) and (max-width:1190px){
+ body.desktop-records-ready #top-strip #controls{width:95px!important;min-width:95px!important;flex-basis:95px!important}
+ body.desktop-records-ready #top-strip #freshness-bar{max-width:130px!important}
+ body.desktop-records-ready #top-strip #freshness-bar #ao-vivo-badge{max-width:130px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ body.desktop-records-ready #top-strip #chips-row>.chip{font-size:10px!important;padding:4px 6px!important}
+}
+@media(prefers-reduced-motion:reduce){body.desktop-records-ready #sidebar-left{transition:none}}

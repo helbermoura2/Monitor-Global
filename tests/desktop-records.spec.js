@@ -1,0 +1,45 @@
+const {test,expect}=require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
+async function ready(page){await page.goto('/index.html');await page.waitForFunction(()=>window.DesktopRecords&&window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);}
+test('desktop chips, dropdown and projection menu preserve their actions',async({page})=>{
+ await page.setViewportSize({width:1280,height:800});await ready(page);
+ const visible=await page.locator('#chips-row > button').evaluateAll(nodes=>nodes.filter(e=>getComputedStyle(e).display!=='none').sort((a,b)=>Number(getComputedStyle(a).order)-Number(getComputedStyle(b).order)).map(e=>e.textContent));
+ expect(visible.slice(0,4)).toEqual(['Tudo','Sismos','Vulcões','Tsunamis']);
+ await expect(page.locator('#chip-meteorologia')).toBeHidden();
+ await page.locator('#more-filters-toggle').click();await expect(page.locator('#chip-meteorologia')).toBeVisible();
+ await expect(page.locator('#desktop-extra-filters [data-f="hurricane"]')).toHaveText('Ciclones');
+ await expect(page.locator('#chip-importantes,#chip-criticos,#chip-geo-me,#chip-geo-100,#chip-geo-500,#chip-tsunami-official,#chip-clima-global')).toHaveCount(0);
+ await page.locator('#chip-menu-desktop').click();await expect(page.locator('#mf-main-planet')).toBeVisible();await expect(page.locator('#mf-main-map')).toBeVisible();
+ await page.locator('#mf-main-map').click();expect(await page.evaluate(()=>GlobePreview.state().mode)).toBe('mercator');
+});
+test('event filter pins existing records; Tudo clears filters and retracts',async({page})=>{
+ await page.setViewportSize({width:1280,height:800});await ready(page);
+ await expect(page.locator('#sidebar-left')).toBeHidden();expect(await page.evaluate(()=>GlobePreview.availableRadius().padding.left)).toBe(0);
+ await page.evaluate(()=>{globalEvents=[{id:'records-small',type:'earthquake',mag:2.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Sismo pequeno',source:'QA'}];globalAlerts=[{id:'records-volcano',type:'volcano',coords:[-70,-20],time:Date.now(),place:'Vulcão local',source:'QA'}];applyFilters();});
+ await page.locator('#chips-row > [data-f="volcano"]').click();await expect(page.locator('#sidebar-left')).toBeVisible();
+ expect(await page.evaluate(()=>GlobePreview.availableRadius().padding.left)).toBeGreaterThan(250);
+ expect(await page.evaluate(()=>DesktopRecords.state().pinned)).toBe(true);await expect(page.locator('#events')).toContainText('Vulcão local');await expect(page.locator('#events')).not.toContainText('Sismo pequeno');
+ await page.evaluate(()=>{geoFilter='br';minMagnitude=6;soImportantes=true;soCriticos=true;document.getElementById('ux-search').value='inexistente';});
+ await page.locator('#chips-row > [data-f="all"]').click();await expect(page.locator('#sidebar-left')).toBeHidden();
+ expect(await page.evaluate(()=>[sidebarFilter,geoFilter,minMagnitude,soImportantes,soCriticos])).toEqual(['all','all',0.1,false,false]);
+ await page.locator('#desktop-records-toggle').click();await expect(page.locator('#events')).toContainText('Sismo pequeno');await expect(page.locator('#events')).toContainText('Vulcão local');
+ await page.screenshot({path:'/tmp/desktop-records-open.png'});
+});
+test('new arrivals and M5+ revisions open once, expire and do not steal camera selection',async({page})=>{
+ await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();
+ await page.mouse.move(1200,740);
+ await page.evaluate(()=>{globalEvents=[{id:'records-new',type:'earthquake',mag:5.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento novo',source:'QA'}];EventStore.setSelected('records-new');activeAlertingIds.set('records-new',Date.now()+180000);applyFilters();});
+ await expect(page.locator('#sidebar-left')).toBeVisible();expect(await page.evaluate(()=>EventStore.selectedId)).toBe('records-new');
+ await page.clock.runFor(20500);await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.evaluate(()=>applyFilters());await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.evaluate(()=>EventStore.onDataRevised(['records-new']));await expect(page.locator('#sidebar-left')).toBeVisible();
+ await page.clock.runFor(20500);await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.evaluate(()=>{globalEvents[0].mag=4.9;EventStore.onDataRevised(['records-new']);});await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.evaluate(()=>EventStore.notify('official-map',{id:'records-new',mag:5.2,version:'2'}));await expect(page.locator('#sidebar-left')).toBeVisible();
+});
+test('mobile keeps the events sheet and local magnitude selector',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await ready(page);
+ await expect(page.locator('#desktop-records-toggle')).toBeHidden();await expect(page.locator('body')).not.toHaveClass(/desktop-records-ready/);
+ await page.locator('#mobile-primary-nav [data-view="events"]').click();await expect(page.locator('#sidebar-left')).toBeVisible();await expect(page.locator('#mobile-event-magnitude')).toBeVisible();
+ await page.screenshot({path:'/tmp/mobile-records-preserved.png'});
+});

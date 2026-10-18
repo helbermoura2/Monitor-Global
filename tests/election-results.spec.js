@@ -35,7 +35,7 @@ async function setup(page, {realSignature = false, date = '2026-10-25T17:01:00Z'
   await page.goto('/', {waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => !!window.ElectionPanel && window.__mgMapReady && !__fetchGlobalFeedsEmAndamento);
   // Raster requests are blocked in this fixture; keep clock advancement independent of GPU textures.
-  await page.evaluate(() => {for (const layer of map.getStyle().layers) if (layer.type === 'raster') map.removeLayer(layer.id);});
+  await page.evaluate(() => {pausarBuscas();for(const job of __buscasAgendadas)PeriodicScheduler.cancel(job.key);clearTimeout(cycleTimeout);for (const layer of map.getStyle().layers) if (layer.type === 'raster') map.removeLayer(layer.id);});
   return state;
 }
 async function open(page) {
@@ -49,7 +49,7 @@ test('assinatura real do TSE, votos e porcentagens no placar; chip não altera f
   const state = await setup(page, {realSignature: true});
   expect(state.calls).toBe(0);
   await expect(page.locator('script[src*="poll-projection"],link[href*="poll-projection"]')).toHaveCount(0);
-  expect(await page.locator('#chip-election').evaluate(e => e.previousElementSibling.id)).toBe('chip-geo-br');
+  expect(await page.locator('#chip-election').evaluate(e => e.nextElementSibling.id)).toBe('more-filters-toggle');
   const filter = await page.evaluate(() => ({type: sidebarFilter, geo: geoFilter}));
   await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
@@ -161,18 +161,19 @@ test('respostas atrasadas não trocam o turno nem reabrem painel fechado', async
 test('desktop entre os cartões; mobile oculta e interrompe consultas; módulo expira', async ({page}) => {
   const state = await setup(page);await open(page);
   await expect(page.locator('#election-panel')).toHaveAttribute('data-state', 'results');
-  for (const width of [1101,1280,1600,1920]) {
+  for (const width of [960,1101,1280,1600,1920]) {
     await page.setViewportSize({width,height:1000});
     // Resize/ResizeObserver delivery is asynchronous even with a fake clock.
     await expect.poll(() => page.evaluate(() => {
       const panel = document.getElementById('election-panel').getBoundingClientRect();
-      const left = document.getElementById('sidebar-left').getBoundingClientRect();
+      const element = document.getElementById('sidebar-left');
+      const left = getComputedStyle(element).visibility==='hidden'?{right:0}:element.getBoundingClientRect();
       const right = document.getElementById('painel-direito').getBoundingClientRect();
       return panel.left >= left.right && panel.right <= right.left;
     })).toBe(true);
     const bounds = await page.evaluate(() => {
       const rect = id => {const r = document.getElementById(id).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
-      return {panel:rect('election-panel'),left:rect('sidebar-left'),right:rect('painel-direito'),header:rect('top-strip'),overflow:document.documentElement.scrollWidth>innerWidth};
+      return {panel:rect('election-panel'),left:getComputedStyle(document.getElementById('sidebar-left')).visibility==='hidden'?{right:0}:rect('sidebar-left'),right:rect('painel-direito'),header:rect('top-strip'),overflow:document.documentElement.scrollWidth>innerWidth};
     });
     expect(bounds.panel.left).toBeGreaterThanOrEqual(bounds.left.right);
     expect(bounds.panel.right).toBeLessThanOrEqual(bounds.right.left);

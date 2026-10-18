@@ -352,9 +352,9 @@ let sidebarFilter = 'all', soImportantes = false, soCriticos = false, eventoSele
    - dicionarioBandeiras: emoji de bandeira por nome de país
    - PAISES_COSTEIROS / CIDADES_MUNDO: geolocalização de bandeira
    ═══════════════════════════════════════════════════════════════ */
-/* Filtro geográfico: 'all' | 'br' | '500' | '100' — persiste no localStorage */
-let geoFilter = (function(){ try { return localStorage.getItem('monitor_geo_filter') || 'all'; } catch(e){ return 'all'; } })();
-try { soCriticos = localStorage.getItem('monitor_so_criticos') === '1'; } catch(e) {}
+/* Filtro geográfico: apenas mundo/Brasil. Preferências de raios removidos não voltam a ocultar registros. */
+let geoFilter = (function(){ try { return localStorage.getItem('monitor_geo_filter') === 'br' ? 'br' : 'all'; } catch(e){ return 'all'; } })();
+try { localStorage.removeItem('monitor_so_criticos'); } catch(e) {}
 // A lista de registros é sempre cronológica. A antiga opção "Sev." podia
 // deixar eventos de horas diferentes fora de ordem e também ficava persistida no aparelho.
 try { localStorage.removeItem('monitor_sort_sev'); } catch(e) {}
@@ -363,6 +363,7 @@ const sortBySeverity = false; // mantido só por compatibilidade; nunca altera a
 /* Pop-up de registros no celular: abre/fecha a lista de eventos como uma folha
    em tela cheia (retrato ou paisagem), em vez de deixá-la espremida no grid. */
 function toggleMobileEventsModal(open) {
+    if (window.innerWidth > 900 && window.DesktopRecords) { window.DesktopRecords.open(open); return; }
     document.body.classList.toggle('mobile-events-open', open);
     window.MobileEventChips?.redraw();
 }
@@ -392,6 +393,7 @@ function fecharPainelDetalhesMobile() {
     document.body.classList.remove('mobile-details-open', 'mobile-details-mid');
 }
 function alternarCaixaRegistrosMobile() {
+    if (window.innerWidth > 900 && window.DesktopRecords) { window.DesktopRecords.toggle(); return; }
     // Só a faixa recolhida (peek) deve reagir ao toque pra abrir;
     // quando já está expandida, o toque nela não faz nada (evita
     // fechar sem querer enquanto rola a lista) — use o ✕ pra fechar.

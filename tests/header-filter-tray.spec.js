@@ -7,12 +7,12 @@ for(const width of [1280,960,390])test('secondary filters collapse and remain us
  await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);});
  if(width===390){await page.locator('#fab-menu').click();await page.getByRole('button',{name:'Filtros de eventos',exact:true}).click();}
  const toggle=page.locator('#more-filters-toggle');await expect(toggle).toBeVisible();
- for(const id of ['chip-meteorologia','chip-criticos','chip-geo-me','chip-visual-theme'])await expect(page.locator('#'+id)).toBeHidden();
+ for(const id of ['chip-meteorologia','chip-visual-theme'])await expect(page.locator('#'+id)).toBeHidden();
  await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded','true');
- await expect(page.locator('#chips-row [data-f="tsunami"]')).toBeVisible();
- await page.locator('#chips-row [data-f="tsunami"]').click();
- expect(await page.evaluate(()=>sidebarFilter)).toBe('tsunami');
+ await expect(page.locator('#chips-row [data-f="storm"]')).toBeVisible();
+ await page.locator('#chips-row [data-f="storm"]').click();
+ expect(await page.evaluate(()=>sidebarFilter)).toBe('storm');
  await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded','false');
- await expect(page.locator('#chips-row [data-f="tsunami"]')).toBeHidden();await expect(toggle).toContainText('(');
+ await expect(page.locator('#chips-row [data-f="storm"]')).toBeHidden();await expect(toggle).toContainText('(');
  await page.locator('#chips-row [data-f="all"]').click();expect(await page.evaluate(()=>sidebarFilter)).toBe('all');
 });

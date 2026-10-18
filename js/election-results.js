@@ -1,7 +1,7 @@
 import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261018-election-window';
 
 // A non-modal, desktop-only scoreboard. It never participates in map filters.
-const desktop = matchMedia('(min-width: 1101px)');
+const desktop = matchMedia('(min-width: 901px)');
 const client = new TseResultsClient(window.OptionalFeatures?.fetch);
 const number = new Intl.NumberFormat('pt-BR');
 const percentage = new Intl.NumberFormat('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -51,11 +51,12 @@ function visibility() {
 function position() {
   if (!opened) return;
   const header = document.getElementById('top-strip').getBoundingClientRect();
-  const list = document.getElementById('sidebar-left')?.getBoundingClientRect();
+  const records = document.getElementById('sidebar-left');
+  const list = records && getComputedStyle(records).visibility !== 'hidden' && getComputedStyle(records).display !== 'none' ? records.getBoundingClientRect() : null;
   const card = document.getElementById('painel-direito')?.getBoundingClientRect();
-  const left = list?.width ? list.right + 14 : innerWidth * .23;
+  const left = list?.width ? list.right + 14 : 12;
   const right = card?.width ? card.left - 14 : innerWidth * .74;
-  const width = Math.max(280, Math.min(590, right - left));
+  const width = Math.max(180, Math.min(590, right - left));
   panel.classList.toggle('election-compact', width < 460);
   panel.style.width = width + 'px';
   panel.style.left = Math.max(12, Math.min(innerWidth - width - 12, left + (right - left - width) / 2)) + 'px';
@@ -220,7 +221,8 @@ function init() {
   chip.setAttribute('aria-expanded', 'false');
   chip.setAttribute('data-tt', 'Apuração presidencial · TSE');
   chip.innerHTML = ballot + '<span>Eleição</span>';
-  brazil.after(chip);
+  const row = document.getElementById('chips-row');
+  row.insertBefore(chip, document.getElementById('more-filters-toggle'));
   panel = document.createElement('section');
   panel.id = 'election-panel';
   panel.hidden = true;
@@ -259,6 +261,7 @@ function init() {
   });
   desktop.addEventListener('change', visibility);
   window.addEventListener('resize', position, {passive: true});
+  window.addEventListener('desktop-records-change', position);
   const observer = new ResizeObserver(position);
   ['top-strip', 'sidebar-left', 'painel-direito'].forEach(id => {const element = document.getElementById(id); if (element) observer.observe(element);});
   window.ElectionPanel = Object.freeze({newQuakes,open,close});

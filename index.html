@@ -180,7 +180,7 @@
       </div>
     </div>
     <div id="ux-toolbar" aria-hidden="true"></div>
-    <div id="ux-controlbar" aria-label="Filtros e busca de eventos"><div id="controls"><div class="mag-slider-row"><span>Magnitude mínima</span><span class="mag-value" id="mag-value">M 0.1</span></div><input type="range" id="mag-slider" min="0" max="7" step="0.1" value="0.1" oninput="updateMagFilter(this.value)"></div><div id="chips-scroll-wrap" aria-label="Filtros de eventos"><button class="chips-scroll-btn" id="chips-scroll-left" type="button" title="Rolar filtros para a esquerda" aria-label="Rolar filtros para a esquerda">‹</button><div id="chips-row"><button class="chip active" data-f="all" title="Todos os eventos">Tudo</button><button class="chip" data-f="earthquake" title="Sismos" aria-label="Sismos">🌍</button><button class="chip" id="chip-planet" type="button" aria-pressed="true" title="Centralizar o globo">🌐 Planeta</button><button class="chip" id="chip-map" type="button" aria-pressed="false" title="Usar mapa plano">🗺️ Mapa</button><button class="chip advanced-filter" id="chip-meteorologia" type="button" title="Abrir meteorologia" aria-label="Meteorologia" aria-controls="sp-forecast-air" aria-expanded="false" aria-pressed="false">🌤️ Meteorologia</button><button class="chip advanced-filter" id="chip-radar" type="button" title="Ligar ou desligar mapa de chuva (Rainbow Weather)" aria-label="Radar de chuva" aria-pressed="false">🌧️ Radar</button><button class="chip chip-toggle" id="chip-geo-br" data-geo="br" title="Só eventos no Brasil"><svg viewBox="0 0 24 16" width="16" height="12" aria-hidden="true" style="vertical-align:-2px;border-radius:2px;margin-right:2px"><rect width="24" height="16" fill="#009739"/><polygon points="12,2 22,8 12,14 2,8" fill="#FEDD00"/><circle cx="12" cy="8" r="4" fill="#012169"/></svg> BR</button><button class="chip chip-menu-desktop" id="chip-menu-desktop" type="button" title="Abrir menu principal">☰ Menu</button><button class="chip more-filters-btn" id="more-filters-toggle" type="button" title="Mostrar filtros avançados" aria-expanded="false">＋ Mais filtros</button><button class="chip advanced-filter" data-f="storm" title="Tempestades" aria-label="Tempestades">⚡</button><button class="chip advanced-filter" data-f="fire" title="Incêndios" aria-label="Incêndios">🔥</button><button class="chip advanced-filter" data-f="hurricane" title="Ciclones" aria-label="Ciclones">🌀</button><button class="chip advanced-filter" data-f="tornado" title="Tornados" aria-label="Tornados">🌪️</button><button class="chip advanced-filter" data-f="tsunami" title="Tsunamis" aria-label="Tsunamis">🌊</button><button class="chip advanced-filter" data-f="volcano" title="Vulcões" aria-label="Vulcões">🌋</button><button class="chip advanced-filter" data-f="civil" title="Defesa Civil" aria-label="Defesa Civil">🚨</button><button class="chip advanced-filter" data-f="wind" title="Vento forte" aria-label="Vento forte">💨</button><button class="chip advanced-filter" data-f="flood" title="Enchentes" aria-label="Enchentes">💧</button><button class="chip advanced-filter chip-toggle" id="chip-importantes" title="Só sismos M4.5+">M4.5+</button><button class="chip chip-toggle advanced-filter" id="chip-criticos" title="Só eventos críticos: sismos fortes, avisos oficiais graves, ciclone/tsunami, radar">⚡ Crítico</button><button class="chip chip-toggle advanced-filter" id="chip-geo-me" data-geo="me" title="Brasil ou até 500 km de você">📍 Me afeta</button><button class="chip advanced-filter chip-toggle" id="chip-geo-500" data-geo="500" title="Raio de 500 km da sua localização">📍 500km</button><button class="chip advanced-filter chip-toggle" id="chip-geo-100" data-geo="100" title="Raio de 100 km da sua localização">📍 100km</button><button class="chip chip-toggle advanced-filter" id="chip-visual-theme" type="button" title="Alternar entre visual vidro (transparente) e escuro sólido">🪟 Visual</button></div><button class="chips-scroll-btn" id="chips-scroll-right" type="button" title="Rolar filtros para a direita" aria-label="Rolar filtros para a direita">›</button></div><div id="type-counters" style="display:none!important" aria-hidden="true" hidden></div><div id="freshness-bar" aria-live="polite"><span id="fresh-sismo">Sismos: —</span><span id="fresh-alerts">Alertas: —</span><span id="fresh-net">Rede: —</span><span id="fresh-snooze" style="display:none"></span></div><div id="ux-search-wrap"><input id="ux-search" type="search" placeholder="Buscar cidade, país ou evento…" aria-label="Buscar cidade, país ou evento"></div><div id="ux-events-total" style="display:none!important" aria-hidden="true" hidden><span>REGISTROS</span><strong id="ux-events-total-value">-- eventos</strong></div></div>
+    <div id="ux-controlbar" aria-label="Filtros e busca de eventos"><div id="controls"><div class="mag-slider-row"><span>Magnitude mínima</span><span class="mag-value" id="mag-value">M 0.1</span></div><input type="range" id="mag-slider" min="0" max="7" step="0.1" value="0.1" oninput="updateMagFilter(this.value)"></div><div id="chips-scroll-wrap" aria-label="Filtros de eventos"><button class="chips-scroll-btn" id="chips-scroll-left" type="button" title="Rolar filtros para a esquerda" aria-label="Rolar filtros para a esquerda">‹</button><div id="chips-row"><button class="chip active" data-f="all" title="Todos os eventos">Tudo</button><button class="chip" data-f="earthquake" title="Sismos" aria-label="Sismos">🌍</button><button class="chip" data-f="volcano" title="Vulcões" aria-label="Vulcões">🌋</button><button class="chip" data-f="tsunami" title="Tsunamis" aria-label="Tsunamis">🌊</button><button class="chip chip-menu-desktop" id="chip-menu-desktop" type="button" title="Abrir menu principal">☰ Menu</button><button class="chip more-filters-btn" id="more-filters-toggle" type="button" title="Mostrar filtros avançados" aria-expanded="false">＋ Mais filtros</button><button class="chip advanced-filter" id="chip-meteorologia" type="button" title="Abrir meteorologia" aria-label="Meteorologia" aria-controls="sp-forecast-air" aria-expanded="false" aria-pressed="false">🌤️ Meteorologia</button><button class="chip advanced-filter" id="chip-radar" type="button" title="Ligar ou desligar mapa de chuva (Rainbow Weather)" aria-label="Radar de chuva" aria-pressed="false">🌧️ Radar</button><button class="chip advanced-filter" data-f="storm" title="Tempestades" aria-label="Tempestades">⚡</button><button class="chip advanced-filter" data-f="fire" title="Incêndios" aria-label="Incêndios">🔥</button><button class="chip advanced-filter" data-f="hurricane" title="Ciclones" aria-label="Ciclones">🌀</button><button class="chip advanced-filter" data-f="tornado" title="Tornados" aria-label="Tornados">🌪️</button><button class="chip advanced-filter" data-f="civil" title="Defesa Civil" aria-label="Defesa Civil">🚨</button><button class="chip advanced-filter" data-f="wind" title="Vento forte" aria-label="Vento forte">💨</button><button class="chip advanced-filter" data-f="flood" title="Enchentes" aria-label="Enchentes">💧</button><button class="chip chip-toggle advanced-filter" id="chip-visual-theme" type="button" title="Alternar entre visual vidro (transparente) e escuro sólido">🪟 Visual</button><button class="chip chip-toggle advanced-filter" id="chip-geo-br" data-geo="br" title="Só eventos no Brasil"><svg viewBox="0 0 24 16" width="16" height="12" aria-hidden="true" style="vertical-align:-2px;border-radius:2px;margin-right:2px"><rect width="24" height="16" fill="#009739"/><polygon points="12,2 22,8 12,14 2,8" fill="#FEDD00"/><circle cx="12" cy="8" r="4" fill="#012169"/></svg> BR</button></div><button class="chips-scroll-btn" id="chips-scroll-right" type="button" title="Rolar filtros para a direita" aria-label="Rolar filtros para a direita">›</button></div><div id="type-counters" style="display:none!important" aria-hidden="true" hidden></div><div id="freshness-bar" aria-live="polite"><span id="fresh-sismo">Sismos: —</span><span id="fresh-alerts">Alertas: —</span><span id="fresh-net">Rede: —</span><span id="fresh-snooze" style="display:none"></span></div><div id="ux-search-wrap"><input id="ux-search" type="search" placeholder="Buscar cidade, país ou evento…" aria-label="Buscar cidade, país ou evento"></div><div id="ux-events-total" style="display:none!important" aria-hidden="true" hidden><span>REGISTROS</span><strong id="ux-events-total-value">-- eventos</strong></div></div>
   </header>
 <div id="latest-event-ticker" class="ticker-cutout" onclick="alternarCaixaRegistrosMobile()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarCaixaRegistrosMobile()}" role="button" tabindex="0" aria-label="Último evento — abrir lista de registros">
   <span class="let-left"><span id="latest-event-ticker-icon" aria-hidden="true"></span></span>
@@ -359,7 +359,7 @@
 <script defer src="js/debug-panel.js"></script>
 <script defer src="js/shared-source-delivery.js?v=20261017-shared-sources"></script>
 <script defer src="js/data-freshness.js?v=20261017-recovery"></script>
-<script defer src="js/nucleo-estado.js?v=20261018-foreground-sharing"></script>
+<script defer src="js/nucleo-estado.js?v=20261018-records-drawer"></script>
 <script defer src="js/audio.js?v=20261016-world-audio"></script>
 <link rel="stylesheet" href="css/mobile-performance.css?v=20261017-mobile-six">
 <script defer src="js/mobile-map-clusters.js?v=20261017-mobile-six"></script>
@@ -380,7 +380,7 @@
 <script defer src="js/official-map-sources.js?v=20261016-multi-source"></script>
 <script defer src="js/rupture-shaking.js?v=20261016-event-insights"></script>
 <script defer src="js/seismic-impact-model.js?v=20261016-multi-source"></script>
-<script defer src="js/seismic-impact.js?v=20261016-multi-source"></script>
+<script defer src="js/seismic-impact.js?v=20261018-records-drawer"></script>
 <link rel="stylesheet" href="css/seismic-final-summary.css?v=20261010-1">
 <script defer src="js/seismic-final-summary.js?v=20261010-1"></script>
 <script defer src="js/seismic-focus.js?v=20261015-screen-centering"></script>
@@ -393,7 +393,7 @@
 <script defer src="js/feed-utils.js?v=20261009-presentation-limit"></script>
 <script defer src="js/confianca-fontes.js?v=20261009-numbers-revisions"></script>
 <link rel="stylesheet" href="css/optional-features.css?v=20261009-on-demand">
-<script defer src="js/optional-features.js?v=20261018-public-source-edge"></script>
+<script defer src="js/optional-features.js?v=20261018-records-drawer"></script>
 <script defer src="js/full-screen-effects.js?v=20261018-volcano-revisions"></script>
 <script defer src="js/card-effect-quality.js?v=20261017-mobile-six"></script>
 <script defer src="js/card-cinema-film.js?v=20261009-adaptive-quality"></script>
@@ -443,11 +443,11 @@
 <script defer src="js/ana-rios.js?v=20261001-source-health"></script>
 <script defer src="js/volcano-priority.js?v=20261016-tsunami-priority"></script>
 <script defer src="js/vulcao.js?v=20261017-shared-sources"></script>
-<script defer src="js/tsunami-tornado.js?v=20261017-shared-sources"></script>
+<script defer src="js/tsunami-tornado.js?v=20261018-records-drawer"></script>
 <script defer src="js/incendios.js?v=20261009-new-event-queue"></script>
 <script defer src="js/alertas-locais-sp.js?v=20261001-evidence"></script>
 <script defer src="js/mobile-notices.js?v=20261010-wave-top"></script>
-<script defer src="js/ui-wiring-final.js?v=20261011-no-update-popup"></script>
+<script defer src="js/ui-wiring-final.js?v=20261018-records-drawer"></script>
 
 <script defer src="js/cemaden-risco.js?v=20261017-shared-sources"></script>
 <script defer src="js/browser-request-budget.js?v=20261018-foreground-sharing"></script>
@@ -485,7 +485,7 @@
 <!-- mobile-menu-single-handler-2026-08-24 removido: mirava #header-main-menu-toggle,
      id que não existe no HTML (só existe #fab-menu). Nunca executava — dead code. -->
 
-<script defer src="js/mobile-fab-menu-handler.js?v=20261016-hazard-workbench"></script>
+<script defer src="js/mobile-fab-menu-handler.js?v=20261018-records-drawer"></script>
 <!-- ═══════════ MODO DIAGNÓSTICO (?debug=1) ═══════════ -->
 <script defer src="js/debug-overlay.js"></script>
 
@@ -630,7 +630,7 @@
 <link rel="stylesheet" href="css/record-cards.css?v=20261002-header-bulletin">
 <link rel="stylesheet" href="css/detail-panel.css?v=20261010-volcano-activity">
 <link rel="stylesheet" href="css/mobile-portrait.css?v=20260930-1">
-<script defer src="js/mobile-portrait.js?v=20261018-no-global-climate"></script>
+<script defer src="js/mobile-portrait.js?v=20261018-records-drawer"></script>
 <link rel="stylesheet" href="css/mobile-detail-gesture.css?v=20260930-1">
 <script defer src="js/mobile-detail-gesture.js?v=20260930-1"></script>
 <link rel="stylesheet" href="css/latest-event-cutout.css?v=20260930-1">
@@ -660,6 +660,8 @@
 <link rel="stylesheet" href="css/map-focus-layout.css?v=20261015-solar-scale">
 <script defer src="js/mobile-focus-summary.js?v=20261015-mobile-focus"></script>
 <link rel="stylesheet" href="css/event-pin-glass.css?v=20261015-solar-scale">
+<link rel="stylesheet" href="css/desktop-records.css?v=20261018-records-drawer">
+<script defer src="js/desktop-records.js?v=20261018-records-drawer"></script>
 </body>
 </html>
 

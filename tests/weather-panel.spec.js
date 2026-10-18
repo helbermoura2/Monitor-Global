@@ -5,10 +5,7 @@ for(const [name,width,height]of [['desktop',1280,720],['mobile',390,844]])test('
  await page.setViewportSize({width,height});await page.goto('/',{waitUntil:'domcontentloaded'});
  const weather=page.locator('#sp-forecast-air'),event=page.locator('#painel-direito');
  await expect(page.locator('#weather-event-tabs')).toHaveCount(0);
- // #246 moved #chip-meteorologia itself into the advanced-filter tray (hidden until
- // "+ Mais filtros" is expanded), while reordering it to sit right after the
- // (id-less) storm chip, ahead of #chip-radar -- not after #chip-criticos anymore.
- const neighbors=await page.locator('#chip-meteorologia').evaluate(el=>[el.previousElementSibling.dataset.f,el.nextElementSibling.id]);expect(neighbors).toEqual(['storm','chip-radar']);
+ await expect(page.locator('#chip-meteorologia')).toHaveClass(/advanced-filter/);
  await expect(weather).toBeHidden();await expect(page.locator('#weather-more')).toHaveJSProperty('open',false);
  if(width>900){await page.locator('#more-filters-toggle').click();await page.getByRole('button',{name:'Meteorologia',exact:true}).click();}
  else await page.evaluate(()=>showFcPopup());
@@ -19,7 +16,7 @@ for(const [name,width,height]of [['desktop',1280,720],['mobile',390,844]])test('
  expect(fixtureText).toContain('6,0–13,0 mm previstos');
  await page.locator('#weather-more > summary').click();await expect(page.locator('#weather-more')).toHaveJSProperty('open',true);
  const r=await weather.boundingBox();expect(r.x).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width+1);expect(r.y+r.height).toBeLessThanOrEqual(height+1);
- if(width>900){await page.getByRole('button',{name:'Meteorologia',exact:true}).click();await expect(event).toBeVisible();await expect(page.locator('#chip-meteorologia')).toHaveAttribute('aria-expanded','false');}
+ if(width>900){await page.locator('#more-filters-toggle').click();await page.getByRole('button',{name:'Meteorologia',exact:true}).click();await expect(event).toBeVisible();await expect(page.locator('#chip-meteorologia')).toHaveAttribute('aria-expanded','false');}
  else await page.locator('#fc-close').click();
  await expect(weather).toBeHidden();
 });

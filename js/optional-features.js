@@ -68,11 +68,11 @@
    finally{button.disabled=false;button.textContent='📤 Imagem';}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;
-  const desktop=matchMedia('(min-width:1101px)'),activateAt=Date.parse('2026-10-25T14:00:00-03:00'),retireAt=Date.parse('2026-11-01T00:00:00-03:00');
+  const desktop=matchMedia('(min-width:901px)'),activateAt=Date.parse('2026-10-25T14:00:00-03:00'),retireAt=Date.parse('2026-11-01T00:00:00-03:00');
   let generation=0,busy=false,expiryTimer;
   const chip=document.createElement('button');chip.id='chip-election';chip.className='chip chip-toggle';chip.type='button';
   chip.setAttribute('aria-controls','election-panel');chip.setAttribute('aria-expanded','false');chip.setAttribute('data-tt','Apuração presidencial · TSE');
-  chip.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16v8H4zM7 12l-2-3h4m7 0h3l2 3M10 3l7 4-4 7-7-4z"/><path d="m10 8 1 2 3-1M8 17h8"/></svg><span>Eleição</span>';brazil.after(chip);
+  chip.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16v8H4zM7 12l-2-3h4m7 0h3l2 3M10 3l7 4-4 7-7-4z"/><path d="m10 8 1 2 3-1M8 17h8"/></svg><span>Eleição</span>';document.getElementById('chips-row').insertBefore(chip,document.getElementById('more-filters-toggle'));
   const visibility=()=>{const now=Date.now();chip.hidden=!desktop.matches||now<activateAt||now>=retireAt;clearTimeout(expiryTimer);if(desktop.matches&&now<retireAt)expiryTimer=setTimeout(visibility,Math.min(3600000,Math.max(1,(now<activateAt?activateAt:retireAt)-now)));};visibility();desktop.addEventListener('change',visibility);document.addEventListener('visibilitychange',visibility);
   const arrivals=new Set();
   window.ElectionPanel={arrivalIds:arrivals,newQuakes:items=>{
@@ -82,8 +82,8 @@
   async function open(){
    visibility();if(busy||chip.hidden)return;busy=true;const token=generation;chip.disabled=true;chip.setAttribute('aria-busy','true');
    try{
-    await asset('css/election-results.css?v=20261016-no-polls');
-    await asset('js/election-results.js?v=20261018-election-window',true);
+    await asset('css/election-results.css?v=20261018-records-drawer');
+    await asset('js/election-results.js?v=20261018-records-drawer',true);
     chip.removeEventListener('click',open);desktop.removeEventListener('change',visibility);document.removeEventListener('visibilitychange',visibility);clearTimeout(expiryTimer);
     if(token===generation&&desktop.matches&&Date.now()>=activateAt&&Date.now()<retireAt)window.ElectionPanel.open();
    }catch(error){failure(error);}

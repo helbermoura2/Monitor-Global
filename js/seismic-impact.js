@@ -86,6 +86,7 @@ function announceOfficial(c,features){
  const version=String(c.shaking.version||c.shaking.updatedAt||'published');
  if(announcedOfficial.get(c.id)===version)return;
  announcedOfficial.delete(c.id);announcedOfficial.set(c.id,version);
+ window.EventStore?.notify('official-map',{id:c.id,mag:c.mag,version});
  if(announcedOfficial.size>64)announcedOfficial.delete(announcedOfficial.keys().next().value);
  const item=typeof globalEvents==='undefined'?null:globalEvents.find(q=>q.id===c.id);
  const place=window.EventPortuguese?.place(item?.place)||item?.place||'Local do sismo';
