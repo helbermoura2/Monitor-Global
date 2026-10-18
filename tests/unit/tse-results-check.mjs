@@ -73,3 +73,8 @@ assert.equal((await scheduled.load(2)).status,'scheduled');
 await scheduled.signed('comum/config/ele-c.jws');assert.equal(scheduledCalls,0);
 scheduledNow=ELECTION_2026.activateAt;await scheduled.load(2).catch(()=>{});assert(scheduledCalls>0);
 console.log('PASS: no TSE traffic before 25/10 14:00 BRT; client enables at the exact boundary');
+
+assert.equal(ELECTION_2026.retireAt,Date.parse('2026-10-26T09:00:00Z'));
+scheduledNow=ELECTION_2026.retireAt;const retiredCalls=scheduledCalls;
+assert.equal((await scheduled.load(2)).status,'inactive');await scheduled.signed('comum/config/ele-c.jws');assert.equal(scheduledCalls,retiredCalls);
+console.log('PASS: TSE traffic stops at 26/10 06:00 BRT');

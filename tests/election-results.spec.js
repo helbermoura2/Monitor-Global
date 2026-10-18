@@ -193,13 +193,16 @@ test('desktop entre os cartões; mobile oculta e interrompe consultas; módulo e
   await expect(page.locator('#chip-election')).toBeHidden();
 });
 
-test('chip and TSE requests stay disabled until 25/10 14h BRT and enable without reloading',async({page})=>{
+test('chip stays visible before voting results, queries only in the allowed window and retires at 26/10 06h BRT',async({page})=>{
  const state=await setup(page,{date:'2026-10-25T16:58:00Z'});await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);});
  await page.clock.pauseAt(new Date('2026-10-25T16:59:00Z'));
- await expect(page.locator('#chip-election')).toBeHidden();expect(state.calls).toBe(0);
+ await expect(page.locator('#chip-election')).toBeVisible();await page.locator('#chip-election').click();expect(state.calls).toBe(0);
  await expect(page.locator('script[src*="election-results.js"]')).toHaveCount(0);
- await page.clock.runFor(59000);await expect(page.locator('#chip-election')).toBeHidden();expect(state.calls).toBe(0);
+ await page.clock.runFor(59000);await expect(page.locator('#chip-election')).toBeVisible();await page.locator('#chip-election').click();expect(state.calls).toBe(0);
  await page.clock.runFor(1100);await expect(page.locator('#chip-election')).toBeVisible();expect(state.calls).toBe(0);
  await page.locator('#chip-election').click();await expect(page.locator('#election-panel')).toBeVisible();
  await expect(page.locator('[data-election-turn="2"]')).toHaveAttribute('aria-pressed','true');await expect.poll(()=>state.calls).toBeGreaterThan(0);
+ await page.clock.setSystemTime(new Date('2026-10-26T08:59:59Z'));await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await expect(page.locator('#chip-election')).toBeVisible();await page.clock.runFor(1100);await expect(page.locator('#chip-election')).toBeHidden();await expect(page.locator('#election-panel')).toBeHidden();
+ const stopped=state.calls;await page.clock.runFor(61000);expect(state.calls).toBe(stopped);
 });
