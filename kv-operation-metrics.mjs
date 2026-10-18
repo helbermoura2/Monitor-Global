@@ -37,6 +37,19 @@ export async function withKvUsage(env,work,ctx){
  };}});
  try{return await work(scoped);}finally{finished=true;const p=flush();if(ctx?.waitUntil)ctx.waitUntil(p);else await p;}
 }
+// In-memory batching for the usage record itself: this object exists purely for
+// observability (explicitly "não é fatura nem atribuição retrospectiva", delivery
+// may already fail), so it can tolerate losing a couple of minutes of counts if
+// the instance is evicted -- the same trade-off the shared source cache already
+// makes. Without this, every single /record POST did its own storage.put, i.e.
+// one extra Durable Object write per measured request on top of the request's
+// own writes, roughly doubling write cost for no functional benefit.
+const kvUsageMemory=new WeakMap(),KV_USAGE_FLUSH_INTERVAL=120000;
+function kvUsageState(storage){
+ let state=kvUsageMemory.get(storage);
+ if(!state){state={day:null,record:null,dirty:false,nextFlush:0};kvUsageMemory.set(storage,state);}
+ return state;
+}
 export async function handleKvUsageObject(request,storage){
  const url=new URL(request.url),now=Date.now();
  if(url.pathname.endsWith('/record')){
@@ -47,17 +60,28 @@ export async function handleKvUsageObject(request,storage){
   const counts=p.counts||{},observations=p.activity||{},families=new Set(['population','voice','translation','telegramSummaryPreview','telegramAlertHistory','telegramSummaryDelivery','telegramDeduplication','retiredPolls','other','namespaceList']);
   if(Object.keys(counts).some(k=>{const[f,o,s]=k.split('.');return k.split('.').length!==3||!families.has(f)||!['read','write','delete','list'].includes(o)||!['attempted','succeeded','failed'].includes(s)||!Number.isSafeInteger(counts[k])||counts[k]<0||counts[k]>10000;})||Object.keys(observations).some(k=>!activities.has(k)||!Number.isSafeInteger(observations[k])||observations[k]<0||observations[k]>10000))return Response.json({error:'counts'},{status:400});
   let coverage=await storage.get('kv-coverage-start');if(!coverage){coverage=now;await storage.put('kv-coverage-start',coverage);}
-  const key='kv-usage:'+p.day,record=await storage.get(key)||{version:1,day:p.day,startedAt:now,counts:{},activity:{},batches:0,recent:[]};
+  const state=kvUsageState(storage);
+  if(state.day!==p.day||!state.record){
+   state.day=p.day;state.record=await storage.get('kv-usage:'+p.day)||{version:1,day:p.day,startedAt:now,counts:{},activity:{},batches:0,recent:[]};
+   state.dirty=false;state.nextFlush=0;
+  }
+  const record=state.record;
   if(record.recent.some(x=>x.id===p.id))return Response.json({ok:true,duplicate:true});
   for(const[k,v]of Object.entries(counts))record.counts[k]=(record.counts[k]||0)+v;
   for(const[k,v]of Object.entries(observations))record.activity[k]=(record.activity[k]||0)+v;
-  record.coverageStartedAt=coverage;record.updatedAt=now;record.batches++;record.recent=record.recent.filter(x=>now-x.at<600000).slice(-255);record.recent.push({id:p.id,at:now});await storage.put(key,record);
-  if(record.batches===1){const old=await storage.list({prefix:'kv-usage:',limit:32});const cutoff=new Date(now-14*86400000).toISOString().slice(0,10);for(const k of old.keys())if(k.slice(9)<cutoff)await storage.delete(k);}
+  record.coverageStartedAt=coverage;record.updatedAt=now;record.batches++;record.recent=record.recent.filter(x=>now-x.at<600000).slice(-255);record.recent.push({id:p.id,at:now});
+  state.dirty=true;
+  if(now>=state.nextFlush){
+   await storage.put('kv-usage:'+p.day,record);state.dirty=false;state.nextFlush=now+KV_USAGE_FLUSH_INTERVAL;
+   if(record.batches===1){const old=await storage.list({prefix:'kv-usage:',limit:32});const cutoff=new Date(now-14*86400000).toISOString().slice(0,10);for(const k of old.keys())if(k.slice(9)<cutoff)await storage.delete(k);}
+  }
   return Response.json({ok:true});
  }
  const day=url.searchParams.get('day')||new Date(now).toISOString().slice(0,10);
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return Response.json({error:'day'},{status:400});
- const data=await storage.get('kv-usage:'+day);if(!data)return Response.json({available:false,day,note:'Nenhuma medição registrada para esta data; não representa histórico anterior à implantação.'});
+ const state=kvUsageState(storage);
+ const data=state.day===day&&state.record?state.record:await storage.get('kv-usage:'+day);
+ if(!data)return Response.json({available:false,day,note:'Nenhuma medição registrada para esta data; não representa histórico anterior à implantação.'});
  const {recent,...report}=data;return Response.json({available:true,...report,activityCollection:'disabled-request-budget-v1',note:'Operações observadas pela aplicação; entrega de métricas pode falhar. Não é fatura nem atribuição retrospectiva.'});
 }
 export async function handleKvUsageRead(request,env){
