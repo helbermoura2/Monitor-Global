@@ -446,6 +446,7 @@ function recordCardTime(time) {
     return date.toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})+' BRT';
 }
 function renderSidebarList(items) {
+    items=window.DesktopRecords?.items(items)||items;
     items=window.MobileEventChips?.filter(items)||items;
     const c = document.getElementById('events');
     if (!c) return;

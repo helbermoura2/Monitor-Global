@@ -20,13 +20,14 @@ test.describe('Monitor Global — smoke', () => {
     await page.goto('/index.html');
     await expect(page.locator('.mg-logo-word')).toHaveText('MONITOR GLOBAL');
     await expect(page.locator('#mapContainer')).toBeVisible({ timeout: 15000 });
-    await page.locator('#desktop-records-toggle').click();
+    await page.locator('#chips-row > [data-f="earthquake"]').click();
     await expect(page.locator('#events')).toBeVisible();
   });
 
   test('lista de eventos apresenta um registro simulado local', async ({ page }) => {
     await page.goto('/index.html');
     await page.waitForFunction(() => window.__cardRendererFixtureReady && !__fetchGlobalFeedsEmAndamento);
+    await page.locator('#chips-row > [data-f="earthquake"]').click();
     await page.evaluate(() => {
       globalEvents=[{id:'offline-smoke',type:'earthquake',mag:4.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento simulado local',source:'QA'}];
       renderSidebarList(globalEvents);

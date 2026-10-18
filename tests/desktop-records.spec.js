@@ -22,19 +22,25 @@ test('event filter pins existing records; Tudo clears filters and retracts',asyn
  await page.evaluate(()=>{geoFilter='br';minMagnitude=6;soImportantes=true;soCriticos=true;document.getElementById('ux-search').value='inexistente';});
  await page.locator('#chips-row > [data-f="all"]').click();await expect(page.locator('#sidebar-left')).toBeHidden();
  expect(await page.evaluate(()=>[sidebarFilter,geoFilter,minMagnitude,soImportantes,soCriticos])).toEqual(['all','all',0.1,false,false]);
- await page.locator('#desktop-records-toggle').click();await expect(page.locator('#events')).toContainText('Sismo pequeno');await expect(page.locator('#events')).toContainText('Vulcão local');
+ await expect(page.locator('#events .event')).toHaveCount(0);await page.evaluate(()=>DesktopRecords.open(true));await expect(page.locator('#sidebar-left')).toBeHidden();await page.locator('#chips-row > [data-f="earthquake"]').click();await expect(page.locator('#events')).toContainText('Sismo pequeno');await expect(page.locator('#events')).not.toContainText('Vulcão local');
  await page.screenshot({path:'/tmp/desktop-records-open.png'});
 });
 test('new arrivals and M5+ revisions open once, expire and do not steal camera selection',async({page})=>{
  await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();
  await page.mouse.move(1200,740);
- await page.evaluate(()=>{globalEvents=[{id:'records-new',type:'earthquake',mag:5.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento novo',source:'QA'}];EventStore.setSelected('records-new');activeAlertingIds.set('records-new',Date.now()+180000);applyFilters();});
+ await page.evaluate(()=>{globalEvents=[{id:'old-record',type:'earthquake',mag:6,depth:10,coords:[0,0],time:Date.now()-3600000,place:'Antigo não deve aparecer',source:'QA'},{id:'records-new',type:'earthquake',mag:5.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento novo',source:'QA'}];EventStore.setSelected('records-new');activeAlertingIds.set('records-new',Date.now()+180000);applyFilters();});
  await expect(page.locator('#sidebar-left')).toBeVisible();expect(await page.evaluate(()=>EventStore.selectedId)).toBe('records-new');
- await page.clock.runFor(20500);await expect(page.locator('#sidebar-left')).toBeHidden();
+ await expect(page.locator('#events .event')).toHaveCount(1);expect(await page.evaluate(()=>lastMerged.length)).toBe(2);await expect(page.locator('#events')).not.toContainText('Antigo não deve aparecer');await expect(page.locator('#events-label')).toBeHidden();
+ const one=await page.locator('#sidebar-left').boundingBox();expect(one.height).toBeLessThan(350);
+ await page.evaluate(()=>EventStore.onDataRevised(['records-new']));await expect(page.locator('#events .event')).toHaveCount(1);await page.clock.runFor(10000);
+ await page.evaluate(()=>{const e={...globalEvents[1],id:'records-second',coords:[120,30],time:Date.now()-1000,place:'Segundo evento'};globalEvents.push(e);activeAlertingIds.set(e.id,Date.now()+180000);applyFilters();});
+ await expect(page.locator('#events .event')).toHaveCount(2);
+ await page.screenshot({path:'/tmp/arriving-two-cards.png'});
+ await page.clock.runFor(10500);await expect(page.locator('#events .event')).toHaveCount(1);await expect(page.locator('#events .event')).toHaveAttribute('data-event-id','records-second');await page.clock.runFor(10000);await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>applyFilters());await expect(page.locator('#sidebar-left')).toBeHidden();
- await page.evaluate(()=>EventStore.onDataRevised(['records-new']));await expect(page.locator('#sidebar-left')).toBeVisible();
+ await page.evaluate(()=>EventStore.onDataRevised(['records-new']));await expect(page.locator('#sidebar-left')).toBeVisible();await expect(page.locator('#events .event')).toHaveCount(1);
  await page.clock.runFor(20500);await expect(page.locator('#sidebar-left')).toBeHidden();
- await page.evaluate(()=>{globalEvents[0].mag=4.9;EventStore.onDataRevised(['records-new']);});await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.evaluate(()=>{globalEvents[1].mag=4.9;EventStore.onDataRevised(['records-new']);});await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>EventStore.notify('official-map',{id:'records-new',mag:5.2,version:'2'}));await expect(page.locator('#sidebar-left')).toBeVisible();
 });
 test('mobile keeps the events sheet and local magnitude selector',async({page})=>{

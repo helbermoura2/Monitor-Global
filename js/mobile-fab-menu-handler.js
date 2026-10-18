@@ -54,7 +54,7 @@
       (window.MobileEnergyBudget?.buttonHTML() || '') +
       '<button type="button" id="mf-main-places">📍 Meus lugares</button>' +
       '<button type="button" id="mf-main-brazil">🇧🇷 Riscos no Brasil</button>' +
-      '<button type="button" id="mf-main-events">📋 Abrir registros</button>' +
+      '<button type="button" id="mf-main-events">'+(innerWidth>900?'Registros de sismos':'📋 Abrir registros')+'</button>' +
       '<button type="button" id="mf-main-audio">🔊 Áudio / voz</button>' +
       '<button type="button" id="mf-main-resumo-dia">🏆 Resumo do dia</button>' +
       '<button type="button" id="mf-main-planet">Planeta</button>' +
@@ -72,7 +72,7 @@
     document.getElementById('menu-float-close').onclick = closeMenu;
     document.getElementById('mf-main-brazil').onclick=acao(()=>window.MonitorWorkbench?.open('brazil'));
     document.getElementById('mf-main-places').onclick=acao(()=>window.MonitorWorkbench?.open('places'));
-    document.getElementById('mf-main-events').onclick = acao(function () { toggleMobileEventsModal(true); });
+    document.getElementById('mf-main-events').onclick = acao(function () { if(innerWidth>900)document.querySelector('#chips-row [data-f="earthquake"]')?.click();else toggleMobileEventsModal(true); });
     document.getElementById('mf-main-audio').onclick = acao(function () { window.menuAcao && window.menuAcao('audio'); });
     document.getElementById('mf-main-resumo-dia').onclick = acao(function () {
       if (typeof window.shareResumoDiarioStory === 'function') window.shareResumoDiarioStory();
