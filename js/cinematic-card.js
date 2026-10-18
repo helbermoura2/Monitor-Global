@@ -71,7 +71,6 @@
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
  function clearWind(){const p=panel();for(const key of WIND_PROPERTIES)p?.style.removeProperty(key);}
  function stop(){
-  if(scene?.cfg.type==='volcano')window.FullScreenEffects?.stop('lava');
   if(pending){clearTimeout(pending.timer);panel()?.classList.remove('pd-fx-'+pending.type);pending=null;}
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
@@ -111,6 +110,11 @@
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
   const p=panel(),cfg=profile(item);
+  // Live volcanoes use the screen overlay alone; source evidence still decides
+  // whether the selected record describes a confirmed current eruption.
+  if(cfg?.type==='volcano'&&!item.__cinemaDemo){
+   stop();window.FullScreenEffects?.volcano(item,cfg);return true;
+  }
   // A re-selection of the SAME item (e.g. a deferred "camera arrival" callback
   // firing after the visual is already up, or any other redundant re-trigger)
   // must never tear the active scene down: that drops the footage back to an

@@ -63,7 +63,7 @@ function deferCardEventFx(item, action) {
         action(window.EventPortuguese?.view(latest) || latest);
     };
     if (window.EventCamera && (item.coords || window.WeatherWarningCamera && ['storm','wind'].includes(item.type))) {
-        window.OptionalFeatures?.effect(item.type).catch(e => console.warn('[pré-carga do efeito]', e.message));
+        if(item.type!=='volcano')window.OptionalFeatures?.effect(item.type).catch(e => console.warn('[pré-carga do efeito]', e.message));
         EventCamera.afterArrival(item.id, run);
     } else run();
 }
@@ -85,6 +85,7 @@ function triggerCardFx(type, color, item) {
     const cls = 'pd-fx-' + type;
     const atmospheric = type!=='earthquake' && window.CinematicCard?.start(item || {type}, Infinity);
     if(type==='earthquake')window.CinematicCard?.start(item || {type}, FX_DURATION[type] || 7200);
+    if(type==='volcano'&&!item?.__cinemaDemo)return;
     el.classList.add(cls);
     if(!atmospheric)el._fxTimeout = setTimeout(() => { el.classList.remove(cls); }, FX_DURATION[type] || 7200);
     if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
