@@ -200,5 +200,5 @@ test('chip and TSE requests stay disabled until 25/10 14h BRT and enable without
  await page.clock.runFor(59000);await expect(page.locator('#chip-election')).toBeHidden();expect(state.calls).toBe(0);
  await page.clock.runFor(1100);await expect(page.locator('#chip-election')).toBeVisible();expect(state.calls).toBe(0);
  await page.locator('#chip-election').click();await expect(page.locator('#election-panel')).toBeVisible();
- await expect(page.locator('[data-election-turn="2"]')).toHaveAttribute('aria-selected','true');await expect.poll(()=>state.calls).toBeGreaterThan(0);
+ await expect(page.locator('[data-election-turn="2"]')).toHaveAttribute('aria-pressed','true');await expect.poll(()=>state.calls).toBeGreaterThan(0);
 });
