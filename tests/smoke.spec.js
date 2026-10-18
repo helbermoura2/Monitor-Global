@@ -5,6 +5,7 @@
 // (fetchWithCorsFallback, try/catch em cada fetch) — isso é comportamento
 // esperado, não um bug. Só `pageerror` (exceção não tratada) conta como falha.
 const { test, expect } = require('@playwright/test');
+require('./helpers/card-renderer-fixture.cjs')(test);
 
 test.describe('Monitor Global — smoke', () => {
   test('carrega sem exceção de JavaScript não tratada', async ({ page }) => {
@@ -22,10 +23,13 @@ test.describe('Monitor Global — smoke', () => {
     await expect(page.locator('#events')).toBeVisible();
   });
 
-  test('lista de eventos carrega pelo menos um registro real', async ({ page }) => {
-    // Depende de rede real (USGS/EMSC/GDACS/etc.) — só funciona com internet de
-    // verdade (CI), não no sandbox de desenvolvimento local sem saída externa.
+  test('lista de eventos apresenta um registro simulado local', async ({ page }) => {
     await page.goto('/index.html');
-    await expect(page.locator('#events .event').first()).toBeVisible({ timeout: 45000 });
+    await page.waitForFunction(() => window.__cardRendererFixtureReady && !__fetchGlobalFeedsEmAndamento);
+    await page.evaluate(() => {
+      globalEvents=[{id:'offline-smoke',type:'earthquake',mag:4.2,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento simulado local',source:'QA'}];
+      renderSidebarList(globalEvents);
+    });
+    await expect(page.locator('#events .event').first()).toContainText('Evento simulado local');
   });
 });

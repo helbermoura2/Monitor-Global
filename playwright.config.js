@@ -6,17 +6,22 @@ const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests',
   timeout: 60000,
-  retries: process.env.CI ? 1 : 0, // rede real (GDACS/USGS/etc.) pode falhar por instabilidade transitória
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
     channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL || undefined,
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
+    proxy: { server: 'http://127.0.0.1:4174', bypass: '127.0.0.1,localhost,[::1]' },
   },
-  webServer: {
+  webServer: [{
+    command: 'node tools/test-offline-proxy.cjs',
+    url: 'http://127.0.0.1:4174/health',
+    reuseExistingServer: !process.env.CI,
+  }, {
     command: 'npx serve -l 4173 .',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 20000,
-  },
+  }],
 });
