@@ -4,8 +4,8 @@ import {activity} from './kv-operation-metrics.mjs';
 const VERSION='shared-sources-v1',MAX_BODY=3*1024*1024,MAX_TOTAL=12*1024*1024,MAX_ENTRIES=16,CHUNK=60000;
 const routes={
  '/sp-clima':[300,900],'/global-feeds':[120,300],'/global-volcano':[120,600],'/usgs-volcano':[120,600],'/gdacs-volcano':[120,600],'/gdacs-floods':[120,300],
- '/afad-earthquakes':[30,120],'/ingv-earthquakes':[30,120],'/jma-earthquakes':[30,120],'/funvisis-earthquakes':[30,120],'/seismic-status':[120,300],
- '/official-weather-alerts':[60,180],'/cge-bulletins':[60,180],'/metar-observed':[120,300],'/tsunami-alerts':[10,60],'/v70-cyclones':[120,600]
+ '/afad-earthquakes':[30,120],'/ingv-earthquakes':[30,120],'/jma-earthquakes':[30,120],'/funvisis-earthquakes':[30,120],'/seismic-status':[300,600],
+ '/official-weather-alerts':[60,180],'/cge-bulletins':[60,180],'/metar-observed':[300,600],'/tsunami-alerts':[10,60],'/v70-cyclones':[120,600]
 };
 const hosts=new Set(['sws.cemaden.gov.br','www.gdacs.org','earthquake.usgs.gov','volcanoes.usgs.gov','www.jma.go.jp','www.data.jma.go.jp','geofon.gfz-potsdam.de','webservices.ingv.it','www.isc.ac.uk','www.seismicportal.eu','www.osc.org.bo','www.ovsicori.una.ac.cr','www.snet.gob.sv','ide.igp.gob.pe','data.bmkg.go.id','api.geonet.org.nz','moho.iag.usp.br','api.orhanaydogdu.com.tr','deprem-api.vercel.app','sismosve.rafnixg.dev','api.gael.cloud','www.ssn.unam.mx','www.nhc.noaa.gov','www.tsunami.gov','api.weather.gov','apiprevmet3.inmet.gov.br','eonet.gsfc.nasa.gov','www.cgesp.org','feeds.meteoalarm.org','api.open-meteo.com','flood-api.open-meteo.com','air-quality-api.open-meteo.com','servicos.cptec.inpe.br']);
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'X-Monitor-Source, X-Monitor-Source-State, X-Monitor-Source-Last-Ok, X-Monitor-Source-Attempt, X-Monitor-Source-Next-Retry, Retry-After','Cache-Control':'no-store'};
@@ -26,7 +26,7 @@ export function sourcePolicy(request,allowed=[...hosts],now=Date.now()){
   group=target.hostname;ttl=30;stale=120;
   if(group==='earthquake.usgs.gov'&&target.pathname.includes('/earthquakes/feed/'))ttl=15;
   if(/(?:weather|gdacs|nhc|eonet|cgesp|inmet|cemaden|meteoalarm)/.test(group)){ttl=60;stale=180;}
-  if(group.endsWith('open-meteo.com')||group==='servicos.cptec.inpe.br'){ttl=120;stale=600;}
+  if(group.endsWith('open-meteo.com')||group==='servicos.cptec.inpe.br'){ttl=300;stale=900;}
   if(group==='www.tsunami.gov'){ttl=10;stale=60;}
   if(group==='volcanoes.usgs.gov'){ttl=120;stale=600;}
  }else return null;
@@ -43,13 +43,11 @@ export function sourcePolicy(request,allowed=[...hosts],now=Date.now()){
  keyUrl.searchParams.sort();return {group,ttl:ttl*1000,stale:stale*1000,key:(target?'proxy:':'route:')+keyUrl.pathname+'?'+keyUrl.searchParams.toString()};
 }
 export function sourceGroups(allowed=[...hosts]){return [...new Set([...Object.keys(routes).filter(p=>p!=='/official-weather-alerts'),'/official-weather-alerts:eccc','/official-weather-alerts:bom',...[...hosts].filter(h=>allowed.includes(h))])].sort();}
-async function alarm(storage,at){const old=await storage.getAlarm?.();await storage.setAlarm?.(old&&old>Date.now()?Math.min(old,at):at);}
 async function remove(storage,item){for(let i=0;i<item.parts;i++)await storage.delete('source-body:'+item.key+':'+i);}
 export async function pruneSources(storage,now=Date.now()){
  const index=await storage.get('source-index');if(!index)return;const keep=[];
  for(const item of index){if(item.until<=now)await remove(storage,item);else keep.push(item);}
  if(keep.length!==index.length)await storage.put('source-index',keep);
- if(keep.length)await alarm(storage,Math.min(...keep.map(x=>x.until))+1000);
 }
 function response(entry,bytes,circuit,state,now){
  const h={...headers,...entry.headers,'X-Monitor-Source':entry.group,'X-Monitor-Source-State':state,'X-Monitor-Source-Last-Ok':String(entry.at),'X-Monitor-Source-Attempt':String(circuit?.attempt||entry.at),'X-Monitor-Source-Next-Retry':String(circuit?.next||entry.at+entry.ttl)};
@@ -111,7 +109,6 @@ export async function handleSourceInObject(request,env,storage,compute,allowed,n
  activity(env,'sourceStateWrites');activity(env,'sourceStateWrites');if(!reuse)for(let i=0;i<fresh.parts;i++)activity(env,'sourceBodyWrites');
  for(const old of index)if(old.key!==key&&!keep.some(x=>x.key===old.key))await remove(storage,old);
  if(entry)for(let i=fresh.parts;i<entry.parts;i++)await storage.delete('source-body:'+key+':'+i);
- await alarm(storage,Math.min(...[...keep,fresh].map(x=>x.until))+1000);
  return response(fresh,bytes,{attempt:now,next:now+ttl},partial?'partial':'fresh',now);
 }
 export async function sourceObjectHealth(storage){

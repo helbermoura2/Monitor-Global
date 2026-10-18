@@ -1134,7 +1134,7 @@ async function saveSentAlerts(request, records, env) {
 // é consistente imediatamente, sem a janela de replicação do KV.
 export class EarthquakeAlertDelivery {
     constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); this.sourceCache=new SourceWritebackCache(state.storage); }
-    async alarm(){await pruneSources(this.state.storage);await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
+    async alarm(){await pruneSources(this.sourceCache);await this.sourceCache.flush();await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
@@ -1904,6 +1904,7 @@ async function handleWorkerRequest(request,env){
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",
                 sourceEdgeBudget: "shared-source-edge-v2",
+                demandBudget: "demand-enrichment-v1",
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
                 telegramM6: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
@@ -2045,10 +2046,12 @@ export default {
         ctx.waitUntil(withKvUsage(env,async env => {
             // Prioridade ao resumo; consultas de outros feeds não atrasam sua tentativa.
             try { await runTelegramDailySummary(cacheRequest, env); } catch (e) { console.error('Cron Telegram resumo diário: envio pendente; nova tentativa no próximo cron'); }
-            try { await refreshSpClimaCache(cacheRequest, env); } catch (e) { console.error('Cron SP:', e); }
-            try { await refreshGlobalFeedsCache(cacheRequest, env); } catch (e) { console.error('Cron global:', e); }
+            // Public dashboards collect on demand. Telegram keeps its own live collection below.
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
-            try { await refreshRecentDailyBrazilSummaries(env); } catch (e) { console.warn('Cron revisão brasileira: pendente'); }
+            // Historical revisions are background work; check them at fifteen-minute UTC boundaries.
+            // Avoid invoking three day objects on every minute just to read that backoff.
+            if(Math.floor(Number(event.scheduledTime||Date.now())/60000)%15===0)
+                try { await refreshRecentDailyBrazilSummaries(env); } catch (e) { console.warn('Cron revisão brasileira: pendente'); }
         }));
     }
 };

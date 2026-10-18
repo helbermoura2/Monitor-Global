@@ -2,6 +2,7 @@
 const scopes=new WeakMap(),MAX_ENTRIES=48,MAX_PENDING=8,MAX_BYTES=6*1024*1024,MAX_BODY=3*1024*1024;
 function scope(binding){let value=scopes.get(binding);if(!value){value={entries:new Map(),pending:new Map(),bytes:0};scopes.set(binding,value);}return value;}
 function deadline(response,policy,now){
+ if(policy.expires){const until=Number(policy.expires(response,now));return Number.isFinite(until)?Math.min(until,now+policy.ttl):0;}
  const state=response.headers.get('X-Monitor-Source-State'),at=Number(response.headers.get('X-Monitor-Source-Last-Ok'));
  if(response.ok&&at>0&&at<=now+1000){
   if(state==='fresh'||state==='partial')return at+Math.min(policy.ttl,state==='partial'?30000:policy.ttl);

@@ -7,6 +7,8 @@ import {SUMMARY_FLAGS} from "../summary-flags.mjs";
 import {SUMMARY_EDITORIAL_TYPOGRAPHY, SUMMARY_EDITORIAL_TYPOGRAPHY_HD} from "../summary-editorial-assets.mjs";
 import {renderEditorialDailySummary} from "../daily-summary-renderer.mjs";
 import {telegramIsBrazil} from "./brazil-boundary.mjs";
+import {createRenderCache,renderIdentity} from "./render-cache.mjs";
+const cachedRender=createRenderCache();
 
 
 function guessCountryCode(place) {
@@ -808,6 +810,10 @@ async function getQuakeHdFonts(){
 async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
+    const key=await renderIdentity('alert-v11',ev);
+    return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
+}
+async function renderAlertPixels(ev) {
     const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
     const logicalFrame=globalThis.QuakeCardLayout.frame(ev);
     const frame={...logicalFrame,width:W,height:Math.round(logicalFrame.height*sy),anchorX:logicalFrame.anchorX*sx,anchorY:logicalFrame.anchorY*sy};
@@ -1017,6 +1023,10 @@ function summaryCardWrap(font,text,width){
     if(line)lines.push(line);return lines;
 }
 async function renderDailySummaryImage(quakes) {
+    const key=await renderIdentity('daily-v11',quakes);
+    return key?cachedRender(key,300000,()=>renderDailySummaryPixels(quakes)):renderDailySummaryPixels(quakes);
+}
+async function renderDailySummaryPixels(quakes) {
     const data=quakes,fonts=await getDailySummaryFonts();
     return renderEditorialDailySummary(data,fonts,{
         fillRect,fillRoundRect,fillCircle,fillRadialGlow,drawArc,drawRadar:drawRadarIcon,
