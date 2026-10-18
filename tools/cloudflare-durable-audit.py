@@ -108,7 +108,7 @@ def main():
         report['schedules']=client.call(client.worker('/schedules'))
         req=urllib.request.Request(m.API+client.worker(),headers={'Authorization':'Bearer '+token})
         with urllib.request.urlopen(req,timeout=30) as response: source=response.read().decode('utf8',errors='replace')
-        report['deployedSource']={'largeTelegramChunks':large_telegram_chunks(source),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source}
+        report['deployedSource']={'largeTelegramChunks':large_telegram_chunks(source),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source,'alarmRetryGuard':'cleanup-alarm-backoff-v1' in source}
     except Exception as error:report['unavailable']['deployedSource']=type(error).__name__
     try:
         base='/accounts/'+account+'/workers/observability/telemetry/'
