@@ -1423,7 +1423,7 @@ async function runTelegramM6Alerts(request, env) {
         }
     }
 
-    // One-minute checks for M5.5+ in the first hour; five minutes thereafter.
+    // One-minute checks for M6+ in the first hour; five minutes thereafter.
     // A single save after the loop (not one per root) avoids rewriting the
     // whole history up to 3x per cron tick for what's usually just a
     // checked-at timestamp refresh -- losing an unsaved root mid-loop to a
