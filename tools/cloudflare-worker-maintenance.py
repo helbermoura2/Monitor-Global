@@ -20,8 +20,9 @@ MARKER = 'removed-no-kv-v1'
 WORKER_MODULES = 'maintenance-modules-v1'
 REQUEST_BUDGET = 'durable-request-budget-v1'
 SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
+DEMAND_BUDGET = 'demand-enrichment-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = '382995b202ddbd05e3199fa49de7fc6420ec81f4d2ed88dbb131253503e0d1cc'
+BUNDLE_SHA256 = 'f9a65dd4212e394f410c467fb8b1d4120891b0233728a3b5a8ff3f5427f945e4'
 
 class MaintenanceError(Exception):
     pass
@@ -49,7 +50,7 @@ def bundle(path):
     data=Path(path).read_bytes()
     if hashlib.sha256(data).hexdigest()!=BUNDLE_SHA256:raise MaintenanceError('Reviewed bundle checksum mismatch')
     with zipfile.ZipFile(path) as z:source=z.read('monitor-global-worker-7_7_0.js')
-    if SOURCE_EDGE_BUDGET.encode() not in source or REQUEST_BUDGET.encode() not in source or WORKER_MODULES.encode() not in source or b'shared-sources-v1' not in source or b'durable-history-v1' not in source or OPTIMIZATION.encode() not in source or MARKER.encode() not in source or b'maybeRefreshPollsAverageNightly' in source or b'POLLS_KV_KEY' in source:raise MaintenanceError('Bundle still contains polling collector or lacks the health marker')
+    if DEMAND_BUDGET.encode() not in source or SOURCE_EDGE_BUDGET.encode() not in source or REQUEST_BUDGET.encode() not in source or WORKER_MODULES.encode() not in source or b'shared-sources-v1' not in source or b'durable-history-v1' not in source or OPTIMIZATION.encode() not in source or MARKER.encode() not in source or b'maybeRefreshPollsAverageNightly' in source or b'POLLS_KV_KEY' in source:raise MaintenanceError('Bundle still contains polling collector or lacks the health marker')
     return source
 
 def multipart(meta, source):
@@ -116,7 +117,7 @@ def verify_public(check=public_health, wait=time.sleep, attempts=25):
     for attempt in range(attempts):
         try:
             health=check()
-            if health.get('sourceEdgeBudget')==SOURCE_EDGE_BUDGET and health.get('durableRequestBudget')==REQUEST_BUDGET and health.get('workerModules')==WORKER_MODULES and health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True and health.get('telegramStorage')=='durable-history-v1' and health.get('sharedSources',{}).get('version')=='shared-sources-v1' and health.get('sharedSources',{}).get('enabled') is True:return health
+            if health.get('demandBudget')==DEMAND_BUDGET and health.get('sourceEdgeBudget')==SOURCE_EDGE_BUDGET and health.get('durableRequestBudget')==REQUEST_BUDGET and health.get('workerModules')==WORKER_MODULES and health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True and health.get('telegramStorage')=='durable-history-v1' and health.get('sharedSources',{}).get('version')=='shared-sources-v1' and health.get('sharedSources',{}).get('enabled') is True:return health
         except urllib.error.HTTPError as e:failure='public HTTP '+str(e.code)
         except (OSError,ValueError):failure='public response unavailable or invalid'
         if attempt+1<attempts:wait(5)
@@ -165,14 +166,14 @@ def main():
             provision_metrics(client,metrics_token(token,account))
             report['metricsReadCredentialUpdated']=True
         health=verify_public()
-        report['verified']={'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
+        report['verified']={'demandBudget':health.get('demandBudget'),'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
     else:
         # Verify compatibility now; inspection never modifies anything.
         metadata(settings)
         report['deploymentReady']=True
         if mode=='verify':
             health=verify_public()
-            report['verified']={'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
+            report['verified']={'demandBudget':health.get('demandBudget'),'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
     if mode=='verify':report['sourceProbe']=public_source_probe()
     report['applicationUsage']=read_usage(metrics_token(token,account))
     # Keep binding values, tokens, account ID and raw settings out of logs/artifacts.

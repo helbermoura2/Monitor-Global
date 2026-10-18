@@ -1,10 +1,12 @@
 import {activity} from './kv-operation-metrics.mjs';
+import {sourceEdgeResponse} from './source-edge-cache.mjs';
 // Population exposure: WorldPop gridded stats and USGS PAGER products.
 // Independent implementation of the published Allen/Wald/Worden (2012)
 // hypocentral intensity equation. See docs/population-exposure.md.
 const pending=new Map(),memory=new Map(),persistentMemory=new WeakMap(),pagerChecks=new Map();
+const edgeScopes=new WeakMap(); // Population entries must not evict urgent public feeds.
 const YEAR=2020,VERSION='exposure-v1';
-const headers={'Access-Control-Allow-Origin':'*','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'X-Monitor-Source-Edge','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
 const response=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const radians=x=>x*Math.PI/180;
 export function distanceKm(a,b,c,d){
@@ -171,7 +173,18 @@ export async function handlePopulationExposure(request,env,storage){
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical));
  const key=VERSION+':'+[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
  const coordinator=env.POPULATION_COORDINATOR||env.EARTHQUAKE_ALERTS;
- if(!storage&&coordinator){try{return await coordinator.get(coordinator.idFromName('population-exposure-v2:'+key)).fetch(request);}catch{return response({status:'unavailable',note:'Consulta populacional temporariamente indisponível; a estimativa por localidades permanece disponível.'},503);}}
+ if(!storage&&coordinator){
+  if(!edgeScopes.has(coordinator))edgeScopes.set(coordinator,{});
+  const policy={ttl:300000,expires:r=>r.headers.get('X-Monitor-Population-Cache-Until')};
+  const edgeKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__population-cache/v1/'+key);
+  try{return await sourceEdgeResponse(edgeScopes.get(coordinator),key,policy,edgeKey,async()=>{
+   let upstream;try{upstream=await coordinator.get(coordinator.idFromName('population-exposure-v2:'+key)).fetch(request);}catch{return response({status:'unavailable',note:'Consulta populacional temporariamente indisponível; a estimativa por localidades permanece disponível.'},503);}
+   if(!upstream.ok)return upstream;
+   const text=await upstream.text(),data=JSON.parse(text);
+   const seconds=data.status==='pending'?Math.min(10,Math.max(1,Number(data.retryAfter)||10)):data.status==='available'||data.status==='unsupported'?300:60;
+   return new Response(text,{status:upstream.status,headers:{...headers,'X-Monitor-Population-Cache-Until':String(Date.now()+seconds*1000)}});
+  });}catch{return response({status:'unavailable',note:'Consulta populacional temporariamente indisponível; a estimativa por localidades permanece disponível.'},503);}
+ }
  if(!pending.has(key))pending.set(key,runExposure(params,env,key,storage).finally(()=>pending.delete(key)));
  try{return response(await pending.get(key));}catch{return response({status:'unavailable',note:'A consulta de exposição está temporariamente indisponível.'},502);}
 }

@@ -5,6 +5,7 @@ import json
 import os
 import uuid
 import urllib.request
+from collections import Counter
 from pathlib import Path
 
 spec=importlib.util.spec_from_file_location('maintenance',Path(__file__).with_name('cloudflare-worker-maintenance.py'))
@@ -20,6 +21,36 @@ def schema(client,name):
 def typename(value):
     while value and not value.get('name'):value=value.get('ofType')
     return value.get('name') if value else None
+
+def family(name):
+    for prefix,label in [('shared-source-v1:', 'publicSources'),('population-exposure-v2:', 'population'),('kv-operation-metrics-', 'metrics')]:
+        if name.startswith(prefix):return label
+    return name or 'unnamed'
+
+def consumption_summary(report):
+    """Aggregate existing analytics; no Worker/DO calls or extra telemetry writes."""
+    daily={}
+    for row in report.get('results',{}).get('durableObjectsInvocationsAdaptiveGroups',{}).get('rows',[]):
+        d=row['dimensions'];day=d.get('date','unknown');item=daily.setdefault(day,{'requests':0,'families':Counter(),'types':Counter(),'statuses':Counter()})
+        count=row['sum'].get('requests',0);item['requests']+=count
+        item['families'][family(d.get('name',''))]+=count;item['types'][d.get('type','unknown')]+=count;item['statuses'][d.get('status','unknown')]+=count
+    recent=report.get('lastThirtyMinutes')
+    result={'daily':daily,'note':'Window projections assume unchanged traffic, not a daily measurement or guaranteed quota headroom.'}
+    if not recent:return result
+    now=dt.datetime.fromisoformat(report['queriedAt']);end=now.replace(second=0,microsecond=0)
+    since=dt.datetime.fromisoformat(recent['since']);start=since.replace(second=0,microsecond=0)
+    if start<since:start+=dt.timedelta(minutes=1)
+    start=max(start,end-dt.timedelta(minutes=10));minutes=(end-start).total_seconds()/60
+    if minutes<=0:return result
+    groups=Counter();families=Counter();statuses=Counter();total=0
+    for row in recent['rows']:
+        d=row['dimensions'];at=dt.datetime.fromisoformat(d['datetimeMinute'].replace('Z','+00:00'))
+        if not start<=at<end:continue
+        count=row['sum'].get('requests',0);total+=count
+        groups[(d.get('name','unnamed'),d.get('type','unknown'))]+=count
+        families[family(d.get('name',''))]+=count;statuses[d.get('status','unknown')]+=count
+    result['recentCompleteMinutes']={'since':start.isoformat(),'until':end.isoformat(),'minutes':minutes,'requests':total,'families':families,'statuses':statuses,'projectedRequestsPerDay':round(total/minutes*1440),'topObjects':[{'name':name,'type':kind,'requests':count} for (name,kind),count in groups.most_common(15)]}
+    return result
 
 def main():
     token,account=m.credentials(os.environ);client=m.Client(token,account)
@@ -69,9 +100,10 @@ def main():
     except Exception as error:report['unavailable']['recentInvocations']=str(error).replace(token,'[token]').replace(account,'[account]')[:600]
     try:
         report['deployments']=client.call(client.worker('/deployments'))
+        report['schedules']=client.call(client.worker('/schedules'))
         req=urllib.request.Request(m.API+client.worker(),headers={'Authorization':'Bearer '+token})
         with urllib.request.urlopen(req,timeout=30) as response: source=response.read().decode('utf8',errors='replace')
-        report['deployedSource']={'largeTelegramChunks':bool(__import__('re').search(r'400[ _]?000',source)),'budgetVersion':'durable-request-budget-v1' in source}
+        report['deployedSource']={'largeTelegramChunks':bool(__import__('re').search(r'400[ _]?000',source)),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source}
     except Exception as error:report['unavailable']['deployedSource']=type(error).__name__
     try:
         base='/accounts/'+account+'/workers/observability/telemetry/'
@@ -91,6 +123,7 @@ def main():
                     categories[category]=categories.get(category,0)+(row.get('count') or row.get('value') or 0)
             report['errorCategoriesLastHour']=categories
     except Exception as error:report['unavailable']['telemetry']=str(error).replace(token,'[token]').replace(account,'[account]')[:600]
+    report['consumptionSummary']=consumption_summary(report)
     path=Path('audit-results');path.mkdir(exist_ok=True)
     text=json.dumps(report,ensure_ascii=False,indent=2);(path/'durable-requests.json').write_text(text);print(text)
     if not report['results']:raise SystemExit('Durable analytics unavailable; do not infer zero usage.')
