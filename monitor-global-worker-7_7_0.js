@@ -1,3 +1,4 @@
+import {SourceWritebackCache} from "./source-writeback-cache.mjs";
 // Worker entrypoint: routes, coordination and existing Durable Object classes.
 import {fetchText, nowIso, fetchJson, resposta, json, CORS_HEADERS} from "./worker/http.mjs";
 import {sharedSourceResponse, pruneSources, sourceObjectHealth, sourcePolicy, handleSourceInObject, sourceGroups} from "./shared-source-cache.mjs";
@@ -1132,14 +1133,14 @@ async function saveSentAlerts(request, records, env) {
 // Um único Durable Object serializa cron e chamadas manuais; o histórico de envio
 // é consistente imediatamente, sem a janela de replicação do KV.
 export class EarthquakeAlertDelivery {
-    constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); }
+    constructor(state, env) { this.state = state; this.env = env; this.queue = Promise.resolve(); this.sourceCache=new SourceWritebackCache(state.storage); }
     async alarm(){await pruneSources(this.state.storage);await prunePersistentHistory(this.state.storage);await expirePopulation(this.state.storage);await pruneVoiceCache(this.state.storage);}
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
             return withKvUsage(this.env,async measuredEnv=>{
-            if(new URL(request.url).pathname==='/__source-health')return Response.json(await sourceObjectHealth(this.state.storage));
-            if(sourcePolicy(request,ALLOWED_HOSTS))return handleSourceInObject(request,measuredEnv,this.state.storage,()=>handleWorkerRequest(request,{...measuredEnv,SHARED_SOURCE_INTERNAL:true}),ALLOWED_HOSTS);
+            if(new URL(request.url).pathname==='/__source-health')return Response.json({...await sourceObjectHealth(this.sourceCache),checkpointIntervalSeconds:900,persistenceDegraded:!!this.sourceCache.lastFailure});
+            if(sourcePolicy(request,ALLOWED_HOSTS)){const response=await handleSourceInObject(request,measuredEnv,this.sourceCache,()=>handleWorkerRequest(request,{...measuredEnv,SHARED_SOURCE_INTERNAL:true}),ALLOWED_HOSTS);await this.sourceCache.flush();return response;}
             if(new URL(request.url).pathname.startsWith('/__telegram-history/'))return handlePersistentHistory(request,this.state.storage);
             if(new URL(request.url).pathname==='/population-exposure')return handlePopulationExposure(request,{...measuredEnv,EARTHQUAKE_ALERTS:undefined,POPULATION_COORDINATOR:undefined},this.state.storage);
             if(new URL(request.url).pathname==='/tts')return handleTts(new URL(request.url),measuredEnv,this.state.storage);
@@ -1901,6 +1902,7 @@ async function handleWorkerRequest(request,env){
                 telegramStorage: 'durable-history-v1',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
+                durableRequestBudget: "durable-request-budget-v1",
                 electionPolls: 'removed-no-kv-v1',
                 funvisis: true,
                 telegramM6: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
