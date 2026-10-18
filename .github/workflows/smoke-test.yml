@@ -1,10 +1,16 @@
 name: Smoke test
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  schedule:
+    - cron: '0 9 * * *' # Uma vez por dia, às 06h de Brasília (UTC-3).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   playwright:
@@ -175,7 +181,7 @@ jobs:
           retention-days: 7
 
   production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
