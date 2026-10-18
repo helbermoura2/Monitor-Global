@@ -1,20 +1,19 @@
 (() => {
   const nativeFetch = window.fetch.bind(window);
-  const activeRequests = new Map();
   window.fetchWithTimeout = async (input, init = {}, timeout = 12000) => {
-    const controller = new AbortController();
-    const key = typeof input === 'string' ? input : input.url;
-    activeRequests.get(key)?.abort();
-    activeRequests.set(key, controller);
-    const timer = setTimeout(() => controller.abort(), timeout);
-    try {
-      const response = await nativeFetch(input, {...init, signal: controller.signal});
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response;
-    } finally {
-      clearTimeout(timer);
-      if (activeRequests.get(key) === controller) activeRequests.delete(key);
+    const request = new Request(input, init);
+    let response;
+    if(window.BrowserRequestBudget?.eligible(request))response=await BrowserRequestBudget.fetch(request,nativeFetch,timeout);
+    else {
+      const controller=new AbortController(),abort=()=>controller.abort(request.signal.reason);
+      const signal=typeof AbortSignal.any==='function'?AbortSignal.any([request.signal,controller.signal]):controller.signal;
+      if(typeof AbortSignal.any!=='function'){request.signal.addEventListener('abort',abort,{once:true});if(request.signal.aborted)abort();}
+      const timer=setTimeout(()=>controller.abort(),timeout);
+      try{response=await nativeFetch(new Request(request,{signal}));}finally{clearTimeout(timer);}
     }
+    // Keep shared provider cooldown visible so fallbacks do not bypass it.
+    if(!response.ok&&response.headers.get('X-Monitor-Source-State')!=='unavailable')throw new Error(`HTTP ${response.status}`);
+    return response;
   };
   window.fetch = (input, init) => window.fetchWithTimeout(input, init);
   const status = (message, type = 'info', retryable = false) => {

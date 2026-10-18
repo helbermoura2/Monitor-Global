@@ -165,7 +165,7 @@ function focusNextQuakeRevision(blocked = false) {
 }
 
 async function fetchGlobalFeeds() {
-    if (__fetchGlobalFeedsEmAndamento) return;
+    if (document.hidden || __fetchGlobalFeedsEmAndamento) return;
     __fetchGlobalFeedsEmAndamento = true;
     const initialCatalog = isFirstLoad;
     window.__lastSismoAttempt = Date.now();
@@ -226,7 +226,7 @@ async function fetchGlobalFeeds() {
         // Publish the first successful catalog while slower agencies continue.
         // Keep isFirstLoad true until the full merge, avoiding startup alarms.
         const progressiveTasks = tasks.map(task => Promise.resolve(task).then(rows => {
-            if (isFirstLoad && isFirstDisplay && !window.__mgInitialCatalogReady && Array.isArray(rows) && rows.length) {
+            if (!document.hidden && isFirstLoad && isFirstDisplay && !window.__mgInitialCatalogReady && Array.isArray(rows) && rows.length) {
                 window.__mgInitialCatalogReady = true;
                 globalEvents = mergeEarthquakeReports(rows).map(ev => {
                     ev.id = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
@@ -239,6 +239,7 @@ async function fetchGlobalFeeds() {
             return rows;
         }));
         const settled = await Promise.allSettled(progressiveTasks);
+        if(document.hidden)return;
         const reports = [];
         const sourceStatus = {};
         const sourceErrors = {};

@@ -704,13 +704,15 @@ function pausarBuscas() {
 }
 function retomarBuscas() {
     if (document.hidden) return;
+    const wasPaused=__buscasPausadasPorAba;
     __buscasPausadasPorAba = false;
     PeriodicScheduler.resume('feeds');
     const agora = Date.now();
-    if (window.__ultimoRetomarBuscas && agora - window.__ultimoRetomarBuscas < 4000) return;
+    if (!wasPaused && window.__ultimoRetomarBuscas && agora - window.__ultimoRetomarBuscas < 4000) return;
     window.__ultimoRetomarBuscas = agora;
-    const critical = __buscasAgendadas.filter((e, i) => i < 3 || e.fn === fetchGlobalFeeds);
-    critical.forEach(e => PeriodicScheduler.trigger(e.key));
+    const urgentNames=new Set(['fetchGlobalFeeds','fetchAfadQuakes','fetchPlanetReinforcementQuakes','fetchEmscPlanetReinforcementQuakes','fetchOfficialTsunamiAlerts']);
+    const critical = __buscasAgendadas.filter(e => urgentNames.has(e.fn.name)||e.fn===fetchGlobalFeeds);
+    critical.forEach(e => PeriodicScheduler.trigger(e.key,wasPaused));
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -724,6 +726,7 @@ document.addEventListener('visibilitychange', () => {
 // caso do navegador restaurar a página do cache em vez de recarregar).
 window.addEventListener('focus', retomarBuscas);
 window.addEventListener('pageshow', retomarBuscas);
+window.addEventListener('online', retomarBuscas);
 
 // ── VIGIA DE ATUALIZAÇÃO (watchdog) ──────────────────────────────────────
 // Rede de segurança independente do agendamento normal: a cada 1 min, se a
@@ -786,6 +789,7 @@ async function fetchWithCorsFallback(url, timeoutMs = 12000) {
     // pra tentar o próximo proxy. Agora lê o corpo aqui, confirma que não veio vazio, e só então
     // devolve uma Response nova (reconstruída a partir do texto já lido).
     async function tentar(alvo) {
+        if(document.hidden)throw new DOMException('Consulta pausada.','AbortError');
         const c = new AbortController();
         const t = setTimeout(() => c.abort(), timeoutMs);
         try {
@@ -811,7 +815,7 @@ async function fetchWithCorsFallback(url, timeoutMs = 12000) {
             return new Response(texto, { status: 200, headers: r.headers });
         } catch (e) {
             clearTimeout(t);
-            if(e.sharedCooldown)throw e;
+            if(e.sharedCooldown||document.hidden)throw e;
             console.warn('[proxy] erro de rede/timeout em', alvo, '→', e?.message || e);
             return null;
         }
