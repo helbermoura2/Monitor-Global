@@ -4,8 +4,8 @@ async function boot(page,width){
  const base=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
  await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-incremental-list',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
- await page.evaluate(()=>{pausarBuscas();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();stopFeltZone();SeismicCinema.stop();activeAlertingIds.clear();activeUpdatedIds.clear();activeLateIds.clear();});
+ await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);await page.waitForTimeout(1600);
+ await page.evaluate(()=>{pausarBuscas();window.applyFilters=()=>{};for(const job of __buscasAgendadas)PeriodicScheduler.cancel(job.key);for(const layer of map.getStyle().layers)if(layer.type==='raster')map.removeLayer(layer.id);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();stopFeltZone();SeismicCinema.stop();activeAlertingIds.clear();activeUpdatedIds.clear();activeLateIds.clear();if(innerWidth>900){sidebarFilter='earthquake';DesktopRecords.filter('earthquake');}});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
 }
 for(const width of [1280,390])test('incremental records preserve nodes, scroll, selection, revisions and age '+width,async({page})=>{
@@ -35,7 +35,7 @@ for(const width of [1280,390])test('incremental records preserve nodes, scroll, 
   return {rows:[...new Set(changes.map(r=>r.target.closest?.('.event')?.dataset.eventId).filter(Boolean))],sameNodes:[...__listNodes].every(([id,n])=>c.querySelector('[data-event-id="'+id+'"]')===n),untouchedChildren:[...__listChildren].every(([id,n])=>id==='list-60'||__listNodes.get(id).firstElementChild===n)};
  });
  expect(revised.rows).toEqual(['list-60']);expect(revised.sameNodes).toBe(true);expect(revised.untouchedChildren).toBe(true);
- await expect(page.locator('[data-event-id="list-60"]')).toContainText('6.3');await expect(page.locator('[data-event-id="list-60"]')).toContainText('Local revisado');await expect(page.locator('[data-event-id="list-60"]')).toContainText('18 km');
+ await expect(page.locator('[data-event-id="list-60"]')).toContainText('6,3');await expect(page.locator('[data-event-id="list-60"]')).toContainText('Local revisado');await expect(page.locator('[data-event-id="list-60"]')).toContainText('18 km');
  const appended=await page.evaluate(()=>{
   const c=document.getElementById('events'),n=__listNodes.get('list-8');n.focus({preventScroll:true});c.scrollTop=600;const before=c.scrollTop;
   const fresh={...globalEvents[0],id:'list-new',time:Date.now(),place:'Novo registro',mag:5.2};activeAlertingIds.set(fresh.id,Date.now()+60000);globalEvents.unshift(fresh);lastMerged=globalEvents.slice();renderSidebarList(lastMerged);

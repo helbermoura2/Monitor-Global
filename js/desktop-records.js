@@ -8,7 +8,8 @@
  more?.setAttribute('aria-controls','desktop-extra-filters');
  const extra=document.createElement('div');extra.id='desktop-extra-filters';extra.setAttribute('role','group');extra.setAttribute('aria-label','Mais filtros');
  row.append(extra);
- const trigger=document.createElement('button');trigger.type='button';trigger.id='desktop-records-toggle';trigger.className='chip';trigger.textContent='Registros';trigger.setAttribute('aria-controls','sidebar-left');row.append(trigger);
+ const trigger=row.querySelector('[data-f="all"]');
+ const notices=new Map();
  let pinned=typeof sidebarFilter!=='undefined'&&sidebarFilter!=='all', opened=pinned, timer=null, frame=null;
  const seen=new Map();
  const labels={all:'Tudo',earthquake:'Sismos',volcano:'Vulcões',tsunami:'Tsunamis',hurricane:'Ciclones',storm:'Tempestades',fire:'Incêndios',tornado:'Tornados',civil:'Defesa Civil',wind:'Vento forte',flood:'Enchentes'};
@@ -32,39 +33,42 @@
  }
  function queuePosition(){if(frame===null)frame=requestAnimationFrame(position);}
  function cancel(){clearTimeout(timer);timer=null;}
+ function interacting(){return list.matches(':hover')||list.contains(document.activeElement);}
+ function prune(){for(const [id,until]of notices)if(until<=Date.now())notices.delete(id);}
  function idleClose(){
-  cancel();if(!desktop.matches||pinned||!opened)return;
-  timer=setTimeout(()=>{if(list.matches(':hover')||list.contains(document.activeElement)){idleClose();return;}setOpen(false);},20000);
+  cancel();if(!desktop.matches||pinned||!opened||interacting())return;
+  const deadline=Math.min(...notices.values());
+  timer=setTimeout(()=>{if(interacting())return;prune();setOpen(notices.size>0);},Math.max(1,deadline-Date.now()));
  }
  function render(){
   document.body.classList.toggle('desktop-records-ready',desktop.matches);
   document.body.classList.toggle('desktop-records-open',desktop.matches&&opened);
   document.body.classList.toggle('desktop-records-pinned',desktop.matches&&pinned);
-  trigger.setAttribute('aria-expanded',String(opened));trigger.textContent=pinned?'Registros · fixos':'Registros';
-  trigger.title=pinned?'Escolha Tudo para voltar aos registros retráteis':'Abrir ou recolher registros';
   // Visibility also tells camera framing to ignore the retracted column.
   if(desktop.matches){list.inert=!opened;list.setAttribute('aria-hidden',String(!opened));}
   else{list.inert=false;list.removeAttribute('aria-hidden');}
   const status=document.getElementById('desktop-records-status');if(status)status.textContent=pinned?'Fixos · Tudo para recolher':'Recolhe automaticamente';
+  if(typeof renderSidebarList==='function'&&typeof lastMerged!=='undefined')renderSidebarList(lastMerged);
   queuePosition();window.dispatchEvent(new Event('desktop-records-change'));
  }
- function setOpen(value){opened=pinned||!!value;if(!opened&&desktop.matches&&list.contains(document.activeElement))trigger.focus({preventScroll:true});render();idleClose();}
- function filter(type){pinned=type!=='all';setOpen(pinned);}
+ function setOpen(value){if(!value&&!pinned)notices.clear();opened=pinned||!!value&&notices.size>0;if(!opened&&desktop.matches&&list.contains(document.activeElement))trigger.focus({preventScroll:true});render();idleClose();}
+ function filter(type){pinned=type!=='all';if(!pinned)notices.clear();setOpen(pinned);}
+ function items(rows){return !desktop.matches||pinned?rows:(rows||[]).filter(item=>notices.has(item.id));}
+ function announce(ids){if(!desktop.matches||pinned||!ids.length)return;if(!interacting())prune();for(const id of ids)if(id!=null)notices.set(id,Date.now()+20000);if(notices.size)setOpen(true);}
  function toggle(){setOpen(!opened);}
  function arrivals(reason,payload){
-  if(reason==='official-map'&&Number(payload.mag)>=5)setOpen(true);
+  if(reason==='official-map'&&Number(payload.mag)>=5)announce([payload.id]);
   if(reason==='filter'&&pinned!==(sidebarFilter!=='all'))filter(sidebarFilter);
   if(reason==='revise'){
-   if((payload.ids||[]).some(id=>{const e=window.EventStore.getById(id);return e&&(e.type==='earthquake'||e.mag!=null)&&Number(e.mag)>=5;}))setOpen(true);
+   announce((payload.ids||[]).filter(id=>{const e=window.EventStore.getById(id);return e&&(e.type==='earthquake'||e.mag!=null)&&Number(e.mag)>=5;}));
   }
   if(reason!=='filter'&&reason!=='replace')return;
-  const active=typeof activeAlertingIds!=='undefined'?activeAlertingIds:new Map();let arrived=false;
-  for(const [id,expires]of active){if(expires>Date.now()&&!seen.has(id))arrived=true;seen.set(id,expires);}
+  const active=typeof activeAlertingIds!=='undefined'?activeAlertingIds:new Map();const arrived=[];
+  for(const [id,expires]of active){if(expires>Date.now()&&!seen.has(id))arrived.push(id);seen.set(id,expires);}
   for(const [id,expires]of seen)if(expires<=Date.now())seen.delete(id);
-  if(arrived)setOpen(true);
+  if(arrived.length)announce(arrived);
  }
  const status=document.createElement('small');status.id='desktop-records-status';document.getElementById('events-label')?.append(status);
- trigger.onclick=toggle;
  document.getElementById('sidebar-events-close')?.addEventListener('click',()=>{if(desktop.matches)setOpen(false);});
  list.addEventListener('pointerenter',cancel);list.addEventListener('pointerleave',idleClose);list.addEventListener('focusin',cancel);list.addEventListener('focusout',idleClose);
  document.addEventListener('click',e=>{if(desktop.matches&&row.classList.contains('expanded')&&!row.contains(e.target))row.classList.remove('expanded');});
@@ -72,6 +76,6 @@
  desktop.addEventListener('change',()=>{cancel();arrange();render();idleClose();});
  window.addEventListener('resize',queuePosition,{passive:true});new ResizeObserver(queuePosition).observe(header);
  window.EventStore?.subscribe(arrivals);
- window.DesktopRecords={open:setOpen,toggle,filter,state:()=>({open:opened,pinned})};
+ window.DesktopRecords={open:setOpen,toggle,filter,items,state:()=>({open:opened,pinned,ids:[...notices.keys()]})};
  arrange();render();
 })();

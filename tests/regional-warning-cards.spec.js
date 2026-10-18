@@ -12,7 +12,7 @@ for(const [width,height] of [[1280,800],[390,844]])test('aviso regional abre pai
   if(innerWidth<=900)toggleMobileEventsModal(true);return state;
  });
  expect(before.selected).toBe('keep-quake');expect(before.records).toBe(1);expect(before.coords).toBeUndefined();
- if(width>900)await page.locator('#desktop-records-toggle').click();
+ if(width>900){await page.locator('#more-filters-toggle').click();await page.locator('#chips-row [data-f="wind"]').click();}
  let card=page.locator('#events .event').filter({hasText:'Victoria — Austrália'});await expect(card).toBeVisible();await expect(card).toContainText('AVISO DE VENTO');await expect(card).toContainText('Área regional');await expect(card).toContainText('Validade: consultar boletim');await expect(card).toContainText('Ver no painel →');await expect(card).not.toContainText('Detalhes →');
  // The external link must not select the record, with mouse or keyboard activation.
  const link=card.locator('.ev-bulletin-link');await expect(link).toHaveAttribute('href','https://reg.bom.gov.au/vic/warnings/marinewind.shtml');await link.evaluate(el=>{el.addEventListener('click',e=>e.preventDefault());el.click();});expect(await page.evaluate(()=>EventStore.selectedId)).toBe('keep-quake');

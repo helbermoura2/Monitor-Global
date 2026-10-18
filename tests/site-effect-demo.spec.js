@@ -9,7 +9,7 @@ async function boot(page,width=1280){
  await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectDemo);await page.evaluate(()=>CountryBoundaries.ready);
  await page.evaluate(()=>{
   clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);stopWaveFront();stopFeltZone();window.SeismicPaintTour?.stop();
-  globalEvents=Array.from({length:4},(_,i)=>({id:'site-scene-real-'+i,type:'earthquake',mag:4.2-i*.2,depth:10,coords:[-70+i,-20],time:Date.now()-i*240000,place:'Registro preservado '+i,source:'QA'}));globalAlerts=[];document.getElementById('clima-global-panel').style.display='none';renderSidebarList(globalEvents);
+  globalEvents=Array.from({length:4},(_,i)=>({id:'site-scene-real-'+i,type:'earthquake',mag:4.2-i*.2,depth:10,coords:[-70+i,-20],time:Date.now()-i*240000,place:'Registro preservado '+i,source:'QA'}));globalAlerts=[];lastMerged=globalEvents.slice();if(innerWidth>900){sidebarFilter='earthquake';DesktopRecords.filter('earthquake');}renderSidebarList(lastMerged);
   showEventDetails(0,false);clearTimeout(cycleTimeout);window.SeismicPaintTour?.stop();map.stop();
   if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}
   window.__siteSceneBefore=JSON.stringify({events:globalEvents,alerts:globalAlerts,id:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom()});
