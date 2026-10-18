@@ -19,7 +19,9 @@
  function volcano(item,cfg){
   if(!item||item.__cinemaDemo||item.type!=='volcano')return Promise.resolve(false);
   const evidence=root.VolcanoPriority?.evidence(item);
-  if(!cfg?.lava&&!evidence?.explosive)return Promise.resolve(false);
+  // The card profile uses current, non-negated source evidence. A confirmed
+  // eruption need not explicitly mention lava to receive its visual overlay.
+  if(!cfg?.hot&&!cfg?.lava&&!evidence?.explosive)return Promise.resolve(false);
   const version=item.noticeId||item.eruptionStart||item._updatedAt||item.time||'episode';
   return play('lava','lava|'+item.id+'|'+version,()=>selected(item.id)&&root.CinematicCard?.isShowing(item.id,'volcano'));
  }
