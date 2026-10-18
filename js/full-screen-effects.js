@@ -23,7 +23,7 @@
   // eruption need not explicitly mention lava to receive its visual overlay.
   if(!cfg?.hot&&!cfg?.lava&&!evidence?.explosive)return Promise.resolve(false);
   const version=item.noticeId||item.eruptionStart||item._updatedAt||item.time||'episode';
-  return play('lava','lava|'+item.id+'|'+version,()=>selected(item.id)&&root.CinematicCard?.isShowing(item.id,'volcano'));
+  return play('lava','lava|'+item.id+'|'+version,()=>selected(item.id));
  }
  function rain(summary,candidate){
   if(summary?.provider!=='rainbow'||!summary.loc||typeof weatherLoc==='undefined')return;
