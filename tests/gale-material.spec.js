@@ -39,6 +39,8 @@ for(const width of [1280,390])test('rajada real e Menu arrancam letras e mantêm
  await page.goto(site+'/?verify=flying-letters-'+Date.now(),{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);
  await page.evaluate(()=>{pausarBuscas();globalEvents=[];pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();});await select(page);
  await expect(page.locator('#pd-local')).toContainText('teste de publicação',{timeout:20000});const original=await page.locator('#pd-local').textContent();
+ // Start the scene on the simulated clock instead of reusing a native-clock scene.
+ await page.evaluate(()=>CinematicCard.stop());
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  for(const demo of [false,true]){
   await page.evaluate(demo=>demo?CardEffectDemo.preview('wind'):CinematicCard.start(EventStore.getSelected()),demo);

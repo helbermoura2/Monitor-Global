@@ -467,6 +467,12 @@
  window.addEventListener('pagehide',stop);
  function refresh(item){
   prepareSymbol(item);
+  if(item?.type==='volcano'&&!item.__cinemaDemo){
+   const cfg=profile(item);
+   if(!cfg?.hot&&!cfg?.lava)window.FullScreenEffects?.stop('lava');
+   else if(!window.EventCamera?.owns(item.id))window.FullScreenEffects?.volcano(item,cfg);
+   return;
+  }
   if(!scene||scene.itemId!==item?.id)return;
   const cfg=profile(item);if(!cfg){stop();return;}
   if(cfg.type!==scene.cfg.type||['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){start(item,scene.duration);return;}

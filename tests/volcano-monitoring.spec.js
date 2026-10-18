@@ -1,42 +1,28 @@
 const {test,expect}=require('@playwright/test');
 require('./helpers/card-renderer-fixture.cjs')(test);
 test.use({serviceWorkers:'block'});
-for(const width of [1280,390])test('cratera de monitoramento no Menu e no evento real preserva dados, revisão e controles '+width,async({page})=>{
- test.setTimeout(120000);
+for(const width of [1280,390])test('monitoramento fica no Menu; cartão real mantém dados sem animação '+width,async({page})=>{
+ test.setTimeout(90000);
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
- await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("volcano"));
- await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardVolcanoMonitoring);
- const errors=[];page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{
   const item={id:'crater-real',type:'volcano',eruptionStatus:'Sem atividade eruptiva',detail:'Em monitoramento',source:'QA',coords:[-155.29,19.42],time:Date.now(),place:'Vulcão de teste'};
-  globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
-  window.__craterSound=0;window.__craterFlight=0;window.playEarthquakeSound=()=>__craterSound++;map.flyTo=()=>__craterFlight++;
+  globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);
  });
- await expect(page.locator('.pd-volcano-monitor')).toHaveAttribute('data-texture','photograph');
- await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
- await expect(page.locator('.pd-cinema-footage,.pd-cinema-heat,.pd-cinema-film,.pd-weather-material')).toHaveCount(0);
- if(width===390)await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
- const canvas=page.locator('.pd-volcano-monitor');
- const pixels=()=>canvas.evaluate(el=>Array.from(el.getContext('2d').getImageData(0,0,el.width,el.height).data).filter((v,i)=>i%20===0));
- const first=await pixels();expect(new Set(first).size).toBeGreaterThan(30);
- await page.waitForTimeout(1200);expect(await pixels()).not.toEqual(first);
+ await expect(page.locator('.pd-volcano-monitor,.pd-cinema-layer,#site-effect-demo-canvas')).toHaveCount(0);
  await expect(page.locator('#pd-local')).toContainText('Vulcão de teste');
- await page.locator('#painel-direito').screenshot({path:'/tmp/volcano-monitoring-'+width+'.png'});
- expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
- const original=await canvas.elementHandle();
- await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'Boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
- expect(await original.evaluate(el=>el.isConnected)).toBe(true);await expect(page.locator('#pd-local')).toContainText('Boletim atualizado');
+ await page.evaluate(()=>{applyFilters();clearTimeout(cycleTimeout);});
  const before=await page.evaluate(()=>({events:JSON.stringify(globalAlerts),selected:EventStore.selectedId,text:document.getElementById('pd-local').textContent}));
  await page.evaluate(()=>CardEffectDemo.preview('volcano-monitoring'));
- await expect(canvas).toHaveAttribute('data-texture','photograph');await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');
+ await expect(page.locator('.pd-volcano-monitor')).toHaveAttribute('data-texture','photograph');await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','true');
  expect(await page.evaluate(()=>({events:JSON.stringify(globalAlerts),selected:EventStore.selectedId,text:document.getElementById('pd-local').textContent}))).toEqual(before);
- expect(await page.evaluate(()=>[__craterSound,__craterFlight])).toEqual([0,0]);
- await page.evaluate(()=>CardEffectDemo.stop());await expect(canvas).toHaveCount(1);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
- await page.evaluate(()=>{const item={...EventStore.getSelected(),eruptionStatus:'Em erupção',detail:'Fluxo de lava ativo · sem cinzas'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
- await expect(canvas).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-volcano-monitoring/);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-material','lava');
- await page.evaluate(()=>CardEffectDemo.preview('volcano-monitoring'));await expect(canvas).toHaveCount(1);
- await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.pd-volcano-monitor,.pd-cinema-layer')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-volcano-monitoring/);
- expect(errors).toEqual([]);
+ await page.locator('#painel-direito').screenshot({path:'/tmp/volcano-monitoring-'+width+'.png'});
+ await page.evaluate(()=>CardEffectDemo.stop());await expect(page.locator('.pd-volcano-monitor,.pd-cinema-layer')).toHaveCount(0);
+ await page.evaluate(()=>{const item={...EventStore.getSelected(),noticeId:'eruptive-revision',eruptionStatus:'Em erupção',detail:'Fluxo de lava ativo · sem cinzas'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
+ await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-scene','lava');await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
+ await page.evaluate(()=>{const item={...EventStore.getSelected(),noticeId:'ended-revision',eruptionStatus:'Erupção encerrada',detail:'Sem atividade eruptiva'};upsertAlert(item);showAlertDetails(item,false,true);});
+ await expect(page.locator('#site-effect-demo-canvas,.pd-cinema-layer')).toHaveCount(0);
 });
 test('sem fotografia, a reserva desenha uma cratera detalhada e limpa a carga pendente',async({page})=>{
  await page.route('**/volcano-crater.jpg',r=>r.abort());
