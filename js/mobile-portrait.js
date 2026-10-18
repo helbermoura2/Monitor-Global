@@ -71,7 +71,6 @@
       $('mobile-primary-nav')?.setAttribute('data-filters',String(open));
     }));
     button(panel, 'Visual: vidro / escuro', secondary(() => window.mgToggleTheme?.()));
-    button(panel, 'Clima global', secondary(() => $('chip-clima-global')?.click()));
     button(panel, 'Recarregar dados', secondary(() => window.menuAcao?.('reload')));
     if (typeof window.toggleTvMode === 'function') button(panel, 'Modo TV', secondary(() => window.toggleTvMode()));
     if (window.TelegramAdmin?.isAuthenticated()) button(panel, 'Histórico do Telegram', secondary(() => window.TelegramAdmin.open()));

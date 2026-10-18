@@ -105,117 +105,6 @@
   }
 }
 
-/* Chip clima global */
-#chip-clima-global {
-  border-color: rgba(56, 189, 248, 0.45) !important;
-  color: #7dd3fc !important;
-  font-weight: 800 !important;
-}
-#chip-clima-global.active,
-#chip-clima-global.on {
-  background: rgba(14, 116, 144, 0.45) !important;
-  border-color: #22d3ee !important;
-  color: #e0f2fe !important;
-}
-
-/* Painel clima na coluna de registros */
-#clima-global-panel {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 0;
-  border-bottom: 1px solid rgba(30, 58, 95, 0.7);
-  background: linear-gradient(180deg, rgba(6, 18, 36, 0.98), rgba(3, 10, 22, 0.98));
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.2s ease;
-}
-#clima-global-panel.open {
-  max-height: 420px;
-  opacity: 1;
-  padding: 8px 10px 10px;
-  overflow-y: auto;
-}
-#clima-global-panel .cgp-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 7px;
-}
-#clima-global-panel .cgp-title {
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-  color: #7dd3fc;
-  text-transform: uppercase;
-}
-#clima-global-panel .cgp-meta {
-  font-size: 7px;
-  color: #94a3b8;
-}
-#clima-global-panel .cgp-actions {
-  display: flex;
-  gap: 4px;
-}
-#clima-global-panel .cgp-btn {
-  background: #0f172a;
-  border: 1px solid #334155;
-  color: #93c5fd;
-  border-radius: 5px;
-  padding: 2px 6px;
-  font-size: 8px;
-  font-weight: 700;
-  cursor: pointer;
-}
-#clima-global-panel .cgp-btn:hover {
-  border-color: #38bdf8;
-  color: #e0f2fe;
-}
-#clima-global-panel .cgp-section {
-  margin-bottom: 8px;
-  padding: 7px 8px;
-  border: 1px solid rgba(56, 189, 248, 0.14);
-  border-radius: 8px;
-  background: rgba(8, 20, 38, 0.72);
-}
-#clima-global-panel .cgp-section h4 {
-  margin: 0 0 5px;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  color: #e2e8f0;
-}
-#clima-global-panel .cgp-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 10px;
-  padding: 2px 0;
-  color: #cbd5e1;
-}
-#clima-global-panel .cgp-row b {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  color: #f8fafc;
-}
-#clima-global-panel .cgp-hot b { color: #fb923c; }
-#clima-global-panel .cgp-cold b { color: #7dd3fc; }
-#clima-global-panel .cgp-pos b { color: #fb923c; }
-#clima-global-panel .cgp-neg b { color: #60a5fa; }
-#clima-global-panel .cgp-note {
-  font-size: 7px;
-  color: #94a3b8;
-  line-height: 1.35;
-  margin-top: 4px;
-}
-#clima-global-panel .cgp-storm {
-  font-size: 10px;
-  color: #e2e8f0;
-  margin-bottom: 4px;
-}
-#clima-global-panel .cgp-storm strong { color: #e9d5ff; }
 #sidebar-left {
   display: flex;
   flex-direction: column;
@@ -227,6 +116,5 @@
 }
 @media screen and (max-width: 900px) {
   #v70-header-row { display: none !important; }
-  #clima-global-panel.open { max-height: 50vh; }
 }
 
