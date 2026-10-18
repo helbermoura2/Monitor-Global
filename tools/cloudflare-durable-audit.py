@@ -3,6 +3,7 @@ import datetime as dt
 import importlib.util
 import json
 import os
+import re
 import uuid
 import urllib.request
 from collections import Counter
@@ -27,6 +28,10 @@ def family(name):
         if name.startswith(prefix):return label
     return name or 'unnamed'
 
+def large_telegram_chunks(source):
+    # esbuild emits 400000 as 4e5; match the actual history split, not embedded image data.
+    return bool(re.search(r'value\.length\s*/\s*(?:400[ _]?000|4[eE]\+?5)\b',source))
+
 def consumption_summary(report):
     """Aggregate existing analytics; no Worker/DO calls or extra telemetry writes."""
     daily={}
@@ -42,14 +47,14 @@ def consumption_summary(report):
     if start<since:start+=dt.timedelta(minutes=1)
     start=max(start,end-dt.timedelta(minutes=10));minutes=(end-start).total_seconds()/60
     if minutes<=0:return result
-    groups=Counter();families=Counter();statuses=Counter();total=0
+    groups=Counter();families=Counter();statuses=Counter();types=Counter();total=0
     for row in recent['rows']:
         d=row['dimensions'];at=dt.datetime.fromisoformat(d['datetimeMinute'].replace('Z','+00:00'))
         if not start<=at<end:continue
         count=row['sum'].get('requests',0);total+=count
         groups[(d.get('name','unnamed'),d.get('type','unknown'))]+=count
-        families[family(d.get('name',''))]+=count;statuses[d.get('status','unknown')]+=count
-    result['recentCompleteMinutes']={'since':start.isoformat(),'until':end.isoformat(),'minutes':minutes,'requests':total,'families':families,'statuses':statuses,'projectedRequestsPerDay':round(total/minutes*1440),'topObjects':[{'name':name,'type':kind,'requests':count} for (name,kind),count in groups.most_common(15)]}
+        families[family(d.get('name',''))]+=count;statuses[d.get('status','unknown')]+=count;types[d.get('type','unknown')]+=count
+    result['recentCompleteMinutes']={'since':start.isoformat(),'until':end.isoformat(),'minutes':minutes,'requests':total,'families':families,'statuses':statuses,'types':types,'projectedRequestsPerDay':round(total/minutes*1440),'topObjects':[{'name':name,'type':kind,'requests':count} for (name,kind),count in groups.most_common(15)]}
     return result
 
 def main():
@@ -103,7 +108,7 @@ def main():
         report['schedules']=client.call(client.worker('/schedules'))
         req=urllib.request.Request(m.API+client.worker(),headers={'Authorization':'Bearer '+token})
         with urllib.request.urlopen(req,timeout=30) as response: source=response.read().decode('utf8',errors='replace')
-        report['deployedSource']={'largeTelegramChunks':bool(__import__('re').search(r'400[ _]?000',source)),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source}
+        report['deployedSource']={'largeTelegramChunks':large_telegram_chunks(source),'budgetVersion':'durable-request-budget-v1' in source,'demandBudget':'demand-enrichment-v1' in source}
     except Exception as error:report['unavailable']['deployedSource']=type(error).__name__
     try:
         base='/accounts/'+account+'/workers/observability/telemetry/'
