@@ -61,8 +61,12 @@ export async function handleKvUsageObject(request,storage){
  const {recent,...report}=data;return Response.json({available:true,...report,activityCollection:'disabled-request-budget-v1',note:'Operações observadas pela aplicação; entrega de métricas pode falhar. Não é fatura nem atribuição retrospectiva.'});
 }
 export async function handleKvUsageRead(request,env){
- const supplied=request.headers.get('Authorization')||'',secret=env.KV_METRICS_READ_TOKEN;
- if(!secret||supplied!=='Bearer '+secret)return Response.json({error:'Unauthorized'},{status:401,headers:{'Cache-Control':'no-store'}});
+ const secret=env.KV_METRICS_READ_TOKEN;
+ const header=request.headers.get('Authorization')||'';
+ // Querystring token: lets the read-only usage summary be opened straight from
+ // a mobile browser, where setting a custom Authorization header isn't practical.
+ const query=new URL(request.url).searchParams.get('token')||'';
+ if(!secret||(header!=='Bearer '+secret&&query!==secret))return Response.json({error:'Unauthorized'},{status:401,headers:{'Cache-Control':'no-store'}});
  if(request.method!=='GET')return Response.json({error:'method'},{status:405});
  if(!env.EARTHQUAKE_ALERTS)return Response.json({available:false},{status:503});
  const url=new URL(request.url);url.pathname='/__kv-usage/read';
