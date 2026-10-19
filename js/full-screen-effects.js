@@ -22,7 +22,7 @@
   // The card profile uses current, non-negated source evidence. A confirmed
   // eruption need not explicitly mention lava to receive its visual overlay.
   if(!cfg?.hot&&!cfg?.lava&&!evidence?.explosive)return Promise.resolve(false);
-  const version=item.noticeId||item.eruptionStart||item._updatedAt||item.time||'episode';
+  const version=item.noticeId||item._updatedAt||item.reportAt||item.time||item.eruptionStart||'episode';
   return play('lava','lava|'+item.id+'|'+version,()=>selected(item.id),{},item.id);
  }
  function rain(summary,candidate){

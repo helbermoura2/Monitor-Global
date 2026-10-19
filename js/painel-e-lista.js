@@ -529,12 +529,13 @@ function renderSidebarList(items) {
         const bulletinUrl=window.RecordPresentation?.bulletin(item),presentationLabel=window.RecordPresentation?.label(item);
         // Somente campos que afetam este cartão. Não serializa polígonos,
         // histórico de fontes ou outras cargas grandes do registro completo.
+        const volcanoStatus=item.type==='volcano'?window.CinematicCard?.volcanoStatus(item):'';
         const fingerprint=JSON.stringify([
             item.type,item.mag,item.depth,item.time,item.place,item.bandeira,item.source,item.sourceSummary,item.sources,
             item.isPreliminary,item.correlationLevel,item.coords,minhaPosicao?.lat,minhaPosicao?.lng,
             item.hazardNature,item.warningEvent,item.title,item.displayLabel,item.cycloneLabel,item.classification,
             item.windKmh,item.pressureMb,item.basin,item.movementInfo?.compass,item.detail,item.activityStatus,item.vulcanicActivity,
-            item.regionalWarning,item.severityLabel,item.expiresAt,bulletinUrl,presentationLabel,
+            item.regionalWarning,item.severityLabel,item.expiresAt,bulletinUrl,presentationLabel,volcanoStatus,
             activeUpdatedIds.has(item.id)?item._deltaTxt:null,staleKey,conf.cls,conf.label,meta.icon,meta.label,meta.color
         ]);
         if(state.fingerprint===fingerprint){
@@ -624,6 +625,7 @@ function renderSidebarList(items) {
                 <div class="event-meta">
                     <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age"></span>
                     ${distVoce}
+                    ${volcanoStatus ? `<span class="ev-volcano-activity">${esc(volcanoStatus)}</span>` : ''}
                     ${detailTxt ? `<span class="ev-description">${esc(detailTxt)}</span>` : ''}
                     ${item.regionalWarning ? '<span class="ev-region">Área regional · sem ponto no mapa</span>' : ''}
                     ${item.hazardNature==='warning'?'<span class="ev-warning-facts">Severidade: '+esc(item.severityLabel||'Não informada')+' · '+(Number.isFinite(item.expiresAt)?'Válido até '+esc(formatBrasiliaDateTime(item.expiresAt)):'Validade: consultar boletim')+'</span>':''}
@@ -1755,8 +1757,9 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         prepararTextoVulcao(item);
         const activityBox=document.getElementById('pd-volcano-activity');
         if(activityBox){
-            const recent=item._volcanoEscalation&&Date.now()-item._updatedAt<180000;
-            activityBox.querySelector('strong').textContent=recent?'🌋 NOVA ATIVIDADE · '+item._volcanoEscalation:'🌋 Atividade reportada pela fonte';
+            activityBox.querySelector('strong').textContent=(window.CinematicCard?.volcanoStatus(rawItem)||'Atividade reportada pela fonte');
+            activityBox.dataset.activity=window.CinematicCard?.volcanoActivity(rawItem)?.eruptive?'eruption':'observation';
+            /* Keep the original bulletin description beneath the status. */
             activityBox.querySelector('p').textContent=traduzirTextoVulcanico(item.vulcanicActivity||item.activityStatus||item.ashStatus||item.detail||item.eruptionStatus||'Atividade monitorada');
             activityBox.hidden=false;
         }
