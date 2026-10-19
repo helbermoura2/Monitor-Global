@@ -20,3 +20,13 @@ test('rain begins at now, not soon, avoids repeat and keeps live lightning tied 
  await page.evaluate(()=>{__proWeather={code:95};WeatherDataStatus.record('current','updated',{at:Date.now()});liveRain.status='now';liveRain.arrivalMinutes=0;RainArrivalNotice.consider(liveRain);});const canvas=page.locator('#site-effect-demo-canvas');await expect(canvas).toHaveAttribute('data-scene','rain');await expect(canvas).toHaveAttribute('data-live','true');await page.clock.runFor(2350);await expect(canvas).toHaveAttribute('data-lightning','flash');await page.clock.fastForward(7800);await expect(canvas).toHaveCount(0);
  await page.evaluate(()=>{liveRain.now=Date.now();RainArrivalNotice.consider(liveRain);});await expect(canvas).toHaveCount(0);expect(await page.evaluate(()=>SiteEffectDemo.start('tsunami',{live:true}))).toBe(false);
 });
+test('GDACS Taal eruption title triggers fullscreen and cards state the reported activity',async({page})=>{
+ await boot(page);await page.evaluate(async()=>{await Promise.all([OptionalFeatures.effect('volcano'),OptionalFeatures.siteEffectDemo()]);});
+ await page.evaluate(()=>{const item={id:'gdacs-taal',type:'volcano',source:'GDACS',place:'Taal eruption',detail:'Alerta Laranja',ashStatus:'Taal eruption',eruptionStart:'2026-10-19',time:Date.now(),coords:[120.99,14.01]};globalAlerts=[item];globalEvents=[];lastMerged=[item];sidebarFilter='volcano';DesktopRecords.filter('volcano');showAlertDetails(item,false);clearTimeout(cycleTimeout);EventCamera.cancel();CinematicCard.start(item);});
+ await expect(page.locator('#site-effect-demo-canvas')).toHaveAttribute('data-scene','lava');await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);
+ await expect(page.locator('#events .ev-volcano-activity')).toHaveText('Erupção reportada');await expect(page.locator('#pd-volcano-activity strong')).toHaveText('Erupção reportada');await expect(page.locator('#pd-volcano-activity')).not.toContainText('Língua');
+ expect(await page.evaluate(()=>CinematicCard.volcanoStatus({type:'volcano',detail:'Lava flows observed. Ash plume observed'}))).toContain('Lava reportada');
+ expect(await page.evaluate(()=>CinematicCard.volcanoStatus({type:'volcano',source:'GDACS',place:'Taal eruption',eruptionStatus:'ENDED'}))).toContain('Em observação');
+ await page.evaluate(()=>{globalAlerts[0].eruptionStatus='ENDED';globalAlerts[0].ashStatus='';renderSidebarList(lastMerged);});await expect(page.locator('#events .ev-volcano-activity')).toContainText('Em observação');
+ for(const detail of ['Em observação','No eruption observed','Historical eruption in 1980','Possible eruption'])expect(await page.evaluate(detail=>CinematicCard.volcanoActivity({type:'volcano',source:'GDACS',place:'Taal',detail}).eruptive,detail)).toBe(false);
+});

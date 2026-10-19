@@ -29,7 +29,9 @@
   // aviation shorthand (VA TO FL150), while showAlertDetails translates USGS
   // text before calling us. Alert colours and a VONA alone do not prove lava.
   const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
-  const fields=[item.eruptionStatus,item.activityStatus,item.vulcanicActivity,item.ashStatus,item.vonaRemarks,item.detail].map(normalize).filter(Boolean);
+  // GDACS may put the explicit eruption report only in the event title.
+  const reportedTitle=/GDACS/i.test(String(item.source||item.sourceSummary||''))?item.place:'';
+  const fields=[reportedTitle,item.eruptionStatus,item.activityStatus,item.vulcanicActivity,item.ashStatus,item.vonaRemarks,item.detail].map(normalize).filter(Boolean);
   const uncertain=/\bpossible\b|\bpossivel\b|\bpotential\b|\bsuspeit|\bhistor|\bprevious\b|\blast eruption\b|\bultima erupcao\b|\b(?:new activity|nova atividade eruptiva)\s*\/\s*unrest/;
   // Keep negations inside a clause and attached to their material. Repeated
   // qualifiers cover "sem evidências de emissão de cinzas ou fluxo de lava".
@@ -39,19 +41,20 @@
   const ashAbsent=new RegExp(absence+coordinated('lava(?: flows?)?|fluxos? de lava|effusive activity|atividade efusiva')+'(?:ash\\b|cinzas?\\b|va\\b)');
   const lavaAbsent=new RegExp(absence+coordinated('ash(?: emissions?)?|cinzas?')+'(?:lava\\b|effusiv|efusiv)');
   const eruptionAbsent=new RegExp(absence+'(?:eruption\\b|erupcao\\b|eruptive activity\\b|atividade eruptiva\\b|eruptivo atividade\\b)');
-  const quiet=text=>eruptionAbsent.test(text)||/\bno eruptivo\b|\bnot erupt|\bnao\b.{0,24}\berup|\b(?:eruption|erupcao|eruptive activity|atividade eruptiva|eruptivo atividade)(?:\s+(?:has|have|is|was|currently|now|activity|foi|esta|se|encontra|atividade|ja)){0,4}\s+(?:ended|ceased|stopped|inactive|no longer active|not (?:been )?(?:obs|detec|confirmed)|nao (?:foi |foram )?(?:observ|detect|confirm)|encerrad|cessou|terminad|inativ)|\bdormant\b|\bextinct\b|\bdormente\b|\bextinto\b/.test(text);
+  const quiet=text=>/^(?:ended|terminated|encerrad[oa]|cessou)$/.test(text)||eruptionAbsent.test(text)||/\bno eruptivo\b|\bnot erupt|\bnao\b.{0,24}\berup|\b(?:eruption|erupcao|eruptive activity|atividade eruptiva|eruptivo atividade)(?:\s+(?:has|have|is|was|currently|now|activity|foi|esta|se|encontra|atividade|ja)){0,4}\s+(?:ended|ceased|stopped|inactive|no longer active|not (?:been )?(?:obs|detec|confirmed)|nao (?:foi |foram )?(?:observ|detect|confirm)|encerrad|cessou|terminad|inativ)|\bdormant\b|\bextinct\b|\bdormente\b|\bextinto\b/.test(text);
   const ashDenied=text=>ashAbsent.test(text)||/\b(?:ash|va|cinzas?)\b.{0,36}\b(?:not (?:been )?(?:obs|ident|detec|seen|report)|nao (?:foram |foi |sao )?(?:observ|detect|ident|vist|relat)|dissipat|dissipad|ceased|ended|cessou|encerrad)|\b(?:ash advisory|aviso de cinzas)\b.{0,20}\b(?:terminated|ended|encerrad)/.test(text);
   const lavaDenied=text=>lavaAbsent.test(text)||/\b(?:inactive|no longer active|inativ[oa]s?)\s+(?:lava\b|effusiv|efusiv)|\b(?:lava|effusiv\w*|efusiv\w*)\b.{0,36}\b(?:ended|ceased|stopped|not (?:been )?(?:resumed|obs|detec|active)|inactive|no longer active|nao (?:foi |foram )?(?:observ|detect)|cessou|encerrad|terminad|inativ)/.test(text);
   const clauses=fields.flatMap(text=>text.split(/[;,\n·.]+|\b(?:but|mas|porem|however)\b/)).map(text=>text.trim()).filter(text=>text&&!uncertain.test(text));
   const isQuiet=clauses.some(quiet);
-  const eruptionConfirmed=clauses.some(text=>/\berupting\b|\beruption\s+(?:rep(?:orted)?|obs(?:erved)?)\s+at\b|\berupcao\s+relatad[oa]\b|\b(?:ongoing|continuing|active) eruption\b|\beruption\b.{0,28}\b(?:ongoing|continues|continuing|started|observed)\b|\bem erupcao\b|\berupcao\b.{0,28}\b(?:continua|em andamento|ativa|inici|ocorr)|\b(?:active )?eruptive activity\b|\batividade eruptiva\b|\beruptiv[oa] atividade\b/.test(text)&&!quiet(text));
+  const titleEruption=/GDACS/i.test(String(item.source||item.sourceSummary||''))&&/^(?:eruption of |erupcao (?:de |do |da )?)?[\p{L}0-9 /-]+(?: eruption| erupcao)$|^erupcao (?:de |do |da )?[\p{L}0-9 /-]+$/u.test(normalize(reportedTitle))&&!uncertain.test(normalize(reportedTitle))&&!quiet(normalize(reportedTitle));
+  const eruptionConfirmed=titleEruption||clauses.some(text=>/\berupting\b|\beruption\s+(?:rep(?:orted)?|obs(?:erved)?)\s+at\b|\berupcao\s+relatad[oa]\b|\b(?:ongoing|continuing|active) eruption\b|\beruption\b.{0,28}\b(?:ongoing|continues|continuing|started|observed)\b|\bem erupcao\b|\berupcao\b.{0,28}\b(?:continua|em andamento|ativa|inici|ocorr)|\b(?:active )?eruptive activity\b|\batividade eruptiva\b|\beruptiv[oa] atividade\b/.test(text)&&!quiet(text));
   const ashEmission=clauses.some(text=>/\bash emissions?\b|\bemiss(?:ao|oes)\b.{0,25}\bcinzas?\b|\bva\b.{0,15}\b(?:eruptions?|emissions?)\b/.test(text)&&!ashDenied(text));
   const eruptive=!isQuiet&&(eruptionConfirmed||ashEmission||/^(?:eruption|erupcao|erupting)$/.test(normalize(item.eruptionStatus)));
   const lava=!isQuiet&&clauses.some(text=>/\blava\b|\beffusiv|\befusiv|\bmolten\b/.test(text)&&!lavaDenied(text));
   const observedAsh=clauses.some(text=>/\bash\b|\bcinzas?\b|\bva\s+(?:plume|cld|cloud|to\b|emissions?|eruptions?|obs\b|at\b)/.test(text)&&!ashDenied(text));
   const height=normalize(item.ashHeight);
   const ashHeight=!uncertain.test(height)&&!ashDenied(height)&&(/\bfl\s*[1-9]\d*\b|\b[1-9]\d*(?:[.,]\d+)?\s*(?:m(?:eters?|etros?)?|km|ft|feet)\b/.test(height)||Number(height)>0);
-  return {eruptive,lava,ash:observedAsh||ashHeight||eruptive&&!clauses.some(ashDenied)};
+  return {eruptive,lava,observedAsh:observedAsh||ashHeight,ash:observedAsh||ashHeight||eruptive&&!clauses.some(ashDenied)};
  }
  function profile(item){
   if(!item||!TYPES.has(item.type)||item.hazardNature==='bulletin')return null;
@@ -480,5 +483,6 @@
   if(cfg.type==='hurricane')scene.host.dataset.rotationDirection=cfg.rotationDirection;
  }
  const refreshCurrent=refresh;
- window.CinematicCard={start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending,isShowing:(id,type)=>!!scene&&scene.itemId===id&&scene.cfg.type===type};
+ function volcanoStatus(item){const a=volcanoActivity(item);return [a.eruptive?'Erupção reportada':'',a.lava?'Lava reportada':'',a.observedAsh?'Cinzas reportadas':''].filter(Boolean).join(' · ')||'Em observação · sem erupção confirmada';}
+ window.CinematicCard={volcanoActivity,volcanoStatus,start,stop,refresh:item=>{if(pending&&pending.item.id===item.id)pending.item=item;refreshCurrent(item);},prepareSymbol,isActive:()=>!!scene||!!pending,isShowing:(id,type)=>!!scene&&scene.itemId===id&&scene.cfg.type===type};
 })();
