@@ -1,0 +1,1 @@
+Natural Earth admin 1 (1:10m), domínio público. https://www.naturalearthdata.com/about/terms-of-use/ . Brasil, 27 UFs; simplificação Douglas-Peucker 0,008 grau. Uso cartográfico, abstém a menos de 3 km de bordas.

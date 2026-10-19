@@ -12,8 +12,8 @@
    const q=item.type==='earthquake'||(!item.type&&item.mag!=null),n=Number(item.mag),depth=item.depth;
    const tone=q&&Number.isFinite(n)?getHexColor(n):(TYPE_META[item.type]?.color||'#72d9ef');
    content.style.setProperty('--focus-tone',tone);
-   text('.focus-kind','EVENTO EM FOCO · '+(kinds[item.type]||'EVENTO'));
-   text('.focus-metric',q&&Number.isFinite(n)?'M '+n.toFixed(1).replace('.',','):(TYPE_META[item.type]?.icon||'📍'));
+   text('.focus-kind','EVENTO EM FOCO · '+(item.type==='capital-weather'?'TEMPO NA CAPITAL':kinds[item.type]||'EVENTO'));
+   text('.focus-metric',item.type==='capital-weather'?item.temperature.toLocaleString('pt-BR')+' °C':q&&Number.isFinite(n)?'M '+n.toFixed(1).replace('.',','):(TYPE_META[item.type]?.icon||'📍'));
    text('.focus-place',window.EventPortuguese?.place(item.place)||item.place||'Local não informado');
    text('.focus-detail',q&&depth!=null&&Number.isFinite(Number(depth))?'Profundidade: '+Math.max(0,Math.round(Number(depth))).toLocaleString('pt-BR')+' km':(item.source?'Fonte: '+item.source:'Em monitoramento'));
   }

@@ -1,0 +1,1 @@
+Fonte das bandeiras SVG: https://github.com/amckenna41/iso3166-flags/tree/main/iso3166-2-flags/BR . Licença MIT incluída. Arquivos BR-UF.svg renomeados para UF.svg e otimizados com SVGO, sem alterar o desenho.
