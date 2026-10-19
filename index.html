@@ -290,6 +290,7 @@
     <button id="painel-direito-close" onclick="event.stopPropagation();fecharPainelDetalhesMobile()" title="Fechar" aria-label="Fechar painel de detalhes">✕</button>
     <div class="pd-header-row">
       <div class="pd-header" id="pd-source">AGUARDANDO EVENTO…</div>
+      <span id="pd-event-status" hidden></span>
       <div class="pd-header-actions">
         <button type="button" id="pd-share-btn" title="Compartilhar imagem" aria-label="Compartilhar imagem">📤 Imagem</button>
         <button type="button" id="pd-more-toggle" class="pd-more-toggle" onclick="event.stopPropagation();togglePainelMaisDetalhes()" aria-expanded="false">Detalhes ↻</button>
@@ -659,8 +660,9 @@
 <link rel="stylesheet" href="css/map-focus-layout.css?v=20261015-solar-scale">
 <script defer src="js/mobile-focus-summary.js?v=20261015-mobile-focus"></script>
 <link rel="stylesheet" href="css/event-pin-glass.css?v=20261015-solar-scale">
-<link rel="stylesheet" href="css/desktop-records.css?v=20261019-card-transitions">
-<script defer src="js/desktop-records.js?v=20261019-card-transitions"></script>
+<link rel="stylesheet" href="css/desktop-records.css?v=20261019-event-badges">
+<script defer src="js/desktop-records.js?v=20261019-event-badges"></script>
+<script defer src="js/panel-event-status.js?v=20261019-event-badges"></script>
 </body>
 </html>
 

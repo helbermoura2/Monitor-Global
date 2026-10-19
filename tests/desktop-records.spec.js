@@ -61,3 +61,13 @@ test('M6 notices last one minute and transparent controls have no blue fill',asy
  await page.clock.runFor(1100);await expect(page.locator('#events .event')).toHaveClass(/record-notice-exit/);
  await page.clock.runFor(400);await expect(page.locator('#sidebar-left')).toBeHidden();
 });
+test('arrival badges clear the close button and main badge keeps original expiry',async({page})=>{
+ await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());await page.mouse.move(1200,740);
+ await page.evaluate(()=>{globalEvents=[{id:'badge-quake',type:'earthquake',mag:5.1,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento novo',source:'QA'}];activeAlertingIds.set('badge-quake',Date.now()+30000);EventStore.setSelected('badge-quake');applyFilters();});
+ await expect(page.locator('#pd-event-status')).toHaveText('NOVO');
+ const gap=await page.evaluate(()=>{const card=document.querySelector('#events .event');const style=getComputedStyle(card,'::after');const close=document.getElementById('sidebar-events-close').getBoundingClientRect();return {badgeRight:card.getBoundingClientRect().right-parseFloat(style.right),closeLeft:close.left};});expect(gap.badgeRight).toBeLessThan(gap.closeLeft);
+ await page.clock.runFor(20000);await page.evaluate(()=>{marcarEventoComoVisto('badge-quake');EventStore.setSelected(null);EventStore.setSelected('badge-quake');});await expect(page.locator('#pd-event-status')).toHaveText('NOVO');
+ await page.clock.runFor(10500);await expect(page.locator('#pd-event-status')).toBeHidden();
+ await page.evaluate(()=>{activeUpdatedIds.set('badge-quake',Date.now()+10000);EventStore.onDataRevised(['badge-quake']);});await expect(page.locator('#pd-event-status')).toHaveText('ATUALIZADO');
+ await page.clock.runFor(10500);await expect(page.locator('#pd-event-status')).toBeHidden();
+});
