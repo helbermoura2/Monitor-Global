@@ -33,7 +33,6 @@
  }
  function queuePosition(){if(frame===null)frame=requestAnimationFrame(position);}
  function cancel(){clearTimeout(timer);timer=null;}
- function interacting(){return list.matches(':hover')||list.contains(document.activeElement);}
  function prune(){
   for(const [id,until]of notices)if(until<=Date.now()&&!exiting.has(id)){
    const card=[...list.querySelectorAll('.event')].find(el=>el.dataset.eventId===String(id));
@@ -43,11 +42,11 @@
   }
  }
  function idleClose(){
-  cancel();if(!desktop.matches||pinned||!opened||interacting())return;
+  cancel();if(!desktop.matches||pinned||!opened)return;
   const deadlines=[...notices].filter(([id])=>!exiting.has(id)).map(([,until])=>until);
   if(!deadlines.length)return;
   const deadline=Math.min(...deadlines);
-  timer=setTimeout(()=>{if(interacting())return;prune();setOpen(notices.size>0);},Math.max(1,deadline-Date.now()));
+  timer=setTimeout(()=>{prune();setOpen(notices.size>0);},Math.max(1,deadline-Date.now()));
  }
  function render(){
   document.body.classList.toggle('desktop-records-ready',desktop.matches);
@@ -67,7 +66,7 @@
  function setOpen(value){if(!value&&!pinned)notices.clear();opened=pinned||!!value&&notices.size>0;if(!opened&&desktop.matches&&list.contains(document.activeElement))trigger.focus({preventScroll:true});render();idleClose();}
  function filter(type){pinned=type!=='all';if(!pinned)notices.clear();setOpen(pinned);}
  function items(rows){return !desktop.matches||pinned?rows:(rows||[]).filter(item=>notices.has(item.id));}
- function announce(ids){if(!desktop.matches||pinned||!ids.length)return;if(!interacting())prune();for(const id of ids)if(id!=null){
+ function announce(ids){if(!desktop.matches||pinned||!ids.length)return;prune();for(const id of ids)if(id!=null){
    clearTimeout(exiting.get(id));exiting.delete(id);
    const event=window.EventStore?.getById(id);
    notices.set(id,Date.now()+((event?.type==='earthquake'||event?.mag!=null)&&Number(event?.mag)>=6?60000:30000));
@@ -88,7 +87,6 @@
  }
  const status=document.createElement('small');status.id='desktop-records-status';document.getElementById('events-label')?.append(status);
  document.getElementById('sidebar-events-close')?.addEventListener('click',()=>{if(desktop.matches)setOpen(false);});
- list.addEventListener('pointerenter',cancel);list.addEventListener('pointerleave',idleClose);list.addEventListener('focusin',cancel);list.addEventListener('focusout',idleClose);
  document.addEventListener('click',e=>{if(desktop.matches&&row.classList.contains('expanded')&&!row.contains(e.target))row.classList.remove('expanded');});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')row.classList.remove('expanded');});
  desktop.addEventListener('change',()=>{cancel();arrange();render();idleClose();});
