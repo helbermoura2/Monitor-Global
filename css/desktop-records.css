@@ -50,3 +50,13 @@ html:not(.mg-theme-dark) #painel-direito button{background:transparent!important
 }
 @keyframes record-notice-in{from{opacity:0;transform:translateY(-18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes record-notice-out{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-28px)}}
+
+/* Leave the first notice's status clear of its close control. */
+@media(min-width:901px){
+ body.desktop-records-ready:not(.desktop-records-pinned) #events>.event::after{right:42px!important}
+}
+#pd-event-status{flex:0 0 auto;align-self:center;padding:3px 6px;border:1px solid #4ade8080;border-radius:5px;background:#4ade8022;color:#9af0b8;font:800 9px/1.3 system-ui;letter-spacing:.5px;white-space:nowrap}
+#pd-event-status[hidden]{display:none!important}
+#pd-event-status[data-kind="updated"]{border-color:#7dd3fc80;background:#7dd3fc18;color:#bae6fd}
+#painel-direito .pd-header-row{flex-wrap:wrap;gap:6px}
+#painel-direito .pd-header-actions{margin-left:auto}
