@@ -41,7 +41,7 @@ for(const width of [1280,390])test('tempestade no cartão completo mantém leitu
  await page.evaluate(()=>{const item={id:'storm-preview',type:'storm',source:'Visual QA',place:'Tempestade — São Paulo',detail:'Trovoadas e chuva intensa',coords:[-46.63,-23.55],windKmh:150,sev:3,time:Date.now(),bandeira:'🇧🇷'};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);});
  await page.clock.runFor(2100);
  await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-renderer','film');await expect(page.locator('#pd-local')).toContainText('Tempestade');
- const hit=()=>page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;});
+ const hit=()=>page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;});
  expect(await hit()).toBe(true);await page.screenshot({path:'/tmp/storm-scene-'+width+'.png'});
  await page.clock.runFor(240);await page.screenshot({path:'/tmp/storm-scene-lightning-'+width+'.png'});
  if(width===390){await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});await page.clock.runFor(500);await page.screenshot({path:'/tmp/storm-scene-expanded-'+width+'.png'});}

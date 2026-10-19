@@ -9,7 +9,7 @@
  const extra=document.createElement('div');extra.id='desktop-extra-filters';extra.setAttribute('role','group');extra.setAttribute('aria-label','Mais filtros');
  row.append(extra);
  const trigger=row.querySelector('[data-f="all"]');
- const notices=new Map();
+ const notices=new Map(), exiting=new Map(), animated=new WeakSet();
  let pinned=typeof sidebarFilter!=='undefined'&&sidebarFilter!=='all', opened=pinned, timer=null, frame=null;
  const seen=new Map();
  const labels={all:'Tudo',earthquake:'Sismos',volcano:'Vulcões',tsunami:'Tsunamis',hurricane:'Ciclones',storm:'Tempestades',fire:'Incêndios',tornado:'Tornados',civil:'Defesa Civil',wind:'Vento forte',flood:'Enchentes'};
@@ -34,10 +34,19 @@
  function queuePosition(){if(frame===null)frame=requestAnimationFrame(position);}
  function cancel(){clearTimeout(timer);timer=null;}
  function interacting(){return list.matches(':hover')||list.contains(document.activeElement);}
- function prune(){for(const [id,until]of notices)if(until<=Date.now())notices.delete(id);}
+ function prune(){
+  for(const [id,until]of notices)if(until<=Date.now()&&!exiting.has(id)){
+   const card=[...list.querySelectorAll('.event')].find(el=>el.dataset.eventId===String(id));
+   card?.classList.add('record-notice-exit');
+   const task=setTimeout(()=>{exiting.delete(id);if(notices.get(id)!==until)return;notices.delete(id);setOpen(notices.size>0);},matchMedia('(prefers-reduced-motion:reduce)').matches?0:360);
+   exiting.set(id,task);
+  }
+ }
  function idleClose(){
   cancel();if(!desktop.matches||pinned||!opened||interacting())return;
-  const deadline=Math.min(...notices.values());
+  const deadlines=[...notices].filter(([id])=>!exiting.has(id)).map(([,until])=>until);
+  if(!deadlines.length)return;
+  const deadline=Math.min(...deadlines);
   timer=setTimeout(()=>{if(interacting())return;prune();setOpen(notices.size>0);},Math.max(1,deadline-Date.now()));
  }
  function render(){
@@ -49,12 +58,21 @@
   else{list.inert=false;list.removeAttribute('aria-hidden');}
   const status=document.getElementById('desktop-records-status');if(status)status.textContent=pinned?'Fixos · Tudo para recolher':'Recolhe automaticamente';
   if(typeof renderSidebarList==='function'&&typeof lastMerged!=='undefined')renderSidebarList(lastMerged);
+  for(const card of list.querySelectorAll('.event')){
+   if(desktop.matches&&!pinned&&!animated.has(card)){animated.add(card);card.classList.add('record-notice-enter');}
+   if(pinned)card.classList.remove('record-notice-enter','record-notice-exit');
+  }
   queuePosition();window.dispatchEvent(new Event('desktop-records-change'));
  }
  function setOpen(value){if(!value&&!pinned)notices.clear();opened=pinned||!!value&&notices.size>0;if(!opened&&desktop.matches&&list.contains(document.activeElement))trigger.focus({preventScroll:true});render();idleClose();}
  function filter(type){pinned=type!=='all';if(!pinned)notices.clear();setOpen(pinned);}
  function items(rows){return !desktop.matches||pinned?rows:(rows||[]).filter(item=>notices.has(item.id));}
- function announce(ids){if(!desktop.matches||pinned||!ids.length)return;if(!interacting())prune();for(const id of ids)if(id!=null)notices.set(id,Date.now()+20000);if(notices.size)setOpen(true);}
+ function announce(ids){if(!desktop.matches||pinned||!ids.length)return;if(!interacting())prune();for(const id of ids)if(id!=null){
+   clearTimeout(exiting.get(id));exiting.delete(id);
+   const event=window.EventStore?.getById(id);
+   notices.set(id,Date.now()+((event?.type==='earthquake'||event?.mag!=null)&&Number(event?.mag)>=6?60000:30000));
+   [...list.querySelectorAll('.event')].find(el=>el.dataset.eventId===String(id))?.classList.remove('record-notice-exit');
+  }if(notices.size)setOpen(true);}
  function toggle(){setOpen(!opened);}
  function arrivals(reason,payload){
   if(reason==='official-map'&&Number(payload.mag)>=5)announce([payload.id]);
