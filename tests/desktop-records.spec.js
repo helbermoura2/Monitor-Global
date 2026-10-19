@@ -36,10 +36,10 @@ test('new arrivals and M5+ revisions open once, expire and do not steal camera s
  await page.evaluate(()=>{const e={...globalEvents[1],id:'records-second',coords:[120,30],time:Date.now()-1000,place:'Segundo evento'};globalEvents.push(e);activeAlertingIds.set(e.id,Date.now()+180000);applyFilters();});
  await expect(page.locator('#events .event')).toHaveCount(2);
  await page.screenshot({path:'/tmp/arriving-two-cards.png'});
- await page.clock.runFor(10500);await expect(page.locator('#events .event')).toHaveCount(1);await expect(page.locator('#events .event')).toHaveAttribute('data-event-id','records-second');await page.clock.runFor(10000);await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.clock.runFor(20500);await expect(page.locator('#events .event')).toHaveCount(1);await expect(page.locator('#events .event')).toHaveAttribute('data-event-id','records-second');await page.clock.runFor(10000);await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>applyFilters());await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>EventStore.onDataRevised(['records-new']));await expect(page.locator('#sidebar-left')).toBeVisible();await expect(page.locator('#events .event')).toHaveCount(1);
- await page.clock.runFor(20500);await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.clock.runFor(30500);await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>{globalEvents[1].mag=4.9;EventStore.onDataRevised(['records-new']);});await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>EventStore.notify('official-map',{id:'records-new',mag:5.2,version:'2'}));await expect(page.locator('#sidebar-left')).toBeVisible();
 });
@@ -48,4 +48,16 @@ test('mobile keeps the events sheet and local magnitude selector',async({page})=
  await expect(page.locator('#desktop-records-toggle')).toBeHidden();await expect(page.locator('body')).not.toHaveClass(/desktop-records-ready/);
  await page.locator('#mobile-primary-nav [data-view="events"]').click();await expect(page.locator('#sidebar-left')).toBeVisible();await expect(page.locator('#mobile-event-magnitude')).toBeVisible();
  await page.screenshot({path:'/tmp/mobile-records-preserved.png'});
+});
+test('M6 notices last one minute and transparent controls have no blue fill',async({page})=>{
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());await page.mouse.move(1200,740);
+ await expect(page.locator('#pd-focus-btn')).toHaveCount(0);
+ expect(await page.locator('#pd-share-btn').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+ expect(await page.locator('#sidebar-left').evaluate(el=>getComputedStyle(el).scrollbarColor)).toContain('73, 115, 134');
+ await page.evaluate(()=>{globalEvents=[{id:'large-notice',type:'earthquake',mag:6,depth:10,coords:[-70,-20],time:Date.now(),place:'Sismo M6',source:'QA'}];activeAlertingIds.set('large-notice',Date.now()+180000);applyFilters();});
+ await expect(page.locator('#events .event')).toHaveClass(/record-notice-enter/);
+ await page.clock.runFor(59000);await expect(page.locator('#sidebar-left')).toBeVisible();
+ await page.clock.runFor(1100);await expect(page.locator('#events .event')).toHaveClass(/record-notice-exit/);
+ await page.clock.runFor(400);await expect(page.locator('#sidebar-left')).toBeHidden();
 });

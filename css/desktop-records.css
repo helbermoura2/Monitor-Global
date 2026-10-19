@@ -37,3 +37,16 @@
  body.desktop-records-ready #top-strip #chips-row>.chip{font-size:10px!important;padding:4px 6px!important}
 }
 @media(prefers-reduced-motion:reduce){body.desktop-records-ready #sidebar-left{transition:none}}
+
+/* Native scrolling must not inherit the browser's white track. */
+#sidebar-left,#events{scrollbar-width:thin;scrollbar-color:#497386 transparent;color-scheme:dark}
+#sidebar-left::-webkit-scrollbar,#events::-webkit-scrollbar{width:6px}
+#sidebar-left::-webkit-scrollbar-track,#events::-webkit-scrollbar-track{background:transparent}
+#sidebar-left::-webkit-scrollbar-thumb,#events::-webkit-scrollbar-thumb{background:#497386;border-radius:6px}
+html:not(.mg-theme-dark) #painel-direito button{background:transparent!important;box-shadow:none!important}
+@media(min-width:901px) and (prefers-reduced-motion:no-preference){
+ body:not(.desktop-records-pinned) #events>.record-notice-enter{animation:record-notice-in .5s cubic-bezier(.2,.75,.25,1) both}
+ body:not(.desktop-records-pinned) #events>.record-notice-exit{animation:record-notice-out .35s ease-in both;pointer-events:none}
+}
+@keyframes record-notice-in{from{opacity:0;transform:translateY(-18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes record-notice-out{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-28px)}}

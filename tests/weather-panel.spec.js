@@ -9,7 +9,7 @@ for(const [name,width,height]of [['desktop',1280,720],['mobile',390,844]])test('
  await expect(weather).toBeHidden();await expect(page.locator('#weather-more')).toHaveJSProperty('open',false);
  if(width>900){await page.locator('#more-filters-toggle').click();await page.getByRole('button',{name:'Meteorologia',exact:true}).click();}
  else await page.evaluate(()=>showFcPopup());
- await expect(weather).toBeVisible();await expect(event).toBeHidden();await expect(page.locator('#pd-focus-btn')).toBeHidden();
+ await expect(weather).toBeVisible();await expect(event).toBeHidden();await expect(page.locator('#pd-focus-btn')).toHaveCount(0);
  await expect(page.locator('#weather-brief')).toContainText('Chuva observada');
  const fixtureText=await page.evaluate(()=>{window.__weatherEvidenceState={level:'unknown',measured:null};window.__weatherForecastBrief={min:6,max:13,rows:[{},{}]};WeatherPanel.update();return document.getElementById('weather-brief').textContent;});
  // #253 standardized numbers to pt-BR comma decimals in weather-panel.js's rain range text.

@@ -49,7 +49,7 @@ for(const width of [1280,390])test('cenas avançadas no evento real, revisão, r
   await expect(page.locator('.pd-weather-material')).toHaveCount(1);
   await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-demo','false');
   await expect(page.locator('#pd-local')).toContainText('São Paulo');
-  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+  expect(await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;})).toBe(true);
   const before=await page.locator('.pd-weather-material').elementHandle();
   await page.evaluate(()=>{const item={...EventStore.getSelected(),place:'São Paulo — boletim atualizado'};upsertAlert(item);showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});
   await page.clock.runFor(1600);expect(await before.evaluate(el=>el.isConnected),key).toBe(true);

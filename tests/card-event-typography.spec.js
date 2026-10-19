@@ -26,7 +26,7 @@ for(const width of [1280,390])test('Menu e eventos reais compartilham letras, re
  for(const key of ['storm','typhoon','tropical-storm','depression','tornado','flood','fire','volcano-lava','volcano-ash','volcano-monitoring']){
   await page.evaluate(key=>CardEffectDemo.preview(key),key);await expect(page.locator('#card-fx-demo-status')).toContainText('16 s');await page.clock.fastForward(3100);await page.clock.runFor(100);await page.clock.fastForward(2200);await page.clock.runFor(100);
   await expect(page.locator('[data-event-reaction]')).not.toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(headline);
-  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+  expect(await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;})).toBe(true);
   await page.screenshot({path:'/tmp/typography-'+key+'-'+width+'.png'});await page.clock.fastForward(10600);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer,.pd-letter-fragments,.pd-fx-windletter,#card-fx-demo-status')).toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(headline);
  }
  await page.evaluate(()=>SeismicCinema.play({mag:5.9,depth:10},'manual',true));await page.clock.fastForward(3100);await page.clock.runFor(100);await expect(page.locator('[data-event-reaction=fallen]')).not.toHaveCount(0);await page.clock.fastForward(13100);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer,.pd-fx-windletter')).toHaveCount(0);

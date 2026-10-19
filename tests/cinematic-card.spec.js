@@ -40,7 +40,7 @@ async function readableControls(page){
   return {lightness:rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722,opacity:Number(style.opacity)};
  });
  expect(result.lightness).toBeGreaterThan(190);expect(result.opacity).toBeGreaterThanOrEqual(.9);
- const focus=await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;});
+ const focus=await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;});
  expect(focus).toBe(true);
 }
 for(const width of [1280,390])test('cena ocupa o cartão inteiro e mantém os controles legíveis '+width,async({page})=>{
@@ -91,7 +91,7 @@ for(const width of [1280,390])test('todos os efeitos respeitam texto, vidro e co
   if(type==='tsunami'){await expect(page.locator('.pd-tsunami-surface')).toHaveCount(1);await expect(page.locator('.pd-cinema-footage,.pd-cinema-film')).toHaveCount(0);}
   await expect(layer).toHaveCSS('pointer-events','none');try { await expect.poll(()=>layer.evaluate(el=>Number(getComputedStyle(el).opacity)),{message:'Cena visível: '+type+' / '+width}).toBeGreaterThan(.8); } catch(error) { console.log('Estado da cena',type,width,await page.evaluate(()=>({body:document.body.className,panel:document.getElementById('painel-direito').className,width:document.getElementById('painel-direito').clientWidth,hidden:document.hidden,layer:document.querySelector('.pd-cinema-layer')?.getAttribute('style')})));throw error; }
   await expect(page.locator('#pd-local')).toBeVisible();await expect(page.locator('#pd-local')).toContainText('Evento demonstrativo');
-  const result=await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el};});
+  const result=await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el};});
   expect(result.hit).toBe(true);
   const same=await layer.evaluate(el=>{el.dataset.testIdentity='same';return getComputedStyle(el.parentElement).isolation;});expect(same).toBe('isolate');
   await page.evaluate(()=>{const item=EventStore.getSelected();item.type==='earthquake'?showEventDetails(0,false,true):showAlertDetails(item,false,true);clearTimeout(cycleTimeout);});await expect(layer).toHaveAttribute('data-test-identity','same');

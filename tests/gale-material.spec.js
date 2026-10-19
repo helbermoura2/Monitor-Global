@@ -31,7 +31,7 @@ test('falha da filmagem da rajada usa a fotografia e conserva o campo e os contr
  await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>OptionalFeatures.effect("wind"));await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento&&!!window.CardGaleField);await select(page);
  await expect(page.locator('.pd-cinema-film')).toHaveAttribute('data-texture','gale-canopy');await expect(page.locator('.pd-gale-field')).toHaveCount(1);
  await expect.poll(()=>page.locator('.pd-cinema-film').evaluate(c=>{const gl=c.getContext('webgl'),p=new Uint8Array(4);gl.readPixels(c.width>>1,c.height>>1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return p[3];})).toBeGreaterThan(200);
- expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+ expect(await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;})).toBe(true);
 });
 for(const width of [1280,390])test('rajada real e Menu arrancam letras e mantêm as lacunas até o fim do cartão '+width,async({page})=>{
  test.setTimeout(120000);const site=process.env.PUBLIC_SITE_URL||'http://127.0.0.1:4173';
@@ -47,7 +47,7 @@ for(const width of [1280,390])test('rajada real e Menu arrancam letras e mantêm
   await page.clock.fastForward(1300);await page.clock.runFor(300);await page.clock.fastForward(1700);await page.clock.runFor(100);
   const missing=await page.locator('#pd-local').evaluate(el=>{const letters=Array.from(el.querySelectorAll('.pd-fx-windletter'));return {total:letters.length,away:letters.filter(l=>l.dataset.galeFlight==='away'&&getComputedStyle(l).opacity==='0').length};});expect(missing.away).toBeGreaterThan(1);expect(missing.away).toBeLessThan(missing.total*.5);
   await expect(page.locator('.pd-cinema-footage')).toHaveCount(1);await expect(page.locator('#pd-local')).toHaveText(original);
-  expect(await page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;})).toBe(true);
+  expect(await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;})).toBe(true);
   if(!demo){const box=await page.locator('#painel-direito').boundingBox();await page.screenshot({path:'/tmp/wind-missing-letters-'+width+'.png',clip:box});}
   await page.clock.fastForward(2200);await page.clock.runFor(300);expect(await page.locator('#pd-local [data-gale-flight=away]').count()).toBe(missing.away);await expect(page.locator('[data-gale-flight=returning]')).toHaveCount(0);
   await page.clock.fastForward(10200);await page.clock.runFor(100);await expect(page.locator('.pd-cinema-layer,.pd-fx-windletter,[data-gale-flight]')).toHaveCount(0);await expect(page.locator('#pd-local')).toHaveText(original);

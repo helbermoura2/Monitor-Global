@@ -54,7 +54,7 @@ for(const width of [1280,390])test('rajada cinematográfica no cartão completo 
  const video=page.locator('.pd-cinema-footage');await expect(video).toHaveAttribute('src','media/card-fx/gale-canopy.mp4');await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused),{timeout:12000}).toBe(true);
  await expect(page.locator('.pd-gale-field')).toHaveCount(1);await expect(page.locator('.pd-cinema-drop,.pd-weather-lens')).toHaveCount(0);
  await expect(page.locator('#pd-local')).toContainText('Rajadas de vento');
- const hit=()=>page.locator('#pd-focus-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-focus-btn')===el;});
+ const hit=()=>page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;});
  await expect.poll(hit).toBe(true);
  await page.waitForFunction(()=>parseFloat(document.getElementById('painel-direito').style.getPropertyValue('--pd-wind-pressure'))>.5);
  const bounds=async()=>page.locator('#painel-direito').evaluate(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth};});
