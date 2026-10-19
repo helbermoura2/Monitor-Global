@@ -71,3 +71,14 @@ test('arrival badges clear the close button and main badge keeps original expiry
  await page.evaluate(()=>{activeUpdatedIds.set('badge-quake',Date.now()+10000);EventStore.onDataRevised(['badge-quake']);});await expect(page.locator('#pd-event-status')).toHaveText('ATUALIZADO');
  await page.clock.runFor(10500);await expect(page.locator('#pd-event-status')).toBeHidden();
 });
+test('clicking a notice cannot suspend its expiry or later arrivals',async({page})=>{
+ await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());
+ await page.evaluate(()=>{globalEvents=[{id:'clicked-notice',type:'earthquake',mag:5.1,depth:10,coords:[-70,-20],time:Date.now(),place:'Primeiro',source:'QA'}];activeAlertingIds.set('clicked-notice',Date.now()+180000);applyFilters();});
+ await page.clock.runFor(600);const card=page.locator('#events .event');await card.click();await card.focus();
+ expect(await page.evaluate(()=>DesktopRecords.state().pinned)).toBe(false);
+ await page.clock.runFor(10000);
+ await page.evaluate(()=>{for(let i=0;i<2;i++){const e={id:'next-notice-'+i,type:'earthquake',mag:5.2,depth:10,coords:[100+i*20,30],time:Date.now()-i*1000,place:'Seguinte '+i,source:'QA'};globalEvents.push(e);activeAlertingIds.set(e.id,Date.now()+180000);}applyFilters();});
+ await expect(page.locator('#events .event')).toHaveCount(3);
+ await page.clock.runFor(20500);await expect(page.locator('#events .event')).toHaveCount(2);
+ await page.clock.runFor(10000);await expect(page.locator('#sidebar-left')).toBeHidden();await expect(page.locator('#events .event')).toHaveCount(0);
+});
