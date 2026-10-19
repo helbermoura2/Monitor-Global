@@ -1,0 +1,22 @@
+.br-state-flag{display:inline-block;width:24px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px;border-radius:2px}
+#pd-flag .br-state-flag{width:30px;height:20px;margin:0}
+#pd-capital-weather{display:none}
+#painel-direito.pd-capital-weather>:not(.pd-header-row):not(#pd-capital-weather):not(#painel-direito-close){display:none!important}
+#painel-direito.pd-capital-weather #pd-capital-weather{display:block;opacity:1!important;visibility:visible!important;pointer-events:auto!important;padding:18px 10px 22px;color:#e1f6ff}
+#painel-direito.pd-capital-weather .pd-header-actions,#painel-direito.pd-capital-weather #pd-event-status{display:none!important}
+.capital-weather-city{font:700 20px/1.4 system-ui;text-align:center;margin:8px 0 18px}
+.capital-weather-city .br-state-flag{width:36px;height:24px}
+.capital-weather-temperature{text-align:center;font:800 clamp(48px,5vw,68px)/1.2 system-ui;color:#9ee8f5;letter-spacing:-2px}
+.capital-weather-condition{text-align:center;font:500 15px/1.5 system-ui;margin:12px 0 24px}
+.capital-weather-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 24px}
+.capital-weather-metrics>div{padding:12px 3px;border:1px solid #7dd3fc35;border-radius:9px;text-align:center;background:transparent}
+.capital-weather-metrics dt{font:11px/1.4 system-ui;color:#9cbacb}.capital-weather-metrics dd{font:700 14px/1.5 system-ui;margin:6px 0 0}
+.capital-weather-source,.capital-weather-time{text-align:center;font:11px/1.5 system-ui;color:#a9c3d4}
+.capital-weather-map-pin{padding:7px 12px;border:1px solid #9ee8f5;border-radius:10px;background:#092536df;color:#c9f6ff;font:800 18px/1.2 system-ui;box-shadow:0 3px 12px #0007;pointer-events:none}
+@media(max-width:900px){
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-capital-weather{display:block!important;overflow-y:auto!important}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-capital-weather>.stats-grid{display:none!important}
+ #painel-direito.pd-capital-weather #pd-capital-weather{padding:8px 6px 16px}
+ .capital-weather-city{font-size:17px;margin:6px 0 8px}.capital-weather-temperature{font-size:42px}.capital-weather-condition{font-size:13px;margin:7px 0 12px}
+ .capital-weather-metrics{margin-bottom:10px}.capital-weather-metrics>div{padding:7px 2px}.capital-weather-source,.capital-weather-time{margin:5px 0}
+}

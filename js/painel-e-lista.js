@@ -377,6 +377,7 @@ function enrichPainelDetalheUI(item) {
         renderPainelChips(item);
         renderPainelTimeline(item);
         syncPanelPresentation(item);
+        window.BrazilStateFlags?.updateMain();
     } catch (e) { console.warn('[pd-ui]', e); }
 }
 
@@ -530,8 +531,9 @@ function renderSidebarList(items) {
         // Somente campos que afetam este cartão. Não serializa polígonos,
         // histórico de fontes ou outras cargas grandes do registro completo.
         const volcanoStatus=item.type==='volcano'?window.CinematicCard?.volcanoStatus(item):'';
+        const stateFlagCode=window.BrazilStateFlags?.uf(item)||'';
         const fingerprint=JSON.stringify([
-            item.type,item.mag,item.depth,item.time,item.place,item.bandeira,item.source,item.sourceSummary,item.sources,
+            item.type,item.mag,item.depth,item.time,item.place,item.bandeira,stateFlagCode,item.source,item.sourceSummary,item.sources,
             item.isPreliminary,item.correlationLevel,item.coords,minhaPosicao?.lat,minhaPosicao?.lng,
             item.hazardNature,item.warningEvent,item.title,item.displayLabel,item.cycloneLabel,item.classification,
             item.windKmh,item.pressureMb,item.basin,item.movementInfo?.compass,item.detail,item.activityStatus,item.vulcanicActivity,
@@ -575,7 +577,7 @@ function renderSidebarList(items) {
                 <div class="event-header">
                     <span class="ev-kind">SISMO</span>${item.isPreliminary?'<span class="ev-status">PRELIMINAR</span>':''}
                     ${item.correlationLevel && Number(item.mag)>=5.5 ? `<span class="mg-corr-mini" title="Correlação inteligente de risco">${item.correlationLevel==='ALERTA OFICIAL'?'🌊⚠️':item.correlationLevel==='ALTO'?'🌊🔴':item.correlationLevel==='MODERADO'?'🌊🟠':item.correlationLevel==='ATENÇÃO'?'🌊🟡':'🌊🟢'}</span>` : ''}
-                    <span class="event-place">${esc(item.bandeira)} ${esc(item.place)}</span>
+                    <span class="event-place">${window.BrazilStateFlags?.markup(item)||esc(item.bandeira)} ${esc(item.place)}</span>
                 </div>
                 <div class="event-meta">
                     <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age"></span>
@@ -604,6 +606,7 @@ function renderSidebarList(items) {
                 : (item.type === 'flood' ? (typeof traduzirTextoEnchente==='function'?traduzirTextoEnchente(item.place):item.place)
                 : item.place));
             const flagTxt = isCyc ? (item.bandeira || '🌀') : (item.bandeira || '');
+            const stateFlag=window.BrazilStateFlags?.markup(item)||'';
             const detailTxt = isCyc ? detalheCicloneLista(item)
                 : (item.type === 'volcano' ? traduzirTextoVulcanico(item.detail || item.activityStatus || item.vulcanicActivity || '')
                 : (item.type === 'flood' ? (typeof traduzirTextoEnchente==='function'?traduzirTextoEnchente(item.detail||''): (item.detail||''))
@@ -620,7 +623,7 @@ function renderSidebarList(items) {
                     <span class="event-type-badge" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}55;">
                         ${isCyc ? '🌀' : meta.icon} ${esc(badgeTxt)}
                     </span>
-                    <span class="event-place">${esc(flagTxt)} ${esc(placeTxt)}</span>
+                    <span class="event-place">${stateFlag||esc(flagTxt)} ${esc(placeTxt)}</span>
                 </div>
                 <div class="event-meta">
                     <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age"></span>
@@ -1002,20 +1005,24 @@ function selectNextAutoCycleItem() {
         groups.get(type).set(item.id, item);
     }
     for (const type of state.alerts.keys()) if (!groups.has(type)) state.alerts.delete(type);
-    const wantQuake = state.phase < 2;
-    let item = null;
-    if ((wantQuake && quakes.size) || !groups.size) {
-        if (quakes.size) item = quakes.get(autoCycleDraw(state.quakes, [...quakes.keys()], eventoSelecionadoId));
-    } else {
-        const type = autoCycleDraw(state.types, [...groups.keys()], state.lastType);
-        const group = groups.get(type);
-        if (group) {
-            if (!state.alerts.has(type)) state.alerts.set(type, {});
-            item = group.get(autoCycleDraw(state.alerts.get(type), [...group.keys()], eventoSelecionadoId));
-            state.lastType = type;
+    const slots=['quake','quake','other','other','capital','quake','quake','other','other','brazil'];
+    state.capitals=state.capitals||{};state.brazil=state.brazil||{};
+    // A missing category consumes only its slot, never a fake event.
+    for(let attempt=0;attempt<slots.length;attempt++){
+        const slot=slots[state.phase%slots.length];state.phase=(state.phase+1)%slots.length;
+        let item=null;
+        if(slot==='capital')item=window.CapitalWeather?.pick(state.capitals,eventoSelecionadoId)||null;
+        else if(slot==='brazil'){
+            const pool=[...quakes.values(),...[...groups.values()].flatMap(g=>[...g.values()])].filter(e=>window.BrazilStateFlags?.isBrazil(e));
+            const id=autoCycleDraw(state.brazil,pool.map(e=>e.id),eventoSelecionadoId);item=pool.find(e=>e.id===id)||null;
+        }else if(slot==='quake'&&quakes.size)item=quakes.get(autoCycleDraw(state.quakes,[...quakes.keys()],eventoSelecionadoId));
+        else if(slot==='other'&&groups.size){
+            const type=autoCycleDraw(state.types,[...groups.keys()],state.lastType),group=groups.get(type);
+            if(group){if(!state.alerts.has(type))state.alerts.set(type,{});item=group.get(autoCycleDraw(state.alerts.get(type),[...group.keys()],eventoSelecionadoId));state.lastType=type;}
         }
+        if(item)return item;
     }
-    if (item) state.phase = (state.phase + 1) % 3;
+    const item=null;
     return item;
 }
 function showNextAutoCycleItem() {
@@ -1024,6 +1031,7 @@ function showNextAutoCycleItem() {
     window.__mgSoftCycle = true;
     window.__mgRotationDisplay = true;
     try {
+        if(it.type==='capital-weather'){const shown=window.CapitalWeather?.show(it)||false;if(shown)window.__mgResumeRotation=false;return shown;}
         const ehSismo = it.type === 'earthquake' || (it.mag != null && !it.type);
         // The rotation can land back on the item already on screen (a lone
         // alert cycling to itself, or the "next" slot wrapping around). That
@@ -1236,6 +1244,7 @@ function abrirPinturaEVoltarEpicentro(current, zoomAlvo) {
 function showEventDetails(index, triggerVisualAlert = false, silentRefresh = false) {
     if(!silentRefresh)window.EventReplay?.stop(false);
     if (!globalEvents[index] || !map) return;
+    window.CapitalWeather?.close();
     if(!silentRefresh&&(window.SeismicScenarioDemo?.isActive()||window.CardEffectDemo?.isActive()))window.CardEffectDemo?.cancelForRealEvent();
     if (!silentRefresh && globalEvents[index].id !== window.EventStore?.selectedId) window.EventDetailsBack?.close();
     if (!silentRefresh) {
@@ -1303,7 +1312,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     setGauge(item.mag, true);
     resetPainelDetalheCompartilhado();
     document.getElementById('pd-source').innerHTML = `ANÁLISE SÍSMICA`;
-    document.getElementById('pd-flag').innerHTML = item.bandeira || country.flag;
+    document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
     try { enrichPainelDetalheUI(item); } catch (e) {}
 
     const regiaoIgual = paisTxt && titulo.toLowerCase().includes(paisTxt.toLowerCase());
@@ -1699,6 +1708,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             if (fresh) item = fresh;
         }
     } catch (e) {}
+    window.CapitalWeather?.close();
     item=window.EventPortuguese?.view(item)||item;
     if (!silentRefresh) {
         window.PresentationLimits?.begin(item,triggerVisualAlert?'priority':window.__mgSoftCycle?'auto':'manual');
@@ -1742,7 +1752,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     if(typeof prepareStormLightning==='function')prepareStormLightning(item);
     document.getElementById('pd-source').textContent = window.RecordPresentation?.label(item) || item.displayLabel || meta.label || 'ALERTA';
     try { enrichPainelDetalheUI(item); } catch (e) {}
-    document.getElementById('pd-flag').innerHTML = item.bandeira || country.flag;
+    document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
     const localTxt = item.type === 'flood' && typeof traduzirTextoEnchente === 'function'
         ? traduzirTextoEnchente(item.place) : (item.type === 'volcano' ? traduzirTextoVulcanico(item.place) : item.place);
     document.getElementById('pd-local').textContent = `${item.cycloneLabel ? item.cycloneLabel + ' — ' : ''}${localTxt}`;

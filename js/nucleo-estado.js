@@ -120,7 +120,7 @@ const EventStore = (function () {
         if (m) return m;
       }
     } catch (e) {}
-    return null;
+    return window.CapitalWeather?.get(id)||null;
   }
 
   function getSelected() {
@@ -154,7 +154,7 @@ const EventStore = (function () {
       _refreshScheduled = false;
       try {
         const item = getById(selectedId);
-        if (!item) return;
+        if (!item || item.type==='capital-weather') return;
         if (item.type === 'earthquake' || (item.mag != null && !item.type)) {
           const idx = Array.isArray(globalEvents) ? globalEvents.findIndex(e => e && e.id === selectedId) : -1;
           if (idx >= 0 && typeof showEventDetails === 'function') {

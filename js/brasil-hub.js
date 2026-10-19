@@ -123,7 +123,8 @@
     let ok = false;
     // 1) Capitais via BrasilAPI (HTTPS)
     try {
-      const r = await fetch('https://brasilapi.com.br/api/cptec/v1/clima/capital', { cache: 'no-store' });
+      const rows=await window.CapitalWeather.fetchCptec();
+      const r={ok:true,json:async()=>rows};
       if (r.ok) {
         const arr = await r.json();
         ok = true;
