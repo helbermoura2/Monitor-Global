@@ -28,6 +28,7 @@
  }
  function positionNotice(){if(!notice)return;const host=document.getElementById('mapWrap');if(!host)return;const bottom=Math.max(...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));notice.style.top=Math.max(12,bottom-host.getBoundingClientRect().top+8)+'px';if(innerWidth<700&&legend)legend.style.top=(notice.offsetTop+notice.offsetHeight+8)+'px';}
  function label(item,result,failed=false){
+  if(!item.__tsunamiMapDemo){legend?.remove();legend=null;notice?.remove();notice=null;frameNode?.remove();frameNode=null;if(window.TsunamiMapModel.status(item).level==='warning'){decorate(item,result);notice?.remove();notice=null;}return;}
   legend?.remove();legend=document.createElement('section');legend.id='tsunami-map-legend';legend.setAttribute('aria-label','Legenda dos boletins de tsunami');
   node('strong',item.__tsunamiMapDemo?'🌊 TESTE · pintura de tsunami':'🌊 Regiões do boletim · '+item.source,legend);
   if(item.__tsunamiMapDemo)node('small','Cenário fictício para demonstração. Não é um alerta real.',legend);
@@ -72,9 +73,9 @@
  function setVisible(value){visible=!!value;if(legend)legend.style.display=visible?'':'none';try{for(const id of layers)if(map.getLayer(id))map.setLayoutProperty(id,'visibility',visible?'visible':'none');}catch(e){}}
  async function show(item,previewContext=null,hostId=null){
   if(item?.type!=='tsunami'||(!previewContext&&(!window.TsunamiLink?.official(item)||typeof eventoSelecionadoId==='undefined'||eventoSelecionadoId!==(hostId||item.id)))){stop();return;}
-  const key=JSON.stringify([hostId,item.id,item.time,item.cancelled,item.hazardNature,item.warningLevel,item.affectedAreas,item.coverageAreas,item.warningGeometry]);if(key===signature)return;
+  const key=JSON.stringify([hostId,item.id,item.time,item.cancelled,item.hazardNature,item.warningLevel,item.affectedAreas,item.coverageAreas,item.warningGeometry,window.TsunamiMapModel.status(item).level]);if(key===signature)return;
   stop();linkedHost=hostId;if(previewContext)demo={id:item.id,previous:previewContext,mode:item.__tsunamiCoastalRussia?'russia':null};signature=key;const token=generation;
-  try{const regions=(item.affectedAreas?.length||item.coverageAreas?.length)?await load():empty();if(token!==generation||!selected(item.id))return;
+  try{const regions=window.TsunamiMapModel.status(item).level!=='no-threat'&&(item.affectedAreas?.length||item.coverageAreas?.length)?await load():empty();if(token!==generation||!selected(item.id))return;
    const result=window.TsunamiMapModel.build(item,regions);ensure();map.getSource(SOURCE).setData(result.data);current={id:item.id,item,data:result.data};label(item,result);if(previewContext&&!item.__tsunamiCoastalRussia)fit();
   }catch(error){if(token===generation&&selected(item.id))label(item,{data:empty(),entries:[],unmapped:[]},true);console.warn('[costas tsunami]',error.message);}
  }

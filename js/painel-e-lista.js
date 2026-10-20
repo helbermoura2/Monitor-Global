@@ -544,6 +544,8 @@ function renderSidebarList(items) {
             setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));desired.push(div);
             const attention=window.RegionalAttention?.record(rawItem,div);
             if(attention)desired.push(attention);
+            const tsunamiNotice=window.TsunamiMapModel?.record(rawItem,div);
+            if(tsunamiNotice)desired.push(tsunamiNotice);
             return;
         }
         const distVoce = minhaPosicao && item.coords
@@ -658,6 +660,8 @@ function renderSidebarList(items) {
         desired.push(div);
         const attention=window.RegionalAttention?.record(rawItem,div);
         if(attention)desired.push(attention);
+        const tsunamiNotice=window.TsunamiMapModel?.record(rawItem,div);
+        if(tsunamiNotice)desired.push(tsunamiNotice);
     });
     if (totalItems > renderLimit) {
         const more=existingHeaders.get('more')||document.createElement('div');

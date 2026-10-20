@@ -3,6 +3,38 @@
  'use strict';
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const aliases={panama:'panama',brasil:'brazil',peru:'peru',equador:'ecuador',colombia:'colombia',mexico:'mexico',chile:'chile',japao:'japan',indonesia:'indonesia',filipinas:'philippines',novazelandia:'newzealand',australia:'australia',russia:'russia',polinesiafrancesa:'frenchpolynesia',novacaledonia:'newcaledonia',ilhascook:'cookislands',ilhassalomao:'solomonislands',marshalls:'marshallislands',micronesia:'federatedstatesofmicronesia',chuuk:'federatedstatesofmicronesia',kosrae:'federatedstatesofmicronesia',pohnpei:'federatedstatesofmicronesia',rota:'northernmarianaislands',tinian:'northernmarianaislands',saipan:'northernmarianaislands',northernmarianas:'northernmarianaislands',columbiabritanica:'britishcolumbia',havaí:'hawaii',havai:'hawaii',samoaamericana:'americansamoa',alasca:'alaska'};
+ function status(item){
+  const text=[item.warningLevel,item.title,item.description,item.detail].filter(Boolean).join(' ');
+  if(item.cancelled)return {level:'ended',title:'Boletim de tsunami encerrado',message:'Consulte as orientações finais da autoridade.'};
+  if(item.hazardNature!=='warning'&&/no tsunami (?:threat|danger)|no existe peligro de tsunami|sem amea[cç]a|n[aã]o h[aá] amea[cç]a/i.test(text))return {level:'no-threat',title:'Sem ameaça de tsunami, segundo o boletim',message:'Não há ameaça indicada para as áreas avaliadas neste boletim. Isto não é um alerta de ameaça.'};
+  if(item.hazardNature==='warning')return {level:'warning',title:'Aviso oficial de tsunami',message:'Siga as orientações da autoridade para as costas indicadas no boletim.'};
+  return {level:'information',title:'Boletim informativo de tsunami',message:'Informativo não confirma ameaça nem ocorrência de tsunami. Consulte o boletim oficial.'};
+ }
+ const noticeWindows=new Map();
+ function record(item,host){
+  if(item.type!=='tsunami'||!root.document||!root.TsunamiLink?.official(item))return null;
+  const state=root.DesktopRecords?.state?.(),now=Date.now();
+  const arrival=typeof activeAlertingIds!=='undefined'?activeAlertingIds.get(item.id)||0:0;
+  const announced=state&&!state.pinned&&state.ids.includes(item.id);
+  let noticeWindow=noticeWindows.get(item.id);
+  if((arrival||announced)&&(!noticeWindow||arrival&&noticeWindow.arrival!==arrival)){noticeWindow={arrival,until:arrival?Math.min(arrival,now+60000):now+60000};noticeWindows.set(item.id,noticeWindow);while(noticeWindows.size>256)noticeWindows.delete(noticeWindows.keys().next().value);}
+  if(!noticeWindow||noticeWindow.until<=now)return null;
+  const view=status(item),key=JSON.stringify([view,item.time,item.source,item.affectedAreas,item.coverageAreas,item.cancelled,noticeWindow.until]);
+  if(host.__tsunamiNotice?.key===key)return host.__tsunamiNotice.node;
+  const box=document.createElement('section');box.className='tsunami-record-notice';box.dataset.bulletinId=String(item.id);box.dataset.level=view.level;
+  const add=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;box.append(el);return el;};
+  add('strong',view.title);add('small',(item.source||'Fonte oficial')+' · '+(item.warningLevel||'Boletim oficial'));add('p',view.message);
+  if(view.level==='warning'){
+   const areas=[...item.affectedAreas||[],...item.coverageAreas||[]];
+   for(const area of areas.slice(0,6))add('small',placeLabel(area.name)+' · '+category(area,item).label);
+   if(!areas.length&&!item.warningGeometry)add('small','O boletim não fornece costas com contornos identificáveis. Consulte a fonte oficial.');
+   else {const button=add('button','Ver costas do boletim');button.type='button';button.onclick=e=>{e.stopPropagation();root.TsunamiLinkedPanel?.open(item);Promise.resolve(root.TsunamiMap?.show(item)).then(()=>root.TsunamiMap?.fit());};}
+   add('small','As faixas costeiras não representam inundação em terra.');
+  }
+  clearTimeout(host.__tsunamiNotice?.timer);
+  const timer=setTimeout(()=>box.remove(),Math.max(1,noticeWindow.until-now));
+  host.__tsunamiNotice={key,node:box,timer};return box;
+ }
  function category(area,item){
   const value=String(area.category||item.warningLevel||'').replace(/\b(\d+)[.,]0+\b/g,'$1').replace(/\b0[.,]30+\b/g,'0.3');
   if(item.cancelled||/cancel|encerrad/i.test(value))return {color:'#94a3b8',label:'Encerrado',rank:0};
@@ -17,6 +49,7 @@
  }
  function build(item,regions){
   const features=[],entries=[],unmapped=[];
+  if(status(item).level==='no-threat')return {data:{type:'FeatureCollection',features},entries:[],unmapped:[]};
   if(['Polygon','MultiPolygon'].includes(item.warningGeometry?.type)){
    const c=category({},item);features.push({type:'Feature',geometry:item.warningGeometry,properties:{...c,name:item.place,kind:'official'}});entries.push(c);
   }
@@ -43,5 +76,5 @@
   return [start,end];
  }
  function placeLabel(name){return {kurilislands:'Ilhas Curilas',northeasternjapan:'Nordeste do Japão',aleutianislands:'Ilhas Aleutas',southernalaska:'Sul do Alasca',pacificcoastofrussia:'Costa pacífica da Rússia'}[normalize(name)]||root.EventPortuguese?.place(name)||name;}
- const api={build,category,normalize,longitudeBounds,placeLabel};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
+ const api={build,category,normalize,longitudeBounds,placeLabel,status,record};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:window);
