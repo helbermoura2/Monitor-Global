@@ -21,18 +21,25 @@
   if(!item||(item.type&&item.type!=='earthquake')||item.__cinemaDemo||!numeric(item.mag)||!numeric(item.depth)||item.depth<=0||item.mag>10||!Array.isArray(item.coords)||item.coords.length!==2||!item.coords.every(numeric)||Math.abs(item.coords[0])>180||Math.abs(item.coords[1])>90)return [];
   return rules.filter(rule=>item.mag>=rule.minMag&&item.depth<=rule.maxDepth&&(rule.radiusKm?distance(item.coords,rule.area)<=rule.radiusKm:inside([rule.id==='alaska'&&item.coords[0]<0?item.coords[0]+360:item.coords[0],item.coords[1]],rule.area)));
  }
- root.RegionalAttention={evaluate,rules};
- if(!root.document)return;
- const panel=document.getElementById('painel-direito');if(!panel)return;
- const card=document.createElement('section');card.id='regional-attention-card';card.hidden=true;card.setAttribute('aria-label','Atenção regional — avaliação automática');card.setAttribute('aria-live','polite');
- const add=(tag,text,parent=card)=>{const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;};
- add('strong','ATENÇÃO REGIONAL');const title=add('h3',''),summary=add('p','');add('p','Sismo forte em região monitorada. Os impactos ainda não foram confirmados. Acompanhe as autoridades locais.');
- const details=document.createElement('details');card.append(details);add('summary','Entenda o aviso',details);const reason=add('p','',details);add('p','Critérios editoriais do Monitor Global. As áreas são aproximadas e não representam a extensão do tremor. Fora delas, ou abaixo destes valores, também podem ocorrer danos. Este aviso não prevê tsunami.',details);
- add('small','Avaliação automática · não substitui avisos oficiais');
- card.addEventListener('click',e=>e.stopPropagation());
- const mobile=()=>matchMedia('(max-width:900px)').matches;
- function layout(){if(mobile()){if(card.parentNode!==panel)panel.append(card);panel.style.removeProperty('--regional-card-space');}else{if(card.parentNode!==panel.parentNode)panel.after(card);const rect=panel.getBoundingClientRect();card.style.width=rect.width+'px';card.style.right=(innerWidth-rect.right)+'px';panel.style.setProperty('--regional-card-space',(card.hidden?0:card.getBoundingClientRect().height+10)+'px');}}
- let signature='';
- function sync(){const item=root.EventStore?.getSelected?.(),matches=evaluate(item),key=JSON.stringify([item?.id,item?.mag,item?.depth,item?.coords,matches.map(r=>r.id)]);if(key===signature)return;signature=key;card.hidden=!matches.length;panel.classList.toggle('has-regional-attention',!!matches.length);if(matches.length){const r=matches[0];title.textContent=matches.map(r=>r.name).join(' · ');summary.textContent='M'+item.mag.toLocaleString('pt-BR',{minimumFractionDigits:1})+' · Profundidade informada: '+item.depth.toLocaleString('pt-BR')+' km';reason.textContent='Critério acionado: epicentro na área de referência de '+r.name+', magnitude ≥ '+r.minMag.toLocaleString('pt-BR')+' e profundidade informada de até '+r.maxDepth+' km. Fonte sísmica: '+(item.source||'consulte o cartão do evento')+'.';details.open=false;}layout();}
- root.EventStore?.subscribe(sync);root.addEventListener('resize',layout);new ResizeObserver(layout).observe(card);sync();
+ function record(item,host){
+  if(!root.document)return null;
+  const transient=root.DesktopRecords?.state?.();
+  const announced=transient&&!transient.pinned&&transient.ids.includes(item.id);
+  const now=Date.now(),arrival=typeof activeAlertingIds!=='undefined'?activeAlertingIds.get(item.id)||0:0,revision=typeof activeUpdatedIds!=='undefined'?activeUpdatedIds.get(item.id)||0:0;
+  host.__regionalUntil=Math.max(host.__regionalUntil||0,arrival,revision);
+  const recent=announced||host.__regionalUntil>now;
+  const matches=recent?evaluate(item):[];if(!matches.length)return null;
+  const key=JSON.stringify([item.mag,item.depth,item.coords,item.source,matches.map(r=>r.id)]);
+  if(host.__regionalAttention?.key===key)return host.__regionalAttention.card;
+  const card=document.createElement('section');card.className='regional-attention-card';card.dataset.regionalEventId=String(item.id);card.setAttribute('aria-label','Atenção regional — avaliação automática');
+  const add=(tag,text,parent=card)=>{const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;};
+  add('strong','ATENÇÃO REGIONAL');add('h3',matches.map(r=>r.name).join(' · '));add('p','M'+item.mag.toLocaleString('pt-BR',{minimumFractionDigits:1})+' · Profundidade informada: '+item.depth.toLocaleString('pt-BR')+' km');add('p','Sismo forte em região monitorada. Os impactos ainda não foram confirmados. Acompanhe as autoridades locais.');
+  const details=document.createElement('details');card.append(details);add('summary','Entenda o aviso',details);
+  for(const r of matches)add('p','Critério acionado: epicentro na área de referência de '+r.name+', magnitude ≥ '+r.minMag.toLocaleString('pt-BR')+' e profundidade informada de até '+r.maxDepth+' km.',details);
+  add('p','Fonte sísmica: '+(item.source||'consulte o cartão do evento')+'. Critérios editoriais do Monitor Global. As áreas são aproximadas e não representam a extensão do tremor. Fora delas, ou abaixo destes valores, também podem ocorrer danos. Este aviso não prevê tsunami.',details);
+  add('small','Avaliação automática · não substitui avisos oficiais');
+  host.__regionalAttention={key,card};return card;
+ }
+ root.RegionalAttention={evaluate,rules,record};
+ if(root.document&&typeof renderSidebarList==='function'&&typeof lastMerged!=='undefined')renderSidebarList(lastMerged);
 })(globalThis);
