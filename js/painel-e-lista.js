@@ -541,7 +541,10 @@ function renderSidebarList(items) {
             activeUpdatedIds.has(item.id)?item._deltaTxt:null,staleKey,conf.cls,conf.label,meta.icon,meta.label,meta.color
         ]);
         if(state.fingerprint===fingerprint){
-            setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));desired.push(div);return;
+            setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));desired.push(div);
+            const attention=window.RegionalAttention?.record(rawItem,div);
+            if(attention)desired.push(attention);
+            return;
         }
         const distVoce = minhaPosicao && item.coords
             ? `<span title="Distância de você">${Math.round(haversine(minhaPosicao.lat, minhaPosicao.lng, item.coords[1], item.coords[0]))} km de você</span>`
@@ -653,6 +656,8 @@ function renderSidebarList(items) {
         state.fingerprint=fingerprint;
         setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));
         desired.push(div);
+        const attention=window.RegionalAttention?.record(rawItem,div);
+        if(attention)desired.push(attention);
     });
     if (totalItems > renderLimit) {
         const more=existingHeaders.get('more')||document.createElement('div');

@@ -1,10 +1,14 @@
 # Atenção regional
 
-Cartão contextual separado abaixo do painel no desktop e após os detalhes no
-mesmo painel rolável no celular. Só acompanha o sismo selecionado; revisões
-reavaliam os critérios, e mudar de evento remove o aviso. Não cria registro,
-som, prioridade, tsunami, publicação ou consulta de rede. Sem profundidade
-positiva numérica, abstém-se (zero pode representar profundidade desconhecida).
+Cartão contextual separado imediatamente abaixo do cartão do sismo novo ou
+atualizado na lista de registros. Cada aviso pertence ao seu registro: não
+acompanha a seleção do mapa e não altera o painel principal. No desktop em Tudo,
+usa a mesma permanência/saída do registro (M6+: 60 segundos); dois registros
+qualificados recebem dois avisos. No celular, acompanha registros com selo de
+chegada/atualização ativo na lista de eventos. Registros históricos sem aviso de
+chegada não ganham cartão. Revisões reavaliam localização/magnitude/profundidade.
+Não cria registro, som, prioridade, tsunami, publicação ou consulta de rede. Sem
+profundidade positiva numérica, abstém-se (zero pode representar dado ausente).
 
 ## Política editorial inicial, versão 20261020
 
