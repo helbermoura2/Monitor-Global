@@ -53,6 +53,7 @@
   node('div','capital-weather-temperature',item.temperature.toLocaleString('pt-BR',{maximumFractionDigits:1})+' °C');node('p','capital-weather-condition',item.condition);
   const values=[['Sensação',item.feels,' °C'],['Umidade',item.humidity,'%'],['Vento',item.wind,' km/h']];const grid=node('dl','capital-weather-metrics','');for(const [label,value,unit]of values){const cell=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value===null?'Não informado':value.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;cell.append(dt,dd);grid.append(cell);}
   node('p','capital-weather-source',item.source);node('p','capital-weather-time','Atualizado em '+new Date(item.time).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT');
+  window.MainCardLayout?.restore();
   document.getElementById('pd-source').textContent='TEMPO NAS CAPITAIS · '+(item.countryCode==='BR'?'BRASIL':'MUNDO');panel.classList.add('pd-capital-weather');panel.scrollTop=0;document.documentElement.dataset.mgThreat='none';
   window.__mgHoldMag=-Infinity;window.__mgQuakePresentationMode='auto';window.resetCardEventFx?.(item);
   window.__mgRevisionProtectedId=null;window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;EventStore.setSelected(item.id);
