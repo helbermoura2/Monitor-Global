@@ -89,3 +89,26 @@ in `npm run worker:test`, simulates PT-first and US solutions in one catalogue,
 PT changes, missing USGS catalogue data, object restart, a genuine downward US
 revision, an older US snapshot and a queued stale PT reply, using mocked fetch,
 Telegram, clock and storage only.
+
+## Reappearing record without a revision badge
+
+A separate frontend bus route reopened desktop records on every `official-map`
+notification. Painting/viewing an official map could therefore show an 11-hour-old
+M6.3 / 16 km quake as a transient record with neither NOVO nor ATUALIZADO, even
+though the seismic solution had not changed. The map and quake revision paths
+must not be conflated.
+
+`DesktopRecords` no longer treats map presentation as a quake arrival. Existing
+map-specific informational notices and map rendering stay available. Record
+notices still open for new arrivals and qualifying actual revisions. A bounded
+per-event seismic snapshot prevents repeated revision notifications with the
+same magnitude, depth, coordinates, selected source/native ID and preliminary
+state from reopening a notice or extending its deadline. Source-list/quality
+metadata alone does not open or renew a record notice; existing large earthquakes
+are baselined when they enter the feed.
+
+`tests/quake-record-notice-regression.spec.js` reproduced the old failure before
+the change: an `official-map` event opened the hidden record panel immediately.
+It now checks USGS/EU/same/new map versions leave it hidden, an actual magnitude
+revision opens it, repeat notifications do not renew the one-minute deadline,
+and a subsequent real depth correction can open a new notice.
