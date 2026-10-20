@@ -1348,8 +1348,6 @@ input[type=range]::-webkit-slider-thumb { background: var(--cyan) !important; bo
 #painel-direito .city-item,#painel-direito .history-item { font-size: 12px !important; }
 }
 #painel-direito[data-event-type="storm"] .pd-header::after { content: " • ATIVO" !important; color: #ffd11a !important; }
-#painel-direito[data-event-type="earthquake"] .pd-header::after { content: " • SÍSMICO" !important; color: #31d6ff !important; }
-#painel-direito[data-event-type="cyclone"] .pd-header::after { content: " • CICLONE" !important; color: #c084fc !important; }
 .severity-normal { color: #4ade80 !important; }
 .severity-info { color: #31d6ff !important; }
 .severity-warning { color: #ffd11a !important; }

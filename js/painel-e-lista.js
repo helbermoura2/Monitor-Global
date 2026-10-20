@@ -1326,7 +1326,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     setGauge(item.mag, true);
     resetPainelDetalheCompartilhado();
-    document.getElementById('pd-source').innerHTML = `ANÁLISE SÍSMICA`;
+    document.getElementById('pd-source').textContent = 'ANÁLISE SÍSMICA';
     document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
     try { enrichPainelDetalheUI(item); } catch (e) {}
 
@@ -1767,7 +1767,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     setGauge(0, false, item.icon || meta.icon, cor, 1);
     if(typeof prepareStormLightning==='function')prepareStormLightning(item);
-    document.getElementById('pd-source').textContent = window.RecordPresentation?.label(item) || item.displayLabel || meta.label || 'ALERTA';
+    document.getElementById('pd-source').textContent = item.type === 'volcano' ? 'ATIVIDADE VULCÂNICA' : (window.RecordPresentation?.label(item) || item.displayLabel || meta.label || 'ALERTA');
     try { enrichPainelDetalheUI(item); } catch (e) {}
     document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
     const localTxt = item.type === 'flood' && typeof traduzirTextoEnchente === 'function'
