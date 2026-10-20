@@ -405,6 +405,8 @@ async function fetchGlobalFeeds() {
                 }
             }
 
+            if(prev)Object.assign(ev,sismoPreserveMatchedReports(ev,prev));
+
             const canonical = prev ? prev.id :
                 `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
 
