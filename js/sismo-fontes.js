@@ -151,6 +151,9 @@ function normalizarSismoGeoJSON(features, source, mapper) {
                 sourceEventId: String(f?.id || p.eventid || p.publicid || ''),
                 sourceMmi: p.mmi!=null && p.mmi!=='' && Number.isFinite(Number(p.mmi)) && Number(p.mmi)>=1 && Number(p.mmi)<=12 ? Number(p.mmi) : null,
                 sourceFelt: p.felt!=null && String(p.felt).trim()!=='' && Number.isFinite(Number(p.felt)) ? Number(p.felt) : null,
+                sourceNetwork: String(p.net||'').toLowerCase(),
+                magnitudeType: String(p.magType||p.magtype||'').toLowerCase(),
+                sourceAliases: String(p.ids||'').split(',').map(id=>id.trim()).filter(Boolean),
                 sourceUpdatedAt: p.updated!=null && Number.isFinite(Number(p.updated)) ? Number(p.updated) : null,
                 detailUrl: mapper?.detailUrl ? mapper.detailUrl(f, p) : null
             });
@@ -634,7 +637,46 @@ async function fetchIGPData() {
     });
 }
 
-function mergeEarthquakeReports(reports) {
+// Prefer published solutions, never the largest magnitude as a tie breaker.
+function sismoReportFamily(report){return report.source==='USGS-RT'?'USGS':report.source;}
+function sismoReportKeys(report){const family=sismoReportFamily(report);return [...new Set([report.sourceEventId,...report.sourceAliases||[]].filter(Boolean).map(id=>family==='USGS'?String(id).replace(/^usauto/,'us'):id))].map(id=>family+'|'+id);}
+function sismoCompareReports(a,b){
+    const reviewed=Number(!a.isPreliminary)-Number(!b.isPreliminary);if(reviewed)return reviewed;
+    const familyA=sismoReportFamily(a),familyB=sismoReportFamily(b);
+    if(familyA===familyB){
+        // The USGS endpoint also distributes PTWC rapid (Mi) solutions.
+        // Its reviewed seismic catalogue solution supersedes that rapid estimate.
+        const seismic=r=>r.sourceNetwork==='us'||/^us(?!auto)/.test(r.sourceEventId||'')?1:0;
+        if(familyA==='USGS'&&seismic(a)!==seismic(b))return seismic(a)-seismic(b);
+        const updated=(Number(a.sourceUpdatedAt)||0)-(Number(b.sourceUpdatedAt)||0);if(updated)return updated;
+    }
+    const rank=sismoSourceRank(familyA)-sismoSourceRank(familyB);if(rank)return rank;
+    // Stable choice for equally ranked agencies without revision timestamps.
+    return String(familyB+'|'+(b.sourceEventId||b.id||'')).localeCompare(String(familyA+'|'+(a.sourceEventId||a.id||'')));
+}
+function sismoReconcileReports(reports,previous){
+    const known=new Map();
+    for(const event of previous||[]){
+        const rows=(event.reports||[event]).filter(r=>sismoReportFamily(r)==='USGS');
+        for(const report of rows)for(const key of sismoReportKeys(report))known.set(key,rows);
+    }
+    const retained=[];
+    for(const report of reports)if(sismoReportFamily(report)==='USGS'){
+        for(const key of sismoReportKeys(report)){const rows=known.get(key);if(rows){retained.push(...rows);break;}}
+    }
+    const byId=new Map(),unkeyed=[];
+    // Old snapshots first; a newer response may lower the magnitude legitimately.
+    for(const report of [...retained,...reports]){
+        const native=report.sourceEventId;
+        if(!native){unkeyed.push(report);continue;}
+        const key=sismoReportFamily(report)+'|'+native,old=byId.get(key);
+        if(!old||sismoCompareReports(report,old)>=0)byId.set(key,report);
+    }
+    return [...unkeyed,...byId.values()];
+}
+
+function mergeEarthquakeReports(reports, previous=[]) {
+    reports=sismoReconcileReports(reports,previous);
     const groups = [];
     const ordered = [...reports].sort((a,b) => b.time - a.time || sismoSourceRank(b.source) - sismoSourceRank(a.source));
     for (const ev of ordered) {
@@ -679,15 +721,8 @@ function mergeEarthquakeReports(reports) {
         g.magnitudeMin=Math.min(g.magnitudeMin,ev.mag);
         g.magnitudeMax=Math.max(g.magnitudeMax,ev.mag);
         g.magnitudeSpread=g.magnitudeMax-g.magnitudeMin;
-        // Preferência: 1) revisado > preliminar  2) rank da fonte  3) magnitude maior
-        const evReviewed = !ev.isPreliminary;
-        const gReviewed = !g.isPreliminary;
-        const melhorFonte =
-            (evReviewed && !gReviewed) ||
-            (evReviewed === gReviewed && (
-                sismoSourceRank(ev.source) > sismoSourceRank(g.source) ||
-                (sismoSourceRank(ev.source) === sismoSourceRank(g.source) && ev.mag > g.mag)
-            ));
+        // Preferência consistente com a seleção final, sem favorecer magnitude maior.
+        const melhorFonte=sismoCompareReports(ev,g)>0;
         if (melhorFonte) {
             const oldId = g.id;
             const keepPrelim = g.isPreliminary && !ev.isPreliminary; // transição prelim→revisado
@@ -705,10 +740,19 @@ function mergeEarthquakeReports(reports) {
         g.strongMagnitudeDivergence = g.magnitudeSpread >= SISMO_MAG_DIVERGENCIA_FORTE;
     }
     groups.forEach(g=>{
+        // Recompute both the displayed solution and per-agency values from the
+        // same winners; catalogue order must not create phantom revisions.
+        const preferred=g.reports.reduce((best,row)=>sismoCompareReports(row,best)>0?row:best);
+        const id=g.id,rows=g.reports,sources=g.sources;
+        Object.assign(g,preferred,{id,reports:rows,sources});
+        const perAgency=new Map();
+        for(const row of rows){const family=sismoReportFamily(row),old=perAgency.get(family);if(!old||sismoCompareReports(row,old)>0)perAgency.set(family,row);}
+        g.magnitudes=[...perAgency].sort(([a],[b])=>a.localeCompare(b)).map(([source,row])=>({source,mag:row.mag}));
+        g.magnitudeMin=Math.min(...g.magnitudes.map(r=>r.mag));g.magnitudeMax=Math.max(...g.magnitudes.map(r=>r.mag));
         g.type='earthquake';
         // Normaliza nomes de fonte (USGS-RT conta como USGS na UI)
         const srcNorm = (s) => (s === 'USGS-RT' ? 'USGS' : s);
-        g.sources = [...new Set(g.sources.map(srcNorm))].sort((a,b)=>sismoSourceRank(b)-sismoSourceRank(a));
+        g.sources = [...new Set(g.sources.map(srcNorm))].sort((a,b)=>sismoSourceRank(b)-sismoSourceRank(a)||a.localeCompare(b));
         g.magnitudeSpread = +(g.magnitudeMax-g.magnitudeMin).toFixed(1);
         g.divergentMagnitude = g.magnitudeSpread >= SISMO_MAG_DIVERGENCIA_TOL;
         g.strongMagnitudeDivergence = g.magnitudeSpread >= SISMO_MAG_DIVERGENCIA_FORTE;

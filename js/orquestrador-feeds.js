@@ -338,7 +338,7 @@ async function fetchGlobalFeeds() {
          * Pelo menos uma fonte respondeu.
          * Agora sim esta rodada pode ser considerada uma atualização ao vivo.
          */
-        const merged = mergeEarthquakeReports(reports);
+        const merged = mergeEarthquakeReports(reports,globalEvents);
 
         let novos = [];
         let atualizados = [];
@@ -421,7 +421,7 @@ async function fetchGlobalFeeds() {
             } else if (!isFirstLoad) {
                 if (prev) {
                     const magMudou = Number.isFinite(prev.mag) && Number.isFinite(ev.mag)
-                        && Math.abs(Number(prev.mag) - Number(ev.mag)) >= 0.1;
+                        && Math.abs(Number(prev.mag) - Number(ev.mag)) >= 0.1 - 1e-9;
                     const depthMudou = Number.isFinite(prev.depth) && Number.isFinite(ev.depth)
                         && Math.abs(Number(prev.depth) - Number(ev.depth)) >= 5;
                     const fontesMudou = (prev.sourceSummary || prev.source || '') !== (ev.sourceSummary || ev.source || '');
