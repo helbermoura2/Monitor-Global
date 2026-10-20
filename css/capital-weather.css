@@ -20,3 +20,5 @@
  .capital-weather-city{font-size:17px;margin:6px 0 8px}.capital-weather-temperature{font-size:42px}.capital-weather-condition{font-size:13px;margin:7px 0 12px}
  .capital-weather-metrics{margin-bottom:10px}.capital-weather-metrics>div{padding:7px 2px}.capital-weather-source,.capital-weather-time{margin:5px 0}
 }
+
+.capital-weather-country-flag{font-size:28px;vertical-align:middle;margin-right:8px;letter-spacing:0}

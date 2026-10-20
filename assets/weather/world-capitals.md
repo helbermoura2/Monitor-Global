@@ -1,0 +1,2 @@
+REST Countries v3.1, capital e capitalInfo.latlng: https://github.com/restcountries/restcountries/blob/master/src/main/resources/countriesV3.1.json . Uma capital/coordenada publicada por país ou território; em países com várias sedes usa-se a primeira do catálogo. Brasil tem etapa própria e está excluído. Coordenadas são das capitais, não do centro dos países. Dados de temperatura consultados separadamente.
+Licença MPL-2.0 do catálogo original incluída em world-capitals-LICENSE. Este arquivo JSON é uma extração modificada (campos selecionados, ordenação e exclusão BR).
