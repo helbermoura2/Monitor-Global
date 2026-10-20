@@ -54,7 +54,7 @@ test('M6 notices last one minute and transparent controls have no blue fill',asy
  await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());await page.mouse.move(1200,740);
  await expect(page.locator('#pd-focus-btn')).toHaveCount(0);
  expect(await page.locator('#pd-share-btn').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
- expect(await page.locator('#sidebar-left').evaluate(el=>getComputedStyle(el).scrollbarColor)).toContain('73, 115, 134');
+ expect(await page.locator('#sidebar-left').evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar-thumb').backgroundColor)).toBe('rgb(73, 115, 134)');
  await page.evaluate(()=>{globalEvents=[{id:'large-notice',type:'earthquake',mag:6,depth:10,coords:[-70,-20],time:Date.now(),place:'Sismo M6',source:'QA'}];activeAlertingIds.set('large-notice',Date.now()+180000);applyFilters();});
  await expect(page.locator('#events .event')).toHaveClass(/record-notice-enter/);
  await page.clock.runFor(59000);await expect(page.locator('#sidebar-left')).toBeVisible();
