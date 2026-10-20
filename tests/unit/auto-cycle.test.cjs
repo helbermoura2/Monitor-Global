@@ -10,15 +10,15 @@ function setup(quakes=[],alerts=[]){
  c.showEventDetails=i=>{shown.push(c.globalEvents[i]);c.eventoSelecionadoId=c.globalEvents[i].id;c.window.__mgSoftCycle=false;};c.showAlertDetails=item=>{shown.push(item);c.eventoSelecionadoId=item.id;c.window.__mgSoftCycle=false;};
  return {c,shown,timers,next(){c.showNextAutoCycleItem();return shown.at(-1);},tick(){c.scheduleNextAutoCycle(5000);timers.at(-1).fn();}};
 }
-test('dois sismos e dois outros eventos; todos os 80 sismos aparecem antes de repetir',()=>{
+test('sem temperaturas ou Brasil disponíveis, três slots sísmicos e um outro; 80 sismos sem repetir',()=>{
  const s=setup(Array.from({length:80},(_,i)=>quake('q'+i)),[alert('f')]);const seen=new Set();
- for(let i=0;i<160;i++){const item=s.next();assert.equal(item.type,i%4>=2?'fire':'earthquake');if(item.type==='earthquake'){assert.ok(!seen.has(item.id));seen.add(item.id);}}
+ for(let i=0;i<106;i++){const item=s.next();assert.equal(item.type,i%4===3?'fire':'earthquake');if(item.type==='earthquake'){assert.ok(!seen.has(item.id));seen.add(item.id);}}
  assert.equal(seen.size,80);
 });
 test('categorias raras têm vez mesmo com centenas de incêndios; registros de cada tipo também não repetem',()=>{
  const types=['fire','hurricane','flood','tornado','wind','volcano','tsunami','storm'];
  const s=setup([quake('q1'),quake('q2')],[...Array.from({length:100},(_,i)=>alert('f'+i)),...types.slice(1).map(t=>alert(t,t))]);const categoryRounds=[],fireSeen=new Set();let round=[];
- for(let i=0;i<2*types.length*3;i++){const item=s.next();if(item.type==='earthquake')continue;round.push(item.type);if(item.type==='fire'){assert.ok(!fireSeen.has(item.id));fireSeen.add(item.id);}if(round.length===types.length){categoryRounds.push(round);round=[];}}
+ for(let i=0;i<4*types.length*3;i++){const item=s.next();if(item.type==='earthquake')continue;round.push(item.type);if(item.type==='fire'){assert.ok(!fireSeen.has(item.id));fireSeen.add(item.id);}if(round.length===types.length){categoryRounds.push(round);round=[];}}
  for(const r of categoryRounds)assert.deepEqual(r.slice().sort(),types.slice().sort());assert.equal(fireSeen.size,3);
 });
 test('interrupções e reagendamentos preservam o slot e as filas restantes',()=>{
@@ -26,7 +26,7 @@ test('interrupções e reagendamentos preservam o slot e as filas restantes',()=
  s.c.focusNextNewCameraQuake=()=>true;s.tick();assert.equal(s.shown.length,1);assert.equal(state.phase,1);assert.deepEqual(Array.from(state.quakes.remaining),remaining);
  // New/manual display bypasses the rotation, just as arrival/revision handlers do.
  s.c.showEventDetails(0);s.c.scheduleNextAutoCycle(90000);assert.equal(state.phase,1);assert.equal(s.c.window.__mgAutoRotation,state);
- s.c.focusNextNewCameraQuake=()=>false;s.tick();assert.equal(state.phase,2);assert.equal(s.shown.at(-1).type,'earthquake');s.tick();assert.notEqual(s.shown.at(-1).type,'earthquake');assert.equal(state.phase,3);
+ s.c.focusNextNewCameraQuake=()=>false;s.tick();assert.equal(state.phase,3);assert.equal(s.shown.at(-1).type,'earthquake');s.tick();assert.equal(s.shown.at(-1).type,'earthquake');assert.equal(state.phase,6);s.tick();assert.notEqual(s.shown.at(-1).type,'earthquake');assert.equal(state.phase,0);
 });
 test('voo e exibição protegida aguardam sem consumir sorteios',()=>{
  const s=setup([quake('q1'),quake('q2')],[alert('f')]);s.c.eventoSelecionadoId='q1';s.c.window.__mgRevisionProtectedId='q1';s.c.window.__mgRevisionProtectedUntil=Date.now()+60000;s.tick();assert.equal(s.shown.length,0);assert.equal(s.c.window.__mgAutoRotation,undefined);assert.ok(s.timers.at(-1).ms>50000);
@@ -34,8 +34,8 @@ test('voo e exibição protegida aguardam sem consumir sorteios',()=>{
  s.c.map.isMoving=()=>false;s.tick();assert.equal(s.shown.length,1);
 });
 test('atualização da base usa dados atuais sem reiniciar o progresso, e remove IDs expirados',()=>{
- const s=setup([quake('q1'),quake('q2'),quake('q3')],[alert('f')]);s.next();const state=s.c.window.__mgAutoRotation;const target=state.quakes.remaining[0];s.c.globalEvents=s.c.globalEvents.filter(q=>q.id===target).map(q=>({...q,mag:5.6}));s.c.globalAlerts=[alert('f','fire',{detail:'nova versão'}),alert('h','hurricane')];const second=s.next();assert.equal(second.id,target);assert.equal(second.mag,5.6);assert.equal(state.phase,2);assert.equal(state.quakes.seen.length,1);assert.ok(!state.quakes.remaining.length);
- const other=s.next();assert.notEqual(other.type,'earthquake');if(other.id==='f')assert.equal(other.detail,'nova versão');assert.equal(state.phase,3);
+ const s=setup([quake('q1'),quake('q2'),quake('q3')],[alert('f')]);s.next();const state=s.c.window.__mgAutoRotation;const target=state.quakes.remaining[0];s.c.globalEvents=s.c.globalEvents.filter(q=>q.id===target).map(q=>({...q,mag:5.6}));s.c.globalAlerts=[alert('f','fire',{detail:'nova versão'}),alert('h','hurricane')];const second=s.next();assert.equal(second.id,target);assert.equal(second.mag,5.6);assert.equal(state.phase,3);assert.equal(state.quakes.seen.length,1);assert.ok(!state.quakes.remaining.length);
+ assert.equal(s.next().type,'earthquake');const other=s.next();assert.notEqual(other.type,'earthquake');if(other.id==='f')assert.equal(other.detail,'nova versão');assert.equal(state.phase,0);
 });
 test('sem uma categoria disponível usa as restantes, sem travar nem incluir boletins ou réguas como ocorrências',()=>{
  const now=Date.now();const s=setup([],[alert('past','flood',{expiresAt:now-1}),alert('future','storm',{inicioTs:now+60000}),alert('river','flood',{hazardNature:'river'}),alert('no-coords','flood',{coords:null}),alert('ok','new-type')]);for(let i=0;i<6;i++)assert.equal(s.next().id,'ok');
@@ -51,14 +51,14 @@ test('sorteio usa entropia do navegador e rejeita amostras enviesadas',()=>{
 test('modelos atuais de vento/tempestade e avisos regionais têm vez, com a natureza preservada',()=>{
  const rows=[alert('w','wind',{hazardNature:'forecast'}),alert('s','storm',{hazardNature:'forecast'}),alert('regional','flood',{hazardNature:'warning',coords:null,expiresAt:Date.now()+60000})];
  const s=setup([quake('q1'),quake('q2')],rows);const seen=[];
- for(let i=0;i<8;i++){const item=s.next();if(item.type!=='earthquake'&&!seen.some(x=>x.id===item.id))seen.push(item);else if(item.type==='earthquake')assert.equal(item.type,'earthquake');}
+ for(let i=0;i<12;i++){const item=s.next();if(item.type!=='earthquake'&&!seen.some(x=>x.id===item.id))seen.push(item);else if(item.type==='earthquake')assert.equal(item.type,'earthquake');}
  assert.deepEqual(seen.map(x=>x.id).sort(),rows.map(x=>x.id).sort());assert.equal(seen.find(x=>x.id==='w').hazardNature,'forecast');assert.equal(seen.find(x=>x.id==='regional').coords,null);
 });
 test('interrupções externas não avançam o cursor de rotação',()=>{
  const s=setup([quake('q1'),quake('q2')],[alert('f')]);
  s.next();const phase=s.c.window.__mgAutoRotation.phase;
  for(let i=0;i<3;i++){s.c.showEventDetails(0);s.c.scheduleNextAutoCycle(30000);assert.equal(s.c.window.__mgAutoRotation.phase,phase);}
- s.tick();assert.equal(s.shown.at(-1).type,'earthquake');assert.equal(s.c.window.__mgAutoRotation.phase,2);
+ s.tick();assert.equal(s.shown.at(-1).type,'earthquake');assert.equal(s.c.window.__mgAutoRotation.phase,3);
 });
 test('seleção inicial usa primeiros dados imediatamente, e tenta novamente se catálogo vazio',()=>{
  const s=setup();s.c.requestInitialAutoDisplay();assert.equal(s.timers.at(-1).ms,0);s.timers.at(-1).fn();assert.equal(s.c.isFirstDisplay,true);
@@ -69,13 +69,13 @@ test('seleção inicial usa primeiros dados imediatamente, e tenta novamente se 
 test('carregamento de tiles não segura a seleção depois de o mapa estar pronto',()=>{
  const s=setup([quake('q')]);s.c.map.isStyleLoaded=()=>false;s.c.window.__mgMapReady=true;s.c.requestInitialAutoDisplay();s.timers.at(-1).fn();assert.equal(s.shown.at(-1).id,'q');
 });
-test('fila real do orquestrador retoma 2+2 entre revisões sem esvaziar a prioridade nova',()=>{
+test('fila real do orquestrador retoma a sequência disponível entre revisões sem esvaziar a prioridade nova',()=>{
  const s=setup([quake('q1'),quake('q2'),quake('q3')],[alert('f')]);
  const orchestration=fs.readFileSync('js/orquestrador-feeds.js','utf8');
  s.c.pendingNewCameraQuakes=new Map();s.c.pendingQuakeRevisions=new Map(s.c.globalEvents.map(x=>[x.id,{...x,_updatedAt:Date.now()}]));
  for(const name of ['isRecentCameraQuake','focusNextNewCameraQuake','focusNextQuakeRevision']){const start=orchestration.indexOf('function '+name+'(');vm.runInContext(orchestration.slice(start,orchestration.indexOf('\n}',start)+2),s.c);}
- const rotation=[];for(let i=0;i<12&&rotation.length<3;i++){s.tick();if(!s.c.window.__mgResumeRotation)rotation.push(s.shown.at(-1).type);}
- assert.deepEqual(rotation,['earthquake','earthquake','fire']);assert.equal(s.c.window.__mgAutoRotation.phase,3);
+ const rotation=[];for(let i=0;i<12&&rotation.length<4;i++){s.tick();if(!s.c.window.__mgResumeRotation)rotation.push(s.shown.at(-1).type);}
+ assert.deepEqual(rotation,['earthquake','earthquake','earthquake','fire']);assert.equal(s.c.window.__mgAutoRotation.phase,0);
 });
 
 test('aleatório aceita até 72h e rejeita 72h+1ms, 222h, futuro e datas inválidas',()=>{
@@ -108,12 +108,20 @@ test('prévia do mapa aguarda o aleatório sem bloquear a prioridade de eventos 
  s.c.runAutoCycle();assert.equal(focused,1);assert.equal(s.shown.length,0);
 });
 
-test('sequência completa reserva capital e evento brasileiro e retoma depois de interrupção',()=>{
+test('nove passos exatos por três rodadas, com temperaturas mundiais e Brasil nas posições pedidas',()=>{
  const s=setup([quake('q1'),quake('q2')],[alert('f'),alert('br','flood')]);
  const cap={id:'capital-weather-SP',type:'capital-weather'};
  s.c.window.CapitalWeather={pick:()=>cap,show:item=>{s.shown.push(item);return true;}};
- s.c.window.BrazilStateFlags={isBrazil:e=>e.id==='br'};s.c.window.WorldCapitalWeather={warm(){},pick:()=>({id:'world-capital-weather-FR',type:'capital-weather'})};
- const rows=Array.from({length:22},()=>s.next());
- for(let i=0;i<22;i++){const phase=i%11,expected=[0,1,6,7].includes(phase)?'earthquake':[4,5].includes(phase)?'capital-weather':phase===10?'flood':null;if(expected)assert.equal(rows[i].type,expected);else assert.notEqual(rows[i].type,'earthquake');if(phase===10)assert.equal(rows[i].id,'br');}
- assert.equal(s.c.window.__mgAutoRotation.phase,0);
+ let world=0,warms=0;
+ s.c.window.BrazilStateFlags={isBrazil:e=>e.id==='br'};
+ s.c.window.WorldCapitalWeather={warm(){warms++;},pick:()=>({id:'world-capital-'+(++world),type:'capital-weather'})};
+ const expected=['quake','world','quake','world','capital','quake','brazil','world','other'];
+ for(let round=0;round<3;round++)for(const slot of expected){const row=s.next();
+  if(slot==='quake')assert.equal(row.type,'earthquake');
+  else if(slot==='world')assert.match(row.id,/^world-capital-/);
+  else if(slot==='capital')assert.equal(row.id,'capital-weather-SP');
+  else if(slot==='brazil')assert.equal(row.id,'br');
+  else assert.ok(['fire','flood'].includes(row.type));
+ }
+ assert.equal(world,9);assert.equal(warms,9);assert.equal(s.c.window.__mgAutoRotation.phase,0);
 });
