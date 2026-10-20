@@ -13,6 +13,7 @@
  let pinned=typeof sidebarFilter!=='undefined'&&sidebarFilter!=='all', opened=pinned, timer=null, frame=null;
  const seen=new Map(),revisionSeen=new Map();
  const revisionKey=e=>JSON.stringify([e.mag,e.depth,e.coords,e.source==='USGS-RT'?'USGS':e.source,e.sourceEventId,!!e.isPreliminary]);
+ const pendingPhysicalRevision=e=>(typeof activeUpdatedIds!=='undefined'&&(activeUpdatedIds.get(e.id)||0)>Date.now())&&((Number.isFinite(e._previousMag)&&Math.abs(e.mag-e._previousMag)>=.1-1e-9)||/\d+\s*→\s*\d+\s*km|preliminar\s*→\s*revisado/.test(e._deltaTxt||''));
  const labels={all:'Tudo',earthquake:'Sismos',volcano:'Vulcões',tsunami:'Tsunamis',hurricane:'Ciclones',storm:'Tempestades',fire:'Incêndios',tornado:'Tornados',civil:'Defesa Civil',wind:'Vento forte',flood:'Enchentes'};
  const originals=new Map([...row.children].filter(el=>el.tagName==='BUTTON').map(el=>[el,el.innerHTML]));
  function arrange(){
@@ -84,7 +85,7 @@
   }
   if(reason!=='filter'&&reason!=='replace')return;
   // Baseline existing large quakes before later source-only notifications.
-  for(const e of typeof globalEvents!=='undefined'?globalEvents:[])if(e&&Number(e.mag)>=5&&!revisionSeen.has(e.id)){revisionSeen.set(e.id,revisionKey(e));if(revisionSeen.size>256)revisionSeen.delete(revisionSeen.keys().next().value);}
+  for(const e of typeof globalEvents!=='undefined'?globalEvents:[])if(e&&Number(e.mag)>=5&&!revisionSeen.has(e.id)&&!pendingPhysicalRevision(e)){revisionSeen.set(e.id,revisionKey(e));if(revisionSeen.size>256)revisionSeen.delete(revisionSeen.keys().next().value);}
   const active=typeof activeAlertingIds!=='undefined'?activeAlertingIds:new Map();const arrived=[];
   for(const [id,expires]of active){if(expires>Date.now()&&!seen.has(id))arrived.push(id);seen.set(id,expires);}
   for(const [id,expires]of seen)if(expires<=Date.now())seen.delete(id);

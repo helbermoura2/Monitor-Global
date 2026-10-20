@@ -13,4 +13,6 @@ test('viewing Vanuatu official maps never reopens records; only a real quake rev
  await page.evaluate(()=>{globalEvents[0].sourceSummary='USGS · EMSC · GEOFON';globalEvents[0].quality='A';EventStore.onDataRevised(['vanuatu-unchanged']);});await expect(page.locator('#sidebar-left')).toBeHidden();
  // A later actual revision is allowed to open a fresh notice.
  await page.evaluate(()=>{globalEvents[0].depth=22;globalEvents[0]._deltaTxt='16 → 22 km';applyFilters();EventStore.onDataRevised(['vanuatu-unchanged']);});await expect(page.locator('#sidebar-left')).toBeVisible();
+ // A previously small historical quake crossing M5 must not be baselined away.
+ await page.evaluate(()=>{const q={id:'crosses-five',type:'earthquake',mag:5.1,depth:10,coords:[-70,10],time:Date.now()-3600000,place:'Revisão real',source:'USGS',_previousMag:4.9,_deltaTxt:'M4,9 → M5,1',_updatedAt:Date.now()};globalEvents.push(q);activeUpdatedIds.set(q.id,Date.now()+180000);applyFilters();EventStore.onDataRevised([q.id]);});await expect(page.locator('#events>.event[data-event-id="crosses-five"]')).toBeVisible();
 });
