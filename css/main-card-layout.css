@@ -39,3 +39,7 @@
 }
 @media(prefers-reduced-motion:reduce){#painel-direito.pd-model-one *{scroll-behavior:auto}}
 #painel-direito.pd-model-one .pd-location-row .pd-local,#painel-direito.pd-model-one #pd-horario{border-left:0!important}
+@media(max-width:700px){
+ body.mobile-details-mid #painel-direito.pd-model-one>.pd-location-row,
+ body.mobile-details-mid #painel-direito.pd-model-one>.pd-model-one-footer{opacity:1!important;pointer-events:auto!important}
+}
