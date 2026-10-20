@@ -1325,6 +1325,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     }
 
     setGauge(item.mag, true);
+    window.MainCardLayout?.prepare(item);
     resetPainelDetalheCompartilhado();
     document.getElementById('pd-source').textContent = 'ANÁLISE SÍSMICA';
     document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
@@ -1754,6 +1755,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     try { if (typeof syncAllMarkers === 'function') syncAllMarkers(); } catch (e) {}
     if (!silentRefresh) renderSidebarList(lastMerged);
 
+    window.MainCardLayout?.prepare(item);
     resetPainelDetalheCompartilhado();
 
     // Sismo é o fallback seguro (igual às outras 2 ocorrências deste

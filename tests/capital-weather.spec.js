@@ -14,5 +14,5 @@ for(const width of [1280,390])test('capital rotation, cached weather card, flags
  const phase=await page.evaluate(()=>__mgAutoRotation.phase);
  await page.evaluate(()=>{const q={...globalEvents[0],id:'capital-new-quake',mag:6.1};globalEvents.push(q);queueNewCameraQuakes([q]);focusNextNewCameraQuake(6);clearTimeout(cycleTimeout);});
  await expect(page.locator('#pd-capital-weather')).toBeHidden();await expect(page.locator('.capital-weather-map-pin')).toHaveCount(0);await expect(page.locator('#pd-mag')).toContainText('6,1');expect(await page.evaluate(()=>__mgAutoRotation.phase)).toBe(phase);
- await page.evaluate(()=>{globalAlerts[0].uf='SP';showAlertDetails(globalAlerts[0],false);clearTimeout(cycleTimeout);sidebarFilter='flood';DesktopRecords.filter('flood');renderSidebarList(lastMerged);});await expect(page.locator('#pd-flag img')).toHaveAttribute('src',/SP\.svg$/);await expect(page.locator('#events .br-state-flag')).toHaveAttribute('src',/SP\.svg$/);
+ await page.evaluate(()=>{globalAlerts[0].uf='SP';showAlertDetails(globalAlerts[0],false);clearTimeout(cycleTimeout);sidebarFilter='flood';DesktopRecords.filter('flood');renderSidebarList(lastMerged);});await expect(page.locator('#pd-flag .br-state-flag')).toHaveAttribute('src',/SP\.svg$/);await expect(page.locator('#events .br-state-flag')).toHaveAttribute('src',/SP\.svg$/);
 });
