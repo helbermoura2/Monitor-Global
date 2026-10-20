@@ -541,7 +541,7 @@ function renderSidebarList(items) {
             activeUpdatedIds.has(item.id)?item._deltaTxt:null,staleKey,conf.cls,conf.label,meta.icon,meta.label,meta.color
         ]);
         if(state.fingerprint===fingerprint){
-            setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));desired.push(div);
+            setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));window.DesktopRecords?.decorate(div,item);desired.push(div);
             const attention=window.RegionalAttention?.record(rawItem,div);
             if(attention)desired.push(attention);
             const tsunamiNotice=window.TsunamiMapModel?.record(rawItem,div);
@@ -657,6 +657,7 @@ function renderSidebarList(items) {
         if(div.style.getPropertyValue('--ev-color')!==color)div.style.setProperty('--ev-color',color);
         state.fingerprint=fingerprint;
         setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));
+        window.DesktopRecords?.decorate(div,item);
         desired.push(div);
         const attention=window.RegionalAttention?.record(rawItem,div);
         if(attention)desired.push(attention);
@@ -1015,13 +1016,15 @@ function selectNextAutoCycleItem() {
         groups.get(type).set(item.id, item);
     }
     for (const type of state.alerts.keys()) if (!groups.has(type)) state.alerts.delete(type);
-    const slots=['quake','quake','other','other','capital','world-capital','quake','quake','other','other','brazil'];
+    const slots=['quake','world-capital','quake','world-capital','capital','quake','brazil','world-capital','other'];
     state.capitals=state.capitals||{};state.worldCapitals=state.worldCapitals||{};state.brazil=state.brazil||{};
     // A missing category consumes only its slot, never a fake event.
     for(let attempt=0;attempt<slots.length;attempt++){
         const slot=slots[state.phase%slots.length];state.phase=(state.phase+1)%slots.length;
         let item=null;
-        if(slot==='capital'){window.WorldCapitalWeather?.warm(state.worldCapitals,eventoSelecionadoId);item=window.CapitalWeather?.pick(state.capitals,eventoSelecionadoId)||null;}
+        // Prepare the next world slot during the current presentation; reuse the cached batch.
+        if(slots[state.phase]==='world-capital')window.WorldCapitalWeather?.warm(state.worldCapitals,eventoSelecionadoId);
+        if(slot==='capital')item=window.CapitalWeather?.pick(state.capitals,eventoSelecionadoId)||null;
         else if(slot==='world-capital')item=window.WorldCapitalWeather?.pick(state.worldCapitals,eventoSelecionadoId)||null;
         else if(slot==='brazil'){
             const pool=[...quakes.values(),...[...groups.values()].flatMap(g=>[...g.values()])].filter(e=>window.BrazilStateFlags?.isBrazil(e));

@@ -1,6 +1,6 @@
 # Visita automática a um mapa oficial novo
 
-Durante o aleatório, uma nova versão do ShakeMap de um sismo M5,5+ nas últimas 72 horas entra em uma fila própria. A câmera faz a viagem normal, aproxima o epicentro, abre para a área pintada em quatro segundos e mantém esse quadro por vinte segundos. Depois retoma a rotação 2 sismos / 1 outro evento, sem consumir um slot dessa sequência durante a visita especial.
+Durante o aleatório, uma nova versão do ShakeMap de um sismo M5,5+ nas últimas 72 horas entra em uma fila própria. A câmera faz a viagem normal, aproxima o epicentro, abre para a área pintada em quatro segundos e mantém esse quadro por vinte segundos. Depois retoma a rotação de nove posições descrita em `auto-cycle.md`, sem consumir um slot dessa sequência durante a visita especial.
 
 Sismos novos e atividade vulcânica urgente têm prioridade. A visita oficial usa modo automático, não cria um sismo “NOVO”, não toca alarme e pode ser interrompida por uma chegada real de qualquer magnitude. Uma seleção manual ou uma apresentação ao vivo impede a entrada da visita oficial; o produto fica aguardando. Prévia, apresentação de tsunami e painel eleitoral também são respeitados.
 
