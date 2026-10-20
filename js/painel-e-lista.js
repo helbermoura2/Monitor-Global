@@ -1430,6 +1430,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
 
     window.TsunamiLinkedPanel?.render(rawItem,!silentRefresh);
     window.AftershockSequence?.render();
+    window.MainCardLayout?.sync(item);
 
     // Badge ATUALIZADO no card principal quando o store marcou revisão
     try {
@@ -2041,6 +2042,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     window.RecordPresentation?.panel(item);
     window.TsunamiLinkedPanel?.render(rawItem,!silentRefresh);
     window.AftershockSequence?.render();
+    window.MainCardLayout?.sync(item);
 
     try {
         const pdSrc = document.getElementById('pd-source');
