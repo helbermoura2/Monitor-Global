@@ -118,3 +118,17 @@ html:not(.mg-theme-dark) #painel-direito button{background:transparent!important
  body.desktop-records-ready:not(.desktop-records-pinned) #events>.event[data-record-kind] .ev-kind,
  body.desktop-records-ready:not(.desktop-records-pinned) #events>.event[data-record-kind] .event-type-badge{position:absolute;top:11px;left:13px;max-width:calc(100% - 155px);white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;line-height:16px!important;padding:0!important;background:transparent!important;border:0!important}
 }
+
+/* Chrome/Samsung/Safari: non-auto standard scrollbar properties override the
+   WebKit parts. Opt into one rendering path so the OS cannot supply a light
+   overlay track instead of the custom 7px bar. Firefox retains the rules above. */
+@supports selector(::-webkit-scrollbar){
+ #sidebar-left,#events{scrollbar-width:auto!important;scrollbar-color:auto!important}
+ #sidebar-left::-webkit-scrollbar,#events::-webkit-scrollbar{-webkit-appearance:none;width:7px!important;height:7px!important;background:#0b2330!important}
+ #sidebar-left::-webkit-scrollbar-track,#events::-webkit-scrollbar-track,
+ #sidebar-left::-webkit-scrollbar-track-piece,#events::-webkit-scrollbar-track-piece{background:#0b2330!important;border:0!important;box-shadow:none!important}
+ #sidebar-left::-webkit-scrollbar-thumb,#events::-webkit-scrollbar-thumb{background:#497386!important;border:1px solid #0b2330!important;border-radius:6px!important;box-shadow:none!important}
+ #sidebar-left::-webkit-scrollbar-thumb:hover,#events::-webkit-scrollbar-thumb:hover{background:#6192a6!important}
+ #sidebar-left::-webkit-scrollbar-button,#events::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important;background:#0b2330!important}
+ #sidebar-left::-webkit-scrollbar-corner,#events::-webkit-scrollbar-corner{background:#0b2330!important}
+}
