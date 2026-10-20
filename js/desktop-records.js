@@ -11,7 +11,8 @@
  const trigger=row.querySelector('[data-f="all"]');
  const notices=new Map(), exiting=new Map(), animated=new WeakSet();
  let pinned=typeof sidebarFilter!=='undefined'&&sidebarFilter!=='all', opened=pinned, timer=null, frame=null;
- const seen=new Map();
+ const seen=new Map(),revisionSeen=new Map();
+ const revisionKey=e=>JSON.stringify([e.mag,e.depth,e.coords,e.source==='USGS-RT'?'USGS':e.source,e.sourceEventId,!!e.isPreliminary]);
  const labels={all:'Tudo',earthquake:'Sismos',volcano:'Vulcões',tsunami:'Tsunamis',hurricane:'Ciclones',storm:'Tempestades',fire:'Incêndios',tornado:'Tornados',civil:'Defesa Civil',wind:'Vento forte',flood:'Enchentes'};
  const originals=new Map([...row.children].filter(el=>el.tagName==='BUTTON').map(el=>[el,el.innerHTML]));
  function arrange(){
@@ -69,15 +70,17 @@
  function announce(ids){if(!desktop.matches||pinned||!ids.length)return;prune();for(const id of ids)if(id!=null){
    clearTimeout(exiting.get(id));exiting.delete(id);
    const event=window.EventStore?.getById(id);
+   if(event){revisionSeen.delete(id);revisionSeen.set(id,revisionKey(event));if(revisionSeen.size>256)revisionSeen.delete(revisionSeen.keys().next().value);}
    notices.set(id,Date.now()+(event?.type==='tsunami'||(event?.type==='earthquake'||event?.mag!=null)&&Number(event?.mag)>=6?60000:30000));
    [...list.querySelectorAll('.event')].find(el=>el.dataset.eventId===String(id))?.classList.remove('record-notice-exit');
   }if(notices.size)setOpen(true);}
  function toggle(){setOpen(!opened);}
  function arrivals(reason,payload){
-  if(reason==='official-map'&&Number(payload.mag)>=5)announce([payload.id]);
+  // Showing or refreshing a ShakeMap is informational, not a quake arrival.
+  // SeismicImpact already exposes its own explicitly labelled map notice.
   if(reason==='filter'&&pinned!==(sidebarFilter!=='all'))filter(sidebarFilter);
   if(reason==='revise'){
-   announce((payload.ids||[]).filter(id=>{const e=window.EventStore.getById(id);return e&&(e.type==='earthquake'||e.mag!=null)&&Number(e.mag)>=5;}));
+   announce((payload.ids||[]).filter(id=>{const e=window.EventStore.getById(id);return e&&(e.type==='earthquake'||e.mag!=null)&&Number(e.mag)>=5&&revisionSeen.get(id)!==revisionKey(e);}));
   }
   if(reason!=='filter'&&reason!=='replace')return;
   const active=typeof activeAlertingIds!=='undefined'?activeAlertingIds:new Map();const arrived=[];

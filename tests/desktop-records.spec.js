@@ -38,10 +38,10 @@ test('new arrivals and M5+ revisions open once, expire and do not steal camera s
  await page.screenshot({path:'/tmp/arriving-two-cards.png'});
  await page.clock.runFor(20500);await expect(page.locator('#events .event')).toHaveCount(1);await expect(page.locator('#events .event')).toHaveAttribute('data-event-id','records-second');await page.clock.runFor(10000);await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>applyFilters());await expect(page.locator('#sidebar-left')).toBeHidden();
- await page.evaluate(()=>EventStore.onDataRevised(['records-new']));await expect(page.locator('#sidebar-left')).toBeVisible();await expect(page.locator('#events .event')).toHaveCount(1);
+ await page.evaluate(()=>{globalEvents.find(e=>e.id==='records-new').mag=5.3;EventStore.onDataRevised(['records-new']);});await expect(page.locator('#sidebar-left')).toBeVisible();await expect(page.locator('#events .event')).toHaveCount(1);
  await page.clock.runFor(30500);await expect(page.locator('#sidebar-left')).toBeHidden();
  await page.evaluate(()=>{globalEvents[1].mag=4.9;EventStore.onDataRevised(['records-new']);});await expect(page.locator('#sidebar-left')).toBeHidden();
- await page.evaluate(()=>EventStore.notify('official-map',{id:'records-new',mag:5.2,version:'2'}));await expect(page.locator('#sidebar-left')).toBeVisible();
+ await page.evaluate(()=>EventStore.notify('official-map',{id:'records-new',mag:5.2,version:'2'}));await expect(page.locator('#sidebar-left')).toBeHidden();
 });
 test('mobile keeps the events sheet and local magnitude selector',async({page})=>{
  await page.setViewportSize({width:390,height:844});await ready(page);
