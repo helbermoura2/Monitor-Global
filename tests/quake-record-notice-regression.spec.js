@@ -3,6 +3,7 @@ test('viewing Vanuatu official maps never reopens records; only a real quake rev
  await page.setViewportSize({width:1280,height:900});await page.goto('/');await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);await page.clock.install();await page.clock.pauseAt(new Date());
  await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);activeAlertingIds.clear();activeUpdatedIds.clear();globalAlerts=[];globalEvents=[{id:'vanuatu-unchanged',type:'earthquake',mag:6.3,depth:16,coords:[165.5892,-13.9906],time:Date.now()-11*3600000,place:'197 km a noroeste de Port-Olry, Vanuatu',source:'USGS',sourceEventId:'us6000u3jl',isPreliminary:false}];lastMerged=globalEvents.slice();EventStore.setSelected('vanuatu-unchanged');applyFilters();});
  await expect(page.locator('#sidebar-left')).toBeHidden();
+ await page.evaluate(()=>{globalEvents[0].sourceSummary='USGS · EMSC · GEOFON';globalEvents[0].quality='A';EventStore.onDataRevised(['vanuatu-unchanged']);});await expect(page.locator('#sidebar-left')).toBeHidden();
  for(const version of ['USGS-1','EU-1','USGS-1','USGS-2']){await page.evaluate(version=>EventStore.notify('official-map',{id:'vanuatu-unchanged',mag:6.3,version}),version);await expect(page.locator('#sidebar-left')).toBeHidden();}
  // Advance past the feed's two-second render cache, as separate polls do.
  await page.clock.fastForward(2100);

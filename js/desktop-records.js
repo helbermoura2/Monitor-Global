@@ -83,6 +83,8 @@
    announce((payload.ids||[]).filter(id=>{const e=window.EventStore.getById(id);return e&&(e.type==='earthquake'||e.mag!=null)&&Number(e.mag)>=5&&revisionSeen.get(id)!==revisionKey(e);}));
   }
   if(reason!=='filter'&&reason!=='replace')return;
+  // Baseline existing large quakes before later source-only notifications.
+  for(const e of typeof globalEvents!=='undefined'?globalEvents:[])if(e&&Number(e.mag)>=5&&!revisionSeen.has(e.id)){revisionSeen.set(e.id,revisionKey(e));if(revisionSeen.size>256)revisionSeen.delete(revisionSeen.keys().next().value);}
   const active=typeof activeAlertingIds!=='undefined'?activeAlertingIds:new Map();const arrived=[];
   for(const [id,expires]of active){if(expires>Date.now()&&!seen.has(id))arrived.push(id);seen.set(id,expires);}
   for(const [id,expires]of seen)if(expires<=Date.now())seen.delete(id);

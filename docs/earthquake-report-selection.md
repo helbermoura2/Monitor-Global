@@ -104,7 +104,8 @@ notices still open for new arrivals and qualifying actual revisions. A bounded
 per-event seismic snapshot prevents repeated revision notifications with the
 same magnitude, depth, coordinates, selected source/native ID and preliminary
 state from reopening a notice or extending its deadline. Source-list/quality
-metadata alone does not renew a snapshot already presented.
+metadata alone does not open or renew a record notice; existing large earthquakes
+are baselined when they enter the feed.
 
 `tests/quake-record-notice-regression.spec.js` reproduced the old failure before
 the change: an `official-map` event opened the hidden record panel immediately.
