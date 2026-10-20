@@ -69,7 +69,7 @@
  function announce(ids){if(!desktop.matches||pinned||!ids.length)return;prune();for(const id of ids)if(id!=null){
    clearTimeout(exiting.get(id));exiting.delete(id);
    const event=window.EventStore?.getById(id);
-   notices.set(id,Date.now()+((event?.type==='earthquake'||event?.mag!=null)&&Number(event?.mag)>=6?60000:30000));
+   notices.set(id,Date.now()+(event?.type==='tsunami'||(event?.type==='earthquake'||event?.mag!=null)&&Number(event?.mag)>=6?60000:30000));
    [...list.querySelectorAll('.event')].find(el=>el.dataset.eventId===String(id))?.classList.remove('record-notice-exit');
   }if(notices.size)setOpen(true);}
  function toggle(){setOpen(!opened);}

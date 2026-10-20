@@ -27,7 +27,7 @@
  /* In Tudo, the box fits only the arriving cards; no historical column. */
  body.desktop-records-ready:not(.desktop-records-pinned) #sidebar-left{bottom:auto!important;height:auto!important;max-height:calc(100dvh - var(--desktop-records-top,110px) - 14px)!important;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;overflow:auto!important}
  body.desktop-records-ready:not(.desktop-records-pinned) #events{flex:0 0 auto!important;height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important}
- body.desktop-records-ready:not(.desktop-records-pinned) #events-label,body.desktop-records-ready:not(.desktop-records-pinned) #events>:not(.event):not(.regional-attention-card){display:none!important}
+ body.desktop-records-ready:not(.desktop-records-pinned) #events-label,body.desktop-records-ready:not(.desktop-records-pinned) #events>:not(.event):not(.regional-attention-card):not(.tsunami-record-notice){display:none!important}
  body.desktop-records-ready:not(.desktop-records-pinned) #events>.event{margin:0 0 8px!important}
 }
 @media(min-width:901px) and (max-width:1190px){
@@ -63,3 +63,12 @@ html:not(.mg-theme-dark) #painel-direito button{background:transparent!important
 #pd-event-status[data-kind="updated"]{border-color:#7dd3fc80;background:#7dd3fc18;color:#bae6fd}
 #painel-direito .pd-header-row{flex-wrap:wrap;gap:6px}
 #painel-direito .pd-header-actions{margin-left:auto}
+
+.tsunami-record-notice{box-sizing:border-box;margin:0 0 12px;padding:12px;border:1px solid #38bdf866;border-left:3px solid #38bdf8;border-radius:12px;background:rgba(8,27,39,.95);color:#deebf3;font:12px/1.45 system-ui}
+.tsunami-record-notice>strong{display:block;color:#7dd3fc;font-size:12px}
+.tsunami-record-notice small{display:block;color:#b4c8d4;font-size:10px;margin-top:6px}
+.tsunami-record-notice p{margin:7px 0}
+.tsunami-record-notice[data-level=warning]{border-color:#fbbf2499}
+.tsunami-record-notice[data-level=warning]>strong{color:#fbbf24}
+.tsunami-record-notice button{font:inherit;color:#dbeafe;background:transparent;border:1px solid #38bdf866;border-radius:7px;min-height:36px;margin-top:8px;padding:6px 10px;cursor:pointer}
+@media(min-width:901px) and (prefers-reduced-motion:no-preference){body:not(.desktop-records-pinned) #events>.record-notice-enter+.tsunami-record-notice{animation:record-notice-in .5s ease both}body:not(.desktop-records-pinned) #events>.record-notice-exit+.tsunami-record-notice{animation:record-notice-out .35s ease both;pointer-events:none}}

@@ -30,7 +30,7 @@
   if(item.type==='earthquake'){
    for(const relation of relations.slice(0,6)){
     const a=relation.alert,row=document.createElement('div');row.className='tsunami-link-row';row.dataset.bulletinId=a.id;row.dataset.status=a.cancelled?'ended':a.hazardNature==='warning'?'warning':'information';box.append(row);
-    text(row,'strong',(a.source||'Fonte oficial')+' · '+(a.warningLevel||'Informativo'));
+    text(row,'strong',(a.source||'Fonte oficial')+' · '+(a.warningLevel||'Informativo')+' · '+window.TsunamiMapModel.status(a).title);
     text(row,'p',local(a)+' · '+date(a.time));
     if(relation.kind==='probable')text(row,'p','Associação provável por localização e horário de publicação; o boletim não informa a hora de origem.');
     const areas=a.affectedAreas||[];
@@ -41,9 +41,10 @@
   }else{
    const status=document.createElement('div');status.className='tsunami-status-strip';status.dataset.level=item.cancelled?'ended':item.hazardNature==='warning'?'warning':'information';
    status.setAttribute('role','status');
-   text(status,'strong',item.cancelled?'Boletim encerrado':item.hazardNature==='warning'?'Aviso oficial de tsunami':/no tsunami (?:threat|danger)|no existe peligro de tsunami|não há ameaça de tsunami/i.test(item.description||item.detail||'')?'Sem ameaça de tsunami, segundo o boletim':'Boletim informativo de tsunami');
+   const view=window.TsunamiMapModel.status(item);status.dataset.level=view.level;
+   text(status,'strong',view.title);
    text(status,'small',(item.source||'Fonte oficial')+' · '+date(item.time));
-   text(status,'small',item.hazardNature==='warning'?'Siga as orientações da autoridade local. As regiões pintadas seguem o boletim.':'Informativo não é confirmação de tsunami. O ponto indica a origem do sismo.');box.append(status);
+   text(status,'small',view.message+' O ponto indica a origem do sismo.');box.append(status);
    if(T.origin(item)&&typeof GL!=='undefined'&&typeof map!=='undefined'&&map){
     const pin=document.createElement('div');pin.className='tsunami-bulletin-origin event-pin-surface';
     text(pin,'span','◎');text(pin,'strong','Origem do sismo · '+item.source);
