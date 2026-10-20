@@ -64,3 +64,28 @@ realtime and complete responses while EMSC/GEOFON continue supplying different
 magnitudes. Twelve cycles keep M6.3/16 km and one ID without revision badges or
 camera queue; a newer M6.2 update is still accepted. A session previously showing
 M6.6/10 km may correctly show one M6.6→6.3 / 10→16 km correction after rollout.
+
+## Telegram coordinator policy
+
+The Telegram sender is a separate Worker path. It previously treated every
+changed network estimate as a replacement of `root.currentEvent`, editing the
+photo and queueing a reply. Frontend-only fixes do not change this path.
+`worker/seismic-solution-policy.mjs` now gives USGS-distributed seismic network
+solutions precedence over the rapid PT/AT/USAUTO tsunami-centre solutions.
+The full catalogue is processed with the preferred solutions first. A secondary
+estimate is recorded as observed once, without editing the original photo or
+queueing a magnitude-change reply. Same-ID older timestamps and a downgrade
+from reviewed to automatic are rejected. Newer real revisions remain valid.
+
+Root/alias delivery IDs, baseline handling, timeout reservations and 30-second
+reply coalescing remain intact. Old queued notices that would switch a current
+preferred solution back to a secondary estimate are discarded at flush time.
+No production Telegram calls are made by the tests. There is no increase in
+polling or additional Durable Object alarms. The health response publishes
+`telegramSolutionPolicy: reviewed-seismic-priority-v1`, checked during deployment.
+
+Regression coverage: `tests/unit/telegram-solution-priority-check.mjs`, included
+in `npm run worker:test`, simulates PT-first and US solutions in one catalogue,
+PT changes, missing USGS catalogue data, object restart, a genuine downward US
+revision, an older US snapshot and a queued stale PT reply, using mocked fetch,
+Telegram, clock and storage only.

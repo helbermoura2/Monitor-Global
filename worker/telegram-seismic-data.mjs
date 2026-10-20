@@ -99,6 +99,9 @@ async function fetchUsgsM6Recent(eventId) {
             timeIso: p.time ? new Date(p.time).toISOString() : null,
             source: (p.net || 'USGS').toUpperCase(),
             reviewed: String(p.status || '').toLowerCase() === 'reviewed',
+            sourceUpdatedAt: p.updated!=null&&Number.isFinite(Number(p.updated))?Number(p.updated):null,
+            magnitudeType: String(p.magType||'').toLowerCase(),
+            sourceAliases: String(p.ids||'').split(',').map(id=>id.trim()).filter(Boolean),
             url: p.url || 'https://monitorglobal.top'
         });
     }

@@ -33,7 +33,7 @@ class MaintenanceTests(unittest.TestCase):
             def call(self,*args):return {'data':{'viewer':{'accounts':[]}}}
         with self.assertRaises(m.MaintenanceError):m.analytics(Client())
     def test_public_propagation_can_be_verified_without_a_second_upload(self):
-        values=iter([{'electionPolls':'old'},{'publicSourceRuntime':m.PUBLIC_SOURCE_RUNTIME,'demandBudget':m.DEMAND_BUDGET,'sourceEdgeBudget':m.SOURCE_EDGE_BUDGET,'durableRequestBudget':m.REQUEST_BUDGET,'workerModules':m.WORKER_MODULES,'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True,'telegramStorage':'durable-history-v1','sharedSources':{'version':'shared-sources-v1','enabled':True}}]);waits=[]
+        values=iter([{'electionPolls':'old'},{'publicSourceRuntime':m.PUBLIC_SOURCE_RUNTIME,'demandBudget':m.DEMAND_BUDGET,'sourceEdgeBudget':m.SOURCE_EDGE_BUDGET,'durableRequestBudget':m.REQUEST_BUDGET,'workerModules':m.WORKER_MODULES,'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True,'telegramStorage':'durable-history-v1','telegramSolutionPolicy':m.TELEGRAM_SOLUTION_POLICY,'sharedSources':{'version':'shared-sources-v1','enabled':True}}]);waits=[]
         result=m.verify_public(check=lambda:next(values),wait=waits.append,attempts=2)
         self.assertEqual(result['electionPolls'],m.MARKER);self.assertEqual(waits,[5])
         with self.assertRaisesRegex(m.MaintenanceError,'without redeploying'):
