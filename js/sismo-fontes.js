@@ -929,7 +929,7 @@ function anunciarSismosSuplementares(items) {
         }
     }
     if (typeof queueNewCameraQuakes === 'function' && (typeof isFirstDisplay === 'undefined' || !isFirstDisplay)) {
-        queueNewCameraQuakes([...recent,...late].filter(ev=>isWithinAutoCycleAge(ev)));
+        queueNewCameraQuakes(recent.filter(ev=>isWithinAutoCycleAge(ev)));
         if (typeof focusNextNewCameraQuake === 'function') focusNextNewCameraQuake();
     }
     if (!recent.length) return;

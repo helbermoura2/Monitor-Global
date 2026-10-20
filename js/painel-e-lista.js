@@ -709,6 +709,7 @@ function handleEventCardActivate(e, isKeyboard) {
     if (!item) return;
     if (isKeyboard) e.preventDefault();
     e.stopPropagation();
+    window.__mgRevisionVisitId=(activeUpdatedIds.get(item.id)||0)>Date.now()&&(activeAlertingIds.get(item.id)||0)<=Date.now()?item.id:null;
     marcarEventoComoVisto(item.id, div);
     if (item.type === 'earthquake' || (item.mag != null && !item.type)) {
         const idxNow = globalEvents.findIndex(e2 => e2.id === item.id);
@@ -1043,10 +1044,14 @@ function showNextAutoCycleItem() {
             const i = globalEvents.findIndex(e => e && e.id === it.id);
             if (i !== -1) showEventDetails(i, false);
             else showAlertDetails(it, false, alreadySelected);
-        } else {showAlertDetails(it, false, alreadySelected);window.NewEventPriority?.markPresented(it);}
+        } else {
+            showAlertDetails(it, false, alreadySelected);window.NewEventPriority?.markPresented(it);
+            // A quiet repeat updates data but must still own a finite slot.
+            if(alreadySelected&&eventoSelecionadoId===it.id){window.PresentationLimits?.begin(it,'auto');scheduleNextAutoCycle(window.PresentationLimits?.limitMs(it)||20000);}
+        }
         window.__mgResumeRotation = false;
         return true;
-    } finally { window.__mgRotationDisplay = false; }
+    } finally { window.__mgRotationDisplay = false;window.__mgSoftCycle=false; }
 }
 function requestInitialAutoDisplay() {
     if(document.hidden)return;
@@ -1484,7 +1489,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Novos alertas continuam podendo assumir a câmera imediatamente.
     const HOLD_AUTO_MS = 30000;
     const hold = soft ? HOLD_AUTO_MS : holdNovo;
-    window.__mgQuakePresentationMode=soft&&!triggerVisualAlert?'auto':triggerVisualAlert?'new':'manual';
+    const revisionVisit=window.__mgRevisionVisitId===item.id||(typeof activeUpdatedIds!=='undefined'&&(activeUpdatedIds.get(item.id)||0)>Date.now()&&(activeAlertingIds.get(item.id)||0)<=Date.now());
+    window.__mgRevisionVisitId=null;
+    window.__mgQuakePresentationMode=soft&&!triggerVisualAlert?'auto':triggerVisualAlert?'new':revisionVisit?'revision':'manual';
     window.__mgHoldMag = item.mag;
     window.__mgHoldEndsAt = Date.now() + hold;
     // Ao vivo e clique manual mantêm câmera/cartão até terminar a exibição.
