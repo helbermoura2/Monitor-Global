@@ -58,3 +58,12 @@ test('ash volcano cannot block a new quake; lava holds only quakes below M5',()=
   assert.equal(c.focusNextNewCameraQuake(),!lava||mag>=5);assert.equal(shown.length,!lava||mag>=5?1:0);
  }
 });
+
+test('Venezuela M2.6 immediately interrupts a protected M5.3 update, preserving live-stronger rules',()=>{
+ const {c,shown}=setup(q('updated53',5.3),Date.now()+120000);c.window.__mgHoldEndsAt=Date.now()+120000;c.window.__mgQuakePresentationMode='manual';c.activeUpdatedIds=new Map([['updated53',Date.now()+180000]]);c.activeAlertingIds=new Map();c.globalEvents.push(q('venezuela26',2.6));c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,[['venezuela26',true]]);
+});
+test('M6+ revision visits also yield immediately to a genuine lower arrival',()=>{const{c,shown}=setup(q('revision',6.2),Date.now()+120000);c.window.__mgQuakePresentationMode='revision';c.globalEvents.push(q('new',2.6));c.queueNewCameraQuakes([c.globalEvents[1]]);assert(c.focusNextNewCameraQuake());assert.deepEqual(shown,[['new',true]]);});
+test('a second source cannot replay an already presented arrival at the same magnitude',()=>{const{c,shown}=setup(q('current',2));c.globalEvents.push(q('already',3));c.window.__mgQuakeCameraPresented=new Map([['already',3]]);c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),false);assert.equal(shown.length,0);assert.equal(vm.runInContext('pendingNewCameraQuakes.size',c),0);});
+test('new-over-revision keeps tsunami M6 threshold and startup settle protection',()=>{
+ const{c}=setup(q('revision',5.3),Date.now()+120000);c.window.__mgQuakePresentationMode='revision';c.globalEvents.push(q('small',2.6));c.queueNewCameraQuakes([c.globalEvents[1]]);c.isFirstLoad=true;c.window.__mgPageLoadAt=Date.now();assert.equal(c.focusNextNewCameraQuake(),false);c.isFirstLoad=false;c.window.TsunamiPriority={protectionRemaining:()=>60000};assert.equal(c.focusNextNewCameraQuake(),false);c.globalEvents.push(q('major',6.2));c.queueNewCameraQuakes([c.globalEvents[2]]);assert.equal(c.focusNextNewCameraQuake(6),true);assert.equal(c.eventoSelecionadoId,'major');
+});

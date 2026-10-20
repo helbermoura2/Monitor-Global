@@ -42,7 +42,8 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     const candidates = [],included=new Set();
     for (const [id, entry] of pendingNewCameraQuakes) {
         const index = globalEvents.findIndex(e => e && e.id === id);
-        if (index < 0 || id === eventoSelecionadoId || !isWithinAutoCycleAge(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
+        const shown=window.__mgQuakeCameraPresented?.get(id);
+        if (index < 0 || id === eventoSelecionadoId || shown!=null&&shown>=Number(globalEvents[index]?.mag) || !isWithinAutoCycleAge(globalEvents[index])) { pendingNewCameraQuakes.delete(id); continue; }
         candidates.push({index, event:globalEvents[index], arrived:entry.arrived, isNew:true});included.add(id);
     }
     // Revisions can raise an already known event above the quake on screen.
@@ -120,7 +121,12 @@ function focusNextNewCameraQuake(minMagnitude = 0) {
     const coldLoad = ((typeof isFirstLoad!=='undefined' && isFirstLoad) &&
             Date.now() - (window.__mgPageLoadAt || 0) < 60000) ||
         (Number.isFinite(window.__mgColdLoadGraceUntil) && Date.now() < window.__mgColdLoadGraceUntil);
-    if (protectedSelection && (coldLoad || Number(next.event.mag)<=currentMag)) return false;
+    const updatedOnScreen=typeof activeUpdatedIds!=='undefined'&&(activeUpdatedIds.get(eventoSelecionadoId)||0)>Date.now();
+    const newOnScreen=typeof activeAlertingIds!=='undefined'&&(activeAlertingIds.get(eventoSelecionadoId)||0)>Date.now();
+    const revisionVisit=window.__mgQuakePresentationMode==='revision'||updatedOnScreen&&!newOnScreen;
+    // A revision/map visit is not a live earthquake hold, even after a manual click.
+    const newOverRevision=next.isNew&&revisionVisit&&!coldLoad;
+    if (protectedSelection && !newOverRevision && (coldLoad || Number(next.event.mag)<=currentMag)) return false;
     pendingNewCameraQuakes.delete(next.event.id);
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle=false;
@@ -161,6 +167,7 @@ function focusNextQuakeRevision(blocked = false) {
     pendingQuakeRevisions.delete(next.event.id);
     window.__mgSoftCycle = true;
     showEventDetails(next.index, false);
+    window.__mgQuakePresentationMode='revision';
     window.__mgResumeRotation = true;
     if (typeof showPanelRevisionFocus === 'function') showPanelRevisionFocus(next.revision);
     return true;
@@ -540,7 +547,7 @@ async function fetchGlobalFeeds() {
         if (isFirstDisplay) {
             requestInitialAutoDisplay();
         } else if (!initialCatalog) {
-            queueNewCameraQuakes(novos.filter(ev=>isWithinAutoCycleAge(ev)));
+            queueNewCameraQuakes(novosRecentes.filter(ev=>isWithinAutoCycleAge(ev)));
             focusNextNewCameraQuake();
         }
 
