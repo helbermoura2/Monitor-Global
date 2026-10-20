@@ -1,3 +1,4 @@
+import {telegramSolutionMayReplace, telegramSolutionPriority, TELEGRAM_SOLUTION_POLICY} from "./worker/seismic-solution-policy.mjs";
 import {SourceWritebackCache} from "./source-writeback-cache.mjs";
 // Worker entrypoint: routes, coordination and existing Durable Object classes.
 import {fetchText, nowIso, fetchJson, resposta, json, CORS_HEADERS} from "./worker/http.mjs";
@@ -1012,6 +1013,11 @@ function telegramImportantChange(before, after) {
 }
 async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const before = {...(root.currentEvent || root)};
+    if(!telegramSolutionMayReplace(before,ev)||telegramEventVersion(before)===telegramEventVersion(ev)){
+        const version=telegramEventVersion(ev);
+        if(observed.observedVersion!==version){observed.observedVersion=version;await saveSentAlerts(request,records,env);}
+        return false;
+    }
     const revision = {mag: ev.mag, source: ev.source, sameSource: ev.source === before.source, at: nowIso()};
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
@@ -1036,6 +1042,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
         previousMag: before.mag, messageId: root.messageId, sameSource: revision.sameSource,
         events: [{at: Date.now(), stage: root.messageId ? 'edited' : 'legacy-update'}]
     });
+    return true;
 
 }
 
@@ -1045,6 +1052,8 @@ async function telegramFlushRevisionNotices(request, env, records) {
         const notice = root.pendingNotice;
         if (!notice || Date.now() - notice.at < 30000) continue;
         delete root.pendingNotice;
+        const current=root.currentEvent||root;
+        if(!telegramSolutionMayReplace(current,notice.after)){await saveSentAlerts(request,records,env);continue;}
         const important = telegramImportantChange(notice.before, notice.after);
         if (important) root.noticeBaseline = notice.after;
         // Reserva antes do envio: timeout não provoca um aviso repetido na próxima consulta.
@@ -1337,6 +1346,9 @@ async function runTelegramM6Alerts(request, env) {
     const updates = [];
     const skipped = [];
 
+    // Process the reviewed seismic solution first when one catalogue contains
+    // both it and a rapid tsunami-centre solution for the same occurrence.
+    events.sort((a,b)=>telegramSolutionPriority(b)-telegramSolutionPriority(a));
     for (const ev of events) {
         await enrichBrazilEpicenter(ev);
         if (sentIds.has(ev.id)) {
@@ -1346,8 +1358,8 @@ async function runTelegramM6Alerts(request, env) {
                 (observed.observedVersion || telegramEventVersion(observed)) !== telegramEventVersion(ev)) {
                 try {
                     const previousMag = (root.currentEvent || root).mag;
-                    await telegramReviseAlert(request, env, ev, observed, root, sentRecords);
-                    updates.push({id: ev.id, mag: ev.mag, previousMag});
+                    if(await telegramReviseAlert(request, env, ev, observed, root, sentRecords))
+                        updates.push({id: ev.id, mag: ev.mag, previousMag});
                 } catch (error) { console.error('Telegram edição pendente:', ev.id, error.message); }
             } else skipped.push(ev.id);
             continue;
@@ -1361,11 +1373,12 @@ async function runTelegramM6Alerts(request, env) {
             sentRecords.push(alias);
             try {
                 const before = {...(root.currentEvent || root)};
+                let revised=false;
                 if (telegramEventVersion(ev) !== telegramEventVersion(before))
-                    await telegramReviseAlert(request, env, ev, alias, root, sentRecords);
+                    revised=await telegramReviseAlert(request, env, ev, alias, root, sentRecords);
                 else await saveSentAlerts(request, sentRecords, env);
                 sentIds.add(ev.id);
-                updates.push({id: ev.id, mag: ev.mag, comparedTo: root.id, previousMag: before.mag});
+                if(revised)updates.push({id: ev.id, mag: ev.mag, comparedTo: root.id, previousMag: before.mag});
             } catch (error) { sentRecords.splice(sentRecords.indexOf(alias), 1); console.error('Telegram edição pendente:', ev.id, error.message); }
             continue;
         }
@@ -1934,6 +1947,7 @@ async function handleWorkerRequest(request,env){
                 kvOptimization: 'shared-population-voice-v1',
                 workerModules: 'maintenance-modules-v1',
                 telegramStorage: 'durable-history-v1',
+                telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",
