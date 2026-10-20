@@ -42,3 +42,22 @@ test('normalizer preserves native network, magnitude scale, aliases and revision
  const row=ctx.normalizarSismoGeoJSON([{id:'us6000u3jl',geometry:{coordinates:[165.5892,-13.9906,16]},properties:{net:'us',magType:'mww',ids:',us6000u3jl,pt26293000,',status:'reviewed',updated:1792477739943,mag:6.3,time:1792470038737}}],'USGS',{mag:(f,p)=>p.mag,time:(f,p)=>p.time})[0];
  assert.equal(row.sourceNetwork,'us');assert.equal(row.magnitudeType,'mww');assert.equal(row.sourceUpdatedAt,1792477739943);assert.equal(row.sourceAliases.join(','),'us6000u3jl,pt26293000');
 });
+
+
+test('a missing USGS response cannot replace its reviewed value with another agency estimate',()=>{
+ const emsc={...base,source:'EMSC',sourceEventId:'e1',mag:6.6,depth:10},gfz={...base,source:'GEOFON',sourceEventId:'g1',mag:6.3};
+ let previous=merge([seismic,emsc,gfz])[0];
+ for(let i=0;i<12;i++){
+  const current=merge(i%2?[seismic,emsc,gfz]:[emsc,gfz])[0];
+  if(i%2===0)assert.equal(current.mag,6.6);
+  previous=ctx.sismoPreserveMatchedReports(current,previous);assert.equal(previous.mag,6.3);assert.equal(previous.depth,16);assert.equal(previous.reports.length,3);assert.equal(previous.sourceSummary,'USGS · EMSC · GEOFON');
+ }
+ const newer={...seismic,mag:6.2,sourceUpdatedAt:seismic.sourceUpdatedAt+100};
+ previous=ctx.sismoPreserveMatchedReports(merge([newer,emsc])[0],previous);assert.equal(previous.mag,6.2);
+ previous=ctx.sismoPreserveMatchedReports(merge([emsc,gfz])[0],previous);assert.equal(previous.mag,6.2);
+});
+test('an old M6.6 snapshot is corrected once, without hiding the initial correction',()=>{
+ const old=merge([tsunami])[0],current=merge([seismic,tsunami])[0];
+ const fixed=ctx.sismoPreserveMatchedReports(current,old);assert.equal(old.mag,6.6);assert.equal(fixed.mag,6.3);assert.equal(fixed.depth,16);
+ assert.equal(ctx.sismoPreserveMatchedReports(merge([tsunami])[0],fixed).mag,6.3);
+});

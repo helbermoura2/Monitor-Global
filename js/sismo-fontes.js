@@ -775,6 +775,17 @@ function mergeEarthquakeReports(reports, previous=[]) {
 }
 
 
+// The orchestrator has already matched this event to the previous canonical ID.
+// A temporarily absent agency is not a withdrawal of its reviewed solution.
+function sismoPreserveMatchedReports(event,previous){
+    if(!previous)return event;
+    const rows=mergeEarthquakeReports([...(previous.reports||[previous]),...(event.reports||[event])]);
+    // Do not broaden the existing spatial/time grouping for unrelated records.
+    if(rows.length!==1)return event;
+    return {...event,...rows[0],id:event.id};
+}
+
+
 /* ═══════════════ AFAD (Turquia) — sismos locais incl. baixos ═══════════════ */
 async function fetchAfadQuakes() {
     const minMag = (typeof minMagnitude === 'number' ? minMagnitude : 0);

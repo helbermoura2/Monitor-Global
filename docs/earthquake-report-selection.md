@@ -44,3 +44,23 @@ All changes are client-side: no additional polling, Worker or Durable traffic.
 Tests use offline snapshots, alternating stale/summary/full catalogues and the
 real ingestion path, checking stable identity, no phantom revision badges or
 camera queue, and acceptance of a genuine subsequent revision.
+
+## Partial agency failure follow-up
+
+The first fix linked retained USGS reports only while some USGS report was
+returned. If BOTH USGS paths were missing but EMSC/GEOFON still supplied this
+event, a lower-priority M6.6 estimate could become primary; the next successful
+USGS response restored M6.3. This is separate from two USGS solution IDs.
+
+After the existing canonical event match, reconcile that event's previous raw
+agency reports with its current reports before testing for revisions. An absent
+agency response does not withdraw its last published reviewed solution. Fresh
+versions supersede old versions according to the existing policy. Reconciliation
+must still produce one physical event, otherwise the current event is preserved.
+No previously absent event is inserted into the current catalogue.
+
+The regression now alternates actual simulated USGS failures, PTWC-only USGS,
+realtime and complete responses while EMSC/GEOFON continue supplying different
+magnitudes. Twelve cycles keep M6.3/16 km and one ID without revision badges or
+camera queue; a newer M6.2 update is still accepted. A session previously showing
+M6.6/10 km may correctly show one M6.6→6.3 / 10→16 km correction after rollout.
