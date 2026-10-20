@@ -1006,13 +1006,14 @@ function selectNextAutoCycleItem() {
         groups.get(type).set(item.id, item);
     }
     for (const type of state.alerts.keys()) if (!groups.has(type)) state.alerts.delete(type);
-    const slots=['quake','quake','other','other','capital','quake','quake','other','other','brazil'];
-    state.capitals=state.capitals||{};state.brazil=state.brazil||{};
+    const slots=['quake','quake','other','other','capital','world-capital','quake','quake','other','other','brazil'];
+    state.capitals=state.capitals||{};state.worldCapitals=state.worldCapitals||{};state.brazil=state.brazil||{};
     // A missing category consumes only its slot, never a fake event.
     for(let attempt=0;attempt<slots.length;attempt++){
         const slot=slots[state.phase%slots.length];state.phase=(state.phase+1)%slots.length;
         let item=null;
-        if(slot==='capital')item=window.CapitalWeather?.pick(state.capitals,eventoSelecionadoId)||null;
+        if(slot==='capital'){window.WorldCapitalWeather?.warm(state.worldCapitals,eventoSelecionadoId);item=window.CapitalWeather?.pick(state.capitals,eventoSelecionadoId)||null;}
+        else if(slot==='world-capital')item=window.WorldCapitalWeather?.pick(state.worldCapitals,eventoSelecionadoId)||null;
         else if(slot==='brazil'){
             const pool=[...quakes.values(),...[...groups.values()].flatMap(g=>[...g.values()])].filter(e=>window.BrazilStateFlags?.isBrazil(e));
             const id=autoCycleDraw(state.brazil,pool.map(e=>e.id),eventoSelecionadoId);item=pool.find(e=>e.id===id)||null;

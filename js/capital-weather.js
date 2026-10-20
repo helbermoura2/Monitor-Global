@@ -18,6 +18,12 @@
   if(cptecAt&&Date.now()-cptecAt<TTL)return cptecRows;if(cptecFlight)return cptecFlight;if(Date.now()<cptecRetry)throw Error('CPTEC em intervalo de recuperação');
   cptecFlight=(async()=>{try{const r=await fetch('https://brasilapi.com.br/api/cptec/v1/clima/capital',{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error('Capitais indisponíveis');const d=await r.json();if(!Array.isArray(d))throw Error('Resposta inválida');cptecRows=d;cptecAt=Date.now();ingest(d);return d;}catch(e){cptecRetry=Date.now()+5*60000;throw e;}finally{cptecFlight=null;}})();return cptecFlight;
  }
+ function modelRecord(c,d){
+  const v=d?.current||{},temp=number(v.temperature_2m),at=number(v.time);
+  if(temp===null||temp < -90||temp>60||at===null||at*1000>Date.now()+60000||Date.now()-at*1000>MAX_AGE||d.current_units?.temperature_2m!=='°C'||!Number.isFinite(Number(d.latitude))||!Number.isFinite(Number(d.longitude))||Math.abs(Number(d.latitude)-c.lat)>.25||Math.abs(Number(d.longitude)-c.lng)>.25)return null;
+  const world=!!c.countryCode&&c.countryCode!=='BR';
+  return {id:world?'world-capital-weather-'+c.countryCode:'capital-weather-'+c.uf,type:'capital-weather',uf:c.uf||null,countryCode:c.countryCode||'BR',country:c.country||'Brasil',place:c.name+' · '+(world?c.country:c.uf),coords:[c.lng,c.lat],time:at*1000,temperature:temp,feels:number(v.apparent_temperature),humidity:number(v.relative_humidity_2m),wind:d.current_units?.wind_speed_10m==='km/h'?number(v.wind_speed_10m):null,condition:condition(v.weather_code),source:'Open-Meteo · condições por modelo'};
+ }
  function fresh(){return [...records.values()].filter(r=>Date.now()-r.time<=MAX_AGE&&r.time<=Date.now()+60000);}
  function persist(){try{sessionStorage.setItem('mg-capitals-weather-v1',JSON.stringify({at:fetchedAt,records:[...records.values()]}));}catch{}}
  async function load(){
@@ -27,10 +33,7 @@
    if(fresh().length<capitals.length){
     const u=new URL('https://api.open-meteo.com/v1/forecast');u.search=new URLSearchParams({latitude:capitals.map(c=>c.lat).join(','),longitude:capitals.map(c=>c.lng).join(','),current:'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code',timeformat:'unixtime',timezone:'UTC',wind_speed_unit:'kmh'});
     const r=await fetch(u.href,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Temperaturas indisponíveis');const rows=await r.json();if(!Array.isArray(rows)||rows.length!==capitals.length)throw Error('Capitais incompletas');
-    rows.forEach((d,i)=>{const c=capitals[i],v=d.current||{},temp=number(v.temperature_2m),at=number(v.time);if(records.has(c.uf)&&Date.now()-records.get(c.uf).time<=MAX_AGE&&records.get(c.uf).source.startsWith('CPTEC'))return;
-     if(temp===null||temp < -60||temp>60||at===null||Math.abs(Date.now()-at*1000)>MAX_AGE||d.current_units?.temperature_2m!=='°C'||Math.abs(Number(d.latitude)-c.lat)>.25||Math.abs(Number(d.longitude)-c.lng)>.25)return;
-     records.set(c.uf,{id:'capital-weather-'+c.uf,type:'capital-weather',uf:c.uf,countryCode:'BR',place:c.name+' · '+c.uf,coords:[c.lng,c.lat],time:at*1000,temperature:temp,feels:number(v.apparent_temperature),humidity:number(v.relative_humidity_2m),wind:d.current_units?.wind_speed_10m==='km/h'?number(v.wind_speed_10m):null,condition:condition(v.weather_code),source:'Open-Meteo · condições por modelo'});
-    });
+    rows.forEach((d,i)=>{const c=capitals[i];if(records.has(c.uf)&&Date.now()-records.get(c.uf).time<=MAX_AGE&&records.get(c.uf).source.startsWith('CPTEC'))return;const record=modelRecord(c,d);if(record)records.set(c.uf,record);});
    }
    if(!fresh().length)throw Error('Nenhuma temperatura atual disponível');
    fetchedAt=Date.now();persist();return fresh();
@@ -46,16 +49,16 @@
   close();const panel=document.getElementById('painel-direito');if(!panel)return false;
   let box=document.getElementById('pd-capital-weather');if(!box){box=document.createElement('section');box.id='pd-capital-weather';box.setAttribute('aria-label','Tempo na capital');panel.append(box);}
   box.replaceChildren();const node=(tag,cls,text)=>{const el=document.createElement(tag);el.className=cls;el.textContent=text;box.append(el);return el;};
-  const heading=node('h2','capital-weather-city',item.place);const flag=window.BrazilStateFlags?.image(item);if(flag)heading.prepend(flag);
+  const heading=node('h2','capital-weather-city',item.place);const flag=window.BrazilStateFlags?.image(item);if(flag)heading.prepend(flag);else if(/^[A-Z]{2}$/.test(item.countryCode||'')){const countryFlag=document.createElement('span');countryFlag.className='capital-weather-country-flag';countryFlag.setAttribute('role','img');countryFlag.setAttribute('aria-label','Bandeira · '+(item.country||item.countryCode));countryFlag.textContent=String.fromCodePoint(...[...item.countryCode].map(c=>127397+c.charCodeAt(0)));heading.prepend(countryFlag);}
   node('div','capital-weather-temperature',item.temperature.toLocaleString('pt-BR',{maximumFractionDigits:1})+' °C');node('p','capital-weather-condition',item.condition);
   const values=[['Sensação',item.feels,' °C'],['Umidade',item.humidity,'%'],['Vento',item.wind,' km/h']];const grid=node('dl','capital-weather-metrics','');for(const [label,value,unit]of values){const cell=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value===null?'Não informado':value.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;cell.append(dt,dd);grid.append(cell);}
   node('p','capital-weather-source',item.source);node('p','capital-weather-time','Atualizado em '+new Date(item.time).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT');
-  document.getElementById('pd-source').textContent='TEMPO NAS CAPITAIS · BRASIL';panel.classList.add('pd-capital-weather');panel.scrollTop=0;document.documentElement.dataset.mgThreat='none';
+  document.getElementById('pd-source').textContent='TEMPO NAS CAPITAIS · '+(item.countryCode==='BR'?'BRASIL':'MUNDO');panel.classList.add('pd-capital-weather');panel.scrollTop=0;document.documentElement.dataset.mgThreat='none';
   window.__mgHoldMag=-Infinity;window.__mgQuakePresentationMode='auto';window.resetCardEventFx?.(item);
   window.__mgRevisionProtectedId=null;window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;EventStore.setSelected(item.id);
   if(matchMedia('(max-width:900px)').matches)document.body.classList.add('mobile-details-mid');
   if(typeof map!=='undefined'&&map){const el=document.createElement('div');el.className='capital-weather-map-pin';el.textContent=item.temperature.toLocaleString('pt-BR',{maximumFractionDigits:1})+' °C';el.setAttribute('aria-label',item.place+' '+el.textContent);marker=new maplibregl.Marker({element:el}).setLngLat(item.coords).addTo(map);window.EventCamera?EventCamera.enter(item.id,{center:centroCompensado(...item.coords,7),zoom:7}):softFlyToCoords(...item.coords,7,true);}
   scheduleNextAutoCycle(30000);return true;
  }
- window.CapitalWeather={capitals,fetchCptec,ingest,load,pick,show,close,get:id=>fresh().find(r=>r.id===id)||null,records:fresh};
+ window.CapitalWeather={modelRecord,capitals,fetchCptec,ingest,load,pick,show,close,get:id=>fresh().find(r=>r.id===id)||null,records:fresh};
 })();

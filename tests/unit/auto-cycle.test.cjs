@@ -112,8 +112,8 @@ test('sequência completa reserva capital e evento brasileiro e retoma depois de
  const s=setup([quake('q1'),quake('q2')],[alert('f'),alert('br','flood')]);
  const cap={id:'capital-weather-SP',type:'capital-weather'};
  s.c.window.CapitalWeather={pick:()=>cap,show:item=>{s.shown.push(item);return true;}};
- s.c.window.BrazilStateFlags={isBrazil:e=>e.id==='br'};
- const rows=Array.from({length:20},()=>s.next());
- for(let i=0;i<20;i++){const phase=i%10,expected=[0,1,5,6].includes(phase)?'earthquake':phase===4?'capital-weather':phase===9?'flood':null;if(expected)assert.equal(rows[i].type,expected);else assert.notEqual(rows[i].type,'earthquake');if(phase===9)assert.equal(rows[i].id,'br');}
+ s.c.window.BrazilStateFlags={isBrazil:e=>e.id==='br'};s.c.window.WorldCapitalWeather={warm(){},pick:()=>({id:'world-capital-weather-FR',type:'capital-weather'})};
+ const rows=Array.from({length:22},()=>s.next());
+ for(let i=0;i<22;i++){const phase=i%11,expected=[0,1,6,7].includes(phase)?'earthquake':[4,5].includes(phase)?'capital-weather':phase===10?'flood':null;if(expected)assert.equal(rows[i].type,expected);else assert.notEqual(rows[i].type,'earthquake');if(phase===10)assert.equal(rows[i].id,'br');}
  assert.equal(s.c.window.__mgAutoRotation.phase,0);
 });

@@ -120,7 +120,7 @@ const EventStore = (function () {
         if (m) return m;
       }
     } catch (e) {}
-    return window.CapitalWeather?.get(id)||null;
+    return window.CapitalWeather?.get(id)||window.WorldCapitalWeather?.get(id)||null;
   }
 
   function getSelected() {
