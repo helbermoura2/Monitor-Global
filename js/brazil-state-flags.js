@@ -18,6 +18,6 @@
  }
  function image(item){const code=uf(item);if(!code)return null;const img=document.createElement('img');img.className='br-state-flag';img.src='assets/flags/br-states/'+code+'.svg';img.alt='Bandeira · '+code;img.width=24;img.height=16;img.decoding='async';img.title='Estado: '+code;return img;}
  function markup(item){return image(item)?.outerHTML||'';}
- function updateMain(){const host=document.getElementById('pd-flag'),item=window.EventStore?.getSelected();if(!host||!item||item.type==='capital-weather')return;const flag=image(item);if(flag)host.replaceChildren(flag);}
+ function updateMain(){const host=document.getElementById('pd-flag'),item=window.EventStore?.getSelected();if(!host||!item||item.type==='capital-weather')return;if(host.closest('.pd-model-one')&&window.MainCardLayout){window.MainCardLayout.updateFlag(item);return;}const flag=image(item);if(flag)host.replaceChildren(flag);}
  window.BrazilStateFlags={uf,image,markup,isBrazil,load,updateMain};
 })();

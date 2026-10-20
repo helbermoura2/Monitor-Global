@@ -49,11 +49,11 @@
   close();const panel=document.getElementById('painel-direito');if(!panel)return false;
   let box=document.getElementById('pd-capital-weather');if(!box){box=document.createElement('section');box.id='pd-capital-weather';box.setAttribute('aria-label','Tempo na capital');panel.append(box);}
   box.replaceChildren();const node=(tag,cls,text)=>{const el=document.createElement(tag);el.className=cls;el.textContent=text;box.append(el);return el;};
-  const heading=node('h2','capital-weather-city',item.place);const flag=window.BrazilStateFlags?.image(item);if(flag)heading.prepend(flag);else if(/^[A-Z]{2}$/.test(item.countryCode||'')){const countryFlag=document.createElement('span');countryFlag.className='capital-weather-country-flag';countryFlag.setAttribute('role','img');countryFlag.setAttribute('aria-label','Bandeira · '+(item.country||item.countryCode));countryFlag.textContent=String.fromCodePoint(...[...item.countryCode].map(c=>127397+c.charCodeAt(0)));heading.prepend(countryFlag);}
+  const heading=node('h2','capital-weather-city',item.place);const state=window.BrazilStateFlags?.image(item);if(state)heading.prepend(state);const countryFlag=window.MainCardLayout?.countryImage(item.countryCode,item.country||'Brasil');if(countryFlag){countryFlag.classList.add('capital-weather-country-flag');heading.prepend(countryFlag);}
   node('div','capital-weather-temperature',item.temperature.toLocaleString('pt-BR',{maximumFractionDigits:1})+' °C');node('p','capital-weather-condition',item.condition);
   const values=[['Sensação',item.feels,' °C'],['Umidade',item.humidity,'%'],['Vento',item.wind,' km/h']];const grid=node('dl','capital-weather-metrics','');for(const [label,value,unit]of values){const cell=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value===null?'Não informado':value.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;cell.append(dt,dd);grid.append(cell);}
   node('p','capital-weather-source',item.source);node('p','capital-weather-time','Atualizado em '+new Date(item.time).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT');
-  window.MainCardLayout?.restore();
+  window.MainCardLayout?.sync(item);
   document.getElementById('pd-source').textContent='TEMPO NAS CAPITAIS · '+(item.countryCode==='BR'?'BRASIL':'MUNDO');panel.classList.add('pd-capital-weather');panel.scrollTop=0;document.documentElement.dataset.mgThreat='none';
   window.__mgHoldMag=-Infinity;window.__mgQuakePresentationMode='auto';window.resetCardEventFx?.(item);
   window.__mgRevisionProtectedId=null;window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;EventStore.setSelected(item.id);
