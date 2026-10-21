@@ -1,0 +1,11 @@
+const{test,expect}=require('@playwright/test');
+test('scripted journeys avoid intermediate label requests and restore final labels and cancellation',async({page})=>{
+ let requests=0;await page.route('**/budget-tile/**',r=>{requests++;return r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')});});
+ await page.route('**/map-budget-harness',r=>r.fulfill({contentType:'text/html',body:`<div id="map" style="width:600px;height:400px"></div><script src="/vendor/maplibre-gl.js"></script><script src="/js/map-render-budget.js"></script><script>window.map=new maplibregl.Map({container:'map',...MapRenderBudget.options(),center:[0,0],zoom:1,style:{version:8,sources:{labels:{type:'raster',tiles:[location.origin+'/budget-tile/{z}/{x}/{y}'],tileSize:256}},layers:[{id:'esri-boundaries-places',type:'raster',source:'labels'}]}});window.ready=new Promise(r=>map.once('idle',r));window.travel=async()=>{for(const [lng,zoom]of [[30,2],[70,4],[120,6]]){map.jumpTo({center:[lng,0],zoom});await new Promise(r=>map.once('idle',r));}};</script>`}));
+ await page.goto('/map-budget-harness');await page.evaluate(()=>ready);requests=0;await page.evaluate(()=>travel());const before=requests;
+ await page.reload();await page.evaluate(()=>ready);requests=0;await page.evaluate(async()=>{MapRenderBudget.begin(map);await travel();});const during=requests;expect(during).toBe(0);expect(before).toBeGreaterThan(0);
+ await page.evaluate(()=>{MapRenderBudget.finish();return new Promise(r=>map.once('idle',r));});const after=requests;expect(after).toBeGreaterThan(0);expect(after).toBeLessThan(before);
+ await page.evaluate(()=>{MapRenderBudget.begin(map);MapRenderBudget.finish();});expect(await page.evaluate(()=>map.getLayoutProperty('esri-boundaries-places','visibility'))).toBe('visible');
+ await page.evaluate(()=>{map.setLayoutProperty('esri-boundaries-places','visibility','none');MapRenderBudget.begin(map);MapRenderBudget.finish();});expect(await page.evaluate(()=>map.getLayoutProperty('esri-boundaries-places','visibility'))).toBe('none');
+ console.log('Local label requests: baseline='+before+' optimized='+after+' during journey='+during);
+});

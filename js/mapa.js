@@ -191,6 +191,7 @@ function initMap() {
     const estilo = { version: 8, projection:{type:window.GlobePreview?.initialProjection?.()||'globe'}, sources: {}, layers: [ { id: 'ocean-bg', type: 'background', paint: { 'background-color': '#0b2a4a' } } ] };
 
     map = new GL.Map({
+        ...window.MapRenderBudget?.options(),
         container: 'mapContainer',
         style: estilo,
         center: [-46.63, -23.55],

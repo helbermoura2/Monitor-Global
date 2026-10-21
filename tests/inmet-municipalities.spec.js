@@ -50,12 +50,14 @@ for(const width of [1280,390])test('official alert areas replace emoji crowds, s
  expect(data.areas.length).toBe(2);expect(data.focus).toEqual([]);expect(data.icons).toBe(0);
  const overlap=await page.evaluate(async()=>{const f=(await map.getSource('inmet-warning-areas').getData()).features;return polygonClipping.intersection(f[0].geometry.coordinates,f[1].geometry.coordinates);});expect(overlap).toEqual([]);
  expect(data.areas.find(f=>f.properties.kind==='dry').properties.color).toBe('#fb923c');expect(data.areas.find(f=>f.properties.kind==='rain').properties.color).toBe('#ef4444');
- for(const mode of ['manual','auto','new']){
-  await page.evaluate(mode=>{PresentationLimits.clear();eventoSelecionadoId=null;window.__mgSoftCycle=mode==='auto';showAlertDetails(globalAlerts.find(a=>a.id==='inmet-rain-area'),mode==='new');clearTimeout(cycleTimeout);syncAllMarkers();},mode);
+ for(const mode of ['manual','auto']){
+  await page.evaluate(mode=>{PresentationLimits.clear();eventoSelecionadoId=null;window.__mgRotationDisplay=mode==='auto';window.__mgSoftCycle=mode==='auto';try{showAlertDetails(globalAlerts.find(a=>a.id==='inmet-rain-area'),false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);syncAllMarkers();},mode);
   expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-focus').getData()).features.length)).toBe(1);
   expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('inmet-rain-area');
  }
  await page.evaluate(()=>{eventoSelecionadoId='unrelated-earthquake';syncAllMarkers();});expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-focus').getData()).features)).toEqual([]);
+ // Weather arrivals join rotation; they do not bypass the active event's priority.
+ await page.evaluate(()=>{showAlertDetails(globalAlerts.find(a=>a.id==='inmet-rain-area'),true);syncAllMarkers();});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('unrelated-earthquake');expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-focus').getData()).features)).toEqual([]);
  await page.evaluate(()=>{layerVisibility.lightning=false;syncAllMarkers();});data=await page.evaluate(async()=>(await map.getSource('inmet-warning-areas').getData()).features);expect(data.length).toBe(1);expect(data[0].properties.kind).toBe('dry');
  await page.evaluate(()=>{globalAlerts.forEach(a=>a.fimTs=Date.now()-1);syncAllMarkers();});expect(await page.evaluate(async()=>(await map.getSource('inmet-warning-areas').getData()).features)).toEqual([]);
  expect(await page.evaluate(()=>InmetAreas.geometry('{broken'))).toBe(null);

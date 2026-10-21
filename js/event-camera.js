@@ -1,6 +1,6 @@
 /* Every event-to-event trip leaves the surface before approaching its destination. */
 (function(){'use strict';let lastId=null,token=0,timers=[],trip=null;const arrivalEffects=new Map(),worldEffects=new Map();
-function cancel(keepId=null){if(trip?.id!==keepId)worldEffects.delete(trip?.id);token++;for(const t of timers)clearTimeout(t);timers=[];trip=null;for(const id of arrivalEffects.keys())if(id!==keepId)arrivalEffects.delete(id);}
+function cancel(keepId=null){window.MapRenderBudget?.finish();if(trip?.id!==keepId)worldEffects.delete(trip?.id);token++;for(const t of timers)clearTimeout(t);timers=[];trip=null;for(const id of arrivalEffects.keys())if(id!==keepId)arrivalEffects.delete(id);}
 function worldEffect(effect){try{effect();}catch(error){console.warn('[som na visão global]',error);}}
 function releaseWorld(id){if(trip?.id!==id||eventoSelecionadoId!==id)return;trip.worldReady=true;const entry=worldEffects.get(id);worldEffects.delete(id);if(entry&&entry.until>Date.now())worldEffect(entry.effect);}
 function afterWorldView(id,effect){
@@ -13,7 +13,7 @@ function worldZoom(latitude){if(window.GlobePreview?.state().testing)return Glob
 function durationFor(id){return lastId!==null&&lastId!==id?18000:6000;}
 function enter(id,camera,arrive){
  if(trip?.id===id&&Date.now()<trip.endsAt){trip.camera=camera;trip.arrive=arrive;return Math.max(0,trip.endsAt-Date.now());}
- const ms=durationFor(id);cancel(id);const generation=token;lastId=id;const journey=trip={id,camera,arrive,endsAt:Date.now()+ms};
+ const ms=durationFor(id);cancel(id);window.MapRenderBudget?.begin(map);const generation=token;lastId=id;const journey=trip={id,camera,arrive,endsAt:Date.now()+ms};
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&eventoSelecionadoId===id;
@@ -28,7 +28,7 @@ function enter(id,camera,arrive){
   // including the latitude limits imposed by Mercator at whole-world zoom.
   if(journey.arrive)journey.arrive();else ease(journey.camera,true);
  };
- timers.push(setTimeout(()=>{if(!valid())return;if(ms===6000)releaseWorld(id);const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();},ms));
+ timers.push(setTimeout(()=>{if(!valid())return;window.MapRenderBudget?.finish();if(ms===6000)releaseWorld(id);const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();},ms));
  if(ms===6000){final();return ms;}
  // Align with the real destination while still high above the surface. Clamping
  // its latitude made high-latitude events slide sideways during the descent.

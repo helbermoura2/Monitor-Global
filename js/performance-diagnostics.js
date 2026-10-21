@@ -32,19 +32,31 @@
    else group.timingUnavailable++;
   }
  }
+ // Error locations are actionable without retaining messages, URLs or event content.
+ function safeScript(value){try{const u=new URL(value,location.href);if(u.origin!==location.origin)return null;const script=[...document.scripts].find(n=>n.src&&new URL(n.src).pathname===u.pathname);return script&&/^\/(?:.*\/)?(?:js|vendor)\/[a-z0-9_-]+(?:\.min)?\.js$/i.test(u.pathname)?u.pathname.split('/').pop():null;}catch{return null;}}
+ function recordError(kind,event){
+  const error=event?.error||event?.reason,name=String(error?.name||''),type=['TypeError','ReferenceError','SyntaxError','RangeError','URIError','EvalError','Error'].includes(name)?name:'UnknownError';
+  let file=safeScript(event?.filename),line=Number(event?.lineno)||0,column=Number(event?.colno)||0;
+  if(!file&&typeof error?.stack==='string')for(const match of error.stack.slice(0,4000).matchAll(/(https?:\/\/[^\s()]+?):(\d+):(\d+)/g)){const found=safeScript(match[1]);if(found){file=found;line=Number(match[2]);column=Number(match[3]);break;}}
+  const rows=report.errorLocations||=[],same=rows.find(r=>r.kind===kind&&r.type===type&&r.file===file&&r.line===line&&r.column===column);
+  if(same){same.count++;same.lastAt=new Date().toISOString();}else if(rows.length<32)rows.push({kind,type,file,line,column,count:1,lastAt:new Date().toISOString()});else report.errorLocationsOmitted=(report.errorLocationsOmitted||0)+1;
+ }
+ function owner(node){const n=node?.nodeType===1?node:node?.parentElement;if(!n?.closest)return 'other';if(n.closest('.maplibregl-marker'))return 'markers';if(n.closest('.seismic-scene'))return 'seismic';if(n.closest('#site-effect-demo-canvas,.site-effect-floats'))return 'screenEffect';if(n.closest('#painel-direito'))return 'mainCard';if(n.closest('#sidebar-left'))return 'records';if(n.closest('#mapContainer'))return 'map';return 'other';}
+ function breakdown(nodes,target=n=>n){const counts={};for(const n of nodes){const k=owner(target(n));counts[k]=(counts[k]||0)+1;}return counts;}
+ function peaks(state){if(!state)return;const p=report.renderingPeaks||={markers:0,canvases:0,animations:0,canvasByOwner:{},animationByOwner:{}};for(const key of ['markers','canvases','animations','runningAnimations'])p[key]=Math.max(p[key]||0,state[key]||0);for(const key of ['canvasByOwner','animationByOwner'])for(const [k,n]of Object.entries(state[key]||{}))p[key][k]=Math.max(p[key][k]||0,n);}
  function renderingState(){
-  try{const m=typeof map!=='undefined'?map:null,style=m?.getStyle?.();return {mapSources:style?Object.keys(style.sources||{}).length:null,mapLayers:style?.layers?.length??null,mapImages:m?.listImages?.().length??null,mapPixelRatio:m?.getPixelRatio?.()??null,markers:document.querySelectorAll('.maplibregl-marker').length,animations:document.getAnimations?.().length??null,economy:window.MobileEnergyBudget?.economy?.()??null,budget:window.MobileEnergyBudget?.mobile?.()??null};}catch{return null;}
+  try{const canvases=[...document.querySelectorAll('canvas')],animations=document.getAnimations?.()||[];const m=typeof map!=='undefined'?map:null,style=m?.getStyle?.();return {mapSources:style?Object.keys(style.sources||{}).length:null,mapLayers:style?.layers?.length??null,mapImages:m?.listImages?.().length??null,mapPixelRatio:m?.getPixelRatio?.()??null,markers:document.querySelectorAll('.maplibregl-marker').length,canvases:canvases.length,canvasByOwner:breakdown(canvases),animations:animations.length,runningAnimations:animations.filter(a=>a.playState==='running'||a.pending).length,animationByOwner:breakdown(animations,a=>a.effect?.target),economy:window.MobileEnergyBudget?.economy?.()??null,budget:window.MobileEnergyBudget?.mobile?.()??null};}catch{return null;}
  }
  function capabilities(){return {longTasks:typeof PerformanceObserver!=='undefined'&&PerformanceObserver.supportedEntryTypes?.includes('longtask')||false,jsMemory:Number.isFinite(performance.memory?.usedJSHeapSize),resourceTiming:typeof PerformanceObserver!=='undefined'&&PerformanceObserver.supportedEntryTypes?.includes('resource')||false};}
  function navigation(){const n=performance.getEntriesByType('navigation')[0];return n?{domContentLoadedMs:round(n.domContentLoadedEventEnd),loadMs:round(n.loadEventEnd),type:n.type}:null;}
- function create(){return {schema:1,collectorVersion:2,startedAt:new Date().toISOString(),updatedAt:null,active:false,pageVisits:0,visibleMs:0,hiddenMs:0,unobservedGapMs:0,capabilities:capabilities(),device:{userAgent:navigator.userAgent.slice(0,240),viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},deviceMemoryGB:navigator.deviceMemory||null,hardwareConcurrency:navigator.hardwareConcurrency||null},navigation:navigation(),longTasks:{count:0,totalMs:0,maxMs:0},frames:{windows:0,frames:0,elapsedMs:0,slowIntervals:0,maxIntervalMs:0},errors:{javascript:0,unhandledRejection:0,resource:0,map:0,webglContextLost:0},resources:{count:0,totalMs:0,httpErrors:0,httpStatusAvailable:false,byCategory:{},categoryCount:0},samples:[],limitations:['Relatório local: sem envio automático, sem coordenadas, mensagens de erro, URLs ou conteúdo dos eventos.','Memória refere-se somente ao heap JavaScript quando disponibilizado; não inclui GPU, abas, workers ou consumo total do aparelho.','Fluidez amostrada por 1 segundo a cada minuto com a página visível; não é medição contínua nem prova de FPS do mapa.','Pausas longas do navegador são separadas do tempo observado. Não é possível medir uso com o navegador fechado.','Categorias de recursos são contadores locais; não equivalem a operações Durable/KV. Tamanhos podem ser ocultados por fontes externas. A memória pode ser aproximada e atualizada em degraus pelo navegador.','Tarefas longas e códigos HTTP dependem do suporte do navegador; ausência de registros não comprova ausência de falhas.']};}
+ function create(){return {schema:1,collectorVersion:3,startedAt:new Date().toISOString(),updatedAt:null,active:false,pageVisits:0,visibleMs:0,hiddenMs:0,unobservedGapMs:0,capabilities:capabilities(),device:{userAgent:navigator.userAgent.slice(0,240),viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},deviceMemoryGB:navigator.deviceMemory||null,hardwareConcurrency:navigator.hardwareConcurrency||null},navigation:navigation(),longTasks:{count:0,totalMs:0,maxMs:0},frames:{windows:0,frames:0,elapsedMs:0,slowIntervals:0,maxIntervalMs:0},errors:{javascript:0,unhandledRejection:0,resource:0,map:0,webglContextLost:0},resources:{count:0,totalMs:0,httpErrors:0,httpStatusAvailable:false,byCategory:{},categoryCount:0},samples:[],limitations:['Relatório local: sem envio automático, sem coordenadas, textos de erro, URLs ou conteúdo dos eventos.','Falhas guardam somente tipo, arquivo local conhecido e linha; textos e pilhas completas são descartados.', 'Memória refere-se somente ao heap JavaScript quando disponibilizado; não inclui GPU, abas, workers ou consumo total do aparelho.','Fluidez amostrada por 1 segundo a cada minuto com a página visível; não é medição contínua nem prova de FPS do mapa.','Pausas longas do navegador são separadas do tempo observado. Não é possível medir uso com o navegador fechado.','Categorias de recursos são contadores locais; não equivalem a operações Durable/KV. Tamanhos podem ser ocultados por fontes externas. A memória pode ser aproximada e atualizada em degraus pelo navegador.','Tarefas longas e códigos HTTP dependem do suporte do navegador; ausência de registros não comprova ausência de falhas.']};}
  function account(){const now=performance.now();if(lastTick){const delta=Math.max(0,now-lastTick);if(delta>120000)report.unobservedGapMs+=delta;else report[lastVisible?'visibleMs':'hiddenMs']+=delta;}lastTick=now;lastVisible=!document.hidden;}
  function save(){if(!report)return;report.updatedAt=new Date().toISOString();report.active=active;try{localStorage.setItem(KEY,JSON.stringify(report));storageOk=true;}catch{storageOk=false;}}
  function sample(){
   const heap=performance.memory?.usedJSHeapSize;
   const health=window.SourceHealth?.summary?.();
   report.samples.push({at:new Date().toISOString(),jsHeapMiB:Number.isFinite(heap)?round(heap/1048576):null,domElements:document.getElementsByTagName('*').length,canvases:document.getElementsByTagName('canvas').length,rendering:renderingState(),sources:health?{ok:health.ok,warn:health.warn,off:health.off,cooling:health.cooling,total:health.total}:null,online:navigator.onLine});
-  if(report.samples.length>LIMIT)report.samples.splice(0,report.samples.length-LIMIT);lastSample=performance.now();
+  peaks(report.samples.at(-1).rendering);if(report.samples.length>LIMIT)report.samples.splice(0,report.samples.length-LIMIT);lastSample=performance.now();
  }
  function endFrames(){cancelAnimationFrame(raf);clearTimeout(frameTimer);raf=frameTimer=null;}
  function frames(){
@@ -55,10 +67,10 @@
  }
  const mapError=()=>{if(active)report.errors.map++;};
  function attachMap(){let m;try{m=typeof map!=='undefined'?map:null;}catch{}if(m&&m!==mapRef){mapRef?.off?.('error',mapError);mapRef=m;m.on?.('error',mapError);}}
- function tick(){if(!active)return;account();attachMap();if(!document.hidden&&performance.now()-lastSample>=300000)sample();frames();save();render();}
+ function tick(){if(!active)return;account();attachMap();if(!document.hidden)peaks(renderingState());if(!document.hidden&&performance.now()-lastSample>=300000)sample();frames();save();render();}
  function observe(type,fn){if(!PerformanceObserver.supportedEntryTypes?.includes(type))return;try{const o=new PerformanceObserver(list=>{if(active)fn(list.getEntries());});o.observe({type,buffered:false});observers.push(o);}catch{}}
  function start(resume=false){
-  if(active)return;if(!resume||!report)report=create();active=true;report.pageVisits++;report.collectorVersion=2;report.resources.categoryStartedAt||=new Date().toISOString();report.capabilities=capabilities();report.navigation=navigation();lastTick=performance.now();lastVisible=!document.hidden;
+  if(active)return;if(!resume||!report)report=create();active=true;report.pageVisits++;report.collectorVersion=3;report.errorLocationsStartedAt||=new Date().toISOString();report.renderingPeaksStartedAt||=new Date().toISOString();report.resources.categoryStartedAt||=new Date().toISOString();report.capabilities=capabilities();report.navigation=navigation();lastTick=performance.now();lastVisible=!document.hidden;
   if(typeof PerformanceObserver!=='undefined'){
    observe('longtask',entries=>{if(document.hidden)return;for(const e of entries){report.longTasks.count++;report.longTasks.totalMs+=round(e.duration);report.longTasks.maxMs=Math.max(report.longTasks.maxMs,round(e.duration));}});
    observe('resource',resourceEntries);
@@ -81,10 +93,10 @@
  window.addEventListener('pagehide',()=>{if(active){account();endFrames();save();}});
  window.addEventListener('load',()=>setTimeout(()=>{if(active){report.navigation=navigation();save();}},0),{once:true});
  window.addEventListener('pageshow',()=>{if(active){lastTick=performance.now();lastVisible=!document.hidden;}});
- window.addEventListener('error',e=>{if(active)report.errors[e.target===window?'javascript':'resource']++;},true);
- window.addEventListener('unhandledrejection',()=>{if(active)report.errors.unhandledRejection++;});
+ window.addEventListener('error',e=>{if(active){const kind=e.target===window?'javascript':'resource';report.errors[kind]++;if(kind==='javascript')recordError(kind,e);}},true);
+ window.addEventListener('unhandledrejection',e=>{if(active){report.errors.unhandledRejection++;recordError('unhandledRejection',e);}});
  document.addEventListener('webglcontextlost',()=>{if(active)report.errors.webglContextLost++;},true);
- // Only our own bounded, versioned report can be resumed. Never retain error text or URLs.
- try{const saved=localStorage.getItem(KEY);if(saved&&saved.length<150000){const r=JSON.parse(saved);if(r.schema===1&&Array.isArray(r.samples)&&r.samples.length<=LIMIT&&r.errors&&r.frames&&r.resources&&r.longTasks&&r.device){report=r;if(r.active)start(true);}}}catch{}
+ // Only our own bounded, versioned report can be resumed. Only sanitized local script locations are retained, never error text or URLs.
+ try{const saved=localStorage.getItem(KEY);if(saved&&saved.length<350000){const r=JSON.parse(saved);if(r.schema===1&&Array.isArray(r.samples)&&r.samples.length<=LIMIT&&r.errors&&r.frames&&r.resources&&r.longTasks&&r.device){report=r;if(r.active)start(true);}}}catch{}
  window.PerformanceDiagnostics={open,start:()=>start(),stop,snapshot,download};
 })();

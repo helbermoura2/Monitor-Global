@@ -35,7 +35,11 @@ function drawIcon(ctx,type,color){
 }
 function iconCanvas(type,color){const c=document.createElement('canvas');c.width=c.height=64;drawIcon(c.getContext('2d'),type,color);return c;}
 function image(type,color){const name='inmet-'+type+'-'+color.slice(1);if(map.hasImage(name))return;const c=iconCanvas(type,color);map.addImage(name,c.getContext('2d').getImageData(0,0,64,64),{pixelRatio:2});}
-function inlineIcon(item){const c=iconCanvas(kind(item),corSeveridadeAlerta(item));c.style.cssText='width:22px;height:22px;vertical-align:middle;margin-right:6px';c.setAttribute('aria-hidden','true');return c;}
+const inlineImages=new Map();
+function inlineIcon(item){const type=kind(item),reported=corSeveridadeAlerta(item),color=PALETTE.includes(reported)?reported:'#94a3b8',key=type+color;
+ if(!inlineImages.has(key))inlineImages.set(key,iconCanvas(type,color).toDataURL('image/png'));
+ const img=document.createElement('img');img.src=inlineImages.get(key);img.width=img.height=22;img.alt='';img.decoding='async';img.style.cssText='width:22px;height:22px;vertical-align:middle;margin-right:6px';img.setAttribute('aria-hidden','true');return img;}
+
 function ensure(){
  for(const type of ['lightning','dry','siren'])for(const color of PALETTE)image(type,color);
  if(!map.getSource(SOURCE)){map.addSource(SOURCE,{type:'geojson',data:{type:'FeatureCollection',features:[]}});sourceIdentity=null;}
