@@ -4,15 +4,46 @@
  const KEY='mg-performance-diagnostic-v1',LIMIT=288;
  let report=null,active=false,timer=null,raf=null,frameTimer=null,observers=[],dialog=null,lastTick=0,lastVisible=false,lastSample=0,mapRef=null,storageOk=true,opener=null;
  const round=n=>Math.round(n*100)/100;
+ // Fixed categories only: never persist URLs, coordinates, paths or query strings.
+ function resourceGroup(entry){
+  try{const u=new URL(entry.name,location.href),host=u.hostname,path=u.pathname;
+   if(host==='server.arcgisonline.com'&&path.includes('/World_Imagery/'))return 'mapImagery';
+   if(host==='server.arcgisonline.com'&&path.includes('/World_Boundaries_and_Places/'))return 'mapLabels';
+   if(host==='tiles.openfreemap.org')return 'mapVector';
+   if(host==='black-sky-9ba0.terrestre.workers.dev'&&path.startsWith('/rainbow-tile/'))return 'radar';
+   if(u.origin===location.origin&&path.startsWith('/media/card-fx/'))return 'cardMedia';
+   if(['audio','video'].includes(entry.initiatorType))return 'otherMedia';
+   if(host==='tilecache.rainviewer.com'||host.endsWith('.rainviewer.com')&&path.includes('/v2/radar/'))return 'radar';
+   if(u.origin===location.origin&&/^\/assets\/(?:flags|geography|weather|seismic)\//.test(path))return path.startsWith('/assets/flags/')?'flags':'localData';
+   if(['fetch','xmlhttprequest'].includes(entry.initiatorType))return host==='black-sky-9ba0.terrestre.workers.dev'?'workerApi':'otherApi';
+   if(u.origin===location.origin)return 'localAssets';
+   if(['img','image'].includes(entry.initiatorType))return 'otherImages';
+  }catch{}return 'other';
+ }
+ function resourceEntries(entries){
+  const resources=report.resources;resources.byCategory||={};resources.categoryCount||=0;
+  for(const e of entries){
+   resources.count++;resources.totalMs+=round(e.duration);const key=resourceGroup(e);
+   const group=resources.byCategory[key]||={count:0,totalMs:0,httpErrors:0,bodyBytes:0,transferBytes:0,cacheHits:0,timingUnavailable:0};
+   resources.categoryCount++;group.count++;group.totalMs+=round(e.duration);
+   if(e.responseStatus){resources.httpStatusAvailable=true;if(e.responseStatus>=400){resources.httpErrors++;group.httpErrors++;}}
+   // Cross-origin entries often hide sizes. Zero bytes alone do not prove a cache hit.
+   if(e.encodedBodySize>0){group.bodyBytes+=e.encodedBodySize;group.transferBytes+=e.transferSize||0;if(e.transferSize===0)group.cacheHits++;}
+   else group.timingUnavailable++;
+  }
+ }
+ function renderingState(){
+  try{const m=typeof map!=='undefined'?map:null,style=m?.getStyle?.();return {mapSources:style?Object.keys(style.sources||{}).length:null,mapLayers:style?.layers?.length??null,mapImages:m?.listImages?.().length??null,mapPixelRatio:m?.getPixelRatio?.()??null,markers:document.querySelectorAll('.maplibregl-marker').length,animations:document.getAnimations?.().length??null,economy:window.MobileEnergyBudget?.economy?.()??null,budget:window.MobileEnergyBudget?.mobile?.()??null};}catch{return null;}
+ }
  function capabilities(){return {longTasks:typeof PerformanceObserver!=='undefined'&&PerformanceObserver.supportedEntryTypes?.includes('longtask')||false,jsMemory:Number.isFinite(performance.memory?.usedJSHeapSize),resourceTiming:typeof PerformanceObserver!=='undefined'&&PerformanceObserver.supportedEntryTypes?.includes('resource')||false};}
  function navigation(){const n=performance.getEntriesByType('navigation')[0];return n?{domContentLoadedMs:round(n.domContentLoadedEventEnd),loadMs:round(n.loadEventEnd),type:n.type}:null;}
- function create(){return {schema:1,startedAt:new Date().toISOString(),updatedAt:null,active:false,pageVisits:0,visibleMs:0,hiddenMs:0,unobservedGapMs:0,capabilities:capabilities(),device:{userAgent:navigator.userAgent.slice(0,240),viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},deviceMemoryGB:navigator.deviceMemory||null,hardwareConcurrency:navigator.hardwareConcurrency||null},navigation:navigation(),longTasks:{count:0,totalMs:0,maxMs:0},frames:{windows:0,frames:0,elapsedMs:0,slowIntervals:0,maxIntervalMs:0},errors:{javascript:0,unhandledRejection:0,resource:0,map:0,webglContextLost:0},resources:{count:0,totalMs:0,httpErrors:0,httpStatusAvailable:false},samples:[],limitations:['Relatório local: sem envio automático, sem coordenadas, mensagens de erro, URLs ou conteúdo dos eventos.','Memória refere-se somente ao heap JavaScript quando disponibilizado; não inclui GPU, abas, workers ou consumo total do aparelho.','Fluidez amostrada por 1 segundo a cada minuto com a página visível; não é medição contínua nem prova de FPS do mapa.','Pausas longas do navegador são separadas do tempo observado. Não é possível medir uso com o navegador fechado.','Tarefas longas e códigos HTTP dependem do suporte do navegador; ausência de registros não comprova ausência de falhas.']};}
+ function create(){return {schema:1,collectorVersion:2,startedAt:new Date().toISOString(),updatedAt:null,active:false,pageVisits:0,visibleMs:0,hiddenMs:0,unobservedGapMs:0,capabilities:capabilities(),device:{userAgent:navigator.userAgent.slice(0,240),viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},deviceMemoryGB:navigator.deviceMemory||null,hardwareConcurrency:navigator.hardwareConcurrency||null},navigation:navigation(),longTasks:{count:0,totalMs:0,maxMs:0},frames:{windows:0,frames:0,elapsedMs:0,slowIntervals:0,maxIntervalMs:0},errors:{javascript:0,unhandledRejection:0,resource:0,map:0,webglContextLost:0},resources:{count:0,totalMs:0,httpErrors:0,httpStatusAvailable:false,byCategory:{},categoryCount:0},samples:[],limitations:['Relatório local: sem envio automático, sem coordenadas, mensagens de erro, URLs ou conteúdo dos eventos.','Memória refere-se somente ao heap JavaScript quando disponibilizado; não inclui GPU, abas, workers ou consumo total do aparelho.','Fluidez amostrada por 1 segundo a cada minuto com a página visível; não é medição contínua nem prova de FPS do mapa.','Pausas longas do navegador são separadas do tempo observado. Não é possível medir uso com o navegador fechado.','Categorias de recursos são contadores locais; não equivalem a operações Durable/KV. Tamanhos podem ser ocultados por fontes externas. A memória pode ser aproximada e atualizada em degraus pelo navegador.','Tarefas longas e códigos HTTP dependem do suporte do navegador; ausência de registros não comprova ausência de falhas.']};}
  function account(){const now=performance.now();if(lastTick){const delta=Math.max(0,now-lastTick);if(delta>120000)report.unobservedGapMs+=delta;else report[lastVisible?'visibleMs':'hiddenMs']+=delta;}lastTick=now;lastVisible=!document.hidden;}
  function save(){if(!report)return;report.updatedAt=new Date().toISOString();report.active=active;try{localStorage.setItem(KEY,JSON.stringify(report));storageOk=true;}catch{storageOk=false;}}
  function sample(){
   const heap=performance.memory?.usedJSHeapSize;
   const health=window.SourceHealth?.summary?.();
-  report.samples.push({at:new Date().toISOString(),jsHeapMiB:Number.isFinite(heap)?round(heap/1048576):null,domElements:document.getElementsByTagName('*').length,canvases:document.getElementsByTagName('canvas').length,sources:health?{ok:health.ok,warn:health.warn,off:health.off,cooling:health.cooling,total:health.total}:null,online:navigator.onLine});
+  report.samples.push({at:new Date().toISOString(),jsHeapMiB:Number.isFinite(heap)?round(heap/1048576):null,domElements:document.getElementsByTagName('*').length,canvases:document.getElementsByTagName('canvas').length,rendering:renderingState(),sources:health?{ok:health.ok,warn:health.warn,off:health.off,cooling:health.cooling,total:health.total}:null,online:navigator.onLine});
   if(report.samples.length>LIMIT)report.samples.splice(0,report.samples.length-LIMIT);lastSample=performance.now();
  }
  function endFrames(){cancelAnimationFrame(raf);clearTimeout(frameTimer);raf=frameTimer=null;}
@@ -27,10 +58,10 @@
  function tick(){if(!active)return;account();attachMap();if(!document.hidden&&performance.now()-lastSample>=300000)sample();frames();save();render();}
  function observe(type,fn){if(!PerformanceObserver.supportedEntryTypes?.includes(type))return;try{const o=new PerformanceObserver(list=>{if(active)fn(list.getEntries());});o.observe({type,buffered:false});observers.push(o);}catch{}}
  function start(resume=false){
-  if(active)return;if(!resume||!report)report=create();active=true;report.pageVisits++;report.capabilities=capabilities();report.navigation=navigation();lastTick=performance.now();lastVisible=!document.hidden;
+  if(active)return;if(!resume||!report)report=create();active=true;report.pageVisits++;report.collectorVersion=2;report.resources.categoryStartedAt||=new Date().toISOString();report.capabilities=capabilities();report.navigation=navigation();lastTick=performance.now();lastVisible=!document.hidden;
   if(typeof PerformanceObserver!=='undefined'){
    observe('longtask',entries=>{if(document.hidden)return;for(const e of entries){report.longTasks.count++;report.longTasks.totalMs+=round(e.duration);report.longTasks.maxMs=Math.max(report.longTasks.maxMs,round(e.duration));}});
-   observe('resource',entries=>{for(const e of entries){report.resources.count++;report.resources.totalMs+=round(e.duration);if(e.responseStatus){report.resources.httpStatusAvailable=true;if(e.responseStatus>=400)report.resources.httpErrors++;}}});
+   observe('resource',resourceEntries);
   }
   attachMap();if(!document.hidden)sample();frames();timer=setInterval(tick,60000);save();render();
  }

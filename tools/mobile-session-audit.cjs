@@ -4,8 +4,9 @@ const {chromium}=require('playwright');
 (async()=>{
  const cycles=Math.max(6,Math.min(600,Number(process.env.AUDIT_CYCLES)||30));
  const dwell=Math.max(250,Math.min(10000,Number(process.env.AUDIT_DWELL_MS)||2000));
+ const viewport={width:Number(process.env.AUDIT_WIDTH)||390,height:Number(process.env.AUDIT_HEIGHT)||844},dpr=Number(process.env.AUDIT_DPR)||3,cpu=Number(process.env.AUDIT_CPU)||4;
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
- const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,serviceWorkers:'block'});
+ const context=await browser.newContext({viewport,deviceScaleFactor:dpr,serviceWorkers:'block'});
  try{
   const page=await context.newPage();let blocked=0,phase='boot';const errors=[];
   page.on('pageerror',e=>{if(errors.length<20)errors.push({phase,message:e.message,stack:e.stack});});
@@ -19,7 +20,7 @@ const {chromium}=require('playwright');
     map.on('style.load',removeRasters);map.on('styledata',removeRasters);if(map.isStyleLoaded())removeRasters();
    };watch();
   },{once:true}));
-  const cdp=await context.newCDPSession(page);await cdp.send('Performance.enable');await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
+  const cdp=await context.newCDPSession(page);await cdp.send('Performance.enable');await cdp.send('Emulation.setCPUThrottlingRate',{rate:cpu});
   await page.goto('http://127.0.0.1:4173/');await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento,null,{timeout:60000});await page.evaluate(()=>CountryBoundaries.ready);
   await page.evaluate(()=>{
    pausarBuscas();clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);stopMapCamera();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();NewEventPriority.clear?.();
@@ -51,6 +52,6 @@ const {chromium}=require('playwright');
   for(let i=0;i<6;i++){phase='warmup-'+i;await select(i);}
   const started=Date.now(),samples=[await sample(0)];
   for(let i=0;i<cycles;i++){phase='cycle-'+i;await select(i);if((i+1)%6===0||i+1===cycles)samples.push(await sample(i+1));}
-  console.log(JSON.stringify({method:{cycles,dwellMs:dwell,elapsedMs:Date.now()-started,viewport:'390x844',dpr:3,cpuSlowdown:4,externalRequests:'blocked',externalAttemptsBlocked:blocked,camera:'jumped; no flight benchmark',tiles:'raster layers removed; external imagery unavailable',heap:'main JS heap after garbage collection; GPU/workers excluded',scope:'repeated actual event card and effect lifecycle; not an hours-long session'},samples,pageErrors:[...new Set(errors)]},null,2));
+  console.log(JSON.stringify({method:{cycles,dwellMs:dwell,elapsedMs:Date.now()-started,viewport,dpr,cpuSlowdown:cpu,externalRequests:'blocked',externalAttemptsBlocked:blocked,camera:'jumped; no flight benchmark',tiles:'raster layers removed; external imagery unavailable',heap:'main JS heap after garbage collection; GPU/workers excluded',scope:'repeated actual event card and effect lifecycle; not an hours-long session'},samples,pageErrors:[...new Set(errors)]},null,2));
  }finally{await context.close();await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

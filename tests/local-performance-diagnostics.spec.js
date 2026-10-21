@@ -32,3 +32,31 @@ test('sample ring is bounded and unavailable memory stays null',async({page})=>{
  await page.evaluate(()=>{PerformanceDiagnostics.start();PerformanceDiagnostics.stop();const r=PerformanceDiagnostics.snapshot();r.samples=Array.from({length:288},()=>({at:'old',jsHeapMiB:null}));r.active=true;localStorage.setItem('mg-performance-diagnostic-v1',JSON.stringify(r));});
  await page.reload();const data=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(data.samples).toHaveLength(288);expect(data.samples.at(-1).at).not.toBe('old');expect(data.samples.at(-1).jsHeapMiB).toBeNull();expect(data.capabilities.jsMemory).toBe(false);
 });
+test('resource investigation keeps bounded categories, separates cache visibility, resumes old reports without URL retention',async({page})=>{
+ await page.addInitScript(()=>{
+  const observers=[];
+  window.PerformanceObserver=class {static supportedEntryTypes=['resource'];constructor(cb){this.cb=cb;}observe({type}){this.type=type;observers.push(this);}disconnect(){this.dead=true;}};
+  window.__diagnosticResources=entries=>{for(const o of observers)if(!o.dead&&o.type==='resource')o.cb({getEntries:()=>entries});};
+ });
+ await page.route('**/diagnostic-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));
+ await page.goto('/diagnostic-harness.html');
+ await page.evaluate(()=>{
+  PerformanceDiagnostics.start();PerformanceDiagnostics.stop();const old=PerformanceDiagnostics.snapshot();delete old.collectorVersion;delete old.resources.byCategory;delete old.resources.categoryCount;old.resources.count=77;old.active=true;localStorage.setItem('mg-performance-diagnostic-v1',JSON.stringify(old));
+ });
+ await page.reload();
+ await page.evaluate(()=>{
+  const urls=['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/5/6/7','https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/5/6/7','https://tiles.openfreemap.org/planet/5/6/7.pbf','https://tilecache.rainviewer.com/v2/radar/private/5/6/7.png','/assets/flags/countries/BR.svg','/assets/geography/countries-10m.json','https://black-sky-9ba0.terrestre.workers.dev/?url=secret-coordinates','https://api.example.com/private?token=secret','/js/mapa.js','https://images.example.com/secret.png','data:private','/media/card-fx/gale-canopy.mp4','https://black-sky-9ba0.terrestre.workers.dev/rainbow-tile/private/5/6/7'];
+  __diagnosticResources(urls.map((name,i)=>({name,duration:10,initiatorType:i===6||i===7?'fetch':i===9?'img':'other',responseStatus:i===6?429:200,encodedBodySize:i===0?0:100,transferSize:i===1?0:150})));
+  __diagnosticResources(Array.from({length:1000},(_,i)=>({name:'https://private-'+i+'.example.com/?secret',duration:1,initiatorType:'fetch',responseStatus:200,encodedBodySize:0,transferSize:0})));
+ });
+ const data=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
+ expect(data.collectorVersion).toBe(2);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
+ expect(Object.keys(data.resources.byCategory)).toHaveLength(12);
+ expect(data.resources.byCategory.mapImagery.timingUnavailable).toBe(1);expect(data.resources.byCategory.mapImagery.cacheHits).toBe(0);
+ expect(data.resources.byCategory.mapLabels.cacheHits).toBe(1);expect(data.resources.byCategory.workerApi.httpErrors).toBe(1);
+ expect(data.resources.byCategory.cardMedia.count).toBe(1);expect(data.resources.byCategory.radar.count).toBe(2);
+ expect(data.resources.byCategory.otherApi.count).toBe(1001);
+ expect(data.samples.at(-1).rendering.mapSources).toBeNull();
+ expect(JSON.stringify(data)).not.toMatch(/secret|arcgisonline|private-|tile\/5/);
+ await page.evaluate(()=>PerformanceDiagnostics.stop());
+});
