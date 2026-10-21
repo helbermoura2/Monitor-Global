@@ -8,6 +8,7 @@
   host.append(el);
  }
  function restore(){
+  window.CycloneRouteCard?.sync(null);
   for(const [el,marker] of homes){if(marker.isConnected)marker.after(el);marker.remove();}
   homes.clear();location?.remove();footer?.remove();panel()?.querySelector('#pd-data-nature')?.remove();
   const group=technical?.parentElement?.tagName==='DETAILS'?technical.parentElement:null;
@@ -52,7 +53,7 @@
   move(document.getElementById('pd-chips'),footer);
   // Actions remain in the header, available before any card scrolling.
   const linked=document.getElementById('pd-tsunami-link');if(linked)footer.before(linked);
-  window.DataContext?.annotate(item);
+  window.DataContext?.annotate(item);window.CycloneRouteCard?.sync(item);
  }
  window.MainCardLayout={sync,restore,updateFlag,prepare,countryImage};
  Promise.resolve(window.CountryBoundaries?.ready).then(()=>{

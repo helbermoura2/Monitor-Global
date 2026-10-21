@@ -57,11 +57,20 @@ function kmlToGeoJSONRota(xml) {
     const poligonos = [], linhas = [], pontos = [];
     doc.querySelectorAll('Placemark').forEach(pm => {
         const name = pm.querySelector('name')?.textContent?.trim() || '';
+        const fields={};pm.querySelectorAll('ExtendedData Data, ExtendedData SimpleData').forEach(n=>{const key=n.getAttribute('name');if(key)fields[key.slice(0,80)]=(n.querySelector('value')?.textContent||n.textContent||'').trim().slice(0,160);});
+        // Some NHC KMZs carry attributes in a description table instead of ExtendedData.
+        // Read text only; never insert or execute source HTML.
+        const description=(pm.querySelector('description')?.textContent||'').slice(0,20000);
+        const plain=v=>v.replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/g,'&').trim();
+        for(const row of [...description.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].slice(0,40)){
+            const cells=[...row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m=>plain(m[1]));
+            if(cells.length===2&&cells[0]&&!(cells[0] in fields))fields[cells[0].slice(0,80)]=cells[1].slice(0,160);
+        }
         pm.querySelectorAll('LineString').forEach(g => {
             const s = g.querySelector('coordinates')?.textContent.trim();
             if (!s) return;
             const pts = s.split(/\s+/).map(v => v.split(',').slice(0, 2).map(Number)).filter(a => a.length === 2 && a.every(Number.isFinite));
-            if (pts.length > 1) linhas.push({ type: 'Feature', properties: { name }, geometry: { type: 'LineString', coordinates: pts } });
+            if (pts.length > 1) linhas.push({ type: 'Feature', properties: { name }, geometry: window.CycloneRouteModel?.line(pts)||{ type: 'LineString', coordinates: pts } });
         });
         pm.querySelectorAll('Polygon outerBoundaryIs LinearRing').forEach(g => {
             const s = g.querySelector('coordinates')?.textContent.trim();
@@ -73,7 +82,7 @@ function kmlToGeoJSONRota(xml) {
             const s = g.textContent.trim();
             if (!s) return;
             const p = s.split(',').slice(0, 2).map(Number);
-            if (p.length === 2 && p.every(Number.isFinite)) pontos.push({ type: 'Feature', properties: { name }, geometry: { type: 'Point', coordinates: p } });
+            if (p.length === 2 && p.every(Number.isFinite)) pontos.push({ type: 'Feature', properties: { name, fields }, geometry: { type: 'Point', coordinates: p } });
         });
     });
     return { poligonos, linhas, pontos };
@@ -97,6 +106,7 @@ async function startHurricaneOfficialRoute(item) {
     if (!item || item.type !== 'hurricane' || !map) return;
     if (!item.coneUrl) {
         if (hurricaneOfficialId === item.id) stopHurricaneOfficialRoute();
+        window.CycloneRouteCard?.clearProduct(item.id);window.CycloneRouteCard?.refresh();
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
         return;
     }
@@ -108,7 +118,7 @@ async function startHurricaneOfficialRoute(item) {
     try {
         const requestedUrl = item.coneUrl;
         const parsed = await fetchKmzGeoJSON(requestedUrl);
-        if (eventoSelecionadoId !== item.id || item.coneUrl !== requestedUrl) return; // usuário já trocou de evento enquanto isso carregava
+        if (eventoSelecionadoId !== item.id || item.coneUrl !== requestedUrl) return; // Selection or bulletin changed during download.
         if (!parsed || (!parsed.poligonos.length && !parsed.linhas.length && !parsed.pontos.length)) {
             try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
             return;
@@ -151,6 +161,7 @@ async function startHurricaneOfficialRoute(item) {
         if (eventoSelecionadoId !== item.id) { stopHurricaneOfficialRoute(); return; }
         hurricaneOfficialId = item.id;
         hurricaneOfficialConeUrl = requestedUrl;
+        window.CycloneRouteCard?.official(item,parsed,requestedUrl);
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('oficial', item.id); } catch (e) {}
     } catch (e) {
         console.warn('[furacão rota oficial]', e);

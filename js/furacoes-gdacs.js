@@ -121,18 +121,18 @@ async function fetchRealHurricanes() {
                 tracks.push({
                     type: 'Feature',
                     properties: { id, cor: classificarCiclone(para.windKmh).cor },
-                    geometry: { type: 'LineString', coordinates: [[de.lng, de.lat], [para.lng, para.lat]] }
+                    geometry: window.CycloneRouteModel?.line([[de.lng,de.lat],[para.lng,para.lat]])||{ type:'LineString',coordinates:[[de.lng,de.lat],[para.lng,para.lat]] }
                 });
             }
             hist.forEach(h2 => {
                 trackPoints.push({
                     type: 'Feature',
-                    properties: { id, cor: classificarCiclone(h2.windKmh).cor },
+                    properties: { id, cor: classificarCiclone(h2.windKmh).cor, at:h2.t, windKmh:h2.windKmh },
                     geometry: { type: 'Point', coordinates: [h2.lng, h2.lat] }
                 });
             });
             const brg = movementInfo ? movementInfo.bearing : bearingBetween(hist[hist.length - 2], hist[hist.length - 1]);
-            cones.push(cycloneConePolygon(lng, lat, brg));
+            // No invented uncertainty polygon: cones must come from an official product.
         }
         return movementInfo;
     }
@@ -236,7 +236,7 @@ async function fetchRealHurricanes() {
     globalAlerts = globalAlerts.filter(a => a.type !== 'hurricane' || ids.has(a.id));
     [...cycloneHistory.keys()].forEach(id => { if (!ids.has(id)) cycloneHistory.delete(id); });
     [...hurricaneFxSyncCoords.keys()].forEach(id => { if (!ids.has(id)) hurricaneFxSyncCoords.delete(id); });
-    salvarCycloneHistory();
+    salvarCycloneHistory();window.CycloneRouteCard?.refresh();
     // Remove ciclones EONET que já têm par NHC/GDACS (nome ou proximidade ampliada)
     // — era uma reimplementação inline idêntica a limparCiclonesEonetDuplicados()
     // logo acima neste arquivo; agora só chama a função de verdade.

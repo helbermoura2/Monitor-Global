@@ -1,7 +1,7 @@
 /* Coordinate overlays on UI changes, never on animation frames or map movement. */
 (function(){
  'use strict';
- const selector='.wave-front-status,.seismic-impact-status,#mobile-notice-stack,#tsunami-map-legend,.felt-reports-legend';
+ const selector='.wave-front-status,.seismic-impact-status,#mobile-notice-stack,#tsunami-map-legend,.felt-reports-legend,#cyclone-map-legend';
  let frame=0,observer,resize,inline;
  const tracked=new Set();
  const visible=el=>!!el&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden'&&getComputedStyle(el).display!=='none';
@@ -33,7 +33,7 @@
   for(const el of elements){
    if(!tracked.has(el)){tracked.add(el);resize?.observe(el);}
    if(!el.classList.contains('mg-overlay-managed'))el.classList.add('mg-overlay-managed');
-   const isLegend=el.matches('#tsunami-map-legend,.felt-reports-legend');
+   const isLegend=el.matches('#tsunami-map-legend,.felt-reports-legend,#cyclone-map-legend');
    const dockThis=dock||el.id==='mobile-notice-stack'&&!!p&&!panel.classList.contains('pd-flip-girado')&&width<280;
    if(el.id==='mobile-notice-stack')el.classList.toggle('notice-inline',dockThis);
    if(dockThis&&inline){if(el.parentElement!==inline)inline.append(el);el.classList.add('mg-overlay-inline');if(isLegend)foldLegend(el,true);continue;}

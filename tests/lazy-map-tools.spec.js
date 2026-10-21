@@ -22,8 +22,8 @@ test('failed ZIP load is retried successfully',async({page})=>{
 });
 test('official cyclone KMZ parser loads ZIP dependency and preserves track and cone geometry',async({page})=>{
  await boot(page);
- const Zip=require('../vendor/jszip.min.js'),zip=new Zip();zip.file('cone.kml','<kml><Placemark><name>Cone oficial de teste</name><LineString><coordinates>-80,20 -79,21</coordinates></LineString><Polygon><outerBoundaryIs><LinearRing><coordinates>-80,20 -79,20 -79,21 -80,20</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></kml>');
+ const Zip=require('../vendor/jszip.min.js'),zip=new Zip();zip.file('cone.kml','<kml><Placemark><name>Cone oficial de teste</name><LineString><coordinates>-80,20 -79,21</coordinates></LineString><Polygon><outerBoundaryIs><LinearRing><coordinates>-80,20 -79,20 -79,21 -80,20</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark><Placemark><name>12 h</name><description><![CDATA[<table><tr><td>VALIDTIME</td><td>2026-10-21T12:00:00Z</td></tr></table>]]></description><ExtendedData><Data name="TAU"><value>12</value></Data><Data name="MAXWIND"><value>80</value></Data></ExtendedData><Point><coordinates>-79,21</coordinates></Point></Placemark></kml>');
  const body=await zip.generateAsync({type:'nodebuffer'});const proxyUrl=await page.evaluate(()=>WORKER_PROXY('https://example.invalid/cone.kmz'));await page.route(proxyUrl,r=>r.fulfill({contentType:'application/vnd.google-earth.kmz',body}));
  const result=await page.evaluate(async()=>{return fetchKmzGeoJSON('https://example.invalid/cone.kmz');});
- expect(result.linhas).toHaveLength(1);expect(result.poligonos).toHaveLength(1);expect(result.linhas[0].geometry.coordinates).toEqual([[-80,20],[-79,21]]);
+ expect(result.linhas).toHaveLength(1);expect(result.poligonos).toHaveLength(1);expect(result.linhas[0].geometry.coordinates).toEqual([[-80,20],[-79,21]]);expect(result.pontos).toHaveLength(1);const metadata=await page.evaluate(f=>CycloneRouteModel.metadata(f.properties.fields,f.properties.name),result.pontos[0]);expect(metadata.hours).toBe(12);expect(metadata.windKmh).toBe(148);expect(metadata.validAt).toBe(Date.parse('2026-10-21T12:00:00Z'));
 });
