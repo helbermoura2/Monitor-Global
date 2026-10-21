@@ -1,0 +1,97 @@
+{
+  "method": {
+    "cycles": 30,
+    "dwellMs": 2000,
+    "elapsedMs": 69182,
+    "viewport": "390x844",
+    "dpr": 3,
+    "cpuSlowdown": 4,
+    "externalRequests": "blocked",
+    "externalAttemptsBlocked": 462,
+    "camera": "jumped; no flight benchmark",
+    "tiles": "raster layers removed; external imagery unavailable",
+    "heap": "main JS heap after garbage collection; GPU/workers excluded",
+    "scope": "repeated actual event card and effect lifecycle; not an hours-long session"
+  },
+  "samples": [
+    {
+      "cycle": 0,
+      "heapBytes": 24169860,
+      "cdpNodes": 3379,
+      "documents": 6,
+      "jsEventListeners": 423,
+      "taskDuration": 17.454184,
+      "connectedNodes": 1444,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5
+    },
+    {
+      "cycle": 6,
+      "heapBytes": 24406548,
+      "cdpNodes": 3378,
+      "documents": 6,
+      "jsEventListeners": 420,
+      "taskDuration": 29.814095,
+      "connectedNodes": 1444,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5
+    },
+    {
+      "cycle": 12,
+      "heapBytes": 24555280,
+      "cdpNodes": 3378,
+      "documents": 6,
+      "jsEventListeners": 420,
+      "taskDuration": 41.728194,
+      "connectedNodes": 1444,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5
+    },
+    {
+      "cycle": 18,
+      "heapBytes": 24719704,
+      "cdpNodes": 3378,
+      "documents": 6,
+      "jsEventListeners": 420,
+      "taskDuration": 54.111349,
+      "connectedNodes": 1444,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5
+    },
+    {
+      "cycle": 24,
+      "heapBytes": 24860220,
+      "cdpNodes": 3378,
+      "documents": 6,
+      "jsEventListeners": 420,
+      "taskDuration": 66.255291,
+      "connectedNodes": 1444,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5
+    },
+    {
+      "cycle": 30,
+      "heapBytes": 24922816,
+      "cdpNodes": 3378,
+      "documents": 6,
+      "jsEventListeners": 420,
+      "taskDuration": 78.139845,
+      "connectedNodes": 1444,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5
+    }
+  ],
+  "pageErrors": []
+}
