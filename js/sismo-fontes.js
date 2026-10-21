@@ -1,3 +1,11 @@
+// Retired JSONP callbacks stay harmless briefly if a script executes after timeout.
+const EmscJsonpGuard=(()=>{const retired=new Map(),active=new Set(),noop=()=>{};let serial=0;
+ function prune(){for(const [key,until]of retired)if(until<=Date.now()){delete window[key];retired.delete(key);}while(retired.size>64){const key=retired.keys().next().value;delete window[key];retired.delete(key);}}
+ function create(prefix){prune();const key=prefix+Date.now().toString(36)+'_'+(++serial);active.add(key);return key;}
+ function retire(key){active.delete(key);window[key]=noop;retired.set(key,Date.now()+60000);prune();}
+ window.addEventListener?.('pagehide',()=>{for(const key of retired.keys())delete window[key];retired.clear();});
+ return {create,retire,stats:()=>({active:active.size,retired:retired.size})};})();
+window.EmscJsonpGuard=EmscJsonpGuard;
 // Cada canal paralelo tem sua própria primeira fotografia do catálogo.
 // Uma fonte lenta não transforma seu histórico em novidade após o feed principal.
 const supplementalCatalogBaselines = new Set();
@@ -30,14 +38,14 @@ function fetchEMSCData() {
         if(document.hidden)return Promise.resolve(null);
         return new Promise(res => {
             const s = document.createElement('script');
-            const cb = 'emscCb_' + Math.round(Math.random() * 1e6);
+            const cb = EmscJsonpGuard.create('emscCb_');
             let acabou = false;
             const limpar = () => {
                 if (acabou) return;
                 acabou = true;
                 clearTimeout(timer);
                 document.removeEventListener('visibilitychange',onVisibility);
-                delete window[cb];
+                EmscJsonpGuard.retire(cb);
                 if (s.parentNode) s.parentNode.removeChild(s);
             };
             const onVisibility=()=>{if(document.hidden){limpar();res(null);}};
@@ -1080,13 +1088,13 @@ async function fetchEmscPlanetReinforcementQuakes() {
     function umaTentativa(box, timeoutMs) {
         return new Promise(res => {
             const s = document.createElement('script');
-            const cb = 'emscPlanetCb_' + Math.round(Math.random() * 1e6);
+            const cb = EmscJsonpGuard.create('emscPlanetCb_');
             let acabou = false;
             const limpar = () => {
                 if (acabou) return;
                 acabou = true;
                 clearTimeout(timer);
-                delete window[cb];
+                EmscJsonpGuard.retire(cb);
                 if (s.parentNode) s.parentNode.removeChild(s);
             };
             const timer = setTimeout(() => { limpar(); res(null); }, timeoutMs);

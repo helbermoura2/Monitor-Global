@@ -50,7 +50,7 @@ test('resource investigation keeps bounded categories, separates cache visibilit
   __diagnosticResources(Array.from({length:1000},(_,i)=>({name:'https://private-'+i+'.example.com/?secret',duration:1,initiatorType:'fetch',responseStatus:200,encodedBodySize:0,transferSize:0})));
  });
  const data=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
- expect(data.collectorVersion).toBe(3);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
+ expect(data.collectorVersion).toBe(4);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
  expect(Object.keys(data.resources.byCategory)).toHaveLength(12);
  expect(data.resources.byCategory.mapImagery.timingUnavailable).toBe(1);expect(data.resources.byCategory.mapImagery.cacheHits).toBe(0);
  expect(data.resources.byCategory.mapLabels.cacheHits).toBe(1);expect(data.resources.byCategory.workerApi.httpErrors).toBe(1);
@@ -65,4 +65,10 @@ test('error locations are bounded and omit messages, URLs and stacks',async({pag
  await page.route('**/diagnostic-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));await page.goto('/diagnostic-harness.html');
  await page.evaluate(()=>{const m=document.createElement('div');m.id='mapContainer';m.append(document.createElement('canvas'));const card=document.createElement('div');card.id='painel-direito';card.append(document.createElement('canvas'));document.body.append(m,card);document.getAnimations=()=>[{playState:'running',effect:{target:m}},{playState:'finished',effect:{target:card}}];PerformanceDiagnostics.start();for(let i=0;i<50;i++)window.dispatchEvent(new ErrorEvent('error',{message:'private token and coordinates https://secret.example',filename:location.origin+'/js/performance-diagnostics.js?private',lineno:i+1,colno:7,error:new TypeError('private token')}));window.dispatchEvent(new ErrorEvent('error',{message:'another private message',filename:location.origin+'/js/performance-diagnostics.js',lineno:1,colno:7,error:new TypeError('secret')}));});
  const d=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(d.errorLocations).toHaveLength(32);expect(d.errorLocationsOmitted).toBe(18);expect(d.errorLocations[0]).toMatchObject({type:'TypeError',file:'performance-diagnostics.js',line:1,column:7,count:2});expect(JSON.stringify(d)).not.toMatch(/secret|private|https:\/\//);expect(d.samples[0].rendering.canvasByOwner).toEqual({map:1,mainCard:1});expect(d.samples[0].rendering.runningAnimations).toBe(1);expect(d.samples[0].rendering.animations).toBe(2);expect(d.renderingPeaks.runningAnimations).toBe(1);
+});
+
+test('opaque script failures remain explicit and HTTP diagnostics retain only fixed routes and statuses',async({page})=>{
+ await page.route('**/diagnostic-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));await page.goto('/diagnostic-harness.html');
+ await page.evaluate(()=>{window.EmscJsonpGuard={stats:()=>({active:2,retired:1})};PerformanceDiagnostics.start();window.dispatchEvent(new ErrorEvent('error',{message:'Script error.'}));PerformanceDiagnostics.network('https://black-sky-9ba0.terrestre.workers.dev/?url='+encodeURIComponent('https://api.open-meteo.com/v1/forecast?latitude=secret'),new Response('{}',{status:429}));PerformanceDiagnostics.network('https://black-sky-9ba0.terrestre.workers.dev/official-weather-alerts?token=secret',null,'abort');});
+ const d=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(d.errorLocations[0]).toMatchObject({type:'OpaqueScriptError',file:null,opaque:true,emscPending:2});expect(d.workerRequests[0]).toMatchObject({route:'proxy',provider:'openMeteo',attempts:1,statuses:{'429':1}});expect(d.workerRequests[1].aborts).toBe(1);expect(JSON.stringify(d)).not.toMatch(/secret|latitude|https:\/\//);
 });

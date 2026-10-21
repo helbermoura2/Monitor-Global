@@ -1,18 +1,19 @@
 (() => {
   const nativeFetch = window.fetch.bind(window);
+  const tracedFetch=async request=>{try{const r=await nativeFetch(request);try{window.PerformanceDiagnostics?.network?.(request,r);}catch{}return r;}catch(error){try{window.PerformanceDiagnostics?.network?.(request,null,error?.name==='AbortError'?'abort':'network');}catch{}throw error;}};
   window.fetchWithTimeout = async (input, init = {}, timeout = 12000) => {
     const request = new Request(input, init);
     let response;
-    if(window.BrowserRequestBudget?.eligible(request))response=await BrowserRequestBudget.fetch(request,nativeFetch,timeout);
+    if(window.BrowserRequestBudget?.eligible(request))response=await BrowserRequestBudget.fetch(request,tracedFetch,timeout);
     else {
       const controller=new AbortController(),abort=()=>controller.abort(request.signal.reason);
       const signal=typeof AbortSignal.any==='function'?AbortSignal.any([request.signal,controller.signal]):controller.signal;
       if(typeof AbortSignal.any!=='function'){request.signal.addEventListener('abort',abort,{once:true});if(request.signal.aborted)abort();}
       const timer=setTimeout(()=>controller.abort(),timeout);
-      try{response=await nativeFetch(new Request(request,{signal}));}finally{clearTimeout(timer);}
+      try{response=await tracedFetch(new Request(request,{signal}));}finally{clearTimeout(timer);request.signal.removeEventListener('abort',abort);}
     }
     // Keep shared provider cooldown visible so fallbacks do not bypass it.
-    if(!response.ok&&response.headers.get('X-Monitor-Source-State')!=='unavailable')throw new Error(`HTTP ${response.status}`);
+    if(!response.ok&&response.headers.get('X-Monitor-Source-State')!=='unavailable'){const error=new Error(`HTTP ${response.status}`);error.status=response.status;if(response.status===429&&response.headers.get('Retry-After'))error.sharedCooldown=true;throw error;}
     return response;
   };
   window.fetch = (input, init) => window.fetchWithTimeout(input, init);
