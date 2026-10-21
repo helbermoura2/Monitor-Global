@@ -1,0 +1,108 @@
+{
+  "queriedAt": "2026-10-20T23:56:16.821838+00:00",
+  "readOnly": true,
+  "requestSummary": {
+    "2026-10-20": {
+      "requests": 2737,
+      "families": {
+        "population": 1688,
+        "portuguese-translations-v1": 67,
+        "earthquake-alerts": 481,
+        "metrics": 58,
+        "2026-10-17": 98,
+        "global-rainbow-products-weather-v1": 34,
+        "2026-10-16": 14,
+        "2026-10-18": 97,
+        "2026-10-19": 96,
+        "global-rainbow-nowcast-v1": 104
+      },
+      "types": {
+        "http": 1917,
+        "alarm": 820
+      },
+      "statuses": {
+        "success": 2666,
+        "clientDisconnected": 71
+      }
+    },
+    "2026-10-19": {
+      "requests": 2877,
+      "families": {
+        "population": 1922,
+        "global-rainbow-products-weather-v1": 22,
+        "portuguese-translations-v1": 32,
+        "earthquake-alerts": 480,
+        "metrics": 30,
+        "2026-10-16": 97,
+        "global-rainbow-nowcast-v1": 91,
+        "2026-10-18": 95,
+        "2026-10-17": 96,
+        "2026-10-15": 12
+      },
+      "types": {
+        "alarm": 938,
+        "http": 1939
+      },
+      "statuses": {
+        "success": 2833,
+        "clientDisconnected": 44
+      }
+    }
+  },
+  "recentCompleteMinutes": {
+    "since": "2026-10-20T23:46:00+00:00",
+    "until": "2026-10-20T23:56:00+00:00",
+    "minutes": 10.0,
+    "requests": 21,
+    "families": {
+      "population": 16,
+      "earthquake-alerts": 3,
+      "global-rainbow-nowcast-v1": 1,
+      "global-rainbow-products-weather-v1": 1
+    },
+    "statuses": {
+      "success": 21
+    },
+    "types": {
+      "alarm": 6,
+      "http": 15
+    },
+    "projectedRequestsPerDay": 3024
+  },
+  "kvQueriedAt": "2026-10-20T23:56:19.822965+00:00",
+  "kvDaily": {
+    "2026-10-14": {
+      "read": 759,
+      "write": 374
+    },
+    "2026-10-17": {
+      "read": 73
+    },
+    "2026-10-20": {
+      "read": 82
+    },
+    "2026-10-13": {
+      "write": 687,
+      "read": 1109
+    },
+    "2026-10-19": {
+      "read": 46
+    },
+    "2026-10-15": {
+      "read": 703,
+      "write": 150
+    },
+    "2026-10-16": {
+      "read": 1376,
+      "write": 925
+    },
+    "2026-10-18": {
+      "read": 93
+    }
+  },
+  "limitations": [
+    "Aggregate analytics can be delayed or sampled.",
+    "Detailed telemetry denied with HTTP 403; causes of clientDisconnected are unconfirmed.",
+    "SQLite row reads/writes and total storage were not measured by this report."
+  ]
+}
