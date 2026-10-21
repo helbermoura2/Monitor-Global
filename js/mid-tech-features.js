@@ -1,47 +1,23 @@
 (function () {
-  // —— Open-Meteo cache 8 min ——
-  window.__omCache = window.__omCache || {};
-  const OM_TTL = 8 * 60 * 1000;
-  window.fetchOpenMeteoCached = async function (url, timeoutMs) {
-    try {
-      const hit = window.__omCache[url];
-      if (hit && (Date.now() - hit.t) < OM_TTL && hit.data) return hit.data;
-    } catch (e) {}
-    const r = (typeof fetchWithCorsFallback === 'function')
-      ? await fetchWithCorsFallback(url, timeoutMs || 12000)
-      : await fetch(url);
-    if (!r || !r.ok) throw new Error('Open-Meteo HTTP ' + (r && r.status));
-    const data = await r.json();
-    try { window.__omCache[url] = { t: Date.now(), data: data }; } catch (e) {}
-    return data;
-  };
-
-  // Patch common Open-Meteo JSON fetches used at boot (best-effort)
-  // fetchSPWeather / forecast already use fetchWithCorsFallback — wrap via monkey on URL pattern
-  const _origCors = window.fetchWithCorsFallback;
-  if (typeof _origCors === 'function' && !_origCors._omWrapped) {
-    window.fetchWithCorsFallback = async function (url, timeoutMs) {
-      if (typeof url === 'string' && url.indexOf('api.open-meteo.com') >= 0) {
-        try {
-          const hit = window.__omCache[url];
-          if (hit && (Date.now() - hit.t) < OM_TTL && hit.resp) {
-            return hit.resp.clone ? hit.resp.clone() : hit.resp;
-          }
-        } catch (e) {}
-        const resp = await _origCors(url, timeoutMs);
-        try {
-          // cache json body by re-fetching from clone
-          const clone = resp.clone();
-          clone.json().then(function (data) {
-            window.__omCache[url] = { t: Date.now(), data: data, resp: resp };
-          }).catch(function () {});
-        } catch (e) {}
-        return resp;
-      }
-      return _origCors(url, timeoutMs);
-    };
-    window.fetchWithCorsFallback._omWrapped = true;
+  // Cache text only: a consumed Response cannot be cloned for the next reader.
+  const OM_TTL=8*60000,OM_LIMIT=24,OM_BYTES=4*1024*1024,cache=new Map(),pending=new Map();let bytes=0;
+  delete window.__omCache;
+  function prune(){for(const [key,row]of cache)if(Date.now()-row.at>=OM_TTL){bytes-=row.bytes;cache.delete(key);}}
+  function remember(key,row){prune();const previous=cache.get(key);if(previous){bytes-=previous.bytes;cache.delete(key);}if(row.bytes>OM_BYTES)return;cache.set(key,row);bytes+=row.bytes;while(cache.size>OM_LIMIT||bytes>OM_BYTES){const oldest=cache.keys().next().value;bytes-=cache.get(oldest).bytes;cache.delete(oldest);}}
+  const originalCors=window.fetchWithCorsFallback;
+  const eligible=url=>{try{return new URL(url).hostname==='api.open-meteo.com';}catch{return false;}};
+  const response=row=>new Response(row.text,{status:row.status,statusText:row.statusText,headers:row.headers});
+  async function cachedCors(url,timeoutMs){
+    if(!eligible(url))return originalCors(url,timeoutMs);
+    const key=String(url);prune();const hit=cache.get(key);if(hit){cache.delete(key);cache.set(key,hit);return response(hit);}
+    let task=pending.get(key);
+    if(!task){task=(async()=>{const r=await originalCors(url,timeoutMs),text=await r.text(),row={text,bytes:text.length*2,at:Date.now(),status:r.status,statusText:r.statusText,headers:[...r.headers]};if(r.ok)remember(key,row);return row;})();
+      if(pending.size<8){pending.set(key,task);task.then(()=>{if(pending.get(key)===task)pending.delete(key);},()=>{if(pending.get(key)===task)pending.delete(key);});}}
+    return response(await task);
   }
+  if(typeof originalCors==='function'){cachedCors._omWrapped=true;window.fetchWithCorsFallback=cachedCors;}
+  window.fetchOpenMeteoCached=async(url,timeoutMs)=>{const r=await(typeof originalCors==='function'?cachedCors(url,timeoutMs||12000):fetch(url));if(!r.ok)throw Error('Open-Meteo indisponível');return r.json();};
+  window.OpenMeteoCache={stats:()=>{prune();return {entries:cache.size,textBytes:bytes,inflight:pending.size,maxEntries:OM_LIMIT,maxTextBytes:OM_BYTES};}};
 
   // —— Fire dedupe ——
   window.dedupeFireAlerts = function () {

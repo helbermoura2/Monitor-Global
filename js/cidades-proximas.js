@@ -141,7 +141,9 @@ async function fetchJsonComFallbackCidade(url, timeoutMs = 7000) {
     // Segundo: Worker próprio. Se o host estiver autorizado no Worker, ele
     // resolve bloqueios de CORS da rede/browser.
     try {
-        if (typeof WORKER_PROXY === 'function') tentativas.push(WORKER_PROXY(url));
+        const host = new URL(url).hostname;
+        const proxyPermitido = host === 'overpass-api.de' || host === 'nominatim.openstreetmap.org';
+        if (proxyPermitido && typeof WORKER_PROXY === 'function') tentativas.push(WORKER_PROXY(url));
     } catch (e) {}
 
     for (const alvo of tentativas) {
