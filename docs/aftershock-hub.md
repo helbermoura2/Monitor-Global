@@ -15,3 +15,7 @@ Tsunami em apresentação costeira e camada sísmica desligada ocultam hub/conex
 Não adiciona fetch, polling, envio de alertas nem uso de Durable Objects/KV. Duas camadas de linha usam a geometria local já carregada; a lista e os marcadores têm limites. O posicionamento reage a mudanças de layout/tamanho e fim das animações dos registros.
 
 Validação offline: `tests/aftershock-hub.spec.js` (desktop, retrato e paisagem, navegação, posição dos pontos, cartões novos, filtros, recolhimento, detalhes e limpeza); `tests/aftershock-sequence.spec.js` (agrupamento, grandes sequências, atualizações silenciosas e prioridade de tsunami); `tests/unit/aftershock-hub-model.test.cjs` (geometria, antimeridiano, limites, cronologia e enquadramento). Nenhum teste envia mensagens nem consulta serviços de produção.
+
+### Rolagem e permanência
+
+A lista abre no evento mais recente e acompanha novas entradas enquanto está no fim. A rolagem manual para cima suspende esse acompanhamento até o retorno ao fim. O rodapé fica fora da área rolável e a barra tem acabamento escuro também no Samsung Internet/DeX. A sequência permanece durante a rotação automática; uma escolha manual de evento fora dela, o fechamento explícito, filtros e a expiração da associação continuam podendo ocultá-la. Isso não adiciona consultas nem temporizadores de atualização.

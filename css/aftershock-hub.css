@@ -13,3 +13,12 @@
 
 #sequence-hub #map-overlay-inline{max-height:64px;overflow:auto;flex-shrink:1;margin:4px 8px;min-height:0}#sequence-hub-list{flex:1 1 auto}
 @media(max-width:900px) and (orientation:landscape){#sequence-hub{right:auto;left:10px;top:var(--sequence-hub-top,210px);bottom:auto;width:min(300px,38vw);max-height:calc(100dvh - var(--sequence-hub-top,210px) - 8px)}#sequence-hub.collapsed{bottom:auto}.sequence-hub-header{padding:4px 8px;min-height:42px}.sequence-hub-header small{max-width:145px;font-size:9px}.sequence-hub-header h2{font-size:12px}#sequence-hub footer{padding:4px 8px}#sequence-hub footer small{font-size:8px}#sequence-hub .sequence-hub-row{min-height:52px;padding-top:7px;padding-bottom:7px}.sequence-hub-row time{font-size:9px}}
+
+/* DeX/Samsung: explicit native scrollbar parts; footer never overlays rows. */
+#sequence-hub-list{box-sizing:border-box;scroll-padding-block:12px;padding-bottom:18px;overflow-anchor:none}
+#sequence-hub footer{position:static;box-sizing:border-box;z-index:auto;flex:0 0 auto}
+#sequence-hub-list::-webkit-scrollbar{width:6px;height:6px;background:transparent}
+#sequence-hub-list::-webkit-scrollbar-track,#sequence-hub-list::-webkit-scrollbar-track-piece{background:transparent;border:0;box-shadow:none}
+#sequence-hub-list::-webkit-scrollbar-thumb{background:#497386;border:1px solid #7ca5b333;border-radius:6px;box-shadow:none}
+#sequence-hub-list::-webkit-scrollbar-thumb:hover{background:#6192a6}
+@supports selector(::-webkit-scrollbar){#sequence-hub-list{scrollbar-width:auto;scrollbar-color:auto}}

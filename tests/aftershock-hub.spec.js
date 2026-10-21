@@ -21,3 +21,18 @@ for(const width of [1280,390,844])test('sequence hub geographic links, chronolog
  await page.evaluate(()=>AftershockSequence.setVisible(false));await expect(hub).toBeHidden();expect(await page.evaluate(()=>map.getLayoutProperty('sequence-hub-links-selected','visibility'))).toBe('none');await page.evaluate(()=>AftershockSequence.setVisible(true));await expect(hub).toBeVisible();
  await page.evaluate(()=>{showEventDetails(3,false);clearTimeout(cycleTimeout);});await expect(hub).toBeHidden();expect(await page.evaluate(()=>!!map.getSource('sequence-hub-links'))).toBe(false);
 });
+
+test('sequence follows newest rows, preserves manual scroll and survives automatic rotation',async({page})=>{
+ await page.setViewportSize({width:1280,height:720});await page.goto('/');await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
+ await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);EventPortuguese.ensure=async()=>false;const now=Date.now();globalAlerts=[];const main={id:'scroll-main',type:'earthquake',mag:6.3,depth:16,coords:[167,-15],time:now-3600000,place:'Vanuatu',source:'QA'};globalEvents=[main,...Array.from({length:15},(_,i)=>({...main,id:'scroll-'+i,mag:3,time:main.time+(i+1)*60000,coords:[167.01,-15]})),{...main,id:'outside',mag:2,coords:[-80,8]}];lastMerged=globalEvents.slice();showEventDetails(0,false);clearTimeout(cycleTimeout);AftershockSequence.refresh();});
+ const list=page.locator('#sequence-hub-list');await expect(page.locator('#sequence-hub')).toBeVisible();
+ await expect.poll(()=>list.evaluate(n=>Math.abs(n.scrollHeight-n.clientHeight-n.scrollTop)<2)).toBe(true);
+ const bounds=await page.evaluate(()=>{const last=document.querySelector('#sequence-hub-list .sequence-hub-row:last-child').getBoundingClientRect(),footer=document.querySelector('#sequence-hub footer').getBoundingClientRect();return {bottom:last.bottom,footer:footer.top};});expect(bounds.bottom).toBeLessThanOrEqual(bounds.footer);
+ await list.evaluate(n=>{n.dispatchEvent(new Event('wheel'));n.scrollTop=0;n.dispatchEvent(new Event('scroll'));});
+ await page.evaluate(()=>{const m=globalEvents[0];globalEvents=[...globalEvents,{...m,id:'scroll-new',mag:3,time:m.time+17*60000}];AftershockSequence.refresh();});expect(await list.evaluate(n=>n.scrollTop)).toBe(0);
+ await list.evaluate(n=>{n.dispatchEvent(new Event('wheel'));n.scrollTop=n.scrollHeight;n.dispatchEvent(new Event('scroll'));});
+ await page.evaluate(()=>{const m=globalEvents[0];globalEvents=[...globalEvents,{...m,id:'scroll-newest',mag:3,time:m.time+18*60000}];AftershockSequence.refresh();});
+ await expect.poll(()=>list.evaluate(n=>Math.abs(n.scrollHeight-n.clientHeight-n.scrollTop)<2)).toBe(true);
+ await page.evaluate(()=>{window.__mgRotationDisplay=true;try{showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);AftershockSequence.refresh();});await expect(page.locator('#sequence-hub')).toBeVisible();await expect(page.locator('[data-sequence-id="scroll-newest"]')).toHaveCount(1);await expect(page.locator('#pd-aftershocks-summary')).toHaveCount(0);
+ await page.evaluate(()=>{showEventDetails(1,false);clearTimeout(cycleTimeout);showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeHidden();
+});
