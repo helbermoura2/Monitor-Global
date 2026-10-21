@@ -1,8 +1,8 @@
 /* Spatial groups for distant mobile views. The selected epicenter stays individual. */
 (function(root){
  'use strict';
- function group(items,selected,zoom){
-  const cells=new Map(),size=64/(512*2**Math.floor(zoom));
+ function group(items,selected,zoom,pixels=64){
+  const cells=new Map(),size=pixels/(512*2**Math.floor(zoom));
   for(const item of items){
    if(item.id===selected)continue;
    if(!Array.isArray(item.coords)||item.coords.length<2||!item.coords.slice(0,2).every(Number.isFinite)||Math.abs(item.coords[0])>180||Math.abs(item.coords[1])>90)continue;
@@ -20,15 +20,20 @@
  }
  const markers=new Map();
  function sync(items,selected,zoom){
-  const enabled=matchMedia('(max-width:900px)').matches&&zoom<5;
+  const budget=window.MobileEnergyBudget?.mobile?.()||matchMedia('(max-width:900px)').matches, dense=items.length>160;
+  const enabled=budget&&zoom<5||dense;
+  const excluded=new Set(),center=map.getCenter(),container=map.getContainer(),width=container.clientWidth,height=container.clientHeight;
+  const candidates=items.filter(item=>{if(item.id===selected||!budget&&!dense)return true;if(!Array.isArray(item.coords))return false;const lng=center.lng+((item.coords[0]-center.lng+540)%360)-180;const p=map.project([lng,item.coords[1]]);const visible=p.x>=-80&&p.x<=width+80&&p.y>=-80&&p.y<=height+80;if(!visible)excluded.add(item.id);return visible;});
   const selectedItem=items.find(item=>item.id===selected);
-  const result=enabled?group(items,selected,zoom):{hidden:new Set(),groups:[]},wanted=new Set();
+  let result=enabled?group(candidates,selected,zoom):{hidden:new Set(),groups:[]};
+  if(dense)for(const pixels of [96,128,192,256,512,1024,2048]){if(candidates.length-result.hidden.size+result.groups.length<=160)break;result=group(candidates,selected,zoom,pixels);}
+  for(const id of excluded)result.hidden.add(id);const wanted=new Set();
   for(const entry of result.groups){
    wanted.add(entry.key);let marker=markers.get(entry.key);
    if(!marker){
     const el=document.createElement('button');el.type='button';el.className='mg-mobile-cluster';
     marker=new maplibregl.Marker({element:el}).setLngLat(entry.coords).addTo(map);
-    el.addEventListener('click',event=>{event.stopPropagation();stopMapCamera();map.easeTo({center:marker.getLngLat(),zoom:Math.min(8,map.getZoom()+2),duration:1000});});
+    el.addEventListener('click',event=>{event.stopPropagation();stopMapCamera();map.easeTo({center:marker.getLngLat(),zoom:Math.min(map.getMaxZoom(),map.getZoom()+2),duration:1000});});
     markers.set(entry.key,marker);
    }
    if(selectedItem){const a=map.project(selectedItem.coords),b=map.project(entry.coords);marker.setOffset(Math.hypot(a.x-b.x,a.y-b.y)<60?[48,48]:[0,0]);}else marker.setOffset([0,0]);

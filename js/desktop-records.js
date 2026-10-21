@@ -91,12 +91,12 @@
   if(desktop.matches){list.inert=!opened;list.setAttribute('aria-hidden',String(!opened));}
   else{list.inert=false;list.removeAttribute('aria-hidden');}
   const status=document.getElementById('desktop-records-status');if(status)status.textContent=pinned?'Fixos · Tudo para recolher':'Recolhe automaticamente';
-  const reflowMotion=desktop.matches&&!pinned&&!matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const positions=new Map(reflowMotion?[...list.querySelectorAll('.event')].map(el=>[el,el.getBoundingClientRect().top]):[]);
+  const reflowMotion=desktop.matches&&opened&&!pinned&&!matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const positions=new Map();if(reflowMotion){const bounds=list.getBoundingClientRect();for(const el of list.querySelectorAll('.event')){const r=el.getBoundingClientRect();if(r.top>bounds.bottom)break;if(r.bottom>=bounds.top&&r.height){positions.set(el,r.top);if(positions.size>=8)break;}}}
   if(typeof renderSidebarList==='function'&&typeof lastMerged!=='undefined')renderSidebarList(lastMerged);
   for(const card of list.querySelectorAll('.event')){
-   if(desktop.matches&&!pinned&&!animated.has(card)){animated.add(card);card.classList.add('record-notice-enter');}
-   if(pinned)card.classList.remove('record-notice-enter','record-notice-exit');
+   if(desktop.matches&&opened&&!pinned&&notices.has(card.dataset.eventId)&&!animated.has(card)){animated.add(card);card.classList.add('record-notice-enter');}
+   if(pinned||!opened)card.classList.remove('record-notice-enter','record-notice-exit');
    const before=positions.get(card),delta=before==null?0:before-card.getBoundingClientRect().top;
    if(reflowMotion&&Math.abs(delta)>1&&!card.classList.contains('record-notice-exit'))card.animate([{transform:'translateY('+delta+'px)'},{transform:'translateY(0)'}],{duration:220,easing:'ease-out'});
   }
@@ -130,6 +130,7 @@
   if(arrived.length)announce(arrived);
  }
  const status=document.createElement('small');status.id='desktop-records-status';document.getElementById('events-label')?.append(status);
+ list.addEventListener('animationend',e=>{if(e.animationName==='record-notice-in')e.target.classList.remove('record-notice-enter');});
  document.getElementById('sidebar-events-close')?.addEventListener('click',()=>{if(desktop.matches)setOpen(false);});
  document.addEventListener('click',e=>{if(desktop.matches&&row.classList.contains('expanded')&&!row.contains(e.target))row.classList.remove('expanded');});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')row.classList.remove('expanded');});

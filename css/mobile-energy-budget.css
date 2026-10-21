@@ -8,3 +8,10 @@
   backdrop-filter: none !important;
   background-color: rgba(6, 24, 35, .94) !important;
 }
+
+/* Secondary map points are static; keep the selected event's emphasis. */
+.map-pin-secondary,.map-pin-secondary *,.map-pin-secondary::before,.map-pin-secondary::after,.map-pin-secondary *::before,.map-pin-secondary *::after{animation:none!important;transition:none!important}
+/* Hidden technical details must not run decoration animations. */
+#pd-more-details[hidden] *,#pd-more-details[hidden] *::before,#pd-more-details[hidden] *::after{animation:none!important}
+@media(min-width:901px){body.desktop-records-ready:not(.desktop-records-open):not(.desktop-records-pinned) #events *,body.desktop-records-ready:not(.desktop-records-open):not(.desktop-records-pinned) #events *::before,body.desktop-records-ready:not(.desktop-records-open):not(.desktop-records-pinned) #events *::after{animation:none!important}}
+@media(max-width:900px){body:not(.mobile-events-open) #events *,body:not(.mobile-events-open) #events *::before,body:not(.mobile-events-open) #events *::after{animation:none!important}}
