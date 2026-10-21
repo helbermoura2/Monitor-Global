@@ -17,6 +17,11 @@ for(const width of [1280,390])test('cyclone card and JMA route stay factual, int
  await expect(page.locator('#pd-cyclone-card')).toBeVisible();await page.locator('.cyclone-card-timeline button').filter({hasText:'+45 h'}).click();await expect(page.locator('.cyclone-route-popup')).toContainText('Posição publicada · JMA');await expect(page.locator('.cyclone-route-popup')).not.toContainText('165');
  await page.evaluate(()=>CycloneRouteCard.refresh());expect(await page.evaluate(()=>__jmaRequests.length)).toBe(2);
  await page.evaluate(()=>document.getElementById('painel-direito').scrollTop=0);await page.screenshot({path:'/tmp/cyclone-card-'+width+'.png'});
+ await page.evaluate(()=>{const t={id:'card-no-wind',type:'hurricane',source:'GDACS',time:Date.now(),coords:[-160,-20],place:'Ciclone tropical Wati',cycloneLabel:'Ciclone'};globalAlerts=[t];showAlertDetails(t,false);clearTimeout(cycleTimeout);if(innerWidth<700){abrirPainelDetalhesMobile();alternarPainelDetalhesMobile();}});
+ await expect(page.locator('#pd-local')).toHaveText('Ciclone tropical Wati');
+ await expect(page.locator('.cyclone-card-wind')).toHaveText('Não informado');
+ expect(await page.locator('.cyclone-card-hero').evaluate(n=>n.scrollWidth<=n.clientWidth+1)).toBe(true);
+ expect(await page.locator('.cyclone-card-wind').evaluate(n=>parseFloat(getComputedStyle(n).fontSize))).toBeLessThanOrEqual(18);
  await page.evaluate(()=>{showEventDetails(0,false);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-cyclone-card')).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-cyclone/);await expect(page.locator('#cyclone-map-legend')).toHaveCount(0);expect(await page.evaluate(()=>!!map.getSource('cyclone-jma'))).toBe(false);
  await expect(page.locator('#pd-mag')).toContainText('3');
 });
