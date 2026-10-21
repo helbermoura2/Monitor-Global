@@ -15,3 +15,6 @@
 #pd-more-details[hidden] *,#pd-more-details[hidden] *::before,#pd-more-details[hidden] *::after{animation:none!important}
 @media(min-width:901px){body.desktop-records-ready:not(.desktop-records-open):not(.desktop-records-pinned) #events *,body.desktop-records-ready:not(.desktop-records-open):not(.desktop-records-pinned) #events *::before,body.desktop-records-ready:not(.desktop-records-open):not(.desktop-records-pinned) #events *::after{animation:none!important}}
 @media(max-width:900px){body:not(.mobile-events-open) #events *,body:not(.mobile-events-open) #events *::before,body:not(.mobile-events-open) #events *::after{animation:none!important}}
+
+/* Hide common background pins immediately while zooming out; sequence pins stay independent. */
+body.map-far-view .map-pin-secondary{visibility:hidden!important;pointer-events:none!important}

@@ -1,48 +1,26 @@
-/* Spatial groups for distant mobile views. The selected epicenter stays individual. */
+/* Nearby individual markers only. Aftershock sequences own their separate hub. */
 (function(root){
  'use strict';
- function group(items,selected,zoom,pixels=64){
-  const cells=new Map(),size=pixels/(512*2**Math.floor(zoom));
+ const MIN_ZOOM=6,LIMIT=160;let boundMap=null;
+ function updateVisibility(zoom){document.body.classList.toggle('map-far-view',zoom<MIN_ZOOM);}
+ function visibleIds(items,selected,zoom,project,width,height,centerLng=0){
+  const keep=new Set(),near=[];
   for(const item of items){
-   if(item.id===selected)continue;
    if(!Array.isArray(item.coords)||item.coords.length<2||!item.coords.slice(0,2).every(Number.isFinite)||Math.abs(item.coords[0])>180||Math.abs(item.coords[1])>90)continue;
-   const [lng,lat]=item.coords,clamped=Math.max(-85,Math.min(85,lat))*Math.PI/180;
-   const x=(lng+180)/360,y=(1-Math.log(Math.tan(Math.PI/4+clamped/2))/Math.PI)/2;
-   const key=item.type+':'+Math.floor(x/size)+':'+Math.floor(y/size);
-   if(!cells.has(key))cells.set(key,[]);cells.get(key).push(item);
+   if(item.id===selected){keep.add(item.id);continue;}
+   if(zoom<MIN_ZOOM)continue;
+   const lng=centerLng+((item.coords[0]-centerLng+540)%360)-180,p=project([lng,item.coords[1]]);
+   if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>width||p.y<0||p.y>height)continue;
+   near.push({item,distance:Math.hypot(p.x-width/2,p.y-height/2)});
   }
-  const hidden=new Set(),groups=[];
-  for(const [key,members] of cells){if(members.length<2)continue;
-   members.forEach(item=>hidden.add(item.id));
-   groups.push({key,type:members[0].type,count:members.length,coords:[members.reduce((n,i)=>n+i.coords[0],0)/members.length,members.reduce((n,i)=>n+i.coords[1],0)/members.length]});
-  }
-  return {hidden,groups};
+  near.sort((a,b)=>a.distance-b.distance||(Number(b.item.mag)||0)-(Number(a.item.mag)||0)||(Number(b.item.time)||0)-(Number(a.item.time)||0));
+  for(const {item}of near.slice(0,Math.max(0,LIMIT-keep.size)))keep.add(item.id);
+  return keep;
  }
- const markers=new Map();
  function sync(items,selected,zoom){
-  const budget=window.MobileEnergyBudget?.mobile?.()||matchMedia('(max-width:900px)').matches, dense=items.length>160;
-  const enabled=budget&&zoom<5||dense;
-  const excluded=new Set(),center=map.getCenter(),container=map.getContainer(),width=container.clientWidth,height=container.clientHeight;
-  const candidates=items.filter(item=>{if(item.id===selected||!budget&&!dense)return true;if(!Array.isArray(item.coords))return false;const lng=center.lng+((item.coords[0]-center.lng+540)%360)-180;const p=map.project([lng,item.coords[1]]);const visible=p.x>=-80&&p.x<=width+80&&p.y>=-80&&p.y<=height+80;if(!visible)excluded.add(item.id);return visible;});
-  const selectedItem=items.find(item=>item.id===selected);
-  let result=enabled?group(candidates,selected,zoom):{hidden:new Set(),groups:[]};
-  if(dense)for(const pixels of [96,128,192,256,512,1024,2048]){if(candidates.length-result.hidden.size+result.groups.length<=160)break;result=group(candidates,selected,zoom,pixels);}
-  for(const id of excluded)result.hidden.add(id);const wanted=new Set();
-  for(const entry of result.groups){
-   wanted.add(entry.key);let marker=markers.get(entry.key);
-   if(!marker){
-    const el=document.createElement('button');el.type='button';el.className='mg-mobile-cluster';
-    marker=new maplibregl.Marker({element:el}).setLngLat(entry.coords).addTo(map);
-    el.addEventListener('click',event=>{event.stopPropagation();stopMapCamera();map.easeTo({center:marker.getLngLat(),zoom:Math.min(map.getMaxZoom(),map.getZoom()+2),duration:1000});});
-    markers.set(entry.key,marker);
-   }
-   if(selectedItem){const a=map.project(selectedItem.coords),b=map.project(entry.coords);marker.setOffset(Math.hypot(a.x-b.x,a.y-b.y)<60?[48,48]:[0,0]);}else marker.setOffset([0,0]);
-   const el=marker.getElement();if(el.textContent!==String(entry.count))el.textContent=entry.count;
-   el.setAttribute('aria-label',entry.count+' '+(entry.type==='earthquake'?'sismos':'eventos')+' próximos. Aproximar para explorar');
-   const pos=marker.getLngLat();if(pos.lng!==entry.coords[0]||pos.lat!==entry.coords[1])marker.setLngLat(entry.coords);
-  }
-  for(const [key,marker]of markers)if(!wanted.has(key)){marker.remove();markers.delete(key);}
-  return result.hidden;
+  if(boundMap!==map){boundMap=map;map.on('zoom',()=>updateVisibility(map.getZoom()));}updateVisibility(zoom);
+  const container=map.getContainer(),keep=visibleIds(items,selected,zoom,p=>map.project(p),container.clientWidth,container.clientHeight,map.getCenter().lng);
+  return new Set(items.filter(item=>!keep.has(item.id)).map(item=>item.id));
  }
- root.MobileMapClusters={group,sync};
+ root.MobileMapClusters={visibleIds,sync,MIN_ZOOM,LIMIT};
 })(typeof window==='undefined'?globalThis:window);
