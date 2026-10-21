@@ -536,9 +536,9 @@ function renderSidebarList(items) {
             item.type,item.mag,item.depth,item.time,item.place,item.bandeira,stateFlagCode,item.source,item.sourceSummary,item.sources,
             item.isPreliminary,item.correlationLevel,item.coords,minhaPosicao?.lat,minhaPosicao?.lng,
             item.hazardNature,item.warningEvent,item.title,item.displayLabel,item.cycloneLabel,item.classification,
-            item.windKmh,item.pressureMb,item.basin,item.movementInfo?.compass,item.detail,item.activityStatus,item.vulcanicActivity,
+            item._volcanoEscalation&&activeAlertingIds.has(item.id)?item._volcanoEscalation:null,item.windKmh,item.pressureMb,item.basin,item.movementInfo?.compass,item.detail,item.activityStatus,item.vulcanicActivity,
             item.regionalWarning,item.severityLabel,item.expiresAt,bulletinUrl,presentationLabel,volcanoStatus,
-            activeUpdatedIds.has(item.id)?item._deltaTxt:null,staleKey,conf.cls,conf.label,meta.icon,meta.label,meta.color
+            activeUpdatedIds.has(item.id)?item._deltaTxt:null,activeUpdatedIds.has(item.id)?item._updatedAt:null,staleKey,conf.cls,conf.label,meta.icon,meta.label,meta.color
         ]);
         if(state.fingerprint===fingerprint){
             setSidebarText(div.querySelector('.ev-age'),formatTime(item.time));window.DesktopRecords?.decorate(div,item);desired.push(div);
@@ -572,8 +572,10 @@ function renderSidebarList(items) {
         // enquanto o selo "ATUALIZADO" estiver ativo.
         let updatedTxt = '';
         if (activeUpdatedIds.has(item.id) && item._deltaTxt) {
-            updatedTxt = `<span class="stale-badge updated-delta">🔄 ${esc(window.EventPortuguese?.revision(item)||item._deltaTxt)}</span>`;
+            updatedTxt = `<span class="stale-badge updated-delta">${esc(window.RecordUpdateContext?.summary(item)||window.EventPortuguese?.revision(item)||item._deltaTxt)}</span>${Number.isFinite(item._updatedAt)&&item._updatedAt>0?`<small class="record-revision-received">Revisão recebida às ${new Date(item._updatedAt).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})} BRT</small>`:''}`;
         }
+
+        if(!updatedTxt&&item.type==='volcano'&&item._volcanoEscalation&&activeAlertingIds.has(item.id))updatedTxt=`<span class="stale-badge updated-delta">Nova atividade: ${esc(window.EventPortuguese?.local(item._volcanoEscalation)||item._volcanoEscalation)}</span>`;
 
         if (item.type === 'earthquake') {
             markup = `

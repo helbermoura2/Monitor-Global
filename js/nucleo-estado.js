@@ -470,6 +470,7 @@ function isNovoPosBoot(nome, id) { return fonteBooted(nome) && !knownAlertIds.ha
 // mais informativo pro tipo de alerta; se nada específico bater, cai no texto
 // genérico do próprio alerta.
 function descreverMudanca(prev, obj) {
+    if(window.RecordUpdateContext)return window.RecordUpdateContext.describe(prev,obj);
     if (prev.aviationColor !== obj.aviationColor && obj.aviationColor) {
         return `Cor de aviação: ${prev.aviationColor || '—'} → ${obj.aviationColor}`;
     }
