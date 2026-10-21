@@ -36,3 +36,17 @@ test('sequence follows newest rows, preserves manual scroll and survives automat
  await page.evaluate(()=>{window.__mgRotationDisplay=true;try{showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);AftershockSequence.refresh();});await expect(page.locator('#sequence-hub')).toBeVisible();await expect(page.locator('[data-sequence-id="scroll-newest"]')).toHaveCount(1);await expect(page.locator('#pd-aftershocks-summary')).toHaveCount(0);
  await page.evaluate(()=>{showEventDetails(1,false);clearTimeout(cycleTimeout);showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeHidden();
 });
+
+test('sequence scroll reverses at both ends and pauses for manual input and hidden panels',async({page})=>{
+ test.setTimeout(60000);
+ await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:1280,height:720});await page.goto('/');await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
+ await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+100));
+ await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);EventPortuguese.ensure=async()=>false;globalAlerts=[];const main={id:'ping-main',type:'earthquake',mag:6.3,depth:16,coords:[167,-15],time:Date.now()-3600000,place:'Vanuatu',source:'QA'};globalEvents=[main,...Array.from({length:20},(_,i)=>({...main,id:'ping-'+i,mag:3,time:main.time+(i+1)*60000}))];lastMerged=globalEvents.slice();showEventDetails(0,false);clearTimeout(cycleTimeout);AftershockSequence.refresh();});
+ const list=page.locator('#sequence-hub-list');await expect(page.locator('#sequence-hub')).toBeVisible();await page.clock.runFor(100);await expect.poll(()=>list.evaluate(n=>n.scrollTop>0)).toBe(true);
+ await page.clock.runFor(6500);
+ const bottom=await list.evaluate(n=>n.scrollHeight-n.clientHeight);expect(await list.evaluate(n=>n.scrollTop)).toBeLessThan(bottom-5);
+ await list.evaluate(n=>{n.scrollTop=1;});await page.clock.runFor(3500);expect(await list.evaluate(n=>n.scrollTop)).toBeGreaterThan(5);
+ await list.evaluate(n=>{n.dispatchEvent(new Event('wheel'));n.scrollTop=30;});await page.clock.runFor(5000);expect(await list.evaluate(n=>n.scrollTop)).toBe(30);
+ await page.clock.runFor(6000);expect(await list.evaluate(n=>n.scrollTop)).toBeGreaterThan(30);
+ await page.locator('#sequence-hub-toggle').click();const paused=await list.evaluate(n=>n.scrollTop);await page.clock.runFor(4000);expect(await list.evaluate(n=>n.scrollTop)).toBe(paused);
+});
