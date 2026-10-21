@@ -1,0 +1,98 @@
+/* Shared timeline and bounded static connections; no polling, fetch or catalog edits. */
+(function(){
+ 'use strict';
+ const SOURCE='sequence-hub-links',BASE=SOURCE+'-base',SELECTED=SOURCE+'-selected';
+ let root=null,list=null,title=null,count=null,more=null,group=null,selected=null,rootId=null,uiKey='',lineKey='',targets=[],allowed=true,dismissed=false,expanded=true,limit=40,frame=0,mapRef=null,lastLayout='';
+ const mobile=matchMedia('(max-width:900px)');
+ const mag=q=>'M'+Number(q.mag).toFixed(1).replace('.',',');
+ const place=q=>window.EventPortuguese?.place(q.place)||q.place||'Local não informado';
+ const visible=el=>!!el&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden'&&getComputedStyle(el).display!=='none';
+ const button=(host,text,label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=text;if(label)b.setAttribute('aria-label',label);b.onclick=action;host.append(b);return b;};
+ function mapObject(){try{return typeof map==='undefined'?null:map;}catch{return null;}}
+ function removeLines(){const m=mapObject();try{for(const id of [SELECTED,BASE])if(m?.getLayer(id))m.removeLayer(id);if(m?.getSource(SOURCE))m.removeSource(SOURCE);}catch{}lineKey='';}
+ function syncLines(version,force=false){
+  const m=mapObject();if(!m||!group)return;
+  if(mapRef!==m){mapRef=m;m.on('style.load',()=>{lineKey='';if(group)syncLines(uiKey,true);});}
+  const next=version+'|'+allowed;if(next===lineKey&&!force&&m.getSource(SOURCE))return;
+  try{
+   const data=AftershockHubModel.links(group.main,targets,selected);
+   if(!m.getSource(SOURCE))m.addSource(SOURCE,{type:'geojson',data});else m.getSource(SOURCE).setData(data);
+   if(!m.getLayer(BASE))m.addLayer({id:BASE,type:'line',source:SOURCE,filter:['==',['get','selected'],false],paint:{'line-color':'#c49b51','line-width':1,'line-opacity':.23}});
+   if(!m.getLayer(SELECTED))m.addLayer({id:SELECTED,type:'line',source:SOURCE,filter:['==',['get','selected'],true],paint:{'line-color':'#6beafa','line-width':2.2,'line-opacity':.95}});
+   for(const id of [BASE,SELECTED])m.setLayoutProperty(id,'visibility',allowed?'visible':'none');lineKey=next;
+  }catch{/* A style still loading is restored by style.load. */}
+ }
+ function ensure(){
+  if(root)return;
+  root=document.createElement('section');root.id='sequence-hub';root.hidden=true;root.setAttribute('aria-labelledby','sequence-hub-title');
+  const header=document.createElement('header');header.className='sequence-hub-header';
+  const heading=document.createElement('div');title=document.createElement('h2');title.id='sequence-hub-title';heading.append(title);count=document.createElement('small');heading.append(count);header.append(heading);
+  const actions=document.createElement('div');actions.className='sequence-hub-actions';
+  button(actions,'Detalhes','Ver detalhes do sismo selecionado',()=>{expanded=false;position();if(typeof abrirPainelDetalhesMobile==='function')abrirPainelDetalhesMobile();}).className='sequence-hub-details';
+  const toggle=button(actions,'⌄','Recolher sequência',()=>{expanded=!expanded;if(mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');position();});toggle.id='sequence-hub-toggle';toggle.setAttribute('aria-controls','sequence-hub-list');
+  button(actions,'×','Fechar sequência',()=>{dismissed=true;position();document.querySelector('#pd-event-insights [data-workbench="sequence"]')?.focus({preventScroll:true});}).className='sequence-hub-close';
+  header.append(actions);root.append(header);list=document.createElement('div');list.id='sequence-hub-list';list.setAttribute('aria-label','Eventos em ordem de ocorrência');root.append(list);
+  const footer=document.createElement('footer');more=button(footer,'Mostrar anteriores',null,()=>{limit=Math.min(200,limit+40);uiKey='';renderRows();position();});more.id='sequence-hub-more';
+  const note=document.createElement('small');note.textContent='Possíveis réplicas · associação estimada. Linhas não representam falhas nem propagação de energia.';footer.append(note);root.append(footer);document.body.append(root);
+  const resize=new ResizeObserver(schedule);resize.observe(root);for(const id of ['top-strip','sidebar-left']){const el=document.getElementById(id);if(el)resize.observe(el);}
+  window.addEventListener('desktop-records-change',schedule);for(const type of ['animationend','transitionend'])window.addEventListener(type,e=>{if(e.target.closest?.('#sidebar-left'))schedule();});window.addEventListener('resize',schedule);window.visualViewport?.addEventListener('resize',schedule);mobile.addEventListener('change',schedule);
+ }
+ function frameSelection(q){
+  const m=mapObject();if(!m||!group||!window.WeatherWarningCamera)return;
+  const points=q.id===group.main.id?[group.main.coords,...targets.map(t=>t.coords)]:[group.main.coords,q.coords];
+  const bounds=WeatherWarningCamera.bounds(points);if(!bounds)return;
+  const r=m.getContainer().getBoundingClientRect(),view={width:r.width,height:r.height,left:16,right:r.width-16,top:16,bottom:r.height-16,minZoom:m.getMinZoom()};
+  for(const id of ['top-strip','latest-event-ticker']){const el=document.getElementById(id);if(visible(el))view.top=Math.max(view.top,el.getBoundingClientRect().bottom-r.top+12);}
+  for(const el of [root,document.getElementById('sidebar-left'),document.getElementById('painel-direito')])if(visible(el)){
+   const b=el.getBoundingClientRect();if(b.width>=r.width*.7)view.bottom=Math.min(view.bottom,b.top-r.top-12);else if(b.left<r.left+r.width*.25)view.left=Math.max(view.left,b.right-r.left+12);else view.right=Math.min(view.right,b.left-r.left-12);
+  }
+  for(const el of document.querySelectorAll('.wave-front-status,.seismic-impact-status,#mobile-notice-stack'))if(visible(el)&&!root.contains(el)){const b=el.getBoundingClientRect();if(b.bottom-r.top<view.bottom&&b.right-r.left>view.left&&b.left-r.left<view.right)view.top=Math.max(view.top,b.bottom-r.top+12);}
+  const camera=AftershockHubModel.camera(bounds,view);
+  window.EventCamera?.cancel();window.SeismicPaintTour?.stop();window.SeismicFocus?.pause();if(typeof stopWaveFront==='function')stopWaveFront(true);if(typeof stopMapCamera==='function')stopMapCamera();clearTimeout(window.__mgWaveDelayT);clearTimeout(window.__mgRadarDelayT);m.stop();
+  m.easeTo({...camera,duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:650,essential:true});
+ }
+ function openEvent(id){
+  const index=typeof globalEvents==='undefined'?-1:globalEvents.findIndex(q=>q.id===id);if(index<0)return;
+  window.EventDetailsBack?.close();if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();window.__mgSoftCycle=false;window.__mgRotationDisplay=false;showEventDetails(index,false);frameSelection(globalEvents[index]);
+ }
+ function renderRows(){
+  if(!root||!group)return;const focused=document.activeElement?.dataset?.sequenceId,scroll=list.scrollTop;
+  title.textContent='Sequência sísmica';const data=AftershockHubModel.rows(group,selected,limit);
+  count.textContent=group.children.length+' possíveis réplicas · '+place(group.main);list.replaceChildren();
+  for(const q of data.items){
+   const main=q.id===group.main.id,b=button(list,'',null,()=>openEvent(q.id));b.className='sequence-hub-row'+(main?' main':'');b.dataset.sequenceId=q.id;b.setAttribute('aria-pressed',String(q.id===selected));
+   const label=document.createElement('strong');label.textContent=(main?'Principal · ':AftershockHubModel.elapsed(group.main,q)+' · ')+mag(q);
+   const stamp=document.createElement('time');stamp.dateTime=new Date(q.time).toISOString();stamp.textContent=new Date(q.time).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT · '+(Number.isFinite(q.depth)?Math.round(q.depth)+' km':'profundidade não informada');
+   b.append(label,stamp);b.title=(main?'Sismo principal':'Possível réplica')+' · '+place(q);b.setAttribute('aria-label',b.title+' · '+label.textContent+' · '+stamp.textContent);
+  }
+  more.hidden=!data.omitted;more.disabled=limit>=200;more.textContent=limit>=200?'Limite de 200 eventos · consulte os registros':'Mostrar anteriores · '+data.omitted+' fora deste trecho';
+  list.scrollTop=scroll;const focus=[...list.children].find(b=>b.dataset.sequenceId===focused);if(focus)focus.focus({preventScroll:true});
+ }
+ function position(){
+  frame=0;if(!root)return;
+  const pinned=!mobile.matches&&document.body.classList.contains('desktop-records-pinned');root.hidden=!group||!allowed||dismissed||pinned;
+  root.classList.toggle('collapsed',!expanded);document.getElementById('sequence-hub-toggle').setAttribute('aria-expanded',String(expanded));document.getElementById('sequence-hub-toggle').setAttribute('aria-label',expanded?'Recolher sequência':'Expandir sequência');
+  const active=!root.hidden;document.body.classList.toggle('sequence-hub-active',active);document.body.classList.toggle('sequence-hub-expanded',active&&expanded&&mobile.matches);
+  if(active&&(!mobile.matches||innerWidth>innerHeight)){
+   const header=document.getElementById('top-strip')?.getBoundingClientRect(),records=document.getElementById('sidebar-left');
+   let top=(header?.bottom||110)+10;if(document.body.classList.contains('desktop-records-open')&&visible(records))top=Math.max(top,records.getBoundingClientRect().bottom+10);
+   root.style.setProperty('--sequence-hub-top',Math.min(top,innerHeight-72)+'px');
+  }
+  const r=root.getBoundingClientRect(),layout=[active,expanded,mobile.matches,Math.round(r.top),Math.round(r.height)].join('|');
+  if(layout!==lastLayout){lastLayout=layout;window.dispatchEvent(new Event('sequence-hub-layout'));}
+ }
+ function schedule(){if(!frame)frame=requestAnimationFrame(position);}
+ function update(next,id,show,entries,version,presentationKey=version){
+  if(!next?.children?.length){clear();return;}ensure();
+  if(rootId!==next.main.id){rootId=next.main.id;dismissed=false;expanded=true;limit=40;uiKey='';}
+  const changed=uiKey!==presentationKey,visibility=allowed!==show;group=next;selected=id;allowed=show;targets=entries;
+  if(changed){uiKey=presentationKey;renderRows();}
+  if(changed||visibility)position();syncLines(version);
+ }
+ function show(id){
+  if(!group||![group.main,...group.children].some(q=>q.id===id)||!mobile.matches&&document.body.classList.contains('desktop-records-pinned'))return false;
+  dismissed=false;expanded=true;window.EventDetailsBack?.close();if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();if(mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');position();root.querySelector('#sequence-hub-toggle')?.focus({preventScroll:true});return true;
+ }
+ function clear(){group=null;rootId=null;uiKey='';targets=[];dismissed=false;removeLines();if(root){list.replaceChildren();position();}}
+ window.AftershockHub={update,show,clear,position:schedule,state:()=>({mainId:group?.main.id||null,selected,expanded,visible:!!root&&!root.hidden,rows:list?.childElementCount||0})};
+})();

@@ -17,15 +17,18 @@
   frame=0;const host=document.getElementById('mapWrap');if(!host)return;
   const h=host.getBoundingClientRect(),mobile=innerWidth<=900;
   const headerBottom=Math.max(h.top,...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>rect(document.getElementById(id))?.bottom||0));
-  const panel=document.getElementById('painel-direito'),p=rect(panel),left=rect(document.getElementById('sidebar-left'));
+  const hub=document.getElementById('sequence-hub'),hubRect=rect(hub),main=document.getElementById('painel-direito');
+  const panel=mobile&&hubRect&&document.body.classList.contains('sequence-hub-expanded')?hub:main,p=rect(panel),left=rect(document.getElementById('sidebar-left'));
+  const sideHub=hubRect&&hubRect.width<h.width*.7;
   let start=h.left+12,end=Math.min(h.right,innerWidth)-12;
+  if(sideHub)start=Math.max(start,hubRect.right+12);
   if(!mobile){if(left)start=Math.max(start,left.right+12);if(p)end=Math.min(end,p.left-12);}
   const width=Math.max(100,end-start),center=(start+end)/2-h.left;
-  const dock=!!p&&!panel.classList.contains('pd-flip-girado')&&(mobile?(document.body.classList.contains('mobile-details-open')||p.top<headerBottom+220):width<140);
+  const dock=!!p&&!(panel===hub&&sideHub)&&!panel.classList.contains('pd-flip-girado')&&(mobile?(document.body.classList.contains('mobile-details-open')||p.top<headerBottom+220):width<140);
   const rank=el=>el.matches('.wave-front-status')?0:el.matches('.seismic-impact-status')?1:el.id==='mobile-notice-stack'?2:3;
   const elements=[...document.querySelectorAll(selector)].sort((a,b)=>rank(a)-rank(b));
-  if((dock||p&&width<280)&&elements.length&&!inline){inline=document.createElement('section');inline.id='map-overlay-inline';inline.setAttribute('aria-label','Legendas do mapa');panel.querySelector('.pd-header-row')?.after(inline);}
-  let top=Math.max(8,headerBottom-h.top+8),bottom=mobile&&p?Math.min(h.bottom,p.top)-h.top-10:h.height-18;
+  if((dock||p&&width<280)&&elements.length){if(!inline){inline=document.createElement('section');inline.id='map-overlay-inline';inline.setAttribute('aria-label','Legendas do mapa');}if(inline.parentElement!==panel)panel.querySelector('.pd-header-row,.sequence-hub-header')?.after(inline);}
+  let top=Math.max(8,headerBottom-h.top+8),bottom=mobile&&p&&p.width>=h.width*.7?Math.min(h.bottom,p.top)-h.top-10:h.height-18;
   const legends=[];
   for(const el of elements){
    if(!tracked.has(el)){tracked.add(el);resize?.observe(el);}
@@ -52,7 +55,7 @@
   observer=new MutationObserver(records=>{if(records.some(r=>r.type==='attributes'&&r.target.matches?.(selector)||r.type==='childList'&&[...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.matches(selector)||n.querySelector(selector)))))schedule();});
   observer.observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   new MutationObserver(schedule).observe(document.body,{attributes:true,attributeFilter:['class']});
-  window.addEventListener('resize',schedule);window.addEventListener('transitionend',schedule);window.visualViewport?.addEventListener('resize',schedule);
+  window.addEventListener('sequence-hub-layout',schedule);window.addEventListener('resize',schedule);window.addEventListener('transitionend',schedule);window.visualViewport?.addEventListener('resize',schedule);
   schedule();
  }
  window.MapOverlayLayout={schedule,layout};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
