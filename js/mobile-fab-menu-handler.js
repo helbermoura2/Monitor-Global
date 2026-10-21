@@ -60,6 +60,7 @@
       '<button type="button" id="mf-main-planet">Planeta</button>' +
       '<button type="button" id="mf-main-map">Mapa</button>' +
       '<button type="button" id="mf-main-seismic-demo">🎬 Testar efeitos</button>' +
+      '<button type="button" id="mf-main-performance">Desempenho no aparelho</button>' +
       '<button type="button" id="mf-main-tools">🛠️ Ferramentas (fontes, legenda, alertas)</button>' +
       '<button type="button" id="mf-main-reload">🔄 Recarregar dados</button>';
     if(window.TelegramAdmin?.isAuthenticated()){
@@ -82,6 +83,7 @@
     document.getElementById('mf-main-planet').onclick = acao(function () { if(window.GlobePreview?.setMode('globe'))window.GlobePreview.overview(); });
     document.getElementById('mf-main-map').onclick = acao(function () { window.GlobePreview?.setMode('mercator'); });
     document.getElementById('mf-main-seismic-demo').onclick = acao(function () { window.CardEffectDemo?.open(); });
+    document.getElementById('mf-main-performance').onclick = acao(function () { window.PerformanceDiagnostics?.open(); });
     document.getElementById('mf-main-tools').onclick = acao(function () { window.menuAcao && window.menuAcao('tools'); });
     document.getElementById('mf-main-reload').onclick = acao(function () { window.menuAcao && window.menuAcao('reload'); });
 

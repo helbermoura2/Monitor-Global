@@ -63,6 +63,7 @@
     button(panel, 'Planeta', secondary(() => { if(window.GlobePreview?.setMode('globe'))window.GlobePreview.overview(); }));
     button(panel, 'Mapa', secondary(() => window.GlobePreview?.setMode('mercator')));
     button(panel, 'Testar efeitos', secondary(() => window.CardEffectDemo?.open()));
+    button(panel, 'Desempenho no aparelho', secondary(() => window.PerformanceDiagnostics?.open()));
     heading(panel, 'Configurações');
     if(window.MobileEnergyBudget)panel.insertAdjacentHTML('beforeend',window.MobileEnergyBudget.buttonHTML());
     button(panel, 'Avisos recentes', secondary(() => window.MobileNotices?.openHistory()));

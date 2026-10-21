@@ -1370,9 +1370,9 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
       const dl = document.getElementById('pd-depth-label');
       const ml = document.getElementById('pd-mercalli-label');
       const el = document.getElementById('pd-energy-label');
-      if (dl) dl.innerHTML = 'Profundidade <span class="estimativa-badge" style="background:rgba(74,222,128,.15);color:#86efac" title="Valor reportado pelas agências sísmicas">FONTE</span>';
-      if(ml){ml.textContent=mer.kind==='unavailable'?'Intensidade (MMI)':mer.kind==='official'?'Intensidade da fonte (MMI)':'Intensidade estimada (MMI)';if(mer.kind!=='unavailable'){const badge=document.createElement('span');badge.className='estimativa-badge';badge.textContent=mer.kind==='official'?'FONTE':'EST';badge.title=mer.source||'Modelo epicentral; não confirma percepção ou danos';ml.append(' ',badge);}}
-      if (el) el.innerHTML = 'Energia <span class="estimativa-badge" title="Equivalente em TNT calculado a partir da magnitude">CALCULADA</span>';
+      if (dl) dl.innerHTML = 'Profundidade ' + (window.DataContext?.markup('source','DA FONTE')||'FONTE');
+      if(ml){ml.textContent=mer.kind==='unavailable'?'Intensidade (MMI)':mer.kind==='official'?'Intensidade da fonte (MMI)':'Intensidade estimada (MMI)';if(mer.kind!=='unavailable')ml.insertAdjacentHTML('beforeend',' '+(window.DataContext?.markup(mer.kind==='official'?'intensity':'estimate',mer.kind==='official'?'DA FONTE':'ESTIMATIVA')||''));}
+      if (el) el.innerHTML = 'Energia ' + (window.DataContext?.markup('energy','CALCULADA')||'CALCULADA');
     } catch (e) {}
     const depthClass = classificarProfundidade(Math.max(0, item.depth));
     document.getElementById('pd-depth').innerHTML = `${Math.max(0, item.depth).toFixed(0)} km <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${depthClass.label}</span>`;
