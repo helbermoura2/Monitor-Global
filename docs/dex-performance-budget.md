@@ -20,3 +20,7 @@ O relatório do usuário cobriu 5 h 9 min, com heap aproximado de 14,5 a 347,14 
 | Camada de nomes, três posições/zooms simulados | 25 pedidos de tiles | 6 na chegada; zero durante o percurso |
 
 Os tiles do teste são servidos localmente. Os resultados não estimam bytes reais, operações de Durable/KV, FPS, heap ou bateria do S25 Ultra. O efeito em uma sessão longa exige nova medição no aparelho após atualizar a página. Não houve testes funcionais contra Worker, Durable ou Telegram em produção.
+
+## Revisão visual: pontos próximos sem números
+
+A pedido do usuário, os agrupamentos numéricos comuns foram substituídos por pontos individuais a partir do zoom regional 6, dentro da tela e com teto de 160. O selecionado continua individual em qualquer distância. Ao afastar a câmera, os pontos comuns somem; o catálogo e os filtros permanecem intactos. O hub, as linhas e os agrupamentos próprios da sequência de possíveis réplicas não foram alterados. A medição anterior de 17 grupos descreve a versão precedente, não esta apresentação. A atualização só é carregada após recarregar a página; não há recarga forçada nem alteração do diagnóstico em execução.
