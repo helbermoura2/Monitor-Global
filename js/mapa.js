@@ -120,8 +120,8 @@ function getEventoTelaFrac() {
 
         let topBoundary = Math.max(0,-mapRect.top);
         let leftBoundary=Math.max(0,-mapRect.left),rightBoundary=Math.min(mw,innerWidth-mapRect.left);
-        const sidebar=document.getElementById('sidebar-left');
-        if(sidebar&&getComputedStyle(sidebar).display!=='none'&&getComputedStyle(sidebar).visibility!=='hidden'){const r=sidebar.getBoundingClientRect();if(r.width<mw*.5&&r.left-mapRect.left<mw*.2)leftBoundary=Math.max(leftBoundary,r.right-mapRect.left);}
+        for(const sidebar of [document.getElementById('sidebar-left'),document.getElementById('sequence-hub')]){
+        if(sidebar&&getComputedStyle(sidebar).display!=='none'&&getComputedStyle(sidebar).visibility!=='hidden'){const r=sidebar.getBoundingClientRect();if(r.width<mw*.5&&r.left-mapRect.left<mw*.2)leftBoundary=Math.max(leftBoundary,r.right-mapRect.left);}}
         const header = document.getElementById('top-strip');
         if (header) topBoundary = Math.max(topBoundary, header.getBoundingClientRect().bottom - mapRect.top);
         const ticker = document.getElementById('latest-event-ticker');
@@ -148,6 +148,7 @@ function getEventoTelaFrac() {
             }
         }
 
+        const hub=document.getElementById('sequence-hub');if(hub&&getComputedStyle(hub).display!=='none'&&getComputedStyle(hub).visibility!=='hidden'){const r=hub.getBoundingClientRect();if(r.width>=mw*.85&&r.top>mapRect.top)bottomBoundary=Math.min(bottomBoundary,r.top-mapRect.top);}
         if(rightBoundary>leftBoundary)x=(leftBoundary+rightBoundary)/2/mw;
         if (bottomBoundary > topBoundary) {
             y = Math.min(0.85, Math.max(0.08, (topBoundary + (bottomBoundary - topBoundary) / 2) / mh));
