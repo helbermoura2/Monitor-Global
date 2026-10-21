@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const SOURCE='sequence-hub-links',BASE=SOURCE+'-base',SELECTED=SOURCE+'-selected';
- let root=null,list=null,title=null,count=null,more=null,group=null,selected=null,rootId=null,uiKey='',lineKey='',targets=[],allowed=true,dismissed=false,expanded=true,limit=40,frame=0,mapRef=null,lastLayout='';
+ let root=null,list=null,title=null,count=null,more=null,group=null,selected=null,rootId=null,uiKey='',lineKey='',targets=[],allowed=true,dismissed=false,expanded=true,limit=40,frame=0,mapRef=null,lastLayout='',followLatest=true,lastRowId=null,manualScroll=false;
  const mobile=matchMedia('(max-width:900px)');
  const mag=q=>'M'+Number(q.mag).toFixed(1).replace('.',',');
  const place=q=>window.EventPortuguese?.place(q.place)||q.place||'Local não informado';
@@ -31,7 +31,7 @@
   button(actions,'Detalhes','Ver detalhes do sismo selecionado',()=>{expanded=false;position();if(typeof abrirPainelDetalhesMobile==='function')abrirPainelDetalhesMobile();}).className='sequence-hub-details';
   const toggle=button(actions,'⌄','Recolher sequência',()=>{expanded=!expanded;if(mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');position();});toggle.id='sequence-hub-toggle';toggle.setAttribute('aria-controls','sequence-hub-list');
   button(actions,'×','Fechar sequência',()=>{dismissed=true;position();document.querySelector('#pd-event-insights [data-workbench="sequence"]')?.focus({preventScroll:true});}).className='sequence-hub-close';
-  header.append(actions);root.append(header);list=document.createElement('div');list.id='sequence-hub-list';list.setAttribute('aria-label','Eventos em ordem de ocorrência');root.append(list);
+  header.append(actions);root.append(header);list=document.createElement('div');list.id='sequence-hub-list';list.setAttribute('aria-label','Eventos em ordem de ocorrência');list.tabIndex=0;for(const type of ['wheel','touchstart','pointerdown','keydown'])list.addEventListener(type,()=>{manualScroll=true;},{passive:true});list.addEventListener('scroll',()=>{if(manualScroll)followLatest=list.scrollHeight-list.clientHeight-list.scrollTop<24;},{passive:true});root.append(list);new ResizeObserver(()=>{if(followLatest&&!root.hidden&&!root.classList.contains('collapsed'))list.scrollTop=list.scrollHeight;}).observe(list);
   const footer=document.createElement('footer');more=button(footer,'Mostrar anteriores',null,()=>{limit=Math.min(200,limit+40);uiKey='';renderRows();position();});more.id='sequence-hub-more';
   const note=document.createElement('small');note.textContent='Possíveis réplicas · associação estimada. Linhas não representam falhas nem propagação de energia.';footer.append(note);root.append(footer);document.body.append(root);
   const resize=new ResizeObserver(schedule);resize.observe(root);for(const id of ['top-strip','sidebar-left']){const el=document.getElementById(id);if(el)resize.observe(el);}
@@ -57,7 +57,7 @@
  }
  function renderRows(){
   if(!root||!group)return;const focused=document.activeElement?.dataset?.sequenceId,scroll=list.scrollTop;
-  title.textContent='Sequência sísmica';const data=AftershockHubModel.rows(group,selected,limit);
+  manualScroll=false;title.textContent='Sequência sísmica';const data=AftershockHubModel.rows(group,selected,limit);
   count.textContent=group.children.length+' possíveis réplicas · '+place(group.main);list.replaceChildren();
   for(const q of data.items){
    const main=q.id===group.main.id,b=button(list,'',null,()=>openEvent(q.id));b.className='sequence-hub-row'+(main?' main':'');b.dataset.sequenceId=q.id;b.setAttribute('aria-pressed',String(q.id===selected));
@@ -66,7 +66,9 @@
    b.append(label,stamp);b.title=(main?'Sismo principal':'Possível réplica')+' · '+place(q);b.setAttribute('aria-label',b.title+' · '+label.textContent+' · '+stamp.textContent);
   }
   more.hidden=!data.omitted;more.disabled=limit>=200;more.textContent=limit>=200?'Limite de 200 eventos · consulte os registros':'Mostrar anteriores · '+data.omitted+' fora deste trecho';
-  list.scrollTop=scroll;const focus=[...list.children].find(b=>b.dataset.sequenceId===focused);if(focus)focus.focus({preventScroll:true});
+  const newest=data.items.at(-1)?.id,follow=followLatest&&newest!==lastRowId;lastRowId=newest;list.scrollTop=scroll;
+  if(follow)requestAnimationFrame(()=>{if(root&&!root.hidden&&followLatest)list.scrollTop=list.scrollHeight;});
+  const focus=[...list.children].find(b=>b.dataset.sequenceId===focused);if(focus)focus.focus({preventScroll:true});
  }
  function position(){
   frame=0;if(!root)return;
@@ -84,7 +86,7 @@
  function schedule(){if(!frame)frame=requestAnimationFrame(position);}
  function update(next,id,show,entries,version,presentationKey=version){
   if(!next?.children?.length){clear();return;}ensure();
-  if(rootId!==next.main.id){rootId=next.main.id;dismissed=false;expanded=true;limit=40;uiKey='';}
+  if(rootId!==next.main.id){rootId=next.main.id;dismissed=false;expanded=true;limit=40;uiKey='';followLatest=true;lastRowId=null;}
   const changed=uiKey!==presentationKey,visibility=allowed!==show;group=next;selected=id;allowed=show;targets=entries;
   if(changed){uiKey=presentationKey;renderRows();}
   if(changed||visibility)position();syncLines(version);
