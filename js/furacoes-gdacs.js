@@ -78,7 +78,7 @@ async function fetchRealHurricanes() {
                     if (obj.movementInfo) dup.movementInfo = obj.movementInfo;
                     if (obj.detail) dup.detail = obj.detail;
                     if (obj.link && obj.link !== '#') dup.link = obj.link;
-                    if (obj.nhcId) dup.nhcId = obj.nhcId;
+                    if (obj.nhcId) { dup.nhcId = obj.nhcId; dup.coneUrl = obj.coneUrl || null; }
                     if (obj.classification) dup.classification = obj.classification;
                     if (obj.basin) dup.basin = obj.basin;
                     if (preferNew) {
@@ -246,7 +246,7 @@ async function fetchRealHurricanes() {
     if (novo) showAlertDetails(novo, true);
 
     // Se o furacão ATUALMENTE selecionado é um dos que essa busca acabou de
-    // atualizar e ele se moveu de verdade, reposiciona o anel de destaque e
+    // atualizar, reposiciona o destaque quando ele se move e
     // deixa startHurricaneOfficialRoute recarregar o cone/trilha oficial se
     // a NHC publicou um boletim novo (coneUrl mudou — ver comentário lá).
     // Sem isso, os dois ficam presos na posição de quando o card foi aberto
@@ -257,7 +257,10 @@ async function fetchRealHurricanes() {
             if (sel && ids.has(sel.id) && sel.coords) {
                 const last = hurricaneFxSyncCoords.get(sel.id);
                 const moveu = !last || haversine(last[1], last[0], sel.coords[1], sel.coords[0]) > 5;
-                if (moveu && typeof triggerEventoMapaFx === 'function') {
+                const routeId=typeof hurricaneOfficialId==='undefined'?null:hurricaneOfficialId;
+                const routeUrl=typeof hurricaneOfficialConeUrl==='undefined'?null:hurricaneOfficialConeUrl;
+                const novoBoletim=(sel.coneUrl||null)!==routeUrl&&(!!sel.coneUrl||routeId===sel.id);
+                if ((moveu || novoBoletim) && typeof triggerEventoMapaFx === 'function') {
                     triggerEventoMapaFx(sel, '#a855f7');
                     hurricaneFxSyncCoords.set(sel.id, sel.coords.slice());
                 }

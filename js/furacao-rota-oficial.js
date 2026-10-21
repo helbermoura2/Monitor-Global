@@ -96,6 +96,7 @@ async function fetchKmzGeoJSON(kmzUrl) {
 async function startHurricaneOfficialRoute(item) {
     if (!item || item.type !== 'hurricane' || !map) return;
     if (!item.coneUrl) {
+        if (hurricaneOfficialId === item.id) stopHurricaneOfficialRoute();
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
         return;
     }
@@ -105,8 +106,9 @@ async function startHurricaneOfficialRoute(item) {
     if (hurricaneOfficialId === item.id && hurricaneOfficialConeUrl === item.coneUrl) return;
 
     try {
-        const parsed = await fetchKmzGeoJSON(item.coneUrl);
-        if (eventoSelecionadoId !== item.id) return; // usuário já trocou de evento enquanto isso carregava
+        const requestedUrl = item.coneUrl;
+        const parsed = await fetchKmzGeoJSON(requestedUrl);
+        if (eventoSelecionadoId !== item.id || item.coneUrl !== requestedUrl) return; // usuário já trocou de evento enquanto isso carregava
         if (!parsed || (!parsed.poligonos.length && !parsed.linhas.length && !parsed.pontos.length)) {
             try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('sem-cobertura', item.id); } catch (e) {}
             return;
@@ -148,7 +150,7 @@ async function startHurricaneOfficialRoute(item) {
 
         if (eventoSelecionadoId !== item.id) { stopHurricaneOfficialRoute(); return; }
         hurricaneOfficialId = item.id;
-        hurricaneOfficialConeUrl = item.coneUrl;
+        hurricaneOfficialConeUrl = requestedUrl;
         try { if (typeof onHurricaneRouteStatus === 'function') onHurricaneRouteStatus('oficial', item.id); } catch (e) {}
     } catch (e) {
         console.warn('[furacão rota oficial]', e);
