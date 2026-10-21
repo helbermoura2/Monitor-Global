@@ -46,10 +46,11 @@ function sync(q){
  const panel=document.getElementById('painel-direito');if(q?.type!=='hurricane'){current=null;clearPins();drawJma(null);if(typeof stopHurricaneOfficialRoute==='function')stopHurricaneOfficialRoute();legendKey=null;legend?.remove();legend=null;section?.remove();section=null;panel?.classList.remove('pd-cyclone');document.body.classList.remove('cyclone-route-active');return;}
  if(current?.id!==q.id){touched=false;if(typeof hurricaneOfficialId!=='undefined'&&hurricaneOfficialId&&hurricaneOfficialId!==q.id)stopHurricaneOfficialRoute();}current=q;if(!panel)return;panel.classList.add('pd-cyclone');
  if(!section){section=el('section',undefined,'cyclone-card');section.id='pd-cyclone-card';}document.getElementById('pd-horario')?.after(section);section.replaceChildren();
- const wind=q.windKmh??extractWindKmh(q.detail||''),c=classificarCiclone(wind),p=product(q);section.style.setProperty('--cyclone-tone',c.cor);
+ const title=document.getElementById('pd-local');if(title)title.textContent=q.place||q.cycloneLabel||'Ciclone';
+ const wind=q.windKmh??extractWindKmh(q.detail||''),c=classificarCiclone(wind),p=product(q);section.classList.toggle('cyclone-no-wind',wind==null);section.style.setProperty('--cyclone-tone',c.cor);
  const hero=el('div',undefined,'cyclone-card-hero');
  const icon=el('span',undefined,'cyclone-card-symbol');icon.setAttribute('aria-hidden','true');icon.innerHTML='<svg viewBox="0 0 48 48" fill="currentColor"><path d="M39 5C25-2 9 8 8 22c-1 9 7 17 16 17 7 0 13-5 14-12 2-10-6-17-14-16 4-4 9-6 15-6ZM24 18a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z" fill-rule="evenodd"/><path d="M9 43c14 7 30-3 31-17l-8 4c-3 8-11 14-23 13Z"/></svg>';
- const reading=el('div',undefined,'cyclone-card-reading');reading.append(el('small','Vento máximo reportado'),el('div',wind!=null?num(wind)+' km/h':'Sem dado de vento','cyclone-card-wind'));hero.append(icon,reading);section.append(hero);
+ const reading=el('div',undefined,'cyclone-card-reading');reading.append(el('small','Vento máximo reportado'),el('div',wind!=null?num(wind)+' km/h':'Não informado','cyclone-card-wind'));hero.append(icon,reading);section.append(hero);
 
  const grid=el('div',undefined,'cyclone-data-grid');for(const [label,value]of [['Movimento',q.movementInfo?[q.movementInfo.compass,Number.isFinite(q.movementInfo.speedKmh)?num(q.movementInfo.speedKmh)+' km/h':null].filter(Boolean).join(' · '):'Sem dado'],['Pressão central',q.pressureMb!=null?num(q.pressureMb)+' hPa':'Sem dado'],['Classificação',q.cycloneLabel||c.cat]]){const cell=el('div');cell.append(el('small',label),el('strong',value));grid.append(cell);}
  const actions=el('div',undefined,'cyclone-card-actions');button(actions,'Ver percurso',()=>fit(current));
