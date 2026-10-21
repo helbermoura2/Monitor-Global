@@ -1136,7 +1136,7 @@ function stopMapCamera() {
  */
 function softFlyToCoords(lng, lat, zoomAlvo, soft) {
     if (!map) return 0;
-    if(window.EventCamera){stopMapCamera();return EventCamera.enter(eventoSelecionadoId,{center:centroCompensado(lng,lat,zoomAlvo),zoom:zoomAlvo});}
+    if(window.EventCamera){stopMapCamera();return EventCamera.enter(eventoSelecionadoId,window.CycloneRouteCard?.camera(window.EventStore?.getSelected())||{center:centroCompensado(lng,lat,zoomAlvo),zoom:zoomAlvo});}
     userInteractingWithGlobe = true;
     // trava o spin por bastante tempo (voo + um pouco depois)
     try { clearTimeout(window.__mgUnlockSpin); } catch (e) {}
@@ -2118,7 +2118,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
             userInteractingWithGlobe = true;
             stopMapCamera();
             try {
-                if(window.EventCamera)EventCamera.enter(item.id,{center:centro,zoom:zA});
+                if(window.EventCamera)EventCamera.enter(item.id,window.CycloneRouteCard?.camera(item)||{center:centro,zoom:zA});
                 else map.flyTo({center:centro,zoom:zA,pitch:0,duration:6000,essential:true});
             } catch (e) {}
             // Flash de raio é exclusivo de tempestade — outros tipos (furacão,
