@@ -101,11 +101,7 @@
   }
 
   function openTools() {
-    if (typeof window.__uxShow === 'function') {
-      try { window.__uxShow('sources'); } catch (e) {}
-    }
-    var b = $('ux-btn-sources') || $('ux-btn-legend') || $('ux-btn-settings');
-    if (b) try { b.click(); } catch (e) {}
+    // Opening tools must not put a sources dialog in front of its buttons.
     var temaEscuro = document.documentElement.classList.contains('mg-theme-dark');
     showFloat('Mais ferramentas',
       (window.MobileEnergyBudget?.buttonHTML() || '') +
@@ -115,9 +111,11 @@
       '<button type="button" id="mf-theme">' + (temaEscuro ? '🌑 Visual: Escuro' : '🪟 Visual: Vidro') + '</button>' +
       '<button type="button" id="mf-tv">📺 Modo TV</button>' +
       '<button type="button" id="mf-globe-preview">🌐 Globo e mapa plano</button>' +
-      '<button type="button" id="mf-seismic-demo">🎬 Testar efeitos</button>'
+      '<button type="button" id="mf-seismic-demo">🎬 Testar efeitos</button>' +
+      '<button type="button" id="mf-performance">Desempenho no aparelho</button>'
     );
     $('mf-globe-preview').onclick = function () { $('menu-float-panel').classList.remove('open'); $('menu-float-panel').style.display='none'; window.GlobePreview?.open(); };
+    $('mf-performance').onclick = function () { $('menu-float-panel').classList.remove('open'); $('menu-float-panel').style.display='none'; window.PerformanceDiagnostics?.open(); };
     $('mf-seismic-demo').onclick = function () { $('menu-float-panel').classList.remove('open'); $('menu-float-panel').style.display='none'; window.CardEffectDemo?.open(); };
     $('mf-leg').onclick = function () {
       if (typeof window.__uxShow === 'function') window.__uxShow('legend');

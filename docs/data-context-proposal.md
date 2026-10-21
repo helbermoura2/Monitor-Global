@@ -9,3 +9,9 @@ Proposta de localização, ainda sem alterar a interface. Reutiliza os diálogos
 - Em Detalhes: reunir fonte, horário, método e limitações em “Fontes e evidências”, aproveitando a seção existente. A explicação abre por toque/clique e permanece acessível por teclado; não depende apenas de passar o mouse.
 
 A qualidade de cada medida deve ser explícita. Evitar usar um selo geral de fonte institucional como garantia de que todo conteúdo do cartão é observado ou confirmado. A implementação visual é a etapa seguinte à auditoria de desempenho/consumo.
+
+## Implementação — 21/10/2026
+
+Implementados selos acionáveis por toque, clique ou teclado, com explicações em um diálogo acessível. Profundidade identifica dado da fonte; intensidade separa modelo do app, intensidade publicada e percepção, inclusive após enriquecimento assíncrono. A explicação de intensidade publicada avisa que ShakeMap continua sendo estimado. Energia é calculada. População PAGER e WorldPop permanece estimativa e mantém Fonte e método no verso. Relatos de percepção têm explicação própria. Avisos, observações, modelos meteorológicos e boletins têm contexto por natureza; o selo do tsunami não substitui nem altera o status de ameaça do boletim.
+
+Não adiciona consultas, muda prioridades, nem substitui o giro existente. Detalhes → Fontes e natureza dos dados reúne origem e limitações. As explicações abrem somente por ação do usuário.

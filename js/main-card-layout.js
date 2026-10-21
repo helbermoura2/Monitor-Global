@@ -9,7 +9,7 @@
  }
  function restore(){
   for(const [el,marker] of homes){if(marker.isConnected)marker.after(el);marker.remove();}
-  homes.clear();location?.remove();footer?.remove();
+  homes.clear();location?.remove();footer?.remove();panel()?.querySelector('#pd-data-nature')?.remove();
   const group=technical?.parentElement?.tagName==='DETAILS'?technical.parentElement:null;
   technical?.remove();group?.remove();location=footer=technical=null;kind=null;
   panel()?.classList.remove('pd-model-one','pd-model-capital');
@@ -37,7 +37,7 @@
   if(!item){restore();return;}
   const next=presentation(item);
   if(kind!==next)restore();kind=next;p.classList.add('pd-model-one');
-  if(next==='capital'){p.classList.add('pd-model-capital');return;}
+  if(next==='capital'){p.classList.add('pd-model-capital');window.DataContext?.annotate(item);return;}
   if(!location){location=document.createElement('div');location.className='pd-location-row';document.getElementById('pd-local').before(location);}
   move(document.getElementById('pd-flag'),location);move(document.getElementById('pd-local'),location);updateFlag(item);
   const more=document.getElementById('pd-more-details');
@@ -52,6 +52,7 @@
   move(document.getElementById('pd-chips'),footer);
   // Actions remain in the header, available before any card scrolling.
   const linked=document.getElementById('pd-tsunami-link');if(linked)footer.before(linked);
+  window.DataContext?.annotate(item);
  }
  window.MainCardLayout={sync,restore,updateFlag,prepare,countryImage};
  Promise.resolve(window.CountryBoundaries?.ready).then(()=>{

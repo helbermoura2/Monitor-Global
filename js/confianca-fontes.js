@@ -203,6 +203,8 @@ function preencherEvidenciasFontes(box,item){
   add('p','source-evidence-text',leg.fonte);
   add('h4','source-evidence-label','Estimativas do app');
   add('p','source-evidence-text',leg.estima);
+  add('h4','source-evidence-label','Modelos publicados e relatos');
+  add('p','source-evidence-text','ShakeMap e PAGER continuam sendo estimativas, mesmo publicados por uma agência. Relatos de percepção são respostas de pessoas; não são medições instrumentais nem confirmação de danos. Os selos junto aos valores explicam cada tipo de dado.');
 }
 function renderConsolidacaoFonte(item){
   const box=document.getElementById('pd-source-trust');
