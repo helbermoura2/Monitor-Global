@@ -50,7 +50,7 @@ test('resource investigation keeps bounded categories, separates cache visibilit
   __diagnosticResources(Array.from({length:1000},(_,i)=>({name:'https://private-'+i+'.example.com/?secret',duration:1,initiatorType:'fetch',responseStatus:200,encodedBodySize:0,transferSize:0})));
  });
  const data=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
- expect(data.collectorVersion).toBe(4);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
+ expect(data.collectorVersion).toBe(5);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
  expect(Object.keys(data.resources.byCategory)).toHaveLength(12);
  expect(data.resources.byCategory.mapImagery.timingUnavailable).toBe(1);expect(data.resources.byCategory.mapImagery.cacheHits).toBe(0);
  expect(data.resources.byCategory.mapLabels.cacheHits).toBe(1);expect(data.resources.byCategory.workerApi.httpErrors).toBe(1);
@@ -71,4 +71,14 @@ test('opaque script failures remain explicit and HTTP diagnostics retain only fi
  await page.route('**/diagnostic-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));await page.goto('/diagnostic-harness.html');
  await page.evaluate(()=>{window.EmscJsonpGuard={stats:()=>({active:2,retired:1})};PerformanceDiagnostics.start();window.dispatchEvent(new ErrorEvent('error',{message:'Script error.'}));PerformanceDiagnostics.network('https://black-sky-9ba0.terrestre.workers.dev/?url='+encodeURIComponent('https://api.open-meteo.com/v1/forecast?latitude=secret'),new Response('{}',{status:429}));PerformanceDiagnostics.network('https://black-sky-9ba0.terrestre.workers.dev/official-weather-alerts?token=secret',null,'abort');});
  const d=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(d.errorLocations[0]).toMatchObject({type:'OpaqueScriptError',file:null,opaque:true,emscPending:2});expect(d.workerRequests[0]).toMatchObject({route:'proxy',provider:'openMeteo',attempts:1,statuses:{'429':1}});expect(d.workerRequests[1].aborts).toBe(1);expect(JSON.stringify(d)).not.toMatch(/secret|latitude|https:\/\//);
+});
+
+test('overnight diagnostics retain bounded source transitions and interval totals without source error text',async({page})=>{
+ await page.route('**/overnight-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));
+ await page.goto('/overnight-harness.html');await page.clock.install();
+ await page.evaluate(()=>{window.qaSource={status:'ok',fails:0,lastOk:Date.now(),okCount:3,failCount:0,lastErr:'PRIVATE_ERROR_COORDINATES'};window.SourceHealth={summary:()=>({ok:1,warn:0,off:0,cooling:0,total:1}),snapshot:()=>({USGS:qaSource,'PRIVATE_SOURCE':qaSource}),get:()=>qaSource};PerformanceDiagnostics.start();});
+ let r=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(r.collectorVersion).toBe(5);expect(r.sourceDetails.USGS.successes).toBe(3);expect(r.samples[0].windowTotals.resources).toBe(0);expect(r.samples[0].viewport.width).toBeGreaterThan(0);
+ await page.evaluate(()=>{qaSource.status='off';qaSource.fails=3;qaSource.failCount=3;qaSource.openUntil=Date.now()+3600000;});await page.clock.fastForward(360000);
+ r=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(r.sourceDetails.USGS.cooling).toBe(true);expect(r.sourceTransitions.at(-1).source).toBe('USGS');expect(r.samples.at(-1).windowTotals.visibleMs).toBeGreaterThanOrEqual(0);expect(JSON.stringify(r)).not.toContain('PRIVATE_');
+ await page.evaluate(()=>PerformanceDiagnostics.stop());
 });
