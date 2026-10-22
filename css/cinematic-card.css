@@ -70,8 +70,8 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-earthquake,body.m
 /* Full-frame atmosphere; light is graded across the whole frame, not cut into a band. */
 #painel-direito .pd-cinema-layer::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(3,12,20,.32),rgba(3,12,20,.08) 30%,rgba(3,12,20,.25) 70%,rgba(3,12,20,.18)),linear-gradient(90deg,rgba(3,12,20,.14),transparent 28%,transparent 75%,rgba(3,12,20,.16))}
 #painel-direito.pd-cinema-active .pd-local,#painel-direito.pd-cinema-active .pd-time{color:#f3f8fb;text-shadow:0 1px 3px #02080d,0 0 7px rgba(0,0,0,.8)}
-#painel-direito.pd-cinema-active .stat-card,#painel-direito.pd-cinema-active .bubble-section,#painel-direito.pd-cinema-active .source-trust-card{background:rgba(4,16,27,.68);border-color:rgba(204,230,241,.23)}
-#painel-direito.pd-cinema-active .pd-timeline,#painel-direito.pd-cinema-active .pd-chip{background:rgba(4,16,27,.72)}
+#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) .stat-card,#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) .bubble-section,#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) .source-trust-card{background:rgba(4,16,27,.68);border-color:rgba(204,230,241,.23)}
+#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) .pd-timeline,#painel-direito.pd-cinema-active:not(.pd-fx-earthquake) .pd-chip{background:rgba(4,16,27,.72)}
 #painel-direito.pd-cinema-active .pd-header-row{background:linear-gradient(rgba(4,16,27,.75),rgba(4,16,27,.56));text-shadow:0 1px 3px #000}
 #painel-direito.pd-fx-fire .pd-cinema-footage{opacity:.94;object-position:center bottom}
 #painel-direito.pd-fx-flood .pd-cinema-footage{filter:saturate(.65) contrast(1.12);opacity:.86}
@@ -142,3 +142,5 @@ body.mobile-details-mid #painel-direito.pd-cinema-active.pd-fx-storm,body.mobile
 /* Actual coastal inundation footage occupies the entire card with one decoder. */
 #painel-direito.pd-fx-tsunami .pd-cinema-layer::after{background:linear-gradient(180deg,rgba(6,13,17,.40),rgba(6,13,17,.25) 35%,rgba(6,13,17,.36))}
 #painel-direito.pd-fx-tsunami .pd-cinema-symbol{color:#d8e0d9;animation:none}
+
+#painel-direito.pd-fx-earthquake .pd-cinema-layer::after{background:none}
