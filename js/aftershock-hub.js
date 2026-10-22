@@ -112,7 +112,7 @@
   if(rootId!==next.main.id){stopAutoScroll();rootId=next.main.id;dismissed=false;expanded=true;limit=40;uiKey='';followLatest=true;lastRowId=null;manualScroll=false;manualUntil=0;scrollDirection=-1;scrollWait=performance.now()+2500;}
   const changed=uiKey!==presentationKey,visibility=allowed!==show;group=next;selected=id;allowed=show;targets=entries;
   if(changed){uiKey=presentationKey;renderRows();}
-  if(changed||visibility)position();syncLines(version);
+  if(changed||visibility||newPresentation)position();syncLines(version);
  }
  function show(id){
   if(!group||![group.main,...group.children].some(q=>q.id===id)||!mobile.matches&&document.body.classList.contains('desktop-records-pinned'))return false;

@@ -54,7 +54,7 @@ test('sequence scroll reverses at both ends and pauses for manual input and hidd
  await page.evaluate(()=>AftershockHub.show('ping-main'));await expect(page.locator('#sequence-hub')).toBeVisible();
  await page.clock.fastForward(30000);await list.dispatchEvent('wheel');await page.clock.fastForward(40000);await expect(page.locator('#sequence-hub')).toBeVisible();
  await page.clock.fastForward(21000);await expect(page.locator('#sequence-hub')).toBeHidden();
- await page.evaluate(()=>{window.__mgRotationDisplay=true;window.__mgSoftCycle=true;try{showEventDetails(1,false);}finally{window.__mgRotationDisplay=false;window.__mgSoftCycle=false;}clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeVisible();
+ await page.evaluate(()=>{window.__mgRotationDisplay=true;window.__mgSoftCycle=true;try{showEventDetails(2,false);}finally{window.__mgRotationDisplay=false;window.__mgSoftCycle=false;}clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeVisible();
  await page.clock.fastForward(61000);await expect(page.locator('#sequence-hub')).toBeVisible();
  await page.evaluate(()=>{const m=globalEvents[0];globalEvents.push({...m,id:'context-outside',coords:[-80,8]});window.__mgRotationDisplay=true;try{showEventDetails(globalEvents.length-1,false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeHidden();
 });
