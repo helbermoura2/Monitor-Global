@@ -23,3 +23,18 @@ for(const globe of [false,true])test(`align destination before descending (${glo
  assert.equal(approaches,1,'use a flight approach to resolve world-view latitude constraints at distance');
  advance(6000);assert.equal(effects,1);
 });
+
+test('quake trips open about the previous epicenter and descend about the destination',()=>{
+ let now=0;const timers=[],moves=[],pans=[];
+ const focus={move:(c,camera,ms,preserve)=>moves.push({c,camera,ms,preserve})};
+ const c={Date:{now:()=>now},setTimeout:(fn,ms)=>{const t={fn,at:now+ms};timers.push(t);return t;},clearTimeout:t=>{if(t)t.cancelled=true;},matchMedia:()=>({matches:false}),eventoSelecionadoId:'a',userInteractingWithGlobe:false,getEventoTelaFrac:()=>({x:.4,y:.45}),SeismicFocus:focus,
+ map:{stop(){},getCenter:()=>({lng:90,lat:30}),getContainer:()=>({clientWidth:1200,clientHeight:800}),getMinZoom:()=>0,easeTo:o=>pans.push(o)},window:{addEventListener(){},SeismicFocus:focus}};
+ vm.runInNewContext(fs.readFileSync('js/event-camera.js','utf8'),c);
+ function advance(ms){now+=ms;for(const t of timers)if(!t.done&&!t.cancelled&&t.at<=now){t.done=true;t.fn();}}
+ c.window.EventCamera.enter('a',{center:[90,30],anchor:[90,30],zoom:8});advance(6000);
+ c.eventoSelecionadoId='b';c.window.EventCamera.enter('b',{center:[140,-20],anchor:[140,-20],zoom:9});
+ assert.equal(moves[1].c.lng,90);assert.equal(moves[1].c.lat,30);assert.equal(moves[1].preserve,true);assert.ok(moves[1].camera.zoom<=1.1);
+ advance(6000);assert.deepEqual(JSON.parse(JSON.stringify(pans[0].center)),[140,-20]);assert.ok(pans[0].zoom<=1.1);
+ advance(6000);assert.equal(moves[2].c.lng,140);assert.equal(moves[2].c.lat,-20);assert.equal(moves[2].camera.zoom,9);assert.equal(moves[2].ms,6000);
+ c.window.EventCamera.cancel();advance(6000);assert.equal(moves.length,3);
+});

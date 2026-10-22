@@ -17,7 +17,7 @@ function timeline(mag,mode,entryMs=6000){
 const valid=j=>job===j&&eventoSelecionadoId===j.id;
 function stop(){if(job){clearTimeout(job.timer);clearInterval(job.revealTimer);if(job.flipScheduled&&!window.EventDetailsBack?.isOpen())window.fecharViradaCardAlcance?.();}job=null;window.__mgPaintTourState=null;}
 function owned(j){return !window.TsunamiPresentation?.ownsCamera(j.id)&&!document.hidden&&!j.paused;}
-function move(j,camera,ms){if(!owned(j))return;clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();map.easeTo({...camera,padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms,essential:true,easing:t=>t*t*(3-2*t)});}
+function move(j,camera,ms){if(!owned(j))return;clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);SeismicFocus.move(j.context,camera,ms);}
 function area(j){return window.SeismicFocus.frame(j.context);}
 function phase(j,index){
  if(!valid(j)){if(job===j)stop();return;}
@@ -25,8 +25,8 @@ function phase(j,index){
  if(index===j.steps.length){window.SeismicImpact?.finish();stop();scheduleNextAutoCycle(250);return;}
  j.index=index;const [name,ms]=j.steps[index];window.__mgPaintTourState={id:j.id,stage:name,until:Date.now()+ms,endsAt:j.endsAt,past:j.past};
  clearInterval(j.revealTimer);
- if(name==='epicenter-enter'&&window.EventCamera)EventCamera.enter(j.id,{center:centroCompensado(j.context.lng,j.context.lat,j.focusZoom),zoom:j.focusZoom});
- else if(name==='epicenter-enter'||name==='epicenter-return')move(j,{center:centroCompensado(j.context.lng,j.context.lat,j.focusZoom),zoom:j.focusZoom},ms);
+ if(name==='epicenter-enter'&&window.EventCamera)EventCamera.enter(j.id,SeismicFocus.epicenter(j.context,j.focusZoom));
+ else if(name==='epicenter-enter'||name==='epicenter-return')move(j,SeismicFocus.epicenter(j.context,j.focusZoom),ms);
  if(name==='paint-opening'){
   move(j,area(j),ms);const begun=Date.now();
   const extent=Math.max(10,SeismicImpactModel.extent(j.context.mag,j.context.depth));

@@ -1,12 +1,12 @@
 const {test,expect}=require('@playwright/test');test.use({serviceWorkers:'block',reducedMotion:'reduce'});
-for(const width of [1280,390])test('sequência do epicentro à pintura respeita pausas, guarda o evento e não usa anéis '+width,async({page})=>{
+for(const width of [1280,390])test('sequência do epicentro à pintura respeita pausas, guarda o evento e não usa frentes P/S '+width,async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);await page.evaluate(()=>{pausarBuscas();map._render=()=>{};});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  await page.evaluate(()=>{
   clearTimeout(cycleTimeout);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();isFirstLoad=false;isFirstDisplay=false;globalAlerts=[];
   globalEvents=[{id:'past-tour',type:'earthquake',source:'QA',place:'Sismo passado',coords:[-70,-20],mag:3.4,depth:10,time:Date.now()-12*3600000}];
   window.__cameraCalls=[];window.__paintCalls=[];
-  map.easeTo=o=>__cameraCalls.push(o);map.flyTo=o=>__cameraCalls.push(o);map.stop=()=>{};
+  SeismicFocus.move=(c,camera,ms)=>{__cameraCalls.push({...camera,duration:ms,padding:{top:0,right:0,bottom:0,left:0}});};map.easeTo=o=>__cameraCalls.push(o);map.flyTo=o=>__cameraCalls.push(o);map.stop=()=>{};
   SeismicImpact.start=(c,full)=>__paintCalls.push({start:c,full});SeismicImpact.reveal=(r,full)=>__paintCalls.push({r,full});SeismicImpact.finish=()=>__paintCalls.push({finish:true});SeismicImpact.bounds=()=>[-71,-21,-69,-19];
   window.__mgSoftCycle=true;window.__mgRotationDisplay=true;showEventDetails(0,false);window.__mgRotationDisplay=false;
  });
@@ -56,6 +56,6 @@ for(const [width,ageMinutes] of [[1280,1080],[390,1080],[1280,10],[390,10]])test
 test('sismo fraco profundo informa quando o modelo não tem área em terra para pintar',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);map._render=()=>{};globalAlerts=[];isFirstLoad=false;isFirstDisplay=false;globalEvents=[{id:'deep-small',type:'earthquake',source:'QA',coords:[117.04,-31.15],mag:1.9,depth:77,time:Date.now()-18*3600000,place:'Histórico profundo'}];window.__mgSoftCycle=true;showEventDetails(0,false);});
- await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra estimada para pintar');
- await page.evaluate(()=>SeismicImpact.finish());await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra estimada para pintar');expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features.length)).toBe(0);
+ await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra estimada para contornar');
+ await page.evaluate(()=>SeismicImpact.finish());await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra estimada para contornar');expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features.length)).toBe(0);
 });

@@ -1,3 +1,5 @@
+> Atualização: a apresentação automática foi substituída por conexões no mapa; a lista agora abre pelo botão Sequência. Consulte [epicenter-anchored-contours.md](epicenter-anchored-contours.md) para o comportamento atual.
+
 # Sequência sísmica — hub C + D
 
 Usa a associação já existente em AftershockModel, sem alterar catálogos, critérios de parentesco, prioridades, Telegram ou cadência de consultas. “Possíveis réplicas” continua sendo uma associação estimada por horário, distância, magnitude e profundidade na janela de 72 horas, não uma classificação oficial ou previsão.

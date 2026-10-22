@@ -19,16 +19,16 @@
    const zoom=Math.floor(map.getZoom()*2)/2,next=signature+'|'+zoom;
    if(mapKey!==next){
     mapKey=next;for(const pin of pins.values())pin.remove();pins.clear();represented.clear();
-    const data=AftershockClusterModel.build(group.children,group.main.coords[0],zoom,chosen());
+    const data=group.children.length<=40?{clusters:[],singles:group.children}:AftershockClusterModel.build(group.children,group.main.coords[0],zoom,chosen());
     const entries=[...data.clusters.map(c=>({cluster:c,rank:c.members.length})),...data.singles.map(q=>({q,rank:1}))].sort((a,b)=>Number(b.q?.id===chosen())-Number(a.q?.id===chosen())||b.rank-a.rank||Number(b.cluster?.mag??b.q.mag)-Number(a.cluster?.mag??a.q.mag));
     const shown=[{q:group.main},...entries.slice(0,40)];lineTargets=shown.map(e=>({id:e.cluster?.id||e.q.id,coords:e.cluster?.coords||e.q.coords}));clusterCount=0;
     for(const entry of shown){
      const c=entry.cluster,q=entry.q,members=c?.members||[q],isMain=q?.id===group.main.id;
-     const el=document.createElement('button');el.type='button';el.className='aftershock-pin event-pin-surface'+(isMain?' main':'')+(q?.id===chosen()?' hub-selected':'')+(c?' cluster':'')+(members.some(q=>fresh.has(q.id))?' fresh':'');
+     const el=document.createElement('button');el.type='button';el.className='aftershock-pin event-pin-surface'+(isMain?' main':c?'':' replica')+(zoom>=5?' close-scale':'')+(q?.id===chosen()?' hub-selected':'')+(c?' cluster':'')+(members.some(q=>fresh.has(q.id))?' fresh':'');
      el.style.setProperty('--quake-tone',typeof getHexColor==='function'?getHexColor(c?.mag??q.mag):'#fbbf24');
      el.textContent=c?c.members.length.toLocaleString('pt-BR'):(isMain?'Principal · ':'')+mag(q);
      if(c){clusterCount++;node(el,'span','possíveis réplicas');el.title=c.members.length.toLocaleString('pt-BR')+' possíveis réplicas · clique para aproximar';el.setAttribute('aria-label',el.title);}
-     else el.title=(isMain?'Sismo principal':'Possível réplica')+' · '+local(q);
+     else {el.title=(isMain?'Sismo principal':'Possível réplica')+' · '+local(q)+' · '+new Date(q.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})+' BRT';if(!isMain){const stamp=node(el,'span',new Date(q.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})+' BRT');stamp.className='aftershock-pin-time';}}
      const arrivals=members.filter(q=>fresh.has(q.id)).length;if(arrivals)node(el,'em',c?'+'+arrivals+' nova'+(arrivals===1?'':'s'):'NOVA');
      el.onclick=e=>{
       e.stopPropagation();if(!c){open(q.id);return;}

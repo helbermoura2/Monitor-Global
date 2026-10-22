@@ -5,7 +5,7 @@
  let root=null,list=null,title=null,count=null,more=null,group=null,selected=null,rootId=null,uiKey='',lineKey='',targets=[],allowed=true,dismissed=false,expanded=true,limit=40,frame=0,mapRef=null,lastLayout='',followLatest=true,lastRowId=null,manualScroll=false;
  const mobile=matchMedia('(max-width:900px)');
  const reducedMotion=matchMedia('(prefers-reduced-motion:reduce)');
- let dismissTimer=0,autoPresentation=false;
+ let dismissTimer=0,autoPresentation=false,manualOpen=false;
  function armDismissal(){clearTimeout(dismissTimer);dismissTimer=0;if(autoPresentation)return;dismissTimer=setTimeout(()=>{dismissTimer=0;dismissed=true;position();},60000);}
  let scrollTimer=0,scrollDirection=-1,scrollWait=0,scrollLast=0,manualUntil=0,manualRevision=0;
  function stopAutoScroll(){clearTimeout(scrollTimer);scrollTimer=0;scrollLast=0;}
@@ -37,7 +37,7 @@
   try{
    const data=AftershockHubModel.links(group.main,targets,selected);
    if(!m.getSource(SOURCE))m.addSource(SOURCE,{type:'geojson',data});else m.getSource(SOURCE).setData(data);
-   if(!m.getLayer(BASE))m.addLayer({id:BASE,type:'line',source:SOURCE,filter:['==',['get','selected'],false],paint:{'line-color':'#c49b51','line-width':1,'line-opacity':.23}});
+   if(!m.getLayer(BASE))m.addLayer({id:BASE,type:'line',source:SOURCE,filter:['==',['get','selected'],false],paint:{'line-color':'#a8dbe1','line-width':1.3,'line-opacity':.65}});
    if(!m.getLayer(SELECTED))m.addLayer({id:SELECTED,type:'line',source:SOURCE,filter:['==',['get','selected'],true],paint:{'line-color':'#6beafa','line-width':2.2,'line-opacity':.95}});
    for(const id of [BASE,SELECTED])m.setLayoutProperty(id,'visibility',allowed?'visible':'none');lineKey=next;
   }catch{/* A style still loading is restored by style.load. */}
@@ -73,7 +73,7 @@
  }
  function openEvent(id){
   const index=typeof globalEvents==='undefined'?-1:globalEvents.findIndex(q=>q.id===id);if(index<0)return;
-  window.EventDetailsBack?.close();if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();window.__mgSoftCycle=false;window.__mgRotationDisplay=false;showEventDetails(index,false);frameSelection(globalEvents[index]);
+  window.EventDetailsBack?.close();if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();window.__mgSoftCycle=false;window.__mgRotationDisplay=false;showEventDetails(index,false);if(manualOpen&&mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');frameSelection(globalEvents[index]);
  }
  function renderRows(){
   if(!root||!group)return;const focused=document.activeElement?.dataset?.sequenceId,scroll=list.scrollTop;
@@ -93,7 +93,7 @@
  function position(){
   frame=0;if(!root)return;
   if(mobile.matches&&innerHeight>=innerWidth){const bottom=Math.max(...['top-strip','ux-controlbar'].map(id=>document.getElementById(id)?.getBoundingClientRect().bottom||0));document.documentElement.style.setProperty('--mobile-event-slot-top',(bottom+8)+'px');}
-  const pinned=!mobile.matches&&document.body.classList.contains('desktop-records-pinned');root.hidden=!group||!allowed||dismissed||pinned;
+  const pinned=!mobile.matches&&document.body.classList.contains('desktop-records-pinned');root.hidden=!manualOpen||!group||!allowed||dismissed||pinned;
   root.classList.toggle('collapsed',!expanded);document.getElementById('sequence-hub-toggle').setAttribute('aria-expanded',String(expanded));document.getElementById('sequence-hub-toggle').setAttribute('aria-label',expanded?'Recolher sequência':'Expandir sequência');
   syncAutoScroll();
   const active=!root.hidden;document.body.classList.toggle('sequence-hub-active',active);document.body.classList.toggle('sequence-hub-expanded',active&&expanded&&mobile.matches);
@@ -109,7 +109,7 @@
  function update(next,id,show,entries,version,presentationKey=version){
   if(!next?.children?.length){clear();return;}ensure();
   const autoRequested=!!window.__mgRotationDisplay||!!window.__mgSoftCycle,newPresentation=rootId!==next.main.id||selected!==id||autoRequested&&!autoPresentation;
-  if(newPresentation){autoPresentation=autoRequested;dismissed=false;if(mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');armDismissal();}
+  if(newPresentation){autoPresentation=autoRequested;if(rootId!==next.main.id||autoRequested)manualOpen=false;dismissed=false;if(manualOpen)armDismissal();else clearTimeout(dismissTimer);}
   if(rootId!==next.main.id){stopAutoScroll();rootId=next.main.id;dismissed=false;expanded=true;limit=40;uiKey='';followLatest=true;lastRowId=null;manualScroll=false;manualUntil=0;scrollDirection=-1;scrollWait=performance.now()+2500;}
   const changed=uiKey!==presentationKey,visibility=allowed!==show;group=next;selected=id;allowed=show;targets=entries;
   if(changed){uiKey=presentationKey;renderRows();}
@@ -117,8 +117,8 @@
  }
  function show(id){
   if(!group||![group.main,...group.children].some(q=>q.id===id)||!mobile.matches&&document.body.classList.contains('desktop-records-pinned'))return false;
-  autoPresentation=false;armDismissal();dismissed=false;expanded=true;window.EventDetailsBack?.close();if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();if(mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');position();root.querySelector('#sequence-hub-toggle')?.focus({preventScroll:true});return true;
+  manualOpen=true;autoPresentation=false;armDismissal();dismissed=false;expanded=true;window.EventDetailsBack?.close();if(typeof fecharViradaCardAlcance==='function')fecharViradaCardAlcance();if(mobile.matches)document.body.classList.remove('mobile-details-mid','mobile-details-open');position();root.querySelector('#sequence-hub-toggle')?.focus({preventScroll:true});return true;
  }
- function clear(){clearTimeout(dismissTimer);dismissTimer=0;group=null;rootId=null;uiKey='';targets=[];dismissed=false;removeLines();if(root){list.replaceChildren();position();}}
+ function clear(){clearTimeout(dismissTimer);dismissTimer=0;manualOpen=false;group=null;rootId=null;uiKey='';targets=[];dismissed=false;removeLines();if(root){list.replaceChildren();position();}}
  window.AftershockHub={update,show,clear,position:schedule,state:()=>({mainId:group?.main.id||null,selected,expanded,visible:!!root&&!root.hidden,rows:list?.childElementCount||0})};
 })();

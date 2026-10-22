@@ -1,5 +1,5 @@
 /* Every event-to-event trip leaves the surface before approaching its destination. */
-(function(){'use strict';let lastId=null,token=0,timers=[],trip=null;const arrivalEffects=new Map(),worldEffects=new Map();
+(function(){'use strict';let lastId=null,token=0,timers=[],trip=null,lastAnchor=null;const arrivalEffects=new Map(),worldEffects=new Map();
 function cancel(keepId=null){window.MapRenderBudget?.finish();if(trip?.id!==keepId)worldEffects.delete(trip?.id);token++;for(const t of timers)clearTimeout(t);timers=[];trip=null;for(const id of arrivalEffects.keys())if(id!==keepId)arrivalEffects.delete(id);}
 function worldEffect(effect){try{effect();}catch(error){console.warn('[som na visão global]',error);}}
 function releaseWorld(id){if(trip?.id!==id||eventoSelecionadoId!==id)return;trip.worldReady=true;const entry=worldEffects.get(id);worldEffects.delete(id);if(entry&&entry.until>Date.now())worldEffect(entry.effect);}
@@ -13,7 +13,7 @@ function worldZoom(latitude){if(window.GlobePreview?.state().testing)return Glob
 function durationFor(id){return lastId!==null&&lastId!==id?18000:6000;}
 function enter(id,camera,arrive){
  if(trip?.id===id&&Date.now()<trip.endsAt){trip.camera=camera;trip.arrive=arrive;return Math.max(0,trip.endsAt-Date.now());}
- const ms=durationFor(id);cancel(id);window.MapRenderBudget?.begin(map);const generation=token;lastId=id;const journey=trip={id,camera,arrive,endsAt:Date.now()+ms};
+ const originAnchor=lastAnchor;lastAnchor=camera.anchor||null;const ms=durationFor(id);cancel(id);window.MapRenderBudget?.begin(map);const generation=token;lastId=id;const journey=trip={id,camera,arrive,endsAt:Date.now()+ms};
  clearTimeout(window.__mgRecenterT);clearTimeout(window.__mgRecenterAlertT);map.stop();userInteractingWithGlobe=true;
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&eventoSelecionadoId===id;
@@ -23,10 +23,12 @@ function enter(id,camera,arrive){
   if(!valid())return;
   // A timer can run before the renderer's last pan frame. Finish that tiny
   // residual at world scale, so it cannot turn into a large slide at close zoom.
-  if(ms===18000)map.jumpTo({center:journey.camera.center});
+  if(ms===18000&&!journey.camera.anchor)map.jumpTo({center:journey.camera.center});
   // flyTo spends the geographical correction high above the destination,
   // including the latitude limits imposed by Mercator at whole-world zoom.
-  if(journey.arrive)journey.arrive();else ease(journey.camera,true);
+  if(journey.arrive)journey.arrive();else if(journey.camera.anchor){
+   const anchor=journey.camera.anchor;SeismicFocus.move({lng:anchor[0],lat:anchor[1]},journey.camera,6000);
+  }else ease(journey.camera,true);
  };
  timers.push(setTimeout(()=>{if(!valid())return;window.MapRenderBudget?.finish();if(ms===6000)releaseWorld(id);const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();},ms));
  if(ms===6000){final();return ms;}
@@ -34,8 +36,8 @@ function enter(id,camera,arrive){
  // its latitude made high-latitude events slide sideways during the descent.
  const current=map.getCenter(),latitude=c=>Array.isArray(c)?c[1]:c.lat;
  const zoom=window.GlobePreview?.state().testing?Math.min(worldZoom(current.lat),worldZoom(latitude(camera.center))):worldZoom();
- ease({center:[current.lng,current.lat],zoom});
- timers.push(setTimeout(()=>{if(!valid())return;releaseWorld(id);ease({center:journey.camera.center,zoom});},6000));
+ if(originAnchor&&valid())SeismicFocus.move({lng:originAnchor[0],lat:originAnchor[1]},{zoom},6000,true);else ease({center:[current.lng,current.lat],zoom});
+ timers.push(setTimeout(()=>{if(!valid())return;releaseWorld(id);if(journey.camera.anchor){const frac=getEventoTelaFrac(),box=map.getContainer();map.easeTo({center:journey.camera.anchor,zoom,offset:[box.clientWidth*(frac.x-.5),box.clientHeight*(frac.y-.5)],padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true});}else ease({center:journey.camera.center,zoom});},6000));
  timers.push(setTimeout(final,12000));return ms;
 }
 window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&p.id!==lastId)cancel();});

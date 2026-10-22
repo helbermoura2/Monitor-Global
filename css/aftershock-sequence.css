@@ -23,3 +23,10 @@
 .aftershock-pin.cluster span{font-size:9px;font-weight:500;color:#c8e4ed;margin-top:2px}
 .aftershock-pin.cluster em{margin:3px 0 0;color:#86efac}
 .aftershock-pin:focus-visible{outline:2px solid #7dd3fc;outline-offset:3px}
+
+.aftershock-pin-time{display:block;font-size:9px;font-weight:500;line-height:1.4;color:#d1e3e8}
+
+.seismic-contour-scale{display:flex;justify-content:center;gap:4px 10px;flex-wrap:wrap;margin-top:3px;font-size:10px}.seismic-contour-scale>span{white-space:nowrap}.seismic-contour-scale>span::before{content:'';display:inline-block;width:12px;border-top:2px solid var(--mmi-tone);margin-right:4px;vertical-align:middle}
+
+.aftershock-pin.replica:not(.close-scale):not(.hub-selected){width:10px;height:10px;min-width:10px;min-height:10px;padding:0;font-size:0;border-radius:50%;background:var(--quake-tone)}
+.aftershock-pin.replica:not(.close-scale):not(.hub-selected) .aftershock-pin-time{display:none}
