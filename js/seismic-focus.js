@@ -35,13 +35,14 @@
  if(typeof map!=='undefined'&&map)install();else window.addEventListener('load',install,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest?.('#pd-focus-btn')){blocked=null;cached=null;lastFit=null;}},true);
  function epicenter(c,zoom){return {center:centroCompensado(c.lng,c.lat,zoom),zoom,anchor:[c.lng,c.lat]};}
- function move(c,camera,duration,preservePoint=false){
-  // Globe does not support easeTo({around}). A fixed optical centre expressed
-  // as native padding works in both projections, without interpolating latitude.
-  const box=map.getContainer(),frac=getEventoTelaFrac(),projected=preservePoint?map.project([c.lng,c.lat]):null,p=projected&&Number.isFinite(projected.x)&&Number.isFinite(projected.y)&&projected.x>=0&&projected.x<=box.clientWidth&&projected.y>=0&&projected.y<=box.clientHeight?projected:{x:box.clientWidth*frac.x,y:box.clientHeight*frac.y};
-  const padding={left:Math.max(0,2*p.x-box.clientWidth),right:Math.max(0,box.clientWidth-2*p.x),top:Math.max(0,2*p.y-box.clientHeight),bottom:Math.max(0,box.clientHeight-2*p.y)};
-  map.stop();map.jumpTo({center:[c.lng,c.lat],zoom:map.getZoom(),padding,bearing:0,pitch:0});
-  map.easeTo({center:[c.lng,c.lat],zoom:camera.zoom,padding,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:duration,essential:true,easing:t=>t*t*(3-2*t)});
+ function padding(point){
+  const box=map.getContainer(),frac=getEventoTelaFrac(),p=point||{x:box.clientWidth*frac.x,y:box.clientHeight*frac.y};
+  return {left:Math.max(0,2*p.x-box.clientWidth),right:Math.max(0,box.clientWidth-2*p.x),top:Math.max(0,2*p.y-box.clientHeight),bottom:Math.max(0,box.clientHeight-2*p.y)};
  }
- window.SeismicFocus={frame,ready,epicenter,move,pause(){blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;}};
+ function move(c,camera,duration,preservePoint=false){
+  const p=preservePoint?map.project([c.lng,c.lat]):null,box=map.getContainer(),valid=p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.x>=0&&p.x<=box.clientWidth&&p.y>=0&&p.y<=box.clientHeight;
+  const optical=padding(valid?p:null);
+  map.stop();map.easeTo({center:[c.lng,c.lat],zoom:camera.zoom,padding:optical,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:duration,essential:true,easing:t=>t*t*(3-2*t)});
+ }
+ window.SeismicFocus={frame,ready,epicenter,move,padding,pause(){blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;}};
 })();

@@ -5,6 +5,7 @@
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),ease=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
  function mode(cfg){return cfg.alertEffect|| (cfg.type==='volcano'?(cfg.lava?'lava':cfg.ash?'ash':'monitoring'):cfg.type==='hurricane'?(cfg.cycloneStage==='mature'?'cyclone':'tropical'):cfg.type);}
  function create(cfg,mobile,panel,quality){
+ if(cfg.type==='earthquake')return null;
   const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
   if(cfg.type==='wind')return null;
   const canvas=document.createElement('canvas');canvas.className='pd-letter-fragments';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;

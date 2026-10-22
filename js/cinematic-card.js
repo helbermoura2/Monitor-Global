@@ -60,7 +60,7 @@
   if(!item||!TYPES.has(item.type)||item.hazardNature==='bulletin')return null;
   const activity=item.type==='volcano'?volcanoActivity(item):{eruptive:false,lava:false,ash:false};
   let strength=.48;
-  if(item.type==='earthquake'&&Number.isFinite(Number(item.mag)))strength=clamp((Number(item.mag)-1)/6,.15,1);
+  if(item.type==='earthquake'&&Number.isFinite(Number(item.mag)))strength=window.QuakeCardMotion?.profile(item.mag).strength??clamp((Number(item.mag)-.5)/5.4,0,1);
   else if(Number.isFinite(Number(item.windKmh))&&Number(item.windKmh)>0)strength=clamp(Number(item.windKmh)/180,.3,1);
   else if(Number(item.sev)>0)strength=clamp(Number(item.sev)/3,.3,1);
   const hot=item.type==='fire'||activity.eruptive||activity.lava;
@@ -68,7 +68,7 @@
   const rotationDirection=Number(item.coords?.[1])<0?-1:1;
   const text=[item.descOnly,item.place,item.detail].filter(Boolean).join(' ');
   const alertEffect=item.type==='civil'?(/baixa\s+umidade|umidade\s+baixa/i.test(text)?'dry':'alert'):null;
-  return {alertEffect,alertColor:typeof corSeveridadeAlerta==='function'?corSeveridadeAlerta(item):'#fb923c',type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
+  return {alertEffect,alertColor:typeof corSeveridadeAlerta==='function'?corSeveridadeAlerta(item):'#fb923c',type:item.type,mag:item.mag,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
  function releaseCanvas(c){if(c){c.width=1;c.height=1;}}
  function removeGhost(){clearTimeout(ghostTimer);if(ghost)for(const c of ghost.querySelectorAll('canvas'))releaseCanvas(c);ghost?.remove();ghost=null;}
@@ -76,7 +76,7 @@
  function clearWind(){const p=panel();for(const key of WIND_PROPERTIES)p?.style.removeProperty(key);}
  function stop(){
   if(pending){clearTimeout(pending.timer);panel()?.classList.remove('pd-fx-'+pending.type);pending=null;}
-  clearWind();
+  clearWind();for(const key of ['--pd-quake-x','--pd-quake-y','--pd-quake-glow'])panel()?.style.removeProperty(key);
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
   if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();scene.visibilityObserver?.disconnect();scene.visibilityMutations?.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();for(const c of [scene.canvas,scene.contact,scene.fog])releaseCanvas(c);scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active','pd-volcano-monitoring');removeGhost();
@@ -114,6 +114,7 @@
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
   const p=panel(),cfg=profile(item);
+  if(cfg?.type==='earthquake')duration=Math.min(duration,(window.QuakeCardMotion?.profile(item.mag).duration??3)*1000+600);
   // Live volcanoes use the screen overlay alone; source evidence still decides
   // whether the selected record describes a confirmed current eruption.
   if(cfg?.type==='volcano'&&!item.__cinemaDemo){
@@ -167,15 +168,15 @@
    for(let i=0;i<(cfg.type==='storm'?(mobile?20:32):(mobile?12:18));i++){const el=document.createElement('i');el.className='pd-cinema-drop';lenses.append(el);s.beads.push({x:['storm','hurricane'].includes(cfg.type)&&i%3===0?rand(.18,.82):Math.random()<.5?rand(.025,.14):rand(.86,.97),y:rand(.08,.8),r:rand(1,3),vy:0,el});}
   }
   if(cfg.mist)for(let i=0;i<(mobile?6:9);i++)s.smoke.push({x:Math.random()<.5?rand(-.12,.1):rand(.9,1.1),y:Math.random(),depth:rand(.45,1),phase:rand(0,6.3)});
-  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='earthquake'?mobile?12:20:0;
+  const particleCount=cfg.type==='fire'||cfg.hot?mobile?28:44:cfg.ash?mobile?18:30:cfg.type==='earthquake'?Math.min(mobile?10:16,window.QuakeCardMotion?.profile(item.mag).particles||0):0;
   for(let i=0;i<particleCount;i++)s.particles.push({x:Math.random(),y:Math.random(),depth:rand(.2,1),phase:rand(0,6.3),speed:rand(.6,1.5),vx:0,vy:0,ash:cfg.ash&&(i%3!==0||!cfg.hot)});
   if(cfg.type==='flood')for(let i=0;i<(mobile?16:28);i++)s.floating.push({x:Math.random(),y:Math.random(),phase:rand(0,6.3),speed:rand(.4,1),r:rand(1.5,4),foam:i%3!==0});
   const front=document.createElement('div');front.className='pd-cinema-contact';front.setAttribute('aria-hidden','true');const contact=document.createElement('canvas');front.append(contact);const lenses=host.querySelector('.pd-cinema-lenses');if(lenses)front.append(lenses);p.append(front);s.front=front;s.contact=contact;s.contactCtx=contact.getContext('2d');
-  window.triggerWindLetters?.(Infinity,{controlled:true,allText:true});
+  if(cfg.type!=='earthquake')window.triggerWindLetters?.(Infinity,{controlled:true,allText:true});
   if(['wind','storm','hurricane','tornado','tsunami'].includes(cfg.type))s.wind={x:0,vx:0,roll:0,vr:0,travel:0,pressure:0,letters:new WeakMap(),groups:[]};
   s.physics=window.CardWeatherPhysics?.create(cfg,mobile,p,quality);if(s.physics){front.append(s.physics.canvas,s.physics.lensLayer);if(s.physics.background)host.append(s.physics.background);if(cfg.type==='tsunami')host.dataset.renderer=s.physics.background.dataset.renderer;host.dataset.weatherMaterial=cfg.type==='tsunami'?'hydraulic-bore':cfg.water?'refractive-current':cfg.type==='wind'?'turbulent-air':cfg.type==='tornado'?'helical-debris':'wet-glass';}
-  s.artifacts=window.CardArtifactEffects?.create(cfg,mobile,p,quality);if(s.artifacts)front.append(s.artifacts.canvas);
-  s.typography=window.CardEventTypography?.create(cfg,mobile,p,quality);if(s.typography)front.append(s.typography.canvas);
+  s.artifacts=cfg.type==='earthquake'?null:window.CardArtifactEffects?.create(cfg,mobile,p,quality);if(s.artifacts)front.append(s.artifacts.canvas);
+  s.typography=cfg.type==='earthquake'?null:window.CardEventTypography?.create(cfg,mobile,p,quality);if(s.typography)front.append(s.typography.canvas);
   for(const array of [s.rain,s.smoke,s.particles,s.floating])quality.track(array);
   p.append(host);p.classList.add('pd-cinema-active','pd-fx-'+cfg.type);scene=s;if(!item.__cinemaDemo)window.FullScreenEffects?.volcano(item,cfg);
   function resize(){
@@ -446,6 +447,7 @@
    const renderStart=performance.now(),gap=now-s.last;
    const dt=Math.max(0,Math.min(.06,gap/1000));s.last=now;s.paintAt=now;
    const fadeIn=clamp(t/.55,0,1),fadeOut=Number.isFinite(s.duration)?clamp((s.duration/1000-t)/.85,0,1):1,envelope=Math.min(fadeIn,fadeOut);s.host.style.opacity=envelope.toFixed(3);
+   if(s.cfg.type==='earthquake'&&window.QuakeCardMotion){const motion=QuakeCardMotion.sample(s.cfg.mag??s.itemMag,t);p.style.setProperty('--pd-quake-x',motion.x.toFixed(3)+'px');p.style.setProperty('--pd-quake-y',motion.y.toFixed(3)+'px');p.style.setProperty('--pd-quake-glow',motion.glow.toFixed(3));}
    if(s.wind)windResponse(s,t,dt,envelope);
    if(s.cfg.type==='storm')stormLight(s,t);
    s.ctx.clearRect(0,0,s.width,s.height);illuminate(s,t,envelope);

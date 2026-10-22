@@ -21,10 +21,11 @@
   const mmi=reported!=null?clamp(Number(reported),1,12):estimate(mag,depth);
   const full=mag>=6&&mode!=='auto',strength=clamp((mmi-2)/6,0,1);
   const tier=mag>=8?3:mag>=7?2:mag>=6?1:0;
-  const duration=full?(mag>=8?24000:16000):1200+strength*(mode==='auto'?3600:5200);
+  const subtle=root.QuakeCardMotion?.profile(mag)||{amplitude:Math.min(1.5,mag*.25),duration:1.2+Math.min(mag,6)*.5,strength:Math.min(1,mag/6)};
+  const duration=full?(mag>=8?24000:16000):subtle.duration*1000;
   return {mag,depth,mmi,recordPieces:full&&mag>=8,slowPieces:full&&mag>=8,source:reported!=null?(known?.source||'MMI fornecido pela fonte'):'Estimativa epicentral · Allen et al. (2012)',mode,full,tier,strength,duration,
-   amplitude:full?3+strength*(tier===3?37:tier===2?29:22):1+strength*(mode==='auto'?15:18),
-   rotation:full?(tier===3?.65:tier===2?.48:.34):.24,
+   amplitude:full?3+strength*(tier===3?37:tier===2?29:22):subtle.amplitude,
+   rotation:full?(tier===3?.65:tier===2?.48:.34):.015*subtle.strength,
    pieces:full?Math.round((tier===3?24:tier===2?18:12)*(.35+.65*strength)):0};
  }
  function envelope(t,p){

@@ -44,5 +44,5 @@ test('initial direct approach releases at arrival, while manual replay stays imm
 });
 
 test('audio failure does not block the camera travelling to its destination',()=>{
- const s=setup();s.c.console={warn(){}};let approached=0;s.c.map.flyTo=()=>approached++;s.select('new');s.c.EventCamera.afterWorldView('new',()=>{throw Error('Audio unavailable');});s.c.EventCamera.enter('new',{center:[140,35],zoom:9});s.advance(18000);assert.equal(approached,1);
+ const s=setup();s.c.console={warn(){}};let approached=0;s.c.map.easeTo=o=>{if(o.zoom===9)approached++;};s.select('new');s.c.EventCamera.afterWorldView('new',()=>{throw Error('Audio unavailable');});s.c.EventCamera.enter('new',{center:[140,35],zoom:9});s.advance(18000);assert.equal(approached,1);
 });

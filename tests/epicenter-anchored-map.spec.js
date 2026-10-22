@@ -5,7 +5,7 @@ for(const width of [411,1280])test('M7 keeps geographic anchor during zoom, show
  await page.goto('/');await page.waitForFunction(()=>__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{
   pausarBuscas();clearTimeout(cycleTimeout);EventCamera.cancel();stopMapCamera();SeismicPaintTour.stop();stopWaveFront();SeismicImpact.stop();
-  for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
+  map.setPixelRatio(.5);for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
   globalAlerts=[];const q={id:'anchor-m7',type:'earthquake',source:'QA',place:'Nagqu, China',coords:[93.71,32.34],mag:7,depth:18,time:Date.now()-3600000};globalEvents=[q,...[1,2,3].map(i=>({...q,id:'anchor-child-'+i,mag:4.5,time:q.time+i*600000,coords:[93.71+i*.1,32.34+i*.06]}))];lastMerged=globalEvents.slice();
   window.__mgSoftCycle=true;showEventDetails(0,false);window.__mgSoftCycle=false;
   EventCamera.cancel();SeismicPaintTour.stop();stopWaveFront();stopMapCamera();clearTimeout(cycleTimeout);fecharViradaCardAlcance();AftershockSequence.refresh();
@@ -15,7 +15,7 @@ for(const width of [411,1280])test('M7 keeps geographic anchor during zoom, show
  await expect(page.locator('.aftershock-pin-time').first()).toContainText('BRT');
  if(width<900){await expect(page.locator('body')).toHaveClass(/mobile-details-mid/);await expect(page.locator('#latest-event-ticker')).toBeHidden();const panel=await page.locator('#painel-direito').boundingBox();expect(panel.height).toBeGreaterThan(120);expect(panel.y+panel.height).toBeLessThanOrEqual(807);}
  for(const mode of ['globe','mercator']){
-  await page.evaluate(mode=>{GlobePreview.setMode(mode);const a=globalEvents[0].coords,f=getEventoTelaFrac(),box=map.getContainer();map.easeTo({center:a,zoom:8,offset:[box.clientWidth*(f.x-.5),box.clientHeight*(f.y-.5)],padding:{top:0,right:0,bottom:0,left:0},bearing:0,pitch:0,duration:0});},mode);
+  await page.evaluate(mode=>{GlobePreview.setMode(mode);const a=globalEvents[0].coords,f=getEventoTelaFrac(),box=map.getContainer();map.easeTo({center:a,zoom:8,padding:SeismicFocus.padding(),bearing:0,pitch:0,duration:0});},mode);
   await page.waitForTimeout(150);
   const r=await page.evaluate(async()=>{
    const c={id:'anchor-m7',lng:93.71,lat:32.34,mag:7,depth:18},positions=[],start=map.project([c.lng,c.lat]);

@@ -34,7 +34,9 @@ function phase(j,index){
  }
  if(name==='area-hold'){window.SeismicImpact?.finish();}
  if(name==='area-final-opening'){window.SeismicImpact?.finish();move(j,area(j),ms);}
- j.timer=setTimeout(()=>phase(j,index+1),ms);
+ const expected=Date.now()+ms;
+ const advance=()=>{if(!valid(j))return;if(name==='epicenter-enter'&&window.EventCamera?.owns(j.id)){j.timer=setTimeout(advance,100);return;}const delay=Math.max(0,Date.now()-expected);if(delay){j.endsAt+=delay;window.__mgHoldEndsAt=j.endsAt;if(window.__mgRevisionProtectedId===j.id)window.__mgRevisionProtectedUntil=j.endsAt;}phase(j,index+1);};
+ j.timer=setTimeout(advance,ms);
 }
 function start(item,zoom){
  stop();if(!map||!window.SeismicImpact||!window.SeismicFocus)return false;
@@ -54,5 +56,5 @@ function pause(stopCamera=true){if(job){job.paused=true;if(stopCamera)map.stop()
 window.EventStore?.subscribe((reason,p)=>{if(reason==='select'&&job&&p.id!==job.id)stop();});
 function install(){if(!map)return;for(const name of ['dragstart','wheel','touchstart'])map.on(name,e=>{if(e?.originalEvent)pause(false);});}
 window.addEventListener('load',install,{once:true});window.addEventListener('pagehide',stop);
-window.SeismicPaintTour={start,stop,ready,pause,owns:id=>job?.id===id,remaining:()=>job?Math.max(0,job.endsAt-Date.now()):0,duration,phases,timeline};
+window.SeismicPaintTour={start,stop,ready,pause,owns:id=>job?.id===id,remaining:()=>job?Math.max(window.EventCamera?.owns(job.id)?1000:0,job.endsAt-Date.now()):0,duration,phases,timeline};
 })();

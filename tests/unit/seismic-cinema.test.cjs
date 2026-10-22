@@ -1,5 +1,5 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');
-function engine(){const root={matchMedia:()=>({matches:false,addEventListener(){}})};const ctx=vm.createContext({window:root,document:{documentElement:{classList:{add(){}}},addEventListener(){}},Math,Map,Number});vm.runInContext(fs.readFileSync('js/seismic-cinema.js','utf8'),ctx);return root.SeismicCinema;}
+function engine(){const root={matchMedia:()=>({matches:false,addEventListener(){}})};const ctx=vm.createContext({window:root,document:{documentElement:{classList:{add(){}}},addEventListener(){}},Math,Map,Number});vm.runInContext(fs.readFileSync('js/quake-card-motion.js','utf8'),ctx);root.QuakeCardMotion=ctx.QuakeCardMotion;vm.runInContext(fs.readFileSync('js/seismic-cinema.js','utf8'),ctx);return root.SeismicCinema;}
 test('M6+ novo/manual usa tela inteira, rotação usa apenas cartão sem quedas',()=>{
  const e=engine();for(const m of [6,6.9,7,7.9,8.2]){
   const full=e.profile({mag:m,depth:10},'new'),manual=e.profile({mag:m,depth:10},'manual'),auto=e.profile({mag:m,depth:10},'auto');
