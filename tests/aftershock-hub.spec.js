@@ -49,4 +49,9 @@ test('sequence scroll reverses at both ends and pauses for manual input and hidd
  await list.evaluate(n=>{n.dispatchEvent(new Event('wheel'));n.scrollTop=30;});await page.clock.runFor(5000);expect(await list.evaluate(n=>n.scrollTop)).toBe(30);
  await page.clock.runFor(6000);expect(await list.evaluate(n=>n.scrollTop)).toBeGreaterThan(30);
  await page.locator('#sequence-hub-toggle').click();const paused=await list.evaluate(n=>n.scrollTop);await page.clock.runFor(4000);expect(await list.evaluate(n=>n.scrollTop)).toBe(paused);
+ await page.clock.fastForward(61000);await expect(page.locator('#sequence-hub')).toBeHidden();
+ await page.evaluate(()=>AftershockSequence.refresh());await expect(page.locator('#sequence-hub')).toBeHidden();
+ await page.evaluate(()=>AftershockHub.show('ping-main'));await expect(page.locator('#sequence-hub')).toBeVisible();
+ await page.clock.fastForward(30000);await list.dispatchEvent('wheel');await page.clock.fastForward(40000);await expect(page.locator('#sequence-hub')).toBeVisible();
+ await page.clock.fastForward(21000);await expect(page.locator('#sequence-hub')).toBeHidden();
 });
