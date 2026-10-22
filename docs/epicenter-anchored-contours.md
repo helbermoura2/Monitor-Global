@@ -1,0 +1,13 @@
+# Epicentro estável e contornos vazados
+
+A apresentação usa o mesmo controlador de zoom em celular e desktop. Cada aproximação/abertura mantém o epicentro no centro óptico da área livre, medido entre cabeçalho e cartão principal. A projeção de globo do MapLibre não oferece ancoragem estável por `around`: o controlador fixa o centro geográfico no epicentro e usa padding nativo constante durante o zoom. Ao trocar de evento, a saída preserva o ponto do evento anterior; a mudança de localização ocorre na visão distante. Interação manual mantém o cancelamento existente.
+
+O enquadramento da intensidade usa limites simétricos ao redor do epicentro, incluindo os limites publicados e as possíveis réplicas, evitando arrastar o alvo para o centro de uma grade assimétrica. Um painel de sequência aberto na faixa superior passa a limitar o topo, não o rodapé.
+
+A lista de réplicas deixa de abrir automaticamente. As conexões locais continuam no mapa; o botão Sequência abre a lista sob demanda. Grupos de até 40 réplicas mostram os pontos individuais, com magnitude e hora BRT ao aproximar. Em visão distante, réplicas não selecionadas aparecem como pontos discretos. Sequências maiores mantêm o agrupamento limitado existente. As conexões representam associação estimada, não falhas ou propagação. A seleção não recolhe mais o cartão principal para abrir uma lista automática.
+
+A intensidade no mapa ao vivo deixa de usar preenchimento. Contornos MMI identificam cada faixa por cor, número romano e descrição na legenda. O modelo radial conserva os mesmos limiares físicos; uma grade oficial produz isolinhas interpoladas do campo publicado, com lacunas preservadas e sem fechar artificialmente bordas da grade. O recorte de terra usa segmentos amostrados, portanto a linha da costa não é uma nova isolinha. Ruptura publicada permanece independente da intensidade; ruptura sem grade não fabrica anéis. Telegram e compartilhamento conservam a implementação vazada já existente.
+
+Os contornos são calculados no Worker local do navegador, junto à geometria existente, e contabilizados no limite de cache de 100 mil vértices. A grade de contornos tem no máximo 128 × 128 amostras e 48 mil vértices. Isso não adiciona consultas, alertas de teste, polling ou chamadas a Durable Objects. O verso populacional não vira automaticamente um cartão móvel recolhido.
+
+Validação offline: teste animado de saída/retorno entre zoom 8 e 2, em globo e Mercator, nos tamanhos 411 e 1280; cartão principal visível; lista automática ausente e consulta manual disponível; limpeza das conexões; testes de limiares MMI, grades oficiais uniformes/com lacunas, antimeridiano e limites de sequências. Não mede o FPS ou a memória de uso prolongado no aparelho real.

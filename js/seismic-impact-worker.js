@@ -1,6 +1,6 @@
 /* Created only for an intensity footprint. Coastlines remain in this Worker. */
 'use strict';
-importScripts('vendor/polygon-clipping.min.js?v=0.15.7','rupture-shaking-model.js?v=20261016-multi-source','seismic-impact-model.js?v=20261016-multi-source');
+importScripts('vendor/polygon-clipping.min.js?v=0.15.7','rupture-shaking-model.js?v=20261016-multi-source','seismic-impact-model.js?v=20261016-multi-source','seismic-contours-model.js?v=20261022-anchored-contours');
 let landPromise;
 function land(){
  if(landPromise)return landPromise;
@@ -12,6 +12,6 @@ function land(){
  return landPromise;
 }
 self.onmessage=async({data:{id,context}})=>{
- try{const coast=await land(),data=SeismicImpactModel.geometry(context,coast);self.postMessage({id,data,vertices:SeismicImpactModel.vertices(data)});}
+ try{const coast=await land(),data=SeismicImpactModel.geometry(context,coast),contours=SeismicContoursModel.contours(context,coast),extra=contours.features.reduce((n,f)=>n+f.geometry.coordinates.reduce((s,line)=>s+line.length,0),0);self.postMessage({id,data,vertices:SeismicImpactModel.vertices(data)+extra,contours});}
  catch(error){self.postMessage({id,error:error.message});}
 };

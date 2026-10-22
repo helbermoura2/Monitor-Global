@@ -227,9 +227,10 @@ function agendarViradaCardAlcance(lat, lng, item, delayMs=14000) {
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return;
         const painel = document.getElementById('painel-direito');
         if (!painel) return;
+        if(matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open'))return;
         const dados = await dadosPromise;
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
-        if (!dados || generation!==window.__mgFlipPopulationGeneration || document.hidden || window.EventDetailsBack?.isOpen()) return;
+        if (!dados || generation!==window.__mgFlipPopulationGeneration || document.hidden || window.EventDetailsBack?.isOpen() || matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open')) return;
 
         // Vira também no aleatório e em áreas sem cidades cadastradas
         // no alcance (área muito remota —

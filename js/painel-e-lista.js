@@ -1136,7 +1136,7 @@ function stopMapCamera() {
  */
 function softFlyToCoords(lng, lat, zoomAlvo, soft) {
     if (!map) return 0;
-    if(window.EventCamera){stopMapCamera();return EventCamera.enter(eventoSelecionadoId,window.CycloneRouteCard?.camera(window.EventStore?.getSelected())||{center:centroCompensado(lng,lat,zoomAlvo),zoom:zoomAlvo});}
+    if(window.EventCamera){stopMapCamera();return EventCamera.enter(eventoSelecionadoId,window.CycloneRouteCard?.camera(window.EventStore?.getSelected())||{center:centroCompensado(lng,lat,zoomAlvo),zoom:zoomAlvo,...(window.EventStore?.getSelected()?.type==='earthquake'?{anchor:[lng,lat]}:{})});}
     userInteractingWithGlobe = true;
     // trava o spin por bastante tempo (voo + um pouco depois)
     try { clearTimeout(window.__mgUnlockSpin); } catch (e) {}

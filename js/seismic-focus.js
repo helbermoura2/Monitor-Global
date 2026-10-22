@@ -11,10 +11,12 @@
   if(bounds){
    let [w,s,e,n]=bounds;const unwrap=x=>c.lng+((x-c.lng+540)%360)-180;
    const include=([x,y])=>{x=unwrap(x);w=Math.min(w,x);e=Math.max(e,x);s=Math.min(s,y);n=Math.max(n,y);};include([c.lng,c.lat]);for(const p of points||[])include(p);
-   const {lng,lat}=paintedAreaGeoFrame([w,s,e,n]);
-   const zoom=zoomParaAreaPintada(lng,lat,1,[w,s,e,n]);camera={zoom,center:centroCompensado(lng,lat,zoom),bounds:[w,s,e,n]};
+   // Fit symmetrically about the epicenter; an asymmetric published grid must
+   // not drag the epicenter away while the camera opens.
+   const dx=Math.max(c.lng-w,e-c.lng),y=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85,Math.min(85,lat))*Math.PI/360)),cy=y(c.lat),dy=Math.max(cy-y(s),y(n)-cy),inv=v=>(2*Math.atan(Math.exp(v))-Math.PI/2)*180/Math.PI;
+   const zoom=zoomParaAreaPintada(c.lng,c.lat,1,[c.lng-dx,inv(cy-dy),c.lng+dx,inv(cy+dy)]);camera={zoom,center:centroCompensado(c.lng,c.lat,zoom),bounds:[w,s,e,n]};
   }else{const zoom=zoomParaAreaPintada(c.lng,c.lat,Math.max(10,SeismicImpactModel.extent(c.mag,c.depth,2.1)));camera={zoom,center:centroCompensado(c.lng,c.lat,zoom)};}
-  cached={key,bounds,points,layout,camera};return camera;
+  camera.anchor=[c.lng,c.lat];cached={key,bounds,points,layout,camera};return camera;
  }
  function ready(c){
   if(window.SeismicPaintTour?.owns(c.id)){window.SeismicPaintTour.ready(c);return;}
@@ -32,5 +34,14 @@
  function install(){if(typeof map==='undefined'||!map)return;for(const event of ['dragstart','wheel','touchstart'])map.on(event,e=>{if(e?.originalEvent)blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;});}
  if(typeof map!=='undefined'&&map)install();else window.addEventListener('load',install,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest?.('#pd-focus-btn')){blocked=null;cached=null;lastFit=null;}},true);
- window.SeismicFocus={frame,ready,pause(){blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;}};
+ function epicenter(c,zoom){return {center:centroCompensado(c.lng,c.lat,zoom),zoom,anchor:[c.lng,c.lat]};}
+ function move(c,camera,duration,preservePoint=false){
+  // Globe does not support easeTo({around}). A fixed optical centre expressed
+  // as native padding works in both projections, without interpolating latitude.
+  const box=map.getContainer(),frac=getEventoTelaFrac(),projected=preservePoint?map.project([c.lng,c.lat]):null,p=projected&&Number.isFinite(projected.x)&&Number.isFinite(projected.y)&&projected.x>=0&&projected.x<=box.clientWidth&&projected.y>=0&&projected.y<=box.clientHeight?projected:{x:box.clientWidth*frac.x,y:box.clientHeight*frac.y};
+  const padding={left:Math.max(0,2*p.x-box.clientWidth),right:Math.max(0,box.clientWidth-2*p.x),top:Math.max(0,2*p.y-box.clientHeight),bottom:Math.max(0,box.clientHeight-2*p.y)};
+  map.stop();map.jumpTo({center:[c.lng,c.lat],zoom:map.getZoom(),padding,bearing:0,pitch:0});
+  map.easeTo({center:[c.lng,c.lat],zoom:camera.zoom,padding,bearing:0,pitch:0,duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:duration,essential:true,easing:t=>t*t*(3-2*t)});
+ }
+ window.SeismicFocus={frame,ready,epicenter,move,pause(){blocked=typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;}};
 })();

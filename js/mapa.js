@@ -148,7 +148,8 @@ function getEventoTelaFrac() {
             }
         }
 
-        const hub=document.getElementById('sequence-hub');if(hub&&getComputedStyle(hub).display!=='none'&&getComputedStyle(hub).visibility!=='hidden'){const r=hub.getBoundingClientRect();if(r.width>=mw*.85&&r.top>mapRect.top)bottomBoundary=Math.min(bottomBoundary,r.top-mapRect.top);}
+        // Wide overlays can occupy either edge; a top hub is never a bottom sheet.
+        for(const id of ['ux-controlbar','sequence-hub']){const el=document.getElementById(id);if(!el||getComputedStyle(el).display==='none'||getComputedStyle(el).visibility==='hidden')continue;const r=el.getBoundingClientRect();if(r.width>=mw*.7&&r.height>0){if(r.top<mapRect.top+mh*.55)topBoundary=Math.max(topBoundary,r.bottom-mapRect.top);else bottomBoundary=Math.min(bottomBoundary,r.top-mapRect.top);}}
         if(rightBoundary>leftBoundary)x=(leftBoundary+rightBoundary)/2/mw;
         if (bottomBoundary > topBoundary) {
             y = Math.min(0.85, Math.max(0.08, (topBoundary + (bottomBoundary - topBoundary) / 2) / mh));

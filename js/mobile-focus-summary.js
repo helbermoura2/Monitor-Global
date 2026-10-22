@@ -1,7 +1,7 @@
 /* Selected-event summary; the existing latest-event ticker keeps its data. */
 (function(){'use strict';
  const mq=matchMedia('(max-width:700px) and (orientation:portrait)');let content,ticker,observer,frame=0;const labels=new Set();let lastSignature=null,until=0,expiry=0,closed=false;
- function visibility(){if(!ticker)return;const active=mq.matches&&ticker.classList.contains('has-focus-summary');const hide=active&&(closed||Date.now()>=until);ticker.classList.toggle('mobile-focus-dismissed',hide);if(mq.matches)ticker.style.setProperty('display',hide||document.body.classList.contains('sequence-hub-active')?'none':'flex','important');else ticker.style.removeProperty('display');window.MapOverlayLayout?.schedule();schedule();}
+ function visibility(){if(!ticker)return;const active=mq.matches&&ticker.classList.contains('has-focus-summary');const hide=active&&(closed||Date.now()>=until||!!window.AftershockSequence?.summary(window.EventStore?.selectedId));ticker.classList.toggle('mobile-focus-dismissed',hide);if(mq.matches)ticker.style.setProperty('display',hide||document.body.classList.contains('sequence-hub-active')?'none':'flex','important');else ticker.style.removeProperty('display');window.MapOverlayLayout?.schedule();schedule();}
  function dismiss(){closed=true;clearTimeout(expiry);visibility();}
  function reveal(item){closed=false;until=Date.now()+(Number(item?.mag)>=6?60000:30000);clearTimeout(expiry);expiry=setTimeout(visibility,Math.max(1,until-Date.now()));visibility();}
  const kinds={earthquake:'SISMO',hurricane:'CICLONE',tsunami:'TSUNAMI',volcano:'VULCÃO',storm:'TEMPESTADE',wind:'VENTO',fire:'INCÊNDIO',flood:'ENCHENTE',tornado:'TORNADO',civil:'ALERTA'};

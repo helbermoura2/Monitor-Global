@@ -1,3 +1,5 @@
+> Atualização: a câmera mantém o epicentro fixo no centro óptico durante o zoom, e a intensidade usa contornos vazados. Consulte [epicenter-anchored-contours.md](epicenter-anchored-contours.md).
+
 # Câmera sísmica M5+
 
 Eventos novos e cliques manuais acompanham a frente S (vermelha), mantendo o epicentro. Ao atingir o alcance estimado, a câmera permanece na área pintada e nas localidades desse entorno. Somente os últimos seis segundos da exibição física mostram a frente P (azul). Em M5+, o encerramento retorna à área pintada em 3,5 segundos e permanece mais 10 segundos antes de liberar a rotação. A sequência dos eventos menores está descrita abaixo.
