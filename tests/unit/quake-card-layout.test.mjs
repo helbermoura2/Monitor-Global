@@ -22,3 +22,10 @@ test('locality reserve is visibly preliminary, rounded and partial, without fict
  layout.draw(p,{mag:6.1,depth:10,place:'Panamá',exposure:{status:'available',method:'geonames-localities',partial:true,ranges:[{population:3579788,localities:516},{population:118641,localities:55},{population:null,localities:0}]}});
  assert(text.some(t=>t.s==='~ 3.600.000 pessoas'));assert(text.some(t=>t.s.includes('Estimativa preliminar')));assert(text.some(t=>t.s.includes('GeoNames · cobertura parcial')));assert(!text.some(t=>t.s.includes('VI+: ~ 0')));assert(text.filter(t=>t.y>=1228&&t.y<1391).every(t=>t.x+p.measure(t.s,t.z)<=800));
 });
+
+test('hollow contour legends describe actual levels and fit inside the map',()=>{
+ const labels=[],p={roundRect(){},rect(){},dot(){},measure:(s,z)=>s.length*z*.55,text:(s,x,y,size)=>labels.push({s,x,y,size})};
+ layout.drawContourLabels(p,[{level:7,roman:'VII',description:'Muito forte',color:'#ffc800',x:450,y:420},{level:8,roman:'VIII',description:'Severa',color:'#ff7800',x:430,y:440}]);
+ assert.deepEqual(labels.map(l=>l.s),['VII · Muito forte','VIII · Severa']);assert(labels.every(l=>l.x+p.measure(l.s,l.size)<=800&&l.y+l.size<700));
+ labels.length=0;layout.drawContourLabels(p,[]);assert.equal(labels.length,0);
+});
