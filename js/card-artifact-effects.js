@@ -3,6 +3,7 @@
 'use strict';
 const rand=(a,b)=>a+Math.random()*(b-a),clamp=x=>Math.max(0,Math.min(1,x));
 function create(cfg,mobile,panel,quality){
+ if(cfg.type==='earthquake')return null;
  const detail=quality||{resolution:1,count:n=>n,track:a=>a,fps:n=>n};
  const canvas=document.createElement('canvas');canvas.className='pd-letter-fragments';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d');if(!ctx)return null;
  const dry=cfg.alertEffect==='dry',alarm=cfg.alertEffect==='alert',quiet=cfg.type==='volcano'&&!cfg.hot&&!cfg.ash&&!cfg.lava;
