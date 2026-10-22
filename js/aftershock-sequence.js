@@ -1,7 +1,7 @@
 /* Bounded sequence labels and zoom-scale groups; only explicit clicks move the camera. */
 (function(){
  'use strict';
- let model=null,signature='',pins=new Map(),box=null,summary=null,known=new Map(),initialized=false,fresh=new Map(),timer=null,visible=true,lastData=null,mapKey='',represented=new Set(),clusterCount=0,lineTargets=[],retainedId=null;
+ let model=null,signature='',pins=new Map(),box=null,summary=null,known=new Map(),initialized=false,fresh=new Map(),timer=null,visible=true,lastData=null,mapKey='',represented=new Set(),clusterCount=0,lineTargets=[];
  const events=()=>typeof globalEvents==='undefined'?[]:globalEvents;
  const sequenceFor=id=>{const g=model?.forEvent(id);return g?.children.length?g:null;};
  const chosen=()=>typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
@@ -9,12 +9,12 @@
  const local=q=>window.EventPortuguese?.place(q.place)||q.place||'Local não informado';
  function node(host,tag,value){const el=document.createElement(tag);el.textContent=value;host.append(el);return el;}
  function open(id){const index=events().findIndex(q=>q.id===id);if(index>=0){window.__mgSoftCycle=false;window.__mgRotationDisplay=false;showEventDetails(index,false);}}
- function clear(resetHub=true){if(resetHub)retainedId=null;if(resetHub)window.AftershockHub?.clear();box?.remove();box=null;summary?.remove();summary=null;const slot=document.getElementById('pd-aftershock-details');if(slot){slot.style.display='none';slot.dataset.empty='true';const fold=slot.closest('details');if(fold)fold.style.display='none';}for(const pin of pins.values())pin.remove();pins.clear();signature='';mapKey='';represented.clear();clusterCount=0;restore();}
+ function clear(resetHub=true){if(resetHub)window.AftershockHub?.clear();box?.remove();box=null;summary?.remove();summary=null;const slot=document.getElementById('pd-aftershock-details');if(slot){slot.style.display='none';slot.dataset.empty='true';const fold=slot.closest('details');if(fold)fold.style.display='none';}for(const pin of pins.values())pin.remove();pins.clear();signature='';mapKey='';represented.clear();clusterCount=0;restore();}
  function restore(){if(typeof markerStores==='undefined')return;markerStores.quake.forEach(m=>m.getElement().classList.remove('aftershock-covered'));}
  function setVisible(value){visible=!!value;syncMarkers();}
  function syncMarkers(){
   restore();const allowed=visible&&!(typeof layerVisibility!=='undefined'&&!layerVisibility.earthquakes)&&!window.TsunamiMap?.isPreview();
-  const group=sequenceFor(chosen())||sequenceFor(retainedId);
+  const group=sequenceFor(chosen());
   if(group&&group.children.length&&typeof map!=='undefined'&&map&&typeof GL!=='undefined'){
    const zoom=Math.floor(map.getZoom()*2)/2,next=signature+'|'+zoom;
    if(mapKey!==next){
@@ -57,15 +57,14 @@
   clearTimeout(timer);if(fresh.size)timer=setTimeout(()=>{ingest();render();},Math.max(1,Math.min(...fresh.values())-now));
  }
  function render(){
-  if(!model||lastData!==events())ingest();const selected=events().find(q=>q.id===chosen()),group=(selected&&sequenceFor(selected.id))||sequenceFor(retainedId);
+  if(!model||lastData!==events())ingest();const selected=events().find(q=>q.id===chosen()),group=selected&&sequenceFor(selected.id);
   if(!group||!group.children.length||group.main.time<Date.now()-AftershockModel.WINDOW){clear();return;}
-  if(selected&&sequenceFor(selected.id))retainedId=selected.id;
   const strongest=[...group.children].sort((a,b)=>b.mag-a.mag||b.time-a.time).slice(0,20);
   const next=JSON.stringify([chosen(),[group.main.id,group.main.mag,group.main.time,group.main.depth,group.main.coords,group.main.place],group.children.map(q=>[q.id,q.mag,q.time,q.depth,q.coords,q.place,!!fresh.get(q.id)])]);
   if(next===signature){syncMarkers();return;}clear(false);signature=next;
-  // Keep the side timeline during rotation, without adding its summary to an unrelated card.
+  // Timeline belongs to the currently presented earthquake only.
   if(!selected||!sequenceFor(selected.id)){syncMarkers();return;}
-  summary=document.createElement('section');summary.id='pd-aftershocks-summary';node(summary,'strong','Possíveis réplicas · '+group.children.length);const details=node(summary,'button','Ver sequência ↻');details.type='button';details.onclick=e=>{e.stopPropagation();if(window.AftershockHub?.show(selected?.id||retainedId))return;if(window.MonitorWorkbench){MonitorWorkbench.open('sequence',selected||group.main);return;}window.EventDetailsBack?.toggle(true);const fold=document.getElementById('pd-aftershock-details')?.closest('details');if(fold)fold.open=true;};node(summary,'small','Principal: '+mag(group.main)+' · Maior possível réplica: '+mag(strongest[0]));document.getElementById('pd-horario')?.after(summary);
+  summary=document.createElement('section');summary.id='pd-aftershocks-summary';node(summary,'strong','Possíveis réplicas · '+group.children.length);const details=node(summary,'button','Ver sequência ↻');details.type='button';details.onclick=e=>{e.stopPropagation();if(window.AftershockHub?.show(selected?.id))return;if(window.MonitorWorkbench){MonitorWorkbench.open('sequence',selected||group.main);return;}window.EventDetailsBack?.toggle(true);const fold=document.getElementById('pd-aftershock-details')?.closest('details');if(fold)fold.open=true;};node(summary,'small','Principal: '+mag(group.main)+' · Maior possível réplica: '+mag(strongest[0]));document.getElementById('pd-horario')?.after(summary);
   box=document.createElement('section');box.id='pd-aftershocks';box.className='bubble-section';
   node(box,'h3','Possíveis réplicas · '+group.children.length);
   const mainButton=node(box,'button','Principal · '+mag(group.main)+' · '+local(group.main));mainButton.onclick=e=>{e.stopPropagation();open(group.main.id);};
@@ -76,7 +75,7 @@
   syncMarkers();window.SeismicFinalSummary?.refresh();
  }
  function refresh(){ingest();render();window.SeismicFinalSummary?.refresh();const q=events().find(q=>q.id===chosen());if(q?.mag>=5&&window.SeismicImpact?.bounds(q.id))window.SeismicFocus?.ready({id:q.id,lng:q.coords[0],lat:q.coords[1],mag:q.mag,depth:q.depth});}
- window.EventStore?.subscribe(reason=>{if(['filter','replace','revise'].includes(reason))refresh();else if(reason==='select'){if(!window.__mgRotationDisplay&&!window.__mgSoftCycle)retainedId=null;render();}});
+ window.EventStore?.subscribe(reason=>{if(['filter','replace','revise'].includes(reason))refresh();else if(reason==='select'){render();}});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  window.addEventListener('pagehide',()=>{clearTimeout(timer);clear();});
  window.AftershockSequence={marker:id=>pins.get(id)||null,summary:id=>{const g=model?.forEvent(id);return g?.children.length?{count:g.children.length,strongest:Math.max(...g.children.map(q=>q.mag))}:null;},render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size,clusters:clusterCount,represented:represented.size})};
