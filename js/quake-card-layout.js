@@ -32,15 +32,15 @@
   const white='#edf6fa',muted='#b4ceda',line='#315365',red=Number(ev.mag)>=6?'#ff6151':Number(ev.mag)>=5?'#fb923c':Number(ev.mag)>=4?'#facc15':'#4ade80';
   const box=(...args)=>(p.roundRect||p.rect)(...args);
   if(p.gradient)p.gradient(0,820,800,620,'#102b3d','#06131f');else p.rect(0,820,800,620,'#0b2232');p.rect(0,820,800,1,line);
-  p.text('MONITOR GLOBAL',32,30,19,white,true);
+  box(24,20,225,38,'#102b3d');p.text('MONITOR GLOBAL',32,27,19,white,true);
   const revision=pt?.revision(ev)||ev.revisionText||'';
-  p.text(ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO',revision?620:660,30,13,revision?'#ffe078':muted,true);
+  box(revision?610:650,20,revision?170:126,35,'#102b3d');p.text(ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO',revision?620:660,30,13,revision?'#ffe078':muted,true);
   p.dot(400,550,10,'#ffffff');p.dot(400,550,7,red);
-  p.text('M'+fmt(ev.mag,1)+' · '+fmt(Math.max(0,Number(ev.depth)))+' km',420,540,13,white,true);
-  box(32,720,365,88,'#396274');box(33,721,363,86,'#071722');p.text('INTENSIDADE ESTIMADA DO TREMOR',50,734,12,muted,true);
-  ['#93b8e4','#88d3eb','#68dc2c','#efef20','#ffb52b','#ff5540'].forEach((c,i)=>p.rect(50+i*54,760,54,9,c));
-  p.text('Fraca',50,778,12,muted);p.text('Moderada',181,778,12,muted);p.text('Forte',344,778,12,muted);
-  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · intensidade publicada':'Modelo aproximado · magnitude e profundidade',50,795,10,muted);
+  box(420,553,170,31,'#102b3d');p.text('M'+fmt(ev.mag,1)+' · '+fmt(Math.max(0,Number(ev.depth)))+' km',430,558,16,white,true);
+  box(32,708,465,100,'#396274');box(33,709,463,98,'#071722');p.text('INTENSIDADE ESTIMADA DO TREMOR',50,720,15,white,true);
+  ['#93b8e4','#88d3eb','#68dc2c','#efef20','#ffb52b','#ff5540'].forEach((c,i)=>p.rect(50+i*66,749,66,9,c));
+  p.text('Fraca',50,765,14,muted);p.text('Moderada',203,765,14,muted);p.text('Forte',402,765,14,muted);
+  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · intensidade publicada':'Modelo estimado · não indica danos',50,790,11,muted);
   p.arc(98,916,50,9,180,180,'#294757');p.arc(98,916,50,9,180,180,red);
   p.text('MAGNITUDE DO SISMO',182,849,13,'#e5a996');p.text('M'+fmt(ev.mag,1),182,870,68,red,true);
   // Wrap long locations without allowing them into the statistics.
@@ -64,5 +64,5 @@
   p.text(reserve?'Pode haver sobreposição; não confirma quem sentiu ou danos.':'Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,validExposure,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v11-full-hd'};
+ globalThis.QuakeCardLayout={frame,draw,validExposure,MAP_HEIGHT,ANCHOR_Y,version:'cartographic-v12-context'};
 })();
