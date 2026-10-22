@@ -28,5 +28,5 @@
   for(const [k,v]of Object.entries({lat:q.coords[1],lng:q.coords[0],mag:q.mag,time:q.time,...(id?{eventId:id}:{})}))u.searchParams.set(k,String(v));
   const controller=new AbortController(),job={key,controller};jobs[channel]=job;job.promise=(async()=>{const timer=setTimeout(()=>controller.abort(),42000);try{let data=await primaryProduct(u,controller.signal);if(!data&&!controller.signal.aborted)data=await window.OfficialMapSources?.query(q,controller.signal)||null;if(data){try{window.EventInsights?.mapProduct(q,data);}catch{}const projection=data.rupture?null:await publishedRupture(data,controller.signal);if(controller.signal.aborted)return null;if(projection)data.rupture=projection;}cache.set(key,{data,until:Date.now()+(data?.status==='available'?300000:60000)});if(cache.size>4)cache.delete(cache.keys().next().value);return data;}catch{return null;}finally{clearTimeout(timer);if(jobs[channel]===job)jobs[channel]=null;}})();return job.promise;
  }
- window.addEventListener('pagehide',()=>{cancel();cancel('background');});window.RuptureShaking={query,get,cancel};
+ window.addEventListener('pagehide',()=>{cancel();cancel('background');});window.RuptureShaking={query,get,cancel,stats:()=>({entries:cache.size,inflight:Object.values(jobs).filter(Boolean).length,gridCells:[...cache.values()].reduce((n,r)=>n+(r.data?.grid?.values?.length||0),0)})};
 })();

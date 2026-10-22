@@ -202,21 +202,22 @@ async function fetchGlobalFeeds() {
             `&limit=1000` +
             `&orderby=time`;
 
+        const guarded=(name,fn)=>{if(window.SourceHealth?.isOpen(name)){SourceHealth.recordSuppressed(name);return Promise.reject(Object.assign(new Error('Fonte aguardando nova tentativa'),{sourceCooling:true}));}return Promise.resolve().then(fn);};
         const tasks = [
             fetchFdsnGeoJSON(`https://earthquake.usgs.gov/fdsnws/event/1/query?${base}`, 'USGS'),
             fetchUsgsRealtimeFeeds(), // preliminares rápidos (all_hour / 2.5_day / all_day)
-            fetchOVSICORIData(),
-            fetchMARNSismos(),
-            fetchGeofonData(),        // GEOFON/GFZ — boa cobertura Ásia/Pacífico
-            fetchFunvisisData(),      // FUNVISIS Venezuela (espelho comunitário oficial)
-            fetchJMAData(),
-            fetchIGPData(),
-            fetchOSCBoliviaData(),
-            fetchBMKGData(),
-            fetchGeoNetData(),
-            fetchUspSismos(),
-            fetchCSNChileData(),      // CSN Chile — trecho mais ativo do Círculo de Fogo
-            fetchSSNMexicoData(),     // SSN México — subducção Cocos/Rivera
+            guarded('OVSICORI',fetchOVSICORIData),
+            guarded('MARN-SV',fetchMARNSismos),
+            guarded('GEOFON',fetchGeofonData),        // GEOFON/GFZ — boa cobertura Ásia/Pacífico
+            guarded('FUNVISIS',fetchFunvisisData),      // FUNVISIS Venezuela (espelho comunitário oficial)
+            guarded('JMA',fetchJMAData),
+            guarded('IGP',fetchIGPData),
+            guarded('OSC-BOL',fetchOSCBoliviaData),
+            guarded('BMKG',fetchBMKGData),
+            guarded('GEONET',fetchGeoNetData),
+            guarded('USP',fetchUspSismos),
+            guarded('CSN-Chile',fetchCSNChileData),      // CSN Chile — trecho mais ativo do Círculo de Fogo
+            guarded('SSN-Mexico',fetchSSNMexicoData),     // SSN México — subducção Cocos/Rivera
             fetchEMSCData().then(features => normalizarSismoGeoJSON(features, 'EMSC', {
                 mag: (f, p) => p.mag,
                 time: (f, p) => Date.parse(p.time || p.origin_time || ''),
@@ -252,9 +253,11 @@ async function fetchGlobalFeeds() {
         const reports = [];
         const sourceStatus = {};
         const sourceErrors = {};
+        const pausedSources=new Set();
 
         settled.forEach((result, i) => {
             const name = names[i];
+            if(result.reason?.sourceCooling){sourceStatus[name]=false;pausedSources.add(name);return;}
             window.MonitorFreshness?.record(name,result.status==='fulfilled');
 
             if (result.status === 'fulfilled') {
@@ -276,6 +279,7 @@ async function fetchGlobalFeeds() {
                 'IGP', 'OSC-BOL', 'BMKG', 'GEONET', 'USP',
                 'CSN-Chile', 'SSN-Mexico', 'EMSC'
             ].forEach(src => {
+                if(pausedSources.has(src))return;
                 setSource(
                     src,
                     sourceStatus[src] ? 'ok' : 'off',

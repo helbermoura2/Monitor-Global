@@ -18,7 +18,7 @@
   const h=host.getBoundingClientRect(),mobile=innerWidth<=900;
   const headerBottom=Math.max(h.top,...['top-strip','ux-controlbar','latest-event-ticker'].map(id=>rect(document.getElementById(id))?.bottom||0));
   const hub=document.getElementById('sequence-hub'),hubRect=rect(hub),main=document.getElementById('painel-direito');
-  const panel=mobile&&hubRect&&document.body.classList.contains('sequence-hub-expanded')?hub:main,p=rect(panel),left=rect(document.getElementById('sidebar-left'));
+  const panel=main,p=rect(panel),left=rect(document.getElementById('sidebar-left'));
   const sideHub=hubRect&&hubRect.width<h.width*.7;
   let start=h.left+12,end=Math.min(h.right,innerWidth)-12;
   if(sideHub)start=Math.max(start,hubRect.right+12);
@@ -28,7 +28,7 @@
   const rank=el=>el.matches('.wave-front-status')?0:el.matches('.seismic-impact-status')?1:el.id==='mobile-notice-stack'?2:3;
   const elements=[...document.querySelectorAll(selector)].sort((a,b)=>rank(a)-rank(b));
   if((dock||p&&width<280)&&elements.length){if(!inline){inline=document.createElement('section');inline.id='map-overlay-inline';inline.setAttribute('aria-label','Legendas do mapa');}if(inline.parentElement!==panel)panel.querySelector('.pd-header-row,.sequence-hub-header')?.after(inline);}
-  let top=Math.max(8,headerBottom-h.top+8),bottom=mobile&&p&&p.width>=h.width*.7?Math.min(h.bottom,p.top)-h.top-10:h.height-18;
+  let top=Math.max(8,headerBottom-h.top+8,mobile&&hubRect?hubRect.bottom-h.top+8:0),bottom=mobile&&p&&p.width>=h.width*.7?Math.min(h.bottom,p.top)-h.top-10:h.height-18;
   const legends=[];
   for(const el of elements){
    if(!tracked.has(el)){tracked.add(el);resize?.observe(el);}

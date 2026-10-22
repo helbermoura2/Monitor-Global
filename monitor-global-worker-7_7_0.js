@@ -906,7 +906,7 @@ async function handleGdacsFloods() {
 async function handleWeatherApi(reqUrl, env) {
     const q = reqUrl.searchParams.get('q');
     if (!q) return json({ error: 'Faltou o parâmetro ?q=' }, 400);
-    if (!env.WEATHERAPI_KEY) return json({ error: 'WEATHERAPI_KEY não configurada no Worker' }, 500);
+    if (!env.WEATHERAPI_KEY) return resposta(JSON.stringify({error:'Serviço meteorológico opcional não configurado',configured:false}),503,'application/json',{'Retry-After':'1800','X-Monitor-Source-State':'unavailable','X-Monitor-Source-Next-Retry':String(Date.now()+1800000),'Access-Control-Expose-Headers':'Retry-After, X-Monitor-Source-State, X-Monitor-Source-Next-Retry'});
     const alvo = 'https://api.weatherapi.com/v1/current.json?key=' + encodeURIComponent(env.WEATHERAPI_KEY) + '&q=' + encodeURIComponent(q) + '&aqi=no';
     try {
         const r = await fetchText(alvo, {}, 10000);

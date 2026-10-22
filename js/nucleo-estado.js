@@ -219,12 +219,13 @@ const SourceHealth = (function () {
         fails: 0, openUntil: 0, lastOk: 0, lastErr: '', lastMs: 0, status: 'unknown',
         // Histórico leve desta sessão (não persiste em snapshot/reload) — alimenta
         // a narrativa de estabilidade do painel "Status por fonte" (ux-panel.js).
-        okCount: 0, failCount: 0, failTimes: [], firstSeenAt: Date.now()
+        okCount: 0, failCount: 0, suppressedCount: 0, failTimes: [], firstSeenAt: Date.now()
       });
     }
     return state.get(name);
   }
   function isOpen(name) { return get(name).openUntil > Date.now(); }
+  function recordSuppressed(name){const s=get(name);s.suppressedCount=(s.suppressedCount||0)+1;}
   function remainingMs(name) { return Math.max(0, get(name).openUntil - Date.now()); }
   function recordOk(name, ms) {
     const s = get(name);
@@ -241,7 +242,7 @@ const SourceHealth = (function () {
     if (!Array.isArray(s.failTimes)) s.failTimes = [];
     s.failTimes.push(Date.now());
     if (s.failTimes.length > 20) s.failTimes.shift();
-    if (s.fails >= OPEN_AFTER) { s.openUntil = Date.now() + COOLDOWN_MS; s.status = 'off'; }
+    if (s.fails >= OPEN_AFTER) { s.openUntil = Date.now() + Math.min(1800000,COOLDOWN_MS*2**Math.min(5,Math.floor((s.fails-OPEN_AFTER)/3))); s.status = 'off'; }
     else if (s.fails >= FAIL_TO_OFF) s.status = 'off';
     else s.status = 'warn';
     return s;
@@ -275,7 +276,7 @@ const SourceHealth = (function () {
       s.openUntil = 0;
     });
   }
-  return { get, isOpen, remainingMs, recordOk, recordFail, summary, snapshot, restoreSnapshot };
+  return { get, isOpen, remainingMs, recordSuppressed, recordOk, recordFail, summary, snapshot, restoreSnapshot };
 })();
 try { window.SourceHealth = SourceHealth; } catch (e) {}
 let map = null, alertTimeout = null, cycleTimeout = null, currentRadar = null, currentCascade = null;
