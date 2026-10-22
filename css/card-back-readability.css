@@ -20,7 +20,7 @@
 #pd-details-verso{padding:18px;font-size:14px;line-height:1.65;overflow-x:hidden;overflow-wrap:anywhere}
 #pd-details-verso details>div,#pd-details-verso summary{font-size:14px;line-height:1.65}
 @media(max-width:900px){
- html body #latest-event-ticker.has-focus-summary{background:linear-gradient(135deg,rgba(20,28,28,.58),rgba(12,19,20,.48))!important;border-color:rgba(187,216,210,.32)!important;box-shadow:0 6px 18px #0002!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important}
+ html body #latest-event-ticker.has-focus-summary.ticker-cutout{background:linear-gradient(135deg,rgba(20,28,28,.58),rgba(12,19,20,.48))!important;border-color:rgba(187,216,210,.32)!important;box-shadow:0 6px 18px #0002!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important}
 }
 #pd-flip-grid-exposure{font-size:14px;line-height:1.65}
 #pd-flip-grid-exposure p{margin:10px 0;color:#c8d9d3;font-size:14px;line-height:1.65}
