@@ -1,3 +1,4 @@
+import {contextFrame,referencePlaces,drawMapReferences} from './alert-cartography.mjs';
 // PNG primitives and seismic image rendering. Daily summaries receive prepared data.
 import {FONT_CHARS_TEXT, FONT_CHARS_HERO, FLAG_CELL_W, COUNTRY_KEYWORDS, FONT_ATLAS_MICRO_B64, FONT_ATLAS_SMALL_B64, FONT_ATLAS_HERO_B64, FONT_ATLAS_TITLE_B64, FONT_ATLAS_CAPTION_B64, FONT_ATLAS_PLACE_B64, FLAG_ATLAS_B64, FONT_MICRO_CELL_W, FONT_MICRO_CELL_H, FONT_SMALL_CELL_W, FONT_SMALL_CELL_H, FONT_HERO_CELL_W, FONT_HERO_CELL_H, FONT_TITLE_CELL_H, FONT_TITLE_GLYPHS, FONT_CAPTION_CELL_H, FONT_CAPTION_GLYPHS, FONT_PLACE_CELL_W, FONT_PLACE_CELL_H, FLAG_CELL_H, FLAG_MAP} from "./image-assets.mjs";
 import {imageMetersPerPixel, validImageShaking, imageEpicenterMmi, queryImageShaking, overlayImageIntensity} from "../seismic-image-data.mjs";
@@ -787,9 +788,9 @@ async function fetchBinaryWithTimeout(url, timeoutMs = 6000) {
 }
 
 /** Tenta cada URL de staticMapUrls em ordem até uma decodificar com sucesso. Retorna null se todas falharem. */
-async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anchorY = imgH / 2, bounds = null) {
+async function fetchEpicenterMap(lat, lon, zoom = 6, imgW = 800, imgH = 440, anchorY = imgH / 2, bounds = null, cartographic = false) {
     if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
-    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH, anchorY, bounds);
+    const urls = staticMapUrls(lat, lon, zoom, imgW, imgH, anchorY, bounds, cartographic);
     for (const url of urls) {
         try {
             const bytes = await fetchBinaryWithTimeout(url, 6000);
@@ -810,7 +811,7 @@ async function getQuakeHdFonts(){
 async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const key=await renderIdentity('alert-v11',ev);
+    const key=await renderIdentity('alert-v12-cartographic-context',ev);
     return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
 }
 async function renderAlertPixels(ev) {
@@ -818,10 +819,14 @@ async function renderAlertPixels(ev) {
     const logicalFrame=globalThis.QuakeCardLayout.frame(ev);
     const frame={...logicalFrame,width:W,height:Math.round(logicalFrame.height*sy),anchorX:logicalFrame.anchorX*sx,anchorY:logicalFrame.anchorY*sy};
     fillRect(rgba,W,0,0,W,H,9,33,48);
-    const mapImg=await fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat]);
+    const cf=contextFrame(ev);
+    const [mapImg,contextImg,places]=await Promise.all([
+      fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat],true),
+      fetchEpicenterMap(ev.lat,ev.lon,3,cf.width,cf.height,cf.height/2,[cf.minLon,cf.minLat,cf.maxLon,cf.maxLat],true),referencePlaces(ev)
+    ]);
     if(mapImg){
         drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
-        fillRect(rgba,W,0,0,W,frame.height,0,0,0,51);
+        fillRect(rgba,W,0,0,W,frame.height,255,255,255,10);
         await overlayImageIntensity(rgba,frame,ev);
         // Labels and administrative boundaries stay above the intensity colors.
         try{
@@ -858,6 +863,9 @@ async function renderAlertPixels(ev) {
             }
         }
     };
+    if(contextImg){const x=660,y=92,w=292,h=188;fillRoundRect(rgba,W,H,x-5,y-36,w+10,h+42,8,245,243,233,255);drawImageCover(rgba,W,H,contextImg,x,y,w,h);
+      const px=x+(Number(ev.lon)-cf.minLon)/(cf.maxLon-cf.minLon)*w,py=y+(cf.maxLat-Number(ev.lat))/(cf.maxLat-cf.minLat)*h;fillCircle(rgba,W,H,px,py,8,255,255,255,255);fillCircle(rgba,W,H,px,py,5,225,55,45,255);painter.text('CONTEXTO REGIONAL',(x+8)/sx,(y-28)/sy,14,'#172d36',true);}
+    drawMapReferences(painter,frame,ev,places);
     const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
     globalThis.QuakeCardLayout.draw(painter,{...ev,
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
@@ -869,10 +877,10 @@ async function renderAlertPixels(ev) {
 }
 
 
-function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440, anchorY = imgH / 2, bounds = null) {
+function staticMapUrls(lat, lon, zoom = 5, imgW = 800, imgH = 440, anchorY = imgH / 2, bounds = null, cartographic = false) {
     const span = 180 / Math.pow(2, Math.max(3, Math.min(10, zoom | 0)));
     const bbox = (bounds || [Number(lon)-span, Number(lat)-2*span*(imgH-anchorY)/imgW, Number(lon)+span, Number(lat)+2*span*anchorY/imgW]).join(',');
-    return ['World_Imagery', 'World_Topo_Map'].map(service =>
+    return (cartographic?['World_Topo_Map','World_Imagery']:['World_Imagery','World_Topo_Map']).map(service =>
         `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=${imgW},${imgH}&format=png&f=image`);
 }
 /** Layout de cada cartão do Top 5 é todo calculado ANTES de desenhar —

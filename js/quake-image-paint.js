@@ -4,7 +4,7 @@
  const imageProject=(f,lng,lat)=>[(lng-f.minLon)/(f.maxLon-f.minLon)*f.width,(f.maxLat-lat)/(f.maxLat-f.minLat)*f.height];
  const distance=(a,b,c,d)=>{const rad=Math.PI/180,x=Math.sin((c-a)*rad/2)**2+Math.cos(a*rad)*Math.cos(c*rad)*Math.sin((d-b)*rad/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));};
 function paintImageIntensity(rgba,frame,ev,polygons){
- const {width:W,height:H}=frame,rows=H,step=2,mask=new Uint8Array(W*rows);
+ const {width:W,height:H}=frame,rows=H,step=2,mask=new Uint8Array(W*rows),bandsPaint=new Int16Array(W*rows);
  for(const polygon of polygons)for(const shift of [-360,0,360]){
   const rings=polygon.map(r=>r.map(([lng,lat])=>imageProject(frame,lng+shift,lat))),xs=rings[0].map(p=>p[0]),ys=rings[0].map(p=>p[1]);
   if(Math.max(...xs)<0||Math.min(...xs)>W||Math.max(...ys)<0||Math.min(...ys)>rows)continue;
@@ -27,9 +27,12 @@ function paintImageIntensity(rgba,frame,ev,polygons){
   const bands=[.5,1,2.1,5,11,26,60,140,321.8,740];let b=0;while(b+1<bands.length&&pga>=bands[b+1])b++;
   const value=Math.min(model.pga(Number(ev.mag),Number(ev.depth)||0,0),Math.sqrt(bands[b]*(bands[b+1]||bands[b])));
   rgb=model.color(value).match(/\d+/g).map(Number);}
+  const tone=rgb[0]*256+rgb[1];bandsPaint[y*W+x]=tone%32767+1;
   painted++;
-  for(let yy=y;yy<Math.min(rows,y+step);yy++)for(let xx=x;xx<Math.min(W,x+step);xx++){const i=(yy*W+xx)*4;for(let c=0;c<3;c++)rgba[i+c]=Math.round(rgba[i+c]*.36+rgb[c]*.64);}
+  for(let yy=y;yy<Math.min(rows,y+step);yy++)for(let xx=x;xx<Math.min(W,x+step);xx++){const i=(yy*W+xx)*4;for(let c=0;c<3;c++)rgba[i+c]=Math.round(rgba[i+c]*.72+rgb[c]*.28);}
  }
+ // Trace only boundaries between computed intensity bands, never a fabricated hazard polygon.
+ for(let y=step;y<rows-step;y+=step)for(let x=step;x<W-step;x+=step){const k=y*W+x,b=bandsPaint[k];if(!b||!mask[k])continue;if((bandsPaint[k-step]&&bandsPaint[k-step]!==b)||(bandsPaint[k-W*step]&&bandsPaint[k-W*step]!==b)){const i=k*4;for(let c=0;c<3;c++)rgba[i+c]=Math.round(rgba[i+c]*.45+40*.55);}}
  return painted;
 }
 

@@ -24,6 +24,8 @@
     "pixelsAfter": "75e5815d65fa9c2ccff6a7f99d56efdeef047c1a15c2744cae7b21b35e858041",
     "pngEqual": true,
     "pngBefore": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
-    "pngAfter": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595"
+    "pngAfter": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
+    "approvedPixels": "b3747ee9f76f024fba53375af3443c23dee23dbe00a4bbdef57e4cbc415dd562",
+    "approvedLayout": "cartographic-v12-context"
   }
 }
