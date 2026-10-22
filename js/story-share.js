@@ -1190,10 +1190,13 @@
     const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
     const base='https://server.arcgisonline.com/ArcGIS/rest/services/';
     const params='?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=1080,1093&dpi=144&format=png32&transparent=true&f=image';
-    const [sat,labels,exposure]=await Promise.all([
+    const cf=layout.contextFrame(ev),contextParams='?bbox='+encodeURIComponent([cf.minLon,cf.minLat,cf.maxLon,cf.maxLat].join(','))+'&bboxSR=4326&imageSR=4326&size=292,188&format=png32&f=image';
+    const imageContours=[];
+    const [sat,labels,exposure,contextImg]=await Promise.all([
       loadImgCORS(base+'World_Imagery/MapServer/export'+params,5000).catch(()=>null),
       loadImgCORS(base+'Reference/World_Boundaries_and_Places/MapServer/export'+params,5000).catch(()=>null),
-      window.obterExposicaoPopulacionalImagem?.(item)
+      window.obterExposicaoPopulacionalImagem?.(item),
+      loadImgCORS(base+'World_Topo_Map/MapServer/export'+contextParams,4000).catch(()=>null)
     ]);
     // Paint at the shared reference resolution before scaling for Story export.
     if(sat){
@@ -1201,7 +1204,7 @@
       c.drawImage(sat,0,0,1080,1093);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,1080,1093);
       try{
         if(!storyLandPromise)storyLandPromise=fetch('assets/seismic/ne-50m-land.geojson').then(r=>{if(!r.ok)throw Error('Coastlines');return r.json();}).then(d=>d.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates)).catch(e=>{storyLandPromise=null;throw e;});
-        const pixels=c.getImageData(0,0,1080,1093);QuakeImagePaint.paint(pixels.data,nativeFrame,ev,await storyLandPromise);c.putImageData(pixels,0,0);
+        const pixels=c.getImageData(0,0,1080,1093);QuakeImagePaint.paint(pixels.data,nativeFrame,ev,await storyLandPromise,imageContours);c.putImageData(pixels,0,0);
       }catch(e){console.warn('Story intensity unavailable',e);}
       if(labels)c.drawImage(labels,0,0,1080,1093);ctx.imageSmoothingQuality='high';ctx.drawImage(surface,0,0,800,820);
     }
@@ -1213,10 +1216,11 @@
       measure:(text,size,bold)=>{ctx.font=font(size,bold);return ctx.measureText(text).width;},
       text:(text,x,y,size,color,bold)=>{ctx.font=font(size,bold);ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);}
     };
-    const mmi=estimarMercalli(ev.mag,ev.depth),energy=calcularEnergia(ev.mag);
+    if(contextImg){layout.drawContext(p,ev);ctx.drawImage(contextImg,489,107,214,138);const px=489+(ev.lon-cf.minLon)/(cf.maxLon-cf.minLon)*214,py=107+(cf.maxLat-ev.lat)/(cf.maxLat-cf.minLat)*138;p.dot(px,py,6,'#ffffff');p.dot(px,py,4,'#ff6151');}
+    const energy=calcularEnergia(ev.mag);
     const publishedMmi=ev.shaking?.status==='available'?RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat):null;
-    const mmiLabel=ev.shaking?.status==='available'?(publishedMmi===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(publishedMmi)-1))]):mmi.nivel;
-    layout.draw(p,{...ev,_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+    const mmiLabel=ev.shaking?.status==='available'?(publishedMmi===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(publishedMmi)-1))]):QuakeImagePaint.estimatedMmi(ev);
+    layout.draw(p,{...ev,imageContours,_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
       sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
       mmi:mmiLabel,energy:energy.tnt.replace(' de TNT',''),exposure});
     return canvas;

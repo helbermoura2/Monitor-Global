@@ -17,7 +17,7 @@ async function land(){
 const distance=(a,b,c,d)=>{const rad=Math.PI/180,x=Math.sin((c-a)*rad/2)**2+Math.cos(a*rad)*Math.cos(c*rad)*Math.sin((d-b)*rad/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));};
 // Scanline land mask, including holes. Paint only on land, at a bounded 4px grid.
 export const paintImageIntensity=(...args)=>globalThis.QuakeImagePaint.paint(...args);
-export async function overlayImageIntensity(rgba,frame,ev){if(![ev.mag,ev.lat,ev.lon,ev.depth].every(v=>v!=null&&Number.isFinite(Number(v))))return false;try{return paintImageIntensity(rgba,frame,ev,await land())>0;}catch{return false;}}
+export async function overlayImageIntensity(rgba,frame,ev,annotations=[]){if(![ev.mag,ev.lat,ev.lon,ev.depth].every(v=>v!=null&&Number.isFinite(Number(v))))return false;try{return paintImageIntensity(rgba,frame,ev,await land(),annotations)>0;}catch{return false;}}
 export const validImageExposure=data=>globalThis.QuakeCardLayout.validExposure(data);
 const exposureRanks={pager:3,worldpop:2,'geonames-localities':1};
 export const exposureQuality=data=>validImageExposure(data)?exposureRanks[data.method]:0;
@@ -45,7 +45,7 @@ export const validImageShaking=data=>data?.status==='available'&&['usgs-shakemap
 export const shakingVersion=data=>validImageShaking(data)?String(data.version):data?.status||'unavailable';
 
 export function imageEpicenterMmi(ev,fallback){
- if(!validImageShaking(ev.shaking))return fallback;
+ if(!validImageShaking(ev.shaking))return globalThis.QuakeImagePaint.estimatedMmi(ev)||fallback;
  const value=globalThis.RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat);
  return value===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(value)-1))];
 }

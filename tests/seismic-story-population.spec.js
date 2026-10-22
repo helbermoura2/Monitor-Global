@@ -11,5 +11,5 @@ test('Story includes exposure bands and draws the land footprint at the epicente
  await expect(page.locator('#pd-grid-exposure')).toContainText('123');
  await page.evaluate(()=>{Object.defineProperty(navigator,'canShare',{value:()=>false,configurable:true});});
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();await download;
- const texts=await page.evaluate(()=>__storyTexts.join(' '));expect(texts).toContain('123.456');expect(texts).toContain('VI+');expect(texts).toContain('USGS PAGER');expect(texts).not.toContain('PESSOAS QUE PODEM TER SENTIDO');expect(texts).not.toContain('ALCANCE DA ONDA');expect(texts).not.toContain('CIDADES PRÓXIMAS');expect(texts).toContain('MAGNITUDE DO SISMO');expect(await page.evaluate(()=>__painted)).toBe(true);
+ const texts=await page.evaluate(()=>__storyTexts.join(' '));expect(texts).toContain('123.456');expect(texts).toContain('VI+');expect(texts).toContain('USGS PAGER');expect(texts).not.toContain('PESSOAS QUE PODEM TER SENTIDO');expect(texts).not.toContain('ALCANCE DA ONDA');expect(texts).not.toContain('CIDADES PRÓXIMAS');expect(texts).toContain('MAGNITUDE DO SISMO');expect(texts).toContain('CONTEXTO REGIONAL');expect(texts).toContain('CONTORNOS DE INTENSIDADE · MMI');expect(texts).toContain('VI · Forte');expect(await page.evaluate(()=>__painted)).toBe(true);
 });

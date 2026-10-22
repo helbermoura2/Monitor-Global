@@ -8,8 +8,10 @@ test('intensity painting respects land and holes, leaves ocean pixels unchanged'
  const f={width:80,height:80,minLon:-.1,maxLon:.1,minLat:-.1,maxLat:.1};
  const outer=[[-.05,-.05],[.05,-.05],[.05,.05],[-.05,.05],[-.05,-.05]],hole=[[-.02,-.02],[.02,-.02],[.02,.02],[-.02,.02],[-.02,-.02]];
  const pixels=new Uint8Array(80*80*4);for(let i=0;i<pixels.length;i+=4){pixels[i]=10;pixels[i+1]=20;pixels[i+2]=30;pixels[i+3]=255;}
- assert.ok(paintImageIntensity(pixels,f,{lat:0,lon:0,mag:8,depth:10},[[outer,hole]])>0);
- const rgb=(x,y)=>[...pixels.slice((y*80+x)*4,(y*80+x)*4+3)];assert.deepEqual(rgb(0,0),[10,20,30]);assert.deepEqual(rgb(40,40),[10,20,30]);assert.ok(rgb(24,40)[0]>rgb(24,40)[1]);
+ const ev={lat:0,lon:0,mag:8,depth:10,shaking:{grid:{nx:2,ny:2,x0:-.1,x1:.1,y0:-.1,y1:.1,values:[3,9,3,9]}}};
+ assert.ok(paintImageIntensity(pixels,f,ev,[[outer,hole]])>0);
+ const rgb=(x,y)=>[...pixels.slice((y*80+x)*4,(y*80+x)*4+3)];assert.deepEqual(rgb(0,0),[10,20,30]);assert.deepEqual(rgb(40,40),[10,20,30]);assert.notDeepEqual(rgb(26,40),[10,20,30]);
+ assert.deepEqual(rgb(22,40),[10,20,30],'Interior satellite pixels stay untouched');
 });
 test('population zero is valid but missing, negative and overlapping inconsistent totals are rejected',()=>{
  const data={status:'available',method:'pager',ranges:[{population:100},{population:10},{population:0}]};assert.equal(validImageExposure(data),true);
@@ -68,4 +70,19 @@ test('weak official grids below III still paint images, with blue tones and thei
  const pixels=new Uint8Array(80*80*4).fill(90),land=[[[[-82,7],[-79,7],[-79,9],[-82,9],[-82,7]]]];
  assert(paintImageIntensity(pixels,frame,event,land)>0);const i=(40*80+40)*4;assert(pixels[i+2]>pixels[i],'Weak published shaking remains blue');
  const f=imageMapFrame(event);assert(f.minLon<=grid.x0&&f.maxLon>=grid.x1&&f.minLat<=grid.y0&&f.maxLat>=grid.y1);
+});
+
+test('hollow contours change only narrow strokes and expose correctly named MMI levels',()=>{
+ const frame={width:400,height:400,minLon:-2,maxLon:2,minLat:-2,maxLat:2},pixels=new Uint8Array(400*400*4).fill(90),labels=[];
+ const land=[[[[-2,-2],[2,-2],[2,2],[-2,2],[-2,-2]]]];
+ assert(paintImageIntensity(pixels,frame,{lat:0,lon:0,mag:6,depth:10},land,labels)>0);
+ let changed=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]!==90||pixels[i+1]!==90||pixels[i+2]!==90)changed++;
+ assert(changed<400*400*.2,'At least 80% of map must remain completely unpainted');
+ assert(labels.some(l=>l.level===5&&l.roman==='V'&&l.description==='Moderada'));
+ assert(labels.every(l=>l.x>=0&&l.x<=800&&l.y>=0&&l.y<=820));
+});
+test('constant published intensity has no fabricated rings or grid-edge outline',()=>{
+ const frame={width:80,height:80,minLon:-1,maxLon:1,minLat:-1,maxLat:1},pixels=new Uint8Array(80*80*4).fill(90);
+ const ev={lat:0,lon:0,mag:7,depth:10,shaking:{grid:{nx:2,ny:2,x0:-.5,x1:.5,y0:-.5,y1:.5,values:[6,6,6,6]}}};
+ assert.equal(paintImageIntensity(pixels,frame,ev,[[[[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]]]]),0);assert(pixels.every(v=>v===90));
 });

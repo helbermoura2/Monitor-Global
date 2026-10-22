@@ -1022,7 +1022,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'cartographic-v12-context';
+    next.cardImageVersion = 'hollow-v13-context';
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     next.imageShakingVersion = shakingVersion(ev.shaking);
@@ -1408,7 +1408,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'cartographic-v12-context';
+            reservation.cardImageVersion = 'hollow-v13-context';
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.currentEvent = ev;
@@ -1459,9 +1459,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else continue;
         }
-        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'cartographic-v12-context') {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'hollow-v13-context') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'cartographic-v12-context'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'hollow-v13-context'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
     }
