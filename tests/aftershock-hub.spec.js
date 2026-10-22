@@ -22,7 +22,7 @@ for(const width of [1280,390,844])test('sequence hub geographic links, chronolog
  await page.evaluate(()=>{showEventDetails(3,false);clearTimeout(cycleTimeout);});await expect(hub).toBeHidden();expect(await page.evaluate(()=>!!map.getSource('sequence-hub-links'))).toBe(false);
 });
 
-test('sequence follows newest rows, preserves manual scroll and survives automatic rotation',async({page})=>{
+test('sequence follows newest rows, preserves manual scroll and closes on automatic rotation outside the group',async({page})=>{
  await page.setViewportSize({width:1280,height:720});await page.goto('/');await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);EventPortuguese.ensure=async()=>false;const now=Date.now();globalAlerts=[];const main={id:'scroll-main',type:'earthquake',mag:6.3,depth:16,coords:[167,-15],time:now-3600000,place:'Vanuatu',source:'QA'};globalEvents=[main,...Array.from({length:15},(_,i)=>({...main,id:'scroll-'+i,mag:3,time:main.time+(i+1)*60000,coords:[167.01,-15]})),{...main,id:'outside',mag:2,coords:[-80,8]}];lastMerged=globalEvents.slice();showEventDetails(0,false);clearTimeout(cycleTimeout);AftershockSequence.refresh();});
  const list=page.locator('#sequence-hub-list');await expect(page.locator('#sequence-hub')).toBeVisible();
@@ -33,7 +33,7 @@ test('sequence follows newest rows, preserves manual scroll and survives automat
  await list.evaluate(n=>{n.dispatchEvent(new Event('wheel'));n.scrollTop=n.scrollHeight;n.dispatchEvent(new Event('scroll'));});
  await page.evaluate(()=>{const m=globalEvents[0];globalEvents=[...globalEvents,{...m,id:'scroll-newest',mag:3,time:m.time+18*60000}];AftershockSequence.refresh();});
  await expect.poll(()=>list.evaluate(n=>Math.abs(n.scrollHeight-n.clientHeight-n.scrollTop)<2)).toBe(true);
- await page.evaluate(()=>{window.__mgRotationDisplay=true;try{showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);AftershockSequence.refresh();});await expect(page.locator('#sequence-hub')).toBeVisible();await expect(page.locator('[data-sequence-id="scroll-newest"]')).toHaveCount(1);await expect(page.locator('#pd-aftershocks-summary')).toHaveCount(0);
+ await page.evaluate(()=>{window.__mgRotationDisplay=true;try{showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);AftershockSequence.refresh();});await expect(page.locator('#sequence-hub')).toBeHidden();await expect(page.locator('[data-sequence-id="scroll-newest"]')).toHaveCount(0);await expect(page.locator('#pd-aftershocks-summary')).toHaveCount(0);
  await page.evaluate(()=>{showEventDetails(1,false);clearTimeout(cycleTimeout);showEventDetails(globalEvents.findIndex(q=>q.id==='outside'),false);clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeHidden();
 });
 
@@ -54,4 +54,7 @@ test('sequence scroll reverses at both ends and pauses for manual input and hidd
  await page.evaluate(()=>AftershockHub.show('ping-main'));await expect(page.locator('#sequence-hub')).toBeVisible();
  await page.clock.fastForward(30000);await list.dispatchEvent('wheel');await page.clock.fastForward(40000);await expect(page.locator('#sequence-hub')).toBeVisible();
  await page.clock.fastForward(21000);await expect(page.locator('#sequence-hub')).toBeHidden();
+ await page.evaluate(()=>{window.__mgRotationDisplay=true;window.__mgSoftCycle=true;try{showEventDetails(1,false);}finally{window.__mgRotationDisplay=false;window.__mgSoftCycle=false;}clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeVisible();
+ await page.clock.fastForward(61000);await expect(page.locator('#sequence-hub')).toBeVisible();
+ await page.evaluate(()=>{const m=globalEvents[0];globalEvents.push({...m,id:'context-outside',coords:[-80,8]});window.__mgRotationDisplay=true;try{showEventDetails(globalEvents.length-1,false);}finally{window.__mgRotationDisplay=false;}clearTimeout(cycleTimeout);});await expect(page.locator('#sequence-hub')).toBeHidden();
 });
