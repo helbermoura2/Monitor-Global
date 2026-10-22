@@ -3,7 +3,7 @@ const M=MonitorWorkbenchModel,views=new Map(),key='mg-personal-places-v1',weathe
 try{places=JSON.parse(localStorage.getItem(key)||'[]').map(M.place).filter(Boolean).slice(0,8);}catch{}
 const events=()=>[...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts)];
 function node(host,tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;host.append(n);return n;}
-function button(host,text,fn){const b=node(host,'button',text);b.type='button';b.onclick=fn;return b;}
+function button(host,text,fn){const b=node(host,'button',text);b.type='button';b.onclick=e=>{e.stopPropagation();fn(e);};return b;}
 function link(host,text,url){try{const u=new URL(url);if(u.protocol!=='https:')return;const a=node(host,'a',text);a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';}catch{}}
 const note=(host,text)=>node(host,'p',text,'workbench-note');
 function save(){try{localStorage.setItem(key,JSON.stringify(places));}catch{}}

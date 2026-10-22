@@ -64,3 +64,7 @@ test('real Worker serves a valid source even when durable cache reads and writes
 });
 
 test('50 simultaneous coordinator failures share one invocation and retain HTTP 503',async()=>{const f=fixture();let calls=0;f.env.EARTHQUAKE_ALERTS.get=()=>({fetch:async()=>{calls++;throw Error('object unavailable');}});const responses=await Promise.all(Array.from({length:50},()=>worker.fetch(request(),f.env)));assert(responses.every(r=>r.status===503));assert.equal(calls,1);assert.equal((await worker.fetch(request(),f.env)).status,503);assert.equal(calls,1);});
+
+test('unconfigured optional WeatherAPI is unavailable with a readable retry deadline, not an internal error',async()=>{
+ const r=await worker.fetch(new Request('https://worker.test/weatherapi?q=1,2'),{});assert.equal(r.status,503);assert.equal(r.headers.get('Retry-After'),'1800');assert(Number(r.headers.get('X-Monitor-Source-Next-Retry'))>Date.now());assert.equal((await r.json()).configured,false);
+});

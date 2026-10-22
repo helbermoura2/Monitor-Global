@@ -70,14 +70,15 @@
   const alertEffect=item.type==='civil'?(/baixa\s+umidade|umidade\s+baixa/i.test(text)?'dry':'alert'):null;
   return {alertEffect,alertColor:typeof corSeveridadeAlerta==='function'?corSeveridadeAlerta(item):'#fb923c',type:item.type,cycloneStage:cycloneStage(item),rotationDirection,strength,hot,ash,lava:activity.lava,rain:['storm','hurricane'].includes(item.type),mist:['storm','hurricane'].includes(item.type)||hot||ash,water:['flood','tsunami'].includes(item.type)};
  }
- function removeGhost(){clearTimeout(ghostTimer);ghost?.remove();ghost=null;}
+ function releaseCanvas(c){if(c){c.width=1;c.height=1;}}
+ function removeGhost(){clearTimeout(ghostTimer);if(ghost)for(const c of ghost.querySelectorAll('canvas'))releaseCanvas(c);ghost?.remove();ghost=null;}
  const WIND_PROPERTIES=['--pd-wind-x','--pd-wind-y','--pd-wind-roll','--pd-wind-pressure','--pd-wind-flex','--pd-storm-flash'];
  function clearWind(){const p=panel();for(const key of WIND_PROPERTIES)p?.style.removeProperty(key);}
  function stop(){
   if(pending){clearTimeout(pending.timer);panel()?.classList.remove('pd-fx-'+pending.type);pending=null;}
   clearWind();
   serial++;cancelAnimationFrame(raf);clearTimeout(idleTimer);idleTimer=0;raf=0;
-  if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();scene.visibilityObserver?.disconnect();scene.visibilityMutations?.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
+  if(scene){scene.artifacts?.destroy();scene.typography?.destroy();scene.physics?.destroy();scene.monitor?.destroy();scene.observer.disconnect();scene.visibilityObserver?.disconnect();scene.visibilityMutations?.disconnect();panel()?.removeEventListener('scroll',scene.scroll);scene.front?.remove();window.restoreWindLetters?.();panel()?.style.removeProperty("--pd-water-top");panel()?.style.removeProperty("--pd-gust");scene.film?.destroy();scene.footage?.destroy();for(const c of [scene.canvas,scene.contact,scene.fog])releaseCanvas(c);scene.host.remove();panel()?.classList.remove('pd-fx-'+scene.cfg.type);scene=null;}
   panel()?.classList.remove('pd-cinema-active','pd-volcano-monitoring');removeGhost();
  }
  function fogTexture(){
@@ -133,7 +134,7 @@
   // now, not from the scene's original creation time.
   if(scene&&p&&cfg&&scene.itemId===item?.id&&!resourcesFailed&&cfg.type===scene.cfg.type&&!['hot','ash','lava','rain','mist','water','cycloneStage'].some(k=>cfg[k]!==scene.cfg[k])){scene.cfg=cfg;scene.duration=(performance.now()-scene.start)+Math.min(duration,16000);scene.wake?.();if(!item.__cinemaDemo)window.FullScreenEffects?.volcano(item,cfg);return true;}
   let snapshot=null;
-  if(cfg&&scene&&!reduced.matches){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
+  if(cfg&&scene&&!reduced.matches&&!window.MobileEnergyBudget?.economy?.()){snapshot=scene.canvas.cloneNode();const snap=snapshot.getContext('2d');if(scene.film)snap?.drawImage(scene.film.canvas,0,0,snapshot.width,snapshot.height);snap?.drawImage(scene.canvas,0,0);}
   stop();if(!p||!cfg||reduced.matches)return false;
   duration=Math.min(duration,16000);
   if(!resourcesFailed&&window.OptionalFeatures&&!OptionalFeatures.effectReady(cfg.type)){

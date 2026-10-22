@@ -1,0 +1,8 @@
+const {test,expect}=require('@playwright/test');require('./helpers/card-renderer-fixture.cjs')(test);test.use({reducedMotion:'reduce'});
+test('mobile focus record can be dismissed and expires without a desktop filter reset',async({page})=>{
+ await page.setViewportSize({width:411,height:806});await page.goto('/');await page.waitForFunction(()=>window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);await page.clock.install();
+ await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);EventPortuguese.ensure=async()=>false;globalAlerts=[];globalEvents=[{id:'compact-small',type:'earthquake',mag:3,depth:10,coords:[-80,8],time:Date.now(),place:'Panamá',source:'QA'},{id:'compact-major',type:'earthquake',mag:6,depth:10,coords:[140,35],time:Date.now(),place:'Japão',source:'QA'}];lastMerged=globalEvents.slice();showEventDetails(0,false);clearTimeout(cycleTimeout);});
+ const ticker=page.locator('#latest-event-ticker');await expect(ticker).toBeVisible();await page.locator('.mobile-focus-close').click();await expect(ticker).toBeHidden();expect(await page.evaluate(()=>document.body.classList.contains('mobile-events-open'))).toBe(false);
+ await page.evaluate(()=>MobileFocusSummary.show());await expect(ticker).toBeVisible();await page.clock.fastForward(31000);await expect(ticker).toBeHidden();await page.evaluate(()=>MobileFocusSummary.refresh());await expect(ticker).toBeHidden();
+ await page.evaluate(()=>{showEventDetails(1,false);clearTimeout(cycleTimeout);});await expect(ticker).toBeVisible();await page.clock.fastForward(31000);await expect(ticker).toBeVisible();await page.clock.fastForward(31000);await expect(ticker).toBeHidden();
+});

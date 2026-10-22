@@ -101,14 +101,15 @@ const CIDADES_BR = [
     {nome:"Goiânia",lat:-16.68,lng:-49.25},{nome:"Brasília",lat:-15.79,lng:-47.88}
 ];
 
+let weatherApiRetryAt=0;
 async function fetchBrazilStorms() {
     let usados = 0, nova = false, novoBr = null;
 
-    for (const city of CIDADES_BR) {
+    for (const city of Date.now()<weatherApiRetryAt?[]:CIDADES_BR) {
         const id = `storm-br-${city.nome}`;
         try {
             const r = await fetch(weatherApiUrl(`${city.lat},${city.lng}`));
-            if (r.status === 429) break;
+            if ([429,500,502,503].includes(r.status)){weatherApiRetryAt=Date.now()+(Number(r.headers.get('Retry-After'))||300)*1000;break;}
             if (!r.ok) throw new Error('wa');
             const d = await r.json();
             const c = d && d.current;
@@ -143,7 +144,7 @@ async function fetchBrazilStorms() {
                 knownAlertIds.delete(id);
                 globalAlerts = globalAlerts.filter(a => a.id !== id);
             }
-        } catch (e) {}
+        } catch (e) {if(e.status>=500||e.status===429){weatherApiRetryAt=Date.now()+300000;break;}}
     }
 
     if (usados === 0) {

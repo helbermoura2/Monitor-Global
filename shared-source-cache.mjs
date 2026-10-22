@@ -73,7 +73,7 @@ export async function handleSourceInObject(request,env,storage,compute,allowed,n
  }
  function retained(){
   if(body&&now-entry.at<policy.stale){activity(env,'sourceRetained');return response(entry,body,circuit,'stale',now);}
-  return Response.json({error:'Fonte temporariamente indisponível',retryAt:circuit.next||now+30000},{status:503,headers:{...headers,'X-Monitor-Source':policy.group,'X-Monitor-Source-State':'unavailable','Retry-After':String(Math.max(1,Math.ceil(((circuit.next||now+30000)-now)/1000)))}});
+  return Response.json({error:'Fonte temporariamente indisponível',retryAt:circuit.next||now+30000},{status:503,headers:{...headers,'X-Monitor-Source':policy.group,'X-Monitor-Source-State':'unavailable','X-Monitor-Source-Next-Retry':String(circuit.next||now+30000),'Retry-After':String(Math.max(1,Math.ceil(((circuit.next||now+30000)-now)/1000)))}});
  }
  if(circuit.next>now)return retained();
  let upstream,bytes,partial=false;
@@ -121,7 +121,7 @@ export async function sharedSourceResponse(request,env,compute,allowed){
  const binding=env.EARTHQUAKE_ALERTS,key=policy.group+'|'+policy.key;
  // One canonical internal key also shares snapshots across public aliases.
  const edgeKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__shared-source-cache/v2/'+await hash(key));
- const unavailable=()=>Response.json({error:'Coleta compartilhada temporariamente indisponível'},{status:503,headers:{...headers,'X-Monitor-Source-State':'unavailable','Retry-After':'30'}});
+ const unavailable=()=>Response.json({error:'Coleta compartilhada temporariamente indisponível'},{status:503,headers:{...headers,'X-Monitor-Source-State':'unavailable','X-Monitor-Source-Next-Retry':String(Date.now()+30000),'Retry-After':'30'}});
  if(env.PUBLIC_SOURCE_MODE!=='durable'){
   const store=edgeSourceStore(binding,policy.group,new Request('https://black-sky-9ba0.terrestre.workers.dev/__source-state/v1/'+await hash(policy.group)));
   const internalRequest=new Request(request.url,{headers:{'X-Monitor-Request-At':String(receivedAt)}});

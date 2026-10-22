@@ -4,11 +4,11 @@ for(const width of [390,1280])test('selected summary and quiet secondary points 
  await page.setViewportSize({width,height:900});
  await page.route('**/*',r=>{if(r.request().url().includes('/qa-world-tile')&&fs.existsSync('/tmp/globe-world-tile.jpg'))return r.fulfill({path:'/tmp/globe-world-tile.jpg',contentType:'image/jpeg'});return new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort();});
  await page.goto('/');await page.waitForFunction(()=>__mgMapReady&&!__fetchGlobalFeedsEmAndamento&&document.querySelector('.mobile-focus-content'));
- await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);globalAlerts=[];globalEvents=[{id:'focus-qa',type:'earthquake',mag:2.4,depth:12.647,coords:[-47,-21],time:Date.now(),place:'Interior de São Paulo, Brasil',source:'QA'},{id:'secondary-qa',type:'earthquake',mag:6.1,depth:10,coords:[-70,-15],time:Date.now(),place:'Peru',source:'QA'}];
+ await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);globalAlerts=[];globalEvents=[{id:'focus-qa',type:'earthquake',mag:2.4,depth:12.647,coords:[-47,-21],time:Date.now(),place:'Interior de São Paulo, Brasil',source:'QA'},{id:'secondary-qa',type:'earthquake',mag:6.1,depth:10,coords:[-47.05,-21.03],time:Date.now(),place:'Peru',source:'QA'}];
  showEventDetails(0,false);clearTimeout(cycleTimeout);EventCamera.cancel();SeismicPaintTour.stop();stopMapCamera();stopWaveFront();stopFeltZone();SeismicImpact.stop();SeismicCinema.stop();CinematicCard.stop();
  for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
  if(!map.getSource('qa-world')){map.addSource('qa-world',{type:'raster',tiles:['http://127.0.0.1:4173/qa-world-tile'],tileSize:256,maxzoom:0});map.addLayer({id:'qa-world',type:'raster',source:'qa-world'});}
- document.getElementById('mobile-notice-stack')?.remove();document.body.classList.remove('mobile-details-open','mobile-details-mid');map.jumpTo({center:[-50,-10],zoom:3,bearing:0,pitch:0,padding:0});syncAllMarkers();updateQuakeLabels();
+ document.getElementById('mobile-notice-stack')?.remove();document.body.classList.remove('mobile-details-open','mobile-details-mid');map.jumpTo({center:[-47,-21],zoom:6,bearing:0,pitch:0,padding:0});syncAllMarkers();updateQuakeLabels();
  // Receiving a newer item must not replace the selected-event summary.
  atualizarTickerUltimoEvento(globalEvents[1]);
  });
@@ -22,7 +22,7 @@ for(const width of [390,1280])test('selected summary and quiet secondary points 
  await page.evaluate(()=>GlobePreview.overview());await page.waitForTimeout(400);await page.evaluate(()=>document.getElementById('mobile-notice-stack')?.remove());await page.screenshot({path:'/tmp/mobile-focus-layout-'+width+'.png'});
  await page.evaluate(()=>{globalEvents[0].mag=3.1;globalEvents[0].depth=8;EventStore.notify('revise',{id:'focus-qa'});syncAllMarkers();});
  if(width===390){await expect(page.locator('.focus-metric')).toHaveText('M 3,1');await expect(page.locator('.focus-detail')).toHaveText('Profundidade: 8 km');await page.locator('#latest-event-ticker').click();await expect(page.locator('body')).toHaveClass(/mobile-events-open/);await page.getByRole('button',{name:'Fechar lista de eventos',exact:true}).click();await expect(page.locator('body')).not.toHaveClass(/mobile-events-open/);}
- await page.evaluate(()=>{map.jumpTo({center:[-50,-10],zoom:6});EventStore.setSelected('secondary-qa');syncAllMarkers();});await expect(selected).toHaveClass(/map-pin-secondary/);await expect(secondary).toHaveClass(/map-pin-selected/);
+ await page.evaluate(()=>{map.jumpTo({center:[-47,-21],zoom:6});EventStore.setSelected('secondary-qa');syncAllMarkers();});await expect(selected).toHaveClass(/map-pin-secondary/);await expect(secondary).toHaveClass(/map-pin-selected/);
  if(width===390){
   await page.locator('#mobile-detail-handle').click();await expect(page.locator('body')).toHaveClass(/mobile-details-mid/);
   await page.setViewportSize({width:320,height:740});await expect(page.locator('.mobile-focus-content')).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

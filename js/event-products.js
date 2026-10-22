@@ -22,6 +22,6 @@ function cells(geo){
  return {type:'FeatureCollection',features:out};
 }
 async function felt(q){const d=await detail(q);if(!d)return {status:'unsupported',count:null,data:null};root.EventInsights?.products(q,d);const p=products(d,'dyfi')[0],count=num(p?.properties?.['num-responses']??p?.properties?.numResp??d.properties.felt);if(!p)return {status:'unpublished',count,data:null,eventId:d.id};const content=p.contents?.['dyfi_geo_10km.geojson'];if(!content?.url)return {status:'unpublished',count,data:null,eventId:d.id};const data=await remember('felt:'+content.url,async()=>cells(await json(content.url)));return {status:data.features.length?'available':'empty',data,count,eventId:d.id,updatedAt:num(p.updateTime),url:'https://earthquake.usgs.gov/earthquakes/eventpage/'+d.id+'/dyfi'};}
-root.EventProducts={detail,felt,cells,reportId,products,matches};
+root.EventProducts={stats:()=>({entries:cache.size,inflight:pending.size}),detail,felt,cells,reportId,products,matches};
 if(typeof module!=='undefined')module.exports=root.EventProducts;
 })(typeof window!=='undefined'?window:globalThis);

@@ -10,12 +10,14 @@ for(const width of [1280,390])test('sustained frame delays resize the live effec
  });
  await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-adaptive-quality',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&!!window.CardEffectQuality);
- await page.evaluate(async()=>{pausarBuscas();clearTimeout(cycleTimeout);stopWaveFront();CinematicCard.stop();await OptionalFeatures.effect('wind');});
+ await page.evaluate(async()=>{pausarBuscas();clearTimeout(cycleTimeout);stopWaveFront();CinematicCard.stop();map.stop();map._render=()=>{};await OptionalFeatures.effect('wind');});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
  await page.evaluate(()=>{window.requestAnimationFrame=cb=>setTimeout(()=>cb(performance.now()),100);window.cancelAnimationFrame=id=>clearTimeout(id);});
  await page.evaluate(()=>{
   const item={id:'quality-wind',type:'wind',windKmh:140,place:'Rajada de teste',coords:[-46,-23],time:Date.now(),source:'QA'};
   globalAlerts=[item];showAlertDetails(item,false);clearTimeout(cycleTimeout);
+  // This suite measures scene quality; camera-arrival timing has its own suite.
+  EventCamera.cancel();CinematicCard.start(item);
   if(innerWidth<900)document.body.classList.add('mobile-details-open');
  });
  const layer=page.locator('.pd-cinema-layer');await expect(layer).toHaveAttribute('data-quality',width<900?'balanced':'full');
