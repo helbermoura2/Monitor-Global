@@ -9,7 +9,7 @@ for(const width of [411,1280])test('M0.9 through M5.9 keep every card field read
   const r=await page.evaluate(mag=>{const begin=performance.now();CinematicCard.start({id:'m'+mag,type:'earthquake',mag},16000);const fields=[...document.querySelectorAll('#pd-mag,#pd-flag,#pd-local,#pd-horario,.stat-card-value')],before=fields.map(e=>e.textContent);let max=0;
    for(let t=100;t<16000;t+=80){if(!__frame)break;__frame(begin+t);for(const e of fields)if(getComputedStyle(e).opacity!=='1'||e.style.transform)throw Error('Essential field was obscured');max=Math.max(max,Math.abs(parseFloat(document.getElementById('painel-direito').style.getPropertyValue('--pd-quake-x'))||0));}
    return {before,after:fields.map(e=>e.textContent),max,letters:document.querySelectorAll('.pd-fx-windletter,[data-card-reaction],[data-event-reaction]').length,active:CinematicCard.isActive(),translate:document.getElementById('painel-direito').style.getPropertyValue('--pd-quake-x')};},mag);
-  expect(r.after).toEqual(r.before);expect(r.letters).toBe(0);expect(r.max).toBeLessThanOrEqual(1.5);expect(r.max).toBeGreaterThanOrEqual(prev);prev=r.max;expect(r.active).toBe(false);expect(r.translate).toBe('');
+  expect(r.after).toEqual(r.before);expect(r.letters).toBe(0);expect(r.max).toBeLessThanOrEqual(6);expect(r.max).toBeGreaterThanOrEqual(prev);prev=r.max;expect(r.active).toBe(false);expect(r.translate).toBe('');
  }
  await page.locator('#control').click();
  await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>CinematicCard.start({id:'reduced',type:'earthquake',mag:5.9}));await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);

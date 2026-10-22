@@ -349,7 +349,7 @@
   const {ctx,width:w,height:h,cfg}=s;
   let color=cfg.type==='wind'?'207,214,198':cfg.hot?'255,139,61':cfg.type==='flood'?'202,176,128':cfg.water?'134,222,238':'176,215,239';
   const rhythm=.7+.16*Math.sin(t*1.17)+.11*Math.sin(t*2.31+.4);
-  for(const x of [-w*.1,w*1.1]){const g=ctx.createRadialGradient(x,h*.65,0,x,h*.65,w*.65);g.addColorStop(0,'rgba('+color+','+((cfg.hot?.30:cfg.type==='volcano'?.17:.12)*rhythm*envelope).toFixed(3)+')');g.addColorStop(1,'rgba('+color+',0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);}
+  for(const x of [-w*.1,w*1.1]){const g=ctx.createRadialGradient(x,h*.65,0,x,h*.65,w*.65);g.addColorStop(0,'rgba('+color+','+((cfg.type==='earthquake'?0:cfg.hot?.30:cfg.type==='volcano'?.17:.12)*rhythm*envelope).toFixed(3)+')');g.addColorStop(1,'rgba('+color+',0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);}
   if(cfg.type==='earthquake'){
    const pulse=Math.exp(-t*.75)*(.5+.5*Math.sin(t*16));ctx.strokeStyle='rgba(205,229,245,'+(.25*pulse*cfg.strength*envelope).toFixed(3)+')';ctx.lineWidth=1;ctx.strokeRect(1,1,w-2,h-2);
   }
