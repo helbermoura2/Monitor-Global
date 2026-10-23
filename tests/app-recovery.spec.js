@@ -46,3 +46,8 @@ test('manual map retries cannot cancel a scheduled recovery by repeated clicks o
  await page.clock.runFor(8001);await page.evaluate(()=>{AppRecovery.retryMap();AppRecovery.retryMap();});expect(await page.evaluate(()=>reloads)).toBe(3);
  await page.clock.runFor(60001);await page.evaluate(()=>AppRecovery.retryMap());expect(await page.evaluate(()=>reloads)).toBe(4);
 });
+test('public source completion clears a stuck warning without private tile state',async({page})=>{
+ await fixture(page);await page.evaluate(()=>handlers.error({sourceId:'esri-boundaries-places'}));await expect(page.locator('#map-recovery')).toContainText('nomes ou limites');await page.evaluate(()=>handlers.sourcedata({sourceId:'esri-boundaries-places',sourceDataType:'content',isSourceLoaded:true}));await expect(page.locator('#map-recovery')).toBeHidden();
+ await page.evaluate(()=>{handlers.error({sourceId:'satellite'});fakeMap.isSourceLoaded=()=>true;handlers.sourcedata({sourceId:'satellite',sourceDataType:'content'});});await expect(page.locator('#map-recovery')).toBeHidden();
+ await page.evaluate(()=>handlers.error({sourceId:'satellite',error:{name:'AbortError',message:'cancelled tile'}}));await expect(page.locator('#map-recovery')).toBeHidden();
+});
