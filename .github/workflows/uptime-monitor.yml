@@ -1,0 +1,70 @@
+name: Homepage availability
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: homepage-availability
+  cancel-in-progress: false
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate monitor logic without external calls
+        run: python -m unittest discover -s tests/unit -p test_uptime_monitor.py
+      - name: Restore last notification state from this workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const repo = context.repo;
+            const {data} = await github.rest.actions.listArtifactsForRepo({...repo, name:'homepage-availability-state', per_page:20});
+            for (const a of data.artifacts) {
+              if (a.expired || a.workflow_run?.head_branch !== 'main') continue;
+              const {data:run} = await github.rest.actions.getWorkflowRun({...repo,run_id:a.workflow_run.id});
+              if (run.path !== '.github/workflows/uptime-monitor.yml') continue;
+              const zip = await github.rest.actions.downloadArtifact({...repo,artifact_id:a.id,archive_format:'zip'});
+              fs.writeFileSync('uptime-state.zip',Buffer.from(zip.data));
+              core.info('Estado anterior recuperado.');
+              return;
+            }
+            if (data.artifacts.length) throw new Error('Nenhum estado anterior confiável disponível; não redefinir notificações silenciosamente.');
+            core.info('Primeira execução ou histórico expirado: novo estado de monitoramento.');
+      - name: Read bounded state file
+        run: |
+          python - <<'PY'
+          import pathlib, zipfile, json
+          archive = pathlib.Path('uptime-state.zip')
+          if archive.exists():
+              with zipfile.ZipFile(archive) as z:
+                  info = z.getinfo('state.json')
+                  if info.file_size > 8192:
+                      raise ValueError('State too large')
+                  state = json.loads(z.read(info))
+                  if state.get('notified') not in ('up', 'down'):
+                      raise ValueError('Invalid state')
+                  pathlib.Path('uptime-state').mkdir(exist_ok=True)
+                  pathlib.Path('uptime-state/state.json').write_text(json.dumps(state))
+          PY
+      - name: Check homepage and notify only transitions
+        env:
+          UPTIME_TELEGRAM_BOT_TOKEN: ${{ secrets.UPTIME_TELEGRAM_BOT_TOKEN }}
+          UPTIME_TELEGRAM_CHAT_ID: ${{ secrets.UPTIME_TELEGRAM_CHAT_ID }}
+        run: python tools/uptime-monitor.py
+      - name: Preserve notification state even after outage or delivery failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-availability-state
+          path: uptime-state/state.json
+          if-no-files-found: warn
+          retention-days: 30

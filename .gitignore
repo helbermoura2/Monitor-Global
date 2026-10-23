@@ -10,3 +10,7 @@ __pycache__/
 
 # Persisted CI diagnostics
 test-logs/
+
+# Estado local do alarme de disponibilidade
+uptime-state/
+uptime-state.zip

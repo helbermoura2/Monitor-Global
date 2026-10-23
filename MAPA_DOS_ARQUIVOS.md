@@ -1,61 +1,47 @@
-# v28.2 — filtros mobile vertical restaurados (magnitude + chips)
 # Mapa dos arquivos — Monitor Global
 
-Guia em português para achar o que mexer. **Não renomeamos os arquivos** (quebraria o site). Use este mapa.
+Para mexer com segurança pelo GitHub, comece pelo [Guia do dono](GUIA_DO_DONO.md). Os caminhos abaixo correspondem à organização atual; não renomeie arquivos sem atualizar quem os utiliza.
 
-## ⭐ Resumo do dia (imagem Top 5 + Brasil)
+| Caminho | Para que serve |
+| --- | --- |
+| `index.html` | Monta a página e carrega os estilos e scripts. |
+| `css/` | Define cores, fontes, tamanhos e aparência no celular e desktop. |
+| `js/` | Faz mapa, cartões, eventos, efeitos e controles funcionarem no navegador. |
+| `data/` | Guarda dados publicados por automações; não é o lugar para editar o visual. |
+| `assets/`, `img/`, `media/` | Guardam bandeiras, imagens, fontes, geografia e mídias. |
+| `monitor-global-worker-7_7_0.js` | Entrada do backend: rotas e coordenação de serviços na Cloudflare. |
+| `worker/` e módulos `.mjs` na raiz | Separam coleta de dados, Telegram, imagens e cálculos do backend. |
+| `wrangler.toml` | Configura o Worker de serviços, KV e Durable Objects. Não contém os valores dos Secrets. |
+| `wrangler-monitor.toml` | Configura os recursos estáticos do site na Cloudflare. |
+| `.github/workflows/` | Define tarefas automáticas, auditorias e testes no GitHub Actions. |
+| `tools/` | Guarda ferramentas de manutenção, coleta e empacotamento. |
+| `tests/` | Verifica comportamento usando cenários e dados de teste. |
+| `docs/` | Explica recursos, decisões e limitações técnicas. |
+| `downloads/` | Guarda pacotes preparados para distribuição; não deve ser editado manualmente. |
 
-| Arquivo | O que faz |
-|---------|-----------|
-| **js/story-share.js** | Gera a imagem "Resumo do dia" e o Story de cada evento |
-| **js/feed-utils.js** | Filtro "é Brasil?" por coordenadas (`coordsInBrazil`) |
+## Onde procurar cada mudança
 
-## Sismos (terremotos)
+| Quero mexer em… | Comece por… |
+| --- | --- |
+| Apresentação e instruções do repositório | `README.md`, `GUIA_DO_DONO.md` |
+| Cartão principal e lista de eventos | `js/painel-e-lista.js`, `js/adaptive-panel.js`, estilos correspondentes em `css/` |
+| Mapa e movimento da câmera | `js/mapa.js`, `js/event-camera.js`, `js/seismic-focus.js`, `js/seismic-paint-tour.js` |
+| Anéis de intensidade e seus rótulos | `js/seismic-impact.js`, `js/seismic-contours-model.js`, `js/seismic-contour-labels.js` |
+| Possíveis réplicas e linhas de ligação | `js/aftershock-sequence.js`, `js/aftershock-hub.js`, modelos `js/aftershock-*.js` |
+| Efeitos sísmicos e do epicentro | `js/seismic-cinema.js`, `js/seismic-epicenter-detail.js` |
+| Busca e união dos sismos | `js/sismo-fontes.js`, `js/orquestrador-feeds.js` |
+| Fontes e natureza dos dados | `js/confianca-fontes.js`, `js/ux-panel.js`, `js/shared-source-delivery.js` |
+| Alertas do Brasil | `js/brasil-hub.js`, `js/inmet-avisos.js`, `cge-bulletins-worker.mjs`, `tools/update-cemaden-alerts.py` |
+| Clima das capitais | `js/capital-weather.js`, `assets/weather/` |
+| Ciclones | `js/furacoes-gdacs.js`, `docs/cyclone-route-card.md` |
+| Imagens e resumos diários | `daily-summary-hd.mjs`, `daily-summary-renderer.mjs`, `js/story-share.js` |
+| Envio e histórico do Telegram | `worker/telegram-transport.mjs`, `worker/telegram-seismic-data.mjs`, `telegram-history-storage.mjs`, entrada do Worker |
+| Diagnóstico de uso prolongado | `docs/local-performance-diagnostics.md`, `docs/mobile-endurance-v6.md` |
+| Consumo de KV e Durable | `tools/cloudflare-kv-daily-report.py`, `tools/cloudflare-durable-audit.py`, workflows de auditoria |
+| Alarme de indisponibilidade | `.github/workflows/uptime-monitor.yml`, `tools/uptime-monitor.py`, [configuração](docs/alarme-disponibilidade.md) |
 
-| Arquivo | O que faz |
-|---------|-----------|
-| js/sismo-fontes.js | Busca USGS, EMSC e outras fontes de sismo |
-| js/sismo-metrics.js | Cálculos de magnitude / energia |
-| js/orquestrador-feeds.js | Junta todas as fontes e atualiza a lista |
-| js/nucleo-estado.js | Estado global (`globalEvents`, alertas, etc.) |
+## Cuidados com publicação
 
-## Brasil / clima / alertas
+O frontend e o Worker de serviços têm processos próprios. Uma mudança no backend pode exigir empacotamento por `tools/build-worker-bundle.mjs` e o fluxo de manutenção documentado em `docs/cloudflare-worker-maintenance.md`; editar um `.mjs` não garante que o serviço publicado já mudou.
 
-| Arquivo | O que faz |
-|---------|-----------|
-| js/brasil-hub.js | Hub de dados do Brasil |
-| js/inmet-avisos.js | Avisos do INMET (tempestade, umidade…) |
-| js/tempestades.js | Tempestades |
-| js/tsunami-enchente.js | Tsunami e enchente |
-| js/cemaden-risco.js | Risco CEMADEN |
-| js/alertas-locais-sp.js | Alertas locais SP |
-
-## Vulcões, ciclones, fogo
-
-| Arquivo | O que faz |
-|---------|-----------|
-| js/vulcao.js | Vulcões |
-| js/furacoes-gdacs.js | Furacões / ciclones (GDACS) |
-| js/incendios.js | Incêndios |
-| js/geo-e-ciclone-utils.js | Bandeiras, países, nomes de ciclone |
-
-## Mapa e interface
-
-| Arquivo | O que faz |
-|---------|-----------|
-| js/mapa.js | Mapa |
-| js/painel-e-lista.js | Lista lateral de eventos |
-| index.html | Página principal (carrega todos os scripts) |
-| css/… | Estilos visuais |
-
-## Como atualizar sem se perder
-
-1. Diga o que quer mudar (ex.: "resumo do dia", "vulcão no Brasil").
-2. Mande o **zip inteiro** de novo — não precisa achar o arquivo.
-3. Receba de volta só os arquivos alterados (ou o zip já corrigido).
-
-### Arquivos que mudaram nesta correção (set/2026)
-
-- `js/story-share.js` — Top 5 com horário de Brasília + filtro Brasil rigoroso
-- `js/feed-utils.js` — bbox Brasil um pouco mais apertado
-- `js/nucleo-estado.js` / `js/orquestrador-feeds.js` / `js/inmet-avisos.js` — lista de sismos visível para o resumo
+Não execute testes que enviem mensagens reais ao Telegram. Use os cenários isolados descritos em `tests/OFFLINE-TESTS.md`. Não altere dados científicos para obter uma aparência diferente.
