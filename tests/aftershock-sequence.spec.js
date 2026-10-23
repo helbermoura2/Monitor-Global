@@ -3,8 +3,8 @@ async function boot(page,width){const base=process.env.PUBLIC_SITE_URL||'http://
 for(const width of [1280,390])test('sequence renders principal and possible replicas, details navigate and other event cleans up '+width,async({page})=>{
  await boot(page,width);await expect(page.locator('#pd-aftershocks-summary')).toContainText('Possíveis réplicas · 1');await expect(page.locator('#pd-aftershocks-summary')).toContainText('M6,6');await expect(page.locator('.aftershock-pin')).toHaveCount(2);await expect(page.locator('.aftershock-pin.main')).toContainText('Principal · M6,6');
  await page.evaluate(()=>{syncAllMarkers();});await expect(page.locator('.aftershock-pin.main')).toHaveClass(/event-pin-active-sequence/);await expect(page.locator('.event-focus-beacon')).toHaveCount(0);
- // Keep the selected geographic point visible; its sequence label supplies the glass badge.
- expect(await page.evaluate(()=>markerStores.quake.get('main-qa').getElement().classList.contains('aftershock-covered'))).toBe(false);
+ // The sequence pin alone supplies the selected point and glass badge.
+ expect(await page.evaluate(()=>markerStores.quake.get('main-qa').getElement().classList.contains('aftershock-covered'))).toBe(true);
  await page.locator('#pd-aftershocks-summary button').click();await expect(page.locator('#sequence-hub')).toContainText('associação estimada');await page.locator('[data-sequence-id="child-qa"]').click();await expect(page.locator('#pd-mag')).toContainText('4,2');expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('child-qa');expect(await page.evaluate(()=>AftershockSequence.state().mainId)).toBe('main-qa');
  await page.evaluate(()=>{showEventDetails(2,false);clearTimeout(cycleTimeout);});await expect(page.locator('#pd-aftershocks-summary')).toHaveCount(0);await expect(page.locator('.aftershock-pin')).toHaveCount(0);expect(await page.evaluate(()=>markerStores.quake.get('main-qa')?.getElement().classList.contains('aftershock-covered')||false)).toBe(false);
 });

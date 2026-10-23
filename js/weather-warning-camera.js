@@ -51,9 +51,10 @@ function locationNote(item,text){
  if(!el){const anchor=document.getElementById('pd-horario');if(!anchor)return;el=document.createElement('p');el.id='pd-warning-location';el.style.cssText='font-size:11px;line-height:1.45;color:#b6d9e5;margin:8px 0;text-align:center';el.setAttribute('role','status');anchor.insertAdjacentElement('afterend',el);}
  el.textContent=text;
 }
-function localPoints(item){const pts=geometryPoints(item.warningGeometry);if(pts.length)return pts;return (item.municipalityLocations||[]).map(c=>c.coords).filter(point);}
+function localPoints(item){const pts=geometryPoints(item.warningGeometry);if(pts.length)return pts;return (item.municipalityLocations?.length?item.municipalityLocations:item.municipalities||[]).map(c=>c.coords).filter(point);}
 async function resolve(item,active=()=>true){
- const local=localPoints(item);if(local.length)return bounds(local);
+ let local=localPoints(item);if(local.length)return bounds(local);
+ if(/INMET/i.test(item.source||'')&&item.municipalities?.length&&root.InmetMunicipalities){try{await root.InmetMunicipalities.load();if(!active())return null;const rows=root.InmetMunicipalities.resolve(item.municipalities.map(c=>({nome:c.name||c.nome,uf:c.uf})),item.ufs||[]);local=rows.map(c=>c.coords).filter(point);if(local.length)return bounds(local);}catch{}}
  const urls=[...new Set((item.affectedZones||[]).map(zoneURL).filter(Boolean))].slice(0,40);
  if(!urls.length){if(point(item.coords))return bounds([item.coords]);const ref=await reference(item);return active()&&ref?.exact?ref.bounds:null;}
  const pts=[];for(let i=0;i<urls.length;i+=4){if(!active())return null;const rows=await Promise.allSettled(urls.slice(i,i+4).map(zone));for(const r of rows)if(r.status==='fulfilled')pts.push(...r.value);}
@@ -86,6 +87,7 @@ async function focus(item){
   const ref=await reference(item);if(!active())return false;
   if(ref){b=ref.bounds;locationNote(item,ref.exact?'Enquadramento da área oficial · Meteoalarm':'Visão geral: '+item.country+' · área exata indisponível. Consulte o boletim oficial.');}
  }else if(b&&item.meteoalarmArea)locationNote(item,'Enquadramento da área oficial · Meteoalarm');
+ if(b&&/INMET/i.test(item.source||'')&&!geometryPoints(item.warningGeometry).length)locationNote(item,b[0][0]===b[1][0]&&b[0][1]===b[1][1]?'Ponto de referência do aviso; área exata indisponível. Consulte o boletim oficial.':'Enquadramento de referência dos municípios citados no aviso; não representa um epicentro nem o limite exato da tempestade.');
  if(!b)locationNote(item,'Aviso sem localização verificável no mapa. Consulte a região descrita no boletim oficial.');
  return fit(b,item.id);
 }

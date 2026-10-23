@@ -30,3 +30,7 @@
 
 .aftershock-pin.replica:not(.close-scale):not(.hub-selected){width:10px;height:10px;min-width:10px;min-height:10px;padding:0;font-size:0;border-radius:50%;background:var(--quake-tone)}
 .aftershock-pin.replica:not(.close-scale):not(.hub-selected) .aftershock-pin-time{display:none}
+
+.aftershock-pin.sequence-compact:not(.hub-selected){width:10px!important;height:10px!important;min-width:10px!important;min-height:10px!important;padding:0!important;font-size:0!important;line-height:0!important;border-radius:50%!important;background:var(--quake-tone)!important}
+.aftershock-pin.sequence-compact:not(.hub-selected)>*{display:none!important}
+.aftershock-pin.hub-selected{z-index:100!important}
