@@ -454,7 +454,7 @@ const QuakeMarkerPreview = (() => {
         add('small', 'quake-preview-caption', item.id === eventoSelecionadoId ? 'SISMO SELECIONADO' : 'EPICENTRO');
         add('strong', 'quake-preview-magnitude event-pin-glass event-pin-surface', 'M' + Number(item.mag).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}));
         add('span', 'quake-preview-place', window.EventPortuguese?.place(item.place) || item.place || 'Local não informado');
-        const depth = Number.isFinite(item.depth) ? Math.max(0, Math.round(item.depth)).toLocaleString('pt-BR') + ' km' : 'Não informada';
+        const depth = window.SeismicDepth?.describe(item).label || 'Não informada';
         add('span', 'quake-preview-depth', 'Profundidade: ' + depth);
         if (touch) {
             const button = add('button', 'quake-preview-open', 'Ver evento');

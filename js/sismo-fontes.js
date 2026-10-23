@@ -123,7 +123,7 @@ function normalizarSismoGeoJSON(features, source, mapper) {
             // em properties.depth. USGS/FDSN convencionais usam c[2] positivo.
             const propDepth = p.depth == null || String(p.depth).trim() === '' ? NaN : Number(p.depth);
             const coordDepth = c[2] == null || String(c[2]).trim() === '' ? NaN : Number(c[2]);
-            const depth = Number.isFinite(propDepth) && propDepth >= 0 ? propDepth
+            const depth = Number.isFinite(propDepth) ? propDepth
                 : source === 'EMSC' && Number.isFinite(coordDepth) ? Math.abs(coordDepth) : coordDepth;
             const mag = Number(mapper?.mag?.(f, p));
             const time = Number(mapper?.time?.(f, p));
@@ -149,7 +149,7 @@ function normalizarSismoGeoJSON(features, source, mapper) {
                 mag,
                 time,
                 coords: [lon, lat],
-                depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, depthReported: Number.isFinite(depth) ? depth : null,
                 source,
                 quality,
                 isPreliminary: !!isPreliminary,
@@ -263,8 +263,8 @@ async function fetchFunvisisData() {
             const lon = Number(coords[0]);
             const lat = Number(coords[1]);
             const mag = Number(String(p.value || p.mag || p.magnitude || '').replace(',', '.'));
-            const depthStr = String(p.depth || p.profundidad || '10');
-            const depth = Number(depthStr.replace(/[^\d.]/g, '')) || 10;
+            const rawDepth=p.depth??p.profundidad;
+            const depth = rawDepth==null||String(rawDepth).trim()===''?NaN:parseFloat(String(rawDepth).replace(/[^\d.\-]/g,''));
             // Data FUNVISIS: DD-MM-YYYY + HH:MM em horário local Venezuela (UTC-4)
             const dateStr = String(p.date || p.fecha || '').trim();
             const timeStr = String(p.time || p.hora || '00:00').trim();
@@ -293,7 +293,7 @@ async function fetchFunvisisData() {
                 mag,
                 time,
                 coords: [lon, lat],
-                depth: Math.max(0, depth),
+                depth: Number.isFinite(depth)?Math.max(0, depth):10, depthReported: Number.isFinite(depth)?depth:null,
                 source: 'FUNVISIS',
                 quality: 'A',
                 isPreliminary: false,
@@ -402,7 +402,7 @@ async function fetchCSNChileData() {
             if (!fm) return;
             const time = chileLocalToUtc(fm[1], fm[2]);
             const mag = Number(String(s.Magnitud ?? s.magnitud ?? '').replace(',', '.'));
-            const depth = Number(String(s.Profundidad ?? s.profundidad ?? '').replace(/[^\d.]/g, ''));
+            const rawDepth=s.Profundidad??s.profundidad;const depth=rawDepth==null||String(rawDepth).trim()===''?NaN:parseFloat(String(rawDepth).replace(/[^\d.\-]/g,''));
             const ref = s.RefGeografica || s.refGeografica || s.referencia || '';
             const coords = estimarCoordsCSN(ref);
             if (!coords || !Number.isFinite(mag) || !Number.isFinite(time)) return;
@@ -411,7 +411,7 @@ async function fetchCSNChileData() {
                 id: `CSN-${time}-${coords[1].toFixed(3)}-${coords[0].toFixed(3)}`,
                 place: `${ref}, Chile`,
                 bandeira: '🇨🇱', pais: 'Chile', mag, time,
-                coords, depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                coords, depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, depthReported: Number.isFinite(depth) ? depth : null,
                 source: 'CSN-Chile', quality: 'A',
                 detailUrl: 'https://www.sismologia.cl/'
             });
@@ -461,7 +461,7 @@ async function fetchSSNMexicoData() {
             out.push({
                 id: `SSN-${time}-${lat.toFixed(3)}-${lon.toFixed(3)}`,
                 place, bandeira: '🇲🇽', pais: 'México', mag, time,
-                coords: [lon, lat], depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                coords: [lon, lat], depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, depthReported: Number.isFinite(depth) ? depth : null,
                 source: 'SSN-Mexico', quality: 'A',
                 detailUrl: 'https://www.ssn.unam.mx/'
             });
@@ -477,7 +477,7 @@ async function fetchJMAData() {
     (Array.isArray(data) ? data : []).forEach((x, i) => {
         const mag = Number(x.mag);
         const lat = Number(x.lat), lon = Number(x.lon);
-        const depth = Number(String(x.depth ?? '').replace(/[^0-9.\-]/g,''));
+        const depth = x.depth==null||String(x.depth).trim()===''?NaN:parseFloat(String(x.depth).replace(/[^0-9.\-]/g,''));
         const time = Date.parse(x.at || x.time || x.datetime || '');
         if (!Number.isFinite(mag) || !Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(time)) return;
         if (mag < Math.max(0, minMagnitude - 0.5)) return;
@@ -486,7 +486,7 @@ async function fetchJMAData() {
             id: `JMA-${x.json || x.id || `${time}-${lat.toFixed(3)}-${lon.toFixed(3)}`}`,
             place,
             bandeira: '🇯🇵', pais: 'Japão', mag, time,
-            coords:[lon,lat], depth:Number.isFinite(depth)?Math.max(0,depth):10,
+            coords:[lon,lat], depth:Number.isFinite(depth)?Math.max(0,depth):10,depthReported:Number.isFinite(depth)?depth:null,
             source:'JMA', quality:'A',
             jmaIntensity:x.maxi || x.maxIntensity || null,
             detailUrl: 'https://www.data.jma.go.jp/multi/quake/'
@@ -533,7 +533,7 @@ async function fetchOSCBoliviaData() {
             pais: 'Bolívia',
             mag, time,
             coords: [lon, lat],
-            depth: Math.max(0, depth),
+            depth: Number.isFinite(depth)?Math.max(0, depth):10, depthReported: Number.isFinite(depth)?depth:null,
             source: 'OSC-BOL',
             quality: 'A',
             detailUrl: 'https://www.osc.org.bo/index.php/es/27-sismicidad/51-boletin-sismico'
@@ -554,7 +554,7 @@ async function fetchBMKGData() {
     (Array.isArray(lista) ? lista : []).forEach(x => {
         try {
             const mag = Number(x.Magnitude);
-            const depth = Number(String(x.Kedalaman || '').replace(/[^0-9.\-]/g, ''));
+            const depth = x.Kedalaman==null||String(x.Kedalaman).trim()===''?NaN:parseFloat(String(x.Kedalaman).replace(/[^0-9.\-]/g, ''));
             const [latStr, lonStr] = String(x.Coordinates || '').split(',');
             const lat = Number(latStr), lon = Number(lonStr);
             const time = Date.parse(x.DateTime || '');
@@ -566,7 +566,7 @@ async function fetchBMKGData() {
                 place: /indon[eé]sia/i.test(wilayah) ? wilayah : `${wilayah}, Indonésia`,
                 bandeira: '🇮🇩', pais: 'Indonésia',
                 mag, time, coords: [lon, lat],
-                depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, depthReported: Number.isFinite(depth) ? depth : null,
                 source: 'BMKG', quality: 'A',
                 detailUrl: 'https://www.bmkg.go.id/gempabumi/gempabumi-terkini.bmkg'
             });
@@ -589,7 +589,7 @@ async function fetchGeoNetData() {
             const p = f?.properties || {};
             const c = f?.geometry?.coordinates || [];
             const lon = Number(c[0]), lat = Number(c[1]);
-            const depth = Number(p.depth ?? c[2]);
+            const rawDepth=p.depth??c[2];const depth=rawDepth==null||String(rawDepth).trim()===''?NaN:Number(rawDepth);
             const mag = Number(p.magnitude);
             const time = Date.parse(p.time || '');
             if (![lat, lon, mag, time].every(Number.isFinite)) return;
@@ -600,7 +600,7 @@ async function fetchGeoNetData() {
                 place: /nova zel|new zealand/i.test(localidade) ? localidade : `${localidade}, Nova Zelândia`,
                 bandeira: '🇳🇿', pais: 'Nova Zelândia',
                 mag, time, coords: [lon, lat],
-                depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+                depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, depthReported: Number.isFinite(depth) ? depth : null,
                 source: 'GEONET', quality: 'A',
                 detailUrl: `https://www.geonet.org.nz/earthquake/${p.publicID || f.id || ''}`
             });
@@ -813,7 +813,7 @@ async function fetchAfadQuakes() {
                 const mag = Number(el.mag ?? el.magnitude ?? el.size?.ml ?? el.size?.mw ?? 0);
                 const lat = Number(el.lat ?? el.latitude);
                 const lng = Number(el.lng ?? el.longitude ?? el.lon);
-                const depth = Number(el.depth ?? el.depth_km ?? 10);
+                const depth = parseFloat(el.depth ?? el.depth_km ?? NaN);
                 const t = el.date_time || el.date || el.occurred_at;
                 const time = t ? new Date(String(t).replace(' ', 'T') + (String(t).includes('Z') || String(t).includes('+') ? '' : '+03:00')).getTime() : Date.now();
                 const place = el.title || el.location || el.region || el.city || 'Turquia';
@@ -826,7 +826,7 @@ async function fetchAfadQuakes() {
                     mag,
                     time: Number.isFinite(time) ? time : Date.now(),
                     coords: [lng, lat],
-                    depth: Number.isFinite(depth) ? depth : 10,
+                    depth: Number.isFinite(depth) ? depth : 10, depthReported: Number.isFinite(depth)?depth:null,
                     source: 'AFAD',
                     quality: mag < 3 ? 'C' : 'B',
                     bandeira: '🇹🇷',
@@ -848,7 +848,7 @@ async function fetchAfadQuakes() {
                     const mag = Number(el.size?.mw || el.size?.ml || el.mag || el.magnitude || 0);
                     const lat = Number(el.latitude ?? el.lat);
                     const lng = Number(el.longitude ?? el.lng);
-                    const depth = Number(el.depth ?? 10);
+                    const depth = parseFloat(el.depth ?? NaN);
                     const time = el.timestamp ? (el.timestamp < 1e12 ? el.timestamp * 1000 : el.timestamp) : Date.parse(el.date);
                     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
                     if (mag < minMag) return;
@@ -859,7 +859,7 @@ async function fetchAfadQuakes() {
                         mag,
                         time: Number.isFinite(time) ? time : Date.now(),
                         coords: [lng, lat],
-                        depth,
+                        depth:Number.isFinite(depth)?depth:10,depthReported:Number.isFinite(depth)?depth:null,
                         source: 'AFAD',
                         quality: mag < 3 ? 'C' : 'B',
                         bandeira: '🇹🇷',
@@ -1212,7 +1212,7 @@ async function fetchUspSismos() {
         pais: info.pais || 'Brasil',
         mag, time,
         coords: [lon, lat],
-        depth: Number.isFinite(depth) ? Math.max(0, depth) : 10,
+        depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, depthReported: Number.isFinite(depth) ? depth : null,
         source: 'USP',
         // Eventos bem pequenos têm mais incerteza de localização/magnitude
         // numa rede esparsa — mesmo critério já usado pro AFAD.

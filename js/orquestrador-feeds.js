@@ -346,6 +346,7 @@ async function fetchGlobalFeeds() {
 
         let novos = [];
         let atualizados = [];
+        const coberturaAtualizada=[];
         const seenNow = new Set();
         // BUG CORRIGIDO: filtrava por `e.type === 'earthquake'`, mas os
         // objetos que vêm do merge multiagência principal (USGS/JMA/EMSC/
@@ -426,28 +427,24 @@ async function fetchGlobalFeeds() {
                 novos.push(ev);
             } else if (!isFirstLoad) {
                 if (prev) {
-                    const magMudou = Number.isFinite(prev.mag) && Number.isFinite(ev.mag)
-                        && Math.abs(Number(prev.mag) - Number(ev.mag)) >= 0.1 - 1e-9;
-                    const depthMudou = Number.isFinite(prev.depth) && Number.isFinite(ev.depth)
-                        && Math.abs(Number(prev.depth) - Number(ev.depth)) >= 5;
-                    const fontesMudou = (prev.sourceSummary || prev.source || '') !== (ev.sourceSummary || ev.source || '');
-                    const qualityMudou = (prev.quality || '') !== (ev.quality || '');
-                    const prelimMudou = !!prev.isPreliminary !== !!ev.isPreliminary;
-                    if (magMudou || depthMudou || fontesMudou || qualityMudou || prelimMudou) {
+                    const change=window.RecordUpdateContext.classify(prev,ev),magMudou=change.magChanged,depthMudou=change.depthChanged,fontesMudou=change.sourcesChanged,qualityMudou=change.qualityChanged,prelimMudou=change.reviewChanged;
+                    if(fontesMudou||qualityMudou||change.depthMetadataChanged){coberturaAtualizada.push(ev);ev._sourceUpdatedAt=Date.now();ev._sourceUpdateTxt=fontesMudou||qualityMudou?'Fontes/qualidade atualizadas':'Profundidade da fonte atualizada';}else{ev._sourceUpdatedAt=prev._sourceUpdatedAt;ev._sourceUpdateTxt=prev._sourceUpdateTxt;}
+                    if (magMudou || depthMudou || prelimMudou) {
+                        ev._updateKind='physical';
                         const parts = [];
                         if (magMudou) parts.push(`M${Number(prev.mag).toFixed(1).replace('.', ',')} → M${Number(ev.mag).toFixed(1).replace('.', ',')}`);
-                        if (depthMudou) parts.push(`${Number(prev.depth).toFixed(0)} → ${Number(ev.depth).toFixed(0)} km`);
-                        if (prelimMudou && prev.isPreliminary && !ev.isPreliminary) parts.push('preliminar → revisado');
+                        if (depthMudou) parts.push(`${window.SeismicDepth.describe(prev).value} → ${window.SeismicDepth.describe(ev).value} km`);
+                        if (prelimMudou) parts.push('Status de revisão alterado pela fonte');
                         if (fontesMudou && !magMudou) parts.push(`Fontes: ${ev.sourceSummary || ev.source}`);
                         if (qualityMudou && !magMudou && !prelimMudou) parts.push(`Qualidade ${prev.quality || '—'} → ${ev.quality || '—'}`);
                         ev._previousMag = Number(prev.mag);
                         ev._deltaTxt = parts.join(' · ') || 'Dado atualizado pela fonte';
                         ev._updatedAt = Date.now();
                         atualizados.push(ev);
-                    } else if (prev._deltaTxt && activeUpdatedIds.has(canonical)) {
+                    } else if (prev._deltaTxt && activeUpdatedIds.has(canonical) && window.RecordUpdateContext?.kind(prev)!=='sources') {
                         ev._deltaTxt = prev._deltaTxt;
-                        ev._updatedAt = prev._updatedAt;
-                    }
+                        ev._updatedAt = prev._updatedAt;ev._updateKind=prev._updateKind||'physical';
+                    } else if(window.RecordUpdateContext?.kind(prev)==='sources'){activeUpdatedIds.delete(canonical);}
                 }
             }
         });
@@ -540,8 +537,8 @@ async function fetchGlobalFeeds() {
         // (o aviso pra tela — pílula, não mais toast de uma linha só pro
         // selecionado — sai mais abaixo, junto com o que antes era o som).
         try {
-            if (atualizados.length && typeof EventStore !== 'undefined') {
-                EventStore.onDataRevised(atualizados.map(e => e.id));
+            if ((atualizados.length||coberturaAtualizada.length) && typeof EventStore !== 'undefined') {
+                EventStore.onDataRevised([...new Set([...atualizados,...coberturaAtualizada].map(e => e.id))]);
             }
         } catch (e) { console.warn('[sismo] EventStore revise:', e); }
 

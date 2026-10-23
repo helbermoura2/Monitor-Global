@@ -1,7 +1,7 @@
 /* Bounded MMI isolines. Never trace the edge of a grid or a coastline as MMI. */
 (function(root){
  'use strict';
- const names=['','Fraca','Fraca','Fraca','Leve','Moderada','Forte','Muito forte','Severa','Violenta','Extrema','Extrema','Extrema'];
+ const names=['','Não perceptível','Muito fraca','Fraca','Leve','Moderada','Forte','Muito forte','Severa','Violenta','Extrema','Extrema','Extrema'];
  const romans=['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
  function contours(c,land){
   const model=root.SeismicImpactModel,official=root.RuptureShakingModel,features=[];

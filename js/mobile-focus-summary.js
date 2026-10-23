@@ -20,7 +20,7 @@
    text('.focus-kind','EVENTO EM FOCO · '+(item.type==='capital-weather'?'TEMPO NA CAPITAL':kinds[item.type]||'EVENTO'));
    text('.focus-metric',item.type==='capital-weather'?item.temperature.toLocaleString('pt-BR')+' °C':q&&Number.isFinite(n)?'M '+n.toFixed(1).replace('.',','):(TYPE_META[item.type]?.icon||'📍'));
    text('.focus-place',window.EventPortuguese?.place(item.place)||item.place||'Local não informado');
-   text('.focus-detail',q&&depth!=null&&Number.isFinite(Number(depth))?'Profundidade: '+Math.max(0,Math.round(Number(depth))).toLocaleString('pt-BR')+' km':(item.source?'Fonte: '+item.source:'Em monitoramento'));
+   text('.focus-detail',q&&depth!=null&&Number.isFinite(Number(depth))?'Profundidade: '+(window.SeismicDepth?.describe(item).label||'não informada'):(item.source?'Fonte: '+item.source:'Em monitoramento'));
   }
   ticker.setAttribute('aria-label',mq.matches&&item?'Evento em foco — abrir lista de registros':'Último evento — abrir lista de registros');schedule();
  }

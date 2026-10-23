@@ -1,6 +1,6 @@
 /* Created only for an intensity footprint. Coastlines remain in this Worker. */
 'use strict';
-importScripts('vendor/polygon-clipping.min.js?v=0.15.7','rupture-shaking-model.js?v=20261016-multi-source','seismic-impact-model.js?v=20261016-multi-source','seismic-contours-model.js?v=20261022-anchored-contours');
+importScripts('vendor/polygon-clipping.min.js?v=0.15.7','rupture-shaking-model.js?v=20261023-data-followups','seismic-impact-model.js?v=20261023-data-followups','seismic-contours-model.js?v=20261023-data-followups');
 let landPromise;
 function land(){
  if(landPromise)return landPromise;

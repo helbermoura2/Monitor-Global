@@ -28,5 +28,12 @@
   if(/^Fontes\s*(?:\/|e|·)\s*Qualidade$/i.test(text))return 'Fontes ou qualidade do registro atualizadas';
   return text.split(' · ').map(part=>/^M\d/.test(part)?'Magnitude: '+part:/^\d[\d.,]*\s*→\s*\d[\d.,]*\s*km$/.test(part)?'Profundidade: '+part:part).join(' · ');
  }
- const api={describe,summary};root.RecordUpdateContext=api;if(typeof module!=='undefined')module.exports=api;
+ function kind(item){if(item?._updateKind)return item._updateKind;const text=clean(item?._deltaTxt),physical=/M[\d.,]+\s*→\s*M[\d.,]+|[\d.,]+\s*→\s*[\d.,]+\s*km|preliminar\s*→|Status de revisão/i.test(text);return /^(?:Fontes|Qualidade)/i.test(text)&&!physical?'sources':'physical';}
+ function classify(before,after){
+  const oldDepth=root.SeismicDepth?.describe(before),newDepth=root.SeismicDepth?.describe(after),sameSource=(before.reports||[]).find(r=>(r.source||'').replace(/-RT$/,'')===(after.source||'').replace(/-RT$/,''))||((before.source||'').replace(/-RT$/,'')===(after.source||'').replace(/-RT$/,'')?before:null),latest=(after.reports||[]).find(r=>r.source===after.source)||after;
+  const sources=v=>clean(v.sourceSummary||v.source).split(/\s*·\s*/).sort().join('|');
+  const magChanged=valid(before.mag)&&valid(after.mag)&&Math.abs(Number(before.mag)-Number(after.mag))>=.1-1e-9,depthChanged=!!oldDepth?.known&&!!newDepth?.known&&Math.abs(oldDepth.value-newDepth.value)>=5,reviewChanged=!!sameSource&&!!sameSource.isPreliminary!==!!latest.isPreliminary;
+  return {depthMetadataChanged:oldDepth?.status!==newDepth?.status||oldDepth?.value!==newDepth?.value,magChanged,depthChanged,reviewChanged,sourcesChanged:sources(before)!==sources(after),qualityChanged:clean(before.quality)!==clean(after.quality),kind:magChanged||depthChanged||reviewChanged?'physical':'sources'};
+ }
+ const api={describe,summary,kind,classify};root.RecordUpdateContext=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

@@ -311,9 +311,10 @@ function renderPainelTimeline(item) {
     const steps = [];
     const det = item.time ? formatTime(item.time) : '—';
     steps.push({ k: item.hazardNature==='bulletin'?'Publicado':item.hazardNature==='warning'?'Emitido':item.hazardNature==='forecast'?'Modelo':item.hazardNature==='observed'?'Observado':'Detectado', v: det });
-    if (item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id))) {
+    if ((item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id)))&&window.RecordUpdateContext?.kind(item)!=='sources') {
         steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(window.EventPortuguese?.revision(item)||item._deltaTxt) : 'revisão' });
     }
+    if(item._sourceUpdatedAt&&Date.now()-item._sourceUpdatedAt<180000)steps.push({k:'Dados da fonte',v:item._sourceUpdateTxt||'Fontes/qualidade atualizadas'});
     const src = item.sourceSummary || item.source || 'rede';
     steps.push({ k: 'Fontes', v: String(src).slice(0, 24) });
     box.innerHTML = steps.map((s, i) =>
@@ -328,6 +329,7 @@ let panelPresentationPrevious=null, panelRevisionTimer=null;
 function showPanelRevisionFocus(item) {
     const note = document.getElementById('pd-revision-note');
     if (!note || !item) return;
+    if(window.RecordUpdateContext?.kind(item)==='sources'){note.hidden=true;return;}
     clearTimeout(panelRevisionTimer);
     note.textContent = 'EVENTO ATUALIZADO · ' + (window.EventPortuguese?.revision(item) || 'Dados revisados pela fonte');
     note.hidden = false;
@@ -571,7 +573,7 @@ function renderSidebarList(items) {
         // O que mudou de verdade — mostrado direto no card, sem precisar clicar,
         // enquanto o selo "ATUALIZADO" estiver ativo.
         let updatedTxt = '';
-        if (activeUpdatedIds.has(item.id) && item._deltaTxt) {
+        if (activeUpdatedIds.has(item.id) && item._deltaTxt && window.RecordUpdateContext?.kind(item)!=='sources') {
             updatedTxt = `<span class="stale-badge updated-delta">${esc(window.RecordUpdateContext?.summary(item)||window.EventPortuguese?.revision(item)||item._deltaTxt)}</span>${Number.isFinite(item._updatedAt)&&item._updatedAt>0?`<small class="record-revision-received">Revisão recebida às ${new Date(item._updatedAt).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})} BRT</small>`:''}`;
         }
 
@@ -588,7 +590,7 @@ function renderSidebarList(items) {
                 </div>
                 <div class="event-meta">
                     <span class="ev-time">${recordCardTime(item.time)}</span><span class="ev-age"></span>
-                    <span title="Profundidade">${Number.isFinite(Number(item.depth))&&item.depth!=null?Math.max(0,Number(item.depth)).toFixed(0)+' km de profundidade':'Profundidade não informada'}</span>
+                    <span title="Profundidade">${window.SeismicDepth?.describe(item).known?window.SeismicDepth.describe(item).label+' de profundidade':'Profundidade não informada'}</span>
                     ${distVoce}
 
                     ${updatedTxt}
@@ -1376,8 +1378,10 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
       if(ml){ml.textContent=mer.kind==='unavailable'?'Intensidade (MMI)':mer.kind==='official'?'Intensidade da fonte (MMI)':'Intensidade estimada (MMI)';if(mer.kind!=='unavailable')ml.insertAdjacentHTML('beforeend',' '+(window.DataContext?.markup(mer.kind==='official'?'intensity':'estimate',mer.kind==='official'?'DA FONTE':'ESTIMATIVA')||''));}
       if (el) el.innerHTML = 'Energia ' + (window.DataContext?.markup('energy','CALCULADA')||'CALCULADA');
     } catch (e) {}
+    const sourceDepth=window.SeismicDepth?.describe(item);
     const depthClass = classificarProfundidade(Math.max(0, item.depth));
-    document.getElementById('pd-depth').innerHTML = `${Math.max(0, item.depth).toFixed(0)} km <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${depthClass.label}</span>`;
+    document.getElementById('pd-depth').title=sourceDepth?.note||'Profundidade informada pela fonte';
+    document.getElementById('pd-depth').innerHTML = `${sourceDepth?.label||'Não informada'} <span style="color:${depthClass.cor};font-size:11px;font-weight:600">· ${sourceDepth?.assumed?'Cálculo: 10 km':depthClass.label}</span>`;
     document.getElementById('pd-mercalli').innerHTML = `<span style="color:${mer.cor}">${mer.nivel}</span>`;
     // BUG CORRIGIDO: .split(' ')[0] cortava a unidade — "1.9 kg de TNT" virava só
     // "1.9", sem dar pra saber se era kg, ton, kt ou Mt. Agora mostra o valor com
@@ -1441,7 +1445,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     // Badge ATUALIZADO no card principal quando o store marcou revisão
     try {
         const pdSrc = document.getElementById('pd-source');
-        if (pdSrc && item._deltaTxt && typeof activeUpdatedIds !== 'undefined' && activeUpdatedIds.has(item.id)) {
+        if (pdSrc && item._deltaTxt && typeof activeUpdatedIds !== 'undefined' && activeUpdatedIds.has(item.id) && window.RecordUpdateContext?.kind(item)!=='sources') {
             if (!pdSrc.querySelector('.pd-updated-badge')) {
                 const b = document.createElement('span');
                 b.className = 'pd-updated-badge';
@@ -2053,7 +2057,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
 
     try {
         const pdSrc = document.getElementById('pd-source');
-        if (pdSrc && item._deltaTxt && typeof activeUpdatedIds !== 'undefined' && activeUpdatedIds.has(item.id)) {
+        if (pdSrc && item._deltaTxt && typeof activeUpdatedIds !== 'undefined' && activeUpdatedIds.has(item.id) && window.RecordUpdateContext?.kind(item)!=='sources') {
             if (!pdSrc.querySelector('.pd-updated-badge')) {
                 const b = document.createElement('span');
                 b.className = 'pd-updated-badge';
