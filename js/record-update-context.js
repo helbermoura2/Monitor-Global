@@ -33,7 +33,7 @@
   const oldDepth=root.SeismicDepth?.describe(before),newDepth=root.SeismicDepth?.describe(after),sameSource=(before.reports||[]).find(r=>(r.source||'').replace(/-RT$/,'')===(after.source||'').replace(/-RT$/,''))||((before.source||'').replace(/-RT$/,'')===(after.source||'').replace(/-RT$/,'')?before:null),latest=(after.reports||[]).find(r=>r.source===after.source)||after;
   const sources=v=>clean(v.sourceSummary||v.source).split(/\s*·\s*/).sort().join('|');
   const magChanged=valid(before.mag)&&valid(after.mag)&&Math.abs(Number(before.mag)-Number(after.mag))>=.1-1e-9,depthChanged=!!oldDepth?.known&&!!newDepth?.known&&Math.abs(oldDepth.value-newDepth.value)>=5,reviewChanged=!!sameSource&&!!sameSource.isPreliminary!==!!latest.isPreliminary;
-  return {magChanged,depthChanged,reviewChanged,sourcesChanged:sources(before)!==sources(after),qualityChanged:clean(before.quality)!==clean(after.quality),kind:magChanged||depthChanged||reviewChanged?'physical':'sources'};
+  return {depthMetadataChanged:oldDepth?.status!==newDepth?.status||oldDepth?.value!==newDepth?.value,magChanged,depthChanged,reviewChanged,sourcesChanged:sources(before)!==sources(after),qualityChanged:clean(before.quality)!==clean(after.quality),kind:magChanged||depthChanged||reviewChanged?'physical':'sources'};
  }
  const api={describe,summary,kind,classify};root.RecordUpdateContext=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

@@ -428,7 +428,7 @@ async function fetchGlobalFeeds() {
             } else if (!isFirstLoad) {
                 if (prev) {
                     const change=window.RecordUpdateContext.classify(prev,ev),magMudou=change.magChanged,depthMudou=change.depthChanged,fontesMudou=change.sourcesChanged,qualityMudou=change.qualityChanged,prelimMudou=change.reviewChanged;
-                    if(fontesMudou||qualityMudou){coberturaAtualizada.push(ev);ev._sourceUpdatedAt=Date.now();ev._sourceUpdateTxt='Fontes/qualidade atualizadas · '+(ev.sourceSummary||ev.source||'fonte');}else{ev._sourceUpdatedAt=prev._sourceUpdatedAt;ev._sourceUpdateTxt=prev._sourceUpdateTxt;}
+                    if(fontesMudou||qualityMudou||change.depthMetadataChanged){coberturaAtualizada.push(ev);ev._sourceUpdatedAt=Date.now();ev._sourceUpdateTxt=fontesMudou||qualityMudou?'Fontes/qualidade atualizadas':'Profundidade da fonte atualizada';}else{ev._sourceUpdatedAt=prev._sourceUpdatedAt;ev._sourceUpdateTxt=prev._sourceUpdateTxt;}
                     if (magMudou || depthMudou || prelimMudou) {
                         ev._updateKind='physical';
                         const parts = [];

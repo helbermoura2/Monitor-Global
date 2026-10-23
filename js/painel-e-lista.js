@@ -314,7 +314,7 @@ function renderPainelTimeline(item) {
     if ((item._updatedAt || (activeUpdatedIds && activeUpdatedIds.has(item.id)))&&window.RecordUpdateContext?.kind(item)!=='sources') {
         steps.push({ k: 'Atualizado', v: item._deltaTxt ? String(window.EventPortuguese?.revision(item)||item._deltaTxt) : 'revisão' });
     }
-    if(item._sourceUpdatedAt&&Date.now()-item._sourceUpdatedAt<180000)steps.push({k:'Cobertura',v:'Fontes/qualidade atualizadas'});
+    if(item._sourceUpdatedAt&&Date.now()-item._sourceUpdatedAt<180000)steps.push({k:'Dados da fonte',v:item._sourceUpdateTxt||'Fontes/qualidade atualizadas'});
     const src = item.sourceSummary || item.source || 'rede';
     steps.push({ k: 'Fontes', v: String(src).slice(0, 24) });
     box.innerHTML = steps.map((s, i) =>
