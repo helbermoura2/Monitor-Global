@@ -6,15 +6,15 @@
  function message(text){feedback=text;root.showToast?.(text,'info');if(feedButton)feedButton.textContent=text;}
  function draw(){
   if(!panel){const host=document.getElementById('mapWrap');if(!host)return;panel=document.createElement('section');panel.id='map-recovery';panel.setAttribute('role','status');const text=document.createElement('p'),retry=document.createElement('button'),list=document.createElement('button');retry.type=list.type='button';retry.textContent='Tentar mapa novamente';retry.onclick=retryMap;list.textContent='Ver registros';list.onclick=()=>root.toggleMobileEventsModal?.(true);panel.append(text,retry,list);host.append(panel);}
-  const failed=[...sources.values()].some(s=>s.failed);panel.hidden=!lost&&!failed;
-  panel.querySelector('p').textContent=lost?'O mapa perdeu a conexão gráfica. Os registros continuam disponíveis; aguardando recuperação do navegador.':navigator.onLine===false?'Sem conexão para carregar o mapa. Os registros já recebidos continuam disponíveis.':'Parte do mapa não carregou. Os registros continuam disponíveis.';
+  const failed=[...sources.values()].some(s=>s.failed),satelliteFailed=sources.get('satellite')?.failed;panel.hidden=!lost&&!failed;
+  panel.querySelector('p').textContent=lost?'O mapa perdeu a conexão gráfica. Os registros continuam disponíveis; aguardando recuperação do navegador.':navigator.onLine===false?'Sem conexão para carregar o mapa. Os registros já recebidos continuam disponíveis.':satelliteFailed?'Algumas imagens de satélite não carregaram. Os registros continuam disponíveis.':'Alguns nomes ou limites do mapa não carregaram. O satélite e os registros continuam disponíveis.';
   panel.querySelector('button').disabled=lost||navigator.onLine===false;
  }
  function reload(id){const src=mapRef?.getSource(id);if(src?.setTiles){src.setTiles(src.tiles);return true;}return false;}
  function schedule(id){const s=sources.get(id);if(!s||s.timer||s.attempt>=delays.length||lost||document.hidden||navigator.onLine===false)return;s.timer=setTimeout(()=>{s.timer=0;if(document.hidden||navigator.onLine===false||lost)return;s.attempt++;s.lastRetry=Date.now();try{reload(id);}catch(e){console.warn('[recuperação do mapa]',e);}if(s.failed)schedule(id);},delays[s.attempt]);}
  function attach(map){if(mapRef===map)return;mapRef=map;for(const id of ['satellite','esri-boundaries-places'])sources.set(id,{failed:false,attempt:0,timer:0,lastRetry:-Infinity});
-  map.on('error',e=>{const s=sources.get(e?.sourceId);if(!s)return;s.failed=true;draw();schedule(e.sourceId);});
-  map.on('sourcedata',e=>{const s=sources.get(e?.sourceId);if(!s||e.sourceDataType!=='content'||e.tile?.state!=='loaded')return;s.failed=false;s.attempt=0;clearTimeout(s.timer);s.timer=0;draw();});
+  map.on('error',e=>{const s=sources.get(e?.sourceId);if(!s||/abort|cancel/i.test(String(e.error?.name||'')+' '+String(e.error?.message||'')))return;s.failed=true;draw();schedule(e.sourceId);});
+  map.on('sourcedata',e=>{const s=sources.get(e?.sourceId);if(!s)return;let loaded=e.isSourceLoaded===true||(e.sourceDataType==='content'&&e.tile?.state==='loaded');try{loaded=loaded||map.isSourceLoaded?.(e.sourceId)===true;}catch{}if(!loaded)return;s.failed=false;s.attempt=0;clearTimeout(s.timer);s.timer=0;draw();});
   map.on('webglcontextlost',e=>{e.originalEvent?.preventDefault();lost=true;for(const s of sources.values()){clearTimeout(s.timer);s.timer=0;}draw();});
   map.on('webglcontextrestored',()=>{lost=false;map.resize();map.triggerRepaint();draw();for(const [id,s]of sources)if(s.failed)schedule(id);});
   map.on('remove',()=>{for(const s of sources.values())clearTimeout(s.timer);sources.clear();mapRef=null;panel?.remove();panel=null;});
