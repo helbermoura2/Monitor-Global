@@ -34,3 +34,15 @@
 .aftershock-pin.sequence-compact:not(.hub-selected){width:10px!important;height:10px!important;min-width:10px!important;min-height:10px!important;padding:0!important;font-size:0!important;line-height:0!important;border-radius:50%!important;background:var(--quake-tone)!important}
 .aftershock-pin.sequence-compact:not(.hub-selected)>*{display:none!important}
 .aftershock-pin.hub-selected{z-index:100!important}
+
+/* Readable labels for the soft neon contour style; no animated glow/blur. */
+.seismic-contour-label{box-sizing:border-box;width:min(210px,58vw);max-width:58vw;padding:7px 10px;border:1px solid rgba(178,207,197,.48);border-left:3px solid var(--mmi-tone);border-radius:9px;background:rgba(9,20,21,.84);color:#f1f8f4;text-shadow:0 1px 2px #000;box-shadow:0 2px 8px #0005;font:13px/1.4 system-ui;white-space:normal;pointer-events:none!important;z-index:18}
+.seismic-contour-label strong{display:block;font-size:14px;font-weight:650;line-height:1.35}
+.seismic-contour-label-distance{display:block;margin-top:3px;font-size:12.5px;line-height:1.35;color:#d7e9e0}
+.seismic-contour-scale{font-size:12px;line-height:1.5;gap:5px 12px}
+.seismic-contour-scale>span::before{border-top-width:3px;box-shadow:0 0 4px var(--mmi-tone)}
+@media(max-width:900px){.seismic-contour-label{max-width:58vw;padding:7px 9px}.seismic-contour-label strong{font-size:14px}.seismic-contour-label-distance{font-size:12.5px}.seismic-contour-scale{font-size:11.5px;max-height:82px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#78958e transparent}}
+
+.seismic-contour-scale::-webkit-scrollbar{width:6px;height:6px;background:transparent}.seismic-contour-scale::-webkit-scrollbar-thumb{background:#78958e;border-radius:8px}
+
+.seismic-contour-scale{pointer-events:auto;touch-action:pan-y}.seismic-contour-scale:focus-visible{outline:2px solid #a8cfbf;outline-offset:2px;border-radius:4px}
