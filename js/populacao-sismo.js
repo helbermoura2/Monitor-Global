@@ -195,6 +195,7 @@ function fecharViradaCardAlcance() {
     window.__mgFlipRemoveT = null;
     const painel = document.getElementById('painel-direito');
     if (painel) painel.classList.remove('pd-flip-girado', 'pd-flip-preparado');
+    document.getElementById('pd-population-coverage-note')?.remove();
     const verso = document.getElementById('pd-flip-verso');
     if (verso) { try { verso.remove(); } catch (e) {} }
 }
@@ -232,11 +233,11 @@ function agendarViradaCardAlcance(lat, lng, item, delayMs=14000) {
         if (typeof eventoSelecionadoId !== 'undefined' && eventoSelecionadoId !== item.id) return; // trocou de evento enquanto buscava
         if (!dados || generation!==window.__mgFlipPopulationGeneration || document.hidden || window.EventDetailsBack?.isOpen() || matchMedia('(max-width:900px)').matches&&!document.body.classList.contains('mobile-details-mid')&&!document.body.classList.contains('mobile-details-open')) return;
 
-        // Vira também no aleatório e em áreas sem cidades cadastradas
-        // no alcance (área muito remota —
-        // oceano aberto, deserto etc.), com uma mensagem explicando em vez
-        // de simplesmente não virar nada.
         const exposure=typeof exposicaoPopulacionalDoEvento==='function'?exposicaoPopulacionalDoEvento(item):null;
+        if(!exposure&&!(Number.isFinite(dados.totalPessoas)&&dados.totalPessoas>0&&dados.cidades?.length)){
+            let note=document.getElementById('pd-population-coverage-note');if(!note){note=document.createElement('small');note.id='pd-population-coverage-note';note.className='population-exposure-status';note.style.cssText='display:block;padding:8px 12px;font-size:11px;line-height:1.4;opacity:.8';painel.append(note);}
+            note.textContent='Sem cobertura populacional útil para exibir automaticamente. Isso não significa ausência de moradores.';return;
+        }
         const headlinePopulation=exposure?Number(exposure.ranges[0].population):dados.totalPessoas;
         const semDados = headlinePopulation == null;
         const corpo = `<div id="pd-flip-grid-exposure">${typeof renderExposicaoPopulacionalHTML==='function'?renderExposicaoPopulacionalHTML(exposure||window.estadoExposicaoPopulacionalDoEvento?.(item)):''}</div><div class="pd-flip-verso-vazio">${escPopup(mensagemCoberturaPopulacao(dados))}</div>` +

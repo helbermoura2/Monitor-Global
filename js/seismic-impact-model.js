@@ -4,7 +4,7 @@
 'use strict';
 const SCALE=[[.5,'I',[46,118,190]],[1,'II',[74,154,220]],[2.1,'III',[102,192,239]],[5,'IV',[130,214,255]],[11,'V',[85,242,15]],[26,'VI',[255,255,0]],[60,'VII',[255,200,0]],[140,'VIII',[255,120,0]],[321.8,'IX',[255,0,0]],[740,'X',[190,0,0]],[1702,'XI',[130,0,0]],[3000,'XII',[65,0,0]]];
 function pga(mag,depth,km){
- const h=Math.max(0,Number(depth)||0),correction=Math.log10(h+160)-Math.log10(160);
+ const h=depth!=null&&Number.isFinite(Number(depth))&&Number(depth)>0?Math.max(1,Number(depth)):10,correction=Math.log10(h+160)-Math.log10(160);
  const adjusted=mag+.4*correction,distance=Math.sqrt(h*h+4*6379*(6379-h)*Math.sin(km/(2*6379))**2)/(1+.75*correction);
  return Math.pow(10,adjusted*.575)/(.36*Math.pow(distance,1.25+adjusted/22)+10);
 }
