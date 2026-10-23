@@ -1,1 +1,1 @@
-{"version":1,"source":"https://painelalertas.cemaden.gov.br/wsAlertas2","checkedAt":1792773975584,"sourceTimeZone":null,"alerts":[]}
+{"version":1,"source":"https://painelalertas.cemaden.gov.br/wsAlertas2","checkedAt":1792785996551,"sourceTimeZone":null,"alerts":[{"id":"cemaden-3022","ibge":"3143708","city":"MORRO DO PILAR","uf":"MG","event":"Risco Hidrológico - Moderado","level":"Moderado","status":1,"lat":-19.235103612618,"lng":-43.402501809121,"sourceIssuedText":"2026-10-23 17:02:58.205","sourceUpdatedText":"2026-10-23 17:02:58.205"}]}
