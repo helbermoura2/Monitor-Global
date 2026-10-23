@@ -8,7 +8,9 @@ O cartão usa resposta visual contínua por magnitude até M5,9, com deslocament
 
 Remover a transformação individual de centenas de caracteres também reduz trabalho durante a apresentação. Testes locais não garantem FPS constante no Samsung/DeX: o próximo vídeo/diagnóstico deve confirmar o resultado no aparelho e com imagens reais em cache/rede.
 
-## Próximos itens, na ordem
+## Histórico dos próximos itens
+
+**Status em 23/10:** itens 2–6 concluídos em [visual-data-followups-20261023.md](visual-data-followups-20261023.md). Apenas o item 1 continua pendente. A progressão de efeitos foi posteriormente ampliada em [seismic-words-and-epicenter.md](seismic-words-and-epicenter.md). A lista abaixo registra o diagnóstico original.
 
 1. **Enquadramento após mudanças dos painéis:** reposicionar suavemente o centro da área livre quando os registros aparecem/desaparecem, sem saltos e sem interromper o zoom.
 2. **Legenda e identificação dos contornos:** corrigir MMI I para não sentido/imperceptível, identificar MMI e raio junto às linhas e esclarecer a ausência de contorno abaixo do limiar em sismos pequenos.
@@ -17,4 +19,4 @@ Remover a transformação individual de centenas de caracteres também reduz tra
 5. **NOVO versus revisão de fontes:** separar chegada nova, revisão física e melhora de cobertura/qualidade B→A, sem banner de revisão física para mera fonte adicional.
 6. **Cabeçalho meteorológico:** esclarecer a comparação em “Divergem” e não mostrar divergência sem diferença compreensível quando o valor arredonda para 0,0 mm/h.
 
-Esses seis itens ficam para a próxima etapa pedida pelo usuário. Nesta alteração não se adicionam consultas, polling ou testes funcionais em produção/Telegram.
+Esta lista é histórica; use o status acima para planejar as próximas mudanças. Nesta alteração não se adicionam consultas, polling ou testes funcionais em produção/Telegram.
