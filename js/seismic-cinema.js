@@ -46,8 +46,8 @@
   }
   frames[0]={offset:0,translate:'0px 0px',rotate:'0deg'};frames[n]={offset:1,translate:'0px 0px',rotate:'0deg'};return frames;
  }
- function stop(){
-  root.SeismicEpicenterDetail?.stop();
+ function stop(keepEpicenter=false){
+  if(!keepEpicenter)root.SeismicEpicenterDetail?.stop();
   if(job&&!job.demo&&job.profile.mag>=8)root.FullScreenEffects?.stop('quake');
   if(job){job.words?.destroy();if(job.demo)root.CinematicCard?.stop();cancelAnimationFrame(job.raf);clearTimeout(job.timer);job.animations.forEach(a=>a.cancel());
   job.scene?.pieces.forEach(piece=>{if(piece.displaced){piece.source.classList.remove('seismic-displaced');piece.source.inert=piece.wasInert;}});job.layer?.remove();
@@ -120,7 +120,7 @@
   if(demo)root.CinematicCard?.start({...item,id:'seismic-typography-demo',type:'earthquake',__cinemaDemo:true},p.duration);
   const scene=p.full||p.ambient?createScene(p):null;if(p.ambient)scene.layer.classList.add('seismic-scene-ambient');
   const words=root.SeismicWordFall?.create(p);
-  if(!demo&&p.mag>=6)root.SeismicEpicenterDetail?.start(item,p.duration);
+  if(!demo&&p.mag>=6)root.SeismicEpicenterDetail?.start(item,p.full?12000:8000);
   target.dataset.seismicMotion=p.full?'full':'discreet';
   const animations=[],swayTargets=[];
   const animate=(el,pr)=>{if(typeof el.animate==='function')animations.push(el.animate(keyframes(pr),{duration:p.duration,easing:'linear',fill:'none'}));};
@@ -144,7 +144,7 @@
   };job.raf=requestAnimationFrame(tick);}
   if(!demo&&p.full&&p.mag>=8)root.FullScreenEffects?.quake(item,mode);
   if(demo&&!previewOptions.quietControls)showPreviewBar(p,false);
-  job.timer=setTimeout(()=>{if(job?.token!==token)return;stop();if(demo&&!previewOptions.quietControls)showPreviewBar(p,false,true);},p.duration+50);
+  job.timer=setTimeout(()=>{if(job?.token!==token)return;stop(true);if(demo&&!previewOptions.quietControls)showPreviewBar(p,false,true);},p.duration+50);
   return p;
  }
  function showPreviewBar(p,motionOff,done=false){
