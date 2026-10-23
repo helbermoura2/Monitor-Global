@@ -52,7 +52,7 @@ function update(){
  beacon.dataset.kind=data.quake?'earthquake':item.type||'event';host.style.setProperty('--event-pin-tone',data.tone);
 }
 function schedule(){if(timer===null)timer=setTimeout(update,120);}
-window.EventPinBadge={describe,refresh:schedule};window.EventFocusBeacon={refresh:schedule};
+window.EventPinBadge={describe,refresh:schedule};window.EventFocusBeacon={refresh:schedule,sync(){clearTimeout(timer);timer=null;update();}};
 window.EventStore?.subscribe(schedule);
 window.addEventListener('load',()=>{map.on('render',schedule);schedule();},{once:true});
 window.addEventListener('pageshow',schedule);document.addEventListener('visibilitychange',schedule);

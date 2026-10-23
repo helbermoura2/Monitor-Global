@@ -1,7 +1,7 @@
 /* Bounded sequence labels and zoom-scale groups; only explicit clicks move the camera. */
 (function(){
  'use strict';
- let model=null,signature='',pins=new Map(),box=null,summary=null,known=new Map(),initialized=false,fresh=new Map(),timer=null,visible=true,lastData=null,mapKey='',represented=new Set(),clusterCount=0,lineTargets=[];
+ let model=null,signature='',pins=new Map(),box=null,summary=null,known=new Map(),initialized=false,fresh=new Map(),timer=null,visible=true,lastData=null,mapKey='',represented=new Set(),clusterCount=0,lineTargets=[],layoutFrame=0,lastLayout=0;
  const events=()=>typeof globalEvents==='undefined'?[]:globalEvents;
  const sequenceFor=id=>{const g=model?.forEvent(id);return g?.children.length?g:null;};
  const chosen=()=>typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
@@ -9,7 +9,7 @@
  const local=q=>window.EventPortuguese?.place(q.place)||q.place||'Local não informado';
  function node(host,tag,value){const el=document.createElement(tag);el.textContent=value;host.append(el);return el;}
  function open(id){const index=events().findIndex(q=>q.id===id);if(index>=0){window.__mgSoftCycle=false;window.__mgRotationDisplay=false;showEventDetails(index,false);}}
- function clear(resetHub=true){if(resetHub)window.AftershockHub?.clear();box?.remove();box=null;summary?.remove();summary=null;const slot=document.getElementById('pd-aftershock-details');if(slot){slot.style.display='none';slot.dataset.empty='true';const fold=slot.closest('details');if(fold)fold.style.display='none';}for(const pin of pins.values())pin.remove();pins.clear();signature='';mapKey='';represented.clear();clusterCount=0;restore();}
+ function clear(resetHub=true){cancelAnimationFrame(layoutFrame);layoutFrame=0;if(resetHub)window.AftershockHub?.clear();box?.remove();box=null;summary?.remove();summary=null;const slot=document.getElementById('pd-aftershock-details');if(slot){slot.style.display='none';slot.dataset.empty='true';const fold=slot.closest('details');if(fold)fold.style.display='none';}for(const pin of pins.values())pin.remove();pins.clear();signature='';mapKey='';represented.clear();clusterCount=0;restore();}
  function restore(){if(typeof markerStores==='undefined')return;markerStores.quake.forEach(m=>m.getElement().classList.remove('aftershock-covered'));}
  function setVisible(value){visible=!!value;syncMarkers();}
  function syncMarkers(){
@@ -25,6 +25,7 @@
     for(const entry of shown){
      const c=entry.cluster,q=entry.q,members=c?.members||[q],isMain=q?.id===group.main.id;
      const el=document.createElement('button');el.type='button';el.className='aftershock-pin event-pin-surface'+(isMain?' main':c?'':' replica')+(zoom>=5?' close-scale':'')+(q?.id===chosen()?' hub-selected':'')+(c?' cluster':'')+(members.some(q=>fresh.has(q.id))?' fresh':'');
+     el.dataset.eventId=c?.id||q.id;el.style.zIndex=q?.id===chosen()?'100':isMain?'30':c?'20':'10';
      el.style.setProperty('--quake-tone',typeof getHexColor==='function'?getHexColor(c?.mag??q.mag):'#fbbf24');
      el.textContent=c?c.members.length.toLocaleString('pt-BR'):(isMain?'Principal · ':'')+mag(q);
      if(c){clusterCount++;node(el,'span','possíveis réplicas');el.title=c.members.length.toLocaleString('pt-BR')+' possíveis réplicas · clique para aproximar';el.setAttribute('aria-label',el.title);}
@@ -44,10 +45,18 @@
    }
   }
   for(const pin of pins.values())pin.getElement().style.display=allowed?'':'none';
+  window.EventFocusBeacon?.sync?.();scheduleLayout();
   if(group?.children.length)window.AftershockHub?.update(group,chosen(),allowed,lineTargets,mapKey,signature);
-  if(allowed&&typeof markerStores!=='undefined')for(const id of represented)if(id!==chosen())markerStores.quake.get(id)?.getElement().classList.add('aftershock-covered');
+  if(allowed&&typeof markerStores!=='undefined')for(const id of represented)markerStores.quake.get(id)?.getElement().classList.add('aftershock-covered');
  }
 
+ function layoutLabels(){
+  const rows=[...pins.values()].map(pin=>pin.getElement()).filter(el=>el.style.display!=='none').sort((a,b)=>Number(b.dataset.eventId===String(chosen()))-Number(a.dataset.eventId===String(chosen()))||Number(b.classList.contains('main'))-Number(a.classList.contains('main'))),boxes=[];
+  for(const el of rows)el.classList.remove('sequence-compact');
+  for(const el of rows){const selected=el.dataset.eventId===String(chosen()),r=el.getBoundingClientRect(),overlap=boxes.some(b=>r.left<b.right+8&&r.right>b.left-8&&r.top<b.bottom+8&&r.bottom>b.top-8);if(!selected&&overlap)el.classList.add('sequence-compact');else if(r.width>15)boxes.push(r);el.style.zIndex=selected?'100':el.classList.contains('main')?'30':'10';}
+ }
+ function scheduleLayout(){if(layoutFrame||!pins.size||typeof map==='undefined'||!map)return;layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;const now=performance.now();if(now-lastLayout<90){scheduleLayout();return;}lastLayout=now;layoutLabels();});}
+ window.addEventListener('load',()=>map?.on('render',scheduleLayout),{once:true});
  function ingest(){
   const data=events(),now=Date.now(),ids=new Set(data.map(q=>q.id));
   if(initialized)for(const q of data)if(!known.has(q.id)&&q.time>=now-AftershockModel.WINDOW)fresh.set(q.id,now+10000);

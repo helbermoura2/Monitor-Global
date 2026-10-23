@@ -1,0 +1,8 @@
+# Sequências sísmicas e enquadramento de avisos
+
+- O marcador da sequência correspondente ao cartão tem prioridade visual explícita, com um único rótulo selecionado. O marcador de base duplicado fica oculto enquanto sua representação na sequência existir; volta ao sair da sequência.
+- As posições geográficas e linhas entre principal e réplicas são preservadas. Rótulos que colidem com o selecionado/principal ou entre si viram pontos, com informações mantidas no título e no clique. Ao aproximar, os rótulos se separam novamente. A seleção não muda durante o ajuste visual.
+- O tempo de permanência dos avisos começa depois da chegada real da câmera. Quadros lentos não permitem que o temporizador avance para o próximo evento durante a etapa global. A espera por uma chegada defeituosa tem teto de três minutos; eventos prioritários e interação continuam podendo interromper.
+- INMET pode usar coordenadas já presentes em municipalities ou resolver os municípios nomeados no catálogo estático existente. Não se inventam epicentros nem limites de tempestade; áreas municipais e pontos de referência têm mensagens próprias. Não há novas consultas ao Durable ou novas rotinas de polling de fontes.
+
+Validação local: relógio de câmera atrasada/chegada/cancelamento, limites temporais, marcador selecionado em sequência densa em celular/desktop, resolução municipal sem coordenadas prontas, enquadramento regional em globo e plano e proteção contra resposta tardia de outro aviso. O print não permite determinar qual duração de frame ou estado de dados ocorreu no aparelho; as correções cobrem os dois caminhos encontrados no código.
