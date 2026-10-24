@@ -1,0 +1,2 @@
+Bandeiras renderizadas em PNG a partir dos SVG do próprio site em assets/flags/countries (flag-icons, licença MIT anexa). Incorporadas para funcionar offline no Fire Stick, sem depender de emojis ou fontes do sistema.
+A bandeira identifica o país/região explicitamente nomeado na localização, não atribui soberania ao epicentro marítimo e não representa o alcance de um tsunami. Sem identificação inequívoca, é omitida. Boletins de tsunami não herdam a bandeira do sismo.

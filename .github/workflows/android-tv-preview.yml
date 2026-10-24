@@ -29,6 +29,8 @@ jobs:
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.AlertTrackerCheck
           javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/TrustPolicy.java android-tv/tests/TrustPolicyCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.TrustPolicyCheck
+          javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/DemoAlertsCheck.java
+          java -cp /tmp/tv-java-tests top.monitorglobal.tv.DemoAlertsCheck
       - name: Build and inspect APK
         working-directory: android-tv
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease

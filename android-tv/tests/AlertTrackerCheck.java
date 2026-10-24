@@ -15,6 +15,11 @@ public class AlertTrackerCheck {
   AlertTracker partial=new AlertTracker();partial.accept(List.of(),true,false,NOW);check(!partial.tsunamiReady,"Unavailable source must not initialize");check(partial.accept(List.of(tsunami("warn","warning",true)),true,true,NOW).isEmpty(),"First healthy response baselines independently");
   Alert old=new Alert("too-old","earthquake","v","old","old","earthquake",NOW-3600000,NOW-3600000,true);check(t.accept(List.of(old),true,true,NOW).isEmpty(),"Reconnect must not replay hour-old events");
   for(int i=0;i<1000;i++)t.accept(List.of(quake("q"+i,"v",false)),true,true,NOW);check(t.seen.size()<=256,"Seen state must remain bounded");
+  AlertTracker revisions=new AlertTracker();Alert initial=quake("revision","v1",true);initial.magnitude=7.2;initial.source="USGS";revisions.accept(List.of(initial),true,true,NOW);
+  Alert next=quake("revision","v2",true);next.magnitude=6.9;next.source="USGS";next.countryCode="VU";next.tsunamiSummary="Vanuatu";
+  Alert notice=revisions.accept(List.of(next),true,true,NOW).get(0);check(notice.revision.equals("M7,2 → M6,9"),"Revision must preserve previous and current magnitudes");check(notice.source.equals("USGS")&&notice.countryCode.equals("VU")&&notice.tsunamiSummary.equals("Vanuatu"),"Revision must preserve presentation metadata");
+  AlertTracker restart=new AlertTracker();restart.earthquakeReady=true;restart.tsunamiReady=true;restart.seen.putAll(revisions.seen);Alert lower=quake("revision","v3",false);lower.magnitude=5.9;check(restart.accept(List.of(lower),true,true,NOW).get(0).revision.equals("M6,9 → M5,9"),"Restored state must preserve previous magnitude below threshold");
+  Alert depthOnly=quake("revision","v4",false);depthOnly.magnitude=5.9;check(restart.accept(List.of(depthOnly),true,true,NOW).get(0).revision.equals("Dados do sismo revisados"),"Depth revision must not invent a magnitude change");
   System.out.println("PASS: baseline, M6 threshold, revision, tsunami ending, outage, restart and bounded state");
  }
 }
