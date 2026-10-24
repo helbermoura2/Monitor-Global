@@ -20,5 +20,10 @@ public class AlertCodecTest {
   Alert a=new Alert("known","earthquake","v","M6,0 · Local","Profundidade desconhecida","earthquake",1800000000000L,1800000000000L,true);
   JSONObject stored=AlertCodec.write(a);stored.remove("magnitude");stored.remove("revision");Alert restored=AlertCodec.read(stored);assertTrue(Double.isNaN(restored.previousMagnitude));assertTrue(restored.revision.isEmpty());assertNull(restored.companion);
  }
+ @Test public void contextSurvivesReplayAndRevisionWithoutChangingIdentity() throws Exception {
+  Alert a=DemoAlerts.create("quake",1800000000000L).get(0);Alert b=AlertCodec.read(new JSONObject(AlertCodec.write(a).toString())).revised(7.4);
+  assertEquals(a.populationSummary,b.populationSummary);assertEquals(a.nearbySummary,b.nearbySummary);assertEquals(a.id,b.id);assertEquals(a.version,b.version);
+  JSONObject legacy=AlertCodec.write(a);legacy.remove("populationSummary");legacy.remove("nearbySummary");assertEquals("",AlertCodec.read(legacy).populationSummary);
+ }
  @Test(expected=JSONException.class) public void invalidSavedRecordIsRejected() throws Exception {AlertCodec.read(new JSONObject("{\"id\":\"\",\"kind\":\"earthquake\",\"issuedAt\":1,\"eventTime\":1}"));}
 }
