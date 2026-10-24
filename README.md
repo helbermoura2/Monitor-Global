@@ -56,6 +56,10 @@ Consulte o [Guia do dono](GUIA_DO_DONO.md), com edição e recuperação pelo Gi
 
 O [alarme de disponibilidade](docs/alarme-disponibilidade.md) verifica a página inicial pelo GitHub Actions. Os avisos ao Telegram exigem os Secrets próprios descritos no guia; a checagem não atesta a saúde de todas as fontes.
 
+## Versões e recuperação
+
+Consulte as [releases](https://github.com/helbermoura2/Monitor-Global/releases) e o [guia de versões e recuperação](docs/versoes-e-recuperacao.md). Os marcos `monitor-vAAAA.MM.DD` identificam o código do site/backend; o aplicativo TV tem distribuição própria.
+
 ## Executar a interface localmente
 
 Com Node.js e npm instalados:

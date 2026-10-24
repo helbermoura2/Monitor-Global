@@ -8,6 +8,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 
 - [alarme-disponibilidade.md](alarme-disponibilidade.md)
 - [custos-e-cotas.md](custos-e-cotas.md)
+- [versoes-e-recuperacao.md](versoes-e-recuperacao.md)
 - [cloudflare-worker-maintenance.md](cloudflare-worker-maintenance.md)
 - [worker-modules.md](worker-modules.md)
 - [durable-request-budget.md](durable-request-budget.md)
