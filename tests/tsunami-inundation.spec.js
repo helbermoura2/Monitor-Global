@@ -36,7 +36,7 @@ async function boot(page,width,cpu=false){
  // Mantido como segunda camada de defesa (ex.: algum outro tile-id futuro
  // acabar caindo no mesmo map.on('error',...) por outro motivo que não rede).
  await silenceBaseTileRetry(page);
- await page.evaluate(()=>{const item={id:'procedural-tsunami',type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
+ await page.evaluate(()=>{const item={id:'procedural-tsunami',__cinemaDemo:true,type:'tsunami',place:'Tsunami — boletim de teste 🇯🇵',source:'QA',coords:[-46.63,-23.55],time:Date.now(),sev:3};globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);if(innerWidth<900){document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');}});
  await expect(page.locator('#pd-local')).toContainText('boletim de teste');
 }
 async function picture(page,name){const r=await page.locator('#painel-direito').boundingBox(),v=page.viewportSize(),x=Math.max(0,r.x),y=Math.max(0,r.y);await page.screenshot({path:name,clip:{x,y,width:Math.min(r.width,v.width-x),height:Math.min(r.height,v.height-y)}});}

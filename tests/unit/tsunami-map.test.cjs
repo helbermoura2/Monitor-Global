@@ -36,7 +36,7 @@ test('a geographic name with no source category does not import colors from a di
 test('official decimal and inequality category text keeps the right level; no-threat is informational',()=>{assert.equal(M.category({category:'3.0 TO 5.0 METERS'},{hazardNature:'warning'}).rank,5);assert.equal(M.category({category:'0.30 TO 1.00 METERS'},{hazardNature:'warning'}).rank,3);assert.equal(M.category({category:'<0.3 m'},{hazardNature:'warning'}).rank,2);assert.equal(M.category({category:'>3 m'},{hazardNature:'warning'}).rank,5);assert.equal(M.category({category:'NO TSUNAMI THREAT'},{hazardNature:'warning'}).label,'Sem ameaça no boletim');});
 test('explicit no-threat bulletin has one status and paints no threat coasts',()=>{
  const item={hazardNature:'bulletin',warningLevel:'Informativo',description:'BASED ON ALL AVAILABLE DATA... THERE IS NO TSUNAMI THREAT FROM THIS EARTHQUAKE.',coverageAreas:[{name:'Hawaii',category:'Information'}]};
- assert.equal(M.status(item).level,'no-threat');assert.match(M.status(item).title,/Sem ameaça/);assert.equal(M.build(item,regions).data.features.length,0);
+ assert.equal(M.status(item).level,'no-threat');assert.match(M.status(item).title,/Sem ameaça/);assert(M.build(item,regions).data.features.length>0);assert(M.build(item,regions).data.features.every(f=>f.properties.rank===1));
  assert.equal(M.status({...item,description:'Informativo ainda em avaliação'}).level,'information');
  assert.equal(M.status({...item,hazardNature:'warning',warningLevel:'Aviso'}).level,'warning');
  assert.equal(M.status({...item,cancelled:true}).level,'ended');

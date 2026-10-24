@@ -25,14 +25,14 @@ async function fetchTsunamiAlerts() {
                 bandeira: '🇺🇸',
                 time: new Date(pr.sent || Date.now()).getTime(),
                 coords, warningGeometry:['Polygon','MultiPolygon'].includes(a.geometry?.type)?a.geometry:null, coordinateRole:'warning-area', source: 'NWS/NOAA', detail: pr.event,
-                official:true,hazardNature:'warning',warningLevel:/Watch/i.test(pr.event)?'Vigilância':/Advisory/i.test(pr.event)?'Atenção':'Aviso',
+                official:true,_tsunamiStale:false,hazardNature:pr.messageType==='Cancel'?'bulletin':'warning',cancelled:pr.messageType==='Cancel',warningLevel:pr.messageType==='Cancel'?'Encerrado':/Watch/i.test(pr.event)?'Vigilância':/Advisory/i.test(pr.event)?'Atenção':'Aviso',
                 expiresAt:Date.parse(pr.expires),warningDescription:pr.description,warningInstruction:pr.instruction,
                 link:/^https:\/\/api\.weather\.gov\/alerts\//.test(a.id)?a.id:'https://www.weather.gov/',
                 locationNote:'O mapa aponta uma referência da área costeira sob aviso, não o epicentro do sismo.'
             };
             const isNew = upsertAlert(obj, { fonte: 'tsunamiNws' });
 
-            if (isNew) {
+            if (isNew&&window.TsunamiRegional.hasThreat(obj)) {
                 primeiroNovo = primeiroNovo || obj;
                 playAlertTone('tsunami',obj.id);
                 showToast(`🌊 TSUNAMI: ${pr.event}`, 'error');
@@ -41,8 +41,9 @@ async function fetchTsunamiAlerts() {
         });
 
         globalAlerts = globalAlerts.filter(al =>
-            al.source !== 'NWS/NOAA' || al.type !== 'tsunami' || ids.has(al.id)
+            al.source !== 'NWS/NOAA' || al.type !== 'tsunami' || ids.has(al.id) || al.hazardNature==='warning'&&!al.cancelled&&window.TsunamiLink.current(al,Date.now())
         );
+        for(const a of globalAlerts)if(a.source==='NWS/NOAA'&&a.type==='tsunami')a._tsunamiStale=!ids.has(a.id);
         window.MonitorFreshness?.recordStatus('NWS tsunami','ok');
         marcarBooted('tsunamiNws');
         applyFilters();
@@ -63,11 +64,12 @@ async function fetchOfficialTsunamiAlerts(){
   const beforeSignature=globalAlerts.filter(item=>['PTWC','NTWC'].includes(item.source)).map(item=>item.id+'|'+item.time+'|'+item.warningLevel).sort().join(';');
   const items=window.TsunamiLink.latest((data.items||[]).map(item=>window.TsunamiBulletinOrigin?.normalize(item)||item).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)));
   const ids=new Set(items.map(item=>item.id));
-  globalAlerts=globalAlerts.filter(item=>!online.has(item.feedKey||item.source)||item.type!=='tsunami'||ids.has(item.id));
+  globalAlerts=globalAlerts.filter(item=>!online.has(item.feedKey||item.source)||item.type!=='tsunami'||ids.has(item.id)||item.official&&item.hazardNature==='warning'&&!item.cancelled);
+  for(const item of globalAlerts)if(item.official&&item.type==='tsunami')item._tsunamiStale=!ids.has(item.id)||!online.has(item.feedKey||item.source);
   for(const item of items){
    const isNew=upsertAlert(item,{fonte:'tsunamiOfficial'});
-   if(isNew&&item.hazardNature==='warning'){
-    playAlertTone('tsunami',item.id);showToast('🌊 '+item.displayLabel+' · '+item.place,'error');
+   if(isNew&&window.TsunamiRegional.hasThreat(item)){
+    playAlertTone('tsunami',item.id);showToast('🌊 '+window.TsunamiRegional.rows(item).filter(r=>r.active).map(r=>r.regionLabel).join(' · ')+' · aviso oficial','error');
     notificarNavegador(item.displayLabel,item.place);
    }
   }
@@ -85,8 +87,10 @@ async function fetchOfficialTsunamiAlerts(){
    }
   }
   window.NewEventPriority?.queue(items);applyFilters();
+  window.TsunamiLinkedPanel?.refresh();
+  const selectedTsunami=globalAlerts.find(a=>a.id===eventoSelecionadoId&&a.type==='tsunami');if(selectedTsunami&&!window.TsunamiRegional.hasThreat(selectedTsunami)){window.CinematicCard?.stop();if(typeof stopTsunamiWave==='function')stopTsunamiWave();}
   marcarBooted('tsunamiOfficial');window.NewEventPriority?.focus();
- }catch(error){window.__mgTsunamiImageHealth={ok:false,checkedAt:Date.now()};for(const name of ['PTWC boletins','NTWC boletins'])window.MonitorFreshness?.recordStatus(name,'off',error.message);console.error('Tsunami oficial:',error);}
+ }catch(error){window.__mgTsunamiImageHealth={ok:false,checkedAt:Date.now()};for(const a of globalAlerts)if(a.official&&a.type==='tsunami')a._tsunamiStale=true;window.TsunamiLinkedPanel?.refresh();const selected=globalAlerts.find(a=>a.id===eventoSelecionadoId);if(selected?.type==='tsunami')window.CinematicCard?.refresh(selected);for(const name of ['PTWC boletins','NTWC boletins'])window.MonitorFreshness?.recordStatus(name,'off',error.message);console.error('Tsunami oficial:',error);}
 }
 
 async function fetchTornadoAlerts() {

@@ -92,3 +92,14 @@
 .tsunami-demo-origin{display:flex;align-items:center;flex-direction:column-reverse;gap:8px;pointer-events:none}.tsunami-demo-origin i{display:block;width:12px;height:12px;border:3px solid #fff;background:#ef4444;border-radius:50%;box-shadow:0 0 0 5px #ffffff35}.tsunami-demo-origin strong{padding:5px 8px;background:#071b2dec;border:1px solid #e2e8f088;border-radius:6px;font:600 11px system-ui;color:#fff;white-space:nowrap}
 #painel-direito #pd-coastal-demo{opacity:1!important;pointer-events:auto!important;min-height:0}
 @media(max-width:900px){body.mg-mobile-primary.mobile-details-mid #painel-direito.tsunami-coastal-demo{grid-template-columns:1fr!important;grid-template-rows:auto minmax(0,1fr)!important;height:min(36vh,330px)!important;max-height:36vh!important}body.mg-mobile-primary.mobile-details-mid #painel-direito.tsunami-coastal-demo #pd-coastal-demo{grid-column:1/-1;grid-row:2;padding:8px 12px;overflow-y:auto}#pd-coastal-demo h2{font-size:19px;margin-top:6px}#pd-coastal-demo h3{font-size:13px}#pd-coastal-demo li{margin:5px 0;font-size:11px}}
+.tsunami-regional-list{display:grid;gap:8px;max-height:230px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#6b9689 transparent;text-align:left}
+.tsunami-regional-row{padding:9px 10px;border:1px solid #91afa33d;border-left:3px solid var(--regional-tone);border-radius:8px;background:#10201ebd}
+.tsunami-regional-row strong{color:var(--regional-tone);font-size:13px;line-height:1.4}
+.tsunami-regional-row p{font-size:13px;line-height:1.45;margin:4px 0;color:#e5eeea}
+.tsunami-regional-row small{font-size:11px;margin:3px 0;color:#c4d5ce}
+.tsunami-regional-row a{font-size:12px;color:#b0ddce;text-decoration:underline}
+.tsunami-regional-list::-webkit-scrollbar{width:6px;background:transparent}
+.tsunami-regional-list::-webkit-scrollbar-thumb{background:#6b9689;border-radius:6px}
+@media(max-width:900px){.tsunami-regional-list{max-height:180px}}
+.tsunami-status-strip:not([data-level="warning"])::before{animation:none;opacity:.1}
+.tsunami-status-strip[data-level="no-threat"]{border-color:#70c9b577;color:#bcdfd2;background:#10231edb}

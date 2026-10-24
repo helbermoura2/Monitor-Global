@@ -50,3 +50,10 @@ test('Spanish NTWC product uses the same origin and published regional scope as 
  const {parseNwsTsunamiProduct}=await import('../../tsunami-official-worker.mjs');const [a]=parseNwsTsunamiProduct(JSON.parse(readFileSync('tests/fixtures/tsunami/NWS-WEAK63.json','utf8')));
  assert.equal(a.originTime,Date.parse('2026-10-09T20:26:00Z'));assert.deepEqual(a.coords,[-81.4,7.8]);assert.equal(a.originMag,6.9);assert.equal(a.place,'Panama');assert.equal(a.hazardNature,'bulletin');assert.equal(a.coverageAreas.length,5);
 });
+
+test('Vanuatu evaluation preserves official coastal scope without inventing wave height or inundation',async()=>{
+ const {evaluationThreatAreas}=await import('../../tsunami-official-worker.mjs');
+ const rows=evaluationThreatAreas('HAZARDOUS TSUNAMI WAVES FROM THIS EARTHQUAKE ARE POSSIBLE WITHIN 300 KM OF THE EPICENTER ALONG THE COASTS OF VANUATU.');
+ assert.equal(rows.length,1);assert.equal(rows[0].name,'VANUATU');assert.equal(rows[0].radiusKm,300);assert.equal(rows[0].category,'Warning');assert.equal(rows[0].warningGeometry,undefined);
+ assert.equal(evaluationThreatAreas('There is no tsunami danger for Alaska.').length,0);
+});

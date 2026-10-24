@@ -111,6 +111,7 @@
   path.setAttribute('d',monitoring?'M7 28 C7 14 57 14 57 28 C57 46 7 46 7 28 Z M15 27 C15 20 49 20 49 27 C49 36 15 36 15 27 Z M7 29 L10 44 C20 55 45 53 55 43 L57 29 M19 30 C23 41 41 41 46 30':symbolPaths[item.type]);svg.append(path);el.replaceChildren(svg);
  }
  function start(item,duration=Infinity,resourcesFailed=false){
+  if(item?.type==='tsunami'&&!item.__cinemaDemo&&window.TsunamiRegional&&(!window.TsunamiLink?.official(item)||!window.TsunamiRegional.hasThreat(item))){prepareSymbol(item);stop();return false;}
   if(!item?.__cinemaDemo)window.CardEffectDemo?.cancelForRealEvent();
   if(!item?.__cinemaDemo)prepareSymbol(item);
   const p=panel(),cfg=profile(item);
@@ -472,6 +473,7 @@
  document.addEventListener('visibilitychange',()=>{cancelAnimationFrame(raf);raf=0;clearTimeout(idleTimer);idleTimer=0;if(document.hidden){scene?.footage?.pause();}else scene?.wake?.();});
  window.addEventListener('pagehide',stop);
  function refresh(item){
+  if(item?.type==='tsunami'&&!item.__cinemaDemo&&window.TsunamiRegional&&(!window.TsunamiLink?.official(item)||!window.TsunamiRegional.hasThreat(item))){prepareSymbol(item);stop();return false;}
   prepareSymbol(item);
   if(item?.type==='volcano'&&!item.__cinemaDemo){
    const cfg=profile(item);

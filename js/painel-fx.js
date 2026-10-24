@@ -69,6 +69,7 @@ function deferCardEventFx(item, action) {
 }
 function triggerCardFx(type, color, item) {
     const el = document.getElementById('painel-direito');
+    if(type==='tsunami'&&!item?.__cinemaDemo&&!item?.__tsunamiMapDemo&&window.TsunamiRegional&&(!window.TsunamiLink?.official(item)||!window.TsunamiRegional.hasThreat(item)))type='tsunami-info';
     if (!el || !type) return;
     // A deferred "camera arrival" effect (deferCardEventFx) can fire after the
     // card already shows this exact item/type -- e.g. a second EventCamera

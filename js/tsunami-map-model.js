@@ -4,6 +4,7 @@
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const aliases={panama:'panama',brasil:'brazil',peru:'peru',equador:'ecuador',colombia:'colombia',mexico:'mexico',chile:'chile',japao:'japan',indonesia:'indonesia',filipinas:'philippines',novazelandia:'newzealand',australia:'australia',russia:'russia',polinesiafrancesa:'frenchpolynesia',novacaledonia:'newcaledonia',ilhascook:'cookislands',ilhassalomao:'solomonislands',marshalls:'marshallislands',micronesia:'federatedstatesofmicronesia',chuuk:'federatedstatesofmicronesia',kosrae:'federatedstatesofmicronesia',pohnpei:'federatedstatesofmicronesia',rota:'northernmarianaislands',tinian:'northernmarianaislands',saipan:'northernmarianaislands',northernmarianas:'northernmarianaislands',columbiabritanica:'britishcolumbia',havaí:'hawaii',havai:'hawaii',samoaamericana:'americansamoa',alasca:'alaska'};
  function status(item){
+  const regional=root.TsunamiRegional?.rows(item);if(regional?.length){const active=regional.some(r=>r.active),noThreat=regional.every(r=>r.state==='noThreat'),ended=regional.every(r=>r.state==='ended');return {level:active?'warning':noThreat?'no-threat':ended?'ended':'information',title:active?'Aviso oficial para as regiões citadas':noThreat?'Sem ameaça nas regiões citadas':ended?'Aviso encerrado nas regiões citadas':'Situação de tsunami por região',message:'Cada situação vale somente para as regiões e a autoridade do boletim; outras costas podem ter situação diferente.'};}
   const text=[item.warningLevel,item.title,item.description,item.detail].filter(Boolean).join(' ');
   if(item.cancelled)return {level:'ended',title:'Boletim de tsunami encerrado',message:'Consulte as orientações finais da autoridade.'};
   if(item.hazardNature!=='warning'&&/no tsunami (?:threat|danger)|no existe peligro de tsunami|sem amea[cç]a|n[aã]o h[aá] amea[cç]a/i.test(text))return {level:'no-threat',title:'Sem ameaça de tsunami, segundo o boletim',message:'Não há ameaça indicada para as áreas avaliadas neste boletim. Isto não é um alerta de ameaça.'};
@@ -24,6 +25,7 @@
   const box=document.createElement('section');box.className='tsunami-record-notice';box.dataset.bulletinId=String(item.id);box.dataset.level=view.level;
   const add=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;box.append(el);return el;};
   add('strong',view.title);add('small',(item.source||'Fonte oficial')+' · '+(item.warningLevel||'Boletim oficial'));add('p',view.message);
+  const groups=root.TsunamiRegional?.bundle(item,typeof globalAlerts==='undefined'?[]:globalAlerts,typeof globalEvents==='undefined'?[]:globalEvents)?.groups||[];for(const group of groups.slice(0,4))add('small',group.regions.join(' · ')+' · '+group.label+' · '+group.source);
   if(view.level==='warning'){
    const areas=[...item.affectedAreas||[],...item.coverageAreas||[]];
    for(const area of areas.slice(0,6))add('small',placeLabel(area.name)+' · '+category(area,item).label);
@@ -38,7 +40,7 @@
  function category(area,item){
   const value=String(area.category||item.warningLevel||'').replace(/\b(\d+)[.,]0+\b/g,'$1').replace(/\b0[.,]30+\b/g,'0.3');
   if(item.cancelled||/cancel|encerrad/i.test(value))return {color:'#94a3b8',label:'Encerrado',rank:0};
-  if(/no (?:tsunami )?(?:threat|danger)|sem amea[cç]a/i.test(value))return {color:'#38bdf8',label:'Sem ameaça no boletim',rank:1};
+  if(/no (?:tsunami )?(?:threat|danger)|sem amea[cç]a/i.test(value))return {color:root.TsunamiRegional?.colors.noThreat||'#70c9b5',label:'Sem ameaça no boletim',rank:1};
   if(/information|informativ/i.test(value)||item.hazardNature==='bulletin')return {color:'#38bdf8',label:'Informativo',rank:1};
   if(/(?:less than|menos de|<)\s*0[.,]3/i.test(value))return {color:'#2dd4bf',label:'Previsão menor que 0,3 m',rank:2};
   if(/(?:greater than|more than|mais de|>|≥)\s*3|(?:(?:^|[^\d.,])3\s*(?:to|a|-)\s*\d)/i.test(value))return {color:'#ef4444',label:'Previsão acima de 3 m',rank:5};
@@ -49,7 +51,7 @@
  }
  function build(item,regions){
   const features=[],entries=[],unmapped=[];
-  if(status(item).level==='no-threat')return {data:{type:'FeatureCollection',features},entries:[],unmapped:[]};
+
   if(['Polygon','MultiPolygon'].includes(item.warningGeometry?.type)){
    const c=category({},item);features.push({type:'Feature',geometry:item.warningGeometry,properties:{...c,name:item.place,kind:'official'}});entries.push(c);
   }
@@ -68,6 +70,12 @@
   }
   return {data:{type:'FeatureCollection',features},entries:[...new Map(entries.map(c=>[c.label,c])).values()].sort((a,b)=>b.rank-a.rank),unmapped};
  }
+ function buildGroup(bundle,regions){
+  const features=[],entries=[],unmapped=[];
+  for(const item of bundle.bulletins){const own=bundle.rows.filter(r=>r.bulletinId===item.id);for(const row of own){const c={...item,hazardNature:row.active?'warning':'bulletin',cancelled:row.state==='ended',warningLevel:row.category,warningGeometry:own.indexOf(row)===0?item.warningGeometry:null,coverageAreas:[],affectedAreas:row.scoped?[{name:row.region,category:row.state==='noThreat'?'No tsunami threat':row.category}]:[]};const r=build(c,regions);for(const f of r.data.features)features.push({...f,properties:{...f.properties,regionalState:row.state,source:row.source,issuedAt:row.issuedAt,stale:row.stale}});entries.push(...r.entries);unmapped.push(...r.unmapped);}}
+  features.sort((a,b)=>(a.properties.rank||0)-(b.properties.rank||0));
+  return {data:{type:'FeatureCollection',features},entries:[...new Map(entries.map(c=>[c.label,c])).values()].sort((a,b)=>b.rank-a.rank),unmapped:[...new Set(unmapped)]};
+ }
  function longitudeBounds(values){
   const xs=values.map(x=>(x%360+360)%360).sort((a,b)=>a-b);if(!xs.length)return [-180,180];
   let gap=-1,start=0,end=360;
@@ -76,5 +84,5 @@
   return [start,end];
  }
  function placeLabel(name){return {kurilislands:'Ilhas Curilas',northeasternjapan:'Nordeste do Japão',aleutianislands:'Ilhas Aleutas',southernalaska:'Sul do Alasca',pacificcoastofrussia:'Costa pacífica da Rússia'}[normalize(name)]||root.EventPortuguese?.place(name)||name;}
- const api={build,category,normalize,longitudeBounds,placeLabel,status,record};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
+ const api={build,buildGroup,category,normalize,longitudeBounds,placeLabel,status,record};root.TsunamiMapModel=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:window);

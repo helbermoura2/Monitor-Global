@@ -1,6 +1,6 @@
 # Imagem sísmica: intensidade local e situação de tsunami
 
-Layout `hollow-v14-tsunami`, compartilhado entre Telegram (1080 × 1920) e exportação pelo site. Não altera a câmera, os cálculos, as cores científicas ou as geometrias dos contornos.
+Layout `hollow-v15-regional`, compartilhado entre Telegram (1080 × 1920) e exportação pelo site. Não altera a câmera, os cálculos, as cores científicas ou as geometrias dos contornos.
 
 ## Intensidade
 
@@ -30,3 +30,11 @@ Downloads, capturas e cópias encaminhadas já salvas não são alterados retroa
 - Fluxo real do Worker com Telegram simulado verifica edição do mesmo ID, ausência de duplicatas e atualização durante falha do ShakeMap.
 - Comparação dos pixels comprova que a atualização isolada do bloco não modifica mapa ou estatísticas.
 - Layout e exportação no navegador com rede externa bloqueada; referências visuais aprovadas do renderer atualizadas para a mudança intencional.
+
+## Visão regional integrada
+
+O modelo comum `js/tsunami-regional-model.js` distingue aviso, vigilância, atenção, ausência de ameaça, encerramento e informação para cada região citada. O painel reúne os boletins relacionados ao mesmo sismo. O mapa desenha referências cartográficas costeiras por estado; não extrapola ausência de ameaça para costas não citadas, nem transforma um raio textual em inundação. A rotina de passeio visita somente regiões com ameaça. Selecionar um boletim sem ameaça não ativa o material ilustrativo de água, mesmo se outro boletim do mesmo sismo tiver aviso em outra região.
+
+As imagens mostram até dois grupos regionais com autoridade e horário, indicando a consulta aos demais boletins quando houver mais grupos. Avisos distintos da mesma ocorrência não se suprimem na fila por terem severidades diferentes. Um encerramento não apaga outros produtos ativos. Um aviso que desapareça da consulta é retido como última informação, com atualização indisponível, até ser substituído ou sair da janela de boletins; desaparecimento não significa encerramento.
+
+A apresentação distingue a origem sísmica das regiões avaliadas. Registros agregados sem boletim oficial não ativam o material de água nem ganham países “potencialmente afetados” por um raio automático de 2.000 km ou ETA por velocidade constante. Demonstrações visuais continuam explicitamente fictícias. Boletins com trechos até 300 km preservam esse limite textual; o mapa cartográfico não inventa um polígono de inundação a partir dele.

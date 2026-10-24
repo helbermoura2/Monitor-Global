@@ -2,6 +2,8 @@
 (function(){
  function located(item){return Array.isArray(item?.coords)&&item.coords.length>=2&&item.coords.slice(0,2).every(Number.isFinite)&&Math.abs(item.coords[0])<=180&&Math.abs(item.coords[1])<=90;}
  function label(item){
+  if(item?.type==='tsunami'&&window.TsunamiLink&&!window.TsunamiLink.official(item))return 'TSUNAMI · REGISTRO AGREGADO, SITUAÇÃO NÃO CONFIRMADA';
+  if(item?.type==='tsunami'&&item.official&&window.TsunamiRegional){const rows=TsunamiRegional.rows(item);return 'TSUNAMI · '+(rows.some(r=>r.active)?'AVISO NAS REGIÕES CITADAS':rows.every(r=>r.state==='noThreat')?'SEM AMEAÇA NAS REGIÕES CITADAS':rows.every(r=>r.state==='ended')?'AVISO ENCERRADO':'INFORMATIVO POR REGIÃO');}
   if(item?.type==='tsunami')return item.displayLabel|| (item.hazardNature==='bulletin'?'BOLETIM DE TSUNAMI':'AVISO DE TSUNAMI');
   if(item?.hazardNature==='warning'){
    if(item.type==='flood')return /storm surge|coastal|lakeshore|tidal/i.test(item.warningEvent||'')?'AVISO DE INUNDAÇÃO COSTEIRA':'ALERTA DE ENCHENTE';

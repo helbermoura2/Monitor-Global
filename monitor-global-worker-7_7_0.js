@@ -1023,7 +1023,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'hollow-v14-tsunami';
+    next.cardImageVersion = 'hollow-v15-regional';
     next.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
@@ -1410,7 +1410,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'hollow-v14-tsunami';
+            reservation.cardImageVersion = 'hollow-v15-regional';
             reservation.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
@@ -1472,9 +1472,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else continue;
         }
-        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== 'hollow-v14-tsunami') {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== 'hollow-v15-regional') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'hollow-v14-tsunami'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'hollow-v15-regional'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
     }
@@ -1961,7 +1961,7 @@ async function handleWorkerRequest(request,env){
                 workerModules: 'maintenance-modules-v1',
                 telegramStorage: 'durable-history-v1',
                 telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
-                telegramImageStatus: 'hollow-v14-tsunami',
+                telegramImageStatus: 'hollow-v15-regional',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",

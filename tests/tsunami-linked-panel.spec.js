@@ -35,7 +35,7 @@ for(const regional of [false,true])test('a manual bulletin after a random quake 
  await page.evaluate(({q,info,regionalInfo})=>{
   globalEvents=[{...q,id:'chile-old',mag:2.5,time:Date.now()-27*3600000,coords:[-69.4,-20],place:'Tarapaca, Chile'}];globalAlerts=[info,regionalInfo];pendingQuakeRevisions.clear();sidebarFilter='tsunami';applyFilters();window.__mgSoftCycle=true;showEventDetails(0,false);clearTimeout(cycleTimeout);map.stop();
  },{q,info,regionalInfo});
- const item=regional?regionalInfo:info;await page.locator('#events .event').filter({hasText:item.place==='Panama'?'Panamá':item.place}).click();await expect(page.locator('#pd-local')).toHaveText(regional?'Área do boletim oficial':'Panamá');
+ const item=regional?regionalInfo:info;await page.locator('#events .event').filter({hasText:item.place==='Panama'?'Panamá':item.place}).click();await expect(page.locator('#pd-local')).toHaveText(regional?'Área do boletim oficial':'Origem sísmica: Panamá');
  expect(await page.evaluate(()=>getAutoCycleProtectionRemaining())).toBeGreaterThan(25000);
  await page.evaluate(()=>{map.stop();runAutoCycle();clearTimeout(cycleTimeout);});expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(item.id);
  await page.clock.setFixedTime(await page.evaluate(()=>window.PresentationLimits.state().startedAt+35000));
@@ -49,7 +49,7 @@ test('records let the user choose the exact bulletin; information effect clears 
  await page.evaluate(q=>{globalEvents=[q];showEventDetails(0,false);clearTimeout(cycleTimeout);CinematicCard.stop();SeismicCinema.stop();},q);await page.evaluate(()=>fetchOfficialTsunamiAlerts());
  await page.locator('#chips-row [data-f="tsunami"]').click();
  await page.locator('#events .event[data-event-id="panama-info"]').click();
- expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(info.id);await expect(page.locator('#painel-direito')).toHaveClass(/pd-fx-tsunami-info/,{timeout:20000});await expect(page.locator('#pd-fx-overlay')).toHaveCSS('animation-name','pdBulletinEntrance');
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(info.id);await expect(page.locator('#painel-direito .pd-cinema-layer')).toHaveCount(0);
  await expect(page.locator('.tsunami-bulletin-origin')).toHaveCount(1);await expect(page.locator('#pd-tsunami-link')).toHaveAttribute('data-quake-id',q.id);await expect(page.locator('#painel-direito .pd-cinema-layer')).toHaveCount(0);
  await page.evaluate(()=>{showEventDetails(0,false);clearTimeout(cycleTimeout);CinematicCard.stop();SeismicCinema.stop();});await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-fx-tsunami-info/,{timeout:20000});await expect(page.locator('.tsunami-bulletin-origin')).toHaveCount(0);
  await page.locator('#events .event[data-event-id="regional-info"]').click();
