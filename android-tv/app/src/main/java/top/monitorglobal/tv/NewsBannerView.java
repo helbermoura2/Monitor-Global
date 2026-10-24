@@ -9,6 +9,7 @@ import java.util.regex.*;
 /** One overlay: stable brand/footer, softly changing event content. No focus required. */
 final class NewsBannerView extends View {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+ private final Path telegramPlane=new Path();
  private final Typeface brand,data;
  private final Alert root;
  private final Page[] pages;
@@ -34,13 +35,15 @@ final class NewsBannerView extends View {
   }
  }
  NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated){
-  super(context);root=a;demo=demonstration;replay=repeated;
+  super(context);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
   pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
   StringBuilder line=new StringBuilder(demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO LOCAL · ":"");
   for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
+   if(!v.populationSummary.isEmpty())line.append(v.populationSummary).append("     •     ");
+   if(!v.nearbySummary.isEmpty())line.append(v.nearbySummary).append("     •     ");
    if(!v.tsunamiSummary.isEmpty())line.append("TSUNAMI · ").append(v.tsunamiSummary).append("     •     ");
    line.append(v.title).append("     •     ").append(v.detail).append("     •     ").append(v.kind.equals("tsunami")?"Boletim: ":"Origem do sismo: ").append(p.time).append("     •     ");
   }
@@ -48,6 +51,7 @@ final class NewsBannerView extends View {
   setContentDescription((demo?"Demonstração, não é alerta real. ":replay?"Replay de registro histórico. ":"")+ticker);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
  private void rect(Canvas c,float l,float t,float r,float b,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRect(l,t,r,b,paint);}
+ private void rounded(Canvas c,float l,float t,float r,float b,float radius,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(l,t,r,b,radius,radius,paint);}
  private void text(Canvas c,String value,float x,float y,float size,int color,Typeface font,float max){
   paint.setColor(color);paint.setStyle(Paint.Style.FILL);paint.setTextSize(size);paint.setTypeface(font);
   while(value.length()>0&&paint.measureText(value)>max)value=value.substring(0,value.offsetByCodePoints(value.length(),-1));c.drawText(value,x,y,paint);
@@ -60,22 +64,38 @@ final class NewsBannerView extends View {
  @Override protected void onDraw(Canvas c){
   super.onDraw(c);long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/126f);
   paint.setColor(background);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(0,0,960,126,10,10,paint);paint.setColor(accent);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1);c.drawRoundRect(1,1,959,125,10,10,paint);paint.setStyle(Paint.Style.FILL);
-  rect(c,1,1,218,23,Color.rgb(191,24,39));text(c,replay?"REPLAY":"BREAKING NEWS",20,18,19,Color.WHITE,brand,194);
+  rounded(c,3,3,216,24,7,Color.rgb(191,24,39));text(c,replay?"REPLAY":"BREAKING NEWS",20,18,19,Color.WHITE,brand,194);
   radar(c,36,63,elapsed);text(c,"MONITOR",69,59,24,foreground,brand,140);text(c,"GLOBAL",69,81,24,foreground,brand,140);rect(c,218,24,219,102,Color.rgb(49,76,91));
+  drawIdentity(c,elapsed);
   int index=BannerTimeline.page(elapsed,pages.length);long within=elapsed%BannerTimeline.PAGE_MS;
   if(animate&&pages.length>1&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
    float t=BannerTimeline.progress(within);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-3*t);drawPage(c,pages[index],elapsed,(int)(255*t),3*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
-  rect(c,1,101,959,102,accent);text(c,demo?"TESTE":replay?"REPLAY":"INFORMAÇÕES",12,119,14,accent,brand,108);rect(c,123,106,124,122,Color.rgb(49,76,91));
-  c.save();c.clipRect(135,103,947,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+90;
-  float offset=animate?(elapsed/1000f*32)%length:0;text(c,ticker,135-offset,119,13,foreground,data,Float.MAX_VALUE);text(c,ticker,135-offset+length,119,13,foreground,data,Float.MAX_VALUE);c.restore();c.restore();
-  if(running&&isShown()){if(animate)postInvalidateOnAnimation();else if(pages.length>1)postInvalidateDelayed(BannerTimeline.PAGE_MS-within);}
+  rect(c,1,101,959,102,accent);
+  c.save();c.clipRect(12,103,947,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+90;
+  float offset=animate?(elapsed/1000f*40)%length:0;text(c,ticker,12-offset,119,13,foreground,data,Float.MAX_VALUE);text(c,ticker,12-offset+length,119,13,foreground,data,Float.MAX_VALUE);c.restore();c.restore();
+  if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(BannerTimeline.PAGE_MS-within);}
+ }
+ private void drawIdentity(Canvas c,long elapsed){
+  int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;
+  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){float t=BannerTimeline.progress(within);identity(c,1-current,(int)(255*(1-t)));identity(c,current,(int)(255*t));}
+  else identity(c,current,255);
+ }
+ private void identity(Canvas c,int index,int opacity){
+  if(opacity<=0)return;int layer=c.saveLayerAlpha(5,82,213,100,opacity);
+  if(index==0)text(c,"monitorglobal.top",18,96,12,accent,data,194);
+  else{
+   paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(42,171,238));c.drawCircle(19,91,7,paint);
+   paint.setColor(Color.WHITE);c.drawPath(telegramPlane,paint);
+   text(c,"@monitor_global",32,96,12,foreground,data,177);
+  }
+  c.restoreToCount(layer);
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
   if(opacity<=0)return;int layer=opacity<255?c.saveLayerAlpha(220,0,958,100,opacity):c.save();c.clipRect(220,0,958,100);c.translate(0,shift);
   Alert a=p.alert;int block=Color.rgb(191,24,39);
   if(a.kind.equals("tsunami")){if(a.state.equals("ended")||a.state.equals("information"))block=Color.rgb(64,82,101);else if(a.state.equals("noThreat"))block=Color.rgb(25,105,101);else if(!a.state.equals("warning"))block=Color.rgb(140,94,15);}
-  rect(c,230,29,377,94,block);
+  rounded(c,230,29,377,94,8,block);
   if(BannerTimeline.magnitudeChanged(a)){
    String old=p.oldMagnitude;
    if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);

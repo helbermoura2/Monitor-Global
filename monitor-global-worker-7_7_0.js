@@ -1895,7 +1895,7 @@ async function handlePortugueseTranslation(request,env){
  return json({translations,language:'pt-BR'});
 }
 
-async function handleWorkerRequest(request,env){
+async function handleWorkerRequest(request,env,ctx){
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
         if(reqUrl.pathname.startsWith('/telegram-summary-image/')){
@@ -1913,7 +1913,7 @@ async function handleWorkerRequest(request,env){
             if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
             return handlePortugueseTranslation(request,env);
         }
-        if (reqUrl.pathname === '/tv-alerts') return handleTvAlerts(request);
+        if (reqUrl.pathname === '/tv-alerts') return handleTvAlerts(request,{env:{...env,TV_WAIT_UNTIL:ctx?.waitUntil?.bind(ctx)}});
         if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
         if (reqUrl.pathname === '/rupture-shaking') return handleRuptureShaking(request);
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
@@ -2110,7 +2110,7 @@ async function handleWorkerRequest(request,env){
 }
 
 export default {
-    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked),ALLOWED_HOSTS),ctx);},
+    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked,ctx),ALLOWED_HOSTS),ctx);},
 
     async scheduled(event, env, ctx) {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';
