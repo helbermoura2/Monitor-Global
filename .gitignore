@@ -14,3 +14,10 @@ test-logs/
 # Estado local do alarme de disponibilidade
 uptime-state/
 uptime-state.zip
+
+# Android TV local tools, builds and signing material
+android-tv/.gradle/
+android-tv/local.properties
+android-tv/**/build/
+android-tv/*.jks
+android-tv/*.keystore

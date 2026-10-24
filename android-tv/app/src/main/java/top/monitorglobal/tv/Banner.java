@@ -1,0 +1,19 @@
+package top.monitorglobal.tv;
+import android.content.*;import android.graphics.Color;import android.graphics.Typeface;import android.graphics.PixelFormat;import android.graphics.drawable.GradientDrawable;import android.os.*;import android.provider.Settings;import android.text.TextUtils;import android.view.*;import android.widget.*;
+final class Banner {
+ private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private final Runnable dismiss=this::hide;
+ Banner(Context c){context=c;}
+ private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
+ boolean show(Alert a,boolean demo){if(!Settings.canDrawOverlays(context))return false;hide();
+  LinearLayout row=new LinearLayout(context);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(24),dp(18),dp(24),dp(18));GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(16,31,39));bg.setCornerRadius(dp(14));bg.setStroke(dp(1),Color.rgb(79,123,125));row.setBackground(bg);
+  TextView brand=text("MONITOR\nGLOBAL",18,Color.rgb(121,212,199));brand.setTypeface(null,Typeface.BOLD);row.addView(brand,new LinearLayout.LayoutParams(dp(130),-2));
+  View divider=new View(context);divider.setBackgroundColor(Color.rgb(58,85,91));row.addView(divider,new LinearLayout.LayoutParams(dp(1),dp(70)));
+  LinearLayout body=new LinearLayout(context);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(22),0,dp(12),0);
+  String heading=demo?"DEMONSTRAÇÃO · NÃO É UM ALERTA REAL":a.kind.equals("tsunami")?"BOLETIM REGIONAL DE TSUNAMI":a.detail.startsWith("Revisão")?"REVISÃO DO SISMO":"NOVO SISMO · M6+";
+  body.addView(text(heading,13,Color.rgb(232,195,125)));TextView title=text(a.title,23,Color.WHITE);title.setTypeface(null,Typeface.BOLD);title.setMaxLines(2);title.setEllipsize(TextUtils.TruncateAt.END);body.addView(title);String when=android.text.format.DateFormat.getTimeFormat(context).format(new java.util.Date(a.kind.equals("tsunami")?a.issuedAt:a.eventTime));TextView detail=text(a.detail+" · "+when,16,Color.rgb(193,213,216));detail.setMaxLines(2);detail.setEllipsize(TextUtils.TruncateAt.END);body.addView(detail);row.addView(body,new LinearLayout.LayoutParams(0,-2,1));
+  WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels-dp(72),WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;p.y=dp(32);
+  try{wm.addView(row,p);current=row;main.postDelayed(dismiss,Prefs.get(context).getInt("seconds",20)*1000L);return true;}catch(RuntimeException e){Prefs.status(context,"Não foi possível exibir sobre outro aplicativo. Confira a permissão.");return false;}
+ }
+ private TextView text(String s,int size,int color){TextView t=new TextView(context);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
+ void hide(){main.removeCallbacks(dismiss);if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
+}
