@@ -675,7 +675,11 @@ function sismoReconcileReports(reports,previous){
     const byId=new Map(),unkeyed=[];
     // Old snapshots first; a newer response may lower the magnitude legitimately.
     for(const report of [...retained,...reports]){
-        const native=report.sourceEventId;
+        // Regional adapters (GeoNet, JMA, BMKG, CSN, OSC...) already provide
+        // a stable report.id, but not all expose sourceEventId separately.
+        // Keeping those rows as "unkeyed" appended the same report on every
+        // refresh through sismoPreserveMatchedReports, for the entire session.
+        const native=report.sourceEventId||report.id;
         if(!native){unkeyed.push(report);continue;}
         const key=sismoReportFamily(report)+'|'+native,old=byId.get(key);
         if(!old||sismoCompareReports(report,old)>=0)byId.set(key,report);
@@ -792,6 +796,16 @@ function sismoPreserveMatchedReports(event,previous){
     if(rows.length!==1)return event;
     return {...event,...rows[0],id:event.id};
 }
+
+// Counts only: the local diagnostic must also see retained catalogue reports,
+// not just cache entries. Never export event IDs, text or coordinates here.
+window.SismoReportMemory={stats(){
+    const events=typeof globalEvents==='undefined'?[]:globalEvents;
+    let reports=0,maxReportsPerEvent=0;const bySource={};
+    for(const event of events){const rows=event.reports||[event];reports+=rows.length;maxReportsPerEvent=Math.max(maxReportsPerEvent,rows.length);
+        for(const row of rows){const source=sismoReportFamily(row);bySource[source]=(bySource[source]||0)+1;}}
+    return {events:events.length,reports,maxReportsPerEvent,bySource};
+}};
 
 
 /* ═══════════════ AFAD (Turquia) — sismos locais incl. baixos ═══════════════ */

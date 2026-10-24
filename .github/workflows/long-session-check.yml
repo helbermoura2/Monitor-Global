@@ -14,6 +14,8 @@ on:
       - 'tests/unit/*lifecycle*'
       - 'tests/unit/*budget*'
       - 'tests/unit/long-session-fixes.test.cjs'
+      - 'tests/unit/earthquake-report-selection.test.cjs'
+      - 'tools/catalog-report-memory-audit.cjs'
       - '.github/workflows/long-session-check.yml'
 permissions:
   contents: read
@@ -34,7 +36,7 @@ jobs:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
         run: |
-          node --test tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
+          node --test tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
           node tests/unit/audio-volume-check.cjs
           node tests/unit/population-check.cjs
           node tests/unit/unified-cities-check.cjs

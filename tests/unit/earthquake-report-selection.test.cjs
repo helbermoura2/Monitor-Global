@@ -61,3 +61,42 @@ test('an old M6.6 snapshot is corrected once, without hiding the initial correct
  const fixed=ctx.sismoPreserveMatchedReports(current,old);assert.equal(old.mag,6.6);assert.equal(fixed.mag,6.3);assert.equal(fixed.depth,16);
  assert.equal(ctx.sismoPreserveMatchedReports(merge([tsunami])[0],fixed).mag,6.3);
 });
+
+test('regional reports without sourceEventId replace their snapshot across 1,000 refreshes',()=>{
+ for(const source of ['GEONET','JMA','BMKG','CSN-Chile','OSC-BOL','SSN-Mexico']){
+  let previous;
+  for(let i=0;i<1000;i++){
+   const report={...base,source,id:source+'-native-1',mag:4.3+(i%2)*.1,place:'Snapshot '+i};
+   const current=merge([report])[0];
+   previous=ctx.sismoPreserveMatchedReports(current,previous);
+   assert.equal(previous.reports.length,1,source+' refresh '+i);
+   assert.equal(previous.reports[0].place,report.place);
+   assert.equal(previous.mag,report.mag);
+  }
+ }
+});
+
+test('a new refresh removes already accumulated regional duplicates without losing other reports',()=>{
+ const regional={...base,source:'GEONET',id:'GEONET-regional-1',mag:6.3};
+ const old={...merge([seismic,regional])[0],reports:[seismic,...Array.from({length:900},()=>({...regional}))]};
+ const updated={...regional,mag:6.2,place:'Revised regional solution'};
+ const fixed=ctx.sismoPreserveMatchedReports(merge([updated])[0],old);
+ assert.equal(fixed.reports.length,2);assert.equal(fixed.mag,6.2);
+ assert.equal(fixed.reports.find(r=>r.source==='GEONET').mag,6.2);
+ assert.equal(fixed.sourceSummary,'GEONET · USGS');
+});
+
+test('report identity is scoped to the agency and preserves distinct native reports',()=>{
+ const a={...base,source:'GEONET',id:'same-id',mag:4.3},b={...a,source:'JMA'},c={...a,id:'different-id'};
+ const result=merge([a,b,c])[0];assert.equal(result.reports.length,3);
+ const next=ctx.sismoPreserveMatchedReports(merge([{...a,mag:4.4}])[0],result);
+ assert.equal(next.reports.length,3);assert.equal(next.reports.find(r=>r.source==='GEONET'&&r.id==='same-id').mag,4.4);
+});
+
+test('memory counters expose retained report counts without event content',()=>{
+ ctx.globalEvents=[{...seismic,reports:[seismic,{...base,id:'secret-event',source:'GEONET',place:'PRIVATE_LOCATION'}]}];
+ const stats=ctx.window.SismoReportMemory.stats();
+ assert.equal(stats.events,1);assert.equal(stats.reports,2);assert.equal(stats.maxReportsPerEvent,2);
+ assert.equal(stats.bySource.USGS,1);assert.equal(stats.bySource.GEONET,1);
+ assert.doesNotMatch(JSON.stringify(stats),/secret|PRIVATE|165|14/);
+});

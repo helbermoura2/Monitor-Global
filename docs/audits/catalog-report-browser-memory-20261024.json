@@ -1,0 +1,299 @@
+{
+  "method": "Offline replay in the actual site; only sismoReconcileReports is switched between old and fixed implementations. 200 regional events, 960 updates. Main JS heap after explicit GC. Not 12 wall-clock hours or a phone/GPU benchmark.",
+  "baselineCommit": "e0dd9da",
+  "baselineSourceSha256": "c2afc9959dc8a42e2719c7f4df4e3f271fae63f4e237e775f9939e5ed8fc1564",
+  "currentSourceSha256": "6b0cbb554296587cb22e8296525630366e434478effac030eaf62168b3ccd5f1",
+  "viewport": {
+    "width": 411,
+    "height": 806,
+    "dpr": 2.625
+  },
+  "results": [
+    {
+      "before": true,
+      "samples": [
+        {
+          "round": 0,
+          "heapBytes": 19931592,
+          "counts": {
+            "events": 0,
+            "reports": 0,
+            "maxReportsPerEvent": 0,
+            "bySource": {}
+          }
+        },
+        {
+          "round": 120,
+          "heapBytes": 26941060,
+          "counts": {
+            "events": 200,
+            "reports": 24000,
+            "maxReportsPerEvent": 120,
+            "bySource": {
+              "GEONET": 4800,
+              "JMA": 4800,
+              "BMKG": 4800,
+              "CSN-Chile": 4800,
+              "OSC-BOL": 4800
+            }
+          }
+        },
+        {
+          "round": 240,
+          "heapBytes": 33764096,
+          "counts": {
+            "events": 200,
+            "reports": 48000,
+            "maxReportsPerEvent": 240,
+            "bySource": {
+              "GEONET": 9600,
+              "JMA": 9600,
+              "BMKG": 9600,
+              "CSN-Chile": 9600,
+              "OSC-BOL": 9600
+            }
+          }
+        },
+        {
+          "round": 360,
+          "heapBytes": 40336292,
+          "counts": {
+            "events": 200,
+            "reports": 72000,
+            "maxReportsPerEvent": 360,
+            "bySource": {
+              "GEONET": 14400,
+              "JMA": 14400,
+              "BMKG": 14400,
+              "CSN-Chile": 14400,
+              "OSC-BOL": 14400
+            }
+          }
+        },
+        {
+          "round": 480,
+          "heapBytes": 47808684,
+          "counts": {
+            "events": 200,
+            "reports": 96000,
+            "maxReportsPerEvent": 480,
+            "bySource": {
+              "GEONET": 19200,
+              "JMA": 19200,
+              "BMKG": 19200,
+              "CSN-Chile": 19200,
+              "OSC-BOL": 19200
+            }
+          }
+        },
+        {
+          "round": 600,
+          "heapBytes": 53789176,
+          "counts": {
+            "events": 200,
+            "reports": 120000,
+            "maxReportsPerEvent": 600,
+            "bySource": {
+              "GEONET": 24000,
+              "JMA": 24000,
+              "BMKG": 24000,
+              "CSN-Chile": 24000,
+              "OSC-BOL": 24000
+            }
+          }
+        },
+        {
+          "round": 720,
+          "heapBytes": 60413664,
+          "counts": {
+            "events": 200,
+            "reports": 144000,
+            "maxReportsPerEvent": 720,
+            "bySource": {
+              "GEONET": 28800,
+              "JMA": 28800,
+              "BMKG": 28800,
+              "CSN-Chile": 28800,
+              "OSC-BOL": 28800
+            }
+          }
+        },
+        {
+          "round": 840,
+          "heapBytes": 67454100,
+          "counts": {
+            "events": 200,
+            "reports": 168000,
+            "maxReportsPerEvent": 840,
+            "bySource": {
+              "GEONET": 33600,
+              "JMA": 33600,
+              "BMKG": 33600,
+              "CSN-Chile": 33600,
+              "OSC-BOL": 33600
+            }
+          }
+        },
+        {
+          "round": 960,
+          "heapBytes": 74046840,
+          "counts": {
+            "events": 200,
+            "reports": 192000,
+            "maxReportsPerEvent": 960,
+            "bySource": {
+              "GEONET": 38400,
+              "JMA": 38400,
+              "BMKG": 38400,
+              "CSN-Chile": 38400,
+              "OSC-BOL": 38400
+            }
+          }
+        }
+      ]
+    },
+    {
+      "before": false,
+      "samples": [
+        {
+          "round": 0,
+          "heapBytes": 19916728,
+          "counts": {
+            "events": 0,
+            "reports": 0,
+            "maxReportsPerEvent": 0,
+            "bySource": {}
+          }
+        },
+        {
+          "round": 120,
+          "heapBytes": 20708724,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 240,
+          "heapBytes": 20571636,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 360,
+          "heapBytes": 20690540,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 480,
+          "heapBytes": 21136892,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 600,
+          "heapBytes": 20696944,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 720,
+          "heapBytes": 20576316,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 840,
+          "heapBytes": 20576300,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        },
+        {
+          "round": 960,
+          "heapBytes": 21388588,
+          "counts": {
+            "events": 200,
+            "reports": 200,
+            "maxReportsPerEvent": 1,
+            "bySource": {
+              "GEONET": 40,
+              "JMA": 40,
+              "BMKG": 40,
+              "CSN-Chile": 40,
+              "OSC-BOL": 40
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
