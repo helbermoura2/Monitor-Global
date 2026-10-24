@@ -36,7 +36,7 @@ Para mexer com segurança pelo GitHub, comece pelo [Guia do dono](GUIA_DO_DONO.m
 | Ciclones | `js/furacoes-gdacs.js`, `docs/cyclone-route-card.md` |
 | Imagens e resumos diários | `daily-summary-hd.mjs`, `daily-summary-renderer.mjs`, `js/story-share.js` |
 | Envio e histórico do Telegram | `worker/telegram-transport.mjs`, `worker/telegram-seismic-data.mjs`, `telegram-history-storage.mjs`, entrada do Worker |
-| Diagnóstico de uso prolongado | `docs/local-performance-diagnostics.md`, `docs/mobile-endurance-v6.md` |
+| Diagnóstico de uso prolongado | `docs/local-performance-diagnostics.md`, `docs/mobile-endurance-v6.md`, `docs/diagnosticos-dex-celular-20261024.md` |
 | Consumo de KV e Durable | `tools/cloudflare-kv-daily-report.py`, `tools/cloudflare-durable-audit.py`, workflows de auditoria |
 | Alarme de indisponibilidade | `.github/workflows/uptime-monitor.yml`, `tools/uptime-monitor.py`, [configuração](docs/alarme-disponibilidade.md) |
 

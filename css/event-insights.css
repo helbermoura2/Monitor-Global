@@ -1,4 +1,4 @@
-#painel-direito #pd-event-insights{display:flex!important;flex-wrap:wrap;gap:6px;margin:8px 0 10px;opacity:1!important;pointer-events:auto!important}
+#painel-direito #pd-event-insights{flex-shrink:0;display:flex!important;flex-wrap:wrap;gap:6px;margin:8px 0 10px;opacity:1!important;pointer-events:auto!important}
 #pd-event-insights button,#event-insights-dialog button,.felt-reports-legend button{min-height:36px;padding:7px 10px;border:1px solid #7299b15e;border-radius:9px;background:#123347;color:#e5f2fa;font:600 11px/1.3 system-ui;cursor:pointer}
 #pd-event-insights button:hover,#event-insights-dialog button:hover{background:#1a4b63;border-color:#67d2eb}
 #pd-event-insights button:focus-visible,#event-insights-dialog button:focus-visible{outline:2px solid #67e8f9;outline-offset:3px}

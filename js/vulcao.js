@@ -462,7 +462,7 @@ async function fetchVolcanoes(options={}){
     window.__lastVolcanoAttempt = Date.now();
     try{
         const [feats,usgsPack,vaacItems]=await Promise.all([
-            fetchGdacsEvents('VO').catch(e=>{ console.warn('GDACS VO:',e); window.__lastVolcanoGdacsError=e?.message||String(e); return []; }),
+            fetchGdacsEvents('VO').catch(e=>{ if(!e.sourceCooling)console.warn('GDACS VO:',e?.message); window.__lastVolcanoGdacsError=e?.message||String(e); return []; }),
             fetchUSGSVolcanoProfessional(),
             fetchGlobalVolcanoAdvisories()
         ]);

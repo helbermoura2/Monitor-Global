@@ -157,7 +157,7 @@ async function fetchJsonComFallbackCidade(url, timeoutMs = 7000) {
             if (data && typeof data === 'object') return data;
         } catch (e) {
             clearTimeout(timer);
-        }
+        } finally {clearTimeout(timer);}
     }
     return null;
 }

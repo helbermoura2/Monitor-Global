@@ -4,7 +4,10 @@ async function boot(page,width){
  await page.setViewportSize({width,height:900});await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto('/');await page.waitForFunction(()=>__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{
-  pausarBuscas();map._render=()=>{};clearTimeout(cycleTimeout);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();globalAlerts=[];isFirstLoad=false;isFirstDisplay=false;window.__mgColdLoadGraceUntil=0;
+  pausarBuscas();map._render=()=>{};
+  // Scheduling fixture: renderer is disabled, so native movement must be idle too.
+  // Real camera interpolation is covered by the camera/globe tests.
+  map.easeTo=()=>map;map.isMoving=()=>false;clearTimeout(cycleTimeout);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();globalAlerts=[];isFirstLoad=false;isFirstDisplay=false;window.__mgColdLoadGraceUntil=0;
   globalEvents=[{id:'sound-start',type:'earthquake',mag:2.4,depth:10,coords:[-50,-20],time:Date.now()-3600000,place:'Inicial',source:'QA'},{id:'sound-next',type:'earthquake',mag:6.4,depth:10,coords:[140,35],time:Date.now(),place:'Novo sismo',source:'QA'}];
   somAtivo=true;somMutedTypes.clear();historicoSomSismo=[];sismosSonorizados.clear();filaSonsPendentes=[];processandoFilaSom=false;proximoSomLivre=0;
   window.__soundLog=[];window.__voiceLog=[];window.__cardLog=[];ensureAudio=()=>true;tone=(...args)=>__soundLog.push({at:Date.now(),args});noise=()=>{};speakAlert=(...args)=>__voiceLog.push({at:Date.now(),args});
@@ -19,7 +22,7 @@ for(const width of [1280,390])for(const kind of ['quake','volcano'])test('sound 
  await page.evaluate(kind=>{
   window.__audioTripAt=Date.now();
   if(kind==='quake')anunciarSismosSuplementares([globalEvents[1]]);
-  else{const item={id:'sound-volcano',type:'volcano',coords:[127.63,1.49],time:Date.now(),place:'Ibu',source:'VAAC DARWIN',detail:'ERUPTION REPORTED. VA EMISSION TO FL100.'};globalAlerts=[item];VolcanoPriority.enqueue(item,'Erupção reportada');VolcanoPriority.focus();}
+  else{const item={id:'sound-volcano',type:'volcano',coords:[127.63,1.49],time:Date.now(),place:'Ibu',source:'VAAC DARWIN',detail:'LAVA FLOW OBSERVED. EFFUSIVE ERUPTION IN PROGRESS.'};globalAlerts=[item];VolcanoPriority.enqueue(item,'Erupção reportada');VolcanoPriority.focus();}
   clearTimeout(cycleTimeout);
  },kind);
  const id=kind==='quake'?'sound-next':'sound-volcano';expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(id);

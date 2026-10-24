@@ -50,7 +50,7 @@ test('resource investigation keeps bounded categories, separates cache visibilit
   __diagnosticResources(Array.from({length:1000},(_,i)=>({name:'https://private-'+i+'.example.com/?secret',duration:1,initiatorType:'fetch',responseStatus:200,encodedBodySize:0,transferSize:0})));
  });
  const data=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
- expect(data.collectorVersion).toBe(6);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
+ expect(data.collectorVersion).toBe(7);expect(data.resources.count).toBe(1090);expect(data.resources.categoryCount).toBe(1013);
  expect(Object.keys(data.resources.byCategory)).toHaveLength(12);
  expect(data.resources.byCategory.mapImagery.timingUnavailable).toBe(1);expect(data.resources.byCategory.mapImagery.cacheHits).toBe(0);
  expect(data.resources.byCategory.mapLabels.cacheHits).toBe(1);expect(data.resources.byCategory.workerApi.httpErrors).toBe(1);
@@ -77,7 +77,7 @@ test('overnight diagnostics retain bounded source transitions and interval total
  await page.route('**/overnight-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));
  await page.goto('/overnight-harness.html');await page.clock.install();
  await page.evaluate(()=>{window.qaSource={status:'ok',fails:0,lastOk:Date.now(),okCount:3,failCount:0,lastErr:'PRIVATE_ERROR_COORDINATES'};window.SourceHealth={summary:()=>({ok:1,warn:0,off:0,cooling:0,total:1}),snapshot:()=>({USGS:qaSource,'PRIVATE_SOURCE':qaSource}),get:()=>qaSource};PerformanceDiagnostics.start();});
- let r=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(r.collectorVersion).toBe(6);expect(r.sourceDetails.USGS.successes).toBe(3);expect(r.samples[0].windowTotals.resources).toBe(0);expect(r.samples[0].viewport.width).toBeGreaterThan(0);
+ let r=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(r.collectorVersion).toBe(7);expect(r.sourceDetails.USGS.successes).toBe(3);expect(r.samples[0].windowTotals.resources).toBe(0);expect(r.samples[0].viewport.width).toBeGreaterThan(0);
  await page.evaluate(()=>{qaSource.status='off';qaSource.fails=3;qaSource.failCount=3;qaSource.openUntil=Date.now()+3600000;});await page.clock.fastForward(360000);
  r=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(r.sourceDetails.USGS.cooling).toBe(true);expect(r.sourceTransitions.at(-1).source).toBe('USGS');expect(r.samples.at(-1).windowTotals.visibleMs).toBeGreaterThanOrEqual(0);expect(JSON.stringify(r)).not.toContain('PRIVATE_');
  await page.evaluate(()=>PerformanceDiagnostics.stop());

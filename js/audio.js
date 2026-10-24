@@ -89,6 +89,12 @@ function flushPendingSounds() {
         });
     }, 150);
 }
+const transientAudioNodes=new Map();
+function trackSoundNodes(source,nodes){
+ const cleanup=()=>{if(!transientAudioNodes.delete(source))return;try{source.disconnect();}catch{}for(const node of nodes)try{node.disconnect();}catch{}};
+ transientAudioNodes.set(source,cleanup);source.onended=cleanup;
+}
+function clearSoundNodes(){for(const [source,cleanup]of [...transientAudioNodes]){try{source.stop();}catch{}cleanup();}}
 let noiseBuf = null;
 function getNoise() {
     if (noiseBuf) return noiseBuf;
@@ -110,7 +116,7 @@ function tone(f0, { t = 0, dur = .3, type = 'sine', vol = .35, glide = null, att
     g.gain.exponentialRampToValueAtTime(Math.max(0.0001, vol * somVolume), now + Math.min(attack, dur * 0.45));
     g.gain.setValueAtTime(Math.max(0.0001, vol * somVolume), Math.max(now + Math.min(attack, dur * 0.45), now + dur - release));
     g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    o.start(now); o.stop(now + dur + .05);
+    trackSoundNodes(o,[g]);o.start(now); o.stop(now + dur + .05);
 }
 function noise({ t = 0, dur = 1, vol = .35, fFrom = 800, fTo = 100, type = 'lowpass', q = 1 } = {}) {
     if (!audioContext || somVolume <= 0) return;
@@ -126,7 +132,7 @@ function noise({ t = 0, dur = 1, vol = .35, fFrom = 800, fTo = 100, type = 'lowp
     src.connect(f); f.connect(g); g.connect(audioContext.destination);
     g.gain.setValueAtTime(Math.max(0.0001, vol * somVolume), now);
     g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    src.start(now); src.stop(now + dur);
+    trackSoundNodes(src,[f,g]);src.start(now); src.stop(now + dur);
 }
 function playUnlockChime() {
     if (!audioContext) return;
@@ -252,7 +258,7 @@ function toggleSomAtivo(opts) {
         }
     } else {
         try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (err) {}
-        try { if (vozNuvemAtual) vozNuvemAtual.pause(); } catch (e) {}
+        try { pararVozNuvem();clearSoundNodes(); } catch (e) {}
         try { mostrarBannerSom(false); } catch (e) {}
         if (!opts.silent) {
             try { showToast('🔇 Alertas de voz desligados', 'info'); } catch (err) {}
@@ -333,7 +339,7 @@ function quakeBeep(freq, t, dur, vol, last = false) {
     g.gain.setValueAtTime(level, now + Math.max(0.03, finalDur - 0.055));
     g.gain.exponentialRampToValueAtTime(0.0001, now + finalDur);
 
-    o1.start(now); o2.start(now);
+    trackSoundNodes(o1,[g]);trackSoundNodes(o2,[]);o1.start(now); o2.start(now);
     o1.stop(now + finalDur + 0.04);
     o2.stop(now + finalDur + 0.04);
 }
@@ -533,7 +539,9 @@ function escolherVoz(prefixos) {
 function falarTrechos(trechos) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
+    const request=vozNuvemPedido;
     setTimeout(() => {
+        if(request!==vozNuvemPedido)return;
         if (!somAtivo || vozVolume <= 0) return;
         trechos.forEach((trecho) => {
             if (!trecho.texto) return;
@@ -557,58 +565,53 @@ function falarTrechos(trechos) {
 // nenhuma do aparelho. Se a cota grátis acabar, a rede falhar, ou o Worker
 // não tiver a chave configurada ainda, cai pra window.speechSynthesis
 // sozinho, sem quebrar o alerta.
-let vozNuvemAtual = null;
-async function falarNaNuvem(texto) {
-    if (!somAtivo || vozVolume <= 0 || !texto || typeof workerBaseUrl !== 'function') return false;
-    texto = window.EventPortuguese?.speech(texto) || texto;
-    // Interrompe um áudio de alerta anterior ainda tocando — mesmo
-    // comportamento que window.speechSynthesis.cancel() já dava pra fila de
-    // fala nativa, importante em sismos com atualizações rápidas seguidas.
-    if (vozNuvemAtual) { try { vozNuvemAtual.pause(); } catch (_) {} }
-    try {
-        const r = await fetch(workerBaseUrl() + '/tts?text=' + encodeURIComponent(texto), { cache: 'no-store' });
-        if (!r.ok) return false;
-        const blob = await r.blob();
-        if (!blob || !blob.size) return false;
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio();
-        audio.addEventListener('ended', () => URL.revokeObjectURL(url));
-        audio.addEventListener('error', () => URL.revokeObjectURL(url));
-        vozNuvemAtual = audio;
-        audio.src = url;
-        // Ganho da voz independente dos efeitos; preserva o reforço da nuvem.
-        let boosted = false;
-        try {
-            if (audioContext && audioContext.state === 'running') {
-                const source = audioContext.createMediaElementSource(audio);
-                const gain = audioContext.createGain();
-                gain.gain.value = vozVolume * 2.4;
-                vozGanhoAtual = gain;
-                source.connect(gain).connect(audioContext.destination);
-                audio.volume = 1;
-                boosted = true;
-            }
-        } catch (e) {}
-        if (!boosted) { vozGanhoAtual = null; audio.volume = vozVolume; }
-        // Espera o navegador confirmar que o áudio já está pronto pra tocar
-        // sem travar antes de dar play — sem isso, o começo da fala (ex.: a
-        // palavra "Atenção") pode sair cortado em alguns aparelhos/navegadores,
-        // mesmo com o arquivo inteiro já baixado (o corte é de decodificação,
-        // não de rede). Timeout de segurança pra não travar se o evento não
-        // disparar por algum motivo.
-        await new Promise((resolve) => {
-            audio.addEventListener('canplaythrough', resolve, { once: true });
-            audio.load();
-            setTimeout(resolve, 800);
-        });
-        if (!somAtivo || vozVolume <= 0) { URL.revokeObjectURL(url); return true; }
-        await audio.play();
-        return true;
-    } catch (e) {
-        console.warn('TTS nuvem indisponível, caindo pra voz do navegador:', e?.message || e);
-        return false;
-    }
+let vozNuvemAtual=null,vozNuvemSessao=null,vozNuvemController=null,vozNuvemPedido=0,vozNuvemRetryAt=0;
+function pararVozNuvem(){
+ ++vozNuvemPedido;vozNuvemController?.abort();vozNuvemController=null;vozNuvemSessao?.cleanup();vozNuvemSessao=null;vozNuvemAtual=null;vozGanhoAtual=null;
 }
+async function falarNaNuvem(texto){
+ if(!somAtivo||vozVolume<=0||!texto||typeof workerBaseUrl!=='function')return false;
+ texto=window.EventPortuguese?.speech(texto)||texto;pararVozNuvem();
+ // The server accepts at most 400 characters. Native speech keeps the full text.
+ if(texto.length>400||Date.now()<vozNuvemRetryAt)return false;
+ const request=vozNuvemPedido,controller=new AbortController();vozNuvemController=controller;let session=null;
+ const current=()=>request===vozNuvemPedido&&somAtivo&&vozVolume>0;
+ try{
+  const r=await fetch(workerBaseUrl()+'/tts?text='+encodeURIComponent(texto),{cache:'no-store',signal:controller.signal});
+  if(!current())return true;
+  if(!r.ok){if(r.status>=500||r.status===429)vozNuvemRetryAt=Date.now()+60000;return false;}
+  const blob=await r.blob();if(!current())return true;if(!blob?.size)return false;
+  const url=URL.createObjectURL(blob),audio=new Audio();let readyTimer=null,watchdog=null,resolveReady=null,disposed=false,failed=false;
+  session={audio,url,source:null,gain:null,cleanup(){
+   if(disposed)return;disposed=true;clearTimeout(readyTimer);clearTimeout(watchdog);
+   audio.removeEventListener('ended',finish);audio.removeEventListener('error',failure);audio.removeEventListener('canplaythrough',ready);
+   try{audio.pause();audio.removeAttribute('src');audio.load();}catch{}
+   try{session.source?.disconnect();session.gain?.disconnect();}catch{}URL.revokeObjectURL(url);resolveReady?.();
+   if(vozNuvemSessao===session){vozNuvemSessao=null;vozNuvemAtual=null;vozGanhoAtual=null;}
+  }};
+  const finish=()=>session.cleanup(),failure=()=>{failed=true;session.cleanup();},ready=()=>resolveReady?.();vozNuvemSessao=session;vozNuvemAtual=audio;
+  audio.addEventListener('ended',finish,{once:true});audio.addEventListener('error',failure,{once:true});audio.src=url;
+  let boosted=false;
+  try{if(audioContext&&audioContext.state==='running'){
+   session.source=audioContext.createMediaElementSource(audio);session.gain=audioContext.createGain();session.gain.gain.value=vozVolume*2.4;vozGanhoAtual=session.gain;
+   session.source.connect(session.gain);session.gain.connect(audioContext.destination);audio.volume=1;boosted=true;
+  }}catch{try{session.source?.disconnect();session.gain?.disconnect();}catch{}session.source=session.gain=null;}
+  if(!boosted){vozGanhoAtual=null;audio.volume=vozVolume;}
+  watchdog=setTimeout(finish,120000);
+  await new Promise(resolve=>{resolveReady=resolve;audio.addEventListener('canplaythrough',ready,{once:true});readyTimer=setTimeout(resolve,800);audio.load();});
+  clearTimeout(readyTimer);audio.removeEventListener('canplaythrough',ready);
+  if(!current()||disposed){session.cleanup();return !failed||!current();}
+  await audio.play();return true;
+ }catch(error){
+  session?.cleanup();if(!current()||controller.signal.aborted)return true;
+  if(error?.status>=500||error?.status===429)vozNuvemRetryAt=Date.now()+60000;
+  console.warn('TTS nuvem indisponível, usando a voz do navegador:',error?.message||String(error));return false;
+ }finally{if(vozNuvemController===controller)vozNuvemController=null;}
+}
+if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.hidden){pararVozNuvem();clearSoundNodes();}});
+window.addEventListener?.('pagehide',()=>{pararVozNuvem();clearSoundNodes();});
+window.AudioLifecycle={stop:()=>{pararVozNuvem();clearSoundNodes();},stats:()=>({cloudActive:vozNuvemSessao?1:0,cloudPending:vozNuvemController?1:0,objectURLs:vozNuvemSessao?1:0,transientSources:transientAudioNodes.size,cooling:Date.now()<vozNuvemRetryAt})};
+
 function speakAlert(mag, place, depth, qtd = 0, isUpdate = false, deltaTxt = '') {
     if (!somAtivo) return;
     place=window.EventPortuguese?.speech(place)||place;

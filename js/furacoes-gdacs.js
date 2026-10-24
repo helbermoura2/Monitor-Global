@@ -4,6 +4,7 @@ function gdacsDateStr(d) { return d.toISOString().slice(0, 10); }
 
 async function fetchGdacsEvents(t) {
     const name={TC:'GDACS ciclones',VO:'GDACS vulcões',WF:'GDACS incêndios',TS:'GDACS tsunamis'}[String(t).toUpperCase()]||'GDACS '+t;
+    if(window.SourceHealth?.isOpen(name)){SourceHealth.recordSuppressed(name);throw Object.assign(new Error('Fonte aguardando nova tentativa'),{sourceCooling:true});}
     try {const features=await fetchGdacsEventsData(t);setSource(name,'ok');return features;}
     catch(e){setSource(name,'off',null,e.message);throw e;}
 }
@@ -14,15 +15,8 @@ async function fetchGdacsEventsData(t) {
     // e permite diagnosticar o retorno oficial do GDACS separadamente.
     if (String(t).toUpperCase() === 'VO') {
         const base = workerBaseUrl();
-        const urls = [base + '/gdacs-volcano?t=' + Date.now(), base + '/gdacs-volcano'];
-        for (const u of urls) {
-            try {
-                const r = await fetch(u, { cache:'no-store', mode:'cors' });
-                if (!r.ok) continue;
-                const d = await r.json();
-                if (d && d.ok !== false && Array.isArray(d.features)) return d.features;
-            } catch (e) { console.warn('[GDACS VO Worker]', e?.message || e); }
-        }
+        const r=await (window.SharedSourceDelivery?.fetch||fetch)(base+'/gdacs-volcano',{cache:'no-store',mode:'cors'});
+        if(r.ok){const d=await r.json();if(d?.ok!==false&&Array.isArray(d?.features))return d.features;}
         throw new Error('GDACS VO Worker indisponível');
     }
     // Sem filtro de alertlevel: o parâmetro green;orange;red às vezes omite eventos

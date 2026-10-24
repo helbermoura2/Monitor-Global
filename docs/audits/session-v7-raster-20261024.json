@@ -1,0 +1,716 @@
+{
+  "method": {
+    "cycles": 120,
+    "dwellMs": 300,
+    "elapsedMs": 136346,
+    "viewport": {
+      "width": 411,
+      "height": 806
+    },
+    "dpr": 2.625,
+    "cpuSlowdown": 4,
+    "externalRequests": "blocked",
+    "externalAttemptsBlocked": 755,
+    "camera": "jumped; no flight benchmark",
+    "tiles": "native raster layers with local 256px PNG fixture; not satellite imagery",
+    "tileRequests": 374,
+    "heap": "main JS heap after garbage collection; GPU/workers excluded",
+    "scope": "repeated actual event card and effect lifecycle; not an hours-long session"
+  },
+  "samples": [
+    {
+      "cycle": 0,
+      "heapBytes": 23162448,
+      "cdpNodes": 3359,
+      "documents": 6,
+      "jsEventListeners": 450,
+      "taskDuration": 13.964374,
+      "connectedNodes": 1432,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 6,
+      "heapBytes": 23854644,
+      "cdpNodes": 3423,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 20.405414,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 12,
+      "heapBytes": 24012944,
+      "cdpNodes": 3399,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 26.59597,
+      "connectedNodes": 1452,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 18,
+      "heapBytes": 24085412,
+      "cdpNodes": 3426,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 32.984915,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 24,
+      "heapBytes": 24187060,
+      "cdpNodes": 3426,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 39.318503,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 30,
+      "heapBytes": 24300040,
+      "cdpNodes": 3424,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 45.663218,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 36,
+      "heapBytes": 24384304,
+      "cdpNodes": 3424,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 51.976284,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 42,
+      "heapBytes": 24469208,
+      "cdpNodes": 3423,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 58.217459,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 48,
+      "heapBytes": 24733192,
+      "cdpNodes": 3426,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 64.765276,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 54,
+      "heapBytes": 24763716,
+      "cdpNodes": 3423,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 71.264162,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 60,
+      "heapBytes": 24835572,
+      "cdpNodes": 3423,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 77.575978,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 66,
+      "heapBytes": 24892444,
+      "cdpNodes": 3423,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 83.707601,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 72,
+      "heapBytes": 24955984,
+      "cdpNodes": 3454,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 90.088676,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 78,
+      "heapBytes": 24992296,
+      "cdpNodes": 3426,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 96.591521,
+      "connectedNodes": 1465,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 84,
+      "heapBytes": 25164768,
+      "cdpNodes": 3739,
+      "documents": 6,
+      "jsEventListeners": 453,
+      "taskDuration": 102.855126,
+      "connectedNodes": 1472,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 90,
+      "heapBytes": 25429484,
+      "cdpNodes": 4088,
+      "documents": 6,
+      "jsEventListeners": 453,
+      "taskDuration": 109.355621,
+      "connectedNodes": 1480,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 96,
+      "heapBytes": 25092684,
+      "cdpNodes": 3453,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 115.577298,
+      "connectedNodes": 1480,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 102,
+      "heapBytes": 25141272,
+      "cdpNodes": 3453,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 122.103123,
+      "connectedNodes": 1480,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 108,
+      "heapBytes": 25143108,
+      "cdpNodes": 3454,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 132.603974,
+      "connectedNodes": 1480,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 114,
+      "heapBytes": 25210036,
+      "cdpNodes": 3453,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 141.903656,
+      "connectedNodes": 1480,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    },
+    {
+      "cycle": 120,
+      "heapBytes": 25274172,
+      "cdpNodes": 3453,
+      "documents": 6,
+      "jsEventListeners": 452,
+      "taskDuration": 148.572649,
+      "connectedNodes": 1480,
+      "canvases": 2,
+      "videos": 0,
+      "cinemaLayers": 0,
+      "markers": 5,
+      "owners": {
+        "tiles": {
+          "sources": 10,
+          "activeTiles": 28,
+          "cachedTiles": 37
+        },
+        "audio": {
+          "cloudActive": 0,
+          "cloudPending": 0,
+          "objectURLs": 0,
+          "transientSources": 0,
+          "cooling": false
+        },
+        "products": {
+          "entries": 0,
+          "inflight": 0,
+          "estimatedTextBytes": 0,
+          "maxEstimatedTextBytes": 8388608
+        }
+      }
+    }
+  ],
+  "pageErrors": []
+}

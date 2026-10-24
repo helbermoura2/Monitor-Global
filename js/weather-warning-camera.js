@@ -64,7 +64,10 @@ async function resolve(item,active=()=>true){
 // Compute the destination independently of the current globe orientation.
 // cameraForBounds/fitBounds on the globe can frame a remote region around the pole.
 function frame(b){
- const c=map.getContainer(),w=c.clientWidth||root.innerWidth,h=c.clientHeight||root.innerHeight,wide=w>900;
+ if(!Array.isArray(b)||b.length!==2||!b.every(p=>Array.isArray(p)&&p.length>=2&&p.slice(0,2).every(Number.isFinite))||b[0][1]>b[1][1])return null;
+ if(typeof map==='undefined'||!map?.getContainer)return null;
+ const c=map.getContainer();if(!c)return null;
+ const w=c.clientWidth||root.innerWidth,h=c.clientHeight||root.innerHeight,wide=w>900;
  const padding={top:Math.min(wide?225:215,h*.25),bottom:Math.min(wide?60:300,h*.36),left:Math.min(wide?335:32,w*.27),right:Math.min(wide?380:32,w*.30)};
  const y=lat=>(1-Math.log(Math.tan(Math.PI/4+Math.max(-85.05112878,Math.min(85.05112878,lat))*Math.PI/360))/Math.PI)/2;
  const north=y(b[1][1]),south=y(b[0][1]),dx=Math.max(1e-8,(b[1][0]-b[0][0])/360),dy=Math.max(1e-8,south-north);
@@ -73,14 +76,14 @@ function frame(b){
  return {center:[(b[0][0]+b[1][0])/2,latitude],zoom,padding,bearing:0,pitch:0};
 }
 function fit(b,id){
- if(!b||!map)return false;
+ const camera=frame(b);if(!camera)return false;
  clearTimeout(root.__mgRecenterT);clearTimeout(root.__mgRecenterAlertT);clearTimeout(root.__mgSoftFlyT);
  if(typeof userInteractingWithGlobe!=='undefined')userInteractingWithGlobe=true;
- const camera=frame(b);
  if(root.EventCamera)root.EventCamera.enter(id,camera);
  else map.flyTo({...camera,duration:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true});return true;
 }
 async function focus(item){
+ if(!item?.id)return false;
  const token=++generation,active=()=>token===generation&&eventoSelecionadoId===item.id;
  let b=await resolve(item,active);if(!active())return false;
  if(!b&&item.meteoalarmArea){
