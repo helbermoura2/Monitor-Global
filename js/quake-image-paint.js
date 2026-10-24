@@ -23,7 +23,7 @@ function paintImageIntensity(rgba,frame,ev,polygons,annotations=[]){
  const grid=globalThis.RuptureShakingModel?.valid(ev.shaking?.grid)?ev.shaking.grid:null;
  const scale=[.5,1,2.1,5,11,26,60,140,321.8,740,1702,3000];
  const levels=[
-  [2,'II','Fraca'],[3,'III','Fraca'],[4,'IV','Leve'],[5,'V','Moderada'],
+  [2,'II','Muito fraca'],[3,'III','Fraca'],[4,'IV','Leve'],[5,'V','Moderada'],
   [6,'VI','Forte'],[7,'VII','Muito forte'],[8,'VIII','Severa'],[9,'IX','Violenta'],[10,'X','Extrema']
  ];
  // Sample the physical field, then interpolate its isolines. No filled pixels,
@@ -51,7 +51,7 @@ function paintImageIntensity(rgba,frame,ev,polygons,annotations=[]){
    for(let i=0;i+1<hits.length;i+=2){const a=hits[i],b=hits[i+1],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
     const k=Math.floor(my/step)*step*W+Math.floor(mx/step)*step;if(!mask[k])continue;
     strokes.push({a,b,rgb});painted++;
-    if(my/H>.34&&my/H<.82){const score=-Math.hypot(mx-W*.64,my-(306+(level-2)*36)*H/820),old=anchors.get(level);if(!old||score>old.score)anchors.set(level,{level,roman,description,color:hex,x:mx,y:my,score});}
+    {const score=-Math.hypot(mx-W*.64,my-H*.5),old=anchors.get(level);if(!old||score>old.score)anchors.set(level,{level,roman,description,color:hex,x:mx,y:my,score});}
    }
   }
  }
