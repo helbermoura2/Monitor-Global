@@ -1,0 +1,85 @@
+name: Android TV official release
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Verificar a assinatura ou publicar uma versão nova
+        required: true
+        default: verify
+        type: choice
+        options: [verify, publish]
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main' && github.actor == 'helbermoura2'
+    runs-on: ubuntu-latest
+    environment: android-tv-release
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Materialize protected signing input
+        env:
+          TV_RELEASE_KEYSTORE_B64: ${{ secrets.TV_RELEASE_KEYSTORE_B64 }}
+          TV_RELEASE_PASSWORD: ${{ secrets.TV_RELEASE_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import base64,os,pathlib
+          if not os.environ.get('TV_RELEASE_KEYSTORE_B64') or not os.environ.get('TV_RELEASE_PASSWORD'):
+              raise SystemExit('Configure os dois Secrets no ambiente android-tv-release antes de publicar.')
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])
+          for name,value in [('tv-release.p12',base64.b64decode(''.join(os.environ['TV_RELEASE_KEYSTORE_B64'].split()),validate=True)),('tv-release-password.txt',os.environ['TV_RELEASE_PASSWORD'].encode())]:
+              p=root/name;p.write_bytes(value);p.chmod(0o600)
+          PY
+      - name: Build and inspect official version
+        working-directory: android-tv
+        run: ./gradlew --no-daemon :app:assembleRelease :app:lintRelease
+      - name: Sign and verify publisher identity
+        run: |
+          python android-tv/tools/release.py --unsigned android-tv/app/build/outputs/apk/release/app-release-unsigned.apk --output "$RUNNER_TEMP/tv-release-public" --keystore "$RUNNER_TEMP/tv-release.p12" --password-file "$RUNNER_TEMP/tv-release-password.txt" --build-tools "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Publish validated distribution
+        if: inputs.mode == 'publish'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          python - <<'PY'
+          import json,os,pathlib
+          old=json.loads(pathlib.Path('android-tv/distribution/stable.json').read_text())['release']
+          new=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'tv-release-public/stable.json').read_text())['release']
+          if old.get('enabled') and new['versionCode']<=old['versionCode']:
+              raise SystemExit('Incremente versionCode/versionName em main antes de publicar. A versão instalada não será sobrescrita.')
+          PY
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          cp "$RUNNER_TEMP"/tv-release-public/*.apk downloads/
+          cp "$RUNNER_TEMP"/tv-release-public/*.sha256 downloads/
+          cp "$RUNNER_TEMP/tv-release-public/stable.json" android-tv/distribution/stable.json
+          git config user.name 'Monitor Global release'
+          git config user.email 'release@monitorglobal.top'
+          git add downloads/*.apk downloads/*.sha256 android-tv/distribution/stable.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Publica atualização assinada do Monitor Global TV'
+          git push origin HEAD:main
+          gh api --method POST repos/helbermoura2/Monitor-Global/pages/builds --silent
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-tv-official-signed
+          path: ${{ runner.temp }}/tv-release-public/
+          retention-days: 14
+      - name: Remove transient signing input
+        if: always()
+        run: rm -f "$RUNNER_TEMP/tv-release.p12" "$RUNNER_TEMP/tv-release-password.txt"
