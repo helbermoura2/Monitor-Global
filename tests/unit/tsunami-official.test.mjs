@@ -57,3 +57,11 @@ test('Vanuatu evaluation preserves official coastal scope without inventing wave
  assert.equal(rows.length,1);assert.equal(rows[0].name,'VANUATU');assert.equal(rows[0].radiusKm,300);assert.equal(rows[0].category,'Warning');assert.equal(rows[0].warningGeometry,undefined);
  assert.equal(evaluationThreatAreas('There is no tsunami danger for Alaska.').length,0);
 });
+
+
+test('product depth preserves explicit units and never treats missing or unknown units as kilometres',async()=>{
+ const {parseTsunamiProduct}=await import('../../tsunami-official-worker.mjs'),text=readFileSync('tests/fixtures/tsunami/PHEBWEPA40.js.txt','utf8'),object=JSON.parse(text.slice(text.indexOf('{'),text.lastIndexOf('}')+1));
+ for(const [depth,unit,expected]of [[33,'kilometers',33],[33000,'meters',33],[33,'unknown',null],[null,'meters',null]]){
+  const [item]=parseTsunamiProduct('var p='+JSON.stringify({...object,eventDepth:depth,eventDepthType:unit})+';','WEPA40');assert.equal(item.originDepth,expected);
+ }
+});
