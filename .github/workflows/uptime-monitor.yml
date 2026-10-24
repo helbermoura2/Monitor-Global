@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
+    inputs:
+      configuration_only:
+        description: Verificar somente presença dos Secrets, sem consultar o site ou enviar mensagens
+        type: boolean
+        default: true
 permissions:
   contents: read
   actions: read
@@ -10,8 +15,31 @@ concurrency:
   group: homepage-availability
   cancel-in-progress: false
 jobs:
+  configuration:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.configuration_only
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify private alert configuration without sending messages
+        env:
+          UPTIME_TELEGRAM_BOT_TOKEN: ${{ secrets.UPTIME_TELEGRAM_BOT_TOKEN }}
+          UPTIME_TELEGRAM_CHAT_ID: ${{ secrets.UPTIME_TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          names = ('UPTIME_TELEGRAM_BOT_TOKEN', 'UPTIME_TELEGRAM_CHAT_ID')
+          lines = ['## Configuração do alarme privado', '', 'Somente presença dos Secrets; não valida credenciais nem envia mensagens.', '']
+          for name in names:
+              lines.append(f"- {name}: {'presente' if os.environ.get(name) else 'ausente'}")
+          report = '\n'.join(lines) + '\n'
+          print(report)
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(report)
+          if not all(os.environ.get(name) for name in names):
+              raise SystemExit(1)
+          PYTHON
   check:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || !inputs.configuration_only)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

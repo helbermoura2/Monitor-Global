@@ -50,6 +50,8 @@ O site também depende de fontes externas de dados. Custos e limites variam conf
 | `.github/workflows/` | Automações do GitHub Actions |
 | `tests/`, `tools/`, `docs/` | Testes, ferramentas e documentação técnica |
 
+Consulte o [índice da documentação](docs/README.md), com orientações vigentes, investigações abertas e histórico.
+
 Consulte o [Guia do dono](GUIA_DO_DONO.md), com edição e recuperação pelo GitHub, e o [mapa dos arquivos](MAPA_DOS_ARQUIVOS.md).
 
 O [alarme de disponibilidade](docs/alarme-disponibilidade.md) verifica a página inicial pelo GitHub Actions. Os avisos ao Telegram exigem os Secrets próprios descritos no guia; a checagem não atesta a saúde de todas as fontes.

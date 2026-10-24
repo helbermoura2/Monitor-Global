@@ -18,7 +18,7 @@ O código não reaproveita nem revela os Secrets do Worker. Sem os dois Secrets 
 2. No repositório, abra **Settings → Secrets and variables → Actions → New repository secret**.
 3. Crie `UPTIME_TELEGRAM_BOT_TOKEN` com o token do bot.
 4. Crie `UPTIME_TELEGRAM_CHAT_ID` com o identificador numérico do chat privado. Ele não é o nome de usuário. Se você ainda não sabe o identificador, peça orientação para obtê-lo; não envie seu token na conversa nem use sites desconhecidos para descobri-lo.
-5. Abra **Actions → Homepage availability**. As execuções mostram se o Telegram está configurado. **Run workflow** faz uma checagem real e pode enviar aviso se detectar uma queda: não é um botão de mensagem de teste.
+5. Abra **Actions → Homepage availability**. As execuções mostram se o Telegram está configurado. **Run workflow** oferece `configuration_only`, marcado por padrão: verifica somente se os dois Secrets existem, sem consultar o site nem enviar mensagens. Presença não comprova validade do token, destino ou entrega. Desmarcar essa opção faz a checagem real e pode enviar aviso se detectar uma queda.
 
 Não é necessário criar um novo Secret da Cloudflare ou dar permissão de escrita ao repositório. O `GITHUB_TOKEN` automático recebe apenas leitura de conteúdo e Actions; o upload de artifacts usa o mecanismo normal do Actions.
 
@@ -33,3 +33,7 @@ O monitor depende do GitHub e do Telegram. Se um deles também falhar, o aviso p
 `python -m unittest discover -s tests/unit -p test_uptime_monitor.py`
 
 Os testes substituem HTTP e envio ao Telegram por simulações: não provocam queda nem enviam mensagens reais.
+
+## Situação da revisão de 24/10/2026
+
+O agendamento segue ativo; a execução [40134786739](https://github.com/helbermoura2/Monitor-Global/actions/runs/40134786739) terminou com sucesso. Isso não confirma entrega ao Telegram. A integração recebeu HTTP 403 ao listar Secrets; o novo modo de configuração permite verificar a presença pelo próprio Actions sem revelar valores ou enviar mensagens. Se ausentes, o dono deve cadastrá-los em **repository secrets**, conforme acima; Secrets do ambiente Android não são herdados por este job.

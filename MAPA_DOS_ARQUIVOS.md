@@ -45,3 +45,8 @@ Para mexer com segurança pelo GitHub, comece pelo [Guia do dono](GUIA_DO_DONO.m
 O frontend e o Worker de serviços têm processos próprios. Uma mudança no backend pode exigir empacotamento por `tools/build-worker-bundle.mjs` e o fluxo de manutenção documentado em `docs/cloudflare-worker-maintenance.md`; editar um `.mjs` não garante que o serviço publicado já mudou.
 
 Não execute testes que enviem mensagens reais ao Telegram. Use os cenários isolados descritos em `tests/OFFLINE-TESTS.md`. Não altere dados científicos para obter uma aparência diferente.
+
+
+## Índice e operação
+
+O [índice da documentação](docs/README.md) separa guias vigentes, investigações e histórico. Consulte também [custos e cotas](docs/custos-e-cotas.md) e a [revisão inicial de segurança](docs/revisao-seguranca-20261024.md).
