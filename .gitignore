@@ -21,3 +21,8 @@ android-tv/local.properties
 android-tv/**/build/
 android-tv/*.jks
 android-tv/*.keystore
+
+# Never version Android signing secrets
+*.p12
+**/release-password.txt
+**/TV_RELEASE_KEYSTORE_B64.txt

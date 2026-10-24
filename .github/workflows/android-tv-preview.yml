@@ -5,6 +5,7 @@ on:
     paths:
       - 'android-tv/**'
       - '.github/workflows/android-tv-preview.yml'
+      - '.github/workflows/android-tv-release.yml'
 permissions:
   contents: read
 jobs:
@@ -26,9 +27,15 @@ jobs:
           mkdir -p /tmp/tv-java-tests
           javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/AlertTracker.java android-tv/tests/AlertTrackerCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.AlertTrackerCheck
+          javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/TrustPolicy.java android-tv/tests/TrustPolicyCheck.java
+          java -cp /tmp/tv-java-tests top.monitorglobal.tv.TrustPolicyCheck
       - name: Build and inspect APK
         working-directory: android-tv
-        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease
+      - name: Verify distribution guards
+        run: python -m unittest discover -s android-tv/tests/python
+      - name: Verify published signature and migration artifacts
+        run: python android-tv/tools/check-distribution.py "$ANDROID_HOME/build-tools/35.0.0"
       - uses: actions/upload-artifact@v4
         with:
           name: monitor-global-tv-preview

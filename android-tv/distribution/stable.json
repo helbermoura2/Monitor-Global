@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "repository": "helbermoura2/Monitor-Global",
+  "packageName": "top.monitorglobal.tv.preview",
+  "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82",
+  "release": {
+    "enabled": true,
+    "versionCode": 10000,
+    "versionName": "1.0.0",
+    "url": "https://monitorglobal.top/downloads/monitor-global-tv-1.0.0.apk",
+    "sha256": "b33e9dd278eb17c759b40a4e7b0203453e9358380553b9bb18b5446f97264264"
+  },
+  "theme": {
+    "version": 1,
+    "background": "#101f27",
+    "accent": "#79d4c7",
+    "text": "#ffffff",
+    "titleSp": 23,
+    "bodySp": 16,
+    "cornerDp": 14,
+    "widthPercent": 92,
+    "position": "bottom"
+  }
+}

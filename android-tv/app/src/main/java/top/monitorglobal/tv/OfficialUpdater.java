@@ -1,0 +1,27 @@
+package top.monitorglobal.tv;
+import android.app.*;import android.content.*;import android.content.pm.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import java.io.*;import java.net.*;import java.security.*;import java.util.concurrent.*;
+final class OfficialUpdater {
+ interface Status {void set(String message);}
+ private final Activity activity;private final Status status;private final ExecutorService executor=Executors.newSingleThreadExecutor();private final Handler main=new Handler(Looper.getMainLooper());private volatile boolean closed,busy;
+ OfficialUpdater(Activity a,Status s){activity=a;status=s;}
+ private void ui(Runnable r){main.post(()->{if(!closed&&!activity.isDestroyed()&&!activity.isFinishing())r.run();});}
+ void check(){if(BuildConfig.DEBUG){status.set("Compilação de desenvolvimento. Instale o APK oficial assinado para usar este canal.");return;}if(busy)return;busy=true;status.set("Conferindo o canal oficial…");executor.execute(()->{try{org.json.JSONObject config=OfficialConfig.read();OfficialConfig.applyTheme(activity,config);OfficialConfig.Release release=OfficialConfig.release(config);
+  ui(()->{if(!release.enabled){status.set("Canal oficial aguardando publicação assinada.");return;}if(!TrustPolicy.newer(BuildConfig.VERSION_CODE,release.code)){status.set("Versão oficial atualizada · "+BuildConfig.VERSION_NAME);return;}new AlertDialog.Builder(activity).setTitle("Atualização oficial "+release.version).setMessage("O aplicativo verificará o arquivo e a assinatura. A instalação precisa da sua confirmação na TV.").setPositiveButton("Baixar e verificar",(d,w)->download(release)).setNegativeButton("Agora não",null).show();});
+ }catch(Exception e){ui(()->status.set("Não foi possível verificar o canal oficial. Nenhuma atualização foi instalada."));}finally{busy=false;}});}
+ private static String hex(byte[] b){StringBuilder out=new StringBuilder();for(byte n:b)out.append(String.format(java.util.Locale.ROOT,"%02x",n&255));return out.toString();}
+ private void download(OfficialConfig.Release release){if(busy||closed)return;busy=true;status.set("Baixando e verificando a atualização oficial…");executor.execute(()->{File part=new File(activity.getCacheDir(),"official-update.part");try{
+  HttpURLConnection c=(HttpURLConnection)new URL(release.url).openConnection();c.setConnectTimeout(8000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(false);MessageDigest digest=MessageDigest.getInstance("SHA-256");
+  try{if(c.getResponseCode()!=200)throw new IOException("Download indisponível");if(c.getContentLengthLong()>8*1024*1024)throw new IOException("APK acima do limite");try(InputStream in=c.getInputStream();FileOutputStream out=new FileOutputStream(part)){byte[] buffer=new byte[16384];int n,total=0;while((n=in.read(buffer))!=-1){if(closed)throw new IOException("Cancelado");total+=n;if(total>8*1024*1024)throw new IOException("APK acima do limite");digest.update(buffer,0,n);out.write(buffer,0,n);}out.getFD().sync();}}
+  finally{c.disconnect();}
+  if(!release.sha.equals(hex(digest.digest())))throw new SecurityException("Arquivo diferente da versão publicada");PackageInfo info=activity.getPackageManager().getPackageArchiveInfo(part.getAbsolutePath(),PackageManager.GET_SIGNING_CERTIFICATES);
+  if(info==null||!activity.getPackageName().equals(info.packageName)||info.getLongVersionCode()!=release.code||!TrustPolicy.newer(BuildConfig.VERSION_CODE,info.getLongVersionCode())||info.applicationInfo==null||(info.applicationInfo.flags&ApplicationInfo.FLAG_DEBUGGABLE)!=0||info.signingInfo==null||info.signingInfo.hasMultipleSigners())throw new SecurityException("Pacote ou versão inválidos");
+  android.content.pm.Signature[] signers=info.signingInfo.getApkContentsSigners();if(signers.length!=1||!BuildConfig.OFFICIAL_SIGNER_SHA256.equals(hex(MessageDigest.getInstance("SHA-256").digest(signers[0].toByteArray()))))throw new SecurityException("Assinatura de outro publicador");
+  File apk=OfficialApkProvider.apk(activity);if(apk.exists()&&!apk.delete())throw new IOException("Arquivo ocupado");if(!part.renameTo(apk))throw new IOException("Não foi possível preparar instalação");ui(()->install(release));
+ }catch(Exception e){part.delete();ui(()->status.set("Atualização recusada ou indisponível. Confira conexão, versão e assinatura; nada foi instalado."));}finally{busy=false;}});}
+ private void install(OfficialConfig.Release release){
+  if(!activity.getPackageManager().canRequestPackageInstalls()){status.set("Autorize este aplicativo a solicitar instalações. Depois, verifique a atualização novamente.");try{activity.startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+activity.getPackageName())));}catch(ActivityNotFoundException e){status.set("O Fire TV não oferece essa tela. Use o Downloader com o endereço oficial: "+release.url);}return;}
+  Uri uri=Uri.parse("content://"+activity.getPackageName()+".updates/apk");Intent intent=new Intent(Intent.ACTION_VIEW).setDataAndType(uri,"application/vnd.android.package-archive").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);intent.setClipData(ClipData.newRawUri("APK oficial",uri));
+  try{activity.startActivity(intent);}catch(ActivityNotFoundException e){status.set("Instalador não disponível. Use o Downloader com o endereço oficial: "+release.url);}
+ }
+ void close(){closed=true;main.removeCallbacksAndMessages(null);executor.shutdownNow();}
+}

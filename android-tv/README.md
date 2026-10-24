@@ -1,15 +1,21 @@
-# Monitor Global TV — prévia 0.1.1
+# Monitor Global TV — versão 1.0.0 do projeto
 
-Aplicativo de notificações de **sismos M6+ e boletins oficiais de tsunami**, para validar na TCL P7K (Google TV) e no Fire TV Stick 4K Max. Não é uma versão homologada nesses aparelhos. Não reproduz o site, não usa Telegram nem Firebase/Google Play Services e não contém tokens.
+Notificações de sismos M6+ e boletins oficiais de tsunami para Google TV e Fire TV, sem Telegram ou serviços Google no aplicativo. A prévia já foi testada pelo proprietário com a faixa sobre outro aplicativo no Fire Stick.
+
+APK assinado: `https://monitorglobal.top/downloads/monitor-global-tv-1.0.0.apk`. Atualize por cima da prévia, sem desinstalar, para validar a migração assinada no aparelho. Android 9/API28 ou superior.
+
+O aplicativo inclui **Verificar atualização oficial** e ajustes visuais por configuração limitada no servidor. A primeira instalação desta versão é manual; as próximas podem ser baixadas e verificadas pelo aplicativo, com confirmação no instalador da TV. Não é uma publicação em loja de aplicativos.
+
+Leia [OFFICIAL_RELEASE.md](OFFICIAL_RELEASE.md) para assinatura, autorizações, configuração única dos Secrets e manutenção por IAs autorizadas. A chave privada nunca deve ser enviada ao repositório público.
 
 ## Instalar e testar
 
-O APK de teste está em [downloads/monitor-global-tv-0.1.1-preview.apk](../downloads/monitor-global-tv-0.1.1-preview.apk). Depois da publicação, o endereço é:
+O APK de teste está em [downloads/monitor-global-tv-1.0.0.apk](../downloads/monitor-global-tv-1.0.0.apk). Depois da publicação, o endereço é:
 
-`https://monitorglobal.top/downloads/monitor-global-tv-0.1.1-preview.apk`
+`https://monitorglobal.top/downloads/monitor-global-tv-1.0.0.apk`
 
 1. Baixe e instale **no aparelho de TV**. No Fire TV, um instalador como Downloader pode abrir o endereço; autorize a instalação para o instalador usado nas configurações do aparelho.
-2. Abra **Monitor Global TV · Prévia** e selecione **Permitir exibição sobre outros aplicativos**. O aplicativo informa se a permissão foi concedida. Algumas versões do Fire OS não oferecem essa tela ou não autorizam a sobreposição; isso precisa ser conferido no aparelho.
+2. Abra **Monitor Global TV** e selecione **Permitir exibição sobre outros aplicativos**. O aplicativo informa se a permissão foi concedida. Algumas versões do Fire OS não oferecem essa tela ou não autorizam a sobreposição; isso precisa ser conferido no aparelho.
 3. Selecione **Testar faixa em 10 segundos**. Volte à tela inicial/abra outro aplicativo. O aviso identifica explicitamente que os dados são fictícios e fecha sozinho.
 4. Depois, selecione **Ativar monitoramento**. Som e duração ficam na mesma tela. Para parar, use o botão do aplicativo ou a ação na notificação persistente do serviço.
 
@@ -19,7 +25,7 @@ Se for necessário instalar por ADB, faça isso a partir de um computador na mes
 
 ```
 adb connect IP_DO_FIRE_STICK:5555
-adb install monitor-global-tv-0.1.1-preview.apk
+adb install monitor-global-tv-1.0.0.apk
 ```
 
 Se o Fire OS não oferecer a permissão na interface, a concessão pelo proprietário via ADB pode ser testada:
@@ -44,14 +50,14 @@ O Telegram continua ativo durante essa validação. Não se desativa o canal ou 
 
 ## Desenvolvimento
 
-Java 21, Android SDK 35, Gradle 8.9 e Android Gradle Plugin 8.7.3; mínimo Android 8/API 26. Sem bibliotecas externas no aplicativo. Compilação:
+Java 21, Android SDK 35, Gradle 8.9 e Android Gradle Plugin 8.7.3; mínimo Android 9/API 28. Sem bibliotecas externas no aplicativo. Compilação:
 
 ```
 cd android-tv
 ./gradlew :app:assembleDebug :app:lintDebug
 ```
 
-O wrapper verifica o SHA-256 da distribuição. `local.properties`, ferramentas e chaves não são versionadas. Este APK é assinado com chave de desenvolvimento: uma futura compilação com outra chave pode exigir desinstalar a prévia. Uma versão de distribuição permanente precisa de assinatura estável antes de prometer atualizações por cima da instalação existente.
+O wrapper verifica o SHA-256 da distribuição. `local.properties`, ferramentas e chaves não são versionadas. A assinatura permanente e a migração da prévia estão descritas em [OFFICIAL_RELEASE.md](OFFICIAL_RELEASE.md).
 
 Os testes de estado executam sem Android:
 

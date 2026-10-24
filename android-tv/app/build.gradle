@@ -4,13 +4,19 @@ android {
  compileSdk 35
  defaultConfig {
   applicationId 'top.monitorglobal.tv.preview'
-  minSdk 26
+  minSdk 28
   targetSdk 35
-  versionCode 2
-  versionName '0.1.1-preview'
+  versionCode 10000
+  versionName '1.0.0'
+  def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
+  buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
- buildTypes { release { minifyEnabled false } }
+ buildFeatures { buildConfig true }
+ buildTypes {
+  debug { applicationIdSuffix '.dev'; versionNameSuffix '-dev'; resValue 'string', 'app_name', 'Monitor Global TV · Desenvolvimento' }
+  release { minifyEnabled false; debuggable false; resValue 'string', 'app_name', 'Monitor Global TV' }
+ }
  lint { abortOnError true }
 }
