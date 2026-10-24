@@ -1,3 +1,4 @@
+import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
 import {queryImageTsunami,imageTsunamiVersion} from "./image-tsunami-status.mjs";
@@ -1912,6 +1913,7 @@ async function handleWorkerRequest(request,env){
             if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
             return handlePortugueseTranslation(request,env);
         }
+        if (reqUrl.pathname === '/tv-alerts') return handleTvAlerts(request);
         if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
         if (reqUrl.pathname === '/rupture-shaking') return handleRuptureShaking(request);
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
@@ -1967,6 +1969,7 @@ async function handleWorkerRequest(request,env){
                 telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
                 telegramImageStatus: 'editorial-v16',
                 telegramTsunamiCard: 'tsunami-coastal-v1',
+                tvAlerts: 'tv-alerts-v1',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",
