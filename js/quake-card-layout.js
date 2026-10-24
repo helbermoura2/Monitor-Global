@@ -1,6 +1,12 @@
-/* One cartographic composition for Telegram and earthquake Stories (800 × 1440). */
+/* Shared editorial earthquake bulletin: Telegram and site export (800 × 1440). */
 (function(){
- const MAP_HEIGHT=820,ANCHOR_Y=550;
+ const MAP_Y=180,MAP_HEIGHT=430,ANCHOR_Y=MAP_HEIGHT/2,TSUNAMI_Y=998,TSUNAMI_HEIGHT=180;
+ const CONTEXT={x:32,y:454,width:186,height:144,imageX:38,imageY:482,imageWidth:174,imageHeight:108};
+ const white='#edf6fa',muted='#b4c9ce',line='#304950',bg='#101f27',panel='#142a33';
+ const box=(p,x,y,w,h,c=panel)=>(p.roundRect||p.rect)(x,y,w,h,c);
+ const fit=(p,text,size,max,bold=false)=>{text=String(text||'');while(p.measure(text,size,bold)>max&&text.length>3)text=text.slice(0,-4)+'...';return text;};
+ function wrap(p,text,size,max,limit=2){const result=[];let current='';for(const word of String(text||'').split(/\s+/)){const next=(current+' '+word).trim();if(p.measure(next,size)>max&&current){result.push(current);current=word;}else current=next;}if(current)result.push(current);if(result.length>limit)result[limit-1]=fit(p,result.slice(limit-1).join(' '),size,max);return result.slice(0,limit);}
+ const names={I:'Não perceptível',II:'Muito fraca',III:'Fraca',IV:'Leve',V:'Moderada',VI:'Forte',VII:'Muito forte',VIII:'Severa',IX:'Violenta',X:'Extrema',XI:'Extrema',XII:'Extrema'};
  function frame(ev){
   const model=globalThis.SeismicImpactModel;
   const magnitude=Number(ev.mag),depth=Math.max(0,Number(ev.depth)||0);
@@ -21,18 +27,12 @@
   const span=180/2**zoom;
   return {width:800,height:MAP_HEIGHT,zoom,anchorX:400,anchorY:ANCHOR_Y,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:Number(ev.lat)-2*span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+2*span*ANCHOR_Y/800};
  }
- function contextFrame(ev){const span=22.5,lat=Math.max(-65,Math.min(65,Number(ev.lat)));return {width:292,height:188,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:lat-span*188/292,maxLat:lat+span*188/292};}
- function drawContext(p,ev){const cf=contextFrame(ev);p.roundRect(484,70,224,180,'#102b3d');p.text('CONTEXTO REGIONAL',496,78,13,'#edf6fa',true);
-  const x=489+(Number(ev.lon)-cf.minLon)/(cf.maxLon-cf.minLon)*214,y=107+(cf.maxLat-Number(ev.lat))/(cf.maxLat-cf.minLat)*138;p.dot(x,y,6,'#ffffff');p.dot(x,y,4,'#ff6151');}
- function drawContourLabels(p,contours){
-  const ordered=[...contours].sort((a,b)=>b.level-a.level).slice(0,5);
-  const connector=(ax,ay,bx,by,color)=>{const steps=Math.max(1,Math.ceil(Math.hypot(bx-ax,by-ay)/2));for(let i=0;i<=steps;i++)p.dot(ax+(bx-ax)*i/steps,ay+(by-ay)*i/steps,1,color);};
-  ordered.forEach((a,i)=>{const y=290+i*54,label='MMI '+a.roman+' · '+a.description,x=530,w=250;
-   connector(a.x,a.y,x,y+16,'#102b3d');connector(a.x,a.y,x,y+16,a.color);p.dot(a.x,a.y,5,'#102b3d');p.dot(a.x,a.y,3,a.color);
-   p.roundRect(x,y,w,46,'#102b3d');p.rect(x,y+6,3,34,a.color);p.text('Intensidade nesta faixa',x+12,y+5,12,'#b4ceda');p.text(label,x+12,y+22,16,'#edf6fa',true);
-  });
+ function validExposure(e){
+  if(e?.status!=='available'||!['pager','worldpop','geonames-localities'].includes(e.method)||e.ranges?.length!==3)return false;
+  const reserve=e.method==='geonames-localities';if(reserve&&(!e.partial||!(Number(e.ranges[0].population)>0)||!Number.isInteger(e.ranges[0].localities)||e.ranges[0].localities<1))return false;
+  return e.ranges.every((r,i)=>reserve&&i&&r.population===null||r.population!=null&&Number.isFinite(Number(r.population))&&Number(r.population)>=0&&(!i||Number(r.population)<=Number(e.ranges[i-1].population)));
  }
- function drawTsunami(p,status){
+ function drawLegacyTsunami(p,status){
   const white='#edf6fa',muted='#b4ceda',box=(...args)=>(p.roundRect||p.rect)(...args);
   const ts=status||{state:'unknown',headline:'TSUNAMI: SITUAÇÃO NÃO CONFIRMADA',areas:'Ausência de boletim não significa ausência de risco.'};
   const tc={warning:'#ff867c',watch:'#ffb15e',advisory:'#ffe078',cancelled:'#8bd8bd',noThreat:'#8bd8bd'}[ts.state]||muted;
@@ -44,49 +44,79 @@
   if(groups.length){for(const [i,g]of groups.slice(0,2).entries()){const when=Number.isFinite(g.issuedAt)?new Date(g.issuedAt).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})+' BRT':'';const status=g.state==='warning'?'Aviso':g.state==='noThreat'?'Sem ameaça':g.label;const line=[g.source,when,g.stale?'Última informação':''].filter(Boolean).join(' ')+' · '+status+': '+g.regions.join(' · ');p.text(fit(line,14),48,675+i*20,14,g.color||white);}}else p.text(fit(ts.areas,14),48,677,14,white);
   p.text((groups.length>2?'Outras regiões no boletim. ':'')+'Cada situação vale só para as regiões citadas; siga a autoridade local.',48,718,10,muted);
  }
- function validExposure(e){
-  if(e?.status!=='available'||!['pager','worldpop','geonames-localities'].includes(e.method)||e.ranges?.length!==3)return false;
-  const reserve=e.method==='geonames-localities';if(reserve&&(!e.partial||!(Number(e.ranges[0].population)>0)||!Number.isInteger(e.ranges[0].localities)||e.ranges[0].localities<1))return false;
-  return e.ranges.every((r,i)=>reserve&&i&&r.population===null||r.population!=null&&Number.isFinite(Number(r.population))&&Number(r.population)>=0&&(!i||Number(r.population)<=Number(e.ranges[i-1].population)));
+ function contextFrame(ev){const span=22.5,lat=Math.max(-65,Math.min(65,Number(ev.lat)));return {width:292,height:188,minLon:Number(ev.lon)-span,maxLon:Number(ev.lon)+span,minLat:lat-span*188/292,maxLat:lat+span*188/292};}
+ function drawContext(p){box(p,CONTEXT.x,CONTEXT.y,CONTEXT.width,CONTEXT.height);p.text('CONTEXTO REGIONAL',CONTEXT.x+8,CONTEXT.y+9,12,white,true);}
+ function contourRows(contours){return [...new Map([...contours].sort((a,b)=>a.level-b.level).map(a=>[a.level,a])).values()];}
+ function drawContourLabels(p,contours){
+  const occupied=[[CONTEXT.x,CONTEXT.y,CONTEXT.x+CONTEXT.width,CONTEXT.y+CONTEXT.height],[285,MAP_Y+ANCHOR_Y-15,590,MAP_Y+ANCHOR_Y+55],[550,MAP_Y+MAP_HEIGHT-60,784,MAP_Y+MAP_HEIGHT]];
+  for(const a of contourRows(contours).slice(0,6)){
+   if(!Number.isFinite(a.x)||!Number.isFinite(a.y)||a.y<MAP_Y+15||a.y>MAP_Y+MAP_HEIGHT-15)continue;
+   const label=a.roman+' · '+a.description,w=Math.min(220,p.measure(label,14,true)+20),h=28;
+   const positions=[[a.x+10,a.y-34],[a.x-w-10,a.y-34],[a.x+10,a.y+10],[a.x-w-10,a.y+10]];
+   const pos=positions.find(([x,y])=>x>=16&&x+w<=784&&y>=MAP_Y+12&&y+h<=MAP_Y+MAP_HEIGHT-12&&!occupied.some(([l,t,r,b])=>x<r&&x+w>l&&y<b&&y+h>t));
+   if(!pos)continue;const [x,y]=pos;box(p,x,y,w,h);p.rect(x+5,y+5,3,h-10,a.color);p.text(label,x+13,y+6,14,white,true);p.dot(a.x,a.y,3,a.color);occupied.push([x,y,x+w,y+h]);
+  }
+ }
+ function drawTsunami(p,status){
+  const ts=status||{state:'unknown',headline:'Situação não confirmada',areas:'Ausência de boletim não significa ausência de risco.'};
+  box(p,24,TSUNAMI_Y,752,TSUNAMI_HEIGHT,'#10232c');p.text('TSUNAMI · SITUAÇÃO POR REGIÃO',38,TSUNAMI_Y+12,17,white,true);
+  const groups=ts.regionalGroups||[],color={warning:'#eda08a',watch:'#dfc58d',advisory:'#dfc58d',cancelled:'#9dcbbb',noThreat:'#9dcbbb'}[ts.state]||muted;
+  if(groups.length){
+   for(const [i,g]of groups.slice(0,2).entries()){
+    const y=TSUNAMI_Y+42+i*51,when=Number.isFinite(g.issuedAt)?new Date(g.issuedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT':'';
+    const state=g.state==='warning'?'Aviso: ondas perigosas possíveis':g.state==='noThreat'?'Sem ameaça segundo o boletim':g.label||'Informativo';
+    p.dot(42,y+8,3,g.color||color);p.text(fit(p,state,15,710,true),54,y,15,g.color||color,true);
+    p.text(fit(p,g.regions.join(' · '),14,710),38,y+19,14,white);
+    p.text(fit(p,[g.source,when,g.stale?'Último boletim; atualização indisponível':''].filter(Boolean).join(' · '),11,710),38,y+36,11,muted);
+   }
+  }else{
+   p.text(fit(p,(ts.stale&&ts.state!=='unknown'?'Último boletim · ':'')+(ts.headline||'Situação não confirmada'),16,710,true),38,TSUNAMI_Y+43,16,color,true);
+   const issued=Number.isFinite(ts.issuedAt)?new Date(ts.issuedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'';
+   p.text(fit(p,[ts.source,issued,ts.stale?'Atualização indisponível':''].filter(Boolean).join(' · '),13,710),38,TSUNAMI_Y+68,13,muted);
+   wrap(p,ts.areas||'Consulte os boletins oficiais atualizados.',15,710,2).forEach((s,i)=>p.text(s,38,TSUNAMI_Y+91+i*20,15,white));
+  }
+  p.text(groups.length>2?'Outras regiões: consulte o boletim oficial.':'Cada situação vale apenas para as regiões citadas.',38,TSUNAMI_Y+148,12,muted);
+  p.text('Siga os boletins oficiais e as orientações das autoridades locais.',38,TSUNAMI_Y+164,11,muted);
  }
  function draw(p,ev){
   const pt=globalThis.EventPortuguese,fmt=(n,d=0)=>pt?.number(n,d)??Number(n).toFixed(d).replace('.',',');
-  ev={...ev,place:globalThis.EventPortuguese?.place(ev.place)||ev.place};
-  const white='#edf6fa',muted='#b4ceda',line='#315365',red=Number(ev.mag)>=6?'#ff6151':Number(ev.mag)>=5?'#fb923c':Number(ev.mag)>=4?'#facc15':'#4ade80';
-  const box=(...args)=>(p.roundRect||p.rect)(...args);
-  if(p.gradient)p.gradient(0,820,800,620,'#102b3d','#06131f');else p.rect(0,820,800,620,'#0b2232');p.rect(0,820,800,1,line);
-  box(24,20,225,38,'#102b3d');p.text('MONITOR GLOBAL',32,27,19,white,true);
-  const revision=pt?.revision(ev)||ev.revisionText||'';
-  box(revision?610:650,20,revision?170:126,35,'#102b3d');p.text(ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO',revision?620:660,30,13,revision?'#ffe078':muted,true);
-  p.dot(400,550,10,'#ffffff');p.dot(400,550,7,red);
-  box(420,553,170,31,'#102b3d');p.text('M'+fmt(ev.mag,1)+' · '+fmt(Math.max(0,Number(ev.depth)))+' km',430,558,16,white,true);
+  const place=pt?.place(ev.place)||ev.place||'Local não informado',revision=pt?.revision(ev)||ev.revisionText||'';
+  p.rect(0,0,800,MAP_Y,bg);p.rect(0,MAP_Y+MAP_HEIGHT,800,1440-MAP_Y-MAP_HEIGHT,bg);
+  p.text('MONITOR GLOBAL',28,22,22,white,true);box(p,610,20,164,30);p.text(ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO',622,28,13,muted,true);
+  p.rect(24,66,752,1,line);
+  p.text(fit(p,ev.imageRegion?pt?.place(ev.imageRegion)||ev.imageRegion:'SISMO',23,550,true),28,81,23,white,true);
+  p.text('M'+fmt(ev.mag,1),624,77,40,Number(ev.mag)>=6?'#e79788':white,true);p.text('MAGNITUDE DO SISMO',621,126,10,muted);
+  wrap(p,place,21,570,2).forEach((s,i)=>p.text(s,28,116+i*26,21,white));
+  p.dot(400,MAP_Y+ANCHOR_Y,8,'#ffffff');p.dot(400,MAP_Y+ANCHOR_Y,5,'#ec8578');
+  box(p,306,MAP_Y+ANCHOR_Y+17,188,29);p.text('EPICENTRO · M'+fmt(ev.mag,1),317,MAP_Y+ANCHOR_Y+24,15,white,true);
   drawContourLabels(p,ev.imageContours||[]);
+  if(!ev.imageMapAvailable){box(p,238,MAP_Y+30,320,31);p.text('Mapa de contexto indisponível',250,MAP_Y+38,15,muted);}
+  box(p,24,620,752,98);p.text('COMO LER O MAPA · INTENSIDADE LOCAL',38,631,16,white,true);
+  const levels=contourRows(ev.imageContours||[]),visible=levels.slice(0,6);
+  if(visible.length){visible.forEach((a,i)=>{const col=i%3,row=Math.floor(i/3),x=38+col*242,y=655+row*21;p.rect(x,y+7,20,3,a.color);p.text(fit(p,a.roman+' · '+a.description,13,210),x+27,y,13,white);});}
+  else p.text(ev.imageMapAvailable?'Nenhum contorno visível neste enquadramento.':'Contornos indisponíveis nesta imagem; não significa ausência de tremor.',38,655,14,muted);
+  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · intensidade publicada':'Modelo estimado · não confirma tremor ou danos',38,695,11,muted);
+  p.text('As linhas indicam o tremor em cada faixa; não representam ondas de tsunami.',38,739,13,muted);
+  p.text(fit(p,ev.when||'Horário não informado',16,720),38,768,16,white);
+  p.text(fit(p,ev.sourceLabel||ev.sourceLine||ev.source||'Fonte não informada',14,720),38,793,14,muted);
+  const coords=Number.isFinite(Number(ev.lat))&&Number.isFinite(Number(ev.lon))?fmt(Math.abs(ev.lat),2)+'° '+(ev.lat<0?'S':'N')+' · '+fmt(Math.abs(ev.lon),2)+'° '+(ev.lon<0?'O':'L'):'';
+  if(coords)p.text(coords,38,817,14,muted);
+  if(revision)p.text(fit(p,'REVISÃO · '+revision,14,coords?352:720,true),coords?410:38,817,14,muted,true);
+  box(p,24,846,752,140);const mmi=ev.mmi||'—',description=names[mmi];
+  const stats=[['PROFUNDIDADE',Number.isFinite(Number(ev.depth))?fmt(Math.max(0,Number(ev.depth)))+' km':'—',Number(ev.depth)<70?'Raso':Number(ev.depth)<300?'Intermediário':'Profundo'],['MMI NO EPICENTRO',mmi+(description?' · '+description:''),ev.shaking?.status==='available'?'USGS ShakeMap':'Estimada'],['ENERGIA ESTIMADA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'Equivalente em TNT']];
+  stats.forEach((s,i)=>{const x=38+i*247;if(i)p.rect(x-12,861,1,83,line);p.text(s[0],x,861,11,muted);p.text(fit(p,s[1],i===1?19:25,225,true),x,888,i===1?19:25,white,true);p.text(s[2],x,923,13,muted);});
+  p.text('Magnitude: tamanho do sismo. Intensidade: força do tremor em cada local.',38,958,13,muted);
+  p.text('Energia: conversão física; não indica danos.',38,975,11,muted);
   drawTsunami(p,ev.imageTsunami);
-  box(32,735,465,73,'#071722');p.text('CONTORNOS DE INTENSIDADE · MMI',50,746,16,white,true);
-  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · intensidade publicada':'Modelo estimado · não indica danos',50,772,14,muted);p.text('Cada linha indica a intensidade naquela faixa, não a magnitude.',50,793,11,muted);
-  p.arc(98,916,50,9,180,180,'#294757');p.arc(98,916,50,9,180,180,red);
-  p.text('MAGNITUDE DO SISMO',182,849,13,'#e5a996');p.text('M'+fmt(ev.mag,1),182,870,68,red,true);
-  // Wrap long locations without allowing them into the statistics.
-  const words=String(ev.place||'Local desconhecido').split(/\s+/),lines=[];let current='';
-  for(const word of words){const next=(current+' '+word).trim();if(p.measure(next,26,true)>728&&current){lines.push(current);current=word;}else current=next;}if(current)lines.push(current);
-  lines.slice(0,2).forEach((s,i)=>p.text(s,36,954+i*32,26,white,true));
-  p.text(ev.when||'Horário não informado',36,1024,15,muted);
-  let source=ev.sourceLine||ev.source||'Fonte não informada';
-  while(p.measure(source,15)>728&&source.length>3)source=source.slice(0,-4)+'...';p.text(source,36,1050,15,muted);
-  if(revision){let caption='REVISÃO · '+revision;while(p.measure(caption,13,true)>728&&caption.length>3)caption=caption.slice(0,-4)+'...';p.text(caption,36,1075,13,'#ffe078',true);}
-  p.rect(36,1093,728,1,line);p.rect(36,1209,728,1,line);
-  const mmiDescription={I:'Não perceptível',II:'Muito fraca',III:'Fraca',IV:'Leve',V:'Moderada',VI:'Forte',VII:'Muito forte',VIII:'Severa',IX:'Violenta',X:'Extrema',XI:'Extrema',XII:'Extrema'}[ev.mmi];
-  const stats=[['PROFUNDIDADE',fmt(Math.max(0,Number(ev.depth)))+' km',ev.depth<70?'Raso':ev.depth<300?'Intermediário':'Profundo'],['MMI NO EPICENTRO',ev.mmi||'—',(mmiDescription?mmiDescription+' · ':'')+(ev.shaking?.status==='available'?'USGS':'Estimada')],['ENERGIA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'TNT equivalente']];
-  stats.forEach((s,i)=>{const x=36+i*246;if(i)p.rect(x-12,1110,1,85,line);p.text(s[0],x,1114,11,muted);p.text(s[1],x,1138,25,white,true);p.text(s[2],x,1178,13,muted);});
-  box(36,1228,728,163,'#416879');box(37,1229,726,161,'#0b2232');
-  const e=ev.exposure,reserve=e?.method==='geonames-localities',valid=validExposure(e);
-  p.text(reserve?'POPULAÇÃO NAS LOCALIDADES DA ÁREA · EST':'POPULAÇÃO POTENCIALMENTE EXPOSTA · III+',56,1246,12,muted);
-  const count=n=>Math.round(Number(n)).toLocaleString('pt-BR');
-  if(valid&&reserve){const n=Number(e.ranges[0].population),scale=10**Math.max(0,Math.floor(Math.log10(n))-1);p.text('~ '+count(Math.round(n/scale)*scale)+' pessoas',56,1272,31,'#ffe078',true);p.text('Estimativa preliminar · '+count(e.ranges[0].localities)+' localidades cadastradas',56,1315,13,muted);p.text('GeoNames · cobertura parcial · população rural incompleta',56,1338,13,muted);}
-  else if(valid){p.text('~ '+count(e.ranges[0].population)+' pessoas',56,1272,31,'#ffe078',true);p.text('V+: ~ '+count(e.ranges[1].population)+' · VI+: ~ '+count(e.ranges[2].population),56,1315,13,muted);p.text((e.method==='pager'?'USGS PAGER':'WorldPop 2020')+(e.partial?' · cobertura parcial':'')+' · faixas cumulativas',56,1338,13,muted);}
-  else{p.text(e?.status==='pending'?'Estimativa em consulta':'Estimativa indisponível',56,1277,25,'#ffe078',true);p.text(e?.status==='pending'?'A imagem será atualizada quando houver dados.':'Sem dados suficientes; não significa zero.',56,1320,13,muted);}
-  p.text(reserve?'Pode haver sobreposição; não confirma quem sentiu ou danos.':'Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
-  p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
+  box(p,24,1190,752,204);const e=ev.exposure,reserve=e?.method==='geonames-localities',valid=validExposure(e),count=n=>Math.round(Number(n)).toLocaleString('pt-BR');
+  p.text(reserve?'POPULAÇÃO NAS LOCALIDADES DA ÁREA · EST':'POPULAÇÃO POTENCIALMENTE EXPOSTA · MMI III+',38,1205,13,muted);
+  if(!reserve)p.text('MMI III+: área de tremor fraco ou maior.',38,1224,11,muted);
+  if(valid&&reserve){const n=Number(e.ranges[0].population),scale=10**Math.max(0,Math.floor(Math.log10(n))-1);p.text('~ '+count(Math.round(n/scale)*scale)+' pessoas',38,1238,32,white,true);p.text('Estimativa preliminar · '+count(e.ranges[0].localities)+' localidades cadastradas',38,1283,14,muted);p.text('GeoNames · cobertura parcial · população rural incompleta',38,1308,14,muted);}
+  else if(valid){p.text('~ '+count(e.ranges[0].population)+' pessoas',38,1238,32,white,true);p.text('MMI V+: ~ '+count(e.ranges[1].population)+' · MMI VI+: ~ '+count(e.ranges[2].population),38,1283,14,muted);p.text((e.method==='pager'?'USGS PAGER':'WorldPop 2020')+(e.partial?' · cobertura parcial':'')+' · faixas cumulativas',38,1308,14,muted);}
+  else{p.text(e?.status==='pending'?'Estimativa em consulta':'Estimativa indisponível',38,1240,27,white,true);p.text(e?.status==='pending'?'A imagem será atualizada quando houver dados.':'Sem dados suficientes; não significa zero.',38,1283,14,muted);}
+  p.text(reserve?'Pode haver sobreposição; cobertura incompleta.':'As faixas se sobrepõem; não some os valores.',38,1340,14,muted);
+  p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',38,1364,14,muted);
+  p.text('monitorglobal.top',28,1410,12,muted);p.text('Monitor Global',655,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,MAP_HEIGHT,ANCHOR_Y,version:'hollow-v15-regional'};
+ globalThis.QuakeCardLayout={frame,draw,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,drawLegacyTsunami,MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y,TSUNAMI_HEIGHT,version:'editorial-v16'};
 })();

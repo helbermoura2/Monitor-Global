@@ -21,5 +21,5 @@ test('unrelated quake and warning-area geometry cannot borrow another event bull
 test('shared image shows both authority scopes instead of one global threat label',()=>{
  require('../../js/quake-tsunami-status.js');require('../../js/quake-card-layout.js');const status=QuakeTsunamiStatus.resolve(q,{ok:true,checkedAt:now,items:[a(),safe]},null,[q],now);assert.equal(status.regionalGroups.length,2);
  const texts=[],p={rect(){},dot(){},arc(){},measure:(s,z)=>s.length*z*.5,text:(s,x,y,size)=>texts.push({s,x,y,size})};QuakeCardLayout.drawTsunami(p,status);
- assert(texts.some(r=>r.s==='TSUNAMI · SITUAÇÃO POR REGIÃO'));assert(texts.some(r=>r.s.includes('PTWC')&&r.s.includes('Vanuatu')));assert(texts.some(r=>r.s.includes('NTWC')&&r.s.includes('Sem ameaça')&&r.s.includes('Alasca')));assert(texts.every(r=>r.y+r.size<732&&r.x+p.measure(r.s,r.size)<=800));
+ assert(texts.some(r=>r.s==='TSUNAMI · SITUAÇÃO POR REGIÃO'));assert(texts.some(r=>r.s.includes('PTWC')));assert(texts.some(r=>r.s.includes('Vanuatu')));assert(texts.some(r=>r.s.includes('NTWC')));assert(texts.some(r=>r.s.includes('Sem ameaça')));assert(texts.some(r=>r.s.includes('Alasca')));assert(texts.every(r=>r.y+r.size<QuakeCardLayout.TSUNAMI_Y+QuakeCardLayout.TSUNAMI_HEIGHT&&r.x+p.measure(r.s,r.size)<=800));
 });

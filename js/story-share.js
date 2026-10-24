@@ -1183,14 +1183,14 @@
     const ev={mag:Number(item.mag),depth:Number(item.depth)||0,lon:item.coords[0],lat:item.coords[1],place:item.place};
     ev.shaking=await window.RuptureShaking?.query(item);
     ev.imageTsunami=window.QuakeTsunamiStatus.resolve(item,{...(window.__mgTsunamiImageHealth||{ok:false}),items:typeof globalAlerts!=='undefined'?globalAlerts:[]},null,typeof globalEvents!=='undefined'?globalEvents:[item]);
-    const layout=window.QuakeCardLayout,frame=layout.frame(ev),nativeFrame={...frame,width:1080,height:1093},canvas=document.createElement('canvas');
+    const layout=window.QuakeCardLayout,frame=layout.frame(ev),nativeFrame={...frame,width:1080,height:Math.round(frame.height*4/3)},nativeHeight=nativeFrame.height,canvas=document.createElement('canvas');
     let fontFamily='Arial';
     if(window.FontFace)try{if(!storyHdFontPromise)storyHdFontPromise=new FontFace('MonitorGlobalInter','url(assets/summary-fonts/Inter.ttf)',{weight:'100 900'}).load().then(font=>{document.fonts.add(font);return true;}).catch(()=>false);let timer;try{if(await Promise.race([storyHdFontPromise,new Promise(resolve=>{timer=setTimeout(()=>resolve(false),4000)})]))fontFamily='MonitorGlobalInter';}finally{clearTimeout(timer);}}catch{}
     canvas.width=1080;canvas.height=1920;
     const ctx=canvas.getContext('2d');ctx.scale(1.35,4/3);ctx.fillStyle='#092130';ctx.fillRect(0,0,800,1440);
     const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
     const base='https://server.arcgisonline.com/ArcGIS/rest/services/';
-    const params='?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=1080,1093&dpi=144&format=png32&transparent=true&f=image';
+    const params='?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size=1080,'+nativeHeight+'&dpi=144&format=png32&transparent=true&f=image';
     const cf=layout.contextFrame(ev),contextParams='?bbox='+encodeURIComponent([cf.minLon,cf.minLat,cf.maxLon,cf.maxLat].join(','))+'&bboxSR=4326&imageSR=4326&size=292,188&format=png32&f=image';
     const imageContours=[];
     const [sat,labels,exposure,contextImg]=await Promise.all([
@@ -1201,13 +1201,13 @@
     ]);
     // Paint at the shared reference resolution before scaling for Story export.
     if(sat){
-      const surface=document.createElement('canvas');surface.width=1080;surface.height=1093;const c=surface.getContext('2d');
-      c.drawImage(sat,0,0,1080,1093);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,1080,1093);
+      const surface=document.createElement('canvas');surface.width=1080;surface.height=nativeHeight;const c=surface.getContext('2d');
+      c.drawImage(sat,0,0,1080,nativeHeight);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(0,0,1080,nativeHeight);
       try{
         if(!storyLandPromise)storyLandPromise=fetch('assets/seismic/ne-50m-land.geojson').then(r=>{if(!r.ok)throw Error('Coastlines');return r.json();}).then(d=>d.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates)).catch(e=>{storyLandPromise=null;throw e;});
-        const pixels=c.getImageData(0,0,1080,1093);QuakeImagePaint.paint(pixels.data,nativeFrame,ev,await storyLandPromise,imageContours);c.putImageData(pixels,0,0);
+        const pixels=c.getImageData(0,0,1080,nativeHeight);QuakeImagePaint.paint(pixels.data,nativeFrame,ev,await storyLandPromise,imageContours);c.putImageData(pixels,0,0);
       }catch(e){console.warn('Story intensity unavailable',e);}
-      if(labels)c.drawImage(labels,0,0,1080,1093);ctx.imageSmoothingQuality='high';ctx.drawImage(surface,0,0,800,820);
+      if(labels)c.drawImage(labels,0,0,1080,nativeHeight);ctx.imageSmoothingQuality='high';ctx.drawImage(surface,0,layout.MAP_Y,800,frame.height);
     }
     const font=(size,bold)=>`${bold?'700':'400'} ${size}px ${fontFamily}, sans-serif`;
     const p={gradient:(x,y,w,h,a,b)=>{const g=ctx.createLinearGradient(x,y,x,y+h);g.addColorStop(0,a);g.addColorStop(1,b);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);},
@@ -1217,11 +1217,12 @@
       measure:(text,size,bold)=>{ctx.font=font(size,bold);return ctx.measureText(text).width;},
       text:(text,x,y,size,color,bold)=>{ctx.font=font(size,bold);ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);}
     };
-    if(contextImg){layout.drawContext(p,ev);ctx.drawImage(contextImg,489,107,214,138);const px=489+(ev.lon-cf.minLon)/(cf.maxLon-cf.minLon)*214,py=107+(cf.maxLat-ev.lat)/(cf.maxLat-cf.minLat)*138;p.dot(px,py,6,'#ffffff');p.dot(px,py,4,'#ff6151');}
+    if(contextImg){const C=layout.CONTEXT;layout.drawContext(p,ev);ctx.drawImage(contextImg,C.imageX,C.imageY,C.imageWidth,C.imageHeight);const px=C.imageX+(ev.lon-cf.minLon)/(cf.maxLon-cf.minLon)*C.imageWidth,py=C.imageY+(cf.maxLat-ev.lat)/(cf.maxLat-cf.minLat)*C.imageHeight;p.dot(px,py,6,'#ffffff');p.dot(px,py,4,'#ff6151');}
     const energy=calcularEnergia(ev.mag);
     const publishedMmi=ev.shaking?.status==='available'?RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat):null;
     const mmiLabel=ev.shaking?.status==='available'?(publishedMmi===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(publishedMmi)-1))]):QuakeImagePaint.estimatedMmi(ev);
-    layout.draw(p,{...ev,imageContours:imageContours.map(a=>({...a,x:a.x*800/1080,y:a.y*820/1093})),_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+    layout.draw(p,{...ev,imageMapAvailable:!!sat,imageContours:imageContours.map(a=>({...a,x:a.x*800/1080,y:a.y*frame.height/nativeHeight+layout.MAP_Y})),_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+      sourceLabel:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático'),
       sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
       mmi:mmiLabel,energy:energy.tnt.replace(' de TNT',''),exposure});
     return canvas;
