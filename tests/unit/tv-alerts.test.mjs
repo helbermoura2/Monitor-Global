@@ -12,3 +12,20 @@ test('conditional reads avoid retransmission, unsupported methods cannot trigger
  let calls=0;const snapshot=tvSnapshot({features:[quake()]},{ok:true,items:[]},now),read=async()=>{calls++;return snapshot;};
  const request=new Request('https://internal/tv-alerts'),first=await handleTvAlerts(request,{read,now,cache:null});assert.equal(first.status,200);const second=await handleTvAlerts(new Request(request,{headers:{'If-None-Match':first.headers.get('ETag')}}),{read,now,cache:null});assert.equal(second.status,304);assert.equal(calls,1);assert.equal(await second.text(),'');assert.equal((await handleTvAlerts(new Request(request,{method:'POST'}),{read,now,cache:null})).status,405);
 });
+test('only a precise unambiguous official association adds the tsunami indication to a quake',()=>{
+ const warning={id:'p1',type:'tsunami',official:true,source:'PTWC',feedKey:'PTWC-Pacific',time:now,originTime:now-60000,coords:[165,-14],hazardNature:'warning',affectedAreas:[{name:'Vanuatu',category:'Warning'}]};
+ const q=quake();const body=tvSnapshot({features:[q]},{ok:true,items:[warning]},now);const eq=body.alerts.find(a=>a.kind==='earthquake'),ts=body.alerts.find(a=>a.kind==='tsunami');
+ assert.match(eq.tsunamiSummary,/Vanuatu/);assert.equal(ts.relatedQuakeId,eq.id);assert.equal(eq.depth,10);assert.equal(ts.source,'PTWC');
+ const summary=w=>tvSnapshot({features:[q]},{ok:true,items:[w]},now).alerts.find(a=>a.kind==='earthquake').tsunamiSummary;
+ assert.equal(summary({...warning,originTime:undefined}),'');assert.equal(summary({...warning,coords:[80,20]}),'');assert.equal(summary({...warning,coordinateRole:'warning-area'}),'');
+ assert.equal(summary({...warning,cancelled:true}),'');
+ const ambiguous=tvSnapshot({features:[q,{...q,id:'second'}]},{ok:true,items:[warning]},now);assert(ambiguous.alerts.filter(a=>a.kind==='earthquake').every(a=>!a.tsunamiSummary));
+ const offline=tvSnapshot({features:[q]},{ok:false,items:[warning]},now);assert.equal(offline.alerts.find(a=>a.kind==='earthquake').tsunamiSummary,'');
+});
+test('a regional no-threat product cannot erase another coast warning',()=>{
+ const base={type:'tsunami',official:true,source:'PTWC',time:now,originTime:now-60000,coords:[165,-14]};
+ const warning={...base,id:'warn',feedKey:'PTWC-Pacific',hazardNature:'warning',affectedAreas:[{name:'Vanuatu',category:'Warning'}]};
+ const clear={...base,id:'safe',source:'NTWC',feedKey:'NTWC',hazardNature:'bulletin',affectedAreas:[{name:'Alaska',category:'No threat'}]};
+ const a=tvSnapshot({features:[quake()]},{ok:true,items:[warning,clear]},now);
+ assert.equal(a.alerts.filter(x=>x.kind==='tsunami').length,2);const q=a.alerts.find(x=>x.kind==='earthquake');assert.match(q.tsunamiSummary,/Vanuatu/);assert(!q.tsunamiSummary.includes('Alasca'));assert.equal(a.alerts.find(x=>x.state==='noThreat').eligible,false);
+});
