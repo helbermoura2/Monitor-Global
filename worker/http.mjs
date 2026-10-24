@@ -1,5 +1,7 @@
 // Shared HTTP responses, CORS and bounded upstream requests.
 const CORS_HEADERS = {
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
     'Access-Control-Allow-Headers': '*',

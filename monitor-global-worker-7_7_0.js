@@ -1784,11 +1784,11 @@ export class DailySummaryDelivery {
 // diretamente em scheduled(), sem passar por HTTP — nenhum código do site
 // chama essas rotas por HTTP — então protegê-las não quebra nada legítimo.
 // Configure o secret ADMIN_TOKEN no Worker (wrangler secret put ADMIN_TOKEN)
-// e passe ?token=SEU_TOKEN na URL (ou header X-Admin-Token) pra testar.
+// e envie o header X-Admin-Token. Nunca coloque credenciais na URL.
 function tokenAdminValido(request, reqUrl, env) {
     const esperado = env.ADMIN_TOKEN;
     if (!esperado) return false; // sem o secret configurado, ninguém aciona — seguro por padrão
-    const recebido = reqUrl.searchParams.get('token') || request.headers.get('X-Admin-Token');
+    const recebido = request.headers.get('X-Admin-Token');
     return recebido === esperado;
 }
 
@@ -1923,7 +1923,7 @@ async function handleWorkerRequest(request,env){
             '/telegram-history', '/telegram-history-preview', '/telegram-history-detail'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
-            return json({ ok: false, error: 'Não autorizado. Passe ?token=SEU_ADMIN_TOKEN.' }, 401);
+            return json({ ok: false, error: 'Não autorizado. Use o cabeçalho X-Admin-Token.' }, 401);
         }
 
         if(reqUrl.pathname.startsWith('/telegram-history')){
