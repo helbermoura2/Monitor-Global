@@ -16,6 +16,9 @@ public class BannerTimelineCheck {
   Alert offline=q.copy();AlertPairing.attach(List.of(offline),List.of(q,t),true,false);check(offline.companion==null,"Unavailable source must not create a pair");
   Alert cleared=q.copy();AlertPairing.attach(List.of(cleared),List.of(q,ending),true,true);check(cleared.companion==null,"An ended bulletin must not be paired as an active threat");
   Alert unrelated=t.copy();unrelated.relatedQuakeId="different";Alert missing=q.copy();AlertPairing.attach(List.of(missing),List.of(q,unrelated),true,true);check(missing.companion==null,"No geographic or textual guess may create a pair");
+  Alert waiting=q.copy();waiting.companion=t.copy();AlertPairing.refreshQueuedCompanions(List.of(waiting),List.of(q,ending),true,true);check(waiting.companion.state.equals("ended")&&waiting.tsunamiSummary.isEmpty(),"Queued presentations must not revive a warning after cancellation");
+  check(AlertPairing.replacesQueued(q,t),"A combined quake must replace an older pending copy of its same bulletin");
+  check(!AlertPairing.replacesQueued(other,q),"A separate regional product must not discard the quake and its other bulletin");
   System.out.println("PASS: 8/8 timing, smooth transition, complete cycles, pairing, coalescing, outage and cancellation replacement");
  }
 }

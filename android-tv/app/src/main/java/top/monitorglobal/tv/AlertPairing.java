@@ -17,6 +17,14 @@ final class AlertPairing {
    if(!covered)out.add(a);
   }return out;
  }
+ static void refreshQueuedCompanions(Collection<Alert> pending,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
+  for(Alert p:pending){if(p.companion==null)continue;boolean healthy=p.companion.kind.equals("tsunami")?tsunamiOk:quakeOk;if(!healthy)continue;
+   for(Alert latest:snapshot)if(latest.id.equals(p.companion.id)&&isPair(p,latest)){
+    p.companion=latest.copy();if(p.kind.equals("earthquake"))p.tsunamiSummary=rank(latest)>0?latest.tsunamiSummary:"";break;
+   }
+  }
+ }
+ static boolean replacesQueued(Alert newer,Alert older){return newer.id.equals(older.id)||newer.kind.equals("earthquake")&&newer.companion!=null&&newer.companion.id.equals(older.id);}
  static boolean updates(Alert active,Alert next){if(active==null)return false;if(active.id.equals(next.id))return !active.version.equals(next.version);return active.companion!=null&&active.companion.id.equals(next.id)&&!active.companion.version.equals(next.version);}
  static boolean represents(Alert presentation,Alert other){return presentation.id.equals(other.id)||presentation.companion!=null&&presentation.companion.id.equals(other.id)&&presentation.companion.version.equals(other.version);}
 }

@@ -27,18 +27,19 @@ public final class MonitorService extends Service {
   Runnable stop=()->{if(!Prefs.get(this).getBoolean("enabled",false)&&!draining)stopSelf();};demoTasks.add(stop);main.postDelayed(stop,delay+2000);
   Prefs.status(this,draining?"Exibição local agendada para depois do alerta real atual.":replay?"Replay histórico em 10 segundos, sem novo som de alerta.":"Teste fictício em 10 segundos. Você pode abrir outro aplicativo.");
  }
- private void enqueue(List<Alert> alerts){
+ private void enqueue(List<Alert> alerts,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
+  AlertPairing.refreshQueuedCompanions(queue,snapshot,quakeOk,tsunamiOk);
   if(!alerts.isEmpty())cancelDemos();List<Alert> notices=AlertPairing.coalesce(alerts);
   Alert update=null;for(Alert a:notices)if(AlertPairing.updates(activeReal,a)){update=a;break;}
-  if(update!=null){Alert latest=update;queue.removeIf(old->AlertPairing.represents(latest,old));startReal(latest);}
+  if(update!=null){Alert latest=update;queue.removeIf(old->AlertPairing.replacesQueued(latest,old));startReal(latest);}
   for(Alert a:notices)if(update==null||!AlertPairing.represents(update,a))putPending(a);
   drain();
  }
- private void putPending(Alert a){queue.removeIf(old->old.id.equals(a.id));if(queue.size()<8)queue.add(a);}
+ private void putPending(Alert a){queue.removeIf(old->AlertPairing.replacesQueued(a,old));if(queue.size()<8)queue.add(a);}
  private void ensurePolling(){if(executor==null){executor=Executors.newSingleThreadScheduledExecutor();executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);}}
  private PendingIntent open(){return PendingIntent.getActivity(this,1,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
  private void poll(){if(destroyed)return;try{FeedClient.Snapshot snapshot=feed.read();if(destroyed)return;long now=System.currentTimeMillis();Prefs.get(this).edit().putLong("lastCheck",now).apply();if(snapshot.unchanged){refreshOfficialConfig();return;}
-  List<Alert> alerts=tracker.accept(snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk,now);AlertPairing.attach(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);Prefs.save(this,tracker);Prefs.status(this,snapshot.quakeOk&&snapshot.tsunamiOk?"Conectado · fontes disponíveis":"Conexão ativa · uma fonte está indisponível");main.post(()->{if(destroyed)return;enqueue(alerts);});refreshOfficialConfig();
+  List<Alert> alerts=tracker.accept(snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk,now);AlertPairing.attach(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);Prefs.save(this,tracker);Prefs.status(this,snapshot.quakeOk&&snapshot.tsunamiOk?"Conectado · fontes disponíveis":"Conexão ativa · uma fonte está indisponível");main.post(()->{if(destroyed)return;enqueue(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);});refreshOfficialConfig();
  }catch(Exception e){Prefs.status(this,"Sem atualização confirmada. Tentando novamente em 30 s.");}}
  private void refreshOfficialConfig(){if(destroyed||android.os.SystemClock.elapsedRealtime()<nextConfigCheck)return;nextConfigCheck=android.os.SystemClock.elapsedRealtime()+15*60000L;try{org.json.JSONObject root=OfficialConfig.read();if(destroyed)return;OfficialConfig.applyTheme(this,root);OfficialConfig.Release release=OfficialConfig.release(root);if(release.enabled&&TrustPolicy.newer(BuildConfig.VERSION_CODE,release.code))Prefs.get(this).edit().putString("updateStatus","Atualização oficial "+release.version+" disponível. Abra Verificar atualização oficial.").apply();}catch(Exception ignored){}}
  private void drain(){if(destroyed||draining||queue.isEmpty())return;startReal(queue.remove());}
