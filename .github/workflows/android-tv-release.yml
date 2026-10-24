@@ -41,7 +41,7 @@ jobs:
           if not os.environ.get('TV_RELEASE_KEYSTORE_B64') or not os.environ.get('TV_RELEASE_PASSWORD'):
               raise SystemExit('Configure os dois Secrets no ambiente android-tv-release antes de publicar.')
           root=pathlib.Path(os.environ['RUNNER_TEMP'])
-          for name,value in [('tv-release.p12',base64.b64decode(os.environ['TV_RELEASE_KEYSTORE_B64'],validate=True)),('tv-release-password.txt',os.environ['TV_RELEASE_PASSWORD'].encode())]:
+          for name,value in [('tv-release.p12',base64.b64decode(''.join(os.environ['TV_RELEASE_KEYSTORE_B64'].split()),validate=True)),('tv-release-password.txt',os.environ['TV_RELEASE_PASSWORD'].encode())]:
               p=root/name;p.write_bytes(value);p.chmod(0o600)
           PY
       - name: Build and inspect official version
