@@ -43,3 +43,7 @@ Recarregar o site e iniciar uma medição nova. Cada amostra nova identifica lon
 O próximo relatório deve conferir a evolução do heap durante uso real, URLs de áudio em 0/1, nós transitórios que voltam a zero, orçamento de produtos respeitado e redução das tentativas das fontes em falha. Não exige repetir onze horas para obter uma primeira leitura, mas uma observação curta não comprova estabilidade de um dia inteiro.
 
 Os testes antigos de som durante o passeio desligavam o renderizador, mas ainda esperavam movimento nativo e usavam cinzas para uma prioridade que hoje exige lava. Os fixtures foram alinhados aos contratos atuais, sem alterar a câmera ou a política vulcânica em produção.
+
+## Atualizações posteriores desta investigação
+
+O acúmulo no catálogo foi reproduzido e corrigido em [memória dos relatórios sísmicos](memoria-catalogo-sismico-20261024.md). As quatro prioridades seguintes, incluindo processamento, recuperação raster, consultas e cache de áreas meteorológicas, estão em [estabilidade DeX/celular](estabilidade-dex-celular-20261024.md). Os números antigos acima são históricos; não representam uma sessão carregada com `session-stability-v9`.

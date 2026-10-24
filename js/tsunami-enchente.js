@@ -130,9 +130,10 @@ function startTsunamiWave(lng, lat, cor) {
 
 /* ═══════════════ ENCHENTES — GDACS (FL) ═══════════════ */
 async function fetchGdacsFloods() {
+    if(window.SourceHealth?.isOpen('GDACS enchentes')){SourceHealth.recordSuppressed('GDACS enchentes');return;}
     try {
         const base = workerBaseUrl();
-        const r = await (window.SharedSourceDelivery?.fetch||fetch)(base + '/gdacs-floods?t=' + Date.now(), { cache: 'no-store', mode: 'cors' });
+        const r = await (window.SharedSourceDelivery?.fetch||fetch)(base + '/gdacs-floods', { cache: 'no-store', mode: 'cors' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
         if (d && d.ok === false) throw new Error(d.error || 'gdacs-floods indisponível');

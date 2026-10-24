@@ -68,3 +68,9 @@ test('50 simultaneous coordinator failures share one invocation and retain HTTP 
 test('unconfigured optional WeatherAPI is unavailable with a readable retry deadline, not an internal error',async()=>{
  const r=await worker.fetch(new Request('https://worker.test/weatherapi?q=1,2'),{});assert.equal(r.status,503);assert.equal(r.headers.get('Retry-After'),'1800');assert(Number(r.headers.get('X-Monitor-Source-Next-Retry'))>Date.now());assert.equal((await r.json()).configured,false);
 });
+
+test('official AFAD collection has independent circuit identity from the retired community mirror',()=>{
+ const policy=sourcePolicy(new Request('https://worker.test/afad-earthquakes?limit=200'));
+ assert.equal(policy.group,'/afad-earthquakes:official-v1');assert.equal(policy.ttl,30000);
+ assert.equal(sourcePolicy(new Request('https://worker.test/ingv-earthquakes')).group,'/ingv-earthquakes');
+});

@@ -848,7 +848,7 @@ async function getGlobalVolcanoAdvisories() {
         items.push(...parseWeeklyVolcanicReport(settled[2].value.text));
     } else errors.push('GVP weekly report indisponível');
 
-    return {ok:items.length>0,source:'VAAC global',updatedAt:nowIso(),items,errors};
+    return {ok:items.length>0,partial:errors.length>0,source:'VAAC global',updatedAt:nowIso(),items,errors};
 }
 
 async function handleGlobalVolcanoAdvisories() {

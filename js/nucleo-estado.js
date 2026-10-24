@@ -798,9 +798,9 @@ async function fetchWithCorsFallback(url, timeoutMs = 12000) {
         const t = setTimeout(() => c.abort(), timeoutMs);
         try {
             const r = await (window.SharedSourceDelivery?.fetch||fetch)(alvo, { signal: c.signal });
-            if(!r.ok&&r.headers.get('X-Monitor-Source-State')==='unavailable'){const e=new Error('Fonte aguardando nova tentativa compartilhada');e.sharedCooldown=true;throw e;}
-            clearTimeout(t);
             if (!r.ok) {
+                try { await r.body?.cancel(); } catch {}
+                if(r.headers.get('X-Monitor-Source-State')==='unavailable'){const e=new Error('Fonte aguardando nova tentativa compartilhada');e.sharedCooldown=true;throw e;}
                 console.warn('[proxy] HTTP ' + r.status + ' em', alvo);
                 return null;
             }
@@ -822,7 +822,7 @@ async function fetchWithCorsFallback(url, timeoutMs = 12000) {
             if(e.sharedCooldown||document.hidden)throw e;
             console.warn('[proxy] erro de rede/timeout em', alvo, '→', e?.message || e);
             return null;
-        }
+        } finally { clearTimeout(t); }
     }
 
     // Public feeds share collection; unrelated products keep their existing direct path.
@@ -835,19 +835,8 @@ async function fetchWithCorsFallback(url, timeoutMs = 12000) {
         resp = await tentar(b(url));
         if (resp) return resp;
     }
-    // Antes desistia na primeira volta completa (direto + todos os proxies falharam).
-    // Só que boa parte das falhas que a gente via no log eram blips passageiros de rede/
-    // proxy, não indisponibilidade real da fonte — então vale uma segunda volta rápida
-    // depois de uma pausa curta, em vez de já jogar a toalha.
-    await new Promise(res => setTimeout(res, 1800));
-    resp = await tentar(shared?WORKER_PROXY(url):url);
-    if (resp) return resp;
-    resp = await tentar(shared?url:WORKER_PROXY(url));
-    if (resp) return resp;
-    for (const b of CORS_PROXIES.slice(1)) {
-        resp = await tentar(b(url));
-        if (resp) return resp;
-    }
+    // The periodic scheduler/circuit breaker owns the next attempt. A second
+    // immediate pass only repeats the same failing provider and stalls callers.
     throw new Error('Falha total (todas as fontes vazias/indisponíveis): ' + url);
 }
 

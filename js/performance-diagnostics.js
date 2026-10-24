@@ -32,6 +32,18 @@
    else group.timingUnavailable++;
   }
  }
+ // Resource errors are not necessarily map failures (for example, a JSONP
+ // script or a flag image). Keep only fixed categories, never the failed URL.
+ function resourceFailure(target){
+  const tag=String(target?.tagName||'').toLowerCase(),value=target?.currentSrc||target?.src||target?.href;
+  let category='other';
+  try{const u=new URL(value,location.href);
+   if(tag==='script')category=u.hostname==='www.seismicportal.eu'?'emscJSONP':u.origin===location.origin?'localScripts':'externalScripts';
+   else if(tag==='link')category='styles';
+   else category=resourceGroup({name:u.href,initiatorType:tag==='img'?'img':tag});
+  }catch{}
+  const counts=report.errors.resourceByCategory||={};counts[category]=(counts[category]||0)+1;
+ }
  // Error locations are actionable without retaining messages, URLs or event content.
  function safeScript(value){try{const u=new URL(value,location.href);if(u.origin!==location.origin)return null;const script=[...document.scripts].find(n=>n.src&&new URL(n.src).pathname===u.pathname);return script&&/^\/(?:.*\/)?(?:js|vendor)\/[a-z0-9_-]+(?:\.min)?\.js$/i.test(u.pathname)?u.pathname.split('/').pop():null;}catch{return null;}}
  function recordError(kind,event){
@@ -63,7 +75,7 @@
  }
  function sessionWindow(){const r=report.resources;return {visibleMs:report.visibleMs,hiddenMs:report.hiddenMs,longTaskCount:report.longTasks.count,longTaskMs:report.longTasks.totalMs,maxLongTaskMs:report.longTasks.maxMs,frameCount:report.frames.frames,frameElapsedMs:report.frames.elapsedMs,resources:r.count,httpErrors:r.httpErrors,resourceCounts:Object.fromEntries(Object.entries(r.byCategory||{}).map(([k,v])=>[k,v.count])),workerAttempts:(report.workerRequests||[]).reduce((n,r)=>n+r.attempts,0)};}
  function viewport(){return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,coarsePointer:matchMedia('(pointer:coarse)').matches};}
- function memoryOwners(){return {quakeReports:window.SismoReportMemory?.stats?.()||null,audio:window.AudioLifecycle?.stats?.()||null,sourceRendering:window.SourceRenderBudget?.stats?.()||null,seismicGeometry:window.SeismicImpact?.stats?.()||null,shaking:window.RuptureShaking?.stats?.()||null,eventProducts:window.EventProducts?.stats?.()||null,mapTiles:window.MapRenderBudget?.stats?.()||null,openMeteo:window.OpenMeteoCache?.stats?.()||null,browserRequests:window.BrowserRequestBudget?.stats?.()||null,emscJSONP:window.EmscJsonpGuard?.stats?.()||null,resourceTimingEntries:performance.getEntriesByType('resource').length};}
+ function memoryOwners(){return {warningAreas:window.WeatherWarningCamera?.stats?.()||null,mapRecovery:window.AppRecovery?.state?.()||null,quakeReports:window.SismoReportMemory?.stats?.()||null,audio:window.AudioLifecycle?.stats?.()||null,sourceRendering:window.SourceRenderBudget?.stats?.()||null,seismicGeometry:window.SeismicImpact?.stats?.()||null,shaking:window.RuptureShaking?.stats?.()||null,eventProducts:window.EventProducts?.stats?.()||null,mapTiles:window.MapRenderBudget?.stats?.()||null,openMeteo:window.OpenMeteoCache?.stats?.()||null,browserRequests:window.BrowserRequestBudget?.stats?.()||null,emscJSONP:window.EmscJsonpGuard?.stats?.()||null,resourceTimingEntries:performance.getEntriesByType('resource').length};}
  function owner(node){const n=node?.nodeType===1?node:node?.parentElement;if(!n?.closest)return 'other';if(n.closest('.maplibregl-marker'))return 'markers';if(n.closest('.seismic-scene'))return 'seismic';if(n.closest('#site-effect-demo-canvas,.site-effect-floats'))return 'screenEffect';if(n.closest('#painel-direito'))return 'mainCard';if(n.closest('#sidebar-left'))return 'records';if(n.closest('#mapContainer'))return 'map';return 'other';}
  function breakdown(nodes,target=n=>n){const counts={};for(const n of nodes){const k=owner(target(n));counts[k]=(counts[k]||0)+1;}return counts;}
  function peaks(state){if(!state)return;const p=report.renderingPeaks||={markers:0,canvases:0,animations:0,canvasByOwner:{},animationByOwner:{}};for(const key of ['markers','canvases','animations','runningAnimations'])p[key]=Math.max(p[key]||0,state[key]||0);for(const key of ['canvasByOwner','animationByOwner'])for(const [k,n]of Object.entries(state[key]||{}))p[key][k]=Math.max(p[key][k]||0,n);}
@@ -79,7 +91,7 @@
   report.features={boundedWeatherCache:!!window.OpenMeteoCache,requestCooldown:!!window.BrowserRequestBudget?.stats,jsonpGuard:!!window.EmscJsonpGuard};
   const heap=performance.memory?.usedJSHeapSize;
   const health=window.SourceHealth?.summary?.();sourceDetails();
-  report.samples.push({at:new Date().toISOString(),runtimeVersion:'catalog-memory-v8',jsHeapMiB:Number.isFinite(heap)?round(heap/1048576):null,jsTotalHeapMiB:Number.isFinite(performance.memory?.totalJSHeapSize)?round(performance.memory.totalJSHeapSize/1048576):null,jsHeapLimitMiB:Number.isFinite(performance.memory?.jsHeapSizeLimit)?round(performance.memory.jsHeapSizeLimit/1048576):null,domElements:document.getElementsByTagName('*').length,canvases:document.getElementsByTagName('canvas').length,rendering:renderingState(),memoryOwners:memoryOwners(),windowTotals:sessionWindow(),viewport:viewport(),sources:health?{ok:health.ok,warn:health.warn,off:health.off,cooling:health.cooling,total:health.total}:null,online:navigator.onLine});
+  report.samples.push({at:new Date().toISOString(),runtimeVersion:'session-stability-v9',jsHeapMiB:Number.isFinite(heap)?round(heap/1048576):null,jsTotalHeapMiB:Number.isFinite(performance.memory?.totalJSHeapSize)?round(performance.memory.totalJSHeapSize/1048576):null,jsHeapLimitMiB:Number.isFinite(performance.memory?.jsHeapSizeLimit)?round(performance.memory.jsHeapSizeLimit/1048576):null,domElements:document.getElementsByTagName('*').length,canvases:document.getElementsByTagName('canvas').length,rendering:renderingState(),memoryOwners:memoryOwners(),windowTotals:sessionWindow(),viewport:viewport(),sources:health?{ok:health.ok,warn:health.warn,off:health.off,cooling:health.cooling,total:health.total}:null,online:navigator.onLine});
   peaks(report.samples.at(-1).rendering);if(report.samples.length>LIMIT)report.samples.splice(0,report.samples.length-LIMIT);lastSample=performance.now();
  }
  function endFrames(){cancelAnimationFrame(raf);clearTimeout(frameTimer);raf=frameTimer=null;}
@@ -117,7 +129,7 @@
  window.addEventListener('pagehide',()=>{if(active){account();endFrames();save();}});
  window.addEventListener('load',()=>setTimeout(()=>{if(active){report.navigation=navigation();save();}},0),{once:true});
  window.addEventListener('pageshow',()=>{if(active){lastTick=performance.now();lastVisible=!document.hidden;}});
- window.addEventListener('error',e=>{if(active){const kind=e.target===window?'javascript':'resource';report.errors[kind]++;if(kind==='javascript')recordError(kind,e);}},true);
+ window.addEventListener('error',e=>{if(active){const kind=e.target===window?'javascript':'resource';report.errors[kind]++;if(kind==='javascript')recordError(kind,e);else resourceFailure(e.target);}},true);
  window.addEventListener('unhandledrejection',e=>{if(active){report.errors.unhandledRejection++;recordError('unhandledRejection',e);}});
  document.addEventListener('webglcontextlost',()=>{if(active)report.errors.webglContextLost++;},true);
  // Only our own bounded, versioned report can be resumed. Only sanitized local script locations are retained, never error text or URLs.

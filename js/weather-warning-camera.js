@@ -1,26 +1,33 @@
 /* Resolve official warning areas only for the selected record. */
 (function(root){'use strict';
-const zones=new Map(),inflight=new Map();let generation=0;
-const point=p=>Array.isArray(p)&&p.length>=2&&p.slice(0,2).every(Number.isFinite)&&Math.abs(p[0])<=180&&Math.abs(p[1])<=90;
+const zones=new Map(),inflight=new Map(),MAX_ZONE_BYTES=8*1024*1024;let generation=0,zoneBytes=0,cacheEpoch=0;
+const point=p=>Array.isArray(p)&&p.length>=2&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&Math.abs(p[0])<=180&&Math.abs(p[1])<=90;
+function dropZone(key){zoneBytes-=zones.get(key)?.bytes||0;zones.delete(key);}
+function pruneZones(){for(const [key,row]of zones)if(row.until<=Date.now())dropZone(key);while(zones.size>64||zoneBytes>MAX_ZONE_BYTES)dropZone(zones.keys().next().value);}
 function geometryPoints(g){
  const polys=g?.type==='Polygon'?[g.coordinates]:g?.type==='MultiPolygon'?g.coordinates:null;
  if(!Array.isArray(polys)||!polys.length)return [];
- const points=[];for(const poly of polys){if(!Array.isArray(poly)||!poly.length)return [];for(const ring of poly){if(!Array.isArray(ring)||ring.length<3||!ring.every(point))return [];points.push(...ring);if(points.length>50000)return [];}}
+ const points=[];for(const poly of polys){if(!Array.isArray(poly)||!poly.length)return [];for(const ring of poly){if(!Array.isArray(ring)||ring.length<3||points.length+ring.length>50000||!ring.every(point))return [];points.push(...ring);}}
  return points;
 }
-function bounds(points){
- if(!points.length)return null;
+function compact(points){const xs=new Float64Array(points.length);let south=90,north=-90;for(let i=0;i<points.length;i++){xs[i]=(points[i][0]+360)%360;south=Math.min(south,points[i][1]);north=Math.max(north,points[i][1]);}xs.sort();return {xs,south,north};}
+function areaBounds(areas){
+ const count=areas.reduce((n,a)=>n+a.xs.length,0);if(!count)return null;
  // Minimal longitude arc prevents Alaska/dateline areas from fitting the globe.
- const xs=points.map(p=>(p[0]+360)%360).sort((a,b)=>a-b);let gap=-1,start=0;
+ // Keep exact longitudes in compact typed arrays, not whole GeoJSON rings.
+ const xs=areas.length===1?areas[0].xs:new Float64Array(count);let offset=0,south=90,north=-90;
+ for(const a of areas){if(areas.length>1){xs.set(a.xs,offset);offset+=a.xs.length;}south=Math.min(south,a.south);north=Math.max(north,a.north);}if(areas.length>1)xs.sort();let gap=-1,start=0;
  for(let i=0;i<xs.length;i++){const d=(i+1<xs.length?xs[i+1]:xs[0]+360)-xs[i];if(d>gap){gap=d;start=(i+1)%xs.length;}}
  let west=xs[start],east=west+360-gap;if(west>180){west-=360;east-=360;}
- let south=90,north=-90;for(const p of points){south=Math.min(south,p[1]);north=Math.max(north,p[1]);}return [[west,south],[east,north]];
+ return [[west,south],[east,north]];
 }
+function bounds(points){return points.length?areaBounds([compact(points)]):null;}
 function zoneURL(value){try{const u=new URL(value);return u.protocol==='https:'&&u.hostname==='api.weather.gov'&&!u.username&&!u.password&&/^\/zones\/(?:forecast|county|fire)\/[A-Z0-9]+$/.test(u.pathname)?u.origin+u.pathname:null;}catch{return null;}}
 async function zone(url){
- const hit=zones.get(url);if(hit&&hit.until>Date.now())return hit.points;
+ pruneZones();const hit=zones.get(url);if(hit){zones.delete(url);zones.set(url,hit);return hit.area;}
  if(inflight.has(url))return inflight.get(url);
- const task=(async()=>{const r=await fetchWithCorsFallback(url,6000);if(!r.ok)throw Error('Área oficial indisponível');const d=await r.json(),pts=geometryPoints(d.geometry);if(!pts.length)throw Error('Área sem geometria válida');zones.delete(url);zones.set(url,{points:pts,until:Date.now()+86400000});while(zones.size>64)zones.delete(zones.keys().next().value);return pts;})();
+ const epoch=cacheEpoch;
+ const task=(async()=>{const r=await fetchWithCorsFallback(url,6000);if(!r.ok)throw Error('Área oficial indisponível');const d=await r.json(),pts=geometryPoints(d.geometry);if(!pts.length)throw Error('Área sem geometria válida');const area=compact(pts),bytes=area.xs.byteLength;if(epoch===cacheEpoch){dropZone(url);zones.set(url,{area,bytes,until:Date.now()+86400000});zoneBytes+=bytes;pruneZones();}return area;})();
  inflight.set(url,task);try{return await task;}finally{inflight.delete(url);}
 }
 // Administrative reference bounds are refreshed server-side every six hours.
@@ -57,9 +64,9 @@ async function resolve(item,active=()=>true){
  if(/INMET/i.test(item.source||'')&&item.municipalities?.length&&root.InmetMunicipalities){try{await root.InmetMunicipalities.load();if(!active())return null;const rows=root.InmetMunicipalities.resolve(item.municipalities.map(c=>({nome:c.name||c.nome,uf:c.uf})),item.ufs||[]);local=rows.map(c=>c.coords).filter(point);if(local.length)return bounds(local);}catch{}}
  const urls=[...new Set((item.affectedZones||[]).map(zoneURL).filter(Boolean))].slice(0,40);
  if(!urls.length){if(point(item.coords))return bounds([item.coords]);const ref=await reference(item);return active()&&ref?.exact?ref.bounds:null;}
- const pts=[];for(let i=0;i<urls.length;i+=4){if(!active())return null;const rows=await Promise.allSettled(urls.slice(i,i+4).map(zone));for(const r of rows)if(r.status==='fulfilled')pts.push(...r.value);}
+ const areas=[];for(let i=0;i<urls.length;i+=4){if(!active())return null;const rows=await Promise.allSettled(urls.slice(i,i+4).map(zone));for(const r of rows)if(r.status==='fulfilled')areas.push(r.value);}
  // A failed area request never invents an epicenter or changes to a global view.
- return pts.length?bounds(pts):null;
+ return areaBounds(areas);
 }
 // Compute the destination independently of the current globe orientation.
 // cameraForBounds/fitBounds on the globe can frame a remote region around the pole.
@@ -94,5 +101,6 @@ async function focus(item){
  if(!b)locationNote(item,'Aviso sem localização verificável no mapa. Consulte a região descrita no boletim oficial.');
  return fit(b,item.id);
 }
-root.WeatherWarningCamera={focus,resolve,bounds,geometryPoints,frame};
+root.addEventListener?.('pagehide',()=>{cacheEpoch++;zones.clear();zoneBytes=0;});
+root.WeatherWarningCamera={focus,resolve,bounds,geometryPoints,frame,stats:()=>{pruneZones();return {entries:zones.size,coordinateBytes:zoneBytes,maxCoordinateBytes:MAX_ZONE_BYTES,inflight:inflight.size};}};
 })(typeof window!=='undefined'?window:globalThis);

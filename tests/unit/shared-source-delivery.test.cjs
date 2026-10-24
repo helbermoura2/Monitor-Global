@@ -12,3 +12,18 @@ test('transport failure allows a direct fallback and a later fresh result clears
  const calls=[],c=setup(async u=>{calls.push(u);if(String(u).startsWith('https://worker.test/'))throw Error('transport');return Response.json({features:[]});});const r=await c.fetchWithCorsFallback(url);assert.equal(r.status,200);assert.equal(calls.length,2);assert.equal(calls[1],url);
  c.SharedSourceDelivery.record(url,new Response('{}',{headers:{'X-Monitor-Source':'earthquake.usgs.gov','X-Monitor-Source-State':'fresh','X-Monitor-Source-Last-Ok':String(Date.now())}}));c.MonitorFreshness.recordStatus('USGS','ok');assert.equal(c.MonitorFreshness.snapshot('USGS').state,'fresh');
 });
+
+test('total transport failure tries each distinct path once instead of repeating a full pass',async()=>{
+ const calls=[],c=setup(async u=>{calls.push(u);throw Error('offline provider');});
+ await assert.rejects(c.fetchWithCorsFallback(url,20),/Falha total/);
+ assert.equal(calls.length,2);assert.equal(new Set(calls).size,2);
+});
+
+test('the source deadline covers a stalled response body, not only its headers',async()=>{
+ let calls=0,aborted=0;const c=setup(async(u,{signal})=>{
+  calls++;
+  return new Response(new ReadableStream({start(controller){signal.addEventListener('abort',()=>{aborted++;controller.error(new DOMException('Body aborted','AbortError'));},{once:true});}}));
+ });
+ await assert.rejects(c.fetchWithCorsFallback(url,10),/Falha total/);
+ assert.equal(calls,2);assert.equal(aborted,2);
+});

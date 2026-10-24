@@ -16,6 +16,8 @@ export function sourcePolicy(request,allowed=[...hosts],now=Date.now()){
  let target=null,group,ttl,stale;
  if(routes[u.pathname]){
   [ttl,stale]=routes[u.pathname];group=u.pathname;
+  // New upstream identity: do not inherit the failed community mirror's circuit.
+  if(u.pathname==='/afad-earthquakes')group+=':official-v1';
   if(u.pathname==='/official-weather-alerts'){const provider=u.searchParams.get('provider');if(!['eccc','bom'].includes(provider))return null;group+=':'+provider;}
   if(u.pathname==='/metar-observed'&&u.searchParams.has('ids')){const ids=u.searchParams.get('ids').toUpperCase().split(',');if(ids.length>60||ids.some(x=>!/^[A-Z][A-Z0-9]{3}$/.test(x)))return null;u.searchParams.set('ids',[...new Set(ids)].sort().join(','));}
   if(['/sp-clima','/global-feeds','/global-volcano','/usgs-volcano','/gdacs-volcano','/gdacs-floods','/jma-earthquakes','/tsunami-alerts','/v70-cyclones','/seismic-status','/cge-bulletins'].includes(u.pathname))u.search='';
@@ -43,7 +45,7 @@ export function sourcePolicy(request,allowed=[...hosts],now=Date.now()){
  }
  keyUrl.searchParams.sort();return {group,ttl:ttl*1000,stale:stale*1000,key:(target?'proxy:':'route:')+keyUrl.pathname+'?'+keyUrl.searchParams.toString()};
 }
-export function sourceGroups(allowed=[...hosts]){return [...new Set([...Object.keys(routes).filter(p=>p!=='/official-weather-alerts'),'/official-weather-alerts:eccc','/official-weather-alerts:bom',...[...hosts].filter(h=>allowed.includes(h))])].sort();}
+export function sourceGroups(allowed=[...hosts]){return [...new Set([...Object.keys(routes).filter(p=>p!=='/official-weather-alerts'),'/official-weather-alerts:eccc','/official-weather-alerts:bom','/afad-earthquakes:official-v1',...[...hosts].filter(h=>allowed.includes(h))])].sort();}
 async function remove(storage,item){for(let i=0;i<item.parts;i++)await storage.delete('source-body:'+item.key+':'+i);}
 export async function pruneSources(storage,now=Date.now()){
  const index=await storage.get('source-index');if(!index)return;const keep=[];

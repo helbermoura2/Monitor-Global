@@ -39,3 +39,16 @@ test('service modules do not depend back on the entrypoint and have no import cy
  for(const name of await readdir(dir)){const source=await readFile(new URL(name,dir),'utf8');assert.doesNotMatch(source,/from\s+["'][^"']*monitor-global-worker/);graph.set(name,[...source.matchAll(/from\s+["']\.\/([^"']+)["']/g)].map(m=>m[1]));}
  function visit(name,path=[]){assert(!path.includes(name),'Import cycle: '+[...path,name].join(' -> '));for(const next of graph.get(name)||[])visit(next,[...path,name]);}for(const name of graph.keys())visit(name);
 });
+
+test('AFAD uses its official 36-hour catalogue and preserves Turkey origin time',async()=>{
+ const calls=[];globalThis.fetch=async input=>{const u=new URL(input);calls.push(u);return Response.json([{eventID:'official-1',magnitude:'1.1',latitude:'40.14',longitude:'28.25',depth:'7',date:'2026-10-24T18:46:46',location:'Bursa'}]);};
+ const body=await(await handleAfadEarthquakes(url('/afad-earthquakes?limit=200'))).json();
+ assert.equal(calls.length,1);assert.equal(calls[0].hostname,'deprem.afad.gov.tr');assert.equal(calls[0].searchParams.get('limit'),'200');assert.equal(calls[0].searchParams.get('orderby'),'timedesc');
+ const start=Date.parse(calls[0].searchParams.get('start')),end=Date.parse(calls[0].searchParams.get('end'));assert.equal(end-start,36*3600000);
+ assert.equal(body.events[0].time,'2026-10-24T18:46:46+03:00');assert.equal(Date.parse(body.events[0].time),Date.parse('2026-10-24T15:46:46Z'));
+});
+
+test('AFAD retains its community fallback when the official service fails',async()=>{
+ const calls=[];globalThis.fetch=async input=>{calls.push(String(input));return calls.length===1?new Response('down',{status:503}):Response.json({data:[{eventID:42,magnitude:3.2,latitude:38,longitude:35,depth:8,date_time:'2026-10-24T15:46:46Z'}]});};
+ const body=await(await handleAfadEarthquakes(url('/afad-earthquakes?limit=1'))).json();assert.equal(calls.length,2);assert.match(calls[1],/api\.orhanaydogdu\.com\.tr/);assert.equal(body.events[0].time,'2026-10-24T15:46:46Z');
+});
