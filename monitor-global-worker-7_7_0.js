@@ -1,3 +1,5 @@
+import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
+import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
 import {queryImageTsunami,imageTsunamiVersion} from "./image-tsunami-status.mjs";
 import {telegramSolutionMayReplace, telegramSolutionPriority, TELEGRAM_SOLUTION_POLICY} from "./worker/seismic-solution-policy.mjs";
 import {SourceWritebackCache} from "./source-writeback-cache.mjs";
@@ -1199,7 +1201,7 @@ export class EarthquakeAlertDelivery {
             }
             const storage = this.state.storage;
             const kv = telegramHistoryStorage(storage,measuredEnv.TTS_USAGE);
-            const env = {...measuredEnv, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, READ_TELEGRAM_IMAGE:async key=>{const r=await serveTelegramOriginal(new Request('https://internal/telegram-image/'+key),storage);if(!r.ok)throw Error('Original indisponível');return new Uint8Array(await r.arrayBuffer());}, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
+            const env = {...measuredEnv, TSUNAMI_STORAGE:storage, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, READ_TELEGRAM_IMAGE:async key=>{const r=await serveTelegramOriginal(new Request('https://internal/telegram-image/'+key),storage);if(!r.ok)throw Error('Original indisponível');return new Uint8Array(await r.arrayBuffer());}, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
                         let value;
@@ -1482,8 +1484,10 @@ async function runTelegramM6Alerts(request, env) {
     await telegramFlushRevisionNotices(request, env, sentRecords);
     if (sent.length || updates.length) await saveSentAlerts(request, sentRecords, env);
 
+    let tsunami;try{tsunami=await deliverTsunamiBulletins(env,{read:getOfficialTsunamis,render:renderTsunamiImage});}catch{tsunami={pending:true};console.error('Telegram tsunami: atualização pendente');}
     return {
         ok: true,
+        tsunami,
         checked: events.length,
         sent,
         updates,
@@ -1962,6 +1966,7 @@ async function handleWorkerRequest(request,env){
                 telegramStorage: 'durable-history-v1',
                 telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
                 telegramImageStatus: 'editorial-v16',
+                telegramTsunamiCard: 'tsunami-coastal-v1',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",

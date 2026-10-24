@@ -1052,3 +1052,16 @@ async function renderDailySummaryPixels(quakes) {
     },{scale:2});
 }
 export { getDailySummaryFonts, summaryCardWrap, summaryCountry, summaryPlace, decodePng, textFontWidthProp, getHexColorFromMag, renderAlertImage, renderDailySummaryImage };
+
+// Bounded PNG surface shared by the dedicated official tsunami bulletin.
+export async function bulletinSurface(){
+ const W=1080,H=1920,rgba=new Uint8Array(W*H*4);fillRect(rgba,W,0,0,W,H,16,31,39);
+ const p=alertPainter(rgba,W,H,await getQuakeHdFonts());
+ return {p,png:()=>rgbaToPng(rgba,W,H),map:async(frame,rect,{labels=false}={})=>{
+  const width=Math.round(rect.width*W/800),height=Math.round(rect.height*H/1440),midLat=(frame.minLat+frame.maxLat)/2,midLon=(frame.minLon+frame.maxLon)/2;
+  const image=await fetchEpicenterMap(midLat,midLon,frame.zoom||3,width,height,height/2,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat],true);
+  if(!image)return false;drawImageCover(rgba,W,H,image,rect.x*W/800,rect.y*H/1440,width,height);
+  if(labels)try{const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');const overlay=await decodePng(await fetchBinaryWithTimeout('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size='+width+','+height+'&format=png32&transparent=true&f=image',4000));drawImageCover(rgba,W,H,overlay,rect.x*W/800,rect.y*H/1440,width,height);}catch{}
+  return true;
+ }};
+}
