@@ -24,7 +24,7 @@ test('real pinned reserve covers Panama and has bounded compact storage',()=>{
  const r=calculateLocalityExposure({lat:7.7,lon:-81.5,mag:6.1,depth:10},c);assert(r.ranges[0].localities>500);assert(r.ranges[0].population>3000000);assert(r.ranges[0].population<4000000);assert.equal(exposureQuality(r),1);assert.equal(exposureVersionQuality('["pager",false,[1,1,1]]'),3);
 });
 test('M5.5+ images are eligible after one minute in first hour and five minutes later; fair queue and text exclusions',()=>{
- const now=Date.now(),photo=(id,age,checked)=>({id,mag:5.5,timeIso:new Date(now-age).toISOString(),imageShakingCheckedAt:now-checked,imageExposureCheckedAt:now-checked,imageExposureVersion:'unavailable',cardImageVersion:'hollow-v14-tsunami',delivery:'sent',messageType:'photo',messageId:1});
+ const now=Date.now(),photo=(id,age,checked)=>({id,mag:5.5,timeIso:new Date(now-age).toISOString(),imageShakingCheckedAt:now-checked,imageExposureCheckedAt:now-checked,imageExposureVersion:'unavailable',cardImageVersion:'hollow-v15-regional',delivery:'sent',messageType:'photo',messageId:1});
  assert.equal(imageRefreshInterval(photo('a',3599999,60000),now),60000);assert.equal(imageRefreshInterval(photo('b',3600000,60000),now),300000);
  assert.equal(imageRefreshDue(photo('a',120000,59999),now),false);assert.equal(imageRefreshDue(photo('a',120000,60000),now),true);assert.equal(imageRefreshDue(photo('b',3600000,60000),now),false);
  assert.equal(imageRefreshDue({...photo('a',120000,60000),messageType:'text'},now),false);assert.equal(imageRefreshDue(photo('old',86400000,600000),now),false);

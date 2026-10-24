@@ -2,11 +2,11 @@
 (function(){
  'use strict';
  const id='pd-tsunami-link';
- let originMarker=null;
+ let originMarker=null,lastHost=null;
  function allQuakes(){return typeof globalEvents!=='undefined'?globalEvents:[];}
  function allAlerts(){return typeof globalAlerts!=='undefined'?globalAlerts:[];}
  function selected(){return typeof eventoSelecionadoId!=='undefined'?eventoSelecionadoId:null;}
- function clear(keepMap=false){document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;if(!keepMap&&!window.TsunamiMap?.isPreview()&&window.TsunamiPresentation?.state()?.hostId!==selected())window.TsunamiMap?.stop();}
+ function clear(keepMap=false){if(!keepMap)lastHost=null;document.getElementById(id)?.remove();originMarker?.remove();originMarker=null;if(!keepMap&&!window.TsunamiMap?.isPreview()&&window.TsunamiPresentation?.state()?.hostId!==selected())window.TsunamiMap?.stop();}
  function open(item){
   if(!item)return;
   window.__mgSoftCycle=false;window.__mgRotationDisplay=false;
@@ -18,26 +18,25 @@
  function magnitude(q){return 'M'+(window.EventPortuguese?.number(q.mag,1)||Number(q.mag).toFixed(1).replace('.',','));}
  function local(item){return window.EventPortuguese?.place(item.place)||item.place||'Local não informado';}
  function date(time){return typeof formatBrasiliaDateTime==='function'?formatBrasiliaDateTime(time):new Date(time).toLocaleString('pt-BR');}
+ function regionalList(box,item){
+  const bundle=window.TsunamiRegional?.bundle(item,allAlerts(),allQuakes());if(!bundle?.groups.length)return;
+  const list=document.createElement('div');list.className='tsunami-regional-list';list.setAttribute('aria-label','Situação por região');box.append(list);
+  for(const group of bundle.groups){const row=document.createElement('section');row.className='tsunami-regional-row tsunami-link-row';row.dataset.bulletinId=group.rows[0].bulletinId;row.dataset.state=group.state;row.dataset.status=group.active?'warning':group.state==='ended'?'ended':'information';row.style.setProperty('--regional-tone',group.color);text(row,'strong',group.label);const sourceItem=bundle.bulletins.find(a=>a.id===group.rows[0].bulletinId);if(sourceItem?.warningLevel)text(row,'small',sourceItem.warningLevel);text(row,'p',group.regions.join(' · '));for(const note of [...new Set(group.rows.map(r=>r.scopeNote).filter(Boolean))])text(row,'small',note);const forecasts=group.rows.filter(r=>r.active&&/\d/.test(r.category));if(forecasts.length)text(row,'p',forecasts.map(r=>r.regionLabel+': '+areaLabel(r.category)).join(' · '));text(row,'small',group.source+' · '+date(group.issuedAt)+(group.stale?' · Última informação; atualização indisponível':''));const bulletin=bundle.bulletins.find(a=>a.id===group.rows[0].bulletinId);if(bulletin){if(bulletin.id!==item.id)action(row,'Abrir este boletim',bulletin);const link=document.createElement('a');try{const u=new URL(bulletin.bulletinUrl||bulletin.link);if(u.protocol==='https:'&&['www.tsunami.gov','api.weather.gov','www.weather.gov'].includes(u.hostname)){link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Boletim oficial';row.append(link);}}catch{}}list.append(row);}
+  text(box,'small','Sem ameaça vale apenas para as regiões citadas. Ausência de informação não significa segurança.');
+ }
  function render(item,restart=false){
-  clear(true);if(!window.TsunamiPresentation?.update(item,restart))window.TsunamiMap?.show(item).then(()=>{if(item?.type==='tsunami'&&selected()===item.id&&!window.TsunamiPresentation?.state())window.TsunamiMap.startTour();});if(!item||!['earthquake','tsunami'].includes(item.type)||item.id!==selected())return;
+  if(item)lastHost=item;
+  clear(true);if(!window.TsunamiPresentation?.update(item,restart)){const group=item?.type==='earthquake'?window.TsunamiRegional?.bundle(item,allAlerts(),allQuakes()):null;const bulletin=group?.bulletins.find(a=>window.TsunamiRegional.hasThreat(a))||group?.bulletins[0];const drawing=bulletin?window.TsunamiMap?.showLinked(bulletin,item.id):window.TsunamiMap?.show(item);drawing?.then(()=>{if(item?.type==='tsunami'&&selected()===item.id&&!window.TsunamiPresentation?.state())window.TsunamiMap.startTour();});}if(!item||!['earthquake','tsunami'].includes(item.type)||item.id!==selected())return;
   item=(item.type==='earthquake'?allQuakes():allAlerts()).find(a=>a.id===item.id)||item;
   const T=window.TsunamiLink;if(!T)return;
   const relations=item.type==='earthquake'?T.forQuake(item,allAlerts(),allQuakes()):[];
   if(item.type==='earthquake'&&!relations.length)return;
   const box=document.createElement('section');box.id=id;box.className='bubble-section tsunami-linked-panel';
   document.getElementById('pd-horario')?.after(box);
-  text(box,'h3',item.type==='earthquake'?'🌊 Boletins de tsunami relacionados':'🌍 Sismo relacionado ao boletim');
+  text(box,'h3','🌊 Situação de tsunami por região');
+  regionalList(box,item);
   if(item.type==='earthquake'){
-   for(const relation of relations.slice(0,6)){
-    const a=relation.alert,row=document.createElement('div');row.className='tsunami-link-row';row.dataset.bulletinId=a.id;row.dataset.status=a.cancelled?'ended':a.hazardNature==='warning'?'warning':'information';box.append(row);
-    text(row,'strong',(a.source||'Fonte oficial')+' · '+(a.warningLevel||'Informativo')+' · '+window.TsunamiMapModel.status(a).title);
-    text(row,'p',local(a)+' · '+date(a.time));
-    if(relation.kind==='probable')text(row,'p','Associação provável por localização e horário de publicação; o boletim não informa a hora de origem.');
-    const areas=a.affectedAreas||[];
-    if(areas.length)text(row,'p','Áreas publicadas: '+areas.slice(0,8).map(area=>local({place:area.name})+': '+areaLabel(area.category)).join(' · ')+(areas.length>8?' · Outras áreas no boletim.':''));
-    action(row,'Abrir este boletim',a);
-   }
-   text(box,'small','O aviso se refere às costas indicadas pela autoridade. A pintura no mapa é a intensidade estimada do tremor, não a área de tsunami.');
+   text(box,'small','Os anéis representam o tremor. As faixas costeiras identificam regiões dos boletins; não representam inundação.');
   }else{
    const status=document.createElement('div');status.className='tsunami-status-strip';status.dataset.level=item.cancelled?'ended':item.hazardNature==='warning'?'warning':'information';
    status.setAttribute('role','status');
@@ -62,7 +61,7 @@
   }
  }
  function areaLabel(value){const s=String(value||'');return s.replace(/less than/gi,'menos de').replace(/greater than/gi,'mais de').replace(/meters|metres/gi,'metros').replace(/Cancellation/gi,'Encerrado').replace(/No (?:tsunami )?threat/gi,'Sem ameaça').replace(/Warning/gi,'Alerta').replace(/Watch/gi,'Vigilância').replace(/Advisory/gi,'Atenção').replace(/Information/gi,'Informativo').replace(/(\d)\.(\d)/g,'$1,$2');}
- function refresh(){if(window.TsunamiMap?.isPreview())return;const item=[...allQuakes(),...allAlerts()].find(a=>a.id===selected());render(item);}
+ function refresh(){if(window.TsunamiMap?.isPreview())return;const item=[...allQuakes(),...allAlerts()].find(a=>a.id===selected())||(lastHost?.id===selected()?{...lastHost,_tsunamiStale:true}:null);render(item);}
  function preferred(){const q=allQuakes().find(a=>a.id===selected());return q?window.TsunamiLink?.forQuake(q,allAlerts(),allQuakes())[0]?.alert:null;}
  function choose(items){
   if(!items.length)return;

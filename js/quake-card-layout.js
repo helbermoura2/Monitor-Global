@@ -37,10 +37,12 @@
   const ts=status||{state:'unknown',headline:'TSUNAMI: SITUAÇÃO NÃO CONFIRMADA',areas:'Ausência de boletim não significa ausência de risco.'};
   const tc={warning:'#ff867c',watch:'#ffb15e',advisory:'#ffe078',cancelled:'#8bd8bd',noThreat:'#8bd8bd'}[ts.state]||muted;
   const fit=(text,size,max=690)=>{text=String(text||'');while(p.measure(text,size)>max&&text.length>3)text=text.slice(0,-4)+'...';return text;};
-  box(32,615,736,111,'#071722');p.rect(32,623,4,95,tc);p.text(fit((ts.stale&&ts.state!=='unknown'?'ÚLTIMO BOLETIM · ':'')+ts.headline,18),48,626,18,tc,true);
+  box(32,615,736,116,'#071722');p.rect(32,623,4,100,tc);const groups=ts.regionalGroups||[],mixed=new Set(groups.map(g=>g.state)).size>1;
+  p.text(fit(mixed?'TSUNAMI · SITUAÇÃO POR REGIÃO':(ts.stale&&ts.state!=='unknown'?'ÚLTIMO BOLETIM · ':'')+ts.headline,18),48,626,18,tc,true);
   const issued=Number.isFinite(ts.issuedAt)?new Date(ts.issuedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'';
   p.text(fit([ts.source,issued,ts.stale?'Atualização indisponível':''].filter(Boolean).join(' · '),13),48,654,13,muted);
-  p.text(fit(ts.areas,14),48,677,14,white);p.text('Siga os boletins oficiais e as orientações das autoridades locais.',48,701,12,muted);
+  if(groups.length){for(const [i,g]of groups.slice(0,2).entries()){const when=Number.isFinite(g.issuedAt)?new Date(g.issuedAt).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})+' BRT':'';const status=g.state==='warning'?'Aviso':g.state==='noThreat'?'Sem ameaça':g.label;const line=[g.source,when,g.stale?'Última informação':''].filter(Boolean).join(' ')+' · '+status+': '+g.regions.join(' · ');p.text(fit(line,14),48,675+i*20,14,g.color||white);}}else p.text(fit(ts.areas,14),48,677,14,white);
+  p.text((groups.length>2?'Outras regiões no boletim. ':'')+'Cada situação vale só para as regiões citadas; siga a autoridade local.',48,718,10,muted);
  }
  function validExposure(e){
   if(e?.status!=='available'||!['pager','worldpop','geonames-localities'].includes(e.method)||e.ranges?.length!==3)return false;
@@ -86,5 +88,5 @@
   p.text(reserve?'Pode haver sobreposição; não confirma quem sentiu ou danos.':'Estimativa de exposição; não confirma quem sentiu ou danos.',56,1364,13,muted);
   p.text('monitorglobal.top',36,1410,12,'#79d4f0',true);p.text('Monitor Global',641,1410,12,muted);
  }
- globalThis.QuakeCardLayout={frame,draw,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,MAP_HEIGHT,ANCHOR_Y,version:'hollow-v14-tsunami'};
+ globalThis.QuakeCardLayout={frame,draw,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,MAP_HEIGHT,ANCHOR_Y,version:'hollow-v15-regional'};
 })();

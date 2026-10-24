@@ -1774,7 +1774,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     // sismo do que uma tempestade, e cair em ⚡/"TEMPESTADE" sem bandeira
     // era o sintoma visível desse bug.
     const meta = TYPE_META[item.type] || TYPE_META.earthquake;
-    const cor = item.type === 'tsunami' ? (item.hazardNature==='bulletin'?'#38bdf8':corSeveridadeAlerta(item)) : meta.color;
+    const cor = item.type === 'tsunami' ? (window.TsunamiRegional&&!window.TsunamiRegional.hasThreat(item)?(window.TsunamiRegional.rows(item).every(r=>r.state==='noThreat')?'#70c9b5':'#94a3b8'):item.hazardNature==='bulletin'?'#38bdf8':corSeveridadeAlerta(item)) : meta.color;
     const country = item.coords ? getCountryByCoords(item.coords[1], item.coords[0]) : { nome: '', flag: '' };
 
     setGauge(0, false, item.icon || meta.icon, cor, 1);
@@ -1784,7 +1784,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
     const localTxt = item.type === 'flood' && typeof traduzirTextoEnchente === 'function'
         ? traduzirTextoEnchente(item.place) : (item.type === 'volcano' ? traduzirTextoVulcanico(item.place) : item.place);
-    document.getElementById('pd-local').textContent = `${item.cycloneLabel ? item.cycloneLabel + ' — ' : ''}${localTxt}`;
+    document.getElementById('pd-local').textContent = `${item.type==='tsunami'&&item.official&&item.coords&&item.coordinateRole!=='warning-area'?'Origem sísmica: ':''}${item.cycloneLabel ? item.cycloneLabel + ' — ' : ''}${localTxt}`;
     document.getElementById('pd-horario').textContent = `${formatBrasiliaDateTime(item.time)} (${formatTime(item.time)})`;
 
     document.getElementById('pd-depth').textContent = meta.label;
@@ -1933,36 +1933,12 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     }
 
     if (item.type === 'tsunami' && item.official) {
-        document.getElementById('pd-cities-title').textContent='🌊 Área do boletim oficial';
-        document.getElementById('pd-cities').innerHTML='<div class="city-item">'+esc(item.place||'Consulte o boletim oficial')+'</div>'+
+        document.getElementById('pd-cities-title').textContent='🌊 Regiões avaliadas no boletim';
+        document.getElementById('pd-cities').innerHTML=(window.TsunamiRegional?window.TsunamiRegional.rows(item).map(r=>'<div class="city-item">'+esc(r.regionLabel)+' · '+esc(r.label)+'</div>').join(''):'<div class="city-item">Consulte as regiões no boletim oficial.</div>')+
             '<div class="city-item">'+esc(item.coordinateRole==='warning-area'?'O mapa aponta uma referência da área costeira sob aviso, não o epicentro do sismo.':item.coords?'O mapa aponta a origem sísmica informada no boletim. Não representa a extensão do tsunami.':'Sem coordenadas verificadas: o mapa mostra uma visão geral, sem epicentro ou alcance inventado.')+'</div>';
-    } else if (item.type === 'tsunami' && item.coords && item.hazardNature !== 'bulletin') {
-        const ps = getPaisesAfetadosTsunami(item.coords[1], item.coords[0]);
-        // Tempo de viagem estimado em mar aberto (TSUNAMI_KMH, js/tsunami-enchente.js)
-        // — não é o ritmo do anel animado no mapa (esse é acelerado só pra dar pra
-        // ver a revelação da zona; a onda real leva mesmo horas pra cruzar isso).
-        const etaTxt = dist => (typeof TSUNAMI_KMH === 'number') ? ` · ≈${(dist / TSUNAMI_KMH).toFixed(1).replace('.', ',')}h de viagem` : '';
-        document.getElementById('pd-cities-title').textContent = '🌊 Países e cidades próximas';
-        document.getElementById('pd-cities').innerHTML =
-            '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🌊 Países potencialmente afetados (2.000 km)</div>' +
-            (ps.length
-                ? ps.map(p => `<div class="city-item"><span class="city-name">${p.flag} ${p.nome}</span><span class="city-dist">${p.dist} km${etaTxt(p.dist)}</span></div>`).join('')
-                : '<div class="city-item" style="color:#64748b;">Nenhum país costeiro em 2.000 km</div>') +
-            '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;border-top:1px solid rgba(148,163,184,.12);margin-top:5px;padding-top:6px;">🏙️ Cidades próximas ao epicentro do tsunami</div>' +
-            '<div class="city-item" style="color:#64748b;">🔎 Buscando localidades em tempo real…</div>';
-        if (ps.length) {
-            document.getElementById('pd-impact').textContent = `Países no raio de 2.000 km: ${ps.map(p => p.nome).join(', ')}.`;
-        }
-        resolverCidadesProximas(item.coords[1], item.coords[0], 6).then(({ cidades, reserva }) => {
-            if (eventoSelecionadoId !== item.id) return;
-            const el = document.getElementById('pd-cities');
-            if (!el) return;
-            const header = '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🏙️ Cidades próximas ao epicentro do tsunami</div>';
-            el.innerHTML =
-                '<div class="city-item" style="color:#38bdf8;font-size:10px;font-weight:800;">🌊 Países potencialmente afetados (2.000 km)</div>' +
-                (ps.length ? ps.map(p => `<div class="city-item"><span class="city-name">${p.flag} ${p.nome}</span><span class="city-dist">${p.dist} km${etaTxt(p.dist)}</span></div>`).join('') : '<div class="city-item" style="color:#64748b;">Nenhum país costeiro em 2.000 km</div>') +
-                header + renderCidadesHTML(cidades, reserva);
-        });
+    } else if (item.type === 'tsunami') {
+        document.getElementById('pd-cities-title').textContent='🌊 Situação oficial não confirmada';
+        document.getElementById('pd-cities').innerHTML='<div class="city-item">Registro agregado: consulte os centros oficiais de tsunami. Proximidade do epicentro não determina ameaça, países afetados ou horário de chegada de ondas.</div>';
     } else if (item.type === 'volcano') {
         document.getElementById('pd-cities-title').textContent='🌋 Perfil vulcanológico profissional';
         const esc=v=>String(v==null||v===''?'N/D':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));

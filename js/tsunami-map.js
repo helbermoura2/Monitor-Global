@@ -18,7 +18,7 @@
  function node(tag,text,host){const n=document.createElement(tag);n.textContent=text;host.append(n);return n;}
  function decorate(item,result){
   frameNode?.remove();notice?.remove();
-  const c=result.entries[0]||TsunamiMapModel.category({},item),warning=!item.cancelled&&item.hazardNature!=='bulletin';
+  const c=result.entries[0]||TsunamiMapModel.category({},item),warning=window.TsunamiRegional?.hasThreat(item)??(!item.cancelled&&item.hazardNature!=='bulletin');
   frameNode=document.createElement('div');frameNode.id='tsunami-coastal-frame';frameNode.dataset.level=warning?'warning':item.cancelled?'ended':'information';frameNode.setAttribute('aria-hidden','true');frameNode.style.setProperty('--tsunami-frame-color',warning?'#fbbf24':c.color);document.body.append(frameNode);
   notice=document.createElement('aside');notice.id='tsunami-coastal-notice';notice.setAttribute('role','status');notice.style.setProperty('--tsunami-frame-color',warning?'#fbbf24':c.color);
   node('strong',(item.__tsunamiMapDemo?'TESTE FICTÍCIO · MODELO 1 · ':'')+(warning?'AVISO DE TSUNAMI':item.cancelled?'BOLETIM ENCERRADO':'BOLETIM INFORMATIVO'),notice);
@@ -50,18 +50,18 @@
  function padding(){const wide=innerWidth>1000;return {top:wide?225:220,bottom:wide?100:150,left:wide?315:35,right:wide?355:35};}
  function stopTour(){clearTimeout(tour?.timer);tour=null;}
  function startTour(){
-  if(!current||demo||linkedHost||current.item.hazardNature==='bulletin'||current.item.cancelled||!selected(current.id)||!stops().length)return;
+  if(!current||demo||linkedHost||window.TsunamiRegional&&!window.TsunamiRegional.hasThreat(current.item)||current.item.hazardNature==='bulletin'||current.item.cancelled||!selected(current.id)||!stops().length)return;
   if(tour?.id===current.id)return;stopTour();const t=tour={id:current.id,index:0};window.PresentationLimits?.extendStay?.(current.id,Math.min(180000,Math.max(60000,18000+stops().length*12000)));
   const next=()=>{if(tour!==t||!current||!selected(t.id)){stopTour();return;}if(document.hidden){t.timer=null;return;}if(window.EventCamera?.owns(current.id)){t.timer=setTimeout(next,1000);return;}if(!t.arrived){t.arrived=true;t.timer=setTimeout(next,6000);return;}const index=t.index++;visit(index,index===0?8000:6000);t.timer=setTimeout(next,12000);};t.next=next;next();
  }
  function cameraFor(b,maxZoom=7){if(window.WeatherWarningCamera){const c=WeatherWarningCamera.frame(b);return {...c,zoom:Math.max(map.getMinZoom(),Math.min(maxZoom,c.zoom-.2))};}return map.cameraForBounds(b,{padding:padding(),maxZoom});}
  function fit(){stopTour();if(!current||!selected(current.id))return;const box=bounds(current.data.features);if(!box)return;const camera=cameraFor(box);if(!camera)return;map.stop();map.flyTo({...camera,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:6000,essential:true});}
- function stops(){if(!current)return [];if(current.route)return current.route;const groups=new Map();for(const f of current.data.features){if(f.properties.band==='inner'||f.properties.band==='shoreline')continue;const name=f.properties.name||current.item.place||'Área do boletim';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(f);}
+ function stops(){if(!current)return [];if(current.route)return current.route;const groups=new Map();for(const f of current.data.features){if(f.properties.band==='inner'||f.properties.band==='shoreline'||!demo&&f.properties.rank<2)continue;const name=f.properties.name||current.item.place||'Área do boletim';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(f);}
   const origin=window.TsunamiLink?.origin(current.item)?current.item.coords:[map.getCenter().lng,map.getCenter().lat];
   const rows=[...groups].map(([name,features])=>({name:TsunamiMapModel.placeLabel(name),bounds:bounds(features)})).filter(r=>r.bounds);
   const midpoint=r=>[(r.bounds[0][0]+r.bounds[1][0])/2,(r.bounds[0][1]+r.bounds[1][1])/2];
   rows.sort((a,b)=>(window.TsunamiLink?.distance(origin,midpoint(a))||0)-(window.TsunamiLink?.distance(origin,midpoint(b))||0));
-  return current.route=[{name:'Todas as regiões indicadas',bounds:bounds(current.data.features)},...rows];
+  if(!rows.length)return [];const focus=demo?current.data.features:current.data.features.filter(f=>f.properties.rank>=2);return current.route=[{name:demo?'Todas as regiões indicadas':'Regiões com aviso ativo',bounds:bounds(focus)},...rows];
  }
  function visit(index=0,duration=6000){if(!current||!selected(current.id))return null;const rows=stops();if(!rows.length)return null;const target=rows[index%rows.length],camera=cameraFor(target.bounds,index%rows.length?7:5.5);if(!camera)return null;
   setVisible(true);if(!window.EventCamera?.owns(linkedHost||current.id)){map.stop();map.flyTo({...camera,pitch:0,bearing:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:duration,curve:1.25,essential:true});}
@@ -73,10 +73,11 @@
  function setVisible(value){visible=!!value;if(legend)legend.style.display=visible?'':'none';try{for(const id of layers)if(map.getLayer(id))map.setLayoutProperty(id,'visibility',visible?'visible':'none');}catch(e){}}
  async function show(item,previewContext=null,hostId=null){
   if(item?.type!=='tsunami'||(!previewContext&&(!window.TsunamiLink?.official(item)||typeof eventoSelecionadoId==='undefined'||eventoSelecionadoId!==(hostId||item.id)))){stop();return;}
-  const key=JSON.stringify([hostId,item.id,item.time,item.cancelled,item.hazardNature,item.warningLevel,item.affectedAreas,item.coverageAreas,item.warningGeometry,window.TsunamiMapModel.status(item).level]);if(key===signature)return;
+  const regional=!previewContext&&window.TsunamiRegional?.bundle(item,typeof globalAlerts==='undefined'?[]:globalAlerts,typeof globalEvents==='undefined'?[]:globalEvents);
+  const key=JSON.stringify([regional?.rows,hostId,item.id,item.time,item.cancelled,item.hazardNature,item.warningLevel,item.affectedAreas,item.coverageAreas,item.warningGeometry,window.TsunamiMapModel.status(item).level]);if(key===signature)return;
   stop();linkedHost=hostId;if(previewContext)demo={id:item.id,previous:previewContext,mode:item.__tsunamiCoastalRussia?'russia':null};signature=key;const token=generation;
-  try{const regions=window.TsunamiMapModel.status(item).level!=='no-threat'&&(item.affectedAreas?.length||item.coverageAreas?.length)?await load():empty();if(token!==generation||!selected(item.id))return;
-   const result=window.TsunamiMapModel.build(item,regions);ensure();map.getSource(SOURCE).setData(result.data);current={id:item.id,item,data:result.data};label(item,result);if(previewContext&&!item.__tsunamiCoastalRussia)fit();
+  try{const regions=regional?.rows?.some(r=>r.scoped&&!r.geometryOnly)||item.affectedAreas?.length||item.coverageAreas?.length?await load():empty();if(token!==generation||!selected(item.id))return;
+   const result=regional?.bulletins?.length?window.TsunamiMapModel.buildGroup(regional,regions):window.TsunamiMapModel.build(item,regions);ensure();map.getSource(SOURCE).setData(result.data);current={id:item.id,item,data:result.data};label(item,result);if(previewContext&&!item.__tsunamiCoastalRussia)fit();
   }catch(error){if(token===generation&&selected(item.id))label(item,{data:empty(),entries:[],unmapped:[]},true);console.warn('[costas tsunami]',error.message);}
  }
  function closePreview(restore=true){

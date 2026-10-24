@@ -34,7 +34,7 @@
    text(content,'p',coast?j.alert.source+' · '+(j.alert.warningLevel||'Boletim oficial'):'Profundidade: '+number(j.quake.depth)+' km · '+(j.quake.source||'Fonte sísmica'));
    if(coast){
     const list=document.createElement('ul');content.append(list);
-    for(const area of [...j.alert.affectedAreas||[],...j.alert.coverageAreas||[]].slice(0,8)){const c=window.TsunamiMapModel.category(area,j.alert);const li=text(list,'li',window.TsunamiMapModel.placeLabel(area.name)+' · '+c.label);li.style.color=c.color;}
+    for(const r of window.TsunamiRegional?.bundle(j.alert,alerts(),quakes()).rows||[]){const li=text(list,'li',r.regionLabel+' · '+r.label+' · '+r.source);li.style.color=r.color;}
     text(content,'small',j.alert.hazardNature==='bulletin'?'Informativo não confirma ameaça. Consulte o boletim.':'As cores seguem o boletim. A faixa costeira não é uma previsão de inundação.');
    }else text(content,'p',j.phase==='blue'?'Onda P · passagem final pelo anel azul':'Epicentro · área estimada do tremor');
    if(j.demo)text(content,'small','Dados fictícios para testar a apresentação. Não é um alerta real.');
@@ -63,8 +63,8 @@
   if(window.SeismicScenarioDemo?.isActive())return false;
   if(job?.demo){if(valid(job)&&selected()===job.hostId)return true;stop();}
   const T=window.TsunamiLink;let q=item,related;
-  if(item?.type==='earthquake')related=T?.forQuake(item,alerts(),quakes()).find(r=>r.kind==='origin'&&!r.alert.cancelled);
-  else if(T?.official(item)&&!item.cancelled){const r=T.match(item,quakes());if(r?.kind==='origin'){q=r.quake;related={...r,alert:item};}}
+  if(item?.type==='earthquake')related=T?.forQuake(item,alerts(),quakes()).find(r=>r.kind==='origin'&&!r.alert.cancelled&&(window.TsunamiRegional?.hasThreat(r.alert)??r.alert.hazardNature==='warning'));
+  else if(T?.official(item)&&!item.cancelled&&(window.TsunamiRegional?.hasThreat(item)??item.hazardNature==='warning')){const r=T.match(item,quakes());if(r?.kind==='origin'){q=r.quake;related={...r,alert:item};}}
   if(!related||!q?.coords){const previous=job;stop();if(previous&&!previous.demo&&previous.hostId===selected()&&previous.phase==='coast')quakeCamera(previous);return false;}
   const a=related.alert;
   if(a.hazardNature==='bulletin'){stop();return false;}

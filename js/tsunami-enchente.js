@@ -34,9 +34,8 @@ async function fetchTsunamiAlertsGDACS() {
 
             if (isNew) {
                 primeiroNovo = primeiroNovo || obj;
-                playAlertTone('tsunami');
-                showToast(`🌊 TSUNAMI: ${nome}`, 'error');
-                notificarNavegador(`🌊 TSUNAMI — ${nome}`, 'Alerta GDACS');
+                showToast(`🌊 Registro GDACS: ${nome} · consulte boletins oficiais`, 'info');
+                notificarNavegador(`🌊 Registro GDACS — ${nome}`, 'Situação oficial de tsunami não confirmada por este registro.');
             }
         });
 
