@@ -1,0 +1,44 @@
+{
+  "method": "Offline Chromium, 40 zone geometries x 50000 points. Both V8 heap and backing storage reported after GC; not a real-world weather feed or phone RAM measurement.",
+  "results": [
+    {
+      "before": true,
+      "heapBefore": {
+        "usedSize": 19734724,
+        "totalSize": 20770816,
+        "embedderHeapUsedSize": 3811952,
+        "backingStorageSize": 18605049
+      },
+      "heapAfter": {
+        "usedSize": 108053348,
+        "totalSize": 109441024,
+        "embedderHeapUsedSize": 4111096,
+        "backingStorageSize": 18606771
+      },
+      "boundsSha256": "eefcf1e3c1484b43661c8c5b3f88a76f16fbd96984a2585c7b36c0e299a2ae70",
+      "cache": null
+    },
+    {
+      "before": false,
+      "heapBefore": {
+        "usedSize": 19898604,
+        "totalSize": 20508672,
+        "embedderHeapUsedSize": 4216912,
+        "backingStorageSize": 18606514
+      },
+      "heapAfter": {
+        "usedSize": 20084872,
+        "totalSize": 21032960,
+        "embedderHeapUsedSize": 3959008,
+        "backingStorageSize": 26608255
+      },
+      "boundsSha256": "eefcf1e3c1484b43661c8c5b3f88a76f16fbd96984a2585c7b36c0e299a2ae70",
+      "cache": {
+        "entries": 20,
+        "coordinateBytes": 8000000,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      }
+    }
+  ]
+}

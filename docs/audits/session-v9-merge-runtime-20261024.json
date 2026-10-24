@@ -1,0 +1,55 @@
+{
+  "method": "Actual site, 1200 reports covering 30 hours; Chromium 4x CPU emulation; no external network. Four warmed measurements, no camera change.",
+  "results": [
+    {
+      "before": true,
+      "measurements": [
+        {
+          "ms": 242.5,
+          "distanceCalls": 360000,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        },
+        {
+          "ms": 107.69999998807907,
+          "distanceCalls": 360000,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        },
+        {
+          "ms": 183.69999998807907,
+          "distanceCalls": 360000,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        },
+        {
+          "ms": 139.9000000357628,
+          "distanceCalls": 360000,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        }
+      ]
+    },
+    {
+      "before": false,
+      "measurements": [
+        {
+          "ms": 23.899999976158142,
+          "distanceCalls": 2996,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        },
+        {
+          "ms": 17.599999964237213,
+          "distanceCalls": 2996,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        },
+        {
+          "ms": 48.19999998807907,
+          "distanceCalls": 2996,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        },
+        {
+          "ms": 4.399999976158142,
+          "distanceCalls": 2996,
+          "resultSha256": "128977d26d42a2d5e49d1db9c8e6deb114ae2c7be6898ea48dd1ded20b088c66"
+        }
+      ]
+    }
+  ]
+}

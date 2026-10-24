@@ -4,6 +4,14 @@ on:
   pull_request:
     paths:
       - 'js/audio.js'
+      - 'vendor/maplibre-gl.js'
+      - 'worker/seismic-providers.mjs'
+      - 'monitor-global-worker-7_7_0.js'
+      - 'shared-source-cache.mjs'
+      - 'js/app-recovery.js'
+      - 'js/nucleo-estado.js'
+      - 'js/vulcao.js'
+      - 'js/tsunami-enchente.js'
       - 'js/event-products.js'
       - 'js/weather-warning-camera.js'
       - 'js/browser-request-budget.js'
@@ -13,6 +21,8 @@ on:
       - 'js/performance-diagnostics.js'
       - 'tests/unit/*lifecycle*'
       - 'tests/unit/*budget*'
+      - 'tests/unit/*memory*'
+      - 'tests/unit/shared-source-delivery.test.cjs'
       - 'tests/unit/long-session-fixes.test.cjs'
       - 'tests/unit/earthquake-report-selection.test.cjs'
       - 'tools/catalog-report-memory-audit.cjs'
@@ -36,7 +46,7 @@ jobs:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
         run: |
-          node --test tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
+          node --test tests/unit/volcano-advisory-parser.test.cjs tests/unit/worker-modules.test.mjs tests/unit/earthquake-merge-budget.test.cjs tests/unit/source-session-budget.test.cjs tests/unit/weather-area-memory.test.cjs tests/unit/shared-source-delivery.test.cjs tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
           node tests/unit/audio-volume-check.cjs
           node tests/unit/population-check.cjs
           node tests/unit/unified-cities-check.cjs
@@ -44,7 +54,7 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-        run: npx playwright test tests/weather-warning-camera.spec.js tests/weather-warning-globe.spec.js tests/sequence-warning-regression.spec.js tests/local-performance-diagnostics.spec.js tests/source-health.spec.js tests/event-insights.spec.js tests/browser-request-budget.spec.js tests/world-view-audio.spec.js --workers=2
+        run: npx playwright test tests/map-raster-retry.spec.js tests/app-recovery.spec.js tests/weather-warning-camera.spec.js tests/weather-warning-globe.spec.js tests/sequence-warning-regression.spec.js tests/local-performance-diagnostics.spec.js tests/source-health.spec.js tests/event-insights.spec.js tests/browser-request-budget.spec.js tests/world-view-audio.spec.js --workers=2
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

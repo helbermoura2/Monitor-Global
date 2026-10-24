@@ -1,0 +1,1302 @@
+{
+  "method": {
+    "actualElapsedMs": 602528,
+    "targetSeconds": 600,
+    "cpuSlowdown": 4,
+    "viewport": "411x806",
+    "dpr": 2.625,
+    "camera": "native, not overridden",
+    "tiles": "native raster layers; local synthetic 256px PNG, two injected 503 failures",
+    "traffic": "all other external traffic blocked; no Telegram or production events",
+    "memory": "main JS heap after explicit GC; GPU/workers/total RAM excluded",
+    "audio": "real short oscillator/noise nodes; cloud speech not exercised"
+  },
+  "sourceHashes": {
+    "js/sismo-fontes.js": "d0c5b315541a08940568cda5f5cb66f708fb8db24cc860a5c62d0fc4e2f02eb1",
+    "js/app-recovery.js": "6f2ba2a8aa5165b8c9dc380ec91422d2094a386c2d44abbee589d556169a4ea9",
+    "js/nucleo-estado.js": "e742302797cad5ba7fd102f0ef76a9a6f95e38b539e2bd49f64f73d5c638adb7",
+    "js/weather-warning-camera.js": "4a108b54b9b1fb389e093fd5e39854a5bfee02bcbfb65f3466c126f3b26e58ee"
+  },
+  "tileRequests": 258,
+  "blocked": 879,
+  "injectedFailures": 2,
+  "samples": [
+    {
+      "cycle": 0,
+      "elapsedMs": 128,
+      "heapBytes": 20099956,
+      "backingStorageBytes": 18601603,
+      "cdpNodes": 2597,
+      "listeners": 411,
+      "taskDurationSeconds": 5.245637,
+      "canvases": 2,
+      "nodes": 1206,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 36,
+        "cachedTiles": 0
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 1,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 0,
+        "reports": 0,
+        "maxReportsPerEvent": 0,
+        "bySource": {}
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 1,
+      "elapsedMs": 31089,
+      "heapBytes": 25255440,
+      "backingStorageBytes": 20734034,
+      "cdpNodes": 3287,
+      "listeners": 474,
+      "taskDurationSeconds": 36.04576,
+      "canvases": 2,
+      "nodes": 1399,
+      "tiles": {
+        "sources": 11,
+        "activeTiles": 22,
+        "cachedTiles": 89
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 2,
+      "elapsedMs": 62395,
+      "heapBytes": 25516292,
+      "backingStorageBytes": 19060313,
+      "cdpNodes": 3045,
+      "listeners": 431,
+      "taskDurationSeconds": 67.105922,
+      "canvases": 2,
+      "nodes": 1377,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 77
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 3,
+      "elapsedMs": 95261,
+      "heapBytes": 25733064,
+      "backingStorageBytes": 19056399,
+      "cdpNodes": 4549,
+      "listeners": 433,
+      "taskDurationSeconds": 99.858906,
+      "canvases": 2,
+      "nodes": 1806,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 77
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 4,
+      "elapsedMs": 128066,
+      "heapBytes": 25768500,
+      "backingStorageBytes": 19064749,
+      "cdpNodes": 3027,
+      "listeners": 434,
+      "taskDurationSeconds": 132.585704,
+      "canvases": 2,
+      "nodes": 1370,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 77
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 5,
+      "elapsedMs": 160860,
+      "heapBytes": 25964212,
+      "backingStorageBytes": 19070799,
+      "cdpNodes": 4046,
+      "listeners": 442,
+      "taskDurationSeconds": 165.342308,
+      "canvases": 2,
+      "nodes": 1740,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 77
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 6,
+      "elapsedMs": 193006,
+      "heapBytes": 28324120,
+      "backingStorageBytes": 18988446,
+      "cdpNodes": 4491,
+      "listeners": 473,
+      "taskDurationSeconds": 197.424594,
+      "canvases": 2,
+      "nodes": 1488,
+      "tiles": {
+        "sources": 11,
+        "activeTiles": 12,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 2,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 7,
+      "elapsedMs": 224907,
+      "heapBytes": 28082724,
+      "backingStorageBytes": 18988661,
+      "cdpNodes": 4027,
+      "listeners": 480,
+      "taskDurationSeconds": 229.202162,
+      "canvases": 2,
+      "nodes": 1687,
+      "tiles": {
+        "sources": 11,
+        "activeTiles": 12,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 8,
+        "solo": 7,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 8,
+      "elapsedMs": 256508,
+      "heapBytes": 28044908,
+      "backingStorageBytes": 18989570,
+      "cdpNodes": 3789,
+      "listeners": 439,
+      "taskDurationSeconds": 260.746521,
+      "canvases": 2,
+      "nodes": 1687,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 9,
+      "elapsedMs": 287879,
+      "heapBytes": 28705468,
+      "backingStorageBytes": 18992797,
+      "cdpNodes": 3879,
+      "listeners": 440,
+      "taskDurationSeconds": 292.067801,
+      "canvases": 2,
+      "nodes": 1733,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 10,
+      "elapsedMs": 341592,
+      "heapBytes": 28983492,
+      "backingStorageBytes": 19047659,
+      "cdpNodes": 11869,
+      "listeners": 503,
+      "taskDurationSeconds": 345.582073,
+      "canvases": 2,
+      "nodes": 1669,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 11,
+      "elapsedMs": 396667,
+      "heapBytes": 28134916,
+      "backingStorageBytes": 18992751,
+      "cdpNodes": 4278,
+      "listeners": 460,
+      "taskDurationSeconds": 400.374053,
+      "canvases": 2,
+      "nodes": 1660,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 12,
+      "elapsedMs": 444678,
+      "heapBytes": 28970256,
+      "backingStorageBytes": 18996003,
+      "cdpNodes": 6225,
+      "listeners": 510,
+      "taskDurationSeconds": 448.262914,
+      "canvases": 2,
+      "nodes": 1663,
+      "tiles": {
+        "sources": 11,
+        "activeTiles": 12,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 1,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 13,
+      "elapsedMs": 507210,
+      "heapBytes": 29261792,
+      "backingStorageBytes": 19038063,
+      "cdpNodes": 16418,
+      "listeners": 597,
+      "taskDurationSeconds": 510.482285,
+      "canvases": 2,
+      "nodes": 1718,
+      "tiles": {
+        "sources": 11,
+        "activeTiles": 12,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 7,
+        "solo": 1,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 14,
+      "elapsedMs": 549390,
+      "heapBytes": 28402636,
+      "backingStorageBytes": 18990536,
+      "cdpNodes": 3788,
+      "listeners": 439,
+      "taskDurationSeconds": 552.576139,
+      "canvases": 2,
+      "nodes": 1687,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 15,
+      "elapsedMs": 581191,
+      "heapBytes": 28995180,
+      "backingStorageBytes": 18996136,
+      "cdpNodes": 3881,
+      "listeners": 440,
+      "taskDurationSeconds": 584.329154,
+      "canvases": 2,
+      "nodes": 1733,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 0,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 16,
+      "elapsedMs": 600713,
+      "heapBytes": 29064728,
+      "backingStorageBytes": 18993248,
+      "cdpNodes": 4855,
+      "listeners": 440,
+      "taskDurationSeconds": 603.819123,
+      "canvases": 2,
+      "nodes": 2046,
+      "tiles": {
+        "sources": 10,
+        "activeTiles": 11,
+        "cachedTiles": 41
+      },
+      "audio": {
+        "cloudActive": 0,
+        "cloudPending": 0,
+        "objectURLs": 0,
+        "transientSources": 0,
+        "cooling": false
+      },
+      "products": {
+        "entries": 0,
+        "inflight": 0,
+        "estimatedTextBytes": 0,
+        "maxEstimatedTextBytes": 8388608
+      },
+      "warningAreas": {
+        "entries": 0,
+        "coordinateBytes": 0,
+        "maxCoordinateBytes": 8388608,
+        "inflight": 0
+      },
+      "requests": {
+        "inflight": 1,
+        "solo": 0,
+        "cooldowns": 0,
+        "suppressed": 0
+      },
+      "reports": {
+        "events": 200,
+        "reports": 200,
+        "maxReportsPerEvent": 1,
+        "bySource": {
+          "QA": 200
+        }
+      },
+      "recovery": {
+        "lost": false,
+        "feedBusy": false,
+        "sources": [
+          {
+            "id": "satellite",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          },
+          {
+            "id": "esri-boundaries-places",
+            "failed": false,
+            "failedTiles": 0,
+            "unknown": false,
+            "attempt": 0,
+            "pending": false
+          }
+        ]
+      }
+    }
+  ],
+  "cleaned": {
+    "cycle": 16,
+    "elapsedMs": 602523,
+    "heapBytes": 27990684,
+    "backingStorageBytes": 18967086,
+    "cdpNodes": 4768,
+    "listeners": 432,
+    "taskDurationSeconds": 605.592574,
+    "canvases": 2,
+    "nodes": 2046,
+    "tiles": {
+      "sources": 10,
+      "activeTiles": 19,
+      "cachedTiles": 35
+    },
+    "audio": {
+      "cloudActive": 0,
+      "cloudPending": 0,
+      "objectURLs": 0,
+      "transientSources": 0,
+      "cooling": false
+    },
+    "products": {
+      "entries": 0,
+      "inflight": 0,
+      "estimatedTextBytes": 0,
+      "maxEstimatedTextBytes": 8388608
+    },
+    "warningAreas": {
+      "entries": 0,
+      "coordinateBytes": 0,
+      "maxCoordinateBytes": 8388608,
+      "inflight": 0
+    },
+    "requests": {
+      "inflight": 0,
+      "solo": 0,
+      "cooldowns": 0,
+      "suppressed": 0
+    },
+    "reports": {
+      "events": 200,
+      "reports": 200,
+      "maxReportsPerEvent": 1,
+      "bySource": {
+        "QA": 200
+      }
+    },
+    "recovery": {
+      "lost": false,
+      "feedBusy": false,
+      "sources": [
+        {
+          "id": "satellite",
+          "failed": false,
+          "failedTiles": 0,
+          "unknown": false,
+          "attempt": 0,
+          "pending": false
+        },
+        {
+          "id": "esri-boundaries-places",
+          "failed": false,
+          "failedTiles": 0,
+          "unknown": false,
+          "attempt": 0,
+          "pending": false
+        }
+      ]
+    }
+  },
+  "errors": []
+}

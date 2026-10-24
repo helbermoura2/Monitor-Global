@@ -8,7 +8,7 @@ test('tile failure storms have a bounded retry budget, sleep when hidden and cle
  await fixture(page);await page.clock.install();await page.evaluate(()=>{for(let i=0;i<100;i++)handlers.error({sourceId:'satellite'});});
  await expect(page.locator('#map-recovery')).toBeVisible();await page.clock.runFor(81000);
  expect(await page.evaluate(()=>reloads)).toBe(3);await page.clock.runFor(180000);expect(await page.evaluate(()=>reloads)).toBe(3);
- await page.evaluate(()=>handlers.sourcedata({sourceId:'satellite',sourceDataType:'content',tile:{state:'loaded'}}));await expect(page.locator('#map-recovery')).toBeHidden();
+ await page.evaluate(()=>handlers.sourcedata({sourceId:'satellite',sourceDataType:'content',isSourceLoaded:true,tile:{state:'loaded'}}));await expect(page.locator('#map-recovery')).toBeHidden();await page.clock.runFor(60001);
  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});handlers.error({sourceId:'satellite'});document.dispatchEvent(new Event('visibilitychange'));});await page.clock.runFor(100000);expect(await page.evaluate(()=>reloads)).toBe(3);
  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));});await page.clock.runFor(4001);expect(await page.evaluate(()=>reloads)).toBe(4);
 });
@@ -50,4 +50,32 @@ test('public source completion clears a stuck warning without private tile state
  await fixture(page);await page.evaluate(()=>handlers.error({sourceId:'esri-boundaries-places'}));await expect(page.locator('#map-recovery')).toContainText('nomes ou limites');await page.evaluate(()=>handlers.sourcedata({sourceId:'esri-boundaries-places',sourceDataType:'content',isSourceLoaded:true}));await expect(page.locator('#map-recovery')).toBeHidden();
  await page.evaluate(()=>{handlers.error({sourceId:'satellite'});fakeMap.isSourceLoaded=()=>true;handlers.sourcedata({sourceId:'satellite',sourceDataType:'content'});});await expect(page.locator('#map-recovery')).toBeHidden();
  await page.evaluate(()=>handlers.error({sourceId:'satellite',error:{name:'AbortError',message:'cancelled tile'}}));await expect(page.locator('#map-recovery')).toBeHidden();
+});
+
+test('a different loaded tile cannot clear a failed tile or reset the retry budget',async({page})=>{
+ await fixture(page);await page.clock.install();
+ await page.evaluate(()=>{
+  const tile=(x,state)=>({state,tileID:{canonical:{z:5,x,y:7}}});
+  window.qaTile=tile;
+  handlers.error({sourceId:'satellite',tile:tile(1,'errored')});
+  handlers.sourcedata({sourceId:'satellite',sourceDataType:'content',isSourceLoaded:true,tile:tile(2,'loaded')});
+ });
+ await expect(page.locator('#map-recovery')).toBeVisible();
+ expect(await page.evaluate(()=>AppRecovery.state().sources[0].failedTiles)).toBe(1);
+ await page.clock.runFor(4001);expect(await page.evaluate(()=>reloads)).toBe(1);
+ await page.evaluate(()=>handlers.sourcedata({sourceId:'satellite',sourceDataType:'content',tile:qaTile(1,'loaded')}));
+ await expect(page.locator('#map-recovery')).toBeHidden();
+ await page.evaluate(()=>handlers.error({sourceId:'satellite',tile:qaTile(1,'errored')}));
+ expect(await page.evaluate(()=>AppRecovery.state().sources[0].attempt)).toBe(1);
+ await page.clock.runFor(16001);expect(await page.evaluate(()=>reloads)).toBe(2);
+});
+
+test('failures left outside a completed successful new view do not leave a stale warning',async({page})=>{
+ await fixture(page);
+ await page.evaluate(()=>{
+  handlers.error({sourceId:'satellite',tile:{tileID:{canonical:{z:5,x:1,y:7}}}});
+  handlers.movestart();
+  handlers.sourcedata({sourceId:'satellite',sourceDataType:'content',isSourceLoaded:true,tile:{state:'loaded',tileID:{canonical:{z:5,x:9,y:7}}}});
+ });
+ await expect(page.locator('#map-recovery')).toBeHidden();
 });

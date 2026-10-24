@@ -88,6 +88,20 @@ test('memory samples include catalogue report ownership without exporting event 
  await page.goto('/catalog-memory-harness.html');
  await page.evaluate(()=>{window.SismoReportMemory={stats:()=>({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}})};PerformanceDiagnostics.start();PerformanceDiagnostics.stop();});
  const report=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
- expect(report.samples[0].runtimeVersion).toBe('catalog-memory-v8');
+ expect(report.samples[0].runtimeVersion).toBe('session-stability-v9');
  expect(report.samples[0].memoryOwners.quakeReports).toEqual({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}});
+});
+
+test('failed resources are separated into fixed categories without retaining URLs',async({page})=>{
+ await page.route('**/resource-failure-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));
+ await page.goto('/resource-failure-harness.html');
+ await page.evaluate(()=>{
+  PerformanceDiagnostics.start();
+  const bad=document.createElement('script');bad.type='application/json';bad.src='https://www.seismicportal.eu/secret?callback=PRIVATE';bad.addEventListener('error',()=>{});document.body.append(bad);bad.dispatchEvent(new Event('error'));
+  const image=document.createElement('img');image.src='data:image/png;base64,INVALID_PRIVATE';document.body.append(image);image.dispatchEvent(new Event('error'));
+  PerformanceDiagnostics.stop();
+ });
+ const report=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
+ expect(report.errors.resourceByCategory.emscJSONP).toBeGreaterThanOrEqual(1);
+ expect(JSON.stringify(report.errors)).not.toMatch(/PRIVATE|secret|https:/);
 });

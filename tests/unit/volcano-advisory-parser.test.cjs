@@ -11,3 +11,10 @@ test('USGS older VONA never replaces current status, while a newer eruptive noti
  let r=(await c.getUsgsVolcanoProfessional()).all[0];assert.equal(r.noticeId,'daily-12');assert.equal(r.time,Date.parse(latest));assert.equal(r.aviationColor,'ORANGE');assert.equal(r.detail,'Current monitoring status');assert.equal(r.usgsVona.noticeId,'vona');assert.equal(r.usgsUrl,status.noticeUrl);
  date='2026-10-12T23:00:00Z';r=(await c.getUsgsVolcanoProfessional()).all[0];assert.equal(r.noticeId,'vona');assert.equal(r.aviationColor,'RED');assert.match(r.detail,/Eruption reported/);assert.equal(r.time,Date.parse(date));
 });
+
+test('VAAC keeps successful reports and exposes a failed centre as partial coverage',async()=>{
+ const src=fs.readFileSync('monitor-global-worker-7_7_0.js','utf8'),start=src.indexOf('async function getGlobalVolcanoAdvisories('),end=src.indexOf('async function handleGlobalVolcanoAdvisories(',start);
+ let broken=true;const c=vm.createContext({Date,nowIso:()=>new Date().toISOString(),fetchText:async url=>({ok:!broken||!url.includes('bom.gov.au'),text:'published report'}),parseVolcanoAdvisoryText:()=>[{id:'darwin'}],parseWeeklyVolcanicReport:()=>[{id:'gvp'}],lookupKnownVolcanoCoords:()=>null});
+ vm.runInContext(src.slice(start,end),c);let r=await c.getGlobalVolcanoAdvisories();assert.equal(r.ok,true);assert.equal(r.partial,true);assert.equal(r.items[0].id,'gvp');assert.equal(r.errors.length,1);
+ broken=false;r=await c.getGlobalVolcanoAdvisories();assert.equal(r.partial,false);assert.equal(r.items.length,2);
+});

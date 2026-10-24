@@ -9,18 +9,27 @@ import {xmlItems, xmlTag} from "./xml.mjs";
 // SISMOS — rotas dedicadas AFAD / INGV / JMA (com clamp FDSN)
 // =========================================================
 
+function afadOfficialUrl(limit=100){
+    // AFAD's filter and unzoned event dates use Turkey time (UTC+03:00).
+    const localNow=Date.now()+3*3600000;
+    const date=ms=>new Date(ms).toISOString().slice(0,19);
+    const q=new URLSearchParams({start:date(localNow-36*3600000),end:date(localNow),limit:String(limit),orderby:'timedesc'});
+    return 'https://deprem.afad.gov.tr/apiv2/event/filter?'+q;
+}
 async function handleAfadEarthquakes(reqUrl) {
-    const limit=Math.min(200,Math.max(1,Number(reqUrl.searchParams.get('limit')||100)));
-    const u='https://api.orhanaydogdu.com.tr/deprem/afad/live';
+    const requested=Number(reqUrl.searchParams.get('limit')||100);
+    const limit=Number.isFinite(requested)?Math.min(200,Math.max(1,Math.floor(requested))):100;
     try {
-        const d=await fetchJson(u,{},12000);
+        let d,official=true;
+        try{d=await fetchJson(afadOfficialUrl(limit),{redirect:'follow',headers:{Accept:'application/json'}},12000);if(!Array.isArray(d))throw Error('Catálogo oficial AFAD inválido');}
+        catch{official=false;d=await fetchJson('https://api.orhanaydogdu.com.tr/deprem/afad/live',{},12000);}
         const raw=Array.isArray(d)?d:(d?.data||d?.result||[]);
         const arr=Array.isArray(raw)?raw:[];
         const out=arr.slice(0,limit).map((x,i)=>({
             id:String(x?.eventID||x?.eventId||x?.id||`AFAD-${i}-${x?.date_time||x?.datetime||''}`),
             place:x?.location||x?.title||x?.region||'Turquia', mag:Number(x?.magnitude||x?.mag||x?.ML||x?.m),
             lat:Number(x?.latitude??x?.lat),lon:Number(x?.longitude??x?.lon),depth:Number(x?.depth??x?.depth_km??x?.depthKm),
-            time:x?.date_time||x?.datetime||x?.date||x?.time||null
+            time:official&&typeof x?.date==='string'&&!/(?:Z|[+-]\d\d:\d\d)$/.test(x.date)?x.date+'+03:00':x?.date_time||x?.datetime||x?.date||x?.time||null
         })).filter(x=>[x.mag,x.lat,x.lon].every(Number.isFinite));
         return json({ok:true,source:'AFAD',updatedAt:nowIso(),events:out});
     } catch(e){ return json({ok:false,source:'AFAD',error:e.message,updatedAt:nowIso(),events:[]},502); }
@@ -153,7 +162,7 @@ async function handleFunvisisEarthquakes(reqUrl) {
 async function handleSeismicStatus() {
     const checks = [
         ['USGS', 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=1&orderby=time'],
-        ['AFAD', 'https://api.orhanaydogdu.com.tr/deprem/afad/live'],
+        ['AFAD', afadOfficialUrl(1)],
         ['INGV', 'https://webservices.ingv.it/fdsnws/event/1/query?format=geojson&limit=1&orderby=time'],
         ['JMA', 'https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml'],
         ['GEOFON', 'https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=1&orderby=time'],

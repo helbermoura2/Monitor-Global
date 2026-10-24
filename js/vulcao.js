@@ -145,13 +145,13 @@ function workerBaseUrl(){
     return 'https://black-sky-9ba0.terrestre.workers.dev';
 }
 async function fetchUSGSVolcanoProfessional(){
+    if(window.SourceHealth?.isOpen('USGS-Volcano')){SourceHealth.recordSuppressed('USGS-Volcano');return {all:[],elevated:[]};}
     const t=performance.now();
     try{
         // 1) Endpoint agregado do Worker
         try{
             const base=workerBaseUrl();
             const urls=[
-              base+'/usgs-volcano?t='+Date.now(),
               base+'/usgs-volcano'
             ];
             let pack=null;
@@ -431,13 +431,14 @@ function enriquecerVulcaoComUSGS(obj,reports){
     return obj;
 }
 async function fetchGlobalVolcanoAdvisories(){
+    if(window.SourceHealth?.isOpen('VAAC-Global')){SourceHealth.recordSuppressed('VAAC-Global');return [];}
     // Rota do Worker /global-volcano: VAAC Darwin + VAAC Tokyo (cinzas vulcânicas).
     // Cobre vulcões fora do escopo do USGS (só EUA) e que o GDACS às vezes não lista
     // (ex.: Sakurajima, muito ativo mas "rotina" pro critério de risco do GDACS).
     const t=performance.now();
     try{
         const base=workerBaseUrl();
-        const urls=[base+'/global-volcano?t='+Date.now(), base+'/global-volcano'];
+        const urls=[base+'/global-volcano'];
         for(const u of urls){
             try{
                 const r=await (window.SharedSourceDelivery?.fetch||fetch)(u,{cache:'no-store',mode:'cors'});

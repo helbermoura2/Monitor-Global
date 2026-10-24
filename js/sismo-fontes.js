@@ -690,11 +690,26 @@ function sismoReconcileReports(reports,previous){
 function mergeEarthquakeReports(reports, previous=[]) {
     reports=sismoReconcileReports(reports,previous);
     const groups = [];
+    // Matching already requires a bounded origin-time window. Index that exact
+    // condition before doing trigonometry; distant hours can never be a match.
+    const timeBuckets=new Map(),bucketFor=time=>Math.floor(time/SISMO_DEDUPE_TOL_MS);
+    function indexGroup(index,oldBucket){
+        const bucket=bucketFor(groups[index].time);
+        if(oldBucket===bucket)return;
+        if(oldBucket!==undefined){const old=timeBuckets.get(oldBucket);old?.delete(index);if(!old?.size)timeBuckets.delete(oldBucket);}
+        if(!timeBuckets.has(bucket))timeBuckets.set(bucket,new Set());timeBuckets.get(bucket).add(index);
+    }
     const ordered = [...reports].sort((a,b) => b.time - a.time || sismoSourceRank(b.source) - sismoSourceRank(a.source));
     for (const ev of ordered) {
         let hit = -1;
         let bestScore = Infinity;
-        for (let i=0;i<groups.length;i++) {
+        const nearby=[];
+        if(Number.isFinite(ev.time)){
+            for(let b=bucketFor(ev.time-SISMO_DEDUPE_TOL_MS);b<=bucketFor(ev.time+SISMO_DEDUPE_TOL_MS);b++)for(const i of timeBuckets.get(b)||[])nearby.push(i);
+        }else for(let i=0;i<groups.length;i++)nearby.push(i);
+        // Preserve the original group's insertion-order tie break exactly.
+        nearby.sort((a,b)=>a-b);
+        for (const i of nearby) {
             const g = groups[i];
             const d = haversine(ev.coords[1], ev.coords[0], g.coords[1], g.coords[0]);
             const dt = Math.abs(ev.time - g.time);
@@ -715,9 +730,11 @@ function mergeEarthquakeReports(reports, previous=[]) {
                 magnitudeMin:ev.mag, magnitudeMax:ev.mag,
                 magnitudeSpread:0
             });
+            indexGroup(groups.length-1);
             continue;
         }
         const g=groups[hit];
+        const oldBucket=bucketFor(g.time);
         g.reports.push(ev);
         if(!g.sources.includes(ev.source)) g.sources.push(ev.source);
         // Uma agência nunca deve aparecer 2x na lista de magnitudes de UM
@@ -747,6 +764,7 @@ function mergeEarthquakeReports(reports, previous=[]) {
         }
         if (!ev.isPreliminary) g.isPreliminary = false;
         g.time=Math.min(g.time,ev.time);
+        indexGroup(hit,oldBucket);
         // Mantém a posição mais recente/precisa do relatório de maior prioridade.
         g.divergentMagnitude = g.magnitudeSpread >= SISMO_MAG_DIVERGENCIA_TOL;
         g.strongMagnitudeDivergence = g.magnitudeSpread >= SISMO_MAG_DIVERGENCIA_FORTE;
