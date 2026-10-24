@@ -26,6 +26,6 @@ test('locality reserve is visibly preliminary, rounded and partial, without fict
 test('hollow contour legends describe actual levels and fit inside the map',()=>{
  const labels=[],p={roundRect(){},rect(){},dot(){},measure:(s,z)=>s.length*z*.55,text:(s,x,y,size)=>labels.push({s,x,y,size})};
  layout.drawContourLabels(p,[{level:7,roman:'VII',description:'Muito forte',color:'#ffc800',x:450,y:420},{level:8,roman:'VIII',description:'Severa',color:'#ff7800',x:430,y:440}]);
- assert.deepEqual(labels.map(l=>l.s),['VII · Muito forte','VIII · Severa']);assert(labels.every(l=>l.x+p.measure(l.s,l.size)<=800&&l.y+l.size<700));
+ assert.deepEqual(labels.map(l=>l.s),['Intensidade nesta faixa','MMI VIII · Severa','Intensidade nesta faixa','MMI VII · Muito forte']);assert(labels.every(l=>l.x+p.measure(l.s,l.size)<=800&&l.y+l.size<700));
  labels.length=0;layout.drawContourLabels(p,[]);assert.equal(labels.length,0);
 });

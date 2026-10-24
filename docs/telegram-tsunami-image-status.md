@@ -1,0 +1,32 @@
+# Imagem sísmica: intensidade local e situação de tsunami
+
+Layout `hollow-v14-tsunami`, compartilhado entre Telegram (1080 × 1920) e exportação pelo site. Não altera a câmera, os cálculos, as cores científicas ou as geometrias dos contornos.
+
+## Intensidade
+
+O rótulo tem “Intensidade nesta faixa” e “MMI IV · Leve”, por exemplo. O quadro inferior diz “MMI NO EPICENTRO”, com descrição e origem (USGS ou estimativa). Magnitude e intensidade local são grandezas diferentes: um M6,9 pode apresentar faixa IV em terra e intensidade mais alta no epicentro marítimo. Não se inventa faixa vermelha apenas pela magnitude. Pontos de ligação agora são convertidos da resolução física do PNG para a coordenada lógica do layout; isso evita apontar para o local errado.
+
+## Boletim oficial
+
+Um bloco próprio mostra aviso, vigilância, atenção, encerramento, ausência de ameaça explicitamente informada, boletim informativo ou situação não confirmada. Traz fonte, data/hora de emissão em Brasília e regiões citadas quando fornecidas. Os textos longos são limitados à largura da imagem. A imagem orienta consultar os boletins oficiais e as autoridades locais; não é uma ordem de evacuação.
+
+A relação exige origem temporal e geográfica compatível pelas regras existentes de `TsunamiLink`, e não apenas proximidade de uma região costeira ou magnitude alta. Identificador oficial do evento permite reconhecer um encerramento posterior que omita coordenadas. Produtos distintos e autoridades diferentes podem continuar com avisos próprios: um encerramento não apaga o aviso ainda ativo em outro produto.
+
+Boletim informativo, ausência de boletim, falha de consulta e ameaça encerrada são estados diferentes. Uma falha mantém a última informação identificada como tal, com “Atualização indisponível”; não gera um “sem ameaça” artificial. Texto sobre ausência de ameaça em outras regiões não anula um produto ainda classificado como aviso.
+
+## Atualizações no Telegram
+
+O estado entra na versão da imagem e aciona edição da mesma mensagem, com o mesmo ID. O original Full HD é substituído sob o mesmo link (resposta `no-store`). Não se envia uma nova notícia sísmica apenas por mudança no boletim.
+
+Reutiliza o coletor oficial existente e sua memória cacheada. Não cria cron nem Durable Object adicionais. A fila já existente verifica até três imagens por rodada: primeiro intervalo de um minuto para M5,5+ na primeira hora, depois cinco minutos, sujeito à execução do cron, fila, rede e Telegram. Imagens recentes são acompanhadas por 24 horas; avisos ativos de tsunami mantêm elegibilidade até 72 horas após o sismo.
+
+Se a grade oficial estiver indisponível, o bloco de tsunami pode ser atualizado diretamente nos pixels do original arquivado, preservando mapa e estatísticas. Não persiste a grade grande no histórico. Se o original também estiver indisponível, a edição fica pendente. O arquivo de originais tem limites próprios de retenção/capacidade.
+
+Downloads, capturas e cópias encaminhadas já salvas não são alterados retroativamente. Uma nova exportação pelo site usa os boletins carregados naquela sessão; resultados antigos são identificados como desatualizados. Nenhum mecanismo garante atualização instantânea ou substitui as autoridades locais.
+
+## Validação isolada
+
+- Testes de associação, produto mais recente, encerramento, ausência de ameaça explícita, fonte indisponível, permanência de outro aviso e estabilidade da versão.
+- Fluxo real do Worker com Telegram simulado verifica edição do mesmo ID, ausência de duplicatas e atualização durante falha do ShakeMap.
+- Comparação dos pixels comprova que a atualização isolada do bloco não modifica mapa ou estatísticas.
+- Layout e exportação no navegador com rede externa bloqueada; referências visuais aprovadas do renderer atualizadas para a mudança intencional.
