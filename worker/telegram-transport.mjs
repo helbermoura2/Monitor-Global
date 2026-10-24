@@ -69,7 +69,7 @@ async function telegramEditAlert(env, ev, record) {
         const revisions=record.revisions||[],previous= revisions.length>1?revisions[revisions.length-2].mag:record.initialMag;
         const revisionText=revisions.length?'M'+globalThis.EventPortuguese.number(previous,1)+' → M'+globalThis.EventPortuguese.number(ev.mag,1):'';
         ev.originalImageKey=record.originalImageKey||record.currentEvent?.originalImageKey;
-        const png = ev.tsunamiOnly?await patchAlertTsunami(await env.READ_TELEGRAM_IMAGE(ev.originalImageKey),ev.imageTsunami,record.cardImageVersion):await renderAlertCardPng({...ev,revisionText});
+        const png = ev.tsunamiOnly?await patchAlertTsunami(await env.READ_TELEGRAM_IMAGE(ev.originalImageKey),ev.imageTsunami,record.cardImageVersion||'legacy'):await renderAlertCardPng({...ev,revisionText});
         body = new FormData();
         body.append('chat_id', String(record.chatId));
         body.append('message_id', String(record.messageId));
