@@ -1,12 +1,12 @@
-# Monitor Global TV — prévia 0.1
+# Monitor Global TV — prévia 0.1.1
 
 Aplicativo de notificações de **sismos M6+ e boletins oficiais de tsunami**, para validar na TCL P7K (Google TV) e no Fire TV Stick 4K Max. Não é uma versão homologada nesses aparelhos. Não reproduz o site, não usa Telegram nem Firebase/Google Play Services e não contém tokens.
 
 ## Instalar e testar
 
-O APK de teste está em [downloads/monitor-global-tv-0.1.0-preview.apk](../downloads/monitor-global-tv-0.1.0-preview.apk). Depois da publicação, o endereço é:
+O APK de teste está em [downloads/monitor-global-tv-0.1.1-preview.apk](../downloads/monitor-global-tv-0.1.1-preview.apk). Depois da publicação, o endereço é:
 
-`https://monitorglobal.top/downloads/monitor-global-tv-0.1.0-preview.apk`
+`https://monitorglobal.top/downloads/monitor-global-tv-0.1.1-preview.apk`
 
 1. Baixe e instale **no aparelho de TV**. No Fire TV, um instalador como Downloader pode abrir o endereço; autorize a instalação para o instalador usado nas configurações do aparelho.
 2. Abra **Monitor Global TV · Prévia** e selecione **Permitir exibição sobre outros aplicativos**. O aplicativo informa se a permissão foi concedida. Algumas versões do Fire OS não oferecem essa tela ou não autorizam a sobreposição; isso precisa ser conferido no aparelho.
@@ -19,7 +19,7 @@ Se for necessário instalar por ADB, faça isso a partir de um computador na mes
 
 ```
 adb connect IP_DO_FIRE_STICK:5555
-adb install monitor-global-tv-0.1.0-preview.apk
+adb install monitor-global-tv-0.1.1-preview.apk
 ```
 
 Se o Fire OS não oferecer a permissão na interface, a concessão pelo proprietário via ADB pode ser testada:
@@ -61,3 +61,5 @@ java -cp /tmp/tv-tests top.monitorglobal.tv.AlertTrackerCheck
 ```
 
 A ação **Android TV preview** compila, roda essas verificações e publica um artefato de teste, sem instalar em aparelhos. O APK com nome de versão em `downloads/` é o pacote entregue nesta prévia, não uma atualização automática a cada compilação da ação.
+
+A prévia 0.1.1 aguarda até 45 segundos pela resposta do feed na conexão inicial, cobrindo o fallback das fontes oficiais. Os 30 segundos entre consultas são contados após concluir a anterior; não há consultas paralelas sobrepostas.
