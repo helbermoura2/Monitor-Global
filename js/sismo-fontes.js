@@ -796,86 +796,23 @@ function sismoPreserveMatchedReports(event,previous){
 
 /* ═══════════════ AFAD (Turquia) — sismos locais incl. baixos ═══════════════ */
 async function fetchAfadQuakes() {
-    const minMag = (typeof minMagnitude === 'number' ? minMagnitude : 0);
-    let list = [];
-    // 1) API comunitária estável (HTTPS + CORS)
-    // BUG PROVÁVEL CORRIGIDO: essa fonte usava fetch() cru, sem o
-    // fetchWithCorsFallback (proxy Cloudflare) que todas as outras fontes usam.
-    // Se o CORS dela falhar por qualquer instabilidade momentânea (comum em APIs
-    // comunitárias pequenas), a fonte inteira morria silenciosamente naquele
-    // ciclo, sem nenhuma tentativa de contorno — diferente de USGS/EMSC/etc.
-    try {
-        const r = await fetchWithCorsFallback('https://api.orhanaydogdu.com.tr/deprem/afad/live?limit=100', 12000);
-        if (r.ok) {
-            const d = await r.json();
-            const arr = d.result || d.data || [];
-            arr.forEach(el => {
-                const mag = Number(el.mag ?? el.magnitude ?? el.size?.ml ?? el.size?.mw ?? 0);
-                const lat = Number(el.lat ?? el.latitude);
-                const lng = Number(el.lng ?? el.longitude ?? el.lon);
-                const depth = parseFloat(el.depth ?? el.depth_km ?? NaN);
-                const t = el.date_time || el.date || el.occurred_at;
-                const time = t ? new Date(String(t).replace(' ', 'T') + (String(t).includes('Z') || String(t).includes('+') ? '' : '+03:00')).getTime() : Date.now();
-                const place = el.title || el.location || el.region || el.city || 'Turquia';
-                if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(mag)) return;
-                if (mag < minMag) return;
-                list.push({
-                    id: 'afad-' + (el.earthquake_id || el.id || (time + '-' + lat + '-' + lng)),
-                    type: 'earthquake',
-                    place: String(place),
-                    mag,
-                    time: Number.isFinite(time) ? time : Date.now(),
-                    coords: [lng, lat],
-                    depth: Number.isFinite(depth) ? depth : 10, depthReported: Number.isFinite(depth)?depth:null,
-                    source: 'AFAD',
-                    quality: mag < 3 ? 'C' : 'B',
-                    bandeira: '🇹🇷',
-                    pais: 'Turquia'
-                });
-            });
-        }
-    } catch (e) {
-        console.warn('AFAD mirror:', e && e.message);
-    }
-    // 2) Fallback vercel
-    if (!list.length) {
-        try {
-            const r = await fetchWithCorsFallback('https://deprem-api.vercel.app/?type=afad&size=1.5', 12000);
-            if (r.ok) {
-                const d = await r.json();
-                const arr = d.earthquakes || d.result || [];
-                arr.forEach(el => {
-                    const mag = Number(el.size?.mw || el.size?.ml || el.mag || el.magnitude || 0);
-                    const lat = Number(el.latitude ?? el.lat);
-                    const lng = Number(el.longitude ?? el.lng);
-                    const depth = parseFloat(el.depth ?? NaN);
-                    const time = el.timestamp ? (el.timestamp < 1e12 ? el.timestamp * 1000 : el.timestamp) : Date.parse(el.date);
-                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-                    if (mag < minMag) return;
-                    list.push({
-                        id: 'afad-' + (el.id || time + '-' + lat),
-                        type: 'earthquake',
-                        place: el.location || el.place || 'Turquia',
-                        mag,
-                        time: Number.isFinite(time) ? time : Date.now(),
-                        coords: [lng, lat],
-                        depth:Number.isFinite(depth)?depth:10,depthReported:Number.isFinite(depth)?depth:null,
-                        source: 'AFAD',
-                        quality: mag < 3 ? 'C' : 'B',
-                        bandeira: '🇹🇷',
-                        pais: 'Turquia'
-                    });
-                });
-            }
-        } catch (e) {
-            console.warn('AFAD vercel:', e && e.message);
-        }
-    }
-
-    if (!list.length) {
-        try { if (typeof setSource === 'function') setSource('AFAD', 'off', 0, 'sem dados'); } catch (e) {}
-        return;
-    }
+    if(window.SourceHealth?.isOpen('AFAD')){SourceHealth.recordSuppressed('AFAD');return;}
+    const minMag=typeof minMagnitude==='number'?minMagnitude:0,started=performance.now();let list=[];
+    try{
+      const base=typeof WORKER_BASE==='string'?WORKER_BASE:WORKER_PROXY('').split('?')[0].replace(/\/$/,'');
+      const r=await (window.SharedSourceDelivery?.fetch||fetch)(base+'/afad-earthquakes?limit=200');
+      if(!r.ok)throw Error('AFAD temporariamente indisponível');const data=await r.json();
+      if(data.ok!==true||!Array.isArray(data.events))throw Error('Catálogo AFAD inválido');
+      for(const el of data.events){
+       if(el.lat==null||el.lon==null||el.mag==null)continue;
+       const lat=Number(el.lat),lng=Number(el.lon),mag=Number(el.mag),depth=el.depth==null?NaN:Number(el.depth);
+       const date=String(el.time||'').trim().replace(/^(\d{4})\.(\d{2})\.(\d{2})/,'$1-$2-$3').replace(' ','T');
+       const time=typeof el.time==='number'?el.time<1e12?el.time*1000:el.time:Date.parse(date+(/[zZ]$|[+-]\d{2}:?\d{2}$/.test(date)?'':'+03:00'));
+       if(![lat,lng,mag,time].every(Number.isFinite)||Math.abs(lat)>90||Math.abs(lng)>180||mag<minMag||mag>10||time<Date.now()-36*3600000||time>Date.now()+300000)continue;
+       list.push({id:'afad-'+el.id,type:'earthquake',place:String(el.place||'Turquia'),mag,time,coords:[lng,lat],depth:Number.isFinite(depth)?depth:10,depthReported:Number.isFinite(depth)?depth:null,source:'AFAD',quality:mag<3?'C':'B',bandeira:'🇹🇷',pais:'Turquia'});
+      }
+      if(!list.length){setSource('AFAD','ok',performance.now()-started);return;}
+    }catch(error){try{setSource('AFAD','off',performance.now()-started,error?.message);}catch{}return;}
 
     // Mescla em globalEvents (dedupe por tempo+coords). Índice espacial em
     // vez de globalEvents.some()/.find() completo por item (ver comentário
@@ -886,7 +823,7 @@ async function fetchAfadQuakes() {
     list = list.filter(e => e.time >= cut);
     const initialCatalog = beginSupplementalCatalog('AFAD', list);
     const indiceAfad = construirIndiceEspacial(globalEvents, 0.15);
-    let novos = 0;
+    let novos = 0,added=0,qualityChanged=false;
     const newSupplemental = [];
     list.forEach(ev => {
         const canonical = `EQ-${Math.round(ev.time / 1000)}-${ev.coords[1].toFixed(3)}-${ev.coords[0].toFixed(3)}`;
@@ -895,25 +832,27 @@ async function fetchAfadQuakes() {
         const hit = indiceAfad.encontrar(ev.coords, combina);
         if (hit) {
             // marca fonte AFAD se já existe de outra rede
-            if (hit.source !== 'AFAD') hit.quality = hit.quality === 'A' ? 'A' : 'B';
+            if (hit.source !== 'AFAD'){const quality=hit.quality==='A'?'A':'B';qualityChanged ||= quality!==hit.quality;hit.quality=quality;}
             return;
         }
         const isNew = isNewSupplementalEvent(ev, canonical, initialCatalog);
         knownEventIds.add(canonical);
         ev.id = canonical;
         window.CountryBoundaries?.apply(ev);
-        globalEvents.push(ev);
+        globalEvents.push(ev);added++;
         indiceAfad.inserir(ev);
         if (isNew) {
             novos++;
             newSupplemental.push(ev);
         }
     });
-    globalEvents.sort((a, b) => b.time - a.time);
+    if(added)globalEvents.sort((a,b)=>b.time-a.time);
     anunciarSismosSuplementares(newSupplemental);
     try { if (typeof setSource === 'function') setSource('AFAD', 'ok', 0); } catch (e) {}
-    try { if (typeof applyFilters === 'function') applyFilters(); } catch (e) {}
-    try { if (typeof updateKPIs === 'function') updateKPIs(); } catch (e) {}
+    if(added||qualityChanged){
+     try { if (typeof applyFilters === 'function') applyFilters(); } catch (e) {}
+     try { if (typeof updateKPIs === 'function') updateKPIs(); } catch (e) {}
+    }
     if (novos > 0) {
         console.log('[AFAD] novos sismos:', novos);
     }

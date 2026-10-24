@@ -10,6 +10,7 @@ module.exports = defineConfig({
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
     channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL || undefined,
+    launchOptions: process.env.CHROMIUM_PATH ? {executablePath:process.env.CHROMIUM_PATH} : undefined,
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
     proxy: { server: 'http://127.0.0.1:4174', bypass: '127.0.0.1,localhost,[::1]' },

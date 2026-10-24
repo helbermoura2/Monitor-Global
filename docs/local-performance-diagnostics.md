@@ -23,3 +23,9 @@ As amostras incluem contagens de fontes/camadas/imagens do mapa, marcadores e an
 Coletor 6 (22/10/2026): mede separadamente `/weatherapi`, `/redemet-metar`, `/v70-impact` e proxies de OVSICORI/SSN/USP/GEOFON. Atualiza as flags após o carregamento dos módulos, inclusive ao exportar uma sessão retomada cedo. Amostras acrescentam heap usado/total/limite, contagens de geometrias/vértices, grades de intensidade, produtos de eventos e tiles ativos/cacheados do MapLibre 5 (`style.tileManagers`). São contagens por componente; não são uma medição de bytes retidos. Saúde das fontes inclui consultas suprimidas e prazo restante. Tarefas longas têm faixas de duração. Não há consultas de diagnóstico ao servidor.
 
 Para comparar com os relatórios antigos, recarregar a página e iniciar **nova medição na versão 6**. O ensaio local de 120 seleções com dados/provedores simulados não reproduziu crescimento de centenas de MiB após coleta de lixo; isso não valida uso real prolongado nem descarta retenção de tiles/mídia/geometrias. Não se adicionou recarregamento automático para mascarar o crescimento.
+
+## Coletor 7 — correções de 24/10/2026
+
+As amostras novas identificam `long-session-v7` e incluem contadores de URLs/sessões de áudio, nós sonoros transitórios, tamanho estimado do cache de produtos oficiais e pinturas da lista de fontes. A rota de voz `/tts` e os provedores AFAD ficam separados nos contadores de rede, sem guardar textos da fala ou URLs.
+
+Para validar as correções, inicie uma medição nova depois de recarregar. Um relatório retomado pode conter amostras e erros da versão anterior; o número do coletor no cabeçalho não reescreve as medições passadas. A [análise dos dois relatórios de 23–24/10](diagnosticos-dex-celular-20261024.md) registra as falhas corrigidas, os ensaios e os limites da conclusão sobre memória.

@@ -30,7 +30,8 @@
  function rememberCooldown(key,r){const now=Date.now(),next=Number(r.headers.get('X-Monitor-Source-Next-Retry')),retry=r.headers.get('Retry-After');let until=0;
   if(r.headers.get('X-Monitor-Source-State')==='unavailable'&&next>now)until=next;
   else if([429,503].includes(r.status)&&retry){const seconds=Number(retry);until=Number.isFinite(seconds)?now+seconds*1000:Date.parse(retry);}
-  if(!(until>now)&&r.status>=500)until=now+60000;
+  if(!(until>now)&&(r.status>=500||[400,403,406].includes(r.status)))until=now+60000;
+  if(key==='overpass-unavailable'&&(r.status>=500||[400,403,406,429].includes(r.status)))until=Math.max(until,now+300000);
   if(!(until>now))return;until=Math.min(until,now+30*60000);for(const [k,row]of cooldowns)if(row.until<=now)cooldowns.delete(k);cooldowns.delete(key);const headers={};for(const name of ['X-Monitor-Source','X-Monitor-Source-Last-Ok','X-Monitor-Source-Attempt']){const value=r.headers.get(name);if(value)headers[name]=value.slice(0,256);}cooldowns.set(key,{status:r.status>=400?r.status:503,until,headers});while(cooldowns.size>64)cooldowns.delete(cooldowns.keys().next().value);
  }
  function stop(job){if(jobs.get(job.key)===job)jobs.delete(job.key);for(const cancel of [...job.consumers])cancel();job.controller.abort();}

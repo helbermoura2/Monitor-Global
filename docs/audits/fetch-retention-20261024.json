@@ -1,0 +1,60 @@
+[
+  {
+    "wrapped": false,
+    "samples": [
+      {
+        "requests": 0,
+        "heapMiB": 0.5845108032226562
+      },
+      {
+        "requests": 1000,
+        "heapMiB": 0.6771240234375
+      },
+      {
+        "requests": 2000,
+        "heapMiB": 0.6771469116210938
+      },
+      {
+        "requests": 3000,
+        "heapMiB": 0.6771469116210938
+      },
+      {
+        "requests": 4000,
+        "heapMiB": 0.6771469116210938
+      },
+      {
+        "requests": 5000,
+        "heapMiB": 0.6771812438964844
+      }
+    ]
+  },
+  {
+    "wrapped": true,
+    "samples": [
+      {
+        "requests": 0,
+        "heapMiB": 1.1778373718261719
+      },
+      {
+        "requests": 1000,
+        "heapMiB": 1.2417373657226562
+      },
+      {
+        "requests": 2000,
+        "heapMiB": 1.24176025390625
+      },
+      {
+        "requests": 3000,
+        "heapMiB": 1.2492942810058594
+      },
+      {
+        "requests": 4000,
+        "heapMiB": 1.2492942810058594
+      },
+      {
+        "requests": 5000,
+        "heapMiB": 1.2495384216308594
+      }
+    ]
+  }
+]
