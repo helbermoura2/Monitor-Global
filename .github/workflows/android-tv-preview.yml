@@ -31,9 +31,11 @@ jobs:
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.TrustPolicyCheck
           javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/DemoAlertsCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.DemoAlertsCheck
+          javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/AlertPairing.java android-tv/app/src/main/java/top/monitorglobal/tv/BannerTimeline.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/BannerTimelineCheck.java
+          java -cp /tmp/tv-java-tests top.monitorglobal.tv.BannerTimelineCheck
       - name: Build and inspect APK
         working-directory: android-tv
-        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testReleaseUnitTest
       - name: Verify distribution guards
         run: python -m unittest discover -s android-tv/tests/python
       - name: Verify published signature and migration artifacts

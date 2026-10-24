@@ -6,8 +6,8 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  versionCode 10002
-  versionName '1.0.2'
+  versionCode 10003
+  versionName '1.0.3'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
@@ -19,4 +19,9 @@ android {
   release { minifyEnabled false; debuggable false; resValue 'string', 'app_name', 'Monitor Global TV' }
  }
  lint { abortOnError true }
+}
+// JVM-only codec tests; the shipped APK gains no runtime dependencies.
+dependencies {
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.json:json:20240303'
 }

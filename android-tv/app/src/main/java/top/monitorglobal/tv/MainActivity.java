@@ -6,6 +6,7 @@ public final class MainActivity extends Activity {
   label("MONITOR GLOBAL TV",28,true);label("Versão "+BuildConfig.VERSION_NAME+" · notificações de sismos M6+ e tsunami",18,false);status=label("Conferindo configuração…",16,false);
   button("1 · Permitir exibição sobre outros aplicativos",v->{try{startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName())));}catch(ActivityNotFoundException e){try{startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}catch(ActivityNotFoundException ignored){Prefs.status(this,"Abra as permissões nas configurações do aparelho.");}}});
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  button("Replay · Rever último alerta real em 10 segundos",v->launch(MonitorService.REPLAY));
   button("3 · Testar sismo com indicação de tsunami (fictício)",v->launch(MonitorService.TEST));
   button("4 · Testar revisão M7,2 → M6,9 (fictícia)",v->launch(MonitorService.TEST_REVISION));
   button("5 · Testar aviso de tsunami (fictício)",v->launch(MonitorService.TEST_TSUNAMI));
@@ -15,6 +16,7 @@ public final class MainActivity extends Activity {
   Switch sound=new Switch(this);sound.setText("Som dos avisos · usa o volume de notificações do aparelho");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->Prefs.get(this).edit().putBoolean("sound",checked).apply());content.addView(sound);
   button("Duração: "+Prefs.get(this).getInt("seconds",20)+" segundos",v->{int current=Prefs.get(this).getInt("seconds",20),next=current==15?20:current==20?30:15;Prefs.get(this).edit().putInt("seconds",next).apply();((Button)v).setText("Duração: "+next+" segundos");});
   label("Depois de ativar, volte ao conteúdo que deseja assistir. A faixa não captura os botões do controle e fecha automaticamente.",16,false);
+  label("Sismo com tsunami: alterna a cada 8 segundos por pelo menos 32 segundos. Replay guarda somente o último alerta real recebido neste aparelho.",15,false);
   label("Primeira conexão: os eventos existentes viram referência, sem disparar avisos antigos. Consultas a cada 30 segundos. O aparelho precisa continuar ligado e com acesso à internet.",15,false);
   label("A exibição sobre outros aplicativos e a permanência em segundo plano ainda precisam ser testadas nesta TV/Fire Stick. O teste demonstrativo não confirma a chegada de um alerta real.",15,false);
   label("Setas: navegar · OK: selecionar · Voltar: sair da configuração",14,false);
