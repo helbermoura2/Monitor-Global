@@ -1,0 +1,64 @@
+{
+  "method": "Offline catalogue replay; Node heap after explicit GC. Not a phone/GPU or wall-clock browser benchmark.",
+  "sourceSha256": "6b0cbb554296587cb22e8296525630366e434478effac030eaf62168b3ccd5f1",
+  "events": 200,
+  "rounds": 960,
+  "equivalentFeedHours": 12,
+  "elapsedMs": 4135,
+  "samples": [
+    {
+      "round": 0,
+      "heapBytes": 4732264,
+      "reports": 0,
+      "maxReportsPerEvent": 0
+    },
+    {
+      "round": 120,
+      "heapBytes": 5042480,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 240,
+      "heapBytes": 5056192,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 360,
+      "heapBytes": 5058064,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 480,
+      "heapBytes": 5058376,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 600,
+      "heapBytes": 5058640,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 720,
+      "heapBytes": 5058784,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 840,
+      "heapBytes": 5058856,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    },
+    {
+      "round": 960,
+      "heapBytes": 5058928,
+      "reports": 200,
+      "maxReportsPerEvent": 1
+    }
+  ]
+}

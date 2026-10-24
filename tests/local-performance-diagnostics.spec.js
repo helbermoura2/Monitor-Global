@@ -82,3 +82,12 @@ test('overnight diagnostics retain bounded source transitions and interval total
  r=await page.evaluate(()=>PerformanceDiagnostics.snapshot());expect(r.sourceDetails.USGS.cooling).toBe(true);expect(r.sourceTransitions.at(-1).source).toBe('USGS');expect(r.samples.at(-1).windowTotals.visibleMs).toBeGreaterThanOrEqual(0);expect(JSON.stringify(r)).not.toContain('PRIVATE_');
  await page.evaluate(()=>PerformanceDiagnostics.stop());
 });
+
+test('memory samples include catalogue report ownership without exporting event data',async({page})=>{
+ await page.route('**/catalog-memory-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));
+ await page.goto('/catalog-memory-harness.html');
+ await page.evaluate(()=>{window.SismoReportMemory={stats:()=>({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}})};PerformanceDiagnostics.start();PerformanceDiagnostics.stop();});
+ const report=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
+ expect(report.samples[0].runtimeVersion).toBe('catalog-memory-v8');
+ expect(report.samples[0].memoryOwners.quakeReports).toEqual({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}});
+});
