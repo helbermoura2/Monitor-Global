@@ -1,3 +1,4 @@
+import {queryImageTsunami,imageTsunamiVersion} from "./image-tsunami-status.mjs";
 import {telegramSolutionMayReplace, telegramSolutionPriority, TELEGRAM_SOLUTION_POLICY} from "./worker/seismic-solution-policy.mjs";
 import {SourceWritebackCache} from "./source-writeback-cache.mjs";
 // Worker entrypoint: routes, coordination and existing Durable Object classes.
@@ -24,13 +25,13 @@ import {handleWeatherObservations} from "./weather-observations-worker.mjs";
 import {clampFdsnParams} from "./worker/fdsn-policy.mjs";
 import {DAILY_SUMMARY_DESIGN} from "./daily-summary-renderer.mjs";
 import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, handleFunvisisEarthquakes, handleSeismicStatus} from "./worker/seismic-providers.mjs";
-import {renderAlertImage, renderDailySummaryImage} from "./worker/image-rendering.mjs";
+import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
 
 // Delivery ports keep orchestration independent of rendering and Telegram transport.
 async function renderAlertCardPng(ev) { return renderAlertImage(ev); }
 async function renderDailySummaryPng(quakes = null) { return renderDailySummaryImage(quakes||await fetchDailyQuakesBrt()); }
-const {telegramSendPhoto, telegramSendMessage, telegramEditAlert, telegramDailyRequest}=createTelegramTransport({renderAlertCardPng,queryImageExposure:(ev, env)=>queryImageExposure(ev, env),telegramCaption,enrichBrazilEpicenter,originalImageButton});
+const {telegramSendPhoto, telegramSendMessage, telegramEditAlert, telegramDailyRequest}=createTelegramTransport({renderAlertCardPng,patchAlertTsunami,queryImageTsunami:ev=>queryImageTsunami(ev),queryImageExposure:(ev, env)=>queryImageExposure(ev, env),telegramCaption,enrichBrazilEpicenter,originalImageButton});
 
 // =========================================================
 // MONITOR GLOBAL — Cloudflare Worker
@@ -1022,7 +1023,8 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'hollow-v13-context';
+    next.cardImageVersion = 'hollow-v14-tsunami';
+    next.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
     next.imageShakingVersion = shakingVersion(ev.shaking);
@@ -1197,7 +1199,7 @@ export class EarthquakeAlertDelivery {
             }
             const storage = this.state.storage;
             const kv = telegramHistoryStorage(storage,measuredEnv.TTS_USAGE);
-            const env = {...measuredEnv, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
+            const env = {...measuredEnv, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, READ_TELEGRAM_IMAGE:async key=>{const r=await serveTelegramOriginal(new Request('https://internal/telegram-image/'+key),storage);if(!r.ok)throw Error('Original indisponível');return new Uint8Array(await r.arrayBuffer());}, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
                     if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
                         let value;
@@ -1408,7 +1410,8 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'hollow-v13-context';
+            reservation.cardImageVersion = 'hollow-v14-tsunami';
+            reservation.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
             reservation.currentEvent = ev;
@@ -1446,10 +1449,20 @@ async function runTelegramM6Alerts(request, env) {
     for (const root of dueForRefresh) {
         root.imageExposureCheckedAt = Date.now();
         const ev = {...(root.currentEvent || root)};
+        ev.imageTsunami=await queryImageTsunami(ev);
+        const nextTsunamiVersion=imageTsunamiVersion(ev.imageTsunami);
         const shaking=await queryImageShaking(ev);root.imageShakingCheckedAt=Date.now();
         const previousShakingVersion=root.imageShakingVersion||'unavailable';
         // Do not replace a published grid with a radial model during a provider outage.
-        if(!validImageShaking(shaking)&&previousShakingVersion!=='unavailable')continue;
+        if(!validImageShaking(shaking)&&previousShakingVersion!=='unavailable'&&!validImageShaking(ev.shaking)){
+            // Update only the bulletin block on the archived PNG; never invent a new
+            // radial map when the already-published official grid cannot be read.
+            if(nextTsunamiVersion!==root.imageTsunamiVersion&&env.READ_TELEGRAM_IMAGE&&root.originalImageKey){
+                try{await telegramEditAlert(env,{...ev,tsunamiOnly:true},root);root.currentEvent={...(root.currentEvent||root),imageTsunami:ev.imageTsunami};root.imageTsunamiVersion=nextTsunamiVersion;}
+                catch{console.error('Tsunami Telegram: atualização do original pendente');}
+            }
+            continue;
+        }
         if(validImageShaking(shaking))ev.shaking=shaking;
         const nextShakingVersion=shakingVersion(ev.shaking);
         let data = await queryImageExposure(ev, env);
@@ -1459,9 +1472,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else continue;
         }
-        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || root.cardImageVersion !== 'hollow-v13-context') {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== 'hollow-v14-tsunami') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'hollow-v13-context'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'hollow-v14-tsunami'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
     }
@@ -1948,6 +1961,7 @@ async function handleWorkerRequest(request,env){
                 workerModules: 'maintenance-modules-v1',
                 telegramStorage: 'durable-history-v1',
                 telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
+                telegramImageStatus: 'hollow-v14-tsunami',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
                 kvUsageMetrics: Boolean(env.KV_METRICS_READ_TOKEN),
                 durableRequestBudget: "durable-request-budget-v1",

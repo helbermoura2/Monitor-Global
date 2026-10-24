@@ -1,3 +1,4 @@
+import {queryImageTsunami} from '../image-tsunami-status.mjs';
 import {contextFrame,referencePlaces,drawMapReferences} from './alert-cartography.mjs';
 // PNG primitives and seismic image rendering. Daily summaries receive prepared data.
 import {FONT_CHARS_TEXT, FONT_CHARS_HERO, FLAG_CELL_W, COUNTRY_KEYWORDS, FONT_ATLAS_MICRO_B64, FONT_ATLAS_SMALL_B64, FONT_ATLAS_HERO_B64, FONT_ATLAS_TITLE_B64, FONT_ATLAS_CAPTION_B64, FONT_ATLAS_PLACE_B64, FLAG_ATLAS_B64, FONT_MICRO_CELL_W, FONT_MICRO_CELL_H, FONT_SMALL_CELL_W, FONT_SMALL_CELL_H, FONT_HERO_CELL_W, FONT_HERO_CELL_H, FONT_TITLE_CELL_H, FONT_TITLE_GLYPHS, FONT_CAPTION_CELL_H, FONT_CAPTION_GLYPHS, FONT_PLACE_CELL_W, FONT_PLACE_CELL_H, FLAG_CELL_H, FLAG_MAP} from "./image-assets.mjs";
@@ -810,33 +811,12 @@ async function getQuakeHdFonts(){
 }
 async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
+    ev.imageTsunami=ev.imageTsunami||await queryImageTsunami(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const key=await renderIdentity('alert-v13-hollow-context',ev);
+    const key=await renderIdentity('alert-v14-tsunami-explicit',ev);
     return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
 }
-async function renderAlertPixels(ev) {
-    const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
-    const logicalFrame=globalThis.QuakeCardLayout.frame(ev);
-    const frame={...logicalFrame,width:W,height:Math.round(logicalFrame.height*sy),anchorX:logicalFrame.anchorX*sx,anchorY:logicalFrame.anchorY*sy};
-    fillRect(rgba,W,0,0,W,H,9,33,48);
-    const cf=contextFrame(ev);
-    const [mapImg,contextImg,places]=await Promise.all([
-      fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat],true),
-      fetchEpicenterMap(ev.lat,ev.lon,3,cf.width,cf.height,cf.height/2,[cf.minLon,cf.minLat,cf.maxLon,cf.maxLat],true),referencePlaces(ev)
-    ]);
-    const imageContours=[];
-    if(mapImg){
-        drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
-        fillRect(rgba,W,0,0,W,frame.height,255,255,255,10);
-        await overlayImageIntensity(rgba,frame,ev,imageContours);
-        // Labels and administrative boundaries stay above the intensity colors.
-        try{
-            const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
-            const url='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size='+W+','+frame.height+'&dpi=144&format=png32&transparent=true&f=image';
-            const labels=await decodePng(await fetchBinaryWithTimeout(url,4000));
-            drawImageCover(rgba,W,H,labels,0,0,W,frame.height);
-        }catch(e){console.warn('map labels unavailable:',e.message);}
-    }
+function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
     const rgb=color=>color.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16));
     const fontFor=(size,bold)=>fonts[(size*sy>50?96:size*sy>24?40:20)+(bold?'-bold':'-regular')];
     const textWidth=(text,size,bold)=>{const font=fontFor(size,bold);return textFontWidthProp(font,sanitizeFontText(text),0)*size/font.size;};
@@ -864,10 +844,37 @@ async function renderAlertPixels(ev) {
             }
         }
     };
+    return painter;
+}
+export async function patchAlertTsunami(png,status){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());globalThis.QuakeCardLayout.drawTsunami(p,status);return rgbaToPng(image.rgba,image.width,image.height);}
+async function renderAlertPixels(ev) {
+    const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
+    const logicalFrame=globalThis.QuakeCardLayout.frame(ev);
+    const frame={...logicalFrame,width:W,height:Math.round(logicalFrame.height*sy),anchorX:logicalFrame.anchorX*sx,anchorY:logicalFrame.anchorY*sy};
+    fillRect(rgba,W,0,0,W,H,9,33,48);
+    const cf=contextFrame(ev);
+    const [mapImg,contextImg,places]=await Promise.all([
+      fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat],true),
+      fetchEpicenterMap(ev.lat,ev.lon,3,cf.width,cf.height,cf.height/2,[cf.minLon,cf.minLat,cf.maxLon,cf.maxLat],true),referencePlaces(ev)
+    ]);
+    const imageContours=[];
+    if(mapImg){
+        drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
+        fillRect(rgba,W,0,0,W,frame.height,255,255,255,10);
+        await overlayImageIntensity(rgba,frame,ev,imageContours);
+        // Labels and administrative boundaries stay above the intensity colors.
+        try{
+            const bbox=[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat].join(',');
+            const url='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/export?bbox='+encodeURIComponent(bbox)+'&bboxSR=4326&imageSR=4326&size='+W+','+frame.height+'&dpi=144&format=png32&transparent=true&f=image';
+            const labels=await decodePng(await fetchBinaryWithTimeout(url,4000));
+            drawImageCover(rgba,W,H,labels,0,0,W,frame.height);
+        }catch(e){console.warn('map labels unavailable:',e.message);}
+    }
+    const painter=alertPainter(rgba,W,H,fonts);
     if(contextImg){globalThis.QuakeCardLayout.drawContext(painter,ev);drawImageCover(rgba,W,H,contextImg,489*sx,107*sy,214*sx,138*sy);const px=(489+(Number(ev.lon)-cf.minLon)/(cf.maxLon-cf.minLon)*214)*sx,py=(107+(cf.maxLat-Number(ev.lat))/(cf.maxLat-cf.minLat)*138)*sy;fillCircle(rgba,W,H,px,py,8,255,255,255,255);fillCircle(rgba,W,H,px,py,5,225,55,45,255);}
     drawMapReferences(painter,frame,ev,places);
     const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
-    globalThis.QuakeCardLayout.draw(painter,{...ev,imageContours,
+    globalThis.QuakeCardLayout.draw(painter,{...ev,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy})),
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
         when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
         sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),

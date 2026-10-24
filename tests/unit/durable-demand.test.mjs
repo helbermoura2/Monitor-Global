@@ -6,8 +6,8 @@ import {handlePopulationExposure} from '../../population-exposure-worker.mjs';
 import {sourcePolicy,handleSourceInObject,pruneSources} from '../../shared-source-cache.mjs';
 import {createRenderCache,renderIdentity} from '../../worker/render-cache.mjs';
 if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
-const originalNow=Date.now,originalFetch=globalThis.fetch,originalCache=globalThis.caches;
-afterEach(()=>{Date.now=originalNow;globalThis.fetch=originalFetch;if(originalCache===undefined)delete globalThis.caches;else globalThis.caches=originalCache;});
+const originalDate=Date,originalNow=Date.now,originalFetch=globalThis.fetch,originalCache=globalThis.caches;
+afterEach(()=>{globalThis.Date=originalDate;Date.now=originalNow;globalThis.fetch=originalFetch;if(originalCache===undefined)delete globalThis.caches;else globalThis.caches=originalCache;});
 const source=(await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8')).replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
 const {default:worker,EarthquakeAlertDelivery}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 function store(){const data=new Map();return {data,get:async k=>structuredClone(data.get(k)),put:async(k,v)=>data.set(k,structuredClone(v)),delete:async k=>data.delete(k),list:async()=>new Map(),transaction:async function(fn){return fn(this);},setAlarm:async()=>{throw Error('No disposable-cache alarms');}};}
@@ -35,7 +35,7 @@ test('legacy source alarms drain without scheduling another alarm, including whe
  await handleSourceInObject(req,{},s,async()=>Response.json({features:[]}));
 });
 test('idle cron skips public dashboard prewarming and checks historical summaries only every fifteen minutes; live Telegram keeps running',async()=>{
- Date.now=()=>Date.parse('2026-10-18T12:01:00Z');globalThis.fetch=async()=>{throw Error('Unexpected public prewarm or real Telegram call');};
+ const fixed=originalDate.parse('2026-10-18T12:01:00Z');globalThis.Date=class extends originalDate{constructor(...args){super(...(args.length?args:[fixed]));}static now(){return fixed;}};globalThis.fetch=async()=>{throw Error('Unexpected public prewarm or real Telegram call');};
  const calls=[],jobs=[],binding={idFromName:n=>n,get:n=>({fetch:async r=>{calls.push([n,String(r?.url||r)]);return Response.json({ok:true});}})};
  const env={EARTHQUAKE_ALERTS:binding,DAILY_SUMMARY:binding};
  await worker.scheduled({scheduledTime:Date.now()},env,{waitUntil:p=>jobs.push(p)});await Promise.all(jobs.splice(0));assert.deepEqual(calls.map(x=>x[0]),['earthquake-alerts']);

@@ -1,5 +1,5 @@
 // Telegram transport with explicit rendering, exposure and caption dependencies.
-export function createTelegramTransport({renderAlertCardPng,queryImageExposure,telegramCaption,enrichBrazilEpicenter,originalImageButton}){
+export function createTelegramTransport({renderAlertCardPng,patchAlertTsunami,queryImageTsunami,queryImageExposure,telegramCaption,enrichBrazilEpicenter,originalImageButton}){
 
 
 /** Gera o card PNG (magnitude + textos + marca) e envia no Telegram. */
@@ -57,6 +57,7 @@ async function telegramSendMessage(env, text, replyTo) {
 }
 async function telegramEditAlert(env, ev, record) {
     await enrichBrazilEpicenter(ev);
+    if(queryImageTsunami)ev.imageTsunami=ev.imageTsunami||await queryImageTsunami(ev);
     const caption = telegramCaption(ev, record).slice(0, 1024);
     let body, method;
     if (record.messageType === 'text') {
@@ -68,7 +69,7 @@ async function telegramEditAlert(env, ev, record) {
         const revisions=record.revisions||[],previous= revisions.length>1?revisions[revisions.length-2].mag:record.initialMag;
         const revisionText=revisions.length?'M'+globalThis.EventPortuguese.number(previous,1)+' → M'+globalThis.EventPortuguese.number(ev.mag,1):'';
         ev.originalImageKey=record.originalImageKey||record.currentEvent?.originalImageKey;
-        const png = await renderAlertCardPng({...ev,revisionText});
+        const png = ev.tsunamiOnly?await patchAlertTsunami(await env.READ_TELEGRAM_IMAGE(ev.originalImageKey),ev.imageTsunami):await renderAlertCardPng({...ev,revisionText});
         body = new FormData();
         body.append('chat_id', String(record.chatId));
         body.append('message_id', String(record.messageId));

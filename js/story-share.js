@@ -1182,6 +1182,7 @@
   async function buildCartographicQuake(item){
     const ev={mag:Number(item.mag),depth:Number(item.depth)||0,lon:item.coords[0],lat:item.coords[1],place:item.place};
     ev.shaking=await window.RuptureShaking?.query(item);
+    ev.imageTsunami=window.QuakeTsunamiStatus.resolve(item,{...(window.__mgTsunamiImageHealth||{ok:false}),items:typeof globalAlerts!=='undefined'?globalAlerts:[]},null,typeof globalEvents!=='undefined'?globalEvents:[item]);
     const layout=window.QuakeCardLayout,frame=layout.frame(ev),nativeFrame={...frame,width:1080,height:1093},canvas=document.createElement('canvas');
     let fontFamily='Arial';
     if(window.FontFace)try{if(!storyHdFontPromise)storyHdFontPromise=new FontFace('MonitorGlobalInter','url(assets/summary-fonts/Inter.ttf)',{weight:'100 900'}).load().then(font=>{document.fonts.add(font);return true;}).catch(()=>false);let timer;try{if(await Promise.race([storyHdFontPromise,new Promise(resolve=>{timer=setTimeout(()=>resolve(false),4000)})]))fontFamily='MonitorGlobalInter';}finally{clearTimeout(timer);}}catch{}
@@ -1220,7 +1221,7 @@
     const energy=calcularEnergia(ev.mag);
     const publishedMmi=ev.shaking?.status==='available'?RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat):null;
     const mmiLabel=ev.shaking?.status==='available'?(publishedMmi===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(publishedMmi)-1))]):QuakeImagePaint.estimatedMmi(ev);
-    layout.draw(p,{...ev,imageContours,_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+    layout.draw(p,{...ev,imageContours:imageContours.map(a=>({...a,x:a.x*800/1080,y:a.y*820/1093})),_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
       sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
       mmi:mmiLabel,energy:energy.tnt.replace(' de TNT',''),exposure});
     return canvas;

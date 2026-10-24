@@ -4,7 +4,7 @@ const workerURL = new URL('../../monitor-global-worker-7_7_0.js', import.meta.ur
 let source = await readFile(workerURL, 'utf8');
 source = source.replace(/from "(\.\/[^\"]+)"/g, (_, path) => 'from '+JSON.stringify(new URL(path, workerURL).href));
 // Rendering is separately tested; capture the revised event supplied to the card generator.
-source = source.replace('async function renderAlertCardPng(ev) {', 'async function renderAlertCardPng(ev) { globalThis.rendered.push(structuredClone(ev)); return globalThis.__testHdPng.slice();');
+source = source.replace('async function renderAlertCardPng(ev) {', 'async function renderAlertCardPng(ev) { ev.imageTsunami ||= await queryImageTsunami(ev); globalThis.rendered.push(structuredClone(ev)); return globalThis.__testHdPng.slice();');
 source = source.replaceAll('queryImageExposure(ev, env)', 'Promise.resolve(ev.id === "late-population" ? (globalThis.__testExposure || {status: "unavailable"}) : {status: "unavailable"})');
 source = source.replaceAll('queryImageShaking(ev)', 'Promise.resolve(ev.id === "late-population" ? (globalThis.__testShaking || {status: "unavailable"}) : {status: "unavailable"})');
 source += '\nexport {runTelegramM6Alerts, telegramFlushRevisionNotices};';

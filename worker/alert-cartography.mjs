@@ -22,5 +22,5 @@ export function drawMapReferences(p,frame,ev,places){
  const lat=Number(ev.lat)*Math.PI/180,kmPerDegree=111.32*Math.max(.05,Math.cos(lat)),widthKm=(frame.maxLon-frame.minLon)*kmPerDegree;
  const target=widthKm*.2,unit=10**Math.floor(Math.log10(target)),km=[1,2,5,10].map(n=>n*unit).filter(n=>n<=target).at(-1)||unit,px=km/widthKm*800;
  p.roundRect(530,757,250,53,'#f5f3e9');p.rect(545,790,px,3,'#172d36');p.rect(545,784,2,10,'#172d36');p.rect(545+px,784,2,10,'#172d36');p.text('0',545,762,15,'#172d36',true);p.text(km+' km',545+px-35,762,15,'#172d36',true);
- p.roundRect(260,590,150,34,'#172d36');p.text('EPICENTRO',272,597,17,'#ffffff',true);
+ p.roundRect(260,580,150,34,'#172d36');p.text('EPICENTRO',272,587,17,'#ffffff',true);
 }
