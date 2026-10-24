@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {imageMapFrame,imageProject,paintImageIntensity,validImageExposure} from '../../seismic-image-data.mjs';
 test('epicenter matches top map anchor at every longitude and latitude',()=>{
  for(const [lat,lon,mag] of [[7.54,-80.75,8],[-15.48,168.18,6.6],[70,179.7,7],[0,-179.5,2]]){
-  const f=imageMapFrame({lat,lon,mag,depth:33},800,1440),[x,y]=imageProject(f,lon,lat);assert.ok(Math.abs(x-400)<1e-8);assert.ok(Math.abs(y-550)<1e-8);assert.notEqual(y,720);
+  const f=imageMapFrame({lat,lon,mag,depth:33},800,1440),[x,y]=imageProject(f,lon,lat);assert.ok(Math.abs(x-400)<1e-8);assert.ok(Math.abs(y-215)<1e-8);assert.notEqual(y,720);
  }
 });
 test('intensity painting respects land and holes, leaves ocean pixels unchanged',()=>{
@@ -21,7 +21,7 @@ test('scale bar uses exported bbox pixels, rather than unrelated 256px tile scal
  const {imageMetersPerPixel}=await import('../../seismic-image-data.mjs');const f={width:800,minLon:-1,maxLon:1};assert.ok(Math.abs(imageMetersPerPixel(f,0)-6371000*Math.PI/180*2/800)<1e-6);assert.ok(imageMetersPerPixel(f,60)<imageMetersPerPixel(f,0)*.501);
 });
 
-test('share map brings epicenter close to the gauge while preserving its true location',()=>{const f=imageMapFrame({lat:7.72,lon:-81.47,mag:6.6,depth:10},800,1440);assert.equal(f.anchorY,550);assert.ok(f.zoom>=6);const [x,y]=imageProject(f,-81.47,7.72);assert.equal(x,400);assert.ok(Math.abs(y-550)<1e-8);});
+test('share map centers the epicenter while preserving its true location',()=>{const f=imageMapFrame({lat:7.72,lon:-81.47,mag:6.6,depth:10},800,1440);assert.equal(f.anchorY,215);assert.ok(f.zoom>=6);const [x,y]=imageProject(f,-81.47,7.72);assert.equal(x,400);assert.ok(Math.abs(y-215)<1e-8);});
 test('offscreen land scanlines never spill into ocean pixels through negative array indices',()=>{
  const f={width:80,height:80,minLon:-.1,maxLon:.1,minLat:-.1,maxLat:.1};
  const farWest=[[-40,-.1],[-30,-.1],[-30,.1],[-40,.1],[-40,-.1]];
@@ -60,7 +60,7 @@ test('official camera retains epicenter anchor and covers non-circular strong fo
  const grid={nx:3,ny:3,x0:-82,x1:-79,y0:7,y1:9,values:[3,4,7,3,4,7,3,4,7]};
  const event={lat:7.6,lon:-81,mag:6,depth:10,shaking:{status:'available',grid}};
  const frame=imageMapFrame(event),point=imageProject(frame,event.lon,event.lat);
- assert.deepEqual(point.map(Math.round),[400,550]);
+ assert.deepEqual(point.map(Math.round),[400,215]);
  assert(frame.minLon<=-81.5&&frame.maxLon>=-79&&frame.minLat<=7&&frame.maxLat>=9);
 });
 test('weak official grids below III still paint images, with blue tones and their actual extent',()=>{
@@ -79,7 +79,7 @@ test('hollow contours change only narrow strokes and expose correctly named MMI 
  let changed=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]!==90||pixels[i+1]!==90||pixels[i+2]!==90)changed++;
  assert(changed<400*400*.2,'At least 80% of map must remain completely unpainted');
  assert(labels.some(l=>l.level===5&&l.roman==='V'&&l.description==='Moderada'));
- assert(labels.every(l=>l.x>=0&&l.x<=800&&l.y>=0&&l.y<=820));
+ assert(labels.every(l=>l.x>=0&&l.x<=400&&l.y>=0&&l.y<=400));
 });
 test('constant published intensity has no fabricated rings or grid-edge outline',()=>{
  const frame={width:80,height:80,minLon:-1,maxLon:1,minLat:-1,maxLat:1},pixels=new Uint8Array(80*80*4).fill(90);

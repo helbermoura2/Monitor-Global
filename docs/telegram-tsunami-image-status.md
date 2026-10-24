@@ -1,6 +1,6 @@
 # Imagem sísmica: intensidade local e situação de tsunami
 
-Layout `hollow-v15-regional`, compartilhado entre Telegram (1080 × 1920) e exportação pelo site. Não altera a câmera, os cálculos, as cores científicas ou as geometrias dos contornos.
+Layout `editorial-v16`, compartilhado entre Telegram (1080 × 1920) e exportação pelo site. Não altera a câmera, os cálculos, as cores científicas ou as geometrias dos contornos.
 
 ## Intensidade
 
@@ -38,3 +38,12 @@ O modelo comum `js/tsunami-regional-model.js` distingue aviso, vigilância, aten
 As imagens mostram até dois grupos regionais com autoridade e horário, indicando a consulta aos demais boletins quando houver mais grupos. Avisos distintos da mesma ocorrência não se suprimem na fila por terem severidades diferentes. Um encerramento não apaga outros produtos ativos. Um aviso que desapareça da consulta é retido como última informação, com atualização indisponível, até ser substituído ou sair da janela de boletins; desaparecimento não significa encerramento.
 
 A apresentação distingue a origem sísmica das regiões avaliadas. Registros agregados sem boletim oficial não ativam o material de água nem ganham países “potencialmente afetados” por um raio automático de 2.000 km ou ETA por velocidade constante. Demonstrações visuais continuam explicitamente fictícias. Boletins com trechos até 300 km preservam esse limite textual; o mapa cartográfico não inventa um polígono de inundação a partir dele.
+
+
+## Composição editorial aprovada
+
+O cabeçalho concentra localização e magnitude. O mapa tem epicentro no centro geométrico da área cartográfica, sem mudar a câmera do site. As legendas ficam junto ao contorno real, com espaço reservado para o minimapa, o epicentro e a escala. A legenda explicativa lista somente os níveis que aparecem no enquadramento; não cria anéis ausentes da grade. As coordenadas dos pontos de legenda são convertidas de pixels nativos para a composição uma única vez.
+
+Horário, fonte, coordenadas e revisão são preservados em linhas próprias. Profundidade, intensidade no epicentro (amostra da grade quando disponível) e energia ficam separados. A imagem explica magnitude versus intensidade, o equivalente energético e MMI III+ para a exposição populacional. Exposição ausente continua indisponível, sem inventar zero; o fallback GeoNames permanece preliminar e parcial.
+
+O bloco regional de tsunami continua no cartão do sismo; a imagem exclusiva de tsunami está fora desta mudança. Atualizações isoladas de boletins usam a posição correspondente à versão arquivada: uma imagem antiga não recebe o bloco na posição do novo layout. Durante uma falha da grade, mantém-se o mapa anterior e adia-se a recomposição completa até recuperar os dados publicados. Downloads e encaminhamentos salvos não se alteram.

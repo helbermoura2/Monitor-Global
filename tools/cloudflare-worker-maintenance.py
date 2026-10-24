@@ -19,13 +19,13 @@ PUBLIC = 'https://black-sky-9ba0.terrestre.workers.dev'
 MARKER = 'removed-no-kv-v1'
 WORKER_MODULES = 'maintenance-modules-v1'
 TELEGRAM_SOLUTION_POLICY = 'reviewed-seismic-priority-v1'
-TELEGRAM_IMAGE_STATUS = 'hollow-v15-regional'
+TELEGRAM_IMAGE_STATUS = 'editorial-v16'
 REQUEST_BUDGET = 'durable-request-budget-v1'
 SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
 DEMAND_BUDGET = 'demand-enrichment-v1'
 PUBLIC_SOURCE_RUNTIME = 'edge-collectors-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = '92ea3d6045b7991bb6e2c6216c33f1406ca99ffc024f39882baca37e97ffc9eb'
+BUNDLE_SHA256 = '9085248df0ee52c61cb112932c6c7a0f9b7d1ce15ae76d71f365835e764f5bea'
 
 class MaintenanceError(Exception):
     pass
