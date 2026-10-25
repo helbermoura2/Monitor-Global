@@ -573,7 +573,7 @@ async function fetchProSPRequest(){
   const statusLoc={...weatherLoc};window.WeatherDataStatus?.record('current','loading',{loc:statusLoc});
   const rainbow=await window.RainbowWeather?.refresh();
   if(rainbow&&window.RainbowWeather.applyCurrent(rainbow))return;
-  const u=`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&current=temperature_2m,apparent_temperature,weather_code,wind_gusts_10m,precipitation,relative_humidity_2m&timezone=auto`;
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${weatherLoc.lat}&longitude=${weatherLoc.lng}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,precipitation,relative_humidity_2m&timezone=auto`;
   const t=performance.now();
   try{
     // Usar o mesmo fallback CORS/retry do restante do sistema. A chamada direta
@@ -607,6 +607,8 @@ async function fetchProSPRequest(){
     }catch(_){}
     window.__proWeather={
       temp, feels,
+      source:'Open-Meteo',loc:statusLoc,sourceAt:window.WeatherDataStatus?.modelTime(c.time,d.utc_offset_seconds),
+      wind:c.wind_speed_10m!=null&&Number.isFinite(Number(c.wind_speed_10m))?Number(c.wind_speed_10m):null,
       gust:c.wind_gusts_10m!=null&&Number.isFinite(gust)?gust:null,
       rain:c.precipitation!=null&&Number.isFinite(rain)?rain:null,
       hum:Number.isFinite(hum)?hum:null,
@@ -619,7 +621,6 @@ async function fetchProSPRequest(){
     try{ const elT=q('sp-live-temp'); if(elT) elT.title='Fonte: '+tempFonte; }catch(_){}
     safeText('sp-live-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
     safeText('sp-live-gust',Number.isFinite(gust)?Math.round(gust)+' km/h':'--');
-    safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1).replace('.', ',')+' mm':'--');
     safeText('sp-live-hum',Number.isFinite(hum)?Math.round(hum)+'%':'--');
     // Mantém o KPI legado sincronizado caso ele seja exibido em algum breakpoint.
     safeText('kpi-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
@@ -651,7 +652,6 @@ async function fetchProSPRequest(){
       safeText('sp-live-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
       safeText('sp-live-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
       safeText('sp-live-gust',Number.isFinite(gust)?Math.round(gust)+' km/h':'--');
-      safeText('sp-live-rain',Number.isFinite(rain)?rain.toFixed(1).replace('.', ',')+' mm':'--');
       safeText('sp-live-hum',Number.isFinite(hum)?Math.round(hum)+'%':'--');
       safeText('kpi-temp',Number.isFinite(temp)?Math.round(temp)+'°':'--');
       safeText('kpi-feels',Number.isFinite(feels)?'sens '+Math.round(feels)+'°':'sens --');
@@ -695,7 +695,8 @@ function syncMobileWeather(){
   if(Number.isFinite(w.feels) && q('sp-live-feels')){
     safeText('sp-live-feels','sens '+Math.round(w.feels)+'°');
   }
-  safeText('mobile-gust','💨 '+(Number.isFinite(w.gust)?Math.round(w.gust)+' km/h':'--'));safeText('mobile-rain','🌧️ '+(Number.isFinite(w.rain)?Number(w.rain).toFixed(1).replace('.', ',')+' mm':'--'));safeText('mobile-hum','💧 '+(Number.isFinite(w.hum)?Math.round(w.hum)+'%':'--'));
+  safeText('mobile-hum','💧 '+(Number.isFinite(w.hum)?Math.round(w.hum)+'%':'--'));
+  window.WeatherHeaderSummary?.wind(w);window.WeatherHeaderSummary?.refreshRain();
 }
 function syncMobileCemaden(status){
   const b=q('mobile-btn-cemaden'), s=q('mobile-cemaden-status');if(!b||!s)return;

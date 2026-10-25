@@ -43,3 +43,9 @@
 
 /* The legacy rain widget sits behind the current weather row on desktop. */
 #top-strip #cemaden-card{display:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+/* One readable rain estimate; keep units and classification together on all widths. */
+#top-strip #sp-live-card .sp-live-grid{flex-wrap:wrap!important;overflow:visible!important;row-gap:3px!important}
+#top-strip #sp-live-card #sp-rain-eta-chip{flex:0 1 auto!important;max-width:100%!important;white-space:normal!important;overflow:visible!important}
+#top-strip #sp-live-card #sp-rain-eta-chip>b{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+#top-strip #sp-live-gust{white-space:normal!important}
