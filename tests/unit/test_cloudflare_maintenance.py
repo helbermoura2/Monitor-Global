@@ -1,12 +1,18 @@
 import importlib.util
 from pathlib import Path
 import json
+import re
 import unittest
 from unittest import mock
 import io
 spec=importlib.util.spec_from_file_location('maintenance',Path(__file__).resolve().parents[2]/'tools/cloudflare-worker-maintenance.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class MaintenanceTests(unittest.TestCase):
+    def test_public_image_version_tracks_worker_health_contract(self):
+        source=(Path(__file__).resolve().parents[2]/"monitor-global-worker-7_7_0.js").read_text()
+        version=re.search(r"telegramImageStatus:\s*[\"\']([^\"\']+)",source)
+        self.assertIsNotNone(version)
+        self.assertEqual(m.TELEGRAM_IMAGE_STATUS,version.group(1))
     def settings(self):
         return {'compatibility_date':'2024-09-01','compatibility_flags':['nodejs_compat'],'bindings':[{'name':'TTS_USAGE','type':'kv_namespace','namespace_id':'old-kv'},{'name':'DAILY_SUMMARY','type':'durable_object_namespace','namespace_id':'old-summary'},{'name':'EARTHQUAKE_ALERTS','type':'durable_object_namespace','namespace_id':'old-alerts'},{'name':'ADMIN_TOKEN','type':'secret_text'},{'name':'CONFIG','type':'plain_text','text':'keep-existing-value'},{'name':'AI','type':'ai'}],'limits':{'cpu_ms':10},'observability':{'enabled':True}}
     def test_credentials_reject_missing_or_url_without_echoing_values(self):
