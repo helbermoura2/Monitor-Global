@@ -27,5 +27,12 @@ test('a regional no-threat product cannot erase another coast warning',()=>{
  const warning={...base,id:'warn',feedKey:'PTWC-Pacific',hazardNature:'warning',affectedAreas:[{name:'Vanuatu',category:'Warning'}]};
  const clear={...base,id:'safe',source:'NTWC',feedKey:'NTWC',hazardNature:'bulletin',affectedAreas:[{name:'Alaska',category:'No threat'}]};
  const a=tvSnapshot({features:[quake()]},{ok:true,items:[warning,clear]},now);
- assert.equal(a.alerts.filter(x=>x.kind==='tsunami').length,2);const q=a.alerts.find(x=>x.kind==='earthquake');assert.match(q.tsunamiSummary,/Vanuatu/);assert(!q.tsunamiSummary.includes('Alasca'));assert.equal(a.alerts.find(x=>x.state==='noThreat').eligible,false);
+ assert.equal(a.alerts.filter(x=>x.kind==='tsunami').length,2);const q=a.alerts.find(x=>x.kind==='earthquake');assert.match(q.tsunamiSummary,/Vanuatu/);assert(!q.tsunamiSummary.includes('Alasca'));assert.equal(a.alerts.find(x=>x.state==='noThreat').eligible,true);assert.match(a.alerts.find(x=>x.state==='noThreat').title,/Alasca/);
+});
+
+test('no-threat requires a precise M6+ association and timestamp-only repeats keep the same version',()=>{
+ const q=quake(),a={id:'safe',type:'tsunami',official:true,source:'PTWC',feedKey:'PTWC-Pacific',time:now,originTime:now-60000,coords:[165,-14],hazardNature:'bulletin',affectedAreas:[{name:'Vanuatu',category:'No threat'}]};
+ const read=(event,bulletin)=>tvSnapshot({features:event?[event]:[]},{ok:true,items:[bulletin]},now).alerts.find(x=>x.kind==='tsunami');
+ assert.equal(read(q,a).eligible,true);assert.equal(read(q,{...a,_tsunamiStale:true}).eligible,false);assert.equal(read(null,a).eligible,false);assert.equal(read(quake(5.8),a).eligible,false);assert.equal(read(q,{...a,originTime:undefined}).eligible,false);
+ assert.equal(read(q,a).version,read(q,{...a,time:now+1000}).version);
 });

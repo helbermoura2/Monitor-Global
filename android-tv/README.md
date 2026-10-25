@@ -71,3 +71,5 @@ A ação **Android TV preview** compila, roda essas verificações e publica um 
 A prévia 0.1.1 aguarda até 45 segundos pela resposta do feed na conexão inicial, cobrindo o fallback das fontes oficiais. Os 30 segundos entre consultas são contados após concluir a anterior; não há consultas paralelas sobrepostas.
 
 Ajustes de espaçamento, brilho no Breaking News e ícone oficial: [identidade visual 1.0.5](IDENTIDADE_VISUAL_1_0_5.md).
+
+Transição vertical e boletim sem ameaça: [TV 1.0.6](TSUNAMI_E_TRANSICAO_1_0_6.md).

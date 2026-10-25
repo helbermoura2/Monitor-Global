@@ -13,7 +13,9 @@ final class DemoAlerts {
   tsunami.source="PTWC";tsunami.relatedQuakeId=quake.id;tsunami.tsunamiSummary="Aviso para as costas de Vanuatu · EXEMPLO. Siga as orientações das autoridades locais.";
   Alert ended=new Alert(tsunami.id,"tsunami","demo-ended","Costas de Vanuatu · EXEMPLO","Aviso encerrado · PTWC","ended",now,quake.eventTime,false);
   ended.source="PTWC";ended.relatedQuakeId=quake.id;ended.tsunamiSummary="Encerramento somente para as costas de Vanuatu · EXEMPLO. Não encerra avisos de outras regiões.";
+  Alert clear=new Alert(tsunami.id,"tsunami","demo-no-threat","Costas de Vanuatu · EXEMPLO","Sem ameaça segundo o boletim · PTWC","noThreat",now,quake.eventTime,true);
+  clear.source="PTWC";clear.relatedQuakeId=quake.id;clear.tsunamiSummary="Sem ameaça para as costas de Vanuatu · EXEMPLO. Não descreve outras regiões.";clear.companion=current.copy();
   quake.companion=tsunami.copy();
-  switch(scenario){case "revision":return List.of(revised);case "tsunami":return List.of(tsunami);case "ended":return List.of(ended);case "sequence":return List.of(quake,revised,ended);default:return List.of(quake);}
+  switch(scenario){case "revision":return List.of(revised);case "tsunami":return List.of(tsunami);case "ended":return List.of(ended);case "noThreat":return List.of(clear);case "sequence":return List.of(quake,revised,ended,clear);default:return List.of(quake);}
  }
 }

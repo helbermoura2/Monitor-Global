@@ -25,5 +25,9 @@ public class AlertCodecTest {
   assertEquals(a.populationSummary,b.populationSummary);assertEquals(a.nearbySummary,b.nearbySummary);assertEquals(a.id,b.id);assertEquals(a.version,b.version);
   JSONObject legacy=AlertCodec.write(a);legacy.remove("populationSummary");legacy.remove("nearbySummary");assertEquals("",AlertCodec.read(legacy).populationSummary);
  }
+ @Test public void noThreatKeepsScopeAndPairInReplay() throws Exception {
+  Alert a=DemoAlerts.create("noThreat",1800000000000L).get(0);Alert saved=AlertCodec.read(new JSONObject(AlertCodec.write(a).toString()));
+  assertEquals("noThreat",saved.state);assertTrue(saved.quietInformation());assertTrue(saved.tsunamiSummary.contains("Vanuatu"));assertNotNull(saved.companion);assertEquals(saved.relatedQuakeId,saved.companion.id);
+ }
  @Test(expected=JSONException.class) public void invalidSavedRecordIsRejected() throws Exception {AlertCodec.read(new JSONObject("{\"id\":\"\",\"kind\":\"earthquake\",\"issuedAt\":1,\"eventTime\":1}"));}
 }
