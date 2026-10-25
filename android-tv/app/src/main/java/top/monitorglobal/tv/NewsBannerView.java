@@ -34,13 +34,13 @@ final class NewsBannerView extends View {
    source=!a.source.isEmpty()?a.source:split<0?"Fonte não informada":details.substring(split+3);
    oldMagnitude=BannerTimeline.magnitudeChanged(a)?String.format(java.util.Locale.forLanguageTag("pt-BR"),"M%.1f",a.previousMagnitude):"";
    String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):!a.revision.isEmpty()?"ATUALIZAÇÃO DO SISMO":!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES · USGS":"NOVO SISMO";
-   heading=(summary?"RESUMO · "+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
+   heading=(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO · ")+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
   }
  }
  NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated){
   this(context,a,demonstration,repeated,null,"");
  }
- NewsBannerView(Context context,java.util.List<Alert> alerts,String day){this(context,alerts.get(0),false,false,alerts,day);}
+ NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated){this(context,alerts.get(0),false,repeated,alerts,day);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day){
   super(context);summary=daily!=null;summaryDay=day;pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;breakingClip.addRoundRect(3,3,216,24,7,7,Path.Direction.CW);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
@@ -48,7 +48,7 @@ final class NewsBannerView extends View {
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
-  StringBuilder line=new StringBuilder(summary?"RESUMO DO DIA · "+day+" · HORÁRIO DE BRASÍLIA · USGS · PARCIAL ATÉ A CONSULTA · ":demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
+  StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+day+" · HORÁRIO DE BRASÍLIA · USGS · PARCIAL ATÉ A CONSULTA · ":demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
   for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
    if(!v.populationSummary.isEmpty())line.append(v.populationSummary).append("     •     ");
    if(!v.nearbySummary.isEmpty())line.append(v.nearbySummary).append("     •     ");
@@ -92,7 +92,7 @@ final class NewsBannerView extends View {
    float phase=(elapsed%3200)/3200f;
    if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*286,0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(3,3,216,24,paint);paint.setShader(null);c.restore();}
   }
-  text(c,summary?"RESUMO DO DIA":replay?"REPLAY":"BREAKING NEWS",20,18,19,Color.WHITE,brand,194);
+  text(c,summary?(replay?"REPLAY DO RESUMO":"RESUMO DO DIA"):replay?"REPLAY":"BREAKING NEWS",20,18,19,Color.WHITE,brand,194);
  }
  private void drawIdentity(Canvas c,long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;

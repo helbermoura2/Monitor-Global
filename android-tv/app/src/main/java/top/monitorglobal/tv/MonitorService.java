@@ -1,13 +1,20 @@
 package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import android.media.*;import java.util.*;import java.util.concurrent.*;
 public final class MonitorService extends Service {
- static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY="top.monitorglobal.tv.SUMMARY",REPLAY="top.monitorglobal.tv.REPLAY";
+ static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",REPLAY="top.monitorglobal.tv.REPLAY";
  private final List<Runnable> demoTasks=new ArrayList<>();
  private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  @Override public void onCreate(){super.onCreate();banner=new Banner(this);tracker=Prefs.tracker(this);feed=new FeedClient();NotificationManager n=getSystemService(NotificationManager.class);NotificationChannel service=new NotificationChannel("monitoring","Monitoramento contínuo",NotificationManager.IMPORTANCE_LOW);service.setSound(null,null);n.createNotificationChannel(service);NotificationChannel alerts=new NotificationChannel("alerts","Terremotos e tsunami",NotificationManager.IMPORTANCE_HIGH);alerts.setSound(null,null);n.createNotificationChannel(alerts);}
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Monitor Global TV").setContentText("Acompanhando sismos M6+ e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
+  if(SUMMARY_REPLAY.equals(action)){
+   ++historyRequest; // A pending refresh must not replace the explicitly selected saved replay.
+   if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+   FeedClient.Snapshot saved=Prefs.lastSummary(this);
+   if(saved==null){Prefs.status(this,"Nenhum resumo salvo. Exiba primeiro o Resumo do dia.");stopIfIdle();}else scheduleSummary(saved,true);
+   return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
   if(REPLAY.equals(action)||SUMMARY.equals(action)){
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
    fetchHistory(SUMMARY.equals(action));return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
@@ -45,7 +52,7 @@ public final class MonitorService extends Service {
    if(!snapshot.quakeOk)throw new java.io.IOException("Catálogo indisponível");
    main.post(()->{historyBusy=false;if(destroyed||request!=historyRequest)return;
     if(snapshot.alerts.isEmpty()){Prefs.status(this,summary?"Nenhum sismo M2,5+ no catálogo de hoje até esta consulta.":"Nenhum sismo M6+ nas últimas 72 horas.");stopIfIdle();return;}
-    if(summary)scheduleSummary(snapshot);else{Alert latest=snapshot.alerts.get(0),local=Prefs.lastReplay(this);
+    if(summary)scheduleSummary(snapshot,false);else{Alert latest=snapshot.alerts.get(0),local=Prefs.lastReplay(this);
      // Prefer the newer origin; only a newer revision of that same event may replace it.
      latest=ReplaySelection.latest(latest,local);Prefs.rememberRecovered(this,latest);
      scheduleLocal(List.of(latest),false,true);
@@ -57,13 +64,13 @@ public final class MonitorService extends Service {
   });}});
  }
  private void stopIfIdle(){if(!Prefs.get(this).getBoolean("enabled",false)&&!draining&&demoTasks.isEmpty())stopSelf();}
- private void scheduleSummary(FeedClient.Snapshot snapshot){
+ private void scheduleSummary(FeedClient.Snapshot snapshot,boolean replay){
   cancelDemos();long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
   Runnable show=()->{if(destroyed)return;if(draining||!queue.isEmpty()){Prefs.status(this,"Resumo adiado por alerta real. Solicite novamente após o aviso.");return;}
-   banner.showSummary(snapshot.alerts,snapshot.day);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryDuration(snapshot.alerts.size());
+   if(banner.showSummary(snapshot.alerts,snapshot.day,replay)&&!replay)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryDuration(snapshot.alerts.size());
   };demoTasks.add(show);main.postDelayed(show,delay);
   Runnable stop=()->{demoTasks.clear();activeUntil=0;stopIfIdle();};demoTasks.add(stop);main.postDelayed(stop,delay+BannerTimeline.summaryDuration(snapshot.alerts.size())+1000);
-  Prefs.status(this,"Resumo de "+snapshot.day+" em 10 segundos · "+snapshot.alerts.size()+" sismos · "+BannerTimeline.summaryDuration(snapshot.alerts.size())/1000+" segundos · parcial até "+NewsBannerView.formatTime(snapshot.asOf));
+  Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+snapshot.day+" em 10 segundos · "+snapshot.alerts.size()+" sismos · "+BannerTimeline.summaryDuration(snapshot.alerts.size())/1000+" segundos · parcial até "+NewsBannerView.formatTime(snapshot.asOf));
  }
  private PendingIntent open(){return PendingIntent.getActivity(this,1,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
  private void poll(){if(destroyed)return;try{FeedClient.Snapshot snapshot=feed.read();if(destroyed)return;long now=System.currentTimeMillis();Prefs.get(this).edit().putLong("lastCheck",now).apply();if(snapshot.unchanged){refreshOfficialConfig();return;}

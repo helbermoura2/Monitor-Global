@@ -75,3 +75,5 @@ Ajustes de espaçamento, brilho no Breaking News e ícone oficial: [identidade v
 Transição vertical e boletim sem ameaça: [TV 1.0.6](TSUNAMI_E_TRANSICAO_1_0_6.md).
 
 Resumo do dia e replay de sismos ocorridos com a TV desligada: [TV 1.0.7](RESUMO_E_REPLAY_1_0_7.md).
+
+Replay do último resumo, inclusive sem internet: [TV 1.0.8](REPLAY_RESUMO_1_0_8.md).
