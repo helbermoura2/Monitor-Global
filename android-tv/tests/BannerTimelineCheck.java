@@ -19,6 +19,10 @@ public class BannerTimelineCheck {
   Alert waiting=q.copy();waiting.companion=t.copy();AlertPairing.refreshQueuedCompanions(List.of(waiting),List.of(q,ending),true,true);check(waiting.companion.state.equals("ended")&&waiting.tsunamiSummary.isEmpty(),"Queued presentations must not revive a warning after cancellation");
   check(AlertPairing.replacesQueued(q,t),"A combined quake must replace an older pending copy of its same bulletin");
   check(!AlertPairing.replacesQueued(other,q),"A separate regional product must not discard the quake and its other bulletin");
+  Alert noThreat=DemoAlerts.create("noThreat",1800000000000L).get(0);Alert target=q.copy();AlertPairing.attach(List.of(target),List.of(q,noThreat),true,true);check(target.companion!=null&&target.companion.state.equals("noThreat"),"Explicit no-threat bulletin must pair with its quake");
+  Alert mixed=q.copy();AlertPairing.attach(List.of(mixed),List.of(q,t,noThreat),true,true);check(mixed.companion.state.equals("warning"),"A separate no-threat region must never hide a warning");
+  check(BannerTimeline.pageProgress(0)==0&&BannerTimeline.pageProgress(650)==1&&BannerTimeline.pageProgress(325)>.49f&&BannerTimeline.pageProgress(325)<.51f,"Vertical transition must be smooth and finish in 650ms");
+  check(noThreat.quietInformation()&&!q.quietInformation(),"Only the no-threat update suppresses its sound, not a real quake");
   System.out.println("PASS: 8/8 timing, smooth transition, complete cycles, pairing, coalescing, outage and cancellation replacement");
  }
 }

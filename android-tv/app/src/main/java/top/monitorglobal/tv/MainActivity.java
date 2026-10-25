@@ -11,6 +11,7 @@ public final class MainActivity extends Activity {
   button("4 · Testar revisão M7,2 → M6,9 (fictícia)",v->launch(MonitorService.TEST_REVISION));
   button("5 · Testar aviso de tsunami (fictício)",v->launch(MonitorService.TEST_TSUNAMI));
   button("6 · Testar encerramento de tsunami (fictício)",v->launch(MonitorService.TEST_END));
+  button("Testar tsunami sem ameaça (dados fictícios)",v->launch(MonitorService.TEST_NO_THREAT));
   button("7 · Testar sequência completa em 10 segundos (fictícia)",v->launch(MonitorService.TEST_SEQUENCE));
   updater=new OfficialUpdater(this,s->{Prefs.get(this).edit().putString("updateStatus",s).apply();update();});button("Verificar atualização oficial",v->updater.check());
   Switch sound=new Switch(this);sound.setText("Som dos avisos · usa o volume de notificações do aparelho");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->Prefs.get(this).edit().putBoolean("sound",checked).apply());content.addView(sound);

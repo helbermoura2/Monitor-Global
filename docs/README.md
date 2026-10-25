@@ -18,6 +18,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 - [telegram-image-quality.md](telegram-image-quality.md)
 - [telegram-map-v13.md](telegram-map-v13.md)
 - [telegram-tsunami-coastal-card.md](telegram-tsunami-coastal-card.md)
+- [tsunami-sem-ameaca-prioridade-20261025.md](tsunami-sem-ameaca-prioridade-20261025.md)
 - [neon-contour-labels.md](neon-contour-labels.md)
 - [local-performance-diagnostics.md](local-performance-diagnostics.md)
 

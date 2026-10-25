@@ -7,7 +7,7 @@ final class AlertPairing {
  static void attach(List<Alert> notices,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
   if(!quakeOk||!tsunamiOk)return;
   for(Alert a:notices){Alert best=null;for(Alert b:snapshot){if(!isPair(a,b))continue;
-   if(a.kind.equals("earthquake")&&(!b.eligible||rank(b)==0))continue;
+   if(a.kind.equals("earthquake")&&(!b.eligible||rank(b)==0&&!b.state.equals("noThreat")))continue;
    if(best==null||rank(b)>rank(best)||rank(b)==rank(best)&&b.issuedAt>best.issuedAt)best=b;
   }if(best!=null)a.companion=best.copy();}
  }
@@ -20,7 +20,7 @@ final class AlertPairing {
  static void refreshQueuedCompanions(Collection<Alert> pending,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
   for(Alert p:pending){if(p.companion==null)continue;boolean healthy=p.companion.kind.equals("tsunami")?tsunamiOk:quakeOk;if(!healthy)continue;
    for(Alert latest:snapshot)if(latest.id.equals(p.companion.id)&&isPair(p,latest)){
-    p.companion=latest.copy();if(p.kind.equals("earthquake"))p.tsunamiSummary=rank(latest)>0?latest.tsunamiSummary:"";break;
+    p.companion=latest.copy();if(p.kind.equals("earthquake"))p.tsunamiSummary=(rank(latest)>0||latest.state.equals("noThreat"))?latest.tsunamiSummary:"";break;
    }
   }
  }

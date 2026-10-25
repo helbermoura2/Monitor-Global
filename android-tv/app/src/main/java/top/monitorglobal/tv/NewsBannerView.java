@@ -25,7 +25,7 @@ final class NewsBannerView extends View {
   final Alert alert;final String magnitude,oldMagnitude,location,headline,heading,time,first,source;final Bitmap flag;
   Page(Alert a){
    alert=a;Matcher m=Pattern.compile("^(M[0-9]+[,.][0-9]+)\\s*·\\s*(.*)$").matcher(a.title);
-   boolean quake=m.matches();magnitude=quake?m.group(1):"TSUNAMI";location=quake?m.group(2):a.title;
+   boolean quake=m.matches();magnitude=quake?m.group(1):"TSUNAMI";location=quake?m.group(2):a.title.replaceFirst("^Sem ameaça segundo o boletim · ","");
    headline=BannerTimeline.magnitudeChanged(a)?a.revision+" · "+location:!a.revision.isEmpty()?"DADOS REVISADOS · "+location:location;
    time=formatTime(a.kind.equals("tsunami")?a.issuedAt:a.eventTime);flag=CountryFlag.load(getContext(),a);
    String details=a.detail.replaceFirst("^Revisão · ","");int split=details.indexOf(" · ");
@@ -70,8 +70,8 @@ final class NewsBannerView extends View {
   radar(c,36,54,elapsed);text(c,"MONITOR",69,50,24,foreground,brand,140);text(c,"GLOBAL",69,72,24,foreground,brand,140);rect(c,218,24,219,102,Color.rgb(49,76,91));
   drawIdentity(c,elapsed);
   int index=BannerTimeline.page(elapsed,pages.length);long within=elapsed%BannerTimeline.PAGE_MS;
-  if(animate&&pages.length>1&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
-   float t=BannerTimeline.progress(within);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-3*t);drawPage(c,pages[index],elapsed,(int)(255*t),3*(1-t));
+  if(animate&&pages.length>1&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.PAGE_FADE_MS){
+   float t=BannerTimeline.pageProgress(within);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
   rect(c,1,101,959,102,accent);
   c.save();c.clipRect(12,103,947,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+90;
@@ -112,7 +112,8 @@ final class NewsBannerView extends View {
    if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);
    else if(elapsed<BannerTimeline.REVISION_AT_MS)magnitude(c,old,"ANTERIOR",255);
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,old,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
-  }else{int alpha=animate&&a.kind.equals("earthquake")?(int)(235+20*Math.cos(elapsed/1000f*Math.PI)):255;text(c,p.magnitude,240,76,p.magnitude.equals("TSUNAMI")?27:49,Color.argb(alpha,255,255,255),brand,129);}
+  }else if(a.kind.equals("tsunami")&&a.state.equals("noThreat")){text(c,"TSUNAMI",240,57,27,Color.WHITE,brand,129);text(c,"SEM AMEAÇA",240,82,19,Color.WHITE,brand,129);}
+  else{int alpha=animate&&a.kind.equals("earthquake")?(int)(235+20*Math.cos(elapsed/1000f*Math.PI)):255;text(c,p.magnitude,240,76,p.magnitude.equals("TSUNAMI")?27:49,Color.argb(alpha,255,255,255),brand,129);}
   fitText(c,p.heading,391,22,13,demo?Color.rgb(255,214,119):foreground,brand,552);
   float width=p.flag==null?550:505;fitText(c,p.headline,391,57,BannerTimeline.magnitudeChanged(a)?28:31,foreground,brand,width);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(BannerTimeline.magnitudeChanged(a)?28:31);float x=391+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,35,x+32,59),paint);}

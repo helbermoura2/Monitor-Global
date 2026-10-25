@@ -15,3 +15,9 @@ test.describe('real tsunami warning effect',()=>{test.use({reducedMotion:'no-pre
  await boot(page);await page.evaluate(()=>OptionalFeatures.effect('tsunami'));await page.evaluate(()=>{const q={id:'ts-origin',type:'earthquake',mag:7,depth:20,coords:[157.4,51.9],time:Date.now(),place:'Kamchatka',source:'QA'};globalEvents.push(q);const a={id:'warning-with-origin',type:'tsunami',official:true,source:'PTWC',coords:q.coords,originTime:q.time,originMag:7,time:Date.now(),hazardNature:'warning',warningLevel:'Aviso',sev:4,place:'Kamchatka'};globalAlerts=[a];showAlertDetails(a,false);});
  await page.clock.runFor(18500);await expect(page.locator('#painel-direito')).toHaveClass(/pd-cinema-active/);await expect(page.locator('.pd-cinema-layer[data-scene="tsunami"]')).toBeVisible();await expect(page.locator('.pd-tsunami-surface')).toBeVisible();await expect(page.locator('#site-full-screen-effects')).toHaveCount(0);
 });});
+
+test('regional no-threat bulletin updates data without taking the camera from the quake',async({page})=>{
+ await boot(page);const before=await page.evaluate(()=>eventoSelecionadoId);
+ await page.evaluate(()=>{const a={id:'no-threat-only',type:'tsunami',official:true,source:'PTWC',coords:[165,-14],originTime:Date.now()-60000,time:Date.now(),hazardNature:'bulletin',warningLevel:'Informativo',affectedAreas:[{name:'Vanuatu',category:'No threat'}]};globalAlerts=[a];NewEventPriority.queue([a]);NewEventPriority.focus();});
+ expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(before);expect(await page.evaluate(()=>TsunamiPriority.hasPending())).toBe(false);
+});

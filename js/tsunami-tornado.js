@@ -87,6 +87,7 @@ async function fetchOfficialTsunamiAlerts(){
    }
   }
   window.NewEventPriority?.queue(items);applyFilters();
+  for(const item of items)window.PresentationLimits?.reconcile(item);
   window.TsunamiLinkedPanel?.refresh();
   const selectedTsunami=globalAlerts.find(a=>a.id===eventoSelecionadoId&&a.type==='tsunami');if(selectedTsunami&&!window.TsunamiRegional.hasThreat(selectedTsunami)){window.CinematicCard?.stop();if(typeof stopTsunamiWave==='function')stopTsunamiWave();}
   marcarBooted('tsunamiOfficial');window.NewEventPriority?.focus();
