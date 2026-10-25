@@ -12,7 +12,7 @@ function signed(payload) {
   return encoded + '.' + sign(null, Buffer.from(encoded), privateKey).toString('base64url');
 }
 test.use({serviceWorkers: 'block', viewport: {width: 1600, height: 1000}});
-async function setup(page, {realSignature = false, date = '2026-10-25T17:01:00Z'} = {}) {
+async function setup(page, {realSignature = false, date = '2026-10-25T19:56:00Z'} = {}) {
   await page.clock.install({time: new Date(date)});
   const state = {config: decode(configFixture), first: decode(resultFixture), second: null, failure: false, hold: false, calls: 0};
   await page.route('**/*', async route => {
@@ -194,8 +194,8 @@ test('desktop entre os cartões; mobile oculta e interrompe consultas; módulo e
 });
 
 test('chip stays visible before voting results, queries only in the allowed window and retires at 26/10 06h BRT',async({page})=>{
- const state=await setup(page,{date:'2026-10-25T16:58:00Z'});await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);});
- await page.clock.pauseAt(new Date('2026-10-25T16:59:00Z'));
+ const state=await setup(page,{date:'2026-10-25T19:53:00Z'});await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);});
+ await page.clock.pauseAt(new Date('2026-10-25T19:54:00Z'));
  await expect(page.locator('#chip-election')).toBeVisible();await page.locator('#chip-election').click();expect(state.calls).toBe(0);
  await expect(page.locator('script[src*="election-results.js"]')).toHaveCount(0);
  await page.clock.runFor(59000);await expect(page.locator('#chip-election')).toBeVisible();await page.locator('#chip-election').click();expect(state.calls).toBe(0);

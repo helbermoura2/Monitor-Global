@@ -68,11 +68,11 @@ console.log('PASS: real TSE signatures, votes/percentages, national scope, two t
 
 let scheduledCalls=0,scheduledNow=ELECTION_2026.activateAt-1;
 const scheduled=new TseResultsClient(async()=>{scheduledCalls++;return new Response(configText);},()=>scheduledNow);
-assert.equal(ELECTION_2026.activateAt,Date.parse('2026-10-25T17:00:00Z'));
+assert.equal(ELECTION_2026.activateAt,Date.parse('2026-10-25T19:55:00Z'));
 assert.equal((await scheduled.load(2)).status,'scheduled');
 await scheduled.signed('comum/config/ele-c.jws');assert.equal(scheduledCalls,0);
 scheduledNow=ELECTION_2026.activateAt;await scheduled.load(2).catch(()=>{});assert(scheduledCalls>0);
-console.log('PASS: no TSE traffic before 25/10 14:00 BRT; client enables at the exact boundary');
+console.log('PASS: no TSE traffic before 25/10 16:55 BRT; client enables at the exact boundary');
 
 assert.equal(ELECTION_2026.retireAt,Date.parse('2026-10-26T09:00:00Z'));
 scheduledNow=ELECTION_2026.retireAt;const retiredCalls=scheduledCalls;
