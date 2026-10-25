@@ -6,10 +6,11 @@ async function fixture(page){
   const native=fetch.bind(window);window.__weatherCalls=0;window.__tileCalls=0;
   window.fetch=async(input,opts)=>{
    const url=typeof input==='string'?input:input.url;
+   if(url.includes('/rain-nowcast?')){const u=new URL(url),now=Date.now(),start=Math.floor(now/60000)*60000;return Response.json({ok:true,at:now,expiresAt:now+600000,loc:{lat:Number(u.searchParams.get('lat')),lng:Number(u.searchParams.get('lng'))},forecast:Array.from({length:240},(_,i)=>({start:start+i*60000,end:start+(i+1)*60000,rate:12,type:'rain'}))});}
    if(url.includes('/rain-weather?')){
     window.__weatherCalls++;const now=Date.now(),start=Math.floor(now/3600000)*3600000,params=new URL(url).searchParams;
     return Response.json({ok:true,source:'Rainbow Weather',loc:{lat:Number(params.get('lat')),lng:Number(params.get('lng'))},at:now,generatedAt:now,expiresAt:now+3600000,
-    hourly:Array.from({length:48},(_,i)=>({start:start+i*3600000,temperature:25,feels:27,humidity:75,amount:3,chance:80,wind:18,gust:36,uv:2,pressure:1010})),daily:Array.from({length:5},(_,i)=>({start:start+i*86400000,min:19,max:28,amount:10,chance:80,condition:'Rain'}))});
+    hourly:Array.from({length:48},(_,i)=>({start:start+i*3600000,temperature:25,feels:27,humidity:75,amount:.3,chance:80,wind:18,gust:36,uv:2,pressure:1010})),daily:Array.from({length:5},(_,i)=>({start:start+i*86400000,min:19,max:28,amount:10,chance:80,condition:'Rain'}))});
    }
    if(url.includes('/rainbow-snapshot')){window.__tileCalls++;return Response.json({ok:true,snapshot:Math.floor(Date.now()/600000)*600});}
    if(url.includes('rainviewer.com/public/weather-maps'))return Response.json({host:'https://tiles.reserve.test',radar:{past:[{path:'/frame',time:Math.floor(Date.now()/1000)}]}});
@@ -20,7 +21,9 @@ async function fixture(page){
 for(const [label,width,height]of [['desktop',1280,720],['mobile',390,844]])test('Weather hora/dias em português e cache compartilhado '+label,async({page})=>{
  await page.setViewportSize({width,height});await fixture(page);await page.goto('/',{waitUntil:'domcontentloaded'});
  await page.evaluate(async()=>{await fetchProSP();await fetchSPForecast();});
- await expect(page.locator('#sp-live-temp')).toHaveText('25°');await expect(page.locator('#sp-live-gust')).toHaveText('36 km/h');
+ await expect(page.locator('#sp-live-temp')).toHaveText('25°');await expect(page.locator('#sp-live-gust')).toHaveText('Vento 18 km/h · rajadas 36 km/h');
+ await page.evaluate(()=>WeatherEvidence.refresh());
+ await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora · 12 mm/h estimados');await expect(page.locator('#sp-live-rain')).toHaveCount(0);await expect(page.locator('#mobile-rain')).toContainText('12 mm/h estimados');
  await expect(page.locator('#weather-summary-meta')).toContainText('Rainbow Weather');await expect(page.locator('.fc-day')).toHaveCount(5);await expect(page.locator('.weather-hour')).toHaveCount(12);
  const calls=await page.evaluate(()=>window.__weatherCalls);await page.evaluate(async()=>{await Promise.all([fetchSPWeather(),fetchProSP(),fetchSPForecast()]);});expect(await page.evaluate(()=>window.__weatherCalls)).toBe(calls);
  await page.evaluate(()=>WeatherPanel.show());await expect(page.locator('#weather-brief')).toContainText('previsão horária');await expect(page.locator('#weather-brief')).toContainText('75%');

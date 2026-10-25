@@ -130,8 +130,8 @@
       <div class="sp-live-title">📍 <b id="sp-live-city">SÃO PAULO</b><span id="sp-live-source">Open-Meteo</span></div><div class="pro-location" id="pro-location-state">📍 SP padrão · localização aguardando</div>
       <div class="sp-live-grid">
         <div class="sp-temp-cell"><span>🌡️</span><b id="sp-live-temp">--</b><b id="sp-live-feels" class="sp-feels">sens --</b><small>temp / sensação</small></div>
-        <div><span>💨</span><b id="sp-live-gust">--</b><small>rajada</small></div>
-        <div><span>💧</span><b id="sp-live-rain">--</b><small>chuva · modelo</small></div>
+        <div><span>💨</span><b id="sp-live-gust">--</b><small>vento / rajadas · previsão</small></div>
+
         <div title="Umidade relativa do ar estimada pelo modelo"><span aria-hidden="true">💦</span><b id="sp-live-hum">--</b><small>umidade</small></div>
         <div id="flood-risk-chip" title="Ocorrências de alagamento: consulta ao CGE"><span>💧</span><b id="flood-risk-label">ALAG.: SEM CONSULTA</b><small>alagamento</small></div>
         <div id="sp-rain-eta-chip" class="rain-clear" title="Previsão por modelos: faixa horária de chuva e acumulado"><span id="sp-rain-eta-ico">⏱️</span><b id="sp-rain-eta">Chuva: consultando</b><small>chuva · modelo</small></div>
@@ -353,7 +353,7 @@
     </div>
   </aside>
 
-  
+
 </div>
 
 <script defer src="js/debug-panel.js"></script>
@@ -441,10 +441,11 @@
 <script defer src="js/sismo-fontes.js?v=20261024-session-stability-v9"></script>
 <script defer src="js/orquestrador-feeds.js?v=20261023-data-followups"></script>
 <script defer src="js/brent.js?v=20261012-fast-retry"></script>
-<script defer src="js/weather-data-status.js?v=20261017-shared-sources"></script>
-<script defer src="js/rainbow-weather.js?v=20261015-data-quality"></script>
+<script defer src="js/weather-data-status.js?v=20261025-unified-rain"></script>
+<script defer src="js/weather-header-summary.js?v=20261025-unified-rain"></script>
+<script defer src="js/rainbow-weather.js?v=20261025-unified-rain"></script>
 <script defer src="js/rainbow-radar.js?v=20261011-freshness-record"></script>
-<script defer src="js/clima-local.js?v=20261015-data-quality"></script>
+<script defer src="js/clima-local.js?v=20261025-unified-rain"></script>
 <script defer src="js/record-presentation.js?v=20261024-regional-tsunami"></script>
 <script defer src="js/hazard-evidence.js?v=20261012-warning-camera"></script>
 <script defer src="js/tempestades.js?v=20261022-device-v6"></script>
@@ -464,7 +465,7 @@
 <script defer src="js/mobile-notices.js?v=20261021-overlay-revisions"></script>
 <script defer src="js/ui-wiring-final.js?v=20261018-records-drawer"></script>
 
-<script defer src="js/cemaden-risco.js?v=20261024-long-session-v7"></script>
+<script defer src="js/cemaden-risco.js?v=20261025-unified-rain"></script>
 <script defer src="js/browser-request-budget.js?v=20261024-long-session-v7"></script>
 <script defer src="js/fetch-timeout.js?v=20261021-session-stability"></script>
 <div id="ux-panel" role="dialog" aria-modal="false" aria-labelledby="ux-panel-title"><div class="ux-panel-head"><span id="ux-panel-title">Análise</span><button class="ux-close" id="ux-panel-close" type="button" aria-label="Fechar painel">✕</button></div><div id="ux-panel-content"></div></div>
@@ -484,7 +485,7 @@
 <script defer src="js/rain-outlook.js?v=20261023-data-followups"></script>
 <script defer src="js/rainbow-nowcast.js?v=20261010-rain-arrival"></script>
 <script defer src="js/rain-arrival-notice.js?v=20261016-live-effects"></script>
-<script defer src="js/weather-evidence.js?v=20261015-data-quality"></script>
+<script defer src="js/weather-evidence.js?v=20261025-unified-rain"></script>
 <script defer src="js/enhancements-4413.js?v=20261009-scheduler"></script>
 
 <script defer src="js/flood-chip-click.js"></script>
@@ -659,12 +660,12 @@
 
 <link rel="stylesheet" href="css/source-evidence.css?v=20260930-1">
 <link rel="stylesheet" href="population-exposure.css?v=20261001-1">
-<link rel="stylesheet" href="css/weather-header.css?v=20261005-no-native-scrollbar">
+<link rel="stylesheet" href="css/weather-header.css?v=20261025-unified-rain-20261005-no-native-scrollbar">
 <link rel="stylesheet" href="css/compact-desktop.css?v=20261009-tv">
 <link rel="stylesheet" href="css/unified-cities.css?v=20261001-unified-cities">
 <link rel="stylesheet" href="css/rain-arrival-notice.css?v=20261010-1">
 <link rel="stylesheet" href="css/weather-panel.css?v=20261010-rainbow">
-<script defer src="js/weather-panel.js?v=20261015-data-quality"></script>
+<script defer src="js/weather-panel.js?v=20261025-unified-rain"></script>
 <script defer src="js/official-weather-alerts.js?v=20261017-shared-sources"></script>
 <script defer src="js/meteoalarm-warnings.js?v=20261015-meteoalarm-area"></script>
 <script defer src="js/cge-bulletins.js?v=20261017-shared-sources"></script>

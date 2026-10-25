@@ -1,0 +1,47 @@
+name: Weather header regression
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'js/cemaden-risco.js'
+      - 'js/weather-header-summary.js'
+      - 'js/rainbow-weather.js'
+      - 'js/weather-data-status.js'
+      - 'js/weather-evidence.js'
+      - 'js/weather-panel.js'
+      - 'css/weather-header.css'
+      - 'tests/*rainbow*.spec.js'
+      - 'tests/weather-panel.spec.js'
+      - 'tests/unit/weather-header-summary.test.cjs'
+      - '.github/workflows/weather-header-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  weather:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Weather source and presentation contracts
+        run: |
+          node --test tests/unit/weather-header-summary.test.cjs tests/unit/rainbow-products.test.mjs
+          node tests/unit/rainbow-nowcast-check.mjs
+          node tests/unit/weather-evidence-check.cjs
+          node tests/unit/rain-outlook-check.cjs
+      - name: Desktop and mobile with external traffic blocked
+        env:
+          MONITOR_TEST_OFFLINE: '1'
+        run: npx playwright test tests/rainbow-products.spec.js tests/rainbow-nowcast.spec.js tests/weather-panel.spec.js --grep 'Weather hora|Radar manual|Rainbow na barra|cota preserva|GPS trocado|meteorologia manual' --workers=2
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: weather-header-failures
+          path: test-results/
+          retention-days: 7

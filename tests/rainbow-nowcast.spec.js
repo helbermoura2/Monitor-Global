@@ -22,10 +22,10 @@ async function fixture(page,{failure=false,delayed=false}={}){
   };
  },{failure,delayed});
 }
-for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test('Rainbow na barra e gráfico de 60 minutos '+mode,async({page})=>{
+for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test('Rainbow na barra e gráfico de 60 minutos '+mode,async({page},testInfo)=>{
  await page.setViewportSize({width,height});await fixture(page);await page.goto('/',{waitUntil:'domcontentloaded'});
  await page.evaluate(()=>WeatherEvidence.refresh());
- await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora');
+ await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora · 12 mm/h estimados');
  if(mode==='desktop')await page.locator('#sp-rain-eta-chip').click();else await page.evaluate(()=>showFcPopup());
  await expect(page.locator('#rainbow-rain-chart')).toBeVisible();await expect(page.locator('#rainbow-rain-chart svg')).toHaveAttribute('role','img');
  await expect(page.locator('#rainbow-rain-chart')).toContainText(/Pode terminar em cerca de (24|25) min/);
@@ -35,11 +35,11 @@ for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test(
  const before=await page.evaluate(()=>window.__rainbowRequests.length);
  await page.evaluate(()=>WeatherEvidence.refresh());expect(await page.evaluate(()=>window.__rainbowRequests.length)).toBe(before);
  const chart=await page.locator('#rainbow-rain-chart').boundingBox();expect(chart.x).toBeGreaterThanOrEqual(0);expect(chart.x+chart.width).toBeLessThanOrEqual(width+1);
- await page.locator('#rainbow-rain-chart').screenshot({path:'/workspace/scratch/rainbow-chart-'+mode+'.png'});
+ await page.locator('#rainbow-rain-chart').screenshot({path:testInfo.outputPath('rainbow-chart.png')});
 });
 test('cota preserva modelos e não vira ausência de chuva',async({page})=>{
  await fixture(page,{failure:true});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>WeatherEvidence.refresh());
- await expect(page.locator('#sp-rain-eta')).toContainText('Prev.');await page.evaluate(()=>showFcPopup());
+ await expect(page.locator('#sp-rain-eta')).toContainText('estimativa por minuto indisponível');await page.evaluate(()=>showFcPopup());
  await expect(page.locator('#rainbow-rain-chart')).toHaveCount(0);await expect(page.locator('#weather-brief')).toContainText('pausada até renovar');
  await expect(page.locator('#weather-brief')).toContainText('modelos horários');
  const before=await page.evaluate(()=>window.__rainbowRequests.length);await page.evaluate(()=>WeatherEvidence.refresh());expect(await page.evaluate(()=>window.__rainbowRequests.length)).toBe(before);
@@ -51,7 +51,7 @@ test('GPS trocado durante consulta não exibe previsão do ponto antigo',async({
   WeatherPanel.update=()=>{if(window.__rainOutlook?.provider==='rainbow'&&window.__rainOutlook.loc.lat!==weatherLoc.lat)window.__wrongRainLocation=true;native();};
   const first=WeatherEvidence.refresh();weatherLoc.lat=-22.9;weatherLoc.lng=-43.2;weatherLoc.nome='Rio de Janeiro';WeatherEvidence.update();await first;
  });
- await page.evaluate(()=>WeatherEvidence.refresh());await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora');
+ await page.evaluate(()=>WeatherEvidence.refresh());await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora · 12 mm/h estimados');
  expect(await page.evaluate(()=>window.__rainOutlook.loc.lat)).toBe(-22.9);
  expect(await page.evaluate(()=>window.__wrongRainLocation)).toBe(false);
 });
