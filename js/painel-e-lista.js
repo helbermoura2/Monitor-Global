@@ -2074,7 +2074,8 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         window.__mgLiveQuakeUntil = window.__mgHoldEndsAt;
     }
 
-    if (item.coords && map && !((['storm','wind'].includes(item.type)||item.meteoalarmArea)&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea))) {
+    const weatherAreaFocus=(['storm','wind','flood'].includes(item.type)||item.meteoalarmArea||item.bomRegion)&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea||item.bomRegion);
+    if (item.coords && map && !weatherAreaFocus) {
         let zoomEvento = 6;
         if (item.type === 'earthquake') {
             const rDetKm = raioDetectavel(item.mag, item.depth);
@@ -2164,22 +2165,17 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         // "Rajada de Vento"/aviso de tempestade iam pro mapa todo no
         // aleatório exatamente por pularem isto antes). Só cai na visão
         // global quando não há NENHUM dado de localização.
-        if (item.type==='storm'||item.type==='wind'||item.meteoalarmArea) {
-            window.WeatherWarningCamera?.focus(item).then(focused=>{if(!focused&&eventoSelecionadoId===item.id&&window.EventCamera)EventCamera.enter(item.id,{center:[0,0],zoom:EventCamera.worldZoom(),padding:{top:0,right:0,bottom:0,left:0}});}).catch(e=>console.warn('[área meteorológica]',e.message));
+        if (['storm','wind','flood'].includes(item.type)||item.meteoalarmArea||item.bomRegion) {
+            window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
         } else if (item.municipalityLocations?.length) {
             window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
         } else if (map) {
             if(window.EventCamera)EventCamera.enter(item.id,{center:[0,0],zoom:EventCamera.worldZoom()});else map.flyTo({center:[0,0],zoom:1.1,pitch:0,bearing:0,duration:6000,essential:true});
         }
     }
-    // Só quando item.coords já posicionou a câmera no LUGAR certo (acima):
-    // no ciclo automático, um fitBounds ao redor de TODOS os municípios do
-    // aviso sobrescrevia esse enquadramento certo com algo bem mais largo --
-    // pra um aviso estadual isso podia acabar mostrando o mapa inteiro em
-    // vez do lugar, pedido do usuário pra não fazer. Sem item.coords, o
-    // fitArea já rodou (ou não havia dado nenhum) no ramo acima.
-    if(item.coords&&(['storm','wind'].includes(item.type)||item.meteoalarmArea)&&item.hazardNature==='warning'&&(item.warningGeometry||item.municipalityLocations?.length||item.affectedZones?.length||item.meteoalarmArea))window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área meteorológica]',e.message));
-    else if(item.coords&&!softAlert&&item.municipalityLocations?.length)window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
+    // Regional weather has already resolved its destination above. Starting it
+    // twice cancels the first request; a stale failure must never reset the globe.
+    if(item.coords&&!weatherAreaFocus&&!softAlert&&item.municipalityLocations?.length)window.WeatherWarningCamera?.focus(item).catch(e=>console.warn('[área do aviso]',e.message));
     if(item.type==='tsunami')window.TsunamiPriority?.markPresented(item);
     if(triggerVisualAlert)window.NewEventPriority?.markPresented(item);
 }

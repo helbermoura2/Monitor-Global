@@ -17,7 +17,7 @@
    if(!type||/cancel|final warning|no warnings/i.test(title))continue;
    const link=validLink(text('link'),['www.bom.gov.au','reg.bom.gov.au']),time=Date.parse(text('pubDate'));
    if(!link||!Number.isFinite(time)||time>checkedAt+300000)continue;
-   rows.push({id:'bom-weather-'+link,type,place:region+' — Austrália',source:'BOM / Bureau of Meteorology',bandeira:'🇦🇺',hazardNature:'warning',time,checkedAt,warningEvent:title,warningLevel:/Watch/i.test(title)?'Atenção':'Aviso',severityLabel:'Não informada pelo RSS',detail:title,link,locationNote:'RSS de avisos correntes. Área detalhada e validade devem ser conferidas no boletim oficial; sem coordenadas verificadas.'});
+   rows.push({id:'bom-weather-'+link,type,bomRegion:region,place:region+' — Austrália',source:'BOM / Bureau of Meteorology',bandeira:'🇦🇺',hazardNature:'warning',time,checkedAt,warningEvent:title,warningLevel:/Watch/i.test(title)?'Atenção':'Aviso',severityLabel:'Não informada pelo RSS',detail:title,link,locationNote:'RSS de avisos correntes. Área detalhada e validade devem ser conferidas no boletim oficial; sem coordenadas verificadas.'});
   }return rows;
  }
  function active(s,now=Date.now()){

@@ -36,7 +36,15 @@ let catalogue=null,catalogueUntil=0,cataloguePending=null;
 const codes=new Set('DE FR ES PT IT UK AT BE NL CH PL NO SE FI DK IE'.split(' '));
 const validBounds=b=>Array.isArray(b)&&b.length===2&&b.every(point)&&b[0][0]<b[1][0]&&b[0][1]<b[1][1];
 const areaName=s=>String(s||'').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR');
+// Coarse feed coverage, never an alert polygon or a point of occurrence.
+const bomAreas={
+ 'New South Wales / ACT':[[141,-37.6],[154,-28]],'Victoria':[[140.9,-39.2],[150,-34]],
+ 'Queensland':[[137.9,-29.2],[154,-9.1]],'Western Australia':[[112.8,-35.2],[129.1,-13.5]],
+ 'South Australia':[[129,-38.1],[141.1,-25.9]],'Tasmania':[[143.7,-44],[149,-39.2]],
+ 'Northern Territory':[[129,-26],[138.1,-10.8]]
+};
 async function reference(item){
+ if(/^BOM\b/.test(item.source||'')&&Object.hasOwn(bomAreas,item.bomRegion))return {bounds:bomAreas[item.bomRegion],exact:false,label:item.bomRegion+' — Austrália'};
  if(!item.meteoalarmArea||!codes.has(item.countryCode))return null;
  if(catalogueUntil<=Date.now()&&!cataloguePending){
   cataloguePending=(async()=>{try{
@@ -93,9 +101,9 @@ async function focus(item){
  if(!item?.id)return false;
  const token=++generation,active=()=>token===generation&&eventoSelecionadoId===item.id;
  let b=await resolve(item,active);if(!active())return false;
- if(!b&&item.meteoalarmArea){
+ if(!b&&(item.meteoalarmArea||item.bomRegion)){
   const ref=await reference(item);if(!active())return false;
-  if(ref){b=ref.bounds;locationNote(item,ref.exact?'Enquadramento da área oficial · Meteoalarm':'Visão geral: '+item.country+' · área exata indisponível. Consulte o boletim oficial.');}
+  if(ref){b=ref.bounds;locationNote(item,ref.exact?'Enquadramento da área oficial · Meteoalarm':'Referência regional: '+(ref.label||item.country)+' · área exata do aviso indisponível no mapa. Consulte o boletim oficial.');}
  }else if(b&&item.meteoalarmArea)locationNote(item,'Enquadramento da área oficial · Meteoalarm');
  if(b&&/INMET/i.test(item.source||'')&&!geometryPoints(item.warningGeometry).length)locationNote(item,b[0][0]===b[1][0]&&b[0][1]===b[1][1]?'Ponto de referência do aviso; área exata indisponível. Consulte o boletim oficial.':'Enquadramento de referência dos municípios citados no aviso; não representa um epicentro nem o limite exato da tempestade.');
  if(!b)locationNote(item,'Aviso sem localização verificável no mapa. Consulte a região descrita no boletim oficial.');
