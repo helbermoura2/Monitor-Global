@@ -1,6 +1,8 @@
 package top.monitorglobal.tv;
 /** Monotonic timing shared by drawing, queue and local tests. */
 final class BannerTimeline {
+ static final long SUMMARY_PAGE_MS=6000;
+ static long summaryDuration(int count){return Math.min(5,Math.max(0,count))*SUMMARY_PAGE_MS;}
  static final long PAGE_MS=8000,FADE_MS=360,PAGE_FADE_MS=650,REVISION_AT_MS=2400;
  static int page(long elapsed,int count){return count<2?0:(int)(Math.max(0,elapsed)/PAGE_MS%count);}
  static float progress(long elapsed){float t=Math.min(1,Math.max(0,elapsed)/(float)FADE_MS);return t*t*(3-2*t);}

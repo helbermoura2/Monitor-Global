@@ -23,6 +23,7 @@ public class BannerTimelineCheck {
   Alert mixed=q.copy();AlertPairing.attach(List.of(mixed),List.of(q,t,noThreat),true,true);check(mixed.companion.state.equals("warning"),"A separate no-threat region must never hide a warning");
   check(BannerTimeline.pageProgress(0)==0&&BannerTimeline.pageProgress(650)==1&&BannerTimeline.pageProgress(325)>.49f&&BannerTimeline.pageProgress(325)<.51f,"Vertical transition must be smooth and finish in 650ms");
   check(noThreat.quietInformation()&&!q.quietInformation(),"Only the no-threat update suppresses its sound, not a real quake");
+  check(BannerTimeline.summaryDuration(5)==30000&&BannerTimeline.summaryDuration(3)==18000&&BannerTimeline.summaryDuration(9)==30000&&BannerTimeline.summaryDuration(0)==0,"Daily summary must use six seconds per quake, independently of alert duration and bounded to five");
   System.out.println("PASS: 8/8 timing, smooth transition, complete cycles, pairing, coalescing, outage and cancellation replacement");
  }
 }
