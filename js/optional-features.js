@@ -68,7 +68,7 @@
    finally{button.disabled=false;button.textContent='📤 Imagem';}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;
-  const desktop=matchMedia('(min-width:901px)'),activateAt=Date.parse('2026-10-25T14:00:00-03:00'),retireAt=Date.parse('2026-10-26T06:00:00-03:00');
+  const desktop=matchMedia('(min-width:901px)'),activateAt=Date.parse('2026-10-25T16:55:00-03:00'),retireAt=Date.parse('2026-10-26T06:00:00-03:00');
   let generation=0,busy=false,expiryTimer;
   const chip=document.createElement('button');chip.id='chip-election';chip.className='chip chip-toggle';chip.type='button';
   chip.setAttribute('aria-controls','election-panel');chip.setAttribute('aria-expanded','false');chip.setAttribute('data-tt','Apuração presidencial · TSE');
@@ -80,10 +80,10 @@
    if(arrivals.size>1000){const recent=[...arrivals].slice(-500);arrivals.clear();recent.forEach(id=>arrivals.add(id));}
   }};
   async function open(){
-   visibility();if(busy||chip.hidden)return;if(Date.now()<activateAt){if(typeof showToast==='function')showToast('Consultas ao TSE a partir de 25/10 às 14h de Brasília.','info');return;}busy=true;const token=generation;chip.disabled=true;chip.setAttribute('aria-busy','true');
+   visibility();if(busy||chip.hidden)return;if(Date.now()<activateAt){if(typeof showToast==='function')showToast('Consultas ao TSE a partir de 25/10 às 16h55 de Brasília.','info');return;}busy=true;const token=generation;chip.disabled=true;chip.setAttribute('aria-busy','true');
    try{
     await asset('css/election-results.css?v=20261018-records-drawer');
-    await asset('js/election-results.js?v=20261018-visible-election-window',true);
+    await asset('js/election-results.js?v=20261025-tse-1655',true);
     chip.removeEventListener('click',open);desktop.removeEventListener('change',visibility);document.removeEventListener('visibilitychange',visibility);clearTimeout(expiryTimer);
     if(token===generation&&desktop.matches&&Date.now()>=activateAt&&Date.now()<retireAt)window.ElectionPanel.open();
    }catch(error){failure(error);}

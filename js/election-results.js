@@ -1,4 +1,4 @@
-import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261018-visible-election-window';
+import {ELECTION_2026, TseResultsClient} from './tse-results.mjs?v=20261025-tse-1655';
 
 // A non-modal, desktop-only scoreboard. It never participates in map filters.
 const desktop = matchMedia('(min-width: 901px)');

@@ -1,7 +1,7 @@
 // The same signed public files used by resultados.tse.jus.br. No API key.
 export const ELECTION_2026 = Object.freeze({
   cycle: 'ele2026',
-  activateAt: Date.parse('2026-10-25T14:00:00-03:00'),
+  activateAt: Date.parse('2026-10-25T16:55:00-03:00'),
   secondTurnAt: Date.parse('2026-10-25T00:00:00-03:00'),
   // Temporary election feature; a final second-turn result retires it sooner.
   retireAt: Date.parse('2026-10-26T06:00:00-03:00'),
