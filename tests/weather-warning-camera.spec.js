@@ -12,19 +12,37 @@ for(const width of [1280,390])test('avisos regionais de tempestade e vento focam
   let focused;
   const actualFocus=WeatherWarningCamera.focus;WeatherWarningCamera.focus=item=>(focused=actualFocus(item));
   const rows=[];
-  for(const type of ['storm','wind'])for(const mode of ['auto','priority','manual']){
-   const item={id:type+'-'+mode,type,hazardNature:'warning',source:'NWS / NOAA',place:'Área oficial Oklahoma',severity:'Severe',sev:3,time:Date.now(),expiresAt:Date.now()+3600000,affectedZones:['https://api.weather.gov/zones/forecast/OKZ025']};
+  for(const type of ['storm','wind','flood'])for(const mode of ['auto','priority','manual']){
+   const item={id:type+'-'+mode,type,hazardNature:'warning',source:'NWS / NOAA',place:'Área oficial Oklahoma',severity:'Severe',sev:3,time:Date.now(),expiresAt:Date.now()+3600000,affectedZones:['https://api.weather.gov/zones/forecast/OKZ025'],...(mode==='priority'?{coords:[-97.5,35.5],warningGeometry:g}:{})};
    globalAlerts=[item];PresentationLimits.clear();window.__mgHoldEndsAt=0;window.__mgRevisionProtectedUntil=0;window.__mgSoftCycle=mode==='auto';window.__mgRotationDisplay=mode!=='manual';
    calls.length=0;focused=null;showAlertDetails(item,mode==='priority');window.__mgRotationDisplay=false;
    if(!focused)throw Error("Seleção não disparou o foco meteorológico");await focused;clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);
-   rows.push({type,mode,id:eventoSelecionadoId,fit:calls.find(c=>c.o),world:calls.some(c=>c.fly?.zoom===1.5)});
+   rows.push({type,mode,id:eventoSelecionadoId,fit:calls.find(c=>c.o),flights:calls.filter(c=>c.o).length,world:calls.some(c=>c.fly?.zoom===1.5)});
   }
   const inmet={id:'inmet-no-anchor',type:'wind',hazardNature:'warning',place:'Municípios brasileiros',source:'INMET',time:Date.now(),municipalityLocations:[{coords:[-48,-22]},{coords:[-47,-21]}]};
   globalAlerts=[inmet];PresentationLimits.clear();window.__mgRevisionProtectedUntil=0;window.__mgHoldEndsAt=0;calls.length=0;focused=null;window.__mgSoftCycle=true;window.__mgRotationDisplay=true;showAlertDetails(inmet,false);window.__mgRotationDisplay=false;if(!focused)throw Error("Seleção municipal não disparou o foco");await focused;clearTimeout(cycleTimeout);
   return {rows,fetches,inmet:calls.find(c=>c.o),error:window.__lastPainelDetalheError};
  });
- expect(result.rows).toHaveLength(6);for(const row of result.rows){expect(row.id).toBe(row.type+'-'+row.mode);expect(row.fit.o.center[0]).toBeCloseTo(-97.5,3);expect(row.fit.o.center[1]).toBeGreaterThan(35);expect(row.fit.o.center[1]).toBeLessThan(36);expect(row.world).toBe(false);expect(row.fit.o.padding.left+row.fit.o.padding.right).toBeLessThan(width);expect(row.fit.o.zoom).toBeGreaterThan(4);expect(row.fit.o.zoom).toBeLessThanOrEqual(8);}
+ expect(result.rows).toHaveLength(9);for(const row of result.rows){expect(row.id).toBe(row.type+'-'+row.mode);expect(row.fit.o.center[0]).toBeCloseTo(-97.5,3);expect(row.fit.o.center[1]).toBeGreaterThan(35);expect(row.fit.o.center[1]).toBeLessThan(36);expect(row.world).toBe(false);expect(row.flights).toBe(1);expect(row.fit.o.padding.left+row.fit.o.padding.right).toBeLessThan(width);expect(row.fit.o.zoom).toBeGreaterThan(4);expect(row.fit.o.zoom).toBeLessThanOrEqual(8);}
  expect(result.fetches).toHaveLength(1);expect(result.inmet.o.center[0]).toBeCloseTo(-47.5,3);expect(result.inmet.o.center[1]).toBeGreaterThan(-22);expect(result.inmet.o.center[1]).toBeLessThan(-21);expect(result.error).toBeFalsy();
+});
+for(const width of [1280,390])test('BOM wind and flood RSS focus the named region without inventing an alert point '+width,async({page})=>{
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
+ await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento&&window.__mgMapReady);
+ const rows=await page.evaluate(async()=>{
+  pausarBuscas();clearTimeout(cycleTimeout);EventCamera.cancel();globalEvents=[];isFirstLoad=false;isFirstDisplay=false;window.__mgColdLoadGraceUntil=0;pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();activeAlertingIds.clear();
+  const calls=[];EventCamera.enter=(id,camera)=>calls.push({id,camera});map.flyTo=o=>calls.push({fly:o});map.easeTo=()=>{};map.stop=()=>{};
+  let focused;const actual=WeatherWarningCamera.focus;WeatherWarningCamera.focus=item=>(focused=actual(item));const out=[];
+  for(const type of ['wind','flood'])for(const mode of ['auto','priority','manual']){
+   const title=type==='wind'?'Marine Wind Warning Summary for Queensland':'Minor Flood Warning for the Burrum River';
+   const xml='<rss><channel><item><title>'+title+'</title><link>https://www.bom.gov.au/fwo/'+type+'-'+mode+'.shtml</link><pubDate>'+new Date().toUTCString()+'</pubDate></item></channel></rss>';
+   const item=OfficialWeatherAlerts.bom(xml,'Queensland')[0];globalAlerts=[item];PresentationLimits.clear();window.__mgHoldEndsAt=0;window.__mgRevisionProtectedUntil=0;window.__mgSoftCycle=mode==='auto';window.__mgRotationDisplay=mode!=='manual';calls.length=0;focused=null;
+   showAlertDetails(item,mode==='priority');window.__mgRotationDisplay=false;if(!focused)throw Error('Missing regional focus');await focused;clearTimeout(cycleTimeout);
+   out.push({type:item.type,coords:item.coords,geometry:item.warningGeometry,reference:await WeatherWarningCamera.resolve(item),camera:calls.find(c=>c.camera)?.camera,global:calls.some(c=>c.camera?.center[0]===0||c.fly?.center?.[0]===0),note:document.getElementById('pd-warning-location')?.textContent});
+  }
+  return out;
+ });
+ expect(rows).toHaveLength(6);for(const row of rows){expect(row.coords).toBeUndefined();expect(row.geometry).toBeUndefined();expect(row.reference).toBeNull();expect(row.camera.center[0]).toBeCloseTo(145.95,2);expect(row.camera.zoom).toBeGreaterThan(2);expect(row.global).toBe(false);expect(row.note).toContain('Referência regional: Queensland');expect(row.note).toContain('área exata do aviso indisponível');}
 });
 test('resposta tardia de zona não rouba câmera de outro evento; área desconhecida não abre o mundo',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady);
