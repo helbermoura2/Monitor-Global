@@ -5,7 +5,7 @@ final class Banner {
  Banner(Context c){context=c;}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
  boolean show(Alert a,boolean demo,boolean replay){return showView(new NewsBannerView(context,a,demo,replay),BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20)));}
- boolean showSummary(java.util.List<Alert> alerts,String day){return showView(new NewsBannerView(context,alerts,day),BannerTimeline.summaryDuration(alerts.size()));}
+ boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay){return showView(new NewsBannerView(context,alerts,day,replay),BannerTimeline.summaryDuration(alerts.size()));}
  private boolean showView(View row,long duration){if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);
 
   WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*Prefs.get(context).getInt("themeWidthPercent",92)/100,dp(126),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32);

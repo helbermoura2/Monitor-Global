@@ -8,6 +8,7 @@ public final class MainActivity extends Activity {
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
   button("Replay · Buscar último sismo M6+ (até 72 horas)",v->launch(MonitorService.REPLAY));
   button("Resumo do dia · até 5 maiores sismos (até 30 segundos)",v->launch(MonitorService.SUMMARY));
+  button("Replay · Repetir último resumo salvo",v->launch(MonitorService.SUMMARY_REPLAY));
   button("3 · Testar sismo com indicação de tsunami (fictício)",v->launch(MonitorService.TEST));
   button("4 · Testar revisão M7,2 → M6,9 (fictícia)",v->launch(MonitorService.TEST_REVISION));
   button("5 · Testar aviso de tsunami (fictício)",v->launch(MonitorService.TEST_TSUNAMI));
@@ -19,7 +20,7 @@ public final class MainActivity extends Activity {
   button("Duração: "+Prefs.get(this).getInt("seconds",20)+" segundos",v->{int current=Prefs.get(this).getInt("seconds",20),next=current==15?20:current==20?30:current==30?60:current==60?90:current==90?120:15;Prefs.get(this).edit().putInt("seconds",next).apply();((Button)v).setText("Duração: "+next+" segundos");});
   label("Depois de ativar, volte ao conteúdo que deseja assistir. A faixa não captura os botões do controle e fecha automaticamente.",16,false);
   label("Sismo com tsunami: alterna a cada 8 segundos por pelo menos 32 segundos. Replay busca o último sismo M6+ das últimas 72 horas, inclusive enquanto a TV estava desligada. Sem internet, tenta o último registro local.",15,false);
-  label("Resumo do dia: maiores magnitudes do catálogo USGS desde 00h de Brasília, seis segundos por sismo, até 30 segundos. Parcial até a consulta; não altera a duração dos avisos. Alertas reais têm prioridade.",15,false);
+  label("Resumo do dia: maiores magnitudes do catálogo USGS desde 00h de Brasília, seis segundos por sismo, até 30 segundos. Parcial até a consulta; não altera a duração dos avisos. Alertas reais têm prioridade. Replay do resumo repete a última lista exibida, mesmo sem internet, com a data original.",15,false);
   label("Primeira conexão: os eventos existentes viram referência, sem disparar avisos antigos. Consultas a cada 30 segundos. O aparelho precisa continuar ligado e com acesso à internet.",15,false);
   label("A exibição sobre outros aplicativos e a permanência em segundo plano ainda precisam ser testadas nesta TV/Fire Stick. O teste demonstrativo não confirma a chegada de um alerta real.",15,false);
   label("Setas: navegar · OK: selecionar · Voltar: sair da configuração",14,false);
