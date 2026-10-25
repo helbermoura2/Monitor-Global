@@ -77,3 +77,5 @@ Transição vertical e boletim sem ameaça: [TV 1.0.6](TSUNAMI_E_TRANSICAO_1_0_6
 Resumo do dia e replay de sismos ocorridos com a TV desligada: [TV 1.0.7](RESUMO_E_REPLAY_1_0_7.md).
 
 Replay do último resumo, inclusive sem internet: [TV 1.0.8](REPLAY_RESUMO_1_0_8.md).
+
+Entrada e saída suaves da tarja inteira: [TV 1.0.9](ENTRADA_SUAVE_1_0_9.md).
