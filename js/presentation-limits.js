@@ -10,7 +10,7 @@ function reconcile(item){
  if(threat(item)){if(migrated)arm(active);return;}
  if(active.allowExtend){window.CinematicCard?.stop();window.TsunamiPresentation?.stop();if(typeof stopTsunamiWave==='function')stopTsunamiWave();}active.allowExtend=false;
  if(active.mode==='manual'){if(migrated)arm(active);return;}
- active.ms=Math.min(active.ms,10000);active.deadline=Math.min(active.deadline,Date.now()+10000);arm(active);
+ active.downgraded=true;active.entryPending=false;active.ms=Math.min(active.ms,10000);active.deadline=Math.min(active.deadline,Date.now()+10000);arm(active);
 }
 function clear(){clearTimeout(timer);timer=null;active=null;}
 function expire(context){if(active!==context||eventoSelecionadoId!==context.id)return;if(document.hidden){timer=null;return;}
@@ -18,8 +18,8 @@ function expire(context){if(active!==context||eventoSelecionadoId!==context.id)r
  window.VolcanoPriority?.finishPresentation?.(context.id);clear();runAutoCycle(true);
 }
 function arm(context){clearTimeout(timer);timer=setTimeout(()=>expire(context),Math.max(1,context.deadline-Date.now()));}
-function begin(item,mode){if(mode==='quake'){clear();return;}const ms=limitMs(item,mode);if(active?.id===item.id&&active.mode===mode&&active.ms>=ms){reconcile(item);return;}clear();const context=active={id:item.id,mode,ms,startedAt:Date.now(),deadline:Date.now()+ms,entryPending:false,allowExtend:item.type!=='tsunami'||threat(item),tsunamiRef:item.type==='tsunami'?{id:item.id,type:item.type,feedKey:item.feedKey,source:item.source,officialEventId:item.officialEventId,time:item.time,originTime:item.originTime,coords:item.coords?.slice(),coordinateRole:item.coordinateRole}:null};arm(context);}
-function delayEntry(id,ms){if(active?.id!==id)return;const context=active;context.entryPending=true;context.entryStarted=Date.now();context.startedAt=Date.now();context.deadline=context.startedAt+context.ms+ms;arm(context);}
+function begin(item,mode){if(mode==='quake'){clear();return;}const ms=limitMs(item,mode);if(active?.id===item.id&&active.mode===mode&&active.ms>=ms){reconcile(item);return;}clear();const context=active={id:item.id,mode,ms,startedAt:Date.now(),deadline:Date.now()+ms,entryPending:false,downgraded:false,allowExtend:item.type!=='tsunami'||threat(item),tsunamiRef:item.type==='tsunami'?{id:item.id,type:item.type,feedKey:item.feedKey,source:item.source,officialEventId:item.officialEventId,time:item.time,originTime:item.originTime,coords:item.coords?.slice(),coordinateRole:item.coordinateRole}:null};arm(context);}
+function delayEntry(id,ms){if(active?.id!==id||active.downgraded)return;const context=active;context.entryPending=true;context.entryStarted=Date.now();context.startedAt=Date.now();context.deadline=context.startedAt+context.ms+ms;arm(context);}
 function arrived(id){if(active?.id!==id||!active.entryPending)return;const context=active;context.entryPending=false;context.startedAt=Date.now();context.deadline=context.startedAt+context.ms;arm(context);}
 function extendStay(id,ms){if(active?.id!==id||!Number.isFinite(ms)||ms<=active.ms)return;const context=active;if(!context.allowExtend)return;const stay=Math.min(180000,ms);if(stay<=context.ms)return;context.deadline+=stay-context.ms;context.ms=stay;arm(context);}
 function wait(ms){return active?.id===eventoSelecionadoId?Math.min(ms,Math.max(1,active.deadline-Date.now())):ms;}
