@@ -56,7 +56,7 @@
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');await asset('js/quake-card-layout.js?v=20261024-editorial-v16');await asset('js/quake-image-paint.js?v=20261024-editorial-v16');await asset('js/story-share.js?v=editorial-v16');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
+ window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');await asset('js/quake-card-layout.js?v=20261025-editorial-v17');await asset('js/quake-image-paint.js?v=20261024-editorial-v16');await asset('js/story-share.js?v=editorial-v17');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
  function init(){
   if(new URLSearchParams(location.search).get('admin')==='1')window.TelegramAdmin.open();
   const button=document.getElementById('pd-share-btn');
@@ -64,7 +64,7 @@
    event.stopPropagation();const item=selected();
    if(!item){window.showToast?.('Selecione um evento na lista primeiro.','info');return;}
    button.disabled=true;button.textContent='Carregando…';
-   try{await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');await asset('js/quake-card-layout.js?v=20261024-editorial-v16');await asset('js/quake-image-paint.js?v=20261024-editorial-v16');await asset('js/story-share.js?v=editorial-v16');await window.shareEventAsStory(item);}catch(error){failure(error);}
+   try{await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');await asset('js/quake-card-layout.js?v=20261025-editorial-v17');await asset('js/quake-image-paint.js?v=20261024-editorial-v16');await asset('js/story-share.js?v=editorial-v17');await window.shareEventAsStory(item);}catch(error){failure(error);}
    finally{button.disabled=false;button.textContent='📤 Imagem';}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;

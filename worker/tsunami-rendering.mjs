@@ -8,7 +8,7 @@ export async function renderTsunamiImage(model,{regions}={}){
  const fit=(s,z,max,bold=false)=>{s=String(s||'');while(p.measure(s,z,bold)>max&&s.length>3)s=s.slice(0,-4)+'...';return s;};
  const text=(s,x,y,z=14,c=white,b=false,max=724)=>p.text(fit(s,z,max,b),x,y,z,c,b);
  const lines=(s,x,y,z,max,count=2,c=white)=>{let current='',out=[];for(const word of String(s).split(/\s+/)){if(p.measure((current+' '+word).trim(),z)>max&&current){out.push(current);current=word;}else current=(current+' '+word).trim();}if(current)out.push(current);out.slice(0,count).forEach((s,i)=>text(i===count-1&&out.length>count?out.slice(i).join(' '):s,x,y+i*(z+4),z,c,false,max));};
- text('MONITOR GLOBAL',28,22,20);text('BOLETIM REGIONAL',605,27,12,muted);
+ globalThis.QuakeCardLayout.drawBrand(p,'BOLETIM REGIONAL');
  text('TSUNAMI',28,66,34,white,true);text(model.label,28,110,22,white,true);
  const color=model.state==='unknown'?'#94a3b8':model.primary?.color||'#94a3b8';box(24,148,752,38);p.rect(24,148,4,38,color);text(model.title,38,158,17,color,true);
  const map=coastalMap(model,regions||await coastalReferences()),rect={x:24,y:198,width:752,height:412};let available=false;
@@ -42,6 +42,6 @@ export async function renderTsunamiImage(model,{regions}={}){
  text('A magnitude do sismo, sozinha, não define a ameaça de tsunami.',28,1240,13,muted);
  box(24,1270,752,76);p.rect(24,1270,4,76,color);lines(model.state==='ended'?'Aviso encerrado apenas para as regiões indicadas. Siga as orientações finais da autoridade.':'Nas áreas sob aviso, siga as orientações das autoridades locais.',38,1285,18,716,2,white);
  text('Consulte a fonte oficial para regiões, horários e recomendações completas.',28,1370,12,muted);
- text('monitorglobal.top',28,1410,12,muted);text('Monitor Global',650,1410,12,muted);
+ globalThis.QuakeCardLayout.drawFooter(p);
  return surface.png();
 }

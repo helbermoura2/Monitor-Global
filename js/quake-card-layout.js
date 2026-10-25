@@ -78,11 +78,20 @@
   p.text(groups.length>2?'Outras regiões: consulte o boletim oficial.':'Cada situação vale apenas para as regiões citadas.',38,TSUNAMI_Y+148,12,muted);
   p.text('Siga os boletins oficiais e as orientações das autoridades locais.',38,TSUNAMI_Y+164,11,muted);
  }
+ function drawBrand(p,status='AO VIVO'){
+  box(p,28,16,40,40,'#020816');
+  for(const r of [17,11.5,6])p.arc(48,36,r,1.2,-90,360,'#1c6182');
+  for(let r=1;r<=17;r++)p.arc(48,36,r,1.3,-90,45,'#38bdf8');
+  p.dot(48,36,2.4,'#38bdf8');
+  (p.brandText||p.text)('MONITOR GLOBAL',80,20,29,white,true);
+  const size=13;p.text(status,774-p.measure(status,size,true),27,size,muted,true);
+ }
+ function drawFooter(p){p.text('monitorglobal.top',28,1410,13,muted);const channel='@monitor_global';p.text(channel,774-p.measure(channel,14,true),1409,14,'#38bdf8',true);}
  function draw(p,ev){
   const pt=globalThis.EventPortuguese,fmt=(n,d=0)=>pt?.number(n,d)??Number(n).toFixed(d).replace('.',',');
   const place=pt?.place(ev.place)||ev.place||'Local não informado',revision=pt?.revision(ev)||ev.revisionText||'';
   p.rect(0,0,800,MAP_Y,bg);p.rect(0,MAP_Y+MAP_HEIGHT,800,1440-MAP_Y-MAP_HEIGHT,bg);
-  p.text('MONITOR GLOBAL',28,22,22,white,true);box(p,610,20,164,30);p.text(ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO',622,28,13,muted,true);
+  drawBrand(p,ev.test?'TESTE':revision?'ATUALIZADO':'AO VIVO');
   p.rect(24,66,752,1,line);
   p.text(fit(p,ev.imageRegion?pt?.place(ev.imageRegion)||ev.imageRegion:'SISMO',23,550,true),28,81,23,white,true);
   p.text('M'+fmt(ev.mag,1),624,77,40,Number(ev.mag)>=6?'#e79788':white,true);p.text('MAGNITUDE DO SISMO',621,126,10,muted);
@@ -116,7 +125,7 @@
   else{p.text(e?.status==='pending'?'Estimativa em consulta':'Estimativa indisponível',38,1240,27,white,true);p.text(e?.status==='pending'?'A imagem será atualizada quando houver dados.':'Sem dados suficientes; não significa zero.',38,1283,14,muted);}
   p.text(reserve?'Pode haver sobreposição; cobertura incompleta.':'As faixas se sobrepõem; não some os valores.',38,1340,14,muted);
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',38,1364,14,muted);
-  p.text('monitorglobal.top',28,1410,12,muted);p.text('Monitor Global',655,1410,12,muted);
+  drawFooter(p);
  }
- globalThis.QuakeCardLayout={frame,draw,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,drawLegacyTsunami,MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y,TSUNAMI_HEIGHT,version:'editorial-v16'};
+ globalThis.QuakeCardLayout={frame,draw,drawBrand,drawFooter,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,drawLegacyTsunami,MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y,TSUNAMI_HEIGHT,version:'editorial-v17'};
 })();
