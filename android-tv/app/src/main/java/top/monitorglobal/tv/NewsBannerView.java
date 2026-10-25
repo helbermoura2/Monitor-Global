@@ -9,7 +9,9 @@ import java.util.regex.*;
 /** One overlay: stable brand/footer, softly changing event content. No focus required. */
 final class NewsBannerView extends View {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- private final Path telegramPlane=new Path();
+ private final Path telegramPlane=new Path(),breakingClip=new Path();
+ private final Matrix shineMatrix=new Matrix();
+ private final LinearGradient shine=new LinearGradient(0,0,70,0,new int[]{Color.TRANSPARENT,0x50ffffff,Color.TRANSPARENT},null,Shader.TileMode.CLAMP);
  private final Typeface brand,data;
  private final Alert root;
  private final Page[] pages;
@@ -35,7 +37,7 @@ final class NewsBannerView extends View {
   }
  }
  NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated){
-  super(context);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
+  super(context);breakingClip.addRoundRect(3,3,216,24,7,7,Path.Direction.CW);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
@@ -64,8 +66,8 @@ final class NewsBannerView extends View {
  @Override protected void onDraw(Canvas c){
   super.onDraw(c);long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/126f);
   paint.setColor(background);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(0,0,960,126,10,10,paint);paint.setColor(accent);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1);c.drawRoundRect(1,1,959,125,10,10,paint);paint.setStyle(Paint.Style.FILL);
-  rounded(c,3,3,216,24,7,Color.rgb(191,24,39));text(c,replay?"REPLAY":"BREAKING NEWS",20,18,19,Color.WHITE,brand,194);
-  radar(c,36,63,elapsed);text(c,"MONITOR",69,59,24,foreground,brand,140);text(c,"GLOBAL",69,81,24,foreground,brand,140);rect(c,218,24,219,102,Color.rgb(49,76,91));
+  breaking(c,elapsed);
+  radar(c,36,54,elapsed);text(c,"MONITOR",69,50,24,foreground,brand,140);text(c,"GLOBAL",69,72,24,foreground,brand,140);rect(c,218,24,219,102,Color.rgb(49,76,91));
   drawIdentity(c,elapsed);
   int index=BannerTimeline.page(elapsed,pages.length);long within=elapsed%BannerTimeline.PAGE_MS;
   if(animate&&pages.length>1&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
@@ -76,13 +78,22 @@ final class NewsBannerView extends View {
   float offset=animate?(elapsed/1000f*40)%length:0;text(c,ticker,12-offset,119,13,foreground,data,Float.MAX_VALUE);text(c,ticker,12-offset+length,119,13,foreground,data,Float.MAX_VALUE);c.restore();c.restore();
   if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(BannerTimeline.PAGE_MS-within);}
  }
+ private void breaking(Canvas c,long elapsed){
+  rounded(c,3,3,216,24,7,Color.rgb(191,24,39));
+  if(animate&&!replay){
+   // Cached shader/path: one quiet sweep every 3.2 seconds, no per-frame allocations.
+   float phase=(elapsed%3200)/3200f;
+   if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*286,0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(3,3,216,24,paint);paint.setShader(null);c.restore();}
+  }
+  text(c,replay?"REPLAY":"BREAKING NEWS",20,18,19,Color.WHITE,brand,194);
+ }
  private void drawIdentity(Canvas c,long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;
   if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){float t=BannerTimeline.progress(within);identity(c,1-current,(int)(255*(1-t)));identity(c,current,(int)(255*t));}
   else identity(c,current,255);
  }
  private void identity(Canvas c,int index,int opacity){
-  if(opacity<=0)return;int layer=c.saveLayerAlpha(5,82,213,100,opacity);
+  if(opacity<=0)return;int layer=c.saveLayerAlpha(5,83,213,101,opacity);c.translate(0,1);
   if(index==0)text(c,"monitorglobal.top",18,96,12,accent,data,194);
   else{
    paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(42,171,238));c.drawCircle(19,91,7,paint);
