@@ -22,7 +22,7 @@ async function fixture(page,{failure=false,delayed=false}={}){
   };
  },{failure,delayed});
 }
-for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test('Rainbow na barra e gráfico de 60 minutos '+mode,async({page})=>{
+for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test('Rainbow na barra e gráfico de 60 minutos '+mode,async({page},testInfo)=>{
  await page.setViewportSize({width,height});await fixture(page);await page.goto('/',{waitUntil:'domcontentloaded'});
  await page.evaluate(()=>WeatherEvidence.refresh());
  await expect(page.locator('#sp-rain-eta')).toHaveText('Chuva forte · agora · 12 mm/h estimados');
@@ -35,7 +35,7 @@ for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test(
  const before=await page.evaluate(()=>window.__rainbowRequests.length);
  await page.evaluate(()=>WeatherEvidence.refresh());expect(await page.evaluate(()=>window.__rainbowRequests.length)).toBe(before);
  const chart=await page.locator('#rainbow-rain-chart').boundingBox();expect(chart.x).toBeGreaterThanOrEqual(0);expect(chart.x+chart.width).toBeLessThanOrEqual(width+1);
- await page.locator('#rainbow-rain-chart').screenshot({path:'/workspace/scratch/rainbow-chart-'+mode+'.png'});
+ await page.locator('#rainbow-rain-chart').screenshot({path:testInfo.outputPath('rainbow-chart.png')});
 });
 test('cota preserva modelos e não vira ausência de chuva',async({page})=>{
  await fixture(page,{failure:true});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>WeatherEvidence.refresh());

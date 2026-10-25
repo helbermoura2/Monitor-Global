@@ -2,6 +2,8 @@ name: Weather header regression
 on:
   pull_request:
     paths:
+      - 'index.html'
+      - 'js/cemaden-risco.js'
       - 'js/weather-header-summary.js'
       - 'js/rainbow-weather.js'
       - 'js/weather-data-status.js'
