@@ -32,7 +32,7 @@ test('status query is offline-injectable, small quakes do not query providers an
  await queryImageTsunami({...ev,mag:3},null,read);assert.equal(calls,2);
 });
 test('active tsunami images remain eligible beyond day one, but not after 72h',()=>{
- const record={id:'q',mag:6.9,timeIso:new Date(now-30*3600000).toISOString(),delivery:'sent',messageType:'photo',messageId:1,cardImageVersion:'editorial-v16',imageExposureCheckedAt:0,imageShakingCheckedAt:0,currentEvent:{imageTsunami:{state:'warning'}}};
+ const record={id:'q',mag:6.9,timeIso:new Date(now-30*3600000).toISOString(),delivery:'sent',messageType:'photo',messageId:1,cardImageVersion:'editorial-v17',imageExposureCheckedAt:0,imageShakingCheckedAt:0,currentEvent:{imageTsunami:{state:'warning'}}};
  assert(imageRefreshDue(record,now));assert.equal(imageRefreshDue({...record,currentEvent:{imageTsunami:{state:'cancelled'}}},now),false);
  assert.equal(imageRefreshDue({...record,timeIso:new Date(now-73*3600000).toISOString()},now),false);
 });

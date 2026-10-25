@@ -15,6 +15,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 - [durable-request-budget.md](durable-request-budget.md)
 - [regional-source-health.md](regional-source-health.md)
 - [telegram-brazil.md](telegram-brazil.md)
+- [identidade-imagens-telegram-20261025.md](identidade-imagens-telegram-20261025.md)
 - [telegram-image-quality.md](telegram-image-quality.md)
 - [telegram-map-v13.md](telegram-map-v13.md)
 - [telegram-tsunami-coastal-card.md](telegram-tsunami-coastal-card.md)

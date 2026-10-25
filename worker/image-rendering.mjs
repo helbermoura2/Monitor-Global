@@ -813,13 +813,18 @@ async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
     ev.imageTsunami=ev.imageTsunami||await queryImageTsunami(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const key=await renderIdentity('alert-editorial-v16',ev);
+    const key=await renderIdentity('alert-editorial-v17',ev);
     return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
+}
+function sanitizeHdText(text){
+ const glyphs=QUAKE_HD_FONTS['20-regular'].glyphs;
+ const value=String(text??'').replace(/→/g,'para').replace(/…/g,'...').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/\s+/g,' ').trim();
+ return [...value].map(ch=>Object.hasOwn(glyphs,ch)?ch:' ').join('');
 }
 function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
     const rgb=color=>color.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16));
-    const fontFor=(size,bold)=>fonts[(size*sy>50?96:size*sy>24?40:20)+(bold?'-bold':'-regular')];
-    const textWidth=(text,size,bold)=>{const font=fontFor(size,bold);return textFontWidthProp(font,sanitizeFontText(text),0)*size/font.size;};
+    const fontFor=(size,bold,brand=false)=>fonts[brand?'40-brand':(size*sy>50?96:size*sy>24?40:20)+(bold?'-bold':'-regular')];
+    const textWidth=(text,size,bold,brand=false)=>{const font=fontFor(size,bold,brand);return textFontWidthProp(font,sanitizeHdText(text),0)*size/font.size;};
     const nativeRect=(x,y,w,h,c)=>fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy),Math.round(w*sx),Math.round(h*sy),...rgb(c));
     const painter={
         gradient:(x,y,w,h,from,to)=>{const a=rgb(from),b=rgb(to),rows=Math.round(h*sy);for(let row=0;row<rows;row++)fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy)+row,Math.round(w*sx),1,...a.map((v,i)=>Math.round(v+(b[i]-v)*row/rows)));},
@@ -828,8 +833,8 @@ function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
         dot:(x,y,r,c)=>fillCircle(rgba,W,H,x*sx,y*sy,r*sy,...rgb(c),255),
         arc:(x,y,r,t,a,s,c)=>drawArc(rgba,W,H,x*sx,y*sy,r*sy,t*sy,a,s,...rgb(c),255),
         measure:textWidth,
-        text:(text,x,y,size,c,bold=false)=>{
-            text=sanitizeFontText(text);const f=fontFor(size,bold),tw=Math.ceil(textFontWidthProp(f,text,0))+2;
+        text:(text,x,y,size,c,bold=false,brand=false)=>{
+            text=sanitizeHdText(text);const f=fontFor(size,bold,brand),tw=Math.ceil(textFontWidthProp(f,text,0))+2;
             const pixels=new Uint8Array(tw*f.cellH*4);
             drawTextFontProp(pixels,tw,f.cellH,f,text,0,0,...rgb(c),0);
             const scaleX=size*sx/f.size,scaleY=size*sy/f.size;
@@ -844,9 +849,10 @@ function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
             }
         }
     };
+    painter.brandText=(text,x,y,size,c)=>painter.text(text,x,y,size,c,true,true);
     return painter;
 }
-export async function patchAlertTsunami(png,status,version=globalThis.QuakeCardLayout.version){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());(version===globalThis.QuakeCardLayout.version?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami)(p,status);return rgbaToPng(image.rgba,image.width,image.height);}
+export async function patchAlertTsunami(png,status,version=globalThis.QuakeCardLayout.version){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());(['editorial-v16',globalThis.QuakeCardLayout.version].includes(version)?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami)(p,status);return rgbaToPng(image.rgba,image.width,image.height);}
 async function renderAlertPixels(ev) {
     const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
     const logicalFrame=globalThis.QuakeCardLayout.frame(ev);

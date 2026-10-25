@@ -22,3 +22,8 @@ test('an archived v15 image uses the legacy bulletin position during a ShakeMap 
   assert(changes>100);
  }finally{globalThis.fetch=originalFetch;}
 });
+
+test('v16 archive keeps the modern bulletin region after the branding version changes',async()=>{
+ const saved=globalThis.fetch;globalThis.fetch=async()=>new Response('Offline fixture',{status:503});
+ try{const png=await renderAlertImage({id:'v16-region',mag:6,lat:0,lon:0,depth:10,timeIso:'2026-10-25T00:00:00Z',test:true});const patched=await patchAlertTsunami(png,{state:'noThreat',headline:'SEM AMEAÇA',areas:'Costas citadas',source:'PTWC'},'editorial-v16');const a=await decodePng(png),b=await decodePng(patched);let changed=0;for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){const i=(y*a.width+x)*4;if(a.rgba[i]!==b.rgba[i]||a.rgba[i+1]!==b.rgba[i+1]||a.rgba[i+2]!==b.rgba[i+2]){changed++;assert(y>=Math.floor(QuakeCardLayout.TSUNAMI_Y*4/3)&&y<Math.ceil((QuakeCardLayout.TSUNAMI_Y+QuakeCardLayout.TSUNAMI_HEIGHT)*4/3));}}assert(changed>100);}finally{globalThis.fetch=saved;}
+});

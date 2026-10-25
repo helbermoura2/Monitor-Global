@@ -8,6 +8,14 @@ on:
       - 'worker/seismic-providers.mjs'
       - 'worker/http.mjs'
       - 'worker/tv-alerts.mjs'
+      - 'js/quake-card-layout.js'
+      - 'js/story-share.js'
+      - 'quake-hd-fonts.mjs'
+      - 'worker/image-rendering.mjs'
+      - 'worker/tsunami-rendering.mjs'
+      - 'tests/unit/quake-card-layout.test.mjs'
+      - 'tests/unit/tsunami-image-patch.test.mjs'
+      - 'tests/seismic-story-population.spec.js'
       - 'js/tsunami-priority.js'
       - 'js/tsunami-tornado.js'
       - 'js/presentation-limits.js'
@@ -56,7 +64,7 @@ jobs:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
         run: |
-          node --test tests/unit/tsunami-priority-policy.test.cjs tests/unit/presentation-limits.test.cjs tests/unit/tv-context.test.mjs tests/unit/tv-alerts.test.mjs tests/unit/admin-security.test.mjs tests/unit/volcano-advisory-parser.test.cjs tests/unit/worker-modules.test.mjs tests/unit/earthquake-merge-budget.test.cjs tests/unit/source-session-budget.test.cjs tests/unit/weather-area-memory.test.cjs tests/unit/shared-source-delivery.test.cjs tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
+          node --test tests/unit/quake-card-layout.test.mjs tests/unit/tsunami-image-patch.test.mjs tests/unit/telegram-population-reserve.test.mjs tests/unit/image-tsunami-status.test.mjs tests/unit/tsunami-priority-policy.test.cjs tests/unit/presentation-limits.test.cjs tests/unit/tv-context.test.mjs tests/unit/tv-alerts.test.mjs tests/unit/admin-security.test.mjs tests/unit/volcano-advisory-parser.test.cjs tests/unit/worker-modules.test.mjs tests/unit/earthquake-merge-budget.test.cjs tests/unit/source-session-budget.test.cjs tests/unit/weather-area-memory.test.cjs tests/unit/shared-source-delivery.test.cjs tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
           node tests/unit/audio-volume-check.cjs
           node tests/unit/population-check.cjs
           node tests/unit/unified-cities-check.cjs
@@ -65,7 +73,7 @@ jobs:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
         run: |
-          npx playwright test tests/map-raster-retry.spec.js tests/app-recovery.spec.js tests/weather-warning-camera.spec.js tests/weather-warning-globe.spec.js tests/sequence-warning-regression.spec.js tests/local-performance-diagnostics.spec.js tests/source-health.spec.js tests/event-insights.spec.js tests/browser-request-budget.spec.js tests/world-view-audio.spec.js tests/tsunami-painted-model1.spec.js --workers=2
+          npx playwright test tests/map-raster-retry.spec.js tests/app-recovery.spec.js tests/weather-warning-camera.spec.js tests/weather-warning-globe.spec.js tests/sequence-warning-regression.spec.js tests/local-performance-diagnostics.spec.js tests/source-health.spec.js tests/event-insights.spec.js tests/browser-request-budget.spec.js tests/world-view-audio.spec.js tests/seismic-story-population.spec.js tests/tsunami-painted-model1.spec.js --workers=2
           npx playwright test tests/tsunami-globe-priority.spec.js --grep "new tsunami interrupts|regional no-threat" --workers=2
       - uses: actions/upload-artifact@v4
         if: failure()
