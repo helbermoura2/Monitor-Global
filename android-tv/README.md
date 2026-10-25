@@ -73,3 +73,5 @@ A prévia 0.1.1 aguarda até 45 segundos pela resposta do feed na conexão inici
 Ajustes de espaçamento, brilho no Breaking News e ícone oficial: [identidade visual 1.0.5](IDENTIDADE_VISUAL_1_0_5.md).
 
 Transição vertical e boletim sem ameaça: [TV 1.0.6](TSUNAMI_E_TRANSICAO_1_0_6.md).
+
+Resumo do dia e replay de sismos ocorridos com a TV desligada: [TV 1.0.7](RESUMO_E_REPLAY_1_0_7.md).
