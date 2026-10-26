@@ -38,17 +38,17 @@ final class NewsBannerView extends View {
   }
  }
  NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated){
-  this(context,a,demonstration,repeated,null,"");
+  this(context,a,demonstration,repeated,null,"",false);
  }
- NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated){this(context,alerts.get(0),false,repeated,alerts,day);}
- private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day){
+ NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts.get(0),false,repeated,alerts,day,complete);}
+ private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete){
   super(context);summary=daily!=null;summaryDay=day;pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;breakingClip.addRoundRect(3,3,216,24,7,7,Path.Direction.CW);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
-  StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+day+" · HORÁRIO DE BRASÍLIA · USGS · PARCIAL ATÉ A CONSULTA · ":demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
+  StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+day+" · HORÁRIO DE BRASÍLIA · USGS · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
   for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
    if(!v.populationSummary.isEmpty())line.append(v.populationSummary).append("     •     ");
    if(!v.nearbySummary.isEmpty())line.append(v.nearbySummary).append("     •     ");

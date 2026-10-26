@@ -8,7 +8,7 @@ const hash=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-25
 async function collect(env){const now=Date.now(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{const [q,t]=await Promise.allSettled([fetch('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=5.5&limit=100&orderby=time&starttime='+encodeURIComponent(new Date(now-MAX_AGE).toISOString()),{signal:controller.signal}).then(async r=>{if(!r.ok)throw Error('USGS');const data=await r.json();if(!Array.isArray(data.features))throw Error('Catalog');return data;}),getOfficialTsunamis()]);const features=q.status==='fulfilled'?q.value.features:[];return enrichTvSnapshot(tvSnapshot(q.status==='fulfilled'?q.value:{ok:false,features:[]},t.status==='fulfilled'?t.value:{ok:false,items:[]},now),features,env);}finally{clearTimeout(timer);}}
 export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=globalThis.caches?.default}={}){
  const view=new URL(request.url).searchParams.get('view');
- if(view==='daily'||view==='replay')return handleTvHistory(request,{view,now,cache});
+ if(view==='daily'||view==='replay'||view==='completed')return handleTvHistory(request,{view,now,cache});
  const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'ETag','Content-Type':'application/json','Cache-Control':'public, max-age=20','X-Monitor-TV':VERSION};
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
  const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-alerts-v1');let snapshot;
