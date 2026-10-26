@@ -5,10 +5,10 @@
   "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82",
   "release": {
     "enabled": true,
-    "versionCode": 10009,
-    "versionName": "1.0.9",
-    "url": "https://monitorglobal.top/downloads/monitor-global-tv-1.0.9.apk",
-    "sha256": "ab1dd99a0e2cbf1a68cd697b90bd0eefa2cf6d3bdb70d1e143f503075e3d3814"
+    "versionCode": 10010,
+    "versionName": "1.0.10",
+    "url": "https://monitorglobal.top/downloads/monitor-global-tv-1.0.10.apk",
+    "sha256": "a47674ea897733a5cf6105c96eb7fdd7585d8aa58081b838d50e17b44c63d4c4"
   },
   "theme": {
     "version": 1,
