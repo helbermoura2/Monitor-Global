@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import android.media.*;import java.util.*;import java.util.concurrent.*;
 public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",REPLAY="top.monitorglobal.tv.REPLAY";
- private final List<Runnable> demoTasks=new ArrayList<>();
+ private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
  private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction()))interruptDaily();else checkDaily();}};
@@ -30,7 +30,7 @@ public final class MonitorService extends Service {
   if(!Prefs.get(this).getBoolean("enabled",false)){stopSelf();return START_NOT_STICKY;}
   ensurePolling();checkDaily();return START_STICKY;
  }
- private void cancelDemos(){for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
+ private void cancelDemos(){++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
  private void scheduleDemo(String scenario){scheduleLocal(DemoAlerts.create(scenario,System.currentTimeMillis()),true,false);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay){
   cancelDemos();long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
@@ -69,12 +69,12 @@ public final class MonitorService extends Service {
  }
  private void stopIfIdle(){if(!Prefs.get(this).getBoolean("enabled",false)&&!draining&&demoTasks.isEmpty())stopSelf();}
  private void scheduleSummary(FeedClient.Snapshot snapshot,boolean replay){
-  cancelDemos();long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
-  Runnable show=()->{if(destroyed)return;if(draining||!queue.isEmpty()){Prefs.status(this,"Resumo adiado por alerta real. Solicite novamente após o aviso.");return;}
-   if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete)&&!replay)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryDuration(snapshot.alerts.size());
-  };demoTasks.add(show);main.postDelayed(show,delay);
-  Runnable stop=()->{demoTasks.clear();activeUntil=0;stopIfIdle();tryDaily();};demoTasks.add(stop);main.postDelayed(stop,delay+BannerTimeline.summaryDuration(snapshot.alerts.size())+1000);
-  Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+snapshot.day+" em 10 segundos · "+snapshot.alerts.size()+" sismos · "+BannerTimeline.summaryDuration(snapshot.alerts.size())/1000+" segundos · parcial até "+NewsBannerView.formatTime(snapshot.asOf));
+  cancelDemos();final int generation=localGeneration;long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
+  Runnable stop=()->{if(generation!=localGeneration)return;demoTasks.clear();activeUntil=0;stopIfIdle();tryDaily();};
+  Runnable show=()->{if(destroyed)return;if(draining||!queue.isEmpty()){Prefs.status(this,"Resumo adiado por alerta real. Solicite novamente após o aviso.");stop.run();return;}
+   if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete,stop)){if(!replay)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;}else stop.run();
+  };demoTasks.add(show);demoTasks.add(stop);main.postDelayed(show,delay);
+  Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+snapshot.day+" em 10 segundos · "+snapshot.alerts.size()+" sismos · 6 segundos de leitura por sismo + animações.");
  }
  private void interruptDaily(){
   if(dailyEnd!=null)main.removeCallbacks(dailyEnd);dailyEnd=null;
@@ -104,10 +104,11 @@ public final class MonitorService extends Service {
   if(destroyed||!dailyEnabled()||!screenReady()||pendingDaily==null||daily.displaying()||localBusy()||android.os.SystemClock.elapsedRealtime()<dailyRetryAt)return;
   if(!pendingDaily.day.equals(daily.due(System.currentTimeMillis())))return;
   FeedClient.Snapshot snapshot=pendingDaily;
-  if(!banner.showSummary(snapshot.alerts,snapshot.day,false,true)){dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;return;}
-  Prefs.rememberSummary(this,snapshot);int attempt=daily.start(snapshot.day);long duration=BannerTimeline.summaryDuration(snapshot.alerts.size());activeUntil=android.os.SystemClock.uptimeMillis()+duration;
+  int attempt=daily.start(snapshot.day);
   dailyEnd=()->{if(!screenReady()){interruptDaily();return;}if(destroyed||!daily.finish(snapshot.day,attempt))return;Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();pendingDaily=null;dailyEnd=null;activeUntil=0;Prefs.status(this,"Resumo diário de "+snapshot.day+" exibido. Disponível no replay do resumo.");};
-  main.postDelayed(dailyEnd,duration+50);Prefs.status(this,"Resumo automático de "+snapshot.day+" · dia encerrado · até 30 segundos.");
+  if(!banner.showSummary(snapshot.alerts,snapshot.day,false,true,dailyEnd)){daily.interrupt();dailyEnd=null;dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;return;}
+  Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;
+  Prefs.status(this,"Resumo automático de "+snapshot.day+" · dia encerrado · 6 segundos de leitura por sismo + animações.");
  }
  private PendingIntent open(){return PendingIntent.getActivity(this,1,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
  private void poll(){if(destroyed)return;try{FeedClient.Snapshot snapshot=feed.read();if(destroyed)return;long now=System.currentTimeMillis();Prefs.get(this).edit().putLong("lastCheck",now).apply();if(snapshot.unchanged){refreshOfficialConfig();return;}

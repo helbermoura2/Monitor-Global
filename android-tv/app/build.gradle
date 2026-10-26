@@ -6,8 +6,8 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  versionCode 10011
-  versionName '1.0.11'
+  versionCode 10012
+  versionName '1.0.12'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
