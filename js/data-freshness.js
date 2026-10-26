@@ -55,13 +55,15 @@ function snapshot(name,now=Date.now()){
 function summary(now=Date.now()){
  const last=Number(root.__lastSismoSuccess)||0,cached=Number(root.__sismoCacheAt)||0;
  const missing=quakeNames.map(n=>snapshot(n,now)).filter(s=>['error','partial','stale'].includes(s.state)).map(s=>s.name);
- const base={missing,expected:quakeNames.length,available:quakeNames.filter(n=>snapshot(n,now).state==='fresh').length};
+ const waiting=quakeNames.filter(n=>snapshot(n,now).state==='waiting');
+ const base={missing,waiting,expected:quakeNames.length,available:quakeNames.filter(n=>snapshot(n,now).state==='fresh').length};
  if(root.navigator?.onLine===false)return {...base,state:'offline',label:'SEM CONEXÃO',at:last||cached};
  if(last&&(now-last>120000||root.__sismoUsingCache))return {...base,state:'stale',label:'DADOS ATRASADOS',at:last};
  if(!last&&root.__sismoUsingCache)return {...base,state:'stale',label:'DADOS SALVOS',at:cached};
  if(updating)return {...base,state:'updating',label:'ATUALIZANDO',at:last};
  if(!last)return {...base,state:missing.length?'stale':'waiting',label:missing.length?'SEM ATUALIZAÇÃO':'AGUARDANDO',at:0};
- if(missing.length)return {...base,state:'partial',label:'ATUALIZAÇÃO PARCIAL',at:last};
+ if(!base.available&&!waiting.length)return {...base,state:'stale',label:'SEM ATUALIZAÇÃO',at:last};
+ if(missing.length||waiting.length)return {...base,state:'partial',label:'ATUALIZAÇÃO PARCIAL',at:last};
  return {...base,state:'fresh',label:'ATUALIZADO',at:last};
 }
 const sourceStatus=(name,now)=>{const s=snapshot(name,now);return s.label+(s.retained?' · dados anteriores':'');};
@@ -71,10 +73,12 @@ function stamp(ts){return ts?new Date(ts).toLocaleString('pt-BR')+' · há '+age
 function issueText(s){if(s.state==='disabled')return 'Ligue o radar quando quiser consultar os quadros.';if(s.state==='paused')return s.error||'Esta integração não faz consultas automáticas.';if(s.state==='offline')return 'O aparelho está sem conexão.';if(s.state==='error')return 'A última consulta não retornou dados válidos. Isso não significa ausência de eventos.';if(s.state==='partial')return 'A consulta não confirmou todos os dados esperados.';if(s.state==='stale')return 'A última resposta válida ultrapassou o prazo esperado para este produto.';return '';}
 function renderDetails(){
  if(!dialog?.open)return;
- const body=dialog.querySelector('.mg-fresh-body'),scroll=body.scrollTop,opened=new Set([...body.querySelectorAll('details[open]')].map(d=>d.closest('[data-source]')?.dataset.source));body.replaceChildren();
+ const body=dialog.querySelector('.mg-fresh-body'),scroll=body.scrollTop,active=document.activeElement,focusedSource=body.contains(active)?active.closest('[data-source]')?.dataset.source:null,focusedRetry=body.contains(active)&&active.classList.contains('source-recovery-button'),opened=new Set([...body.querySelectorAll('details[open]')].map(d=>d.closest('[data-source]')?.dataset.source));body.replaceChildren();
  const overall=summary();
  body.append(node('p','Sismos: '+overall.label.toLowerCase()+(overall.at?' · última atualização há '+age(overall.at):''),'mg-fresh-overall'));
  body.append(node('p',overall.available+' de '+overall.expected+' fontes sísmicas com consulta válida recente.','mg-fresh-note'));
+ const coverage=node('div',null,'mg-fresh-coverage');coverage.setAttribute('aria-label','Cobertura por categoria');const categories=new Map();for(const name of sources.keys()){const item=snapshot(name);if(!categories.has(item.group))categories.set(item.group,[]);categories.get(item.group).push(item);}for(const [group,items]of categories){const active=items.filter(s=>!['paused','disabled'].includes(s.state)),valid=active.filter(s=>s.state==='fresh').length,failed=active.filter(s=>['error','partial','stale','offline'].includes(s.state)).length,waiting=active.filter(s=>s.state==='waiting').length;const card=node('p',null,'mg-fresh-category');card.dataset.group=group;card.dataset.state=failed?'partial':waiting?'waiting':active.length?'fresh':'paused';card.append(node('strong',group),node('span',active.length?valid+' de '+active.length+' consultas recentes':'Consultas desativadas ou pausadas'));if(failed)card.append(node('small',failed+' com pendência'));if(waiting)card.append(node('small',waiting+' aguardando consulta'));coverage.append(card);}body.append(coverage);
+ if(overall.waiting.length)body.append(node('p','Fontes sísmicas aguardando a primeira consulta: '+overall.waiting.join(', ')+'.','mg-fresh-note'));
  const pending=[...sources.keys()].filter(n=>!quakeNames.includes(n)&&['error','partial','stale'].includes(snapshot(n).state));if(pending.length)body.append(node('p','Outras consultas com pendências: '+pending.join(', ')+'.','mg-fresh-missing'));
  if(overall.missing.length)body.append(node('p','Fontes sísmicas sem atualização válida recente: '+overall.missing.join(', ')+'.','mg-fresh-missing'));
  body.append(node('p','Consulta válida é o retorno do catálogo ou boletim, inclusive quando não há eventos. Os horários abaixo não são os horários dos eventos. Uma falha não renova o horário da consulta válida.','mg-fresh-note'));
@@ -96,11 +100,11 @@ function renderDetails(){
  }
  body.append(node('p','Falha de um produto não significa que a instituição inteira esteja indisponível. As consultas pausam com a aba em segundo plano; ao voltar, os dados podem aparecer como atrasados até a próxima consulta.','mg-fresh-note'));
  body.append(node('p','Vulcões: catálogo a cada hora, com verificações mais rápidas de erupção ou escalada. Radar desativado e integrações pausadas não contam como falha.','mg-fresh-note'));
- root.AppRecovery?.mountFeeds(body);body.scrollTop=scroll;
+ root.AppRecovery?.mountFeeds(body);if(focusedSource){const row=[...body.querySelectorAll('[data-source]')].find(el=>el.dataset.source===focusedSource);(row?.querySelector('summary')||dialog.querySelector('.mg-fresh-close'))?.focus({preventScroll:true});}else if(focusedRetry)body.querySelector('.source-recovery-button')?.focus({preventScroll:true});body.scrollTop=scroll;
 }
 function render(){if(typeof document==='undefined')return;const badge=document.getElementById('ao-vivo-badge');if(!badge)return;
- const result=summary(),label=badge.querySelector('.av-label'),elapsed=badge.querySelector('.av-age');badge.dataset.freshness=result.state;if(label)label.textContent=result.label;if(elapsed)elapsed.textContent=result.at?'há '+age(result.at):'';
- const reason=result.missing.length?' Fontes sem atualização: '+result.missing.join(', ')+'.':'';
+ const result=summary(),label=badge.querySelector('.av-label'),elapsed=badge.querySelector('.av-age');badge.dataset.freshness=result.state;if(label)label.textContent=result.label;if(elapsed)elapsed.textContent=(result.at?'há '+age(result.at)+' · ':'')+result.available+'/'+result.expected+' fontes';
+ const reason=(result.missing.length?' Fontes sem atualização: '+result.missing.join(', ')+'.':'')+(result.waiting.length?' Aguardando consulta: '+result.waiting.join(', ')+'.':'');
  badge.title='Atualização dos sismos.'+reason+' Toque para consultar todas as fontes.';badge.setAttribute('aria-label',result.label.toLowerCase()+reason+' Ver situação das fontes.');renderDetails();
 }
 function open(from){if(!dialog)return;opener=from||document.activeElement;if(!dialog.open)dialog.showModal();renderDetails();}

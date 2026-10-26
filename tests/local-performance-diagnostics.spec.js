@@ -86,9 +86,10 @@ test('overnight diagnostics retain bounded source transitions and interval total
 test('memory samples include catalogue report ownership without exporting event data',async({page})=>{
  await page.route('**/catalog-memory-harness.html',r=>r.fulfill({contentType:'text/html',body:'<script src="/js/performance-diagnostics.js"></script>'}));
  await page.goto('/catalog-memory-harness.html');
- await page.evaluate(()=>{window.SismoReportMemory={stats:()=>({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}})};PerformanceDiagnostics.start();PerformanceDiagnostics.stop();});
+ await page.evaluate(()=>{window.AftershockSequence={stats:()=>({known:5000,knownLimit:5000,currentIds:200,markers:2})};window.SismoReportMemory={stats:()=>({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}})};PerformanceDiagnostics.start();PerformanceDiagnostics.stop();});
  const report=await page.evaluate(()=>PerformanceDiagnostics.snapshot());
- expect(report.samples[0].runtimeVersion).toBe('session-stability-v9');
+ expect(report.samples[0].runtimeVersion).toBe('session-stability-v10');
+ expect(report.samples[0].memoryOwners.aftershockSequence).toEqual({known:5000,knownLimit:5000,currentIds:200,markers:2});
  expect(report.samples[0].memoryOwners.quakeReports).toEqual({events:200,reports:200,maxReportsPerEvent:1,bySource:{GEONET:200}});
 });
 

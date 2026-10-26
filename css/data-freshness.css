@@ -52,3 +52,17 @@
 .mg-fresh-row details {grid-column:1/-1;font-size:12px;overflow-wrap:anywhere;}
 .mg-fresh-reason {color:#e8c68d!important;}
 @media(max-width:560px){.mg-fresh-row {grid-template-columns:1fr!important;gap:6px!important;}.mg-fresh-times {text-align:left!important;}}
+
+.mg-fresh-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
+.mg-fresh-category{margin:0;padding:10px;border:1px solid #29475c;border-radius:9px;background:#102537;min-width:0;overflow-wrap:anywhere}
+.mg-fresh-category strong,.mg-fresh-category span,.mg-fresh-category small{display:block}
+.mg-fresh-category strong{font-size:13px;color:#dcf1fb}.mg-fresh-category span,.mg-fresh-category small{font-size:12px;color:#adc4d2}
+.mg-fresh-category[data-state="partial"]{border-color:#8b6d32}.mg-fresh-category[data-state="partial"] small{color:#ffe078}
+.mg-fresh-category[data-state="fresh"] span{color:#86efac}
+@media(max-width:380px){.mg-fresh-coverage{grid-template-columns:1fr}}
+/* Keep the radar/brand and the two header actions visible on narrow phones. */
+@media(max-width:700px) and (orientation:portrait){
+ body.mg-clean-portrait #top-strip #ao-vivo-badge{flex:0 1 150px!important;min-width:0!important;max-width:150px!important}
+ body.mg-clean-portrait #top-strip #ao-vivo-badge .av-label{white-space:normal;text-align:center}
+ body.mg-clean-portrait #top-strip .ts-title.mg-title{min-width:36px!important}
+}

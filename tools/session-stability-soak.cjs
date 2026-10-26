@@ -21,16 +21,16 @@ if(!(seconds>=30&&seconds<=3600&&dwell>=1000))throw Error('Invalid soak duration
   const cdp=await context.newCDPSession(page);await cdp.send('Performance.enable');await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
   await page.goto('http://127.0.0.1:4173');await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento,null,{timeout:60000});await page.evaluate(()=>CountryBoundaries.ready);
   await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);stopMapCamera();pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();NewEventPriority.clear?.();somAtivo=true;vozVolume=0;unlockAudio(false);PerformanceDiagnostics.start();});
-  const samples=[],sourceHashes=Object.fromEntries(['js/sismo-fontes.js','js/app-recovery.js','js/nucleo-estado.js','js/weather-warning-camera.js'].map(p=>[p,crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')]));
+  const samples=[],sourceHashes=Object.fromEntries(['js/sismo-fontes.js','js/app-recovery.js','js/nucleo-estado.js','js/weather-warning-camera.js','js/aftershock-sequence.js','js/data-freshness.js','js/seismic-contour-labels.js','js/performance-diagnostics.js'].map(p=>[p,crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')]));
   const sample=async cycle=>{
    await cdp.send('HeapProfiler.collectGarbage');const heap=await cdp.send('Runtime.getHeapUsage'),metrics=Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m=>[m.name,m.value]));
-   return {cycle,elapsedMs:Date.now()-started,heapBytes:heap.usedSize,backingStorageBytes:heap.backingStorageSize,cdpNodes:metrics.Nodes,listeners:metrics.JSEventListeners,taskDurationSeconds:metrics.TaskDuration,...await page.evaluate(()=>({canvases:document.querySelectorAll('canvas').length,nodes:document.querySelectorAll('*').length,tiles:MapRenderBudget.stats(),audio:AudioLifecycle.stats(),products:EventProducts.stats(),warningAreas:WeatherWarningCamera.stats(),requests:BrowserRequestBudget.stats(),reports:SismoReportMemory.stats(),recovery:AppRecovery.state()}))};
+   return {cycle,elapsedMs:Date.now()-started,heapBytes:heap.usedSize,backingStorageBytes:heap.backingStorageSize,cdpNodes:metrics.Nodes,listeners:metrics.JSEventListeners,taskDurationSeconds:metrics.TaskDuration,...await page.evaluate(()=>({canvases:document.querySelectorAll('canvas').length,nodes:document.querySelectorAll('*').length,tiles:MapRenderBudget.stats(),audio:AudioLifecycle.stats(),products:EventProducts.stats(),warningAreas:WeatherWarningCamera.stats(),requests:BrowserRequestBudget.stats(),reports:SismoReportMemory.stats(),sequence:AftershockSequence.stats(),recovery:AppRecovery.state()}))};
   };
   const started=Date.now();samples.push(await sample(0));let cycle=0;
   while(Date.now()-started<seconds*1000){
    await page.evaluate(cycle=>{
     const coords=[[-78,-1],[138,36],[30,39],[-72,-32],[165,-18],[-151,62]][cycle%6],time=Date.now()-7200000;
-    globalEvents=Array.from({length:200},(_,i)=>({id:'soak-'+cycle+'-'+i,type:'earthquake',mag:i===0?(cycle%6===0?6.2:4.3):2.5,depth:16,time:time-i*300000,coords:[coords[0]+(i%10)*.08,coords[1]+Math.floor(i/10)*.03],place:'Ensaio local',source:'QA'}));
+    globalEvents=Array.from({length:200},(_,i)=>({id:'soak-'+cycle+'-'+i,type:'earthquake',mag:i===0?(cycle%6===0?6.2:4.3):2.5,depth:16,time:i===0?time-200*300000:time-i*300000,coords:[coords[0]+(i%10)*.08,coords[1]+Math.floor(i/10)*.03],place:'Ensaio local',source:'QA'}));
     const types=['earthquake','storm','volcano','wind','flood','earthquake'],type=types[cycle%types.length];
     globalAlerts=type==='earthquake'?[]:[{id:'soak-alert-'+cycle,type,coords,time,place:'Ensaio local '+type,source:'QA',detail:type==='volcano'?'Em observação':'Tempestade com chuva e vento',windKmh:80,sev:2}];
     lastMerged=[...globalEvents,...globalAlerts];syncAllMarkers();renderSidebarList(lastMerged);window.__mgSoftCycle=false;

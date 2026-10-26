@@ -2,7 +2,15 @@
 (function(root){'use strict';
 function distanceKm(a,b){const rad=Math.PI/180,x=(b[1]-a[1])*rad/2,y=(b[0]-a[0])*rad/2,v=Math.sin(x)**2+Math.cos(a[1]*rad)*Math.cos(b[1]*rad)*Math.sin(y)**2;return 12742*Math.asin(Math.sqrt(Math.max(0,Math.min(1,v))));}
 function info(f,point,c){const p=f.properties,n=p.official?distanceKm([c.lng,c.lat],point):Number(p.distanceKm),distance=Number.isFinite(n)?(n>0&&n<.1?'<0,1':n.toLocaleString('pt-BR',{maximumFractionDigits:1}))+' km':'Distância indisponível';return {heading:'MMI '+p.roman+' · '+p.description,distance:p.official?'Trecho · '+distance+' do epicentro':'Raio · '+distance,official:!!p.official};}
-function candidates(f,limit=24){const lines=f.geometry.coordinates,result=[];for(let i=0;i<Math.min(limit,lines.length);i++){const line=lines[Math.floor(i*lines.length/Math.min(limit,lines.length))],p=line[Math.floor(line.length/2)];if(p?.every(Number.isFinite))result.push(p);}return result;}
+function candidates(f,limit=24){
+ const lines=f.geometry.coordinates,result=[],total=lines.reduce((n,line)=>n+line.length,0),count=Math.min(limit,total);
+ if(!count)return result;
+ // Sample the complete contour, including a single continuous ring. Every
+ // option remains an actual published/model vertex, with no invented radius.
+ const indices=Array.from({length:count},(_,i)=>Math.floor(i*total/count));let lineIndex=0,start=0;
+ for(const index of indices){while(lineIndex<lines.length-1&&index>=start+lines[lineIndex].length)start+=lines[lineIndex++].length;const p=lines[lineIndex][index-start];if(p?.every(Number.isFinite))result.push(p);}
+ return result;
+}
 const overlaps=(a,b,gap=7)=>a.left<b.right+gap&&a.right>b.left-gap&&a.top<b.bottom+gap&&a.bottom>b.top-gap;
 function place(points,width,height,viewport,blocked){for(const p of points){const box={left:p.x-width/2,right:p.x+width/2,top:p.y-height/2,bottom:p.y+height/2};if(box.left<8||box.right>viewport.width-8||box.top<8||box.bottom>viewport.height-8||blocked.some(b=>overlaps(box,b)))continue;return {point:p,box};}return null;}
 function create(map,scene,isVisible){let rows=[],raf=0,timer=0,last=0,observer=null;

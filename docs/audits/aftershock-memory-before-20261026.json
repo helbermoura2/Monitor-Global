@@ -1,0 +1,54 @@
+{
+  "method": "240 local catalogue replacements, 200 distinct IDs per replacement; same recent origins; main Node JS heap after explicit GC; no browser, phone or GPU measurement",
+  "sourceSha256": "1a943c400c985f86f12bb7d84267bd0eb8eb8eef3db1964c81e3747a758acad0",
+  "samples": [
+    {
+      "round": 0,
+      "heapBytes": 4747000,
+      "known": 0,
+      "fresh": 0
+    },
+    {
+      "round": 40,
+      "heapBytes": 5543648,
+      "known": 8000,
+      "fresh": 200
+    },
+    {
+      "round": 80,
+      "heapBytes": 6173896,
+      "known": 16000,
+      "fresh": 200
+    },
+    {
+      "round": 120,
+      "heapBytes": 7038568,
+      "known": 24000,
+      "fresh": 200
+    },
+    {
+      "round": 160,
+      "heapBytes": 7462144,
+      "known": 32000,
+      "fresh": 200
+    },
+    {
+      "round": 200,
+      "heapBytes": 8801624,
+      "known": 40000,
+      "fresh": 200
+    },
+    {
+      "round": 240,
+      "heapBytes": 9223072,
+      "known": 48000,
+      "fresh": 200
+    },
+    {
+      "round": "pagehide",
+      "heapBytes": 9222648,
+      "known": 48000,
+      "fresh": 200
+    }
+  ]
+}
