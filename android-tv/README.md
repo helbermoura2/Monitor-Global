@@ -79,3 +79,5 @@ Resumo do dia e replay de sismos ocorridos com a TV desligada: [TV 1.0.7](RESUMO
 Replay do último resumo, inclusive sem internet: [TV 1.0.8](REPLAY_RESUMO_1_0_8.md).
 
 Entrada e saída suaves da tarja inteira: [TV 1.0.9](ENTRADA_SUAVE_1_0_9.md).
+
+Resumo automático à meia-noite de Brasília, recuperação e prioridade dos avisos: [TV 1.0.10](RESUMO_AUTOMATICO_1_0_10.md).

@@ -6,7 +6,7 @@ final class Banner {
  Banner(Context c){context=c;}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
  boolean show(Alert a,boolean demo,boolean replay){return showView(new NewsBannerView(context,a,demo,replay),BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20)));}
- boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay){return showView(new NewsBannerView(context,alerts,day,replay),BannerTimeline.summaryDuration(alerts.size()));}
+ boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete){return showView(new NewsBannerView(context,alerts,day,replay,complete),BannerTimeline.summaryDuration(alerts.size()));}
  private boolean showView(View row,long duration){if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);clearExit();
 
   boolean animated=android.animation.ValueAnimator.areAnimatorsEnabled();

@@ -13,14 +13,14 @@ test('replay recovers the newest M6+ origin within 72h, not the largest or most 
 });
 test('history is shared/cacheable, rolls over at local midnight, and outages remain explicit',async()=>{
  const storage=new Map(),cache={match:async key=>storage.get(key.url)?.clone(),put:async(key,value)=>storage.set(key.url,value)};let calls=0;
- const fetcher=async url=>{calls++;assert.equal(url.searchParams.get('limit'),'5');assert.equal(url.searchParams.get('starttime'),'2026-10-25T00:00:00-03:00');return Response.json({features:[quake('test',3,now-1000)]});};
+ const fetcher=async url=>{calls++;assert.equal(url.searchParams.get('limit'),'5');assert.equal(url.searchParams.get('starttime'),'2026-10-25T03:00:00.000Z');return Response.json({features:[quake('test',3,now-1000)]});};
  const request=new Request('https://test/tv-alerts?view=daily');
  const first=await handleTvHistory(request,{view:'daily',now,cache,fetcher});assert.equal(first.status,200);
  await handleTvHistory(request,{view:'daily',now:now+1000,cache,fetcher});assert.equal(calls,1);
  const failed=await handleTvHistory(request,{view:'daily',now:now+300001,cache,fetcher:async()=>{throw Error('offline');}});assert.equal(failed.status,503);assert.equal(failed.headers.get('Cache-Control'),'no-store');
  assert.equal((await handleTvHistory(new Request(request,{method:'POST'}),{view:'daily',now,cache,fetcher})).status,405);assert.equal(calls,1);
  const tomorrow=Date.parse('2026-10-26T03:00:00Z');
- const next=await handleTvHistory(request,{view:'daily',now:tomorrow,cache,fetcher:async url=>{calls++;assert.equal(url.searchParams.get('starttime'),'2026-10-26T00:00:00-03:00');return Response.json({features:[]});}});
+ const next=await handleTvHistory(request,{view:'daily',now:tomorrow,cache,fetcher:async url=>{calls++;assert.equal(url.searchParams.get('starttime'),'2026-10-26T03:00:00.000Z');return Response.json({features:[]});}});
  assert.deepEqual((await next.json()).alerts,[]);assert.equal(calls,2);
 });
 test('simultaneous history requests share one provider lookup even without Cache API',async()=>{
@@ -29,4 +29,14 @@ test('simultaneous history requests share one provider lookup even without Cache
  const requests=Array.from({length:12},()=>handleTvHistory(new Request('https://test/tv-alerts?view=replay'),{view:'replay',now,cache:null,fetcher}));
  await new Promise(resolve=>setTimeout(resolve,0));assert.equal(calls,1);finish();
  const responses=await Promise.all(requests);assert(responses.every(r=>r.status===200));
+});
+test('midnight summary includes only the previous Brasília day, with an exclusive end boundary',async()=>{
+ const midnight=Date.parse('2026-10-26T03:00:00Z'),start=midnight-86400000;
+ const features=[quake('before',9,start-1),quake('first',6,start),quake('last',5,midnight-1),quake('today',8,midnight)];
+ const summary=historySnapshot(features,'completed',midnight);assert.equal(summary.day,'2026-10-25');assert.equal(summary.complete,true);
+ assert.deepEqual(summary.alerts.map(a=>a.id),['USGS:first','USGS:last']);
+ let calls=0;const r=await handleTvHistory(new Request('https://test/tv-alerts?view=completed'),{view:'completed',now:midnight,cache:null,fetcher:async url=>{
+  calls++;assert.equal(url.searchParams.get('starttime'),'2026-10-25T03:00:00.000Z');assert.equal(url.searchParams.get('endtime'),'2026-10-26T02:59:59.999Z');assert.equal(url.searchParams.get('limit'),'5');return Response.json({features});
+ }});assert.equal(r.status,200);assert.equal((await r.json()).complete,true);assert.equal(calls,1);
+ const recovery=historySnapshot(features,'completed',midnight+14*3600000);assert.equal(recovery.day,'2026-10-25');assert.deepEqual(recovery.alerts.map(a=>a.id),['USGS:first','USGS:last']);
 });

@@ -2,26 +2,30 @@
 import {tvSnapshot} from './tv-snapshot.mjs';
 const pending=new Map();
 export function brasiliaDay(now){return new Date(now-3*3600000).toISOString().slice(0,10);}
+export function historyPeriod(view,now){
+ const complete=view==='completed',day=brasiliaDay(now-(complete?86400000:0)),start=Date.parse(day+'T00:00:00-03:00');
+ return {day,complete,start,end:complete?start+86400000:now+1};
+}
 export function historySnapshot(features,view,now=Date.now()){
- const day=brasiliaDay(now),start=Date.parse(day+'T00:00:00-03:00');
- const selected=features.filter(f=>Number.isFinite(f.properties?.time)&&f.properties.time>= (view==='daily'?start:now-72*3600000));
- const snapshot=tvSnapshot({features:selected},{ok:false,items:[]},now,{maxAge:72*3600000,minMagnitude:view==='daily'?2.5:6});
- snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake').sort(view==='daily'?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,view==='daily'?5:1);
- return {...snapshot,view,day,asOf:now};
+ const {day,start,end,complete}=historyPeriod(view,now),summary=view!=='replay';
+ const selected=features.filter(f=>Number.isFinite(f.properties?.time)&&f.properties.time>= (summary?start:now-72*3600000)&&f.properties.time<end);
+ const snapshot=tvSnapshot({features:selected},{ok:false,items:[]},now,{maxAge:72*3600000,minMagnitude:summary?2.5:6});
+ snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake').sort(summary?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,summary?5:1);
+ return {...snapshot,view,day,asOf:now,complete};
 }
 export async function handleTvHistory(request,{view,now=Date.now(),cache=globalThis.caches?.default,fetcher=fetch}={}){
  const headers={'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'public, max-age=60'};
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
- const ttl=view==='daily'?300000:60000,day=brasiliaDay(now);
+ const {day,start:periodStart,end,complete}=historyPeriod(view,now),summary=view!=='replay',ttl=summary?300000:60000;
  const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-history-v1/'+view+'/'+day);
  let snapshot;try{const hit=await cache?.match(key);if(hit)snapshot=await hit.json();}catch{}
  if(!snapshot||now-snapshot.serverTime>=ttl){
   if(!pending.has(key.url))pending.set(key.url,(async()=>{
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
    try{
-   const start=view==='daily'?day+'T00:00:00-03:00':new Date(now-72*3600000).toISOString();
+   const start=summary?new Date(periodStart).toISOString():new Date(now-72*3600000).toISOString();
    const url=new URL('https://earthquake.usgs.gov/fdsnws/event/1/query');
-   for(const [k,v] of Object.entries({format:'geojson',minmagnitude:view==='daily'?'2.5':'6',starttime:start,endtime:new Date(now).toISOString(),orderby:view==='daily'?'magnitude':'time',limit:view==='daily'?'5':'1'}))url.searchParams.set(k,v);
+   for(const [k,v] of Object.entries({format:'geojson',eventtype:'earthquake',minmagnitude:summary?'2.5':'6',starttime:start,endtime:new Date(complete?end-1:now).toISOString(),orderby:summary?'magnitude':'time',limit:summary?'5':'1'}))url.searchParams.set(k,v);
    const r=await fetcher(url,{signal:controller.signal});if(!r.ok)throw Error('USGS unavailable');
    const data=await r.json();if(!Array.isArray(data.features))throw Error('Invalid catalog');
    const result=historySnapshot(data.features,view,now);

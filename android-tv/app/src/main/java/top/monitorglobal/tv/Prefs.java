@@ -8,7 +8,7 @@ final class Prefs {
  static Alert lastReal(Context c){String record=get(c).getString("lastReal","");if(record.isEmpty()||record.length()>24000)return null;try{return AlertCodec.read(new JSONObject(record));}catch(JSONException e){return null;}}
  static void rememberRecovered(Context c,Alert a){try{String record=AlertCodec.write(a).toString();if(record.length()<=24000)get(c).edit().putString("lastRecovered",record).apply();}catch(JSONException ignored){}}
  static Alert lastReplay(Context c){Alert recovered=null;String record=get(c).getString("lastRecovered","");try{if(!record.isEmpty()&&record.length()<=24000)recovered=AlertCodec.read(new JSONObject(record));}catch(JSONException ignored){}return ReplaySelection.latest(lastReal(c),recovered);}
- static void rememberSummary(Context c,FeedClient.Snapshot snapshot){try{get(c).edit().putString("lastSummary",SummaryRecord.encode(snapshot.alerts,snapshot.day,snapshot.asOf)).apply();}catch(JSONException ignored){}}
+ static void rememberSummary(Context c,FeedClient.Snapshot snapshot){try{get(c).edit().putString("lastSummary",SummaryRecord.encode(snapshot.alerts,snapshot.day,snapshot.asOf,snapshot.complete)).apply();}catch(JSONException ignored){}}
  static FeedClient.Snapshot lastSummary(Context c){try{return SummaryRecord.decode(get(c).getString("lastSummary",""));}catch(JSONException e){return null;}}
  static void status(Context c,String s){get(c).edit().putString("status",s).apply();}
 }
