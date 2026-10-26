@@ -17,7 +17,8 @@ final class NewsBannerView extends View {
  private final Page[] pages;
  private final boolean demo,replay;
  private final boolean summary;private final String summaryDay;private final long pageMillis;
- private final long started=SystemClock.uptimeMillis();
+ private long started;private boolean presentationAnimated;
+ void startPresentation(long when,boolean animated){started=when;presentationAnimated=animated&&animate;invalidate();}
  private final String ticker;
  private final int accent,foreground,background;
  private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
@@ -71,14 +72,16 @@ final class NewsBannerView extends View {
   text(c,shown,x,y,size,color,font,max);
  }
  @Override protected void onDraw(Canvas c){
-  super.onDraw(c);long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/126f);
+  super.onDraw(c);if(started==0)return;long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/126f);
   paint.setColor(background);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(0,0,960,126,10,10,paint);paint.setColor(accent);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1);c.drawRoundRect(1,1,959,125,10,10,paint);paint.setStyle(Paint.Style.FILL);
   breaking(c,elapsed);
   radar(c,36,54,elapsed);text(c,"MONITOR",69,50,24,foreground,brand,140);text(c,"GLOBAL",69,72,24,foreground,brand,140);rect(c,218,24,219,102,Color.rgb(49,76,91));
   drawIdentity(c,elapsed);
-  int index=summary?Math.min(pages.length-1,(int)(elapsed/pageMillis)):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
-  if(animate&&pages.length>1&&elapsed>=pageMillis&&within<BannerTimeline.PAGE_FADE_MS){
-   float t=BannerTimeline.pageProgress(within);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
+  long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
+  int index=summary?BannerTimeline.summaryPage(contentElapsed,pages.length,presentationAnimated):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
+  long fadeElapsed=summary?BannerTimeline.summaryFadeElapsed(contentElapsed,index):within;
+  if((summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
+   float t=BannerTimeline.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
   rect(c,1,101,959,102,accent);
   c.save();c.clipRect(12,103,947,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+90;
