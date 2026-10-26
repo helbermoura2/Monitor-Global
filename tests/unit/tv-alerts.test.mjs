@@ -36,3 +36,11 @@ test('no-threat requires a precise M6+ association and timestamp-only repeats ke
  assert.equal(read(q,a).eligible,true);assert.equal(read(q,{...a,_tsunamiStale:true}).eligible,false);assert.equal(read(null,a).eligible,false);assert.equal(read(quake(5.8),a).eligible,false);assert.equal(read(q,{...a,originTime:undefined}).eligible,false);
  assert.equal(read(q,a).version,read(q,{...a,time:now+1000}).version);
 });
+
+test('expanded coverage is opt-in so an older APK never announces the new Brazilian baseline',async()=>{
+ const t=now+31000,br={...quake(1.1),id:'br',provider:'USP',brazil:true,tvId:'USP:br',properties:{...quake(1.1).properties,place:'São Paulo, Brasil'}};
+ const snapshot=tvSnapshot({features:[quake(),br],catalogs:{USGS:true,USGS_BR:false,USP:true,EMSC:false,GEOFON:true}},{ok:true,items:[]},t,{maxAge:72*3600000});
+ const read=async()=>snapshot;
+ const legacy=await(await handleTvAlerts(new Request('https://internal/tv-alerts'),{read,now:t,cache:null})).json();assert.equal(legacy.alerts.filter(a=>a.kind==='earthquake').length,1);assert.equal(legacy.sources.catalogs,undefined);
+ const expanded=await(await handleTvAlerts(new Request('https://internal/tv-alerts?policy=telegram-v1'),{read,now:t,cache:null})).json();assert.equal(expanded.policy,'telegram-v1');assert.equal(expanded.alerts.filter(a=>a.kind==='earthquake').length,2);assert.equal(expanded.sources.catalogs.USP,true);
+});

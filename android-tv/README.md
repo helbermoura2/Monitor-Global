@@ -1,6 +1,6 @@
 # Monitor Global TV — versão 1.0.0 do projeto
 
-Notificações de sismos M6+ e boletins oficiais de tsunami para Google TV e Fire TV, sem Telegram ou serviços Google no aplicativo. A prévia já foi testada pelo proprietário com a faixa sobre outro aplicativo no Fire Stick.
+Notificações de sismos M6+ globais, sismos no Brasil sem corte mínimo e boletins oficiais de tsunami para Google TV e Fire TV, sem Telegram ou serviços Google no aplicativo. A prévia já foi testada pelo proprietário com a faixa sobre outro aplicativo no Fire Stick.
 
 APK assinado: `https://monitorglobal.top/downloads/monitor-global-tv-1.0.0.apk`. Atualize por cima da prévia, sem desinstalar, para validar a migração assinada no aparelho. Android 9/API28 ou superior.
 
@@ -39,7 +39,7 @@ O IP privado sozinho não dá acesso ao aparelho a partir do ambiente remoto de 
 ## Como recebe os avisos
 
 - Consulta HTTPS ao Monitor Global a cada **30 segundos**, usando ETag/304 para reduzir transferências. O Worker compartilha a coleta por cache; não há novo cron ou Durable Object para o feed.
-- Terremotos: USGS, aviso inicial apenas a partir de M6. A faixa de M5,5+ permite acompanhar revisões de um evento já conhecido que caia abaixo de seis, sem anunciar novos eventos menores.
+- Terremotos: USGS M6+ no mundo; USP/RSBR, USGS, EMSC e GEOFON sem corte mínimo no Brasil. Revisões de IDs já acompanhados continuam por até 72 horas, inclusive abaixo do corte. Veja [regras, fontes e limites da versão 1.0.13](PARIDADE_TELEGRAM_1_0_13.md).
 - Tsunami: produtos oficiais identificados por autoridade e ocorrência. Revisões/encerramentos são explícitos e limitados às costas citadas. Um informativo ou produto sem ameaça novo não é um aviso inicial de perigo.
 - A primeira consulta saudável estabelece a referência de cada fonte e **não anuncia os eventos que já estavam no feed**. Erros de fonte não viram encerramento, e não se reproduz uma sequência de avisos antigos ao reconectar.
 - Duplicações são controladas no aparelho; até 256 versões são retidas, com expiração. A fila visual tem limite de oito itens. Não há dados de conta, analytics ou cadastro do aparelho.
