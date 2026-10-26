@@ -1,7 +1,8 @@
 /* Bounded sequence labels and zoom-scale groups; only explicit clicks move the camera. */
 (function(){
  'use strict';
- let model=null,signature='',pins=new Map(),box=null,summary=null,known=new Map(),initialized=false,fresh=new Map(),timer=null,visible=true,lastData=null,mapKey='',represented=new Set(),clusterCount=0,lineTargets=[],layoutFrame=0,lastLayout=0;
+ let model=null,signature='',pins=new Map(),box=null,summary=null,known=new Map(),lastIds=new Set(),initialized=false,fresh=new Map(),timer=null,visible=true,lastData=null,mapKey='',represented=new Set(),clusterCount=0,lineTargets=[],layoutFrame=0,layoutTimer=0,lastLayout=0,layoutPasses=0;
+ const KNOWN_LIMIT=5000;
  const events=()=>typeof globalEvents==='undefined'?[]:globalEvents;
  const sequenceFor=id=>{const g=model?.forEvent(id);return g?.children.length?g:null;};
  const chosen=()=>typeof eventoSelecionadoId==='undefined'?null:eventoSelecionadoId;
@@ -9,7 +10,7 @@
  const local=q=>window.EventPortuguese?.place(q.place)||q.place||'Local não informado';
  function node(host,tag,value){const el=document.createElement(tag);el.textContent=value;host.append(el);return el;}
  function open(id){const index=events().findIndex(q=>q.id===id);if(index>=0){window.__mgSoftCycle=false;window.__mgRotationDisplay=false;showEventDetails(index,false);}}
- function clear(resetHub=true){cancelAnimationFrame(layoutFrame);layoutFrame=0;if(resetHub)window.AftershockHub?.clear();box?.remove();box=null;summary?.remove();summary=null;const slot=document.getElementById('pd-aftershock-details');if(slot){slot.style.display='none';slot.dataset.empty='true';const fold=slot.closest('details');if(fold)fold.style.display='none';}for(const pin of pins.values())pin.remove();pins.clear();signature='';mapKey='';represented.clear();clusterCount=0;restore();}
+ function clear(resetHub=true){cancelAnimationFrame(layoutFrame);clearTimeout(layoutTimer);layoutFrame=layoutTimer=0;if(resetHub)window.AftershockHub?.clear();box?.remove();box=null;summary?.remove();summary=null;const slot=document.getElementById('pd-aftershock-details');if(slot){slot.style.display='none';slot.dataset.empty='true';const fold=slot.closest('details');if(fold)fold.style.display='none';}for(const pin of pins.values())pin.remove();pins.clear();signature='';mapKey='';represented.clear();clusterCount=0;lineTargets=[];restore();}
  function restore(){if(typeof markerStores==='undefined')return;markerStores.quake.forEach(m=>m.getElement().classList.remove('aftershock-covered'));}
  function setVisible(value){visible=!!value;syncMarkers();}
  function syncMarkers(){
@@ -53,16 +54,22 @@
  function layoutLabels(){
   const rows=[...pins.values()].map(pin=>pin.getElement()).filter(el=>el.style.display!=='none').sort((a,b)=>Number(b.dataset.eventId===String(chosen()))-Number(a.dataset.eventId===String(chosen()))||Number(b.classList.contains('main'))-Number(a.classList.contains('main'))),boxes=[];
   for(const el of rows)el.classList.remove('sequence-compact');
-  for(const el of rows){const selected=el.dataset.eventId===String(chosen()),r=el.getBoundingClientRect(),overlap=boxes.some(b=>r.left<b.right+8&&r.right>b.left-8&&r.top<b.bottom+8&&r.bottom>b.top-8);if(!selected&&overlap)el.classList.add('sequence-compact');else if(r.width>15)boxes.push(r);el.style.zIndex=selected?'100':el.classList.contains('main')?'30':'10';}
+  const measured=rows.map(el=>({el,rect:el.getBoundingClientRect()}));layoutPasses++;
+  for(const {el,rect:r} of measured){const selected=el.dataset.eventId===String(chosen()),overlap=boxes.some(b=>r.left<b.right+8&&r.right>b.left-8&&r.top<b.bottom+8&&r.bottom>b.top-8);if(!selected&&overlap)el.classList.add('sequence-compact');else if(r.width>15)boxes.push(r);el.style.zIndex=selected?'100':el.classList.contains('main')?'30':'10';}
  }
- function scheduleLayout(){if(layoutFrame||!pins.size||typeof map==='undefined'||!map)return;layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;const now=performance.now();if(now-lastLayout<90){scheduleLayout();return;}lastLayout=now;layoutLabels();});}
+ function scheduleLayout(){
+  if(document.hidden||layoutFrame||layoutTimer||!pins.size||typeof map==='undefined'||!map)return;
+  const wait=Math.max(0,90-(performance.now()-lastLayout));
+  if(wait){layoutTimer=setTimeout(()=>{layoutTimer=0;scheduleLayout();},wait);return;}
+  layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;if(document.hidden)return;lastLayout=performance.now();layoutLabels();});
+ }
  window.addEventListener('load',()=>map?.on('render',scheduleLayout),{once:true});
  function ingest(){
-  const data=events(),now=Date.now(),ids=new Set(data.map(q=>q.id));
-  if(initialized)for(const q of data)if(!known.has(q.id)&&q.time>=now-AftershockModel.WINDOW)fresh.set(q.id,now+10000);
-  if(data.length)initialized=true;for(const q of data)known.set(q.id,q.time);for(const [id,time]of known)if(time<now-AftershockModel.WINDOW)known.delete(id);
+  const data=events(),now=Date.now(),ids=new Set(data.map(q=>q.id)),previousIds=lastIds;
+  if(initialized)for(const q of data)if(!known.has(q.id)&&!previousIds.has(q.id)&&q.time>=now-AftershockModel.WINDOW)fresh.set(q.id,now+10000);
+  if(data.length)initialized=true;for(const q of data){known.delete(q.id);known.set(q.id,q.time);}for(const [id,time]of known)if(time<now-AftershockModel.WINDOW)known.delete(id);while(known.size>KNOWN_LIMIT)known.delete(known.keys().next().value);
   for(const [id,until]of fresh)if(until<=now||!ids.has(id))fresh.delete(id);
-  model=AftershockModel.build(data,now);lastData=data;
+  model=AftershockModel.build(data,now);lastData=data;lastIds=ids;
   clearTimeout(timer);if(fresh.size)timer=setTimeout(()=>{ingest();render();},Math.max(1,Math.min(...fresh.values())-now));
  }
  function render(){
@@ -85,7 +92,8 @@
  }
  function refresh(){ingest();render();window.SeismicFinalSummary?.refresh();const q=events().find(q=>q.id===chosen());if(q?.mag>=5&&window.SeismicImpact?.bounds(q.id))window.SeismicFocus?.ready({id:q.id,lng:q.coords[0],lat:q.coords[1],mag:q.mag,depth:q.depth});}
  window.EventStore?.subscribe(reason=>{if(['filter','replace','revise'].includes(reason))refresh();else if(reason==='select'){render();}});
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
- window.addEventListener('pagehide',()=>{clearTimeout(timer);clear();});
- window.AftershockSequence={marker:id=>pins.get(id)||null,summary:id=>{const g=model?.forEvent(id);return g?.children.length?{count:g.children.length,strongest:Math.max(...g.children.map(q=>q.mag))}:null;},render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size,clusters:clusterCount,represented:represented.size})};
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(layoutFrame);clearTimeout(layoutTimer);layoutFrame=layoutTimer=0;}else refresh();});
+ window.addEventListener('pageshow',()=>{if(!document.hidden){ingest();render();}});
+ window.addEventListener('pagehide',()=>{clearTimeout(timer);timer=null;clear();known.clear();lastIds.clear();fresh.clear();model=null;lastData=null;initialized=false;});
+ window.AftershockSequence={stats:()=>({known:known.size,knownLimit:KNOWN_LIMIT,currentIds:lastIds.size,fresh:fresh.size,groups:model?.groups.size||0,markers:pins.size,lineTargets:lineTargets.length,pendingLayout:!!(layoutFrame||layoutTimer),layoutPasses}),marker:id=>pins.get(id)||null,summary:id=>{const g=model?.forEvent(id);return g?.children.length?{count:g.children.length,strongest:Math.max(...g.children.map(q=>q.mag))}:null;},render,refresh,clear,setVisible,syncMarkers,framePoints:id=>{const g=model?.forEvent(id);return g?(g.cameraPoints||(g.cameraPoints=[g.main.coords,...g.children.map(q=>q.coords)])):null;},state:()=>({mainId:model?.forEvent(chosen())?.main.id||null,count:model?.forEvent(chosen())?.children.length||0,markers:pins.size,clusters:clusterCount,represented:represented.size})};
 })();
