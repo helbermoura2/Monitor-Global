@@ -34,7 +34,7 @@ final class NewsBannerView extends View {
    first=a.kind.equals("tsunami")?tsunamiLabel(a.state):split<0?details:details.substring(0,split);
    source=!a.source.isEmpty()?a.source:split<0?"Fonte não informada":details.substring(split+3);
    oldMagnitude=BannerTimeline.magnitudeChanged(a)?String.format(java.util.Locale.forLanguageTag("pt-BR"),"M%.1f",a.previousMagnitude):"";
-   String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):!a.revision.isEmpty()?"ATUALIZAÇÃO DO SISMO":!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES · USGS":"NOVO SISMO";
+   String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):!a.revision.isEmpty()?"ATUALIZAÇÃO DO SISMO":!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES DO DIA":"NOVO SISMO";
    heading=(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO · ")+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
   }
  }
@@ -49,7 +49,7 @@ final class NewsBannerView extends View {
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
-  StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+day+" · HORÁRIO DE BRASÍLIA · USGS · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
+  StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+day+" · HORÁRIO DE BRASÍLIA · USGS / FONTES BRASIL · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
   for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
    if(!v.populationSummary.isEmpty())line.append(v.populationSummary).append("     •     ");
    if(!v.nearbySummary.isEmpty())line.append(v.nearbySummary).append("     •     ");

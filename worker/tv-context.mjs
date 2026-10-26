@@ -34,9 +34,9 @@ export function createTvEnricher({exposure=queryImageExposure,places=referencePl
   // At most three latest eligible quakes per shared snapshot, not per TV/poll.
   const candidates=snapshot.alerts.filter(a=>a.kind==='earthquake'&&a.eligible).slice(0,3);
   await Promise.all(candidates.map(async a=>{
-   const f=features.find(f=>'USGS:'+f.id===a.id),c=f?.geometry?.coordinates;
+   const f=features.find(f=>(f.tvId||'USGS:'+f.id)===a.id),c=f?.geometry?.coordinates;
    if(!c||![c[0],c[1],a.magnitude].every(Number.isFinite)||Math.abs(c[0])>180||Math.abs(c[1])>90||!Number.isFinite(a.depth))return Object.assign(a,missing);
-   try{Object.assign(a,await context({id:f.id,provider:'USGS',mag:a.magnitude,depth:a.depth,lat:c[1],lon:c[0],time:a.eventTime,timeIso:new Date(a.eventTime).toISOString()},env));}catch{Object.assign(a,missing);}
+   try{Object.assign(a,await context({id:f.id,provider:f.provider||'USGS',mag:a.magnitude,depth:a.depth,lat:c[1],lon:c[0],time:a.eventTime,timeIso:new Date(a.eventTime).toISOString()},env));}catch{Object.assign(a,missing);}
   }));return snapshot;
  };
 }

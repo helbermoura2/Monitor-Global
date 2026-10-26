@@ -14,6 +14,11 @@ public class SummaryRecordTest {
   for(int i=0;i<5;i++){assertEquals(list.get(i).id,saved.alerts.get(i).id);assertEquals(list.get(i).magnitude,saved.alerts.get(i).magnitude,0);}
   assertEquals(30000,BannerTimeline.summaryDuration(saved.alerts.size()));
  }
+ @Test public void smallBrazilAndLowGlobalMagnitudesSurviveReplay() throws Exception {
+  Alert br=DemoAlerts.create("quake",1800000000000L).get(0);br.magnitude=-.2;br.countryCode="br";
+  assertEquals(-.2,SummaryRecord.decode(SummaryRecord.encode(List.of(br),"2026-10-25",1)).alerts.get(0).magnitude,0);
+  br.countryCode="";br.magnitude=.1;assertEquals(.1,SummaryRecord.decode(SummaryRecord.encode(List.of(br),"2026-10-25",1)).alerts.get(0).magnitude,0);
+ }
  @Test public void invalidAndOversizedRecordsCannotCreateUnboundedReplay() throws Exception {
   try{SummaryRecord.decode(" ".repeat(64001));fail();}catch(JSONException expected){}
   try{SummaryRecord.decode("{\"day\":\"2026-10-25\",\"asOf\":1,\"alerts\":[]}");fail();}catch(JSONException expected){}

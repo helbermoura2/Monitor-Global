@@ -25,7 +25,7 @@ SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
 DEMAND_BUDGET = 'demand-enrichment-v1'
 PUBLIC_SOURCE_RUNTIME = 'edge-collectors-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = 'e5a8f514e0929c80bf3feacf67ff6090a32ce5c25bfc3b6655e449655d8ee2ae'
+BUNDLE_SHA256 = '48dc7d370f7e587069fd87ef0ec823e3d8a9d22096afca7ac632882b5f87484d'
 
 class MaintenanceError(Exception):
     pass

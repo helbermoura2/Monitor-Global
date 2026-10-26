@@ -16,7 +16,7 @@ final class SummaryRecord {
   FeedClient.Snapshot out=new FeedClient.Snapshot();out.day=root.getString("day");out.asOf=root.getLong("asOf");out.complete=root.optBoolean("complete",false);
   if(!out.day.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")||out.asOf<=0)throw new JSONException("Invalid summary metadata");
   JSONArray items=root.getJSONArray("alerts");if(items.length()<1||items.length()>5)throw new JSONException("Invalid summary count");
-  for(int i=0;i<items.length();i++){Alert a=AlertCodec.read(items.getJSONObject(i));if(!a.kind.equals("earthquake")||!Double.isFinite(a.magnitude)||a.magnitude<2.5||a.magnitude>10)throw new JSONException("Invalid summary quake");out.alerts.add(a.copy());}
+  for(int i=0;i<items.length();i++){Alert a=AlertCodec.read(items.getJSONObject(i));if(!a.kind.equals("earthquake")||!Double.isFinite(a.magnitude)||(a.magnitude<.1&&!a.countryCode.equals("br"))||a.magnitude>10)throw new JSONException("Invalid summary quake");out.alerts.add(a.copy());}
   out.quakeOk=true;return out;
  }
 }
