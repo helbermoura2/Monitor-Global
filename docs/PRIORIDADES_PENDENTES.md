@@ -8,7 +8,7 @@ Atualização: 27/10/2026. Pedido do dono: trabalhar primeiro nas três pendênc
 |---|---|---|
 | Medir a economia após a atualização de população | Publicada em 27/10 às 10h59 UTC. Monitor Free já executa quatro vezes ao dia. Nova leitura em 27/10 às 11h06 UTC: último dia completo ainda é 26/10. | Comparar dias completos após publicação com o baseline, considerando usuários/eventos. Primeiro dia integral: **28/10 UTC**, disponível no relatório agendado de **29/10 às 00h45 UTC (28/10 às 21h45 de Brasília)**. Depende da execução e da disponibilidade dos dados da Cloudflare. |
 | Investigar os quatro excessos de recursos | Agregado de 27/10 continua com os mesmos quatro registros. Nova captura de 121 segundos teve dez chamadas, todas `ok`, sem tráfego sintético; sessão removida. | Identificar uma rota com excesso e sua causa antes de corrigir código. A captura não reproduziu a falha; não comprova que a CPU foi corrigida. |
-| Evitar builds desnecessários do backend | Dono salvou o filtro manualmente no painel em 27/10; captura confirma as dez entradas, sem `*` isolado, e exclusões anteriores preservadas. A API continua sem autorização, mas não é necessária para esse ajuste manual. | Confirmar em um commit somente de documentação que o backend pula o build e a hospedagem estática continua publicando. |
+| Evitar builds desnecessários do backend | **Configuração manual concluída e validada na main:** commit de documentação `9ecc564` publicou site/hosting, sem um novo check/build de `black-sky-9ba0`; antes da configuração havia builds dos dois Workers. | Prévias dos PRs ainda geraram versões de teste; a observação confirma o resultado na publicação principal, não supressão de todos os builds de prévia nem minutos economizados. Não é necessário novo token para esse ajuste. |
 
 Baseline de 26/10 UTC: **38.524 chamadas Worker**, **2.295 Durable**, das quais **1.338 de população**. Parcial de 27/10 às 11h06 UTC: **15.016 Worker**, **941 Durable**, **410 de população**. Estes parciais misturam versões e não demonstram economia causada pela última publicação.
 
@@ -26,3 +26,5 @@ Ainda não iniciados nesta etapa. Antes de implementar cada item, conferir o que
 4. [ ] **Resumo legível da saúde do sistema** — aproveitar os relatórios existentes para apresentar a saúde e as cotas em português simples. Destino e frequência serão definidos nessa etapa; não instalar um novo serviço nem enviar mensagens agora.
 
 Continuar no plano Free. Não mudar câmera, frequência de alertas ou regras do Telegram para economizar consultas. A implementação desses quatro itens fica para depois das pendências atuais, conforme solicitado pelo dono.
+
+Validação do filtro manual: [evidência dos checks e publicação](audits/build-watch-paths-manual-20261027.json). A API continua retornando 403; isso não desfaz a configuração manual confirmada pelo dono.

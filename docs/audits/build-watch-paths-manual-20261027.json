@@ -1,0 +1,61 @@
+{
+  "checkedAt": "2026-10-27T11:34:56.850466+00:00",
+  "configurationEvidence": "Owner screenshot after saving ten include entries; standalone wildcard removed. Existing exclusions retained.",
+  "productionDocsCommit": "9ecc5641ffa5c8aa2db84245461082702ca5e349",
+  "productionChecks": [
+    {
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "report-build-status",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Workers Builds: monitor",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "beforeConfigurationDocsCommit": "fc7fcf6a865739d2aacf680893c7d92830f3330a",
+  "beforeConfigurationChecks": [
+    {
+      "name": "Workers Builds: black-sky-9ba0",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Workers Builds: monitor",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "report-build-status",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "pagesDeploymentRun": 40496918260,
+  "pagesDeploymentResult": "success",
+  "previewDocsCommit": "b224899616c900e3aa2652080915421c67a376c9",
+  "previewBackendVersion": "a92ca943-d892-4cf7-8ca2-243439a1ffeb",
+  "scope": "Production docs-only commit published static hosting without a backend check/build appearing; PR preview builds were still observed.",
+  "limitations": "Builds API is still unauthorized; this is evidence from GitHub checks and the owner screenshot, not a direct export of Cloudflare trigger settings or measured build minutes."
+}
