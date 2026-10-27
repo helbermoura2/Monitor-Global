@@ -17,10 +17,36 @@ O cartão mantém a população por localidades como reserva. A integração em 
 
 Endpoint GET `/population-exposure?lat=…&lng=…&mag=…&depth=…&time=…&eventId=…` (eventId opcional). Somente esse endpoint pode fazer o POST para WorldPop; nenhum proxy de destino arbitrário é acrescentado.
 
-O KV `TTS_USAGE` existente guarda tarefas/resultados com prefixo `exposure-v1:`. Cache local e consultas em andamento evitam repetir consultas no mesmo Worker; o KV é eventualmente consistente, portanto consultas simultâneas de regiões diferentes ainda podem criar tarefas duplicadas. Resultados WorldPop duram 24 horas; resultados PAGER 5 minutos para receber revisões; erros 3 minutos. Sem o binding, há reserva em memória. Nenhum secret é enviado ao navegador.
+O estado fica no **Durable Object**, com reutilização no Worker e no cache da borda. Não há gravação de população no KV nem no feed público. A chave continua incluindo coordenadas, magnitude, profundidade, identificador USGS e horário: mudar esses parâmetros separa o resultado anterior.
 
-Tarefas pendentes são consultadas a cada 10 segundos, por tempo limitado. Troca de evento, revisão de magnitude ou profundidade e página oculta cancelam a atualização do cartão anterior. O serviço público WorldPop pode aplicar cotas ou indisponibilidade. Erros nunca são convertidos em população zero; a reserva por localidades permanece visível.
+| Resultado | Durable | Navegador / validade compartilhada |
+|---|---|---|
+| WorldPop, sismo com menos de 12 horas | 24 horas | até 24 horas |
+| WorldPop, sismo com 12 horas ou mais | 7 dias | até 7 dias |
+| PAGER, recente ou antigo | 5 minutos | até 5 minutos |
+| WorldPop com identificador USGS, aguardando eventual PAGER | conserva o cálculo WorldPop | verifica possibilidade de PAGER a cada 5 minutos |
+| `unsupported` / `unavailable` terminal | 15 minutos | 5 minutos no cache da página; a borda pode reutilizar o negativo até 15 minutos |
+| `pending` | tarefas existentes, prazo limitado | consulta a cada 10 segundos |
 
-Os contratos foram testados com respostas simuladas e fixtures do formato oficial USGS. **Não houve validação de conectividade real com WorldPop/USGS nesta sessão**, devido ao acesso de rede indisponível no ambiente. Conferir `/population-exposure` após o deploy: `available` com `method=worldpop`/`pager` confirma a consulta; `unavailable` não comprova ausência de população.
+**Exceção deliberada à proposta de cache longo para todo sismo antigo:** idade não comprova que o PAGER deixou de receber revisões. Seus resultados continuam revalidados em cinco minutos. Um WorldPop já calculado permanece guardado enquanto se procura o PAGER; não se refazem as três consultas de grade por causa dessa procura. Prazo longo vale para o reaproveitamento do modelo WorldPop com os mesmos parâmetros, não é uma declaração de que o sismo está oficialmente encerrado.
 
-Teste: `node tests/unit/population-exposure-check.mjs`. Compatibilidade da reserva: `node tests/unit/population-check.cjs`.
+Resultados carregados antes desta alteração mantêm seu vencimento original; a leitura não renova o prazo. O servidor informa o vencimento absoluto em `X-Monitor-Population-Cache-Until`. As abas usam BroadcastChannel para compartilhar resultados e, quando disponíveis, Web Locks e Cache Storage para juntar consultas simultâneas. O cache em disco de população é separado do das outras fontes e limitado a oito respostas de até 512 KiB; os caches da página têm no máximo 80 positivos e 80 negativos. Navegadores sem essas APIs mantêm a consulta comum e a coordenação do servidor.
+
+Somente o evento selecionado consulta pelo cartão. Exportar uma imagem também pode pedir o resultado daquele evento. Troca de evento, revisão de magnitude/profundidade e página oculta cancelam o trabalho anterior; ocultar a página fecha o canal entre abas. Falha nunca vira população zero e a reserva de localidades continua visível. Nenhuma frequência de sismo, tsunami, Telegram ou movimento de câmera é alterada.
+
+### Publicação
+
+**A — arquivos do site:** no GitHub, abrir o pull request, conferir os testes e usar **Merge pull request**. `index.html` já aponta para novas versões dos dois arquivos JavaScript. A hospedagem publica esses arquivos; quem estiver com uma aba antiga aberta precisa recarregar a página.
+
+**B — Worker:** o arquivo `.mjs` sozinho não publica o servidor. O ZIP revisado deve ser reconstruído com `npm run worker:bundle` (já incluído neste diff, com seu checksum atualizado). Depois do merge: **GitHub → Actions → Cloudflare Worker maintenance → Run workflow → branch main → mode deploy → Run workflow**. Esperar o resultado verde. A rotina usa os Secrets existentes e preserva vínculos e agendamentos. Não é preciso editar código no painel Cloudflare. Ver [guia de manutenção](cloudflare-worker-maintenance.md) para publicação manual de reserva.
+
+### Checklist de teste
+
+- [ ] Sismo antigo com WorldPop disponível: refocar e abrir a imagem reutilizam o resultado, sem novo POST WorldPop.
+- [ ] Segunda aba reutiliza a mesma resposta; duas consultas simultâneas são reunidas quando Web Locks/Cache Storage estão disponíveis.
+- [ ] Mudar magnitude ou profundidade usa outra chave e permite novo cálculo.
+- [ ] PAGER continua podendo atualizar em cinco minutos, inclusive em sismos antigos; WorldPop com identificador USGS ainda pode ser substituído por PAGER.
+- [ ] Resultado indisponível não mostra zero e mantém localidades como reserva.
+- [ ] Ocultar a aba ou trocar de evento cancela o polling anterior.
+
+Testes sem chamadas reais: `node --test tests/unit/population-reuse.test.mjs tests/unit/browser-request-budget.test.cjs tests/unit/cross-tab-public-requests.test.cjs`; `node tests/unit/population-exposure-check.mjs`; `npx playwright test tests/population-reuse.spec.js tests/browser-request-budget.spec.js`. A economia será conferida nos dias completos do monitor de cotas Free, sem promessa percentual antecipada.

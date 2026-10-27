@@ -51,6 +51,6 @@ test('population negative expiry does not renew on reread or suppress a new esti
  f.c.Date=class extends Date{static now(){return now;}};
  const box={dataset:{},className:'',innerHTML:''};f.c.document.getElementById=id=>id==='pd-grid-exposure'?box:id==='pd-alcance-section'?{}:null;f.c.formatarPessoasHeadline=String;f.c.WORKER_PROXY=()=> 'https://black-sky-9ba0.terrestre.workers.dev/';f.c.eventoSelecionadoId='q';vm.runInContext(fs.readFileSync('js/population-exposure.js','utf8'),f.c);
  const item={id:'q',type:'earthquake',coords:[2,1],mag:6,depth:10,time:100};
- f.c.carregarExposicaoPopulacional(item);await new Promise(r=>setImmediate(r));now+=59000;f.c.cancelarExposicaoPopulacional();f.c.carregarExposicaoPopulacional(item);assert.equal(calls,1);
+ f.c.carregarExposicaoPopulacional(item);await new Promise(r=>setImmediate(r));now+=299000;f.c.cancelarExposicaoPopulacional();f.c.carregarExposicaoPopulacional(item);assert.equal(calls,1);
  now+=1001;f.c.carregarExposicaoPopulacional(item);await new Promise(r=>setImmediate(r));assert.equal(calls,2);assert.equal(f.c.exposicaoPopulacionalDoEvento(item).ranges[0].population,100);
 });

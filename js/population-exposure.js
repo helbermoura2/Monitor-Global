@@ -3,7 +3,38 @@
  'use strict';
  const cache=new Map(),negative=new Map();let current=null;
  function negativeHit(key){const hit=negative.get(key);if(hit&&hit.until>Date.now())return hit;negative.delete(key);return null;}
- function rememberNegative(key,data){if(!['unsupported','unavailable'].includes(data?.status))return;negative.set(key,{data:{status:data.status,note:String(data.note||'Estimativa populacional indisponível. Isso não significa zero.').slice(0,1000)},until:Date.now()+60000});while(negative.size>80)negative.delete(negative.keys().next().value);}
+ function ttl(item,data){return data.status==='available'?(data.method==='pager'||usgsId(item)?300000:Date.now()-Number(item.time)>=12*3600000?7*86400000:86400000):300000;}
+ function entry(key){const value=cache.get(key)||negativeHit(key);if(value?.until>Date.now())return value;cache.delete(key);return null;}
+ function remember(key,data,until){
+  if(!valid(data)&&!['unsupported','unavailable'].includes(data?.status))return;
+  if(!(until>Date.now()))return;
+  const previous=cache.get(key);if(previous?.until>Date.now()&&(!valid(data)||(previous.data.method==='pager'&&data.method!=='pager')||Number(previous.data.updatedAt)>Number(data.updatedAt)))return;
+  const target=valid(data)?cache:negative,other=valid(data)?negative:cache;other.delete(key);target.delete(key);target.set(key,{data,until});while(target.size>80)target.delete(target.keys().next().value);
+ }
+ let channel=null;
+ function closeChannel(){channel?.close();channel=null;}
+ function sharing(){
+  if(channel||typeof window.BroadcastChannel!=='function'||document.hidden)return channel;
+  try{channel=new window.BroadcastChannel('monitor-population-results-v1');channel.onmessage=({data:m})=>{
+   try{
+    if(typeof m?.key!=='string'||m.key.length>1500)return;
+    if(m.kind==='query'){const hit=entry(m.key);if(hit)channel?.postMessage({kind:'result',key:m.key,...hit});return;}
+    if(m.kind!=='result'||JSON.stringify(m.data).length>16384||!Number.isFinite(m.until)||m.until>Date.now()+7*86400000)return;
+    // Never extend the sender's expiry. Validate again before the UI can use it.
+    remember(m.key,m.data,Math.min(m.until,Date.now()+((m.data?.status!=='available'||m.data.method==='pager')?300000:7*86400000)));
+   }catch{/* Ignore malformed public messages. */}
+  };}catch{channel=null;}return channel;
+ }
+ async function readPopulation(item,key,url,signal){
+  const peer=sharing();if(peer&&!entry(key)){peer.postMessage({kind:'query',key});await new Promise(resolve=>setTimeout(resolve,40));}
+  if(signal.aborted)throw new DOMException('Consulta interrompida','AbortError');
+  const hit=entry(key);if(hit)return hit.data;
+  const r=await fetch(url,{signal});if(!r.ok)throw Error('HTTP '+r.status);
+  const data=await r.json(),serverUntil=Number(r.headers.get('X-Monitor-Population-Cache-Until')),limit=Date.now()+ttl(item,data),until=serverUntil>0?Math.min(serverUntil,limit):limit;
+  if(signal.aborted)throw new DOMException('Consulta interrompida','AbortError');
+  remember(key,data,until);const saved=entry(key);if(saved&&JSON.stringify(data).length<=16384)sharing()?.postMessage({kind:'result',key,...saved});
+  return saved?.data||data;
+ }
  function usgsId(item){const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);return report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';}
  const signature=item=>[item.id,item.coords?.[1],item.coords?.[0],item.mag,item.depth,item.time,usgsId(item)].join('|');
  const escape=text=>String(text??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -32,8 +63,7 @@
   job.data=data;const node=box();if(!node)return;node.dataset.status=valid(data)?'available':data?.status==='pending'?'pending':'unavailable';
   const flip=document.getElementById('pd-flip-grid-exposure');if(flip)flip.innerHTML=markup(data);
   if(valid(data)){
-   node.className='';node.innerHTML=markup(data);job.finished=true;if(cache.get(job.key)?.data!==data)cache.set(job.key,{data,until:Date.now()+(data.method==='pager'?300000:3600000)});
-   if(cache.size>80)cache.delete(cache.keys().next().value);
+   node.className='';node.innerHTML=markup(data);job.finished=true;job.dataUntil=entry(job.key)?.until;
    if(flip){const number=document.querySelector('#pd-flip-verso .pd-flip-verso-num'),sub=document.querySelector('#pd-flip-verso .pd-flip-verso-sub');if(number)number.textContent=count(data.ranges[0].population);if(sub)sub.textContent='população em área de tremor fraco ou maior · EST';}
 
   }
@@ -52,17 +82,17 @@
   const eventId=usgsId(item);
   Object.entries({lat:item.coords[1],lng:item.coords[0],mag:item.mag,depth:item.depth??0,time:item.time,...(eventId?{eventId}:{})}).forEach(([name,value])=>url.searchParams.set(name,String(value)));
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);
-  try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error();const data=await r.json();rememberNegative(key,data);return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
+  try{const data=await readPopulation(item,key,url,controller.signal);return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
  };
  window.carregarExposicaoPopulacional=function(item){
   if(!item||!(item.type==='earthquake'||(!item.type&&item.mag!=null&&Number.isFinite(Number(item.mag))))){cancel();return;}
   if(document.hidden)return;
-  const key=signature(item);
-  if(current?.key===key&&(!current.finished||Date.now()-current.started<10000)&&(!current.negativeUntil||current.negativeUntil>Date.now())){current.item=item;if(current.data)paint(current,current.data);return;}
+  const key=signature(item);sharing();
+  if(current?.key===key&&(!current.finished||Date.now()-current.started<10000)&&(!current.dataUntil||current.dataUntil>Date.now())){current.item=item;if(current.data)paint(current,current.data);return;}
   cancel();const job={item,key,attempt:0,timer:null,controller:null,started:Date.now(),finished:false};current=job;
   paint(job,{status:'pending'});
   const hit=cache.get(key);if(hit&&hit.until>Date.now()){paint(job,hit.data);return;}
-  const absent=negativeHit(key);if(absent){job.finished=true;job.negativeUntil=absent.until;paint(job,absent.data);return;}
+  const absent=negativeHit(key);if(absent){job.finished=true;job.dataUntil=absent.until;paint(job,absent.data);return;}
   let url;
   try{
    url=new URL(WORKER_PROXY(''));url.pathname='/population-exposure';url.search='';
@@ -73,17 +103,16 @@
    if(!selected(job))return;
    job.controller=new AbortController();const timeout=setTimeout(()=>job.controller.abort(),35000);
    try{
-    const response=await fetch(url.toString(),{signal:job.controller.signal});if(!response.ok)throw Error('HTTP '+response.status);
-    const data=await response.json();if(!selected(job))return;
+    const data=await readPopulation(item,key,url.toString(),job.controller.signal);if(!selected(job))return;
     if(data.status==='pending'&&job.attempt++<12){paint(job,data);job.timer=setTimeout(poll,10000);return;}
     if(data.status==='available'&&!valid(data))throw Error('Exposição inválida');
-    rememberNegative(key,data);job.negativeUntil=negativeHit(key)?.until;job.finished=true;paint(job,data.status==='pending'?{note:'A consulta ainda não concluiu. A cobertura por localidades está disponível abaixo.'}:data);
+    job.dataUntil=entry(key)?.until;job.finished=true;paint(job,data.status==='pending'?{note:'A consulta ainda não concluiu. A cobertura por localidades está disponível abaixo.'}:data);
    }catch(error){job.finished=true;if(selected(job))paint(job,{note:'População em grade indisponível no momento; a estimativa por localidades permanece abaixo.'});}
    finally{clearTimeout(timeout);}
   }
   void poll();
  };
- window.addEventListener('pagehide',()=>{negative.clear();cancel(true);});
+ window.addEventListener('pagehide',()=>{negative.clear();closeChannel();cancel(true);});
  let resumeItem=null;
- document.addEventListener('visibilitychange',()=>{if(document.hidden){resumeItem=current?.item||null;cancel(true);}else{const item=resumeItem;resumeItem=null;if(item&&eventoSelecionadoId===item.id)window.carregarExposicaoPopulacional(window.EventStore?.getById(item.id)||item);}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){closeChannel();resumeItem=current?.item||null;cancel(true);}else{const item=resumeItem;resumeItem=null;if(item&&eventoSelecionadoId===item.id)window.carregarExposicaoPopulacional(window.EventStore?.getById(item.id)||item);}});
 })();
