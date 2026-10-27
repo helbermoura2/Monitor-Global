@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-27T06:50:06.280559+00:00",
+  "repository": "helbermoura2/Monitor-Global",
+  "collaborators": [
+    {
+      "login": "helbermoura2",
+      "role": "admin"
+    }
+  ],
+  "ruleset": {
+    "id": 25626127,
+    "name": "Proteção da main",
+    "enforcement": "active",
+    "target": "default branch",
+    "rules": [
+      "deletion",
+      "non_fast_forward"
+    ],
+    "bypassActors": []
+  },
+  "signingEnvironment": {
+    "name": "android-tv-release",
+    "deploymentBranchPolicies": [
+      "main"
+    ],
+    "requiredReviewers": [],
+    "canAdminsBypass": true
+  },
+  "unavailable": {
+    "legacyBranchProtection": "HTTP403 Resource not accessible by integration",
+    "actionsDefaultWorkflowPermissions": "HTTP403 Resource not accessible by integration"
+  },
+  "limits": [
+    "Collaborators do not enumerate installed Apps or personal tokens",
+    "CODEOWNERS is review routing and not an access restriction",
+    "Account identity and signing environment were not changed"
+  ]
+}
