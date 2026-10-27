@@ -1335,7 +1335,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     window.MainCardLayout?.prepare(item);
     resetPainelDetalheCompartilhado();
     document.getElementById('pd-source').textContent = 'ANÁLISE SÍSMICA';
-    document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
+    document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || esc(item.bandeira || country.flag);
     try { enrichPainelDetalheUI(item); } catch (e) {}
 
     const regiaoIgual = paisTxt && titulo.toLowerCase().includes(paisTxt.toLowerCase());
@@ -1781,7 +1781,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
     if(typeof prepareStormLightning==='function')prepareStormLightning(item);
     document.getElementById('pd-source').textContent = item.type === 'volcano' ? 'ATIVIDADE VULCÂNICA' : (window.RecordPresentation?.label(item) || item.displayLabel || meta.label || 'ALERTA');
     try { enrichPainelDetalheUI(item); } catch (e) {}
-    document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || item.bandeira || country.flag;
+    document.getElementById('pd-flag').innerHTML = window.BrazilStateFlags?.markup(item) || esc(item.bandeira || country.flag);
     const localTxt = item.type === 'flood' && typeof traduzirTextoEnchente === 'function'
         ? traduzirTextoEnchente(item.place) : (item.type === 'volcano' ? traduzirTextoVulcanico(item.place) : item.place);
     document.getElementById('pd-local').textContent = `${item.type==='tsunami'&&item.official&&item.coords&&item.coordinateRole!=='warning-area'?'Origem sísmica: ':''}${item.cycloneLabel ? item.cycloneLabel + ' — ' : ''}${localTxt}`;
@@ -1856,7 +1856,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-mercalli-label').textContent = 'Intensidade';
         const wk = item.windKmh != null ? item.windKmh : null;
         document.getElementById('pd-mercalli').innerHTML = wk != null
-            ? `<span style="color:${cor}">${wk} km/h</span>`
+            ? `<span style="color:${cor}">${esc(wk)} km/h</span>`
             : `<span style="color:${cor}">${item.hazardNature==='warning'?(esc(item.severityLabel||'Aviso oficial')):item.hazardNature==='bulletin'?'Publicado':'Ativo'}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
@@ -1865,7 +1865,7 @@ function showAlertDetails(item, triggerVisualAlert = false, silentRefresh = fals
         document.getElementById('pd-depth-label').textContent = 'Tipo';
         document.getElementById('pd-depth').textContent = 'Enchente';
         document.getElementById('pd-mercalli-label').textContent = 'Alerta';
-        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${alertaPt || 'ATIVO'}</span>`;
+        document.getElementById('pd-mercalli').innerHTML = `<span style="color:${cor}">${esc(alertaPt || 'ATIVO')}</span>`;
         document.getElementById('pd-energy-label').textContent = 'Fonte';
         document.getElementById('pd-energy').textContent = item.source;
     } else if (item.type === 'fire') {

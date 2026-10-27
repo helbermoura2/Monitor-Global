@@ -210,6 +210,7 @@ function initMap() {
     });
 
     window.AppRecovery?.attach(map);
+    window.MapRenderBudget?.attach(map);
 
     // Attribution removido: o app é de uso pessoal, então o botão "ⓘ" de
     // créditos (Esri/HERE/OSM etc.) do MapLibre não precisa aparecer no mapa.

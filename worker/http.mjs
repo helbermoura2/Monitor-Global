@@ -44,3 +44,12 @@ async function fetchJson(url, options = {}, timeoutMs = 12000) {
     catch { throw new Error(`Resposta não-JSON de ${new URL(url).hostname}`); }
 }
 export { fetchText, nowIso, fetchJson, resposta, json, CORS_HEADERS };
+
+// Bound request bodies during reading, including chunked uploads without a trustworthy length.
+export async function readBoundedText(request,maxBytes=40000,timeoutMs=10000){
+ if(Number(request.headers.get('Content-Length'))>maxBytes)throw Object.assign(Error('size'),{status:413});
+ const reader=request.body?.getReader();if(!reader)return '';
+ let timer,total=0,text='';const decoder=new TextDecoder();const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('timeout'),{status:408})),timeoutMs);});
+ try{for(;;){const {done,value}=await Promise.race([reader.read(),deadline]);if(done)break;total+=value.byteLength;if(total>maxBytes)throw Object.assign(Error('size'),{status:413});text+=decoder.decode(value,{stream:true});}return text+decoder.decode();}
+ finally{clearTimeout(timer);try{await reader.cancel();}catch{}reader.releaseLock();}
+}

@@ -351,7 +351,8 @@ async function fetchSPForecast() {
         let html = '';
         for (let i = 0; i < dl.time.length; i++) {
             const dow = new Date(dl.time[i] + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
-            const prob = dl.precipitation_probability_max && dl.precipitation_probability_max[i] != null ? `${dl.precipitation_probability_max[i]}%` : '—';
+            const probability=number(dl.precipitation_probability_max?.[i]);
+            const prob = probability!==null&&probability>=0&&probability<=100 ? `${probability}%` : '—';
             const mm = dl.precipitation_sum && dl.precipitation_sum[i] != null ? `${Number(dl.precipitation_sum[i]).toFixed(1).replace('.', ',')}mm` : '—';
             html += `<div class="fc-day"><div class="fc-dow">${i === 0 ? 'hoje' : dow}</div><div class="fc-ico">${dl.weather_code?.[i]!=null?weatherEmoji(dl.weather_code[i]):'—'}</div><div class="fc-max">${tempValue(dl.temperature_2m_max?.[i])}</div><div class="fc-min">${tempValue(dl.temperature_2m_min?.[i])}</div><div class="fc-rain">💧${prob}</div><div class="fc-rain">${mm}</div></div>`;
         }

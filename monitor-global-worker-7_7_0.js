@@ -1,3 +1,5 @@
+import {readBoundedText} from "./worker/http.mjs";
+import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from "./worker/proxy-security.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
@@ -84,7 +86,6 @@ const ALLOWED_HOSTS = [
     'api-redemet.decea.mil.br',
     'api-redemet.decea.gov.br',
     'www.cgesp.org',
-    'api.allorigins.win',
     'www.bom.gov.au',
     'servicos.cptec.inpe.br', // CPTEC — condições atuais das capitais (XML)
     'dataserver-coids.inpe.br' // INPE — focos de queimadas (CSV 10min)
@@ -1864,7 +1865,7 @@ async function handleTts(reqUrl,env,storage){
 async function handlePortugueseTranslation(request,env){
  if(request.method!=='POST')return json({error:'Use POST para traduzir o boletim.'},405);
  if(Number(request.headers.get('Content-Length'))>40000)return json({error:'Texto acima do limite de tradução.'},413);
- let body;try{const raw=await request.text();if(raw.length>24000)return json({error:'Texto acima do limite de tradução.'},413);body=JSON.parse(raw);}catch{return json({error:'Pedido de tradução inválido.'},400);}
+ let body;try{const raw=await readBoundedText(request);if(raw.length>24000)return json({error:'Texto acima do limite de tradução.'},413);body=JSON.parse(raw);}catch(e){return json({error:e.status===413?'Texto acima do limite de tradução.':e.status===408?'Tempo de envio excedido.':'Pedido de tradução inválido.'},e.status||400);}
  const texts=body?.texts;
  if(!Array.isArray(texts)||!texts.length||texts.length>6||texts.some(t=>typeof t!=='string'||!t.trim()||t.length>12000)||texts.reduce((n,t)=>n+t.length,0)>20000)return json({error:'Envie até seis textos, com no máximo 20 mil caracteres no total.'},400);
  if(!env.AI||!env.TTS_USAGE)return json({error:'Tradução temporariamente indisponível.'},503);
@@ -2041,12 +2042,14 @@ async function handleWorkerRequest(request,env,ctx){
         if (reqUrl.pathname === '/metar-observed') return await handleWeatherObservations(reqUrl);
         if (reqUrl.pathname === '/redemet-metar') return await handleRedemet(reqUrl, env);
 
+        if(!['GET','HEAD'].includes(request.method))return json({error:'Método não permitido'},405);
         const target = reqUrl.searchParams.get('url');
         if (!target) return json({ error: 'Faltou o parâmetro ?url=' }, 400);
 
         let targetUrl;
         try { targetUrl = new URL(target); } catch { return json({ error: 'URL inválida' }, 400); }
 
+        try{proxyTarget(targetUrl,ALLOWED_HOSTS);}catch{return json({error:'Destino não permitido'},403);}
         if (targetUrl.protocol !== 'https:') return json({ error: 'Somente HTTPS é permitido' }, 403);
         if (!ALLOWED_HOSTS.includes(targetUrl.hostname)) return json({ error: 'Domínio não permitido', host: targetUrl.hostname }, 403);
 
@@ -2070,7 +2073,7 @@ async function handleWorkerRequest(request,env,ctx){
         }
 
         try {
-            const upstream = await fetchText(targetUrl.toString(), { method: 'GET', headers }, 15000);
+            const upstream = await proxyText(targetUrl.toString(), ALLOWED_HOSTS, headers);
             const retryHeaders=upstream.retryAfter?{'Retry-After':upstream.retryAfter}:{};
 
             // Se a fonte devolveu 2xx mas o corpo não é JSON nem XML, é resposta
@@ -2103,14 +2106,14 @@ async function handleWorkerRequest(request,env,ctx){
                 }), upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502, 'application/json', retryHeaders);
             }
 
-            return resposta(upstream.text, upstream.status, upstream.contentType || 'application/json',retryHeaders);
+            return resposta(upstream.text, upstream.status, proxyContentType(upstream.contentType),{...retryHeaders,...proxyHeaders});
         } catch (e) {
             return json({ error: 'Falha ao consultar fonte externa', host: targetUrl.hostname, detail: e.message, timestamp: nowIso() }, 502);
         }
 }
 
 export default {
-    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked,ctx),ALLOWED_HOSTS),ctx);},
+    async fetch(request,env,ctx){const response=await withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked,ctx),ALLOWED_HOSTS),ctx);return hardenResponse(request,response);},
 
     async scheduled(event, env, ctx) {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';

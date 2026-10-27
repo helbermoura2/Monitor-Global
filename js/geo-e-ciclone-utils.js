@@ -409,7 +409,9 @@ function atualizarDirecaoPainel(obj) {
     const el = document.getElementById('pd-cities');
     const tit = document.getElementById('pd-cities-title');
     if (el && tit && tit.textContent.includes('Direção')) {
-        el.insertAdjacentHTML('afterbegin', `<div class="city-item"><span class="city-name">➤ Direção recente: ${obj.movementInfo.compass} (${Math.round(obj.movementInfo.bearing)}°)</span></div>`);
+        let row=el.querySelector('[data-cyclone-direction]');
+        if(!row){row=document.createElement('div');row.className='city-item';row.dataset.cycloneDirection='';const text=document.createElement('span');text.className='city-name';row.append(text);el.prepend(row);}
+        row.firstElementChild.textContent=`➤ Direção recente: ${obj.movementInfo.compass} (${Math.round(obj.movementInfo.bearing)}°)`;
     }
 }
 

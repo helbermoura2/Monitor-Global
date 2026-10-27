@@ -4,7 +4,7 @@ test('background discovery does not cancel foreground products and survives fore
  const q=id=>({id,source:'QA',coords:[37,37],mag:5.5,time:Date.now()});const a=c.window.RuptureShaking.query(q('foreground')),b=c.window.RuptureShaking.query(q('background'),{background:true});assert.equal(requests.length,2);assert.equal(requests[0].signal.aborted,false);c.window.RuptureShaking.cancel();assert.equal(requests[0].signal.aborted,true);assert.equal(requests[1].signal.aborted,false);requests[1].resolve({ok:true,json:async()=>({status:'available',method:'usgs-shakemap-grid',grid:{},version:'qa'})});assert.equal(await a,null);assert.equal((await b).version,'qa');
 });
 
-function client(fetch,timers={},sources){const c={URL,AbortController,Date,Map,Object,Number,String,Promise,setTimeout,clearTimeout,WORKER_PROXY:()=> 'https://worker.example/',window:{addEventListener(){},OfficialMapSources:sources},fetch,...timers};vm.createContext(c);vm.runInContext(fs.readFileSync('js/rupture-shaking-model.js','utf8'),c);c.window.RuptureShakingModel=c.RuptureShakingModel;vm.runInContext(fs.readFileSync('js/rupture-shaking.js','utf8'),c);return c.window.RuptureShaking;}
+function client(fetch,timers={},sources,events={}){const c={URL,AbortController,Date,Map,Object,Number,String,Promise,setTimeout,clearTimeout,WORKER_PROXY:()=> 'https://worker.example/',window:{addEventListener:(name,fn)=>events[name]=fn,OfficialMapSources:sources},fetch,...timers};vm.createContext(c);vm.runInContext(fs.readFileSync('js/rupture-shaking-model.js','utf8'),c);c.window.RuptureShakingModel=c.RuptureShakingModel;vm.runInContext(fs.readFileSync('js/rupture-shaking.js','utf8'),c);return c.window.RuptureShaking;}
 const grid={nx:2,ny:2,x0:0,x1:2,y0:0,y1:2,values:[3,4,5,6]};
 const published={status:'available',method:'usgs-shakemap-finite',eventId:'us-test',version:'us-test-7',grid};
 const geometry={type:'FeatureCollection',features:[{geometry:{type:'Polygon',coordinates:[[[0,0,0],[1,1,0],[1,1,10],[0,0,0]]]}}]};
@@ -25,4 +25,9 @@ test('cancelling selection during geometry loading cannot populate the cache lat
 test('USGS timeout leaves the parent request alive for regional fallback',async()=>{
  let fallback=0;const api=client((url,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('Timeout')))),{setTimeout(fn,ms){if(ms===20000){queueMicrotask(fn);return null;}return setTimeout(fn,ms);}}, {query:async(q,signal)=>{fallback++;assert.equal(signal.aborted,false);return {...published,method:'eu-shakemap-grid'};}});
  const data=await api.query({id:'timeout',coords:[1,1],mag:6,time:Date.now()});assert.equal(data.method,'eu-shakemap-grid');assert.equal(fallback,1);
+});
+
+test('pagehide drops cached grids and late cancelled replies cannot refill them',async()=>{
+ for(const success of [true,false]){const events={};let finish;const api=client(async()=>new Promise(resolve=>finish=resolve),{},undefined,events);const pending=api.query({id:'hidden',coords:[1,1],mag:6,time:Date.now()});events.pagehide();finish(new Response(JSON.stringify(success?{...published,method:'usgs-shakemap-grid'}:{status:'unavailable'})));assert.equal(await pending,null);assert.equal(api.stats().entries,0);assert.equal(api.stats().inflight,0);}
+ const events={},api=client(async()=>new Response(JSON.stringify({...published,method:'usgs-shakemap-grid'})),{},undefined,events);await api.query({id:'cached',coords:[1,1],mag:6,time:Date.now()});assert.equal(api.stats().entries,1);events.pagehide();assert.equal(api.stats().entries,0);
 });

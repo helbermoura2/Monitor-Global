@@ -33,3 +33,11 @@ test('public proxy rejects unlisted hosts and non-HTTPS without contacting them'
   assert.equal(calls,0);
  }finally{globalThis.fetch=previous;}
 });
+test('public proxy rejects nested proxy/userinfo/ports, and remote HTML is served as inert text',async()=>{
+ const previous=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;return new Response('<!DOCTYPE html><html><script>alert(1)</script></html>',{headers:{'Content-Type':'text/html'}});};
+ try{
+  for(const target of ['https://api.allorigins.win/raw?url=https://example.test','https://user:password@earthquake.usgs.gov/','https://earthquake.usgs.gov:8443/']){const r=await worker.fetch(new Request('https://worker.test/?url='+encodeURIComponent(target)),{});assert.equal(r.status,403);}
+  assert.equal(calls,0);
+  const r=await worker.fetch(new Request('https://worker.test/?url='+encodeURIComponent('https://www.cgesp.org/v3/noticias.jsp?id=1')),{});assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^text\/plain/);assert.match(r.headers.get('Content-Security-Policy'),/sandbox/);assert.equal(r.headers.get('X-Frame-Options'),'DENY');
+ }finally{globalThis.fetch=previous;}
+});

@@ -1,0 +1,37 @@
+{
+  "method": "Local Chromium, native MapLibre painter and real 512x512 RGBA WebGL textures; stock prototype versus bounded instance. Byte counts are RGBA+mipmap estimates, not measured process/GPU RAM.",
+  "rendererSha256": "63eb3f622d85ea66bd2ca8081e50c408f8262619cc6de611af33b02adbaa06e7",
+  "budgetSha256": "de407a22f8cee7e1f60505db16492ee82a8e3dac56d16fd2642a681abc48e542",
+  "stockStats": {
+    "sources": 10,
+    "activeTiles": 34,
+    "cachedTiles": 0,
+    "spareTextures": 40,
+    "estimatedSpareTextureBytes": 55924080,
+    "maxEstimatedSpareTextureBytes": 8388608,
+    "disposedSpareTextures": 0,
+    "sparePoolBound": true
+  },
+  "stats": {
+    "sources": 10,
+    "activeTiles": 34,
+    "cachedTiles": 0,
+    "spareTextures": 5,
+    "estimatedSpareTextureBytes": 6990510,
+    "maxEstimatedSpareTextureBytes": 8388608,
+    "disposedSpareTextures": 35,
+    "sparePoolBound": true
+  },
+  "cleared": {
+    "sources": 10,
+    "activeTiles": 34,
+    "cachedTiles": 0,
+    "spareTextures": 0,
+    "estimatedSpareTextureBytes": 0,
+    "maxEstimatedSpareTextureBytes": 8388608,
+    "disposedSpareTextures": 40,
+    "sparePoolBound": true
+  },
+  "alive": true,
+  "sameCamera": true
+}
