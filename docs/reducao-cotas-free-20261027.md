@@ -30,3 +30,9 @@ O diagnóstico local registra `browserRequests.crossTab.hits`, indicando respost
 Evidência sanitizada: [free-quota-reductions-20261027.json](audits/free-quota-reductions-20261027.json). A economia percentual em produção continua pendente de dias completos com tráfego comparável. Não houve mensagem de teste no Telegram nem mudança de plano.
 
 Acompanhamento posterior e fila dos quatro itens reservados: [prioridades pendentes](PRIORIDADES_PENDENTES.md). A verificação de 27/10 às 11h06 UTC ainda não permite atribuir economia à publicação de população das 10h59 UTC.
+
+## Filtro salvo manualmente pelo dono
+
+Em 27/10, a captura do painel confirmou as dez entradas de inclusão no backend `black-sky-9ba0`, com os prefixos `worker/*`, `js/*`, `data/*` e `tools/*`, sem a regra isolada `*`. As exclusões anteriores foram preservadas. O Worker estático `monitor` permaneceu intacto. A pendência de configuração manual foi atendida; falta observar o resultado de um commit somente de documentação. Não é preciso criar outro token para usar o filtro salvo no painel. Os relatos anteriores de `applied: false` descrevem as tentativas pela API, não essa alteração manual posterior.
+
+A validação do filtro também usa um segundo push, de um único commit somente de documentação, na mesma branch. Isso separa o teste de uma edição comum do evento inicial de criação da branch. A Cloudflare documenta exceções ao filtro quando o push informa zero arquivos ou pelo menos vinte commits; criar uma branch não é um controle suficiente para concluir que o filtro falhou.
