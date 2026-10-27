@@ -44,7 +44,7 @@ function calculate(context){
  }
  useFallback();return promise;
 }
-window.addEventListener('pagehide',()=>{cancelCalculation();worker?.terminate();worker=null;});
+window.addEventListener('pagehide',()=>{cancelCalculation();worker?.terminate();worker=null;geometryCache.clear();cacheVertices=0;landPromise=null;});
 function ensure(){
  if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
  if(!map.getLayer(HALO))map.addLayer({id:HALO,type:'line',source:SOURCE,layout:{visibility:visible?'visible':'none','line-cap':'round','line-join':'round'},paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],2,6,8,8,12,9],'line-blur':2,'line-opacity':.23}},map.getLayer('wave-front-p-glow')?'wave-front-p-glow':undefined);

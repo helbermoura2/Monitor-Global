@@ -174,7 +174,7 @@ for (const id of ['btn-teste', 'btn-teste-faixas']) {
 }
 document.getElementById('btn-voz-hist')?.addEventListener('click', () => {
     const linhas = (vozHistorico || []).slice().reverse().map((x, i) =>
-        `<div style="padding:6px 0;border-bottom:1px solid #1e293b;font-size:12px;color:#cbd5e1"><b style="color:#38bdf8">${i + 1}.</b> ${x.txt}<br><small style="color:#64748b">${new Date(x.t).toLocaleString('pt-BR')}</small></div>`
+        `<div style="padding:6px 0;border-bottom:1px solid #1e293b;font-size:12px;color:#cbd5e1"><b style="color:#38bdf8">${i + 1}.</b> ${String(x.txt??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}<br><small style="color:#64748b">${new Date(x.t).toLocaleString('pt-BR')}</small></div>`
     ).join('') || '<p style="color:#94a3b8">Nenhum alerta falado ainda nesta sessão.</p>';
     if (typeof showFloat === 'function') {
         /* menu float may not exist in this scope */
