@@ -26,4 +26,6 @@ export async function observe(){
  }
  if(report.blocked||report.sessionRemoved===false)process.exitCode=2;
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await observe();
+// Node's WebSocket may retain a TCP close handle after session deletion.
+// All report writes and the DELETE have completed before ending this CLI.
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){await observe();process.exit(process.exitCode||0);}
