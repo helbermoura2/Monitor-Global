@@ -1,0 +1,20 @@
+# Redução de consultas no plano Free — 27/10/2026
+
+## Implementação
+
+1. **Abas do site:** Web Locks coordenam a mesma consulta pública ao Worker, com identidade SHA-256 incluindo URL, parâmetros, cabeçalhos e opções. Cache Storage reutiliza apenas respostas 200 marcadas `fresh` pelo servidor, até o menor prazo entre a validade original da fonte e 15 segundos. O prazo não se renova na leitura. Cada consulta tem seu próprio lock: uma fonte lenta não bloqueia outra. No máximo oito corpos de 512 KiB em disco, sem mapa permanente em RAM, heartbeat ou conexão aberta. Navegadores sem as APIs mantêm o comportamento anterior. Atualização forçada não reutiliza esse cache. Não altera intervalos de busca nem elegibilidade de alertas. Consultas privadas, escritas e requisições com credenciais/cabeçalhos sensíveis continuam excluídas pelo BrowserRequestBudget.
+2. **População:** resultados `unsupported`/`unavailable` são reutilizados por um minuto entre cartão e exportação da imagem. Até 80 registros pequenos, sem números populacionais inventados. Mudança de magnitude, profundidade, coordenadas, origem, horário ou identificação da fonte cria outra chave e consulta novamente. `pending` continua seguindo o fluxo existente; falha não vira zero. O cache negativo é limpo ao sair da página.
+3. **CPU:** os quatro `exceededResources` observados no parcial de 27/10 têm CPU mediana de 12,902 ms e P99 de 19,032 ms; isso sugere CPU acima dos 10 ms do Free, mas os agregados não identificam a rota. Foi preparada uma observação manual de 120 segundos de tráfego natural via Worker Tail, guardando somente contagens por rota conhecida e resultado. Sem requisições sintéticas, mensagens ou logs brutos. A sessão é removida ao terminar. O protocolo legado não fornece CPU por rota: a observação pode localizar um novo excesso, não reconstruir os quatro históricos. Correção de um handler exige evidência; não foi alterado um handler por suposição.
+4. **Builds:** política para o backend `black-sky-9ba0` inclui módulos raiz, `worker/**`, `js/**` compartilhado, dados, configuração, dependências, ferramentas e o ZIP revisado. Documentação, CSS e APKs isolados deixam de disparar esse build quando o filtro estiver aplicado. O Worker estático `monitor` permanece intacto e continua publicando site/APKs. A ferramenta lê o trigger antes, recusa configuração ambígua e altera exclusivamente `path_includes` e `path_excludes`. Não muda comandos, repositório, branches, Secrets ou plano.
+
+## Operação na conta
+
+Workflow manual **Cloudflare quota reduction operations**, somente proprietário/main. A observação usa os Secrets existentes. O filtro tenta usar `CLOUDFLARE_BUILDS_API_TOKEN`, se configurado, ou o token existente. A API de Builds havia retornado 403: ferramenta pronta não significa filtro aplicado. O resultado efetivo fica em `audit-results/build-filters.json`; a observação fica em `route-tail.json`, ambos em artefato por 14 dias.
+
+Se persistir 403, o token precisa de **Workers CI Read/Write** e acesso para identificar o Worker. Configure-o como Secret do GitHub, nunca em código ou chat. Referência do contrato: [Cloudflare API schemas](https://github.com/cloudflare/api-schemas/blob/main/openapi.yaml), endpoints `/builds/workers/{external_script_id}/triggers` e PATCH `/builds/triggers/{trigger_uuid}`. Não é necessária migração para serviço pago.
+
+## Validação e medição
+
+Testes simulados cobrem concorrência entre abas, expiração, fonte sem validade, fonte lenta independente, cancelamento, cache limitado, revisão populacional, isolamento dos filtros e descarte de dados privados no diagnóstico. Um teste com duas abas reais do Chromium verifica uma requisição para duas leituras iguais, nova consulta para revisão e nova consulta após expiração. Isso comprova o comportamento local, não uma porcentagem de economia em produção.
+
+O monitor de cotas existente continua comparando dias UTC completos. Avaliar requisições e famílias de Durable Objects após publicação, considerando número de usuários, abas e eventos. Não atribuir queda de tráfego a estas mudanças sem comparação equivalente.

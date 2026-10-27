@@ -1,7 +1,9 @@
 // UI for gridded population exposure. Keeps the existing glass card/flip.
 (function(){
  'use strict';
- const cache=new Map();let current=null;
+ const cache=new Map(),negative=new Map();let current=null;
+ function negativeHit(key){const hit=negative.get(key);if(hit&&hit.until>Date.now())return hit;negative.delete(key);return null;}
+ function rememberNegative(key,data){if(!['unsupported','unavailable'].includes(data?.status))return;negative.set(key,{data:{status:data.status,note:String(data.note||'Estimativa populacional indisponível. Isso não significa zero.').slice(0,1000)},until:Date.now()+60000});while(negative.size>80)negative.delete(negative.keys().next().value);}
  function usgsId(item){const report=(item.reports||[]).find(r=>/^USGS(?:-RT)?$/i.test(r.source||''))||(/^USGS(?:-RT)?$/i.test(item.source||'')?item:null);return report?String(report.sourceEventId||report.id||'').replace(/^USGS-(?:RT-)?/i,''):'';}
  const signature=item=>[item.id,item.coords?.[1],item.coords?.[0],item.mag,item.depth,item.time,usgsId(item)].join('|');
  const escape=text=>String(text??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -44,21 +46,23 @@
  window.estadoExposicaoPopulacionalDoEvento=item=>current?.item.id===item.id?current.data:null;
  window.renderExposicaoPopulacionalHTML=markup;
  window.obterExposicaoPopulacionalImagem=async function(item){
-  const hit=window.exposicaoPopulacionalDoEvento(item);if(hit)return hit;
+  const key=signature(item),hit=window.exposicaoPopulacionalDoEvento(item);if(hit)return hit;
+  if(negativeHit(key))return null;
   const url=new URL(WORKER_PROXY(''));url.pathname='/population-exposure';url.search='';
   const eventId=usgsId(item);
   Object.entries({lat:item.coords[1],lng:item.coords[0],mag:item.mag,depth:item.depth??0,time:item.time,...(eventId?{eventId}:{})}).forEach(([name,value])=>url.searchParams.set(name,String(value)));
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);
-  try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error();const data=await r.json();return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
+  try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error();const data=await r.json();rememberNegative(key,data);return valid(data)?data:null;}catch{return null;}finally{clearTimeout(timer);}
  };
  window.carregarExposicaoPopulacional=function(item){
   if(!item||!(item.type==='earthquake'||(!item.type&&item.mag!=null&&Number.isFinite(Number(item.mag))))){cancel();return;}
   if(document.hidden)return;
   const key=signature(item);
-  if(current?.key===key&&(!current.finished||Date.now()-current.started<10000)){current.item=item;if(current.data)paint(current,current.data);return;}
+  if(current?.key===key&&(!current.finished||Date.now()-current.started<10000)&&(!current.negativeUntil||current.negativeUntil>Date.now())){current.item=item;if(current.data)paint(current,current.data);return;}
   cancel();const job={item,key,attempt:0,timer:null,controller:null,started:Date.now(),finished:false};current=job;
   paint(job,{status:'pending'});
   const hit=cache.get(key);if(hit&&hit.until>Date.now()){paint(job,hit.data);return;}
+  const absent=negativeHit(key);if(absent){job.finished=true;job.negativeUntil=absent.until;paint(job,absent.data);return;}
   let url;
   try{
    url=new URL(WORKER_PROXY(''));url.pathname='/population-exposure';url.search='';
@@ -73,12 +77,13 @@
     const data=await response.json();if(!selected(job))return;
     if(data.status==='pending'&&job.attempt++<12){paint(job,data);job.timer=setTimeout(poll,10000);return;}
     if(data.status==='available'&&!valid(data))throw Error('Exposição inválida');
-    job.finished=true;paint(job,data.status==='pending'?{note:'A consulta ainda não concluiu. A cobertura por localidades está disponível abaixo.'}:data);
+    rememberNegative(key,data);job.negativeUntil=negativeHit(key)?.until;job.finished=true;paint(job,data.status==='pending'?{note:'A consulta ainda não concluiu. A cobertura por localidades está disponível abaixo.'}:data);
    }catch(error){job.finished=true;if(selected(job))paint(job,{note:'População em grade indisponível no momento; a estimativa por localidades permanece abaixo.'});}
    finally{clearTimeout(timeout);}
   }
   void poll();
  };
+ window.addEventListener('pagehide',()=>{negative.clear();cancel(true);});
  let resumeItem=null;
  document.addEventListener('visibilitychange',()=>{if(document.hidden){resumeItem=current?.item||null;cancel(true);}else{const item=resumeItem;resumeItem=null;if(item&&eventoSelecionadoId===item.id)window.carregarExposicaoPopulacional(window.EventStore?.getById(item.id)||item);}});
 })();

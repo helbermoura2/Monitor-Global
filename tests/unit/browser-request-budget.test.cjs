@@ -34,3 +34,23 @@ test('optional storm provider failure skips remaining cities and keeps the batch
  const source=fs.readFileSync('js/tempestades.js','utf8');let optional=0,fallback=0;const c={console,Date,Set,Map,Math,Number,fetch:async()=>{optional++;return new Response('{}',{status:503,headers:{'Retry-After':'1800'}});},fetchWithCorsFallback:async()=>{fallback++;return Response.json([]);},globalAlerts:[],knownAlertIds:new Set(),upsertAlert:()=>false,setSource(){},safeText(){},marcarBooted(){},applyFilters(){}};c.window=c;vm.createContext(c);vm.runInContext(source,c);await c.fetchBrazilStorms();await c.fetchBrazilStorms();assert.equal(optional,1);assert.equal(fallback,2);
 });
 test('rejected optional Overpass queries share a short cooldown across coordinates',async()=>{let calls=0;const{c}=fixture(async()=>{calls++;return new Response('{}',{status:406});});const u='https://black-sky-9ba0.terrestre.workers.dev/?url='+encodeURIComponent('https://overpass-api.de/api/interpreter?data=one');await assert.rejects(c.fetch(u));const r=await c.fetch(u.replace('one','two'));assert.equal(r.status,406);assert.equal(calls,1);});
+
+test('negative population is reused by card and image, never zero, and revision invalidates it',async()=>{
+ let calls=0;const f=fixture(async()=>{calls++;return Response.json({status:'unsupported',note:'Sem cobertura'});});
+ const box={dataset:{},className:'',innerHTML:''};f.c.document.getElementById=id=>id==='pd-grid-exposure'?box:id==='pd-alcance-section'?{}:null;
+ f.c.formatarPessoasHeadline=String;f.c.WORKER_PROXY=()=> 'https://black-sky-9ba0.terrestre.workers.dev/';f.c.eventoSelecionadoId='q';
+ vm.runInContext(fs.readFileSync('js/population-exposure.js','utf8'),f.c);
+ const item={id:'q',type:'earthquake',coords:[2,1],mag:6,depth:10,time:100};
+ f.c.carregarExposicaoPopulacional(item);await new Promise(r=>setImmediate(r));
+ assert.equal(await f.c.obterExposicaoPopulacionalImagem(item),null);f.c.cancelarExposicaoPopulacional();f.c.carregarExposicaoPopulacional(item);assert.equal(calls,1);assert(box.innerHTML.includes('Sem cobertura'));assert.equal(f.c.exposicaoPopulacionalDoEvento(item),null);
+ f.c.carregarExposicaoPopulacional({...item,mag:6.1});await new Promise(r=>setImmediate(r));assert.equal(calls,2);
+});
+
+test('population negative expiry does not renew on reread or suppress a new estimate',async()=>{
+ let now=100000,calls=0;const f=fixture(async()=>{calls++;return Response.json(calls===1?{status:'unavailable'}:{status:'available',method:'pager',ranges:[{population:100},{population:20},{population:2}]});});
+ f.c.Date=class extends Date{static now(){return now;}};
+ const box={dataset:{},className:'',innerHTML:''};f.c.document.getElementById=id=>id==='pd-grid-exposure'?box:id==='pd-alcance-section'?{}:null;f.c.formatarPessoasHeadline=String;f.c.WORKER_PROXY=()=> 'https://black-sky-9ba0.terrestre.workers.dev/';f.c.eventoSelecionadoId='q';vm.runInContext(fs.readFileSync('js/population-exposure.js','utf8'),f.c);
+ const item={id:'q',type:'earthquake',coords:[2,1],mag:6,depth:10,time:100};
+ f.c.carregarExposicaoPopulacional(item);await new Promise(r=>setImmediate(r));now+=59000;f.c.cancelarExposicaoPopulacional();f.c.carregarExposicaoPopulacional(item);assert.equal(calls,1);
+ now+=1001;f.c.carregarExposicaoPopulacional(item);await new Promise(r=>setImmediate(r));assert.equal(calls,2);assert.equal(f.c.exposicaoPopulacionalDoEvento(item).ranges[0].population,100);
+});
