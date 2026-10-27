@@ -1,0 +1,115 @@
+{
+  "plan": "Free",
+  "basis": "Plano Free informado pelo dono em 27/10/2026; limites públicos oficiais, compartilhados conforme o produto. Não é fatura.",
+  "verifiedAt": "2026-10-27",
+  "reset": "00:00 UTC / 21:00 America/Sao_Paulo",
+  "thresholds": {
+    "watch": 70,
+    "high": 85,
+    "critical": 95,
+    "exceeded": 100
+  },
+  "limits": {
+    "workerRequests": {
+      "limit": 100000,
+      "unit": "requests/day",
+      "source": "https://developers.cloudflare.com/workers/platform/pricing/",
+      "label": "Solicitações do Worker"
+    },
+    "durableRequests": {
+      "limit": 100000,
+      "unit": "requests/day",
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+      "label": "Solicitações Durable"
+    },
+    "durableDuration": {
+      "limit": 13000,
+      "unit": "GB-s/day",
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+      "label": "Tempo de execução Durable"
+    },
+    "sqlRowsRead": {
+      "limit": 5000000,
+      "unit": "rows/day",
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+      "label": "Linhas SQLite lidas"
+    },
+    "sqlRowsWritten": {
+      "limit": 100000,
+      "unit": "rows/day",
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+      "label": "Linhas SQLite escritas"
+    },
+    "sqlStoredBytes": {
+      "limit": 5000000000,
+      "unit": "bytes",
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+      "note": "Comparação conservadora: GB decimal. Máximo diário observado, não medição instantânea.",
+      "label": "Armazenamento SQLite"
+    },
+    "kvRead": {
+      "limit": 100000,
+      "unit": "keys/day",
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/",
+      "label": "Leituras KV"
+    },
+    "kvWrite": {
+      "limit": 1000,
+      "unit": "keys/day",
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/",
+      "label": "Gravações KV"
+    },
+    "kvDelete": {
+      "limit": 1000,
+      "unit": "keys/day",
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/",
+      "label": "Exclusões KV"
+    },
+    "kvList": {
+      "limit": 1000,
+      "unit": "requests/day",
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/",
+      "label": "Listagens KV"
+    },
+    "kvStoredBytes": {
+      "limit": 1000000000,
+      "unit": "bytes",
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/",
+      "note": "GB decimal conservador; bytes de operações não representam armazenamento.",
+      "label": "Armazenamento KV"
+    },
+    "aiNeurons": {
+      "limit": 10000,
+      "unit": "neurons/day",
+      "source": "https://developers.cloudflare.com/workers-ai/platform/pricing/",
+      "label": "Workers AI: neurons"
+    },
+    "workerLogEvents": {
+      "limit": 200000,
+      "unit": "events/day",
+      "source": "https://developers.cloudflare.com/workers/platform/pricing/",
+      "note": "Limite vigente até 30/11/2026; revisar em 01/12/2026.",
+      "label": "Eventos de log Workers"
+    },
+    "workerBuildMinutes": {
+      "limit": 3000,
+      "unit": "minutes/month",
+      "source": "https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/",
+      "label": "Minutos de build Workers"
+    }
+  },
+  "nonDailyLimits": {
+    "workerCpuMillisecondsPerInvocation": 10,
+    "workerLogRetentionDays": 3,
+    "workerBuildConcurrency": 1
+  },
+  "notes": [
+    "Limites de CPU por invocação não são comprovados pela média diária.",
+    "Subrequests não são solicitações de entrada adicionais para esta comparação.",
+    "Respostas 304 continuam sendo chamadas ao Worker.",
+    "Requisições a assets estáticos são gratuitas; não somar tráfego de assets como chamadas dinâmicas sem métrica correspondente.",
+    "Amostras e grupos ausentes não provam consumo zero.",
+    "O relatório não muda plano, quotas, políticas, intervalos de alertas ou destinatários."
+  ],
+  "maxPolicyAgeDays": 30
+}

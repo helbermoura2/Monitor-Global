@@ -50,25 +50,27 @@ def scalar(value):
     while value.get("ofType"):value=value["ofType"]
     return value.get("kind")=="SCALAR"
 
-def dataset(client,field,now):
+def dataset(client,field,now,lookback_days=2,extra_dimensions=()):
     shape={f['name']:f for f in d.schema(client,d.typename(field['type'])).get('fields',[])}
     aggregate='sum' if 'sum' in shape else 'max' if 'max' in shape else None
     if aggregate is None or 'dimensions' not in shape:raise ValueError('Dataset has no supported aggregate/dimensions')
-    sums=d.schema(client,d.typename(shape[aggregate]['type'])).get('fields',[])
-    metrics=[f['name'] for f in sums if any(x in f['name'].lower() for x in ['request','error','duration','cputime','gbsecond','rowsread','rowswritten','bytes','neurons','tokens','cost','storage','readunits','writeunits']) and scalar(f['type'])]
+    sum_type=d.typename(shape[aggregate]['type'])
+    sums=d.graphql(client,'query{__type(name:'+json.dumps(sum_type)+'){fields{name description type{'+d.TYPE+'}}}}').get('__type',{}).get('fields',[])
+    metrics=[f['name'] for f in sums if any(x in f['name'].lower() for x in ['request','error','duration','cputime','gbsecond','rowsread','rowswritten','byte','keycount','neurons','tokens','cost','storage','readunits','writeunits']) and scalar(f['type'])]
     if not metrics:raise ValueError('No supported consumption metrics; not inferred as zero')
     dims=[f['name'] for f in d.schema(client,d.typename(shape['dimensions']['type'])).get('fields',[])]
     chosen=([ 'date' ] if 'date' in dims else ['datetimeHour'] if 'datetimeHour' in dims else [])+(['scriptName'] if 'scriptName' in dims else [])
+    chosen += [x for x in extra_dimensions if x in dims and x not in chosen]
     if not chosen:raise ValueError('Dataset has no supported safe grouping')
     args={a['name']:a for a in field.get('args',[])}
     filters={f['name'] for f in d.schema(client,d.typename(args['filter']['type'])).get('inputFields',[])}
     temporal='date' if 'date_geq' in filters else 'datetime'
-    start=(now-dt.timedelta(days=2)).date();begin=str(start) if temporal=='date' else str(start)+'T00:00:00Z';end=str(now.date()) if temporal=='date' else now.isoformat().replace('+00:00','Z')
+    start=(now-dt.timedelta(days=lookback_days)).date();begin=str(start) if temporal=='date' else str(start)+'T00:00:00Z';end=str(now.date()) if temporal=='date' else now.isoformat().replace('+00:00','Z')
     name=field['name'];query='query{viewer{accounts(filter:{accountTag:'+json.dumps(client.account)+'}){'+name+'(limit:10000,filter:{'+temporal+'_geq:'+json.dumps(begin)+','+temporal+'_leq:'+json.dumps(end)+'}){'+aggregate+'{'+' '.join(metrics)+'} dimensions{'+' '.join(chosen)+'}}}}}'
     accounts=d.graphql(client,query).get('viewer',{}).get('accounts',[])
     rows=accounts[0].get(name) if len(accounts)==1 else None
     if not isinstance(rows,list) or len(rows)>=10000:raise ValueError('Missing or potentially truncated analytics')
-    return {'from':begin,'until':end,'aggregate':aggregate,'metrics':metrics,'dimensions':chosen,'rows':rows,'note':'Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice.'}
+    return {'from':begin,'until':end,'aggregate':aggregate,'metricDescriptions':{f['name']:f.get('description') for f in sums if f['name'] in metrics},'metrics':metrics,'dimensions':chosen,'rows':rows,'note':'Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice.'}
 
 def main():
     token,account=d.m.credentials(os.environ);client=ReadOnlyClient(token,account);now=dt.datetime.now(dt.timezone.utc)
