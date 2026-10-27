@@ -1,4 +1,4 @@
-/* Share public GET bodies in flight only. No result cache, credentials or server writes. */
+/* Share public GET bodies in flight; optional cross-tab reuse respects source expiry. */
 (function(root){'use strict';
  const jobs=new Map(),solo=new Set(),MAX_SHARED=8,MAX_BODY=4*1024*1024,cooldowns=new Map();
  const workerHost='black-sky-9ba0.terrestre.workers.dev';
@@ -50,7 +50,7 @@
   if(!job){
    job={key,controller:new AbortController(),consumers:new Set(),settled:false};
    jobs.set(job.key,job);
-   job.promise=(async()=>{try{const r=await nativeFetch(new Request(request,{signal:job.controller.signal}));rememberCooldown(cooldownKey,r);return await read(r);}finally{job.settled=true;if(jobs.get(job.key)===job)jobs.delete(job.key);}})();
+   job.promise=(async()=>{try{const load=async()=>{const r=await nativeFetch(new Request(request,{signal:job.controller.signal}));rememberCooldown(cooldownKey,r);return read(r);};return await (root.CrossTabPublicRequests?root.CrossTabPublicRequests.run(request,key,job.controller.signal,load):load());}finally{job.settled=true;if(jobs.get(job.key)===job)jobs.delete(job.key);}})();
   }
   const shared=job;
   return new Promise((resolve,reject)=>{
@@ -62,5 +62,5 @@
   });
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});root.addEventListener('pagehide',pause);
- root.BrowserRequestBudget={eligible,fetch:fetchPublic,stats:()=>({inflight:jobs.size,solo:solo.size,cooldowns:cooldowns.size,suppressed})};
+ root.BrowserRequestBudget={eligible,fetch:fetchPublic,stats:()=>({inflight:jobs.size,solo:solo.size,cooldowns:cooldowns.size,suppressed,crossTab:root.CrossTabPublicRequests?.stats?.()||null})};
 })(window);

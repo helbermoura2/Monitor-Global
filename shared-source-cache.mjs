@@ -9,7 +9,7 @@ const routes={
  '/official-weather-alerts':[60,180],'/cge-bulletins':[60,180],'/metar-observed':[300,600],'/tsunami-alerts':[10,60],'/v70-cyclones':[120,600]
 };
 const hosts=new Set(['sws.cemaden.gov.br','www.gdacs.org','earthquake.usgs.gov','volcanoes.usgs.gov','www.jma.go.jp','www.data.jma.go.jp','geofon.gfz-potsdam.de','webservices.ingv.it','www.isc.ac.uk','www.seismicportal.eu','www.osc.org.bo','www.ovsicori.una.ac.cr','www.snet.gob.sv','ide.igp.gob.pe','data.bmkg.go.id','api.geonet.org.nz','moho.iag.usp.br','api.orhanaydogdu.com.tr','deprem-api.vercel.app','sismosve.rafnixg.dev','api.gael.cloud','www.ssn.unam.mx','www.nhc.noaa.gov','www.tsunami.gov','api.weather.gov','apiprevmet3.inmet.gov.br','eonet.gsfc.nasa.gov','www.cgesp.org','feeds.meteoalarm.org','api.open-meteo.com','flood-api.open-meteo.com','air-quality-api.open-meteo.com','servicos.cptec.inpe.br']);
-const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'X-Monitor-Source, X-Monitor-Source-State, X-Monitor-Source-Last-Ok, X-Monitor-Source-Attempt, X-Monitor-Source-Next-Retry, Retry-After','Cache-Control':'no-store'};
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'X-Monitor-Source, X-Monitor-Source-State, X-Monitor-Source-Last-Ok, X-Monitor-Source-Fresh-Until, X-Monitor-Source-Attempt, X-Monitor-Source-Next-Retry, Retry-After','Cache-Control':'no-store'};
 const hash=async text=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',text instanceof Uint8Array?text:new TextEncoder().encode(text)))].map(b=>b.toString(16).padStart(2,'0')).join('');
 export function sourcePolicy(request,allowed=[...hosts],now=Date.now()){
  if(request.method!=='GET')return null;const u=new URL(request.url);if(u.href.length>5000)return null;
@@ -53,7 +53,7 @@ export async function pruneSources(storage,now=Date.now()){
  if(keep.length!==index.length)await storage.put('source-index',keep);
 }
 function response(entry,bytes,circuit,state,now){
- const h={...headers,...entry.headers,'X-Monitor-Source':entry.group,'X-Monitor-Source-State':state,'X-Monitor-Source-Last-Ok':String(entry.at),'X-Monitor-Source-Attempt':String(circuit?.attempt||entry.at),'X-Monitor-Source-Next-Retry':String(circuit?.next||entry.at+entry.ttl)};
+ const h={...headers,...entry.headers,'X-Monitor-Source':entry.group,'X-Monitor-Source-State':state,'X-Monitor-Source-Last-Ok':String(entry.at),'X-Monitor-Source-Fresh-Until':String(entry.at+entry.ttl),'X-Monitor-Source-Attempt':String(circuit?.attempt||entry.at),'X-Monitor-Source-Next-Retry':String(circuit?.next||entry.at+entry.ttl)};
  if(state==='stale'){h.Warning='110 - "Response is stale"';h['Retry-After']=String(Math.max(1,Math.ceil(((circuit?.next||now+30000)-now)/1000)));}
  return new Response(entry.status===204?null:bytes,{status:entry.status,headers:h});
 }
