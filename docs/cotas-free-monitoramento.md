@@ -35,3 +35,5 @@ Fontes: [Workers](https://developers.cloudflare.com/workers/platform/pricing/), 
 O primeiro relatório detalhado deve separar: pressão sobre solicitações do Worker; duração de Durable; famílias de acesso; operações de armazenamento; IA; lacunas de logs e builds. Comparar dias UTC completos, mantendo o dia atual como parcial. Não aumentar intervalos de sismos, revisões ou tsunami apenas para reduzir uma contagem.
 
 Candidatos iniciais a validar: chamadas repetidas entre telas/abas, repetições durante indisponibilidade, consultas de população com resultado já pronto e builds do backend causados por alterações que não mudam seu código. Reaproveitar respostas no servidor reduz chamadas de origem e Durable, mas não elimina as solicitações de entrada feitas pelo cliente. A economia real depende do que for mudado e precisa ser medida depois; não anunciar uma projeção como redução já obtida.
+
+Primeira coleta real concluída: [maiores consumidores e possibilidades de redução em 27/10](cotas-free-diagnostico-20261027.md), com duração confirmada em GB*s, armazenamento KV, histórico de dias completos e quantis de CPU/memória por grupo.
