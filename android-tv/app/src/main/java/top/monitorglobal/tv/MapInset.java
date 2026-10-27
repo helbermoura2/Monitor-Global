@@ -1,18 +1,18 @@
 package top.monitorglobal.tv;
 import android.content.Context;import android.graphics.*;import java.util.*;import java.util.concurrent.*;import java.io.*;import org.json.*;
-/** Offline geographic inset. One bounded preparation worker per visible banner, no polling/DO/GPU maps. */
+/** Satellite inset with immediate offline fallback and one bounded preparation worker. */
 final class MapInset {
  private static float[][] land;
  private final android.os.Handler main=new android.os.Handler(android.os.Looper.getMainLooper());
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private final IdentityHashMap<Alert,Drawing> ready=new IdentityHashMap<>();
- private volatile boolean closed;
+ private volatile boolean closed;private final SatelliteImage satellite=new SatelliteImage();
  private final Context context;private final Runnable invalidate;
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path clip=new Path();
  private static final class Stroke {Path path;int color;Stroke(Path p,int c){path=p;color=c;}}
- private static final class Drawing {Path land;List<Stroke> shores=new ArrayList<>();Float x,y;boolean partial,tsunami,located;String heading,note;}
+ private static final class Drawing {MapFrame frame;Bitmap image;Path land;List<Stroke> shores=new ArrayList<>();Float x,y;boolean partial,tsunami,located;String heading,note;}
  MapInset(Context context,Runnable invalidate){this.context=context.getApplicationContext();this.invalidate=invalidate;clip.addRoundRect(0,0,310,176,8,8,Path.Direction.CW);}
- void prepare(Alert a){worker.execute(()->{Drawing drawing;try{drawing=build(a);}catch(Exception e){drawing=new Drawing();drawing.tsunami=a.kind.equals("tsunami");drawing.partial=true;}drawing.heading=a.kind.equals("tsunami")?NewsBannerView.tsunamiLabel(a.state).split(" · ")[0]:"LOCAL DO EPICENTRO";drawing.note=!drawing.located?"Localização indisponível":drawing.tsunami?(drawing.partial?"Referência parcial · consulte o boletim":"Costas citadas · não representa inundação"):"Referência geográfica · Natural Earth";if(closed)return;Drawing value=drawing;main.post(()->{if(!closed){ready.put(a,value);invalidate.run();}});});}
+ void prepare(Alert a){worker.execute(()->{Drawing drawing;try{drawing=build(a);}catch(Exception e){drawing=new Drawing();drawing.tsunami=a.kind.equals("tsunami");drawing.partial=true;}drawing.heading=a.kind.equals("tsunami")?NewsBannerView.tsunamiLabel(a.state).split(" · ")[0]:"LOCAL DO EPICENTRO";drawing.note=!drawing.located?"Localização indisponível":drawing.tsunami?(drawing.partial?"Referência parcial · consulte o boletim":"Costas citadas · não representa inundação"):"Referência geográfica · Natural Earth";if(closed)return;Drawing value=drawing;main.post(()->{if(!closed){ready.put(a,value);invalidate.run();}});if(value.frame!=null&&!closed)worker.execute(()->{Bitmap image=satellite.load(value.frame);if(image==null)return;main.post(()->{if(closed){image.recycle();return;}value.image=image;value.note=value.tsunami?(value.partial?"Costas: referência parcial · Esri":"Costas citadas · não indica inundação · Esri"):"Satélite: Esri · referência geográfica";invalidate.run();});});});}
  private static synchronized float[][] land(Context context) throws Exception {
   if(land!=null)return land;
   ByteArrayOutputStream bytes=new ByteArrayOutputStream();try(InputStream in=context.getAssets().open("maps/land.json")){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(Thread.currentThread().isInterrupted())throw new InterruptedException();bytes.write(b,0,n);}}
@@ -29,7 +29,7 @@ final class MapInset {
   }
   if(map!=null){JSONObject b=map.getJSONObject("frame");f=new MapFrame(b.getDouble("minLon"),b.getDouble("maxLon"),b.getDouble("minLat"),b.getDouble("maxLat"));d.partial=map.optBoolean("partial");}
   if(f==null&&MapFrame.located(a.originLongitude,a.originLatitude))f=MapFrame.epicenter(a.originLongitude,a.originLatitude);
-  if(f==null||!f.valid()){d.partial=true;return d;}d.located=true;
+  if(f==null||!f.valid()){d.partial=true;return d;}d.located=true;d.frame=f;
   d.land=new Path();d.land.setFillType(Path.FillType.EVEN_ODD);
   for(float[] ring:land(context)){
    if(Thread.currentThread().isInterrupted())throw new InterruptedException();
@@ -48,6 +48,7 @@ final class MapInset {
   c.save();c.clipPath(clip);paint.setStyle(Paint.Style.FILL);paint.setColor(0xff091f2c);c.drawRect(0,0,310,176,paint);
   Drawing d=ready.get(a);
   if(d!=null&&d.land!=null){paint.setColor(0xff234653);c.drawPath(d.land,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(.65f);paint.setColor(0xff456776);c.drawPath(d.land,paint);}
+  if(d!=null&&d.image!=null){paint.setColor(Color.WHITE);paint.setAlpha(255);paint.setFilterBitmap(true);c.drawBitmap(d.image,null,new RectF(0,0,310,150),paint);}
   if(d!=null){for(Stroke s:d.shores){paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4);paint.setColor(s.color);paint.setAlpha(55);c.drawPath(s.path,paint);paint.setStrokeWidth(1.8f);paint.setAlpha(255);c.drawPath(s.path,paint);}paint.setStyle(Paint.Style.FILL);
    if(d.x!=null&&d.y!=null){paint.setColor(Color.WHITE);c.drawCircle(d.x,d.y,4.5f,paint);paint.setColor(0xffef5350);c.drawCircle(d.x,d.y,3,paint);}
   }
@@ -56,5 +57,5 @@ final class MapInset {
   String note=d==null?"Preparando mapa…":d.note;
   c.drawText(note,10,167,paint);c.restore();paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1);paint.setColor(accent);c.drawRoundRect(0,0,310,176,8,8,paint);paint.setStyle(Paint.Style.FILL);
  }
- void close(){closed=true;worker.shutdownNow();main.removeCallbacksAndMessages(null);ready.clear();}
+ void close(){closed=true;satellite.close();worker.shutdownNow();main.removeCallbacksAndMessages(null);ready.clear();}
 }
