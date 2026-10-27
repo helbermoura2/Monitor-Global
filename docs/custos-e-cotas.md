@@ -1,5 +1,7 @@
 # Custos e cotas — inventário operacional
 
+**Diretriz vigente: manter o plano Free, confirmado pelo dono em 27/10. O acompanhamento atual está em [cotas gratuitas](cotas-free-monitoramento.md). As seções de alertas financeiros abaixo registram a investigação anterior; não é necessário configurar valor em dólares para este acompanhamento.**
+
 Revisão: 27/10/2026. Este documento organiza o que existe; **não é uma fatura nem confirmação do plano contratado**. Não foram alterados planos, cotas ou notificações da conta.
 
 ## Serviços e limites

@@ -1,0 +1,49 @@
+name: Monitor Cloudflare Free quotas
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 0,6,12,18 * * *'
+  pull_request:
+    paths:
+      - 'tools/cloudflare-free-quota-audit.py'
+      - 'tools/free-quota-policy.json'
+      - 'tools/cloudflare-account-audit.py'
+      - 'tests/unit/test_free_quota_audit.py'
+      - '.github/workflows/cloudflare-free-quota.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-free-quota-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: false
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests/unit -p 'test_*quota*.py'
+  audit:
+    if: github.event_name != 'pull_request' && github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main'
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read Free quotas without changing services or notifying recipients
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python tools/cloudflare-free-quota-audit.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloudflare-free-quota
+          path: |
+            audit-results/cloudflare-free-quota.json
+            audit-results/cloudflare-free-quota.md
+          retention-days: 30
