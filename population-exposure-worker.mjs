@@ -6,8 +6,10 @@ import {sourceEdgeResponse} from './source-edge-cache.mjs';
 const pending=new Map(),memory=new Map(),persistentMemory=new WeakMap(),pagerChecks=new Map();
 const edgeScopes=new WeakMap(); // Population entries must not evict urgent public feeds.
 const YEAR=2020,VERSION='exposure-v1';
-const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'X-Monitor-Source-Edge','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
-const response=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
+export const populationTtl=(params,value)=>value.status==='available'?(value.method==='pager'?300:Date.now()-params.time>=12*3600000?7*86400:86400):900;
+const freshnessTtl=(params,value)=>value.status==='pending'?10:Math.min(populationTtl(params,value),value.status==='available'&&params.eventId?300:Infinity);
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'X-Monitor-Source-Edge, X-Monitor-Population-Cache-Until','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
+const response=(body,status=200,until=0)=>new Response(JSON.stringify(body),{status,headers:{...headers,...(until?{'X-Monitor-Population-Cache-Until':String(until)}:{})}});
 const radians=x=>x*Math.PI/180;
 export function distanceKm(a,b,c,d){
  const x=Math.sin(radians(c-a)/2)**2+Math.cos(radians(a))*Math.cos(radians(c))*Math.sin(radians(d-b)/2)**2;
@@ -128,11 +130,11 @@ async function runExposure(params,env,key,storage){
   try{pagerChecks.set(key,Date.now());if(pagerChecks.size>400)pagerChecks.delete(pagerChecks.keys().next().value);const pager=await officialPager(params);if(pager){await storageWrite(env,key,pager,300,storage);return pager;}}catch{}
   if(params.mag<3||params.mag>8.5||params.depth>70||Math.abs(params.lat)>85){
    const unsupported={status:'unsupported',note:'Sem PAGER disponível. O modelo do app não foi aplicado: magnitude, profundidade ou latitude fora da faixa utilizada.'};
-   await storageWrite(env,key,unsupported,300,storage);return unsupported;
+   await storageWrite(env,key,unsupported,900,storage);return unsupported;
   }
   state={status:'pending',created:Date.now(),ranges:exposureRadii(params.mag,params.depth)};
  }
- if(Date.now()-state.created>180000){const failed={status:'unavailable',note:'WorldPop não concluiu a consulta no prazo. A estimativa por localidades continua disponível.'};await storageWrite(env,key,failed,300,storage);return failed;}
+ if(Date.now()-state.created>180000){const failed={status:'unavailable',note:'WorldPop não concluiu a consulta no prazo. A estimativa por localidades continua disponível.'};await storageWrite(env,key,failed,900,storage);return failed;}
  if(state.ranges.some(r=>r.taskid))activity(env,'populationPendingPolls');
  let failed=false;
  // No máximo 3 consultas por sismo; tarefas pendentes são reutilizadas.
@@ -148,14 +150,14 @@ async function runExposure(params,env,key,storage){
    else if(result.taskid)range.taskid=result.taskid;
   }catch{failed=true;break;}
  }
- if(failed){const unavailable={status:'unavailable',note:'A consulta à população em grade está indisponível. A estimativa por localidades continua disponível.'};await storageWrite(env,key,unavailable,300,storage);return unavailable;}
+ if(failed){const unavailable={status:'unavailable',note:'A consulta à população em grade está indisponível. A estimativa por localidades continua disponível.'};await storageWrite(env,key,unavailable,900,storage);return unavailable;}
  if(state.ranges.every(r=>r.population!==undefined)){
   // Círculos são inclusivos: nunca somar as faixas nem forçar monotonicidade.
   if(state.ranges.some((r,i)=>i&&r.population>state.ranges[i-1].population+1)){
-   const unavailable={status:'unavailable',note:'As consultas retornaram populações inconsistentes; o total não foi exibido.'};await storageWrite(env,key,unavailable,300,storage);return unavailable;
+   const unavailable={status:'unavailable',note:'As consultas retornaram populações inconsistentes; o total não foi exibido.'};await storageWrite(env,key,unavailable,900,storage);return unavailable;
   }
   const available={status:'available',provider:'WorldPop',method:'worldpop',year:YEAR,ranges:state.ranges.map(({taskid,...r})=>r),partial:state.ranges.some(r=>r.limited),model:'Allen, Wald e Worden (2012), distância hipocentral',depthAssumed:params.depth===0,note:(params.depth===0?'Profundidade informada como zero: adotados 10 km no modelo; essa suposição pode alterar os totais. ':'')+'População em grade dentro de áreas de intensidade estimada pelo app. Inclui áreas rurais. Modelo radial sem efeitos locais do solo, direção da ruptura ou incerteza estatística; não equivale ao ShakeMap.'};
-  await storageWrite(env,key,available,86400,storage);return available;
+  await storageWrite(env,key,available,populationTtl(params,available),storage);return available;
  }
  state.nextPollAt=Date.now()+10000;await storageWrite(env,key,state,240,storage);return {status:'pending',retryAfter:10,note:'Consultando população em grade…'};
 }
@@ -175,16 +177,17 @@ export async function handlePopulationExposure(request,env,storage){
  const coordinator=env.POPULATION_COORDINATOR||env.EARTHQUAKE_ALERTS;
  if(!storage&&coordinator){
   if(!edgeScopes.has(coordinator))edgeScopes.set(coordinator,{});
-  const policy={ttl:300000,expires:r=>r.headers.get('X-Monitor-Population-Cache-Until')};
+  const policy={ttl:7*86400000,expires:r=>r.headers.get('X-Monitor-Population-Cache-Until')};
   const edgeKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__population-cache/v1/'+key);
   try{return await sourceEdgeResponse(edgeScopes.get(coordinator),key,policy,edgeKey,async()=>{
    let upstream;try{upstream=await coordinator.get(coordinator.idFromName('population-exposure-v2:'+key)).fetch(request);}catch{return response({status:'unavailable',note:'Consulta populacional temporariamente indisponível; a estimativa por localidades permanece disponível.'},503);}
    if(!upstream.ok)return upstream;
    const text=await upstream.text(),data=JSON.parse(text);
-   const seconds=data.status==='pending'?Math.min(10,Math.max(1,Number(data.retryAfter)||10)):data.status==='available'||data.status==='unsupported'?300:60;
-   return new Response(text,{status:upstream.status,headers:{...headers,'X-Monitor-Population-Cache-Until':String(Date.now()+seconds*1000)}});
+   const seconds=freshnessTtl(params,data),originUntil=Number(upstream.headers.get('X-Monitor-Population-Cache-Until'));
+   const until=originUntil>0?Math.min(originUntil,Date.now()+seconds*1000):Date.now()+seconds*1000;
+   return new Response(text,{status:upstream.status,headers:{...headers,'X-Monitor-Population-Cache-Until':String(until)}});
   });}catch{return response({status:'unavailable',note:'Consulta populacional temporariamente indisponível; a estimativa por localidades permanece disponível.'},503);}
  }
  if(!pending.has(key))pending.set(key,runExposure(params,env,key,storage).finally(()=>pending.delete(key)));
- try{return response(await pending.get(key));}catch{return response({status:'unavailable',note:'A consulta de exposição está temporariamente indisponível.'},502);}
+ try{const data=await pending.get(key),entry=storage?persistentMemory.get(storage):memory.get(key),limit=Date.now()+freshnessTtl(params,data)*1000;return response(data,200,Math.min(entry?.until||limit,limit));}catch{return response({status:'unavailable',note:'A consulta de exposição está temporariamente indisponível.'},502);}
 }

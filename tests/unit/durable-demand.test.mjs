@@ -12,14 +12,16 @@ const source=(await readFile(new URL('../../monitor-global-worker-7_7_0.js',impo
 const {default:worker,EarthquakeAlertDelivery}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 function store(){const data=new Map();return {data,get:async k=>structuredClone(data.get(k)),put:async(k,v)=>data.set(k,structuredClone(v)),delete:async k=>data.delete(k),list:async()=>new Map(),transaction:async function(fn){return fn(this);},setAlarm:async()=>{throw Error('No disposable-cache alarms');}};}
 const population=(extra='')=>new Request('https://worker.test/population-exposure?lat=-41&lng=-73&mag=5&depth=10&time=1000000'+extra);
-test('200 repeated population requests invoke one coordinator, but revisions and five-minute expiry do not reuse it',async()=>{
+test('200 repeated population requests share stable WorldPop; USGS freshness and parameter revisions remain separate',async()=>{
  delete globalThis.caches;let now=Date.now(),calls=0;Date.now=()=>now;
  const coordinator={idFromName:n=>n,get:()=>({fetch:async()=>{calls++;return Response.json({status:'available',method:'worldpop',ranges:[{population:10}]});}})};
  const env={EARTHQUAKE_ALERTS:coordinator};
  const responses=await Promise.all(Array.from({length:100},()=>handlePopulationExposure(population(),env)));assert(responses.every(r=>r.ok));
  for(let i=0;i<100;i++)assert.equal((await(await handlePopulationExposure(population(),env)).json()).status,'available');assert.equal(calls,1);
  await handlePopulationExposure(population('&eventId=us-revised'),env);assert.equal(calls,2);
- now+=300001;await handlePopulationExposure(population(),env);assert.equal(calls,3);
+ now+=300001;await handlePopulationExposure(population(),env);assert.equal(calls,2);
+ await handlePopulationExposure(population('&eventId=us-revised'),env);assert.equal(calls,3);
+ now+=7*86400000;await handlePopulationExposure(population(),env);assert.equal(calls,4);
 });
 test('population pending replies share ten seconds across cold isolates without postponing the next task poll',async()=>{
  let now=Date.now(),calls=0;Date.now=()=>now;const entries=new Map();globalThis.caches={default:{match:async r=>entries.get(r.url)?.clone(),put:async(r,v)=>entries.set(r.url,v.clone())}};
