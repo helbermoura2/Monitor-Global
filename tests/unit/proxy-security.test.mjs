@@ -19,3 +19,9 @@ test('bounded request reader rejects oversized chunked uploads and stalled bodie
  const slow=new Request('https://worker.test/translate-pt',{method:'POST',body:new ReadableStream({pull(){}}),duplex:'half'});await assert.rejects(readBoundedText(slow,100,20),e=>e.status===408);
  assert.equal(await readBoundedText(new Request('https://worker.test/',{method:'POST',body:'{"texts":["Depth: 10 km"]}'})),'{"texts":["Depth: 10 km"]}');
 });
+test('cache restoration cannot strip sandbox or revive remote HTML; other Worker responses get basic headers',async()=>{
+ const {hardenResponse}=await import('../../worker/proxy-security.mjs');
+ const cached=new Response('<html><script>not executed</script></html>',{headers:{'Content-Type':'text/html','X-Monitor-Source-State':'stale'}});
+ const safe=hardenResponse(new Request('https://worker.test/?url=https://www.cgesp.org/'),cached);assert.match(safe.headers.get('Content-Type'),/^text\/plain/);assert.match(safe.headers.get('Content-Security-Policy'),/sandbox/);assert.equal(safe.headers.get('X-Monitor-Source-State'),'stale');assert.equal(await safe.text(),'<html><script>not executed</script></html>');
+ const response=hardenResponse(new Request('https://worker.test/tv-alerts'),Response.json({version:'tv-alerts-v1'}));assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff');assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');assert.match(response.headers.get('Content-Type'),/^application\/json/);
+});

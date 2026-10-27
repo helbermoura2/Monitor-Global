@@ -1,5 +1,5 @@
 import {readBoundedText} from "./worker/http.mjs";
-import {proxyTarget,proxyText,proxyHeaders,proxyContentType} from "./worker/proxy-security.mjs";
+import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from "./worker/proxy-security.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
@@ -2113,7 +2113,7 @@ async function handleWorkerRequest(request,env,ctx){
 }
 
 export default {
-    async fetch(request,env,ctx){return withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked,ctx),ALLOWED_HOSTS),ctx);},
+    async fetch(request,env,ctx){const response=await withKvUsage(env,tracked=>sharedSourceResponse(request,tracked,internal=>handleWorkerRequest(request,internal?{...tracked,SHARED_SOURCE_INTERNAL:true}:tracked,ctx),ALLOWED_HOSTS),ctx);return hardenResponse(request,response);},
 
     async scheduled(event, env, ctx) {
         const baseUrl = 'https://black-sky-9ba0.terrestre.workers.dev/';

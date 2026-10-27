@@ -23,3 +23,10 @@ export async function proxyText(value,allowed,headers,{timeoutMs=15000,maxBytes=
 }
 export const proxyHeaders={'Content-Security-Policy':"default-src 'none'; sandbox; base-uri 'none'; frame-ancestors 'none'",'X-Frame-Options':'DENY','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 export const proxyContentType=value=>/^(?:application\/(?:[a-z0-9.+-]*json|xml)|text\/xml)(?:;|$)/i.test(value)?value:'text/plain; charset=utf-8';
+
+// Apply after shared-cache restoration too: older/stored headers must not bypass response policy.
+export function hardenResponse(request,response){
+ const headers=new Headers(response.headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','no-referrer');
+ const u=new URL(request.url);if(u.pathname==='/'&&u.searchParams.has('url')){for(const [name,value]of Object.entries(proxyHeaders))headers.set(name,value);headers.set('Content-Type',proxyContentType(headers.get('Content-Type')||''));}
+ return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+}
