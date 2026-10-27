@@ -38,6 +38,9 @@ jobs:
       - name: Build and inspect APK
         working-directory: android-tv
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testReleaseUnitTest
+      - name: Check Android map graphics and cancellation lifecycle
+        working-directory: android-tv
+        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testReleaseUnitTest
       - name: Verify distribution guards
         run: python -m unittest discover -s android-tv/tests/python
       - name: Verify published signature and migration artifacts

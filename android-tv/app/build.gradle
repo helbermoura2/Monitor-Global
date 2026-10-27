@@ -6,8 +6,8 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  versionCode 10017
-  versionName '1.0.17'
+  versionCode 10018
+  versionName '1.0.18'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
@@ -24,4 +24,18 @@ android {
 dependencies {
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
+}
+
+// Opt-in host Android graphics checks; no dependencies are added to the shipped APK.
+if (project.hasProperty('nativeMapChecks')) {
+ android.sourceSets.test.java.srcDir 'src/nativeMapTest/java'
+ android.testOptions.unitTests.includeAndroidResources = true
+ dependencies { testImplementation 'org.robolectric:robolectric:4.16.1' }
+ tasks.withType(Test).configureEach {
+  systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+  ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort', 'javax.net.ssl.trustStore'].each { key ->
+   if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+  }
+  maxHeapSize = '1536m'
+ }
 }
