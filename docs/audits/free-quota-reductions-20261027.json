@@ -1,0 +1,103 @@
+{
+  "recordedAt": "2026-10-27T10:34:01.638672+00:00",
+  "runtimeCommit": "2ec06b04ac54da33fe530c0768cc8fd30fdb19eb",
+  "plan": "Free",
+  "runs": {
+    "browserRegression": 40487460565,
+    "maintenanceDeployment": 40488328092,
+    "routeAndBuildOperations": 40488323169
+  },
+  "verification": {
+    "nodeContractsPassed": 174,
+    "browserScenariosPassed": 74,
+    "backendModulesCoveredByBuildPolicy": 62
+  },
+  "publicAssets": {
+    "checkedAt": "2026-10-27T10:27:21.187757+00:00",
+    "assets": {
+      "js/cross-tab-public-requests.js": {
+        "matches": true,
+        "sha256": "f74a4bbdf30a5c70571d958edb789b2d13559724f8fac5898342e966516d2ae6"
+      },
+      "js/browser-request-budget.js": {
+        "matches": true,
+        "sha256": "8f02d309dd90fba46d52a07ff26306720c094c40a368ff9f1796772bdf2caf8a"
+      },
+      "js/population-exposure.js": {
+        "matches": true,
+        "sha256": "8a5d52928a735da336aa54f1d06578b2175b95d517040d9e891b148bf6240e40"
+      }
+    }
+  },
+  "deployment": {
+    "mode": "deploy",
+    "uploaded": true,
+    "deploymentId": "5923daa1d6854379bfd56a8bb3c5f6e6",
+    "verified": {
+      "publicSourceRuntime": "edge-collectors-v1",
+      "demandBudget": "demand-enrichment-v1",
+      "sourceEdgeBudget": "shared-source-edge-v2",
+      "durableRequestBudget": "durable-request-budget-v1",
+      "workerModules": "maintenance-modules-v1",
+      "electionPolls": "removed-no-kv-v1",
+      "kvOptimization": "shared-population-voice-v1",
+      "kvUsageMetrics": true,
+      "telegramStorage": "durable-history-v1",
+      "telegramSolutionPolicy": "reviewed-seismic-priority-v1",
+      "telegramImageStatus": "editorial-v17",
+      "sharedSources": {
+        "version": "shared-sources-v1",
+        "enabled": true
+      },
+      "dailySummaryDesign": "referencia-editorial-v6-hd",
+      "rainbowProtectedBudget": true,
+      "bindingsPreserved": true,
+      "schedulesPreserved": true
+    }
+  },
+  "sourceFreshness": {
+    "checkedAt": "2026-10-27T10:32:31.079578+00:00",
+    "status": 200,
+    "headers": {
+      "x-monitor-source-edge": "collector",
+      "x-monitor-source-attempt": "1793097150338",
+      "x-monitor-source-fresh-until": "1793097160338",
+      "x-monitor-source-last-ok": "1793097150338",
+      "x-monitor-source-next-retry": "1793097160338",
+      "x-monitor-source-state": "partial"
+    },
+    "freshnessHeaderExposed": true
+  },
+  "routeTail": {
+    "startedAt": "2026-10-27T10:25:32.738Z",
+    "seconds": 120,
+    "events": 17,
+    "counts": {
+      "/tv-alerts ok": 6,
+      "/tsunami-alerts ok": 1,
+      "root ok": 2,
+      "other ok": 6,
+      "/health ok": 1,
+      "scheduled ok": 1
+    },
+    "rawLogsStored": false,
+    "syntheticRequests": 0,
+    "cpuRouteAttribution": "Not available from legacy tail CPU metrics; outcomes only",
+    "sessionRemoved": true,
+    "endedAt": "2026-10-27T10:27:33.673Z",
+    "elapsedSeconds": 121,
+    "noObservedEvents": false
+  },
+  "buildFilters": {
+    "applied": false,
+    "blocked": true,
+    "reason": "Cloudflare HTTP 403 for GET Worker /accounts/***/builds/workers/d7ff2883ea8442ada9a09e93c41e9d31/triggers; 10000: Authentication error"
+  },
+  "limitations": [
+    "The route sample overlaps the reviewed deployment and includes one manual tsunami source validation plus deployment health checks. The recorder itself generated no public requests.",
+    "All 17 sampled outcomes were ok; the routes of the four historical resource excesses remain unidentified.",
+    "The recorder removed its session and saved results after 121 seconds but a Node websocket idle handle kept the CLI alive. The workflow was cancelled; its always-run build filter step still executed and returned 403. CLI exit now has a subprocess regression test.",
+    "No production savings percentage can be calculated from this short observation.",
+    "Build filters were not applied. Existing token succeeded for Worker deployment but could not read the Builds trigger."
+  ]
+}

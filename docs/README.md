@@ -37,7 +37,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 ## Investigações abertas e evidências atuais
 
 - **Memória/estabilidade:** correções publicadas; ensaio local aprovado não prova horas de estabilidade nos aparelhos. Comparação DeX/Nothing continua aberta. Os diagnósticos anteriores são evidência histórica, não falha confirmada da versão atual.
-- **Cotas Free:** acompanhamento automático instalado. Reduções de consultas publicadas; falta medir a economia com tráfego comparável, identificar a rota dos excessos de recursos e confirmar acesso à configuração de filtros de build. Ver relatórios vigentes acima.
+- **Cotas Free:** acompanhamento automático instalado. Reduções de consultas publicadas; falta medir a economia com tráfego comparável, identificar a rota dos excessos de recursos e liberar a API de Builds no token (tentativa real retornou 403; filtros não aplicados). Ver relatórios vigentes acima.
 - **Segurança:** revisão inicial feita; itens pendentes estão explicitados no relatório abaixo.
 
 - [revisao-seguranca-20261024.md](revisao-seguranca-20261024.md)
