@@ -62,5 +62,5 @@
   });
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});root.addEventListener('pagehide',pause);
- root.BrowserRequestBudget={eligible,fetch:fetchPublic,stats:()=>({inflight:jobs.size,solo:solo.size,cooldowns:cooldowns.size,suppressed})};
+ root.BrowserRequestBudget={eligible,fetch:fetchPublic,stats:()=>({inflight:jobs.size,solo:solo.size,cooldowns:cooldowns.size,suppressed,crossTab:root.CrossTabPublicRequests?.stats?.()||null})};
 })(window);

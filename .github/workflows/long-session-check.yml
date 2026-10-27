@@ -90,7 +90,15 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - name: Prepare available browser
+        timeout-minutes: 3
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_BROWSER_CHANNEL=chrome" >> "$GITHUB_ENV"
+            google-chrome --version
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Local resource and source contracts
         env:
           MONITOR_TEST_OFFLINE: '1'
