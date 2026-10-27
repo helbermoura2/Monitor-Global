@@ -1,0 +1,2865 @@
+{
+  "queriedAt": "2026-10-27T09:37:14.109884+00:00",
+  "readOnly": true,
+  "planBasis": "Plano Free informado pelo dono em 27/10/2026; limites públicos oficiais, compartilhados conforme o produto. Não é fatura.",
+  "analytics": {
+    "aiInferenceAdaptiveGroups": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metricDescriptions": {
+        "totalCostMetricValue1": "Total value for cost metric 1",
+        "totalCostMetricValue2": "Total value for cost metric 2",
+        "totalInputTokens": "Total input tokens",
+        "totalNeurons": "Total neurons",
+        "totalOutputTokens": "Total output tokens",
+        "totalRequestBytesIn": "Total bytes in per request",
+        "totalRequestBytesOut": "Total bytes out per request"
+      },
+      "metrics": [
+        "totalCostMetricValue1",
+        "totalCostMetricValue2",
+        "totalInputTokens",
+        "totalNeurons",
+        "totalOutputTokens",
+        "totalRequestBytesIn",
+        "totalRequestBytesOut"
+      ],
+      "quantileDescriptions": {},
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "totalCostMetricValue1": 4009,
+            "totalCostMetricValue2": 4628,
+            "totalInputTokens": 4009,
+            "totalNeurons": 268.17885714769363,
+            "totalOutputTokens": 4628,
+            "totalRequestBytesIn": 20535,
+            "totalRequestBytesOut": 46220
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23"
+          },
+          "sum": {
+            "totalCostMetricValue1": 6322,
+            "totalCostMetricValue2": 7152,
+            "totalInputTokens": 6322,
+            "totalNeurons": 418.36770862340927,
+            "totalOutputTokens": 7152,
+            "totalRequestBytesIn": 33236,
+            "totalRequestBytesOut": 70347
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21"
+          },
+          "sum": {
+            "totalCostMetricValue1": 5087,
+            "totalCostMetricValue2": 5440,
+            "totalInputTokens": 5087,
+            "totalNeurons": 326.8633560538292,
+            "totalOutputTokens": 5440,
+            "totalRequestBytesIn": 23437,
+            "totalRequestBytesOut": 46714
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "sum": {
+            "totalCostMetricValue1": 6086,
+            "totalCostMetricValue2": 6752,
+            "totalInputTokens": 6086,
+            "totalNeurons": 398.61990585923195,
+            "totalOutputTokens": 6752,
+            "totalRequestBytesIn": 29770,
+            "totalRequestBytesOut": 62499
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24"
+          },
+          "sum": {
+            "totalCostMetricValue1": 5608,
+            "totalCostMetricValue2": 6123,
+            "totalInputTokens": 5608,
+            "totalNeurons": 364.2475616335869,
+            "totalOutputTokens": 6123,
+            "totalRequestBytesIn": 27849,
+            "totalRequestBytesOut": 59803
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22"
+          },
+          "sum": {
+            "totalCostMetricValue1": 6470,
+            "totalCostMetricValue2": 7410,
+            "totalInputTokens": 6470,
+            "totalNeurons": 430.9740081727505,
+            "totalOutputTokens": 7410,
+            "totalRequestBytesIn": 33671,
+            "totalRequestBytesOut": 73816
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "totalCostMetricValue1": 2080,
+            "totalCostMetricValue2": 2267,
+            "totalInputTokens": 2080,
+            "totalNeurons": 134.97435212135315,
+            "totalOutputTokens": 2267,
+            "totalRequestBytesIn": 10984,
+            "totalRequestBytesOut": 24582
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsInvocationsAdaptiveGroups": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metricDescriptions": {
+        "errors": "Sum of errors",
+        "requests": "Sum of requests"
+      },
+      "metrics": [
+        "errors",
+        "requests"
+      ],
+      "quantileDescriptions": {},
+      "dimensions": [
+        "date",
+        "scriptName"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 19,
+            "requests": 2295
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 23,
+            "requests": 3575
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 4,
+            "requests": 874
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 28,
+            "requests": 2325
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 32,
+            "requests": 3360
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 33,
+            "requests": 3880
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 29,
+            "requests": 3044
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsPeriodicGroups": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metricDescriptions": {
+        "cpuTime": "Sum of CPU time - microseconds",
+        "duration": "Sum of Duration - GB*s",
+        "exceededCpuErrors": "Sum of CPU exceeded errors",
+        "exceededMemoryErrors": "Sum of memory exceeded errors",
+        "fatalInternalErrors": "Sum of fatal internal server errors",
+        "rowsRead": "Sum of rows read (by sqlite backed DOs)",
+        "rowsWritten": "Sum of rows written (by sqlite backed DOs)",
+        "storageDeletes": "Sum of storage deletes (by non-sqlite backed DOs)",
+        "storageReadUnits": "Sum of storage reads - in 4KB units (by non-sqlite backed DOs)",
+        "storageWriteUnits": "Sum of storage writes - in 4KB units (by non-sqlite backed DOs)",
+        "subrequests": "Sum of subrequests"
+      },
+      "metrics": [
+        "cpuTime",
+        "duration",
+        "exceededCpuErrors",
+        "exceededMemoryErrors",
+        "fatalInternalErrors",
+        "rowsRead",
+        "rowsWritten",
+        "storageDeletes",
+        "storageReadUnits",
+        "storageWriteUnits",
+        "subrequests"
+      ],
+      "quantileDescriptions": {},
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "cpuTime": 10952388,
+            "duration": 382.404663296,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 2691,
+            "rowsWritten": 752,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 4753
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24"
+          },
+          "sum": {
+            "cpuTime": 44797674,
+            "duration": 1113.8542099199997,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 9386,
+            "rowsWritten": 4372,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 14109
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23"
+          },
+          "sum": {
+            "cpuTime": 22987759,
+            "duration": 434.76709401600004,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 8867,
+            "rowsWritten": 3616,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 5425
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21"
+          },
+          "sum": {
+            "cpuTime": 21258111,
+            "duration": 564.0714758400001,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 6782,
+            "rowsWritten": 2164,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 5425
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22"
+          },
+          "sum": {
+            "cpuTime": 36318998,
+            "duration": 461.81120371200007,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 8127,
+            "rowsWritten": 3303,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 5604
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "sum": {
+            "cpuTime": 45461741,
+            "duration": 1141.308910976,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 8464,
+            "rowsWritten": 3746,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 16430
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "cpuTime": 32242716,
+            "duration": 1158.329236736,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 6721,
+            "rowsWritten": 2072,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 13434
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsSqlStorageGroups": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "max",
+      "metricDescriptions": {
+        "storedBytes": "Max of stored bytes"
+      },
+      "metrics": [
+        "storedBytes"
+      ],
+      "quantileDescriptions": {},
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "max": {
+            "storedBytes": 114040830
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23"
+          },
+          "max": {
+            "storedBytes": 82554880
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21"
+          },
+          "max": {
+            "storedBytes": 56492030
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "max": {
+            "storedBytes": 105365500
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24"
+          },
+          "max": {
+            "storedBytes": 95633410
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22"
+          },
+          "max": {
+            "storedBytes": 68964350
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "max": {
+            "storedBytes": 116908030
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "kvOperationsAdaptiveGroups": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metricDescriptions": {
+        "objectBytes": "Total bytes of all objects",
+        "requests": "Total number of requests"
+      },
+      "metrics": [
+        "objectBytes",
+        "requests"
+      ],
+      "quantileDescriptions": {},
+      "dimensions": [
+        "date",
+        "actionType"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-23"
+          },
+          "sum": {
+            "objectBytes": 394,
+            "requests": 46
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-25"
+          },
+          "sum": {
+            "objectBytes": 0,
+            "requests": 50
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "objectBytes": 2248,
+            "requests": 84
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "write",
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "objectBytes": 2132,
+            "requests": 4
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-21"
+          },
+          "sum": {
+            "objectBytes": 4,
+            "requests": 37
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "write",
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "objectBytes": 4,
+            "requests": 2
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-24"
+          },
+          "sum": {
+            "objectBytes": 0,
+            "requests": 50
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-22"
+          },
+          "sum": {
+            "objectBytes": 0,
+            "requests": 55
+          }
+        },
+        {
+          "dimensions": {
+            "actionType": "read",
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "objectBytes": 170,
+            "requests": 47
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "kvStorageAdaptiveGroups": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "max",
+      "metricDescriptions": {
+        "byteCount": "Max number of bytes",
+        "keyCount": "Max number of keys"
+      },
+      "metrics": [
+        "byteCount",
+        "keyCount"
+      ],
+      "quantileDescriptions": {},
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "max": {
+            "byteCount": 2287935,
+            "keyCount": 377
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "workersInvocationsAdaptive": {
+      "from": "2026-10-21",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metricDescriptions": {
+        "cpuTimeUs": "Sum of cpu time in us",
+        "duration": "Sum of Duration - GB*s",
+        "errors": "Sum of Errors",
+        "requestDuration": "Sum of Request Duration in microseconds",
+        "requests": "Sum of Requests",
+        "subrequests": "Sum of Subrequests"
+      },
+      "metrics": [
+        "cpuTimeUs",
+        "duration",
+        "errors",
+        "requestDuration",
+        "requests",
+        "subrequests"
+      ],
+      "quantileDescriptions": {
+        "cpuTimeP50": "CPU time 50th percentile - microseconds",
+        "cpuTimeP99": "CPU time 99th percentile - microseconds",
+        "memoryUsageBytesP50": "V8 isolate memory usage 50th percentile across Worker invocations - bytes",
+        "memoryUsageBytesP99": "V8 isolate memory usage 99th percentile across Worker invocations - bytes"
+      },
+      "dimensions": [
+        "date",
+        "scriptName",
+        "status"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-24",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 399,
+            "cpuTimeP99": 1784,
+            "memoryUsageBytesP50": 22251122,
+            "memoryUsageBytesP99": 48982130
+          },
+          "sum": {
+            "cpuTimeUs": 1072193,
+            "duration": 1.1854556250000001,
+            "errors": 2247,
+            "requestDuration": 4394584,
+            "requests": 2247,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 743,
+            "cpuTimeP99": 3526,
+            "memoryUsageBytesP50": 17764732,
+            "memoryUsageBytesP99": 32644256
+          },
+          "sum": {
+            "cpuTimeUs": 2699537,
+            "duration": 4180.608107874999,
+            "errors": 0,
+            "requestDuration": 0,
+            "requests": 2830,
+            "subrequests": 238
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 4252,
+            "cpuTimeP99": 52134,
+            "memoryUsageBytesP50": 20822340,
+            "memoryUsageBytesP99": 37224196
+          },
+          "sum": {
+            "cpuTimeUs": 109269572,
+            "duration": 1074.6598797499998,
+            "errors": 0,
+            "requestDuration": 7688652531,
+            "requests": 13716,
+            "subrequests": 47453
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 349,
+            "cpuTimeP99": 1339,
+            "memoryUsageBytesP50": 24032604,
+            "memoryUsageBytesP99": 40418430
+          },
+          "sum": {
+            "cpuTimeUs": 106330,
+            "duration": 0.116374,
+            "errors": 267,
+            "requestDuration": 407842,
+            "requests": 267,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 481,
+            "cpuTimeP99": 2987,
+            "memoryUsageBytesP50": 22165556,
+            "memoryUsageBytesP99": 47526870
+          },
+          "sum": {
+            "cpuTimeUs": 2642869,
+            "duration": 5849.123735249998,
+            "errors": 0,
+            "requestDuration": 0,
+            "requests": 3935,
+            "subrequests": 328
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 471,
+            "cpuTimeP99": 3424,
+            "memoryUsageBytesP50": 19551524,
+            "memoryUsageBytesP99": 32948920
+          },
+          "sum": {
+            "cpuTimeUs": 2183621,
+            "duration": 4685.043932874999,
+            "errors": 0,
+            "requestDuration": 12436172,
+            "requests": 3305,
+            "subrequests": 380
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 334,
+            "cpuTimeP99": 1231,
+            "memoryUsageBytesP50": 22228992,
+            "memoryUsageBytesP99": 46388670
+          },
+          "sum": {
+            "cpuTimeUs": 1561377,
+            "duration": 1.6151179999999998,
+            "errors": 4178,
+            "requestDuration": 4909181,
+            "requests": 4178,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 409,
+            "cpuTimeP99": 2156,
+            "memoryUsageBytesP50": 20576924,
+            "memoryUsageBytesP99": 35027556
+          },
+          "sum": {
+            "cpuTimeUs": 3364553,
+            "duration": 9681.395699249999,
+            "errors": 0,
+            "requestDuration": 0,
+            "requests": 6621,
+            "subrequests": 522
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 384,
+            "cpuTimeP99": 2787,
+            "memoryUsageBytesP50": 22061348,
+            "memoryUsageBytesP99": 39298960
+          },
+          "sum": {
+            "cpuTimeUs": 4296789,
+            "duration": 11754.859469375,
+            "errors": 0,
+            "requestDuration": 0,
+            "requests": 7936,
+            "subrequests": 614
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 466,
+            "cpuTimeP99": 1656,
+            "memoryUsageBytesP50": 20123388,
+            "memoryUsageBytesP99": 33465558
+          },
+          "sum": {
+            "cpuTimeUs": 237764,
+            "duration": 0.25859225,
+            "errors": 429,
+            "requestDuration": 817489,
+            "requests": 429,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 387,
+            "cpuTimeP99": 2912,
+            "memoryUsageBytesP50": 20355660,
+            "memoryUsageBytesP99": 35677336
+          },
+          "sum": {
+            "cpuTimeUs": 2034281,
+            "duration": 5500.275925499999,
+            "errors": 0,
+            "requestDuration": 0,
+            "requests": 3826,
+            "subrequests": 326
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 355,
+            "cpuTimeP99": 1189,
+            "memoryUsageBytesP50": 20951396,
+            "memoryUsageBytesP99": 34792820
+          },
+          "sum": {
+            "cpuTimeUs": 1264886,
+            "duration": 1.3622335000000003,
+            "errors": 3212,
+            "requestDuration": 5248072,
+            "requests": 3212,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0",
+            "status": "exceededResources"
+          },
+          "quantiles": {
+            "cpuTimeP50": 12902,
+            "cpuTimeP99": 19032,
+            "memoryUsageBytesP50": 19013632,
+            "memoryUsageBytesP99": 20348928
+          },
+          "sum": {
+            "cpuTimeUs": 59110,
+            "duration": 0.145799,
+            "errors": 4,
+            "requestDuration": 1164989,
+            "requests": 4,
+            "subrequests": 58
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 2819,
+            "cpuTimeP99": 23204,
+            "memoryUsageBytesP50": 19572888,
+            "memoryUsageBytesP99": 35654770
+          },
+          "sum": {
+            "cpuTimeUs": 245582375,
+            "duration": 3498.8260823750006,
+            "errors": 0,
+            "requestDuration": 25726257398,
+            "requests": 58204,
+            "subrequests": 83921
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0",
+            "status": "clientDisconnected"
+          },
+          "quantiles": {
+            "cpuTimeP50": 378,
+            "cpuTimeP99": 2624,
+            "memoryUsageBytesP50": 24399074,
+            "memoryUsageBytesP99": 37620204
+          },
+          "sum": {
+            "cpuTimeUs": 301098,
+            "duration": 896.201308,
+            "errors": 0,
+            "requestDuration": 0,
+            "requests": 624,
+            "subrequests": 84
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-22",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 371,
+            "cpuTimeP99": 1519,
+            "memoryUsageBytesP50": 20346620,
+            "memoryUsageBytesP99": 36497548
+          },
+          "sum": {
+            "cpuTimeUs": 1895698,
+            "duration": 2.00876625,
+            "errors": 4450,
+            "requestDuration": 6484882,
+            "requests": 4450,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-24",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 4309,
+            "cpuTimeP99": 42573,
+            "memoryUsageBytesP50": 18542784,
+            "memoryUsageBytesP99": 41258920
+          },
+          "sum": {
+            "cpuTimeUs": 342890677,
+            "duration": 4133.33094575,
+            "errors": 0,
+            "requestDuration": 29622131978,
+            "requests": 51575,
+            "subrequests": 124868
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 5207,
+            "cpuTimeP99": 42432,
+            "memoryUsageBytesP50": 17236452,
+            "memoryUsageBytesP99": 32749284
+          },
+          "sum": {
+            "cpuTimeUs": 269352271,
+            "duration": 3314.6513759999993,
+            "errors": 0,
+            "requestDuration": 22445330140,
+            "requests": 35265,
+            "subrequests": 109512
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 4519,
+            "cpuTimeP99": 29999,
+            "memoryUsageBytesP50": 18528314,
+            "memoryUsageBytesP99": 33809396
+          },
+          "sum": {
+            "cpuTimeUs": 210548676,
+            "duration": 2690.0876537500003,
+            "errors": 0,
+            "requestDuration": 17861958916,
+            "requests": 32225,
+            "subrequests": 116951
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21",
+            "scriptName": "black-sky-9ba0",
+            "status": "scriptThrewException"
+          },
+          "quantiles": {
+            "cpuTimeP50": 404,
+            "cpuTimeP99": 1483,
+            "memoryUsageBytesP50": 19532784,
+            "memoryUsageBytesP99": 34720350
+          },
+          "sum": {
+            "cpuTimeUs": 702004,
+            "duration": 0.75457625,
+            "errors": 1517,
+            "requestDuration": 2454677,
+            "requests": 1517,
+            "subrequests": 0
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-21",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 3251,
+            "cpuTimeP99": 25492,
+            "memoryUsageBytesP50": 17540376,
+            "memoryUsageBytesP99": 31744992
+          },
+          "sum": {
+            "cpuTimeUs": 207304898,
+            "duration": 2501.8187058749995,
+            "errors": 0,
+            "requestDuration": 16796784737,
+            "requests": 43481,
+            "subrequests": 63165
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-23",
+            "scriptName": "black-sky-9ba0",
+            "status": "success"
+          },
+          "quantiles": {
+            "cpuTimeP50": 3444,
+            "cpuTimeP99": 41741,
+            "memoryUsageBytesP50": 19266490,
+            "memoryUsageBytesP99": 37963464
+          },
+          "sum": {
+            "cpuTimeUs": 362086443,
+            "duration": 3942.22051225,
+            "errors": 0,
+            "requestDuration": 29808180924,
+            "requests": 62495,
+            "subrequests": 105190
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    }
+  },
+  "unavailable": {
+    "builds-black-sky-9ba0": "Cloudflare HTTP 403 for GET Worker /accounts/[account]/builds/workers/d7ff2883ea8442ada9a09e93c41e9d31/builds; 12004: Forbidden",
+    "build-triggers-black-sky-9ba0": "Cloudflare HTTP 403 for GET Worker /accounts/[account]/builds/workers/d7ff2883ea8442ada9a09e93c41e9d31/triggers; 10000: Authentication error",
+    "builds-monitor": "Cloudflare HTTP 403 for GET Worker /accounts/[account]/builds/workers/3f63195ebe7c4373b41e8cf926aaef17/builds; 12004: Forbidden",
+    "build-triggers-monitor": "Cloudflare HTTP 403 for GET Worker /accounts/[account]/builds/workers/3f63195ebe7c4373b41e8cf926aaef17/triggers; 10000: Authentication error"
+  },
+  "settings": {
+    "black-sky-9ba0": {
+      "observability": {},
+      "logs": {},
+      "limits": {},
+      "logpush": false
+    },
+    "monitor": {
+      "observability": {},
+      "logs": {},
+      "limits": {},
+      "logpush": false
+    }
+  },
+  "notes": [
+    "Limites de CPU por invocação não são comprovados pela média diária.",
+    "Subrequests não são solicitações de entrada adicionais para esta comparação.",
+    "Respostas 304 continuam sendo chamadas ao Worker.",
+    "Requisições a assets estáticos são gratuitas; não somar tráfego de assets como chamadas dinâmicas sem métrica correspondente.",
+    "Amostras e grupos ausentes não provam consumo zero.",
+    "O relatório não muda plano, quotas, políticas, intervalos de alertas ou destinatários."
+  ],
+  "additionalDatasetCandidates": [
+    "workersBuildsBuildMinutesAdaptiveGroups"
+  ],
+  "durableFamilies": {
+    "2026-10-26": [
+      {
+        "family": "population",
+        "requests": 1338,
+        "percentOfMeasuredDORequests": 58.3
+      },
+      {
+        "family": "earthquake-alerts",
+        "requests": 480,
+        "percentOfMeasuredDORequests": 20.92
+      },
+      {
+        "family": "2026-10-24",
+        "requests": 96,
+        "percentOfMeasuredDORequests": 4.18
+      },
+      {
+        "family": "2026-10-23",
+        "requests": 96,
+        "percentOfMeasuredDORequests": 4.18
+      },
+      {
+        "family": "2026-10-25",
+        "requests": 94,
+        "percentOfMeasuredDORequests": 4.1
+      },
+      {
+        "family": "global-rainbow-nowcast-v1",
+        "requests": 88,
+        "percentOfMeasuredDORequests": 3.83
+      },
+      {
+        "family": "metrics",
+        "requests": 42,
+        "percentOfMeasuredDORequests": 1.83
+      },
+      {
+        "family": "portuguese-translations-v1",
+        "requests": 29,
+        "percentOfMeasuredDORequests": 1.26
+      },
+      {
+        "family": "global-rainbow-products-weather-v1",
+        "requests": 19,
+        "percentOfMeasuredDORequests": 0.83
+      },
+      {
+        "family": "2026-10-22",
+        "requests": 13,
+        "percentOfMeasuredDORequests": 0.57
+      }
+    ],
+    "2026-10-27": [
+      {
+        "family": "population",
+        "requests": 409,
+        "percentOfMeasuredDORequests": 46.8
+      },
+      {
+        "family": "earthquake-alerts",
+        "requests": 193,
+        "percentOfMeasuredDORequests": 22.08
+      },
+      {
+        "family": "metrics",
+        "requests": 86,
+        "percentOfMeasuredDORequests": 9.84
+      },
+      {
+        "family": "2026-10-24",
+        "requests": 40,
+        "percentOfMeasuredDORequests": 4.58
+      },
+      {
+        "family": "2026-10-25",
+        "requests": 39,
+        "percentOfMeasuredDORequests": 4.46
+      },
+      {
+        "family": "2026-10-26",
+        "requests": 38,
+        "percentOfMeasuredDORequests": 4.35
+      },
+      {
+        "family": "global-rainbow-nowcast-v1",
+        "requests": 33,
+        "percentOfMeasuredDORequests": 3.78
+      },
+      {
+        "family": "2026-10-23",
+        "requests": 13,
+        "percentOfMeasuredDORequests": 1.49
+      },
+      {
+        "family": "portuguese-translations-v1",
+        "requests": 12,
+        "percentOfMeasuredDORequests": 1.37
+      },
+      {
+        "family": "global-rainbow-products-weather-v1",
+        "requests": 11,
+        "percentOfMeasuredDORequests": 1.26
+      }
+    ]
+  },
+  "durableFamilyCoverage": {
+    "rows": 1606,
+    "note": "Último dia UTC completo e parcial atual; detalhamento independente da janela histórica de totais."
+  },
+  "buildSnapshots": {},
+  "workerStatuses": {
+    "2026-10-24": {
+      "scriptThrewException": 2247,
+      "clientDisconnected": 3935,
+      "success": 51575
+    },
+    "2026-10-26": {
+      "clientDisconnected": 2830,
+      "scriptThrewException": 429,
+      "success": 35265
+    },
+    "2026-10-27": {
+      "success": 13716,
+      "scriptThrewException": 267,
+      "exceededResources": 4,
+      "clientDisconnected": 624
+    },
+    "2026-10-21": {
+      "clientDisconnected": 3305,
+      "scriptThrewException": 1517,
+      "success": 43481
+    },
+    "2026-10-23": {
+      "scriptThrewException": 4178,
+      "clientDisconnected": 7936,
+      "success": 62495
+    },
+    "2026-10-22": {
+      "clientDisconnected": 6621,
+      "success": 58204,
+      "scriptThrewException": 4450
+    },
+    "2026-10-25": {
+      "clientDisconnected": 3826,
+      "scriptThrewException": 3212,
+      "success": 32225
+    }
+  },
+  "resourceExcesses": {
+    "2026-10-24": {},
+    "2026-10-26": {},
+    "2026-10-27": {
+      "exceededResources": 4
+    },
+    "2026-10-21": {},
+    "2026-10-23": {},
+    "2026-10-22": {},
+    "2026-10-25": {}
+  },
+  "policyAgeDays": 0,
+  "policyReviewDue": false,
+  "freeQuotas": {
+    "plan": "Free",
+    "days": [
+      {
+        "day": "2026-10-21",
+        "complete": true,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 48303,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 48.303,
+            "level": "normal"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 2325,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 2.325,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 564.0714758400001,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 4.33901,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 6782,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.13564,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 2164,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 2.164,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 56492030,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.12984,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 37,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.037,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 326.8633560538292,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 3.26863,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 48303,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 48.303,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 564.0714758400001,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 4.33901,
+            "level": "normal"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 326.8633560538292,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 3.26863,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 2325,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 2.325,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 2164,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 2.164,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 56492030,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.12984,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 6782,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.13564,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 37,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.037,
+            "level": "normal"
+          }
+        ]
+      },
+      {
+        "day": "2026-10-22",
+        "complete": true,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 69275,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 69.275,
+            "level": "normal"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3044,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.044,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 461.81120371200007,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 3.55239,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 8127,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.16254,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 3303,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 3.303,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 68964350,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.37929,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 55,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.055,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 430.9740081727505,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 4.30974,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 69275,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 69.275,
+            "level": "normal"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 430.9740081727505,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 4.30974,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 461.81120371200007,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 3.55239,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 3303,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 3.303,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3044,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.044,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 68964350,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.37929,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 8127,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.16254,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 55,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.055,
+            "level": "normal"
+          }
+        ]
+      },
+      {
+        "day": "2026-10-23",
+        "complete": true,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 74609,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 74.609,
+            "level": "watch"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3575,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.575,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 434.76709401600004,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 3.34436,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 8867,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.17734,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 3616,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 3.616,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 82554880,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.6511,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 46,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.046,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 418.36770862340927,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 4.18368,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 74609,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 74.609,
+            "level": "watch"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 418.36770862340927,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 4.18368,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 3616,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 3.616,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3575,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.575,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 434.76709401600004,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 3.34436,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 82554880,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.6511,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 8867,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.17734,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 46,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.046,
+            "level": "normal"
+          }
+        ]
+      },
+      {
+        "day": "2026-10-24",
+        "complete": true,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 57757,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 57.757,
+            "level": "normal"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3880,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.88,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 1113.8542099199997,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 8.56811,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 9386,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.18772,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 4372,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 4.372,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 95633410,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.91267,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 50,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.05,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 364.2475616335869,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 3.64248,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 57757,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 57.757,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 1113.8542099199997,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 8.56811,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 4372,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 4.372,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3880,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.88,
+            "level": "normal"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 364.2475616335869,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 3.64248,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 95633410,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 1.91267,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 9386,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.18772,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 50,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.05,
+            "level": "normal"
+          }
+        ]
+      },
+      {
+        "day": "2026-10-25",
+        "complete": true,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 39263,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 39.263,
+            "level": "normal"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3360,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.36,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 1141.308910976,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 8.7793,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 8464,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.16928,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 3746,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 3.746,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 105365500,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 2.10731,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 50,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.05,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 398.61990585923195,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 3.9862,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 39263,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 39.263,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 1141.308910976,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 8.7793,
+            "level": "normal"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 398.61990585923195,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 3.9862,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 3746,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 3.746,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 3360,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 3.36,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 105365500,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 2.10731,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 8464,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.16928,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 50,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.05,
+            "level": "normal"
+          }
+        ]
+      },
+      {
+        "day": "2026-10-26",
+        "complete": true,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 38524,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 38.524,
+            "level": "normal"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 2295,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 2.295,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 1158.329236736,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 8.91022,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 6721,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.13442,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 2072,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 2.072,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 114040830,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 2.28082,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 47,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.047,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": true,
+            "value": 2,
+            "limit": 1000,
+            "unit": "keys/day",
+            "percent": 0.2,
+            "level": "normal"
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 268.17885714769363,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 2.68179,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 38524,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 38.524,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 1158.329236736,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 8.91022,
+            "level": "normal"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 268.17885714769363,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 2.68179,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 2295,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 2.295,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 114040830,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 2.28082,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 2072,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 2.072,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "kvWrite",
+            "label": "Gravações KV",
+            "available": true,
+            "value": 2,
+            "limit": 1000,
+            "unit": "keys/day",
+            "percent": 0.2,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 6721,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.13442,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 47,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.047,
+            "level": "normal"
+          }
+        ]
+      },
+      {
+        "day": "2026-10-27",
+        "complete": false,
+        "quotas": {
+          "workerRequests": {
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 14611,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 14.611,
+            "level": "normal"
+          },
+          "durableRequests": {
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 874,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 0.874,
+            "level": "normal"
+          },
+          "durableDuration": {
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 382.404663296,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 2.94157,
+            "level": "normal"
+          },
+          "sqlRowsRead": {
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 2691,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.05382,
+            "level": "normal"
+          },
+          "sqlRowsWritten": {
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 752,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 0.752,
+            "level": "normal"
+          },
+          "sqlStoredBytes": {
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 116908030,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 2.33816,
+            "level": "normal"
+          },
+          "kvRead": {
+            "label": "Leituras KV",
+            "available": true,
+            "value": 84,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.084,
+            "level": "normal"
+          },
+          "kvWrite": {
+            "label": "Gravações KV",
+            "available": true,
+            "value": 4,
+            "limit": 1000,
+            "unit": "keys/day",
+            "percent": 0.4,
+            "level": "normal"
+          },
+          "kvDelete": {
+            "label": "Exclusões KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "keys/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvList": {
+            "label": "Listagens KV",
+            "available": false,
+            "limit": 1000,
+            "unit": "requests/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          },
+          "kvStoredBytes": {
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          "aiNeurons": {
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 134.97435212135315,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 1.34974,
+            "level": "normal"
+          },
+          "workerLogEvents": {
+            "label": "Eventos de log Workers",
+            "available": false,
+            "limit": 200000,
+            "unit": "events/day",
+            "level": "unknown",
+            "note": "Métrica não obtida; não interpretada como zero."
+          }
+        },
+        "ranking": [
+          {
+            "metric": "workerRequests",
+            "label": "Solicitações do Worker",
+            "available": true,
+            "value": 14611,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 14.611,
+            "level": "normal"
+          },
+          {
+            "metric": "durableDuration",
+            "label": "Tempo de execução Durable",
+            "available": true,
+            "value": 382.404663296,
+            "limit": 13000,
+            "unit": "GB-s/day",
+            "percent": 2.94157,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlStoredBytes",
+            "label": "Armazenamento SQLite",
+            "available": true,
+            "value": 116908030,
+            "limit": 5000000000,
+            "unit": "bytes",
+            "percent": 2.33816,
+            "level": "normal"
+          },
+          {
+            "metric": "aiNeurons",
+            "label": "Workers AI: neurons",
+            "available": true,
+            "value": 134.97435212135315,
+            "limit": 10000,
+            "unit": "neurons/day",
+            "percent": 1.34974,
+            "level": "normal"
+          },
+          {
+            "metric": "durableRequests",
+            "label": "Solicitações Durable",
+            "available": true,
+            "value": 874,
+            "limit": 100000,
+            "unit": "requests/day",
+            "percent": 0.874,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsWritten",
+            "label": "Linhas SQLite escritas",
+            "available": true,
+            "value": 752,
+            "limit": 100000,
+            "unit": "rows/day",
+            "percent": 0.752,
+            "level": "normal"
+          },
+          {
+            "metric": "kvWrite",
+            "label": "Gravações KV",
+            "available": true,
+            "value": 4,
+            "limit": 1000,
+            "unit": "keys/day",
+            "percent": 0.4,
+            "level": "normal"
+          },
+          {
+            "metric": "kvStoredBytes",
+            "label": "Armazenamento KV",
+            "available": true,
+            "value": 2287935,
+            "limit": 1000000000,
+            "unit": "bytes",
+            "percent": 0.22879,
+            "level": "normal"
+          },
+          {
+            "metric": "kvRead",
+            "label": "Leituras KV",
+            "available": true,
+            "value": 84,
+            "limit": 100000,
+            "unit": "keys/day",
+            "percent": 0.084,
+            "level": "normal"
+          },
+          {
+            "metric": "sqlRowsRead",
+            "label": "Linhas SQLite lidas",
+            "available": true,
+            "value": 2691,
+            "limit": 5000000,
+            "unit": "rows/day",
+            "percent": 0.05382,
+            "level": "normal"
+          }
+        ]
+      }
+    ],
+    "latestCompleteDay": "2026-10-26",
+    "nonDaily": {
+      "workerBuildMinutes": {
+        "label": "Minutos de build Workers",
+        "available": false,
+        "limit": 3000,
+        "unit": "minutes/month",
+        "level": "unknown",
+        "note": "Minutos mensais não confirmados; listagens recentes de builds não comprovam consumo completo."
+      }
+    },
+    "missingIsNotZero": true,
+    "storageComparison": "Conservadora em GB decimal; max diário é capacidade observada, não gasto diário."
+  }
+}
