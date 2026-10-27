@@ -88,3 +88,5 @@ Seis segundos completos de leitura por sismo e saída com a mesma varredura: [TV
 
 - [Mapas de epicentro e costas na tarja e no resumo — versão 1.0.15](MAPAS_NA_TARJA_1_0_15.md).
 - [Ciclo regional de tsunami validado na versão 1.0.14](CICLO_TSUNAMI_1_0_14.md).
+
+- [Mapas de satélite e costas na TV — versão 1.0.16](MAPAS_SATELITE_1_0_16.md).
