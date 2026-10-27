@@ -2,6 +2,8 @@
 
 Revisão: 27/10/2026. Para começar: [Guia do dono](../GUIA_DO_DONO.md), [mapa de arquivos](../MAPA_DOS_ARQUIVOS.md) e [apresentação](../README.md).
 
+[Fila de prioridades pendentes e os quatro próximos itens](PRIORIDADES_PENDENTES.md).
+
 ## Orientações vigentes
 
 Guias usados na operação atual. Em caso de divergência, conferir código/testes da versão publicada antes de executar instruções antigas. Esta seleção não transforma relatórios em garantias.
