@@ -6,8 +6,8 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  versionCode 10019
-  versionName '1.0.19'
+  versionCode 10020
+  versionName '1.0.20'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
@@ -20,8 +20,9 @@ android {
  }
  lint { abortOnError true }
 }
-// JVM-only codec tests; the shipped APK gains no runtime dependencies.
+// QR encoding is local; no camera permission or remote QR service.
 dependencies {
+ implementation 'com.google.zxing:core:3.5.3'
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
 }

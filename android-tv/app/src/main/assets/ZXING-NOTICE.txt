@@ -1,0 +1,4 @@
+ZXing core 3.5.3 — QR Code encoding for local diagnostic downloads.
+Copyright ZXing authors. Licensed under Apache License 2.0.
+https://github.com/zxing/zxing/tree/zxing-3.5.3
+See ZXING-LICENSE.txt in this application's assets.

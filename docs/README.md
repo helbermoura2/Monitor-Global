@@ -20,6 +20,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 - [Cotas Free: maiores consumidores e possibilidades de redução — 27/10](cotas-free-diagnostico-20261027.md)
 - [Monitoramento detalhado das cotas Free](cotas-free-monitoramento.md)
 - [Redução de consultas e filtros de build no Free](reducao-cotas-free-20261027.md)
+- [Exportar diagnóstico da TV pelo celular — 1.0.20](../android-tv/DIAGNOSTICO_PELO_CELULAR_1_0_20.md)
 - [Memória dos aparelhos, acesso e consumo — 27/10](prioridades-conta-aparelhos-20261027.md)
 - [Verificação de mapas, replay e recursos da TV — 1.0.18](../android-tv/VERIFICACAO_MAPAS_REPLAY_1_0_18.md)
 - [Resumo de ontem e replay da TV — 1.0.17](../android-tv/RESUMO_DIA_ANTERIOR_1_0_17.md)
