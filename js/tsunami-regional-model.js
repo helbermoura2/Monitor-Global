@@ -43,6 +43,7 @@ function bundle(host,alerts=[],quakes=[],now=Date.now()){
  const all=bulletins.flatMap(rows),groups=summarize(all);
  return {rows:all,groups,bulletins,hasThreat:all.some(r=>r.active),activeRegions:all.filter(r=>r.active&&r.scoped).map(r=>r.regionLabel)};
 }
+function signature(item){return JSON.stringify(rows(item).map(r=>[normalize(r.regionLabel),r.state,r.category.trim().toLowerCase().replace(/\s+/g,' '),r.scopeNote]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));}
 function hasThreat(item){return rows(item).some(r=>r.active&&!r.stale);}
-const api={normalize,region,classify,rows,summarize,bundle,hasThreat,labels,colors};root.TsunamiRegional=api;if(typeof module!=='undefined')module.exports=api;
+const api={normalize,region,classify,rows,summarize,bundle,hasThreat,signature,labels,colors};root.TsunamiRegional=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

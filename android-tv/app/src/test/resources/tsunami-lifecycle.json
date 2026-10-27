@@ -1,0 +1,2631 @@
+{
+  "fictional": true,
+  "stages": [
+    {
+      "name": "baseline",
+      "now": 1793102400000,
+      "quakes": {
+        "ok": true,
+        "features": []
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": []
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102400000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": []
+      }
+    },
+    {
+      "name": "warning-and-independent-coasts",
+      "now": 1793102460000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 7.2,
+              "time": 1793102340000,
+              "updated": 1793102400000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-warn",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102460000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Vanuatu",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "0.3 TO 1 METERS"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          },
+          {
+            "id": "lifecycle-fiji",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102460000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102460000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 4,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102460000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Vanuatu\",\"warning\",\"0.3 TO 1 METERS\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"warning\",\"0.3 to 1 meters\",\"\"]]",
+            "issuedAt": 1793102460000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu",
+            "state": "warning",
+            "title": "Tsunami · Vanuatu",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793102460000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102460000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[7.2,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102400000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 7.2,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu | Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M7,2 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "clock-only-repeat",
+      "now": 1793102520000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 7.2,
+              "time": 1793102340000,
+              "updated": 1793102400000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-warn",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102520000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Vanuatu",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "0.3 TO 1 METERS"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          },
+          {
+            "id": "lifecycle-fiji",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102520000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102520000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102520000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Vanuatu\",\"warning\",\"0.3 TO 1 METERS\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"warning\",\"0.3 to 1 meters\",\"\"]]",
+            "issuedAt": 1793102520000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu",
+            "state": "warning",
+            "title": "Tsunami · Vanuatu",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793102520000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102520000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[7.2,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102400000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 7.2,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu | Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M7,2 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "magnitude-and-threat-revision",
+      "now": 1793102580000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-warn",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102580000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Vanuatu",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "1 TO 3 METERS"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          },
+          {
+            "id": "lifecycle-fiji",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102580000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102580000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 2,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102580000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu | Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Vanuatu\",\"warning\",\"1 TO 3 METERS\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"warning\",\"1 to 3 meters\",\"\"]]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu",
+            "state": "warning",
+            "title": "Tsunami · Vanuatu",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "quake-source-outage",
+      "now": 1793102640000,
+      "quakes": {
+        "ok": false,
+        "features": []
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-warn",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102640000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Vanuatu",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "1 TO 3 METERS"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          },
+          {
+            "id": "lifecycle-fiji",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102640000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102640000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102640000,
+        "sources": {
+          "earthquake": false,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102340000:166,-14",
+            "version": "[\"\",\"warning\",[[\"Vanuatu\",\"warning\",\"1 TO 3 METERS\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"warning\",\"1 to 3 meters\",\"\"]]",
+            "issuedAt": 1793102640000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu",
+            "state": "warning",
+            "title": "Tsunami · Vanuatu",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793102640000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102640000,
+            "eventTime": 1793102340000,
+            "eligible": false,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "corrected-origin-without-new-threat",
+      "now": 1793102700000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-corrected",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793102700000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Vanuatu",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "1 TO 3 METERS"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          },
+          {
+            "id": "lifecycle-fiji",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102700000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102700000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102700000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Vanuatu\",\"warning\",\"1 TO 3 METERS\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"warning\",\"1 to 3 meters\",\"\"]]",
+            "issuedAt": 1793102700000,
+            "eventTime": 1793102342000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu",
+            "state": "warning",
+            "title": "Tsunami · Vanuatu",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793102700000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102700000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Vanuatu | Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "vanuatu-ended-fiji-still-active",
+      "now": 1793102760000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793102760000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102760000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102760000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 1,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102760000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793102760000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793102760000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102760000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fiji-no-threat",
+      "now": 1793102820000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793102820000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji-clear",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102820000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Fiji",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102820000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 1,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102820000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793102820000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Fiji\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"fiji\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102820000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Fiji",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Fiji",
+            "detail": "Sem ameaça segundo o boletim · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102820000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ended-clock-only-repeat",
+      "now": 1793102880000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793102880000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji-clear",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102880000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Fiji",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793102880000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102880000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793102880000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Fiji\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"fiji\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102880000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Fiji",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Fiji",
+            "detail": "Sem ameaça segundo o boletim · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793102880000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tsunami-source-outage",
+      "now": 1793102940000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": false,
+        "items": []
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793102940000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": false
+        },
+        "alerts": [
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "recovery-without-repeat",
+      "now": 1793103000000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793103000000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji-clear",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103000000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Fiji",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103000000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793103000000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793103000000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Fiji\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"fiji\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793103000000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Fiji",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Fiji",
+            "detail": "Sem ameaça segundo o boletim · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793103000000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "new-fiji-escalation",
+      "now": 1793103060000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793103060000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji-escalation",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103060000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103060000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 1,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793103060000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793103060000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793103060000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793103060000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "outage-while-fiji-active",
+      "now": 1793103120000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": false,
+        "items": []
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793103120000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": false
+        },
+        "alerts": [
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "active-recovery-without-repeat",
+      "now": 1793103180000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793103180000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji-escalation",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103180000,
+            "hazardNature": "warning",
+            "warningLevel": "Ameaça oficial",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Warning"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture"
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103180000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 0,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793103180000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793103180000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"warning\",[[\"Fiji\",\"warning\",\"Warning\"]]]",
+            "semanticVersion": "[[\"fiji\",\"warning\",\"warning\",\"\"]]",
+            "issuedAt": 1793103180000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "state": "warning",
+            "title": "Tsunami · Fiji",
+            "detail": "Aviso oficial · ondas perigosas possíveis · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793103180000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "Aviso oficial · ondas perigosas possíveis · Fiji",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    },
+    {
+      "name": "final-fiji-ending",
+      "now": 1793103240000,
+      "quakes": {
+        "ok": true,
+        "features": [
+          {
+            "id": "lifecycle-q",
+            "properties": {
+              "mag": 6.9,
+              "time": 1793102340000,
+              "updated": 1793102580000,
+              "type": "earthquake",
+              "place": "Vanuatu"
+            },
+            "geometry": {
+              "coordinates": [
+                166,
+                -14,
+                10
+              ]
+            }
+          }
+        ]
+      },
+      "tsunamis": {
+        "ok": true,
+        "items": [
+          {
+            "id": "lifecycle-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA40",
+            "originTime": 1793102342000,
+            "originMag": 7.2,
+            "coords": [
+              166.2,
+              -14
+            ],
+            "time": 1793103240000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Vanuatu",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Vanuatu",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-fiji-ended",
+            "type": "tsunami",
+            "official": true,
+            "source": "PTWC",
+            "feedKey": "PTWC-WEPA42",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103240000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Encerrado",
+            "place": "Fiji",
+            "sev": 4,
+            "affectedAreas": [
+              {
+                "name": "Fiji",
+                "category": "Cancellation"
+              }
+            ],
+            "link": "https://www.tsunami.gov/",
+            "officialEventId": "PHEB:fixture",
+            "cancelled": true
+          },
+          {
+            "id": "lifecycle-alaska",
+            "type": "tsunami",
+            "official": true,
+            "source": "NTWC",
+            "feedKey": "NTWC-WEAK51",
+            "originTime": 1793102340000,
+            "originMag": 7.2,
+            "coords": [
+              166,
+              -14
+            ],
+            "time": 1793103240000,
+            "hazardNature": "bulletin",
+            "warningLevel": "Informativo",
+            "place": "Alaska",
+            "sev": 0,
+            "affectedAreas": [
+              {
+                "name": "Alaska",
+                "category": "No tsunami threat"
+              }
+            ],
+            "link": "https://www.tsunami.gov/"
+          }
+        ]
+      },
+      "expected": 1,
+      "snapshot": {
+        "version": "tv-alerts-v1",
+        "tsunamiPolicy": "regional-lifecycle-v2",
+        "serverTime": 1793103240000,
+        "sources": {
+          "earthquake": true,
+          "tsunami": true
+        },
+        "alerts": [
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA40:1793102342000:166.2,-14",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Vanuatu\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"vanuatu\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793103240000,
+            "eventTime": 1793102342000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA40",
+            "officialEventId": "",
+            "originTime": 1793102342000,
+            "originLongitude": 166.2,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Vanuatu",
+            "state": "ended",
+            "title": "Aviso encerrado · Vanuatu",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Vanuatu"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:PTWC-WEPA42:PHEB:fixture",
+            "version": "[\"USGS:lifecycle-q\",\"ended\",[[\"Fiji\",\"ended\",\"Cancellation\"]]]",
+            "semanticVersion": "[[\"fiji\",\"ended\",\"cancellation\",\"\"]]",
+            "issuedAt": 1793103240000,
+            "eventTime": 1793102340000,
+            "eligible": false,
+            "source": "PTWC",
+            "bulletinProduct": "PTWC-WEPA42",
+            "officialEventId": "PHEB:fixture",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Aviso encerrado · Fiji",
+            "state": "ended",
+            "title": "Aviso encerrado · Fiji",
+            "detail": "Aviso encerrado · PTWC · Apenas para as costas citadas",
+            "regions": [
+              "Fiji"
+            ]
+          },
+          {
+            "kind": "tsunami",
+            "id": "TS:NTWC-WEAK51:1793102340000:166,-14",
+            "version": "[\"USGS:lifecycle-q\",\"noThreat\",[[\"Alaska\",\"noThreat\",\"No tsunami threat\"]]]",
+            "semanticVersion": "[[\"alasca\",\"noThreat\",\"no tsunami threat\",\"\"]]",
+            "issuedAt": 1793103240000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "source": "NTWC",
+            "bulletinProduct": "NTWC-WEAK51",
+            "officialEventId": "",
+            "originTime": 1793102340000,
+            "originLongitude": 166,
+            "originLatitude": -14,
+            "relatedQuakeId": "USGS:lifecycle-q",
+            "tsunamiSummary": "Sem ameaça segundo o boletim · Alasca",
+            "state": "noThreat",
+            "title": "Sem ameaça segundo o boletim · Alasca",
+            "detail": "Sem ameaça segundo o boletim · NTWC · Apenas para as costas citadas",
+            "regions": [
+              "Alasca"
+            ]
+          },
+          {
+            "kind": "earthquake",
+            "id": "USGS:lifecycle-q",
+            "version": "[6.9,10,166,-14,1793102340000,\"USGS\",null,\"Vanuatu\"]",
+            "issuedAt": 1793102580000,
+            "eventTime": 1793102340000,
+            "eligible": true,
+            "provider": "USGS",
+            "catalog": "USGS",
+            "aliases": [
+              "USGS:lifecycle-q"
+            ],
+            "countryCode": "",
+            "magnitude": 6.9,
+            "depth": 10,
+            "tsunamiSummary": "",
+            "title": "M6,9 · Vanuatu",
+            "detail": "Profundidade: 10 km · USGS",
+            "source": "USGS",
+            "state": "earthquake"
+          }
+        ]
+      }
+    }
+  ]
+}

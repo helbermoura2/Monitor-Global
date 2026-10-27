@@ -22,6 +22,8 @@ jobs:
           cmdline-tools-version: '13114758'
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
           log-accepted-android-sdk-licenses: false
+      - name: Check shared tsunami lifecycle fixture
+        run: node tools/tsunami-lifecycle-fixtures.mjs --check
       - name: Verify notification state machine
         run: |
           mkdir -p /tmp/tv-java-tests

@@ -3,7 +3,7 @@
  const pending=new Map(),seen=new Map(),presentedEvents=[];let dispatchId=null,retry=null;
  const recent=a=>Number.isFinite(a?.time)&&Date.now()-a.time<=30*60000&&a.time<=Date.now()+300000;
  const threat=a=>!!a&&(window.TsunamiRegional?.hasThreat(a)??(a?.hazardNature==='warning'&&!a.cancelled));
- const signature=a=>JSON.stringify([a.hazardNature,a.cancelled,a.warningLevel,(window.TsunamiRegional?.rows(a)||[]).map(r=>[r.regionLabel,r.state,r.category]).sort()]);
+ const signature=a=>window.TsunamiRegional.signature(a);
  const eligible=a=>threat(a)&&window.TsunamiLink?.official(a)&&recent(a)&&(!Number.isFinite(a.expiresAt)||a.expiresAt>Date.now());
  function protectionRemaining(){const a=globalAlerts.find(a=>a.id===eventoSelecionadoId),p=window.PresentationLimits?.state();return (threat(a)||p?.mode==='manual')&&window.TsunamiLink?.official(a)&&(!Number.isFinite(a.expiresAt)||a.expiresAt>Date.now())&&p?.id===a.id?Math.max(0,p.deadline-Date.now()):0;}
  function canInterrupt(a){const q=globalEvents.find(q=>q.id===eventoSelecionadoId);return a?.id===dispatchId&&!(Number(q?.mag)>=6&&getAutoCycleProtectionRemaining()>0);}

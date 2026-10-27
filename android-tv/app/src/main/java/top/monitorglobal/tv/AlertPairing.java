@@ -13,18 +13,18 @@ final class AlertPairing {
  }
  static List<Alert> coalesce(List<Alert> notices){
   List<Alert> out=new ArrayList<>();for(Alert a:notices){boolean covered=false;
-   if(a.kind.equals("tsunami"))for(Alert q:notices)if(q.kind.equals("earthquake")&&q.companion!=null&&q.companion.id.equals(a.id)&&q.companion.version.equals(a.version)){covered=true;break;}
+   if(a.kind.equals("tsunami"))for(Alert q:notices)if(q.kind.equals("earthquake")&&q.companion!=null&&Alert.sameBulletin(q.companion,a)&&q.companion.version.equals(a.version)){covered=true;break;}
    if(!covered)out.add(a);
   }return out;
  }
  static void refreshQueuedCompanions(Collection<Alert> pending,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
   for(Alert p:pending){if(p.companion==null)continue;boolean healthy=p.companion.kind.equals("tsunami")?tsunamiOk:quakeOk;if(!healthy)continue;
-   for(Alert latest:snapshot)if(latest.id.equals(p.companion.id)&&isPair(p,latest)){
-    p.companion=latest.copy();if(p.kind.equals("earthquake"))p.tsunamiSummary=(rank(latest)>0||latest.state.equals("noThreat"))?latest.tsunamiSummary:"";break;
+   for(Alert latest:snapshot)if((latest.id.equals(p.companion.id)||Alert.sameBulletin(latest,p.companion))&&(isPair(p,latest)||p.kind.equals("earthquake")&&isPair(p,p.companion)&&Alert.sameBulletin(latest,p.companion))){
+    Alert previous=p.companion;p.companion=latest.copy();if(p.kind.equals("earthquake")){if(p.companion.relatedQuakeId.isEmpty())p.companion.relatedQuakeId=previous.relatedQuakeId;StringBuilder active=new StringBuilder();if(quakeOk)for(Alert t:snapshot)if(isPair(p,t)&&t.eligible&&rank(t)>0){if(active.length()>0)active.append(" | ");active.append(t.tsunamiSummary);}p.tsunamiSummary=quakeOk?active.toString():rank(latest)>0?latest.tsunamiSummary:"";}break;
    }
   }
  }
- static boolean replacesQueued(Alert newer,Alert older){return newer.id.equals(older.id)||newer.kind.equals("earthquake")&&newer.companion!=null&&newer.companion.id.equals(older.id);}
- static boolean updates(Alert active,Alert next){if(active==null)return false;if(active.id.equals(next.id))return !active.version.equals(next.version);return active.companion!=null&&active.companion.id.equals(next.id)&&!active.companion.version.equals(next.version);}
- static boolean represents(Alert presentation,Alert other){return presentation.id.equals(other.id)||presentation.companion!=null&&presentation.companion.id.equals(other.id)&&presentation.companion.version.equals(other.version);}
+ static boolean replacesQueued(Alert newer,Alert older){return newer.id.equals(older.id)||Alert.sameBulletin(newer,older)||newer.kind.equals("earthquake")&&newer.companion!=null&&Alert.sameBulletin(newer.companion,older);}
+ static boolean updates(Alert active,Alert next){if(active==null)return false;if(active.id.equals(next.id)||Alert.sameBulletin(active,next))return !active.version.equals(next.version);return active.companion!=null&&(active.companion.id.equals(next.id)||Alert.sameBulletin(active.companion,next))&&!active.companion.version.equals(next.version);}
+ static boolean represents(Alert presentation,Alert other){return presentation.id.equals(other.id)||Alert.sameBulletin(presentation,other)||presentation.companion!=null&&(presentation.companion.id.equals(other.id)||Alert.sameBulletin(presentation.companion,other))&&presentation.companion.version.equals(other.version);}
 }

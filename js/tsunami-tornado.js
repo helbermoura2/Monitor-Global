@@ -60,6 +60,7 @@ async function fetchOfficialTsunamiAlerts(){
   for(const name of ['PTWC','NTWC']){const rows=(data.sources||[]).filter(s=>s.source===name);const ok=rows.some(s=>s.ok);const partial=ok&&rows.some(s=>!s.ok);window.MonitorFreshness?.recordStatus(name+' boletins',partial?'warn':ok?'ok':'off',rows.filter(s=>!s.ok).map(s=>s.error||'Produto indisponível').join(' · '));}
   if(!data.ok)throw Error('Centros oficiais indisponíveis');
   const online=new Set((data.sources||[]).filter(s=>s.ok).map(s=>s.feedKey||s.source));
+  const previousOfficial=window.TsunamiLink.latest(globalAlerts.filter(a=>a.official&&a.type==='tsunami'));
   const selectedBefore=globalAlerts.find(item=>item.id===eventoSelecionadoId);
   const beforeSignature=globalAlerts.filter(item=>['PTWC','NTWC'].includes(item.source)).map(item=>item.id+'|'+item.time+'|'+item.warningLevel).sort().join(';');
   const items=window.TsunamiLink.latest((data.items||[]).map(item=>window.TsunamiBulletinOrigin?.normalize(item)||item).filter(item=>item.type==='tsunami'&&['PTWC','NTWC'].includes(item.source)));
@@ -67,8 +68,12 @@ async function fetchOfficialTsunamiAlerts(){
   globalAlerts=globalAlerts.filter(item=>!online.has(item.feedKey||item.source)||item.type!=='tsunami'||ids.has(item.id)||item.official&&item.hazardNature==='warning'&&!item.cancelled);
   for(const item of globalAlerts)if(item.official&&item.type==='tsunami')item._tsunamiStale=!ids.has(item.id)||!online.has(item.feedKey||item.source);
   for(const item of items){
+   const previous=previousOfficial.find(a=>(a.feedKey||a.source)===(item.feedKey||item.source)&&(a.id===item.id||window.TsunamiLink.sameEvent(a,item)));
+   const changed=!previous||window.TsunamiRegional.signature(previous)!==window.TsunamiRegional.signature(item),previousUntil=previous?activeAlertingIds.get(previous.id):0;
    const isNew=upsertAlert(item,{fonte:'tsunamiOfficial'});
-   if(isNew&&window.TsunamiRegional.hasThreat(item)){
+   if(previous&&previous.id!==item.id){activeAlertingIds.delete(previous.id);activeUpdatedIds.delete(previous.id);}
+   if(previous&&!changed){activeAlertingIds.delete(item.id);activeUpdatedIds.delete(item.id);if(previousUntil>Date.now())activeAlertingIds.set(item.id,previousUntil);}
+   if(fonteBooted('tsunamiOfficial')&&(isNew||previous)&&changed&&window.TsunamiRegional.hasThreat(item)){
     playAlertTone('tsunami',item.id);showToast('🌊 '+window.TsunamiRegional.rows(item).filter(r=>r.active).map(r=>r.regionLabel).join(' · ')+' · aviso oficial','error');
     notificarNavegador(item.displayLabel,item.place);
    }
