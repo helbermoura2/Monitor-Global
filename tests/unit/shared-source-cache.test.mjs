@@ -74,3 +74,11 @@ test('official AFAD collection has independent circuit identity from the retired
  assert.equal(policy.group,'/afad-earthquakes:official-v1');assert.equal(policy.ttl,30000);
  assert.equal(sourcePolicy(new Request('https://worker.test/ingv-earthquakes')).group,'/ingv-earthquakes');
 });
+
+test('source freshness deadline stays tied to its snapshot when another query enters backoff',async()=>{
+ const storage=store(),now=Date.now(),req=request();
+ await handleSourceInObject(req,{},storage,async()=>Response.json(feed()),undefined,now);
+ await handleSourceInObject(request('&minlatitude=10'),{},storage,async()=>new Response('unavailable',{status:503}),undefined,now+5000);
+ const r=await handleSourceInObject(req,{},storage,async()=>{throw Error('must reuse source');},undefined,now+6000);
+ assert.equal(r.headers.get('X-Monitor-Source-State'),'fresh');assert.equal(Number(r.headers.get('X-Monitor-Source-Fresh-Until')),now+30000);assert.equal(Number(r.headers.get('X-Monitor-Source-Next-Retry')),now+35000);assert(r.headers.get('Access-Control-Expose-Headers').includes('X-Monitor-Source-Fresh-Until'));
+});

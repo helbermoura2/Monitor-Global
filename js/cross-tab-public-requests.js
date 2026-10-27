@@ -20,7 +20,7 @@
     if(hit&&Number(hit.headers.get('X-Monitor-Local-Until'))>Date.now()){const headers=[...hit.headers].filter(([n])=>n!=='x-monitor-local-until');hits++;return {status:hit.status,statusText:hit.statusText,headers,body:new Uint8Array(await hit.arrayBuffer())};}
    }catch{store=null;}
    const data=await load();if(signal.aborted)return data;
-   const headers=new Headers(data.headers),until=Math.min(Number(headers.get('X-Monitor-Source-Next-Retry')),Date.now()+15000);
+   const headers=new Headers(data.headers),until=Math.min(Number(headers.get('X-Monitor-Source-Fresh-Until')),Date.now()+15000);
    if(store&&data.status===200&&data.body.byteLength<=MAX&&headers.get('X-Monitor-Source-State')==='fresh'&&Number(headers.get('X-Monitor-Source-Last-Ok'))>0&&until>Date.now()){
     try{headers.set('X-Monitor-Local-Until',String(until));await root.navigator.locks.request(NAME+'-storage',async()=>{await store.put(address,new Response(data.body,{status:data.status,statusText:data.statusText,headers}));const keys=await store.keys();for(const k of keys.slice(0,Math.max(0,keys.length-8)))await store.delete(k);});}catch{/* Storage disabled/full: ordinary network behavior. */}
    }
