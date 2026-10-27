@@ -85,3 +85,5 @@ Resumo automático à meia-noite de Brasília, recuperação e prioridade dos av
 Abertura com bloco vermelho revelando a tarja: [TV 1.0.11](ABERTURA_TELEJORNAL_1_0_11.md).
 
 Seis segundos completos de leitura por sismo e saída com a mesma varredura: [TV 1.0.12](LEITURA_E_SAIDA_1_0_12.md).
+
+- [Ciclo regional de tsunami validado na versão 1.0.14](CICLO_TSUNAMI_1_0_14.md).

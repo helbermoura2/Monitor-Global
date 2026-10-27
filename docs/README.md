@@ -1,6 +1,6 @@
 # Índice da documentação do Monitor Global
 
-Revisão: 26/10/2026. Para começar: [Guia do dono](../GUIA_DO_DONO.md), [mapa de arquivos](../MAPA_DOS_ARQUIVOS.md) e [apresentação](../README.md).
+Revisão: 27/10/2026. Para começar: [Guia do dono](../GUIA_DO_DONO.md), [mapa de arquivos](../MAPA_DOS_ARQUIVOS.md) e [apresentação](../README.md).
 
 ## Orientações vigentes
 
@@ -14,6 +14,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 - [worker-modules.md](worker-modules.md)
 - [durable-request-budget.md](durable-request-budget.md)
 - [site-fontes-replicas-memoria-20261026.md](site-fontes-replicas-memoria-20261026.md)
+- [ciclo-tsunami-site-tv-20261027.md](ciclo-tsunami-site-tv-20261027.md)
 - [regional-source-health.md](regional-source-health.md)
 - [telegram-brazil.md](telegram-brazil.md)
 - [identidade-imagens-telegram-20261025.md](identidade-imagens-telegram-20261025.md)
