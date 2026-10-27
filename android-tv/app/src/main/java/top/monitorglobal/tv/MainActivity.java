@@ -16,6 +16,7 @@ public final class MainActivity extends Activity {
   button("6 · Testar encerramento de tsunami (fictício)",v->launch(MonitorService.TEST_END));
   button("Testar tsunami sem ameaça (dados fictícios)",v->launch(MonitorService.TEST_NO_THREAT));
   button("7 · Testar sequência completa em 10 segundos (fictícia)",v->launch(MonitorService.TEST_SEQUENCE));
+  button("Diagnóstico local · memória e desenho da tarja",v->startActivity(new Intent(this,DiagnosticsActivity.class)));
   updater=new OfficialUpdater(this,s->{Prefs.get(this).edit().putString("updateStatus",s).apply();update();});button("Verificar atualização oficial",v->updater.check());
   Switch sound=new Switch(this);sound.setText("Som dos avisos · usa o volume de notificações do aparelho");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->Prefs.get(this).edit().putBoolean("sound",checked).apply());content.addView(sound);
   Switch daily=new Switch(this);daily.setText("Resumo automático à meia-noite · horário de Brasília");daily.setTextColor(Color.WHITE);daily.setTextSize(17);daily.setPadding(12,10,12,10);daily.setChecked(Prefs.get(this).getBoolean("dailyAuto",true));daily.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("dailyAuto",checked).apply();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);});content.addView(daily);

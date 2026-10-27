@@ -74,7 +74,7 @@ final class NewsBannerView extends View {
   text(c,shown,x,y,size,color,font,max);
  }
  @Override protected void onDraw(Canvas c){
-  super.onDraw(c);if(started==0)return;long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
+  super.onDraw(c);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
   c.save();c.translate(0,mapBelow?0:mapSpace);
   paint.setColor(background);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(0,0,960,126,10,10,paint);paint.setColor(accent);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1);c.drawRoundRect(1,1,959,125,10,10,paint);paint.setStyle(Paint.Style.FILL);
   breaking(c,elapsed);
@@ -90,6 +90,7 @@ final class NewsBannerView extends View {
   c.save();c.clipRect(12,103,947,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+90;
   float offset=animate?(elapsed/1000f*40)%length:0;text(c,ticker,12-offset,119,13,foreground,data,Float.MAX_VALUE);text(c,ticker,12-offset+length,119,13,foreground,data,Float.MAX_VALUE);c.restore();c.restore();
   drawMap(c,index,elapsed,fadeElapsed);c.restore();
+  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
   if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(pageMillis-within);}
  }
  private void drawMap(Canvas c,int index,long elapsed,long fadeElapsed){
@@ -151,6 +152,6 @@ final class NewsBannerView extends View {
  private static String formatRecordTime(long at){return date(at,"dd/MM/yyyy HH:mm 'BRT'");}
  private static String date(long at,String pattern){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat(pattern,java.util.Locale.forLanguageTag("pt-BR"));f.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return f.format(new java.util.Date(at));}
  static String tsunamiLabel(String state){switch(state){case "warning":return "AVISO DE TSUNAMI";case "watch":return "VIGILÂNCIA DE TSUNAMI";case "advisory":return "ATENÇÃO PARA TSUNAMI";case "ended":return "AVISO ENCERRADO · COSTAS CITADAS";case "noThreat":return "SEM AMEAÇA · COSTAS CITADAS";case "unknown":return "SITUAÇÃO DE TSUNAMI NÃO CONFIRMADA";default:return "BOLETIM INFORMATIVO DE TSUNAMI";}}
- @Override protected void onAttachedToWindow(){super.onAttachedToWindow();running=true;if(mapSpace>0){mapInset=new MapInset(getContext(),this::invalidate);for(Page p:pages)mapInset.prepare(p.alert);}invalidate();}
- @Override protected void onDetachedFromWindow(){running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
+ @Override protected void onAttachedToWindow(){super.onAttachedToWindow();RuntimeDiagnostics.resetFrameClock();running=true;if(mapSpace>0){mapInset=new MapInset(getContext(),this::invalidate);for(Page p:pages)mapInset.prepare(p.alert);}invalidate();}
+ @Override protected void onDetachedFromWindow(){RuntimeDiagnostics.resetFrameClock();running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
 }

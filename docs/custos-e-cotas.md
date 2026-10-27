@@ -1,6 +1,6 @@
 # Custos e cotas — inventário operacional
 
-Revisão: 24/10/2026. Este documento organiza o que existe; **não é uma fatura nem confirmação do plano contratado**. Não foram alterados planos, cotas ou notificações da conta.
+Revisão: 27/10/2026. Este documento organiza o que existe; **não é uma fatura nem confirmação do plano contratado**. Não foram alterados planos, cotas ou notificações da conta.
 
 ## Serviços e limites
 
@@ -28,8 +28,8 @@ A auditoria Durable [40131800329](https://github.com/helbermoura2/Monitor-Global
 
 1. Cloudflare → conta → **Billing**: conferir plano, invoices e subscriptions de cada produto. Registrar moeda, período e franquias antes de calcular qualquer valor.
 2. **Workers & Pages** → Worker → métricas: solicitações/CPU. **Durable Objects** e **KV**: consultar operações e armazenamento. **Workers AI**: consumo do modelo. Nomes de menus podem variar.
-3. Conta → **Notifications** → criar notificação: procurar opções de uso/limites disponíveis para os produtos/plano. Se oferecida, configurar aviso em patamares como 50%, 80% e 95% da franquia real. Não presumir que existe alerta universal de valor em reais ou desligamento automático.
-4. Se não houver alerta monetário, combinar métricas/avisos por produto e revisão periódica de Billing. Alertas de consumo não garantem bloqueio de cobranças. Não contratar serviços nem mudar plano para isso sem decisão do dono.
+3. Para contas **Pay-as-you-go**, a documentação atual confirma alertas de gasto acumulado em USD para a conta inteira: **Manage Account → Billing → Billable Usage → Create budget alert**. Definir valor e destinatários no painel. A opção é diferente dos avisos por métrica de cada produto em Notifications.
+4. O alerta financeiro é informativo: não interrompe consumo nem limita cobrança. A documentação descreve implantação gradual de um alerta padrão de US$10 para contas elegíveis; isso **não confirma que ele esteja ativo nesta conta**. As mensalidades recorrentes ficam fora desse cálculo de consumo, e o processamento não é em tempo real. Não foi criado destinatário ou alterado plano nesta revisão.
 5. No GitHub, abrir **Audit Durable Object requests and storage**, **Audit Cloudflare KV consumption** e o relatório diário KV. São complementos às métricas oficiais, não a fatura consolidada.
 
 **Pendente de acesso ao painel:** confirmar plano/franquias, recuperar totais atuais, verificar quais notificações a conta oferece e escolher destinatário. Nenhum alerta de orçamento foi ativado nesta revisão.
@@ -43,3 +43,11 @@ A auditoria Durable [40131800329](https://github.com/helbermoura2/Monitor-Global
 - [Notifications](https://developers.cloudflare.com/notifications/)
 
 As páginas de preços retornaram HTTP 403 no ambiente desta revisão. Por isso não foram copiados valores ou anunciadas cotas atuais como verificadas.
+
+## Atualização de 27/10: dados recuperados e referência de orçamento
+
+Os relatórios atuais foram recuperados dos logs dos fluxos [Durable 40460823583](https://github.com/helbermoura2/Monitor-Global/actions/runs/40460823583) e [KV 40460826526](https://github.com/helbermoura2/Monitor-Global/actions/runs/40460826526), embora o download de artifacts continuasse retornando 403. Em 26/10 UTC completo: **2.295 solicitações Durable**, sendo **1.338 de população**; **47 leituras e duas escritas KV** nos grupos retornados. São métricas operacionais, não uma fatura. O dia 27 estava parcial na consulta.
+
+A consulta consolidada de assinaturas, agregados e capacidades de notificação foi acrescentada ao fluxo `cloudflare-account-audit.yml`, com transporte que recusa mutações e relatório sem emails, webhooks ou identidade de faturamento. Consultas sem permissão ficam explícitas. O resultado desta execução será registrado após rodar o fluxo na branch principal.
+
+Fontes oficiais consultadas em 27/10: [alertas de orçamento](https://developers.cloudflare.com/billing/manage/budget-alerts/), [alerta padrão para contas elegíveis](https://developers.cloudflare.com/changelog/post/2026-06-15-budget-alerts-default-on/) e [preços de Workers](https://developers.cloudflare.com/workers/platform/pricing/). O conteúdo dessas páginas ficou acessível nesta revisão; o bloqueio citado acima descreve a revisão histórica de 24/10. Preços públicos não confirmam o plano desta conta.

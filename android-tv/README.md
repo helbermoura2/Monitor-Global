@@ -94,3 +94,5 @@ Seis segundos completos de leitura por sismo e saída com a mesma varredura: [TV
 - [Resumo de ontem e replay separado do parcial — versão 1.0.17](RESUMO_DIA_ANTERIOR_1_0_17.md).
 
 - [Verificação de mapas, replay e cancelamento — versão 1.0.18](VERIFICACAO_MAPAS_REPLAY_1_0_18.md).
+
+- [Diagnóstico local do aparelho, acesso e consumo — versão 1.0.19](../docs/prioridades-conta-aparelhos-20261027.md).
