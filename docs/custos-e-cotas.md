@@ -48,6 +48,31 @@ As páginas de preços retornaram HTTP 403 no ambiente desta revisão. Por isso 
 
 Os relatórios atuais foram recuperados dos logs dos fluxos [Durable 40460823583](https://github.com/helbermoura2/Monitor-Global/actions/runs/40460823583) e [KV 40460826526](https://github.com/helbermoura2/Monitor-Global/actions/runs/40460826526), embora o download de artifacts continuasse retornando 403. Em 26/10 UTC completo: **2.295 solicitações Durable**, sendo **1.338 de população**; **47 leituras e duas escritas KV** nos grupos retornados. São métricas operacionais, não uma fatura. O dia 27 estava parcial na consulta.
 
-A consulta consolidada de assinaturas, agregados e capacidades de notificação foi acrescentada ao fluxo `cloudflare-account-audit.yml`, com transporte que recusa mutações e relatório sem emails, webhooks ou identidade de faturamento. Consultas sem permissão ficam explícitas. O resultado desta execução será registrado após rodar o fluxo na branch principal.
+A consulta consolidada de assinaturas, agregados e capacidades de notificação foi acrescentada ao fluxo `cloudflare-account-audit.yml`, com transporte que recusa mutações e relatório sem emails, webhooks ou identidade de faturamento. Consultas sem permissão ficam explícitas. A execução [40462939462](https://github.com/helbermoura2/Monitor-Global/actions/runs/40462939462) concluiu com sucesso; resultados abaixo e no [JSON sanitizado](audits/cloudflare-account-20261027.json).
 
 Fontes oficiais consultadas em 27/10: [alertas de orçamento](https://developers.cloudflare.com/billing/manage/budget-alerts/), [alerta padrão para contas elegíveis](https://developers.cloudflare.com/changelog/post/2026-06-15-budget-alerts-default-on/) e [preços de Workers](https://developers.cloudflare.com/workers/platform/pricing/). O conteúdo dessas páginas ficou acessível nesta revisão; o bloqueio citado acima descreve a revisão histórica de 24/10. Preços públicos não confirmam o plano desta conta.
+
+## Consolidação obtida às 06:45 UTC de 27/10
+
+| Serviço / métrica | 25/10 completo | 26/10 completo | 27/10 parcial |
+| --- | ---: | ---: | ---: |
+| Worker `black-sky-9ba0`: solicitações | 39.263 | 38.524 | 13.816 |
+| Worker: CPU agregada (`cpuTimeUs` convertido em segundos) | 213,85 s | 272,29 s | 96,95 s |
+| Worker: erros de invocação registrados | 3.212 | 429 | 270 |
+| Durable: solicitações | 3.360 | 2.295 | 757 |
+| Durable: erros registrados | 32 | 19 | 4 |
+| Durable SQLite: linhas lidas | 8.464 | 6.721 | 2.185 |
+| Durable SQLite: linhas escritas | 3.746 | 2.072 | 709 |
+| Durable SQLite: máximo diário de bytes armazenados | 105.365.500 | 114.040.830 | 116.908.030 |
+| KV: operações agregadas | 50 | 49 | 69 |
+| Workers AI: neurons, agregado da conta | 398,62 | 268,18 | 134,97 |
+
+`storedBytes` usa o agregado **max**; não é somado entre datas como capacidade contratada. CPU de Workers foi convertida somente porque o campo declara microssegundos. Campos `duration`, métricas de custo de modelos e CPU de Durable permanecem em valores brutos no JSON: não foram convertidos em dólares com unidades ou plano presumidos. Erros de invocação não foram atribuídos a uma causa por esta consulta; a auditoria Durable detalhada registrou `clientDisconnected` em 26/10. Não há evidência aqui de erro por exceder CPU/memória nos agregados periódicos de Durable retornados.
+
+As métricas são adaptativas, com possível amostragem e atraso. O parcial de 27/10 não é projeção de dia completo. Workers traz `scriptName=black-sky-9ba0`; AI e armazenamento estão agregados por conta, sem atribuição exclusiva ao projeto. A ausência de linhas em outros datasets não comprova ausência de uso. Armazenamento KV não foi obtido pelo coletor nesta execução. O dataset de inferência detalhado não tem o formato de agregação utilizado; o dataset agregado de AI foi obtido.
+
+### Avisos financeiros: opções visíveis, sem políticas configuradas
+
+A API retornou os tipos **`billing_budget_alert`** e **`billing_usage_alert`**, email como destino elegível/pronto e uma lista vazia de políticas. Isso confirma as opções expostas pela API, **não um alerta ativo nem a confirmação do plano Pay-as-you-go**. A leitura de `/accounts/.../subscriptions` retornou **403 Authentication error** com a credencial existente; não foram recuperados plano, franquias contratuais, assinaturas nem uma fatura.
+
+Para ativar um aviso financeiro faltam definir o limite em USD e o destinatário e confirmar a elegibilidade do plano no painel **Billing → Billable Usage**. Não foi escolhido email, criado alerta ou alterado orçamento por suposição. O [guia oficial](https://developers.cloudflare.com/billing/manage/budget-alerts/) confirma que o aviso não bloqueia cobranças. Recomenda-se conceder somente a leitura administrativa necessária para revisar o plano, sem substituir a credencial operacional por uma chave global.

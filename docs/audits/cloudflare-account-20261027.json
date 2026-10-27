@@ -1,0 +1,731 @@
+{
+  "queriedAt": "2026-10-27T06:45:00.520912+00:00",
+  "readOnly": true,
+  "unavailable": {
+    "subscriptions": "Cloudflare HTTP 403 for GET Worker /accounts/[account]/subscriptions; 10000: Authentication error",
+    "aiInferenceAdaptive": "Dataset has no supported aggregate/dimensions",
+    "kvStorageAdaptiveGroups": "No supported consumption metrics; not inferred as zero"
+  },
+  "analytics": {
+    "aiInferenceAdaptiveGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "totalCostMetricValue1",
+        "totalCostMetricValue2",
+        "totalInputTokens",
+        "totalNeurons",
+        "totalOutputTokens",
+        "totalRequestBytesIn",
+        "totalRequestBytesOut"
+      ],
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "totalCostMetricValue1": 4009,
+            "totalCostMetricValue2": 4628,
+            "totalInputTokens": 4009,
+            "totalNeurons": 268.17885714769363,
+            "totalOutputTokens": 4628,
+            "totalRequestBytesIn": 20535,
+            "totalRequestBytesOut": 46220
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "sum": {
+            "totalCostMetricValue1": 6086,
+            "totalCostMetricValue2": 6752,
+            "totalInputTokens": 6086,
+            "totalNeurons": 398.61990585923195,
+            "totalOutputTokens": 6752,
+            "totalRequestBytesIn": 29770,
+            "totalRequestBytesOut": 62499
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "totalCostMetricValue1": 2080,
+            "totalCostMetricValue2": 2267,
+            "totalInputTokens": 2080,
+            "totalNeurons": 134.97435212135315,
+            "totalOutputTokens": 2267,
+            "totalRequestBytesIn": 10984,
+            "totalRequestBytesOut": 24582
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsInvocationsAdaptiveGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "errors",
+        "requests"
+      ],
+      "dimensions": [
+        "date",
+        "scriptName"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 19,
+            "requests": 2295
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 4,
+            "requests": 757
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "errors": 32,
+            "requests": 3360
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsPeriodicGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "cpuTime",
+        "duration",
+        "exceededCpuErrors",
+        "exceededMemoryErrors",
+        "fatalInternalErrors",
+        "rowsRead",
+        "rowsWritten",
+        "storageDeletes",
+        "storageReadUnits",
+        "storageWriteUnits",
+        "subrequests"
+      ],
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "cpuTime": 8103066,
+            "duration": 276.01553241600004,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 2185,
+            "rowsWritten": 709,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 3473
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "sum": {
+            "cpuTime": 45461741,
+            "duration": 1141.3089109759999,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 8464,
+            "rowsWritten": 3746,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 16430
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "cpuTime": 32242716,
+            "duration": 1158.3292367359998,
+            "exceededCpuErrors": 0,
+            "exceededMemoryErrors": 0,
+            "fatalInternalErrors": 0,
+            "rowsRead": 6721,
+            "rowsWritten": 2072,
+            "storageDeletes": 0,
+            "storageReadUnits": 0,
+            "storageWriteUnits": 0,
+            "subrequests": 13434
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsSqlStorageGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "max",
+      "metrics": [
+        "storedBytes"
+      ],
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "max": {
+            "storedBytes": 114040830
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "max": {
+            "storedBytes": 105365500
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "max": {
+            "storedBytes": 116908030
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsStorageGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "max",
+      "metrics": [
+        "storedBytes"
+      ],
+      "dimensions": [
+        "date"
+      ],
+      "rows": [],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "durableObjectsSubrequestsAdaptiveGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "requestBodySizeUncached"
+      ],
+      "dimensions": [
+        "date",
+        "scriptName"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "requestBodySizeUncached": 522199
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "requestBodySizeUncached": 394160
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "requestBodySizeUncached": 6807520
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "kvOperationsAdaptiveGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "objectBytes",
+        "requests"
+      ],
+      "dimensions": [
+        "date"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26"
+          },
+          "sum": {
+            "objectBytes": 174,
+            "requests": 49
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25"
+          },
+          "sum": {
+            "objectBytes": 0,
+            "requests": 50
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27"
+          },
+          "sum": {
+            "objectBytes": 94,
+            "requests": 69
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "workersInvocationsAdaptive": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "cpuTimeUs",
+        "duration",
+        "errors",
+        "requestDuration",
+        "requests",
+        "subrequests"
+      ],
+      "dimensions": [
+        "date",
+        "scriptName"
+      ],
+      "rows": [
+        {
+          "dimensions": {
+            "date": "2026-10-26",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "cpuTimeUs": 272289572,
+            "duration": 7495.518076124999,
+            "errors": 429,
+            "requestDuration": 22446147629,
+            "requests": 38524,
+            "subrequests": 109750
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-27",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "cpuTimeUs": 96948300,
+            "duration": 1859.8864188750003,
+            "errors": 270,
+            "requestDuration": 7098203071,
+            "requests": 13816,
+            "subrequests": 39002
+          }
+        },
+        {
+          "dimensions": {
+            "date": "2026-10-25",
+            "scriptName": "black-sky-9ba0"
+          },
+          "sum": {
+            "cpuTimeUs": 213847843,
+            "duration": 8191.72581275,
+            "errors": 3212,
+            "requestDuration": 17867206988,
+            "requests": 39263,
+            "subrequests": 117277
+          }
+        }
+      ],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    },
+    "workersInvocationsByOwnerAndScriptGroups": {
+      "from": "2026-10-25",
+      "until": "2026-10-27",
+      "aggregate": "sum",
+      "metrics": [
+        "cpuTimeUs",
+        "requests"
+      ],
+      "dimensions": [
+        "date"
+      ],
+      "rows": [],
+      "note": "Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice."
+    }
+  },
+  "note": "No plans, policies or recipients changed. Missing analytics is not zero; reported plan prices are not a consolidated invoice.",
+  "subscriptions": null,
+  "notificationOptions": [
+    {
+      "type": "abuse_report_alert",
+      "display_name": "Abuse Report Alert",
+      "description": "Get alerts for abuse reports submitted against the Cloudflare Account"
+    },
+    {
+      "type": "leaked_service_token_alert",
+      "display_name": "Leaked Service Token Alert",
+      "description": "Alerts when a service token credential has been detected as leaked"
+    },
+    {
+      "type": "expiring_service_token_alert",
+      "display_name": "Expiring Service Token Alert",
+      "description": "Cloudflare Access service token expiration notice, sent 7 days before token is set to expire"
+    },
+    {
+      "type": "billing_usage_alert",
+      "display_name": "Billing Usage Alert",
+      "description": "Billing usage exceeds your configured threshold for a specific product"
+    },
+    {
+      "type": "billing_budget_alert",
+      "display_name": "Billing Budget Alert",
+      "description": "Notifies when your usage charges reach your configured budget threshold for the billing period."
+    },
+    {
+      "type": "logo_match_alert",
+      "display_name": "Logo Match Alert",
+      "description": "Get alerts when saved logos match images from URLs scanned by Security Center"
+    },
+    {
+      "type": "brand_protection_alert",
+      "display_name": "Brand Protection Domain Match Alert",
+      "description": "Get alerts when saved queries match a new domain"
+    },
+    {
+      "type": "brand_protection_digest",
+      "display_name": "Brand Protection Domain Match Digest",
+      "description": "Get regular digest of all domains matching your saved queries"
+    },
+    {
+      "type": "casb_weekly_digest",
+      "display_name": "CASB Weekly Digest",
+      "description": "A weekly digest of CASB events."
+    },
+    {
+      "type": "maintenance_event_notification",
+      "display_name": "Maintenance Event Notification",
+      "description": "A maintenance on a point of presence has been scheduled, changed, or canceled"
+    },
+    {
+      "type": "incident_alert",
+      "display_name": "Incident Alert",
+      "description": "Cloudflare is experiencing an incident"
+    },
+    {
+      "type": "stakeout_saved_query_daily_digest_alert",
+      "display_name": "Cloudforce One Priority Intelligence Requirement Digest",
+      "description": "Get a digest of new threat events that match your priority intelligence requirements"
+    },
+    {
+      "type": "open_port_scan_alert",
+      "display_name": "Cloudflare Open Port Scan Alert",
+      "description": "Get notifications when Cloudflare detects newly open ports"
+    },
+    {
+      "type": "closed_port_scan_alert",
+      "display_name": "Cloudflare Closed Port Scan Alert",
+      "description": "Get notifications when Cloudflare detects newly closed ports"
+    },
+    {
+      "type": "stakeout_credential_leak_alert",
+      "display_name": "Cloudforce One Stakeout Credential Leak Alert",
+      "description": "Get notifications when leaked credentials matching your domain are detected"
+    },
+    {
+      "type": "containers_security_alert",
+      "display_name": "Cloudforce One Containers Security Alert",
+      "description": "Get notifications when a potential threat has been identified in Containers"
+    },
+    {
+      "type": "stakeout_saved_query_immediate_alert",
+      "display_name": "Cloudforce One Threat Events Saved Query Immediate Alert",
+      "description": "Get immediate notifications when new threat events for your saved queries are detected"
+    },
+    {
+      "type": "custom_analytics",
+      "display_name": "Custom Alert",
+      "description": "Configure your own alert for your data set"
+    },
+    {
+      "type": "dos_attack_l7",
+      "display_name": "HTTP DDoS Attack Alert",
+      "description": "Cloudflare detects and mitigates an HTTP DDoS attack against one of your domains"
+    },
+    {
+      "type": "health_check_status_notification",
+      "display_name": "Health Checks status notifier",
+      "description": "Notifications generated on health check status changes"
+    },
+    {
+      "type": "image_resizing_notification",
+      "display_name": "Image Transformation Notifications",
+      "description": "Get an email about your image transformation quota exhaustion"
+    },
+    {
+      "type": "load_balancing_pool_enablement_alert",
+      "display_name": "Pool Enablement",
+      "description": "Pool alerts based on enable/disable toggle status"
+    },
+    {
+      "type": "load_balancing_health_alert",
+      "display_name": "Load Balancing Health Alert",
+      "description": "Load Balancing Health Alerts for Pools and Origins"
+    },
+    {
+      "type": "log_explorer_scheduled_query_results_alert",
+      "display_name": "Scheduled Query Results",
+      "description": "A scheduled query returned results matching your SQL filter."
+    },
+    {
+      "type": "log_explorer_ingest_rate_limit",
+      "display_name": "Ingest Rate Limit",
+      "description": "Receive alerts when your log volume exceeds Log Explorer's ingestion rate limit"
+    },
+    {
+      "type": "failing_logpush_job_disabled_alert",
+      "display_name": "Failing Logpush Job Disabled",
+      "description": "Logpush job failing to push successfully for > 24h disabled."
+    },
+    {
+      "type": "fbm_auto_advertisement",
+      "display_name": "Network Flow: Auto Advertisement",
+      "description": "Auto Advertisement of a set of predefined prefixes using Magic Transit, following a recent attack"
+    },
+    {
+      "type": "fbm_dosd_attack",
+      "display_name": "Network Flow: DDoS Attack",
+      "description": "Fine grained Network Flow DDoS Attacks based on your sflow data"
+    },
+    {
+      "type": "fbm_volumetric_attack",
+      "display_name": "Network Flow: Volumetric Attack",
+      "description": "Volumetric DDoS attacks to your infrastructure based on flow data you export to Cloudflare"
+    },
+    {
+      "type": "cni_maintenance_notification",
+      "display_name": "CNI Connection Maintenance Alert",
+      "description": "Maintenance alerts for CNI connections"
+    },
+    {
+      "type": "pages_event_alert",
+      "display_name": "Pages Alerts",
+      "description": "Pages Alerts"
+    },
+    {
+      "type": "radar_notification",
+      "display_name": "Radar notifications",
+      "description": "Radar Notifications"
+    },
+    {
+      "type": "bgp_hijack_notification",
+      "display_name": "Route Leak Detection Alert",
+      "description": "Alerts for BGP Hijack"
+    },
+    {
+      "type": "access_custom_certificate_expiration_type",
+      "display_name": "Access mTLS Certificate Expiration Alert",
+      "description": "Expiration notices for Access custom uploaded certificates"
+    },
+    {
+      "type": "custom_ssl_certificate_event_type",
+      "display_name": "SSL for SaaS Custom Hostnames Alert",
+      "description": "Custom Hostname Certificate validation status, issuance, renewal, and expiration notices"
+    },
+    {
+      "type": "hostname_aop_custom_certificate_expiration_type",
+      "display_name": "Hostname-level Authenticated Origin Pulls Certificate Expiration Alert",
+      "description": "Expiration notices for custom uploaded hostname-level Authenticated Origin Pulls certificates"
+    },
+    {
+      "type": "zone_aop_custom_certificate_expiration_type",
+      "display_name": "Zone-level Authenticated Origin Pulls Certificate Expiration Alert",
+      "description": "Expiration notices for custom uploaded zone-level Authenticated Origin Pulls certificates"
+    },
+    {
+      "type": "dedicated_ssl_certificate_event_type",
+      "display_name": "Advanced Certificate Alert",
+      "description": "Advanced Certificate validation status, issuance, renewal, and expiration notices"
+    },
+    {
+      "type": "universal_ssl_event_type",
+      "display_name": "Universal SSL Alert",
+      "description": "Universal Certificate validation status, issuance, renewal, and expiration notices"
+    },
+    {
+      "type": "mtls_certificate_store_certificate_expiration_type",
+      "display_name": "mTLS Certificate Store Certificate Expiration Alert",
+      "description": "Expiration notices for customer uploaded mTLS certificates"
+    },
+    {
+      "type": "scriptmonitor_alert_new_malicious_hosts",
+      "display_name": "Page Shield New Malicious Domain Alert",
+      "description": "Receive an alert whenever a resource loaded by your users is hosted under a domain reported as malicious."
+    },
+    {
+      "type": "scriptmonitor_alert_new_max_length_resource_url",
+      "display_name": "Page Shield New Resource URL Exceeds Max Length Alert",
+      "description": "Receive an alert whenever we detect a resource with a very large URL"
+    },
+    {
+      "type": "scriptmonitor_alert_new_malicious_url",
+      "display_name": "Page Shield New Malicious URL Alert",
+      "description": "Receive an alert whenever a resource loaded by your users is from a URL reported as malicious."
+    },
+    {
+      "type": "scriptmonitor_alert_new_malicious_scripts",
+      "display_name": "Page Shield New Malicious Script Alert",
+      "description": "Receive an alert whenever a JavaScript file loaded by your users is classified as malicious."
+    },
+    {
+      "type": "scriptmonitor_alert_new_resources",
+      "display_name": "Page Shield New Resources Alert",
+      "description": "Receive an alert whenever your users load a new resource that has not been previously seen."
+    },
+    {
+      "type": "scriptmonitor_alert_new_hosts",
+      "display_name": "Page Shield New Domain Alert",
+      "description": "Receive an alert whenever your users load a resource from a new domain not previously seen."
+    },
+    {
+      "type": "scriptmonitor_alert_new_code_change_detections",
+      "display_name": "Page Shield New Code Change Detection Alert",
+      "description": "Receive an alert whenever a code change is detected in a script getting monitored."
+    },
+    {
+      "type": "security_insights_alert",
+      "display_name": "Security Insights Alert",
+      "description": "Get alerts for new Security Insights"
+    },
+    {
+      "type": "stream_live_notifications",
+      "display_name": "Stream Live Notifications",
+      "description": "Get webhook or email notifications about your live stream"
+    },
+    {
+      "type": "real_origin_monitoring",
+      "display_name": "Passive Origin Monitoring",
+      "description": "Cloudflare is unable to reach your origin"
+    },
+    {
+      "type": "block_notification_block_removed",
+      "display_name": "Notifications for Removed Blocks",
+      "description": "Get notifications when Cloudflare Trust & Safety removes a block from your website"
+    },
+    {
+      "type": "block_notification_review_rejected",
+      "display_name": "Notifications for Block Review Rejection",
+      "description": "Get notifications when Cloudflare Trust & Safety rejects a request for block removal"
+    },
+    {
+      "type": "block_notification_new_block",
+      "display_name": "Notifications for New Blocks",
+      "description": "Get notifications when Cloudflare Trust & Safety places a block in one of your websites"
+    },
+    {
+      "type": "tunnel_update_event",
+      "display_name": "Tunnel Created and Deleted Alert",
+      "description": "Cloudflare Tunnel Created and Deleted Alerts"
+    },
+    {
+      "type": "tunnel_health_event",
+      "display_name": "Tunnel Health Alert",
+      "description": "Cloudflare Tunnel Connection Status Change Alerts"
+    },
+    {
+      "type": "web_analytics_metrics_update",
+      "display_name": "Web Analytics Metrics Update",
+      "description": "Receive regular Web Analytics metrics updates by email"
+    },
+    {
+      "type": "workers_observability_real_time_issue",
+      "display_name": "Real-Time Issue",
+      "description": "Receive a notification when an issue is detected on your service"
+    },
+    {
+      "type": "workers_observability_alert",
+      "display_name": "Alert Policy",
+      "description": "Configure how you want to be notified when your Workers Observability alerts fire"
+    }
+  ],
+  "notificationDestinations": {
+    "email": {
+      "eligible": true,
+      "ready": true
+    },
+    "pagerduty": {
+      "eligible": false,
+      "ready": false
+    },
+    "webhooks": {
+      "eligible": false,
+      "ready": false
+    }
+  },
+  "notificationPolicies": [],
+  "availableDatasets": [
+    "aiInferenceAdaptive",
+    "aiInferenceAdaptiveGroups",
+    "durableObjectsInvocationsAdaptiveGroups",
+    "durableObjectsPeriodicGroups",
+    "durableObjectsSqlStorageGroups",
+    "durableObjectsStorageGroups",
+    "durableObjectsSubrequestsAdaptiveGroups",
+    "kvOperationsAdaptiveGroups",
+    "kvStorageAdaptiveGroups",
+    "workersInvocationsAdaptive",
+    "workersInvocationsByOwnerAndScriptGroups",
+    "workersInvocationsScheduled"
+  ]
+}
