@@ -22,7 +22,7 @@ export async function observe(){
  finally{
   ws?.close();
   if(session?.id&&/^[a-f0-9-]{32,36}$/i.test(session.id)){try{await api(base+'/'+session.id,'DELETE');report.sessionRemoved=true;}catch{report.sessionRemoved=false;}}
-  report.endedAt=new Date().toISOString();await mkdir('audit-results',{recursive:true});await writeFile('audit-results/route-tail.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
+  report.endedAt=new Date().toISOString();report.elapsedSeconds=Math.round((Date.parse(report.endedAt)-Date.parse(report.startedAt))/1000);report.noObservedEvents=report.events===0;await mkdir('audit-results',{recursive:true});await writeFile('audit-results/route-tail.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
  }
  if(report.blocked||report.sessionRemoved===false)process.exitCode=2;
 }

@@ -7,7 +7,7 @@
   const u=new URL(request.url);
   // Only endpoints covered by the backend shared-source freshness contract.
   if(!routes.has(u.pathname)&&!(u.pathname==='/'&&u.searchParams.has('url')&&!/overpass/i.test(u.searchParams.get('url'))))return load();
-  if(!root.navigator?.locks||!root.caches||!root.crypto?.subtle||u.hostname!=='black-sky-9ba0.terrestre.workers.dev'||request.cache==='reload'||request.cache==='no-cache'||[...u.searchParams.keys()].some(k=>/^(?:t|_|force|nocache)$/i.test(k))||request.headers.has('cache-control'))return load();
+  if(!root.navigator?.locks||!root.caches||!root.crypto?.subtle||u.hostname!=='black-sky-9ba0.terrestre.workers.dev'||request.cache==='reload'||request.cache==='no-cache'||request.cache==='no-store'||[...u.searchParams.keys()].some(k=>/^(?:t|_|_t|force|nocache|cachebuster)$/i.test(k))||(request.headers.has('cache-control')||request.headers.has('pragma')))return load();
   let hash;try{hash=Array.from(new Uint8Array(await root.crypto.subtle.digest('SHA-256',new TextEncoder().encode(key))),b=>b.toString(16).padStart(2,'0')).join('');}catch{return load();}
   let entered=false;try{return await root.navigator.locks.request(NAME+'-'+hash,{signal},async()=>{
    entered=true;
