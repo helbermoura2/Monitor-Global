@@ -22,7 +22,9 @@ final class NewsBannerView extends View {
  private final String ticker;
  private final int accent,foreground,background;
  private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
- private boolean running;
+ private boolean running;private MapInset mapInset;private float mapReveal=1;
+ private final boolean mapBelow;private final int mapSpace;
+ void mapReveal(float p){if(mapReveal!=p){mapReveal=p;invalidate();}}
  private final class Page {
   String caption;final Alert alert;final String magnitude,oldMagnitude,location,headline,heading,time,first,source;final Bitmap flag;
   Page(Alert a){
@@ -43,7 +45,7 @@ final class NewsBannerView extends View {
  }
  NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts.get(0),false,repeated,alerts,day,complete);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete){
-  super(context);summary=daily!=null;summaryDay=day;pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;breakingClip.addRoundRect(3,3,216,24,7,7,Path.Direction.CW);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
+  super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryDay=day;pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;breakingClip.addRoundRect(3,3,216,24,7,7,Path.Direction.CW);telegramPlane.moveTo(14,91);telegramPlane.lineTo(24,87);telegramPlane.lineTo(21,96);telegramPlane.lineTo(18,93);telegramPlane.close();root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
@@ -72,7 +74,8 @@ final class NewsBannerView extends View {
   text(c,shown,x,y,size,color,font,max);
  }
  @Override protected void onDraw(Canvas c){
-  super.onDraw(c);if(started==0)return;long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/126f);
+  super.onDraw(c);if(started==0)return;long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
+  c.save();c.translate(0,mapBelow?0:mapSpace);
   paint.setColor(background);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(0,0,960,126,10,10,paint);paint.setColor(accent);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1);c.drawRoundRect(1,1,959,125,10,10,paint);paint.setStyle(Paint.Style.FILL);
   breaking(c,elapsed);
   radar(c,36,54,elapsed);text(c,"MONITOR",69,50,24,foreground,brand,140);text(c,"GLOBAL",69,72,24,foreground,brand,140);rect(c,218,24,219,102,Color.rgb(49,76,91));
@@ -86,7 +89,17 @@ final class NewsBannerView extends View {
   rect(c,1,101,959,102,accent);
   c.save();c.clipRect(12,103,947,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+90;
   float offset=animate?(elapsed/1000f*40)%length:0;text(c,ticker,12-offset,119,13,foreground,data,Float.MAX_VALUE);text(c,ticker,12-offset+length,119,13,foreground,data,Float.MAX_VALUE);c.restore();c.restore();
+  drawMap(c,index,elapsed,fadeElapsed);c.restore();
   if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(pageMillis-within);}
+ }
+ private void drawMap(Canvas c,int index,long elapsed,long fadeElapsed){
+  if(mapInset==null||mapReveal<=0||mapSpace==0)return;
+  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);float slide=(1-mapReveal)*180;
+  c.translate(649,mapBelow?4-slide:slide);
+  boolean fading=(summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
+  if(fading){float t=BannerTimeline.pageProgress(fadeElapsed);int layer=c.saveLayerAlpha(0,0,310,176,(int)(255*(1-t)));mapInset.draw(c,pages[(index+pages.length-1)%pages.length].alert,brand,accent);c.restoreToCount(layer);layer=c.saveLayerAlpha(0,0,310,176,(int)(255*t));mapInset.draw(c,pages[index].alert,brand,accent);c.restoreToCount(layer);}
+  else mapInset.draw(c,pages[index].alert,brand,accent);
+  c.restore();
  }
  private void breaking(Canvas c,long elapsed){
   rounded(c,3,3,216,24,7,Color.rgb(191,24,39));
@@ -138,6 +151,6 @@ final class NewsBannerView extends View {
  private static String formatRecordTime(long at){return date(at,"dd/MM/yyyy HH:mm 'BRT'");}
  private static String date(long at,String pattern){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat(pattern,java.util.Locale.forLanguageTag("pt-BR"));f.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return f.format(new java.util.Date(at));}
  static String tsunamiLabel(String state){switch(state){case "warning":return "AVISO DE TSUNAMI";case "watch":return "VIGILÂNCIA DE TSUNAMI";case "advisory":return "ATENÇÃO PARA TSUNAMI";case "ended":return "AVISO ENCERRADO · COSTAS CITADAS";case "noThreat":return "SEM AMEAÇA · COSTAS CITADAS";case "unknown":return "SITUAÇÃO DE TSUNAMI NÃO CONFIRMADA";default:return "BOLETIM INFORMATIVO DE TSUNAMI";}}
- @Override protected void onAttachedToWindow(){super.onAttachedToWindow();running=true;invalidate();}
- @Override protected void onDetachedFromWindow(){running=false;super.onDetachedFromWindow();}
+ @Override protected void onAttachedToWindow(){super.onAttachedToWindow();running=true;if(mapSpace>0){mapInset=new MapInset(getContext(),this::invalidate);for(Page p:pages)mapInset.prepare(p.alert);}invalidate();}
+ @Override protected void onDetachedFromWindow(){running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
 }
