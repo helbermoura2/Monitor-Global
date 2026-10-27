@@ -29,3 +29,10 @@ test('date-line coastal frame stays regional and worst-sized live feed stays ins
  assert(Buffer.byteLength(JSON.stringify(tvSnapshot({features:q},{ok:true,items},now)))<256*1024);
  const fixture=JSON.parse(readFileSync('android-tv/app/src/main/assets/maps/demo-vanuatu.json','utf8'));assert.deepEqual(fixture,tvCoastalMap({...bulletin,id:'demo-coast',feedKey:'demo',originTime:now,warningLevel:'Warning'}));
 });
+
+test('mixed regional cancellation removes Vanuatu warning coast while keeping Fiji warning geometry',()=>{
+ const areas=[{name:'Vanuatu',category:'Cancellation'},{name:'Fiji',category:'Warning'}];
+ const mixed=tvCoastalMap({...bulletin,affectedAreas:areas});
+ const fiji=tvCoastalMap({...bulletin,affectedAreas:[areas[1]]});
+ assert(mixed.lines.length);assert.deepEqual(mixed.lines,fiji.lines);
+});

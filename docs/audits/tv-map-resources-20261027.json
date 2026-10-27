@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-27",
+  "applicationVersion": "1.0.18",
+  "environment": "Robolectric 4.16.1, Android API35, native Skia/Canvas/Bitmap on Linux host; mocked fixed-host image responses",
+  "physicalDeviceConnected": false,
+  "tests": {
+    "passed": 49,
+    "failed": 0,
+    "mapResourceTests": 9
+  },
+  "beforeFix": {
+    "case": "closingBetweenPreparationAndDownloadMustNotThrow",
+    "result": "RejectedExecutionException reproduced deterministically at second-stage enqueue during close"
+  },
+  "stress": {
+    "fullSummaryCycles": 30,
+    "preparedImages": 150,
+    "maximumFinalImageBytesPerSummary": 1860000,
+    "interruptedSummaryCycles": 120,
+    "queuedMapPagesPerInterruptedSummary": 5,
+    "finalOpenConnections": 0,
+    "closedExecutorsTerminated": true,
+    "closedDrawingMapsEmpty": true,
+    "runnerOutput": "MAP_STRESS fullCycles=30 images=150 maxImageBytes=1860000 finalConnections=0 seconds=2.536"
+  },
+  "limits": [
+    "No physical TCL/Fire Stick test",
+    "No hours-long device session",
+    "No total Android process RAM or GPU measurement",
+    "Retained final bitmap allocation and cancellation checks are not proof that every device allocation has been reclaimed"
+  ],
+  "sourceSha256": {
+    "android-tv/app/src/main/java/top/monitorglobal/tv/MapInset.java": "f3d041855697cc2c533ac07c89e4512d6d9dae1a49903b85a333d4c4dd7436e9",
+    "android-tv/app/src/main/java/top/monitorglobal/tv/SatelliteImage.java": "a8a113abf7f42d57c1153747629118b98339219247bfb4076d1f0c2b43328432",
+    "android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/MapResourcesTest.java": "5df31257977bdbd5f889d51a2cf11ccd0c68a6110808a57d2bffdfa42a7023f1"
+  }
+}
