@@ -22,6 +22,10 @@ on:
       - 'worker/seismic-providers.mjs'
       - 'worker/http.mjs'
       - 'worker/tv-alerts.mjs'
+      - 'worker/tv-snapshot.mjs'
+      - 'worker/tv-map.mjs'
+      - 'worker/tv-coastal-references.mjs'
+      - 'tests/unit/tv-map.test.mjs'
       - 'js/quake-card-layout.js'
       - 'js/story-share.js'
       - 'quake-hd-fonts.mjs'
@@ -78,7 +82,7 @@ jobs:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
         run: |
-          node --test tests/unit/tsunami-lifecycle.test.mjs tests/unit/aftershock-sequence-memory.test.cjs tests/unit/seismic-contour-labels.test.cjs tests/unit/source-freshness.test.cjs tests/unit/quake-card-layout.test.mjs tests/unit/tsunami-image-patch.test.mjs tests/unit/telegram-population-reserve.test.mjs tests/unit/image-tsunami-status.test.mjs tests/unit/tsunami-priority-policy.test.cjs tests/unit/presentation-limits.test.cjs tests/unit/tv-context.test.mjs tests/unit/tv-alerts.test.mjs tests/unit/admin-security.test.mjs tests/unit/volcano-advisory-parser.test.cjs tests/unit/worker-modules.test.mjs tests/unit/earthquake-merge-budget.test.cjs tests/unit/source-session-budget.test.cjs tests/unit/weather-area-memory.test.cjs tests/unit/shared-source-delivery.test.cjs tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
+          node --test tests/unit/tv-map.test.mjs tests/unit/tsunami-lifecycle.test.mjs tests/unit/aftershock-sequence-memory.test.cjs tests/unit/seismic-contour-labels.test.cjs tests/unit/source-freshness.test.cjs tests/unit/quake-card-layout.test.mjs tests/unit/tsunami-image-patch.test.mjs tests/unit/telegram-population-reserve.test.mjs tests/unit/image-tsunami-status.test.mjs tests/unit/tsunami-priority-policy.test.cjs tests/unit/presentation-limits.test.cjs tests/unit/tv-context.test.mjs tests/unit/tv-alerts.test.mjs tests/unit/admin-security.test.mjs tests/unit/volcano-advisory-parser.test.cjs tests/unit/worker-modules.test.mjs tests/unit/earthquake-merge-budget.test.cjs tests/unit/source-session-budget.test.cjs tests/unit/weather-area-memory.test.cjs tests/unit/shared-source-delivery.test.cjs tests/unit/earthquake-report-selection.test.cjs tests/unit/audio-lifecycle.test.cjs tests/unit/event-products-budget.test.cjs tests/unit/long-session-fixes.test.cjs tests/unit/browser-request-budget.test.cjs tests/unit/event-insights.test.cjs tests/unit/world-view-audio.test.cjs tests/unit/mobile-cache-budget.test.cjs
           node tests/unit/audio-volume-check.cjs
           node tests/unit/population-check.cjs
           node tests/unit/unified-cities-check.cjs

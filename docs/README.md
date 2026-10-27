@@ -14,6 +14,7 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 - [worker-modules.md](worker-modules.md)
 - [durable-request-budget.md](durable-request-budget.md)
 - [site-fontes-replicas-memoria-20261026.md](site-fontes-replicas-memoria-20261026.md)
+- [Mapas da tarja e do resumo da TV — 1.0.15](../android-tv/MAPAS_NA_TARJA_1_0_15.md)
 - [ciclo-tsunami-site-tv-20261027.md](ciclo-tsunami-site-tv-20261027.md)
 - [regional-source-health.md](regional-source-health.md)
 - [telegram-brazil.md](telegram-brazil.md)

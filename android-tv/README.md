@@ -86,4 +86,5 @@ Abertura com bloco vermelho revelando a tarja: [TV 1.0.11](ABERTURA_TELEJORNAL_1
 
 Seis segundos completos de leitura por sismo e saída com a mesma varredura: [TV 1.0.12](LEITURA_E_SAIDA_1_0_12.md).
 
+- [Mapas de epicentro e costas na tarja e no resumo — versão 1.0.15](MAPAS_NA_TARJA_1_0_15.md).
 - [Ciclo regional de tsunami validado na versão 1.0.14](CICLO_TSUNAMI_1_0_14.md).
