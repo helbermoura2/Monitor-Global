@@ -1,7 +1,7 @@
 package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import android.media.*;import java.util.*;import java.util.concurrent.*;
 public final class MonitorService extends Service {
- static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",REPLAY="top.monitorglobal.tv.REPLAY";
+ static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
@@ -11,17 +11,17 @@ public final class MonitorService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Monitor Global TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
-  if(SUMMARY_REPLAY.equals(action)||REPLAY.equals(action)||SUMMARY.equals(action)||action!=null&&action.startsWith(TEST))interruptDaily();
+  if(SUMMARY_REPLAY.equals(action)||REPLAY.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)||action!=null&&action.startsWith(TEST))interruptDaily();
   if(SUMMARY_REPLAY.equals(action)){
-   ++historyRequest; // A pending refresh must not replace the explicitly selected saved replay.
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
-   FeedClient.Snapshot saved=Prefs.lastSummary(this);
-   if(saved==null){Prefs.status(this,"Nenhum resumo salvo. Exiba primeiro o Resumo do dia.");stopIfIdle();}else scheduleSummary(saved,true);
+   FeedClient.Snapshot saved=Prefs.lastCompletedSummary(this);
+   if(SummaryRecord.completedFor(saved,System.currentTimeMillis())){++historyRequest;scheduleSummary(saved,true);}
+   else fetchHistory(true,true,true);
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
-  if(REPLAY.equals(action)||SUMMARY.equals(action)){
+  if(REPLAY.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)){
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
-   fetchHistory(SUMMARY.equals(action));return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   fetchHistory(!REPLAY.equals(action),!SUMMARY_TODAY.equals(action),false);return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(TEST.equals(action)||TEST_REVISION.equals(action)||TEST_TSUNAMI.equals(action)||TEST_END.equals(action)||TEST_NO_THREAT.equals(action)||TEST_SEQUENCE.equals(action)){
    String scenario=TEST_REVISION.equals(action)?"revision":TEST_TSUNAMI.equals(action)?"tsunami":TEST_END.equals(action)?"ended":TEST_NO_THREAT.equals(action)?"noThreat":TEST_SEQUENCE.equals(action)?"sequence":"quake";
@@ -49,20 +49,23 @@ public final class MonitorService extends Service {
  private void putPending(Alert a){queue.removeIf(old->AlertPairing.replacesQueued(a,old));if(queue.size()<8)queue.add(a);}
  private void ensureExecutor(){if(executor==null)executor=Executors.newSingleThreadScheduledExecutor();}
  private void ensurePolling(){ensureExecutor();if(!polling){polling=true;executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);}if(!dailyRunning){dailyRunning=true;main.post(dailyTick);}}
- private void fetchHistory(boolean summary){
-  if(historyBusy){Prefs.status(this,"Consulta de histórico em andamento. Aguarde.");return;}historyBusy=true;if(historyExecutor==null)historyExecutor=Executors.newSingleThreadExecutor();final int request=++historyRequest;Prefs.status(this,summary?"Consultando os maiores sismos de hoje…":"Buscando o último sismo M6+ ou no Brasil nas últimas 72 horas…");
+ private void fetchHistory(boolean summary,boolean completed,boolean replay){
+  if(historyBusy){Prefs.status(this,"Consulta de histórico em andamento. Aguarde.");return;}historyBusy=true;if(historyExecutor==null)historyExecutor=Executors.newSingleThreadExecutor();final int request=++historyRequest;Prefs.status(this,summary?(completed?"Consultando o resumo completo de ontem…":"Consultando os maiores sismos de hoje · parcial…"):"Buscando o último sismo M6+ ou no Brasil nas últimas 72 horas…");
   historyExecutor.execute(()->{try{
-   FeedClient.Snapshot snapshot=new FeedClient().history(summary?"daily":"replay");
+   FeedClient.Snapshot snapshot=new FeedClient().history(summary?(completed?"completed":"daily"):"replay");
+   if(summary&&completed&&!SummaryRecord.completedFor(snapshot,System.currentTimeMillis()))throw new java.io.IOException("Resumo do dia anterior não confirmado");
    if(!snapshot.quakeOk)throw new java.io.IOException("Catálogo indisponível");
    main.post(()->{historyBusy=false;if(destroyed||request!=historyRequest)return;
-    if(snapshot.alerts.isEmpty()){Prefs.status(this,summary?"Nenhum sismo disponível no catálogo de hoje até esta consulta.":"Nenhum sismo M6+ ou no Brasil nas últimas 72 horas.");stopIfIdle();return;}
-    if(summary)scheduleSummary(snapshot,false);else{Alert latest=snapshot.alerts.get(0),local=Prefs.lastReplay(this);
+    if(snapshot.alerts.isEmpty()){Prefs.status(this,summary?(completed?"Nenhum sismo disponível no catálogo do dia anterior.":"Nenhum sismo disponível no catálogo de hoje até esta consulta."):"Nenhum sismo M6+ ou no Brasil nas últimas 72 horas.");stopIfIdle();return;}
+    if(summary){if(snapshot.complete)Prefs.rememberSummary(this,snapshot);scheduleSummary(snapshot,replay);}else{Alert latest=snapshot.alerts.get(0),local=Prefs.lastReplay(this);
      // Prefer the newer origin; only a newer revision of that same event may replace it.
      latest=ReplaySelection.latest(latest,local);Prefs.rememberRecovered(this,latest);
      scheduleLocal(List.of(latest),false,true);
     }
    });
   }catch(Exception e){main.post(()->{historyBusy=false;if(destroyed||request!=historyRequest)return;Alert local=summary?null:Prefs.lastReplay(this);
+   FeedClient.Snapshot saved=summary&&completed?Prefs.lastCompletedSummary(this):null;
+   if(SummaryRecord.completedFor(saved,System.currentTimeMillis())){scheduleSummary(saved,replay);Prefs.status(this,"Sem consulta atual · resumo completo de "+saved.day+" salvo no aparelho em 10 segundos.");return;}
    if(local!=null){scheduleLocal(List.of(local),false,true);Prefs.status(this,"Servidor indisponível · replay do último registro local em 10 segundos.");}
    else{Prefs.status(this,"Histórico indisponível. Tente novamente com internet.");stopIfIdle();}
   });}});

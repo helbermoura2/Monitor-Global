@@ -90,3 +90,5 @@ Seis segundos completos de leitura por sismo e saída com a mesma varredura: [TV
 - [Ciclo regional de tsunami validado na versão 1.0.14](CICLO_TSUNAMI_1_0_14.md).
 
 - [Mapas de satélite e costas na TV — versão 1.0.16](MAPAS_SATELITE_1_0_16.md).
+
+- [Resumo de ontem e replay separado do parcial — versão 1.0.17](RESUMO_DIA_ANTERIOR_1_0_17.md).

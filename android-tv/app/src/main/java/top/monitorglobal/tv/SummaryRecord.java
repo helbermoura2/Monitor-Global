@@ -2,6 +2,7 @@ package top.monitorglobal.tv;
 import java.util.*;import org.json.*;
 /** One bounded saved summary, preserving its original day, consultation time and order. */
 final class SummaryRecord {
+ static boolean completedFor(FeedClient.Snapshot snapshot,long now){return snapshot!=null&&snapshot.complete&&snapshot.quakeOk&&DailySummarySchedule.completedDay(now).equals(snapshot.day);}
  static String encode(List<Alert> alerts,String day,long asOf) throws JSONException {
   return encode(alerts,day,asOf,false);
  }
