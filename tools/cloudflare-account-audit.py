@@ -87,7 +87,7 @@ def main():
         fields=d.schema(client,d.typename(accounts['type'])).get('fields',[])
         matches=[f for f in fields if any(x in f['name'].lower() for x in ['workersinvocations','durableobject','kvoperations','kvstorage','aiinference','workersai'])]
         report['availableDatasets']=[f['name'] for f in matches]
-        selected=[f for f in matches if f['name'].endswith('Groups') or f['name']=='workersInvocationsAdaptive'][:12]
+        selected=[f for f in matches if f['name'].endswith('Groups') or f['name']=='workersInvocationsAdaptive' or 'aiinference' in f['name'].lower() or 'workersai' in f['name'].lower()][:12]
         for f in selected:
             value=collect(f['name'],lambda f=f:dataset(client,f,now))
             if value is not None:report['analytics'][f['name']]=value
