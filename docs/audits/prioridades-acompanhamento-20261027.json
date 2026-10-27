@@ -1,0 +1,513 @@
+{
+  "checkedAt": "2026-10-27T11:06:10.317065+00:00",
+  "deployment": {
+    "commit": "021551215ab92e5a36feb5563a02d1de2048ddcf",
+    "completedAt": "2026-10-27T10:59:26Z",
+    "workflowRun": 40492581183
+  },
+  "quotaAuditRun": 40493552678,
+  "operationsRun": 40493556603,
+  "quotaDays": [
+    {
+      "day": "2026-10-26",
+      "complete": true,
+      "quotas": {
+        "workerRequests": {
+          "label": "Solicitações do Worker",
+          "available": true,
+          "value": 38524,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 38.524,
+          "level": "normal"
+        },
+        "durableRequests": {
+          "label": "Solicitações Durable",
+          "available": true,
+          "value": 2295,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 2.295,
+          "level": "normal"
+        },
+        "durableDuration": {
+          "label": "Tempo de execução Durable",
+          "available": true,
+          "value": 1158.3292367360002,
+          "limit": 13000,
+          "unit": "GB-s/day",
+          "percent": 8.91022,
+          "level": "normal"
+        },
+        "sqlRowsRead": {
+          "label": "Linhas SQLite lidas",
+          "available": true,
+          "value": 6721,
+          "limit": 5000000,
+          "unit": "rows/day",
+          "percent": 0.13442,
+          "level": "normal"
+        },
+        "sqlRowsWritten": {
+          "label": "Linhas SQLite escritas",
+          "available": true,
+          "value": 2072,
+          "limit": 100000,
+          "unit": "rows/day",
+          "percent": 2.072,
+          "level": "normal"
+        },
+        "sqlStoredBytes": {
+          "label": "Armazenamento SQLite",
+          "available": true,
+          "value": 114040830,
+          "limit": 5000000000,
+          "unit": "bytes",
+          "percent": 2.28082,
+          "level": "normal"
+        },
+        "kvRead": {
+          "label": "Leituras KV",
+          "available": true,
+          "value": 47,
+          "limit": 100000,
+          "unit": "keys/day",
+          "percent": 0.047,
+          "level": "normal"
+        },
+        "kvWrite": {
+          "label": "Gravações KV",
+          "available": true,
+          "value": 2,
+          "limit": 1000,
+          "unit": "keys/day",
+          "percent": 0.2,
+          "level": "normal"
+        },
+        "kvDelete": {
+          "label": "Exclusões KV",
+          "available": false,
+          "limit": 1000,
+          "unit": "keys/day",
+          "level": "unknown",
+          "note": "Métrica não obtida; não interpretada como zero."
+        },
+        "kvList": {
+          "label": "Listagens KV",
+          "available": false,
+          "limit": 1000,
+          "unit": "requests/day",
+          "level": "unknown",
+          "note": "Métrica não obtida; não interpretada como zero."
+        },
+        "kvStoredBytes": {
+          "label": "Armazenamento KV",
+          "available": true,
+          "value": 2287935,
+          "limit": 1000000000,
+          "unit": "bytes",
+          "percent": 0.22879,
+          "level": "normal"
+        },
+        "aiNeurons": {
+          "label": "Workers AI: neurons",
+          "available": true,
+          "value": 268.17885714769363,
+          "limit": 10000,
+          "unit": "neurons/day",
+          "percent": 2.68179,
+          "level": "normal"
+        },
+        "workerLogEvents": {
+          "label": "Eventos de log Workers",
+          "available": false,
+          "limit": 200000,
+          "unit": "events/day",
+          "level": "unknown",
+          "note": "Métrica não obtida; não interpretada como zero."
+        }
+      },
+      "ranking": [
+        {
+          "metric": "workerRequests",
+          "label": "Solicitações do Worker",
+          "available": true,
+          "value": 38524,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 38.524,
+          "level": "normal"
+        },
+        {
+          "metric": "durableDuration",
+          "label": "Tempo de execução Durable",
+          "available": true,
+          "value": 1158.3292367360002,
+          "limit": 13000,
+          "unit": "GB-s/day",
+          "percent": 8.91022,
+          "level": "normal"
+        },
+        {
+          "metric": "aiNeurons",
+          "label": "Workers AI: neurons",
+          "available": true,
+          "value": 268.17885714769363,
+          "limit": 10000,
+          "unit": "neurons/day",
+          "percent": 2.68179,
+          "level": "normal"
+        },
+        {
+          "metric": "durableRequests",
+          "label": "Solicitações Durable",
+          "available": true,
+          "value": 2295,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 2.295,
+          "level": "normal"
+        },
+        {
+          "metric": "sqlStoredBytes",
+          "label": "Armazenamento SQLite",
+          "available": true,
+          "value": 114040830,
+          "limit": 5000000000,
+          "unit": "bytes",
+          "percent": 2.28082,
+          "level": "normal"
+        },
+        {
+          "metric": "sqlRowsWritten",
+          "label": "Linhas SQLite escritas",
+          "available": true,
+          "value": 2072,
+          "limit": 100000,
+          "unit": "rows/day",
+          "percent": 2.072,
+          "level": "normal"
+        },
+        {
+          "metric": "kvStoredBytes",
+          "label": "Armazenamento KV",
+          "available": true,
+          "value": 2287935,
+          "limit": 1000000000,
+          "unit": "bytes",
+          "percent": 0.22879,
+          "level": "normal"
+        },
+        {
+          "metric": "kvWrite",
+          "label": "Gravações KV",
+          "available": true,
+          "value": 2,
+          "limit": 1000,
+          "unit": "keys/day",
+          "percent": 0.2,
+          "level": "normal"
+        },
+        {
+          "metric": "sqlRowsRead",
+          "label": "Linhas SQLite lidas",
+          "available": true,
+          "value": 6721,
+          "limit": 5000000,
+          "unit": "rows/day",
+          "percent": 0.13442,
+          "level": "normal"
+        },
+        {
+          "metric": "kvRead",
+          "label": "Leituras KV",
+          "available": true,
+          "value": 47,
+          "limit": 100000,
+          "unit": "keys/day",
+          "percent": 0.047,
+          "level": "normal"
+        }
+      ]
+    },
+    {
+      "day": "2026-10-27",
+      "complete": false,
+      "quotas": {
+        "workerRequests": {
+          "label": "Solicitações do Worker",
+          "available": true,
+          "value": 15016,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 15.016,
+          "level": "normal"
+        },
+        "durableRequests": {
+          "label": "Solicitações Durable",
+          "available": true,
+          "value": 941,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 0.941,
+          "level": "normal"
+        },
+        "durableDuration": {
+          "label": "Tempo de execução Durable",
+          "available": true,
+          "value": 430.57508748799995,
+          "limit": 13000,
+          "unit": "GB-s/day",
+          "percent": 3.31212,
+          "level": "normal"
+        },
+        "sqlRowsRead": {
+          "label": "Linhas SQLite lidas",
+          "available": true,
+          "value": 2954,
+          "limit": 5000000,
+          "unit": "rows/day",
+          "percent": 0.05908,
+          "level": "normal"
+        },
+        "sqlRowsWritten": {
+          "label": "Linhas SQLite escritas",
+          "available": true,
+          "value": 775,
+          "limit": 100000,
+          "unit": "rows/day",
+          "percent": 0.775,
+          "level": "normal"
+        },
+        "sqlStoredBytes": {
+          "label": "Armazenamento SQLite",
+          "available": true,
+          "value": 116908030,
+          "limit": 5000000000,
+          "unit": "bytes",
+          "percent": 2.33816,
+          "level": "normal"
+        },
+        "kvRead": {
+          "label": "Leituras KV",
+          "available": true,
+          "value": 98,
+          "limit": 100000,
+          "unit": "keys/day",
+          "percent": 0.098,
+          "level": "normal"
+        },
+        "kvWrite": {
+          "label": "Gravações KV",
+          "available": true,
+          "value": 5,
+          "limit": 1000,
+          "unit": "keys/day",
+          "percent": 0.5,
+          "level": "normal"
+        },
+        "kvDelete": {
+          "label": "Exclusões KV",
+          "available": false,
+          "limit": 1000,
+          "unit": "keys/day",
+          "level": "unknown",
+          "note": "Métrica não obtida; não interpretada como zero."
+        },
+        "kvList": {
+          "label": "Listagens KV",
+          "available": false,
+          "limit": 1000,
+          "unit": "requests/day",
+          "level": "unknown",
+          "note": "Métrica não obtida; não interpretada como zero."
+        },
+        "kvStoredBytes": {
+          "label": "Armazenamento KV",
+          "available": true,
+          "value": 2287935,
+          "limit": 1000000000,
+          "unit": "bytes",
+          "percent": 0.22879,
+          "level": "normal"
+        },
+        "aiNeurons": {
+          "label": "Workers AI: neurons",
+          "available": true,
+          "value": 134.97435212135315,
+          "limit": 10000,
+          "unit": "neurons/day",
+          "percent": 1.34974,
+          "level": "normal"
+        },
+        "workerLogEvents": {
+          "label": "Eventos de log Workers",
+          "available": false,
+          "limit": 200000,
+          "unit": "events/day",
+          "level": "unknown",
+          "note": "Métrica não obtida; não interpretada como zero."
+        }
+      },
+      "ranking": [
+        {
+          "metric": "workerRequests",
+          "label": "Solicitações do Worker",
+          "available": true,
+          "value": 15016,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 15.016,
+          "level": "normal"
+        },
+        {
+          "metric": "durableDuration",
+          "label": "Tempo de execução Durable",
+          "available": true,
+          "value": 430.57508748799995,
+          "limit": 13000,
+          "unit": "GB-s/day",
+          "percent": 3.31212,
+          "level": "normal"
+        },
+        {
+          "metric": "sqlStoredBytes",
+          "label": "Armazenamento SQLite",
+          "available": true,
+          "value": 116908030,
+          "limit": 5000000000,
+          "unit": "bytes",
+          "percent": 2.33816,
+          "level": "normal"
+        },
+        {
+          "metric": "aiNeurons",
+          "label": "Workers AI: neurons",
+          "available": true,
+          "value": 134.97435212135315,
+          "limit": 10000,
+          "unit": "neurons/day",
+          "percent": 1.34974,
+          "level": "normal"
+        },
+        {
+          "metric": "durableRequests",
+          "label": "Solicitações Durable",
+          "available": true,
+          "value": 941,
+          "limit": 100000,
+          "unit": "requests/day",
+          "percent": 0.941,
+          "level": "normal"
+        },
+        {
+          "metric": "sqlRowsWritten",
+          "label": "Linhas SQLite escritas",
+          "available": true,
+          "value": 775,
+          "limit": 100000,
+          "unit": "rows/day",
+          "percent": 0.775,
+          "level": "normal"
+        },
+        {
+          "metric": "kvWrite",
+          "label": "Gravações KV",
+          "available": true,
+          "value": 5,
+          "limit": 1000,
+          "unit": "keys/day",
+          "percent": 0.5,
+          "level": "normal"
+        },
+        {
+          "metric": "kvStoredBytes",
+          "label": "Armazenamento KV",
+          "available": true,
+          "value": 2287935,
+          "limit": 1000000000,
+          "unit": "bytes",
+          "percent": 0.22879,
+          "level": "normal"
+        },
+        {
+          "metric": "kvRead",
+          "label": "Leituras KV",
+          "available": true,
+          "value": 98,
+          "limit": 100000,
+          "unit": "keys/day",
+          "percent": 0.098,
+          "level": "normal"
+        },
+        {
+          "metric": "sqlRowsRead",
+          "label": "Linhas SQLite lidas",
+          "available": true,
+          "value": 2954,
+          "limit": 5000000,
+          "unit": "rows/day",
+          "percent": 0.05908,
+          "level": "normal"
+        }
+      ]
+    }
+  ],
+  "populationFamily": {
+    "2026-10-26": {
+      "family": "population",
+      "requests": 1338,
+      "percentOfMeasuredDORequests": 58.3
+    },
+    "2026-10-27": {
+      "family": "population",
+      "requests": 410,
+      "percentOfMeasuredDORequests": 43.57
+    }
+  },
+  "resourceExcesses": {
+    "2026-10-24": {},
+    "2026-10-26": {},
+    "2026-10-27": {
+      "exceededResources": 4
+    },
+    "2026-10-21": {},
+    "2026-10-23": {},
+    "2026-10-22": {},
+    "2026-10-25": {}
+  },
+  "routeObservation": {
+    "startedAt": "2026-10-27T11:06:16.584Z",
+    "seconds": 120,
+    "events": 10,
+    "counts": {
+      "scheduled ok": 1,
+      "/tv-alerts ok": 8,
+      "root ok": 1
+    },
+    "rawLogsStored": false,
+    "syntheticRequests": 0,
+    "cpuRouteAttribution": "Not available from legacy tail CPU metrics; outcomes only",
+    "sessionRemoved": true,
+    "endedAt": "2026-10-27T11:08:17.510Z",
+    "elapsedSeconds": 121,
+    "noObservedEvents": false
+  },
+  "buildFilters": {
+    "applied": false,
+    "blocked": true,
+    "reason": "Cloudflare HTTP 403 for GET Worker /accounts/***/builds/workers/d7ff2883ea8442ada9a09e93c41e9d31/triggers; 10000: Authentication error"
+  },
+  "comparisonStatus": {
+    "ready": false,
+    "reason": "27 October mixes pre/post deployment. First full post-deployment UTC day is 28 October, reported on 29 October. No causal savings percentage estimated.",
+    "firstFullPostDeploymentDay": "2026-10-28",
+    "firstScheduledReportAt": "2026-10-29T00:45:00Z"
+  },
+  "queuedOnly": [
+    "Clareza das informações no site, Telegram e TV",
+    "Guia curto de operação e recuperação",
+    "Isolamento de falhas de serviços opcionais",
+    "Resumo legível da saúde do sistema em português"
+  ]
+}
