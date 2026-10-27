@@ -52,7 +52,7 @@ def quota_summary(report,policy):
         for key,(name,metric) in MAP.items():
             value=totals(data.get(name)).get(day,{}).get(metric);row['quotas'][key]=usage(value,key,policy)
         periodic=data.get('durableObjectsPeriodicGroups',{});description=(periodic.get('metricDescriptions',{}).get('duration') or '').lower()
-        gb_seconds=bool(re.search(r'(?:gb[- ]?s(?:econds)?\b|gigabyte[- ]seconds)',description))
+        gb_seconds=bool(re.search(r'(?:gb[- *·]?s(?:econds)?\b|gigabyte[- ]seconds)',description))
         duration=totals(periodic).get(day,{}).get('duration')
         row['quotas']['durableDuration']=usage(duration if gb_seconds else None,'durableDuration',policy,None if gb_seconds else 'Unidade de duration não confirmada no schema; valor bruto permanece no relatório.')
         kv=data.get('kvOperationsAdaptiveGroups',{});ops={}
@@ -89,6 +89,11 @@ def summary_markdown(report):
             state={'normal':'normal','watch':'atenção','high':'alto','critical':'crítico','exceeded':'limite atingido','unknown':'não medido'}[v['level']]
             lines.append(f"| {v['label']} | {number(v.get('value'))} | {number(v['limit'])} {v['unit']} | {number(v['percent']) if v['available'] else '—'} | {state} |")
         lines.append('')
+    excess=[(day,state,count) for day,states in report.get('resourceExcesses',{}).items() for state,count in states.items()]
+    if excess:
+        lines+=['','### Invocações com recurso excedido','','| Dia UTC | Status retornado | Quantidade |','| --- | --- | ---: |']
+        for day,state,count in sorted(excess):lines.append(f'| {day} | {state} | {number(count)} |')
+        lines+=['','O status não atribui sozinho CPU, memória ou rota. Quantis de CPU/memória, quando disponíveis, são de cada grupo e não um máximo de todas as invocações.']
     lines+=['Builds mensais e volume de logs têm cobertura própria; consultar limitações no JSON. CPU é limitada por invocação: média diária não comprova que cada chamada respeitou 10 ms.','',f"Consultas indisponíveis: {len(report.get('unavailable',{}))}. Resultados detalhados, famílias DO e schema de unidades no artifact."]
     return '\n'.join(lines)+'\n'
 
@@ -105,9 +110,9 @@ def main():
         for field in fields:
             if field['name'] not in wanted:continue
             name=field['name'];extra=('actionType',) if name=='kvOperationsAdaptiveGroups' else ('status','requestSource') if name=='workersInvocationsAdaptive' else ()
-            value=collect(name,lambda f=field:a.dataset(client,f,now,lookback_days=6,extra_dimensions=extra))
+            value=collect(name,lambda f=field:a.dataset(client,f,now,lookback_days=6,extra_dimensions=extra,with_quantiles=name=='workersInvocationsAdaptive'))
             if value is None:
-                value=collect(name+'-shorter-window',lambda f=field:a.dataset(client,f,now,lookback_days=1,extra_dimensions=extra))
+                value=collect(name+'-shorter-window',lambda f=field:a.dataset(client,f,now,lookback_days=1,extra_dimensions=extra,with_quantiles=name=='workersInvocationsAdaptive'))
             if value is not None:report['analytics'][name]=value
             if name=='durableObjectsInvocationsAdaptiveGroups':
                 detail=collect('durableFamilies',lambda f=field:a.dataset(client,f,now,lookback_days=1,extra_dimensions=('name','type','status','className')))
@@ -134,6 +139,7 @@ def main():
     report['workerStatuses']={}
     for item in report['analytics'].get('workersInvocationsAdaptive',{}).get('rows',[]):
         dims=item.get('dimensions',{});day=dims.get('date');state=dims.get('status','unknown');tot=report['workerStatuses'].setdefault(day,{});tot[state]=tot.get(state,0)+item.get('sum',{}).get('requests',0)
+    report['resourceExcesses']={day:{key:count for key,count in statuses.items() if 'exceed' in key.lower() and count>0} for day,statuses in report['workerStatuses'].items()}
     report['policyAgeDays']=(now.date()-dt.date.fromisoformat(policy['verifiedAt'])).days
     report['policyReviewDue']=report['policyAgeDays']>policy.get('maxPolicyAgeDays',30)
     report['freeQuotas']=quota_summary(report,policy)
@@ -144,6 +150,8 @@ def main():
     expectedYesterday=(now-dt.timedelta(days=1)).date().isoformat()
     if not report['freeQuotas']['days'] or report['freeQuotas']['latestCompleteDay']!=expectedYesterday:
         print('::warning title=Cobertura incompleta::Não foi confirmado o último dia UTC completo; dados faltantes não significam consumo zero.')
+    for day,states in report['resourceExcesses'].items():
+        if day in [expectedYesterday,now.date().isoformat()] and states:print('::warning title=Limite de execução Worker::'+day+' registra '+str(sum(states.values()))+' invocações com recurso excedido. Verificar CPU/memória/status no relatório; não atribuir causa sem logs.')
     if report['policyReviewDue']:print('::warning title=Revisar limites Free::Referência de cotas tem mais de 30 dias. Conferir fontes oficiais.')
     for day in report['freeQuotas']['days']:
         for item in day['ranking']:

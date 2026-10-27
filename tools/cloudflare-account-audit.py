@@ -50,7 +50,7 @@ def scalar(value):
     while value.get("ofType"):value=value["ofType"]
     return value.get("kind")=="SCALAR"
 
-def dataset(client,field,now,lookback_days=2,extra_dimensions=()):
+def dataset(client,field,now,lookback_days=2,extra_dimensions=(),with_quantiles=False):
     shape={f['name']:f for f in d.schema(client,d.typename(field['type'])).get('fields',[])}
     aggregate='sum' if 'sum' in shape else 'max' if 'max' in shape else None
     if aggregate is None or 'dimensions' not in shape:raise ValueError('Dataset has no supported aggregate/dimensions')
@@ -66,11 +66,17 @@ def dataset(client,field,now,lookback_days=2,extra_dimensions=()):
     filters={f['name'] for f in d.schema(client,d.typename(args['filter']['type'])).get('inputFields',[])}
     temporal='date' if 'date_geq' in filters else 'datetime'
     start=(now-dt.timedelta(days=lookback_days)).date();begin=str(start) if temporal=='date' else str(start)+'T00:00:00Z';end=str(now.date()) if temporal=='date' else now.isoformat().replace('+00:00','Z')
-    name=field['name'];query='query{viewer{accounts(filter:{accountTag:'+json.dumps(client.account)+'}){'+name+'(limit:10000,filter:{'+temporal+'_geq:'+json.dumps(begin)+','+temporal+'_leq:'+json.dumps(end)+'}){'+aggregate+'{'+' '.join(metrics)+'} dimensions{'+' '.join(chosen)+'}}}}}'
+    quantile_fields=[]
+    if with_quantiles and 'quantiles' in shape:
+        type_name=d.typename(shape['quantiles']['type'])
+        available=d.graphql(client,'query{__type(name:'+json.dumps(type_name)+'){fields{name description type{'+d.TYPE+'}}}}').get('__type',{}).get('fields',[])
+        quantile_fields=[f for f in available if f['name'] in ['cpuTimeP50','cpuTimeP99','memoryUsageBytesP50','memoryUsageBytesP99']]
+    extra=(' quantiles{'+' '.join(f['name'] for f in quantile_fields)+'}') if quantile_fields else ''
+    name=field['name'];query='query{viewer{accounts(filter:{accountTag:'+json.dumps(client.account)+'}){'+name+'(limit:10000,filter:{'+temporal+'_geq:'+json.dumps(begin)+','+temporal+'_leq:'+json.dumps(end)+'}){'+aggregate+'{'+' '.join(metrics)+'} dimensions{'+' '.join(chosen)+'}'+extra+'}}}}'
     accounts=d.graphql(client,query).get('viewer',{}).get('accounts',[])
     rows=accounts[0].get(name) if len(accounts)==1 else None
     if not isinstance(rows,list) or len(rows)>=10000:raise ValueError('Missing or potentially truncated analytics')
-    return {'from':begin,'until':end,'aggregate':aggregate,'metricDescriptions':{f['name']:f.get('description') for f in sums if f['name'] in metrics},'metrics':metrics,'dimensions':chosen,'rows':rows,'note':'Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice.'}
+    return {'from':begin,'until':end,'aggregate':aggregate,'metricDescriptions':{f['name']:f.get('description') for f in sums if f['name'] in metrics},'metrics':metrics,'quantileDescriptions':{f['name']:f.get('description') for f in quantile_fields},'dimensions':chosen,'rows':rows,'note':'Adaptive analytics may be sampled/delayed; current UTC day is partial. Not an invoice.'}
 
 def main():
     token,account=d.m.credentials(os.environ);client=ReadOnlyClient(token,account);now=dt.datetime.now(dt.timezone.utc)
