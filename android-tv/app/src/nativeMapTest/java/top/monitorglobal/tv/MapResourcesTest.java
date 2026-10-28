@@ -73,4 +73,23 @@ public class MapResourcesTest {
   for(int i=0;i<120;i++){MapInset inset=new MapInset(context,()->{});for(int j=0;j<5;j++)inset.prepare(quake(1800000000000L+j));inset.close();workers.add((ExecutorService)value(inset,"worker"));assertTrue(ready(inset).isEmpty());Shadows.shadowOf(Looper.getMainLooper()).idle();}
   await(()->workers.stream().allMatch(ExecutorService::isTerminated));Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(0,open.get());assertTrue(calls.get()-before<=120*5*12);
  }
+ @Test public void realRevisionSummaryAndTsunamiTitlesRevealTheirFullEnding() throws Exception {
+  for(int mode=0;mode<4;mode++){
+   Alert a=new Alert("USGS:us7000ttlm",mode==3?"tsunami":"earthquake","v","M6,0 · 214 km a noroeste de Port-Olry, Vanuatu","Profundidade: 10 km · USGS",mode==3?"warning":"earthquake",1800000000000L,1800000000000L,true);a.magnitude=6;a.depth=10;a.countryCode="VU";
+   if(mode==1){a.magnitude=6.1;a=a.revised(6);}
+   if(mode==3){a=new Alert(a.id,"tsunami","v","Costas citadas no boletim oficial · Ilhas do norte de Vanuatu","PTWC","warning",a.issuedAt,a.eventTime,true);a.countryCode="VU";}
+   NewsBannerView view=mode==2?new NewsBannerView(context,List.of(a),"2026-10-27",true,true):new NewsBannerView(context,a,false,false);
+   int mapSpace=(Integer)value(view,"mapSpace"),height=126+mapSpace;view.layout(0,0,960,height);
+   Object page=((Object[])value(view,"pages"))[0];String headline=(String)value(page,"headline");assertTrue(headline.endsWith("Vanuatu"));
+   float size=mode==1?28:31;Paint expectedPaint=new Paint(Paint.ANTI_ALIAS_FLAG);expectedPaint.setTypeface((Typeface)value(view,"brand"));expectedPaint.setTextSize(size);expectedPaint.setColor(Color.WHITE);
+   float width=value(page,"flag")==null?550:505,overflow=expectedPaint.measureText(headline)-width;assertTrue(overflow>0);
+   Bitmap actual=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888),expected=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);
+   view.startPresentation(android.os.SystemClock.uptimeMillis()-(mode==2?3000:4000),false);view.draw(new Canvas(actual));
+   expected.eraseColor((Integer)value(view,"background"));Canvas c=new Canvas(expected);c.clipRect(391,mapSpace+28,391+width,mapSpace+64);c.drawText(headline,391-overflow,mapSpace+57,expectedPaint);
+   int bright=0;for(int y=mapSpace+28;y<mapSpace+64;y++)for(int x=391;x<391+(int)width;x++){
+    int e=expected.getPixel(x,y),v=actual.getPixel(x,y);boolean ink=Color.alpha(e)>200&&Color.red(e)>200&&Color.green(e)>200&&Color.blue(e)>200;
+    if(ink)bright++;assertEquals("country clipping mode "+mode+" at "+x+","+y,ink,Color.red(v)>200&&Color.green(v)>200&&Color.blue(v)>200);
+   }assertTrue(bright>100);actual.recycle();expected.recycle();
+  }
+ }
 }

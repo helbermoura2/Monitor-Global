@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-28T03:21:02.603732+00:00",
+  "eventId": "us7000ttlm",
+  "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000ttlm",
+  "usgs": {
+    "mag": 6,
+    "place": "214 km NW of Port-Olry, Vanuatu",
+    "time": 1793154105806,
+    "updated": 1793154912040,
+    "status": "reviewed",
+    "magType": "mww"
+  },
+  "tv": {
+    "id": "USGS:us7000ttlm",
+    "magnitude": 6,
+    "title": "M6,0 · 214 km a noroeste de Port-Olry, Vanuatu",
+    "issuedAt": 1793154912040,
+    "version": "[6,10,165.446,-13.9312,1793154105806,\"US\",\"reviewed\",\"214 km NW of Port-Olry, Vanuatu\"]",
+    "eligible": true,
+    "catalog": "USGS"
+  },
+  "scope": "Estado no momento da consulta, não histórico de todas as revisões. Sem estado privado do aparelho."
+}

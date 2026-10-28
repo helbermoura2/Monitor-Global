@@ -39,3 +39,11 @@ test('overlapping USGS global and Brazil responses do not alternate rounded solu
  const first=await collect(env);time+=120000;const second=await collect(env);
  assert.equal(first.features[0].geometry.coordinates[2],3.14);assert.equal(second.features[0].geometry.coordinates[2],3.14);assert.equal(writes,1);
 });
+
+test('Vanuatu 6.0 to 6.1 survives shared catalog and changes the TV version without cutting the country',()=>{
+ const first=quake('us7000ttlm',6);first.properties.place='214 km NW of Port-Olry, Vanuatu';
+ let records=mergeTvCatalog([],[first],now);const before=tvSnapshot({features:records.map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}))},{ok:true,items:[]},now).alerts[0];
+ const revised=structuredClone(first);revised.properties.mag=6.1;revised.properties.updated=now+30000;records=mergeTvCatalog(records,[revised],now+30000);
+ const after=tvSnapshot({features:records.map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}))},{ok:true,items:[]},now+30000).alerts[0];
+ assert.equal(after.id,before.id);assert.equal(after.magnitude,6.1);assert.equal(after.eligible,true);assert.notEqual(after.version,before.version);assert.equal(after.issuedAt,now+30000);assert.match(after.title,/Vanuatu$/);
+});

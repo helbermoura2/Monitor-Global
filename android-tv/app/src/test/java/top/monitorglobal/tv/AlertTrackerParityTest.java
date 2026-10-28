@@ -21,4 +21,13 @@ public class AlertTrackerParityTest {
   AlertTracker t=new AlertTracker();Map<String,Boolean> health=Map.of("USP",true,"EMSC",true);t.accept(List.of(q("old","USP",2,"1")),true,true,now,health);
   Alert a=q("canonical","EMSC",2,"1");a.aliases=List.of("old","canonical");assertTrue(t.accept(List.of(a),true,true,now,health).isEmpty());
  }
+ @Test public void vanuatuSixToSixPointOneNotifiesOnceAndKeepsFullCountry(){
+  AlertTracker tracker=new AlertTracker();Map<String,Boolean> health=Map.of("USGS",true);
+  tracker.accept(List.of(),true,true,now,health);
+  Alert original=vanuatu(6,"v6");List<Alert> first=tracker.accept(List.of(original),true,true,now,health);assertEquals(1,first.size());
+  Alert updated=vanuatu(6.1,"v61");List<Alert> notices=tracker.accept(List.of(updated),true,true,now+30000,health);
+  assertEquals(1,notices.size());Alert revision=notices.get(0);assertEquals("M6,0 → M6,1",revision.revision);assertEquals(6,revision.previousMagnitude,0);assertEquals(6.1,revision.magnitude,0);assertTrue(revision.title.endsWith("Vanuatu"));assertTrue(AlertPairing.updates(original,revision));
+  assertTrue(tracker.accept(List.of(updated),true,true,now+60000,health).isEmpty());
+ }
+ private Alert vanuatu(double mag,String version){Alert a=new Alert("USGS:us7000ttlm","earthquake",version,String.format(Locale.forLanguageTag("pt-BR"),"M%.1f · 214 km a noroeste de Port-Olry, Vanuatu",mag),"Profundidade: 10 km · USGS","earthquake",now,now-60000,true);a.catalog="USGS";a.provider="USGS";a.magnitude=mag;a.depth=10;return a;}
 }
