@@ -16,6 +16,8 @@ let feeds={USP:[],USGS:[],EMSC:[],GEOFON:[]},world=[],failed=new Set(),sendMode=
 const text=features=>'#EventID|Time|Latitude|Longitude|Depth/km|Author|Catalog|Contributor|ContributorID|MagType|Magnitude|MagAuthor|EventLocationName|EventType\n'+features.map(f=>[f.id,new Date(f.properties.time).toISOString().replace('Z',''),f.geometry.coordinates[1],f.geometry.coordinates[0],10,'USP','','','','ML',f.properties.mag,'',f.properties.place,f.properties.type].join('|')).join('\n');
 globalThis.fetch=async(input,opts)=>{
  const url=new URL(input);
+ // These regressions isolate USGS/Brazil; supplemental global catalogs have their own fixtures.
+ if(url.searchParams.has('minmagnitude')&&!url.searchParams.has('minlatitude')&&['www.seismicportal.eu','geofon.gfz-potsdam.de'].includes(url.hostname))return url.searchParams.get('format')==='text'?new Response('#EventID|Time\n'):Response.json({features:[]});
  if(url.hostname==='api.telegram.org'){
   const caption=opts.body instanceof FormData?opts.body.get('caption'):JSON.parse(opts.body).text;
   messages.push({caption,path:url.pathname});

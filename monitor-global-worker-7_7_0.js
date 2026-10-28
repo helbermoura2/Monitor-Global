@@ -4,6 +4,7 @@ import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
 import {queryImageTsunami,imageTsunamiVersion} from "./image-tsunami-status.mjs";
+import {GLOBAL_SEISMIC_POLICY,fetchGlobalSupplements,consolidateGlobalEvents} from "./worker/global-seismic-data.mjs";
 import {telegramSolutionMayReplace, telegramSolutionPriority, TELEGRAM_SOLUTION_POLICY} from "./worker/seismic-solution-policy.mjs";
 import {SourceWritebackCache} from "./source-writeback-cache.mjs";
 // Worker entrypoint: routes, coordination and existing Durable Object classes.
@@ -951,7 +952,7 @@ function telegramCaption(ev, record) {
         ? new Date(ev.timeIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' BRT'
         : '—';
     const src = escapeMdLegacy(ev.source || 'USGS');
-    const status = ev.reviewed ? 'revisado' : 'automático';
+    const status = ev.reviewed ? 'revisado' : ev.reviewStatus==='unknown'?'revisão não informada':'automático';
     return (
         `${ev.brazil ? "🇧🇷 Sismo no Brasil" : "🌍 Alerta sísmico"}\n*M${mag}* — ${place}\n` +
         `📐 Profundidade: ${depth}\n` +
@@ -971,6 +972,7 @@ function telegramCaption(ev, record) {
 // evento novo — sinal forte de que é a MESMA ocorrência sob outro ID de
 // rede, e não um sismo novo de verdade.
 function findNearDuplicateAlert(ev, sentRecords) {
+    const matches=new Map();
     const evTime = ev.timeIso ? new Date(ev.timeIso).getTime() : null;
     for (const r of sentRecords) {
         if (!r || r.id === ev.id || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
@@ -980,9 +982,9 @@ function findNearDuplicateAlert(ev, sentRecords) {
         if ((ev.source || ev.provider) === (r.source || r.provider)) continue;
         if (Math.abs(evTime - rTime) > 30000) continue;
         if (Math.abs(ev.mag - r.mag) > (small ? 0.6 : 1)) continue;
-        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= (small ? 20 : 50)) return r;
+        if (haversineKm(ev.lat, ev.lon, r.lat, r.lon) <= (small ? 20 : 50)) matches.set(r.aliasOf||r.id,r);
     }
-    return null;
+    return matches.size===1?[...matches.values()][0]:null;
 }
 
 // Mensagem curta (sem card/imagem) pra quando o evento novo é uma provável
@@ -1007,14 +1009,14 @@ function telegramUpdateMessage(ev, dup) {
 
 // Edição é idempotente: uma falha pode ser tentada novamente sem duplicar o alerta.
 function telegramEventVersion(ev) {
-    return JSON.stringify([ev.mag, ev.depth, ev.lat, ev.lon, ev.timeIso, ev.source, !!ev.reviewed, ev.place]);
+    return JSON.stringify([ev.mag, ev.depth, ev.lat, ev.lon, ev.timeIso, ev.source, !!ev.reviewed, ev.place, ...(ev.reviewStatus?[ev.reviewStatus]:[])]);
 }
 function telegramImportantChange(before, after) {
     return Math.abs(after.mag - before.mag) >= 0.3 - 1e-8 ||
         [6, 7].some(limit => (before.mag >= limit) !== (after.mag >= limit)) ||
         // M6+ já é raro o bastante pra qualquer revisão de magnitude valer um
         // aviso novo, mesmo pequena (ex.: 6.1 -> 6.2) -- não só silenciar no card.
-        (after.mag >= TELEGRAM_MIN_MAG && after.mag !== before.mag);
+        (after.mag >= TELEGRAM_MIN_MAG && Math.round(after.mag*10) !== Math.round(before.mag*10));
 }
 async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const before = {...(root.currentEvent || root)};
@@ -1205,7 +1207,7 @@ export class EarthquakeAlertDelivery {
             const kv = telegramHistoryStorage(storage,measuredEnv.TTS_USAGE);
             const env = {...measuredEnv, TSUNAMI_STORAGE:storage, POPULATION_COORDINATOR:measuredEnv.EARTHQUAKE_ALERTS, READ_TELEGRAM_IMAGE:async key=>{const r=await serveTelegramOriginal(new Request('https://internal/telegram-image/'+key),storage);if(!r.ok)throw Error('Original indisponível');return new Uint8Array(await r.arrayBuffer());}, ARCHIVE_TELEGRAM_IMAGE:(png,key)=>archiveTelegramOriginal(storage,png,key), IMAGE_WAIT_UNTIL: promise => this.state.waitUntil?.(promise), EARTHQUAKE_ALERTS: undefined, TTS_USAGE: {
                 get: async (key, ...args) => {
-                    if (key === TELEGRAM_SENT_KV_KEY || key.startsWith('telegram-brazil-baseline:')) {
+                    if (key === TELEGRAM_SENT_KV_KEY || (key.startsWith('telegram-brazil-baseline:') || key.startsWith('telegram-global-baseline:'))) {
                         let value;
                         if (key === TELEGRAM_SENT_KV_KEY) {
                             const chunks = await storage.get(key + ':chunks');
@@ -1238,7 +1240,7 @@ export class EarthquakeAlertDelivery {
                             await target.put(key + ':chunks', parts.length);
                         };
                         if (storage.transaction) await storage.transaction(write); else await write(storage);
-                    } else if (key.startsWith('telegram-brazil-baseline:')) await storage.put(key, value);
+                    } else if ((key.startsWith('telegram-brazil-baseline:') || key.startsWith('telegram-global-baseline:'))) await storage.put(key, value);
                     else await kv?.put(key, value, opts);
                 }
             }};
@@ -1324,19 +1326,35 @@ async function runTelegramM6Alerts(request, env) {
     }
 
     const sentRecords = await loadSentAlerts(request, env);
-    const [globalResult, brazil] = await Promise.all([
+    const [globalResult, brazil, supplemental] = await Promise.all([
         fetchUsgsM6Recent().then(events => ({events})).catch(() => ({events: [], failed: true})),
-        fetchTelegramBrazilRecent(env)
+        fetchTelegramBrazilRecent(env),
+        fetchGlobalSupplements({tracked:sentRecords}).catch(()=>({sources:[],failedSources:['EMSC','GEOFON']}))
     ]);
-    const events = [...globalResult.events];
+    const globalCandidates = [...globalResult.events];
     // O filtro M6 deixa de retornar revisões M5.9: consultar os IDs já anunciados por 72h.
     const tracked = sentRecords.filter(r => (r.provider === 'USGS' || !r.provider && r.url?.includes('earthquake.usgs.gov')) && !r.baseline &&
-        Date.parse(r.timeIso) >= Date.now() - 72 * 3600000 && !events.some(ev => ev.id === r.id));
+        Date.parse(r.timeIso) >= Date.now() - 72 * 3600000 && !globalCandidates.some(ev => ev.id === r.id));
     for (let i = 0; i < tracked.length; i += 5) {
         const results = await Promise.allSettled(tracked.slice(i, i + 5).map(r => fetchUsgsM6Recent(r.id)));
-        for (const result of results) if (result.status === 'fulfilled') events.push(...result.value);
+        for (const result of results) if (result.status === 'fulfilled') globalCandidates.push(...result.value);
     }
+    for(const source of supplemental.sources)globalCandidates.push(...source.events.map(e=>({...e,sourceUnavailable:!source.ok})));
+    const failedGlobal=new Set([...(globalResult.failed?['USGS']:[]),...supplemental.failedSources]);
+    for(const record of sentRecords)if(!record.baseline)for(const e of [record,record.currentEvent].filter(Boolean))if(failedGlobal.has(e.provider)&&Date.parse(e.timeIso)>=Date.now()-72*3600000)globalCandidates.push({...e,sourceUnavailable:true});
+    const events=[...globalCandidates.filter(e=>e.brazil&&!e.sourceUnavailable),...consolidateGlobalEvents(globalCandidates).filter(e=>!e.sourceUnavailable&&(e.mag>=TELEGRAM_MIN_MAG||sentRecords.some(r=>r.id===e.id&&!r.baseline)||findNearDuplicateAlert(e,sentRecords)))];
     const sentIds = new Set(sentRecords.map(r => r.id));
+    // Initialize supplemental providers without dumping old global catalogs into Telegram.
+    for(const source of supplemental.sources){if(!source.ok)continue;const key='telegram-global-baseline:'+source.provider;
+      try{
+        if(!env.TTS_USAGE)throw Error('Baseline unavailable');
+        if(!await env.TTS_USAGE.get(key)){
+            let changed=false;for(const ev of events)if(ev.provider===source.provider&&Date.parse(ev.timeIso)<Date.now()-30*60000&&!sentIds.has(ev.id)&&!findNearDuplicateAlert(ev,sentRecords)){sentRecords.push({...ev,baseline:true});sentIds.add(ev.id);changed=true;}
+            if(changed)await saveSentAlerts(request,sentRecords,env);
+            await env.TTS_USAGE.put(key,nowIso());
+        }
+      }catch{source.ok=false;if(!supplemental.failedSources.includes(source.provider))supplemental.failedSources.push(source.provider);for(let i=events.length-1;i>=0;i--)if(events[i].provider===source.provider&&!events[i].brazil)events.splice(i,1);}
+    }
     for (const source of brazil.sources) {
         if (!source.ready) {
             for (const ev of source.events) {
@@ -1496,7 +1514,8 @@ async function runTelegramM6Alerts(request, env) {
         alreadySent: skipped.length,
         minMag: TELEGRAM_MIN_MAG,
         brazil: {allMagnitudes: true, initializedSources: brazil.sources.map(s => s.provider), failedSources: brazil.failedSources},
-        globalSourceFailed: !!globalResult.failed,
+        globalSourceFailed: !!globalResult.failed || supplemental.failedSources.length>0,
+        globalSources: {USGS:!globalResult.failed,...Object.fromEntries(supplemental.sources.map(s=>[s.provider,s.ok]))},
         updatedAt: nowIso()
     };
 }
@@ -1968,6 +1987,7 @@ async function handleWorkerRequest(request,env,ctx){
                 workerModules: 'maintenance-modules-v1',
                 telegramStorage: 'durable-history-v1',
                 telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
+                globalSeismicPolicy: GLOBAL_SEISMIC_POLICY,
                 telegramImageStatus: 'editorial-v17',
                 telegramTsunamiCard: 'tsunami-coastal-v1',
                 tvAlerts: 'tv-alerts-v1',

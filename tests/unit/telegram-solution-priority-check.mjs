@@ -20,6 +20,8 @@ const quake=(id,mag,net='pt',time=now-60000)=>({id,properties:{mag,net,place:'Va
 let world=[],details=new Map(),editMode='ok',photoMode='ok',replyMode='ok',nextID=100;
 globalThis.fetch=async(input,options)=>{
  const url=new URL(input);
+ // These regressions isolate USGS/Brazil; supplemental global catalogs have their own fixtures.
+ if(url.searchParams.has('minmagnitude')&&!url.searchParams.has('minlatitude')&&['www.seismicportal.eu','geofon.gfz-potsdam.de'].includes(url.hostname))return url.searchParams.get('format')==='text'?new Response('#EventID|Time\n'):Response.json({features:[]});
  if(url.hostname==='api.telegram.org'){
   const body=options.body instanceof FormData ? Object.fromEntries(options.body) : JSON.parse(options.body);
   const media=body.media?JSON.parse(body.media):null;

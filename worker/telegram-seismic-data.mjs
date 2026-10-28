@@ -1,4 +1,5 @@
 // Catalog normalization and BRT windows used by Telegram alert coordination.
+import {fetchGlobalSupplements,consolidateGlobalEvents} from "./global-seismic-data.mjs";
 import {telegramIsBrazil} from "./brazil-boundary.mjs";
 import {fetchText, fetchJson} from "./http.mjs";
 import {enrichBrazilEpicenter} from "../brazil-epicenter-location.mjs";
@@ -136,7 +137,7 @@ async function fetchDailyQuakesBrt(day=saoPauloYmdOffset(-1)) {
     const d=await fetchJson(u,{},20000);
     const events=(d.features||[]).map(f=>{
         const p=f.properties||{}, c=f.geometry?.coordinates||[];
-        return {id:f.id,mag:Number(p.mag),place:p.place||'Região não informada',time:Number(p.time),
+        return {id:f.id,provider:'USGS',reviewed:p.status==='reviewed',sourceUpdatedAt:p.updated||null,mag:Number(p.mag),place:p.place||'Região não informada',time:Number(p.time),
             lat:Number.isFinite(c[1])&&Math.abs(c[1])<=90?c[1]:null,lon:Number.isFinite(c[0])&&Math.abs(c[0])<=180?c[0]:null,
             depth:Number.isFinite(c[2])?c[2]:null,source:(p.net||'USGS').toUpperCase()};
     }).filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time)&&e.time>=Date.parse(start)&&e.time<Date.parse(end));
@@ -149,8 +150,11 @@ async function fetchDailyQuakesBrt(day=saoPauloYmdOffset(-1)) {
         if(matches.length===1){const existing=matches[0];existing.sources=[...new Set([...(existing.sources||[existing.source]),source.provider])];continue;}
         events.push({...candidate,time,source:source.provider,sources:[source.provider]});
     }
+    const extraGlobal=await fetchGlobalSupplements({start,end,scope:'daily:'+day,summary:true}).catch(()=>({sources:[],failedSources:['EMSC','GEOFON']}));
+    const global=consolidateGlobalEvents([...events.filter(e=>!e.brazil).map(e=>({...e,timeIso:new Date(e.time).toISOString()})),...extraGlobal.sources.flatMap(s=>s.ok?s.events.filter(e=>Date.parse(e.timeIso)>=startMs&&Date.parse(e.timeIso)<endMs):[])]).map(e=>({...e,time:Date.parse(e.timeIso),sources:[...new Set(e.agencyEstimates.map(r=>r.provider))]}));
+    const local=events.filter(e=>e.brazil);events.splice(0,events.length,...global,...local);
     const brazilEvents=events.filter(e=>e.brazil).sort((a,b)=>b.mag-a.mag||a.time-b.time);
     for(const event of brazilEvents)await enrichBrazilEpicenter(event);
-    return {day,events,brazilEvents,brazilFailedSources:brazilFeed.failedSources};
+    return {day,events,brazilEvents,brazilFailedSources:brazilFeed.failedSources,globalFailedSources:extraGlobal.failedSources};
 }
 export { telegramBrazilEvents, TELEGRAM_MIN_MAG, saoPauloYmdOffset, fetchUsgsM6Recent, fetchTelegramBrazilRecent, fetchDailyQuakesBrt, saoPauloParts };

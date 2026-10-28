@@ -92,4 +92,9 @@ public class MapResourcesTest {
    }assertTrue(bright>100);actual.recycle();expected.recycle();
   }
  }
+ @Test public void globalSourceBaselinesAndChosenProviderSurviveRestart(){
+  AlertTracker tracker=new AlertTracker();tracker.readyCatalogs.addAll(List.of("USGS","USGS_BR","USP","EMSC","GEOFON","EMSC_GLOBAL","GEOFON_GLOBAL"));
+  AlertTracker.Seen seen=new AlertTracker.Seen("v",1800000000000L,true);seen.provider="GEOFON";seen.magnitude=6.09;seen.noticeMagnitude=6.09;tracker.seen.put("USGS:canonical",seen);Prefs.save(context,tracker);
+  AlertTracker restored=Prefs.tracker(context);assertEquals(7,restored.readyCatalogs.size());assertTrue(restored.readyCatalogs.contains("GEOFON_GLOBAL"));assertEquals("GEOFON",restored.seen.get("USGS:canonical").provider);
+ }
 }

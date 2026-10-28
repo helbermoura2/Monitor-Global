@@ -20,7 +20,7 @@ test('collector shares Brazil reads, exposes independent failures and follows M6
  const env={TTS_USAGE:{get:async()=>stored,put:async(k,v)=>{stored=v;writes++;}}};
  const fetcher=async url=>{if(String(url).includes('eventid=')){individual++;return Response.json(quake('us1',5.2));}globalCalls++;return Response.json({features:globalCalls===1?[quake()]:[]});};
  const brazil=async()=>{calls++;return {sources:[{provider:'USP',events:[]}],failedSources:['USGS','EMSC','GEOFON']};};
- const create=()=>createTvCatalog({clock:()=>time,fetcher,brazil,cache:()=>null});let collect=create();
+ const create=()=>createTvCatalog({supplemental:async()=>({sources:[],failedSources:[]}),clock:()=>time,fetcher,brazil,cache:()=>null});let collect=create();
  let result=await collect(env);assert.equal(calls,1);assert.equal(result.catalogs.USP,true);assert.equal(result.catalogs.EMSC,false);assert.equal(result.catalogs.USGS_BR,false);assert.equal(writes,1);
  time+=30000;result=await collect(env);assert.equal(calls,1);assert.equal(individual,1);assert.equal(result.features[0].properties.mag,5.2);assert.equal(result.features[0].tracked,true);
  assert.equal(tvSnapshot(result,{ok:true,items:[]},time,{maxAge:72*3600000}).alerts[0].magnitude,5.2);
@@ -34,7 +34,7 @@ test('identical official tsunami bulletins do not become new alerts just because
 
 test('overlapping USGS global and Brazil responses do not alternate rounded solutions or write every poll',async()=>{
  let time=now,writes=0;const global=quake('brus',6.1);global.geometry.coordinates=[-46.6,-23.5,3.14];global.properties.net='us';
- const collect=createTvCatalog({clock:()=>time,cache:()=>null,fetcher:async()=>Response.json({features:[structuredClone(global)]}),brazil:async()=>({sources:[{provider:'USGS',events:[{id:'brus',provider:'USGS',mag:6.1,timeIso:new Date(now-60000).toISOString(),lon:-46.6,lat:-23.5,depth:3,source:'US',place:'São Paulo, Brasil',reviewed:true}]}],failedSources:[]})});
+ const collect=createTvCatalog({supplemental:async()=>({sources:[],failedSources:[]}),clock:()=>time,cache:()=>null,fetcher:async()=>Response.json({features:[structuredClone(global)]}),brazil:async()=>({sources:[{provider:'USGS',events:[{id:'brus',provider:'USGS',mag:6.1,timeIso:new Date(now-60000).toISOString(),lon:-46.6,lat:-23.5,depth:3,source:'US',place:'São Paulo, Brasil',reviewed:true}]}],failedSources:[]})});
  const env={TTS_USAGE:{get:async()=>null,put:async()=>writes++}};
  const first=await collect(env);time+=120000;const second=await collect(env);
  assert.equal(first.features[0].geometry.coordinates[2],3.14);assert.equal(second.features[0].geometry.coordinates[2],3.14);assert.equal(writes,1);
@@ -46,4 +46,18 @@ test('Vanuatu 6.0 to 6.1 survives shared catalog and changes the TV version with
  const revised=structuredClone(first);revised.properties.mag=6.1;revised.properties.updated=now+30000;records=mergeTvCatalog(records,[revised],now+30000);
  const after=tvSnapshot({features:records.map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}))},{ok:true,items:[]},now+30000).alerts[0];
  assert.equal(after.id,before.id);assert.equal(after.magnitude,6.1);assert.equal(after.eligible,true);assert.notEqual(after.version,before.version);assert.equal(after.issuedAt,now+30000);assert.match(after.title,/Vanuatu$/);
+});
+
+test('global selection includes GEOFON above six even if USGS is below; changes remain stable and reversible',()=>{
+ const gfz=mag=>({id:'GEOFON-gfz2026vciw',provider:'GEOFON',providerEventId:'gfz2026vciw',globalMultiSource:true,properties:{mag,time:now-60000,updated:now,net:'GEOFON',type:'earthquake',place:'Vanuatu',status:'automatic'},geometry:{coordinates:[165,-14,10]}});
+ let records=mergeTvCatalog([],[quake('us7000ttlt',5.6),gfz(6.09)],now);assert.equal(records.length,1);const id=records[0].id;
+ let a=tvSnapshot({features:records.map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}))},{ok:true,items:[]},now).alerts[0];assert.equal(a.provider,'GEOFON');assert.equal(a.catalog,'GEOFON_GLOBAL');assert(a.eligible);assert.match(a.title,/M6,1/);
+ records=mergeTvCatalog(records,[quake('us7000ttlt',6),gfz(6.09)],now+1000);assert.equal(records[0].feature.provider||'USGS','USGS');assert.equal(records[0].id,id);
+ records=mergeTvCatalog(records,[quake('us7000ttlt',5.6),gfz(6.09)],now+2000);assert.equal(records[0].feature.provider,'GEOFON','unchanged qualifying alternative is restored after USGS downgrade');
+ records=mergeTvCatalog(records,[quake('us7000ttlt',5.6),gfz(5.2)],now+3000);assert.equal(records[0].feature.provider||'USGS','USGS');assert.equal(records[0].feature.properties.mag,5.6);
+});
+
+test('a stale USGS frame cannot overwrite a newer stored solution or churn the watch list',()=>{
+ const fresh=quake('stable',6.2);fresh.properties.updated=now+1000;let records=mergeTvCatalog([],[fresh],now+1000);const serialized=JSON.stringify(records);
+ const old=quake('stable',6);old.properties.updated=now;records=mergeTvCatalog(records,[old],now+2000);assert.equal(records[0].feature.properties.mag,6.2);assert.equal(JSON.stringify(records),serialized);
 });

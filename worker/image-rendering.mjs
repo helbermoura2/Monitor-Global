@@ -884,8 +884,8 @@ async function renderAlertPixels(ev) {
     globalThis.QuakeCardLayout.draw(painter,{...ev,imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+globalThis.QuakeCardLayout.MAP_Y})),
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
         when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
-        sourceLabel:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':'automático'),
-        sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),
+        sourceLabel:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':ev.reviewStatus==='unknown'?'revisão não informada':'automático'),
+        sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':ev.reviewStatus==='unknown'?'revisão não informada':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),
         mmi:imageEpicenterMmi(ev,mmi.nivel),energy:calcularEnergiaCard(Number(ev.mag)),exposure:ev.imageExposure
     });
     return rgbaToPng(rgba,W,H);
