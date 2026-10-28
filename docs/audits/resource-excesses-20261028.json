@@ -1,0 +1,67 @@
+{
+  "queriedAt": "2026-10-28T01:45:42.741742+00:00",
+  "quotaRun": 40616932452,
+  "groups": [
+    {
+      "day": "2026-10-27",
+      "partial": false,
+      "worker": "black-sky-9ba0",
+      "requests": 18896,
+      "exceededResources": 24,
+      "percent": 0.127,
+      "cpuP50Ms": 19.032,
+      "cpuP99Ms": 70.591,
+      "memoryP50MiB": 19.121,
+      "memoryP99MiB": 26.332
+    },
+    {
+      "day": "2026-10-28",
+      "partial": true,
+      "worker": "black-sky-9ba0",
+      "requests": 4271,
+      "exceededResources": 9,
+      "percent": 0.211,
+      "cpuP50Ms": 16.671,
+      "cpuP99Ms": 42.611,
+      "memoryP50MiB": 20.452,
+      "memoryP99MiB": 21.44
+    }
+  ],
+  "notes": [
+    "Quantis por grupo, não máximo de todas as invocações.",
+    "CPU é a hipótese principal; RAM baixa nos quantis não exclui picos não observados.",
+    "Histórico agregado não informa rota."
+  ],
+  "captureRun": 40616929566,
+  "capture": {
+    "startedAt": "2026-10-28T01:45:41.531Z",
+    "seconds": 300,
+    "events": 169,
+    "counts": {
+      "/tv-alerts ok": 20,
+      "/tsunami-alerts ok": 9,
+      "root ok": 3,
+      "/population-exposure ok": 9,
+      "public-proxy ok": 91,
+      "other ok": 19,
+      "/cge-bulletins ok": 2,
+      "/weatherapi ok": 1,
+      "/global-volcano ok": 3,
+      "alarm ok": 2,
+      "scheduled ok": 1,
+      "/gdacs-floods ok": 1,
+      "/metar-observed ok": 2,
+      "/official-weather-alerts ok": 1,
+      "/rupture-shaking ok": 3,
+      "/population-exposure canceled": 2
+    },
+    "rawLogsStored": false,
+    "syntheticRequests": 0,
+    "cpuRouteAttribution": "Not available from legacy tail CPU metrics; outcomes only",
+    "sessionRemoved": true,
+    "endedAt": "2026-10-28T01:50:42.493Z",
+    "elapsedSeconds": 301,
+    "noObservedEvents": false
+  },
+  "classification": "CPU é a hipótese principal dos agregados; rota e causa específica ainda não confirmadas."
+}

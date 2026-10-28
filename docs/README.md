@@ -40,6 +40,8 @@ Guias usados na operação atual. Em caso de divergência, conferir código/test
 - [neon-contour-labels.md](neon-contour-labels.md)
 - [local-performance-diagnostics.md](local-performance-diagnostics.md)
 
+- [Excessos de recursos: CPU, memória e captura de rotas — 28/10](EXCESSOS_RECURSOS_20261028.md)
+
 ## Investigações abertas e evidências atuais
 
 - **Memória/estabilidade:** correções publicadas; ensaio local aprovado não prova horas de estabilidade nos aparelhos. Comparação DeX/Nothing continua aberta. Os diagnósticos anteriores são evidência histórica, não falha confirmada da versão atual.
