@@ -37,3 +37,11 @@ Publicar o pacote do Worker com `npm run worker:bundle` e o workflow de manuten�
 Cobertura de testes: conflito GEOFON M6,1/USGS M5,6, deduplicação entre agências, revisões próprias, rebaixamento abaixo do corte, fontes em falha, backoff após troca de instância, dados malformados/grandes, catálogo inicial silencioso, persistência Android e mudança de agência sem seta de revisão falsa. Os testes nacionais, de boletins e de revisão USGS anteriores continuam obrigatórios.
 
 Para reverter: reverter o PR, reconstruir e publicar o pacote do Worker. Para Android, publicar o código desejado com versão superior, mantendo a mesma assinatura; não orientar desinstalação ou limpeza de dados.
+
+## Publicação confirmada
+
+[PR 545](https://github.com/helbermoura2/Monitor-Global/pull/545), [Worker publicado e verificado](https://github.com/helbermoura2/Monitor-Global/actions/runs/40631082489) e [APK oficial 1.0.23](https://github.com/helbermoura2/Monitor-Global/actions/runs/40631085558). A política apareceu no `/health`, os sete estados de catálogos estavam disponíveis na leitura da TV e o APK público teve hash e certificado conferidos. [Registro sanitizado](audits/global-alert-sources-20261028.json).
+
+Os 68 testes Android, 188 testes modulares do Worker, verificações de entrega com transporte simulado, lint/compilação, 11 guardas de manutenção e cinco guardas de distribuição passaram. As verificações ampliadas do GitHub também passaram. Não foi executado envio manual de teste no Telegram.
+
+O GEOFON já havia revisado o evento da foto (`gfz2026vciw`) para Mw 5,45 na conferência posterior à publicação. A ausência dele como M6+ atual não indica que a ampliação falhou. A regra foi testada com a magnitude anterior 6,09 e USGS 5,6 em fixtures isoladas.

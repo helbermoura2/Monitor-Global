@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-28T04:19:10.619921+00:00",
+  "pullRequest": 545,
+  "sourceCommit": "d62ec2cb28323c2f39463f3986c5511c8f906e8b",
+  "workerDeploymentRun": 40631082489,
+  "officialApkReleaseRun": 40631085558,
+  "androidPreviewRun": 40630771873,
+  "browserRegressionRun": 40630771874,
+  "globalSeismicPolicy": "global-usgs-emsc-geofon-v1",
+  "catalogs": {
+    "USGS": true,
+    "USGS_BR": true,
+    "USP": true,
+    "EMSC": true,
+    "GEOFON": true,
+    "EMSC_GLOBAL": true,
+    "GEOFON_GLOBAL": true
+  },
+  "release": {
+    "enabled": true,
+    "versionCode": 10023,
+    "versionName": "1.0.23",
+    "url": "https://monitorglobal.top/downloads/monitor-global-tv-1.0.23.apk",
+    "sha256": "bd5f16a6449db07e3ff5c286685431069a86f7ee2cac378991af001d13534af7"
+  },
+  "publicApkBytes": 1697347,
+  "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82",
+  "validation": {
+    "androidTests": 68,
+    "workerUnitTests": 188,
+    "maintenanceTests": 11,
+    "distributionGuards": 5,
+    "telegramTestTransport": "mocked only"
+  },
+  "vanuatuClarification": {
+    "eventId": "gfz2026vciw",
+    "earlierGEOFONMagnitude": 6.09,
+    "latestGEOFONMagnitude": 5.45,
+    "latestGEOFONType": "Mw",
+    "note": "Consulted by public event ID after publication. The production snapshot correctly does not label this event as currently M6+."
+  }
+}
