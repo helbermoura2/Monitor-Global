@@ -9,6 +9,7 @@ from pathlib import Path
 spec=importlib.util.spec_from_file_location('account_audit',Path(__file__).with_name('cloudflare-account-audit.py'));a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
 d=a.d
 POLICY=Path(__file__).with_name('free-quota-policy.json')
+health_spec=importlib.util.spec_from_file_location('system_health_summary',Path(__file__).with_name('system_health_summary.py'));health=importlib.util.module_from_spec(health_spec);health_spec.loader.exec_module(health)
 
 class FreeClient(d.m.Client):
     def call(self,path,method='GET',body=None,content_type='application/json'):
@@ -82,7 +83,7 @@ def number(value):
     return f'{value:,.3f}'.rstrip('0').rstrip('.').replace(',','_').replace('.',',').replace('_','.')
 
 def summary_markdown(report):
-    q=report['freeQuotas'];lines=['## Monitor Global — cotas Free','',f"Consulta UTC: {report['queriedAt']}. Reinício diário: 00:00 UTC / 21h Brasília.",'','Dados adaptativos; dias parciais não são projetados. Métrica ausente não é consumo zero. Nenhum plano, limite ou prazo de alerta foi alterado.','']
+    q=report['freeQuotas'];lines=[health.owner_summary(report),'## Monitor Global — cotas Free','',f"Consulta UTC: {report['queriedAt']}. Reinício diário: 00:00 UTC / 21h Brasília.",'','Dados adaptativos; dias parciais não são projetados. Métrica ausente não é consumo zero. Nenhum plano, limite ou prazo de alerta foi alterado.','']
     for day in q['days']:
         lines+=['### '+day['day']+(' · completo' if day['complete'] else ' · parcial'),'','| Recurso | Uso observado | Limite Free | % | Estado |','| --- | ---: | ---: | ---: | --- |']
         for key,v in day['quotas'].items():
@@ -143,6 +144,7 @@ def main():
     report['policyAgeDays']=(now.date()-dt.date.fromisoformat(policy['verifiedAt'])).days
     report['policyReviewDue']=report['policyAgeDays']>policy.get('maxPolicyAgeDays',30)
     report['freeQuotas']=quota_summary(report,policy)
+    report['automationHealth']=health.read_automations()
     out=Path('audit-results');out.mkdir(exist_ok=True);(out/'cloudflare-free-quota.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');markdown=summary_markdown(report);(out/'cloudflare-free-quota.md').write_text(markdown)
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:f.write(markdown)

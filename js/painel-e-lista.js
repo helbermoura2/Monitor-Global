@@ -1365,7 +1365,7 @@ function showEventDetails(index, triggerVisualAlert = false, silentRefresh = fal
     if(!magNote){ magNote=document.createElement('div'); magNote.id='pd-mag-sources'; magNote.style.cssText='font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.45;text-align:center;'; const anchor=document.getElementById('pd-horario'); anchor && anchor.parentNode.insertBefore(magNote,anchor.nextSibling); }
     const evidence=evidenciasFontes(item);
     const magLines=evidence.reports.map(x=>x.source+' M'+x.mag.toFixed(1).replace('.', ',')).join(' · ');
-    magNote.textContent=magLines ? 'Fontes: '+magLines : 'Fonte: '+(evidence.sources.join(' · ')||'não identificada');
+    magNote.textContent=(magLines ? 'Fontes: '+magLines : 'Fonte: '+(evidence.sources.join(' · ')||'não identificada'))+' · Magnitude informada pela fonte, sujeita a revisão.';
     magNote.style.display='block';
     renderConsolidacaoFonte(item);
     // A intensidade não é mais tratada como EST por padrão. Primeiro usamos

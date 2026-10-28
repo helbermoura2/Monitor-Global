@@ -6,7 +6,7 @@ import {collectTvQuakes} from './tv-seismic-catalog.mjs';
 import {getOfficialTsunamis} from '../tsunami-official-worker.mjs';
 const VERSION='tv-alerts-v1';let last,inflight;
 const hash=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(n=>n.toString(16).padStart(2,'0')).join('');
-async function collect(env){const now=Date.now();const [q,t]=await Promise.allSettled([collectTvQuakes(env),getOfficialTsunamis()]);const quakes=q.status==='fulfilled'?q.value:{ok:false,features:[],catalogs:{USGS:false,USP:false,EMSC:false,GEOFON:false}};const snapshot=tvSnapshot(quakes,t.status==='fulfilled'?t.value:{ok:false,items:[]},now,{maxAge:72*3600000});return enrichTvSnapshot(snapshot,quakes.features,env);}
+async function collect(env){const now=Date.now();const [q,t]=await Promise.allSettled([collectTvQuakes(env),getOfficialTsunamis()]);const quakes=q.status==='fulfilled'?q.value:{ok:false,features:[],catalogs:{USGS:false,USP:false,EMSC:false,GEOFON:false}};const snapshot=tvSnapshot(quakes,t.status==='fulfilled'?t.value:{ok:false,items:[]},now,{maxAge:72*3600000});try{return await enrichTvSnapshot(snapshot,quakes.features,env);}catch{return snapshot;}}
 export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=globalThis.caches?.default}={}){
  const params=new URL(request.url).searchParams,view=params.get('view'),expanded=params.get('policy')==='telegram-v1';
  if(view==='daily'||view==='replay'||view==='completed')return handleTvHistory(request,{view,now,cache,env});

@@ -7,11 +7,13 @@ on:
     paths:
       - 'tools/cloudflare-free-quota-audit.py'
       - 'tools/free-quota-policy.json'
+      - 'tools/system_health_summary.py'
       - 'tools/cloudflare-account-audit.py'
       - 'tests/unit/test_free_quota_audit.py'
       - '.github/workflows/cloudflare-free-quota.yml'
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: cloudflare-free-quota-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
   cancel-in-progress: false
@@ -36,6 +38,7 @@ jobs:
           python-version: '3.12'
       - name: Read Free quotas without changing services or notifying recipients
         env:
+          GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: python tools/cloudflare-free-quota-audit.py
