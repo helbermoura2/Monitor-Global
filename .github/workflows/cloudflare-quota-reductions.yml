@@ -9,6 +9,14 @@ on:
       - '.github/workflows/cloudflare-quota-reductions.yml'
   workflow_dispatch:
     inputs:
+      capture_seconds:
+        description: Seconds of natural traffic to observe (30–300)
+        type: string
+        default: '120'
+      inspect_build_filters:
+        description: Inspect backend build filters (independent of route diagnostics)
+        type: boolean
+        default: false
       apply_build_filters:
         description: Apply reviewed backend-only build watch paths
         type: boolean
@@ -32,7 +40,7 @@ jobs:
     needs: checks
     if: github.event_name == 'workflow_dispatch' && github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main' && github.actor == 'helbermoura2'
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,9 +53,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TAIL_SECONDS: ${{ inputs.capture_seconds }}
         run: node tools/cloudflare-route-tail.mjs
       - name: Inspect or apply backend build filters
-        if: always()
+        if: always() && (inputs.inspect_build_filters || inputs.apply_build_filters)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_BUILDS_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
