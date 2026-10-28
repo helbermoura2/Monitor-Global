@@ -1,0 +1,158 @@
+{
+  "queriedAt": "2026-10-28T01:30:58.802451+00:00",
+  "implementationPullRequest": 543,
+  "workerDeploymentRun": 40615478295,
+  "healthReportRun": 40615480958,
+  "staticDeploymentRun": 40615475631,
+  "latestCompleteDay": "2026-10-27",
+  "resourceExcesses": {
+    "2026-10-24": {},
+    "2026-10-26": {},
+    "2026-10-27": {
+      "exceededResources": 24
+    },
+    "2026-10-23": {},
+    "2026-10-22": {},
+    "2026-10-28": {
+      "exceededResources": 9
+    },
+    "2026-10-25": {}
+  },
+  "durableFamilies": {
+    "2026-10-27": [
+      {
+        "family": "earthquake-alerts",
+        "requests": 480,
+        "percentOfMeasuredDORequests": 33.4
+      },
+      {
+        "family": "population",
+        "requests": 446,
+        "percentOfMeasuredDORequests": 31.04
+      },
+      {
+        "family": "metrics",
+        "requests": 151,
+        "percentOfMeasuredDORequests": 10.51
+      },
+      {
+        "family": "2026-10-24",
+        "requests": 97,
+        "percentOfMeasuredDORequests": 6.75
+      },
+      {
+        "family": "2026-10-25",
+        "requests": 96,
+        "percentOfMeasuredDORequests": 6.68
+      },
+      {
+        "family": "2026-10-26",
+        "requests": 94,
+        "percentOfMeasuredDORequests": 6.54
+      },
+      {
+        "family": "global-rainbow-nowcast-v1",
+        "requests": 35,
+        "percentOfMeasuredDORequests": 2.44
+      },
+      {
+        "family": "global-rainbow-products-weather-v1",
+        "requests": 13,
+        "percentOfMeasuredDORequests": 0.9
+      },
+      {
+        "family": "2026-10-23",
+        "requests": 13,
+        "percentOfMeasuredDORequests": 0.9
+      },
+      {
+        "family": "portuguese-translations-v1",
+        "requests": 12,
+        "percentOfMeasuredDORequests": 0.84
+      }
+    ],
+    "2026-10-28": [
+      {
+        "family": "population",
+        "requests": 117,
+        "percentOfMeasuredDORequests": 60.94
+      },
+      {
+        "family": "earthquake-alerts",
+        "requests": 30,
+        "percentOfMeasuredDORequests": 15.62
+      },
+      {
+        "family": "metrics",
+        "requests": 9,
+        "percentOfMeasuredDORequests": 4.69
+      },
+      {
+        "family": "global-rainbow-nowcast-v1",
+        "requests": 9,
+        "percentOfMeasuredDORequests": 4.69
+      },
+      {
+        "family": "2026-10-26",
+        "requests": 7,
+        "percentOfMeasuredDORequests": 3.65
+      },
+      {
+        "family": "2026-10-25",
+        "requests": 7,
+        "percentOfMeasuredDORequests": 3.65
+      },
+      {
+        "family": "2026-10-24",
+        "requests": 7,
+        "percentOfMeasuredDORequests": 3.65
+      },
+      {
+        "family": "portuguese-translations-v1",
+        "requests": 4,
+        "percentOfMeasuredDORequests": 2.08
+      },
+      {
+        "family": "global-rainbow-products-weather-v1",
+        "requests": 1,
+        "percentOfMeasuredDORequests": 0.52
+      },
+      {
+        "family": "global-shared-voice-v1",
+        "requests": 1,
+        "percentOfMeasuredDORequests": 0.52
+      }
+    ]
+  },
+  "automationHealth": {
+    "available": true,
+    "runs": {
+      "android-tv-release.yml": {
+        "label": "Publicação oficial do aplicativo TV",
+        "conclusion": "success",
+        "at": "2026-10-28T01:18:31Z",
+        "id": 40614067164
+      },
+      "uptime-monitor.yml": {
+        "label": "Disponibilidade da página inicial",
+        "conclusion": "success",
+        "at": "2026-10-27T22:24:23Z",
+        "id": 40594535081
+      },
+      "smoke-test.yml": {
+        "label": "Verificações do site",
+        "conclusion": "failure",
+        "at": "2026-10-27T16:10:40Z",
+        "id": 40527467721
+      },
+      "cloudflare-worker-maintenance.yml": {
+        "label": "Manutenção do Worker",
+        "conclusion": "success",
+        "at": "2026-10-27T10:59:26Z",
+        "id": 40492581183
+      }
+    },
+    "coverage": "Últimas execuções disponíveis na janela consultada; ausência não significa sucesso."
+  },
+  "limits": "Dia 27 mistura versões da otimização; não demonstra economia causal. Não houve envio de teste ao Telegram."
+}

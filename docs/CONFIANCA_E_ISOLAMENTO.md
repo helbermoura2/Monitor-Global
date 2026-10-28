@@ -31,3 +31,9 @@ Uma execução verde não comprova entrega em todos os aparelhos. Dia antigo, co
 ## Publicação e reversão
 
 Site: publicação estática e recarga. Worker: `npm run worker:bundle`, ZIP/checksum revisados e deploy pelo fluxo existente. Aplicativo instalado já lê os textos de contexto do serviço; estas mudanças não exigem novo APK. Reverter PR e republicar a parte correspondente. Ver [operação em uma página](OPERACAO_EM_UMA_PAGINA.md).
+
+## Evidência da publicação
+
+[PR 543](https://github.com/helbermoura2/Monitor-Global/pull/543), [deploy do Worker](https://github.com/helbermoura2/Monitor-Global/actions/runs/40615478295) e [primeiro relatório de saúde](https://github.com/helbermoura2/Monitor-Global/actions/runs/40615480958), concluídos. [Registro sanitizado](audits/four-priorities-20261028.json). Testes: 7 Playwright, 11 de cotas/saúde, 179 testes modulares e os verificadores de entrega do Worker, além de 11 verificações de manutenção.
+
+A coleta às 01h30 UTC de 28/10 ainda aponta excesso de recursos: 24 registros no dia 27 e 9 no parcial de 28. Uma execução antiga do smoke test falhou em verificadores de visibilidade/materiais. Essas são pendências observadas, não falhas corrigidas por este PR. A causa dos excessos continua sem rota identificada.

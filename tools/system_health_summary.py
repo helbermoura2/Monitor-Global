@@ -58,7 +58,7 @@ def owner_summary(report):
         families = report.get('durableFamilies', {}).get(day['day'], [])
         if families:
             top = max(families, key=lambda x: x['requests'])
-            name = {'population': 'População', 'earthquake': 'Sismos', 'tsunami': 'Tsunami'}.get(top['family'], top['family'])
+            name = {'population': 'População', 'earthquake': 'Sismos', 'earthquake-alerts': 'Alertas sísmicos', 'tsunami': 'Tsunami', 'metrics': 'Métricas de operação', 'publicSources': 'Fontes públicas compartilhadas', 'global-rainbow-nowcast-v1': 'Previsão imediata de chuva', 'global-rainbow-products-weather-v1': 'Produtos meteorológicos', 'portuguese-translations-v1': 'Traduções para português', 'global-shared-voice-v1': 'Voz compartilhada'}.get(top['family'], top['family'])
             lines += [f"- Maior consumidor Durable medido: **{name}**, {pt_number(top['requests'])} chamadas ({pt_number(top['percentOfMeasuredDORequests'])}% das chamadas Durable detalhadas; não do Worker inteiro)."]
         else:
             lines += ['- Maior consumidor Durable: detalhamento indisponível para esse dia.']

@@ -28,3 +28,7 @@ Implementação retomada por pedido do dono. Conferidas as funções existentes 
 Continuar no plano Free. Não mudar câmera, frequência de alertas ou regras do Telegram para economizar consultas. Os quatro itens foram retomados por autorização do dono em 28/10. As investigações de cotas e CPU acima continuam abertas; não são consideradas resolvidas por estas mudanças.
 
 Validação do filtro manual: [evidência dos checks e publicação](audits/build-watch-paths-manual-20261027.json). A API continua retornando 403; isso não desfaz a configuração manual confirmada pelo dono.
+
+## Nova observação de 28/10 às 01h30 UTC
+
+Os quatro itens acima foram implementados e publicados pelo [PR 543](https://github.com/helbermoura2/Monitor-Global/pull/543). [Evidência](audits/four-priorities-20261028.json). A medição atualizada registra 24 excessos de recursos em 27/10 e 9 no parcial de 28/10; substitui o número anterior de quatro para acompanhamento atual, mas ainda não identifica CPU/memória/rota. O resumo também mostra uma execução anterior com falha no smoke test, para análise separada. As cotas completas de 27/10 misturam versões; não são prova causal de economia.
