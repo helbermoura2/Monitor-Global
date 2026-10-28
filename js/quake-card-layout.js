@@ -104,7 +104,7 @@
   const levels=contourRows(ev.imageContours||[]),visible=levels.slice(0,6);
   if(visible.length){visible.forEach((a,i)=>{const col=i%3,row=Math.floor(i/3),x=38+col*242,y=655+row*21;p.rect(x,y+7,20,3,a.color);p.text(fit(p,a.roman+' · '+a.description,13,210),x+27,y,13,white);});}
   else p.text(ev.imageMapAvailable?'Nenhum contorno visível neste enquadramento.':'Contornos indisponíveis nesta imagem; não significa ausência de tremor.',38,655,14,muted);
-  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · intensidade publicada':'Modelo estimado · não confirma tremor ou danos',38,695,11,muted);
+  p.text(ev.shaking?.status==='available'?'USGS ShakeMap · estimativa publicada pela fonte':'Modelo estimado · não confirma tremor ou danos',38,695,11,muted);
   p.text('As linhas indicam o tremor em cada faixa; não representam ondas de tsunami.',38,739,13,muted);
   p.text(fit(p,ev.when||'Horário não informado',16,720),38,768,16,white);
   p.text(fit(p,ev.sourceLabel||ev.sourceLine||ev.source||'Fonte não informada',14,720),38,793,14,muted);
@@ -112,13 +112,13 @@
   if(coords)p.text(coords,38,817,14,muted);
   if(revision)p.text(fit(p,'REVISÃO · '+revision,14,coords?352:720,true),coords?410:38,817,14,muted,true);
   box(p,24,846,752,140);const mmi=ev.mmi||'—',description=names[mmi];
-  const stats=[['PROFUNDIDADE',Number.isFinite(Number(ev.depth))?fmt(Math.max(0,Number(ev.depth)))+' km':'—',Number(ev.depth)<70?'Raso':Number(ev.depth)<300?'Intermediário':'Profundo'],['MMI NO EPICENTRO',mmi+(description?' · '+description:''),ev.shaking?.status==='available'?'USGS ShakeMap':'Estimada'],['ENERGIA ESTIMADA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'Equivalente em TNT']];
+  const stats=[['PROFUNDIDADE',Number.isFinite(Number(ev.depth))?fmt(Math.max(0,Number(ev.depth)))+' km':'—',Number(ev.depth)<70?'Raso':Number(ev.depth)<300?'Intermediário':'Profundo'],['MMI NO EPICENTRO',mmi+(description?' · '+description:''),ev.shaking?.status==='available'?'EST · USGS ShakeMap':'EST · modelo do app'],['ENERGIA ESTIMADA',String(ev.energy||'—').replace(/(\d+)\.(\d+)(?=\s)/g,'$1,$2'),'Equivalente em TNT']];
   stats.forEach((s,i)=>{const x=38+i*247;if(i)p.rect(x-12,861,1,83,line);p.text(s[0],x,861,11,muted);p.text(fit(p,s[1],i===1?19:25,225,true),x,888,i===1?19:25,white,true);p.text(s[2],x,923,13,muted);});
   p.text('Magnitude: tamanho do sismo. Intensidade: força do tremor em cada local.',38,958,13,muted);
   p.text('Energia: conversão física; não indica danos.',38,975,11,muted);
   drawTsunami(p,ev.imageTsunami);
   box(p,24,1190,752,204);const e=ev.exposure,reserve=e?.method==='geonames-localities',valid=validExposure(e),count=n=>Math.round(Number(n)).toLocaleString('pt-BR');
-  p.text(reserve?'POPULAÇÃO NAS LOCALIDADES DA ÁREA · EST':'POPULAÇÃO POTENCIALMENTE EXPOSTA · MMI III+',38,1205,13,muted);
+  p.text(reserve?'POPULAÇÃO NAS LOCALIDADES DA ÁREA · EST':'POPULAÇÃO POTENCIALMENTE EXPOSTA · EST',38,1205,13,muted);
   if(!reserve)p.text('MMI III+: área de tremor fraco ou maior.',38,1224,11,muted);
   if(valid&&reserve){const n=Number(e.ranges[0].population),scale=10**Math.max(0,Math.floor(Math.log10(n))-1);p.text('~ '+count(Math.round(n/scale)*scale)+' pessoas',38,1238,32,white,true);p.text('Estimativa preliminar · '+count(e.ranges[0].localities)+' localidades cadastradas',38,1283,14,muted);p.text('GeoNames · cobertura parcial · população rural incompleta',38,1308,14,muted);}
   else if(valid){p.text('~ '+count(e.ranges[0].population)+' pessoas',38,1238,32,white,true);p.text('MMI V+: ~ '+count(e.ranges[1].population)+' · MMI VI+: ~ '+count(e.ranges[2].population),38,1283,14,muted);p.text((e.method==='pager'?'USGS PAGER':'WorldPop 2020')+(e.partial?' · cobertura parcial':'')+' · faixas cumulativas',38,1308,14,muted);}

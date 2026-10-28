@@ -37,3 +37,7 @@ O primeiro relatório detalhado deve separar: pressão sobre solicitações do W
 Candidatos iniciais a validar: chamadas repetidas entre telas/abas, repetições durante indisponibilidade, consultas de população com resultado já pronto e builds do backend causados por alterações que não mudam seu código. Reaproveitar respostas no servidor reduz chamadas de origem e Durable, mas não elimina as solicitações de entrada feitas pelo cliente. A economia real depende do que for mudado e precisa ser medida depois; não anunciar uma projeção como redução já obtida.
 
 Primeira coleta real concluída: [maiores consumidores e possibilidades de redução em 27/10](cotas-free-diagnostico-20261027.md), com duração confirmada em GB*s, armazenamento KV, histórico de dias completos e quantis de CPU/memória por grupo.
+
+## Leitura rápida da saúde
+
+O início do Summary da mesma execução apresenta as cotas do último dia completo disponível, o maior consumidor Durable e as últimas automações observadas em português. Reutiliza as métricas já coletadas e consulta somente metadados das Actions com `github.token` e `actions: read`; não pede novo Secret. Mantém a frequência de quatro vezes por dia e não envia mensagens nem grava commits de relatórios. Falta de dados continua como não medido. A checagem agendada da página inicial é identificada pelo horário; não é uma nova verificação ao vivo. Ver [operação rápida](OPERACAO_EM_UMA_PAGINA.md).

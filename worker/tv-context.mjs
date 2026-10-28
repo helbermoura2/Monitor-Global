@@ -7,7 +7,7 @@ export function contextSummary(ev,exposure,places){
  let populationSummary=missing.populationSummary;
  if(validImageExposure(exposure)){
   const count=Math.round(Number(exposure.ranges[0].population)).toLocaleString('pt-BR');
-  populationSummary=exposure.method==='geonames-localities'?`~${count} pessoas nas localidades da área estimada · GeoNames · cobertura parcial`:`População potencialmente exposta a tremor fraco ou maior (MMI III+): ~${count} · ${exposure.method==='pager'?'USGS PAGER':'WorldPop, modelo estimado'}${exposure.partial?' · parcial':''}`;
+  populationSummary=exposure.method==='geonames-localities'?`~${count} pessoas nas localidades da área estimada · GeoNames · cobertura parcial`:`ESTIMATIVA · População potencialmente exposta a tremor fraco ou maior (MMI III+): ~${count} · ${exposure.method==='pager'?'USGS PAGER':'WorldPop, modelo estimado'}${exposure.partial?' · parcial':''}`;
   populationSummary+=' · Não é contagem de vítimas';
  }
  const seen=new Set();const nearby=(Array.isArray(places)?places:[]).filter(p=>p.name&&typeof p.lat==='number'&&typeof p.lon==='number'&&Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180).map(p=>({...p,distance:distanceKm(ev.lat,ev.lon,p.lat,p.lon)})).sort((a,b)=>a.distance-b.distance).filter(p=>{const key=[p.name,p.lat,p.lon].join('|');if(seen.has(key))return false;seen.add(key);return true;}).slice(0,5);
@@ -27,7 +27,8 @@ export function createTvEnricher({exposure=queryImageExposure,places=referencePl
    }).catch(()=>{entry.job=null;return missing;});
    env?.TV_WAIT_UNTIL?.(entry.job);
   }
-  if(!entry.job)return entry.value;
+  // Production keeps optional work alive off the official-alert response path.
+  if(!entry.job||typeof env?.TV_WAIT_UNTIL==='function')return entry.value;
   let timer;try{return await Promise.race([entry.job,new Promise(resolve=>{timer=setTimeout(()=>resolve(entry.value),budgetMs);})]);}finally{clearTimeout(timer);}
  }
  return async function enrich(snapshot,features,env){

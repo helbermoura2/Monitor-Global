@@ -28,4 +28,17 @@ class FreeQuotaTests(unittest.TestCase):
   c=q.FreeClient('fake','account')
   for p,m,b in [('/accounts/account/subscriptions','GET',None),('/accounts/account/alerting/v3/policies','POST',b'{}'),('/accounts/account/workers/scripts/black-sky-9ba0/settings','PUT',b'{}'),('/graphql','POST',b'{"query":"mutation { change }"}')]:
    with self.assertRaises(ValueError):c.call(p,m,b)
+class OwnerHealthTests(unittest.TestCase):
+ def test_absent_metrics_never_report_healthy_or_zero(self):
+  text=q.health.owner_summary({'queriedAt':'2026-10-28T06:00:00+00:00','freeQuotas':{'days':[]}})
+  self.assertIn('nenhum dia completo disponível',text);self.assertIn('**não medido**',text);self.assertNotIn('**0**',text)
+ def test_full_day_and_hot_family_are_not_confused_with_partial(self):
+  report={'queriedAt':'2026-10-28T06:00:00+00:00','analytics':{'workersInvocationsAdaptive':data('',{'requests':38524})},'durableFamilies':{'2026-10-26':[{'family':'population','requests':1338,'percentOfMeasuredDORequests':58.3}]}}
+  report['freeQuotas']=q.quota_summary(report,policy);text=q.health.owner_summary(report)
+  self.assertIn('38,52%',text);self.assertIn('**População**',text);self.assertIn('ontem ainda não está disponível',text)
+ def test_actions_filter_branch_cancelled_and_uptime_configuration_only(self):
+  def run(id,path,**more):return {'id':id,'path':'.github/workflows/'+path,'head_branch':'main','status':'completed','conclusion':'success','created_at':f'2026-10-28T0{id}:00:00Z',**more}
+  runs=[run(1,'uptime-monitor.yml',event='schedule'),run(2,'uptime-monitor.yml',event='workflow_dispatch'),run(3,'smoke-test.yml',head_branch='feature',conclusion='failure'),run(4,'smoke-test.yml',conclusion='cancelled')]
+  result=q.health.automation_snapshot(runs)['runs'];self.assertEqual(result['uptime-monitor.yml']['id'],1);self.assertNotIn('smoke-test.yml',result)
+
 if __name__=='__main__':unittest.main()

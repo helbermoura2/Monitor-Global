@@ -2,6 +2,8 @@
 
 Site: https://monitorglobal.top · Repositório: https://github.com/helbermoura2/Monitor-Global
 
+Referência rápida: [operação e recuperação em uma página](docs/OPERACAO_EM_UMA_PAGINA.md).
+
 ## Antes de mudar algo
 
 Faça uma alteração por vez. Enquanto estiver rodando o diagnóstico de desempenho, termine e exporte o JSON antes de recarregar o site. Publicar uma versão não atualiza automaticamente uma aba que já está aberta.

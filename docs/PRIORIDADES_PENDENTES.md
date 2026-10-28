@@ -16,15 +16,15 @@ O filtro foi configurado manualmente no Worker **`black-sky-9ba0`**. Foram inclu
 
 Evidência desta verificação: [relatório sanitizado](audits/prioridades-acompanhamento-20261027.json). Execuções: [cotas](https://github.com/helbermoura2/Monitor-Global/actions/runs/40493552678) e [CPU/filtros](https://github.com/helbermoura2/Monitor-Global/actions/runs/40493556603). A segunda execução termina com falha por causa do 403 dos filtros; a captura de CPU em si terminou e removeu sua sessão.
 
-## Depois: os quatro itens reservados
+## Os quatro itens retomados em 28/10/2026
 
-Ainda não iniciados nesta etapa. Antes de implementar cada item, conferir o que o projeto já oferece e corrigir somente as lacunas.
+Implementação retomada por pedido do dono. Conferidas as funções existentes para evitar duplicação. Ver [mudanças e limites](CONFIANCA_E_ISOLAMENTO.md) e [operação rápida](OPERACAO_EM_UMA_PAGINA.md).
 
-1. [ ] **Clareza das informações** — revisar site, imagens do Telegram e TV para distinguir dado oficial, magnitude, intensidade local e estimativas, preservando o visual aprovado.
-2. [ ] **Guia curto de operação e recuperação** — aproveitar Guia do dono, instruções de publicação e reversão existentes para uma referência curta, sem refazer a documentação inteira.
-3. [ ] **Isolamento de falhas** — conferir que população, clima e outros serviços opcionais possam falhar sem impedir a apresentação dos dados e avisos oficiais.
-4. [ ] **Resumo legível da saúde do sistema** — aproveitar os relatórios existentes para apresentar a saúde e as cotas em português simples. Destino e frequência serão definidos nessa etapa; não instalar um novo serviço nem enviar mensagens agora.
+1. [x] **Clareza das informações** — revisar site, imagens do Telegram e TV para distinguir dado oficial, magnitude, intensidade local e estimativas, preservando o visual aprovado.
+2. [x] **Guia curto de operação e recuperação** — aproveitar Guia do dono, instruções de publicação e reversão existentes para uma referência curta, sem refazer a documentação inteira.
+3. [x] **Isolamento de falhas** — conferir que população, clima e outros serviços opcionais possam falhar sem impedir a apresentação dos dados e avisos oficiais.
+4. [x] **Resumo legível da saúde do sistema** — aproveitar os relatórios existentes para apresentar a saúde e as cotas em português simples. Destino: Summary da Action de cotas existente, quatro vezes por dia; sem novo serviço ou envio de mensagens.
 
-Continuar no plano Free. Não mudar câmera, frequência de alertas ou regras do Telegram para economizar consultas. A implementação desses quatro itens fica para depois das pendências atuais, conforme solicitado pelo dono.
+Continuar no plano Free. Não mudar câmera, frequência de alertas ou regras do Telegram para economizar consultas. Os quatro itens foram retomados por autorização do dono em 28/10. As investigações de cotas e CPU acima continuam abertas; não são consideradas resolvidas por estas mudanças.
 
 Validação do filtro manual: [evidência dos checks e publicação](audits/build-watch-paths-manual-20261027.json). A API continua retornando 403; isso não desfaz a configuração manual confirmada pelo dono.
