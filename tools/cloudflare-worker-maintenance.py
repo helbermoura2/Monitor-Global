@@ -18,6 +18,7 @@ WORKER = 'black-sky-9ba0'
 PUBLIC = 'https://black-sky-9ba0.terrestre.workers.dev'
 MARKER = 'removed-no-kv-v1'
 WORKER_MODULES = 'maintenance-modules-v1'
+GLOBAL_SEISMIC_POLICY = 'global-usgs-emsc-geofon-v1'
 TELEGRAM_SOLUTION_POLICY = 'reviewed-seismic-priority-v1'
 TELEGRAM_IMAGE_STATUS = 'editorial-v17'
 REQUEST_BUDGET = 'durable-request-budget-v1'
@@ -25,7 +26,7 @@ SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
 DEMAND_BUDGET = 'demand-enrichment-v1'
 PUBLIC_SOURCE_RUNTIME = 'edge-collectors-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = 'a0df7123acd5d2565c1bf7ee29ac12a04f5c2557c62fac60db6d8eeeb7077e4a'
+BUNDLE_SHA256 = '173adc9c8ff0d5e1f915442b8a93cde7f60d3987825416fa1c9a59c0ea43ebaa'
 
 class MaintenanceError(Exception):
     pass
@@ -120,7 +121,7 @@ def verify_public(check=public_health, wait=time.sleep, attempts=25):
     for attempt in range(attempts):
         try:
             health=check()
-            if health.get('publicSourceRuntime')==PUBLIC_SOURCE_RUNTIME and health.get('demandBudget')==DEMAND_BUDGET and health.get('sourceEdgeBudget')==SOURCE_EDGE_BUDGET and health.get('durableRequestBudget')==REQUEST_BUDGET and health.get('workerModules')==WORKER_MODULES and health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True and health.get('telegramStorage')=='durable-history-v1' and health.get('telegramSolutionPolicy')==TELEGRAM_SOLUTION_POLICY and health.get('telegramImageStatus')==TELEGRAM_IMAGE_STATUS and health.get('sharedSources',{}).get('version')=='shared-sources-v1' and health.get('sharedSources',{}).get('enabled') is True:return health
+            if health.get('publicSourceRuntime')==PUBLIC_SOURCE_RUNTIME and health.get('demandBudget')==DEMAND_BUDGET and health.get('sourceEdgeBudget')==SOURCE_EDGE_BUDGET and health.get('durableRequestBudget')==REQUEST_BUDGET and health.get('workerModules')==WORKER_MODULES and health.get('electionPolls')==MARKER and health.get('kvOptimization')==OPTIMIZATION and health.get('kvUsageMetrics') is True and health.get('telegramStorage')=='durable-history-v1' and health.get('telegramSolutionPolicy')==TELEGRAM_SOLUTION_POLICY and health.get('telegramImageStatus')==TELEGRAM_IMAGE_STATUS and health.get('globalSeismicPolicy')==GLOBAL_SEISMIC_POLICY and health.get('sharedSources',{}).get('version')=='shared-sources-v1' and health.get('sharedSources',{}).get('enabled') is True:return health
         except urllib.error.HTTPError as e:failure='public HTTP '+str(e.code)
         except (OSError,ValueError):failure='public response unavailable or invalid'
         if attempt+1<attempts:wait(5)
@@ -169,14 +170,14 @@ def main():
             provision_metrics(client,metrics_token(token,account))
             report['metricsReadCredentialUpdated']=True
         health=verify_public()
-        report['verified']={'publicSourceRuntime':health.get('publicSourceRuntime'),'demandBudget':health.get('demandBudget'),'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'telegramSolutionPolicy':health.get('telegramSolutionPolicy'),'telegramImageStatus':health.get('telegramImageStatus'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
+        report['verified']={'publicSourceRuntime':health.get('publicSourceRuntime'),'demandBudget':health.get('demandBudget'),'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'telegramSolutionPolicy':health.get('telegramSolutionPolicy'),'globalSeismicPolicy':health.get('globalSeismicPolicy'),'telegramImageStatus':health.get('telegramImageStatus'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'bindingsPreserved':True,'schedulesPreserved':True}
     else:
         # Verify compatibility now; inspection never modifies anything.
         metadata(settings)
         report['deploymentReady']=True
         if mode=='verify':
             health=verify_public()
-            report['verified']={'publicSourceRuntime':health.get('publicSourceRuntime'),'demandBudget':health.get('demandBudget'),'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'telegramSolutionPolicy':health.get('telegramSolutionPolicy'),'telegramImageStatus':health.get('telegramImageStatus'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
+            report['verified']={'publicSourceRuntime':health.get('publicSourceRuntime'),'demandBudget':health.get('demandBudget'),'sourceEdgeBudget':health.get('sourceEdgeBudget'),'durableRequestBudget':health.get('durableRequestBudget'),'workerModules':health.get('workerModules'),'electionPolls':health.get('electionPolls'),'kvOptimization':health.get('kvOptimization'),'kvUsageMetrics':health.get('kvUsageMetrics'),'telegramStorage':health.get('telegramStorage'),'telegramSolutionPolicy':health.get('telegramSolutionPolicy'),'globalSeismicPolicy':health.get('globalSeismicPolicy'),'telegramImageStatus':health.get('telegramImageStatus'),'sharedSources':health.get('sharedSources'),'dailySummaryDesign':health.get('dailySummaryDesign'),'rainbowProtectedBudget':health.get('rainbowNowcast',{}).get('protectedBudget'),'currentConfigurationValid':True,'redeployed':False}
     if mode=='verify':report['sourceProbe']=public_source_probe()
     report['applicationUsage']=read_usage(metrics_token(token,account))
     # Keep binding values, tokens, account ID and raw settings out of logs/artifacts.

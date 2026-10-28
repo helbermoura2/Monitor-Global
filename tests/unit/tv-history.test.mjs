@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {brasiliaDay,historySnapshot,handleTvHistory} from '../../worker/tv-history.mjs';
+import {brasiliaDay,historySnapshot,handleTvHistory as realHandleTvHistory} from '../../worker/tv-history.mjs';
+const handleTvHistory=(request,options)=>realHandleTvHistory(request,{supplemental:async()=>({sources:[]}),...options});
 const now=Date.parse('2026-10-25T22:00:00Z');
 const quake=(id,mag,time)=>({id,properties:{mag,time,updated:time,type:'earthquake',place:'Vanuatu'},geometry:{coordinates:[165,-14,10]}});
 test('daily ranking uses Brasília midnight, largest magnitude first and at most five, including events older than six hours',()=>{
@@ -50,4 +51,12 @@ test('summary and recovered replay include small Brazilian events and merge cros
  const duplicate={...local,id:'us-local',provider:'USGS',properties:{...local.properties,net:'US'}};
  const summary=await(await handleTvHistory(request,{view:'daily',now,cache:null,regional,fetcher:async url=>{assert.equal(url.searchParams.get('minmagnitude'),'0.1');return Response.json({features:[duplicate]});}})).json();
  assert.equal(summary.alerts.length,1);assert.equal(summary.alerts[0].magnitude,1.2);assert.equal(summary.sources.catalogs.EMSC,false);
+});
+
+test('replay and daily summary include a supplemental global M6+ absent from the USGS M6 catalog',async()=>{
+ const supplemental=async()=>({sources:[{provider:'GEOFON',ok:true,events:[{id:'GEOFON-gfz',provider:'GEOFON',globalMultiSource:true,source:'GEOFON',mag:6.09,timeIso:new Date(now-30000).toISOString(),lat:-14,lon:165,depth:10,place:'Vanuatu'}]}]});
+ for(const view of ['replay','daily']){
+  const body=await(await handleTvHistory(new Request('https://test/tv-alerts?policy=telegram-v1&view='+view),{view,now,cache:null,supplemental,regional:async()=>({features:[],catalogs:{USGS:true}}),fetcher:async()=>Response.json({features:[quake('older',6,now-3600000)]})})).json();
+  assert.equal(body.alerts[0].provider,'GEOFON');assert.equal(body.alerts[0].magnitude,6.09);assert.equal(body.sources.catalogs.GEOFON_GLOBAL,true);
+ }
 });

@@ -1,6 +1,6 @@
 # Alertas sísmicos no Telegram
 
-O cron do Worker envia um cartão para cada novo registro de terremoto no Brasil, sem magnitude mínima. A regra global de M6+ continua funcionando. Não depende de uma aba aberta nem do filtro de magnitude da interface.
+O cron do Worker envia um cartão para cada novo registro de terremoto no Brasil, sem magnitude mínima. A regra global de M6+ passa a incluir USGS, EMSC e GEOFON; veja [seleção, deduplicação e limites](alertas-globais-multifonte.md). Não depende de uma aba aberta nem do filtro de magnitude da interface.
 
 As fontes brasileiras consultadas são USP/RSBR, USGS, EMSC e GEOFON. A consulta cobre as últimas 72 horas, permitindo alertar publicações atrasadas. O epicentro é filtrado pela malha nacional do IBGE, para excluir países vizinhos presentes na mesma caixa de busca. O horário do cartão é o horário de origem do tremor, em BRT; pode ser anterior ao momento em que a fonte o publicou. Uma fonte indisponível não bloqueia as outras.
 
@@ -18,7 +18,7 @@ Validação: `node tests/unit/telegram-brazil-check.mjs` usa catálogos e Telegr
 
 Cada alerta novo persiste o `message_id`, o chat e o formato confirmado pelo Telegram. Quando a magnitude, profundidade, epicentro ou estado de revisão muda, o Worker recalcula o cartão e usa `editMessageMedia` para substituir foto e legenda na mesma mensagem. O fallback de texto usa `editMessageText`. Não apaga o alerta: o valor antigo sai da imagem, enquanto a legenda conserva a magnitude inicial, a atual e as últimas revisões.
 
-A mesma fonte produz “Revisão da fonte”; uma rede diferente produz “Nova estimativa”. O ID já conhecido é acompanhado mesmo se a magnitude cair abaixo de M6, consultando o evento USGS individualmente por 72 horas. Estimativas de redes diferentes só compartilham o cartão quando a origem difere até 30 segundos, o epicentro até 50 km (20 km no Brasil) e a magnitude até 1,0 (0,6 no Brasil). Eventos diferentes da mesma rede ficam separados. Estimativas repetidas não alternam o cartão de volta para a magnitude anterior.
+A mesma fonte produz “Revisão da fonte”; uma rede diferente produz “Nova estimativa”. O ID já conhecido é acompanhado mesmo se a magnitude cair abaixo de M6, consultando o evento USGS individualmente por 72 horas; as fontes globais adicionais têm acompanhamento individual limitado e rotativo no mesmo período. Estimativas de redes diferentes só compartilham o cartão quando a origem difere até 30 segundos, o epicentro até 50 km (20 km no Brasil) e a magnitude até 1,0 (0,6 no Brasil). Eventos diferentes da mesma rede ficam separados. Estimativas repetidas não alternam o cartão de volta para a magnitude anterior.
 
 Mudança acumulada de pelo menos 0,3 ou cruzamento de M6/M7 gera um aviso em resposta ao alerta original. Os avisos são agrupados por pelo menos 30 segundos e enviados na consulta seguinte do cron; a edição do cartão é imediata na consulta que detecta a mudança. Uma mudança que volte ao valor anterior durante esse intervalo não gera aviso. O primeiro alerta continua imediato e avisa que a magnitude está sujeita a revisão.
 

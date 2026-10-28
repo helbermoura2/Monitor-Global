@@ -7,6 +7,8 @@ Revisão: 27/10/2026. Para começar: [Guia do dono](../GUIA_DO_DONO.md), [mapa d
 - [Operação e recuperação em uma página](OPERACAO_EM_UMA_PAGINA.md)
 - [Clareza das informações, isolamento e saúde](CONFIANCA_E_ISOLAMENTO.md)
 
+- [Alertas globais multifonte — TV 1.0.23 e Telegram](alertas-globais-multifonte.md)
+
 ## Orientações vigentes
 
 Guias usados na operação atual. Em caso de divergência, conferir código/testes da versão publicada antes de executar instruções antigas. Esta seleção não transforma relatórios em garantias.
