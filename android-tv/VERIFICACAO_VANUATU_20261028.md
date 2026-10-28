@@ -2,7 +2,7 @@
 
 Relato: site mostrou M6,1 após M6,0, sem nova tarja na TV; nome do país teria sido cortado. A imagem mencionada pelo dono não ficou disponível nesta etapa e a versão instalada ainda não foi confirmada.
 
-Evento consultado: **USGS us7000ttlm**, 214 km a noroeste de Port-Olry, origem 28/10 às 02h21m45 UTC (27/10 às 23h21m45 de Brasília). No momento da verificação, USGS FDSN, detalhe e resumo horário retornavam **M6,0**, com publicação revisada às 02h35m12 UTC. O endpoint público da TV tinha o mesmo M6,0, identificador e atualização; todas as fontes do endpoint estavam disponíveis. EMSC retornava M6,0 e GEOFON 5,93. GeoNet não retornou correspondência na consulta realizada.
+Evento inicialmente consultado, antes da chegada da foto: **USGS us7000ttlm**, 214 km a noroeste de Port-Olry, origem 28/10 às 02h21m45 UTC (27/10 às 23h21m45 de Brasília). No momento da verificação, USGS FDSN, detalhe e resumo horário retornavam **M6,0**, com publicação revisada às 02h35m12 UTC. O endpoint público da TV tinha o mesmo M6,0, identificador e atualização; todas as fontes do endpoint estavam disponíveis. EMSC retornava M6,0 e GEOFON 5,93. GeoNet não retornou correspondência na consulta realizada.
 
 Esses dados atuais não provam que nenhuma agência ou resposta anterior tenha mostrado M6,1. O site consolida várias agências; a TV usa USGS nos sismos globais e catálogos adicionais para o Brasil. Uma troca de solução no site não equivale necessariamente a uma revisão do USGS que a TV deva repetir. A causa do episódio relatado continua sem confirmação.
 
@@ -16,3 +16,11 @@ Esses dados atuais não provam que nenhuma agência ou resposta anterior tenha m
 Não houve alteração de fonte, corte de magnitude, frequência, regra de revisão ou execução do app. Foram adicionados testes de regressão, sem novo APK e sem mensagens no Telegram. Para concluir o diagnóstico do episódio específico, falta identificar a fonte mostrada no cartão M6,1 e a versão instalada no aparelho.
 
 [Estado público consultado](../docs/audits/vanuatu-revision-20261028.json).
+
+## Esclarecimento após a foto
+
+A imagem recebida mostra outro registro: **23h59 BRT**, M6,1, 35 km e fontes EMSC/GEOFON. O candidato das 23h21 investigado acima não era esse registro. No evento correto, **USGS us7000ttlt** / **EMSC 20261028_0000049** / **GEOFON gfz2026vciw**, as consultas retornaram USGS M5,6, EMSC M5,6 e GEOFON 6,09 (arredondado para 6,1). São estados consultados agora; não reconstituem todos os valores anteriores de cada agência.
+
+O endpoint da TV contém esse evento como M5,6, `eligible: false`, seguindo a política global USGS M6+. EMSC/GEOFON no aplicativo participam da cobertura do Brasil; não disparam globalmente só por uma dessas agências informar M6+. Isso explica a ausência deste aviso pela política atual; não demonstra falha na detecção de revisão M6,0 → M6,1 da mesma fonte.
+
+A cobertura global da TV difere da consolidação multiagência do site. Ampliá-la exigiria uma escolha explícita de política para conflito entre magnitudes e deduplicação, sem tratar a mudança de agência como uma revisão da mesma fonte. Nenhuma mudança dessa política foi executada nesta investigação.

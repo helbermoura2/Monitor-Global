@@ -19,5 +19,37 @@
     "eligible": true,
     "catalog": "USGS"
   },
-  "scope": "Estado no momento da consulta, não histórico de todas as revisões. Sem estado privado do aparelho."
+  "scope": "Estado no momento da consulta, não histórico de todas as revisões. Sem estado privado do aparelho.",
+  "photoClarification": {
+    "checkedAt": "2026-10-28T03:23:38.225666+00:00",
+    "photoOriginBRT": "27/10/2026 23:59",
+    "photoMagnitude": 6.1,
+    "photoDepthKm": 35,
+    "photoSources": [
+      "EMSC",
+      "GEOFON"
+    ],
+    "correctEventId": "us7000ttlt",
+    "usgsNow": {
+      "mag": 5.6,
+      "time": 1793156388387,
+      "updated": 1793157648537,
+      "coordinates": [
+        165.8001,
+        -14.0693,
+        10
+      ]
+    },
+    "emscNow": {
+      "id": "20261028_0000049",
+      "mag": 5.6,
+      "time": "2026-10-28T02:59:48.387Z"
+    },
+    "geofonNow": {
+      "id": "gfz2026vciw",
+      "mag": 6.09,
+      "time": "2026-10-28T02:59:49.2Z"
+    },
+    "finding": "A foto é de outro evento, às 23h59 BRT. O evento inicialmente investigado era às 23h21 BRT. A TV usa USGS para limiar global; neste evento o USGS informa 5.6."
+  }
 }
