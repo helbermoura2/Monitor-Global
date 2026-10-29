@@ -1,5 +1,6 @@
 import {readBoundedText} from "./worker/http.mjs";
 import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from "./worker/proxy-security.mjs";
+import {TV_TARGET_POLICY} from "./worker/tv-target-areas.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
@@ -1988,6 +1989,7 @@ async function handleWorkerRequest(request,env,ctx){
                 telegramStorage: 'durable-history-v1',
                 telegramSolutionPolicy: TELEGRAM_SOLUTION_POLICY,
                 globalSeismicPolicy: GLOBAL_SEISMIC_POLICY,
+                tvTargetPolicy: TV_TARGET_POLICY,
                 telegramImageStatus: 'editorial-v17',
                 telegramTsunamiCard: 'tsunami-coastal-v1',
                 tvAlerts: 'tv-alerts-v1',

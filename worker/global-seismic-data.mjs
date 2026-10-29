@@ -42,7 +42,7 @@ export function trackedGlobalEvents(records,now=Date.now()){
 export function createGlobalSupplementCollector({fetcher=(...args)=>fetch(...args),clock=()=>Date.now(),cache=()=>globalThis.caches?.default,ttl=60000}={}){
  const memory=new Map(),jobs=new Map(),followCursor={};
  async function read(provider,scope,params){
-  const now=clock(),key=provider+':'+scope,urlKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__global-seismic-v1/'+encodeURIComponent(key));
+  const now=clock(),key=provider+':'+scope,urlKey=new Request('https://black-sky-9ba0.terrestre.workers.dev/__global-seismic-v2/'+encodeURIComponent(key));
   let old=memory.get(key);if(!old)try{const hit=await cache()?.match(urlKey);if(hit){const d=await hit.json();if(Number.isFinite(d.at)&&Array.isArray(d.events)&&d.events.length<100&&(d.retryAt>now||now-d.at<6*3600000))old=d;}}catch{}
   if(old?.retryAt>now)return {provider,ok:false,events:old.events.slice()};
   if(old&&old.at>0&&now-old.at<ttl)return {provider,ok:true,events:old.events.slice()};
@@ -63,7 +63,7 @@ export function createGlobalSupplementCollector({fetcher=(...args)=>fetch(...arg
   return jobs.get(key);
  }
  return async function collect({tracked=[],start,end,scope='recent',summary=false}={}){
-  const now=clock(),params={starttime:start||new Date(now-6*3600000).toISOString(),endtime:end||new Date(now+300000).toISOString(),minmagnitude:summary?6:5.5,limit:100,orderby:'time'};
+  const now=clock(),params={starttime:start||new Date(now-6*3600000).toISOString(),endtime:end||new Date(now+300000).toISOString(),minmagnitude:summary?6:5,limit:100,orderby:'time'};
   const sources=await Promise.all(GLOBAL_PROVIDERS.map(p=>read(p,scope,params)));
   if(!summary)await Promise.all(sources.filter(s=>s.ok).map(async source=>{
    const all=trackedGlobalEvents(tracked,now).filter(e=>e.provider===source.provider&&!source.events.some(r=>r.id===e.id));

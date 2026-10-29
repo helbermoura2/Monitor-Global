@@ -1,6 +1,7 @@
 package top.monitorglobal.tv;
 public final class Alert {
  public final String id,kind,version,title,detail,state;public final long issuedAt,eventTime;public final boolean eligible;
+ public java.util.List<String> targetAreas=new java.util.ArrayList<>();public String targetArea="";public boolean compact;
  public String provider="",catalog="";public java.util.List<String> aliases=new java.util.ArrayList<>();
  public String source="",countryCode="",tsunamiSummary="",relatedQuakeId="",revision="";
  public double magnitude=Double.NaN,depth=Double.NaN,previousMagnitude=Double.NaN;
@@ -10,7 +11,7 @@ public final class Alert {
  public Alert companion;
  public Alert(String id,String kind,String version,String title,String detail,String state,long issuedAt,long eventTime,boolean eligible){this.id=id;this.kind=kind;this.version=version;this.title=title;this.detail=detail;this.state=state;this.issuedAt=issuedAt;this.eventTime=eventTime;this.eligible=eligible;}
  public boolean quietInformation(){return kind.equals("tsunami")&&state.equals("noThreat");}
- public Alert copy(){Alert out=new Alert(id,kind,version,title,detail,state,issuedAt,eventTime,eligible);out.mapJson=mapJson;out.legacyVersion=legacyVersion;out.bulletinProduct=bulletinProduct;out.officialEventId=officialEventId;out.originTime=originTime;out.originLongitude=originLongitude;out.originLatitude=originLatitude;out.provider=provider;out.catalog=catalog;out.aliases=new java.util.ArrayList<>(aliases);out.populationSummary=populationSummary;out.nearbySummary=nearbySummary;out.source=source;out.countryCode=countryCode;out.tsunamiSummary=tsunamiSummary;out.relatedQuakeId=relatedQuakeId;out.magnitude=magnitude;out.depth=depth;out.previousMagnitude=previousMagnitude;out.revision=revision;return out;}
+ public Alert copy(){Alert out=new Alert(id,kind,version,title,detail,state,issuedAt,eventTime,eligible);out.mapJson=mapJson;out.targetArea=targetArea;out.targetAreas=new java.util.ArrayList<>(targetAreas);out.compact=compact;out.legacyVersion=legacyVersion;out.bulletinProduct=bulletinProduct;out.officialEventId=officialEventId;out.originTime=originTime;out.originLongitude=originLongitude;out.originLatitude=originLatitude;out.provider=provider;out.catalog=catalog;out.aliases=new java.util.ArrayList<>(aliases);out.populationSummary=populationSummary;out.nearbySummary=nearbySummary;out.source=source;out.countryCode=countryCode;out.tsunamiSummary=tsunamiSummary;out.relatedQuakeId=relatedQuakeId;out.magnitude=magnitude;out.depth=depth;out.previousMagnitude=previousMagnitude;out.revision=revision;return out;}
  /** Conservative same-product identity; never lets another region/product cancel this one. */
  public static boolean sameBulletin(Alert a,Alert b){
   if(a==null||b==null||!a.kind.equals("tsunami")||!b.kind.equals("tsunami"))return false;

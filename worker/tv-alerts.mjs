@@ -12,7 +12,7 @@ export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=glob
  if(view==='daily'||view==='replay'||view==='completed')return handleTvHistory(request,{view,now,cache,env});
  const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'ETag','Content-Type':'application/json','Cache-Control':'public, max-age=20','X-Monitor-TV':VERSION};
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
- const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-alerts-v3');let snapshot;
+ const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-alerts-v4');let snapshot;
  try{const hit=await cache?.match(key);if(hit)snapshot=await hit.json();}catch{}
  if(!snapshot||now-snapshot.serverTime>30000){if(last&&now-last.serverTime<30000)snapshot=last;else{if(!inflight)inflight=(read?read():collect(env)).finally(()=>inflight=null);snapshot=await inflight;last=snapshot;try{await cache?.put(key,new Response(JSON.stringify(snapshot),{headers:{'Content-Type':'application/json','Cache-Control':'public, max-age=25'}}));}catch{}}}
  if(expanded)snapshot={...snapshot,policy:'telegram-v1'};else if(snapshot.sources.catalogs)snapshot={...snapshot,sources:{earthquake:snapshot.sources.catalogs.USGS,tsunami:snapshot.sources.tsunami},alerts:snapshot.alerts.filter(a=>a.kind!=='earthquake'||a.provider==='USGS'&&a.magnitude>=5.5)};

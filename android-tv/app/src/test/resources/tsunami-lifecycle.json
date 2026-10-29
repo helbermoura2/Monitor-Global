@@ -15,6 +15,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102400000,
         "sources": {
@@ -133,6 +134,7 @@
       "expected": 4,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102460000,
         "sources": {
@@ -3113,6 +3115,8 @@
             "countryCode": "",
             "magnitude": 7.2,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -3234,6 +3238,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102520000,
         "sources": {
@@ -6214,6 +6219,8 @@
             "countryCode": "",
             "magnitude": 7.2,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -6335,6 +6342,7 @@
       "expected": 2,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102580000,
         "sources": {
@@ -6357,6 +6365,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -9418,6 +9428,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102640000,
         "sources": {
@@ -12495,6 +12506,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102700000,
         "sources": {
@@ -15475,6 +15487,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -15597,6 +15611,7 @@
       "expected": 1,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102760000,
         "sources": {
@@ -18577,6 +18592,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -18699,6 +18716,7 @@
       "expected": 1,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102820000,
         "sources": {
@@ -21679,6 +21697,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -21801,6 +21821,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102880000,
         "sources": {
@@ -24781,6 +24802,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -24825,6 +24848,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793102940000,
         "sources": {
@@ -24847,6 +24871,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -24969,6 +24995,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793103000000,
         "sources": {
@@ -27949,6 +27976,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -28071,6 +28100,7 @@
       "expected": 1,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793103060000,
         "sources": {
@@ -31051,6 +31081,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -31095,6 +31127,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793103120000,
         "sources": {
@@ -31117,6 +31150,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -31239,6 +31274,7 @@
       "expected": 0,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793103180000,
         "sources": {
@@ -34219,6 +34255,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
@@ -34342,6 +34380,7 @@
       "expected": 1,
       "snapshot": {
         "version": "tv-alerts-v1",
+        "targetPolicy": "populated-areas-m5-v1",
         "tsunamiPolicy": "regional-lifecycle-v2",
         "serverTime": 1793103240000,
         "sources": {
@@ -37322,6 +37361,8 @@
             "countryCode": "",
             "magnitude": 6.9,
             "depth": 10,
+            "targetArea": "",
+            "targetAreas": [],
             "originLongitude": 166,
             "originLatitude": -14,
             "originTime": 1793102340000,
