@@ -18,7 +18,7 @@ Atualizar por **Verificar atualização oficial**, sem desinstalar. O botão **C
 
 O cartão dura cerca de 12 segundos, com entrada e saída suaves, limitado também à validade da fonte. Gotas somente para chuva estimada agora, sem som, flashes, áudio de trovão ou efeito contínuo. Respeita animações reduzidas do sistema. Neve não recebe animação de chuva.
 
-Mostra mudanças de condição: aproximação, início, faixa de intensidade e retirada da previsão. Primeiro estado seco é silencioso. A mesma condição não reaparece a cada minuto; há proteção de repetição entre reinicializações, com mínimo de dois minutos entre estados diferentes e dez entre faixas de intensidade. Dados ausentes/vencidos nunca viram “sem chuva”. O estado aparece na tela de configuração mesmo quando um alerta prioritário impede o cartão.
+Mostra mudanças de condição: aproximação, início, faixa de intensidade e retirada da previsão. Primeiro estado seco é silencioso. A mesma condição não reaparece a cada minuto; há proteção de repetição entre reinicializações, com mínimo de dois minutos entre estados diferentes e dez entre faixas de intensidade. Depois de mais de 20 minutos sem uma estimativa válida observada, a próxima leitura válida inicia uma nova referência: chuva atual pode ser informada novamente, enquanto seco inicial continua silencioso. Dados ausentes/vencidos nunca viram “sem chuva”. O estado aparece na tela de configuração mesmo quando um alerta prioritário impede o cartão.
 
 ## Prioridade e desempenho
 
