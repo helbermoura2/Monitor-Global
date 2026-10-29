@@ -1,5 +1,7 @@
 # Monitor Global TV
 
+**Versão 1.0.25:** [cartão e gotas de chuva em São Paulo](../docs/tv-chuva-sao-paulo.md), com estimativa por minuto, modos opcionais e prioridade sísmica.
+
 **Versão 1.0.24:** [avisos menores M5+ em áreas monitoradas](../docs/tv-areas-monitoradas-m5.md), com seleção de regiões, teste fictício e prioridade da tarja principal. Atualize pela opção **Verificar atualização oficial**, sem desinstalar.
 
 Notificações de sismos M6+ globais, sismos no Brasil sem corte mínimo e boletins oficiais de tsunami para Google TV e Fire TV, sem Telegram ou serviços Google no aplicativo. A prévia já foi testada pelo proprietário com a faixa sobre outro aplicativo no Fire Stick.
