@@ -155,3 +155,5 @@ Documentos de projeto preservados para consulta. Não foram todos revalidados li
 - Ao mudar comportamento, atualizar o guia correspondente e mover relatórios concluídos para histórico. Registrar pendências no relatório da investigação; não criar versões concorrentes do mesmo guia.
 
 - [TV: aviso menor M5+ em áreas monitoradas, regras e publicação](tv-areas-monitoradas-m5.md).
+
+- [TV: cartão e efeito curto de chuva em São Paulo](tv-chuva-sao-paulo.md).
