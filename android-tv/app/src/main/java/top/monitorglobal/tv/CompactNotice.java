@@ -29,5 +29,5 @@ final class CompactNotice {
  }
  private void line(LinearLayout card,String value,int size,int color,Typeface face){TextView text=new TextView(context);text.setText(value);text.setTextSize(size);text.setTextColor(color);text.setTypeface(face);text.setSingleLine(true);text.setEllipsize(TextUtils.TruncateAt.MARQUEE);text.setMarqueeRepeatLimit(1);text.setSelected(true);card.addView(text,new LinearLayout.LayoutParams(-1,-2));}
  private void exit(){if(current==null)return;View card=current;if(!android.animation.ValueAnimator.areAnimatorsEnabled()){hide();return;}card.animate().alpha(0).translationY(dp(12)).setDuration(180).withEndAction(()->{if(current==card)hide();}).start();}
- void hide(){main.removeCallbacksAndMessages(null);if(current!=null){current.animate().cancel();try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}if(tone!=null){tone.release();tone=null;}}
+ void hide(){main.removeCallbacksAndMessages(null);try{context.getSystemService(NotificationManager.class).cancel(2);}catch(RuntimeException ignored){}if(current!=null){current.animate().cancel();try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}if(tone!=null){tone.release();tone=null;}}
 }

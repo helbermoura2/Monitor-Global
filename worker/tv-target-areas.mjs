@@ -2,9 +2,10 @@
 // Radius includes nearby offshore faults. No geocoding, new polling or paid service.
 export const TV_TARGET_POLICY='populated-areas-m5-v1';
 export const TV_TARGET_AREAS=[["Istambul / Mármara · Turquia", 41.01, 28.98, 180], ["Izmir · Turquia", 38.42, 27.14, 160], ["Gaziantep / Aleppo · Turquia e Síria", 36.8, 37.2, 220], ["Teerã · Irã", 35.69, 51.39, 180], ["Tabriz · Irã", 38.08, 46.29, 160], ["Cabul / Hindu Kush · Afeganistão", 34.56, 69.21, 220], ["Herat · Afeganistão", 34.35, 62.2, 180], ["Katmandu · Nepal", 27.72, 85.32, 200], ["Islamabad / Caxemira · Paquistão", 33.7, 73.1, 230], ["Porto Príncipe · Haiti", 18.54, -72.34, 200], ["Jacarta / Bandung · Indonésia", -6.6, 107.1, 230], ["Yogyakarta · Indonésia", -7.8, 110.37, 200], ["Padang · Indonésia", -0.95, 100.35, 220], ["Banda Aceh · Indonésia", 5.55, 95.32, 220], ["Manila · Filipinas", 14.6, 120.98, 220], ["Cebu · Filipinas", 10.32, 123.9, 180], ["Davao · Filipinas", 7.07, 125.61, 200], ["Tóquio · Japão", 35.68, 139.69, 220], ["Osaka / Kobe · Japão", 34.69, 135.3, 200], ["Taipei / Hualien · Taiwan", 24.4, 121.5, 200], ["Santiago / Valparaíso · Chile", -33.2, -71.0, 230], ["Concepción · Chile", -36.83, -73.05, 220], ["Port Vila · Vanuatu", -17.74, 168.32, 180], ["Luganville · Vanuatu", -15.51, 167.18, 180], ["Cidade do México / Puebla · México", 19.2, -98.8, 220], ["Oaxaca · México", 17.07, -96.72, 220], ["Lima · Peru", -12.05, -77.04, 220], ["Arequipa · Peru", -16.4, -71.54, 220], ["Quito · Equador", -0.18, -78.47, 200], ["Mandalay · Myanmar", 21.98, 96.08, 220], ["Wellington · Nova Zelândia", -41.29, 174.78, 180], ["Christchurch · Nova Zelândia", -43.53, 172.64, 180]];
-export function tvTargetArea(lon,lat,mag,depth){
- if(![lon,lat,mag,depth].every(Number.isFinite)||Math.abs(lon)>180||Math.abs(lat)>90||mag<5||mag>=6||depth<0||depth>70)return '';
+export function tvTargetAreas(lon,lat,mag,depth){
+ if(![lon,lat,mag,depth].every(Number.isFinite)||Math.abs(lon)>180||Math.abs(lat)>90||mag<5||mag>=6||depth<0||depth>70)return [];
  const rad=Math.PI/180;
  const matches=TV_TARGET_AREAS.map(([name,y,x,radius])=>{const d=Math.sin((lat-y)*rad/2)**2+Math.cos(lat*rad)*Math.cos(y*rad)*Math.sin((lon-x)*rad/2)**2;return {name,radius,km:12742*Math.asin(Math.sqrt(Math.min(1,d)))};}).filter(a=>a.km<=a.radius).sort((a,b)=>a.km-b.km);
- return matches[0]?.name||'';
+ return matches.map(a=>a.name);
 }
+export const tvTargetArea=(...args)=>tvTargetAreas(...args)[0]||'';

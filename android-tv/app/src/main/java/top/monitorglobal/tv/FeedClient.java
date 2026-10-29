@@ -4,6 +4,7 @@ final class FeedClient {
  static final String ENDPOINT="https://black-sky-9ba0.terrestre.workers.dev/tv-alerts";
  static final class Snapshot {List<Alert> alerts=new ArrayList<>();boolean quakeOk,tsunamiOk,unchanged,complete;String day="";long asOf;Map<String,Boolean> catalogs=new LinkedHashMap<>();}
  private String etag="";
+ void invalidate(){etag="";}
  Snapshot read() throws IOException,JSONException {return read("");}
  Snapshot history(String view) throws IOException,JSONException {if(!view.equals("daily")&&!view.equals("replay")&&!view.equals("completed"))throw new IOException("Histórico inválido");return read(view);}
  private Snapshot read(String view) throws IOException,JSONException {

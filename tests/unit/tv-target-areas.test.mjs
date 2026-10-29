@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {tvTargetArea,TV_TARGET_AREAS,TV_TARGET_POLICY} from '../../worker/tv-target-areas.mjs';
+import {tvTargetArea,tvTargetAreas,TV_TARGET_AREAS,TV_TARGET_POLICY} from '../../worker/tv-target-areas.mjs';
 import {tvSnapshot} from '../../worker/tv-snapshot.mjs';
 test('populated watch areas use bounded geography and a raw M5 threshold, not rounded values or country strings',()=>{
  for(const [name,lat,lon]of TV_TARGET_AREAS)assert.equal(typeof tvTargetArea(lon,lat,5.4,12),'string'),assert(tvTargetArea(lon,lat,5.4,12),name);
@@ -13,3 +13,5 @@ test('a target is separate from primary eligibility, Brazil and M6+ keep their r
 test('the TV list displayed to the owner matches the authoritative geographic list',()=>{
  const java=fs.readFileSync(new URL('../../android-tv/app/src/main/java/top/monitorglobal/tv/TargetAreaNames.java',import.meta.url),'utf8');for(const [name]of TV_TARGET_AREAS)assert(java.includes(JSON.stringify(name)),name);assert.equal(TV_TARGET_AREAS.length,32);
 });
+
+test("overlapping watch areas retain every match so selecting one area cannot hide another",()=>{const matches=tvTargetAreas(168,-16.5,5.4,12);assert(matches.length>=2);assert(matches.some(n=>n.includes("Port Vila")));assert(matches.some(n=>n.includes("Luganville")));});
