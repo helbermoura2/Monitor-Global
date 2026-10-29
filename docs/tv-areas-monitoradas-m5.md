@@ -34,3 +34,7 @@ Os resumos e o corte do Telegram permanecem inalterados. Coleta de catálogo nã
 ## Verificação
 
 Testes offline cobrem geografia, corte sem arredondamento, profundidade ausente/profunda, M6/Brasil preservados, baseline silenciosa, repetição, aliases, promoção para M6, fila limitada e expiração. O teste Android nativo desenha o cartão e verifica fechamento/liberação da sobreposição e do som. Isso não substitui verificar o novo visual na TCL e no Fire Stick. Não foram enviadas mensagens reais de teste ao Telegram.
+
+## Publicação verificada em 29/10/2026
+
+PR #546 integrada. Worker publicado pelo fluxo 40833030756, com marcador público conferido e sete catálogos disponíveis. APK oficial 1.0.24 publicado pelo fluxo 40833033792 e disponibilizado no site; arquivo público, hash SHA-256, pacote, versão e assinatura oficial conferidos. Passaram 192 testes modulares Worker e verificações de entrega isoladas, 76 testes Android/JVM/Skia, lint/compilação, 11 guardas de manutenção, 5 de distribuição e regressões do navegador. O instantâneo público não tinha um M5 enquadrado nos alvos no momento da verificação; os casos de disparo e promoção para M6 foram testados offline, sem gerar alerta real. Evidências: [auditoria de publicação](audits/tv-m5-watch-areas-20261029.json). A confirmação do visual nos aparelhos do proprietário ainda depende do botão de teste fictício.

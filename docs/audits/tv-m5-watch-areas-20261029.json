@@ -1,0 +1,57 @@
+{
+  "verifiedAt": "2026-10-29T07:06:38.064728+00:00",
+  "pullRequest": 546,
+  "mergeCommit": "c437e6a627ef1f17d7bfc5be67e77eccd815f839",
+  "releaseArtifactCommit": "3bf80f60e4d6b031fe69efcbdaefc11a057463fb",
+  "runs": {
+    "androidPreview": 40832528628,
+    "browserRegressions": 40832528500,
+    "workerDeployment": 40833030756,
+    "officialApk": 40833033792,
+    "publicPages": 40833179109
+  },
+  "tests": {
+    "workerModular": 192,
+    "workerDeliveryChecks": "passed, mocked",
+    "android": 76,
+    "androidFailures": 0,
+    "maintenanceGuards": 11,
+    "distributionGuards": 5
+  },
+  "publicVerification": {
+    "health": {
+      "globalSeismicPolicy": "global-usgs-emsc-geofon-v1",
+      "tvTargetPolicy": "populated-areas-m5-v1",
+      "tvAlerts": "tv-alerts-v1"
+    },
+    "feed": {
+      "policy": "telegram-v1",
+      "targetPolicy": "populated-areas-m5-v1",
+      "catalogs": {
+        "USGS": true,
+        "USGS_BR": true,
+        "USP": true,
+        "EMSC": true,
+        "GEOFON": true,
+        "EMSC_GLOBAL": true,
+        "GEOFON_GLOBAL": true
+      },
+      "alerts": 5,
+      "targetCandidates": 0
+    }
+  },
+  "apk": {
+    "version": "1.0.24",
+    "sha256": "69ce58a20fa6d29373b6abf137544c684f2bdd0c38816e09e67316ff924d1464",
+    "bytes": 1713731,
+    "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82"
+  },
+  "workerBundleSha256": "0295ad45de553d9c62d7c9fad0f4ad230e694492994919232b7dd6d44c307545",
+  "limitations": [
+    "32 operational geographic watch areas, not exhaustive risk ranking or damage forecast",
+    "No physical TCL/Fire Stick validation of the new compact card yet",
+    "No live synthetic Telegram or push alert sent",
+    "No matching current M5 target in the public snapshot; eligibility and promotion tested offline",
+    "Quota effect requires subsequent measurement"
+  ]
+}
