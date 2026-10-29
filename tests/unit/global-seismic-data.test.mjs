@@ -21,7 +21,7 @@ test('any qualifying agency can trigger, but selection is stable and never choos
 });
 test('shared cache deduplicates concurrent TV/Telegram reads, retains failed source without fake freshness and recovers',async()=>{
  let at=now,calls=0,fail=false;const stored=new Map(),cache={match:async k=>stored.get(k.url)?.clone(),put:async(k,v)=>stored.set(k.url,v.clone())};
- const fetcher=async input=>{calls++;const u=new URL(input);assert.equal(u.searchParams.get('minmagnitude'),'5.5');if(fail)throw Error('offline');return u.hostname.includes('seismicportal')?Response.json({features:[feature()]}):new Response(text());};
+ const fetcher=async input=>{calls++;const u=new URL(input);assert.equal(u.searchParams.get('minmagnitude'),'5');if(fail)throw Error('offline');return u.hostname.includes('seismicportal')?Response.json({features:[feature()]}):new Response(text());};
  const create=()=>createGlobalSupplementCollector({fetcher,clock:()=>at,cache:()=>cache});let read=create();const values=await Promise.all([read(),read(),read()]);assert.equal(calls,2);assert(values.every(v=>v.failedSources.length===0));
  read=create();await read();assert.equal(calls,2,'cold instance reuses edge response');
  at+=61000;fail=true;const stale=await read();assert.equal(calls,4);assert.equal(stale.failedSources.length,2);assert(stale.sources.every(s=>s.events.length===1));await read();assert.equal(calls,4,'failed sources back off');read=create();assert.equal((await read()).failedSources.length,2);assert.equal(calls,4,'negative cache also survives a cold instance');

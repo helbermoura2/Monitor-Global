@@ -153,3 +153,5 @@ Documentos de projeto preservados para consulta. Não foram todos revalidados li
 - [Dados móveis históricos](mobile-performance-data/): medições anteriores, não estado atual.
 - Licenças de fontes: `Inter-OFL.txt` e `Summary-Fonts-LICENSE.txt`.
 - Ao mudar comportamento, atualizar o guia correspondente e mover relatórios concluídos para histórico. Registrar pendências no relatório da investigação; não criar versões concorrentes do mesmo guia.
+
+- [TV: aviso menor M5+ em áreas monitoradas, regras e publicação](tv-areas-monitoradas-m5.md).
