@@ -35,3 +35,7 @@ Reconstruir o pacote Worker e publicar por **Cloudflare Worker maintenance → d
 Para desativar imediatamente, desligar a opção de resumo horário. Correções de APK usam versão maior e a mesma assinatura; reversão do Worker segue o guia existente, preservando configuração/bindings/cron.
 
 Testes cobrem dados ausentes, unidade de vento, validade, ponto, intervalo de uma hora, retomada após sono, prioridade, deduplicação de rede, manual com automáticos desligados, fechamento e desenho real no host Android/Skia. Não substituem conferir aparência e composição gráfica na TCL/Fire Stick. Não há envio de alertas reais de teste ao Telegram.
+
+## Publicação verificada
+
+Versão 1.0.29 e Worker publicados. A resposta pública do ponto da Liberdade trouxe temperatura, sensação, umidade, vento e rajadas válidos; a condição horária não veio no resultado em cache e permanece explicitamente desconhecida. APK público com pacote, versão, hash e assinatura oficial conferidos. Passaram 94 testes Android/JVM/Skia, compilação/lint, 204 testes modulares Worker, verificações isoladas de entrega, guardas e regressões do navegador. [Evidências](audits/tv-hourly-weather-20261030.json). O visual físico nos aparelhos ainda deve ser conferido pelo proprietário.

@@ -1,0 +1,63 @@
+{
+  "verifiedAt": "2026-10-30T02:42:43.234287+00:00",
+  "pullRequest": 551,
+  "mergeCommit": "74d628686629234989fa89ee9c0bd070efa9d14e",
+  "artifactCommit": "204b80cc44c9df16f6c7a78f91a937b2db2e1c4a",
+  "runs": {
+    "androidPreview": 40992561853,
+    "browserRegressions": 40992561924,
+    "workerDeployment": 40992591602,
+    "officialRelease": 40992594623,
+    "pages": 40992730439
+  },
+  "tests": {
+    "androidJvmSkia": 94,
+    "workerModular": 204,
+    "maintenanceGuards": 11,
+    "distributionGuards": 5
+  },
+  "publicWeather": {
+    "policy": "liberdade-hourly-weather-v1",
+    "weather": {
+      "version": "tv-weather-v1",
+      "ok": true,
+      "area": "liberdade",
+      "source": "Rainbow Weather",
+      "at": 1793327433576,
+      "generatedAt": 1793327433000,
+      "expiresAt": 1793329200000,
+      "loc": {
+        "lat": -23.555,
+        "lng": -46.635
+      }
+    },
+    "availableFields": {
+      "temperature": true,
+      "feels": true,
+      "humidity": true,
+      "wind": true,
+      "gust": true
+    },
+    "conditionAvailable": false
+  },
+  "publicApk": {
+    "version": "1.0.29",
+    "versionCode": 10029,
+    "sha256": "c7b7fbd4e1dce7fbe2de5c741631089ec3e682b809f716fc74b48b80fc3ed8e0",
+    "bytes": 1738307,
+    "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82"
+  },
+  "workerBundleSha256": "f8d3f7bd3c2cd219785b62b708060318cd6672ca78fa6b56e99073c2490b0d33",
+  "schedule": {
+    "durationSeconds": 12,
+    "minimumAutomaticIntervalMinutes": 60,
+    "checkPulseMinutes": 1,
+    "enabledByDefault": true
+  },
+  "limitations": [
+    "Physical TCL/Fire Stick rendering and composition still require device validation",
+    "Hourly condition was not supplied in the live cached result and remains explicitly unknown",
+    "Model estimates are not ground measurements",
+    "Free quotas remain protected; extra reads must be measured"
+  ]
+}
