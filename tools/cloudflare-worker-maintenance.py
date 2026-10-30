@@ -18,7 +18,7 @@ WORKER = 'black-sky-9ba0'
 PUBLIC = 'https://black-sky-9ba0.terrestre.workers.dev'
 MARKER = 'removed-no-kv-v1'
 WORKER_MODULES = 'maintenance-modules-v1'
-TV_RAIN_POLICY = 'sp-minute-rain-v1'
+TV_RAIN_POLICY = 'liberdade-minute-rain-v2'
 TV_TARGET_POLICY = 'populated-areas-m5-v1'
 GLOBAL_SEISMIC_POLICY = 'global-usgs-emsc-geofon-v1'
 TELEGRAM_SOLUTION_POLICY = 'reviewed-seismic-priority-v1'
@@ -28,7 +28,7 @@ SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
 DEMAND_BUDGET = 'demand-enrichment-v1'
 PUBLIC_SOURCE_RUNTIME = 'edge-collectors-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = '98b3cd9d60da9fde353d213eb4521626609562e32516a13db5ed4ca083bb9b28'
+BUNDLE_SHA256 = 'b42d7e35ef4c685c53fa3d60255de3bf93ccd6381a0cb335ac2f7ddcd7ee0790'
 
 class MaintenanceError(Exception):
     pass
