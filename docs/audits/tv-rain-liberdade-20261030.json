@@ -1,0 +1,53 @@
+{
+  "verifiedAt": "2026-10-30T01:18:26.523604+00:00",
+  "pullRequest": 550,
+  "mergeCommit": "2396adcb48eb7d5f12b76b1bb5ae3fb64ecd8aed",
+  "artifactCommit": "ba040b12e414fe71191b40230a7ac310ea08fd3d",
+  "runs": {
+    "androidPreview": 40984575379,
+    "workerDeployment": 40984737984,
+    "officialRelease": 40984740761,
+    "pages": 40984908009
+  },
+  "tests": {
+    "workerModular": 196,
+    "androidJvmSkia": 88,
+    "maintenanceGuards": 11,
+    "distributionGuards": 5
+  },
+  "publicForecast": {
+    "policy": "liberdade-minute-rain-v2",
+    "rain": {
+      "version": "tv-rain-v1",
+      "ok": true,
+      "area": "liberdade",
+      "source": "Rainbow Weather",
+      "reason": null,
+      "at": 1793323042126,
+      "expiresAt": 1793323642126,
+      "loc": {
+        "lat": -23.555,
+        "lng": -46.635
+      }
+    },
+    "forecastPoints": 233
+  },
+  "publicApk": {
+    "version": "1.0.28",
+    "sha256": "070d53a3990cbc948853a9a367070b7f3413636a1b944249c66adcc136be4519",
+    "bytes": 1730115,
+    "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82"
+  },
+  "workerBundleSha256": "b42d7e35ef4c685c53fa3d60255de3bf93ccd6381a0cb335ac2f7ddcd7ee0790",
+  "reference": {
+    "name": "Praça da Liberdade-Japão, São Paulo",
+    "source": "OpenStreetMap/Nominatim",
+    "lat": -23.555,
+    "lng": -46.635
+  },
+  "limitations": [
+    "Forecast for a reference point, not measurement or uniform coverage of the bairro",
+    "Site and old APKs retain the centro point; both points share existing provider limits",
+    "Physical TV verification of updated label still pending"
+  ]
+}
