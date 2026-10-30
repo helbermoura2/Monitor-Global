@@ -38,3 +38,7 @@ Testes offline cobrem geografia, corte sem arredondamento, profundidade ausente/
 ## Publicação verificada em 29/10/2026
 
 PR #546 integrada. Worker publicado pelo fluxo 40833030756, com marcador público conferido e sete catálogos disponíveis. APK oficial 1.0.24 publicado pelo fluxo 40833033792 e disponibilizado no site; arquivo público, hash SHA-256, pacote, versão e assinatura oficial conferidos. Passaram 192 testes modulares Worker e verificações de entrega isoladas, 76 testes Android/JVM/Skia, lint/compilação, 11 guardas de manutenção, 5 de distribuição e regressões do navegador. O instantâneo público não tinha um M5 enquadrado nos alvos no momento da verificação; os casos de disparo e promoção para M6 foram testados offline, sem gerar alerta real. Evidências: [auditoria de publicação](audits/tv-m5-watch-areas-20261029.json). A confirmação do visual nos aparelhos do proprietário ainda depende do botão de teste fictício.
+
+## Ajuste visual 1.0.27
+
+Após a foto na TCL, o aviso menor passa de no máximo 560 para 400 dp de largura (cerca de 29% mais estreito), com limite proporcional de 44% da tela. Mantém fontes, campos, movimento dos textos longos, posição, oito segundos e regras de disparo. Não altera a tarja principal ou consultas. A atualização requer apenas APK oficial, sem desinstalar.

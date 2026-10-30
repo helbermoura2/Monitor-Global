@@ -19,7 +19,7 @@ final class CompactNotice {
    java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("HH:mm 'BRT'",java.util.Locale.ROOT);format.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));String time=format.format(new java.util.Date(alert.eventTime));
    line(card,depth+" · "+time,15,0xffd6e4ee,Typeface.DEFAULT);
    line(card,alert.targetArea,14,0xffb5c9d5,Typeface.DEFAULT);line(card,"Danos não confirmados",12,0xffb5c9d5,Typeface.DEFAULT);
-   WindowManager.LayoutParams p=new WindowManager.LayoutParams(Math.min(dp(560),context.getResources().getDisplayMetrics().widthPixels*60/100),WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.BOTTOM|Gravity.RIGHT;p.x=dp(32);p.y=dp(32);
+   WindowManager.LayoutParams p=new WindowManager.LayoutParams(Math.min(dp(400),context.getResources().getDisplayMetrics().widthPixels*44/100),WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.BOTTOM|Gravity.RIGHT;p.x=dp(32);p.y=dp(32);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(card,p);current=card;shown=true;
    if(android.animation.ValueAnimator.areAnimatorsEnabled()){card.setAlpha(0);card.setTranslationY(dp(12));card.animate().alpha(1).translationY(0).setDuration(220).start();}
    main.postDelayed(dismiss,DURATION_MS+220);
