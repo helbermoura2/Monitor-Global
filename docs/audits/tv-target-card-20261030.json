@@ -1,0 +1,16 @@
+{
+  "version": "1.0.27",
+  "sha256": "3f166390b849b6aa0212bf0ae57325c9e75a5389174d042297efa5708f21d84e",
+  "bytes": 1730115,
+  "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82",
+  "verifiedAt": "2026-10-30T01:00:48.071343+00:00",
+  "pullRequest": 549,
+  "mergeCommit": "b84f30eb971789dea4d3f69a8725c3169b25e210",
+  "artifactCommit": "7afd6509e3686088f3b554510ddddf67d9637688",
+  "androidPreviewRun": 40982845321,
+  "officialReleaseRun": 40982894506,
+  "pagesRun": 40983042421,
+  "existingAndroidTestsPassed": 87,
+  "workerCodeChanged": false,
+  "physicalVisualConfirmationPending": true
+}

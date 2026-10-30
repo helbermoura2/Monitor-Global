@@ -42,3 +42,5 @@ PR #546 integrada. Worker publicado pelo fluxo 40833030756, com marcador públic
 ## Ajuste visual 1.0.27
 
 Após a foto na TCL, o aviso menor passa de no máximo 560 para 400 dp de largura (cerca de 29% mais estreito), com limite proporcional de 44% da tela. Mantém fontes, campos, movimento dos textos longos, posição, oito segundos e regras de disparo. Não altera a tarja principal ou consultas. A atualização requer apenas APK oficial, sem desinstalar.
+
+Versão 1.0.27 publicada e conferida no endereço público: arquivo, hash, pacote, versão e assinatura oficial válidos. Passaram os 87 testes Android existentes, montagem release, lint e o teste gráfico na largura real da janela, também no CI. [Evidências](audits/tv-target-card-20261030.json). O visual nos aparelhos do proprietário ainda depende do botão de teste.
