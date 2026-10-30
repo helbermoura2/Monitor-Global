@@ -157,3 +157,5 @@ Documentos de projeto preservados para consulta. Não foram todos revalidados li
 - [TV: aviso menor M5+ em áreas monitoradas, regras e publicação](tv-areas-monitoradas-m5.md).
 
 - [TV: cartão e efeito curto de chuva em São Paulo](tv-chuva-sao-paulo.md).
+
+- [TV: resumo do tempo por 12 segundos a cada hora](tv-resumo-tempo-horario.md).

@@ -1,5 +1,7 @@
 # Monitor Global TV
 
+**Versão 1.0.29:** [resumo do tempo na Liberdade](../docs/tv-resumo-tempo-horario.md), com cartão por 12 segundos a cada hora e opção Ver tempo agora.
+
 **Versão 1.0.25:** [cartão e gotas de chuva em São Paulo](../docs/tv-chuva-sao-paulo.md), com estimativa por minuto, modos opcionais e prioridade sísmica.
 
 **Versão 1.0.24:** [avisos menores M5+ em áreas monitoradas](../docs/tv-areas-monitoradas-m5.md), com seleção de regiões, teste fictício e prioridade da tarja principal. Atualize pela opção **Verificar atualização oficial**, sem desinstalar.

@@ -1,6 +1,7 @@
 import {readBoundedText} from "./worker/http.mjs";
 import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from "./worker/proxy-security.mjs";
 import {TV_TARGET_POLICY} from "./worker/tv-target-areas.mjs";
+import {handleTvWeather,TV_WEATHER_POLICY} from "./worker/tv-weather.mjs";
 import {handleTvRain,TV_RAIN_POLICY} from "./worker/tv-rain.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
@@ -1935,6 +1936,7 @@ async function handleWorkerRequest(request,env,ctx){
             if(env.EARTHQUAKE_ALERTS){const id=env.EARTHQUAKE_ALERTS.idFromName('portuguese-translations-v1');return env.EARTHQUAKE_ALERTS.get(id).fetch(request);}
             return handlePortugueseTranslation(request,env);
         }
+        if (reqUrl.pathname === '/tv-weather') return handleTvWeather(request,env);
         if (reqUrl.pathname === '/tv-rain') return handleTvRain(request,env);
         if (reqUrl.pathname === '/tv-alerts') return handleTvAlerts(request,{env:{...env,TV_WAIT_UNTIL:ctx?.waitUntil?.bind(ctx)}});
         if (reqUrl.pathname === '/tsunami-alerts') return json(await getOfficialTsunamis());
@@ -1993,6 +1995,7 @@ async function handleWorkerRequest(request,env,ctx){
                 globalSeismicPolicy: GLOBAL_SEISMIC_POLICY,
                 tvTargetPolicy: TV_TARGET_POLICY,
                 tvRainPolicy: TV_RAIN_POLICY,
+                tvWeatherPolicy: TV_WEATHER_POLICY,
                 telegramImageStatus: 'editorial-v17',
                 telegramTsunamiCard: 'tsunami-coastal-v1',
                 tvAlerts: 'tv-alerts-v1',
