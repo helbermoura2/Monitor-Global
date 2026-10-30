@@ -43,6 +43,7 @@ jobs:
           fi
 
       - name: Validar grades oficiais compactadas
+        if: matrix.shard == '1/3'
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
@@ -52,6 +53,7 @@ jobs:
           python -m unittest discover -s tests/unit -p test_cemaden_alerts.py
 
       - name: Validar lógica local, cotas e dados simulados
+        if: matrix.shard == '1/3'
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs

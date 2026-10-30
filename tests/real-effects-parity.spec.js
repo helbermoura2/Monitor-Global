@@ -63,7 +63,7 @@ for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam 
   if(key==='wind'){await expect(page.locator('.pd-cinema-footage')).toHaveAttribute('src','media/card-fx/gale-canopy.mp4');await expect(page.locator('.pd-gale-field')).toHaveCount(1);}
   expect(actual.selectedId).toBe('parity-'+extra.type);
   // Desktop also types each headline while the wind observer wraps graphemes.
-  await expect(page.locator('#pd-local')).toHaveText('Evento real de teste',{timeout:12000});
+  await expect(page.locator('#pd-local')).toHaveText(extra.type==='tsunami'?'Origem sísmica: Evento real de teste':'Evento real de teste',{timeout:12000});
   expect(await page.evaluate(()=>Object.fromEntries(['pd-local','pd-horario','pd-depth','pd-mercalli','pd-energy'].map(id=>[id,document.getElementById(id).textContent.replace(/\u00a0/g,' ')])))).toEqual(actual.text);
   expect(await page.locator('#pd-share-btn').evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#pd-share-btn')===el;})).toBe(true);
  }
