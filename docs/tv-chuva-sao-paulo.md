@@ -43,3 +43,5 @@ Versão 1.0.25 publicada e conferida no endereço público do site: pacote, núm
 ## Ajuste visual 1.0.26
 
 Após a foto na TCL, o cartão passa de no máximo 580 para 420 dp de largura (cerca de 28% menor), preservando fonte e informações. Gotas ficam mais claras, com maior opacidade, traço de 2 dp, pontas arredondadas e comprimento um pouco maior. Permanecem a quantidade máxima de 48 gotas, a duração, o intervalo de desenho e as prioridades. Não há alteração de consulta ou do Worker; basta atualizar o APK. Desempenho físico da nova espessura ainda deve ser conferido no aparelho.
+
+Atualização oficial 1.0.26 publicada: arquivo público, hash, pacote, versão e assinatura conferidos; passaram os 87 testes Android/JVM/Skia existentes, compilação e lint, também no CI. [Evidências](audits/tv-rain-visibility-20261030.json). Conferência visual da nova espessura nos aparelhos do proprietário ainda pendente.
