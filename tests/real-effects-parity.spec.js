@@ -28,7 +28,7 @@ const realSamples=[
  ['volcano-ash',{type:'volcano',eruptionStatus:'Em erupção',detail:'Emissão de cinzas · sem lava'}],
  ['volcano-monitoring',{type:'volcano',eruptionStatus:'Sem atividade eruptiva',detail:'Em monitoramento'}],
  ['flood',{type:'flood',detail:'Enchente'}],
- ['tsunami',{type:'tsunami',detail:'Tsunami'}],
+ ['tsunami',{type:'tsunami',detail:'Tsunami',official:true,source:'PTWC',hazardNature:'warning',warningLevel:'Aviso',affectedAreas:[{name:'Costa de teste',category:'Warning'}]}],
  ['wind',{type:'wind',detail:'Rajadas de vento'}],
 ];
 for(const width of [1280,390])test('todos os efeitos atmosféricos do Menu usam o mesmo perfil nos eventos reais '+width,async({page})=>{

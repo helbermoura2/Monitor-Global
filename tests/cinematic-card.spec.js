@@ -8,7 +8,7 @@ async function boot(page,width=1280){
 }
 async function select(page,type,extra={}){
  await page.evaluate(({type,extra})=>{
-  const item={id:'cinema-'+type,type,source:'Visual QA',place:'Evento demonstrativo — Brasil',coords:[-46.63,-23.55],time:Date.now(),bandeira:'🇧🇷',detail:type==='storm'?'Trovoada reportada no aeródromo':'',mag:5.6,depth:10,windKmh:120,...extra};
+  const item={id:'cinema-'+type,type,source:'Visual QA',place:'Evento demonstrativo — Brasil',coords:[-46.63,-23.55],time:Date.now(),bandeira:'🇧🇷',detail:type==='storm'?'Trovoada reportada no aeródromo':'',mag:5.6,depth:10,windKmh:120,...(type==='tsunami'?{official:true,source:'PTWC',hazardNature:'warning',warningLevel:'Aviso',affectedAreas:[{name:'Costa de teste',category:'Warning'}]}:{}),...extra};
   if(type==='earthquake'){globalEvents=[item];showEventDetails(0,false);}else{globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);}
   clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
  },{type,extra});

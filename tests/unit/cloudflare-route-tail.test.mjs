@@ -13,3 +13,7 @@ test('CLI exits after deleting its session even if a websocket retains an idle h
 });
 
 test('capture duration is bounded even for malformed workflow inputs',()=>{assert.equal(captureSeconds('999999'),300);assert.equal(captureSeconds('-1'),30);assert.equal(captureSeconds('invalid'),120);assert.equal(captureSeconds(undefined),120);});
+
+test('new TV meteorological routes remain attributable without preserving the point or query',()=>{
+ for(const route of ['/tv-rain','/tv-weather'])assert.deepEqual(classify({outcome:'exceededResources',event:{request:{url:'https://example.com'+route+'?area=liberdade&secret=discard'}}}),{route,outcome:'exceededResources'});
+});

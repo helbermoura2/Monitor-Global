@@ -15,17 +15,13 @@ concurrency:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    # Suite grew well past the 98 scenarios this comment used to say (69 spec
-    # files now, 350+ scenarios). A 40min timeout still cancelled the run
-    # one spec file short of the end (test #354 of the last file).
-    # Leave time for setup and cleanup after the tests print their result.
-    # Bumped 50->65min: PR #336 fixed a Playwright-clock/MapLibre tile-retry
-    # race that used to crash several specs (storm/tornado/tsunami/wind)
-    # early -- now that they run to their real, full duration instead of
-    # failing fast, the whole suite takes noticeably longer and was hitting
-    # the old 50min cap (confirmed: the run after #336 merged got killed by
-    # the timeout, not by a real test failure).
-    timeout-minutes: 65
+    # Split the complete suite, preserving every scenario. Two browser workers
+    # fit the runner's two CPUs; shards prevent the old 65-minute cancellation.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/3', '2/3', '3/3']
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -94,13 +90,13 @@ jobs:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
-        run: npx playwright test --reporter=line,json
+        run: npx playwright test --shard=${{ matrix.shard }} --workers=2 --reporter=line,json
 
       - name: Publicar relatório em caso de falha
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ strategy.job-index }}
           path: playwright-report/
           retention-days: 7
 
@@ -111,7 +107,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-diagnostics-${{ github.job }}
+          name: test-diagnostics-${{ github.job }}-${{ strategy.job-index }}
           path: |
             test-logs/
             test-results/results.json
