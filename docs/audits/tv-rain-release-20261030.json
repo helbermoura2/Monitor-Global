@@ -1,0 +1,59 @@
+{
+  "verifiedAt": "2026-10-30T00:00:24.224628+00:00",
+  "pullRequest": 547,
+  "mergeCommit": "b523a445e77483a7c3d373b294edfde964f7898a",
+  "artifactCommit": "f0751eda76b864eeb7cb1ee7eea38f5660fa9ded",
+  "runs": {
+    "androidPreview": 40976014289,
+    "browserRegressions": 40976014252,
+    "workerDeployment": 40976510780,
+    "officialRelease": 40976513333,
+    "pages": 40976673551
+  },
+  "tests": {
+    "androidJvmSkia": 87,
+    "androidFailures": 0,
+    "workerModular": 195,
+    "deliveryChecks": "passed, mocked",
+    "maintenanceGuards": 11,
+    "distributionGuards": 5
+  },
+  "publicVerification": {
+    "health": {
+      "tvRainPolicy": "sp-minute-rain-v1",
+      "tvTargetPolicy": "populated-areas-m5-v1",
+      "globalSeismicPolicy": "global-usgs-emsc-geofon-v1"
+    },
+    "rain": {
+      "version": "tv-rain-v1",
+      "ok": true,
+      "reason": null,
+      "source": "Rainbow Weather",
+      "at": 1793318331682,
+      "expiresAt": 1793318931682,
+      "loc": {
+        "lat": -23.55,
+        "lng": -46.63
+      }
+    },
+    "forecastPoints": 240
+  },
+  "apk": {
+    "version": "1.0.25",
+    "versionCode": 10025,
+    "sha256": "68605afe7af6cf628e9b82532c7f1c34d39ad1459944ef3a4f5088fec5b5033e",
+    "bytes": 1730115,
+    "certificateSha256": "1e11295641c7701f909a73683eda7b9fefc62504a20730c5785bdfe22e0d5b82"
+  },
+  "workerBundleSha256": "98b3cd9d60da9fde353d213eb4521626609562e32516a13db5ed4ca083bb9b28",
+  "unchangedProviderLimits": {
+    "daily": 150,
+    "monthly": 4500
+  },
+  "limitations": [
+    "Forecast for one fixed point, not observed rain throughout Sao Paulo",
+    "Physical TCL/Fire Stick appearance, memory and composition performance still require device test",
+    "No real synthetic notification or Telegram message sent",
+    "Extra Worker/possible Durable reads must be measured; no claim of zero cost"
+  ]
+}

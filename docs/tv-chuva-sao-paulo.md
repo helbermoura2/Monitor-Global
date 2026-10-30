@@ -35,3 +35,7 @@ Cada aparelho ligado e com a função ativa faz normalmente cerca de uma leitura
 Publicar o pacote reconstruído pelo fluxo **Cloudflare Worker maintenance → deploy**, conferir `tvRainPolicy: sp-minute-rain-v1` em `/health`, depois **Android TV official release → publish**. O endpoint retorna `version: tv-rain-v1`. Não requer ação nova na Cloudflare nem Secrets novos.
 
 Para desativar imediatamente, selecionar **desligado**. Correção de APK usa versão maior e a assinatura existente; reversão do Worker segue o guia de operação e preserva cron/bindings. Nenhum teste real de chuva ou mensagem de alerta deve ser disparado para validar o código: existe o teste fictício no aparelho.
+
+## Publicação verificada
+
+Versão 1.0.25 publicada e conferida no endereço público do site: pacote, número da versão, hash SHA-256 e assinatura oficial do APK válidos. Worker publicado, marcador público verificado e `/tv-rain` respondeu com uma previsão válida de 240 intervalos de minuto para o ponto de São Paulo. Passaram 87 testes Android/JVM/Skia, lint/compilação, 195 testes modulares Worker, verificações isoladas de entrega, 11 guardas de manutenção, 5 de distribuição e regressões de navegador. Nenhuma mensagem real de teste foi enviada. A aparência e o desempenho físicos na TCL/Fire Stick continuam dependendo do botão de teste no aparelho. Evidências: [auditoria de publicação](audits/tv-rain-release-20261030.json).
