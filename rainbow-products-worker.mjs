@@ -24,7 +24,7 @@ export function normalizeWeather(data,loc,now){
   const start=p.startTimestamp*1000;if(!Number.isFinite(start)||start<=last||(last&&start-last!==3600000))throw Error('hour');last=start;
   const temperature=finite(p.temperature,-100,70),amount=finite(p.precipitationAmount,0,1000),chance=finite(p.precipitationChance,0,100);
   if(temperature===null||amount===null||chance===null)throw Error('fields');
-  return {start,temperature,feels:finite(p.feelsLikeTemperature,-120,100),humidity:finite(p.humidity,0,100),amount,chance,wind:finite(p.windSpeed,0,150)===null?null:p.windSpeed*3.6,gust:finite(p.windGust,0,150)===null?null:p.windGust*3.6,uv:finite(p.uvIndex,0,30),pressure:finite(p.pressure,800,1100)};
+  return {start,temperature,condition:typeof p.condition==='string'?p.condition.slice(0,60):null,feels:finite(p.feelsLikeTemperature,-120,100),humidity:finite(p.humidity,0,100),amount,chance,wind:finite(p.windSpeed,0,150)===null?null:p.windSpeed*3.6,gust:finite(p.windGust,0,150)===null?null:p.windGust*3.6,uv:finite(p.uvIndex,0,30),pressure:finite(p.pressure,800,1100)};
  });
  if(!hourly.some(p=>p.start<=now&&p.start+3600000>now)||hourly.at(-1).start<now+6*3600000)throw Error('coverage');
  const daily=data.timelines.daily.slice(0,5).map(p=>{

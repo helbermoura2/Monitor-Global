@@ -6,16 +6,19 @@ final class RainOverlay {
  RainOverlay(Context c){context=c;}
  int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
  boolean show(RainForecast.Summary s,boolean effect,boolean demo){
-  hide();long duration=demo?DURATION:Math.min(DURATION,s.expiresAt-System.currentTimeMillis()-500);if(duration<=0||!Settings.canDrawOverlays(context))return false;
+  return show(s,effect,demo,null);
+ }
+ boolean show(RainForecast.Summary s,boolean effect,boolean demo,WeatherForecast.Summary weather){
+  hide();long expiry=weather==null?(s==null?0:s.expiresAt):s==null?weather.expiresAt:Math.min(weather.expiresAt,s.expiresAt);long duration=demo?DURATION:Math.min(DURATION,expiry-System.currentTimeMillis()-500);if(duration<=0||!Settings.canDrawOverlays(context))return false;
   try{FrameLayout host=new FrameLayout(context);boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
-   boolean rainfall=effect&&s.rain&&animate;if(rainfall){drops=new Drops(context,s.rate);host.addView(drops,new FrameLayout.LayoutParams(-1,-1));}
+   boolean rainfall=effect&&s!=null&&s.rain&&animate;if(rainfall){drops=new Drops(context,s.rate);host.addView(drops,new FrameLayout.LayoutParams(-1,-1));}
    LinearLayout card=new LinearLayout(context);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(18),dp(12),dp(18),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf50a192b);bg.setCornerRadius(dp(14));bg.setStroke(dp(1),0xff61d7e7);card.setBackground(bg);
    Typeface brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");
    LinearLayout header=new LinearLayout(context);header.setGravity(Gravity.CENTER_VERTICAL);ImageView logo=new ImageView(context);logo.setImageResource(R.drawable.ic_monitor);LinearLayout.LayoutParams icon=new LinearLayout.LayoutParams(dp(20),dp(20));icon.setMarginEnd(dp(8));header.addView(logo,icon);card.addView(header);line(header,demo?"TESTE FICTÍCIO · LIBERDADE, SP":"MONITOR GLOBAL · LIBERDADE, SP",16,0xff70dce8,brand);
-   line(card,s.title,24,Color.WHITE,brand);if(s.state.equals("now"))line(card,s.rateText,17,0xffd9eff5,Typeface.DEFAULT);
-   line(card,s.amountText,17,0xffd9eff5,Typeface.DEFAULT);if(!s.state.equals("dry"))line(card,s.stopText,15,0xffbfd1df,Typeface.DEFAULT);
+   if(weather!=null){line(card,weather.temperature,24,Color.WHITE,brand);line(card,weather.condition+" · "+weather.humidity,17,0xffd9eff5,Typeface.DEFAULT);line(card,weather.wind,16,0xffd9eff5,Typeface.DEFAULT);}
+   if(s!=null){line(card,s.title,weather==null?24:18,Color.WHITE,brand);if(s.state.equals("now"))line(card,s.rateText,weather==null?17:15,0xffd9eff5,Typeface.DEFAULT);line(card,s.amountText,weather==null?17:15,0xffd9eff5,Typeface.DEFAULT);if(weather==null&&!s.state.equals("dry"))line(card,s.stopText,15,0xffbfd1df,Typeface.DEFAULT);}else line(card,"Chuva por minuto: indisponível",15,0xffbfd1df,Typeface.DEFAULT);
    java.text.SimpleDateFormat fmt=new java.text.SimpleDateFormat("HH:mm 'BRT'",java.util.Locale.ROOT);fmt.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));
-   line(card,"Rainbow Weather · consulta "+fmt.format(new java.util.Date(s.at)),13,0xffbfd1df,Typeface.DEFAULT);line(card,"Estimativa para um ponto da Liberdade · sujeita a mudanças",12,0xffa9c1cd,Typeface.DEFAULT);
+   if(weather!=null)line(card,weather.timing,12,0xffbfd1df,Typeface.DEFAULT);line(card,"Rainbow Weather"+(s==null?" · previsão horária":" · chuva consultada "+fmt.format(new java.util.Date(s.at))),13,0xffbfd1df,Typeface.DEFAULT);line(card,"Estimativa para um ponto da Liberdade · sujeita a mudanças",12,0xffa9c1cd,Typeface.DEFAULT);
    FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(Math.min(dp(420),context.getResources().getDisplayMetrics().widthPixels*46/100),-2,Gravity.TOP|Gravity.RIGHT);box.setMargins(rainfall?dp(24):0,rainfall?dp(28):0,rainfall?dp(28):0,0);host.addView(card,box);
    WindowManager.LayoutParams p=new WindowManager.LayoutParams(rainfall?-1:box.width,rainfall?-1:WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.TOP|(rainfall?Gravity.LEFT:Gravity.RIGHT);p.x=rainfall?0:dp(28);p.y=rainfall?0:dp(28);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(host,p);current=host;

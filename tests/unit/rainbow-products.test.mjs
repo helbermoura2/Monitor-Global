@@ -5,7 +5,7 @@ function payload(){return {units:{temperature:'celsius',windSpeed:'meter_per_sec
 function storage(){const m=new Map();return {m,get:async k=>m.get(k),put:async(k,v)=>m.set(k,v),delete:async k=>m.delete(k)};}
 const req=(path='/rain-weather?lat=-23.555&lng=-46.635')=>new Request('https://worker.test'+path),env={RAINBOW_API_KEY:'private-secret'};
 test('Weather validates units, time and GPS; converts m/s and preserves unknown values',()=>{
- const d=normalizeWeather(payload(),loc,now);assert.equal(d.hourly[0].wind,18);assert.equal(d.hourly[0].gust,36);
+ const d=normalizeWeather(payload(),loc,now);assert.equal(d.hourly[0].wind,18);assert.equal(d.hourly[0].gust,36);assert.equal(d.hourly[0].condition,null);const withCondition=payload();withCondition.timelines.hourly[0].condition="Cloudy";assert.equal(normalizeWeather(withCondition,loc,now).hourly[0].condition,"Cloudy");
  const p=payload();p.timelines.hourly[0].humidity=null;assert.equal(normalizeWeather(p,loc,now).hourly[0].humidity,null);
  p.units.windSpeed='km/h';assert.throws(()=>normalizeWeather(p,loc,now));p.units.windSpeed='meter_per_second';p.location.lat=0;assert.throws(()=>normalizeWeather(p,loc,now));
  const old=payload();old.generatedAtTimestamp-=20000;assert.throws(()=>normalizeWeather(old,loc,now));

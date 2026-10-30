@@ -51,3 +51,7 @@ Atualização oficial 1.0.26 publicada: arquivo público, hash, pacote, versão 
 A localização de referência da TV passa a ser a Praça da Liberdade-Japão, conferida no OpenStreetMap/Nominatim e arredondada à precisão de três casas do coletor (-23,555; -46,635). O cartão identifica **Liberdade, SP** e informa que a estimativa é para um ponto do bairro. Não representa todas as ruas ou uma medição local. Dados antigos do centro são rejeitados na nova versão; o histórico de deduplicação meteorológica recebe uma referência nova somente na primeira migração. Preferências, sismos e outros replays permanecem preservados. O site não muda de localização.
 
 Versão 1.0.28 e Worker publicados: resposta real identificada como Liberdade, coordenadas corretas e previsão válida conferidas; APK público com pacote, versão, hash e assinatura oficial verificados. Passaram 196 testes modulares Worker, verificações isoladas de entrega, 88 testes Android/JVM/Skia, compilação, lint e guardas de distribuição/manutenção. [Evidências](audits/tv-rain-liberdade-20261030.json). Nenhum alerta real de teste foi enviado.
+
+## Resumo horário a partir da 1.0.29
+
+[Resumo do tempo](tv-resumo-tempo-horario.md): opção independente por 12 segundos a cada hora. Reúne condições horárias e chuva válida no mesmo cartão. Para interromper todas as consultas meteorológicas automáticas, desligar o resumo horário e os avisos de chuva. O botão dos efeitos passa a identificar **Avisos de chuva na Liberdade**.
