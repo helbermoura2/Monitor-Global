@@ -16,7 +16,7 @@ final class RainOverlay {
    line(card,s.amountText,17,0xffd9eff5,Typeface.DEFAULT);if(!s.state.equals("dry"))line(card,s.stopText,15,0xffbfd1df,Typeface.DEFAULT);
    java.text.SimpleDateFormat fmt=new java.text.SimpleDateFormat("HH:mm 'BRT'",java.util.Locale.ROOT);fmt.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));
    line(card,"Rainbow Weather · consulta "+fmt.format(new java.util.Date(s.at)),13,0xffbfd1df,Typeface.DEFAULT);line(card,"Estimativa para um ponto da capital · sujeita a mudanças",12,0xffa9c1cd,Typeface.DEFAULT);
-   FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(Math.min(dp(580),context.getResources().getDisplayMetrics().widthPixels*60/100),-2,Gravity.TOP|Gravity.RIGHT);box.setMargins(rainfall?dp(24):0,rainfall?dp(28):0,rainfall?dp(28):0,0);host.addView(card,box);
+   FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(Math.min(dp(420),context.getResources().getDisplayMetrics().widthPixels*46/100),-2,Gravity.TOP|Gravity.RIGHT);box.setMargins(rainfall?dp(24):0,rainfall?dp(28):0,rainfall?dp(28):0,0);host.addView(card,box);
    WindowManager.LayoutParams p=new WindowManager.LayoutParams(rainfall?-1:box.width,rainfall?-1:WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.TOP|(rainfall?Gravity.LEFT:Gravity.RIGHT);p.x=rainfall?0:dp(28);p.y=rainfall?0:dp(28);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(host,p);current=host;
    if(animate){host.setAlpha(0);card.setTranslationY(-dp(10));host.animate().alpha(1).setDuration(250).start();card.animate().translationY(0).setDuration(250).start();}
@@ -28,7 +28,7 @@ final class RainOverlay {
  static final class Drops extends View {
   private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final float[] x,y,speed,length;private final long born=SystemClock.uptimeMillis();private boolean running;
   private final Runnable frame=()->invalidate();
-  Drops(Context c,double rate){super(c);int n=rate<2.5?20:rate<7.5?32:48;x=new float[n];y=new float[n];speed=new float[n];length=new float[n];java.util.Random r=new java.util.Random(718);for(int i=0;i<n;i++){x[i]=r.nextFloat();y[i]=r.nextFloat();speed[i]=.18f+r.nextFloat()*.2f;length[i]=.01f+r.nextFloat()*.012f;}paint.setColor(0x586dc9ef);paint.setStrokeWidth(Math.max(1,c.getResources().getDisplayMetrics().density));}
+  Drops(Context c,double rate){super(c);int n=rate<2.5?20:rate<7.5?32:48;x=new float[n];y=new float[n];speed=new float[n];length=new float[n];java.util.Random r=new java.util.Random(718);for(int i=0;i<n;i++){x[i]=r.nextFloat();y[i]=r.nextFloat();speed[i]=.18f+r.nextFloat()*.2f;length[i]=.014f+r.nextFloat()*.014f;}paint.setColor(0xb8b9edff);paint.setStrokeWidth(Math.max(2,2*c.getResources().getDisplayMetrics().density));paint.setStrokeCap(Paint.Cap.ROUND);}
   @Override protected void onAttachedToWindow(){super.onAttachedToWindow();running=true;invalidate();}
   @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
   void stop(){running=false;removeCallbacks(frame);}

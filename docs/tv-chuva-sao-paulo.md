@@ -39,3 +39,7 @@ Para desativar imediatamente, selecionar **desligado**. Correção de APK usa ve
 ## Publicação verificada
 
 Versão 1.0.25 publicada e conferida no endereço público do site: pacote, número da versão, hash SHA-256 e assinatura oficial do APK válidos. Worker publicado, marcador público verificado e `/tv-rain` respondeu com uma previsão válida de 240 intervalos de minuto para o ponto de São Paulo. Passaram 87 testes Android/JVM/Skia, lint/compilação, 195 testes modulares Worker, verificações isoladas de entrega, 11 guardas de manutenção, 5 de distribuição e regressões de navegador. Nenhuma mensagem real de teste foi enviada. A aparência e o desempenho físicos na TCL/Fire Stick continuam dependendo do botão de teste no aparelho. Evidências: [auditoria de publicação](audits/tv-rain-release-20261030.json).
+
+## Ajuste visual 1.0.26
+
+Após a foto na TCL, o cartão passa de no máximo 580 para 420 dp de largura (cerca de 28% menor), preservando fonte e informações. Gotas ficam mais claras, com maior opacidade, traço de 2 dp, pontas arredondadas e comprimento um pouco maior. Permanecem a quantidade máxima de 48 gotas, a duração, o intervalo de desenho e as prioridades. Não há alteração de consulta ou do Worker; basta atualizar o APK. Desempenho físico da nova espessura ainda deve ser conferido no aparelho.
