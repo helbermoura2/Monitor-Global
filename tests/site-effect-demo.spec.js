@@ -39,12 +39,12 @@ for(const width of [1280,390])test('menu de cenas realistas conserva registros, 
  expect(await page.evaluate(()=>__siteSceneSounds)).toBe(0);
  expect(await page.evaluate(()=>['header','#sidebar-left','#painel-direito'].flatMap(s=>[...document.querySelectorAll(s)]).every(el=>el.getAnimations().every(a=>a.effect?.getKeyframes().every(k=>!k.translate))))).toBe(true);
 });
-test('M8+ dura 24 segundos, derruba registros por partes e restaura estilos',async({page})=>{
+test('M8+ dura 24 segundos, preserva registros e restaura palavras e estilos',async({page})=>{
  await boot(page);await page.evaluate(()=>OptionalFeatures.siteEffectDemo());
- const before=await page.locator('#sidebar-left').getAttribute('style');
+ const before=await page.locator('#sidebar-left').getAttribute('style'),beforeText=await page.locator('#sidebar-left .event').allTextContents();
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+100));
  await page.evaluate(()=>CardEffectDemo.preview('site-quake'));await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
- expect(await page.locator('.seismic-piece[data-kind=record]').count()).toBeGreaterThan(2);await page.clock.runFor(7000);expect(await page.locator('#sidebar-left .event.seismic-displaced').count()).toBeGreaterThan(0);expect(await page.locator('#sidebar-left .event:not(.seismic-displaced)').count()).toBeGreaterThan(0);await page.screenshot({path:"/tmp/site-scene-records-staged.png"});await page.clock.fastForward(16900);await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
+ await expect(page.locator('.seismic-word-layer')).toHaveAttribute('aria-hidden','true');await page.clock.runFor(7000);await expect(page.locator('.seismic-piece,.seismic-displaced')).toHaveCount(0);expect(await page.locator('#sidebar-left .event').allTextContents()).toEqual(beforeText);await page.screenshot({path:"/tmp/site-scene-records-staged.png"});await page.clock.fastForward(16900);await expect(page.locator('#site-effect-demo-canvas')).toHaveCount(1);
  await page.clock.runFor(150);await expect(page.locator('#site-effect-demo-canvas,#card-fx-demo-status,.site-effect-texture-video')).toHaveCount(0);
  await expect(page.locator('.seismic-scene,.seismic-displaced')).toHaveCount(0);expect(await page.locator('#sidebar-left').getAttribute('style')).toBe(before);expect(await page.locator('#sidebar-left').evaluate(el=>el.getAnimations().length)).toBe(0);
 });

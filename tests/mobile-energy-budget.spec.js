@@ -4,7 +4,7 @@ test('high-density mobile caps map pixels and scene budgets, retaining letters a
  const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,serviceWorkers:'block'}),page=await context.newPage();await boot(page);
  const pixels=await page.evaluate(()=>({ratio:map.getPixelRatio(),width:map.getCanvas().width,css:map.getCanvas().clientWidth}));expect(pixels.ratio).toBe(1.25);expect(Math.abs(pixels.width-pixels.css*1.25)).toBeLessThanOrEqual(1);
  // The fake clock exercises scene budgets, not GPU raster requests aborted by the offline fixture.
- await page.evaluate(()=>{map._render=()=>{};});
+ await page.evaluate(()=>{map._render=()=>{};map.easeTo=options=>{map.jumpTo(options);return map;};});
  await page.evaluate(async()=>{await OptionalFeatures.effect('wind');document.body.classList.add('mobile-details-open');});await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));await page.evaluate(()=>{const item={id:'mobile-wind',type:'wind',windKmh:140,place:'Rajada de teste',coords:[-46,-23],time:Date.now(),source:'QA'};globalAlerts=[item];showAlertDetails(item,false);clearTimeout(cycleTimeout);});
  // Scenes begin after the existing camera journey, not at selection time.
  await page.clock.runFor(18000);

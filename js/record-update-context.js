@@ -30,7 +30,13 @@
  }
  function kind(item){if(item?._updateKind)return item._updateKind;const text=clean(item?._deltaTxt),physical=/M[\d.,]+\s*→\s*M[\d.,]+|[\d.,]+\s*→\s*[\d.,]+\s*km|preliminar\s*→|Status de revisão/i.test(text);return /^(?:Fontes|Qualidade)/i.test(text)&&!physical?'sources':'physical';}
  function classify(before,after){
-  const oldDepth=root.SeismicDepth?.describe(before),newDepth=root.SeismicDepth?.describe(after),sameSource=(before.reports||[]).find(r=>(r.source||'').replace(/-RT$/,'')===(after.source||'').replace(/-RT$/,''))||((before.source||'').replace(/-RT$/,'')===(after.source||'').replace(/-RT$/,'')?before:null),latest=(after.reports||[]).find(r=>r.source===after.source)||after;
+  const oldDepth=root.SeismicDepth?.describe(before),newDepth=root.SeismicDepth?.describe(after);
+  const family=r=>clean(r.source).replace(/-RT$/,''),nativeId=r=>family(r)==='USGS'?clean(r.sourceEventId).replace(/^usauto/,'us'):clean(r.sourceEventId);
+  // A USGS family can contain both a PTWC rapid estimate and a seismic solution.
+  // Compare the selected native report, not the first same-agency row in an array.
+  const matches=(r,selected)=>family(r)===family(selected)&&(!nativeId(selected)||nativeId(r)===nativeId(selected));
+  const latest=(after.reports||[]).find(r=>matches(r,after))||after;
+  const sameSource=(before.reports||[]).find(r=>matches(r,latest))||(matches(before,latest)?before:null);
   const sources=v=>clean(v.sourceSummary||v.source).split(/\s*·\s*/).sort().join('|');
   const magChanged=valid(before.mag)&&valid(after.mag)&&Math.abs(Number(before.mag)-Number(after.mag))>=.1-1e-9,depthChanged=!!oldDepth?.known&&!!newDepth?.known&&Math.abs(oldDepth.value-newDepth.value)>=5,reviewChanged=!!sameSource&&!!sameSource.isPreliminary!==!!latest.isPreliminary;
   return {depthMetadataChanged:oldDepth?.status!==newDepth?.status||oldDepth?.value!==newDepth?.value,magChanged,depthChanged,reviewChanged,sourcesChanged:sources(before)!==sources(after),qualityChanged:clean(before.quality)!==clean(after.quality),kind:magChanged||depthChanged||reviewChanged?'physical':'sources'};

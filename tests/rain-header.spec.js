@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 test.use({serviceWorkers:'block'});
-test('chuva por modelo separada de alagamentos e sem sobreposição',async({page})=>{
+test('chuva por minuto indisponível não herda previsão horária nem alagamentos',async({page})=>{
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  await page.setViewportSize({width:1280,height:720});
  await page.addInitScript(()=>{
@@ -14,7 +14,7 @@ test('chuva por modelo separada de alagamentos e sem sobreposição',async({page
   };
  });
  await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>WeatherEvidence.refresh());
- await expect(page.locator('#sp-rain-eta')).toContainText('Prev.');await expect(page.locator('#sp-rain-eta')).toContainText('3,0mm');
+ await expect(page.locator('#sp-rain-eta')).toContainText('estimativa por minuto indisponível');await expect(page.locator('#sp-rain-eta')).not.toContainText('3,0mm');
  await expect(page.locator('#cemaden-card')).toBeHidden();await expect(page.locator('#sp-live-card')).toHaveCSS('backdrop-filter','none');await expect(page.locator('#sp-live-card')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await expect(page.locator('#chips-row')).toHaveCSS('color-scheme','dark');
  for(const id of ['chips-row','chips-scroll-wrap']){
   await expect(page.locator('#'+id)).toHaveCSS('scrollbar-width','none');
@@ -28,7 +28,7 @@ test('chuva por modelo separada de alagamentos e sem sobreposição',async({page
   await page.locator('#chips-row').hover();await page.mouse.wheel(0,100);await expect.poll(()=>page.locator('#chips-row').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
  }else await expect(page.locator('#chips-scroll-right')).toBeDisabled(); // Expanded filters can wrap instead of overflow.
  await expect(page.locator('#flood-risk-chip')).toBeHidden();await expect(page.locator('#sp-forecast-air')).toBeHidden();
- const chip=page.locator('#sp-rain-eta-chip');await expect(chip).toHaveAttribute('title',/resolução horária/);
+ const chip=page.locator('#sp-rain-eta-chip');await expect(chip).toHaveAttribute('title',/minuto.*indisponível/);
  let visible=0;for(const width of [1101,1280,1920]){
   await page.setViewportSize({width,height:720});const rain=await chip.boundingBox(),card=await page.locator('#sp-live-card').boundingBox(),clock=await page.locator('#kpi-relogio').boundingBox();
   if(!rain||!card)continue;visible++;

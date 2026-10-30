@@ -100,3 +100,10 @@ test('memory counters expose retained report counts without event content',()=>{
  assert.equal(stats.bySource.USGS,1);assert.equal(stats.bySource.GEONET,1);
  assert.doesNotMatch(JSON.stringify(stats),/secret|PRIVATE|165|14/);
 });
+
+test('optional reported depth cannot leak from a lower-priority agency into the selected solution',()=>{
+ const other={...base,source:'EMSC',sourceEventId:'e-depth',mag:6.6,depth:10,depthReported:10};
+ for(const selected of [seismic,{...seismic,depthReported:null},{...seismic,depthReported:16}])for(const rows of [[other,selected],[selected,other]]){
+  const r=merge(rows)[0];assert.equal(r.depth,16);assert.equal(r.depthReported,Object.hasOwn(selected,'depthReported')?selected.depthReported:selected.depth);
+ }
+});

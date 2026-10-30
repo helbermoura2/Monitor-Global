@@ -1,5 +1,6 @@
+/* Anchor the right edge even when the shared stylesheet follows this optional one. */
 /* A photographed gale behind the data, one inertial debris field in front. */
-#painel-direito.pd-cinema-active.pd-fx-wind{transform-origin:100% 0;animation:none;border-color:rgba(203,210,193,calc(.25 + var(--pd-wind-pressure,0)*.33));box-shadow:inset 1px 0 1px rgba(225,229,213,.13),inset -12px 0 24px rgba(3,14,8,.12),0 12px 34px rgba(0,0,0,.35)}
+body #painel-direito.pd-cinema-active.pd-fx-wind{transform-origin:100% 0;animation:none;border-color:rgba(203,210,193,calc(.25 + var(--pd-wind-pressure,0)*.33));box-shadow:inset 1px 0 1px rgba(225,229,213,.13),inset -12px 0 24px rgba(3,14,8,.12),0 12px 34px rgba(0,0,0,.35)}
 #painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-layer{filter:none}
 #painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-footage{clip-path:none;mask-image:none;object-fit:cover;object-position:center;opacity:.96;filter:saturate(.92) contrast(1.05) brightness(calc(.96 - var(--pd-wind-pressure,0)*.06))}
 #painel-direito.pd-cinema-active.pd-fx-wind .pd-cinema-contact{opacity:1}

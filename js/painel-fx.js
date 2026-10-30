@@ -63,7 +63,7 @@ function deferCardEventFx(item, action) {
         action(window.EventPortuguese?.view(latest) || latest);
     };
     if (window.EventCamera && (item.coords || window.WeatherWarningCamera && ['storm','wind'].includes(item.type))) {
-        if(item.type!=='volcano')window.OptionalFeatures?.effect(item.type).catch(e => console.warn('[pré-carga do efeito]', e.message));
+        if(item.type!=='volcano'&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)window.OptionalFeatures?.effect(item.type).catch(e => console.warn('[pré-carga do efeito]', e.message));
         EventCamera.afterArrival(item.id, run);
     } else run();
 }

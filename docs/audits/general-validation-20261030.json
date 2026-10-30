@@ -1,7 +1,7 @@
 {
   "date": "2026-10-30",
   "baseCommit": "c8be54990f3b60c758461df6391efb2d65b3f3df",
-  "productionRuntimeChanged": false,
+  "productionRuntimeChanged": true,
   "plan": "Cloudflare Free",
   "telegramMessagesSent": 0,
   "physicalDeviceConnected": false,
@@ -437,14 +437,37 @@
     "failed": 0
   },
   "browserValidation": {
-    "status": "in progress",
-    "firstShardedRun": 41064100670
+    "status": "Complete diagnostic run failed; targeted repairs subsequently verified.",
+    "firstShardedRun": 41064100670,
+    "finalRun": 41066152666,
+    "localEvidence": {
+      "seismicScenariosPassed": 13,
+      "windScenariosPassed": 6,
+      "correctedCompositionAndParityPassed": 4,
+      "windTypingScenarioPassed": 1,
+      "note": "Separate targeted executions after each correction; not a claim that the complete suite passed."
+    },
+    "completeRun": {
+      "run": 41066152666,
+      "headSha": "9c71b4153456ebd015b0ae951d69eabe88cebd4e",
+      "passed": 433,
+      "failed": 110,
+      "flaky": 1,
+      "skipped": 0,
+      "total": 544
+    },
+    "weatherMaterials": {
+      "run": 41066152666,
+      "passed": 58,
+      "failed": 0
+    }
   },
   "limitations": [
     "No direct access to TCL, Fire Stick or DeX; supplied diagnostics predate 1.0.29.",
     "No excess captured yet; CPU route and cause remain unknown.",
     "Upstream HTTP 403 is not a confirmed no-threat bulletin.",
-    "Secret values and a private operational destination are not available."
+    "Secret values and a private operational destination are not available.",
+    "Complete diagnostic suite includes obsolete P/S-front/felt-zone UI assertions: main flow now enters SeismicPaintTour and returns before the legacy fallback. This does not justify declaring all failures regressions or all tests approved."
   ],
   "quota": {
     "run": 41064553343,
@@ -537,6 +560,144 @@
           }
         }
       }
-    ]
+    ],
+    "durableFamilies": {
+      "2026-10-29": [
+        {
+          "family": "population",
+          "requests": 1827,
+          "percentOfMeasuredDORequests": 62.14
+        },
+        {
+          "family": "earthquake-alerts",
+          "requests": 478,
+          "percentOfMeasuredDORequests": 16.26
+        },
+        {
+          "family": "metrics",
+          "requests": 172,
+          "percentOfMeasuredDORequests": 5.85
+        },
+        {
+          "family": "2026-10-26",
+          "requests": 106,
+          "percentOfMeasuredDORequests": 3.61
+        },
+        {
+          "family": "global-rainbow-nowcast-v1",
+          "requests": 99,
+          "percentOfMeasuredDORequests": 3.37
+        },
+        {
+          "family": "2026-10-27",
+          "requests": 96,
+          "percentOfMeasuredDORequests": 3.27
+        },
+        {
+          "family": "2026-10-28",
+          "requests": 95,
+          "percentOfMeasuredDORequests": 3.23
+        },
+        {
+          "family": "portuguese-translations-v1",
+          "requests": 35,
+          "percentOfMeasuredDORequests": 1.19
+        },
+        {
+          "family": "global-rainbow-products-weather-v1",
+          "requests": 19,
+          "percentOfMeasuredDORequests": 0.65
+        },
+        {
+          "family": "2026-10-25",
+          "requests": 13,
+          "percentOfMeasuredDORequests": 0.44
+        }
+      ],
+      "2026-10-30": [
+        {
+          "family": "population",
+          "requests": 1241,
+          "percentOfMeasuredDORequests": 66.79
+        },
+        {
+          "family": "earthquake-alerts",
+          "requests": 271,
+          "percentOfMeasuredDORequests": 14.59
+        },
+        {
+          "family": "global-rainbow-nowcast-v1",
+          "requests": 74,
+          "percentOfMeasuredDORequests": 3.98
+        },
+        {
+          "family": "metrics",
+          "requests": 64,
+          "percentOfMeasuredDORequests": 3.44
+        },
+        {
+          "family": "2026-10-27",
+          "requests": 56,
+          "percentOfMeasuredDORequests": 3.01
+        },
+        {
+          "family": "2026-10-28",
+          "requests": 55,
+          "percentOfMeasuredDORequests": 2.96
+        },
+        {
+          "family": "2026-10-29",
+          "requests": 54,
+          "percentOfMeasuredDORequests": 2.91
+        },
+        {
+          "family": "global-rainbow-products-weather-v1",
+          "requests": 19,
+          "percentOfMeasuredDORequests": 1.02
+        },
+        {
+          "family": "2026-10-26",
+          "requests": 12,
+          "percentOfMeasuredDORequests": 0.65
+        },
+        {
+          "family": "portuguese-translations-v1",
+          "requests": 12,
+          "percentOfMeasuredDORequests": 0.65
+        }
+      ]
+    }
+  },
+  "uptimeLogicTests": {
+    "passed": 6,
+    "failed": 0
+  },
+  "routeCollectorTests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "runtimeScope": "Static website only; no Worker or Android changes.",
+  "runtimeFixes": [
+    {
+      "area": "wind card",
+      "problem": "Shared CSS overrode the gale pivot; right edge exceeded viewport by up to 3.56px in CI.",
+      "change": "Specificity preserves the right-top pivot; regression samples five seconds of the gust."
+    },
+    {
+      "area": "earthquake source metadata",
+      "problem": "Selected M6.3/16km solution inherited another report's depthReported=10, producing six false revisions in twelve catalogue alternations.",
+      "change": "Normalize selected reported depth and compare review status by native report identity.",
+      "proof": "Unmodified browser ingestion regression passes: 12 alternations without false revision, real M6.3→6.2 revision accepted."
+    },
+    {
+      "area": "memory/network",
+      "problem": "Optional effect code prefetched despite reduced-motion preference.",
+      "change": "Do not prefetch effect renderer when motion is disabled.",
+      "proof": "All six optional-loading scenarios pass, including no unnecessary renderer download."
+    }
+  ],
+  "revisionUnitTests": {
+    "passed": 21,
+    "failed": 0
   }
 }

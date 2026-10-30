@@ -1,0 +1,477 @@
+{
+  "run": 41066152666,
+  "headSha": "9c71b4153456ebd015b0ae951d69eabe88cebd4e",
+  "status": "completed-with-failures",
+  "expected": 433,
+  "unexpected": 110,
+  "flaky": 1,
+  "skipped": 0,
+  "total": 544,
+  "shards": [
+    {
+      "name": "1/3",
+      "passed": 139,
+      "failed": 42,
+      "flaky": 1
+    },
+    {
+      "name": "2/3",
+      "passed": 137,
+      "failed": 45,
+      "flaky": 0
+    },
+    {
+      "name": "3/3",
+      "passed": 157,
+      "failed": 23,
+      "flaky": 0
+    }
+  ],
+  "note": "These counts precede subsequent targeted fixes. Failure is not automatically a production regression; remaining cases require individual analysis.",
+  "failures": [
+    {
+      "test": "tests/adaptive-effect-quality.spec.js:53:1 › full-screen seismic dust adapts while fallen originals stay absent and power flashes persist",
+      "error": "Error: expect(locator).toHaveClass(expected) failed"
+    },
+    {
+      "test": "tests/auto-cycle.spec.js:2:31 › ciclo2+2 varia eventos e retoma o slot depois de nova chegada 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/auto-age-limit.spec.js:3:31 › aleatório exclui 222h, respeita 72h e mantém acesso manual 1280",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/auto-cycle.spec.js:2:31 › ciclo2+2 varia eventos e retoma o slot depois de nova chegada 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/auto-age-limit.spec.js:3:31 › aleatório exclui 222h, respeita 72h e mantém acesso manual 390",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/balanced-world-transitions.spec.js:3:31 › dois sismos e outro tipo repetem sem serem sequestrados pelos avisos canadenses 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/balanced-world-transitions.spec.js:3:31 › dois sismos e outro tipo repetem sem serem sequestrados pelos avisos canadenses 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/balanced-world-transitions.spec.js:22:1 › rotação real avança dois sismos, tempestade e volta ao sismo após a permanência",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/balanced-world-transitions.spec.js:30:1 › sismo novo e explosão vulcânica interrompem com saída ampla e suave",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/cge-bulletins.spec.js:3:31 › boletim CGE na lista e texto oficial no verso 1280 ────────",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/card-event-typography.spec.js:19:31 › Menu e eventos reais compartilham letras, revisão, controles e limpeza 1280",
+      "error": "Error: expect(locator).toHaveCount(expected) failed"
+    },
+    {
+      "test": "tests/cinema-materials.spec.js:7:31 › demonstrações de todos os materiais preservam dados, áudio, câmera e controles 1280",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/cinema-materials.spec.js:7:31 › demonstrações de todos os materiais preservam dados, áudio, câmera e controles 390",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/cinema-materials.spec.js:32:1 › estado eruptivo e lava são distintos, revisão retira lava e reserva gráfica funciona",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 960",
+      "error": "Error: expect(received).toBeGreaterThan(expected)"
+    },
+    {
+      "test": "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 1024",
+      "error": "Error: expect(received).toBeGreaterThan(expected)"
+    },
+    {
+      "test": "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 1280",
+      "error": "Error: expect(received).toBeGreaterThan(expected)"
+    },
+    {
+      "test": "tests/cyclone-cinema.spec.js:21:31 › ciclones cinematográficos preservam dados e controles 1280",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/cyclone-cinema.spec.js:21:31 › ciclones cinematográficos preservam dados e controles 390",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/data-quality.spec.js:2:31 › coordinate flags and missing USGS intensity remain consistent in list and card 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/data-quality.spec.js:2:31 › coordinate flags and missing USGS intensity remain consistent in list and card 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/cyclone-cinema.spec.js:119:1 › revisão silenciosa atualiza textos e hemisfério sem reiniciar a mesma fase",
+      "error": "Test timeout of 90000ms exceeded."
+    },
+    {
+      "test": "tests/earthquake-card-flip.spec.js:13:73 › card flips after arrival and returns, manual 1280 ─",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/earthquake-report-selection.spec.js:2:1 › real ingestion keeps Vanuatu M6.3 stable across alternating and failed catalogues and accepts a genuine revision",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/earthquake-card-flip.spec.js:13:73 › card flips after arrival and returns, auto 1280 ───",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/earthquake-card-flip.spec.js:13:73 › card flips after arrival and returns, new 1280 ────",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/earthquake-card-flip.spec.js:13:73 › card flips after arrival and returns, manual 390 ──",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/earthquake-card-flip.spec.js:13:73 › card flips after arrival and returns, auto 390 ────",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/epicenter-anchored-map.spec.js:2:31 › M7 keeps geographic anchor during zoom, shows card and draws hollow intensity 411",
+      "error": "Error: expect(received).toContain(expected) // indexOf"
+    },
+    {
+      "test": "tests/earthquake-card-flip.spec.js:13:73 › card flips after arrival and returns, new 390 ─────",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/epicenter-anchored-map.spec.js:2:31 › M7 keeps geographic anchor during zoom, shows card and draws hollow intensity 1280",
+      "error": "Error: expect(received).toContain(expected) // indexOf"
+    },
+    {
+      "test": "tests/event-focus-beacon.spec.js:21:33 › real camera descends over its destination desktop flat",
+      "error": "Error: expect(received).toBeCloseTo(expected, precision)"
+    },
+    {
+      "test": "tests/globe-preview.spec.js:27:2 › globe 1280 › menu toggles the same map, preserves data, hides far-side pins and remembers projection on reload",
+      "error": "TypeError: Cannot read properties of undefined (reading 'visibility')"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:17:31 › live origin, manual replay, revision and geodesic fronts 1280",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:17:31 › live origin, manual replay, revision and geodesic fronts 390",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/globe-preview.spec.js:58:2 › globe 1280 › official ShakeMap and tsunami polygons render on the globe and survive switching back",
+      "error": "Error: page.waitForFunction: Timeout 15000ms exceeded. {\"state\":{\"id\":\"seismic-scenario-official\",\"stage\":\"impact\",\"radius\":0,\"estimated\":true,\"features\":12,\"method\":\"usgs-shakemap-finite\",\"rupture\":true,\"version\":\"us6000jllz-1756921940993\"},\"scenario\":{\"mode\":\"official\",\"id\":\"seismic-scenario-official\",\"phase\":\"paint\",\"replicas\":0,\"paused\":false},\"panel\":\"TESTE HISTÓRICO · mapa oficialUSGS ShakeMap · 06/02/2023 · 60 sM7,8Pazarcık, TurquiaGrade oficial de intensidade · epicentro, área pintada e ruptura publicadaSismo histórico real. Este teste não cria registros ou alertas.\",\"errors\":[]}"
+    },
+    {
+      "test": "tests/globe-preview.spec.js:27:2 › globe 390 › menu toggles the same map, preserves data, hides far-side pins and remembers projection on reload",
+      "error": "TypeError: Cannot read properties of undefined (reading 'visibility')"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:65:1 › revision during the initial delay uses the latest hypocenter",
+      "error": "TypeError: Cannot read properties of null (reading 'depth')"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:74:31 › automatic radar estimates areas without GlobalQuake fronts 1280",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/globe-preview.spec.js:58:2 › globe 390 › official ShakeMap and tsunami polygons render on the globe and survive switching back",
+      "error": "Error: page.waitForFunction: Timeout 15000ms exceeded. {\"state\":{\"id\":\"seismic-scenario-official\",\"stage\":\"impact\",\"radius\":0,\"estimated\":true,\"features\":12,\"method\":\"usgs-shakemap-finite\",\"rupture\":true,\"version\":\"us6000jllz-1756921940993\"},\"scenario\":{\"mode\":\"official\",\"id\":\"seismic-scenario-official\",\"phase\":\"paint\",\"replicas\":0,\"paused\":false},\"panel\":\"TESTE HISTÓRICO · mapa oficialUSGS ShakeMap · 06/02/2023 · 60 sM7,8Pazarcık, TurquiaGrade oficial de intensidade · epicentro, área pintada e ruptura publicadaSismo histórico real. Este teste não cria registros ou alertas.\",\"errors\":[]}"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:74:31 › automatic radar estimates areas without GlobalQuake fronts 390",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:102:31 › newly received late reports show estimated radar, then manual and fresh arrivals show fronts 1280",
+      "error": "Error: expect(locator).toHaveCount(expected) failed"
+    },
+    {
+      "test": "tests/globalquake-fronts.spec.js:102:31 › newly received late reports show estimated radar, then manual and fresh arrivals show fronts 390",
+      "error": "Error: expect(locator).toHaveCount(expected) failed"
+    },
+    {
+      "test": "tests/image-tsunami-layout.spec.js:2:31 › shared earthquake image has explicit local MMI and readable tsunami states 360",
+      "error": "Error: expect(received).toContain(expected) // indexOf"
+    },
+    {
+      "test": "tests/image-tsunami-layout.spec.js:2:31 › shared earthquake image has explicit local MMI and readable tsunami states 1280",
+      "error": "Error: expect(received).toContain(expected) // indexOf"
+    },
+    {
+      "test": "tests/heavy-map-calculations.spec.js:13:47 › blocked Worker falls back to yielding batches and produces the same geometry constructor",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/incremental-event-list.spec.js:11:31 › incremental records preserve nodes, scroll, selection, revisions and age 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/heavy-map-calculations.spec.js:13:47 › blocked Worker falls back to yielding batches and produces the same geometry script",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/incremental-event-list.spec.js:11:31 › incremental records preserve nodes, scroll, selection, revisions and age 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/live-full-screen-effects.spec.js:3:31 › lava and M8+ use live scenes, real magnitude and staged record collapse 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/live-full-screen-effects.spec.js:3:31 › lava and M8+ use live scenes, real magnitude and staged record collapse 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/live-rotation-regression.spec.js:14:1 › late catalog records do not hijack the timed eleven-slot rotation",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/map-status-stacking.spec.js:4:2 › map status 1280 › intensity and wave notices paint above native pins while preserving map input",
+      "error": "Error: {\"className\":\"seismic-impact-status\",\"projection\":\"mercator\",\"stack\":{\"top\":\"DIV#pro-dashboard.\",\"noticeZ\":\"40\",\"pinZ\":\"22\",\"noticeOnTop\":false,\"pinError\":0,\"input\":\"none\",\"background\":\"rgba(8, 23, 30, 0.3)\"}}"
+    },
+    {
+      "test": "tests/map-status-stacking.spec.js:4:2 › map status 390 › intensity and wave notices paint above native pins while preserving map input",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/marker-anchors.spec.js:3:31 › pins seguem a projeção e revisões sem sair do epicentro 1280",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/marker-anchors.spec.js:3:31 › pins seguem a projeção e revisões sem sair do epicentro 390",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/meteoalarm-location.spec.js:25:1 › country context never becomes an exact regional marker, and late catalogue responses cannot steal selection",
+      "error": "Error: expect(received).toContain(expected) // indexOf"
+    },
+    {
+      "test": "tests/mobile-energy-budget.spec.js:3:1 › high-density mobile caps map pixels and scene budgets, retaining letters and 16-second expiry",
+      "error": "Error: expect(locator).toHaveAttribute(expected) failed"
+    },
+    {
+      "test": "tests/mobile-event-chips.spec.js:14:1 › landscape chips scroll horizontally; desktop has no extra toolbar or local filter",
+      "error": "Error: expect(locator).toHaveCount(expected) failed"
+    },
+    {
+      "test": "tests/mobile-focus-layout.spec.js:3:31 › selected summary and quiet secondary points 390 ─────",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/monitor-workbench.spec.js:3:31 › places persist locally and sequence chart navigates actual catalog events 1280",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/monitor-workbench.spec.js:3:31 › places persist locally and sequence chart navigates actual catalog events 390",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/official-map-priority.spec.js:4:31 › mapa recém-publicado sai da fila para visita de 20s após a viagem e retoma o aleatório 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/numbers-revisions.spec.js:3:31 › Portuguese numbers and persistent revisions stay attached to the selected event 1280",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/official-map-priority.spec.js:4:31 › mapa recém-publicado sai da fila para visita de 20s após a viagem e retoma o aleatório 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/numbers-revisions.spec.js:3:31 › Portuguese numbers and persistent revisions stay attached to the selected event 390",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/optional-features.spec.js:13:1 › pending renderer respects the original 16 second deadline",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/optional-features.spec.js:22:1 › critical new quake cancels a pending election opening ─",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/optional-features.spec.js:33:31 › optional modules stay unloaded until use and Story retries failed downloads 1280",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/optional-features.spec.js:33:31 › optional modules stay unloaded until use and Story retries failed downloads 390",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/optional-features.spec.js:50:31 › late renderer cannot spill into a new quake and only selected effects download 1280",
+      "error": "Error: expect(locator).toHaveCount(expected) failed"
+    },
+    {
+      "test": "tests/optional-features.spec.js:50:31 › late renderer cannot spill into a new quake and only selected effects download 390",
+      "error": "Error: expect(locator).toHaveCount(expected) failed"
+    },
+    {
+      "test": "tests/official-shakemap.spec.js:31:1 › grade oficial fraca preserva a fonte e não inventa uma pintura radial em terra",
+      "error": "Test timeout of 60000ms exceeded."
+    },
+    {
+      "test": "tests/presentation-limits.spec.js:3:31 › every automatic kind switches by 40s even while moving; lava holds 45s 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/portuguese-events.spec.js:2:1 › Portuguese locations, labels and translated bulletins preserve original hazard records and manual selection",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/presentation-limits.spec.js:3:31 › every automatic kind switches by 40s even while moving; lava holds 45s 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/quake-priority.spec.js:3:31 › new M5.2 interrupts M2.4 card and late-report radar 1280 ─",
+      "error": "Error: page.evaluate: ReferenceError: __mgFeltZoneState is not defined"
+    },
+    {
+      "test": "tests/quake-priority.spec.js:3:31 › new M5.2 interrupts M2.4 card and late-report radar 390 ──",
+      "error": "Error: page.evaluate: ReferenceError: __mgFeltZoneState is not defined"
+    },
+    {
+      "test": "tests/quake-priority.spec.js:11:1 › known quake magnitude increase below M6 no longer gains priority; M6+ still does, and badge recovery runs before hold timer",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/quake-priority.spec.js:18:1 › actual merged feed arrival and a raised revision preempt the low protected card",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/rain-arrival-notice.spec.js:19:66 › aviso desktop com previsão, gráfico e retorno ──────",
+      "error": "Error: locator.screenshot: ENOENT: no such file or directory, open '/workspace/scratch/rain-arrival-desktop.png'"
+    },
+    {
+      "test": "tests/rain-arrival-notice.spec.js:19:66 › aviso mobile com previsão, gráfico e retorno ───────",
+      "error": "Error: locator.screenshot: ENOENT: no such file or directory, open '/workspace/scratch/rain-arrival-mobile.png'"
+    },
+    {
+      "test": "tests/quake-marker-preview.spec.js:17:2 › mouse preview › hover reads magnitude without selection, and click still opens the event",
+      "error": "Test timeout of 60000ms exceeded."
+    },
+    {
+      "test": "tests/rain-header.spec.js:3:1 › chuva por modelo separada de alagamentos e sem sobreposição ──",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/rainbow-products.spec.js:47:1 › nova atividade vulcânica explica o ocorrido na frente do cartão e limpa ao mudar evento",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/quake-marker-preview.spec.js:29:2 › touch preview › tap only consults; outside closes; the explicit button opens the event",
+      "error": "Test timeout of 60000ms exceeded."
+    },
+    {
+      "test": "tests/regional-warning-cards.spec.js:2:52 › aviso regional abre painel e boletim separado, sem câmera falsa 390",
+      "error": "Error: expect(received).toBeLessThan(expected)"
+    },
+    {
+      "test": "tests/quake-marker-preview.spec.js:42:2 › touch preview › drag from a pin moves the map without opening or selecting it",
+      "error": "Test timeout of 60000ms exceeded."
+    },
+    {
+      "test": "tests/seismic-impact.spec.js:3:31 › M5+ land intensity follows S, returns to the affected area for ten seconds and yields to larger quake 1280",
+      "error": "Error: expect(received).toBeCloseTo(expected, precision)"
+    },
+    {
+      "test": "tests/seismic-impact.spec.js:3:31 › M5+ land intensity follows S, returns to the affected area for ten seconds and yields to larger quake 390",
+      "error": "Error: expect(received).toBeCloseTo(expected, precision)"
+    },
+    {
+      "test": "tests/seismic-impact.spec.js:14:1 › M5 delayed arrivals paint land without fake waves; automatic rotation keeps its radar",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/seismic-impact.spec.js:18:1 › normal motion camera opens, returns smoothly, and a larger arrival interrupts the return",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/seismic-impact.spec.js:25:1 › automatic M5.5+ revisit paints the land without restarting P/S fronts; smaller revisit retains radar",
+      "error": "Error: expect(received).toBeNull()"
+    },
+    {
+      "test": "tests/seismic-random-words.spec.js:9:1 › epicenter detail is restricted to M6+, stops and does not change map layers",
+      "error": "Error: page.evaluate: TypeError: map.on is not a function"
+    },
+    {
+      "test": "tests/seismic-paint-tour.spec.js:56:1 › sismo fraco profundo informa quando o modelo não tem área em terra para pintar",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/site-effect-demo.spec.js:42:1 › M8+ dura 24 segundos, derruba registros por partes e restaura estilos",
+      "error": "Error: expect(received).toBeGreaterThan(expected)"
+    },
+    {
+      "test": "tests/startup-cycle.spec.js:18:1 › aviso sem ponto entra na terceira vaga, sem inventar voo ou epicentro",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 1280",
+      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)"
+    },
+    {
+      "test": "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 1280 após refresh",
+      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)"
+    },
+    {
+      "test": "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 390",
+      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)"
+    },
+    {
+      "test": "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 390 após refresh",
+      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)"
+    },
+    {
+      "test": "tests/tsunami-globe-priority.spec.js:4:31 › Hawaii bulletin rotates globe to explicit Kamchatka origin and stays there 1280",
+      "error": "Error: expect(received).toBeLessThan(expected)"
+    },
+    {
+      "test": "tests/tsunami-globe-priority.spec.js:14:92 › real tsunami warning effect › linked warning keeps its water effect visible behind the presentation",
+      "error": "Error: expect(locator).toHaveClass(expected) failed"
+    },
+    {
+      "test": "tests/tsunami-official.spec.js:25:1 › manual tsunami record clears replay state and obsolete map effects, including a regional bulletin",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    {
+      "test": "tests/tsunami-official.spec.js:46:1 › sidebar tsunami clicks replace a moving quake, cancel late callbacks and open the exact clicked bulletin",
+      "error": "Error: expect(locator).toHaveText(expected) failed"
+    },
+    {
+      "test": "tests/volcano-priority.spec.js:3:31 › known volcano escalation, deduplication and M5 precedence 1280",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/volcano-priority.spec.js:3:31 › known volcano escalation, deduplication and M5 precedence 390",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/wave-final-hold.spec.js:12:1 › only a larger new quake interrupts the hold; manual changes cancel old timers",
+      "error": "Error: expect(received).toEqual(expected) // deep equality"
+    },
+    {
+      "test": "tests/wave-final-hold.spec.js:25:1 › GlobalQuake display deadline fades weak quakes, caps the final snapshot, and omits expired reports",
+      "error": "Error: page.evaluate: ReferenceError: __mgFeltZoneState is not defined"
+    },
+    {
+      "test": "tests/wave-final-hold.spec.js:48:28 › manual chase stops at its display deadline 1.9 ─────────",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    {
+      "test": "tests/wave-final-hold.spec.js:48:28 › manual chase stops at its display deadline 4.1 ─────────",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    }
+  ]
+}

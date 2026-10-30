@@ -775,6 +775,9 @@ function mergeEarthquakeReports(reports, previous=[]) {
         const preferred=g.reports.reduce((best,row)=>sismoCompareReports(row,best)>0?row:best);
         const id=g.id,rows=g.reports,sources=g.sources;
         Object.assign(g,preferred,{id,reports:rows,sources});
+        // Reported depth belongs to the selected solution too. Normalize the legacy
+        // depth-only form so later merges cannot retain another agency's field.
+        g.depthReported=Object.prototype.hasOwnProperty.call(preferred,'depthReported')?preferred.depthReported:preferred.depth;
         const perAgency=new Map();
         for(const row of rows){const family=sismoReportFamily(row),old=perAgency.get(family);if(!old||sismoCompareReports(row,old)>0)perAgency.set(family,row);}
         g.magnitudes=[...perAgency].sort(([a],[b])=>a.localeCompare(b)).map(([source,row])=>({source,mag:row.mag}));
