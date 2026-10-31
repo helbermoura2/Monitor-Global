@@ -21,7 +21,7 @@ async function boot(page,width){
 for(const width of [1280,390])test('ciclones cinematográficos preservam dados e controles '+width,async({page})=>{
  await boot(page,width);const errors=[];// External feeds are deliberately aborted by boot; retain all other browser errors.
  page.on('pageerror',e=>{if(e.message!=='Failed to fetch')errors.push(e.message);});page.on('console',m=>{if(m.text().includes('[CardCinema]'))errors.push(m.text());});
- await expect(page.locator('#pd-local')).toHaveText('Evento real de teste — Bolívia');
+ await expect(page.locator('#pd-local')).toHaveText('Evento real de teste — Chile');
  const before=await page.evaluate(()=>({id:eventoSelecionadoId,local:document.getElementById('pd-local').textContent,mag:document.getElementById('pd-mag').textContent}));
  for(const key of ['hurricane','typhoon','tropical-storm']){
   await page.evaluate(k=>CardEffectDemo.preview(k),key);
@@ -119,10 +119,9 @@ test('rótulos dos feeds e códigos oficiais determinam o estágio e o hemisfér
 test('revisão silenciosa atualiza textos e hemisfério sem reiniciar a mesma fase',async({page})=>{
  test.setTimeout(90000);
  await boot(page,1280);
- // The independent cyclone feed removes alerts absent from its catalog when
- // startup finishes. Insert this fixture after that cleanup, and advance the
- // headline animation explicitly instead of depending on software-GPU speed.
- await page.waitForFunction(()=>fonteBooted('hurricane'));
+ // The renderer fixture pauses bootstrap collection and waits for its cleanup.
+ // Advance headline animation explicitly, without waiting for a paused feed.
+ await page.waitForFunction(()=>window.__cardRendererFixtureReady);
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+10000));
  await page.evaluate(()=>{
   const item={id:'cyclone-live',type:'hurricane',source:'Visual QA',place:'JOANA',cycloneLabel:'Furacão',classification:'HU',windKmh:150,coords:[-45,18],time:Date.now()};

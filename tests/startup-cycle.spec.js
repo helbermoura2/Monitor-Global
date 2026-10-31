@@ -15,16 +15,17 @@ for(const width of [1280,390])test('primeiro catálogo abre evento sem esperar a
  expect(await page.evaluate(()=>window.__mgAutoRotation.phase)).toBe(1);
  await page.evaluate(()=>{clearTimeout(cycleTimeout);CinematicCard.stop();});
 });
-test('aviso sem ponto entra na terceira vaga, sem inventar voo ou epicentro',async({page})=>{
+test('aviso sem ponto entra após as vagas sísmicas disponíveis, sem inventar voo ou epicentro',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
  const result=await page.evaluate(()=>{
-  isFirstDisplay=false;const now=Date.now();globalEvents=[1,2].map(i=>({id:'q'+i,type:'earthquake',source:'QA',coords:[-70,-20],time:now,mag:3,depth:10,place:'Sismo'}));
+  isFirstDisplay=false;CapitalWeather.pick=()=>null;WorldCapitalWeather.pick=()=>null;WorldCapitalWeather.warm=()=>{};BrazilStateFlags.isBrazil=()=>false;const now=Date.now();globalEvents=[1,2].map(i=>({id:'q'+i,type:'earthquake',source:'QA',coords:[-70,-20],time:now,mag:3,depth:10,place:'Sismo'}));
   globalAlerts=[{id:'regional-cycle',type:'flood',hazardNature:'warning',coords:null,source:'NWS / NOAA',time:now,expiresAt:now+60000,place:'Região de teste',warningDescription:'Aviso regional',severityLabel:'Moderada'}];
   window.__mgAutoRotation=undefined;window.__mgRevisionProtectedUntil=0;map.isMoving=()=>false;map.flyTo=()=>{};window.__flights=0;window.EventCamera.enter=(id,camera)=>{window.__flights++;window.__lastEntry=camera;return 6000;};
-  const rows=[];for(let i=0;i<3;i++){showNextAutoCycleItem();clearTimeout(cycleTimeout);rows.push(EventStore.getSelected()?.type);}
+  const rows=[];for(let i=0;i<4;i++){showNextAutoCycleItem();clearTimeout(cycleTimeout);rows.push(EventStore.getSelected()?.type);}
   return {rows,flights:window.__flights,lastEntry:window.__lastEntry,soft:window.__mgSoftCycle,error:window.__lastPainelDetalheError};
  });
- expect(result.rows).toEqual(['earthquake','earthquake','flood']);expect(result.flights).toBe(3);expect(result.lastEntry.zoom).toBe(1.1);expect(result.soft).toBe(false);expect(result.error).toBeFalsy();await expect(page.locator('#pd-local')).toContainText('Região de teste');await expect(page.locator('#pd-notice-brief')).toContainText('não fornece um ponto verificado');
+ expect(result.rows).toEqual(['earthquake','earthquake','earthquake','flood']);// Only the three quakes fly; an unlocated weather warning must not invent a destination.
+ expect(result.flights).toBe(3);expect(result.soft).toBe(false);expect(result.error).toBeFalsy();await expect(page.locator('#pd-local')).toContainText('Região de teste');await expect(page.locator('#pd-notice-brief')).toContainText('não fornece um ponto verificado');
 });
 for(const width of [1280,390])for(const reload of [false,true])test('catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária '+width+(reload?' após refresh':''),async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
@@ -45,11 +46,11 @@ for(const width of [1280,390])for(const reload of [false,true])test('catálogos 
   const q=(id,mag,coords)=>({id,sourceEventId:id,type:'earthquake',source:'USGS',coords,mag,depth:7,time:Date.now()-4*3600000,place:id});
   planetReinforcementDedupEAdiciona([q('Histórico Califórnia',2.1,[-117,36])],'USGS');
   planetReinforcementDedupEAdiciona([q('Histórico Havaí',1.8,[-155,19])],'EMSC');
-  window.__afadRows=[{earthquake_id:'old-turkey',latitude:38,longitude:29,mag:1.8,depth:7,date:new Date(Date.now()-3*3600000).toISOString(),location:'Histórico Turquia'}];
-  fetchWithCorsFallback=async()=>Response.json({result:__afadRows});await fetchAfadQuakes();
+  window.__afadRows=[{id:'old-turkey',lat:38,lon:29,mag:1.8,depth:7,time:Date.now()-3*3600000,place:'Histórico Turquia'}];
+  const originalAfadFetch=SharedSourceDelivery.fetch.bind(SharedSourceDelivery);SharedSourceDelivery.fetch=(...args)=>String(args[0]).includes('/afad-earthquakes')?Promise.resolve(Response.json({ok:true,events:__afadRows})):originalAfadFetch(...args);SourceHealth.recordOk('AFAD',0);await fetchAfadQuakes();
   applyFilters();focusNextNewCameraQuake();focusNextQuakeRevision();
   const after={selected:eventoSelecionadoId,pending:pendingNewCameraQuakes.size,revisions:pendingQuakeRevisions.size,badges:activeAlertingIds.size,count:globalEvents.length};
-  window.__afadRows.push({earthquake_id:'new-turkey',latitude:37,longitude:31,mag:1.7,depth:6,date:new Date(Date.now()-60000).toISOString(),location:'Chegada real Turquia'});
+  window.__afadRows.push({id:'new-turkey',lat:37,lon:31,mag:1.7,depth:6,time:Date.now()-60000,place:'Chegada real Turquia'});
   await fetchAfadQuakes();clearTimeout(cycleTimeout);
   return {original,after,selected:EventStore.getSelected()?.place,error:window.__lastPainelDetalheError};
  });

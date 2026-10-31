@@ -50,7 +50,7 @@ test('all material renderers honor the shared resolution without changing CSS bo
  });
  for(const r of result){expect(r.after,r.type).toBeCloseTo(r.before*.8,0);expect(r.cssWidth).toBe(320);}
 });
-test('full-screen seismic dust adapts while fallen originals stay absent and power flashes persist',async({page})=>{
+test('full-screen seismic dust adapts while the original card stays readable and power flashes persist',async({page})=>{
  await page.setViewportSize({width:1280,height:844});await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+100));
  await page.setContent('<div id="app"><div id="top-strip"><div id="chips-row"><button class="chip">Brasil</button></div></div><div id="events">Eventos</div><aside id="painel-direito" style="width:320px;height:500px"><span id="pd-flag">Brasil</span><div class="stat-card">Magnitude 7.5</div></aside></div>');
  await page.addStyleTag({path:'css/seismic-cinema.css'});await page.addScriptTag({path:'js/card-effect-quality.js'});await page.addScriptTag({path:'js/seismic-cinema.js'});
@@ -59,6 +59,6 @@ test('full-screen seismic dust adapts while fallen originals stay absent and pow
  const fullWidth=await page.locator('.seismic-atmosphere').evaluate(c=>c.width);
  await page.clock.runFor(5800);await expect(scene).toHaveAttribute('data-quality','light');
  expect(await page.locator('.seismic-atmosphere').evaluate(c=>c.width)).toBeCloseTo(fullWidth*.6,0);expect(await original.evaluate(el=>el.isConnected)).toBe(true);
- await expect(page.locator('#painel-direito')).toHaveClass(/seismic-displaced/);await expect(page.locator('.seismic-power-failure')).toHaveCount(1);
+ await expect(page.locator('#painel-direito')).toBeVisible();expect(await page.locator('#painel-direito').evaluate(el=>el.inert)).toBe(false);await expect(page.locator('.seismic-power-failure')).toHaveCount(1);
  await page.clock.fastForward(10500);await expect(scene).toHaveCount(0);await expect(page.locator('.seismic-displaced')).toHaveCount(0);expect(await page.locator('#painel-direito').evaluate(el=>el.inert)).toBe(false);
 });

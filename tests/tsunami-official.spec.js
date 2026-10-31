@@ -19,7 +19,7 @@ test('international warning is visible during protected M8, survives NWS cleanup
 test('a new warning enters the presentation queue while an informational bulletin has no tsunami effect',async({page})=>{
  await boot(page);const warning=bulletin('PTWC','Warning');
  await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',ok:true}],items:[warning]}}));await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect.poll(()=>page.evaluate(()=>eventoSelecionadoId)).toBe(warning.id);
- const info=bulletin('PTWC','Information');await page.evaluate(info=>{globalAlerts=[info];upsertAlert(info);showAlertDetails(info,false);clearTimeout(cycleTimeout);},info);await expect(page.locator('#pd-mercalli')).toHaveText('Informativo');await expect(page.locator('#pd-source')).toContainText('Informativo');await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);expect(await page.evaluate(()=>{triggerEventoMapaFx(globalAlerts[0]);return tsunamiWaveEl===null;})).toBe(true);
+ const info=bulletin('PTWC','Information');await page.evaluate(info=>{globalAlerts=[info];upsertAlert(info);showAlertDetails(info,false);clearTimeout(cycleTimeout);},info);await expect(page.locator('#pd-mercalli')).toHaveText('Informativo');await expect(page.locator('#pd-source')).toContainText(/informativo/i);await expect(page.locator('.pd-cinema-layer')).toHaveCount(0);expect(await page.evaluate(()=>{triggerEventoMapaFx(globalAlerts[0]);return tsunamiWaveEl===null;})).toBe(true);
  await page.route('**/tsunami-alerts',r=>r.fulfill({json:{ok:true,sources:[{source:'PTWC',ok:true},{source:'NTWC',ok:true}],items:[]}}));await page.evaluate(()=>fetchOfficialTsunamiAlerts());await expect(page.locator('#chip-tsunami-official')).toBeHidden();
 });
 test('manual tsunami record clears replay state and obsolete map effects, including a regional bulletin',async({page})=>{
@@ -29,7 +29,7 @@ test('manual tsunami record clears replay state and obsolete map effects, includ
  await page.evaluate(()=>fetchOfficialTsunamiAlerts());
  await page.evaluate(()=>{window.__mgSoftCycle=true;window.__mgRotationDisplay=false;window.returnCameraTimeout=setTimeout(()=>showEventDetails(0,false),1000);});
  await page.locator('#chips-row [data-f="tsunami"]').click();await page.locator('#events .event[data-event-id="'+info.id+'"]').click();
- await expect(page.locator('#pd-source')).toContainText('Informativo');
+ await expect(page.locator('#pd-source')).toContainText(/informativo/i);
  await page.waitForTimeout(1300);
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(info.id);
  expect(await page.evaluate(()=>window.__mgWaveFrontState)).toBeNull();
@@ -60,11 +60,11 @@ test('sidebar tsunami clicks replace a moving quake, cancel late callbacks and o
  await expect(page.locator('#pd-notice-brief a')).toHaveAttribute('href',regional.link);
  await page.waitForTimeout(2100);
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(regional.id);
- await expect.poll(()=>page.evaluate(()=>[map.getCenter().lng,map.getCenter().lat]),{timeout:20000}).toEqual([0,0]);
+ await expect.poll(()=>page.evaluate(()=>Math.max(Math.abs(map.getCenter().lng),Math.abs(map.getCenter().lat))),{timeout:20000}).toBeLessThan(1e-9);
  expect(await page.evaluate(()=>window.__mgWaveFrontState)).toBeNull();
  await expect(page.locator('.felt-zone-wrap,.tsunami-wave-wrap')).toHaveCount(0);
  await page.locator('#events .event').filter({hasText:'Panamá'}).click();
- await expect(page.locator('#pd-local')).toHaveText('Panamá');
+ await expect(page.locator('#pd-local')).toHaveText('Origem sísmica: Panamá');
  await expect(page.locator('#pd-notice-brief')).toContainText('origem sísmica');
  await expect.poll(()=>page.evaluate(()=>Math.abs(map.getCenter().lng+80.75)),{timeout:20000}).toBeLessThan(3);
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(panama.id);

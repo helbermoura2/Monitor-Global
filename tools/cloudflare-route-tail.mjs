@@ -1,7 +1,7 @@
 /* Ephemeral observation of natural traffic. Never writes raw logs, URLs or headers. */
 import {writeFile,mkdir} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
-const routes=new Set(['/tv-alerts','/tv-daily-summary','/population-exposure','/rupture-shaking','/seismic-image','/earthquake-image','/tsunami-image','/weatherapi','/rain-weather','/rain-nowcast','/global-feeds','/tsunami-alerts','/v70-impact','/telegram-card-preview','/official-weather-alerts','/cge-bulletins','/metar-observed','/redemet-metar','/tts','/health','/global-volcano','/gdacs-floods','/seismic-status','/sp-clima']);
+const routes=new Set(['/tv-alerts','/tv-daily-summary','/tv-rain','/tv-weather','/population-exposure','/rupture-shaking','/seismic-image','/earthquake-image','/tsunami-image','/weatherapi','/rain-weather','/rain-nowcast','/global-feeds','/tsunami-alerts','/v70-impact','/telegram-card-preview','/official-weather-alerts','/cge-bulletins','/metar-observed','/redemet-metar','/tts','/health','/global-volcano','/gdacs-floods','/seismic-status','/sp-clima']);
 export function classify(message){
  let route='other';try{const u=new URL(message.event?.request?.url);route=u.pathname.startsWith('/telegram-image/')?'/telegram-image/*':u.pathname.startsWith('/telegram-summary-image/')?'/telegram-summary-image/*':routes.has(u.pathname)?u.pathname:u.pathname==='/'?(u.searchParams.has('url')?'public-proxy':'root'):'other';}catch{route=message.event?.cron?'scheduled':message.event?.scheduledTime?'alarm':'other';}
  const outcome=['ok','exception','exceededCpu','exceededMemory','exceededResources','canceled','unknown'].includes(message.outcome)?message.outcome:'other';

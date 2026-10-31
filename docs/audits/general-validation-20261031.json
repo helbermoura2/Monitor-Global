@@ -1,0 +1,180 @@
+{
+  "date": "2026-10-31",
+  "run": 41151308486,
+  "headSha": "869076861fa98f25e40c09e9addb3170babb53e5",
+  "status": "completed-with-failures",
+  "suite": {
+    "passed": 476,
+    "failed": 65,
+    "flaky": 3,
+    "skipped": 0,
+    "total": 544,
+    "shards": [
+      {
+        "shard": "1/3",
+        "passed": 154,
+        "failed": 26,
+        "flaky": 2,
+        "failures": [
+          "tests/auto-cycle.spec.js:2:31 › ciclo2+2 varia eventos e retoma o slot depois de nova chegada 1280",
+          "tests/auto-cycle.spec.js:2:31 › ciclo2+2 varia eventos e retoma o slot depois de nova chegada 390",
+          "tests/balanced-world-transitions.spec.js:3:31 › dois sismos e outro tipo repetem sem serem sequestrados pelos avisos canadenses 1280",
+          "tests/balanced-world-transitions.spec.js:3:31 › dois sismos e outro tipo repetem sem serem sequestrados pelos avisos canadenses 390",
+          "tests/balanced-world-transitions.spec.js:22:1 › rotação real avança dois sismos, tempestade e volta ao sismo após a permanência",
+          "tests/balanced-world-transitions.spec.js:30:1 › sismo novo e explosão vulcânica interrompem com saída ampla e suave",
+          "tests/cge-bulletins.spec.js:3:31 › boletim CGE na lista e texto oficial no verso 1280 ──────────",
+          "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 960",
+          "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 1024",
+          "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 1280",
+          "tests/data-quality.spec.js:2:31 › coordinate flags and missing USGS intensity remain consistent in list and card 1280",
+          "tests/data-quality.spec.js:2:31 › coordinate flags and missing USGS intensity remain consistent in list and card 390",
+          "tests/epicenter-anchored-map.spec.js:2:31 › M7 keeps geographic anchor during zoom, shows card and draws hollow intensity 411",
+          "tests/epicenter-anchored-map.spec.js:2:31 › M7 keeps geographic anchor during zoom, shows card and draws hollow intensity 1280",
+          "tests/event-focus-beacon.spec.js:21:33 › real camera descends over its destination desktop flat",
+          "tests/globalquake-fronts.spec.js:17:31 › live origin, manual replay, revision and geodesic fronts 1280",
+          "tests/globalquake-fronts.spec.js:17:31 › live origin, manual replay, revision and geodesic fronts 390",
+          "tests/globalquake-fronts.spec.js:65:1 › revision during the initial delay uses the latest hypocenter",
+          "tests/globalquake-fronts.spec.js:74:31 › automatic radar estimates areas without GlobalQuake fronts 1280",
+          "tests/globalquake-fronts.spec.js:74:31 › automatic radar estimates areas without GlobalQuake fronts 390",
+          "tests/globalquake-fronts.spec.js:102:31 › newly received late reports show estimated radar, then manual and fresh arrivals show fronts 1280",
+          "tests/globalquake-fronts.spec.js:102:31 › newly received late reports show estimated radar, then manual and fresh arrivals show fronts 390",
+          "tests/globe-preview.spec.js:27:2 › globe 1280 › menu toggles the same map, preserves data, hides far-side pins and remembers projection on reload",
+          "tests/globe-preview.spec.js:58:2 › globe 1280 › official ShakeMap and tsunami polygons render on the globe and survive switching back",
+          "tests/globe-preview.spec.js:27:2 › globe 390 › menu toggles the same map, preserves data, hides far-side pins and remembers projection on reload",
+          "tests/globe-preview.spec.js:58:2 › globe 390 › official ShakeMap and tsunami polygons render on the globe and survive switching back"
+        ]
+      },
+      {
+        "shard": "2/3",
+        "passed": 160,
+        "failed": 22,
+        "flaky": 0,
+        "failures": [
+          "tests/incremental-event-list.spec.js:11:31 › incremental records preserve nodes, scroll, selection, revisions and age 1280",
+          "tests/incremental-event-list.spec.js:11:31 › incremental records preserve nodes, scroll, selection, revisions and age 390",
+          "tests/live-full-screen-effects.spec.js:3:31 › lava and M8+ use live scenes, real magnitude and staged record collapse 1280",
+          "tests/live-full-screen-effects.spec.js:3:31 › lava and M8+ use live scenes, real magnitude and staged record collapse 390",
+          "tests/live-rotation-regression.spec.js:14:1 › late catalog records do not hijack the timed eleven-slot rotation",
+          "tests/map-native-gestures.spec.js:4:52 › native mouse › tsunami preserves the entire drag ──────",
+          "tests/map-status-stacking.spec.js:4:2 › map status 1280 › intensity and wave notices paint above native pins while preserving map input",
+          "tests/map-status-stacking.spec.js:4:2 › map status 390 › intensity and wave notices paint above native pins while preserving map input",
+          "tests/mobile-event-chips.spec.js:14:1 › landscape chips scroll horizontally; desktop has no extra toolbar or local filter",
+          "tests/monitor-workbench.spec.js:3:31 › places persist locally and sequence chart navigates actual catalog events 1280",
+          "tests/monitor-workbench.spec.js:3:31 › places persist locally and sequence chart navigates actual catalog events 390",
+          "tests/official-shakemap.spec.js:31:1 › grade oficial fraca preserva a fonte e não inventa uma pintura radial em terra",
+          "tests/presentation-limits.spec.js:3:31 › every automatic kind switches by 40s even while moving; lava holds 45s 1280",
+          "tests/presentation-limits.spec.js:3:31 › every automatic kind switches by 40s even while moving; lava holds 45s 390",
+          "tests/quake-marker-preview.spec.js:17:2 › mouse preview › hover reads magnitude without selection, and click still opens the event",
+          "tests/quake-marker-preview.spec.js:29:2 › touch preview › tap only consults; outside closes; the explicit button opens the event",
+          "tests/quake-marker-preview.spec.js:42:2 › touch preview › drag from a pin moves the map without opening or selecting it",
+          "tests/quake-priority.spec.js:3:31 › new M5.2 interrupts M2.4 card and late-report radar 1280 ───",
+          "tests/quake-priority.spec.js:3:31 › new M5.2 interrupts M2.4 card and late-report radar 390 ────",
+          "tests/quake-priority.spec.js:11:1 › known quake magnitude increase below M6 no longer gains priority; M6+ still does, and badge recovery runs before hold timer",
+          "tests/quake-priority.spec.js:18:1 › actual merged feed arrival and a raised revision preempt the low protected card",
+          "tests/regional-warning-cards.spec.js:2:52 › aviso regional abre painel e boletim separado, sem câmera falsa 390"
+        ]
+      },
+      {
+        "shard": "3/3",
+        "passed": 162,
+        "failed": 17,
+        "flaky": 1,
+        "failures": [
+          "tests/seismic-impact.spec.js:3:31 › M5+ land intensity follows S, returns to the affected area for ten seconds and yields to larger quake 1280",
+          "tests/seismic-impact.spec.js:3:31 › M5+ land intensity follows S, returns to the affected area for ten seconds and yields to larger quake 390",
+          "tests/seismic-impact.spec.js:14:1 › M5 delayed arrivals paint land without fake waves; automatic rotation keeps its radar",
+          "tests/seismic-impact.spec.js:18:1 › normal motion camera opens, returns smoothly, and a larger arrival interrupts the return",
+          "tests/seismic-impact.spec.js:25:1 › automatic M5.5+ revisit paints the land without restarting P/S fronts; smaller revisit retains radar",
+          "tests/seismic-paint-tour.spec.js:56:1 › sismo fraco profundo informa quando o modelo não tem área em terra para pintar",
+          "tests/startup-cycle.spec.js:18:1 › aviso sem ponto entra na terceira vaga, sem inventar voo ou epicentro",
+          "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 1280",
+          "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 1280 após refresh",
+          "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 390",
+          "tests/startup-cycle.spec.js:29:64 › catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária 390 após refresh",
+          "tests/volcano-priority.spec.js:3:31 › known volcano escalation, deduplication and M5 precedence 1280",
+          "tests/volcano-priority.spec.js:3:31 › known volcano escalation, deduplication and M5 precedence 390",
+          "tests/wave-final-hold.spec.js:12:1 › only a larger new quake interrupts the hold; manual changes cancel old timers",
+          "tests/wave-final-hold.spec.js:25:1 › GlobalQuake display deadline fades weak quakes, caps the final snapshot, and omits expired reports",
+          "tests/wave-final-hold.spec.js:48:28 › manual chase stops at its display deadline 1.9 ───────────",
+          "tests/wave-final-hold.spec.js:48:28 › manual chase stops at its display deadline 4.1 ───────────"
+        ]
+      }
+    ]
+  },
+  "separateGroups": {
+    "visibility": {
+      "passed": 30,
+      "failed": 0,
+      "job": 124388232381
+    },
+    "materials": {
+      "passed": 58,
+      "failed": 0,
+      "job": 124388231983
+    }
+  },
+  "longSession": {
+    "run": 41151308761,
+    "nodePassed": 183,
+    "browserPassed": 75,
+    "failed": 0
+  },
+  "local": {
+    "runtimeSyntax": {
+      "checked": 242,
+      "failed": 0
+    },
+    "python": {
+      "total": 49,
+      "passed": 48,
+      "missingDistributionZip": 1
+    },
+    "standaloneChecks": {
+      "total": 30,
+      "initiallyPassed": 29,
+      "recheckedMobilePortrait": "passed"
+    },
+    "playwrightCollection": {
+      "tests": 544,
+      "files": 143,
+      "nodeUnitFilesExcludedFromBrowserCollection": true,
+      "method": "Available local Playwright runtime used only for collection; no browser execution."
+    }
+  },
+  "nextRound": {
+    "status": "prepared; browser validation still required",
+    "scope": "Test fixtures, assertions and test-runner separation; no production runtime changes.",
+    "unresolved": [
+      "Native mouse tsunami gesture timed out in this run; still requires reproduction.",
+      "Mobile warning initial visibility requires revalidation after fonts/animation stabilization.",
+      "Worker excess route/cause remains unknown.",
+      "No new physical endurance sessions or uptime Secrets configured."
+    ]
+  },
+  "followUp": {
+    "headSha": "3e610beb974bda16794d9cec4cff29ddd0af73ee",
+    "run": 41154779604,
+    "status": "in_progress",
+    "visibility": {
+      "passed": 30,
+      "failed": 0
+    },
+    "materials": {
+      "passed": 58,
+      "failed": 0
+    },
+    "longSession": {
+      "run": 41154779542,
+      "internalPassed": 183,
+      "browserPassed": 75
+    },
+    "firstShard": {
+      "status": "failed_before_browser",
+      "internalTests": 564,
+      "reason": "Exact physical geometry hash differs on Node 20; original four reference hashes pass locally on Node 24 with identical model, clipper and fixture blobs.",
+      "passed": 563,
+      "failed": 1
+    },
+    "nextChange": "Use supported Node 24, preserve independent diagnostics after local failures and queue newer commits without cancelling the current round."
+  }
+}

@@ -26,7 +26,7 @@ for(const [mode,w,h]of [['desktop',1280,720],['mobile',390,844]])test('aviso '+m
  await expect.poll(async()=>{const b=await notice.boundingBox();return b.y+b.height;}).toBeLessThanOrEqual(h+1);
  const box=await notice.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(w+1);expect(box.y+box.height).toBeLessThanOrEqual(h+1);
  expect(await notice.evaluate(el=>{const b=el.getBoundingClientRect();return el.contains(document.elementFromPoint(b.x+b.width/2,b.bottom-16));})).toBe(true);
- await notice.screenshot({path:'/workspace/scratch/rain-arrival-'+mode+'.png'});
+ await notice.screenshot({path:'/tmp/rain-arrival-'+mode+'.png'});
  await page.waitForTimeout(mode==='desktop'?13000:21000);
  await expect(notice).toHaveCount(0);await expect(page.locator('#painel-direito')).not.toHaveClass(/pd-flip-girado/);
  await page.evaluate(()=>RainArrivalNotice.consider(rainFixture()));await expect(notice).toHaveCount(0);

@@ -58,10 +58,11 @@ for(const width of [1280,390])test('rajada cinematográfica no cartão completo 
  await expect.poll(hit).toBe(true);
  await page.waitForFunction(()=>parseFloat(document.getElementById('painel-direito').style.getPropertyValue('--pd-wind-pressure'))>.5);
  const bounds=async()=>page.locator('#painel-direito').evaluate(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth};});
- const peakBounds=await bounds();expect(peakBounds.left).toBeGreaterThanOrEqual(-1);expect(peakBounds.right).toBeLessThanOrEqual(peakBounds.viewport+1);
+ // Sample the full rising gust: a single early peak missed the clipped edge.
+ const peakBounds=await page.locator('#painel-direito').evaluate(async el=>{let left=Infinity,right=-Infinity;const start=performance.now();while(performance.now()-start<5000){const r=el.getBoundingClientRect();left=Math.min(left,r.left);right=Math.max(right,r.right);await new Promise(requestAnimationFrame);}return {left,right,viewport:innerWidth};});expect(peakBounds.left).toBeGreaterThanOrEqual(-1);expect(peakBounds.right).toBeLessThanOrEqual(peakBounds.viewport+1);
  await page.screenshot({path:'/tmp/wind-scene-'+width+'.png'});
  if(width===390){await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});await page.waitForTimeout(450);const expandedBounds=await bounds();expect(expandedBounds.left).toBeGreaterThanOrEqual(-1);expect(expandedBounds.right).toBeLessThanOrEqual(expandedBounds.viewport+1);await page.screenshot({path:'/tmp/wind-scene-expanded-'+width+'.png'});}
- await expect.poll(()=>page.locator('#painel-direito').evaluate(el=>parseFloat(el.style.getPropertyValue('--pd-wind-pressure'))),{timeout:12000}).toBeLessThan(.18);
+ await expect.poll(()=>page.locator('#painel-direito').evaluate(el=>parseFloat(el.style.getPropertyValue('--pd-wind-pressure')||'0')),{timeout:12000}).toBeLessThan(.18);
  await page.screenshot({path:'/tmp/wind-scene-calm-'+width+'.png'});expect(errors).toEqual([]);
  await page.evaluate(()=>CinematicCard.stop());await expect(page.locator('.pd-cinema-contact,.pd-fx-windletter')).toHaveCount(0);
  await expect(page.locator('#pd-local')).toContainText('Rajadas de vento');await expect.poll(hit).toBe(true);

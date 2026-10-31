@@ -8,7 +8,7 @@ async function boot(page,width=1280){
 }
 async function select(page,type,extra={}){
  await page.evaluate(({type,extra})=>{
-  const item={id:'cinema-'+type,type,source:'Visual QA',place:'Evento demonstrativo — Brasil',coords:[-46.63,-23.55],time:Date.now(),bandeira:'🇧🇷',detail:type==='storm'?'Trovoada reportada no aeródromo':'',mag:5.6,depth:10,windKmh:120,...extra};
+  const item={id:'cinema-'+type,type,source:'Visual QA',place:'Evento demonstrativo — Brasil',coords:[-46.63,-23.55],time:Date.now(),bandeira:'🇧🇷',detail:type==='storm'?'Trovoada reportada no aeródromo':'',mag:5.6,depth:10,windKmh:120,...(type==='tsunami'?{official:true,source:'PTWC',hazardNature:'warning',warningLevel:'Aviso',affectedAreas:[{name:'Costa de teste',category:'Warning'}]}:{}),...extra};
   if(type==='earthquake'){globalEvents=[item];showEventDetails(0,false);}else{globalAlerts=[item];upsertAlert(item);showAlertDetails(item,false);}
   clearTimeout(cycleTimeout);clearTimeout(window.__mgRadarDelayT);clearTimeout(window.__mgWaveDelayT);
  },{type,extra});
@@ -18,7 +18,11 @@ async function cardCoverage(page){
   const rect=layer.getBoundingClientRect(),video=layer.querySelector('video'),film=layer.querySelector('.pd-cinema-film');
   const bounds=el=>{const r=el.getBoundingClientRect();return {top:r.top-rect.top,left:r.left-rect.left,width:r.width,height:r.height};};
   const width=film.width,height=film.height,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-  const ctx=canvas.getContext('2d');ctx.drawImage(film,0,0,width,height);
+  const ctx=canvas.getContext('2d');
+  // The shader intentionally becomes transparent when photographic footage is ready.
+  // Measure the displayed composition, including that video, not only its overlay.
+  if(video&&video.readyState>=2)ctx.drawImage(video,0,0,width,height);
+  ctx.drawImage(film,0,0,width,height);
   const particles=layer.querySelector('.pd-cinema-particles');if(particles)ctx.drawImage(particles,0,0,width,height);
   const pixels=ctx.getImageData(0,0,width,height).data,thirds=[];
   // Ignore the edges: the previous hero band plus thin edge effects must fail this check.
@@ -51,6 +55,7 @@ for(const width of [1280,390])test('cena ocupa o cartão inteiro e mantém os co
   if(width===390)await page.evaluate(()=>{document.body.classList.remove('mobile-details-mid');document.body.classList.add('mobile-details-open');});
   const video=page.locator('.pd-cinema-footage');if(type==='storm')await expect(video).toHaveCount(0);else await expect.poll(()=>video.evaluate(v=>v.readyState>=2&&!v.paused)).toBe(true);
   await expect.poll(async()=>{const c=await cardCoverage(page);return Math.abs(c.video.height-c.height)<1&&Math.abs(c.video.top)<1;}).toBe(true);
+  await expect.poll(async()=>{const c=await cardCoverage(page);return c.thirds.every(third=>third.mean>8&&third.covered>.3);},{message:'Composição visível: '+type}).toBe(true);
   const coverage=await cardCoverage(page);
   for(const bounds of [coverage.video,coverage.film]){
    expect(Math.abs(bounds.top)).toBeLessThan(1);expect(Math.abs(bounds.left)).toBeLessThan(1);
@@ -174,7 +179,7 @@ test('falha do vídeo mantém cena gráfica e vulcão em monitoramento não rece
 
 test('vento move as letras preservando o conteúdo do local',async({page})=>{
  await boot(page);
- for(const type of ['wind']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);expect(await page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
+ for(const type of ['wind']){await select(page,type);await expect(page.locator('.pd-cinema-layer')).toHaveAttribute('data-scene',type);await expect.poll(()=>page.locator('#pd-local .pd-fx-windletter').count()).toBeGreaterThan(5);await expect(page.locator('#pd-local')).toContainText('Evento');await expect(page.locator('.pd-cinema-contact')).toHaveCount(1);}
 });
 
 

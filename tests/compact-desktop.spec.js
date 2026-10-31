@@ -7,8 +7,9 @@ for(const size of [{width:960,height:540},{width:1024,height:576},{width:1280,he
  await page.waitForTimeout(1300);
  const boxes=await page.evaluate(()=>Object.fromEntries(['top-strip','painel-direito','sidebar-left','ao-vivo-badge','sp-live-card','kpibox-brent','pd-local'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return [id,{x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,right:r.right}];})));
  expect(boxes['top-strip'].h).toBeLessThanOrEqual(size.width<=1100?115:130);expect(boxes['painel-direito'].y).toBeGreaterThan(boxes['top-strip'].bottom);expect(boxes['painel-direito'].bottom).toBeLessThanOrEqual(size.height);
- expect(boxes['painel-direito'].x-boxes['sidebar-left'].right).toBeGreaterThan(size.width*.38);expect(boxes['painel-direito'].h).toBeGreaterThan(size.height*.65);
- expect(boxes['sp-live-card'].right).toBeLessThanOrEqual(boxes['kpibox-brent'].x+1);expect(boxes['ao-vivo-badge'].right).toBeLessThanOrEqual(size.width);await expect(page.locator('#pd-local')).toContainText('Balleny Islands');
+ // The approved wider record/detail cards must leave a non-overlapping map corridor.
+ expect(boxes['painel-direito'].x-boxes['sidebar-left'].right).toBeGreaterThan(0);expect(boxes['painel-direito'].h).toBeGreaterThan(size.height*.65);
+ expect(boxes['sp-live-card'].right).toBeLessThanOrEqual(boxes['kpibox-brent'].x+1);expect(boxes['ao-vivo-badge'].right).toBeLessThanOrEqual(size.width);await expect(page.locator('#pd-local')).toContainText('Ilhas Balleny');
  const scroll=await page.locator('#painel-direito').evaluate(e=>{e.scrollTop=e.scrollHeight;return {top:e.scrollTop,overflow:getComputedStyle(e).overflowY};});expect(scroll.top).toBeGreaterThan(0);expect(scroll.overflow).toBe('auto');
  if(size.width===960){await page.locator('#painel-direito').evaluate(e=>e.scrollTop=0);await page.screenshot({path:'/tmp/tv-layout-960.png'});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);expect(await page.locator('#painel-direito').evaluate(e=>e.style.top)).toBe('');await expect(page.locator('#ao-vivo-badge')).toBeVisible();await page.setViewportSize(size);await expect.poll(()=>page.locator('#top-strip').evaluate(e=>e.getBoundingClientRect().height)).toBeLessThanOrEqual(115);}
 });

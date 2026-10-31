@@ -37,6 +37,10 @@
 @media(max-width:700px){
  #painel-direito.pd-model-one .pd-local{font-size:15px!important}
  #painel-direito.pd-model-one .pd-header-actions button{min-height:44px}
+ /* Regional notices have no gauge: keep their location and brief close together. */
+ #painel-direito.pd-model-one.pd-warning .pd-location-row{padding:6px 0;gap:4px}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-model-one.pd-warning .pd-location-row{grid-column:1 / -1;grid-row:2;padding:0}
+ body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-model-one.pd-warning #pd-horario{grid-column:1 / -1;margin:4px 0!important}
  body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-model-one .pd-header-row{flex-wrap:wrap!important}
  body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-model-one .pd-header-actions{padding:0!important}
  body.mg-mobile-primary.mobile-details-mid #painel-direito.pd-model-one .pd-location-row{grid-column:2;grid-row:2;padding:0;border:0;gap:5px}

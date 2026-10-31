@@ -5,6 +5,8 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
+  // Node unit tests run in their own step; loading them here mixes two test runners.
+  testMatch: '**/*.spec.js',
   timeout: 60000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',

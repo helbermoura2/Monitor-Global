@@ -1,0 +1,703 @@
+{
+  "date": "2026-10-30",
+  "baseCommit": "c8be54990f3b60c758461df6391efb2d65b3f3df",
+  "productionRuntimeChanged": true,
+  "plan": "Cloudflare Free",
+  "telegramMessagesSent": 0,
+  "physicalDeviceConnected": false,
+  "physicalDiagnostics": [
+    {
+      "file": "monitor-global-tv-diagnostico _2_.json",
+      "device": "Amazon AFTKRT",
+      "version": "1.0.21",
+      "totalSamples": 8,
+      "retainedSamples": 8,
+      "retainedHours": 0.12,
+      "initialMiB": 11.35,
+      "peakMiB": 56.73,
+      "finalMiB": 35.69,
+      "firstQuarterMedianMiB": 34.04,
+      "lastQuarterMedianMiB": 35.71,
+      "banner": {
+        "drawnFrames": 9622,
+        "gapsOver50ms": 4,
+        "gapsOver100ms": 1,
+        "maxGapMs": 179.309385,
+        "maxDrawRecordingMs": 21.508615
+      },
+      "lastSamples": [
+        {
+          "pssMiB": 11.35,
+          "frames": 0
+        },
+        {
+          "pssMiB": 56.73,
+          "frames": 1871
+        },
+        {
+          "pssMiB": 36.13,
+          "frames": 3671
+        },
+        {
+          "pssMiB": 43.15,
+          "frames": 5910
+        },
+        {
+          "pssMiB": 39.05,
+          "frames": 8753
+        },
+        {
+          "pssMiB": 32.79,
+          "frames": 9622
+        },
+        {
+          "pssMiB": 35.74,
+          "frames": 9622
+        },
+        {
+          "pssMiB": 35.69,
+          "frames": 9622
+        }
+      ]
+    },
+    {
+      "file": "monitor-global-tv-diagnostico-anterior.json",
+      "device": "TCL Smart TV Pro",
+      "version": "1.0.19",
+      "totalSamples": 314,
+      "retainedSamples": 314,
+      "retainedHours": 5.23,
+      "initialMiB": 33.63,
+      "peakMiB": 47.4,
+      "finalMiB": 33.16,
+      "firstQuarterMedianMiB": 26.49,
+      "lastQuarterMedianMiB": 28.77,
+      "banner": {
+        "drawnFrames": 0,
+        "gapsOver50ms": 0,
+        "gapsOver100ms": 0,
+        "maxGapMs": 0,
+        "maxDrawRecordingMs": 0
+      },
+      "lastSamples": [
+        {
+          "pssMiB": 28.82,
+          "frames": 0
+        },
+        {
+          "pssMiB": 28.87,
+          "frames": 0
+        },
+        {
+          "pssMiB": 28.88,
+          "frames": 0
+        },
+        {
+          "pssMiB": 28.8,
+          "frames": 0
+        },
+        {
+          "pssMiB": 28.78,
+          "frames": 0
+        },
+        {
+          "pssMiB": 28.74,
+          "frames": 0
+        },
+        {
+          "pssMiB": 29.94,
+          "frames": 0
+        },
+        {
+          "pssMiB": 33.16,
+          "frames": 0
+        }
+      ]
+    },
+    {
+      "file": "monitor-global-tv-diagnostico-anterior _2_.json",
+      "device": "Amazon AFTKRT",
+      "version": "1.0.19",
+      "totalSamples": 736,
+      "retainedSamples": 360,
+      "retainedHours": 6.0,
+      "initialMiB": 8.48,
+      "peakMiB": 40.54,
+      "finalMiB": 22.04,
+      "firstQuarterMedianMiB": 16.65,
+      "lastQuarterMedianMiB": 16.57,
+      "banner": {
+        "drawnFrames": 0,
+        "gapsOver50ms": 0,
+        "gapsOver100ms": 0,
+        "maxGapMs": 0,
+        "maxDrawRecordingMs": 0
+      },
+      "lastSamples": [
+        {
+          "pssMiB": 16.35,
+          "frames": 0
+        },
+        {
+          "pssMiB": 16.85,
+          "frames": 0
+        },
+        {
+          "pssMiB": 16.35,
+          "frames": 0
+        },
+        {
+          "pssMiB": 16.88,
+          "frames": 0
+        },
+        {
+          "pssMiB": 16.11,
+          "frames": 0
+        },
+        {
+          "pssMiB": 16.64,
+          "frames": 0
+        },
+        {
+          "pssMiB": 15.11,
+          "frames": 0
+        },
+        {
+          "pssMiB": 22.04,
+          "frames": 0
+        }
+      ]
+    },
+    {
+      "file": "monitor-global-tv-diagnostico _1_.json",
+      "device": "TCL Smart TV Pro",
+      "version": "1.0.20",
+      "totalSamples": 321,
+      "retainedSamples": 321,
+      "retainedHours": 5.35,
+      "initialMiB": 31.63,
+      "peakMiB": 69.83,
+      "finalMiB": 69.66,
+      "firstQuarterMedianMiB": 22.94,
+      "lastQuarterMedianMiB": 23.03,
+      "banner": {
+        "drawnFrames": 5985,
+        "gapsOver50ms": 5,
+        "gapsOver100ms": 2,
+        "maxGapMs": 354.607917,
+        "maxDrawRecordingMs": 38.282542
+      },
+      "lastSamples": [
+        {
+          "pssMiB": 22.37,
+          "frames": 0
+        },
+        {
+          "pssMiB": 24.67,
+          "frames": 0
+        },
+        {
+          "pssMiB": 25.85,
+          "frames": 0
+        },
+        {
+          "pssMiB": 26.65,
+          "frames": 0
+        },
+        {
+          "pssMiB": 25.93,
+          "frames": 0
+        },
+        {
+          "pssMiB": 29.86,
+          "frames": 0
+        },
+        {
+          "pssMiB": 69.83,
+          "frames": 2495
+        },
+        {
+          "pssMiB": 69.66,
+          "frames": 5985
+        }
+      ]
+    },
+    {
+      "file": "monitor-global-tv-diagnostico.json",
+      "device": "Amazon AFTKRT",
+      "version": "1.0.20",
+      "totalSamples": 317,
+      "retainedSamples": 317,
+      "retainedHours": 5.28,
+      "initialMiB": 21.92,
+      "peakMiB": 49.72,
+      "finalMiB": 49.72,
+      "firstQuarterMedianMiB": 12.01,
+      "lastQuarterMedianMiB": 11.76,
+      "banner": {
+        "drawnFrames": 6468,
+        "gapsOver50ms": 2,
+        "gapsOver100ms": 1,
+        "maxGapMs": 155.416,
+        "maxDrawRecordingMs": 23.715846
+      },
+      "lastSamples": [
+        {
+          "pssMiB": 11.05,
+          "frames": 0
+        },
+        {
+          "pssMiB": 10.94,
+          "frames": 0
+        },
+        {
+          "pssMiB": 13.44,
+          "frames": 0
+        },
+        {
+          "pssMiB": 11.78,
+          "frames": 0
+        },
+        {
+          "pssMiB": 12.31,
+          "frames": 0
+        },
+        {
+          "pssMiB": 17.89,
+          "frames": 0
+        },
+        {
+          "pssMiB": 44.93,
+          "frames": 2983
+        },
+        {
+          "pssMiB": 49.72,
+          "frames": 6468
+        }
+      ]
+    }
+  ],
+  "sourceRead": {
+    "seismic": {
+      "earthquake": true,
+      "tsunami": true,
+      "catalogs": {
+        "USGS": true,
+        "USGS_BR": true,
+        "USP": true,
+        "EMSC": true,
+        "GEOFON": true,
+        "EMSC_GLOBAL": true,
+        "GEOFON_GLOBAL": true
+      }
+    },
+    "tsunami": [
+      {
+        "source": "PTWC",
+        "feedKey": "PTWC-General",
+        "ok": false,
+        "error": "HTTP 403"
+      },
+      {
+        "source": "NTWC",
+        "feedKey": "NTWC-General",
+        "ok": false,
+        "error": "HTTP 403"
+      },
+      {
+        "source": "PTWC",
+        "feedKey": "PTWC-WEPA40",
+        "ok": false,
+        "error": "HTTP 403"
+      },
+      {
+        "source": "PTWC",
+        "feedKey": "PTWC-WEPA42",
+        "ok": false,
+        "error": "HTTP 403"
+      },
+      {
+        "source": "PTWC",
+        "feedKey": "PTWC-WECA41",
+        "ok": false,
+        "error": "HTTP 403"
+      },
+      {
+        "source": "PTWC",
+        "feedKey": "PTWC-WECA43",
+        "ok": false,
+        "error": "HTTP 403"
+      },
+      {
+        "source": "PTWC",
+        "feedKey": "PTWC-NWS",
+        "ok": true,
+        "error": null
+      }
+    ],
+    "global": {
+      "atualizado_em": "2026-10-30T13:34:05.140Z",
+      "fontes": [
+        {
+          "source": "NHC",
+          "online": true,
+          "lastOk": 1793367240922,
+          "error": null,
+          "count": 2
+        },
+        {
+          "source": "GDACS",
+          "online": true,
+          "lastOk": 1793367240164,
+          "error": null,
+          "count": 100
+        },
+        {
+          "source": "EONET",
+          "online": true,
+          "lastOk": 1793367240164,
+          "error": null,
+          "count": 100
+        },
+        {
+          "source": "NWS",
+          "online": false,
+          "lastOk": null,
+          "error": "NWS indisponível",
+          "count": 0
+        },
+        {
+          "source": "TSUNAMI-GOV",
+          "online": false,
+          "lastOk": null,
+          "error": null,
+          "count": 0
+        }
+      ],
+      "eventCount": 202
+    }
+  },
+  "resourceCapture": [
+    {
+      "run": 41063038634,
+      "startedAt": "2026-10-30T13:25:13.934Z",
+      "seconds": 300,
+      "events": 37,
+      "counts": {
+        "/tv-alerts ok": 21,
+        "alarm ok": 2,
+        "/health ok": 1,
+        "other ok": 5,
+        "/tsunami-alerts ok": 1,
+        "/population-exposure ok": 3,
+        "/rain-nowcast ok": 1,
+        "scheduled ok": 2,
+        "root ok": 1
+      },
+      "rawLogsStored": false,
+      "syntheticRequests": 0,
+      "cpuRouteAttribution": "Not available from legacy tail CPU metrics; outcomes only",
+      "sessionRemoved": true,
+      "endedAt": "2026-10-30T13:30:15.407Z",
+      "elapsedSeconds": 301,
+      "noObservedEvents": false
+    },
+    {
+      "run": 41063977121,
+      "startedAt": "2026-10-30T13:32:01.106Z",
+      "seconds": 300,
+      "events": 31,
+      "counts": {
+        "alarm ok": 2,
+        "/tv-alerts ok": 18,
+        "/population-exposure ok": 3,
+        "scheduled ok": 2,
+        "root ok": 3,
+        "/global-feeds ok": 1,
+        "other ok": 1,
+        "/rain-nowcast ok": 1
+      },
+      "rawLogsStored": false,
+      "syntheticRequests": 0,
+      "cpuRouteAttribution": "Not available from legacy tail CPU metrics; outcomes only",
+      "sessionRemoved": true,
+      "endedAt": "2026-10-30T13:37:02.653Z",
+      "elapsedSeconds": 302,
+      "noObservedEvents": false
+    }
+  ],
+  "uptimeConfiguration": {
+    "run": 41063043235,
+    "tokenPresent": false,
+    "destinationPresent": false,
+    "deliveryTested": false
+  },
+  "memoryUnitTests": {
+    "passed": 20,
+    "failed": 0
+  },
+  "browserValidation": {
+    "status": "Complete diagnostic run failed; targeted repairs subsequently verified.",
+    "firstShardedRun": 41064100670,
+    "finalRun": 41066152666,
+    "localEvidence": {
+      "seismicScenariosPassed": 13,
+      "windScenariosPassed": 6,
+      "correctedCompositionAndParityPassed": 4,
+      "windTypingScenarioPassed": 1,
+      "note": "Separate targeted executions after each correction; not a claim that the complete suite passed."
+    },
+    "completeRun": {
+      "run": 41066152666,
+      "headSha": "9c71b4153456ebd015b0ae951d69eabe88cebd4e",
+      "passed": 433,
+      "failed": 110,
+      "flaky": 1,
+      "skipped": 0,
+      "total": 544
+    },
+    "weatherMaterials": {
+      "run": 41066152666,
+      "passed": 58,
+      "failed": 0
+    }
+  },
+  "limitations": [
+    "No direct access to TCL, Fire Stick or DeX; supplied diagnostics predate 1.0.29.",
+    "No excess captured yet; CPU route and cause remain unknown.",
+    "Upstream HTTP 403 is not a confirmed no-threat bulletin.",
+    "Secret values and a private operational destination are not available.",
+    "Complete diagnostic suite includes obsolete P/S-front/felt-zone UI assertions: main flow now enters SeismicPaintTour and returns before the legacy fallback. This does not justify declaring all failures regressions or all tests approved."
+  ],
+  "quota": {
+    "run": 41064553343,
+    "queriedAt": "2026-10-30T13:36:01.393741+00:00",
+    "resourceExcesses": {
+      "2026-10-30": {
+        "exceededResources": 1
+      },
+      "2026-10-24": {},
+      "2026-10-26": {},
+      "2026-10-29": {},
+      "2026-10-27": {
+        "exceededResources": 24
+      },
+      "2026-10-28": {
+        "exceededResources": 10
+      },
+      "2026-10-25": {}
+    },
+    "days": [
+      {
+        "day": "2026-10-29",
+        "complete": true,
+        "metrics": {
+          "workerRequests": {
+            "available": true,
+            "value": 39368,
+            "limit": 100000,
+            "percent": 39.368
+          },
+          "durableRequests": {
+            "available": true,
+            "value": 2940,
+            "limit": 100000,
+            "percent": 2.94
+          },
+          "durableDuration": {
+            "available": true,
+            "value": 1120.639546496,
+            "limit": 13000,
+            "percent": 8.6203
+          },
+          "kvRead": {
+            "available": true,
+            "value": 122,
+            "limit": 100000,
+            "percent": 0.122
+          },
+          "kvWrite": {
+            "available": true,
+            "value": 84,
+            "limit": 1000,
+            "percent": 8.4
+          }
+        }
+      },
+      {
+        "day": "2026-10-30",
+        "complete": false,
+        "metrics": {
+          "workerRequests": {
+            "available": true,
+            "value": 15998,
+            "limit": 100000,
+            "percent": 15.998
+          },
+          "durableRequests": {
+            "available": true,
+            "value": 1858,
+            "limit": 100000,
+            "percent": 1.858
+          },
+          "durableDuration": {
+            "available": true,
+            "value": 528.8529375999999,
+            "limit": 13000,
+            "percent": 4.0681
+          },
+          "kvRead": {
+            "available": true,
+            "value": 53,
+            "limit": 100000,
+            "percent": 0.053
+          },
+          "kvWrite": {
+            "available": true,
+            "value": 13,
+            "limit": 1000,
+            "percent": 1.3
+          }
+        }
+      }
+    ],
+    "durableFamilies": {
+      "2026-10-29": [
+        {
+          "family": "population",
+          "requests": 1827,
+          "percentOfMeasuredDORequests": 62.14
+        },
+        {
+          "family": "earthquake-alerts",
+          "requests": 478,
+          "percentOfMeasuredDORequests": 16.26
+        },
+        {
+          "family": "metrics",
+          "requests": 172,
+          "percentOfMeasuredDORequests": 5.85
+        },
+        {
+          "family": "2026-10-26",
+          "requests": 106,
+          "percentOfMeasuredDORequests": 3.61
+        },
+        {
+          "family": "global-rainbow-nowcast-v1",
+          "requests": 99,
+          "percentOfMeasuredDORequests": 3.37
+        },
+        {
+          "family": "2026-10-27",
+          "requests": 96,
+          "percentOfMeasuredDORequests": 3.27
+        },
+        {
+          "family": "2026-10-28",
+          "requests": 95,
+          "percentOfMeasuredDORequests": 3.23
+        },
+        {
+          "family": "portuguese-translations-v1",
+          "requests": 35,
+          "percentOfMeasuredDORequests": 1.19
+        },
+        {
+          "family": "global-rainbow-products-weather-v1",
+          "requests": 19,
+          "percentOfMeasuredDORequests": 0.65
+        },
+        {
+          "family": "2026-10-25",
+          "requests": 13,
+          "percentOfMeasuredDORequests": 0.44
+        }
+      ],
+      "2026-10-30": [
+        {
+          "family": "population",
+          "requests": 1241,
+          "percentOfMeasuredDORequests": 66.79
+        },
+        {
+          "family": "earthquake-alerts",
+          "requests": 271,
+          "percentOfMeasuredDORequests": 14.59
+        },
+        {
+          "family": "global-rainbow-nowcast-v1",
+          "requests": 74,
+          "percentOfMeasuredDORequests": 3.98
+        },
+        {
+          "family": "metrics",
+          "requests": 64,
+          "percentOfMeasuredDORequests": 3.44
+        },
+        {
+          "family": "2026-10-27",
+          "requests": 56,
+          "percentOfMeasuredDORequests": 3.01
+        },
+        {
+          "family": "2026-10-28",
+          "requests": 55,
+          "percentOfMeasuredDORequests": 2.96
+        },
+        {
+          "family": "2026-10-29",
+          "requests": 54,
+          "percentOfMeasuredDORequests": 2.91
+        },
+        {
+          "family": "global-rainbow-products-weather-v1",
+          "requests": 19,
+          "percentOfMeasuredDORequests": 1.02
+        },
+        {
+          "family": "2026-10-26",
+          "requests": 12,
+          "percentOfMeasuredDORequests": 0.65
+        },
+        {
+          "family": "portuguese-translations-v1",
+          "requests": 12,
+          "percentOfMeasuredDORequests": 0.65
+        }
+      ]
+    }
+  },
+  "uptimeLogicTests": {
+    "passed": 6,
+    "failed": 0
+  },
+  "routeCollectorTests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "runtimeScope": "Static website only; no Worker or Android changes.",
+  "runtimeFixes": [
+    {
+      "area": "wind card",
+      "problem": "Shared CSS overrode the gale pivot; right edge exceeded viewport by up to 3.56px in CI.",
+      "change": "Specificity preserves the right-top pivot; regression samples five seconds of the gust."
+    },
+    {
+      "area": "earthquake source metadata",
+      "problem": "Selected M6.3/16km solution inherited another report's depthReported=10, producing six false revisions in twelve catalogue alternations.",
+      "change": "Normalize selected reported depth and compare review status by native report identity.",
+      "proof": "Unmodified browser ingestion regression passes: 12 alternations without false revision, real M6.3→6.2 revision accepted."
+    },
+    {
+      "area": "memory/network",
+      "problem": "Optional effect code prefetched despite reduced-motion preference.",
+      "change": "Do not prefetch effect renderer when motion is disabled.",
+      "proof": "All six optional-loading scenarios pass, including no unnecessary renderer download."
+    }
+  ],
+  "revisionUnitTests": {
+    "passed": 21,
+    "failed": 0
+  }
+}

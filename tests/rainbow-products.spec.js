@@ -50,7 +50,7 @@ test('nova atividade vulcânica explica o ocorrido na frente do cartão e limpa 
   const a={id:'volcano-fixture',type:'volcano',place:'Vulcão de teste',coords:[-90,14],source:'VAAC',time:Date.now(),detail:'Atividade monitorada'};
   globalAlerts.push(a);const before=VolcanoPriority.capture(globalAlerts);a.detail='Nova erupção com lava';a.vulcanicActivity='Nova erupção com lava';VolcanoPriority.observe(before,globalAlerts,true);applyFilters();showAlertDetails(a,false);
  });
- await expect(page.locator('#pd-volcano-activity')).toBeVisible();await expect(page.locator('#pd-volcano-activity')).toContainText('NOVA ATIVIDADE');await expect(page.locator('#pd-volcano-activity p')).toContainText('lava');
+ await expect(page.locator('#pd-volcano-activity')).toBeVisible();await expect(page.locator('#pd-volcano-activity')).toContainText('Lava reportada');await expect(page.locator('#pd-volcano-activity p')).toContainText('lava');
  await page.evaluate(()=>{const a={id:'storm-fixture',type:'storm',place:'Teste',coords:[-90,14],source:'NWS',time:Date.now(),detail:'Tempestade'};globalAlerts=[a];VolcanoPriority.focus();upsertAlert(a);applyFilters();showAlertDetails(a,false);clearTimeout(cycleTimeout);});
  await expect(page.locator('#pd-volcano-activity')).toBeHidden();
 });

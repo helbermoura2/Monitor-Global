@@ -56,6 +56,6 @@ for(const [width,ageMinutes] of [[1280,1080],[390,1080],[1280,10],[390,10]])test
 test('sismo fraco profundo informa quando o modelo não tem área em terra para pintar',async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);map._render=()=>{};map.easeTo=o=>{map.jumpTo(o);return map;};globalAlerts=[];isFirstLoad=false;isFirstDisplay=false;globalEvents=[{id:'deep-small',type:'earthquake',source:'QA',coords:[117.04,-31.15],mag:1.9,depth:77,time:Date.now()-18*3600000,place:'Histórico profundo'}];window.__mgSoftCycle=true;showEventDetails(0,false);});
- await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra estimada para contornar');
- await page.evaluate(()=>SeismicImpact.finish());await expect(page.locator('.seismic-impact-status')).toContainText('Sem área em terra estimada para contornar');expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features.length)).toBe(0);
+ await expect(page.locator('.seismic-impact-status')).toContainText('Nenhuma faixa acima do limiar desenhável em terra');
+ await page.evaluate(()=>SeismicImpact.finish());await expect(page.locator('.seismic-impact-status')).toContainText('Nenhuma faixa acima do limiar desenhável em terra');expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features.length)).toBe(0);
 });

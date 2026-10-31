@@ -14,12 +14,12 @@ function camera(events, selected, feed) {
   const timers = [];
   const shown = [];
   const c = vm.createContext({ globalEvents: events, eventoSelecionadoId: selected,
-    window: {}, map: { isMoving: () => false }, cycleTimeout: null,
+    window: {}, document: {hidden:false}, map: { isMoving: () => false }, cycleTimeout: null,
     setTimeout: (f) => { timers.push(f); return timers.length; }, clearTimeout() {},
     console, buildUnifiedFeed: () => feed,
     showEventDetails: (i) => shown.push(events[i].id),
     showAlertDetails: (e) => shown.push(e.id) });
-  vm.runInContext(['isWithinAutoCycleAge','getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','scheduleNextAutoCycle','runAutoCycle'].map(name=>fn(panel,name)).join('\n'), c);
+  vm.runInContext(['isWithinAutoCycleAge','getPriorityCameraEarthquakes','autoCycleRandomInt','autoCycleDraw','getAlertSelectionProtectionRemaining','getAutoCycleProtectionRemaining','selectNextAutoCycleItem','showNextAutoCycleItem','scheduleNextAutoCycle','runAutoCycle'].map(name=>fn(panel,name)).join('\n'), c);
   c.scheduleNextAutoCycle(5000);
   timers.shift()();
   return { c, shown };
@@ -37,14 +37,16 @@ test('ciclo mantém alternância entre sismos e fallback sem sismos', () => {
 test('todos os tipos são barrados antes de modificar painel/hold; manual e refresh passam', () => {
   const c = vm.createContext({ globalEvents: [quake('q')], eventoSelecionadoId:'q', window: { __mgHoldMag: 6, __mgRevisionProtectedId:'q', __mgRevisionProtectedUntil:Date.now()+90000 },
     fecharViradaCardAlcance() { throw new Error('passou pela barreira'); } });
-  vm.runInContext(fn(panel, 'getAutoCycleProtectionRemaining') + '\n' + fn(panel, 'showAlertDetails'), c);
+  vm.runInContext(fn(panel, 'getAlertSelectionProtectionRemaining') + '\n' + fn(panel, 'getAutoCycleProtectionRemaining') + '\n' + fn(panel, 'showAlertDetails'), c);
   // Um acesso ao DOM identifica que a chamada passou pelo guard central.
   for (const type of ['tornado', 'hurricane', 'storm', 'flood', 'volcano', 'tsunami', 'civil', 'future-type']) {
     c.showAlertDetails(alert('a', type), true);
     assert.equal(c.window.__mgHoldMag, 6);
     c.window.__mgSoftCycle = true;
+    c.window.__mgRotationDisplay = true;
     c.showAlertDetails(alert('a', type), false);
     assert.equal(c.window.__mgSoftCycle, false);
+    c.window.__mgRotationDisplay = false;
   }
   assert.throws(() => c.showAlertDetails(alert('a'), false), /not defined/);
   assert.throws(() => c.showAlertDetails(alert('a'), false, true), /not defined/);

@@ -28,7 +28,7 @@ for(const width of [411,1280])test('M7 keeps geographic anchor during zoom, show
  }
  await page.evaluate(()=>SeismicImpact.start({id:'anchor-m7',lng:93.71,lat:32.34,mag:7,depth:18,skipOfficial:true,keepCamera:true},true));
  await page.waitForFunction(()=>__mgSeismicImpactState?.features>0);
- const layer=await page.evaluate(()=>({type:map.getLayer('quake-impact-fill').type,data:map.getSource('quake-impact').serialize().data,legend:document.querySelector('.seismic-contour-scale')?.textContent}));
+ const layer=await page.evaluate(()=>({type:map.getLayer('quake-impact-fill').type,data:map.getSource('quake-impact').serialize().data,legend:[...document.querySelectorAll('.seismic-contour-label')].map(el=>el.textContent).join(' ')}));
  expect(layer.type).toBe('line');expect(layer.data.features.length).toBeGreaterThan(2);expect(layer.data.features.every(f=>f.geometry.type==='MultiLineString')).toBe(true);expect(layer.legend).toContain('Forte');
  await page.screenshot({path:'/tmp/epicenter-hollow-'+width+'.png'});
  await page.evaluate(()=>SeismicImpact.start({id:'anchor-m7',lng:93.71,lat:32.34,mag:7,depth:18,keepCamera:true,skipOfficial:true,shaking:{provider:'USGS ShakeMap',version:'qa-linear-grid',grid:{nx:3,ny:3,x0:92,x1:94,y0:31,y1:33,values:[2,4,6,2,4,6,2,4,6]}}},true));

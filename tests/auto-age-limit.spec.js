@@ -23,6 +23,6 @@ for(const width of [1280,390])test('aleatório exclui 222h, respeita 72h e mant�
  const aged=await page.evaluate(()=>{const ids=[];for(let i=0;i<20;i++)ids.push(selectNextAutoCycleItem()?.id);return [...new Set(ids)]});
  expect(aged.sort()).toEqual(['Recent 2h','Recent storm']);
  await page.evaluate(()=>{window.__mgSoftCycle=false;showEventDetails(0,true);clearTimeout(cycleTimeout)});
- await expect(page.locator('#pd-local')).toContainText('Old 222h Bolivia');
+ await expect(page.locator('#pd-local')).toContainText('Old 222h — Bolívia');
  expect(await page.evaluate(()=>window.__lastPainelDetalheError)).toBeFalsy();
 });

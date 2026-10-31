@@ -4,7 +4,7 @@ for(const width of [1280,390])test('boletim CGE na lista e texto oficial no vers
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  await page.setViewportSize({width,height:844});await page.goto('/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!__fetchGlobalFeedsEmAndamento);
  await page.evaluate(()=>{
-  const now=Date.now();const row={sourceId:'56051',title:'Chuvas isoladas na cidade',time:now-60000,displayUntil:now+3600000,summary:'Radar mostra chuvas nas zonas Norte e Leste.',description:'CGE: chuva observada nas zonas Norte e Leste. Há condições para raios nas próximas horas.'};
+  pausarBuscas();clearTimeout(cycleTimeout);if(innerWidth>900){sidebarFilter='storm';DesktopRecords.filter('storm');}const now=Date.now();const row={sourceId:'56051',title:'Chuvas isoladas na cidade',time:now-60000,displayUntil:now+3600000,summary:'Radar mostra chuvas nas zonas Norte e Leste.',description:'CGE: chuva observada nas zonas Norte e Leste. Há condições para raios nas próximas horas.'};
   const item=CgeBulletins.fromBulletin(row);globalAlerts=[item];globalEvents=[];upsertAlert(item);applyFilters();EventStore.setSelected(item.id);
  });
  if(width<900)await page.evaluate(()=>toggleMobileEventsModal(true));
