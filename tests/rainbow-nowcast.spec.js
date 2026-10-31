@@ -35,7 +35,9 @@ for(const [mode,width,height] of [['desktop',1280,720],['mobile',390,844]])test(
  const before=await page.evaluate(()=>window.__rainbowRequests.length);
  await page.evaluate(()=>WeatherEvidence.refresh());expect(await page.evaluate(()=>window.__rainbowRequests.length)).toBe(before);
  const chart=await page.locator('#rainbow-rain-chart').boundingBox();expect(chart.x).toBeGreaterThanOrEqual(0);expect(chart.x+chart.width).toBeLessThanOrEqual(width+1);
- await page.locator('#rainbow-rain-chart').screenshot({path:testInfo.outputPath('rainbow-chart.png')});
+ // The refresh above may replace the chart node. Capture the viewport without
+ // retaining an element handle; content and chart bounds are already checked.
+ await page.screenshot({path:testInfo.outputPath('rainbow-chart.png')});
 });
 test('cota preserva modelos e não vira ausência de chuva',async({page})=>{
  await fixture(page,{failure:true});await page.goto('/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>WeatherEvidence.refresh());
