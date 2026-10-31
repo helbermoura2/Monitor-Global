@@ -24,8 +24,17 @@ for(const width of [1280,390])test('demonstrações de todos os materiais preser
 for(const width of [1280,390])test('M5.9 treme no cartão tanto no manual quanto no aleatório '+width,async({page})=>{
  await boot(page,width);
  for(const mode of ['manual','auto']){
-  await page.evaluate(mode=>{globalEvents[0].mag=5.9;window.__mgSoftCycle=mode==='auto';showEventDetails(0,false);clearTimeout(cycleTimeout);},mode);
-  const movement=await page.evaluate(async()=>{let max=0;const start=performance.now();while(performance.now()-start<1500){const v=getComputedStyle(document.getElementById('painel-direito')).translate.split(' ').map(parseFloat);max=Math.max(max,Math.hypot(v[0]||0,v[1]||0));await new Promise(requestAnimationFrame);}return max;});
+  const movement=await page.evaluate(async mode=>{
+   SeismicCinema.stop();CinematicCard.stop();globalEvents[0].mag=5.9;window.__mgSoftCycle=mode==='auto';showEventDetails(0,false);clearTimeout(cycleTimeout);
+   const target=document.getElementById('painel-direito');
+   const animation=target.getAnimations().find(a=>a.effect?.getKeyframes().some(f=>f.translate!==undefined));
+   if(!animation)throw Error('The real M5.9 card animation did not start');
+   // Seek the actual attached animation, preserving the original 1500ms window
+   // and >4px expectation without depending on which frames CI happens to draw.
+   animation.pause();await animation.ready;let max=0;
+   for(let ms=0;ms<=1500;ms+=25){animation.currentTime=ms;const v=getComputedStyle(target).translate.split(' ').map(parseFloat);max=Math.max(max,Math.hypot(v[0]||0,v[1]||0));}
+   return max;
+  },mode);
   expect(movement).toBeGreaterThan(4);await expect(page.locator('.seismic-scene')).toHaveCount(0);expect(await page.locator('#app').evaluate(el=>getComputedStyle(el).translate)).toBe('none');
  }
 });
