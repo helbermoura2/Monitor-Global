@@ -1,6 +1,22 @@
 name: Smoke test
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-test.yml'
+      - 'tests/**'
+      - 'tools/**'
+      - 'js/**'
+      - 'css/**'
+      - 'assets/**'
+      - 'vendor/**'
+      - 'worker/**'
+      - 'android-tv/**'
+      - '*.js'
+      - '*.mjs'
+      - '*.html'
+      - 'package*.json'
   schedule:
     - cron: '0 9 * * *' # Uma vez por dia, às 06h de Brasília (UTC-3).
   workflow_dispatch:
