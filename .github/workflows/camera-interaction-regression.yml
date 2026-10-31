@@ -15,7 +15,7 @@ permissions:
   contents: read
 concurrency:
   group: camera-interaction-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   interactions:
     runs-on: ubuntu-latest
