@@ -26,8 +26,8 @@ permissions:
 
 concurrency:
   group: smoke-test-${{ github.ref }}
-  # Finish the current diagnostic round; newer commits wait for their turn.
-  cancel-in-progress: false
+  # Validate the latest implementation when a correction supersedes a run.
+  cancel-in-progress: true
 
 jobs:
   playwright:

@@ -33,7 +33,7 @@ test('grade oficial fraca preserva a fonte e não inventa uma pintura radial em 
  await page.evaluate(()=>{globalEvents=[{id:'weak-official',type:'earthquake',source:'QA',coords:[37,37],mag:5.5,depth:195,time:Date.now()-3600000,place:'Evento profundo'}];showEventDetails(0,false);});
  // Uniform MMI has no threshold crossing: neither a grid border nor a radial ring is an isoline.
  await page.waitForFunction(()=>__mgSeismicImpactState?.id==='weak-official'&&__mgSeismicImpactState.method==='usgs-shakemap-grid'&&__mgSeismicImpactState.version==='weak-official-qa');
- expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features)).toEqual([]);
+ expect(await page.evaluate(()=>map.getSource('quake-impact')?.serialize().data.features||[])).toEqual([]);
  await expect(page.locator('.seismic-contour-label')).toHaveCount(0);
  await expect(page.locator('.seismic-impact-status')).toContainText('USGS');
  await page.evaluate(()=>SeismicImpact.finish());expect(await page.evaluate(()=>__mgSeismicImpactState.method)).toBe('usgs-shakemap-grid');

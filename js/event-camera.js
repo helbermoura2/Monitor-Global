@@ -1,6 +1,6 @@
 /* Native, continuous out / globe travel / in. No per-leg teleports or offsets. */
-(function(){'use strict';let lastId=null,token=0,trip=null,stageTimer=null,stageEnd=null,motionEnd=null;const arrivalEffects=new Map(),worldEffects=new Map();
-function clearStage(){clearTimeout(stageTimer);clearTimeout(motionEnd);motionEnd=null;stageTimer=null;if(stageEnd){map.off?.('moveend',stageEnd);stageEnd=null;}}
+(function(){'use strict';let lastId=null,token=0,trip=null,stageTimer=null,stageEnd=null,motionEnd=null,anchorUpdate=null,previousUpdate=null;const arrivalEffects=new Map(),worldEffects=new Map();
+function clearStage(){if(anchorUpdate&&map.transformCameraUpdate===anchorUpdate)map.transformCameraUpdate=previousUpdate;anchorUpdate=previousUpdate=null;clearTimeout(stageTimer);clearTimeout(motionEnd);motionEnd=null;stageTimer=null;if(stageEnd){map.off?.('moveend',stageEnd);stageEnd=null;}}
 function cancel(keepId=null,stopCamera=true){const wasMoving=trip&&!trip.finished;clearStage();window.MapRenderBudget?.finish();if(trip?.id!==keepId)worldEffects.delete(trip?.id);token++;trip=null;if(wasMoving&&stopCamera)map.stop();for(const id of arrivalEffects.keys())if(id!==keepId)arrivalEffects.delete(id);}
 function worldEffect(effect){try{effect();}catch(error){console.warn('[som na visão global]',error);}}
 function releaseWorld(id){if(trip?.id!==id||eventoSelecionadoId!==id)return;trip.worldReady=true;const entry=worldEffects.get(id);worldEffects.delete(id);if(entry&&entry.until>Date.now())worldEffect(entry.effect);}
@@ -20,8 +20,22 @@ function enter(id,camera,arrive){
  window.PresentationLimits?.delayEntry?.(id,ms);
  const valid=()=>token===generation&&trip===journey&&eventoSelecionadoId===id;
  const target=()=>({...journey.camera,center:journey.camera.anchor||journey.camera.center,padding:journey.camera.anchor?SeismicFocus.padding():journey.camera.padding||zero()});
- function leg(name,options,next,custom){
-  if(!valid())return;clearStage();journey.stage=name;const started=Date.now(),deadline=started+6000;
+ function leg(name,options,next,custom,anchor){
+  if(!valid())return;clearStage();journey.stage=name;
+  if(anchor&&typeof map.project==='function'){
+   const point=map.project(anchor),location={lng:anchor[0],lat:anchor[1]},previous=map.transformCameraUpdate;
+   previousUpdate=previous;
+   anchorUpdate=transform=>{
+    const inherited=previous?.call(map,transform)||{};
+    if(typeof transform.setLocationAtPoint!=='function')return inherited;
+    // Globe easing updates zoom after positioning. Stabilize the native clone
+    // after that update and before MapLibre applies it or updates markers.
+    transform.setLocationAtPoint(location,point);
+    return {...inherited,center:transform.center,zoom:transform.zoom};
+   };
+   map.transformCameraUpdate=anchorUpdate;
+  }
+  const started=Date.now(),deadline=started+6000;
   // Wait for the renderer to finish a leg. A delayed frame must not be cut off
   // by a wall-clock timer starting another angle at the same instant.
   const finish=()=>{
@@ -47,7 +61,15 @@ function enter(id,camera,arrive){
   }
  }
  const done=()=>{if(!valid())return;journey.finished=true;journey.endsAt=Date.now();window.PresentationLimits?.arrived?.(id);window.MapRenderBudget?.finish();releaseWorld(id);const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();};
- const approach=()=>leg('approach',target(),done,journey.arrive);
+ const approach=()=>{
+  const camera=target();
+  // At world zoom the renderer may constrain the centre near the poles.
+  // After travelling, zoom around the destination's actual screen position
+  // instead of interpolating that constrained centre while descending.
+  let anchor;
+  if(ms!==6000){if(window.GlobePreview?.state().testing)anchor=camera.center;else camera.around=camera.center;}
+  leg('approach',camera,done,journey.arrive,anchor);
+ };
  if(ms===6000){approach();return ms;}
  const current=map.getCenter(),center=Array.isArray(current)?current:[current.lng,current.lat];
  const world=worldZoom(center[1]),zoom=Math.min(world,map.getZoom?.()??world,Number(camera.zoom)||world);

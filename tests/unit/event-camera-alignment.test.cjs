@@ -27,3 +27,35 @@ test('target revisions are used at distance; cancellation removes pending stages
 test('long tasks advance the visual clock by a bounded step rather than skipping angles',()=>{
  const s=engine();s.c.eventoSelecionadoId='hiccup';s.c.EventCamera.enter('hiccup',{center:[-155,19],anchor:[-155,19],zoom:8});s.moving(true);const easing=s.calls[0].easing;assert.equal(easing(0),0);s.advance(2000);const first=easing(.33);assert.ok(first<.001);s.advance(2000);const second=easing(.66);assert.ok(second-first<.001);assert.equal(s.calls.length,1);s.c.EventCamera.cancel();
 });
+
+test('polar descent uses the native destination anchor only after world travel',()=>{
+ const s=engine();s.c.eventoSelecionadoId='polar';s.c.EventCamera.enter('polar',{center:[27,67.25],zoom:10});
+ assert.equal(s.calls[0].around,undefined);
+ s.advance(6000);assert.equal(s.calls[1].around,undefined);
+ s.advance(6000);assert.deepEqual(JSON.parse(JSON.stringify(s.calls[2].around)),[27,67.25]);
+ assert.equal(s.calls[2].padding.top,0);assert.ok(!('offset' in s.calls[2]));
+ s.advance(6000);assert.equal(s.c.EventCamera.owns('polar'),false);
+});
+
+test('an initial six-second entry can still pan to a different destination',()=>{
+ const s=engine();s.c.EventCamera.enter('first',{center:[27,67.25],zoom:10});
+ assert.equal(s.calls[0].around,undefined);assert.deepEqual(JSON.parse(JSON.stringify(s.calls[0].center)),[27,67.25]);
+});
+
+test('globe anchoring runs on the native camera clone after zoom and restores the previous hook',()=>{
+ const s=engine(),point={x:400,y:260},previous=()=>({roll:2});
+ s.c.GlobePreview={state:()=>({testing:true}),worldZoom:()=>1.1};
+ s.c.map.project=()=>point;s.c.map.transformCameraUpdate=previous;
+ s.c.eventoSelecionadoId='globe-polar';s.c.EventCamera.enter('globe-polar',{center:[27,67.25],zoom:10});
+ assert.equal(s.c.map.transformCameraUpdate,previous);s.advance(12000);
+ assert.equal(s.calls[2].around,undefined);const update=s.c.map.transformCameraUpdate;
+ const transform={center:{lng:27,lat:65},zoom:8.5,setLocationAtPoint(location,screen){assert.deepEqual(JSON.parse(JSON.stringify(location)),{lng:27,lat:67.25});assert.equal(screen,point);this.center={lng:27,lat:67.2};}};
+ const result=update(transform);assert.equal(result.center,transform.center);assert.equal(result.zoom,8.5);assert.equal(result.roll,2);
+ s.advance(6000);assert.equal(s.c.map.transformCameraUpdate,previous);
+});
+test('cancelling a globe descent releases its anchor before manual interaction',()=>{
+ const s=engine();s.c.GlobePreview={state:()=>({testing:true}),worldZoom:()=>1.1};s.c.map.project=()=>({x:400,y:260});
+ s.c.eventoSelecionadoId='cancel-polar';s.c.EventCamera.enter('cancel-polar',{center:[27,67.25],zoom:10});s.advance(12000);
+ assert.equal(typeof s.c.map.transformCameraUpdate,'function');s.c.EventCamera.cancel(null,false);
+ assert.equal(s.c.map.transformCameraUpdate,undefined);s.advance(6000);assert.equal(s.c.EventCamera.state(),null);
+});
