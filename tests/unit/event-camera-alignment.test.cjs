@@ -27,3 +27,17 @@ test('target revisions are used at distance; cancellation removes pending stages
 test('long tasks advance the visual clock by a bounded step rather than skipping angles',()=>{
  const s=engine();s.c.eventoSelecionadoId='hiccup';s.c.EventCamera.enter('hiccup',{center:[-155,19],anchor:[-155,19],zoom:8});s.moving(true);const easing=s.calls[0].easing;assert.equal(easing(0),0);s.advance(2000);const first=easing(.33);assert.ok(first<.001);s.advance(2000);const second=easing(.66);assert.ok(second-first<.001);assert.equal(s.calls.length,1);s.c.EventCamera.cancel();
 });
+
+test('polar descent uses the native destination anchor only after world travel',()=>{
+ const s=engine();s.c.eventoSelecionadoId='polar';s.c.EventCamera.enter('polar',{center:[27,67.25],zoom:10});
+ assert.equal(s.calls[0].around,undefined);
+ s.advance(6000);assert.equal(s.calls[1].around,undefined);
+ s.advance(6000);assert.deepEqual(JSON.parse(JSON.stringify(s.calls[2].around)),[27,67.25]);
+ assert.equal(s.calls[2].padding.top,0);assert.ok(!('offset' in s.calls[2]));
+ s.advance(6000);assert.equal(s.c.EventCamera.owns('polar'),false);
+});
+
+test('an initial six-second entry can still pan to a different destination',()=>{
+ const s=engine();s.c.EventCamera.enter('first',{center:[27,67.25],zoom:10});
+ assert.equal(s.calls[0].around,undefined);assert.deepEqual(JSON.parse(JSON.stringify(s.calls[0].center)),[27,67.25]);
+});

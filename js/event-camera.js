@@ -47,7 +47,14 @@ function enter(id,camera,arrive){
   }
  }
  const done=()=>{if(!valid())return;journey.finished=true;journey.endsAt=Date.now();window.PresentationLimits?.arrived?.(id);window.MapRenderBudget?.finish();releaseWorld(id);const effect=arrivalEffects.get(id);arrivalEffects.delete(id);effect?.();};
- const approach=()=>leg('approach',target(),done,journey.arrive);
+ const approach=()=>{
+  const camera=target();
+  // At world zoom the renderer may constrain the centre near the poles.
+  // After travelling, zoom around the destination's actual screen position
+  // instead of interpolating that constrained centre while descending.
+  if(ms!==6000)camera.around=camera.center;
+  leg('approach',camera,done,journey.arrive);
+ };
  if(ms===6000){approach();return ms;}
  const current=map.getCenter(),center=Array.isArray(current)?current:[current.lng,current.lat];
  const world=worldZoom(center[1]),zoom=Math.min(world,map.getZoom?.()??world,Number(camera.zoom)||world);

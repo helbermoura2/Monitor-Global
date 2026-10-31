@@ -1,0 +1,59 @@
+name: Camera and interaction regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'js/event-camera.js'
+      - 'tests/event-focus-beacon.spec.js'
+      - 'tests/map-native-gestures.spec.js'
+      - 'tests/mobile-energy-budget.spec.js'
+      - 'tests/official-shakemap.spec.js'
+      - 'tests/map-status-stacking.spec.js'
+      - '.github/workflows/camera-interaction-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: camera-interaction-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  interactions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Prepare browser
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_BROWSER_CHANNEL=chrome" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Validate camera controller
+        env:
+          MONITOR_TEST_OFFLINE: "1"
+          NODE_OPTIONS: --require ./tools/test-network-guard.cjs
+        run: node --test tests/unit/event-camera-alignment.test.cjs
+      - name: Repeat camera and interaction regressions without renderer contention
+        env:
+          MONITOR_TEST_OFFLINE: "1"
+          NODE_OPTIONS: --require ./tools/test-network-guard.cjs
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/interactions.json
+        run: >-
+          npx playwright test tests/event-focus-beacon.spec.js tests/map-native-gestures.spec.js
+          tests/mobile-energy-budget.spec.js tests/official-shakemap.spec.js tests/map-status-stacking.spec.js
+          --grep 'real camera descends|tsunami preserves|DeX menu economy|grade oficial fraca|intensity and wave notices'
+          --workers=1 --repeat-each=2 --reporter=line,json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: camera-interaction-diagnostics
+          path: |
+            test-results/
+            test-diagnostics/
+          retention-days: 7
+          if-no-files-found: ignore
