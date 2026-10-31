@@ -4,7 +4,15 @@ function fn(s,n){const a=s.indexOf('function '+n+'(');return s.slice(a,s.indexOf
 function setup(){const shown=[],timers=[];const c=vm.createContext({document:{hidden:false},Date,console,Map,Set,window:{__mgRevisionProtectedId:'low',__mgRevisionProtectedUntil:Date.now()+90000,__mgHoldMag:2.4,__mgQuakeCameraPresented:new Map([['low',2.4]])},map:{isMoving:()=>false},globalEvents:[{id:'low',mag:2.4,time:Date.now()-6*60000},{id:'high',mag:5.2,time:Date.now()-9*60000}],eventoSelecionadoId:'low',activeAlertingIds:new Map(),cycleTimeout:null,setTimeout:f=>{timers.push(f);return timers.length;},clearTimeout(){},showEventDetails:(i)=>{shown.push(c.globalEvents[i].id);c.eventoSelecionadoId=c.globalEvents[i].id;c.window.__mgQuakeCameraPresented.set(c.eventoSelecionadoId,c.globalEvents[i].mag);},showNextAutoCycleItem:()=>false});vm.runInContext(fn(panel,'isWithinAutoCycleAge'),c);vm.runInContext(source.slice(source.indexOf('const pendingNewCameraQuakes'),source.indexOf('async function fetchGlobalFeeds')),c);vm.runInContext(fn(panel,'getAutoCycleProtectionRemaining')+'\n'+fn(panel,'scheduleNextAutoCycle')+'\n'+fn(panel,'runAutoCycle'),c);return{c,shown,timers};}
 test('M5.2 preempts protected M2.4 even if a companion UI throws',()=>{const{c,shown}=setup();c.window.ElectionPanel={newQuakes(){throw Error('UI failure')}};c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,['high']);});
 test('scheduler checks a larger pending arrival before waiting on protection',()=>{const{c,shown,timers}=setup();c.queueNewCameraQuakes([c.globalEvents[1]]);c.scheduleNextAutoCycle(1000);timers.shift()();assert.deepEqual(shown,['high']);});
-test('equal and smaller new arrivals still interrupt a protected hold -- every new quake is shown',()=>{const{c,shown}=setup();c.globalEvents[1].mag=1.9;c.queueNewCameraQuakes([c.globalEvents[1]]);assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,['high']);});
+test('equal and smaller arrivals wait for protection, remain queued and are shown once',()=>{
+ for(const mag of [2.4,1.9]){
+  const{c,shown}=setup();c.globalEvents[1].mag=mag;c.queueNewCameraQuakes([c.globalEvents[1]]);
+  assert.equal(c.focusNextNewCameraQuake(),false);assert.deepEqual(shown,[]);
+  c.window.__mgRevisionProtectedUntil=0;
+  assert.equal(c.focusNextNewCameraQuake(),true);assert.deepEqual(shown,['high']);
+  c.eventoSelecionadoId='low';assert.equal(c.focusNextNewCameraQuake(),false);assert.deepEqual(shown,['high']);
+ }
+});
 test('revision raising a known quake to M5.2 no longer preempts a protected M2.4 -- only M6+ revisions take the camera',()=>{const{c,shown}=setup();c.queueQuakeRevisions([{...c.globalEvents[1],_previousMag:2.3}]);assert.equal(c.focusNextQuakeRevision(true),false);assert.deepEqual(shown,[]);});
 test('revision raising a known quake to M6.1 still preempts a protected M2.4',()=>{const{c,shown}=setup();c.globalEvents[1].mag=6.1;c.queueQuakeRevisions([{...c.globalEvents[1],_previousMag:2.3}]);assert.equal(c.focusNextQuakeRevision(true),true);assert.deepEqual(shown,['high']);});
 test('source-only revisions do not gain magnitude priority',()=>{const{c,shown}=setup();c.queueQuakeRevisions([{...c.globalEvents[1],_previousMag:5.2}]);assert.equal(c.focusNextQuakeRevision(true),false);assert.deepEqual(shown,[]);});

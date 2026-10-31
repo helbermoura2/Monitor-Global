@@ -47,7 +47,7 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/unit.json
         run: |
           python -m unittest discover -s tests/unit -p test_official_shaking.py
           python -m unittest discover -s tests/unit -p test_cemaden_alerts.py
@@ -57,7 +57,7 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/unit.json
         run: |
           mkdir -p test-logs
           set -o pipefail
@@ -91,8 +91,8 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
-        run: npx playwright test --shard=${{ matrix.shard }} --workers=2 --reporter=line,json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/suite.json
+        run: npx playwright test --shard=${{ matrix.shard }} --workers=2 --reporter=line,json,html
 
       - name: Publicar relatório em caso de falha
         if: failure()
@@ -112,7 +112,8 @@ jobs:
           name: test-diagnostics-${{ github.job }}-${{ strategy.job-index }}
           path: |
             test-logs/
-            test-results/results.json
+            test-diagnostics/
+            test-results/
           if-no-files-found: ignore
           retention-days: 7
 
@@ -141,14 +142,14 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/visibility.json
         run: npx playwright test tests/painel-fx-shared-layer.spec.js tests/cinematic-card.spec.js --grep 'rajadas contínuas|letras ao vento|primeiro quadro|todos os efeitos|falha do vídeo' --workers=1 --reporter=line,json
 
       - name: Validar tempestades e capturar prévias
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/storms.json
         run: npx playwright test tests/storm-cinema.spec.js tests/storm-lightning.spec.js --workers=1 --reporter=line,json
       - name: Publicar prévias das tempestades
         if: always()
@@ -161,7 +162,7 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/wind.json
         run: npx playwright test tests/wind-cinema.spec.js --workers=1 --reporter=line,json
       - name: Publicar prévias das rajadas
         if: always()
@@ -174,7 +175,7 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/cyclones.json
         run: npx playwright test tests/cyclone-cinema.spec.js --workers=1 --reporter=line,json
       - name: Publicar prévias dos ciclones
         if: always()
@@ -194,7 +195,8 @@ jobs:
           name: test-diagnostics-${{ github.job }}
           path: |
             test-logs/
-            test-results/results.json
+            test-diagnostics/
+            test-results/
           if-no-files-found: ignore
           retention-days: 7
 
@@ -225,7 +227,7 @@ jobs:
         env:
           MONITOR_TEST_OFFLINE: "1"
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-diagnostics/materials.json
         run: npx playwright test tests/seismic-cinema.spec.js tests/seismic-camera-tour.spec.js tests/card-event-typography.spec.js tests/card-artifact-effects.spec.js tests/story-all-events.spec.js tests/advanced-weather.spec.js tests/storm-atmosphere.spec.js tests/real-effects-parity.spec.js tests/volcano-monitoring.spec.js tests/flood-continuity.spec.js tests/tsunami-inundation.spec.js tests/gale-material.spec.js tests/tornado-cinema.spec.js --workers=1 --reporter=line,json
       - name: Publicar prévias dos materiais
         if: always()
@@ -253,6 +255,8 @@ jobs:
           name: test-diagnostics-${{ github.job }}
           path: |
             test-logs/
-            test-results/results.json
+            test-diagnostics/
+            test-results/
           if-no-files-found: ignore
           retention-days: 7
+

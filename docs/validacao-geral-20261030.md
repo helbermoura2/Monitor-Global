@@ -68,3 +68,14 @@ Não colar tokens na conversa, código ou prints. Não reaproveitar o canal púb
 ## Publicação e reversão
 
 As mudanças de CSS/JS/HTML do site são publicadas pelo hosting após o merge. Não exigem APK novo nem rebuild/deploy do Worker, pois esses módulos não integram seu pacote. Os demais arquivos são testes, workflow e documentação. A mudança do coletor vale nas próximas capturas pelo Actions. Para reverter, reverta o PR correspondente; não desinstale o aplicativo ou limpe seus dados. Não há migração de banco ou mudança das equações científicas.
+
+
+## Continuação — 31/10/2026
+
+As correções de preparação dos testes foram revalidadas sobre os arquivos do commit `4ece1a3`, conferidos pelo SHA dos blobs. O preload offline do coletor agora funciona ao trocar para um diretório temporário. Os ambientes isolados de câmera, contato do cartão e geometria incluem suas dependências atuais. A prioridade verifica que chegadas iguais/menores aguardam a proteção e são apresentadas uma vez; a cadência verifica cada camada de contorno/brilho separadamente, sem filtros repetidos. O cenário sintético subquilométrico usa M1,25 a 1 km (alcance aproximado de 0,751 km), sem alterar equações.
+
+A rodada local Node concluiu 102 arquivos: 101 aprovados e um com falha, sem cancelamentos ou ignorados. A falha restante é `listen EPERM` no teste do proxy offline: este executor não permite abrir servidor local. São contagens por arquivo Node, não os 544 cenários Playwright. As verificações Android dependentes dos arquivos enviados passaram; isso não comprova estabilidade física.
+
+O smoke passa a preservar JSONs fora de `test-results/`, com nomes distintos para suíte, visibilidade, tempestades, vento, ciclones e materiais. O resumo lê todos os relatórios e identifica erros de preparação e JSON interrompido. O job geral gera o HTML anexado; artifacts preservam também traces. Testes do resumo cobrem duas etapas com falhas, erro global e relatório incompleto; os sete arquivos Node alterados passaram na rodada direcionada. O YAML foi analisado e os caminhos conferidos quanto a colisões. Proteção offline, número de shards, cadência e cenários preservados.
+
+Ainda falta uma execução completa do smoke no novo SHA, em executor com servidores locais e dependências disponíveis. Não declarar a validação geral aprovada nem encerrar a issue #327. Esta continuação não captura excesso novo do Worker, não altera Secrets, não envia Telegram e não comprova sessões físicas novas.

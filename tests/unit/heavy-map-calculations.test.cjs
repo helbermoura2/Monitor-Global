@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 function engine(){
  const workers=[],writes=[],sources=new Map(),layers=new Set(),host={append(){},getBoundingClientRect:()=>({top:0,bottom:0})};
  class FakeWorker{constructor(url){this.url=url;this.requests=[];workers.push(this);}postMessage(m){this.requests.push(m);}terminate(){this.terminated=true;}reply(request=this.requests.at(-1),vertices=0){this.onmessage({data:{id:request.id,vertices,data:{type:'FeatureCollection',features:[]}}});}}
- const c={window:{addEventListener(){}},Worker:FakeWorker,setTimeout,clearTimeout,console,document:{createElement:()=>({style:{},remove(){}}),getElementById:()=>host,body:host},map:{getLayer:id=>layers.has(id),addLayer:l=>layers.add(l.id),removeLayer:id=>layers.delete(id),getSource:id=>sources.get(id),addSource:id=>sources.set(id,{setData:d=>writes.push(d)}),removeSource:id=>sources.delete(id),setFilter(){}},polygonClipping:{intersection:()=>[]}};
+ const c={window:{addEventListener(){},SeismicContourLabels:{create:()=>({show(){},clear(){},schedule(){}})}},Worker:FakeWorker,setTimeout,clearTimeout,console,document:{createTextNode:text=>({textContent:text}),createElement:()=>({style:{},remove(){},replaceChildren(){}}),getElementById:()=>host,body:host},map:{getLayer:id=>layers.has(id),addLayer:l=>layers.add(l.id),removeLayer:id=>layers.delete(id),getSource:id=>sources.get(id),addSource:id=>sources.set(id,{setData:d=>writes.push(d)}),removeSource:id=>sources.delete(id),setFilter(){}},polygonClipping:{intersection:()=>[]}};
  vm.createContext(c);vm.runInContext(fs.readFileSync('js/seismic-impact-model.js','utf8'),c);c.window.SeismicImpactModel=c.SeismicImpactModel;vm.runInContext(fs.readFileSync('js/seismic-impact.js','utf8'),c);
  return {api:c.window.SeismicImpact,workers,writes,c};
 }
@@ -38,7 +38,9 @@ test('aggregate vertex budget evicts old footprints before exceeding 100k vertic
 });
 test('a sub-kilometer weak footprint is painted instead of being discarded as too small',()=>{
  const c=vm.createContext({polygonClipping:require('../../js/vendor/polygon-clipping.min.js')});vm.runInContext(fs.readFileSync('js/seismic-impact-model.js','utf8'),c);
- const context={lng:0,lat:0,mag:1.22,depth:0},extent=c.SeismicImpactModel.extent(context.mag,context.depth);
+ // Use a shallow synthetic event with a genuinely nonzero sub-kilometer extent.
+ // The old depth=0 fixture follows the model fallback (10 km) and has no footprint.
+ const context={lng:0,lat:0,mag:1.25,depth:1},extent=c.SeismicImpactModel.extent(context.mag,context.depth);
  assert(extent>0&&extent<1);const land=[[[[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]]]],data=c.SeismicImpactModel.geometry(context,land);
  assert(data.features.length>0);for(const feature of data.features){assert(feature.properties.distanceKm<=extent);assert(feature.properties.pga>=.5);}
 });
