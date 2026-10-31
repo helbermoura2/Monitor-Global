@@ -94,3 +94,12 @@ As fixtures aguardam geografia/fontes quando o teste depende do layout, usam o p
 A conferência adicional passou em 242 scripts e na sintaxe de 144 arquivos de configuração/navegador. Dos 30 verificadores locais adicionais, 29 passaram inicialmente; o teste do menu móvel foi corrigido para usar o renderizador real compartilhado de áudio e passou na rechecagem. Dos 49 testes Python, 48 passaram e um depende do ZIP de distribuição do Worker ausente no pacote local. Nenhum serviço real foi chamado por esses ensaios.
 
 **As novas correções ainda precisam passar no navegador.** O timeout de gesto nativo de tsunami e a visibilidade inicial de um aviso móvel continuam exigindo revalidação; não foram declarados defeitos corrigidos por suposição. Não houve alteração do runtime de produção nesta continuação, de equações, câmera, frequências, APK ou plano. A investigação de excesso do Worker, os Secrets privados e os ensaios físicos continuam abertos. O PR permanece em rascunho.
+
+
+## Segunda rodada e compatibilidade do executor
+
+A execução [41154779604](https://github.com/helbermoura2/Monitor-Global/actions/runs/41154779604), em `3e610be`, aprovou novamente visibilidade (30/30) e materiais (58/58). A regressão de sessões [41154779542](https://github.com/helbermoura2/Monitor-Global/actions/runs/41154779542) aprovou 183 verificações internas e 75 cenários de navegador. As duas partes gerais restantes ainda estavam em execução ao preparar este ajuste.
+
+A coleta explícita de todos os testes internos expôs uma divergência no hash exato da geometria no Node 20 do runner. Os mesmos blobs do modelo, biblioteca de recorte e referência foram conferidos por SHA; os quatro hashes físicos originais passam no Node 24 local, sem atualizar as referências. O Smoke passa ao Node 24 LTS suportado. Isso precisa ser confirmado no runner: não se declara que uma falha de produto foi resolvida apenas pela troca do executor.
+
+Uma falha interna continua tornando o job reprovado, mas não impede os verificadores independentes nem a etapa de navegador de registrarem seus próprios resultados. Novos commits aguardam a rodada atual, preservando sua evidência. YAML e scripts shell foram analisados localmente; as sete verificações direcionadas de geometria passaram com a proteção offline ativa. Não há mudança de runtime do site ou Worker neste ajuste.

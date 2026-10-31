@@ -150,5 +150,31 @@
       "Worker excess route/cause remains unknown.",
       "No new physical endurance sessions or uptime Secrets configured."
     ]
+  },
+  "followUp": {
+    "headSha": "3e610beb974bda16794d9cec4cff29ddd0af73ee",
+    "run": 41154779604,
+    "status": "in_progress",
+    "visibility": {
+      "passed": 30,
+      "failed": 0
+    },
+    "materials": {
+      "passed": 58,
+      "failed": 0
+    },
+    "longSession": {
+      "run": 41154779542,
+      "internalPassed": 183,
+      "browserPassed": 75
+    },
+    "firstShard": {
+      "status": "failed_before_browser",
+      "internalTests": 564,
+      "reason": "Exact physical geometry hash differs on Node 20; original four reference hashes pass locally on Node 24 with identical model, clipper and fixture blobs.",
+      "passed": 563,
+      "failed": 1
+    },
+    "nextChange": "Use supported Node 24, preserve independent diagnostics after local failures and queue newer commits without cancelling the current round."
   }
 }
