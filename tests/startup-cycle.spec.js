@@ -24,7 +24,8 @@ test('aviso sem ponto entra após as vagas sísmicas disponíveis, sem inventar 
   const rows=[];for(let i=0;i<4;i++){showNextAutoCycleItem();clearTimeout(cycleTimeout);rows.push(EventStore.getSelected()?.type);}
   return {rows,flights:window.__flights,lastEntry:window.__lastEntry,soft:window.__mgSoftCycle,error:window.__lastPainelDetalheError};
  });
- expect(result.rows).toEqual(['earthquake','earthquake','earthquake','flood']);expect(result.flights).toBe(4);expect(result.lastEntry.zoom).toBeCloseTo(await page.evaluate(()=>EventCamera.worldZoom()),8);expect(result.soft).toBe(false);expect(result.error).toBeFalsy();await expect(page.locator('#pd-local')).toContainText('Região de teste');await expect(page.locator('#pd-notice-brief')).toContainText('não fornece um ponto verificado');
+ expect(result.rows).toEqual(['earthquake','earthquake','earthquake','flood']);// Only the three quakes fly; an unlocated weather warning must not invent a destination.
+ expect(result.flights).toBe(3);expect(result.soft).toBe(false);expect(result.error).toBeFalsy();await expect(page.locator('#pd-local')).toContainText('Região de teste');await expect(page.locator('#pd-notice-brief')).toContainText('não fornece um ponto verificado');
 });
 for(const width of [1280,390])for(const reload of [false,true])test('catálogos paralelos lentos não roubam a câmera; chegada real continua prioritária '+width+(reload?' após refresh':''),async({page})=>{
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());

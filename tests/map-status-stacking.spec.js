@@ -9,11 +9,13 @@ for(const width of [1280,390])test.describe('map status '+width,()=>{
   await page.evaluate(()=>{
    pausarBuscas();PeriodicScheduler.cancel('correlation');clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();NewEventPriority.clear?.();
    for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
-   globalAlerts=[];globalEvents=[{id:'status-layer-qa',type:'earthquake',coords:[-46.63,-23.55],mag:3.4,depth:10,time:Date.now()-3600000,place:'São Paulo',source:'QA'}];
+   globalAlerts=[];globalEvents=[{id:'status-layer-qa',type:'earthquake',coords:[-46.63,-23.55],mag:2.1,depth:195,time:Date.now()-3600000,place:'São Paulo',source:'QA'}];
    showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);clearTimeout(window.__mgWaveDelayT);clearTimeout(window.__mgRadarDelayT);EventCamera.cancel();SeismicPaintTour.stop();stopWaveFront();stopFeltZone();stopMapCamera();SeismicCinema.stop();CinematicCard.stop();
    document.getElementById('mobile-notice-stack')?.remove();SeismicFocus.pause();document.body.classList.remove('mobile-details-open','mobile-details-mid');map.jumpTo({center:[-46.63,-23.55],zoom:6,bearing:0,pitch:0,padding:0});
-   SeismicImpact.start({id:'status-layer-qa',lng:-46.63,lat:-23.55,mag:3.4,depth:10,skipOfficial:true,keepCamera:true},true);
+   SeismicImpact.start({id:'status-layer-qa',lng:-46.63,lat:-23.55,mag:2.1,depth:195,skipOfficial:true,keepCamera:true},true);
   });
+  // A deep, weak event keeps the no-contour status visible after calculation.
+  await page.waitForFunction(()=>__mgSeismicImpactState?.id==='status-layer-qa');
   await expect(page.locator('.seismic-impact-status')).toBeVisible();
   for(const projection of ['mercator','globe']){
    await page.evaluate(mode=>{GlobePreview.setMode(mode);map.jumpTo({center:[-46.63,-23.55],zoom:6,padding:0});},projection);

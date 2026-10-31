@@ -60,7 +60,7 @@ test('sidebar tsunami clicks replace a moving quake, cancel late callbacks and o
  await expect(page.locator('#pd-notice-brief a')).toHaveAttribute('href',regional.link);
  await page.waitForTimeout(2100);
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe(regional.id);
- await expect.poll(()=>page.evaluate(()=>[map.getCenter().lng,map.getCenter().lat]),{timeout:20000}).toEqual([0,0]);
+ await expect.poll(()=>page.evaluate(()=>Math.max(Math.abs(map.getCenter().lng),Math.abs(map.getCenter().lat))),{timeout:20000}).toBeLessThan(1e-9);
  expect(await page.evaluate(()=>window.__mgWaveFrontState)).toBeNull();
  await expect(page.locator('.felt-zone-wrap,.tsunami-wave-wrap')).toHaveCount(0);
  await page.locator('#events .event').filter({hasText:'Panamá'}).click();

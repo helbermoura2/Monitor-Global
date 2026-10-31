@@ -6,7 +6,7 @@ for(const width of [1280,390])test('coordinate flags and missing USGS intensity 
   globalEvents=rows;globalAlerts=[];applyFilters();showEventDetails(0,false,true);clearTimeout(cycleTimeout);
   const flags=rows.map(x=>x.bandeira),codes=rows.map(x=>x.countryCode),detail=document.querySelector('#pd-flag .pd-country-flag')?.getAttribute('src');
   const event={...rows[0],id:'USGS-qa',source:'USGS',sourceEventId:'qa'};eventoSelecionadoId=event.id;
-  const cases=[];for(const mmi of [null,0,'',4.6]){event.sourceEventId='qa-'+cases.length;fetch=async()=>Response.json({properties:{mmi,felt:null}});await enriquecerIntensidadeSismicaReal(event,()=> 'Intensidade estimada pelo modelo epicentral.');cases.push({mmi,value:document.getElementById('pd-mercalli').textContent,impact:document.getElementById('pd-impact').textContent,label:document.getElementById('pd-mercalli-label').textContent});}
+  const cases=[];for(const mmi of [null,0,'',4.6]){event.sourceEventId='qa-'+cases.length;EventProducts.detail=async()=>({properties:{mmi,felt:null}});await enriquecerIntensidadeSismicaReal(event,()=> 'Intensidade estimada pelo modelo epicentral.');cases.push({mmi,value:document.getElementById('pd-mercalli').textContent,impact:document.getElementById('pd-impact').textContent,label:document.getElementById('pd-mercalli-label').textContent});}
   return{flags,codes,detail,cases};
  });
  expect(result.flags).toEqual(['🇺🇸','🇺🇸','🇺🇸','🇺🇸']);expect(result.codes).toEqual(['US','US','US','US']);expect(result.detail).toBe('assets/flags/countries/us.svg');for(const r of result.cases.slice(0,3)){expect(r.impact).not.toMatch(/MMI 0/);expect(r.label).toContain('estimada');}expect(result.cases[3].label).toContain('FONTE');expect(result.cases[3].value).toContain('V ·');

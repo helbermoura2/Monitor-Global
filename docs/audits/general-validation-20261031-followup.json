@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-31",
+  "commit": "2a3f64ecb95b2eaa3739dcb27b9787c8906f5e9a",
+  "run": 41155875214,
+  "status": "completed_with_failures",
+  "suite": {
+    "total": 544,
+    "passed": 521,
+    "failed": 22,
+    "flaky": 1,
+    "skipped": 0,
+    "shards": [
+      {
+        "shard": "1/3",
+        "passed": 170,
+        "failed": 12,
+        "flaky": 0,
+        "job": 124405303136,
+        "failures": [
+          "tests/balanced-world-transitions.spec.js:22:1 › rotação sem capitais avança três sismos, tempestade e retoma após a permanência",
+          "tests/balanced-world-transitions.spec.js:31:1 › sismo novo e explosão vulcânica interrompem com saída ampla e suave",
+          "tests/cge-bulletins.spec.js:3:31 › boletim CGE na lista e texto oficial no verso 1280",
+          "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 960",
+          "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 1024",
+          "tests/compact-desktop.spec.js:3:92 › desktop fits TV viewport and keeps header, detail and map separate 1280",
+          "tests/data-quality.spec.js:2:31 › coordinate flags and missing USGS intensity remain consistent in list and card 1280",
+          "tests/data-quality.spec.js:2:31 › coordinate flags and missing USGS intensity remain consistent in list and card 390",
+          "tests/event-focus-beacon.spec.js:21:33 › real camera descends over its destination desktop flat",
+          "tests/event-focus-beacon.spec.js:21:33 › real camera descends over its destination mobile globe",
+          "tests/globalquake-fronts.spec.js:17:31 › wave controller preserves live origin, replay, revisions and geodesic fronts 1280",
+          "tests/globalquake-fronts.spec.js:17:31 › wave controller preserves live origin, replay, revisions and geodesic fronts 390"
+        ]
+      },
+      {
+        "shard": "2/3",
+        "passed": 174,
+        "failed": 8,
+        "flaky": 0,
+        "job": 124405303061,
+        "failures": [
+          "tests/map-status-stacking.spec.js:4:2 › map status 1280 › intensity and wave notices paint above native pins while preserving map input",
+          "tests/map-status-stacking.spec.js:4:2 › map status 390 › intensity and wave notices paint above native pins while preserving map input",
+          "tests/official-shakemap.spec.js:31:1 › grade oficial fraca preserva a fonte e não inventa uma pintura radial em terra",
+          "tests/quake-priority.spec.js:3:31 › new M5.2 interrupts the low painted presentation while smaller arrivals wait 1280",
+          "tests/quake-priority.spec.js:3:31 › new M5.2 interrupts the low painted presentation while smaller arrivals wait 390",
+          "tests/quake-priority.spec.js:11:1 › known quake magnitude increase below M6 no longer gains priority; M6+ still does, and badge recovery runs before hold timer",
+          "tests/quake-priority.spec.js:18:1 › actual merged feed arrival and a raised revision preempt the low protected card",
+          "tests/regional-warning-cards.spec.js:2:52 › aviso regional abre painel e boletim separado, sem câmera falsa 390"
+        ]
+      },
+      {
+        "shard": "3/3",
+        "passed": 177,
+        "failed": 2,
+        "flaky": 1,
+        "job": 124405303156,
+        "failures": [
+          "tests/startup-cycle.spec.js:18:1 › aviso sem ponto entra após as vagas sísmicas disponíveis, sem inventar voo ou epicentro",
+          "tests/wave-final-hold.spec.js:12:1 › only a larger new quake interrupts the hold; manual changes cancel old timers"
+        ]
+      }
+    ]
+  },
+  "internal": {
+    "passed": 564,
+    "failed": 0,
+    "runtime": "Node 24"
+  },
+  "separateGroups": {
+    "visibilityPassed": 30,
+    "materialsPassed": 58
+  },
+  "longSession": {
+    "run": 41155875231,
+    "internalPassed": 183,
+    "browserPassed": 75,
+    "physicalDeviceEvidence": false
+  },
+  "followUp": {
+    "status": "prepared_not_browser_validated",
+    "preservesAll544Scenarios": true,
+    "production": [
+      "Compact regional-warning location spacing on mobile and update its CSS cache key."
+    ],
+    "tests": [
+      "Use current Portuguese copy; mock EventProducts.detail rather than the unused direct fetch path.",
+      "Keep desktop bulletin filter state consistent with the real sidebar filter.",
+      "Uniform official grid has zero isolines; retain method/version/source and prohibit radial substitution.",
+      "Keep no-contour status fixture visible after geometry resolves instead of hit-testing a hidden status.",
+      "Assert painted arrival after interrupting a legacy wave hold.",
+      "Unlocated weather warning makes no fourth flight; zero camera position tolerates only 1e-9 degree rounding.",
+      "Respect actual presentation deadlines and camera approach stage; confirmed lava is required for volcanic preemption."
+    ],
+    "unresolved": [
+      "Browser confirmation for all changes, including mobile warning visibility and two camera scenarios.",
+      "Any newly exposed assertions after the previous early failures."
+    ]
+  },
+  "operations": {
+    "quotaRun": 41139634793,
+    "latestPartialDay": "2026-10-30",
+    "observedAt": "2026-10-30T22:40Z",
+    "exceededResources": 3,
+    "offendingRoute": null,
+    "homepageRun": 41142803017,
+    "homepage": "up",
+    "uptimeTelegram": "awaiting_both_secrets",
+    "newPhysicalSessions": false
+  }
+}

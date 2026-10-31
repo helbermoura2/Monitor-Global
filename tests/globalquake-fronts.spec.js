@@ -40,7 +40,7 @@ for(const width of [1280,390])test('wave controller preserves live origin, repla
  await page.screenshot({path:'/tmp/globalquake-live-'+width+'.png'});
  await page.evaluate(()=>{const q=globalEvents[0];startWaveFront(q.coords[0],q.coords[1],q.mag,q.depth,Date.now(),{id:q.id,mode:'replay'});clearTimeout(cycleTimeout);});
  await page.clock.runFor(200);await page.clock.fastForward(3300);await page.clock.runFor(100);
- await expect(page.locator('.wave-front-status')).toContainText('Replay');state=await page.evaluate(()=>__mgWaveFrontState);expect(state.elapsedS).toBeLessThan(10);expect(state.radii.p).toBe(null); // Vertical travel delay at 100 km.
+ await expect(page.locator('.wave-front-status')).toContainText('Reprodução');state=await page.evaluate(()=>__mgWaveFrontState);expect(state.elapsedS).toBeLessThan(10);expect(state.radii.p).toBe(null); // Vertical travel delay at 100 km.
  await page.clock.fastForward(45000);await page.clock.runFor(100);state=await page.evaluate(()=>__mgWaveFrontState);expect(state.radii.p).toBeGreaterThan(0);
  const radii=await page.evaluate(()=>{const s=__mgWaveFrontState;return {actual:s.radii.p,expected:GlobalQuakeTravel.radius('p',s.depth,s.elapsedS)};});expect(radii.actual).toBe(radii.expected);
  await page.evaluate(()=>{const q=globalEvents[0];startFeltZone(q.coords[0],q.coords[1],q.mag,q.depth,q.id);});await page.clock.runFor(400);

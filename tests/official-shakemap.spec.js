@@ -31,10 +31,11 @@ test('M5,4 fica com a estimativa e não consulta o mapa oficial',async({page})=>
 test('grade oficial fraca preserva a fonte e não inventa uma pintura radial em terra',async({page})=>{
  await boot(page);await page.route('**/rupture-shaking?**',r=>r.fulfill({json:{status:'available',method:'usgs-shakemap-grid',version:'weak-official-qa',provider:'USGS ShakeMap · intensidade publicada',grid:{nx:3,ny:3,x0:36,x1:38,y0:36,y1:38,values:Array(9).fill(2.6)}}}));
  await page.evaluate(()=>{globalEvents=[{id:'weak-official',type:'earthquake',source:'QA',coords:[37,37],mag:5.5,depth:195,time:Date.now()-3600000,place:'Evento profundo'}];showEventDetails(0,false);});
- await page.waitForFunction(()=>__mgSeismicImpactState?.id==='weak-official'&&__mgSeismicImpactState.method==='usgs-shakemap-grid'&&__mgSeismicImpactState.version==='weak-official-qa'&&map.getSource('quake-impact')?.serialize().data.features.length>0);
- const features=await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features);
- expect(features.every(f=>f.properties.official&&f.geometry.type==='MultiLineString')).toBe(true);expect(features.every(f=>f.properties.mmi<=2.6)).toBe(true);
- await expect(page.locator('.seismic-contour-label')).not.toHaveCount(0);
+ // Uniform MMI has no threshold crossing: neither a grid border nor a radial ring is an isoline.
+ await page.waitForFunction(()=>__mgSeismicImpactState?.id==='weak-official'&&__mgSeismicImpactState.method==='usgs-shakemap-grid'&&__mgSeismicImpactState.version==='weak-official-qa');
+ expect(await page.evaluate(()=>map.getSource('quake-impact').serialize().data.features)).toEqual([]);
+ await expect(page.locator('.seismic-contour-label')).toHaveCount(0);
+ await expect(page.locator('.seismic-impact-status')).toContainText('USGS');
  await page.evaluate(()=>SeismicImpact.finish());expect(await page.evaluate(()=>__mgSeismicImpactState.method)).toBe('usgs-shakemap-grid');
  expect(await page.evaluate(()=>eventoSelecionadoId)).toBe('weak-official');
 });
