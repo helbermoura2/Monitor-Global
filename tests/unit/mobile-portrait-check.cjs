@@ -6,15 +6,21 @@ const body=new Element('body');for(const id of ['ux-controlbar','fab-menu','ux-p
 const document={body,readyState:'complete',getElementById:id=>nodes.get(id),createElement:t=>new Element(t),addEventListener(){},querySelectorAll(selector){if(selector.includes('data-view'))return nodes.get('mobile-primary-nav').children;return []}};
 let orientationChange;const media={matches:true,addEventListener(_,fn){orientationChange=fn}};
 const calls=[];const context={document,window:{matchMedia:()=>media, toggleSomAtivo(){context.somAtivo=!context.somAtivo},__uxShow:k=>calls.push(k)},MutationObserver:class{observe(){}},localStorage:{getItem:()=>null},somAtivo:false,somVolume:.7,globalAlerts:[{id:'a',place:'Vento forte',source:'INMET',time:100}],globalEvents:[],toggleMobileEventsModal:on=>body.classList.toggle('mobile-events-open',on),fecharPainelDetalhesMobile:()=>body.classList.remove('mobile-details-mid','mobile-details-open'),showAlertDetails:item=>calls.push(item.id),setSomVolume:v=>calls.push('volume:'+v),formatTime:()=> 'agora'};
-vm.createContext(context);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../../js/mobile-portrait.js'),'utf8'),context);
+vm.createContext(context);
+// The portrait menu delegates to the shared audio renderer; exercise that real renderer too.
+context.toggleSomAtivo=context.window.toggleSomAtivo;
+context.vozVolume=.8;context.setVozVolume=v=>{context.vozVolume=Number(v)/100;calls.push('voice:'+v);};
+const audioSource=fs.readFileSync(require('node:path').join(__dirname,'../../js/audio.js'),'utf8');
+vm.runInContext(audioSource.slice(audioSource.indexOf('window.renderAudioControls ='),audioSource.indexOf('window.previewMonitorAudio =')),context);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../../js/mobile-portrait.js'),'utf8'),context);
 const buttons=nodes.get('mobile-primary-nav').children;assert.deepEqual(buttons.map(b=>b.textContent),['Mapa','Eventos','Alertas']);assert(body.classList.contains('mg-mobile-primary'));
 buttons[1].onclick();assert(body.classList.contains('mobile-events-open'));
 buttons[0].onclick();assert(!body.classList.contains('mobile-events-open'));
 buttons[2].onclick();assert.equal(buttons[2].attrs['aria-pressed'],'true');
 const panel=nodes.get('menu-float-panel');
 const all=el=>[el,...el.children.flatMap(all)];const find=text=>all(panel).find(e=>e.textContent===text);
-find('Som desligado · ligar').onclick();assert.equal(context.somAtivo,true);
-const slider=all(panel).find(e=>e.tag==='input');slider.value='35';slider.oninput();assert(calls.includes('volume:35'));
+find('🔇 Som desligado · ligar').onclick();assert.equal(context.somAtivo,true);assert(find('🔊 Som ligado · desligar'));
+const sliders=all(panel).filter(e=>e.tag==='input');assert.equal(sliders.length,2);const slider=sliders.find(e=>e.attrs['aria-label']==='Volume de efeitos');slider.value='35';slider.oninput();assert(calls.includes('volume:35'));const voice=sliders.find(e=>e.attrs['aria-label']==='Volume de voz');voice.value='45';voice.oninput();assert(calls.includes('voice:45'));
 all(panel).find(e=>e.className==='mg-alert-row').onclick();assert(calls.includes('a'));assert(!panel.classList.contains('open'));
 context.window.MobilePortraitUI.menu();find('Filtros de eventos').onclick();assert(body.classList.contains('mg-mobile-filters'));
 media.matches=false;orientationChange();assert(!body.classList.contains('mg-mobile-primary'));assert(!body.classList.contains('mg-mobile-filters'));

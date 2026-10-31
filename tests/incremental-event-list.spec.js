@@ -5,11 +5,11 @@ async function boot(page,width){
  await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());
  await page.setViewportSize({width,height:844});await page.goto(base+'/?verify=20261009-incremental-list',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);await page.waitForTimeout(1600);
- await page.evaluate(()=>{pausarBuscas();window.applyFilters=()=>{};for(const job of __buscasAgendadas)PeriodicScheduler.cancel(job.key);for(const layer of map.getStyle().layers)if(layer.type==='raster')map.removeLayer(layer.id);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();stopFeltZone();SeismicCinema.stop();activeAlertingIds.clear();activeUpdatedIds.clear();activeLateIds.clear();if(innerWidth>900){sidebarFilter='earthquake';DesktopRecords.filter('earthquake');}});
+ await page.evaluate(async()=>{await CountryBoundaries.ready;await BrazilStateFlags.load();pausarBuscas();window.applyFilters=()=>{};for(const job of __buscasAgendadas)PeriodicScheduler.cancel(job.key);for(const layer of map.getStyle().layers)if(layer.type==='raster')map.removeLayer(layer.id);pendingNewCameraQuakes.clear();pendingQuakeRevisions.clear();clearTimeout(cycleTimeout);stopWaveFront();stopFeltZone();SeismicCinema.stop();activeAlertingIds.clear();activeUpdatedIds.clear();activeLateIds.clear();if(innerWidth>900){sidebarFilter='earthquake';DesktopRecords.filter('earthquake');}});
  await page.clock.install();await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
 }
 for(const width of [1280,390])test('incremental records preserve nodes, scroll, selection, revisions and age '+width,async({page})=>{
- await boot(page,width);
+ await boot(page,width);const cap=width<900?30:120,revisionIndex=width<900?20:60,revisionId='list-'+revisionIndex;
  const initial=await page.evaluate(()=>{
   const now=Date.now();globalEvents=Array.from({length:125},(_,i)=>({id:'list-'+i,type:'earthquake',mag:3,depth:10,coords:[-60,-10],time:now-600000-i*1000,place:'Registro '+i,source:'QA',bandeira:'🇧🇷'}));
   globalAlerts=[];lastMerged=globalEvents.slice();eventoSelecionadoId='list-8';renderSidebarList(lastMerged);
@@ -27,35 +27,35 @@ for(const width of [1280,390])test('incremental records preserve nodes, scroll, 
   const selection=__listObserver.takeRecords();
   return {count:c.querySelectorAll('.event').length,unchanged,timeFormats:__recordTimeFormats,selectionRebuilds:selection.filter(r=>r.type==='childList').length,scroll,afterScroll:c.scrollTop,sameNodes:[...__listNodes].every(([id,n])=>c.querySelector('[data-event-id="'+id+'"]')===n)};
  });
- expect(initial.count).toBe(120);expect(initial.unchanged).toBe(0);expect(initial.timeFormats).toBe(0);expect(initial.selectionRebuilds).toBe(0);expect(initial.sameNodes).toBe(true);expect(initial.afterScroll).toBe(initial.scroll);
+ expect(initial.count).toBe(cap);expect(initial.unchanged).toBe(0);expect(initial.timeFormats).toBe(0);expect(initial.selectionRebuilds).toBe(0);expect(initial.sameNodes).toBe(true);expect(initial.afterScroll).toBe(initial.scroll);
  const revised=await page.evaluate(()=>{
-  const old=globalEvents[60];globalEvents[60]={...old,mag:6.3,depth:18,place:'Local revisado',source:'Fonte revisada',sources:['Fonte revisada']};lastMerged=globalEvents.slice();
+  const index=innerWidth<900?20:60,old=globalEvents[index];globalEvents[index]={...old,mag:6.3,depth:18,place:'Local revisado',source:'Fonte revisada',sources:['Fonte revisada']};lastMerged=globalEvents.slice();
   renderSidebarList(lastMerged);const c=document.getElementById('events');
   const changes=__listObserver.takeRecords().filter(r=>r.type==='childList');
-  return {rows:[...new Set(changes.map(r=>r.target.closest?.('.event')?.dataset.eventId).filter(Boolean))],sameNodes:[...__listNodes].every(([id,n])=>c.querySelector('[data-event-id="'+id+'"]')===n),untouchedChildren:[...__listChildren].every(([id,n])=>id==='list-60'||__listNodes.get(id).firstElementChild===n)};
+  return {rows:[...new Set(changes.map(r=>r.target.closest?.('.event')?.dataset.eventId).filter(Boolean))],sameNodes:[...__listNodes].every(([id,n])=>c.querySelector('[data-event-id="'+id+'"]')===n),untouchedChildren:[...__listChildren].every(([id,n])=>id==='list-'+index||__listNodes.get(id).firstElementChild===n)};
  });
- expect(revised.rows).toEqual(['list-60']);expect(revised.sameNodes).toBe(true);expect(revised.untouchedChildren).toBe(true);
- await expect(page.locator('[data-event-id="list-60"]')).toContainText('6,3');await expect(page.locator('[data-event-id="list-60"]')).toContainText('Local revisado');await expect(page.locator('[data-event-id="list-60"]')).toContainText('18 km');
+ expect(revised.rows).toEqual([revisionId]);expect(revised.sameNodes).toBe(true);expect(revised.untouchedChildren).toBe(true);
+ await expect(page.locator('[data-event-id="'+revisionId+'"]')).toContainText('6,3');await expect(page.locator('[data-event-id="'+revisionId+'"]')).toContainText('Local revisado');await expect(page.locator('[data-event-id="'+revisionId+'"]')).toContainText('18 km');
  const appended=await page.evaluate(()=>{
   const c=document.getElementById('events'),n=__listNodes.get('list-8');n.focus({preventScroll:true});c.scrollTop=600;const before=c.scrollTop;
   const fresh={...globalEvents[0],id:'list-new',time:Date.now(),place:'Novo registro',mag:5.2};activeAlertingIds.set(fresh.id,Date.now()+60000);globalEvents.unshift(fresh);lastMerged=globalEvents.slice();renderSidebarList(lastMerged);
-  return {first:c.querySelector('.event').dataset.eventId,count:c.querySelectorAll('.event').length,preserved:[...__listNodes].filter(([id])=>id!=='list-119').every(([id,node])=>c.querySelector('[data-event-id="'+id+'"]')===node),before,after:c.scrollTop,focus:document.activeElement===n,removed:__listNodes.get('list-119').isConnected};
+  return {first:c.querySelector('.event').dataset.eventId,count:c.querySelectorAll('.event').length,preserved:[...__listNodes].filter(([id])=>id!=='list-'+(innerWidth<900?29:119)).every(([id,node])=>c.querySelector('[data-event-id="'+id+'"]')===node),before,after:c.scrollTop,focus:document.activeElement===n,removed:__listNodes.get('list-'+(innerWidth<900?29:119)).isConnected};
  });
- expect(appended).toMatchObject({first:'list-new',count:120,preserved:true,focus:true,removed:false});expect(appended.after).toBe(appended.before);
+ expect(appended).toMatchObject({first:'list-new',count:cap,preserved:true,focus:true,removed:false});expect(appended.after).toBe(appended.before);
  // Moving time forward changes only the age text, leaving structural children intact.
  await page.clock.fastForward(61000);
  const aged=await page.evaluate(()=>{
   renderSidebarList(lastMerged);return {firstChild:__listNodes.get('list-8').firstElementChild===__listChildren.get('list-8'),age:__listNodes.get('list-8').querySelector('.ev-age').textContent,newBadge:document.querySelector('[data-event-id="list-new"]').classList.contains('new-event')};
  });expect(aged.firstChild).toBe(true);expect(aged.age).toBe('11m atrás');expect(aged.newBadge).toBe(false);
  const filtered=await page.evaluate(()=>{
-  const newNode=document.querySelector('[data-event-id="list-new"]'),revision=__listNodes.get('list-60');
+  const newNode=document.querySelector('[data-event-id="list-new"]'),revision=__listNodes.get('list-'+(innerWidth<900?20:60));
   renderSidebarList(lastMerged.filter(item=>item.mag>=5));
   const c=document.getElementById('events');const kept=c.querySelectorAll('.event').length===2&&newNode.isConnected&&revision.isConnected;
   renderSidebarList(lastMerged);
   globalEvents[0].time=Date.now()-2*3600000;renderSidebarList(lastMerged);
   return {kept,count:c.querySelectorAll('.event').length,sameNode:document.querySelector('[data-event-id="list-new"]')===newNode,group:newNode.previousElementSibling.textContent};
- });expect(filtered).toEqual({kept:true,count:120,sameNode:true,group:'🕐 1–6h atrás'});
- console.log(JSON.stringify({width,visibleRecords:120,unchangedRenders:50,unchangedDomMutations:initial.unchanged,revisedRecords:revised.rows.length,preservedOnInsertion:119}));
+ });expect(filtered).toEqual({kept:true,count:cap,sameNode:true,group:'🕐 1–6h atrás'});
+ console.log(JSON.stringify({width,visibleRecords:cap,unchangedRenders:50,unchangedDomMutations:initial.unchanged,revisedRecords:revised.rows.length,preservedOnInsertion:cap-1}));
 });
 for(const width of [1280,390])test('incremental warning cards use current data and cancel obsolete badge timers '+width,async({page})=>{
  await boot(page,width);

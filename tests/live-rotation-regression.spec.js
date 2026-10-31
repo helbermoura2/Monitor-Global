@@ -11,7 +11,7 @@ for(const width of [1280,390])test('new Venezuela M2.6 interrupts the camera of 
  const result=await page.evaluate(()=>{const q={id:'venezuela26',type:'earthquake',mag:2.6,depth:12,coords:[-66,10],time:Date.now(),place:'Venezuela',source:'QA'};globalEvents.push(q);activeAlertingIds.set(q.id,Date.now()+180000);queueNewCameraQuakes([q]);const accepted=focusNextNewCameraQuake();return {accepted,id:EventStore.selectedId,previousTour:SeismicPaintTour.owns('updated53')};});
  expect(result).toEqual({accepted:true,id:'venezuela26',previousTour:false});await expect(page.locator('#pd-local')).toContainText('Venezuela');
 });
-test('late catalog records do not hijack the timed eleven-slot rotation',async({page})=>{
+test('late catalog records do not hijack the timed nine-slot rotation and wraparound',async({page})=>{
  test.setTimeout(120000);
 
  await page.route('https://api.open-meteo.com/v1/forecast?*',r=>{const u=new URL(r.request().url()),lats=u.searchParams.get('latitude').split(',').map(Number),lons=u.searchParams.get('longitude').split(',').map(Number);return r.fulfill({json:lats.map((lat,i)=>({latitude:lat,longitude:lons[i],current_units:{temperature_2m:'°C',wind_speed_10m:'km/h'},current:{time:Math.floor(Date.now()/1000),temperature_2m:18,weather_code:2}}))});});
@@ -28,5 +28,5 @@ test('late catalog records do not hijack the timed eleven-slot rotation',async({
  expect(await page.evaluate(()=>pendingNewCameraQuakes.size)).toBe(0);
  // Advance the real tour/presentation timers rather than calling the selector.
  for(let i=0;i<18;i++){await page.clock.runFor(30000);if(await page.evaluate(()=>__timedSelections.length>=11))break;}
- const rows=await page.evaluate(()=>__timedSelections.slice(0,11));expect(rows).toHaveLength(11);expect(rows.map(x=>x.type)).toEqual(['earthquake','earthquake','wind','wind','capital-weather','capital-weather','earthquake','earthquake','wind','wind','wind']);
+ const rows=await page.evaluate(()=>__timedSelections.slice(0,11));expect(rows).toHaveLength(11);expect(rows.map(x=>x.type)).toEqual(['earthquake','capital-weather','earthquake','capital-weather','capital-weather','earthquake','wind','capital-weather','wind','earthquake','capital-weather']);
 });

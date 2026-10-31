@@ -7,7 +7,7 @@ async function boot(page){
   for(const l of map.getStyle().layers)if(l.type==='raster')map.removeLayer(l.id);
   globalAlerts=[];globalEvents=[{id:'preview-before',type:'earthquake',mag:6.8,depth:10,coords:[-85,7.5],time:Date.now()-600000,place:'Costa Rica',source:'QA'},{id:'preview-target',type:'earthquake',mag:6.6,depth:12.647,coords:[-80.8,7.5],time:Date.now()-600000,place:'Panamá',source:'QA'}];
   showEventDetails(0,false);clearTimeout(cycleTimeout);clearTimeout(window.__mgCycleGuard);clearTimeout(window.__mgWaveDelayT);clearTimeout(window.__mgRadarDelayT);EventCamera.cancel();SeismicPaintTour.stop();stopWaveFront();stopFeltZone();stopMapCamera();CinematicCard.stop();SeismicCinema.stop();
-  document.body.classList.remove('mobile-details-open','mobile-details-mid');map.stop();map.jumpTo({center:[-81.8,7.5],zoom:4,padding:0,bearing:0,pitch:0});syncAllMarkers();updateQuakeLabels();
+  document.body.classList.remove('mobile-details-open','mobile-details-mid');map.stop();map.jumpTo({center:[-80.8,7.5],zoom:MobileMapClusters.MIN_ZOOM,padding:0,bearing:0,pitch:0});syncAllMarkers();updateQuakeLabels();
   window.__previewAudio=0;reproduzirAlertaSismicoManual=()=>{window.__previewAudio++;};
  });
 }
@@ -16,7 +16,7 @@ test.describe('mouse preview',()=>{
  test.use({serviceWorkers:'block',viewport:{width:1280,height:900}});
  test('hover reads magnitude without selection, and click still opens the event',async({page})=>{
   await boot(page);const before=await page.evaluate(()=>map.getCenter().toArray());await pin(page).hover();
-  await expect(page.locator('.quake-preview-magnitude')).toHaveText('M6,6');await expect(page.locator('.quake-preview-depth')).toHaveText('Profundidade: 13 km');await expect(page.locator('.quake-preview-open')).toHaveCount(0);
+  await expect(page.locator('.quake-preview-magnitude')).toHaveText('M6,6');await expect(page.locator('.quake-preview-depth')).toHaveText('Profundidade: 12,65 km');await expect(page.locator('.quake-preview-open')).toHaveCount(0);
   expect(await page.evaluate(()=>({id:eventoSelecionadoId,audio:__previewAudio,center:map.getCenter().toArray()}))).toEqual({id:'preview-before',audio:0,center:before});
   await page.screenshot({path:'/tmp/quake-preview-desktop.png'});
   await page.locator('.quake-preview-content').hover();await page.waitForTimeout(200);await expect(page.locator('.map-quake-preview')).toBeVisible();

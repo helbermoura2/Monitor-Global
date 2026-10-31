@@ -8,7 +8,7 @@ for(const width of [1280,390])test('avisos regionais de tempestade e vento focam
   const g={type:'Polygon',coordinates:[[[-98,35],[-97,35],[-97,36],[-98,36],[-98,35]]]};
   EventCamera.enter=(id,camera)=>{calls.push({o:camera});return 6000;};
   const calls=[],fetches=[];map.fitBounds=(b,o)=>calls.push({b,o});map.flyTo=o=>calls.push({fly:o});map.easeTo=()=>{};map.stop=()=>{};
-  fetchWithCorsFallback=async url=>{fetches.push(url);return Response.json({geometry:g});};
+  const originalFetch=fetchWithCorsFallback;fetchWithCorsFallback=async(...args)=>{const url=String(args[0]);if(!url.startsWith('https://api.weather.gov/zones/'))return originalFetch(...args);fetches.push(url);return Response.json({geometry:g});};
   let focused;
   const actualFocus=WeatherWarningCamera.focus;WeatherWarningCamera.focus=item=>(focused=actualFocus(item));
   const rows=[];
