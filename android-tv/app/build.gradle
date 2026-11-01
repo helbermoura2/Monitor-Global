@@ -37,6 +37,7 @@ if (project.hasProperty('nativeMapChecks')) {
   ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort', 'javax.net.ssl.trustStore'].each { key ->
    if (System.getProperty(key)) systemProperty key, System.getProperty(key)
   }
+  testLogging { exceptionFormat 'full' }
   maxHeapSize = '1536m'
  }
 }
