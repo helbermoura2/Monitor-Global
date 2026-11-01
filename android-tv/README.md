@@ -1,5 +1,7 @@
 # Monitor Global TV
 
+**Fire Stick: botão de sobreposição não abre ou volta sem autorizar?** Use o [guia pelo celular](PERMISSAO_FIRE_TV.md), válido também para a versão já instalada. A versão 1.0.31 acrescenta essa ajuda por QR Code; a autorização continua dependendo do Fire OS.
+
 **Versão 1.0.29:** [resumo do tempo na Liberdade](../docs/tv-resumo-tempo-horario.md), com cartão por 12 segundos a cada hora e opção Ver tempo agora.
 
 **Versão 1.0.25:** [cartão e gotas de chuva em São Paulo](../docs/tv-chuva-sao-paulo.md), com estimativa por minuto, modos opcionais e prioridade sísmica.
