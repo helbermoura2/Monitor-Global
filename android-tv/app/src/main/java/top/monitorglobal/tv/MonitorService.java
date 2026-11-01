@@ -103,7 +103,7 @@ public final class MonitorService extends Service {
    FeedClient.Snapshot result=new FeedClient().history("completed");
    if(!result.quakeOk||!result.complete||!day.equals(result.day))throw new java.io.IOException("Dia encerrado não confirmado");
    main.post(()->{dailyBusy=false;if(destroyed||!dailyEnabled()||!day.equals(daily.due(System.currentTimeMillis())))return;
-    if(result.alerts.isEmpty()){int attempt=daily.start(day);if(daily.finish(day,attempt))Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();Prefs.status(this,"Resumo de "+day+": nenhum sismo disponível nos catálogos consultados.");return;}
+    if(result.alerts.isEmpty()){int attempt=daily.start(day);if(daily.finish(day,attempt))Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();Prefs.status(this,"Resumo de "+BrDates.day(day)+": nenhum sismo disponível nos catálogos consultados.");return;}
     pendingDaily=result;dailyRetryAt=0;tryDaily();
    });
   }catch(Exception e){main.post(()->{dailyBusy=false;if(destroyed)return;dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;Prefs.status(this,"Resumo diário indisponível. Nova tentativa em 5 minutos.");});}});
