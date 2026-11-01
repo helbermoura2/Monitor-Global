@@ -70,7 +70,7 @@ public final class MonitorService extends Service {
    });
   }catch(Exception e){main.post(()->{historyBusy=false;if(destroyed||request!=historyRequest)return;Alert local=summary?null:Prefs.lastReplay(this);
    FeedClient.Snapshot saved=summary&&completed?Prefs.lastCompletedSummary(this):null;
-   if(SummaryRecord.completedFor(saved,System.currentTimeMillis())){scheduleSummary(saved,replay);Prefs.status(this,"Sem consulta atual · resumo completo de "+saved.day+" salvo no aparelho em 10 segundos.");return;}
+   if(SummaryRecord.completedFor(saved,System.currentTimeMillis())){scheduleSummary(saved,replay);Prefs.status(this,"Sem consulta atual · resumo completo de "+BrDates.day(saved.day)+" salvo no aparelho em 10 segundos.");return;}
    if(local!=null){scheduleLocal(List.of(local),false,true);Prefs.status(this,"Servidor indisponível · replay do último registro local em 10 segundos.");}
    else{Prefs.status(this,"Histórico indisponível. Tente novamente com internet.");stopIfIdle();}
   });}});
@@ -82,7 +82,7 @@ public final class MonitorService extends Service {
   Runnable show=()->{if(destroyed)return;if(draining||!queue.isEmpty()){Prefs.status(this,"Resumo adiado por alerta real. Solicite novamente após o aviso.");stop.run();return;}
    rain.hide();if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete,stop)){if(!replay)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;}else stop.run();
   };demoTasks.add(show);demoTasks.add(stop);main.postDelayed(show,delay);
-  Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+snapshot.day+" em 10 segundos · "+snapshot.alerts.size()+" sismos · 6 segundos de leitura por sismo + animações.");
+  Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+BrDates.day(snapshot.day)+" em 10 segundos · "+snapshot.alerts.size()+" sismos · 6 segundos de leitura por sismo + animações.");
  }
  private void interruptDaily(){
   if(dailyEnd!=null)main.removeCallbacks(dailyEnd);dailyEnd=null;
@@ -103,7 +103,7 @@ public final class MonitorService extends Service {
    FeedClient.Snapshot result=new FeedClient().history("completed");
    if(!result.quakeOk||!result.complete||!day.equals(result.day))throw new java.io.IOException("Dia encerrado não confirmado");
    main.post(()->{dailyBusy=false;if(destroyed||!dailyEnabled()||!day.equals(daily.due(System.currentTimeMillis())))return;
-    if(result.alerts.isEmpty()){int attempt=daily.start(day);if(daily.finish(day,attempt))Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();Prefs.status(this,"Resumo de "+day+": nenhum sismo disponível nos catálogos consultados.");return;}
+    if(result.alerts.isEmpty()){int attempt=daily.start(day);if(daily.finish(day,attempt))Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();Prefs.status(this,"Resumo de "+BrDates.day(day)+": nenhum sismo disponível nos catálogos consultados.");return;}
     pendingDaily=result;dailyRetryAt=0;tryDaily();
    });
   }catch(Exception e){main.post(()->{dailyBusy=false;if(destroyed)return;dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;Prefs.status(this,"Resumo diário indisponível. Nova tentativa em 5 minutos.");});}});
@@ -113,10 +113,10 @@ public final class MonitorService extends Service {
   if(!pendingDaily.day.equals(daily.due(System.currentTimeMillis())))return;
   FeedClient.Snapshot snapshot=pendingDaily;
   int attempt=daily.start(snapshot.day);
-  dailyEnd=()->{if(!screenReady()){interruptDaily();return;}if(destroyed||!daily.finish(snapshot.day,attempt))return;Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();pendingDaily=null;dailyEnd=null;activeUntil=0;tryTarget();Prefs.status(this,"Resumo diário de "+snapshot.day+" exibido. Disponível no replay do resumo.");};
+  dailyEnd=()->{if(!screenReady()){interruptDaily();return;}if(destroyed||!daily.finish(snapshot.day,attempt))return;Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();pendingDaily=null;dailyEnd=null;activeUntil=0;tryTarget();Prefs.status(this,"Resumo diário de "+BrDates.day(snapshot.day)+" exibido. Disponível no replay do resumo.");};
   rain.hide();if(!banner.showSummary(snapshot.alerts,snapshot.day,false,true,dailyEnd)){daily.interrupt();dailyEnd=null;dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;return;}
   Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;
-  Prefs.status(this,"Resumo automático de "+snapshot.day+" · dia encerrado · 6 segundos de leitura por sismo + animações.");
+  Prefs.status(this,"Resumo automático de "+BrDates.day(snapshot.day)+" · dia encerrado · 6 segundos de leitura por sismo + animações.");
  }
  private PendingIntent open(){return PendingIntent.getActivity(this,1,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
  private void poll(){if(destroyed)return;try{boolean enabledTargets=Prefs.get(this).getBoolean("targetAlerts",true);long settingsRevision=Prefs.get(this).getLong("targetSettingsRevision",0);if(enabledTargets!=targetsEnabled||settingsRevision!=targetSettingsRevision){targetSettingsRevision=settingsRevision;feed.invalidate();tracker.targetsReady=false;targetsEnabled=enabledTargets;main.post(()->{targetQueue.clear();stopTarget();});}FeedClient.Snapshot snapshot=feed.read();if(destroyed)return;long now=System.currentTimeMillis();Prefs.get(this).edit().putLong("lastCheck",now).apply();if(snapshot.unchanged){refreshOfficialConfig();return;}Set<String> disabled=Prefs.get(this).getStringSet("disabledTargetAreas",Collections.emptySet());for(Alert a:snapshot.alerts){if(!a.targetAreas.isEmpty())a.targetArea=a.targetAreas.stream().filter(area->!disabled.contains(area)).findFirst().orElse("");else if(disabled.contains(a.targetArea))a.targetArea="";}List<Alert> all=tracker.accept(snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk,now,snapshot.catalogs,targetsEnabled);List<Alert> small=new ArrayList<>(),alerts=new ArrayList<>();for(Alert a:all){if(a.compact)small.add(a);else alerts.add(a);}AlertPairing.attach(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);Prefs.save(this,tracker);StringBuilder health=new StringBuilder();for(Map.Entry<String,Boolean> e:snapshot.catalogs.entrySet())if(!e.getValue()){if(health.length()>0)health.append(", ");health.append(catalogLabel(e.getKey()));}if(!snapshot.tsunamiOk){if(health.length()>0)health.append(", ");health.append("boletins de tsunami");}Prefs.get(this).edit().putString("sourceHealth",health.length()==0?"Fontes disponíveis":"Indisponível: "+health).apply();Prefs.status(this,health.length()==0?"Conectado · fontes disponíveis":"Monitoramento parcial · "+health);main.post(()->{if(destroyed)return;enqueue(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);for(Alert a:small)targetQueue.add(a);tryTarget();});refreshOfficialConfig();
