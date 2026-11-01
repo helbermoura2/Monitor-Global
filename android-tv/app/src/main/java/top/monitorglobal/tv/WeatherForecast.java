@@ -3,7 +3,19 @@ import org.json.*;
 /** Hourly modeled conditions; no missing value becomes zero or an invented condition. */
 final class WeatherForecast {
  static final long HOUR=3600000;
- static boolean due(long last,long now){return last<=0||last>now+60000||now-last>=HOUR;}
+ static final java.time.ZoneId ZONE=java.time.ZoneId.of("America/Sao_Paulo");
+ // Each civil hour is one slot; midnight is reserved for the daily summary.
+ static long slot(long now){
+  java.time.ZonedDateTime hour=java.time.Instant.ofEpochMilli(now).atZone(ZONE).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+  return hour.withMinute(hour.getHour()==0?5:0).toInstant().toEpochMilli();
+ }
+ static boolean due(long last,long now){long scheduled=slot(now);return now>=scheduled&&(last<scheduled||last>now+60000);}
+ static long delay(long now){
+  java.time.ZonedDateTime next=java.time.Instant.ofEpochMilli(now).atZone(ZONE).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+  if(slot(now)>now)return slot(now)-now;
+  next=next.plusHours(1);
+  return Math.max(1,next.withMinute(next.getHour()==0?5:0).toInstant().toEpochMilli()-now);
+ }
  static final class Summary {
   final String temperature,condition,wind,humidity,timing;final long expiresAt;
   Summary(String t,String c,String w,String h,String time,long expiry){temperature=t;condition=c;wind=w;humidity=h;timing=time;expiresAt=expiry;}
