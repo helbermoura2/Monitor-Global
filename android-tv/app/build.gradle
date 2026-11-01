@@ -6,8 +6,8 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  versionCode 10029
-  versionName '1.0.29'
+  versionCode 10030
+  versionName '1.0.30'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
@@ -37,6 +37,7 @@ if (project.hasProperty('nativeMapChecks')) {
   ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort', 'javax.net.ssl.trustStore'].each { key ->
    if (System.getProperty(key)) systemProperty key, System.getProperty(key)
   }
+  testLogging { exceptionFormat 'full' }
   maxHeapSize = '1536m'
  }
 }
