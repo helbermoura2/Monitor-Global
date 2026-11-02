@@ -11,7 +11,6 @@ final class NewsBannerView extends View {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
  static final float HEADLINE_X=124,HEADLINE_Y=64,HEADLINE_TOP=40,HEADLINE_BOTTOM=72,HEADLINE_WIDTH=714,FLAG_RESERVE=44;
  private final Path breakingClip=new Path();
- private final android.graphics.drawable.Drawable logo;
  private long clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private final Matrix shineMatrix=new Matrix();
  private final LinearGradient shine=new LinearGradient(0,0,70,0,new int[]{Color.TRANSPARENT,0x50ffffff,Color.TRANSPARENT},null,Shader.TileMode.CLAMP);
@@ -48,10 +47,10 @@ final class NewsBannerView extends View {
  }
  NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts.get(0),false,repeated,alerts,day,complete);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete){
-  super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;breakingClip.addRoundRect(0,0,248,24,7,7,Path.Direction.CW);logo=context.getDrawable(R.drawable.ic_monitor).mutate();root=a;demo=demonstration;replay=repeated;
+  super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;breakingClip.addRoundRect(0,0,248,24,7,7,Path.Direction.CW);root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
-  foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));logo.setTint(accent);
+  foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
   StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+summaryDay+" · HORÁRIO DE BRASÍLIA · FONTES SÍSMICAS · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
@@ -81,7 +80,7 @@ final class NewsBannerView extends View {
   c.save();c.translate(0,mapBelow?0:mapSpace);
   rounded(c,0,24,960,96,10,background);rounded(c,0,98,960,126,8,background);
   breaking(c,elapsed);
-  rect(c,845,24,846,96,Color.rgb(49,76,91));logo.setBounds(884,27,922,65);logo.draw(c);text(c,"MONITOR",859,79,16,foreground,brand,92);text(c,"GLOBAL",866,93,15,foreground,brand,86);
+  rect(c,845,24,846,96,Color.rgb(49,76,91));c.save();c.translate(903,46);c.scale(38f/52,38f/52);radar(c,elapsed);c.restore();text(c,"MONITOR",859,79,16,foreground,brand,92);text(c,"GLOBAL",866,93,15,foreground,brand,86);
   rounded(c,846,0,960,24,7,Color.rgb(191,24,39));text(c,badgeLabel(),858,18,17,Color.WHITE,brand,94);drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
@@ -146,6 +145,11 @@ final class NewsBannerView extends View {
  }
  private void magnitude(Canvas c,String value,String label,int opacity){if(opacity<=0)return;int layer=c.saveLayerAlpha(8,28,108,94,opacity);text(c,value,12,68,35,Color.WHITE,brand,96);text(c,label,12,86,10,Color.WHITE,brand,96);c.restoreToCount(layer);}
 
+ private void radar(Canvas c,long elapsed){
+  paint.setColor(Color.rgb(2,8,22));paint.setStyle(Paint.Style.FILL);c.drawRoundRect(-26,-26,26,26,8,8,paint);
+  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.6f);paint.setColor(Color.rgb(28,97,130));c.drawCircle(0,0,23,paint);c.drawCircle(0,0,16,paint);c.drawCircle(0,0,8,paint);
+  paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(56,189,248));float angle=animate?(elapsed%2400)/2400f*360:0;c.drawArc(-23,-23,23,23,-90+angle,45,true,paint);c.drawCircle(0,0,3,paint);
+ }
  static String formatTime(long at){return date(at,"HH:mm 'BRT'");}
  private static String formatRecordTime(long at){return date(at,"dd/MM/yyyy HH:mm 'BRT'");}
  private static String date(long at,String pattern){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat(pattern,java.util.Locale.forLanguageTag("pt-BR"));f.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return f.format(new java.util.Date(at));}
