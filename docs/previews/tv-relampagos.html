@@ -1,56 +1,62 @@
 <!doctype html>
-<html lang="pt-BR">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Monitor Global · prévia de relâmpagos</title>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitor Global · comparar estilos de chuva</title>
 <style>
 @font-face{font-family:Rajdhani;src:url('../../android-tv/app/src/main/assets/fonts/Rajdhani-Bold.ttf')}
-*{box-sizing:border-box}body{margin:0;background:#07111d;color:#e4f2fa;font-family:Arial,sans-serif;padding:20px}main{max-width:1100px;margin:auto}h1{font-size:24px;margin:0 0 10px}p{line-height:1.5;color:#b7ccdb}button{border:1px solid #70dce8;border-radius:8px;padding:12px 20px;background:#132b3f;color:white;font-size:17px;cursor:pointer;margin-bottom:14px}
-#stage{position:relative;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(145deg,#163247,#07111e 70%);border:1px solid #34566a;border-radius:12px}
-.background{position:absolute;left:7%;bottom:20%;font-size:clamp(9px,2vw,24px);color:#627888}.background small{display:block;font-size:.65em;margin-top:8px}
+*{box-sizing:border-box}body{margin:0;background:#07111d;color:#e4f2fa;font-family:Arial,sans-serif;padding:20px}main{max-width:1500px;margin:auto}h1{font-size:26px;margin:0 0 10px}p{line-height:1.5;color:#b7ccdb}.controls{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin:16px 0}label{display:grid;gap:7px;font-size:15px}.check{display:flex;align-items:center;gap:8px;padding-bottom:12px}select,button{border:1px solid #70dce8;border-radius:8px;padding:12px;background:#132b3f;color:white;font-size:16px}button{cursor:pointer}input{width:20px;height:20px}#grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}#grid.single{grid-template-columns:minmax(0,1100px);justify-content:center}article h2{font-size:18px;margin:0 0 8px}.stage{container-type:inline-size;position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #34566a;border-radius:10px;background:linear-gradient(#172d44,#506071 58%,#0b1924)}
+.sky{position:absolute;inset:0;background:radial-gradient(ellipse at 10% 70%,#e99e6738,transparent 30%),radial-gradient(ellipse at 60% 30%,#b6cae51c,transparent 45%)}
+.city{position:absolute;inset:35% 0 0;background:linear-gradient(transparent 45%,#07101be6)}.building{position:absolute;bottom:22%;width:8%;background:repeating-linear-gradient(0deg,transparent 0 8px,#9ecbe51f 9px 11px),repeating-linear-gradient(90deg,#0b1b2a 0 8px,#dca5796e 9px 11px);border-top:1px solid #97b3c44d}.river{position:absolute;inset:79% 0 0;background:repeating-linear-gradient(95deg,#182a3b 0 13%,#d6a17730 14%,#163146 17%,#83b2dc33 19%,#0c1c2e 23%);opacity:.8}
+.background{position:absolute;left:3%;bottom:4%;font-size:clamp(7px,2cqw,18px);color:#a1bbcd80}
 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.card{position:absolute;right:2.2%;top:3.5%;width:43%;background:#0a192bf5;border:1px solid #61d7e7;border-radius:10px;padding:2% 1.5%;font-size:clamp(6px,1.4vw,16px);box-shadow:0 8px 30px #0003}
-.brand,.demo,.temperature{font-family:Rajdhani,Arial,sans-serif}.brand{color:#70dce8;font-size:1.05em}.demo{color:#bdeaff;margin:8px 0 4px;font-size:1.12em}.temperature{font-size:1.5em;color:#fff}.row{margin:5px 0;color:#d9eff5}.fine{font-size:.8em;color:#a9c1cd;line-height:1.4}.fine strong{color:#c8e5f6}
-#state{min-height:24px}a{color:#70dce8}
+.card{position:absolute;right:2.2%;top:3.5%;width:43%;background:#0a192bf5;border:1px solid #61d7e7;border-radius:8px;padding:2% 1.5%;font-size:clamp(6px,1.4cqw,16px);box-shadow:0 8px 30px #0003}
+.brand,.demo,.temperature{font-family:Rajdhani,Arial,sans-serif}.brand{color:#70dce8}.demo{color:#bdeaff;margin:5px 0;font-size:1.12em}.temperature{font-size:1.5em;color:#fff}.row{margin:4px 0;color:#d9eff5}.fine{font-size:.8em;color:#a9c1cd;line-height:1.4}#state{min-height:24px}.note{font-size:14px}a{color:#70dce8}
 </style>
-<main>
-<h1>Prévia fictícia de relâmpagos</h1>
-<p>Toque para ver os 12 segundos do efeito. O cenário abaixo representa o conteúdo da TV; os valores são exemplos. No celular, a posição horizontal facilita a avaliação.</p>
+<main><h1>Compare os três estilos de chuva</h1>
+<p>Escolha a intensidade e reproduza a simulação de 12 segundos. No celular, selecione um estilo e gire a tela para examiná-lo maior.</p>
+<div class="controls">
+<label>Estilo<select id="style"><option value="all">Comparar os três</option><option value="0">1 · Chuva no vidro</option><option value="1">2 · Chuva na cena</option><option value="2">3 · Combinação suave</option></select></label>
+<label>Intensidade visual<select id="level"><option value="0">Fraca</option><option value="1" selected>Moderada</option><option value="2">Forte</option><option value="3">Tempestade</option></select></label>
+<label class="check"><input id="bolts" type="checkbox" checked>Relâmpagos simulados</label>
 <button id="play">Reproduzir prévia</button>
-<div id="stage">
-<div class="background">CONTEÚDO DA TV<small>Fundo ilustrativo · a sobreposição não captura o controle</small></div>
-<canvas id="effect"></canvas>
-<section class="card" aria-label="Cartão fictício da meteorologia">
-<div class="brand">◉ TESTE FICTÍCIO · LIBERDADE, SP</div>
-<div class="demo">RELÂMPAGOS · PRÉVIA VISUAL FICTÍCIA</div>
-<div class="temperature">22°C · sensação 23°C</div>
-<div class="row">Trovoadas · exemplo fictício · Umidade 81%</div>
-<div class="row">Vento 12 km/h · rajadas 19 km/h</div>
-<div class="row">Chuva forte · exemplo fictício</div>
-<div class="fine">SIMULAÇÃO · sem consulta de raios<br><strong>DEMONSTRAÇÃO LOCAL · NÃO É DETECÇÃO DE RAIOS</strong><br>Prévia para aprovação · não informa o tempo atual</div>
-</section></div>
-<p id="state" role="status">Aguardando reprodução.</p>
-<p>Esta é uma representação no navegador do desenho proposto para a TV. O efeito ainda não está ativado automaticamente na meteorologia. <a href="../tv-previa-relampagos.md">Detalhes da demonstração</a></p>
-</main>
+</div><div id="grid"></div><p id="state" role="status">Aguardando reprodução.</p>
+<p class="note">Tudo é fictício: os valores e “tempestade” representam cenários de demonstração. As gotas têm volume e brilho simulados; não capturam nem distorcem a imagem de outro aplicativo. Esta página ilustra o desenho proposto para a TV, cujas dimensões e desempenho dependem do aparelho. O efeito automático continua aguardando aprovação.</p></main>
 <script>
-const canvas=document.getElementById('effect'),ctx=canvas.getContext('2d'),stage=document.getElementById('stage'),state=document.getElementById('state');
-let frame=0,start=0,running=false;
-const drops=Array.from({length:48},(_,i)=>({x:((i*47+13)%101)/101,y:((i*31+7)%97)/97,s:.18+((i*17)%20)/100,l:.014+((i*7)%14)/1000}));
-function stop(){running=false;cancelAnimationFrame(frame);ctx.clearRect(0,0,canvas.width,canvas.height);}
-function size(){const ratio=Math.min(devicePixelRatio||1,1.5);canvas.width=stage.clientWidth*ratio;canvas.height=stage.clientHeight*ratio;}
-function draw(now){
- if(!running)return;const age=now-start;if(age>=12000){stop();state.textContent='Prévia encerrada. Toque em Reproduzir para ver novamente.';return;}
- const w=canvas.width,h=canvas.height,t=age/1000;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#b9edff';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(1,w/960);ctx.lineCap='round';
- for(const d of drops){const y=((d.y+t*d.s)%1.08-.04)*h,x=(d.x*w+t*6)%w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-2.5,y+d.l*h);ctx.stroke();}
- const phase=(age-600)%4000,level=age>=600&&phase<1000?Math.sin(Math.PI*phase/1000):0;
- if(level>0){
-  const i=Math.floor((age-600)/4000)%3,x=w*[.24,.50,.12][i];
-  ctx.beginPath();ctx.moveTo(x+w*.03,h*.025);ctx.lineTo(x-w*.02,h*.105);ctx.lineTo(x+w*.012,h*.095);ctx.lineTo(x-w*.035,h*.235);ctx.lineTo(x+w*.018,h*.145);ctx.moveTo(x-w*.008,h*.15);ctx.lineTo(x+w*.05,h*.19);ctx.lineTo(x+w*.04,h*.23);
-  ctx.lineJoin='round';
-  for(const [color,alpha,width] of [['#5fb8f5',42/255,16],['#a0e0ff',130/255,5],['#fff',225/255,1.6]]){ctx.strokeStyle=color;ctx.globalAlpha=alpha*level;ctx.lineWidth=width*w/1280;ctx.stroke();}
- }
- ctx.globalAlpha=1;frame=requestAnimationFrame(draw);
+const names=['Chuva no vidro','Chuva na cena','Combinação suave'],levels=['Fraca','Moderada','Forte','Tempestade'];
+const grid=document.getElementById('grid'),state=document.getElementById('state'),styleSelect=document.getElementById('style'),levelSelect=document.getElementById('level'),boltsToggle=document.getElementById('bolts');
+let views=[],raf=0,start=0,last=0,running=false;
+function rand(seed){let value=seed;return()=>{value=(value*1664525+1013904223)>>>0;return value/4294967296;};}
+const bead=document.createElement('canvas');bead.width=64;bead.height=96;
+{const c=bead.getContext('2d'),shape=new Path2D();shape.moveTo(31,7);shape.bezierCurveTo(19,26,8,48,14,68);shape.bezierCurveTo(22,91,52,87,54,63);shape.bezierCurveTo(57,44,42,23,31,7);shape.closePath();const g=c.createRadialGradient(26,43,0,26,43,43);for(const [at,color] of [[0,'#459bbe08'],[.6,'#75a2b938'],[.91,'#0b26388a'],[1,'#d6f5ff30']])g.addColorStop(at,color);c.fillStyle=g;c.fill(shape);c.strokeStyle='#c5eaff6c';c.lineWidth=1.3;c.stroke(shape);c.strokeStyle='#eafaffdd';c.lineWidth=2.6;c.beginPath();c.ellipse(30,51,12,19,0,155*Math.PI/180,243*Math.PI/180);c.stroke();c.strokeStyle='#ffffff90';c.lineWidth=1.2;c.beginPath();c.ellipse(36.5,68,14.5,14,0,30*Math.PI/180,120*Math.PI/180);c.stroke();c.fillStyle='#ffffffc9';c.beginPath();c.ellipse(23,34.5,2,3.5,0,0,Math.PI*2);c.fill();}
+const air=document.createElement('canvas');air.width=24;air.height=80;
+{const c=air.getContext('2d');c.scale(1,3);const g=c.createRadialGradient(12,13,0,12,13,11);g.addColorStop(0,'#d5edfa83');g.addColorStop(.35,'#c2e1f445');g.addColorStop(1,'#beddf200');c.fillStyle=g;c.beginPath();c.ellipse(12,13,11,11,0,0,Math.PI*2);c.fill();}
+function paths(w,h){return [0,1,2].map(i=>{const r=rand(4800+i*83),p=new Path2D();let x=w*[.24,.5,.12][i],y=h*.025;p.moveTo(x,y);for(let j=1;j<=24;j++){const nx=x+(r()-.52)*w*.024,ny=y+h*(.012+r()*.009);p.lineTo(nx,ny);if([7,12,17].includes(j)){let bx=nx,by=ny;for(let k=0;k<5;k++){bx+=(r()*.018+.006)*w*(j===12?-1:1);by+=h*(.009+r()*.013);p.lineTo(bx,by);}p.moveTo(nx,ny);}x=nx;y=ny;}return p;});}
+function size(){const ratio=Math.min(devicePixelRatio||1,styleSelect.value==='all'?1.25:1.5);for(const v of views){v.canvas.width=v.host.clientWidth*ratio;v.canvas.height=v.host.clientHeight*ratio;v.paths=paths(v.canvas.width,v.canvas.height);}}
+function build(){
+ const selected=styleSelect.value==='all'?[0,1,2]:[Number(styleSelect.value)],level=Number(levelSelect.value);
+ grid.className=selected.length===1?'single':'';grid.replaceChildren();views=[];
+ for(const style of selected){
+  const article=document.createElement('article');article.innerHTML='<h2>'+ (style+1)+' · '+names[style]+'</h2><div class="stage"><div class="sky"></div><div class="city"></div><div class="river"></div><div class="background">CONTEÚDO ILUSTRATIVO DA TV</div><canvas></canvas><section class="card"><div class="brand">◉ TESTE FICTÍCIO · LIBERDADE, SP</div><div class="demo">'+names[style]+' · '+levels[level]+'</div><div class="temperature">22°C · sensação 23°C</div><div class="row">'+(boltsToggle.checked?'Trovoadas':'Chuva')+' · exemplo fictício</div><div class="row">Umidade 81% · vento 12 km/h</div><div class="row">'+levels[level]+' · cenário visual</div><div class="fine">SIMULAÇÃO LOCAL<br>NÃO É DETECÇÃO DE RAIOS</div></section></div>';
+  grid.append(article);const host=article.querySelector('.stage'),canvas=article.querySelector('canvas'),random=rand(1729),drops=Array.from({length:160},()=>({x:random(),y:random(),r:random(),s:random()}));
+  const city=article.querySelector('.city');for(let i=0;i<14;i++){const b=document.createElement('i');b.className='building';b.style.left=i*7+'%';b.style.height=(20+(i*37)%55)+'%';city.append(b);}
+  views.push({style,host,canvas,ctx:canvas.getContext('2d'),drops,paths:[]});
+ }size();
 }
-document.getElementById('play').addEventListener('click',()=>{stop();size();if(matchMedia('(prefers-reduced-motion: reduce)').matches){state.textContent='As animações estão desligadas no aparelho; o cartão permanece estático.';return;}running=true;start=performance.now();state.textContent='Simulação em reprodução · 12 segundos.';frame=requestAnimationFrame(draw);});
-window.addEventListener('resize',()=>{size();});window.addEventListener('pagehide',stop);size();
-</script>
-</html>
+function stop(){running=false;cancelAnimationFrame(raf);for(const v of views)v.ctx.clearRect(0,0,v.canvas.width,v.canvas.height);}
+function draw(now){
+ if(!running)return;const age=now-start;if(age>=12000){stop();state.textContent='Prévia encerrada. Você pode mudar as opções e reproduzir novamente.';return;}
+ if(now-last<33){raf=requestAnimationFrame(draw);return;}last=now;
+ const level=Number(levelSelect.value),t=age/1000;
+ for(const v of views){
+  const {ctx:c,canvas,style,drops}=v,w=canvas.width,h=canvas.height,scale=w/1280;c.clearRect(0,0,w,h);
+  const gc=style===1?0:[12,26,46,70][level],ac=style===0?0:[24,55,100,160][level];
+  for(let i=0;i<ac;i++){const d=drops[i],depth=.35+.65*d.r,y=((d.y+t*(.30+d.s*.28)*(1+level*.22))%1.15-.10)*h,x=(d.x*w+t*(12+level*9)*depth*scale)%w,bw=(1.2+3.3*depth)*scale,bh=bw*(2.4+depth*2.2);c.globalAlpha=(style===2?120:180)/255*depth;c.drawImage(air,x,y,bw,bh);}
+  for(let i=0;i<gc;i++){const d=drops[i],nx=style===2?(i%2===0?d.x*.16:.84+d.x*.16):d.x,y=((d.y+t*(.002+d.s*.008)*(1+level*.18))%1.12-.04)*h,x=nx*w,r=(3+8*d.r)*(1+level*.12)*scale;c.globalAlpha=(style===2?180:225)/255;c.drawImage(bead,x-r,y-r*1.4,r*2,r*2.8);if(i%9===0&&level>0){c.globalAlpha=45/255;for(let j=1;j<=3;j++)c.drawImage(bead,x-r*.35,y-j*r*.8-r,r*.7,r*2);}}
+  const phase=(age-600)%4000,strength=age>=600&&phase<1000?Math.sin(Math.PI*phase/1000):0;
+  if(boltsToggle.checked&&strength>0){const path=v.paths[Math.floor((age-600)/4000)%3];c.lineCap='round';c.lineJoin='round';for(const [color,alpha,width] of [['#5fb8f5',42/255,16],['#a0e0ff',130/255,5],['white',225/255,1.6]]){c.strokeStyle=color;c.globalAlpha=alpha*strength;c.lineWidth=width*scale;c.stroke(path);}}
+  c.globalAlpha=1;
+ }raf=requestAnimationFrame(draw);
+}
+function play(){stop();build();if(matchMedia('(prefers-reduced-motion: reduce)').matches){state.textContent='As animações estão desligadas no aparelho; os cartões ficam estáticos.';return;}running=true;start=performance.now();last=0;state.textContent='Simulação: '+levels[Number(levelSelect.value)]+' · 12 segundos.';raf=requestAnimationFrame(draw);}
+document.getElementById('play').addEventListener('click',play);for(const control of [styleSelect,levelSelect,boltsToggle])control.addEventListener('change',play);
+window.addEventListener('resize',size);window.addEventListener('pagehide',stop);build();
+</script></html>
