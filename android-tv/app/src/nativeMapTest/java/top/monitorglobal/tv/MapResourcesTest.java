@@ -81,14 +81,14 @@ public class MapResourcesTest {
    NewsBannerView view=mode==2?new NewsBannerView(context,List.of(a),"2026-10-27",true,true):new NewsBannerView(context,a,false,false);
    int mapSpace=(Integer)value(view,"mapSpace"),height=126+mapSpace;view.layout(0,0,960,height);
    Object page=((Object[])value(view,"pages"))[0];String headline=(String)value(page,"headline");assertTrue(headline.endsWith("Vanuatu"));
-   float size=mode==1?26:28;Paint expectedPaint=new Paint(Paint.ANTI_ALIAS_FLAG);expectedPaint.setTypeface((Typeface)value(view,"brand"));expectedPaint.setTextSize(size);expectedPaint.setColor(Color.rgb(18,27,40));
+   float size=mode==1?26:28;Paint expectedPaint=new Paint(Paint.ANTI_ALIAS_FLAG);expectedPaint.setTypeface((Typeface)value(view,"brand"));expectedPaint.setTextSize(size);expectedPaint.setColor(Color.WHITE);
    float width=value(page,"flag")==null?714:670,overflow=expectedPaint.measureText(headline)-width;assertTrue(overflow>0);
    Bitmap actual=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888),expected=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);
    view.startPresentation(android.os.SystemClock.uptimeMillis()-(mode==2?3000:4000),false);view.draw(new Canvas(actual));
    expected.eraseColor((Integer)value(view,"background"));Canvas c=new Canvas(expected);c.clipRect(124,mapSpace+40,124+width,mapSpace+72);c.drawText(headline,124-overflow,mapSpace+64,expectedPaint);
    int bright=0;for(int y=mapSpace+40;y<mapSpace+72;y++)for(int x=124;x<124+(int)width;x++){
-    int e=expected.getPixel(x,y),v=actual.getPixel(x,y);boolean ink=Color.alpha(e)>200&&Color.red(e)<100&&Color.green(e)<100&&Color.blue(e)<100;
-    if(ink)bright++;assertEquals("country clipping mode "+mode+" at "+x+","+y,ink,Color.red(v)<100&&Color.green(v)<100&&Color.blue(v)<100);
+    int e=expected.getPixel(x,y),v=actual.getPixel(x,y);boolean ink=Color.alpha(e)>200&&Color.red(e)>200&&Color.green(e)>200&&Color.blue(e)>200;
+    if(ink)bright++;assertEquals("country clipping mode "+mode+" at "+x+","+y,ink,Color.red(v)>200&&Color.green(v)>200&&Color.blue(v)>200);
    }assertTrue(bright>100);actual.recycle();expected.recycle();
   }
  }
