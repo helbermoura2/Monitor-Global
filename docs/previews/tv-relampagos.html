@@ -11,17 +11,17 @@ canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .card{position:absolute;right:2.2%;top:3.5%;width:43%;background:#0a192bf5;border:1px solid #61d7e7;border-radius:8px;padding:2% 1.5%;font-size:clamp(6px,1.4cqw,16px);box-shadow:0 8px 30px #0003}
 .brand,.demo,.temperature{font-family:Rajdhani,Arial,sans-serif}.brand{color:#70dce8}.demo{color:#bdeaff;margin:5px 0;font-size:1.12em}.temperature{font-size:1.5em;color:#fff}.row{margin:4px 0;color:#d9eff5}.fine{font-size:.8em;color:#a9c1cd;line-height:1.4}#state{min-height:24px}.note{font-size:14px}a{color:#70dce8}
 </style>
-<main><h1>Compare os três estilos de chuva</h1>
-<p>Escolha a intensidade e reproduza a simulação de 12 segundos. No celular, selecione um estilo e gire a tela para examiná-lo maior.</p>
+<main><h1>Chuva caindo por toda a tela</h1>
+<p>A prévia começa com chuva forte caindo pela tela inteira, durante 12 segundos. Escolha a intensidade e reproduza novamente. No celular, selecione um estilo e gire a tela para examiná-lo maior.</p>
 <div class="controls">
-<label>Estilo<select id="style"><option value="all">Comparar os três</option><option value="0">1 · Chuva no vidro</option><option value="1">2 · Chuva na cena</option><option value="2">3 · Combinação suave</option></select></label>
-<label>Intensidade visual<select id="level"><option value="0">Fraca</option><option value="1" selected>Moderada</option><option value="2">Forte</option><option value="3">Tempestade</option></select></label>
+<label>Estilo<select id="style"><option value="all">Comparar os três</option><option value="0">1 · Chuva no vidro</option><option value="1" selected>2 · Chuva na cena</option><option value="2">3 · Combinação · tela inteira</option></select></label>
+<label>Intensidade visual<select id="level"><option value="0">Fraca</option><option value="1">Moderada</option><option value="2" selected>Forte</option><option value="3">Tempestade</option></select></label>
 <label class="check"><input id="bolts" type="checkbox" checked>Relâmpagos simulados</label>
 <button id="play">Reproduzir prévia</button>
 </div><div id="grid"></div><p id="state" role="status">Aguardando reprodução.</p>
 <p class="note">Tudo é fictício: os valores e “tempestade” representam cenários de demonstração. As gotas têm volume e brilho simulados; não capturam nem distorcem a imagem de outro aplicativo. Esta página ilustra o desenho proposto para a TV, cujas dimensões e desempenho dependem do aparelho. O efeito automático continua aguardando aprovação.</p></main>
 <script>
-const names=['Chuva no vidro','Chuva na cena','Combinação suave'],levels=['Fraca','Moderada','Forte','Tempestade'];
+const names=['Chuva no vidro','Chuva na cena','Combinação · tela inteira'],levels=['Fraca','Moderada','Forte','Tempestade'];
 const grid=document.getElementById('grid'),state=document.getElementById('state'),styleSelect=document.getElementById('style'),levelSelect=document.getElementById('level'),boltsToggle=document.getElementById('bolts');
 let views=[],raf=0,start=0,last=0,running=false;
 function rand(seed){let value=seed;return()=>{value=(value*1664525+1013904223)>>>0;return value/4294967296;};}
@@ -36,7 +36,7 @@ function build(){
  grid.className=selected.length===1?'single':'';grid.replaceChildren();views=[];
  for(const style of selected){
   const article=document.createElement('article');article.innerHTML='<h2>'+ (style+1)+' · '+names[style]+'</h2><div class="stage"><div class="sky"></div><div class="city"></div><div class="river"></div><div class="background">CONTEÚDO ILUSTRATIVO DA TV</div><canvas></canvas><section class="card"><div class="brand">◉ TESTE FICTÍCIO · LIBERDADE, SP</div><div class="demo">'+names[style]+' · '+levels[level]+'</div><div class="temperature">22°C · sensação 23°C</div><div class="row">'+(boltsToggle.checked?'Trovoadas':'Chuva')+' · exemplo fictício</div><div class="row">Umidade 81% · vento 12 km/h</div><div class="row">'+levels[level]+' · cenário visual</div><div class="fine">SIMULAÇÃO LOCAL<br>NÃO É DETECÇÃO DE RAIOS</div></section></div>';
-  grid.append(article);const host=article.querySelector('.stage'),canvas=article.querySelector('canvas'),random=rand(1729),drops=Array.from({length:160},()=>({x:random(),y:random(),r:random(),s:random()}));
+  grid.append(article);const host=article.querySelector('.stage'),canvas=article.querySelector('canvas'),random=rand(1729),drops=Array.from({length:400},()=>({x:random(),y:random(),r:random(),s:random()}));
   const city=article.querySelector('.city');for(let i=0;i<14;i++){const b=document.createElement('i');b.className='building';b.style.left=i*7+'%';b.style.height=(20+(i*37)%55)+'%';city.append(b);}
   views.push({style,host,canvas,ctx:canvas.getContext('2d'),drops,paths:[]});
  }size();
@@ -48,9 +48,9 @@ function draw(now){
  const level=Number(levelSelect.value),t=age/1000;
  for(const v of views){
   const {ctx:c,canvas,style,drops}=v,w=canvas.width,h=canvas.height,scale=w/1280;c.clearRect(0,0,w,h);
-  const gc=style===1?0:[12,26,46,70][level],ac=style===0?0:[24,55,100,160][level];
-  for(let i=0;i<ac;i++){const d=drops[i],depth=.35+.65*d.r,y=((d.y+t*(.30+d.s*.28)*(1+level*.22))%1.15-.10)*h,x=(d.x*w+t*(12+level*9)*depth*scale)%w,bw=(1.2+3.3*depth)*scale,bh=bw*(2.4+depth*2.2);c.globalAlpha=(style===2?120:180)/255*depth;c.drawImage(air,x,y,bw,bh);}
-  for(let i=0;i<gc;i++){const d=drops[i],nx=style===2?(i%2===0?d.x*.16:.84+d.x*.16):d.x,y=((d.y+t*(.002+d.s*.008)*(1+level*.18))%1.12-.04)*h,x=nx*w,r=(3+8*d.r)*(1+level*.12)*scale;c.globalAlpha=(style===2?180:225)/255;c.drawImage(bead,x-r,y-r*1.4,r*2,r*2.8);if(i%9===0&&level>0){c.globalAlpha=45/255;for(let j=1;j<=3;j++)c.drawImage(bead,x-r*.35,y-j*r*.8-r,r*.7,r*2);}}
+  const gc=style===1?0:[12,26,46,70][level],ac=style===0?0:[60,140,260,400][level];
+  for(let i=0;i<ac;i++){const d=drops[i],depth=.35+.65*d.r,y=((d.y+t*(.30+d.s*.28)*(1+level*.22))%1.15-.10)*h,x=(d.x*w+t*(12+level*9)*depth*scale)%w,bw=(1.8+4.2*depth)*scale,bh=bw*(2.3+depth*2.7);c.globalAlpha=(style===2?190:225)/255*depth;c.drawImage(air,x,y,bw,bh);}
+  for(let i=0;i<gc;i++){const d=drops[i],nx=d.x,y=((d.y+t*(.002+d.s*.008)*(1+level*.18))%1.12-.04)*h,x=nx*w,r=(3+8*d.r)*(1+level*.12)*scale;c.globalAlpha=(style===2?180:225)/255;c.drawImage(bead,x-r,y-r*1.4,r*2,r*2.8);if(i%9===0&&level>0){c.globalAlpha=45/255;for(let j=1;j<=3;j++)c.drawImage(bead,x-r*.35,y-j*r*.8-r,r*.7,r*2);}}
   const phase=(age-600)%4000,strength=age>=600&&phase<1000?Math.sin(Math.PI*phase/1000):0;
   if(boltsToggle.checked&&strength>0){const path=v.paths[Math.floor((age-600)/4000)%3];c.lineCap='round';c.lineJoin='round';for(const [color,alpha,width] of [['#5fb8f5',42/255,16],['#a0e0ff',130/255,5],['white',225/255,1.6]]){c.strokeStyle=color;c.globalAlpha=alpha*strength;c.lineWidth=width*scale;c.stroke(path);}}
   c.globalAlpha=1;
@@ -58,5 +58,5 @@ function draw(now){
 }
 function play(){stop();build();if(matchMedia('(prefers-reduced-motion: reduce)').matches){state.textContent='As animações estão desligadas no aparelho; os cartões ficam estáticos.';return;}running=true;start=performance.now();last=0;state.textContent='Simulação: '+levels[Number(levelSelect.value)]+' · 12 segundos.';raf=requestAnimationFrame(draw);}
 document.getElementById('play').addEventListener('click',play);for(const control of [styleSelect,levelSelect,boltsToggle])control.addEventListener('change',play);
-window.addEventListener('resize',size);window.addEventListener('pagehide',stop);build();
+window.addEventListener('resize',size);window.addEventListener('pagehide',stop);play();
 </script></html>

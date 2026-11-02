@@ -6,7 +6,7 @@ final class PreviewRain extends View {
  private final long born=SystemClock.uptimeMillis();private boolean running;private final Runnable frame=()->invalidate();
  PreviewRain(Context c,int selectedStyle,int selectedLevel){
   super(c);style=WeatherPreviewOptions.valid(selectedStyle,3,2);level=WeatherPreviewOptions.valid(selectedLevel,4,1);
-  glassCount=style==1?0:new int[]{12,26,46,70}[level];airCount=style==0?0:new int[]{24,55,100,160}[level];
+  glassCount=style==1?0:new int[]{12,26,46,70}[level];airCount=style==0?0:new int[]{60,140,260,400}[level];
   int count=Math.max(glassCount,airCount);x=new float[count];y=new float[count];r=new float[count];speed=new float[count];java.util.Random random=new java.util.Random(1729);
   for(int i=0;i<count;i++){x[i]=random.nextFloat();y[i]=random.nextFloat();r[i]=random.nextFloat();speed[i]=random.nextFloat();}
   bead=bead();air=air();
@@ -30,9 +30,9 @@ final class PreviewRain extends View {
  @Override protected void onDraw(Canvas c){
   if(!running)return;float seconds=(SystemClock.uptimeMillis()-born)/1000f;if(seconds>12.25f){stop();return;}
   float w=getWidth(),h=getHeight(),density=getResources().getDisplayMetrics().density;
-  for(int i=0;i<airCount;i++){float depth=.35f+.65f*r[i],yy=((y[i]+seconds*(.30f+speed[i]*.28f)*(1+level*.22f))%1.15f-.10f)*h;float xx=(x[i]*w+seconds*(12+level*9)*depth)%Math.max(1,w);float width=(1.2f+3.3f*depth)*density,height=width*(2.4f+depth*2.2f);box.set(xx,yy,xx+width,yy+height);paint.setAlpha((int)((style==2?120:180)*depth));c.drawBitmap(air,null,box,paint);}
+  for(int i=0;i<airCount;i++){float depth=.35f+.65f*r[i],yy=((y[i]+seconds*(.30f+speed[i]*.28f)*(1+level*.22f))%1.15f-.10f)*h;float xx=(x[i]*w+seconds*(12+level*9)*depth)%Math.max(1,w);float width=(1.8f+4.2f*depth)*density,height=width*(2.3f+depth*2.7f);box.set(xx,yy,xx+width,yy+height);paint.setAlpha((int)((style==2?190:225)*depth));c.drawBitmap(air,null,box,paint);}
   for(int i=0;i<glassCount;i++){
-   float nx=style==2?(i%2==0?x[i]*.16f:.84f+x[i]*.16f):x[i];
+   float nx=x[i];
    float yy=((y[i]+seconds*(.002f+speed[i]*.008f)*(1+level*.18f))%1.12f-.04f)*h,xx=nx*w;float radius=(3+8*r[i])*(1+level*.12f)*density;
    paint.setAlpha(style==2?180:225);box.set(xx-radius,yy-radius*1.4f,xx+radius,yy+radius*1.4f);c.drawBitmap(bead,null,box,paint);
    if(i%9==0&&level>0){paint.setAlpha(45);for(int j=1;j<=3;j++){float oldY=yy-j*radius*.8f;box.set(xx-radius*.35f,oldY-radius,xx+radius*.35f,oldY+radius);c.drawBitmap(bead,null,box,paint);}}

@@ -2,11 +2,11 @@ package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.graphics.Color;import android.widget.*;
 /** Visual demonstration settings, independent of the real forecast. */
 final class WeatherPreviewOptions {
- static final String[] STYLES={"Chuva no vidro","Chuva na cena","Combinação suave"};
+ static final String[] STYLES={"Chuva no vidro","Chuva na cena","Combinação · tela inteira"};
  static final String[] LEVELS={"Fraca","Moderada","Forte","Tempestade"};
  static int valid(int value,int count,int fallback){return value>=0&&value<count?value:fallback;}
- static int style(Context c){return valid(Prefs.get(c).getInt("previewRainStyle",2),3,2);}
- static int level(Context c){return valid(Prefs.get(c).getInt("previewRainLevel",1),4,1);}
+ static int style(Context c){return valid(Prefs.get(c).getInt("previewRainStyle",1),3,1);}
+ static int level(Context c){return valid(Prefs.get(c).getInt("previewRainLevel",2),4,2);}
  static boolean lightning(Context c){return Prefs.get(c).getBoolean("previewLightning",true);}
  static double rate(Context c){return new double[]{1,4,12,60}[level(c)];}
  static void show(Activity a,Runnable play){

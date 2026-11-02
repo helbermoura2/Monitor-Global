@@ -24,6 +24,17 @@ public class RainStylesPreviewTest {
    }
   }
  }
+ @Test public void sceneAndCombinedRainCoverAllFourQuadrants()throws Exception{
+  for(int style:new int[]{1,2}){
+   Prefs.get(c).edit().putInt("previewRainStyle",style).putInt("previewRainLevel",2).commit();RainOverlay overlay=new RainOverlay(c);
+   try{assertTrue(overlay.show(sample(),true,true,null,true));View host=(View)field(overlay,"current");host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);
+    Bitmap image=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);((View)field(overlay,"previewRain")).draw(new Canvas(image));
+    int[] visible=new int[4];for(int y=0;y<720;y+=3)for(int x=0;x<1280;x+=3)if(Color.alpha(image.getPixel(x,y))>0)visible[(y<360?0:2)+(x<640?0:1)]++;
+    for(int q=0;q<4;q++)assertTrue("rain in quadrant "+q+" style "+style,visible[q]>10);image.recycle();
+   }finally{overlay.hide();}
+  }
+ }
  @Test public void lightningCanBeDisabledWithoutRemovingTheSelectedRain()throws Exception{
   Prefs.get(c).edit().putBoolean("previewLightning",false).commit();RainOverlay overlay=new RainOverlay(c);
   try{assertTrue(overlay.show(sample(),true,true,null,true));assertNull(field(overlay,"lightning"));assertNotNull(field(overlay,"previewRain"));}finally{overlay.hide();}
@@ -34,7 +45,7 @@ public class RainStylesPreviewTest {
  }
  @Test public void invalidStoredSelectionsFallBackWithoutChangingTheRealRainMode(){
   Prefs.get(c).edit().putInt("previewRainStyle",99).putInt("previewRainLevel",-1).putInt("rainMode",0).commit();
-  assertEquals(2,WeatherPreviewOptions.style(c));assertEquals(1,WeatherPreviewOptions.level(c));assertEquals(0,Prefs.get(c).getInt("rainMode",-1));
+  assertEquals(1,WeatherPreviewOptions.style(c));assertEquals(2,WeatherPreviewOptions.level(c));assertEquals(0,Prefs.get(c).getInt("rainMode",-1));
  }
  @Test public void disabledAnimationsDoNotAllocatePreviewSprites()throws Exception{
   java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);scale.invoke(null,0f);RainOverlay overlay=new RainOverlay(c);
