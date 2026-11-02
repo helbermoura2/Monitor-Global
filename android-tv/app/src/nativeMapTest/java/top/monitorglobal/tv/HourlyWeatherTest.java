@@ -22,6 +22,30 @@ public class HourlyWeatherTest {
    assertEquals(midnight+5*60000,Prefs.get(c).getLong("weatherLastNotice",0));
   }finally{m.close();}
  }
- @Test public void manualWorksWithBothAutomaticModesOffAndDoesNotShiftHourlySchedule()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather);m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);assertNotNull(field(field(m,"overlay"),"current"));assertEquals(0,Prefs.get(c).getLong("weatherLastNotice",0));assertTrue(m.manualPending());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(14));assertFalse(m.manualPending());assertEquals(1,finished.get());assertNull(field(field(m,"overlay"),"current"));}finally{m.close();}}
- @Test public void missingWeatherFinishesManualWithoutAnEmptyCardOrRainRequest()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger rainCalls=new AtomicInteger(),finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->{rainCalls.incrementAndGet();return new JSONObject();},()->new JSONObject());m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);Shadows.shadowOf(Looper.getMainLooper()).idle();assertNull(field(field(m,"overlay"),"current"));assertEquals(0,rainCalls.get());assertFalse(m.manualPending());assertEquals(1,finished.get());}finally{m.close();}}
+ @Test public void manualWorksWithBothAutomaticModesOffAndDoesNotShiftHourlySchedule()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather);m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);assertTrue(m.manualPending());assertNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(9999));assertNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(1));ready(m);assertNotNull(field(field(m,"overlay"),"current"));assertEquals(0,Prefs.get(c).getLong("weatherLastNotice",0));assertTrue(m.manualPending());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(14));assertFalse(m.manualPending());assertEquals(1,finished.get());assertNull(field(field(m,"overlay"),"current"));}finally{m.close();}}
+ @Test public void missingWeatherFinishesManualWithoutAnEmptyCardOrRainRequest()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger rainCalls=new AtomicInteger(),finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->{rainCalls.incrementAndGet();return new JSONObject();},()->new JSONObject());m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);assertTrue(m.manualPending());assertEquals(0,finished.get());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);assertNull(field(field(m,"overlay"),"current"));assertEquals(0,rainCalls.get());assertFalse(m.manualPending());assertEquals(1,finished.get());}finally{m.close();}}
+ @Test public void repeatedClickRestartsDelayWithoutDuplicatingWeatherFetches()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();
+  AtomicInteger calls=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),()->{calls.incrementAndGet();return weather();});
+  try{m.weatherNow();ready(m);Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(5));
+   m.weatherNow();ready(m);Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(9999));
+   assertNull(field(field(m,"overlay"),"current"));assertEquals(1,calls.get());
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(1));ready(m);
+   assertNotNull(field(field(m,"overlay"),"current"));assertEquals(1,calls.get());
+  }finally{m.close();}
+ }
+ @Test public void manualDelayAlsoBlocksDueAutomaticCardAndStillWaitsForPriority()throws Exception{
+  AtomicBoolean allowed=new AtomicBoolean(false);RainMonitor m=new RainMonitor(c,allowed::get,()->new JSONObject(),this::weather);
+  try{m.weatherNow();ready(m);allowed.set(true);m.tick();assertNull(field(field(m,"overlay"),"current"));
+   allowed.set(false);Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);
+   assertNull(field(field(m,"overlay"),"current"));assertTrue(m.manualPending());assertEquals(0,Prefs.get(c).getLong("weatherLastNotice",0));
+   allowed.set(true);m.tick();assertNotNull(field(field(m,"overlay"),"current"));assertTrue(Prefs.get(c).getLong("weatherLastNotice",0)>0);
+  }finally{m.close();}
+ }
+ @Test public void closingDuringCountdownCancelsPresentationAndFinishedCallback()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger finished=new AtomicInteger();
+  RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather);m.setManualFinished(finished::incrementAndGet);
+  m.weatherNow();ready(m);m.close();assertFalse(m.manualPending());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(30));
+  assertNull(field(field(m,"overlay"),"current"));assertEquals(0,finished.get());
+ }
 }
