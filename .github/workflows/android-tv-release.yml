@@ -3,11 +3,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Verificar a assinatura ou publicar uma versão nova
+        description: 'publish publica o APK; verify apenas confere a assinatura'
         required: true
-        default: verify
+        default: publish
         type: choice
-        options: [verify, publish]
+        options: [publish, verify]
 permissions:
   contents: read
 jobs:
@@ -75,6 +75,12 @@ jobs:
           git commit -m 'Publica atualização assinada do Monitor Global TV'
           git push origin HEAD:main
           gh api --method POST repos/helbermoura2/Monitor-Global/pages/builds --silent
+      - name: Explain verification-only mode
+        if: inputs.mode == 'verify'
+        run: |
+          echo "::notice title=APK não publicado::O modo verify apenas confere a assinatura. Para disponibilizar a atualização no aplicativo, execute novamente com mode publish."
+          echo "## Somente verificação — APK não publicado" >> "$GITHUB_STEP_SUMMARY"
+          echo "A assinatura foi conferida. O canal de atualização e os downloads não foram alterados. Execute com **mode: publish** para publicar uma versão nova." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: monitor-global-tv-official-signed
