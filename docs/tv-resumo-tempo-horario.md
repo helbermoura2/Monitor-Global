@@ -1,4 +1,4 @@
-# Resumo do tempo na Liberdade — TV 1.0.30
+# Resumo do tempo na Liberdade — TV 1.0.33
 
 O aplicativo mostra **um cartão de 12 segundos a cada hora**, para o mesmo ponto de referência da Praça da Liberdade-Japão usado pela chuva. A opção começa ativada, conforme a configuração pedida pelo proprietário. A exibição automática requer monitoramento ativo, aparelho ligado e acesso à internet.
 
@@ -8,7 +8,7 @@ O aplicativo mostra **um cartão de 12 segundos a cada hora**, para o mesmo pont
 - O horário da última exibição fica salvo no aparelho. Ao ligar novamente, pode mostrar apenas o informativo atual ainda não apresentado, sem fila dos horários perdidos. Se ligar às 09h35, por exemplo, o próximo horário continua sendo 10h00. Um informativo apresentado às 00h05 não adia o próximo para 01h05. Antes de 00h05 não há apresentação horária automática, mesmo depois de reiniciar.
 - Sismos, tsunami, avisos menores M5+, replay e resumos sísmicos têm prioridade. Uma apresentação interrompida pela prioridade não bloqueia alertas.
 - **Resumo do tempo na Liberdade · horas cheias; 00h05 à meia-noite** permite ligar/desligar a exibição automática.
-- **Ver tempo agora · Liberdade** consulta o resumo atual, usando cache válido quando disponível. Funciona também com monitoramento sísmico desligado: inicia somente a consulta meteorológica e encerra o serviço temporário após o cartão/erro. Consultar manualmente não adia a programação automática já existente; se a consulta coincidir com um horário automático devido, conta como essa exibição.
+- **Ver tempo · Liberdade · em 10 segundos** prepara o resumo atual, usando cache válido quando disponível, e espera pelo menos dez segundos após o clique para exibi-lo. É possível voltar ao conteúdo da TV durante essa espera. Um novo clique reinicia a contagem; consultas em andamento/cache válido continuam sendo reaproveitados. Alertas prioritários ou dados ainda indisponíveis podem adiar a apresentação. Fechar/parar o serviço cancela a apresentação pendente. Funciona também com monitoramento sísmico desligado: inicia somente a consulta meteorológica e encerra o serviço temporário após o cartão/erro. Consultar manualmente não adia a programação automática já existente; se a consulta coincidir com um horário automático devido, conta como essa exibição.
 
 Os avisos de chuva continuam sendo uma opção separada. Com ambos ativos, o mesmo cartão reúne as informações meteorológicas; não há duas sobreposições meteorológicas simultâneas. A opção de gotas continua obedecendo o ajuste dos avisos de chuva e a preferência de animações do sistema. Para pausar todas as consultas meteorológicas automáticas, desligar **resumo horário** e **avisos de chuva**.
 
@@ -43,3 +43,7 @@ Versão 1.0.29 e Worker publicados. A resposta pública do ponto da Liberdade tr
 ## Atualização 1.0.30
 
 Altera somente a programação no aplicativo; não exige mudança no Worker ou nas cotas. Os testes de horário cobrem fronteiras de hora, atraso por prioridade, retomada/reinício, migração do horário salvo da versão anterior, 00h00/00h05/01h00 e fuso do aparelho diferente de Brasília. A compilação, lint e testes Android verificam a atualização antes da publicação assinada pelo canal oficial.
+
+## Atualização 1.0.33
+
+O atraso de dez segundos vale somente para a solicitação manual de meteorologia. As horas cheias e 00h05 continuam usando a programação fixa existente. O estado pendente mantém o serviço temporário ativo durante a espera quando o monitoramento está desligado; ele termina após o cartão ou falha. Não exige atualização do Worker.
