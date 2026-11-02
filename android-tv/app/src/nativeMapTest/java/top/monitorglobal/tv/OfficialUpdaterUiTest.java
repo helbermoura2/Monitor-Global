@@ -24,7 +24,7 @@ public class OfficialUpdaterUiTest {
  private OfficialConfig.Release release()throws Exception{return OfficialConfig.release(config(BuildConfig.VERSION_CODE+1,"1.0.38"));}
  // This fixture enters the UI only after a hypothetical successful verification; it never downloads or installs a real APK.
  private void verifiedFixture(OfficialConfig.Release r)throws Exception{
-  Files.writeString(OfficialApkProvider.apk(activity).toPath(),"trusted-stage UI fixture");
+  Files.write(OfficialApkProvider.apk(activity).toPath(),"trusted-stage UI fixture".getBytes(java.nio.charset.StandardCharsets.UTF_8));
   java.lang.reflect.Method m=OfficialUpdater.class.getDeclaredMethod("verified",OfficialConfig.Release.class);m.setAccessible(true);m.invoke(updater,r);
  }
  @Test public void oldPublishedChannelShowsInstalledAndPublishedVersionsInAVisibleDialog()throws Exception{
