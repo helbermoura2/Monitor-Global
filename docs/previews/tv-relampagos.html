@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitor Global · prévia de relâmpagos</title>
+<style>
+@font-face{font-family:Rajdhani;src:url('../../android-tv/app/src/main/assets/fonts/Rajdhani-Bold.ttf')}
+*{box-sizing:border-box}body{margin:0;background:#07111d;color:#e4f2fa;font-family:Arial,sans-serif;padding:20px}main{max-width:1100px;margin:auto}h1{font-size:24px;margin:0 0 10px}p{line-height:1.5;color:#b7ccdb}button{border:1px solid #70dce8;border-radius:8px;padding:12px 20px;background:#132b3f;color:white;font-size:17px;cursor:pointer;margin-bottom:14px}
+#stage{position:relative;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(145deg,#163247,#07111e 70%);border:1px solid #34566a;border-radius:12px}
+.background{position:absolute;left:7%;bottom:20%;font-size:clamp(9px,2vw,24px);color:#627888}.background small{display:block;font-size:.65em;margin-top:8px}
+canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.card{position:absolute;right:2.2%;top:3.5%;width:43%;background:#0a192bf5;border:1px solid #61d7e7;border-radius:10px;padding:2% 1.5%;font-size:clamp(6px,1.4vw,16px);box-shadow:0 8px 30px #0003}
+.brand,.demo,.temperature{font-family:Rajdhani,Arial,sans-serif}.brand{color:#70dce8;font-size:1.05em}.demo{color:#bdeaff;margin:8px 0 4px;font-size:1.12em}.temperature{font-size:1.5em;color:#fff}.row{margin:5px 0;color:#d9eff5}.fine{font-size:.8em;color:#a9c1cd;line-height:1.4}.fine strong{color:#c8e5f6}
+#state{min-height:24px}a{color:#70dce8}
+</style>
+<main>
+<h1>Prévia fictícia de relâmpagos</h1>
+<p>Toque para ver os 12 segundos do efeito. O cenário abaixo representa o conteúdo da TV; os valores são exemplos. No celular, a posição horizontal facilita a avaliação.</p>
+<button id="play">Reproduzir prévia</button>
+<div id="stage">
+<div class="background">CONTEÚDO DA TV<small>Fundo ilustrativo · a sobreposição não captura o controle</small></div>
+<canvas id="effect"></canvas>
+<section class="card" aria-label="Cartão fictício da meteorologia">
+<div class="brand">◉ TESTE FICTÍCIO · LIBERDADE, SP</div>
+<div class="demo">RELÂMPAGOS · PRÉVIA VISUAL FICTÍCIA</div>
+<div class="temperature">22°C · sensação 23°C</div>
+<div class="row">Trovoadas · exemplo fictício · Umidade 81%</div>
+<div class="row">Vento 12 km/h · rajadas 19 km/h</div>
+<div class="row">Chuva forte · exemplo fictício</div>
+<div class="fine">SIMULAÇÃO · sem consulta de raios<br><strong>DEMONSTRAÇÃO LOCAL · NÃO É DETECÇÃO DE RAIOS</strong><br>Prévia para aprovação · não informa o tempo atual</div>
+</section></div>
+<p id="state" role="status">Aguardando reprodução.</p>
+<p>Esta é uma representação no navegador do desenho proposto para a TV. O efeito ainda não está ativado automaticamente na meteorologia. <a href="../tv-previa-relampagos.md">Detalhes da demonstração</a></p>
+</main>
+<script>
+const canvas=document.getElementById('effect'),ctx=canvas.getContext('2d'),stage=document.getElementById('stage'),state=document.getElementById('state');
+let frame=0,start=0,running=false;
+const drops=Array.from({length:48},(_,i)=>({x:((i*47+13)%101)/101,y:((i*31+7)%97)/97,s:.18+((i*17)%20)/100,l:.014+((i*7)%14)/1000}));
+function stop(){running=false;cancelAnimationFrame(frame);ctx.clearRect(0,0,canvas.width,canvas.height);}
+function size(){const ratio=Math.min(devicePixelRatio||1,1.5);canvas.width=stage.clientWidth*ratio;canvas.height=stage.clientHeight*ratio;}
+function draw(now){
+ if(!running)return;const age=now-start;if(age>=12000){stop();state.textContent='Prévia encerrada. Toque em Reproduzir para ver novamente.';return;}
+ const w=canvas.width,h=canvas.height,t=age/1000;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#b9edff';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(1,w/960);ctx.lineCap='round';
+ for(const d of drops){const y=((d.y+t*d.s)%1.08-.04)*h,x=(d.x*w+t*6)%w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-2.5,y+d.l*h);ctx.stroke();}
+ const phase=(age-600)%4000,level=age>=600&&phase<1000?Math.sin(Math.PI*phase/1000):0;
+ if(level>0){
+  const i=Math.floor((age-600)/4000)%3,x=w*[.24,.50,.12][i];
+  ctx.beginPath();ctx.moveTo(x+w*.03,h*.025);ctx.lineTo(x-w*.02,h*.105);ctx.lineTo(x+w*.012,h*.095);ctx.lineTo(x-w*.035,h*.235);ctx.lineTo(x+w*.018,h*.145);ctx.moveTo(x-w*.008,h*.15);ctx.lineTo(x+w*.05,h*.19);ctx.lineTo(x+w*.04,h*.23);
+  ctx.lineJoin='round';
+  for(const [color,alpha,width] of [['#5fb8f5',42/255,16],['#a0e0ff',130/255,5],['#fff',225/255,1.6]]){ctx.strokeStyle=color;ctx.globalAlpha=alpha*level;ctx.lineWidth=width*w/1280;ctx.stroke();}
+ }
+ ctx.globalAlpha=1;frame=requestAnimationFrame(draw);
+}
+document.getElementById('play').addEventListener('click',()=>{stop();size();if(matchMedia('(prefers-reduced-motion: reduce)').matches){state.textContent='As animações estão desligadas no aparelho; o cartão permanece estático.';return;}running=true;start=performance.now();state.textContent='Simulação em reprodução · 12 segundos.';frame=requestAnimationFrame(draw);});
+window.addEventListener('resize',()=>{size();});window.addEventListener('pagehide',stop);size();
+</script>
+</html>
