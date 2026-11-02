@@ -1,11 +1,17 @@
-# Prévia visual de relâmpagos — TV 1.0.34
+# Comparar chuva e relâmpagos — TV 1.0.35
 
-No aplicativo, selecionar **Prévia de relâmpagos · fictícia · em 10 s** e voltar ao conteúdo da TV. Depois de dez segundos, aparece um cartão de demonstração por doze segundos, com chuva e três relâmpagos azulados que surgem e somem suavemente. O efeito não tem áudio, não captura o controle e desaparece com o cartão ou quando um aviso prioritário o interrompe. A preferência do sistema por animações desligadas mantém somente o cartão.
+[Prévia ilustrativa no navegador](previews/tv-relampagos.html): permite comparar os três estilos simultaneamente ou ampliar um deles, escolher Fraca, Moderada, Forte ou Tempestade e ligar/desligar relâmpagos simulados. A reprodução dura doze segundos e pode ser repetida. Animações desligadas no aparelho mantêm os cartões estáticos.
 
-O botão usa dados locais explicitamente fictícios, sem consultar raio, Rainbow ou Telegram. A apresentação diz **PRÉVIA VISUAL FICTÍCIA** e **NÃO É DETECÇÃO DE RAIOS**; os valores meteorológicos também são exemplos, sem atribuí-los a uma observação do fornecedor.
+Na TV, abrir **Comparar chuva e relâmpagos · prévia fictícia**, escolher estilo, intensidade visual e relâmpagos. Selecionar **Ver em 10 segundos** e voltar ao conteúdo da TV.
 
-A prévia existe para avaliação do proprietário. Não foi ativada automaticamente para a previsão de trovoadas e não indica descargas detectadas. Uma integração posterior depende de aprovação visual e de definir corretamente a fonte e o significado dos dados. Os horários automáticos e a solicitação manual meteorológica existente continuam iguais.
+- **Chuva no vidro:** gotas com volume, contorno, brilhos e pequenos rastros de água.
+- **Chuva na cena:** partículas suaves de diferentes tamanhos, velocidades e transparências, representando profundidade.
+- **Combinação suave:** chuva atmosférica e gotas limitadas às bordas para preservar o centro.
+- **Intensidades visuais:** Fraca, Moderada, Forte e Tempestade aumentam densidade, tamanho e velocidade. “Tempestade” é um cenário fictício, não uma classificação meteorológica calculada de uma taxa de chuva.
+- **Relâmpagos:** canais irregulares com ramificações e brilho azulado, em três ocorrências espaçadas. São simulações; não há detecção de descargas.
 
-Publicar a versão 1.0.34 pelo workflow oficial de assinatura, instalar sem desinstalar e usar somente o botão de prévia para avaliar o efeito na TV.
+A sobreposição não captura a imagem de outros aplicativos. Volume/brilho das gotas são aproximações visuais; não se promete a refração fotográfica das imagens conceituais. O renderizador usa dois pequenos sprites reutilizados e os libera ao fechar/interromper; não cria uma textura por gota. Sem áudio ou captura do controle.
 
-[Prévia ilustrativa no navegador](previews/tv-relampagos.html): permite avaliar o desenho antes de instalar outro APK; as dimensões finais dependem da TV.
+Todos os valores são locais e fictícios. Não há nova consulta ao Rainbow, nova chave, mudança de cotas ou envio ao Telegram. As escolhas da prévia não alteram os ajustes da chuva real. O efeito automático continua aguardando aprovação; a meteorologia real e as horas cheias/00h05 permanecem iguais.
+
+Publicar o APK 1.0.35 pelo workflow oficial de assinatura e instalar sem desinstalar para avaliar na própria TV. A aparência e o desempenho físicos dependem do aparelho; a página do navegador é uma representação para avaliação.
