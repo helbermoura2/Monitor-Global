@@ -25,4 +25,17 @@ public class BroadcastBannerTest {
   int blue=0;for(int y=top+27;y<top+65;y++)for(int x=884;x<922;x++){int p=b.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("own radar logo must be visible",blue>50);
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-tv-banner-1039.png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();
  }
+ @Test public void radarSweepMovesWhileBrandStaysFixedAndReducedMotionStopsIt()throws Exception{
+  java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);
+  try{for(boolean motion:new boolean[]{true,false}){
+   scale.invoke(null,motion?1f:0f);NewsBannerView view=new NewsBannerView(c,alert(),false,true);int top=(Integer)field(view,"mapSpace"),height=126+top;view.layout(0,0,960,height);
+   Bitmap a=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888),b=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);
+   view.startPresentation(android.os.SystemClock.uptimeMillis()-1000,false);view.draw(new Canvas(a));
+   view.startPresentation(android.os.SystemClock.uptimeMillis()-1600,false);view.draw(new Canvas(b));
+   int changed=0;for(int y=top+27;y<top+65;y++)for(int x=884;x<922;x++)if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;
+   if(motion)assertTrue("radar sweep must advance",changed>20);else assertEquals("reduced motion freezes the radar",0,changed);
+   for(int y=top+66;y<top+94;y++)for(int x=859;x<951;x++)assertEquals("brand stays fixed",a.getPixel(x,y),b.getPixel(x,y));
+   a.recycle();b.recycle();
+  }}finally{scale.invoke(null,1f);}
+ }
 }
