@@ -54,6 +54,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: monitor-global-tv-banner-review
-          path: /tmp/monitor-tv-banner-1042-*.png
+          path: /tmp/monitor-tv-banner-*.png
           if-no-files-found: error
           retention-days: 14

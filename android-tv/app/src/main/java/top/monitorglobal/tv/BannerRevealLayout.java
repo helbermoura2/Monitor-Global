@@ -9,7 +9,7 @@ final class BannerRevealLayout extends FrameLayout {
  @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
   super.onSizeChanged(w,h,oldw,oldh);outline.reset();float height=h-getPaddingTop()-getPaddingBottom();
   float top=getPaddingTop()+(Prefs.get(getContext()).getBoolean("themeTop",false)?0:Banner.insetDp(getContext()))*height/(126f+Banner.insetDp(getContext()));
-  float radius=10*w/960f;outline.addRoundRect(0,top,w,top+126*height/(126f+Banner.insetDp(getContext())),radius,radius,Path.Direction.CW);
+  outline.addRect(0,top,w,top+126*height/(126f+Banner.insetDp(getContext())),Path.Direction.CW);
   red=new LinearGradient(0,0,Math.max(1,w*.4f),0,new int[]{Color.rgb(191,24,39),Color.rgb(227,38,63),Color.rgb(191,24,39)},null,Shader.TileMode.CLAMP);
  }
  @Override protected void dispatchDraw(Canvas canvas){

@@ -49,7 +49,7 @@ final class NewsBannerView extends View {
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete){
   super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
-  paint.setTypeface(brand);paint.setTextSize(19);breakingWidth=(float)Math.ceil(paint.measureText("BREAKING NEWS"))+24;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);paint.setTextSize(17);badgeWidth=(float)Math.ceil(paint.measureText(badgeLabel()))+24;bannerClip.addRoundRect(0,24,960,126,8,8,Path.Direction.CW);
+  paint.setTypeface(brand);paint.setTextSize(19);breakingWidth=(float)Math.ceil(paint.measureText("BREAKING NEWS"))+24;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);paint.setTextSize(17);badgeWidth=(float)Math.ceil(paint.measureText(badgeLabel()))+24;bannerClip.addRect(0,24,960,126,Path.Direction.CW);
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
@@ -74,6 +74,14 @@ final class NewsBannerView extends View {
  private void centerText(Canvas c,String value,float center,float y,float size,int color,Typeface font,float max){
   paint.setTypeface(font);paint.setTextSize(size);while(paint.measureText(value)>max&&size>8){size-=.5f;paint.setTextSize(size);}text(c,value,center-paint.measureText(value)/2,y,size,color,font,max);
  }
+ private void rightText(Canvas c,String value,float right,float y,float size,int color,Typeface font,float max){
+  paint.setTypeface(font);paint.setTextSize(size);while(paint.measureText(value)>max&&size>8){size-=.5f;paint.setTextSize(size);}text(c,value,right-paint.measureText(value),y,size,color,font,max);
+ }
+ private int eventBlock(Alert a){
+  if(!a.kind.equals("tsunami")||a.state.equals("warning"))return Color.rgb(191,24,39);
+  if(a.state.equals("ended")||a.state.equals("information"))return Color.rgb(64,82,101);
+  return a.state.equals("noThreat")?Color.rgb(25,105,101):Color.rgb(140,94,15);
+ }
  private void fitText(Canvas c,String value,float x,float y,float size,int color,Typeface font,float max){
   paint.setTextSize(size);paint.setTypeface(font);String shown=value;
   if(paint.measureText(value)>max){while(shown.length()>0&&paint.measureText(shown+"…")>max)shown=shown.substring(0,shown.offsetByCodePoints(shown.length(),-1));shown+="…";}
@@ -82,14 +90,15 @@ final class NewsBannerView extends View {
  @Override protected void onDraw(Canvas c){
   super.onDraw(c);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
   c.save();c.translate(0,mapBelow?0:mapSpace);
-  rounded(c,0,24,960,126,8,background);c.save();c.clipPath(bannerClip);rect(c,0,100,960,126,Color.rgb(2,8,22));c.restore();
+  rect(c,0,24,960,126,background);c.save();c.clipPath(bannerClip);rect(c,0,100,960,126,Color.rgb(2,8,22));c.restore();
   breaking(c,elapsed);
-  c.save();c.translate(903,61);c.scale(72f/52,72f/52);radar(c,elapsed);c.restore();
+  c.save();c.translate(922,61);c.scale(72f/52,72f/52);radar(c,elapsed);c.restore();
   c.save();c.clipRect(0,0,960,24);rounded(c,960-badgeWidth,0,960,30,7,Color.rgb(191,24,39));rect(c,960-badgeWidth,17,960,24,Color.rgb(191,24,39));centerText(c,badgeLabel(),960-badgeWidth/2,18,17,Color.WHITE,brand,badgeWidth-24);c.restore();drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
   int index=summary?BannerTimeline.summaryPage(contentElapsed,pages.length,presentationAnimated):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
   long fadeElapsed=summary?BannerTimeline.summaryFadeElapsed(contentElapsed,index):within;
+  rect(c,0,24,112,100,eventBlock(pages[index].alert));
   if((summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
    float t=BannerTimeline.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
@@ -124,19 +133,17 @@ final class NewsBannerView extends View {
   else identity(c,current,255);
  }
  private void identity(Canvas c,int index,int opacity){
-  if(opacity<=0)return;int layer=c.saveLayerAlpha(730,100,960,126,opacity);c.clipPath(bannerClip);rect(c,730,100,960,126,Color.rgb(2,8,22));centerText(c,index==0?"monitorglobal.top":"@monitor_global",845,119,17,Color.WHITE,brand,206);c.restoreToCount(layer);
+  if(opacity<=0)return;int layer=c.saveLayerAlpha(730,100,960,126,opacity);c.clipPath(bannerClip);rect(c,730,100,960,126,Color.rgb(2,8,22));rightText(c,index==0?"monitorglobal.top":"@monitor_global",954,119,17,Color.WHITE,brand,206);c.restoreToCount(layer);
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
-  if(opacity<=0)return;int layer=opacity<255?c.saveLayerAlpha(0,24,844,96,opacity):c.save();c.clipRect(0,24,844,96);c.translate(0,shift);
-  Alert a=p.alert;int block=Color.rgb(191,24,39);
-  if(a.kind.equals("tsunami")){if(a.state.equals("ended")||a.state.equals("information"))block=Color.rgb(64,82,101);else if(a.state.equals("noThreat"))block=Color.rgb(25,105,101);else if(!a.state.equals("warning"))block=Color.rgb(140,94,15);}
-  rounded(c,8,31,105,92,8,block);
+  if(opacity<=0)return;int layer=opacity<255?c.saveLayerAlpha(0,24,844,100,opacity):c.save();c.clipRect(0,24,844,100);c.translate(0,shift);
+  Alert a=p.alert;
   if(BannerTimeline.magnitudeChanged(a)){
    if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);
    else if(elapsed<BannerTimeline.REVISION_AT_MS)magnitude(c,p.oldMagnitude,"ANTERIOR",255);
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
-  }else if(a.kind.equals("tsunami")){centerText(c,"TSUNAMI",56.5f,59,22,Color.WHITE,brand,85);centerText(c,a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",56.5f,79,12,Color.WHITE,brand,85);}
-  else centerText(c,p.magnitude,56.5f,72,36,Color.WHITE,brand,85);
+  }else if(a.kind.equals("tsunami")){centerText(c,"TSUNAMI",56f,59,22,Color.WHITE,brand,85);centerText(c,a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",56f,79,12,Color.WHITE,brand,85);}
+  else centerText(c,p.magnitude,56f,72,36,Color.WHITE,brand,85);
   fitText(c,p.caption,HEADLINE_X,36,11,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:28;drawHeadline(c,p,elapsed,width,size);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,43,x+32,67),paint);}
@@ -148,7 +155,7 @@ final class NewsBannerView extends View {
   long local=elapsed%pageMillis;if(summary){long content=BannerTimeline.summaryElapsed(elapsed,presentationAnimated);int index=0;for(int i=0;i<pages.length;i++)if(pages[i]==p){index=i;break;}local=Math.max(0,content-index*(pageMillis+(presentationAnimated?BannerTimeline.PAGE_FADE_MS:0)));}
   float offset=HeadlineMotion.offset(length-width,local,pageMillis);c.save();c.clipRect(HEADLINE_X,HEADLINE_TOP,HEADLINE_X+width,HEADLINE_BOTTOM);text(c,p.headline,HEADLINE_X-offset,HEADLINE_Y,size,foreground,brand,Float.MAX_VALUE);c.restore();
  }
- private void magnitude(Canvas c,String value,String label,int opacity){if(opacity<=0)return;int layer=c.saveLayerAlpha(8,28,108,94,opacity);centerText(c,value,56.5f,68,35,Color.WHITE,brand,85);centerText(c,label,56.5f,86,10,Color.WHITE,brand,85);c.restoreToCount(layer);}
+ private void magnitude(Canvas c,String value,String label,int opacity){if(opacity<=0)return;int layer=c.saveLayerAlpha(8,28,108,94,opacity);centerText(c,value,56f,68,35,Color.WHITE,brand,85);centerText(c,label,56f,86,10,Color.WHITE,brand,85);c.restoreToCount(layer);}
 
  private void radar(Canvas c,long elapsed){
   paint.setColor(Color.rgb(2,8,22));paint.setStyle(Paint.Style.FILL);c.drawRoundRect(-26,-26,26,26,8,8,paint);
