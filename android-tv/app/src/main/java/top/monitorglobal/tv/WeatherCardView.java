@@ -25,11 +25,17 @@ final class WeatherCardView extends LinearLayout {
   line(footer,demo?"Demonstração · não informa o tempo atual":"Estimativa para um ponto da Liberdade · sujeita a mudanças",11,MUTED,Typeface.DEFAULT,2);
  }
  private void weatherBody(LinearLayout body,WeatherForecast.Summary w,RainForecast.Summary rain){
-  boolean components=!w.temperatureValue.equals("—");LinearLayout hero=new LinearLayout(getContext());hero.setGravity(Gravity.CENTER_VERTICAL);body.addView(hero,new LayoutParams(-1,-2));
-  TextView temperature=text(components?w.temperatureValue:w.temperature,components?36:25,Color.WHITE,brand,2);LayoutParams value=new LayoutParams(0,-2,1.05f);value.setMarginEnd(dp(8));hero.addView(temperature,value);
-  Icon icon=new Icon(getContext(),conditionIcon(w.conditionKey));LayoutParams glyph=new LayoutParams(dp(38),dp(38));glyph.setMarginEnd(dp(8));hero.addView(icon,glyph);
-  LinearLayout conditions=new LinearLayout(getContext());conditions.setOrientation(VERTICAL);hero.addView(conditions,new LayoutParams(0,-2,1.35f));line(conditions,w.condition,20,Color.WHITE,brand,3);if(components)line(conditions,"Sensação "+w.feelsValue,15,MUTED,brand,2);
-  if(components){LinearLayout metrics=metrics(body);metric(metrics,Icon.DROP,w.humidityValue,"Umidade");metric(metrics,Icon.WIND,w.windValue,"Vento");metric(metrics,Icon.GUST,w.gustValue,"Rajadas");}else{line(body,w.humidity,16,Color.WHITE,brand,2);line(body,w.wind,16,Color.WHITE,brand,2);}
+  boolean components=!w.temperatureValue.equals("—");
+  if(components){
+   LinearLayout hero=new LinearLayout(getContext());hero.setGravity(Gravity.CENTER_VERTICAL);body.addView(hero,new LayoutParams(-1,-2));
+   TextView temperature=text(w.temperatureValue,36,Color.WHITE,brand,2);LayoutParams value=new LayoutParams(0,-2,1.05f);value.setMarginEnd(dp(8));hero.addView(temperature,value);
+   Icon icon=new Icon(getContext(),conditionIcon(w.conditionKey));LayoutParams glyph=new LayoutParams(dp(38),dp(38));glyph.setMarginEnd(dp(8));hero.addView(icon,glyph);
+   LinearLayout conditions=new LinearLayout(getContext());conditions.setOrientation(VERTICAL);hero.addView(conditions,new LayoutParams(0,-2,1.35f));line(conditions,w.condition,20,Color.WHITE,brand,3);line(conditions,"Sensação "+w.feelsValue,15,MUTED,brand,2);
+   LinearLayout metrics=metrics(body);metric(metrics,Icon.DROP,w.humidityValue,"Umidade");metric(metrics,Icon.WIND,w.windValue,"Vento");metric(metrics,Icon.GUST,w.gustValue,"Rajadas");
+  }else{
+   hero(body,conditionIcon(w.conditionKey),w.temperature,25,w.condition);
+   line(body,w.humidity,16,Color.WHITE,brand,2);line(body,w.wind,16,Color.WHITE,brand,2);
+  }
   line(body,rain==null?"Chuva por minuto: indisponível":rain.title,14,MUTED,brand,2);
   if(rain!=null)line(body,rain.amountText,13,MUTED,brand,2);
  }
