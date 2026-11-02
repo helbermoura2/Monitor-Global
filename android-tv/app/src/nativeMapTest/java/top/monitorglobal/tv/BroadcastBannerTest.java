@@ -21,20 +21,21 @@ public class BroadcastBannerTest {
   Bitmap b=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);view.draw(new Canvas(b));
   assertEquals(Color.rgb(7,23,36),b.getPixel(500,top+93));assertEquals(Color.rgb(191,24,39),b.getPixel(10,top+5));assertEquals(Color.rgb(191,24,39),b.getPixel(950,top+5));assertEquals(Color.rgb(191,24,39),b.getPixel(2,top+110));
   assertEquals(0,Color.alpha(b.getPixel(0,top+24)));assertEquals(0,Color.alpha(b.getPixel(0,top+125)));assertEquals(Color.WHITE,field(view,"foreground"));
+  assertTrue("breaking tab should fit its label",((Float)field(view,"breakingWidth"))<200);assertEquals("no excess red after label",0,Color.alpha(b.getPixel(210,top+10)));
   assertEquals(NewsBannerView.formatClock(System.currentTimeMillis()),field(view,"clockText"));
-  int blue=0;for(int y=top+27;y<top+65;y++)for(int x=884;x<922;x++){int p=b.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("own radar logo must be visible",blue>50);
-  try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-tv-banner-1039.png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();
+  int blue=0;for(int y=top+34;y<top+86;y++)for(int x=877;x<929;x++){int p=b.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("own radar logo must be visible",blue>50);
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-tv-banner-1041.png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();
  }
- @Test public void radarSweepMovesWhileBrandStaysFixedAndReducedMotionStopsIt()throws Exception{
+ @Test public void radarSweepMovesWithoutWordmarkAndReducedMotionStopsIt()throws Exception{
   java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);
   try{for(boolean motion:new boolean[]{true,false}){
    scale.invoke(null,motion?1f:0f);NewsBannerView view=new NewsBannerView(c,alert(),false,true);int top=(Integer)field(view,"mapSpace"),height=126+top;view.layout(0,0,960,height);
    Bitmap a=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888),b=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);
    view.startPresentation(android.os.SystemClock.uptimeMillis()-1000,false);view.draw(new Canvas(a));
    view.startPresentation(android.os.SystemClock.uptimeMillis()-1600,false);view.draw(new Canvas(b));
-   int changed=0;for(int y=top+27;y<top+65;y++)for(int x=884;x<922;x++)if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;
+   int changed=0;for(int y=top+34;y<top+86;y++)for(int x=877;x<929;x++)if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;
    if(motion)assertTrue("radar sweep must advance",changed>20);else assertEquals("reduced motion freezes the radar",0,changed);
-   for(int y=top+66;y<top+94;y++)for(int x=859;x<951;x++)assertEquals("brand stays fixed",a.getPixel(x,y),b.getPixel(x,y));
+   for(int y=top+88;y<top+94;y++)for(int x=859;x<951;x++){int pixel=a.getPixel(x,y);assertEquals("no wordmark below radar",Color.rgb(7,23,36),pixel);assertEquals(pixel,b.getPixel(x,y));}
    a.recycle();b.recycle();
   }}finally{scale.invoke(null,1f);}
  }
