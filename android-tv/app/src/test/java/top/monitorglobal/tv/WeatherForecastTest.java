@@ -36,4 +36,10 @@ public class WeatherForecastTest {
   assertFalse(WeatherForecast.due(ten+60000,ten+2*60000));
   assertTrue(WeatherForecast.due(ten+2*3600000,ten));
  }
+ @Test public void structuredMetricsKeepUnitsAndUnknownValuesForVisualCards()throws Exception{
+  JSONObject d=data();WeatherForecast.Summary s=WeatherForecast.summarize(d,now);
+  assertEquals("22°C",s.temperatureValue);assertEquals("23°C",s.feelsValue);assertEquals("81%",s.humidityValue);assertEquals("12 km/h",s.windValue);assertEquals("19 km/h",s.gustValue);assertEquals("Cloudy",s.conditionKey);
+  d.getJSONObject("current").put("feels",JSONObject.NULL).put("humidity",120).put("wind",-1).put("gust",JSONObject.NULL).remove("condition");s=WeatherForecast.summarize(d,now);
+  assertEquals("—",s.feelsValue);assertEquals("—",s.humidityValue);assertEquals("—",s.windValue);assertEquals("—",s.gustValue);assertEquals("",s.conditionKey);assertTrue(s.condition.contains("não informada"));
+ }
 }

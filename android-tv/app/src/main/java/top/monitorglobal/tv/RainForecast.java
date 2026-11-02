@@ -6,7 +6,17 @@ final class RainForecast {
  static final long MINUTE=60000;static final String[] TYPES={"no_precipitation","rain","mixed","snow"};
  static final class Summary {
   final String state,level,title,rateText,amountText,stopText;final long at,expiresAt;final double rate,amount;final boolean rain;
-  Summary(String s,String l,String t,double r,double mm,String stop,long a,long expiry,boolean liquid){state=s;level=l;title=t;rate=r;amount=mm;stopText=stop;at=a;expiresAt=expiry;rain=liquid;rateText=number(r)+" mm/h estimados agora";amountText=number(mm)+" mm previstos · próximos 60 min";}
+  // Additional presentation facts; unknown values never become invented zeroes.
+  final int arrivalMinutes,endMinutes,durationMinutes;final double forecastRate;final String forecastLevel,forecastRateText,durationText,durationLabel;
+  Summary(String s,String l,String t,double r,double mm,String stop,long a,long expiry,boolean liquid){this(s,l,t,r,mm,stop,a,expiry,liquid,-1,-1,-1,Double.NaN,"Duração ainda indefinida");}
+  Summary(String s,String l,String t,double r,double mm,String stop,long a,long expiry,boolean liquid,int arrival,int end,int duration,double predictedRate,String durationDescription){
+   state=s;level=l;title=t;rate=r;amount=mm;stopText=stop;at=a;expiresAt=expiry;rain=liquid;rateText=number(r)+" mm/h estimados agora";amountText=number(mm)+" mm previstos · próximos 60 min";
+   arrivalMinutes=arrival;endMinutes=end;durationMinutes=duration;forecastRate=predictedRate;
+   forecastLevel=Double.isFinite(predictedRate)&&predictedRate>=.1?intensity(predictedRate):"";
+   forecastRateText=forecastLevel.isEmpty()?"Intensidade ainda indisponível":number(predictedRate)+(s.equals("soon")?" mm/h no início previsto":" mm/h estimados agora");
+   durationText=durationDescription;int separator=durationDescription.indexOf(":");durationLabel=separator<0?durationDescription:durationDescription.substring(0,separator);
+  }
+  Summary withPresentation(String displayLevel,String displayTitle){return new Summary(state,displayLevel,displayTitle,rate,amount,stopText,at,expiresAt,rain,arrivalMinutes,endMinutes,durationMinutes,forecastRate,durationText);}
   String key(){return state+":"+(state.equals("now")?level:"");}
  }
  static String number(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.1f",n);}
@@ -20,11 +30,18 @@ final class RainForecast {
   int count=points.length(),current=-1;long[] starts=new long[count],ends=new long[count];double[] rates=new double[count];String[] types=new String[count];
   for(int i=0;i<count;i++){JSONObject p=points.getJSONObject(i);starts[i]=p.getLong("start");ends[i]=p.getLong("end");rates[i]=p.getDouble("rate");types[i]=p.getString("type");if(ends[i]-starts[i]!=MINUTE||i>0&&starts[i]!=ends[i-1]||!Double.isFinite(rates[i])||rates[i]<0||rates[i]>1000||!Arrays.asList(TYPES).contains(types[i]))return null;if(starts[i]<=now&&ends[i]>now)current=i;}
   if(current<0||ends[count-1]<now+60*MINUTE)return null;
-  int first=-1,stop=-1;for(int i=current;i<count;i++)if(wet(rates[i],types[i])){first=i;break;}
-  if(first>=0)for(int i=first+1;i<=count-10;i++){boolean dry=true;for(int j=i;j<i+10;j++)if(wet(rates[j],types[j])){dry=false;break;}if(dry){stop=(int)Math.max(1,Math.ceil((starts[i]-now)/(double)MINUTE));break;}}
+  int first=-1,stop=-1,stopIndex=-1;for(int i=current;i<count;i++)if(wet(rates[i],types[i])){first=i;break;}
+  if(first>=0)for(int i=first+1;i<=count-10;i++){boolean dry=true;for(int j=i;j<i+10;j++)if(wet(rates[j],types[j])){dry=false;break;}if(dry){stopIndex=i;stop=(int)Math.max(1,Math.ceil((starts[i]-now)/(double)MINUTE));break;}}
   int arrival=first<0?-1:(int)Math.max(0,Math.ceil((starts[first]-now)/(double)MINUTE));boolean nowWet=wet(rates[current],types[current]);String state=nowWet?"now":arrival>=0&&arrival<=60?"soon":"dry",noun=first>=0&&types[first].equals("snow")?"Neve":"Chuva";
   String level=intensity(rates[current]),title=state.equals("now")?noun+" "+level+" estimada agora":state.equals("soon")?noun+" prevista em ~"+arrival+" min":"Sem chuva estimada · próxima hora";
   double amount=0;for(int i=current;i<count&&starts[i]<now+60*MINUTE;i++)amount+=rates[i]*Math.max(0,Math.min(ends[i],now+60*MINUTE)-Math.max(starts[i],now))/3600000.0;
-  return new Summary(state,level,title,rates[current],amount,stop<0?"Término sem estimativa disponível":"Pode terminar em ~"+stop+" min a partir de agora",at,expiry,nowWet&&!types[current].equals("snow"));
+  boolean active=state.equals("now")||state.equals("soon"),pauses=false;int duration=-1;
+  if(active&&stopIndex>=0){
+   duration=(int)Math.max(1,Math.ceil((starts[stopIndex]-(nowWet?now:starts[first]))/(double)MINUTE));
+   for(int i=first;i<stopIndex;i++)if(!wet(rates[i],types[i])){pauses=true;break;}
+  }
+  String durationText=duration<0?"Duração ainda indefinida":(pauses?(nowWet?"Janela restante estimada: ~":"Janela de "+noun.toLowerCase(Locale.ROOT)+" prevista: ~"):(nowWet?"Duração restante estimada: ~":"Duração estimada: ~"))+duration+" min";
+  double predictedRate=active?rates[nowWet?current:first]:Double.NaN;
+  return new Summary(state,level,title,rates[current],amount,stop<0?"Término sem estimativa disponível":"Pode terminar em ~"+stop+" min a partir de agora",at,expiry,nowWet&&!types[current].equals("snow"),active?arrival:-1,active?stop:-1,duration,predictedRate,durationText);
  }
 }

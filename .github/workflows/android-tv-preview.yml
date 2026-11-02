@@ -57,3 +57,12 @@ jobs:
           path: /tmp/monitor-tv-banner-*.png
           if-no-files-found: error
           retention-days: 14
+      - name: Export rendered weather and seismic cards
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-tv-cards-review
+          path: |
+            /tmp/monitor-tv-weather-card-*.png
+            /tmp/monitor-target-card.png
+          if-no-files-found: error
+          retention-days: 14
