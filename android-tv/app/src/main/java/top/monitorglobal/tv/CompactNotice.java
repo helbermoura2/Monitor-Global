@@ -1,33 +1,59 @@
 package top.monitorglobal.tv;
 
-import android.app.*;import android.content.*;import android.graphics.*;import android.graphics.drawable.GradientDrawable;import android.media.*;import android.os.*;import android.provider.Settings;import android.text.TextUtils;import android.view.*;import android.widget.*;
-/** Small watch-area card. No map requests, focus, permanent animation or replay mutation. */
+import android.app.*;import android.content.*;import android.graphics.*;import android.media.*;import android.os.*;import android.provider.Settings;import android.text.TextUtils;import android.view.*;import android.widget.*;
+/** Eight-second regional notice: solid broadcast card, local flag and decorative vector icons. */
 final class CompactNotice {
  static final long DURATION_MS=8000;
  private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private ToneGenerator tone;
+ private Bitmap countryFlag;private ImageView flagView;
  private final Runnable dismiss=()->exit();
  CompactNotice(Context c){context=c;}
  private int dp(int value){return Math.round(value*context.getResources().getDisplayMetrics().density);}
  void show(Alert alert,boolean demo){
   hide();boolean shown=false;
   if(Settings.canDrawOverlays(context))try{
-   LinearLayout card=new LinearLayout(context);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(18),dp(10),dp(18),dp(10));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf50a192b);bg.setCornerRadius(dp(14));bg.setStroke(dp(2),0xff44d7dd);card.setBackground(bg);
    Typeface brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");
-   LinearLayout header=new LinearLayout(context);header.setGravity(Gravity.CENTER_VERTICAL);ImageView logo=new ImageView(context);logo.setImageResource(R.drawable.ic_monitor);LinearLayout.LayoutParams icon=new LinearLayout.LayoutParams(dp(20),dp(20));icon.setMarginEnd(dp(8));header.addView(logo,icon);card.addView(header);line(header,demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL":"MONITOR GLOBAL · ÁREA MONITORADA",16,0xff61e0df,brand);
-   line(card,alert.title,24,Color.WHITE,brand);
-   String depth=String.format(java.util.Locale.forLanguageTag("pt-BR"),"Profundidade: %.0f km · %s",alert.depth,alert.source);
-   java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("HH:mm 'BRT'",java.util.Locale.ROOT);format.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));String time=format.format(new java.util.Date(alert.eventTime));
-   line(card,depth+" · "+time,15,0xffd6e4ee,Typeface.DEFAULT);
-   line(card,alert.targetArea,14,0xffb5c9d5,Typeface.DEFAULT);line(card,"Danos não confirmados",12,0xffb5c9d5,Typeface.DEFAULT);
-   WindowManager.LayoutParams p=new WindowManager.LayoutParams(Math.min(dp(400),context.getResources().getDisplayMetrics().widthPixels*44/100),WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.BOTTOM|Gravity.RIGHT;p.x=dp(32);p.y=dp(32);
+   LinearLayout card=new Panel(context);card.setOrientation(LinearLayout.VERTICAL);card.setBackgroundColor(0xff071724);
+   TextView header=text(demo?"AVISO SÍSMICO REGIONAL · FICTÍCIO":"AVISO SÍSMICO REGIONAL",15,0xff071724,brand,1);header.setBackgroundColor(0xff38bdf8);header.setPadding(dp(16),dp(7),dp(16),dp(7));card.addView(header,new LinearLayout.LayoutParams(-1,-2));
+   LinearLayout body=new LinearLayout(context);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(11));card.addView(body,new LinearLayout.LayoutParams(-1,-2));
+   LinearLayout headline=new LinearLayout(context);headline.setGravity(Gravity.CENTER_VERTICAL);body.addView(headline,new LinearLayout.LayoutParams(-1,-2));
+   TextView magnitude=text(magnitude(alert),44,0xffffc04d,brand,1);magnitude.setGravity(Gravity.CENTER_VERTICAL);headline.addView(magnitude,new LinearLayout.LayoutParams(dp(96),dp(66)));
+   countryFlag=CountryFlag.load(context,alert);
+   if(countryFlag!=null){flagView=new ImageView(context);flagView.setImageBitmap(countryFlag);flagView.setScaleType(ImageView.ScaleType.FIT_CENTER);flagView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);LinearLayout.LayoutParams flagParams=new LinearLayout.LayoutParams(dp(40),dp(44));flagParams.setMarginEnd(dp(10));headline.addView(flagView,flagParams);}
+   TextView place=text(location(alert),24,Color.WHITE,brand,2);headline.addView(place,new LinearLayout.LayoutParams(0,-2,1));
+   LinearLayout details=new LinearLayout(context);details.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams detailParams=new LinearLayout.LayoutParams(-1,-2);detailParams.topMargin=dp(11);body.addView(details,detailParams);
+   metric(details,0,Double.isFinite(alert.depth)&&alert.depth>=0?String.format(java.util.Locale.forLanguageTag("pt-BR"),"Profundidade: %.0f km",alert.depth):"Profundidade não informada",brand);
+   metric(details,1,time(alert.eventTime),brand);
+   if(!alert.targetArea.isEmpty()&&!samePlace(location(alert),alert.targetArea)){TextView area=text("Área monitorada: "+alert.targetArea,13,0xffb7c7d8,Typeface.DEFAULT,2);LinearLayout.LayoutParams areaParams=new LinearLayout.LayoutParams(-1,-2);areaParams.topMargin=dp(8);body.addView(area,areaParams);}
+   LinearLayout footer=new LinearLayout(context);footer.setOrientation(LinearLayout.VERTICAL);footer.setBackgroundColor(0xff020816);footer.setPadding(dp(16),dp(8),dp(16),dp(9));card.addView(footer,new LinearLayout.LayoutParams(-1,-2));
+   footer.addView(text(alert.source.isEmpty()?"Fonte não informada":"Fonte: "+alert.source,14,0xffd6e4ee,brand,2),new LinearLayout.LayoutParams(-1,-2));
+   footer.addView(text("Danos: sem informação",13,0xffb7c7d8,Typeface.DEFAULT,1),new LinearLayout.LayoutParams(-1,-2));
+   card.setContentDescription((demo?"Teste fictício, não é alerta real. ":"Aviso sísmico regional. ")+alert.title+". "+(Double.isFinite(alert.depth)?"Profundidade: "+alert.depth+" km. ":"Profundidade não informada. ")+time(alert.eventTime)+". "+alert.targetArea+". "+(alert.source.isEmpty()?"Fonte não informada. ":"Fonte: "+alert.source+". ")+"Danos: sem informação.");
+   WindowManager.LayoutParams p=new WindowManager.LayoutParams(Math.min(dp(420),context.getResources().getDisplayMetrics().widthPixels*46/100),WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.BOTTOM|Gravity.RIGHT;p.x=dp(32);p.y=dp(32);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(card,p);current=card;shown=true;
    if(android.animation.ValueAnimator.areAnimatorsEnabled()){card.setAlpha(0);card.setTranslationY(dp(12));card.animate().alpha(1).translationY(0).setDuration(220).start();}
    main.postDelayed(dismiss,DURATION_MS+220);
   }catch(RuntimeException e){hide();}
-  if(!shown)try{PendingIntent open=PendingIntent.getActivity(context,1,new Intent(context,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);context.getSystemService(NotificationManager.class).notify(2,new Notification.Builder(context,"alerts").setSmallIcon(R.drawable.ic_monitor).setContentTitle((demo?"TESTE FICTÍCIO · ":"ÁREA MONITORADA · ")+alert.title).setContentText(alert.targetArea+" · Danos não confirmados").setContentIntent(open).setAutoCancel(true).build());}catch(RuntimeException ignored){}
+  if(!shown)try{PendingIntent open=PendingIntent.getActivity(context,1,new Intent(context,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);context.getSystemService(NotificationManager.class).notify(2,new Notification.Builder(context,"alerts").setSmallIcon(R.drawable.ic_monitor).setContentTitle((demo?"TESTE FICTÍCIO · ":"ÁREA MONITORADA · ")+alert.title).setContentText(alert.targetArea+" · Danos: sem informação").setContentIntent(open).setAutoCancel(true).build());}catch(RuntimeException ignored){}
   if(Prefs.get(context).getBoolean("sound",true))try{tone=new ToneGenerator(AudioManager.STREAM_NOTIFICATION,45);tone.startTone(ToneGenerator.TONE_PROP_BEEP,160);main.postDelayed(()->{if(tone!=null){tone.release();tone=null;}},300);}catch(RuntimeException ignored){}
  }
- private void line(LinearLayout card,String value,int size,int color,Typeface face){TextView text=new TextView(context);text.setText(value);text.setTextSize(size);text.setTextColor(color);text.setTypeface(face);text.setSingleLine(true);text.setEllipsize(TextUtils.TruncateAt.MARQUEE);text.setMarqueeRepeatLimit(1);text.setSelected(true);card.addView(text,new LinearLayout.LayoutParams(-1,-2));}
+ static String magnitude(Alert alert){if(Double.isFinite(alert.magnitude)&&alert.magnitude>=0)return String.format(java.util.Locale.forLanguageTag("pt-BR"),"M%.1f",alert.magnitude);java.util.regex.Matcher m=java.util.regex.Pattern.compile("^(M[0-9]+[,.][0-9]+)\\s*·").matcher(alert.title);return m.find()?m.group(1):"M—";}
+ static String location(Alert alert){return alert.title.replaceFirst("^M[0-9]+[,.][0-9]+\\s*·\\s*","").replaceFirst(" · EXEMPLO$","");}
+ private static boolean samePlace(String a,String b){return a.replace(" · ",", ").equalsIgnoreCase(b.replace(" · ",", "));}
+ private static String time(long at){if(at<=0)return "Horário não informado";java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("HH:mm 'BRT'",java.util.Locale.ROOT);format.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return format.format(new java.util.Date(at));}
+ private TextView text(String value,int size,int color,Typeface face,int lines){TextView text=new TextView(context);text.setText(value);text.setTextSize(size);text.setTextColor(color);text.setTypeface(face);text.setMaxLines(lines);text.setEllipsize(TextUtils.TruncateAt.END);text.setIncludeFontPadding(false);return text;}
+ private void metric(LinearLayout row,int kind,String value,Typeface font){LinearLayout group=new LinearLayout(context);group.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams item=new LinearLayout.LayoutParams(0,-2,1);if(kind==1)item.setMarginStart(dp(12));row.addView(group,item);Icon icon=new Icon(context,kind);LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(21),dp(23));iconParams.setMarginEnd(dp(7));group.addView(icon,iconParams);TextView label=text(value,15,0xffd6e4ee,font,2);group.addView(label,new LinearLayout.LayoutParams(0,-2,1));}
  private void exit(){if(current==null)return;View card=current;if(!android.animation.ValueAnimator.areAnimatorsEnabled()){hide();return;}card.animate().alpha(0).translationY(dp(12)).setDuration(180).withEndAction(()->{if(current==card)hide();}).start();}
- void hide(){main.removeCallbacksAndMessages(null);try{context.getSystemService(NotificationManager.class).cancel(2);}catch(RuntimeException ignored){}if(current!=null){current.animate().cancel();try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}if(tone!=null){tone.release();tone=null;}}
+ void hide(){main.removeCallbacksAndMessages(null);try{context.getSystemService(NotificationManager.class).cancel(2);}catch(RuntimeException ignored){}if(current!=null){current.animate().cancel();try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}if(flagView!=null){flagView.setImageDrawable(null);flagView=null;}if(countryFlag!=null){countryFlag.recycle();countryFlag=null;}if(tone!=null){tone.release();tone=null;}}
+ private static final class Panel extends LinearLayout {
+  private final Path clip=new Path();private final float radius;
+  Panel(Context c){super(c);radius=8*c.getResources().getDisplayMetrics().density;}
+  @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);clip.reset();clip.addRoundRect(0,0,w,h,new float[]{0,0,0,0,radius,radius,radius,radius},Path.Direction.CW);}
+  @Override public void draw(Canvas canvas){int save=canvas.save();canvas.clipPath(clip);super.draw(canvas);canvas.restoreToCount(save);}
+ }
+ private static final class Icon extends View {
+  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final int kind;
+  Icon(Context c,int type){super(c);kind=type;paint.setColor(0xffd6e4ee);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.8f);paint.setStrokeCap(Paint.Cap.ROUND);paint.setStrokeJoin(Paint.Join.ROUND);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
+  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);int save=canvas.save();canvas.translate((getWidth()-Math.min(getWidth(),getHeight()))/2f,(getHeight()-Math.min(getWidth(),getHeight()))/2f);float unit=Math.min(getWidth(),getHeight())/24f;canvas.scale(unit,unit);if(kind==0){canvas.drawLine(12,2,12,14,paint);canvas.drawLine(7,9,12,14,paint);canvas.drawLine(12,14,17,9,paint);canvas.drawLine(4,19,20,19,paint);canvas.drawLine(4,23,20,23,paint);}else{canvas.drawCircle(12,12,9,paint);canvas.drawLine(12,6,12,12,paint);canvas.drawLine(12,12,17,15,paint);}canvas.restoreToCount(save);}
+ }
 }
