@@ -7,3 +7,5 @@ O botão usa dados locais explicitamente fictícios, sem consultar raio, Rainbow
 A prévia existe para avaliação do proprietário. Não foi ativada automaticamente para a previsão de trovoadas e não indica descargas detectadas. Uma integração posterior depende de aprovação visual e de definir corretamente a fonte e o significado dos dados. Os horários automáticos e a solicitação manual meteorológica existente continuam iguais.
 
 Publicar a versão 1.0.34 pelo workflow oficial de assinatura, instalar sem desinstalar e usar somente o botão de prévia para avaliar o efeito na TV.
+
+[Prévia ilustrativa no navegador](previews/tv-relampagos.html): permite avaliar o desenho antes de instalar outro APK; as dimensões finais dependem da TV.
