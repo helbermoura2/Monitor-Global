@@ -15,9 +15,9 @@ public class RainStylesPreviewTest {
     try{assertTrue(overlay.show(sample(),true,true,null,true));PreviewRain rain=(PreviewRain)field(overlay,"previewRain");assertNotNull(rain);assertNull(field(overlay,"drops"));
      int glass=(Integer)field(rain,"glassCount"),air=(Integer)field(rain,"airCount");assertTrue(glass+air>previous);previous=glass+air;
      if(style==0)assertEquals(0,air);else if(style==1)assertEquals(0,glass);else assertTrue(glass>0&&air>0);
-     View host=(View)field(overlay,"current");host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);
+     View host=(View)field(overlay,"current");host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);assertTrue("preview must be attached before drawing",(Boolean)field(rain,"running"));
      Bitmap result=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);rain.draw(new Canvas(result));int visible=0;for(int y=0;y<720;y+=3)for(int x=0;x<1280;x+=3)if(Color.alpha(result.getPixel(x,y))>0)visible++;
-     assertTrue("rain must be visible for style "+style+" level "+level,visible>20);result.recycle();
+     assertTrue("rain must be visible for style "+style+" level "+level+" visible="+visible+" size="+rain.getWidth()+"x"+rain.getHeight(),visible>20);result.recycle();
      Bitmap bead=(Bitmap)field(rain,"bead"),particle=(Bitmap)field(rain,"air");assertTrue(bead.getAllocationByteCount()+particle.getAllocationByteCount()<65536);
      overlay.hide();Shadows.shadowOf(Looper.getMainLooper()).idle();assertNull(field(overlay,"previewRain"));assertFalse((Boolean)field(rain,"running"));assertTrue(bead.isRecycled());assertTrue(particle.isRecycled());
     }finally{overlay.hide();}
