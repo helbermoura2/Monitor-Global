@@ -12,7 +12,7 @@ public class RainStylesPreviewTest {
   for(int style=0;style<3;style++){int previous=-1;
    for(int level=0;level<4;level++){
     Prefs.get(c).edit().putInt("previewRainStyle",style).putInt("previewRainLevel",level).commit();RainOverlay overlay=new RainOverlay(c);
-    try{assertTrue(overlay.show(sample(),true,true,null,true));PreviewRain rain=(PreviewRain)field(overlay,"previewRain");assertNotNull(rain);assertNull(field(overlay,"drops"));
+    try{assertTrue(overlay.show(sample(),true,true,null,true));PreviewRain rain=(PreviewRain)field(overlay,"previewRain");assertNotNull(rain);
      int glass=(Integer)field(rain,"glassCount"),air=(Integer)field(rain,"airCount");assertTrue(glass+air>previous);previous=glass+air;
      if(style==0)assertEquals(0,air);else if(style==1)assertEquals(0,glass);else assertTrue(glass>0&&air>0);
      View host=(View)field(overlay,"current");host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));host.measure(View.MeasureSpec.makeMeasureSpec(1280,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(720,View.MeasureSpec.EXACTLY));host.layout(0,0,1280,720);assertTrue("preview must be attached before drawing",(Boolean)field(rain,"running"));
@@ -35,20 +35,20 @@ public class RainStylesPreviewTest {
    }finally{overlay.hide();}
   }
  }
- @Test public void lightningCanBeDisabledWithoutRemovingTheSelectedRain()throws Exception{
-  Prefs.get(c).edit().putBoolean("previewLightning",false).commit();RainOverlay overlay=new RainOverlay(c);
-  try{assertTrue(overlay.show(sample(),true,true,null,true));assertNull(field(overlay,"lightning"));assertNotNull(field(overlay,"previewRain"));}finally{overlay.hide();}
+ @Test public void oldLightningPreferenceCannotAddAnyEffect()throws Exception{
+  Prefs.get(c).edit().putBoolean("previewLightning",true).commit();RainOverlay overlay=new RainOverlay(c);
+  try{assertTrue(overlay.show(sample(),true,true,null,true));assertNotNull(field(overlay,"previewRain"));}finally{overlay.hide();}
  }
- @Test public void realForecastNeverUsesUnapprovedPreviewStyles()throws Exception{
+ @Test public void realForecastUsesApprovedCombinationIndependentOfPreview()throws Exception{
   RainOverlay overlay=new RainOverlay(c);
-  try{assertTrue(overlay.show(sample(),true,false,null,true));assertNull(field(overlay,"previewRain"));assertNull(field(overlay,"lightning"));assertNotNull(field(overlay,"drops"));}finally{overlay.hide();}
+  try{assertTrue(overlay.show(sample(),true,false,null,true));assertNotNull(field(overlay,"previewRain"));assertTrue((Integer)field(field(overlay,"previewRain"),"glassCount")>0);assertTrue((Integer)field(field(overlay,"previewRain"),"airCount")>0);}finally{overlay.hide();}
  }
  @Test public void invalidStoredSelectionsFallBackWithoutChangingTheRealRainMode(){
   Prefs.get(c).edit().putInt("previewRainStyle",99).putInt("previewRainLevel",-1).putInt("rainMode",0).commit();
-  assertEquals(1,WeatherPreviewOptions.style(c));assertEquals(2,WeatherPreviewOptions.level(c));assertEquals(0,Prefs.get(c).getInt("rainMode",-1));
+  assertEquals(2,WeatherPreviewOptions.style(c));assertEquals(2,WeatherPreviewOptions.level(c));assertEquals(0,Prefs.get(c).getInt("rainMode",-1));
  }
  @Test public void disabledAnimationsDoNotAllocatePreviewSprites()throws Exception{
   java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);scale.invoke(null,0f);RainOverlay overlay=new RainOverlay(c);
-  try{assertTrue(overlay.show(sample(),true,true,null,true));assertNull(field(overlay,"previewRain"));assertNull(field(overlay,"lightning"));assertNull(field(overlay,"drops"));assertNotNull(field(overlay,"current"));}finally{overlay.hide();scale.invoke(null,1f);}
+  try{assertTrue(overlay.show(sample(),true,true,null,true));assertNull(field(overlay,"previewRain"));assertNotNull(field(overlay,"current"));}finally{overlay.hide();scale.invoke(null,1f);}
  }
 }
