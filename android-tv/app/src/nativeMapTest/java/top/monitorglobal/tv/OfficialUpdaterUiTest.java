@@ -20,6 +20,7 @@ public class OfficialUpdaterUiTest {
  private boolean busy()throws Exception{java.lang.reflect.Field f=OfficialUpdater.class.getDeclaredField("busy");f.setAccessible(true);return f.getBoolean(updater);}
  private void ready()throws Exception{for(int i=0;i<1000;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();if(!busy())return;}fail("update check did not finish");}
  private AlertDialog dialog(){AlertDialog d=ShadowAlertDialog.getLatestAlertDialog();assertNotNull(d);assertTrue(d.isShowing());return d;}
+ private void click(int which){dialog().getButton(which).performClick();Shadows.shadowOf(Looper.getMainLooper()).idle();}
  private String message(){return ((TextView)dialog().findViewById(android.R.id.message)).getText().toString();}
  private OfficialConfig.Release release()throws Exception{return OfficialConfig.release(config(BuildConfig.VERSION_CODE+1,"1.0.38"));}
  // This fixture enters the UI only after a hypothetical successful verification; it never downloads or installs a real APK.
@@ -47,25 +48,25 @@ public class OfficialUpdaterUiTest {
  }
  @Test public void missingSettingsScreenShowsThePinnedDownloaderAddress()throws Exception{
   updater=new OfficialUpdater(activity,status::set,()->config(10030,"1.0.30"));activity.rejectSettings=true;OfficialConfig.Release r=release();verifiedFixture(r);
-  dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();assertTrue(message().contains("autorizar"));
-  dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();assertTrue(message().contains(r.url));assertTrue(message().contains("sem desinstalar"));
+  click(AlertDialog.BUTTON_POSITIVE);assertTrue(message().contains("autorizar"));
+  click(AlertDialog.BUTTON_POSITIVE);assertTrue(message().contains(r.url));assertTrue(message().contains("sem desinstalar"));
  }
  @Test public void returningFromPermissionOffersTheVerifiedFileWithoutAnotherDownload()throws Exception{
   AtomicInteger calls=new AtomicInteger();updater=new OfficialUpdater(activity,status::set,()->{calls.incrementAndGet();return config(10030,"1.0.30");});OfficialConfig.Release r=release();verifiedFixture(r);
-  dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+  click(AlertDialog.BUTTON_POSITIVE);click(AlertDialog.BUTTON_POSITIVE);
   assertEquals(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Shadows.shadowOf(activity).getNextStartedActivity().getAction());
   Shadows.shadowOf(activity.getPackageManager()).setCanRequestPackageInstalls(true);updater.resume();
   assertEquals("Instalar agora",dialog().getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());assertEquals(0,calls.get());
-  dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();Intent install=Shadows.shadowOf(activity).getNextStartedActivity();
+  click(AlertDialog.BUTTON_POSITIVE);Intent install=Shadows.shadowOf(activity).getNextStartedActivity();
   assertEquals(Intent.ACTION_VIEW,install.getAction());assertEquals("application/vnd.android.package-archive",install.getType());assertEquals(activity.getPackageName()+".updates",install.getData().getAuthority());assertTrue((install.getFlags()&Intent.FLAG_GRANT_READ_URI_PERMISSION)!=0);
  }
  @Test public void missingInstallerShowsDownloaderInsteadOfSilentlyFailing()throws Exception{
   updater=new OfficialUpdater(activity,status::set,()->config(10030,"1.0.30"));activity.rejectInstaller=true;Shadows.shadowOf(activity.getPackageManager()).setCanRequestPackageInstalls(true);OfficialConfig.Release r=release();verifiedFixture(r);
-  dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();assertTrue(message().contains(r.url));assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+  click(AlertDialog.BUTTON_POSITIVE);assertTrue(message().contains(r.url));assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
  }
  @Test public void legacyInstallerFallbackKeepsTheReadOnlyContentGrant()throws Exception{
   updater=new OfficialUpdater(activity,status::set,()->config(10030,"1.0.30"));activity.rejectView=true;Shadows.shadowOf(activity.getPackageManager()).setCanRequestPackageInstalls(true);verifiedFixture(release());
-  dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();Intent intent=Shadows.shadowOf(activity).getNextStartedActivity();
+  click(AlertDialog.BUTTON_POSITIVE);Intent intent=Shadows.shadowOf(activity).getNextStartedActivity();
   assertEquals(Intent.ACTION_INSTALL_PACKAGE,intent.getAction());assertEquals("content",intent.getData().getScheme());assertTrue((intent.getFlags()&Intent.FLAG_GRANT_READ_URI_PERMISSION)!=0);assertNotNull(intent.getClipData());
  }
  @Test public void closeDismissesTheResultAndSuppressesLateCallbacks()throws Exception{
