@@ -7,6 +7,6 @@ Primeira versão Android de teste do Monitor Global para celular.
 - Pacote de teste independente: top.monitorglobal.mobile.dev. Não substitui o aplicativo da TV.
 - APK de desenvolvimento, fora da Play Store; nesta fase a instalação é manual.
 
-Baixe monitor-global-mobile-preview.apk abaixo e abra pelo gerenciador de arquivos do Android. O instalador pode pedir autorização para instalar a partir do navegador.
+Baixe monitor-global-mobile-preview.apk abaixo e abra pelo gerenciador de arquivos do Android. Se solicitado, toque em Configurações, permita a instalação pelo aplicativo que abriu o APK (navegador ou Arquivos), volte e confirme Instalar.
 
 As informações dependem das fontes e não substituem os avisos das autoridades. A entrega de alertas instantâneos não é garantida.
