@@ -28,7 +28,7 @@ cd android-mobile
 ./gradlew -PphoneUiChecks :app:testDebugUnitTest
 ```
 
-A CI confere o APK e suas permissões. Testes de layout usam Robolectric/Skia e dados controlados, sem consultar serviços reais; não substituem teste físico, renderização WebGL ou entrega de rede em um aparelho.
+A CI confere o APK, suas permissões e a inicialização dos assets do mapa com a API real do MapLibre. O mapa empacotado também é aberto no Chrome com WebGL por software e imagens controladas, verificando carregamento e seleção de eventos. Testes de layout usam Robolectric/Skia. Essas verificações não substituem teste físico nem entrega de rede em um aparelho.
 
 ## Distribuição de testes
 
