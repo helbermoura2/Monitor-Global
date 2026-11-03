@@ -20,7 +20,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.webkit.WebViewAssetLoader;
-import androidx.webkit.WebViewClientCompat;
+import android.webkit.WebViewClient;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -58,7 +58,7 @@ final class PhoneMapView extends FrameLayout {
    settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setAllowFileAccessFromFileURLs(false);settings.setAllowUniversalAccessFromFileURLs(false);
    settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setGeolocationEnabled(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setSupportMultipleWindows(false);settings.setMediaPlaybackRequiresUserGesture(true);settings.setSafeBrowsingEnabled(true);
    current.addJavascriptInterface(bridge,"MonitorMapBridge");
-   current.setWebViewClient(new WebViewClientCompat(){
+   current.setWebViewClient(new WebViewClient(){
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}

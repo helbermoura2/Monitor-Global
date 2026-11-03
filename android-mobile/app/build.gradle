@@ -18,14 +18,7 @@ android {
  // Reuse the validated protocol, forecast and flag models without copying the TV application.
  sourceSets {
   main {
-   java {
-    srcDirs = ['src/main/java', '../../android-tv/app/src/main/java']
-    include 'top/monitorglobal/tv/Phone*.java'
-    include 'top/monitorglobal/mobile/**'
-    ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast'].each { model ->
-     include "top/monitorglobal/tv/${model}.java"
-    }
-   }
+   java.srcDirs = ['src/main/java', layout.buildDirectory.dir('generated/phoneModels')]
    assets.srcDir layout.buildDirectory.dir('generated/phoneAssets')
   }
  }
@@ -36,7 +29,15 @@ tasks.register('preparePhoneAssets', Sync) {
  from('../../vendor') { include 'maplibre-gl.js'; include 'maplibre-gl.css'; into 'vendor' }
  into layout.buildDirectory.dir('generated/phoneAssets')
 }
-tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets' }
+tasks.register('preparePhoneModels', Sync) {
+ from('../../android-tv/app/src/main/java') {
+  ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast'].each { model ->
+   include "top/monitorglobal/tv/${model}.java"
+  }
+ }
+ into layout.buildDirectory.dir('generated/phoneModels')
+}
+tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets', 'preparePhoneModels' }
 dependencies {
  implementation 'androidx.webkit:webkit:1.12.1'
  testImplementation 'junit:junit:4.13.2'
