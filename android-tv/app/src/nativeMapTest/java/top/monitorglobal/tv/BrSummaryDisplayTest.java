@@ -16,10 +16,12 @@ public class BrSummaryDisplayTest {
    Alert alert=new Alert("date-test","earthquake","new","M5,1 · Balleny região das ilhas","Profundidade: 10 km · USGS","earthquake",at,at,false);
    for(boolean replay:new boolean[]{false,true}){
     NewsBannerView view=new NewsBannerView(RuntimeEnvironment.getApplication(),List.of(alert),"2026-10-30",replay,true);
+    assertEquals(replay?"REPLAY":"AO VIVO",view.badgeLabel());
     Object page=((Object[])field(view,"pages"))[0];
     String caption=(String)field(page,"caption"),ticker=(String)field(view,"ticker");
     assertTrue(caption,caption.contains("30/10/2026"));assertFalse(caption,caption.contains("2026-10-30"));
     assertTrue(ticker,ticker.contains("30/10/2026"));assertFalse(ticker,ticker.contains("2026-10-30"));
+    assertTrue(ticker,ticker.contains("HISTÓRICO · Não informa a situação atual de tsunami"));
     assertTrue(caption,caption.contains(replay?"REPLAY DO RESUMO":"RESUMO"));
    }
   }finally{Locale.setDefault(locale);TimeZone.setDefault(timezone);}

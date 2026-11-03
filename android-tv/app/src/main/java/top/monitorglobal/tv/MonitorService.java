@@ -24,7 +24,7 @@ public final class MonitorService extends Service {
   }
   if(REPLAY.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)){
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
-   fetchHistory(!REPLAY.equals(action),!SUMMARY_TODAY.equals(action),false);return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   fetchHistory(!REPLAY.equals(action),!SUMMARY_TODAY.equals(action),true);return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if((TEST+"_RAIN").equals(action)||(TEST+"_STORM").equals(action)){boolean stormPreview=(TEST+"_STORM").equals(action);cancelDemos();Prefs.status(this,stormPreview?"Prévia fictícia de chuva e relâmpagos em 10 segundos.":"Teste fictício de chuva em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){activeUntil=SystemClock.uptimeMillis()+RainOverlay.DURATION+800;rain.demo(stormPreview);Runnable finish=new Runnable(){public void run(){demoTasks.remove(this);if(!draining){activeUntil=0;tryTarget();tryDaily();stopIfIdle();}}};demoTasks.add(finish);main.postDelayed(finish,RainOverlay.DURATION+800);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if((TEST+"_TARGET").equals(action)){Alert a=new Alert("DEMO-TARGET","earthquake","demo","M5,4 · Katmandu, Nepal","","earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);a.magnitude=5.4;a.depth=12;a.source="EXEMPLO";a.targetArea="Katmandu · Nepal";Prefs.status(this,"Aviso menor fictício em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){showTargetCard(a,true);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
@@ -80,7 +80,7 @@ public final class MonitorService extends Service {
   cancelDemos();final int generation=localGeneration;long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
   Runnable stop=()->{if(generation!=localGeneration)return;demoTasks.clear();activeUntil=0;stopIfIdle();tryTarget();tryDaily();};
   Runnable show=()->{if(destroyed)return;if(draining||!queue.isEmpty()){Prefs.status(this,"Resumo adiado por alerta real. Solicite novamente após o aviso.");stop.run();return;}
-   rain.hide();if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete,stop)){if(!replay)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;}else stop.run();
+   rain.hide();if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete,stop)){if(!replay||!snapshot.complete)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;}else stop.run();
   };demoTasks.add(show);demoTasks.add(stop);main.postDelayed(show,delay);
   Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+BrDates.day(snapshot.day)+" em 10 segundos · "+snapshot.alerts.size()+" sismos · 6 segundos de leitura por sismo + animações.");
  }
