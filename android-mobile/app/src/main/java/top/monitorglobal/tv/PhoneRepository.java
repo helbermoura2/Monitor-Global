@@ -1,0 +1,115 @@
+package top.monitorglobal.tv;
+
+import org.json.*;
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+
+/** Foreground, on-demand phone data. Call refresh on one worker, never on the UI thread. */
+final class PhoneRepository implements AutoCloseable {
+ static final String COVERAGE="M6+ globais, Brasil e áreas monitoradas";
+ static final String FEED="tv-alerts?policy=telegram-v1",WEATHER="tv-weather",RAIN="tv-rain?area=liberdade";
+ static final int FEED_LIMIT=256*1024,WEATHER_LIMIT=100000,CACHE_LIMIT=512*1024;
+ static final long RETRY=5*60000L;
+ interface Transport {Response get(String path,String etag,int limit)throws Exception;void cancel();}
+ static final class Response {
+  final int status;final String body,etag;
+  Response(int code,String json,String tag){status=code;body=json==null?"":json;etag=cleanEtag(tag);}
+ }
+ static final class Snapshot {
+  final List<Alert> events;final WeatherForecast.Summary weather;final RainForecast.Summary rain;
+  final long refreshedAt;final String feedStatus,weatherStatus,rainStatus;final boolean saved,quakeOk,tsunamiOk;
+  Snapshot(List<Alert> list,WeatherForecast.Summary w,RainForecast.Summary r,long at,String feed,String weatherState,String rainState,boolean cached,boolean quakes,boolean tsunamis){
+   ArrayList<Alert> copy=new ArrayList<>();if(list!=null)for(Alert a:list){Alert item=a.copy();if(a.companion!=null)item.companion=a.companion.copy();copy.add(item);}events=Collections.unmodifiableList(copy);
+   weather=w;rain=r;refreshedAt=at;feedStatus=feed;weatherStatus=weatherState;rainStatus=rainState;saved=cached;quakeOk=quakes;tsunamiOk=tsunamis;
+  }
+ }
+ private final Transport transport;private final AtomicLong generation=new AtomicLong();private volatile boolean closed;
+ private JSONObject feedData,weatherData,rainData;private List<Alert> events=new ArrayList<>();private String etag="";
+ private long refreshedAt,nextWeather,nextRain;private boolean feedSaved,quakeOk,tsunamiOk;
+ private String feedStatus="Aguardando consulta dos eventos",weatherStatus="Aguardando previsão para a Liberdade",rainStatus="Aguardando chuva por minuto";
+ PhoneRepository(){this(new HttpTransport());}
+ PhoneRepository(Transport source){transport=Objects.requireNonNull(source);}
+ Snapshot refresh(long now){return refresh(now,false);}
+ Snapshot refresh(long now,boolean forceWeather){
+  if(closed)return snapshot(now);long ticket=generation.get(),started=System.nanoTime();
+  refreshFeed(now,ticket);if(!active(ticket))return snapshot(afterElapsed(now,started));
+  boolean requestWeather,requestRain;
+  synchronized(this){requestWeather=(forceWeather||weather(now)==null)&& (forceWeather||now>=nextWeather);requestRain=(forceWeather||rain(now)==null)&&(forceWeather||now>=nextRain);}
+  if(requestWeather)refreshForecast(now,ticket,true);if(!active(ticket))return snapshot(afterElapsed(now,started));
+  if(requestRain)refreshForecast(now,ticket,false);return snapshot(afterElapsed(now,started));
+ }
+ private static long afterElapsed(long now,long started){return now+Math.max(0,(System.nanoTime()-started)/1000000);}
+ private boolean active(long ticket){return !closed&&generation.get()==ticket;}
+ private void refreshFeed(long now,long ticket){
+  String tag;synchronized(this){tag=etag;}
+  try{
+   Response response=transport.get(FEED,tag,FEED_LIMIT);if(!active(ticket))return;
+   if(response.status==304){synchronized(this){if(!active(ticket))return;if(feedData==null)throw new IOException("No cached feed");refreshedAt=now;feedSaved=false;feedStatus=sourceStatus(quakeOk,tsunamiOk);}return;}
+   JSONObject candidate=object(response,FEED_LIMIT);Parsed parsed=parseFeed(candidate,now);
+   synchronized(this){if(!active(ticket))return;feedData=candidate;events=parsed.events;quakeOk=parsed.quakeOk;tsunamiOk=parsed.tsunamiOk;etag=response.etag;refreshedAt=now;feedSaved=false;feedStatus=sourceStatus(quakeOk,tsunamiOk);}
+  }catch(Exception error){synchronized(this){if(!active(ticket))return;feedSaved=feedData!=null;feedStatus=feedSaved?"Sem atualização confirmada · mostrando eventos salvos":"Eventos indisponíveis · tente atualizar";}}
+ }
+ private void refreshForecast(long now,long ticket,boolean hourly){
+  try{
+   Response response=transport.get(hourly?WEATHER:RAIN,"",WEATHER_LIMIT);if(!active(ticket))return;
+   JSONObject candidate=object(response,WEATHER_LIMIT);
+   boolean valid=hourly?WeatherForecast.summarize(candidate,now)!=null:RainForecast.summarize(candidate,now)!=null;
+   if(!valid)throw new IOException("Invalid or expired forecast");
+   synchronized(this){if(!active(ticket))return;if(hourly){weatherData=candidate;nextWeather=0;weatherStatus="Modelo horário · Liberdade, SP";}else{rainData=candidate;nextRain=0;rainStatus="Previsão por minuto · Liberdade, SP";}}
+  }catch(Exception error){synchronized(this){if(!active(ticket))return;if(hourly){nextWeather=now+RETRY;weatherStatus=weather(now)==null?"Previsão horária indisponível":"Previsão horária válida salva · sem nova consulta";}else{nextRain=now+RETRY;rainStatus=rain(now)==null?"Chuva por minuto: indisponível":"Previsão por minuto válida salva · sem nova consulta";}}}
+ }
+ synchronized Snapshot snapshot(long now){
+  WeatherForecast.Summary w=weather(now);RainForecast.Summary r=rain(now);
+  String ws=w==null&&weatherData!=null?"Previsão horária indisponível ou vencida":weatherStatus;
+  String rs=r==null&&rainData!=null?"Chuva por minuto: indisponível ou vencida":rainStatus;
+  return new Snapshot(events,w,r,refreshedAt,feedStatus,ws,rs,feedSaved,quakeOk,tsunamiOk);
+ }
+ private WeatherForecast.Summary weather(long now){try{return weatherData==null?null:WeatherForecast.summarize(weatherData,now);}catch(JSONException e){return null;}}
+ private RainForecast.Summary rain(long now){try{return rainData==null?null:RainForecast.summarize(rainData,now);}catch(JSONException e){return null;}}
+ synchronized String exportCache(){
+  try{JSONObject out=new JSONObject().put("version",1).put("refreshedAt",refreshedAt).put("etag",etag);if(feedData!=null)out.put("feed",feedData);if(weatherData!=null)out.put("weather",weatherData);if(rainData!=null)out.put("rain",rainData);String json=out.toString();return json.getBytes(StandardCharsets.UTF_8).length<=CACHE_LIMIT?json:"";}catch(JSONException e){return "";}
+ }
+ synchronized void importCache(String json,long now){
+  if(json==null||json.length()>CACHE_LIMIT||json.getBytes(StandardCharsets.UTF_8).length>CACHE_LIMIT||closed)return;
+  try{
+   JSONObject root=new JSONObject(json);if(root.optInt("version",0)!=1)return;
+   JSONObject f=root.optJSONObject("feed");long at=root.optLong("refreshedAt",0);
+   if(f!=null&&at>0&&at<=now+60000){Parsed parsed=parseFeed(f,Math.max(now,at));feedData=f;events=parsed.events;quakeOk=parsed.quakeOk;tsunamiOk=parsed.tsunamiOk;etag=cleanEtag(root.optString("etag",""));refreshedAt=at;feedSaved=true;feedStatus="Dados salvos · atualize para conferir";}
+   JSONObject w=root.optJSONObject("weather"),r=root.optJSONObject("rain");
+   // Forecasts are restored only when their original timestamps remain valid.
+   if(w!=null&&WeatherForecast.summarize(w,now)!=null){weatherData=w;weatherStatus="Modelo horário salvo · Liberdade, SP";}
+   if(r!=null&&RainForecast.summarize(r,now)!=null){rainData=r;rainStatus="Previsão por minuto salva · Liberdade, SP";}
+  }catch(Exception ignored){/* Corrupt cache never replaces a valid in-memory state. */}
+ }
+ void cancel(){generation.incrementAndGet();transport.cancel();}
+ @Override public void close(){closed=true;cancel();}
+ private static JSONObject object(Response r,int limit)throws IOException,JSONException{
+  if(r.status!=200||r.body.isEmpty()||r.body.length()>limit||r.body.getBytes(StandardCharsets.UTF_8).length>limit)throw new IOException("Unavailable or oversized response");return new JSONObject(r.body);
+ }
+ private static final class Parsed {List<Alert> events;boolean quakeOk,tsunamiOk;}
+ private static Parsed parseFeed(JSONObject root,long now)throws IOException,JSONException{
+  if(!"tv-alerts-v1".equals(root.optString("version"))||!"telegram-v1".equals(root.optString("policy")))throw new IOException("Unsupported feed");
+  long server=root.optLong("serverTime",0);if(root.has("serverTime")&&(server<=0||server>now+60000))throw new IOException("Invalid server timestamp");
+  JSONObject sources=root.getJSONObject("sources");Parsed out=new Parsed();out.quakeOk=sources.optBoolean("earthquake",false);out.tsunamiOk=sources.optBoolean("tsunami",false);if(!out.quakeOk&&!out.tsunamiOk)throw new IOException("Sources unavailable");
+  JSONArray list=root.getJSONArray("alerts");out.events=new ArrayList<>();for(int i=0;i<Math.min(120,list.length());i++)out.events.add(AlertCodec.read(list.getJSONObject(i)));return out;
+ }
+ private static String sourceStatus(boolean quake,boolean tsunami){return quake&&tsunami?"Eventos atualizados":quake?"Eventos atualizados · fonte de tsunami indisponível":"Parcial · catálogo sísmico indisponível";}
+ private static String cleanEtag(String value){if(value==null||value.length()>200||value.indexOf('\r')>=0||value.indexOf('\n')>=0)return "";return value;}
+ /** Only the existing public Worker routes are reachable from this transport. */
+ static final class HttpTransport implements Transport {
+  private volatile HttpURLConnection connection;private final AtomicLong generation=new AtomicLong();
+  @Override public Response get(String path,String tag,int limit)throws IOException{
+   if(!path.equals(FEED)&&!path.equals(WEATHER)&&!path.equals(RAIN))throw new IOException("Route not allowed");
+   long ticket=generation.get();HttpURLConnection request=(HttpURLConnection)new URL("https://black-sky-9ba0.terrestre.workers.dev/"+path).openConnection();connection=request;
+   request.setConnectTimeout(8000);request.setReadTimeout(12000);request.setInstanceFollowRedirects(false);request.setRequestProperty("Accept","application/json");request.setRequestProperty("User-Agent","MonitorGlobalMobile");if(!cleanEtag(tag).isEmpty())request.setRequestProperty("If-None-Match",tag);
+   try{if(ticket!=generation.get())throw new InterruptedIOException("Cancelled");int status=request.getResponseCode();if(status==304)return new Response(status,"",request.getHeaderField("ETag"));if(status!=200)return new Response(status,"","");
+    long declared=request.getContentLengthLong();if(declared>limit)throw new IOException("Response too large");ByteArrayOutputStream bytes=new ByteArrayOutputStream();try(InputStream input=request.getInputStream()){byte[] buffer=new byte[4096];int read;while((read=input.read(buffer))!=-1){if(ticket!=generation.get()||Thread.currentThread().isInterrupted())throw new InterruptedIOException("Cancelled");if(bytes.size()+read>limit)throw new IOException("Response too large");bytes.write(buffer,0,read);}}
+    return new Response(status,new String(bytes.toByteArray(),StandardCharsets.UTF_8),request.getHeaderField("ETag"));
+   }finally{request.disconnect();if(connection==request)connection=null;}
+  }
+  @Override public void cancel(){generation.incrementAndGet();HttpURLConnection current=connection;if(current!=null)current.disconnect();}
+ }
+}

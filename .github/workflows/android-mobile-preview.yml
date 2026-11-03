@@ -1,0 +1,94 @@
+name: Android mobile preview
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'android-mobile/**'
+      - '.github/workflows/android-mobile-preview.yml'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/AlertCodec.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/AlertPairing.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/MapFrame.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/BrDates.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/CountryFlag.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/RainForecast.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherForecast.java'
+  push:
+    branches: [main]
+    paths:
+      - 'android-mobile/**'
+      - '.github/workflows/android-mobile-preview.yml'
+permissions:
+  contents: read
+concurrency:
+  group: android-mobile-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Reuse development signing identity for preview builds
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: monitor-global-mobile-debug-key-v1
+      - name: Build and inspect phone APKs
+        working-directory: android-mobile
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
+      - name: Verify native phone navigation and lifecycle
+        working-directory: android-mobile
+        run: ./gradlew --no-daemon -PphoneUiChecks :app:testDebugUnitTest
+      - name: Check packaged phone identity and permissions
+        run: python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-mobile-preview
+          path: android-mobile/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+      - name: Export native phone screens
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-mobile-screens
+          path: /tmp/monitor-mobile-*.png
+          if-no-files-found: warn
+          retention-days: 14
+  publish-preview:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'helbermoura2/Monitor-Global'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: monitor-global-mobile-preview
+          path: preview-apk
+      - name: Publish explicitly marked Android testing APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import pathlib, shutil
+          source=pathlib.Path('preview-apk/app-debug.apk')
+          target=pathlib.Path('preview-apk/monitor-global-mobile-preview.apk')
+          shutil.copyfile(source,target)
+          notes=pathlib.Path('android-mobile/PREVIEW_RELEASE.md').read_text()
+          pathlib.Path('preview-notes.md').write_text(notes)
+          PY
+          if gh release view mobile-preview >/dev/null 2>&1; then
+            gh release edit mobile-preview --prerelease --title 'Monitor Global Celular · versão de teste' --notes-file preview-notes.md
+          else
+            gh release create mobile-preview --target "$GITHUB_SHA" --prerelease --title 'Monitor Global Celular · versão de teste' --notes-file preview-notes.md
+          fi
+          gh release upload mobile-preview preview-apk/monitor-global-mobile-preview.apk --clobber
