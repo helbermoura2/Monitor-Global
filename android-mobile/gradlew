@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+PHONE_PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$PHONE_PROJECT_DIR/../android-tv/gradlew" --project-dir "$PHONE_PROJECT_DIR" "$@"

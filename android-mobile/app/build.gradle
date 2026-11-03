@@ -1,0 +1,55 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'top.monitorglobal.mobile'
+ compileSdk 35
+ defaultConfig {
+  applicationId 'top.monitorglobal.mobile'
+  minSdk 28
+  targetSdk 35
+  versionCode 1
+  versionName '0.1.0'
+ }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
+ buildFeatures { buildConfig true }
+ buildTypes {
+  debug { applicationIdSuffix '.dev'; versionNameSuffix '-teste'; resValue 'string', 'app_name', 'Monitor Global · Teste' }
+  release { minifyEnabled false; debuggable false; resValue 'string', 'app_name', 'Monitor Global' }
+ }
+ // Reuse the validated protocol, forecast and flag models without copying the TV application.
+ sourceSets {
+  main {
+   java.srcDirs = ['src/main/java', layout.buildDirectory.dir('generated/phoneModels')]
+   assets.srcDir layout.buildDirectory.dir('generated/phoneAssets')
+  }
+ }
+ lint { abortOnError true }
+}
+tasks.register('preparePhoneAssets', Sync) {
+ from('../../android-tv/app/src/main/assets') { include 'fonts/**'; include 'flags/**' }
+ from('../../vendor') { include 'maplibre-gl.js'; include 'maplibre-gl.css'; into 'vendor' }
+ into layout.buildDirectory.dir('generated/phoneAssets')
+}
+tasks.register('preparePhoneModels', Sync) {
+ from('../../android-tv/app/src/main/java') {
+  ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast'].each { model ->
+   include "top/monitorglobal/tv/${model}.java"
+  }
+ }
+ into layout.buildDirectory.dir('generated/phoneModels')
+}
+tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets', 'preparePhoneModels' }
+dependencies {
+ implementation 'androidx.webkit:webkit:1.12.1'
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.json:json:20240303'
+}
+if (project.hasProperty('phoneUiChecks')) {
+ android.sourceSets.test.java.srcDir 'src/nativeMapTest/java'
+ android.testOptions.unitTests.includeAndroidResources = true
+ dependencies { testImplementation 'org.robolectric:robolectric:4.16.1' }
+ tasks.withType(Test).configureEach {
+  systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+  testLogging { exceptionFormat 'full' }
+  maxHeapSize = '1536m'
+ }
+}
