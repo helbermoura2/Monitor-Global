@@ -116,7 +116,7 @@ final class NewsBannerView extends View {
   else mapInset.draw(c,pages[index].alert,brand,accent);
   c.restore();
  }
- String badgeLabel(){return demo?"TESTE":replay||summary?"REPLAY":"AO VIVO";}
+ String badgeLabel(){return demo?"TESTE":replay?"REPLAY":"AO VIVO";}
  static String formatClock(long at){return date(at,"HH:mm");}
  private void drawClock(Canvas c){long now=System.currentTimeMillis(),minute=now/60000;if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}c.save();c.clipPath(bannerClip);rect(c,0,100,90,126,Color.rgb(191,24,39));centerText(c,clockText,45,119,18,Color.WHITE,data,78);c.restore();}
  private void breaking(Canvas c,long elapsed){
