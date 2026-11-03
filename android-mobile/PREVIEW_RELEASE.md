@@ -1,4 +1,6 @@
-Primeira versão Android de teste do Monitor Global para celular.
+Monitor Global para celular · Android de teste 0.1.1.
+
+Corrige a abertura do mapa, que podia ficar presa em “Carregando mapa”. Instale este APK sobre a versão anterior para atualizar.
 
 - Início, mapa interativo, meteorologia e detalhes de eventos.
 - Dados reais dos serviços já usados pelo projeto; não há alertas fictícios de reserva.

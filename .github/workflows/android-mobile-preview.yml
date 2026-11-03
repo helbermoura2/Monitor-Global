@@ -50,6 +50,22 @@ jobs:
         run: ./gradlew --no-daemon -PphoneUiChecks :app:testDebugUnitTest
       - name: Check packaged phone identity and permissions
         run: python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install browser check dependency
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Render the packaged map and open event details
+        run: node android-mobile/tools/check-phone-map-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk
+      - name: Export map rendering evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-mobile-map-check
+          path: android-mobile/app/build/reports/map-browser
+          if-no-files-found: warn
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: monitor-global-mobile-preview
