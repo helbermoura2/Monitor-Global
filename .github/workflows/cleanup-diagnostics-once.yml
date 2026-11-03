@@ -39,7 +39,20 @@ jobs:
            if len(batch)<100: break
            page+=1
           cutoff=datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=48)
-          safe={'.png','.jpg','.jpeg','.webp','.gif','.svg','.html','.htm','.css','.js','.mjs','.json','.txt','.md','.xml','.log','.csv','.har','.webm','.mp4','.woff','.woff2','.ttf','.map'}
+          safe={'.png','.jpg','.jpeg','.webp','.gif','.svg','.html','.htm','.css','.js','.mjs','.json','.txt','.md','.xml','.log','.csv','.har','.webm','.mp4','.woff','.woff2','.ttf','.map','.trace','.network','.stacks'}
+          def diagnostic_archive(data,depth=0):
+           with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            files=[x for x in archive.infolist() if not x.is_dir()]
+            if not files: return False
+            for entry in files:
+             name=entry.filename.lower()
+             suffix=pathlib.PurePosixPath(name).suffix
+             if any(ext in name for ext in ['.apk','.aab','.apks','.xapk']): return False
+             if suffix=='.zip':
+              if depth>=2 or entry.file_size>50*1024*1024: return False
+              if not diagnostic_archive(archive.read(entry),depth+1): return False
+             elif suffix not in safe: return False
+            return True
           removed=[];kept=[];errors=[]
           for item in artifacts:
            name=item['name'];aid=item['id']
@@ -48,16 +61,14 @@ jobs:
            reason=None
            if created>=cutoff: reason='recent: keep 48h'
            elif any(x in name.lower() for x in ['apk','aab','bundle','release']): reason='installer/release name'
-           elif not any(x in name.lower() for x in ['report','screen','preview','diagnos','trace','material','visibility','weather','visual','storm','wind','cyclone','playwright','test-result']): reason='unclassified artifact'
+           elif not any(x in name.lower() for x in ['report','screen','preview','diagnos','trace','material','visibility','weather','visual','storm','wind','cyclone','playwright','test-result','browser-qa','testes','unitario','telas']): reason='unclassified artifact'
            elif item['size_in_bytes']>150*1024*1024: reason='large archive: preserve'
            if reason: kept.append({'id':aid,'name':name,'reason':reason});continue
            try:
             with request('/actions/artifacts/'+str(aid)+'/zip') as response: data=response.read(150*1024*1024+1)
             if len(data)>150*1024*1024: kept.append({'id':aid,'name':name,'reason':'download too large'});continue
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
-             files=[x.filename for x in archive.infolist() if not x.is_dir()]
-             if not files or any(pathlib.PurePosixPath(f).suffix.lower() not in safe or any(ext in f.lower() for ext in ['.apk','.aab','.apks','.xapk']) for f in files):
-              kept.append({'id':aid,'name':name,'reason':'installer, nested archive or unknown content'});continue
+            if not diagnostic_archive(data):
+             kept.append({'id':aid,'name':name,'reason':'installer or unknown content'});continue
             with request('/actions/artifacts/'+str(aid),'DELETE') as response:
              assert response.status==204
             removed.append({'id':aid,'name':name,'bytes':item['size_in_bytes']})
