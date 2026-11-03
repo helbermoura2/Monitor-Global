@@ -1,4 +1,4 @@
-# Monitor Global para Android — prévia 0.1.0
+# Monitor Global para Android — prévia 0.1.1
 
 Primeiro aplicativo de celular, independente da instalação da TV. O APK de teste usa o pacote `top.monitorglobal.mobile.dev`; a aplicação principal é `top.monitorglobal.mobile`. O código de apresentação Java mantém o pacote legado dos modelos compartilhados, enquanto namespace, manifesto, recursos e canal de distribuição são próprios do celular.
 
