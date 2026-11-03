@@ -1,0 +1,73 @@
+name: Clean old diagnostics and preserve APKs
+on:
+  push:
+    branches: [maintenance/cleanup-diagnostics-20261103]
+    paths: [.github/workflows/cleanup-diagnostics-once.yml]
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: cleanup-diagnostics-once
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Remove only inspected old diagnostic archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,zipfile,io,datetime,pathlib
+          repo=os.environ['GITHUB_REPOSITORY']
+          token=os.environ['GH_TOKEN']
+          class Redirect(urllib.request.HTTPRedirectHandler):
+           def redirect_request(self,req,fp,code,msg,headers,newurl):
+            redirected=super().redirect_request(req,fp,code,msg,headers,newurl)
+            if redirected: redirected.remove_header('Authorization')
+            return redirected
+          opener=urllib.request.build_opener(Redirect())
+          def request(path,method='GET'):
+           req=urllib.request.Request('https://api.github.com/repos/'+repo+path,method=method,headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+           return opener.open(req,timeout=60)
+          artifacts=[]
+          page=1
+          while True:
+           with request('/actions/artifacts?per_page=100&page='+str(page)) as response: batch=json.load(response)['artifacts']
+           artifacts.extend(batch)
+           if len(batch)<100: break
+           page+=1
+          cutoff=datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=48)
+          safe={'.png','.jpg','.jpeg','.webp','.gif','.svg','.html','.htm','.css','.js','.mjs','.json','.txt','.md','.xml','.log','.csv','.har','.webm','.mp4','.woff','.woff2','.ttf','.map'}
+          removed=[];kept=[];errors=[]
+          for item in artifacts:
+           name=item['name'];aid=item['id']
+           if item['expired']: continue
+           created=datetime.datetime.fromisoformat(item['created_at'].replace('Z','+00:00'))
+           reason=None
+           if created>=cutoff: reason='recent: keep 48h'
+           elif any(x in name.lower() for x in ['apk','aab','bundle','release']): reason='installer/release name'
+           elif not any(x in name.lower() for x in ['report','screen','preview','diagnos','trace','material','visibility','weather','visual','storm','wind','cyclone','playwright','test-result']): reason='unclassified artifact'
+           elif item['size_in_bytes']>150*1024*1024: reason='large archive: preserve'
+           if reason: kept.append({'id':aid,'name':name,'reason':reason});continue
+           try:
+            with request('/actions/artifacts/'+str(aid)+'/zip') as response: data=response.read(150*1024*1024+1)
+            if len(data)>150*1024*1024: kept.append({'id':aid,'name':name,'reason':'download too large'});continue
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+             files=[x.filename for x in archive.infolist() if not x.is_dir()]
+             if not files or any(pathlib.PurePosixPath(f).suffix.lower() not in safe or any(ext in f.lower() for ext in ['.apk','.aab','.apks','.xapk']) for f in files):
+              kept.append({'id':aid,'name':name,'reason':'installer, nested archive or unknown content'});continue
+            with request('/actions/artifacts/'+str(aid),'DELETE') as response:
+             assert response.status==204
+            removed.append({'id':aid,'name':name,'bytes':item['size_in_bytes']})
+            print('REMOVED '+json.dumps(removed[-1]),flush=True)
+           except Exception as e:
+            errors.append({'id':aid,'name':name,'error':str(e)})
+            print('PRESERVED_ON_ERROR '+json.dumps(errors[-1]),flush=True)
+          result={'repository':repo,'artifacts_checked':len(artifacts),'removed_count':len(removed),'removed_bytes':sum(x['bytes'] for x in removed),'preserved_count':len(kept),'errors':errors,'removed':removed,'preserved':kept,'releases':'untouched; no release API writes'}
+          print('CLEANUP_RESULT '+json.dumps(result),flush=True)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
+           summary.write('## Conservative artifact cleanup\n\n'+str(len(removed))+' old diagnostic artifacts removed; '+str(result['removed_bytes'])+' bytes.\n\nAPK artifacts, uncertain contents, recent diagnostics and all Releases preserved.\n')
+          
+          PY
