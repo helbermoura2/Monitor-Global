@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: monitor-global-mobile-screens
-          path: /tmp/monitor-mobile-*.png
+          path: /tmp/monitor-phone-*.png
           if-no-files-found: warn
           retention-days: 14
   publish-preview:
