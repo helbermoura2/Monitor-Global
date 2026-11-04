@@ -1,0 +1,24 @@
+name: Keep diagnostic storage bounded
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Smoke test', 'Android mobile preview', 'Android TV preview', 'Android TV official release', 'pages build and deployment']
+    types: [completed]
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: artifact-retention
+  cancel-in-progress: false
+jobs:
+  prune:
+    if: github.repository == 'helbermoura2/Monitor-Global' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: node --test .github/scripts/prune-artifacts.test.cjs
+      - uses: actions/github-script@v7
+        with:
+          script: await require('./.github/scripts/prune-artifacts.cjs')({github,context,core});
