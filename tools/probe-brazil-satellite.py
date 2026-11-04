@@ -2,25 +2,19 @@
 import urllib.request,urllib.parse,datetime,xml.etree.ElementTree as ET,io,json,base64,os
 from pathlib import Path
 from PIL import Image
-now=datetime.datetime.now(datetime.timezone.utc)
+now=datetime.datetime.now(datetime.timezone.utc).replace(second=0,microsecond=0)
 layer='GOES-East_ABI_Band13_Clean_Infrared'
 def read(url):
- with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'MonitorGlobal/satellite-source-check'}),timeout=45) as r:return r.read(),dict(r.headers)
+ with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'MonitorGlobal/satellite-source-check'}),timeout=15) as r:return r.read(),dict(r.headers)
 base='https://gibs.earthdata.nasa.gov/'
-caps,_=read(base+'wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml')
-root=ET.fromstring(caps)
-name=lambda e:e.tag.rsplit('}',1)[-1]
-node=next(e for e in root.iter() if name(e)=='Layer' and any(name(c)=='Identifier' and c.text==layer for c in e))
-matrices=[e.text for e in node.iter() if name(e)=='TileMatrixSet']
-legends=[v for e in node.iter() if name(e)=='LegendURL' for k,v in e.attrib.items() if k.endswith('href')]
-values=[e.text or '' for e in node.iter() if name(e) in ['Default','Value']]
-print('SOURCE_METADATA '+json.dumps({'matrix':matrices,'legends':legends,'timeValues':values}),flush=True)
-query={'SERVICE':'WMTS','REQUEST':'DescribeDomains','VERSION':'1.0.0','LAYER':layer,'TILEMATRIXSET':matrices[0],'TIME':(now-datetime.timedelta(hours=4)).isoformat().replace('+00:00','Z')+'/'+now.isoformat().replace('+00:00','Z')}
-try:
- raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query));print('DOMAINS '+raw.decode()[:16000],flush=True)
- values=[e.text or '' for e in ET.fromstring(raw).iter() if name(e)=='Domain']
-except Exception as e:
- print('DOMAINS_ERROR '+str(e)+(e.read().decode()[:1500] if hasattr(e,'read') else ''),flush=True)
+values=[]
+for matrix in ['GoogleMapsCompatible_Level7','GoogleMapsCompatible_Level6','GoogleMapsCompatible_Level8']:
+ query={'SERVICE':'WMTS','REQUEST':'DescribeDomains','VERSION':'1.0.0','LAYER':layer,'TILEMATRIXSET':matrix,'TIME':(now-datetime.timedelta(hours=4)).isoformat().replace('+00:00','Z')+'/'+now.isoformat().replace('+00:00','Z')}
+ try:
+  raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query));print('DOMAINS '+raw.decode()[:16000],flush=True)
+  values=[e.text or '' for e in ET.fromstring(raw).iter() if e.tag.rsplit('}',1)[-1]=='Domain']
+  if values:break
+ except Exception as e:print('DOMAINS_ERROR '+matrix+' '+str(e)+(e.read().decode()[:2000] if hasattr(e,'read') else ''),flush=True)
 ends=[]
 for value in values:
  for part in value.split(','):
