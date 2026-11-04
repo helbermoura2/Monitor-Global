@@ -111,10 +111,16 @@ function __resizeMapParaViewportAtual() {
         // quando a barra de endereço esconde/aparece durante a rolagem.
         const appEl = document.getElementById('app');
         if (appEl) {
-            const alturaReal = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-            appEl.style.height = alturaReal + 'px';
+            // DeX/desktop can retain a shorter dynamic CSS viewport after the
+            // browser chrome changes. Use the layout viewport and override the
+            // stylesheet's !important height; a normal inline height loses to it.
+            const desktop = window.innerWidth > 900;
+            const alturaReal = desktop ? window.innerHeight : (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+            if (Number.isFinite(alturaReal) && alturaReal > 0) {
+                appEl.style.setProperty('height', alturaReal + 'px', desktop ? 'important' : '');
+            }
         }
-        if (map && typeof map.resize === 'function') map.resize();
+        if (typeof map !== 'undefined' && map && typeof map.resize === 'function') map.resize();
         __posicionarTickerAbaixoDoHeader();
     }, 120);
 }
@@ -123,6 +129,9 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('scroll', __resizeMapParaViewportAtual);
 }
 window.addEventListener('orientationchange', __resizeMapParaViewportAtual);
+window.addEventListener('resize', __resizeMapParaViewportAtual);
+window.addEventListener('pageshow', __resizeMapParaViewportAtual);
+document.addEventListener('fullscreenchange', __resizeMapParaViewportAtual);
 window.addEventListener('load', __resizeMapParaViewportAtual);
 setTimeout(__resizeMapParaViewportAtual, 800); // garante correção mesmo se 'load' já tiver passado
 

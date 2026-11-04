@@ -1,6 +1,41 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{chromium}=require('@playwright/test');
 const assert=require('node:assert/strict'),root=path.resolve(__dirname,'..');
+async function verifyViewport(page){
+ const measure=()=>page.evaluate(()=>{
+  const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
+  const r=map.getCanvas().getBoundingClientRect();
+  return {viewport:innerHeight,app:box('app'),wrap:box('mapWrap'),container:box('mapContainer'),canvas:{bottom:r.bottom,height:r.height},sameMap:map===beforeMap};
+ });
+ const full=async()=>{
+  await page.waitForFunction(()=>Math.abs(document.getElementById('app').getBoundingClientRect().bottom-innerHeight)<1);
+  const state=await measure();
+  for(const key of ['app','wrap','container','canvas'])assert(Math.abs(state[key].bottom-state.viewport)<1,key+' must reach the browser viewport bottom: '+JSON.stringify(state));
+  assert(state.sameMap,'viewport updates must preserve the map instance');return state;
+ };
+ await page.addStyleTag({content:'@media(min-width:901px){#app{height:calc(100vh - 56px)!important}}'});
+ await page.evaluate(()=>{
+  // Emulate a browser retaining its smaller dynamic/visual viewport after
+  // chrome disappears. A normal inline height cannot beat the CSS rule.
+  Object.defineProperty(visualViewport,'height',{configurable:true,get:()=>innerHeight-56});
+  document.getElementById('app').style.removeProperty('height');
+  document.getElementById('app').style.height=visualViewport.height+'px';map.resize();
+ });
+ const short=await measure();assert.equal(short.viewport-short.app.bottom,56,'the fixture must reproduce the bottom gap');
+ await page.evaluate(()=>__resizeMapParaViewportAtual());
+ const fixed=await full(),sizes=[];
+ for(const viewport of [{width:1280,height:638},{width:960,height:540},{width:1920,height:1080}]){
+  await page.setViewportSize(viewport);sizes.push(await full());
+ }
+ await page.setViewportSize({width:1280,height:638});await full();
+ for(const event of ['pageshow','fullscreenchange']){
+  await page.evaluate(name=>{document.getElementById('app').style.removeProperty('height');map.resize();(name==='pageshow'?window:document).dispatchEvent(new Event(name));},event);
+  await full();
+ }
+ await page.evaluate(()=>{delete visualViewport.height;GlobePreview.setMode('mercator');map.jumpTo({center:[176,-39],zoom:6});});
+ await page.waitForTimeout(3000);await page.screenshot({path:'/tmp/site-basemap-viewport.png'});
+ console.log('VIEWPORT_RESULT '+JSON.stringify({passed:true,short,fixed,sizes}));
+}
 (async()=>{const browser=await chromium.launch({channel:'chrome',args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});try{
  const page=await browser.newPage({viewport:{width:1280,height:720}}),errors=[],failures=[];let tiles=0;
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text().slice(0,400));});page.on('requestfailed',r=>{if(r.url().includes('arcgisonline'))failures.push([r.url(),r.failure()]);});
@@ -21,4 +56,5 @@ const assert=require('node:assert/strict'),root=path.resolve(__dirname,'..');
  await report('brazil');
  const painted=await page.evaluate(()=>{const c=map.getCanvas(),gl=c.getContext('webgl2')||c.getContext('webgl'),p=new Uint8Array(c.width*c.height*4);gl.readPixels(0,0,c.width,c.height,gl.RGBA,gl.UNSIGNED_BYTE,p);let n=0;for(let i=0;i<p.length;i+=4)if(p[i+3]&&p[i]+p[i+1]+p[i+2]>80)n++;return n;});assert(painted>10000,'the idle map buffer must retain visible geography');
  await page.evaluate(()=>{window.beforeMap=map;window.beforeLayers=map.getStyle().layers.map(l=>l.id);const c=map.getCanvas(),gl=c.getContext('webgl2')||c.getContext('webgl');window.contextLoss=gl.getExtension('WEBGL_lose_context');contextLoss.loseContext();});await page.waitForFunction(()=>AppRecovery.state().lost);await page.waitForTimeout(300);await page.evaluate(()=>contextLoss.restoreContext());await page.waitForFunction(()=>!AppRecovery.state().lost&&map.isStyleLoaded());await page.waitForTimeout(3000);assert(await page.evaluate(()=>map===beforeMap),'recovery must retain the map instance');assert.deepEqual(await page.evaluate(()=>map.getStyle().layers.map(l=>l.id)),await page.evaluate(()=>beforeLayers));await report('restored');console.log('BASEMAP_RESULT '+JSON.stringify({passed:true,painted,contextRestored:true}));
+ await verifyViewport(page);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
