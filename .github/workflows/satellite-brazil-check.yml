@@ -44,7 +44,7 @@ jobs:
           from PIL import Image
           from pathlib import Path
           import io,base64
-          for name in ['brazil-satellite-browser','brazil-satellite-globe']:
+          for name in ['brazil-satellite-browser','brazil-satellite-globe','brazil-satellite-site']:
               p=Path('/tmp/'+name+'.png')
               if not p.exists(): continue
               image=Image.open(p).convert('RGB');image.thumbnail((850,750));out=io.BytesIO();image.save(out,format='JPEG',quality=75)

@@ -46,6 +46,7 @@
   for(const event of ['pointerdown','touchstart','dblclick'])panel.addEventListener(event,e=>e.stopPropagation(),{passive:true});
   map.on('moveend',move);map.on('style.load',style);map.on('styledata',style);map.on('remove',api.destroy);document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',api.destroy);instances.set(map,api);if(enabled)refresh(true);else note('Camada desativada.');return api;
  }
- window.BrazilSatellite={create};
- window.addEventListener('load',()=>{if(document.documentElement.dataset.satelliteAuto==='off')return;const attach=()=>{if(typeof map==='undefined'||typeof map.addSource!=='function')return;let enabled=true;try{enabled=localStorage.getItem('mg-br-satellite')!=='off';}catch{}create({map,enabled});};if(typeof map!=='undefined'&&typeof map.isStyleLoaded==='function'){if(map.isStyleLoaded())attach();else map.once('load',attach);}});
+ function attachSite(m){if(!m||typeof m.addSource!=='function'||document.documentElement.dataset.satelliteAuto==='off')return null;let enabled=true;try{enabled=localStorage.getItem('mg-br-satellite')!=='off';}catch{}return create({map:m,enabled});}
+ window.BrazilSatellite={create,attachSite};
+ window.addEventListener('load',()=>{if(typeof map!=='undefined'&&map&&window.__mgMapReady)attachSite(map);});
 })();
