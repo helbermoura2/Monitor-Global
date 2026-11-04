@@ -11,7 +11,7 @@ values=[]
 for matrix in ['GoogleMapsCompatible_Level7','GoogleMapsCompatible_Level6','GoogleMapsCompatible_Level8']:
  query={'SERVICE':'WMTS','REQUEST':'DescribeDomains','VERSION':'1.0.0','LAYER':layer,'TILEMATRIXSET':matrix,'TIME':(now-datetime.timedelta(hours=4)).isoformat().replace('+00:00','Z')+'/'+now.isoformat().replace('+00:00','Z')}
  try:
-  raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query));print('DOMAINS '+raw.decode()[:16000],flush=True)
+  raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query,safe="/:"));print('DOMAINS '+raw.decode()[:16000],flush=True)
   values=[e.text or '' for e in ET.fromstring(raw).iter() if e.tag.rsplit('}',1)[-1]=='Domain']
   if values:break
  except Exception as e:print('DOMAINS_ERROR '+matrix+' '+str(e)+(e.read().decode()[:2000] if hasattr(e,'read') else ''),flush=True)
