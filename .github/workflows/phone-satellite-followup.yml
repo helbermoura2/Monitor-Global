@@ -1,0 +1,52 @@
+name: Phone satellite startup check
+on:
+  push:
+    branches: [fix/phone-satellite-startup]
+permissions:
+  contents: read
+concurrency:
+  group: phone-satellite-startup
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Stage the same local assets as the phone APK
+        run: |
+          python - <<'PYASSETS'
+          from pathlib import Path
+          import shutil
+          dest=Path('/tmp/phone-map-assets')
+          shutil.copytree('android-mobile/app/src/main/assets',dest)
+          shutil.copytree('android-tv/app/src/main/assets/fonts',dest/'fonts')
+          (dest/'vendor').mkdir();(dest/'data').mkdir()
+          for name in ['maplibre-gl.js','maplibre-gl.css']: shutil.copyfile('vendor/'+name,dest/'vendor'/name)
+          for name in ['brazil-satellite-model.js','brazil-satellite.js']: shutil.copyfile('js/'+name,dest/name)
+          shutil.copyfile('css/brazil-satellite.css',dest/'brazil-satellite.css')
+          shutil.copyfile('data/brazil-satellite-border.json',dest/'data/brazil-satellite-border.json')
+          PYASSETS
+      - name: Test the empty map and satellite controls
+        run: node android-mobile/tools/check-phone-map-browser.cjs --asset-root /tmp/phone-map-assets --output-dir /tmp/phone-map-proof
+      - name: Install review image dependency
+        if: always()
+        run: python -m pip install --disable-pip-version-check Pillow
+      - name: Export review image and report
+        if: always()
+        run: |
+          python - <<'PYPROOF'
+          from pathlib import Path
+          from PIL import Image
+          import io,base64
+          for p in Path('/tmp/phone-map-proof').glob('*.png'):
+              image=Image.open(p).convert('RGB');image.thumbnail((520,920));out=io.BytesIO();image.save(out,format='JPEG',quality=80)
+              print('PHONE_IMAGE_'+p.stem+' '+base64.b64encode(out.getvalue()).decode())
+          p=Path('/tmp/phone-map-proof/report.json')
+          if p.exists(): print(p.read_text())
+          PYPROOF
