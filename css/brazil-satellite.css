@@ -4,3 +4,4 @@
 .br-satellite-legend{max-height:68px;object-fit:contain}
 
 .brazil-satellite-control summary{gap:7px;min-height:36px}.brazil-satellite-control summary>span:first-of-type{flex:1}
+.brazil-satellite-control[hidden]{display:none!important}

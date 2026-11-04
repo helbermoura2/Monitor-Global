@@ -1,7 +1,7 @@
 name: Site basemap recovery
 on:
   push:
-    branches: [fix/site-basemap-recovery]
+    branches: [fix/site-basemap-recovery, fix/site-satellite-control]
 permissions:
   contents: read
 jobs:
