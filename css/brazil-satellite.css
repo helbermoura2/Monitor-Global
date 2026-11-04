@@ -5,3 +5,5 @@
 
 .brazil-satellite-control summary{gap:7px;min-height:36px}.brazil-satellite-control summary>span:first-of-type{flex:1}
 .brazil-satellite-control[hidden]{display:none!important}
+
+#site-satellite-controls{padding-top:36px}.br-satellite-close{position:absolute;right:6px;top:3px;width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:#d9f4ff;font:24px/1 system-ui;cursor:pointer}.br-satellite-close:focus-visible{outline:2px solid #8ee4ff}

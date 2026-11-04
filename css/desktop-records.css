@@ -10,9 +10,10 @@
  body.desktop-records-ready #chips-row>[data-f="earthquake"]{order:1}
  body.desktop-records-ready #chips-row>[data-f="volcano"]{order:2}
  body.desktop-records-ready #chips-row>[data-f="tsunami"]{order:3}
- body.desktop-records-ready #chips-row>#chip-election:not([hidden]){display:inline-flex!important;order:4}
+ body.desktop-records-ready #chips-row>#chip-satellite{order:4}
+ body.desktop-records-ready #chips-row>#chip-election:not([hidden]){display:inline-flex!important;order:5}
  body.desktop-records-ready #chip-election svg{display:none}
- body.desktop-records-ready #chips-row>#more-filters-toggle{order:5}
+ body.desktop-records-ready #chips-row>#more-filters-toggle{order:6}
  body.desktop-records-ready #chips-row>#chip-menu-desktop{order:7}
  body.desktop-records-ready #chips-row>#desktop-extra-filters{display:none;position:absolute;top:calc(100% + 10px);left:0;z-index:60;width:360px;max-width:calc(100vw - 32px);padding:12px;gap:8px;flex-wrap:wrap;border:1px solid #396077;border-radius:0 0 14px 14px;background:#081d2bf5;box-shadow:0 14px 30px #0008}
  body.desktop-records-ready #chips-row.expanded>#desktop-extra-filters{display:flex!important}
