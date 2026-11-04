@@ -7,20 +7,30 @@ layer='GOES-East_ABI_Band13_Clean_Infrared'
 def read(url):
  with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'MonitorGlobal/satellite-source-check'}),timeout=45) as r:return r.read(),dict(r.headers)
 base='https://gibs.earthdata.nasa.gov/'
-query={'SERVICE':'WMTS','REQUEST':'DescribeDomains','VERSION':'1.0.0','LAYER':layer,'TILEMATRIXSET':'GoogleMapsCompatible_Level6','TIME':(now-datetime.timedelta(days=1)).date().isoformat()+'/'+now.date().isoformat()}
-raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query));text=raw.decode();print('DOMAINS '+text[:16000],flush=True)
+caps,_=read(base+'wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml')
+root=ET.fromstring(caps)
+name=lambda e:e.tag.rsplit('}',1)[-1]
+node=next(e for e in root.iter() if name(e)=='Layer' and any(name(c)=='Identifier' and c.text==layer for c in e))
+matrices=[e.text for e in node.iter() if name(e)=='TileMatrixSet']
+legends=[v for e in node.iter() if name(e)=='LegendURL' for k,v in e.attrib.items() if k.endswith('href')]
+values=[e.text or '' for e in node.iter() if name(e) in ['Default','Value']]
+print('SOURCE_METADATA '+json.dumps({'matrix':matrices,'legends':legends,'timeValues':values}),flush=True)
+query={'SERVICE':'WMTS','REQUEST':'DescribeDomains','VERSION':'1.0.0','LAYER':layer,'TILEMATRIXSET':matrices[0],'TIME':(now-datetime.timedelta(hours=4)).isoformat().replace('+00:00','Z')+'/'+now.isoformat().replace('+00:00','Z')}
 try:
- root=ET.fromstring(raw)
- values=[e.text or '' for e in root.iter() if e.tag.rsplit('}',1)[-1]=='Domain']
- ends=[]
- for value in values:
-  for part in value.split(','):
-   pieces=part.strip().split('/')
-   if len(pieces)>=2:
-    try:ends.append(datetime.datetime.fromisoformat(pieces[1].replace('Z','+00:00')))
-    except ValueError:pass
- frame=min(max(ends),now) if ends else now-datetime.timedelta(minutes=40)
-except Exception:frame=now-datetime.timedelta(minutes=40)
+ raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query));print('DOMAINS '+raw.decode()[:16000],flush=True)
+ values=[e.text or '' for e in ET.fromstring(raw).iter() if name(e)=='Domain']
+except Exception as e:
+ print('DOMAINS_ERROR '+str(e)+(e.read().decode()[:1500] if hasattr(e,'read') else ''),flush=True)
+ends=[]
+for value in values:
+ for part in value.split(','):
+  pieces=part.strip().split('/')
+  for candidate in ([pieces[1]] if len(pieces)>=2 else pieces):
+   try:
+    dt=datetime.datetime.fromisoformat(candidate.replace('Z','+00:00'))
+    if dt.tzinfo and dt<=now:ends.append(dt)
+   except ValueError:pass
+frame=max(ends) if ends else now-datetime.timedelta(minutes=40)
 frame=frame.replace(minute=frame.minute//10*10,second=0,microsecond=0)
 for attempt in range(6):
  when=(frame-datetime.timedelta(minutes=10*attempt)).isoformat().replace('+00:00','Z')
