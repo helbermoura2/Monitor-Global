@@ -38,9 +38,22 @@ jobs:
       - name: Build and inspect APK
         working-directory: android-tv
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testReleaseUnitTest
+      - name: Verify actual infrared source image
+        run: |
+          python -m pip install --disable-pip-version-check Pillow
+          python .github/scripts/probe-tv-satellite.py
       - name: Check Android map graphics and cancellation lifecycle
         working-directory: android-tv
         run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testReleaseUnitTest
+      - name: Export satellite rendering proof in the job log
+        if: always()
+        run: |
+          python - <<'PYPROOF'
+          import pathlib,re
+          for p in pathlib.Path('android-tv/app/build/test-results').glob('**/TEST-*WeatherSatelliteTest.xml'):
+              for image in re.findall(r'TV_SATELLITE_PREVIEW_BASE64 ([A-Za-z0-9+/=]+)',p.read_text()):
+                  print('TV_SATELLITE_PREVIEW_BASE64 '+image)
+          PYPROOF
       - name: Verify distribution guards
         run: python -m unittest discover -s android-tv/tests/python
       - name: Verify published signature and migration artifacts
