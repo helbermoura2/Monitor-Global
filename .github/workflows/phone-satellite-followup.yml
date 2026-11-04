@@ -34,6 +34,9 @@ jobs:
           PYASSETS
       - name: Test the empty map and satellite controls
         run: node android-mobile/tools/check-phone-map-browser.cjs --asset-root /tmp/phone-map-assets --output-dir /tmp/phone-map-proof
+      - name: Install review image dependency
+        if: always()
+        run: python -m pip install --disable-pip-version-check Pillow
       - name: Export review image and report
         if: always()
         run: |

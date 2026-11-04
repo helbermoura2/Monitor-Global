@@ -34,7 +34,8 @@ import org.json.JSONObject;
 /** Local MapLibre page with a small ID-only bridge; no TV overlay or location permission. */
 final class PhoneMapView extends FrameLayout {
  interface Listener { void onEventSelected(Alert alert); }
- static final String PAGE="https://appassets.androidplatform.net/assets/phone-map.html";
+ static final String ASSET_PREFIX="/assets/v"+top.monitorglobal.mobile.BuildConfig.VERSION_CODE+"/";
+ static final String PAGE="https://appassets.androidplatform.net"+ASSET_PREFIX+"phone-map.html";
  private final Handler main=new Handler(Looper.getMainLooper());
  private final Listener listener;
  private final WebViewAssetLoader loader;
@@ -46,7 +47,7 @@ final class PhoneMapView extends FrameLayout {
 
  PhoneMapView(Context context,Listener selected){
   super(context);listener=selected;setBackgroundColor(0xff071724);
-  loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(context)).build();
+  loader=new WebViewAssetLoader.Builder().addPathHandler(ASSET_PREFIX,new WebViewAssetLoader.AssetsPathHandler(context)).build();
   open();
  }
  private void open(){
@@ -77,8 +78,8 @@ final class PhoneMapView extends FrameLayout {
    addView(current,new LayoutParams(-1,-1));current.loadUrl(PAGE);if(!active)current.onPause();
   }catch(RuntimeException failure){unavailable();}
  }
- static boolean mainPage(Uri uri){return localAsset(uri)&&"/assets/phone-map.html".equals(uri.getPath())&&uri.getQuery()==null;}
- static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/assets/");}
+ static boolean mainPage(Uri uri){return localAsset(uri)&&(ASSET_PREFIX+"phone-map.html").equals(uri.getPath())&&uri.getQuery()==null;}
+ static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith(ASSET_PREFIX);}
  static boolean tileResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Imagery/MapServer/tile/");}
  static boolean satelliteResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String p=uri.getPath();if("/legends/Clean_Longwave_Infrared_Window_Band_H.png".equals(p))return true;String layer=uri.getQueryParameter("LAYERS");if(layer==null)layer=uri.getQueryParameter("LAYER");return "GOES-East_ABI_Band13_Clean_Infrared".equals(layer)&&("/wms/epsg3857/best/wms.cgi".equals(p)||"/wmts/epsg3857/best/wmts.cgi".equals(p));}
  static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.earthdata.nasa.gov".equalsIgnoreCase(host)||"www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host);}

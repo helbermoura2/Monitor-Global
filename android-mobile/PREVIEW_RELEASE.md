@@ -1,5 +1,7 @@
-Monitor Global para celular · Android de teste 0.1.3.
+Monitor Global para celular · Android de teste 0.1.4.
 
+- Arquivos locais do mapa identificados por versão, para evitar recursos antigos após atualizar o aplicativo.
+- Controles do satélite acessíveis com a lista de eventos vazia; falhas de inicialização agora têm mensagem e opção de recarregar.
 - Satélite infravermelho GOES-East sobre o Brasil, com quadros e legenda da NASA/NOAA. Use o botão Brasil no mapa para enquadrar o país.
 - Horário real do quadro em Brasília; a fonte pode apresentar defasagem. Não é radar de chuva.
 - Animação curta sob comando, recorte nacional e pausa em segundo plano.

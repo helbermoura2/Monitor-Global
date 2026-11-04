@@ -6,6 +6,7 @@ const {chromium}=require('@playwright/test');
 const args=process.argv.slice(2);
 function option(name){const i=args.indexOf(name);if(i<0)return null;if(!args[i+1]||args[i+1].startsWith('--'))throw new Error(name+' exige um valor');return args[i+1];}
 const apk=option('--apk'),assetRoot=option('--asset-root');
+const build=fs.readFileSync(path.join(__dirname,'../app/build.gradle'),'utf8').match(/versionCode\s+(\d+)/)[1],assetPrefix='/assets/v'+build+'/';
 if(Boolean(apk)===Boolean(assetRoot))throw new Error('Use --apk arquivo.apk OU --asset-root pasta/contendo/phone-map.html');
 const output=path.resolve(option('--output-dir')||path.join(__dirname,'../app/build/reports/map-browser'));
 fs.mkdirSync(output,{recursive:true});
@@ -40,8 +41,8 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  await page.route('**/*',async route=>{
   const u=new URL(route.request().url());
   if(u.origin==='https://appassets.androidplatform.net'&&u.pathname==='/favicon.ico')return route.fulfill({status:204});
-  if(u.origin==='https://appassets.androidplatform.net'&&u.pathname.startsWith('/assets/')){
-   const file=path.resolve(assets,decodeURIComponent(u.pathname.slice(8)));
+  if(u.origin==='https://appassets.androidplatform.net'&&u.pathname.startsWith(assetPrefix)){
+   const file=path.resolve(assets,decodeURIComponent(u.pathname.slice(assetPrefix.length)));
    if(!file.startsWith(assets+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){unexpected.push(u.pathname);return route.fulfill({status:404,body:'Recurso ausente no APK'});}
    const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.ttf':'font/ttf','.png':'image/png'}[path.extname(file)]||'application/octet-stream';
    return route.fulfill({status:200,contentType:mime,body:fs.readFileSync(file)});
@@ -54,7 +55,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   unexpected.push(u.href);return route.abort();
  });
  try{
-  await page.goto('https://appassets.androidplatform.net/assets/phone-map.html');
+  await page.goto('https://appassets.androidplatform.net'+assetPrefix+'phone-map.html');
   await page.waitForFunction(()=>window.MonitorMap&&document.querySelector('.maplibregl-canvas')&&document.querySelectorAll('.maplibregl-ctrl-group').length>0&&document.getElementById('notice').hidden,null,{timeout:20000});
   const state=await page.evaluate(()=>{const canvas=document.querySelector('.maplibregl-canvas');return {canvasWidth:canvas.width,canvasHeight:canvas.height,webgl2:!!canvas.getContext('webgl2'),version:maplibregl.getVersion(),controls:document.querySelectorAll('.maplibregl-ctrl-group').length,attribution:document.querySelector('.maplibregl-ctrl-attrib').textContent};});
   assert.ok(state.canvasWidth>0&&state.canvasHeight>0);assert.ok(state.webgl2,'canvas possui contexto WebGL2 real');assert.ok(state.controls>0);assert.ok(tiles>0,'raster solicita e decodifica os tiles locais');assert.match(state.attribution,/Esri/);
@@ -71,6 +72,15 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   await page.waitForFunction(()=>window.__mapSelected==='map-test',null,{timeout:5000});assert.equal(await page.locator('.maplibregl-popup img').count(),0);assert.equal(await page.evaluate(()=>window.__mapInjected),false);
   await page.screenshot({path:path.join(output,'map-ready.png')});
   assert.deepEqual(unexpected,[],'nenhuma rede fora dos recursos controlados');assert.deepEqual(errors,[],'sem erros JavaScript, CSP ou worker');
-  const report={passed:true,...state,tiles,workers:workers.length,tileMode:'fixture PNG local; sem acesso à rede externa'};fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+  // A missing optional module must leave explicit feedback, rather than silently show only the basemap.
+  await page.addInitScript(()=>Object.defineProperty(window,'BrazilSatellite',{get:()=>undefined,set:()=>{},configurable:true}));
+  await page.goto('https://appassets.androidplatform.net'+assetPrefix+'phone-map.html');
+  await page.waitForFunction(()=>document.getElementById('notice').textContent.includes('iniciar o satélite'));
+  assert.equal(await page.locator('#retry').isVisible(),true);
+  assert.equal(await page.locator('#empty').isVisible(),false,'a lista vazia não encobre a falha de inicialização');
+  assert.equal(await page.locator('.maplibregl-canvas').count(),1,'mapa base permanece disponível');
+  assert.deepEqual(unexpected,[],'somente recursos autorizados, incluindo o namespace desta versão');
+  assert.deepEqual(errors,[],'a falha do módulo permanece controlada');
+  const report={passed:true,assetPrefix,...state,tiles,workers:workers.length,tileMode:'fixture PNG local; sem acesso à rede externa'};fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
  }catch(error){await page.screenshot({path:path.join(output,'map-failure.png')}).catch(()=>{});const report={passed:false,errors,unexpected,tiles,workers,error:String(error)};fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.error(JSON.stringify(report));throw error;}
 })().catch(error=>{console.error(error.stack||error);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(temporary)fs.rmSync(temporary,{recursive:true,force:true});});

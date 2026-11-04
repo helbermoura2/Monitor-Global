@@ -8,6 +8,18 @@ public class PhoneMapViewTest {
   assertTrue(PhoneMapView.mainPage(Uri.parse(PhoneMapView.PAGE)));assertFalse(PhoneMapView.mainPage(Uri.parse(PhoneMapView.PAGE+"?url=https://evil.example")));assertFalse(PhoneMapView.mainPage(Uri.parse("file:///android_asset/phone-map.html")));assertFalse(PhoneMapView.mainPage(Uri.parse("https://evil.example/assets/phone-map.html")));
   assertTrue(PhoneMapView.tileResource(Uri.parse("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/3/2/1")));assertFalse(PhoneMapView.tileResource(Uri.parse("http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/3/2/1")));assertFalse(PhoneMapView.tileResource(Uri.parse("https://server.arcgisonline.com/evil.js")));assertFalse(PhoneMapView.localAsset(Uri.parse("https://user@appassets.androidplatform.net/assets/phone-map.html")));
  }
+ @Test public void versionedLocalFilesUseTheActualAssetLoader()throws Exception{
+  assertTrue(PhoneMapView.PAGE.contains("/assets/v"+top.monitorglobal.mobile.BuildConfig.VERSION_CODE+"/"));
+  assertFalse(PhoneMapView.localAsset(Uri.parse("https://appassets.androidplatform.net/assets/phone-map.js")));
+  assertFalse(PhoneMapView.mainPage(Uri.parse("https://appassets.androidplatform.net/assets/phone-map.html")));
+  PhoneMapView view=new PhoneMapView(RuntimeEnvironment.getApplication(),a->{});
+  try{androidx.webkit.WebViewAssetLoader loader=(androidx.webkit.WebViewAssetLoader)field(view,"loader");
+   for(String name:Arrays.asList("phone-map.html","phone-map.js","brazil-satellite.js","brazil-satellite-model.js","brazil-satellite.css","data/brazil-satellite-border.json")){
+    android.webkit.WebResourceResponse response=loader.shouldInterceptRequest(Uri.parse("https://appassets.androidplatform.net"+PhoneMapView.ASSET_PREFIX+name));
+    assertNotNull(name,response);assertNotNull(name,response.getData());assertFalse(name,"text/plain".equals(response.getMimeType()));response.getData().close();
+   }
+  }finally{view.close();}
+ }
  @Test public void satelliteRequestsAreRestrictedToTheOfficialLayer(){
   String base="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?LAYERS=";
   assertTrue(PhoneMapView.satelliteResource(Uri.parse(base+"GOES-East_ABI_Band13_Clean_Infrared")));assertFalse(PhoneMapView.satelliteResource(Uri.parse(base+"arbitrary-layer")));assertFalse(PhoneMapView.satelliteResource(Uri.parse(base.replace("https:","http:")+"GOES-East_ABI_Band13_Clean_Infrared")));assertFalse(PhoneMapView.satelliteResource(Uri.parse("https://evil.example/wms/epsg3857/best/wms.cgi?LAYERS=GOES-East_ABI_Band13_Clean_Infrared")));
