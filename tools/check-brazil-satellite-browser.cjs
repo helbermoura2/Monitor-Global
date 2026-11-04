@@ -12,7 +12,7 @@ const transparentTile=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmA
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{const u=new URL(route.request().url());
   if(u.hostname==='monitor-satellite.test'){
-   if(u.pathname==='/favicon.ico')return route.fulfill({status:204});let file=path.resolve(root,'.'+u.pathname);if(!file.startsWith(root+path.sep))return route.abort();if(fs.existsSync(file)&&fs.statSync(file).isDirectory())file=path.join(file,'index.html');if(!fs.existsSync(file))return route.fulfill({status:404});return route.fulfill({status:200,contentType:({'.js':'text/javascript','.json':'application/json','.css':'text/css','.html':'text/html','.png':'image/png'})[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
+   if(u.pathname==='/favicon.ico')return route.fulfill({status:204});let file=path.resolve(root,'.'+u.pathname);if(file!==root&&!file.startsWith(root+path.sep))return route.abort();if(fs.existsSync(file)&&fs.statSync(file).isDirectory())file=path.join(file,'index.html');if(!fs.existsSync(file))return route.fulfill({status:404});return route.fulfill({status:200,contentType:({'.js':'text/javascript','.json':'application/json','.css':'text/css','.html':'text/html','.png':'image/png'})[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
   }
   if(u.hostname==='gibs.earthdata.nasa.gov'){
    requests.push(u.href);
