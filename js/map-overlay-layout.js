@@ -1,7 +1,7 @@
 /* Coordinate overlays on UI changes, never on animation frames or map movement. */
 (function(){
  'use strict';
- const selector='.wave-front-status,.seismic-impact-status,#mobile-notice-stack,#tsunami-map-legend,.felt-reports-legend,#cyclone-map-legend';
+ const selector='.wave-front-status,.seismic-impact-status,#mobile-notice-stack,#tsunami-map-legend,.felt-reports-legend,#cyclone-map-legend,.brazil-satellite-control';
  let frame=0,observer,resize,inline;
  const tracked=new Set();
  const visible=el=>!!el&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden'&&getComputedStyle(el).display!=='none';
@@ -33,18 +33,18 @@
   for(const el of elements){
    if(!tracked.has(el)){tracked.add(el);resize?.observe(el);}
    if(!el.classList.contains('mg-overlay-managed'))el.classList.add('mg-overlay-managed');
-   const isLegend=el.matches('#tsunami-map-legend,.felt-reports-legend,#cyclone-map-legend');
+   const satellite=el.matches('.brazil-satellite-control'),isLegend=satellite||el.matches('#tsunami-map-legend,.felt-reports-legend,#cyclone-map-legend');
    const dockThis=dock||el.id==='mobile-notice-stack'&&!!p&&!panel.classList.contains('pd-flip-girado')&&width<280;
    if(el.id==='mobile-notice-stack')el.classList.toggle('notice-inline',dockThis);
-   if(dockThis&&inline){if(el.parentElement!==inline)inline.append(el);el.classList.add('mg-overlay-inline');if(isLegend)foldLegend(el,true);continue;}
+   if(dockThis&&inline){if(el.parentElement!==inline)inline.append(el);el.classList.add('mg-overlay-inline');if(isLegend&&!satellite)foldLegend(el,true);continue;}
    el.classList.remove('mg-overlay-inline');if(el.parentElement!==host)host.append(el);
    if(!visible(el))continue;
-   style(el,'--overlay-left',center+'px');style(el,'--overlay-width',Math.min(isLegend?440:el.id==='mobile-notice-stack'?540:600,width)+'px');
+   style(el,'--overlay-left',center+'px');style(el,'--overlay-width',Math.min(satellite?276:isLegend?440:el.id==='mobile-notice-stack'?540:600,width)+'px');
    if(isLegend){legends.push(el);continue;}
    style(el,'--overlay-top',top+'px');top+=el.getBoundingClientRect().height+8;
   }
   // Bottom legends share the free area, instead of occupying independent fixed offsets.
-  for(const el of legends){const room=Math.max(40,bottom-top);foldLegend(el,room<180);style(el,'--overlay-max-height',Math.max(40,Math.floor(room/legends.length)-8)+'px');const height=el.getBoundingClientRect().height;style(el,'--overlay-top',Math.max(top,bottom-height)+'px');bottom-=height+8;}
+  for(const el of legends){const room=Math.max(40,bottom-top);if(!el.matches('.brazil-satellite-control'))foldLegend(el,room<180);style(el,'--overlay-max-height',Math.max(40,Math.floor(room/legends.length)-8)+'px');const height=el.getBoundingClientRect().height;style(el,'--overlay-top',Math.max(top,bottom-height)+'px');bottom-=height+8;}
   if(inline)inline.hidden=![...inline.children].some(el=>!el.hidden&&getComputedStyle(el).display!=='none');
   for(const el of tracked)if(!el.isConnected){resize?.unobserve(el);tracked.delete(el);}
  }
