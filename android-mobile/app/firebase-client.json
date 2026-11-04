@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "6917338708",
+    "project_id": "monitor-global-2e5ea",
+    "storage_bucket": "monitor-global-2e5ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6917338708:android:c669f468ea55849683dfc1",
+        "android_client_info": {
+          "package_name": "top.monitorglobal.mobile.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbgP_mjEgrCk4LrxM6HfufX9sY8riHV8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
