@@ -1,4 +1,4 @@
-# Monitor Global para Android — prévia 0.1.2
+# Monitor Global para Android — prévia 0.1.3
 
 Primeiro aplicativo de celular, independente da instalação da TV. O APK de teste usa o pacote `top.monitorglobal.mobile.dev`; a aplicação principal é `top.monitorglobal.mobile`. O código de apresentação Java mantém o pacote legado dos modelos compartilhados, enquanto namespace, manifesto, recursos e canal de distribuição são próprios do celular.
 
@@ -39,3 +39,5 @@ Não se deve distribuir o APK release sem assinatura produzido apenas para verif
 ## Limites
 
 Meteorologia permanece na cobertura real da Liberdade. Horas futuras não são inventadas a partir de uma única observação horária. Dados de danos ausentes são apresentados como sem informação; magnitude não é uma estimativa oficial de danos. Mapas e alertas preservam as atribuições e limitações das fontes.
+
+O mapa inclui satélite GOES-East infravermelho via NASA GIBS. O recorte é o território brasileiro (contorno IBGE local), com projeção Mercator preservada. O botão Brasil enquadra o país somente por ação do usuário. O horário publicado pela fonte aparece em BRT e imagens antigas são identificadas; não há promessa de tempo real. Animação usa no máximo seis quadros e 12 MiB de imagens comprimidas, com pausa fora da área e em segundo plano. Isso não é radar observado nem estimativa de milímetros de chuva.

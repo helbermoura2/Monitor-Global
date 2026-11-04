@@ -12,7 +12,7 @@ assert "android.permission.INTERNET" in permissions
 with tempfile.TemporaryDirectory(prefix="monitor-phone-assets-") as temporary:
     assets = pathlib.Path(temporary)
     with zipfile.ZipFile(apk) as packaged:
-        for name in ["phone-map.html", "phone-map.js", "phone-map.css", "vendor/maplibre-gl.js", "vendor/maplibre-gl.css"]:
+        for name in ["phone-map.html", "phone-map.js", "phone-map.css", "vendor/maplibre-gl.js", "vendor/maplibre-gl.css", "brazil-satellite.js", "brazil-satellite-model.js", "brazil-satellite.css", "data/brazil-satellite-border.json"]:
             target = assets / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(packaged.read("assets/" + name))

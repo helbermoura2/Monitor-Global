@@ -13,7 +13,8 @@ for matrix in ['GoogleMapsCompatible_Level7','GoogleMapsCompatible_Level6','Goog
  try:
   raw,headers=read(base+'wmts/epsg3857/best/wmts.cgi?'+urllib.parse.urlencode(query,safe="/:"));print('DOMAINS '+raw.decode()[:16000],flush=True)
   values=[e.text or '' for e in ET.fromstring(raw).iter() if e.tag.rsplit('}',1)[-1]=='Domain']
-  if values:break
+  if values:
+   Path('/tmp/satellite-probe-domains.xml').write_bytes(raw);break
  except Exception as e:print('DOMAINS_ERROR '+matrix+' '+str(e)+(e.read().decode()[:2000] if hasattr(e,'read') else ''),flush=True)
 ends=[]
 for value in values:
@@ -38,7 +39,11 @@ for attempt in range(6):
   break
  except Exception as e:print('FRAME_ERROR '+str(e),flush=True)
 else:raise SystemExit('No nonempty recent frame confirmed')
-for candidate in ['https://gibs.earthdata.nasa.gov/colormaps/v1.3/'+layer+'.xml','https://gibs.earthdata.nasa.gov/colormaps/v1.0/'+layer+'.xml']:
+for candidate in ['https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml','https://gibs.earthdata.nasa.gov/colormaps/v1.3/'+layer+'.xml','https://gibs.earthdata.nasa.gov/colormaps/v1.0/'+layer+'.xml']:
  try:
   data,h=read(candidate);print('COLORMAP '+data.decode()[:24000],flush=True);break
  except Exception as e:print('COLORMAP_ERROR '+str(e),flush=True)
+
+try:
+ data,h=read('https://gibs.earthdata.nasa.gov/legends/Clean_Longwave_Infrared_Window_Band_H.png');Path('/tmp/satellite-probe-legend.png').write_bytes(data);im=Image.open(io.BytesIO(data));print('LEGEND '+json.dumps({'size':im.size}),flush=True);print('LEGEND_PREVIEW_BASE64 '+base64.b64encode(data).decode(),flush=True)
+except Exception as e:print('LEGEND_ERROR '+str(e),flush=True)
