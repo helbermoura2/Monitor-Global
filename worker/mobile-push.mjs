@@ -28,7 +28,7 @@ export function createDispatcher({storage,read,send,clock=Date.now}){
 let access;
 const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 const encoded=value=>b64(new TextEncoder().encode(JSON.stringify(value)));
-export async function sendFcm(env,message,request=fetch,now=Date.now()){
+export async function sendFcm(env,message,request=fetch,now=Date.now(),validateOnly=false){
  const account=JSON.parse(env.FIREBASE_SERVICE_ACCOUNT||'{}');if(!/^[a-z][a-z0-9-]{4,62}$/.test(account.project_id||'')||typeof account.client_email!=='string'||typeof account.private_key!=='string')throw Error('Firebase service account missing or invalid');
  if(!access||access.project!==account.project_id||access.email!==account.client_email||access.until<=now){
   const payload=encoded({alg:'RS256',typ:'JWT'})+'.'+encoded({iss:account.client_email,scope:'https://www.googleapis.com/auth/firebase.messaging',aud:'https://oauth2.googleapis.com/token',iat:Math.floor(now/1000),exp:Math.floor(now/1000)+3600});
@@ -39,8 +39,8 @@ export async function sendFcm(env,message,request=fetch,now=Date.now()){
   const data=await response.json();if(!response.ok||typeof data.access_token!=='string')throw Error('Firebase authorization failed');
   access={project:account.project_id,email:account.client_email,token:data.access_token,until:now+Math.min(Number(data.expires_in)||300,3500)*1000-30000};
  }
- const response=await request('https://fcm.googleapis.com/v1/projects/'+account.project_id+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message}),signal:AbortSignal.timeout(8000)});
- if(!response.ok){if(response.status===401)access=null;throw Error('Firebase delivery failed: HTTP '+response.status);}
+ const response=await request('https://fcm.googleapis.com/v1/projects/'+account.project_id+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message,...(validateOnly?{validate_only:true}:{})}),signal:AbortSignal.timeout(8000)});
+ if(!response.ok){if(response.status===401)access=null;const data=await response.json().catch(()=>({}));const reasons=(data.error?.details||[]).map(x=>x.reason).filter(x=>typeof x==='string'&&/^[A-Z_]{1,80}$/.test(x));throw Error('Firebase delivery failed: HTTP '+response.status+(reasons.length?' '+reasons.join(','):''));}
 }
 export class MobilePushDelivery {
  constructor(state,env){this.state=state;this.env=env;this.queue=Promise.resolve();}
