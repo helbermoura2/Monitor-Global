@@ -13,7 +13,7 @@ async function verifyViewport(page){
   for(const key of ['app','wrap','container','canvas'])assert(Math.abs(state[key].bottom-state.viewport)<1,key+' must reach the browser viewport bottom: '+JSON.stringify(state));
   assert(state.sameMap,'viewport updates must preserve the map instance');return state;
  };
- await page.addStyleTag({content:'@media(min-width:901px){#app{height:calc(100vh - 56px)!important}}'});
+ await page.addStyleTag({content:'@media(min-width:901px){body #app{height:calc(100vh - 56px)!important}}'});
  await page.evaluate(()=>{
   // Emulate a browser retaining its smaller dynamic/visual viewport after
   // chrome disappears. A normal inline height cannot beat the CSS rule.
