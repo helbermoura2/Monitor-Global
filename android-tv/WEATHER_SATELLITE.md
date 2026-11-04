@@ -1,6 +1,6 @@
-# Satélite meteorológico na TV — 1.0.47
+# Satélite meteorológico na TV — 1.0.48
 
-O boletim horário mantém o cartão de condições do tempo por 12 segundos. Com “Satélite do Sudeste após o boletim do tempo” ativado, uma imagem infravermelha estática aparece em seguida por 15 segundos no canto superior direito, sem capturar comandos ou ocupar a tela inteira. A consulta começa apenas quando o boletim pode ser exibido. Fontes lentas ou sem imagem válida são dispensadas nessa apresentação. Alertas reais, resumos sísmicos e tela desligada cancelam imediatamente a sequência e sua consulta.
+O boletim horário mantém o cartão de condições do tempo por 12 segundos. Com “Satélite do Sudeste após o boletim do tempo” ativado, uma imagem infravermelha estática aparece em seguida por 15 segundos no canto superior direito, sem capturar comandos ou ocupar a tela inteira. A consulta começa durante a preparação do boletim, incluindo a contagem manual de 10 segundos. Se a imagem ainda não chegou ao fim do boletim, um cartão compacto informa o carregamento por até 20 segundos. Quando a fonte falha ou esse prazo termina, aparece uma mensagem de indisponibilidade por 8 segundos. A imagem válida permanece por 15 segundos. A apresentação manual não é cancelada por uma nova verificação com os modos automáticos desligados. Alertas reais, resumos sísmicos e tela desligada cancelam imediatamente a sequência e sua consulta.
 
 “Ver satélite do Brasil · controle remoto” abre um visualizador manual com Brasil/Sudeste, Atualizar e animação explícita dos horários informados pela fonte. Voltar continua disponível durante o carregamento. Sair ou colocar o aplicativo em segundo plano cancela consultas e libera imagens. Não há reprodução contínua em segundo plano.
 
