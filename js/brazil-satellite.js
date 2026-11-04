@@ -1,6 +1,6 @@
 /* A bounded regional canvas: no whole-world tiles or permanent animation loop. */
 (function(){'use strict';const M=window.BrazilSatelliteModel,instances=new WeakMap(),SOURCE='br-satellite-source',LAYER='br-satellite-layer';
- function create({map,host=map.getContainer(),borderUrl='data/brazil-satellite-border.json',enabled=true}={}){
+ function create({map,host=map.getContainer(),borderUrl='data/brazil-satellite-border.json',enabled=true,regionalControl=false}={}){
   if(instances.has(map))return instances.get(map);const canvas=document.createElement('canvas');canvas.width=canvas.height=M.SIZE;const work=document.createElement('canvas');work.width=work.height=M.SIZE;const ctx=work.getContext('2d',{willReadFrequently:true}),display=canvas.getContext('2d');
   const panel=document.createElement('section');panel.className='brazil-satellite-control';panel.setAttribute('aria-label','Satélite infravermelho do Brasil');panel.innerHTML='<details><summary><input type="checkbox" checked aria-label="Exibir satélite no Brasil"><span>Satélite · Brasil</span><span class="br-satellite-expand">⌄</span></summary><div class="br-satellite-options"><div class="br-satellite-buttons"><button type="button" data-action="play">▶ Animar</button><button type="button" data-action="latest">Último quadro</button><button type="button" data-action="brasil">Brasil</button></div><label class="br-satellite-range">Histórico <input type="range" data-action="frame" min="0" max="0" value="0" aria-label="Quadro do satélite"></label><label class="br-satellite-range">Opacidade <input type="range" data-action="opacity" min="25" max="100" value="88" aria-label="Opacidade do satélite"></label><img class="br-satellite-legend" src="https://gibs.earthdata.nasa.gov/legends/Clean_Longwave_Infrared_Window_Band_H.png" alt="Escala de temperatura de brilho infravermelha em graus Celsius"><small>Temperatura de brilho · °C (NASA/NOAA)<br>Infravermelho · não mede intensidade da chuva</small></div></details><p class="br-satellite-status" role="status">Consultando horários da fonte…</p><a href="https://www.earthdata.nasa.gov/data/projects/gibs" target="_blank" rel="noopener">GOES-East · NASA GIBS / NOAA</a>';
   host.appendChild(panel);const checkbox=panel.querySelector('input[type=checkbox]'),status=panel.querySelector('.br-satellite-status'),slider=panel.querySelector('[data-action=frame]'),play=panel.querySelector('[data-action=play]');
@@ -8,6 +8,14 @@
   checkbox.checked=enabled;
   const valid=()=>!dead&&live&&active&&!document.hidden;
   function inView(){try{return M.intersects(map.getBounds());}catch{return false;}}
+  function updatePanel(){
+   if(!regionalControl){panel.hidden=false;return;}
+   // Globe bounds can span Brazil even while focusing on its opposite hemisphere.
+   // Only the site's control follows the current region; the imagery stays enabled.
+   const center=map.getCenter(),lng=((center.lng+180)%360+360)%360-180;
+   panel.hidden=regionalControl&&!(lng>=M.BOUNDS[0]&&lng<=M.BOUNDS[2]&&center.lat>=M.BOUNDS[1]&&center.lat<=M.BOUNDS[3]);
+   if(panel.hidden)panel.querySelector('details').open=false;
+  }
   function note(text){status.textContent=text;}
   function stamp(){if(!dataAt)return;const age=Date.now()-dataAt;note(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(dataAt))+' BRT'+' · há '+Math.max(0,Math.floor(age/60000))+' min'+(age>5400000?' · imagem antiga':''));status.dataset.stale=String(age>5400000);}
   function clearTimers(){clearTimeout(poll);clearTimeout(animation);clearTimeout(restoreTimer);poll=animation=restoreTimer=null;}
@@ -33,7 +41,7 @@
   function pause(){clearTimers();serial++;controller?.abort();controller=null;busy=false;}
   function activate(value){live=value;checkbox.checked=value;try{localStorage.setItem('mg-br-satellite',value?'on':'off');}catch{}if(!value){pause();playing=false;play.textContent='▶ Animar';removeLayer();cache.clear();cacheBytes=0;dataAt=0;canvas.width=canvas.height=work.width=work.height=1;panel.dataset.ready='false';note('Camada desativada.');}else refresh(true);}
   const api={setActive(value){active=value;if(!value)pause();else if(live){if(dataAt){stamp();install();}refresh();if(playing)step();}},destroy(){if(dead)return;dead=true;pause();removeLayer();cache.clear();border=null;canvas.width=canvas.height=work.width=work.height=1;panel.remove();map.off('moveend',move);map.off('style.load',style);map.off('styledata',style);map.off('remove',api.destroy);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',api.destroy);instances.delete(map);},get state(){return {enabled:live,active,dataAt,frames:times.slice(),cacheBytes,playing};}};
-  function move(){if(!inView()){clearTimers();return;}if(valid()){refresh();if(playing&&!animation)step();}}
+  function move(){updatePanel();if(!inView()){clearTimers();return;}if(valid()){refresh();if(playing&&!animation)step();}}
   function visibility(){if(document.hidden)pause();else if(valid()){if(dataAt){stamp();install();}refresh();if(playing)step();}}
   function style(){if(!valid()||!dataAt||map.getSource(SOURCE)&&map.getLayer(LAYER))return;clearTimeout(restoreTimer);restoreTimer=setTimeout(()=>{restoreTimer=null;if(valid()&&map.isStyleLoaded()&&(!map.getSource(SOURCE)||!map.getLayer(LAYER)))install();},0);}
   checkbox.addEventListener('click',e=>e.stopPropagation());checkbox.addEventListener('change',()=>activate(checkbox.checked));
@@ -44,9 +52,9 @@
   slider.addEventListener('input',()=>{playing=false;play.textContent='▶ Animar';clearTimeout(animation);show(Number(slider.value));});
   panel.querySelector('[data-action=opacity]').addEventListener('input',e=>{opacity=Number(e.target.value)/100;if(map.getLayer(LAYER))map.setPaintProperty(LAYER,'raster-opacity',opacity);});
   for(const event of ['pointerdown','touchstart','dblclick'])panel.addEventListener(event,e=>e.stopPropagation(),{passive:true});
-  map.on('moveend',move);map.on('style.load',style);map.on('styledata',style);map.on('remove',api.destroy);document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',api.destroy);instances.set(map,api);if(enabled)refresh(true);else note('Camada desativada.');return api;
+  map.on('moveend',move);map.on('style.load',style);map.on('styledata',style);map.on('remove',api.destroy);document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',api.destroy);instances.set(map,api);updatePanel();if(enabled)refresh(true);else note('Camada desativada.');return api;
  }
- function attachSite(m){if(!m||typeof m.addSource!=='function'||document.documentElement.dataset.satelliteAuto==='off')return null;let enabled=true;try{enabled=localStorage.getItem('mg-br-satellite')!=='off';}catch{}return create({map:m,enabled});}
+ function attachSite(m){if(!m||typeof m.addSource!=='function'||document.documentElement.dataset.satelliteAuto==='off')return null;let enabled=true;try{enabled=localStorage.getItem('mg-br-satellite')!=='off';}catch{}return create({map:m,enabled,regionalControl:true});}
  window.BrazilSatellite={create,attachSite};
  window.addEventListener('load',()=>{if(typeof map!=='undefined'&&map&&window.__mgMapReady)attachSite(map);});
 })();
