@@ -59,6 +59,13 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   const state=await page.evaluate(()=>{const canvas=document.querySelector('.maplibregl-canvas');return {canvasWidth:canvas.width,canvasHeight:canvas.height,webgl2:!!canvas.getContext('webgl2'),version:maplibregl.getVersion(),controls:document.querySelectorAll('.maplibregl-ctrl-group').length,attribution:document.querySelector('.maplibregl-ctrl-attrib').textContent};});
   assert.ok(state.canvasWidth>0&&state.canvasHeight>0);assert.ok(state.webgl2,'canvas possui contexto WebGL2 real');assert.ok(state.controls>0);assert.ok(tiles>0,'raster solicita e decodifica os tiles locais');assert.match(state.attribution,/Esri/);
   await page.waitForFunction(()=>document.querySelector('.brazil-satellite-control')?.dataset.ready==='true',null,{timeout:15000});
+  await page.screenshot({path:path.join(output,'map-empty.png')});
+  await page.locator('.brazil-satellite-control summary').click({timeout:5000});
+  assert.equal(await page.locator('.brazil-satellite-control details').getAttribute('open'),'');
+  await page.locator('.brazil-satellite-control').getByRole('button',{name:'Brasil',exact:true}).click();
+  await page.evaluate(()=>{MonitorMap.pause();MonitorMap.resume();});
+  assert.equal(await page.locator('.brazil-satellite-control').count(),1,'retomar não duplica os controles');
+  await page.locator('.brazil-satellite-control summary').click();
   await page.evaluate(()=>{window.__mapSelected=null;window.__mapInjected=false;window.MonitorMapBridge={selectEvent(id){window.__mapSelected=id;}};window.MonitorMap.setEvents([{id:'map-test',kind:'earthquake',title:'M6,0 · Exemplo <img src=x onerror="window.__mapInjected=true">',longitude:85,latitude:27}]);});
   await page.locator('.marker').click();await page.getByRole('button',{name:'Ver detalhes',exact:true}).click();
   await page.waitForFunction(()=>window.__mapSelected==='map-test',null,{timeout:5000});assert.equal(await page.locator('.maplibregl-popup img').count(),0);assert.equal(await page.evaluate(()=>window.__mapInjected),false);
