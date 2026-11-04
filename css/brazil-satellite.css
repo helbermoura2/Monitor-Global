@@ -2,3 +2,5 @@
 .br-satellite-legend{display:block;width:100%;height:auto;margin:8px 0 4px;background:#fff;border-radius:3px}.br-satellite-buttons{flex-wrap:wrap}.br-satellite-buttons button{font-size:11px}
 
 .br-satellite-legend{max-height:68px;object-fit:contain}
+
+.brazil-satellite-control summary{gap:7px;min-height:36px}.brazil-satellite-control summary>span:first-of-type{flex:1}
