@@ -32,6 +32,7 @@ for i in range(6):
     if image.size==(512,height) and coverage>.999:
         Path('/tmp/tv-satellite-real.png').write_bytes(data)
         Path('/tmp/tv-satellite-time.txt').write_text(str(int(at.timestamp()*1000)))
+        Path('/tmp/tv-satellite-now.txt').write_text(str(int(now.timestamp()*1000)))
         Path('/tmp/tv-satellite-legend.png').write_bytes(read(root+'legends/Clean_Longwave_Infrared_Window_Band_H.png'))
         break
 else: raise SystemExit('No complete current regional source image')
