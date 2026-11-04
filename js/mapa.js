@@ -206,7 +206,7 @@ function initMap() {
         // nesse estado em vários browsers/GPUs, então o painel/sidebar
         // ficam com o vidro composto sobre um fundo que o navegador enxerga
         // como vazio, em vez do mapa de verdade (mesmo com o CSS 100% certo).
-        preserveDrawingBuffer: true
+        canvasContextAttributes: { preserveDrawingBuffer: true }
     });
 
     window.AppRecovery?.attach(map);
