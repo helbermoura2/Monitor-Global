@@ -25,7 +25,7 @@
   function schedule(){clearTimeout(poll);if(valid()&&inView())poll=setTimeout(()=>refresh(),300000);}
   async function refresh(force=false){
    if(!valid()||!inView()||busy)return;if(!force&&dataAt&&Date.now()-lastQuery<300000){schedule();return;}lastQuery=Date.now();busy=true;const token=++serial;const operation=new AbortController();controller=operation;const timeout=setTimeout(()=>operation.abort(),15000);
-   try{const xml=await(await read(M.domainUrl(),operation.signal)).text();const frames=M.frames(xml);if(!valid()||token!==serial)return;clearTimeout(timeout);times=frames;slider.max=String(times.length-1);for(const [time,blob]of cache)if(!times.includes(time)){cache.delete(time);cacheBytes-=blob.size;}busy=false;const candidates=times.slice(-3).reverse();for(const time of candidates){if(!valid())break;const index=times.indexOf(time);if(index>=0&&await show(index))break;}
+   try{const xml=await(await read(M.domainUrl(),operation.signal)).text();const frames=M.frames(xml);if(!valid()||token!==serial)return;clearTimeout(timeout);times=frames;slider.max=String(times.length-1);for(const [time,blob]of cache)if(!times.includes(time)){cache.delete(time);cacheBytes-=blob.size;}busy=false;const candidates=times.slice().reverse();for(const time of candidates){if(!valid())break;const index=times.indexOf(time);if(index>=0&&await show(index))break;}
    }catch{if(valid()&&token===serial){if(dataAt){stamp();note(status.textContent+' · horários indisponíveis');}else note('Horários do satélite indisponíveis; nenhuma imagem estimada.');}}
    finally{clearTimeout(timeout);if(token===serial){busy=false;controller=null;}schedule();}
   }
