@@ -1,4 +1,4 @@
-# Monitor Global para Android — prévia 0.1.1
+# Monitor Global para Android — prévia 0.1.2
 
 Primeiro aplicativo de celular, independente da instalação da TV. O APK de teste usa o pacote `top.monitorglobal.mobile.dev`; a aplicação principal é `top.monitorglobal.mobile`. O código de apresentação Java mantém o pacote legado dos modelos compartilhados, enquanto namespace, manifesto, recursos e canal de distribuição são próprios do celular.
 
@@ -10,7 +10,7 @@ Primeiro aplicativo de celular, independente da instalação da TV. O APK de tes
 - Detalhes dos eventos, bandeira quando identificada, fonte, profundidade, horário brasileiro e compartilhamento.
 - Avisos e situação das fontes. O feed compartilha a cobertura de M6+ globais, Brasil e áreas monitoradas; não corresponde a todos os eventos de todos os catálogos.
 
-Atualizações funcionam enquanto a aplicação está aberta, a cada minuto e por atualização manual. Notificações push com a tela apagada ainda não estão implementadas. O canal oficial do Telegram permanece acessível. Não há sobreposição, serviço contínuo, início no boot, rastreamento de localização ou credenciais no APK.
+Atualizações funcionam enquanto a aplicação está aberta, a cada minuto e por atualização manual. Notificações FCM são opcionais, ativadas na tela Avisos e sujeitas à permissão do Android e disponibilidade da rede. A parada forçada pode impedir mensagens até a aplicação ser reaberta. O teste local confirma apenas a postagem no aparelho; a entrega real por FCM precisa ser conferida no dispositivo. O canal oficial do Telegram permanece acessível. Não há sobreposição, serviço contínuo, início no boot ou rastreamento de localização. O APK contém somente a configuração pública Firebase; a credencial de envio fica no servidor.
 
 O cache local contém somente dados públicos. Previsões são revalidadas pelos horários originais; uma falha não vira tempo seco ou zero. A tela identifica eventos salvos, consulta não confirmada e dados indisponíveis. O cache pode abrir sem rede, mas imagens do mapa e dados novos dependem de conexão.
 

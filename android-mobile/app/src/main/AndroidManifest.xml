@@ -1,9 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
  <uses-permission android:name="android.permission.INTERNET"/>
  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+ <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
  <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
- <application android:label="@string/app_name" android:theme="@style/PhoneTheme" android:icon="@drawable/ic_launcher_monitor" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true" android:enableOnBackInvokedCallback="false">
-  <activity android:name="top.monitorglobal.tv.PhoneActivity" android:exported="true">
+ <application android:name="top.monitorglobal.tv.PhoneApplication" android:label="@string/app_name" android:theme="@style/PhoneTheme" android:icon="@drawable/ic_launcher_monitor" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true" android:enableOnBackInvokedCallback="false">
+  <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false"/>
+  <meta-data android:name="firebase_analytics_collection_enabled" android:value="false"/>
+  <service android:name="top.monitorglobal.tv.PhoneMessagingService" android:exported="false"><intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT"/></intent-filter></service>
+  <activity android:launchMode="singleTop" android:name="top.monitorglobal.tv.PhoneActivity" android:exported="true">
    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
   </activity>
  </application>

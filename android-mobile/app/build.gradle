@@ -1,4 +1,12 @@
 plugins { id 'com.android.application' }
+// Public Firebase Android configuration only; never a service-account private key.
+def pushConfigFile = file('firebase-client.json')
+def pushConfig = pushConfigFile.exists() ? new groovy.json.JsonSlurper().parse(pushConfigFile) : [:]
+def pushFields = { type, packageId ->
+ def client = (pushConfig.client ?: []).find { it.client_info?.android_client_info?.package_name == packageId }
+ def values = [PUSH_PROJECT_ID: client ? pushConfig.project_info?.project_id : '', PUSH_SENDER_ID: client ? pushConfig.project_info?.project_number : '', PUSH_APP_ID: client?.client_info?.mobilesdk_app_id, PUSH_API_KEY: client?.api_key?.find()?.current_key]
+ values.each { key, value -> type.buildConfigField 'String', key, groovy.json.JsonOutput.toJson(value ?: '') }
+}
 android {
  namespace 'top.monitorglobal.mobile'
  compileSdk 35
@@ -6,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 2
-  versionName '0.1.1'
+  versionCode 3
+  versionName '0.1.2'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -40,9 +48,12 @@ tasks.register('preparePhoneModels', Sync) {
 tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets', 'preparePhoneModels' }
 dependencies {
  implementation 'androidx.webkit:webkit:1.12.1'
+ implementation 'com.google.firebase:firebase-messaging:24.1.2'
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
 }
+pushFields(android.buildTypes.debug, 'top.monitorglobal.mobile.dev')
+pushFields(android.buildTypes.release, 'top.monitorglobal.mobile')
 if (project.hasProperty('phoneUiChecks')) {
  android.sourceSets.test.java.srcDir 'src/nativeMapTest/java'
  android.testOptions.unitTests.includeAndroidResources = true
