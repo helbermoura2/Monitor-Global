@@ -33,8 +33,9 @@ for attempt in range(6):
  try:
   data,h=read(base+'wms/epsg3857/best/wms.cgi?'+urllib.parse.urlencode(q));image=Image.open(io.BytesIO(data)).convert('RGBA');opaque=sum(a>0 for a in image.getchannel('A').getdata());colors=image.getcolors(900*900) or [];chromatic=sum(n for n,c in colors if c[3]>0 and max(c[:3])-min(c[:3])>30)
   print('FRAME '+json.dumps({'time':when,'opaque':opaque,'chromatic':chromatic,'cors':next((v for k,v in h.items() if k.lower()=='access-control-allow-origin'),None),'bytes':len(data),'url':base+'wms/epsg3857/best/wms.cgi?'+urllib.parse.urlencode(q)}),flush=True)
-  if opaque<10000:continue
-  Path('/tmp/satellite-probe.png').write_bytes(data)
+  if opaque<10000:
+   Path('/tmp/satellite-probe-empty.png').write_bytes(data);continue
+  Path('/tmp/satellite-probe.png').write_bytes(data);Path('/tmp/satellite-probe-info.json').write_text(json.dumps({'imageTime':when}))
   image.thumbnail((500,500));out=io.BytesIO();image.convert('RGB').save(out,format='JPEG',quality=75);print('SATELLITE_PREVIEW_BASE64 '+base64.b64encode(out.getvalue()).decode(),flush=True)
   break
  except Exception as e:print('FRAME_ERROR '+str(e),flush=True)
