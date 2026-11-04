@@ -1,0 +1,7 @@
+'use strict';const test=require('node:test'),assert=require('node:assert/strict'),prune=require('./prune-artifacts.cjs');
+const a=(id,name,run=id)=>({id,name,workflow_run:{id:run},created_at:new Date(1800000000000+id*1000).toISOString(),size_in_bytes:100,expired:false});
+test('diagnostics keep newest two; all APK, key, model and unknown artifacts stay protected',()=>{const inputs=[a(1,'storm-previews'),a(2,'storm-previews'),a(3,'storm-previews'),a(4,'monitor-global-mobile-preview'),a(5,'monitor-global-tv-official-signed'),a(6,'keyboard-model'),a(7,'signing-key'),a(8,'unknown-backup')];assert.deepEqual(prune.reportCandidates(inputs).map(x=>x.id),[1]);});
+test('pruning keeps the latest successful Pages bundle, in-flight work and every APK',async()=>{const all=[a(1,'github-pages'),a(2,'github-pages'),a(3,'github-pages'),a(4,'storm-previews',40),a(5,'storm-previews'),a(6,'storm-previews'),a(7,'monitor-global-mobile-preview')],deleted=[];
+ const github={paginate:async()=>all,rest:{actions:{listArtifactsForRepo(){},getWorkflowRun:async({run_id})=>({data:{status:[3,40].includes(run_id)?'in_progress':'completed',conclusion:'success'}}),deleteArtifact:async({artifact_id})=>deleted.push(artifact_id)}};
+ const summary={addHeading(){return this},addRaw(){return this},async write(){}};const result=await prune({github,context:{repo:{owner:'o',repo:'r'}},core:{info(){},summary}});assert.deepEqual(deleted,[1]);assert.equal(result.retainedPagesArtifact,2);assert.equal(result.bytes,100);
+});

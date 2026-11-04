@@ -1,0 +1,16 @@
+name: Reduce old Actions diagnostic storage
+on:
+  push:
+    branches: [maintenance/actions-storage-followup]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test .github/scripts/prune-artifacts.test.cjs
+      - uses: actions/github-script@v7
+        with:
+          script: await require('./.github/scripts/prune-artifacts.cjs')({github,context,core});
