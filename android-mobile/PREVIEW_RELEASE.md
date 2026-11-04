@@ -1,5 +1,8 @@
-Monitor Global para celular · Android de teste 0.1.2.
+Monitor Global para celular · Android de teste 0.1.3.
 
+- Satélite infravermelho GOES-East sobre o Brasil, com quadros e legenda da NASA/NOAA. Use o botão Brasil no mapa para enquadrar o país.
+- Horário real do quadro em Brasília; a fonte pode apresentar defasagem. Não é radar de chuva.
+- Animação curta sob comando, recorte nacional e pausa em segundo plano.
 - Notificações de sismos e boletins de tsunami por Firebase Cloud Messaging, mediante ativação em Avisos e permissão do Android.
 - Toque no aviso para abrir os detalhes do evento. Revisões não repetem o som do mesmo evento.
 - Teste local disponível em Avisos; ele verifica a notificação no aparelho, não a entrega pelo Firebase.

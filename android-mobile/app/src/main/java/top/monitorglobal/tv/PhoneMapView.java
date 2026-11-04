@@ -62,7 +62,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}
-     return tileResource(uri)?null:blocked();
+     return tileResource(uri)||satelliteResource(uri)?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(mainPage(request.getUrl()))return false;
@@ -80,7 +80,8 @@ final class PhoneMapView extends FrameLayout {
  static boolean mainPage(Uri uri){return localAsset(uri)&&"/assets/phone-map.html".equals(uri.getPath())&&uri.getQuery()==null;}
  static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/assets/");}
  static boolean tileResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Imagery/MapServer/tile/");}
- static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host);}
+ static boolean satelliteResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String p=uri.getPath();if("/legends/Clean_Longwave_Infrared_Window_Band_H.png".equals(p))return true;String layer=uri.getQueryParameter("LAYERS");if(layer==null)layer=uri.getQueryParameter("LAYER");return "GOES-East_ABI_Band13_Clean_Infrared".equals(layer)&&("/wms/epsg3857/best/wms.cgi".equals(p)||"/wmts/epsg3857/best/wmts.cgi".equals(p));}
+ static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.earthdata.nasa.gov".equalsIgnoreCase(host)||"www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host);}
  private static WebResourceResponse blocked(){return new WebResourceResponse("text/plain","UTF-8",403,"Blocked",Collections.singletonMap("Cache-Control","no-store"),new ByteArrayInputStream("Recurso indisponível".getBytes(StandardCharsets.UTF_8)));}
 
  void setEvents(List<Alert> values){

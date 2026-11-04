@@ -395,6 +395,7 @@ function initMap() {
         });
 
         window.__mgMapReady = true;
+        window.BrazilSatellite?.attachSite?.(map);
         window.GlobePreview?.initialize?.();
         syncAllMarkers();
         requestInitialAutoDisplay();

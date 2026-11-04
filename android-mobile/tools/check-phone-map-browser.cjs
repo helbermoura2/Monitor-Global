@@ -9,8 +9,8 @@ const apk=option('--apk'),assetRoot=option('--asset-root');
 if(Boolean(apk)===Boolean(assetRoot))throw new Error('Use --apk arquivo.apk OU --asset-root pasta/contendo/phone-map.html');
 const output=path.resolve(option('--output-dir')||path.join(__dirname,'../app/build/reports/map-browser'));
 fs.mkdirSync(output,{recursive:true});
-function tilePng(){
- const width=256,height=256,raw=Buffer.alloc(height*(1+width*4));
+function tilePng(width=256,height=256){
+ const raw=Buffer.alloc(height*(1+width*4));
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){const i=y*(1+width*4)+1+x*4,shade=((x>>5)+(y>>5))%2;raw[i]=20+shade*14;raw[i+1]=55+shade*14;raw[i+2]=80+shade*14;raw[i+3]=255;}
  function crc(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let bit=0;bit<8;bit++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
  function chunk(name,data){const type=Buffer.from(name),length=Buffer.alloc(4),checksum=Buffer.alloc(4);length.writeUInt32BE(data.length);checksum.writeUInt32BE(crc(Buffer.concat([type,data])));return Buffer.concat([length,type,data,checksum]);}
@@ -33,7 +33,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  if(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)launch.executablePath=process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;else launch.channel='chrome';
  browser=await chromium.launch(launch);
  const page=await browser.newPage({viewport:{width:412,height:740},deviceScaleFactor:2});
- const errors=[],unexpected=[],workers=[];let tiles=0;const png=tilePng();
+ const errors=[],unexpected=[],workers=[];let tiles=0;const png=tilePng(),satellitePng=tilePng(900,900);
  page.on('pageerror',error=>errors.push(error.message));
  page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
  page.on('worker',worker=>workers.push(worker.url()));
@@ -47,6 +47,10 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
    return route.fulfill({status:200,contentType:mime,body:fs.readFileSync(file)});
   }
   if(u.origin==='https://server.arcgisonline.com'&&u.pathname.startsWith('/ArcGIS/rest/services/World_Imagery/MapServer/tile/')){tiles++;return route.fulfill({status:200,contentType:'image/png',headers:{'Access-Control-Allow-Origin':'*'},body:png});}
+  if(u.hostname==='gibs.earthdata.nasa.gov'){
+   if(u.pathname.includes('/wmts/')){const end=Math.floor(Date.now()/600000)*600000-1200000,start=end-3000000,iso=n=>new Date(n).toISOString().replace('.000Z','Z');return route.fulfill({status:200,contentType:'text/xml',headers:{'Access-Control-Allow-Origin':'*'},body:'<Domains><DimensionDomain><Domain>'+iso(start)+'/'+iso(end)+'/PT10M</Domain></DimensionDomain></Domains>'});}
+   if(u.pathname.includes('/wms/')||u.pathname.includes('/legends/'))return route.fulfill({status:200,contentType:'image/png',headers:{'Access-Control-Allow-Origin':'*'},body:satellitePng});
+  }
   unexpected.push(u.href);return route.abort();
  });
  try{
@@ -54,6 +58,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   await page.waitForFunction(()=>window.MonitorMap&&document.querySelector('.maplibregl-canvas')&&document.querySelectorAll('.maplibregl-ctrl-group').length>0&&document.getElementById('notice').hidden,null,{timeout:20000});
   const state=await page.evaluate(()=>{const canvas=document.querySelector('.maplibregl-canvas');return {canvasWidth:canvas.width,canvasHeight:canvas.height,webgl2:!!canvas.getContext('webgl2'),version:maplibregl.getVersion(),controls:document.querySelectorAll('.maplibregl-ctrl-group').length,attribution:document.querySelector('.maplibregl-ctrl-attrib').textContent};});
   assert.ok(state.canvasWidth>0&&state.canvasHeight>0);assert.ok(state.webgl2,'canvas possui contexto WebGL2 real');assert.ok(state.controls>0);assert.ok(tiles>0,'raster solicita e decodifica os tiles locais');assert.match(state.attribution,/Esri/);
+  await page.waitForFunction(()=>document.querySelector('.brazil-satellite-control')?.dataset.ready==='true',null,{timeout:15000});
   await page.evaluate(()=>{window.__mapSelected=null;window.__mapInjected=false;window.MonitorMapBridge={selectEvent(id){window.__mapSelected=id;}};window.MonitorMap.setEvents([{id:'map-test',kind:'earthquake',title:'M6,0 · Exemplo <img src=x onerror="window.__mapInjected=true">',longitude:85,latitude:27}]);});
   await page.locator('.marker').click();await page.getByRole('button',{name:'Ver detalhes',exact:true}).click();
   await page.waitForFunction(()=>window.__mapSelected==='map-test',null,{timeout:5000});assert.equal(await page.locator('.maplibregl-popup img').count(),0);assert.equal(await page.evaluate(()=>window.__mapInjected),false);
