@@ -1,4 +1,4 @@
-# Notificações Android: configuração pendente
+# Notificações Android por Firebase Cloud Messaging
 
 O código usa Firebase Cloud Messaging (FCM), com inscrição opcional no tópico público `monitor_global_alerts_v1`. Não usa serviço permanente, sobreposição ou consulta contínua no celular. O Android pode atrasar ou impedir a entrega (sem internet, restrições ou parada forçada); não é um sistema de aviso de emergência com entrega garantida.
 
@@ -21,3 +21,9 @@ Antes da ativação, verificar cotas do Cloudflare e a configuração de preços
 `node --test tests/unit/mobile-push.test.mjs`
 
 A CI Android compila o serviço e verifica o APK. A confirmação ponta a ponta depende do projeto Firebase, do Worker configurado e de um aparelho real.
+
+## Publicação e confirmação
+
+O workflow `Validate and deploy mobile push sender` valida o Secret GitHub `FIREBASE_SERVICE_ACCOUNT` no mesmo projeto da configuração Android com `validate_only=true` (nenhuma notificação real), publica o Worker isolado e transfere a credencial para o Secret do Worker. Usa os Secrets Cloudflare já existentes. Não registra a chave nos logs.
+
+A versão 0.1.2 oferece um teste local identificado como fictício, que não confirma o recebimento pelo Firebase. Na prévia debug, é possível copiar o código do aparelho para um teste direcionado no console Firebase. Esse token identifica o destinatário: não publicar em issues, logs ou workflow inputs públicos. A confirmação final exige receber um teste no aparelho com o aplicativo fora de primeiro plano.
