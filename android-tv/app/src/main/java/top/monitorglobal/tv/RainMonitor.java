@@ -3,19 +3,20 @@ import android.content.*;import android.os.*;import java.net.*;import java.io.*;
 /** One optional meteorological card, independent I/O and the existing minute pulse. */
 final class RainMonitor {
  static final long MANUAL_DELAY=10000;
- private final Callable<JSONObject> reader,weatherReader;private final Context context;private final BooleanSupplier allowed;private final Handler main=new Handler(Looper.getMainLooper());private final RainOverlay overlay;
+ private final Callable<JSONObject> reader,weatherReader;private final Context context;private final BooleanSupplier allowed;private final Handler main=new Handler(Looper.getMainLooper());private final RainOverlay overlay;private final WeatherSatelliteSequence satellite;private boolean lastSatellite;
  private ExecutorService worker;private boolean busy,weatherBusy,closed,manualWeather;private volatile HttpURLConnection connection;private int lastMode;private boolean lastHourly;private JSONObject data,weatherData;private long nextRead,nextWeatherRead,demoUntil,manualUntil,manualNotBefore;private int manualGeneration;private final Runnable demoEnd=()->{demoUntil=0;};private final Runnable manualStart=this::tick;private Runnable manualFinished=()->{};
  RainMonitor(Context c,BooleanSupplier free){this(c,free,null,null);}
  RainMonitor(Context c,BooleanSupplier free,Callable<JSONObject> read){this(c,free,read,null);}
- RainMonitor(Context c,BooleanSupplier free,Callable<JSONObject> read,Callable<JSONObject> hourly){context=c;allowed=free;if(!Prefs.get(c).getString("rainArea","").equals("liberdade-v1"))Prefs.get(c).edit().putString("rainArea","liberdade-v1").remove("rainLastKey").remove("rainLastNotice").remove("rainLastValidAt").putString("rainStatus","Liberdade: aguardando consulta").apply();reader=read==null?()->read("tv-rain?area=liberdade"):read;weatherReader=hourly==null?()->read("tv-weather"):hourly;lastMode=mode();lastHourly=hourly();overlay=new RainOverlay(c);}
+ RainMonitor(Context c,BooleanSupplier free,Callable<JSONObject> read,Callable<JSONObject> hourly){context=c;allowed=free;if(!Prefs.get(c).getString("rainArea","").equals("liberdade-v1"))Prefs.get(c).edit().putString("rainArea","liberdade-v1").remove("rainLastKey").remove("rainLastNotice").remove("rainLastValidAt").putString("rainStatus","Liberdade: aguardando consulta").apply();reader=read==null?()->read("tv-rain?area=liberdade"):read;weatherReader=hourly==null?()->read("tv-weather"):hourly;lastMode=mode();lastHourly=hourly();overlay=new RainOverlay(c);lastSatellite=satelliteEnabled();satellite=new WeatherSatelliteSequence(c,()->allowed.getAsBoolean()&&screen());}
  private int mode(){return Prefs.get(context).getInt("rainMode",2);}
+ private boolean satelliteEnabled(){return Prefs.get(context).getBoolean("weatherSatellite",true);}
  private boolean hourly(){return Prefs.get(context).getBoolean("weatherHourly",true);}
  private boolean screen(){PowerManager p=context.getSystemService(PowerManager.class);return p==null||p.isInteractive();}
  void setManualFinished(Runnable callback){manualFinished=callback;}
  void weatherNow(){if(closed)return;main.removeCallbacks(manualStart);manualGeneration++;manualWeather=true;manualUntil=0;manualNotBefore=SystemClock.elapsedRealtime()+MANUAL_DELAY;hide();main.postDelayed(manualStart,MANUAL_DELAY);tick();}
  boolean manualPending(){return manualWeather||SystemClock.elapsedRealtime()<manualUntil;}
  void tick(){
-  if(closed)return;int selected=mode();boolean enabled=hourly();if(selected!=lastMode||enabled!=lastHourly){hide();lastMode=selected;lastHourly=enabled;}
+  if(closed)return;int selected=mode();boolean enabled=hourly();if(selected!=lastMode||enabled!=lastHourly||satelliteEnabled()!=lastSatellite){hide();lastMode=selected;lastHourly=enabled;lastSatellite=satelliteEnabled();}
   if((selected==0&&!enabled&&!manualWeather)||!screen()){hide();return;}if(SystemClock.elapsedRealtime()<demoUntil)return;
   long now=System.currentTimeMillis();RainForecast.Summary rain=null;WeatherForecast.Summary weather=null;
   try{if(data!=null)rain=RainForecast.summarize(data,now);}catch(JSONException ignored){}
@@ -33,13 +34,13 @@ final class RainMonitor {
   boolean waiting=manualWeather&&SystemClock.elapsedRealtime()<manualNotBefore;
   boolean shown=false;
   if(!waiting&&allowed.getAsBoolean()){
-   if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather);if(shown){if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
+   if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather);if(shown){if(satelliteEnabled())satellite.start();if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
    else if(rainNotice&&!(wanted&&weatherBusy)){shown=overlay.show(rain,selected==2,false,weather);}
   }
   if(shown&&rainNotice&&displayRain!=null)Prefs.get(context).edit().putString("rainLastKey",rain.key()).putLong("rainLastNotice",now).apply();
   if(!waiting&&manualWeather&&!weatherBusy&&weatherData!=null&&weather==null&&SystemClock.elapsedRealtime()<nextWeatherRead){Prefs.status(context,"Previsão horária indisponível para a Liberdade. Tente novamente depois.");finishManual(false);}
  }
- private void finishManual(boolean displayed){if(!manualWeather)return;manualWeather=false;manualNotBefore=0;main.removeCallbacks(manualStart);if(displayed)Prefs.status(context,"Meteorologia exibida · Liberdade.");int generation=manualGeneration;manualUntil=displayed?SystemClock.elapsedRealtime()+RainOverlay.DURATION+800:0;main.postDelayed(()->{if(!closed&&generation==manualGeneration){manualUntil=0;manualFinished.run();}},displayed?RainOverlay.DURATION+800:0);}
+ private void finishManual(boolean displayed){long presentation=satelliteEnabled()?WeatherSatelliteSequence.TOTAL:RainOverlay.DURATION;if(!manualWeather)return;manualWeather=false;manualNotBefore=0;main.removeCallbacks(manualStart);if(displayed)Prefs.status(context,"Meteorologia exibida · Liberdade.");int generation=manualGeneration;manualUntil=displayed?SystemClock.elapsedRealtime()+presentation+800:0;main.postDelayed(()->{if(!closed&&generation==manualGeneration){manualUntil=0;manualFinished.run();}},displayed?presentation+800:0);}
  private void fetch(boolean hourly){
   if(hourly){weatherBusy=true;nextWeatherRead=SystemClock.elapsedRealtime()+300000;}else{busy=true;nextRead=SystemClock.elapsedRealtime()+600000;}
   if(worker==null)worker=Executors.newSingleThreadExecutor();worker.execute(()->{JSONObject result;try{result=(hourly?weatherReader:reader).call();}catch(Exception ignored){result=new JSONObject();}if(result==null)result=new JSONObject();JSONObject value=result;main.post(()->{if(hourly)weatherBusy=false;else busy=false;if(closed)return;long remaining=value.optBoolean("ok")?value.optLong("expiresAt",0)-System.currentTimeMillis():300000;if(hourly){weatherData=value;nextWeatherRead=SystemClock.elapsedRealtime()+Math.max(60000,Math.min(3600000,remaining));}else{data=value;nextRead=SystemClock.elapsedRealtime()+Math.max(60000,Math.min(600000,remaining));}tick();});});
@@ -50,6 +51,6 @@ final class RainMonitor {
  }
  void demo(){demo(false);}
  void demo(boolean stormPreview){try{long now=System.currentTimeMillis();JSONObject d=new JSONObject().put("version","tv-rain-v1").put("area","liberdade").put("ok",true).put("at",now).put("expiresAt",now+600000).put("loc",new JSONObject().put("lat",RainForecast.LATITUDE).put("lng",RainForecast.LONGITUDE));JSONArray points=new JSONArray();long start=now/60000*60000;for(int i=0;i<90;i++)points.put(new JSONObject().put("start",start+i*60000).put("end",start+(i+1)*60000).put("rate",i<30?(stormPreview?WeatherPreviewOptions.rate(context):8):0).put("type",i<30?"rain":"no_precipitation"));d.put("forecast",points);RainForecast.Summary s=RainForecast.summarize(d,now);if(s!=null){hide();demoUntil=SystemClock.elapsedRealtime()+RainOverlay.DURATION+700;WeatherForecast.Summary example=stormPreview?new WeatherForecast.Summary("22°C · sensação 23°C","Chuva · exemplo fictício","Vento 12 km/h · rajadas 19 km/h","Umidade 81%","SIMULAÇÃO · dados fictícios",now+600000):null;if(stormPreview)s=s.withPresentation(s.level,WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(context)]+" · cenário fictício");overlay.show(s,true,true,example,stormPreview);main.postDelayed(demoEnd,RainOverlay.DURATION+700);}}catch(JSONException ignored){}}
- void hide(){demoUntil=0;main.removeCallbacks(demoEnd);overlay.hide();}
- void close(){closed=true;manualWeather=false;manualUntil=0;manualNotBefore=0;hide();main.removeCallbacksAndMessages(null);if(connection!=null)connection.disconnect();if(worker!=null)worker.shutdownNow();data=null;weatherData=null;}
+ void hide(){satellite.cancel();demoUntil=0;main.removeCallbacks(demoEnd);overlay.hide();}
+ void close(){closed=true;satellite.close();manualWeather=false;manualUntil=0;manualNotBefore=0;hide();main.removeCallbacksAndMessages(null);if(connection!=null)connection.disconnect();if(worker!=null)worker.shutdownNow();data=null;weatherData=null;}
 }

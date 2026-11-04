@@ -1,5 +1,8 @@
 name: Android TV official release
 on:
+  push:
+    branches: [main]
+    paths: ['android-tv/app/build.gradle']
   workflow_dispatch:
     inputs:
       mode:
@@ -51,7 +54,7 @@ jobs:
         run: |
           python android-tv/tools/release.py --unsigned android-tv/app/build/outputs/apk/release/app-release-unsigned.apk --output "$RUNNER_TEMP/tv-release-public" --keystore "$RUNNER_TEMP/tv-release.p12" --password-file "$RUNNER_TEMP/tv-release-password.txt" --build-tools "$ANDROID_HOME/build-tools/35.0.0"
       - name: Publish validated distribution
-        if: inputs.mode == 'publish'
+        if: github.event_name == 'push' || inputs.mode == 'publish'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
