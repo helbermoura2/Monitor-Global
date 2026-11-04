@@ -5,10 +5,10 @@ async function verifyViewport(page){
  const measure=()=>page.evaluate(()=>{
   const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
   const r=map.getCanvas().getBoundingClientRect();
-  return {viewport:innerHeight,app:box('app'),wrap:box('mapWrap'),container:box('mapContainer'),canvas:{bottom:r.bottom,height:r.height},sameMap:map===beforeMap};
+  const app=document.getElementById('app');return {viewport:innerHeight,inline:app.style.height,priority:app.style.getPropertyPriority('height'),computed:getComputedStyle(app).height,app:box('app'),wrap:box('mapWrap'),container:box('mapContainer'),canvas:{bottom:r.bottom,height:r.height},sameMap:map===beforeMap};
  });
  const full=async()=>{
-  await page.waitForFunction(()=>Math.abs(document.getElementById('app').getBoundingClientRect().bottom-innerHeight)<1);
+  await page.waitForFunction(()=>{const app=document.getElementById('app');return app.style.getPropertyPriority('height')==='important'&&Math.abs(parseFloat(app.style.height)-innerHeight)<1&&Math.abs(app.getBoundingClientRect().bottom-innerHeight)<1&&Math.abs(map.getCanvas().getBoundingClientRect().bottom-innerHeight)<1;}).catch(async error=>{throw Error(error.message+' '+JSON.stringify(await measure()));});
   const state=await measure();
   for(const key of ['app','wrap','container','canvas'])assert(Math.abs(state[key].bottom-state.viewport)<1,key+' must reach the browser viewport bottom: '+JSON.stringify(state));
   assert(state.sameMap,'viewport updates must preserve the map instance');return state;
