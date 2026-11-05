@@ -6,6 +6,7 @@ import android.os.PowerManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -58,5 +59,24 @@ public class WeatherServicePulseTest {
    assertEquals("the service evaluates the cached forecast, without additional source requests",1,reads.get());
    assertEquals(0,Prefs.get(context).getLong("weatherLastNotice",0));
   }finally{controller.destroy();}
+ }
+ @Test public void interruptedAutomaticRainDoesNotConsumeItsNoticeAndRetriesWhenPriorityClears()throws Exception{
+  long now=ShadowSystem.currentTimeMillis();Context context=RuntimeEnvironment.getApplication();
+  Prefs.get(context).edit().clear().putBoolean("weatherHourly",false).putBoolean("weatherSatellite",false).putInt("rainMode",1).commit();
+  ShadowSettings.setCanDrawOverlays(true);Shadows.shadowOf((PowerManager)context.getSystemService(Context.POWER_SERVICE)).setIsInteractive(true);
+  JSONObject data=forecast(now);JSONArray points=data.getJSONArray("forecast");for(int i=0;i<points.length();i++)points.getJSONObject(i).put("rate",3).put("type","rain");
+  AtomicBoolean allowed=new AtomicBoolean(true);AtomicInteger reads=new AtomicInteger();
+  RainMonitor rain=new RainMonitor(context,allowed::get,()->{reads.incrementAndGet();return data;},JSONObject::new);
+  try{
+   rain.tick();for(int i=0;i<1000&&(Boolean)field(rain,"busy");i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}
+   assertNotNull(field(field(rain,"overlay"),"current"));
+   allowed.set(false);rain.hide();Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(13));
+   assertEquals("an interrupted card must remain eligible for automatic display","",Prefs.get(context).getString("rainLastKey",""));
+   rain.tick();assertNull(field(field(rain,"overlay"),"current"));
+   allowed.set(true);rain.tick();assertNotNull(field(field(rain,"overlay"),"current"));
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(13));
+   assertEquals("now:moderada",Prefs.get(context).getString("rainLastKey",""));
+   assertEquals(1,reads.get());
+  }finally{rain.close();}
  }
 }
