@@ -9,7 +9,7 @@ import android.widget.*;
 /** Solid, accessible weather/rain card. Icons are local paths, not remote images. */
 final class WeatherCardView extends LinearLayout {
  static final int BODY=0xff071724,FOOT=0xff020816,CYAN=0xff38bdf8,MUTED=0xffbfd1df;
- private final Typeface brand;private TextView ai;private WeatherForecast.Summary aiWeather;private RainForecast.Summary aiRain;
+ private final Typeface brand;private TextView ai;private LinearLayout aiHost;private WeatherForecast.Summary aiWeather;private RainForecast.Summary aiRain;
  WeatherCardView(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,boolean preview){
   super(c);setOrientation(VERTICAL);brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");setBackground(shape(BODY,true));
   boolean rainFocus=weather==null&&rain!=null&&!rain.state.equals("dry");
@@ -19,13 +19,13 @@ final class WeatherCardView extends LinearLayout {
   if(preview){line(body,"CHUVA · PRÉVIA VISUAL FICTÍCIA",15,CYAN,brand,2);line(body,WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(c)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(c)],13,MUTED,brand,2);}
   if(rainFocus)rainBody(body,rain,weather);else if(weather!=null)weatherBody(body,weather,rain);else if(rain!=null){hero(body,Icon.CLOUD,rain.title,25,"");line(body,rain.amountText,16,Color.WHITE,brand,2);}else line(body,"Meteorologia indisponível",23,Color.WHITE,brand,2);
   LinearLayout footer=new LinearLayout(c);footer.setOrientation(VERTICAL);footer.setPadding(dp(12),dp(7),dp(12),dp(8));footer.setBackground(shape(FOOT,true));addView(footer,new LayoutParams(-1,-2));
-  if(!demo&&weather!=null){aiWeather=weather;aiRain=rain;ai=text("",13,CYAN,brand,3);footer.addView(ai,new LayoutParams(-1,-2));refreshBriefing();}
+  if(!demo&&weather!=null){aiWeather=weather;aiRain=rain;ai=text("",13,CYAN,brand,3);aiHost=footer;refreshBriefing();}
   if(demo)line(footer,"DEMONSTRAÇÃO LOCAL · DADOS FICTÍCIOS",12,CYAN,brand,2);
   if(weather!=null)line(footer,weather.timing,11,MUTED,Typeface.DEFAULT,2);
   line(footer,"Rainbow Weather"+(rain==null?" · previsão horária":" · chuva consultada "+WeatherForecast.time(rain.at)),12,MUTED,brand,2);
   line(footer,demo?"Demonstração · não informa o tempo atual":"Estimativa para um ponto da Liberdade · sujeita a mudanças",11,MUTED,Typeface.DEFAULT,2);
  }
- void refreshBriefing(){if(ai==null)return;String value=WeatherBriefingClient.text(getContext(),"hourly",aiWeather,aiRain);ai.setVisibility(value.isEmpty()?GONE:VISIBLE);ai.setText(value.isEmpty()?"":"RESUMO COM IA · "+value);}
+ void refreshBriefing(){if(ai==null)return;String value=WeatherBriefingClient.text(getContext(),"hourly",aiWeather,aiRain);if(value.isEmpty()){if(ai.getParent()!=null)aiHost.removeView(ai);return;}ai.setText("RESUMO COM IA · "+value);if(ai.getParent()==null)aiHost.addView(ai,0,new LayoutParams(-1,-2));}
  private void weatherBody(LinearLayout body,WeatherForecast.Summary w,RainForecast.Summary rain){
   boolean components=!w.temperatureValue.equals("—");
   if(components){

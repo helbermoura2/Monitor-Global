@@ -12,7 +12,7 @@ import java.util.Locale;
 
 /** Compact rain-only notice; all figures remain forecast estimates. */
 final class RainStripView extends LinearLayout {
- private TextView ai;private RainForecast.Summary aiRain;
+ private TextView ai;private LinearLayout aiHost;private RainForecast.Summary aiRain;
  RainStripView(Context context,RainForecast.Summary rain,boolean demo,boolean preview){
   super(context);setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setPadding(dp(12),dp(9),dp(12),dp(9));
   GradientDrawable background=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xff102a40,WeatherCardView.BODY});
@@ -26,13 +26,13 @@ final class RainStripView extends LinearLayout {
   boolean narrow=context.getResources().getDisplayMetrics().widthPixels/context.getResources().getDisplayMetrics().density<800;
   label(words,headline(rain)+" · Liberdade, SP",narrow?18:21,Color.WHITE,brand,2);
   label(words,details(rain),narrow?13:15,WeatherCardView.MUTED,brand,context.getResources().getConfiguration().fontScale>1.1f?3:2);
-  if(!demo){aiRain=rain;ai=new TextView(context);ai.setTextColor(WeatherCardView.CYAN);ai.setTextSize(narrow?12:13);ai.setTypeface(brand);ai.setMaxLines(3);ai.setIncludeFontPadding(false);words.addView(ai,new LayoutParams(-1,-2));refreshBriefing();}
+  if(!demo){aiRain=rain;ai=new TextView(context);ai.setTextColor(WeatherCardView.CYAN);ai.setTextSize(narrow?12:13);ai.setTypeface(brand);ai.setMaxLines(3);ai.setIncludeFontPadding(false);aiHost=words;refreshBriefing();}
   View rule=new View(context);rule.setBackgroundColor(0x4438bdf8);LayoutParams line=new LayoutParams(-1,dp(1));line.topMargin=dp(5);line.bottomMargin=dp(4);words.addView(rule,line);
   String source=demo?"TESTE FICTÍCIO · dados de demonstração":"Rainbow Weather · estimativa"+(rain.at>0?" · "+WeatherForecast.time(rain.at):"");
   label(words,source,narrow?10:11,WeatherCardView.MUTED,Typeface.DEFAULT,2);
   if(preview)label(words,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(context)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(context)],11,WeatherCardView.CYAN,brand,2);
  }
- void refreshBriefing(){if(ai==null)return;String value=WeatherBriefingClient.text(getContext(),"rain",null,aiRain);ai.setVisibility(value.isEmpty()?GONE:VISIBLE);ai.setText(value.isEmpty()?"":"IA · "+value);}
+ void refreshBriefing(){if(ai==null)return;String value=WeatherBriefingClient.text(getContext(),"rain",null,aiRain);if(value.isEmpty()){if(ai.getParent()!=null)aiHost.removeView(ai);return;}ai.setText("IA · "+value);if(ai.getParent()==null)aiHost.addView(ai,Math.min(2,aiHost.getChildCount()),new LayoutParams(-1,-2));}
  static String headline(RainForecast.Summary rain){
   String noun=rain.title.startsWith("Neve")?"Neve":"Chuva";
   if(rain.state.equals("soon"))return rain.arrivalMinutes>=0?noun+" em ~"+rain.arrivalMinutes+" min":noun+" se aproximando";
