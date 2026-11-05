@@ -6,11 +6,13 @@ const unavailable=(reason,status=200,extra={})=>json({ok:false,reason,...extra,d
 function route(url,now){
  if(url.pathname==='/rain-weather'){const loc=rainbowLocation(url);return loc?{product:'weather',key:`weather:${loc.lat},${loc.lng}`,loc,ttl:3600000,path:`weather/v1/forecast/${loc.lng}/${loc.lat}?forecast_days=5&forecast_hours=48`}:null;}
  if(url.pathname==='/rainbow-snapshot')return {product:'tiles',key:'tiles:snapshot',ttl:600000,path:'tiles/v1/snapshot?layer=precip-global'};
- const match=url.pathname.match(/^\/rainbow-tile\/(\d+)\/(\d+)\/(\d+)\/(\d+)$/);
+ // The existing four-part URL remains the current frame. The phone preview
+ // can request a forecast offset in seconds, using the same protected budget.
+ const match=url.pathname.match(/^\/rainbow-tile\/(\d+)\/(?:(\d+)\/)?(\d+)\/(\d+)\/(\d+)$/);
  if(!match)return null;
- const [snapshot,z,x,y]=match.slice(1).map(Number);
- if(![snapshot,z,x,y].every(Number.isSafeInteger)||z>7||x>=2**z||y>=2**z||snapshot%600||snapshot*1000>now+60000||snapshot*1000<now-7200000)return null;
- return {product:'tiles',key:`tiles:${snapshot}/${z}/${x}/${y}`,binary:true,ttl:Math.min(7200000,snapshot*1000+7200000-now),path:`tiles/v1/precip-global/${snapshot}/0/${z}/${x}/${y}?color=9`};
+ const snapshot=Number(match[1]),offset=Number(match[2]||0),[z,x,y]=match.slice(3).map(Number);
+ if(![snapshot,offset,z,x,y].every(Number.isSafeInteger)||offset>7200||offset%600||z>7||x>=2**z||y>=2**z||snapshot%600||snapshot*1000>now+60000||snapshot*1000<=now-7200000)return null;
+ return {product:'tiles',key:offset?`tiles:forecast:${snapshot}/${offset}/${z}/${x}/${y}`:`tiles:${snapshot}/${z}/${x}/${y}`,binary:true,ttl:Math.min(7200000,snapshot*1000+7200000-now),path:`tiles/v1/precip-global/${snapshot}/${offset}/${z}/${x}/${y}?color=9`};
 }
 const finite=(v,min,max)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max?v:null;
 export function normalizeWeather(data,loc,now){
@@ -52,7 +54,7 @@ export async function handleRainbowProductInObject(request,env,storage,{now=Date
   const cached=await storage.get(r.key);
   if(cached&&now>=cached.at&&now<cached.until)return cachedReply(cached);
   const pause=await storage.get(`${r.product}:pause`);
-  if(pause>now)return unavailable('provider_unavailable',r.binary?503:200,{httpStatus});
+  if(pause>now)return unavailable('provider_unavailable',r.binary?503:200);
   const month=new Date(now).toISOString().slice(0,7),day=new Date(now).toISOString().slice(0,10),old=await storage.get(`${r.product}:budget`);
   const budget={month,day,used:old?.month===month?old.used:0,dailyUsed:old?.day===day?old.dailyUsed:0},limit=PRODUCT_LIMITS[r.product];
   if(!Number.isSafeInteger(budget.used)||budget.used<0||!Number.isSafeInteger(budget.dailyUsed)||budget.dailyUsed<0)throw Error('budget');
