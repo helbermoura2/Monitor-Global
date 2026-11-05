@@ -8,5 +8,5 @@ Monitor Global Celular · teste 0.1.7.
 - Instale sobre a versão 0.1.6 ou 0.1.5, sem desinstalar.
 # Modelo online
 
-O resumo meteorológico usa o modelo Cloudflare `@cf/meta/llama-3.1-8b-instruct-fp8`, com seleção de fatos em JSON Schema e validação dos dados do fornecedor.
+O resumo meteorológico usa o modelo Cloudflare `@cf/meta/llama-3.1-8b-instruct-fp8`, com seleção de fatos em JSON validado e validação dos dados do fornecedor.
 

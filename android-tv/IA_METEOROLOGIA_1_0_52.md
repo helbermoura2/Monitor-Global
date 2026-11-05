@@ -6,4 +6,4 @@ O servidor compartilha as seleções de fatos entre aparelhos, usando Cloudflare
 
 Falta de fonte, resposta inválida, limite, expiração ou falha do modelo preservam o boletim normal. Demonstrações fictícias não exibem resumos reais.
 
-Modelo confirmado no catálogo oficial: https://developers.cloudflare.com/workers-ai/models/llama-3.1-8b-instruct-fp8/ . A chamada usa JSON Schema para selecionar IDs de fatos, seguida de validação local; a chave do cache inclui o modelo. Erros públicos expõem apenas categoria fixa e código numérico do fornecedor.
+Modelo confirmado no catálogo oficial: https://developers.cloudflare.com/workers-ai/models/llama-3.1-8b-instruct-fp8/ . A chamada solicita JSON de IDs de fatos, seguido de validação local; a chave do cache inclui o modelo. Erros públicos expõem apenas categoria fixa e código numérico do fornecedor.
