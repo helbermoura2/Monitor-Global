@@ -2,6 +2,13 @@ package top.monitorglobal.tv;
 import android.net.Uri;import android.os.Looper;import android.webkit.JavascriptInterface;import android.webkit.WebSettings;import android.webkit.WebView;import java.lang.reflect.*;import java.util.*;import java.util.concurrent.atomic.AtomicInteger;import org.json.*;import org.junit.*;import static org.junit.Assert.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.*;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35)
 public class PhoneMapViewTest {
+ @Test public void rainPreviewTrustsOnlyItsPublicDataRoutesAndVersionedAssets()throws Exception{
+  String api="https://black-sky-9ba0.terrestre.workers.dev";
+  assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/rainbow-snapshot")));assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/tv-rain?area=liberdade")));assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/rainbow-tile/1800000000/7200/7/47/72")));
+  for(String path:Arrays.asList("/health","/tv-rain?area=other","/rainbow-snapshot?url=evil","/rainbow-tile/1/7200/8/1/1"))assertFalse(path,PhoneMapView.rainResource(Uri.parse(api+path)));
+  assertFalse(PhoneMapView.rainResource(Uri.parse(api.replace("https:","http:")+"/rainbow-snapshot")));assertFalse(PhoneMapView.rainResource(Uri.parse("https://evil.example/rainbow-snapshot")));
+  PhoneMapView view=new PhoneMapView(RuntimeEnvironment.getApplication(),null,true);try{assertEquals(PhoneMapView.RAIN_PAGE,((WebView)field(view,"web")).getUrl());androidx.webkit.WebViewAssetLoader loader=(androidx.webkit.WebViewAssetLoader)field(view,"loader");for(String name:Arrays.asList("phone-rain.html","phone-rain.js","phone-rain.css","phone-rain-model.js")){android.webkit.WebResourceResponse r=loader.shouldInterceptRequest(Uri.parse("https://appassets.androidplatform.net"+PhoneMapView.ASSET_PREFIX+name));assertNotNull(name,r);assertNotNull(name,r.getData());r.getData().close();}}finally{view.close();}assertNull(field(view,"web"));
+ }
  private Object field(Object object,String name)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(object);}
  private Alert sample(String id,double lon,double lat){Alert a=new Alert(id,"earthquake","v","M6,0 · Local de teste","","earthquake",1,1,false);a.originLongitude=lon;a.originLatitude=lat;return a;}
  @Test public void onlyTheLocalPageAndImagerySourceAreTrusted(){

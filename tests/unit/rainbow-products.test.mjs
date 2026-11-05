@@ -37,3 +37,14 @@ test('bad PNGs and provider redirects cannot forward secret or masquerade as rai
  const response=await handle(req(`/rainbow-tile/${snapshot}/1/0/0`),env,store,{now,fetcher:async()=>{calls++;return new Response('<html>key</html>');}});assert.equal(response.status,503);assert.equal(calls,1);
  const redirect=await handle(req(),env,storage(),{now,fetcher:async()=>new Response(null,{status:302,headers:{Location:'https://elsewhere.test'}})});assert.equal((await redirect.json()).ok,false);
 });
+test('phone forecast offsets are bounded, cached separately and share current-frame quota',async()=>{
+ const store=storage(),snapshot=Math.floor(now/600000)*600,urls=[];
+ const fetcher=async url=>{urls.push(url);return new Response(Uint8Array.from([137,80,78,71,13,10,26,10,0]));};
+ const call=path=>handle(req(path),env,store,{now,fetcher});
+ await call(`/rainbow-tile/${snapshot}/7/10/20`);await call(`/rainbow-tile/${snapshot}/0/7/10/20`);assert.equal(urls.length,1,'zero offset reuses the current frame');
+ await call(`/rainbow-tile/${snapshot}/7200/7/10/20`);await call(`/rainbow-tile/${snapshot}/7200/7/10/20`);assert.equal(urls.length,2);assert.match(urls[1],/precip-global\/\d+\/7200\/7\/10\/20/);assert.equal(store.m.get('tiles:budget').used,2);
+ for(const offset of ['-600','1','300','7800','14400','9007199254740992'])assert.equal((await call(`/rainbow-tile/${snapshot}/${offset}/7/10/20`)).status,400);
+ store.m.set('tiles:budget',{month:new Date(now).toISOString().slice(0,7),day:new Date(now).toISOString().slice(0,10),used:2,dailyUsed:800});assert.equal((await call(`/rainbow-tile/${snapshot}/600/7/10/20`)).status,429);assert.equal(urls.length,2);
+ const paused=storage();paused.m.set('tiles:pause',now+10000);const failure=await call(`/rainbow-tile/${snapshot}/600/7/10/20`);assert.equal(failure.status,429);
+ const backedOff=await handle(req(`/rainbow-tile/${snapshot}/600/7/10/20`),env,paused,{now,fetcher});assert.equal((await backedOff.json()).reason,'provider_unavailable');assert.equal(urls.length,2);
+});

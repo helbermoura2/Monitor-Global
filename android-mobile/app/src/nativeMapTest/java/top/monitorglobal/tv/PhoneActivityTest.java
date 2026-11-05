@@ -56,4 +56,9 @@ public class PhoneActivityTest {
   activity.applySnapshot(longer);layout();Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();ScrollView first=scroll(root());assertNotNull(first);assertTrue("visible phone content must be attached",first.isAttachedToWindow());first.scrollTo(0,150);int position=first.getScrollY();assertTrue(position>0);
   activity.applySnapshot(longer);layout();Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();assertTrue(scroll(root()).isAttachedToWindow());assertEquals(position,scroll(root()).getScrollY());
  }
+ @Test public void rainPreviewLivesUnderWeatherAndKeepsTheSameViewOnRefresh()throws Exception{
+  activity.applySnapshot(data());root().findViewWithTag("tab-weather").performClick();root().findViewWithTag("open-rain").performClick();layout();assertTrue(root().findViewWithTag("tab-weather").isSelected());assertNotNull(root().findViewWithTag("close-rain"));
+  java.lang.reflect.Field f=PhoneActivity.class.getDeclaredField("rainMap");f.setAccessible(true);PhoneMapView rain=(PhoneMapView)f.get(activity);assertNotNull(rain);assertTrue(rain.isAttachedToWindow());activity.applySnapshot(data());layout();assertSame(rain,f.get(activity));assertTrue(rain.isAttachedToWindow());
+  activity.onBackPressed();layout();assertNotNull(root().findViewWithTag("open-rain"));assertFalse(rain.isAttachedToWindow());root().findViewWithTag("open-rain").performClick();layout();assertSame(rain,f.get(activity));
+ }
 }

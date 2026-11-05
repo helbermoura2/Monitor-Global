@@ -1,4 +1,10 @@
-Monitor Global para celular · Android de teste 0.1.4.
+Monitor Global para celular · Android de teste 0.1.5.
+
+- Nova prévia em Tempo → Explorar mapa de chuva: mapa independente, sem rotação automática dos eventos.
+- Linha do tempo com histórico de até uma hora e previsão de até duas horas, reprodução sob comando e horários de Brasília.
+- Gráfico por minuto para um ponto da Liberdade, acumulado em milímetros, chegada, aumento sustentado e duração estimados quando os dados permitem.
+- Mapa e gráfico identificam a fonte Rainbow Weather; quadros ausentes e previsões vencidas aparecem como indisponíveis.
+- Consultas e reprodução pausam ao sair da tela. Não há consultas novas por IA nem nova assinatura paga.
 
 - Arquivos locais do mapa identificados por versão, para evitar recursos antigos após atualizar o aplicativo.
 - Controles do satélite acessíveis com a lista de eventos vazia; falhas de inicialização agora têm mensagem e opção de recarregar.

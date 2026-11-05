@@ -43,7 +43,7 @@ jobs:
           path: ~/.android/debug.keystore
           key: monitor-global-mobile-debug-key-v1
       - name: Verify mobile push delivery rules
-        run: node --test tests/unit/mobile-push.test.mjs
+        run: node --test tests/unit/mobile-push.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/rainbow-products.test.mjs
       - name: Build and inspect phone APKs
         working-directory: android-mobile
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
@@ -60,14 +60,18 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Render the packaged map and open event details
         run: node android-mobile/tools/check-phone-map-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk
+      - name: Render packaged precipitation timeline and verify camera and lifecycle
+        run: node android-mobile/tools/check-phone-rain-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk
       - name: Export map rendering evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: monitor-global-mobile-map-check
-          path: android-mobile/app/build/reports/map-browser
+          path: |
+            android-mobile/app/build/reports/map-browser
+            android-mobile/app/build/reports/rain-browser
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 2
       - uses: actions/upload-artifact@v4
         with:
           name: monitor-global-mobile-preview
@@ -80,9 +84,48 @@ jobs:
           path: /tmp/monitor-phone-*.png
           if-no-files-found: warn
           retention-days: 14
+  rain-service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: cloudflare-black-sky-maintenance
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify shared Worker service safeguards
+        run: npm run worker:test
+      - name: Check whether the additive rain service changed
+        id: service
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs; then
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the reviewed Worker bundle
+        if: steps.service.outputs.deploy == 'true'
+        run: npm run worker:bundle
+      - name: Publish additive forecast route preserving bindings and schedules
+        if: steps.service.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MAINTENANCE_MODE: deploy
+        run: python tools/cloudflare-worker-maintenance.py
+      - name: Verify live forecast map before publishing the APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: python android-mobile/tools/probe-phone-rain.py
   publish-preview:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'helbermoura2/Monitor-Global'
-    needs: build
+    needs: [build, rain-service]
     runs-on: ubuntu-latest
     permissions:
       contents: write
