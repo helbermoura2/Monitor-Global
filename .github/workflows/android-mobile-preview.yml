@@ -40,8 +40,10 @@ jobs:
       - name: Reuse development signing identity for preview builds
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: monitor-global-mobile-debug-key-v1
+          path: |
+            ~/.config/.android/debug.keystore
+            ~/.android/debug.keystore
+          key: monitor-global-mobile-debug-key-v2
       - name: Verify mobile push delivery rules
         run: node --test tests/unit/mobile-push.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/rainbow-products.test.mjs
       - name: Build and inspect phone APKs
@@ -56,13 +58,15 @@ jobs:
           python - <<'PY'
           import pathlib,subprocess,urllib.request,os,re,json
           previous=pathlib.Path('/tmp/phone-previous.apk')
-          with urllib.request.urlopen('https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/monitor-global-mobile-0.1.4.apk',timeout=30) as r: previous.write_bytes(r.read(20*1024*1024))
+          with urllib.request.urlopen('https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/monitor-global-mobile-preview.apk',timeout=30) as r: previous.write_bytes(r.read(20*1024*1024))
           tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
           def signer(p):
               result=subprocess.check_output([str(tool),'verify','--print-certs',str(p)],text=True)
               return re.search(r'Signer #1 certificate SHA-256 digest: (\w+)',result).group(1)
           old,new=signer(previous),signer('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
           print(json.dumps({'previousSigner':old,'newSigner':new,'sameSigner':old==new}))
+          if old != new and old != '1b7520e25838b9050e9a26203f70c298927e4dbe3d3005c54e6118d0c7a13fce':
+              raise SystemExit('Preview signing identity changed unexpectedly; refusing publication.')
           PY
       - name: Check packaged phone identity and permissions
         run: python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
