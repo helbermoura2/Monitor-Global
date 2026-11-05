@@ -5,19 +5,22 @@ async function verifyViewport(page){
  const measure=()=>page.evaluate(()=>{
   const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
   const r=map.getCanvas().getBoundingClientRect();
-  const app=document.getElementById('app');return {viewport:innerHeight,inline:app.style.height,priority:app.style.getPropertyPriority('height'),computed:getComputedStyle(app).height,app:box('app'),wrap:box('mapWrap'),container:box('mapContainer'),canvas:{bottom:r.bottom,height:r.height},sameMap:map===beforeMap};
+  const app=document.getElementById('app');return {viewport:innerHeight,measured:app.style.getPropertyValue('--mg-desktop-viewport-height'),computed:getComputedStyle(app).height,app:box('app'),wrap:box('mapWrap'),container:box('mapContainer'),canvas:{bottom:r.bottom,height:r.height},sameMap:map===beforeMap};
  });
  const full=async()=>{
-  await page.waitForFunction(()=>{const app=document.getElementById('app');return app.style.getPropertyPriority('height')==='important'&&Math.abs(parseFloat(app.style.height)-innerHeight)<1&&Math.abs(app.getBoundingClientRect().bottom-innerHeight)<1&&Math.abs(map.getCanvas().getBoundingClientRect().bottom-innerHeight)<1;}).catch(async error=>{throw Error(error.message+' '+JSON.stringify(await measure()));});
+  await page.waitForFunction(()=>{const app=document.getElementById('app');return Math.abs(parseFloat(app.style.getPropertyValue('--mg-desktop-viewport-height'))-innerHeight)<1&&Math.abs(app.getBoundingClientRect().bottom-innerHeight)<1&&Math.abs(map.getCanvas().getBoundingClientRect().bottom-innerHeight)<1;}).catch(async error=>{throw Error(error.message+' '+JSON.stringify(await measure()));});
+  // The legacy mobile controller also runs after desktop resize (150 ms).
+  await page.waitForTimeout(200);
   const state=await measure();
   for(const key of ['app','wrap','container','canvas'])assert(Math.abs(state[key].bottom-state.viewport)<1,key+' must reach the browser viewport bottom: '+JSON.stringify(state));
   assert(state.sameMap,'viewport updates must preserve the map instance');return state;
  };
- await page.addStyleTag({content:'@media(min-width:901px){body #app{height:calc(100vh - 56px)!important}}'});
+ await page.addStyleTag({content:'@media(min-width:901px){body #app{height:var(--mg-desktop-viewport-height,calc(100vh - 56px))!important}}'});
  await page.evaluate(()=>{
   // Emulate a browser retaining its smaller dynamic/visual viewport after
   // chrome disappears. A normal inline height cannot beat the CSS rule.
   Object.defineProperty(visualViewport,'height',{configurable:true,get:()=>innerHeight-56});
+  document.getElementById('app').style.removeProperty('--mg-desktop-viewport-height');
   document.getElementById('app').style.removeProperty('height');
   document.getElementById('app').style.height=visualViewport.height+'px';map.resize();
  });
@@ -29,7 +32,7 @@ async function verifyViewport(page){
  }
  await page.setViewportSize({width:1280,height:638});await full();
  for(const event of ['pageshow','fullscreenchange']){
-  await page.evaluate(name=>{document.getElementById('app').style.removeProperty('height');map.resize();(name==='pageshow'?window:document).dispatchEvent(new Event(name));},event);
+  await page.evaluate(name=>{document.getElementById('app').style.removeProperty('--mg-desktop-viewport-height');document.getElementById('app').style.removeProperty('height');map.resize();(name==='pageshow'?window:document).dispatchEvent(new Event(name));},event);
   await full();
  }
  await page.evaluate(()=>{delete visualViewport.height;GlobePreview.setMode('mercator');map.jumpTo({center:[176,-39],zoom:6});});

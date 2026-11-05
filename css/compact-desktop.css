@@ -1,7 +1,7 @@
 /* Smart-TV browsers often expose 960×540 CSS pixels, even on a large panel.
    Use available viewport space rather than physical screen size. */
 @media screen and (min-width:901px) {
- #app {height:100vh!important;height:100dvh!important}
+ #app {height:100vh!important;height:var(--mg-desktop-viewport-height,100dvh)!important}
 }
 @media screen and (min-width:901px) and (max-width:1100px) {
  #top-strip > .ts-mainrow {display:flex!important;align-items:center!important;height:56px!important;min-height:56px!important;max-height:56px!important;padding:0 180px 0 12px!important;gap:12px!important}

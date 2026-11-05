@@ -111,13 +111,17 @@ function __resizeMapParaViewportAtual() {
         // quando a barra de endereço esconde/aparece durante a rolagem.
         const appEl = document.getElementById('app');
         if (appEl) {
-            // DeX/desktop can retain a shorter dynamic CSS viewport after the
-            // browser chrome changes. Use the layout viewport and override the
-            // stylesheet's !important height; a normal inline height loses to it.
+            // DeX/desktop can retain a shorter dynamic CSS viewport. Share the
+            // measured height with CSS: mobile layout cleanup removes inline
+            // geometry, but must not discard the desktop viewport measurement.
             const desktop = window.innerWidth > 900;
             const alturaReal = desktop ? window.innerHeight : (window.visualViewport ? window.visualViewport.height : window.innerHeight);
             if (Number.isFinite(alturaReal) && alturaReal > 0) {
-                appEl.style.setProperty('height', alturaReal + 'px', desktop ? 'important' : '');
+                if (desktop) appEl.style.setProperty('--mg-desktop-viewport-height', alturaReal + 'px');
+                else {
+                    appEl.style.removeProperty('--mg-desktop-viewport-height');
+                    appEl.style.height = alturaReal + 'px';
+                }
             }
         }
         if (typeof map !== 'undefined' && map && typeof map.resize === 'function') map.resize();
