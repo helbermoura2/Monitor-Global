@@ -13,6 +13,8 @@ final class RainOverlay {
   return show(s,effect,demo,weather,stormPreview,null);
  }
  boolean showing(){return current!=null;}
+ void refreshBriefing(){if(current!=null)refreshBriefing(current);}
+ private void refreshBriefing(View v){if(v instanceof WeatherCardView)((WeatherCardView)v).refreshBriefing();if(v instanceof RainStripView)((RainStripView)v).refreshBriefing();if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)refreshBriefing(((ViewGroup)v).getChildAt(i));}
  boolean show(RainForecast.Summary s,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
   return showCard(s,effect,demo,weather,stormPreview,onCompleted,weather==null&&s!=null);
  }
