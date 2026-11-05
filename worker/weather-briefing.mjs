@@ -4,7 +4,7 @@ export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8';
 export const BRIEFING_POLICY='source-grounded-weather-v1';
 export const BRIEFING_LIMITS={day:64,month:1500};
 const MIN=60000,HOUR=60*MIN,CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'};
-const reply=data=>Response.json({version:'weather-briefing-v1',area:'liberdade',...data},{headers:CORS});
+const reply=data=>Response.json({version:'weather-briefing-v1',area:'liberdade',engine:'validated-fact-selection-v2',...data},{headers:CORS});
 const valid=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 const clock=at=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at)+' BRT';
 const num=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:1});
@@ -60,7 +60,7 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
  let context;
  try{const source=await(kind==='hourly'?readWeather:readRain)(new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);context=briefingContext(kind,await source.json(),now);}catch{return reply({status:'unavailable'});}
  if(!context)return reply({status:'unavailable'});if(context.notApplicable)return reply({status:'not_applicable'});
- const key='briefing:'+BRIEFING_MODEL+':'+context.key;
+ const key='briefing:'+BRIEFING_MODEL+':validated-facts-v2:'+context.key;
  try{
   const cached=await storage.get(key);
   if(cached?.status==='ready'&&cached.until>now&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:BRIEFING_MODEL,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
@@ -74,7 +74,7 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
   const index=(await storage.get('briefing:index')||[]).filter(k=>k!==key);index.push(key);while(index.length>48)await storage.delete(index.shift());await storage.put('briefing:index',index);
   await storage.put(key,{status:'pending',until:now+2*MIN});
   const job=(async()=>{let timer;try{
-   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'user',content:prompt}],temperature:0,max_tokens:96,response_format:{type:'json_schema',json_schema:{type:'object',properties:{facts:{type:'array',items:{type:'string',enum:context.keys},minItems:1,maxItems:kind==='rain'?2:3}},required:['facts'],additionalProperties:false}}}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
+   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'user',content:prompt}],temperature:0,max_tokens:96}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
    const facts=parseBriefingSelection(result,context);if(!facts)throw Error('invalid');
    await storage.put(key,{status:'ready',facts,at:now,until:Math.floor(now/(kind==='hourly'?HOUR:30*MIN)+1)*(kind==='hourly'?HOUR:30*MIN)});
   }catch(error){const reason=error?.message==='invalid'?'invalid-selection':error?.message==='timeout'?'model-timeout':'model-error',code=String(error?.code||error?.message||'').match(/(?:^|\D)([1-9]\d{3,5})(?:\D|$)/)?.[1]||null;try{await storage.put(key,{status:'error',reason,providerCode:code,until:now+10*MIN});}catch{}}finally{clearTimeout(timer);}})();
