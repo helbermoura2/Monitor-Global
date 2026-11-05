@@ -53,6 +53,9 @@ jobs:
           for p in pathlib.Path('android-tv/app/build/test-results').glob('**/TEST-*WeatherSatelliteTest.xml'):
               for image in re.findall(r'TV_SATELLITE_PREVIEW_BASE64 ([A-Za-z0-9+/=]+)',p.read_text()):
                   print('TV_SATELLITE_PREVIEW_BASE64 '+image)
+          for p in pathlib.Path('android-tv/app/build/test-results').glob('**/TEST-*WeatherAiPresentationTest.xml'):
+              for name,image in re.findall(r'WEATHER_AI_(\w+) ([A-Za-z0-9+/=]+)',p.read_text()):
+                  print('WEATHER_AI_'+name+' '+image)
           PYPROOF
       - name: Verify distribution guards
         run: python -m unittest discover -s android-tv/tests/python

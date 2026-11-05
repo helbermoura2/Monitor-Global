@@ -18,10 +18,11 @@ final class WeatherForecast {
  }
  static final class Summary {
   final String temperature,condition,wind,humidity,timing;final long expiresAt;final boolean stormForecast;
-  final String temperatureValue,feelsValue,humidityValue,windValue,gustValue,conditionKey;
+  final String temperatureValue,feelsValue,humidityValue,windValue,gustValue,conditionKey;final long generatedAt,referenceAt;
   Summary(String t,String c,String w,String h,String time,long expiry){this(t,c,w,h,time,expiry,false);}
   Summary(String t,String c,String w,String h,String time,long expiry,boolean storm){this(t,c,w,h,time,expiry,storm,"—","—","—","—","—","");}
-  Summary(String t,String c,String w,String h,String time,long expiry,boolean storm,String temp,String feels,String humid,String air,String gust,String key){temperature=t;condition=c;wind=w;humidity=h;timing=time;expiresAt=expiry;stormForecast=storm;temperatureValue=temp;feelsValue=feels;humidityValue=humid;windValue=air;gustValue=gust;conditionKey=key;}
+  Summary(String t,String c,String w,String h,String time,long expiry,boolean storm,String temp,String feels,String humid,String air,String gust,String key){this(t,c,w,h,time,expiry,storm,temp,feels,humid,air,gust,key,0,0);}
+  Summary(String t,String c,String w,String h,String time,long expiry,boolean storm,String temp,String feels,String humid,String air,String gust,String key,long generated,long reference){generatedAt=generated;referenceAt=reference;temperature=t;condition=c;wind=w;humidity=h;timing=time;expiresAt=expiry;stormForecast=storm;temperatureValue=temp;feelsValue=feels;humidityValue=humid;windValue=air;gustValue=gust;conditionKey=key;}
  }
  static boolean storm(String key){return key.equals("Thunderstorms")||key.equals("StrongStorms")||key.equals("ScatteredThunderstorms")||key.equals("IsolatedThunderstorms");}
  static String metric(JSONObject p,String key,double min,double max,String unit){double n=p.optDouble(key,Double.NaN);return Double.isFinite(n)&&n>=min&&n<=max?Math.round(n)+unit:"—";}
@@ -32,6 +33,6 @@ final class WeatherForecast {
   JSONObject loc=d.optJSONObject("loc"),p=d.optJSONObject("current");long generated=d.optLong("generatedAt",0),at=d.optLong("at",0),expires=d.optLong("expiresAt",0),start=p==null?0:p.optLong("start",0);
   if(loc==null||p==null||!Double.isFinite(loc.optDouble("lat",Double.NaN))||!Double.isFinite(loc.optDouble("lng",Double.NaN))||Math.abs(loc.optDouble("lat")-RainForecast.LATITUDE)>.002||Math.abs(loc.optDouble("lng")-RainForecast.LONGITUDE)>.002||at<=0||at>now+60000||now-at>HOUR||generated<=0||generated>now+60000||now-generated>90*60000L||expires<=now||expires>at+HOUR||start>now||start+HOUR<=now)return null;
   double temp=p.optDouble("temperature",Double.NaN);if(!Double.isFinite(temp)||temp< -100||temp>70)return null;
-  return new Summary(metric(p,"temperature",-100,70,"°C")+" · sensação "+metric(p,"feels",-120,100,"°C"),condition(p.optString("condition","")),"Vento "+metric(p,"wind",0,540," km/h")+" · rajadas "+metric(p,"gust",0,540," km/h"),"Umidade "+metric(p,"humidity",0,100,"%"),"Modelo horário · ref. "+time(start)+" · gerado "+time(generated),Math.min(expires,start+HOUR),storm(p.optString("condition","")),metric(p,"temperature",-100,70,"°C"),metric(p,"feels",-120,100,"°C"),metric(p,"humidity",0,100,"%"),metric(p,"wind",0,540," km/h"),metric(p,"gust",0,540," km/h"),p.optString("condition",""));
+  return new Summary(metric(p,"temperature",-100,70,"°C")+" · sensação "+metric(p,"feels",-120,100,"°C"),condition(p.optString("condition","")),"Vento "+metric(p,"wind",0,540," km/h")+" · rajadas "+metric(p,"gust",0,540," km/h"),"Umidade "+metric(p,"humidity",0,100,"%"),"Modelo horário · ref. "+time(start)+" · gerado "+time(generated),Math.min(expires,start+HOUR),storm(p.optString("condition","")),metric(p,"temperature",-100,70,"°C"),metric(p,"feels",-120,100,"°C"),metric(p,"humidity",0,100,"%"),metric(p,"wind",0,540," km/h"),metric(p,"gust",0,540," km/h"),p.optString("condition",""),generated,start);
  }
 }

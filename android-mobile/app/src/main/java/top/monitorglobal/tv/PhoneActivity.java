@@ -23,7 +23,7 @@ public class PhoneActivity extends Activity {
  private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>(16,.75f,true);private ScrollView visibleScroll;private String displayedRoute="";
  private LinearLayout root,header,navigation;private FrameLayout content;private TextView status;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
- private PhoneMapView map,rainMap;private ExecutorService worker;private SharedPreferences cache;
+ private WeatherBriefingClient briefing;private PhoneMapView map,rainMap;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all";private Alert selected;
  private boolean active,destroyed,refreshing;private int generation;
  private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);main.postDelayed(this,60000);}};
@@ -31,7 +31,7 @@ public class PhoneActivity extends Activity {
  protected PhoneRepository createRepository(){return new PhoneRepository();}
  protected boolean automaticRefresh(){return true;}
  @Override public void onCreate(Bundle saved){
-  super.onCreate(saved);brand=loadBrand();cache=getSharedPreferences("monitor-phone",MODE_PRIVATE);repository=createRepository();
+  super.onCreate(saved);if(automaticRefresh())briefing=new WeatherBriefingClient(this,()->{if(active&&!destroyed)render();});brand=loadBrand();cache=getSharedPreferences("monitor-phone",MODE_PRIVATE);repository=createRepository();
   try{repository.importCache(cache.getString("snapshot",""),System.currentTimeMillis());}catch(RuntimeException ignored){}
   snapshot=repository.snapshot(System.currentTimeMillis());
   if(saved!=null){tab=saved.getString("tab","home");returnTab=saved.getString("returnTab","home");mapFilter=saved.getString("mapFilter","all");ArrayList<String> keys=saved.getStringArrayList("scrollKeys");ArrayList<Integer> positions=saved.getIntegerArrayList("scrollPositions");if(keys!=null&&positions!=null)for(int i=0;i<Math.min(64,Math.min(keys.size(),positions.size()));i++)scrollPositions.put(keys.get(i),Math.max(0,positions.get(i)));try{String record=saved.getString("selected","");if(!record.isEmpty())selected=AlertCodec.read(new org.json.JSONObject(record));}catch(org.json.JSONException ignored){}}
@@ -53,8 +53,8 @@ public class PhoneActivity extends Activity {
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==77){if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)PhonePush.enable(this,()->{if(!destroyed)render();});else{PhonePush.disable(this);render();}}}
  private Typeface loadBrand(){try{return Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf");}catch(RuntimeException ignored){return Typeface.DEFAULT_BOLD;}}
  @Override protected void onStart(){super.onStart();active=true;generation++;if(map!=null&&selected==null&&tab.equals("map"))map.resume();if(rainMap!=null&&selected==null&&tab.equals("rain"))rainMap.resume();if(automaticRefresh())main.post(pulse);}
- @Override protected void onStop(){rememberScroll();active=false;generation++;refreshing=false;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();super.onStop();}
- @Override protected void onDestroy(){destroyed=true;active=false;generation++;main.removeCallbacksAndMessages(null);if(repository!=null)repository.close();if(worker!=null)worker.shutdownNow();if(map!=null){map.close();map=null;}if(rainMap!=null){rainMap.close();rainMap=null;}clearFlags();super.onDestroy();}
+ @Override protected void onStop(){rememberScroll();active=false;generation++;refreshing=false;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();if(briefing!=null)briefing.pause();super.onStop();}
+ @Override protected void onDestroy(){destroyed=true;active=false;if(briefing!=null)briefing.close();generation++;main.removeCallbacksAndMessages(null);if(repository!=null)repository.close();if(worker!=null)worker.shutdownNow();if(map!=null){map.close();map=null;}if(rainMap!=null){rainMap.close();rainMap=null;}clearFlags();super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){rememberScroll();out.putString("tab",tab);out.putString("returnTab",returnTab);out.putString("mapFilter",mapFilter);out.putStringArrayList("scrollKeys",new ArrayList<>(scrollPositions.keySet()));out.putIntegerArrayList("scrollPositions",new ArrayList<>(scrollPositions.values()));if(selected!=null)try{out.putString("selected",AlertCodec.write(selected).toString());}catch(org.json.JSONException ignored){}super.onSaveInstanceState(out);}
  private void refresh(boolean force){
   if(!active||destroyed||refreshing)return;refreshing=true;status.setText("Atualizando dados…");final int token=generation;
@@ -63,7 +63,7 @@ public class PhoneActivity extends Activity {
    catch(RuntimeException e){main.post(()->{if(!active||destroyed||generation!=token)return;refreshing=false;applySnapshot(repository.snapshot(System.currentTimeMillis()));status.setText("Não foi possível atualizar agora. Tente novamente.");});}
   });
  }
- void applySnapshot(PhoneRepository.Snapshot next){snapshot=next;if(selected!=null)for(Alert latest:next.events)if(latest.id.equals(selected.id)){selected=latest.copy();break;}render();}
+ void applySnapshot(PhoneRepository.Snapshot next){snapshot=next;if(briefing!=null&&active){briefing.prefetch("hourly",next.weather,next.rain);briefing.prefetch("rain",next.weather,next.rain);}if(selected!=null)for(Alert latest:next.events)if(latest.id.equals(selected.id)){selected=latest.copy();break;}render();}
  private void rememberScroll(){if(visibleScroll==null||displayedRoute.isEmpty())return;scrollPositions.put(displayedRoute,visibleScroll.getScrollY());while(scrollPositions.size()>64)scrollPositions.remove(scrollPositions.keySet().iterator().next());}
  private void render(){
   if(content==null||destroyed)return;rememberScroll();visibleScroll=null;displayedRoute=selected==null?"tab:"+tab:"event:"+selected.id;if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();content.removeAllViews();clearFlags();updateStatus();renderNavigation();
@@ -95,6 +95,7 @@ public class PhoneActivity extends Activity {
   TextView conditions=text(w.condition,23,TEXT,4);space(body,conditions,8);space(body,text("Sensação "+w.feelsValue,17,MUTED,3),3);
   LinearLayout metrics=metricRow(body);metric(metrics,PhoneIcons.DROP,w.humidityValue,"Umidade");metric(metrics,PhoneIcons.WIND,w.windValue,"Vento");metric(metrics,PhoneIcons.WIND,w.gustValue,"Rajadas");
   String provenance="Rainbow Weather · Modelo horário\n"+w.timing;
+  briefingCard(body,"hourly",w,snapshot==null?null:snapshot.rain);
   if(detail)provenance+="\nEstimativa para um ponto da Liberdade · sujeita a mudanças";footer(card,provenance);
  }
  private void rainCard(LinearLayout page,boolean detail){
@@ -103,8 +104,10 @@ public class PhoneActivity extends Activity {
   LinearLayout hero=new LinearLayout(this);hero.setGravity(Gravity.CENTER_VERTICAL);body.addView(hero,new LinearLayout.LayoutParams(-1,-2));hero.addView(new PhoneIcons(this,r.title.startsWith("Neve")?PhoneIcons.SNOW:r.state.equals("dry")?PhoneIcons.CLOUD:PhoneIcons.RAIN,TEXT),new LinearLayout.LayoutParams(dp(36),dp(36)));TextView title=text(r.title,25,TEXT,4);LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(0,-2,1);hp.setMarginStart(dp(10));hero.addView(title,hp);
   if(!r.state.equals("dry")){LinearLayout row=metricRow(body);metric(row,PhoneIcons.DROP,RainForecast.number(r.amount)+" mm","Próximos 60 min");metric(row,PhoneIcons.CLOCK,r.durationMinutes>0?"~"+r.durationMinutes+" min":"—",r.durationLabel);if(detail){space(body,text(r.forecastRateText,16,MUTED,3),8);space(body,text(r.stopText,16,MUTED,4),5);}}
   else space(body,text(r.amountText,17,MUTED,3),8);
+  briefingCard(body,"rain",snapshot==null?null:snapshot.weather,r);
   footer(card,"Rainbow Weather · chuva consultada "+WeatherForecast.time(r.at)+(detail?"\nEstimativa para um ponto da Liberdade · sujeita a mudanças":""));
  }
+ private void briefingCard(LinearLayout page,String kind,WeatherForecast.Summary w,RainForecast.Summary r){String value=WeatherBriefingClient.text(this,kind,w,r);if(value.isEmpty())return;TextView caption=text("RESUMO COM IA",12,CYAN,1);space(page,caption,10);space(page,text(value,17,TEXT,8),4);}
  private LinearLayout metricRow(LinearLayout body){LinearLayout row=new LinearLayout(this);row.setBaselineAligned(false);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(14);body.addView(row,rp);return row;}
  private void metric(LinearLayout row,int kind,String value,String caption){LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);cell.setPadding(0,0,dp(6),0);row.addView(cell,new LinearLayout.LayoutParams(0,-2,1));cell.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(20),dp(20)));cell.addView(text(value,20,TEXT,3),new LinearLayout.LayoutParams(-1,-2));cell.addView(text(caption,13,MUTED,4),new LinearLayout.LayoutParams(-1,-2));}
  private List<Alert> events(){List<Alert> out=new ArrayList<>();if(snapshot!=null)out.addAll(snapshot.events);out.sort((a,b)->Long.compare(eventTime(b),eventTime(a)));return out;}
@@ -141,6 +144,7 @@ public class PhoneActivity extends Activity {
  }
  private void rainPage(){
   LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));Button back=button("‹ Tempo na Liberdade",()->{tab="weather";render();});back.setTag("close-rain");box.addView(back,new LinearLayout.LayoutParams(-1,-2));
+  if(snapshot!=null)briefingCard(box,"rain",snapshot.weather,snapshot.rain);
   if(rainMap==null)rainMap=new PhoneMapView(this,null,true);if(rainMap.getParent()!=null)((ViewGroup)rainMap.getParent()).removeView(rainMap);box.addView(rainMap,new LinearLayout.LayoutParams(-1,0,1));if(active)rainMap.resume();else rainMap.pause();
  }
  private void showMapEvent(Alert a){tab="map";mapFilter="all";render();List<Alert> visible=events();if(visible.stream().noneMatch(v->v.id.equals(a.id)))visible.add(0,a);map.setEvents(visible);map.focus(a);}

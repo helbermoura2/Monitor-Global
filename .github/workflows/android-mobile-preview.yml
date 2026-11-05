@@ -45,7 +45,7 @@ jobs:
             ~/.android/debug.keystore
           key: monitor-global-mobile-debug-key-v2
       - name: Verify mobile push delivery rules
-        run: node --test tests/unit/mobile-push.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/rainbow-products.test.mjs
+        run: node --test tests/unit/mobile-push.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/rainbow-products.test.mjs tests/unit/weather-briefing.test.mjs
       - name: Build and inspect phone APKs
         working-directory: android-mobile
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
@@ -123,7 +123,7 @@ jobs:
         id: service
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs; then
+          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs; then
             echo 'deploy=false' >> "$GITHUB_OUTPUT"
           else
             echo 'deploy=true' >> "$GITHUB_OUTPUT"
@@ -140,7 +140,9 @@ jobs:
         run: python tools/cloudflare-worker-maintenance.py
       - name: Verify live forecast map before publishing the APK
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: python android-mobile/tools/probe-phone-rain.py
+        run: |
+          python android-mobile/tools/probe-phone-rain.py
+          python tools/probe-weather-briefing.py
   publish-preview:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'helbermoura2/Monitor-Global'
     needs: [build, rain-service]
