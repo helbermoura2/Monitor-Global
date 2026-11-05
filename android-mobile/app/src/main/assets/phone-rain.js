@@ -55,7 +55,7 @@ async function load(force=false){
  const needMap=force||!M.frames(metadata).length,needForecast=force||!M.forecast(rawForecast);
  const jobs=[];
  if(needMap){message('Consultando quadros de chuva…');jobs.push(json('/rainbow-snapshot',token).then(data=>{const list=M.frames(data);if(!list.length)throw Error('metadata');removeFrames();metadata=data;frames=list;index=2;$('frame').disabled=false;$('play').disabled=false;showFrame(index);}).catch(()=>{if(token===epoch&&active){removeFrames();metadata=null;frames=[];$('frame').disabled=true;$('play').disabled=true;$('frame-label').textContent='Mapa indisponível';message('Mapa de chuva indisponível. Atualize para tentar novamente.');}}));}
- if(needForecast)jobs.push(json('/tv-rain?area=liberdade',token).then(data=>{if(!M.forecast(data))throw Error('forecast');rawForecast=data;renderForecast();}).catch(()=>{if(token===epoch&&active){rawForecast=null;clearGraph('Previsão da Liberdade indisponível');}}));
+ if(needForecast){if(!M.forecast(rawForecast))clearGraph('Atualizando previsão da Liberdade…');jobs.push(json('/tv-rain?area=liberdade',token).then(data=>{if(!M.forecast(data))throw Error('forecast');rawForecast=data;renderForecast();}).catch(()=>{if(token===epoch&&active){rawForecast=null;clearGraph('Previsão da Liberdade indisponível');}}));}
  await Promise.allSettled(jobs);if(token!==epoch||closed||!active)return;loading=false;$('refresh').disabled=false;if(!needMap)showFrame(index);if(!needForecast)renderForecast();scheduleExpiry();
 }
 function pause(){active=false;epoch++;loading=false;halt();clearTimeout(frameTimer);clearTimeout(expiryTimer);for(const request of requests)request.abort();requests.clear();hideRain();if(map)map.stop();}

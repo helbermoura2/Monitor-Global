@@ -50,6 +50,20 @@ jobs:
       - name: Verify native phone navigation and lifecycle
         working-directory: android-mobile
         run: ./gradlew --no-daemon -PphoneUiChecks :app:testDebugUnitTest
+      - name: Inspect preview update signing identity
+        run: |
+          android-mobile/gradlew --no-daemon :app:signingReport
+          python - <<'PY'
+          import pathlib,subprocess,urllib.request,os,re,json
+          previous=pathlib.Path('/tmp/phone-previous.apk')
+          with urllib.request.urlopen('https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/monitor-global-mobile-0.1.4.apk',timeout=30) as r: previous.write_bytes(r.read(20*1024*1024))
+          tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
+          def signer(p):
+              result=subprocess.check_output([str(tool),'verify','--print-certs',str(p)],text=True)
+              return re.search(r'Signer #1 certificate SHA-256 digest: (\w+)',result).group(1)
+          old,new=signer(previous),signer('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
+          print(json.dumps({'previousSigner':old,'newSigner':new,'sameSigner':old==new}))
+          PY
       - name: Check packaged phone identity and permissions
         run: python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/setup-node@v4
