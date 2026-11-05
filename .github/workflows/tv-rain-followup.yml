@@ -1,0 +1,53 @@
+name: TV rain source investigation
+on:
+  push:
+    branches: [fix/tv-rain-followup]
+permissions:
+  contents: read
+jobs:
+  service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Evaluate automatic rain between hourly cards in the existing service
+        working-directory: android-tv
+        run: >-
+          ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testReleaseUnitTest
+          --tests top.monitorglobal.tv.WeatherServicePulseTest
+          --tests top.monitorglobal.tv.RainMonitorTest
+          --tests top.monitorglobal.tv.RainOverlayTest
+          --tests top.monitorglobal.tv.HourlyWeatherTest
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect public rain and hourly endpoints
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,datetime
+          base='https://black-sky-9ba0.terrestre.workers.dev/'
+          print('WEATHER_PROBE_UTC '+datetime.datetime.now(datetime.timezone.utc).isoformat())
+          for path in ['tv-rain?area=liberdade','tv-weather','rain-nowcast?lat=-23.555&lng=-46.635']:
+              try:
+                  req=urllib.request.Request(base+path,headers={'Accept':'application/json','User-Agent':'MonitorGlobal-rain-investigation'})
+                  with urllib.request.urlopen(req,timeout=35) as r:
+                      d=json.load(r);summary={k:d[k] for k in ['version','area','ok','source','reason','detail','at','expiresAt','generatedAt','loc','current','usage','retryAt','diagnostic'] if k in d}
+                      points=d.get('forecast',[]);now=time.time()*1000
+                      if points:
+                          active=[p for p in points if p.get('start',0)<=now<p.get('end',0)]
+                          near=[p for p in points if p.get('end',0)>now and p.get('start',0)<now+3600000]
+                          wet=[p for p in near if p.get('rate',0)>=.1 and p.get('type')!='no_precipitation']
+                          summary.update(points=len(points),currentMinutes=active,firstWet=wet[:1],maxNextHour=max((p.get('rate',0) for p in near),default=None),coverageEnd=points[-1].get('end'))
+                      print('RAIN_SOURCE '+json.dumps({'path':path,'status':r.status,'cache':r.headers.get('Cache-Control'),'data':summary},ensure_ascii=False))
+              except Exception as e: print('RAIN_SOURCE_ERROR '+json.dumps({'path':path,'error':str(e)}))
+          PY
