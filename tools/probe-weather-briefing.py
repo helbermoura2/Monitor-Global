@@ -13,7 +13,7 @@ for attempt in range(8):
     print(json.dumps(data, ensure_ascii=False), flush=True)
     if data.get('status') == 'ready':
         assert data.get('policy') == 'source-grounded-weather-v1'
-        assert data.get('model') == '@cf/meta/llama-3.1-8b-instruct-fp8-fast'
+        assert data.get('model') == '@cf/meta/llama-3.1-8b-instruct-fp8'
         assert 0 < len(data.get('text', '')) <= 185
         assert data.get('expiresAt', 0) > time.time()*1000
         break

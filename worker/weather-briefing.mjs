@@ -1,6 +1,6 @@
 import {handleTvWeather} from './tv-weather.mjs';
 import {handleTvRain} from './tv-rain.mjs';
-export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8-fast';
+export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8';
 export const BRIEFING_POLICY='source-grounded-weather-v1';
 export const BRIEFING_LIMITS={day:64,month:1500};
 const MIN=60000,HOUR=60*MIN,CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'};
@@ -60,11 +60,11 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
  let context;
  try{const source=await(kind==='hourly'?readWeather:readRain)(new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);context=briefingContext(kind,await source.json(),now);}catch{return reply({status:'unavailable'});}
  if(!context)return reply({status:'unavailable'});if(context.notApplicable)return reply({status:'not_applicable'});
- const key='briefing:'+context.key;
+ const key='briefing:'+BRIEFING_MODEL+':'+context.key;
  try{
   const cached=await storage.get(key);
   if(cached?.status==='ready'&&cached.until>now&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:BRIEFING_MODEL,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
-  if(cached?.until>now)return reply({status:cached.status==='pending'?'pending':'unavailable',retryAfter:cached.status==='pending'?2:300});
+  if(cached?.until>now)return reply({status:cached.status==='pending'?'pending':'unavailable',retryAfter:cached.status==='pending'?2:300,...(cached.reason?{reason:cached.reason,providerCode:cached.providerCode||null}:{})});
   const day=new Date(now).toISOString().slice(0,10),month=day.slice(0,7),old=await storage.get('briefing:budget');
   const budget={day,month,daily:old?.day===day?old.daily:0,monthly:old?.month===month?old.monthly:0};
   if(!Number.isSafeInteger(budget.daily)||budget.daily<0||!Number.isSafeInteger(budget.monthly)||budget.monthly<0||budget.daily>=BRIEFING_LIMITS.day||budget.monthly>=BRIEFING_LIMITS.month)return reply({status:'limited'});
@@ -74,10 +74,10 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
   const index=(await storage.get('briefing:index')||[]).filter(k=>k!==key);index.push(key);while(index.length>48)await storage.delete(index.shift());await storage.put('briefing:index',index);
   await storage.put(key,{status:'pending',until:now+2*MIN});
   const job=(async()=>{let timer;try{
-   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'user',content:prompt}],temperature:0,max_tokens:96}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
+   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'user',content:prompt}],temperature:0,max_tokens:96,response_format:{type:'json_schema',json_schema:{type:'object',properties:{facts:{type:'array',items:{type:'string',enum:context.keys},minItems:1,maxItems:kind==='rain'?2:3}},required:['facts'],additionalProperties:false}}}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
    const facts=parseBriefingSelection(result,context);if(!facts)throw Error('invalid');
    await storage.put(key,{status:'ready',facts,at:now,until:Math.floor(now/(kind==='hourly'?HOUR:30*MIN)+1)*(kind==='hourly'?HOUR:30*MIN)});
-  }catch{try{await storage.put(key,{status:'error',until:now+10*MIN});}catch{}}finally{clearTimeout(timer);}})();
+  }catch(error){const reason=error?.message==='invalid'?'invalid-selection':error?.message==='timeout'?'model-timeout':'model-error',code=String(error?.code||error?.message||'').match(/(?:^|\D)([1-9]\d{3,5})(?:\D|$)/)?.[1]||null;try{await storage.put(key,{status:'error',reason,providerCode:code,until:now+10*MIN});}catch{}}finally{clearTimeout(timer);}})();
   waitUntil(job);return reply({status:'pending',retryAfter:2});
  }catch{return reply({status:'unavailable'});}
 }
