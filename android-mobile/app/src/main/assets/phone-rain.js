@@ -10,7 +10,7 @@ function halt(){playing=false;clearTimeout(playTimer);playTimer=0;$('play').text
 function clearGraph(text){$('headline').textContent=text;$('chart').replaceChildren();$('facts').replaceChildren();$('selected-point').textContent='';$('forecast-details').hidden=true;$('forecast-source').textContent='Previsão por minuto indisponível para este ponto.';}
 function renderForecast(){
  const value=M.forecast(rawForecast);if(!value){clearGraph('Previsão da Liberdade indisponível');return;}
- $('headline').textContent=value.headline;$('horizon').textContent=value.minutes>=120?'2 horas':value.minutes+' min';$('chart').replaceChildren();$('facts').replaceChildren();$('forecast-details').hidden=false;if(!detailsInitialized&&!detailsChosen){$('forecast-details').open=value.peak>=.1;detailsInitialized=true;}
+ $('headline').textContent=value.headline;$('horizon').textContent=value.minutes>=120?'2 horas':value.minutes+' min';$('forecast-details').querySelector('summary').firstChild.textContent='Ver gráfico · próximas '+(value.minutes>=120?'2 horas':value.minutes+' min')+' ';$('chart').replaceChildren();$('facts').replaceChildren();$('forecast-details').hidden=false;if(!detailsInitialized&&!detailsChosen){$('forecast-details').open=value.peak>=.1;detailsInitialized=true;}
  const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox','0 0 350 130');svg.setAttribute('role','img');svg.setAttribute('aria-label','Precipitação estimada na Liberdade: próximos '+value.minutes+' minutos, pico '+number(value.peak)+' milímetros por hora');
  const make=(tag,attrs,text)=>{const el=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;svg.appendChild(el);return el;};
  const scale=Math.max(2.5,value.peak*1.15),x=t=>32+304*(t-value.now)/(value.until-value.now),y=r=>96-76*r/scale;
@@ -26,7 +26,7 @@ function renderForecast(){
 }
 function updateSelectedPoint(value=M.forecast(rawForecast)){
  const frame=frames[index];if(!value||!frame){$('selected-point').textContent='';return;}const at=frame.time;const old=$('chart').querySelector('.selected-cursor');if(old)old.remove();
- if(at<value.now){$('selected-point').textContent='A previsão do ponto começa agora; o mapa pode mostrar o histórico.';return;}const point=value.points.find(p=>p.start<=at&&p.end>at);if(!point){$('selected-point').textContent='O horário do mapa está fora da previsão disponível para o ponto.';return;}
+ if(at<value.now){$('selected-point').textContent='Mapa de '+time(at)+'. Previsão do ponto a partir de '+time(value.now)+'.';return;}const point=value.points.find(p=>p.start<=at&&p.end>at);if(!point){$('selected-point').textContent='O horário do mapa está fora da previsão disponível para o ponto.';return;}
  $('selected-point').textContent='Às '+time(at)+' no ponto: '+number(point.rate)+' mm/h previstos';const svg=$('chart').querySelector('svg');if(svg){const cursor=document.createElementNS('http://www.w3.org/2000/svg','line'),x=32+304*(at-value.now)/(value.until-value.now);for(const [k,v]of Object.entries({x1:x,x2:x,y1:20,y2:96,class:'selected-cursor'}))cursor.setAttribute(k,v);svg.appendChild(cursor);}
 }
 function hideRain(){if(!map||!loaded)return;for(const id of sources)if(map.getLayer(id))map.setLayoutProperty(id,'visibility','none');}
