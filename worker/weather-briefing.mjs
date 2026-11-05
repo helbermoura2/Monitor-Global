@@ -4,7 +4,7 @@ export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8';
 export const BRIEFING_POLICY='source-grounded-weather-v1';
 export const BRIEFING_LIMITS={day:64,month:1500};
 const MIN=60000,HOUR=60*MIN,CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'};
-const reply=data=>Response.json({version:'weather-briefing-v1',area:'liberdade',engine:'validated-fact-selection-v2',...data},{headers:CORS});
+const reply=data=>Response.json({version:'weather-briefing-v1',area:'liberdade',engine:'validated-fact-selection-v3',...data},{headers:CORS});
 const valid=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 const clock=at=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at)+' BRT';
 const num=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:1});
@@ -44,9 +44,10 @@ export function briefingContext(kind,d,now){
  return {kind,facts,state,referenceAt,dataAt,keys,key:kind+':'+slot+':'+state+':'+keys.slice().sort().join(','),until:Math.min(d.expiresAt,(slot+1)*(kind==='hourly'?HOUR:30*MIN),now+(kind==='hourly'?HOUR:5*MIN))};
 }
 export function parseBriefingSelection(result,context){
- try{const raw=typeof result?.response==='string'?JSON.parse(result.response.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/,'$1')):result?.response;
-  if(!raw||Object.keys(raw).some(k=>k!=='facts')||!Array.isArray(raw.facts)||raw.facts.length<1||raw.facts.length>(context.kind==='rain'?2:3)||new Set(raw.facts).size!==raw.facts.length||raw.facts.some(k=>!context.keys.includes(k)))return null;
-  if(context.kind==='hourly'&&!raw.facts.includes('temperature'))return null;return raw.facts;
+ try{let raw=result?.response;if(typeof raw==='string'){raw=raw.trim();if(raw.length>2000)return null;try{raw=JSON.parse(raw);}catch{const start=raw.indexOf('{'),end=raw.lastIndexOf('}');if(start<0||end<start)return null;raw=JSON.parse(raw.slice(start,end+1));}}
+  if(Array.isArray(raw))raw={facts:raw};
+  if(!raw||Object.keys(raw).some(k=>k!=='facts')||!Array.isArray(raw.facts)||raw.facts.length<1||raw.facts.length>context.keys.length||new Set(raw.facts).size!==raw.facts.length||raw.facts.some(k=>!context.keys.includes(k)))return null;
+  return context.kind==='hourly'?['temperature',...raw.facts.filter(k=>k!=='temperature')].slice(0,3):raw.facts.slice(0,2);
  }catch{return null;}
 }
 function renderFacts(keys,context){if(context.kind==='hourly')keys=['temperature',...keys.filter(k=>k!=='temperature')];let out='';for(const key of keys){const next=(out?out+' ':'')+context.facts[key];if(next.length<=185)out=next;}return out;}
@@ -60,7 +61,7 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
  let context;
  try{const source=await(kind==='hourly'?readWeather:readRain)(new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);context=briefingContext(kind,await source.json(),now);}catch{return reply({status:'unavailable'});}
  if(!context)return reply({status:'unavailable'});if(context.notApplicable)return reply({status:'not_applicable'});
- const key='briefing:'+BRIEFING_MODEL+':validated-facts-v2:'+context.key;
+ const key='briefing:'+BRIEFING_MODEL+':validated-facts-v3:'+context.key;
  try{
   const cached=await storage.get(key);
   if(cached?.status==='ready'&&cached.until>now&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:BRIEFING_MODEL,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
@@ -74,7 +75,7 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
   const index=(await storage.get('briefing:index')||[]).filter(k=>k!==key);index.push(key);while(index.length>48)await storage.delete(index.shift());await storage.put('briefing:index',index);
   await storage.put(key,{status:'pending',until:now+2*MIN});
   const job=(async()=>{let timer;try{
-   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'user',content:prompt}],temperature:0,max_tokens:96}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
+   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'system',content:'Select only the provided fact IDs. Return compact JSON, for example {"facts":["temperature","wind"]}. Never return explanations or fact sentences.'},{role:'user',content:prompt}],temperature:0,max_tokens:96}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
    const facts=parseBriefingSelection(result,context);if(!facts)throw Error('invalid');
    await storage.put(key,{status:'ready',facts,at:now,until:Math.floor(now/(kind==='hourly'?HOUR:30*MIN)+1)*(kind==='hourly'?HOUR:30*MIN)});
   }catch(error){const reason=error?.message==='invalid'?'invalid-selection':error?.message==='timeout'?'model-timeout':'model-error',code=String(error?.code||error?.message||'').match(/(?:^|\D)([1-9]\d{3,5})(?:\D|$)/)?.[1]||null;try{await storage.put(key,{status:'error',reason,providerCode:code,until:now+10*MIN});}catch{}}finally{clearTimeout(timer);}})();
