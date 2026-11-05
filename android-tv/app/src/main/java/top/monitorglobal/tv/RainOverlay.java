@@ -14,14 +14,21 @@ final class RainOverlay {
  }
  boolean showing(){return current!=null;}
  boolean show(RainForecast.Summary s,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
+  return showCard(s,effect,demo,weather,stormPreview,onCompleted,weather==null&&s!=null);
+ }
+ boolean showRain(RainForecast.Summary s,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
+  return showCard(s,effect,demo,weather,stormPreview,onCompleted,true);
+ }
+ private boolean showCard(RainForecast.Summary s,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted,boolean compact){
   hide();long expiry=weather==null?(s==null?0:s.expiresAt):s==null?weather.expiresAt:Math.min(weather.expiresAt,s.expiresAt);long duration=demo?DURATION:Math.min(DURATION,expiry-System.currentTimeMillis()-500);if(duration<=0||!Settings.canDrawOverlays(context))return false;
   try{FrameLayout host=new FrameLayout(context);boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
    boolean preview=stormPreview&&demo;boolean rainfall=effect&&s!=null&&s.rain&&animate;if(rainfall){previewRain=new PreviewRain(context,preview?WeatherPreviewOptions.style(context):2,preview?WeatherPreviewOptions.level(context):RainVisualPolicy.level(s.rate,weather!=null&&weather.stormForecast));host.addView(previewRain,new FrameLayout.LayoutParams(-1,-1));}
-   WeatherCardView card=new WeatherCardView(context,s,weather,demo,preview);
-   FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(Math.min(dp(420),context.getResources().getDisplayMetrics().widthPixels*46/100),-2,Gravity.TOP|Gravity.RIGHT);box.setMargins(rainfall?dp(24):0,rainfall?dp(28):0,rainfall?dp(28):0,0);host.addView(card,box);
-   WindowManager.LayoutParams p=new WindowManager.LayoutParams((rainfall)?-1:box.width,(rainfall)?-1:WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=Gravity.TOP|((rainfall)?Gravity.LEFT:Gravity.RIGHT);p.x=(rainfall)?0:dp(28);p.y=(rainfall)?0:dp(28);
+   View card=compact?new RainStripView(context,s,demo,preview):new WeatherCardView(context,s,weather,demo,preview);
+   int edge=compact?Gravity.BOTTOM:Gravity.TOP;
+   FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(Math.min(dp(compact?520:420),context.getResources().getDisplayMetrics().widthPixels*(compact?50:46)/100),-2,edge|Gravity.RIGHT);box.setMargins(rainfall?dp(24):0,rainfall&&!compact?dp(28):0,rainfall?dp(28):0,rainfall&&compact?dp(28):0);host.addView(card,box);
+   WindowManager.LayoutParams p=new WindowManager.LayoutParams((rainfall)?-1:box.width,(rainfall)?-1:WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=rainfall?Gravity.TOP|Gravity.LEFT:edge|Gravity.RIGHT;p.x=(rainfall)?0:dp(28);p.y=(rainfall)?0:dp(28);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(host,p);current=host;completed=onCompleted;
-   if(animate){host.setAlpha(0);card.setTranslationY(-dp(10));host.animate().alpha(1).setDuration(250).start();card.animate().translationY(0).setDuration(250).start();}
+   if(animate){host.setAlpha(0);card.setTranslationY(dp(compact?10:-10));host.animate().alpha(1).setDuration(250).start();card.animate().translationY(0).setDuration(250).start();}
    main.postDelayed(()->{if(current!=host)return;Runnable finish=()->{if(current!=host)return;Runnable delivered=completed;completed=null;hide();if(delivered!=null)delivered.run();};if(!animate){finish.run();return;}if(previewRain!=null)previewRain.stop();host.animate().alpha(0).setDuration(250).withEndAction(finish).start();},duration+250);return true;
   }catch(RuntimeException e){hide();Prefs.status(context,"Chuva: confira a permissão de exibição sobre outros aplicativos.");return false;}
  }
