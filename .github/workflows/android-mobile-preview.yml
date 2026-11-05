@@ -79,7 +79,7 @@ jobs:
       - name: Render the packaged map and open event details
         run: node android-mobile/tools/check-phone-map-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk
       - name: Render packaged precipitation timeline and verify camera and lifecycle
-        run: node android-mobile/tools/check-phone-rain-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk
+        run: node android-mobile/tools/check-phone-rain-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk --live-proof
       - name: Export map rendering evidence
         if: always()
         uses: actions/upload-artifact@v4

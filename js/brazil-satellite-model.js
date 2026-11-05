@@ -1,6 +1,6 @@
 /* GOES infrared imagery, not precipitation intensity. Mercator is preserved end to end. */
 (function(root){'use strict';
- const LAYER='GOES-East_ABI_Band13_Clean_Infrared',BASE='https://gibs.earthdata.nasa.gov/',BOUNDS=[-75,-35,-28,6],SIZE=900,STEP=600000,MAX_AGE=6*3600000;
+ const LAYER='GOES-East_ABI_Band13_Clean_Infrared',BASE='https://gibs.earthdata.nasa.gov/',BOUNDS=[-75,-35,-28,6],SIZE=1200,STEP=600000,MAX_AGE=90*60000;
  const iso=t=>new Date(t).toISOString().replace(/\.\d{3}Z$/,'Z');
  const merc=lat=>Math.log(Math.tan(Math.PI/4+lat*Math.PI/360));
  function point(lon,lat,size=SIZE){return [(lon-BOUNDS[0])/(BOUNDS[2]-BOUNDS[0])*size,(merc(BOUNDS[3])-merc(lat))/(merc(BOUNDS[3])-merc(BOUNDS[1]))*size];}

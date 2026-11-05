@@ -20,16 +20,17 @@ for e in ET.fromstring(xml).iter():
 assert ends,'No producer timestamps'
 merc=lambda lat:math.log(math.tan(math.pi/4+math.radians(lat)/2))
 w,s,e,n=-54,-27,-38,-17
-height=round(512*(merc(n)-merc(s))/math.radians(e-w))
+width=1024
+height=round(width*(merc(n)-merc(s))/math.radians(e-w))
 bbox=','.join(f'{v:.2f}' for v in [6378137*math.radians(w),6378137*merc(s),6378137*math.radians(e),6378137*merc(n)])
 for i in range(6):
     at=max(ends)-dt.timedelta(minutes=10*i)
-    q={'SERVICE':'WMS','VERSION':'1.1.1','REQUEST':'GetMap','LAYERS':layer,'STYLES':'','SRS':'EPSG:3857','BBOX':bbox,'WIDTH':'512','HEIGHT':str(height),'FORMAT':'image/png','TRANSPARENT':'TRUE','TIME':iso(at)}
+    q={'SERVICE':'WMS','VERSION':'1.1.1','REQUEST':'GetMap','LAYERS':layer,'STYLES':'','SRS':'EPSG:3857','BBOX':bbox,'WIDTH':str(width),'HEIGHT':str(height),'FORMAT':'image/png','TRANSPARENT':'TRUE','TIME':iso(at)}
     data=read(root+'wms/epsg3857/best/wms.cgi?'+parse.urlencode(q))
     image=Image.open(io.BytesIO(data)).convert('RGBA')
-    coverage=sum(a>0 for a in image.getchannel('A').getdata())/(512*height)
+    coverage=sum(a>0 for a in image.getchannel('A').getdata())/(width*height)
     print({'time':iso(at),'size':image.size,'coverage':coverage},flush=True)
-    if image.size==(512,height) and coverage>.999:
+    if image.size==(width,height) and coverage>.999:
         Path('/tmp/tv-satellite-real.png').write_bytes(data)
         Path('/tmp/tv-satellite-time.txt').write_text(str(int(at.timestamp()*1000)))
         Path('/tmp/tv-satellite-now.txt').write_text(str(int(now.timestamp()*1000)))

@@ -66,7 +66,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&satelliteResource(uri))||(rainPage&&rainResource(uri))?null:blocked();
+     return tileResource(uri)||(!rainPage&&satelliteResource(uri))||(rainPage&&(rainResource(uri)||streetResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -85,6 +85,7 @@ final class PhoneMapView extends FrameLayout {
  static boolean rainResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"black-sky-9ba0.terrestre.workers.dev".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String path=uri.getPath();return ("/rainbow-snapshot".equals(path)&&uri.getQuery()==null)||("/tv-rain".equals(path)&&"area=liberdade".equals(uri.getQuery()))||(path!=null&&path.matches("/rainbow-tile/[0-9]+/[0-9]+/[0-7]/[0-9]+/[0-9]+")&&uri.getQuery()==null);}
  static boolean mainPage(Uri uri){return localAsset(uri)&&(ASSET_PREFIX+"phone-map.html").equals(uri.getPath())&&uri.getQuery()==null;}
  static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith(ASSET_PREFIX);}
+ static boolean streetResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Street_Map/MapServer/tile/");}
  static boolean tileResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Imagery/MapServer/tile/");}
  static boolean satelliteResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String p=uri.getPath();if("/legends/Clean_Longwave_Infrared_Window_Band_H.png".equals(p))return true;String layer=uri.getQueryParameter("LAYERS");if(layer==null)layer=uri.getQueryParameter("LAYER");return "GOES-East_ABI_Band13_Clean_Infrared".equals(layer)&&("/wms/epsg3857/best/wms.cgi".equals(p)||"/wmts/epsg3857/best/wmts.cgi".equals(p));}
  static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.earthdata.nasa.gov".equalsIgnoreCase(host)||"www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host);}

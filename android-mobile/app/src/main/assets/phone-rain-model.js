@@ -23,8 +23,9 @@ function forecast(data,now=Date.now()){
  return {points,now,until,minutes,amount,headline,arrival,duration,stop,increase,at:data.at,expiresAt:data.expiresAt,peak:Math.max(...points.map(p=>p.rate))};
 }
 function frames(data,now=Date.now()){
- if(!data||data.ok!==true||!Number.isSafeInteger(data.snapshot)||data.snapshot%600||data.snapshot*1000>now+60000||now-data.snapshot*1000>1800000)return [];
- return [-60,-30,0,20,40,60,80,100,120].map(offset=>({offset,snapshot:data.snapshot+Math.min(0,offset)*60,forecast:Math.max(0,offset)*60,time:(data.snapshot+offset*60)*1000}));
+ if(!data||data.ok!==true||!Number.isSafeInteger(data.snapshot)||data.snapshot%600||data.snapshot*1000>now+60000||now>=mapExpiresAt(data))return [];
+ return [-60,-40,-20,0,20,40,60,80,100,120].map(offset=>({offset,snapshot:data.snapshot+Math.min(0,offset)*60,forecast:Math.max(0,offset)*60,time:(data.snapshot+offset*60)*1000}));
 }
-const model={forecast,frames};if(typeof module!=='undefined'&&module.exports)module.exports=model;else root.PhoneRainModel=model;
+function mapExpiresAt(data){if(!data||!Number.isSafeInteger(data.snapshot))return 0;const maximum=data.snapshot*1000+1800000;return Number.isFinite(data.expiresAt)?Math.min(maximum,data.expiresAt):maximum;}
+const model={forecast,frames,mapExpiresAt};if(typeof module!=='undefined'&&module.exports)module.exports=model;else root.PhoneRainModel=model;
 })(typeof window==='undefined'?globalThis:window);
