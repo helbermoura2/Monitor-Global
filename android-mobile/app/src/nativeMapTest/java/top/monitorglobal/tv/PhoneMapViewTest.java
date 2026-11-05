@@ -3,7 +3,7 @@ import android.net.Uri;import android.os.Looper;import android.webkit.Javascript
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35)
 public class PhoneMapViewTest {
  @Test public void rainPreviewTrustsOnlyItsPublicDataRoutesAndVersionedAssets()throws Exception{
-  String api="https://black-sky-9ba0.terrestre.workers.dev";
+  String api="https://black-sky-9ba0.terrestre.workers.dev";assertTrue(PhoneMapView.streetResource(Uri.parse("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/7/72/47")));assertFalse(PhoneMapView.streetResource(Uri.parse("https://evil.example/ArcGIS/rest/services/World_Street_Map/MapServer/tile/7/72/47")));
   assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/rainbow-snapshot")));assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/tv-rain?area=liberdade")));assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/rainbow-tile/1800000000/7200/7/47/72")));
   for(String path:Arrays.asList("/health","/tv-rain?area=other","/rainbow-snapshot?url=evil","/rainbow-tile/1/7200/8/1/1"))assertFalse(path,PhoneMapView.rainResource(Uri.parse(api+path)));
   assertFalse(PhoneMapView.rainResource(Uri.parse(api.replace("https:","http:")+"/rainbow-snapshot")));assertFalse(PhoneMapView.rainResource(Uri.parse("https://evil.example/rainbow-snapshot")));

@@ -34,7 +34,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  if(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)launch.executablePath=process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;else launch.channel='chrome';
  browser=await chromium.launch(launch);
  const page=await browser.newPage({viewport:{width:412,height:740},deviceScaleFactor:2});
- const errors=[],unexpected=[],workers=[];let tiles=0;const png=tilePng(),satellitePng=tilePng(900,900);
+ const errors=[],unexpected=[],workers=[];let tiles=0;const png=tilePng(),satellitePng=tilePng(1200,1200);
  page.on('pageerror',error=>errors.push(error.message));
  page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
  page.on('worker',worker=>workers.push(worker.url()));

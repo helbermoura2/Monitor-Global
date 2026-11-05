@@ -25,15 +25,16 @@ for value in values:
     dt=datetime.datetime.fromisoformat(candidate.replace('Z','+00:00'))
     if dt.tzinfo and dt<=now:ends.append(dt)
    except ValueError:pass
-frame=max(ends) if ends else now-datetime.timedelta(minutes=40)
+if not ends: raise SystemExit('No producer-advertised frame confirmed')
+frame=max(ends)
 frame=frame.replace(minute=frame.minute//10*10,second=0,microsecond=0)
 for attempt in range(6):
  when=(frame-datetime.timedelta(minutes=10*attempt)).isoformat().replace('+00:00','Z')
- q={'SERVICE':'WMS','VERSION':'1.1.1','REQUEST':'GetMap','LAYERS':layer,'STYLES':'','SRS':'EPSG:3857','BBOX':'-8348961.81,-4163881.14,-3116945.74,669141.06','WIDTH':'900','HEIGHT':'900','FORMAT':'image/png','TRANSPARENT':'TRUE','TIME':when}
+ q={'SERVICE':'WMS','VERSION':'1.1.1','REQUEST':'GetMap','LAYERS':layer,'STYLES':'','SRS':'EPSG:3857','BBOX':'-8348961.81,-4163881.14,-3116945.74,669141.06','WIDTH':'1200','HEIGHT':'1200','FORMAT':'image/png','TRANSPARENT':'TRUE','TIME':when}
  try:
-  data,h=read(base+'wms/epsg3857/best/wms.cgi?'+urllib.parse.urlencode(q));image=Image.open(io.BytesIO(data)).convert('RGBA');opaque=sum(a>0 for a in image.getchannel('A').getdata());colors=image.getcolors(900*900) or [];chromatic=sum(n for n,c in colors if c[3]>0 and max(c[:3])-min(c[:3])>30)
+  data,h=read(base+'wms/epsg3857/best/wms.cgi?'+urllib.parse.urlencode(q));image=Image.open(io.BytesIO(data)).convert('RGBA');opaque=sum(a>0 for a in image.getchannel('A').getdata());colors=image.getcolors(1200*1200) or [];chromatic=sum(n for n,c in colors if c[3]>0 and max(c[:3])-min(c[:3])>30)
   print('FRAME '+json.dumps({'time':when,'opaque':opaque,'chromatic':chromatic,'cors':next((v for k,v in h.items() if k.lower()=='access-control-allow-origin'),None),'bytes':len(data),'url':base+'wms/epsg3857/best/wms.cgi?'+urllib.parse.urlencode(q)}),flush=True)
-  if opaque<900*900*.999:
+  if opaque<1200*1200*.999:
    Path('/tmp/satellite-probe-empty.png').write_bytes(data);continue
   Path('/tmp/satellite-probe.png').write_bytes(data);Path('/tmp/satellite-probe-info.json').write_text(json.dumps({'imageTime':when}))
   image.thumbnail((500,500));out=io.BytesIO();image.convert('RGB').save(out,format='JPEG',quality=75);print('SATELLITE_PREVIEW_BASE64 '+base64.b64encode(out.getvalue()).decode(),flush=True)
