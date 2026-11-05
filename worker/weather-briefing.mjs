@@ -17,11 +17,11 @@ export function briefingContext(kind,d,now){
  if(kind==='hourly'){
   const p=d.current;if(d.version!=='tv-weather-v1'||!p||!valid(p.start,now-HOUR+1,now)||!valid(d.generatedAt,now-90*MIN,now+MIN)||d.expiresAt>d.at+HOUR||!valid(p.temperature,-100,70))return null;
   referenceAt=p.start;dataAt=d.generatedAt;
-  facts.temperature='Na Liberdade, a previsão horária é de '+num(p.temperature)+' °C.';
-  if(valid(p.feels,-120,100))facts.feels='A sensação térmica prevista é de '+num(p.feels)+' °C.';
+  facts.temperature='Na Liberdade, a previsão horária é de '+num(Math.round(p.temperature))+' °C.';
+  if(valid(p.feels,-120,100))facts.feels='A sensação térmica prevista é de '+num(Math.round(p.feels))+' °C.';
   if(conditions[p.condition])facts.condition='O modelo horário indica '+conditions[p.condition]+'.';
-  if(valid(p.wind,0,540))facts.wind='O vento previsto é de '+num(p.wind)+' km/h'+(valid(p.gust,0,540)?', com rajadas de '+num(p.gust)+' km/h.':'.');
-  if(valid(p.humidity,0,100))facts.humidity='A umidade prevista é de '+num(p.humidity)+'%.';
+  if(valid(p.wind,0,540))facts.wind='O vento previsto é de '+num(Math.round(p.wind))+' km/h'+(valid(p.gust,0,540)?', com rajadas de '+num(Math.round(p.gust))+' km/h.':'.');
+  if(valid(p.humidity,0,100))facts.humidity='A umidade prevista é de '+num(Math.round(p.humidity))+'%.';
  }else{
   if(d.version!=='tv-rain-v1'||now-d.at>20*MIN||d.expiresAt>d.at+10*MIN||!Array.isArray(d.forecast)||d.forecast.length<60||d.forecast.length>300)return null;
   let end=0,current=-1;const all=d.forecast;
