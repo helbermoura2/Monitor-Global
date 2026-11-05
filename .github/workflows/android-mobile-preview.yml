@@ -13,11 +13,20 @@ on:
       - 'android-tv/app/src/main/java/top/monitorglobal/tv/CountryFlag.java'
       - 'android-tv/app/src/main/java/top/monitorglobal/tv/RainForecast.java'
       - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherForecast.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefing.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefingClient.java'
+      - 'worker/weather-briefing.mjs'
+      - 'monitor-global-worker-7_7_0.js'
   push:
     branches: [main]
     paths:
       - 'android-mobile/**'
       - '.github/workflows/android-mobile-preview.yml'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherForecast.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefing.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefingClient.java'
+      - 'worker/weather-briefing.mjs'
+      - 'monitor-global-worker-7_7_0.js'
 permissions:
   contents: read
 concurrency:
@@ -123,7 +132,7 @@ jobs:
         id: service
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs; then
+          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs .github/workflows/android-mobile-preview.yml; then
             echo 'deploy=false' >> "$GITHUB_OUTPUT"
           else
             echo 'deploy=true' >> "$GITHUB_OUTPUT"
