@@ -1,0 +1,21 @@
+name: Weather image quality review
+on:
+  push:
+    branches: [fix/weather-image-quality]
+permissions:
+  contents: read
+concurrency:
+  group: weather-image-quality
+  cancel-in-progress: false
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check Pillow
+      - name: Compare original satellite imagery and producer times
+        run: python tools/probe-weather-image-quality.py
