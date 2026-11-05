@@ -12,7 +12,7 @@ final class WeatherCardView extends LinearLayout {
  private final Typeface brand;
  WeatherCardView(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,boolean preview){
   super(c);setOrientation(VERTICAL);brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");setBackground(shape(BODY,true));
-  boolean rainFocus=rain!=null&&!rain.state.equals("dry");
+  boolean rainFocus=weather==null&&rain!=null&&!rain.state.equals("dry");
   String topic=rainFocus?(rain.title.startsWith("Neve")?"NEVE":"CHUVA"):"TEMPO";
   LinearLayout header=section(CYAN,10,5);line(header,topic+" · LIBERDADE, SP"+(demo?" · TESTE FICTÍCIO":""),15,BODY,brand,2);
   LinearLayout body=section(BODY,12,10);
