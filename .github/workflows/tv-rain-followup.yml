@@ -21,7 +21,12 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Evaluate automatic rain between hourly cards in the existing service
         working-directory: android-tv
-        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testReleaseUnitTest --tests top.monitorglobal.tv.WeatherServicePulseTest
+        run: >-
+          ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testReleaseUnitTest
+          --tests top.monitorglobal.tv.WeatherServicePulseTest
+          --tests top.monitorglobal.tv.RainMonitorTest
+          --tests top.monitorglobal.tv.RainOverlayTest
+          --tests top.monitorglobal.tv.HourlyWeatherTest
   sources:
     runs-on: ubuntu-latest
     timeout-minutes: 4

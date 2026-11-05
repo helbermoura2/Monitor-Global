@@ -50,12 +50,15 @@ public class WeatherServicePulseTest {
    ((Runnable)field(service,"dailyTick")).run();
    for(int i=0;i<1000&&(Boolean)field(rain,"busy");i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}
    assertFalse((Boolean)field(rain,"busy"));
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(13));
    assertEquals("soon:",Prefs.get(context).getString("rainLastKey",""));
    long arrivalNotice=Prefs.get(context).getLong("rainLastNotice",0);assertTrue(arrivalNotice>0);
-   Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(121));
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(108));
+   assertNotNull(field(field(rain,"overlay"),"current"));
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(13));
    assertEquals("now:moderada",Prefs.get(context).getString("rainLastKey",""));
    assertTrue(Prefs.get(context).getLong("rainLastNotice",0)>arrivalNotice);
-   assertNotNull(field(field(rain,"overlay"),"current"));
+   assertTrue(Prefs.get(context).getLong("rainLastAutomaticNotice",0)>0);
    assertEquals("the service evaluates the cached forecast, without additional source requests",1,reads.get());
    assertEquals(0,Prefs.get(context).getLong("weatherLastNotice",0));
   }finally{controller.destroy();}
