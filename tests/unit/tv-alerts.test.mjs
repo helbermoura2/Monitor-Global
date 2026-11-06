@@ -44,3 +44,43 @@ test('expanded coverage is opt-in so an older APK never announces the new Brazil
  const legacy=await(await handleTvAlerts(new Request('https://internal/tv-alerts'),{read,now:t,cache:null})).json();assert.equal(legacy.alerts.filter(a=>a.kind==='earthquake').length,1);assert.equal(legacy.sources.catalogs,undefined);
  const expanded=await(await handleTvAlerts(new Request('https://internal/tv-alerts?policy=telegram-v1'),{read,now:t,cache:null})).json();assert.equal(expanded.policy,'telegram-v1');assert.equal(expanded.alerts.filter(a=>a.kind==='earthquake').length,2);assert.equal(expanded.sources.catalogs.USP,true);
 });
+
+test('conditional cached TV polls return 304 without parsing the cached snapshot',async()=>{
+ const t=now+120000;
+ const snapshot=tvSnapshot({features:[quake()],catalogs:{USGS:true,USP:false,EMSC:false,GEOFON:true}},{ok:true,items:[]},t,{maxAge:72*3600000});
+ const stored=new Map(),cache={match:async key=>stored.get(key.url)?.clone(),put:async(key,response)=>{stored.set(key.url,response.clone());}};
+ const plain=new Request('https://internal/tv-alerts');
+ const first=await handleTvAlerts(plain,{read:async()=>snapshot,now:t,cache});
+ assert.equal(first.status,200);
+ const legacyTag=first.headers.get('ETag');
+ const old=stored.values().next().value;
+ assert.equal(old.headers.get('X-Monitor-TV-ETag-Legacy'),legacyTag);
+ let jsonReads=0;
+ const fastCache={match:async()=>({headers:old.headers,json:async()=>{jsonReads++;throw Error('Cached body should not be parsed for 304');}})};
+ const second=await handleTvAlerts(new Request(plain,{headers:{'If-None-Match':legacyTag}}),{now:t+1000,cache:fastCache});
+ assert.equal(second.status,304);
+ assert.equal(second.headers.get('ETag'),legacyTag);
+ assert.equal(jsonReads,0);
+ const expandedUrl='https://internal/tv-alerts?policy=telegram-v1';
+ const expanded=await handleTvAlerts(new Request(expandedUrl),{now:t+1000,cache});
+ assert.equal(expanded.status,200);
+ const expandedBody=await expanded.json();
+ assert.equal(expandedBody.policy,'telegram-v1');
+ assert.equal(expandedBody.sources.catalogs.GEOFON,true);
+ const expandedTag=expanded.headers.get('ETag');
+ const expanded304=await handleTvAlerts(new Request(expandedUrl,{headers:{'If-None-Match':expandedTag}}),{now:t+2000,cache});
+ assert.equal(expanded304.status,304);
+ assert.equal(jsonReads,0);
+ assert.equal((await handleTvAlerts(new Request(plain,{method:'HEAD'}),{now:t+2000,cache})).status,200);
+ // If the first poll requests expanded policy, it too can return 304 without parsing.
+ const nextTime=t+60000,updatedSnapshot={...snapshot,serverTime:nextTime};
+ const expandedFirst=await handleTvAlerts(new Request(expandedUrl),{read:async()=>updatedSnapshot,now:nextTime,cache});
+ assert.equal(expandedFirst.status,200);
+ const expandedOnly=stored.values().next().value;
+ assert.equal(expandedOnly.headers.get('X-Monitor-TV-ETag-Expanded'),expandedFirst.headers.get('ETag'));
+ let expandedReads=0;
+ const headerOnly={match:async()=>({headers:expandedOnly.headers,json:async()=>{expandedReads++;throw Error('Unexpected JSON parse');}})};
+ const expandedFast=await handleTvAlerts(new Request(expandedUrl,{headers:{'If-None-Match':expandedFirst.headers.get('ETag')}}),{now:nextTime+1000,cache:headerOnly});
+ assert.equal(expandedFast.status,304);
+ assert.equal(expandedReads,0);
+});

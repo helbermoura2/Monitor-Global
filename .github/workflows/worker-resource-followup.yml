@@ -6,6 +6,10 @@ on:
       - '.github/workflows/worker-resource-followup.yml'
       - 'tools/resource-followup-summary.mjs'
       - 'tests/unit/resource-followup-summary.test.mjs'
+      - 'tools/cloudflare-route-tail.mjs'
+      - 'tests/unit/cloudflare-route-tail.test.mjs'
+      - 'worker/tv-alerts.mjs'
+      - 'tests/unit/tv-alerts.test.mjs'
 permissions:
   contents: read
 concurrency:
@@ -22,7 +26,7 @@ jobs:
       - env:
           MONITOR_TEST_OFFLINE: '1'
           NODE_OPTIONS: --require ./tools/test-network-guard.cjs
-        run: node --test tests/unit/cloudflare-route-tail.test.mjs tests/unit/resource-followup-summary.test.mjs
+        run: node --test tests/unit/cloudflare-route-tail.test.mjs tests/unit/resource-followup-summary.test.mjs tests/unit/tv-alerts.test.mjs
   observe:
     needs: checks
     if: github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'

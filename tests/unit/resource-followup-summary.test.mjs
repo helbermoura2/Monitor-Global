@@ -16,3 +16,15 @@ test('summary discards injected paths, non-resource messages and invalid counts'
  const r=summarize({sessionRemoved:true,counts:{'/secret?token=private exceededCpu':1,'/tv-weather exceededCpu extra':1,'/tv-weather exception':1,'/tv-weather exceededCpu':-1,'/tv-alerts exceededResources':1.5,'/telegram-image/* exceededCpu':1}});
  assert.equal(r.resourceEvents,1);assert.equal(r.routes[0].route,'/telegram-image/*');assert(!JSON.stringify(r).includes('private'));
 });
+
+test('TV alert view families remain attributable but arbitrary nested paths are discarded',()=>{
+ const report=summarize({sessionRemoved:true,counts:{
+  '/tv-alerts/expanded exceededCpu':2,'/tv-alerts/daily exceededResources':1,
+  '/tv-alerts/replay exceededMemory':1,'/tv-alerts/legacy canceled':9,
+  '/tv-alerts/private exceededCpu':4
+ }});
+ assert.equal(report.status,'resource_route_observed');
+ assert.equal(report.resourceEvents,4);
+ assert.deepEqual(report.routes.map(r=>r.route),['/tv-alerts/expanded','/tv-alerts/daily','/tv-alerts/replay']);
+ assert(!JSON.stringify(report).includes('private'));
+});
