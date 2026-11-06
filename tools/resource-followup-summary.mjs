@@ -2,7 +2,7 @@ import {readFile,appendFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 
 const resourceOutcomes=new Set(['exceededCpu','exceededMemory','exceededResources']);
-const routeName=/^(?:\/[a-z0-9-]+(?:\/\*)?|other|root|public-proxy|scheduled|alarm)$/;
+const routeName=/^(?:\/[a-z0-9-]+(?:\/\*)?|\/tv-alerts\/(?:daily|replay|completed|expanded|legacy)|other|root|public-proxy|scheduled|alarm)$/;
 export function summarize(report){
  const rows=[];
  for(const [key,count] of Object.entries(report.counts||{})){
