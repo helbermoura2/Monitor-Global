@@ -1,0 +1,9 @@
+package top.monitorglobal.tv;
+import java.time.*;import java.time.format.*;import java.util.*;import org.json.*;
+/** Exact producer times for GOES-East ABI band 13; source colours and watermark stay intact. */
+final class RealEarthPlan {
+ static final String ROOT="https://realearth.ssec.wisc.edu/",PRODUCT="G19-ABI-FD-BAND13-GRAD",METADATA=ROOT+"api/products?products="+PRODUCT+"&timespan=-2h",LEGEND=ROOT+"api/legend?products="+PRODUCT;
+ private static final DateTimeFormatter STAMP=DateTimeFormatter.ofPattern("uuuuMMdd.HHmmss",Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
+ static List<Long> frames(String json,long now){TreeSet<Long> out=new TreeSet<>();if(json==null||json.length()>131072)return new ArrayList<>();try{JSONArray products=new JSONArray(json);if(products.length()>20)return new ArrayList<>();for(int i=0;i<products.length();i++){JSONObject item=products.getJSONObject(i);if(!PRODUCT.equals(item.optString("id")))continue;JSONArray times=item.optJSONArray("times");if(times==null||times.length()>300)continue;for(int t=0;t<times.length();t++){String value=times.optString(t);if(!value.matches("\\d{8}\\.\\d{6}"))continue;try{long at=LocalDateTime.parse(value,STAMP).toInstant(ZoneOffset.UTC).toEpochMilli();if(at<=now&&now-at<=InfraredPlan.MAX_AGE)out.add(at);}catch(DateTimeException ignored){}}}}catch(JSONException ignored){}List<Long> result=new ArrayList<>(out);return new ArrayList<>(result.subList(Math.max(0,result.size()-6),result.size()));}
+ static String image(InfraredPlan.Scope s,long at){String stamp=DateTimeFormatter.ofPattern("uuuuMMdd_HHmmss",Locale.ROOT).withZone(ZoneOffset.UTC).format(Instant.ofEpochMilli(at));return ROOT+"api/image?products="+PRODUCT+"_"+stamp+"&bounds="+String.format(Locale.US,"%.6f,%.6f,%.6f,%.6f",s.south,s.west,s.north,s.east)+"&width="+InfraredPlan.WIDTH+"&height="+s.height+"&format=png";}
+}
