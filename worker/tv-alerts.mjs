@@ -13,11 +13,10 @@ function project(snapshot,expanded){
  if(!snapshot.sources.catalogs)return snapshot;
  return {...snapshot,sources:{earthquake:snapshot.sources.catalogs.USGS,tsunami:snapshot.sources.tsunami},alerts:snapshot.alerts.filter(a=>a.kind!=='earthquake'||a.provider==='USGS'&&a.magnitude>=5.5)};
 }
-async function etags(snapshot){
- const legacy=project(snapshot,false),expanded=project(snapshot,true);
- const legacyTag='"'+await hash(JSON.stringify([legacy.sources,legacy.alerts]))+'"';
- const expandedTag=legacy.sources===expanded.sources&&legacy.alerts===expanded.alerts?legacyTag:'"'+await hash(JSON.stringify([expanded.sources,expanded.alerts]))+'"';
- return {serverTime:snapshot.serverTime,legacy:legacyTag,expanded:expandedTag};
+async function etags(snapshot,expanded){
+ const variant=project(snapshot,expanded);
+ const tag='"'+await hash(JSON.stringify([variant.sources,variant.alerts]))+'"';
+ return {serverTime:snapshot.serverTime,[expanded?'expanded':'legacy']:tag};
 }
 export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=globalThis.caches?.default}={}){
  const params=new URL(request.url).searchParams,view=params.get('view'),expanded=params.get('policy')==='telegram-v1';
@@ -41,8 +40,8 @@ export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=glob
  if(!snapshot||now-snapshot.serverTime>30000){
   if(last&&now-last.serverTime<30000){snapshot=last;cachedTags=lastTags;}
   else{
-   if(!inflight)inflight=(async()=>{const next=await (read?read():collect(env));const tags=await etags(next);last=next;lastTags=tags;
-    try{await cache?.put(key,new Response(JSON.stringify(next),{headers:{'Content-Type':'application/json','Cache-Control':'public, max-age=25','X-Monitor-TV-Server-Time':String(next.serverTime),'X-Monitor-TV-ETag-Legacy':tags.legacy,'X-Monitor-TV-ETag-Expanded':tags.expanded}}));}catch{}
+   if(!inflight)inflight=(async()=>{const next=await (read?read():collect(env));const tags=await etags(next,expanded);last=next;lastTags=tags;
+    try{await cache?.put(key,new Response(JSON.stringify(next),{headers:{'Content-Type':'application/json','Cache-Control':'public, max-age=25','X-Monitor-TV-Server-Time':String(next.serverTime),...(tags.legacy?{'X-Monitor-TV-ETag-Legacy':tags.legacy}:{}),...(tags.expanded?{'X-Monitor-TV-ETag-Expanded':tags.expanded}:{})}}));}catch{}
     return next;
    })().finally(()=>inflight=null);
    snapshot=await inflight;cachedTags=lastTags;
@@ -50,8 +49,8 @@ export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=glob
  }
  const projected=project(snapshot,expanded);
  let etag=cachedTags?.[expanded?'expanded':'legacy'];
- if(!etag||cachedTags.serverTime!==snapshot.serverTime)etag=snapshot===last&&lastTags?.serverTime===snapshot.serverTime?lastTags[expanded?'expanded':'legacy']:null;
- if(!etag)etag='"'+await hash(JSON.stringify([projected.sources,projected.alerts]))+'"';
+ if(!etag||cachedTags.serverTime!==snapshot.serverTime)etag=lastTags?.serverTime===snapshot.serverTime?lastTags[expanded?'expanded':'legacy']:null;
+ if(!etag){etag='"'+await hash(JSON.stringify([projected.sources,projected.alerts]))+'"';if(lastTags?.serverTime===snapshot.serverTime)lastTags[expanded?'expanded':'legacy']=etag;}
  headers.ETag=etag;
  if(request.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers});
  return new Response(request.method==='HEAD'?null:JSON.stringify(projected),{headers});
