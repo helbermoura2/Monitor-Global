@@ -68,8 +68,19 @@ test('conditional cached TV polls return 304 without parsing the cached snapshot
  assert.equal(expandedBody.policy,'telegram-v1');
  assert.equal(expandedBody.sources.catalogs.GEOFON,true);
  const expandedTag=expanded.headers.get('ETag');
- const expanded304=await handleTvAlerts(new Request(expandedUrl,{headers:{'If-None-Match':expandedTag}}),{now:t+2000,cache:fastCache});
+ const expanded304=await handleTvAlerts(new Request(expandedUrl,{headers:{'If-None-Match':expandedTag}}),{now:t+2000,cache});
  assert.equal(expanded304.status,304);
  assert.equal(jsonReads,0);
  assert.equal((await handleTvAlerts(new Request(plain,{method:'HEAD'}),{now:t+2000,cache})).status,200);
+ // If the first poll requests expanded policy, it too can return 304 without parsing.
+ const nextTime=t+60000,updatedSnapshot={...snapshot,serverTime:nextTime};
+ const expandedFirst=await handleTvAlerts(new Request(expandedUrl),{read:async()=>updatedSnapshot,now:nextTime,cache});
+ assert.equal(expandedFirst.status,200);
+ const expandedOnly=stored.values().next().value;
+ assert.equal(expandedOnly.headers.get('X-Monitor-TV-ETag-Expanded'),expandedFirst.headers.get('ETag'));
+ let expandedReads=0;
+ const headerOnly={match:async()=>({headers:expandedOnly.headers,json:async()=>{expandedReads++;throw Error('Unexpected JSON parse');}})};
+ const expandedFast=await handleTvAlerts(new Request(expandedUrl,{headers:{'If-None-Match':expandedFirst.headers.get('ETag')}}),{now:nextTime+1000,cache:headerOnly});
+ assert.equal(expandedFast.status,304);
+ assert.equal(expandedReads,0);
 });
