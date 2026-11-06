@@ -1,5 +1,6 @@
 """Bounded, read-only comparison of public satellite delivery paths."""
 import concurrent.futures
+import base64
 import datetime as dt
 import io
 import json
@@ -37,9 +38,30 @@ def noaa():
         data=read(image_url,4000000);im=Image.open(io.BytesIO(data));result['image']={'url':image_url,'size':im.size,'bytes':len(data)}
     return result
 def realearth():
-    raw=read('https://realearth.ssec.wisc.edu/api/products?search=B13&timespan=-1h')
+    product='G19-ABI-FD-BAND13-GRAD'
+    raw=read('https://realearth.ssec.wisc.edu/api/products?products='+product+'&timespan=-1h')
     data=json.loads(raw)
     if isinstance(data,dict): data=data.get('products',data)
-    return {'response':data}
+    item=next(x for x in data if x['id']==product)
+    last=sorted(item['times'])[-1]
+    stamp=dt.datetime.strptime(last,'%Y%m%d.%H%M%S').replace(tzinfo=dt.timezone.utc)
+    exact=product+'_'+last.replace('.','_')
+    args={'products':exact,'bounds':'-27,-54,-17,-38','width':'1024','height':'691'}
+    url='https://realearth.ssec.wisc.edu/api/image?'+urllib.parse.urlencode(args)
+    image=Image.open(io.BytesIO(read(url,4000000))).convert('RGBA')
+    image.thumbnail((640,500));out=io.BytesIO();image.convert('RGB').save(out,format='JPEG',quality=80)
+    print('SAT_FRESH_IMAGE '+base64.b64encode(out.getvalue()).decode(),flush=True)
+    details={'time':last,'ageMinutes':round((NOW-stamp).total_seconds()/60,1),'metadata':{k:item.get(k) for k in ['id','projection','applystyle','times']},'imageUrl':url,'size':image.size}
+    try:
+        geo=Image.open(io.BytesIO(read(url+'&format=geotiff',5000000)))
+        details['geotiff']={str(k):str(v)[:700] for k,v in geo.tag_v2.items() if k in [33550,33922,34735,34737]}
+    except Exception as error:details['geotiffError']=str(error)[:150]
+    try:
+        legend=Image.open(io.BytesIO(read('https://realearth.ssec.wisc.edu/api/legend?products='+product,300000)))
+        details['legendSize']=legend.size
+        legend.thumbnail((640,500));out=io.BytesIO();legend.convert('RGB').save(out,format='JPEG',quality=85)
+        print('SAT_FRESH_LEGEND '+base64.b64encode(out.getvalue()).decode(),flush=True)
+    except Exception as error:details['legendError']=str(error)[:150]
+    return details
 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
     list(pool.map(lambda p:report(*p),[('NASA',nasa),('NOAA',noaa),('REALEARTH',realearth)]))
