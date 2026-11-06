@@ -21,3 +21,15 @@ test('capture duration is bounded even for malformed workflow inputs',()=>{asser
 test('new TV meteorological routes remain attributable without preserving the point or query',()=>{
  for(const route of ['/tv-rain','/tv-weather'])assert.deepEqual(classify({outcome:'exceededResources',event:{request:{url:'https://example.com'+route+'?area=liberdade&secret=discard'}}}),{route,outcome:'exceededResources'});
 });
+
+test('TV diagnostics distinguish fixed view families without storing parameters, tokens or full URLs',()=>{
+ const base='https://example.com/tv-alerts?token=private&eventId=private';
+ for(const [params,route] of [
+  ['', '/tv-alerts/legacy'],['&policy=telegram-v1','/tv-alerts/expanded'],['&view=daily','/tv-alerts/daily'],
+  ['&view=replay','/tv-alerts/replay'],['&view=completed','/tv-alerts/completed'],
+  ['&view=unknown&policy=telegram-v1','/tv-alerts/expanded']
+ ]){const result=classify({outcome:'exceededCpu',event:{request:{url:base+params,headers:{Authorization:'secret'}}}});
+  assert.deepEqual(result,{route,outcome:'exceededCpu'});
+  assert(!JSON.stringify(result).includes('private'));
+ }
+});
