@@ -11,7 +11,7 @@ for attempt in range(20):
         raise SystemExit('Oversized AI briefing response')
     data = json.loads(raw)
     print(json.dumps(data, ensure_ascii=False), flush=True)
-    if data.get('engine') != 'validated-fact-selection-v3':
+    if data.get('engine') != 'validated-insight-selection-v4':
         time.sleep(2)
         continue
     if data.get('status') == 'ready':
@@ -19,6 +19,11 @@ for attempt in range(20):
         assert data.get('model') == '@cf/meta/llama-3.1-8b-instruct-fp8'
         assert 0 < len(data.get('text', '')) <= 185
         assert data.get('expiresAt', 0) > time.time()*1000
+        break
+    if data.get('status') == 'not_applicable':
+        # The ordinary weather card already includes all useful facts.
+        # Skipping redundant AI is now a valid, zero-inference outcome.
+        print('No added meteorological insight; standard card remains available')
         break
     if data.get('status') != 'pending':
         raise SystemExit('Live AI briefing unavailable; normal meteorological cards remain usable')
