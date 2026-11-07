@@ -52,7 +52,7 @@ export function briefingContext(kind,d,now){
    facts.arrival='O modelo indica que a '+noun+' pode começar em breve; o horário ainda pode mudar.';
   if(rate>=7.5)
    facts.strong='O modelo sinaliza '+noun+' forte; acompanhe os avisos oficiais, pois a intensidade pode mudar.';
-  for(let i=first+1;i<=all.length-10;i++)if(all.slice(i,i+10).every(p=>!wet(p))){facts.pause='Há indicação de possível pausa na '+noun+' ainda nesta hora, sujeita a revisão.';break;}
+  for(let i=first+1;i<=all.length-10&&all[i].start<=now+HOUR;i++)if(all.slice(i,i+10).every(p=>!wet(p))){facts.pause='Há indicação de possível pausa na '+noun+' na próxima hora, sujeita a revisão.';break;}
   const baseline=all.slice(current,current+5).reduce((s,p)=>s+(wet(p)?p.rate:0),0)/5;
   if(state==='now')for(let i=current+5;i<=Math.min(all.length-5,current+60);i++)if(all.slice(i,i+5).every(p=>wet(p)&&p.rate>=Math.max(baseline*1.5,baseline+1))){facts.increase='O modelo indica que a '+noun+' pode ganhar força ao longo da próxima hora.';break;}
   if(state==='now'&&all.slice(current,current+45).length===45&&all.slice(current,current+45).every(wet))
