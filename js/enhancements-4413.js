@@ -60,17 +60,21 @@
     const sismoOk = Number(window.__lastSismoSuccess || 0);
     const sismoCache = Number(window.__sismoCacheAt || 0);
 
-    if (window.__sismoUsingCache && sismoCache) {
-      const age = Math.max(0, Math.round((Date.now() - sismoCache) / 1000));
-      const label = age < 60
+    if (window.__sismoUsingCache) {
+      const age = sismoCache > 0 && sismoCache <= Date.now()
+        ? Math.max(0, Math.round((Date.now() - sismoCache) / 1000)) : null;
+      const label = age === null ? 'sem horário confirmado' : age < 60
         ? `${Math.max(1, age)}s`
         : age < 3600
           ? `${Math.round(age / 60)}min`
           : `${Math.round(age / 3600)}h`;
 
-      const why = window.__offlineCacheReason === 'offline' ? 'sem rede' : 'fontes indisponíveis';
+      const reason = window.__offlineCacheReason;
+      const why = reason === 'offline' ? 'sem rede'
+        : reason === 'reconnecting' ? 'aguardando confirmação das fontes'
+        : 'fontes indisponíveis';
       el.textContent = `🟠 cache ${label}`;
-      el.title = `Dados locais (${why}). Última gravação há ${label}. Não é consulta ao vivo.`;
+      el.title = `Dados locais (${why}). Última confirmação sísmica: ${label}. Não é consulta ao vivo.`;
       return;
     }
 
