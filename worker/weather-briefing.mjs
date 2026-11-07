@@ -48,11 +48,11 @@ export function briefingContext(kind,d,now){
   const noun=all[first].type==='snow'?'neve':'chuva';
   // Rain amount, intensity and duration are already on the TV card.
   // Only highlight changes or continuity backed by the minute-by-minute series.
-  if(state==='soon'&&all[first].start-now<=30*MIN)
-   facts.arrival='O modelo indica que a '+noun+' pode começar em breve; o horário ainda pode mudar.';
-  if(rate>=7.5)
-   facts.strong='O modelo sinaliza '+noun+' forte; acompanhe os avisos oficiais, pois a intensidade pode mudar.';
-  for(let i=first+1;i<=all.length-10&&all[i].start<=now+HOUR;i++)if(all.slice(i,i+10).every(p=>!wet(p))){facts.pause='Há indicação de possível pausa na '+noun+' na próxima hora, sujeita a revisão.';break;}
+
+  const strongStart=state==='now'?current:first;
+  if(all.slice(strongStart,strongStart+5).length===5&&all.slice(strongStart,strongStart+5).every(p=>wet(p)&&p.rate>=7.5))
+   facts.strong='O modelo sinaliza '+noun+' forte sustentada; acompanhe os avisos oficiais, pois a intensidade pode mudar.';
+  if(state==='now')for(let i=first+1;i<=all.length-10&&all[i].start<=now+HOUR;i++)if(all.slice(i,i+10).every(p=>!wet(p))){facts.pause='Há indicação de possível pausa na '+noun+' na próxima hora, sujeita a revisão.';break;}
   const baseline=all.slice(current,current+5).reduce((s,p)=>s+(wet(p)?p.rate:0),0)/5;
   if(state==='now')for(let i=current+5;i<=Math.min(all.length-5,current+60);i++)if(all.slice(i,i+5).every(p=>wet(p)&&p.rate>=Math.max(baseline*1.5,baseline+1))){facts.increase='O modelo indica que a '+noun+' pode ganhar força ao longo da próxima hora.';break;}
   if(state==='now'&&all.slice(current,current+45).length===45&&all.slice(current,current+45).every(wet))
@@ -68,7 +68,15 @@ export function parseBriefingSelection(result,context){
  try{let raw=result?.response;if(typeof raw==='string'){raw=raw.trim();if(raw.length>2000)return null;try{raw=JSON.parse(raw);}catch{const start=raw.indexOf('{'),end=raw.lastIndexOf('}');if(start<0||end<start)return null;raw=JSON.parse(raw.slice(start,end+1));}}
   if(Array.isArray(raw))raw={facts:raw};
   if(!raw||Object.keys(raw).some(k=>k!=='facts')||!Array.isArray(raw.facts)||raw.facts.length<1||raw.facts.length>2||raw.facts.length>context.keys.length||new Set(raw.facts).size!==raw.facts.length||raw.facts.some(k=>!context.keys.includes(k)))return null;
-  return raw.facts;
+  // A high-priority signal must not be hidden by a weaker selected fact.
+  // The model still ranks optional interpretations, but cannot suppress a
+  // verified storm, strong gust, sustained heavy rain or intensification.
+  const priority=context.kind==='rain'
+   ? ['increase','strong','persistent','pause']
+   : ['storm','gusts','heat','chill','dry','fog','wind','humidCalm','humid'];
+  const mandatory=context.kind==='rain'?['increase','strong']:['storm','gusts'];
+  return [...new Set([...mandatory.filter(key=>context.keys.includes(key)),...raw.facts])]
+   .sort((a,b)=>priority.indexOf(a)-priority.indexOf(b)).slice(0,2);
  }catch{return null;}
 }
 function renderFacts(keys,context){let out='';for(const key of keys){const next=(out?out+' ':'')+context.facts[key];if(next.length<=185)out=next;}return out;}
