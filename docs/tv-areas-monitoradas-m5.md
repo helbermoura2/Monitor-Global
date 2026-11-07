@@ -11,7 +11,7 @@ A tarja principal continua para M6+ globais, todos os sismos no Brasil e boletin
 
 ## Na televisão
 
-O cartão aparece no canto inferior direito por oito segundos, com entrada/saída suaves, identidade do projeto, magnitude/local, profundidade, fonte, horário BRT, área monitorada e “Danos não confirmados”. Usa um som mais discreto e respeita o botão de som. Não abre mapa nem consulta população/cidades.
+Na versão inicial, o cartão aparecia no canto inferior direito por oito segundos, com entrada/saída suaves, identidade do projeto, magnitude/local, profundidade, fonte, horário BRT, área monitorada e “Danos não confirmados”. Usa um som mais discreto e respeita o botão de som. Não abre mapa nem consulta população/cidades.
 
 Em **Aviso menor**, pode-se desligar o recurso inteiro. **Escolher áreas monitoradas para M5+** permite marcar/desmarcar áreas com o controle. Todas começam marcadas. A primeira leitura é silenciosa, inclusive após mudar as escolhas; não envia um lote de eventos anteriores. Há botão de teste fictício, com dez segundos para voltar ao conteúdo da TV.
 
@@ -41,6 +41,19 @@ PR #546 integrada. Worker publicado pelo fluxo 40833030756, com marcador públic
 
 ## Ajuste visual 1.0.27
 
-Após a foto na TCL, o aviso menor passa de no máximo 560 para 400 dp de largura (cerca de 29% mais estreito), com limite proporcional de 44% da tela. Mantém fontes, campos, movimento dos textos longos, posição, oito segundos e regras de disparo. Não altera a tarja principal ou consultas. A atualização requer apenas APK oficial, sem desinstalar.
+Após a foto na TCL, o aviso menor passa de no máximo 560 para 400 dp de largura (cerca de 29% mais estreito), com limite proporcional de 44% da tela. Mantém fontes, campos, movimento dos textos longos, posição e regras de disparo (na época, oito segundos). Não altera a tarja principal ou consultas. A atualização requer apenas APK oficial, sem desinstalar.
 
 Versão 1.0.27 publicada e conferida no endereço público: arquivo, hash, pacote, versão e assinatura oficial válidos. Passaram os 87 testes Android existentes, montagem release, lint e o teste gráfico na largura real da janela, também no CI. [Evidências](audits/tv-target-card-20261030.json). O visual nos aparelhos do proprietário ainda depende do botão de teste.
+
+
+## Versão 1.0.55 — 15 segundos e replay regional
+
+- O **aviso regional M5,0–5,9** permanece sobre o vídeo por **15 segundos**, com a mesma entrada e saída suaves, bandeira, área selecionada, profundidade, fonte e horário original. A duração não depende do controle de duração dos alertas principais.
+- Novo botão na configuração: **Replay · Último aviso regional M5,0–5,9 (15 s)**. Depois de tocar, há 10 segundos para voltar ao conteúdo da TV. A apresentação mostra **REPLAY · SISMO REGIONAL** e **data/hora originais**, nunca se apresenta como novo alerta. Não emite novo som.
+- Somente o último aviso regional real efetivamente selecionado para exibição é salvo em SharedPreferences, com JSON limitado a 24 KiB. O **teste fictício não substitui o registro**, tampouco replay de M6+/Brasil ou resumo sísmico.
+- O replay é feito **somente a partir dos dados já salvos no aparelho**. Não consulta a internet, não dispara o pipeline sísmico/Telegram, não salva nova notificação real nem reordena a fila de avisos. Se ainda não houver registro salvo, o aplicativo informa isso na tela inicial.
+- Ao chegar alerta principal, M6+, sismo do Brasil ou tsunami, o cartão regional **é interrompido imediatamente** (inclusive replay e teste). Se outra apresentação estiver ativa, o replay manual não é iniciado; o usuário pode tentar novamente depois.
+- A fila regional permanece limitada a quatro avisos com expiração de 30 minutos; a configuração das 32 áreas, os critérios de profundidade e magnitude e a baseline silenciosa permanecem inalterados.
+- Testes nativos em `CompactNoticeTest` verificam continuidade após 10 segundos, fechamento ao fim de 15 segundos, ausência de som no replay, identificação histórica e persistência seletiva.
+- A versão `1.0.55` foi preparada em `android-tv/app/build.gradle` para distribuição após revisão. **Merge do PR pode acionar o workflow oficial de assinatura e publicação**; por isso, não efetuar integração antes dos checks e da decisão de liberar nova versão. A instalação é pela função **Verificar atualização oficial**, sem apagar dados.
+- Não é alteração do Worker, das regras de sismos, do Telegram, dos horários de meteorologia nem das cotas Free. Testes automáticos não substituem a confirmação visual na televisão real.
