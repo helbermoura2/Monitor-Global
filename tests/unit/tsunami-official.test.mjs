@@ -65,3 +65,68 @@ test('product depth preserves explicit units and never treats missing or unknown
   const [item]=parseTsunamiProduct('var p='+JSON.stringify({...object,eventDepth:depth,eventDepthType:unit})+';','WEPA40');assert.equal(item.originDepth,expected);
  }
 });
+
+test('repeated upstream 403 gets a bounded per-feed cooldown while NWS fallback keeps refreshing',async()=>{
+ const saved=globalThis.fetch,realNow=Date.now,started=realNow();let clock=started,upstream=0,nws=0,recovered=false,phebFetches=0;
+ Date.now=()=>clock;
+ globalThis.fetch=async url=>{
+  const value=String(url);
+  if(value.includes('www.tsunami.gov')){
+   upstream++;if(value.endsWith('/PHEBAtom.xml')){phebFetches++;if(recovered)return new Response('<feed xmlns="http://www.w3.org/2005/Atom"></feed>');}
+   return new Response('',{status:403});
+  }
+  if(value.includes('api.weather.gov/products/types/')){nws++;return Response.json({'@graph':[]});}
+  throw Error('Unexpected URL: '+value);
+ };
+ try{
+  const {getOfficialTsunamis:read}=await import('../../tsunami-official-worker.mjs?feed-403-cooldown');
+  const first=await read();assert.equal(upstream,6);assert.equal(nws,2);assert.equal(first.sources[0].httpStatus,403);
+  clock+=21000;
+  const held=await read();assert.equal(upstream,6,'blocked endpoints are not re-fetched at the next 20s refresh');
+  assert.equal(nws,4,'official NWS fallback is still requested');assert(held.sources.slice(0,6).every(s=>s.httpStatus===403&&s.retryAfterSeconds>0));
+  clock+=40000;
+  await read();assert.equal(upstream,12,'first cooldown expires after at most 60s');
+  clock+=21000;
+  await read();assert.equal(upstream,12,'repeat 403 lengthens the cooldown to 120s');
+  clock+=121000;recovered=true;
+  const restored=await read();assert.equal(restored.sources[0].ok,true);assert.equal(restored.sources[0].httpStatus,undefined);
+  clock+=21000;
+  await read();assert.equal(phebFetches,4,'successful endpoint is polled at the normal cadence again');
+ }finally{globalThis.fetch=saved;Date.now=realNow;}
+});
+
+test('Retry-After on 429 is bounded and successful product requests accept JavaScript',async()=>{
+ const saved=globalThis.fetch,realNow=Date.now;let clock=realNow(),upstream=0,accept='';
+ Date.now=()=>clock;
+ globalThis.fetch=async(url,options={})=>{
+  const value=String(url);
+  if(value.includes('www.tsunami.gov')){
+   upstream++;
+   if(value.includes('/events/js/'))accept=options.headers?.Accept;
+   return new Response('',{status:429,headers:{'Retry-After':'90'}});
+  }
+  if(value.includes('api.weather.gov/products/types/'))return Response.json({'@graph':[]});
+  throw Error('Unexpected URL: '+value);
+ };
+ try{
+  const {getOfficialTsunamis:read}=await import('../../tsunami-official-worker.mjs?feed-429-cooldown');
+  await read();assert.equal(upstream,6);assert.match(accept,/application\/javascript/);
+  clock+=61000;await read();assert.equal(upstream,6,'honours 90-second Retry-After');
+  clock+=30000;await read();assert.equal(upstream,12,'retries after Retry-After elapsed');
+ }finally{globalThis.fetch=saved;Date.now=realNow;}
+});
+
+test('upstream HTTP 503 is not treated as permanent rejection and keeps normal retry cadence',async()=>{
+ const saved=globalThis.fetch,realNow=Date.now;let clock=realNow(),upstream=0;
+ Date.now=()=>clock;
+ globalThis.fetch=async url=>{
+  if(String(url).includes('www.tsunami.gov')){upstream++;return new Response('',{status:503});}
+  if(String(url).includes('api.weather.gov/products/types/'))return Response.json({'@graph':[]});
+  throw Error('Unexpected URL: '+url);
+ };
+ try{
+  const {getOfficialTsunamis:read}=await import('../../tsunami-official-worker.mjs?feed-transient-503');
+  await read();assert.equal(upstream,6);
+  clock+=21000;await read();assert.equal(upstream,12,'transient server outages retain 20s polling');
+ }finally{globalThis.fetch=saved;Date.now=realNow;}
+});

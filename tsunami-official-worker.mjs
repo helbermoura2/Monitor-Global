@@ -53,6 +53,14 @@ export function parseTsunamiProduct(text,code){
  const source='PTWC',feedKey='PTWC-'+code;
  return [{id:'TS-'+feedKey+'-'+p.twcEventID+'-'+p.bulletinNr,feedKey,source,type:'tsunami',title:'PTWC · '+label,place:area.length?[...new Set(area.map(a=>clean(a.zone)))].join(' · '):clean(p.quakeLocation)||'Região do boletim PTWC',time,coords,coordinateRole:'earthquake-origin',originTime:Date.parse(p.originTime),originMag:numeric(p.eventMagnitude),originDepth:/^kilometers?$/i.test(p.eventDepthType||'')?numeric(p.eventDepth):/^meters?$/i.test(p.eventDepthType||'')&&numeric(p.eventDepth)!==null?numeric(p.eventDepth)/1000:null,bulletinNr:p.bulletinNr,officialEventId:'PHEB:'+p.twcEventID,affectedAreas:area.map(a=>({name:clean(a.zone),category:clean(a.category)})),detail:(threat?'Ameaça de tsunami estimada pelo PTWC. Autoridades locais definem as medidas para cada costa. ':'Boletim informativo do PTWC. ')+(details.length?'Faixas previstas no boletim: '+details.join('; ')+'. ':segments.map(a=>clean(a.recommendedActions||a.headline)).join(' ')),link:'https://www.tsunami.gov'+dir+code+'.txt',hazardNature:threat?'warning':'bulletin',warningLevel:label,displayLabel:'Tsunami · '+label,severityLabel:label,sev:threat?4:0,cancelled,official:true}];
 }
+// Avoid retrying a known rejected upstream on every 20-second refresh.
+// Per-isolate only: NWS fallback keeps polling at the existing cadence.
+const rejectedTsunamiFeeds=new Map(),REJECTED_FEED_MAX_DELAY_MS=120000;
+function rejectedFeedDelay(header,now){
+ if(!header)return 0;
+ const seconds=Number(header),milliseconds=Number.isFinite(seconds)?seconds*1000:Date.parse(header)-now;
+ return Number.isFinite(milliseconds)?Math.max(0,Math.min(REJECTED_FEED_MAX_DELAY_MS,milliseconds)):0;
+}
 let cache=null,inflight=null;
 export async function getOfficialTsunamis(){
  if(cache&&Date.now()-cache.at<20000)return cache.data;
@@ -60,17 +68,30 @@ export async function getOfficialTsunamis(){
  inflight=(async()=>{
   const definitions=[['PTWC','PHEB',false],['NTWC','PAAQ',false],...['WEPA40','WEPA42','WECA41','WECA43'].map(code=>['PTWC',code,true])];
   const sources=await Promise.all(definitions.map(async([source,code,product])=>{
-   const feedKey=product?'PTWC-'+code:source+'-General';
+   const feedKey=product?'PTWC-'+code:source+'-General',now=Date.now(),rejected=rejectedTsunamiFeeds.get(feedKey);
+   if(rejected&&rejected.next>now)return {source,feedKey,ok:false,items:[],error:'HTTP '+rejected.status,httpStatus:rejected.status,retryAfterSeconds:Math.ceil((rejected.next-now)/1000)};
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-   try{const r=await fetch(product?'https://www.tsunami.gov/events/js/PHEB'+code+'.js':'https://www.tsunami.gov/events/xml/'+code+'Atom.xml',{signal:controller.signal,headers:{Accept:'application/atom+xml'}});if(!r.ok)throw Error('HTTP '+r.status);const text=await r.text();if(!product&&!/<(?:[\w-]+:)?feed\b/i.test(text))throw Error('Feed inválido');const items=(product?parseTsunamiProduct(text,code):parseTsunamiAtom(text,source)).map(item=>({...item,feedKey}));return {source,feedKey,ok:true,items:items.filter(item=>Date.now()-item.time<=72*3600000)};}
-   catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}finally{clearTimeout(timer);}
+   try{
+    const r=await fetch(product?'https://www.tsunami.gov/events/js/PHEB'+code+'.js':'https://www.tsunami.gov/events/xml/'+code+'Atom.xml',{signal:controller.signal,headers:{Accept:product?'application/javascript, application/json, */*':'application/atom+xml'}});
+    if(!r.ok){
+     if(r.status>=400&&r.status<500&&r.status!==408){
+      const failures=rejected?.status===r.status?Math.min(rejected.failures+1,3):1;
+      const delay=Math.max(Math.min(REJECTED_FEED_MAX_DELAY_MS,60000*2**(failures-1)),rejectedFeedDelay(r.headers.get('Retry-After'),Date.now()));
+      rejectedTsunamiFeeds.set(feedKey,{status:r.status,failures,next:Date.now()+delay});
+     }else rejectedTsunamiFeeds.delete(feedKey);
+     return {source,feedKey,ok:false,items:[],error:'HTTP '+r.status,httpStatus:r.status};
+    }
+    rejectedTsunamiFeeds.delete(feedKey);
+    const text=await r.text();if(!product&&!/<(?:[\w-]+:)?feed\b/i.test(text))throw Error('Feed inválido');
+    const items=(product?parseTsunamiProduct(text,code):parseTsunamiAtom(text,source)).map(item=>({...item,feedKey}));
+    return {source,feedKey,ok:true,items:items.filter(item=>Date.now()-item.time<=72*3600000)};
+   }catch(e){return {source,feedKey,ok:false,items:[],error:e.message};}finally{clearTimeout(timer);}
   }));
   if(sources.some(s=>!s.ok))sources.push(...await getNwsTsunamis());
   const data={source:'TSUNAMI-GOV',ok:sources.some(s=>s.ok),sources,items:globalThis.TsunamiLink.latest(sources.flatMap(s=>s.items))};
   cache={at:Date.now(),data};return data;
  })().finally(()=>inflight=null);return inflight;
 }
-
 // NWS republishes PTWC/NTWC text products on a separate official infrastructure.
 // Read the latest bulletin for each product, never replay a superseded warning.
 export function tsunamiForecastAreas(text){
