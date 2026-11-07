@@ -7,7 +7,7 @@
 
 ## Tratamento mínimo
 - Gravar snapshot se existe consulta sísmica anterior válida, ainda dentro das 6 h, **mesmo quando o site já está exibindo dados retidos**: assim novos avisos meteorológicos podem ser preservados. O campo `t` mantém a hora da última consulta sísmica válida e nunca é renovado por gravações sucessivas; `savedAt` registra separadamente a hora da gravação.
-- Na restauração, usar `sismoSuccess` dos snapshots legados v2 quando existir, para evitar que gravações posteriores renovem artificialmente a validade. Recusar snapshots sem horário válido, do futuro e com idade acima de 6 h.
+- Na restauração, exigir `sismoSuccess` inclusive para snapshots legados v2, impedindo inferir frescor de uma gravação sem fonte sísmica confirmada. Recusar snapshots sem horário válido, do futuro e com idade acima de 6 h.
 - Manter indicador explícito de cache enquanto a conexão volta. Só a recuperação de uma fonte real em `fetchGlobalFeeds()` retira o indicador.
 - Nas falhas totais e exceções, preservar o último horário conhecido; nunca inventar `Date.now()` como sucesso.
 - Não alterar as regras, intervalos, filtragem ou deduplicação de sismos, tsunami, Telegram, TV nem parâmetros do Cloudflare Free.
