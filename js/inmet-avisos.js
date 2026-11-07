@@ -264,7 +264,7 @@ function restaurarCacheOffline(reason = 'offline') {
     const hasLiveAlerts = Array.isArray(globalAlerts) && globalAlerts.length > 0;
     // Alertas/clima preservam o prazo próprio do snapshot; nunca ressuscitar
     // terremotos de mais de seis horas por causa de um salvamento posterior.
-    if (!usableQuakes && !hasLiveEvents && !hasLiveAlerts && !Array.isArray(p.alerts) && !p.weather) return false;
+    if (!usableQuakes && !hasLiveEvents && !hasLiveAlerts && !(Array.isArray(p.alerts) && p.alerts.length) && !p.weather) return false;
 
     if (!hasLiveEvents && usableQuakes) {
       globalEvents = p.events;
