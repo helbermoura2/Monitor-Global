@@ -86,6 +86,8 @@ test('legacy v2 snapshot uses verified source time and rejects too-old/future da
  f.time.now=now;
  f.storage.set('monitor_offline_cache',JSON.stringify({v:3,t:now+60000,savedAt:now+60000,sismoSuccess:now+60000,events:[{id:'future'}]}));
  assert.equal(f.restore('offline'),false);
+ f.storage.set('monitor_offline_cache',JSON.stringify({v:2,t:now-60000,sismoSuccess:null,events:[{id:'unverified'}]}));
+ assert.equal(f.restore('offline'),false,'a disk write without a verified seismic source is not a live timestamp');
 });
 
 test('failure without any confirmed seismic consultation cannot create a fresh cache',()=>{
