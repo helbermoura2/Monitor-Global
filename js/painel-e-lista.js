@@ -318,7 +318,7 @@ function renderPainelTimeline(item) {
     const src = item.sourceSummary || item.source || 'rede';
     steps.push({ k: 'Fontes', v: String(src).slice(0, 24) });
     box.innerHTML = steps.map((s, i) =>
-        `<div class="pd-tl-step"><span class="pd-tl-k">${s.k}</span><span class="pd-tl-v">${s.v}</span></div>` +
+        `<div class="pd-tl-step"><span class="pd-tl-k">${esc(s.k)}</span><span class="pd-tl-v">${esc(s.v)}</span></div>` +
         (i < steps.length - 1 ? '<span class="pd-tl-sep" aria-hidden="true">›</span>' : '')
     ).join('');
     box.style.display = 'flex';
