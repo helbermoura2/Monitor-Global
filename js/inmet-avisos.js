@@ -242,7 +242,8 @@ function restaurarCacheOffline(reason = 'offline') {
     // v2 snapshots may have been re-saved during an outage. Prefer the
     // recorded successful consultation over the last storage write.
     const savedAt = Number(p.savedAt || p.t || 0);
-    const cacheAt = Number(p.sismoSuccess || p.t || 0);
+    // No confirmed seismic timestamp? Do not infer freshness from a disk write.
+    const cacheAt = Number(p.sismoSuccess || 0);
     const ageMs = now - cacheAt;
     const MAX_CACHE_AGE = 6 * 3600000;
 
