@@ -10,6 +10,18 @@
 // pisando por cima de uma revisão mais nova).
 let __fetchGlobalFeedsEmAndamento = false;
 
+// Uma falha nunca renova o horário do último dado sísmico válido.
+function markSeismicDataRetained(reason) {
+    window.__sismoUsingCache = true;
+    const previous = Number(window.__sismoCacheAt || 0);
+    const confirmed = Number(window.__lastSismoSuccess || 0);
+    const at = Math.max(Number.isFinite(previous) && previous > 0 ? previous : 0,
+        Number.isFinite(confirmed) && confirmed > 0 ? confirmed : 0);
+    window.__sismoCacheAt = at || null;
+    window.__sismoCacheAgeMs = at ? Math.max(0, Date.now() - at) : null;
+    window.__offlineCacheReason = navigator.onLine === false ? 'offline' : reason;
+}
+
 
 // Revisões aguardam os eventos novos/ao vivo; maior magnitude vem primeiro.
 const pendingNewCameraQuakes = new Map();
@@ -313,9 +325,7 @@ async function fetchGlobalFeeds() {
             if (!Array.isArray(globalEvents) || !globalEvents.length) {
                 restaurarCacheOffline('sources-off');
             } else {
-                window.__sismoUsingCache = true;
-                window.__sismoCacheAt =
-                    Number(window.__lastSismoSuccess || Date.now());
+                markSeismicDataRetained('sources-off');
             }
 
             try {
@@ -517,6 +527,7 @@ async function fetchGlobalFeeds() {
         window.__sismoUsingCache = false;
         window.__sismoCacheAt = null;
         window.__sismoCacheAgeMs = 0;
+        window.__offlineCacheReason = null;
 
         try {
             lastFetchTimes['SISMOS'] = window.__lastSismoSuccess;
@@ -650,7 +661,7 @@ async function fetchGlobalFeeds() {
         if (!Array.isArray(globalEvents) || !globalEvents.length) {
             restaurarCacheOffline('error');
         } else {
-            window.__sismoUsingCache = true;
+            markSeismicDataRetained('error');
             try {
                 if (typeof updateFreshnessUI === 'function') updateFreshnessUI();
             } catch (err) {}
