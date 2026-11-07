@@ -52,3 +52,11 @@ test('rainy forecast highlights evolution instead of repeating rates or amounts'
  assert.match(ctx.facts.pause,/possível pausa/);
  assert.doesNotMatch(ctx.facts.pause,/\d+ mm|intensidade estimada/);
 });
+
+test('does not claim a rain pause next hour when only a much later pause exists',()=>{
+ const d=rain();
+ d.forecast=Array.from({length:180},(_,i)=>({start:now+i*60000,end:now+(i+1)*60000,rate:i<120?3:0,type:i<120?'rain':'no_precipitation'}));
+ const ctx=briefingContext('rain',d,now);
+ assert.deepEqual(ctx.keys,['persistent']);
+ assert.doesNotMatch(ctx.facts.persistent,/pausa|\d+ mm/);
+});
