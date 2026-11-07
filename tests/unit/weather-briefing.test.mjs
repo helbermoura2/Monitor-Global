@@ -41,7 +41,8 @@ test('derived warnings are conditional on thresholds and never invent weather ev
  const ctx=briefingContext('hourly',d,now);
  assert.deepEqual(ctx.keys,['dry','heat','gusts','storm']);
  assert(ctx.keys.every(k=>!/temperature|humidity|condition/.test(k)));
- assert.deepEqual(parseBriefingSelection({response:'{"facts":["gusts","storm"]}'},ctx),['gusts','storm']);
+ assert.deepEqual(parseBriefingSelection({response:'{"facts":["gusts","storm"]}'},ctx),['storm','gusts']);
+ assert.deepEqual(parseBriefingSelection({response:'{"facts":["dry"]}'},ctx),['storm','gusts'],'severe verified facts outrank optional dry air');
  assert.equal(parseBriefingSelection({response:'{"facts":["dry","heat","gusts"]}'},ctx),null);
  assert.equal(parseBriefingSelection({response:'{"facts":["tornado"]}'},ctx),null);
 });
@@ -59,4 +60,26 @@ test('does not claim a rain pause next hour when only a much later pause exists'
  const ctx=briefingContext('rain',d,now);
  assert.deepEqual(ctx.keys,['persistent']);
  assert.doesNotMatch(ctx.facts.persistent,/pausa|\d+ mm/);
+});
+
+test('light rain arriving soon adds no duplicate AI line',async()=>{
+ const d=rain();d.forecast=d.forecast.map((p,i)=>({start:p.start,end:p.end,rate:i>=10&&i<20?1:0,type:i>=10&&i<20?'rain':'no_precipitation'}));
+ const ctx=briefingContext('rain',d,now);
+ assert.equal(ctx.notApplicable,true);
+ const setupRain=setup(d,'rain');const reply=await(await handle(req('rain'),setupRain.env,setupRain.storage,setupRain.options)).json();
+ assert.equal(reply.status,'not_applicable');assert.equal(setupRain.calls(),0);
+});
+
+test('one-minute heavy-rain spike does not become a sustained danger claim',()=>{
+ const d=rain();d.forecast=d.forecast.map((p,i)=>({...p,rate:i===0?18:i<60?3:0,type:i<60?'rain':'no_precipitation'}));
+ const ctx=briefingContext('rain',d,now);
+ assert.ok(ctx);assert.equal(ctx.facts.strong,undefined);
+ assert.equal(ctx.facts.persistent!==undefined,true);
+});
+
+test('sustained heavy rain must be prioritized even when model picks weaker text',()=>{
+ const d=rain();d.forecast=d.forecast.map((p,i)=>({...p,rate:i<5?9:i<30?3:0,type:i<30?'rain':'no_precipitation'}));
+ const ctx=briefingContext('rain',d,now);
+ assert.ok(ctx.keys.includes('strong'));
+ assert.deepEqual(parseBriefingSelection({response:'{"facts":["pause"]}'},ctx),['strong','pause']);
 });
