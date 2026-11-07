@@ -221,7 +221,8 @@ function salvarCacheOffline() {
     const priorEvents = Array.isArray(previous?.events) ? previous.events : [];
     // Uma falha ou a restauração inicial não deve apagar um snapshot sísmico
     // válido anterior. Uma consulta validada mais recente pode substituí-lo.
-    const events = currentEvents.length && (verifiedSessionAt >= priorAt && verifiedSessionAt > 0 || !priorEvents.length)
+    const freshEvents = !window.__sismoUsingCache && verifiedSessionAt >= priorAt && verifiedSessionAt > 0;
+    const events = currentEvents.length && (freshEvents || !priorEvents.length)
       ? currentEvents : priorEvents.slice(0, 150);
     const payload = {
       v: 3,
@@ -253,9 +254,11 @@ function restaurarCacheOffline(reason = 'offline') {
     const p = JSON.parse(raw);
     if (!p || typeof p !== 'object') return false;
     const now = Date.now();
-    const snapshotAgeMs = now - Number(p.t || 0);
+    const snapshotAt = Number(p.t);
+    const snapshotAgeMs = now - snapshotAt;
     const MAX_CACHE_AGE = 6 * 3600000;
-    if (!p.t || snapshotAgeMs < 0 || snapshotAgeMs > MAX_CACHE_AGE) return false;
+    if (!Number.isFinite(snapshotAt) || snapshotAt <= 0 ||
+        snapshotAgeMs < 0 || snapshotAgeMs > MAX_CACHE_AGE) return false;
 
     const quakeAt = seismicCacheVerifiedAt(p, now);
     const quakeAgeMs = quakeAt ? now - quakeAt : null;
