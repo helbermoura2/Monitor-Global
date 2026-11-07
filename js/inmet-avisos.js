@@ -200,13 +200,21 @@ function formatCacheAge(ageMs) {
 
 function salvarCacheOffline() {
   try {
+    // A snapshot is usable only after a confirmed seismic consultation.
+    // Never refresh its age while we are already showing retained/offline data.
+    const now = Date.now();
+    const lastValid = Number(window.__lastSismoSuccess || 0);
+    if (window.__sismoUsingCache || !Number.isFinite(lastValid) ||
+        lastValid <= 0 || lastValid > now || now - lastValid > 6 * 3600000) return false;
     const payload = {
-      v: 2,
-      t: Date.now(),
+      v: 3,
+      // 't' represents last confirmed seismic data, NOT the storage write time.
+      t: lastValid,
+      savedAt: now,
       events: (typeof globalEvents !== 'undefined' && globalEvents) ? globalEvents.slice(0, 150) : [],
       alerts: (typeof globalAlerts !== 'undefined' && globalAlerts) ? globalAlerts.slice(0, 150) : [],
       weather: window.__proWeather || null,
-      sismoSuccess: window.__lastSismoSuccess || null,
+      sismoSuccess: lastValid,
       sourceStatus: window.sismoSourceStatus || null,
       sourceHealth: (typeof SourceHealth !== 'undefined') ? SourceHealth.snapshot() : null,
       selectedId: (typeof EventStore !== 'undefined' && EventStore.selectedId) || (typeof eventoSelecionadoId !== 'undefined' ? eventoSelecionadoId : null)
@@ -218,8 +226,9 @@ function salvarCacheOffline() {
       payload.events = (payload.events || []).slice(0, 80);
       try { localStorage.setItem('monitor_offline_cache', JSON.stringify(payload)); } catch (e2) {}
     }
-    window.__lastOfflineSaveAt = Date.now();
-  } catch (e) {}
+    window.__lastOfflineSaveAt = now;
+    return true;
+  } catch (e) { return false; }
 }
 
 function restaurarCacheOffline(reason = 'offline') {
@@ -228,10 +237,18 @@ function restaurarCacheOffline(reason = 'offline') {
     if (!raw) return false;
 
     const p = JSON.parse(raw);
-    const ageMs = Date.now() - Number(p.t || 0);
+    if (!p || typeof p !== 'object') return false;
+    const now = Date.now();
+    // v2 snapshots may have been re-saved during an outage. Prefer the
+    // recorded successful consultation over the last storage write.
+    const savedAt = Number(p.savedAt || p.t || 0);
+    const cacheAt = Number(p.sismoSuccess || p.t || 0);
+    const ageMs = now - cacheAt;
     const MAX_CACHE_AGE = 6 * 3600000;
 
-    if (!p || !p.t || ageMs < 0 || ageMs > MAX_CACHE_AGE) return false;
+    if (!Number.isFinite(savedAt) || savedAt <= 0 || savedAt > now ||
+        !Number.isFinite(cacheAt) || cacheAt <= 0 || cacheAt > savedAt ||
+        ageMs < 0 || ageMs > MAX_CACHE_AGE) return false;
 
     const hasLiveEvents = Array.isArray(globalEvents) && globalEvents.length > 0;
     const hasLiveAlerts = Array.isArray(globalAlerts) && globalAlerts.length > 0;
@@ -255,7 +272,7 @@ function restaurarCacheOffline(reason = 'offline') {
     } catch (e) {}
 
     window.__sismoUsingCache = true;
-    window.__sismoCacheAt = Number(p.t);
+    window.__sismoCacheAt = cacheAt;
     window.__sismoCacheAgeMs = ageMs;
     window.__offlineCacheReason = reason;
 
@@ -303,9 +320,11 @@ if (!window.__offlineNetBound) {
 
   window.addEventListener('online', () => {
     try {
-      window.__sismoUsingCache = false;
-      window.__offlineCacheReason = null;
-      showToast('🌐 Conexão restabelecida — atualizando fontes agora', 'info');
+      // A browser 'online' signal proves connectivity, not a successful
+      // feed response. Keep the retained-data label until fetchGlobalFeeds
+      // actually receives at least one valid seismic source.
+      window.__offlineCacheReason = window.__sismoUsingCache ? 'reconnecting' : null;
+      showToast('🌐 Conexão restabelecida — aguardando fontes sísmicas', 'info');
     } catch (e) {}
 
     try { if (typeof retomarBuscas === 'function') retomarBuscas(); } catch (e) {}
