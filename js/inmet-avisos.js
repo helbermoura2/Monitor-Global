@@ -200,12 +200,12 @@ function formatCacheAge(ageMs) {
 
 function salvarCacheOffline() {
   try {
-    // A snapshot is usable only after a confirmed seismic consultation.
-    // Never refresh its age while we are already showing retained/offline data.
+    // Retained seismic records keep the last verified source timestamp.
+    // Saving newer weather/other alerts must NOT refresh the quake data age.
     const now = Date.now();
-    const lastValid = Number(window.__lastSismoSuccess || 0);
-    if (window.__sismoUsingCache || !Number.isFinite(lastValid) ||
-        lastValid <= 0 || lastValid > now || now - lastValid > 6 * 3600000) return false;
+    const lastValid = Number(window.__lastSismoSuccess || window.__sismoCacheAt || 0);
+    if (!Number.isFinite(lastValid) || lastValid <= 0 ||
+        lastValid > now || now - lastValid > 6 * 3600000) return false;
     const payload = {
       v: 3,
       // 't' represents last confirmed seismic data, NOT the storage write time.
