@@ -6,7 +6,7 @@
 3. A rodada com nenhuma fonte válida usava `Date.now()` como substituto da última atualização confirmada em um caso de fallback. Um erro inesperado podia também omitir o carimbo do cache nos indicadores.
 
 ## Tratamento mínimo
-- Gravar novo cache sísmico **somente se** existe consulta sísmica anterior válida, ainda dentro das 6 h, e a aplicação não está já exibindo dados retidos. O campo `t` representa a hora da última consulta válida; `savedAt` registra separadamente a hora da gravação.
+- Gravar snapshot se existe consulta sísmica anterior válida, ainda dentro das 6 h, **mesmo quando o site já está exibindo dados retidos**: assim novos avisos meteorológicos podem ser preservados. O campo `t` mantém a hora da última consulta sísmica válida e nunca é renovado por gravações sucessivas; `savedAt` registra separadamente a hora da gravação.
 - Na restauração, usar `sismoSuccess` dos snapshots legados v2 quando existir, para evitar que gravações posteriores renovem artificialmente a validade. Recusar snapshots sem horário válido, do futuro e com idade acima de 6 h.
 - Manter indicador explícito de cache enquanto a conexão volta. Só a recuperação de uma fonte real em `fetchGlobalFeeds()` retira o indicador.
 - Nas falhas totais e exceções, preservar o último horário conhecido; nunca inventar `Date.now()` como sucesso.
