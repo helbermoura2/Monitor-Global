@@ -1,0 +1,7 @@
+# Applied only to Cloudflare Workers static assets, not backend API responses.
+# Keep map/Telegram/media origins and active scripts unchanged.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'; object-src 'none'; base-uri 'self'
