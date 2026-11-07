@@ -11,7 +11,7 @@ for attempt in range(20):
         raise SystemExit('Oversized AI briefing response')
     data = json.loads(raw)
     print(json.dumps(data, ensure_ascii=False), flush=True)
-    if data.get('engine') != 'validated-fact-selection-v3':
+    if data.get('engine') != 'validated-insight-selection-v4':
         time.sleep(2)
         continue
     if data.get('status') == 'ready':
