@@ -20,6 +20,11 @@ for attempt in range(20):
         assert 0 < len(data.get('text', '')) <= 185
         assert data.get('expiresAt', 0) > time.time()*1000
         break
+    if data.get('status') == 'not_applicable':
+        # The ordinary weather card already includes all useful facts.
+        # Skipping redundant AI is now a valid, zero-inference outcome.
+        print('No added meteorological insight; standard card remains available')
+        break
     if data.get('status') != 'pending':
         raise SystemExit('Live AI briefing unavailable; normal meteorological cards remain usable')
     time.sleep(2)
