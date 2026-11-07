@@ -6,6 +6,21 @@ final class Prefs {
  static void save(Context c,AlertTracker t){JSONArray a=new JSONArray();try{for(Map.Entry<String,AlertTracker.Seen> e:t.seen.entrySet()){JSONObject o=new JSONObject();o.put("id",e.getKey());o.put("v",e.getValue().version);o.put("at",e.getValue().at);o.put("tracked",e.getValue().tracked);o.put("provider",e.getValue().provider);if(e.getValue().bulletin!=null)o.put("bulletin",AlertCodec.write(e.getValue().bulletin));if(Double.isFinite(e.getValue().noticeMagnitude))o.put("noticeMag",e.getValue().noticeMagnitude);if(Double.isFinite(e.getValue().magnitude))o.put("mag",e.getValue().magnitude);a.put(o);}}catch(JSONException ignored){}get(c).edit().putString("seen",a.toString()).putString("readyCatalogs",new JSONArray(t.readyCatalogs).toString()).putBoolean("targetsReady",t.targetsReady).putBoolean("quakeReady",t.earthquakeReady).putBoolean("tsunamiReady",t.tsunamiReady).commit();}
  static void rememberReal(Context c,Alert a){try{String record=AlertCodec.write(a).toString();if(record.length()<=24000)get(c).edit().putString("lastReal",record).apply();}catch(JSONException ignored){}}
  static Alert lastReal(Context c){String record=get(c).getString("lastReal","");if(record.isEmpty()||record.length()>24000)return null;try{return AlertCodec.read(new JSONObject(record));}catch(JSONException e){return null;}}
+ /** Only a real regional M5.0-5.9 presentation becomes replayable. */
+ static void rememberTarget(Context c,Alert a){if(a==null||!a.compact||!a.kind.equals("earthquake")||
+  !Double.isFinite(a.magnitude)||a.magnitude<5||a.magnitude>=6||
+  !Double.isFinite(a.depth)||a.depth<0||a.depth>70||a.targetArea.isEmpty())return;
+  try{String record=AlertCodec.write(a).toString();if(record.length()<=24000)get(c).edit().putString("lastTarget",record).apply();}catch(JSONException ignored){}
+ }
+ static Alert lastTarget(Context c){
+  String record=get(c).getString("lastTarget","");
+  if(record.isEmpty()||record.length()>24000)return null;
+  try{Alert a=AlertCodec.read(new JSONObject(record));
+   return a.compact&&a.kind.equals("earthquake")&&Double.isFinite(a.magnitude)&&
+      a.magnitude>=5&&a.magnitude<6&&Double.isFinite(a.depth)&&a.depth>=0&&
+      a.depth<=70&&!a.targetArea.isEmpty()?a:null;
+  }catch(JSONException e){return null;}
+ }
  static void rememberRecovered(Context c,Alert a){try{String record=AlertCodec.write(a).toString();if(record.length()<=24000)get(c).edit().putString("lastRecovered",record).apply();}catch(JSONException ignored){}}
  static Alert lastReplay(Context c){Alert recovered=null;String record=get(c).getString("lastRecovered","");try{if(!record.isEmpty()&&record.length()<=24000)recovered=AlertCodec.read(new JSONObject(record));}catch(JSONException ignored){}return ReplaySelection.latest(lastReal(c),recovered);}
  static void rememberSummary(Context c,FeedClient.Snapshot snapshot){try{String record=SummaryRecord.encode(snapshot.alerts,snapshot.day,snapshot.asOf,snapshot.complete);android.content.SharedPreferences.Editor editor=get(c).edit().putString("lastSummary",record);if(snapshot.complete)editor.putString("lastCompletedSummary",record);editor.apply();}catch(JSONException ignored){}}

@@ -1,7 +1,7 @@
 package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import android.media.*;import java.util.*;import java.util.concurrent.*;
 public final class MonitorService extends Service {
- static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY";
+ static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
@@ -13,6 +13,24 @@ public final class MonitorService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Monitor Global TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
+  if(REPLAY_TARGET.equals(action)){
+   if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+   Alert saved=Prefs.lastTarget(this);
+   if(saved==null){Prefs.status(this,"Ainda não há aviso regional M5,0–5,9 real salvo para replay.");stopIfIdle();}
+   else if(localBusy()||daily.displaying()||!screenReady()){Prefs.status(this,"Replay regional indisponível durante outro alerta ou apresentação. Tente novamente depois.");stopIfIdle();}
+   else{
+    // Same delay as the test buttons: time to return to the TV picture.
+    Runnable play=new Runnable(){public void run(){demoTasks.remove(this);
+     if(!destroyed&&!localBusy()&&!daily.displaying()&&screenReady()){
+      showTargetCard(saved,false,true);
+      Prefs.status(MonitorService.this,"REPLAY · último aviso regional salvo · 15 segundos · sem novo som.");
+     }else{Prefs.status(MonitorService.this,"Replay regional cancelado: aviso prioritário ou tela indisponível.");stopIfIdle();}
+    }};
+    demoTasks.add(play);main.postDelayed(play,10000);
+    Prefs.status(this,"Replay do último aviso regional M5,0–5,9 em 10 segundos, sem novo som. Você pode voltar à TV.");
+   }
+   return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
   if(WEATHER_NOW.equals(action)){if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();rain.weatherNow();Prefs.status(this,"Meteorologia em 10 segundos. Você pode voltar ao conteúdo da TV.");return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if(SUMMARY_REPLAY.equals(action)||REPLAY.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)||action!=null&&action.startsWith(TEST)){rain.hide();interruptDaily();}
   if(SUMMARY_REPLAY.equals(action)){
@@ -125,7 +143,14 @@ public final class MonitorService extends Service {
  private void refreshOfficialConfig(){if(destroyed||android.os.SystemClock.elapsedRealtime()<nextConfigCheck)return;nextConfigCheck=android.os.SystemClock.elapsedRealtime()+15*60000L;try{org.json.JSONObject root=OfficialConfig.read();if(destroyed)return;OfficialConfig.applyTheme(this,root);OfficialConfig.Release release=OfficialConfig.release(root);if(release.enabled&&TrustPolicy.newer(BuildConfig.VERSION_CODE,release.code))Prefs.get(this).edit().putString("updateStatus","Atualização oficial "+release.version+" disponível. Abra Verificar atualização oficial.").apply();}catch(Exception ignored){}}
  private void stopTarget(){if(targetEnd!=null)main.removeCallbacks(targetEnd);targetEnd=null;compactBusy=false;compact.hide();}
  private void tryTarget(){if(destroyed||!targetsEnabled||localBusy()||daily!=null&&daily.displaying()||!screenReady())return;Alert a=targetQueue.next(System.currentTimeMillis());if(a==null)return;showTargetCard(a,false);}
- private void showTargetCard(Alert a,boolean demo){rain.hide();compactBusy=true;compact.show(a,demo);targetEnd=()->{compactBusy=false;targetEnd=null;tryTarget();tryDaily();stopIfIdle();};main.postDelayed(targetEnd,CompactNotice.DURATION_MS+700);}
+ private void showTargetCard(Alert a,boolean demo){showTargetCard(a,demo,false);}
+ private void showTargetCard(Alert a,boolean demo,boolean replay){
+  rain.hide();compactBusy=true;
+  if(!demo&&!replay)Prefs.rememberTarget(this,a);
+  compact.show(a,demo,replay);
+  targetEnd=()->{compactBusy=false;targetEnd=null;tryTarget();tryDaily();stopIfIdle();};
+  main.postDelayed(targetEnd,CompactNotice.DURATION_MS+700);
+ }
  private void drain(){if(destroyed||draining)return;if(queue.isEmpty()){tryTarget();tryDaily();return;}startReal(queue.remove());}
  private void startReal(Alert a){
   if(nextReal!=null)main.removeCallbacks(nextReal);draining=true;activeReal=a;display(a,false,false);
