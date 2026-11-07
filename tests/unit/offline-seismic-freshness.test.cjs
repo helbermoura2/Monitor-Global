@@ -43,13 +43,19 @@ test('cache timestamp tracks the last verified seismic response, not disk write 
  assert.equal(f.w.__sismoCacheAgeMs,20*60000);
 });
 
-test('offline and periodic saves cannot make retained events look newer',()=>{
+test('offline and periodic saves may retain fresh alerts but never make old quakes look newer',()=>{
  const f=fixture();assert.equal(f.save(),true);
- const original=f.storage.get('monitor_offline_cache');
+ const original=f.read();
  f.handlers.offline();assert.equal(f.w.__sismoUsingCache,true);
- f.time.now+=3*60000;f.calls.periodic();
- assert.equal(f.storage.get('monitor_offline_cache'),original);
- assert.equal(f.save(),false);
+ f.time.now+=3*60000;
+ f.c.globalAlerts=[{id:'warning-new',type:'civil'}];
+ f.calls.periodic();
+ const updated=f.read();
+ assert.equal(updated.t,original.t);
+ assert.equal(updated.sismoSuccess,original.sismoSuccess);
+ assert.equal(updated.savedAt,f.time.now,'the write time is independent from seismic age');
+ assert.equal(updated.alerts[0].id,'warning-new','other alerts are not discarded');
+ assert.equal(f.save(),true);
  f.time.now+=4*60000;assert.equal(f.restore('sources-off'),true);
  assert.equal(f.w.__sismoCacheAgeMs,22*60000);
 });
