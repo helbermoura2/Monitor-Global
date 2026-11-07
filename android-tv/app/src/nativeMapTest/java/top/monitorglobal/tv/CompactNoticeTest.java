@@ -31,7 +31,7 @@ public class CompactNoticeTest {
    View v=(View)field(card,"current");assertNotNull(v);
    String content=texts(v);
    assertTrue(content.contains("REPLAY · SISMO REGIONAL"));
-   assertTrue(content.contains("dd/")||content.matches("(?s).*\\\\d\\\\d/\\\\d\\\\d/\\\\d{4}.*"));
+   assertTrue(content.matches("(?s).*\\d{2}/\\d{2}/\\d{4}.*"));
    assertTrue("Replay must not create another alert sound",field(card,"tone")==null);
    assertTrue(v.getContentDescription().toString().contains("Replay histórico"));
    Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));
