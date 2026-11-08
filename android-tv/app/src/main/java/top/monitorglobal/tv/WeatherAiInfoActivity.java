@@ -28,7 +28,7 @@ public final class WeatherAiInfoActivity extends Activity {
  private static final String ENDPOINT="https://black-sky-9ba0.terrestre.workers.dev/weather-briefing?kind=";
  private final Handler main=new Handler(Looper.getMainLooper());
  private final ExecutorService io=Executors.newSingleThreadExecutor();
- private TextView result;
+ private TextView result,cachedResult;
  private Button hourly,rain;
  private volatile HttpURLConnection current;
  private volatile boolean destroyed;
@@ -73,7 +73,7 @@ public final class WeatherAiInfoActivity extends Activity {
   result=text(report,"Selecione uma consulta acima para ver o que a IA tem a acrescentar.",19,WHITE,false);
   LinearLayout cache=panel(column,dp(14));
   text(cache,"ÚLTIMO DESTAQUE GUARDADO NESTA TV",18,CYAN,true);
-  text(cache,cached(),16,MUTED,false);
+  cachedResult=text(cache,cached(),16,MUTED,false);
   text(column,"Os alertas sísmicos e de tsunami continuam independentes da IA meteorológica.",16,MUTED,false);
   hourly.requestFocus();
  }
@@ -95,21 +95,40 @@ public final class WeatherAiInfoActivity extends Activity {
   int token=++generation;
   result.setText("Consultando o serviço de IA… A previsão e os alertas da TV continuam funcionando normalmente.");
   io.execute(()->{
-   String message="A consulta não pôde ser concluída. Confira a internet e tente novamente. Nenhum alerta é afetado.";
+   String message="O serviço de IA não respondeu à consulta. A conexão ou o servidor pode estar temporariamente indisponível; os avisos da TV continuam independentes.";
+   String lastResponse=null;
    try {
-    for(int attempt=0;attempt<4&&!destroyed;attempt++){
-     String raw=read(kind);
-     message=WeatherAiStatus.describe(raw,kind,System.currentTimeMillis());
-     if(!WeatherAiStatus.pending(raw)||attempt==3)break;
-     Thread.sleep(2200);
+    // A model may legitimately need up to 12 seconds, while the endpoint
+    // returns PENDING immediately. Poll the same server-side task only, never
+    // start simultaneous model requests or an automatic background timer.
+    for(int attempt=0;attempt<6&&!destroyed;attempt++){
+     lastResponse=read(kind);
+     message=WeatherAiStatus.describe(lastResponse,kind,System.currentTimeMillis());
+     if(!WeatherAiStatus.pending(lastResponse)||attempt==5)break;
+     final int poll=attempt+1;
+     main.post(()->{
+      if(!destroyed&&token==generation)
+       result.setText("O modelo está preparando a análise… Verificação "+poll+" de 6. Os alertas seguem funcionando.");
+     });
+     Thread.sleep(2400);
     }
+    if(lastResponse!=null&&WeatherAiStatus.pending(lastResponse))
+     message+="\nO serviço continua processando. Você pode consultar novamente mais tarde, sem ativar alertas extras.";
    }catch(InterruptedException e){Thread.currentThread().interrupt();return;}
-    catch(Exception ignored){/* No raw provider errors, URLs or keys in the TV UI. */}
+    catch(Exception ignored){/* Do not expose raw provider details or arbitrary errors. */}
    String output=message;
+   // Unlike the previous screen, an opt-in successful result is now saved
+   // in the SAME validated, bounded cache used by the existing weather card.
+   WeatherBriefing parsed=WeatherBriefing.parse(lastResponse,System.currentTimeMillis());
+   String validReady=parsed!=null&&kind.equals(parsed.kind)?lastResponse:null;
    main.post(()->{
     if(destroyed||token!=generation)return;
     busy=false;hourly.setEnabled(true);rain.setEnabled(true);
     result.setText(output);
+    if(validReady!=null){
+     getSharedPreferences("weather-ai",MODE_PRIVATE).edit().putString(kind,validReady).apply();
+     cachedResult.setText(cached());
+    }
     if(kind.equals("hourly"))hourly.requestFocus();else rain.requestFocus();
    });
   });
