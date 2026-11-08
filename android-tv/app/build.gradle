@@ -6,7 +6,7 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  // Shared online weather briefings use the actively maintained Cloudflare FP8-fast model.
+  // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
   versionCode 10059
   versionName '1.0.59'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
