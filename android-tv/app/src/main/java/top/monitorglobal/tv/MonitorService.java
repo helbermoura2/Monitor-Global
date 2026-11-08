@@ -47,7 +47,7 @@ public final class MonitorService extends Service {
   if((TEST+"_BRENT").equals(action)){
    cancelDemos();Prefs.status(this,"Prévia fictícia Brent em 10 segundos · não é cotação real.");
    Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()&&!daily.displaying()){
-    activeUntil=SystemClock.uptimeMillis()+BrentQuote.DISPLAY+800;brent.demo();
+    brent.demo();activeUntil=SystemClock.uptimeMillis()+BrentQuote.DISPLAY+800;
     Runnable finish=new Runnable(){public void run(){demoTasks.remove(this);activeUntil=0;tryTarget();tryDaily();stopIfIdle();}};
     demoTasks.add(finish);main.postDelayed(finish,BrentQuote.DISPLAY+800);
    }}};
