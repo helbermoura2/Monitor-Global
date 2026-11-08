@@ -43,6 +43,20 @@ public class WeatherAiInfoTest {
   assertTrue(WeatherAiStatus.pending(response("rain","pending","")));
   assertFalse(WeatherAiStatus.pending("{}"));
  }
+ @Test public void backendReasonExplainsTheActualProblemAndNeverLeaksMessages()throws Exception{
+  String original=response("hourly","unavailable","");
+  JSONObject json=new JSONObject(original);
+  assertTrue(WeatherAiStatus.describe(json.put("reason","source-unavailable").toString(),"hourly",now).contains("previsão meteorológica não chegou"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","source-stale-or-invalid").toString(),"hourly",now).contains("vencida ou incompleta"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","model-unconfigured").toString(),"hourly",now).contains("não está configurado"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","model-timeout").toString(),"hourly",now).contains("limite de tempo"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","invalid-selection").toString(),"hourly",now).contains("rejeitado"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","storage-unavailable").toString(),"hourly",now).contains("armazenamento"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","service-unavailable").toString(),"hourly",now).contains("serviço interno"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","unknown-value").toString(),"hourly",now).contains("não informou a causa"));
+  assertTrue(WeatherAiStatus.describe(json.put("reason","model-error").put("providerCode","3018").toString(),"hourly",now).contains("3018"));
+  assertFalse(WeatherAiStatus.describe(json.put("providerCode","PRIVATE_SECRET").toString(),"hourly",now).contains("PRIVATE_SECRET"));
+ }
  @Test public void onlyValidatedReadyReportsAreShown()throws Exception{
   String good=response("hourly","ready","Previsão de ar muito úmido; isso não confirma chuva.");
   assertTrue(WeatherAiStatus.describe(good,"hourly",now).contains("Previsão de ar muito úmido"));
