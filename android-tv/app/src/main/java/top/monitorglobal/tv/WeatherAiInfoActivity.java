@@ -49,7 +49,7 @@ public final class WeatherAiInfoActivity extends Activity {
   RadarLogoView logo=new RadarLogoView(this);
   heading.addView(logo,new LinearLayout.LayoutParams(dp(70),dp(70)));
   LinearLayout brand=new LinearLayout(this);brand.setOrientation(LinearLayout.VERTICAL);
-  LinearLayout.LayoutParams headingMargin=new LinearLayout.LayoutParams(-1,-2);
+  LinearLayout.LayoutParams headingMargin=new LinearLayout.LayoutParams(0,-2,1f);
   brand.addView(titleText("MONITOR GLOBAL TV",31));
   brand.addView(titleText("IA METEOROLÓGICA · Liberdade, São Paulo",23));
   headingMargin.leftMargin=dp(18);heading.addView(brand,headingMargin);
