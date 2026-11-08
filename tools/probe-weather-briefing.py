@@ -16,7 +16,7 @@ for attempt in range(20):
         continue
     if data.get('status') == 'ready':
         assert data.get('policy') == 'source-grounded-weather-v1'
-        assert data.get('model') in ('gemini-3.8-flash', '@cf/meta/llama-3.1-8b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fp8')
+        assert data.get('model') in ('gemini-3.8-flash', '@cf/meta/llama-3.1-8b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fp8', 'validated-facts-v1')
         assert 0 < len(data.get('text', '')) <= 185
         assert data.get('expiresAt', 0) > time.time()*1000
         break
