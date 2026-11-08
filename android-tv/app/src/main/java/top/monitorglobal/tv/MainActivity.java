@@ -68,6 +68,18 @@ public final class MainActivity extends Activity {
   button("Testar chuva em tela inteira · fictícia",v->WeatherPreviewOptions.show(this,()->launch(MonitorService.TEST+"_STORM")));
   button("Testar cartão e chuva (fictício, em 10 s)",v->launch(MonitorService.TEST+"_RAIN"));
   label("Chuva opcional · Liberdade, São Paulo: desligado, só cartão ou cartão com chuva. Usa estimativas por minuto do Rainbow Weather para um ponto da Liberdade, junto à Praça da Liberdade-Japão. Cartão por 12 segundos quando a chuva se aproxima, começa, muda de intensidade ou deixa de ser prevista. mm/h é intensidade estimada; mm nos próximos 60 minutos é acumulado previsto. Início e término só aparecem quando a fonte permite estimar. Sismos e tsunami têm prioridade. Não acompanha sua localização.",15,false);
+  section("MERCADO FINANCEIRO · BRENT");
+  Switch brentSwitch=new Switch(this);
+  brentSwitch.setText("Mostrar cotação do Brent de hora em hora · só durante o mercado aberto");
+  brentSwitch.setTextColor(Color.WHITE);brentSwitch.setTextSize(17);brentSwitch.setPadding(12,10,12,10);
+  brentSwitch.setChecked(Prefs.get(this).getBoolean("brentHourly",true));
+  brentSwitch.setOnCheckedChangeListener((v,enabled)->{
+   Prefs.get(this).edit().putBoolean("brentHourly",enabled).apply();
+   if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
+  });addSwitch(brentSwitch);
+  label("Card silencioso de 12 s aos 15 minutos de cada hora, sobre o vídeo. Preço indicativo Brent (BZ=F) em US$/barril, variação e horário da fonte Yahoo Finance. Sem cotação válida, não aparece. Horários de Londres com ajuste de verão: de sexta após o fechamento até domingo às 23h de Londres, não exibe. Alertas sísmicos, tsunami, chuva, satélite e replays têm prioridade.",15,false);
+  button("Testar visual do card Brent (valores fictícios · 10 s)",v->launch(MonitorService.TEST+"_BRENT"));
+  label("O teste é uma simulação manual, identificada como fictícia. Não consulta o mercado e pode ser visto também quando a bolsa está fechada.",13,false);
   section("PREFERÊNCIAS E ROTINA");
   Switch sound=new Switch(this);sound.setText("Som dos avisos · usa o volume de notificações do aparelho");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->Prefs.get(this).edit().putBoolean("sound",checked).apply());addSwitch(sound);
   Switch daily=new Switch(this);daily.setText("Resumo automático à meia-noite · horário de Brasília");daily.setTextColor(Color.WHITE);daily.setTextSize(17);daily.setPadding(12,10,12,10);daily.setChecked(Prefs.get(this).getBoolean("dailyAuto",true));daily.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("dailyAuto",checked).apply();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);});addSwitch(daily);
