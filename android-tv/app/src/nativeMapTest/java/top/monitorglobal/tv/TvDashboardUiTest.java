@@ -35,7 +35,7 @@ public class TvDashboardUiTest {
   return n;
  }
  @Test public void actualHomeUsesOriginalAnimatedLogoAndExplicitOverlayReplayControls(){
-  MainActivity app=Robolectric.buildActivity(MainActivity.class).create().get();
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
   View root=app.getWindow().getDecorView();
   assertEquals("Radar Scope logo must not be replaced",1,countLogo(root));
   assertTrue(contains(root,"MONITOR GLOBAL TV"));
@@ -54,7 +54,7 @@ public class TvDashboardUiTest {
     1762600000000L,true);
   quake.compact=true;quake.magnitude=5.3;quake.depth=28;quake.targetArea="Costa do Pacífico Sul";
   Prefs.rememberTarget(context,quake);
-  MainActivity app=Robolectric.buildActivity(MainActivity.class).create().get();
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
   assertTrue(contains(app.getWindow().getDecorView(),"Costa do Pacífico Sul"));
   app.finish();
  }
