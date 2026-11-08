@@ -12,3 +12,5 @@ O resumo meteorológico usa o modelo Cloudflare `@cf/meta/llama-3.1-8b-instruct-
 
 
 **Observação sobre a validação da IA:** a prévia 0.1.8 aceita respostas do Gemini 3.8 Flash (principal) e do Cloudflare Workers AI (reserva). O teste online distingue ausência legítima de destaque meteorológico de uma falha de geração. A chave privada fica apenas no Worker; nenhum segredo é enviado ao celular.
+
+**Reserva científica após falha dos modelos:** se Gemini e Cloudflare rejeitarem uma seleção de fatos, a prévia apresenta somente interpretações determinadas por regras e dados verificados, com o rótulo `validated-facts-v1` (sem IA). Uma única interpretação conhecida não consome inferência. A previsão da fonte e os avisos oficiais continuam independentes.
