@@ -7,8 +7,8 @@ android {
   minSdk 28
   targetSdk 35
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
-  versionCode 10059
-  versionName '1.0.59'
+  versionCode 10060
+  versionName '1.0.60'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
