@@ -2,6 +2,7 @@ import {readBoundedText} from "./worker/http.mjs";
 import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from "./worker/proxy-security.mjs";
 import {TV_TARGET_POLICY} from "./worker/tv-target-areas.mjs";
 import {handleWeatherBriefing,handleWeatherBriefingInObject,BRIEFING_POLICY,BRIEFING_MODEL,BRIEFING_PRIMARY_MODEL,BRIEFING_LIMITS} from "./worker/weather-briefing.mjs";
+import {handleRainOutlook,handleSeismicInsight,handleSeismicInsightInObject} from "./worker/ai-science.mjs";
 import {handleTvWeather,TV_WEATHER_POLICY} from "./worker/tv-weather.mjs";
 import {handleTvRain,TV_RAIN_POLICY} from "./worker/tv-rain.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
@@ -1202,6 +1203,7 @@ export class EarthquakeAlertDelivery {
             if(new URL(request.url).pathname.startsWith('/telegram-image/'))return serveTelegramOriginal(request,this.state.storage);
             if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(new URL(request.url).pathname))return handleRainbowProductInObject(request,measuredEnv,this.state.storage);
             if(new URL(request.url).pathname==='/weather-briefing')return handleWeatherBriefingInObject(request,measuredEnv,this.state.storage,{waitUntil:job=>this.state.waitUntil(job)});
+            if(new URL(request.url).pathname==='/seismic-insight')return handleSeismicInsightInObject(request,measuredEnv,this.state.storage,{waitUntil:job=>this.state.waitUntil(job)});
             if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,measuredEnv,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){
                 const kv=measuredEnv.TTS_USAGE,storage=this.state.storage;
@@ -1939,6 +1941,8 @@ async function handleWorkerRequest(request,env,ctx){
             return handlePortugueseTranslation(request,env);
         }
         if (reqUrl.pathname === '/weather-briefing') return handleWeatherBriefing(request,env);
+        if (reqUrl.pathname === '/weather-outlook') return handleRainOutlook(request,env);
+        if (reqUrl.pathname === '/seismic-insight') return handleSeismicInsight(request,env);
         if (reqUrl.pathname === '/tv-weather') return handleTvWeather(request,env);
         if (reqUrl.pathname === '/tv-rain') return handleTvRain(request,env);
         if (reqUrl.pathname === '/tv-alerts') return handleTvAlerts(request,{env:{...env,TV_WAIT_UNTIL:ctx?.waitUntil?.bind(ctx)}});
