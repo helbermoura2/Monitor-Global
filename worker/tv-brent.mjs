@@ -32,9 +32,9 @@ export function parseBrentQuote(input,now=Date.now()){
  if(meta.marketState&&['CLOSED','POST','PRE','PREPRE','POSTPOST'].includes(meta.marketState))return null;
  // A real provider timestamp is mandatory; do not fill it with 'now'.
  const stamp=Number(meta.regularMarketTime);
- const points=Array.isArray(data.timestamp)?data.timestamp.filter(t=>Number.isSafeInteger(t)&&t>0):[];
- const last=points.length?points[points.length-1]:NaN;
- const at=Math.max(Number.isSafeInteger(stamp)&&stamp>0?stamp*1000:0,Number.isSafeInteger(last)&&last>0?last*1000:0);
+ // The displayed regularMarketPrice is associated with meta.regularMarketTime,
+ // NOT the latest chart candle: a fresh candle must never refresh an old quote.
+ const at=Number.isSafeInteger(stamp)&&stamp>0?stamp*1000:0;
  if(at<=0||at>now+2*MIN||now-at>75*MIN)return null;
  const price=meta.regularMarketPrice,previous=validPrice(meta.chartPreviousClose)?meta.chartPreviousClose:
   validPrice(meta.previousClose)?meta.previousClose:null;
