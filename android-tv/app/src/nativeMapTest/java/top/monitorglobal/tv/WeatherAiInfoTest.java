@@ -57,6 +57,15 @@ public class WeatherAiInfoTest {
   assertTrue(WeatherAiStatus.describe(json.put("reason","model-error").put("providerCode","3018").toString(),"hourly",now).contains("3018"));
   assertFalse(WeatherAiStatus.describe(json.put("providerCode","PRIVATE_SECRET").toString(),"hourly",now).contains("PRIVATE_SECRET"));
  }
+ @Test public void reportsPrimaryGeminiAndCloudflareBackupOnlyForValidatedContent()throws Exception{
+  String source=response("hourly","ready","O ar está muito úmido.");
+  String gemini=new JSONObject(source).put("model",WeatherBriefing.GEMINI_MODEL).toString();
+  String fallback=new JSONObject(source).put("model",WeatherBriefing.MODEL).toString();
+  assertTrue(WeatherAiStatus.describe(gemini,"hourly",now).contains("Gemini Flash"));
+  assertTrue(WeatherAiStatus.describe(fallback,"hourly",now).contains("Cloudflare Workers AI (reserva)"));
+  String invented=new JSONObject(source).put("model","not-a-model").toString();
+  assertFalse(WeatherAiStatus.describe(invented,"hourly",now).contains("O ar está muito úmido."));
+ }
  @Test public void onlyValidatedReadyReportsAreShown()throws Exception{
   String good=response("hourly","ready","Previsão de ar muito úmido; isso não confirma chuva.");
   assertTrue(WeatherAiStatus.describe(good,"hourly",now).contains("Previsão de ar muito úmido"));
