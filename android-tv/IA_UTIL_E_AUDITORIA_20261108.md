@@ -1,5 +1,34 @@
 # Android TV — IA compreensível e auditoria de usabilidade (08/11/2026)
 
+## Segunda etapa — quatro prioridades e interface interna implementadas no PR #609
+
+**1. IA mais útil e verificável**
+- A tela de IA agora tem o mesmo desenho de dashboard da TV, com botões grandes, foco visível pelo controle remoto e marca original animada.
+- O usuário pode consultar o tempo ou a chuva apenas quando quiser. O retorno distingue disponibilidade, falta de observações relevantes, processamento, limite e indisponibilidade.
+- Se o retorno é válido, informa o **horário da previsão de origem e o horário de referência**, nunca apenas uma fala da IA sem fonte. Não existe análise especulativa de danos/tsunami nem repetição obrigatória de números do boletim.
+
+**2. Replay regional transparente**
+- O painel mostra o último **aviso real M5+ elegível** salvo localmente (área e magnitude, ou ausência explícita).
+- Um diálogo separado informa local, profundidade, data original, fonte, duração e atraso antes de executar. É uma confirmação, não um player.
+- A execução continua pela ação original `MonitorService.REPLAY_TARGET` → `CompactNotice`: **tarja REPLAY sobre o vídeo atual**, com prioridade dos alertas reais inalterada. `Banner`, `CompactNotice` e replays M6+/resumos não foram modificados.
+
+**3. Interface para controle remoto**
+- Tela inicial redesenhada com duas colunas de estado (permissões, monitoramento, fontes, tempo, chuva e satélite), seções de funções e botões grandes agrupados em linhas duplas em TVs largas.
+- Foco do controle remoto com contorno ciano; textos explicativos longos acessíveis por botões `Detalhes`, sem parede de texto na primeira tela.
+- A página de IA segue o mesmo estilo, com botões de consulta e resultados separados em cartões legíveis.
+- **Marca obrigatória:** `RadarLogoView` usa a geometria exata de `ic_launcher_monitor.xml`: três anéis fixos, cunha e ponto na cor #38BDF8. A cunha+ponto gira em **2,4 segundos**, como em `css/brand-logo.css`. Parada fora da tela e com animação desabilitada por acessibilidade.
+- `ic_launcher_monitor.xml`, `tv_banner.xml`, `css/brand-logo.css` e a arte da marca do site **não foram alterados**. A concepção gráfica com um globo não substituiu o logo.
+
+**4. Desempenho e diagnóstico**
+- O painel das configurações atualiza dados locais a cada **9 segundos em vez de 3** e só chama `setText` quando o conteúdo mudou. O histórico M5+ é decodificado apenas se seu JSON local mudar.
+- O sampler existente `RuntimeDiagnostics` já coletava memória uma vez por minuto. Agora também calcula **CPU do processo em percentagem de um núcleo** entre amostras, sem iniciar cron, polling de servidor ou coleta de dados pessoais. Pode ultrapassar 100% em multicore; primeira amostra exibe `aguardando segunda leitura`.
+- O diagnóstico é local, exportável no JSON existente. A varredura animada não cria uma camada GPU extra e para quando a janela não está visível.
+- **NÃO** foi alterado o polling de sismos a cada 30 s, o rastreador de fontes, o Worker meteorológico nem as prioridades de emergência.
+
+**Validação antes de mesclar:** `Android TV preview` (compilar, lint e testes gráficos Robolectric), `Smoke test`, revisão dos resultados reais na TV e confirmação visual do logo, D-pad e da tarja sobre outro aplicativo. O PR segue rascunho. Não atualizar a versão oficial nem publicar APK oficial automaticamente.
+
+---
+
 ## Diagnóstico do código atual
 
 - A chamada à IA **não é um chat**. `RainMonitor` usa `WeatherBriefingClient` para pedir `/weather-briefing?kind=hourly|rain` apenas durante apresentações meteorológicas relevantes; a consulta ocorre fora da thread de interface.
