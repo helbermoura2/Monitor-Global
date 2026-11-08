@@ -1,6 +1,8 @@
 import {handleTvWeather} from './tv-weather.mjs';
 import {handleTvRain} from './tv-rain.mjs';
-export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8';
+// This supported -fast variant replaces the FP8 model scheduled for retirement on 2026-11-20.
+// Cache keys are already model-specific; the previous model's stale errors are not reused.
+export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8-fast';
 export const BRIEFING_POLICY='source-grounded-weather-v1';
 export const BRIEFING_LIMITS={day:64,month:1500};
 const MIN=60000,HOUR=60*MIN,CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'};
