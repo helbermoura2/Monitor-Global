@@ -1,11 +1,7 @@
 name: Android TV preview
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'android-tv/**'
-      - '.github/workflows/android-tv-preview.yml'
-      - '.github/workflows/android-tv-release.yml'
+# Full Android TV preview is explicit; pull requests use ci-rapido.yml.
 permissions:
   contents: read
 jobs:
