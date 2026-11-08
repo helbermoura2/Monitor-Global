@@ -77,8 +77,10 @@ final class WeatherAiStatus {
      return label+"\nA franquia de geração de IA chegou ao limite."
        +"\nOs avisos de terremoto, tsunami e a previsão meteorológica continuam independentes.";
     case "unavailable":
+     String code=data.optString("providerCode","");
      return label+"\nA análise de IA está indisponível neste momento."
        +"\n"+reason(data.optString("reason",""))
+       +(code.matches("[0-9]{4,5}")?"\nCódigo técnico do provedor: "+code:"")
        +"\nO monitoramento sísmico e os boletins meteorológicos comuns não dependem da IA.";
     default:
      return label+"\nNão foi possível confirmar um estado válido da IA. Os alertas permanecem independentes.";
