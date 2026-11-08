@@ -8,9 +8,10 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import static org.junit.Assert.*;
 
-@RunWith(RobolectricTestRunner.class) @Config(sdk=35)
+@RunWith(RobolectricTestRunner.class) @Config(sdk=35) @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class RadarLogoViewTest {
  @Test public void originalSweepKeepsCenterAnd2400MsGeometry(){
   Context c=RuntimeEnvironment.getApplication();RadarLogoView view=new RadarLogoView(c);
