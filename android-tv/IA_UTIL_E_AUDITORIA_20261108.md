@@ -17,6 +17,10 @@
 5. **Seções na configuração:** início rápido, replay/resumos, M5+ regional, meteorologia/IA/satélite, chuva, preferências e funcionamento. Botões e regras anteriores permanecem nos mesmos modos de execução.
 6. **Diagnóstico de replay M5+ no topo:** indica se existe evento regional real elegível persistido ou se o aparelho ainda não possui registro, sem inventar disponibilidade.
 
+## Regra visual confirmada por gravação real da TV
+
+O replay é uma **sobreposição na programação que o usuário está assistindo**, não uma página independente nem um player embutido na tela de configuração. O vídeo enviado mostra a tarja de telejornal com mapa de epicentro e selo REPLAY entrando sobre um conteúdo em execução e avançando por diferentes eventos. Os painéis de UI apresentados em imagens são **conceitos para a configuração e o status**, nunca para substituir a saída de `Banner`/`CompactNotice` sobre outros apps. Nenhum redesenho deve migrar o replay para dentro da `MainActivity` nem capturar os controles do player. A IA também não deve afetar as filas, os prazos ou a prioridade dessas sobreposições.
+
 ## Segurança e limites
 
 - Alerta de sismos, tsunami, Telegram, mapas, Worker de alertas, região monitorada, fila de prioridade, intervalo de consulta e som **não foram alterados**.
@@ -29,7 +33,7 @@
 ## Próximas prioridades — propostas para PRs separados
 
 1. **Análises dos avisos sísmicos e tsunami:** quadro curto `O que sabemos / O que ainda não sabemos`, derivado de magnitude, profundidade, localização, fonte e boletim oficial. Não transformar IA em autoridade de emergência, não prever danos nem atrasar avisos prioritários.
-2. **Replay regional verificável:** mostrar área, magnitude, profundidade e data do último aviso real salvo, com testes explícitos de seleção M5+, replay de 15 s e retorno ao vídeo. Sem prometer replay de eventos que não foram apresentados.
+2. **Replay regional verificável, SEM MUDAR A APRESENTAÇÃO:** a tela de configurações deve apenas informar se há aviso elegível salvo e oferecer o comando de reprodução. O replay **não é reproduzido dentro do aplicativo**: deve continuar aparecendo como a tarja **BREAKING NEWS** sobre o vídeo ou outro app já aberto, com magnitude, local, profundidade, mapa do epicentro à direita, indicação **REPLAY**, animação e retirada automática. O replay regional real segue a duração de 15 s e o retorno ao vídeo; o resumo sísmico/replay em sequência mantém seu fluxo e tempos próprios. Não prometer replay de eventos que não foram apresentados.
 3. **Navegação D-pad e leitura a distância:** agrupamento, indicadores de foco, texto maior e testes visuais no Fire Stick/Android TV real.
 4. **Resiliência e desempenho:** inspecionar CPU/memória, coalescência de consultas, cache de imagens e mapas, perfis de TV lenta; não remover salvaguardas de fonte.
 5. **Estado das fontes e dos alertas:** diagnosticar conectividade, idade do último evento e recuperação offline separadamente do estado da IA.
