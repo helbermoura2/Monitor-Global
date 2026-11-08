@@ -29,8 +29,12 @@ final class BrentQuote {
   long start=slot(now);
   return marketOpen(now)&&now>=start&&now<start+30*MINUTE&&lastSlot!=start;
  }
- static long delay(long now){
+ static long delay(long now){return delay(now,0);}
+ static long delay(long now,long shownSlot){
   long start=slot(now);
+  // Once delivered or market closed, skip the retry window entirely.
+  if(!marketOpen(now)||shownSlot==start&&now>=start)
+   return Math.max(1,Instant.ofEpochMilli(now).atZone(BRASIL).truncatedTo(ChronoUnit.HOURS).plusHours(1).withMinute(15).toInstant().toEpochMilli()-now);
   if(now<start)return Math.max(1,start-now);
   if(now<start+30*MINUTE)return 60000;
   return Math.max(1,Instant.ofEpochMilli(now).atZone(BRASIL).truncatedTo(ChronoUnit.HOURS).plusHours(1).withMinute(15).toInstant().toEpochMilli()-now);
