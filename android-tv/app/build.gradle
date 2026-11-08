@@ -7,8 +7,8 @@ android {
   minSdk 28
   targetSdk 35
   // Shared online weather briefings use the canonical Cloudflare FP8 model.
-  versionCode 10056
-  versionName '1.0.56'
+  versionCode 10057
+  versionName '1.0.57'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
