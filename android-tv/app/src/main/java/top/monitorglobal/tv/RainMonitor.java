@@ -16,6 +16,8 @@ final class RainMonitor {
  void setManualFinished(Runnable callback){manualFinished=callback;}
  void weatherNow(){if(closed)return;main.removeCallbacks(manualStart);manualGeneration++;manualWeather=true;manualUntil=0;manualNotBefore=SystemClock.elapsedRealtime()+MANUAL_DELAY;hide();main.postDelayed(manualStart,MANUAL_DELAY);tick();}
  boolean manualPending(){return manualWeather||SystemClock.elapsedRealtime()<manualUntil||satellite.pending();}
+ /** Prevent market HUD from stacking on top of an existing weather/satellite card. */
+ boolean presentationActive(){return overlay.showing()||satellite.pending()||manualWeather||SystemClock.elapsedRealtime()<demoUntil;}
  void tick(){
   if(closed)return;int selected=mode();boolean enabled=hourly();if(selected!=lastMode||enabled!=lastHourly||satelliteEnabled()!=lastSatellite){hide();lastMode=selected;lastHourly=enabled;lastSatellite=satelliteEnabled();}
   if((selected==0&&!enabled&&!manualPending())||!screen()){hide();return;}if(SystemClock.elapsedRealtime()<demoUntil)return;
