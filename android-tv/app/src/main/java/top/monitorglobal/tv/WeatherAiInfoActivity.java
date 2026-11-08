@@ -101,14 +101,14 @@ public final class WeatherAiInfoActivity extends Activity {
     // A model may legitimately need up to 12 seconds, while the endpoint
     // returns PENDING immediately. Poll the same server-side task only, never
     // start simultaneous model requests or an automatic background timer.
-    for(int attempt=0;attempt<6&&!destroyed;attempt++){
+    for(int attempt=0;attempt<12&&!destroyed;attempt++){
      lastResponse=read(kind);
      message=WeatherAiStatus.describe(lastResponse,kind,System.currentTimeMillis());
-     if(!WeatherAiStatus.pending(lastResponse)||attempt==5)break;
+     if(!WeatherAiStatus.pending(lastResponse)||attempt==11)break;
      final int poll=attempt+1;
      main.post(()->{
       if(!destroyed&&token==generation)
-       result.setText("O modelo está preparando a análise… Verificação "+poll+" de 6. Os alertas seguem funcionando.");
+       result.setText("O modelo está preparando a análise… Verificação "+poll+" de 12. Os alertas seguem funcionando.");
      });
      Thread.sleep(2400);
     }
