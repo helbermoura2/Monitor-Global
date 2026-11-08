@@ -190,6 +190,15 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
   const cached=await storage.get(key);
   if(cached?.status==='ready'&&cached.until>now&&[GEMINI_MODEL,BRIEFING_MODEL,BRIEFING_RULE_MODEL].includes(cached.model)&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:cached.model,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
   if(cached?.until>now)return reply({status:cached.status==='pending'?'pending':'unavailable',retryAfter:cached.status==='pending'?2:300,...(cached.reason?{reason:cached.reason,providerCode:cached.providerCode||null}:{})});
+  // A single validated fact needs no model, no inference budget and no
+  // asynchronous task; store the safe local selection for TV and phone.
+  if(context.keys.length===1){
+   const selected=verifiedRuleSelection(context);
+   await storage.put(key,{status:'ready',facts:selected.facts,model:BRIEFING_RULE_MODEL,at:now,until:context.until});
+   return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:BRIEFING_RULE_MODEL,
+    dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,
+    generatedAt:now,aiAt:now,expiresAt:context.until,text:renderFacts(selected.facts,context)});
+  }
   const day=new Date(now).toISOString().slice(0,10),month=day.slice(0,7),old=await storage.get('briefing:budget');
   const budget={day,month,daily:old?.day===day?old.daily:0,monthly:old?.month===month?old.monthly:0};
   if(!Number.isSafeInteger(budget.daily)||budget.daily<0||!Number.isSafeInteger(budget.monthly)||budget.monthly<0||budget.daily>=BRIEFING_LIMITS.day||budget.monthly>=BRIEFING_LIMITS.month)return reply({status:'limited'});
