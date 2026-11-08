@@ -40,21 +40,41 @@ public final class WeatherAiInfoActivity extends Activity {
   getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
   ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);
   LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
-  column.setPadding(dp(44),dp(22),dp(44),dp(32));scroll.addView(column);
+  column.setPadding(dp(36),dp(20),dp(36),dp(36));scroll.addView(column);
   setContentView(scroll);
-  text(column,"IA METEOROLÓGICA · MONITOR GLOBAL",29,CYAN,true);
-  text(column,"O que a IA realmente faz",23,WHITE,true);
-  text(column,"Ela interpreta previsões verificadas para a Liberdade, em São Paulo. O modelo escolhe quais observações merecem destaque, sem criar números nem alertas por conta própria.",19,MUTED,false);
-  text(column,"Quando não existe algo útil para acrescentar, a IA não aparece no cartão. Isso não significa que o monitoramento de terremotos ou tsunami esteja desligado.",17,MUTED,false);
-  text(column,"Não é um chat e não prevê terremotos, tsunamis ou danos. As fontes oficiais e os alertas funcionam mesmo quando a IA falha ou atinge seu limite.",17,CYAN,false);
-  text(column,"CONSULTA MANUAL · SOMENTE SE VOCÊ PEDIR",20,WHITE,true);
+
+  // Same original Radar Scope geometry and 2.4 s rotating sweep as the
+  // website; no replacement of logo assets, and no animation outside UI.
+  LinearLayout heading=new LinearLayout(this);heading.setGravity(android.view.Gravity.CENTER_VERTICAL);
+  RadarLogoView logo=new RadarLogoView(this);
+  heading.addView(logo,new LinearLayout.LayoutParams(dp(70),dp(70)));
+  LinearLayout brand=new LinearLayout(this);brand.setOrientation(LinearLayout.VERTICAL);
+  LinearLayout.LayoutParams headingMargin=new LinearLayout.LayoutParams(-1,-2);
+  brand.addView(titleText("MONITOR GLOBAL TV",31));
+  brand.addView(titleText("IA METEOROLÓGICA · Liberdade, São Paulo",23));
+  headingMargin.leftMargin=dp(18);heading.addView(brand,headingMargin);
+  column.addView(heading);
+  LinearLayout info=panel(column,dp(14));
+  text(info,"O que a IA realmente faz",23,CYAN,true);
+  text(info,"Ela interpreta previsões verificadas para a Liberdade, em São Paulo. O modelo escolhe quais observações merecem destaque, sem criar números nem alertas por conta própria.",19,MUTED,false);
+  text(info,"Quando não existe algo útil para acrescentar, a IA não aparece no cartão. Isso não significa que o monitoramento de terremotos ou tsunami esteja desligado.",17,MUTED,false);
+  text(info,"Não é um chat e não prevê terremotos, tsunamis ou danos. As fontes oficiais e os alertas funcionam mesmo quando a IA falha ou atinge seu limite.",17,CYAN,false);
+  text(column,"CONSULTA MANUAL · SOMENTE SE VOCÊ PEDIR",20,CYAN,true);
   text(column,"A consulta usa o serviço meteorológico atual e pode consumir parte da franquia compartilhada de IA. Não ativa novos alertas, não muda configurações e não acompanha sua localização.",16,MUTED,false);
-  hourly=button(column,"Consultar análise de IA · tempo na Liberdade",v->query("hourly"));
-  rain=button(column,"Consultar análise de IA · chuva na Liberdade",v->query("rain"));
-  result=text(column,"Selecione uma consulta acima para ver o que a IA tem a acrescentar.",19,WHITE,false);
-  text(column,"ÚLTIMO DESTAQUE GUARDADO NESTA TV",17,CYAN,true);
-  text(column,cached(),15,MUTED,false);
-  button(column,"Voltar às configurações",v->finish());
+  LinearLayout actions=new LinearLayout(this);
+  actions.setOrientation(getResources().getConfiguration().screenWidthDp>=900?
+    LinearLayout.HORIZONTAL:LinearLayout.VERTICAL);
+  column.addView(actions,new LinearLayout.LayoutParams(-1,-2));
+  hourly=button(actions,"Consultar análise de IA · tempo na Liberdade",v->query("hourly"));
+  rain=button(actions,"Consultar análise de IA · chuva na Liberdade",v->query("rain"));
+  button(actions,"Voltar às configurações",v->finish());
+  LinearLayout report=panel(column,dp(14));
+  text(report,"RESULTADO DA CONSULTA",20,CYAN,true);
+  result=text(report,"Selecione uma consulta acima para ver o que a IA tem a acrescentar.",19,WHITE,false);
+  LinearLayout cache=panel(column,dp(14));
+  text(cache,"ÚLTIMO DESTAQUE GUARDADO NESTA TV",18,CYAN,true);
+  text(cache,cached(),16,MUTED,false);
+  text(column,"Os alertas sísmicos e de tsunami continuam independentes da IA meteorológica.",16,MUTED,false);
   hourly.requestFocus();
  }
  private String cached(){
@@ -115,6 +135,23 @@ public final class WeatherAiInfoActivity extends Activity {
    connection.disconnect();if(current==connection)current=null;
   }
  }
+ private TextView titleText(String value,int size){
+  TextView t=new TextView(this);t.setText(value);t.setTextSize(size);
+  t.setTextColor(WHITE);
+  try{t.setTypeface(Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf"));}
+  catch(RuntimeException ignored){t.setTypeface(null,Typeface.BOLD);}
+  return t;
+ }
+ private LinearLayout panel(LinearLayout parent,int marginTop){
+  LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);
+  card.setPadding(dp(19),dp(13),dp(19),dp(13));
+  GradientDrawable bg=new GradientDrawable();bg.setColor(0xff112b40);
+  bg.setCornerRadius(dp(14));bg.setStroke(dp(1),0xff2c647f);
+  card.setBackground(bg);
+  LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+  params.topMargin=marginTop;parent.addView(card,params);
+  return card;
+ }
  private TextView text(LinearLayout host,String value,int size,int color,boolean bold){
   TextView view=new TextView(this);view.setText(value);view.setTextSize(size);
   view.setTextColor(color);view.setPadding(0,dp(8),0,dp(8));
@@ -123,15 +160,19 @@ public final class WeatherAiInfoActivity extends Activity {
  }
  private Button button(LinearLayout host,String value,View.OnClickListener action){
   Button b=new Button(this);b.setText(value);b.setTextSize(19);b.setTextColor(WHITE);
-  b.setAllCaps(false);b.setPadding(dp(16),dp(10),dp(16),dp(10));b.setOnClickListener(action);
+  b.setAllCaps(false);b.setMinHeight(dp(74));b.setPadding(dp(17),dp(10),dp(17),dp(10));
+  b.setOnClickListener(action);
   b.setOnFocusChangeListener((v,focused)->styleButton(b,focused));
   styleButton(b,false);
-  LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(5),0,dp(5));
-  host.addView(b,p);return b;
+  boolean horizontal=host.getOrientation()==LinearLayout.HORIZONTAL;
+  LinearLayout.LayoutParams p=horizontal?
+    new LinearLayout.LayoutParams(0,-2,1f):new LinearLayout.LayoutParams(-1,-2);
+  p.setMargins(dp(4),dp(6),dp(4),dp(6));host.addView(b,p);return b;
  }
  private void styleButton(Button b,boolean focused){
-  GradientDrawable bg=new GradientDrawable();bg.setColor(0xff162c35);bg.setCornerRadius(dp(12));
-  bg.setStroke(dp(focused?3:1),focused?0xff79d4c7:0xff354e55);b.setBackground(bg);
+  GradientDrawable bg=new GradientDrawable();bg.setColor(focused?0xff084656:0xff162f45);
+  bg.setCornerRadius(dp(12));bg.setStroke(dp(focused?3:1),
+    focused?0xff00f0f4:0xff42647a);b.setBackground(bg);
  }
  private int dp(int size){return Math.round(size*getResources().getDisplayMetrics().density);}
  @Override protected void onDestroy(){
