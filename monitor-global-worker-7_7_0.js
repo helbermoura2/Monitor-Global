@@ -3,6 +3,7 @@ import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from
 import {TV_TARGET_POLICY} from "./worker/tv-target-areas.mjs";
 import {handleWeatherBriefing,handleWeatherBriefingInObject,BRIEFING_POLICY,BRIEFING_MODEL,BRIEFING_PRIMARY_MODEL,BRIEFING_LIMITS} from "./worker/weather-briefing.mjs";
 import {handleRainOutlook,handleSeismicInsight,handleSeismicInsightInObject} from "./worker/ai-science.mjs";
+import {handleTvBrent} from "./worker/tv-brent.mjs";
 import {handleTvWeather,TV_WEATHER_POLICY} from "./worker/tv-weather.mjs";
 import {handleTvRain,TV_RAIN_POLICY} from "./worker/tv-rain.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
@@ -1943,6 +1944,7 @@ async function handleWorkerRequest(request,env,ctx){
         if (reqUrl.pathname === '/weather-briefing') return handleWeatherBriefing(request,env);
         if (reqUrl.pathname === '/weather-outlook') return handleRainOutlook(request,env);
         if (reqUrl.pathname === '/seismic-insight') return handleSeismicInsight(request,env);
+        if (reqUrl.pathname === '/tv-brent') return handleTvBrent(request,env);
         if (reqUrl.pathname === '/tv-weather') return handleTvWeather(request,env);
         if (reqUrl.pathname === '/tv-rain') return handleTvRain(request,env);
         if (reqUrl.pathname === '/tv-alerts') return handleTvAlerts(request,{env:{...env,TV_WAIT_UNTIL:ctx?.waitUntil?.bind(ctx)}});
