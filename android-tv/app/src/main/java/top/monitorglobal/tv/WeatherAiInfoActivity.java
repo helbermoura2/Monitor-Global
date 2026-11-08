@@ -58,7 +58,7 @@ public final class WeatherAiInfoActivity extends Activity {
   text(info,"O que a IA realmente faz",23,CYAN,true);
   text(info,"Ela interpreta previsões verificadas para a Liberdade, em São Paulo. O modelo escolhe quais observações merecem destaque, sem criar números nem alertas por conta própria.",19,MUTED,false);
   text(info,"Quando não existe algo útil para acrescentar, a IA não aparece no cartão. Isso não significa que o monitoramento de terremotos ou tsunami esteja desligado.",17,MUTED,false);
-  text(info,"A seção sísmica fornece explicações aprofundadas dos registros oficiais, sem prever terremotos, tsunamis ou danos. Os avisos e replays seguem independentes da IA.",17,CYAN,false);
+  text(info,"Não é um chat. A seção sísmica fornece explicações aprofundadas dos registros oficiais, sem prever terremotos, tsunamis ou danos. Os avisos e replays seguem independentes da IA.",17,CYAN,false);
   text(column,"CONSULTA MANUAL · SOMENTE SE VOCÊ PEDIR",20,CYAN,true);
   text(column,"A consulta usa o serviço meteorológico atual e pode consumir parte da franquia compartilhada de IA. Não ativa novos alertas, não muda configurações e não acompanha sua localização.",16,MUTED,false);
   LinearLayout actions=new LinearLayout(this);
