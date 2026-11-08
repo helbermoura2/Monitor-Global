@@ -18,16 +18,19 @@ final class RuntimeDiagnostics {
  static void resetFrameClock(){synchronized(frames){lastFrame=0;}}
  static void frame(long at,long drawing,boolean animated){synchronized(frames){frameCount++;maxDraw=Math.max(maxDraw,drawing);if(animated&&lastFrame>0){long gap=at-lastFrame;maxGap=Math.max(maxGap,gap);if(gap>50_000_000)gaps50++;if(gap>100_000_000)gaps100++;}lastFrame=animated?at:0;}}
  static JSONObject frameSnapshot(){synchronized(frames){JSONObject out=new JSONObject();try{out.put("drawnFrames",frameCount).put("gapsOver50ms",gaps50).put("gapsOver100ms",gaps100).put("maxGapMs",maxGap/1e6).put("maxDrawRecordingMs",maxDraw/1e6);}catch(JSONException ignored){}return out;}}
+ /** Process CPU over an interval, percent of ONE core (can exceed 100). */
+ static double cpuPercentOneCore(long beforeCpu,long beforeUptime,long afterCpu,long afterUptime){
+  if(beforeCpu<0||beforeUptime<=0||afterCpu<beforeCpu||afterUptime<=beforeUptime)return Double.NaN;
+  return 100.0*(afterCpu-beforeCpu)/(afterUptime-beforeUptime);
+ }
  static void sample(){sample(generation);}
  private static void sample(long expected){Context c;JSONObject copy; synchronized(RuntimeDiagnostics.class){if(context==null||report==null||sampler==null||expected!=generation)return;c=context;}
   Debug.MemoryInfo memory=new Debug.MemoryInfo();Debug.getMemoryInfo(memory);Runtime vm=Runtime.getRuntime();JSONObject row=new JSONObject();try{row.put("at",System.currentTimeMillis()).put("uptimeMs",SystemClock.elapsedRealtime()).put("pssKb",memory.getTotalPss()).put("pssAvailable",memory.getTotalPss()>0).put("javaUsedBytes",vm.totalMemory()-vm.freeMemory()).put("javaCommittedBytes",vm.totalMemory()).put("javaLimitBytes",vm.maxMemory()).put("nativeAllocatedBytes",Debug.getNativeHeapAllocatedSize());String graphics=memory.getMemoryStat("summary.graphics");if(graphics!=null)try{row.put("graphicsPssKb",Long.parseLong(graphics));}catch(NumberFormatException ignored){}row.put("banner",frameSnapshot());}catch(JSONException ignored){}
   synchronized(RuntimeDiagnostics.class){if(report==null||expected!=generation)return;try{
     long uptime=SystemClock.elapsedRealtime(),cpu=android.os.Process.getElapsedCpuTime();
-    if(previousCpuUptimeMs>0&&uptime>previousCpuUptimeMs&&previousCpuMs>=0&&cpu>=previousCpuMs){
-     double percent=100.0*(cpu-previousCpuMs)/(uptime-previousCpuUptimeMs);
-     // Can exceed 100 on multi-core devices: the metric is ONE-core units.
-     if(Double.isFinite(percent))row.put("processCpuPctOneCore",Math.round(percent*10.0)/10.0);
-    }
+    double percent=cpuPercentOneCore(previousCpuMs,previousCpuUptimeMs,cpu,uptime);
+    // Can exceed 100 on multi-core devices: the metric is ONE-core units.
+    if(Double.isFinite(percent))row.put("processCpuPctOneCore",Math.round(percent*10.0)/10.0);
     previousCpuMs=cpu;previousCpuUptimeMs=uptime;
     JSONArray samples=report.optJSONArray("samples");if(samples==null)samples=new JSONArray();if(samples.length()>=MAX_SAMPLES){JSONArray recent=new JSONArray();for(int i=samples.length()-MAX_SAMPLES+1;i<samples.length();i++)recent.put(samples.get(i));samples=recent;}samples.put(row);report.put("samples",samples).put("sampleCount",report.optLong("sampleCount")+1).put("peakPssKb",Math.max(report.optLong("peakPssKb"),memory.getTotalPss())).put("latestAt",row.optLong("at"));if(!report.has("baselinePssKb"))report.put("baselinePssKb",memory.getTotalPss());copy=new JSONObject(report.toString());}catch(JSONException e){return;}}
   write(c,copy,expected);
