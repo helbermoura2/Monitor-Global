@@ -1,0 +1,9 @@
+Monitor Global — solicitação explícita de implantação única em 08/11/2026
+O proprietário solicitou: "já coloquei a key. Vamos fazer as melhorias e já publicar tudo?"
+A automação Cloudflare Worker maintenance, modo deploy, é acionada uma única vez quando
+este arquivo entra na branch principal. Todos os seguintes controles devem passar:
+1. testes de segurança e serviços Node; 2. build ESBuild do Worker e ZIP SHA-256 validado;
+3. bindings, segredos, cron, histórico e implementação preservados por API strict inherit;
+4. verificação posterior da saúde pública e rotas compartilhadas.
+Se faltar autorização de nuvem ou houver inconsistência, falhar sem divulgar segredos.
+Não ativar faturamento de Gemini ou Cloudflare.
