@@ -1,6 +1,10 @@
 import {handleTvWeather} from './tv-weather.mjs';
 import {handleTvRain} from './tv-rain.mjs';
-export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8';
+// This supported -fast variant replaces the FP8 model scheduled for retirement on 2026-11-20.
+// Cache keys are already model-specific; the previous model's stale errors are not reused.
+export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8-fast';
+export const GEMINI_MODEL='gemini-3.8-flash';
+export const BRIEFING_PRIMARY_MODEL=GEMINI_MODEL;
 export const BRIEFING_POLICY='source-grounded-weather-v1';
 export const BRIEFING_LIMITS={day:64,month:1500};
 const MIN=60000,HOUR=60*MIN,CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'};
@@ -80,34 +84,104 @@ export function parseBriefingSelection(result,context){
  }catch{return null;}
 }
 function renderFacts(keys,context){let out='';for(const key of keys){const next=(out?out+' ':'')+context.facts[key];if(next.length<=185)out=next;}return out;}
-export async function handleWeatherBriefing(request,env){
- if(!route(request))return reply({status:'unavailable'});
- if(!env.EARTHQUAKE_ALERTS)return reply({status:'unavailable'});
- try{return await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('weather-briefing-v1')).fetch(request);}catch{return reply({status:'unavailable'});}
+
+/** Fixed-place, verified IDs only. The API key is a Cloudflare secret. */
+export async function geminiSelection(env,context,prompt,fetcher=fetch){
+ if(typeof env.GEMINI_API_KEY!=='string'||!env.GEMINI_API_KEY.trim())throw Error('gemini-unconfigured');
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),11000);
+ try{
+  const response=await fetcher('https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_MODEL+':generateContent',{
+   method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},
+   signal:controller.signal,
+   body:JSON.stringify({
+    systemInstruction:{parts:[{text:'Select only verified IDs from the supplied weather fact map. Reply only as JSON {"facts":["id"]}. No new text, measurements, warning levels or predictions.'}]},
+    contents:[{role:'user',parts:[{text:prompt}]}],
+    generationConfig:{thinkingConfig:{thinkingLevel:'LOW'},maxOutputTokens:512,responseMimeType:'application/json'}
+   })
+  });
+  if(!response.ok)throw Error('gemini-unavailable');
+  if(Number(response.headers?.get?.('content-length')||0)>6000)throw Error('gemini-size');
+  const raw=await response.text();if(raw.length>6000)throw Error('gemini-size');
+  let payload;try{payload=JSON.parse(raw);}catch{throw Error('gemini-response');}
+  const content=payload?.candidates?.[0]?.content?.parts?.filter(p=>!p?.thought).map(p=>p?.text||'').join('')||'';
+  if(typeof content!=='string'||content.length>2000)throw Error('gemini-response');
+  const facts=parseBriefingSelection({response:content},context);
+  if(!facts)throw Error('invalid');
+  return facts;
+ }finally{clearTimeout(timer);}
 }
-export async function handleWeatherBriefingInObject(request,env,storage,{now=Date.now(),waitUntil,readWeather=handleTvWeather,readRain=handleTvRain}={}){
- const kind=route(request);if(!kind||!env.AI||typeof waitUntil!=='function')return reply({status:'unavailable'});
+async function workersSelection(env,context,prompt){
+ if(!env.AI)throw Error('model-unconfigured');
+ let timer;
+ try{
+  const result=await Promise.race([
+   env.AI.run(BRIEFING_MODEL,{messages:[
+    {role:'system',content:'Select only the provided interpretation IDs. Return compact JSON, for example {"facts":["humidCalm"]}. Never return explanations or fact sentences.'},
+    {role:'user',content:prompt}
+   ],temperature:0,max_tokens:96}),
+   new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})
+  ]);
+  const facts=parseBriefingSelection(result,context);
+  if(!facts)throw Error('invalid');
+  return facts;
+ }finally{clearTimeout(timer);}
+}
+export async function selectWithFallback(env,context,prompt,fetchGemini=fetch){
+ if(env.GEMINI_API_KEY){
+  try{return {facts:await geminiSelection(env,context,prompt,fetchGemini),model:GEMINI_MODEL};}
+  catch(error){
+   // Gemini errors are not weather insights. Existing Workers AI is
+   // attempted once as backup; provider error text is never exposed.
+   if(!env.AI)throw error;
+  }
+ }
+ if(env.AI)return {facts:await workersSelection(env,context,prompt),model:BRIEFING_MODEL};
+ throw Error('model-unconfigured');
+}
+
+export async function handleWeatherBriefing(request,env){
+ if(!route(request))return reply({status:'unavailable',reason:'invalid-request'});
+ if(!env.EARTHQUAKE_ALERTS)return reply({status:'unavailable',reason:'service-unavailable'});
+ try{return await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('weather-briefing-v1')).fetch(request);}catch{return reply({status:'unavailable',reason:'service-unavailable'});}
+}
+export async function handleWeatherBriefingInObject(request,env,storage,{now=Date.now(),waitUntil,readWeather=handleTvWeather,readRain=handleTvRain,fetchGemini=fetch}={}){
+ const kind=route(request);
+ if(!kind)return reply({status:'unavailable',reason:'invalid-request'});
+ if(!env.AI&&!env.GEMINI_API_KEY)return reply({status:'unavailable',reason:'model-unconfigured'});
+ if(typeof waitUntil!=='function')return reply({status:'unavailable',reason:'service-unavailable'});
  let context;
- try{const source=await(kind==='hourly'?readWeather:readRain)(new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);context=briefingContext(kind,await source.json(),now);}catch{return reply({status:'unavailable'});}
- if(!context)return reply({status:'unavailable'});if(context.notApplicable)return reply({status:'not_applicable'});
- const key='briefing:'+BRIEFING_MODEL+':validated-insights-v4:'+context.key;
+ try{
+  const source=await(kind==='hourly'?readWeather:readRain)(
+   new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);
+  const payload=await source.json();
+  if(!source.ok||payload?.ok!==true)return reply({status:'unavailable',reason:'source-unavailable'});
+  context=briefingContext(kind,payload,now);
+ }catch{return reply({status:'unavailable',reason:'source-unavailable'});}
+ if(!context)return reply({status:'unavailable',reason:'source-stale-or-invalid'});
+ if(context.notApplicable)return reply({status:'not_applicable'});
+ const key='briefing:'+GEMINI_MODEL+':cf-'+BRIEFING_MODEL+':validated-insights-v5:'+context.key;
  try{
   const cached=await storage.get(key);
-  if(cached?.status==='ready'&&cached.until>now&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:BRIEFING_MODEL,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
+  if(cached?.status==='ready'&&cached.until>now&&[GEMINI_MODEL,BRIEFING_MODEL].includes(cached.model)&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:cached.model,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
   if(cached?.until>now)return reply({status:cached.status==='pending'?'pending':'unavailable',retryAfter:cached.status==='pending'?2:300,...(cached.reason?{reason:cached.reason,providerCode:cached.providerCode||null}:{})});
   const day=new Date(now).toISOString().slice(0,10),month=day.slice(0,7),old=await storage.get('briefing:budget');
   const budget={day,month,daily:old?.day===day?old.daily:0,monthly:old?.month===month?old.monthly:0};
   if(!Number.isSafeInteger(budget.daily)||budget.daily<0||!Number.isSafeInteger(budget.monthly)||budget.monthly<0||budget.daily>=BRIEFING_LIMITS.day||budget.monthly>=BRIEFING_LIMITS.month)return reply({status:'limited'});
   const prompt='Escolha até 2 interpretações mais úteis para um destaque meteorológico curto. Retorne SOMENTE JSON {"facts":[IDs]}. Selecione apenas IDs disponíveis, sem repetir. Priorize mudanças, riscos moderados e combinações de condições; nunca repita os valores do cartão. Não escreva números, frases ou novas previsões. Interpretações derivadas exclusivamente dos dados válidos: '+JSON.stringify(context.facts);
-  if(new TextEncoder().encode(prompt).length>3500)return reply({status:'unavailable'});
+  if(new TextEncoder().encode(prompt).length>3500)return reply({status:'unavailable',reason:'invalid-prompt'});
   budget.daily++;budget.monthly++;await storage.put('briefing:budget',budget);
   const index=(await storage.get('briefing:index')||[]).filter(k=>k!==key);index.push(key);while(index.length>48)await storage.delete(index.shift());await storage.put('briefing:index',index);
   await storage.put(key,{status:'pending',until:now+2*MIN});
-  const job=(async()=>{let timer;try{
-   const result=await Promise.race([env.AI.run(BRIEFING_MODEL,{messages:[{role:'system',content:'Select only the provided interpretation IDs. Return compact JSON, for example {"facts":["humidCalm"]}. Never return explanations or fact sentences.'},{role:'user',content:prompt}],temperature:0,max_tokens:96}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})]);
-   const facts=parseBriefingSelection(result,context);if(!facts)throw Error('invalid');
-   await storage.put(key,{status:'ready',facts,at:now,until:Math.floor(now/(kind==='hourly'?HOUR:30*MIN)+1)*(kind==='hourly'?HOUR:30*MIN)});
-  }catch(error){const reason=error?.message==='invalid'?'invalid-selection':error?.message==='timeout'?'model-timeout':'model-error',code=String(error?.code||error?.message||'').match(/(?:^|\D)([1-9]\d{3,5})(?:\D|$)/)?.[1]||null;try{await storage.put(key,{status:'error',reason,providerCode:code,until:now+10*MIN});}catch{}}finally{clearTimeout(timer);}})();
+  const job=(async()=>{
+   try{
+    const selected=await selectWithFallback(env,context,prompt,fetchGemini);
+    await storage.put(key,{status:'ready',facts:selected.facts,model:selected.model,
+     at:now,until:Math.floor(now/(kind==='hourly'?HOUR:30*MIN)+1)*(kind==='hourly'?HOUR:30*MIN)});
+   }catch(error){
+    const reason=error?.message==='invalid'?'invalid-selection':error?.message==='timeout'?'model-timeout':'model-error';
+    try{await storage.put(key,{status:'error',reason,until:now+10*MIN});}catch{}
+   }
+  })();
   waitUntil(job);return reply({status:'pending',retryAfter:2});
- }catch{return reply({status:'unavailable'});}
+ }catch{return reply({status:'unavailable',reason:'storage-unavailable'});}
 }

@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {briefingContext,parseBriefingSelection,handleWeatherBriefingInObject as handle,BRIEFING_LIMITS,BRIEFING_MODEL} from '../../worker/weather-briefing.mjs';
+import {briefingContext,parseBriefingSelection,handleWeatherBriefingInObject as handle,BRIEFING_LIMITS,BRIEFING_MODEL,GEMINI_MODEL} from '../../worker/weather-briefing.mjs';
 const now=Date.parse('2026-11-05T15:20:00Z');
 const weather=()=>({ok:true,version:'tv-weather-v1',area:'liberdade',loc:{lat:-23.555,lng:-46.635},at:now,generatedAt:now-600000,expiresAt:now+1200000,current:{start:Math.floor(now/3600000)*3600000,temperature:28,feels:30,humidity:92,wind:1,gust:3,condition:'Cloudy'}});
 const rain=(wet=true)=>({ok:true,version:'tv-rain-v1',area:'liberdade',loc:{lat:-23.555,lng:-46.635},at:now,expiresAt:now+600000,forecast:Array.from({length:180},(_,i)=>({start:now+i*60000,end:now+(i+1)*60000,rate:wet&&i<30?3:0,type:wet&&i<30?'rain':'no_precipitation'}))});
@@ -82,4 +82,101 @@ test('sustained heavy rain must be prioritized even when model picks weaker text
  const ctx=briefingContext('rain',d,now);
  assert.ok(ctx.keys.includes('strong'));
  assert.deepEqual(parseBriefingSelection({response:'{"facts":["pause"]}'},ctx),['strong','pause']);
+});
+
+test('unavailable AI has safe, distinct diagnosis without exposing provider payloads',async()=>{
+ const failingSource=setup({...weather(),ok:false});
+ const a=await(await handle(req(),failingSource.env,failingSource.storage,failingSource.options)).json();
+ assert.equal(a.status,'unavailable');assert.equal(a.reason,'source-unavailable');
+
+ const staleSource=setup({...weather(),generatedAt:now-12*60*60000});
+ const b=await(await handle(req(),staleSource.env,staleSource.storage,staleSource.options)).json();
+ assert.equal(b.status,'unavailable');assert.equal(b.reason,'source-stale-or-invalid');
+
+ const noModel=setup();
+ const c=await(await handle(req(),{},noModel.storage,noModel.options)).json();
+ assert.equal(c.reason,'model-unconfigured');
+
+ const noWait=setup();
+ const d=await(await handle(req(),noWait.env,noWait.storage,{...noWait.options,waitUntil:undefined})).json();
+ assert.equal(d.reason,'service-unavailable');
+
+ const noStorage=setup();
+ const e=await(await handle(req(),noStorage.env,{get:async()=>{throw Error('SECRET INTERNAL ISSUE');}},noStorage.options)).json();
+ assert.equal(e.reason,'storage-unavailable');
+ assert.doesNotMatch(JSON.stringify(e),/SECRET INTERNAL ISSUE/);
+});
+
+
+test('Gemini is primary with a private API key, valid JSON IDs and shared cache',async()=>{
+ const s=setup();s.env.GEMINI_API_KEY='test_secret_not_for_logs';
+ let requests=0;
+ s.options.fetchGemini=async(url,options)=>{
+  requests++;
+  assert.equal(url,'https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_MODEL+':generateContent');
+  assert.equal(options.method,'POST');
+  assert.equal(options.headers['x-goog-api-key'],'test_secret_not_for_logs');
+  assert.ok(options.signal);
+  assert.ok(!JSON.stringify(options.body).includes('test_secret_not_for_logs'));
+  assert.ok(!url.includes('test_secret_not_for_logs'));
+  const sent=JSON.parse(options.body);
+  assert.equal(sent.generationConfig.responseMimeType,'application/json');
+  assert.match(sent.contents[0].parts[0].text,/SOMENTE JSON/);
+  assert.doesNotMatch(JSON.stringify(sent),/lat.*-23|password|api_key/);
+  return Response.json({candidates:[{content:{parts:[{text:'{"facts":["humidCalm"]}'}]}}]});
+ };
+ const first=await(await handle(req(),s.env,s.storage,s.options)).json();
+ assert.equal(first.status,'pending');await Promise.all(s.jobs);
+ const ready=await(await handle(req(),s.env,s.storage,s.options)).json();
+ assert.equal(ready.status,'ready');assert.equal(ready.model,GEMINI_MODEL);
+ assert.match(ready.text,/muito úmido/);
+ assert.equal(requests,1);assert.equal(s.calls(),0);
+ assert.equal(s.storage.m.get('briefing:budget').daily,1);
+ assert.doesNotMatch(JSON.stringify(ready),/test_secret_not_for_logs/);
+ await handle(req(),s.env,s.storage,s.options);
+ assert.equal(requests,1,'cached Gemini selection avoids repeated API calls');
+});
+
+test('Cloudflare is called exactly once when Gemini fails or selects invented IDs',async()=>{
+ for(const responder of [
+  ()=>new Response('quota',{status:429}),
+  ()=>new Response('server error',{status:503}),
+  ()=>Response.json({candidates:[{content:{parts:[{text:'{"facts":["tornado"]}'}]}}]}),
+  ()=>{throw Error('network unreachable');}
+ ]){
+  const s=setup();s.env.GEMINI_API_KEY='test_secret';
+  let calls=0;s.options.fetchGemini=async(...args)=>{calls++;return responder(...args);};
+  const first=await(await handle(req(),s.env,s.storage,s.options)).json();
+  assert.equal(first.status,'pending');await Promise.all(s.jobs);
+  const final=await(await handle(req(),s.env,s.storage,s.options)).json();
+  assert.equal(final.status,'ready');assert.equal(final.model,BRIEFING_MODEL);
+  assert.equal(calls,1);assert.equal(s.calls(),1);
+  assert.equal(s.storage.m.get('briefing:budget').daily,1,'failover is one logical budget item');
+ }
+});
+
+test('Gemini failure with no backup leaves weather intact and no invented briefing',async()=>{
+ const s=setup();s.env={GEMINI_API_KEY:'test_secret'};
+ s.options.fetchGemini=async()=>new Response('unavailable',{status:503});
+ await handle(req(),s.env,s.storage,s.options);await Promise.all(s.jobs);
+ const status=await(await handle(req(),s.env,s.storage,s.options)).json();
+ assert.equal(status.status,'unavailable');
+ assert.equal(status.reason,'model-error');
+ assert.equal(s.storage.m.get('briefing:budget').daily,1);
+ assert.equal(s.calls(),0);
+});
+
+test('No API key uses only Cloudflare and never issues an outbound Gemini call',async()=>{
+ const s=setup();s.options.fetchGemini=async()=>{throw Error('Gemini should not be called');};
+ await handle(req(),s.env,s.storage,s.options);await Promise.all(s.jobs);
+ const ready=await(await handle(req(),s.env,s.storage,s.options)).json();
+ assert.equal(ready.model,BRIEFING_MODEL);assert.equal(s.calls(),1);
+});
+
+test('Gemini primary still respects strict daily budget before any API calls',async()=>{
+ const s=setup();s.env.GEMINI_API_KEY='test_secret';
+ s.storage.m.set('briefing:budget',{day:'2026-11-05',month:'2026-11',daily:64,monthly:64});
+ s.options.fetchGemini=async()=>{throw Error('No free quota for new jobs');};
+ const result=await(await handle(req(),s.env,s.storage,s.options)).json();
+ assert.equal(result.status,'limited');assert.equal(s.calls(),0);
 });

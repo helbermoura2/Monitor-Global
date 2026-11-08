@@ -1,0 +1,13 @@
+/* Only in the expanded details panel: never touches map, overlay or alert priority. */
+#mg-ai-science{margin:12px 0 16px;padding:12px 14px;border:1px solid rgba(56,189,248,.45);border-radius:12px;background:rgba(7,23,36,.92);color:#eff9ff;font:inherit;}
+#mg-ai-science summary{cursor:pointer;font-weight:700;line-height:1.5;color:#8feaff;}
+#mg-ai-science .mg-ai-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+#mg-ai-science button{appearance:none;cursor:pointer;background:#17384a;color:#fff;border:1px solid #426f89;border-radius:9px;font:inherit;font-size:13px;padding:10px 12px;max-width:100%;}
+#mg-ai-science button:focus-visible{outline:3px solid #9beafb;outline-offset:2px;}
+#mg-ai-science .mg-ai-output{font-size:14px;line-height:1.58;max-height:60vh;overflow-y:auto;overflow-wrap:anywhere;}
+#mg-ai-science .mg-ai-output h4{color:#e0f7ff;margin:8px 0;}
+#mg-ai-science .mg-ai-output small{display:block;color:#bcd2df;font-size:12px;margin:7px 0;}
+#mg-ai-science .mg-ai-output p{margin:6px 0 10px;}
+#mg-ai-science .mg-ai-section{border-bottom:1px solid rgba(145,195,213,.2);padding:8px 0;}
+#mg-ai-science .mg-ai-section strong{color:#9beaff;}
+@media(max-width:480px){#mg-ai-science .mg-ai-actions{flex-direction:column;}#mg-ai-science button{width:100%;}}

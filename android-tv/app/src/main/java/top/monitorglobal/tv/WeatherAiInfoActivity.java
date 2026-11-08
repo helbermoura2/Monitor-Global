@@ -28,8 +28,8 @@ public final class WeatherAiInfoActivity extends Activity {
  private static final String ENDPOINT="https://black-sky-9ba0.terrestre.workers.dev/weather-briefing?kind=";
  private final Handler main=new Handler(Looper.getMainLooper());
  private final ExecutorService io=Executors.newSingleThreadExecutor();
- private TextView result;
- private Button hourly,rain;
+ private TextView result,cachedResult;
+ private Button hourly,rain,seismic;
  private volatile HttpURLConnection current;
  private volatile boolean destroyed;
  private int generation;
@@ -51,14 +51,14 @@ public final class WeatherAiInfoActivity extends Activity {
   LinearLayout brand=new LinearLayout(this);brand.setOrientation(LinearLayout.VERTICAL);
   LinearLayout.LayoutParams headingMargin=new LinearLayout.LayoutParams(0,-2,1f);
   brand.addView(titleText("MONITOR GLOBAL TV",31));
-  brand.addView(titleText("IA METEOROLÓGICA · Liberdade, São Paulo",23));
+  brand.addView(titleText("IA METEOROLÓGICA E ANÁLISE SÍSMICA",23));
   headingMargin.leftMargin=dp(18);heading.addView(brand,headingMargin);
   column.addView(heading);
   LinearLayout info=panel(column,dp(14));
   text(info,"O que a IA realmente faz",23,CYAN,true);
   text(info,"Ela interpreta previsões verificadas para a Liberdade, em São Paulo. O modelo escolhe quais observações merecem destaque, sem criar números nem alertas por conta própria.",19,MUTED,false);
   text(info,"Quando não existe algo útil para acrescentar, a IA não aparece no cartão. Isso não significa que o monitoramento de terremotos ou tsunami esteja desligado.",17,MUTED,false);
-  text(info,"Não é um chat e não prevê terremotos, tsunamis ou danos. As fontes oficiais e os alertas funcionam mesmo quando a IA falha ou atinge seu limite.",17,CYAN,false);
+  text(info,"Não é um chat. A seção sísmica fornece explicações aprofundadas dos registros oficiais, sem prever terremotos, tsunamis ou danos. Os avisos e replays seguem independentes da IA.",17,CYAN,false);
   text(column,"CONSULTA MANUAL · SOMENTE SE VOCÊ PEDIR",20,CYAN,true);
   text(column,"A consulta usa o serviço meteorológico atual e pode consumir parte da franquia compartilhada de IA. Não ativa novos alertas, não muda configurações e não acompanha sua localização.",16,MUTED,false);
   LinearLayout actions=new LinearLayout(this);
@@ -67,13 +67,14 @@ public final class WeatherAiInfoActivity extends Activity {
   column.addView(actions,new LinearLayout.LayoutParams(-1,-2));
   hourly=button(actions,"Consultar análise de IA · tempo na Liberdade",v->query("hourly"));
   rain=button(actions,"Consultar análise de IA · chuva na Liberdade",v->query("rain"));
+  seismic=button(actions,"Análise científica · último sismo registrado",v->query("seismic"));
   button(actions,"Voltar às configurações",v->finish());
   LinearLayout report=panel(column,dp(14));
   text(report,"RESULTADO DA CONSULTA",20,CYAN,true);
   result=text(report,"Selecione uma consulta acima para ver o que a IA tem a acrescentar.",19,WHITE,false);
   LinearLayout cache=panel(column,dp(14));
   text(cache,"ÚLTIMO DESTAQUE GUARDADO NESTA TV",18,CYAN,true);
-  text(cache,cached(),16,MUTED,false);
+  cachedResult=text(cache,cached(),16,MUTED,false);
   text(column,"Os alertas sísmicos e de tsunami continuam independentes da IA meteorológica.",16,MUTED,false);
   hourly.requestFocus();
  }
@@ -91,31 +92,85 @@ public final class WeatherAiInfoActivity extends Activity {
  }
  private void query(String kind){
   if(busy||destroyed)return;
-  busy=true;hourly.setEnabled(false);rain.setEnabled(false);
+  busy=true;hourly.setEnabled(false);rain.setEnabled(false);seismic.setEnabled(false);
   int token=++generation;
   result.setText("Consultando o serviço de IA… A previsão e os alertas da TV continuam funcionando normalmente.");
   io.execute(()->{
-   String message="A consulta não pôde ser concluída. Confira a internet e tente novamente. Nenhum alerta é afetado.";
+   String message="O serviço de IA não respondeu à consulta. A conexão ou o servidor pode estar temporariamente indisponível; os avisos da TV continuam independentes.";
+   String lastResponse=null;
    try {
-    for(int attempt=0;attempt<4&&!destroyed;attempt++){
-     String raw=read(kind);
-     message=WeatherAiStatus.describe(raw,kind,System.currentTimeMillis());
-     if(!WeatherAiStatus.pending(raw)||attempt==3)break;
-     Thread.sleep(2200);
+    // A model may legitimately need up to 12 seconds, while the endpoint
+    // returns PENDING immediately. Poll the same server-side task only, never
+    // start simultaneous model requests or an automatic background timer.
+    for(int attempt=0;attempt<12&&!destroyed;attempt++){
+     lastResponse=read(kind);
+     message=kind.equals("seismic")?seismicDescription(lastResponse):WeatherAiStatus.describe(lastResponse,kind,System.currentTimeMillis());
+     if(!(kind.equals("seismic")?isSeismicPending(lastResponse):WeatherAiStatus.pending(lastResponse))||attempt==11)break;
+     final int poll=attempt+1;
+     main.post(()->{
+      if(!destroyed&&token==generation)
+       result.setText("O modelo está preparando a análise… Verificação "+poll+" de 12. Os alertas seguem funcionando.");
+     });
+     Thread.sleep(2400);
     }
+    if(lastResponse!=null&&(kind.equals("seismic")?isSeismicPending(lastResponse):WeatherAiStatus.pending(lastResponse)))
+     message+="\nO serviço continua processando. Você pode consultar novamente mais tarde, sem ativar alertas extras.";
    }catch(InterruptedException e){Thread.currentThread().interrupt();return;}
-    catch(Exception ignored){/* No raw provider errors, URLs or keys in the TV UI. */}
+    catch(Exception ignored){/* Do not expose raw provider details or arbitrary errors. */}
    String output=message;
+   // Unlike the previous screen, an opt-in successful result is now saved
+   // in the SAME validated, bounded cache used by the existing weather card.
+   WeatherBriefing parsed=kind.equals("seismic")?null:WeatherBriefing.parse(lastResponse,System.currentTimeMillis());
+   String validReady=parsed!=null&&kind.equals(parsed.kind)?lastResponse:null;
    main.post(()->{
     if(destroyed||token!=generation)return;
-    busy=false;hourly.setEnabled(true);rain.setEnabled(true);
+    busy=false;hourly.setEnabled(true);rain.setEnabled(true);seismic.setEnabled(true);
     result.setText(output);
-    if(kind.equals("hourly"))hourly.requestFocus();else rain.requestFocus();
+    if(validReady!=null){
+     getSharedPreferences("weather-ai",MODE_PRIVATE).edit().putString(kind,validReady).apply();
+     cachedResult.setText(cached());
+    }
+    if(kind.equals("hourly"))hourly.requestFocus();else if(kind.equals("rain"))rain.requestFocus();else seismic.requestFocus();
    });
   });
  }
+
+ private boolean isSeismicPending(String raw){
+  try{
+   if(raw==null||raw.length()>9000)return false;
+   org.json.JSONObject d=new org.json.JSONObject(raw);
+   return "seismic-insight-v1".equals(d.optString("version"))&&"pending".equals(d.optString("status"));
+  }catch(org.json.JSONException ignored){return false;}
+ }
+ private String seismicDescription(String raw){
+  try{
+   if(raw==null||raw.length()>9000)return "Sem resposta científica válida.";
+   org.json.JSONObject d=new org.json.JSONObject(raw);
+   if(!"seismic-insight-v1".equals(d.optString("version")))return "Resposta científica não reconhecida.";
+   String status=d.optString("status");
+   if(status.equals("pending"))return "O servidor está selecionando os destaques da análise. Nenhum alerta depende desta operação.";
+   if(!status.equals("ready"))return "Sem sismo recente verificável para esta análise, ou catálogo temporariamente indisponível.";
+   org.json.JSONArray sections=d.optJSONArray("sections");
+   if(sections==null||sections.length()!=6)return "Análise científica incompleta. Nada será apresentado.";
+   StringBuilder out=new StringBuilder("ANÁLISE SÍSMICA · ").append(d.optString("title")).append("\n");
+   out.append("Fonte: ").append(d.optString("source")).append("\n");
+   String model=d.optString("model");
+   out.append(model.equals(WeatherBriefing.GEMINI_MODEL)?"Destaques priorizados pela Gemini.":model.equals(WeatherBriefing.MODEL)?"Destaques priorizados pela Cloudflare (reserva).":"Relatório científico por regras verificáveis.").append("\n");
+   for(int i=0;i<sections.length();i++){
+    org.json.JSONObject section=sections.optJSONObject(i);
+    if(section==null)return "Estrutura científica inválida.";
+    String title=section.optString("title"),content=section.optString("text");
+    if(title.length()>70||content.length()>550||content.contains("<")||content.contains(">")||content.isEmpty())
+     return "Texto científico não validado; apresentação bloqueada.";
+    out.append("\n").append(title).append("\n").append(content).append("\n");
+   }
+   out.append("\nSomente dados publicados. Não é previsão de sismos, avaliação de danos ou aviso oficial de tsunami.");
+   return out.toString();
+  }catch(org.json.JSONException ignored){return "Análise científica não reconhecida.";}
+ }
+
  private String read(String kind)throws IOException{
-  HttpURLConnection connection=(HttpURLConnection)new URL(ENDPOINT+(kind.equals("rain")?"rain":"hourly")).openConnection();
+  HttpURLConnection connection=(HttpURLConnection)new URL(kind.equals("seismic")?"https://black-sky-9ba0.terrestre.workers.dev/seismic-insight":ENDPOINT+(kind.equals("rain")?"rain":"hourly")).openConnection();
   current=connection;connection.setInstanceFollowRedirects(false);
   connection.setConnectTimeout(4000);connection.setReadTimeout(6000);
   connection.setRequestProperty("Accept","application/json");

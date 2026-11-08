@@ -6,9 +6,9 @@ android {
   applicationId 'top.monitorglobal.tv.preview'
   minSdk 28
   targetSdk 35
-  // Shared online weather briefings use the canonical Cloudflare FP8 model.
-  versionCode 10057
-  versionName '1.0.57'
+  // Shared online weather briefings use the actively maintained Cloudflare FP8-fast model.
+  versionCode 10058
+  versionName '1.0.58'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'

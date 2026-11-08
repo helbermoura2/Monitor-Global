@@ -107,7 +107,17 @@ public class PhoneActivity extends Activity {
   briefingCard(body,"rain",snapshot==null?null:snapshot.weather,r);
   footer(card,"Rainbow Weather · chuva consultada "+WeatherForecast.time(r.at)+(detail?"\nEstimativa para um ponto da Liberdade · sujeita a mudanças":""));
  }
- private void briefingCard(LinearLayout page,String kind,WeatherForecast.Summary w,RainForecast.Summary r){String value=WeatherBriefingClient.text(this,kind,w,r);if(value.isEmpty())return;TextView caption=text("RESUMO COM IA",12,CYAN,1);space(page,caption,10);space(page,text(value,17,TEXT,8),4);}
+ private void briefingCard(LinearLayout page,String kind,WeatherForecast.Summary w,RainForecast.Summary r){
+  String value=WeatherBriefingClient.text(this,kind,w,r);
+  String next30=kind.equals("hourly")?WeatherBriefingClient.outlookText(this,r):"";
+  if(!next30.isEmpty()){
+   space(page,text("PROJEÇÃO · PRÓXIMOS 30 MIN",12,CYAN,1),10);
+   space(page,text(next30,16,TEXT,8),4);
+  }
+  if(value.isEmpty())return;
+  TextView caption=text("RESUMO COM IA",12,CYAN,1);
+  space(page,caption,10);space(page,text(value,17,TEXT,8),4);
+ }
  private LinearLayout metricRow(LinearLayout body){LinearLayout row=new LinearLayout(this);row.setBaselineAligned(false);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(14);body.addView(row,rp);return row;}
  private void metric(LinearLayout row,int kind,String value,String caption){LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);cell.setPadding(0,0,dp(6),0);row.addView(cell,new LinearLayout.LayoutParams(0,-2,1));cell.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(20),dp(20)));cell.addView(text(value,20,TEXT,3),new LinearLayout.LayoutParams(-1,-2));cell.addView(text(caption,13,MUTED,4),new LinearLayout.LayoutParams(-1,-2));}
  private List<Alert> events(){List<Alert> out=new ArrayList<>();if(snapshot!=null)out.addAll(snapshot.events);out.sort((a,b)->Long.compare(eventTime(b),eventTime(a)));return out;}
@@ -129,9 +139,81 @@ public class PhoneActivity extends Activity {
   if(!a.revision.isEmpty())copy(page,"Atualização: "+a.revision);
   if(!a.tsunamiSummary.isEmpty())copy(page,"Boletim de tsunami: "+a.tsunamiSummary);
   if(!a.populationSummary.isEmpty())copy(page,a.populationSummary);if(!a.nearbySummary.isEmpty())copy(page,a.nearbySummary);
+  if(a.kind.equals("earthquake")){
+   LinearLayout science=card(page,"ANÁLISE SÍSMICA · FONTE VERIFICADA");
+   LinearLayout analysisBody=section(science);
+   TextView response=text("Toque para examinar magnitude, profundidade, intensidade, boletins e limites científicos. A IA não envia alertas nem prevê terremotos.",16,MUTED,16);
+   analysisBody.addView(response,new LinearLayout.LayoutParams(-1,-2));
+   analysisBody.addView(button("Entenda este sismo · análise aprofundada",()->scientificExplain(a,response)),new LinearLayout.LayoutParams(-1,-2));
+   footer(science,"Consulta opcional. Sempre compare com as autoridades e relatórios originais.");
+  }
   Button mapButton=button("Ver localização no mapa",()->{tab="map";selected=null;showMapEvent(a);});mapButton.setEnabled(MapFrame.located(a.originLongitude,a.originLatitude));page.addView(mapButton,new LinearLayout.LayoutParams(-1,-2));if(!mapButton.isEnabled())copy(page,"Localização no mapa indisponível para este registro.");
   space(page,button("Compartilhar evento",()->share(a)),10);
  }
+
+ private void scientificExplain(Alert a,TextView target){
+  if(a==null||!a.kind.equals("earthquake")||a.id==null||a.id.isEmpty())return;
+  final int token=generation;final String eventId=a.id;
+  target.setText("Consultando apenas eventos identificados no feed. Não são emitidos novos alertas…");
+  if(worker==null)worker=Executors.newSingleThreadExecutor();
+  worker.execute(()->{
+   String output="Análise indisponível; o catálogo sísmico continua funcionando normalmente.";
+   try{
+    for(int attempt=0;attempt<6;attempt++){
+     org.json.JSONObject data=scientificResponse(eventId);
+     output=scientificText(data);
+     if(!"pending".equals(data.optString("status")))break;
+     Thread.sleep(2600);
+    }
+   }catch(InterruptedException e){Thread.currentThread().interrupt();return;}
+    catch(Exception ignored){/* Never expose raw provider errors or keys. */}
+   final String message=output;
+   main.post(()->{
+    if(!destroyed&&active&&generation==token&&selected!=null&&eventId.equals(selected.id)&&target.isAttachedToWindow())
+     target.setText(message);
+   });
+  });
+ }
+ private static org.json.JSONObject scientificResponse(String id)throws Exception{
+  java.net.HttpURLConnection con=(java.net.HttpURLConnection)new java.net.URL(
+   "https://black-sky-9ba0.terrestre.workers.dev/seismic-insight?id="+
+   java.net.URLEncoder.encode(id,"UTF-8")).openConnection();
+  con.setConnectTimeout(5000);con.setReadTimeout(10000);con.setInstanceFollowRedirects(false);
+  con.setRequestProperty("Accept","application/json");
+  try{
+   if(con.getResponseCode()!=200)throw new java.io.IOException("scientific status");
+   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+   try(java.io.InputStream in=con.getInputStream()){
+    byte[] buffer=new byte[1024];int n;
+    while((n=in.read(buffer))!=-1){if(bytes.size()+n>9000)throw new java.io.IOException("oversized");bytes.write(buffer,0,n);}
+   }
+   return new org.json.JSONObject(bytes.toString("UTF-8"));
+  }finally{con.disconnect();}
+ }
+ private static String scientificText(org.json.JSONObject data){
+  if(!"seismic-insight-v1".equals(data.optString("version")))return "Resposta científica não reconhecida.";
+  String state=data.optString("status");
+  if("pending".equals(state))return "A análise está em preparação. Os alertas continuam independentes.";
+  if(!"ready".equals(state))return "Análise não disponível para este evento no catálogo atualizado. Nenhum dado será inventado.";
+  org.json.JSONArray rows=data.optJSONArray("sections");
+  if(rows==null||rows.length()!=6)return "Análise incompleta: não será exibida.";
+  String title=data.optString("title");
+  if(title.length()>190)return "Título de evento inválido.";
+  StringBuilder out=new StringBuilder(title).append("\nFonte: ").append(data.optString("source","Fonte não informada")).append("\n");
+  String provider=data.optString("model");
+  out.append(provider.equals("gemini-3.8-flash")?"Destaques selecionados pela Gemini.":provider.startsWith("@cf/")?"Destaques selecionados pela Cloudflare.":"Explicação por regras científicas verificáveis.").append("\n");
+  for(int i=0;i<rows.length();i++){
+   org.json.JSONObject item=rows.optJSONObject(i);
+   if(item==null)return "Seção de análise inválida.";
+   String heading=item.optString("title"),description=item.optString("text");
+   if(heading.length()>70||description.length()>550||description.isEmpty()||
+      description.contains("<")||description.contains(">"))return "Texto de análise fora dos limites.";
+   out.append("\n").append(heading).append("\n").append(description).append("\n");
+  }
+  out.append("\nAnálise informativa: não substitui autoridades oficiais ou previsões de perigo.");
+  return out.toString();
+ }
+
  private void detail(LinearLayout parent,int kind,String value){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(8);parent.addView(row,rp);row.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(24),dp(24)));TextView t=text(value,18,TEXT,5);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginStart(dp(10));row.addView(t,lp);}
  private void noticesPage(LinearLayout page){
   heading(page,"Avisos e fontes");copy(page,"Monitor Global · versão "+top.monitorglobal.mobile.BuildConfig.VERSION_NAME);copy(page,PhonePush.status(this));Button enable=button("Ativar notificações",this::activatePush);enable.setEnabled(PhonePush.configured());page.addView(enable,new LinearLayout.LayoutParams(-1,-2));if(PhonePush.enabled(this))page.addView(button("Desativar notificações",()->{PhonePush.disable(this);render();}),new LinearLayout.LayoutParams(-1,-2));page.addView(button("Testar notificação neste aparelho",()->{boolean ok=PhonePush.testLocal(this);Toast.makeText(this,ok?"Teste local criado; isso não confirma entrega pelo Firebase.":"Ative a permissão de notificações do Android primeiro.",Toast.LENGTH_LONG).show();}),new LinearLayout.LayoutParams(-1,-2));if(top.monitorglobal.mobile.BuildConfig.DEBUG&&PhonePush.configured())page.addView(button("Copiar código para teste push",()->PhonePush.copyTestToken(this)),new LinearLayout.LayoutParams(-1,-2));copy(page,"Push depende da conexão e das permissões do Android. O aplicativo não garante entrega instantânea; forçar a parada pode impedir avisos até abri-lo novamente.");page.addView(button("Abrir canal oficial no Telegram",()->openUrl("https://t.me/monitor_global")),new LinearLayout.LayoutParams(-1,-2));
