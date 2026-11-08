@@ -107,7 +107,17 @@ public class PhoneActivity extends Activity {
   briefingCard(body,"rain",snapshot==null?null:snapshot.weather,r);
   footer(card,"Rainbow Weather · chuva consultada "+WeatherForecast.time(r.at)+(detail?"\nEstimativa para um ponto da Liberdade · sujeita a mudanças":""));
  }
- private void briefingCard(LinearLayout page,String kind,WeatherForecast.Summary w,RainForecast.Summary r){String value=WeatherBriefingClient.text(this,kind,w,r);if(value.isEmpty())return;TextView caption=text("RESUMO COM IA",12,CYAN,1);space(page,caption,10);space(page,text(value,17,TEXT,8),4);}
+ private void briefingCard(LinearLayout page,String kind,WeatherForecast.Summary w,RainForecast.Summary r){
+  String value=WeatherBriefingClient.text(this,kind,w,r);
+  String next30=kind.equals("hourly")?WeatherBriefingClient.outlookText(this,r):"";
+  if(!next30.isEmpty()){
+   space(page,text("PROJEÇÃO · PRÓXIMOS 30 MIN",12,CYAN,1),10);
+   space(page,text(next30,16,TEXT,8),4);
+  }
+  if(value.isEmpty())return;
+  TextView caption=text("RESUMO COM IA",12,CYAN,1);
+  space(page,caption,10);space(page,text(value,17,TEXT,8),4);
+ }
  private LinearLayout metricRow(LinearLayout body){LinearLayout row=new LinearLayout(this);row.setBaselineAligned(false);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(14);body.addView(row,rp);return row;}
  private void metric(LinearLayout row,int kind,String value,String caption){LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);cell.setPadding(0,0,dp(6),0);row.addView(cell,new LinearLayout.LayoutParams(0,-2,1));cell.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(20),dp(20)));cell.addView(text(value,20,TEXT,3),new LinearLayout.LayoutParams(-1,-2));cell.addView(text(caption,13,MUTED,4),new LinearLayout.LayoutParams(-1,-2));}
  private List<Alert> events(){List<Alert> out=new ArrayList<>();if(snapshot!=null)out.addAll(snapshot.events);out.sort((a,b)->Long.compare(eventTime(b),eventTime(a)));return out;}
