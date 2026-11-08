@@ -7,7 +7,7 @@ public class WeatherBriefingTest {
  @Test public void acceptsActiveAndLegacyModelsOnlyDuringSafeMigration()throws Exception{
   String current=payload("hourly");
   assertNotNull(WeatherBriefing.parse(current,now));
-  JSONObject legacy=new JSONObject(current).put("model",WeatherBriefing.LEGACY_MODEL);
+  JSONObject gemini=new JSONObject(current).put("model",WeatherBriefing.GEMINI_MODEL);\n  WeatherBriefing verified=WeatherBriefing.parse(gemini.toString(),now);\n  assertNotNull(verified);assertEquals(WeatherBriefing.GEMINI_MODEL,verified.model);\n  JSONObject legacy=new JSONObject(current).put("model",WeatherBriefing.LEGACY_MODEL);
   assertNotNull(WeatherBriefing.parse(legacy.toString(),now));
   JSONObject invented=new JSONObject(current).put("model","@cf/unknown/model");
   assertNull(WeatherBriefing.parse(invented.toString(),now));
