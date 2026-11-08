@@ -16,10 +16,11 @@ import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=35,qualifiers="w1280dp-h720dp-land-hdpi")
 public class WeatherAiInfoTest {
- final long now=Date.now();
+ final long now=System.currentTimeMillis();
 
- private static final class Date {
-  static long now(){return System.currentTimeMillis();}
+ @org.junit.Before public void clear(){
+  org.robolectric.RuntimeEnvironment.getApplication()
+   .getSharedPreferences("weather-ai",0).edit().clear().commit();
  }
 
  private String response(String kind,String status,String text)throws Exception{
@@ -36,8 +37,7 @@ public class WeatherAiInfoTest {
   return false;
  }
  @Test public void recognizedStatusesExplainWhyAiDoesNotShow()throws Exception{
-  assertTrue(WeatherAiStatus.describe(response("hourly","not_applicable",""),"hourly",now).contains("não há nada".toUpperCase().substring(0,0)) ||
-    WeatherAiStatus.describe(response("hourly","not_applicable",""),"hourly",now).contains("Não há nada"));
+  assertTrue(WeatherAiStatus.describe(response("hourly","not_applicable",""),"hourly",now).contains("Não há nada"));
   assertTrue(WeatherAiStatus.describe(response("hourly","limited",""),"hourly",now).contains("franquia"));
   assertTrue(WeatherAiStatus.describe(response("rain","unavailable",""),"rain",now).contains("indisponível"));
   assertTrue(WeatherAiStatus.pending(response("rain","pending","")));
