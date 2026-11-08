@@ -25,7 +25,7 @@ public final class RadarLogoView extends View {
   sector.moveTo(64,64);sector.lineTo(64,8);
   sector.arcTo(8,8,120,120,-90,45,false);sector.close();
   setContentDescription("Monitor Global · radar em movimento");
-  setLayerType(View.LAYER_TYPE_HARDWARE,null);
+  // Android TV's window is hardware accelerated already; no extra GPU layer.
  }
  public void setSweepDegrees(float degrees){sweep=degrees;invalidate();}
  public float getSweepDegrees(){return sweep;}
@@ -44,9 +44,13 @@ public final class RadarLogoView extends View {
  }
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();start();}
  @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
+ @Override protected void onWindowVisibilityChanged(int visibility){
+  super.onWindowVisibilityChanged(visibility);
+  if(visibility==VISIBLE)start();else stop();
+ }
  private void start(){
-  stop();
-  if(!ValueAnimator.areAnimatorsEnabled())return; // respect reduced motion
+  if(animator!=null)return;
+  if(!ValueAnimator.areAnimatorsEnabled()||getWindowVisibility()!=VISIBLE)return; // reduced motion / background
   animator=ValueAnimator.ofFloat(0,360);
   animator.setDuration(2400);animator.setRepeatCount(ValueAnimator.INFINITE);
   animator.setInterpolator(new android.view.animation.LinearInterpolator());
