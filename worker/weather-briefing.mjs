@@ -5,6 +5,7 @@ import {handleTvRain} from './tv-rain.mjs';
 export const BRIEFING_MODEL='@cf/meta/llama-3.1-8b-instruct-fp8-fast';
 export const GEMINI_MODEL='gemini-3.8-flash';
 export const BRIEFING_PRIMARY_MODEL=GEMINI_MODEL;
+export const BRIEFING_RULE_MODEL='validated-facts-v1';
 export const BRIEFING_POLICY='source-grounded-weather-v1';
 export const BRIEFING_LIMITS={day:64,month:1500};
 const MIN=60000,HOUR=60*MIN,CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'};
@@ -135,17 +136,33 @@ async function workersSelection(env,context,prompt){
   return facts;
  }finally{clearTimeout(timer);}
 }
+/**
+ * Certified non-generative final fallback. The model does not make new
+ * measurements, hazard claims, or free-form science. All facts came from the
+ * allowlisted original source and mandatory signal priority.
+ */
+export function verifiedRuleSelection(context){
+ const priority=context.kind==='rain'?['increase','strong','persistent','pause']:
+  context.kind==='seismic'?['tsunami','shaking','depth','size','revisions','science']:
+  ['storm','gusts','heat','chill','dry','fog','wind','humidCalm','humid'];
+ const facts=priority.filter(k=>context.keys.includes(k)).slice(0,2);
+ if(!facts.length)throw Error('invalid');
+ const validated=parseBriefingSelection({response:{facts}},context);
+ if(!validated)throw Error('invalid');
+ return {facts:validated,model:BRIEFING_RULE_MODEL};
+}
 export async function selectWithFallback(env,context,prompt,fetchGemini=fetch){
+ // No model needs to choose between just one verified scientific statement.
+ if(context.keys?.length===1)return verifiedRuleSelection(context);
  if(env.GEMINI_API_KEY){
   try{return {facts:await geminiSelection(env,context,prompt,fetchGemini),model:GEMINI_MODEL};}
-  catch(error){
-   // Gemini errors are not weather insights. Existing Workers AI is
-   // attempted once as backup; provider error text is never exposed.
-   if(!env.AI)throw error;
-  }
+  catch{ /* Gemini failed: attempt Workers AI once, never reuse unverified text. */ }
  }
- if(env.AI)return {facts:await workersSelection(env,context,prompt),model:BRIEFING_MODEL};
- throw Error('model-unconfigured');
+ if(env.AI){
+  try{return {facts:await workersSelection(env,context,prompt),model:BRIEFING_MODEL};}
+  catch{ /* Workers AI failed: never block a deterministic verified insight. */ }
+ }
+ return verifiedRuleSelection(context);
 }
 
 export async function handleWeatherBriefing(request,env){
@@ -168,10 +185,10 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
  }catch{return reply({status:'unavailable',reason:'source-unavailable'});}
  if(!context)return reply({status:'unavailable',reason:'source-stale-or-invalid'});
  if(context.notApplicable)return reply({status:'not_applicable'});
- const key='briefing:'+GEMINI_MODEL+':cf-'+BRIEFING_MODEL+':validated-insights-v6:'+context.key;
+ const key='briefing:'+GEMINI_MODEL+':cf-'+BRIEFING_MODEL+':validated-insights-v7:'+context.key;
  try{
   const cached=await storage.get(key);
-  if(cached?.status==='ready'&&cached.until>now&&[GEMINI_MODEL,BRIEFING_MODEL].includes(cached.model)&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:cached.model,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
+  if(cached?.status==='ready'&&cached.until>now&&[GEMINI_MODEL,BRIEFING_MODEL,BRIEFING_RULE_MODEL].includes(cached.model)&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:cached.model,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
   if(cached?.until>now)return reply({status:cached.status==='pending'?'pending':'unavailable',retryAfter:cached.status==='pending'?2:300,...(cached.reason?{reason:cached.reason,providerCode:cached.providerCode||null}:{})});
   const day=new Date(now).toISOString().slice(0,10),month=day.slice(0,7),old=await storage.get('briefing:budget');
   const budget={day,month,daily:old?.day===day?old.daily:0,monthly:old?.month===month?old.monthly:0};
