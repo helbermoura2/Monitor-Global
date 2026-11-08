@@ -47,8 +47,12 @@ public class WeatherAiInfoTest {
   String good=response("hourly","ready","Previsão de ar muito úmido; isso não confirma chuva.");
   assertTrue(WeatherAiStatus.describe(good,"hourly",now).contains("Previsão de ar muito úmido"));
   assertFalse(WeatherAiStatus.describe(good,"rain",now).contains("Previsão de ar muito úmido"));
-  assertFalse(WeatherAiStatus.describe(good.replace(WeatherBriefing.MODEL,"invented-model"),"hourly",now).contains("Previsão de ar muito úmido"));
-  assertFalse(WeatherAiStatus.describe(good.replace("Previsão de ar","<b>Previsão de ar"),"hourly",now).contains("<b>"));
+  // JSONObject may escape the slashes in @cf/meta/..., so mutating raw
+  // JSON with String.replace can accidentally leave a VALID model behind.
+  String unknownModel=new JSONObject(good).put("model","invented-model").toString();
+  String injectedMarkup=new JSONObject(good).put("text","<b>Previsão de ar muito úmido").toString();
+  assertFalse(WeatherAiStatus.describe(unknownModel,"hourly",now).contains("Previsão de ar muito úmido"));
+  assertFalse(WeatherAiStatus.describe(injectedMarkup,"hourly",now).contains("<b>"));
   assertTrue(WeatherAiStatus.describe(good,"hourly",now+360000).contains("não está válida"));
   assertTrue(WeatherAiStatus.describe("<html>","hourly",now).contains("JSON válido"));
  }
