@@ -179,10 +179,11 @@ public final class MainActivity extends Activity {
    Button more=new Button(this);more.setAllCaps(false);more.setTextSize(15);
    more.setTextColor(0xffb2e8f3);more.setText("ⓘ  Detalhes · "+currentSection);
    more.setBackground(card(0xff10263a,0xff224c64,10));
+   final String title=currentSection;
    more.setOnClickListener(v->{
     boolean open=t.getVisibility()!=View.VISIBLE;
     t.setVisibility(open?View.VISIBLE:View.GONE);
-    more.setText((open?"Ocultar":"ⓘ  Detalhes")+" · "+currentSection);
+    more.setText((open?"Ocultar":"ⓘ  Detalhes")+" · "+title);
    });
    LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(4);
    content.addView(more,mp);
@@ -214,7 +215,7 @@ public final class MainActivity extends Activity {
     LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
     rp.setMargins(0,dp(5),0,dp(5));content.addView(actionRow,rp);
    }
-   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1f);
+   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1f);
    lp.setMargins(dp(3),0,dp(3),0);actionRow.addView(b,lp);
   }
   return b;
