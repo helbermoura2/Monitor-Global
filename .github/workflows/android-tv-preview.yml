@@ -79,6 +79,7 @@ jobs:
           name: monitor-global-tv-cards-review
           path: |
             /tmp/monitor-tv-weather-card-*.png
+            /tmp/monitor-tv-brent-card.png
             /tmp/monitor-target-card.png
           if-no-files-found: error
           retention-days: 14
