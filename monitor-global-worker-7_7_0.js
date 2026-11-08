@@ -1,7 +1,7 @@
 import {readBoundedText} from "./worker/http.mjs";
 import {proxyTarget,proxyText,proxyHeaders,proxyContentType,hardenResponse} from "./worker/proxy-security.mjs";
 import {TV_TARGET_POLICY} from "./worker/tv-target-areas.mjs";
-import {handleWeatherBriefing,handleWeatherBriefingInObject,BRIEFING_POLICY,BRIEFING_MODEL,BRIEFING_LIMITS} from "./worker/weather-briefing.mjs";
+import {handleWeatherBriefing,handleWeatherBriefingInObject,BRIEFING_POLICY,BRIEFING_MODEL,BRIEFING_PRIMARY_MODEL,BRIEFING_LIMITS} from "./worker/weather-briefing.mjs";
 import {handleTvWeather,TV_WEATHER_POLICY} from "./worker/tv-weather.mjs";
 import {handleTvRain,TV_RAIN_POLICY} from "./worker/tv-rain.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
@@ -1986,7 +1986,7 @@ async function handleWorkerRequest(request,env,ctx){
                 telegramImageQuality: "full-hd-1080x1920-original-png",
                 telegramPopulationReserve: "geonames-localities-v1",
                 telegramImageRefresh: "m55-first-hour-1min",
-                weatherBriefing:{policy:BRIEFING_POLICY,model:BRIEFING_MODEL,limits:BRIEFING_LIMITS},
+                weatherBriefing:{policy:BRIEFING_POLICY,model:BRIEFING_PRIMARY_MODEL,backupModel:BRIEFING_MODEL,limits:BRIEFING_LIMITS},
                 rainbowProducts:{configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),weatherMonthlyLimit:4500,tilesMonthlyLimit:27000},
                 rainbowNowcast: {configured:Boolean(env.RAINBOW_API_KEY),protectedBudget:Boolean(env.EARTHQUAKE_ALERTS),monthlyLimit:4500},
                 time: nowIso(),
