@@ -36,6 +36,9 @@ final class WeatherAiStatus {
       return label+"\nA análise recebida não está válida para este horário ou fonte. Nenhum texto será usado.";
      return label+" · INTERPRETAÇÃO DISPONÍVEL\n\n"+bulletin.text
        +"\n\nÁrea: Liberdade, São Paulo. Base: previsão meteorológica validada."
+       +(bulletin.dataAt>0?"\nDados da fonte: "+WeatherForecast.time(bulletin.dataAt):"")
+       +(bulletin.referenceAt>0&&bulletin.referenceAt!=bulletin.dataAt?
+           "\nHorário de referência: "+WeatherForecast.time(bulletin.referenceAt):"")
        +"\nA IA escolhe interpretações; ela não mede o tempo nem emite alertas oficiais."
        +"\nEste diagnóstico não confirma que a previsão já foi exibida na TV.";
     case "pending":
