@@ -83,3 +83,26 @@ test('sustained heavy rain must be prioritized even when model picks weaker text
  assert.ok(ctx.keys.includes('strong'));
  assert.deepEqual(parseBriefingSelection({response:'{"facts":["pause"]}'},ctx),['strong','pause']);
 });
+
+test('unavailable AI has safe, distinct diagnosis without exposing provider payloads',async()=>{
+ const failingSource=setup({...weather(),ok:false});
+ const a=await(await handle(req(),failingSource.env,failingSource.storage,failingSource.options)).json();
+ assert.equal(a.status,'unavailable');assert.equal(a.reason,'source-unavailable');
+
+ const staleSource=setup({...weather(),generatedAt:now-12*60*60000});
+ const b=await(await handle(req(),staleSource.env,staleSource.storage,staleSource.options)).json();
+ assert.equal(b.status,'unavailable');assert.equal(b.reason,'source-stale-or-invalid');
+
+ const noModel=setup();
+ const c=await(await handle(req(),{},noModel.storage,noModel.options)).json();
+ assert.equal(c.reason,'model-unconfigured');
+
+ const noWait=setup();
+ const d=await(await handle(req(),noWait.env,noWait.storage,{...noWait.options,waitUntil:undefined})).json();
+ assert.equal(d.reason,'service-unavailable');
+
+ const noStorage=setup();
+ const e=await(await handle(req(),noStorage.env,{get:async()=>{throw Error('SECRET INTERNAL ISSUE');}},noStorage.options)).json();
+ assert.equal(e.reason,'storage-unavailable');
+ assert.doesNotMatch(JSON.stringify(e),/SECRET INTERNAL ISSUE/);
+});
