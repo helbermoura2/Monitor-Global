@@ -96,7 +96,16 @@ export async function geminiSelection(env,context,prompt,fetcher=fetch){
    body:JSON.stringify({
     systemInstruction:{parts:[{text:'Select only verified IDs from the supplied weather fact map. Reply only as JSON {"facts":["id"]}. No new text, measurements, warning levels or predictions.'}]},
     contents:[{role:'user',parts:[{text:prompt}]}],
-    generationConfig:{thinkingConfig:{thinkingLevel:'LOW'},maxOutputTokens:512,responseMimeType:'application/json'}
+    generationConfig:{
+     thinkingConfig:{thinkingLevel:'LOW'},
+     maxOutputTokens:1024,
+     responseMimeType:'application/json',
+     responseJsonSchema:{
+      type:'object',additionalProperties:false,
+      properties:{facts:{type:'array',items:{type:'string',enum:context.keys},minItems:1,maxItems:Math.min(2,context.keys.length)}},
+      required:['facts']
+     }
+    }
    })
   });
   if(!response.ok)throw Error('gemini-unavailable');
@@ -159,7 +168,7 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
  }catch{return reply({status:'unavailable',reason:'source-unavailable'});}
  if(!context)return reply({status:'unavailable',reason:'source-stale-or-invalid'});
  if(context.notApplicable)return reply({status:'not_applicable'});
- const key='briefing:'+GEMINI_MODEL+':cf-'+BRIEFING_MODEL+':validated-insights-v5:'+context.key;
+ const key='briefing:'+GEMINI_MODEL+':cf-'+BRIEFING_MODEL+':validated-insights-v6:'+context.key;
  try{
   const cached=await storage.get(key);
   if(cached?.status==='ready'&&cached.until>now&&[GEMINI_MODEL,BRIEFING_MODEL].includes(cached.model)&&parseBriefingSelection({response:{facts:cached.facts}},context))return reply({status:'ready',kind,policy:BRIEFING_POLICY,model:cached.model,dataAt:context.dataAt,referenceAt:context.referenceAt,rainState:context.state,generatedAt:now,aiAt:cached.at,expiresAt:context.until,text:renderFacts(cached.facts,context)});
