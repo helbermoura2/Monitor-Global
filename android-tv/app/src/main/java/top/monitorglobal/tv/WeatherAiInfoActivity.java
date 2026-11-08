@@ -124,12 +124,14 @@ public final class WeatherAiInfoActivity extends Activity {
  private Button button(LinearLayout host,String value,View.OnClickListener action){
   Button b=new Button(this);b.setText(value);b.setTextSize(19);b.setTextColor(WHITE);
   b.setAllCaps(false);b.setPadding(dp(16),dp(10),dp(16),dp(10));b.setOnClickListener(action);
-  b.setOnFocusChangeListener((v,focused)->{
-   GradientDrawable bg=new GradientDrawable();bg.setColor(0xff162c35);bg.setCornerRadius(dp(12));
-   bg.setStroke(dp(focused?3:1),focused?0xff79d4c7:0xff354e55);b.setBackground(bg);
-  });
+  b.setOnFocusChangeListener((v,focused)->styleButton(b,focused));
+  styleButton(b,false);
   LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(5),0,dp(5));
   host.addView(b,p);return b;
+ }
+ private void styleButton(Button b,boolean focused){
+  GradientDrawable bg=new GradientDrawable();bg.setColor(0xff162c35);bg.setCornerRadius(dp(12));
+  bg.setStroke(dp(focused?3:1),focused?0xff79d4c7:0xff354e55);b.setBackground(bg);
  }
  private int dp(int size){return Math.round(size*getResources().getDisplayMetrics().density);}
  @Override protected void onDestroy(){
