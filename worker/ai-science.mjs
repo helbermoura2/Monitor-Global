@@ -12,6 +12,8 @@ const CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store','Conten
 const json=(v,status=200)=>Response.json(v,{status,headers:CORS});
 const finite=(n,lo,hi)=>typeof n==='number'&&Number.isFinite(n)&&n>=lo&&n<=hi;
 const fmt=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:1});
+// Avoid binary floating-point under-rounding at decimal half-step boundaries.
+const tenth=n=>Math.round((n+1e-9)*10)/10;
 const words=s=>String(s||'').replace(/[<>{}\r\n\t]/g,' ').replace(/\s+/g,' ').trim();
 const label=rate=>rate<0.1?'sem precipitação':rate<2.5?'chuva fraca':rate<7.5?'chuva moderada':rate<50?'chuva forte':'chuva muito forte';
 const bRT=t=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(t)+' BRT';
@@ -38,7 +40,7 @@ export function project30(d,now=Date.now()){
   const section=next.slice(j*10,(j+1)*10);
   const max=Math.max(...section.map(p=>p.type==='no_precipitation'?0:p.rate));
   const mm=section.reduce((sum,p)=>sum+(p.type==='no_precipitation'?0:p.rate)/60,0);
-  groups.push({startMinute:j*10,endMinute:(j+1)*10,level:label(max),maximumRate:Math.round(max*10)/10,amountMm:Math.round(mm*10)/10});
+  groups.push({startMinute:j*10,endMinute:(j+1)*10,level:label(max),maximumRate:Math.round(max*10)/10,amountMm:tenth(mm)});
  }
  const sum=next.reduce((n,p)=>n+(p.type==='no_precipitation'?0:p.rate)/60,0);
  const wet=groups.map(p=>p.maximumRate),last=wet[2],first=wet[0];
@@ -46,11 +48,11 @@ export function project30(d,now=Date.now()){
    wet[0]===0&&wet[1]===0&&wet[2]===0?'sem chuva prevista':'pouca mudança indicada';
  const mixed=next.some(p=>p.type==='snow'||p.type==='mixed');
  const outlookText='Próximos 30 min: '+groups.map(g=>g.startMinute+'–'+g.endMinute+' min, '+g.level).join('; ')+
-   '. Acumulado estimado: '+fmt(Math.round(sum*10)/10)+' mm. Tendência: '+trend+
+   '. Acumulado estimado: '+fmt(tenth(sum))+' mm. Tendência: '+trend+
    '. Estimativa Rainbow Weather; sujeita a revisão, não é medição em tempo real.';
  return {version:'rain-outlook-v1',ok:true,area:'liberdade',source:'Rainbow Weather',basedAt:d.at,
   expiresAt:Math.min(d.expiresAt,now+10*MIN),horizonMinutes:30,
-  groups,totalMm:Math.round(sum*10)/10,trend,precipitationType:mixed?'mista ou neve':'chuva',
+  groups,totalMm:tenth(sum),trend,precipitationType:mixed?'mista ou neve':'chuva',
   text:outlookText};
 }
 export async function handleRainOutlook(request,env,{now=Date.now(),readRain=handleTvRain}={}){
