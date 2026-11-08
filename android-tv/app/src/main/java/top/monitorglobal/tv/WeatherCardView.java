@@ -30,7 +30,7 @@ final class WeatherCardView extends LinearLayout {
   String value=WeatherBriefingClient.text(getContext(),"hourly",aiWeather,aiRain);
   String next30=WeatherBriefingClient.outlookText(getContext(),aiRain);
   if(value.isEmpty()&&next30.isEmpty()){if(ai.getParent()!=null)aiHost.removeView(ai);return;}
-  ai.setText((next30.isEmpty()?"":"PROJEÇÃO 30 MIN · "+next30)+(value.isEmpty()?"":(next30.isEmpty()?"":"\n")+"IA · "+value));
+  ai.setText((next30.isEmpty()?"":"PROJEÇÃO 30 MIN · "+next30)+(value.isEmpty()?"":(next30.isEmpty()?"":"\n")+"RESUMO COM IA · "+value));
   if(ai.getParent()==null)aiHost.addView(ai,0,new LayoutParams(-1,-2));
  }
  private void weatherBody(LinearLayout body,WeatherForecast.Summary w,RainForecast.Summary rain){
