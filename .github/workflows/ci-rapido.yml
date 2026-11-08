@@ -1,0 +1,47 @@
+name: CI rápido (sem emulador)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android-tv/**'
+      - 'android-mobile/**'
+      - 'worker/**'
+      - 'js/**'
+      - 'tests/**'
+      - 'tools/**'
+      - '*.js'
+      - '*.mjs'
+      - 'package*.json'
+      - '.github/workflows/ci-rapido.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: monitor-fast-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe do Worker sem empacotar nem publicar
+        run: |
+          node --input-type=module --check < monitor-global-worker-7_7_0.js
+          node --check worker/tv-alerts.mjs
+          node --check worker/tv-map.mjs
+      - name: Testar contratos locais da TV, alertas e aplicativo móvel
+        env:
+          MONITOR_TEST_OFFLINE: '1'
+        run: |
+          node --test tests/unit/tv-alerts.test.mjs tests/unit/tv-map.test.mjs tests/unit/mobile-push.test.mjs tests/unit/tsunami-lifecycle.test.mjs android-mobile/tools/phone-rain-model.test.cjs
+      - name: Testar máquina de estados da TV sem SDK ou emulador
+        run: |
+          mkdir -p "$RUNNER_TEMP/tv-java"
+          javac -d "$RUNNER_TEMP/tv-java" android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/AlertTracker.java android-tv/tests/AlertTrackerCheck.java
+          java -cp "$RUNNER_TEMP/tv-java" top.monitorglobal.tv.AlertTrackerCheck
+          javac -d "$RUNNER_TEMP/tv-java" android-tv/app/src/main/java/top/monitorglobal/tv/TrustPolicy.java android-tv/tests/TrustPolicyCheck.java
+          java -cp "$RUNNER_TEMP/tv-java" top.monitorglobal.tv.TrustPolicyCheck
