@@ -96,14 +96,14 @@ export async function geminiSelection(env,context,prompt,fetcher=fetch){
    body:JSON.stringify({
     systemInstruction:{parts:[{text:'Select only verified IDs from the supplied weather fact map. Reply only as JSON {"facts":["id"]}. No new text, measurements, warning levels or predictions.'}]},
     contents:[{role:'user',parts:[{text:prompt}]}],
-    generationConfig:{temperature:0,maxOutputTokens:512,responseMimeType:'application/json'}
+    generationConfig:{thinkingConfig:{thinkingLevel:'LOW'},maxOutputTokens:512,responseMimeType:'application/json'}
    })
   });
   if(!response.ok)throw Error('gemini-unavailable');
   if(Number(response.headers?.get?.('content-length')||0)>6000)throw Error('gemini-size');
   const raw=await response.text();if(raw.length>6000)throw Error('gemini-size');
   let payload;try{payload=JSON.parse(raw);}catch{throw Error('gemini-response');}
-  const content=payload?.candidates?.[0]?.content?.parts?.map(p=>p?.text||'').join('')||'';
+  const content=payload?.candidates?.[0]?.content?.parts?.filter(p=>!p?.thought).map(p=>p?.text||'').join('')||'';
   if(typeof content!=='string'||content.length>2000)throw Error('gemini-response');
   const facts=parseBriefingSelection({response:content},context);
   if(!facts)throw Error('invalid');
