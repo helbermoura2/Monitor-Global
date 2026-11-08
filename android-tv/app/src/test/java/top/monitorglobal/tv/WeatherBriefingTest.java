@@ -10,6 +10,8 @@ public class WeatherBriefingTest {
   JSONObject gemini=new JSONObject(current).put("model",WeatherBriefing.GEMINI_MODEL);
   WeatherBriefing verified=WeatherBriefing.parse(gemini.toString(),now);
   assertNotNull(verified);assertEquals(WeatherBriefing.GEMINI_MODEL,verified.model);
+  JSONObject validated=new JSONObject(current).put("model",WeatherBriefing.RULE_MODEL);
+  assertNotNull(WeatherBriefing.parse(validated.toString(),now));
   JSONObject legacy=new JSONObject(current).put("model",WeatherBriefing.LEGACY_MODEL);
   assertNotNull(WeatherBriefing.parse(legacy.toString(),now));
   JSONObject invented=new JSONObject(current).put("model","@cf/unknown/model");
