@@ -4,11 +4,15 @@ import android.content.Context;import android.os.*;import android.util.AtomicFil
 final class RuntimeDiagnostics {
  static final int MAX_SAMPLES=360,MAX_BYTES=262144;private static ScheduledExecutorService sampler;private static JSONObject report;private static Context context;private static volatile long generation;private static final Object io=new Object();
  private static final Object frames=new Object();private static long frameCount,gaps50,gaps100,maxGap,maxDraw,lastFrame;
+ // Android process CPU time; reported as percent of ONE core, not percent
+ // of total device CPU. Read alongside existing once/minute memory samples.
+ private static long previousCpuMs=-1,previousCpuUptimeMs=-1;
  static File previousFile(Context c){return new File(c.getFilesDir(),"runtime-diagnostics-previous.json");}
  static File file(Context c){return new File(c.getFilesDir(),"runtime-diagnostics.json");}
  static synchronized void start(Context c){if(sampler!=null)return;context=c.getApplicationContext();report=read(context);long processStart=android.os.Process.getStartElapsedRealtime();
   if(report.optLong("processStartElapsed",-1)!=processStart||report.optInt("pid")!=android.os.Process.myPid()){JSONObject old=report;if(old.optJSONArray("samples")!=null&&old.optJSONArray("samples").length()>0&&!BuildConfig.VERSION_NAME.equals(old.optString("version"))&&!archive(c,old))return;report=new JSONObject();try{if(old.has("samples"))report.put("previousRun",new JSONObject().put("version",old.optString("version")).put("peakPssKb",old.optLong("peakPssKb")).put("samples",old.optLong("sampleCount")));}catch(JSONException ignored){}synchronized(frames){frameCount=gaps50=gaps100=maxGap=maxDraw=lastFrame=0;}}
   try{report.put("schema",1).put("version",BuildConfig.VERSION_NAME).put("pid",android.os.Process.myPid()).put("processStartElapsed",processStart).put("device",Build.MANUFACTURER+" "+Build.MODEL).put("sdk",Build.VERSION.SDK_INT).put("localOnly",true);if(!report.has("startedAt"))report.put("startedAt",System.currentTimeMillis());if(!report.has("samples"))report.put("samples",new JSONArray());}catch(JSONException ignored){}
+  previousCpuMs=-1;previousCpuUptimeMs=-1;
   sampler=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"monitor-local-diagnostics");t.setDaemon(true);return t;});long expected=++generation;sampler.scheduleWithFixedDelay(()->{try{sample(expected);}catch(RuntimeException ignored){}},0,60,TimeUnit.SECONDS);
  }
  static void resetFrameClock(){synchronized(frames){lastFrame=0;}}
@@ -17,14 +21,24 @@ final class RuntimeDiagnostics {
  static void sample(){sample(generation);}
  private static void sample(long expected){Context c;JSONObject copy; synchronized(RuntimeDiagnostics.class){if(context==null||report==null||sampler==null||expected!=generation)return;c=context;}
   Debug.MemoryInfo memory=new Debug.MemoryInfo();Debug.getMemoryInfo(memory);Runtime vm=Runtime.getRuntime();JSONObject row=new JSONObject();try{row.put("at",System.currentTimeMillis()).put("uptimeMs",SystemClock.elapsedRealtime()).put("pssKb",memory.getTotalPss()).put("pssAvailable",memory.getTotalPss()>0).put("javaUsedBytes",vm.totalMemory()-vm.freeMemory()).put("javaCommittedBytes",vm.totalMemory()).put("javaLimitBytes",vm.maxMemory()).put("nativeAllocatedBytes",Debug.getNativeHeapAllocatedSize());String graphics=memory.getMemoryStat("summary.graphics");if(graphics!=null)try{row.put("graphicsPssKb",Long.parseLong(graphics));}catch(NumberFormatException ignored){}row.put("banner",frameSnapshot());}catch(JSONException ignored){}
-  synchronized(RuntimeDiagnostics.class){if(report==null||expected!=generation)return;try{JSONArray samples=report.optJSONArray("samples");if(samples==null)samples=new JSONArray();if(samples.length()>=MAX_SAMPLES){JSONArray recent=new JSONArray();for(int i=samples.length()-MAX_SAMPLES+1;i<samples.length();i++)recent.put(samples.get(i));samples=recent;}samples.put(row);report.put("samples",samples).put("sampleCount",report.optLong("sampleCount")+1).put("peakPssKb",Math.max(report.optLong("peakPssKb"),memory.getTotalPss())).put("latestAt",row.optLong("at"));if(!report.has("baselinePssKb"))report.put("baselinePssKb",memory.getTotalPss());copy=new JSONObject(report.toString());}catch(JSONException e){return;}}
+  synchronized(RuntimeDiagnostics.class){if(report==null||expected!=generation)return;try{
+    long uptime=SystemClock.elapsedRealtime(),cpu=android.os.Process.getElapsedCpuTime();
+    if(previousCpuUptimeMs>0&&uptime>previousCpuUptimeMs&&previousCpuMs>=0&&cpu>=previousCpuMs){
+     double percent=100.0*(cpu-previousCpuMs)/(uptime-previousCpuUptimeMs);
+     // Can exceed 100 on multi-core devices: the metric is ONE-core units.
+     if(Double.isFinite(percent))row.put("processCpuPctOneCore",Math.round(percent*10.0)/10.0);
+    }
+    previousCpuMs=cpu;previousCpuUptimeMs=uptime;
+    JSONArray samples=report.optJSONArray("samples");if(samples==null)samples=new JSONArray();if(samples.length()>=MAX_SAMPLES){JSONArray recent=new JSONArray();for(int i=samples.length()-MAX_SAMPLES+1;i<samples.length();i++)recent.put(samples.get(i));samples=recent;}samples.put(row);report.put("samples",samples).put("sampleCount",report.optLong("sampleCount")+1).put("peakPssKb",Math.max(report.optLong("peakPssKb"),memory.getTotalPss())).put("latestAt",row.optLong("at"));if(!report.has("baselinePssKb"))report.put("baselinePssKb",memory.getTotalPss());copy=new JSONObject(report.toString());}catch(JSONException e){return;}}
   write(c,copy,expected);
  }
  private static void write(Context c,JSONObject data,long expected){synchronized(io){if(expected!=generation)return;byte[] bytes=data.toString().getBytes(StandardCharsets.UTF_8);if(bytes.length>MAX_BYTES)return;AtomicFile file=new AtomicFile(file(c));FileOutputStream out=null;try{out=file.startWrite();out.write(bytes);file.finishWrite(out);}catch(IOException e){if(out!=null)file.failWrite(out);}}}
  static JSONObject read(Context c){return readFile(file(c));}
  static JSONObject readPrevious(Context c){return readFile(previousFile(c));}
  private static JSONObject readFile(File f){synchronized(io){if(f.length()>MAX_BYTES)return new JSONObject();try(FileInputStream in=new AtomicFile(f).openRead()){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>MAX_BYTES)return new JSONObject();out.write(b,0,n);}return new JSONObject(out.toString("UTF-8"));}catch(IOException|JSONException e){return new JSONObject();}}}
- static synchronized void stop(){generation++;ScheduledExecutorService old=sampler;sampler=null;if(old!=null)old.shutdownNow();resetFrameClock();}
+ static synchronized void stop(){generation++;ScheduledExecutorService old=sampler;sampler=null;
+  previousCpuMs=-1;previousCpuUptimeMs=-1;
+  if(old!=null)old.shutdownNow();resetFrameClock();}
  private static boolean archive(Context c,JSONObject old){synchronized(io){byte[] bytes=old.toString().getBytes(StandardCharsets.UTF_8);if(bytes.length>MAX_BYTES)return false;AtomicFile f=new AtomicFile(previousFile(c));FileOutputStream out=null;try{out=f.startWrite();out.write(bytes);f.finishWrite(out);return true;}catch(IOException e){if(out!=null)f.failWrite(out);return false;}}}
  static File export(Context c) throws IOException {return export(c,false);}
  static File export(Context c,boolean previous) throws IOException {File target=new File(c.getCacheDir(),"runtime-diagnostics-export.json");JSONObject latest=previous?readPrevious(c):read(c);if(previous&&!latest.has("samples"))throw new IOException("Sem sessão anterior");byte[] bytes=latest.toString().getBytes(StandardCharsets.UTF_8);if(bytes.length>MAX_BYTES)throw new IOException("Relatório acima do limite");try(FileOutputStream out=new FileOutputStream(target)){out.write(bytes);}return target;}
