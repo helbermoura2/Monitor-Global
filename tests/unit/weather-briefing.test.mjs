@@ -1,7 +1,8 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {briefingContext,parseBriefingSelection,handleWeatherBriefingInObject as handle,BRIEFING_LIMITS,BRIEFING_MODEL,GEMINI_MODEL} from '../../worker/weather-briefing.mjs';
+import {briefingContext,parseBriefingSelection,handleWeatherBriefingInObject as handle,BRIEFING_LIMITS,BRIEFING_MODEL,GEMINI_MODEL,BRIEFING_RULE_MODEL} from '../../worker/weather-briefing.mjs';
 const now=Date.parse('2026-11-05T15:20:00Z');
 const weather=()=>({ok:true,version:'tv-weather-v1',area:'liberdade',loc:{lat:-23.555,lng:-46.635},at:now,generatedAt:now-600000,expiresAt:now+1200000,current:{start:Math.floor(now/3600000)*3600000,temperature:28,feels:30,humidity:92,wind:1,gust:3,condition:'Cloudy'}});
+const multiWeather=()=>{const d=weather();d.current.gust=65;return d;};
 const rain=(wet=true)=>({ok:true,version:'tv-rain-v1',area:'liberdade',loc:{lat:-23.555,lng:-46.635},at:now,expiresAt:now+600000,forecast:Array.from({length:180},(_,i)=>({start:now+i*60000,end:now+(i+1)*60000,rate:wet&&i<30?3:0,type:wet&&i<30?'rain':'no_precipitation'}))});
 const store=()=>{const m=new Map();return {m,get:async k=>m.get(k),put:async(k,v)=>m.set(k,v),delete:async k=>m.delete(k)};};
 const req=(kind='hourly')=>new Request('https://worker.test/weather-briefing?kind='+kind);
@@ -15,9 +16,9 @@ test('AI selects verified insight IDs only: arbitrary prose and invented facts a
  for(const response of ['{"facts":["temperature"]}','{"facts":["tornado"]}','{"facts":["humidCalm"],"text":"30 victims"}','{"facts":["humidCalm","humidCalm"]}','It will rain'])
   assert.equal(parseBriefingSelection({response},c),null);
 });
-test('pending work returns before generation; shared persisted result avoids another AI call',async()=>{const s=setup();let release;const waiting=new Promise(resolve=>release=resolve);s.env.AI.run=async()=>{assert.equal(s.storage.m.get('briefing:budget').daily,1);await waiting;return {response:'{"facts":["humidCalm"]}'};};assert.equal((await(await handle(req(),s.env,s.storage,s.options)).json()).status,'pending');assert.equal((await(await handle(req(),s.env,s.storage,s.options)).json()).status,'pending');assert.equal(s.jobs.length,1);release();await Promise.all(s.jobs);const ready=await(await handle(req(),s.env,s.storage,s.options)).json();assert.equal(ready.status,'ready');assert.match(ready.text,/muito úmido/);assert.match(ready.text,/vento praticamente parado/);assert.doesNotMatch(ready.text,/28 °C|92%|1 km\/h|3 km\/h/);assert.equal(s.jobs.length,1);assert.equal(s.storage.m.get('briefing:budget').daily,1);});
-test('rain source is grounded and dry weather does not spend AI budget',async()=>{const dry=setup(rain(false),'rain');assert.equal((await(await handle(req('rain'),dry.env,dry.storage,dry.options)).json()).status,'not_applicable');assert.equal(dry.calls(),0);const s=setup(rain(),'rain');await handle(req('rain'),s.env,s.storage,s.options);await Promise.all(s.jobs);const ready=await(await handle(req('rain'),s.env,s.storage,s.options)).json();assert.equal(ready.rainState,'now');assert.match(ready.text,/possível pausa/);assert.doesNotMatch(ready.text,/mm\/h|mm no ponto/);assert.equal(s.calls(),1);});
-test('hard daily/monthly limits, unavailable storage and failed inference never block ordinary forecasts',async()=>{for(const budget of [{day:new Date(now).toISOString().slice(0,10),month:'2026-11',daily:BRIEFING_LIMITS.day,monthly:64},{day:'2026-11-05',month:'2026-11',daily:0,monthly:BRIEFING_LIMITS.month}]){const s=setup();s.storage.m.set('briefing:budget',budget);assert.equal((await(await handle(req(),s.env,s.storage,s.options)).json()).status,'limited');assert.equal(s.calls(),0);}const s=setup(weather(),'hourly',{response:'invented forecast'});await handle(req(),s.env,s.storage,s.options);await Promise.all(s.jobs);const failure=await(await handle(req(),s.env,s.storage,s.options)).json();assert.equal(failure.status,'unavailable');assert.equal(failure.reason,'invalid-selection');assert.equal(s.calls(),1);const result=await handle(req(),s.env,{get:async()=>{throw Error('offline')}},s.options);assert.equal((await result.json()).status,'unavailable');assert.equal(s.calls(),1);});
+test('pending work returns before generation; shared persisted result avoids another AI call',async()=>{const s=setup(multiWeather());let release;const waiting=new Promise(resolve=>release=resolve);s.env.AI.run=async()=>{assert.equal(s.storage.m.get('briefing:budget').daily,1);await waiting;return {response:'{"facts":["humidCalm"]}'};};assert.equal((await(await handle(req(),s.env,s.storage,s.options)).json()).status,'pending');assert.equal((await(await handle(req(),s.env,s.storage,s.options)).json()).status,'pending');assert.equal(s.jobs.length,1);release();await Promise.all(s.jobs);const ready=await(await handle(req(),s.env,s.storage,s.options)).json();assert.equal(ready.status,'ready');assert.match(ready.text,/rajadas fortes/);assert.doesNotMatch(ready.text,/28 °C|92%|1 km\/h|3 km\/h/);assert.equal(s.jobs.length,1);assert.equal(s.storage.m.get('briefing:budget').daily,1);});
+test('rain source is grounded and dry weather does not spend AI budget',async()=>{const dry=setup(rain(false),'rain');assert.equal((await(await handle(req('rain'),dry.env,dry.storage,dry.options)).json()).status,'not_applicable');assert.equal(dry.calls(),0);const s=setup(rain(),'rain');await handle(req('rain'),s.env,s.storage,s.options);await Promise.all(s.jobs);const ready=await(await handle(req('rain'),s.env,s.storage,s.options)).json();assert.equal(ready.rainState,'now');assert.equal(ready.model,BRIEFING_RULE_MODEL);assert.match(ready.text,/possível pausa/);assert.doesNotMatch(ready.text,/mm\/h|mm no ponto/);assert.equal(s.calls(),0);});
+test('hard daily/monthly limits, unavailable storage and failed inference never block ordinary forecasts',async()=>{for(const budget of [{day:new Date(now).toISOString().slice(0,10),month:'2026-11',daily:BRIEFING_LIMITS.day,monthly:64},{day:'2026-11-05',month:'2026-11',daily:0,monthly:BRIEFING_LIMITS.month}]){const s=setup();s.storage.m.set('briefing:budget',budget);assert.equal((await(await handle(req(),s.env,s.storage,s.options)).json()).status,'limited');assert.equal(s.calls(),0);}const s=setup(multiWeather(),'hourly',{response:'invented forecast'});await handle(req(),s.env,s.storage,s.options);await Promise.all(s.jobs);const failure=await(await handle(req(),s.env,s.storage,s.options)).json();assert.equal(failure.status,'ready');assert.equal(failure.model,BRIEFING_RULE_MODEL);assert.equal(s.calls(),1);const result=await handle(req(),s.env,{get:async()=>{throw Error('offline')}},s.options);assert.equal((await result.json()).status,'unavailable');assert.equal(s.calls(),1);});
 test('no arbitrary coordinates, prompts, POST or kinds reach the model',async()=>{const s=setup();for(const request of [new Request('https://x/weather-briefing?kind=hourly&prompt=evil'),req('other'),new Request(req(),{method:'POST'})])assert.equal((await(await handle(request,s.env,s.storage,s.options)).json()).status,'unavailable');assert.equal(s.calls(),0);});
 
 test('photo scenario receives an interpretation rather than reading the temperature and wind aloud',()=>{
@@ -109,7 +110,7 @@ test('unavailable AI has safe, distinct diagnosis without exposing provider payl
 
 
 test('Gemini is primary with a private API key, valid JSON IDs and shared cache',async()=>{
- const s=setup();s.env.GEMINI_API_KEY='test_secret_not_for_logs';
+ const s=setup(multiWeather());s.env.GEMINI_API_KEY='test_secret_not_for_logs';
  let requests=0;
  s.options.fetchGemini=async(url,options)=>{
   requests++;
@@ -129,7 +130,7 @@ test('Gemini is primary with a private API key, valid JSON IDs and shared cache'
  assert.equal(first.status,'pending');await Promise.all(s.jobs);
  const ready=await(await handle(req(),s.env,s.storage,s.options)).json();
  assert.equal(ready.status,'ready');assert.equal(ready.model,GEMINI_MODEL);
- assert.match(ready.text,/muito úmido/);
+ assert.match(ready.text,/rajadas fortes/);
  assert.equal(requests,1);assert.equal(s.calls(),0);
  assert.equal(s.storage.m.get('briefing:budget').daily,1);
  assert.doesNotMatch(JSON.stringify(ready),/test_secret_not_for_logs/);
@@ -144,7 +145,7 @@ test('Cloudflare is called exactly once when Gemini fails or selects invented ID
   ()=>Response.json({candidates:[{content:{parts:[{text:'{"facts":["tornado"]}'}]}}]}),
   ()=>{throw Error('network unreachable');}
  ]){
-  const s=setup();s.env.GEMINI_API_KEY='test_secret';
+  const s=setup(multiWeather());s.env.GEMINI_API_KEY='test_secret';
   let calls=0;s.options.fetchGemini=async(...args)=>{calls++;return responder(...args);};
   const first=await(await handle(req(),s.env,s.storage,s.options)).json();
   assert.equal(first.status,'pending');await Promise.all(s.jobs);
@@ -156,18 +157,18 @@ test('Cloudflare is called exactly once when Gemini fails or selects invented ID
 });
 
 test('Gemini failure with no backup leaves weather intact and no invented briefing',async()=>{
- const s=setup();s.env={GEMINI_API_KEY:'test_secret'};
+ const s=setup(multiWeather());s.env={GEMINI_API_KEY:'test_secret'};
  s.options.fetchGemini=async()=>new Response('unavailable',{status:503});
  await handle(req(),s.env,s.storage,s.options);await Promise.all(s.jobs);
  const status=await(await handle(req(),s.env,s.storage,s.options)).json();
- assert.equal(status.status,'unavailable');
- assert.equal(status.reason,'model-error');
+ assert.equal(status.status,'ready');
+ assert.equal(status.model,BRIEFING_RULE_MODEL);
  assert.equal(s.storage.m.get('briefing:budget').daily,1);
  assert.equal(s.calls(),0);
 });
 
 test('No API key uses only Cloudflare and never issues an outbound Gemini call',async()=>{
- const s=setup();s.options.fetchGemini=async()=>{throw Error('Gemini should not be called');};
+ const s=setup(multiWeather());s.options.fetchGemini=async()=>{throw Error('Gemini should not be called');};
  await handle(req(),s.env,s.storage,s.options);await Promise.all(s.jobs);
  const ready=await(await handle(req(),s.env,s.storage,s.options)).json();
  assert.equal(ready.model,BRIEFING_MODEL);assert.equal(s.calls(),1);
@@ -179,4 +180,15 @@ test('Gemini primary still respects strict daily budget before any API calls',as
  s.options.fetchGemini=async()=>{throw Error('No free quota for new jobs');};
  const result=await(await handle(req(),s.env,s.storage,s.options)).json();
  assert.equal(result.status,'limited');assert.equal(s.calls(),0);
+});
+
+test('single prevalidated fact never spends Gemini or Cloudflare model inference',async()=>{
+ const s=setup();
+ s.env.GEMINI_API_KEY='test_secret';
+ s.options.fetchGemini=async()=>{throw Error('Should never call Gemini for one fact');};
+ await handle(req(),s.env,s.storage,s.options);
+ await Promise.all(s.jobs);
+ const data=await(await handle(req(),s.env,s.storage,s.options)).json();
+ assert.equal(data.status,'ready');assert.equal(data.model,BRIEFING_RULE_MODEL);
+ assert.equal(s.calls(),0);assert.match(data.text,/umidade muito alta|ar muito úmido/i);
 });
