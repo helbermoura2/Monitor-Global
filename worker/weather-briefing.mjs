@@ -81,15 +81,25 @@ export function parseBriefingSelection(result,context){
 }
 function renderFacts(keys,context){let out='';for(const key of keys){const next=(out?out+' ':'')+context.facts[key];if(next.length<=185)out=next;}return out;}
 export async function handleWeatherBriefing(request,env){
- if(!route(request))return reply({status:'unavailable'});
- if(!env.EARTHQUAKE_ALERTS)return reply({status:'unavailable'});
- try{return await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('weather-briefing-v1')).fetch(request);}catch{return reply({status:'unavailable'});}
+ if(!route(request))return reply({status:'unavailable',reason:'invalid-request'});
+ if(!env.EARTHQUAKE_ALERTS)return reply({status:'unavailable',reason:'service-unavailable'});
+ try{return await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('weather-briefing-v1')).fetch(request);}catch{return reply({status:'unavailable',reason:'service-unavailable'});}
 }
 export async function handleWeatherBriefingInObject(request,env,storage,{now=Date.now(),waitUntil,readWeather=handleTvWeather,readRain=handleTvRain}={}){
- const kind=route(request);if(!kind||!env.AI||typeof waitUntil!=='function')return reply({status:'unavailable'});
+ const kind=route(request);
+ if(!kind)return reply({status:'unavailable',reason:'invalid-request'});
+ if(!env.AI)return reply({status:'unavailable',reason:'model-unconfigured'});
+ if(typeof waitUntil!=='function')return reply({status:'unavailable',reason:'service-unavailable'});
  let context;
- try{const source=await(kind==='hourly'?readWeather:readRain)(new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);context=briefingContext(kind,await source.json(),now);}catch{return reply({status:'unavailable'});}
- if(!context)return reply({status:'unavailable'});if(context.notApplicable)return reply({status:'not_applicable'});
+ try{
+  const source=await(kind==='hourly'?readWeather:readRain)(
+   new Request('https://internal/'+(kind==='hourly'?'tv-weather':'tv-rain?area=liberdade')),env);
+  const payload=await source.json();
+  if(!source.ok||payload?.ok!==true)return reply({status:'unavailable',reason:'source-unavailable'});
+  context=briefingContext(kind,payload,now);
+ }catch{return reply({status:'unavailable',reason:'source-unavailable'});}
+ if(!context)return reply({status:'unavailable',reason:'source-stale-or-invalid'});
+ if(context.notApplicable)return reply({status:'not_applicable'});
  const key='briefing:'+BRIEFING_MODEL+':validated-insights-v4:'+context.key;
  try{
   const cached=await storage.get(key);
@@ -99,7 +109,7 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
   const budget={day,month,daily:old?.day===day?old.daily:0,monthly:old?.month===month?old.monthly:0};
   if(!Number.isSafeInteger(budget.daily)||budget.daily<0||!Number.isSafeInteger(budget.monthly)||budget.monthly<0||budget.daily>=BRIEFING_LIMITS.day||budget.monthly>=BRIEFING_LIMITS.month)return reply({status:'limited'});
   const prompt='Escolha até 2 interpretações mais úteis para um destaque meteorológico curto. Retorne SOMENTE JSON {"facts":[IDs]}. Selecione apenas IDs disponíveis, sem repetir. Priorize mudanças, riscos moderados e combinações de condições; nunca repita os valores do cartão. Não escreva números, frases ou novas previsões. Interpretações derivadas exclusivamente dos dados válidos: '+JSON.stringify(context.facts);
-  if(new TextEncoder().encode(prompt).length>3500)return reply({status:'unavailable'});
+  if(new TextEncoder().encode(prompt).length>3500)return reply({status:'unavailable',reason:'invalid-prompt'});
   budget.daily++;budget.monthly++;await storage.put('briefing:budget',budget);
   const index=(await storage.get('briefing:index')||[]).filter(k=>k!==key);index.push(key);while(index.length>48)await storage.delete(index.shift());await storage.put('briefing:index',index);
   await storage.put(key,{status:'pending',until:now+2*MIN});
@@ -109,5 +119,5 @@ export async function handleWeatherBriefingInObject(request,env,storage,{now=Dat
    await storage.put(key,{status:'ready',facts,at:now,until:Math.floor(now/(kind==='hourly'?HOUR:30*MIN)+1)*(kind==='hourly'?HOUR:30*MIN)});
   }catch(error){const reason=error?.message==='invalid'?'invalid-selection':error?.message==='timeout'?'model-timeout':'model-error',code=String(error?.code||error?.message||'').match(/(?:^|\D)([1-9]\d{3,5})(?:\D|$)/)?.[1]||null;try{await storage.put(key,{status:'error',reason,providerCode:code,until:now+10*MIN});}catch{}}finally{clearTimeout(timer);}})();
   waitUntil(job);return reply({status:'pending',retryAfter:2});
- }catch{return reply({status:'unavailable'});}
+ }catch{return reply({status:'unavailable',reason:'storage-unavailable'});}
 }
