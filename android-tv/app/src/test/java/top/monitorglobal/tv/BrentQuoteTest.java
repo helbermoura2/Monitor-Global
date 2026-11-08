@@ -39,6 +39,10 @@ public class BrentQuoteTest {
   assertEquals(60000,BrentQuote.delay(start));
   assertEquals(15*60000,BrentQuote.delay(ten));
   assertEquals(30*60000,BrentQuote.delay(start+30*60000));
+  // No 1-minute wakeups after showing a price in the current hour.
+  assertEquals(44*60000,BrentQuote.delay(start+60000,start));
+  // No minute-by-minute wakeups during the Friday/Saturday market closure.
+  assertEquals(60*60000,BrentQuote.delay(time("2026-11-14T13:15:00Z"),0));
  }
  @Test public void staleMarketPriceAndWeekendCannotBePresented()throws Exception {
   long now=time("2026-11-10T13:15:00Z");
