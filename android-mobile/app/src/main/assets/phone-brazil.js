@@ -32,8 +32,10 @@ function showValues(){
  for(const entry of [[temperature.toFixed(0)+' °C','Temperatura'],[wind.toFixed(0)+' km/h','Vento 10 m'],[rain.toFixed(1)+' mm/h','Chuva prevista'],[pressure.toFixed(0)+' hPa','Pressão']]){
   const cell=document.createElement('div'),strong=document.createElement('strong');strong.textContent=entry[0];cell.append(strong,document.createTextNode(entry[1]));facts.appendChild(cell);
  }
+ adjustDensity();
  $('validity').textContent='Pontos de referência em 16 cidades brasileiras · previsões pontuais de modelo, não radar nem campo contínuo. Consulta '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.';
 }
+function adjustDensity(){if(!map||!markers.length)return;const expanded=map.getZoom()>=4.3;for(let i=0;i<markers.length;i++){markers[i].getElement().style.visibility=(expanded||chosen===i||![7,9,11,12,14].includes(i))?'visible':'hidden';}}
 function createMarkers(){
  if(!map||!ready)return;
  for(const m of markers)m.remove();markers=[];
@@ -45,7 +47,7 @@ function createMarkers(){
   button.addEventListener('click',()=>{chosen=i;showValues();});
   markers.push(new maplibregl.Marker({element:button,anchor:'center'}).setLngLat([p.lon,p.lat]).addTo(map));
  }
- showValues();
+ showValues();adjustDensity();
 }
 function initMap(){
  try{
@@ -53,6 +55,7 @@ function initMap(){
   map=new maplibregl.Map({container:'brazil-map',center:[-53,-15],zoom:2.65,minZoom:2,maxZoom:10,renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:96,fadeDuration:0,attributionControl:false,style:{version:8,sources:{imagery:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagens © Esri, Maxar, Earthstar Geographics e GIS User Community'}},layers:[{id:'imagery',type:'raster',source:'imagery',paint:{'raster-fade-duration':0}}]}});
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
   map.on('load',()=>{ready=true;createMarkers();if(forecast)note('');});
+  map.on('zoom',adjustDensity);
   map.on('error',e=>{if(e.sourceId==='imagery')note('Imagens do mapa indisponíveis. Os dados das cidades podem continuar acessíveis.');});
   map.on('webglcontextlost',()=>{ready=false;note('Mapa pausado pelo sistema. Reabra a visualização para atualizar.');});
  }catch(e){note('Não foi possível abrir o mapa neste aparelho.');}
