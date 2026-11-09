@@ -28,9 +28,23 @@ public final class MainActivity extends Activity {
   scroll.addView(content);setContentView(scroll);
   addBrandedHeader();
   addStatusPanel();
-  section("COMANDO POR VOZ");
-  button("🎙 Falar com o Monitor Global",v->startVoiceInput());
-  voiceStatus=label("Use o microfone para pedir temperatura, Brent, sismos no Brasil, último sismo ou satélite.",15,false);
+  section("ALEXA · CONTROLE DO FIRE STICK");
+  button("Vincular Alexa · mostrar código de 6 dígitos",v->{
+   new AlertDialog.Builder(this).setTitle("Vincular Monitor Global à Alexa")
+    .setMessage("O código é temporário. Ele permite que sua skill Alexa envie comandos somente para esta TV.\n\nNão use a barra de pesquisa do Google: depois de vincular, segure o botão físico de microfone do controle e fale com a Alexa.")
+    .setNegativeButton("Cancelar",null)
+    .setPositiveButton("Gerar código",(d,w)->{
+     AlexaLinkClient.register(this,message->{
+      if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
+      new AlertDialog.Builder(this).setTitle("Código da Alexa · Monitor Global").setMessage(message)
+       .setPositiveButton("Entendi",null).show();
+     });
+    }).show();
+  });
+  label("Depois de vincular a skill: segure o microfone do controle e diga “Peça ao Monitor Global para mostrar o Brent”. O card aparece sobre o vídeo. É preciso ativar o monitoramento e publicar a ponte Alexa no Worker.",15,false);
+  section("RECONHECIMENTO LOCAL · OPCIONAL");
+  button("🎙 Testar reconhecimento local do Android (pode abrir pesquisa)",v->startVoiceInput());
+  voiceStatus=label("Teste separado da Alexa. O Fire OS pode reservar o microfone do controle ao assistente do sistema.",15,false);
   section("INÍCIO RÁPIDO");
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
