@@ -13,7 +13,7 @@ test('one-time pairing code is normalized conservatively',()=>{
  assert.equal(normalizePairCode('001234'),'001234');
  assert.equal(normalizePairCode('1234'),'001234');
  assert.equal(normalizePairCode('999999'),'999999');
- assert.equal(normalizePairCode(''),'');
+ assert.equal(normalizePairCode(''),null);
  assert.equal(normalizePairCode('1234567'),null);
 });
 test('all skill intents have nonempty samples and Brazilian locale invocation name',()=>{
