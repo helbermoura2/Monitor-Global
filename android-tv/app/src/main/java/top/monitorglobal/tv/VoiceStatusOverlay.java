@@ -1,10 +1,8 @@
 package top.monitorglobal.tv;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -12,35 +10,41 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
-/** Informational card when a requested result is empty or unavailable. Never simulates a quake. */
+/** Voice status HUD: same native header/body/footer as Brent and weather cards. */
 final class VoiceStatusOverlay {
  static final long DURATION=12000L;
  private final Context context;
  private final Handler handler=new Handler(Looper.getMainLooper());
  private View current;
  VoiceStatusOverlay(Context context){this.context=context;}
- private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
- private TextView text(String value,int size,int color,boolean strong){
-  TextView t=new TextView(context);t.setText(value);t.setTextSize(size);t.setTextColor(color);
-  if(strong)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-  return t;
- }
+ private int dp(int n){return TvCardStyle.dp(context,n);}
+
  boolean show(String title,String body){
   hide();
   if(!Settings.canDrawOverlays(context))return false;
   try{
-   LinearLayout card=new LinearLayout(context);card.setOrientation(LinearLayout.VERTICAL);
-   card.setPadding(dp(16),dp(14),dp(16),dp(16));
-   GradientDrawable background=new GradientDrawable();
-   background.setColor(0xff081b30);background.setCornerRadius(dp(12));
-   background.setStroke(dp(2),0xff39c8dd);card.setBackground(background);
-   card.addView(text("MONITOR GLOBAL  ·  CONSULTA POR VOZ",14,0xff63e6f2,true));
-   TextView heading=text(title,20,Color.WHITE,true);
-   LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(9);card.addView(heading,hp);
-   TextView details=text(body,15,0xffc2d9e1,false);
-   LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(8);card.addView(details,bp);
+   Typeface brand=TvCardStyle.brand(context);
+   LinearLayout card=new LinearLayout(context);
+   card.setOrientation(LinearLayout.VERTICAL);
+   card.setBackground(TvCardStyle.panel(context,TvCardStyle.BODY));
+
+   LinearLayout header=TvCardStyle.header(context);
+   header.addView(TvCardStyle.label(context,"MONITOR GLOBAL  /  CONSULTA POR VOZ",15,TvCardStyle.BODY,brand,2));
+   card.addView(header,new LinearLayout.LayoutParams(-1,-2));
+
+   LinearLayout content=TvCardStyle.body(context);
+   content.addView(TvCardStyle.label(context,title,23,TvCardStyle.WHITE,brand,3));
+   LinearLayout.LayoutParams details=new LinearLayout.LayoutParams(-1,-2);
+   details.topMargin=dp(8);
+   content.addView(TvCardStyle.label(context,body,15,TvCardStyle.MUTED,Typeface.DEFAULT,5),details);
+   card.addView(content,new LinearLayout.LayoutParams(-1,-2));
+
+   LinearLayout footer=TvCardStyle.footer(context);
+   footer.addView(TvCardStyle.label(context,"CONSULTA SOB DEMANDA · NÃO É NOVO ALERTA",12,TvCardStyle.MUTED,brand,2));
+   card.addView(footer,new LinearLayout.LayoutParams(-1,-2));
+   card.setContentDescription("Monitor Global, consulta por voz. "+title+". "+body);
+
    int screen=context.getResources().getDisplayMetrics().widthPixels;
    WindowManager.LayoutParams params=new WindowManager.LayoutParams(
     Math.min(dp(420),screen*46/100),-2,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -52,7 +56,8 @@ final class VoiceStatusOverlay {
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(card,params);
    current=card;
    if(android.animation.ValueAnimator.areAnimatorsEnabled()){
-    card.setAlpha(0f);card.animate().alpha(1f).setDuration(250).start();
+    card.setAlpha(0f);card.setTranslationY(dp(9));
+    card.animate().alpha(1f).translationY(0).setDuration(250).start();
    }
    handler.postDelayed(()->{if(current==card)hide();},DURATION);
    return true;
