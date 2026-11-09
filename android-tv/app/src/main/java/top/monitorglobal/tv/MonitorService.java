@@ -44,7 +44,7 @@ public final class MonitorService extends Service {
   }
   if(VOICE_BRAZIL.equals(action)){
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
-   fetchBrazil24();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   fetchLatestBrazil();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(WEATHER_NOW.equals(action)){if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();brent.hide();rain.weatherNow();Prefs.status(this,"Meteorologia em 10 segundos. Você pode voltar ao conteúdo da TV.");return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if(SUMMARY_REPLAY.equals(action)||REPLAY.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)||action!=null&&action.startsWith(TEST)){rain.hide();brent.hide();interruptDaily();}
@@ -81,11 +81,12 @@ public final class MonitorService extends Service {
  }
  private void cancelDemos(){++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
  private void scheduleDemo(String scenario){scheduleLocal(DemoAlerts.create(scenario,System.currentTimeMillis()),true,false);}
- private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay){
-  cancelDemos();long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
+ private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay){scheduleLocal(examples,demo,replay,10000);}
+ private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay,long minimumDelayMs){
+  cancelDemos();long delay=Math.max(minimumDelayMs,activeUntil-android.os.SystemClock.uptimeMillis()+500);
   for(Alert a:examples){Runnable task=()->{if(!destroyed&&!draining&&queue.isEmpty())display(a,demo,replay);};demoTasks.add(task);main.postDelayed(task,delay);delay+=BannerTimeline.durationMillis(a,Prefs.get(this).getInt("seconds",20))+1000;}
   Runnable stop=()->{demoTasks.clear();if(!draining){activeUntil=0;tryTarget();tryDaily();}if(!Prefs.get(this).getBoolean("enabled",false)&&!draining)stopSelf();};demoTasks.add(stop);main.postDelayed(stop,delay+2000);
-  Prefs.status(this,draining?"Exibição local agendada para depois do alerta real atual.":replay?"Replay histórico em 10 segundos, sem novo som de alerta.":"Teste fictício em 10 segundos. Você pode abrir outro aplicativo.");
+  Prefs.status(this,draining?"Exibição local agendada para depois do alerta real atual.":replay?(minimumDelayMs<10000?"Replay histórico em instantes, sem novo som de alerta.":"Replay histórico em 10 segundos, sem novo som de alerta."):"Teste fictício em 10 segundos. Você pode abrir outro aplicativo.");
  }
  private void enqueue(List<Alert> alerts,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
   AlertPairing.refreshQueuedCompanions(queue,snapshot,quakeOk,tsunamiOk);
@@ -142,12 +143,12 @@ public final class MonitorService extends Service {
   Runnable end=new Runnable(){public void run(){demoTasks.remove(this);voiceNotice.hide();stopIfIdle();}};
   demoTasks.add(end);main.postDelayed(end,VoiceStatusOverlay.DURATION+300);
  }
- private void fetchBrazil24(){
+ private void fetchLatestBrazil(){
   if(historyBusy){Prefs.status(this,"Consulta sísmica já em andamento; tente novamente.");return;}
   historyBusy=true;
   if(historyExecutor==null)historyExecutor=Executors.newSingleThreadExecutor();
   final int request=++historyRequest;
-  Prefs.status(this,"Consultando sismos no Brasil nas últimas 24 horas…");
+  Prefs.status(this,"Buscando o último sismo no Brasil nas últimas 72 horas…");
   historyExecutor.execute(()->{
    try{
     FeedClient.Snapshot result=new FeedClient().history("brazil");
@@ -157,18 +158,18 @@ public final class MonitorService extends Service {
      if(!result.quakeOk){
       voiceInfo("Fontes sísmicas indisponíveis","Não é possível confirmar a situação no Brasil agora.");
      }else if(result.alerts.isEmpty()){
-      voiceInfo("Nenhum sismo encontrado","Nenhum evento registrado nas últimas 24 horas pelas fontes brasileiras disponíveis. Isso não garante ausência de sismos.");
+      voiceInfo("Nenhum sismo encontrado","Nenhum registro encontrado nas últimas 72 horas nas fontes brasileiras consultadas. Isso não garante ausência de sismos.");
      }else if(localBusy()||daily.displaying()){
       Prefs.status(this,"Consulta concluída, mas um alerta prioritário está em exibição. Tente novamente.");
      }else{
-      scheduleLocal(result.alerts,false,true);
-      Prefs.status(this,"Brasil · "+result.alerts.size()+" registro(s) nas últimas 24 horas · replays reais em 10 segundos.");
+      scheduleLocal(List.of(result.alerts.get(0)),false,true,1500);
+      Prefs.status(this,"Brasil · último sismo disponível nas últimas 72 horas · exibindo o registro real em instantes.");
      }
      stopIfIdle();
     });
    }catch(Exception e){main.post(()->{
     historyBusy=false;if(destroyed||request!=historyRequest)return;
-    voiceInfo("Consulta do Brasil indisponível","Não foi possível verificar os registros reais nas últimas 24 horas. Tente novamente.");
+    voiceInfo("Consulta do Brasil indisponível","Não foi possível verificar os registros reais das últimas 72 horas. Tente novamente.");
     stopIfIdle();
    });}
   });
