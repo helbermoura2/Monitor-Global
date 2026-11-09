@@ -3,6 +3,10 @@
 const M=window.PhoneBrazilModel, $=id=>document.getElementById(id);
 const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm/h'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'}};
 let map=null,markers=[],ready=false,active=true,closed=false,loading=false,controller=null,timer=0,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,chosen=13;
+const CACHE_MS=3*3600000, MIN_RETRY=10*60000, MAX_DAILY=8, CACHE_KEY='mg-brazil-forecast-v1', BUDGET_KEY='mg-brazil-budget-v1', ATTEMPT_KEY='mg-brazil-last-attempt-v1';
+function stored(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null;}}
+function store(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(e){/* Cache is optional. */}}
+function restore(){const data=stored(CACHE_KEY),now=Date.now();if(!data||!Number.isFinite(data.at)||data.at>now||now-data.at>CACHE_MS)return;const parsed=M.parse(data.payload,now);if(!parsed)return;forecast=parsed;lastSuccess=data.at;$('frame').disabled=false;$('play').disabled=false;showValues();}
 function note(message){$('brazil-status').textContent=message;$('brazil-status').hidden=!message;}
 function round(n){return n.toLocaleString('pt-BR',{maximumFractionDigits:layer==='rain'?1:0,minimumFractionDigits:layer==='rain'?1:0});}
 function clearPlayback(){if(playTimer)clearTimeout(playTimer);playTimer=0;$('play').textContent='▶';$('play').setAttribute('aria-label','Reproduzir evolução da previsão');}
@@ -56,9 +60,12 @@ function initMap(){
 async function load(force){
  if(!active||closed||loading)return;
  const now=Date.now();
- if(forecast&&!force&&now-lastSuccess<30*60000){showValues();return;}
- if(now-lastAttempt<5*60000){note(forecast?'Última previsão preservada. Aguarde antes de consultar novamente.':'Aguarde alguns minutos antes de tentar novamente.');return;}
- lastAttempt=now;loading=true;controller=new AbortController();const abort=controller,stop=setTimeout(()=>abort.abort(),11000);
+ if(forecast&&!force&&now-lastSuccess<CACHE_MS){showValues();return;}
+ const day=M.brHour(now).slice(0,10),previous=stored(BUDGET_KEY),used=previous&&previous.day===day&&Number.isSafeInteger(previous.used)?previous.used:0;
+ if(used>=MAX_DAILY){note('Limite diário de consultas meteorológicas deste aparelho. Tente amanhã; sem cobrança.');return;}
+ const persisted=stored(ATTEMPT_KEY),lastSaved=Number(persisted?.at)||0;
+ if(now-Math.max(lastAttempt,lastSaved)<MIN_RETRY){note(forecast?'Última previsão preservada. Aguarde antes de consultar novamente.':'Aguarde alguns minutos antes de tentar novamente.');return;}
+ lastAttempt=now;store(ATTEMPT_KEY,{at:now});store(BUDGET_KEY,{day,used:used+1});loading=true;controller=new AbortController();const abort=controller,stop=setTimeout(()=>abort.abort(),11000);
  note('Consultando previsões meteorológicas do Brasil…');
  try{
   const response=await fetch(M.url(),{headers:{Accept:'application/json'},signal:abort.signal,credentials:'omit',redirect:'error'});
@@ -66,12 +73,12 @@ async function load(force){
   const body=await response.text();if(body.length>320000)throw Error('Resposta muito grande');
   const parsed=M.parse(JSON.parse(body),Date.now());if(!parsed)throw Error('Dados inválidos');
   if(!active||closed)return;
-  forecast=parsed;lastSuccess=Date.now();$('frame').disabled=false;$('play').disabled=false;step=0;createMarkers();showValues();note('');
+  forecast=parsed;lastSuccess=Date.now();store(CACHE_KEY,{at:lastSuccess,payload:JSON.parse(body)});$('frame').disabled=false;$('play').disabled=false;step=0;createMarkers();showValues();note('');
  }catch(e){if(active&&!closed)note(forecast?'Sem nova atualização. Mantendo previsão anterior com horário identificado.':'Previsão indisponível. Verifique a internet e tente novamente.');}
  finally{clearTimeout(stop);if(controller===abort)controller=null;loading=false;}
 }
 function pause(){active=false;document.body.classList.add('is-paused');clearPlayback();if(map)map.stop();if(controller)controller.abort();}
-function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');if(map)map.resize();if(!forecast||Date.now()-lastSuccess>=30*60000)load(false);}
+function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');if(map)map.resize();if(!forecast||Date.now()-lastSuccess>=CACHE_MS)load(false);}
 function close(){if(closed)return;pause();closed=true;if(map){map.remove();map=null;}markers=[];ready=false;}
 function advance(){if(!active||!forecast)return;step=(step+1)%9;showValues();playTimer=setTimeout(advance,1300);}
 $('frame').addEventListener('input',event=>{clearPlayback();step=Number(event.target.value);showValues();});
@@ -81,5 +88,5 @@ $('recenter').addEventListener('click',()=>{if(map)map.jumpTo({center:[-53,-15],
 document.querySelectorAll('[data-layer]').forEach(button=>button.addEventListener('click',()=>{layer=button.dataset.layer;showValues();}));
 window.MonitorMap={pause,resume,close};
 window.addEventListener('pagehide',close);
-initMap();load(false);
+initMap();restore();load(false);
 })();
