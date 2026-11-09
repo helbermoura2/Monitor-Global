@@ -5,7 +5,7 @@
   "main": "index.js",
   "description": "Skill Alexa privada do Monitor Global, pt-BR",
   "engines": {
-    "node": ">=18"
+    "node": ">=16"
   },
   "dependencies": {
     "ask-sdk": "^2.14.0",
