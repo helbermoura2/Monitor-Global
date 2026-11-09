@@ -25,3 +25,12 @@ test('all skill intents have nonempty samples and Brazilian locale invocation na
   assert(intent&&intent.samples.length>=3);
  }
 });
+
+test('Alexa-hosted code supports Amazon-managed Node 16 without global fetch',()=>{
+ const code=fs.readFileSync('alexa-skill/lambda/index.js','utf8');
+ const pkg=JSON.parse(fs.readFileSync('alexa-skill/lambda/package.json','utf8'));
+ assert.match(code,/require\('https'\)/);
+ assert.match(code,/https\.request\(/);
+ assert.doesNotMatch(code,/(?<![.\w])await\s+fetch\s*\(/);
+ assert.equal(pkg.engines.node,'>=16');
+});
