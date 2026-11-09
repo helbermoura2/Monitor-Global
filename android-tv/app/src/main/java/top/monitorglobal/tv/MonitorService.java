@@ -138,14 +138,7 @@ public final class MonitorService extends Service {
    });}
   });
  }
- private static Alert replayCandidate(Alert alert,String view,long now){
-  if(alert==null||!"earthquake".equals(alert.kind)||alert.eventTime<=0
-     ||alert.eventTime>now+300000||now-alert.eventTime>72L*3600000)return null;
-  if("brazil-replay".equals(view))return "br".equals(alert.countryCode)?alert:null;
-  if("global-replay".equals(view))return !"br".equals(alert.countryCode)
-     &&Double.isFinite(alert.magnitude)&&alert.magnitude>=6?alert:null;
-  return alert;
- }
+
  private void fetchHistory(boolean summary,boolean completed,boolean replay,String action){
   if(historyBusy){Prefs.status(this,"Consulta de histórico em andamento. Aguarde.");return;}
   historyBusy=true;
@@ -169,7 +162,7 @@ public final class MonitorService extends Service {
      scheduleSummary(snapshot,replay);
     }else{
      Alert latest=snapshot.alerts.get(0);
-     Alert local=replayCandidate(Prefs.lastReplay(this),view,System.currentTimeMillis());
+     Alert local=ReplaySelection.scoped(Prefs.lastReplay(this),view,System.currentTimeMillis());
      // Never let a global M6+ replace the Brazil-only replay (or vice versa).
      latest=ReplaySelection.latest(latest,local);
      Prefs.rememberRecovered(this,latest);
@@ -185,7 +178,7 @@ public final class MonitorService extends Service {
     Prefs.status(this,"Sem consulta atual · resumo completo de "+BrDates.day(saved.day)+" salvo no aparelho em 10 segundos.");
     return;
    }
-   Alert local=summary?null:replayCandidate(Prefs.lastReplay(this),view,System.currentTimeMillis());
+   Alert local=summary?null:ReplaySelection.scoped(Prefs.lastReplay(this),view,System.currentTimeMillis());
    if(local!=null){
     scheduleLocal(List.of(local),false,true);
     Prefs.status(this,"Servidor indisponível · replay local compatível com "+scope+" em 10 segundos.");
