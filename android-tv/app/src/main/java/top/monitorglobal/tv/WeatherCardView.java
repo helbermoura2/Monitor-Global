@@ -8,10 +8,10 @@ import android.widget.*;
 
 /** Solid, accessible weather/rain card. Icons are local paths, not remote images. */
 final class WeatherCardView extends LinearLayout {
- static final int BODY=0xff071724,FOOT=0xff020816,CYAN=0xff38bdf8,MUTED=0xffbfd1df;
+ static final int BODY=TvCardStyle.BODY,FOOT=TvCardStyle.FOOT,CYAN=TvCardStyle.CYAN,MUTED=TvCardStyle.MUTED;
  private final Typeface brand;private TextView ai;private LinearLayout aiHost;private WeatherForecast.Summary aiWeather;private RainForecast.Summary aiRain;
  WeatherCardView(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,boolean preview){
-  super(c);setOrientation(VERTICAL);brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");setBackground(shape(BODY,true));
+  super(c);setOrientation(VERTICAL);brand=TvCardStyle.brand(c);setBackground(shape(BODY,true));
   boolean rainFocus=weather==null&&rain!=null&&!rain.state.equals("dry");
   String topic=rainFocus?(rain.title.startsWith("Neve")?"NEVE":"CHUVA"):"TEMPO";
   LinearLayout header=section(CYAN,10,5);line(header,topic+" · LIBERDADE, SP"+(demo?" · TESTE FICTÍCIO":""),15,BODY,brand,2);
