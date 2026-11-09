@@ -37,6 +37,7 @@ tasks.register('preparePhoneAssets', Sync) {
  from('../../js') { include 'brazil-satellite-model.js'; include 'brazil-satellite.js' }
  from('../../css') { include 'brazil-satellite.css' }
  from('../../data') { include 'brazil-satellite-border.json'; into 'data' }
+ from('../../assets/weather') { include 'br-municipalities.json'; into 'data' }
  from('../../vendor') { include 'maplibre-gl.js'; include 'maplibre-gl.css'; into 'vendor' }
  into layout.buildDirectory.dir('generated/phoneAssets')
 }
