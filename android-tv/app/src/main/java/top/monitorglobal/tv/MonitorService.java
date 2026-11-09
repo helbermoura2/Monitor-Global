@@ -143,6 +143,24 @@ public final class MonitorService extends Service {
   Runnable end=new Runnable(){public void run(){demoTasks.remove(this);voiceNotice.hide();stopIfIdle();}};
   demoTasks.add(end);main.postDelayed(end,VoiceStatusOverlay.DURATION+300);
  }
+ private void scheduleVoiceBrazil(Alert alert){
+  // Voice requests use the same bottom-right card as regional notices,
+  // without changing the full-width emergency alert presentation.
+  cancelDemos();
+  long delay=Math.max(1500,activeUntil-android.os.SystemClock.uptimeMillis()+500);
+  Runnable task=new Runnable(){
+   @Override public void run(){
+    demoTasks.remove(this);
+    if(destroyed||!screenReady()||draining||compactBusy||!queue.isEmpty()||daily.displaying()){
+     Prefs.status(MonitorService.this,"Consulta por voz adiada por aviso prioritário na TV.");
+     stopIfIdle();return;
+    }
+    showTargetCard(alert,false,true,true);
+   }
+  };
+  demoTasks.add(task);
+  main.postDelayed(task,delay);
+ }
  private void fetchLatestBrazil(){
   if(historyBusy){Prefs.status(this,"Consulta sísmica já em andamento; tente novamente.");return;}
   historyBusy=true;
@@ -162,7 +180,7 @@ public final class MonitorService extends Service {
      }else if(localBusy()||daily.displaying()){
       Prefs.status(this,"Consulta concluída, mas um alerta prioritário está em exibição. Tente novamente.");
      }else{
-      scheduleLocal(List.of(result.alerts.get(0)),false,true,1500);
+      scheduleVoiceBrazil(result.alerts.get(0));
       Prefs.status(this,"Brasil · último sismo disponível nas últimas 72 horas · exibindo o registro real em instantes.");
      }
      stopIfIdle();
@@ -246,10 +264,11 @@ public final class MonitorService extends Service {
  private void stopTarget(){if(targetEnd!=null)main.removeCallbacks(targetEnd);targetEnd=null;compactBusy=false;compact.hide();}
  private void tryTarget(){if(destroyed||!targetsEnabled||localBusy()||daily!=null&&daily.displaying()||!screenReady())return;Alert a=targetQueue.next(System.currentTimeMillis());if(a==null)return;showTargetCard(a,false);}
  private void showTargetCard(Alert a,boolean demo){showTargetCard(a,demo,false);}
- private void showTargetCard(Alert a,boolean demo,boolean replay){
+ private void showTargetCard(Alert a,boolean demo,boolean replay){showTargetCard(a,demo,replay,false);}
+ private void showTargetCard(Alert a,boolean demo,boolean replay,boolean voiceQuery){
   rain.hide();brent.hide();compactBusy=true;
   if(!demo&&!replay)Prefs.rememberTarget(this,a);
-  compact.show(a,demo,replay);
+  if(voiceQuery)compact.showVoiceBrazil(a);else compact.show(a,demo,replay);
   targetEnd=()->{compactBusy=false;targetEnd=null;tryTarget();tryDaily();stopIfIdle();};
   main.postDelayed(targetEnd,CompactNotice.DURATION_MS+700);
  }
