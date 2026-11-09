@@ -101,9 +101,9 @@ async function load(force=false){
  const now=Date.now();if(forecast&&!force&&now-lastSuccess<CACHE_MS){showValues();return;}
  const day=M.brHour(now).slice(0,10),previous=stored(BUDGET_KEY),used=previous?.day===day&&Number.isSafeInteger(previous.used)?previous.used:0;
  if(used>=MAX_DAILY){note('Limite diário de consultas meteorológicas deste aparelho. Tente amanhã; sem cobrança.');return;}
- const persisted=stored(ATTEMPT_KEY),lastSaved=Number(persisted?.at)||0;
- if(now-Math.max(lastAttempt,lastSaved)<MIN_RETRY){note(forecast?'Dados salvos preservados. Aguarde antes de consultar novamente.':'Aguarde alguns minutos antes de tentar novamente.');return;}
- const ticket=++requestId,target={...city};lastAttempt=now;store(ATTEMPT_KEY,{at:now});store(BUDGET_KEY,{day,used:used+1});
+ const persisted=stored(ATTEMPT_KEY),attempts=persisted?.day===day&&persisted?.cities&&typeof persisted.cities==='object'?persisted.cities:{},lastSaved=Number(attempts[key()])||0;
+ if(now-lastSaved<MIN_RETRY){note(forecast?'Dados salvos preservados. Aguarde antes de consultar novamente.':'Aguarde alguns minutos antes de tentar novamente.');return;}
+ const ticket=++requestId,target={...city};lastAttempt=now;store(ATTEMPT_KEY,{day,cities:{...attempts,[key()]:now}});store(BUDGET_KEY,{day,used:used+1});
  loading=true;controller=new AbortController();const c=controller,timeout=setTimeout(()=>c.abort(),11000);note('Consultando previsão de '+target.name+'…');
  try{
   const response=await fetch(M.url([target]),{headers:{Accept:'application/json'},signal:c.signal,credentials:'omit',redirect:'error'});
