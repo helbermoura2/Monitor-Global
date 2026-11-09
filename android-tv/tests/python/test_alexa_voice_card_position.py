@@ -22,6 +22,25 @@ class AlexaVoiceCardPlacementTest(unittest.TestCase):
         self.assertIn("compact.showVoiceBrazil(a)", service)
         self.assertIn("MONITOR GLOBAL · CONSULTA POR VOZ", compact)
         self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", compact)
+        self.assertIn("TvCardStyle.brand(context)", compact)
+        self.assertIn("TvCardStyle.CYAN", compact)
+
+    def test_common_style_for_brent_weather_and_alexa(self):
+        style = (JAVA / "TvCardStyle.java").read_text(encoding="utf-8")
+        weather = (JAVA / "WeatherCardView.java").read_text(encoding="utf-8")
+        brent = (JAVA / "BrentCardView.java").read_text(encoding="utf-8")
+        voice = (JAVA / "VoiceStatusOverlay.java").read_text(encoding="utf-8")
+        rain = (JAVA / "RainStripView.java").read_text(encoding="utf-8")
+        self.assertIn("fonts/Rajdhani-Bold.ttf", style)
+        self.assertIn("static final int BODY=0xff071724", style)
+        self.assertIn("static final int CYAN=0xff38bdf8", style)
+        for card in [weather, brent, voice, rain]:
+            self.assertIn("TvCardStyle.brand(", card)
+        self.assertIn("TvCardStyle.header(context)", voice)
+        self.assertIn("TvCardStyle.body(context)", voice)
+        self.assertIn("TvCardStyle.footer(context)", voice)
+        self.assertIn("BODY=TvCardStyle.BODY", weather)
+        self.assertIn("BODY=TvCardStyle.BODY", brent)
 
 
 if __name__ == "__main__":
