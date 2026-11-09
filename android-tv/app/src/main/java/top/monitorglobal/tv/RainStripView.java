@@ -15,22 +15,22 @@ final class RainStripView extends LinearLayout {
  private TextView ai;private LinearLayout aiHost;private RainForecast.Summary aiRain;
  RainStripView(Context context,RainForecast.Summary rain,boolean demo,boolean preview){
   super(context);setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setPadding(dp(12),dp(9),dp(12),dp(9));
-  GradientDrawable background=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xff102a40,WeatherCardView.BODY});
+  GradientDrawable background=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xff102a40,TvCardStyle.BODY});
   background.setCornerRadius(dp(10));background.setStroke(dp(1),0x8838bdf8);setBackground(background);
   boolean snow=rain.title.startsWith("Neve"),dry=rain.state.equals("dry");
   View icon=new WeatherCardView.Icon(context,dry?WeatherCardView.Icon.CLOUD:snow?WeatherCardView.Icon.SNOW:WeatherCardView.Icon.RAIN);
   addView(icon,new LayoutParams(dp(30),dp(30)));
-  View accent=new View(context);accent.setBackgroundColor(WeatherCardView.CYAN);LayoutParams divider=new LayoutParams(dp(2),dp(40));divider.setMargins(dp(10),0,dp(10),0);addView(accent,divider);
+  View accent=new View(context);accent.setBackgroundColor(TvCardStyle.CYAN);LayoutParams divider=new LayoutParams(dp(2),dp(40));divider.setMargins(dp(10),0,dp(10),0);addView(accent,divider);
   LinearLayout words=new LinearLayout(context);words.setOrientation(VERTICAL);addView(words,new LayoutParams(0,LayoutParams.WRAP_CONTENT,1));
-  Typeface brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");
+  Typeface brand=TvCardStyle.brand(context);
   boolean narrow=context.getResources().getDisplayMetrics().widthPixels/context.getResources().getDisplayMetrics().density<800;
   label(words,headline(rain)+" · Liberdade, SP",narrow?18:21,Color.WHITE,brand,2);
-  label(words,details(rain),narrow?13:15,WeatherCardView.MUTED,brand,context.getResources().getConfiguration().fontScale>1.1f?3:2);
-  if(!demo){aiRain=rain;ai=new TextView(context);ai.setTextColor(WeatherCardView.CYAN);ai.setTextSize(narrow?12:13);ai.setTypeface(brand);ai.setMaxLines(3);ai.setIncludeFontPadding(false);aiHost=words;refreshBriefing();}
+  label(words,details(rain),narrow?13:15,TvCardStyle.MUTED,brand,context.getResources().getConfiguration().fontScale>1.1f?3:2);
+  if(!demo){aiRain=rain;ai=new TextView(context);ai.setTextColor(TvCardStyle.CYAN);ai.setTextSize(narrow?12:13);ai.setTypeface(brand);ai.setMaxLines(3);ai.setIncludeFontPadding(false);aiHost=words;refreshBriefing();}
   View rule=new View(context);rule.setBackgroundColor(0x4438bdf8);LayoutParams line=new LayoutParams(-1,dp(1));line.topMargin=dp(5);line.bottomMargin=dp(4);words.addView(rule,line);
   String source=demo?"TESTE FICTÍCIO · dados de demonstração":"Rainbow Weather · estimativa"+(rain.at>0?" · "+WeatherForecast.time(rain.at):"");
-  label(words,source,narrow?10:11,WeatherCardView.MUTED,Typeface.DEFAULT,2);
-  if(preview)label(words,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(context)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(context)],11,WeatherCardView.CYAN,brand,2);
+  label(words,source,narrow?10:11,TvCardStyle.MUTED,Typeface.DEFAULT,2);
+  if(preview)label(words,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(context)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(context)],11,TvCardStyle.CYAN,brand,2);
  }
  void refreshBriefing(){if(ai==null)return;String value=WeatherBriefingClient.text(getContext(),"rain",null,aiRain);if(value.isEmpty()){if(ai.getParent()!=null)aiHost.removeView(ai);return;}ai.setText("IA · "+value);if(ai.getParent()==null)aiHost.addView(ai,Math.min(2,aiHost.getChildCount()),new LayoutParams(-1,-2));}
  static String headline(RainForecast.Summary rain){
