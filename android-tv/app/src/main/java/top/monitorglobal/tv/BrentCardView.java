@@ -14,12 +14,12 @@ final class BrentCardView extends LinearLayout {
   bar.addView(label(demo?"TESTE FICTÍCIO":"ICE · BZ=F",12,DEEP,true));
   LinearLayout body=new LinearLayout(c);body.setOrientation(VERTICAL);body.setPadding(dp(18),dp(13),dp(18),dp(13));addView(body,new LayoutParams(-1,-2));
   LinearLayout values=new LinearLayout(c);values.setGravity(Gravity.CENTER_VERTICAL);body.addView(values,new LayoutParams(-1,-2));
-  LinearLayout main=new LinearLayout(c);main.setOrientation(VERTICAL);values.addView(main,new LayoutParams(0,-2,1));
+  LinearLayout main=new LinearLayout(c);main.setOrientation(VERTICAL);LayoutParams priceBox=new LayoutParams(-2,-2);priceBox.setMarginEnd(dp(10));values.addView(main,priceBox);
   main.addView(label("US$  "+String.format(Locale.forLanguageTag("pt-BR"),"%.2f",q.price),39,WHITE,true));
   main.addView(label("POR BARRIL",14,MUTED,true));
   if(q.percent!=null){
    final int tint=q.change>0?GREEN:q.change<0?RED:MUTED;
-   LinearLayout delta=new LinearLayout(c);delta.setGravity(Gravity.CENTER);delta.setOrientation(VERTICAL);delta.setPadding(dp(12),dp(7),dp(12),dp(7));
+   LinearLayout delta=new LinearLayout(c);delta.setGravity(Gravity.CENTER);delta.setOrientation(VERTICAL);delta.setPadding(dp(9),dp(6),dp(9),dp(6));
    GradientDrawable bg=round(DEEP);bg.setStroke(dp(1),tint);delta.setBackground(bg);values.addView(delta,new LayoutParams(-2,-2));
    delta.addView(label((q.percent>=0?"▲ +":"▼ ")+String.format(Locale.forLanguageTag("pt-BR"),"%.2f",q.percent)+"%",21,tint,true));
    delta.addView(label((q.change>=0?"+":"")+String.format(Locale.forLanguageTag("pt-BR"),"%.2f",q.change)+" US$",13,tint,true));
