@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const scope={module:{exports:{}}};
+const scope={module:{exports:{}},URLSearchParams};
 runInNewContext(readFileSync(new URL('../../android-mobile/app/src/main/assets/phone-brazil-model.js',import.meta.url),'utf8'),scope);
 const M=scope.module.exports;
 const now=Date.parse('2026-11-08T12:30:00Z');
