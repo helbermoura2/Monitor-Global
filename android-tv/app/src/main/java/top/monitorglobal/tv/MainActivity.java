@@ -288,7 +288,7 @@ public final class MainActivity extends Activity {
    case TvVoiceCommands.BRENT:
     if(!Prefs.get(this).getBoolean("enabled",false)){voiceMessage("Ative o monitoramento para consultar a cotação real do Brent.");return;}
     launchVoiceCard(MonitorService.CHECK_BRENT,"Consultando o Brent real. Sem preço válido não haverá card.");return;
-   case TvVoiceCommands.BRAZIL:launchVoiceCard(MonitorService.VOICE_BRAZIL,"Consultando sismos no Brasil das últimas 24 horas.");return;
+   case TvVoiceCommands.BRAZIL:launchVoiceCard(MonitorService.VOICE_BRAZIL,"Buscando o último sismo no Brasil das últimas 72 horas.");return;
    case TvVoiceCommands.TODAY:launchVoiceCard(MonitorService.SUMMARY_TODAY,"Consultando os maiores sismos de hoje.");return;
    case TvVoiceCommands.YESTERDAY:launchVoiceCard(MonitorService.SUMMARY_REPLAY,"Consultando o resumo sísmico de ontem.");return;
    case TvVoiceCommands.RECENT_QUAKE:launchVoiceCard(MonitorService.REPLAY,"Consultando o último sismo do monitoramento.");return;
