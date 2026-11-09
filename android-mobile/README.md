@@ -45,3 +45,11 @@ Meteorologia permanece na cobertura real da Liberdade. Horas futuras não são i
 O mapa inclui satélite GOES-East infravermelho via NASA GIBS. O recorte é o território brasileiro (contorno IBGE local), com projeção Mercator preservada. O botão Brasil enquadra o país somente por ação do usuário. O horário publicado pela fonte aparece em BRT e imagens antigas são identificadas; não há promessa de tempo real. Animação usa no máximo seis quadros e 12 MiB de imagens comprimidas, com pausa fora da área e em segundo plano. Isso não é radar observado nem estimativa de milímetros de chuva.
 
 Os recursos locais do mapa usam um caminho por versionCode (/assets/vN/), inclusive scripts e estilos relativos. Uma atualização usa endereços novos sem limpar o cache de imagens remotas ou os dados do usuário. A versão instalada aparece em Avisos e fontes.
+
+## Atualização pelo próprio aplicativo (prévia)
+
+Em **Avisos e fontes → Verificar atualização do aplicativo**, o cliente instalado `top.monitorglobal.mobile.dev` consulta o arquivo público `mobile-update.json` anexado à pré-release `mobile-preview` no GitHub. O arquivo é gerado **somente após a compilação e testes**, no processo de publicação já existente; inclui versionCode, versão, SHA-256 do APK e o SHA-256 do certificado do publicador. O app compara com o certificado realmente instalado, rejeita URL arbitrária, downloads HTTP, downgrade e pacote diferente antes de solicitar instalação ao Android.
+
+O download e a conferência acontecem no próprio aplicativo; na primeira vez o Android pode pedir permissão para instalar aplicativos desta fonte. A **instalação exige confirmação do usuário**, e preserva os dados quando o identificador e o certificado de assinatura coincidem. Não existe instalação silenciosa, serviço contínuo, Worker adicional nem consulta por GitHub Actions.
+
+**Limite:** o mecanismo atual atende **apenas o canal de testes**. O pacote oficial `top.monitorglobal.mobile` e a versão da TV não são atualizados por esse canal; precisam de manifesto e assinatura de lançamento próprios. Se o cache da chave de assinatura de testes desaparecer e o certificado mudar, a atualização segura será bloqueada até resolver a continuidade da assinatura. A opção só funcionará plenamente após o APK desta implementação ser publicado com o manifesto no GitHub.
