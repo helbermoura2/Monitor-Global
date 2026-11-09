@@ -7,7 +7,8 @@ import android.os.*;
 import android.provider.Settings;
 import top.monitorglobal.mobile.BuildConfig;
 import java.io.*;
-import java.security.*;
+import java.net.HttpURLConnection;
+import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.concurrent.*;
 
@@ -44,7 +45,7 @@ final class PhoneUpdater {
  private static String hex(byte[] bytes){StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}
  private String cert(PackageInfo info)throws Exception{
   if(info==null||info.signingInfo==null||info.signingInfo.hasMultipleSigners())throw new SecurityException("Assinatura não encontrada");
-  Signature[] signers=info.signingInfo.getApkContentsSigners();
+  android.content.pm.Signature[] signers=info.signingInfo.getApkContentsSigners();
   if(signers==null||signers.length!=1)throw new SecurityException("Assinatura não reconhecida");
   return hex(MessageDigest.getInstance("SHA-256").digest(signers[0].toByteArray()));
  }

@@ -30,7 +30,7 @@ public final class PhoneBackgroundAlerts extends JobService {
   ComponentName service=new ComponentName(context,PhoneBackgroundAlerts.class);
   JobInfo periodic=new JobInfo.Builder(JOB_ID,service)
    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPeriodic(PERIOD)
-   .setPersisted(true).build();
+   .setPersisted(false).build();
   if(scheduler.schedule(periodic)==JobScheduler.RESULT_SUCCESS){
    scheduler.schedule(new JobInfo.Builder(FIRST_JOB_ID,service)
     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setMinimumLatency(1000).build());
