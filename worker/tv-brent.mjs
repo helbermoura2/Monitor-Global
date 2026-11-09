@@ -55,17 +55,26 @@ export async function handleTvBrent(request,env={},{
  if(!londonSession(now)){
   return reply({ok:false,marketOpen:false,reason:'market-closed',source:'ICE regular hours'},120);
  }
- const endpoint='https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d';
- try{
-  const r=await get(endpoint,{
-   method:'GET',redirect:'error',signal:AbortSignal.timeout(9000),
-   headers:{Accept:'application/json','User-Agent':'MonitorGlobalBrent/1.0'}
-  });
-  if(!r.ok||Number(r.headers.get('content-length'))>250000)return reply({ok:false,marketOpen:true,reason:'source-unavailable'},30);
-  const raw=await r.text();
-  if(raw.length>250000)return reply({ok:false,marketOpen:true,reason:'oversized-response'},30);
-  const parsed=parseBrentQuote(JSON.parse(raw),now);
-  if(!parsed)return reply({ok:false,marketOpen:true,reason:'source-stale-or-invalid'},30);
-  return reply(parsed,120);
- }catch{return reply({ok:false,marketOpen:true,reason:'source-unavailable'},30);}
+ const endpoints=[
+  'https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d',
+  'https://query2.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d'
+ ];
+ // Both endpoints expose the same Yahoo BZ=F instrument, not independent providers.
+ // Keep both calls <10s in total, within the TV client's read timeout.
+ let stale=false;
+ for(const endpoint of endpoints){
+  try{
+   const r=await get(endpoint,{
+    method:'GET',redirect:'error',signal:AbortSignal.timeout(4300),
+    headers:{Accept:'application/json','User-Agent':'MonitorGlobalBrent/1.1'}
+   });
+   if(!r.ok||Number(r.headers.get('content-length'))>250000)continue;
+   const raw=await r.text();
+   if(raw.length>250000)continue;
+   const parsed=parseBrentQuote(JSON.parse(raw),now);
+   if(parsed)return reply(parsed,120);
+   stale=true;
+  }catch{ /* Try the other Yahoo hostname once; never fabricate a quote. */ }
+ }
+ return reply({ok:false,marketOpen:true,reason:stale?'source-stale-or-invalid':'source-unavailable'},30);
 }
