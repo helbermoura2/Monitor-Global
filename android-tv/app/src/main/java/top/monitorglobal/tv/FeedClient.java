@@ -6,7 +6,7 @@ final class FeedClient {
  private String etag="";
  void invalidate(){etag="";}
  Snapshot read() throws IOException,JSONException {return read("");}
- Snapshot history(String view) throws IOException,JSONException {if(!view.equals("daily")&&!view.equals("replay")&&!view.equals("completed")&&!view.equals("brazil"))throw new IOException("Histórico inválido");return read(view);}
+ Snapshot history(String view) throws IOException,JSONException {if(!view.equals("daily")&&!view.equals("replay")&&!view.equals("completed")&&!view.equals("brazil")&&!view.equals("brazil-replay")&&!view.equals("global-replay"))throw new IOException("Histórico inválido");return read(view);}
  private Snapshot read(String view) throws IOException,JSONException {
   HttpURLConnection c=(HttpURLConnection)new URL(ENDPOINT+"?policy=telegram-v1"+(view.isEmpty()?"":"&view="+view)).openConnection();c.setConnectTimeout(8000);c.setReadTimeout(45000);c.setInstanceFollowRedirects(false);c.setRequestProperty("Accept","application/json");c.setRequestProperty("User-Agent","MonitorGlobalTV/"+BuildConfig.VERSION_NAME);if(view.isEmpty()&&!etag.isEmpty())c.setRequestProperty("If-None-Match",etag);
   try{int status=c.getResponseCode();Snapshot out=new Snapshot();if(status==304){out.unchanged=true;return out;}if(status!=200)throw new IOException("Serviço indisponível ("+status+")");
