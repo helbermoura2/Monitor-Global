@@ -66,4 +66,49 @@ public class BrentQuoteTest {
   BrentQuote q=BrentQuote.parse(d,now);
   assertNotNull(q);assertNull(q.change);assertNull(q.percent);
  }
+
+ @Test public void yahooDirectFallbackUsesRealHeadlineAndKeepsVariation()throws Exception{
+  long now=time("2026-11-09T13:25:00Z");
+  JSONObject meta=new JSONObject().put("symbol","BZ=F").put("currency","USD")
+    .put("regularMarketPrice",96.99).put("regularMarketTime",(now-10*60000)/1000)
+    .put("chartPreviousClose",98.32);
+  JSONObject raw=new JSONObject().put("chart",new JSONObject().put("result",
+    new JSONArray().put(new JSONObject().put("meta",meta))).put("error",JSONObject.NULL));
+  JSONObject result=BrentQuote.adaptYahooChart(raw,now);
+  assertNotNull(result);
+  assertTrue(result.optBoolean("directFromTv"));
+  assertEquals("regular-market",result.optString("quoteKind"));
+  BrentQuote valid=BrentQuote.parse(result,now);
+  assertNotNull(valid);assertEquals(96.99,valid.price,.0001);
+  assertEquals(-1.33,valid.change,.001);
+  assertEquals("Yahoo Finance",valid.source);
+  meta.put("symbol","CL=F");
+  assertNull(BrentQuote.adaptYahooChart(raw,now));
+ }
+ @Test public void yahooDirectFallbackOnlyAcceptsClosePairedToRecentCandle()throws Exception{
+  long now=time("2026-11-09T13:25:00Z"),recent=(now-10*60000)/1000;
+  JSONObject meta=new JSONObject().put("symbol","BZ=F").put("currency","USD")
+    .put("regularMarketPrice",96.99).put("regularMarketTime",(now-4*3600000)/1000)
+    .put("chartPreviousClose",98.32);
+  JSONObject data=new JSONObject().put("meta",meta).put("timestamp",new JSONArray().put(recent));
+  JSONObject raw=new JSONObject().put("chart",new JSONObject().put("result",new JSONArray().put(data))
+   .put("error",JSONObject.NULL));
+  assertNull("Timestamp alone is not a trade",BrentQuote.adaptYahooChart(raw,now));
+  JSONObject quote=new JSONObject().put("close",new JSONArray().put(96.88));
+  data.put("indicators",new JSONObject().put("quote",new JSONArray().put(quote)));
+  JSONObject adapted=BrentQuote.adaptYahooChart(raw,now);
+  assertNotNull(adapted);
+  assertEquals("observed-minute-candle",adapted.optString("quoteKind"));
+  assertNotNull(BrentQuote.parse(adapted,now));
+  quote.put("close",new JSONArray().put(JSONObject.NULL));
+  assertNull(BrentQuote.adaptYahooChart(raw,now));
+  quote.put("close",new JSONArray().put(96.88));
+  data.put("timestamp",new JSONArray().put((now-3*3600000)/1000));
+  assertNull("Old candle cannot become current",BrentQuote.adaptYahooChart(raw,now));
+  data.put("timestamp",new JSONArray().put(recent));
+  meta.put("marketState","CLOSED");
+  assertNull(BrentQuote.adaptYahooChart(raw,now));
+  meta.remove("marketState");
+  assertNull("No weekend refresh",BrentQuote.adaptYahooChart(raw,time("2026-11-14T14:00:00Z")));
+ }
 }
