@@ -1,0 +1,15 @@
+{
+  "name": "alexa-monitor-global",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "description": "Skill Alexa privada do Monitor Global, pt-BR",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ask-sdk": "^2.14.0",
+    "ask-sdk-dynamodb-persistence-adapter": "^2.9.0",
+    "aws-sdk": "^2.1692.0"
+  }
+}
