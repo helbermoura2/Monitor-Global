@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com; connect-src 'self' https://server.arcgisonline.com https://api.open-meteo.com; worker-src blob:; child-src blob:; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Explorar Brasil · Monitor Global</title>
+<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="stylesheet" href="phone-rain.css"><link rel="stylesheet" href="phone-brazil.css">
+<script defer src="vendor/maplibre-gl.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-brazil.js"></script>
+</head><body>
+<main>
+ <section class="map-panel" aria-label="Mapa meteorológico do Brasil">
+  <div id="brazil-map"></div>
+  <div class="map-top">
+   <div class="map-title"><strong>METEOROLOGIA · BRASIL</strong><span>Previsão por regiões · Open-Meteo</span></div>
+   <button type="button" id="recenter" aria-label="Enquadrar o Brasil">⌖</button>
+  </div>
+  <div id="brazil-status" role="status">Consultando previsão do Brasil…</div>
+  <div class="map-bottom"><div class="frame-badge"><span>PREVISÃO DE MODELO</span><strong id="time-label">Aguardando dados</strong></div></div>
+ </section>
+ <section class="brazil-controls" aria-label="Camadas meteorológicas">
+  <div class="brazil-layers" role="group" aria-label="Escolher variável">
+   <button type="button" data-layer="temperature" aria-pressed="true">Temperatura</button>
+   <button type="button" data-layer="wind" aria-pressed="false">Vento</button>
+   <button type="button" data-layer="rain" aria-pressed="false">Chuva</button>
+   <button type="button" data-layer="pressure" aria-pressed="false">Pressão</button>
+  </div>
+ </section>
+ <section class="timeline" aria-label="Linha do tempo da previsão">
+  <div class="play-row"><button id="play" type="button" aria-label="Reproduzir evolução da previsão" disabled>▶</button>
+   <div class="time-control"><label for="frame">Agora <span>Próximas 24 horas →</span></label><input id="frame" type="range" min="0" max="8" step="1" value="0" disabled aria-label="Selecionar horário da previsão">
+   <div class="ticks"><span>0h</span><span>+12h</span><span>+24h</span></div></div>
+   <button id="refresh" type="button" aria-label="Atualizar a previsão">↻</button>
+  </div>
+ </section>
+ <section class="outlook" aria-label="Previsão regional selecionada">
+  <div class="point-heading"><span class="point-dot"></span><strong id="place">BRASIL · PONTOS DE REFERÊNCIA</strong><span id="layer-label">Temperatura</span></div>
+  <h1 id="headline" role="status">Carregando previsão…</h1>
+  <div id="facts" class="facts"></div>
+  <p id="validity">Os pontos representam localidades consultadas. Não são um campo meteorológico contínuo nem radar.</p>
+  <p id="forecast-source">Dados de previsão: Open-Meteo (CC BY 4.0). Não são avisos oficiais. <a href="https://open-meteo.com/" rel="noopener">Fonte</a></p>
+ </section>
+</main>
+</body></html>
