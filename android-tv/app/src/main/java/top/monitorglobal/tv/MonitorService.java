@@ -4,7 +4,7 @@ public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
- private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
+ private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private VoiceStatusOverlay voiceNotice;private boolean targetsEnabled,compactBusy;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
  private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){compact.hide();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
@@ -97,7 +97,43 @@ public final class MonitorService extends Service {
  }
  private void putPending(Alert a){queue.removeIf(old->AlertPairing.replacesQueued(a,old));if(queue.size()<8)queue.add(a);}
  private void ensureExecutor(){if(executor==null)executor=Executors.newSingleThreadScheduledExecutor();}
- private void ensurePolling(){ensureExecutor();if(!polling){polling=true;executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);}if(!dailyRunning){dailyRunning=true;main.post(dailyTick);}}
+ private void ensurePolling(){
+  ensureExecutor();
+  if(!polling){polling=true;executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);}
+  if(!dailyRunning){dailyRunning=true;main.post(dailyTick);}
+  // Separate network executor: slow seismic catalogues must not delay voice.
+  if(!alexaPolling&&!AlexaLinkClient.token(this).isEmpty()){
+   alexaPolling=true;alexaExecutor=Executors.newSingleThreadScheduledExecutor();
+   alexaExecutor.scheduleWithFixedDelay(this::pollAlexa,2,8,TimeUnit.SECONDS);
+  }
+ }
+ private void pollAlexa(){
+  if(destroyed||!Prefs.get(this).getBoolean("enabled",false))return;
+  try{
+   AlexaLinkClient.Command pending=AlexaLinkClient.next(this);
+   if(pending==null)return;
+   if(pending.id.equals(Prefs.get(this).getString(AlexaLinkClient.LAST_COMMAND_PREF,""))){
+    AlexaLinkClient.acknowledge(this,pending.id);return;
+   }
+   String action;
+   switch(pending.type){
+    case "brent":action=CHECK_BRENT;break;
+    case "weather":action=WEATHER_NOW;break;
+    case "brazil":action=VOICE_BRAZIL;break;
+    default:return;
+   }
+   if(destroyed)return;
+   // Same on-demand card actions as the TV buttons. Do not invent prices or
+   // bypass tsunami/earthquake priority. Record id before ACK for idempotency.
+   startService(new Intent(this,MonitorService.class).setAction(action));
+   Prefs.get(this).edit().putString(AlexaLinkClient.LAST_COMMAND_PREF,pending.id)
+    .putString("alexaStatus","Comando "+pending.type+" recebido da Alexa").apply();
+   AlexaLinkClient.acknowledge(this,pending.id);
+  }catch(Exception e){
+   // Internet or pairing may be unavailable; keep existing real-time alerts alive.
+   if(!destroyed)Prefs.get(this).edit().putString("alexaStatus","Ponte Alexa indisponível; verifique a conexão e o vínculo.").apply();
+  }
+ }
  private void voiceInfo(String title,String detail){
   if(destroyed)return;
   Prefs.status(this,title+" · "+detail);
@@ -227,6 +263,6 @@ public final class MonitorService extends Service {
   rain.hide();brent.hide();voiceNotice.hide();stopTarget();boolean overlay=banner.show(a,demo,replay);if(!overlay)try{getSystemService(NotificationManager.class).notify(100+Math.floorMod(a.id.hashCode(),1000000),new Notification.Builder(this,"alerts").setSmallIcon(R.drawable.ic_monitor).setContentTitle((demo?"DEMONSTRAÇÃO · ":replay?"REPLAY · ":!a.revision.isEmpty()?"ATUALIZAÇÃO · ":"")+a.title).setContentText(a.detail).setStyle(new Notification.BigTextStyle().bigText((a.revision.isEmpty()?"":a.revision+" · ")+a.detail)).setContentIntent(open()).setAutoCancel(true).build());}catch(SecurityException e){Prefs.status(this,"Notificações bloqueadas pelo sistema. Confira a permissão de sobreposição.");}
   if(!replay&&!a.quietInformation()&&Prefs.get(this).getBoolean("sound",true)){try{if(tone==null)tone=new ToneGenerator(AudioManager.STREAM_NOTIFICATION,65);tone.startTone(ToneGenerator.TONE_PROP_BEEP,350);}catch(RuntimeException ignored){}}
  }
- @Override public void onDestroy(){destroyed=true;RuntimeDiagnostics.stop();brent.close();rain.close();voiceNotice.hide();try{unregisterReceiver(screenChanges);}catch(IllegalArgumentException ignored){}if(daily!=null)daily.interrupt();if(executor!=null)executor.shutdownNow();if(historyExecutor!=null)historyExecutor.shutdownNow();main.removeCallbacksAndMessages(null);banner.hide();compact.hide();targetQueue.clear();queue.clear();if(tone!=null)tone.release();super.onDestroy();}
+ @Override public void onDestroy(){destroyed=true;RuntimeDiagnostics.stop();brent.close();rain.close();voiceNotice.hide();try{unregisterReceiver(screenChanges);}catch(IllegalArgumentException ignored){}if(daily!=null)daily.interrupt();if(executor!=null)executor.shutdownNow();if(alexaExecutor!=null)alexaExecutor.shutdownNow();if(historyExecutor!=null)historyExecutor.shutdownNow();main.removeCallbacksAndMessages(null);banner.hide();compact.hide();targetQueue.clear();queue.clear();if(tone!=null)tone.release();super.onDestroy();}
  @Override public IBinder onBind(Intent intent){return null;}
 }
