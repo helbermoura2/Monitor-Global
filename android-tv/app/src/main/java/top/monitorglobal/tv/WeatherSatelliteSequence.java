@@ -49,6 +49,6 @@ final class WeatherSatelliteSequence implements AutoCloseable {
   View host=current;View face=host instanceof FrameLayout&&((FrameLayout)host).getChildCount()>0?((FrameLayout)host).getChildAt(0):host;
   CardMotion.exit(face,context,()->{if(token==generation&&current==host)cancel();});
  }
- void cancel(){generation++;pending=false;armed=false;failed=false;rendered=false;flipExpected=false;main.removeCallbacksAndMessages(null);if(current!=null){try{context.getSystemService(WindowManager.class).removeView(current);}catch(RuntimeException ignored){}current=null;}if(card!=null){card.clear();card=null;}if(frame!=null){frame.close();frame=null;}closeReader();}
+ void cancel(){generation++;pending=false;armed=false;failed=false;rendered=false;flipExpected=false;main.removeCallbacksAndMessages(null);if(current!=null){current.animate().cancel();for(int i=0;i<current.getChildCount();i++)current.getChildAt(i).animate().cancel();try{context.getSystemService(WindowManager.class).removeView(current);}catch(RuntimeException ignored){}current=null;}if(card!=null){card.animate().cancel();card.clear();card=null;}if(frame!=null){frame.close();frame=null;}closeReader();}
  public void close(){closed=true;cancel();if(worker!=null)worker.shutdownNow();}
 }
