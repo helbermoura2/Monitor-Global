@@ -1,0 +1,23 @@
+/* Deliberately inherits the existing phone-rain typography, palette and layout. */
+#brazil-map{position:absolute;inset:0}
+#brazil-status{position:absolute;top:82px;left:12px;right:62px;padding:10px 12px;border:1px solid #47687a;border-radius:9px;background:#071b2bf2;font-size:12px;line-height:1.45;z-index:2}
+#brazil-status[hidden]{display:none}
+.brazil-controls{background:#0c2030;border-top:1px solid #234154;padding:8px 10px}
+.brazil-layers{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+.brazil-layers button{flex:1 0 auto;min-height:41px;min-width:70px;padding:6px 9px;font:700 13px Rajdhani,system-ui;border:1px solid #315670;border-radius:9px;background:#102738;color:#b7d1dd}
+.brazil-layers button[aria-pressed=true]{border-color:#38bdf8;color:#071724;background:#78d5fb}
+#forecast-source a{color:#9bdff6}
+.maplibregl-marker{cursor:pointer}
+.brazil-dot{position:relative;width:52px;min-height:42px;border:0;background:none;color:#f3fbff;padding:0;isolation:isolate}
+.brazil-dot .value{display:block;width:max-content;max-width:66px;margin:auto;border:1px solid #5f9bb4;border-radius:8px;background:#061a2ee8;box-shadow:0 2px 7px #0008;font:700 17px/1 Rajdhani,system-ui;padding:5px 7px;white-space:nowrap}
+.brazil-dot .name{display:block;font:600 9px system-ui,sans-serif;color:#edf6ff;text-shadow:0 1px 4px #000,0 1px 3px #000;white-space:nowrap}
+.brazil-dot[data-selected=true] .value{outline:2px solid #8ee8ff}
+.brazil-dot[data-layer=wind] .value{color:#90e9ff}
+.brazil-dot[data-layer=rain] .value{color:#c4edff}
+.brazil-dot[data-layer=pressure] .value{color:#ffdf94}
+.brazil-dot .arrow{display:none;width:12px;height:18px;position:absolute;left:calc(50% - 6px);top:-17px;color:#83eeff;font:900 18px/18px system-ui;text-shadow:0 0 6px #005980}
+.brazil-dot[data-layer=wind] .arrow{display:block;animation:wind-flow 1.5s ease-in-out infinite alternate}
+body.is-paused .arrow{animation-play-state:paused}
+@keyframes wind-flow{from{opacity:.55;translate:0 2px}to{opacity:1;translate:0 -3px}}
+@media(max-width:370px){.brazil-layers button{font-size:12px;padding:4px 6px}.brazil-dot .value{font-size:15px}}
+@media(prefers-reduced-motion:reduce){.brazil-dot .arrow{animation:none!important}}
