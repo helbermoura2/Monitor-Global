@@ -21,3 +21,23 @@ body.is-paused .arrow{animation-play-state:paused}
 @keyframes wind-flow{from{opacity:.55;translate:0 2px}to{opacity:1;translate:0 -3px}}
 @media(max-width:370px){.brazil-layers button{font-size:12px;padding:4px 6px}.brazil-dot .value{font-size:15px}}
 @media(prefers-reduced-motion:reduce){.brazil-dot .arrow{animation:none!important}}
+
+/* Reuse the application's existing Rajdhani typography and dark cyan palette. */
+.brazil-search{position:absolute;z-index:7;top:75px;left:12px;right:12px;max-width:380px;background:#061624ee;border:1px solid #42708788;border-radius:10px;padding:7px;box-shadow:0 2px 8px #0005}
+.brazil-search label{display:block;color:#c0ddeb;font:700 11px Rajdhani,system-ui;letter-spacing:.5px;margin:0 0 3px}
+.brazil-search input{display:block;width:100%;height:42px;border-radius:7px;border:1px solid #33627c;background:#0c2639;color:#edf6ff;font:15px system-ui;padding:8px 10px;outline-offset:2px}
+#city-results{max-height:186px;overflow:auto;margin-top:4px}
+#city-results[hidden]{display:none}
+#city-results button{display:block;width:100%;text-align:left;min-height:39px;border:0;border-bottom:1px solid #25485e;background:#0b2132;color:#eaf7fc;padding:7px 9px;font-size:13px}
+#city-results button:last-child{border:0}
+#brazil-status{top:169px;left:12px;right:12px}
+.brazil-layers button[aria-pressed=true]#radar-toggle,.brazil-layers button[aria-pressed=true]#satellite-toggle{background:#78d5fb;color:#071724}
+.brazil-satellite-control{bottom:12px;right:10px;max-height:70%;overflow-y:auto}
+.brazil-satellite-control summary{gap:5px}
+.radar-control{position:absolute;left:10px;bottom:10px;z-index:5;max-width:245px;padding:8px;border:1px solid #4ca9bd8c;border-radius:9px;background:#061624ee;box-shadow:0 2px 8px #0005}
+.radar-control[hidden]{display:none}
+.radar-control button{min-height:35px;min-width:70px;padding:4px 8px;font-size:12px}
+.radar-control .radar-actions{display:flex;gap:7px;align-items:center}
+.radar-control small{display:block;color:#c9e4ef;font-size:10px;margin-top:5px}
+.radar-control a{color:#8ee4ff}
+.radar-control input{width:100%;accent-color:#38bdf8}
