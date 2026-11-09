@@ -3,6 +3,7 @@
 // No shared secret, Alexa password, or device credential in public GitHub.
 const Alexa=require('ask-sdk');
 const AWS=require('aws-sdk');
+const https=require('https');
 const {DynamoDbPersistenceAdapter}=require('ask-sdk-dynamodb-persistence-adapter');
 const {commandForIntent,normalizePairCode}=require('./commands');
 const API='https://black-sky-9ba0.terrestre.workers.dev/alexa/v1';
@@ -13,13 +14,32 @@ const adapter=new DynamoDbPersistenceAdapter({
 });
 const response=(input,spoken,keep=false)=>{const b=input.responseBuilder.speak(spoken);if(keep)b.reprompt('Pode dizer Brent, temperatura ou sismo no Brasil.');return b.withShouldEndSession(!keep).getResponse();};
 const isIntent=(h,name)=>Alexa.getRequestType(h.requestEnvelope)==='IntentRequest'&&Alexa.getIntentName(h.requestEnvelope)===name;
-async function callBridge(path,body,token=''){
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3800);
- try{
-  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body),signal:controller.signal,redirect:'error'});
-  const parsed=await r.json().catch(()=>({}));
-  return {ok:r.ok,status:r.status,data:parsed};
- }finally{clearTimeout(timer);}
+// Alexa-hosted Node.js can still use Node 16. Do not rely on global fetch().
+function callBridge(path,body,token=''){
+ return new Promise((resolve,reject)=>{
+  const payload=JSON.stringify(body);
+  const url=new URL(API+path);
+  const headers={'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)};
+  if(token)headers.Authorization='Bearer '+token;
+  const req=https.request(url,{method:'POST',headers,timeout:3800},res=>{
+   if(res.statusCode>=300&&res.statusCode<400){res.resume();reject(new Error('redirect refused'));return;}
+   const chunks=[];let size=0;
+   res.on('data',chunk=>{
+    size+=chunk.length;
+    if(size>4096){req.destroy(new Error('response too large'));return;}
+    chunks.push(chunk);
+   });
+   res.on('end',()=>{
+    try{
+     const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+     resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode,data});
+    }catch{resolve({ok:false,status:res.statusCode,data:{}});}
+   });
+  });
+  req.on('timeout',()=>req.destroy(new Error('request timed out')));
+  req.on('error',reject);
+  req.end(payload);
+ });
 }
 const Launch={
  canHandle:h=>Alexa.getRequestType(h.requestEnvelope)==='LaunchRequest',
