@@ -7,6 +7,7 @@ import {handleTvBrent} from "./worker/tv-brent.mjs";
 import {handleTvWeather,TV_WEATHER_POLICY} from "./worker/tv-weather.mjs";
 import {handleTvRain,TV_RAIN_POLICY} from "./worker/tv-rain.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
+import {handleAlexaRelay} from "./worker/alexa-voice-bridge.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
 import {queryImageTsunami,imageTsunamiVersion} from "./image-tsunami-status.mjs";
@@ -1195,6 +1196,7 @@ export class EarthquakeAlertDelivery {
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
+            if(new URL(request.url).pathname.startsWith('/alexa/v1/'))return handleAlexaRelay(request,this.state.storage);
             return withKvUsage(this.env,async measuredEnv=>{
             if(new URL(request.url).pathname==='/__source-health')return Response.json({...await sourceObjectHealth(this.sourceCache),checkpointIntervalSeconds:900,persistenceDegraded:!!this.sourceCache.lastFailure});
             if(sourcePolicy(request,ALLOWED_HOSTS)){const response=await handleSourceInObject(request,measuredEnv,this.sourceCache,()=>handleWorkerRequest(request,{...measuredEnv,SHARED_SOURCE_INTERNAL:true}),ALLOWED_HOSTS);await this.sourceCache.flush();return response;}
@@ -1944,6 +1946,12 @@ async function handleWorkerRequest(request,env,ctx){
         if (reqUrl.pathname === '/weather-briefing') return handleWeatherBriefing(request,env);
         if (reqUrl.pathname === '/weather-outlook') return handleRainOutlook(request,env);
         if (reqUrl.pathname === '/seismic-insight') return handleSeismicInsight(request,env);
+        if(reqUrl.pathname.startsWith('/alexa/v1/')){
+            // Dedicated existing DO class instance: no new migration, no KV,
+            // consistent one-time pairing and low-latency private commands.
+            if(!env.EARTHQUAKE_ALERTS)return json({error:'relay_unavailable'},503);
+            return env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('private-tv-alexa-v1')).fetch(request);
+        }
         if (reqUrl.pathname === '/tv-brent') return handleTvBrent(request,env);
         if (reqUrl.pathname === '/tv-weather') return handleTvWeather(request,env);
         if (reqUrl.pathname === '/tv-rain') return handleTvRain(request,env);
