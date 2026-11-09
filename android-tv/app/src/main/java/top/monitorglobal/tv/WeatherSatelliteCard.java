@@ -21,8 +21,8 @@ final class WeatherSatelliteCard extends LinearLayout {
   map=new ImageView(c);map.setScaleType(ImageView.ScaleType.FIT_CENTER);
   map.setContentDescription("Imagem infravermelha do "+frame.scope.name+" com referência de São Paulo");
   map.setImageBitmap(frame.image);
-  content.addView(map,new LayoutParams(-1,large?dp(280):dp(225)));
-  addView(content,new LayoutParams(-1,-2));
+  content.addView(map,new LayoutParams(-1,large?0:dp(225),large?1:0));
+  addView(content,new LayoutParams(-1,large?0:-2,large?1:0));
 
   LinearLayout footer=TvCardStyle.footer(c);
   label(footer,"Temperatura de brilho · °C",large?16:13,TvCardStyle.WHITE,brand);
