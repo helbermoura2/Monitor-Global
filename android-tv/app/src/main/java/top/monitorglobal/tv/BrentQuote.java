@@ -27,7 +27,7 @@ final class BrentQuote {
  }
  static boolean due(long lastSlot,long now){
   long start=slot(now);
-  return marketOpen(now)&&now>=start&&now<start+30*MINUTE&&lastSlot!=start;
+  return marketOpen(now)&&now>=start&&now<start+45*MINUTE&&lastSlot!=start;
  }
  static long delay(long now){return delay(now,0);}
  static long delay(long now,long shownSlot){
@@ -36,7 +36,7 @@ final class BrentQuote {
   if(!marketOpen(now)||shownSlot==start&&now>=start)
    return Math.max(1,Instant.ofEpochMilli(now).atZone(BRASIL).truncatedTo(ChronoUnit.HOURS).plusHours(1).withMinute(15).toInstant().toEpochMilli()-now);
   if(now<start)return Math.max(1,start-now);
-  if(now<start+30*MINUTE)return 60000;
+  if(now<start+45*MINUTE)return 60000;
   return Math.max(1,Instant.ofEpochMilli(now).atZone(BRASIL).truncatedTo(ChronoUnit.HOURS).plusHours(1).withMinute(15).toInstant().toEpochMilli()-now);
  }
  private static boolean price(double n){return Double.isFinite(n)&&n>=5&&n<=400;}
