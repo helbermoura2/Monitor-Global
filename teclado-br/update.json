@@ -2,11 +2,11 @@
   "schema": "teclado-br-updates-v1",
   "enabled": true,
   "packageName": "br.com.tecladobr.heli.debug",
-  "versionCode": 9011,
-  "versionName": "0.9.2-beta.10-heli3.6",
-  "apkUrl": "https://github.com/helbermoura2/teclado-br/releases/download/heli-0.9.2-beta.10/teclado-br-heli-0.9.2-beta.10.apk",
-  "releaseUrl": "https://github.com/helbermoura2/teclado-br/releases/tag/heli-0.9.2-beta.10",
-  "sha256": "9737c7a6e7cd7183129328fa2f536bd819ca2728dc5a455b62ba70b26b92e03b",
+  "versionCode": 9012,
+  "versionName": "0.9.2-beta.11-heli3.6",
+  "apkUrl": "https://github.com/helbermoura2/teclado-br/releases/download/heli-0.9.2-beta.11/teclado-br-heli-0.9.2-beta.11.apk",
+  "releaseUrl": "https://github.com/helbermoura2/teclado-br/releases/tag/heli-0.9.2-beta.11",
+  "sha256": "70ab05abd45132e0ecf0a6d7c05613193cb2d8680158d53ecf22dd7265f2224f",
   "signerSha256": "b758875ca8380d3b2ba0aa7b2b34a17f785aac3d0c4d1874674266a8877e9d45",
-  "sizeBytes": 26613283
+  "sizeBytes": 26617527
 }
