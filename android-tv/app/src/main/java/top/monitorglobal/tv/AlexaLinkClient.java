@@ -46,7 +46,7 @@ final class AlexaLinkClient {
     JSONObject response=request("/register","POST","",new JSONObject());
     String token=response.getString("deviceToken"),pin=response.getString("code");
     if(!token.matches("[a-f0-9]{64}")||!pin.matches("[0-9]{6}"))throw new IOException("Vínculo inválido");
-    Prefs.get(activity).edit().putString(TOKEN_PREF,token).remove(LAST_COMMAND_PREF).apply();
+    Prefs.get(activity).edit().putString(TOKEN_PREF,token).putBoolean("alexaLinked",false).remove(LAST_COMMAND_PREF).apply();
     result="Código de vínculo: "+pin+"\n\nNa Echo ou no controle do Fire Stick, diga:\n"
      +"“Peça ao Monitor Global para vincular código "+pin+"”.\n\n"
      +"O código expira em 10 minutos. Use a mesma conta Amazon no dispositivo e no portal de desenvolvedor.\n\n"
@@ -63,6 +63,9 @@ final class AlexaLinkClient {
  static Command next(Context context) throws Exception {
   String token=token(context);if(token.isEmpty())return null;
   JSONObject body=request("/next","GET",token,null);
+  boolean linked=body.optBoolean("linked",false);
+  if(Prefs.get(context).getBoolean("alexaLinked",false)!=linked)
+   Prefs.get(context).edit().putBoolean("alexaLinked",linked).apply();
   JSONObject pending=body.optJSONObject("command");
   if(pending==null)return null;
   String id=pending.optString("id"),type=pending.optString("type");
