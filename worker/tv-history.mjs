@@ -4,16 +4,17 @@ import {fetchGlobalSupplements} from './global-seismic-data.mjs';
 import {globalFeature} from './tv-seismic-catalog.mjs';
 import {tvSnapshot} from './tv-snapshot.mjs';
 const pending=new Map();
+const BRAZIL_VOICE_WINDOW_MS=72*3600000;
 export function brasiliaDay(now){return new Date(now-3*3600000).toISOString().slice(0,10);}
 export function historyPeriod(view,now){
- const complete=view==='completed',day=brasiliaDay(now-(complete?86400000:0)),start=view==='brazil'?now-24*3600000:Date.parse(day+'T00:00:00-03:00');
+ const complete=view==='completed',day=brasiliaDay(now-(complete?86400000:0)),start=view==='brazil'?now-BRAZIL_VOICE_WINDOW_MS:Date.parse(day+'T00:00:00-03:00');
  return {day,complete,start,end:complete?start+86400000:now+1};
 }
 export function historySnapshot(features,view,now=Date.now()){
  const {day,start,end,complete}=historyPeriod(view,now),brazil=view==='brazil',summary=view!=='replay'&&!brazil;
  const selected=features.filter(f=>Number.isFinite(f.properties?.time)&&f.properties.time>=(brazil?start:summary?start:now-72*3600000)&&f.properties.time<end&&(!brazil||f.brazil===true));
  const snapshot=tvSnapshot({features:selected,ok:true},{ok:false,items:[]},now,{maxAge:72*3600000,minMagnitude:brazil?-5:summary?.1:6});
- snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake').sort(summary?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,brazil?5:summary?5:1);
+ snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake').sort(summary?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,brazil?1:summary?5:1);
  return {...snapshot,view,day,asOf:now,complete};
 }
 export async function handleTvHistory(request,{view,now=Date.now(),cache=globalThis.caches?.default,fetcher=fetch,regional=collectTvQuakes,supplemental=fetchGlobalSupplements,env}={}){
@@ -32,7 +33,7 @@ export async function handleTvHistory(request,{view,now=Date.now(),cache=globalT
     // Report a source failure separately from an observed zero-event result.
     const regionalData=await regional(env);
     const catalogs=regionalData.catalogs||{};
-    if(!Object.values(catalogs).some(Boolean))throw Error('Brazilian seismic catalogues unavailable');
+    if(!['USP','USGS_BR','EMSC','GEOFON'].some(source=>catalogs[source]===true))throw Error('Brazilian seismic catalogues unavailable');
     const merged=mergeTvCatalog([],regionalData.features.filter(f=>f.brazil===true),now)
      .map(row=>({...row.feature,tvId:row.id,aliases:row.aliases}));
     const result=historySnapshot(merged,view,now);
