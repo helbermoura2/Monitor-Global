@@ -35,10 +35,12 @@ public class BrentQuoteTest {
   assertTrue(BrentQuote.due(0,start));
   assertFalse(BrentQuote.due(start,start+60000));
   assertTrue(BrentQuote.due(0,start+29*60000));
-  assertFalse(BrentQuote.due(0,start+30*60000));
+  assertTrue(BrentQuote.due(0,start+44*60000));
+  assertFalse(BrentQuote.due(0,start+45*60000));
   assertEquals(60000,BrentQuote.delay(start));
   assertEquals(15*60000,BrentQuote.delay(ten));
-  assertEquals(30*60000,BrentQuote.delay(start+30*60000));
+  assertEquals(60000,BrentQuote.delay(start+30*60000));
+  assertEquals(15*60000,BrentQuote.delay(start+45*60000));
   // No 1-minute wakeups after showing a price in the current hour.
   assertEquals(59*60000,BrentQuote.delay(start+60000,start));
   // No minute-by-minute wakeups during the Friday/Saturday market closure.
