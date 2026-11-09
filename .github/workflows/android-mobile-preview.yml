@@ -74,7 +74,7 @@ jobs:
               return re.search(r'Signer #1 certificate SHA-256 digest: (\w+)',result).group(1)
           old,new=signer(previous),signer('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
           print(json.dumps({'previousSigner':old,'newSigner':new,'sameSigner':old==new}))
-          if old != new and old != '1b7520e25838b9050e9a26203f70c298927e4dbe3d3005c54e6118d0c7a13fce':
+          if old != new:
               raise SystemExit('Preview signing identity changed unexpectedly; refusing publication.')
           PY
       - name: Check packaged phone identity and permissions
@@ -180,7 +180,7 @@ jobs:
           pathlib.Path('preview-notes.md').write_text(notes)
           import hashlib,json,subprocess,os
           gradle=pathlib.Path('android-mobile/app/build.gradle').read_text()
-          version_code=int(re.search(r"versionCode\\s+(\\d+)",gradle).group(1))
+          version_code=int(re.search(r"versionCode\s+(\d+)",gradle).group(1))
           apk=pathlib.Path('preview-apk/monitor-global-mobile-preview.apk')
           apksigner=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
           certs=subprocess.check_output([str(apksigner),'verify','--print-certs',str(apk)],text=True)
@@ -188,7 +188,7 @@ jobs:
           if not signer: raise SystemExit('Cannot verify signing certificate')
           certificate=signer.group(1).replace(':','').lower()
           manifest={'schema':1,'repository':'helbermoura2/Monitor-Global','channel':'mobile-preview','packageName':'top.monitorglobal.mobile.dev','release':{'enabled':True,'versionCode':version_code,'versionName':version+'-teste','url':'https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/monitor-global-mobile-preview.apk','sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'certificateSha256':certificate}}
-          pathlib.Path('preview-apk/mobile-update.json').write_text(json.dumps(manifest,indent=2)+'\\n')
+          pathlib.Path('preview-apk/mobile-update.json').write_text(json.dumps(manifest,indent=2)+'\n')
           PY
           if gh release view mobile-preview >/dev/null 2>&1; then
             gh release edit mobile-preview --prerelease --title 'Monitor Global Celular · versão de teste' --notes-file preview-notes.md

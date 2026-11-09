@@ -3,7 +3,7 @@ import org.junit.Test;import static org.junit.Assert.*;
 import org.json.JSONObject;
 
 public class PhoneUpdateChannelTest {
- private String json(String packageName,String url,String sha,String cert,long code){
+ private String json(String packageName,String url,String sha,String cert,long code)throws Exception{
   return new JSONObject().put("schema",1).put("repository","helbermoura2/Monitor-Global").put("channel","mobile-preview").put("packageName",packageName)
     .put("release",new JSONObject().put("enabled",true).put("versionCode",code).put("versionName","0.1.9-teste").put("url",url).put("sha256",sha).put("certificateSha256",cert)).toString();
  }

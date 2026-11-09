@@ -16,7 +16,8 @@ final class PhoneUpdater {
  private final Activity activity;
  private final Handler main=new Handler(Looper.getMainLooper());
  private final ExecutorService executor=Executors.newSingleThreadExecutor();
- private boolean busy,closed,waitingPermission;
+ private boolean busy,waitingPermission;
+ private volatile boolean closed;
  private PhoneUpdateChannel.Release verified;
  private AlertDialog dialog;
  PhoneUpdater(Activity a){activity=a;}
