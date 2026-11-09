@@ -40,5 +40,5 @@ final class RainOverlay {
    },duration);return true;
   }catch(RuntimeException e){hide();Prefs.status(context,"Chuva: confira a permissão de exibição sobre outros aplicativos.");return false;}
  }
- void hide(){completed=null;main.removeCallbacksAndMessages(null);if(previewRain!=null){previewRain.stop();previewRain=null;}if(current!=null){current.animate().cancel();try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
+ void hide(){completed=null;main.removeCallbacksAndMessages(null);if(previewRain!=null){previewRain.stop();previewRain=null;}if(current!=null){current.animate().cancel();if(current instanceof ViewGroup){ViewGroup group=(ViewGroup)current;for(int i=0;i<group.getChildCount();i++)group.getChildAt(i).animate().cancel();}try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
 }
