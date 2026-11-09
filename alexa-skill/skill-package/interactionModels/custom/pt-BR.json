@@ -1,0 +1,81 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "monitor global",
+      "intents": [
+        {
+          "name": "LinkIntent",
+          "slots": [
+            {
+              "name": "codigo",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "vincular código {codigo}",
+            "conectar código {codigo}",
+            "vincular {codigo}",
+            "conectar {codigo}",
+            "usar código {codigo}",
+            "registrar código {codigo}"
+          ]
+        },
+        {
+          "name": "BrentIntent",
+          "slots": [],
+          "samples": [
+            "mostre o brent",
+            "mostrar o brent",
+            "quero ver o brent",
+            "cotação do brent",
+            "qual o preço do brent",
+            "mostre a cotação do petróleo",
+            "abrir o card do brent"
+          ]
+        },
+        {
+          "name": "TempoIntent",
+          "slots": [],
+          "samples": [
+            "mostre a temperatura",
+            "mostrar a temperatura em são paulo",
+            "temperatura em são paulo",
+            "mostre o tempo",
+            "ver a previsão do tempo",
+            "mostre o clima",
+            "abrir o card do tempo"
+          ]
+        },
+        {
+          "name": "BrasilIntent",
+          "slots": [],
+          "samples": [
+            "mostre o último sismo no brasil",
+            "replay do último sismo no brasil",
+            "último terremoto no brasil",
+            "mostre os terremotos no brasil",
+            "quero ver os sismos brasileiros",
+            "mostre o card de sismo no brasil"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}
