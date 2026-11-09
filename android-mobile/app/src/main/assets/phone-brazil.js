@@ -82,7 +82,7 @@ function selectCity(p){
  if(!p)return;
  $('city-search').value=p.name+', '+p.uf;$('city-results').hidden=true;
  if(city.id===p.id)return;
- requestId++;controller?.abort();stop();city={id:p.id,name:p.name,uf:p.uf,lat:p.lat,lon:p.lon};forecast=null;lastSuccess=0;
+ requestId++;controller?.abort();controller=null;loading=false;stop();city={id:p.id,name:p.name,uf:p.uf,lat:p.lat,lon:p.lon};forecast=null;lastSuccess=0;
  $('frame').disabled=true;$('play').disabled=true;$('place').textContent=city.name.toUpperCase()+' · '+city.uf;
  $('headline').textContent='Consultando '+city.name+'…';$('facts').replaceChildren();
  createMarker();if(map)map.jumpTo({center:[city.lon,city.lat],zoom:Math.max(5,map.getZoom())});
