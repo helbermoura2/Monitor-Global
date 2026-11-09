@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const M=window.PhoneBrazilModel, $=id=>document.getElementById(id);
-const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm/h'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'}};
+const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm em 1 h'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'}};
 let map=null,markers=[],ready=false,active=true,closed=false,loading=false,controller=null,timer=0,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,chosen=13;
 const CACHE_MS=3*3600000, MIN_RETRY=10*60000, MAX_DAILY=8, CACHE_KEY='mg-brazil-forecast-v1', BUDGET_KEY='mg-brazil-budget-v1', ATTEMPT_KEY='mg-brazil-last-attempt-v1';
 function stored(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null;}}
@@ -29,7 +29,7 @@ function showValues(){
  $('place').textContent=p.name.toUpperCase()+' · BRASIL';
  $('headline').textContent=round(selectedValue(chosen,LAYERS[layer].field))+' '+LAYERS[layer].unit+' · '+LAYERS[layer].label;
  const facts=$('facts');facts.replaceChildren();
- for(const entry of [[temperature.toFixed(0)+' °C','Temperatura'],[wind.toFixed(0)+' km/h','Vento 10 m'],[rain.toFixed(1)+' mm/h','Chuva prevista'],[pressure.toFixed(0)+' hPa','Pressão']]){
+ for(const entry of [[temperature.toFixed(0)+' °C','Temperatura'],[wind.toFixed(0)+' km/h','Vento 10 m'],[rain.toFixed(1)+' mm','Chuva em 1 h'],[pressure.toFixed(0)+' hPa','Pressão']]){
   const cell=document.createElement('div'),strong=document.createElement('strong');strong.textContent=entry[0];cell.append(strong,document.createTextNode(entry[1]));facts.appendChild(cell);
  }
  adjustDensity();
