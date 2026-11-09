@@ -38,3 +38,20 @@ test('invalid location, time, source, values and coverage are rejected',()=>{
  rows=valid();rows[1].hourly.wind_direction_10m[8]=400;assert.equal(M.parse(rows,now),null);
  rows=valid().slice(1);assert.equal(M.parse(rows,now),null);
 });
+
+
+test('Campinas and all IBGE-listed municipalities can be selected offline and forecast individually',()=>{
+ const cities=JSON.parse(readFileSync(new URL('../../assets/weather/br-municipalities.json',import.meta.url),'utf8'));
+ assert.ok(cities.length>5500);
+ const c=cities.find(row=>row[1]==='Campinas'&&row[2]==='SP');
+ assert.ok(c);
+ const place={id:c[0],name:c[1],uf:c[2],lon:c[3],lat:c[4]};
+ const response=valid()[0];response.latitude=place.lat;response.longitude=place.lon;
+ const parsed=M.parse(response,now,[place]);
+ assert.ok(parsed);
+ assert.equal(parsed.places[0].name,'Campinas');
+ assert.equal(M.value(parsed,0,0,'temperature_2m'),24);
+ assert.equal(new URL(M.url([place])).searchParams.get('latitude'),String(place.lat));
+ assert.equal(new URL(M.url([place])).searchParams.get('longitude'),String(place.lon));
+ assert.equal(M.parse({...response,latitude:0},now,[place]),null);
+});
