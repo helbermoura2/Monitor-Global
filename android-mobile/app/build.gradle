@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 9
-  versionName '0.1.8'
+  versionCode 11
+  versionName '0.1.10'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -37,6 +37,7 @@ tasks.register('preparePhoneAssets', Sync) {
  from('../../js') { include 'brazil-satellite-model.js'; include 'brazil-satellite.js' }
  from('../../css') { include 'brazil-satellite.css' }
  from('../../data') { include 'brazil-satellite-border.json'; into 'data' }
+ from('../../assets/weather') { include 'br-municipalities.json'; into 'data' }
  from('../../vendor') { include 'maplibre-gl.js'; include 'maplibre-gl.css'; into 'vendor' }
  into layout.buildDirectory.dir('generated/phoneAssets')
 }

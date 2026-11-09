@@ -6,9 +6,14 @@ permissions = subprocess.check_output([aapt, "dump", "permissions", apk], text=T
 assert "package: name='top.monitorglobal.mobile.dev'" in badging, badging
 assert "PhoneActivity" in badging, "Phone launcher missing"
 print(next(line for line in badging.splitlines() if line.startswith("package:")))
-for unwanted in ["SYSTEM_ALERT_WINDOW", "FOREGROUND_SERVICE", "RECEIVE_BOOT_COMPLETED", "REQUEST_INSTALL_PACKAGES", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]:
+for unwanted in ["SYSTEM_ALERT_WINDOW", "FOREGROUND_SERVICE", "RECEIVE_BOOT_COMPLETED", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]:
     assert unwanted not in permissions, unwanted
 assert "android.permission.INTERNET" in permissions
+# Only the user-initiated verified updater may request installations.
+assert "android.permission.REQUEST_INSTALL_PACKAGES" in permissions
+with zipfile.ZipFile(apk) as packaged:
+    manifest = packaged.read("AndroidManifest.xml")
+    assert manifest, "Packaged AndroidManifest missing"
 with tempfile.TemporaryDirectory(prefix="monitor-phone-assets-") as temporary:
     assets = pathlib.Path(temporary)
     with zipfile.ZipFile(apk) as packaged:

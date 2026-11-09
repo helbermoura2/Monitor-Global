@@ -37,7 +37,8 @@ final class PhoneMapView extends FrameLayout {
  static final String ASSET_PREFIX="/assets/v"+top.monitorglobal.mobile.BuildConfig.VERSION_CODE+"/";
  static final String PAGE="https://appassets.androidplatform.net"+ASSET_PREFIX+"phone-map.html";
  static final String RAIN_PAGE="https://appassets.androidplatform.net"+ASSET_PREFIX+"phone-rain.html";
- private final boolean rainPage;
+ static final String BRAZIL_PAGE="https://appassets.androidplatform.net"+ASSET_PREFIX+"phone-brazil.html";
+ private final boolean rainPage,brazilPage;
  private final Handler main=new Handler(Looper.getMainLooper());
  private final Listener listener;
  private final WebViewAssetLoader loader;
@@ -48,8 +49,9 @@ final class PhoneMapView extends FrameLayout {
  private String pendingEvents="[]",pendingFocus="";
 
  PhoneMapView(Context context,Listener selected){this(context,selected,false);}
- PhoneMapView(Context context,Listener selected,boolean rain){
-  super(context);listener=selected;rainPage=rain;setBackgroundColor(0xff071724);
+ PhoneMapView(Context context,Listener selected,boolean rain){this(context,selected,rain,false);}
+ PhoneMapView(Context context,Listener selected,boolean rain,boolean brazil){
+  super(context);listener=selected;rainPage=rain;brazilPage=brazil;setBackgroundColor(0xff071724);
   loader=new WebViewAssetLoader.Builder().addPathHandler(ASSET_PREFIX,new WebViewAssetLoader.AssetsPathHandler(context)).build();
   open();
  }
@@ -58,7 +60,7 @@ final class PhoneMapView extends FrameLayout {
   try{
    WebView current=new WebView(getContext());web=current;
    current.setBackgroundColor(0xff071724);
-   WebSettings settings=current.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(false);
+   WebSettings settings=current.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(brazilPage);
    settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setAllowFileAccessFromFileURLs(false);settings.setAllowUniversalAccessFromFileURLs(false);
    settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setGeolocationEnabled(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setSupportMultipleWindows(false);settings.setMediaPlaybackRequiresUserGesture(true);settings.setSafeBrowsingEnabled(true);
    current.addJavascriptInterface(bridge,"MonitorMapBridge");
@@ -66,7 +68,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&satelliteResource(uri))||(rainPage&&(rainResource(uri)||streetResource(uri)))?null:blocked();
+     return tileResource(uri)||(!rainPage&&!brazilPage&&satelliteResource(uri))||(rainPage&&(rainResource(uri)||streetResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -78,17 +80,19 @@ final class PhoneMapView extends FrameLayout {
     @Override public void onReceivedHttpError(WebView view,WebResourceRequest request,WebResourceResponse response){if(request.isForMainFrame()&&web==view)unavailable();}
     @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){if(web==view)unavailable();return true;}
    });
-   addView(current,new LayoutParams(-1,-1));current.loadUrl(rainPage?RAIN_PAGE:PAGE);if(!active)current.onPause();
+   addView(current,new LayoutParams(-1,-1));current.loadUrl(brazilPage?BRAZIL_PAGE:rainPage?RAIN_PAGE:PAGE);if(!active)current.onPause();
   }catch(RuntimeException failure){unavailable();}
  }
- private boolean allowedPage(Uri uri){return localAsset(uri)&&(rainPage?(ASSET_PREFIX+"phone-rain.html").equals(uri.getPath()):mainPage(uri))&&uri.getQuery()==null;}
+ private boolean allowedPage(Uri uri){return localAsset(uri)&&(brazilPage?(ASSET_PREFIX+"phone-brazil.html").equals(uri.getPath()):rainPage?(ASSET_PREFIX+"phone-rain.html").equals(uri.getPath()):mainPage(uri))&&uri.getQuery()==null;}
+ static boolean radarResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getQuery()!=null)return false;String host=uri.getHost(),path=uri.getPath();if("api.rainviewer.com".equalsIgnoreCase(host))return "/public/weather-maps.json".equals(path);return "tilecache.rainviewer.com".equalsIgnoreCase(host)&&path!=null&&path.matches("/v2/radar/[0-9]{9,12}/256/[0-6]/[0-9]+/[0-9]+/2/1_1[.]png");}
+ static boolean forecastResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"api.open-meteo.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&"/v1/forecast".equals(uri.getPath())&&uri.getQuery()!=null&&uri.getQuery().length()<=1800&&uri.getQueryParameter("apikey")==null&&uri.getQueryParameter("latitude")!=null&&uri.getQueryParameter("longitude")!=null;}
  static boolean rainResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"black-sky-9ba0.terrestre.workers.dev".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String path=uri.getPath();return ("/rainbow-snapshot".equals(path)&&uri.getQuery()==null)||("/tv-rain".equals(path)&&"area=liberdade".equals(uri.getQuery()))||(path!=null&&path.matches("/rainbow-tile/[0-9]+/[0-9]+/[0-7]/[0-9]+/[0-9]+")&&uri.getQuery()==null);}
  static boolean mainPage(Uri uri){return localAsset(uri)&&(ASSET_PREFIX+"phone-map.html").equals(uri.getPath())&&uri.getQuery()==null;}
  static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith(ASSET_PREFIX);}
  static boolean streetResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Street_Map/MapServer/tile/");}
  static boolean tileResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Imagery/MapServer/tile/");}
  static boolean satelliteResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String p=uri.getPath();if("/legends/Clean_Longwave_Infrared_Window_Band_H.png".equals(p))return true;String layer=uri.getQueryParameter("LAYERS");if(layer==null)layer=uri.getQueryParameter("LAYER");return "GOES-East_ABI_Band13_Clean_Infrared".equals(layer)&&("/wms/epsg3857/best/wms.cgi".equals(p)||"/wmts/epsg3857/best/wmts.cgi".equals(p));}
- static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.earthdata.nasa.gov".equalsIgnoreCase(host)||"www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host);}
+ static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.earthdata.nasa.gov".equalsIgnoreCase(host)||"www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host)||"open-meteo.com".equalsIgnoreCase(host)||"www.rainviewer.com".equalsIgnoreCase(host);}
  private static WebResourceResponse blocked(){return new WebResourceResponse("text/plain","UTF-8",403,"Blocked",Collections.singletonMap("Cache-Control","no-store"),new ByteArrayInputStream("Recurso indisponível".getBytes(StandardCharsets.UTF_8)));}
 
  void setEvents(List<Alert> values){
@@ -100,15 +104,15 @@ final class PhoneMapView extends FrameLayout {
   pendingEvents=payload.toString();sendEvents();
  }
  void focus(Alert event){if(closed||event==null||!MapFrame.located(event.originLongitude,event.originLatitude))return;try{pendingFocus=new JSONObject().put("id",event.id).put("longitude",event.originLongitude).put("latitude",event.originLatitude).toString();sendFocus();}catch(JSONException ignored){}}
- private void sendEvents(){if(!rainPage&&ready&&active)script("window.MonitorMap&&window.MonitorMap.setEvents(JSON.parse("+quote(pendingEvents)+"))");}
- private void sendFocus(){if(!rainPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
+ private void sendEvents(){if(!rainPage&&!brazilPage&&ready&&active)script("window.MonitorMap&&window.MonitorMap.setEvents(JSON.parse("+quote(pendingEvents)+"))");}
+ private void sendFocus(){if(!rainPage&&!brazilPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
  private static String quote(String value){return JSONObject.quote(value).replace("\u2028","\\u2028").replace("\u2029","\\u2029");}
  private void script(String value){if(web!=null&&!closed)web.evaluateJavascript(value,null);}
  void pause(){active=false;if(web!=null){script("window.MonitorMap&&window.MonitorMap.pause()");web.onPause();}}
  void resume(){if(closed)return;active=true;if(web!=null){web.onResume();script("window.MonitorMap&&window.MonitorMap.resume()");sendEvents();sendFocus();}}
  void close(){if(closed)return;closed=true;ready=false;active=false;main.removeCallbacksAndMessages(null);events.clear();pendingEvents="[]";pendingFocus="";disposeWeb();removeAllViews();}
  private void disposeWeb(){WebView old=web;web=null;if(old!=null){removeView(old);old.removeJavascriptInterface("MonitorMapBridge");old.stopLoading();old.destroy();}}
- private void unavailable(){if(closed)return;ready=false;disposeWeb();removeAllViews();LinearLayout panel=new LinearLayout(getContext());panel.setOrientation(LinearLayout.VERTICAL);panel.setGravity(Gravity.CENTER);int pad=Math.round(20*getResources().getDisplayMetrics().density);panel.setPadding(pad,pad,pad,pad);TextView message=new TextView(getContext());message.setText(rainPage?"Mapa de chuva indisponível. Volte para Tempo para consultar a previsão.":"Mapa indisponível no momento. Os dados dos eventos continuam acessíveis na lista.");message.setTextColor(Color.WHITE);message.setTextSize(17);message.setGravity(Gravity.CENTER);panel.addView(message,new LinearLayout.LayoutParams(-1,-2));Button retry=new Button(getContext());retry.setText("Recarregar mapa");retry.setAllCaps(false);retry.setOnClickListener(v->open());panel.addView(retry,new LinearLayout.LayoutParams(-2,-2));TextView credit=new TextView(getContext());credit.setText("Imagens: Esri e colaboradores");credit.setTextColor(0xffbfd1df);credit.setTextSize(12);credit.setGravity(Gravity.CENTER);panel.addView(credit,new LinearLayout.LayoutParams(-1,-2));addView(panel,new LayoutParams(-1,-1));}
+ private void unavailable(){if(closed)return;ready=false;disposeWeb();removeAllViews();LinearLayout panel=new LinearLayout(getContext());panel.setOrientation(LinearLayout.VERTICAL);panel.setGravity(Gravity.CENTER);int pad=Math.round(20*getResources().getDisplayMetrics().density);panel.setPadding(pad,pad,pad,pad);TextView message=new TextView(getContext());message.setText(brazilPage?"Mapa meteorológico indisponível. Volte para Tempo para tentar novamente.":rainPage?"Mapa de chuva indisponível. Volte para Tempo para consultar a previsão.":"Mapa indisponível no momento. Os dados dos eventos continuam acessíveis na lista.");message.setTextColor(Color.WHITE);message.setTextSize(17);message.setGravity(Gravity.CENTER);panel.addView(message,new LinearLayout.LayoutParams(-1,-2));Button retry=new Button(getContext());retry.setText("Recarregar mapa");retry.setAllCaps(false);retry.setOnClickListener(v->open());panel.addView(retry,new LinearLayout.LayoutParams(-2,-2));TextView credit=new TextView(getContext());credit.setText("Imagens: Esri e colaboradores");credit.setTextColor(0xffbfd1df);credit.setTextSize(12);credit.setGravity(Gravity.CENTER);panel.addView(credit,new LinearLayout.LayoutParams(-1,-2));addView(panel,new LayoutParams(-1,-1));}
  private final class Bridge {
   @JavascriptInterface public void selectEvent(String id){if(id==null||id.length()>1400)return;main.post(()->{if(closed||!active)return;Alert event=events.get(id);if(event!=null&&listener!=null)listener.onEventSelected(event.copy());});}
  }
