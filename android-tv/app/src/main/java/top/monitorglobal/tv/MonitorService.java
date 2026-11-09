@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import android.media.*;import java.util.*;import java.util.concurrent.*;
 public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
- static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW";
+ static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
@@ -30,6 +30,17 @@ public final class MonitorService extends Service {
     Prefs.status(this,"Replay do último aviso regional M5,0–5,9 em 10 segundos, sem novo som. Você pode voltar à TV.");
    }
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
+  if(CHECK_BRENT.equals(action)){
+   if(!Prefs.get(this).getBoolean("enabled",false)){
+    Prefs.get(this).edit().putString("brentStatus","Ative o monitoramento para verificar o Brent real.").apply();
+    stopIfIdle();return START_NOT_STICKY;
+   }
+   ensurePolling();
+   Prefs.get(this).edit().putString("brentStatus","Consulta REAL em 10 segundos · volte ao vídeo da TV.").apply();
+   Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed)brent.checkNow();}};
+   demoTasks.add(task);main.postDelayed(task,10000);
+   return START_STICKY;
   }
   if(WEATHER_NOW.equals(action)){if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();brent.hide();rain.weatherNow();Prefs.status(this,"Meteorologia em 10 segundos. Você pode voltar ao conteúdo da TV.");return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if(SUMMARY_REPLAY.equals(action)||REPLAY.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)||action!=null&&action.startsWith(TEST)){rain.hide();brent.hide();interruptDaily();}
