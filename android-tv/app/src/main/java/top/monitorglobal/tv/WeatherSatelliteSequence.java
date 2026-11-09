@@ -28,8 +28,8 @@ final class WeatherSatelliteSequence implements AutoCloseable {
    boolean firstFace=current.getChildCount()==0;
    current.removeAllViews();if(frame!=null){card=new WeatherSatelliteCard(context,frame,false);current.addView(card,new FrameLayout.LayoutParams(-1,-2));
     if(firstFace&&flipExpected)CardMotion.flipIn(card,context);else CardMotion.enter(card,context);
-    rendered=true;main.postDelayed(()->{if(token==generation)exit(token);},DURATION);}
-   else if(failed){View notice=message("Imagem indisponível nesta consulta. O boletim do tempo continua funcionando.");current.addView(notice,new FrameLayout.LayoutParams(-1,-2));CardMotion.enter(notice,context);main.postDelayed(()->{if(token==generation)exit(token);},ERROR_DURATION);}
+    rendered=true;main.postDelayed(()->{if(token==generation)exit(token);},Math.max(0,DURATION-(CardMotion.enabled()?290:0)));}
+   else if(failed){View notice=message("Imagem indisponível nesta consulta. O boletim do tempo continua funcionando.");current.addView(notice,new FrameLayout.LayoutParams(-1,-2));CardMotion.enter(notice,context);main.postDelayed(()->{if(token==generation)exit(token);},Math.max(0,ERROR_DURATION-(CardMotion.enabled()?290:0)));}
    else{View loading=message("Carregando a imagem de satélite…");current.addView(loading,new FrameLayout.LayoutParams(-1,-2));if(firstFace)CardMotion.enter(loading,context);}
    context.getSystemService(WindowManager.class).updateViewLayout(current,current.getLayoutParams());
   }catch(RuntimeException error){Prefs.get(context).edit().putString("satelliteStatus","Satélite: o sistema impediu a exibição do cartão").apply();cancel();}
