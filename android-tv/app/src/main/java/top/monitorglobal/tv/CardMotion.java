@@ -11,6 +11,7 @@ final class CardMotion {
  private static final long ENTER_MS=360L,EXIT_MS=290L,FLIP_OUT_MS=260L,FLIP_IN_MS=360L;
  private CardMotion(){}
  static boolean enabled(){return ValueAnimator.areAnimatorsEnabled();}
+ static long exitDuration(){return enabled()?EXIT_MS:0;}
  private static int dp(Context c,int value){return TvCardStyle.dp(c,value);}
 
  static void enter(View v,Context c){
