@@ -25,7 +25,10 @@ final class RainOverlay {
   return showCard(s,effect,demo,weather,stormPreview,onCompleted,true,null);
  }
  private boolean showCard(RainForecast.Summary s,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted,boolean compact,BooleanSupplier flipWhenSatelliteReady){
-  hide();long expiry=weather==null?(s==null?0:s.expiresAt):s==null?weather.expiresAt:Math.min(weather.expiresAt,s.expiresAt);long duration=demo?DURATION:Math.min(DURATION,expiry-System.currentTimeMillis()-500);if(duration<=0||!Settings.canDrawOverlays(context))return false;
+  hide();long expiry=weather==null?(s==null?0:s.expiresAt):s==null?weather.expiresAt:Math.min(weather.expiresAt,s.expiresAt);
+  // Match the existing 13-second satellite handoff without changing rain-only timing.
+  long maximum=weather!=null&&flipWhenSatelliteReady!=null?DURATION+750:DURATION;
+  long duration=demo?DURATION:Math.min(maximum,expiry-System.currentTimeMillis()-500);if(duration<=0||!Settings.canDrawOverlays(context))return false;
   try{FrameLayout host=new FrameLayout(context);boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
    boolean preview=stormPreview&&demo;boolean rainfall=effect&&s!=null&&s.rain&&animate;if(rainfall){previewRain=new PreviewRain(context,preview?WeatherPreviewOptions.style(context):2,preview?WeatherPreviewOptions.level(context):RainVisualPolicy.level(s.rate,weather!=null&&weather.stormForecast));host.addView(previewRain,new FrameLayout.LayoutParams(-1,-1));}
    View card=compact?new RainStripView(context,s,demo,preview):new WeatherCardView(context,s,weather,demo,preview);
