@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com; connect-src 'self' https://server.arcgisonline.com https://api.open-meteo.com; worker-src blob:; child-src blob:; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com https://gibs.earthdata.nasa.gov https://tilecache.rainviewer.com; connect-src 'self' https://server.arcgisonline.com https://api.open-meteo.com https://gibs.earthdata.nasa.gov https://api.rainviewer.com https://tilecache.rainviewer.com; worker-src blob:; child-src blob:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Explorar Brasil · Monitor Global</title>
-<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="stylesheet" href="phone-rain.css"><link rel="stylesheet" href="phone-brazil.css">
-<script defer src="vendor/maplibre-gl.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-brazil.js"></script>
+<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="stylesheet" href="phone-rain.css"><link rel="stylesheet" href="brazil-satellite.css"><link rel="stylesheet" href="phone-brazil.css">
+<script defer src="vendor/maplibre-gl.js"></script><script defer src="brazil-satellite-model.js"></script><script defer src="brazil-satellite.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-brazil-radar.js"></script><script defer src="phone-brazil.js"></script>
 </head><body>
 <main>
  <section class="map-panel" aria-label="Mapa meteorológico do Brasil">
@@ -13,6 +13,7 @@
    <div class="map-title"><strong>METEOROLOGIA · BRASIL</strong><span>Previsão por regiões · Open-Meteo</span></div>
    <button type="button" id="recenter" aria-label="Enquadrar o Brasil">⌖</button>
   </div>
+  <div class="brazil-search"><label for="city-search">Pesquisar município brasileiro</label><input id="city-search" type="search" autocomplete="off" spellcheck="false" placeholder="Ex.: Campinas, SP" aria-controls="city-results" aria-autocomplete="list"><div id="city-results" role="listbox" hidden></div></div>
   <div id="brazil-status" role="status">Consultando previsão do Brasil…</div>
   <div class="map-bottom"><div class="frame-badge"><span>PREVISÃO DE MODELO</span><strong id="time-label">Aguardando dados</strong></div></div>
  </section>
@@ -21,7 +22,7 @@
    <button type="button" data-layer="temperature" aria-pressed="true">Temperatura</button>
    <button type="button" data-layer="wind" aria-pressed="false">Vento</button>
    <button type="button" data-layer="rain" aria-pressed="false">Chuva</button>
-   <button type="button" data-layer="pressure" aria-pressed="false">Pressão</button>
+   <button type="button" data-layer="pressure" aria-pressed="false">Pressão</button><button type="button" id="radar-toggle" aria-pressed="false">Radar real</button><button type="button" id="satellite-toggle" aria-pressed="false">Satélite</button>
   </div>
  </section>
  <section class="timeline" aria-label="Linha do tempo da previsão">
@@ -32,10 +33,10 @@
   </div>
  </section>
  <section class="outlook" aria-label="Previsão regional selecionada">
-  <div class="point-heading"><span class="point-dot"></span><strong id="place">BRASIL · PONTOS DE REFERÊNCIA</strong><span id="layer-label">Temperatura</span></div>
+  <div class="point-heading"><span class="point-dot"></span><strong id="place">SÃO PAULO · SP</strong><span id="layer-label">Temperatura</span></div>
   <h1 id="headline" role="status">Carregando previsão…</h1>
   <div id="facts" class="facts"></div>
-  <p id="validity">Os pontos representam localidades consultadas. Não são um campo meteorológico contínuo nem radar.</p>
+  <p id="validity">Previsão pontual para a cidade selecionada. O radar observado e o satélite são camadas independentes.</p>
   <p id="forecast-source">Dados de previsão: Open-Meteo (CC BY 4.0). Não são avisos oficiais. <a href="https://open-meteo.com/" rel="noopener">Fonte</a></p>
  </section>
 </main>
