@@ -15,16 +15,18 @@ const HOUR=3600000;
 function brHour(now){
  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).format(new Date(now)).replace(' ','T');
 }
-function url(){
- const params=new URLSearchParams({latitude:PLACES.map(p=>p.lat).join(','),longitude:PLACES.map(p=>p.lon).join(','),hourly:FIELDS.join(','),timezone:'America/Sao_Paulo',forecast_days:'3',wind_speed_unit:'kmh'});
+function url(places=PLACES){
+ const params=new URLSearchParams({latitude:places.map(p=>p.lat).join(','),longitude:places.map(p=>p.lon).join(','),hourly:FIELDS.join(','),timezone:'America/Sao_Paulo',forecast_days:'3',wind_speed_unit:'kmh'});
  return 'https://api.open-meteo.com/v1/forecast?'+params.toString();
 }
-function parse(payload,now=Date.now()){
- if(!Array.isArray(payload)||payload.length!==PLACES.length)return null;
+function parse(payload,now=Date.now(),places=PLACES){
+ if(!Array.isArray(places)||places.length<1||places.length>20||places.some(p=>!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lon)||p.lat>6||p.lat< -34||p.lon> -32||p.lon< -75))return null;
+ if(places.length===1&&!Array.isArray(payload))payload=[payload];
+ if(!Array.isArray(payload)||payload.length!==places.length)return null;
  let times=null,first=-1;const series=[];
  for(let i=0;i<payload.length;i++){
   const entry=payload[i],hourly=entry&&entry.hourly;
-  if(!hourly||entry.timezone!=='America/Sao_Paulo'||!Number.isFinite(entry.latitude)||!Number.isFinite(entry.longitude)||Math.abs(entry.latitude-PLACES[i].lat)>0.3||Math.abs(entry.longitude-PLACES[i].lon)>0.3)return null;
+  if(!hourly||entry.timezone!=='America/Sao_Paulo'||!Number.isFinite(entry.latitude)||!Number.isFinite(entry.longitude)||Math.abs(entry.latitude-places[i].lat)>0.3||Math.abs(entry.longitude-places[i].lon)>0.3)return null;
   if(!Array.isArray(hourly.time)||hourly.time.length<48||hourly.time.length>96||hourly.time.some(t=>typeof t!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:00$/.test(t)))return null;
   if(times===null){
    times=hourly.time;
@@ -40,10 +42,10 @@ function parse(payload,now=Date.now()){
   }
   series.push(forecast);
  }
- return {series,times,first,at:now};
+ return {series,times,first,at:now,places:places.map(p=>({name:String(p.name),lat:p.lat,lon:p.lon}))};
 }
 function value(data,placeIndex,step,field){
- if(!data||!FIELDS.includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=PLACES.length||!Number.isInteger(step)||step<0||step>8)return null;
+ if(!data||!FIELDS.includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>8)return null;
  return data.series[placeIndex][field][data.first+step*3];
 }
 const api={PLACES,FIELDS,url,parse,value,brHour,HOUR};
