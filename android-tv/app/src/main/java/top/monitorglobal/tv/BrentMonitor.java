@@ -22,8 +22,12 @@ final class BrentMonitor {
   if(response==null)return "Servidor Brent inacessível. Confira a conexão.";
   if(!response.optBoolean("marketOpen",true))return "Brent fechado ou em pausa de negociação.";
   String reason=response.optString("reason","");
+  if(response.optBoolean("directAttempted")){
+   if("source-stale-or-invalid".equals(reason))return "Worker sem preço; Yahoo consultado diretamente na TV, mas sem cotação recente válida.";
+   return "Worker sem preço; tentativa direta da TV ao Yahoo também indisponível. Nova tentativa em até 5 min.";
+  }
   if("source-stale-or-invalid".equals(reason))return "Yahoo sem negociação recente validada. Próxima tentativa automática em até 5 min.";
-  if("source-unavailable".equals(reason))return "Yahoo indisponível (servidores 1 e 2). Próxima tentativa automática em até 5 min.";
+  if("source-unavailable".equals(reason))return "Worker sem cotação do Yahoo. Próxima tentativa automática em até 5 min.";
   return "Não foi possível confirmar uma cotação real recente.";
  }
  void checkNow(){
@@ -57,8 +61,8 @@ final class BrentMonitor {
   if(valid!=null){
    if(overlay.show(valid,false)){
     Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
-    status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance");
-   }
+    status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(quote.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
+   }else status("Cotação real validada, mas a sobreposição foi bloqueada. Verifique a permissão.");
    return;
   }
   if(!busy&&SystemClock.elapsedRealtime()>=nextRetry)load(false);
@@ -76,6 +80,8 @@ final class BrentMonitor {
     if(closed||requestSlot!=knownSlot)return;
     quote=result;
     if(result==null||!result.optBoolean("ok"))status(problem(result));
+    else if(BrentQuote.parse(result,System.currentTimeMillis())==null)
+     status("A fonte respondeu, mas o preço ou horário não passou pela validação da TV.");
     if(manual){
      BrentQuote valid=BrentQuote.parse(result,System.currentTimeMillis());
      if(valid==null){
@@ -87,7 +93,7 @@ final class BrentMonitor {
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
        Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
-      status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance");
+      status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(result.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
      }else status("Cotação real validada, porém falta permissão de sobreposição.");
      return;
     }
@@ -96,16 +102,47 @@ final class BrentMonitor {
   });
  }
  private JSONObject read()throws Exception{
-  HttpURLConnection c=(HttpURLConnection)new URL(URL).openConnection();connection=c;
-  c.setConnectTimeout(7000);c.setReadTimeout(10000);c.setInstanceFollowRedirects(false);
-  c.setRequestProperty("Accept","application/json");c.setRequestProperty("User-Agent","MonitorGlobalTV-Brent/"+BuildConfig.VERSION_NAME);
+  // Prefer the reviewed Cloudflare service. Its real session check may return
+  // source-unavailable when Yahoo blocks Cloudflare egress, even while Yahoo is
+  // accessible from the device network.
+  JSONObject worker=null;
+  try{worker=readRemote(URL,6000,7000,10000);}
+  catch(Exception ignored){ /* Attempt bounded, source-validated device fallback. */ }
+  long now=System.currentTimeMillis();
+  if(worker!=null&&BrentQuote.parse(worker,now)!=null)return worker;
+  if(!BrentQuote.marketOpen(now))return worker;
+  String[] yahoo={
+   "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d",
+   "https://query2.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d"
+  };
+  boolean invalid=false;
+  for(String endpoint:yahoo){
+   try{
+    JSONObject raw=readRemote(endpoint,250000,5000,6500);
+    JSONObject validated=BrentQuote.adaptYahooChart(raw,System.currentTimeMillis());
+    if(validated!=null)return validated;
+    invalid=true;
+   }catch(Exception ignored){ /* Only a second fixed Yahoo address; never invent prices. */ }
+  }
+  return new JSONObject().put("ok",false).put("marketOpen",true)
+   .put("reason",invalid?"source-stale-or-invalid":"source-unavailable")
+   .put("directAttempted",true);
+ }
+ private JSONObject readRemote(String endpoint,int maxBytes,int connectMs,int readMs)throws Exception{
+  HttpURLConnection c=(HttpURLConnection)new URL(endpoint).openConnection();connection=c;
+  c.setConnectTimeout(connectMs);c.setReadTimeout(readMs);c.setInstanceFollowRedirects(false);
+  c.setRequestProperty("Accept","application/json");
+  c.setRequestProperty("User-Agent","MonitorGlobalTV-Brent/"+BuildConfig.VERSION_NAME);
   try{
-   if(c.getResponseCode()!=200)throw new IOException("Unavailable");
-   if(c.getContentLengthLong()>6000)throw new IOException("Oversized quote");
+   if(c.getResponseCode()!=200)throw new IOException("HTTP "+c.getResponseCode());
+   if(c.getContentLengthLong()>maxBytes)throw new IOException("Oversized source");
    ByteArrayOutputStream out=new ByteArrayOutputStream();
    try(InputStream in=c.getInputStream()){
-    byte[] buffer=new byte[1024];int n;
-    while((n=in.read(buffer))!=-1){if(out.size()+n>6000)throw new IOException("Oversized quote");out.write(buffer,0,n);}
+    byte[] buffer=new byte[4096];int n;
+    while((n=in.read(buffer))!=-1){
+     if(out.size()+n>maxBytes)throw new IOException("Oversized source");
+     out.write(buffer,0,n);
+    }
    }
    return new JSONObject(out.toString("UTF-8"));
   }finally{c.disconnect();if(connection==c)connection=null;}
