@@ -27,3 +27,12 @@ O site usa o mesmo símbolo Yahoo e um fallback diário da Stooq; o card TV inte
 O serviço do Worker é uma rota de leitura pública e sem credenciais. Todos os serviços sísmicos e as credenciais existentes são preservados por deploy seguro.
 A distribuição oficial 1.0.60 usa o mesmo mecanismo assinado de atualização **Verificar atualização oficial** já presente no aparelho. Não requer ZIP.
 Testes: `tests/unit/tv-brent.test.mjs`, `BrentQuoteTest.java`, renderização nativa `BrentCardViewTest.java` gerando captura PNG como evidência.
+
+## Diagnóstico e recuperação — correção após teste na TV
+
+- O card fictício só testa a apresentação visual. Não confirma a rede, a rota no Cloudflare nem o estado real das negociações.
+- **Conferir cotação REAL do Brent agora**: botão na seção Brent, com monitoramento ativo. A consulta começa 10 segundos após o comando, permitindo voltar à programação. Se retornar preço real recente, o mesmo card é exibido sem selo fictício; em caso de erro, nenhum valor é inventado.
+- A área **FONTES** passa a apresentar o resultado: mercado fechado/pausa diária, Yahoo indisponível, atualização antiga, falta de sobreposição ou preço real com carimbo de horário.
+- O Worker tenta primeiro Yahoo `query1` e, somente em caso de falha ou preço inválido/antigo, o segundo endereço Yahoo `query2`; ambos são o mesmo fornecedor e as verificações de idade, símbolo e moeda são mantidas.
+- Se a consulta de HH:15 falhar, a TV continua tentando (no máximo a cada cinco minutos) até HH:59, uma exibição por hora. Não usa fechamentos antigos nem valores simulados.
+- Essas mudanças exigem novo deploy seguro do Worker e novo APK oficial assinado da TV; estar na branch de teste não modifica o aparelho instalado.
