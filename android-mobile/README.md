@@ -1,5 +1,7 @@
 # Monitor Global para Android — prévia 0.1.4
 
+> **Em branch de teste:** [Explorar meteorologia do Brasil, cache e avisos opcionais no próprio Android](BRASIL_METEO_PREVIEW.md). Não é APK publicado. A aparência e os serviços existentes permanecem preservados; o teste no aparelho real é obrigatório.
+
 Primeiro aplicativo de celular, independente da instalação da TV. O APK de teste usa o pacote `top.monitorglobal.mobile.dev`; a aplicação principal é `top.monitorglobal.mobile`. O código de apresentação Java mantém o pacote legado dos modelos compartilhados, enquanto namespace, manifesto, recursos e canal de distribuição são próprios do celular.
 
 ## Primeira versão
