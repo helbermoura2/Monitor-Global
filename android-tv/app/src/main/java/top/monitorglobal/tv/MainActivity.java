@@ -35,7 +35,8 @@ public final class MainActivity extends Activity {
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
   section("REPLAY E RESUMOS SÍSMICOS");
-  button("Replay · Buscar último sismo M6+ ou no Brasil (72 h)",v->launch(MonitorService.REPLAY));
+  button("Replay · Último sismo M6+ mundial (72 h)",v->launch(MonitorService.REPLAY_GLOBAL));
+  button("Replay · Último sismo no Brasil (72 h · qualquer magnitude)",v->launch(MonitorService.REPLAY_BRAZIL));
   button("Maiores de hoje · parcial até agora",v->launch(MonitorService.SUMMARY_TODAY));
   button("Replay · Resumo de ontem completo (6 s por sismo)",v->launch(MonitorService.SUMMARY_REPLAY));
   button("3 · Testar sismo com indicação de tsunami (fictício)",v->launch(MonitorService.TEST));
@@ -93,7 +94,7 @@ public final class MainActivity extends Activity {
   label("À meia-noite: resumo do dia encerrado. Se a TV estiver desligada ou sem internet, tenta recuperar o último dia encerrado ao retomar o monitoramento. Alertas reais têm prioridade; o resumo interrompido volta depois.",15,false);
   button("Duração: "+Prefs.get(this).getInt("seconds",20)+" segundos",v->{int current=Prefs.get(this).getInt("seconds",20),next=current==15?20:current==20?30:current==30?60:current==60?90:current==90?120:15;Prefs.get(this).edit().putInt("seconds",next).apply();((Button)v).setText("Duração: "+next+" segundos");});
   label("Depois de ativar, volte ao conteúdo que deseja assistir. A faixa não captura os botões do controle e fecha automaticamente.",16,false);
-  label("Sismo com tsunami: alterna a cada 8 segundos por pelo menos 32 segundos. Replay busca o último sismo M6+ ou no Brasil das últimas 72 horas, inclusive enquanto a TV estava desligada. Sem internet, tenta o último registro local.",15,false);
+  label("Replays separados: M6+ mundial e último sismo brasileiro de qualquer magnitude, ambos das últimas 72 horas. Os cards usam eventos reais, sem som novo, e respeitam alertas prioritários. Se o catálogo estiver indisponível, só recorre a um evento local da categoria correta.",15,false);
   label("Replay do resumo de ontem: até cinco maiores sismos do dia anterior completo, de 00h a 23h59 de Brasília. Maiores de hoje mostra apenas o parcial do dia atual e não substitui o replay de ontem. Sem internet, o replay usa o resumo completo de ontem salvo no aparelho; nunca troca por um parcial ou por outro dia. Cada sismo tem seis segundos completos de leitura, mais animações. Alertas reais têm prioridade.",15,false);
   label("Cobertura equivalente às regras sísmicas do Telegram: USGS, EMSC e GEOFON para M6+ globais; USP/RSBR, USGS, EMSC e GEOFON para sismos no Brasil, sem magnitude mínima. Estimativas de agências diferentes são identificadas separadamente de revisões da mesma fonte. Revisões importantes e boletins oficiais de tsunami por região, incluindo SEM AMEAÇA e encerramentos. Falha de uma fonte não interrompe as outras.",15,false);
   section("COMO FUNCIONA O MONITORAMENTO");
@@ -202,7 +203,7 @@ public final class MainActivity extends Activity {
  }
  private void startDirectVoice(){
   if(!SpeechRecognizer.isRecognitionAvailable(this)){
-   voiceMessage("Reconhecimento de voz indisponível nesta TV. Verifique o serviço de fala do Android.");
+   voiceMessage("O Fire TV não disponibilizou reconhecimento de voz a este aplicativo. O microfone do controle pode estar reservado à Alexa.");
    return;
   }
   if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
@@ -217,7 +218,7 @@ public final class MainActivity extends Activity {
     @Override public void onRmsChanged(float rms){}
     @Override public void onBufferReceived(byte[] buffer){}
     @Override public void onEndOfSpeech(){voiceMessage("Processando a pergunta…");}
-    @Override public void onError(int error){endDirectVoice();voiceMessage("Não consegui ouvir sua pergunta (código "+error+"). Tente novamente.");}
+    @Override public void onError(int error){endDirectVoice();voiceMessage("A TV não conseguiu reconhecer a voz (código "+error+"). O microfone do controle pode ser exclusivo da Alexa; teste no celular ou use os botões da TV.");}
     @Override public void onResults(Bundle results){
      ArrayList<String> phrases=results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
      endDirectVoice();processVoice(phrases);
@@ -241,7 +242,12 @@ public final class MainActivity extends Activity {
  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
   super.onActivityResult(requestCode,resultCode,data);
   if(requestCode!=VOICE_REQUEST)return;
-  if(resultCode!=RESULT_OK||data==null){voiceMessage("Comando de voz cancelado. Selecione Falar para tentar novamente.");return;}
+  if(resultCode!=RESULT_OK||data==null){
+   // Fire OS may immediately cancel the external recognizer without recording.
+   // Try an in-app recognition service once, with a separate mic permission.
+   voiceMessage("Reconhecimento externo cancelado. Tentando o serviço de voz do aparelho…");
+   startDirectVoice();return;
+  }
   processVoice(data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS));
  }
  @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
