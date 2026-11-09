@@ -90,3 +90,44 @@ test('voice Brazil distinguishes no events from failed Brazilian seismic sources
  assert.equal(unavailable.status,503);
  assert.equal(unavailable.headers.get('Cache-Control'),'no-store');
 });
+
+test('independent Brazil replay recovers a real M1.8 event from yesterday, beyond the voice 24h window',async()=>{
+ const current=Date.parse('2026-11-09T19:30:00Z'),eventTime=Date.parse('2026-11-08T05:26:35Z');
+ const lajedo={id:'USP-lajedo',provider:'USP',brazil:true,properties:{mag:1.8,time:eventTime,updated:eventTime,type:'earthquake',place:'Lajedo/PE, Brasil',net:'USP',status:'reviewed'},geometry:{coordinates:[-36.24,-8.67,0]}};
+ const foreign=quake('global-strong',6.8,current-300000);
+ const stale={...lajedo,id:'USP-old',properties:{...lajedo.properties,time:current-73*3600000}};
+ const input=[lajedo,foreign,stale];
+ assert.deepEqual(historySnapshot(input,'brazil',current).alerts.map(a=>a.id),[],'the existing voice lookup remains 24h');
+ const replay=historySnapshot(input,'brazil-replay',current);
+ assert.equal(replay.alerts.length,1);
+ assert.equal(replay.alerts[0].id,'USP:USP-lajedo');
+ assert.equal(replay.alerts[0].magnitude,1.8);
+ assert.equal(replay.alerts[0].countryCode,'br');
+ const global=historySnapshot(input,'global-replay',current);
+ assert.deepEqual(global.alerts.map(a=>a.id),['USGS:global-strong']);
+ let globalCalls=0;
+ const body=await(await handleTvHistory(new Request('https://test/tv-alerts?policy=telegram-v1&view=brazil-replay'),{
+  view:'brazil-replay',now:current,cache:null,
+  regional:async()=>({features:input,catalogs:{USP:true,USGS_BR:false,EMSC:false,GEOFON:false}}),
+  fetcher:async()=>{globalCalls++;throw Error('Brazil-only replay must not depend on global M6 catalogue');}
+ })).json();
+ assert.equal(globalCalls,0);
+ assert.equal(body.view,'brazil-replay');
+ assert.deepEqual(body.alerts.map(a=>a.id),['USP:USP-lajedo']);
+ assert.equal(body.sources.earthquake,true);
+});
+
+test('Brazil replay picks the newest Brazilian origin, excludes foreign M6+ and reports source outages',async()=>{
+ const nowBrazil=Date.parse('2026-11-09T19:30:00Z');
+ const local=(id,mag,time)=>({id,provider:'USP',brazil:true,properties:{mag,time,updated:time,type:'earthquake',place:'Brasil',net:'USP'},geometry:{coordinates:[-36,-8,8]}});
+ const older=local('older',4,nowBrazil-50*3600000),newer=local('newer',0.7,nowBrazil-3600000),foreign=quake('world',9,nowBrazil-1000);
+ const snapshot=historySnapshot([older,newer,foreign],'brazil-replay',nowBrazil);
+ assert.deepEqual(snapshot.alerts.map(a=>a.id),['USP:newer']);
+ const request=new Request('https://test/tv-alerts?policy=telegram-v1&view=brazil-replay');
+ const empty=await handleTvHistory(request,{view:'brazil-replay',now:nowBrazil,cache:null,regional:async()=>({features:[],catalogs:{USP:true}})});
+ assert.equal(empty.status,200);
+ assert.deepEqual((await empty.json()).alerts,[]);
+ const unavailable=await handleTvHistory(request,{view:'brazil-replay',now:nowBrazil+60001,cache:null,regional:async()=>({features:[],catalogs:{USP:false,USGS_BR:false,EMSC:false,GEOFON:false}})});
+ assert.equal(unavailable.status,503);
+ assert.equal(unavailable.headers.get('Cache-Control'),'no-store');
+});
