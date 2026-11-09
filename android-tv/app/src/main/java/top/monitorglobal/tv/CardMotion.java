@@ -26,6 +26,8 @@ final class CardMotion {
   if(!enabled()){finished.run();return;}
   v.animate().alpha(0f).translationY(dp(c,60)).setDuration(EXIT_MS)
    .setInterpolator(new AccelerateInterpolator()).withEndAction(finished).start();
+  // Cancellation of the platform animator must never strand an overlay on screen.
+  v.postDelayed(finished,EXIT_MS+80L);
  }
  /** First half of the weather -> satellite handoff. Only if a real frame is ready. */
  static void flipOut(View v,Context c,Runnable finished){
@@ -34,6 +36,7 @@ final class CardMotion {
   v.setCameraDistance(dp(c,1200));
   v.animate().rotationY(90f).alpha(0f).setDuration(FLIP_OUT_MS)
    .setInterpolator(new AccelerateInterpolator()).withEndAction(finished).start();
+  v.postDelayed(finished,FLIP_OUT_MS+80L);
  }
  /** Second half of a playing-card turn; no extra bitmap copies. */
  static void flipIn(View v,Context c){
