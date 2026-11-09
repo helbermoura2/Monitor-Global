@@ -8,7 +8,7 @@ runInNewContext(readFileSync(new URL('../../android-mobile/app/src/main/assets/p
 const M=scope.module.exports;
 const now=Date.parse('2026-11-08T12:30:00Z');
 function valid(){
- const times=Array.from({length:72},(_,i)=>new Date(Date.parse('2026-11-08T03:00:00Z')+i*3600000).toISOString().slice(0,16));
+ const times=Array.from({length:72},(_,i)=>new Date(Date.parse('2026-11-08T00:00:00Z')+i*3600000).toISOString().slice(0,16));
  return M.PLACES.map(p=>({latitude:p.lat,longitude:p.lon,timezone:'America/Sao_Paulo',hourly:{time:times,
   temperature_2m:Array(72).fill(24),wind_speed_10m:Array(72).fill(18),wind_direction_10m:Array(72).fill(90),
   precipitation:Array(72).fill(.2),pressure_msl:Array(72).fill(1012)}}));
