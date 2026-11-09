@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import android.content.*;import android.graphics.*;import android.graphics.drawable.GradientDrawable;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.*;import java.util.concurrent.*;import java.util.function.BooleanSupplier;
 /** Prefetch during the weather countdown; always give bounded feedback after weather. */
 final class WeatherSatelliteSequence implements AutoCloseable {
- static final long AFTER_WEATHER=12300,DURATION=15000,WAIT_FOR_IMAGE=20000,ERROR_DURATION=8000,TOTAL=AFTER_WEATHER+WAIT_FOR_IMAGE+DURATION+500,PREPARE_TTL=60000;
+ static final long AFTER_WEATHER=13000,DURATION=15000,WAIT_FOR_IMAGE=20000,ERROR_DURATION=8000,TOTAL=AFTER_WEATHER+WAIT_FOR_IMAGE+DURATION+500,PREPARE_TTL=60000;
  interface Loader {WeatherSatelliteClient.Frame load()throws Exception;void close();}
  private final Context context;private final BooleanSupplier allowed;private final Handler main=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);return new Loader(){public WeatherSatelliteClient.Frame load()throws Exception{return client.latest(InfraredPlan.SOUTHEAST,System.currentTimeMillis());}public void close(){client.close();}};});}
