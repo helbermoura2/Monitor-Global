@@ -103,8 +103,8 @@ final class PhoneMapView extends FrameLayout {
   pendingEvents=payload.toString();sendEvents();
  }
  void focus(Alert event){if(closed||event==null||!MapFrame.located(event.originLongitude,event.originLatitude))return;try{pendingFocus=new JSONObject().put("id",event.id).put("longitude",event.originLongitude).put("latitude",event.originLatitude).toString();sendFocus();}catch(JSONException ignored){}}
- private void sendEvents(){if(!rainPage&&ready&&active)script("window.MonitorMap&&window.MonitorMap.setEvents(JSON.parse("+quote(pendingEvents)+"))");}
- private void sendFocus(){if(!rainPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
+ private void sendEvents(){if(!rainPage&&!brazilPage&&ready&&active)script("window.MonitorMap&&window.MonitorMap.setEvents(JSON.parse("+quote(pendingEvents)+"))");}
+ private void sendFocus(){if(!rainPage&&!brazilPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
  private static String quote(String value){return JSONObject.quote(value).replace("\u2028","\\u2028").replace("\u2029","\\u2029");}
  private void script(String value){if(web!=null&&!closed)web.evaluateJavascript(value,null);}
  void pause(){active=false;if(web!=null){script("window.MonitorMap&&window.MonitorMap.pause()");web.onPause();}}
