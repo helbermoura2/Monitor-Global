@@ -58,3 +58,50 @@ test('source failure or closed ICE session never triggers invented quote or upst
  const invalid=await handleTvBrent(new Request('https://test/tv-brent?lat=1'),{}, {now:weekday,get:async()=>{throw Error('should not call');}});
  assert.equal(invalid.status,400);
 });
+
+test('query2 Yahoo backup is attempted only if query1 fails and has fresh BZ=F data',async()=>{
+ const now=date('2026-11-11T15:00:00Z'),urls=[];
+ const response=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{
+  now,get:async url=>{urls.push(url);if(url.includes('query1'))return new Response('unavailable',{status:429});return Response.json(example(now));}
+ })).json();
+ assert.equal(response.ok,true);assert.equal(response.price,78.35);assert.equal(urls.length,2);
+ assert.ok(urls[0].includes('query1.finance.yahoo.com'));
+ assert.ok(urls[1].includes('query2.finance.yahoo.com'));
+});
+test('no invented Brent price if both Yahoo chart hosts are stale or unavailable',async()=>{
+ const now=date('2026-11-11T15:00:00Z'),urls=[];
+ const stale=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{
+  now,get:async url=>{urls.push(url);return Response.json(example(now,{regularMarketTime:Math.floor((now-3*H)/1000)}));}
+ })).json();
+ assert.equal(urls.length,2);assert.equal(stale.ok,false);
+ assert.equal(stale.reason,'source-stale-or-invalid');
+ const unavailable=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{
+  now,get:async()=>new Response('unavailable',{status:503})
+ })).json();
+ assert.equal(unavailable.ok,false);assert.equal(unavailable.reason,'source-unavailable');
+});
+
+test('fresh Yahoo chart 1-minute candle is legitimate only with matched timestamp and price',()=>{
+ const now=date('2026-11-11T15:00:00Z'),recent=Math.floor((now-5*60000)/1000);
+ const old=Math.floor((now-4*H)/1000);
+ const raw=example(now,{regularMarketTime:old});
+ raw.chart.result[0].timestamp=[recent];
+ raw.chart.result[0].indicators={quote:[{close:[79.12]}]};
+ const parsed=parseBrentQuote(raw,now);
+ assert.equal(parsed?.price,79.12);
+ assert.equal(parsed?.asOf,recent*1000);
+ assert.equal(parsed?.quoteKind,'observed-minute-candle');
+ const missing=structuredClone(raw);delete missing.chart.result[0].indicators;
+ assert.equal(parseBrentQuote(missing,now),null);
+ const invalid=structuredClone(raw);invalid.chart.result[0].indicators.quote[0].close=[null];
+ assert.equal(parseBrentQuote(invalid,now),null);
+ const mismatched=structuredClone(raw);mismatched.chart.result[0].indicators.quote[0].close=[79.12,80];
+ assert.equal(parseBrentQuote(mismatched,now),null);
+ const wrongTicker=structuredClone(raw);wrongTicker.chart.result[0].meta.symbol='CL=F';
+ assert.equal(parseBrentQuote(wrongTicker,now),null);
+});
+test('a recent chart timestamp by itself never refreshes stale Brent headline prices',()=>{
+ const now=date('2026-11-11T15:00:00Z');
+ const input=example(now,{regularMarketTime:Math.floor((now-3*H)/1000)});
+ assert.equal(parseBrentQuote(input,now),null);
+});

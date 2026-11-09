@@ -80,6 +80,8 @@ public final class MainActivity extends Activity {
   label("Card silencioso de 12 s aos 15 minutos de cada hora, sobre o vídeo. Preço indicativo Brent (BZ=F) em US$/barril, variação e horário da fonte Yahoo Finance. Sem cotação válida, não aparece. Horários de Londres com ajuste de verão: de sexta após o fechamento até domingo às 23h de Londres, não exibe. Alertas sísmicos, tsunami, chuva, satélite e replays têm prioridade.",15,false);
   button("Testar visual do card Brent (valores fictícios · 10 s)",v->launch(MonitorService.TEST+"_BRENT"));
   label("O teste é uma simulação manual, identificada como fictícia. Não consulta o mercado e pode ser visto também quando a bolsa está fechada.",13,false);
+  button("Conferir cotação REAL do Brent agora",v->launch(MonitorService.CHECK_BRENT));
+  label("Com monitoramento ativo e pregão aberto: consulta Yahoo em 10 s. Volte ao vídeo. Se a cotação estiver indisponível, a seção FONTES explica o motivo; nenhum preço será inventado.",13,false);
   section("PREFERÊNCIAS E ROTINA");
   Switch sound=new Switch(this);sound.setText("Som dos avisos · usa o volume de notificações do aparelho");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->Prefs.get(this).edit().putBoolean("sound",checked).apply());addSwitch(sound);
   Switch daily=new Switch(this);daily.setText("Resumo automático à meia-noite · horário de Brasília");daily.setTextColor(Color.WHITE);daily.setTextSize(17);daily.setPadding(12,10,12,10);daily.setChecked(Prefs.get(this).getBoolean("dailyAuto",true));daily.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("dailyAuto",checked).apply();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);});addSwitch(daily);
@@ -255,7 +257,8 @@ public final class MainActivity extends Activity {
   String satellite=p.getBoolean("weatherSatellite",true)?
     p.getString("satelliteStatus","Satélite: aguardando atualização"):
     "Satélite desativado";
-  setIfChanged(weatherStatus,"FONTES: "+source+"\n"+weather+"\n"+rain+"\n"+satellite);
+  String brent=p.getString("brentStatus","Aguardando cotação real");
+  setIfChanged(weatherStatus,"FONTES: "+source+"\n"+weather+"\n"+rain+"\n"+satellite+"\nBRENT: "+brent);
   // Replay JSON is decoded only when the saved event changes, not every tick.
   String record=p.getString("lastTarget","");
   if(!record.equals(lastTargetEncoded)){

@@ -14,6 +14,28 @@ final class BrentMonitor {
   context=c;allowed=canShow;overlay=new BrentOverlay(c);reader=source==null?this::read:source;
  }
  boolean showing(){return overlay.showing();}
+ private void status(String message){
+  if(!message.equals(Prefs.get(context).getString("brentStatus","")))
+   Prefs.get(context).edit().putString("brentStatus",message).apply();
+ }
+ private String problem(JSONObject response){
+  if(response==null)return "Servidor Brent inacessível. Confira a conexão.";
+  if(!response.optBoolean("marketOpen",true))return "Brent fechado ou em pausa de negociação.";
+  String reason=response.optString("reason","");
+  if("source-stale-or-invalid".equals(reason))return "Yahoo sem negociação recente validada. Próxima tentativa automática em até 5 min.";
+  if("source-unavailable".equals(reason))return "Yahoo indisponível (servidores 1 e 2). Próxima tentativa automática em até 5 min.";
+  return "Não foi possível confirmar uma cotação real recente.";
+ }
+ void checkNow(){
+  if(closed)return;
+  long now=System.currentTimeMillis();
+  if(!BrentQuote.marketOpen(now)){status("Brent fechado ou em pausa: nenhum valor fictício será usado.");return;}
+  if(!screen()){status("Tela da TV desligada: verificação adiada.");return;}
+  if(!allowed.getAsBoolean()){status("Outro aviso tem prioridade sobre o Brent. Tente novamente.");return;}
+  if(busy){status("Cotação real já em consulta.");return;}
+  status("Consultando cotação REAL do Brent, sem simulação…");
+  load(true);
+ }
  private boolean screen(){
   PowerManager power=context.getSystemService(PowerManager.class);return power==null||power.isInteractive();
  }
@@ -21,7 +43,12 @@ final class BrentMonitor {
   if(closed)return;
   boolean enabled=Prefs.get(context).getBoolean("brentHourly",true);
   long now=System.currentTimeMillis();
-  if(!enabled||!BrentQuote.marketOpen(now)||!screen()){hide();return;}
+  if(!enabled||!BrentQuote.marketOpen(now)||!screen()){
+   hide();
+   if(!enabled)status("Brent desativado nas preferências.");
+   else if(!BrentQuote.marketOpen(now))status("Brent fechado ou em pausa de negociação.");
+   return;
+  }
   long slot=BrentQuote.slot(now);
   if(knownSlot!=slot){knownSlot=slot;quote=null;nextRetry=0;}
   if(!BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))return;
@@ -29,14 +56,14 @@ final class BrentMonitor {
   BrentQuote valid=BrentQuote.parse(quote,now);
   if(valid!=null){
    if(overlay.show(valid,false)){
-    Prefs.get(context).edit().putLong("brentLastSlot",slot).putString("brentStatus",
-     "Brent "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" US$ · "+BrentQuote.clock(valid.at)).apply();
+    Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
+    status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance");
    }
    return;
   }
-  if(!busy&&SystemClock.elapsedRealtime()>=nextRetry)load();
+  if(!busy&&SystemClock.elapsedRealtime()>=nextRetry)load(false);
  }
- private void load(){
+ private void load(boolean manual){
   busy=true;nextRetry=SystemClock.elapsedRealtime()+5*60000L;
   if(io==null)io=Executors.newSingleThreadExecutor();
   final long requestSlot=knownSlot;
@@ -48,8 +75,22 @@ final class BrentMonitor {
     busy=false;
     if(closed||requestSlot!=knownSlot)return;
     quote=result;
-    if(result==null||!result.optBoolean("ok"))Prefs.get(context).edit().putString("brentStatus",
-      result!=null&&!result.optBoolean("marketOpen",true)?"Mercado Brent fechado":"Cotação Brent indisponível ou desatualizada").apply();
+    if(result==null||!result.optBoolean("ok"))status(problem(result));
+    if(manual){
+     BrentQuote valid=BrentQuote.parse(result,System.currentTimeMillis());
+     if(valid==null){
+      if(result!=null&&result.optBoolean("ok"))status("Cotação rejeitada: horário ou dados inconsistentes.");
+      return;
+     }
+     if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");return;}
+     if(overlay.show(valid,false)){
+      long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
+      if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
+       Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
+      status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance");
+     }else status("Cotação real validada, porém falta permissão de sobreposição.");
+     return;
+    }
     tick();
    });
   });

@@ -7,3 +7,9 @@ este arquivo entra na branch principal. Todos os seguintes controles devem passa
 4. verificação posterior da saúde pública e rotas compartilhadas.
 Se faltar autorização de nuvem ou houver inconsistência, falhar sem divulgar segredos.
 Não ativar faturamento de Gemini ou Cloudflare.
+
+09/11/2026 — nova autorização de publicação da TV e do celular no Monitor Global.
+Implantar também a correção revisada de worker/tv-brent.mjs (Yahoo query2 como
+segunda tentativa; somente preço real e horário da fonte, sem cotação simulada).
+Manter o mesmo Worker, bindings, cron, segredos e proteção de testes;
+se houver falha, não forçar publicação.
