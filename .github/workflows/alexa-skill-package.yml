@@ -1,0 +1,37 @@
+name: Alexa skill package
+on:
+  pull_request:
+    paths:
+      - 'alexa-skill/**'
+      - 'worker/alexa-voice-bridge.mjs'
+      - 'tests/unit/alexa-*.test.*'
+      - '.github/workflows/alexa-skill-package.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check pairing, command authentication and Portuguese model
+        env:
+          MONITOR_TEST_OFFLINE: '1'
+          NODE_OPTIONS: --require ./tools/test-network-guard.cjs
+        run: node --test tests/unit/alexa-voice-bridge.test.mjs tests/unit/alexa-skill.test.cjs
+      - name: Package files for Amazon Developer Console (no personal secrets)
+        run: |
+          cd alexa-skill
+          zip -q -r ../monitor-global-alexa-import-code.zip lambda/
+          zip -q -r ../monitor-global-alexa-project.zip lambda/ skill-package/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-alexa-skill-pt-BR
+          path: |
+            monitor-global-alexa-import-code.zip
+            monitor-global-alexa-project.zip
+          retention-days: 14
