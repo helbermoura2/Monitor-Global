@@ -32,21 +32,23 @@ final class VoiceStatusOverlay {
   if(!Settings.canDrawOverlays(context))return false;
   try{
    LinearLayout card=new LinearLayout(context);card.setOrientation(LinearLayout.VERTICAL);
-   card.setPadding(dp(24),dp(20),dp(24),dp(22));
+   card.setPadding(dp(16),dp(14),dp(16),dp(16));
    GradientDrawable background=new GradientDrawable();
-   background.setColor(0xff081b30);background.setCornerRadius(dp(18));
+   background.setColor(0xff081b30);background.setCornerRadius(dp(12));
    background.setStroke(dp(2),0xff39c8dd);card.setBackground(background);
-   card.addView(text("MONITOR GLOBAL  ·  CONSULTA POR VOZ",16,0xff63e6f2,true));
-   TextView heading=text(title,23,Color.WHITE,true);
-   LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(14);card.addView(heading,hp);
-   TextView details=text(body,16,0xffc2d9e1,false);
+   card.addView(text("MONITOR GLOBAL  ·  CONSULTA POR VOZ",14,0xff63e6f2,true));
+   TextView heading=text(title,20,Color.WHITE,true);
+   LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(9);card.addView(heading,hp);
+   TextView details=text(body,15,0xffc2d9e1,false);
    LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(8);card.addView(details,bp);
    int screen=context.getResources().getDisplayMetrics().widthPixels;
    WindowManager.LayoutParams params=new WindowManager.LayoutParams(
-    Math.min(dp(580),screen*70/100),-2,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+    Math.min(dp(420),screen*46/100),-2,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
     PixelFormat.TRANSLUCENT);
-   params.gravity=Gravity.CENTER;
+   params.gravity=Gravity.BOTTOM|Gravity.RIGHT;
+   params.x=dp(32);
+   params.y=dp(32);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(card,params);
    current=card;
    if(android.animation.ValueAnimator.areAnimatorsEnabled()){
