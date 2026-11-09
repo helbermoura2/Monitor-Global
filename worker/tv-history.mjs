@@ -6,29 +6,30 @@ import {tvSnapshot} from './tv-snapshot.mjs';
 const pending=new Map();
 export function brasiliaDay(now){return new Date(now-3*3600000).toISOString().slice(0,10);}
 export function historyPeriod(view,now){
- const complete=view==='completed',day=brasiliaDay(now-(complete?86400000:0)),start=view==='brazil'?now-24*3600000:Date.parse(day+'T00:00:00-03:00');
+ const complete=view==='completed',day=brasiliaDay(now-(complete?86400000:0)),start=view==='brazil'?now-24*3600000:view==='brazil-replay'?now-72*3600000:Date.parse(day+'T00:00:00-03:00');
  return {day,complete,start,end:complete?start+86400000:now+1};
 }
 export function historySnapshot(features,view,now=Date.now()){
- const {day,start,end,complete}=historyPeriod(view,now),brazil=view==='brazil',summary=view!=='replay'&&!brazil;
- const selected=features.filter(f=>Number.isFinite(f.properties?.time)&&f.properties.time>=(brazil?start:summary?start:now-72*3600000)&&f.properties.time<end&&(!brazil||f.brazil===true));
+ const {day,start,end,complete}=historyPeriod(view,now),brazil=view==='brazil'||view==='brazil-replay',summary=view==='daily'||view==='completed',globalReplay=view==='global-replay';
+ const selected=features.filter(f=>Number.isFinite(f.properties?.time)&&f.properties.time>=(brazil?start:summary?start:now-72*3600000)&&f.properties.time<end&&(!brazil||f.brazil===true)&&(!globalReplay||f.brazil!==true&&Number.isFinite(f.properties?.mag)&&f.properties.mag>=6));
  const snapshot=tvSnapshot({features:selected,ok:true},{ok:false,items:[]},now,{maxAge:72*3600000,minMagnitude:brazil?-5:summary?.1:6});
- snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake').sort(summary?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,brazil?5:summary?5:1);
+ snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake').sort(summary?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,view==='brazil'?5:summary?5:1);
  return {...snapshot,view,day,asOf:now,complete};
 }
 export async function handleTvHistory(request,{view,now=Date.now(),cache=globalThis.caches?.default,fetcher=fetch,regional=collectTvQuakes,supplemental=fetchGlobalSupplements,env}={}){
  const headers={'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'public, max-age=60'};
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
  const expanded=new URL(request.url).searchParams.get('policy')==='telegram-v1';
- const {day,start:periodStart,end,complete}=historyPeriod(view,now),summary=view!=='replay'&&view!=='brazil',ttl=view==='brazil'?60000:summary?300000:60000;
+ const {day,start:periodStart,end,complete}=historyPeriod(view,now),summary=view==='daily'||view==='completed',brazil=view==='brazil'||view==='brazil-replay',ttl=brazil?60000:summary?300000:60000;
  const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-history-v3/'+(expanded?'telegram/':'legacy/')+view+'/'+day);
  let snapshot;try{const hit=await cache?.match(key);if(hit)snapshot=await hit.json();}catch{}
  if(!snapshot||now-snapshot.serverTime>=ttl){
   if(!pending.has(key.url))pending.set(key.url,(async()=>{
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
    try{
-   if(view==='brazil'){
-    // Use the existing multi-source Brazilian catalogue, not the worldwide M6+ shortcut.
+   if(brazil){
+    // Use the Brazilian multi-source catalogue for both the 24h voice query
+    // and the independent 72h replay (including magnitudes below M6).
     // Report a source failure separately from an observed zero-event result.
     const regionalData=await regional(env);
     const catalogs=regionalData.catalogs||{};
