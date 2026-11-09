@@ -20,7 +20,7 @@ async function etags(snapshot,expanded){
 }
 export async function handleTvAlerts(request,{read,env,now=Date.now(),cache=globalThis.caches?.default}={}){
  const params=new URL(request.url).searchParams,view=params.get('view'),expanded=params.get('policy')==='telegram-v1';
- if(view==='daily'||view==='replay'||view==='completed')return handleTvHistory(request,{view,now,cache,env});
+ if(view==='daily'||view==='replay'||view==='completed'||view==='brazil')return handleTvHistory(request,{view,now,cache,env});
  const headers={'Access-Control-Allow-Origin':'*','Access-Control-Expose-Headers':'ETag','Content-Type':'application/json','Cache-Control':'public, max-age=20','X-Monitor-TV':VERSION};
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
  const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-alerts-v4');let snapshot,cachedTags;

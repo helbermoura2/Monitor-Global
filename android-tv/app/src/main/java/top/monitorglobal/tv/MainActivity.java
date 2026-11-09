@@ -1,9 +1,11 @@
 package top.monitorglobal.tv;
-import android.Manifest;import android.app.*;import android.content.*;import android.content.pm.PackageManager;import android.graphics.Color;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.*;import java.text.*;import java.util.*;
+import android.Manifest;import android.app.*;import android.content.*;import android.content.pm.PackageManager;import android.graphics.Color;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.speech.RecognizerIntent;import android.speech.SpeechRecognizer;import android.speech.RecognitionListener;import android.view.*;import android.widget.*;import java.text.*;import java.util.*;
 public final class MainActivity extends Activity {
  private OfficialUpdater updater;
  private LinearLayout content,actionRow;
- private TextView status,weatherStatus,replayStatus;
+ private TextView status,weatherStatus,replayStatus,voiceStatus;
+ private SpeechRecognizer speechRecognizer;
+ private static final int VOICE_REQUEST=74,VOICE_AUDIO_PERMISSION=75;
  private Button start;
  private String currentSection="Informações";
  private boolean wideLayout;
@@ -26,6 +28,9 @@ public final class MainActivity extends Activity {
   scroll.addView(content);setContentView(scroll);
   addBrandedHeader();
   addStatusPanel();
+  section("COMANDO POR VOZ");
+  button("🎙 Falar com o Monitor Global",v->startVoiceInput());
+  voiceStatus=label("Use o microfone para pedir temperatura, Brent, sismos no Brasil, último sismo ou satélite.",15,false);
   section("INÍCIO RÁPIDO");
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
@@ -183,6 +188,108 @@ public final class MainActivity extends Activity {
     }).show();
  }
  private String rainModeLabel(){int mode=Prefs.get(this).getInt("rainMode",2);return mode==0?"desligado":mode==1?"só cartão":"cartão com chuva";}
+ private void startVoiceInput(){
+  if(speechRecognizer!=null)return;
+  voiceMessage("Abrindo o reconhecimento de voz em português…");
+  Intent speech=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+  speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+  speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR");
+  speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,"pt-BR");
+  speech.putExtra(RecognizerIntent.EXTRA_PROMPT,"Fale com o Monitor Global");
+  speech.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,3);
+  try{startActivityForResult(speech,VOICE_REQUEST);}
+  catch(android.content.ActivityNotFoundException|SecurityException e){startDirectVoice();}
+ }
+ private void startDirectVoice(){
+  if(!SpeechRecognizer.isRecognitionAvailable(this)){
+   voiceMessage("Reconhecimento de voz indisponível nesta TV. Verifique o serviço de fala do Android.");
+   return;
+  }
+  if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
+   requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},VOICE_AUDIO_PERMISSION);
+   return;
+  }
+  try{
+   speechRecognizer=SpeechRecognizer.createSpeechRecognizer(this);
+   speechRecognizer.setRecognitionListener(new RecognitionListener(){
+    @Override public void onReadyForSpeech(Bundle params){voiceMessage("Ouvindo… fale próximo do controle remoto.");}
+    @Override public void onBeginningOfSpeech(){voiceMessage("Reconhecendo sua pergunta…");}
+    @Override public void onRmsChanged(float rms){}
+    @Override public void onBufferReceived(byte[] buffer){}
+    @Override public void onEndOfSpeech(){voiceMessage("Processando a pergunta…");}
+    @Override public void onError(int error){endDirectVoice();voiceMessage("Não consegui ouvir sua pergunta (código "+error+"). Tente novamente.");}
+    @Override public void onResults(Bundle results){
+     ArrayList<String> phrases=results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+     endDirectVoice();processVoice(phrases);
+    }
+    @Override public void onPartialResults(Bundle results){}
+    @Override public void onEvent(int eventType,Bundle params){}
+   });
+   Intent intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+   intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+   intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR");
+   intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,3);
+   speechRecognizer.startListening(intent);
+  }catch(RuntimeException e){endDirectVoice();voiceMessage("Microfone indisponível para o aplicativo nesta TV.");}
+ }
+ private void endDirectVoice(){
+  if(speechRecognizer!=null){speechRecognizer.destroy();speechRecognizer=null;}
+ }
+ private void voiceMessage(String message){
+  if(voiceStatus!=null)voiceStatus.setText(message);
+ }
+ @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+  super.onActivityResult(requestCode,resultCode,data);
+  if(requestCode!=VOICE_REQUEST)return;
+  if(resultCode!=RESULT_OK||data==null){voiceMessage("Comando de voz cancelado. Selecione Falar para tentar novamente.");return;}
+  processVoice(data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS));
+ }
+ @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
+  super.onRequestPermissionsResult(requestCode,permissions,results);
+  if(requestCode==VOICE_AUDIO_PERMISSION){
+   if(results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED)startDirectVoice();
+   else voiceMessage("A TV não concedeu permissão de microfone ao Monitor Global.");
+  }
+ }
+ @Override public boolean onKeyDown(int keyCode,KeyEvent event){
+  // Only keys actually forwarded to the Activity can start listening.
+  // The system may reserve the voice-assistant button for Google/Gemini.
+  if(keyCode==KeyEvent.KEYCODE_SEARCH||keyCode==KeyEvent.KEYCODE_VOICE_ASSIST){
+   if(event.getRepeatCount()==0)startVoiceInput();
+   return true;
+  }
+  return super.onKeyDown(keyCode,event);
+ }
+ private void processVoice(ArrayList<String> phrases){
+  if(phrases==null||phrases.isEmpty()){voiceMessage("Nenhuma frase reconhecida. Tente falar novamente.");return;}
+  String spoken=phrases.get(0);
+  String command=TvVoiceCommands.UNKNOWN;
+  for(String phrase:phrases){
+   String routed=TvVoiceCommands.route(phrase);
+   if(!TvVoiceCommands.UNKNOWN.equals(routed)){command=routed;spoken=phrase;break;}
+  }
+  voiceMessage("Você disse: "+spoken);
+  switch(command){
+   case TvVoiceCommands.WEATHER: launchVoiceCard(MonitorService.WEATHER_NOW,"Exibindo o card real do tempo, se a fonte estiver disponível.");return;
+   case TvVoiceCommands.BRENT:
+    if(!Prefs.get(this).getBoolean("enabled",false)){voiceMessage("Ative o monitoramento para consultar a cotação real do Brent.");return;}
+    launchVoiceCard(MonitorService.CHECK_BRENT,"Consultando o Brent real. Sem preço válido não haverá card.");return;
+   case TvVoiceCommands.BRAZIL:launchVoiceCard(MonitorService.VOICE_BRAZIL,"Consultando sismos no Brasil das últimas 24 horas.");return;
+   case TvVoiceCommands.TODAY:launchVoiceCard(MonitorService.SUMMARY_TODAY,"Consultando os maiores sismos de hoje.");return;
+   case TvVoiceCommands.YESTERDAY:launchVoiceCard(MonitorService.SUMMARY_REPLAY,"Consultando o resumo sísmico de ontem.");return;
+   case TvVoiceCommands.RECENT_QUAKE:launchVoiceCard(MonitorService.REPLAY,"Consultando o último sismo do monitoramento.");return;
+   case TvVoiceCommands.SATELLITE:startActivity(new Intent(this,WeatherSatelliteActivity.class));return;
+   case TvVoiceCommands.WEATHER_AI:startActivity(new Intent(this,WeatherAiInfoActivity.class));return;
+   default:voiceMessage("Ainda não reconheço esse pedido. Experimente: tempo, Brent, sismos no Brasil ou satélite.");
+  }
+ }
+ private void launchVoiceCard(String action,String message){
+  launch(action);
+  voiceMessage(message);
+  Toast.makeText(this,message,Toast.LENGTH_LONG).show();
+  // Return to the programme behind the app; existing non-touchable TV cards appear over it.
+  moveTaskToBack(true);
+ }
  private void launch(String action){try{startForegroundService(new Intent(this,MonitorService.class).setAction(action));}catch(RuntimeException e){Prefs.status(this,"Não foi possível iniciar. Verifique as permissões do aparelho.");}}
  private TextView label(String s,int size,boolean bold){
   actionRow=null;
@@ -270,7 +377,7 @@ public final class MainActivity extends Activity {
     +" · aparece SOBRE o vídeo, após 10 s");
   if(start!=null)setIfChanged(start,enabled?"Parar monitoramento":"2 · Ativar monitoramento");
  }
- @Override protected void onDestroy(){if(updater!=null)updater.close();super.onDestroy();}
+ @Override protected void onDestroy(){endDirectVoice();if(updater!=null)updater.close();super.onDestroy();}
  @Override protected void onResume(){super.onResume();if(updater!=null)updater.resume();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);handler.removeCallbacks(refresh);update();handler.postDelayed(refresh,9000);}
  @Override protected void onPause(){handler.removeCallbacks(refresh);super.onPause();}
 }

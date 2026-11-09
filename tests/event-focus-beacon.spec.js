@@ -19,6 +19,10 @@ for(const width of [1280,390])test('glass badge stays anchored with and without 
  await page.evaluate(()=>{layerVisibility.earthquakes=false;syncAllMarkers();});await expect(beacon).toHaveCount(0);
 });
 for(const globe of [false,true])test('real camera descends over its destination '+(globe?'mobile globe':'desktop flat'),async({page})=>{
+ // The globe descent has three full rendered-frame legs. Software-rendered CI
+ // can stretch them when adjacent Playwright workers compete for GPU time.
+ // Keep the production animation intact; allow the real rendering to finish.
+ test.slow(globe,'Globe camera advances per rendered frame on software-rendered CI');
  await page.setViewportSize({width:globe?390:1280,height:900});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto('/');await page.waitForFunction(()=>window.__mgMapReady&&!__fetchGlobalFeedsEmAndamento);
@@ -27,7 +31,18 @@ for(const globe of [false,true])test('real camera descends over its destination 
  map.jumpTo({center:[-80,-55],zoom:8,padding:0,pitch:0,bearing:0});eventoSelecionadoId='camera-start';EventCamera.enter('camera-start',{center:[-80,-55],zoom:8});EventCamera.cancel();
  eventoSelecionadoId='camera-polar';window.__arrivalCount=0;EventCamera.afterArrival('camera-polar',()=>__arrivalCount++);window.__tripStarted=Date.now();EventCamera.enter('camera-polar',{center:[27,67.25],zoom:10});},globe);
  // Render-budget delays can extend earlier legs. Inspect the actual approach, not wall-clock age.
- await page.waitForFunction(()=>EventCamera.state()?.id==='camera-polar'&&EventCamera.state()?.stage==='approach'&&map.getZoom()>8);
+ try{
+  await page.waitForFunction(()=>EventCamera.state()?.id==='camera-polar'&&EventCamera.state()?.stage==='approach'&&map.getZoom()>8);
+ }catch(error){
+  // Preserve a concrete diagnostic if the camera actually stalls, rather than
+  // hiding a regression as a successful test.
+  console.log('camera-stage-timeout',await page.evaluate(()=>({
+   state:EventCamera.state(),selected:eventoSelecionadoId,
+   zoom:map.getZoom(),moving:map.isMoving(),projection:GlobePreview.state(),
+   hidden:document.hidden,elapsedMs:Date.now()-window.__tripStarted
+  })).catch(e=>({diagnosticError:String(e)})));
+  throw error;
+ }
  // The optical center compensates for panels and zoom: the destination stays anchored in pixels.
  const position=()=>page.evaluate(()=>{const p=map.project([27,67.25]);return {x:p.x,y:p.y,width:map.getContainer().clientWidth,height:map.getContainer().clientHeight};});
  const first=await position();console.log('camera-approach',await page.evaluate(()=>({state:EventCamera.state(),selected:eventoSelecionadoId,center:map.getCenter().toArray(),zoom:map.getZoom()})));expect(first.x).toBeGreaterThan(0);expect(first.x).toBeLessThan(first.width);expect(first.y).toBeGreaterThan(0);expect(first.y).toBeLessThan(first.height);

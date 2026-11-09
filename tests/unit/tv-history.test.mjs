@@ -60,3 +60,33 @@ test('replay and daily summary include a supplemental global M6+ absent from the
   assert.equal(body.alerts[0].provider,'GEOFON');assert.equal(body.alerts[0].magnitude,6.09);assert.equal(body.sources.catalogs.GEOFON_GLOBAL,true);
  }
 });
+
+
+test('voice Brazil request uses the last rolling 24 hours and never mixes in global quakes',async()=>{
+ const local=(id,time,mag=1.1)=>({id,provider:'USP',brazil:true,properties:{mag,time,updated:time,type:'earthquake',place:'São Paulo, Brasil',net:'USP'},geometry:{coordinates:[-46.6,-23.5,7]}});
+ const fresh=local('today',now-60000),yesterday=local('yesterday',now-23*3600000);
+ const old=local('too-old',now-25*3600000),foreign=quake('foreign',7.6,now-2000);
+ const snapshot=historySnapshot([fresh,old,foreign,yesterday],'brazil',now);
+ assert.deepEqual(snapshot.alerts.map(x=>x.id),['USP:today','USP:yesterday']);
+ assert.equal(snapshot.alerts[0].countryCode,'br');
+ assert.equal(snapshot.complete,false);
+ let fetches=0;
+ const response=await handleTvHistory(new Request('https://test/tv-alerts?policy=telegram-v1&view=brazil'),{
+  view:'brazil',now,cache:null,
+  regional:async()=>({features:[fresh,old,foreign,yesterday],catalogs:{USP:true,USGS_BR:false,EMSC:false,GEOFON:false}}),
+  fetcher:async()=>{fetches++;throw Error('Global USGS should not be called for Brazil voice lookup');}
+ });
+ assert.equal(response.status,200);assert.equal(fetches,0);
+ const data=await response.json();
+ assert.equal(data.view,'brazil');assert.equal(data.sources.earthquake,true);
+ assert.deepEqual(data.alerts.map(x=>x.id),['USP:today','USP:yesterday']);
+});
+test('voice Brazil distinguishes no events from failed Brazilian seismic sources',async()=>{
+ const request=new Request('https://test/tv-alerts?policy=telegram-v1&view=brazil');
+ const empty=await handleTvHistory(request,{view:'brazil',now,cache:null,regional:async()=>({features:[],catalogs:{USP:true}})});
+ assert.equal(empty.status,200);
+ assert.deepEqual((await empty.json()).alerts,[]);
+ const unavailable=await handleTvHistory(request,{view:'brazil',now:now+60001,cache:null,regional:async()=>({features:[],catalogs:{USP:false,USGS_BR:false}})});
+ assert.equal(unavailable.status,503);
+ assert.equal(unavailable.headers.get('Cache-Control'),'no-store');
+});
