@@ -24,7 +24,7 @@ async function callBridge(path,body,token=''){
 const Launch={
  canHandle:h=>Alexa.getRequestType(h.requestEnvelope)==='LaunchRequest',
  async handle(h){
-  const p=await h.attributesManager.getPersistentAttributes();
+  const p=await h.attributesManager.getPersistentAttributes()||{};
   return response(h,p.skillToken?'Monitor Global pronto. Diga mostrar Brent, temperatura ou último sismo no Brasil.':'Bem-vindo ao Monitor Global. Na televisão, abra o aplicativo e escolha Vincular Alexa. Depois diga vincular código e os seis números mostrados na TV.',true);
  }
 };
@@ -41,7 +41,7 @@ const Link={
     return response(h,'A ligação com o Monitor Global está temporariamente indisponível. Tente novamente.',true);
    }
    if(!/^[a-f0-9]{64}$/.test(result.data.skillToken||''))throw Error('invalid link');
-   const persistent=await h.attributesManager.getPersistentAttributes();
+   const persistent=await h.attributesManager.getPersistentAttributes()||{};
    h.attributesManager.setPersistentAttributes({...persistent,skillToken:result.data.skillToken});
    await h.attributesManager.savePersistentAttributes();
    return response(h,'Pronto, o Monitor Global está vinculado à sua Alexa! Você já pode pedir para mostrar o Brent, o tempo ou os sismos brasileiros.');
