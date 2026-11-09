@@ -55,11 +55,8 @@ final class VoiceStatusOverlay {
    params.y=dp(32);
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(card,params);
    current=card;
-   if(android.animation.ValueAnimator.areAnimatorsEnabled()){
-    card.setAlpha(0f);card.setTranslationY(dp(9));
-    card.animate().alpha(1f).translationY(0).setDuration(250).start();
-   }
-   handler.postDelayed(()->{if(current==card)hide();},DURATION);
+   CardMotion.enter(card,context);
+   handler.postDelayed(()->{if(current==card)CardMotion.exit(card,context,()->{if(current==card)hide();});},DURATION);
    return true;
   }catch(RuntimeException e){hide();return false;}
  }
