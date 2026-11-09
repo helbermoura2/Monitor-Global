@@ -368,6 +368,7 @@ public final class MainActivity extends Activity {
   state+="\n"+(enabled?"✓ Monitoramento ativado":"• Monitoramento desativado");
   state+="\nÚltima consulta: "+when;
   state+="\n"+p.getString("status","Aguardando configuração");
+  if(!AlexaLinkClient.token(this).isEmpty())state+="\nAlexa: "+(p.getBoolean("alexaLinked",false)?"vinculada":"código gerado · aguardando vínculo")+(enabled?"":" · ative o monitoramento");
   setIfChanged(status,state);
   String source=p.getString("sourceHealth","Fontes ainda não verificadas");
   String weather=p.getBoolean("weatherHourly",true)?
