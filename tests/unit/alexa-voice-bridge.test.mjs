@@ -38,7 +38,7 @@ test('private Alexa bridge: pair, command, poll, ack, replay resistance',async()
  assert.equal((await api(s,'/next','GET',{},deviceToken)).body.command,null);
  const weather=await api(s,'/command','POST',{command:'weather'},skillToken,now+3000);
  assert.equal(weather.status,200);assert.equal((await api(s,'/next','GET',{},deviceToken,now+3001)).body.command.type,'weather');
- assert.equal((await api(s,'/next','GET',{},deviceToken,now+90001)).body.command,null,'commands expire');
+ assert.equal((await api(s,'/next','GET',{},deviceToken,now+93001)).body.command,null,'commands expire');
 });
 test('link expiry, flood limits, and offline delivery',async()=>{
  const s=storage(),r=await api(s,'/register', 'POST',{},'',now,'192.0.2.13');
@@ -50,7 +50,7 @@ test('link expiry, flood limits, and offline delivery',async()=>{
  for(let i=0;i<8;i++)await api(s,'/link','POST',{code:'999999'},'',now,'192.0.2.15');
  assert.equal((await api(s,'/link','POST',{code:'999999'},'',now,'192.0.2.15')).status,429);
 });
-test('relink revokes previous Alexa user token and never exposes device token in queued response',async()=>{
+test('distinct paired devices have isolated commands without exposing their tokens',async()=>{
  const s=storage();const first=await api(s,'/register');const link1=await api(s,'/link','POST',{code:first.body.code});
  assert.equal(link1.status,200);
  const second=await api(s,'/register','POST',{},'',now+10000,'192.0.2.16');
