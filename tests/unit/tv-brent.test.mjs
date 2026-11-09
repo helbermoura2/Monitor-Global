@@ -58,3 +58,25 @@ test('source failure or closed ICE session never triggers invented quote or upst
  const invalid=await handleTvBrent(new Request('https://test/tv-brent?lat=1'),{}, {now:weekday,get:async()=>{throw Error('should not call');}});
  assert.equal(invalid.status,400);
 });
+
+test('query2 Yahoo backup is attempted only if query1 fails and has fresh BZ=F data',async()=>{
+ const now=date('2026-11-11T15:00:00Z'),urls=[];
+ const response=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{
+  now,get:async url=>{urls.push(url);if(url.includes('query1'))return new Response('unavailable',{status:429});return Response.json(example(now));}
+ })).json();
+ assert.equal(response.ok,true);assert.equal(response.price,78.35);assert.equal(urls.length,2);
+ assert.ok(urls[0].includes('query1.finance.yahoo.com'));
+ assert.ok(urls[1].includes('query2.finance.yahoo.com'));
+});
+test('no invented Brent price if both Yahoo chart hosts are stale or unavailable',async()=>{
+ const now=date('2026-11-11T15:00:00Z'),urls=[];
+ const stale=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{
+  now,get:async url=>{urls.push(url);return Response.json(example(now,{regularMarketTime:Math.floor((now-3*H)/1000)}));}
+ })).json();
+ assert.equal(urls.length,2);assert.equal(stale.ok,false);
+ assert.equal(stale.reason,'source-stale-or-invalid');
+ const unavailable=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{
+  now,get:async()=>new Response('unavailable',{status:503})
+ })).json();
+ assert.equal(unavailable.ok,false);assert.equal(unavailable.reason,'source-unavailable');
+});
