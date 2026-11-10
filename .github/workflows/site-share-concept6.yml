@@ -19,6 +19,8 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - name: Export all event types and verify the temperature sharing action
+        env:
+          STORY_LIVE_PREVIEW: '1'
         run: npx playwright test tests/site-event-story.spec.js tests/site-concept6.spec.js tests/story-all-events.spec.js --workers=2
       - name: Export previews
         if: always()

@@ -34,3 +34,16 @@ test('Temperature image action resolves the selected weather record and exports 
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
  expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v2');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
+
+test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
+ test.skip(process.env.STORY_LIVE_PREVIEW!=='1','Live source proof is opt-in.');test.setTimeout(60000);
+ const https=require('node:https');let count=0,loaded=0;
+ const read=url=>new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'MonitorGlobal/site-sharing-layout-proof'}},res=>{if(res.statusCode!==200){res.resume();return reject(Error('Source HTTP '+res.statusCode));}const chunks=[];let length=0;res.on('data',b=>{length+=b.length;if(length>8000000){req.destroy();reject(Error('Source byte limit'));}else chunks.push(b);});res.on('end',()=>{const b=Buffer.concat(chunks);if(b.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')return reject(Error('Source did not return PNG'));resolve(b);});});req.setTimeout(4200,()=>req.destroy(Error('Source timeout')));req.on('error',reject);});
+ await page.route('https://server.arcgisonline.com/**',async r=>{if(++count>6)return r.abort();try{const png=await read(r.request().url());loaded++;await r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:png});}catch(error){console.log('LIVE_IMAGE_SOURCE_UNAVAILABLE '+error.message);await r.abort();}});
+ await page.goto('/404.html',{waitUntil:'domcontentloaded'});await page.addScriptTag({url:'/js/quake-site-flags.js'});await page.addScriptTag({url:'/js/site-event-story.js'});
+ for(const [type,coords,place]of [['earthquake',[-36.24,-8.67],'Lajedo/PE · EXEMPLO'],['capital-weather',[-46.63,-23.55],'São Paulo/SP · EXEMPLO']]){
+  const png=await page.evaluate(async({type,coords,place})=>{const c=await SiteEventStory.render({type,coords,place,countryCode:'BR',uf:type==='earthquake'?'PE':'SP',time:Date.now(),mag:1.8,depth:0,temperature:24,feels:25,humidity:70,wind:9,source:'DADOS DE EXEMPLO',detail:'PRÉVIA DE LAYOUT · evento fictício sobre imagem cartográfica real'});return c.toDataURL().split(',')[1];},{type,coords,place});
+  fs.mkdirSync('/tmp/share-concept6',{recursive:true});fs.writeFileSync('/tmp/share-concept6/live-'+type+'.png',Buffer.from(png,'base64'));
+ }
+ console.log('LIVE_IMAGE_PROOF '+JSON.stringify({requests:count,loaded}));expect(count).toBeLessThanOrEqual(6);
+});
