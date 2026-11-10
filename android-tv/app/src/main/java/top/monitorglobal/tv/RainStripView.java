@@ -2,6 +2,7 @@ package top.monitorglobal.tv;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -16,6 +17,8 @@ final class RainStripView extends LinearLayout {
 
  RainStripView(Context context,RainForecast.Summary rain,boolean demo,boolean preview){
   super(context);
+  // On compact displays, the original one-line broadcast strip stays below 30% of screen height.
+  if(context.getResources().getConfiguration().screenHeightDp<650){shortScreen(context,rain,demo,preview);return;}
   setOrientation(VERTICAL);
   setBackground(TvCardStyle.panel(context,TvCardStyle.BODY));
   Typeface brand=TvCardStyle.brand(context);
@@ -47,8 +50,29 @@ final class RainStripView extends LinearLayout {
   if(!demo){aiRain=rain;ai=TvCardStyle.label(context,"",13,TvCardStyle.CYAN,brand,3);aiHost=footer;refreshBriefing();}
   String source=demo?"TESTE FICTÍCIO · dados de demonstração":"Rainbow Weather · estimativa"+(rain.at>0?" · "+WeatherForecast.time(rain.at):"");
   label(footer,source,12,TvCardStyle.MUTED,Typeface.DEFAULT,2);
-  if(preview)label(footer,"Cenário fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(context)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(context)],12,TvCardStyle.CYAN,brand,2);
+  if(preview)label(footer,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(context)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(context)],12,TvCardStyle.CYAN,brand,2);
   addView(footer,new LayoutParams(-1,-2));
+ }
+ private void shortScreen(Context c,RainForecast.Summary rain,boolean demo,boolean preview){
+  setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setPadding(dp(12),dp(9),dp(12),dp(9));
+  GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xff102a40,TvCardStyle.BODY});
+  bg.setCornerRadius(dp(10));bg.setStroke(dp(1),0x8838bdf8);setBackground(bg);
+  boolean snow=rain.title.startsWith("Neve"),dry=rain.state.equals("dry");
+  View icon=new WeatherCardView.Icon(c,dry?WeatherCardView.Icon.CLOUD:snow?WeatherCardView.Icon.SNOW:WeatherCardView.Icon.RAIN);
+  addView(icon,new LayoutParams(dp(30),dp(30)));
+  View accent=new View(c);accent.setBackgroundColor(TvCardStyle.CYAN);
+  LayoutParams divider=new LayoutParams(dp(2),dp(40));divider.setMargins(dp(10),0,dp(10),0);addView(accent,divider);
+  LinearLayout words=new LinearLayout(c);words.setOrientation(VERTICAL);addView(words,new LayoutParams(0,-2,1f));
+  Typeface brand=TvCardStyle.brand(c);
+  boolean narrow=c.getResources().getDisplayMetrics().widthPixels/c.getResources().getDisplayMetrics().density<800;
+  label(words,headline(rain)+" · Liberdade, SP",narrow?18:21,TvCardStyle.WHITE,brand,2);
+  label(words,details(rain),narrow?13:15,TvCardStyle.MUTED,brand,c.getResources().getConfiguration().fontScale>1.1f?3:2);
+  if(!demo){aiRain=rain;ai=TvCardStyle.label(c,"",narrow?12:13,TvCardStyle.CYAN,brand,3);aiHost=words;refreshBriefing();}
+  View rule=new View(c);rule.setBackgroundColor(0x4438bdf8);
+  LayoutParams line=new LayoutParams(-1,dp(1));line.topMargin=dp(5);line.bottomMargin=dp(4);words.addView(rule,line);
+  String source=demo?"TESTE FICTÍCIO · dados de demonstração":"Rainbow Weather · estimativa"+(rain.at>0?" · "+WeatherForecast.time(rain.at):"");
+  label(words,source,narrow?10:11,TvCardStyle.MUTED,Typeface.DEFAULT,2);
+  if(preview)label(words,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(c)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(c)],11,TvCardStyle.CYAN,brand,2);
  }
  void refreshBriefing(){
   if(ai==null)return;
