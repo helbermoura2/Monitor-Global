@@ -16,7 +16,8 @@ for(const width of [1280,390])test('Story disponível e exportável para todos o
   CanvasRenderingContext2D.prototype.fillText=function(text,...args){if(this.canvas.width===1080&&this.canvas.height===1920)__storyTexts.push(String(text));return fill.call(this,text,...args);};
  });
 
- await page.route('https://server.arcgisonline.com/**',async r=>{const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,256,256);return c.toDataURL().split(',')[1];});await r.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});});
+ const mapFixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,256,256);return c.toDataURL().split(',')[1];});
+ await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  const samples=[...['earthquake','fire','storm','hurricane','tornado','tsunami','civil','wind','flood','volcano'].map(type=>({type,coords:[-70,-20]})),
   {type:'hurricane',classification:'TY',cycloneLabel:'Tufão'},
   {type:'hurricane',classification:'TS',cycloneLabel:'Tempestade tropical'},

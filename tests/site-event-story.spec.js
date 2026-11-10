@@ -5,7 +5,7 @@ test('Concept 6 static composition exports every event family and missing-data s
  test.setTimeout(120000);
  await page.goto('/404.html',{waitUntil:'domcontentloaded'});
  const fixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1080;c.height=1760;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,1080,1760);for(let i=0;i<100;i++){x.strokeStyle=i%2?'#789f81':'#1b352b';x.beginPath();x.moveTo(i*31%1080,0);x.lineTo(i*57%1080,1760);x.stroke();}return c.toDataURL().split(',')[1];});
- await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',body:Buffer.from(fixture,'base64')}));
+ await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(fixture,'base64')}));
  await page.addScriptTag({url:'/js/quake-site-flags.js'});
  await page.addScriptTag({url:'/js/site-event-story.js'});
  const types=['earthquake','capital-weather','temperature','fire','storm','hurricane','tornado','tsunami','civil','wind','flood','volcano'];
@@ -33,7 +33,8 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.goto('/?verify=share-concept6-all',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!window.CapitalWeather&&!!window.EventStore&&!!window.RecordPresentation);
  await page.evaluate(()=>{pausarBuscas();clearTimeout(cycleTimeout);CapitalWeather.ingest([{cidade:'São Paulo',estado:'SP',temp:24,umidade:70,vento:9,atualizado_em:new Date().toISOString(),condicao_desc:'Condição de exemplo'}]);const row=CapitalWeather.records().find(r=>r.uf==='SP');if(!row)throw Error('Weather fixture missing');CapitalWeather.show(row);clearTimeout(cycleTimeout);Object.defineProperty(navigator,'canShare',{value:()=>false,configurable:true});});
 
- await page.route('https://server.arcgisonline.com/**',async r=>{const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,256,256);return c.toDataURL().split(',')[1];});await r.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});});
+ const mapFixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,256,256);return c.toDataURL().split(',')[1];});
+ await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
  expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v3');await expect(page.locator('#pd-share-btn')).toBeEnabled();
@@ -68,7 +69,7 @@ test('Satellite tile recovery preserves the event frame; total failure rejects a
  await page.goto('/404.html');
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#496a32';x.fillRect(0,0,256,256);return c.toDataURL().split(',')[1];});
  let tiles=0;
- await page.route('https://server.arcgisonline.com/**',r=>{if(!r.request().url().includes('/tile/'))return r.abort();tiles++;return r.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});});
+ await page.route('https://server.arcgisonline.com/**',r=>{if(!r.request().url().includes('/tile/'))return r.abort();tiles++;return r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(png,'base64')});});
  await page.addScriptTag({url:'/js/site-event-story.js'});
  const out=await page.evaluate(async()=>{
   const drawn=[],rotations=[],original=CanvasRenderingContext2D.prototype.fillText,rotate=CanvasRenderingContext2D.prototype.rotate;
