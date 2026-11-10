@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v6');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v7');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -118,4 +118,31 @@ test('Storm card says TEMPESTADE, while general CGE reports stay informative',as
  expect(result.storm.title).toBe('TEMPESTADE');
  expect(result.storm.metric).toBe('TEMPESTADE');
  expect(result.storm.metric).not.toBe('REGISTRO');
+});
+
+test('Country flags sit next to the locality, and the main temperature is right-aligned',async({page})=>{
+ await page.goto('/404.html',{waitUntil:'domcontentloaded'});
+ const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;return c.toDataURL().split(',')[1];});
+ await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(image,'base64')}));
+ await page.addScriptTag({url:'/js/site-event-story.js'});
+ const checked=await page.evaluate(async()=>{
+  const flag=document.createElement('canvas');flag.width=90;flag.height=60;
+  const fg=flag.getContext('2d');fg.fillStyle='#00aacc';fg.fillRect(0,0,90,60);
+  window.QuakeSiteFlags={resolve:async()=>({countryCode:'BS'}),images:async()=>({country:flag})};
+  const drawn=[],original=CanvasRenderingContext2D.prototype.drawImage;
+  CanvasRenderingContext2D.prototype.drawImage=function(img,...args){
+   if(this.canvas.width===1080&&this.canvas.height===1920&&img===flag)drawn.push(args);
+   return original.call(this,img,...args);
+  };
+  try{
+   const c=await SiteEventStory.render({type:'temperature',coords:[-77.35,25.06],temperature:28.6,condition:'Céu limpo',place:'Nassau · Bahamas'});
+   return {flags:drawn,width:c.width,height:c.height};
+  }finally{CanvasRenderingContext2D.prototype.drawImage=original;}
+ });
+ expect(checked.flags).toHaveLength(1);
+ expect(checked.flags[0][0]).toBeGreaterThan(350);
+ expect(checked.flags[0][0]).toBeLessThan(650);
+ expect(checked.flags[0][1]).toBeGreaterThan(280);
+ expect(checked.flags[0][1]).toBeLessThan(360);
+ expect(checked.flags[0].slice(2)).toEqual([90,60]);
 });
