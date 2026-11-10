@@ -25,6 +25,15 @@ class RainAndReplayTest(unittest.TestCase):
   feed=self.read("FeedClient.java")
   self.assertIn('!view.equals("global-replay")',feed)
   self.assertIn("local.magnitude>=6",service)
+ def test_brazil_history_uses_breaking_news_banner_with_map(self):
+  service=self.read("MonitorService.java")
+  banner=self.read("NewsBannerView.java")
+  self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)",service)
+  self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)",service)
+  self.assertIn('text(c,"BREAKING NEWS"',banner)
+  self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
+  self.assertIn("String badgeLabel(){return demo?\"TESTE\":replay?\"REPLAY\"",banner)
+
  def test_rain_card_uses_same_brand_hierarchy_as_temperature(self):
   rain=self.read("RainStripView.java")
   overlay=self.read("RainOverlay.java")
