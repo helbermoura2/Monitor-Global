@@ -12,8 +12,8 @@ export async function referencePlaces(ev){
  cache.set(key,{until:Date.now()+3600000,places});while(cache.size>24)cache.delete(cache.keys().next().value);return places;
  }catch{return[];}finally{clearTimeout(timer);}
 }
-export function drawMapReferences(p,frame,ev,places){
- const L=globalThis.QuakeCardLayout,H=L.MAP_HEIGHT,Y=L.MAP_Y,C=L.CONTEXT;
+export function drawMapReferences(p,frame,ev,places,layout=globalThis.QuakeCardLayout){
+ const L=layout,H=L.MAP_HEIGHT,Y=L.MAP_Y,C=L.CONTEXT;
  const project=(lon,lat)=>[(lon-frame.minLon)/(frame.maxLon-frame.minLon)*800,Y+(frame.maxLat-lat)/(frame.maxLat-frame.minLat)*H];
  const occupied=[[C.x,C.y,C.x+C.width,C.y+C.height],[285,Y+L.ANCHOR_Y-20,590,Y+L.ANCHOR_Y+55],[550,Y+H-60,784,Y+H]];
  let count=0;for(const place of places){let lon=place.lon;lon+=360*Math.round((Number(ev.lon)-lon)/360);const [x,y]=project(lon,place.lat);let name=place.name;while(p.measure(name,15,true)>200&&name.length>3)name=name.slice(0,-4)+'...';const w=p.measure(name,15,true)+16,h=28,left=Math.max(16,Math.min(784-w,x+10)),top=y-14;
