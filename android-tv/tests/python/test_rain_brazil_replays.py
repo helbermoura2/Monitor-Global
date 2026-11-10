@@ -51,7 +51,7 @@ class RainAndReplayTest(unittest.TestCase):
  def test_automatic_priority_remains_independent(self):
   service=self.read("MonitorService.java")
   self.assertIn("interruptDaily()",service)
-  self.assertIn("if(destroyed||!screenReady()||draining",service)
+  self.assertIn("if(!destroyed&&!draining&&queue.isEmpty())display(a,demo,replay)",service)
   self.assertIn("historyBusy",service)
 
 if __name__ == "__main__":
