@@ -18,7 +18,10 @@
   return s;
  }
  function label(p,s,x,y,size,color=WHITE,bold=false,max=720){
-  p.text(fit(p,s,size,max,bold),x,y,size,color,bold);
+  const value=fit(p,s,size,max,bold);
+  // Rajdhani Bold is the exact TV-card family already embedded in the HD font atlas.
+  if(bold&&size>=25&&typeof p.brandText==='function')p.brandText(value,x,y,size,color);
+  else p.text(value,x,y,size,color,bold);
  }
  function box(p,x,y,w,h,color=NAVY){(p.roundRect||p.rect)(x,y,w,h,color);}
  function stripe(p,x,y,w,color=CYAN){p.rect(x,y,w,2,color);}
