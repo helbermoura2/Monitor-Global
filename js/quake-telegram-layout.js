@@ -87,8 +87,8 @@
   box(p,24,188,752,147,'#10232c');
   box(p,33,196,310,129,large?'#35131d':'#102f41');
   p.rect(33,196,5,129,large?RED:CYAN);
-  label(p,'MAGNITUDE',52,205,18,large?RED:CYAN,true,270);
-  label(p,'M'+fmt,50,232,101,WHITE,true,280);
+  label(p,'MAGNITUDE',52,200,16,large?RED:CYAN,true,270);
+  label(p,'M'+fmt,50,219,92,WHITE,true,280);
   p.rect(357,205,2,111,CYAN);
   label(p,name,381,206,32,WHITE,true,376);
   label(p,place,381,253,19,MUTED,false,373);
