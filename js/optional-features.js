@@ -63,7 +63,7 @@
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
   await asset('js/quake-site-flags.js?v=site-concept6-v1');
   await asset('js/quake-site-card.js?v=site-concept6-v1');
-  await asset('js/site-event-story.js?v=site-concept6-all-v6');
+  await asset('js/site-event-story.js?v=site-concept6-all-v7');
   await asset('js/story-share.js?v=site-concept6-all-v5');
  }
  window.shareResumoDiarioStory=async()=>{try{
