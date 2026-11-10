@@ -17,7 +17,7 @@ final class RainStripView extends LinearLayout {
 
  RainStripView(Context context,RainForecast.Summary rain,boolean demo,boolean preview){
   super(context);
-  // On compact displays, the original one-line broadcast strip stays below 30% of screen height.
+  // On compact displays, use the multi-section broadcast mini-card.
   if(context.getResources().getConfiguration().screenHeightDp<650){shortScreen(context,rain,demo,preview);return;}
   setOrientation(VERTICAL);
   setBackground(TvCardStyle.panel(context,TvCardStyle.BODY));
@@ -54,25 +54,54 @@ final class RainStripView extends LinearLayout {
   addView(footer,new LayoutParams(-1,-2));
  }
  private void shortScreen(Context c,RainForecast.Summary rain,boolean demo,boolean preview){
-  setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setPadding(dp(12),dp(9),dp(12),dp(9));
-  GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xff102a40,TvCardStyle.BODY});
-  bg.setCornerRadius(dp(10));bg.setStroke(dp(1),0x8838bdf8);setBackground(bg);
-  boolean snow=rain.title.startsWith("Neve"),dry=rain.state.equals("dry");
-  View icon=new WeatherCardView.Icon(c,dry?WeatherCardView.Icon.CLOUD:snow?WeatherCardView.Icon.SNOW:WeatherCardView.Icon.RAIN);
-  addView(icon,new LayoutParams(dp(30),dp(30)));
-  View accent=new View(c);accent.setBackgroundColor(TvCardStyle.CYAN);
-  LayoutParams divider=new LayoutParams(dp(2),dp(40));divider.setMargins(dp(10),0,dp(10),0);addView(accent,divider);
-  LinearLayout words=new LinearLayout(c);words.setOrientation(VERTICAL);addView(words,new LayoutParams(0,-2,1f));
+  // TVs 540p/720p usam um mini-card jornalistico com secoes de verdade;
+  // o antigo texto em uma faixa horizontal escondia a hierarquia aprovada.
+  boolean small=c.getResources().getConfiguration().screenHeightDp<440;
   Typeface brand=TvCardStyle.brand(c);
-  boolean narrow=c.getResources().getDisplayMetrics().widthPixels/c.getResources().getDisplayMetrics().density<800;
-  label(words,headline(rain)+" · Liberdade, SP",narrow?18:21,TvCardStyle.WHITE,brand,2);
-  label(words,details(rain),narrow?13:15,TvCardStyle.MUTED,brand,c.getResources().getConfiguration().fontScale>1.1f?3:2);
-  if(!demo){aiRain=rain;ai=TvCardStyle.label(c,"",narrow?12:13,TvCardStyle.CYAN,brand,3);aiHost=words;refreshBriefing();}
-  View rule=new View(c);rule.setBackgroundColor(0x4438bdf8);
-  LayoutParams line=new LayoutParams(-1,dp(1));line.topMargin=dp(5);line.bottomMargin=dp(4);words.addView(rule,line);
-  String source=demo?"TESTE FICTÍCIO · dados de demonstração":"Rainbow Weather · estimativa"+(rain.at>0?" · "+WeatherForecast.time(rain.at):"");
-  label(words,source,narrow?10:11,TvCardStyle.MUTED,Typeface.DEFAULT,2);
-  if(preview)label(words,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(c)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(c)],11,TvCardStyle.CYAN,brand,2);
+  setOrientation(VERTICAL);
+  setBackground(TvCardStyle.panel(c,TvCardStyle.BODY));
+  LinearLayout header=TvCardStyle.header(c);
+  header.setPadding(dp(13),dp(small?4:6),dp(13),dp(small?4:6));
+  LinearLayout heading=new LinearLayout(c);heading.setGravity(Gravity.CENTER_VERTICAL);
+  header.addView(heading,new LayoutParams(-1,-2));
+  heading.addView(TvCardStyle.label(c,"CHUVA  /  LIBERDADE, SP",small?12:15,TvCardStyle.BODY,brand,1),new LayoutParams(0,-2,1));
+  String badge=demo?"TESTE FICTÍCIO":rain.state.equals("now")?"AGORA":rain.state.equals("soon")?"PREVISÃO":"1 HORA";
+  heading.addView(TvCardStyle.label(c,badge,small?10:12,TvCardStyle.BODY,brand,1));
+  addView(header,new LayoutParams(-1,-2));
+
+  LinearLayout body=TvCardStyle.body(c);
+  body.setPadding(dp(13),dp(small?5:8),dp(13),dp(small?5:8));
+  LinearLayout hero=new LinearLayout(c);hero.setGravity(Gravity.CENTER_VERTICAL);
+  body.addView(hero,new LayoutParams(-1,-2));
+  boolean snow=rain.title.startsWith("Neve"),dry=rain.state.equals("dry");
+  View symbol=new WeatherCardView.Icon(c,dry?WeatherCardView.Icon.CLOUD:snow?WeatherCardView.Icon.SNOW:WeatherCardView.Icon.RAIN);
+  LayoutParams symbolBox=new LayoutParams(dp(small?31:38),dp(small?31:38));symbolBox.setMarginEnd(dp(10));hero.addView(symbol,symbolBox);
+  LinearLayout words=new LinearLayout(c);words.setOrientation(VERTICAL);hero.addView(words,new LayoutParams(0,-2,1));
+  label(words,headline(rain),small?19:25,TvCardStyle.WHITE,brand,2);
+  label(words,details(rain),small?11:13,TvCardStyle.MUTED,brand,3);
+
+  if(!small){
+   LinearLayout metrics=new LinearLayout(c);metrics.setBaselineAligned(false);
+   LayoutParams metricsPosition=new LayoutParams(-1,-2);metricsPosition.topMargin=dp(8);
+   body.addView(metrics,metricsPosition);
+   compactMetric(metrics,"PRÓXIMOS 60 MIN",Double.isFinite(rain.amount)&&rain.amount>=0?RainForecast.number(rain.amount)+" mm":"—",brand);
+   compactMetric(metrics,rain.state.equals("soon")?"NO INÍCIO":"INTENSIDADE",Double.isFinite(rain.forecastRate)?RainForecast.number(rain.forecastRate)+" mm/h":"—",brand);
+   compactMetric(metrics,"DURAÇÃO",rain.durationMinutes>0?"~"+rain.durationMinutes+" min":"INDEFINIDA",brand);
+  }
+  if(!demo){aiRain=rain;ai=TvCardStyle.label(c,"",small?11:12,TvCardStyle.CYAN,brand,3);aiHost=body;refreshBriefing();}
+  addView(body,new LayoutParams(-1,-2));
+
+  LinearLayout footer=TvCardStyle.footer(c);
+  footer.setPadding(dp(13),dp(small?4:6),dp(13),dp(small?4:6));
+  label(footer,demo?"TESTE FICTÍCIO · dados de demonstração":"Rainbow Weather · estimativa"+(rain.at>0?" · "+WeatherForecast.time(rain.at):""),small?10:11,TvCardStyle.MUTED,Typeface.DEFAULT,2);
+  if(preview)label(footer,"Chuva · exemplo fictício · "+WeatherPreviewOptions.STYLES[WeatherPreviewOptions.style(c)]+" · "+WeatherPreviewOptions.LEVELS[WeatherPreviewOptions.level(c)],10,TvCardStyle.CYAN,brand,2);
+  addView(footer,new LayoutParams(-1,-2));
+ }
+ private void compactMetric(LinearLayout parent,String caption,String value,Typeface brand){
+  LinearLayout cell=new LinearLayout(getContext());cell.setOrientation(VERTICAL);
+  cell.setPadding(0,0,dp(4),0);parent.addView(cell,new LayoutParams(0,-2,1));
+  label(cell,caption,10,TvCardStyle.CYAN,brand,1);
+  label(cell,value,17,TvCardStyle.WHITE,brand,1);
  }
  void refreshBriefing(){
   if(ai==null)return;
