@@ -13,6 +13,21 @@ const image=await mod.decodePng(normal.png);assert.equal(image.width,1800);asser
 const brightRegion=(x0,y0,x1,y1)=>{x0*=2;y0*=2;x1*=2;y1*=2;let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*image.width+x)*4;if(image.rgba[i]>100&&image.rgba[i+1]>100&&image.rgba[i+2]>100)n++;}return n;};
 assert(brightRegion(105,140,810,235)>8000,'Single-row Rajdhani headline must remain visible');
 assert(brightRegion(615,470,672,511)>500,'Primary event flag must remain visible');
+// Four ranked entries must each paint their identified country's atlas flag.
+// The fixture yields Japan, Solomon Islands, Solomon Islands and Philippines in ranks 2–5.
+let flagRowY=normal.layout.rowsY;
+for(const [index,code] of ['JP','SB','SB','PH'].entries()){
+ const mid=flagRowY+normal.layout.rowHeights[index]/2;
+ let colored=0;
+ for(let y=Math.max(0,Math.floor(mid-10));y<Math.min(image.height/2,Math.ceil(mid+38));y++)
+  for(let x=227;x<259;x++){
+   const p=((y*2)*image.width+x*2)*4,r=image.rgba[p],g=image.rgba[p+1],blue=image.rgba[p+2];
+   if(code==='JP'||code==='PH'){if(r>100&&r>g*1.55&&r>blue*1.3)colored++;}
+   else if(g>65&&g>r*1.15&&g>blue*.72)colored++;
+  }
+ assert(colored>8,'Ranking '+(index+2)+' must show the '+code+' flag, not only the country name');
+ flagRowY+=normal.layout.rowHeights[index];
+}
 assert.equal(normal.layout.rowHeights.length,4);assert(normal.layout.rowsEnd<=normal.layout.totalsY);
 assert.deepEqual(normal.epicenters.map(e=>[e.id,e.lat,e.lon]),fixture.events.slice(0,5).map(e=>[e.id,e.lat,e.lon]));
 assert.deepEqual([events.filter(e=>e.mag>=6).length,events.filter(e=>e.mag>=5&&e.mag<6).length,events.filter(e=>e.mag>=4&&e.mag<5).length,events.filter(e=>e.mag<4).length],[0,6,11,247]);
