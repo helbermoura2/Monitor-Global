@@ -30,7 +30,8 @@
 }
 #painel-direito .pd-header { margin-bottom:0!important; }
 #painel-direito .pd-focus-badge,
-#painel-direito #pd-share-btn {
+#painel-direito #pd-share-btn,
+#painel-direito #pd-video-btn {
   border-radius:8px!important;
   min-height:29px;
   padding:5px 8px!important;
@@ -159,3 +160,8 @@
 #painel-direito .pd-volcano-activity[hidden] {display:none!important;}
 #painel-direito .pd-volcano-activity strong {display:block;color:#fdba74;font-size:11px;}
 #painel-direito .pd-volcano-activity p {margin:5px 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* Dois controles independentes: imagem universal e vídeo apenas se elegível. */
+#painel-direito #pd-video-btn[hidden] { display:none!important; }
+#painel-direito #pd-video-btn { white-space:nowrap;font-size:10px;min-width:56px; }
+@media (max-width:900px){#painel-direito #pd-video-btn{min-height:44px!important;height:44px!important;touch-action:manipulation;}}
