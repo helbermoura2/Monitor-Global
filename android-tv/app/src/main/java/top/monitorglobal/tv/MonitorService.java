@@ -201,7 +201,7 @@ public final class MonitorService extends Service {
  private void fetchHistory(boolean summary,boolean completed,boolean replay){
   if(historyBusy){Prefs.status(this,"Consulta de histórico em andamento. Aguarde.");return;}historyBusy=true;if(historyExecutor==null)historyExecutor=Executors.newSingleThreadExecutor();final int request=++historyRequest;Prefs.status(this,summary?(completed?"Consultando o resumo completo de ontem…":"Consultando os maiores sismos de hoje · parcial…"):"Buscando o último sismo M6+ mundial nas últimas 72 horas…");
   historyExecutor.execute(()->{try{
-   FeedClient.Snapshot snapshot=new FeedClient().history(summary?(completed?"completed":"daily"):"replay");
+   FeedClient.Snapshot snapshot=new FeedClient().history(summary?(completed?"completed":"daily"):"global-replay");
    if(summary&&completed&&!SummaryRecord.completedFor(snapshot,System.currentTimeMillis()))throw new java.io.IOException("Resumo do dia anterior não confirmado");
    if(!snapshot.quakeOk)throw new java.io.IOException("Catálogo indisponível");
    main.post(()->{historyBusy=false;if(destroyed||request!=historyRequest)return;
