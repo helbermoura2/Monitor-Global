@@ -1,7 +1,7 @@
 name: Site shared image Concept 6
 on:
   push:
-    branches: [fix/site-share-concept6-refinement]
+    branches: [fix/site-share-readable-location]
   pull_request:
     paths: ['js/site-event-story.js', 'tests/site-event-story.spec.js', 'css/capital-weather.css', '.github/workflows/site-share-concept6.yml']
 permissions:
@@ -21,7 +21,7 @@ jobs:
       - name: Export all event types and verify the temperature sharing action
         env:
           STORY_LIVE_PREVIEW: '1'
-        run: npx playwright test tests/site-event-story.spec.js tests/site-concept6.spec.js tests/story-all-events.spec.js --workers=2
+        run: node --test tests/unit/event-portuguese.test.cjs && npx playwright test tests/site-event-story.spec.js tests/site-concept6.spec.js tests/story-all-events.spec.js --workers=2
       - name: Export previews
         if: always()
         uses: actions/upload-artifact@v4
@@ -40,3 +40,4 @@ jobs:
               image=Image.open(path);image.thumbnail((540,960));out=io.BytesIO();image.convert('RGB').save(out,format='JPEG',quality=82)
               print('SHARE_CONCEPT6_'+path.stem+' '+base64.b64encode(out.getvalue()).decode())
           PY
+

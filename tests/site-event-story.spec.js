@@ -6,7 +6,7 @@ test('Concept 6 static composition exports every event family and missing-data s
  await page.goto('/404.html',{waitUntil:'domcontentloaded'});
  const fixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1080;c.height=1760;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,1080,1760);for(let i=0;i<100;i++){x.strokeStyle=i%2?'#789f81':'#1b352b';x.beginPath();x.moveTo(i*31%1080,0);x.lineTo(i*57%1080,1760);x.stroke();}return c.toDataURL().split(',')[1];});
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(fixture,'base64')}));
- await page.addScriptTag({url:'/js/quake-site-flags.js'});
+ await page.addScriptTag({url:'/js/event-portuguese.js'});await page.addScriptTag({url:'/js/quake-site-flags.js'});
  await page.addScriptTag({url:'/js/site-event-story.js'});
  const types=['earthquake','capital-weather','temperature','fire','storm','hurricane','tornado','tsunami','civil','wind','flood','volcano'];
  for(const type of types){
@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v3');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v4');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -45,11 +45,11 @@ test('Visual proof with bounded real satellite imagery and explicitly fictional 
  const https=require('node:https');let count=0,loaded=0;
  const read=url=>new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'MonitorGlobal/site-sharing-layout-proof'}},res=>{if(res.statusCode!==200){res.resume();return reject(Error('Source HTTP '+res.statusCode));}const chunks=[];let length=0;res.on('data',b=>{length+=b.length;if(length>8000000){req.destroy();reject(Error('Source byte limit'));}else chunks.push(b);});res.on('end',()=>{const b=Buffer.concat(chunks);if(b.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'&&b.subarray(0,2).toString('hex')!=='ffd8')return reject(Error('Source did not return imagery'));resolve(b);});});req.setTimeout(6000,()=>req.destroy(Error('Source timeout')));req.on('error',reject);});
  await page.route('https://server.arcgisonline.com/**',async r=>{if(++count>32)return r.abort();try{const png=await read(r.request().url());loaded++;await r.fulfill({contentType:png[0]===255?'image/jpeg':'image/png',headers:{'access-control-allow-origin':'*'},body:png});}catch(error){console.log('LIVE_IMAGE_SOURCE_UNAVAILABLE '+error.message);await r.abort();}});
- await page.goto('/404.html',{waitUntil:'domcontentloaded'});await page.addScriptTag({url:'/js/quake-site-flags.js'});await page.addScriptTag({url:'/js/site-event-story.js'});
+ await page.goto('/404.html',{waitUntil:'domcontentloaded'});await page.addScriptTag({url:'/js/event-portuguese.js'});await page.addScriptTag({url:'/js/quake-site-flags.js'});await page.addScriptTag({url:'/js/site-event-story.js'});
  await page.evaluate(()=>{window.QuakeSiteCard={frame:({lon,lat})=>({minLon:lon-.17578125,maxLon:lon+.17578125,minLat:lat-.28645833,maxLat:lat+.28645833})};});
- for(const [type,coords,place]of [['earthquake',[-36.24,-8.67],'Lajedo/PE · EXEMPLO'],['capital-weather',[-46.63,-23.55],'São Paulo/SP · EXEMPLO']]){
-  const png=await page.evaluate(async({type,coords,place})=>{const c=await SiteEventStory.render({type,coords,place,countryCode:'BR',uf:type==='earthquake'?'PE':'SP',time:Date.now(),mag:1.8,depth:0,temperature:24,feels:25,humidity:70,wind:9,source:'DADOS DE EXEMPLO',detail:'PRÉVIA DE LAYOUT · evento fictício sobre imagem cartográfica real'});return c.toDataURL().split(',')[1];},{type,coords,place});
-  fs.mkdirSync('/tmp/share-concept6',{recursive:true});fs.writeFileSync('/tmp/share-concept6/live-'+type+'.png',Buffer.from(png,'base64'));
+ for(const [type,coords,place]of [['earthquake',[-36.24,-8.67],'Lajedo/PE · EXEMPLO'],['capital-weather',[-46.63,-23.55],'São Paulo/SP · EXEMPLO'],['earthquake', [176.51,-37.83], '30 km south-a leste de Tauranga, Nova Zelândia · EXEMPLO']]){
+  const png=await page.evaluate(async({type,coords,place})=>{const c=await SiteEventStory.render({type,coords,place,countryCode:coords[0]>0?'NZ':'BR',uf:coords[0]>0?undefined:type==='earthquake'?'PE':'SP',time:Date.now(),mag:1.8,depth:0,temperature:24,feels:25,humidity:70,wind:9,source:'DADOS DE EXEMPLO',detail:'PRÉVIA DE LAYOUT · evento fictício sobre imagem cartográfica real'});return c.toDataURL().split(',')[1];},{type,coords,place});
+  fs.mkdirSync('/tmp/share-concept6',{recursive:true});fs.writeFileSync('/tmp/share-concept6/live-'+type+(coords[0]>0?'-nz':'')+'.png',Buffer.from(png,'base64'));
  }
  console.log('LIVE_IMAGE_PROOF '+JSON.stringify({requests:count,loaded}));expect(count).toBeLessThanOrEqual(32);
 });
@@ -83,4 +83,21 @@ test('Satellite tile recovery preserves the event frame; total failure rejects a
  // A new event frame must not reuse another location's cached image.
  const failure=await page.evaluate(async()=>{try{await SiteEventStory.render({type:'temperature',coords:[-46.63,-23.55],temperature:24});return 'blank accepted';}catch(e){return e.code;}});
  expect(failure).toBe('STORY_MAP_UNAVAILABLE');
+});
+
+
+test('Complete translated location occupies its own row without truncation or header collisions',async({page})=>{
+ await page.goto('/404.html');
+ const fixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;return c.toDataURL().split(',')[1];});
+ await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(fixture,'base64')}));
+ await page.addScriptTag({url:'/js/event-portuguese.js'});await page.addScriptTag({url:'/js/site-event-story.js'});
+ const result=await page.evaluate(async()=>{
+  const drawn=[],original=CanvasRenderingContext2D.prototype.fillText;
+  CanvasRenderingContext2D.prototype.fillText=function(t,x,y,...a){if(this.canvas.width===1080&&this.canvas.height===1920)drawn.push({text:String(t),x,y,font:this.font,width:this.measureText(t).width});return original.call(this,t,x,y,...a);};
+  try{await SiteEventStory.render({type:'earthquake',coords:[176.51,-37.83],mag:1.9,depth:134.5,place:'30 km south-a leste de Tauranga, Nova Zelândia'});return drawn;}finally{CanvasRenderingContext2D.prototype.fillText=original;}
+ });
+ const location=result.filter(r=>r.y>=292&&r.y<415&&r.x===98);expect(location.map(r=>r.text).join(' ')).toBe('30 km a sudeste de Tauranga, Nova Zelândia');
+ for(const row of location){expect(row.text).not.toContain('…');expect(row.x+row.width).toBeLessThanOrEqual(982);}
+ const region=result.find(r=>r.text==='CONTEXTO REGIONAL');expect(region.y).toBeGreaterThan(location.at(-1).y+38);
+ expect(parseInt(result.find(r=>r.text==='PROFUNDIDADE').font.match(/(\d+)px/)[1])).toBeGreaterThanOrEqual(18);
 });

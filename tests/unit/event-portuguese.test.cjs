@@ -32,3 +32,14 @@ test('Brazilian numeric presentation retains precision in raw data and normalize
  const raw={mag:6.3,depth:12.647,_deltaTxt:'M6.6 → M6.3 · 10 → 13 km'};
  assert.equal(p.revision(raw),'M6,6 → M6,3 · 10 → 13 km');assert.equal(raw.mag,6.3);assert.equal(raw.depth,12.647);assert.equal(raw._deltaTxt,'M6.6 → M6.3 · 10 → 13 km');
 });
+
+
+test('distance descriptors translate full and partially translated compound compass words',()=>{
+ for(const [input,expected]of [
+  ['30 km south-east of Tauranga, New Zealand','30 km a sudeste de Tauranga, Nova Zelândia'],
+  ['30 km south-a leste de Tauranga, Nova Zelândia','30 km a sudeste de Tauranga, Nova Zelândia'],
+  ['12 km north-northeast of West Yellowstone, Montana','12 km a norte-nordeste de West Yellowstone, Montana'],
+  ['8 km north-west of East London, South Africa','8 km a noroeste de East London, África do Sul'],
+  ['30 km a sudeste de Tauranga, Nova Zelândia','30 km a sudeste de Tauranga, Nova Zelândia']
+ ]){assert.equal(p.place(input),expected);assert.equal(p.place(expected),expected);}
+});
