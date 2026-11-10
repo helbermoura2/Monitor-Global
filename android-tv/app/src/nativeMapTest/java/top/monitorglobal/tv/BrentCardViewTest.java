@@ -36,6 +36,21 @@ public class BrentCardViewTest {
   try(FileOutputStream file=new FileOutputStream("/tmp/monitor-tv-brent-card.png")){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,file));}
   bitmap.recycle();
  }
+ @Test public void percentChipIsAnchoredNearRightEdgeAwayFromPrice(){
+  BrentQuote quote=new BrentQuote(91.03,92.57,-1.54,-1.66,System.currentTimeMillis(),"Yahoo Finance");
+  BrentCardView card=new BrentCardView(c,quote,false);
+  int width=500;
+  card.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),
+    View.MeasureSpec.makeMeasureSpec(400,View.MeasureSpec.AT_MOST));
+  card.layout(0,0,width,card.getMeasuredHeight());
+  LinearLayout body=(LinearLayout)card.getChildAt(1);
+  LinearLayout values=(LinearLayout)body.getChildAt(0);
+  assertEquals("Price, flexible gap and percent chip",3,values.getChildCount());
+  View price=values.getChildAt(0),gap=values.getChildAt(1),change=values.getChildAt(2);
+  assertTrue("Price and percent must not touch",change.getLeft()-price.getRight()>40);
+  assertTrue("Chip must reach trailing content edge",values.getWidth()-change.getRight()<3);
+  assertTrue("Flexible gap must absorb unused horizontal space",gap.getWidth()>40);
+ }
  @Test public void demoCanNeverBeConfusedWithAnActualQuote(){
   BrentCardView card=new BrentCardView(c,new BrentQuote(78.35,77.50,0.85,1.10,System.currentTimeMillis(),"DEMO"),true);
   assertTrue(text(card).contains("TESTE FICTÍCIO"));
