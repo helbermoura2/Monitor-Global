@@ -22,3 +22,7 @@
 }
 
 .capital-weather-country-flag{font-size:28px;vertical-align:middle;margin-right:8px;letter-spacing:0}
+
+/* Temperature shares use the same visible image action as other records. */
+#painel-direito.pd-capital-weather .pd-header-actions{display:flex!important}
+#painel-direito.pd-capital-weather .pd-header-actions>:not(#pd-share-btn){display:none!important}
