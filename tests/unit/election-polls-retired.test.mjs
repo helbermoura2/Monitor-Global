@@ -8,11 +8,24 @@ test('retired polls endpoint serves stale clients without any KV access',async()
  const health=await (await worker.fetch(new Request('https://worker.test/health'),env)).json();assert.equal(health.electionPolls,'removed-no-kv-v1');
 });
 test('scheduled delivery keeps demand-only feeds retired and revises history only every fifteen minutes',async()=>{
- const calls=[],pending=[],context={Request,console,Date,withKvUsage:(env,fn)=>fn(env),maybeRefreshPollsAverageNightly:async()=>calls.push('retired-polls')};
+ const calls=[],pending=[];let allowReprint=false;
+ const context={Request,console,Date,
+  DAILY_SUMMARY_DESIGN:'monitor-global-rajdhani-neon-v7',
+  DAILY_REPOST_REQUEST:{day:'2026-11-09'},
+  requestedDailyRepostReady:()=>allowReprint,
+  withKvUsage:(env,fn)=>fn(env),maybeRefreshPollsAverageNightly:async()=>calls.push('retired-polls')};
  for(const key of ['runTelegramDailySummary','refreshSpClimaCache','refreshGlobalFeedsCache','runTelegramM6Alerts','refreshRecentDailyBrazilSummaries'])context[key]=async()=>calls.push(key);
  const method=source.slice(source.lastIndexOf('    async scheduled('),source.lastIndexOf('\n};'));
  const scheduled=vm.runInNewContext('({'+method+'}).scheduled',context);
- async function tick(time){calls.length=0;await scheduled({scheduledTime:Date.parse(time)}, {}, {waitUntil:p=>pending.push(p)});await Promise.all(pending.splice(0));return [...calls];}
+ async function tick(time,env={}){calls.length=0;await scheduled({scheduledTime:Date.parse(time)},env,{waitUntil:p=>pending.push(p)});await Promise.all(pending.splice(0));return [...calls];}
  assert.deepEqual(await tick('2026-10-18T00:03:00Z'),['runTelegramDailySummary','runTelegramM6Alerts']);
  assert.deepEqual(await tick('2026-10-18T00:15:00Z'),['runTelegramDailySummary','runTelegramM6Alerts','refreshRecentDailyBrazilSummaries']);
+ const replayEnv={DAILY_SUMMARY:{idFromName:day=>day,get:id=>({fetch:async(url,request)=>{
+  assert.equal(request.method,'POST');assert.match(url,/2026-11-09/);
+  calls.push('repost-once');return Response.json({ok:true});
+ }})}};
+ allowReprint=true;
+ assert.deepEqual(await tick('2026-11-10T03:16:00Z',replayEnv),['runTelegramDailySummary','runTelegramM6Alerts']);
+ assert.deepEqual(await tick('2026-11-10T03:15:00Z',replayEnv),['runTelegramDailySummary','repost-once','runTelegramM6Alerts','refreshRecentDailyBrazilSummaries']);
+
 });
