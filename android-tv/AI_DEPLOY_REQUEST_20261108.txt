@@ -13,3 +13,12 @@ Implantar também a correção revisada de worker/tv-brent.mjs (Yahoo query2 com
 segunda tentativa; somente preço real e horário da fonte, sem cotação simulada).
 Manter o mesmo Worker, bindings, cron, segredos e proteção de testes;
 se houver falha, não forçar publicação.
+
+10/11/2026 — autorização específica para republicar o resumo do dia 09/11/2026.
+O proprietário pediu nova postagem no Telegram com o layout Rajdhani Neon v7
+já aprovado e incorporado pelo PR #624, pois a edição original saiu antes do
+deploy. Autorizar UMA republicação identificada como "REPUBLICAÇÃO · NOVO VISUAL",
+preservando o primeiro post, a deduplicação normal, os secrets e bindings.
+Após validação de CI, implantar o Worker atual em produção. O Durable Object
+impedirá posts duplicados, inclusive quando houver falha ambígua do Telegram.
+Este registro não autoriza envios periódicos extras nem repetições de outros dias.
