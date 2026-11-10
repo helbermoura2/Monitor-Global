@@ -32,7 +32,9 @@ class RainAndReplayTest(unittest.TestCase):
   self.assertIn("TESTE FICTÍCIO",rain)
   self.assertIn("Rainbow Weather",rain)
   self.assertIn("refreshBriefing()",rain)
-  self.assertIn("Math.min(dp(420)",overlay)
+  self.assertIn("screenHeightDp<650",overlay)
+  self.assertIn("Math.min(dp(compact&&",overlay)
+  self.assertIn("Chuva · exemplo fictício · ",rain)
   self.assertIn("Gravity.BOTTOM",overlay)
  def test_automatic_priority_remains_independent(self):
   service=self.read("MonitorService.java")
