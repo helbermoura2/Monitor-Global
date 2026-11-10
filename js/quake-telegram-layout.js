@@ -129,5 +129,5 @@
   label(p,'monitorglobal.top',32,1380,17,MUTED,true,350);
   label(p,'@monitor_global',544,1380,18,CYAN,true,222);
  }
- globalThis.QuakeTelegramLayout={version:'telegram-v18',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,telegramFrame,draw,drawTsunami,tsunamiCopy};
+ globalThis.QuakeTelegramLayout={version:'telegram-v18',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y:994,TSUNAMI_HEIGHT:132,telegramFrame,draw,drawTsunami,tsunamiCopy};
 })();
