@@ -117,89 +117,190 @@ function drawMap(ctx,x,y,frame){
 export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={}){
  if(![1,2].includes(scale))throw Error('Escala inválida');
  gfx=summaryGraphicsAtScale(gfx,scale);
- const {day,events}=quakes,W=900,X=29,CW=842;
+ const {day,events}=quakes,W=900,X=28,CW=844;
  const top=events.slice().sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5);
  const measure=(key,s,tracking=0)=>gfx.textWidth(fonts[key],gfx.clean(s,fonts[key]),tracking);
  const wrap=(key,s,width)=>gfx.wrap(fonts[key],s,width);
+ const number=m=>Number.isFinite(m)?m.toFixed(1).replace('.',','):'—';
  const km=value=>Number.isFinite(value)?Math.round(Math.max(0,value)).toLocaleString('pt-BR')+' km':'—';
+ const timeBrt=t=>Number.isFinite(t)?new Date(t).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}):'—';
+ // Distances displayed are the geodesic distance from the centre of São Paulo, never an estimated felt radius.
  const distance=e=>{if(!Number.isFinite(e.lat)||!Number.isFinite(e.lon))return null;const rad=Math.PI/180,a=(e.lat+23.55)*rad,b=(e.lon+46.63)*rad,v=Math.sin(a/2)**2+Math.cos(-23.55*rad)*Math.cos(e.lat*rad)*Math.sin(b/2)**2;return 6371*2*Math.asin(Math.sqrt(Math.min(1,v)));};
  const layouts=top.map(e=>{
-  const country=gfx.country(e.place),place=gfx.place(e.place);
+  const country=gfx.country(e.place||''),place=gfx.place(e.place||'Local não informado');
   if(country.label!=='EUA')country.label=country.label.toLocaleLowerCase('pt-BR').split(' ').map((w,i)=>i&&['de','do','da','dos','das','e'].includes(w)?w:w.charAt(0).toLocaleUpperCase('pt-BR')+w.slice(1)).join(' ');
-  if(country.code&&place.title.includes(',')){const suffix=place.title.slice(place.title.lastIndexOf(',')+1).trim();if(suffix.toLocaleUpperCase('pt-BR')===country.label.toLocaleUpperCase('pt-BR')||gfx.country(suffix).code===country.code||/^(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)$/.test(suffix))place.title=place.title.slice(0,place.title.lastIndexOf(','));}
-  const when=Number.isFinite(e.time)?new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}):'—';
-  const names=[...wrap('title',place.title,164),...wrap('title',country.label,164)];
-  return {event:e,color:gfx.magColor(e.mag),country,place,when,depth:km(e.depth),distance:km(distance(e)),names,height:Math.max(92,28+names.length*(fonts.title.cellH+2))};
- });
- const first=layouts[0],heroNames=first?wrap('heroName',first.place.title,278):[],heroCountries=first?wrap('country',first.country.label,278):[];
- const extraHero=Math.max(0,(heroNames.length-1)*(fonts.heroName.cellH+4)+(heroCountries.length-1)*(fonts.country.cellH+3));
- const rowsY=760+extraHero,rowHeights=layouts.slice(1).map(l=>l.height),rowsEnd=rowsY+rowHeights.reduce((a,b)=>a+b,0);
- const brazil=events.filter(e=>e.brazil===true||Number.isFinite(e.lat)&&Number.isFinite(e.lon)&&gfx.isBrazil?.(e.lat,e.lon)).sort((a,b)=>b.mag-a.mag||a.time-b.time);
- const brazilRows=brazil.map(e=>({event:e,names:wrap('detail',gfx.place(e.place).title,470)}));
- const brazilY=Math.max(1150+extraHero,rowsEnd+22),brazilHeight=brazil.length?66+brazilRows.reduce((n,r)=>n+Math.max(60,24+r.names.length*(fonts.detail.cellH+3)),0)+16:0;
- const totalsY=brazilY+(brazilHeight?brazilHeight+22:0),H=Math.max(1344,totalsY+194);
- const rgba=new Uint8Array(W*H*4*scale*scale);rgba.summaryScale=scale;gfx.fillRect(rgba,W,0,0,W,H,...COLORS.bg);
- const text=(key,s,x,y,color=COLORS.white,tracking=0)=>gfx.drawText(rgba,W,H,fonts[key],gfx.clean(s,fonts[key]),x,y,...color,tracking);
- const center=(key,s,x,y,color=COLORS.white,tracking=0)=>text(key,s,x-measure(key,s,tracking)/2,y,color,tracking);
- const flag=(code,x,y)=>{if(code==='AQ')scaledIcon(rgba,W,H,fonts.aq,0,72,72,x,y,45,38);else if(fonts.flags.map[code]){const[sx,w,h]=fonts.flags.map[code];scaledIcon(rgba,W,H,fonts.flags.img,sx,w,h,x,y,45,30);}};
- const border=(x,y,w,h,r=11,color=COLORS.line)=>{gfx.fillRoundRect(rgba,W,H,x,y,w,h,r,...color);gfx.fillRoundRect(rgba,W,H,x+1,y+1,w-2,h-2,r-1,...COLORS.bg);};
- gfx.drawRadar(rgba,W,H,64,60,27,112,198,214);text('brand','MONITOR GLOBAL',113,51,COLORS.white,4.5);
- const edition='BOLETIM / '+day.split('-').reverse().join('/')+' / BRT';text('tag',edition,W-34-measure('tag',edition,1),52,COLORS.white,1);
- text('heading','Resumo sísmico',38,122);text('subtitle','diário',38,207);text('subtitle','.',38+measure('subtitle','diário'),207,COLORS.cyan);
- const date=new Date(day+'T12:00:00Z').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).toLocaleUpperCase('pt-BR');
- text('tag','ATIVIDADE SÍSMICA GLOBAL · '+date,38,313,COLORS.white,1.3);
- const frame=summaryMapFrame(top,575,390,{world:true});drawMap({rgba,W,H,gfx,text,center,fonts,reference:true,items:layouts},26,348,frame);
- const missing=top.length-frame.markers.length;if(missing)text('small',missing+' '+(missing===1?'registro sem coordenadas':'registros sem coordenadas'),38,725,COLORS.muted);
- const cx=714,cy=340;
- if(first){
-  const heroColor=first.color;
-  gfx.drawArc(rgba,W,H,cx,cy,156,1,0,360,34,62,77,120);
-  // Continuous radial coverage avoids visible seams between short arc segments.
-  for(let py=cy-164;py<=cy+164;py++)for(let px=cx-164;px<=cx+164;px++){
-   const dx=px-cx,dy=py-cy,d=Math.abs(Math.hypot(dx,dy)-156),angle=Math.atan2(dy,dx)*180/Math.PI;
-   if(angle< -90||angle>68||d>8)continue;
-   const fade=Math.min(1,(68-angle)/33),edge=Math.max(0,Math.min(1,2-d));
-   pixel(rgba,W,H,px,py,heroColor,Math.max(0,1-d/8)*.08*fade);
-   if(edge)pixel(rgba,W,H,px,py,heroColor,edge*.82*fade);
+  if(country.code&&place.title.includes(',')){
+   const suffix=place.title.slice(place.title.lastIndexOf(',')+1).trim();
+   if(suffix.toLocaleUpperCase('pt-BR')===country.label.toLocaleUpperCase('pt-BR')||gfx.country(suffix).code===country.code||/^(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)$/.test(suffix))place.title=place.title.slice(0,place.title.lastIndexOf(','));
   }
-  flag(first.country.code,cx-22,218);center('tag','EVENTO PRINCIPAL',cx,279,COLORS.white,1.4);
-  const magnitude='M '+first.event.mag.toFixed(1).replace('.',',');center('hero',magnitude,cx,306,heroColor);
-  let yy=409;for(const s of heroNames){center('heroName',s,cx,yy);yy+=fonts.heroName.cellH+4;}
-  yy+=5;for(const s of heroCountries){center('country',s,cx,yy,COLORS.cyan);yy+=fonts.country.cellH+3;}
-  const metaY=Math.max(520,yy+24);line(rgba,W,H,624,metaY-9,829,metaY-9,COLORS.line);
-  border(626,metaY+22,30,36,3,COLORS.muted);line(rgba,W,H,630,metaY+50,651,metaY+27,COLORS.muted);line(rgba,W,H,630,metaY+41,630,metaY+51,COLORS.muted);line(rgba,W,H,630,metaY+51,640,metaY+51,COLORS.muted);
-  text('tag','PROFUNDIDADE',677,metaY+20,COLORS.white,1);text('caption',first.depth,677,metaY+44);
-  gfx.drawArc(rgba,W,H,642,metaY+116,16,1.5,0,360,...COLORS.muted);line(rgba,W,H,642,metaY+106,642,metaY+116,COLORS.muted);line(rgba,W,H,642,metaY+116,652,metaY+121,COLORS.muted);
-  text('tag','HORA (BRT)',677,metaY+98,COLORS.white,1);text('caption',first.when,677,metaY+122);
- }else{center('heroName','Sem sismos',cx,340,COLORS.cyan);center('caption','registrados no período',cx,395);}
- if(layouts.length>1)border(X,rowsY,CW,rowsEnd-rowsY);
+  const names=[...wrap('title',place.title,215),...wrap('title',country.label,215)];
+  return {event:e,color:gfx.magColor(e.mag),country,place,when:timeBrt(e.time),depth:km(e.depth),distance:km(distance(e)),names,height:Math.max(88,22+names.length*(fonts.title.cellH+1))};
+ });
+ const first=layouts[0],rowsY=724,rowHeights=layouts.slice(1).map(l=>l.height);
+ const rowsEnd=rowsY+Math.max(72,rowHeights.reduce((a,b)=>a+b,0));
+ const brazil=events.filter(e=>e.brazil===true||Number.isFinite(e.lat)&&Number.isFinite(e.lon)&&gfx.isBrazil?.(e.lat,e.lon)).sort((a,b)=>b.mag-a.mag||a.time-b.time);
+ const brazilRows=brazil.map(e=>({event:e,names:wrap('detail',gfx.place(e.place||'Local não informado').title,310)}));
+ const brazilY=Math.max(1115,rowsEnd+25);
+ const brazilHeight=brazilRows.length?64+brazilRows.reduce((sum,r)=>sum+Math.max(64,24+r.names.length*(fonts.detail.cellH+3)),0)+13:0;
+ const totalsY=brazilY+(brazilHeight?brazilHeight+22:0);
+ const H=Math.max(1344,totalsY+208);
+ const rgba=new Uint8Array(W*H*4*scale*scale);rgba.summaryScale=scale;
+ gfx.fillRect(rgba,W,0,0,W,H,...COLORS.bg);
+ const text=(key,str,x,y,color=COLORS.white,tracking=0)=>gfx.drawText(rgba,W,H,fonts[key],gfx.clean(str,fonts[key]),x,y,...color,tracking);
+ const center=(key,str,x,y,color=COLORS.white,tracking=0)=>text(key,str,x-measure(key,str,tracking)/2,y,color,tracking);
+ const face=fonts.rajdhani;
+ if(!face||!face.glyphs||!face.img)throw Error('Rajdhani Bold do Monitor Global indisponível');
+ const brandWidth=(str,size)=>[...String(str)].reduce((sum,ch)=>{const g=face.glyphs[ch]||face.glyphs['?'];return sum+(g?.[2]||g?.[1]||16)*size/face.size;},0);
+ const brand=(str,x,y,size,color=COLORS.white,maxWidth=W-x)=>{
+  str=String(str??'');let adjusted=size;
+  while(brandWidth(str,adjusted)>maxWidth&&adjusted>13)adjusted-=1;
+  let cursor=x,ratio=adjusted/face.size;
+  for(const ch of str){const g=face.glyphs[ch]||face.glyphs['?'];if(!g)continue;
+   const gw=Math.max(1,Math.round(g[1]*ratio)),gh=Math.max(1,Math.round(face.cellH*ratio));
+   scaledIcon(rgba,W,H,face.img,g[0],g[1],face.cellH,Math.round(cursor-(g[3]||0)*ratio),Math.round(y),gw,gh,color);
+   cursor+=(g[2]||g[1])*ratio;
+  }return cursor-x;
+ };
+ const centerBrand=(str,cx,y,size,color=COLORS.white,maxWidth=400)=>{let adjusted=size;while(brandWidth(str,adjusted)>maxWidth&&adjusted>13)adjusted-=1;brand(str,cx-brandWidth(str,adjusted)/2,y,adjusted,color,maxWidth);};
+ const wrapBrand=(str,width,size,maxLines=2)=>{
+  const words=String(str||'').split(/\s+/).filter(Boolean),rows=[];let lineText='';
+  for(const word of words){const next=lineText?lineText+' '+word:word;if(lineText&&brandWidth(next,size)>width){rows.push(lineText);lineText=word;}else lineText=next;}
+  if(lineText)rows.push(lineText);
+  if(rows.length>maxLines){rows.length=maxLines;let last=rows[maxLines-1];while(last.length>2&&brandWidth(last+'...',size)>width)last=last.slice(0,-1);rows[maxLines-1]=last+'...';}
+  return rows;
+ };
+ const flag=(code,x,y,w=45,h=30)=>{if(code==='AQ')scaledIcon(rgba,W,H,fonts.aq,0,72,72,x,y,w,h);
+  else if(code&&fonts.flags.map[code]){const[sx,fw,fh]=fonts.flags.map[code];scaledIcon(rgba,W,H,fonts.flags.img,sx,fw,fh,x,y,w,h);}
+ };
+ const border=(x,y,w,h,r=12,color=COLORS.cyan,background=COLORS.panel)=>{
+  gfx.fillRoundRect(rgba,W,H,x,y,w,h,r,...color);
+  gfx.fillRoundRect(rgba,W,H,x+2,y+2,w-4,h-4,Math.max(1,r-2),...background);
+ };
+ const waveform=(x,y,color=COLORS.cyan,size=1)=>{
+  const points=[[0,12],[12,12],[17,4],[21,20],[25,0],[29,25],[34,10],[41,12],[56,12]];
+  for(let i=1;i<points.length;i++)line(rgba,W,H,x+points[i-1][0]*size,y+points[i-1][1]*size,x+points[i][0]*size,y+points[i][1]*size,color);
+ };
+ // Brand masthead, radar and subtle globe outline use the same TV palette.
+ gfx.fillRadialGlow(rgba,W,H,674,34,190,17,97,143,.18);
+ gfx.drawRadar(rgba,W,H,64,59,28,35,210,239);
+ const brandX=117,monitor='MONITOR',global=' GLOBAL';
+ brand(monitor,brandX,36,37,COLORS.white,200);
+ brand(global,brandX+brandWidth(monitor,37)+3,36,37,COLORS.cyan,195);
+ text('tag','SISMOS · VULCÕES · CICLONES · ALERTAS',117,87,COLORS.muted,.3);
+ border(691,26,181,77,12,COLORS.cyan,COLORS.panel);
+ centerBrand('BOLETIM DIÁRIO',782,34,23,COLORS.white,170);
+ centerBrand(day.split('-').reverse().join('/')+' (BRT)',782,66,22,COLORS.cyan,172);
+ line(rgba,W,H,29,124,870,124,COLORS.cyan,.85);
+ waveform(30,155,COLORS.cyan,1.25);
+ brand('RESUMO SÍSMICO',113,148,54,COLORS.white,550);
+ brand('DIÁRIO',113+brandWidth('RESUMO SÍSMICO',54)+14,148,54,COLORS.cyan,230);
+ const date=new Date(day+'T12:00:00Z').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).toLocaleUpperCase('pt-BR');
+ text('tag','ATIVIDADE SÍSMICA GLOBAL · '+date,117,213,COLORS.muted,.7);
+
+ // True geographic data: all five markers come from the original queried coordinates.
+ const mapX=32,mapY=275,mapW=543,mapH=356;
+ border(mapX-3,mapY-3,mapW+6,mapH+6,14,COLORS.cyan,COLORS.map);
+ const frame=summaryMapFrame(top,mapW,mapH,{world:true});
+ drawMap({rgba,W,H,gfx,text,center,fonts,reference:true,items:layouts},mapX,mapY,frame);
+ line(rgba,W,H,mapX,mapY,mapX+mapW,mapY,COLORS.cyan,.65);
+ const missing=top.length-frame.markers.length;
+ if(missing)text('small',missing+(missing===1?' registro sem coordenadas':' registros sem coordenadas'),mapX+9,mapY+mapH-28,COLORS.muted);
+
+ // The hero is a separate dark LED-style module rather than a circle overlapping the world map.
+ const hx=600,hy=272,hw=273,hh=362,accent=first?first.color:COLORS.cyan;
+ gfx.fillRadialGlow(rgba,W,H,hx+hw/2,hy+123,154,...accent,.15);
+ border(hx,hy,hw,hh,15,accent,COLORS.panel);
+ gfx.fillRoundRect(rgba,W,H,hx+9,hy+10,hw-18,45,8,...(first?gfx.magColor(first.event.mag):COLORS.line));
+ gfx.fillRect(rgba,W,hx+11,hy+12,hw-22,41,...COLORS.bg);
+ centerBrand('EVENTO PRINCIPAL',hx+hw/2,hy+20,24,accent,hw-25);
+ if(first){
+  centerBrand('M'+number(first.event.mag),hx+hw/2,hy+72,91,accent,hw-20);
+  line(rgba,W,H,hx+15,hy+178,hx+hw-15,hy+178,COLORS.line,.95);
+  flag(first.country.code,hx+18,hy+202,45,30);
+  const heroName=wrapBrand(first.place.title,194,26,2);
+  heroName.forEach((label,i)=>brand(label,hx+73,hy+197+i*29,26,COLORS.white,hw-85));
+  brand(first.country.label,hx+18,hy+263,20,COLORS.cyan,hw-35);
+  line(rgba,W,H,hx+15,hy+296,hx+hw-15,hy+296,COLORS.line,.9);
+  text('columnLabel','PROFUNDIDADE',hx+18,hy+307,COLORS.muted);
+  text('title',first.depth,hx+18,hy+329,COLORS.white);
+  line(rgba,W,H,hx+134,hy+306,hx+134,hy+354,COLORS.line,.9);
+  text('columnLabel','HORA (BRT)',hx+145,hy+307,COLORS.muted);
+  text('detail',first.when,hx+145,hy+331,COLORS.white);
+ }else{
+  centerBrand('SEM REGISTROS',hx+hw/2,hy+130,31,COLORS.cyan,hw-28);
+  center('small','Não há eventos disponíveis',hx+hw/2,hy+207,COLORS.muted);
+ }
+
+ // A fixed cyan section heading and adaptive row heights prevent long placenames from colliding with columns.
+ border(X,661,CW,51,13,COLORS.cyan,COLORS.panel);
+ waveform(X+19,677,COLORS.cyan,.88);
+ brand('PRINCIPAIS EVENTOS DO DIA',X+88,671,31,COLORS.white,710);
+ if(layouts.length>1)border(X,rowsY,CW,rowsEnd-rowsY,11,COLORS.cyan,COLORS.panel);
+ else border(X,rowsY,CW,72,11,COLORS.line,COLORS.panel);
  let rowY=rowsY;
  layouts.slice(1).forEach((l,i)=>{
-  if(i)line(rgba,W,H,X+1,rowY,W-X-1,rowY,COLORS.line);
-  const middle=rowY+l.height/2; border(47,middle-25,45,50,9,l.color);center('caption',String(i+2),69,middle-fonts.caption.cellH/2,l.color);
-  border(109,middle-25,102,50,19,l.color);center('magnitude','M'+l.event.mag.toFixed(1).replace('.',','),160,middle-fonts.magnitude.cellH/2,l.color);
-  let yy=middle-l.names.length*(fonts.title.cellH+2)/2;for(const name of l.names){text('title',name,230,yy);yy+=fonts.title.cellH+2;}
-  for(const [x,label,value]of [[414,'DISTÂNCIA',l.distance],[541,'HORA',l.when+' BRT'],[688,'PROFUNDIDADE',l.depth]]){text('columnLabel',label,x,middle-26,COLORS.muted,.4);text('detail',value,x,middle-2);}
-  flag(l.country.code,802,middle-15);rowY+=l.height;
+  if(i)line(rgba,W,H,X+2,rowY,X+CW-2,rowY,COLORS.line,.82);
+  const middle=rowY+l.height/2;
+  border(X+15,middle-21,44,42,8,COLORS.orange,COLORS.bg);
+  centerBrand(String(i+2),X+37,middle-18,36,COLORS.orange,40);
+  border(X+74,middle-22,110,44,9,l.color,COLORS.bg);
+  centerBrand('M'+number(l.event.mag),X+129,middle-18,34,l.color,104);
+  let yy=middle-l.names.length*(fonts.title.cellH+1)/2;
+  for(const name of l.names){text('title',name,X+199,yy,COLORS.white);yy+=fonts.title.cellH+1;}
+  for(const [px,label,value] of [[X+450,'DISTÂNCIA',l.distance],[X+575,'HORA (BRT)',l.when],[X+719,'PROF.',l.depth]]){
+   text('columnLabel',label,px,middle-24,COLORS.muted);
+   text('detail',value,px,middle-1,COLORS.white);
+  }
+  rowY+=l.height;
  });
- const cells=[['EVENTOS HOJE',events.length],['M6,0 OU MAIS',events.filter(e=>e.mag>=6).length],['M5,0 – M5,9',events.filter(e=>e.mag>=5&&e.mag<6).length],['M4,0 – M4,9',events.filter(e=>e.mag>=4&&e.mag<5).length],['ABAIXO DE M4,0',events.filter(e=>e.mag<4).length]];
+ if(layouts.length<=1)brand('Sem outros eventos no período',X+32,rowsY+18,23,COLORS.muted,CW-64);
+
+ // Brazilian events remain separately visible even when their magnitude is below the global top five.
  if(brazil.length){
-  border(X,brazilY,CW,brazilHeight,11,[74,222,128]);flag('BR',X+18,brazilY+18);
-  text('caption','SISMOS NO BRASIL · '+brazil.length,X+82,brazilY+20,COLORS.white);
-  let by=brazilY+66;
-  for(const {event:e,names}of brazilRows){
-   const height=Math.max(60,24+names.length*(fonts.detail.cellH+3));
-   text('magnitude','M'+e.mag.toFixed(1).replace('.',','),X+18,by+5,gfx.magColor(e.mag));
-   names.forEach((name,i)=>text('detail',name,X+112,by+5+i*(fonts.detail.cellH+3)));
-   const when=new Date(e.time).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-   text('small',when+' BRT · '+km(e.depth),X+610,by+5,COLORS.white);
-   text('small',(e.sources||[e.source||'USGS']).join(' · '),X+610,by+27,COLORS.muted);
-   by+=height;
+  border(X,brazilY,CW,brazilHeight,12,COLORS.green,COLORS.panel);
+  flag('BR',X+18,brazilY+12,47,30);
+  brand('SISMOS NO BRASIL · '+brazil.length,X+83,brazilY+10,34,COLORS.white,600);
+  line(rgba,W,H,X+2,brazilY+54,X+CW-2,brazilY+54,COLORS.cyan,.63);
+  let y=brazilY+66;
+  for(const {event:e,names} of brazilRows){
+   const height=Math.max(64,24+names.length*(fonts.detail.cellH+3));
+   if(y>brazilY+66)line(rgba,W,H,X+15,y,X+CW-15,y,COLORS.line,.75);
+   border(X+14,y+8,128,47,10,COLORS.green,COLORS.bg);
+   centerBrand('M'+number(e.mag),X+78,y+11,38,COLORS.green,120);
+   names.forEach((name,i)=>text('detail',name,X+163,y+6+i*(fonts.detail.cellH+3),COLORS.white));
+   text('small',timeBrt(e.time)+' BRT',X+544,y+9,COLORS.white);
+   text('small',km(e.depth),X+680,y+9,COLORS.muted);
+   const sources=(e.sources||[e.source||'Fonte não informada']).filter(Boolean).join(' · ');
+   text('small',sources,X+544,y+31,COLORS.muted);
+   y+=height;
   }
  }
- border(X,totalsY,CW,140);
- cells.forEach(([label,count],i)=>{const x=X+CW/5*(i+.5);if(i)line(rgba,W,H,X+CW/5*i,totalsY+24,X+CW/5*i,totalsY+111,COLORS.line);center(i?'band':'total',count.toLocaleString('pt-BR'),x,totalsY+18,i?gfx.magColor([null,6,5,4,3][i]):COLORS.cyan);center('tag',label,x,totalsY+91,COLORS.white);});
- text('small',(brazil.length?'Fontes: '+[...new Set(['USGS',...brazil.flatMap(e=>e.sources||[e.source||'USGS'])])].join(' · '):'Fonte: USGS')+' · Dados sujeitos a revisão',X,H-30,COLORS.muted);
- const domain='monitorglobal.top';text('tag',domain,W-X-measure('tag',domain),H-31,COLORS.cyan);
- return {day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,layout:{width:W*scale,height:H*scale,scale,splitH:435,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight},epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),design:DAILY_SUMMARY_DESIGN};
+ const bands=[
+  ['EVENTOS HOJE',events.length,COLORS.cyan],
+  ['M6,0 OU MAIS',events.filter(e=>e.mag>=6).length,[255,91,93]],
+  ['M5,0 – M5,9',events.filter(e=>e.mag>=5&&e.mag<6).length,COLORS.orange],
+  ['M4,0 – M4,9',events.filter(e=>e.mag>=4&&e.mag<5).length,[255,216,52]],
+  ['ABAIXO DE M4,0',events.filter(e=>e.mag<4).length,COLORS.green]
+ ];
+ border(X,totalsY,CW,145,12,COLORS.cyan,COLORS.panel);
+ bands.forEach(([label,count,color],i)=>{
+  const w=CW/5,cx=X+w*(i+.5);
+  if(i)line(rgba,W,H,X+w*i,totalsY+21,X+w*i,totalsY+126,COLORS.line);
+  waveform(cx-25,totalsY+20,color,.85);
+  centerBrand(count.toLocaleString('pt-BR'),cx,totalsY+63,51,color,w-12);
+  center('columnLabel',label,cx,totalsY+116,COLORS.white);
+ });
+ const footerY=H-48;line(rgba,W,H,X,footerY-23,W-X,footerY-23,COLORS.line,.9);
+ const allSources=[...new Set(['USGS',...brazil.flatMap(e=>e.sources||[e.source].filter(Boolean))])];
+ const sourceLine='Fontes: '+allSources.join(' · ')+' · Dados sujeitos a revisão';
+ text('small',sourceLine,X,footerY,COLORS.muted);
+ text('small','monitorglobal.top',W-382,footerY,COLORS.white);
+ text('small','@monitor_global',W-190,footerY,COLORS.cyan);
+ text('small','Distâncias a São Paulo, SP',X,footerY-40,COLORS.muted);
+ return {
+  day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,
+  layout:{width:W*scale,height:H*scale,scale,splitH:470,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight,mapX,mapY,mapW,mapH},
+  epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),
+  design:DAILY_SUMMARY_DESIGN
+ };
 }
