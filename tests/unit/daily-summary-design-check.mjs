@@ -58,7 +58,9 @@ if(process.env.SUMMARY_BRAZIL_PREVIEW_PATH)await writeFile(process.env.SUMMARY_B
 const fonts=await mod.getDailySummaryFonts();assert(fonts.hero.glyphs[',']);assert(fonts.rajdhani.glyphs['M']&&fonts.rajdhani.glyphs['Á']);assert(fonts.title.glyphs['ñ']);assert(fonts.subtitle.glyphs['í']);assert(fonts.heading.glyphs['R'][3]>=1);
 assert.equal(mod.summaryCountry('Balleny Islands region').code,'AQ');assert.equal(mod.summaryCountry('8 km ESE of Valle Vista, CA').code,'US');assert.equal(mod.summaryCountry('central Atlantic Ocean').code,null);
 for(const line of mod.summaryCardWrap(fonts.title,'extraordinarilylongunbrokentokenxxxxxxxxxxxxxx',280))assert(mod.textFontWidthProp(fonts.title,line,0)<=280);
-for(const code of ['JP','SB','PH'])assert(fonts.flags.map[code]);
+for(const code of ['JP','SB','PH','ID','PE'])assert(fonts.flags.map[code],'Atlas de bandeira ausente: '+code);
+for(const [place,code] of [['Lata, Solomon Islands','SB'],['Hasaki, Japan','JP'],['Masohi, Indonesia','ID'],['Pulau Pulau Tanimbar, Indonesia','ID'],['Lagunas, Peru','PE']])
+ assert.equal(mod.summaryCountry(place).code,code,'País incorreto para '+place);
 const seam=summaryMapFrame([{lat:10,lon:179.6},{lat:10.1,lon:-179.7},{lat:null,lon:null}]);assert.equal(seam.markers.length,2);assert(Math.abs(seam.markers[0].x-seam.markers[1].x)<60);
 const clustered=summaryMapFrame(Array.from({length:5},()=>({lat:0,lon:0})));assert.equal(clustered.markers.length,5);
 for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)assert(Math.hypot(clustered.labels[i].x-clustered.labels[j].x,clustered.labels[i].y-clustered.labels[j].y)>24);
