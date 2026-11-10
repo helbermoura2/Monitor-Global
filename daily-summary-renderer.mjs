@@ -286,7 +286,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
   }
  }
  const bands=[
-  ['EVENTOS HOJE',events.length,COLORS.cyan],
+  ['EVENTOS NO DIA',events.length,COLORS.cyan],
   ['M6,0 OU MAIS',events.filter(e=>e.mag>=6).length,[255,91,93]],
   ['M5,0 – M5,9',events.filter(e=>e.mag>=5&&e.mag<6).length,COLORS.orange],
   ['M4,0 – M4,9',events.filter(e=>e.mag>=4&&e.mag<5).length,[255,216,52]],
