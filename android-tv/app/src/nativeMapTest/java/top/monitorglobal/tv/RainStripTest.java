@@ -48,7 +48,12 @@ public class RainStripTest {
    // Incoming rain has no active full-screen rain effect, even when enabled.
    assertEquals(Gravity.BOTTOM|Gravity.RIGHT,p.gravity);assertTrue(p.width<=width/2);assertEquals(WindowManager.LayoutParams.WRAP_CONTENT,p.height);
    host.measure(View.MeasureSpec.makeMeasureSpec(p.width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.AT_MOST));host.layout(0,0,p.width,host.getMeasuredHeight());host.setAlpha(1);host.getChildAt(0).setTranslationY(0);
-   assertTrue(host.getChildAt(0) instanceof RainStripView);assertTrue("compact strip height",host.getHeight()<height*.3);readable(host);
+   assertTrue(host.getChildAt(0) instanceof RainStripView);
+   RainStripView strip=(RainStripView)host.getChildAt(0);
+   assertEquals("New rain HUD uses stacked broadcast sections",android.widget.LinearLayout.VERTICAL,strip.getOrientation());
+   assertEquals("Cyan header, content and provenance footer",3,strip.getChildCount());
+   assertTrue("Compact card must stay out of the center of the video",host.getHeight()<height*.40);
+   readable(host);
    assertTrue(texts(host).contains("Chuva em ~8 min"));assertTrue(texts(host).contains("Moderada"));assertTrue(texts(host).contains("~35 min"));assertTrue(texts(host).contains("1,8 mm nos próximos 60 min"));assertTrue(texts(host).contains("FICTÍCIO"));assertFalse(texts(host).contains("°C"));
    Bitmap screenshot=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(screenshot);canvas.drawColor(0xff293f51);canvas.save();canvas.translate(width-p.width-p.x,height-host.getHeight()-p.y);host.draw(canvas);canvas.restore();
    File file=new File(System.getProperty("java.io.tmpdir"),"monitor-tv-rain-strip-"+name+".png");try(FileOutputStream out=new FileOutputStream(file)){screenshot.compress(Bitmap.CompressFormat.PNG,100,out);}

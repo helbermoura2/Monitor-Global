@@ -14,18 +14,17 @@ class AlexaVoiceCardPlacementTest(unittest.TestCase):
         self.assertIn("params.x=dp(32)", overlay)
         self.assertIn("params.y=dp(32)", overlay)
 
-    def test_real_brazil_quake_uses_compact_card_instead_of_emergency_banner(self):
+    def test_real_brazil_quake_uses_full_breaking_news_banner_with_map(self):
         service = (JAVA / "MonitorService.java").read_text(encoding="utf-8")
-        compact = (JAVA / "CompactNotice.java").read_text(encoding="utf-8")
+        banner = (JAVA / "NewsBannerView.java").read_text(encoding="utf-8")
         self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)", service)
         self.assertIn("fetchLatestBrazil(true)", service)
         self.assertIn("fetchLatestBrazil(false)", service)
-        self.assertIn("showTargetCard(alert,false,true,true)", service)
-        self.assertIn("compact.showVoiceBrazil(a)", service)
-        self.assertIn("MONITOR GLOBAL · CONSULTA POR VOZ", compact)
-        self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", compact)
-        self.assertIn("TvCardStyle.brand(context)", compact)
-        self.assertIn("TvCardStyle.CYAN", compact)
+        self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)", service)
+        self.assertNotIn("showTargetCard(alert,false,true,true)", service)
+        self.assertIn('text(c,"BREAKING NEWS"', banner)
+        self.assertIn("drawMap(c,index,elapsed,fadeElapsed)", banner)
+        self.assertIn('replay?"REPLAY"', banner)
 
     def test_common_style_for_brent_weather_and_alexa(self):
         style = (JAVA / "TvCardStyle.java").read_text(encoding="utf-8")
