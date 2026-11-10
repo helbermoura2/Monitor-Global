@@ -1841,7 +1841,7 @@
     const originalLabel = '📤 Imagem';
     if (btn) { btn.textContent = '⏳ Gerando…'; btn.disabled = true; }
     try {
-      const canvas = await comTimeout(buildStoryCanvas(item), 15000, 'geração da imagem demorou demais');
+      const canvas = await comTimeout(buildStoryCanvas(item), 24000, 'geração da imagem demorou demais');
       const blob = await comTimeout(canvasToBlob(canvas), 6000, 'exportação da imagem demorou demais');
       if (!blob || !blob.size) throw new Error('blob vazio');
       const fileName = `evento-${(item.type || 'evento')}-${String(item.id || Date.now()).replace(/[^\w.-]+/g, '_')}.png`;
@@ -1878,7 +1878,7 @@
       }
     } catch (e) {
       if (e && e.name !== 'AbortError' && typeof showToast === 'function') {
-        showToast('Não consegui gerar a imagem pra compartilhar. Tenta de novo?', 'error');
+        showToast(e?.code === 'STORY_MAP_UNAVAILABLE' ? e.message : 'Não consegui gerar a imagem pra compartilhar. Tenta de novo?', 'error');
       }
       if (typeof dbgLog === 'function') dbgLog('story-share falhou:', e);
     } finally {

@@ -19,6 +19,8 @@ for(const width of [1280,390])test('site image universal and video action isolat
    if(typeof cycleTimeout!=='undefined')clearTimeout(cycleTimeout);
   },{id,mag,code,coords});
  };
+
+ await page.route('https://server.arcgisonline.com/**',async r=>{const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,256,256);return c.toDataURL().split(',')[1];});await r.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});});
  await choose('br-site-low',1.8,'BR',[-36.24,-8.67]);
  await expect(page.locator('#pd-video-btn')).toBeVisible();
  const download=page.waitForEvent('download');
@@ -36,3 +38,4 @@ for(const width of [1280,390])test('site image universal and video action isolat
  await choose('jp-site-big',6.3,'JP',[139.69,35.68]);
  await expect(page.locator('#pd-video-btn')).toBeVisible();
 });
+
