@@ -18,11 +18,11 @@
  function logout(){
    token='';authorized=false;data=null;healthGeneration++;clearPreview();menuButtons();login();
  }
- async function request(path,blob=false){
+ async function request(path,blob=false,method='GET'){
    const credential=token;
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
    try{
-     const response=await fetch(base+path,{headers:{'X-Admin-Token':token},cache:'no-store',signal:controller.signal});
+     const response=await fetch(base+path,{method,headers:{'X-Admin-Token':token},cache:'no-store',signal:controller.signal});
      if(response.status===401){authorized=false;token='';menuButtons();throw Error('Chave inválida ou acesso administrativo não configurado.')}
      if(!response.ok)throw Error(response.status===404?'Não há imagem salva para este resumo.':'Não foi possível consultar o histórico. Tente novamente.');
      const result=await (blob?response.blob():response.json());
@@ -101,6 +101,25 @@
    if(row.attempts)body.append(n('p',row.attempts+' tentativa(s) registrada(s)'));
    if(row.total!=null)body.append(n('p',row.total+' sismos · '+(row.format==='text'?'envio em texto':'envio com imagem')));
    if(row.legacy)body.append(n('p','Envio anterior confirmado. Não há histórico detalhado dessas tentativas.','tg-note'));
+   if(row.kind==='daily'&&row.day==='2026-11-09'){
+     if(row.repost?.status==='sent'){
+       body.append(n('p','Novo visual republicado no Telegram. Mensagem: '+(row.repost.messageId||'confirmada')+' · '+fmt(row.repost.at),'tg-note'));
+     }else if(row.repost?.status==='sending'||row.repost?.status==='uncertain'){
+       body.append(n('p','Republicação em andamento ou sem confirmação. Verifique o canal; o sistema não repetirá este envio automaticamente.','tg-note'));
+     }else if(row.status==='sent'&&row.messageId){
+       const btn=n('button','Republicar resumo de 09/11 com o novo visual');btn.type='button';
+       btn.onclick=async()=>{
+         if(!window.confirm('Enviar UMA nova publicação no canal oficial com o novo visual para o resumo de 09/11/2026? A postagem original será preservada.'))return;
+         btn.disabled=true;message.textContent='Solicitando republicação única…';
+         try{
+           const reply=await request('/telegram-daily-repost?day=2026-11-09',false,'POST');
+           message.textContent=reply.resent?'Novo visual republicado no Telegram.':reply.reason||'Já existe uma republicação ou tentativa registrada.';
+           data=await request('/telegram-history');
+         }catch(error){message.textContent='Não foi possível confirmar o envio. Verifique o canal antes de tentar novamente: '+error.message}
+         finally{btn.disabled=false}
+       };body.append(btn);
+     }
+   }
    if(row.status==='uncertain')body.append(n('p','A mensagem pode ter chegado ao Telegram sem confirmação. Consulte o canal antes de qualquer ação manual.','tg-note'));
    const timeline=n('ol',null,'tg-timeline');
    (row.events||[]).forEach(event=>timeline.append(n('li',fmt(event.at)+' — '+(labels[event.stage]||event.stage))));
