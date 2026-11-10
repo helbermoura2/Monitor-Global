@@ -17,7 +17,9 @@ class AlexaVoiceCardPlacementTest(unittest.TestCase):
     def test_real_brazil_quake_uses_compact_card_instead_of_emergency_banner(self):
         service = (JAVA / "MonitorService.java").read_text(encoding="utf-8")
         compact = (JAVA / "CompactNotice.java").read_text(encoding="utf-8")
-        self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)", service)\n        self.assertIn("fetchLatestBrazil(true)", service)\n        self.assertIn("fetchLatestBrazil(false)", service)
+        self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)", service)
+        self.assertIn("fetchLatestBrazil(true)", service)
+        self.assertIn("fetchLatestBrazil(false)", service)
         self.assertIn("showTargetCard(alert,false,true,true)", service)
         self.assertIn("compact.showVoiceBrazil(a)", service)
         self.assertIn("MONITOR GLOBAL · CONSULTA POR VOZ", compact)
