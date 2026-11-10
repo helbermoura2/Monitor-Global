@@ -1181,9 +1181,13 @@
   let storyLandPromise,storyHdFontPromise;
   async function buildCartographicQuake(item){
     const ev={mag:Number(item.mag),depth:Number(item.depth)||0,lon:item.coords[0],lat:item.coords[1],place:item.place};
+    // Imagem do site é independente do Telegram e inclui bandeiras SVG locais.
+    await window.EventPortuguese?.ensure(item);
+    const imageFlags=await window.QuakeSiteFlags.resolve(item);
+    const flagImages=await window.QuakeSiteFlags.images(imageFlags);
     ev.shaking=await window.RuptureShaking?.query(item);
     ev.imageTsunami=window.QuakeTsunamiStatus.resolve(item,{...(window.__mgTsunamiImageHealth||{ok:false}),items:typeof globalAlerts!=='undefined'?globalAlerts:[]},null,typeof globalEvents!=='undefined'?globalEvents:[item]);
-    const layout=window.QuakeCardLayout,frame=layout.frame(ev),nativeFrame={...frame,width:1080,height:Math.round(frame.height*4/3)},nativeHeight=nativeFrame.height,canvas=document.createElement('canvas');
+    const layout=window.QuakeSiteCard,frame=layout.frame(ev),nativeFrame={...frame,width:1080,height:Math.round(frame.height*4/3)},nativeHeight=nativeFrame.height,canvas=document.createElement('canvas');
     let fontFamily='monospace',brandFamily='sans-serif';
     if(window.FontFace)try{
       if(!storyHdFontPromise)storyHdFontPromise=Promise.all([
@@ -1224,11 +1228,20 @@
       text:(text,x,y,size,color,bold)=>{ctx.font=font(size,bold);ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);}
     };
     p.brandText=(text,x,y,size,color)=>{ctx.font=`700 ${size}px ${brandFamily}, sans-serif`;ctx.fillStyle=color;ctx.textBaseline='top';ctx.textAlign='left';ctx.fillText(text,x,y);};
+    p.flag=(kind,code,x,y,w,h)=>{
+      const image=kind==='state'?flagImages.state:flagImages.country;
+      ctx.save();ctx.fillStyle='#13364b';ctx.beginPath();
+      if(ctx.roundRect)ctx.roundRect(x,y,w,h,5);else ctx.rect(x,y,w,h);
+      ctx.fill();ctx.clip();
+      if(image)ctx.drawImage(image,x,y,w,h);
+      else{ctx.font='700 18px sans-serif';ctx.textBaseline='top';ctx.fillStyle='#edf6fa';ctx.fillText(code,x+12,y+13);}
+      ctx.restore();
+    };
     if(contextImg){const C=layout.CONTEXT;layout.drawContext(p,ev);ctx.drawImage(contextImg,C.imageX,C.imageY,C.imageWidth,C.imageHeight);const px=C.imageX+(ev.lon-cf.minLon)/(cf.maxLon-cf.minLon)*C.imageWidth,py=C.imageY+(cf.maxLat-ev.lat)/(cf.maxLat-cf.minLat)*C.imageHeight;p.dot(px,py,6,'#ffffff');p.dot(px,py,4,'#ff6151');}
     const energy=calcularEnergia(ev.mag);
     const publishedMmi=ev.shaking?.status==='available'?RuptureShakingModel.sample(ev.shaking.grid,ev.lon,ev.lat):null;
     const mmiLabel=ev.shaking?.status==='available'?(publishedMmi===null?'—':['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(publishedMmi)-1))]):QuakeImagePaint.estimatedMmi(ev);
-    layout.draw(p,{...ev,imageMapAvailable:!!sat,imageContours:imageContours.map(a=>({...a,x:a.x*800/1080,y:a.y*frame.height/nativeHeight+layout.MAP_Y})),_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
+    layout.draw(p,{...ev,imageFlags,imageMapAvailable:!!sat,imageContours:imageContours.map(a=>({...a,x:a.x*800/1080,y:a.y*frame.height/nativeHeight+layout.MAP_Y})),_deltaTxt:item._deltaTxt,color:getHexColor(ev.mag),when:formatBrasiliaDateTime(item.time),
       sourceLabel:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático'),
       sourceLine:(item.sourceSummary||item.source||'Fonte não informada')+' · '+(item.reviewed?'revisado':'automático')+' · '+Math.abs(ev.lat).toFixed(2).replace('.', ',')+'° '+(ev.lat<0?'S':'N')+', '+Math.abs(ev.lon).toFixed(2).replace('.', ',')+'° '+(ev.lon<0?'O':'L'),
       mmi:mmiLabel,energy:energy.tnt.replace(' de TNT',''),exposure});
@@ -1900,6 +1913,8 @@
     });
   }
 
+  // Reutilizado exclusivamente pelo botão Vídeo; não compartilha nem publica PNG.
+  window.createQuakeSiteCanvas=buildCartographicQuake;
   window.shareEventAsStory=shareEventAsStory;
   if(!window.OptionalFeatures){
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
