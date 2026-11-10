@@ -1,0 +1,27 @@
+name: Telegram one-time repost safety
+on:
+  pull_request:
+    paths:
+      - 'worker/telegram-daily-repost.mjs'
+      - 'monitor-global-worker-7_7_0.js'
+      - 'js/telegram-history.js'
+      - 'tests/unit/telegram-daily-repost.test.mjs'
+      - '.github/workflows/telegram-daily-repost-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no-duplicate Telegram resend invariants
+        run: node --test tests/unit/telegram-daily-repost.test.mjs
+      - name: Verify frontend and Worker syntax
+        run: |
+          node --check js/telegram-history.js
+          node --check monitor-global-worker-7_7_0.js
