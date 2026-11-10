@@ -11,17 +11,13 @@ final class BrentOverlay {
   hide();
   try{
    BrentCardView card=new BrentCardView(c,quote,demo);
-   int width=Math.min(dp(455),c.getResources().getDisplayMetrics().widthPixels*45/100);
+   int width=Math.min(dp(385),c.getResources().getDisplayMetrics().widthPixels*42/100);
    WindowManager.LayoutParams p=new WindowManager.LayoutParams(width,-2,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,PixelFormat.TRANSLUCENT);
-   p.gravity=Gravity.TOP|Gravity.RIGHT;p.x=dp(24);p.y=dp(34);
+   p.gravity=Gravity.BOTTOM|Gravity.RIGHT;p.x=dp(28);p.y=dp(28);
    ((WindowManager)c.getSystemService(Context.WINDOW_SERVICE)).addView(card,p);current=card;
-   if(android.animation.ValueAnimator.areAnimatorsEnabled()){
-    card.setAlpha(0);card.setTranslationY(-dp(9));card.animate().alpha(1).translationY(0).setDuration(280).start();
-   }
-   main.postDelayed(()->{if(current!=card)return;if(!android.animation.ValueAnimator.areAnimatorsEnabled()){hide();return;}
-     card.animate().alpha(0).setDuration(260).withEndAction(()->{if(current==card)hide();}).start();
-   },BrentQuote.DISPLAY);
+   CardMotion.enter(card,c);
+   main.postDelayed(()->{if(current==card)CardMotion.exit(card,c,()->{if(current==card)hide();});},BrentQuote.DISPLAY);
    return true;
   }catch(RuntimeException e){hide();return false;}
  }

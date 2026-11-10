@@ -40,7 +40,7 @@ final class RainMonitor {
   boolean shown=false;
   Runnable delivered=rainNotice&&displayRain!=null?rainDelivered(displayRain,now,manualWeather):null;
   if(!waiting&&allowed.getAsBoolean()&&!overlay.showing()){
-   if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather,false,delivered);if(shown){if(satelliteEnabled())satellite.start();if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
+   if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather,false,delivered,satelliteEnabled()?satellite::readyForFlip:null);if(shown){if(satelliteEnabled())satellite.start();if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
    else if(rainNotice&&displayRain!=null&&!(wanted&&weatherBusy)){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);}
   }
   if(!waiting&&manualWeather&&!weatherBusy&&weatherData!=null&&weather==null&&SystemClock.elapsedRealtime()<nextWeatherRead){Prefs.status(context,"Previsão horária indisponível para a Liberdade. Tente novamente depois.");finishManual(false);}
