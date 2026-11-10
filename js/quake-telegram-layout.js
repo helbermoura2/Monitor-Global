@@ -67,7 +67,9 @@
   const name=String(ev.imageRegion||'').trim()||tag;
   const place=globalThis.EventPortuguese?.place(ev.place)||ev.place||'Local não informado';
   const when=brazilTime(ev);
-  p.rect(0,0,800,1440,FOOT);
+  // Do not paint over the georeferenced satellite map already composited below.
+  p.rect(0,0,800,MAP_Y,FOOT);
+  p.rect(0,MAP_Y+MAP_HEIGHT,800,1440-MAP_Y-MAP_HEIGHT,FOOT);
   box(p,18,14,764,88,NAVY);
   for(const rad of [21,14,7])p.arc(51,56,rad,1.4,-90,330,CYAN);
   p.dot(51,56,3,CYAN);
