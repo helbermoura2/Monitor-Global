@@ -1,8 +1,12 @@
 import {summaryGraphicsAtScale} from './daily-summary-hd.mjs';
 import { SUMMARY_MAP_LAND } from './summary-editorial-assets.mjs';
 
-const COLORS={bg:[2,16,31],white:[232,236,238],cyan:[152,231,232],muted:[149,172,187],line:[36,55,70],map:[2,16,31],land:[20,43,64],coast:[30,59,80]};
-export const DAILY_SUMMARY_DESIGN='referencia-editorial-v6-hd';
+const COLORS={
+ bg:[2,14,27],panel:[4,25,44],white:[240,248,255],cyan:[36,214,239],
+ muted:[169,198,216],line:[28,77,100],map:[3,20,37],land:[14,59,82],
+ coast:[35,131,170],green:[58,233,130],orange:[251,146,60]
+};
+export const DAILY_SUMMARY_DESIGN='monitor-global-rajdhani-neon-v7';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -58,12 +62,12 @@ function fillPolygon(rgba,w,h,rings,color,clip){
         for(let i=0;i+1<xs.length;i+=2){const x0=Math.max(clip.x,Math.ceil(xs[i])),x1=Math.min(clip.x+clip.w,Math.ceil(xs[i+1]));for(let x=x0;x<x1;x++)pixel(rgba,w,h,x,y,color);}
     }
 }
-function scaledIcon(rgba,w,h,image,sx,sw,sh,x,y,width,height){
+function scaledIcon(rgba,w,h,image,sx,sw,sh,x,y,width,height,tint=null){
     for(let dy=0;dy<height;dy++)for(let dx=0;dx<width;dx++){
         const px=Math.max(0,Math.min(sw-1,(dx+.5)*sw/width-.5)),py=Math.max(0,Math.min(sh-1,(dy+.5)*sh/height-.5)),lx=Math.floor(px),ly=Math.floor(py),fx=px-lx,fy=py-ly;
         let alpha=0;const color=[0,0,0];
         for(const [xx,wx] of [[lx,1-fx],[Math.min(sw-1,lx+1),fx]])for(const [yy,wy] of [[ly,1-fy],[Math.min(sh-1,ly+1),fy]]){const source=(yy*image.width+sx+xx)*4,a=image.rgba[source+3]/255*wx*wy;alpha+=a;for(let k=0;k<3;k++)color[k]+=image.rgba[source+k]*a;}
-        if(alpha)pixel(rgba,w,h,x+dx,y+dy,color.map(c=>c/alpha),alpha);
+        if(alpha)pixel(rgba,w,h,x+dx,y+dy,tint||color.map(c=>c/alpha),alpha);
     }
 }
 
