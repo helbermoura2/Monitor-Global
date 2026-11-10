@@ -16,6 +16,13 @@ function place(value){
  s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*km\s+(?:al|a)\s+(NNE|ENE|ESE|SSE|SSO|OSO|ONO|NNO|NE|SE|SO|NO|N|E|S|O)\s+de\s+/gi,(_,n,d)=>Math.round(Number(n.replace(',','.')))+' km a '+directions[d.toUpperCase().replace(/O/g,'W')]+' de ');
  s=s.replace(/\b(?:al|a) (norte|sur|este|oeste) de\b/gi,(_,d)=>'a '+({norte:'norte',sur:'sul',este:'leste',oeste:'oeste'})[d.toLowerCase()]+' de');
  s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*km\s+(NNE|ENE|ESE|SSE|SSW|WSW|WNW|NNW|NE|SE|SW|NW|N|E|S|W)\s+(?:of|de)\s+/gi,(_,n,d)=>Math.round(Number(n.replace(',','.')))+' km a '+directions[d.toUpperCase()]+' de ');
+ // Restrict full-word compass translation to a distance descriptor, preserving city names.
+ s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*km\s+(?:a\s+)?((?:northeast|northwest|southeast|southwest|north|south|east|west|nordeste|noroeste|sudeste|sudoeste|norte|sul|leste|oeste)(?:[- ]+(?:a\s+)?(?:northeast|northwest|southeast|southwest|north|south|east|west|nordeste|noroeste|sudeste|sudoeste|norte|sul|leste|oeste))?)\s+(?:of|de)\s+/gi,(_,n,d)=>{
+  const words={north:'norte',south:'sul',east:'leste',west:'oeste',northeast:'nordeste',northwest:'noroeste',southeast:'sudeste',southwest:'sudoeste'};
+  let direction=d.toLowerCase().replace(/[- ]+a\s+/g,'-').split(/[- ]+/).map(w=>words[w]||w).join('-');
+  direction=({'norte-leste':'nordeste','norte-oeste':'noroeste','sul-leste':'sudeste','sul-oeste':'sudoeste'})[direction]||direction;
+  return Math.round(Number(n.replace(',','.')))+' km a '+direction+' de ';
+ });
  const rules=[[/\bnear ([NSEW])\.?([NSEW])?\.? coast of\b/gi,(_,a,b)=>'perto da costa '+directions[(a+(b||'')).toUpperCase()]+' de'],[/\bnear the (east|west|north|south) coast of\b/gi,'perto da costa $1 de'],[/\bnear (east|west|north|south) coast of\b/gi,'perto da costa $1 de'],[/\boff the (east|west|north|south) coast of\b/gi,'ao largo da costa $1 de'],[/\boffshore\b/gi,'ao largo da costa de'],[/\boff the coast of\b/gi,'ao largo da costa de'],[/\bnear the coast of\b/gi,'perto da costa de'],[/\bnear coast of\b/gi,'perto da costa de'],[/\bborder region\b/gi,'região de fronteira'],[/\bislands region\b/gi,'região das ilhas'],[/\bisland region\b/gi,'região da ilha'],[/\bmid[- ]atlantic ridge\b/gi,'dorsal mesoatlântica'],[/\b(south|north|east|west) of\b/gi,'a $1 de'],[/\b(southern|northern|eastern|western)\b/gi,'$1'],[/\bnear the\b/gi,'perto de'],[/\bnear\b/gi,'perto de'],[/\bcoast of\b/gi,'costa de'],[/\bregion\b/gi,'região']];
  for(const [re,to] of rules)s=s.replace(re,to);
  // Geographic descriptors, never arbitrary city-name fragments.
@@ -72,3 +79,4 @@ async function ensure(item){
 }
 root.EventPortuguese={place,local,text,speech,number,revision,view,ensure,foreign,directions,kinds:{earthquake:'Sismo',hurricane:'Ciclone',storm:'Tempestade',volcano:'Vulcão',fire:'Incêndio',flood:'Enchente',wind:'Vento',tornado:'Tornado',tsunami:'Tsunami',civil:'Alerta da Defesa Civil'}};
 })(globalThis);
+

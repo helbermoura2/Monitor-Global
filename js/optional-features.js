@@ -63,14 +63,14 @@
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
   await asset('js/quake-site-flags.js?v=site-concept6-v1');
   await asset('js/quake-site-card.js?v=site-concept6-v1');
-  await asset('js/site-event-story.js?v=site-concept6-all-v3');
-  await asset('js/story-share.js?v=site-concept6-all-v3');
+  await asset('js/site-event-story.js?v=site-concept6-all-v4');
+  await asset('js/story-share.js?v=site-concept6-all-v4');
  }
  window.shareResumoDiarioStory=async()=>{try{
   await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
   await asset('js/quake-card-layout.js?v=20261028-confidence');
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
-  await asset('js/story-share.js?v=site-concept6-all-v3');
+  await asset('js/story-share.js?v=site-concept6-all-v4');
   return await window.shareResumoDiarioStory();
  }catch(error){failure(error);}};
  function isQuake(item){return !!item&&(item.type==='earthquake'||(!item.type&&item.mag!=null));}
@@ -136,4 +136,5 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
+
 
