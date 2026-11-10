@@ -20,7 +20,8 @@ class RainAndReplayTest(unittest.TestCase):
   self.assertIn('history("brazil")',service)
   self.assertIn("!REPLAY_M6.equals(action)",service) if False else None
   self.assertIn("REPLAY_M6.equals(action)",service)
-  self.assertIn(':"replay"',service)
+  self.assertIn(':"global-replay"',service)
+  self.assertIn('history("global-replay")',service)
   self.assertIn("local.magnitude>=6",service)
  def test_rain_card_uses_same_brand_hierarchy_as_temperature(self):
   rain=self.read("RainStripView.java")
