@@ -25,3 +25,5 @@ jobs:
         run: |
           node --check js/telegram-history.js
           node --check monitor-global-worker-7_7_0.js
+      - name: Verify complete worker service and delivery safeguards
+        run: npm run worker:test
