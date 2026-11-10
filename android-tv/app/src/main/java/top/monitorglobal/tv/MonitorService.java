@@ -150,22 +150,10 @@ public final class MonitorService extends Service {
   demoTasks.add(end);main.postDelayed(end,VoiceStatusOverlay.DURATION+300);
  }
  private void scheduleVoiceBrazil(Alert alert,long delayMs){
-  // Voice requests use the same bottom-right card as regional notices,
-  // without changing the full-width emergency alert presentation.
-  cancelDemos();
-  long delay=Math.max(delayMs,activeUntil-android.os.SystemClock.uptimeMillis()+500);
-  Runnable task=new Runnable(){
-   @Override public void run(){
-    demoTasks.remove(this);
-    if(destroyed||!screenReady()||draining||compactBusy||!queue.isEmpty()||daily.displaying()){
-     Prefs.status(MonitorService.this,"Consulta por voz adiada por aviso prioritário na TV.");
-     stopIfIdle();return;
-    }
-    showTargetCard(alert,false,true,true);
-   }
-  };
-  demoTasks.add(task);
-  main.postDelayed(task,delay);
+  // Consultas historicas do Brasil usam a MESMA tarja jornalistica dos
+  // sismos M6+ (BREAKING NEWS, bandeira e mapa do epicentro, se disponivel).
+  // A exibicao e REPLAY: sem som de alerta novo nem notificacao de evento.
+  scheduleLocal(Collections.singletonList(alert),false,true,delayMs);
  }
  private void fetchLatestBrazil(boolean fromButton){
   if(historyBusy){Prefs.status(this,"Consulta sísmica já em andamento; tente novamente.");return;}
