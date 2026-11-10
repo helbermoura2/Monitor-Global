@@ -12,6 +12,17 @@ test('replay recovers the newest M6+ origin within 72h, not the largest or most 
  const body=historySnapshot([quake('large',8,now-48*3600000),quake('new',6.1,now-12*3600000),quake('small',5.9,now-1000),quake('old',9,now-73*3600000)],'replay',now);
  assert.deepEqual(body.alerts.map(a=>a.id),['USGS:new']);assert.equal(body.sources.tsunami,false);assert.equal(body.alerts[0].tsunamiSummary,'');
 });
+test('separate global M6+ replay never returns a more recent small Brazil quake',async()=>{
+ const local={id:'USP-small',provider:'USP',brazil:true,properties:{mag:1.8,time:now-1000,updated:now,type:'earthquake',place:'Lajedo, Brasil',net:'USP'},geometry:{coordinates:[-36,-8,9]}};
+ const older=quake('world-m6',6.4,now-3600000);
+ const filtered=historySnapshot([local,older],'global-replay',now);
+ assert.deepEqual(filtered.alerts.map(a=>a.magnitude),[6.4]);
+ const onlyBrazil=historySnapshot([local],'global-replay',now);
+ assert.deepEqual(onlyBrazil.alerts,[]);
+ const res=await handleTvHistory(new Request('https://test/tv-alerts?policy=telegram-v1&view=global-replay'),{view:'global-replay',now,cache:null,regional:async()=>({features:[local],catalogs:{USP:true}}),fetcher:async url=>{assert.equal(url.searchParams.get('minmagnitude'),'6');return Response.json({features:[older]});}});
+ assert.equal(res.status,200);const data=await res.json();
+ assert.equal(data.view,'global-replay');assert.deepEqual(data.alerts.map(a=>a.magnitude),[6.4]);
+});
 test('history is shared/cacheable, rolls over at local midnight, and outages remain explicit',async()=>{
  const storage=new Map(),cache={match:async key=>storage.get(key.url)?.clone(),put:async(key,value)=>storage.set(key.url,value)};let calls=0;
  const fetcher=async url=>{calls++;assert.equal(url.searchParams.get('limit'),'5');assert.equal(url.searchParams.get('starttime'),'2026-10-25T03:00:00.000Z');return Response.json({features:[quake('test',3,now-1000)]});};

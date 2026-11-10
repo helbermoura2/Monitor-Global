@@ -33,7 +33,8 @@
     "pngEqual": true,
     "pngBefore": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
     "pngAfter": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
-    "approvedPixels": "4ae08eb61445f7dfdb0fb366da58bdf0e425a128f0bbe0d9fc17f4a7e1e00386",
-    "approvedLayout": "editorial-v17"
+    "approvedPixels": "876a7f3d91a65ad0080dfaeb106a23e0a744f64fcf36ccc04cf7276b55e0dd7c",
+    "approvedLayout": "telegram-v18",
+    "previousApprovedPixels": "4ae08eb61445f7dfdb0fb366da58bdf0e425a128f0bbe0d9fc17f4a7e1e00386"
   }
 }
