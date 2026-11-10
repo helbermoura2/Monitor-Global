@@ -1,0 +1,44 @@
+name: Telegram daily PNG check
+on:
+  pull_request:
+    paths:
+      - 'daily-summary-renderer.mjs'
+      - 'daily-summary-hd.mjs'
+      - 'worker/image-rendering.mjs'
+      - 'tests/unit/daily-summary-design-check.mjs'
+      - 'tests/fixtures/worker-modules/image-parity.json'
+      - '.github/workflows/telegram-daily-png-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  image-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Render real PNG fixtures and record review hashes
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {renderDailySummaryImage,decodePng} from './worker/image-rendering.mjs';
+          const fixture=JSON.parse(await readFile('tests/fixtures/daily-summary/2026-10-01-usgs.json','utf8'));
+          const original=globalThis.fetch;
+          globalThis.fetch=async()=>new Response('Offline fixture',{status:503});
+          try{
+            for(const [name,input] of [['daily',fixture],['empty',{day:fixture.day,events:[]}]]){
+              const result=await renderDailySummaryImage(structuredClone(input));
+              const image=await decodePng(result.png);
+              const hash=createHash('sha256').update(image.rgba).digest('hex');
+              console.log('REVIEW_DAILY_PNG '+name+' '+image.width+'x'+image.height+' sha256='+hash);
+            }
+          }finally{globalThis.fetch=original;}
+          NODE
+      - name: Verify daily summary sources, map and Brazil layouts
+        run: node tests/unit/daily-summary-design-check.mjs
+      - name: Verify approved deterministic PNG pixels
+        run: node --test tests/unit/worker-image-parity.test.mjs

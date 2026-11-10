@@ -1,20 +1,30 @@
-# Resumo diário — referência editorial
+# Resumo sísmico diário — Monitor Global (v7, Rajdhani Neon)
 
-Composição do segundo modelo enviado em 11/10/2026: fundo azul escuro, título em duas linhas, mapa mundial sem moldura à esquerda, maior sismo dentro do destaque circular à direita, quatro eventos em tabela e totais em cinco colunas. O cabeçalho recebe o logo de radar do Monitor Global; o rodapé traz a fonte real (USGS), monitorglobal.top e a origem das distâncias.
+Modelo aprovado para o boletim automático do Telegram em 09/11/2026. A saída continua PNG HD de 1800 px de largura, gerada pelo mesmo Durable Object e pelo mesmo canal/fila de envio, sem alterar a periodicidade, o histórico nem a regra de deduplicação.
 
-Cormorant Garamond no título principal e Inter nos demais textos, números e legendas, conforme a indicação do usuário. A imagem de referência não identifica as fontes originais; estas são as famílias escolhidas para reproduzir o aspecto visual. Arquivos e licenças SIL OFL em `assets/summary-fonts/`. O gerador usa algarismos alinhados, vírgula decimal, quilômetros inteiros e horários BRT.
+## Identidade visual
 
-Os cinco epicentros usam as coordenadas oficiais preservadas pela consulta diária USGS. A numeração corresponde à magnitude decrescente e ao horário crescente nos empates: evento principal 1 e demais eventos 2–5. Rótulos próximos recebem linhas até os pontos sem alterar coordenadas. Ausências de coordenadas ou país não geram dados nem bandeiras inventados. A coluna distância mede a distância geodésica a São Paulo, identificada no rodapé.
+- Azul-marinho quase preto, linha ciano e radar do Monitor Global, com títulos em Rajdhani Bold do mesmo atlas usado no aplicativo da TV.
+- Título RESUMO SÍSMICO DIÁRIO em uma linha e data BRT.
+- Mapa-múndi real à esquerda, contorno ciano, com os cinco maiores eventos posicionados pelas coordenadas das fontes.
+- Evento principal à direita, com magnitude grande e cor por intensidade (M6+ vermelho, M5 laranja, M4 amarelo, abaixo de M4 verde), local, país, profundidade, horário BRT e bandeira apenas quando identificada.
+- Ranking em quatro linhas adaptativas: magnitude, local, distância geodésica a São Paulo, horário BRT e profundidade.
+- Seção verde do Brasil, exibida somente com registros brasileiros, incluindo baixas magnitudes fora do Top 5.
+- Cinco estatísticas coloridas e rodapé com fontes, site e @monitor_global.
 
-O gerador nativo em `daily-summary-renderer.mjs` usa base lógica de 900 × 1344 px e produz PNG de 1800 × 2688 px no Worker e aumenta a altura para nomes longos. Fontes e terra simplificada Natural Earth (domínio público) ficam embutidas em `summary-editorial-assets.mjs`; não há downloads durante a renderização. Reconstrução: `python3 tools/build-summary-editorial-assets.py` (Pillow). Bandeiras mantêm o atlas existente Flagpedia/flagcdn.com e Twemoji para Antártida.
+## Preservação dos dados
 
-Janela de envio BRT, persistência no Durable Object, proteção contra duplicação e timeouts permanecem. Resumos anteriores armazenados mantêm suas imagens. `/health` informa `dailySummaryDesign: referencia-editorial-v6-hd`.
+O gerador em daily-summary-renderer.mjs mantém o mapa offline Natural Earth e o atlas de bandeiras. A classe de fonte Rajdhani Bold é carregada dos recursos do projeto. O cache passa a daily-v12-rajdhani-neon e o marcador /health é monitor-global-rajdhani-neon-v7.
 
-Validação: `node tests/unit/daily-summary-design-check.mjs` e `node tests/unit/telegram-history-check.mjs`. Abrange coordenadas reais, agrupamentos, meridiano de 180°, nomes longos, dia vazio, dados ausentes e renderização sem rede. Prévia: `SUMMARY_PREVIEW_PATH=/tmp/resumo.png node tests/unit/daily-summary-design-check.mjs`.
+Os cinco maiores eventos continuam ordenados por magnitude decrescente e horário crescente no empate; bandeiras apenas para países identificados, horários America/Sao_Paulo, e dados desconhecidos não são substituídos por estimativas. O bloco Brasil expande a altura conforme a quantidade de sismos. Os alertas individuais M6+ e Brasil têm renderer independente e não são alterados por esta mudança.
 
-Cores por magnitude, usando a mesma função dos alertas do projeto: abaixo de M4 verde (#4ade80), M4–4,9 amarelo (#facc15), M5–5,9 laranja (#fb923c), M6+ vermelho (#ef4444). Aplicadas aos epicentros e seus números, magnitude principal e arco, números e contornos da tabela e totais por faixa. O total geral e a identidade do projeto mantêm o ciano.
+## Testes e publicação
 
+- node tests/unit/daily-summary-design-check.mjs
+- node --test tests/unit/worker-image-parity.test.mjs
+- node tests/unit/daily-summary-brazil-check.mjs
+- node tests/unit/daily-summary-brazil-revision-check.mjs
 
-Quando houver sismos no Brasil no dia BRT, o boletim acrescenta uma seção própria, com quantidade, magnitude, localização, horário, profundidade e fontes de cada evento, mesmo abaixo dos cinco maiores. O catálogo global USGS é complementado com USP, EMSC e GEOFON, usando o mesmo limite geográfico do envio de alertas brasileiros. Associações únicas por origem evitam contar novamente o mesmo tremor entre redes; a janela brasileira exclui a meia-noite do dia seguinte. Falhas individuais de fontes preservam os resultados das demais. A legenda do Telegram também informa a quantidade de sismos no Brasil e a maior magnitude. Nenhum bloco de ausência é incluído quando não houver registro brasileiro.
+Prévia offline: SUMMARY_PREVIEW_PATH=/tmp/resumo.png node tests/unit/daily-summary-design-check.mjs.
 
-Atualização de alta resolução: o arquivo original passa a 1800 px de largura, altura mínima de 2688 px, com fontes rasterizadas em 2x e botão de download sem compressão. Veja `tsunami-priority-summary-hd.md` para publicação no Worker.
+Depois da aprovação dos testes e do merge, é necessário implantar o Worker manualmente em Cloudflare Worker maintenance, main, mode=deploy. Não alterar segredos nem o robô existente.

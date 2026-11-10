@@ -8,21 +8,21 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
 const normal=await mod.renderDailySummaryPng({day:fixture.day,events});
-assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'referencia-editorial-v6-hd');
-const image=await mod.decodePng(normal.png);assert.equal(image.width,1800);assert.equal(image.height,2688);assert(normal.png.length>50000);
+assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'monitor-global-rajdhani-neon-v7');
+const image=await mod.decodePng(normal.png);assert.equal(image.width,1800);assert.equal(image.height,2880);assert(normal.png.length>50000);
 const brightRegion=(x0,y0,x1,y1)=>{x0*=2;y0*=2;x1*=2;y1*=2;let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*image.width+x)*4;if(image.rgba[i]>100&&image.rgba[i+1]>100&&image.rgba[i+2]>100)n++;}return n;};
-assert(brightRegion(35,120,555,295)>8000,'Two-line heading must remain visible');
-assert(brightRegion(690,215,750,250)>500,'Primary event flag must remain visible');
+assert(brightRegion(105,140,810,235)>8000,'Single-row Rajdhani headline must remain visible');
+assert(brightRegion(615,470,672,511)>500,'Primary event flag must remain visible');
 assert.equal(normal.layout.rowHeights.length,4);assert(normal.layout.rowsEnd<=normal.layout.totalsY);
 assert.deepEqual(normal.epicenters.map(e=>[e.id,e.lat,e.lon]),fixture.events.slice(0,5).map(e=>[e.id,e.lat,e.lon]));
 assert.deepEqual([events.filter(e=>e.mag>=6).length,events.filter(e=>e.mag>=5&&e.mag<6).length,events.filter(e=>e.mag>=4&&e.mag<5).length,events.filter(e=>e.mag<4).length],[0,6,11,247]);
 if(process.env.SUMMARY_PREVIEW_PATH)await writeFile(process.env.SUMMARY_PREVIEW_PATH,normal.png);
-const colors=new Set();for(let y=350;y<760;y+=7)for(let x=60;x<500;x+=7){const i=(y*2*image.width+x*2)*4;colors.add([...image.rgba.subarray(i,i+3)].join(','));}
-assert(colors.has('20,43,64'));assert(colors.has('2,16,31'));assert(colors.size>15);
+const colors=new Set();for(let y=280;y<625;y+=7)for(let x=60;x<500;x+=7){const i=(y*2*image.width+x*2)*4;colors.add([...image.rgba.subarray(i,i+3)].join(','));}
+assert(colors.has('14,59,82'));assert(colors.has('3,20,37'));assert(colors.size>15);
 const mixed=await mod.renderDailySummaryPng({day:fixture.day,events:fixture.events.slice(0,4).map((e,i)=>({...e,mag:[6.6,5.3,4.2,3.1][i],lat:[35,-20,15,-40][i],lon:[140,-70,30,170][i]}))});
 const colored=await mod.decodePng(mixed.png);
 for(const [rank,rgb]of [[1,[239,68,68]],[2,[251,146,60]],[3,[250,204,21]],[4,[74,222,128]]]){
- const marker=mixed.epicenters.find(m=>m.rank===rank),x=Math.round(26+marker.x),y=Math.round(348+marker.y);let found=false;
+ const marker=mixed.epicenters.find(m=>m.rank===rank),x=Math.round(mixed.layout.mapX+marker.x),y=Math.round(mixed.layout.mapY+marker.y);let found=false;
  for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){const index=((y*2+dy)*colored.width+x*2+dx)*4;if(rgb.every((v,i)=>colored.rgba[index+i]===v))found=true;}
  assert(found,'Epicenter must use project magnitude color for rank '+rank);
 }
@@ -40,7 +40,7 @@ assert(!withBrazil.top.some(e=>e.id===brazilQuake.id),'Small Brazil events must 
 assert(withBrazil.layout.brazilHeight>0);assert(withBrazil.layout.totalsY>=withBrazil.layout.brazilY+withBrazil.layout.brazilHeight);
 assert.equal(normal.brazilEvents.length,0);assert.equal(normal.layout.brazilHeight,0);
 if(process.env.SUMMARY_BRAZIL_PREVIEW_PATH)await writeFile(process.env.SUMMARY_BRAZIL_PREVIEW_PATH,withBrazil.png);
-const fonts=await mod.getDailySummaryFonts();assert(fonts.hero.glyphs[',']);assert(fonts.title.glyphs['ñ']);assert(fonts.subtitle.glyphs['í']);assert(fonts.heading.glyphs['R'][3]>=1);
+const fonts=await mod.getDailySummaryFonts();assert(fonts.hero.glyphs[',']);assert(fonts.rajdhani.glyphs['M']&&fonts.rajdhani.glyphs['Á']);assert(fonts.title.glyphs['ñ']);assert(fonts.subtitle.glyphs['í']);assert(fonts.heading.glyphs['R'][3]>=1);
 assert.equal(mod.summaryCountry('Balleny Islands region').code,'AQ');assert.equal(mod.summaryCountry('8 km ESE of Valle Vista, CA').code,'US');assert.equal(mod.summaryCountry('central Atlantic Ocean').code,null);
 for(const line of mod.summaryCardWrap(fonts.title,'extraordinarilylongunbrokentokenxxxxxxxxxxxxxx',280))assert(mod.textFontWidthProp(fonts.title,line,0)<=280);
 for(const code of ['JP','SB','PH'])assert(fonts.flags.map[code]);
@@ -54,3 +54,9 @@ globalThis.fetch=async()=>Response.json({features:fixture.events.map(e=>({id:e.i
 const queried=await mod.fetchDailyQuakesBrt();assert.deepEqual(queried.events.map(e=>[e.id,e.lat,e.lon]),fixture.events.map(e=>[e.id,e.lat,e.lon]));
 globalThis.fetch=savedFetch;
 console.log('PASS: editorial PNG, official top-five epicentres, offline geography/fonts, long/empty/missing data, close labels, dateline and USGS coordinate ingestion');
+
+// The new neon treatment must preserve the actual data and never add unsupported quakes.
+assert.equal(normal.layout.mapX,32);assert.equal(normal.layout.mapY,275);
+assert.equal(normal.layout.mapW,543);assert.equal(normal.layout.mapH,356);
+assert.equal(normal.top[0].id,fixture.events[0].id);
+assert.equal(withBrazil.brazilEvents[0].source,'EMSC');
