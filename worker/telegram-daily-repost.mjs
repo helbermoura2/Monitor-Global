@@ -14,7 +14,7 @@ export function requestedDailyRepostReady(now=Date.now(),todayDesign){
  return now>=DAILY_REPOST_REQUEST.opensAt&&now<DAILY_REPOST_REQUEST.closesAt
   &&todayDesign===DAILY_REPOST_REQUEST.design;
 }
-export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,post,archive,caption,photoName='monitor-global-resumo-novo-visual.png'}){
+export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,post,archive,caption,chatId,photoName='monitor-global-resumo-novo-visual.png'}){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||day!==DAILY_REPOST_REQUEST.day)
   return {ok:false,skipped:true,reason:'Data não autorizada'};
  const key='daily-repost:'+day,token=crypto.randomUUID();
@@ -39,7 +39,8 @@ export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,po
   const image=await render(facts);
   if(!image?.png?.byteLength)throw Error('Imagem do resumo indisponível');
   const form=new FormData();
-  form.append('chat_id','__CHAT_ID__');
+  if(!chatId)throw Error('Canal Telegram indisponível');
+  form.append('chat_id',String(chatId));
   form.append('caption',caption(facts).slice(0,1024));
   form.append('photo',new Blob([image.png],{type:'image/png'}),photoName);
   // Download button is best effort; missing archive never suppresses a good photo.
