@@ -56,6 +56,36 @@
   function text(value,x,y,size=25,color=WHITE,maxWidth=1000,bold=false){c.font=font(size,bold);let t=String(value??'Não informado');while(t.length>2&&c.measureText(t).width>maxWidth)t=t.slice(0,-2)+'…';c.fillStyle=color;c.textAlign='left';c.textBaseline='top';c.fillText(t,x,y);}
   function lines(value,x,y,width,size=24,maxLines=2,color=WHITE,bold=false){c.font=font(size,bold);const words=String(value||'').split(/\s+/),out=[];let line='';for(const word of words){if(c.measureText((line+' '+word).trim()).width>width&&line){out.push(line);line=word;}else line=(line+' '+word).trim();}if(line)out.push(line);out.slice(0,maxLines).forEach((s,i)=>text(i===maxLines-1&&out.length>maxLines?out.slice(i).join(' '):s,x,y+i*(size+8),size,color,width,bold));}
   function box(x,y,w,h,r=22,fill='rgba(3,30,43,.88)',glow=12,edge='#80deec'){c.save();c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();c.strokeStyle=edge;c.lineWidth=1.5;c.shadowColor=edge;c.shadowBlur=glow;c.stroke();c.restore();}
+  // Same magnitude bands as getHexColor in the site's earthquake indicators.
+  function metricAccent(event,profile){
+   if(!profile.quake)return profile.weather?CYAN:'#ff8f50';
+   const m=Number(event.mag);
+   if(!Number.isFinite(m))return CYAN;
+   if(typeof root.getHexColor==='function')return root.getHexColor(m);
+   return m>=6?'#ef4444':m>=5?'#fb923c':m>=4?'#facc15':'#4ade80';
+  }
+  // Local satellite snapshot + blur + translucent tint, without a large header card.
+  function metricGlass(x,y,w,h,accent){
+   const pad=24,snapshot=document.createElement('canvas');
+   snapshot.width=w+pad*2;snapshot.height=h+pad*2;
+   snapshot.getContext('2d').drawImage(canvas,x-pad,y-pad,snapshot.width,snapshot.height,0,0,snapshot.width,snapshot.height);
+   const rgba=alpha=>{
+    const r=parseInt(accent.slice(1,3),16),g=parseInt(accent.slice(3,5),16),b=parseInt(accent.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+alpha+')';
+   };
+   c.save();c.beginPath();c.roundRect(x,y,w,h,19);c.clip();
+   c.filter='blur(14px)';c.drawImage(snapshot,x-pad,y-pad);c.filter='none';
+   c.fillStyle='rgba(3,30,42,.75)';c.fillRect(x,y,w,h);
+   const tint=c.createLinearGradient(x,y,x,y+h);
+   tint.addColorStop(0,rgba(.46));tint.addColorStop(.35,rgba(.20));tint.addColorStop(1,rgba(.09));
+   c.fillStyle=tint;c.fillRect(x,y,w,h);
+   const shine=c.createLinearGradient(x,y,x,y+h);
+   shine.addColorStop(0,'rgba(244,255,255,.27)');shine.addColorStop(.28,'rgba(226,249,255,.07)');shine.addColorStop(1,'rgba(0,20,31,.07)');
+   c.fillStyle=shine;c.fillRect(x,y,w,h);c.restore();
+   c.save();c.beginPath();c.roundRect(x,y,w,h,19);
+   c.lineWidth=2;c.strokeStyle=accent;c.shadowColor=rgba(.63);c.shadowBlur=13;c.stroke();c.restore();
+   snapshot.width=snapshot.height=1;
+  }
   function icon(kind,x,y){c.save();c.translate(x,y);c.strokeStyle=WHITE;c.lineWidth=2.5;c.lineCap='round';c.lineJoin='round';c.beginPath();
    if(kind==='calendar'){c.roundRect(0,4,32,29,4);c.moveTo(0,13);c.lineTo(32,13);c.moveTo(8,0);c.lineTo(8,8);c.moveTo(24,0);c.lineTo(24,8);}
    else if(kind==='globe'){c.arc(17,17,17,0,2*Math.PI);c.moveTo(17,0);c.bezierCurveTo(1,6,1,28,17,34);c.bezierCurveTo(33,28,33,6,17,0);c.moveTo(0,17);c.lineTo(34,17);c.moveTo(4,7);c.quadraticCurveTo(17,13,30,7);c.moveTo(4,27);c.quadraticCurveTo(17,21,30,27);}
@@ -108,17 +138,25 @@
   const flagX=Math.min(1032-flagsWidth,98+lastRowWidth+18);
   const flagY=finalRowY+Math.max(0,(placeSize-flagHeight)/2)+3;
   const headerBottom=Math.max(395,292+rowsVisible.length*(placeSize+7)+22,flagImages.length?flagY+flagHeight+20:0);
-  box(45,150,990,headerBottom-150,24,'rgba(2,24,35,.84)',2,'rgba(100,210,230,.32)');
+  // Keep the map visible: a fading shadow replaces the enclosing black rounded card.
+  c.save();const titleVeil=c.createLinearGradient(0,130,0,headerBottom+70);
+  titleVeil.addColorStop(0,'rgba(0,17,27,.60)');titleVeil.addColorStop(.58,'rgba(0,17,27,.30)');titleVeil.addColorStop(1,'rgba(0,17,27,0)');
+  c.fillStyle=titleVeil;c.fillRect(0,130,W,headerBottom-60);c.restore();
   c.fillStyle=CYAN;c.fillRect(58,176,7,82);
+  c.save();c.shadowColor='rgba(0,6,12,.92)';c.shadowBlur=14;
   let titleSize=26;
   while(titleSize>16){c.font=font(titleSize,true);if(c.measureText(p.title).width<=470)break;titleSize--;}
   text(p.title,98,173+(26-titleSize)/2,titleSize,WHITE,470,true);
-  // The main metric occupies the right column and never competes with country flags.
-  c.save();c.translate(861,219);box(-160,-47,320,94,19,'rgba(52,8,23,.93)',9,RED);
+  rowsVisible.forEach((line,i)=>text(line,98,292+i*(placeSize+7),placeSize,WHITE,placeWidth,true));
+  c.restore();
+  // Green (<M4), yellow (M4+), orange (M5+), red (M6+); frosted like the facts panel.
+  const accent=metricAccent(e,p);
+  metricGlass(701,172,320,94,accent);
+  c.save();c.translate(861,219);
   let metricFont=72;c.font='italic 700 '+metricFont+'px StoryRajdhani, sans-serif';
   while(metricFont>30&&c.measureText(String(p.metric)).width>290)c.font='italic 700 '+(--metricFont)+'px StoryRajdhani, sans-serif';
-  c.textAlign='center';c.textBaseline='middle';c.fillStyle=WHITE;c.fillText(p.metric,0,0,290);c.restore();
-  rowsVisible.forEach((line,i)=>text(line,98,292+i*(placeSize+7),placeSize,WHITE,placeWidth,true));
+  c.textAlign='center';c.textBaseline='middle';c.fillStyle=WHITE;
+  c.shadowColor='rgba(0,0,0,.70)';c.shadowBlur=9;c.fillText(p.metric,0,0,290);c.restore();
   flagImages.forEach((img,i)=>{
    const x=flagX+i*(flagWidth+flagGap);
    box(x,flagY,flagWidth,flagHeight,8,'rgba(0,25,38,.83)',2,'rgba(122,219,232,.6)');
@@ -176,6 +214,6 @@
   text(sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Fundo ilustrativo · imagem de base indisponível',60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'site-concept6-all-v7'};
+ root.SiteEventStory={render,profile,version:'site-concept6-all-v8'};
 })(window);
 
