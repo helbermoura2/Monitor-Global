@@ -49,7 +49,8 @@ public final class MainActivity extends Activity {
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
   section("REPLAY E RESUMOS SÍSMICOS");
-  button("Replay · Buscar último sismo M6+ ou no Brasil (72 h)",v->launch(MonitorService.REPLAY));
+  button("Replay · Último sismo M6+ mundial (72 h)",v->launch(MonitorService.REPLAY_M6));
+  button("Replay · Último sismo no Brasil, qualquer magnitude (72 h)",v->launch(MonitorService.REPLAY_BRAZIL));
   button("Maiores de hoje · parcial até agora",v->launch(MonitorService.SUMMARY_TODAY));
   button("Replay · Resumo de ontem completo (6 s por sismo)",v->launch(MonitorService.SUMMARY_REPLAY));
   button("3 · Testar sismo com indicação de tsunami (fictício)",v->launch(MonitorService.TEST));
