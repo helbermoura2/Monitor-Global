@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v7');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v8');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -145,4 +145,30 @@ test('Country flags sit next to the locality, and the main temperature is right-
  expect(checked.flags[0][1]).toBeGreaterThan(280);
  expect(checked.flags[0][1]).toBeLessThan(360);
  expect(checked.flags[0].slice(2)).toEqual([90,60]);
+});
+
+test('Severity colored frosted chip has project thresholds and header card is absent',async({page})=>{
+ await page.goto('/404.html',{waitUntil:'domcontentloaded'});
+ const fixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;return c.toDataURL().split(',')[1];});
+ await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(fixture,'base64')}));
+ await page.addScriptTag({url:'/js/site-event-story.js'});
+ const result=await page.evaluate(async()=>{
+  const results=[];
+  for(const mag of [2.1,4.2,5.5,6.6]){
+   const traced=[],proto=CanvasRenderingContext2D.prototype,oldRound=proto.roundRect,oldStroke=proto.stroke;
+   proto.roundRect=function(x,y,w,h,...rest){
+    this.__metricTestLine=this.canvas.width===1080&&this.canvas.height===1920&&x===701&&y===172&&w===320&&h===94;
+    if(this.canvas.width===1080&&this.canvas.height===1920&&x===45&&y===150&&w===990)traced.push('HEADER_CARD');
+    return oldRound.call(this,x,y,w,h,...rest);
+   };
+   proto.stroke=function(...args){if(this.__metricTestLine)traced.push('METRIC:'+this.strokeStyle);return oldStroke.apply(this,args);};
+   try{
+    await SiteEventStory.render({type:'earthquake',coords:[-66.79,18.02],mag,place:'Guayanilla, Porto Rico',depth:8.3});
+    results.push({mag,traced});
+   }finally{proto.roundRect=oldRound;proto.stroke=oldStroke;}
+  }
+  return results;
+ });
+ expect(result.map(r=>r.traced.filter(t=>t.startsWith('METRIC:')).at(-1))).toEqual(['METRIC:#4ade80','METRIC:#facc15','METRIC:#fb923c','METRIC:#ef4444']);
+ expect(result.every(r=>!r.traced.includes('HEADER_CARD'))).toBe(true);
 });
