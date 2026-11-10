@@ -37,6 +37,7 @@ import {handleOfficialWeatherAlerts} from "./official-weather-alerts-worker.mjs"
 import {handleWeatherObservations} from "./weather-observations-worker.mjs";
 import {clampFdsnParams} from "./worker/fdsn-policy.mjs";
 import {DAILY_SUMMARY_DESIGN} from "./daily-summary-renderer.mjs";
+import {DAILY_REPOST_REQUEST,requestedDailyRepostReady,dailyRepostOnce} from "./worker/telegram-daily-repost.mjs";
 import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, handleFunvisisEarthquakes, handleSeismicStatus} from "./worker/seismic-providers.mjs";
 import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
@@ -1728,12 +1729,31 @@ export class DailySummaryDelivery {
         if(new URL(request.url).pathname==='/preview'){const day=new URL(request.url).searchParams.get('day')||'';if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return Response.json({error:'day'},{status:400});const png=await persistentHistoryGet(this.ctx.storage,'telegram-history-preview:'+day,'arrayBuffer');return png===undefined?new Response(null,{status:404}):new Response(png,{headers:{'Content-Type':'image/png'}});}
         if(new URL(request.url||request).pathname.startsWith('/telegram-summary-image/'))return serveTelegramOriginal(request,this.ctx.storage);
         if(new URL(request.url||request).pathname==='/refresh-brazil')return refreshDailyBrazilSummary(request,env,this.ctx.storage);
+        if(new URL(request.url||request).pathname==='/repost-once'){
+            if(request.method!=='POST')return Response.json({error:'Método não permitido'},{status:405});
+            const day=new URL(request.url).searchParams.get('day');
+            if(day!==DAILY_REPOST_REQUEST.day)return Response.json({error:'Data não autorizada'},{status:400});
+            if(!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID)return Response.json({error:'Canal Telegram indisponível'},{status:503});
+            const result=await dailyRepostOnce({
+                storage:this.ctx.storage,day,chatId:env.TELEGRAM_CHAT_ID,
+                load:fetchDailyQuakesBrt,render:renderDailySummaryPng,
+                caption:quakes=>'♻️ REPUBLICAÇÃO · NOVO VISUAL\n'+dailySummaryCaption(quakes)+'\nArte atualizada · dados sujeitos a revisão.',
+                post:form=>telegramDailyRequest(env,'sendPhoto',form),
+                archive:async(png,day)=>{
+                    const key=await archiveTelegramOriginal(this.ctx.storage,png,null,{summary:true});
+                    await this.ctx.storage.setAlarm?.(Date.now()+72*3600000+1000);
+                    return originalImageButton(key,day);
+                }
+            });
+            return Response.json(result,{status:result.ok?200:result.uncertain?409:503});
+        }
         if(new URL(request.url||request).pathname==='/history'){
             const history=await this.ctx.storage.get('history');
+            const reprint=await this.ctx.storage.get('daily-repost:'+DAILY_REPOST_REQUEST.day);
             const state=await this.ctx.storage.get('delivery');
             if(!history&&!state)return Response.json({record:null});
             const status=state?.status==='sending'?(history?.status==='uncertain'||Date.now()-(state.at||0)>45000?'uncertain':'sending'):state?.status==='sent'?'sent':history?.status||'pending';
-            return Response.json({record:{...history,status,at:history?.at||state?.at||0,events:history?.events||[],legacy:!history}});
+            return Response.json({record:{...history,status,at:history?.at||state?.at||0,events:history?.events||[],legacy:!history,repost:reprint?{status:reprint.status,at:reprint.sentAt||reprint.at,messageId:reprint.messageId||null}:null}});
         }
         const p=saoPauloParts();
         if(Number(p.hour)!==0 || Number(p.minute)>30)
@@ -1962,7 +1982,7 @@ async function handleWorkerRequest(request,env,ctx){
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
             '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
-            '/telegram-history', '/telegram-history-preview', '/telegram-history-detail'
+            '/telegram-history', '/telegram-history-preview', '/telegram-history-detail', '/telegram-daily-repost'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
             return json({ ok: false, error: 'Não autorizado. Use o cabeçalho X-Admin-Token.' }, 401);
@@ -2050,6 +2070,15 @@ async function handleWorkerRequest(request,env,ctx){
         if (reqUrl.pathname === '/jma-earthquakes') { return await handleJmaEarthquakes(); }
         if (reqUrl.pathname === '/funvisis-earthquakes') { return await handleFunvisisEarthquakes(reqUrl); }
         if (reqUrl.pathname === '/seismic-status') { return await handleSeismicStatus(); }
+        if(reqUrl.pathname === '/telegram-daily-repost'){
+            if(request.method!=='POST')return json({error:'Método não permitido'},405);
+            if(!env.DAILY_SUMMARY)return json({error:'Controle do resumo indisponível'},503);
+            const day=reqUrl.searchParams.get('day');
+            if(day!==DAILY_REPOST_REQUEST.day)return json({error:'Data não autorizada'},400);
+            const target=env.DAILY_SUMMARY.get(env.DAILY_SUMMARY.idFromName(day));
+            const response=await target.fetch('https://summary.internal/repost-once?day='+day,{method:'POST'});
+            return new Response(response.body,{status:response.status,headers:{'Content-Type':'application/json','Cache-Control':'no-store',...CORS_HEADERS}});
+        }
         if (reqUrl.pathname === '/telegram-test') { return await handleTelegramTest(env); }
         if (reqUrl.pathname === '/telegram-daily-summary') { try { return json(await runTelegramDailySummary(request, env)); } catch(e) { return json({ok:false,error:e.message},502); } }
         if (reqUrl.pathname === '/telegram-m6-check') { return await handleTelegramM6Check(request, env); }
@@ -2167,6 +2196,18 @@ export default {
         ctx.waitUntil(withKvUsage(env,async env => {
             // Prioridade ao resumo; consultas de outros feeds não atrasam sua tentativa.
             try { await runTelegramDailySummary(cacheRequest, env); } catch (e) { console.error('Cron Telegram resumo diário: envio pendente; nova tentativa no próximo cron'); }
+            // Authorized one-off republication; 15-minute cadence and hard expiry guard quotas.
+            // The durable per-day reservation guarantees at-most-once delivery even after restarts.
+            if(requestedDailyRepostReady(Date.now(),DAILY_SUMMARY_DESIGN)
+                && Math.floor(Number(event.scheduledTime||Date.now())/60000)%15===0
+                && env.DAILY_SUMMARY){
+                const day=DAILY_REPOST_REQUEST.day;
+                try{
+                    const response=await env.DAILY_SUMMARY.get(env.DAILY_SUMMARY.idFromName(day))
+                        .fetch('https://summary.internal/repost-once?day='+day,{method:'POST'});
+                    if(!response.ok)console.warn('Republicação única: dados ou envio ainda pendentes');
+                }catch{console.warn('Republicação única: tentativa pendente');}
+            }
             // Public dashboards collect on demand. Telegram keeps its own live collection below.
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }
             // Historical revisions are background work; check them at fifteen-minute UTC boundaries.
