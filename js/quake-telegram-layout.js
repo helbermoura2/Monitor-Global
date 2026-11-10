@@ -97,6 +97,8 @@
   label(p,'EPICENTRO · M'+fmt,467,MAP_Y+ANCHOR_Y-12,18,WHITE,true,182);
   if(!ev.imageMapAvailable){box(p,232,MAP_Y+53,356,44);label(p,'Mapa indisponível nesta consulta',244,MAP_Y+66,15,MUTED,false,335);}
 
+  drawTsunami(p,ev.imageTsunami);
+
   box(p,24,1137,752,80,NAVY);stripe(p,24,1137,752,CYAN);
   label(p,'DATA · BRT',42,1153,13,MUTED,true,200);
   label(p,when.date+' · '+when.hour,42,1177,20,WHITE,true,325);
