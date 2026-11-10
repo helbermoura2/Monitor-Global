@@ -99,5 +99,6 @@ test('Complete translated location occupies its own row without truncation or he
  const location=result.filter(r=>r.y>=292&&r.y<415&&r.x===98);expect(location.map(r=>r.text).join(' ')).toBe('30 km a sudeste de Tauranga, Nova Zelândia');
  for(const row of location){expect(row.text).not.toContain('…');expect(row.x+row.width).toBeLessThanOrEqual(982);}
  const region=result.find(r=>r.text==='CONTEXTO REGIONAL');expect(region.y).toBeGreaterThan(location.at(-1).y+38);
+ expect(result.filter(r=>r.x===764&&[1520,1557].includes(r.y)).map(r=>r.text)).toEqual(['37,83° S','176,51° L']);
  expect(parseInt(result.find(r=>r.text==='PROFUNDIDADE').font.match(/(\d+)px/)[1])).toBeGreaterThanOrEqual(18);
 });
