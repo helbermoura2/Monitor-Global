@@ -56,16 +56,58 @@
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- window.shareResumoDiarioStory=async()=>{try{await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');await asset('js/quake-card-layout.js?v=20261028-confidence');await asset('js/quake-image-paint.js?v=20261024-editorial-v16');await asset('js/story-share.js?v=editorial-v17');return await window.shareResumoDiarioStory();}catch(error){failure(error);}};
+ // O template do Telegram não é alterado; somente a imagem exportada pelo SITE.
+ async function siteImageAssets(){
+  await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
+  await asset('js/quake-card-layout.js?v=20261028-confidence'); // geometria compartilhada
+  await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
+  await asset('js/quake-site-flags.js?v=site-concept6-v1');
+  await asset('js/quake-site-card.js?v=site-concept6-v1');
+  await asset('js/story-share.js?v=site-concept6-v1');
+ }
+ window.shareResumoDiarioStory=async()=>{try{
+  await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
+  await asset('js/quake-card-layout.js?v=20261028-confidence');
+  await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
+  await asset('js/story-share.js?v=site-concept6-v1');
+  return await window.shareResumoDiarioStory();
+ }catch(error){failure(error);}};
+ function isQuake(item){return !!item&&(item.type==='earthquake'||(!item.type&&item.mag!=null));}
+ function eligibleVideo(item){
+  if(!isQuake(item))return false;
+  if(Number(item.mag)>=6)return true;
+  if(item.countryCode==='BR'||item.bandeira==='🇧🇷')return true;
+  const lat=Number(item.coords?.[1]),lon=Number(item.coords?.[0]);
+  return Number.isFinite(lat)&&Number.isFinite(lon)&&window.CountryBoundaries?.lookup(lat,lon)?.countryCode==='BR';
+ }
  function init(){
   if(new URLSearchParams(location.search).get('admin')==='1')window.TelegramAdmin.open();
-  const button=document.getElementById('pd-share-btn');
+  const button=document.getElementById('pd-share-btn'),videoButton=document.getElementById('pd-video-btn');
   button?.addEventListener('click',async event=>{
    event.stopPropagation();const item=selected();
    if(!item){window.showToast?.('Selecione um evento na lista primeiro.','info');return;}
    button.disabled=true;button.textContent='Carregando…';
-   try{await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');await asset('js/quake-card-layout.js?v=20261028-confidence');await asset('js/quake-image-paint.js?v=20261024-editorial-v16');await asset('js/story-share.js?v=editorial-v17');await window.shareEventAsStory(item);}catch(error){failure(error);}
+   try{await siteImageAssets();await window.shareEventAsStory(item);}catch(error){failure(error);}
    finally{button.disabled=false;button.textContent='📤 Imagem';}
+  });
+  // Não mostra replay de vídeo em alertas meteorológicos, sismos <M6 fora do
+  // Brasil nem em eventos sem confirmação da localização brasileira.
+  const refreshVideo=()=>{if(videoButton)videoButton.hidden=!eligibleVideo(selected());};
+  refreshVideo();
+  try{window.EventStore?.subscribe?.(refreshVideo);}catch{}
+  window.CountryBoundaries?.ready?.then(refreshVideo,refreshVideo);
+  videoButton?.addEventListener('click',async event=>{
+   event.stopPropagation();
+   const item=selected();
+   if(!eligibleVideo(item)){refreshVideo();window.showToast?.('Vídeo disponível somente para M6+ ou sismos brasileiros.','info');return;}
+   videoButton.disabled=true;videoButton.textContent='Preparando…';
+   try{
+    await siteImageAssets();
+    await asset('js/quake-site-video.js?v=site-concept6-v1');
+    const result=await window.QuakeSiteVideo.download(item,pct=>{videoButton.textContent='Vídeo '+pct+'%';});
+    window.showToast?.('Vídeo salvo: '+result.filename+' · separado da imagem.','info');
+   }catch(error){console.warn('[Vídeo do sismo]',error);window.showToast?.(error.message||'Não foi possível gerar vídeo neste navegador.','warning');}
+   finally{videoButton.disabled=false;videoButton.textContent='▶ Vídeo';refreshVideo();}
   });
   const brazil=document.getElementById('chip-geo-br');if(!brazil)return;
   const desktop=matchMedia('(min-width:901px)'),activateAt=Date.parse('2026-10-25T16:55:00-03:00'),retireAt=Date.parse('2026-10-26T06:00:00-03:00');
