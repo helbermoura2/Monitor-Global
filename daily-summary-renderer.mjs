@@ -151,17 +151,27 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  const face=fonts.rajdhani;
  if(!face||!face.glyphs||!face.img)throw Error('Rajdhani Bold do Monitor Global indisponível');
  const brandWidth=(str,size)=>[...String(str)].reduce((sum,ch)=>{const g=face.glyphs[ch]||face.glyphs['?'];return sum+(g?.[2]||g?.[1]||16)*size/face.size;},0);
+ const fitBrand=(str,size,maxWidth)=>{
+  let value=String(str??''),adjusted=size;
+  while(brandWidth(value,adjusted)>maxWidth&&adjusted>13)adjusted-=1;
+  if(brandWidth(value,adjusted)>maxWidth){
+   while(value.length>3&&brandWidth(value+'...',adjusted)>maxWidth)value=value.slice(0,-1);
+   value+='...';
+  }
+  return {value,size:adjusted};
+ };
  const brand=(str,x,y,size,color=COLORS.white,maxWidth=W-x)=>{
-  str=String(str??'');let adjusted=size;
-  while(brandWidth(str,adjusted)>maxWidth&&adjusted>13)adjusted-=1;
-  let cursor=x,ratio=adjusted/face.size;
-  for(const ch of str){const g=face.glyphs[ch]||face.glyphs['?'];if(!g)continue;
+  const fitted=fitBrand(str,size,maxWidth);let cursor=x,ratio=fitted.size/face.size;
+  for(const ch of fitted.value){const g=face.glyphs[ch]||face.glyphs['?'];if(!g)continue;
    const gw=Math.max(1,Math.round(g[1]*ratio)),gh=Math.max(1,Math.round(face.cellH*ratio));
    scaledIcon(rgba,W,H,face.img,g[0],g[1],face.cellH,Math.round(cursor-(g[3]||0)*ratio),Math.round(y),gw,gh,color);
    cursor+=(g[2]||g[1])*ratio;
   }return cursor-x;
  };
- const centerBrand=(str,cx,y,size,color=COLORS.white,maxWidth=400)=>{let adjusted=size;while(brandWidth(str,adjusted)>maxWidth&&adjusted>13)adjusted-=1;brand(str,cx-brandWidth(str,adjusted)/2,y,adjusted,color,maxWidth);};
+ const centerBrand=(str,cx,y,size,color=COLORS.white,maxWidth=400)=>{
+  const fitted=fitBrand(str,size,maxWidth);
+  brand(fitted.value,cx-brandWidth(fitted.value,fitted.size)/2,y,fitted.size,color,maxWidth);
+ };
  const wrapBrand=(str,width,size,maxLines=2)=>{
   const words=String(str||'').split(/\s+/).filter(Boolean),rows=[];let lineText='';
   for(const word of words){const next=lineText?lineText+' '+word:word;if(lineText&&brandWidth(next,size)>width){rows.push(lineText);lineText=word;}else lineText=next;}
