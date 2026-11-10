@@ -1051,7 +1051,7 @@ function summaryCardWrap(font,text,width){
     if(line)lines.push(line);return lines;
 }
 async function renderDailySummaryImage(quakes) {
-    const key=await renderIdentity('daily-v12-rajdhani-neon',quakes);
+    const key=await renderIdentity('daily-v13-rajdhani-neon-flags',quakes);
     return key?cachedRender(key,300000,()=>renderDailySummaryPixels(quakes)):renderDailySummaryPixels(quakes);
 }
 async function renderDailySummaryPixels(quakes) {

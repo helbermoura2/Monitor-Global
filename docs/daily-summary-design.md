@@ -8,13 +8,13 @@ Modelo aprovado para o boletim automático do Telegram em 09/11/2026. A saída c
 - Título RESUMO SÍSMICO DIÁRIO em uma linha e data BRT.
 - Mapa-múndi real à esquerda, contorno ciano, com os cinco maiores eventos posicionados pelas coordenadas das fontes.
 - Evento principal à direita, com magnitude grande e cor por intensidade (M6+ vermelho, M5 laranja, M4 amarelo, abaixo de M4 verde), local, país, profundidade, horário BRT e bandeira apenas quando identificada.
-- Ranking em quatro linhas adaptativas: magnitude, local, distância geodésica a São Paulo, horário BRT e profundidade.
+- Ranking em quatro linhas adaptativas: magnitude, local, **bandeira ao lado do país de cada sismo**, distância geodésica a São Paulo, horário BRT e profundidade. Os cinco eventos têm bandeira quando o país é identificado no atlas, sem ícones inventados.
 - Seção verde do Brasil, exibida somente com registros brasileiros, incluindo baixas magnitudes fora do Top 5.
 - Cinco estatísticas coloridas e rodapé com fontes, site e @monitor_global.
 
 ## Preservação dos dados
 
-O gerador em daily-summary-renderer.mjs mantém o mapa offline Natural Earth e o atlas de bandeiras. A classe de fonte Rajdhani Bold é carregada dos recursos do projeto. O cache passa a daily-v12-rajdhani-neon e o marcador /health é monitor-global-rajdhani-neon-v7.
+O gerador em daily-summary-renderer.mjs mantém o mapa offline Natural Earth e o atlas de bandeiras. A classe de fonte Rajdhani Bold é carregada dos recursos do projeto. O cache passa a daily-v13-rajdhani-neon-flags e o marcador /health é monitor-global-rajdhani-neon-v7.
 
 Os cinco maiores eventos continuam ordenados por magnitude decrescente e horário crescente no empate; bandeiras apenas para países identificados, horários America/Sao_Paulo, e dados desconhecidos não são substituídos por estimativas. O bloco Brasil expande a altura conforme a quantidade de sismos. Os alertas individuais M6+ e Brasil têm renderer independente e não são alterados por esta mudança.
 

@@ -133,8 +133,13 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
    const suffix=place.title.slice(place.title.lastIndexOf(',')+1).trim();
    if(suffix.toLocaleUpperCase('pt-BR')===country.label.toLocaleUpperCase('pt-BR')||gfx.country(suffix).code===country.code||/^(AK|CA|HI|NV|WA|OR|ID|UT|AZ|MT|WY|CO|NM|TX|OK|KS)$/.test(suffix))place.title=place.title.slice(0,place.title.lastIndexOf(','));
   }
-  const names=[...wrap('title',place.title,215),...wrap('title',country.label,215)];
-  return {event:e,color:gfx.magColor(e.mag),country,place,when:timeBrt(e.time),depth:km(e.depth),distance:km(distance(e)),names,height:Math.max(88,22+names.length*(fonts.title.cellH+1))};
+  // The country lines reserve room only when the atlas has a matching flag.
+  // Keep place names, magnitude badges, distances and timestamps in their original columns.
+  const placeLines=wrap('title',place.title,215);
+  const showFlag=country.code==='AQ'||!!(country.code&&fonts.flags.map[country.code]);
+  const countryLines=wrap('title',country.label,showFlag?176:215);
+  const names=[...placeLines,...countryLines];
+  return {event:e,color:gfx.magColor(e.mag),country,place,when:timeBrt(e.time),depth:km(e.depth),distance:km(distance(e)),names,placeLineCount:placeLines.length,showFlag,height:Math.max(88,22+names.length*(fonts.title.cellH+1))};
  });
  const first=layouts[0],rowsY=724,rowHeights=layouts.slice(1).map(l=>l.height);
  const rowsEnd=rowsY+Math.max(72,rowHeights.reduce((a,b)=>a+b,0));
@@ -256,7 +261,12 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
   border(X+74,middle-22,110,44,9,l.color,COLORS.bg);
   centerBrand('M'+number(l.event.mag),X+129,middle-18,34,l.color,104);
   let yy=middle-l.names.length*(fonts.title.cellH+1)/2;
-  for(const name of l.names){text('title',name,X+199,yy,COLORS.white);yy+=fonts.title.cellH+1;}
+  l.names.forEach((name,lineIndex)=>{
+   const countryLine=lineIndex>=l.placeLineCount;
+   if(l.showFlag&&lineIndex===l.placeLineCount)flag(l.country.code,X+199,yy+2,31,20);
+   text('title',name,X+199+(countryLine&&l.showFlag?38:0),yy,COLORS.white);
+   yy+=fonts.title.cellH+1;
+  });
   for(const [px,label,value] of [[X+450,'DISTÂNCIA',l.distance],[X+575,'HORA (BRT)',l.when],[X+719,'PROF.',l.depth]]){
    text('columnLabel',label,px,middle-24,COLORS.muted);
    text('detail',value,px,middle-1,COLORS.white);
