@@ -1258,6 +1258,12 @@
     } catch (e) {}
     await window.EventPortuguese?.ensure(item);
     item=window.EventPortuguese?.view(item)||item;
+    if(window.SiteEventStory){
+      const record={...item};
+      if((record.type==='earthquake'||(!record.type&&record.mag!=null))&&Array.isArray(record.coords)&&record.coords.slice(0,2).every(Number.isFinite))try{record.shaking=await window.RuptureShaking?.query(record);}catch{}
+      if(record.type==='earthquake'||(!record.type&&record.mag!=null))try{record.imageTsunami=window.QuakeTsunamiStatus.resolve(record,{...(window.__mgTsunamiImageHealth||{ok:false}),items:typeof globalAlerts!=='undefined'?globalAlerts:[]},null,typeof globalEvents!=='undefined'?globalEvents:[record]);}catch{}
+      return window.SiteEventStory.render(record);
+    }
     if((item.type==='earthquake'||(item.mag!=null&&!item.type))&&Array.isArray(item.coords)&&item.coords.length>=2&&item.coords.slice(0,2).every(Number.isFinite))return buildCartographicQuake(item);
     const W = 1080, H = 1920;
     const canvas = document.createElement('canvas');

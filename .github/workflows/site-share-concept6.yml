@@ -1,0 +1,42 @@
+name: Site shared image Concept 6
+on:
+  push:
+    branches: [feat/site-share-concept6-all]
+  pull_request:
+    paths: ['js/site-event-story.js', 'tests/site-event-story.spec.js', 'css/capital-weather.css', '.github/workflows/site-share-concept6.yml']
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Export all event types and verify the temperature sharing action
+        env:
+          STORY_LIVE_PREVIEW: '1'
+        run: npx playwright test tests/site-event-story.spec.js tests/site-concept6.spec.js tests/story-all-events.spec.js --workers=2
+      - name: Export previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-image-concept6-previews
+          path: /tmp/share-concept6
+          retention-days: 2
+      - name: Print bounded visual proof
+        if: always()
+        run: |
+          python -m pip install --disable-pip-version-check Pillow
+          python - <<'PY'
+          import pathlib,io,base64
+          from PIL import Image
+          for path in pathlib.Path('/tmp/share-concept6').glob('*.png'):
+              image=Image.open(path);image.thumbnail((540,960));out=io.BytesIO();image.convert('RGB').save(out,format='JPEG',quality=82)
+              print('SHARE_CONCEPT6_'+path.stem+' '+base64.b64encode(out.getvalue()).decode())
+          PY
