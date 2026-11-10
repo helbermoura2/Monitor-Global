@@ -6,15 +6,18 @@
  const located=e=>Array.isArray(e.coords)&&e.coords.length>=2&&e.coords.slice(0,2).every(Number.isFinite)&&Math.abs(e.coords[0])<=180&&Math.abs(e.coords[1])<=85;
  function profile(e){
   const quake=e.type==='earthquake'||(!e.type&&e.mag!=null),weather=['capital-weather','temperature','weather','heat','cold'].includes(e.type);
+  const bulletin=e.hazardNature==='bulletin'&&e.source==='CGE';
   const labels={fire:'INCÊNDIO',storm:'TEMPESTADE',hurricane:'CICLONE',tornado:'TORNADO',tsunami:'TSUNAMI',civil:'INFORMATIVO',wind:'VENTO',flood:'ENCHENTE',volcano:'VULCÃO'};
-  const title=quake?'SISMO':weather?'TEMPERATURA':(root.RecordPresentation?.label(e)||e.displayLabel||e.cycloneLabel||labels[e.type]||e.type||'EVENTO').toUpperCase();
-  const metric=quake?'M'+number(e.mag):weather?number(e.temperature,' °C'):e.severityLabel||e.alertLevel||(e.type==='hurricane'?e.classification:null)||'REGISTRO';
+  // A CGE weather bulletin is not necessarily a storm warning.
+  const title=quake?'SISMO':weather?'TEMPERATURA':bulletin?'BOLETIM CGE':e.type==='storm'?'TEMPESTADE':(root.RecordPresentation?.label(e)||e.displayLabel||e.cycloneLabel||labels[e.type]||e.type||'EVENTO').toUpperCase();
+  const metric=quake?'M'+number(e.mag):weather?number(e.temperature,' °C'):bulletin?'INFORMATIVO':e.type==='storm'?'TEMPESTADE':e.severityLabel||e.alertLevel||(e.type==='hurricane'?e.classification:null)||labels[e.type]||'EVENTO';
   let stats;
   if(quake){const knownDepth=typeof e.depth==='number'&&Number.isFinite(e.depth);let mmi='Indisponível',official=e.shaking?.status==='available',k=null;try{if(official&&located(e)&&root.RuptureShakingModel?.valid(e.shaking.grid)){const value=RuptureShakingModel.sample(e.shaking.grid,e.coords[0],e.coords[1]);if(Number.isFinite(value))k=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][Math.max(0,Math.min(11,Math.round(value)-1))];}else if(!official&&knownDepth&&typeof e.mag==='number'&&Number.isFinite(e.mag)&&root.QuakeImagePaint)k=QuakeImagePaint.estimatedMmi({mag:e.mag,depth:e.depth});if(k)mmi=k+' · '+({I:'Não perceptível',II:'Muito fraca',III:'Fraca',IV:'Leve',V:'Moderada',VI:'Forte',VII:'Muito forte',VIII:'Severa',IX:'Violenta',X:'Extrema',XI:'Extrema',XII:'Extrema'}[k]||'Estimativa');}catch{}const status=e.imageTsunami?.state;const relevant=e.imageTsunami&&!e.imageTsunami.stale&&(['warning','watch','advisory'].includes(status)||(e.imageTsunami.regionalGroups||[]).some(g=>!g.stale&&['warning','watch','advisory'].includes(g.state)));const third=relevant?['TSUNAMI',status==='warning'?'Aviso por região':'Atenção por região']:located(e)?['COORDENADAS',Math.abs(e.coords[1]).toFixed(2).replace('.',',')+'° '+(e.coords[1]<0?'S':'N')+' · '+Math.abs(e.coords[0]).toFixed(2).replace('.',',')+'° '+(e.coords[0]<0?'O':'L')]:['REVISÃO',typeof e.reviewed==='boolean'?(e.reviewed?'Revisado':'Automático'):'Não informada'];stats=[['PROFUNDIDADE',number(e.depth,' km')],[official?'INTENSIDADE · MMI':'INTENSIDADE EST.',mmi],third];}
   else if(weather)stats=[['SENSAÇÃO',number(e.feels,' °C')],['UMIDADE',number(e.humidity,'%')],['VENTO',number(e.wind,' km/h')]];
+  else if(bulletin)stats=[['SITUAÇÃO','Informativo'],['REGIÃO','São Paulo · SP'],['TIPO','Boletim meteorológico']];
   else if(e.type==='hurricane')stats=[['CLASSIFICAÇÃO',e.cycloneLabel||e.classification||'Não informada'],['VENTO MÁXIMO',number(e.windKmh,' km/h')],['PRESSÃO',number(e.pressureMb,' hPa')]];
   else stats=[['SITUAÇÃO',e.severityLabel||e.statusLabel||'Conforme a fonte'],['REGIÃO',e.region||e.uf||e.country||'Ver localização'],['TIPO',e.hazardNature==='forecast'?'Previsão':e.hazardNature==='observed'?'Observado':e.hazardNature==='warning'?'Aviso oficial':'Registro da fonte']];
-  return {quake,weather,title,metric,stats,marker:quake?'EPICENTRO · '+metric:weather?'LOCAL DA PREVISÃO':'REFERÊNCIA DO EVENTO',note:quake?'Intensidade estimada. Anéis de localização; não indicam raio de dano.':weather?'Condições conforme a fonte indicada; sujeitas a atualização.':'A referência no mapa não delimita a área de risco. Consulte a fonte oficial.'};
+  return {quake,weather,bulletin,title,metric,stats,marker:quake?'EPICENTRO · '+metric:weather?'LOCAL DA PREVISÃO':bulletin?'REFERÊNCIA MUNICIPAL':'REFERÊNCIA DO EVENTO',note:quake?'Intensidade estimada. Anéis de localização; não indicam raio de dano.':weather?'Condições conforme a fonte indicada; sujeitas a atualização.':bulletin?'Boletim municipal informativo; não confirma tempestade nem área de risco.':'A referência no mapa não delimita a área de risco. Consulte a fonte oficial.'};
  }
  function frame(e,p){let span=1;if(p.quake&&root.QuakeSiteCard)try{const f=QuakeSiteCard.frame({mag:e.mag,depth:e.depth,lon:e.coords[0],lat:e.coords[1]});span=(f.maxLon-f.minLon)/2;}catch{}else if(!p.weather)span=3;
   const [lon,lat]=e.coords;return {minLon:lon-span,maxLon:lon+span,minLat:Math.max(-85,lat-2*span*940/W),maxLat:Math.min(85,lat+2*span*820/W)};
@@ -80,15 +83,20 @@
   // Radar mark, matching the site's brand. No textual placeholder logo.
   box(70,36,72,72,12,'#00121e',5);c.save();c.translate(106,72);c.strokeStyle=CYAN;c.lineWidth=2;for(const r of [12,22,30]){c.beginPath();c.arc(0,0,r,0,2*Math.PI);c.stroke();}c.fillStyle=CYAN;c.beginPath();c.moveTo(0,0);c.arc(0,0,29,-Math.PI/2,-.2);c.closePath();c.fill();c.restore();
   text('MONITOR GLOBAL',166,47,39,WHITE,820,true);
-  box(45,150,990,245,24,'rgba(2,24,35,.72)',2,'rgba(100,210,230,.28)');
-  c.fillStyle=CYAN;c.fillRect(58,176,7,86);let titleSize=26;while(titleSize>16){c.font=font(titleSize,true);if(c.measureText(p.title).width<=300)break;titleSize--;}text(p.title,98,173+(26-titleSize)/2,titleSize,WHITE,300,true);
-  // The full location has its own row, clear of the magnitude and flags.
+  // Measure the location first to avoid clipping long names or overlapping the map inset.
   const place=root.EventPortuguese?.place(e.place||'Local não informado')||e.place||'Local não informado';
   function wrapPlace(size){c.font=font(size,true);const rows=[];let row='';for(const word of String(place).split(/\s+/)){if(c.measureText((row+' '+word).trim()).width>884&&row){rows.push(row);row=word;}else row=(row+' '+word).trim();}if(row)rows.push(row);return rows;}
-  let placeSize=38,placeRows=wrapPlace(placeSize);while(placeSize>30&&placeRows.length>3)placeRows=wrapPlace(--placeSize);
-  placeRows.forEach((row,i)=>{c.font=font(placeSize,true);c.fillStyle=WHITE;c.textAlign='left';c.textBaseline='top';c.fillText(row,98,292+i*(placeSize+7),884);});
-  const regionY=Math.max(415,292+placeRows.length*(placeSize+7)+26);
-  c.save();c.translate(542,232);box(-130,-48,260,96,19,'rgba(52,8,23,.91)',19,RED);c.font='italic 700 '+(p.metric.length>10?35:72)+'px StoryRajdhani, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillStyle=WHITE;c.fillText(p.metric,0,0,236);c.restore();
+  let placeSize=38,placeRows=wrapPlace(placeSize);while(placeSize>28&&placeRows.length>3)placeRows=wrapPlace(--placeSize);
+  const placeBottom=292+Math.min(3,placeRows.length)*(placeSize+7);
+  box(45,150,990,Math.max(245,placeBottom-150+23),24,'rgba(2,24,35,.84)',2,'rgba(100,210,230,.32)');
+  c.fillStyle=CYAN;c.fillRect(58,176,7,86);let titleSize=26;while(titleSize>16){c.font=font(titleSize,true);if(c.measureText(p.title).width<=290)break;titleSize--;}text(p.title,98,173+(26-titleSize)/2,titleSize,WHITE,290,true);
+  placeRows.slice(0,3).forEach((line,i)=>{c.font=font(placeSize,true);c.fillStyle=WHITE;c.textAlign='left';c.textBaseline='top';c.fillText(line,98,292+i*(placeSize+7),884);});
+  const regionY=Math.max(415,placeBottom+26);
+  // Fit the metric by measuring glyphs instead of crushing long words into a narrow chip.
+  c.save();c.translate(542,232);box(-150,-48,300,96,19,'rgba(52,8,23,.93)',9,RED);
+  let metricFont=72;c.font='italic 700 '+metricFont+'px StoryRajdhani, sans-serif';
+  while(metricFont>30&&c.measureText(String(p.metric)).width>274)c.font='italic 700 '+(--metricFont)+'px StoryRajdhani, sans-serif';
+  c.textAlign='center';c.textBaseline='middle';c.fillStyle=WHITE;c.fillText(p.metric,0,0,274);c.restore();
   stroke(721,182,721,271);
   if(flags){for(const [i,key] of ['country','state'].entries()){const img=flags.images[key];if(img){const x=763+i*133;box(x,195,116,76,7,'#05273a',2);c.save();c.beginPath();c.roundRect(x,195,116,76,7);c.clip();c.drawImage(img,x,195,116,76);c.restore();}}}
   box(45,regionY,350,300,22);text('CONTEXTO REGIONAL',66,regionY+17,22,WHITE,308,true);
@@ -96,12 +104,15 @@
   else lines(hasLocation?'Mapa regional indisponível':e.place||'Região informada pela fonte',66,regionY+75,308,26,4,MUTED);
   if(hasLocation){
    const x=(e.coords[0]-f.minLon)/(f.maxLon-f.minLon)*W,y=(f.maxLat-e.coords[1])/(f.maxLat-f.minLat)*1760;
-   c.save();c.strokeStyle=RED;for(const [r,a] of [[40,.65],[80,.38],[122,.2]]){c.globalAlpha=a;c.lineWidth=2;c.beginPath();c.arc(x,y,r,0,2*Math.PI);c.stroke();}c.globalAlpha=1;c.shadowColor=RED;c.shadowBlur=22;c.fillStyle=RED;c.beginPath();c.arc(x,y,13,0,2*Math.PI);c.fill();c.shadowBlur=0;c.strokeStyle=WHITE;c.lineWidth=4;c.stroke();c.restore();
-   const bx=Math.min(W-370,Math.max(375,x+8)),by=y-112;box(bx,by,330,54,17);c.beginPath();c.moveTo(bx+32,by+54);c.lineTo(x,y-15);c.lineTo(bx+56,by+54);c.fillStyle='#062936';c.fill();c.strokeStyle='#b8efff';c.lineWidth=1.5;c.stroke();text(p.marker,bx+18,by+16,22,WHITE,295,true);
+   const pinColor=p.quake?RED:CYAN;
+   c.save();c.strokeStyle=pinColor;for(const [r,a] of [[40,.65],[80,.38],[122,.2]]){c.globalAlpha=a;c.lineWidth=2;c.beginPath();c.arc(x,y,r,0,2*Math.PI);c.stroke();}c.globalAlpha=1;c.shadowColor=pinColor;c.shadowBlur=22;c.fillStyle=pinColor;c.beginPath();c.arc(x,y,13,0,2*Math.PI);c.fill();c.shadowBlur=0;c.strokeStyle=WHITE;c.lineWidth=4;c.stroke();c.restore();
+   const bx=Math.min(W-370,Math.max(375,x+8)),by=Math.max(regionY+315,Math.min(1090,y-112));box(bx,by,330,54,17);c.beginPath();c.moveTo(bx+32,by+54);c.lineTo(x,y-15);c.lineTo(bx+56,by+54);c.fillStyle='#062936';c.fill();c.strokeStyle='#b8efff';c.lineWidth=1.5;c.stroke();text(p.marker,bx+18,by+16,22,WHITE,295,true);
   }else{box(250,770,650,116);lines('localização pontual não informada',280,800,590,28,2);}
-  const summary=String(e.bulletinSummary||e.condition||e.descOnly||e.detail||'').trim();const panelTop=summary?1218:1383,panelHeight=1792-panelTop;
+  const summary=String(e.bulletinSummary||e.condition||e.descOnly||e.detail||'').trim();
+  // A separate summary strip keeps the technical panel consistent for all event types.
+  const panelTop=1364,panelHeight=1792-panelTop;
   box(29,panelTop,1022,panelHeight,43,'rgba(3,38,49,.86)',19);c.save();c.beginPath();c.roundRect(29,panelTop,1022,panelHeight,43);c.clip();const glass=c.createRadialGradient(49,1383,1,140,1440,800);glass.addColorStop(0,'rgba(220,255,255,.28)');glass.addColorStop(.25,'rgba(105,230,250,.08)');glass.addColorStop(1,'rgba(0,28,38,0)');c.fillStyle=glass;c.fillRect(29,panelTop,1022,panelHeight);c.restore();
-  if(summary){text(p.weather?'CONDIÇÕES DO TEMPO':'SOBRE O EVENTO',80,1246,22,CYAN,920,true);lines(summary,80,1283,920,p.weather&&summary.length<55?42:28,2,WHITE,true);stroke(69,1370,1008,1370);}
+  if(summary){box(46,1179,988,153,24,'rgba(2,27,40,.94)',5,'rgba(91,210,231,.85)');text(p.weather?'CONDIÇÕES DO TEMPO':p.bulletin?'BOLETIM METEOROLÓGICO':'SOBRE O EVENTO',70,1197,21,CYAN,930,true);lines(summary,70,1238,932,28,2,WHITE,false);}
   const when=Number.isFinite(Number(e.time))&&Number(e.time)>0?new Date(Number(e.time)).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',',' ·')+' BRT':'Horário não informado';
   icon('calendar',80,1425);text(when,128,1430,28,WHITE,450,true);stroke(565,1425,565,1470);icon('layers',592,1425);lines(e.sourceSummary||e.source||'Fonte não informada',642,1412,365,25,2,WHITE,true);stroke(69,1492,1008,1492);
   p.stats.forEach(([label,value],i)=>{const x=85+i*318;if(i)stroke(x-22,1520,x-22,1616);icon(p.weather?['thermometer','drop','waves'][i]:['depth','pulse',p.stats[2][0]==='COORDENADAS'?'pin':'waves'][i],x-5,1528);if(label==='COORDENADAS'){value.split(' · ').forEach((part,row)=>text(part,x+43,1520+row*37,29,WHITE,241));}else lines(value,x+43,1520,241,29,2);text(label,x+43,1600,18,MUTED,240,true);});
@@ -113,6 +124,6 @@
   text(sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Fundo ilustrativo · imagem de base indisponível',60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'site-concept6-all-v5'};
+ root.SiteEventStory={render,profile,version:'site-concept6-all-v6'};
 })(window);
 

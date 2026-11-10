@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v5');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v6');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -101,4 +101,21 @@ test('Complete translated location occupies its own row without truncation or he
  const region=result.find(r=>r.text==='CONTEXTO REGIONAL');expect(region.y).toBeGreaterThan(location.at(-1).y+38);
  expect(result.filter(r=>r.x===764&&[1520,1557].includes(r.y)).map(r=>r.text)).toEqual(['37,83° S','176,51° L']);
  expect(parseInt(result.find(r=>r.text==='PROFUNDIDADE').font.match(/(\d+)px/)[1])).toBeGreaterThanOrEqual(18);
+});
+
+test('Storm card says TEMPESTADE, while general CGE reports stay informative',async({page})=>{
+ await page.goto('/404.html');
+ await page.addScriptTag({url:'/js/site-event-story.js'});
+ await page.addScriptTag({url:'/js/cge-bulletins.js'});
+ const result=await page.evaluate(()=>{
+  const now=Date.now(),bulletin=CgeBulletins.fromBulletin({sourceId:'56051',title:'Sol entre nuvens',summary:'Temperatura amena',description:'Céu com nuvens',time:now-1000,displayUntil:now+3600000},now);
+  return {bulletinType:bulletin.type,bulletinProfile:SiteEventStory.profile(bulletin),storm:SiteEventStory.profile({type:'storm',hazardNature:'warning',severityLabel:'Perigo',coords:[-46.6,-23.5]})};
+ });
+ expect(result.bulletinType).toBe('civil');
+ expect(result.bulletinProfile.title).toBe('BOLETIM CGE');
+ expect(result.bulletinProfile.metric).toBe('INFORMATIVO');
+ expect(result.bulletinProfile.marker).toBe('REFERÊNCIA MUNICIPAL');
+ expect(result.storm.title).toBe('TEMPESTADE');
+ expect(result.storm.metric).toBe('TEMPESTADE');
+ expect(result.storm.metric).not.toBe('REGISTRO');
 });
