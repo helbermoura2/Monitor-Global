@@ -143,7 +143,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  const brazilY=Math.max(1115,rowsEnd+25);
  const brazilHeight=brazilRows.length?64+brazilRows.reduce((sum,r)=>sum+Math.max(64,24+r.names.length*(fonts.detail.cellH+3)),0)+13:0;
  const totalsY=brazilY+(brazilHeight?brazilHeight+22:0);
- const H=Math.max(1344,totalsY+208);
+ const H=Math.max(1440,totalsY+275);
  const rgba=new Uint8Array(W*H*4*scale*scale);rgba.summaryScale=scale;
  gfx.fillRect(rgba,W,0,0,W,H,...COLORS.bg);
  const text=(key,str,x,y,color=COLORS.white,tracking=0)=>gfx.drawText(rgba,W,H,fonts[key],gfx.clean(str,fonts[key]),x,y,...color,tracking);
@@ -293,7 +293,10 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  const footerY=H-48;line(rgba,W,H,X,footerY-23,W-X,footerY-23,COLORS.line,.9);
  const allSources=[...new Set(['USGS',...brazil.flatMap(e=>e.sources||[e.source].filter(Boolean))])];
  const sourceLine='Fontes: '+allSources.join(' · ')+' · Dados sujeitos a revisão';
- text('small',sourceLine,X,footerY,COLORS.muted);
+ const sourceWidth=Math.max(280,W-415-X);
+ let safeSources=sourceLine;
+ while(safeSources.length>12&&measure('small',safeSources)>sourceWidth)safeSources=safeSources.slice(0,-5)+'...';
+ text('small',safeSources,X,footerY,COLORS.muted);
  text('small','monitorglobal.top',W-382,footerY,COLORS.white);
  text('small','@monitor_global',W-190,footerY,COLORS.cyan);
  text('small','Distâncias a São Paulo, SP',X,footerY-40,COLORS.muted);
