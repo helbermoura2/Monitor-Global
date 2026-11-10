@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v4');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v5');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{

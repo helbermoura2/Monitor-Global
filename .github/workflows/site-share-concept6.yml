@@ -1,7 +1,7 @@
 name: Site shared image Concept 6
 on:
   push:
-    branches: [fix/site-share-readable-location]
+    branches: [fix/site-share-composition]
   pull_request:
     paths: ['js/site-event-story.js', 'tests/site-event-story.spec.js', 'css/capital-weather.css', '.github/workflows/site-share-concept6.yml']
 permissions:

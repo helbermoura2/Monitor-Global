@@ -80,6 +80,7 @@
   // Radar mark, matching the site's brand. No textual placeholder logo.
   box(70,36,72,72,12,'#00121e',5);c.save();c.translate(106,72);c.strokeStyle=CYAN;c.lineWidth=2;for(const r of [12,22,30]){c.beginPath();c.arc(0,0,r,0,2*Math.PI);c.stroke();}c.fillStyle=CYAN;c.beginPath();c.moveTo(0,0);c.arc(0,0,29,-Math.PI/2,-.2);c.closePath();c.fill();c.restore();
   text('MONITOR GLOBAL',166,47,39,WHITE,820,true);
+  box(45,150,990,245,24,'rgba(2,24,35,.72)',2,'rgba(100,210,230,.28)');
   c.fillStyle=CYAN;c.fillRect(58,176,7,86);let titleSize=26;while(titleSize>16){c.font=font(titleSize,true);if(c.measureText(p.title).width<=300)break;titleSize--;}text(p.title,98,173+(26-titleSize)/2,titleSize,WHITE,300,true);
   // The full location has its own row, clear of the magnitude and flags.
   const place=root.EventPortuguese?.place(e.place||'Local não informado')||e.place||'Local não informado';
@@ -98,10 +99,11 @@
    c.save();c.strokeStyle=RED;for(const [r,a] of [[40,.65],[80,.38],[122,.2]]){c.globalAlpha=a;c.lineWidth=2;c.beginPath();c.arc(x,y,r,0,2*Math.PI);c.stroke();}c.globalAlpha=1;c.shadowColor=RED;c.shadowBlur=22;c.fillStyle=RED;c.beginPath();c.arc(x,y,13,0,2*Math.PI);c.fill();c.shadowBlur=0;c.strokeStyle=WHITE;c.lineWidth=4;c.stroke();c.restore();
    const bx=Math.min(W-370,Math.max(375,x+8)),by=y-112;box(bx,by,330,54,17);c.beginPath();c.moveTo(bx+32,by+54);c.lineTo(x,y-15);c.lineTo(bx+56,by+54);c.fillStyle='#062936';c.fill();c.strokeStyle='#b8efff';c.lineWidth=1.5;c.stroke();text(p.marker,bx+18,by+16,22,WHITE,295,true);
   }else{box(250,770,650,116);lines('localização pontual não informada',280,800,590,28,2);}
-  const summary=String(e.bulletinSummary||e.condition||e.descOnly||e.detail||'').trim();if(summary){box(55,1218,970,115,20,'rgba(3,25,37,.86)',4);lines(summary,80,1240,920,24,2);}
-  box(29,1383,1022,409,43,'rgba(3,38,49,.86)',19);c.save();c.beginPath();c.roundRect(29,1383,1022,409,43);c.clip();const glass=c.createRadialGradient(49,1383,1,140,1440,800);glass.addColorStop(0,'rgba(220,255,255,.28)');glass.addColorStop(.25,'rgba(105,230,250,.08)');glass.addColorStop(1,'rgba(0,28,38,0)');c.fillStyle=glass;c.fillRect(29,1383,1022,409);c.restore();
+  const summary=String(e.bulletinSummary||e.condition||e.descOnly||e.detail||'').trim();const panelTop=summary?1218:1383,panelHeight=1792-panelTop;
+  box(29,panelTop,1022,panelHeight,43,'rgba(3,38,49,.86)',19);c.save();c.beginPath();c.roundRect(29,panelTop,1022,panelHeight,43);c.clip();const glass=c.createRadialGradient(49,1383,1,140,1440,800);glass.addColorStop(0,'rgba(220,255,255,.28)');glass.addColorStop(.25,'rgba(105,230,250,.08)');glass.addColorStop(1,'rgba(0,28,38,0)');c.fillStyle=glass;c.fillRect(29,panelTop,1022,panelHeight);c.restore();
+  if(summary){text(p.weather?'CONDIÇÕES DO TEMPO':'SOBRE O EVENTO',80,1246,22,CYAN,920,true);lines(summary,80,1283,920,p.weather&&summary.length<55?42:28,2,WHITE,true);stroke(69,1370,1008,1370);}
   const when=Number.isFinite(Number(e.time))&&Number(e.time)>0?new Date(Number(e.time)).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',',' ·')+' BRT':'Horário não informado';
-  icon('calendar',80,1425);text(when,128,1430,28,WHITE,450,true);stroke(565,1425,565,1470);icon('layers',592,1425);text(e.sourceSummary||e.source||'Fonte não informada',642,1432,28,WHITE,365,true);stroke(69,1492,1008,1492);
+  icon('calendar',80,1425);text(when,128,1430,28,WHITE,450,true);stroke(565,1425,565,1470);icon('layers',592,1425);lines(e.sourceSummary||e.source||'Fonte não informada',642,1412,365,25,2,WHITE,true);stroke(69,1492,1008,1492);
   p.stats.forEach(([label,value],i)=>{const x=85+i*318;if(i)stroke(x-22,1520,x-22,1616);icon(p.weather?['thermometer','drop','waves'][i]:['depth','pulse',p.stats[2][0]==='COORDENADAS'?'pin':'waves'][i],x-5,1528);if(label==='COORDENADAS'){value.split(' · ').forEach((part,row)=>text(part,x+43,1520+row*37,29,WHITE,241));}else lines(value,x+43,1520,241,29,2);text(label,x+43,1600,18,MUTED,240,true);});
   text(p.note,70,1636,18,MUTED,940);
   box(29,1674,1022,118,40,'rgba(3,34,46,.93)',15);icon('globe',85,1712);text('monitorglobal.top',166,1711,29,WHITE,380,true);stroke(485,1699,485,1762);
@@ -111,6 +113,6 @@
   text(sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Fundo ilustrativo · imagem de base indisponível',60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'site-concept6-all-v4'};
+ root.SiteEventStory={render,profile,version:'site-concept6-all-v5'};
 })(window);
 
