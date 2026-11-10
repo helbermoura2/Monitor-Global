@@ -23,6 +23,8 @@ test('Concept 6 static composition exports every event family and missing-data s
   if(['earthquake','capital-weather','flood'].includes(type)){fs.mkdirSync('/tmp/share-concept6',{recursive:true});fs.writeFileSync('/tmp/share-concept6/'+type+'.png',data);}
  }
  const missing=await page.evaluate(async()=>{const texts=[],original=CanvasRenderingContext2D.prototype.fillText;CanvasRenderingContext2D.prototype.fillText=function(t,...a){texts.push(String(t));return original.call(this,t,...a);};try{await SiteEventStory.render({type:'temperature',coords:[],place:'Região sem ponto',temperature:0,feels:null,humidity:null,wind:null});return texts.join(' ');}finally{CanvasRenderingContext2D.prototype.fillText=original;}});
+ const official=await page.evaluate(()=>{window.QuakeImagePaint={estimatedMmi:()=> 'I'};window.RuptureShakingModel={valid:()=>true,sample:()=>6};const e={type:'earthquake',mag:1.8,depth:0,coords:[-36.24,-8.67],shaking:{status:'available',grid:{}}};const known=SiteEventStory.profile(e).stats[1];RuptureShakingModel.sample=()=>null;return {known,missing:SiteEventStory.profile(e).stats[1]};});
+ expect(official.known).toEqual(['INTENSIDADE · MMI','VI · Forte']);expect(official.missing[1]).toBe('Indisponível');
  expect(missing).toContain('localização pontual não informada');expect(missing).toContain('0 °C');expect(missing).toContain('Não informado');expect(missing).not.toContain('0 km/h');
 });
 test('Temperature image action resolves the selected weather record and exports Concept 6',async({page})=>{

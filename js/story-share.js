@@ -1260,6 +1260,7 @@
     item=window.EventPortuguese?.view(item)||item;
     if(window.SiteEventStory){
       const record={...item};
+      if((record.type==='earthquake'||(!record.type&&record.mag!=null))&&Array.isArray(record.coords)&&record.coords.slice(0,2).every(Number.isFinite))try{record.shaking=await window.RuptureShaking?.query(record);}catch{}
       if(record.type==='earthquake'||(!record.type&&record.mag!=null))try{record.imageTsunami=window.QuakeTsunamiStatus.resolve(record,{...(window.__mgTsunamiImageHealth||{ok:false}),items:typeof globalAlerts!=='undefined'?globalAlerts:[]},null,typeof globalEvents!=='undefined'?globalEvents:[record]);}catch{}
       return window.SiteEventStory.render(record);
     }
