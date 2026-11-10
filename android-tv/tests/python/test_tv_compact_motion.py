@@ -11,12 +11,13 @@ def source(name):
 
 
 class CompactTvMotionTest(unittest.TestCase):
-    def test_brent_price_and_variation_are_adjacent_not_spread(self):
+    def test_brent_variation_is_right_aligned_and_price_is_left_aligned(self):
         card = source("BrentCardView.java")
         overlay = source("BrentOverlay.java")
         self.assertIn("priceBox.setMarginEnd(dp(10))", card)
         self.assertIn("values.addView(main,priceBox)", card)
-        self.assertNotIn("values.addView(main,new LayoutParams(0,-2,1))", card)
+        self.assertIn("values.addView(new View(c),new LayoutParams(0,dp(1),1f))", card)
+        self.assertIn("values.addView(delta,new LayoutParams(-2,-2))", card)
         self.assertIn("Math.min(dp(385)", overlay)
         self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", overlay)
 
