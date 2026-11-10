@@ -23,7 +23,7 @@ const fixture={mag:8.0,lat:38.2,lon:142.1,depth:24,place:'Honshu, Japão',source
 test('Telegram only: magnitude dominates, smaller metadata and unmodified site frame',()=>{
  const {p,calls}=painter();T.draw(p,{...fixture});
  const hero=calls.find(c=>c.s==='M8,0');
- assert(hero&&hero.size>=90);
+ assert(hero&&hero.size>=90&&hero.brand===true,'Magnitude uses actual Rajdhani Bold');
  assert(calls.some(c=>c.s.includes('SISMO DE GRANDE MAGNITUDE')));
  const stats=calls.filter(c=>c.y>=1137&&c.y<1339);
  assert(stats.every(c=>c.size<=23),'Secondary figures must be smaller than magnitude');
