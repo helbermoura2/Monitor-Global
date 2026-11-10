@@ -883,7 +883,7 @@ async function renderAlertPixels(ev) {
     if(contextImg){painter.roundRect(C.x,C.y,C.width,C.height,'#071724');painter.text('CONTEXTO REGIONAL',C.x+8,C.y+9,13,'#38bdf8',true);drawImageCover(rgba,W,H,contextImg,C.imageX*sx,C.imageY*sy,C.imageWidth*sx,C.imageHeight*sy);const px=(C.imageX+(Number(ev.lon)-cf.minLon)/(cf.maxLon-cf.minLon)*C.imageWidth)*sx,py=(C.imageY+(cf.maxLat-Number(ev.lat))/(cf.maxLat-cf.minLat)*C.imageHeight)*sy;fillCircle(rgba,W,H,px,py,8,255,255,255,255);fillCircle(rgba,W,H,px,py,5,225,55,45,255);}
     drawMapReferences(painter,frame,ev,places,telegramLayout);
     const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
-    telegramLayout.draw(painter,{...ev,imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+telegramLayout.MAP_Y})),
+    telegramLayout.draw(painter,{...ev,brazil:telegramIsBrazil(Number(ev.lat),Number(ev.lon)),imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+telegramLayout.MAP_Y})),
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
         when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
         sourceLabel:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':ev.reviewStatus==='unknown'?'revisão não informada':'automático'),
