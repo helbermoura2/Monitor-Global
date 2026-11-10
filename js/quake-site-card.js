@@ -81,7 +81,8 @@
   entries.forEach((e,i)=>{
    if(i)p.rect(e.x-14,1237,1,64,'#5f8090');
    p.text(e.label,e.x,1237,14,cyan,true);
-   p.text(textFit(p,e.value,19,e.width,true),e.x,1265,19,white,true);
+   const size=i===2?16:19; // O texto de boletins de tsunami deve caber inteiro.
+   p.text(textFit(p,e.value,size,e.width,true),e.x,1265,size,white,true);
   });
   p.text('Sismo: mapa e intensidade são estimativas; anéis não indicam propagação.',45,1311,11,muted);
   p.rect(42,1338,716,1,'#4b8095');
