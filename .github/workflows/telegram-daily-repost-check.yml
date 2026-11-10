@@ -27,3 +27,10 @@ jobs:
           node --check monitor-global-worker-7_7_0.js
       - name: Verify complete worker service and delivery safeguards
         run: npm run worker:test
+      - name: Mirror offline smoke unit-test environment
+        env:
+          MONITOR_TEST_OFFLINE: '1'
+          NODE_OPTIONS: --require ./tools/test-network-guard.cjs
+        run: |
+          node --test tests/unit/*.test.cjs tests/unit/*.test.mjs
+          for check in tests/unit/*-check.cjs tests/unit/*-check.mjs; do node "$check"; done
