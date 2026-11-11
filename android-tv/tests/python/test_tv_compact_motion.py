@@ -19,7 +19,7 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn('BRL=X?interval=1m&range=1d', market)
         self.assertIn("DollarQuote.fromYahoo(raw,System.currentTimeMillis())", market)
         self.assertIn("DÓLAR COMERCIAL", card)
-        self.assertIn("BrentQuote.DISPLAY=12000", source("BrentQuote.java"))
+        self.assertIn("DISPLAY=12000L", source("BrentQuote.java"))
         self.assertIn("BrentQuote.marketOpen(now)", market)
 
     def test_weather_map_is_above_live_stripe_and_original_hourly_schedule_is_preserved(self):
