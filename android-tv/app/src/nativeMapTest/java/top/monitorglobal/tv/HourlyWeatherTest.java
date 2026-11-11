@@ -22,7 +22,7 @@ public class HourlyWeatherTest {
    assertEquals(midnight+5*60000,Prefs.get(c).getLong("weatherLastNotice",0));
   }finally{m.close();}
  }
- @Test public void manualWorksWithBothAutomaticModesOffAndDoesNotShiftHourlySchedule()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather);m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);assertTrue(m.manualPending());assertNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(9999));assertNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(1));ready(m);assertNotNull(field(field(m,"overlay"),"current"));assertEquals(0,Prefs.get(c).getLong("weatherLastNotice",0));assertTrue(m.manualPending());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(14));assertFalse(m.manualPending());assertEquals(1,finished.get());assertNull(field(field(m,"overlay"),"current"));}finally{m.close();}}
+ @Test public void manualWorksWithBothAutomaticModesOffAndDoesNotShiftHourlySchedule()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather);m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);assertTrue(m.manualPending());assertNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(9999));assertNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(1));ready(m);assertNotNull(field(field(m,"overlay"),"current"));assertEquals(0,Prefs.get(c).getLong("weatherLastNotice",0));assertTrue(m.manualPending());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(RainOverlay.WEATHER_DURATION+1000));assertFalse(m.manualPending());assertEquals(1,finished.get());assertNull(field(field(m,"overlay"),"current"));}finally{m.close();}}
  @Test public void missingWeatherFinishesManualWithoutAnEmptyCardOrRainRequest()throws Exception{Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();AtomicInteger rainCalls=new AtomicInteger(),finished=new AtomicInteger();RainMonitor m=new RainMonitor(c,()->true,()->{rainCalls.incrementAndGet();return new JSONObject();},()->new JSONObject());m.setManualFinished(finished::incrementAndGet);try{m.weatherNow();ready(m);assertTrue(m.manualPending());assertEquals(0,finished.get());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);assertNull(field(field(m,"overlay"),"current"));assertEquals(0,rainCalls.get());assertFalse(m.manualPending());assertEquals(1,finished.get());}finally{m.close();}}
  @Test public void repeatedClickRestartsDelayWithoutDuplicatingWeatherFetches()throws Exception{
   Prefs.get(c).edit().putBoolean("weatherHourly",false).commit();
@@ -49,17 +49,39 @@ public class HourlyWeatherTest {
   assertNull(field(field(m,"overlay"),"current"));assertEquals(0,finished.get());
  }
  WeatherSatelliteClient.Frame satelliteFrame(){long now=org.robolectric.shadows.ShadowSystem.currentTimeMillis();return new WeatherSatelliteClient.Frame(Bitmap.createBitmap(512,InfraredPlan.SOUTHEAST.height,Bitmap.Config.ARGB_8888),null,now-1800000,InfraredPlan.SOUTHEAST,java.util.Collections.singletonList(now-1800000));}
- @Test public void manualWeatherAndSatelliteSurviveAnotherTickWithAutomaticModesOff()throws Exception{
-  Prefs.get(c).edit().putBoolean("weatherHourly",false).putBoolean("weatherSatellite",true).putInt("rainMode",0).commit();AtomicInteger loads=new AtomicInteger(),finished=new AtomicInteger();
+ @Test public void manualWeatherAndSatelliteShareTheSamePresentation()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherHourly",false).putBoolean("weatherSatellite",true).putInt("rainMode",0).commit();
+  AtomicInteger loads=new AtomicInteger(),finished=new AtomicInteger();
   WeatherSatelliteSequence sequence=new WeatherSatelliteSequence(c,()->true,()->new WeatherSatelliteSequence.Loader(){public WeatherSatelliteClient.Frame load(){loads.incrementAndGet();return satelliteFrame();}public void close(){}});
   RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather,sequence);m.setManualFinished(finished::incrementAndGet);
-  try{m.weatherNow();ready(m);for(int i=0;i<300&&field(sequence,"frame")==null;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}assertNotNull(field(sequence,"frame"));assertEquals(1,loads.get());assertNull(field(sequence,"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);assertNotNull(field(field(m,"overlay"),"current"));m.tick();assertTrue(sequence.pending());assertTrue(m.manualPending());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(WeatherSatelliteSequence.AFTER_WEATHER));assertNotNull(field(sequence,"current"));assertEquals(1,loads.get());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(WeatherSatelliteSequence.TOTAL+1000));assertFalse(m.manualPending());assertEquals(1,finished.get());}finally{m.close();}
+  try{
+   m.weatherNow();ready(m);for(int i=0;i<300&&sequence.currentFrame()==null;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}
+   assertNotNull(sequence.currentFrame());assertEquals(1,loads.get());
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);
+   Object host=field(field(m,"overlay"),"current");assertNotNull(host);m.tick();
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(13));
+   assertSame(host,field(field(m,"overlay"),"current"));assertNull("no second satellite banner",field(sequence,"current"));assertTrue(m.manualPending());
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(4));
+   assertNull(field(field(m,"overlay"),"current"));assertFalse(m.manualPending());assertFalse(sequence.pending());assertEquals(1,finished.get());
+  }finally{m.close();}
  }
- @Test public void slowSatelliteIsPrefetchedOnceAndReplacesLoadingCardAfterWeather()throws Exception{
-  Prefs.get(c).edit().putBoolean("weatherHourly",false).putBoolean("weatherSatellite",true).putInt("rainMode",0).commit();CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);AtomicInteger loads=new AtomicInteger();WeatherSatelliteClient.Frame image=satelliteFrame();
+ @Test public void slowSatelliteUpdatesExistingWeatherInsetWithoutSecondBanner()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherHourly",false).putBoolean("weatherSatellite",true).putInt("rainMode",0).commit();
+  CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);AtomicInteger loads=new AtomicInteger();WeatherSatelliteClient.Frame image=satelliteFrame();
   WeatherSatelliteSequence sequence=new WeatherSatelliteSequence(c,()->true,()->new WeatherSatelliteSequence.Loader(){public WeatherSatelliteClient.Frame load()throws Exception{loads.incrementAndGet();entered.countDown();release.await(5,TimeUnit.SECONDS);return image;}public void close(){release.countDown();}});
   RainMonitor m=new RainMonitor(c,()->true,()->new JSONObject(),this::weather,sequence);
-  try{m.weatherNow();assertTrue(entered.await(3,TimeUnit.SECONDS));ready(m);Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);assertNotNull(field(field(m,"overlay"),"current"));Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(19));android.widget.FrameLayout host=(android.widget.FrameLayout)field(sequence,"current");assertNotNull("slow source keeps a compact loading card",host);assertTrue(host.getChildAt(0) instanceof TvBroadcastInfoView);assertTrue(m.manualPending());release.countDown();for(int i=0;i<300&&field(sequence,"frame")==null;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}host=(android.widget.FrameLayout)field(sequence,"current");assertNotNull(host);assertTrue(host.getChildAt(0) instanceof TvBroadcastInfoView);assertEquals(1,loads.get());Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(WeatherSatelliteSequence.DURATION+1));assertNull(field(sequence,"current"));assertTrue(image.image.isRecycled());}finally{release.countDown();m.close();}
+  try{
+   m.weatherNow();assertTrue(entered.await(3,TimeUnit.SECONDS));ready(m);
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(10));ready(m);
+   android.widget.FrameLayout host=(android.widget.FrameLayout)field(field(m,"overlay"),"current");assertNotNull(host);
+   assertNull(sequence.currentFrame());assertNull(field(sequence,"current"));
+   release.countDown();for(int i=0;i<300&&sequence.currentFrame()==null;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}
+   assertSame(image,sequence.currentFrame());assertSame(host,field(field(m,"overlay"),"current"));
+   java.util.function.Supplier<?> supplier=(java.util.function.Supplier<?>)field(host.getChildAt(0),"weatherSatellite");assertSame(image,supplier.get());
+   assertEquals(1,loads.get());assertNull(field(sequence,"current"));
+   Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(RainOverlay.WEATHER_DURATION+1000));
+   assertNull(field(field(m,"overlay"),"current"));assertTrue(image.image.isRecycled());assertFalse(m.manualPending());
+  }finally{release.countDown();m.close();}
  }
 
 }

@@ -12,7 +12,7 @@ import java.util.function.BooleanSupplier;
  * RainMonitor; only the old bottom-right card presentation is replaced.
  */
 final class RainOverlay {
- static final long DURATION=15000L;
+ static final long DURATION=12000L,WEATHER_DURATION=15000L;
  private final Context context;
  private final Banner banner;
  private View current;
@@ -51,8 +51,8 @@ final class RainOverlay {
                           boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady){
   hide();
   long expiry=weather==null?(rain==null?0:rain.expiresAt):rain==null?weather.expiresAt:Math.min(weather.expiresAt,rain.expiresAt);
-  long max=DURATION;
-  long duration=demo?DURATION:Math.min(max,expiry-System.currentTimeMillis()-500);
+  long max=weather!=null?WEATHER_DURATION:DURATION;
+  long duration=demo?max:Math.min(max,expiry-System.currentTimeMillis()-500);
   if(duration<=0||!Settings.canDrawOverlays(context))return false;
   // Retain the existing optional rain atmosphere, but put its transparent
   // full-screen effect window BELOW the news strip, so no text is obscured.
