@@ -8,6 +8,9 @@ final class BrentMonitor {
  private final Context context;private final BooleanSupplier allowed;private final Callable<JSONObject> reader;private final boolean externalReader;
  private final BrentOverlay overlay;private final Handler main=new Handler(Looper.getMainLooper());
  private ExecutorService io;private volatile HttpURLConnection connection;
+ private java.util.function.Consumer<String> feedback;
+ private boolean manualRequest;private long manualDisplayUntil;
+ void setFeedback(java.util.function.Consumer<String> listener){feedback=listener;}
  private boolean busy,closed;private long knownSlot=-1,nextRetry;private JSONObject quote;private DollarQuote dollar;
  BrentMonitor(Context c,BooleanSupplier canShow){this(c,canShow,null);}
  BrentMonitor(Context c,BooleanSupplier canShow,Callable<JSONObject> source){
@@ -15,6 +18,7 @@ final class BrentMonitor {
  }
  boolean showing(){return overlay.showing();}
  private void status(String message){
+  if(manualRequest&&feedback!=null)feedback.accept(message);
   if(!message.equals(Prefs.get(context).getString("brentStatus","")))
    Prefs.get(context).edit().putString("brentStatus",message).apply();
  }
@@ -32,19 +36,21 @@ final class BrentMonitor {
  }
  void checkNow(){
   if(closed)return;
+  manualRequest=true;
   long now=System.currentTimeMillis();
-  if(!BrentQuote.marketOpen(now)){status("Brent fechado ou em pausa: nenhum valor fictício será usado.");return;}
-  if(!screen()){status("Tela da TV desligada: verificação adiada.");return;}
-  if(!allowed.getAsBoolean()){status("Outro aviso tem prioridade sobre o Brent. Tente novamente.");return;}
+  if(!BrentQuote.marketOpen(now)){status("Brent fora da sessão regular configurada. Não foi consultado um preço atual.");manualRequest=false;return;}
+  if(!screen()){status("Tela da TV desligada: verificação adiada.");manualRequest=false;return;}
+  if(!allowed.getAsBoolean()){status("Outro aviso tem prioridade sobre o Brent. Tente novamente após ele terminar.");manualRequest=false;return;}
   if(busy){status("Cotação real já em consulta.");return;}
   status("Consultando cotação REAL do Brent, sem simulação…");
+  knownSlot=BrentQuote.slot(now);
   load(true);
  }
  private boolean screen(){
   PowerManager power=context.getSystemService(PowerManager.class);return power==null||power.isInteractive();
  }
  void tick(){
-  if(closed)return;
+  if(closed||manualRequest||SystemClock.elapsedRealtime()<manualDisplayUntil)return;
   boolean enabled=Prefs.get(context).getBoolean("brentHourly",true);
   long now=System.currentTimeMillis();
   if(!enabled||!BrentQuote.marketOpen(now)||!screen()){
@@ -80,25 +86,27 @@ final class BrentMonitor {
    final DollarQuote verifiedDollar=fx;
    main.post(()->{
     busy=false;
-    if(closed||requestSlot!=knownSlot)return;
+    boolean requested=manual||manualRequest;
+    if(closed||!requested&&requestSlot!=knownSlot)return;
     quote=result;dollar=verifiedDollar;
     if(result==null||!result.optBoolean("ok"))status(problem(result));
     else if(BrentQuote.parse(result,System.currentTimeMillis())==null)
      status("A fonte respondeu, mas o preço ou horário não passou pela validação da TV.");
-    if(manual){
+    if(requested){
      BrentQuote valid=BrentQuote.parse(result,System.currentTimeMillis());
      if(valid==null){
       if(result!=null&&result.optBoolean("ok"))status("Cotação rejeitada: horário ou dados inconsistentes.");
-      return;
+      manualRequest=false;return;
      }
-     if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");return;}
+     if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");manualRequest=false;return;}
      if(overlay.show(valid,dollar,false)){
+      manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
        Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
       status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(result.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
      }else status("Cotação real validada, porém falta permissão de sobreposição.");
-     return;
+     manualRequest=false;return;
     }
     tick();
    });
@@ -167,6 +175,6 @@ final class BrentMonitor {
    overlay.show(new BrentQuote(78.35,77.50,0.85,1.10,System.currentTimeMillis(),"DEMONSTRAÇÃO"),
     new DollarQuote(5.23,0.01,0.19,System.currentTimeMillis(),"SIMULAÇÃO"),true);
  }
- void hide(){overlay.hide();}
+ void hide(){manualDisplayUntil=0;overlay.hide();}
  void close(){closed=true;hide();main.removeCallbacksAndMessages(null);if(connection!=null)connection.disconnect();if(io!=null)io.shutdownNow();quote=null;}
 }

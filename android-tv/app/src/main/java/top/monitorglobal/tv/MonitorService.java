@@ -32,6 +32,8 @@ public final class MonitorService extends Service {
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(CHECK_BRENT.equals(action)){
+   brent.setFeedback(message->{if(message.startsWith("REAL ·"))voiceNotice.hide();else voiceInfo("Consulta do Brent",message);});
+   if(intent.getBooleanExtra("alexaRequest",false)){brent.checkNow();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
    if(!Prefs.get(this).getBoolean("enabled",false)){
     Prefs.get(this).edit().putString("brentStatus","Ative o monitoramento para verificar o Brent real.").apply();
     stopIfIdle();return START_NOT_STICKY;
@@ -135,7 +137,7 @@ public final class MonitorService extends Service {
    if(destroyed)return;
    // Same on-demand card actions as the TV buttons. Do not invent prices or
    // bypass tsunami/earthquake priority. Record id before ACK for idempotency.
-   startService(new Intent(this,MonitorService.class).setAction(action));
+   startService(new Intent(this,MonitorService.class).setAction(action).putExtra("alexaRequest",true));
    Prefs.get(this).edit().putString(AlexaLinkClient.LAST_COMMAND_PREF,pending.id)
     .putString("alexaStatus","Comando "+pending.type+" recebido da Alexa").apply();
    AlexaLinkClient.acknowledge(this,pending.id);
