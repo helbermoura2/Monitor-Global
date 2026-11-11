@@ -11,7 +11,7 @@ public class StormPreviewTest {
  @Test public void demoRemainsLocalAndAutomaticallyCloses()throws Exception{
   Context c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().putBoolean("weatherHourly",false).putInt("rainMode",0).commit();AtomicInteger calls=new AtomicInteger();
   RainMonitor monitor=new RainMonitor(c,()->true,()->{calls.incrementAndGet();return new JSONObject();},()->{calls.incrementAndGet();return new JSONObject();});
-  try{monitor.demo(true);Object overlay=field(monitor,"overlay");assertNotNull(field(overlay,"previewRain"));assertEquals(0,calls.get());assertNull(field(monitor,"worker"));View host=(View)field(overlay,"current");assertTrue(texts(host).contains("Chuva · exemplo fictício"));assertFalse(texts(host).contains("RAIOS"));assertEquals(2,((ViewGroup)host).getChildCount());
+  try{monitor.demo(true);Object overlay=field(monitor,"overlay");assertNotNull(field(overlay,"previewRain"));assertEquals(0,calls.get());assertNull(field(monitor,"worker"));View host=(View)field(overlay,"current");assertTrue(((ViewGroup)host).getChildAt(0) instanceof TvBroadcastInfoView);assertTrue(String.valueOf(((ViewGroup)host).getChildAt(0).getContentDescription()).contains("SIMULAÇÃO"));assertEquals(1,((ViewGroup)host).getChildCount());assertNotNull(field(overlay,"effectHost"));
    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(14));assertNull(field(overlay,"current"));assertNull(field(overlay,"previewRain"));
   }finally{monitor.close();}
  }
@@ -19,7 +19,7 @@ public class StormPreviewTest {
   Context c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().putInt("previewRainStyle",0).putInt("previewRainLevel",3).commit();
   RainForecast.Summary rain=new RainForecast.Summary("now","fraca","Chuva fraca",1,.5,"",System.currentTimeMillis(),System.currentTimeMillis()+600000,true);
   RainOverlay overlay=new RainOverlay(c);
-  try{assertTrue(overlay.show(rain,true,false));Object effect=field(overlay,"previewRain");assertEquals(12,field(effect,"glassCount"));assertEquals(60,field(effect,"airCount"));View host=(View)field(overlay,"current");assertEquals(-1,((WindowManager.LayoutParams)host.getLayoutParams()).width);assertEquals(2,((ViewGroup)host).getChildCount());
+  try{assertTrue(overlay.show(rain,true,false));Object effect=field(overlay,"previewRain");assertEquals(12,field(effect,"glassCount"));assertEquals(60,field(effect,"airCount"));View host=(View)field(overlay,"current");assertTrue(((WindowManager.LayoutParams)host.getLayoutParams()).width>0);assertEquals(1,((ViewGroup)host).getChildCount());assertNotNull(field(overlay,"effectHost"));
    assertTrue(overlay.show(rain,false,false));assertNull(field(overlay,"previewRain"));assertTrue(((WindowManager.LayoutParams)((View)field(overlay,"current")).getLayoutParams()).width>0);
   }finally{overlay.hide();}
  }
