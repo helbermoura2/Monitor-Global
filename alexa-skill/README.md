@@ -1,4 +1,7 @@
-# Monitor Global + Alexa — skill privada em português (fase 1)
+# Monitor Global + Alexa — seis pedidos em português
+
+Frases e atualização de uma skill já vinculada: [FRASES.md](FRASES.md).
+Para os três novos pedidos, atualize o modelo JSON e os arquivos `index.js` e `commands.js` na aba Code, depois clique Deploy. Não apague os dados de vínculo.
 
 Objetivo: segurar o **botão físico do microfone** do Fire TV Stick 4K Max (ou falar à Echo), pedir **Brent**, **temperatura** ou **sismos no Brasil**, e o aplicativo **Monitor Global TV** mostrar **os seus cards existentes sobre o conteúdo da TV**, sem abrir a busca de voz do Google. A Alexa recebe a fala, a skill manda um comando autenticado ao Worker, e o aplicativo o executa.
 
@@ -36,7 +39,7 @@ Após passar os testes e integrar o PR, no GitHub Actions execute **Cloudflare W
 Não altere os dados sísmicos nem os alertas reais para tentar reparar a skill. Teste a skill e a ponte independentemente antes de atualizar a TV.
 
 ## Segurança e limitações
-- Nenhum comando Alexa controla lâmpadas, trancas ou outros aparelhos: apenas `brent`, `weather`, `brazil`.
+- Nenhum comando Alexa controla lâmpadas, trancas ou outros aparelhos: apenas `brent`, `weather`, `brazil`, `recent-quake`, `last-summary`, `today`.
 - Registro e vínculo exigem HTTPS; o PIN é de uso único e expira em 10 minutos; há limite de tentativas por origem. A skill guarda um token aleatório por conta na tabela privada da Amazon. O APK guarda apenas um token do dispositivo nas preferências privadas.
 - O Worker não recebe gravações de voz nem dados da sua conta Alexa. Rejeita comandos sem credencial e não inclui credenciais no código público.
 - O controle é escutado pela **Alexa do Fire TV**, não por um microfone próprio do Monitor Global. Ao segurar o microfone, não é necessário dizer “Alexa”, mas é necessário invocar “Monitor Global”; frases sem o nome da skill não são garantidas.
@@ -46,4 +49,4 @@ Não altere os dados sísmicos nem os alertas reais para tentar reparar a skill.
 ## Testes
 `node --test tests/unit/alexa-voice-bridge.test.mjs tests/unit/alexa-skill.test.cjs`
 
-Os testes validam: credenciais, PIN, expiração, limites, apenas três comandos, consulta/ACK do aplicativo e o modelo pt-BR.
+Os testes validam: credenciais, PIN, expiração, limites, seis comandos, consulta/ACK do aplicativo e o modelo pt-BR.

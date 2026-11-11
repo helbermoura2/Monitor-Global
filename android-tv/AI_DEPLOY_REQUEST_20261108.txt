@@ -29,3 +29,8 @@ Implantar telegram-glass-v19 após validação: bandeira nacional e UF brasileir
 vidro fosco e aviso de tsunami somente quando vigente e associado. Preservar os
 pixels do mapa nas atualizações de tsunami, os bindings, cron e deduplicação.
 Não enviar amostras ao Telegram nem republicar o histórico por esta mudança.
+
+11/11/2026 — autorização para atualizar toda a integração Alexa: implantar a lista
+revisada de seis comandos, incluindo último sismo, último resumo e maiores de hoje.
+Preservar vínculos existentes, autenticação, limites, fila de alertas e demais serviços.
+Não executar pedidos reais nem enviar amostras ao Telegram nesta publicação.
