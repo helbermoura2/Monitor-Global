@@ -9,8 +9,8 @@ android {
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
   // Correção verificada: boletim integrado de 15 s; avisos de chuva preservados.
   // Atualização: meteorologia e satélite na tarja Breaking News, Brent com dólar real na mesma tarja.
-  versionCode 10071
-  versionName '1.0.71'
+  versionCode 10072
+  versionName '1.0.72'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'

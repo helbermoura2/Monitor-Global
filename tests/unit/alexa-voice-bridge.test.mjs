@@ -62,3 +62,15 @@ test('distinct paired devices have isolated commands without exposing their toke
  assert.equal((await api(s,'/next','GET',{},second.body.deviceToken,now+13000)).body.command.type,'brazil');
  assert.equal((await api(s,'/next','GET',{},first.body.deviceToken,now+13000)).body.command,null);
 });
+
+test('new history requests survive authenticated delivery and acknowledgement',async()=>{
+ for(const command of ['recent-quake','last-summary','today']){
+  const s=storage(),registered=await api(s,'/register'),linked=await api(s,'/link','POST',{code:registered.body.code});
+  const sent=await api(s,'/command','POST',{command},linked.body.skillToken,now+1000);
+  assert.equal(sent.status,200);
+  const received=await api(s,'/next','GET',{},registered.body.deviceToken,now+2000);
+  assert.equal(received.body.command.type,command);assert.equal(received.body.command.id,sent.body.id);
+  assert.equal((await api(s,'/ack','POST',{id:sent.body.id},registered.body.deviceToken,now+2500)).status,200);
+  assert.equal((await api(s,'/next','GET',{},registered.body.deviceToken,now+3000)).body.command,null);
+ }
+});

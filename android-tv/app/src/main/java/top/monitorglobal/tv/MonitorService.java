@@ -127,6 +127,9 @@ public final class MonitorService extends Service {
     case "brent":action=CHECK_BRENT;break;
     case "weather":action=WEATHER_NOW;break;
     case "brazil":action=VOICE_BRAZIL;break;
+    case "recent-quake":action=REPLAY;break;
+    case "last-summary":action=SUMMARY_REPLAY;break;
+    case "today":action=SUMMARY_TODAY;break;
     default:return;
    }
    if(destroyed)return;

@@ -1,0 +1,139 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "monitor global",
+      "intents": [
+        {
+          "name": "LinkIntent",
+          "slots": [
+            {
+              "name": "codigo",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "vincular código {codigo}",
+            "conectar código {codigo}",
+            "vincular {codigo}",
+            "conectar {codigo}",
+            "usar código {codigo}",
+            "registrar código {codigo}"
+          ]
+        },
+        {
+          "name": "BrentIntent",
+          "slots": [],
+          "samples": [
+            "mostre o brent",
+            "mostrar o brent",
+            "quero ver o brent",
+            "cotação do brent",
+            "qual o preço do brent",
+            "mostre a cotação do petróleo",
+            "abrir o card do brent",
+            "mostre a cotação do brent",
+            "mostrar a cotação do brent",
+            "mostra o brent",
+            "mostra a cotação do brent",
+            "exiba o brent",
+            "exibir a cotação do brent",
+            "quero a cotação do brent",
+            "qual a cotação do brent",
+            "mostre o preço do petróleo",
+            "mostre o brent na televisão",
+            "mostre o brent na tv"
+          ]
+        },
+        {
+          "name": "TempoIntent",
+          "slots": [],
+          "samples": [
+            "mostre a temperatura",
+            "mostrar a temperatura em são paulo",
+            "temperatura em são paulo",
+            "mostre o tempo",
+            "ver a previsão do tempo",
+            "mostre o clima",
+            "abrir o card do tempo",
+            "mostra a temperatura",
+            "mostrar a temperatura",
+            "exiba a temperatura",
+            "quero ver a temperatura",
+            "qual é a temperatura",
+            "mostre a sensação térmica",
+            "mostre a temperatura na televisão",
+            "mostre a temperatura na tv",
+            "como está o tempo na liberdade",
+            "mostre o tempo na liberdade",
+            "mostre a previsão do tempo"
+          ]
+        },
+        {
+          "name": "BrasilIntent",
+          "slots": [],
+          "samples": [
+            "mostre o último sismo no brasil",
+            "replay do último sismo no brasil",
+            "último terremoto no brasil",
+            "mostre os terremotos no brasil",
+            "quero ver os sismos brasileiros",
+            "mostre o card de sismo no brasil",
+            "mostra o último terremoto no brasil",
+            "exiba os sismos no brasil",
+            "mostre o último tremor no brasil"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "UltimoSismoIntent",
+          "slots": [],
+          "samples": [
+            "mostre o último sismo",
+            "mostre o último terremoto",
+            "qual foi o último sismo",
+            "quero ver o último terremoto",
+            "mostra o último tremor"
+          ]
+        },
+        {
+          "name": "UltimoResumoIntent",
+          "slots": [],
+          "samples": [
+            "mostre o último resumo",
+            "mostre o resumo diário",
+            "repita o último resumo",
+            "quero ver o último resumo",
+            "mostre o resumo de ontem"
+          ]
+        },
+        {
+          "name": "MaioresHojeIntent",
+          "slots": [],
+          "samples": [
+            "mostre os maiores sismos de hoje",
+            "mostre os maiores do dia",
+            "quais foram os maiores terremotos de hoje",
+            "quero ver os maiores sismos do dia",
+            "mostre o resumo de hoje"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}
