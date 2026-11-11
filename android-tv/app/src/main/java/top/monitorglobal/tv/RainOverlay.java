@@ -12,7 +12,7 @@ import java.util.function.BooleanSupplier;
  * RainMonitor; only the old bottom-right card presentation is replaced.
  */
 final class RainOverlay {
- static final long DURATION=15000L;
+ static final long DURATION=12000L,WEATHER_DURATION=15000L;
  private final Context context;
  private final Banner banner;
  private View current;
@@ -42,17 +42,17 @@ final class RainOverlay {
  }
  boolean show(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,
               Runnable onCompleted,BooleanSupplier satelliteReady){
-  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,satelliteReady);
+  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,satelliteReady,true);
  }
  boolean showRain(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
-  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,null);
+  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,null,false);
  }
  private boolean showCard(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean effect,boolean demo,
-                          boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady){
+                          boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady,boolean hourlyCard){
   hide();
   long expiry=weather==null?(rain==null?0:rain.expiresAt):rain==null?weather.expiresAt:Math.min(weather.expiresAt,rain.expiresAt);
-  long max=DURATION;
-  long duration=demo?DURATION:Math.min(max,expiry-System.currentTimeMillis()-500);
+  long max=hourlyCard&&weather!=null?WEATHER_DURATION:DURATION;
+  long duration=demo?max:Math.min(max,expiry-System.currentTimeMillis()-500);
   if(duration<=0||!Settings.canDrawOverlays(context))return false;
   // Retain the existing optional rain atmosphere, but put its transparent
   // full-screen effect window BELOW the news strip, so no text is obscured.

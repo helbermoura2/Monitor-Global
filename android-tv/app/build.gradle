@@ -7,6 +7,7 @@ android {
   minSdk 28
   targetSdk 35
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
+  // Correção verificada: boletim integrado de 15 s; avisos de chuva preservados.
   // Atualização: meteorologia e satélite na tarja Breaking News, Brent com dólar real na mesma tarja.
   versionCode 10071
   versionName '1.0.71'

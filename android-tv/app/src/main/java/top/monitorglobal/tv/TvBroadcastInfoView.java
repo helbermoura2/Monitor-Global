@@ -73,7 +73,7 @@ final class TvBroadcastInfoView extends View {
   if(kind==WEATHER){int[] icons={WeatherCardView.conditionIcon(weather==null?"":weather.conditionKey),WeatherCardView.Icon.DROP,WeatherCardView.Icon.WIND,WeatherCardView.Icon.GUST};for(int i=0;i<4;i++){weatherIcons[i]=new WeatherCardView.Icon(c,icons[i]);weatherIcons[i].layout(0,0,24,24);}}
   baseTicker=ticker;
   if(kind==WEATHER)refreshBriefing();
-  setContentDescription((demo?"Teste fictício. ":"")+ticker);
+  setContentDescription((demo?"Teste fictício. ":"")+baseTicker+" · "+ticker);
   setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
  static TvBroadcastInfoView weather(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo){
@@ -92,7 +92,7 @@ final class TvBroadcastInfoView extends View {
   String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
   String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
   ticker="ANÁLISE · "+WeatherTicker.compose(ai,outlook);
-  setContentDescription(ticker);invalidate();
+  setContentDescription(baseTicker+" · "+ticker);invalidate();
  }
  private static String amount(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.2f",n);}
  private void fill(Canvas c,float x,float y,float w,float h,int color){p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawRect(x,y,x+w,y+h,p);}
