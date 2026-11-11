@@ -41,7 +41,7 @@ final class TvBroadcastInfoView extends View {
   super(c);this.kind=kind;this.rain=rain;this.weather=weather;this.brent=brent;this.dollar=dollar;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
-  this.mapSpace=kind==BRENT?0:Banner.insetDp(c);
+  this.mapSpace=kind==BRENT||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
   brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");
   data=Typeface.createFromAsset(c.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
@@ -53,7 +53,7 @@ final class TvBroadcastInfoView extends View {
    locator.originLongitude=RainForecast.LONGITUDE;locator.originLatitude=RainForecast.LATITUDE;
    StringBuilder t=new StringBuilder(demo?"SIMULAÇÃO FICTÍCIA · ":"");
    if(weather!=null)t.append(weather.condition).append(" · ").append(weather.temperature)
-      .append(" · ").append(weather.humidity).append(" · ").append(weather.wind);
+      .append(" · ").append(weather.humidity).append(" · ").append(weather.wind).append(" · Rajadas ").append(weather.gustValue);
    if(rain!=null)t.append(" · CHUVA: ").append(rain.title).append(" · ").append(rain.amountText);
    t.append(" · Previsão horária / minuto; dados sujeitos a revisão");
    ticker=t.toString();
@@ -72,6 +72,7 @@ final class TvBroadcastInfoView extends View {
   }
   if(kind==WEATHER){int[] icons={WeatherCardView.conditionIcon(weather==null?"":weather.conditionKey),WeatherCardView.Icon.DROP,WeatherCardView.Icon.WIND,WeatherCardView.Icon.GUST};for(int i=0;i<4;i++){weatherIcons[i]=new WeatherCardView.Icon(c,icons[i]);weatherIcons[i].layout(0,0,24,24);}}
   baseTicker=ticker;
+  if(kind==WEATHER)refreshBriefing();
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
   setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
