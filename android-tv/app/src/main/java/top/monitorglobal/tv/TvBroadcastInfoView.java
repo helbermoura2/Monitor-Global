@@ -91,9 +91,7 @@ final class TvBroadcastInfoView extends View {
   if(kind!=WEATHER)return;
   String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
   String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
-  ticker=(ai.isEmpty()?"": "RESUMO COM IA · "+ai.replace('\n',' '))+
-    (outlook.isEmpty()?"":(ai.isEmpty()?"":"     •     ")+"PROJEÇÃO 30 MIN · "+outlook.replace('\n',' '));
-  if(ticker.isEmpty())ticker=baseTicker;
+  ticker="ANÁLISE · "+WeatherTicker.compose(ai,outlook);
   setContentDescription(ticker);invalidate();
  }
  private static String amount(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.2f",n);}
@@ -128,7 +126,7 @@ final class TvBroadcastInfoView extends View {
   label(c,clockText,13,119,18,Color.WHITE,data,68);
   c.save();c.clipRect(98,100,719,126);
   p.setTypeface(data);p.setTextSize(12);float width=p.measureText(ticker)+70;
-  float offset=animate?(SystemClock.uptimeMillis()-started)/1000f*40%width:0;
+  float offset=animate?(SystemClock.uptimeMillis()-started)/1000f*(kind==WEATHER?84:55)%width:0;
   label(c,ticker,102-offset,119,12,foreground,data,Float.MAX_VALUE);
   label(c,ticker,102-offset+width,119,12,foreground,data,Float.MAX_VALUE);
   c.restore();

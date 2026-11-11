@@ -30,9 +30,9 @@ final class RainMonitor {
   Prefs.get(context).edit().putString("rainStatus",rain==null?"Liberdade: chuva por minuto indisponível ou vencida":"Liberdade: "+rain.title).apply();
   String previous=Prefs.get(context).getString("rainLastKey","");if(rain!=null){previous=RainNoticePolicy.previousAfterGap(previous,Prefs.get(context).getLong("rainLastValidAt",0),now);Prefs.get(context).edit().putLong("rainLastValidAt",now).apply();}
   boolean rainNotice=selected>0&&RainNoticePolicy.shouldShow(rain,previous,Prefs.get(context).getLong("rainLastNotice",0),now);
-  // Do not start a 12-second presentation with source data about to expire.
-  if(weather!=null&&weather.expiresAt-now<13000)weather=null;
-  RainForecast.Summary displayRain=rain!=null&&rain.expiresAt-now>=13000?rain:null;
+  // Do not start a 15-second presentation with source data about to expire.
+  if(weather!=null&&weather.expiresAt-now<16000)weather=null;
+  RainForecast.Summary displayRain=rain!=null&&rain.expiresAt-now>=16000?rain:null;
   if((enabled||manualWeather)&&weather==null&&!weatherBusy&&SystemClock.elapsedRealtime()>=nextWeatherRead)fetch(true);
   if((selected>0||wanted&&weather!=null)&&!busy&&SystemClock.elapsedRealtime()>=nextRead)fetch(false);
   if(briefing!=null){if(wanted&&weather!=null)briefing.prefetch("hourly",weather,rain);if(rainNotice&&displayRain!=null)briefing.prefetch("rain",weather,displayRain);}
