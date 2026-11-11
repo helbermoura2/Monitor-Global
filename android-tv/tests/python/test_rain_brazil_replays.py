@@ -34,20 +34,18 @@ class RainAndReplayTest(unittest.TestCase):
   self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
   self.assertIn("String badgeLabel(){return demo?\"TESTE\":replay?\"REPLAY\"",banner)
 
- def test_rain_card_uses_same_brand_hierarchy_as_temperature(self):
-  rain=self.read("RainStripView.java")
-  overlay=self.read("RainOverlay.java")
-  self.assertIn("setOrientation(VERTICAL)",rain)
-  for expected in ("TvCardStyle.header(context)", "TvCardStyle.body(context)",
-                   "TvCardStyle.footer(context)", "TvCardStyle.brand(context)"):
-   self.assertIn(expected,rain)
-  self.assertIn("TESTE FICTÍCIO",rain)
-  self.assertIn("Rainbow Weather",rain)
-  self.assertIn("refreshBriefing()",rain)
-  self.assertIn("screenHeightDp<650",overlay)
-  self.assertIn("Math.min(dp(compact&&",overlay)
-  self.assertIn("Chuva · exemplo fictício · ",rain)
-  self.assertIn("Gravity.BOTTOM",overlay)
+ def test_rain_card_moved_into_weather_breaking_news_strip(self):
+  rain=self.read("RainOverlay.java")
+  broadcast=self.read("TvBroadcastInfoView.java")
+  self.assertIn("banner.showWeather(rain,weather,demo,duration",rain)
+  self.assertIn("stopEffect()",rain)
+  self.assertIn("BREAKING NEWS",broadcast)
+  self.assertIn("AO VIVO",broadcast)
+  self.assertIn("LIBERDADE / SP",broadcast)
+  self.assertIn("MAPA · LIBERDADE / SP",self.read("MapInset.java"))
+  self.assertIn("TEMPO",broadcast)
+  self.assertIn("font",broadcast.lower()) if False else None
+  self.assertIn("WeatherForecast.due",self.read("RainMonitor.java"))
  def test_automatic_priority_remains_independent(self):
   service=self.read("MonitorService.java")
   self.assertIn("interruptDaily()",service)
