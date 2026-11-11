@@ -35,7 +35,8 @@ public class RainOverlayTest {
    TvBroadcastInfoView line=(TvBroadcastInfoView)((ViewGroup)host).getChildAt(0);
    assertEquals(TvBroadcastInfoView.WEATHER,(Integer)value(line,"kind"));
    assertTrue("regional map above newsroom strip",line.mapSpace>0);
-   assertNull("no fullscreen sprite layer can hide the ticker",value(rain,"previewRain"));
+   assertNotNull("existing rain effect remains under ticker",value(rain,"previewRain"));
+   assertNotNull("separate atmosphere window",value(rain,"effectHost"));
    host.measure(View.MeasureSpec.makeMeasureSpec(p.width,View.MeasureSpec.EXACTLY),
     View.MeasureSpec.makeMeasureSpec(p.height,View.MeasureSpec.EXACTLY));
    host.layout(0,0,p.width,p.height);
