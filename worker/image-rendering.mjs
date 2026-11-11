@@ -1,6 +1,10 @@
 import {queryImageTsunami} from '../image-tsunami-status.mjs';
 import {contextFrame,referencePlaces,drawMapReferences} from './alert-cartography.mjs';
 import '../js/quake-telegram-layout.js';
+import '../js/quake-telegram-glass.js';
+import {STATE_FLAGS} from './telegram-state-flags.mjs';
+import {captureBackground,attachBackground,restoreBackground} from './telegram-glass-background.mjs';
+import {paintGlass} from './telegram-glass-painter.mjs';
 // PNG primitives and seismic image rendering. Daily summaries receive prepared data.
 import {FONT_CHARS_TEXT, FONT_CHARS_HERO, FLAG_CELL_W, COUNTRY_KEYWORDS, FONT_ATLAS_MICRO_B64, FONT_ATLAS_SMALL_B64, FONT_ATLAS_HERO_B64, FONT_ATLAS_TITLE_B64, FONT_ATLAS_CAPTION_B64, FONT_ATLAS_PLACE_B64, FLAG_ATLAS_B64, FONT_MICRO_CELL_W, FONT_MICRO_CELL_H, FONT_SMALL_CELL_W, FONT_SMALL_CELL_H, FONT_HERO_CELL_W, FONT_HERO_CELL_H, FONT_TITLE_CELL_H, FONT_TITLE_GLYPHS, FONT_CAPTION_CELL_H, FONT_CAPTION_GLYPHS, FONT_PLACE_CELL_W, FONT_PLACE_CELL_H, FLAG_CELL_H, FLAG_MAP} from "./image-assets.mjs";
 import {imageMetersPerPixel, validImageShaking, imageEpicenterMmi, queryImageShaking, overlayImageIntensity} from "../seismic-image-data.mjs";
@@ -814,7 +818,7 @@ async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
     ev.imageTsunami=ev.imageTsunami||await queryImageTsunami(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const key=await renderIdentity('telegram-v18-compact-large-magnitude',ev);
+    const key=await renderIdentity('telegram-glass-v19',ev);
     return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
 }
 function sanitizeHdText(text){
@@ -828,6 +832,7 @@ function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
     const textWidth=(text,size,bold,brand=false)=>{const font=fontFor(size,bold,brand);return textFontWidthProp(font,sanitizeHdText(text),0)*size/font.size;};
     const nativeRect=(x,y,w,h,c)=>fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy),Math.round(w*sx),Math.round(h*sy),...rgb(c));
     const painter={
+        glass:(x,y,w,h,curve)=>paintGlass(rgba,W,H,x,y,w,h,sx,sy,curve),
         gradient:(x,y,w,h,from,to)=>{const a=rgb(from),b=rgb(to),rows=Math.round(h*sy);for(let row=0;row<rows;row++)fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy)+row,Math.round(w*sx),1,...a.map((v,i)=>Math.round(v+(b[i]-v)*row/rows)));},
         roundRect:(x,y,w,h,c)=>{x*=sx;y*=sy;w*=sx;h*=sy;const r=8*sy,color=rgb(c);fillRect(rgba,W,Math.round(x+r),Math.round(y),Math.round(w-2*r),Math.round(h),...color);fillRect(rgba,W,Math.round(x),Math.round(y+r),Math.round(w),Math.round(h-2*r),...color);for(const xx of [x+r,x+w-r])for(const yy of [y+r,y+h-r])fillCircle(rgba,W,H,xx,yy,r,...color,255);},
         rect:nativeRect,
@@ -853,7 +858,9 @@ function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
     painter.brandText=(text,x,y,size,c)=>painter.text(text,x,y,size,c,true,true);
     return painter;
 }
-export async function patchAlertTsunami(png,status,version=globalThis.QuakeTelegramLayout.version){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());(version===globalThis.QuakeTelegramLayout.version?globalThis.QuakeTelegramLayout.drawTsunami:['editorial-v16',globalThis.QuakeCardLayout.version].includes(version)?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami)(p,status);return rgbaToPng(image.rgba,image.width,image.height);}
+export async function patchAlertTsunami(png,status,version=globalThis.QuakeTelegramLayout.version){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const background=version==='telegram-glass-v19'?await restoreBackground(png,image):null;const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());(version==='telegram-v18'?globalThis.QuakeTelegramLegacyLayout.drawTsunami:version===globalThis.QuakeTelegramLayout.version?globalThis.QuakeTelegramLayout.drawTsunami:['editorial-v16',globalThis.QuakeCardLayout.version].includes(version)?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami)(p,status);const result=await rgbaToPng(image.rgba,image.width,image.height);return background?attachBackground(result,background):result;}
+let telegramFlagAtlases;
+function getTelegramFlagAtlases(){return telegramFlagAtlases||(telegramFlagAtlases=Promise.all([SUMMARY_FLAGS,STATE_FLAGS].map(async data=>({data,image:await decodePng(base64ToBytes(data.b64))}))).then(([country,state])=>({country,state})));}
 async function renderAlertPixels(ev) {
     const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
     const telegramLayout=globalThis.QuakeTelegramLayout;
@@ -881,16 +888,22 @@ async function renderAlertPixels(ev) {
     rgba.copyWithin(Math.round(telegramLayout.MAP_Y*sy)*W*4,0,frame.height*W*4);
     const painter=alertPainter(rgba,W,H,fonts),C=telegramLayout.CONTEXT;
     if(contextImg){painter.roundRect(C.x,C.y,C.width,C.height,'#071724');painter.text('CONTEXTO REGIONAL',C.x+8,C.y+9,13,'#38bdf8',true);drawImageCover(rgba,W,H,contextImg,C.imageX*sx,C.imageY*sy,C.imageWidth*sx,C.imageHeight*sy);const px=(C.imageX+(Number(ev.lon)-cf.minLon)/(cf.maxLon-cf.minLon)*C.imageWidth)*sx,py=(C.imageY+(cf.maxLat-Number(ev.lat))/(cf.maxLat-cf.minLat)*C.imageHeight)*sy;fillCircle(rgba,W,H,px,py,8,255,255,255,255);fillCircle(rgba,W,H,px,py,5,225,55,45,255);}
+    const brazil=telegramIsBrazil(Number(ev.lat),Number(ev.lon));
+    const country=brazil?'BR':ev.countryCode||guessCountryCode(ev.originalPlace)||guessCountryCode(ev.place)||guessCountryCode(places[0]?.country);
+    const state=brazil?(ev.epicenterMunicipality?.uf||String(ev.place||'').match(/\/([A-Z]{2})\b/)?.[1]):null;
+    const atlas=await getTelegramFlagAtlases();
+    painter.flag=(kind,code,x,y,w,h)=>{const a=atlas[kind],entry=a.data.map[code];if(!entry)return;const [left,fw,fh]=entry,part=new Uint8Array(fw*fh*4);for(let row=0;row<fh;row++)part.set(a.image.rgba.subarray((row*a.image.width+left)*4,(row*a.image.width+left+fw)*4),row*fw*4);const scale=Math.min(w*sx/fw,h*sy/fh);drawImageCover(rgba,W,H,{rgba:part,width:fw,height:fh},x*sx+(w*sx-fw*scale)/2,y*sy+(h*sy-fh*scale)/2,fw*scale,fh*scale);};
     drawMapReferences(painter,frame,ev,places,telegramLayout);
     const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
-    telegramLayout.draw(painter,{...ev,brazil:telegramIsBrazil(Number(ev.lat),Number(ev.lon)),imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+telegramLayout.MAP_Y})),
+    const cleanBackground=captureBackground(rgba,W);
+    telegramLayout.draw(painter,{...ev,imageCountryCode:country,imageStateCode:state,brazil:telegramIsBrazil(Number(ev.lat),Number(ev.lon)),imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+telegramLayout.MAP_Y})),
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
         when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',
         sourceLabel:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':ev.reviewStatus==='unknown'?'revisão não informada':'automático'),
         sourceLine:(ev.source||'USGS')+' · '+(ev.reviewed?'revisado':ev.reviewStatus==='unknown'?'revisão não informada':'automático')+' · '+formatCoordCard(ev.lat,ev.lon),
         mmi:imageEpicenterMmi(ev,mmi.nivel),energy:calcularEnergiaCard(Number(ev.mag)),exposure:ev.imageExposure
     });
-    return rgbaToPng(rgba,W,H);
+    return attachBackground(await rgbaToPng(rgba,W,H),cleanBackground);
 }
 
 
@@ -1076,3 +1089,4 @@ export async function bulletinSurface(){
   return true;
  }};
 }
+

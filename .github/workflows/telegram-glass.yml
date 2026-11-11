@@ -1,0 +1,36 @@
+name: Telegram panoramic glass
+on:
+  push:
+    branches: [feat/telegram-panoramic-glass]
+  pull_request:
+    paths: ['js/quake-telegram-glass.js', 'worker/telegram-glass-painter.mjs', 'tests/unit/telegram-glass.test.mjs']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/unit/telegram-glass.test.mjs tests/unit/tsunami-image-patch.test.mjs tests/unit/worker-image-parity.test.mjs
+      - run: npm run worker:test
+      - run: npm run worker:bundle
+      - name: Real map previews without Telegram delivery
+        env:
+          TG_GLASS_LIVE: '1'
+        run: node --test tests/unit/telegram-glass.test.mjs
+      - name: Preview proof
+        if: always()
+        run: |
+          python -m pip install Pillow
+          python - <<'PY'
+          from PIL import Image
+          import pathlib,io,base64
+          for p in pathlib.Path('/tmp/tg-glass').glob('*.png'):
+              im=Image.open(p);im.thumbnail((540,960));out=io.BytesIO();im.convert('RGB').save(out,format='JPEG',quality=85)
+              print('TG_GLASS_'+p.stem+' '+base64.b64encode(out.getvalue()).decode())
+          PY

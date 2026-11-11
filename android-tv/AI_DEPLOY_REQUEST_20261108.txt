@@ -22,3 +22,10 @@ preservando o primeiro post, a deduplicação normal, os secrets e bindings.
 Após validação de CI, implantar o Worker atual em produção. O Durable Object
 impedirá posts duplicados, inclusive quando houver falha ambígua do Telegram.
 Este registro não autoriza envios periódicos extras nem repetições de outros dias.
+
+11/11/2026 — o proprietário aprovou a terceira proposta de vidro panorâmico para
+os cartões sísmicos do Telegram e pediu implementação, sem a régua de quilômetros.
+Implantar telegram-glass-v19 após validação: bandeira nacional e UF brasileira,
+vidro fosco e aviso de tsunami somente quando vigente e associado. Preservar os
+pixels do mapa nas atualizações de tsunami, os bindings, cron e deduplicação.
+Não enviar amostras ao Telegram nem republicar o histórico por esta mudança.

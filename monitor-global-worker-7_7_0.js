@@ -1037,7 +1037,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = 'telegram-v18';
+    next.cardImageVersion = 'telegram-glass-v19';
     next.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
@@ -1443,7 +1443,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = 'telegram-v18';
+            reservation.cardImageVersion = 'telegram-glass-v19';
             reservation.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
@@ -1505,9 +1505,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else continue;
         }
-        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== 'telegram-v18') {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== 'telegram-glass-v19') {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'telegram-v18'; root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = 'telegram-glass-v19'; root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
     }
@@ -2034,7 +2034,7 @@ async function handleWorkerRequest(request,env,ctx){
                 tvTargetPolicy: TV_TARGET_POLICY,
                 tvRainPolicy: TV_RAIN_POLICY,
                 tvWeatherPolicy: TV_WEATHER_POLICY,
-                telegramImageStatus: 'telegram-v18',
+                telegramImageStatus: 'telegram-glass-v19',
                 telegramTsunamiCard: 'tsunami-coastal-v1',
                 tvAlerts: 'tv-alerts-v1',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},
@@ -2217,3 +2217,4 @@ export default {
         }));
     }
 };
+
