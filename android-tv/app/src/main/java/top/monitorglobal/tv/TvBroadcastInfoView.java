@@ -27,7 +27,7 @@ final class TvBroadcastInfoView extends View {
  private MapInset mapInset;
  private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private float mapReveal=1;
- private final String ticker;
+ private String ticker;private final String baseTicker;
  private final Path outline=new Path();
  private boolean running;
  private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
@@ -67,6 +67,7 @@ final class TvBroadcastInfoView extends View {
       " · Infravermelho não mede intensidade da chuva":"SATÉLITE GOES-EAST · "+this.satelliteStatus);
    }
   }
+  baseTicker=ticker;
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
   setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
@@ -81,6 +82,14 @@ final class TvBroadcastInfoView extends View {
  }
  void startPresentation(long when,boolean animated){started=when;invalidate();}
  void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
+ void refreshBriefing(){
+  if(kind!=WEATHER)return;
+  String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
+  String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
+  ticker=baseTicker+(outlook.isEmpty()?"":"     •     PROJEÇÃO 30 MIN · "+outlook.replace('\n',' '))+
+    (ai.isEmpty()?"":"     •     RESUMO COM IA · "+ai.replace('\n',' '));
+  invalidate();
+ }
  private static String amount(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.2f",n);}
  private void fill(Canvas c,float x,float y,float w,float h,int color){p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawRect(x,y,x+w,y+h,p);}
  private void rounded(Canvas c,float x,float y,float w,float h,int color,float radius){
