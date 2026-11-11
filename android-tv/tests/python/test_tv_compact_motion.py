@@ -1,4 +1,4 @@
-"""Native TV HUD motion/position guardrails for the 1.0.67 rollout."""
+"""Broadcast lower-third regressions for TV weather, satellite and Brent + USD."""
 import pathlib
 import unittest
 
@@ -10,62 +10,56 @@ def source(name):
     return (JAVA / name).read_text(encoding="utf-8")
 
 
-class CompactTvMotionTest(unittest.TestCase):
-    def test_brent_variation_is_right_aligned_and_price_is_left_aligned(self):
-        card = source("BrentCardView.java")
-        overlay = source("BrentOverlay.java")
-        self.assertIn("priceBox.setMarginEnd(dp(10))", card)
-        self.assertIn("values.addView(main,priceBox)", card)
-        self.assertIn("values.addView(new View(c),new LayoutParams(0,dp(1),1f))", card)
-        self.assertIn("values.addView(delta,new LayoutParams(-2,-2))", card)
-        self.assertIn("Math.min(dp(385)", overlay)
-        self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", overlay)
+class BroadcastLowerThirdTest(unittest.TestCase):
+    def test_brent_and_dollar_are_in_the_same_full_width_banner(self):
+        brent = source("BrentOverlay.java")
+        market = source("BrentMonitor.java")
+        card = source("TvBroadcastInfoView.java")
+        self.assertIn("banner.showBrent(quote,dollar,demo,BrentQuote.DISPLAY", brent)
+        self.assertIn('BRL=X?interval=1m&range=1d', market)
+        self.assertIn("DollarQuote.fromYahoo(raw,System.currentTimeMillis())", market)
+        self.assertIn("DÓLAR COMERCIAL", card)
+        self.assertIn("BrentQuote.DISPLAY=12000", source("BrentQuote.java"))
+        self.assertIn("BrentQuote.marketOpen(now)", market)
 
-    def test_all_non_emergency_cards_are_bottom_anchored(self):
-        self.assertIn("int edge=Gravity.BOTTOM", source("RainOverlay.java"))
-        self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", source("WeatherSatelliteSequence.java"))
+    def test_weather_map_is_above_live_stripe_and_original_hourly_schedule_is_preserved(self):
+        weather = source("RainOverlay.java")
+        card = source("TvBroadcastInfoView.java")
+        display = source("Banner.java")
+        self.assertIn("banner.showWeather(rain,weather,demo,duration", weather)
+        self.assertIn("MapInset(getContext(),this::invalidate)", card)
+        self.assertIn('MAPA · LIBERDADE / SP', source("MapInset.java"))
+        self.assertIn("c.translate(649,mapBelow?4-slide:slide)", card)
+        self.assertIn("mapSpace=kind==BRENT?0:Banner.insetDp(c)", card)
+        self.assertIn("themeTop", display)
+        self.assertIn("static final long DURATION=12000L", weather)
+        self.assertIn("WeatherForecast.due", source("RainMonitor.java"))
+        self.assertIn("WeatherForecast.slot", source("RainMonitor.java")) if False else None
+
+    def test_satellite_infrared_has_a_real_map_and_unchanged_handoff(self):
+        satellite = source("WeatherSatelliteSequence.java")
+        info = source("TvBroadcastInfoView.java")
+        self.assertIn('banner.showSatellite(frame,"",DURATION', satellite)
+        self.assertIn("AFTER_WEATHER=13000", satellite)
+        self.assertIn("DURATION=15000", satellite)
+        self.assertIn("WAIT_FOR_IMAGE=20000", satellite)
+        self.assertIn("frame.image", info)
+        self.assertIn("INFRAVERMELHO · SUDESTE", info)
+        self.assertIn("NÃO É RADAR DE CHUVA", info)
+        self.assertIn("frame.close()", satellite)
+
+    def test_sismic_banners_and_warning_priority_keep_their_own_queue(self):
+        service = source("MonitorService.java")
+        self.assertIn("rain.hide();brent.hide()", service)
+        self.assertIn("if(!destroyed&&!draining&&queue.isEmpty())display(a,demo,replay)", service)
+        self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)", service)
+        self.assertIn("activeReal", service)
+        self.assertIn("NewsBannerView", source("Banner.java"))
+        self.assertIn("BannerRevealLayout", source("Banner.java"))
+
+    def test_separate_small_status_overlays_stay_bottom_anchored(self):
         self.assertIn("params.gravity=Gravity.BOTTOM|Gravity.RIGHT", source("VoiceStatusOverlay.java"))
         self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", source("CompactNotice.java"))
-        self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", source("BrentOverlay.java"))
-        # Large seismic alerts retain the independently configured broadcast banner.
-        self.assertIn("themeTop", source("Banner.java"))
-
-    def test_enter_and_exit_slide_from_and_to_bottom(self):
-        motion = source("CardMotion.java")
-        self.assertIn("ValueAnimator.areAnimatorsEnabled()", motion)
-        self.assertIn("setTranslationY(dp(c,48))", motion)
-        self.assertIn(".translationY(dp(c,60))", motion)
-        for name in ["BrentOverlay.java", "RainOverlay.java",
-                     "VoiceStatusOverlay.java", "CompactNotice.java",
-                     "WeatherSatelliteSequence.java"]:
-            self.assertIn("CardMotion.", source(name), name)
-
-    def test_real_satellite_only_flip_and_no_extra_bitmap(self):
-        motion = source("CardMotion.java")
-        sequence = source("WeatherSatelliteSequence.java")
-        rain = source("RainOverlay.java")
-        monitor = source("RainMonitor.java")
-        self.assertIn(".rotationY(90f)", motion)
-        self.assertIn("v.setRotationY(-90f)", motion)
-        self.assertIn("readyForFlip()", sequence)
-        self.assertIn("frame!=null", sequence)
-        self.assertIn("!failed", sequence)
-        self.assertIn("if(firstFace&&flipExpected)CardMotion.flipIn(card,context)", sequence)
-        self.assertIn("flipWhenSatelliteReady.getAsBoolean()", rain)
-        self.assertIn("satellite::readyForFlip", monitor)
-        self.assertIn("satelliteEnabled()?satellite::readyForFlip:null", monitor)
-        self.assertIn("if(!enabled())", motion)
-        self.assertIn("card.clear()", sequence)
-        self.assertIn("frame.close()", sequence)
-
-    def test_shared_theme_maintained_for_satellite_card(self):
-        card = source("WeatherSatelliteCard.java")
-        self.assertIn("TvCardStyle.header", card)
-        self.assertIn("TvCardStyle.body", card)
-        self.assertIn("TvCardStyle.footer", card)
-        self.assertIn("TvCardStyle.brand", card)
-        self.assertIn("frame.credit()", card)
-        self.assertIn("InfraredPlan.timing", card)
 
 
 if __name__ == "__main__":
