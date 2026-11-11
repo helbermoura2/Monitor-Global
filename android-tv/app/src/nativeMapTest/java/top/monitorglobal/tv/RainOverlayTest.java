@@ -33,7 +33,7 @@ public class RainOverlayTest {
    assertTrue((p.flags&WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)!=0);
    assertTrue("same configured newsroom width",p.width>c.getResources().getDisplayMetrics().widthPixels*.8);
    TvBroadcastInfoView line=(TvBroadcastInfoView)((ViewGroup)host).getChildAt(0);
-   assertEquals(TvBroadcastInfoView.WEATHER,(Integer)value(line,"kind"));
+   assertEquals(TvBroadcastInfoView.WEATHER,((Integer)value(line,"kind")).intValue());
    assertTrue("regional map above newsroom strip",line.mapSpace>0);
    assertNotNull("existing rain effect remains under ticker",value(rain,"previewRain"));
    assertNotNull("separate atmosphere window",value(rain,"effectHost"));
