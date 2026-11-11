@@ -43,7 +43,7 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("AFTER_WEATHER=13000", satellite)
         self.assertIn("DURATION=15000", satellite)
         self.assertIn("WAIT_FOR_IMAGE=20000", satellite)
-        self.assertIn("frame.image", info)
+        self.assertIn("satellite.image", info)
         self.assertIn("INFRAVERMELHO · SUDESTE", info)
         self.assertIn("NÃO É RADAR DE CHUVA", info)
         self.assertIn("frame.close()", satellite)
