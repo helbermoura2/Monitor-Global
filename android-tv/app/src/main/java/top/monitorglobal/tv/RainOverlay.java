@@ -38,20 +38,20 @@ final class RainOverlay {
   return show(rain,effect,demo,weather,stormPreview,null);
  }
  boolean show(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
-  return show(rain,effect,demo,weather,stormPreview,onCompleted,null);
+  return show(rain,effect,demo,weather,stormPreview,onCompleted,null,false);
  }
  boolean show(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,
               Runnable onCompleted,BooleanSupplier satelliteReady){
-  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,satelliteReady);
+  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,satelliteReady,true);
  }
  boolean showRain(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
   return showCard(rain,weather,effect,demo,stormPreview,onCompleted,null);
  }
  private boolean showCard(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean effect,boolean demo,
-                          boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady){
+                          boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady,boolean hourlyCard){
   hide();
   long expiry=weather==null?(rain==null?0:rain.expiresAt):rain==null?weather.expiresAt:Math.min(weather.expiresAt,rain.expiresAt);
-  long max=weather!=null?WEATHER_DURATION:DURATION;
+  long max=hourlyCard&&weather!=null?WEATHER_DURATION:DURATION;
   long duration=demo?max:Math.min(max,expiry-System.currentTimeMillis()-500);
   if(duration<=0||!Settings.canDrawOverlays(context))return false;
   // Retain the existing optional rain atmosphere, but put its transparent
