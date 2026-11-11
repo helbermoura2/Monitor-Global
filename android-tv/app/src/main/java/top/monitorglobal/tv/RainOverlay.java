@@ -38,14 +38,14 @@ final class RainOverlay {
   return show(rain,effect,demo,weather,stormPreview,null);
  }
  boolean show(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
-  return show(rain,effect,demo,weather,stormPreview,onCompleted,null,false);
+  return show(rain,effect,demo,weather,stormPreview,onCompleted,null);
  }
  boolean show(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,
               Runnable onCompleted,BooleanSupplier satelliteReady){
   return showCard(rain,weather,effect,demo,stormPreview,onCompleted,satelliteReady,true);
  }
  boolean showRain(RainForecast.Summary rain,boolean effect,boolean demo,WeatherForecast.Summary weather,boolean stormPreview,Runnable onCompleted){
-  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,null);
+  return showCard(rain,weather,effect,demo,stormPreview,onCompleted,null,false);
  }
  private boolean showCard(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean effect,boolean demo,
                           boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady,boolean hourlyCard){
