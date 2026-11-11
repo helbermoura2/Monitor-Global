@@ -6,6 +6,9 @@ test('Alexa skill maps only known Portuguese intents to TV cards',()=>{
  assert.equal(commandForIntent('BrentIntent'),'brent');
  assert.equal(commandForIntent('TempoIntent'),'weather');
  assert.equal(commandForIntent('BrasilIntent'),'brazil');
+ assert.equal(commandForIntent('UltimoSismoIntent'),'recent-quake');
+ assert.equal(commandForIntent('UltimoResumoIntent'),'last-summary');
+ assert.equal(commandForIntent('MaioresHojeIntent'),'today');
  assert.equal(commandForIntent('UnlockDoorIntent'),null);
  assert.equal(commandForIntent('__proto__'),null);
 });
@@ -20,7 +23,7 @@ test('all skill intents have nonempty samples and Brazilian locale invocation na
  const model=JSON.parse(fs.readFileSync('alexa-skill/skill-package/interactionModels/custom/pt-BR.json','utf8'));
  assert.equal(model.interactionModel.languageModel.invocationName,'monitor global');
  const intents=model.interactionModel.languageModel.intents;
- for(const name of ['LinkIntent','BrentIntent','TempoIntent','BrasilIntent']){
+ for(const name of ['LinkIntent','BrentIntent','TempoIntent','BrasilIntent','UltimoSismoIntent','UltimoResumoIntent','MaioresHojeIntent']){
   const intent=intents.find(i=>i.name===name);
   assert(intent&&intent.samples.length>=3);
  }

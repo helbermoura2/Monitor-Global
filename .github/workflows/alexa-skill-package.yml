@@ -6,6 +6,9 @@ on:
       - 'worker/alexa-voice-bridge.mjs'
       - 'tests/unit/alexa-*.test.*'
       - '.github/workflows/alexa-skill-package.yml'
+  push:
+    branches: [main]
+    paths: ['alexa-skill/**', '.github/workflows/alexa-skill-package.yml']
   workflow_dispatch:
 permissions:
   contents: read

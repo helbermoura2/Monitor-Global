@@ -12,7 +12,7 @@ const adapter=new DynamoDbPersistenceAdapter({
  createTable:false,
  dynamoDBClient:new AWS.DynamoDB({apiVersion:'latest',region:process.env.DYNAMODB_PERSISTENCE_REGION})
 });
-const response=(input,spoken,keep=false)=>{const b=input.responseBuilder.speak(spoken);if(keep)b.reprompt('Pode dizer Brent, temperatura ou sismo no Brasil.');return b.withShouldEndSession(!keep).getResponse();};
+const response=(input,spoken,keep=false)=>{const b=input.responseBuilder.speak(spoken);if(keep)b.reprompt('Pode dizer Brent, temperatura, último sismo, sismo no Brasil, último resumo ou maiores do dia.');return b.withShouldEndSession(!keep).getResponse();};
 const isIntent=(h,name)=>Alexa.getRequestType(h.requestEnvelope)==='IntentRequest'&&Alexa.getIntentName(h.requestEnvelope)===name;
 // Alexa-hosted Node.js can still use Node 16. Do not rely on global fetch().
 function callBridge(path,body,token=''){
@@ -45,7 +45,7 @@ const Launch={
  canHandle:h=>Alexa.getRequestType(h.requestEnvelope)==='LaunchRequest',
  async handle(h){
   const p=await h.attributesManager.getPersistentAttributes()||{};
-  return response(h,p.skillToken?'Monitor Global pronto. Diga mostrar Brent, temperatura ou último sismo no Brasil.':'Bem-vindo ao Monitor Global. Na televisão, abra o aplicativo e escolha Vincular Alexa. Depois diga vincular código e os seis números mostrados na TV.',true);
+  return response(h,p.skillToken?'Monitor Global pronto. Diga mostrar Brent, temperatura, último sismo, sismo no Brasil, último resumo ou maiores do dia.':'Bem-vindo ao Monitor Global. Na televisão, abra o aplicativo e escolha Vincular Alexa. Depois diga vincular código e os seis números mostrados na TV.',true);
  }
 };
 const Link={
@@ -64,7 +64,7 @@ const Link={
    const persistent=await h.attributesManager.getPersistentAttributes()||{};
    h.attributesManager.setPersistentAttributes({...persistent,skillToken:result.data.skillToken});
    await h.attributesManager.savePersistentAttributes();
-   return response(h,'Pronto, o Monitor Global está vinculado à sua Alexa! Você já pode pedir para mostrar o Brent, o tempo ou os sismos brasileiros.');
+   return response(h,'Pronto, o Monitor Global está vinculado à sua Alexa! Você já pode pedir Brent, temperatura, último sismo, sismo no Brasil, último resumo ou maiores do dia.');
   }catch{return response(h,'Não consegui concluir o vínculo com a televisão. Tente novamente.',true);}
  }
 };
@@ -78,7 +78,7 @@ const Cards={
    const result=await callBridge('/command',{command},persistent.skillToken);
    if(result.ok&&result.data.accepted){
     const label=command==='brent'?'Brent':command==='weather'?'temperatura':command==='recent-quake'?'último sismo':command==='last-summary'?'último resumo diário':command==='today'?'maiores sismos de hoje':'sismos no Brasil';
-    return response(h,'Pedido enviado. O Monitor Global vai consultar e mostrar o card de '+label+' na televisão.');
+    return response(h,'Pedido enviado para a TV consultar '+label+' na televisão.');
    }
    if(result.status===401)return response(h,'A ligação com a TV expirou. Vincule o Monitor Global novamente usando um novo código.');
    if(result.status===409)return response(h,'A televisão não está conectada ao Monitor Global agora. Ligue o monitoramento no aplicativo da TV e tente novamente.');
@@ -89,7 +89,7 @@ const Cards={
 };
 const Help={
  canHandle:h=>isIntent(h,'AMAZON.HelpIntent')||isIntent(h,'AMAZON.FallbackIntent'),
- handle:h=>response(h,'Posso enviar os cards do Brent, temperatura de São Paulo ou sismos no Brasil à sua TV. Para vincular, diga vincular código e os seis números mostrados no aplicativo.',true)
+ handle:h=>response(h,'Posso pedir à TV Brent, temperatura, último sismo, sismo no Brasil, último resumo ou maiores do dia. Para vincular, diga vincular código e os seis números mostrados no aplicativo.',true)
 };
 const Stop={
  canHandle:h=>isIntent(h,'AMAZON.StopIntent')||isIntent(h,'AMAZON.CancelIntent'),
