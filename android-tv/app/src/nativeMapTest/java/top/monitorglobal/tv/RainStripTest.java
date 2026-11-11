@@ -61,7 +61,7 @@ public class RainStripTest {
    assertTrue("Geographic map above AO VIVO",((TvBroadcastInfoView)line).mapSpace>0);
    ((TvBroadcastInfoView)line).startPresentation(android.os.SystemClock.uptimeMillis()-500,false);
    String content=String.valueOf(line.getContentDescription());
-   assertTrue(content.contains("Chuva em ~8 min"));
+   assertTrue(content.contains("Chuva prevista em ~8 min"));
    assertTrue(content.contains("1,8 mm"));
    assertTrue(content.contains("SIMULAÇÃO FICTÍCIA"));
    assertFalse(content.contains("18°C"));
