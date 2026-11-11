@@ -15,7 +15,7 @@
   glass(p,24,28,752,84);for(const r of [21,14,7])p.arc(57,69,r,1.3,0,345,CYAN);p.dot(57,69,3,CYAN);text(p,'MONITOR GLOBAL',94,52,28,WHITE,true);
   p.flag?.('country',ev.imageCountryCode,584,46,78,48);if(ev.brazil)p.flag?.('state',ev.imageStateCode,682,46,78,48);
   const place=globalThis.EventPortuguese?.place(ev.place)||ev.place||'Local não informado';
-  p.rect(30,143,4,76,CYAN);lines(p,place,50,140,700,32,3);
+  glass(p,24,128,752,122);p.rect(30,143,4,76,CYAN);lines(p,place,50,140,700,32,3);
   glass(p,32,266,205,87);text(p,'M'+mag,52,276,62,CYAN,true);
   if(ev.test)text(p,'SIMULAÇÃO',260,290,18,CYAN,true);
   p.dot(400,ANCHOR_Y,9,WHITE);p.dot(400,ANCHOR_Y,6,CYAN);for(const r of [28,52,78])p.arc(400,ANCHOR_Y,r,1,0,360,CYAN);
@@ -31,7 +31,7 @@
   text(p,ev.reviewed?'Revisado':ev.reviewStatus==='unknown'?'Revisão não informada':'Automático',50,1264,19,WHITE,true);
   const official=ev.shaking?.status==='available';text(p,'Intensidade '+(official?'oficial':'estimada')+' '+(ev.mmi||'indisponível'),310,1260,20,WHITE,true);
   text(p,'Estimativa não confirma danos.',310,1294,15,MUTED);
-  text(p,'monitorglobal.top',44,1392,19,WHITE,true);text(p,'Telegram · @monitor_global',441,1392,19,CYAN,true);
+  glass(p,24,1380,752,48);text(p,'monitorglobal.top',44,1392,19,WHITE,true);text(p,'Telegram · @monitor_global',441,1392,19,CYAN,true);
  }
  globalThis.QuakeTelegramLegacyLayout=legacy;
  globalThis.QuakeTelegramLayout={version:'telegram-glass-v19',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y:930,TSUNAMI_HEIGHT:146,showScale:false,telegramFrame,draw,drawTsunami,active};
