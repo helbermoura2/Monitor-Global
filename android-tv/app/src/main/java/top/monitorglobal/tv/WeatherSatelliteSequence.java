@@ -46,6 +46,7 @@ final class WeatherSatelliteSequence implements AutoCloseable {
   }
  }
  private void closeReader(){if(reader!=null){reader.close();reader=null;}}
+ WeatherSatelliteClient.Frame currentFrame(){return frame!=null&&System.currentTimeMillis()-frame.at<=InfraredPlan.MAX_AGE?frame:null;}
  boolean pending(){return pending;}
  /** Called at weather-card exit: only a genuine, current image can trigger the flip. */
  boolean readyForFlip(){boolean ready=armed&&!failed&&frame!=null&&System.currentTimeMillis()-frame.at<=InfraredPlan.MAX_AGE;

@@ -49,7 +49,10 @@ jobs:
           PY
       - name: Build and inspect official version
         working-directory: android-tv
-        run: ./gradlew --no-daemon :app:assembleRelease :app:lintRelease
+        run: ./gradlew --no-daemon :app:assembleRelease :app:lintRelease :app:testReleaseUnitTest
+      - name: Validate TV graphics and overlay lifecycle before publication
+        working-directory: android-tv
+        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testReleaseUnitTest
       - name: Sign and verify publisher identity
         run: |
           python android-tv/tools/release.py --unsigned android-tv/app/build/outputs/apk/release/app-release-unsigned.apk --output "$RUNNER_TEMP/tv-release-public" --keystore "$RUNNER_TEMP/tv-release.p12" --password-file "$RUNNER_TEMP/tv-release-password.txt" --build-tools "$ANDROID_HOME/build-tools/35.0.0"

@@ -44,6 +44,7 @@ public class TvBroadcastInfoViewTest {
   DollarQuote dollar=new DollarQuote(5.32,.02,.38,System.currentTimeMillis()-240000,"Yahoo Finance");
   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,brent,dollar,false);
   assertEquals(0,view.mapSpace);
+  assertTrue(String.valueOf(view.getContentDescription()).contains("+0,38%"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
@@ -53,6 +54,14 @@ public class TvBroadcastInfoViewTest {
   assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR COMERCIAL USD/BRL: indisponível"));
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
+ }
+ @Test public void weatherUsesSatellitePixelsInItsOwnInset()throws Exception{
+  WeatherForecast.Summary w=new WeatherForecast.Summary("22°C","Nublado","Vento 12 km/h","Umidade 81%","Modelo horário",System.currentTimeMillis()+600000,false,"22°C","23°C","81%","12 km/h","19 km/h","Cloudy");
+  Bitmap image=Bitmap.createBitmap(512,300,Bitmap.Config.ARGB_8888);image.eraseColor(Color.MAGENTA);
+  WeatherSatelliteClient.Frame frame=new WeatherSatelliteClient.Frame(image,null,System.currentTimeMillis()-300000,InfraredPlan.SOUTHEAST,java.util.Collections.singletonList(System.currentTimeMillis()-300000));
+  TvBroadcastInfoView view=TvBroadcastInfoView.weather(c,null,w,false);view.satelliteSource(()->frame);
+  Bitmap result=render(view,"weather-satellite");
+  try{assertEquals(Color.MAGENTA,result.getPixel(800,80));}finally{result.recycle();frame.close();}
  }
  @Test public void infraredImageIsMapInsetNotAnotherCornerCard()throws Exception{
   Bitmap frame=Bitmap.createBitmap(512,300,Bitmap.Config.ARGB_8888);
