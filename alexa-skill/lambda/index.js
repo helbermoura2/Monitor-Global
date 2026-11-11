@@ -77,7 +77,7 @@ const Cards={
   try{
    const result=await callBridge('/command',{command},persistent.skillToken);
    if(result.ok&&result.data.accepted){
-    const label=command==='brent'?'Brent':command==='weather'?'temperatura':'sismos no Brasil';
+    const label=command==='brent'?'Brent':command==='weather'?'temperatura':command==='recent-quake'?'último sismo':command==='last-summary'?'último resumo diário':command==='today'?'maiores sismos de hoje':'sismos no Brasil';
     return response(h,'Pedido enviado. O Monitor Global vai consultar e mostrar o card de '+label+' na televisão.');
    }
    if(result.status===401)return response(h,'A ligação com a TV expirou. Vincule o Monitor Global novamente usando um novo código.');

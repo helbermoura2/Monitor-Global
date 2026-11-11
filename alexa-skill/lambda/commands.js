@@ -2,7 +2,10 @@
 const INTENT_TO_COMMAND=Object.freeze({
  BrentIntent:'brent',
  TempoIntent:'weather',
- BrasilIntent:'brazil'
+ BrasilIntent:'brazil',
+ UltimoSismoIntent:'recent-quake',
+ UltimoResumoIntent:'last-summary',
+ MaioresHojeIntent:'today'
 });
 function commandForIntent(name){return Object.prototype.hasOwnProperty.call(INTENT_TO_COMMAND,name)?INTENT_TO_COMMAND[name]:null;}
 function normalizePairCode(value){

@@ -2,7 +2,7 @@
 // Runs in its own existing EarthquakeAlertDelivery Durable Object instance;
 // never writes to shared earthquake records or consumes KV quotas.
 const PREFIX='mg-alexa-1:',PAIR_MS=10*60000,DEVICE_MS=90*86400000,CMD_MS=90000;
-const ALLOWED=new Set(['brent','weather','brazil']);
+const ALLOWED=new Set(['brent','weather','brazil','recent-quake','last-summary','today']);
 const encoder=new TextEncoder();
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Pragma':'no-cache','X-Content-Type-Options':'nosniff'}});
 const secureToken=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');

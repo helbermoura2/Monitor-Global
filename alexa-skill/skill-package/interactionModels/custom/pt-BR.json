@@ -98,6 +98,39 @@
         {
           "name": "AMAZON.FallbackIntent",
           "samples": []
+        },
+        {
+          "name": "UltimoSismoIntent",
+          "slots": [],
+          "samples": [
+            "mostre o último sismo",
+            "mostre o último terremoto",
+            "qual foi o último sismo",
+            "quero ver o último terremoto",
+            "mostra o último tremor"
+          ]
+        },
+        {
+          "name": "UltimoResumoIntent",
+          "slots": [],
+          "samples": [
+            "mostre o último resumo",
+            "mostre o resumo diário",
+            "repita o último resumo",
+            "quero ver o último resumo",
+            "mostre o resumo de ontem"
+          ]
+        },
+        {
+          "name": "MaioresHojeIntent",
+          "slots": [],
+          "samples": [
+            "mostre os maiores sismos de hoje",
+            "mostre os maiores do dia",
+            "quais foram os maiores terremotos de hoje",
+            "quero ver os maiores sismos do dia",
+            "mostre o resumo de hoje"
+          ]
         }
       ],
       "types": []

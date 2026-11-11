@@ -69,7 +69,7 @@ final class AlexaLinkClient {
   JSONObject pending=body.optJSONObject("command");
   if(pending==null)return null;
   String id=pending.optString("id"),type=pending.optString("type");
-  return id.matches("[0-9a-f-]{36}")&&(type.equals("brent")||type.equals("weather")||type.equals("brazil"))?new Command(id,type):null;
+  return id.matches("[0-9a-f-]{36}")&&(type.equals("brent")||type.equals("weather")||type.equals("brazil")||type.equals("recent-quake")||type.equals("last-summary")||type.equals("today"))?new Command(id,type):null;
  }
  static void acknowledge(Context context,String id) throws Exception {
   if(!id.matches("[0-9a-f-]{36}")||token(context).isEmpty())return;
