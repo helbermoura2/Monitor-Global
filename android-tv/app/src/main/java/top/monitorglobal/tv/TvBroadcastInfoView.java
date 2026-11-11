@@ -1,0 +1,211 @@
+package top.monitorglobal.tv;
+
+import android.content.Context;
+import android.graphics.*;
+import android.os.SystemClock;
+import android.view.View;
+import java.util.Locale;
+
+/** The SAME broadcast geometry as seismic Breaking News, but no fake seismic Alert.
+ * Weather / satellite map above AO VIVO, Brent + USD/BRL in the lower-third.
+ * Informational banners stay silent and preserve the existing timers.
+ */
+final class TvBroadcastInfoView extends View {
+ static final int WEATHER=1,BRENT=2,SATELLITE=3;
+ private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+ private final Typeface brand,data;
+ private final int kind,accent,foreground,background;
+ private final RainForecast.Summary rain;
+ private final WeatherForecast.Summary weather;
+ private final BrentQuote brent;
+ private final DollarQuote dollar;
+ private final WeatherSatelliteClient.Frame satellite;
+ private final String satelliteStatus;
+ private final boolean demo,mapBelow;
+ final int mapSpace;
+ private final Alert locator;
+ private MapInset mapInset;
+ private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
+ private float mapReveal=1;
+ private String ticker;private final String baseTicker;
+ private final Path outline=new Path();
+ private boolean running;
+ private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
+
+ private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
+                             BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
+                             String status,boolean demo){
+  super(c);this.kind=kind;this.rain=rain;this.weather=weather;this.brent=brent;this.dollar=dollar;
+  this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
+  this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
+  this.mapSpace=kind==BRENT?0:Banner.insetDp(c);
+  brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");
+  data=Typeface.createFromAsset(c.getAssets(),"fonts/JetBrainsMono.ttf");
+  accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
+  foreground=Color.parseColor(Prefs.get(c).getString("themeText","#ffffff"));
+  background=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#071724":Prefs.get(c).getString("themeBackground","#071724"));
+  outline.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
+  if(kind==WEATHER){
+   locator=new Alert("weather-liberdade","weather","","","","",0,0,false);
+   locator.originLongitude=RainForecast.LONGITUDE;locator.originLatitude=RainForecast.LATITUDE;
+   StringBuilder t=new StringBuilder(demo?"SIMULAÇÃO FICTÍCIA · ":"");
+   if(weather!=null)t.append(weather.condition).append(" · ").append(weather.temperature)
+      .append(" · ").append(weather.humidity).append(" · ").append(weather.wind);
+   if(rain!=null)t.append(" · CHUVA: ").append(rain.title).append(" · ").append(rain.amountText);
+   t.append(" · Previsão horária / minuto; dados sujeitos a revisão");
+   ticker=t.toString();
+  }else{locator=null;
+   if(kind==BRENT){
+    String v=brent==null?"indisponível":"US$ "+amount(brent.price);
+    String usd=dollar==null?"indisponível":"R$ "+amount(dollar.price);
+    ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT: "+v+
+      (brent!=null?" · ref. "+BrentQuote.clock(brent.at):"")+"     •     DÓLAR COMERCIAL USD/BRL: "+usd+
+      (dollar!=null?" · ref. "+BrentQuote.clock(dollar.at):"")+
+      "     •     Fonte: Yahoo Finance · dados podem sofrer atraso";
+   }else{
+    ticker=(satellite!=null?"SATÉLITE GOES-EAST · "+satellite.credit()+" · "+InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
+      " · Infravermelho não mede intensidade da chuva":"SATÉLITE GOES-EAST · "+this.satelliteStatus);
+   }
+  }
+  baseTicker=ticker;
+  setContentDescription((demo?"Teste fictício. ":"")+ticker);
+  setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+ }
+ static TvBroadcastInfoView weather(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo){
+  return new TvBroadcastInfoView(c,WEATHER,rain,weather,null,null,null,null,demo);
+ }
+ static TvBroadcastInfoView market(Context c,BrentQuote brent,DollarQuote dollar,boolean demo){
+  return new TvBroadcastInfoView(c,BRENT,null,null,brent,dollar,null,null,demo);
+ }
+ static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
+  return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
+ }
+ void startPresentation(long when,boolean animated){started=when;invalidate();}
+ void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
+ void refreshBriefing(){
+  if(kind!=WEATHER)return;
+  String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
+  String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
+  ticker=baseTicker+(outlook.isEmpty()?"":"     •     PROJEÇÃO 30 MIN · "+outlook.replace('\n',' '))+
+    (ai.isEmpty()?"":"     •     RESUMO COM IA · "+ai.replace('\n',' '));
+  invalidate();
+ }
+ private static String amount(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.2f",n);}
+ private void fill(Canvas c,float x,float y,float w,float h,int color){p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawRect(x,y,x+w,y+h,p);}
+ private void rounded(Canvas c,float x,float y,float w,float h,int color,float radius){
+  p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawRoundRect(x,y,x+w,y+h,radius,radius,p);
+ }
+ private void label(Canvas c,String raw,float x,float y,float size,int color,Typeface font,float max){
+  String s=raw==null?"":raw;p.setTypeface(font);p.setTextSize(size);
+  if(p.measureText(s)>max){while(!s.isEmpty()&&p.measureText(s+"…")>max)s=s.substring(0,s.offsetByCodePoints(s.length(),-1));s+="…";}
+  p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawText(s,x,y,p);
+ }
+ private void badge(Canvas c,String value){
+  p.setTypeface(brand);p.setTextSize(17);float width=Math.min(130,p.measureText(value)+27);
+  rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
+  label(c,value,960-width+12,18,17,Color.WHITE,brand,width-20);
+ }
+ private String status(){return demo?"TESTE FICTÍCIO":"AO VIVO";}
+ private void drawRadar(Canvas c,long elapsed){
+  c.save();c.translate(927,60);
+  p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.5f);p.setColor(accent);
+  for(float r:new float[]{26,18,10})c.drawCircle(0,0,r,p);
+  p.setStyle(Paint.Style.FILL);p.setColor(accent);
+  float sweep=animate?elapsed/45f:-90f; c.rotate(sweep);
+  c.drawArc(-26,-26,26,26,-90,47,true,p);c.restore();
+ }
+ private void drawIdentity(Canvas c){
+  fill(c,0,100,960,26,0xff020816);
+  long now=System.currentTimeMillis(),minute=now/60000;
+  if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
+  fill(c,0,100,90,26,0xffbf1827);
+  label(c,clockText,13,119,18,Color.WHITE,data,68);
+  c.save();c.clipRect(98,100,719,126);
+  p.setTypeface(data);p.setTextSize(12);float width=p.measureText(ticker)+70;
+  float offset=animate?(SystemClock.uptimeMillis()-started)/1000f*40%width:0;
+  label(c,ticker,102-offset,119,12,foreground,data,Float.MAX_VALUE);
+  label(c,ticker,102-offset+width,119,12,foreground,data,Float.MAX_VALUE);
+  c.restore();
+  fill(c,724,100,236,26,0xff102738);
+  label(c,"monitorglobal.top",730,118,13,foreground,brand,126);
+  label(c,"@monitor_global",853,118,12,accent,brand,102);
+ }
+ private void drawHeader(Canvas c,long elapsed){
+  c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
+  rounded(c,0,0,150,24,0xffbf1827,5);
+  label(c,"BREAKING NEWS",12,18,18,Color.WHITE,brand,138);
+  label(c,kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":"IMAGEM DE SATÉLITE",165,18,17,accent,brand,520);
+  badge(c,status());
+  if(kind==WEATHER)drawWeather(c);
+  else if(kind==BRENT)drawBrent(c);
+  else drawSatelliteNews(c);
+  drawRadar(c,elapsed);
+  drawIdentity(c);
+ }
+ private void drawWeather(Canvas c){
+  label(c,"TEMPO",11,70,34,0xffff6d7f,brand,112);
+  String temp=weather==null?"—":weather.temperatureValue;
+  label(c,temp,128,70,44,foreground,brand,140);
+  String condition=weather==null?(rain==null?"Sem dados atuais de temperatura":rain.title):weather.condition;
+  label(c,condition,274,60,28,foreground,brand,584);
+  String details=weather==null?"Previsão de chuva · Liberdade, São Paulo":
+   "LIBERDADE / SP  ·  SENSAÇÃO "+weather.feelsValue+"  ·  UMIDADE "+weather.humidityValue+
+   "  ·  VENTO "+weather.windValue+"  ·  RAJADAS "+weather.gustValue;
+  label(c,details,127,89,16,0xffb8d2df,data,742);
+ }
+ private void drawBrent(Canvas c){
+  label(c,"BRENT",12,69,33,0xffff6d7f,brand,111);
+  String price=brent==null?"US$ —":"US$ "+amount(brent.price);
+  label(c,price,138,68,37,foreground,brand,254);
+  int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
+  String variation=brent==null||brent.percent==null?"VAR. —":
+   (brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
+  label(c,variation,402,66,25,tint,brand,162);
+  fill(c,575,41,1,43,0xff45647b);
+  label(c,"DÓLAR COMERCIAL",593,45,17,accent,brand,253);
+  label(c,dollar==null?"R$ indisponível":"R$ "+amount(dollar.price),593,76,29,foreground,brand,260);
+  label(c,brent==null?"Brent indisponível":"ICE · BZ=F · "+BrentQuote.clock(brent.at),138,89,13,0xffbdcfdd,data,430);
+ }
+ private void drawSatelliteNews(Canvas c){
+  label(c,"SATÉLITE",12,70,32,0xffff6d7f,brand,119);
+  label(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,62,28,foreground,brand,705);
+  label(c,satellite==null?satelliteStatus:InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
+    " · IMAGEM INFRAVERMELHA · NÃO É RADAR DE CHUVA",142,88,16,0xffb8d2df,data,705);
+ }
+ private void drawMap(Canvas c){
+  if(mapSpace<=0||mapReveal<=0)return;
+  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
+  float slide=(1-mapReveal)*180;
+  c.translate(649,mapBelow?4-slide:slide);
+  if(kind==WEATHER){
+   if(mapInset!=null)mapInset.draw(c,locator,brand,accent);
+  }else if(kind==SATELLITE){
+   rounded(c,0,0,310,176,0xff0d2737,8);
+   if(satellite!=null&&satellite.image!=null&&!satellite.image.isRecycled()){
+    p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
+    c.drawBitmap(satellite.image,null,new RectF(0,0,310,150),p);
+   }
+   fill(c,0,0,310,23,0xdd071724);
+   label(c,"INFRAVERMELHO · SUDESTE",9,17,16,Color.WHITE,brand,286);
+   fill(c,0,150,310,26,0xee071724);
+   label(c,satellite!=null?satellite.credit():"Sem imagem recente",9,168,12,0xffbbd7e7,brand,290);
+   p.setColor(accent);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
+   c.drawRoundRect(0,0,310,176,8,8,p);p.setStyle(Paint.Style.FILL);
+  }
+  c.restore();
+ }
+ @Override protected void onDraw(Canvas canvas){
+  super.onDraw(canvas);if(started==0)return;
+  long now=SystemClock.uptimeMillis(),elapsed=now-started;
+  canvas.save();canvas.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
+  canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
+  drawHeader(canvas,elapsed);canvas.restore();
+  drawMap(canvas);canvas.restore();
+  if(running&&animate&&isShown())postInvalidateDelayed(100);
+ }
+ @Override protected void onAttachedToWindow(){
+  super.onAttachedToWindow();running=true;
+  if(kind==WEATHER&&mapSpace>0){mapInset=new MapInset(getContext(),this::invalidate);mapInset.prepare(locator);}
+ }
+ @Override protected void onDetachedFromWindow(){running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
+}

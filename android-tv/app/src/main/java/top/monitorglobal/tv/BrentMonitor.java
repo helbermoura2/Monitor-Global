@@ -5,13 +5,13 @@ import java.util.concurrent.*;import java.util.function.BooleanSupplier;import o
 /** Hourly TV market card. Does not touch the 30-second seismic poll or alarm queue. */
 final class BrentMonitor {
  private static final String URL="https://black-sky-9ba0.terrestre.workers.dev/tv-brent";
- private final Context context;private final BooleanSupplier allowed;private final Callable<JSONObject> reader;
+ private final Context context;private final BooleanSupplier allowed;private final Callable<JSONObject> reader;private final boolean externalReader;
  private final BrentOverlay overlay;private final Handler main=new Handler(Looper.getMainLooper());
  private ExecutorService io;private volatile HttpURLConnection connection;
- private boolean busy,closed;private long knownSlot=-1,nextRetry;private JSONObject quote;
+ private boolean busy,closed;private long knownSlot=-1,nextRetry;private JSONObject quote;private DollarQuote dollar;
  BrentMonitor(Context c,BooleanSupplier canShow){this(c,canShow,null);}
  BrentMonitor(Context c,BooleanSupplier canShow,Callable<JSONObject> source){
-  context=c;allowed=canShow;overlay=new BrentOverlay(c);reader=source==null?this::read:source;
+  context=c;allowed=canShow;overlay=new BrentOverlay(c);externalReader=source!=null;reader=source==null?this::read:source;
  }
  boolean showing(){return overlay.showing();}
  private void status(String message){
@@ -54,12 +54,12 @@ final class BrentMonitor {
    return;
   }
   long slot=BrentQuote.slot(now);
-  if(knownSlot!=slot){knownSlot=slot;quote=null;nextRetry=0;}
+  if(knownSlot!=slot){knownSlot=slot;quote=null;dollar=null;nextRetry=0;}
   if(!BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))return;
   if(!allowed.getAsBoolean()||overlay.showing())return;
   BrentQuote valid=BrentQuote.parse(quote,now);
   if(valid!=null){
-   if(overlay.show(valid,false)){
+   if(overlay.show(valid,dollar,false)){
     Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
     status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(quote.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
    }else status("Cotação real validada, mas a sobreposição foi bloqueada. Verifique a permissão.");
@@ -75,10 +75,13 @@ final class BrentMonitor {
    JSONObject data=null;
    try{data=reader.call();}catch(Exception ignored){}
    final JSONObject result=data;
+   DollarQuote fx=null;
+   if(!externalReader&&BrentQuote.parse(result,System.currentTimeMillis())!=null)fx=readDollar();
+   final DollarQuote verifiedDollar=fx;
    main.post(()->{
     busy=false;
     if(closed||requestSlot!=knownSlot)return;
-    quote=result;
+    quote=result;dollar=verifiedDollar;
     if(result==null||!result.optBoolean("ok"))status(problem(result));
     else if(BrentQuote.parse(result,System.currentTimeMillis())==null)
      status("A fonte respondeu, mas o preço ou horário não passou pela validação da TV.");
@@ -89,7 +92,7 @@ final class BrentMonitor {
       return;
      }
      if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");return;}
-     if(overlay.show(valid,false)){
+     if(overlay.show(valid,dollar,false)){
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
        Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
@@ -128,6 +131,18 @@ final class BrentMonitor {
    .put("reason",invalid?"source-stale-or-invalid":"source-unavailable")
    .put("directAttempted",true);
  }
+ /** Dollar is an optional independent Yahoo spot quote. It never delays seismic polling,
+  * and a failure displays an honest unavailable label beside a valid Brent price. */
+ private DollarQuote readDollar(){
+  for(String host:new String[]{"query1.finance.yahoo.com","query2.finance.yahoo.com"}){
+   try{
+    JSONObject raw=readRemote("https://"+host+"/v8/finance/chart/BRL=X?interval=1m&range=1d",180000,3000,3500);
+    DollarQuote q=DollarQuote.fromYahoo(raw,System.currentTimeMillis());
+    if(q!=null)return q;
+   }catch(Exception ignored){}
+  }
+  return null;
+ }
  private JSONObject readRemote(String endpoint,int maxBytes,int connectMs,int readMs)throws Exception{
   HttpURLConnection c=(HttpURLConnection)new URL(endpoint).openConnection();connection=c;
   c.setConnectTimeout(connectMs);c.setReadTimeout(readMs);c.setInstanceFollowRedirects(false);
@@ -149,7 +164,8 @@ final class BrentMonitor {
  }
  void demo(){
   if(!closed&&screen()&&allowed.getAsBoolean())
-   overlay.show(new BrentQuote(78.35,77.50,0.85,1.10,System.currentTimeMillis(),"DEMONSTRAÇÃO"),true);
+   overlay.show(new BrentQuote(78.35,77.50,0.85,1.10,System.currentTimeMillis(),"DEMONSTRAÇÃO"),
+    new DollarQuote(5.23,0.01,0.19,System.currentTimeMillis(),"SIMULAÇÃO"),true);
  }
  void hide(){overlay.hide();}
  void close(){closed=true;hide();main.removeCallbacksAndMessages(null);if(connection!=null)connection.disconnect();if(io!=null)io.shutdownNow();quote=null;}

@@ -9,10 +9,20 @@ final class Banner {
  boolean show(Alert a,boolean demo,boolean replay){return showView(new NewsBannerView(context,a,demo,replay),BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20)),0,null);}
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete){return showSummary(alerts,day,replay,complete,null);}
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete,Runnable finished){return showView(new NewsBannerView(context,alerts,day,replay,complete),0,alerts.size(),finished);}
- private boolean showView(NewsBannerView row,long duration,int summaryCount,Runnable finished){
+ boolean showWeather(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.weather(context,rain,weather,demo),duration,0,finished);
+ }
+ boolean showBrent(BrentQuote quote,DollarQuote dollar,boolean demo,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.market(context,quote,dollar,demo),duration,0,finished);
+ }
+ boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
+ }
+ View activeView(){return current;}
+ private boolean showView(View row,long duration,int summaryCount,Runnable finished){
   if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;
   boolean animated=android.animation.ValueAnimator.areAnimatorsEnabled();
-  WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*Prefs.get(context).getInt("themeWidthPercent",92)/100,dp(126+insetDp(context))+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
+  WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*Prefs.get(context).getInt("themeWidthPercent",92)/100,dp(126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context)))+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
   try{
    BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(animated?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
    else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(animated?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
@@ -20,7 +30,8 @@ final class Banner {
    starter=new ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
     clearStarter();if(current!=host||host.getChildAt(0)!=row)return true;
     // Anchor both drawing and dismissal to the first visible frame, not construction/font loading.
-    row.startPresentation(android.os.SystemClock.uptimeMillis(),animated);
+    if(row instanceof NewsBannerView)((NewsBannerView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
+    else if(row instanceof TvBroadcastInfoView)((TvBroadcastInfoView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
     if(animated)animateWipe(host,0,1);
     long delay=summaryCount>0?BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?BannerTimeline.WIPE_MS:0));
     main.postDelayed(dismiss,delay);return true;
