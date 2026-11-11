@@ -20,7 +20,9 @@ export function drawMapReferences(p,frame,ev,places,layout=globalThis.QuakeCardL
  if(x<16||x>784||y<Y+20||y>Y+H-24||occupied.some(([a,b,c,d])=>left<c&&left+w>a&&top<d&&top+h>b))continue;
  p.dot(x,y,4,'#ffffff');p.dot(x,y,2,'#162c34');p.roundRect(left,top,w,h,'#142a33');p.text(name,left+8,top+6,15,'#edf6fa',true);occupied.push([left,top,left+w,top+h]);if(++count===4)break;
  }
+ if(layout.showScale===false)return;
  const lat=Number(ev.lat)*Math.PI/180,kmPerDegree=111.32*Math.max(.05,Math.cos(lat)),widthKm=(frame.maxLon-frame.minLon)*kmPerDegree;
  const target=widthKm*.2,unit=10**Math.floor(Math.log10(target)),km=[1,2,5,10].map(n=>n*unit).filter(n=>n<=target).at(-1)||unit,px=km/widthKm*800;
  const y=Y+H-52;p.roundRect(552,y,224,42,'#142a33');p.rect(566,y+28,px,2,'#edf6fa');p.rect(566,y+24,2,8,'#edf6fa');p.rect(566+px,y+24,2,8,'#edf6fa');p.text('0',566,y+5,13,'#edf6fa');p.text(km+' km',566+px-35,y+5,13,'#edf6fa');
 }
+

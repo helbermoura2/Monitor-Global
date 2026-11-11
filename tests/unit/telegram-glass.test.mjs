@@ -1,0 +1,16 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdir,writeFile} from 'node:fs/promises';
+import {renderAlertImage,decodePng,patchAlertTsunami} from '../../worker/image-rendering.mjs';
+import {drawMapReferences} from '../../worker/alert-cartography.mjs';
+const L=globalThis.QuakeTelegramLayout;
+function recorder(){const texts=[],flags=[],p={measure:(s,z)=>String(s).length*z*.52,text:(s,x,y,size)=>texts.push({s,x,y,size}),rect(){},roundRect(){},glass(){},dot(){},arc(){},flag:(...a)=>flags.push(a)};return{p,texts,flags};}
+const sample={mag:3.1,lat:-20.02,lon:-48.94,place:'Frutal/MG, Brasil',brazil:true,imageCountryCode:'BR',imageStateCode:'MG',timeIso:'2026-11-10T15:11:00Z',depth:0,source:'EMSC',reviewed:true,mmi:'III',imageMapAvailable:true};
+test('glass composition preserves data and flags, hides absent/stale/cancelled tsunami and scale',()=>{
+ for(const state of ['unknown','noThreat','cancelled','information','warning']){const {p,texts,flags}=recorder();L.draw(p,{...sample,imageTsunami:{state,stale:state==='warning'}});assert(!texts.some(t=>/TSUNAMI/.test(t.s)));assert(texts.some(t=>t.s==='0 km'));assert(texts.some(t=>t.s==='M3,1'));assert(!texts.some(t=>/POPULAÇÃO|ENERGIA/.test(t.s)));assert.deepEqual(flags.map(f=>f.slice(0,2)),[['country','BR'],['state','MG']]);for(const t of texts)assert(t.x>=0&&t.y>=0&&t.x+p.measure(t.s,t.size)<=800&&t.y+t.size<=1440,JSON.stringify(t));}
+ const {p,texts}=recorder();drawMapReferences(p,L.telegramFrame(sample),sample,[],L);assert.equal(texts.length,0);
+ const q=recorder();L.draw(q.p,{...sample,brazil:false,imageCountryCode:'JP',imageStateCode:undefined,place:'Japão'});assert.deepEqual(q.flags.map(f=>f.slice(0,2)),[['country','JP']]);
+ for(const state of ['warning','watch','advisory']){const q=recorder();L.drawTsunami(q.p,{state,source:'PTWC',areas:'Vanuatu'});assert(q.texts.some(t=>t.s==='AVISO DE TSUNAMI'));assert(q.texts.some(t=>t.s==='Vanuatu'));}
+});
+test('renders 1080x1920 previews without contacting Telegram; cancellation requires full redraw',async()=>{
+ const original=globalThis.fetch;let real=0;globalThis.fetch=async(u,o)=>{const url=String(u);assert(!url.includes('api.telegram.org'));if(process.env.TG_GLASS_LIVE==='1'&&url.startsWith('https://server.arcgisonline.com/')){real++;return original(u,o);}return new Response('Offline fixture',{status:503});};
+ try{await mkdir('/tmp/tg-glass',{recursive:true});for(const [name,ev]of [['brazil',sample],['warning',{...sample,lat:-14,lon:165,place:'Vanuatu',brazil:false,mag:6.9,imageTsunami:{state:'warning',source:'PTWC · EXEMPLO',areas:'Regiões citadas no boletim · EXEMPLO'}}]]){const start=Date.now();const png=await renderAlertImage({...ev,id:'glass-example-'+name,test:true,imageTsunami:ev.imageTsunami||{state:'unknown'}});const image=await decodePng(png);assert.equal(image.width,1080);assert.equal(image.height,1920);await writeFile('/tmp/tg-glass/'+name+'.png',png);console.log('GLASS_RENDER',name,Date.now()-start,'ms');const cancelled=await patchAlertTsunami(png,{state:'cancelled'});const restored=await decodePng(cancelled);for(let y=0;y<1920;y++)if(y<1240||y>=1435)assert.deepEqual(restored.rgba.subarray(y*1080*4,(y+1)*1080*4),image.rgba.subarray(y*1080*4,(y+1)*1080*4));}console.log('GLASS_REAL_MAP_REQUESTS',real);}finally{globalThis.fetch=original;}
+});
