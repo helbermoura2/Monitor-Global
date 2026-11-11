@@ -92,7 +92,7 @@ final class BrentMonitor {
       return;
      }
      if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");return;}
-     if(overlay.show(valid,false)){
+     if(overlay.show(valid,dollar,false)){
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
        Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
