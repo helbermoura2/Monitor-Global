@@ -63,6 +63,24 @@ public class TvBroadcastInfoViewTest {
   Bitmap result=render(view,"weather-satellite");
   try{assertEquals(Color.MAGENTA,result.getPixel(800,80));}finally{result.recycle();frame.close();}
  }
+ @Test public void hourlyRainNeverClaimsObservedRainWhenMinuteForecastIsDry()throws Exception{
+  WeatherForecast.Summary model=new WeatherForecast.Summary(
+   "24°C · sensação 24°C","Chuva","Vento 9 km/h","Umidade 77%",
+   "Modelo horário",System.currentTimeMillis()+600000,false,
+   "24°C","24°C","77%","9 km/h","17 km/h","Rain",
+   System.currentTimeMillis(),System.currentTimeMillis()-900000);
+  RainForecast.Summary minute=new RainForecast.Summary("dry","","Sem chuva estimada · próxima hora",0,0,
+   "Término não aplicável",System.currentTimeMillis(),System.currentTimeMillis()+300000,false);
+  TvBroadcastInfoView view=TvBroadcastInfoView.weather(c,minute,model,false);
+  String accessible=String.valueOf(view.getContentDescription());
+  assertTrue(accessible.contains("CONDIÇÃO ESTIMADA: Sem chuva estimada"));
+  assertTrue(accessible.contains("MODELO HORÁRIO: Chuva"));
+  assertTrue(accessible.contains("estimativa por minuto sem chuva"));
+  Bitmap screenshot=render(view,"hourly-rain-vs-dry-minute");
+  screenshot.recycle();
+  TvBroadcastInfoView withoutMinute=TvBroadcastInfoView.weather(c,null,model,false);
+  assertTrue(String.valueOf(withoutMinute.getContentDescription()).contains("Previsão: chuva"));
+ }
  @Test public void dedicatedRainUsesOfficialStripWithoutWeatherMetricsOrMap()throws Exception{
   RainForecast.Summary rain=new RainForecast.Summary("soon","fraca","Chuva prevista em ~10 min",0,3.2,"Pode terminar em ~45 min",System.currentTimeMillis(),System.currentTimeMillis()+600000,false,10,45,35,4.5,"Duração estimada: ~35 min");
   TvBroadcastInfoView view=TvBroadcastInfoView.rain(c,rain,null,true);assertEquals(0,view.mapSpace);

@@ -8,9 +8,9 @@ android {
   targetSdk 35
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
   // Correção verificada: boletim integrado de 15 s; avisos de chuva preservados.
-  // Atualização: tarja sísmica como referência única de radar, velocidade, identidade e replay regional com mapa.
-  versionCode 10075
-  versionName '1.0.75'
+  // Atualização: condição horária de chuva diferenciada da estimativa de chuva por minuto na tarja.
+  versionCode 10076
+  versionName '1.0.76'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
