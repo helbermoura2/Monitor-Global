@@ -12,6 +12,7 @@ final class Banner {
  boolean showWeather(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.weather(context,rain,weather,demo),duration,0,finished);
  }
+ boolean showRain(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,long duration,Runnable finished){return showView(TvBroadcastInfoView.rain(context,rain,weather,demo),duration,0,finished);}
  boolean showBrent(BrentQuote quote,DollarQuote dollar,boolean demo,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.market(context,quote,dollar,demo),duration,0,finished);
  }
