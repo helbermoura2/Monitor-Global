@@ -66,8 +66,9 @@ final class TvBroadcastInfoView extends View {
    StringBuilder t=new StringBuilder(demo?"SIMULAÇÃO FICTÍCIA · ":"");
    if(weather!=null)t.append(weather.condition).append(" · ").append(weather.temperature)
       .append(" · ").append(weather.humidity).append(" · ").append(weather.wind).append(" · Rajadas ").append(weather.gustValue);
-   if(rain!=null)t.append(" · CHUVA: ").append(rain.title).append(" · ").append(rain.amountText);
-   t.append(" · Previsão horária / minuto; dados sujeitos a revisão");
+   if(rain!=null)t.append(" · CHUVA POR MINUTO: ").append(rain.title).append(" · ").append(rain.amountText);
+   t.append(" · ").append(WeatherConditionDisplay.sourceNote(weather,rain));
+   t.append(" · Modelos meteorológicos; não representam observação direta do céu");
    ticker=t.toString();
   }else{locator=null;
    if(kind==BRENT){
@@ -203,8 +204,10 @@ final class TvBroadcastInfoView extends View {
   label(c,weather==null?"—":weather.temperatureValue,124,65,39,foreground,brand,112);
   label(c,"LIBERDADE / SP",124,87,12,0xffb8d2df,data,140);
   icon(c,0,251,42,30);
-  label(c,weather==null?(rain==null?"Sem dados":rain.title):weather.condition,290,58,21,foreground,brand,190);
-  label(c,"Sensação "+(weather==null?"—":weather.feelsValue),290,84,17,0xffb8d2df,brand,190);
+  // Do not present an hourly MODEL rain code as rain observed right now.
+  String sky=WeatherConditionDisplay.headline(weather,rain);
+  label(c,sky,290,58,sky.length()>19?18:21,foreground,brand,190);
+  label(c,WeatherConditionDisplay.detail(weather,rain),290,84,14,0xffb8d2df,brand,190);
   metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",493);
   metric(c,2,weather==null?"—":weather.windValue,"VENTO",626);
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
