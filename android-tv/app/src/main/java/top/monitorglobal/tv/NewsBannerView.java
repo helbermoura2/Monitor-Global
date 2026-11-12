@@ -38,7 +38,7 @@ final class NewsBannerView extends View {
    first=a.kind.equals("tsunami")?tsunamiLabel(a.state):split<0?details:details.substring(0,split);
    source=!a.source.isEmpty()?a.source:split<0?"Fonte não informada":details.substring(split+3);
    oldMagnitude=BannerTimeline.magnitudeChanged(a)?String.format(java.util.Locale.forLanguageTag("pt-BR"),"M%.1f",a.previousMagnitude):"";
-   String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):!a.revision.isEmpty()?(a.revision.startsWith("Nova estimativa")?"NOVA ESTIMATIVA DE OUTRA FONTE":"ATUALIZAÇÃO DO SISMO"):!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES DO DIA":"NOVO SISMO";
+   String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):a.compact?"SISMO REGIONAL · ÁREA MONITORADA":!a.revision.isEmpty()?(a.revision.startsWith("Nova estimativa")?"NOVA ESTIMATIVA DE OUTRA FONTE":"ATUALIZAÇÃO DO SISMO"):!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES DO DIA":"NOVO SISMO";
    heading=(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO · ")+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
   }
  }
@@ -60,6 +60,7 @@ final class NewsBannerView extends View {
   for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
    if(!v.populationSummary.isEmpty())line.append(v.populationSummary).append("     •     ");
    if(!v.nearbySummary.isEmpty())line.append(v.nearbySummary).append("     •     ");
+   if(v.compact&&!v.targetArea.isEmpty())line.append("ÁREA MONITORADA: ").append(v.targetArea).append("     •     ");
    if(!v.tsunamiSummary.isEmpty())line.append("TSUNAMI · ").append(v.tsunamiSummary).append("     •     ");
    line.append(v.title).append("     •     ").append(v.detail).append("     •     ").append(v.kind.equals("tsunami")?"Boletim: ":"Origem do sismo: ").append(p.time).append("     •     ");
   }
@@ -91,7 +92,7 @@ final class NewsBannerView extends View {
   c.save();c.translate(0,mapBelow?0:mapSpace);
   c.save();c.clipPath(bannerClip);rect(c,0,24,960,126,background);rect(c,0,100,960,126,Color.rgb(2,8,22));c.restore();
   breaking(c,elapsed);
-  c.save();c.translate(922,61);c.scale(72f/52,72f/52);radar(c,elapsed);c.restore();
+  BroadcastVisuals.radar(c,paint,elapsed,animate);
   c.save();c.clipRect(0,0,960,24);rounded(c,960-badgeWidth,0,960,30,7,Color.rgb(191,24,39));rect(c,960-badgeWidth,17,960,24,Color.rgb(191,24,39));centerText(c,badgeLabel(),960-badgeWidth/2,18,17,Color.WHITE,brand,badgeWidth-24);c.restore();drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
@@ -101,7 +102,7 @@ final class NewsBannerView extends View {
    float t=BannerTimeline.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
   c.save();c.clipRect(100,101,identityLeft(elapsed)-8,124);paint.setTypeface(data);paint.setTextSize(12);float length=paint.measureText(ticker)+90;
-  float offset=animate?(elapsed/1000f*40)%length:0;text(c,ticker,100-offset,119,12,Color.WHITE,data,Float.MAX_VALUE);text(c,ticker,100-offset+length,119,12,Color.WHITE,data,Float.MAX_VALUE);c.restore();
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);text(c,ticker,100-offset,119,12,Color.WHITE,data,Float.MAX_VALUE);text(c,ticker,100-offset+length,119,12,Color.WHITE,data,Float.MAX_VALUE);c.restore();
   c.restore();
   drawMap(c,index,elapsed,fadeElapsed);c.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
@@ -162,10 +163,7 @@ final class NewsBannerView extends View {
  }
  private void magnitude(Canvas c,String value,String label,int opacity){if(opacity<=0)return;int layer=c.saveLayerAlpha(8,28,108,94,opacity);centerText(c,value,56f,68,35,Color.rgb(255,90,107),brand,85);centerText(c,label,56f,86,10,Color.WHITE,brand,85);c.restoreToCount(layer);}
 
- private void radar(Canvas c,long elapsed){
-  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.6f);paint.setColor(Color.rgb(45,127,168));c.drawCircle(0,0,23,paint);c.drawCircle(0,0,16,paint);c.drawCircle(0,0,8,paint);
-  paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(56,189,248));float angle=animate?(elapsed%2400)/2400f*360:0;c.drawArc(-23,-23,23,23,-90+angle,45,true,paint);c.drawCircle(0,0,3,paint);
- }
+
  static String formatTime(long at){return date(at,"HH:mm 'BRT'");}
  private static String formatRecordTime(long at){return date(at,"dd/MM/yyyy HH:mm 'BRT'");}
  private static String date(long at,String pattern){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat(pattern,java.util.Locale.forLanguageTag("pt-BR"));f.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return f.format(new java.util.Date(at));}
