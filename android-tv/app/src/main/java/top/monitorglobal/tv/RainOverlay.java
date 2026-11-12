@@ -50,7 +50,7 @@ final class RainOverlay {
  private boolean showCard(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean effect,boolean demo,
                           boolean stormPreview,Runnable onCompleted,BooleanSupplier satelliteReady,boolean hourlyCard){
   hide();
-  long expiry=weather==null?(rain==null?0:rain.expiresAt):rain==null?weather.expiresAt:Math.min(weather.expiresAt,rain.expiresAt);
+  long expiry=!hourlyCard?(rain==null?0:rain.expiresAt):weather==null?(rain==null?0:rain.expiresAt):rain==null?weather.expiresAt:Math.min(weather.expiresAt,rain.expiresAt);
   long max=hourlyCard&&weather!=null?WEATHER_DURATION:DURATION;
   long duration=demo?max:Math.min(max,expiry-System.currentTimeMillis()-500);
   if(duration<=0||!Settings.canDrawOverlays(context))return false;
@@ -72,13 +72,14 @@ final class RainOverlay {
   }
   final int token=++generation;
   completed=onCompleted;
-  boolean shown=banner.showWeather(rain,weather,demo,duration,()->{
+  Runnable finished=()->{
    if(generation!=token)return;
    current=null;stopEffect();
    if(satelliteReady!=null)satelliteReady.getAsBoolean();
    Runnable done=completed;completed=null;
    if(done!=null)done.run();
-  });
+  };
+  boolean shown=hourlyCard?banner.showWeather(rain,weather,demo,duration,finished):banner.showRain(rain,weather,demo,duration,finished);
   if(!shown){completed=null;stopEffect();return false;}
   current=banner.activeView();return true;
  }

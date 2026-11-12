@@ -11,11 +11,12 @@ import java.util.Locale;
  * Informational banners stay silent and preserve the existing timers.
  */
 final class TvBroadcastInfoView extends View {
- static final int WEATHER=1,BRENT=2,SATELLITE=3;
+ static final int WEATHER=1,BRENT=2,SATELLITE=3,RAIN=4;
  private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final Typeface brand,data;
  private final int kind,accent,foreground,background;
  private final RainForecast.Summary rain;
+ private final RainBannerContent rainFacts;
  private final WeatherForecast.Summary weather;
  private final BrentQuote brent;
  private final DollarQuote dollar;
@@ -38,17 +39,18 @@ final class TvBroadcastInfoView extends View {
  private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
-  super(c);this.kind=kind;this.rain=rain;this.weather=weather;this.brent=brent;this.dollar=dollar;
+  super(c);this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
-  this.mapSpace=kind==BRENT||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
+  this.mapSpace=kind==RAIN||kind==BRENT||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
   brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");
   data=Typeface.createFromAsset(c.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(c).getString("themeText","#ffffff"));
   background=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#071724":Prefs.get(c).getString("themeBackground","#071724"));
   outline.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
-  if(kind==WEATHER){
+  if(kind==RAIN){locator=null;ticker=(demo?"SIMULAÇÃO FICTÍCIA · ":"")+rainFacts.accessible;
+  }else if(kind==WEATHER){
    locator=new Alert("weather-liberdade","weather","","","","",0,0,false);
    locator.originLongitude=RainForecast.LONGITUDE;locator.originLatitude=RainForecast.LATITUDE;
    StringBuilder t=new StringBuilder(demo?"SIMULAÇÃO FICTÍCIA · ":"");
@@ -70,15 +72,16 @@ final class TvBroadcastInfoView extends View {
       " · Infravermelho não mede intensidade da chuva":"SATÉLITE GOES-EAST · "+this.satelliteStatus);
    }
   }
-  if(kind==WEATHER){int[] icons={WeatherCardView.conditionIcon(weather==null?"":weather.conditionKey),WeatherCardView.Icon.DROP,WeatherCardView.Icon.WIND,WeatherCardView.Icon.GUST};for(int i=0;i<4;i++){weatherIcons[i]=new WeatherCardView.Icon(c,icons[i]);weatherIcons[i].layout(0,0,24,24);}}
+  if(kind==WEATHER||kind==RAIN){int[] icons=kind==RAIN?new int[]{WeatherCardView.Icon.RAIN,WeatherCardView.Icon.DROP,WeatherCardView.Icon.RAIN,WeatherCardView.Icon.HOURGLASS}:new int[]{WeatherCardView.conditionIcon(weather==null?"":weather.conditionKey),WeatherCardView.Icon.DROP,WeatherCardView.Icon.WIND,WeatherCardView.Icon.GUST};for(int i=0;i<4;i++){weatherIcons[i]=new WeatherCardView.Icon(c,icons[i]);weatherIcons[i].layout(0,0,24,24);}}
   baseTicker=ticker;
-  if(kind==WEATHER)refreshBriefing();
+  if(kind==WEATHER||kind==RAIN)refreshBriefing();
   setContentDescription((demo?"Teste fictício. ":"")+baseTicker+" · "+ticker);
   setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
  static TvBroadcastInfoView weather(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo){
   return new TvBroadcastInfoView(c,WEATHER,rain,weather,null,null,null,null,demo);
  }
+ static TvBroadcastInfoView rain(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo){return new TvBroadcastInfoView(c,RAIN,rain,weather,null,null,null,null,demo);}
  static TvBroadcastInfoView market(Context c,BrentQuote brent,DollarQuote dollar,boolean demo){
   return new TvBroadcastInfoView(c,BRENT,null,null,brent,dollar,null,null,demo);
  }
@@ -88,6 +91,15 @@ final class TvBroadcastInfoView extends View {
  void startPresentation(long when,boolean animated){started=when;invalidate();}
  void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
  void refreshBriefing(){
+  if(kind==RAIN){
+   String ai=demo?"":WeatherBriefingClient.text(getContext(),"rain",weather,rain);
+   String analysis=ai.isEmpty()?"":WeatherTicker.composeRain(ai);
+   ticker="LIBERDADE / SP";
+   if(weather!=null&&weather.expiresAt>System.currentTimeMillis()&&!weather.temperatureValue.equals("—"))ticker+=" · "+weather.temperatureValue+" · sensação "+weather.feelsValue;
+   if(!analysis.isEmpty()&&!analysis.startsWith("Sem análise complementar"))ticker+="     •     IA · "+analysis;
+   ticker+="     •     Previsão por minuto · sujeita a mudanças";
+   setContentDescription(baseTicker+" · "+ticker);invalidate();return;
+  }
   if(kind!=WEATHER)return;
   String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
   String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
@@ -126,7 +138,7 @@ final class TvBroadcastInfoView extends View {
   label(c,clockText,13,119,18,Color.WHITE,data,68);
   c.save();c.clipRect(98,100,719,126);
   p.setTypeface(data);p.setTextSize(12);float width=p.measureText(ticker)+70;
-  float offset=animate?(SystemClock.uptimeMillis()-started)/1000f*(kind==WEATHER?84:55)%width:0;
+  float offset=animate?(SystemClock.uptimeMillis()-started)/1000f*(kind==WEATHER||kind==RAIN?84:55)%width:0;
   label(c,ticker,102-offset,119,12,foreground,data,Float.MAX_VALUE);
   label(c,ticker,102-offset+width,119,12,foreground,data,Float.MAX_VALUE);
   c.restore();
@@ -138,9 +150,10 @@ final class TvBroadcastInfoView extends View {
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
   rounded(c,0,0,150,24,0xffbf1827,5);
   label(c,"BREAKING NEWS",12,18,18,Color.WHITE,brand,138);
-  label(c,kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":"IMAGEM DE SATÉLITE",165,18,17,accent,brand,520);
+  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":"IMAGEM DE SATÉLITE",165,18,17,accent,brand,520);
   badge(c,status());
-  if(kind==WEATHER)drawWeather(c);
+  if(kind==RAIN)drawRain(c);
+  else if(kind==WEATHER)drawWeather(c);
   else if(kind==BRENT)drawBrent(c);
   else drawSatelliteNews(c);
   drawRadar(c,elapsed);
@@ -148,6 +161,15 @@ final class TvBroadcastInfoView extends View {
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
  private void metric(Canvas c,int index,String value,String caption,float x){icon(c,index,x,48,20);label(c,value,x+27,65,21,foreground,brand,105);label(c,caption,x,86,12,0xffb8d2df,brand,130);}
+ private void drawRain(Canvas c){
+  RainBannerContent facts=rainFacts;
+  label(c,facts.topic,11,70,29,0xffff6d7f,brand,108);
+  icon(c,0,127,41,28);label(c,facts.headline,165,60,23,foreground,brand,235);
+  label(c,facts.end,127,86,16,0xffb8d2df,brand,275);
+  metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",412);
+  metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",570);
+  metric(c,3,facts.duration,facts.durationLabel.contains("JANELA")?"JANELA ESTIMADA":rain!=null&&rain.state.equals("now")?"DURAÇÃO RESTANTE":"DURAÇÃO PREVISTA",735);
+ }
  private void drawWeather(Canvas c){
   label(c,"TEMPO",11,70,30,0xffff6d7f,brand,105);
   label(c,weather==null?"—":weather.temperatureValue,124,65,39,foreground,brand,112);

@@ -4,6 +4,16 @@ import java.util.*;
 /** Select complementary sentences; never turn current metrics into a new forecast. */
 final class WeatherTicker {
  static final int MAX_CHARS=230;
+ static String composeRain(String ai){
+  StringBuilder complementary=new StringBuilder();
+  for(String sentence:(ai==null?"":ai).split("(?<=[.!?])\\s+")){
+   if(sentence.toLowerCase(Locale.ROOT).matches(".*[0-9]\\s*(mm|min|hora|%|°).*"))continue;
+   if(complementary.length()>0)complementary.append(' ');complementary.append(sentence);
+  }
+  String result=compose(complementary.toString(),"");
+  return result.startsWith("Sem análise complementar")?"":result;
+ }
+
  static String compose(String ai,String outlook){
   StringBuilder result=new StringBuilder();Set<String> seen=new HashSet<>();
   for(String source:new String[]{ai,outlook}){
