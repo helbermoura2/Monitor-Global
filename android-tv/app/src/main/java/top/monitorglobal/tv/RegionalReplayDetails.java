@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/** On-screen status only; replay remains a Banner / CompactNotice OVERLAY. */
+/** On-screen status only; regional replay uses the same full-width seismic Banner with map. */
 final class RegionalReplayDetails {
  private RegionalReplayDetails(){}
  static boolean eligible(Alert a){
@@ -30,7 +30,7 @@ final class RegionalReplayDetails {
    +"Evento original: "+(at>0?time.format(new Date(at)):"horário não informado")
    +"\nFonte: "+(a.provider!=null&&!a.provider.isEmpty()?a.provider:"não identificada")
    +"\nDuração: 15 segundos, sem som, começando após 10 segundos."
-   +"\nA tarja REPLAY será exibida SOBRE o vídeo em reprodução, não dentro do aplicativo."
+   +"\nA tarja sísmica REPLAY com mapa do epicentro aparece SOBRE o vídeo em reprodução."
    +"\nAvisos prioritários podem interromper a exibição.";
  }
 }

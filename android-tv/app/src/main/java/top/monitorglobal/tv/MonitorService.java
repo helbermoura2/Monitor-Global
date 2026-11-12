@@ -5,9 +5,9 @@ public final class MonitorService extends Service {
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ToneGenerator tone;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
- private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private VoiceStatusOverlay voiceNotice;private boolean targetsEnabled,compactBusy;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
+ private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private VoiceStatusOverlay voiceNotice;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
- private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){compact.hide();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
+ private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){stopTarget();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
  private final Runnable dailyTick=new Runnable(){public void run(){if(destroyed)return;checkDaily();rain.tick();brent.tick();long now=System.currentTimeMillis();main.postDelayed(this,Math.min(Math.min(DailySummarySchedule.delay(now),WeatherForecast.delay(now)),BrentQuote.delay(now,Prefs.get(MonitorService.this).getLong("brentLastSlot",0))));}};
  @Override public void onCreate(){super.onCreate();RuntimeDiagnostics.start(this);banner=new Banner(this);compact=new CompactNotice(this);voiceNotice=new VoiceStatusOverlay(this);targetSettingsRevision=Prefs.get(this).getLong("targetSettingsRevision",0);targetsEnabled=Prefs.get(this).getBoolean("targetAlerts",true);tracker=Prefs.tracker(this);feed=new FeedClient();daily=new DailySummarySchedule(Prefs.get(this).getString("dailyDeliveredDay",""));brent=new BrentMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!rain.presentationActive());rain=new RainMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!brent.showing());rain.setManualFinished(this::stopIfIdle);IntentFilter filter=new IntentFilter(Intent.ACTION_SCREEN_OFF);filter.addAction(Intent.ACTION_SCREEN_ON);filter.addAction(Intent.ACTION_TIME_CHANGED);filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);if(Build.VERSION.SDK_INT>=33)registerReceiver(screenChanges,filter,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(screenChanges,filter);NotificationManager n=getSystemService(NotificationManager.class);NotificationChannel service=new NotificationChannel("monitoring","Monitoramento contínuo",NotificationManager.IMPORTANCE_LOW);service.setSound(null,null);n.createNotificationChannel(service);NotificationChannel alerts=new NotificationChannel("alerts","Terremotos e tsunami",NotificationManager.IMPORTANCE_HIGH);alerts.setSound(null,null);n.createNotificationChannel(alerts);}
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
@@ -79,7 +79,7 @@ public final class MonitorService extends Service {
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if((TEST+"_RAIN").equals(action)||(TEST+"_STORM").equals(action)){boolean stormPreview=(TEST+"_STORM").equals(action);cancelDemos();Prefs.status(this,stormPreview?"Prévia fictícia de chuva e relâmpagos em 10 segundos.":"Teste fictício de chuva em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){activeUntil=SystemClock.uptimeMillis()+RainOverlay.DURATION+800;rain.demo(stormPreview);Runnable finish=new Runnable(){public void run(){demoTasks.remove(this);if(!draining){activeUntil=0;tryTarget();tryDaily();stopIfIdle();}}};demoTasks.add(finish);main.postDelayed(finish,RainOverlay.DURATION+800);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
-  if((TEST+"_TARGET").equals(action)){Alert a=new Alert("DEMO-TARGET","earthquake","demo","M5,4 · Katmandu, Nepal","","earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);a.magnitude=5.4;a.depth=12;a.source="EXEMPLO";a.targetArea="Katmandu · Nepal";Prefs.status(this,"Aviso menor fictício em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){showTargetCard(a,true);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
+  if((TEST+"_TARGET").equals(action)){Alert a=new Alert("DEMO-TARGET","earthquake","demo","M5,4 · Katmandu, Nepal","","earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);a.magnitude=5.4;a.depth=12;a.source="EXEMPLO";a.targetArea="Katmandu · Nepal";a.countryCode="NP";a.compact=true;a.originLongitude=85.324;a.originLatitude=27.717;Prefs.status(this,"Aviso menor fictício em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){showTargetCard(a,true);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if(TEST.equals(action)||TEST_REVISION.equals(action)||TEST_TSUNAMI.equals(action)||TEST_END.equals(action)||TEST_NO_THREAT.equals(action)||TEST_SEQUENCE.equals(action)){
    String scenario=TEST_REVISION.equals(action)?"revision":TEST_TSUNAMI.equals(action)?"tsunami":TEST_END.equals(action)?"ended":TEST_NO_THREAT.equals(action)?"noThreat":TEST_SEQUENCE.equals(action)?"sequence":"quake";
    scheduleDemo(scenario);if(Prefs.get(this).getBoolean("enabled",false)){ensurePolling();return START_STICKY;}return START_NOT_STICKY;
@@ -262,15 +262,29 @@ public final class MonitorService extends Service {
  }catch(Exception e){Prefs.status(this,"Sem atualização confirmada. Tentando novamente em 30 s.");}}
  private static String catalogLabel(String key){return key.equals("USGS_BR")?"USGS Brasil":key.equals("EMSC_GLOBAL")?"EMSC global":key.equals("GEOFON_GLOBAL")?"GEOFON global":key.equals("EMSC")?"EMSC Brasil":key.equals("GEOFON")?"GEOFON Brasil":key;}
  private void refreshOfficialConfig(){if(destroyed||android.os.SystemClock.elapsedRealtime()<nextConfigCheck)return;nextConfigCheck=android.os.SystemClock.elapsedRealtime()+15*60000L;try{org.json.JSONObject root=OfficialConfig.read();if(destroyed)return;OfficialConfig.applyTheme(this,root);OfficialConfig.Release release=OfficialConfig.release(root);if(release.enabled&&TrustPolicy.newer(BuildConfig.VERSION_CODE,release.code))Prefs.get(this).edit().putString("updateStatus","Atualização oficial "+release.version+" disponível. Abra Verificar atualização oficial.").apply();}catch(Exception ignored){}}
- private void stopTarget(){if(targetEnd!=null)main.removeCallbacks(targetEnd);targetEnd=null;compactBusy=false;compact.hide();}
+ private void stopTarget(){if(targetEnd!=null)main.removeCallbacks(targetEnd);targetEnd=null;compactBusy=false;if(targetBannerActive){targetBannerActive=false;banner.hide();}compact.hide();}
  private void tryTarget(){if(destroyed||!targetsEnabled||localBusy()||daily!=null&&daily.displaying()||!screenReady())return;Alert a=targetQueue.next(System.currentTimeMillis());if(a==null)return;showTargetCard(a,false);}
  private void showTargetCard(Alert a,boolean demo){showTargetCard(a,demo,false);}
  private void showTargetCard(Alert a,boolean demo,boolean replay){showTargetCard(a,demo,replay,false);}
  private void showTargetCard(Alert a,boolean demo,boolean replay,boolean voiceQuery){
-  rain.hide();brent.hide();compactBusy=true;
+  // A tarja de sismo é a referência única: o regional não pode abrir um card
+  // menor sem mapa. Replay permanece silencioso e com 15 s de apresentação.
+  rain.hide();brent.hide();voiceNotice.hide();
   if(!demo&&!replay)Prefs.rememberTarget(this,a);
-  if(voiceQuery)compact.showVoiceBrazil(a);else compact.show(a,demo,replay);
-  targetEnd=()->{compactBusy=false;targetEnd=null;tryTarget();tryDaily();stopIfIdle();};
+  boolean shown=banner.showRegional(a,demo,replay);
+  if(!shown){Prefs.status(this,"Aviso regional: confira a permissão para exibir a tarja sobre a TV.");stopIfIdle();return;}
+  compactBusy=true;targetBannerActive=true;
+  if(!demo&&!replay&&Prefs.get(this).getBoolean("sound",true)){
+   try{
+    if(tone==null)tone=new ToneGenerator(AudioManager.STREAM_NOTIFICATION,45);
+    tone.startTone(ToneGenerator.TONE_PROP_BEEP,160);
+   }catch(RuntimeException ignored){}
+  }
+  targetEnd=()->{
+   targetEnd=null;compactBusy=false;
+   if(targetBannerActive){targetBannerActive=false;banner.hide();}
+   tryTarget();tryDaily();stopIfIdle();
+  };
   main.postDelayed(targetEnd,CompactNotice.DURATION_MS+700);
  }
  private void drain(){if(destroyed||draining)return;if(queue.isEmpty()){tryTarget();tryDaily();return;}startReal(queue.remove());}

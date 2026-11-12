@@ -7,6 +7,11 @@ final class Banner {
  static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
  boolean show(Alert a,boolean demo,boolean replay){return showView(new NewsBannerView(context,a,demo,replay),BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20)),0,null);}
+ /** Regionally monitored M5.0–5.9 uses the genuine seismic bulletin and epicenter
+  * map, preserving the original 15s regional slot and seismic 700ms wipe. */
+ boolean showRegional(Alert alert,boolean demo,boolean replay){
+  return showView(new NewsBannerView(context,alert,demo,replay),CompactNotice.DURATION_MS,0,null);
+ }
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete){return showSummary(alerts,day,replay,complete,null);}
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete,Runnable finished){return showView(new NewsBannerView(context,alerts,day,replay,complete),0,alerts.size(),finished);}
  boolean showWeather(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,long duration,Runnable finished){

@@ -32,7 +32,8 @@ final class TvBroadcastInfoView extends View {
  private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private float mapReveal=1;
  private String ticker;private final String baseTicker;
- private final Path outline=new Path();
+ private final Path outline=new Path(),telegramPlane=new Path();
+ private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private boolean running;
  private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
 
@@ -49,6 +50,15 @@ final class TvBroadcastInfoView extends View {
   foreground=Color.parseColor(Prefs.get(c).getString("themeText","#ffffff"));
   background=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#071724":Prefs.get(c).getString("themeBackground","#071724"));
   outline.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
+  // Match NewsBannerView's alternating site/Telegram footer exactly.
+  p.setTypeface(brand);p.setTextSize(17);
+  identityTextWidths[0]=p.measureText("monitorglobal.top");
+  identityTextWidths[1]=p.measureText("@monitor_global");
+  identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;
+  identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
+  telegramPlane.moveTo(-5.5f,-.5f);telegramPlane.lineTo(5,-4.5f);
+  telegramPlane.lineTo(3,5);telegramPlane.lineTo(-.5f,2);
+  telegramPlane.lineTo(2.5f,-1.5f);telegramPlane.lineTo(-2,1);telegramPlane.close();
   if(kind==RAIN){locator=null;ticker=(demo?"SIMULAÇÃO FICTÍCIA · ":"")+rainFacts.accessible;
   }else if(kind==WEATHER){
    locator=new Alert("weather-liberdade","weather","","","","",0,0,false);
@@ -123,28 +133,46 @@ final class TvBroadcastInfoView extends View {
  }
  private String status(){return demo?"TESTE FICTÍCIO":"AO VIVO";}
  private void drawRadar(Canvas c,long elapsed){
-  c.save();c.translate(927,60);
-  p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.5f);p.setColor(accent);
-  for(float r:new float[]{26,18,10})c.drawCircle(0,0,r,p);
-  p.setStyle(Paint.Style.FILL);p.setColor(accent);
-  float sweep=animate?(elapsed%2400)/2400f*360:-90f; c.rotate(sweep);
-  c.drawArc(-26,-26,26,26,-90,47,true,p);c.restore();
+  BroadcastVisuals.radar(c,p,elapsed,animate);
  }
- private void drawIdentity(Canvas c){
+ private float identityLeft(long elapsed){
+  int current=BannerTimeline.page(elapsed,2),within=(int)(elapsed%BannerTimeline.PAGE_MS);
+  float width=identityWidths[current];
+  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)
+   width=Math.max(identityWidths[0],identityWidths[1]);
+  return 960-width;
+ }
+ private void identity(Canvas c,int index,int opacity){
+  if(opacity<=0)return;
+  float labelX=954-identityTextWidths[index];
+  int layer=c.saveLayerAlpha(960-identityWidths[index],100,960,126,opacity);
+  c.clipPath(outline);
+  if(index==1){
+   c.save();c.translate(labelX-14,113);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(42,171,238));
+   c.drawCircle(0,0,8,p);p.setColor(Color.WHITE);c.drawPath(telegramPlane,p);c.restore();
+  }
+  label(c,index==0?"monitorglobal.top":"@monitor_global",labelX,119,17,Color.WHITE,brand,206);
+  c.restoreToCount(layer);
+ }
+ private void drawIdentity(Canvas c,long elapsed){
   fill(c,0,100,960,26,0xff020816);
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
   fill(c,0,100,90,26,0xffbf1827);
-  label(c,clockText,13,119,18,Color.WHITE,data,68);
-  c.save();c.clipRect(98,100,719,126);
-  p.setTypeface(data);p.setTextSize(12);float width=p.measureText(ticker)+70;
-  float offset=animate?(SystemClock.uptimeMillis()-started)/1000f*(kind==WEATHER||kind==RAIN?84:55)%width:0;
-  label(c,ticker,102-offset,119,12,foreground,data,Float.MAX_VALUE);
-  label(c,ticker,102-offset+width,119,12,foreground,data,Float.MAX_VALUE);
+  p.setTypeface(data);p.setTextSize(18);
+  label(c,clockText,45-p.measureText(clockText)/2,119,18,Color.WHITE,data,78);
+  int index=BannerTimeline.page(elapsed,2);
+  long within=elapsed%BannerTimeline.PAGE_MS;
+  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
+   float t=BannerTimeline.progress(within);
+   identity(c,1-index,(int)(255*(1-t)));identity(c,index,(int)(255*t));
+  }else identity(c,index,255);
+  c.save();c.clipRect(BroadcastVisuals.TICKER_START_X,101,identityLeft(elapsed)-8,124);
+  p.setTypeface(data);p.setTextSize(12);float length=p.measureText(ticker)+90;
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
+  label(c,ticker,100-offset,119,12,Color.WHITE,data,Float.MAX_VALUE);
+  label(c,ticker,100-offset+length,119,12,Color.WHITE,data,Float.MAX_VALUE);
   c.restore();
-  fill(c,724,100,236,26,0xff102738);
-  label(c,"monitorglobal.top",730,118,13,foreground,brand,126);
-  label(c,"@monitor_global",853,118,12,accent,brand,102);
  }
  private void drawHeader(Canvas c,long elapsed){
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
@@ -157,7 +185,7 @@ final class TvBroadcastInfoView extends View {
   else if(kind==BRENT)drawBrent(c);
   else drawSatelliteNews(c);
   drawRadar(c,elapsed);
-  drawIdentity(c);
+  drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
  private void metric(Canvas c,int index,String value,String caption,float x){icon(c,index,x,48,20);label(c,value,x+27,65,21,foreground,brand,105);label(c,caption,x,86,12,0xffb8d2df,brand,130);}
@@ -230,7 +258,10 @@ final class TvBroadcastInfoView extends View {
   canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
   drawHeader(canvas,elapsed);canvas.restore();
   drawMap(canvas);canvas.restore();
-  if(running&&animate&&isShown())postInvalidateDelayed(100);
+  if(running&&isShown()){
+   if(animate)postInvalidateOnAnimation();
+   else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));
+  }
  }
  @Override protected void onAttachedToWindow(){
   super.onAttachedToWindow();running=true;
