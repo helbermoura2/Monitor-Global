@@ -64,7 +64,8 @@ final class TvBroadcastInfoView extends View {
    locator=new Alert("weather-liberdade","weather","","","","",0,0,false);
    locator.originLongitude=RainForecast.LONGITUDE;locator.originLatitude=RainForecast.LATITUDE;
    StringBuilder t=new StringBuilder(demo?"SIMULAÇÃO FICTÍCIA · ":"");
-   if(weather!=null)t.append(weather.condition).append(" · ").append(weather.temperature)
+   t.append("CONDIÇÃO ESTIMADA: ").append(WeatherConditionDisplay.headline(weather,rain));
+   if(weather!=null)t.append(" · MODELO HORÁRIO: ").append(weather.condition).append(" · ").append(weather.temperature)
       .append(" · ").append(weather.humidity).append(" · ").append(weather.wind).append(" · Rajadas ").append(weather.gustValue);
    if(rain!=null)t.append(" · CHUVA POR MINUTO: ").append(rain.title).append(" · ").append(rain.amountText);
    t.append(" · ").append(WeatherConditionDisplay.sourceNote(weather,rain));
