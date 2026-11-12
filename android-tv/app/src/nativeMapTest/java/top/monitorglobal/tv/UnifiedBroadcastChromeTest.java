@@ -57,7 +57,7 @@ public class UnifiedBroadcastChromeTest {
   Bitmap c=frame(meteo,960,126+meteo.mapSpace,1100);
   try{
    int changed=0,bright=0;
-   for(int y=26;y<96;y++)for(int x=884;x<958;x++){
+   for(int y=26;y<96;y++)for(int x=886;x<958;x++){
     int seismicPixel=a.getPixel(x,y+Banner.insetDp(context));
     int marketPixel=b.getPixel(x,y);
     int weatherPixel=c.getPixel(x,y+meteo.mapSpace);
