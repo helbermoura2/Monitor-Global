@@ -81,7 +81,8 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   for(int x:new int[]{10,30,240,255}){
+   // Sample untouched red margins; white text is now deliberately much wider.
+   for(int x:new int[]{10,255}){
     assertEquals("Long breaking label on seismic",0xffbf1827,a.getPixel(x,map+10));
     assertEquals("Long breaking label on market",0xffbf1827,b.getPixel(x,10));
    }
