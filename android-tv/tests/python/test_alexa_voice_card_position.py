@@ -1,48 +1,54 @@
-"""Protect the UX contract: Alexa query cards stay in the TV corner, not centered."""
-import pathlib
+"""All Alexa voice responses must use the official newsroom lower-third.
+
+The original voice consultation corner card was removed after real-TV feedback.
+"""
+from pathlib import Path
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
-JAVA = ROOT / "android-tv/app/src/main/java/top/monitorglobal/tv"
+ROOT=Path(__file__).resolve().parents[3]
+JAVA=ROOT/"android-tv/app/src/main/java/top/monitorglobal/tv"
 
 
-class AlexaVoiceCardPlacementTest(unittest.TestCase):
-    def test_empty_or_unavailable_result_uses_bottom_right(self):
-        overlay = (JAVA / "VoiceStatusOverlay.java").read_text(encoding="utf-8")
-        self.assertIn("params.gravity=Gravity.BOTTOM|Gravity.RIGHT", overlay)
-        self.assertNotIn("params.gravity=Gravity.CENTER;", overlay)
-        self.assertIn("params.x=dp(32)", overlay)
-        self.assertIn("params.y=dp(32)", overlay)
-
-    def test_real_brazil_quake_uses_full_breaking_news_banner_with_map(self):
-        service = (JAVA / "MonitorService.java").read_text(encoding="utf-8")
-        banner = (JAVA / "NewsBannerView.java").read_text(encoding="utf-8")
-        self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)", service)
-        self.assertIn("fetchLatestBrazil(true)", service)
-        self.assertIn("fetchLatestBrazil(false)", service)
-        self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)", service)
-        self.assertNotIn("showTargetCard(alert,false,true,true)", service)
-        self.assertIn('text(c,"BREAKING NEWS"', banner)
-        self.assertIn("drawMap(c,index,elapsed,fadeElapsed)", banner)
-        self.assertIn('replay?"REPLAY"', banner)
-
-    def test_common_style_for_brent_weather_and_alexa(self):
-        style = (JAVA / "TvCardStyle.java").read_text(encoding="utf-8")
-        weather = (JAVA / "WeatherCardView.java").read_text(encoding="utf-8")
-        brent = (JAVA / "BrentCardView.java").read_text(encoding="utf-8")
-        voice = (JAVA / "VoiceStatusOverlay.java").read_text(encoding="utf-8")
-        rain = (JAVA / "RainStripView.java").read_text(encoding="utf-8")
-        self.assertIn("fonts/Rajdhani-Bold.ttf", style)
-        self.assertIn("static final int BODY=0xff071724", style)
-        self.assertIn("static final int CYAN=0xff38bdf8", style)
-        for card in [weather, brent, voice, rain]:
-            self.assertIn("TvCardStyle.brand(", card)
-        self.assertIn("TvCardStyle.header(context)", voice)
-        self.assertIn("TvCardStyle.body(context)", voice)
-        self.assertIn("TvCardStyle.footer(context)", voice)
-        self.assertIn("BODY=TvCardStyle.BODY", weather)
-        self.assertIn("BODY=TvCardStyle.BODY", brent)
+def source(name):
+    return (JAVA/name).read_text(encoding="utf-8")
 
 
-if __name__ == "__main__":
+class AlexaVoiceBannerPlacementTest(unittest.TestCase):
+    def test_old_corner_card_is_deleted_and_never_constructed(self):
+        service=source("MonitorService.java")
+        self.assertFalse((JAVA/"VoiceStatusOverlay.java").exists())
+        self.assertNotIn("new VoiceStatusOverlay(",service)
+        self.assertNotIn("voiceNotice.show(",service)
+        self.assertNotIn('voiceInfo("Consulta do Brent"',service)
+        self.assertIn("banner.showVoiceStatus(title,detail,duration,null)",service)
+        self.assertIn("brent.setFeedback(message->Prefs.status(",service)
+
+    def test_brent_immediately_uses_the_same_full_width_market_banner(self):
+        market=source("BrentMonitor.java")
+        overlay=source("BrentOverlay.java")
+        banner=source("Banner.java")
+        view=source("TvBroadcastInfoView.java")
+        self.assertIn("overlay.showPending()",market)
+        self.assertIn("banner.showMarketPending(65000L",overlay)
+        self.assertIn("TvBroadcastInfoView.marketPending(context)",banner)
+        self.assertIn("marketPending=true",view)
+        self.assertIn("if(marketPending)",view)
+        self.assertIn('label(c,"BREAKING NEWS"',view)
+        self.assertIn("BroadcastVisuals.radar(c,p,elapsed,animate)",view)
+        self.assertIn("BrentQuote.DISPLAY",overlay)
+        self.assertNotIn('new VoiceStatusOverlay',overlay)
+
+    def test_brazil_earthquake_replay_stays_on_full_seismic_banner_with_map(self):
+        service=source("MonitorService.java")
+        banner=source("NewsBannerView.java")
+        self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)",service)
+        self.assertIn("fetchLatestBrazil(true)",service)
+        self.assertIn("fetchLatestBrazil(false)",service)
+        self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)",service)
+        self.assertIn('text(c,"BREAKING NEWS"',banner)
+        self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
+        self.assertIn('replay?"REPLAY"',banner)
+
+
+if __name__=="__main__":
     unittest.main()

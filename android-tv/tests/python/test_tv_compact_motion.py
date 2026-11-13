@@ -62,9 +62,11 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("NewsBannerView", source("Banner.java"))
         self.assertIn("BannerRevealLayout", source("Banner.java"))
 
-    def test_separate_small_status_overlays_stay_bottom_anchored(self):
-        self.assertIn("params.gravity=Gravity.BOTTOM|Gravity.RIGHT", source("VoiceStatusOverlay.java"))
-        self.assertIn("p.gravity=Gravity.BOTTOM|Gravity.RIGHT", source("CompactNotice.java"))
+    def test_voice_uses_standardized_broadcast_instead_of_old_corner_card(self):
+        self.assertFalse((JAVA / "VoiceStatusOverlay.java").exists())
+        self.assertIn("banner.showVoiceStatus(title,detail,duration,null)", source("MonitorService.java"))
+        self.assertIn("banner.showMarketPending(65000L", source("BrentOverlay.java"))
+        self.assertIn("p.gravity=(Prefs.get(context).getBoolean", source("Banner.java"))
 
 
 if __name__ == "__main__":

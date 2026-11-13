@@ -49,7 +49,8 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("static boolean due(long last,long now)", weather)
         self.assertIn("static boolean marketOpen", brent)
         self.assertIn("if(!destroyed&&!draining&&queue.isEmpty())display(a,demo,replay)", service)
-        self.assertIn("rain.hide();brent.hide();voiceNotice.hide();stopTarget()", service)
+        self.assertIn("rain.hide();brent.hide();stopTarget()", service)
+        self.assertNotIn("voiceNotice", service)
 
 
 if __name__ == "__main__":

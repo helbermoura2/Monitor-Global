@@ -22,6 +22,14 @@ final class Banner {
   return showView(TvBroadcastInfoView.market(context,quote,dollar,demo),duration,0,finished);
  }
  boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo,long duration,Runnable finished){return showView(TvBroadcastInfoView.market(context,quote,dollar,bs,ds,demo),duration,0,finished);}
+ /** On-demand Alexa Brent opens the SAME hourly strip immediately, never a second corner window. */
+ boolean showMarketPending(long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.marketPending(context),duration,0,finished);
+ }
+ /** Generic voice responses also use the broadcast lower-third instead of VoiceStatusOverlay. */
+ boolean showVoiceStatus(String title,String detail,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.voiceStatus(context,title,detail),duration,0,finished);
+ }
  boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
  }

@@ -5,11 +5,11 @@ public final class MonitorService extends Service {
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
- private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private VoiceStatusOverlay voiceNotice;private int voiceStatusGeneration;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
+ private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
  private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){TvSounds.stop();stopTarget();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
  private final Runnable dailyTick=new Runnable(){public void run(){if(destroyed)return;checkDaily();rain.tick();brent.tick();long now=System.currentTimeMillis();main.postDelayed(this,Math.min(Math.min(DailySummarySchedule.delay(now),WeatherForecast.delay(now)),BrentQuote.delay(now,Prefs.get(MonitorService.this).getLong("brentLastSlot",0))));}};
- @Override public void onCreate(){super.onCreate();RuntimeDiagnostics.start(this);banner=new Banner(this);compact=new CompactNotice(this);voiceNotice=new VoiceStatusOverlay(this);targetSettingsRevision=Prefs.get(this).getLong("targetSettingsRevision",0);targetsEnabled=Prefs.get(this).getBoolean("targetAlerts",true);tracker=Prefs.tracker(this);feed=new FeedClient();daily=new DailySummarySchedule(Prefs.get(this).getString("dailyDeliveredDay",""));brent=new BrentMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!rain.presentationActive());rain=new RainMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!brent.showing());rain.setManualFinished(this::stopIfIdle);IntentFilter filter=new IntentFilter(Intent.ACTION_SCREEN_OFF);filter.addAction(Intent.ACTION_SCREEN_ON);filter.addAction(Intent.ACTION_TIME_CHANGED);filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);if(Build.VERSION.SDK_INT>=33)registerReceiver(screenChanges,filter,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(screenChanges,filter);NotificationManager n=getSystemService(NotificationManager.class);NotificationChannel service=new NotificationChannel("monitoring","Monitoramento contínuo",NotificationManager.IMPORTANCE_LOW);service.setSound(null,null);n.createNotificationChannel(service);NotificationChannel alerts=new NotificationChannel("alerts","Terremotos e tsunami",NotificationManager.IMPORTANCE_HIGH);alerts.setSound(null,null);n.createNotificationChannel(alerts);}
+ @Override public void onCreate(){super.onCreate();RuntimeDiagnostics.start(this);banner=new Banner(this);compact=new CompactNotice(this);targetSettingsRevision=Prefs.get(this).getLong("targetSettingsRevision",0);targetsEnabled=Prefs.get(this).getBoolean("targetAlerts",true);tracker=Prefs.tracker(this);feed=new FeedClient();daily=new DailySummarySchedule(Prefs.get(this).getString("dailyDeliveredDay",""));brent=new BrentMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!rain.presentationActive());rain=new RainMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!brent.showing());rain.setManualFinished(this::stopIfIdle);IntentFilter filter=new IntentFilter(Intent.ACTION_SCREEN_OFF);filter.addAction(Intent.ACTION_SCREEN_ON);filter.addAction(Intent.ACTION_TIME_CHANGED);filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);if(Build.VERSION.SDK_INT>=33)registerReceiver(screenChanges,filter,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(screenChanges,filter);NotificationManager n=getSystemService(NotificationManager.class);NotificationChannel service=new NotificationChannel("monitoring","Monitoramento contínuo",NotificationManager.IMPORTANCE_LOW);service.setSound(null,null);n.createNotificationChannel(service);NotificationChannel alerts=new NotificationChannel("alerts","Terremotos e tsunami",NotificationManager.IMPORTANCE_HIGH);alerts.setSound(null,null);n.createNotificationChannel(alerts);}
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Monitor Global TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
@@ -32,12 +32,16 @@ public final class MonitorService extends Service {
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(CHECK_BRENT.equals(action)){
-   brent.setOnPresented(()->{voiceStatusGeneration++;voiceNotice.hide();});
-    brent.setFeedback(message->{
-     if(brent.showing()){voiceStatusGeneration++;voiceNotice.hide();Prefs.status(this,"Consulta do Brent · "+message);}
-     else voiceInfo("Consulta do Brent",message);
-    });
-   if(intent.getBooleanExtra("alexaRequest",false)){brent.checkNow();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
+   // Brent voice is rendered directly by BrentOverlay/Banner, including
+   // loading, real prices and source failures. NO "Consulta por voz" card.
+   brent.setFeedback(message->Prefs.status(this,"Consulta do Brent · "+message));
+   if(intent.getBooleanExtra("alexaRequest",false)){
+    // An explicit voice request may replace routine weather information, but
+    // must never preempt seismic/tsunami notices or regional replay.
+    if(!localBusy()&&!daily.displaying())rain.hide();
+    brent.checkNow();
+    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
    if(!Prefs.get(this).getBoolean("enabled",false)){
     Prefs.get(this).edit().putString("brentStatus","Ative o monitoramento para verificar o Brent real.").apply();
     stopIfIdle();return START_NOT_STICKY;
@@ -102,7 +106,7 @@ public final class MonitorService extends Service {
  }
  private void enqueue(List<Alert> alerts,List<Alert> snapshot,boolean quakeOk,boolean tsunamiOk){
   AlertPairing.refreshQueuedCompanions(queue,snapshot,quakeOk,tsunamiOk);
-  targetQueue.primary(alerts);if(!alerts.isEmpty()){rain.hide();brent.hide();voiceNotice.hide();stopTarget();interruptDaily();cancelDemos();}List<Alert> notices=AlertPairing.coalesce(alerts);
+  targetQueue.primary(alerts);if(!alerts.isEmpty()){rain.hide();brent.hide();stopTarget();interruptDaily();cancelDemos();}List<Alert> notices=AlertPairing.coalesce(alerts);
   Alert update=null;for(Alert a:notices)if(AlertPairing.updates(activeReal,a)){update=a;break;}
   if(update!=null){Alert latest=update;queue.removeIf(old->AlertPairing.replacesQueued(latest,old));startReal(latest);}
   for(Alert a:notices)if(update==null||!AlertPairing.represents(update,a))putPending(a);
@@ -153,19 +157,13 @@ public final class MonitorService extends Service {
  private void voiceInfo(String title,String detail){
   if(destroyed)return;
   Prefs.status(this,title+" · "+detail);
-  if(!screenReady()||localBusy()||daily.displaying())return;
-  // Brent can consult both Worker and Yahoo + independent FX; show an honest
-  // pending state until a real market banner is ready, not only for 12 seconds.
-  boolean pending="Consulta do Brent".equals(title)&&
-   (detail.startsWith("Consultando")||detail.startsWith("Cotação real já em consulta")||
-    detail.startsWith("Fonte principal")||detail.startsWith("Brent consultado"));
-  long duration=pending?60000L:VoiceStatusOverlay.DURATION;
-  final int token=++voiceStatusGeneration;
-  if(!voiceNotice.show(title,detail,duration)){stopIfIdle();return;}
+  if(!screenReady()||localBusy()||daily.displaying()||rain.presentationActive()||brent.showing())return;
+  // Even unavailable/empty Alexa results use the SAME standard full-width
+  // broadcaster, never a separate corner status card.
+  final long duration=12000L;
+  if(!banner.showVoiceStatus(title,detail,duration,null)){stopIfIdle();return;}
   Runnable end=new Runnable(){public void run(){
-   demoTasks.remove(this);
-   if(token==voiceStatusGeneration)voiceNotice.hide();
-   stopIfIdle();
+   demoTasks.remove(this);stopIfIdle();
   }};
   demoTasks.add(end);main.postDelayed(end,duration+300);
  }
@@ -284,7 +282,7 @@ public final class MonitorService extends Service {
  private void showTargetCard(Alert a,boolean demo,boolean replay,boolean voiceQuery){
   // A tarja de sismo é a referência única: o regional não pode abrir um card
   // menor sem mapa. Replay permanece silencioso e com 15 s de apresentação.
-  rain.hide();brent.hide();voiceNotice.hide();
+  rain.hide();brent.hide();
   if(!demo&&!replay)Prefs.rememberTarget(this,a);
   boolean shown=banner.showRegional(a,demo,replay);
   if(!shown){Prefs.status(this,"Aviso regional: confira a permissão para exibir a tarja sobre a TV.");stopIfIdle();return;}
@@ -305,10 +303,10 @@ public final class MonitorService extends Service {
  private void display(Alert a,boolean demo,boolean replay){
   if(!demo&&!replay)Prefs.rememberReal(this,a);
   if(demo||replay)activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.durationMillis(a,Prefs.get(this).getInt("seconds",20));
-  rain.hide();brent.hide();voiceNotice.hide();stopTarget();boolean overlay=banner.show(a,demo,replay);if(!overlay)try{getSystemService(NotificationManager.class).notify(100+Math.floorMod(a.id.hashCode(),1000000),new Notification.Builder(this,"alerts").setSmallIcon(R.drawable.ic_monitor).setContentTitle((demo?"DEMONSTRAÇÃO · ":replay?"REPLAY · ":!a.revision.isEmpty()?"ATUALIZAÇÃO · ":"")+a.title).setContentText(a.detail).setStyle(new Notification.BigTextStyle().bigText((a.revision.isEmpty()?"":a.revision+" · ")+a.detail)).setContentIntent(open()).setAutoCancel(true).build());}catch(SecurityException e){Prefs.status(this,"Notificações bloqueadas pelo sistema. Confira a permissão de sobreposição.");}
+  rain.hide();brent.hide();stopTarget();boolean overlay=banner.show(a,demo,replay);if(!overlay)try{getSystemService(NotificationManager.class).notify(100+Math.floorMod(a.id.hashCode(),1000000),new Notification.Builder(this,"alerts").setSmallIcon(R.drawable.ic_monitor).setContentTitle((demo?"DEMONSTRAÇÃO · ":replay?"REPLAY · ":!a.revision.isEmpty()?"ATUALIZAÇÃO · ":"")+a.title).setContentText(a.detail).setStyle(new Notification.BigTextStyle().bigText((a.revision.isEmpty()?"":a.revision+" · ")+a.detail)).setContentIntent(open()).setAutoCancel(true).build());}catch(SecurityException e){Prefs.status(this,"Notificações bloqueadas pelo sistema. Confira a permissão de sobreposição.");}
   TvSounds.play(this,TvSoundPattern.alert(a,replay));
  }
- @Override public void onDestroy(){destroyed=true;RuntimeDiagnostics.stop();brent.close();rain.close();voiceNotice.hide();try{unregisterReceiver(screenChanges);}catch(IllegalArgumentException ignored){}if(daily!=null)daily.interrupt();if(executor!=null)executor.shutdownNow();if(alexaExecutor!=null)alexaExecutor.shutdownNow();if(historyExecutor!=null)historyExecutor.shutdownNow();main.removeCallbacksAndMessages(null);banner.hide();compact.hide();targetQueue.clear();queue.clear();TvSounds.stop();super.onDestroy();}
+ @Override public void onDestroy(){destroyed=true;RuntimeDiagnostics.stop();brent.close();rain.close();try{unregisterReceiver(screenChanges);}catch(IllegalArgumentException ignored){}if(daily!=null)daily.interrupt();if(executor!=null)executor.shutdownNow();if(alexaExecutor!=null)alexaExecutor.shutdownNow();if(historyExecutor!=null)historyExecutor.shutdownNow();main.removeCallbacksAndMessages(null);banner.hide();compact.hide();targetQueue.clear();queue.clear();TvSounds.stop();super.onDestroy();}
  @Override public IBinder onBind(Intent intent){return null;}
 }
 

@@ -1,5 +1,5 @@
 package top.monitorglobal.tv;
-import android.content.*;import android.os.*;import java.util.*;import java.util.concurrent.*;import java.util.concurrent.atomic.*;import org.json.*;import org.junit.*;import static org.junit.Assert.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.*;import org.robolectric.shadows.*;
+import android.content.*;import android.os.*;import android.view.WindowManager;import java.util.*;import java.util.concurrent.*;import java.util.concurrent.atomic.*;import org.json.*;import org.junit.*;import static org.junit.Assert.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.*;import org.robolectric.shadows.*;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35,qualifiers="w1280dp-h720dp-land-hdpi",instrumentedPackages={"top.monitorglobal.tv"}) @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class BrentDeliveryTest {
  Context c;
@@ -37,6 +37,33 @@ public class BrentDeliveryTest {
   Prefs.get(c).edit().putBoolean("brentHourly",true).commit();CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);AtomicInteger calls=new AtomicInteger();
   BrentMonitor m=new BrentMonitor(c,()->true,()->{calls.incrementAndGet();entered.countDown();release.await(5,TimeUnit.SECONDS);return quote();});
   try{m.tick();assertTrue(entered.await(2,TimeUnit.SECONDS));m.checkNow();ShadowSystemClock.advanceBy(java.time.Duration.ofMinutes(31));m.tick();release.countDown();await(m);assertEquals(1,calls.get());assertTrue(m.showing());}finally{release.countDown();m.close();}
+ }
+ @Test public void voiceBrentStartsTheOfficialMarketTarjaBeforeNetworkReturns()throws Exception{
+  CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);
+  AtomicInteger shown=new AtomicInteger();
+  BrentMonitor m=new BrentMonitor(c,()->true,()->{
+   entered.countDown();release.await(5,TimeUnit.SECONDS);return quote();
+  });
+  m.setOnPresented(shown::incrementAndGet);
+  try{
+   m.checkNow();
+   assertTrue("The official market banner must be visible immediately",m.showing());
+   Object overlay=field(m,"overlay"),host=field(field(overlay,"banner"),"current");
+   assertNotNull(host);
+   WindowManager.LayoutParams layout=(WindowManager.LayoutParams)((android.view.View)host).getLayoutParams();
+   assertTrue("Full-width, not a small Alexa card",layout.width>c.getResources().getDisplayMetrics().widthPixels*.8);
+   android.view.View first=((android.view.ViewGroup)host).getChildAt(0);
+   assertTrue(first instanceof TvBroadcastInfoView);
+   assertTrue(first.getContentDescription().toString().contains("CONSULTANDO COTAÇÃO REAL"));
+   assertTrue(entered.await(2,TimeUnit.SECONDS));
+   release.countDown();await(m);
+   assertTrue(m.showing());assertEquals(1,shown.get());
+   Object finalHost=field(field(overlay,"banner"),"current");
+   android.view.View finalRow=((android.view.ViewGroup)finalHost).getChildAt(0);
+   assertTrue(finalRow instanceof TvBroadcastInfoView);
+   assertTrue(finalRow.getContentDescription().toString().contains("US$ 78,35"));
+   assertFalse(finalRow.getContentDescription().toString().contains("CONSULTANDO COTAÇÃO REAL"));
+  }finally{release.countDown();m.close();}
  }
  @Test public void priorityBlockReturnsExplicitReasonWithoutSourceRequest()throws Exception{
   List<String> messages=new ArrayList<>();AtomicInteger calls=new AtomicInteger();BrentMonitor m=new BrentMonitor(c,()->false,()->{calls.incrementAndGet();return quote();});m.setFeedback(messages::add);
