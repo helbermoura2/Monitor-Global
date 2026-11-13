@@ -3,7 +3,7 @@
 const M=window.PhoneBrazilModel,$=id=>document.getElementById(id);
 const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm em 1 h'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'}};
 const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v1';
-let city={name:'São Paulo',uf:'SP',id:'3550308',lat:-23.555,lon:-46.635},cities=[],map=null,markers=[],satellite=null,radar=null,ready=false,active=true,closed=false,loading=false,controller=null,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,requestId=0;
+let city={name:'São Paulo',uf:'SP',id:'3550308',lat:-23.555,lon:-46.635},cities=[],map=null,markers=[],satellite=null,radar=null,pendingSatellite=false,ready=false,active=true,closed=false,loading=false,controller=null,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,requestId=0;
 function note(message){const box=$('brazil-status');box.textContent=message;box.hidden=!message;box.dataset.kind=/aguarde|limite|indispon|falha|tente|recente/i.test(message)?'warning':'info';if(message&&!forecast&&/aguarde|limite|indispon|falha|tente|recente/i.test(message)){$('headline').textContent='Previsão não disponível no momento';$('time-label').textContent='Aguardando dados';}}
 function stored(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null;}}
 function store(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(e){/* Cache is optional; network remains bounded per session. */}}
@@ -61,6 +61,7 @@ function initMap(){
    ready=true;createMarker();
    try{satellite=window.BrazilSatellite.create({map,host:$('overlay-panel'),enabled:false});satelliteCheckbox()?.addEventListener('change',()=>{if(satellite?.state.enabled&&radar?.enabled){radar.toggle(false);$('radar-toggle').setAttribute('aria-pressed','false');}syncOverlays();});}catch(e){note('Satélite indisponível nesta visualização.');}
    try{radar=window.PhoneBrazilRadar.create(map,$('overlay-panel'));}catch(e){note('Radar indisponível nesta visualização.');}
+   if(pendingSatellite)showSatellite();
    if(forecast)note('');
   });
   map.on('error',event=>{if(event.sourceId==='imagery')note('Imagens de base indisponíveis. A previsão da cidade pode continuar acessível.');});
@@ -146,6 +147,8 @@ $('satellite-toggle').addEventListener('click',()=>{
  if(next&&radar?.enabled)radar.toggle(false);
  satelliteCheckbox()?.click();syncOverlays();
 });
-window.MonitorMap={pause,resume,close};window.addEventListener('pagehide',close);
+function showSatellite(){pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
+window.MonitorMap={pause,resume,close,showSatellite};window.addEventListener('pagehide',close);
 initMap();restore();load(false);loadCities();
 })();
+
