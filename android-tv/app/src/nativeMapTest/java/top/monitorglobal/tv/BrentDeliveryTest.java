@@ -9,11 +9,29 @@ public class BrentDeliveryTest {
  void await(BrentMonitor m)throws Exception{for(int i=0;i<1000&&(Boolean)field(m,"busy");i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}assertFalse((Boolean)field(m,"busy"));}
  @Test public void manualQuoteSurvivesAutomaticDisabledPulse()throws Exception{
   List<String> messages=new ArrayList<>();BrentMonitor m=new BrentMonitor(c,()->true,this::quote);m.setFeedback(messages::add);
-  try{m.checkNow();await(m);assertTrue(m.showing());m.tick();assertTrue(m.showing());assertTrue(messages.stream().anyMatch(v->v.startsWith("REAL ·")));}finally{m.close();}
+  try{
+    AtomicInteger displayed=new AtomicInteger();m.setOnPresented(displayed::incrementAndGet);
+    m.checkNow();await(m);assertTrue(m.showing());
+    m.tick();assertTrue(m.showing());
+    assertEquals(1,displayed.get());
+    assertTrue(messages.stream().anyMatch(v->v.startsWith("REAL ·")));
+   }finally{m.close();}
  }
  @Test public void failedProviderExplainsInsteadOfSilence()throws Exception{
   List<String> messages=new ArrayList<>();BrentMonitor m=new BrentMonitor(c,()->true,()->new JSONObject().put("ok",false).put("marketOpen",true).put("reason","source-unavailable"));m.setFeedback(messages::add);
-  try{m.checkNow();await(m);assertFalse(m.showing());assertTrue(messages.stream().anyMatch(v->v.contains("Consultando")));assertTrue(messages.stream().anyMatch(v->v.contains("sem cotação")));}finally{m.close();}
+  try{
+    AtomicInteger displayed=new AtomicInteger();m.setOnPresented(displayed::incrementAndGet);
+    m.checkNow();await(m);
+    assertTrue("Voice/manual Brent must display a truthful no-quote banner",m.showing());
+    assertEquals(1,displayed.get());
+    assertTrue(messages.stream().anyMatch(v->v.contains("Consultando")));
+    assertTrue(messages.stream().anyMatch(v->v.contains("sem cotação")));
+    Object overlay=field(m,"overlay"),host=field(field(overlay,"banner"),"current");
+    assertNotNull(host);
+    android.view.View row=((android.view.ViewGroup)host).getChildAt(0);
+    assertTrue(row instanceof TvBroadcastInfoView);
+    assertTrue(row.getContentDescription().toString().contains("sem cotação confirmada"));
+   }finally{m.close();}
  }
  @Test public void requestDuringAutomaticIoUsesSameResultAcrossHourBoundary()throws Exception{
   Prefs.get(c).edit().putBoolean("brentHourly",true).commit();CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);AtomicInteger calls=new AtomicInteger();
