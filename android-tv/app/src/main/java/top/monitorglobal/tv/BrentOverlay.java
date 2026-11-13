@@ -20,6 +20,13 @@ final class BrentOverlay {
  /** On-demand voice/manual consultation must always return a real newsroom strip.
   * Unknown market/source may show dashes and "sem cotação confirmada", never a
   * fabricated price. Automatic hourly display still requires a valid quote. */
+ /** Same official strip shown instantly while the live source is being consulted.
+  * Only manual/voice calls use this longer pending state; hourly timing is unchanged. */
+ boolean showPending(){
+  hide();final int token=++generation;
+  if(!banner.showMarketPending(65000L,()->{if(token==generation)current=null;}))return false;
+  current=banner.activeView();return true;
+ }
  boolean showUnavailable(DollarQuote dollar,MarketState brentState,MarketState dollarState){
   hide();final int token=++generation;
   if(!banner.showMarket(null,dollar,brentState==null?MarketState.unknown():brentState,
