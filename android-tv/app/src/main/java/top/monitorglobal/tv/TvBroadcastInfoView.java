@@ -11,7 +11,7 @@ import java.util.Locale;
  * Informational banners stay silent and preserve the existing timers.
  */
 final class TvBroadcastInfoView extends View {
- static final int WEATHER=1,BRENT=2,SATELLITE=3,RAIN=4;
+ static final int WEATHER=1,BRENT=2,SATELLITE=3,RAIN=4,VOICE_STATUS=5;
  private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final Typeface brand,data;
  private final int kind,accent,foreground,background;
@@ -20,6 +20,7 @@ final class TvBroadcastInfoView extends View {
  private final WeatherForecast.Summary weather;
  private final BrentQuote brent;
  private final DollarQuote dollar;private MarketState brentSession,dollarSession;
+ private boolean marketPending;private String voiceTitle="",voiceDetail="";
  private final WeatherSatelliteClient.Frame satellite;
  private java.util.function.Supplier<WeatherSatelliteClient.Frame> weatherSatellite;
  private final WeatherCardView.Icon[] weatherIcons=new WeatherCardView.Icon[4];
@@ -44,7 +45,7 @@ final class TvBroadcastInfoView extends View {
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
-  this.mapSpace=kind==RAIN||kind==BRENT||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
+  this.mapSpace=kind==RAIN||kind==BRENT||kind==VOICE_STATUS||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
   brand=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");
   data=Typeface.createFromAsset(c.getAssets(),"fonts/JetBrainsMono.ttf");
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
@@ -102,9 +103,28 @@ final class TvBroadcastInfoView extends View {
  static TvBroadcastInfoView market(Context c,BrentQuote b,DollarQuote d,MarketState bs,MarketState ds,boolean demo){TvBroadcastInfoView v=market(c,b,d,demo);if(bs!=null)v.brentSession=bs;if(ds!=null)v.dollarSession=ds;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();return v;}
  private String variationText(Double value){return value==null?"Variação indisponível":(value>=0?"+":"")+amount(value)+"%";}
  private void refreshMarket(){
-  if(kind!=BRENT)return;long sec=System.currentTimeMillis()/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(System.currentTimeMillis(),true);dollarSession=dollarSession.current(System.currentTimeMillis(),false);
+  if(kind!=BRENT)return;
+  if(marketPending){
+   ticker="BRENT · CONSULTANDO COTAÇÃO REAL · Verificando fontes do mercado · DÓLAR USD/BRL aguardando resultado · Sem valores fictícios";
+   setContentDescription(ticker);return;
+  }
+  long sec=System.currentTimeMillis()/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(System.currentTimeMillis(),true);dollarSession=dollarSession.current(System.currentTimeMillis(),false);
   ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
+ }
+ /** All voice status results reuse the SAME official seismic broadcast geometry. */
+ static TvBroadcastInfoView voiceStatus(Context c,String title,String detail){
+  TvBroadcastInfoView v=new TvBroadcastInfoView(c,VOICE_STATUS,null,null,null,null,null,null,false);
+  v.voiceTitle=title==null?"CONSULTA POR VOZ":title;
+  v.voiceDetail=detail==null?"":detail;
+  v.ticker="MONITOR GLOBAL · CONSULTA POR VOZ · "+v.voiceTitle+" · "+v.voiceDetail;
+  v.setContentDescription(v.ticker);return v;
+ }
+ /** The voice request immediately enters the hourly Brent/Dollar banner. */
+ static TvBroadcastInfoView marketPending(Context c){
+  TvBroadcastInfoView v=market(c,null,null,MarketState.unknown(),MarketState.unknown(),false);
+  v.marketPending=true;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();
+  return v;
  }
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
   return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
@@ -142,7 +162,7 @@ final class TvBroadcastInfoView extends View {
   rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
   label(c,value,960-width+12,18,17,Color.WHITE,brand,width-20);
  }
- private String status(){return demo?"TESTE FICTÍCIO":kind==BRENT?"COTAÇÕES":"AO VIVO";}
+ private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
  private void drawRadar(Canvas c,long elapsed){
   BroadcastVisuals.radar(c,p,elapsed,animate);
  }
@@ -189,11 +209,12 @@ final class TvBroadcastInfoView extends View {
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
   rounded(c,0,0,150,24,0xffbf1827,5);
   label(c,"BREAKING NEWS",12,18,18,Color.WHITE,brand,138);
-  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":"IMAGEM DE SATÉLITE",165,18,17,accent,brand,520);
+  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",165,18,17,accent,brand,520);
   badge(c,status());
   if(kind==RAIN)drawRain(c);
   else if(kind==WEATHER)drawWeather(c);
   else if(kind==BRENT)drawBrent(c);
+  else if(kind==VOICE_STATUS)drawVoiceStatus(c);
   else drawSatelliteNews(c);
   drawRadar(c,elapsed);
   drawIdentity(c,elapsed);
@@ -226,8 +247,22 @@ final class TvBroadcastInfoView extends View {
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
  }
  private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
+ private void drawVoiceStatus(Canvas c){
+  label(c,"CONSULTA",12,66,31,0xffff6d7f,brand,133);
+  label(c,voiceTitle,170,62,27,foreground,brand,690);
+  label(c,voiceDetail,170,88,16,0xffbdcfdd,data,688);
+ }
  private void drawBrent(Canvas c){
-  refreshMarket();label(c,"BRENT",12,57,28,0xffff6d7f,brand,111);label(c,demo?"SIMULADO":brentSession.label(),12,83,13,sessionColor(brentSession),brand,113);
+  refreshMarket();
+  if(marketPending){
+   label(c,"BRENT",12,57,28,0xffff6d7f,brand,112);
+   label(c,"CONSULTA POR VOZ",12,83,13,accent,brand,120);
+   label(c,"CONSULTANDO COTAÇÃO REAL…",138,67,29,foreground,brand,420);
+   fill(c,575,41,1,43,0xff45647b);
+   label(c,"DÓLAR USD/BRL",593,45,17,accent,brand,240);
+   label(c,"AGUARDANDO FONTE",593,77,21,foreground,brand,275);
+   return;
+  }label(c,"BRENT",12,57,28,0xffff6d7f,brand,111);label(c,demo?"SIMULADO":brentSession.label(),12,83,13,sessionColor(brentSession),brand,113);
   label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,68,37,foreground,brand,254);
   int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;String variation=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";label(c,variation,402,66,25,tint,brand,162);fill(c,575,41,1,43,0xff45647b);
   label(c,"DÓLAR USD/BRL",593,44,16,accent,brand,174);label(c,demo?"SIMULADO":dollarSession.label(),775,44,12,sessionColor(dollarSession),brand,110);
