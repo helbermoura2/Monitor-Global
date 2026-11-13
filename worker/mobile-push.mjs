@@ -1,5 +1,6 @@
 import {createNoticeDispatcher} from './mobile-notices.mjs';
 // Dedicated optional sender. Public feed only; Firebase credentials never go into the APK.
+export const MOBILE_PUSH_RELEASE='notices-v1';
 const TOPIC='monitor_global_alerts_v1',KEY='mobile-push-state-v1';
 export function compactAlert(a){
  const out={};for(const k of ['id','kind','title','detail','state','source','countryCode'])out[k]=String(a[k]||'').slice(0,k==='id'?300:240);
@@ -55,7 +56,8 @@ export class MobilePushDelivery {
 
 }
 export default {
- fetch(){return Response.json({service:'monitor-global-mobile-push',delivery:'FCM; no instant delivery guarantee'});},
+ fetch(request,env){return Response.json({service:'monitor-global-mobile-push',release:MOBILE_PUSH_RELEASE,configured:!!env?.FIREBASE_SERVICE_ACCOUNT,delivery:'FCM; no instant delivery guarantee'});},
  scheduled(event,env,ctx){if(!env.FIREBASE_SERVICE_ACCOUNT)return;ctx.waitUntil(env.MOBILE_PUSH.get(env.MOBILE_PUSH.idFromName('mobile-v1')).fetch('https://internal/tick').then(r=>{if(!r.ok)throw Error('Mobile push tick failed');}).catch(()=>{console.error('Mobile push attempt failed; retry on next scheduled tick.');}));}
 };
+
 
