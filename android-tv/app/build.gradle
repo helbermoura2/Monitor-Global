@@ -8,9 +8,9 @@ android {
   targetSdk 35
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
   // Correção verificada: boletim integrado de 15 s; avisos de chuva preservados.
-  // Atualização: remover HUD de voz; Brent e consultas usam exclusivamente a tarja oficial, inclusive durante a busca.
-  versionCode 10084
-  versionName '1.0.84'
+  // Atualização: estado ABERTO/FECHADO/PAUSADO do Brent na mesma linha de cabeçalho do dólar.
+  versionCode 10085
+  versionName '1.0.85'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
