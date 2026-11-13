@@ -54,7 +54,11 @@ final class BroadcastVisuals {
    size-=.5f;
   }while(size>13f);
   int glyphs=label.codePointCount(0,label.length());
-  float rawWidth=paint.measureText(label);
+  float rawWidth=0f;
+  for(int offset=0;offset<label.length();){
+   int next=label.offsetByCodePoints(offset,1);
+   rawWidth+=paint.measureText(label,offset,next);offset=next;
+  }
   // Small tracking evokes television captions, without stretching individual glyphs.
   float letterGap=glyphs>1?Math.max(0f,Math.min(1.3f,(maxWidth-rawWidth)/(glyphs-1))):0f;
   float fullWidth=rawWidth+(glyphs-1)*letterGap;
