@@ -208,7 +208,10 @@ final class TvBroadcastInfoView extends View {
   // Do not present an hourly MODEL rain code as rain observed right now.
   String sky=WeatherConditionDisplay.headline(weather,rain);
   label(c,sky,290,58,sky.length()>19?18:21,foreground,brand,190);
-  label(c,WeatherConditionDisplay.detail(weather,rain),290,84,14,0xffb8d2df,brand,190);
+  String detail=WeatherConditionDisplay.detail(weather,rain);
+  p.setTypeface(brand);float detailSize=16;p.setTextSize(detailSize);
+  while(detailSize>11&&p.measureText(detail)>190){detailSize-=.5f;p.setTextSize(detailSize);}
+  label(c,detail,290,84,detailSize,0xffb8d2df,brand,190);
   metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",493);
   metric(c,2,weather==null?"—":weather.windValue,"VENTO",626);
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
