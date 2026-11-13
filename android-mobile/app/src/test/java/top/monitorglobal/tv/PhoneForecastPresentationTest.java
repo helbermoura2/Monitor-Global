@@ -14,3 +14,4 @@ public class PhoneForecastPresentationTest {
  @Test public void hourlyPreservesActualValuesAndCapsAtTwentyFour()throws Exception{java.util.List<PhoneHourly.Hour> rows=PhoneHourly.parse(hourly(),now);assertEquals(24,rows.size());assertEquals(18,rows.get(0).temperature,0);assertEquals(2.3,rows.get(3).amount,0);}
  @Test public void hourlyRejectsStaleWrongLocationAndGaps()throws Exception{assertTrue(PhoneHourly.parse(hourly(),now+3600000).isEmpty());JSONObject wrong=hourly();wrong.getJSONObject("loc").put("lat",0);assertTrue(PhoneHourly.parse(wrong,now).isEmpty());JSONObject gap=hourly();gap.getJSONArray("hourly").getJSONObject(3).put("start",now+4*3600000);assertTrue(PhoneHourly.parse(gap,now).isEmpty());}
 }
+

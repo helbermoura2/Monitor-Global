@@ -64,4 +64,12 @@ public class PhoneRepositoryTest {
   assertEquals("",new PhoneRepository.Response(200,"{}","bad\r\nvalue").etag);
   try{new PhoneRepository.HttpTransport().get("https://untrusted.example", "",100);fail("route restriction");}catch(IOException expected){}
  }
+ private JSONObject hourlySeries()throws Exception{JSONArray rows=new JSONArray();for(int i=0;i<30;i++)rows.put(new JSONObject().put("start",now+i*3600000).put("temperature",18).put("amount",.2).put("condition","Cloudy"));return new JSONObject().put("ok",true).put("source","Rainbow Weather").put("loc",location()).put("at",now).put("generatedAt",now).put("expiresAt",now+3600000).put("hourly",rows);}
+ @Test public void failedHourlyDetailCanBeRetriedExplicitlyWithoutInventingDryWeather()throws Exception{
+  Fake f=ready();PhoneRepository repo=new PhoneRepository(f);repo.refresh(now);assertTrue(repo.details(now,false).hours.isEmpty());assertTrue(repo.snapshot(now).hourlyStatus.contains("não disponíveis"));int before=f.paths.size();repo.details(now+6000,false);assertEquals(before,f.paths.size());f.put(PhoneRepository.HOURLY,hourlySeries());PhoneRepository.Snapshot loaded=repo.details(now+6000,false,true);assertFalse(loaded.hours.isEmpty());assertEquals(.2,loaded.hours.get(0).amount,0);
+ }
+ @Test public void cancellationReleasesTheHourlyAttemptReservation()throws Exception{
+  Fake f=ready();PhoneRepository repo=new PhoneRepository(f);repo.refresh(now);repo.details(now,false);repo.cancel();f.put(PhoneRepository.HOURLY,hourlySeries());assertFalse(repo.details(now+1000,false).hours.isEmpty());
+ }
 }
+

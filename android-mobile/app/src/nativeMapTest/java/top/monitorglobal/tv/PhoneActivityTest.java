@@ -84,5 +84,11 @@ public class PhoneActivityTest {
  @Test public void notificationCategoriesAreIndependentAndDoNotEnablePushWithoutConsent(){
   root().findViewWithTag("tab-notices").performClick();layout();android.widget.Switch rain=(android.widget.Switch)root().findViewWithTag("push-category-rain");assertNotNull(rain);assertTrue(rain.isChecked());rain.setChecked(false);assertFalse(PhonePush.categoryEnabled(activity,"rain"));assertTrue(PhonePush.categoryEnabled(activity,"weather"));assertFalse(PhonePush.enabled(activity));assertNotNull(root().findViewWithTag("push-category-daily"));
  }
+ @Test public void weatherUsesOneMinuteRainReadingAndDoesNotCallMissingHoursDry()throws Exception{
+  long now=System.currentTimeMillis();org.json.JSONArray rows=new org.json.JSONArray();for(int i=0;i<120;i++){double rate=i<10?0:i<20?.1:i<30?.5:2.4;rows.put(new org.json.JSONObject().put("start",now+i*60000).put("end",now+(i+1)*60000).put("rate",rate).put("type",rate==0?"no_precipitation":"rain"));}
+  org.json.JSONObject d=new org.json.JSONObject().put("ok",true).put("version","tv-rain-v1").put("area","liberdade").put("loc",new org.json.JSONObject().put("lat",-23.555).put("lng",-46.635)).put("at",now).put("expiresAt",now+600000).put("forecast",rows);
+  WeatherForecast.Summary w=new WeatherForecast.Summary("25°C","Garoa","6 km/h","57%","Modelo horário",now+3600000,false,"25°C","27°C","57%","6 km/h","11 km/h","Drizzle");PhoneRepository.Snapshot fixture=new PhoneRepository.Snapshot(List.of(),w,RainForecast.summarize(d,now),now,"Eventos atualizados","Modelo horário","Chuva por minuto",false,true,true);fixture.rainSeries=PhoneRainChart.Series.parse(d,now);activity.applySnapshot(fixture);root().findViewWithTag("tab-weather").performClick();layout();String screen=texts(root());assertTrue(screen.contains("Chuva prevista em ~10 min"));assertFalse(screen.contains("Garoa"));assertTrue(screen.contains("0,1 mm"));assertTrue(screen.contains("1,3 mm"));assertTrue(screen.contains("próximos 30 min"));assertTrue(screen.contains("próximos 60 min"));assertTrue(screen.contains("2,4 mm/h"));assertTrue(screen.contains("não significa ausência de chuva"));assertNotNull(root().findViewWithTag("retry-hourly"));assertFalse(screen.contains("PROJEÇÃO · PRÓXIMOS 30 MIN"));export("weather-consistent-rain");
+ }
 }
+
 
