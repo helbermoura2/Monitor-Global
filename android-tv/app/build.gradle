@@ -8,9 +8,9 @@ android {
   targetSdk 35
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
   // Correção verificada: boletim integrado de 15 s; avisos de chuva preservados.
-  // Atualização: condição horária de chuva diferenciada da estimativa de chuva por minuto na tarja.
-  versionCode 10081
-  versionName '1.0.81'
+  // Atualização: saída de áudio compatível com TVs (PCM 48 kHz estéreo e fallback automático).
+  versionCode 10082
+  versionName '1.0.82'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
