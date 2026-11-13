@@ -55,6 +55,36 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
+ @Test public void brentMarketStateUsesSameTopRowAsDollarWithNoLowerLeftBadge()throws Exception{
+  assertEquals("ABERTO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.OPEN,"fonte")));
+  assertEquals("FECHADO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.CLOSED,"fonte")));
+  assertEquals("PAUSADO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.PAUSED,"fonte")));
+  assertEquals("N/D",TvBroadcastInfoView.marketHeaderStatus(MarketState.unknown()));
+  Paint measure=new Paint(Paint.ANTI_ALIAS_FLAG);
+  measure.setTypeface(Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf"));measure.setTextSize(12);
+  for(String label:new String[]{"ABERTO","FECHADO","PAUSADO","N/D"})
+   assertTrue("Brent header badge must not overlap price: "+label,measure.measureText(label)<60);
+  for(int state:new int[]{MarketState.OPEN,MarketState.CLOSED,MarketState.PAUSED}){
+   MarketState market=new MarketState(state,"Informado pela fonte");
+   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,null,null,market,market,false);
+   Bitmap image=render(view,"aligned-brent-"+state);
+   try{
+    int tint=state==MarketState.OPEN?0xff75edb2:state==MarketState.CLOSED?0xffff7687:0xffffd17d;
+    int top=0,bottom=0;
+    // The new header badge is in the SAME y=44 baseline as the USD/BRL badge.
+    for(int y=28;y<=44;y++)for(int x=75;x<=135;x++){
+     int pixel=image.getPixel(x,y);
+     if(Color.red(pixel)==Color.red(tint)&&Color.green(pixel)==Color.green(tint)&&Color.blue(pixel)==Color.blue(tint))top++;
+    }
+    for(int y=70;y<=95;y++)for(int x=12;x<=120;x++){
+     int pixel=image.getPixel(x,y);
+     if(Color.red(pixel)==Color.red(tint)&&Color.green(pixel)==Color.green(tint)&&Color.blue(pixel)==Color.blue(tint))bottom++;
+    }
+    assertTrue("Brent status should be visible on top row: "+state,top>5);
+    assertEquals("No duplicate ABERTO/FECHADO/PAUSADO beneath Brent",0,bottom);
+   }finally{image.recycle();}
+  }
+ }
  @Test public void AlexaBrentPendingAndOtherVoiceStatusUseIdenticalNewsroomGeometry()throws Exception{
   TvBroadcastInfoView pending=TvBroadcastInfoView.marketPending(c);
   TvBroadcastInfoView generic=TvBroadcastInfoView.voiceStatus(c,"Consulta do Brasil","Sem registros confirmados.");
