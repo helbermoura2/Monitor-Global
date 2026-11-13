@@ -35,7 +35,13 @@ public final class MonitorService extends Service {
    // Brent voice is rendered directly by BrentOverlay/Banner, including
    // loading, real prices and source failures. NO "Consulta por voz" card.
    brent.setFeedback(message->Prefs.status(this,"Consulta do Brent · "+message));
-   if(intent.getBooleanExtra("alexaRequest",false)){brent.checkNow();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
+   if(intent.getBooleanExtra("alexaRequest",false)){
+    // An explicit voice request may replace routine weather information, but
+    // must never preempt seismic/tsunami notices or regional replay.
+    if(!localBusy()&&!daily.displaying())rain.hide();
+    brent.checkNow();
+    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
    if(!Prefs.get(this).getBoolean("enabled",false)){
     Prefs.get(this).edit().putString("brentStatus","Ative o monitoramento para verificar o Brent real.").apply();
     stopIfIdle();return START_NOT_STICKY;
