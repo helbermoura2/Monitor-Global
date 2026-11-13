@@ -41,6 +41,15 @@ public class PhoneActivityTest {
   root().findViewWithTag("tab-notices").performClick();layout();assertTrue(texts(root()).contains("Notificações desativadas"));assertTrue(named(root(),"Ativar avisos no celular").isEnabled());assertNotNull(named(root(),"Verificar atualização do aplicativo"));
   Intent push=new Intent(activity,PhoneActivity.class).putExtra(PhonePush.EXTRA,AlertCodec.write(quake()).toString());activity.onNewIntent(push);layout();assertTrue(texts(root()).contains("Detalhes do evento"));assertTrue(texts(root()).contains("Kathmandu"));assertFalse(push.hasExtra(PhonePush.EXTRA));activity.onBackPressed();assertTrue(texts(root()).contains("Avisos e fontes"));
  }
+ @Test public void notificationHeaderUsesMonitorGlobalWithoutPreviewSuffix(){
+  // Android shows the manifest app label above BOTH live weather and seismic notifications.
+  // A preview build remains identifiable through its package and in-app version only.
+  assertEquals("Monitor Global",activity.getString(top.monitorglobal.mobile.R.string.app_name));
+  assertEquals("Monitor Global",activity.getApplicationInfo().loadLabel(activity.getPackageManager()).toString());
+  assertTrue(top.monitorglobal.mobile.BuildConfig.DEBUG);
+  assertTrue(top.monitorglobal.mobile.BuildConfig.VERSION_NAME.endsWith("-teste"));
+  assertEquals("top.monitorglobal.mobile.dev",activity.getPackageName());
+ }
  @Test public void localNotificationIsExplicitlyMarkedAsATest(){
   Shadows.shadowOf((android.app.Application)activity.getApplication()).grantPermissions("android.permission.POST_NOTIFICATIONS");assertTrue(PhonePush.testLocal(activity));android.app.NotificationManager manager=activity.getSystemService(android.app.NotificationManager.class);android.service.notification.StatusBarNotification[] posted=manager.getActiveNotifications();assertEquals(1,posted.length);android.app.Notification n=posted[0].getNotification();assertEquals("seismic",n.getChannelId());assertTrue(n.extras.getCharSequence(android.app.Notification.EXTRA_TITLE).toString().contains("TESTE LOCAL"));assertTrue(n.extras.getCharSequence(android.app.Notification.EXTRA_TEXT).toString().contains("não confirma entrega pelo Firebase"));assertNotNull(n.contentIntent);manager.cancelAll();
  }
