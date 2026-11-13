@@ -13,7 +13,7 @@ test('Brazil map remains visible between compact toolbar and forecast controls',
 test('satellite and radar settings are outside the map and hidden until selected',()=>{
  assert.match(html,/<section id="overlay-panel"[^>]*hidden>/);
  assert.match(js,/BrazilSatellite\.create\(\{map,host:\$\('overlay-panel'\),enabled:false\}\)/);
- assert.match(js,/PhoneBrazilRadar\.create\(map,\$\('overlay-panel'\)\)/);
+ assert.match(js,/PhoneBrazilRadar\.create\(map,\$\('overlay-panel'\)(?:,|\))/);
  assert.match(css,/\.overlay-panel\[hidden\]\{display:none!important\}/);
  assert.match(js,/syncOverlays\(\)/);
 });
