@@ -24,15 +24,21 @@ class AlexaBrentNewsroomTest(unittest.TestCase):
         assert 'manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800' in b
         assert 'if(onPresented!=null)onPresented.run()' in b
 
-    def test_hud_is_only_progress_not_the_final_result(self):
+    def test_no_corner_hud_exists_even_during_network_lookup(self):
         service=source("MonitorService.java")
-        hud=source("VoiceStatusOverlay.java")
-        self.assertIn('brent.setOnPresented(()->{voiceStatusGeneration++;voiceNotice.hide();})',service)
-        self.assertIn('if(brent.showing()){voiceStatusGeneration++;voiceNotice.hide()',service)
-        self.assertIn('long duration=pending?60000L:VoiceStatusOverlay.DURATION',service)
-        self.assertIn('detail.startsWith("Fonte principal")',service)
-        self.assertIn('show(String title,String body,long duration)',hud)
-        self.assertIn('if(token==voiceStatusGeneration)voiceNotice.hide()',service)
+        banner=source("Banner.java")
+        brent=source("BrentMonitor.java")
+        overlay=source("BrentOverlay.java")
+        tv=source("TvBroadcastInfoView.java")
+        self.assertNotIn("voiceNotice",service)
+        self.assertNotIn("VoiceStatusOverlay",service)
+        self.assertIn("brent.setFeedback(message->Prefs.status(",service)
+        self.assertIn("banner.showVoiceStatus(title,detail,duration,null)",service)
+        self.assertIn("overlay.showPending()",brent)
+        self.assertIn("banner.showMarketPending(65000L",overlay)
+        self.assertIn("TvBroadcastInfoView.marketPending(context)",banner)
+        self.assertIn("CONSULTANDO COTAÇÃO REAL",tv)
+        self.assertNotIn('voiceInfo("Consulta do Brent"',service)
 
     def test_source_fallback_progress_never_claims_fabricated_price(self):
         code=source("BrentMonitor.java")
