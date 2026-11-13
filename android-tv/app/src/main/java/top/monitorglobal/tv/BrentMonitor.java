@@ -64,7 +64,7 @@ final class BrentMonitor {
   if(!allowed.getAsBoolean()||overlay.showing())return;
   BrentQuote valid=BrentQuote.parse(quote,now);
   if(valid!=null){
-   if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
+   if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){TvSounds.play(context,TvSoundPattern.MARKET);
     Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
     status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(quote.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
    }else status("Cotação real validada, mas a sobreposição foi bloqueada. Verifique a permissão.");
@@ -96,7 +96,7 @@ final class BrentMonitor {
      if(valid==null&&brentState.closed()){
       if(screen()&&allowed.getAsBoolean()){
        long current=System.currentTimeMillis();BrentQuote previous=lastBrent!=null&&current-lastBrent.at<=7*86400000L?lastBrent:null;DollarQuote usd=dollar!=null?dollar:lastDollar!=null&&current-lastDollar.at<=7*86400000L?lastDollar:null;
-       if(overlay.showMarket(previous,usd,brentState,dollarState,false)){manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;status("BRENT · "+brentState.label()+" · DÓLAR · "+dollarState.label()+" · valores anteriores, quando disponíveis, identificados por data e hora.");}
+       if(overlay.showMarket(previous,usd,brentState,dollarState,false)){TvSounds.play(context,TvSoundPattern.MARKET);manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;status("BRENT · "+brentState.label()+" · DÓLAR · "+dollarState.label()+" · valores anteriores, quando disponíveis, identificados por data e hora.");}
       }else status("Outro aviso ou a tela desligada impede mostrar o estado dos mercados agora.");
       manualRequest=false;return;
      }
@@ -105,7 +105,7 @@ final class BrentMonitor {
       manualRequest=false;return;
      }
      if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");manualRequest=false;return;}
-     if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
+     if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){TvSounds.play(context,TvSoundPattern.MARKET);
       manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
@@ -179,10 +179,11 @@ final class BrentMonitor {
  }
  void demo(){
   if(!closed&&screen()&&allowed.getAsBoolean())
-   overlay.show(new BrentQuote(78.35,77.50,0.85,1.10,System.currentTimeMillis(),"DEMONSTRAÇÃO"),
-    new DollarQuote(5.23,0.01,0.19,System.currentTimeMillis(),"SIMULAÇÃO"),true);
+   if(overlay.show(new BrentQuote(78.35,77.50,0.85,1.10,System.currentTimeMillis(),"DEMONSTRAÇÃO"),
+    new DollarQuote(5.23,0.01,0.19,System.currentTimeMillis(),"SIMULAÇÃO"),true))TvSounds.play(context,TvSoundPattern.MARKET);
  }
  void hide(){manualDisplayUntil=0;overlay.hide();}
  void close(){closed=true;hide();main.removeCallbacksAndMessages(null);if(connection!=null)connection.disconnect();if(io!=null)io.shutdownNow();quote=null;}
 }
+
 

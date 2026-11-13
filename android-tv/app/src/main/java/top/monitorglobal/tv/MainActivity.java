@@ -103,7 +103,9 @@ public final class MainActivity extends Activity {
   button("Conferir cotação REAL do Brent agora",v->launch(MonitorService.CHECK_BRENT));
   label("Com monitoramento ativo e pregão aberto: consulta Yahoo em 10 s. Volte ao vídeo. Se a cotação estiver indisponível, a seção FONTES explica o motivo; nenhum preço será inventado.",13,false);
   section("PREFERÊNCIAS E ROTINA");
-  Switch sound=new Switch(this);sound.setText("Som dos avisos · usa o volume de notificações do aparelho");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->Prefs.get(this).edit().putBoolean("sound",checked).apply());addSwitch(sound);
+  Switch sound=new Switch(this);sound.setText("Sons diferentes por aviso · volume de mídia da TV");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("sound",checked).apply();if(!checked)TvSounds.stop();});addSwitch(sound);
+  button("Configurar e ouvir os sons de cada aviso",v->TvSoundSettings.show(this));
+  label("Sismos, tsunami, avisos regionais, chuva, tempo, cotações e resumo diário têm sinais próprios. Ajuste a intensidade e teste cada categoria. Depende do volume de mídia da TV; não toca com a tela desligada. Replays permanecem silenciosos.",15,false);
   Switch daily=new Switch(this);daily.setText("Resumo automático à meia-noite · horário de Brasília");daily.setTextColor(Color.WHITE);daily.setTextSize(17);daily.setPadding(12,10,12,10);daily.setChecked(Prefs.get(this).getBoolean("dailyAuto",true));daily.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("dailyAuto",checked).apply();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);});addSwitch(daily);
   label("À meia-noite: resumo do dia encerrado. Se a TV estiver desligada ou sem internet, tenta recuperar o último dia encerrado ao retomar o monitoramento. Alertas reais têm prioridade; o resumo interrompido volta depois.",15,false);
   button("Duração: "+Prefs.get(this).getInt("seconds",20)+" segundos",v->{int current=Prefs.get(this).getInt("seconds",20),next=current==15?20:current==20?30:current==30?60:current==60?90:current==90?120:15;Prefs.get(this).edit().putInt("seconds",next).apply();((Button)v).setText("Duração: "+next+" segundos");});
@@ -393,7 +395,8 @@ public final class MainActivity extends Activity {
     +" · aparece SOBRE o vídeo, após 10 s");
   if(start!=null)setIfChanged(start,enabled?"Parar monitoramento":"2 · Ativar monitoramento");
  }
- @Override protected void onDestroy(){endDirectVoice();if(updater!=null)updater.close();super.onDestroy();}
+ @Override protected void onDestroy(){TvSounds.stopPreview();endDirectVoice();if(updater!=null)updater.close();super.onDestroy();}
  @Override protected void onResume(){super.onResume();if(updater!=null)updater.resume();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);handler.removeCallbacks(refresh);update();handler.postDelayed(refresh,9000);}
  @Override protected void onPause(){handler.removeCallbacks(refresh);super.onPause();}
 }
+

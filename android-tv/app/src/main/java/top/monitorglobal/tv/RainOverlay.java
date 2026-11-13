@@ -81,7 +81,7 @@ final class RainOverlay {
   };
   boolean shown=hourlyCard?banner.showWeather(rain,weather,demo,duration,finished):banner.showRain(rain,weather,demo,duration,finished);
   if(!shown){completed=null;stopEffect();return false;}
-  current=banner.activeView();return true;
+  current=banner.activeView();TvSounds.play(context,hourlyCard?TvSoundPattern.WEATHER:TvSoundPattern.RAIN);return true;
  }
  private void stopEffect(){
   if(previewRain!=null){previewRain.stop();previewRain=null;}
@@ -96,3 +96,4 @@ final class RainOverlay {
   banner.hide();current=null;stopEffect();
  }
 }
+

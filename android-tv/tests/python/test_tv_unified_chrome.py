@@ -39,7 +39,8 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("if(targetBannerActive){targetBannerActive=false;banner.hide();}", service)
         self.assertIn("a.originLongitude=85.324;a.originLatitude=27.717", service)
         self.assertIn("if(!demo&&!replay)", service)
-        self.assertIn("tone.startTone(ToneGenerator.TONE_PROP_BEEP,160)", service)
+        self.assertIn("if(!replay)TvSounds.play(this,TvSoundPattern.REGIONAL)", service)
+        self.assertNotIn("ToneGenerator", service)
 
     def test_existing_scheduling_and_priorities_not_changed(self):
         weather = source("WeatherForecast.java")
