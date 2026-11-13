@@ -81,7 +81,8 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   for(int x:new int[]{10,30,240,255}){
+   // Sample untouched red margins; white text is now deliberately much wider.
+   for(int x:new int[]{10,255}){
     assertEquals("Long breaking label on seismic",0xffbf1827,a.getPixel(x,map+10));
     assertEquals("Long breaking label on market",0xffbf1827,b.getPixel(x,10));
    }
@@ -100,6 +101,51 @@ public class UnifiedBroadcastChromeTest {
    WindowManager.LayoutParams p=(WindowManager.LayoutParams)banner.activeView().getLayoutParams();
    assertEquals(context.getResources().getDisplayMetrics().widthPixels*96/100,p.width);
   }finally{banner.hide();}
+ }
+ @Test public void broadcastTypographyFillsRedLabelsWithoutClipping()throws Exception{
+  Typeface face=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");
+  Paint ink=new Paint(Paint.ANTI_ALIAS_FLAG);
+  String[] headings={"BREAKING NEWS","AO VIVO","REPLAY","TESTE","TESTE FICTÍCIO","CONSULTA","COTAÇÕES"};
+  for(String heading:headings){
+   boolean breaking=heading.equals("BREAKING NEWS");
+   float width=breaking?BroadcastVisuals.BREAKING_WIDTH:BroadcastVisuals.statusWidth(ink,face,heading);
+   float fraction=breaking?BroadcastVisuals.BREAKING_TEXT_FILL:BroadcastVisuals.STATUS_TEXT_FILL;
+   Bitmap image=Bitmap.createBitmap(300,24,Bitmap.Config.ARGB_8888);
+   try{
+    BroadcastVisuals.headerLabel(new Canvas(image),ink,face,heading,0,width,fraction,Color.WHITE);
+    int left=300,right=-1,top=24,bottom=-1;
+    for(int y=0;y<24;y++)for(int x=0;x<(int)Math.ceil(width);x++){
+     int pixel=image.getPixel(x,y);
+     if(Color.alpha(pixel)>200&&Color.red(pixel)>220&&Color.green(pixel)>220&&Color.blue(pixel)>220){
+      left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+     }
+    }
+    assertTrue("label visibly rendered: "+heading,right>left&&bottom>top);
+    assertTrue("label fills most of its tab: "+heading,(right-left+1)>width*(fraction-.12f));
+    assertTrue("label stays inside its red tab: "+heading,left>=0&&right<width&&top>=0&&bottom<24);
+    assertEquals("label horizontal alignment: "+heading,width/2f,(left+right)/2f,7f);
+    assertEquals("label must restore paint horizontal scale: "+heading,1f,ink.getTextScaleX(),.0001f);
+   }finally{image.recycle();}
+  }
+ }
+ @Test public void seismicAndWeatherHaveIdenticalBreakingAndLiveLettering(){
+  NewsBannerView quake=new NewsBannerView(context,regional(),false,false);
+  WeatherForecast.Summary summary=new WeatherForecast.Summary(
+    "22°C","Nublado","10 km/h","70%","Modelo horário",System.currentTimeMillis()+600000,false,
+    "22°C","22°C","70%","10 km/h","15 km/h","Cloudy");
+  TvBroadcastInfoView weather=TvBroadcastInfoView.weather(context,null,summary,false);
+  Bitmap a=frame(quake,960,126+Banner.insetDp(context),1100);
+  Bitmap b=frame(weather,960,126+weather.mapSpace,1100);
+  try{
+   int qa=Banner.insetDp(context),qb=weather.mapSpace;
+   for(int y=3;y<=20;y++)for(int x=20;x<=240;x++){
+    // Ignore seismic-only shine by sampling the same stable status drawing separately.
+    if(x>24&&x<236)continue;
+    assertEquals("same breaking banner edges",a.getPixel(x,qa+y),b.getPixel(x,qb+y));
+   }
+   for(int y=3;y<=20;y++)for(int x=817;x<=945;x++)
+    assertEquals("AO VIVO lettering must match across events at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
+  }finally{a.recycle();b.recycle();}
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
   assertEquals(40f,BroadcastVisuals.TICKER_PX_PER_SECOND,0f);

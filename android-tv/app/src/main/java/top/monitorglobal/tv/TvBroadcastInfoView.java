@@ -160,8 +160,7 @@ final class TvBroadcastInfoView extends View {
  private void badge(Canvas c,String value){
   float width=BroadcastVisuals.statusWidth(p,brand,value);
   rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
-  p.setTypeface(brand);p.setTextSize(17);
-   label(c,value,960-width+(width-p.measureText(value))/2,18,17,Color.WHITE,brand,width-20);
+  BroadcastVisuals.headerLabel(c,p,brand,value,960-width,width,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);
  }
  private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
  private void drawRadar(Canvas c,long elapsed){
@@ -209,8 +208,7 @@ final class TvBroadcastInfoView extends View {
  private void drawHeader(Canvas c,long elapsed){
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
   rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xffbf1827,5);
-  p.setTypeface(brand);p.setTextSize(20);
-   label(c,"BREAKING NEWS",(BroadcastVisuals.BREAKING_WIDTH-p.measureText("BREAKING NEWS"))/2,18,20,Color.WHITE,brand,BroadcastVisuals.BREAKING_WIDTH-32);
+  BroadcastVisuals.headerLabel(c,p,brand,"BREAKING NEWS",0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);
   label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",BroadcastVisuals.BREAKING_WIDTH+16,18,17,accent,brand,440);
   badge(c,status());
   if(kind==RAIN)drawRain(c);

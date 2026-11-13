@@ -33,7 +33,7 @@ class AlexaVoiceBannerPlacementTest(unittest.TestCase):
         self.assertIn("TvBroadcastInfoView.marketPending(context)",banner)
         self.assertIn("marketPending=true",view)
         self.assertIn("if(marketPending)",view)
-        self.assertIn('label(c,"BREAKING NEWS"',view)
+        self.assertIn('BroadcastVisuals.headerLabel(c,p,brand,"BREAKING NEWS"',view)
         self.assertIn("BroadcastVisuals.radar(c,p,elapsed,animate)",view)
         self.assertIn("BrentQuote.DISPLAY",overlay)
         self.assertNotIn('new VoiceStatusOverlay',overlay)
@@ -45,7 +45,7 @@ class AlexaVoiceBannerPlacementTest(unittest.TestCase):
         self.assertIn("fetchLatestBrazil(true)",service)
         self.assertIn("fetchLatestBrazil(false)",service)
         self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)",service)
-        self.assertIn('centerText(c,"BREAKING NEWS"',banner)
+        self.assertIn('BroadcastVisuals.headerLabel(c,paint,brand,"BREAKING NEWS"',banner)
         self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
         self.assertIn('replay?"REPLAY"',banner)
 
