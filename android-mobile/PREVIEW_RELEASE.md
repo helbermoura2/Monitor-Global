@@ -1,16 +1,13 @@
-Monitor Global Celular · teste 0.1.7.
+# Monitor Global Celular · 0.1.11 de teste
 
-- Resumo online com IA no card horário e nos cards de chuva quando há previsão ativa para a Liberdade.
-- O texto usa exclusivamente fatos verificados da previsão; números e horários são preservados.
-- Resumos são compartilhados entre celular e TV, com cache e limites de consultas.
-- A previsão normal continua aparecendo enquanto a IA está pendente ou indisponível.
-- Não adiciona notificações de chuva em segundo plano ao celular: a integração aparece em Tempo e na tela de chuva. As notificações existentes continuam funcionando.
-- Instale sobre a versão 0.1.6 ou 0.1.5, sem desinstalar.
-# Modelo online
+Nova apresentação Android em azul e ciano, com quatro áreas: Início, Mapa, Tempo e Avisos.
 
-O resumo meteorológico usa o modelo Cloudflare `@cf/meta/llama-3.1-8b-instruct-fp8`, com seleção de fatos em JSON validado e validação dos dados do fornecedor.
+- Cartões arredondados com ilustração vetorial das condições, temperatura, sensação, umidade, vento e rajadas.
+- Chuva com volume, duração e término previstos. O gráfico integra dados reais por minuto em barras de acumulado de cinco minutos; dados ausentes ou vencidos não viram zero.
+- Próximas 24 horas na tela Tempo, consultadas sob demanda na fonte Rainbow Weather já usada pelo projeto.
+- Acesso direto a Sismos, Satélite e Chuva no mapa, mantendo busca de municípios, fontes, horários das imagens e controles existentes.
+- Avisos com filtros Todos, Chuva e Sismos, resumo dos maiores sismos do dia anterior e controles de notificações e atualização.
 
+O clima dos cartões continua sendo para um ponto da Liberdade, São Paulo. As condições são previsões de modelo; os horários, fontes e limites acompanham os dados. O gráfico de precipitação não representa medição local de pluviômetro. O resumo diário depende da disponibilidade dos catálogos e mostra até cinco maiores registros, sem representar a contagem total de sismos.
 
-**Observação sobre a validação da IA:** a prévia 0.1.8 aceita respostas do Gemini 3.8 Flash (principal) e do Cloudflare Workers AI (reserva). O teste online distingue ausência legítima de destaque meteorológico de uma falha de geração. A chave privada fica apenas no Worker; nenhum segredo é enviado ao celular.
-
-**Reserva científica após falha dos modelos:** se Gemini e Cloudflare rejeitarem uma seleção de fatos, a prévia apresenta somente interpretações determinadas por regras e dados verificados, com o rótulo `validated-facts-v1` (sem IA). Uma única interpretação conhecida não consome inferência. A previsão da fonte e os avisos oficiais continuam independentes.
+Canal Android de testes, com a mesma identidade de assinatura para atualizar a instalação existente. Notificações dependem do Firebase, conexão e permissões do Android. A apresentação da TV permanece independente.

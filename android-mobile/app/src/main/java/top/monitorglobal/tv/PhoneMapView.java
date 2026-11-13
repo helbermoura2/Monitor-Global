@@ -75,7 +75,7 @@ final class PhoneMapView extends FrameLayout {
      if(request.isForMainFrame()&&request.hasGesture()&&attributionLink(request.getUrl()))try{getContext().startActivity(new Intent(Intent.ACTION_VIEW,request.getUrl()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(RuntimeException ignored){}
      return true;
     }
-    @Override public void onPageFinished(WebView view,String url){if(!closed&&web==view&&allowedPage(Uri.parse(url))){ready=true;sendEvents();sendFocus();if(!active)script("window.MonitorMap&&window.MonitorMap.pause()");}}
+    @Override public void onPageFinished(WebView view,String url){if(!closed&&web==view&&allowedPage(Uri.parse(url))){ready=true;sendSatellite();sendEvents();sendFocus();if(!active)script("window.MonitorMap&&window.MonitorMap.pause()");}}
     @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame()&&web==view)unavailable();}
     @Override public void onReceivedHttpError(WebView view,WebResourceRequest request,WebResourceResponse response){if(request.isForMainFrame()&&web==view)unavailable();}
     @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){if(web==view)unavailable();return true;}
@@ -107,9 +107,12 @@ final class PhoneMapView extends FrameLayout {
  private void sendEvents(){if(!rainPage&&!brazilPage&&ready&&active)script("window.MonitorMap&&window.MonitorMap.setEvents(JSON.parse("+quote(pendingEvents)+"))");}
  private void sendFocus(){if(!rainPage&&!brazilPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
  private static String quote(String value){return JSONObject.quote(value).replace("\u2028","\\u2028").replace("\u2029","\\u2029");}
+ private boolean pendingSatellite;
+ void showSatellite(){if(closed)return;pendingSatellite=true;sendSatellite();}
+ private void sendSatellite(){if(ready&&active&&pendingSatellite){pendingSatellite=false;script("window.MonitorMap&&window.MonitorMap.showSatellite&&window.MonitorMap.showSatellite()");}}
  private void script(String value){if(web!=null&&!closed)web.evaluateJavascript(value,null);}
  void pause(){active=false;if(web!=null){script("window.MonitorMap&&window.MonitorMap.pause()");web.onPause();}}
- void resume(){if(closed)return;active=true;if(web!=null){web.onResume();script("window.MonitorMap&&window.MonitorMap.resume()");sendEvents();sendFocus();}}
+ void resume(){if(closed)return;active=true;if(web!=null){web.onResume();sendSatellite();script("window.MonitorMap&&window.MonitorMap.resume()");sendEvents();sendFocus();}}
  void close(){if(closed)return;closed=true;ready=false;active=false;main.removeCallbacksAndMessages(null);events.clear();pendingEvents="[]";pendingFocus="";disposeWeb();removeAllViews();}
  private void disposeWeb(){WebView old=web;web=null;if(old!=null){removeView(old);old.removeJavascriptInterface("MonitorMapBridge");old.stopLoading();old.destroy();}}
  private void unavailable(){if(closed)return;ready=false;disposeWeb();removeAllViews();LinearLayout panel=new LinearLayout(getContext());panel.setOrientation(LinearLayout.VERTICAL);panel.setGravity(Gravity.CENTER);int pad=Math.round(20*getResources().getDisplayMetrics().density);panel.setPadding(pad,pad,pad,pad);TextView message=new TextView(getContext());message.setText(brazilPage?"Mapa meteorológico indisponível. Volte para Tempo para tentar novamente.":rainPage?"Mapa de chuva indisponível. Volte para Tempo para consultar a previsão.":"Mapa indisponível no momento. Os dados dos eventos continuam acessíveis na lista.");message.setTextColor(Color.WHITE);message.setTextSize(17);message.setGravity(Gravity.CENTER);panel.addView(message,new LinearLayout.LayoutParams(-1,-2));Button retry=new Button(getContext());retry.setText("Recarregar mapa");retry.setAllCaps(false);retry.setOnClickListener(v->open());panel.addView(retry,new LinearLayout.LayoutParams(-2,-2));TextView credit=new TextView(getContext());credit.setText("Imagens: Esri e colaboradores");credit.setTextColor(0xffbfd1df);credit.setTextSize(12);credit.setGravity(Gravity.CENTER);panel.addView(credit,new LinearLayout.LayoutParams(-1,-2));addView(panel,new LayoutParams(-1,-1));}
@@ -117,3 +120,4 @@ final class PhoneMapView extends FrameLayout {
   @JavascriptInterface public void selectEvent(String id){if(id==null||id.length()>1400)return;main.post(()->{if(closed||!active)return;Alert event=events.get(id);if(event!=null&&listener!=null)listener.onEventSelected(event.copy());});}
  }
 }
+

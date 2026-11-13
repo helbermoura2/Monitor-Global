@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 11
-  versionName '0.1.10'
+  versionCode 12
+  versionName '0.1.11'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -68,3 +68,4 @@ if (project.hasProperty('phoneUiChecks')) {
   maxHeapSize = '1536m'
  }
 }
+
