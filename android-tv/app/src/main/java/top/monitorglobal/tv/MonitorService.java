@@ -157,8 +157,9 @@ public final class MonitorService extends Service {
   // Brent can consult both Worker and Yahoo + independent FX; show an honest
   // pending state until a real market banner is ready, not only for 12 seconds.
   boolean pending="Consulta do Brent".equals(title)&&
-   (detail.startsWith("Consultando")||detail.startsWith("Cotação real já em consulta"));
-  long duration=pending?50000L:VoiceStatusOverlay.DURATION;
+   (detail.startsWith("Consultando")||detail.startsWith("Cotação real já em consulta")||
+    detail.startsWith("Fonte principal")||detail.startsWith("Brent consultado"));
+  long duration=pending?60000L:VoiceStatusOverlay.DURATION;
   final int token=++voiceStatusGeneration;
   if(!voiceNotice.show(title,detail,duration)){stopIfIdle();return;}
   Runnable end=new Runnable(){public void run(){
