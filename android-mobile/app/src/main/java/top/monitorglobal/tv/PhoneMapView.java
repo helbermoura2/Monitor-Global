@@ -84,7 +84,14 @@ final class PhoneMapView extends FrameLayout {
   }catch(RuntimeException failure){unavailable();}
  }
  private boolean allowedPage(Uri uri){return localAsset(uri)&&(brazilPage?(ASSET_PREFIX+"phone-brazil.html").equals(uri.getPath()):rainPage?(ASSET_PREFIX+"phone-rain.html").equals(uri.getPath()):mainPage(uri))&&uri.getQuery()==null;}
- static boolean radarResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getQuery()!=null)return false;String host=uri.getHost(),path=uri.getPath();if("api.rainviewer.com".equalsIgnoreCase(host))return "/public/weather-maps.json".equals(path);return "tilecache.rainviewer.com".equalsIgnoreCase(host)&&path!=null&&path.matches("/v2/radar/[0-9]{9,12}/256/[0-6]/[0-9]+/[0-9]+/2/1_1[.]png");}
+ static boolean radarResource(Uri uri){
+  if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getQuery()!=null||uri.getFragment()!=null)return false;
+  String host=uri.getHost(),path=uri.getPath();if("api.rainviewer.com".equalsIgnoreCase(host))return "/public/weather-maps.json".equals(path);
+  if(!"tilecache.rainviewer.com".equalsIgnoreCase(host)||path==null)return false;
+  java.util.regex.Matcher m=java.util.regex.Pattern.compile("/v2/radar/[A-Za-z0-9_-]{1,64}/256/([0-7])/([0-9]{1,3})/([0-9]{1,3})/2/1_1[.]png").matcher(path);
+  if(!m.matches())return false;int size=1<<Integer.parseInt(m.group(1));return Integer.parseInt(m.group(2))<size&&Integer.parseInt(m.group(3))<size;
+ }
+
  static boolean forecastResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"api.open-meteo.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&"/v1/forecast".equals(uri.getPath())&&uri.getQuery()!=null&&uri.getQuery().length()<=1800&&uri.getQueryParameter("apikey")==null&&uri.getQueryParameter("latitude")!=null&&uri.getQueryParameter("longitude")!=null;}
  static boolean rainResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"black-sky-9ba0.terrestre.workers.dev".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String path=uri.getPath();return ("/rainbow-snapshot".equals(path)&&uri.getQuery()==null)||("/tv-rain".equals(path)&&"area=liberdade".equals(uri.getQuery()))||(path!=null&&path.matches("/rainbow-tile/[0-9]+/[0-9]+/[0-7]/[0-9]+/[0-9]+")&&uri.getQuery()==null);}
  static boolean mainPage(Uri uri){return localAsset(uri)&&(ASSET_PREFIX+"phone-map.html").equals(uri.getPath())&&uri.getQuery()==null;}
@@ -120,4 +127,5 @@ final class PhoneMapView extends FrameLayout {
   @JavascriptInterface public void selectEvent(String id){if(id==null||id.length()>1400)return;main.post(()->{if(closed||!active)return;Alert event=events.get(id);if(event!=null&&listener!=null)listener.onEventSelected(event.copy());});}
  }
 }
+
 

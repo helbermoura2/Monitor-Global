@@ -101,3 +101,10 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 @media(max-width:350px){.brazil-toolbar{padding:6px 9px}.brazil-heading-text strong{font-size:16px}.brazil-layers button,.brazil-overlays button{font-size:11px}.brazil-main .outlook h1{font-size:21px}}
 @media(max-height:620px){.brazil-map-panel{min-height:230px;flex-basis:230px}.brazil-heading-text strong{font-size:16px}.brazil-main .outlook{padding:7px 10px}}
 @media(prefers-reduced-motion:reduce){.brazil-main *{scroll-behavior:auto}}
+
+
+/* Observations have their own controls and timestamps; the point forecast stays separate. */
+.overlay-panel .brazil-satellite-control[hidden]{display:none!important}
+.radar-control>strong{display:block;color:#9be9ff;font:700 13px Rajdhani,system-ui;margin-bottom:7px}
+.brazil-dot[data-observed=true] .value{font-size:0;width:9px;height:9px;min-height:9px;max-width:9px;padding:0;border-radius:50%;background:#45d7ed;border:2px solid white}
+.brazil-dot[data-observed=true] .arrow{display:none!important}
