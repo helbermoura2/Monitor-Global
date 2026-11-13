@@ -9,7 +9,7 @@ public class BrentQuoteTest {
    .put("source","Yahoo Finance").put("price",78.35).put("previousClose",77.5)
    .put("change",0.85).put("percent",1.10).put("asOf",now-4*60000);
  }
- @Test public void weekendsHaveNoCardAndSundayReturnsAtLondon23() {
+ @Test public void weekendsHaveNoCardAndSundayReturnsAtNewYork18() {
   assertFalse(BrentQuote.marketOpen(time("2026-11-13T23:00:00Z")));
   assertFalse(BrentQuote.marketOpen(time("2026-11-14T12:00:00Z")));
   assertFalse(BrentQuote.marketOpen(time("2026-11-15T22:59:00Z")));
@@ -23,8 +23,8 @@ public class BrentQuoteTest {
    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Tokyo"));
    assertFalse(BrentQuote.marketOpen(time("2026-07-05T21:59:00Z")));
    assertTrue(BrentQuote.marketOpen(time("2026-07-05T22:00:00Z")));
-   assertTrue(BrentQuote.marketOpen(time("2026-07-10T21:59:00Z")));
-   assertFalse(BrentQuote.marketOpen(time("2026-07-10T22:00:00Z")));
+   assertTrue(BrentQuote.marketOpen(time("2026-07-10T20:59:00Z")));
+   assertFalse(BrentQuote.marketOpen(time("2026-07-10T21:00:00Z")));
   }finally{java.util.TimeZone.setDefault(old);}
  }
  @Test public void hourlyFifteenMinuteWindowAppearsOnce() {
@@ -112,3 +112,4 @@ public class BrentQuoteTest {
   assertNull("No weekend refresh",BrentQuote.adaptYahooChart(raw,time("2026-11-14T14:00:00Z")));
  }
 }
+

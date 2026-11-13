@@ -51,7 +51,7 @@ public class TvBroadcastInfoViewTest {
   try{assertEquals(126,b.getHeight());assertEquals(0xffbf1827,b.getPixel(10,10));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
-  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR COMERCIAL USD/BRL: indisponível"));
+  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · STATUS N/D: sem cotação confirmada"));
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
@@ -107,3 +107,4 @@ public class TvBroadcastInfoViewTest {
   screenshot.recycle();frame.recycle();
  }
 }
+

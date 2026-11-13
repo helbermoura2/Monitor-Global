@@ -16,5 +16,7 @@ final class BrentOverlay {
   if(!banner.showBrent(quote,dollar,demo,BrentQuote.DISPLAY,()->{if(token==generation)current=null;}))return false;
   current=banner.activeView();return true;
  }
+ boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo){if(quote==null&&(bs==null||!bs.closed()))return false;hide();final int token=++generation;if(!banner.showMarket(quote,dollar,bs,ds,demo,BrentQuote.DISPLAY,()->{if(token==generation)current=null;}))return false;current=banner.activeView();return true;}
  void hide(){generation++;banner.hide();current=null;}
 }
+

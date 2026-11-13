@@ -21,6 +21,7 @@ final class Banner {
  boolean showBrent(BrentQuote quote,DollarQuote dollar,boolean demo,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.market(context,quote,dollar,demo),duration,0,finished);
  }
+ boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo,long duration,Runnable finished){return showView(TvBroadcastInfoView.market(context,quote,dollar,bs,ds,demo),duration,0,finished);}
  boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
  }
@@ -56,3 +57,4 @@ final class Banner {
  }
  void hide(){main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
 }
+

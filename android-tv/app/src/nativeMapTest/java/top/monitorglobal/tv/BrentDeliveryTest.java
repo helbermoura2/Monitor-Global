@@ -24,4 +24,9 @@ public class BrentDeliveryTest {
   List<String> messages=new ArrayList<>();AtomicInteger calls=new AtomicInteger();BrentMonitor m=new BrentMonitor(c,()->false,()->{calls.incrementAndGet();return quote();});m.setFeedback(messages::add);
   try{m.checkNow();assertEquals(0,calls.get());assertTrue(messages.get(0).contains("prioridade"));}finally{m.close();}
  }
+ @Test public void manualClosedMarketShowsStateWithoutCallingPriceSource()throws Exception{
+  long target=java.time.Instant.parse("2026-11-14T12:30:00Z").toEpochMilli();ShadowSystemClock.advanceBy(java.time.Duration.ofMillis(target-ShadowSystem.currentTimeMillis()));AtomicInteger calls=new AtomicInteger();BrentMonitor m=new BrentMonitor(c,()->true,()->{calls.incrementAndGet();return quote();});
+  try{m.checkNow();await(m);assertEquals(0,calls.get());assertTrue(m.showing());assertTrue(Prefs.get(c).getString("brentStatus","").contains("FECHADO"));}finally{m.close();}
+ }
 }
+

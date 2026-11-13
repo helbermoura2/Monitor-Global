@@ -1,26 +1,26 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {londonSession,parseBrentQuote,handleTvBrent} from '../../worker/tv-brent.mjs';
+import {brentSession,parseBrentQuote,handleTvBrent} from '../../worker/tv-brent.mjs';
 const date=str=>Date.parse(str),H=3600000;
 const example=(now,options={})=>({chart:{result:[{meta:{
  symbol:'BZ=F',currency:'USD',regularMarketPrice:78.35,
  chartPreviousClose:77.50,regularMarketTime:Math.floor((now-4*60000)/1000),
  ...options},timestamp:[Math.floor((now-5*60000)/1000)]}],error:null}});
-test('regular ICE Brent London hours gate Sunday opening and Friday close',()=>{
- assert.equal(londonSession(date('2026-11-08T22:59:00Z')),false);
- assert.equal(londonSession(date('2026-11-08T23:00:00Z')),true);
- assert.equal(londonSession(date('2026-11-09T00:15:00Z')),false);
- assert.equal(londonSession(date('2026-11-09T01:00:00Z')),true);
- assert.equal(londonSession(date('2026-11-13T22:59:00Z')),true);
- assert.equal(londonSession(date('2026-11-13T23:00:00Z')),false);
- assert.equal(londonSession(date('2026-11-14T12:00:00Z')),false);
- assert.equal(londonSession(date('2026-11-15T22:59:00Z')),false);
- assert.equal(londonSession(date('2026-11-15T23:00:00Z')),true);
+test('regular NYMEX BZ hours gate Sunday opening and Friday close',()=>{
+ assert.equal(brentSession(date('2026-11-08T22:59:00Z')),false);
+ assert.equal(brentSession(date('2026-11-08T23:00:00Z')),true);
+ assert.equal(brentSession(date('2026-11-09T00:15:00Z')),true);
+ assert.equal(brentSession(date('2026-11-09T01:00:00Z')),true);
+ assert.equal(brentSession(date('2026-11-13T21:59:00Z')),true);
+ assert.equal(brentSession(date('2026-11-13T22:00:00Z')),false);
+ assert.equal(brentSession(date('2026-11-14T12:00:00Z')),false);
+ assert.equal(brentSession(date('2026-11-15T22:59:00Z')),false);
+ assert.equal(brentSession(date('2026-11-15T23:00:00Z')),true);
 });
-test('London DST makes Sunday 23:00 local open at 22:00 UTC in July',()=>{
- assert.equal(londonSession(date('2026-07-05T21:59:00Z')),false);
- assert.equal(londonSession(date('2026-07-05T22:00:00Z')),true);
- assert.equal(londonSession(date('2026-07-10T21:59:00Z')),true);
- assert.equal(londonSession(date('2026-07-10T22:00:00Z')),false);
+test('New York DST makes Sunday 18:00 local open at 22:00 UTC in July',()=>{
+ assert.equal(brentSession(date('2026-07-05T21:59:00Z')),false);
+ assert.equal(brentSession(date('2026-07-05T22:00:00Z')),true);
+ assert.equal(brentSession(date('2026-07-10T20:59:00Z')),true);
+ assert.equal(brentSession(date('2026-07-10T21:00:00Z')),false);
 });
 test('source-derived USD/barrel value, last update and variation are not fabricated',()=>{
  const now=date('2026-11-10T11:00:00Z');
@@ -45,7 +45,7 @@ test('stale quotes, different symbols, invalid source data and marketState never
  }
  assert.equal(parseBrentQuote({chart:{result:[]}},now),null);
 });
-test('source failure or closed ICE session never triggers invented quote or upstream traffic',async()=>{
+test('source failure or closed NYMEX session never triggers invented quote or upstream traffic',async()=>{
  const now=date('2026-11-14T14:00:00Z');let calls=0;
  const request=new Request('https://test/tv-brent');
  const closed=await(await handleTvBrent(request,{}, {now,get:()=>{calls++;throw Error('No request weekends');}})).json();
@@ -104,4 +104,15 @@ test('a recent chart timestamp by itself never refreshes stale Brent headline pr
  const now=date('2026-11-11T15:00:00Z');
  const input=example(now,{regularMarketTime:Math.floor((now-3*H)/1000)});
  assert.equal(parseBrentQuote(input,now),null);
+});
+
+
+test('daily pause and reopening never reuse previous session price',()=>{
+ const pause=date('2026-11-11T22:30:00Z'),reopen=date('2026-11-11T23:05:00Z');
+ assert.equal(brentSession(pause),false);assert.equal(brentSession(reopen),true);
+ assert.equal(parseBrentQuote(example(reopen,{regularMarketTime:date('2026-11-11T21:59:00Z')/1000}),reopen),null);
+});
+test('provider holiday closure overrides regular session without invented prices',async()=>{
+ const now=date('2026-11-26T19:00:00Z');const response=await(await handleTvBrent(new Request('https://test/tv-brent'),{},{now,get:async()=>Response.json(example(now,{marketState:'CLOSED'}))})).json();
+ assert.equal(response.marketOpen,false);assert.equal(response.marketState,'CLOSED');assert.equal(response.reason,'market-closed-from-source');assert.equal(response.price,undefined);
 });

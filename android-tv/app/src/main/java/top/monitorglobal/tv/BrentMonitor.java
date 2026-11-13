@@ -11,7 +11,7 @@ final class BrentMonitor {
  private java.util.function.Consumer<String> feedback;
  private boolean manualRequest;private long manualDisplayUntil;
  void setFeedback(java.util.function.Consumer<String> listener){feedback=listener;}
- private boolean busy,closed;private long knownSlot=-1,nextRetry;private JSONObject quote;private DollarQuote dollar;
+ private boolean busy,closed;private long knownSlot=-1,nextRetry;private JSONObject quote;private DollarQuote dollar,lastDollar;private BrentQuote lastBrent;private MarketState brentState=MarketState.unknown(),dollarState=MarketState.unknown();
  BrentMonitor(Context c,BooleanSupplier canShow){this(c,canShow,null);}
  BrentMonitor(Context c,BooleanSupplier canShow,Callable<JSONObject> source){
   context=c;allowed=canShow;overlay=new BrentOverlay(c);externalReader=source!=null;reader=source==null?this::read:source;
@@ -38,11 +38,10 @@ final class BrentMonitor {
   if(closed)return;
   manualRequest=true;
   long now=System.currentTimeMillis();
-  if(!BrentQuote.marketOpen(now)){status("Brent fora da sessão regular configurada. Não foi consultado um preço atual.");manualRequest=false;return;}
   if(!screen()){status("Tela da TV desligada: verificação adiada.");manualRequest=false;return;}
   if(!allowed.getAsBoolean()){status("Outro aviso tem prioridade sobre o Brent. Tente novamente após ele terminar.");manualRequest=false;return;}
   if(busy){status("Cotação real já em consulta.");return;}
-  status("Consultando cotação REAL do Brent, sem simulação…");
+  status(BrentQuote.marketOpen(now)?"Consultando cotação REAL do Brent, sem simulação…":"Consultando estado dos mercados. Brent fora da sessão regular; sem preço atual inventado.");
   knownSlot=BrentQuote.slot(now);
   load(true);
  }
@@ -65,7 +64,7 @@ final class BrentMonitor {
   if(!allowed.getAsBoolean()||overlay.showing())return;
   BrentQuote valid=BrentQuote.parse(quote,now);
   if(valid!=null){
-   if(overlay.show(valid,dollar,false)){
+   if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
     Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
     status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(quote.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
    }else status("Cotação real validada, mas a sobreposição foi bloqueada. Verifique a permissão.");
@@ -79,27 +78,34 @@ final class BrentMonitor {
   final long requestSlot=knownSlot;
   io.execute(()->{
    JSONObject data=null;
-   try{data=reader.call();}catch(Exception ignored){}
+   try{long now=System.currentTimeMillis();if(!BrentQuote.marketOpen(now))data=new JSONObject().put("version","tv-brent-v1").put("symbol","BZ=F").put("marketOpen",false).put("marketState",MarketState.brentRegular(now).value==MarketState.PAUSED?"PAUSED":"CLOSED").put("checkedAt",now);else data=reader.call();}catch(Exception ignored){}
    final JSONObject result=data;
-   DollarQuote fx=null;
-   if(!externalReader&&BrentQuote.parse(result,System.currentTimeMillis())!=null)fx=readDollar();
-   final DollarQuote verifiedDollar=fx;
+   DollarResult fx=new DollarResult(null,MarketState.unknown());
+   if(!externalReader&&(manual||manualRequest||BrentQuote.parse(result,System.currentTimeMillis())!=null))fx=readDollar();
+   final DollarResult verifiedDollar=fx;
    main.post(()->{
     busy=false;
     boolean requested=manual||manualRequest;
     if(closed||!requested&&requestSlot!=knownSlot)return;
-    quote=result;dollar=verifiedDollar;
+    quote=result;dollar=verifiedDollar.quote;dollarState=verifiedDollar.state;BrentQuote observed=BrentQuote.parse(result,System.currentTimeMillis());brentState=observed==null?MarketState.fromWorker(result,System.currentTimeMillis()):observed.session;if(observed!=null)lastBrent=observed;if(dollar!=null)lastDollar=dollar;
     if(result==null||!result.optBoolean("ok"))status(problem(result));
     else if(BrentQuote.parse(result,System.currentTimeMillis())==null)
      status("A fonte respondeu, mas o preço ou horário não passou pela validação da TV.");
     if(requested){
      BrentQuote valid=BrentQuote.parse(result,System.currentTimeMillis());
+     if(valid==null&&brentState.closed()){
+      if(screen()&&allowed.getAsBoolean()){
+       long current=System.currentTimeMillis();BrentQuote previous=lastBrent!=null&&current-lastBrent.at<=7*86400000L?lastBrent:null;DollarQuote usd=dollar!=null?dollar:lastDollar!=null&&current-lastDollar.at<=7*86400000L?lastDollar:null;
+       if(overlay.showMarket(previous,usd,brentState,dollarState,false)){manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;status("BRENT · "+brentState.label()+" · DÓLAR · "+dollarState.label()+" · valores anteriores, quando disponíveis, identificados por data e hora.");}
+      }else status("Outro aviso ou a tela desligada impede mostrar o estado dos mercados agora.");
+      manualRequest=false;return;
+     }
      if(valid==null){
       if(result!=null&&result.optBoolean("ok"))status("Cotação rejeitada: horário ou dados inconsistentes.");
       manualRequest=false;return;
      }
      if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");manualRequest=false;return;}
-     if(overlay.show(valid,dollar,false)){
+     if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
       manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
@@ -116,11 +122,12 @@ final class BrentMonitor {
   // Prefer the reviewed Cloudflare service. Its real session check may return
   // source-unavailable when Yahoo blocks Cloudflare egress, even while Yahoo is
   // accessible from the device network.
+  long started=System.currentTimeMillis();if(!BrentQuote.marketOpen(started))return new JSONObject().put("version","tv-brent-v1").put("ok",false).put("marketOpen",false).put("symbol","BZ=F").put("marketState",MarketState.brentRegular(started).value==MarketState.PAUSED?"PAUSED":"CLOSED").put("checkedAt",started);
   JSONObject worker=null;
   try{worker=readRemote(URL,6000,7000,10000);}
   catch(Exception ignored){ /* Attempt bounded, source-validated device fallback. */ }
   long now=System.currentTimeMillis();
-  if(worker!=null&&BrentQuote.parse(worker,now)!=null)return worker;
+  if(worker!=null&&(BrentQuote.parse(worker,now)!=null||MarketState.fromWorker(worker,now).closed()))return worker;
   if(!BrentQuote.marketOpen(now))return worker;
   String[] yahoo={
    "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d",
@@ -141,15 +148,15 @@ final class BrentMonitor {
  }
  /** Dollar is an optional independent Yahoo spot quote. It never delays seismic polling,
   * and a failure displays an honest unavailable label beside a valid Brent price. */
- private DollarQuote readDollar(){
-  for(String host:new String[]{"query1.finance.yahoo.com","query2.finance.yahoo.com"}){
-   try{
-    JSONObject raw=readRemote("https://"+host+"/v8/finance/chart/BRL=X?interval=1m&range=1d",180000,3000,3500);
-    DollarQuote q=DollarQuote.fromYahoo(raw,System.currentTimeMillis());
-    if(q!=null)return q;
-   }catch(Exception ignored){}
-  }
-  return null;
+ private static final class DollarResult {final DollarQuote quote;final MarketState state;DollarResult(DollarQuote q,MarketState s){quote=q;state=s;}}
+ private DollarResult readDollar(){
+  MarketState last=MarketState.unknown();
+  for(String host:new String[]{"query1.finance.yahoo.com","query2.finance.yahoo.com"})try{
+   JSONObject raw=readRemote("https://"+host+"/v8/finance/chart/BRL=X?interval=1m&range=1d",180000,3000,3500);long now=System.currentTimeMillis();DollarQuote q=DollarQuote.fromYahoo(raw,now);if(q!=null)return new DollarResult(q,q.session);
+   JSONObject chart=raw.optJSONObject("chart");JSONArray rows=chart==null?null:chart.optJSONArray("result");JSONObject item=rows!=null&&rows.length()==1?rows.optJSONObject(0):null,meta=item==null?null:item.optJSONObject("meta");
+   if(chart!=null&&chart.isNull("error")&&meta!=null&&"BRL".equals(meta.optString("currency"))){MarketState state=MarketState.fromMeta(meta,"BRL=X",now);if(state.value!=MarketState.UNKNOWN)last=state;if(state.closed())return new DollarResult(null,state);}
+  }catch(Exception ignored){}
+  return new DollarResult(null,last);
  }
  private JSONObject readRemote(String endpoint,int maxBytes,int connectMs,int readMs)throws Exception{
   HttpURLConnection c=(HttpURLConnection)new URL(endpoint).openConnection();connection=c;
@@ -178,3 +185,4 @@ final class BrentMonitor {
  void hide(){manualDisplayUntil=0;overlay.hide();}
  void close(){closed=true;hide();main.removeCallbacksAndMessages(null);if(connection!=null)connection.disconnect();if(io!=null)io.shutdownNow();quote=null;}
 }
+

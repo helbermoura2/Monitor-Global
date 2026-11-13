@@ -17,8 +17,10 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         card = source("TvBroadcastInfoView.java")
         self.assertIn("banner.showBrent(quote,dollar,demo,BrentQuote.DISPLAY", brent)
         self.assertIn('BRL=X?interval=1m&range=1d', market)
-        self.assertIn("DollarQuote.fromYahoo(raw,System.currentTimeMillis())", market)
-        self.assertIn("DÓLAR COMERCIAL", card)
+        self.assertIn("DollarQuote.fromYahoo(raw,now)", market)
+        self.assertIn("DÓLAR USD/BRL", card)
+        self.assertIn("brentSession.label()", card)
+        self.assertIn("dollarSession.label()", card)
         self.assertIn("DISPLAY=12000L", source("BrentQuote.java"))
         self.assertIn("BrentQuote.marketOpen(now)", market)
 
