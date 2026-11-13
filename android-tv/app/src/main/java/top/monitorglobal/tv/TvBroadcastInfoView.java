@@ -247,6 +247,18 @@ final class TvBroadcastInfoView extends View {
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
  }
  private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
+ // Compact labels fit next to each market name without truncating PAUSADO.
+ // Full market state remains available in ticker/accessibility information.
+ static String marketHeaderStatus(MarketState session){
+  if(session==null)return "N/D";
+  switch(session.value){
+   case MarketState.OPEN:return "ABERTO";
+   case MarketState.CLOSED:return "FECHADO";
+   case MarketState.PAUSED:return "PAUSADO";
+   default:return "N/D";
+  }
+ }
+
  private void drawVoiceStatus(Canvas c){
   label(c,"CONSULTA",12,66,31,0xffff6d7f,brand,133);
   label(c,voiceTitle,170,62,27,foreground,brand,690);
@@ -262,10 +274,14 @@ final class TvBroadcastInfoView extends View {
    label(c,"DÓLAR USD/BRL",593,45,17,accent,brand,240);
    label(c,"AGUARDANDO FONTE",593,77,21,foreground,brand,275);
    return;
-  }label(c,"BRENT",12,57,28,0xffff6d7f,brand,111);label(c,demo?"SIMULADO":brentSession.label(),12,83,13,sessionColor(brentSession),brand,113);
+  }
+  // Header matches the USD/BRL name + colored market-state badge at y=44.
+  // Keep prices, percentages, references, ticker and animation untouched.
+  label(c,"BRENT",12,44,19,0xffff6d7f,brand,62);
+  label(c,demo?"SIMULADO":marketHeaderStatus(brentSession),76,44,12,sessionColor(brentSession),brand,60);
   label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,68,37,foreground,brand,254);
   int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;String variation=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";label(c,variation,402,66,25,tint,brand,162);fill(c,575,41,1,43,0xff45647b);
-  label(c,"DÓLAR USD/BRL",593,44,16,accent,brand,174);label(c,demo?"SIMULADO":dollarSession.label(),775,44,12,sessionColor(dollarSession),brand,110);
+  label(c,"DÓLAR USD/BRL",593,44,16,accent,brand,174);label(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),775,44,12,sessionColor(dollarSession),brand,110);
   label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,150);Double pct=dollar==null?null:dollar.percent;label(c,pct==null?"VAR. —":(pct>=0?"▲ +":"▼ ")+amount(pct)+"%",755,75,21,pct==null?0xffb8d2df:pct>=0?0xff75edb2:0xffff7687,brand,130);
   label(c,brent==null?"NYMEX · SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,89,12,0xffbdcfdd,data,430);
   label(c,dollar==null?"FONTE SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),593,91,11,0xffbdcfdd,data,287);
