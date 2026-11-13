@@ -70,6 +70,37 @@ public class UnifiedBroadcastChromeTest {
    assertTrue(changed>100);
   }finally{a.recycle();b.recycle();c.recycle();}
  }
+ @Test public void newsroomHeaderAndFooterMatchAcrossSeismicAndMarkets()throws Exception{
+  assertEquals(260f,BroadcastVisuals.BREAKING_WIDTH,0f);
+  assertEquals(94f,BroadcastVisuals.FOOTER_TOP,0f);
+  assertEquals(32f,BroadcastVisuals.FOOTER_HEIGHT,0f);
+  NewsBannerView quake=new NewsBannerView(context,regional(),false,true);
+  BrentQuote quote=new BrentQuote(78.45,77.50,.95,1.22,System.currentTimeMillis()-180000,"Yahoo Finance");
+  TvBroadcastInfoView market=TvBroadcastInfoView.market(context,quote,null,false);
+  Bitmap a=frame(quake,960,126+Banner.insetDp(context),1100);
+  Bitmap b=frame(market,960,126,1100);
+  try{
+   int map=Banner.insetDp(context);
+   for(int x:new int[]{10,30,240,255}){
+    assertEquals("Long breaking label on seismic",0xffbf1827,a.getPixel(x,map+10));
+    assertEquals("Long breaking label on market",0xffbf1827,b.getPixel(x,10));
+   }
+   for(int x:new int[]{809,950}){
+    assertEquals("Wide seismic live/replay status",0xffbf1827,a.getPixel(x,map+10));
+    assertEquals("Wide market status",0xffbf1827,b.getPixel(x,10));
+   }
+   assertEquals(0xffbf1827,a.getPixel(10,map+96));
+   assertEquals(0xffbf1827,b.getPixel(10,96));
+   assertEquals(0xff020816,a.getPixel(92,map+96));
+   assertEquals(0xff020816,b.getPixel(92,96));
+  }finally{a.recycle();b.recycle();}
+  Banner banner=new Banner(context);
+  try{
+   assertTrue(banner.showRegional(regional(),false,true));
+   WindowManager.LayoutParams p=(WindowManager.LayoutParams)banner.activeView().getLayoutParams();
+   assertEquals(context.getResources().getDisplayMetrics().widthPixels*96/100,p.width);
+  }finally{banner.hide();}
+ }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
   assertEquals(40f,BroadcastVisuals.TICKER_PX_PER_SECOND,0f);
   assertEquals(922f,BroadcastVisuals.RADAR_X,0f);
