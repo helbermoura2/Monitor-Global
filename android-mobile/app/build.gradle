@@ -14,13 +14,15 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 15
-  versionName '0.1.14'
+  versionCode 16
+  versionName '0.1.15'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
  buildTypes {
-  debug { applicationIdSuffix '.dev'; versionNameSuffix '-teste'; resValue 'string', 'app_name', 'Monitor Global · Teste' }
+  // Keep the preview package and visible version suffix distinct, but show a clean
+  // public-facing app name in Android notification headers and the launcher.
+  debug { applicationIdSuffix '.dev'; versionNameSuffix '-teste'; resValue 'string', 'app_name', 'Monitor Global' }
   release { minifyEnabled false; debuggable false; resValue 'string', 'app_name', 'Monitor Global' }
  }
  // Reuse the validated protocol, forecast and flag models without copying the TV application.
