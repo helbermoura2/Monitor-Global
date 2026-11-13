@@ -22,6 +22,7 @@ enum TvSoundPattern {
    offset+=count;
   }return out;
  }
+ static boolean canReplace(TvSoundPattern active,boolean activePreview,TvSoundPattern next,boolean nextPreview){return active==null||next!=null&&(!nextPreview||activePreview)&&(activePreview||nextPreview||next.priority>=active.priority);}
  static TvSoundPattern alert(Alert a,boolean replay){
   if(a==null||replay||a.quietInformation())return null;
   if("tsunami".equals(a.kind))return "ended".equals(a.state)||"information".equals(a.state)||"unknown".equals(a.state)?TSUNAMI_END:TSUNAMI;

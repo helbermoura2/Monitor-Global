@@ -20,7 +20,7 @@ final class TvSounds {
  private void start(TvSoundPattern cue,boolean test){
   if(!enabled(context,cue)){if(test)status("Som desativado: ative o som geral, esta categoria e uma intensidade acima de zero.");return;}
   PowerManager power=context.getSystemService(PowerManager.class);if(power!=null&&!power.isInteractive())return;
-  long now=SystemClock.elapsedRealtime();if(active!=null&&(!test&&!preview&&active.priority>cue.priority||test&&!preview))return;
+  long now=SystemClock.elapsedRealtime();if(!TvSoundPattern.canReplace(active,preview,cue,test))return;
   if(!test&&last==cue&&now-lastAt<2000)return;
   clear();preview=test;active=cue;int token=generation;
   if(manager==null||manager.getStreamVolume(AudioManager.STREAM_MUSIC)==0){status("Som: volume de mídia da TV está zerado ou indisponível.");clear();return;}
