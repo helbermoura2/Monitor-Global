@@ -100,9 +100,10 @@ final class TvBroadcastInfoView extends View {
  }
  private static MarketState closedBrentOrUnknown(){MarketState state=MarketState.brentRegular(System.currentTimeMillis());return state.closed()?state:MarketState.unknown();}
  static TvBroadcastInfoView market(Context c,BrentQuote b,DollarQuote d,MarketState bs,MarketState ds,boolean demo){TvBroadcastInfoView v=market(c,b,d,demo);if(bs!=null)v.brentSession=bs;if(ds!=null)v.dollarSession=ds;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();return v;}
+ private String variationText(Double value){return value==null?"Variação indisponível":(value>=0?"+":"")+amount(value)+"%";}
  private void refreshMarket(){
   if(kind!=BRENT)return;long sec=System.currentTimeMillis()/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(System.currentTimeMillis(),true);dollarSession=dollarSession.current(System.currentTimeMillis(),false);
-  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
+  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
  }
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
