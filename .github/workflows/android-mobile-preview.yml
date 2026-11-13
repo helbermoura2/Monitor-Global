@@ -54,7 +54,7 @@ jobs:
             ~/.android/debug.keystore
           key: monitor-global-mobile-debug-key-v2
       - name: Verify mobile push delivery rules
-        run: node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/phone-brazil-model.test.mjs tests/unit/phone-brazil-layout.test.mjs tests/unit/rainbow-products.test.mjs tests/unit/weather-briefing.test.mjs
+        run: node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/phone-brazil-radar.test.mjs tests/unit/phone-brazil-model.test.mjs tests/unit/phone-brazil-layout.test.mjs tests/unit/rainbow-products.test.mjs tests/unit/weather-briefing.test.mjs
       - name: Build and inspect phone APKs
         working-directory: android-mobile
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
@@ -89,6 +89,8 @@ jobs:
         run: node android-mobile/tools/check-phone-map-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk
       - name: Render packaged precipitation timeline and verify camera and lifecycle
         run: node android-mobile/tools/check-phone-rain-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk --live-proof
+      - name: Verify packaged observed radar and live provider frames
+        run: node android-mobile/tools/check-phone-brazil-browser.cjs --apk android-mobile/app/build/outputs/apk/debug/app-debug.apk --live-proof
       - name: Export map rendering evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -97,6 +99,7 @@ jobs:
           path: |
             android-mobile/app/build/reports/map-browser
             android-mobile/app/build/reports/rain-browser
+            android-mobile/app/build/reports/brazil-browser
           if-no-files-found: warn
           retention-days: 2
       - uses: actions/upload-artifact@v4
@@ -197,5 +200,6 @@ jobs:
           fi
           gh release upload mobile-preview preview-apk/monitor-global-mobile*.apk --clobber
           gh release upload mobile-preview preview-apk/mobile-update.json --clobber
+
 
 

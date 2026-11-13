@@ -10,6 +10,11 @@ public class PhoneMapViewTest {
   PhoneMapView view=new PhoneMapView(RuntimeEnvironment.getApplication(),null,true);try{assertEquals(PhoneMapView.RAIN_PAGE,((WebView)field(view,"web")).getUrl());androidx.webkit.WebViewAssetLoader loader=(androidx.webkit.WebViewAssetLoader)field(view,"loader");for(String name:Arrays.asList("phone-rain.html","phone-rain.js","phone-rain.css","phone-rain-model.js")){android.webkit.WebResourceResponse r=loader.shouldInterceptRequest(Uri.parse("https://appassets.androidplatform.net"+PhoneMapView.ASSET_PREFIX+name));assertNotNull(name,r);assertNotNull(name,r.getData());r.getData().close();}}finally{view.close();}assertNull(field(view,"web"));
  }
  private Object field(Object object,String name)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(object);}
+ @Test public void radarAcceptsProviderOpaqueIdsAndRejectsForeignOrMalformedResources(){
+  assertTrue(PhoneMapView.radarResource(Uri.parse("https://api.rainviewer.com/public/weather-maps.json")));
+  for(String id:Arrays.asList("1794582600","ead16661a2c1","Hash-Key_42"))assertTrue(PhoneMapView.radarResource(Uri.parse("https://tilecache.rainviewer.com/v2/radar/"+id+"/256/7/47/72/2/1_1.png")));
+  for(String url:Arrays.asList("https://evil.example/v2/radar/hash/256/5/11/18/2/1_1.png","https://tilecache.rainviewer.com/v2/radar/hash/256/8/11/18/2/1_1.png","https://tilecache.rainviewer.com/v2/radar/hash/256/0/11/18/2/1_1.png","https://tilecache.rainviewer.com/v2/radar/hash/256/5/11/18/2/1_1.png?other=1","https://tilecache.rainviewer.com/v2/radar/../other/256/5/11/18/2/1_1.png"))assertFalse(url,PhoneMapView.radarResource(Uri.parse(url)));
+ }
  private Alert sample(String id,double lon,double lat){Alert a=new Alert(id,"earthquake","v","M6,0 · Local de teste","","earthquake",1,1,false);a.originLongitude=lon;a.originLatitude=lat;return a;}
  @Test public void onlyTheLocalPageAndImagerySourceAreTrusted(){
   assertTrue(PhoneMapView.mainPage(Uri.parse(PhoneMapView.PAGE)));assertFalse(PhoneMapView.mainPage(Uri.parse(PhoneMapView.PAGE+"?url=https://evil.example")));assertFalse(PhoneMapView.mainPage(Uri.parse("file:///android_asset/phone-map.html")));assertFalse(PhoneMapView.mainPage(Uri.parse("https://evil.example/assets/phone-map.html")));
@@ -42,3 +47,4 @@ public class PhoneMapViewTest {
   try{view.setEvents(Collections.singletonList(sample("q1",85,27)));Object bridge=field(view,"bridge");Method select=bridge.getClass().getDeclaredMethod("selectEvent",String.class);select.setAccessible(true);assertNotNull(select.getAnnotation(JavascriptInterface.class));select.invoke(bridge,"foreign-id");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(0,selected.get());select.invoke(bridge,"q1");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(1,selected.get());view.pause();select.invoke(bridge,"q1");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(1,selected.get());view.close();select.invoke(bridge,"q1");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(1,selected.get());}finally{view.close();}
  }
 }
+
