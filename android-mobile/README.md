@@ -36,7 +36,7 @@ A CI confere o APK, suas permissões e a inicialização dos assets do mapa com 
 
 O workflow Android mobile preview gera o APK em PRs. Após integrar na main e passar os testes, publica a pré-release `mobile-preview`, com o arquivo `monitor-global-mobile-preview.apk`. A prévia usa assinatura de desenvolvimento, mantida no cache da CI para continuidade dos testes; não é o canal oficial assinado nem publicação na Play Store. Uma futura versão oficial terá sua configuração própria de assinatura e atualização. Nenhuma chave é gravada no repositório.
 
-Não se deve distribuir o APK release sem assinatura produzido apenas para verificação de build. O instalável de teste é o APK debug identificado como Monitor Global · Teste.
+Não se deve distribuir o APK release sem assinatura produzido apenas para verificação de build. O instalável de teste é o APK debug, identificado no lançador e nas notificações como **Monitor Global**. A prévia continua diferenciada pela versão com sufixo `-teste` em **Avisos e fontes**, pelo pacote `top.monitorglobal.mobile.dev` e pelo canal de pré-release. Avisos reais permanecem normais; o teste local mantém o aviso explícito de simulação no título e no corpo.
 
 ## Limites
 
