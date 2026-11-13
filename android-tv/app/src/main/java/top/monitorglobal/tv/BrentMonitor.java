@@ -49,7 +49,13 @@ final class BrentMonitor {
   long now=System.currentTimeMillis();
   if(!screen()){status("Tela da TV desligada: verificação adiada.");manualRequest=false;return;}
   if(!allowed.getAsBoolean()){status("Outro aviso tem prioridade sobre o Brent. Tente novamente após ele terminar.");manualRequest=false;return;}
-  if(busy){status("Cotação real já em consulta.");return;}
+  // Open the official hourly Brent/Dollar lower-third NOW, not the obsolete
+  // "Consulta por voz" corner card. Replace this very same view on result.
+  if(!overlay.showPending()){
+   status("Não foi possível abrir a tarja oficial. Verifique permissão para exibir sobre outros apps.");
+   manualRequest=false;return;
+  }
+  if(busy){status("Cotação real já em consulta. Atualizando a tarja oficial.");return;}
   status(BrentQuote.marketOpen(now)?"Consultando cotação REAL do Brent, sem simulação…":"Consultando estado dos mercados. Brent fora da sessão regular; sem preço atual inventado.");
   knownSlot=BrentQuote.slot(now);
   load(true);
