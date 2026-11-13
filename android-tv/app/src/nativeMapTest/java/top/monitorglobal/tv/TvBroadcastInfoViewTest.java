@@ -55,6 +55,21 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
+ @Test public void AlexaBrentPendingAndOtherVoiceStatusUseIdenticalNewsroomGeometry()throws Exception{
+  TvBroadcastInfoView pending=TvBroadcastInfoView.marketPending(c);
+  TvBroadcastInfoView generic=TvBroadcastInfoView.voiceStatus(c,"Consulta do Brasil","Sem registros confirmados.");
+  assertEquals(0,pending.mapSpace);assertEquals(0,generic.mapSpace);
+  assertTrue(String.valueOf(pending.getContentDescription()).contains("CONSULTANDO COTAÇÃO REAL"));
+  assertTrue(String.valueOf(generic.getContentDescription()).contains("Sem registros confirmados"));
+  Bitmap a=render(pending,"alexa-brent-pending");
+  Bitmap b=render(generic,"alexa-generic-banner");
+  try{
+   assertEquals(126,a.getHeight());assertEquals(126,b.getHeight());
+   assertEquals(0xffbf1827,a.getPixel(10,10));
+   assertEquals(0xffbf1827,b.getPixel(10,10));
+   assertTrue(a.getPixel(911,60)!=0xff071724);
+  }finally{a.recycle();b.recycle();}
+ }
  @Test public void weatherUsesSatellitePixelsInItsOwnInset()throws Exception{
   WeatherForecast.Summary w=new WeatherForecast.Summary("22°C","Nublado","Vento 12 km/h","Umidade 81%","Modelo horário",System.currentTimeMillis()+600000,false,"22°C","23°C","81%","12 km/h","19 km/h","Cloudy");
   Bitmap image=Bitmap.createBitmap(512,300,Bitmap.Config.ARGB_8888);image.eraseColor(Color.MAGENTA);
