@@ -11,7 +11,7 @@ final class BrentCardView extends LinearLayout {
   brand=TvCardStyle.brand(c);setBackground(round(BODY));
   LinearLayout bar=new LinearLayout(c);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setPadding(dp(16),dp(9),dp(16),dp(9));bar.setBackgroundColor(CYAN);addView(bar,new LayoutParams(-1,-2));
   bar.addView(label("BRENT  /  PETRÓLEO",17,DEEP,true),new LayoutParams(0,-2,1));
-  bar.addView(label(demo?"TESTE FICTÍCIO":"ICE · BZ=F",12,DEEP,true));
+  bar.addView(label(demo?"TESTE FICTÍCIO":"NYMEX · BZ=F",12,DEEP,true));
   LinearLayout body=new LinearLayout(c);body.setOrientation(VERTICAL);body.setPadding(dp(18),dp(13),dp(18),dp(13));addView(body,new LayoutParams(-1,-2));
   LinearLayout values=new LinearLayout(c);values.setGravity(Gravity.CENTER_VERTICAL);body.addView(values,new LayoutParams(-1,-2));
   LinearLayout main=new LinearLayout(c);main.setOrientation(VERTICAL);LayoutParams priceBox=new LayoutParams(-2,-2);priceBox.setMarginEnd(dp(10));values.addView(main,priceBox);
@@ -38,3 +38,4 @@ final class BrentCardView extends LinearLayout {
  private GradientDrawable round(int color){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(10));return d;}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
 }
+

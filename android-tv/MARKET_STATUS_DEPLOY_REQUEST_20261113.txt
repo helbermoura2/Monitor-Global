@@ -1,0 +1,1 @@
+Deploy reviewed BZ=F NYMEX session and independent market status backend for TV 1.0.79. Preserve bindings, secrets, routes, and schedules.

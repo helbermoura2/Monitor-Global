@@ -9,8 +9,8 @@ android {
   // Shared weather briefings prefer Gemini Flash with verified Cloudflare and rule-based fallbacks.
   // Correção verificada: boletim integrado de 15 s; avisos de chuva preservados.
   // Atualização: condição horária de chuva diferenciada da estimativa de chuva por minuto na tarja.
-  versionCode 10078
-  versionName '1.0.78'
+  versionCode 10079
+  versionName '1.0.79'
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
@@ -51,3 +51,4 @@ tasks.register('prepareWeatherSatellite', Sync) {
  into layout.buildDirectory.dir('generated/weatherSatellite')
 }
 tasks.named('preBuild').configure { dependsOn 'prepareWeatherSatellite' }
+

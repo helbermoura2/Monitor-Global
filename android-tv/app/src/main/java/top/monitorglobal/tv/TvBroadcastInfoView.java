@@ -19,7 +19,7 @@ final class TvBroadcastInfoView extends View {
  private final RainBannerContent rainFacts;
  private final WeatherForecast.Summary weather;
  private final BrentQuote brent;
- private final DollarQuote dollar;
+ private final DollarQuote dollar;private MarketState brentSession,dollarSession;
  private final WeatherSatelliteClient.Frame satellite;
  private java.util.function.Supplier<WeatherSatelliteClient.Frame> weatherSatellite;
  private final WeatherCardView.Icon[] weatherIcons=new WeatherCardView.Icon[4];
@@ -29,7 +29,7 @@ final class TvBroadcastInfoView extends View {
  final int mapSpace;
  private final Alert locator;
  private MapInset mapInset;
- private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
+ private long marketSecond=Long.MIN_VALUE;private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private float mapReveal=1;
  private String ticker;private final String baseTicker;
  private final Path outline=new Path(),telegramPlane=new Path();
@@ -41,6 +41,7 @@ final class TvBroadcastInfoView extends View {
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
   super(c);this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
+  brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
   this.mapSpace=kind==RAIN||kind==BRENT||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
@@ -76,7 +77,7 @@ final class TvBroadcastInfoView extends View {
     String v=brent==null?"indisponível":"US$ "+amount(brent.price);
     String usd=dollar==null?"indisponível":"R$ "+amount(dollar.price);
     ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT: "+v+
-      (brent!=null?" · ref. "+BrentQuote.clock(brent.at):"")+"     •     DÓLAR COMERCIAL USD/BRL: "+usd+
+      (brent!=null?" · ref. "+BrentQuote.clock(brent.at):"")+"     •     DÓLAR USD/BRL: "+usd+
       (dollar!=null?" · "+(dollar.percent==null?"Variação indisponível":(dollar.percent>=0?"+":"")+amount(dollar.percent)+"%")+" · ref. "+BrentQuote.clock(dollar.at):"")+
       "     •     Variação sobre o fechamento anterior · Fonte: Yahoo Finance · dados podem sofrer atraso";
    }else{
@@ -95,7 +96,14 @@ final class TvBroadcastInfoView extends View {
  }
  static TvBroadcastInfoView rain(Context c,RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo){return new TvBroadcastInfoView(c,RAIN,rain,weather,null,null,null,null,demo);}
  static TvBroadcastInfoView market(Context c,BrentQuote brent,DollarQuote dollar,boolean demo){
-  return new TvBroadcastInfoView(c,BRENT,null,null,brent,dollar,null,null,demo);
+  TvBroadcastInfoView v=new TvBroadcastInfoView(c,BRENT,null,null,brent,dollar,null,null,demo);v.refreshMarket();return v;
+ }
+ private static MarketState closedBrentOrUnknown(){MarketState state=MarketState.brentRegular(System.currentTimeMillis());return state.closed()?state:MarketState.unknown();}
+ static TvBroadcastInfoView market(Context c,BrentQuote b,DollarQuote d,MarketState bs,MarketState ds,boolean demo){TvBroadcastInfoView v=market(c,b,d,demo);if(bs!=null)v.brentSession=bs;if(ds!=null)v.dollarSession=ds;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();return v;}
+ private void refreshMarket(){
+  if(kind!=BRENT)return;long sec=System.currentTimeMillis()/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(System.currentTimeMillis(),true);dollarSession=dollarSession.current(System.currentTimeMillis(),false);
+  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
+  setContentDescription((demo?"Teste fictício. ":"")+ticker);
  }
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
   return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
@@ -133,7 +141,7 @@ final class TvBroadcastInfoView extends View {
   rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
   label(c,value,960-width+12,18,17,Color.WHITE,brand,width-20);
  }
- private String status(){return demo?"TESTE FICTÍCIO":"AO VIVO";}
+ private String status(){return demo?"TESTE FICTÍCIO":kind==BRENT?"COTAÇÕES":"AO VIVO";}
  private void drawRadar(Canvas c,long elapsed){
   BroadcastVisuals.radar(c,p,elapsed,animate);
  }
@@ -216,20 +224,15 @@ final class TvBroadcastInfoView extends View {
   metric(c,2,weather==null?"—":weather.windValue,"VENTO",626);
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
  }
+ private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
  private void drawBrent(Canvas c){
-  label(c,"BRENT",12,69,33,0xffff6d7f,brand,111);
-  String price=brent==null?"US$ —":"US$ "+amount(brent.price);
-  label(c,price,138,68,37,foreground,brand,254);
-  int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
-  String variation=brent==null||brent.percent==null?"VAR. —":
-   (brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
-  label(c,variation,402,66,25,tint,brand,162);
-  fill(c,575,41,1,43,0xff45647b);
-  label(c,"DÓLAR COMERCIAL",593,45,17,accent,brand,253);
-  label(c,dollar==null?"R$ indisponível":"R$ "+amount(dollar.price),593,76,29,foreground,brand,150);
-  Double pct=dollar==null?null:dollar.percent;
-  label(c,pct==null?"VAR. —":(pct>=0?"▲ +":"▼ ")+amount(pct)+"%",755,75,21,pct==null?0xffb8d2df:pct>=0?0xff75edb2:0xffff7687,brand,130);
-  label(c,brent==null?"Brent indisponível":"ICE · BZ=F · "+BrentQuote.clock(brent.at),138,89,13,0xffbdcfdd,data,430);
+  refreshMarket();label(c,"BRENT",12,57,28,0xffff6d7f,brand,111);label(c,demo?"SIMULADO":brentSession.label(),12,83,13,sessionColor(brentSession),brand,113);
+  label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,68,37,foreground,brand,254);
+  int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;String variation=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";label(c,variation,402,66,25,tint,brand,162);fill(c,575,41,1,43,0xff45647b);
+  label(c,"DÓLAR USD/BRL",593,44,16,accent,brand,174);label(c,demo?"SIMULADO":dollarSession.label(),775,44,12,sessionColor(dollarSession),brand,110);
+  label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,150);Double pct=dollar==null?null:dollar.percent;label(c,pct==null?"VAR. —":(pct>=0?"▲ +":"▼ ")+amount(pct)+"%",755,75,21,pct==null?0xffb8d2df:pct>=0?0xff75edb2:0xffff7687,brand,130);
+  label(c,brent==null?"NYMEX · SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,89,12,0xffbdcfdd,data,430);
+  label(c,dollar==null?"FONTE SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),593,91,11,0xffbdcfdd,data,287);
  }
  private void drawSatelliteNews(Canvas c){
   label(c,"SATÉLITE",12,70,32,0xffff6d7f,brand,119);
@@ -276,3 +279,4 @@ final class TvBroadcastInfoView extends View {
  }
  @Override protected void onDetachedFromWindow(){running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
 }
+

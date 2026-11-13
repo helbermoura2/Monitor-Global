@@ -3,7 +3,7 @@ on:
   # One-time, explicitly approved rollout from main. Future AI commits do not auto-deploy.
   push:
     branches: [main]
-    paths: ['android-tv/AI_DEPLOY_REQUEST_20261108.txt']
+    paths: ['android-tv/AI_DEPLOY_REQUEST_20261108.txt', 'android-tv/MARKET_STATUS_DEPLOY_REQUEST_20261113.txt']
   workflow_dispatch:
     inputs:
       mode:
@@ -44,3 +44,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           MAINTENANCE_MODE: ${{ github.event_name == 'push' && 'deploy' || inputs.mode }}
         run: python tools/cloudflare-worker-maintenance.py
+

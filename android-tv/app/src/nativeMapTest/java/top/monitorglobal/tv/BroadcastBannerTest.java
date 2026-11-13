@@ -63,3 +63,4 @@ public class BroadcastBannerTest {
   assertEquals(Math.min(view.identityLeft(1000),view.identityLeft(9000)),view.identityLeft(BannerTimeline.PAGE_MS+100),.01);
  }
 }
+

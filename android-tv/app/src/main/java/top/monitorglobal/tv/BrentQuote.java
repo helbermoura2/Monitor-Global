@@ -4,24 +4,18 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import org.json.*;
 
-/** Strict regular ICE Brent session and source-backed quote policy for TV. */
+/** Strict regular NYMEX BZ session and source-backed quote policy for TV. */
 final class BrentQuote {
  static final long MINUTE=60000L,MAX_AGE=75*MINUTE,DISPLAY=12000L;
- private static final ZoneId LONDON=ZoneId.of("Europe/London"),BRASIL=ZoneId.of("America/Sao_Paulo");
- final double price;final Double previousClose,change,percent;final long at;final String source;
+ private static final ZoneId BRASIL=ZoneId.of("America/Sao_Paulo");
+ final MarketState session;final double price;final Double previousClose,change,percent;final long at;final String source;
  BrentQuote(double value,Double previous,Double delta,Double pct,long time,String origin){
-  price=value;previousClose=previous;change=delta;percent=pct;at=time;source=origin;
+  this(value,previous,delta,pct,time,origin,MarketState.brentRegular(System.currentTimeMillis()));
  }
- static boolean marketOpen(long now){
-  if(now<=0)return false;
-  ZonedDateTime t=Instant.ofEpochMilli(now).atZone(LONDON);int hour=t.getHour();
-  switch(t.getDayOfWeek()){
-   case SATURDAY:return false;
-   case SUNDAY:return hour>=23;
-   case MONDAY:case TUESDAY:case WEDNESDAY:case THURSDAY:case FRIDAY:return hour>=1&&hour<23;
-   default:return false;
-  }
+ BrentQuote(double value,Double previous,Double delta,Double pct,long time,String origin,MarketState state){
+  price=value;previousClose=previous;change=delta;percent=pct;at=time;source=origin;session=state;
  }
+ static boolean marketOpen(long now){return MarketState.brentRegular(now).value==MarketState.OPEN;}
  static long slot(long now){
   return Instant.ofEpochMilli(now).atZone(BRASIL).truncatedTo(ChronoUnit.HOURS).withMinute(15).toInstant().toEpochMilli();
  }
@@ -47,7 +41,7 @@ final class BrentQuote {
    !"USD".equals(root.optString("currency"))||
    !"Yahoo Finance".equals(root.optString("source")))return null;
   double value=root.optDouble("price",Double.NaN);long at=root.optLong("asOf",0);
-  if(!price(value)||at<=0||at>now+2*MINUTE||now-at>MAX_AGE)return null;
+  if(!price(value)||at<=0||at>now+2*MINUTE||now-at>MAX_AGE||!MarketState.sameBrentSession(at,now))return null;
   Double previous=null,change=null,percent=null;
   if(!root.isNull("previousClose")){
    double prev=root.optDouble("previousClose",Double.NaN);
@@ -59,7 +53,7 @@ final class BrentQuote {
     Math.abs(pct-(Math.round((value-prev)/prev*10000)/100.0))>.011)return null;
    previous=prev;change=delta;percent=pct;
   }
-  return new BrentQuote(value,previous,change,percent,at,"Yahoo Finance");
+  MarketState state=MarketState.fromWorker(root,now);if(state.closed())return null;if(state.value==MarketState.UNKNOWN&&!root.has("marketState"))state=MarketState.brentRegular(now);return new BrentQuote(value,previous,change,percent,at,"Yahoo Finance",state);
  }
  /** Adapt a genuine Yahoo chart for the strict, existing TV quote gate.
   * Used only as fallback when the Worker cannot obtain an intraday quote.
@@ -72,6 +66,7 @@ final class BrentQuote {
   if(series==null||series.length()!=1)return null;
   JSONObject data=series.optJSONObject(0),meta=data==null?null:data.optJSONObject("meta");
   if(meta==null||!"BZ=F".equals(meta.optString("symbol"))||!"USD".equals(meta.optString("currency")))return null;
+  MarketState provider=MarketState.fromMeta(meta,"BZ=F",now);if(provider.closed())return null;
   String state=meta.optString("marketState","");
   if(java.util.Arrays.asList("CLOSED","POST","PRE","PREPRE","POSTPOST").contains(state))return null;
   double value=Double.NaN;long at=0;String kind="";
@@ -115,7 +110,7 @@ final class BrentQuote {
    result.put("version","tv-brent-v1").put("ok",true).put("marketOpen",true)
     .put("symbol","BZ=F").put("currency","USD")
     .put("price",value).put("asOf",at)
-    .put("source","Yahoo Finance").put("directFromTv",true).put("quoteKind",kind)
+    .put("source","Yahoo Finance").put("exchange","NYMEX").put("marketState",provider.value==MarketState.UNKNOWN&&meta.has("marketState")?"UNKNOWN":"OPEN").put("checkedAt",now).put("sessionBasis",provider.value==MarketState.OPEN?provider.basis:"Sessão regular NYMEX/CME").put("sessionEnd",provider.endsAt).put("directFromTv",true).put("quoteKind",kind)
     .put("previousClose",previous==null?JSONObject.NULL:previous)
     .put("change",change==null?JSONObject.NULL:change)
     .put("percent",percent==null?JSONObject.NULL:percent);
@@ -123,10 +118,12 @@ final class BrentQuote {
   }catch(JSONException ex){return null;}
  }
  private static boolean freshYahoo(long at,long now){
-  return at>0&&at<=now+2*MINUTE&&now-at<=MAX_AGE&&marketOpen(at);
+  return at>0&&at<=now+2*MINUTE&&now-at<=MAX_AGE&&marketOpen(at)&&MarketState.sameBrentSession(at,now);
  }
+ static String reference(long at){return java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm 'BRT'",java.util.Locale.forLanguageTag("pt-BR")).format(Instant.ofEpochMilli(at).atZone(BRASIL));}
  static String clock(long at){
   return java.time.format.DateTimeFormatter.ofPattern("HH:mm",java.util.Locale.forLanguageTag("pt-BR"))
    .format(Instant.ofEpochMilli(at).atZone(BRASIL))+" BRT";
  }
 }
+

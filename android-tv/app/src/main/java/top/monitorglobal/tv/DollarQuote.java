@@ -6,9 +6,12 @@ import org.json.*;
  */
 final class DollarQuote {
  static final long MAX_AGE=75*60000L;
- final double price;final Double change,percent;final long at;final String source;
+ final MarketState session;final double price;final Double change,percent;final long at;final String source;
  DollarQuote(double price,Double change,Double percent,long at,String source){
-  this.price=price;this.change=change;this.percent=percent;this.at=at;this.source=source;
+  this(price,change,percent,at,source,MarketState.unknown());
+ }
+ DollarQuote(double price,Double change,Double percent,long at,String source,MarketState state){
+  this.price=price;this.change=change;this.percent=percent;this.at=at;this.source=source;session=state;
  }
  private static boolean valid(double price){return Double.isFinite(price)&&price>=1&&price<=15;}
  static DollarQuote fromYahoo(JSONObject raw,long now){
@@ -34,6 +37,7 @@ final class DollarQuote {
     if(Double.isFinite(pct)&&Math.abs(pct)<25){change=value;percent=pct;}
    }
   }
-  return new DollarQuote(price,change,percent,at,"Yahoo Finance");
+  return new DollarQuote(price,change,percent,at,"Yahoo Finance",MarketState.fromMeta(meta,"BRL=X",now));
  }
 }
+
