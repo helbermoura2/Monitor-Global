@@ -10,5 +10,5 @@ final class PhoneWeatherReading {
  static String caption(WeatherForecast.Summary w,RainForecast.Summary r){return r!=null&&(hourlyPrecipitation(w)||!r.state.equals("dry"))?"Chuva: estimativa por minuto":"Condição: modelo horário";}
  // An optional cached hourly narrative cannot override the minute-derived rain timeline.
  static String complementaryAi(String value,WeatherForecast.Summary w,RainForecast.Summary r){if(w!=null&&r!=null&&r.state.equals("now")&&(w.conditionKey.equals("Clear")||w.conditionKey.equals("MostlyClear")))return "";return complementaryAi(value);}
- static String complementaryAi(String value){if(value==null)return "";String t=Normalizer.normalize(value,Normalizer.Form.NFD).replaceAll("\\p{M}","").toLowerCase(Locale.ROOT);for(String term:new String[]{"chuva","garoa","precipit","trovoad","tempestad","neve","mm/","tempo seco","tempo seca"})if(t.contains(term))return "";return value;}
+ static String complementaryAi(String value){if(value==null)return "";String t=Normalizer.normalize(value,Normalizer.Form.NFD).replaceAll("\\p{M}","").toLowerCase(Locale.ROOT);for(String term:new String[]{"chuva","garoa","precipit","trovoad","tempestad","neve","pancad","granizo","mm","tempo seco","tempo seca"})if(t.contains(term))return "";return value;}
 }
