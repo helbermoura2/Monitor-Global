@@ -4,7 +4,7 @@ const M=window.PhoneBrazilModel,$=id=>document.getElementById(id);
 const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm em 1 h'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'}};
 const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v1';
 let city={name:'São Paulo',uf:'SP',id:'3550308',lat:-23.555,lon:-46.635},cities=[],map=null,markers=[],satellite=null,radar=null,pendingSatellite=false,ready=false,active=true,closed=false,loading=false,controller=null,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,requestId=0,radarState=null;
-function note(message){const box=$('brazil-status');box.textContent=message;box.hidden=!message;box.dataset.kind=/aguarde|limite|indispon|falha|tente|recente/i.test(message)?'warning':'info';if(message&&!forecast&&/aguarde|limite|indispon|falha|tente|recente/i.test(message)){$('headline').textContent='Previsão não disponível no momento';$('time-label').textContent='Aguardando dados';}}
+function note(message){const box=$('brazil-status');box.textContent=message;box.hidden=!message;box.dataset.kind=/aguarde|limite|indispon|falha|tente|recente/i.test(message)?'warning':'info';if(message&&!forecast&&/aguarde|limite|indispon|falha|tente|recente/i.test(message)){$('headline').textContent='Previsão não disponível no momento';if(!radar?.enabled&&!satellite?.state.enabled)$('time-label').textContent='Aguardando dados';}}
 function stored(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null;}}
 function store(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(e){/* Cache is optional; network remains bounded per session. */}}
 function key(){return city.id;}
@@ -32,7 +32,7 @@ function showValues(){
   const element=marker.getElement();element.dataset.layer=layer;element.dataset.selected='true';element.dataset.observed=String(!!radar?.enabled||!!satellite?.state.enabled);
   element.querySelector('.value').textContent=round(v,layer==='rain'?1:0)+(layer==='temperature'?'°':'');
   element.querySelector('.arrow').style.rotate=((value('wind_direction_10m')+180)%360)+'deg';
-  element.setAttribute('aria-label',city.name+' '+city.uf+', '+round(v,layer==='rain'?1:0)+' '+LAYERS[layer].unit);
+  element.setAttribute('aria-label',element.dataset.observed==='true'?city.name+' · '+city.uf+' · referência geográfica':city.name+' '+city.uf+', '+round(v,layer==='rain'?1:0)+' '+LAYERS[layer].unit);
  }
  $('place').textContent=city.name.toUpperCase()+' · '+city.uf;
  $('headline').textContent=round(v,layer==='rain'?1:0)+' '+LAYERS[layer].unit+' · '+LAYERS[layer].label;
@@ -140,7 +140,7 @@ function syncOverlays(){
  $('satellite-toggle').setAttribute('aria-pressed',String(satOn));
  $('radar-toggle').setAttribute('aria-pressed',String(radarOn));
  const satellitePanel=document.querySelector('#overlay-panel .brazil-satellite-control');if(satellitePanel)satellitePanel.hidden=!satOn;
- for(const marker of markers)marker.getElement().dataset.observed=String(satOn||radarOn);
+ for(const marker of markers){const element=marker.getElement();element.dataset.observed=String(satOn||radarOn);if(satOn||radarOn)element.setAttribute('aria-label',city.name+' · '+city.uf+' · referência geográfica');}
  $('overlay-panel').hidden=!satOn&&!radarOn;observedBadge();
 }
 $('radar-toggle').addEventListener('click',()=>{
