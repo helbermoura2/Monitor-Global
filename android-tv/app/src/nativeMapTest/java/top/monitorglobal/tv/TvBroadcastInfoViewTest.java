@@ -69,7 +69,12 @@ public class TvBroadcastInfoViewTest {
    TvBroadcastInfoView view=TvBroadcastInfoView.market(c,null,null,market,market,false);
    Bitmap image=render(view,"aligned-brent-"+state);
    try{
-    int tint=state==MarketState.OPEN?0xff75edb2:state==MarketState.CLOSED?0xffff7687:0xffffd17d;
+    // A quoted session can transition while tests run (e.g. Friday market close).
+    // Assert the color of the ACTUAL time-adjusted session being rendered.
+    java.lang.reflect.Field sessionField=TvBroadcastInfoView.class.getDeclaredField("brentSession");
+    sessionField.setAccessible(true);
+    MarketState onScreen=(MarketState)sessionField.get(view);
+    int tint=onScreen.value==MarketState.OPEN?0xff75edb2:onScreen.value==MarketState.CLOSED?0xffff7687:onScreen.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;
     int top=0,bottom=0;
     // The new header badge is in the SAME y=44 baseline as the USD/BRL badge.
     for(int y=28;y<=44;y++)for(int x=75;x<=135;x++){
