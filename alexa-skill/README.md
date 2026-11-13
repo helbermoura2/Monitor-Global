@@ -1,6 +1,10 @@
 # Monitor Global + Alexa — seis pedidos em português
 
 Frases e atualização de uma skill já vinculada: [FRASES.md](FRASES.md).
+
+**Novembro/2026:** o modelo de voz já oferece 54 variações do pedido Brent, incluindo preço do barril, cotação agora e Brent com dólar. A TV 1.0.83 responde com a tarja do mercado: cotação validada ou, se a fonte não forneceu preço, informação honesta de indisponibilidade. O aviso *Consultando...* é temporário e desaparece quando a tarja aparece.
+
+**Importante:** o GitHub empacota os novos modelos e o código, mas **não publica automaticamente o Interaction Model na conta Amazon**. Atualize o modelo em Build → Interaction Model → JSON Editor → Save Model → Build Model da skill existente; **não é necessário desvincular a TV nem apagar a tabela de vínculo**. O pacote atualizado aparece no workflow [Alexa skill package](https://github.com/helbermoura2/Monitor-Global/actions/workflows/alexa-skill-package.yml).
 Para os três novos pedidos, atualize o modelo JSON e os arquivos `index.js` e `commands.js` na aba Code, depois clique Deploy. Não apague os dados de vínculo.
 
 Objetivo: segurar o **botão físico do microfone** do Fire TV Stick 4K Max (ou falar à Echo), pedir **Brent**, **temperatura** ou **sismos no Brasil**, e o aplicativo **Monitor Global TV** mostrar **os seus cards existentes sobre o conteúdo da TV**, sem abrir a busca de voz do Google. A Alexa recebe a fala, a skill manda um comando autenticado ao Worker, e o aplicativo o executa.
