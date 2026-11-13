@@ -1,6 +1,8 @@
 name: Validate and deploy mobile push sender
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
   push:
     branches: [feat/mobile-firebase-push, main]
     paths:
@@ -24,23 +26,41 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check whether the scheduled sender release is already active
+        id: active
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {MOBILE_PUSH_RELEASE} from './worker/mobile-push.mjs';
+          let active=false;
+          try { const r=await fetch('https://monitor-global-mobile-push.terrestre.workers.dev/',{signal:AbortSignal.timeout(10000)}); const d=await r.json(); active=r.ok&&d.service==='monitor-global-mobile-push'&&d.release===MOBILE_PUSH_RELEASE&&d.configured===true; } catch {}
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'skip='+String(process.env.EVENT_NAME==='schedule'&&active)+'\n');
+          console.log(active?'Expected sender release is active.':'Sender release not confirmed; retrying publication.');
+          JS
+        env:
+          EVENT_NAME: ${{ github.event_name }}
       - name: Verify delivery selection and history rules
+        if: steps.active.outputs.skip != 'true'
         run: node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs
       - name: Validate Firebase and Secret configuration without sending messages
+        if: steps.active.outputs.skip != 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node tools/check-mobile-push-access.mjs
       - name: Publish isolated mobile sender
+        if: steps.active.outputs.skip != 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@4.45.0 deploy --config wrangler-mobile-push.toml
       - name: Store sender credential only as a Worker Secret
+        if: steps.active.outputs.skip != 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | npx --yes wrangler@4.45.0 secret put FIREBASE_SERVICE_ACCOUNT --config wrangler-mobile-push.toml
+
 

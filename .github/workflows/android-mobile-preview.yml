@@ -132,7 +132,7 @@ jobs:
         id: service
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs .github/workflows/android-mobile-preview.yml; then
+          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs; then
             echo 'deploy=false' >> "$GITHUB_OUTPUT"
           else
             echo 'deploy=true' >> "$GITHUB_OUTPUT"
@@ -197,4 +197,5 @@ jobs:
           fi
           gh release upload mobile-preview preview-apk/monitor-global-mobile*.apk --clobber
           gh release upload mobile-preview preview-apk/mobile-update.json --clobber
+
 
