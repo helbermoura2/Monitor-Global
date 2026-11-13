@@ -77,5 +77,12 @@ public class PhoneActivityTest {
  @Test public void noticeFiltersKeepPushControlsAndOnlyShowRequestedKinds()throws Exception{
   activity.applySnapshot(data());root().findViewWithTag("tab-notices").performClick();root().findViewWithTag("notice-filter-rain").performClick();layout();assertNull(root().findViewWithTag("event-sample"));assertNotNull(named(root(),"Ativar avisos no celular"));root().findViewWithTag("notice-filter-earthquake").performClick();layout();assertNotNull(root().findViewWithTag("event-sample"));assertFalse(texts(root()).contains("Chuva prevista em ~15 min"));export("notices-redesign");root().findViewWithTag("tab-home").performClick();export("home-redesign");root().findViewWithTag("tab-weather").performClick();export("weather-redesign");
  }
+ @Test public void phoneNoticeTapOpensWeatherOrCompletedDayWithoutPretendingToBeAQuake(){
+  activity.onNewIntent(new Intent().putExtra(PhonePush.ROUTE,"rain"));layout();assertTrue(texts(root()).contains("Tempo na Liberdade"));assertFalse(texts(root()).contains("Detalhes do evento"));
+  activity.onNewIntent(new Intent().putExtra(PhonePush.ROUTE,"daily"));layout();assertTrue(texts(root()).contains("MAIORES SISMOS · DIA ANTERIOR"));assertTrue(root().findViewWithTag("tab-notices").isSelected());
+ }
+ @Test public void notificationCategoriesAreIndependentAndDoNotEnablePushWithoutConsent(){
+  root().findViewWithTag("tab-notices").performClick();layout();android.widget.Switch rain=(android.widget.Switch)root().findViewWithTag("push-category-rain");assertNotNull(rain);assertTrue(rain.isChecked());rain.setChecked(false);assertFalse(PhonePush.categoryEnabled(activity,"rain"));assertTrue(PhonePush.categoryEnabled(activity,"weather"));assertFalse(PhonePush.enabled(activity));assertNotNull(root().findViewWithTag("push-category-daily"));
+ }
 }
 

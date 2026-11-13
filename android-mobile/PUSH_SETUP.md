@@ -1,29 +1,30 @@
 # Notificações Android por Firebase Cloud Messaging
 
-O código usa Firebase Cloud Messaging (FCM), com inscrição opcional no tópico público `monitor_global_alerts_v1`. Não usa serviço permanente, sobreposição ou consulta contínua no celular. O Android pode atrasar ou impedir a entrega (sem internet, restrições ou parada forçada); não é um sistema de aviso de emergência com entrega garantida.
+O aplicativo solicita permissão ao Android e inscreve apenas quem ativou os avisos. O Firebase recebe a mensagem com o aplicativo fora de primeiro plano; não é necessário manter a tela aberta. Internet, permissões, restrições de bateria e parada forçada ainda podem atrasar ou impedir o recebimento.
 
-## O que falta para ativar
+## Categorias
 
-1. Criar um projeto no console Firebase e cadastrar um aplicativo Android de pacote `top.monitorglobal.mobile.dev`. Para o futuro APK oficial, cadastrar também `top.monitorglobal.mobile`.
-2. Baixar o `google-services.json` do aplicativo Android. Esse arquivo é a configuração pública do cliente; salvar seu conteúdo como `android-mobile/app/firebase-client.json`. Não usar um JSON de conta de serviço nesse caminho. A build seleciona a configuração correspondente ao pacote; sem configuração, a tela Avisos informa a pendência e desabilita a ativação.
-3. Ativar a API Firebase Cloud Messaging HTTP v1. Criar uma conta de serviço com a permissão mínima necessária para enviar mensagens FCM no mesmo projeto. Sua chave privada fica exclusivamente no Secret `FIREBASE_SERVICE_ACCOUNT` do Worker de envio. Nunca anexar a chave à conversa, ao repositório ou ao APK.
-4. Publicar o Worker separado com `wrangler deploy --config wrangler-mobile-push.toml`, cadastrar o Secret por `wrangler secret put FIREBASE_SERVICE_ACCOUNT --config wrangler-mobile-push.toml` e confirmar o cron. Ele não modifica o Worker/Telegram existentes. Sem Secret, o cron não consulta nem envia nada.
-5. Compilar o APK configurado, instalar, abrir Avisos e ativar notificações; no Android 13+, autorizar a permissão do sistema. Confirmar inscrição e enviar um aviso controlado antes de disponibilizar como funcional. Esta implementação ainda não foi validada com uma conta Firebase real.
+- Sismos e tsunami continuam no tópico compatível `monitor_global_alerts_v1`; o aparelho aplica a escolha individual de cada categoria.
+- Chuva: `monitor_global_rain_v1`.
+- Boletins horários: `monitor_global_weather_v1`.
+- Resumo diário: `monitor_global_daily_v1`.
 
-## Regras
+Quem já ativou notificações mantém essa escolha e recebe inscrição nas novas categorias ao abrir a versão atualizada. Cada uma pode ser desligada em Avisos. Quem nunca ativou permanece sem inscrição. Nenhum token individual de aparelho é publicado ou armazenado no repositório.
 
-O remetente consulta uma vez por minuto o feed público existente; isso adiciona consultas e uso de um Durable Object. Reutiliza a elegibilidade do feed: M6+ globais, Brasil e boletins elegíveis de tsunami, incluindo encerramentos de um boletim acompanhado. Na primeira execução, registra uma linha de base para não disparar o histórico antigo. Deduplicação persiste no remetente e no aparelho; versões sem mudança material não alertam de novo. Cada rodada envia no máximo três mensagens e mensagens expiram após 180 segundos no FCM. Isso não transforma o prazo do cron em garantia de entrega.
+Chuva e tempo são previsões para o ponto fixo da Liberdade, São Paulo, conforme descrito na tela. Chuva usa as séries válidas por minuto para chegada, intensidade, volume, duração e término estimados; consulta no máximo a cada cinco minutos, mudanças com intervalo mínimo de dez minutos e lembrete após uma hora de previsão ativa. A mudança para previsão sem chuva não afirma que uma medição local ficou seca. Boletim horário é enviado nos primeiros quinze minutos de cada hora, exceto à meia-noite. Resumo do dia anterior é enviado após 00:05 e antes de 00:30 BRT, conforme disponibilidade dos catálogos.
 
-Antes da ativação, verificar cotas do Cloudflare e a configuração de preços do Firebase. Não habilitar um plano pago para concluir o passo a passo automaticamente.
+O remetente separado reutiliza rotas protegidas, caches e cotas existentes. Nenhuma credencial Firebase vai para o APK, além da configuração pública do cliente em `firebase-client.json`. O Secret de conta de serviço fica no Worker e no GitHub Actions. O cron executa uma vez por minuto, com deduplicação persistente e mensagens com expiração; dados ausentes, inválidos ou vencidos não viram zeros ou condições inventadas. A linha de base inicial de sismos evita anunciar o histórico antigo.
 
-## Testes
+## Configuração e publicação
 
-`node --test tests/unit/mobile-push.test.mjs`
+1. Configuração pública Android de pacote `top.monitorglobal.mobile.dev` em `android-mobile/app/firebase-client.json`; cadastrar o pacote de produção separadamente quando necessário.
+2. API Firebase Cloud Messaging HTTP v1 e Secret GitHub `FIREBASE_SERVICE_ACCOUNT` da conta de serviço do mesmo projeto, com permissão para enviar mensagens. Nunca anexar chave privada à conversa, repositório ou APK.
+3. Workflow `Validate and deploy mobile push sender` valida OAuth e permissão com `validate_only=true`, sem enviar uma notificação real, publica o Worker isolado e transfere a credencial para o Secret do Worker. Usa os Secrets Cloudflare existentes e a configuração `wrangler-mobile-push.toml`.
+4. Publicação Android pelo workflow de prévia, preservando identidade e assinatura.
+5. Abrir Avisos, ativar notificações, permitir no Android e confirmar inscrição. Um teste local verifica somente a apresentação no aparelho; a confirmação de entrega por FCM exige um teste direcionado ou recebimento de um aviso real com o app em segundo plano. Não publicar o código/token de teste do aparelho em logs ou issues.
 
-A CI Android compila o serviço e verifica o APK. A confirmação ponta a ponta depende do projeto Firebase, do Worker configurado e de um aparelho real.
+## Verificação
 
-## Publicação e confirmação
+`node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs`
 
-O workflow `Validate and deploy mobile push sender` valida o Secret GitHub `FIREBASE_SERVICE_ACCOUNT` no mesmo projeto da configuração Android com `validate_only=true` (nenhuma notificação real), publica o Worker isolado e transfere a credencial para o Secret do Worker. Usa os Secrets Cloudflare já existentes. Não registra a chave nos logs.
-
-A versão 0.1.2 oferece um teste local identificado como fictício, que não confirma o recebimento pelo Firebase. Na prévia debug, é possível copiar o código do aparelho para um teste direcionado no console Firebase. Esse token identifica o destinatário: não publicar em issues, logs ou workflow inputs públicos. A confirmação final exige receber um teste no aparelho com o aplicativo fora de primeiro plano.
+Os testes Android cobrem protocolo das mensagens, navegação ao toque e escolhas independentes sem ativação automática para quem nunca consentiu. A CI verifica compilação, lint e assinatura; a validação do servidor não substitui a confirmação de recebimento em um aparelho real.
