@@ -45,7 +45,7 @@ class AlexaVoiceBannerPlacementTest(unittest.TestCase):
         self.assertIn("fetchLatestBrazil(true)",service)
         self.assertIn("fetchLatestBrazil(false)",service)
         self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)",service)
-        self.assertIn('text(c,"BREAKING NEWS"',banner)
+        self.assertIn('centerText(c,"BREAKING NEWS"',banner)
         self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
         self.assertIn('replay?"REPLAY"',banner)
 
