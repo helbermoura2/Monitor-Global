@@ -53,3 +53,4 @@ tasks.register('prepareWeatherSatellite', Sync) {
 tasks.named('preBuild').configure { dependsOn 'prepareWeatherSatellite' }
 
 
+
