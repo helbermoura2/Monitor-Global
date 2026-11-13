@@ -34,3 +34,8 @@ Não enviar amostras ao Telegram nem republicar o histórico por esta mudança.
 revisada de seis comandos, incluindo último sismo, último resumo e maiores de hoje.
 Preservar vínculos existentes, autenticação, limites, fila de alertas e demais serviços.
 Não executar pedidos reais nem enviar amostras ao Telegram nesta publicação.
+
+13/11/2026 — autorização para incluir todas as regiões adicionais aprovadas: 60 áreas
+no total, preservando as 32 originais. Manter M5,0–M5,9, profundidade até 70 km,
+M6+ mundial e Brasil nas regras próprias. Seleções existentes e deduplicação preservadas.
+Aviso regional não confirma danos. Não gerar alertas fictícios nem republicar histórico.
