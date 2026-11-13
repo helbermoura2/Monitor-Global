@@ -23,6 +23,9 @@ final class BrentMonitor {
   context=c;allowed=canShow;overlay=new BrentOverlay(c);externalReader=source!=null;reader=source==null?this::read:source;
  }
  boolean showing(){return overlay.showing();}
+ private void progress(String message){
+  main.post(()->{if(manualRequest&&!closed)status(message);});
+ }
  private void status(String message){
   if(manualRequest&&feedback!=null)feedback.accept(message);
   if(!message.equals(Prefs.get(context).getString("brentStatus","")))
@@ -87,7 +90,14 @@ final class BrentMonitor {
    try{long now=System.currentTimeMillis();if(!BrentQuote.marketOpen(now))data=new JSONObject().put("version","tv-brent-v1").put("symbol","BZ=F").put("marketOpen",false).put("marketState",MarketState.brentRegular(now).value==MarketState.PAUSED?"PAUSED":"CLOSED").put("checkedAt",now);else data=reader.call();}catch(Exception ignored){}
    final JSONObject result=data;
    DollarResult fx=new DollarResult(null,MarketState.unknown());
-   if(!externalReader&&(manual||manualRequest||BrentQuote.parse(result,System.currentTimeMillis())!=null))fx=readDollar();
+   boolean brentValid=BrentQuote.parse(result,System.currentTimeMillis())!=null;
+   boolean closedSession=!BrentQuote.marketOpen(System.currentTimeMillis());
+   // Do not spend another 13 seconds looking up optional USD/BRL when the
+   // requested Brent source already failed in an open session.
+   if(!externalReader&&(brentValid||manual&&closedSession)){
+    if(manual||manualRequest)progress("Brent consultado. Verificando a cotação do dólar…");
+    fx=readDollar();
+   }
    final DollarResult verifiedDollar=fx;
    main.post(()->{
     busy=false;
@@ -145,6 +155,7 @@ final class BrentMonitor {
   long now=System.currentTimeMillis();
   if(worker!=null&&(BrentQuote.parse(worker,now)!=null||MarketState.fromWorker(worker,now).closed()))return worker;
   if(!BrentQuote.marketOpen(now))return worker;
+  progress("Fonte principal sem cotação confirmada. Verificando diretamente no Yahoo Finance…");
   String[] yahoo={
    "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d",
    "https://query2.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d"
