@@ -19,9 +19,19 @@ final class WeatherConditionDisplay {
    default:return false;
   }
  }
+ static RainForecast.Summary current(RainForecast.Summary minute){
+  long now=System.currentTimeMillis();
+  return minute!=null&&minute.at>0&&minute.at<=now+60000&&now-minute.at<=20*60000L&&minute.expiresAt>now?minute:null;
+ }
+ static double rate(RainForecast.Summary minute){
+  if(minute==null||!"now".equals(minute.state))return Double.NaN;
+  double rate=Double.isFinite(minute.forecastRate)?minute.forecastRate:minute.rate;
+  return Double.isFinite(rate)&&rate>=.1?rate:Double.NaN;
+ }
  static String headline(WeatherForecast.Summary hourly,RainForecast.Summary minute){
+  minute=current(minute);
   if(minute!=null){
-   if("now".equals(minute.state))return "Chuva estimada agora";
+   if("now".equals(minute.state)){double value=rate(minute);return Double.isFinite(value)?"Chuva "+RainForecast.intensity(value):"Chuva prevista";}
    if("soon".equals(minute.state)){
     if(minute.arrivalMinutes>=0)return "Chuva em ~"+minute.arrivalMinutes+" min";
     return "Chuva prevista";
@@ -35,15 +45,13 @@ final class WeatherConditionDisplay {
   return hourly.condition;
  }
  static String detail(WeatherForecast.Summary hourly,RainForecast.Summary minute){
-  if(hourly==null)return "Condição observada não disponível";
-  if(precipitation(hourly.conditionKey)){
-   // Put the true, different source of the "Rain" text on screen rather than
-   // silently turning an hourly prediction into an observed rain claim.
-   return "Modelo horário: "+hourly.condition+" · sens. "+hourly.feelsValue;
-  }
-  return "Sensação "+hourly.feelsValue+" · previsão horária";
+  minute=current(minute);
+  String feels=hourly!=null&&hourly.expiresAt>System.currentTimeMillis()&&!hourly.feelsValue.equals("—")?"Sensação "+hourly.feelsValue:"Sensação —";
+  double value=rate(minute);
+  return feels+(Double.isFinite(value)?" · "+RainForecast.number(value)+" mm/h":"");
  }
  static String sourceNote(WeatherForecast.Summary hourly,RainForecast.Summary minute){
+  minute=current(minute);
   if(hourly==null)return "Sem modelo horário válido";
   String ref=hourly.referenceAt>0?" · ref. "+WeatherForecast.time(hourly.referenceAt):"";
   if(minute!=null&&"dry".equals(minute.state)&&precipitation(hourly.conditionKey))

@@ -81,6 +81,16 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView withoutMinute=TvBroadcastInfoView.weather(c,null,model,false);
   assertTrue(String.valueOf(withoutMinute.getContentDescription()).contains("Previsão: chuva"));
  }
+ @Test public void compactWeatherRainDetailsFitTheAllocatedColumn()throws Exception{
+  long now=System.currentTimeMillis();
+  WeatherForecast.Summary hourly=new WeatherForecast.Summary("22°C","Chuva","Vento 4 km/h","Umidade 80%","Modelo horário",now+600000,false,"22°C","23°C","80%","4 km/h","9 km/h","Rain");
+  RainForecast.Summary rain=new RainForecast.Summary("now","fraca","Chuva fraca estimada agora",1.2,1.2,"Término indefinido",now,now+300000,true,0,-1,-1,1.2,"Duração indefinida");
+  assertEquals("Chuva fraca",WeatherConditionDisplay.headline(hourly,rain));
+  String detail=WeatherConditionDisplay.detail(hourly,rain);assertEquals("Sensação 23°C · 1,2 mm/h",detail);
+  Paint measure=new Paint();measure.setTypeface(Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf"));measure.setTextSize(16);assertTrue("Short details fit without ellipsis",measure.measureText(detail)<=190);
+  Bitmap image=render(TvBroadcastInfoView.weather(c,rain,hourly,false),"weather-compact-rain");
+  try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-weather-card-compact-rain.png")){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}finally{image.recycle();}
+ }
  @Test public void dedicatedRainUsesOfficialStripWithoutWeatherMetricsOrMap()throws Exception{
   RainForecast.Summary rain=new RainForecast.Summary("soon","fraca","Chuva prevista em ~10 min",0,3.2,"Pode terminar em ~45 min",System.currentTimeMillis(),System.currentTimeMillis()+600000,false,10,45,35,4.5,"Duração estimada: ~35 min");
   TvBroadcastInfoView view=TvBroadcastInfoView.rain(c,rain,null,true);assertEquals(0,view.mapSpace);
