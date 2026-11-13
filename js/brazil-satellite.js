@@ -10,8 +10,10 @@
   const valid=()=>!dead&&live&&active&&!document.hidden;
   function inView(){try{return M.intersects(map.getBounds());}catch{return false;}}
   function updatePanel(){
-   panel.hidden=manualControl&&!controlOpen;
-   if(manualControl){controlChip?.setAttribute('aria-expanded',String(controlOpen));controlChip?.setAttribute('aria-pressed',String(controlOpen));controlChip?.classList.toggle('active',controlOpen);panel.querySelector('details').open=controlOpen;}
+   // The standalone site controls its own panel; embedded hosts (such as the
+   // mobile Brazil map) own visibility and may hide this when radar is active.
+   // Do not accidentally clear the host's hidden flag during map move/refresh.
+   if(manualControl){panel.hidden=!controlOpen;controlChip?.setAttribute('aria-expanded',String(controlOpen));controlChip?.setAttribute('aria-pressed',String(controlOpen));controlChip?.classList.toggle('active',controlOpen);panel.querySelector('details').open=controlOpen;}
   }
   function toggleControl(){controlOpen=!controlOpen;updatePanel();}
   function closeControl(){controlOpen=false;updatePanel();controlChip?.focus();}
