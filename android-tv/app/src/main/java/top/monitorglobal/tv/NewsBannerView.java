@@ -150,7 +150,7 @@ final class NewsBannerView extends View {
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
   }else if(a.kind.equals("tsunami")){centerText(c,"TSUNAMI",56f,59,22,eventInk(a),brand,85);centerText(c,a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",56f,79,12,eventInk(a),brand,85);}
   else centerText(c,p.magnitude,56f,72,36,eventInk(a),brand,85);
-  fitText(c,p.caption,HEADLINE_X,42,11,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
+  fitText(c,p.caption,HEADLINE_X,36,11,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:28;drawHeadline(c,p,elapsed,width,size);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,43,x+32,67),paint);}
   fitText(c,p.first,HEADLINE_X,89,15,foreground,brand,346);fitText(c,p.source,488,89,15,foreground,brand,185);text(c,p.time,691,89,13,foreground,data,142);c.restoreToCount(layer);
