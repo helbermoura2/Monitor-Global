@@ -5,7 +5,7 @@ public final class MonitorService extends Service {
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
- private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private VoiceStatusOverlay voiceNotice;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
+ private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private VoiceStatusOverlay voiceNotice;private int voiceStatusGeneration;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
  private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){TvSounds.stop();stopTarget();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
  private final Runnable dailyTick=new Runnable(){public void run(){if(destroyed)return;checkDaily();rain.tick();brent.tick();long now=System.currentTimeMillis();main.postDelayed(this,Math.min(Math.min(DailySummarySchedule.delay(now),WeatherForecast.delay(now)),BrentQuote.delay(now,Prefs.get(MonitorService.this).getLong("brentLastSlot",0))));}};
@@ -32,7 +32,11 @@ public final class MonitorService extends Service {
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(CHECK_BRENT.equals(action)){
-   brent.setFeedback(message->{if(message.startsWith("REAL ·"))voiceNotice.hide();else voiceInfo("Consulta do Brent",message);});
+   brent.setOnPresented(()->{voiceStatusGeneration++;voiceNotice.hide();});
+    brent.setFeedback(message->{
+     if(brent.showing()){voiceStatusGeneration++;voiceNotice.hide();Prefs.status(this,"Consulta do Brent · "+message);}
+     else voiceInfo("Consulta do Brent",message);
+    });
    if(intent.getBooleanExtra("alexaRequest",false)){brent.checkNow();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
    if(!Prefs.get(this).getBoolean("enabled",false)){
     Prefs.get(this).edit().putString("brentStatus","Ative o monitoramento para verificar o Brent real.").apply();
@@ -150,9 +154,20 @@ public final class MonitorService extends Service {
   if(destroyed)return;
   Prefs.status(this,title+" · "+detail);
   if(!screenReady()||localBusy()||daily.displaying())return;
-  if(!voiceNotice.show(title,detail)){stopIfIdle();return;}
-  Runnable end=new Runnable(){public void run(){demoTasks.remove(this);voiceNotice.hide();stopIfIdle();}};
-  demoTasks.add(end);main.postDelayed(end,VoiceStatusOverlay.DURATION+300);
+  // Brent can consult both Worker and Yahoo + independent FX; show an honest
+  // pending state until a real market banner is ready, not only for 12 seconds.
+  boolean pending="Consulta do Brent".equals(title)&&
+   (detail.startsWith("Consultando")||detail.startsWith("Cotação real já em consulta")||
+    detail.startsWith("Fonte principal")||detail.startsWith("Brent consultado"));
+  long duration=pending?60000L:VoiceStatusOverlay.DURATION;
+  final int token=++voiceStatusGeneration;
+  if(!voiceNotice.show(title,detail,duration)){stopIfIdle();return;}
+  Runnable end=new Runnable(){public void run(){
+   demoTasks.remove(this);
+   if(token==voiceStatusGeneration)voiceNotice.hide();
+   stopIfIdle();
+  }};
+  demoTasks.add(end);main.postDelayed(end,duration+300);
  }
  private void scheduleVoiceBrazil(Alert alert,long delayMs){
   // Consultas historicas do Brasil usam a MESMA tarja jornalistica dos

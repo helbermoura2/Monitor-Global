@@ -2,6 +2,10 @@
 Comece com “Alexa, peça ao Monitor Global para…”.
 - mostrar a temperatura / mostrar o tempo / mostrar a previsão do tempo
 - mostrar o Brent / mostrar a cotação do Brent / mostrar o preço do petróleo
+- quanto está o Brent / como está o Brent / qual o valor do Brent / cotação do Brent agora
+- quanto custa o barril de petróleo / qual o preço do barril de petróleo / preço do Brent hoje
+- mostre o Brent e o dólar / mostrar o Brent e o dólar / me diga a cotação do Brent
+- abrir a cotação do Brent / quero saber o preço do Brent / mostre o preço do Brent na TV
 - mostrar o último sismo / mostrar o último terremoto / mostrar o último tremor
 - mostrar o último sismo no Brasil / mostrar os terremotos no Brasil
 - mostrar o último resumo / repetir o último resumo / mostrar o resumo de ontem

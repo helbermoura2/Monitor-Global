@@ -29,6 +29,25 @@ test('all skill intents have nonempty samples and Brazilian locale invocation na
  }
 });
 
+test('Brent utterances include natural oil-price and TV variations in both downloadable skill models',()=>{
+  const main=JSON.parse(fs.readFileSync('alexa-skill/skill-package/interactionModels/custom/pt-BR.json','utf8'));
+  const downloadable=JSON.parse(fs.readFileSync('downloads/alexa/pt-BR.json','utf8'));
+  const a=main.interactionModel.languageModel.intents.find(i=>i.name==='BrentIntent').samples;
+  const b=downloadable.interactionModel.languageModel.intents.find(i=>i.name==='BrentIntent').samples;
+  assert.deepEqual(a,b);
+  assert(a.length>=45);
+  assert.equal(new Set(a).size,a.length);
+  for(const phrase of [
+    'quanto está o brent',
+    'cotação do brent agora',
+    'qual o preço do barril de petróleo',
+    'mostre o brent e o dólar',
+    'mostre o preço do brent na tv',
+    'me diga a cotação do brent',
+    'como está o petróleo hoje'
+  ])assert(a.includes(phrase),'Alexa model missing '+phrase);
+  assert.equal(commandForIntent('BrentIntent'),'brent');
+});
 test('Alexa-hosted code supports Amazon-managed Node 16 without global fetch',()=>{
  const code=fs.readFileSync('alexa-skill/lambda/index.js','utf8');
  const pkg=JSON.parse(fs.readFileSync('alexa-skill/lambda/package.json','utf8'));

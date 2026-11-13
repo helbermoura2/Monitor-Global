@@ -20,7 +20,8 @@ final class VoiceStatusOverlay {
  VoiceStatusOverlay(Context context){this.context=context;}
  private int dp(int n){return TvCardStyle.dp(context,n);}
 
- boolean show(String title,String body){
+ boolean show(String title,String body){return show(title,body,DURATION);}
+ boolean show(String title,String body,long duration){
   hide();
   if(!Settings.canDrawOverlays(context))return false;
   try{
@@ -56,7 +57,7 @@ final class VoiceStatusOverlay {
    ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).addView(card,params);
    current=card;
    CardMotion.enter(card,context);
-   handler.postDelayed(()->{if(current==card)CardMotion.exit(card,context,()->{if(current==card)hide();});},DURATION);
+   handler.postDelayed(()->{if(current==card)CardMotion.exit(card,context,()->{if(current==card)hide();});},Math.max(1200L,Math.min(duration,60000L)));
    return true;
   }catch(RuntimeException e){hide();return false;}
  }

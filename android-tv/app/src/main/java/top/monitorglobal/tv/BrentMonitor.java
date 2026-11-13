@@ -9,14 +9,23 @@ final class BrentMonitor {
  private final BrentOverlay overlay;private final Handler main=new Handler(Looper.getMainLooper());
  private ExecutorService io;private volatile HttpURLConnection connection;
  private java.util.function.Consumer<String> feedback;
+ private Runnable onPresented;
  private boolean manualRequest;private long manualDisplayUntil;
  void setFeedback(java.util.function.Consumer<String> listener){feedback=listener;}
+ void setOnPresented(Runnable listener){onPresented=listener;}
+ private void presented(){
+  if(onPresented!=null)onPresented.run();
+  manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;
+ }
  private boolean busy,closed;private long knownSlot=-1,nextRetry;private JSONObject quote;private DollarQuote dollar,lastDollar;private BrentQuote lastBrent;private MarketState brentState=MarketState.unknown(),dollarState=MarketState.unknown();
  BrentMonitor(Context c,BooleanSupplier canShow){this(c,canShow,null);}
  BrentMonitor(Context c,BooleanSupplier canShow,Callable<JSONObject> source){
   context=c;allowed=canShow;overlay=new BrentOverlay(c);externalReader=source!=null;reader=source==null?this::read:source;
  }
  boolean showing(){return overlay.showing();}
+ private void progress(String message){
+  main.post(()->{if(manualRequest&&!closed)status(message);});
+ }
  private void status(String message){
   if(manualRequest&&feedback!=null)feedback.accept(message);
   if(!message.equals(Prefs.get(context).getString("brentStatus","")))
@@ -81,7 +90,14 @@ final class BrentMonitor {
    try{long now=System.currentTimeMillis();if(!BrentQuote.marketOpen(now))data=new JSONObject().put("version","tv-brent-v1").put("symbol","BZ=F").put("marketOpen",false).put("marketState",MarketState.brentRegular(now).value==MarketState.PAUSED?"PAUSED":"CLOSED").put("checkedAt",now);else data=reader.call();}catch(Exception ignored){}
    final JSONObject result=data;
    DollarResult fx=new DollarResult(null,MarketState.unknown());
-   if(!externalReader&&(manual||manualRequest||BrentQuote.parse(result,System.currentTimeMillis())!=null))fx=readDollar();
+   boolean brentValid=BrentQuote.parse(result,System.currentTimeMillis())!=null;
+   boolean closedSession=!BrentQuote.marketOpen(System.currentTimeMillis());
+   // Do not spend another 13 seconds looking up optional USD/BRL when the
+   // requested Brent source already failed in an open session.
+   if(!externalReader&&(brentValid||manual&&closedSession)){
+    if(manual||manualRequest)progress("Brent consultado. Verificando a cotação do dólar…");
+    fx=readDollar();
+   }
    final DollarResult verifiedDollar=fx;
    main.post(()->{
     busy=false;
@@ -93,20 +109,30 @@ final class BrentMonitor {
      status("A fonte respondeu, mas o preço ou horário não passou pela validação da TV.");
     if(requested){
      BrentQuote valid=BrentQuote.parse(result,System.currentTimeMillis());
-     if(valid==null&&brentState.closed()){
-      if(screen()&&allowed.getAsBoolean()){
-       long current=System.currentTimeMillis();BrentQuote previous=lastBrent!=null&&current-lastBrent.at<=7*86400000L?lastBrent:null;DollarQuote usd=dollar!=null?dollar:lastDollar!=null&&current-lastDollar.at<=7*86400000L?lastDollar:null;
-       if(overlay.showMarket(previous,usd,brentState,dollarState,false)){TvSounds.play(context,TvSoundPattern.MARKET);manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;status("BRENT · "+brentState.label()+" · DÓLAR · "+dollarState.label()+" · valores anteriores, quando disponíveis, identificados por data e hora.");}
-      }else status("Outro aviso ou a tela desligada impede mostrar o estado dos mercados agora.");
+     if(!screen()||!allowed.getAsBoolean()){
+      status("Consulta concluída, mas outro aviso tem prioridade ou a TV está desligada.");
       manualRequest=false;return;
      }
      if(valid==null){
-      if(result!=null&&result.optBoolean("ok"))status("Cotação rejeitada: horário ou dados inconsistentes.");
+      // A consulta por voz não pode terminar em "Consultando..." e sumir.
+      // Sem preço confirmado: mostra a MESMA tarja do Brent, com US$ — e
+      // estado real conhecido. Não transforma dados antigos em preço ao vivo.
+      long current=System.currentTimeMillis();
+      boolean closed=brentState.closed();
+      BrentQuote previous=closed&&lastBrent!=null&&current-lastBrent.at<=7*86400000L?lastBrent:null;
+      DollarQuote usd=dollar!=null?dollar:closed&&lastDollar!=null&&current-lastDollar.at<=7*86400000L?lastDollar:null;
+      boolean shown=closed
+       ?overlay.showMarket(previous,usd,brentState,dollarState,false)
+       :overlay.showUnavailable(usd,brentState,dollarState);
+      if(shown){
+       presented();
+       if(closed)status("BRENT · "+brentState.label()+" · DÓLAR · "+dollarState.label()+" · valores anteriores, quando disponíveis, identificados por data e hora.");
+       else status("BRENT · sem cotação confirmada nesta consulta. A tarja mostra o estado do mercado, sem valor inventado.");
+      }else status("Consulta do Brent sem cotação e sem permissão para exibir tarja. Confira sobreposição.");
       manualRequest=false;return;
      }
-     if(!screen()||!allowed.getAsBoolean()){status("Cotação verificada, mas outro aviso tem prioridade.");manualRequest=false;return;}
-     if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){TvSounds.play(context,TvSoundPattern.MARKET);
-      manualDisplayUntil=SystemClock.elapsedRealtime()+BrentQuote.DISPLAY+800;
+     if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
+      presented();TvSounds.play(context,TvSoundPattern.MARKET);
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
       if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
        Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
@@ -129,6 +155,7 @@ final class BrentMonitor {
   long now=System.currentTimeMillis();
   if(worker!=null&&(BrentQuote.parse(worker,now)!=null||MarketState.fromWorker(worker,now).closed()))return worker;
   if(!BrentQuote.marketOpen(now))return worker;
+  progress("Fonte principal sem cotação confirmada. Verificando diretamente no Yahoo Finance…");
   String[] yahoo={
    "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d",
    "https://query2.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1m&range=1d"
