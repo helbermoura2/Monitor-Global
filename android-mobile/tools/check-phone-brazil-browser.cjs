@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),zlib=require('node:zlib'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process'),{chromium}=require('@playwright/test');
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),zlib=require('node:zlib'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process'),{chromium,expect}=require('@playwright/test');
 const apk=process.argv[process.argv.indexOf('--apk')+1];if(!apk)throw Error('Use --apk arquivo.apk');
 const output=path.resolve('android-mobile/app/build/reports/brazil-browser'),temporary=fs.mkdtempSync(path.join(os.tmpdir(),'phone-brazil-check-'));fs.mkdirSync(output,{recursive:true});
 const version=fs.readFileSync('android-mobile/app/build.gradle','utf8').match(/versionCode\s+(\d+)/)[1],prefix='/assets/v'+version+'/',origin='https://appassets.androidplatform.net';
@@ -37,7 +37,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  });
  await page.goto(origin+prefix+'phone-brazil.html');await page.waitForFunction(()=>window.__map?.isStyleLoaded()&&document.querySelector('#headline').textContent.includes('22'));
  await page.locator('#radar-toggle').click();await page.waitForFunction(()=>document.querySelector('[data-radar=status]').textContent.includes('Consultando'));
- mode='ok';await page.evaluate(()=>{MonitorMap.pause();MonitorMap.resume();});releaseFirst?.();await page.waitForFunction(()=>!document.querySelector('[data-radar=play]').disabled&&window.__map.getSource('br-historical-radar')&&window.__map.isSourceLoaded('br-historical-radar'));
+ await expect.poll(()=>metadataCalls).toBe(1);mode='ok';await page.evaluate(()=>{MonitorMap.pause();MonitorMap.resume();});releaseFirst?.();await page.waitForFunction(()=>!document.querySelector('[data-radar=play]').disabled&&window.__map.getSource('br-historical-radar')&&window.__map.isSourceLoaded('br-historical-radar'));
  assert.equal(metadataCalls,2,'resume must retry interrupted request, not wait ten minutes');assert(tiles.length>0);assert.equal(await page.locator('#overlay-panel .brazil-satellite-control').isVisible(),false);assert.match(await page.locator('.frame-badge>span').innerText(),/RADAR/);
  const before=await page.evaluate(()=>__map.getSource('br-historical-radar').tiles[0]);await page.locator('[data-radar=play]').click();await page.waitForFunction(previous=>__map.getSource('br-historical-radar').tiles[0]!==previous,before);assert.match(await page.locator('[data-radar=play]').innerText(),/Pausar/);
  await page.evaluate(()=>MonitorMap.pause());const callsAtPause=metadataCalls;await page.waitForTimeout(300);assert.equal(metadataCalls,callsAtPause);await page.evaluate(()=>MonitorMap.resume());await page.waitForFunction(()=>__map.getSource('br-historical-radar')&&__map.isSourceLoaded('br-historical-radar'));assert.equal(metadataCalls,callsAtPause,'valid cache survives pause');
