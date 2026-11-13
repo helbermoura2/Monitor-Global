@@ -93,7 +93,7 @@ final class NewsBannerView extends View {
   c.save();c.clipPath(bannerClip);rect(c,0,24,960,126,background);rect(c,0,BroadcastVisuals.FOOTER_TOP,960,126,Color.rgb(2,8,22));c.restore();
   breaking(c,elapsed);
   BroadcastVisuals.radar(c,paint,elapsed,animate);
-  c.save();c.clipRect(0,0,960,24);rounded(c,960-badgeWidth,0,960,30,7,Color.rgb(191,24,39));rect(c,960-badgeWidth,17,960,24,Color.rgb(191,24,39));centerText(c,badgeLabel(),960-badgeWidth/2,18,17,Color.WHITE,brand,badgeWidth-24);c.restore();drawClock(c);
+  c.save();c.clipRect(0,0,960,24);rounded(c,960-badgeWidth,0,960,30,7,Color.rgb(191,24,39));rect(c,960-badgeWidth,17,960,24,Color.rgb(191,24,39));BroadcastVisuals.headerLabel(c,paint,brand,badgeLabel(),960-badgeWidth,badgeWidth,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);c.restore();drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
   int index=summary?BannerTimeline.summaryPage(contentElapsed,pages.length,presentationAnimated):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
@@ -124,7 +124,7 @@ final class NewsBannerView extends View {
   c.save();c.clipRect(0,0,breakingWidth,24);
   rounded(c,0,0,breakingWidth,30,7,Color.rgb(191,24,39));rect(c,0,17,breakingWidth,24,Color.rgb(191,24,39));
   if(animate&&!replay&&!summary){float phase=(elapsed%3200)/3200f;if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*(breakingWidth+70),0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(0,0,breakingWidth,24,paint);paint.setShader(null);c.restore();}}
-  centerText(c,"BREAKING NEWS",breakingWidth/2,18,20,Color.WHITE,brand,breakingWidth-32);c.restore();
+  BroadcastVisuals.headerLabel(c,paint,brand,"BREAKING NEWS",0,breakingWidth,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);c.restore();
  }
  float identityLeft(long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;float width=identityWidths[current];
