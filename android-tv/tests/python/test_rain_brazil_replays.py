@@ -30,7 +30,7 @@ class RainAndReplayTest(unittest.TestCase):
   banner=self.read("NewsBannerView.java")
   self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)",service)
   self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)",service)
-  self.assertIn('text(c,"BREAKING NEWS"',banner)
+  self.assertIn('centerText(c,"BREAKING NEWS"',banner)
   self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
   self.assertIn("String badgeLabel(){return demo?\"TESTE\":replay?\"REPLAY\"",banner)
 
