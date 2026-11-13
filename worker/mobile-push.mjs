@@ -1,3 +1,4 @@
+import {createNoticeDispatcher} from './mobile-notices.mjs';
 // Dedicated optional sender. Public feed only; Firebase credentials never go into the APK.
 const TOPIC='monitor_global_alerts_v1',KEY='mobile-push-state-v1';
 export function compactAlert(a){
@@ -44,9 +45,17 @@ export async function sendFcm(env,message,request=fetch,now=Date.now(),validateO
 }
 export class MobilePushDelivery {
  constructor(state,env){this.state=state;this.env=env;this.queue=Promise.resolve();}
- fetch(){const run=this.queue.then(async()=>{if(!this.env.FIREBASE_SERVICE_ACCOUNT)return Response.json({configured:false});const dispatch=createDispatcher({storage:this.state.storage,read:async()=>{const response=await fetch('https://black-sky-9ba0.terrestre.workers.dev/tv-alerts?policy=telegram-v1',{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('Public feed unavailable');return response.json();},send:message=>sendFcm(this.env,message)});return Response.json(await dispatch());});this.queue=run.catch(()=>{});return run;}
+ fetch(){const run=this.queue.then(async()=>{
+  if(!this.env.FIREBASE_SERVICE_ACCOUNT)return Response.json({configured:false});
+  const read=async path=>{const response=await fetch('https://black-sky-9ba0.terrestre.workers.dev/'+path,{signal:AbortSignal.timeout(10000)});if(!response.ok||Number(response.headers.get('content-length')||0)>262144)throw Error('Public feed unavailable');const raw=await response.text();if(raw.length>262144)throw Error('Public feed oversized');return JSON.parse(raw);};
+  const options={storage:this.state.storage,send:message=>sendFcm(this.env,message)};
+  const events=createDispatcher({...options,read:()=>read('tv-alerts?policy=telegram-v1')}),notices=createNoticeDispatcher({...options,read});
+  const results=await Promise.allSettled([events(),notices()]);return Response.json({events:results[0].status==='fulfilled'?results[0].value:{retry:true},notices:results[1].status==='fulfilled'?results[1].value:{retry:true}});
+ });this.queue=run.catch(()=>{});return run;}
+
 }
 export default {
  fetch(){return Response.json({service:'monitor-global-mobile-push',delivery:'FCM; no instant delivery guarantee'});},
  scheduled(event,env,ctx){if(!env.FIREBASE_SERVICE_ACCOUNT)return;ctx.waitUntil(env.MOBILE_PUSH.get(env.MOBILE_PUSH.idFromName('mobile-v1')).fetch('https://internal/tick').then(r=>{if(!r.ok)throw Error('Mobile push tick failed');}).catch(()=>{console.error('Mobile push attempt failed; retry on next scheduled tick.');}));}
 };
+

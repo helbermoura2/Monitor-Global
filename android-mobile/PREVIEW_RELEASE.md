@@ -1,13 +1,14 @@
-# Monitor Global Celular · 0.1.11 de teste
+# Monitor Global Celular · 0.1.12 de teste
 
-Nova apresentação Android em azul e ciano, com quatro áreas: Início, Mapa, Tempo e Avisos.
+Notificações por categoria: sismos, tsunami, chuva, boletins horários do tempo e resumo diário de sismos.
 
-- Cartões arredondados com ilustração vetorial das condições, temperatura, sensação, umidade, vento e rajadas.
-- Chuva com volume, duração e término previstos. O gráfico integra dados reais por minuto em barras de acumulado de cinco minutos; dados ausentes ou vencidos não viram zero.
-- Próximas 24 horas na tela Tempo, consultadas sob demanda na fonte Rainbow Weather já usada pelo projeto.
-- Acesso direto a Sismos, Satélite e Chuva no mapa, mantendo busca de municípios, fontes, horários das imagens e controles existentes.
-- Avisos com filtros Todos, Chuva e Sismos, resumo dos maiores sismos do dia anterior e controles de notificações e atualização.
+Em **Avisos → Notificações no celular**, ative os avisos, conceda a permissão do Android e selecione as categorias. A inscrição no Firebase precisa ser confirmada. Configurações existentes de ativação são preservadas na atualização; quem já ativou os avisos recebe as novas categorias, que podem ser desligadas individualmente.
 
-O clima dos cartões continua sendo para um ponto da Liberdade, São Paulo. As condições são previsões de modelo; os horários, fontes e limites acompanham os dados. O gráfico de precipitação não representa medição local de pluviômetro. O resumo diário depende da disponibilidade dos catálogos e mostra até cinco maiores registros, sem representar a contagem total de sismos.
+- **Sismos e tsunami:** critérios do catálogo atual, com deduplicação e acompanhamento de boletins.
+- **Chuva na Liberdade, SP:** chegada ou condição estimada atual, acumulado dos próximos 60 minutos, intensidade, duração e término previstos quando disponíveis. Mudanças relevantes respeitam intervalo mínimo de dez minutos e a previsão ativa pode ser lembrada após uma hora. Sem estimativa de chuva na próxima hora é informado como previsão, não como confirmação de que a chuva local acabou.
+- **Tempo na Liberdade, SP:** boletim uma vez por hora, exceto à meia-noite, com temperatura, sensação, umidade, vento e rajadas disponíveis. Não é observação de estação.
+- **Resumo diário:** após 00:05 BRT, até cinco maiores sismos disponíveis do dia anterior em Brasília. Não é contagem de todos os eventos.
 
-Canal Android de testes, com a mesma identidade de assinatura para atualizar a instalação existente. Notificações dependem do Firebase, conexão e permissões do Android. A apresentação da TV permanece independente.
+Ao tocar na notificação, o aplicativo abre o tempo ou o resumo correspondente. Previsões vencidas ou inválidas não geram mensagens de tempo seco. As mensagens expiram; fontes indisponíveis não viram dados inventados.
+
+O push funciona sem manter o aplicativo na tela, sujeito à conexão, ao Firebase e às restrições do Android. Parada forçada pode impedir o recebimento até a próxima abertura. O teste local não comprova entrega pelo Firebase; o recebimento real precisa ser confirmado em um aparelho.
