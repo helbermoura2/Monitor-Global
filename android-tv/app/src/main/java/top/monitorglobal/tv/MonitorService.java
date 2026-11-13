@@ -159,7 +159,7 @@ public final class MonitorService extends Service {
   Prefs.status(this,title+" · "+detail);
   if(!screenReady()||localBusy()||daily.displaying()||rain.presentationActive()||brent.showing())return;
   // Even unavailable/empty Alexa results use the SAME standard full-width
-  // broadcaster, never a corner VoiceStatusOverlay or compact card.
+  // broadcaster, never a separate corner status card.
   final long duration=12000L;
   if(!banner.showVoiceStatus(title,detail,duration,null)){stopIfIdle();return;}
   Runnable end=new Runnable(){public void run(){
