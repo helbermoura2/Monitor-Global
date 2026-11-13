@@ -15,33 +15,63 @@ final class BroadcastVisuals {
  // Shared geometry for seismic, weather, rain, and market broadcasts.
  static final float BREAKING_WIDTH=260f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f;
  static final float STATUS_MIN_WIDTH=154f,STATUS_MAX_WIDTH=176f;
- // Both Android TV renderers use the same headline and status typography.
- // The labels fill the existing boxes without changing the overlay/map/footer size.
+ // CNN-style lower-third composition, in the Monitor Global palette.
+ // These dimensions are shared by seismic, weather, rain, market and voice.
+ static final float HEADER_HEIGHT=30f,BRAND_LEFT=866f;
  static final float BREAKING_TEXT_FILL=.86f,STATUS_TEXT_FILL=.80f;
- static final float HEADER_LABEL_HEIGHT=24f;
+ static final float HEADER_LABEL_HEIGHT=HEADER_HEIGHT;
+ static final int TAB_RED=0xffbf1827,BRAND_BACKGROUND=0xff0c2a3c;
+ static final int TICKER_BACKGROUND=0xff020816;
+ static void newsroomBody(Canvas canvas,Paint ink,int bodyColor,int accent){
+  ink.setStyle(Paint.Style.FILL);ink.setShader(null);
+  ink.setColor(bodyColor);canvas.drawRect(0,HEADER_HEIGHT,960,FOOTER_TOP,ink);
+  // A dedicated right-hand brand panel replaces the floating radar,
+  // like the separate network-brand area on a television lower-third.
+  ink.setColor(BRAND_BACKGROUND);canvas.drawRect(BRAND_LEFT,HEADER_HEIGHT,960,FOOTER_TOP,ink);
+  ink.setColor(accent);canvas.drawRect(BRAND_LEFT,HEADER_HEIGHT,BRAND_LEFT+1.5f,FOOTER_TOP,ink);
+ }
+ static void headlineTab(Canvas canvas,Paint ink,float left,float width,int color){
+  ink.setStyle(Paint.Style.FILL);ink.setShader(null);ink.setColor(color);
+  canvas.drawRoundRect(left,0,left+width,HEADER_HEIGHT,5,5,ink);
+  canvas.drawRect(left,13,left+width,HEADER_HEIGHT,ink);
+ }
  static float statusWidth(Paint paint,android.graphics.Typeface font,String label){
   paint.setTypeface(font);paint.setTextSize(17f);
   return Math.max(STATUS_MIN_WIDTH,Math.min(STATUS_MAX_WIDTH,(float)Math.ceil(paint.measureText(label))+32f));
  }
- /** Center a full, untruncated Rajdhani title inside a 24-unit broadcast tab.
-  * Font height fits vertically; horizontal scale fills a fixed fraction of the
-  * red tab, including AO VIVO, REPLAY, TESTE, COTAÇÕES and longer demo labels.
-  * Paint scale is restored before the normal ticker, map and radar are drawn.
+ /** Preserve natural Rajdhani letter proportions instead of stretching letters.
+  * Fit long status labels to their panel, then center with restrained tracking.
+  * The same method draws both event families and all live/replay/test states.
   */
  static void headerLabel(Canvas canvas,Paint paint,Typeface font,String label,
                          float left,float width,float fill,int color){
   if(label==null||label.isEmpty()||width<=0)return;
-  paint.setTypeface(font);paint.setTextScaleX(1f);paint.setTextSize(25f);
-  Paint.FontMetrics fm=paint.getFontMetrics();
-  float lineHeight=fm.descent-fm.ascent;
-  if(lineHeight>23.5f){paint.setTextSize(25f*23.5f/lineHeight);fm=paint.getFontMetrics();}
-  float normalWidth=paint.measureText(label);
-  float targetWidth=width*fill;
-  paint.setTextScaleX(normalWidth>0?targetWidth/normalWidth:1f);
-  paint.setColor(color);paint.setStyle(Paint.Style.FILL);
+  paint.setTypeface(font);paint.setTextScaleX(1f);
+  float size=33f;float maxWidth=width-18f;Paint.FontMetrics fm;
+  do{
+   paint.setTextSize(size);fm=paint.getFontMetrics();
+   if(fm.descent-fm.ascent<=28.5f&&paint.measureText(label)<=maxWidth)break;
+   size-=.5f;
+  }while(size>13f);
+  int glyphs=label.codePointCount(0,label.length());
+  float rawWidth=0f;
+  for(int offset=0;offset<label.length();){
+   int next=label.offsetByCodePoints(offset,1);
+   rawWidth+=paint.measureText(label,offset,next);offset=next;
+  }
+  // Small tracking evokes television captions, without stretching individual glyphs.
+  float letterGap=glyphs>1?Math.max(0f,Math.min(1.3f,(maxWidth-rawWidth)/(glyphs-1))):0f;
+  float fullWidth=rawWidth+(glyphs-1)*letterGap;
+  float x=left+(width-fullWidth)/2f;
   float baseline=HEADER_LABEL_HEIGHT/2f-(fm.ascent+fm.descent)/2f;
+  paint.setColor(color);paint.setStyle(Paint.Style.FILL);
   canvas.save();canvas.clipRect(left,0,left+width,HEADER_LABEL_HEIGHT);
-  canvas.drawText(label,left+(width-targetWidth)/2f,baseline,paint);
+  for(int offset=0;offset<label.length();){
+   int next=label.offsetByCodePoints(offset,1);
+   String glyph=label.substring(offset,next);
+   canvas.drawText(glyph,x,baseline,paint);
+   x+=paint.measureText(glyph)+letterGap;offset=next;
+  }
   canvas.restore();paint.setTextScaleX(1f);
  }
  static final float RADAR_X=922f,RADAR_Y=61f;
