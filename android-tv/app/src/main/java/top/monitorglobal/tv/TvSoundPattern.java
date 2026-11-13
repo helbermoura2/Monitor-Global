@@ -15,12 +15,26 @@ enum TvSoundPattern {
  TvSoundPattern(String label,int priority,int[][] notes){this.label=label;this.priority=priority;this.notes=notes;}
  String preference(){return "soundCue_"+name();}
  int duration(){int ms=100;for(int[] note:notes)ms+=note[1];return ms;}
- short[] pcm(int level){
-  short[] out=new short[duration()*RATE/1000];int offset=0;double gain=Math.max(0,Math.min(100,level))/100.0*.62*Short.MAX_VALUE;
-  for(int[] note:notes){int count=note[1]*RATE/1000;
-   if(note[0]>0)for(int n=0;n<count;n++){double fade=Math.min(1,Math.min(n/(RATE*.012),(count-1-n)/(RATE*.040)));double phase=2*Math.PI*note[0]*n/RATE;out[offset+n]=(short)Math.round(gain*fade*(.82*Math.sin(phase)+.18*Math.sin(2*phase)));}
+ short[] pcm(int level){return pcm(level,RATE,1);}
+ /** Render the SAME eight cues for native TV media outputs (48 kHz stereo)
+  * and legacy mono tracks without changing their duration or loudness. */
+ short[] pcm(int level,int sampleRate,int channels){
+  if((channels!=1&&channels!=2)||sampleRate<8000||sampleRate>48000)
+   throw new IllegalArgumentException("Unsupported cue format");
+  short[] out=new short[duration()*sampleRate/1000*channels];
+  int offset=0;
+  double gain=Math.max(0,Math.min(100,level))/100.0*.62*Short.MAX_VALUE;
+  for(int[] note:notes){
+   int count=note[1]*sampleRate/1000;
+   if(note[0]>0)for(int n=0;n<count;n++){
+    double fade=Math.min(1,Math.min(n/(sampleRate*.012),(count-1-n)/(sampleRate*.040)));
+    double phase=2*Math.PI*note[0]*n/sampleRate;
+    short sample=(short)Math.round(gain*fade*(.82*Math.sin(phase)+.18*Math.sin(2*phase)));
+    for(int channel=0;channel<channels;channel++)out[(offset+n)*channels+channel]=sample;
+   }
    offset+=count;
-  }return out;
+  }
+  return out;
  }
  static boolean canReplace(TvSoundPattern active,boolean activePreview,TvSoundPattern next,boolean nextPreview){return active==null||next!=null&&(!nextPreview||activePreview)&&(activePreview||nextPreview||next.priority>=active.priority);}
  static TvSoundPattern alert(Alert a,boolean replay){
