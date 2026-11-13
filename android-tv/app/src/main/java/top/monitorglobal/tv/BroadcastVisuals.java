@@ -11,6 +11,13 @@ import android.graphics.Paint;
  */
 final class BroadcastVisuals {
  private BroadcastVisuals(){}
+ // Shared geometry for seismic, weather, rain, and market broadcasts.
+ static final float BREAKING_WIDTH=260f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f;
+ static final float STATUS_MIN_WIDTH=154f,STATUS_MAX_WIDTH=176f;
+ static float statusWidth(Paint paint,android.graphics.Typeface font,String label){
+  paint.setTypeface(font);paint.setTextSize(17f);
+  return Math.max(STATUS_MIN_WIDTH,Math.min(STATUS_MAX_WIDTH,(float)Math.ceil(paint.measureText(label))+32f));
+ }
  static final float RADAR_X=922f,RADAR_Y=61f;
  static final float RADAR_SCALE=72f/52f;
  static final float TICKER_PX_PER_SECOND=40f;

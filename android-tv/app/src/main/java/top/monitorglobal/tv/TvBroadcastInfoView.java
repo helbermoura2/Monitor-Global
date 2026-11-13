@@ -158,9 +158,10 @@ final class TvBroadcastInfoView extends View {
   p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawText(s,x,y,p);
  }
  private void badge(Canvas c,String value){
-  p.setTypeface(brand);p.setTextSize(17);float width=Math.min(130,p.measureText(value)+27);
+  float width=BroadcastVisuals.statusWidth(p,brand,value);
   rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
-  label(c,value,960-width+12,18,17,Color.WHITE,brand,width-20);
+  p.setTypeface(brand);p.setTextSize(17);
+   label(c,value,960-width+(width-p.measureText(value))/2,18,17,Color.WHITE,brand,width-20);
  }
  private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
  private void drawRadar(Canvas c,long elapsed){
@@ -176,7 +177,7 @@ final class TvBroadcastInfoView extends View {
  private void identity(Canvas c,int index,int opacity){
   if(opacity<=0)return;
   float labelX=954-identityTextWidths[index];
-  int layer=c.saveLayerAlpha(960-identityWidths[index],100,960,126,opacity);
+  int layer=c.saveLayerAlpha(960-identityWidths[index],BroadcastVisuals.FOOTER_TOP,960,126,opacity);
   c.clipPath(outline);
   if(index==1){
    c.save();c.translate(labelX-14,113);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(42,171,238));
@@ -186,10 +187,10 @@ final class TvBroadcastInfoView extends View {
   c.restoreToCount(layer);
  }
  private void drawIdentity(Canvas c,long elapsed){
-  fill(c,0,100,960,26,0xff020816);
+  fill(c,0,BroadcastVisuals.FOOTER_TOP,960,BroadcastVisuals.FOOTER_HEIGHT,0xff020816);
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
-  fill(c,0,100,90,26,0xffbf1827);
+  fill(c,0,BroadcastVisuals.FOOTER_TOP,90,BroadcastVisuals.FOOTER_HEIGHT,0xffbf1827);
   p.setTypeface(data);p.setTextSize(18);
   label(c,clockText,45-p.measureText(clockText)/2,119,18,Color.WHITE,data,78);
   int index=BannerTimeline.page(elapsed,2);
@@ -198,7 +199,7 @@ final class TvBroadcastInfoView extends View {
    float t=BannerTimeline.progress(within);
    identity(c,1-index,(int)(255*(1-t)));identity(c,index,(int)(255*t));
   }else identity(c,index,255);
-  c.save();c.clipRect(BroadcastVisuals.TICKER_START_X,101,identityLeft(elapsed)-8,124);
+  c.save();c.clipRect(BroadcastVisuals.TICKER_START_X,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
   p.setTypeface(data);p.setTextSize(12);float length=p.measureText(ticker)+90;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
   label(c,ticker,100-offset,119,12,Color.WHITE,data,Float.MAX_VALUE);
@@ -207,9 +208,10 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed){
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
-  rounded(c,0,0,150,24,0xffbf1827,5);
-  label(c,"BREAKING NEWS",12,18,18,Color.WHITE,brand,138);
-  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",165,18,17,accent,brand,520);
+  rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xffbf1827,5);
+  p.setTypeface(brand);p.setTextSize(20);
+   label(c,"BREAKING NEWS",(BroadcastVisuals.BREAKING_WIDTH-p.measureText("BREAKING NEWS"))/2,18,20,Color.WHITE,brand,BroadcastVisuals.BREAKING_WIDTH-32);
+  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",BroadcastVisuals.BREAKING_WIDTH+16,18,17,accent,brand,440);
   badge(c,status());
   if(kind==RAIN)drawRain(c);
   else if(kind==WEATHER)drawWeather(c);
