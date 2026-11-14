@@ -84,4 +84,61 @@ public class HourlyWeatherTest {
   }finally{release.countDown();m.close();}
  }
 
+ JSONObject rainForecast(boolean raining,boolean soon)throws Exception{
+  long now=org.robolectric.shadows.ShadowSystem.currentTimeMillis(),start=now/60000*60000;
+  JSONObject forecast=new JSONObject().put("version","tv-rain-v1").put("area","liberdade").put("ok",true)
+   .put("at",now).put("expiresAt",now+120000)
+   .put("loc",new JSONObject().put("lat",RainForecast.LATITUDE).put("lng",RainForecast.LONGITUDE));
+  JSONArray points=new JSONArray();
+  for(int i=0;i<90;i++){
+   boolean wet=raining&&(i>= (soon?12:0))&&i<45;
+   points.put(new JSONObject().put("start",start+i*60000).put("end",start+(i+1)*60000)
+    .put("rate",wet?4:0).put("type",wet?"rain":"no_precipitation"));
+  }
+  return forecast.put("forecast",points);
+ }
+ void waitForVoiceRain(RainMonitor m)throws Exception{
+  for(int i=0;i<500;i++){
+   Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();
+   if(!(Boolean)field(m,"manualRainBusy"))return;
+  }
+  fail("Voice rain request did not finish");
+ }
+ @Test public void voiceRainOnlyShowsCurrentOrUpcomingRealPrecipitation()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherHourly",false).putInt("rainMode",0).commit();
+  AtomicInteger finished=new AtomicInteger();
+  for(int variant=0;variant<3;variant++){
+   final int caseId=variant;
+   RainMonitor m=new RainMonitor(c,()->true,
+    ()->caseId==0?new JSONObject():rainForecast(caseId==2,false),()->new JSONObject());
+   m.setManualFinished(finished::incrementAndGet);
+   try{
+    m.rainNow();waitForVoiceRain(m);
+    if(caseId<2){
+     assertNull("No simulated rain is permitted without valid wet nowcast",field(field(m,"overlay"),"current"));
+     assertFalse(m.manualPending());
+     assertEquals(caseId+1,finished.get());
+    }else{
+     assertNotNull("Real forecast must show official newsroom rain strip",field(field(m,"overlay"),"current"));
+     assertTrue(m.manualPending());
+     Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(RainOverlay.DURATION+1000));
+     assertFalse(m.manualPending());
+     assertEquals(3,finished.get());
+    }
+   }finally{m.close();}
+  }
+ }
+ @Test public void voiceRainForecastInNextHourOpensRainStripAndPreservesPriority()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherHourly",false).putInt("rainMode",0).commit();
+  AtomicBoolean allowed=new AtomicBoolean(false);
+  RainMonitor m=new RainMonitor(c,allowed::get,()->rainForecast(true,true),()->new JSONObject());
+  try{
+   m.rainNow();waitForVoiceRain(m);
+   assertNull("Must not interrupt priority seismic notification",field(field(m,"overlay"),"current"));
+   allowed.set(true);
+   m.rainNow();waitForVoiceRain(m);
+   assertNotNull("Upcoming forecast rain should be shown without fabricating current rain",field(field(m,"overlay"),"current"));
+  }finally{m.close();}
+ }
+
 }
