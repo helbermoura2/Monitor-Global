@@ -168,3 +168,42 @@ O desligamento dos interruptores não tem efeito; nunca desativa o monitoramento
 nem apaga alertas sísmicos. A fila, prioridades de avisos reais e proteção
 contra comandos consecutivos permanecem. O modo é privado e não representa
 certificação pública pelo Google.
+
+## Etapa seguinte — sete comandos de voz (14/11/2026)
+
+Este pacote amplia os interruptores virtuais existentes sem alterar seus IDs nem
+desfazer o vínculo OAuth da conta Google. São **oito interruptores** e a cena
+meteorológica original; cada interruptor é momentâneo e o comando `Desligar`
+não apaga a TV, os alertas nem a tarja.
+
+| Frase de teste após sincronização | Ação real na TV | Observação |
+| --- | --- | --- |
+| "Ligar Brent Global" | `brent` → `CHECK_BRENT` | Fonte real, nunca preço simulado |
+| "Ligar Sismos Mundo Global" | `recent-quake` → `REPLAY` | Último M6+ mundial disponível em até 72 h |
+| "Ligar Sismos Brasil Global" | `brazil` → `VOICE_BRAZIL` | Qualquer magnitude no Brasil, até 72 h |
+| "Ligar Resumo Ontem Global" | `last-summary` → `SUMMARY_REPLAY` | Resumo completo do dia anterior |
+| "Ligar Maiores Hoje Global" | `today` → `SUMMARY_TODAY` | Maiores sismos do dia, parcial até a consulta |
+| "Ligar Sismo Regional Global" | `regional` → `REPLAY_TARGET` | Último aviso real M5–5,9 de área monitorada salvo na TV, replay de 15 s, sem novo som |
+| "Ligar Chuva Global" | `rain` → `VOICE_RAIN` | Consulta nova da previsão por minuto na Liberdade; apresenta tarja real só se chuva atual ou prevista na próxima hora |
+
+O acionamento regional e o de chuva exigem um **APK TV novo**, porque a versão
+anterior do cliente só reconhecia seis tipos na fila. O servidor precisa
+estar implantado na Cloudflare antes de o Google Home receber os novos
+dispositivos via SYNC; mesclar código no GitHub não publica Cloudflare.
+
+Depois de confirmar a ação manual no Google Home, criar rotinas com início
+por voz e **ação do dispositivo → Ligar**:
+
+- "Mostrar Brent" → Brent Global
+- "Mostrar último sismo" → Sismos Mundo Global
+- "Mostrar último sismo no Brasil" → Sismos Brasil Global
+- "Mostrar resumo de ontem" → Resumo Ontem Global
+- "Mostrar maiores do dia" → Maiores Hoje Global
+- "Mostrar sismo regional" → Sismo Regional Global
+- "Mostrar aviso de chuva" → Chuva Global
+
+Frases naturais são configuradas no aplicativo Google Home, e não registradas
+automaticamente como gramática no Assistente. Sem a rotina, usar a forma
+"Ligar [nome do dispositivo]" e respeitar o tempo de processamento da fila.
+Aviso de chuva sem dados válidos ou sem precipitação prevista não pode
+fabricar tempestade, alertas oficiais ou uma condição "chovendo".
