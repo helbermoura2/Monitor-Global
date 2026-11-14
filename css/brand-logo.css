@@ -10,8 +10,8 @@
 }
 #top-strip .ts-title.mg-title .mg-logo-icon {
   display: block;
-  width: 1.6em;
-  height: 1.6em;
+  width: 1.7em;
+  height: 1.7em;
   flex: 0 0 auto;
   object-fit: contain;
 }
@@ -27,5 +27,5 @@
   white-space: nowrap;
 }
 #top-strip .ts-title.mg-title .ao-word-orbis {
-  color: #65ddef;
+  color: #ffbf64;
 }
