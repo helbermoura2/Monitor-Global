@@ -120,7 +120,16 @@ export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.no
   if(path.endsWith('/token')){
    if(request.method!=='POST')return json({error:'method_not_allowed'},405);
    const params=new URLSearchParams(await bounded(request));
-   if(!same(params.get('client_id'),env.GOOGLE_HOME_CLIENT_ID)||!same(params.get('client_secret'),env.GOOGLE_HOME_CLIENT_SECRET))return json({error:'invalid_client'},401);
+   // An unpredictable one-time authorization code safely identifies the TV
+   // that initiated this exchange, even when Google sends mismatched client
+   // credentials. Record only the outcome, never the code or credentials.
+   const oauthCode=params.get('grant_type')==='authorization_code'?params.get('code')||'':'';
+   const inFlight=tokenOk(oauthCode)?await storage.get(k('code',await digest(oauthCode))):null;
+   if(inFlight?.until>now)await handshake(storage,inFlight.deviceId,'token_exchange_requested',now);
+   if(!same(params.get('client_id'),env.GOOGLE_HOME_CLIENT_ID)||!same(params.get('client_secret'),env.GOOGLE_HOME_CLIENT_SECRET)){
+    if(inFlight?.until>now)await handshake(storage,inFlight.deviceId,'token_client_rejected',now);
+    return json({error:'invalid_client'},401);
+   }
    if(params.get('grant_type')==='authorization_code'){
     const code=params.get('code')||'';if(!tokenOk(code))return json({error:'invalid_grant'},400);
     const key=k('code',await digest(code)),record=await storage.get(key);
