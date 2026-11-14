@@ -118,6 +118,15 @@ test('TV sees PIN issued and accepted before token exchange, not a false success
  const after=await g(s,'/link-status','GET',undefined,deviceToken);
  assert.equal(after.body.linked,false);
  assert.equal(after.body.stage,'authorization_accepted');
+ const callback=new URL(authorized.headers.get('location'));
+ const clientMismatch=await g(s,'/token','POST',param({
+   client_secret:'wrong-test-secret',grant_type:'authorization_code',
+   code:callback.searchParams.get('code'),redirect_uri:redirect,
+  }),'',now,true);
+ assert.equal(clientMismatch.status,401);
+ const rejected=(await g(s,'/link-status','GET',undefined,deviceToken)).body;
+ assert.equal(rejected.linked,false);
+ assert.equal(rejected.stage,'token_client_rejected');
  assert.equal((await g(s,'/authorize','POST',params,'',now,true)).body.error,'pin_expired');
 });
 test('google cannot send arbitrary actions, duplicate commands or requests while TV is offline',async()=>{
