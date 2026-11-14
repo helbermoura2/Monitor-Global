@@ -72,7 +72,8 @@ final class RainMonitor {
  /** Prevent market HUD from stacking on top of an existing weather/satellite card. */
  boolean presentationActive(){return overlay.showing()||satellite.pending()||manualWeather||manualRainBusy||SystemClock.elapsedRealtime()<demoUntil;}
  void tick(){
-  if(closed)return;int selected=mode();boolean enabled=hourly();if(selected!=lastMode||enabled!=lastHourly||satelliteEnabled()!=lastSatellite){hide();lastMode=selected;lastHourly=enabled;lastSatellite=satelliteEnabled();}
+  // A voice-requested rain query takes precedence over routine hourly/rain cards.
+  if(closed||manualRainBusy)return;int selected=mode();boolean enabled=hourly();if(selected!=lastMode||enabled!=lastHourly||satelliteEnabled()!=lastSatellite){hide();lastMode=selected;lastHourly=enabled;lastSatellite=satelliteEnabled();}
   if((selected==0&&!enabled&&!manualPending())||!screen()){hide();return;}if(SystemClock.elapsedRealtime()<demoUntil)return;
   long now=System.currentTimeMillis();RainForecast.Summary rain=null;WeatherForecast.Summary weather=null;
   try{if(data!=null)rain=RainForecast.summarize(data,now);}catch(JSONException ignored){}
