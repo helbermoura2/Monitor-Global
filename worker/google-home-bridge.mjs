@@ -89,7 +89,7 @@ async function fulfillment(request,storage,now){
 export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.now()}={}){
  const path=new URL(request.url).pathname;
  if(!['/google-home/v1/health','/google-home/v1/pair','/google-home/v1/link-status','/google-home/v1/authorize','/google-home/v1/token','/google-home/v1/fulfillment'].includes(path))return json({error:'not_found'},404);
- if(path.endsWith('/health'))return request.method==='GET'?json({ready:Boolean(env.GOOGLE_HOME_CLIENT_ID&&env.GOOGLE_HOME_CLIENT_SECRET&&env.GOOGLE_HOME_PROJECT_ID),mode:'private-test'}):json({error:'method_not_allowed'},405);
+ if(path.endsWith('/health'))return request.method==='GET'?json({ready:Boolean(env.GOOGLE_HOME_CLIENT_ID&&env.GOOGLE_HOME_CLIENT_SECRET&&env.GOOGLE_HOME_PROJECT_ID),mode:'private-test',oauthRedirectPolicy:'google-callbacks-v2'}):json({error:'method_not_allowed'},405);
  if(!env.GOOGLE_HOME_CLIENT_ID||!env.GOOGLE_HOME_CLIENT_SECRET||!env.GOOGLE_HOME_PROJECT_ID)return json({error:'not_configured'},503);
  try{
   if(path.endsWith('/link-status')){
