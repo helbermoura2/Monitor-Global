@@ -50,7 +50,20 @@ async function fulfillment(request,storage,now){
  if(intent==='action.devices.SYNC')await handshake(storage,session.id,'sync_requested',now);
  if(intent==='action.devices.SYNC')return result(requestId,{agentUserId:session.id,devices:[{
   id,type:'action.devices.types.SCENE',traits:['action.devices.traits.Scene'],
-  attributes:{sceneReversible:false},name:{name:'Temperatura Monitor Global',defaultNames:['Temperatura Monitor Global'],nicknames:['Boletim do tempo Monitor Global','Tempo Monitor Global']},
+  attributes:{sceneReversible:false},name:{
+   name:'Temperatura Monitor Global',
+   defaultNames:['Temperatura Monitor Global'],
+   // These are scene labels, not arbitrary spoken questions. The Google Home
+   // personal routine can map complete custom phrases to ActivateScene.
+   nicknames:[
+    'Boletim do tempo Monitor Global',
+    'Tempo Monitor Global',
+    'Clima Monitor Global',
+    'Meteorologia Monitor Global',
+    'Temperatura da Liberdade Monitor Global',
+    'Boletim meteorológico Monitor Global',
+    'Previsão do tempo Monitor Global'
+   ]},
   willReportState:false,roomHint:'Sala',deviceInfo:{manufacturer:'Monitor Global',model:'TV',swVersion:'google-private-v1'}
  }]});
  if(intent==='action.devices.QUERY'){
