@@ -84,3 +84,53 @@ Documentação:
 - https://developers.home.google.com/cloud-to-cloud/intents/sync
 - https://developers.home.google.com/cloud-to-cloud/traits/scene
 - https://support.google.com/assistant/answer/7672035?hl=pt-BR
+
+
+## Dispositivo de comando direto no Google Home (SWITCH)
+
+A cena SCENE antiga pode não aparecer como ação selecionável no editor de
+automações do Google Home, apesar da integração privada aparecer como vinculada.
+O Worker agora retorna **dois dispositivos no SYNC** sem eliminar a cena antiga:
+
+- `Temperatura Monitor Global` — cena original, ID preservado;
+- `Boletim Monitor Global TV` — interruptor virtual de comando, novo ID e
+  trait `OnOff`, com `commandOnlyOnOff:true`.
+
+**Ligá-lo** solicita uma única vez a tarja oficial WEATHER_NOW pelo relay já
+existente. **Desligá-lo não faz nada**: nunca desliga a televisão, a previsão, a
+Alexa ou os alertas sísmicos. O estado `on` retorna sempre `false`, como um
+botão momentâneo (não um interruptor elétrico). Cada ativação respeita a fila
+ocupada, a TV offline e as prioridades de exibição do aplicativo.
+
+A integração existente pode continuar vinculada: a alteração só adiciona um
+dispositivo, sem mexer nos tokens OAuth.
+
+### Após publicar o Worker
+
+1. No Google Home Developer Console, em **Develop → integração Monitor Global →
+   Device type**, inclua **Switch** caso o console exija declarar os tipos
+   compatíveis. Preserve o cadastro existente e não recrie a integração.
+2. Google Home pode demorar para atualizar o Home Graph; solicite nova
+   sincronização (por Assistente compatível) ou atualize os serviços vinculados
+   no app. Não remova a integração automaticamente; preserve o OAuth.
+3. Verifique se **Boletim Monitor Global TV** aparece entre os dispositivos.
+   Ele deve aparecer como interruptor, não como TV física.
+4. Pressione **Ligar** nesse dispositivo e observe se a tarja aparece sobre
+   o programa na TCL P7K. Isso testa primeiro a entrega sem depender da voz.
+5. Só então teste **"Ligar Boletim Monitor Global TV"** pelo microfone da TCL.
+   A rotina com várias frases pode apontar para a ação de ligar esse
+   interruptor virtual, se o editor oferecer essa ação.
+
+Se o dispositivo aparecer mas não ativar a tarja, verifique que o
+**monitoramento do app está ativado em segundo plano**, a TV está online e o
+Google enviou `action.devices.EXECUTE`. O endpoint `/link-status` indica
+SYNC, mas não prova que EXECUTE foi enviado. Verifique registros do fulfillment
+para distinguir reconhecimento, enfileiramento e exibição.
+
+Esta é uma **solução privada de teste**, sujeita à disponibilidade dos tipos
+de dispositivos e das rotinas na conta e região do Google Home.
+
+Referências:
+- https://developers.home.google.com/cloud-to-cloud/guides/switch
+- https://developers.home.google.com/cloud-to-cloud/traits/onoff
+- https://developers.home.google.com/cloud-to-cloud/intents/sync
