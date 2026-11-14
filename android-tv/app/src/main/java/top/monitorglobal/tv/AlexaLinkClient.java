@@ -118,7 +118,7 @@ final class AlexaLinkClient {
       default:
        message=linked?"Já existe autorização do Google, mas não há confirmação recente da sincronização.":"Nenhum vínculo Google Home foi confirmado para esta TV.";break;
      }
-     if(linked&&!stage.equals("synchronized")&&!stage.equals("token_issued"))
+     if(linked&&!stage.equals("sync_requested")&&!stage.equals("token_issued"))
       message+="\nJá existe um token Google vinculado nesta TV; confira se aparece como serviço vinculado no Google Home.";
     }
    }catch(Exception error){
