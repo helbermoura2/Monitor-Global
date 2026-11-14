@@ -232,18 +232,20 @@ final class TvBroadcastInfoView extends View {
  }
 
  private void drawWeather(Canvas c){
-  // Two-line newsroom hierarchy: leading temperature, headline, then facts.
-  // Preserve source-qualification: an hourly model is not a sky observation.
-  label(c,"TEMPO",16,46,19,0xffff6d7f,brand,140);
-  label(c,weather==null?"—":weather.temperatureValue,16,82,42,foreground,brand,138);
-  label(c,"LIBERDADE / SP",170,43,13,accent,brand,224);
+  label(c,"TEMPO",11,70,30,0xffff6d7f,brand,105);
+  label(c,weather==null?"—":weather.temperatureValue,124,65,39,foreground,brand,112);
+  label(c,"LIBERDADE / SP",124,87,12,0xffb8d2df,data,140);
+  icon(c,0,251,42,30);
+  // Do not present an hourly MODEL rain code as rain observed right now.
   String sky=WeatherConditionDisplay.headline(weather,rain);
-  label(c,sky,170,66,28,foreground,brand,675);
-  String facts="SENSAÇÃO "+(weather==null?"—":weather.feelsValue)+
-    "    •    UMIDADE "+(weather==null?"—":weather.humidityValue)+
-    "    •    VENTO "+(weather==null?"—":weather.windValue)+
-    "    •    RAJADAS "+(weather==null?"—":weather.gustValue);
-  label(c,facts,170,88,16,0xffb8d2df,brand,678);
+  label(c,sky,290,58,sky.length()>19?18:21,foreground,brand,190);
+  String detail=WeatherConditionDisplay.detail(weather,rain);
+  p.setTypeface(brand);float detailSize=16;p.setTextSize(detailSize);
+  while(detailSize>11&&p.measureText(detail)>190){detailSize-=.5f;p.setTextSize(detailSize);}
+  label(c,detail,290,84,detailSize,0xffb8d2df,brand,190);
+  metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",493);
+  metric(c,2,weather==null?"—":weather.windValue,"VENTO",626);
+  metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
  }
 
  private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
