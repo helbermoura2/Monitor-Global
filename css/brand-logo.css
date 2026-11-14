@@ -1,10 +1,14 @@
-/* ARGOS ORBIS — identidade aprovada a partir do GIF fornecido.
- * Símbolo animado preserva os nove quadros da referência, otimizado em WebP.
- * Sem desenho alternativo do planeta/olhos: versão estática deriva do frame original.
- * O cabeçalho permanece responsivo; respeita preferências de redução de movimento.
+/* ARGOS ORBIS — identidade baseada no GIF aprovado (globo e quatro olhos).
+ * No mobile, a marca ocupa uma célula única do cabeçalho: ícone à esquerda,
+ * ARGOS/ORBIS à direita. Assim, nenhuma palavra cai abaixo do símbolo.
+ * O WebP animado e o fallback reduced-motion permanecem inalterados.
  */
 #top-strip .ts-title.mg-title {
-  align-items: center;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
   gap: .32em;
   min-width: 0;
   max-width: 100%;
@@ -12,8 +16,8 @@
 #top-strip .ts-title.mg-title .mg-logo-frame {
   display: block;
   flex: 0 0 auto;
-  width: clamp(24px, 2em, 44px);
-  height: clamp(24px, 2em, 44px);
+  width: clamp(30px, 2.35em, 50px);
+  height: clamp(30px, 2.35em, 50px);
   overflow: hidden;
 }
 #top-strip .ts-title.mg-title .mg-logo-icon {
@@ -23,17 +27,83 @@
   object-fit: contain;
 }
 #top-strip .ts-title.mg-title .mg-logo-word {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: .32em;
+  align-items: baseline;
   font-family: 'Rajdhani', sans-serif;
   font-weight: 700;
   font-size: inherit;
   letter-spacing: inherit;
   line-height: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
   color: #eaf5fc;
 }
-#top-strip .ts-title.mg-title .ao-word-orbis {
-  color: #ffbe69;
+#top-strip .ts-title.mg-title .ao-word-argos { color: #eaf5fc; }
+#top-strip .ts-title.mg-title .ao-word-orbis { color: #ffbe69; }
+
+/* O espaço visível no topo do celular é menor que o desktop.
+ * Ícone com 44px reais, em vez de 24px dependentes do font-size.
+ * Wordmark em duas linhas LADO A LADO com o ícone, nunca abaixo dele.
+ * Célula fixa evita o selo de atualização invadir a marca. */
+@media screen and (max-width: 700px) and (orientation: portrait) {
+  #top-strip > .ts-mainrow > .ts-title.mg-title,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-title.mg-title {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    flex: 0 0 106px !important;
+    width: 106px !important;
+    min-width: 106px !important;
+    max-width: 106px !important;
+    height: 48px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+    gap: 4px !important;
+    font-size: 15px !important;
+    letter-spacing: .3px !important;
+    line-height: 1 !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-frame,
+  body.mg-clean-portrait #top-strip .ts-title.mg-title .mg-logo-frame {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-word,
+  body.mg-clean-portrait #top-strip .ts-title.mg-title .mg-logo-word {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    flex: 0 0 auto !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: .2px !important;
+    line-height: .95 !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+}
+@media screen and (max-width: 360px) and (orientation: portrait) {
+  #top-strip > .ts-mainrow > .ts-title.mg-title,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-title.mg-title {
+    flex-basis: 97px !important;
+    width: 97px !important;
+    min-width: 97px !important;
+    max-width: 97px !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-frame {
+    flex-basis: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-word {
+    font-size: 14px !important;
+  }
 }
