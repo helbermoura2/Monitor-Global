@@ -51,7 +51,7 @@ final class TvBroadcastInfoView extends View {
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(c).getString("themeText","#ffffff"));
   background=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#071724":Prefs.get(c).getString("themeBackground","#071724"));
-  outline.addRoundRect(0,BroadcastVisuals.HEADER_HEIGHT,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
+  outline.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
   // Match NewsBannerView's alternating site/Telegram footer exactly.
   p.setTypeface(brand);p.setTextSize(17);
   identityTextWidths[0]=p.measureText("monitorglobal.top");
@@ -159,7 +159,7 @@ final class TvBroadcastInfoView extends View {
  }
  private void badge(Canvas c,String value){
   float width=BroadcastVisuals.statusWidth(p,brand,value);
-  BroadcastVisuals.headlineTab(c,p,960-width,width,demo?0xff995b0e:BroadcastVisuals.TAB_RED);
+  rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
   BroadcastVisuals.headerLabel(c,p,brand,value,960-width,width,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);
  }
  private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
@@ -206,10 +206,10 @@ final class TvBroadcastInfoView extends View {
   c.restore();
  }
  private void drawHeader(Canvas c,long elapsed){
-  c.save();c.clipPath(outline);BroadcastVisuals.newsroomBody(c,p,background,accent);c.restore();
-  BroadcastVisuals.headlineTab(c,p,0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.TAB_RED);
+  c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
+  rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xffbf1827,5);
   BroadcastVisuals.headerLabel(c,p,brand,"BREAKING NEWS",0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);
-  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",BroadcastVisuals.BREAKING_WIDTH+16,22,16,accent,brand,410);
+  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",BroadcastVisuals.BREAKING_WIDTH+16,18,17,accent,brand,440);
   badge(c,status());
   if(kind==RAIN)drawRain(c);
   else if(kind==WEATHER)drawWeather(c);
@@ -223,14 +223,13 @@ final class TvBroadcastInfoView extends View {
  private void metric(Canvas c,int index,String value,String caption,float x){icon(c,index,x,48,20);label(c,value,x+27,65,21,foreground,brand,105);label(c,caption,x,86,12,0xffb8d2df,brand,130);}
  private void drawRain(Canvas c){
   RainBannerContent facts=rainFacts;
-  label(c,facts.topic,16,48,21,0xffff6d7f,brand,138);
-  label(c,"LIBERDADE / SP",16,82,13,accent,brand,136);
-  label(c,facts.headline,170,62,30,foreground,brand,675);
-  String summary="60 MIN: "+facts.amount+"    •    INTENSIDADE: "+facts.rate+
-    "    •    DURAÇÃO: "+facts.duration;
-  label(c,summary,170,87,17,0xffb8d2df,brand,680);
+  label(c,facts.topic,11,70,29,0xffff6d7f,brand,108);
+  icon(c,0,127,41,28);label(c,facts.headline,165,60,23,foreground,brand,235);
+  label(c,facts.end,127,86,16,0xffb8d2df,brand,275);
+  metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",412);
+  metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",570);
+  metric(c,3,facts.duration,facts.durationLabel.contains("JANELA")?"JANELA ESTIMADA":rain!=null&&rain.state.equals("now")?"DURAÇÃO RESTANTE":"DURAÇÃO PREVISTA",735);
  }
-
  private void drawWeather(Canvas c){
   label(c,"TEMPO",11,70,30,0xffff6d7f,brand,105);
   label(c,weather==null?"—":weather.temperatureValue,124,65,39,foreground,brand,112);
@@ -247,7 +246,6 @@ final class TvBroadcastInfoView extends View {
   metric(c,2,weather==null?"—":weather.windValue,"VENTO",626);
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759);
  }
-
  private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
  // Compact labels fit next to each market name without truncating PAUSADO.
  // Full market state remains available in ticker/accessibility information.
@@ -262,48 +260,38 @@ final class TvBroadcastInfoView extends View {
  }
 
  private void drawVoiceStatus(Canvas c){
-  label(c,"CONSULTA",16,52,23,0xffff6d7f,brand,135);
-  label(c,voiceTitle,170,64,28,foreground,brand,675);
-  label(c,voiceDetail,170,87,17,0xffb8d2df,brand,675);
+  label(c,"CONSULTA",12,66,31,0xffff6d7f,brand,133);
+  label(c,voiceTitle,170,62,27,foreground,brand,690);
+  label(c,voiceDetail,170,88,16,0xffbdcfdd,data,688);
  }
-
  private void drawBrent(Canvas c){
   refreshMarket();
   if(marketPending){
-   label(c,"BRENT",16,49,21,0xffff6d7f,brand,136);
-   label(c,"CONSULTANDO COTAÇÃO REAL…",16,78,28,foreground,brand,419);
-   fill(c,446,37,1,53,0xff45647b);
-   label(c,"DÓLAR USD/BRL",468,49,19,accent,brand,200);
-   label(c,"AGUARDANDO FONTE",468,79,25,foreground,brand,375);
+   label(c,"BRENT",12,57,28,0xffff6d7f,brand,112);
+   label(c,"CONSULTA POR VOZ",12,83,13,accent,brand,120);
+   label(c,"CONSULTANDO COTAÇÃO REAL…",138,67,29,foreground,brand,420);
+   fill(c,575,41,1,43,0xff45647b);
+   label(c,"DÓLAR USD/BRL",593,45,17,accent,brand,240);
+   label(c,"AGUARDANDO FONTE",593,77,21,foreground,brand,275);
    return;
   }
-  // Equivalent two-column newsroom arrangement for both market references.
-  label(c,"BRENT",16,47,21,0xffff6d7f,brand,73);
-  label(c,demo?"SIMULADO":marketHeaderStatus(brentSession),96,47,14,sessionColor(brentSession),brand,94);
-  label(c,brent==null?"US$ —":"US$ "+amount(brent.price),16,79,36,foreground,brand,197);
-  int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
-  String change=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
-  label(c,change,229,78,24,tint,brand,194);
-  label(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),
-    16,91,10,0xffbdcfdd,data,410);
-  fill(c,446,37,1,53,0xff45647b);
-  label(c,"DÓLAR USD/BRL",468,47,19,accent,brand,190);
-  label(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),661,47,14,sessionColor(dollarSession),brand,92);
-  label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),468,79,31,foreground,brand,180);
-  Double pct=dollar==null?null:dollar.percent;
-  label(c,pct==null?"VAR. —":(pct>=0?"▲ +":"▼ ")+amount(pct)+"%",
-    665,79,22,pct==null?0xffb8d2df:pct>=0?0xff75edb2:0xffff7687,brand,186);
-  label(c,dollar==null?"FONTE SEM COTAÇÃO":"USD/BRL · "+(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),
-    468,91,10,0xffbdcfdd,data,371);
+  // Header matches the USD/BRL name + colored market-state badge at y=44.
+  // Keep prices, percentages, references, ticker and animation untouched.
+  label(c,"BRENT",12,44,19,0xffff6d7f,brand,62);
+  label(c,demo?"SIMULADO":marketHeaderStatus(brentSession),76,44,12,sessionColor(brentSession),brand,60);
+  label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,68,37,foreground,brand,254);
+  int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;String variation=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";label(c,variation,402,66,25,tint,brand,162);fill(c,575,41,1,43,0xff45647b);
+  label(c,"DÓLAR USD/BRL",593,44,16,accent,brand,174);label(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),775,44,12,sessionColor(dollarSession),brand,110);
+  label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,150);Double pct=dollar==null?null:dollar.percent;label(c,pct==null?"VAR. —":(pct>=0?"▲ +":"▼ ")+amount(pct)+"%",755,75,21,pct==null?0xffb8d2df:pct>=0?0xff75edb2:0xffff7687,brand,130);
+  label(c,brent==null?"NYMEX · SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,89,12,0xffbdcfdd,data,430);
+  label(c,dollar==null?"FONTE SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),593,91,11,0xffbdcfdd,data,287);
  }
-
  private void drawSatelliteNews(Canvas c){
-  label(c,"SATÉLITE",16,48,22,0xffff6d7f,brand,137);
-  label(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",170,64,29,foreground,brand,670);
+  label(c,"SATÉLITE",12,70,32,0xffff6d7f,brand,119);
+  label(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,62,28,foreground,brand,705);
   label(c,satellite==null?satelliteStatus:InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
-    " · INFRAVERMELHO · NÃO É RADAR DE CHUVA",170,87,16,0xffb8d2df,brand,670);
+    " · IMAGEM INFRAVERMELHA · NÃO É RADAR DE CHUVA",142,88,16,0xffb8d2df,data,705);
  }
-
  private void drawMap(Canvas c){
   if(mapSpace<=0||mapReveal<=0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);

@@ -16,7 +16,7 @@ public class BroadcastBannerTest {
  @Test public void clockUsesBrasiliaAcrossMidnightRegardlessOfDeviceZone(){TimeZone previous=TimeZone.getDefault();try{TimeZone.setDefault(TimeZone.getTimeZone("Pacific/Honolulu"));assertEquals("00:05",NewsBannerView.formatClock(Instant.parse("2026-11-02T03:05:00Z").toEpochMilli()));assertEquals("23:59",NewsBannerView.formatClock(Instant.parse("2026-11-02T02:59:00Z").toEpochMilli()));}finally{TimeZone.setDefault(previous);}}
  @Test public void joinedStripsHaveNoTransparentSeamAndBadgesFitTheirLabels()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),true,false);Bitmap b=render(view,1000);
-  try{for(int y=(int)BroadcastVisuals.HEADER_HEIGHT;y<126;y++)assertEquals("continuous body and footer",255,Color.alpha(b.getPixel(500,y)));assertEquals("no logo divider",Color.rgb(7,23,36),b.getPixel(845,60));
+  try{for(int y=24;y<126;y++)assertEquals("continuous body and footer",255,Color.alpha(b.getPixel(500,y)));assertEquals("no logo divider",Color.rgb(7,23,36),b.getPixel(845,60));
    assertTrue("status panel is wide enough for broadcast framing",(Float)field(view,"badgeWidth")>=BroadcastVisuals.STATUS_MIN_WIDTH);assertEquals("gap before expanded status",0,Color.alpha(b.getPixel(780,10)));assertEquals("expanded BREAKING NEWS panel is red",Color.rgb(191,24,39),b.getPixel(245,10));assertEquals("no extra red past BREAKING NEWS",0,Color.alpha(b.getPixel(280,10)));
    assertEquals(NewsBannerView.formatClock(System.currentTimeMillis()),field(view,"clockText"));
    int white=0;for(int y=121;y<125;y++)for(int x=10;x<80;x++){int p=b.getPixel(x,y);if(Color.green(p)>200&&Color.blue(p)>200)white++;}assertEquals("no Brasilia subtitle under clock",0,white);export(b,"quake");
@@ -40,8 +40,8 @@ public class BroadcastBannerTest {
  @Test public void redMagnitudeHasNoBoxAndOnlyTheFooterEndsAreRounded()throws Exception{
   NewsBannerView normal=new NewsBannerView(c,alert(),true,false);Bitmap b=render(normal,1000);
   try{int bg=Color.rgb(7,23,36),red=Color.rgb(191,24,39);
-   assertEquals("Main panel begins after the news header",bg,b.getPixel(0,30));assertEquals(bg,b.getPixel(111,30));assertEquals(bg,b.getPixel(0,93));assertEquals(bg,b.getPixel(111,93));assertEquals("Dedicated radar/logo block",BroadcastVisuals.BRAND_BACKGROUND,b.getPixel(877,35));
-   assertEquals("The official radar stays in the separate branded panel",BroadcastVisuals.BRAND_BACKGROUND,b.getPixel(877,45));
+   assertEquals(bg,b.getPixel(0,24));assertEquals(bg,b.getPixel(111,24));assertEquals(bg,b.getPixel(0,93));assertEquals(bg,b.getPixel(111,93));assertEquals(bg,b.getPixel(959,24));
+   assertEquals("radar has no backing plate",bg,b.getPixel(886,25));
    int ink=0;for(int y=35;y<90;y++)for(int x=8;x<105;x++){int p=b.getPixel(x,y);if(Color.red(p)>220&&Color.green(p)>60&&Color.green(p)<160)ink++;}assertTrue("red magnitude stays legible",ink>200);
    assertEquals("clock begins at the taller footer",red,b.getPixel(0,94));assertEquals("clock right square",red,b.getPixel(89,125));assertEquals("clock lower left rounded",0,Color.alpha(b.getPixel(0,125)));
    assertEquals("footer upper right square",255,Color.alpha(b.getPixel(959,100)));assertEquals("footer lower right rounded",0,Color.alpha(b.getPixel(959,125)));export(b,"refined");
@@ -50,7 +50,7 @@ public class BroadcastBannerTest {
   long fading=BannerTimeline.WIPE_MS+BannerTimeline.SUMMARY_PAGE_MS+BannerTimeline.PAGE_FADE_MS/2;
   int space=(Integer)field(summary,"mapSpace");summary.layout(0,0,960,126+space);summary.startPresentation(android.os.SystemClock.uptimeMillis()-fading,true);
   Bitmap frame=Bitmap.createBitmap(960,126+space,Bitmap.Config.ARGB_8888);summary.draw(new Canvas(frame));
-  try{assertEquals(Color.rgb(7,23,36),frame.getPixel(0,space+30));assertEquals(Color.rgb(7,23,36),frame.getPixel(0,space+93));}finally{frame.recycle();}
+  try{assertEquals(Color.rgb(7,23,36),frame.getPixel(0,space+24));assertEquals(Color.rgb(7,23,36),frame.getPixel(0,space+93));}finally{frame.recycle();}
  }
  @Test public void compactFooterGivesSpaceToTickerAndAddsTelegramSymbol()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),false,true);
