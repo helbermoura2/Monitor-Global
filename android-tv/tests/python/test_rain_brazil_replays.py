@@ -46,6 +46,23 @@ class RainAndReplayTest(unittest.TestCase):
   self.assertIn("TEMPO",broadcast)
   self.assertIn("font",broadcast.lower()) if False else None
   self.assertIn("WeatherForecast.due",self.read("RainMonitor.java"))
+ def test_voice_routing_keeps_real_events_and_separate_controls(self):
+  google=self.read("AlexaLinkClient.java")
+  service=self.read("MonitorService.java")
+  rain=self.read("RainMonitor.java")
+  relay=(ROOT/"worker/alexa-voice-bridge.mjs").read_text(encoding="utf-8")
+  self.assertIn('type.equals("regional")||type.equals("rain")',google)
+  self.assertIn('case "regional":action=REPLAY_TARGET;break;',service)
+  self.assertIn('case "rain":action=VOICE_RAIN;break;',service)
+  self.assertIn("rain.rainNow()",service)
+  self.assertIn('pending.type',service)
+  self.assertIn("voiceRequest?0:10000",service)
+  self.assertIn("void rainNow()",rain)
+  self.assertIn('summary.state.equals("now")',rain)
+  self.assertIn('summary.state.equals("soon")',rain)
+  self.assertIn("if(closed||manualRainBusy)return",rain)
+  self.assertNotIn("rain.demo()",service.split('if(VOICE_RAIN.equals(action))')[1].split('if(WEATHER_NOW.equals(action))')[0])
+  self.assertIn("'regional','rain'",relay)
  def test_automatic_priority_remains_independent(self):
   service=self.read("MonitorService.java")
   self.assertIn("interruptDaily()",service)
