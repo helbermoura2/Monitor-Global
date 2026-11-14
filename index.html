@@ -15,7 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Monitor Global — Central de Monitoramento</title>
+<title>Argos Orbis — Central de Monitoramento</title>
 <meta name="description" content="Monitor global de sismos, tempestades, ciclones, tsunamis e alertas oficiais em tempo quase real.">
 <meta name="theme-color" content="#020816">
 <!-- Avisa o navegador que o site já é escuro por padrão (nunca tem
@@ -29,21 +29,20 @@
      compartilhado saía sem nenhuma imagem. -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://monitorglobal.top/">
-<meta property="og:site_name" content="Monitor Global">
-<meta property="og:title" content="Monitor Global — Central de Monitoramento">
+<meta property="og:site_name" content="Argos Orbis">
+<meta property="og:title" content="Argos Orbis — Central de Monitoramento">
 <meta property="og:description" content="Monitor global de sismos, tempestades, ciclones, tsunamis e alertas oficiais em tempo quase real.">
 <meta property="og:image" content="https://monitorglobal.top/img/og-preview.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Monitor Global — Central de Monitoramento">
+<meta name="twitter:title" content="Argos Orbis — Central de Monitoramento">
 <meta name="twitter:description" content="Monitor global de sismos, tempestades, ciclones, tsunamis e alertas oficiais em tempo quase real.">
 <meta name="twitter:image" content="https://monitorglobal.top/img/og-preview.png">
 <link rel="manifest" href="manifest.webmanifest">
-<!-- Ícone oficial: varredura de radar (mesma linguagem visual do selo
-     "AO VIVO" e do epicentro no mapa) — antes era só o emoji 🌍. -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ccircle cx='64' cy='64' r='56' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='38' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='20' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Cpath d='M64 64L64 8A56 56 0 0 1 103.6 24.4Z' fill='%2338bdf8' opacity='.85'/%3E%3Ccircle cx='64' cy='64' r='7' fill='%2338bdf8'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23020816'/%3E%3Ccircle cx='64' cy='64' r='56' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='38' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Ccircle cx='64' cy='64' r='20' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='.35'/%3E%3Cpath d='M64 64L64 8A56 56 0 0 1 103.6 24.4Z' fill='%2338bdf8' opacity='.85'/%3E%3Ccircle cx='64' cy='64' r='7' fill='%2338bdf8'/%3E%3C/svg%3E">
+<!-- Símbolo original Argos Orbis, compartilhado com o cabeçalho e PWA. -->
+<link rel="icon" type="image/svg+xml" href="img/argos-orbis-mark.svg?v=1">
+<link rel="apple-touch-icon" href="img/argos-orbis-mark.svg?v=1">
 <!-- MapLibre GL hospedado localmente (vendor/) em vez do unpkg — o mapa é o
      coração do app; depender de um CDN externo pra ele carregar é um ponto
      único de falha desnecessário quando o arquivo cabe tranquilo no repo. -->
@@ -95,7 +94,7 @@
 <div id="app">
   <header id="top-strip">
     <div class="ts-mainrow">
-    <h1 class="ts-title mg-title" style="margin:0;font:inherit;display:inline-flex"><svg class="mg-logo-icon" viewBox="0 0 128 128" aria-hidden="true" focusable="false"><rect width="128" height="128" rx="24" fill="#020816"/><circle cx="64" cy="64" r="56" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><circle cx="64" cy="64" r="38" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><circle cx="64" cy="64" r="20" fill="none" stroke="#38bdf8" stroke-width="4" opacity=".35"/><g class="mg-logo-sweep"><path d="M64 64L64 8A56 56 0 0 1 103.6 24.4Z" fill="#38bdf8" opacity=".85"/><circle cx="64" cy="64" r="7" fill="#38bdf8"/></g></svg><span class="mg-logo-word">MONITOR GLOBAL</span></h1>
+    <h1 class="ts-title mg-title" style="margin:0;font:inherit;display:inline-flex"><img class="mg-logo-icon" src="img/argos-orbis-mark.svg?v=1" width="32" height="32" alt="" aria-hidden="true" draggable="false"><span class="mg-logo-word">ARGOS <span class="ao-word-orbis">ORBIS</span></span></h1>
     <button type="button" class="live-indicator" id="ao-vivo-badge"><span class="av-radar" aria-hidden="true"><span class="av-ring"></span><span class="av-sweep"></span><span class="av-core"></span></span><span class="av-label">AGUARDANDO</span><span class="av-age"></span><span class="ts-clock" id="kpi-relogio">--:--:--</span></button>
     </div>
     <div class="ts-actions">
@@ -622,7 +621,7 @@
 
 <link rel="stylesheet" href="css/mobile-layout-lock.css">
 <link rel="stylesheet" href="css/ao-vivo-badge.css">
-<link rel="stylesheet" href="css/brand-logo.css">
+<link rel="stylesheet" href="css/brand-logo.css?v=argos-orbis-1">
 <link rel="stylesheet" href="css/desktop-header-scale.css">
 
 <script defer src="mg-volcano-flood-pt.js?v=20261015-data-quality"></script>
