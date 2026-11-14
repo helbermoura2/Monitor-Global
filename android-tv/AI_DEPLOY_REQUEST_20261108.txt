@@ -39,3 +39,15 @@ Não executar pedidos reais nem enviar amostras ao Telegram nesta publicação.
 no total, preservando as 32 originais. Manter M5,0–M5,9, profundidade até 70 km,
 M6+ mundial e Brasil nas regras próprias. Seleções existentes e deduplicação preservadas.
 Aviso regional não confirma danos. Não gerar alertas fictícios nem republicar histórico.
+
+
+14/11/2026 — autorização explícita: "Conclua". Publicar a integração Google Home
+da TCL P7K implementada em PR #675 e PR #676 com ações separadas para
+temperatura, Brent, último M6+ mundial, sismos Brasil, resumo de ontem,
+maiores do dia, replay regional e aviso de chuva real. Manter todos os IDs
+Google Home existentes, OAuth, Alexa, fila, limites e prioridades de alertas.
+Não gerar avisos fictícios, disparar Telegram, reiniciar vínculos ou alterar
+cotas, cobrança, cron, segredos, armazenamento ou direitos de dispositivos.
+A implantação deve ocorrer pelo fluxo protegido Cloudflare Worker maintenance,
+com verificação dos bindings e health. Se qualquer validação falhar, interromper
+a implantação sem forçar alterações.
