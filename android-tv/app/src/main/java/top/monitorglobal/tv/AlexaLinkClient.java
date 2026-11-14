@@ -112,7 +112,11 @@ final class AlexaLinkClient {
       case "token_issued":
        message="Autenticação Google Home concluída no Cloudflare, mas a sincronização da cena ainda não foi confirmada.";break;
       case "authorization_accepted":
-       message="O PIN foi ACEITO pelo Cloudflare, mas o Google ainda NÃO concluiu a troca de códigos por tokens. O código anterior não pode ser usado novamente. Verifique Client ID, Client Secret e os logs OAuth; não é preciso recriar o projeto.";break;
+       message="PIN ACEITO pelo Cloudflare. O Google ainda não fez uma troca OAuth de tokens reconhecida. Se o Google Home não concluir a vinculação, confira sua sessão e os registros de autenticação.";break;
+      case "token_exchange_requested":
+       message="O Google enviou o código de autorização para a troca OAuth, mas ainda não concluiu a emissão dos tokens.";break;
+      case "token_client_rejected":
+       message="O Google tentou trocar o código OAuth, mas o Cloudflare REJEITOU o Client ID ou Client Secret. Compare os dois valores no Google Home Developer Console e nas variáveis protegidas do mesmo Worker. Não informe a senha secreta aqui.";break;
       case "pin_issued":
        message="Código gerado na TV, ainda sem confirmação de autorização do Google Home.";break;
       default:
