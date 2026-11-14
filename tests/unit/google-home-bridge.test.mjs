@@ -46,8 +46,33 @@ test('fail closed when worker secrets are not deployed',async()=>{
  const response=await handleGoogleHomeBridge(request,s,{env:{},now});
  assert.equal(response.status,503);
  const health=await handleGoogleHomeBridge(new Request(googleBase+'/health'),s,{env:{},now});
- assert.equal((await health.json()).ready,false);
+ const status=await health.json();
+ assert.equal(status.ready,false);
+ assert.equal(status.oauthRedirectPolicy,'google-callbacks-v2');
  assert.equal(s.values.size,0);
+});
+test('OAuth consent form allows Google callback after POST without blocking Chrome navigation',async()=>{
+ const s=store();
+ for(const redirectUri of [
+  'https://oauth-redirect.googleusercontent.com/r/'+env.GOOGLE_HOME_PROJECT_ID,
+  'https://oauth-redirect-sandbox.googleusercontent.com/r/'+env.GOOGLE_HOME_PROJECT_ID
+ ]){
+  const params=new URLSearchParams({client_id:env.GOOGLE_HOME_CLIENT_ID,redirect_uri:redirectUri,
+   state:'test-google-state',response_type:'code'});
+  const page=await handleGoogleHomeBridge(new Request(googleBase+'/authorize?'+params),s,{env,now});
+  assert.equal(page.status,200);
+  const policy=page.headers.get('content-security-policy');
+  assert.match(policy,/form-action 'self' https:\/\/oauth-redirect\.googleusercontent\.com https:\/\/oauth-redirect-sandbox\.googleusercontent\.com;/);
+  assert.match(policy,/default-src 'none'/);
+  assert.doesNotMatch(policy,/form-action[^;]*\*/);
+  assert.doesNotMatch(policy,/form-action[^;]*evil/);
+  assert.match(await page.text(),/form method="post" action="\/google-home\/v1\/authorize"/);
+ }
+ const attack=new URLSearchParams({client_id:env.GOOGLE_HOME_CLIENT_ID,
+  redirect_uri:'https://oauth-redirect.googleusercontent.com/r/other-project',
+  state:'test-google-state',response_type:'code'});
+ assert.equal((await handleGoogleHomeBridge(
+  new Request(googleBase+'/authorize?'+attack),s,{env,now})).status,400);
 });
 test('OAuth pairing cannot redirect to arbitrary sites and is one-time',async()=>{
  const s=store(),registered=await a(s,'/register');

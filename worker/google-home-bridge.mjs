@@ -20,6 +20,13 @@ async function deviceByBearer(storage,request,now){const credential=bearer(reque
 function checkRedirect(value,projectId){if(!/^[a-z0-9-]{3,120}$/.test(projectId||''))return false;try{const u=new URL(value);return u.protocol==='https:'&&u.port===''&&u.search===''&&u.hash===''&&u.username===''&&u.password===''&&u.pathname==='/r/'+projectId&&['oauth-redirect.googleusercontent.com','oauth-redirect-sandbox.googleusercontent.com'].includes(u.hostname);}catch{return false;}}
 function authParams(params,env){const clientId=params.get('client_id')||'',redirect=params.get('redirect_uri')||'',state=params.get('state')||'';return clientId===env.GOOGLE_HOME_CLIENT_ID&&checkRedirect(redirect,env.GOOGLE_HOME_PROJECT_ID)&&state.length>0&&state.length<=2048&&params.get('response_type')==='code'?{clientId,redirect,state}:null;}
 const escapeHtml=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Chromium and WebKit enforce form-action on redirects after a form POST.
+// The form posts to our own /authorize, then responds HTTP 302 to Google's
+// official OAuth callback. Without allowing that specific callback origin,
+// the browser silently blocks navigation AFTER the server consumes the PIN,
+// leaving the user on the form and showing pin_expired on the next attempt.
+// Never broaden this to '*' or arbitrary redirect hosts: authParams() also
+// validates the exact Google callback path and project ID.
 function pairingPage(info){
  const hidden=(name,value)=>'<input type="hidden" name="'+name+'" value="'+escapeHtml(value)+'">';
  const html=['<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitor Global · Google Home</title>',
@@ -29,7 +36,7 @@ function pairingPage(info){
  hidden('client_id',info.clientId),hidden('redirect_uri',info.redirect),hidden('state',info.state),hidden('response_type','code'),
  '<label for="pin">Código temporário mostrado na TV</label><input id="pin" name="pin" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">',
  '<p>Ao vincular, você autoriza o Google a acionar o boletim meteorológico nesta TV. O Monitor Global não recebe o áudio nem dados da sua conta Google.</p><button type="submit">Concordo e vinculo minha TV</button></form><p>Para cancelar, volte à tela anterior.</p></main></body></html>'].join('');
- return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY',"Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'"}});
+ return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY',"Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://oauth-redirect.googleusercontent.com https://oauth-redirect-sandbox.googleusercontent.com; base-uri 'none'"}});
 }
 async function accessRecord(storage,request,now){const value=bearer(request);if(!tokenOk(value))return null;const record=await storage.get(k('access',await digest(value)));if(!record||record.until<=now)return null;const link=await storage.get(k('link',record.deviceId)),device=await storage.get(A+'device:'+record.deviceId);return link&&link.refreshHash===record.refreshHash&&device&&device.expiresAt>now?{id:record.deviceId,device,refreshHash:record.refreshHash}:null;}
 async function issueAccess(storage,id,refreshHash,now){const value=random();await storage.put(k('access',await digest(value)),{deviceId:id,refreshHash,until:now+ACCESS_MS});return value;}
@@ -82,7 +89,7 @@ async function fulfillment(request,storage,now){
 export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.now()}={}){
  const path=new URL(request.url).pathname;
  if(!['/google-home/v1/health','/google-home/v1/pair','/google-home/v1/link-status','/google-home/v1/authorize','/google-home/v1/token','/google-home/v1/fulfillment'].includes(path))return json({error:'not_found'},404);
- if(path.endsWith('/health'))return request.method==='GET'?json({ready:Boolean(env.GOOGLE_HOME_CLIENT_ID&&env.GOOGLE_HOME_CLIENT_SECRET&&env.GOOGLE_HOME_PROJECT_ID),mode:'private-test'}):json({error:'method_not_allowed'},405);
+ if(path.endsWith('/health'))return request.method==='GET'?json({ready:Boolean(env.GOOGLE_HOME_CLIENT_ID&&env.GOOGLE_HOME_CLIENT_SECRET&&env.GOOGLE_HOME_PROJECT_ID),mode:'private-test',oauthRedirectPolicy:'google-callbacks-v2'}):json({error:'method_not_allowed'},405);
  if(!env.GOOGLE_HOME_CLIENT_ID||!env.GOOGLE_HOME_CLIENT_SECRET||!env.GOOGLE_HOME_PROJECT_ID)return json({error:'not_configured'},503);
  try{
   if(path.endsWith('/link-status')){
