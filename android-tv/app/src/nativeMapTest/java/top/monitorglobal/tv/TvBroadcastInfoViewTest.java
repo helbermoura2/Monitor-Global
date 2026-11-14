@@ -39,6 +39,39 @@ public class TvBroadcastInfoViewTest {
    assertEquals("red breaking news start",0xffbf1827,b.getPixel(10,view.mapSpace+10));
   }finally{b.recycle();}
  }
+ @Test public void weatherKeepsOriginalIndependentMetricColumns()throws Exception{
+  long validUntil=System.currentTimeMillis()+600000;
+  WeatherForecast.Summary first=new WeatherForecast.Summary(
+   "22°C · sensação 23°C","Nublado","Vento 12 km/h","Umidade 81%",
+   "Modelo horário",validUntil,false,"22°C","23°C","81%","12 km/h","19 km/h","Cloudy");
+  WeatherForecast.Summary changed=new WeatherForecast.Summary(
+   "17°C · sensação 23°C","Nublado","Vento 5 km/h","Umidade 47%",
+   "Modelo horário",validUntil,false,"17°C","23°C","47%","5 km/h","8 km/h","Cloudy");
+  TvBroadcastInfoView oldCard=TvBroadcastInfoView.weather(c,null,first,false);
+  TvBroadcastInfoView newCard=TvBroadcastInfoView.weather(c,null,changed,false);
+  Bitmap a=render(oldCard,"original-weather-columns");
+  Bitmap b=render(newCard,"changed-weather-columns");
+  try{
+   int top=oldCard.mapSpace;
+   // Values must be in four dedicated horizontal columns, as in TV 1.0.88.
+   // The accidental 1.0.89 rewrite moved temperature and grouped all metrics
+   // into a tiny line, which would fail these pixel-region comparisons.
+   int[][] valueColumns={{124,235,44,69},{520,616,49,71},{653,753,49,71},{786,865,49,71}};
+   for(int i=0;i<valueColumns.length;i++){
+    int[] rect=valueColumns[i];int changedPixels=0;
+    for(int y=top+rect[2];y<top+rect[3];y++)
+     for(int x=rect[0];x<rect[1];x++)
+      if(a.getPixel(x,y)!=b.getPixel(x,y))changedPixels++;
+    assertTrue("Separate weather metric "+i+" must be readable in its old position: "+changedPixels,
+      changedPixels>12);
+   }
+   // The weather-condition icon and descriptive column stay independent of
+   // the four numeric values; they must not move when a metric changes.
+   for(int y=top+42;y<top+90;y++)for(int x=251;x<481;x++)
+    assertEquals("Condition column should not change with temperature, humidity or wind",
+      a.getPixel(x,y),b.getPixel(x,y));
+  }finally{a.recycle();b.recycle();}
+ }
  @Test public void brentAndDollarAlwaysShareSameStripAndClearlyMarkMissingFX()throws Exception{
   BrentQuote brent=new BrentQuote(78.35,77.5,.85,1.1,System.currentTimeMillis()-300000,"Yahoo Finance");
   DollarQuote dollar=new DollarQuote(5.32,.02,.38,System.currentTimeMillis()-240000,"Yahoo Finance");
