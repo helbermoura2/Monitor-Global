@@ -12,7 +12,7 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "img/argos-orbis-mark.svg?v=1",
+      "src": "img/argos-orbis-mark-static.svg?v=2",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
