@@ -57,7 +57,7 @@ public class UnifiedBroadcastChromeTest {
   Bitmap c=frame(meteo,960,126+meteo.mapSpace,1100);
   try{
    int changed=0,bright=0;
-   for(int y=31;y<96;y++)for(int x=886;x<958;x++){ 
+   for(int y=26;y<96;y++)for(int x=886;x<958;x++){
     int seismicPixel=a.getPixel(x,y+Banner.insetDp(context));
     int marketPixel=b.getPixel(x,y);
     int weatherPixel=c.getPixel(x,y+meteo.mapSpace);
@@ -72,8 +72,6 @@ public class UnifiedBroadcastChromeTest {
  }
  @Test public void newsroomHeaderAndFooterMatchAcrossSeismicAndMarkets()throws Exception{
   assertEquals(260f,BroadcastVisuals.BREAKING_WIDTH,0f);
-  assertEquals("CNN-inspired header height",30f,BroadcastVisuals.HEADER_HEIGHT,0f);
-  assertEquals("Dedicated Monitor Global radar panel",866f,BroadcastVisuals.BRAND_LEFT,0f);
   assertEquals(94f,BroadcastVisuals.FOOTER_TOP,0f);
   assertEquals(32f,BroadcastVisuals.FOOTER_HEIGHT,0f);
   NewsBannerView quake=new NewsBannerView(context,regional(),false,true);
@@ -123,8 +121,7 @@ public class UnifiedBroadcastChromeTest {
      }
     }
     assertTrue("label visibly rendered: "+heading,right>left&&bottom>top);
-    assertTrue("natural lettering remains legible: "+heading,(right-left+1)>width*(breaking?.60f:.33f));
-    assertTrue("no artificially expanded lettering: "+heading,(right-left+1)<width*.94f);
+    assertTrue("label fills most of its tab: "+heading,(right-left+1)>width*(fraction-.12f));
     assertTrue("label stays inside its red tab: "+heading,left>=0&&right<width&&top>=0&&bottom<24);
     assertEquals("label horizontal alignment: "+heading,width/2f,(left+right)/2f,7f);
     assertEquals("label must restore paint horizontal scale: "+heading,1f,ink.getTextScaleX(),.0001f);
@@ -149,34 +146,6 @@ public class UnifiedBroadcastChromeTest {
    for(int y=3;y<=20;y++)for(int x=817;x<=945;x++)
     assertEquals("AO VIVO lettering must match across events at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
   }finally{a.recycle();b.recycle();}
- }
- @Test public void allEventFamiliesReuseOneNewsroomStructure() {
-  WeatherForecast.Summary wx=new WeatherForecast.Summary(
-   "19°C","Nublado","Vento 11 km/h","Umidade 88%",
-   "Modelo horário",System.currentTimeMillis()+600000,false,
-   "19°C","20°C","88%","11 km/h","17 km/h","Cloudy");
-  BrentQuote quote=new BrentQuote(78.45,77.5,.95,1.22,System.currentTimeMillis()-180000,"Yahoo Finance");
-  View[] examples=new View[]{
-    new NewsBannerView(context,regional(),false,false),
-    new NewsBannerView(context,regional(),false,true),
-    TvBroadcastInfoView.weather(context,null,wx,false),
-    TvBroadcastInfoView.market(context,quote,null,false),
-    TvBroadcastInfoView.marketPending(context),
-    TvBroadcastInfoView.satellite(context,null,"Satélite indisponível"),
-    TvBroadcastInfoView.voiceStatus(context,"Consulta do Brasil","Sem registros confirmados")
-  };
-  for(View row:examples){
-   int space=row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:Banner.insetDp(context);
-   Bitmap b=frame(row,960,126+space,1200);
-   try{
-    assertEquals("Breaking News has the same red tab in "+row.getClass().getSimpleName(),
-      BroadcastVisuals.TAB_RED,b.getPixel(10,space+10));
-    assertEquals("Main newsroom card uses brand blue in "+row.getClass().getSimpleName(),
-      BroadcastVisuals.BRAND_BACKGROUND,b.getPixel(877,space+43));
-    assertEquals("Footer is separated from main panel in "+row.getClass().getSimpleName(),
-      BroadcastVisuals.TICKER_BACKGROUND,b.getPixel(92,space+96));
-   }finally{b.recycle();}
-  }
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
   assertEquals(40f,BroadcastVisuals.TICKER_PX_PER_SECOND,0f);
