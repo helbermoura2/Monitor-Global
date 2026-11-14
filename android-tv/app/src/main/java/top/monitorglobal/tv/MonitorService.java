@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import android.media.*;import java.util.*;import java.util.concurrent.*;
 public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_M6="top.monitorglobal.tv.REPLAY_M6",REPLAY_BRAZIL="top.monitorglobal.tv.REPLAY_BRAZIL",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
- static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL";
+ static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL",VOICE_RAIN="top.monitorglobal.tv.VOICE_RAIN";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
@@ -26,8 +26,11 @@ public final class MonitorService extends Service {
       Prefs.status(MonitorService.this,"REPLAY · último aviso regional salvo · 15 segundos · sem novo som.");
      }else{Prefs.status(MonitorService.this,"Replay regional cancelado: aviso prioritário ou tela indisponível.");stopIfIdle();}
     }};
-    demoTasks.add(play);main.postDelayed(play,10000);
-    Prefs.status(this,"Replay do último aviso regional M5,0–5,9 em 10 segundos, sem novo som. Você pode voltar à TV.");
+    // Voice requests are already made while watching TV; keep the 10s delay
+    // only for the in-app button, which gives the viewer time to switch back.
+    boolean voiceRequest=intent!=null&&intent.getBooleanExtra("alexaRequest",false);
+    demoTasks.add(play);main.postDelayed(play,voiceRequest?0:10000);
+    Prefs.status(this,voiceRequest?"Replay regional real solicitado por voz.":"Replay do último aviso regional M5,0–5,9 em 10 segundos, sem novo som. Você pode voltar à TV.");
    }
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
@@ -61,6 +64,12 @@ public final class MonitorService extends Service {
   if(VOICE_BRAZIL.equals(action)){
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
    fetchLatestBrazil(false);return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
+  if(VOICE_RAIN.equals(action)){
+   if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+   // Only real, valid rain nowcast. No fake alert if dry or the source is missing.
+   rain.rainNow();
+   return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(WEATHER_NOW.equals(action)){if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();brent.hide();rain.weatherNow();Prefs.status(this,"Meteorologia em 10 segundos. Você pode voltar ao conteúdo da TV.");return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if(SUMMARY_REPLAY.equals(action)||REPLAY.equals(action)||REPLAY_M6.equals(action)||SUMMARY.equals(action)||SUMMARY_TODAY.equals(action)||action!=null&&action.startsWith(TEST)){rain.hide();brent.hide();interruptDaily();}
@@ -140,6 +149,8 @@ public final class MonitorService extends Service {
     case "recent-quake":action=REPLAY;break;
     case "last-summary":action=SUMMARY_REPLAY;break;
     case "today":action=SUMMARY_TODAY;break;
+    case "regional":action=REPLAY_TARGET;break;
+    case "rain":action=VOICE_RAIN;break;
     default:return;
    }
    if(destroyed)return;
