@@ -42,6 +42,20 @@ public final class MainActivity extends Activity {
     }).show();
   });
   label("Depois de vincular a skill: segure o microfone do controle e diga “Peça ao Monitor Global para mostrar o Brent”. O card aparece sobre o vídeo. É preciso ativar o monitoramento e publicar a ponte Alexa no Worker.",15,false);
+  section("GOOGLE HOME · TCL P7K · CONTROLE SEM ABRIR O APP");
+  button("Vincular Google Home · gerar código de 6 dígitos",v->{
+   new AlertDialog.Builder(this).setTitle("Vincular Monitor Global ao Google Home")
+    .setMessage("A integração Google Cloud-to-cloud precisa estar configurada primeiro no Google Home Developer Console e publicada no Worker.\n\nA vinculação mantém a Alexa funcionando e autoriza somente comandos para esta TV. Não é necessário abrir o aplicativo para consultar a temperatura após vincular.")
+    .setNegativeButton("Cancelar",null)
+    .setPositiveButton("Gerar código",(dialog,which)->{
+     AlexaLinkClient.googlePair(this,message->{
+      if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
+      new AlertDialog.Builder(this).setTitle("Google Home · Monitor Global").setMessage(message)
+       .setPositiveButton("Entendi",null).show();
+     });
+    }).show();
+  });
+  label("Teste privado: no Google Home, vincule [test] Monitor Global e experimente “Ativar Temperatura Monitor Global”. Se funcionar, uma rotina poderá reconhecer “Mostrar temperatura do Monitor Global”. Nenhum app precisa estar aberto: apenas o monitoramento em segundo plano deve permanecer ativo.",15,false);
   section("RECONHECIMENTO LOCAL · OPCIONAL");
   button("🎙 Testar reconhecimento local do Android (pode abrir pesquisa)",v->startVoiceInput());
   voiceStatus=label("Teste separado da Alexa. O Fire OS pode reservar o microfone do controle ao assistente do sistema.",15,false);
