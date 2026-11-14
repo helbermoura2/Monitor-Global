@@ -105,7 +105,7 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  const synced=await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access);
  assert.equal(synced.status,200);
  assert.equal((await g(s,'/link-status','GET',undefined,token)).body.stage,'sync_requested');
- assert.equal(synced.body.payload.devices.length,5);
+ assert.equal(synced.body.payload.devices.length,9);
  const [device,switchDevice]=synced.body.payload.devices;
  assert.equal(switchDevice.type,'action.devices.types.SWITCH');
  assert.deepEqual(switchDevice.traits,['action.devices.traits.OnOff']);
@@ -228,10 +228,11 @@ test('Google Home switches route voice controls to existing temperature, Brent a
  const scene=sync.body.payload.devices[0],switches=sync.body.payload.devices.slice(1);
  assert.equal(scene.name.name,'Temperatura Monitor Global');
  assert.deepEqual(switches.map(d=>d.name.name),
-  ['Temperatura Global','Brent Global','Sismos Brasil Global','Sismos Mundo Global']);
- assert.equal(switches.length,4);
+  ['Temperatura Global','Brent Global','Sismos Brasil Global','Sismos Mundo Global',
+   'Resumo Ontem Global','Maiores Hoje Global','Sismo Regional Global','Chuva Global']);
+ assert.equal(switches.length,8);
  assert.equal(switches[0].id,scene.id+'-trigger','weather Home Graph ID must remain unchanged');
- const expected=['weather','brent','brazil','recent-quake'];
+ const expected=['weather','brent','brazil','recent-quake','last-summary','today','regional','rain'];
  let clock=now+1000;
  for(let index=0;index<switches.length;index++){
   const device=switches[index];
@@ -258,4 +259,24 @@ test('Google Home switches route voice controls to existing temperature, Brent a
   devices:[{id:'not-a-real-monitor-device'}],
   execution:[{command:'action.devices.commands.OnOff',params:{on:true}}]}]}),access,clock);
  assert.equal(bad.body.payload.commands[0].errorCode,'deviceNotFound');
+});
+
+test('Google voice controls cannot be turned into fictitious warnings or arbitrary relay commands',async()=>{
+ const s=store(),registration=await a(s,'/register'),token=registration.body.deviceToken;
+ const linked=await link(s,token);
+ const synced=(await g(s,'/fulfillment','POST',command('action.devices.SYNC'),linked.access)).body.payload.devices;
+ assert.equal(new Set(synced.map(device=>device.id)).size,synced.length);
+ assert.equal(synced.length,9);
+ const names=synced.slice(1).map(d=>d.name.name);
+ assert.deepEqual(names.slice(-4),['Resumo Ontem Global','Maiores Hoje Global','Sismo Regional Global','Chuva Global']);
+ const allowed=new Set(['weather','brent','brazil','recent-quake','last-summary','today','regional','rain']);
+ assert.equal(new Set(synced.slice(1).map(d=>d.name.name)).size,8);
+ for(const d of synced.slice(1)){
+  assert.equal(d.attributes.commandOnlyOnOff,true);
+  assert.ok(d.name.nicknames.length>=2);
+ }
+ assert.equal(allowed.size,synced.length-1);
+ const bad=command('action.devices.EXECUTE',{commands:[{
+   devices:[{id:synced[8].id}],execution:[{command:'action.devices.commands.ActivateScene',params:{deactivate:false}}]}]});
+ assert.equal((await g(s,'/fulfillment','POST',bad,linked.access)).body.payload.commands[0].errorCode,'functionNotSupported');
 });
