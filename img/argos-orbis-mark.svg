@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Argos Orbis: olhos vigilantes sobre o planeta">
+<defs>
+ <radialGradient id="planet" cx="30%" cy="28%" r="75%"><stop stop-color="#167da5"/><stop offset=".56" stop-color="#0a3858"/><stop offset="1" stop-color="#06152d"/></radialGradient>
+ <linearGradient id="gaze" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#8ff6fc"/><stop offset=".52" stop-color="#0fb5dd"/><stop offset="1" stop-color="#1764a8"/></linearGradient>
+</defs>
+<rect width="128" height="128" rx="24" fill="#020816"/>
+<!-- Olhar de Argos: contorno assimétrico, sem anéis de radar. -->
+<path d="M13 72Q36 44 64 44Q90 44 115 72Q91 103 64 102Q36 103 13 72Z" fill="#071b2f" stroke="url(#gaze)" stroke-width="3.7"/>
+<path d="M21 70Q39 51 53 50" stroke="#78eafa" stroke-width="2" opacity=".65" fill="none" stroke-linecap="round"/>
+<path d="M75 96Q96 91 107 75" stroke="#45d4ee" stroke-width="2" opacity=".7" fill="none" stroke-linecap="round"/>
+<!-- Orbis: globo de alto contraste, legível no favicon. -->
+<circle cx="64" cy="73" r="24" fill="url(#planet)" stroke="#39ddec" stroke-width="1.8"/>
+<g class="ao-rotation" fill="none" stroke="#7beaf4" opacity=".57" stroke-width="1.4">
+ <path d="M64 49C50 60 50 86 64 97M64 49C78 60 78 86 64 97"/>
+ <path d="M40.5 72Q64 83 87.5 72M44 59Q64 66 84 59M44 86Q64 81 84 86"/>
+</g>
+<path d="M50 60l7-4 5 3 2 8-8 6-4-5-6 3-2-5zM70 78l5-5 8 2-1 7-6 3-1 7-5-2-4-8z" fill="#25afcb" opacity=".55"/>
+<!-- Argos Panoptes: cinco olhos acendem em tempos diferentes. -->
+<g class="ao-eye ao-eye-a"><path d="M20 40q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="29" cy="40" rx="3.5" ry="4" fill="#ffd17b"/></g>
+<g class="ao-eye ao-eye-b"><path d="M44 24q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="53" cy="24" rx="3.5" ry="4" fill="#ffd17b"/></g>
+<g class="ao-eye ao-eye-c"><path d="M70 24q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="79" cy="24" rx="3.5" ry="4" fill="#ffd17b"/></g>
+<g class="ao-eye ao-eye-d"><path d="M91 40q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="100" cy="40" rx="3.5" ry="4" fill="#ffd17b"/></g>
+<g class="ao-eye ao-eye-e"><path d="M55 114q9-9 18 0-9 8-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="64" cy="114" rx="3.5" ry="3.5" fill="#ffd17b"/></g>
+<style>
+.ao-eye{transform-box:fill-box;transform-origin:center;animation:ao-blink 9s ease-in-out infinite}
+.ao-eye-a{animation-delay:-.7s}.ao-eye-b{animation-delay:-2.4s}.ao-eye-c{animation-delay:-4.1s}.ao-eye-d{animation-delay:-5.8s}.ao-eye-e{animation-delay:-7.6s}
+.ao-rotation{animation:ao-shift 14s ease-in-out infinite;transform-origin:64px 73px}
+@keyframes ao-blink{0%,7%,12%,100%{transform:scaleY(1);opacity:1}9%{transform:scaleY(.1);opacity:.45}}
+@keyframes ao-shift{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}
+@media (prefers-reduced-motion:reduce){.ao-eye,.ao-rotation{animation:none}}
+</style>
+</svg>
