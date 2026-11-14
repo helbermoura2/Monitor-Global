@@ -79,7 +79,7 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  assert.equal((await g(s,'/token','POST',param({grant_type:'authorization_code',code,redirect_uri:redirect}),'',now,true)).status,400,'auth code is consumed');
  const synced=await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access);
  assert.equal(synced.status,200);
- assert.equal((await g(s,'/link-status','GET',undefined,token)).body.stage,'synchronized');
+ assert.equal((await g(s,'/link-status','GET',undefined,token)).body.stage,'sync_requested');
  assert.equal(synced.body.payload.devices.length,1);
  const device=synced.body.payload.devices[0];
  assert.equal(device.type,'action.devices.types.SCENE');
