@@ -134,3 +134,37 @@ Referências:
 - https://developers.home.google.com/cloud-to-cloud/guides/switch
 - https://developers.home.google.com/cloud-to-cloud/traits/onoff
 - https://developers.home.google.com/cloud-to-cloud/intents/sync
+
+## Comandos curtos no Google Home (temperatura, Brent e sismos)
+
+O Worker publica **uma cena antiga e quatro interruptores virtuais de comando**.
+Os nomes são rótulos de dispositivos Google Home, não um sistema próprio de
+reconhecimento de voz. Os IDs anteriores da cena e do interruptor meteorológico
+continuam iguais, e o nome antigo `Boletim Monitor Global TV` é um apelido
+do novo nome curto de temperatura.
+
+| Dispositivo | Comando direto a testar no controle da TCL | Ação no app da TV |
+| --- | --- | --- |
+| Temperatura Global | "Ligar Temperatura Global" | `weather` → `WEATHER_NOW` (tarja meteorológica oficial) |
+| Brent Global | "Ligar Brent Global" | `brent` → `CHECK_BRENT` (cotação real na tarja oficial) |
+| Sismos Brasil Global | "Ligar Sismos Brasil Global" | `brazil` → `VOICE_BRAZIL` (último sismo brasileiro disponível) |
+| Sismos Mundo Global | "Ligar Sismos Mundo Global" | `recent-quake` → `REPLAY` (último M6+ mundial em até 72 h) |
+
+**Implantação:** publicar o Worker atualizado; solicitar ao Google a sincronização
+dos dispositivos ("Sincronizar meus dispositivos") ou atualizar o serviço no
+Google Home. Os interruptores novos só aparecem após a integração sincronizar
+novamente. O aplicativo da TV já suporta os quatro comandos por meio da fila
+usada também pela Alexa, portanto não é necessário substituir o APK para esse
+conjunto de ações. Não desvincule a conta nem gere um novo código de seis dígitos.
+
+**Frases naturais curtas:** Para dizer apenas "Mostrar temperatura",
+"Mostrar Brent", "Mostrar sismos no Brasil" e "Mostrar sismos mundiais",
+crie no app Google Home uma automação/rotina com iniciador por comando de voz
+e ação **Ligar** no respectivo interruptor acima. Disponibilidade de ações e
+iniciadores varia conforme a versão/conta Google. Primeiro confirme cada ação
+manualmente pelo app e depois teste pelo microfone da TCL.
+
+O desligamento dos interruptores não tem efeito; nunca desativa o monitoramento
+nem apaga alertas sísmicos. A fila, prioridades de avisos reais e proteção
+contra comandos consecutivos permanecem. O modo é privado e não representa
+certificação pública pelo Google.
