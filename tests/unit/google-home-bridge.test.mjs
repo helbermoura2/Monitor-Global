@@ -105,12 +105,13 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  const synced=await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access);
  assert.equal(synced.status,200);
  assert.equal((await g(s,'/link-status','GET',undefined,token)).body.stage,'sync_requested');
- assert.equal(synced.body.payload.devices.length,2);
+ assert.equal(synced.body.payload.devices.length,5);
  const [device,switchDevice]=synced.body.payload.devices;
  assert.equal(switchDevice.type,'action.devices.types.SWITCH');
  assert.deepEqual(switchDevice.traits,['action.devices.traits.OnOff']);
  assert.equal(switchDevice.attributes.commandOnlyOnOff,true);
- assert.equal(switchDevice.name.name,'Boletim Monitor Global TV');
+ assert.equal(switchDevice.name.name,'Temperatura Global');
+ assert.ok(switchDevice.name.nicknames.includes('Boletim Monitor Global TV'));
  assert.equal(switchDevice.id,device.id+'-trigger');
  assert.equal(device.type,'action.devices.types.SCENE');
  assert.equal(device.traits[0],'action.devices.traits.Scene');
@@ -217,4 +218,44 @@ test('google cannot send arbitrary actions, duplicate commands or requests while
  const offline=await g(s,'/fulfillment','POST',task,connected.access,now+125000);
  assert.equal(offline.body.payload.commands[0].status,'OFFLINE');
  assert.equal((await g(s,'/fulfillment','POST',task,'0'.repeat(64))).status,401);
+});
+
+test('Google Home switches route voice controls to existing temperature, Brent and separate Brazil/world quake actions',async()=>{
+ const s=store(),registration=await a(s,'/register');
+ const token=registration.body.deviceToken,{access}=await link(s,token);
+ const sync=await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access);
+ assert.equal(sync.status,200);
+ const scene=sync.body.payload.devices[0],switches=sync.body.payload.devices.slice(1);
+ assert.equal(scene.name.name,'Temperatura Monitor Global');
+ assert.deepEqual(switches.map(d=>d.name.name),
+  ['Temperatura Global','Brent Global','Sismos Brasil Global','Sismos Mundo Global']);
+ assert.equal(switches.length,4);
+ assert.equal(switches[0].id,scene.id+'-trigger','weather Home Graph ID must remain unchanged');
+ const expected=['weather','brent','brazil','recent-quake'];
+ let clock=now+1000;
+ for(let index=0;index<switches.length;index++){
+  const device=switches[index];
+  assert.deepEqual(device.traits,['action.devices.traits.OnOff']);
+  assert.equal(device.attributes.commandOnlyOnOff,true);
+  const query=await g(s,'/fulfillment','POST',command('action.devices.QUERY',{devices:[{id:device.id}]}),access,clock);
+  assert.equal(query.body.payload.devices[device.id].online,true);
+  assert.equal(query.body.payload.devices[device.id].on,false);
+  const activate=on=>command('action.devices.EXECUTE',{commands:[{devices:[{id:device.id}],
+   execution:[{command:'action.devices.commands.OnOff',params:{on}}]}]});
+  const off=await g(s,'/fulfillment','POST',activate(false),access,clock);
+  assert.equal(off.body.payload.commands[0].status,'SUCCESS','OFF is no-op');
+  assert.equal((await a(s,'/next','GET',{},token,clock+50)).body.command,null);
+  const on=await g(s,'/fulfillment','POST',activate(true),access,clock+100);
+  assert.equal(on.body.payload.commands[0].status,'PENDING');
+  const pending=(await a(s,'/next','GET',{},token,clock+150)).body.command;
+  assert.equal(pending.type,expected[index]);
+  assert.equal(pending.source,'google');
+  assert.equal((await a(s,'/ack','POST',{id:pending.id},token,clock+200)).status,200);
+  assert.equal((await a(s,'/next','GET',{},token,clock+250)).body.command,null);
+  clock+=5000;
+ }
+ const bad=await g(s,'/fulfillment','POST',command('action.devices.EXECUTE',{commands:[{
+  devices:[{id:'not-a-real-monitor-device'}],
+  execution:[{command:'action.devices.commands.OnOff',params:{on:true}}]}]}),access,clock);
+ assert.equal(bad.body.payload.commands[0].errorCode,'deviceNotFound');
 });
