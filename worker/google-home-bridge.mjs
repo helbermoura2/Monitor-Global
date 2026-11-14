@@ -59,7 +59,7 @@ async function fulfillment(request,storage,now){
     if(d?.id!==id)errorCode='deviceNotFound';
     else if(instruction?.command!=='action.devices.commands.ActivateScene'||instruction?.params?.deactivate!==false)errorCode='functionNotSupported';
     else if(!online){status='OFFLINE';}
-    else if(accepted||now-session.device.lastCommandAt<900)errorCode='deviceBusy';
+    else if(accepted||now-session.device.lastCommandAt<900||session.device.pending?.until>now)errorCode='deviceBusy';
     else{
      session.device={...session.device,lastCommandAt:now,pending:{id:crypto.randomUUID(),command:'weather',source:'google',until:now+90000}};
      await storage.put(A+'device:'+session.id,session.device);
@@ -86,7 +86,7 @@ export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.no
    if(request.method!=='POST')return json({error:'method_not_allowed'},405);
    const device=await deviceByBearer(storage,request,now);if(!device)return json({error:'device_not_registered'},401);
    if(!await throttle(storage,request,'pair',8,now))return json({error:'rate_limited'},429);
-   let pin='';for(let i=0;i<8;i++){const attempt=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,'0');if(!await storage.get(k('pin',attempt))){pin=attempt;break;}}
+   let pin='';for(let i=0;i<8;i++){const attempt=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,'0');const existing=await storage.get(k('pin',attempt));if(!existing||existing.until<=now){pin=attempt;break;}}
    if(!pin)return json({error:'temporarily_unavailable'},503);
    await storage.put(k('pin',pin),{deviceId:device.id,until:now+PAIR_MS});return json({code:pin,expiresAt:now+PAIR_MS});
   }
