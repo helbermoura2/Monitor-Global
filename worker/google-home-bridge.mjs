@@ -41,12 +41,13 @@ function pairingPage(info){
 async function accessRecord(storage,request,now){const value=bearer(request);if(!tokenOk(value))return null;const record=await storage.get(k('access',await digest(value)));if(!record||record.until<=now)return null;const link=await storage.get(k('link',record.deviceId)),device=await storage.get(A+'device:'+record.deviceId);return link&&link.refreshHash===record.refreshHash&&device&&device.expiresAt>now?{id:record.deviceId,device,refreshHash:record.refreshHash}:null;}
 async function issueAccess(storage,id,refreshHash,now){const value=random();await storage.put(k('access',await digest(value)),{deviceId:id,refreshHash,until:now+ACCESS_MS});return value;}
 const scene=id=>'monitor-global-'+id.slice(0,24)+'-weather';
+const weatherSwitch=id=>scene(id)+'-trigger';
 const result=(requestId,payload)=>json({requestId,payload});
 async function fulfillment(request,storage,now){
  const session=await accessRecord(storage,request,now);if(!session)return json({error:'unauthorized'},401);
  const body=await parseJson(request),requestId=body.requestId;
  if(typeof requestId!=='string'||requestId.length>128||!Array.isArray(body.inputs)||body.inputs.length!==1)return json({error:'invalid_request'},400);
- const input=body.inputs[0],intent=input?.intent,id=scene(session.id),online=now-session.device.lastSeen<=120000;
+ const input=body.inputs[0],intent=input?.intent,id=scene(session.id),switchId=weatherSwitch(session.id),online=now-session.device.lastSeen<=120000;
  if(intent==='action.devices.SYNC')await handshake(storage,session.id,'sync_requested',now);
  if(intent==='action.devices.SYNC')return result(requestId,{agentUserId:session.id,devices:[{
   id,type:'action.devices.types.SCENE',traits:['action.devices.traits.Scene'],
@@ -65,9 +66,27 @@ async function fulfillment(request,storage,now){
     'Previsão do tempo Monitor Global'
    ]},
   willReportState:false,roomHint:'Sala',deviceInfo:{manufacturer:'Monitor Global',model:'TV',swVersion:'google-private-v1'}
+ },{
+  // Add a distinct virtual switch without removing the already linked scene.
+  // The command-only OnOff trait exposes a selectable device to Google Home.
+  // ON is a momentary request to show the existing official TV weather banner.
+  // OFF is a no-op: it must never stop monitoring, dismiss seismic alerts or
+  // turn off the television.
+  id:switchId,type:'action.devices.types.SWITCH',traits:['action.devices.traits.OnOff'],
+  attributes:{commandOnlyOnOff:true},
+  name:{name:'Boletim Monitor Global TV',
+    defaultNames:['Boletim Monitor Global TV'],
+    nicknames:['Temperatura Monitor Global TV','Clima Monitor Global TV','Mostrar boletim Monitor Global']},
+  willReportState:false,roomHint:'Sala',
+  deviceInfo:{manufacturer:'Monitor Global',model:'Weather trigger',swVersion:'google-private-v2'}
  }]});
  if(intent==='action.devices.QUERY'){
-  const devices={};for(const d of input?.payload?.devices||[]){if(typeof d.id!=='string')continue;devices[d.id]=d.id===id?{online,status:online?'SUCCESS':'OFFLINE'}:{online:false,status:'ERROR',errorCode:'deviceNotFound'};}
+  const devices={};for(const d of input?.payload?.devices||[]){
+   if(typeof d.id!=='string')continue;
+   devices[d.id]=d.id===id?{online,status:online?'SUCCESS':'OFFLINE'}:
+    d.id===switchId?{online,on:false,status:online?'SUCCESS':'OFFLINE'}:
+    {online:false,status:'ERROR',errorCode:'deviceNotFound'};
+  }
   return result(requestId,{devices});
  }
  if(intent==='action.devices.EXECUTE'){
@@ -79,8 +98,14 @@ async function fulfillment(request,storage,now){
    const instruction=batch.execution[0];
    for(const d of batch.devices){
     let status='ERROR',errorCode;
-    if(d?.id!==id)errorCode='deviceNotFound';
-    else if(instruction?.command!=='action.devices.commands.ActivateScene'||instruction?.params?.deactivate!==false)errorCode='functionNotSupported';
+    const isScene=d?.id===id,isSwitch=d?.id===switchId;
+    if(!isScene&&!isSwitch)errorCode='deviceNotFound';
+    else if(isScene&&(instruction?.command!=='action.devices.commands.ActivateScene'||instruction?.params?.deactivate!==false))errorCode='functionNotSupported';
+    else if(isSwitch&&(instruction?.command!=='action.devices.commands.OnOff'||typeof instruction?.params?.on!=='boolean'))errorCode='functionNotSupported';
+    else if(isSwitch&&instruction.params.on===false){
+     // This is not a real electrical switch; OFF never dismisses a banner.
+     status='SUCCESS';
+    }
     else if(!online){status='OFFLINE';}
     else if(accepted||now-session.device.lastCommandAt<900||session.device.pending?.until>now)errorCode='deviceBusy';
     else{
@@ -88,7 +113,7 @@ async function fulfillment(request,storage,now){
      await storage.put(A+'device:'+session.id,session.device);
      accepted=true;status='PENDING';
     }
-    commands.push({ids:[d?.id||'unknown'],status,...(errorCode?{errorCode}:{states:{online}})});
+    commands.push({ids:[d?.id||'unknown'],status,...(errorCode?{errorCode}:{states:{online,...(isSwitch?{on:false}:{})}})});
    }
   }
   return result(requestId,{commands});

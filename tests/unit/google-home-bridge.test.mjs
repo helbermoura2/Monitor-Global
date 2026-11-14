@@ -105,8 +105,13 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  const synced=await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access);
  assert.equal(synced.status,200);
  assert.equal((await g(s,'/link-status','GET',undefined,token)).body.stage,'sync_requested');
- assert.equal(synced.body.payload.devices.length,1);
- const device=synced.body.payload.devices[0];
+ assert.equal(synced.body.payload.devices.length,2);
+ const [device,switchDevice]=synced.body.payload.devices;
+ assert.equal(switchDevice.type,'action.devices.types.SWITCH');
+ assert.deepEqual(switchDevice.traits,['action.devices.traits.OnOff']);
+ assert.equal(switchDevice.attributes.commandOnlyOnOff,true);
+ assert.equal(switchDevice.name.name,'Boletim Monitor Global TV');
+ assert.equal(switchDevice.id,device.id+'-trigger');
  assert.equal(device.type,'action.devices.types.SCENE');
  assert.equal(device.traits[0],'action.devices.traits.Scene');
  assert.equal(device.name.name,'Temperatura Monitor Global');
@@ -120,6 +125,11 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  assert.match(device.id,/^monitor-global-[a-f0-9]{24}-weather$/);
  const query=await g(s,'/fulfillment','POST',command('action.devices.QUERY',{devices:[{id:device.id}]}),access);
  assert.equal(query.body.payload.devices[device.id].online,true);
+ const switchQuery=await g(s,'/fulfillment','POST',command('action.devices.QUERY',{
+  devices:[{id:switchDevice.id},{id:device.id}]
+ }),access);
+ assert.equal(switchQuery.body.payload.devices[switchDevice.id].online,true);
+ assert.equal(switchQuery.body.payload.devices[switchDevice.id].on,false);
  const execute=command('action.devices.EXECUTE',{commands:[{devices:[{id:device.id}],execution:[{command:'action.devices.commands.ActivateScene',params:{deactivate:false}}]}]});
  const launched=await g(s,'/fulfillment','POST',execute,access,now+1000);
  assert.equal(launched.status,200);assert.equal(launched.body.payload.commands[0].status,'PENDING');
@@ -138,6 +148,34 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  assert.equal((await g(s,'/token','POST',param({grant_type:'refresh_token',refresh_token:refresh}),'',now+3600002,true)).status,400);
  const alexaAllowed=await a(s,'/command','POST',{command:'brent'},skill.body.skillToken,now+3600100);
  assert.equal(alexaAllowed.status,409,'separate Alexa credentials remain valid, TV heartbeat is stale');
+});
+test('Google Home virtual switch triggers the same weather banner and OFF is harmless',async()=>{
+ const s=store(),registration=await a(s,'/register');
+ const token=registration.body.deviceToken,{access}=await link(s,token);
+ const devices=(await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access)).body.payload.devices;
+ const sceneDevice=devices.find(d=>d.type==='action.devices.types.SCENE');
+ const switchDevice=devices.find(d=>d.type==='action.devices.types.SWITCH');
+ assert.ok(sceneDevice&&switchDevice);
+ const action=(on,deviceId=switchDevice.id,cmd='action.devices.commands.OnOff')=>command(
+  'action.devices.EXECUTE',{commands:[{devices:[{id:deviceId}],
+    execution:[{command:cmd,params:{on}}]}]});
+ // Turning off the virtual switch never hides the card or creates a command.
+ const off=await g(s,'/fulfillment','POST',action(false),access,now+1000);
+ assert.equal(off.body.payload.commands[0].status,'SUCCESS');
+ assert.equal((await a(s,'/next','GET',{},token,now+1001)).body.command,null);
+ // Unrelated commands are rejected and cannot request arbitrary controls.
+ const unauthorized=await g(s,'/fulfillment','POST',
+  action(true,switchDevice.id,'action.devices.commands.LockUnlock'),access,now+1100);
+ assert.equal(unauthorized.body.payload.commands[0].status,'ERROR');
+ const on=await g(s,'/fulfillment','POST',action(true),access,now+1200);
+ assert.equal(on.body.payload.commands[0].status,'PENDING');
+ const next=await a(s,'/next','GET',{},token,now+1250);
+ assert.equal(next.body.command.type,'weather');
+ assert.equal(next.body.command.source,'google');
+ assert.equal((await g(s,'/fulfillment','POST',action(true),access,now+1300)).body.payload.commands[0].errorCode,'deviceBusy');
+ assert.equal((await a(s,'/ack','POST',{id:next.body.command.id},token,now+1400)).status,200);
+ assert.equal((await a(s,'/next','GET',{},token,now+1500)).body.command,null);
+ assert.equal((await g(s,'/fulfillment','POST',action(true),access,now+125000)).body.payload.commands[0].status,'OFFLINE');
 });
 test('TV sees PIN issued and accepted before token exchange, not a false success',async()=>{
  const s=store(),registration=await a(s,'/register'),deviceToken=registration.body.deviceToken;
