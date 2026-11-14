@@ -46,7 +46,9 @@ test('fail closed when worker secrets are not deployed',async()=>{
  const response=await handleGoogleHomeBridge(request,s,{env:{},now});
  assert.equal(response.status,503);
  const health=await handleGoogleHomeBridge(new Request(googleBase+'/health'),s,{env:{},now});
- assert.equal((await health.json()).ready,false);
+ const status=await health.json();
+ assert.equal(status.ready,false);
+ assert.equal(status.oauthRedirectPolicy,'google-callbacks-v2');
  assert.equal(s.values.size,0);
 });
 test('OAuth consent form allows Google callback after POST without blocking Chrome navigation',async()=>{
