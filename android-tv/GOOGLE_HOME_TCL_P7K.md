@@ -44,3 +44,43 @@ A ordem das verificações é: teste Node.js -> build Android TV -> publicação
 - https://developers.home.google.com/cloud-to-cloud/traits/scene
 - https://developers.home.google.com/cloud-to-cloud/test
 - https://support.tcl.com/set-up-and-use-the-google-assistant-on-your-tcl-google-tv
+
+
+## Frases alternativas para o Google Home (teste privado)
+
+A cena virtual mantém o identificador original `Temperatura Monitor Global`, mas
+a resposta `action.devices.SYNC` oferece também: `Tempo Monitor Global`,
+`Clima Monitor Global`, `Meteorologia Monitor Global`,
+`Boletim do tempo Monitor Global`, `Boletim meteorológico Monitor Global`,
+`Previsão do tempo Monitor Global` e `Temperatura da Liberdade Monitor Global`.
+
+Esses são **nomes alternativos de uma cena**, não comandos de linguagem natural
+registrados no Assistente. Se o Google não reconhecer um comando falado, abra o
+Google Home no celular, em **Automações → Rotinas pessoais → Nova** (a interface
+pode usar nomes diferentes dependendo da versão), e configure uma ativação
+**Quando eu falar com o Google Assistente** com frases como:
+
+- Mostrar a temperatura do Monitor Global
+- Como está o tempo no Monitor Global
+- Boletim do tempo Monitor Global
+- Temperatura da Liberdade no Monitor Global
+
+Como **ação**, escolha ativar a cena/dispositivo `Temperatura Monitor Global`
+se disponível no editor. A ação tem que ser a cena virtual, **não a previsão
+do tempo nativa do Google**. Caso o editor só permita ações personalizadas,
+tente a ação falada `Ativar Temperatura Monitor Global`. Nem toda cena é
+disponibilizada pelo Google como ação em todos os editores: confirme se a
+ação funciona ao iniciar a rotina manualmente antes do teste de voz.
+
+Após publicar o novo Worker com os aliases, peça ao Google Assistente
+`Sincronizar meus dispositivos` ou atualize os serviços vinculados pelo
+Google Home para solicitar novo SYNC. Não precisa gerar PIN novo nem trocar
+o APK só por causa das variações. A sincronização pode depender da
+configuração/idioma da conta; não é garantido que o assistente aceite cada
+variação diretamente. Sem `action.devices.EXECUTE` recebido na ponte,
+nenhuma frase chega à TV, independentemente do APK.
+
+Documentação:
+- https://developers.home.google.com/cloud-to-cloud/intents/sync
+- https://developers.home.google.com/cloud-to-cloud/traits/scene
+- https://support.google.com/assistant/answer/7672035?hl=pt-BR
