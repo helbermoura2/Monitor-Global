@@ -109,6 +109,15 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  const device=synced.body.payload.devices[0];
  assert.equal(device.type,'action.devices.types.SCENE');
  assert.equal(device.traits[0],'action.devices.traits.Scene');
+ assert.equal(device.name.name,'Temperatura Monitor Global');
+ for(const alt of [
+  'Boletim do tempo Monitor Global','Tempo Monitor Global',
+  'Clima Monitor Global','Meteorologia Monitor Global',
+  'Temperatura da Liberdade Monitor Global',
+  'Boletim meteorológico Monitor Global','Previsão do tempo Monitor Global'
+ ])assert.ok(device.name.nicknames.includes(alt),alt);
+ assert.equal(new Set(device.name.nicknames).size,device.name.nicknames.length);
+ assert.match(device.id,/^monitor-global-[a-f0-9]{24}-weather$/);
  const query=await g(s,'/fulfillment','POST',command('action.devices.QUERY',{devices:[{id:device.id}]}),access);
  assert.equal(query.body.payload.devices[device.id].online,true);
  const execute=command('action.devices.EXECUTE',{commands:[{devices:[{id:device.id}],execution:[{command:'action.devices.commands.ActivateScene',params:{deactivate:false}}]}]});
