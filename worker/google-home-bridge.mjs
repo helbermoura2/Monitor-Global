@@ -40,7 +40,7 @@ async function fulfillment(request,storage,now){
  const body=await parseJson(request),requestId=body.requestId;
  if(typeof requestId!=='string'||requestId.length>128||!Array.isArray(body.inputs)||body.inputs.length!==1)return json({error:'invalid_request'},400);
  const input=body.inputs[0],intent=input?.intent,id=scene(session.id),online=now-session.device.lastSeen<=120000;
- if(intent==='action.devices.SYNC')await handshake(storage,session.id,'synchronized',now);
+ if(intent==='action.devices.SYNC')await handshake(storage,session.id,'sync_requested',now);
  if(intent==='action.devices.SYNC')return result(requestId,{agentUserId:session.id,devices:[{
   id,type:'action.devices.types.SCENE',traits:['action.devices.traits.Scene'],
   attributes:{sceneReversible:false},name:{name:'Temperatura Monitor Global',defaultNames:['Temperatura Monitor Global'],nicknames:['Boletim do tempo Monitor Global','Tempo Monitor Global']},
