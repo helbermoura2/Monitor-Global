@@ -94,7 +94,7 @@ export async function handleAlexaRelay(request,storage,{now=Date.now()}={}){
    const {id,record}=authorized;
    if(now-record.lastSeen>=30000)await storage.put(key('device',id),{...record,lastSeen:now});
    const pending=record.pending?.until>now?record.pending:null;
-   return json({command:pending?{id:pending.id,type:pending.command}:null,linked:Boolean(record.skillHash)});
+   return json({command:pending?{id:pending.id,type:pending.command,source:pending.source==='google'?'google':'alexa'}:null,linked:Boolean(record.skillHash)});
   }
   if(path.endsWith('/ack')){
    const authorized=await deviceRecord(storage,request,now);
