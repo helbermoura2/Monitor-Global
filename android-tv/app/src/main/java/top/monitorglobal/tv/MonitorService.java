@@ -147,7 +147,7 @@ public final class MonitorService extends Service {
    // bypass tsunami/earthquake priority. Record id before ACK for idempotency.
    startService(new Intent(this,MonitorService.class).setAction(action).putExtra("alexaRequest",true));
    Prefs.get(this).edit().putString(AlexaLinkClient.LAST_COMMAND_PREF,pending.id)
-    .putString("alexaStatus","Comando "+pending.type+" recebido da Alexa").apply();
+    .putString("alexaStatus","Comando "+pending.type+" recebido de "+("google".equals(pending.source)?"Google Home":"Alexa")).apply();
    AlexaLinkClient.acknowledge(this,pending.id);
   }catch(Exception e){
    // Internet or pairing may be unavailable; keep existing real-time alerts alive.
