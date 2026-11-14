@@ -58,7 +58,7 @@ public class TvBroadcastInfoViewTest {
    // into a tiny line, which would fail these pixel-region comparisons.
    int[][] valueColumns={{124,235,44,69},{520,616,49,71},{653,753,49,71},{786,865,49,71}};
    for(int i=0;i<valueColumns.length;i++){
-    int[] rect=valueColumns[i],changedPixels=0;
+    int[] rect=valueColumns[i];int changedPixels=0;
     for(int y=top+rect[2];y<top+rect[3];y++)
      for(int x=rect[0];x<rect[1];x++)
       if(a.getPixel(x,y)!=b.getPixel(x,y))changedPixels++;
