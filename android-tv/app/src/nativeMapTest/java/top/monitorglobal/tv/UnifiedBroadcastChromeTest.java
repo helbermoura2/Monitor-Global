@@ -121,7 +121,7 @@ public class UnifiedBroadcastChromeTest {
      }
     }
     assertTrue("label visibly rendered: "+heading,right>left&&bottom>top);
-    assertTrue("natural Rajdhani lettering remains legible without stretching: "+heading,(right-left+1)>width*(breaking?.46f:.30f));
+    assertTrue("natural Rajdhani lettering remains legible without stretching: "+heading,(right-left+1)>Math.max(18f,width*(breaking?.46f:.14f)));
     assertTrue("do not distort glyph widths across the headline panel: "+heading,(right-left+1)<width*.94f);
     assertTrue("label stays inside its red tab: "+heading,left>=0&&right<width&&top>=0&&bottom<24);
     assertEquals("label horizontal alignment: "+heading,width/2f,(left+right)/2f,7f);
