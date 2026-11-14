@@ -51,7 +51,15 @@ const commandSwitches=id=>[
  {id:scene(id)+'-brazil',command:'brazil',name:'Sismos Brasil Global',
   nicknames:['Sismos no Brasil Monitor Global','Terremotos Brasil Global','Último Sismo Brasil Global']},
  {id:scene(id)+'-world',command:'recent-quake',name:'Sismos Mundo Global',
-  nicknames:['Sismos Mundiais Monitor Global','Último Sismo Mundial Global','Terremotos Mundo Global']}
+  nicknames:['Sismos Mundiais Monitor Global','Último Sismo Mundial Global','Terremotos Mundo Global','Último Sismo Global']},
+ {id:scene(id)+'-yesterday',command:'last-summary',name:'Resumo Ontem Global',
+  nicknames:['Resumo do Dia Anterior Global','Resumo de Ontem Monitor Global','Sismos de Ontem Global']},
+ {id:scene(id)+'-today',command:'today',name:'Maiores Hoje Global',
+  nicknames:['Maiores Sismos Hoje Global','Sismos de Hoje Monitor Global','Ranking de Sismos Hoje']},
+ {id:scene(id)+'-regional',command:'regional',name:'Sismo Regional Global',
+  nicknames:['Último Sismo Regional Global','Replay Regional Monitor Global','Alerta Regional Global']},
+ {id:scene(id)+'-rain',command:'rain',name:'Chuva Global',
+  nicknames:['Aviso de Chuva Monitor Global','Alerta de Chuva Global','Chuva na Liberdade Global']}
 ];
 const asSwitch=spec=>({
  id:spec.id,type:'action.devices.types.SWITCH',traits:['action.devices.traits.OnOff'],
