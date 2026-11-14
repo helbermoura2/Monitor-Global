@@ -1,18 +1,25 @@
-/* ARGOS ORBIS — marca do cabeçalho.
-   O SVG responsivo representa os cinco olhos de Argos sobre Orbis.
-   A animação fica no próprio SVG para reutilização como favicon e ícone PWA.
-   Os breakpoints originais do cabeçalho permanecem inalterados. */
+/* ARGOS ORBIS — identidade aprovada a partir do GIF fornecido.
+ * Símbolo animado preserva os nove quadros da referência, otimizado em WebP.
+ * Sem desenho alternativo do planeta/olhos: versão estática deriva do frame original.
+ * O cabeçalho permanece responsivo; respeita preferências de redução de movimento.
+ */
 #top-strip .ts-title.mg-title {
   align-items: center;
-  gap: .34em;
-  max-width: 100%;
+  gap: .32em;
   min-width: 0;
+  max-width: 100%;
+}
+#top-strip .ts-title.mg-title .mg-logo-frame {
+  display: block;
+  flex: 0 0 auto;
+  width: clamp(24px, 2em, 44px);
+  height: clamp(24px, 2em, 44px);
+  overflow: hidden;
 }
 #top-strip .ts-title.mg-title .mg-logo-icon {
   display: block;
-  width: 1.7em;
-  height: 1.7em;
-  flex: 0 0 auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 #top-strip .ts-title.mg-title .mg-logo-word {
@@ -25,7 +32,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #eaf5fc;
 }
 #top-strip .ts-title.mg-title .ao-word-orbis {
-  color: #ffbf64;
+  color: #ffbe69;
 }
