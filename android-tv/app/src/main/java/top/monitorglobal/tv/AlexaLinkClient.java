@@ -107,8 +107,8 @@ final class AlexaLinkClient {
      String stage=state.optString("stage","no_attempt");
      boolean linked=state.optBoolean("linked",false);
      switch(stage){
-      case "synchronized":
-       message="Google Home conectado e cena Temperatura Monitor Global sincronizada. Pode testar o comando de voz.";break;
+      case "sync_requested":
+       message="O Google requisitou sincronizar a cena Temperatura Monitor Global. A ponte respondeu, mas ainda é preciso confirmar no aplicativo Google Home que o vínculo foi aceito.";break;
       case "token_issued":
        message="Autenticação Google Home concluída no Cloudflare, mas a sincronização da cena ainda não foi confirmada.";break;
       case "authorization_accepted":
