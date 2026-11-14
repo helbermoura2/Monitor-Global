@@ -1,32 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Argos Orbis: olhos vigilantes sobre o planeta">
-<defs>
- <radialGradient id="planet" cx="30%" cy="28%" r="75%"><stop stop-color="#167da5"/><stop offset=".56" stop-color="#0a3858"/><stop offset="1" stop-color="#06152d"/></radialGradient>
- <linearGradient id="gaze" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#8ff6fc"/><stop offset=".52" stop-color="#0fb5dd"/><stop offset="1" stop-color="#1764a8"/></linearGradient>
-</defs>
-<rect width="128" height="128" rx="24" fill="#020816"/>
-<!-- Olhar de Argos: contorno assimétrico, sem anéis de radar. -->
-<path d="M13 72Q36 44 64 44Q90 44 115 72Q91 103 64 102Q36 103 13 72Z" fill="#071b2f" stroke="url(#gaze)" stroke-width="3.7"/>
-<path d="M21 70Q39 51 53 50" stroke="#78eafa" stroke-width="2" opacity=".65" fill="none" stroke-linecap="round"/>
-<path d="M75 96Q96 91 107 75" stroke="#45d4ee" stroke-width="2" opacity=".7" fill="none" stroke-linecap="round"/>
-<!-- Orbis: globo de alto contraste, legível no favicon. -->
-<circle cx="64" cy="73" r="24" fill="url(#planet)" stroke="#39ddec" stroke-width="1.8"/>
-<g class="ao-rotation" fill="none" stroke="#7beaf4" opacity=".57" stroke-width="1.4">
- <path d="M64 49C50 60 50 86 64 97M64 49C78 60 78 86 64 97"/>
- <path d="M40.5 72Q64 83 87.5 72M44 59Q64 66 84 59M44 86Q64 81 84 86"/>
-</g>
-<path d="M50 60l7-4 5 3 2 8-8 6-4-5-6 3-2-5zM70 78l5-5 8 2-1 7-6 3-1 7-5-2-4-8z" fill="#25afcb" opacity=".55"/>
-<!-- Argos Panoptes: cinco olhos acendem em tempos diferentes. -->
-<g class="ao-eye ao-eye-a"><path d="M20 40q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="29" cy="40" rx="3.5" ry="4" fill="#ffd17b"/></g>
-<g class="ao-eye ao-eye-b"><path d="M44 24q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="53" cy="24" rx="3.5" ry="4" fill="#ffd17b"/></g>
-<g class="ao-eye ao-eye-c"><path d="M70 24q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="79" cy="24" rx="3.5" ry="4" fill="#ffd17b"/></g>
-<g class="ao-eye ao-eye-d"><path d="M91 40q9-10 18 0-9 10-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="100" cy="40" rx="3.5" ry="4" fill="#ffd17b"/></g>
-<g class="ao-eye ao-eye-e"><path d="M55 114q9-9 18 0-9 8-18 0z" fill="#06253d" stroke="#7aeffc" stroke-width="2"/><ellipse cx="64" cy="114" rx="3.5" ry="3.5" fill="#ffd17b"/></g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="ao-title ao-desc"><title id="ao-title">Argos Orbis</title><desc id="ao-desc">Quatro olhos vigilantes em volta da Terra, símbolo do monitoramento planetário.</desc>
+<defs><radialGradient id="ao-planet" cx="30%" cy="24%" r="85%"><stop stop-color="#12658a"/><stop offset=".55" stop-color="#052e52"/><stop offset="1" stop-color="#041121"/></radialGradient><clipPath id="ao-clip"><circle cx="80" cy="80" r="38.5"/></clipPath></defs>
+<rect width="160" height="160" rx="32" fill="#020816"/><rect x="1.5" y="1.5" width="157" height="157" rx="31" fill="none" stroke="#132f44" stroke-width="1.5"/>
+<path d="M31 49A57 57 0 0 1 129 49" fill="none" stroke="#0d8dbf" stroke-width="2.5" opacity=".8"/>
+<path d="M31 111A57 57 0 0 0 129 111" fill="none" stroke="#ffb85d" stroke-width="2.5" opacity=".8"/>
+<path d="M47 35A54 54 0 0 1 65 27M96 132A55 55 0 0 0 115 120" fill="none" stroke="#68ebee" stroke-width="2.7" opacity=".85" stroke-linecap="round"/>
+<g class="ao-globe"><circle cx="80" cy="80" r="39.5" fill="url(#ao-planet)" stroke="#49d7f3" stroke-width="2.4"/><circle cx="80" cy="80" r="36" fill="none" stroke="#56caf4" stroke-width=".8" opacity=".26"/>
+<g clip-path="url(#ao-clip)" fill="none" stroke="#3fcdeb" stroke-width="1" opacity=".44"><ellipse cx="80" cy="80" rx="17" ry="39.5"/><ellipse cx="80" cy="80" rx="30" ry="39.5"/><path d="M40.5 80H119.5M45 65Q80 75 115 65M45 95Q80 85 115 95"/></g>
+<g clip-path="url(#ao-clip)" fill="#21a6bd" opacity=".86"><path d="M49 60L54 52 64 51 70 56 74 56 75 65 69 70 66 76 60 75 58 83 55 82 53 73 48 69Z"/><path d="M64 84L71 80 78 84 82 93 79 101 76 107 70 114 66 106 67 96Z"/><path d="M97 52L108 55 119 67 111 75 106 74 103 81 98 79 95 72 87 69 86 62Z"/></g><path d="M48 55Q62 43 86 47" fill="none" stroke="#a9f7ff" stroke-width="2" opacity=".5" stroke-linecap="round"/></g>
+<g class="ao-orbit-light"><circle cx="80" cy="22" r="3" fill="#ffcb7e"/><circle cx="80" cy="22" r="6" fill="#f9b548" opacity=".15"/></g>
+<g class="ao-eye ao-eye-n" transform="translate(80 22) rotate(0)"><path d="M-16 0Q0-12 16 0Q0 12-16 0Z" fill="#031a2e" stroke="#4ce6f4" stroke-width="2.4"/><path d="M-13-1Q0-10 13-1" fill="none" stroke="#ffc36b" stroke-width="2.6" stroke-linecap="round"/><circle r="5.5" fill="#117a9e" stroke="#8beafb" stroke-width="1.2"/><circle class="ao-pupil" r="2.7" fill="#e7feff"/></g><g class="ao-eye ao-eye-r" transform="translate(138 80) rotate(90)"><path d="M-16 0Q0-12 16 0Q0 12-16 0Z" fill="#031a2e" stroke="#4ce6f4" stroke-width="2.4"/><path d="M-13-1Q0-10 13-1" fill="none" stroke="#ffc36b" stroke-width="2.6" stroke-linecap="round"/><circle r="5.5" fill="#117a9e" stroke="#8beafb" stroke-width="1.2"/><circle class="ao-pupil" r="2.7" fill="#e7feff"/></g><g class="ao-eye ao-eye-s" transform="translate(80 138) rotate(0)"><path d="M-16 0Q0-12 16 0Q0 12-16 0Z" fill="#031a2e" stroke="#4ce6f4" stroke-width="2.4"/><path d="M-13-1Q0-10 13-1" fill="none" stroke="#ffc36b" stroke-width="2.6" stroke-linecap="round"/><circle r="5.5" fill="#117a9e" stroke="#8beafb" stroke-width="1.2"/><circle class="ao-pupil" r="2.7" fill="#e7feff"/></g><g class="ao-eye ao-eye-l" transform="translate(22 80) rotate(-90)"><path d="M-16 0Q0-12 16 0Q0 12-16 0Z" fill="#031a2e" stroke="#4ce6f4" stroke-width="2.4"/><path d="M-13-1Q0-10 13-1" fill="none" stroke="#ffc36b" stroke-width="2.6" stroke-linecap="round"/><circle r="5.5" fill="#117a9e" stroke="#8beafb" stroke-width="1.2"/><circle class="ao-pupil" r="2.7" fill="#e7feff"/></g>
 <style>
-.ao-eye{transform-box:fill-box;transform-origin:center;animation:ao-blink 9s ease-in-out infinite}
-.ao-eye-a{animation-delay:-.7s}.ao-eye-b{animation-delay:-2.4s}.ao-eye-c{animation-delay:-4.1s}.ao-eye-d{animation-delay:-5.8s}.ao-eye-e{animation-delay:-7.6s}
-.ao-rotation{animation:ao-shift 14s ease-in-out infinite;transform-origin:64px 73px}
-@keyframes ao-blink{0%,7%,12%,100%{transform:scaleY(1);opacity:1}9%{transform:scaleY(.1);opacity:.45}}
-@keyframes ao-shift{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}
-@media (prefers-reduced-motion:reduce){.ao-eye,.ao-rotation{animation:none}}
-</style>
-</svg>
+.ao-eye .ao-pupil{transform-box:fill-box;transform-origin:center;animation:ao-eye-activity 6.4s ease-in-out infinite}
+.ao-eye-n .ao-pupil{animation-delay:0s}.ao-eye-r .ao-pupil{animation-delay:-1.6s}.ao-eye-s .ao-pupil{animation-delay:-3.2s}.ao-eye-l .ao-pupil{animation-delay:-4.8s}
+.ao-orbit-light{transform-origin:80px 80px;animation:ao-orbit-motion 9s linear infinite}
+.ao-globe{animation:ao-breathe 7s ease-in-out infinite}
+@keyframes ao-eye-activity{0%,72%,100%{opacity:.4;transform:scale(.65)}10%,32%{opacity:1;transform:scale(1.2)}}
+@keyframes ao-orbit-motion{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes ao-breathe{0%,100%{opacity:1}50%{opacity:.85}}
+@media(prefers-reduced-motion:reduce){.ao-eye .ao-pupil,.ao-orbit-light,.ao-globe{animation:none!important}}
+</style></svg>
