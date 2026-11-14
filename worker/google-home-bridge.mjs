@@ -41,21 +41,39 @@ function pairingPage(info){
 async function accessRecord(storage,request,now){const value=bearer(request);if(!tokenOk(value))return null;const record=await storage.get(k('access',await digest(value)));if(!record||record.until<=now)return null;const link=await storage.get(k('link',record.deviceId)),device=await storage.get(A+'device:'+record.deviceId);return link&&link.refreshHash===record.refreshHash&&device&&device.expiresAt>now?{id:record.deviceId,device,refreshHash:record.refreshHash}:null;}
 async function issueAccess(storage,id,refreshHash,now){const value=random();await storage.put(k('access',await digest(value)),{deviceId:id,refreshHash,until:now+ACCESS_MS});return value;}
 const scene=id=>'monitor-global-'+id.slice(0,24)+'-weather';
+// Existing weather switch ID stays stable, preserving linked Google Home devices.
 const weatherSwitch=id=>scene(id)+'-trigger';
+const commandSwitches=id=>[
+ {id:weatherSwitch(id),command:'weather',name:'Temperatura Global',
+  nicknames:['Boletim Monitor Global TV','Temperatura Monitor Global TV','Clima Monitor Global TV','Boletim da Temperatura Global']},
+ {id:scene(id)+'-brent',command:'brent',name:'Brent Global',
+  nicknames:['Brent Monitor Global TV','Cotação Brent Monitor Global','Petróleo Brent Global']},
+ {id:scene(id)+'-brazil',command:'brazil',name:'Sismos Brasil Global',
+  nicknames:['Sismos no Brasil Monitor Global','Terremotos Brasil Global','Último Sismo Brasil Global']},
+ {id:scene(id)+'-world',command:'recent-quake',name:'Sismos Mundo Global',
+  nicknames:['Sismos Mundiais Monitor Global','Último Sismo Mundial Global','Terremotos Mundo Global']}
+];
+const asSwitch=spec=>({
+ id:spec.id,type:'action.devices.types.SWITCH',traits:['action.devices.traits.OnOff'],
+ attributes:{commandOnlyOnOff:true},
+ name:{name:spec.name,defaultNames:[spec.name],nicknames:spec.nicknames},
+ willReportState:false,roomHint:'Sala',
+ deviceInfo:{manufacturer:'Monitor Global',model:'TV command '+spec.command,swVersion:'google-private-v3'}
+});
 const result=(requestId,payload)=>json({requestId,payload});
 async function fulfillment(request,storage,now){
  const session=await accessRecord(storage,request,now);if(!session)return json({error:'unauthorized'},401);
  const body=await parseJson(request),requestId=body.requestId;
  if(typeof requestId!=='string'||requestId.length>128||!Array.isArray(body.inputs)||body.inputs.length!==1)return json({error:'invalid_request'},400);
- const input=body.inputs[0],intent=input?.intent,id=scene(session.id),switchId=weatherSwitch(session.id),online=now-session.device.lastSeen<=120000;
+ const input=body.inputs[0],intent=input?.intent,id=scene(session.id),switches=commandSwitches(session.id),
+  switchesById=new Map(switches.map(spec=>[spec.id,spec])),online=now-session.device.lastSeen<=120000;
  if(intent==='action.devices.SYNC')await handshake(storage,session.id,'sync_requested',now);
  if(intent==='action.devices.SYNC')return result(requestId,{agentUserId:session.id,devices:[{
+  // Keep the original scene and its stable ID for existing Google Home users.
   id,type:'action.devices.types.SCENE',traits:['action.devices.traits.Scene'],
   attributes:{sceneReversible:false},name:{
    name:'Temperatura Monitor Global',
    defaultNames:['Temperatura Monitor Global'],
-   // These are scene labels, not arbitrary spoken questions. The Google Home
-   // personal routine can map complete custom phrases to ActivateScene.
    nicknames:[
     'Boletim do tempo Monitor Global',
     'Tempo Monitor Global',
@@ -66,25 +84,12 @@ async function fulfillment(request,storage,now){
     'Previsão do tempo Monitor Global'
    ]},
   willReportState:false,roomHint:'Sala',deviceInfo:{manufacturer:'Monitor Global',model:'TV',swVersion:'google-private-v1'}
- },{
-  // Add a distinct virtual switch without removing the already linked scene.
-  // The command-only OnOff trait exposes a selectable device to Google Home.
-  // ON is a momentary request to show the existing official TV weather banner.
-  // OFF is a no-op: it must never stop monitoring, dismiss seismic alerts or
-  // turn off the television.
-  id:switchId,type:'action.devices.types.SWITCH',traits:['action.devices.traits.OnOff'],
-  attributes:{commandOnlyOnOff:true},
-  name:{name:'Boletim Monitor Global TV',
-    defaultNames:['Boletim Monitor Global TV'],
-    nicknames:['Temperatura Monitor Global TV','Clima Monitor Global TV','Mostrar boletim Monitor Global']},
-  willReportState:false,roomHint:'Sala',
-  deviceInfo:{manufacturer:'Monitor Global',model:'Weather trigger',swVersion:'google-private-v2'}
- }]});
+ },...switches.map(asSwitch)]});
  if(intent==='action.devices.QUERY'){
   const devices={};for(const d of input?.payload?.devices||[]){
    if(typeof d.id!=='string')continue;
    devices[d.id]=d.id===id?{online,status:online?'SUCCESS':'OFFLINE'}:
-    d.id===switchId?{online,on:false,status:online?'SUCCESS':'OFFLINE'}:
+    switchesById.has(d.id)?{online,on:false,status:online?'SUCCESS':'OFFLINE'}:
     {online:false,status:'ERROR',errorCode:'deviceNotFound'};
   }
   return result(requestId,{devices});
@@ -98,7 +103,7 @@ async function fulfillment(request,storage,now){
    const instruction=batch.execution[0];
    for(const d of batch.devices){
     let status='ERROR',errorCode;
-    const isScene=d?.id===id,isSwitch=d?.id===switchId;
+    const isScene=d?.id===id,isSwitch=switchesById.has(d?.id);
     if(!isScene&&!isSwitch)errorCode='deviceNotFound';
     else if(isScene&&(instruction?.command!=='action.devices.commands.ActivateScene'||instruction?.params?.deactivate!==false))errorCode='functionNotSupported';
     else if(isSwitch&&(instruction?.command!=='action.devices.commands.OnOff'||typeof instruction?.params?.on!=='boolean'))errorCode='functionNotSupported';
@@ -109,7 +114,7 @@ async function fulfillment(request,storage,now){
     else if(!online){status='OFFLINE';}
     else if(accepted||now-session.device.lastCommandAt<900||session.device.pending?.until>now)errorCode='deviceBusy';
     else{
-     session.device={...session.device,lastCommandAt:now,pending:{id:crypto.randomUUID(),command:'weather',source:'google',until:now+90000}};
+     session.device={...session.device,lastCommandAt:now,pending:{id:crypto.randomUUID(),command:isSwitch?switchesById.get(d.id).command:'weather',source:'google',until:now+90000}};
      await storage.put(A+'device:'+session.id,session.device);
      accepted=true;status='PENDING';
     }
