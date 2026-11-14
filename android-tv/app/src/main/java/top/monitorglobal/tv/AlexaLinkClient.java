@@ -146,7 +146,7 @@ final class AlexaLinkClient {
   if(pending==null)return null;
   String id=pending.optString("id"),type=pending.optString("type");
   String source="google".equals(pending.optString("source"))?"google":"alexa";
-  return id.matches("[0-9a-f-]{36}")&&(type.equals("brent")||type.equals("weather")||type.equals("brazil")||type.equals("recent-quake")||type.equals("last-summary")||type.equals("today"))?new Command(id,type,source):null;
+  return id.matches("[0-9a-f-]{36}")&&(type.equals("brent")||type.equals("weather")||type.equals("brazil")||type.equals("recent-quake")||type.equals("last-summary")||type.equals("today")||type.equals("regional")||type.equals("rain"))?new Command(id,type,source):null;
  }
  static void acknowledge(Context context,String id) throws Exception {
   if(!id.matches("[0-9a-f-]{36}")||token(context).isEmpty())return;
