@@ -55,6 +55,11 @@ public final class MainActivity extends Activity {
      });
     }).show();
   });
+  button("Verificar se o Google Home está vinculado",v->{
+   AlexaLinkClient.googleLinkStatus(this,message->new AlertDialog.Builder(this)
+    .setTitle("Estado do Google Home · Monitor Global")
+    .setMessage(message).setPositiveButton("Entendi",null).show());
+  });
   label("Teste privado: no Google Home, vincule [test] Monitor Global e experimente “Ativar Temperatura Monitor Global”. Se funcionar, uma rotina poderá reconhecer “Mostrar temperatura do Monitor Global”. Nenhum app precisa estar aberto: apenas o monitoramento em segundo plano deve permanecer ativo.",15,false);
   section("RECONHECIMENTO LOCAL · OPCIONAL");
   button("🎙 Testar reconhecimento local do Android (pode abrir pesquisa)",v->startVoiceInput());

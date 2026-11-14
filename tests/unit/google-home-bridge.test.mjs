@@ -70,9 +70,16 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  const skill=await a(s,'/link','POST',{code:registered.body.code});
  assert.equal(skill.status,200);
  const {code,access,refresh}=await link(s,token);
+ const oauthStatus=await g(s,'/link-status','GET',undefined,token);
+ assert.equal(oauthStatus.status,200);
+ assert.equal(oauthStatus.body.linked,true);
+ assert.equal(oauthStatus.body.stage,'token_issued');
+ assert.equal(Object.keys(oauthStatus.body).some(key=>/code|secret|token|pin/i.test(key)),false);
+ assert.equal((await g(s,'/link-status','GET',undefined,'0'.repeat(64))).status,401);
  assert.equal((await g(s,'/token','POST',param({grant_type:'authorization_code',code,redirect_uri:redirect}),'',now,true)).status,400,'auth code is consumed');
  const synced=await g(s,'/fulfillment','POST',command('action.devices.SYNC'),access);
  assert.equal(synced.status,200);
+ assert.equal((await g(s,'/link-status','GET',undefined,token)).body.stage,'sync_requested');
  assert.equal(synced.body.payload.devices.length,1);
  const device=synced.body.payload.devices[0];
  assert.equal(device.type,'action.devices.types.SCENE');
@@ -97,6 +104,30 @@ test('Google weather scene uses existing Alexa queue without breaking the Alexa 
  assert.equal((await g(s,'/token','POST',param({grant_type:'refresh_token',refresh_token:refresh}),'',now+3600002,true)).status,400);
  const alexaAllowed=await a(s,'/command','POST',{command:'brent'},skill.body.skillToken,now+3600100);
  assert.equal(alexaAllowed.status,409,'separate Alexa credentials remain valid, TV heartbeat is stale');
+});
+test('TV sees PIN issued and accepted before token exchange, not a false success',async()=>{
+ const s=store(),registration=await a(s,'/register'),deviceToken=registration.body.deviceToken;
+ assert.deepEqual((await g(s,'/link-status','GET',undefined,deviceToken)).body,
+  {linked:false,stage:'no_attempt',lastChangeAt:null});
+ const pairing=await g(s,'/pair','POST',{},deviceToken);
+ assert.equal(pairing.status,200);
+ assert.equal((await g(s,'/link-status','GET',undefined,deviceToken)).body.stage,'pin_issued');
+ const params={client_id:env.GOOGLE_HOME_CLIENT_ID,redirect_uri:redirect,state:'state-value',response_type:'code',pin:pairing.body.code};
+ const authorized=await g(s,'/authorize','POST',params,'',now,true);
+ assert.equal(authorized.status,302);
+ const after=await g(s,'/link-status','GET',undefined,deviceToken);
+ assert.equal(after.body.linked,false);
+ assert.equal(after.body.stage,'authorization_accepted');
+ const callback=new URL(authorized.headers.get('location'));
+ const clientMismatch=await g(s,'/token','POST',param({
+   client_secret:'wrong-test-secret',grant_type:'authorization_code',
+   code:callback.searchParams.get('code'),redirect_uri:redirect,
+  }),'',now,true);
+ assert.equal(clientMismatch.status,401);
+ const rejected=(await g(s,'/link-status','GET',undefined,deviceToken)).body;
+ assert.equal(rejected.linked,false);
+ assert.equal(rejected.stage,'token_client_rejected');
+ assert.equal((await g(s,'/authorize','POST',params,'',now,true)).body.error,'pin_expired');
 });
 test('google cannot send arbitrary actions, duplicate commands or requests while TV is offline',async()=>{
  const s=store(),registration=await a(s,'/register'),connected=await link(s,registration.body.deviceToken);

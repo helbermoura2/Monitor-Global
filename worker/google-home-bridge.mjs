@@ -7,6 +7,8 @@ const hex=bytes=>Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');
 const random=()=>hex(crypto.getRandomValues(new Uint8Array(32)));
 const digest=async input=>hex(new Uint8Array(await crypto.subtle.digest('SHA-256',te.encode(input))));
 const k=(type,id)=>G+type+':'+id;
+// Protected, non-sensitive handshake progress, readable only by the paired TV.
+const handshake=async(storage,id,stage,at)=>storage.put(k('handshake',id),{stage,at});
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Pragma':'no-cache','X-Content-Type-Options':'nosniff'}});
 const tokenOk=value=>typeof value==='string'&&/^[0-9a-f]{64}$/i.test(value);
 const bearer=request=>{const value=/^Bearer ([a-f0-9]{64})$/i.exec(request.headers.get('authorization')||'');return value?value[1].toLowerCase():'';};
@@ -38,6 +40,7 @@ async function fulfillment(request,storage,now){
  const body=await parseJson(request),requestId=body.requestId;
  if(typeof requestId!=='string'||requestId.length>128||!Array.isArray(body.inputs)||body.inputs.length!==1)return json({error:'invalid_request'},400);
  const input=body.inputs[0],intent=input?.intent,id=scene(session.id),online=now-session.device.lastSeen<=120000;
+ if(intent==='action.devices.SYNC')await handshake(storage,session.id,'sync_requested',now);
  if(intent==='action.devices.SYNC')return result(requestId,{agentUserId:session.id,devices:[{
   id,type:'action.devices.types.SCENE',traits:['action.devices.traits.Scene'],
   attributes:{sceneReversible:false},name:{name:'Temperatura Monitor Global',defaultNames:['Temperatura Monitor Global'],nicknames:['Boletim do tempo Monitor Global','Tempo Monitor Global']},
@@ -78,17 +81,26 @@ async function fulfillment(request,storage,now){
 }
 export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.now()}={}){
  const path=new URL(request.url).pathname;
- if(!['/google-home/v1/health','/google-home/v1/pair','/google-home/v1/authorize','/google-home/v1/token','/google-home/v1/fulfillment'].includes(path))return json({error:'not_found'},404);
+ if(!['/google-home/v1/health','/google-home/v1/pair','/google-home/v1/link-status','/google-home/v1/authorize','/google-home/v1/token','/google-home/v1/fulfillment'].includes(path))return json({error:'not_found'},404);
  if(path.endsWith('/health'))return request.method==='GET'?json({ready:Boolean(env.GOOGLE_HOME_CLIENT_ID&&env.GOOGLE_HOME_CLIENT_SECRET&&env.GOOGLE_HOME_PROJECT_ID),mode:'private-test'}):json({error:'method_not_allowed'},405);
  if(!env.GOOGLE_HOME_CLIENT_ID||!env.GOOGLE_HOME_CLIENT_SECRET||!env.GOOGLE_HOME_PROJECT_ID)return json({error:'not_configured'},503);
  try{
+  if(path.endsWith('/link-status')){
+   if(request.method!=='GET')return json({error:'method_not_allowed'},405);
+   const device=await deviceByBearer(storage,request,now);if(!device)return json({error:'device_not_registered'},401);
+   const [link,progress]=await Promise.all([storage.get(k('link',device.id)),storage.get(k('handshake',device.id))]);
+   // No PIN, OAuth token, secret, Google identity or request metadata is exposed.
+   return json({linked:Boolean(link),stage:progress?.stage||'no_attempt',lastChangeAt:progress?.at||null});
+  }
   if(path.endsWith('/pair')){
    if(request.method!=='POST')return json({error:'method_not_allowed'},405);
    const device=await deviceByBearer(storage,request,now);if(!device)return json({error:'device_not_registered'},401);
    if(!await throttle(storage,request,'pair',8,now))return json({error:'rate_limited'},429);
    let pin='';for(let i=0;i<8;i++){const attempt=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,'0');const existing=await storage.get(k('pin',attempt));if(!existing||existing.until<=now){pin=attempt;break;}}
    if(!pin)return json({error:'temporarily_unavailable'},503);
-   await storage.put(k('pin',pin),{deviceId:device.id,until:now+PAIR_MS});return json({code:pin,expiresAt:now+PAIR_MS});
+   await storage.put(k('pin',pin),{deviceId:device.id,until:now+PAIR_MS});
+   await handshake(storage,device.id,'pin_issued',now);
+   return json({code:pin,expiresAt:now+PAIR_MS});
   }
   if(path.endsWith('/authorize')){
    if(request.method!=='GET'&&request.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -101,13 +113,23 @@ export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.no
    const device=await storage.get(A+'device:'+pairing.deviceId);await storage.delete(k('pin',pin));
    if(!device||device.expiresAt<=now)return json({error:'device_expired'},400);
    const code=random();await storage.put(k('code',await digest(code)),{deviceId:pairing.deviceId,clientId:info.clientId,redirect:info.redirect,until:now+CODE_MS});
+   await handshake(storage,pairing.deviceId,'authorization_accepted',now);
    const redirect=new URL(info.redirect);redirect.searchParams.set('code',code);redirect.searchParams.set('state',info.state);
    return new Response(null,{status:302,headers:{Location:redirect.toString(),'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
   }
   if(path.endsWith('/token')){
    if(request.method!=='POST')return json({error:'method_not_allowed'},405);
    const params=new URLSearchParams(await bounded(request));
-   if(!same(params.get('client_id'),env.GOOGLE_HOME_CLIENT_ID)||!same(params.get('client_secret'),env.GOOGLE_HOME_CLIENT_SECRET))return json({error:'invalid_client'},401);
+   // An unpredictable one-time authorization code safely identifies the TV
+   // that initiated this exchange, even when Google sends mismatched client
+   // credentials. Record only the outcome, never the code or credentials.
+   const oauthCode=params.get('grant_type')==='authorization_code'?params.get('code')||'':'';
+   const inFlight=tokenOk(oauthCode)?await storage.get(k('code',await digest(oauthCode))):null;
+   if(inFlight?.until>now)await handshake(storage,inFlight.deviceId,'token_exchange_requested',now);
+   if(!same(params.get('client_id'),env.GOOGLE_HOME_CLIENT_ID)||!same(params.get('client_secret'),env.GOOGLE_HOME_CLIENT_SECRET)){
+    if(inFlight?.until>now)await handshake(storage,inFlight.deviceId,'token_client_rejected',now);
+    return json({error:'invalid_client'},401);
+   }
    if(params.get('grant_type')==='authorization_code'){
     const code=params.get('code')||'';if(!tokenOk(code))return json({error:'invalid_grant'},400);
     const key=k('code',await digest(code)),record=await storage.get(key);
@@ -119,6 +141,7 @@ export async function handleGoogleHomeBridge(request,storage,{env={},now=Date.no
     await storage.put(k('refresh',refreshHash),{deviceId:record.deviceId});
     await storage.put(k('link',record.deviceId),{refreshHash});
     const access=await issueAccess(storage,record.deviceId,refreshHash,now);
+    await handshake(storage,record.deviceId,'token_issued',now);
     return json({token_type:'Bearer',access_token:access,refresh_token:refresh,expires_in:ACCESS_MS/1000});
    }
    if(params.get('grant_type')==='refresh_token'){

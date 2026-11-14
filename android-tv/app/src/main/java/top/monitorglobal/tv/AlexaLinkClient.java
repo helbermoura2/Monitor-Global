@@ -92,6 +92,46 @@ final class AlexaLinkClient {
    activity.runOnUiThread(()->{if(!activity.isDestroyed()&&!activity.isFinishing())callback.accept(result);});
   },"monitor-google-home-pair").start();
  }
+ /** Only this TV can inspect Google account-linking progress.
+  * The Worker never returns the PIN or OAuth credentials in this diagnostic.
+  */
+ static void googleLinkStatus(Activity activity,Consumer<String> callback){
+  new Thread(()->{
+   String message;
+   try{
+    String deviceToken=token(activity);
+    if(deviceToken.isEmpty()){
+     message="Esta TV ainda não foi registrada na ponte de comandos. Gere primeiro o código Google Home.";
+    }else{
+     JSONObject state=request("/google-home/v1/link-status","GET",deviceToken,null);
+     String stage=state.optString("stage","no_attempt");
+     boolean linked=state.optBoolean("linked",false);
+     switch(stage){
+      case "sync_requested":
+       message="O Google requisitou sincronizar a cena Temperatura Monitor Global. A ponte respondeu, mas ainda é preciso confirmar no aplicativo Google Home que o vínculo foi aceito.";break;
+      case "token_issued":
+       message="Autenticação Google Home concluída no Cloudflare, mas a sincronização da cena ainda não foi confirmada.";break;
+      case "authorization_accepted":
+       message="PIN ACEITO pelo Cloudflare. O Google ainda não fez uma troca OAuth de tokens reconhecida. Se o Google Home não concluir a vinculação, confira sua sessão e os registros de autenticação.";break;
+      case "token_exchange_requested":
+       message="O Google enviou o código de autorização para a troca OAuth, mas ainda não concluiu a emissão dos tokens.";break;
+      case "token_client_rejected":
+       message="O Google tentou trocar o código OAuth, mas o Cloudflare REJEITOU o Client ID ou Client Secret. Compare os dois valores no Google Home Developer Console e nas variáveis protegidas do mesmo Worker. Não informe a senha secreta aqui.";break;
+      case "pin_issued":
+       message="Código gerado na TV, ainda sem confirmação de autorização do Google Home.";break;
+      default:
+       message=linked?"Já existe autorização do Google, mas não há confirmação recente da sincronização.":"Nenhum vínculo Google Home foi confirmado para esta TV.";break;
+     }
+     if(linked&&!stage.equals("sync_requested")&&!stage.equals("token_issued"))
+      message+="\nJá existe um token Google vinculado nesta TV; confira se aparece como serviço vinculado no Google Home.";
+    }
+   }catch(Exception error){
+    message="Não foi possível consultar o estado do vínculo Google Home. O Worker pode ainda não ter sido publicado com o diagnóstico. Detalhe: "+error.getClass().getSimpleName();
+   }
+   final String result=message;
+   activity.runOnUiThread(()->{if(!activity.isDestroyed()&&!activity.isFinishing())callback.accept(result);});
+  },"monitor-google-home-status").start();
+ }
  static String token(Context context){
   String token=Prefs.get(context).getString(TOKEN_PREF,"");
   return token.matches("[a-f0-9]{64}")?token:"";
