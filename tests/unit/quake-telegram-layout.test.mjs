@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import '../../js/argos-eye-brand.js';
 import '../../js/event-portuguese.js';
 import '../../js/seismic-impact-model.js';
 import '../../js/quake-card-layout.js';
@@ -29,7 +30,7 @@ test('Telegram only: magnitude dominates, smaller metadata and unmodified site f
  assert(stats.every(c=>c.size<=23),'Secondary figures must be smaller than magnitude');
  assert(calls.every(c=>c.x>=0&&c.x+p.measure(c.s,c.size)<=800&&c.y+c.size<=1440));
  assert.equal(globalThis.QuakeCardLayout.MAP_HEIGHT,430);
- assert.equal(globalThis.QuakeCardLayout.version,'editorial-v17');
+ assert.equal(globalThis.QuakeCardLayout.version,'argos-orbis-v21');
  assert(T.MAP_Y>300&&T.MAP_HEIGHT>500);
 });
 
