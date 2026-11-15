@@ -53,7 +53,7 @@ final class TvBroadcastInfoView extends View {
   background=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#071724":Prefs.get(c).getString("themeBackground","#071724"));
   outline.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
   // Match NewsBannerView's alternating site/Telegram footer exactly.
-  p.setTypeface(brand);p.setTextSize(17);
+  p.setTypeface(brand);p.setTextSize(15);
   identityTextWidths[0]=p.measureText("argosorbis.com.br");
   identityTextWidths[1]=p.measureText("@argosorbis");
   identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;
@@ -182,7 +182,7 @@ final class TvBroadcastInfoView extends View {
    c.save();c.translate(labelX-14,113);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(42,171,238));
    c.drawCircle(0,0,8,p);p.setColor(Color.WHITE);c.drawPath(telegramPlane,p);c.restore();
   }
-  label(c,index==0?"argosorbis.com.br":"@argosorbis",labelX,119,17,Color.WHITE,brand,206);
+  label(c,index==0?"argosorbis.com.br":"@argosorbis",labelX,119,15,Color.WHITE,brand,206);
   c.restoreToCount(layer);
  }
  private void drawIdentity(Canvas c,long elapsed){
