@@ -61,6 +61,8 @@ final class PhoneMapView extends FrameLayout {
    WebView current=new WebView(getContext());web=current;
    current.setBackgroundColor(0xff071724);
    WebSettings settings=current.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(brazilPage);
+   // MapLibre handles pan/pinch/zoom; avoid WebView's duplicate native +/- overlay.
+   settings.setSupportZoom(false);settings.setBuiltInZoomControls(false);settings.setDisplayZoomControls(false);
    settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setAllowFileAccessFromFileURLs(false);settings.setAllowUniversalAccessFromFileURLs(false);
    settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setGeolocationEnabled(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setSupportMultipleWindows(false);settings.setMediaPlaybackRequiresUserGesture(true);settings.setSafeBrowsingEnabled(true);
    current.addJavascriptInterface(bridge,"MonitorMapBridge");
@@ -116,7 +118,7 @@ final class PhoneMapView extends FrameLayout {
   if(closed)return;events.clear();JSONArray payload=new JSONArray();int accepted=0;
   if(values!=null)for(Alert event:values){if(event==null||event.id==null||event.id.isEmpty()||event.id.length()>1400)continue;if(accepted++>=120)break;events.put(event.id,event.copy());}
   for(Alert event:events.values()){if(!MapFrame.located(event.originLongitude,event.originLatitude))continue;
-   try{payload.put(new JSONObject().put("id",event.id).put("kind",event.kind).put("title",event.title).put("longitude",event.originLongitude).put("latitude",event.originLatitude).put("magnitude",Double.isFinite(event.magnitude)?event.magnitude:JSONObject.NULL).put("depth",Double.isFinite(event.depth)?event.depth:JSONObject.NULL).put("eventTime",event.eventTime).put("source",event.source).put("countryCode",event.countryCode));}catch(JSONException ignored){}
+   try{payload.put(new JSONObject().put("id",event.id).put("kind",event.kind).put("state",event.state).put("issuedAt",event.issuedAt).put("title",event.title).put("longitude",event.originLongitude).put("latitude",event.originLatitude).put("magnitude",Double.isFinite(event.magnitude)?event.magnitude:JSONObject.NULL).put("depth",Double.isFinite(event.depth)?event.depth:JSONObject.NULL).put("eventTime",event.eventTime).put("source",event.source).put("countryCode",event.countryCode));}catch(JSONException ignored){}
   }
   pendingEvents=payload.toString();sendEvents();
  }
