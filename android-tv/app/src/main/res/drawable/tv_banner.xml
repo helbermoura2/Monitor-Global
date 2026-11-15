@@ -1,8 +1,17 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+ xmlns:aapt="http://schemas.android.com/aapt"
  android:width="320dp" android:height="180dp"
  android:viewportWidth="320" android:viewportHeight="180">
  <!-- Official compact Argos Orbis eye, adapted from the approved launcher vector. -->
- <path android:fillColor="#04121E" android:pathData="M0,0H320V180H0Z"/>
+ <path android:pathData="M0,0H320V180H0Z">
+   <aapt:attr name="android:fillColor">
+     <gradient android:type="radial" android:centerX="88" android:centerY="85" android:gradientRadius="245">
+       <item android:offset="0" android:color="#083D3A"/>
+       <item android:offset="0.45" android:color="#021A1B"/>
+       <item android:offset="1" android:color="#010304"/>
+     </gradient>
+   </aapt:attr>
+ </path>
  <group android:translateX="12" android:translateY="22">
  
   <!-- Compact edition of the approved Argos Orbis eye: transparent outer field. -->
