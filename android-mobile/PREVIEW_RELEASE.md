@@ -1,6 +1,6 @@
-# Argos Orbis Celular · 0.1.22 de teste
+# Argos Orbis Celular · 0.1.23 de teste
 
-O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.22-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
+O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.23-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
 
 ## Correções preservadas da 0.1.14
 
@@ -48,3 +48,13 @@ A versão mantém o mesmo pacote de testes, push, assinatura e canal de atualiza
 - O mapa abre com foco no Brasil; o botão **Enquadrar eventos** permite visualizar o catálogo disponível no mundo.
 - Boletins oficiais de tsunami **sem ameaça**, informativos, encerrados ou sem classificação confirmada ficam no histórico, não como pinos que pareçam aviso ativo; mapa conserva avisos de tsunami classificados como warning/watch/advisory. Data e fonte dos boletins são preservadas.
 - Nenhuma alteração de provedores, critérios de aviso, Worker ou notificações. A série de eventos continua limitada aos itens realmente retornados pela fonte.
+
+
+## Chuva: redesenho fiel à identidade Argos Orbis · 0.1.23
+
+- Nova disposição do radar no mapa com fundo preservado, bordas arredondadas, selo discreto “Chuva na região”, chip recolhível de divisões IBGE, zoom e centralização agrupados, horário e fonte no próprio rodapé do mapa e legenda compacta sem esconder a precipitação.
+- Barra de histórico/previsão mais legível com controles de reprodução, relógio da fonte e atualização preservados.
+- Card de previsão passa a mostrar um título mais curto e cauteloso em horas/minutos, acumulado em mm durante o período realmente disponível e horário/intensidade do pico em mm/h quando presentes, mantendo o gráfico por minuto fiel aos dados (sem inventar suavização).
+- Quando acessado pela aba Mapa, remove o botão de voltar redundante e libera altura; o acesso vindo da aba Clima preserva retorno compacto.
+- A foto do novo layout era apenas um exemplo de design: **nenhum valor de 9,7 mm, previsão às 20:30 ou imagem de chuva ilustrada foi codificado como dado real**. A tela consulta as mesmas rotas Rainbow Weather e continua identificando falhas ou desatualização.
+- Mesmo package, mesmo canal de atualização e mesmo fluxo de assinatura e notificações. Nenhuma alteração na TV, Cloudflare, alertas sísmicos ou Telegram.
