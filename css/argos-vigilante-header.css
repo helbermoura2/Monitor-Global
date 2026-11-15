@@ -1,0 +1,104 @@
+/* Olho de Argos Orbis: marca completa no cabeçalho; miniatura no indicador vivo.
+   O estado e a contagem de fontes continuam no DOM e nos scripts existentes. */
+#top-strip .ts-mainrow .ts-title.mg-title {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 4px !important;
+  overflow: visible !important;
+}
+#top-strip .ts-title.mg-title .mg-logo-frame {
+  display: block !important;
+  position: relative;
+  flex: 0 0 76px !important;
+  width: 76px !important;
+  height: 49px !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+#top-strip .ts-title.mg-title .mg-logo-icon {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+#top-strip .ts-title.mg-title .mg-logo-word {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  white-space: nowrap !important;
+}
+#top-strip .live-indicator .av-radar.av-argos-compact {
+  display: block !important;
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  height: 25px !important;
+  min-width: 38px !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+#top-strip .live-indicator .av-argos-compact picture,
+#top-strip .live-indicator .av-argos-compact img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+#top-strip #ao-vivo-badge[data-freshness="offline"] .av-argos-compact,
+#top-strip #ao-vivo-badge[data-freshness="stale"] .av-argos-compact { opacity: .5; }
+#top-strip #ao-vivo-badge[data-freshness="partial"] .av-argos-compact { opacity: .78; }
+@media screen and (min-width: 1101px) {
+  #top-strip .ts-title.mg-title .mg-logo-frame {
+    flex-basis: 84px !important; width:84px !important; height:54px !important;
+  }
+}
+/* Layout retrato estreito: marca completa conservada; texto ao lado do olho. */
+@media screen and (max-width: 700px) and (orientation: portrait) {
+  #top-strip > .ts-mainrow > .ts-title.mg-title,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-title.mg-title {
+    flex: 0 0 114px !important;
+    width: 114px !important;
+    min-width: 114px !important;
+    max-width: 114px !important;
+    height: 48px !important;
+    gap: 3px !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-frame,
+  body.mg-clean-portrait #top-strip .ts-title.mg-title .mg-logo-frame {
+    flex: 0 0 65px !important;
+    width: 65px !important;
+    height: 43px !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-word,
+  body.mg-clean-portrait #top-strip .ts-title.mg-title .mg-logo-word {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    font-size: 12px !important;
+    line-height: .95 !important;
+    gap: 2px !important;
+  }
+  #top-strip .live-indicator .av-radar.av-argos-compact {
+    flex-basis: 28px !important;
+    min-width: 28px !important;
+    width: 28px !important;
+    height: 19px !important;
+  }
+}
+@media screen and (max-width: 360px) and (orientation: portrait) {
+  #top-strip > .ts-mainrow > .ts-title.mg-title,
+  body.mg-clean-portrait #top-strip > .ts-mainrow > .ts-title.mg-title {
+    flex: 0 0 105px !important;
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+  }
+  #top-strip .ts-title.mg-title .mg-logo-frame,
+  body.mg-clean-portrait #top-strip .ts-title.mg-title .mg-logo-frame {
+    flex-basis: 57px !important; width: 57px !important; height: 39px !important;
+  }
+}
