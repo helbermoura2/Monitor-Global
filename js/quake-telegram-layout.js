@@ -74,9 +74,8 @@
   p.rect(0,0,800,MAP_Y,FOOT);
   p.rect(0,MAP_Y+MAP_HEIGHT,800,1440-MAP_Y-MAP_HEIGHT,FOOT);
   box(p,18,14,764,88,NAVY);
-  for(const rad of [21,14,7])p.arc(51,56,rad,1.4,-90,330,CYAN);
-  p.dot(51,56,3,CYAN);
-  (p.brandText||p.text)('MONITOR GLOBAL',86,31,34,WHITE,true);
+  globalThis.ArgosBrand.paint(p,51,56,23);
+  (p.brandText||p.text)('ARGOS ORBIS',86,31,34,WHITE,true);
   label(p,'SISMOS · VULCÕES · CICLONES · ALERTAS',87,73,12,MUTED,false,500);
   label(p,badge,656,37,13,CYAN,true,120);
   stripe(p,24,107,752,CYAN);
@@ -129,8 +128,8 @@
   label(p,'Estimativas não confirmam danos ou pessoas atingidas.',41,1312,12,MUTED,false,714);
 
   stripe(p,28,1360,744,CYAN);
-  label(p,'monitorglobal.top',32,1380,17,MUTED,true,350);
-  label(p,'@monitor_global',544,1380,18,CYAN,true,222);
+  label(p,'argosorbis.com.br',32,1380,17,MUTED,true,350);
+  label(p,'TELEGRAM · ARGOS ORBIS',498,1380,16,CYAN,true,272);
  }
- globalThis.QuakeTelegramLayout={version:'telegram-v18',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y:994,TSUNAMI_HEIGHT:132,telegramFrame,draw,drawTsunami,tsunamiCopy};
+ globalThis.QuakeTelegramLayout={version:'telegram-argos-v20',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y:994,TSUNAMI_HEIGHT:132,telegramFrame,draw,drawTsunami,tsunamiCopy};
 })();
