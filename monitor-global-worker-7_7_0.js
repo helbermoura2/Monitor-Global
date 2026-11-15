@@ -1533,6 +1533,22 @@ async function runTelegramM6Alerts(request, env) {
     };
 }
 
+// Admin-only lightweight connectivity test: no earthquake generation, geodata or image rendering.
+// A Telegram timeout may mean delivery succeeded; never retry automatically.
+async function handleTelegramPing(env) {
+    if(!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID)
+        return json({ok:false,error:'TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID ausente em Production.'},400);
+    try {
+        const delivered=await telegramSendMessage(env,
+            '🧪 TESTE DE CONEXÃO — ARGOS ORBIS\n\nO bot conseguiu publicar no canal oficial.\n🌐 argosorbis.com.br\n📢 @argosorbis\n\nEsta é uma mensagem de teste, não é um alerta.');
+        return json({ok:true,mode:'text',messageId:delivered.result?.message_id||null});
+    } catch(error) {
+        if(error.telegramRejected)
+            return json({ok:false,error:'Telegram recusou o envio: '+String(error.message||'sem detalhes').slice(0,160)},502);
+        return json({ok:false,error:'Envio sem confirmação. Confira o canal antes de tentar novamente.'},504);
+    }
+}
+
 async function handleTelegramTest(env) {
     if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         return json({
@@ -1984,7 +2000,7 @@ async function handleWorkerRequest(request,env,ctx){
         if (reqUrl.pathname === '/population-exposure') return handlePopulationExposure(request, env);
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
-            '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
+            '/telegram-test', '/telegram-ping', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
             '/telegram-history', '/telegram-history-preview', '/telegram-history-detail', '/telegram-daily-repost'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
@@ -2081,6 +2097,10 @@ async function handleWorkerRequest(request,env,ctx){
             const target=env.DAILY_SUMMARY.get(env.DAILY_SUMMARY.idFromName(day));
             const response=await target.fetch('https://summary.internal/repost-once?day='+day,{method:'POST'});
             return new Response(response.body,{status:response.status,headers:{'Content-Type':'application/json','Cache-Control':'no-store',...CORS_HEADERS}});
+        }
+        if (reqUrl.pathname === '/telegram-ping') {
+            if(request.method !== 'POST')return json({ok:false,error:'Método não permitido'},405);
+            return await handleTelegramPing(env);
         }
         if (reqUrl.pathname === '/telegram-test') { return await handleTelegramTest(env); }
         if (reqUrl.pathname === '/telegram-daily-summary') { try { return json(await runTelegramDailySummary(request, env)); } catch(e) { return json({ok:false,error:e.message},502); } }
