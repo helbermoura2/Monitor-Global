@@ -1,0 +1,7 @@
+Argos Orbis · atualização pontual do Worker para a tarja de resumo diário da Android TV 1.0.99
+Solicitação: exibir cinco indicadores do boletim sísmico do dia (eventos, M6+, M5, M4, abaixo de M4).
+Apenas o histórico concluído (view=completed) recebe dailyTotals derivados da mesma rotina do Telegram.
+O deploy ocorre exclusivamente depois do merge do PR #699 em main, via Cloudflare Worker maintenance existente.
+Os testes e o bundle revisados são recompilados no workflow. Não modificar Secrets, cron, KV, DO ou domínios.
+Se faltarem permissões, credenciais, bindings ou marcador de runtime, parar sem substituir o serviço.
+Não disparar nenhuma mensagem real no Telegram durante a validação.
