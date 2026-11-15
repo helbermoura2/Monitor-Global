@@ -15,7 +15,7 @@ def probe():
         body = response.read(2_000_001)
         return (response.status == 200 and len(body) <= 2_000_000
                 and 'text/html' in response.headers.get('Content-Type', '').lower()
-                and b'mapWrap' in body and b'Monitor Global' in body)
+                and b'mapWrap' in body and (b'Argos Orbis' in body or b'Monitor Global' in body))
 
 
 def confirmed_status(check=probe, pause=time.sleep):
