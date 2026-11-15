@@ -27,7 +27,7 @@ async function fetchLimited(url,limit,signal){
 }
 function create({map,host=document.body,onPlace=null}={}){
  if(!map||!host)return null;
- let stateData=null,current='states',shown='',request=null,seq=0,alive=true,active=true,ufLoaded='',cachedMunicipal=null,mousePopup=null;
+ let stateData=null,current='states',request=null,seq=0,alive=true,active=true,ufLoaded='',cachedMunicipal=null,mousePopup=null,ufMarkers=[];
  const panel=text('section','');panel.className='admin-boundary-controls';
  panel.setAttribute('aria-label','Limites administrativos');panel.innerHTML='<label for="admin-boundary-mode">Limites do mapa</label><select id="admin-boundary-mode" aria-label="Exibir divisões administrativas"><option value="off">Desligados</option><option value="states">Estados</option><option value="cities">Municípios (zoom alto)</option></select><small id="admin-boundary-status">Dados simplificados do IBGE</small>';
  const select=panel.querySelector('select'),status=panel.querySelector('small');host.appendChild(panel);
@@ -49,7 +49,7 @@ function create({map,host=document.body,onPlace=null}={}){
   const overlay=['br-satellite-layer','br-radar-layer'];
   let max=-1;for(const id of overlay){const i=layers.findIndex(x=>x.id===id);if(i>max)max=i;}
   if(max<0)return;
-  for(const id of [STATE_FILL,STATE_LINES,CITY_FILL,CITY_LINES,STATE_NAMES,CITY_NAMES]){
+  for(const id of [STATE_FILL,STATE_LINES,CITY_FILL,CITY_LINES]){
    const all=map.getStyle().layers||[],a=all.findIndex(x=>x.id===id),b=Math.max(...overlay.map(o=>all.findIndex(x=>x.id===o)));
    if(a>=0&&a<b){try{map.moveLayer(id);}catch{}} 
   }
@@ -62,18 +62,8 @@ function create({map,host=document.body,onPlace=null}={}){
   layer(STATE_LINES,'line',STATE_ID,{'line-color':'#91f3ff','line-opacity':0.88,'line-width':['interpolate',['linear'],['zoom'],2,0.85,7,1.8,12,2.2]});
   layer(CITY_FILL,'fill',CITY_ID,{'fill-color':'#eaf8ff','fill-opacity':0.001},{},MUNICIPAL_ZOOM);
   layer(CITY_LINES,'line',CITY_ID,{'line-color':'#ffe7a6','line-opacity':0.74,'line-width':0.9,'line-dasharray':[3,2]},{},MUNICIPAL_ZOOM);
-  layer(STATE_NAMES,'symbol',STATE_ID,{}, {'text-field':['get','sigla'],'text-size':13,'text-font':['Open Sans Regular','Arial Unicode MS Regular'],'text-allow-overlap':false,'text-optional':true,'text-offset':[0,0.1],'text-anchor':'center'},3);
-  // Use a local font only if style fonts available; MapLibre default raster map
-  // does not provide a glyph endpoint. If no glyphs, keep border lines and
-  // expose UF names through the on-tap detail panel instead of breaking map.
-  layer(CITY_NAMES,'symbol',CITY_ID,{}, {'text-field':['get','nome'],'text-size':11,'text-optional':true,'text-max-width':8},NAME_ZOOM);
-  for(const [id,color] of [[STATE_NAMES,'#d9f6ff'],[CITY_NAMES,'#ffe4a8']]){
-   if(map.getLayer(id)){
-    map.setPaintProperty(id,'text-color',color);
-    map.setPaintProperty(id,'text-halo-color','#081826');
-    map.setPaintProperty(id,'text-halo-width',1.5);
-   }
-  }
+  // The raster-only style has no external glyph endpoint. Use DOM UF labels
+  // instead of symbol layers, preserving offline operation without a paid font CDN.
   update();
  }
  function underCenter(){
@@ -90,6 +80,17 @@ function create({map,host=document.body,onPlace=null}={}){
    const data=await fetchLimited(STATES,240000,undefined);
    if(!alive||!isGeojson(data,28)||data.features.length!==27)throw Error('Malha estadual inválida');
    stateData=data;if(map.getSource(STATE_ID))map.getSource(STATE_ID).setData(data);
+   for(const marker of ufMarkers)marker.remove();ufMarkers=[];
+   for(const f of data.features){
+    const rings=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
+    let best=[],bestSize=0;
+    for(const polygon of rings){const ring=polygon[0]||[];if(ring.length>bestSize){best=ring;bestSize=ring.length;}}
+    if(!best.length)continue;
+    const x=best.reduce((a,p)=>a+p[0],0)/best.length,y=best.reduce((a,p)=>a+p[1],0)/best.length;
+    if(!Number.isFinite(x)||!Number.isFinite(y))continue;
+    const node=text('span',f.properties.sigla);node.className='argos-uf-name';node.setAttribute('aria-hidden','true');
+    ufMarkers.push(new maplibregl.Marker({element:node,anchor:'center'}).setLngLat([x,y]).addTo(map));
+   }
    update();
   }catch{if(alive)warn('Estados indisponíveis nesta consulta');}
  }
@@ -119,7 +120,7 @@ function create({map,host=document.body,onPlace=null}={}){
   if(!alive||!map.getLayer(STATE_LINES))return;
   const states=current!=='off'&&!!stateData;
   for(const id of [STATE_FILL,STATE_LINES])visible(id,states);
-  visible(STATE_NAMES,states&&map.getZoom()>=3.7);
+  if(ufMarkers.length)for(const marker of ufMarkers)marker.getElement().hidden=!states||map.getZoom()<3.7;
   const municipalities=states&&current==='cities'&&map.getZoom()>=MUNICIPAL_ZOOM;
   if(municipalities){
    const uf=underCenter();
@@ -127,7 +128,7 @@ function create({map,host=document.body,onPlace=null}={}){
    else {if(ufLoaded)clearMunicipal();warn('Aproxime o mapa sobre um estado do Brasil');}
   }else if(ufLoaded){clearMunicipal();}
   for(const id of [CITY_FILL,CITY_LINES])visible(id,municipalities&&!!cachedMunicipal);
-  visible(CITY_NAMES,municipalities&&!!cachedMunicipal&&map.getZoom()>=NAME_ZOOM);
+
   if(!municipalities)warn(current==='off'?'Limites ocultos':current==='cities'?'Amplie para ver os municípios · zoom 8+':'Estados · malha simplificada do IBGE');
   top();
  }
@@ -166,7 +167,8 @@ function create({map,host=document.body,onPlace=null}={}){
  return Object.freeze({setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){seq++;request?.abort();}else update();},destroy(){
   alive=false;seq++;request?.abort();mousePopup?.remove();
   map.off('zoomend',move);map.off('moveend',move);map.off('click',handleClick);map.off('style.load',style);
-  for(const id of [CITY_NAMES,STATE_NAMES,CITY_LINES,CITY_FILL,STATE_LINES,STATE_FILL])if(map.getLayer(id))map.removeLayer(id);
+  for(const marker of ufMarkers)marker.remove();ufMarkers=[];
+  for(const id of [CITY_LINES,CITY_FILL,STATE_LINES,STATE_FILL])if(map.getLayer(id))map.removeLayer(id);
   for(const id of [CITY_ID,STATE_ID])if(map.getSource(id))map.removeSource(id);
   panel.remove();
  }});
