@@ -327,7 +327,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  while(safeSources.length>12&&measure('small',safeSources)>sourceWidth)safeSources=safeSources.slice(0,-5)+'...';
  text('small',safeSources,X,footerY,COLORS.muted);
  text('small','argosorbis.com.br',W-438,footerY,COLORS.white);
- text('small','TELEGRAM: ARGOS ORBIS',W-242,footerY,COLORS.cyan);
+ text('small','TELEGRAM: @argosorbis',W-242,footerY,COLORS.cyan);
  text('small','Distâncias a São Paulo, SP',X,footerY-40,COLORS.muted);
  return {
   day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,
