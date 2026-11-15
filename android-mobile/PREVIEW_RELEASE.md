@@ -1,6 +1,6 @@
-# Argos Orbis Celular · 0.1.21 de teste
+# Argos Orbis Celular · 0.1.22 de teste
 
-O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.21-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
+O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.22-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
 
 ## Correções preservadas da 0.1.14
 
@@ -39,3 +39,12 @@ O olho do Argos Orbis usa a mesma ilustração vetorial nativa da TV: o ponteiro
 **Limites:** As malhas simplificadas servem à orientação visual, não a decisões cadastrais; podem estar desatualizadas. O filtro "7 dias" atua apenas sobre os eventos presentes no catálogo consultado, sem prometer histórico completo. A busca municipal permanece acessível para localidades sem contorno disponível.
 
 A versão mantém o mesmo pacote de testes, push, assinatura e canal de atualização; não altera Cloudflare, Alexa, Worker, localização nem exige chave paga.
+
+
+## Mapa de eventos mais limpo · 0.1.22
+
+- Controles de limites estaduais/municipais e filtros ficam recolhidos inicialmente. Painel de imagens de satélite menor e janelas de eventos livres de sobreposições.
+- Remove a duplicidade de zoom do Android WebView, preservando os controles nativos do mapa.
+- O mapa abre com foco no Brasil; o botão **Enquadrar eventos** permite visualizar o catálogo disponível no mundo.
+- Boletins oficiais de tsunami **sem ameaça**, informativos, encerrados ou sem classificação confirmada ficam no histórico, não como pinos que pareçam aviso ativo; mapa conserva avisos de tsunami classificados como warning/watch/advisory. Data e fonte dos boletins são preservadas.
+- Nenhuma alteração de provedores, critérios de aviso, Worker ou notificações. A série de eventos continua limitada aos itens realmente retornados pela fonte.

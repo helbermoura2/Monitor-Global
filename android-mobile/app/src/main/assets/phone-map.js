@@ -5,7 +5,9 @@ const $=id=>document.getElementById(id);
 const notice=$('notice'),retry=$('retry'),empty=$('empty'),reference=$('reference');
 let map=null,satellite=null,boundaries=null,loaded=false,active=true,events=[],focus=null,markers=[],fitted=false,tileErrors=0,needsReload=false;
 let filter={region:'world',hours:0,minMagnitude:0},opacity=70;
-const LEGEND_TEXT='Pontos de referência · sem área de risco estimada. Períodos limitados pela fonte.';
+const ACTIVE_TSUNAMI_STATES=new Set(['warning','watch','advisory']);
+// Preserve quiet/ended bulletins in the native history, but do not pin them as an active threat.
+const onAlertMap=e=>e.kind!=='tsunami'||ACTIVE_TSUNAMI_STATES.has(String(e.state||''));
 const valid=e=>e&&Number.isFinite(e.longitude)&&Number.isFinite(e.latitude)&&Math.abs(e.longitude)<=180&&Math.abs(e.latitude)<=85.05112878;
 const haversine=(a,b,c,d)=>{
  const rad=Math.PI/180,dy=(c-a)*rad,dx=(d-b)*rad;
@@ -28,11 +30,15 @@ function popup(event){
  const when=document.createElement('small');when.textContent=date(event.eventTime);content.appendChild(when);
  if(event.source){const source=document.createElement('small');source.textContent='Fonte: '+event.source;content.appendChild(source);}
  content.appendChild(button('Ver detalhes',()=>details(event.id)));
- return new maplibregl.Popup({offset:14,maxWidth:'270px',focusAfterOpen:false}).setDOMContent(content);
+ const pop=new maplibregl.Popup({offset:14,maxWidth:'270px',focusAfterOpen:false}).setDOMContent(content);
+ pop.on('open',()=>document.body.classList.add('argos-popup-active'));
+ pop.on('close',()=>document.body.classList.remove('argos-popup-active'));
+ return pop;
 }
 function filtered(){
  const now=Date.now();
  return events.filter(e=>{
+  if(!onAlertMap(e))return false;
   if(filter.region==='brasil'&&e.countryCode!=='BR'&&!(e.longitude>=-74&&e.longitude<=-32&&e.latitude>=-34&&e.latitude<=6))return false;
   if(filter.hours>0&&(!Number.isFinite(e.eventTime)||e.eventTime<now-filter.hours*3600000||e.eventTime>now+3600000))return false;
   if(filter.minMagnitude>0&&(!Number.isFinite(e.magnitude)||e.magnitude<filter.minMagnitude))return false;
@@ -40,8 +46,8 @@ function filtered(){
  });
 }
 function countMessage(list){
- reference.textContent=list.length+' pontos nesta visualização · '+LEGEND_TEXT;
- empty.textContent='Sem eventos para os filtros escolhidos nesta consulta. Isso não significa ausência de eventos.';
+ reference.textContent=list.length+' eventos exibidos no mapa';
+ empty.textContent=events.length&&events.every(e=>e.kind==='tsunami')?'Nenhum aviso ativo de tsunami nesta consulta. Boletins informativos e encerrados permanecem no histórico.':'Sem eventos para os filtros escolhidos nesta consulta. Isso não significa ausência de eventos.';
 }
 function showEvents(){
  if(!loaded||!active||!map)return;
@@ -50,7 +56,7 @@ function showEvents(){
  if(!fitted&&list.length&&!focus){
   fitted=true;
   if(list.length===1)map.jumpTo({center:[list[0].longitude,list[0].latitude],zoom:5});
-  else{const bounds=new maplibregl.LngLatBounds();list.forEach(e=>bounds.extend([e.longitude,e.latitude]));map.fitBounds(bounds,{padding:55,maxZoom:5,duration:0});}
+  else map.jumpTo({center:[-53,-14],zoom:3.1}); // Brazil overview first; distant events remain browsable.
  }
  // Fit can fire a synchronous moveend and reenter showEvents. Clearing after
  // fitting guarantees only one set of markers survives the nested rendering.
@@ -97,7 +103,7 @@ function nearby({lng,lat}){
 }
 function createFilters(){
  const host=document.createElement('details');host.id='argos-map-filters';host.className='argos-map-filters';
- const summary=document.createElement('summary');summary.textContent='Filtros · Brasil / período / magnitude';host.appendChild(summary);
+ const summary=document.createElement('summary');summary.textContent='Filtros · eventos';host.appendChild(summary);
  const region=document.createElement('select');region.setAttribute('aria-label','Filtrar região');
  for(const [id,title] of [['world','Mundo'],['brasil','Brasil e águas próximas']])region.appendChild(new Option(title,id));
  const hours=document.createElement('select');hours.setAttribute('aria-label','Período disponível na fonte');
@@ -107,6 +113,7 @@ function createFilters(){
  const value=document.createElement('output');value.htmlFor='map-mag';value.textContent='Todas';
  const row=document.createElement('div');row.className='filter-mag';row.append(label,value);host.append(region,hours,row,mag);
  const caveat=document.createElement('small');caveat.textContent='* Até 7 dias, se houver registros no catálogo recebido. Não é cobertura garantida.';host.appendChild(caveat);
+ host.appendChild(button('Enquadrar eventos',()=>{const list=filtered();if(!list.length||!map)return;const bounds=new maplibregl.LngLatBounds();list.forEach(e=>bounds.extend([e.longitude,e.latitude]));if(list.length===1)map.easeTo({center:[list[0].longitude,list[0].latitude],zoom:5});else map.fitBounds(bounds,{padding:42,maxZoom:5,duration:250});host.open=false;}));
  region.addEventListener('change',()=>{filter.region=region.value;fitted=true;showEvents();});
  hours.addEventListener('change',()=>{filter.hours=Number(hours.value);fitted=true;showEvents();});
  mag.addEventListener('input',()=>{filter.minMagnitude=Number(mag.value);value.textContent=filter.minMagnitude?'M'+filter.minMagnitude.toFixed(1)+'+':'Todas';fitted=true;showEvents();});
@@ -137,7 +144,7 @@ function initialize(){
  removeMarkers();if(map){map.remove();map=null;}loaded=false;tileErrors=0;fitted=false;info('Carregando mapa…',false);
  try{
   if(!window.maplibregl||typeof maplibregl.Map!=='function'){info('Não foi possível carregar os recursos do mapa. Toque para tentar novamente.',true);return;}
-  map=new maplibregl.Map({container:'map',center:[-52,-14],zoom:2,minZoom:1.3,maxZoom:14,renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:96,fadeDuration:0,attributionControl:false,style:{version:8,sources:{imagery:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagens © Esri, Maxar, Earthstar Geographics e GIS User Community'}},layers:[{id:'imagery',type:'raster',source:'imagery',paint:{'raster-fade-duration':0}}]}});
+  map=new maplibregl.Map({container:'map',center:[-53,-14],zoom:3.1,minZoom:1.3,maxZoom:14,renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:96,fadeDuration:0,attributionControl:false,style:{version:8,sources:{imagery:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagens © Esri, Maxar, Earthstar Geographics e GIS User Community'}},layers:[{id:'imagery',type:'raster',source:'imagery',paint:{'raster-fade-duration':0}}]}});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
   map.on('load',()=>{
@@ -151,6 +158,7 @@ function initialize(){
    showEvents();showFocus();if(!active)map.stop();
   });
   map.on('moveend',()=>{if(active)showEvents();});
+  map.on('click',()=>{if(controls?.host?.open)controls.host.open=false;const panel=document.querySelector('.admin-boundary-controls');if(panel?.open)panel.open=false;});
   map.on('error',event=>{
    if(event.sourceId==='br-satellite-source'||event.sourceId==='argos-uf'||event.sourceId==='argos-mun')return;
    if(event.sourceId==='imagery'){tileErrors++;info('Mapa-base sem conexão. Os eventos continuam disponíveis na lista.',true);}

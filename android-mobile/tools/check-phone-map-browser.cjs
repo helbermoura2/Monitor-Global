@@ -71,6 +71,21 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   await page.locator('.marker').click();await page.getByRole('button',{name:'Ver detalhes',exact:true}).click();
   await page.waitForFunction(()=>window.__mapSelected==='map-test',null,{timeout:5000});assert.equal(await page.locator('.maplibregl-popup img').count(),0);assert.equal(await page.evaluate(()=>window.__mapInjected),false);
   await page.screenshot({path:path.join(output,'map-ready.png')});
+  // Informational/closed tsunami bulletins belong in history, never among active map alerts.
+  await page.evaluate(()=>{
+   const base={title:'Boletim de teste',longitude:-47,latitude:-15,eventTime:Date.now(),source:'PTWC'};
+   MonitorMap.setEvents([
+    {...base,id:'no-threat',kind:'tsunami',state:'noThreat'},
+    {...base,id:'ended',kind:'tsunami',state:'ended'},
+    {...base,id:'active',kind:'tsunami',state:'warning'}
+   ]);
+  });
+  assert.equal(await page.locator('.marker.tsunami').count(),1,'apenas o aviso oficial ativo aparece no mapa');
+  assert.equal(await page.locator('.admin-boundary-controls:not([open])').count(),1,'limites iniciam recolhidos');
+  assert.equal(await page.locator('.argos-map-filters:not([open])').count(),1,'filtros iniciam recolhidos');
+  await page.evaluate(()=>MonitorMap.setEvents([{id:'quiet',kind:'tsunami',state:'noThreat',title:'Sem ameaça',longitude:-47,latitude:-15,eventTime:Date.now(),source:'PTWC'}]));
+  assert.equal(await page.locator('.marker').count(),0,'boletim sem ameaça não recebe marcador');
+  assert.match(await page.locator('#empty').textContent(),/Nenhum aviso ativo de tsunami/);
   assert.deepEqual(unexpected,[],'nenhuma rede fora dos recursos controlados');assert.deepEqual(errors,[],'sem erros JavaScript, CSP ou worker');
   // A missing optional module must leave explicit feedback, rather than silently show only the basemap.
   await page.addInitScript(()=>Object.defineProperty(window,'BrazilSatellite',{get:()=>undefined,set:()=>{},configurable:true}));

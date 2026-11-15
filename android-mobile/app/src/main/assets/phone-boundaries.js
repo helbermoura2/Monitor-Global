@@ -28,8 +28,8 @@ async function fetchLimited(url,limit,signal){
 function create({map,host=document.body,onPlace=null}={}){
  if(!map||!host)return null;
  let stateData=null,current='states',request=null,seq=0,alive=true,active=true,ufLoaded='',cachedMunicipal=null,mousePopup=null,ufMarkers=[];
- const panel=text('section','');panel.className='admin-boundary-controls';
- panel.setAttribute('aria-label','Limites administrativos');panel.innerHTML='<label for="admin-boundary-mode">Limites do mapa</label><select id="admin-boundary-mode" aria-label="Exibir divisões administrativas"><option value="off">Desligados</option><option value="states">Estados</option><option value="cities">Municípios (zoom alto)</option></select><small id="admin-boundary-status">Dados simplificados do IBGE</small>';
+ const panel=document.createElement('details');panel.className='admin-boundary-controls';
+ panel.setAttribute('aria-label','Limites administrativos');panel.innerHTML='<summary>Limites · Estados</summary><label for="admin-boundary-mode">Limites do mapa</label><select id="admin-boundary-mode" aria-label="Exibir divisões administrativas"><option value="off">Desligados</option><option value="states">Estados</option><option value="cities">Municípios (zoom alto)</option></select><small id="admin-boundary-status">Dados simplificados do IBGE</small>';
  const select=panel.querySelector('select'),status=panel.querySelector('small');host.appendChild(panel);
  current=['off','states','cities'].includes(readSetting())?readSetting():'states';
  select.value=current;
@@ -117,6 +117,7 @@ function create({map,host=document.body,onPlace=null}={}){
   }catch(error){if(ticket===seq&&alive&&!signal.aborted){cachedMunicipal=null;ufLoaded='';warn('Municípios indisponíveis · estados preservados');}}
  }
  function update(){
+  panel.querySelector('summary').textContent=current==='off'?'Limites · Off':current==='cities'?'Limites · Municípios':'Limites · Estados';
   if(!alive||!map.getLayer(STATE_LINES))return;
   const states=current!=='off'&&!!stateData;
   for(const id of [STATE_FILL,STATE_LINES])visible(id,states);
@@ -152,11 +153,14 @@ function create({map,host=document.body,onPlace=null}={}){
    const found=onPlace({uf,title,municipalityId,lng:ev.lngLat.lng,lat:ev.lngLat.lat,element:root});
    if(typeof found==='string'&&found)root.appendChild(text('small',found));
   }
-  mousePopup=new maplibregl.Popup({closeButton:true,closeOnClick:true,offset:8,maxWidth:'285px',focusAfterOpen:false}).setLngLat(ev.lngLat).setDOMContent(root).addTo(map);
+  mousePopup=new maplibregl.Popup({closeButton:true,closeOnClick:true,offset:8,maxWidth:'285px',focusAfterOpen:false}).setLngLat(ev.lngLat).setDOMContent(root);
+  mousePopup.on('open',()=>{document.body.classList.add('argos-popup-active');panel.open=false;});
+  mousePopup.on('close',()=>document.body.classList.remove('argos-popup-active'));
+  mousePopup.addTo(map);
  }
  function setMode(value){
   if(!['off','states','cities'].includes(value))return;
-  current=value;select.value=value;remember(value);update();
+  current=value;select.value=value;remember(value);update();panel.open=false;
  }
  const move=()=>{if(active)update();};
  let queued=false;
