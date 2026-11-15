@@ -20,14 +20,19 @@ import static org.junit.Assert.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class OfficialArgosLowerThirdTest {
  private Bitmap render(View view,long elapsed){
+  int space=view instanceof TvBroadcastInfoView?((TvBroadcastInfoView)view).mapSpace:0;
+  int height=126+space;
   view.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),
-    View.MeasureSpec.makeMeasureSpec(126,View.MeasureSpec.EXACTLY));
-  view.layout(0,0,960,126);
+    View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+  view.layout(0,0,960,height);
   if(view instanceof TvBroadcastInfoView)
    ((TvBroadcastInfoView)view).startPresentation(android.os.SystemClock.uptimeMillis()-elapsed,false);
-  Bitmap bitmap=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  Bitmap bitmap=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);
   view.draw(new Canvas(bitmap));
-  return bitmap;
+  if(space==0)return bitmap;
+  Bitmap band=Bitmap.createBitmap(bitmap,0,space,960,126);
+  bitmap.recycle();
+  return band;
  }
  private void assertBrandWithinSafeArea(Bitmap b){
   int gold=0,forbidden=0;
