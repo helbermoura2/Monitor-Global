@@ -1,6 +1,6 @@
-# Argos Orbis Celular · 0.1.17 de teste
+# Argos Orbis Celular · 0.1.18 de teste
 
-O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.17-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
+O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.18-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
 
 ## Correções preservadas da 0.1.14
 
@@ -17,3 +17,6 @@ Exemplo de interpretação: 0,1 mm nos próximos 30 minutos e 1,3 mm nos próxim
 Mantém radar e notificações da versão anterior e a mesma assinatura para atualização. Previsões são estimativas para um ponto da Liberdade, São Paulo, sujeitas a mudanças.
 
 A tela principal agora usa o olho oficial compacto; o cabeçalho e as páginas de avisos mostram `argosorbis.com.br`, e os botões públicos levam a `https://argosorbis.com.br/` e `https://t.me/argosorbis`. O pacote e os tópicos históricos de notificações permanecem inalterados para preservar as atualizações e assinaturas existentes.
+
+## Correção visual dia/noite
+O desenho do tempo agora usa a posição solar calculada para a Liberdade, São Paulo, na hora consultada. Nas condições de céu limpo ou parcialmente nublado, mostra **lua à noite** e **sol de dia**, inclusive na previsão por hora. Os dados, nomes das condições, horários da previsão e alertas continuam vindos das mesmas fontes; não muda nenhuma informação meteorológica. O cálculo não depende do fuso definido no aparelho nem exige acesso à localização ou rede adicional.

@@ -8,7 +8,7 @@ import android.view.View;
 
 /** Small local vector glyphs; no remote artwork or animation loop. */
 final class PhoneIcons extends View {
- static final int RADAR=0,HOME=1,MAP=2,CLOUD=3,BELL=4,RAIN=5,DROP=6,WIND=7,CLOCK=8,DEPTH=9,REFRESH=10,SUN=11,SNOW=12,UNKNOWN=13;
+ static final int RADAR=0,HOME=1,MAP=2,CLOUD=3,BELL=4,RAIN=5,DROP=6,WIND=7,CLOCK=8,DEPTH=9,REFRESH=10,SUN=11,SNOW=12,UNKNOWN=13,MOON=14;
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path path=new Path();
  PhoneIcons(Context c,int kind,int color){
   super(c);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);paint.setColor(color);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.6f);paint.setStrokeJoin(Paint.Join.ROUND);paint.setStrokeCap(Paint.Cap.ROUND);
@@ -23,9 +23,11 @@ final class PhoneIcons extends View {
   else if(kind==DEPTH){line(12,2,12,15);line(7,10,12,15);line(12,15,17,10);line(4,20,20,20);}
   else if(kind==REFRESH){path.moveTo(20,9);path.cubicTo(17,0,3,3,4,13);path.moveTo(4,15);path.cubicTo(7,24,21,21,20,11);line(20,3,20,9);line(20,9,14,9);line(4,21,4,15);line(4,15,10,15);}
   else if(kind==SUN){path.addCircle(12,12,5,Path.Direction.CW);line(12,1,12,4);line(12,20,12,23);line(1,12,4,12);line(20,12,23,12);line(4,4,6,6);line(18,18,20,20);line(4,20,6,18);line(18,6,20,4);}
+  else if(kind==MOON){path.moveTo(16,2);path.cubicTo(7,2,3,7,3,13);path.cubicTo(3,20,9,23,15,22);path.cubicTo(19,21,21,18,22,15);path.cubicTo(13,18,8,11,16,2);path.close();}
   else{path.addCircle(12,12,9,Path.Direction.CW);path.moveTo(9,9);path.cubicTo(9,5,17,6,15,10);path.lineTo(12,13);line(12,13,12,15);line(12,18,12,18.1f);}
  }
  private void line(float x,float y,float xx,float yy){path.moveTo(x,y);path.lineTo(xx,yy);}
  @Override protected void onDraw(Canvas c){super.onDraw(c);int save=c.save();c.scale(getWidth()/24f,getHeight()/24f);c.drawPath(path,paint);c.restoreToCount(save);}
- static int condition(String key){switch(key){case "Clear":case "MostlyClear":return SUN;case "PartlyCloudy":case "MostlyCloudy":case "Cloudy":return CLOUD;case "Rain":case "Drizzle":case "HeavyRain":case "Thunderstorms":case "StrongStorms":case "ScatteredThunderstorms":case "IsolatedThunderstorms":return RAIN;case "Snow":case "HeavySnow":return SNOW;default:return UNKNOWN;}}
+ static int condition(String key){return condition(key,System.currentTimeMillis());}
+ static int condition(String key,long at){if(key==null)return UNKNOWN;switch(key){case "Clear":case "MostlyClear":case "PartlyCloudy":return PhoneDaylight.isDay(at)?SUN:MOON;case "MostlyCloudy":case "Cloudy":return CLOUD;case "Rain":case "Drizzle":case "HeavyRain":case "Thunderstorms":case "StrongStorms":case "ScatteredThunderstorms":case "IsolatedThunderstorms":return RAIN;case "Snow":case "HeavySnow":return SNOW;default:return UNKNOWN;}}
 }
