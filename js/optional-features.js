@@ -56,7 +56,7 @@
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- // O template do Telegram não é alterado; somente a imagem exportada pelo SITE.
+ // O template de imagem do site usa a mesma identidade do Telegram; sem posts reais em teste.
  async function siteImageAssets(){
   await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
   await asset('js/argos-eye-brand.js?v=1');
@@ -72,7 +72,7 @@
   await asset('js/argos-eye-brand.js?v=1');
   await asset('js/quake-card-layout.js?v=argos-orbis-v21');
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
-  await asset('js/story-share.js?v=site-concept6-all-v5');
+  await asset('js/story-share.js?v=argos-orbis-v1');
   return await window.shareResumoDiarioStory();
  }catch(error){failure(error);}};
  function isQuake(item){return !!item&&(item.type==='earthquake'||(!item.type&&item.mag!=null));}
