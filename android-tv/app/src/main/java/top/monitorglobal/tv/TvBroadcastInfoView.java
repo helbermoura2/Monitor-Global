@@ -182,7 +182,7 @@ final class TvBroadcastInfoView extends View {
    c.save();c.translate(labelX-14,113);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(42,171,238));
    c.drawCircle(0,0,8,p);p.setColor(Color.WHITE);c.drawPath(telegramPlane,p);c.restore();
   }
-  label(c,index==0?"monitorglobal.top":"@monitor_global",labelX,119,17,Color.WHITE,brand,206);
+  label(c,index==0?"argosorbis.com.br":"@argosorbis",labelX,119,17,Color.WHITE,brand,206);
   c.restoreToCount(layer);
  }
  private void drawIdentity(Canvas c,long elapsed){
