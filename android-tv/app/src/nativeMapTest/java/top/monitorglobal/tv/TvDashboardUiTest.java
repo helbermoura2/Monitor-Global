@@ -38,7 +38,9 @@ public class TvDashboardUiTest {
   MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
   View root=app.getWindow().getDecorView();
   assertEquals("Radar Scope logo must not be replaced",1,countLogo(root));
-  assertTrue(contains(root,"MONITOR GLOBAL TV"));
+  assertTrue(contains(root,"ARGOS ORBIS"));
+  assertTrue(contains(root,"argosorbis.com.br"));
+  assertTrue(contains(root,"t.me/argosorbis"));
   assertTrue(contains(root,"REPLAY E RESUMOS SÍSMICOS"));
   assertTrue(contains(root,"AVISOS REGIONAIS"));
   assertTrue(contains(root,"IA meteorológica · entender e consultar agora"));
