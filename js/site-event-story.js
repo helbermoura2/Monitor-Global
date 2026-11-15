@@ -49,6 +49,7 @@
   const p=profile(e),hasLocation=located(e),canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');
   if(!fonts)fonts=(async()=>{if(!root.FontFace)return;try{const loaded=await Promise.all([new FontFace('StoryInter','url(assets/summary-fonts/Inter.ttf)',{weight:'100 900'}).load(),new FontFace('StoryRajdhani','url(assets/summary-fonts/Rajdhani-Bold.ttf)',{weight:'700'}).load()]);loaded.forEach(f=>document.fonts.add(f));}catch{}})();
   const f=hasLocation?frame(e,p):null,cf=hasLocation?{minLon:e.coords[0]-3.3,maxLon:e.coords[0]+3.3,minLat:Math.max(-85,e.coords[1]-2.34),maxLat:Math.min(85,e.coords[1]+2.34)}:null;
+  const brandAssetPromise=load('img/argos-orbis-vigilante-static.svg?v=2',2500);
   const flagsTask=root.QuakeSiteFlags?QuakeSiteFlags.resolve(e).then(async meta=>({meta,images:await QuakeSiteFlags.images(meta)})).catch(()=>null):null;
   const [sat,labels,regional,flags,earth,states]=await Promise.all([hasLocation?satellite(f):null,hasLocation?load(mapUrl('Reference/World_Boundaries_and_Places',f,810,1320),4500):null,hasLocation?load(mapUrl('World_Topo_Map',cf,420,298),4500):null,flagsTask,planet(),regionShapes(),Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,3000))])]);
   if(hasLocation&&!sat){const error=Error('O mapa de satélite não carregou. Tente gerar a imagem novamente.');error.code='STORY_MAP_UNAVAILABLE';throw error;}
@@ -110,9 +111,12 @@
    sc.putImageData(pixels,0,0);c.drawImage(sphere,0,70,W,300);texture.width=texture.height=sphere.width=sphere.height=1;
   }catch{}}
   c.beginPath();c.ellipse(690,820,940,740,0,Math.PI*1.15,Math.PI*1.9);c.strokeStyle='rgba(100,219,255,.42)';c.lineWidth=1;c.shadowColor='#00a7d6';c.shadowBlur=16;c.stroke();c.restore();
-  // Radar mark, matching the site's brand. No textual placeholder logo.
-  box(70,36,72,72,12,'#00121e',5);c.save();c.translate(106,72);c.strokeStyle=CYAN;c.lineWidth=2;for(const r of [12,22,30]){c.beginPath();c.arc(0,0,r,0,2*Math.PI);c.stroke();}c.fillStyle=CYAN;c.beginPath();c.moveTo(0,0);c.arc(0,0,29,-Math.PI/2,-.2);c.closePath();c.fill();c.restore();
-  text('MONITOR GLOBAL',166,47,39,WHITE,820,true);
+  // Approved original eye, not a generic radar. Same-origin static SVG can be exported in PNG.
+  const brandAsset=await brandAssetPromise;
+  if(brandAsset)c.drawImage(brandAsset,61,27,100,65);
+  else if(root.ArgosBrand)root.ArgosBrand.canvas(c,107,72,27);
+  else {c.save();c.strokeStyle='#C4A16A';c.lineWidth=3;c.beginPath();c.moveTo(72,72);c.quadraticCurveTo(107,32,142,72);c.quadraticCurveTo(107,112,72,72);c.stroke();c.restore();}
+  text('ARGOS ORBIS',166,47,39,WHITE,820,true);
   // Top row: category on the left, main reading on the right.
   // Second row: locality and its flag(s), immediately after the locality text.
   const place=root.EventPortuguese?.place(e.place||'Local não informado')||e.place||'Local não informado';
@@ -207,8 +211,8 @@
   icon('calendar',80,1425);text(when,128,1430,28,WHITE,450,true);stroke(565,1425,565,1470);icon('layers',592,1425);lines(e.sourceSummary||e.source||'Fonte não informada',642,1412,365,25,2,WHITE,true);stroke(69,1492,1008,1492);
   p.stats.forEach(([label,value],i)=>{const x=85+i*318;if(i)stroke(x-22,1520,x-22,1616);icon(p.weather?['thermometer','drop','waves'][i]:['depth','pulse',p.stats[2][0]==='COORDENADAS'?'pin':'waves'][i],x-5,1528);if(label==='COORDENADAS'){value.split(' · ').forEach((part,row)=>text(part,x+43,1520+row*37,29,WHITE,241));}else lines(value,x+43,1520,241,29,2);text(label,x+43,1600,18,MUTED,240,true);});
   text(p.note,70,1636,18,MUTED,940);
-  box(29,1674,1022,118,40,'rgba(3,34,46,.93)',15);icon('globe',85,1712);text('monitorglobal.top',166,1711,29,WHITE,380,true);stroke(485,1699,485,1762);
-  c.save();c.fillStyle='#08a8d7';c.beginPath();c.arc(558,1732,27,0,Math.PI*2);c.fill();c.fillStyle=WHITE;c.beginPath();c.moveTo(541,1730);c.lineTo(575,1716);c.lineTo(565,1749);c.lineTo(556,1738);c.lineTo(550,1744);c.lineTo(551,1734);c.closePath();c.fill();c.restore();text('Telegram · @monitor_global',606,1715,24,WHITE,410,true);
+  box(29,1674,1022,118,40,'rgba(3,34,46,.93)',15);icon('globe',85,1712);text('argosorbis.com.br',166,1711,29,WHITE,380,true);stroke(485,1699,485,1762);
+  c.save();c.fillStyle='#08a8d7';c.beginPath();c.arc(558,1732,27,0,Math.PI*2);c.fill();c.fillStyle=WHITE;c.beginPath();c.moveTo(541,1730);c.lineTo(575,1716);c.lineTo(565,1749);c.lineTo(556,1738);c.lineTo(550,1744);c.lineTo(551,1734);c.closePath();c.fill();c.restore();text('Telegram · ARGOS ORBIS',606,1715,24,WHITE,410,true);
   // Decorative signature waves below the data, never presented as geophysical observations.
   c.save();c.strokeStyle='#15b8df';c.lineWidth=.8;for(let j=0;j<17;j++){c.globalAlpha=.08+j*.008;c.beginPath();for(let x=0;x<=W;x+=9){const y=1860+Math.sin(x/91+j*.25)*25+Math.sin(x/230-j*.23)*14+j*2;if(x===0)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();}c.restore();
   text(sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Fundo ilustrativo · imagem de base indisponível',60,1802,14,MUTED,960);
