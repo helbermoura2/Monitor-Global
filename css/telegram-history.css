@@ -14,6 +14,7 @@
 #tg-admin-dialog .tg-note { color:#abc2d2;font-size:13px;margin:12px 0; }
 #tg-admin-dialog .tg-controls { display:flex;flex-wrap:wrap;gap:8px;margin:8px 0; }
 #tg-admin-dialog button[aria-pressed="true"] { border-color:#53d4eb;color:#53d4eb; }
+#tg-admin-dialog .tg-send-test { border-color:#53d4eb;background:#0d4351;color:#ecfcff;font-weight:700; }
 #tg-admin-dialog .tg-history-row { display:grid;grid-template-columns:1fr auto;text-align:left;gap:4px 12px;width:100%;margin:10px 0;padding:14px; }
 #tg-admin-dialog .tg-history-row small { grid-column:1/-1;color:#9ab5c7; }
 #tg-admin-dialog .tg-status { color:#62d8ec;font-size:13px; }
