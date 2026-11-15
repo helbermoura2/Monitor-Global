@@ -34,3 +34,9 @@ test('correct admin cannot accidentally GET the sending route; no DO returns 503
  assert.equal((await worker.fetch(new Request(endpoint,{headers}),{ADMIN_TOKEN:'private'})).status,405);
  assert.equal((await worker.fetch(new Request(endpoint,{method:'POST',headers}),{ADMIN_TOKEN:'private'})).status,503);
 });
+
+test('diagnostic rejects unauthorized calls and GET before looking up the bot',async()=>{
+ const endpoint='https://worker.test/telegram-admin-diagnose';
+ assert.equal((await worker.fetch(new Request(endpoint,{method:'POST'}),{ADMIN_TOKEN:'private'})).status,401);
+ assert.equal((await worker.fetch(new Request(endpoint,{headers:{'X-Admin-Token':'private'}}),{ADMIN_TOKEN:'private'})).status,405);
+});
