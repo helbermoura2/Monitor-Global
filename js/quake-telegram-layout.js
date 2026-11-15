@@ -74,7 +74,7 @@
   p.rect(0,0,800,MAP_Y,FOOT);
   p.rect(0,MAP_Y+MAP_HEIGHT,800,1440-MAP_Y-MAP_HEIGHT,FOOT);
   box(p,18,14,764,88,NAVY);
-  globalThis.ArgosBrand.paint(p,51,56,23);
+  globalThis.ArgosBrand?.paint(p,51,56,23);
   (p.brandText||p.text)('ARGOS ORBIS',86,31,34,WHITE,true);
   label(p,'SISMOS · VULCÕES · CICLONES · ALERTAS',87,73,12,MUTED,false,500);
   label(p,badge,656,37,13,CYAN,true,120);
