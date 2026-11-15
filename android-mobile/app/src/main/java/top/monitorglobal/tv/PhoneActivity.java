@@ -39,10 +39,11 @@ public class PhoneActivity extends Activity {
   root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BACK);
   root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});
   header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(dp(14),dp(7),dp(8),dp(7));header.setBackgroundColor(BODY);root.addView(header,new LinearLayout.LayoutParams(-1,dp(70)));
-  ImageView officialLogo=new ImageView(this);officialLogo.setImageResource(top.monitorglobal.mobile.R.drawable.ic_launcher_monitor);
-  officialLogo.setContentDescription("Argos Orbis · olho do vigilante e radar");
-  officialLogo.setScaleType(ImageView.ScaleType.FIT_CENTER);officialLogo.setTag("argos-logo");
-  header.addView(officialLogo,new LinearLayout.LayoutParams(dp(45),dp(45)));
+  // Reuse the native TV mark: a blinking eye and a rotating pointer
+  // over stationary radar rings. Animation pauses off-screen automatically.
+  RadarLogoView officialLogo=new RadarLogoView(this);
+  officialLogo.setTag("argos-logo");
+  header.addView(officialLogo,new LinearLayout.LayoutParams(dp(54),dp(54)));
   LinearLayout brandTitles=new LinearLayout(this);brandTitles.setOrientation(LinearLayout.VERTICAL);
   brandTitles.setGravity(Gravity.CENTER_VERTICAL);
   LinearLayout.LayoutParams titleParams=new LinearLayout.LayoutParams(0,-2,1);titleParams.setMarginStart(dp(5));
