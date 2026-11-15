@@ -27,7 +27,7 @@ function popup(event){
  specs.textContent=detailsList.join(' · ')||'Evento observado';content.appendChild(specs);
  const when=document.createElement('small');when.textContent=date(event.eventTime);content.appendChild(when);
  if(event.source){const source=document.createElement('small');source.textContent='Fonte: '+event.source;content.appendChild(source);}
- content.appendChild(button('Ver detalhes do evento',()=>details(event.id)));
+ content.appendChild(button('Ver detalhes',()=>details(event.id)));
  return new maplibregl.Popup({offset:14,maxWidth:'270px',focusAfterOpen:false}).setDOMContent(content);
 }
 function filtered(){
@@ -134,7 +134,7 @@ function initialize(){
  satellite?.destroy();satellite=null;boundaries?.destroy();boundaries=null;
  removeMarkers();if(map){map.remove();map=null;}loaded=false;tileErrors=0;fitted=false;info('Carregando mapa…',false);
  try{
-  if(!window.maplibregl||typeof maplibregl.Map!=='function')throw Error('MapLibre indisponível');
+  if(!window.maplibregl||typeof maplibregl.Map!=='function'){info('Não foi possível carregar os recursos do mapa. Toque para tentar novamente.',true);return;}
   map=new maplibregl.Map({container:'map',center:[-52,-14],zoom:2,minZoom:1.3,maxZoom:14,renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:96,fadeDuration:0,attributionControl:false,style:{version:8,sources:{imagery:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagens © Esri, Maxar, Earthstar Geographics e GIS User Community'}},layers:[{id:'imagery',type:'raster',source:'imagery',paint:{'raster-fade-duration':0}}]}});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
@@ -143,7 +143,7 @@ function initialize(){
    try{
     if(!window.BrazilSatellite||typeof window.BrazilSatellite.create!=='function')throw Error('Satélite indisponível');
     satellite=window.BrazilSatellite.create({map,host:document.body});satellite.setActive(active);needsReload=false;
-   }catch{needsReload=true;info('Satélite temporariamente indisponível; o mapa continua acessível.',false);}
+   }catch{needsReload=true;info('Não foi possível iniciar o satélite. Toque em Recarregar mapa.',true);}
    try{boundaries=window.ArgosBoundaries.create({map,host:document.body,onPlace:nearby});boundaries?.setActive(active);}
    catch{info('Limites administrativos indisponíveis; eventos e imagens permanecem acessíveis.',false);}
    showEvents();showFocus();if(!active)map.stop();
@@ -156,7 +156,7 @@ function initialize(){
   map.on('webglcontextlost',()=>{loaded=false;info('O mapa foi pausado pelo aparelho. Toque para recarregar.',true);});
  }catch{info('Não foi possível abrir o mapa. Os eventos continuam acessíveis na lista.',true);}
 }
-controls=createFilters();createOpacity();
+if(typeof document.createElement==='function'){controls=createFilters();createOpacity();}
 window.MonitorMap={
  setEvents(value){
   events=Array.isArray(value)?value.slice(0,120).filter(e=>valid(e)&&typeof e.id==='string'&&typeof e.title==='string'):[];
