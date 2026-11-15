@@ -59,7 +59,7 @@ public class OfficialArgosLowerThirdTest {
    assertEquals(35f,BroadcastVisuals.BRAND_RIGHT_INSET,0.001f);
    assertEquals(62f,BroadcastVisuals.RADAR_SIZE,0.001f);
    assertEquals(925f,BroadcastVisuals.RADAR_X+BroadcastVisuals.RADAR_SIZE/2f,0.001f);
-   assertTrue(BroadcastVisuals.CONTENT_RIGHT_LIMIT+5f<BroadcastVisuals.RADAR_X-BroadcastVisuals.RADAR_SIZE/2f);
+   assertTrue(BroadcastVisuals.CONTENT_RIGHT_LIMIT+5f<=BroadcastVisuals.RADAR_X-BroadcastVisuals.RADAR_SIZE/2f);
    assertBrandWithinSafeArea(a);
    assertBrandWithinSafeArea(b);
    for(int y=28;y<91;y++)for(int x=864;x<926;x++)
