@@ -17,7 +17,7 @@ final class CompactNotice {
   if(Settings.canDrawOverlays(context))try{
    Typeface brand=TvCardStyle.brand(context);
    LinearLayout card=new Panel(context);card.setOrientation(LinearLayout.VERTICAL);card.setBackgroundColor(TvCardStyle.BODY);
-   TextView header=text(voiceQuery?"MONITOR GLOBAL · CONSULTA POR VOZ":demo?"AVISO SÍSMICO REGIONAL · FICTÍCIO":replay?"REPLAY · SISMO REGIONAL":"AVISO SÍSMICO REGIONAL",15,TvCardStyle.BODY,brand,1);header.setBackgroundColor(TvCardStyle.CYAN);header.setPadding(dp(16),dp(9),dp(16),dp(9));card.addView(header,new LinearLayout.LayoutParams(-1,-2));
+   TextView header=text(voiceQuery?"ARGOS ORBIS · CONSULTA POR VOZ":demo?"AVISO SÍSMICO REGIONAL · FICTÍCIO":replay?"REPLAY · SISMO REGIONAL":"AVISO SÍSMICO REGIONAL",15,TvCardStyle.BODY,brand,1);header.setBackgroundColor(TvCardStyle.CYAN);header.setPadding(dp(16),dp(9),dp(16),dp(9));card.addView(header,new LinearLayout.LayoutParams(-1,-2));
    LinearLayout body=new LinearLayout(context);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(18),dp(13),dp(18),dp(13));card.addView(body,new LinearLayout.LayoutParams(-1,-2));
    LinearLayout headline=new LinearLayout(context);headline.setGravity(Gravity.CENTER_VERTICAL);body.addView(headline,new LinearLayout.LayoutParams(-1,-2));
    TextView magnitude=text(magnitude(alert),44,voiceQuery?TvCardStyle.WHITE:0xffffc04d,brand,1);magnitude.setGravity(Gravity.CENTER_VERTICAL);headline.addView(magnitude,new LinearLayout.LayoutParams(dp(96),dp(66)));

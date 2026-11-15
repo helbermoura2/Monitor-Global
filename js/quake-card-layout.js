@@ -80,13 +80,11 @@
  }
  function drawBrand(p,status='AO VIVO'){
   box(p,28,16,40,40,'#020816');
-  for(const r of [17,11.5,6])p.arc(48,36,r,1.2,-90,360,'#1c6182');
-  for(let r=1;r<=17;r++)p.arc(48,36,r,1.3,-90,45,'#38bdf8');
-  p.dot(48,36,2.4,'#38bdf8');
-  (p.brandText||p.text)('MONITOR GLOBAL',80,20,29,white,true);
+  globalThis.ArgosBrand?.paint(p,48,36,16);
+  (p.brandText||p.text)('ARGOS ORBIS',80,20,29,white,true);
   const size=13;p.text(status,774-p.measure(status,size,true),27,size,muted,true);
  }
- function drawFooter(p){p.text('monitorglobal.top',28,1410,13,muted);const channel='@monitor_global';p.text(channel,774-p.measure(channel,14,true),1409,14,'#38bdf8',true);}
+ function drawFooter(p){p.text('argosorbis.com.br',28,1410,13,muted);const channel='TELEGRAM · ARGOS ORBIS';p.text(channel,774-p.measure(channel,14,true),1409,14,'#38bdf8',true);}
  function draw(p,ev){
   const pt=globalThis.EventPortuguese,fmt=(n,d=0)=>pt?.number(n,d)??Number(n).toFixed(d).replace('.',',');
   const place=pt?.place(ev.place)||ev.place||'Local não informado',revision=pt?.revision(ev)||ev.revisionText||'';
@@ -127,5 +125,5 @@
   p.text('Estimativa de exposição; não confirma quem sentiu ou danos.',38,1364,14,muted);
   drawFooter(p);
  }
- globalThis.QuakeCardLayout={frame,draw,drawBrand,drawFooter,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,drawLegacyTsunami,MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y,TSUNAMI_HEIGHT,version:'editorial-v17'};
+ globalThis.QuakeCardLayout={frame,draw,drawBrand,drawFooter,validExposure,contextFrame,drawContext,drawContourLabels,drawTsunami,drawLegacyTsunami,MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y,TSUNAMI_HEIGHT,version:'argos-orbis-v21'};
 })();

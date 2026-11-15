@@ -8,9 +8,9 @@
     "pngBefore": "c273b827ce1c5828fcc5b148fc7b151b1d088aa69ada5ee41a9c329d37c31825",
     "pngAfter": "c273b827ce1c5828fcc5b148fc7b151b1d088aa69ada5ee41a9c329d37c31825",
     "previousHeight": 2688,
-    "previousApprovedPixels": "5b8b7e286657d0608b4ff39680f7fc91ddd4d1a22eb1d78a1ff91aa92429703f",
-    "approvedPixels": "a9cbc45b3f39a8a3ef0426edbe9c245d66120a0d0d64242fc9d65099de301e62",
-    "approvedLayout": "monitor-global-rajdhani-neon-v7"
+    "previousApprovedPixels": "a9cbc45b3f39a8a3ef0426edbe9c245d66120a0d0d64242fc9d65099de301e62",
+    "approvedPixels": "06b95ea7d936992e7e98c4da75533952c3faebfba2a9f1dea1b8956ca5a6fca1",
+    "approvedLayout": "argos-orbis-daily-v14"
   },
   "empty": {
     "width": 1800,
@@ -21,9 +21,9 @@
     "pngBefore": "d9b86bfaf9eacd59498d9e0574ba0a56954b8b17496b1ef85481b6175adb18ed",
     "pngAfter": "d9b86bfaf9eacd59498d9e0574ba0a56954b8b17496b1ef85481b6175adb18ed",
     "previousHeight": 2688,
-    "previousApprovedPixels": "a531a825921d1489bf76c42bff807a344993bab7981e3677161a435b312016f2",
-    "approvedPixels": "d354e7dbfec105d423636b6256f322586668dc0575a03bec2c33b66f4f74593e",
-    "approvedLayout": "monitor-global-rajdhani-neon-v7"
+    "previousApprovedPixels": "d354e7dbfec105d423636b6256f322586668dc0575a03bec2c33b66f4f74593e",
+    "approvedPixels": "e06a0690c5de8dd44add446f622effdb91dc3a0f8f23b4807aaebdc474bbe9a7",
+    "approvedLayout": "argos-orbis-daily-v14-empty"
   },
   "alert": {
     "width": 1080,
@@ -33,8 +33,8 @@
     "pngEqual": true,
     "pngBefore": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
     "pngAfter": "6b3ff2b387fe6ce89d8ae88cd74ff518e0cf9067d86dcbeb9f87e33177c12595",
-    "approvedPixels": "6fe93bd3947300c8765a6fc1276d40e980f2436df6e4159c7b3b53e2584b9c31",
-    "approvedLayout": "telegram-glass-v19",
-    "previousApprovedPixels": "4ae08eb61445f7dfdb0fb366da58bdf0e425a128f0bbe0d9fc17f4a7e1e00386"
+    "approvedPixels": "44d111e451bb9f07c4960768fb3d1499fe5379af4360c0a27e425cbdcb3a5a7f",
+    "approvedLayout": "telegram-glass-v19-argos-orbis-v1",
+    "previousApprovedPixels": "6fe93bd3947300c8765a6fc1276d40e980f2436df6e4159c7b3b53e2584b9c31"
   }
 }

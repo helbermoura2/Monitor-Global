@@ -32,7 +32,7 @@ for(const width of [1280,390])test('site image universal and video action isolat
   return {meta,layout:QuakeSiteCard.version};
  });
  expect(canvasMeta.meta).toMatchObject({countryCode:'BR',stateCode:'PE'});
- expect(canvasMeta.layout).toBe('site-concept6-v1');
+ expect(canvasMeta.layout).toBe('site-argos-orbis-v2');
  await choose('jp-site-small',4.3,'JP',[139.69,35.68]);
  await expect(page.locator('#pd-video-btn')).toBeHidden();
  await expect(page.locator('#pd-share-btn')).toBeVisible();

@@ -49,8 +49,8 @@ final class NewsBannerView extends View {
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete){
   super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
-  paint.setTypeface(brand);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
-  identityTextWidths[0]=paint.measureText("monitorglobal.top");identityTextWidths[1]=paint.measureText("@monitor_global");identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
+  paint.setTypeface(brand);paint.setTextSize(15);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
+  identityTextWidths[0]=paint.measureText("argosorbis.com.br");identityTextWidths[1]=paint.measureText("ARGOS ORBIS");identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
   telegramPlane.moveTo(-5.5f,-.5f);telegramPlane.lineTo(5,-4.5f);telegramPlane.lineTo(3,5);telegramPlane.lineTo(-.5f,2);telegramPlane.lineTo(2.5f,-1.5f);telegramPlane.lineTo(-2,1);telegramPlane.close();
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
@@ -139,7 +139,7 @@ final class NewsBannerView extends View {
  private void identity(Canvas c,int index,int opacity){
   if(opacity<=0)return;float labelX=954-identityTextWidths[index];int layer=c.saveLayerAlpha(960-identityWidths[index],BroadcastVisuals.FOOTER_TOP,960,126,opacity);c.clipPath(bannerClip);
   if(index==1){c.save();c.translate(labelX-14,113);paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(42,171,238));c.drawCircle(0,0,8,paint);paint.setColor(Color.WHITE);c.drawPath(telegramPlane,paint);c.restore();}
-  text(c,index==0?"monitorglobal.top":"@monitor_global",labelX,119,17,Color.WHITE,brand,206);c.restoreToCount(layer);
+  text(c,index==0?"monitorglobal.top":"@monitor_global",labelX,119,15,Color.WHITE,brand,206);c.restoreToCount(layer);
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
   if(opacity<=0)return;int layer=opacity<255?c.saveLayerAlpha(0,24,844,BroadcastVisuals.FOOTER_TOP,opacity):c.save();c.clipRect(0,24,844,BroadcastVisuals.FOOTER_TOP);c.translate(0,shift);

@@ -12,7 +12,7 @@
     if(!host) return;
     host.insertAdjacentHTML('beforeend',`<div id="mg-global-hud" aria-label="Status global">
       <div class="mg-card" id="mg-global-card">
-        <div class="mg-head"><span class="mg-title">🌎 Monitor Global · Agora</span><span class="mg-status"><i class="mg-status-dot"></i><b id="mg-status-label">NORMAL</b></span></div>
+        <div class="mg-head"><span class="mg-title">🌎 Argos Orbis · Agora</span><span class="mg-status"><i class="mg-status-dot"></i><b id="mg-status-label">NORMAL</b></span></div>
         <div class="mg-grid">
           <div class="mg-metric"><b id="mg-quakes">0</b><small>Sismos</small></div>
           <div class="mg-metric"><b id="mg-severe">0</b><small>Alertas</small></div>

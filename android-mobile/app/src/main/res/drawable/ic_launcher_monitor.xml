@@ -1,6 +1,18 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="128" android:viewportHeight="128">
-<path android:fillColor="#020816" android:pathData="M24,0H104Q128,0 128,24V104Q128,128 104,128H24Q0,128 0,104V24Q0,0 24,0Z"/>
-<path android:fillColor="#00000000" android:strokeColor="#38BDF8" android:strokeAlpha="0.35" android:strokeWidth="4" android:pathData="M64,8A56,56 0,1 0,64 120A56,56 0,1 0,64 8M64,26A38,38 0,1 0,64 102A38,38 0,1 0,64 26M64,44A20,20 0,1 0,64 84A20,20 0,1 0,64 44"/>
-<path android:fillColor="#38BDF8" android:fillAlpha="0.85" android:pathData="M64,64L64,8A56,56 0,0 1,103.6 24.4Z"/>
-<path android:fillColor="#38BDF8" android:pathData="M64,57A7,7 0,1 0,64 71A7,7 0,1 0,64 57"/>
+  <!-- Compact edition of the approved Argos Orbis eye: transparent outer field. -->
+  <path android:fillColor="#00000000" android:strokeColor="#C4A16A" android:strokeWidth="4"
+        android:strokeLineJoin="round" android:pathData="M6,64 Q64,13 122,64 Q64,115 6,64 Z"/>
+  <path android:fillColor="#052F35" android:pathData="M64,31 A33,33 0,1 0,64 97 A33,33 0,1 0,64 31 Z"/>
+  <path android:fillColor="#00000000" android:strokeColor="#14D2CC" android:strokeWidth="3"
+        android:pathData="M64,31 A33,33 0,1 0,64 97 A33,33 0,1 0,64 31 Z"/>
+  <path android:fillColor="#00000000" android:strokeColor="#1DB8B5" android:strokeWidth="3"
+        android:pathData="M64,40 A24,24 0,1 0,64 88 A24,24 0,1 0,64 40 Z"/>
+  <path android:fillColor="#00000000" android:strokeColor="#18C9C6" android:strokeWidth="2"
+        android:pathData="M64,48 A16,16 0,1 0,64 80 A16,16 0,1 0,64 48 Z"/>
+  <path android:fillColor="#23CFC2" android:fillAlpha="0.42"
+        android:pathData="M64,64 L88,87 A33,33 0,0 0,97 64 Z"/>
+  <path android:fillColor="#4EFFF0" android:strokeColor="#4EFFF0" android:strokeWidth="1.5"
+        android:pathData="M63,62 L88,87 L91,83 L66,61 Z"/>
+  <path android:fillColor="#91FFF0" android:pathData="M64,57 A7,7 0,1 0,64 71 A7,7 0,1 0,64 57 Z"/>
+  <path android:fillColor="#13CDBD" android:pathData="M64,60 A4,4 0,1 0,64 68 A4,4 0,1 0,64 60 Z"/>
 </vector>

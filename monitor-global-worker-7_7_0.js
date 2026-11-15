@@ -972,7 +972,7 @@ function telegramCaption(ev, record) {
             `Atualizado às ${new Date(record.updatedAt).toLocaleTimeString("pt-BR", {timeZone: "America/Sao_Paulo"})} BRT\n` +
             record.revisions.slice(-3).map(r => `${r.sameSource ? "Revisão da fonte" : "Nova estimativa"}: M${Number(r.mag).toFixed(1).replace('.', ',')} (${escapeMdLegacy(r.source)})`).join("\n") + "\n" : "") +
         `\n📢 Canal: @monitor\\_global\n` +
-        `🌐 https://monitorglobal.top`
+        `🌐 https://monitorglobal.top · ARGOS ORBIS`
     );
 }
 

@@ -197,8 +197,17 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  };
  // Brand masthead, radar and subtle globe outline use the same TV palette.
  gfx.fillRadialGlow(rgba,W,H,674,34,190,17,97,143,.18);
- gfx.drawRadar(rgba,W,H,64,59,28,35,210,239);
- const brandX=117,monitor='MONITOR',global=' GLOBAL';
+ // Silhueta dourada do olho aprovado; as marcas do radar permanecem imóveis.
+ const ex=66,ey=61,rx=38,ry=23;
+ for(let j=1;j<=40;j++){
+  const u0=(j-1)/40,u1=j/40,a0=u0*2-1,a1=u1*2-1;
+  const xx0=ex+a0*rx,xx1=ex+a1*rx;
+  const yy0=ry*(1-a0*a0),yy1=ry*(1-a1*a1);
+  line(rgba,W,H,xx0,ey-yy0,xx1,ey-yy1,[196,161,106]);
+  line(rgba,W,H,xx0,ey+yy0,xx1,ey+yy1,[196,161,106]);
+ }
+ gfx.drawRadar(rgba,W,H,66,61,19,35,210,239);
+ const brandX=117,monitor='ARGOS',global=' ORBIS';
  brand(monitor,brandX,36,37,COLORS.white,200);
  brand(global,brandX+brandWidth(monitor,37)+3,36,37,COLORS.cyan,195);
  text('tag','SISMOS · VULCÕES · CICLONES · ALERTAS',117,87,COLORS.muted,.3);
@@ -317,8 +326,8 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  let safeSources=sourceLine;
  while(safeSources.length>12&&measure('small',safeSources)>sourceWidth)safeSources=safeSources.slice(0,-5)+'...';
  text('small',safeSources,X,footerY,COLORS.muted);
- text('small','monitorglobal.top',W-382,footerY,COLORS.white);
- text('small','@monitor_global',W-190,footerY,COLORS.cyan);
+ text('small','argosorbis.com.br',W-438,footerY,COLORS.white);
+ text('small','TELEGRAM: ARGOS ORBIS',W-242,footerY,COLORS.cyan);
  text('small','Distâncias a São Paulo, SP',X,footerY-40,COLORS.muted);
  return {
   day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,
