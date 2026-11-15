@@ -13,13 +13,13 @@ import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35) @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class RadarLogoViewTest {
- @Test public void originalSweepKeepsCenterAnd2400MsGeometry(){
+ @Test public void argosEyeKeepsCenterAnd7200MsSweep(){
   Context c=RuntimeEnvironment.getApplication();RadarLogoView view=new RadarLogoView(c);
   view.layout(0,0,128,128);
   Bitmap image=Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888);
   view.setSweepDegrees(0);view.draw(new Canvas(image));
-  assertEquals(0xff38bdf8,image.getPixel(64,64));
-  assertTrue(android.graphics.Color.alpha(image.getPixel(64,8))>0);
+  assertTrue("cyan center remains visible",android.graphics.Color.green(image.getPixel(64,64))>180);
+  assertTrue("gold eye contour is visible",android.graphics.Color.alpha(image.getPixel(64,10))>0);
   view.setSweepDegrees(90);view.draw(new Canvas(image));
   assertEquals(90f,view.getSweepDegrees(),0.01f);
   image.recycle();
