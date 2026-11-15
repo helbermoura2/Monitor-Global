@@ -42,6 +42,7 @@ import {DAILY_REPOST_REQUEST,requestedDailyRepostReady,dailyRepostOnce} from "./
 import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, handleFunvisisEarthquakes, handleSeismicStatus} from "./worker/seismic-providers.mjs";
 import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
+import {handleTelegramAdminSmoke} from "./worker/telegram-admin-smoke.mjs";
 
 // Delivery ports keep orchestration independent of rendering and Telegram transport.
 async function renderAlertCardPng(ev) { return renderAlertImage(ev); }
@@ -1198,6 +1199,10 @@ export class EarthquakeAlertDelivery {
     fetch(request) {
         const operation = this.queue.then(async () => {
             if(new URL(request.url).pathname.startsWith('/__kv-usage/'))return handleKvUsageObject(request,this.state.storage);
+            if(new URL(request.url).pathname==='/__telegram-admin-smoke'){
+                if(request.method!=='POST')return Response.json({error:'Método não permitido'},{status:405});
+                return handleTelegramAdminSmoke(this.state.storage,this.env,telegramSendMessage);
+            }
             if(new URL(request.url).pathname.startsWith('/alexa/v1/'))return handleAlexaRelay(request,this.state.storage);
             if(new URL(request.url).pathname.startsWith('/google-home/v1/'))return handleGoogleHomeBridge(request,this.state.storage,{env:this.env});
             return withKvUsage(this.env,async measuredEnv=>{
@@ -1985,12 +1990,27 @@ async function handleWorkerRequest(request,env,ctx){
 
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
             '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
-            '/telegram-history', '/telegram-history-preview', '/telegram-history-detail', '/telegram-daily-repost'
+            '/telegram-history', '/telegram-history-preview', '/telegram-history-detail', '/telegram-daily-repost',
+            '/telegram-admin-smoke'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
             return json({ ok: false, error: 'Não autorizado. Use o cabeçalho X-Admin-Token.' }, 401);
         }
 
+
+        if(reqUrl.pathname==='/telegram-admin-smoke'){
+            if(request.method!=='POST')return json({ok:false,error:'Método não permitido'},405);
+            if(!env.EARTHQUAKE_ALERTS)return json({ok:false,error:'Controle de testes temporariamente indisponível.'},503);
+            try{
+                // A separate Durable Object instance serializes double-clicks and
+                // reserves a cooldown before making any Telegram API request.
+                const target=env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('telegram-admin-smoke-v1'));
+                const result=await target.fetch(new Request('https://internal/__telegram-admin-smoke',{method:'POST'}));
+                return new Response(result.body,{status:result.status,headers:{...CORS_HEADERS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
+            }catch{
+                return json({ok:false,error:'Teste indisponível. Verifique a configuração do Worker sem repetir o envio.'},503);
+            }
+        }
         if(reqUrl.pathname.startsWith('/telegram-history')){
             if(request.method!=='GET')return json({error:'Método não permitido'},405);
             if(!env.ADMIN_TOKEN || request.headers.get('X-Admin-Token')!==env.ADMIN_TOKEN)
