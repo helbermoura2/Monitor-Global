@@ -1,5 +1,6 @@
 import {queryImageTsunami} from '../image-tsunami-status.mjs';
 import {contextFrame,referencePlaces,drawMapReferences} from './alert-cartography.mjs';
+import '../js/argos-eye-brand.js';
 import '../js/quake-telegram-layout.js';
 import '../js/quake-telegram-glass.js';
 import {STATE_FLAGS} from './telegram-state-flags.mjs';
