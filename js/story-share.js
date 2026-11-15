@@ -215,10 +215,10 @@
     color = color || '#7dd3fc';
     const r = 20;
     ctx.textAlign = 'left';
-    drawRadarLogo(ctx, x + r, y - 11, r, color);
+    globalThis.ArgosBrand?.canvas(ctx, x + r, y - 11, r);
     ctx.fillStyle = color;
     ctx.font = '700 32px "JetBrains Mono", monospace';
-    haloFillText(ctx, 'MONITOR GLOBAL', x + r * 2 + 14, y);
+    haloFillText(ctx, 'ARGOS ORBIS', x + r * 2 + 14, y);
   }
 
   // Arredonda um valor de distância pra um número "redondo" de escala de mapa
@@ -591,7 +591,7 @@
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = '700 24px system-ui, sans-serif';
-    haloFillText(ctx, '📋 Resumo do dia no Telegram: @monitor_global', W / 2, y + 78);
+    haloFillText(ctx, '📋 Resumo do dia no Telegram: ARGOS ORBIS', W / 2, y + 78);
 
     ctx.restore();
     return y + boxH;
@@ -878,7 +878,7 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(148,163,184,.78)';
     ctx.font = '600 22px system-ui, sans-serif';
-    haloFillText(ctx, 'monitorglobal.top', W - padX, 74);
+    haloFillText(ctx, 'argosorbis.com.br', W - padX, 74);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 22px system-ui, sans-serif';
@@ -1137,7 +1137,7 @@
       const dataStamp = new Date().toISOString().slice(0, 10);
       const fileName = `resumo-do-dia-${dataStamp}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
-      const shareData = { files: [file], title: 'Monitor Global', text: 'Resumo do dia — Top 5 sismos' };
+      const shareData = { files: [file], title: 'Argos Orbis', text: 'Resumo do dia — Top 5 sismos' };
       let shared = false;
       try {
         if (navigator.canShare && navigator.canShare(shareData) && navigator.share) {
@@ -1358,7 +1358,7 @@
     // (a marca d'água saiu do rodapé: embaixo já não cabia com cidade + aviso)
     // Não usar location.hostname aqui: ao compartilhar um HTML local no Android,
     // ele pode virar "com.google.android.apps.nbu.files.provider" na imagem.
-    const brandHost = 'monitorglobal.top';
+    const brandHost = 'argosorbis.com.br';
     drawBrandHeaderStory(ctx, 56, 74);
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(148,163,184,.78)';
