@@ -29,16 +29,23 @@ public class TvDashboardUiTest {
    if(contains(((ViewGroup)view).getChildAt(i),text))return true;
   return false;
  }
+ private int countBrandLogo(View view){
+  int n=view instanceof BrandLogoView?1:0;
+  if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)n+=countBrandLogo(((ViewGroup)view).getChildAt(i));
+  return n;
+ }
  private int countLogo(View view){
   int n=view instanceof RadarLogoView?1:0;
   if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)n+=countLogo(((ViewGroup)view).getChildAt(i));
   return n;
  }
- @Test public void actualHomeUsesOriginalAnimatedLogoAndExplicitOverlayReplayControls(){
+ @Test public void actualHomeUsesOfficialAnimatedLogoAndExplicitOverlayReplayControls(){
   MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
   View root=app.getWindow().getDecorView();
-  assertEquals("Radar Scope logo must not be replaced",1,countLogo(root));
-  assertTrue(contains(root,"MONITOR GLOBAL TV"));
+  assertEquals("Official SVG logo has one native animation fallback",1,countLogo(root));
+  assertEquals("Approved BrandLogoView is displayed",1,countBrandLogo(root));
+  assertTrue(contains(root,"ARGOS ORBIS TV"));
+  assertTrue(contains(root,"argosorbis.com.br"));
   assertTrue(contains(root,"REPLAY E RESUMOS SÍSMICOS"));
   assertTrue(contains(root,"AVISOS REGIONAIS"));
   assertTrue(contains(root,"IA meteorológica · entender e consultar agora"));
