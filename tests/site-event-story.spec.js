@@ -16,7 +16,7 @@ test('Concept 6 static composition exports every event family and missing-data s
    CanvasRenderingContext2D.prototype.fillText=function(t,...a){if(this.canvas.width===1080&&this.canvas.height===1920)texts.push(String(t));return original.call(this,t,...a);};
    try{const c=await SiteEventStory.render(e);return {png:c.toDataURL(),texts,profile:SiteEventStory.profile(e)};}finally{CanvasRenderingContext2D.prototype.fillText=original;}
   },type);
-  expect(result.texts.join(' ')).toContain('MONITOR GLOBAL');expect(result.texts.join(' ')).toContain('CONTEXTO REGIONAL');expect(result.texts.join(' ')).toContain('@monitor_global');expect(result.texts.join(' ')).toContain('08/11/2026');
+  expect(result.texts.join(' ')).toContain('ARGOS ORBIS');expect(result.texts.join(' ')).toContain('CONTEXTO REGIONAL');expect(result.texts.join(' ')).toContain('ARGOS ORBIS');expect(result.texts.join(' ')).toContain('08/11/2026');
   if(['temperature','capital-weather'].includes(type)){expect(result.profile.marker).toBe('LOCAL DA PREVISÃO');expect(result.texts.join(' ')).toContain('24 °C');expect(result.texts.join(' ')).not.toContain('EPICENTRO');expect(result.texts.join(' ')).not.toContain('PROFUNDIDADE');}
   if(type==='earthquake'){expect(result.profile.marker).toBe('EPICENTRO · M1,8');expect(result.texts.join(' ')).toContain('0 km');}
   const data=Buffer.from(result.png.split(',')[1],'base64');expect(data.readUInt32BE(16)).toBe(1080);expect(data.readUInt32BE(20)).toBe(1920);
