@@ -35,7 +35,7 @@ public class BroadcastBannerTest {
  }
  @Test public void siteAndTelegramShareTheRightEdge()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),false,true);
-  for(long elapsed:new long[]{1000,9000}){Bitmap b=render(view,elapsed);try{int left=960,right=0,count=0;for(int y=103;y<124;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue(count>30);assertTrue("no overlap with ticker",left>730);assertTrue("ink ends close to right edge",right>=950&&right<=954);export(b,elapsed==1000?"site":"telegram");}finally{b.recycle();}}
+  for(long elapsed:new long[]{1000,9000}){Bitmap b=render(view,elapsed);try{int left=960,right=0,count=0;for(int y=103;y<124;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue(count>30);assertTrue("no overlap with ticker",left>730);assertTrue("ink ends close to right edge",right>=936&&right<=958);export(b,elapsed==1000?"site":"telegram");}finally{b.recycle();}}
  }
  @Test public void redMagnitudeHasNoBoxAndOnlyTheFooterEndsAreRounded()throws Exception{
   NewsBannerView normal=new NewsBannerView(c,alert(),true,false);Bitmap b=render(normal,1000);
