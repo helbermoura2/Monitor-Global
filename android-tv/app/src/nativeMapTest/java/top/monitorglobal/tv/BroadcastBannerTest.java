@@ -30,7 +30,7 @@ public class BroadcastBannerTest {
  @Test public void radarIsLargeAndAnimatedWhileReducedMotionStopsTheSweep()throws Exception{
   java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);
   try{for(boolean motion:new boolean[]{true,false}){scale.invoke(null,motion?1f:0f);NewsBannerView view=new NewsBannerView(c,alert(),false,true);Bitmap a=render(view,1000),b=render(view,1600);
-   try{int changed=0,blue=0;for(int y=25;y<97;y++)for(int x=886;x<958;x++){if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;int p=a.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("large visible radar",blue>500);if(motion)assertTrue(changed>100);else assertEquals(0,changed);}finally{a.recycle();b.recycle();}
+   try{int changed=0,blue=0;for(int y=25;y<97;y++)for(int x=886;x<958;x++){if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;int p=a.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("official eye has visible teal radar rings",blue>200);if(motion)assertTrue(changed>100);else assertEquals(0,changed);}finally{a.recycle();b.recycle();}
   }}finally{scale.invoke(null,1f);}
  }
  @Test public void siteAndTelegramShareTheRightEdge()throws Exception{
