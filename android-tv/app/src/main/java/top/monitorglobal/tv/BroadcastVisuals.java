@@ -60,6 +60,11 @@ final class BroadcastVisuals {
  static final float RADAR_SCALE=72f/52f;
  static final float TICKER_PX_PER_SECOND=40f;
  static final long RADAR_PERIOD_MS=2400;
+ private static final android.graphics.Path ARGOS_EYE=new android.graphics.Path();
+ static {
+  ARGOS_EYE.moveTo(-26,0);ARGOS_EYE.quadTo(0,-23,26,0);
+  ARGOS_EYE.quadTo(0,23,-26,0);ARGOS_EYE.close();
+ }
  static final int TICKER_START_X=100;
  static float tickerOffset(long elapsed,float length,boolean animated){
   return animated&&length>0?(elapsed/1000f*TICKER_PX_PER_SECOND)%length:0f;
@@ -68,9 +73,7 @@ final class BroadcastVisuals {
   // Compact adaptation of the official Argos Orbis gold eye / fixed cyan radar.
   // Only the pointer rotates; the rings and the outer eye stay still.
   c.save();c.translate(RADAR_X,RADAR_Y);c.scale(RADAR_SCALE,RADAR_SCALE);
-  android.graphics.Path outline=new android.graphics.Path();
-  outline.moveTo(-26,0);outline.quadTo(0,-23,26,0);outline.quadTo(0,23,-26,0);outline.close();
-  c.save();c.clipPath(outline);
+  c.save();c.clipPath(ARGOS_EYE);
   paint.setStyle(Paint.Style.FILL);paint.setColor(0xff052f35);
   c.drawCircle(0,0,24,paint);
   paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2f);paint.setColor(0xff16caca);
@@ -89,7 +92,8 @@ final class BroadcastVisuals {
   c.drawCircle(0,0,3.5f,paint);
   c.restore();
   paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2.7f);paint.setColor(0xffc4a16a);
-  c.drawPath(outline,paint);
+  c.drawPath(ARGOS_EYE,paint);
+  paint.setStyle(Paint.Style.FILL);
   c.restore();
  }
 }
