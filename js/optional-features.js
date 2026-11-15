@@ -84,6 +84,16 @@
   return Number.isFinite(lat)&&Number.isFinite(lon)&&window.CountryBoundaries?.lookup(lat,lon)?.countryCode==='BR';
  }
  function init(){
+  // A discoverable admin entry in '⋯ Mais'. Only the login UI is public:
+  // the Worker still validates ADMIN_TOKEN for every private request.
+  const menu=document.getElementById('ts-more-menu');
+  if(menu&&!document.getElementById('admin-telegram-history')){
+   const link=document.createElement('button');
+   link.type='button';link.id='admin-telegram-history';link.className='submenu-action';
+   link.textContent='🔒 Telegram · administração';
+   link.addEventListener('click',()=>window.TelegramAdmin.open());
+   menu.append(link);
+  }
   if(new URLSearchParams(location.search).get('admin')==='1')window.TelegramAdmin.open();
   const button=document.getElementById('pd-share-btn'),videoButton=document.getElementById('pd-video-btn');
   button?.addEventListener('click',async event=>{
