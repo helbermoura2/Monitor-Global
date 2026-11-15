@@ -51,3 +51,11 @@ cotas, cobrança, cron, segredos, armazenamento ou direitos de dispositivos.
 A implantação deve ocorrer pelo fluxo protegido Cloudflare Worker maintenance,
 com verificação dos bindings e health. Se qualquer validação falhar, interromper
 a implantação sem forçar alterações.
+
+14/11/2026 — autorização explícita de rebranding: "Muda tudo, pois ja comprei o domínio .com.br".
+Implantar a identidade ARGOS ORBIS nos renderizadores dos cartões e resumos do
+Telegram pelo fluxo protegido do Worker. Preservar a contagem/deduplicação dos
+alertas, os IDs de canal, os tokens, as configurações da Cloudflare, os crons,
+Durable Objects, os limites e as rotas de API. Não publicar alertas de teste ou
+republicar histórico; não migrar hostname das APIs até DNS/TLS confirmado.
+A publicação só pode avançar após os testes do Worker e verificações de saúde.
