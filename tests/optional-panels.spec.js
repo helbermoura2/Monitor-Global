@@ -49,3 +49,18 @@ test('admin can send a single text smoke test from history panel without HTTP ed
  expect(posts).toBe(1);expect(method).toBe('POST');expect(credential).toBe('test-key');expect(tokenInUrl).toBe(false);
  expect(await page.evaluate(()=>({local:localStorage.length,session:sessionStorage.length}))).toEqual({local:0,session:0});
 });
+
+test('Telegram diagnostic checks identity and permissions without publishing',async({page})=>{
+ let calls=0,method='';
+ await page.route('**/telegram-history',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:'{"daily":[],"alerts":[]}'}));
+ await page.route('**/telegram-admin-diagnose',r=>{
+  calls++;method=r.request().method();
+  return r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:'{"ok":false,"botUsername":"MonitorGlobalTop_bot","stage":"bot","error":"Worker está usando o bot antigo."}'});
+ });
+ await boot(page,'?admin=1');
+ await page.locator('#tg-admin-key').fill('test-key');
+ await page.getByRole('button',{name:'Entrar'}).click();
+ await page.getByRole('button',{name:'Verificar bot e canal'}).click();
+ await expect(page.locator('#tg-admin-dialog .tg-admin-message')).toContainText('Worker está usando o bot antigo.');
+ expect(calls).toBe(1);expect(method).toBe('POST');
+});

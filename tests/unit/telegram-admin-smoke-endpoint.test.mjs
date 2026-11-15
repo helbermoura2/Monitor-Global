@@ -34,3 +34,28 @@ test('correct admin cannot accidentally GET the sending route; no DO returns 503
  assert.equal((await worker.fetch(new Request(endpoint,{headers}),{ADMIN_TOKEN:'private'})).status,405);
  assert.equal((await worker.fetch(new Request(endpoint,{method:'POST',headers}),{ADMIN_TOKEN:'private'})).status,503);
 });
+
+test('diagnostic rejects unauthorized calls and GET before looking up the bot',async()=>{
+ const endpoint='https://worker.test/telegram-admin-diagnose';
+ assert.equal((await worker.fetch(new Request(endpoint,{method:'POST'}),{ADMIN_TOKEN:'private'})).status,401);
+ assert.equal((await worker.fetch(new Request(endpoint,{headers:{'X-Admin-Token':'private'}}),{ADMIN_TOKEN:'private'})).status,405);
+});
+
+test('browser receives CORS headers with safe status from read-only diagnostic',async()=>{
+ const old=globalThis.fetch;
+ const calls=[];
+ globalThis.fetch=async(url,opts)=>{
+  calls.push(String(url).split('/').at(-1));
+  if(String(url).endsWith('/getMe'))return Response.json({ok:true,result:{id:71,username:'ArgosOrbisBot'}});
+  return Response.json({ok:true,result:{status:'administrator',can_post_messages:true}});
+ };
+ try{
+  const r=await worker.fetch(new Request('https://worker.test/telegram-admin-diagnose',{method:'POST',headers:{'X-Admin-Token':'private'}}),{
+   ADMIN_TOKEN:'private',TELEGRAM_BOT_TOKEN:'fake',TELEGRAM_CHAT_ID:'-100456'
+  });
+  assert.equal(r.status,200);
+  assert.equal(r.headers.get('Access-Control-Allow-Origin'),'*');
+  assert.equal((await r.json()).canPost,true);
+  assert.deepEqual(calls,['getMe','getChatMember']);
+ }finally{globalThis.fetch=old;}
+});

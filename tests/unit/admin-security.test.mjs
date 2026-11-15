@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 let source=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8');
 source=source.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
 const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
-const adminPaths=['/telegram-test','/telegram-daily-summary','/telegram-m6-check','/telegram-card-preview','/telegram-history','/telegram-history-preview','/telegram-history-detail','/telegram-admin-smoke','/source-health'];
+const adminPaths=['/telegram-test','/telegram-daily-summary','/telegram-m6-check','/telegram-card-preview','/telegram-history','/telegram-history-preview','/telegram-history-detail','/telegram-admin-smoke','/telegram-admin-diagnose','/source-health'];
 test('administrative endpoints reject absent/wrong/headerless URL credentials before any I/O',async()=>{
  const previous=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('unexpected network');};
  try{
