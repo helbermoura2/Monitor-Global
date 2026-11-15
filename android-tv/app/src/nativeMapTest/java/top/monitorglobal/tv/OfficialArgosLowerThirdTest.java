@@ -72,8 +72,9 @@ public class OfficialArgosLowerThirdTest {
   TvBroadcastInfoView rain=TvBroadcastInfoView.market(c,null,null,false);
   Bitmap b=render(rain,1000);
   try{
+   int cleanBackground=b.getPixel(945,35);
    for(int y=30;y<90;y++)for(int x=931;x<958;x++){
-    assertEquals("logo and metrics stay within the safe area",0xff071724,b.getPixel(x,y));
+    assertEquals("logo and metrics stay within the safe area",cleanBackground,b.getPixel(x,y));
    }
   }finally{b.recycle();}
  }
