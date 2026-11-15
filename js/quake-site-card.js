@@ -26,9 +26,8 @@
  }
  function header(p,ev,mag,place){
   p.rect(0,0,W,MAP_Y,bg);
-  for(const radius of [27,19,10])p.arc(55,39,radius,1.4,-90,295,'#188bbd');
-  p.dot(55,39,3,cyan);
-  (p.brandText||p.text)('MONITOR GLOBAL',101,21,30,white,true);
+  globalThis.ArgosBrand.paint(p,55,39,24);
+  (p.brandText||p.text)('ARGOS ORBIS',101,21,30,white,true);
   p.text(ev.test?'SIMULAÇÃO':ev.revisionText||ev._deltaTxt?'REVISADO':'REGISTRO SÍSMICO',textRight(p,ev.test?'SIMULAÇÃO':ev.revisionText||ev._deltaTxt?'REVISADO':'REGISTRO SÍSMICO',14),26,14,muted,true);
   p.rect(26,78,748,1,'#345468');
   p.rect(28,100,5,69,cyan);
@@ -86,8 +85,8 @@
   });
   p.text('Sismo: mapa e intensidade são estimativas; anéis não indicam propagação.',45,1311,11,muted);
   p.rect(42,1338,716,1,'#4b8095');
-  p.text('monitorglobal.top',47,1356,21,white,true);
-  p.text('Telegram · @monitor_global',422,1358,18,white,true);
+  p.text('argosorbis.com.br',47,1356,21,white,true);
+  p.text('Telegram · ARGOS ORBIS',422,1358,18,white,true);
  }
- root.QuakeSiteCard={frame,contextFrame,draw,drawContext,CONTEXT,MAP_Y,MAP_HEIGHT,ANCHOR_Y,version:'site-concept6-v1'};
+ root.QuakeSiteCard={frame,contextFrame,draw,drawContext,CONTEXT,MAP_Y,MAP_HEIGHT,ANCHOR_Y,version:'site-argos-orbis-v2'};
 })(window);
