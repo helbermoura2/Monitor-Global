@@ -108,3 +108,7 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .radar-control>strong{display:block;color:#9be9ff;font:700 13px Rajdhani,system-ui;margin-bottom:7px}
 .brazil-dot[data-observed=true] .value{font-size:0;width:9px;height:9px;min-height:9px;max-width:9px;padding:0;border-radius:50%;background:#45d7ed;border:2px solid white}
 .brazil-dot[data-observed=true] .arrow{display:none!important}
+
+/* Scroll horizontally through verified model fields without reducing map height. */
+.brazil-layers{display:flex!important;grid-template-columns:none!important;overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:3px}
+.brazil-layers button{min-width:76px!important;flex:0 0 auto!important;white-space:nowrap;padding-inline:9px!important}
