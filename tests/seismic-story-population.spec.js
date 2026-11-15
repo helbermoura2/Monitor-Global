@@ -29,7 +29,7 @@ test('Concept 6 keeps land intensity on the map but removes verbose exposure fro
  await page.evaluate(()=>{Object.defineProperty(navigator,'canShare',{value:()=>false,configurable:true});});
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();await download;
  const texts=await page.evaluate(()=>__storyTexts.join(' '));
- for(const needle of ['MONITOR GLOBAL','M8,0','SISMO','CONTEXTO REGIONAL','EPICENTRO','PROFUNDIDADE','INTENSIDADE EST.','TSUNAMI','monitorglobal.top','Telegram · @monitor_global'])expect(texts).toContain(needle);
+ for(const needle of ['ARGOS ORBIS','M8,0','SISMO','CONTEXTO REGIONAL','EPICENTRO','PROFUNDIDADE','INTENSIDADE EST.','TSUNAMI','argosorbis.com.br','Telegram · ARGOS ORBIS'])expect(texts).toContain(needle);
  for(const removed of ['123.456','VI+:','USGS PAGER','POPULAÇÃO POTENCIALMENTE EXPOSTA','COMO LER O MAPA · INTENSIDADE LOCAL','PESSOAS QUE PODEM TER SENTIDO','ALCANCE DA ONDA','CIDADES PRÓXIMAS','Animação do sismo','Replay do mapa'])expect(texts).not.toContain(removed);
  expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='MonitorGlobalRajdhani'&&f.status==='loaded'))).toBe(true);
  expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='MonitorGlobalJetBrains'&&f.status==='loaded'))).toBe(true);
