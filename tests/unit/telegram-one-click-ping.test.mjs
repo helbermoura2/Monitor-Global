@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 let source=await readFile(new URL('../../monitor-global-worker-7_7_0.js',import.meta.url),'utf8');
-source=source.replace(/from "(\\.\\/[^"\\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
+source=source.replace(/from "(\.\/[^"\n]+)"/g,(_,p)=>'from '+JSON.stringify(new URL('../../'+p.slice(2),import.meta.url).href));
 const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const base='https://worker.test/telegram-ping';
 const env={ADMIN_TOKEN:'private-test',TELEGRAM_BOT_TOKEN:'fake-test-bot-token',TELEGRAM_CHAT_ID:'-100123'};
