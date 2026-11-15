@@ -129,7 +129,7 @@ final class NewsBannerView extends View {
  float identityLeft(long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;float width=identityWidths[current];
   if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)width=Math.max(identityWidths[0],identityWidths[1]);
-  return 960-width;
+  return 960-BroadcastVisuals.BRAND_RIGHT_INSET-width;
  }
  private void drawIdentity(Canvas c,long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;
@@ -137,7 +137,7 @@ final class NewsBannerView extends View {
   else identity(c,current,255);
  }
  private void identity(Canvas c,int index,int opacity){
-  if(opacity<=0)return;float labelX=954-identityTextWidths[index];int layer=c.saveLayerAlpha(960-identityWidths[index],BroadcastVisuals.FOOTER_TOP,960,126,opacity);c.clipPath(bannerClip);
+  if(opacity<=0)return;float labelX=960-BroadcastVisuals.BRAND_RIGHT_INSET-identityTextWidths[index];int layer=c.saveLayerAlpha(960-BroadcastVisuals.BRAND_RIGHT_INSET-identityWidths[index],BroadcastVisuals.FOOTER_TOP,960-BroadcastVisuals.BRAND_RIGHT_INSET,126,opacity);c.clipPath(bannerClip);
   if(index==1){c.save();c.translate(labelX-14,113);paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(42,171,238));c.drawCircle(0,0,8,paint);paint.setColor(Color.WHITE);c.drawPath(telegramPlane,paint);c.restore();}
   text(c,index==0?"argosorbis.com.br":"@argosorbis",labelX,119,15,Color.WHITE,brand,206);c.restoreToCount(layer);
  }

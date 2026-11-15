@@ -56,44 +56,31 @@ final class BroadcastVisuals {
   }
   canvas.restore();paint.setTextScaleX(1f);
  }
- static final float RADAR_X=922f,RADAR_Y=61f;
- static final float RADAR_SCALE=72f/52f;
+ // 960-unit coordinate system, shared by all lower thirds (not physical TV px).
+ // Right edge: 960 - 35 = 925, so the full 62-unit logo is overscan-safe.
+ static final float BRAND_RIGHT_INSET=35f;
+ static final float RADAR_SIZE=62f,RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f;
+ static final float CONTENT_RIGHT_LIMIT=858f;
  static final float TICKER_PX_PER_SECOND=40f;
- static final long RADAR_PERIOD_MS=2400;
- private static final android.graphics.Path ARGOS_EYE=new android.graphics.Path();
- static {
-  ARGOS_EYE.moveTo(-26,0);ARGOS_EYE.quadTo(0,-23,26,0);
-  ARGOS_EYE.quadTo(0,23,-26,0);ARGOS_EYE.close();
- }
+ static final long RADAR_PERIOD_MS=7200L,BLINK_PERIOD_MS=11000L;
  static final int TICKER_START_X=100;
  static float tickerOffset(long elapsed,float length,boolean animated){
   return animated&&length>0?(elapsed/1000f*TICKER_PX_PER_SECOND)%length:0f;
  }
  static void radar(Canvas c,Paint paint,long elapsed,boolean animated){
-  // Compact adaptation of the official Argos Orbis gold eye / fixed cyan radar.
-  // Only the pointer rotates; the rings and the outer eye stay still.
-  c.save();c.translate(RADAR_X,RADAR_Y);c.scale(RADAR_SCALE,RADAR_SCALE);
-  c.save();c.clipPath(ARGOS_EYE);
-  paint.setStyle(Paint.Style.FILL);paint.setColor(0xff052f35);
-  c.drawCircle(0,0,24,paint);
-  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2f);paint.setColor(0xff16caca);
-  for(float radius:new float[]{20f,15f,10f})c.drawCircle(0,0,radius,paint);
-  paint.setStrokeWidth(1f);paint.setColor(0xff12878b);
-  c.drawCircle(0,0,23,paint);
-  c.save();
+  // The same official vector drawn by RadarLogoView on TV and mobile.
+  // Outer gold eye + four corner symbols remain stationary; only pointer rotates.
   float angle=animated?(elapsed%RADAR_PERIOD_MS)/(float)RADAR_PERIOD_MS*360f:0f;
-  c.rotate(angle);
-  paint.setStyle(Paint.Style.FILL);paint.setColor(0x7734e8d9);
-  c.drawArc(-21,-21,21,21,-90,40,true,paint);
-  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.8f);paint.setColor(0xff77fff0);
-  c.drawLine(0,0,15,-15,paint);
-  c.restore();
-  paint.setStyle(Paint.Style.FILL);paint.setColor(0xff4aeedd);
-  c.drawCircle(0,0,3.5f,paint);
-  c.restore();
-  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2.7f);paint.setColor(0xffc4a16a);
-  c.drawPath(ARGOS_EYE,paint);
-  paint.setStyle(Paint.Style.FILL);
+  float blink=animated?(elapsed%BLINK_PERIOD_MS)/(float)BLINK_PERIOD_MS:0f;
+  float open=1f;
+  if(animated&&blink>.81f&&blink<.89f){
+   float phase=(blink-.81f)/.08f;
+   open=Math.max(.015f,Math.abs(2f*phase-1f));
+  }
+  c.save();
+  c.translate(RADAR_X-RADAR_SIZE/2f,RADAR_Y-RADAR_SIZE/2f);
+  c.scale(RADAR_SIZE/128f,RADAR_SIZE/128f);
+  RadarLogoView.drawArtwork(c,paint,angle,open);
   c.restore();
  }
 }

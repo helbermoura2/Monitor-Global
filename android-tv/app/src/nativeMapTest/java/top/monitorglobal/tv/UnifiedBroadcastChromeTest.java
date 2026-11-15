@@ -57,16 +57,16 @@ public class UnifiedBroadcastChromeTest {
   Bitmap c=frame(meteo,960,126+meteo.mapSpace,1100);
   try{
    int changed=0,bright=0;
-   for(int y=26;y<96;y++)for(int x=886;x<958;x++){
+   for(int y=28;y<91;y++)for(int x=864;x<926;x++){
     int seismicPixel=a.getPixel(x,y+Banner.insetDp(context));
     int marketPixel=b.getPixel(x,y);
     int weatherPixel=c.getPixel(x,y+meteo.mapSpace);
     assertEquals("Brent must reuse seismic radar pixel at "+x+","+y,seismicPixel,marketPixel);
     assertEquals("Weather must reuse seismic radar pixel at "+x+","+y,seismicPixel,weatherPixel);
     if(Color.blue(seismicPixel)>Color.red(seismicPixel)+50)bright++;
-    if(seismicPixel!=a.getPixel(886,25+Banner.insetDp(context)))changed++;
+    if(seismicPixel!=a.getPixel(864,25+Banner.insetDp(context)))changed++;
    }
-   assertTrue("official seismic radar stays clearly visible",bright>500);
+   assertTrue("full official Argos eye stays clearly visible",bright>190);
    assertTrue(changed>100);
   }finally{a.recycle();b.recycle();c.recycle();}
  }
@@ -150,9 +150,12 @@ public class UnifiedBroadcastChromeTest {
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
   assertEquals(40f,BroadcastVisuals.TICKER_PX_PER_SECOND,0f);
-  assertEquals(922f,BroadcastVisuals.RADAR_X,0f);
-  assertEquals(61f,BroadcastVisuals.RADAR_Y,0f);
-  assertEquals(2400,BroadcastVisuals.RADAR_PERIOD_MS);
+  assertEquals(894f,BroadcastVisuals.RADAR_X,0f);
+  assertEquals(62f,BroadcastVisuals.RADAR_SIZE,0f);
+  assertEquals(35f,BroadcastVisuals.BRAND_RIGHT_INSET,0f);
+  assertEquals(59f,BroadcastVisuals.RADAR_Y,0f);
+  assertEquals(7200,BroadcastVisuals.RADAR_PERIOD_MS);
+  assertEquals(11000,BroadcastVisuals.BLINK_PERIOD_MS);
   assertEquals(40,BroadcastVisuals.tickerOffset(1000,1000,true),.01);
   assertEquals(80,BroadcastVisuals.tickerOffset(2000,1000,true),.01);
   assertEquals(0,BroadcastVisuals.tickerOffset(2000,1000,false),.01);
