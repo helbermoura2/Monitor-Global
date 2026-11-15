@@ -45,7 +45,7 @@ public class PhoneActivityTest {
   // Android shows the manifest app label above BOTH live weather and seismic notifications.
   // A preview build remains identifiable through its package and in-app version only.
   assertEquals("Argos Orbis",activity.getString(top.monitorglobal.mobile.R.string.app_name));
-  assertEquals("Monitor Global",activity.getApplicationInfo().loadLabel(activity.getPackageManager()).toString());
+  assertEquals("Argos Orbis",activity.getApplicationInfo().loadLabel(activity.getPackageManager()).toString());
   assertTrue(top.monitorglobal.mobile.BuildConfig.DEBUG);
   assertTrue(top.monitorglobal.mobile.BuildConfig.VERSION_NAME.endsWith("-teste"));
   assertEquals("top.monitorglobal.mobile.dev",activity.getPackageName());
