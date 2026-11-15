@@ -151,8 +151,7 @@ public final class MainActivity extends Activity {
  private void addBrandedHeader(){
   LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
   BrandLogoView radar=new BrandLogoView(this);
-  // SAME 128px Radar Scope geometry and 2.4s sweep as the live website logo.
-  // The existing drawable/logo files are untouched; there is NO new brand.
+  // Exact official vigilante SVG, local to the APK, with native animated fallback.
   header.addView(radar,new LinearLayout.LayoutParams(dp(118),dp(76)));
   LinearLayout titles=new LinearLayout(this);titles.setOrientation(LinearLayout.VERTICAL);
   LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(0,-2,1f);tp.leftMargin=dp(16);
