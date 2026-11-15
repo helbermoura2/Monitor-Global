@@ -819,7 +819,7 @@ async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
     ev.imageTsunami=ev.imageTsunami||await queryImageTsunami(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const key=await renderIdentity('telegram-glass-v19',ev);
+    const key=await renderIdentity('telegram-glass-v19-argos-orbis-v1',ev);
     return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
 }
 function sanitizeHdText(text){
@@ -1065,7 +1065,7 @@ function summaryCardWrap(font,text,width){
     if(line)lines.push(line);return lines;
 }
 async function renderDailySummaryImage(quakes) {
-    const key=await renderIdentity('daily-v13-rajdhani-neon-flags',quakes);
+    const key=await renderIdentity('daily-v14-argos-orbis',quakes);
     return key?cachedRender(key,300000,()=>renderDailySummaryPixels(quakes)):renderDailySummaryPixels(quakes);
 }
 async function renderDailySummaryPixels(quakes) {
