@@ -51,6 +51,24 @@ public final class RadarLogoView extends View {
   c.restore();c.restore();
   paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4f);paint.setColor(GOLD);
   c.drawPath(eye,paint);
+  // The four official corner symbols: earthquake pulse, compass,
+  // waves/cyclones and the global observing sphere.
+  paint.setColor(0xffb99a68);paint.setStrokeWidth(1.2f);
+  Path quake=new Path();quake.moveTo(17,26);quake.lineTo(24,26);quake.lineTo(24,21);
+  quake.lineTo(29,21);quake.lineTo(29,28);quake.lineTo(34,19);quake.lineTo(38,30);quake.lineTo(42,24);
+  c.drawPath(quake,paint);
+  c.drawCircle(108,24,5,paint);c.drawLine(108,16,108,32,paint);
+  c.drawLine(100,24,116,24,paint);c.drawLine(104,20,112,28,paint);
+  Path waves=new Path();waves.moveTo(14,105);waves.cubicTo(20,99,24,99,29,105);
+  waves.cubicTo(34,111,39,111,44,105);c.drawPath(waves,paint);
+  c.drawCircle(108,105,6,paint);c.drawOval(105,99,111,111,paint);
+  c.drawLine(101,105,115,105,paint);c.drawLine(108,98,108,112,paint);
+  paint.setStyle(Paint.Style.FILL);
+  paint.setColor(0xffc4a16a);paint.setTextAlign(Paint.Align.CENTER);
+  paint.setTextSize(6f);
+  c.drawText("ΠΑΝΟΠΤΗΣ",64,9,paint);
+  c.drawText("CUSTOS ORBIS",64,126,paint);
+  paint.setTextAlign(Paint.Align.LEFT);
   c.restoreToCount(save);
  }
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();start();}

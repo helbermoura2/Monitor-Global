@@ -5,6 +5,12 @@ badging = subprocess.check_output([aapt, "dump", "badging", apk], text=True)
 permissions = subprocess.check_output([aapt, "dump", "permissions", apk], text=True)
 assert "package: name='top.monitorglobal.mobile.dev'" in badging, badging
 assert "PhoneActivity" in badging, "Phone launcher missing"
+assert "application-label:'Argos Orbis'" in badging, "Android launcher must use Argos Orbis"
+source = (pathlib.Path(__file__).resolve().parents[1] / "app/src/main/java/top/monitorglobal/tv/PhoneActivity.java").read_text(encoding="utf-8")
+for marker in ("argosorbis.com.br", "https://t.me/argosorbis", 'setTag("argos-logo")'):
+    assert marker in source, "Missing Argos branding: " + marker
+assert "https://t.me/monitor_global" not in source
+assert "https://monitorglobal.top/" not in source
 print(next(line for line in badging.splitlines() if line.startswith("package:")))
 for unwanted in ["SYSTEM_ALERT_WINDOW", "FOREGROUND_SERVICE", "RECEIVE_BOOT_COMPLETED", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]:
     assert unwanted not in permissions, unwanted
