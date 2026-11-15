@@ -1,4 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
+import '../../js/argos-eye-brand.js';
 import '../../js/event-portuguese.js';import '../../js/seismic-impact-model.js';import '../../js/quake-card-layout.js';
 const layout=globalThis.QuakeCardLayout;
 test('approved M6.6 map uses the centered map projection',()=>{
@@ -41,5 +42,5 @@ test('editorial bulletin preserves coordinates, revision and exposure without co
 test('brand radar, site typography hook, unboxed live status and channel keep their own image areas',()=>{
  const text=[],boxes=[],arcs=[],p={rect(){},roundRect:(...a)=>boxes.push(a),dot(){},arc:(...a)=>arcs.push(a),measure:(s,z)=>s.length*z*.6,text:(s,x,y,z)=>text.push({s,x,y,z}),brandText:(s,x,y,z)=>text.push({s,x,y,z,brand:true})};
  layout.draw(p,{mag:6.5,depth:492,place:'Bonin Islands, Japan'});
- assert(text.some(t=>t.s==='MONITOR GLOBAL'&&t.brand));assert(text.some(t=>t.s==='@monitor_global'));assert(text.some(t=>t.s==='AO VIVO'));assert(arcs.length>0);assert(!boxes.some(([x,y,w,h])=>x>=600&&y<60));assert(text.every(t=>t.x>=0&&t.x+p.measure(t.s,t.z)<=800));
+ assert(text.some(t=>t.s==='ARGOS ORBIS'&&t.brand));assert(text.some(t=>t.s==='TELEGRAM · ARGOS ORBIS'));assert(text.some(t=>t.s==='AO VIVO'));assert(arcs.length>0);assert(!boxes.some(([x,y,w,h])=>x>=600&&y<60));assert(text.every(t=>t.x>=0&&t.x+p.measure(t.s,t.z)<=800));
 });
