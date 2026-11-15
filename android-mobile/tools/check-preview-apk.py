@@ -11,6 +11,19 @@ for marker in ("argosorbis.com.br", "https://t.me/argosorbis", 'setTag("argos-lo
     assert marker in source, "Missing Argos branding: " + marker
 assert "https://t.me/monitor_global" not in source
 assert "https://monitorglobal.top/" not in source
+# The launcher icon is opaque option 3; transparent backgrounds can turn white
+# in some launchers (Samsung and Android TV).
+import xml.etree.ElementTree as ET
+resource_root=pathlib.Path(__file__).resolve().parents[1]/"app/src/main/res/drawable"
+icon=ET.parse(resource_root/"ic_launcher_monitor.xml").getroot()
+android="{http://schemas.android.com/apk/res/android}"
+aapt="{http://schemas.android.com/aapt}"
+background=icon.find("path")
+assert background is not None and background.get(android+"pathData")=="M0,0H128V128H0Z"
+gradient=background.find(aapt+"attr/gradient")
+assert gradient is not None and gradient.get(android+"type")=="radial"
+colors=[item.get(android+"color") for item in gradient.findall("item")]
+assert "#010304" in colors and "#084746" in colors, "Missing black and teal colors from approved icon option 3"
 print(next(line for line in badging.splitlines() if line.startswith("package:")))
 for unwanted in ["SYSTEM_ALERT_WINDOW", "FOREGROUND_SERVICE", "RECEIVE_BOOT_COMPLETED", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]:
     assert unwanted not in permissions, unwanted
