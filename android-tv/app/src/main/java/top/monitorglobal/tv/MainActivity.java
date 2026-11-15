@@ -30,13 +30,13 @@ public final class MainActivity extends Activity {
   addStatusPanel();
   section("ALEXA · CONTROLE DO FIRE STICK");
   button("Vincular Alexa · mostrar código de 6 dígitos",v->{
-   new AlertDialog.Builder(this).setTitle("Vincular Monitor Global à Alexa")
+   new AlertDialog.Builder(this).setTitle("Vincular Argos Orbis à Alexa")
     .setMessage("O código é temporário. Ele permite que sua skill Alexa envie comandos somente para esta TV.\n\nNão use a barra de pesquisa do Google: depois de vincular, segure o botão físico de microfone do controle e fale com a Alexa.")
     .setNegativeButton("Cancelar",null)
     .setPositiveButton("Gerar código",(d,w)->{
      AlexaLinkClient.register(this,message->{
       if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
-      new AlertDialog.Builder(this).setTitle("Código da Alexa · Monitor Global").setMessage(message)
+      new AlertDialog.Builder(this).setTitle("Código da Alexa · Argos Orbis").setMessage(message)
        .setPositiveButton("Entendi",null).show();
      });
     }).show();
@@ -44,20 +44,20 @@ public final class MainActivity extends Activity {
   label("Depois de vincular a skill: segure o microfone do controle e diga “Peça ao Monitor Global para mostrar o Brent”. O card aparece sobre o vídeo. É preciso ativar o monitoramento e publicar a ponte Alexa no Worker.",15,false);
   section("GOOGLE HOME · TCL P7K · CONTROLE SEM ABRIR O APP");
   button("Vincular Google Home · gerar código de 6 dígitos",v->{
-   new AlertDialog.Builder(this).setTitle("Vincular Monitor Global ao Google Home")
+   new AlertDialog.Builder(this).setTitle("Vincular Argos Orbis ao Google Home")
     .setMessage("A integração Google Cloud-to-cloud precisa estar configurada primeiro no Google Home Developer Console e publicada no Worker.\n\nA vinculação mantém a Alexa funcionando e autoriza somente comandos para esta TV. Não é necessário abrir o aplicativo para consultar a temperatura após vincular.")
     .setNegativeButton("Cancelar",null)
     .setPositiveButton("Gerar código",(dialog,which)->{
      AlexaLinkClient.googlePair(this,message->{
       if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
-      new AlertDialog.Builder(this).setTitle("Google Home · Monitor Global").setMessage(message)
+      new AlertDialog.Builder(this).setTitle("Google Home · Argos Orbis").setMessage(message)
        .setPositiveButton("Entendi",null).show();
      });
     }).show();
   });
   button("Verificar se o Google Home está vinculado",v->{
    AlexaLinkClient.googleLinkStatus(this,message->new AlertDialog.Builder(this)
-    .setTitle("Estado do Google Home · Monitor Global")
+    .setTitle("Estado do Google Home · Argos Orbis")
     .setMessage(message).setPositiveButton("Entendi",null).show());
   });
   label("Teste privado: no Google Home, vincule [test] Monitor Global e experimente “Ativar Temperatura Monitor Global”. Se funcionar, uma rotina poderá reconhecer “Mostrar temperatura do Monitor Global”. Nenhum app precisa estar aberto: apenas o monitoramento em segundo plano deve permanecer ativo.",15,false);
@@ -151,17 +151,19 @@ public final class MainActivity extends Activity {
  private void addBrandedHeader(){
   LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
   RadarLogoView radar=new RadarLogoView(this);
-  // SAME 128px Radar Scope geometry and 2.4s sweep as the live website logo.
-  // The existing drawable/logo files are untouched; there is NO new brand.
-  header.addView(radar,new LinearLayout.LayoutParams(dp(76),dp(76)));
+  // Animated eye and radar reproduce the Argos Orbis compact brand.
+  // Keep the accessibility-friendly native view used by Android TV.
+  header.addView(radar,new LinearLayout.LayoutParams(dp(104),dp(104)));
   LinearLayout titles=new LinearLayout(this);titles.setOrientation(LinearLayout.VERTICAL);
   LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(0,-2,1f);tp.leftMargin=dp(16);
   header.addView(titles,tp);
-  TextView name=display("MONITOR GLOBAL TV",wideLayout?36:29,Color.WHITE,true);
+  TextView name=display("ARGOS ORBIS",wideLayout?38:30,Color.WHITE,true);
   try{name.setTypeface(Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf"));}catch(RuntimeException ignored){}
   titles.addView(name);
-  TextView tagline=display("M6+ no mundo · Sismos no Brasil · Tsunami",wideLayout?19:16,0xffc0d2dc,false);
+  TextView tagline=display("INTELIGÊNCIA PLANETÁRIA · SISMOS · METEOROLOGIA",wideLayout?19:15,0xffc0d2dc,false);
   titles.addView(tagline);
+  TextView links=display("argosorbis.com.br  •  t.me/argosorbis",wideLayout?17:14,0xff68e2e4,false);
+  titles.addView(links);
   content.addView(header);
   TextView version=display("VERSÃO "+BuildConfig.VERSION_NAME+"  ·  CONFIGURAÇÕES",14,0xff6be9f4,true);
   LinearLayout.LayoutParams vp=new LinearLayout.LayoutParams(-1,-2);vp.topMargin=dp(10);
@@ -231,7 +233,7 @@ public final class MainActivity extends Activity {
   speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
   speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR");
   speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,"pt-BR");
-  speech.putExtra(RecognizerIntent.EXTRA_PROMPT,"Fale com o Monitor Global");
+  speech.putExtra(RecognizerIntent.EXTRA_PROMPT,"Fale com o Argos Orbis");
   speech.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,3);
   try{startActivityForResult(speech,VOICE_REQUEST);}
   catch(android.content.ActivityNotFoundException|SecurityException e){startDirectVoice();}
@@ -284,7 +286,7 @@ public final class MainActivity extends Activity {
   super.onRequestPermissionsResult(requestCode,permissions,results);
   if(requestCode==VOICE_AUDIO_PERMISSION){
    if(results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED)startDirectVoice();
-   else voiceMessage("A TV não concedeu permissão de microfone ao Monitor Global.");
+   else voiceMessage("A TV não concedeu permissão de microfone ao Argos Orbis.");
   }
  }
  @Override public boolean onKeyDown(int keyCode,KeyEvent event){
