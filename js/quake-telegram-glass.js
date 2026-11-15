@@ -31,7 +31,7 @@
   text(p,ev.reviewed?'Revisado':ev.reviewStatus==='unknown'?'Revisão não informada':'Automático',50,1264,19,WHITE,true);
   const official=ev.shaking?.status==='available';text(p,'Intensidade '+(official?'oficial':'estimada')+' '+(ev.mmi||'indisponível'),310,1260,20,WHITE,true);
   text(p,'Estimativa não confirma danos.',310,1294,15,MUTED);
-  glass(p,24,1380,752,48);text(p,'argosorbis.com.br',44,1392,19,WHITE,true);text(p,'Telegram · ARGOS ORBIS',423,1392,19,CYAN,true);
+  glass(p,24,1380,752,48);text(p,'argosorbis.com.br',44,1392,19,WHITE,true);text(p,'Telegram · @argosorbis',423,1392,19,CYAN,true);
  }
  globalThis.QuakeTelegramLegacyLayout=legacy;
  globalThis.QuakeTelegramLayout={version:'telegram-glass-v19',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y:930,TSUNAMI_HEIGHT:146,showScale:false,telegramFrame,draw,drawTsunami,active};
