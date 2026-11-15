@@ -10,13 +10,14 @@ const PLACES=[
  ['Curitiba',-25.428,-49.273],['Porto Alegre',-30.034,-51.230]
 ].map(([name,lat,lon])=>Object.freeze({name,lat,lon}));
 const FIELDS=['temperature_2m','wind_speed_10m','wind_direction_10m','precipitation','pressure_msl'];
-const LIMITS={temperature_2m:[-50,60],wind_speed_10m:[0,300],wind_direction_10m:[0,360],precipitation:[0,500],pressure_msl:[850,1100]};
+const EXTRAS=['relative_humidity_2m','apparent_temperature','wind_gusts_10m'];
+const LIMITS={temperature_2m:[-50,60],wind_speed_10m:[0,300],wind_direction_10m:[0,360],precipitation:[0,500],pressure_msl:[850,1100],relative_humidity_2m:[0,100],apparent_temperature:[-80,75],wind_gusts_10m:[0,350]};
 const HOUR=3600000;
 function brHour(now){
  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).format(new Date(now)).replace(' ','T');
 }
 function url(places=PLACES){
- const params=new URLSearchParams({latitude:places.map(p=>p.lat).join(','),longitude:places.map(p=>p.lon).join(','),hourly:FIELDS.join(','),timezone:'America/Sao_Paulo',forecast_days:'3',wind_speed_unit:'kmh'});
+ const params=new URLSearchParams({latitude:places.map(p=>p.lat).join(','),longitude:places.map(p=>p.lon).join(','),hourly:[...FIELDS,...EXTRAS].join(','),timezone:'America/Sao_Paulo',forecast_days:'3',wind_speed_unit:'kmh'});
  return 'https://api.open-meteo.com/v1/forecast?'+params.toString();
 }
 function parse(payload,now=Date.now(),places=PLACES){
@@ -40,13 +41,19 @@ function parse(payload,now=Date.now(),places=PLACES){
    if(!Array.isArray(values)||values.length!==times.length||values.some(n=>typeof n!=='number'||!Number.isFinite(n)||n<bounds[0]||n>bounds[1]))return null;
    forecast[field]=values;
   }
+  // New climate fields are optional so cached forecasts from earlier versions
+  // stay usable; never fabricate missing humidity, wind gusts or apparent temp.
+  for(const field of EXTRAS){
+   const values=hourly[field],bounds=LIMITS[field];
+   forecast[field]=Array.isArray(values)&&values.length===times.length&&values.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=bounds[0]&&n<=bounds[1])?values:null;
+  }
   series.push(forecast);
  }
  return {series,times,first,at:now,places:places.map(p=>({name:String(p.name),lat:p.lat,lon:p.lon}))};
 }
 function value(data,placeIndex,step,field){
- if(!data||!FIELDS.includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>8)return null;
- return data.series[placeIndex][field][data.first+step*3];
+ if(!data||![...FIELDS,...EXTRAS].includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>8)return null;
+ const values=data.series[placeIndex][field];return Array.isArray(values)?values[data.first+step*3]:null;
 }
 const api={PLACES,FIELDS,url,parse,value,brHour,HOUR};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PhoneBrazilModel=api;

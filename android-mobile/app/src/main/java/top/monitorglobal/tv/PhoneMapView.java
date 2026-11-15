@@ -68,7 +68,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&!brazilPage&&satelliteResource(uri))||(rainPage&&(rainResource(uri)||streetResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)))?null:blocked();
+     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||municipalMeshResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -92,6 +92,16 @@ final class PhoneMapView extends FrameLayout {
   if(!m.matches())return false;int size=1<<Integer.parseInt(m.group(1));return Integer.parseInt(m.group(2))<size&&Integer.parseInt(m.group(3))<size;
  }
 
+ /** Pin municipal meshes to a single immutable, attributed geodata snapshot.
+  * Only known Brazilian UFs; no arbitrary URL, query, redirects or asset proxy.
+  */
+ static boolean municipalMeshResource(Uri uri){
+  if(!"https".equalsIgnoreCase(uri.getScheme())||!"cdn.jsdelivr.net".equalsIgnoreCase(uri.getHost())
+   ||uri.getPort()!=-1||uri.getUserInfo()!=null||uri.getQuery()!=null||uri.getFragment()!=null)return false;
+  return uri.getPath()!=null&&uri.getPath().matches(
+   "/gh/henriquemalvar/br-geojson@a4680c128c23c90fde346334fd5888a3b2997d29/dist/municipios/"
+   +"(AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)[.]geojson");
+ }
  static boolean forecastResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"api.open-meteo.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&"/v1/forecast".equals(uri.getPath())&&uri.getQuery()!=null&&uri.getQuery().length()<=1800&&uri.getQueryParameter("apikey")==null&&uri.getQueryParameter("latitude")!=null&&uri.getQueryParameter("longitude")!=null;}
  static boolean rainResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"black-sky-9ba0.terrestre.workers.dev".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String path=uri.getPath();return ("/rainbow-snapshot".equals(path)&&uri.getQuery()==null)||("/tv-rain".equals(path)&&"area=liberdade".equals(uri.getQuery()))||(path!=null&&path.matches("/rainbow-tile/[0-9]+/[0-9]+/[0-7]/[0-9]+/[0-9]+")&&uri.getQuery()==null);}
  static boolean mainPage(Uri uri){return localAsset(uri)&&(ASSET_PREFIX+"phone-map.html").equals(uri.getPath())&&uri.getQuery()==null;}
@@ -106,7 +116,7 @@ final class PhoneMapView extends FrameLayout {
   if(closed)return;events.clear();JSONArray payload=new JSONArray();int accepted=0;
   if(values!=null)for(Alert event:values){if(event==null||event.id==null||event.id.isEmpty()||event.id.length()>1400)continue;if(accepted++>=120)break;events.put(event.id,event.copy());}
   for(Alert event:events.values()){if(!MapFrame.located(event.originLongitude,event.originLatitude))continue;
-   try{payload.put(new JSONObject().put("id",event.id).put("kind",event.kind).put("title",event.title).put("longitude",event.originLongitude).put("latitude",event.originLatitude));}catch(JSONException ignored){}
+   try{payload.put(new JSONObject().put("id",event.id).put("kind",event.kind).put("title",event.title).put("longitude",event.originLongitude).put("latitude",event.originLatitude).put("magnitude",Double.isFinite(event.magnitude)?event.magnitude:JSONObject.NULL).put("depth",Double.isFinite(event.depth)?event.depth:JSONObject.NULL).put("eventTime",event.eventTime).put("source",event.source).put("countryCode",event.countryCode));}catch(JSONException ignored){}
   }
   pendingEvents=payload.toString();sendEvents();
  }
