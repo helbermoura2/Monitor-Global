@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const base='https://black-sky-9ba0.terrestre.workers.dev';
- let token='',authorized=false,dialog,body,message,objectUrl,active='daily',data,healthGeneration=0;
+ let token='',authorized=false,dialog,body,message,objectUrl,active='daily',data,healthGeneration=0,sendingTest=false;
  const labels={sent:'Enviado',sending:'Envio em andamento',uncertain:'Entrega sem confirmação',failed:'Falhou',preparing:'Preparando',pending:'Pendente',unavailable:'Histórico indisponível',query:'Consultando USGS',data:'Dados obtidos',render:'Gerando imagem',prepared:'Resumo preparado','text-fallback':'Imagem falhou — usando texto','legacy-confirmed':'Envio anterior confirmado','missing-secrets':'Configuração do Telegram ausente'};
  const fmt=at=>at?new Date(at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'medium'}):'Horário não registrado';
  const n=(tag,text,cls)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(cls)el.className=cls;return el};
@@ -24,7 +24,13 @@
    try{
      const response=await fetch(base+path,{method,headers:{'X-Admin-Token':token},cache:'no-store',signal:controller.signal});
      if(response.status===401){authorized=false;token='';menuButtons();throw Error('Chave inválida ou acesso administrativo não configurado.')}
-     if(!response.ok)throw Error(response.status===404?'Não há imagem salva para este resumo.':'Não foi possível consultar o histórico. Tente novamente.');
+     if(!response.ok){
+       if(path==='/telegram-admin-smoke'){
+         const detail=await response.json().catch(()=>null);
+         throw Error(detail?.error||'O envio não foi confirmado. Confira o canal antes de tentar novamente.');
+       }
+       throw Error(response.status===404?'Não há imagem salva para este resumo.':'Não foi possível consultar o histórico. Tente novamente.');
+     }
      const result=await (blob?response.blob():response.json());
      if(token!==credential)throw Error('Sessão encerrada.');
      return result;
@@ -35,7 +41,7 @@
  }
  function login(){
    clearPreview();body.replaceChildren();message.textContent='';
-   body.append(n('p','Acesso administrativo. Informe a chave de acesso para consultar os envios.','tg-note'));
+   body.append(n('p','Acesso administrativo. Informe a chave para consultar o histórico e enviar um teste ao canal.','tg-note'));
    const form=n('form'),label=n('label','Chave de acesso'),input=n('input');
    input.type='password';input.autocomplete='off';input.required=true;input.id='tg-admin-key';label.htmlFor=input.id;
    const submit=n('button','Entrar');submit.type='submit';
@@ -60,8 +66,24 @@
    for(const [key,text] of [['daily','Resumos diários'],['alerts','Sismos M6+ e Brasil'],['health','Saúde do serviço']]){
      const btn=n('button',text);btn.type='button';btn.setAttribute('aria-pressed',String(active===key));btn.onclick=()=>{active=key;render()};controls.append(btn);
    }
+   const test=n('button','🧪 Enviar teste ao canal','tg-send-test');test.type='button';test.disabled=sendingTest;
+   test.title='Publica somente uma mensagem técnica, sem sismo fictício, no canal @argosorbis.';
+   test.onclick=async()=>{
+     if(sendingTest)return;
+     if(!window.confirm('Enviar uma mensagem de TESTE ao canal público @argosorbis? Não é um alerta de sismo.'))return;
+     sendingTest=true;test.disabled=true;message.textContent='Solicitando envio ao canal…';
+     try{
+       const reply=await request('/telegram-admin-smoke',false,'POST');
+       message.textContent=reply.ok?'✅ O Telegram confirmou o teste no canal @argosorbis (mensagem '+reply.messageId+').':'Envio sem confirmação. Confira o canal.';
+     }catch(error){
+       message.textContent=error.name==='AbortError'
+         ?'O envio demorou demais. Confira o canal antes de tentar novamente.'
+         :error.message;
+     }finally{sendingTest=false;test.disabled=false;}
+   };
    const update=n('button','Atualizar');update.type='button';update.onclick=refresh;
-   const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(update,exit);body.append(controls);
+   const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(test,update,exit);body.append(controls);
+   body.append(n('p','Teste de texto simples, sem alertas fictícios. O sistema limita repetições para evitar mensagens duplicadas.','tg-note'));
    if(active==='health'){loadHealth();return;}
    healthGeneration++;
    body.append(n('p','Últimos 30 dias · horários de Brasília. O registro detalhado começa com esta atualização.','tg-note'));
