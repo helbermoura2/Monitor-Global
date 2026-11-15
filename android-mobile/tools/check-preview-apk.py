@@ -36,7 +36,7 @@ with zipfile.ZipFile(apk) as packaged:
 with tempfile.TemporaryDirectory(prefix="monitor-phone-assets-") as temporary:
     assets = pathlib.Path(temporary)
     with zipfile.ZipFile(apk) as packaged:
-        for name in ["phone-map.html", "phone-map.js", "phone-map.css", "vendor/maplibre-gl.js", "vendor/maplibre-gl.css", "brazil-satellite.js", "brazil-satellite-model.js", "brazil-satellite.css", "data/brazil-satellite-border.json"]:
+        for name in ["phone-map.html", "phone-map.js", "phone-map.css", "phone-boundaries.js", "phone-boundaries.css", "data/br-states.geojson", "data/br-municipalities-sp.geojson", "vendor/maplibre-gl.js", "vendor/maplibre-gl.css", "brazil-satellite.js", "brazil-satellite-model.js", "brazil-satellite.css", "data/brazil-satellite-border.json"]:
             target = assets / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(packaged.read("assets/" + name))
