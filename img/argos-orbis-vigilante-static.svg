@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1328" height="859" viewBox="0 0 1328 859" role="img" aria-labelledby="title desc">
+<title id="title">Argos Orbis — o olho do vigilante</title>
+<desc id="desc">Olho de bronze que pisca ocasionalmente, com radar tecnológico ciano estacionário com ponteiro luminoso girando continuamente em 360 graus. Quatro símbolos representam sismos, meteorologia, oceanos e observação global.</desc>
+<defs>
+  <radialGradient id="iris-fill" cx="47%" cy="48%" r="64%"><stop stop-color="#0A3E42"/><stop offset=".67" stop-color="#052F35"/><stop offset="1" stop-color="#001A26"/></radialGradient>
+  <linearGradient id="beam-grad" x1="0" y1="0" x2=".98" y2="1"><stop stop-color="#4EFFF0" stop-opacity=".05"/><stop offset=".52" stop-color="#26DDD2" stop-opacity=".22"/><stop offset="1" stop-color="#2AFFEE" stop-opacity=".75"/></linearGradient>
+  <radialGradient id="pupil"><stop stop-color="#19DCCB"/><stop offset=".75" stop-color="#15CDBE"/><stop offset="1" stop-color="#0BAAAB"/></radialGradient>
+  <filter id="micro-glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <clipPath id="eye-aperture" clipPathUnits="userSpaceOnUse"><path d="M 125 430 Q 664 -94 1201 430 Q 664 954 125 430 Z"></path></clipPath>
+</defs>
+<style>
+  #radar-pointer { transform-origin:664px 430px; transform-box:view-box; animation:none; will-change:transform; }
+  .radar-glow { animation:none; }
+  @keyframes radar-orbit { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+  @keyframes soft-pulse { 0%,100%{opacity:.72} 50%{opacity:1} }
+  @media (prefers-reduced-motion: reduce) { #radar-pointer, .radar-glow { animation:none; } }
+</style>
+<!-- Fundo e inscrições idênticos à direção aprovada -->
+<rect x="0" y="0" width="1328" height="859" rx="68" fill="#030C19"/>
+<text x="664" y="111" text-anchor="middle" fill="#BFA274" font-family="DejaVu Sans,Arial,sans-serif" font-size="40" font-weight="400" letter-spacing="12">ΠΑΝΟΠΤΗΣ</text>
+<text x="664" y="808" text-anchor="middle" fill="#C6A677" font-family="DejaVu Sans,Arial,sans-serif" font-size="39" font-weight="400" letter-spacing="11">CUSTOS ORBIS</text>
+
+<!-- Quatro ornamentos greco-romanos, relacionados às áreas do projeto. -->
+<!-- Grego, superior esquerdo: sismos — meandro que vira pulso sísmico. -->
+<g transform="translate(377 170)" fill="none" stroke="#AF8C57" stroke-width="4.3" stroke-linecap="square" stroke-linejoin="miter" opacity=".92">
+ <path d="M-45 -28H-15V-7H-32V10H-14L0 -14L15 27L27 -4H44"/>
+ <path d="M-45 28H-29V17" stroke-width="2.3" opacity=".66"/>
+</g>
+<!-- Romano, superior direito: meteorologia e orientação — rosa dos ventos. -->
+<g transform="translate(934 169)" stroke="#AF8C57" stroke-width="3" fill="none" opacity=".92">
+  <circle r="34" opacity=".8"/><circle r="19" stroke-width="1.8" opacity=".66"/>
+  <path d="M0 -45V-34M0 34V45M-45 0H-34M34 0H45" stroke-width="2.8"/>
+  <path d="M0 -32L9 -9L32 0L9 9L0 32L-9 9L-32 0L-9 -9Z" stroke-width="2.2"/>
+  <path d="M0 -32L9 -9L0 0L-9 -9Z" fill="#BCA171" opacity=".9" stroke="none"/>
+  <circle r="3.2" fill="#BCA171" stroke="none"/>
+</g>
+<!-- Grego, inferior esquerdo: ondas do mar e ciclones. -->
+<g transform="translate(379 693)" stroke="#AF8C57" stroke-width="4.1" fill="none" opacity=".92" stroke-linecap="round">
+ <path d="M-49 12C-37 -9 -18 -9 -9 4C-1 18 -13 24 -21 17C-26 10 -20 4 -15 6"/>
+ <path d="M-7 12C5 -9 24 -9 33 4C41 18 29 24 21 17C16 10 22 4 27 6"/>
+ <path d="M-48 27H48" stroke-width="2.2" opacity=".65"/>
+</g>
+<!-- Romano, inferior direito: observação global — esfera armilar. -->
+<g transform="translate(934 686)" fill="none" stroke="#AF8C57" opacity=".92">
+ <circle r="37" stroke-width="3.5"/>
+ <ellipse rx="17" ry="37" stroke-width="2.4"/>
+ <ellipse rx="37" ry="15" transform="rotate(-27)" stroke-width="3.2"/>
+ <path d="M-42 0H42M0 -44V44" stroke-width="1.5" opacity=".68"/>
+ <circle r="5" fill="#BDA06E" stroke="none"/>
+</g>
+
+<!-- A íris e todas as marcações do radar são recortadas pela abertura do olho. -->
+<g clip-path="url(#eye-aperture)">
+  <circle cx="664" cy="430" r="288" fill="url(#iris-fill)"/>
+  <circle cx="664" cy="430" r="285" fill="none" stroke="#13D7D5" stroke-width="7.5" opacity=".93"/>
+  <circle cx="664" cy="430" r="263" fill="none" stroke="#145E67" stroke-width="2.5" opacity=".65"/>
+  <circle cx="664" cy="430" r="218" fill="none" stroke="#0A545E" stroke-width="2.5" opacity=".62"/>
+  <g id="radar-fixed">
+    <circle cx="664" cy="430" r="246" stroke="#0A414B" stroke-width="17" fill="none" opacity=".65"/>
+    <circle cx="664" cy="430" r="244" stroke="#0DB9BE" stroke-width="3" stroke-dasharray="9 26 18 21" fill="none" opacity=".22"/>
+    <circle cx="664" cy="430" r="196" stroke="#26D1CE" stroke-width="6" stroke-dasharray="4 22" fill="none" opacity=".73"/>
+    <circle cx="664" cy="430" r="153" stroke="#0A6570" stroke-width="3" fill="none" opacity=".50"/>
+    <path d="M442.86 326.88 A244 244 0 0 1 520.58 232.60" stroke="#16BFC2" stroke-width="15" opacity="0.76"/><path d="M553.23 212.59 A244 244 0 0 1 625.83 189.00" stroke="#187E8D" stroke-width="12" opacity="0.66"/><path d="M664.00 186.00 A244 244 0 0 1 739.40 197.94" stroke="#21BBC3" stroke-width="17" opacity="0.85"/><path d="M770.96 210.69 A244 244 0 0 1 845.33 266.73" stroke="#16BFC2" stroke-width="15" opacity="0.76"/><path d="M866.29 293.56 A244 244 0 0 1 902.67 379.27" stroke="#187E8D" stroke-width="12" opacity="0.66"/><path d="M907.41 412.98 A244 244 0 0 1 898.55 497.26" stroke="#21BBC3" stroke-width="17" opacity="0.85"/><path d="M888.60 525.34 A244 244 0 0 1 845.33 593.27" stroke="#16BFC2" stroke-width="15" opacity="0.76"/><path d="M820.84 616.91 A244 244 0 0 1 767.12 651.14" stroke="#187E8D" stroke-width="12" opacity="0.66"/><path d="M735.34 663.34 A244 244 0 0 1 668.26 673.96" stroke="#21BBC3" stroke-width="17" opacity="0.85"/><path d="M638.50 672.66 A244 244 0 0 1 557.04 649.31" stroke="#16BFC2" stroke-width="15" opacity="0.76"/><path d="M531.11 634.64 A244 244 0 0 1 466.60 573.42" stroke="#187E8D" stroke-width="12" opacity="0.66"/><path d="M442.86 533.12 A244 244 0 0 1 421.82 459.74" stroke="#21BBC3" stroke-width="17" opacity="0.85"/><path d="M420.04 434.26 A244 244 0 0 1 429.45 362.74" stroke="#16BFC2" stroke-width="15" opacity="0.76"/><path d="M442.86 326.88 A244 244 0 0 1 497.59 251.55" stroke="#187E8D" stroke-width="12" opacity="0.66"/><path d="M512.49 408.71 A153 153 0 0 1 532.85 351.20" stroke="#23CED0" stroke-width="15" opacity=".90"/><path d="M552.10 325.65 A153 153 0 0 1 599.34 291.33" stroke="#15A9B2" stroke-width="17" opacity=".90"/><path d="M629.58 280.92 A153 153 0 0 1 695.81 280.34" stroke="#23CED0" stroke-width="18" opacity=".90"/><path d="M733.46 293.68 A153 153 0 0 1 787.78 340.07" stroke="#15A9B2" stroke-width="15" opacity=".90"/><path d="M804.84 370.22 A153 153 0 0 1 816.91 424.66" stroke="#23CED0" stroke-width="17" opacity=".90"/><path d="M815.12 453.93 A153 153 0 0 1 795.15 508.80" stroke="#15A9B2" stroke-width="18" opacity=".90"/><path d="M774.06 536.28 A153 153 0 0 1 718.83 572.84" stroke="#23CED0" stroke-width="15" opacity=".90"/><path d="M687.93 581.12 A153 153 0 0 1 629.58 579.08" stroke="#15A9B2" stroke-width="17" opacity=".90"/><path d="M601.77 569.77 A153 153 0 0 1 552.10 534.35" stroke="#23CED0" stroke-width="18" opacity=".90"/><path d="M534.25 511.08 A153 153 0 0 1 512.88 453.93" stroke="#15A9B2" stroke-width="15" opacity=".90"/><path d="M511.09 424.66 A153 153 0 0 1 525.33 365.34" stroke="#23CED0" stroke-width="17" opacity=".90"/><rect x="837.4" y="467.2" width="16" height="16" fill="#1EC7C6" opacity=".9" transform="rotate(59 845.4 475.2)"/><rect x="704.4" y="602.6" width="16" height="16" fill="#1EC7C6" opacity=".9" transform="rotate(120 712.4 610.6)"/><rect x="510.7" y="539.7" width="16" height="16" fill="#1EC7C6" opacity=".9" transform="rotate(186 518.7 547.7)"/><rect x="502.8" y="314.7" width="16" height="16" fill="#1EC7C6" opacity=".9" transform="rotate(260 510.8 322.7)"/><rect x="701.2" y="240.6" width="16" height="16" fill="#1EC7C6" opacity=".9" transform="rotate(329 709.2 248.6)"/><rect x="824.1" y="340.0" width="16" height="16" fill="#1EC7C6" opacity=".9" transform="rotate(379 832.1 348.0)"/><path d="M941.0 430.0L953.0 430.0" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M931.6 501.7L935.4 502.7" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M903.9 568.5L907.4 570.5" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M859.9 625.9L868.4 634.4" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M802.5 669.9L804.5 673.4" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M735.7 697.6L736.7 701.4" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M664.0 707.0L664.0 719.0" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M592.3 697.6L591.3 701.4" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M525.5 669.9L523.5 673.4" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M468.1 625.9L459.6 634.4" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M424.1 568.5L420.6 570.5" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M396.4 501.7L392.6 502.7" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M387.0 430.0L375.0 430.0" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M396.4 358.3L392.6 357.3" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M424.1 291.5L420.6 289.5" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M468.1 234.1L459.6 225.6" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M525.5 190.1L523.5 186.6" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M592.3 162.4L591.3 158.6" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M664.0 153.0L664.0 141.0" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M735.7 162.4L736.7 158.6" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M802.5 190.1L804.5 186.6" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M859.9 234.1L868.4 225.6" stroke="#11E0DC" stroke-width="3.5" opacity=".45"/><path d="M903.9 291.5L907.4 289.5" stroke="#11E0DC" stroke-width="2" opacity=".45"/><path d="M931.6 358.3L935.4 357.3" stroke="#11E0DC" stroke-width="2" opacity=".45"/>
+  </g>
+  <!-- Somente o ponteiro e o feixe luminoso percorrem 360 graus. -->
+  <g id="radar-pointer">
+    <path d="M664 430 L877.8 579.7 A261 261 0 0 1 766.0 670.3Z" fill="url(#beam-grad)" opacity=".72"/>
+<path d="M664 430L877.8 579.7" stroke="#52FFF0" stroke-width="8" stroke-linecap="round" opacity=".93" filter="url(#micro-glow)"/>
+<path d="M861.26 578.65 A247 247 0 0 1 791.21 641.72" stroke="#5AFFF3" stroke-width="10" opacity=".9"/>
+<path d="M870.85 585.87 A259 259 0 0 1 801.25 649.64" stroke="#26CFCF" stroke-width="4" opacity=".7"/>
+  </g>
+  <!-- Anéis centrais e marcações do radar permanecem imóveis. -->
+  <g id="radar-center-rings">
+    <circle cx="664" cy="430" r="84" fill="none" stroke="#13C8C9" stroke-width="5" opacity=".95"/>
+    <circle cx="664" cy="430" r="38" fill="none" stroke="#0BAAAE" stroke-width="2" opacity=".80"/>
+  </g>
+  <circle cx="664" cy="430" r="35" fill="#072F38" opacity=".75"/>
+  <circle cx="664" cy="430" r="34" fill="none" stroke="#95FFF0" stroke-width="6"/>
+  <circle class="radar-glow" cx="664" cy="430" r="27.5" fill="url(#pupil)"/>
+  <!-- Sutil arco interno do olho, como na referência. -->
+  <path d="M219 430 Q664 0 1109 430" stroke="#BDA98A" stroke-width="3.5" opacity=".6" fill="none"/>
+</g>
+<!-- A borda dourada pisca. A animação de recorte acima acompanha exatamente este traçado. -->
+<path d="M 125 430 Q 664 -94 1201 430 Q 664 954 125 430 Z" fill="none" stroke="#C4A16A" stroke-width="13" stroke-linecap="square" stroke-linejoin="round"></path>
+</svg>
