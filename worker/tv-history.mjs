@@ -35,7 +35,7 @@ export async function handleTvHistory(request,{view,now=Date.now(),cache=globalT
    // statistics request must not prevent the TV from showing its quake cards.
    // Tests with fake HTTP clients have no env, so never fetch the live network.
    const countLoader=typeof dailyLoader==='function'?dailyLoader:env?fetchDailyQuakesBrt:null;
-   const totalsPromise=summary&&expanded&&countLoader?
+   const totalsPromise=complete&&summary&&expanded&&countLoader?
      Promise.resolve().then(()=>countLoader(day)).then(result=>{
       if(result?.day!==day)throw Error('Totals for wrong day');
       return dailySeismicTotals(result);
@@ -59,7 +59,7 @@ export async function handleTvHistory(request,{view,now=Date.now(),cache=globalT
    const r=await fetcher(url,{signal:controller.signal});if(!r.ok)throw Error('USGS unavailable');
    const data=await r.json();if(!Array.isArray(data.features))throw Error('Invalid catalog');
    const [brazil,extra]=await Promise.all([expanded?regional(env).catch(()=>({features:[],catalogs:{USP:false,USGS_BR:false,EMSC:false,GEOFON:false}})):Promise.resolve({features:[]}),expanded?supplemental({start,end:new Date(complete?end-1:now).toISOString(),scope:'history:'+view+':'+day,summary:true}).catch(()=>({sources:[]})):Promise.resolve({sources:[]})]);
-   const additional=brazil.features.filter(f=>f.brazil);additional.push(...extra.sources.flatMap(s=>s.ok?s.events.map(globalFeature):[]));const merged=mergeTvCatalog([],[...data.features,...additional],now).map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}));const result=historySnapshot(merged,view,now);if(summary&&expanded){const totals=await totalsPromise;if(totals)result.dailyTotals=totals;}if(brazil.catalogs)result.sources.catalogs={...brazil.catalogs,USGS:true,...Object.fromEntries(extra.sources.map(s=>[s.provider+'_GLOBAL',s.ok]))};
+   const additional=brazil.features.filter(f=>f.brazil);additional.push(...extra.sources.flatMap(s=>s.ok?s.events.map(globalFeature):[]));const merged=mergeTvCatalog([],[...data.features,...additional],now).map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}));const result=historySnapshot(merged,view,now);if(complete&&summary&&expanded){const totals=await totalsPromise;if(totals)result.dailyTotals=totals;}if(brazil.catalogs)result.sources.catalogs={...brazil.catalogs,USGS:true,...Object.fromEntries(extra.sources.map(s=>[s.provider+'_GLOBAL',s.ok]))};
    try{await cache?.put(key,new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json','Cache-Control':'public, max-age='+ttl/1000}}));}catch{}
    return result;
    }finally{clearTimeout(timer);}
