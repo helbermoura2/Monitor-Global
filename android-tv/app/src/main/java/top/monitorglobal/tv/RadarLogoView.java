@@ -79,6 +79,10 @@ public final class RadarLogoView extends View {
   c.drawCircle(108,105,6,paint);c.drawOval(105,99,111,111,paint);
   c.drawLine(101,105,115,105,paint);c.drawLine(108,98,108,112,paint);
   paint.setStyle(Paint.Style.FILL);
+  // Broadcast labels use Rajdhani/JetBrains; normalize the logo text
+  // so all lower thirds draw identical glyphs regardless of the last metric.
+  paint.setTypeface(android.graphics.Typeface.DEFAULT);
+  paint.setTextScaleX(1f);
   paint.setColor(GOLD);paint.setTextAlign(Paint.Align.CENTER);
   paint.setTextSize(6f);
   c.drawText("ΠΑΝΟΠΤΗΣ",64,9,paint);
