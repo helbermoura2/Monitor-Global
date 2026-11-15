@@ -1,8 +1,8 @@
-/* Administração do Telegram: token apenas em memória, consultas sem envio. */
+/* Administração do Telegram: token só em memória, consultas e teste explícito de conexão. */
 (function(){
  'use strict';
  const base='https://black-sky-9ba0.terrestre.workers.dev';
- let token='',authorized=false,dialog,body,message,objectUrl,active='daily',data,healthGeneration=0;
+ let token='',authorized=false,dialog,body,message,objectUrl,active='daily',data,healthGeneration=0,pingAttempted=false;
  const labels={sent:'Enviado',sending:'Envio em andamento',uncertain:'Entrega sem confirmação',failed:'Falhou',preparing:'Preparando',pending:'Pendente',unavailable:'Histórico indisponível',query:'Consultando USGS',data:'Dados obtidos',render:'Gerando imagem',prepared:'Resumo preparado','text-fallback':'Imagem falhou — usando texto','legacy-confirmed':'Envio anterior confirmado','missing-secrets':'Configuração do Telegram ausente'};
  const fmt=at=>at?new Date(at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'medium'}):'Horário não registrado';
  const n=(tag,text,cls)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(cls)el.className=cls;return el};
@@ -24,7 +24,11 @@
    try{
      const response=await fetch(base+path,{method,headers:{'X-Admin-Token':token},cache:'no-store',signal:controller.signal});
      if(response.status===401){authorized=false;token='';menuButtons();throw Error('Chave inválida ou acesso administrativo não configurado.')}
-     if(!response.ok)throw Error(response.status===404?'Não há imagem salva para este resumo.':'Não foi possível consultar o histórico. Tente novamente.');
+     if(!response.ok){
+       const data=await response.json().catch(()=>({}));
+       const reason=typeof data.error==='string'?data.error:(response.status===404?'Recurso não encontrado.':'Não foi possível concluir a operação.');
+       throw Error(reason+' (HTTP '+response.status+').');
+     }
      const result=await (blob?response.blob():response.json());
      if(token!==credential)throw Error('Sessão encerrada.');
      return result;
@@ -60,6 +64,19 @@
    for(const [key,text] of [['daily','Resumos diários'],['alerts','Sismos M6+ e Brasil'],['health','Saúde do serviço']]){
      const btn=n('button',text);btn.type='button';btn.setAttribute('aria-pressed',String(active===key));btn.onclick=()=>{active=key;render()};controls.append(btn);
    }
+   const ping=n('button','🧪 Enviar teste ao canal');ping.type='button';ping.disabled=pingAttempted;
+   ping.onclick=async()=>{
+     if(pingAttempted||!window.confirm('Enviar UMA mensagem de teste, identificada como TESTE, para o canal @argosorbis?'))return;
+     // If the network drops after sending, delivery may be ambiguous. Never auto-retry.
+     pingAttempted=true;ping.disabled=true;message.textContent='Enviando teste de texto…';
+     try{
+       const result=await request('/telegram-ping',false,'POST');
+       message.textContent=result.ok?'Teste enviado! Confira o canal @argosorbis. Mensagem #'+(result.messageId||'confirmada')+'.':'Envio sem confirmação. Confira o canal antes de tentar novamente.';
+     }catch(error){
+       message.textContent='Não foi possível confirmar o teste: '+(error.name==='AbortError'?'tempo esgotado.':error.message)+' Confira o canal antes de repetir.';
+     }
+   };
+   controls.append(ping);
    const update=n('button','Atualizar');update.type='button';update.onclick=refresh;
    const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(update,exit);body.append(controls);
    if(active==='health'){loadHealth();return;}
