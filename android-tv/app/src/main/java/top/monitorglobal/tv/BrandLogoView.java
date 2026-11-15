@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Color;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
@@ -28,7 +30,12 @@ final class BrandLogoView extends FrameLayout {
    logo.getSettings().setAllowFileAccess(true);
    logo.getSettings().setAllowContentAccess(false);
    logo.getSettings().setBlockNetworkLoads(true);
-   logo.setWebViewClient(new WebViewClient());
+   logo.setWebViewClient(new WebViewClient() {
+    @Override public void onReceivedError(WebView view, WebResourceRequest request,
+                                           WebResourceError error) {
+     if(request.isForMainFrame())removeView(view); // reveal native fallback
+    }
+   });
    addView(logo, new LayoutParams(
     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
    logo.loadUrl("file:///android_asset/argos-orbis-vigilante.svg");
