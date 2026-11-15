@@ -43,6 +43,7 @@ import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, hand
 import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
 import {handleTelegramAdminSmoke} from "./worker/telegram-admin-smoke.mjs";
+import {diagnoseTelegramAdmin} from "./worker/telegram-admin-diagnose.mjs";
 
 // Delivery ports keep orchestration independent of rendering and Telegram transport.
 async function renderAlertCardPng(ev) { return renderAlertImage(ev); }
@@ -1991,13 +1992,17 @@ async function handleWorkerRequest(request,env,ctx){
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
             '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
             '/telegram-history', '/telegram-history-preview', '/telegram-history-detail', '/telegram-daily-repost',
-            '/telegram-admin-smoke'
+            '/telegram-admin-smoke', '/telegram-admin-diagnose'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
             return json({ ok: false, error: 'Não autorizado. Use o cabeçalho X-Admin-Token.' }, 401);
         }
 
 
+        if(reqUrl.pathname==='/telegram-admin-diagnose'){
+            if(request.method!=='POST')return json({ok:false,error:'Método não permitido'},405);
+            return diagnoseTelegramAdmin(env);
+        }
         if(reqUrl.pathname==='/telegram-admin-smoke'){
             if(request.method!=='POST')return json({ok:false,error:'Método não permitido'},405);
             if(!env.EARTHQUAKE_ALERTS)return json({ok:false,error:'Controle de testes temporariamente indisponível.'},503);
