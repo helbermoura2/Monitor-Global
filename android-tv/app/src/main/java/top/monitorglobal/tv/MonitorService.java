@@ -243,7 +243,7 @@ public final class MonitorService extends Service {
   cancelDemos();final int generation=localGeneration;long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
   Runnable stop=()->{if(generation!=localGeneration)return;demoTasks.clear();activeUntil=0;stopIfIdle();tryTarget();tryDaily();};
   Runnable show=()->{if(destroyed)return;if(draining||!queue.isEmpty()){Prefs.status(this,"Resumo adiado por alerta real. Solicite novamente após o aviso.");stop.run();return;}
-   rain.hide();brent.hide();if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete,stop)){if(!replay)TvSounds.play(this,TvSoundPattern.SUMMARY);if(!replay||!snapshot.complete)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;}else stop.run();
+   rain.hide();brent.hide();if(banner.showSummary(snapshot.alerts,snapshot.day,replay,snapshot.complete,snapshot.dailyTotals,stop)){if(!replay)TvSounds.play(this,TvSoundPattern.SUMMARY);if(!replay||!snapshot.complete)Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;}else stop.run();
   };demoTasks.add(show);demoTasks.add(stop);main.postDelayed(show,delay);
   Prefs.status(this,(replay?"Replay do resumo de ":"Resumo de ")+BrDates.day(snapshot.day)+" em 10 segundos · "+snapshot.alerts.size()+" sismos · 6 segundos de leitura por sismo + animações.");
  }
@@ -277,7 +277,7 @@ public final class MonitorService extends Service {
   FeedClient.Snapshot snapshot=pendingDaily;
   int attempt=daily.start(snapshot.day);
   dailyEnd=()->{if(!screenReady()){interruptDaily();return;}if(destroyed||!daily.finish(snapshot.day,attempt))return;Prefs.get(this).edit().putString("dailyDeliveredDay",daily.deliveredDay).apply();pendingDaily=null;dailyEnd=null;activeUntil=0;tryTarget();Prefs.status(this,"Resumo diário de "+BrDates.day(snapshot.day)+" exibido. Disponível no replay do resumo.");};
-  rain.hide();brent.hide();if(!banner.showSummary(snapshot.alerts,snapshot.day,false,true,dailyEnd)){daily.interrupt();dailyEnd=null;dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;return;}
+  rain.hide();brent.hide();if(!banner.showSummary(snapshot.alerts,snapshot.day,false,true,snapshot.dailyTotals,dailyEnd)){daily.interrupt();dailyEnd=null;dailyRetryAt=android.os.SystemClock.elapsedRealtime()+5*60000L;return;}
   TvSounds.play(this,TvSoundPattern.SUMMARY);Prefs.rememberSummary(this,snapshot);activeUntil=android.os.SystemClock.uptimeMillis()+BannerTimeline.summaryTotalDuration(snapshot.alerts.size(),android.animation.ValueAnimator.areAnimatorsEnabled())+1000;
   Prefs.status(this,"Resumo automático de "+BrDates.day(snapshot.day)+" · dia encerrado · 6 segundos de leitura por sismo + animações.");
  }

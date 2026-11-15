@@ -3,6 +3,8 @@ import {collectTvQuakes,mergeTvCatalog} from './tv-seismic-catalog.mjs';
 import {fetchGlobalSupplements} from './global-seismic-data.mjs';
 import {globalFeature} from './tv-seismic-catalog.mjs';
 import {tvSnapshot} from './tv-snapshot.mjs';
+import {fetchDailyQuakesBrt} from './telegram-seismic-data.mjs';
+import {dailySeismicTotals} from './tv-daily-totals.mjs';
 const pending=new Map();
 const BRAZIL_VOICE_WINDOW_MS=72*3600000;
 export function brasiliaDay(now){return new Date(now-3*3600000).toISOString().slice(0,10);}
@@ -17,17 +19,27 @@ export function historySnapshot(features,view,now=Date.now()){
  snapshot.alerts=snapshot.alerts.filter(a=>a.kind==='earthquake'&&(!globalReplay||Number.isFinite(a.magnitude)&&a.magnitude>=6)).sort(summary?(a,b)=>b.magnitude-a.magnitude||b.eventTime-a.eventTime||a.id.localeCompare(b.id):(a,b)=>b.eventTime-a.eventTime||b.issuedAt-a.issuedAt).slice(0,brazil?1:summary?5:1);
  return {...snapshot,view,day,asOf:now,complete};
 }
-export async function handleTvHistory(request,{view,now=Date.now(),cache=globalThis.caches?.default,fetcher=fetch,regional=collectTvQuakes,supplemental=fetchGlobalSupplements,env}={}){
+export async function handleTvHistory(request,{view,now=Date.now(),cache=globalThis.caches?.default,fetcher=fetch,regional=collectTvQuakes,supplemental=fetchGlobalSupplements,env,dailyLoader}={}){
  const headers={'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'public, max-age=60'};
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
  const expanded=new URL(request.url).searchParams.get('policy')==='telegram-v1';
  const {day,start:periodStart,end,complete}=historyPeriod(view,now),summary=view!=='replay'&&view!=='global-replay'&&view!=='brazil',ttl=view==='brazil'?60000:summary?300000:60000;
- const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-history-v3/'+(expanded?'telegram/':'legacy/')+view+'/'+day);
+ const key=new Request('https://black-sky-9ba0.terrestre.workers.dev/__tv-history-v4/'+(expanded?'telegram/':'legacy/')+view+'/'+day);
  let snapshot;try{const hit=await cache?.match(key);if(hit)snapshot=await hit.json();}catch{}
  if(!snapshot||now-snapshot.serverTime>=ttl){
   if(!pending.has(key.url))pending.set(key.url,(async()=>{
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
    try{
+   // Statistics are optional and independent of the top-five event feed.
+   // Reuse Telegram's full-day, deduplicated catalog and date; a failed
+   // statistics request must not prevent the TV from showing its quake cards.
+   // Tests with fake HTTP clients have no env, so never fetch the live network.
+   const countLoader=typeof dailyLoader==='function'?dailyLoader:env?fetchDailyQuakesBrt:null;
+   const totalsPromise=complete&&summary&&expanded&&countLoader?
+     Promise.resolve().then(()=>countLoader(day)).then(result=>{
+      if(result?.day!==day)throw Error('Totals for wrong day');
+      return dailySeismicTotals(result);
+     }).catch(()=>null):Promise.resolve(null);
    if(view==='brazil'){
     // Use the existing multi-source Brazilian catalogue, not the worldwide M6+ shortcut.
     // Report a source failure separately from an observed zero-event result.
@@ -47,7 +59,7 @@ export async function handleTvHistory(request,{view,now=Date.now(),cache=globalT
    const r=await fetcher(url,{signal:controller.signal});if(!r.ok)throw Error('USGS unavailable');
    const data=await r.json();if(!Array.isArray(data.features))throw Error('Invalid catalog');
    const [brazil,extra]=await Promise.all([expanded?regional(env).catch(()=>({features:[],catalogs:{USP:false,USGS_BR:false,EMSC:false,GEOFON:false}})):Promise.resolve({features:[]}),expanded?supplemental({start,end:new Date(complete?end-1:now).toISOString(),scope:'history:'+view+':'+day,summary:true}).catch(()=>({sources:[]})):Promise.resolve({sources:[]})]);
-   const additional=brazil.features.filter(f=>f.brazil);additional.push(...extra.sources.flatMap(s=>s.ok?s.events.map(globalFeature):[]));const merged=mergeTvCatalog([],[...data.features,...additional],now).map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}));const result=historySnapshot(merged,view,now);if(brazil.catalogs)result.sources.catalogs={...brazil.catalogs,USGS:true,...Object.fromEntries(extra.sources.map(s=>[s.provider+'_GLOBAL',s.ok]))};
+   const additional=brazil.features.filter(f=>f.brazil);additional.push(...extra.sources.flatMap(s=>s.ok?s.events.map(globalFeature):[]));const merged=mergeTvCatalog([],[...data.features,...additional],now).map(r=>({...r.feature,tvId:r.id,aliases:r.aliases}));const result=historySnapshot(merged,view,now);if(complete&&summary&&expanded){const totals=await totalsPromise;if(totals)result.dailyTotals=totals;}if(brazil.catalogs)result.sources.catalogs={...brazil.catalogs,USGS:true,...Object.fromEntries(extra.sources.map(s=>[s.provider+'_GLOBAL',s.ok]))};
    try{await cache?.put(key,new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json','Cache-Control':'public, max-age='+ttl/1000}}));}catch{}
    return result;
    }finally{clearTimeout(timer);}

@@ -62,5 +62,32 @@ public class BroadcastBannerTest {
   assertTrue("new domain and channel labels reserve their actual measured widths",view.identityLeft(1000)<view.identityLeft(9000));
   assertEquals(Math.min(view.identityLeft(1000),view.identityLeft(9000)),view.identityLeft(BannerTimeline.PAGE_MS+100),.01);
  }
+ @Test public void dailyFooterDisplaysTelegramMagnitudeTotalsAndKeepsBrandMargin()throws Exception{
+  DailySeismicTotals totals=new DailySeismicTotals("2026-11-14",190,0,2,15,173,false);
+  NewsBannerView view=new NewsBannerView(c,List.of(alert()),"2026-11-14",false,true,totals);
+  assertTrue(view.getContentDescription().toString().contains("190 eventos no dia"));
+  Bitmap image=render(view,1000);
+  try{
+   int colored=0,columns=0;
+   final int[] palette={0xff29d4f2,0xffff5c68,0xffffa04b,0xffffda54,0xff46df9b};
+   float w=(Math.min(view.identityLeft(1000),view.identityLeft(BannerTimeline.PAGE_MS+1000))-108)/5f;
+   for(int i=0;i<5;i++){
+    int count=0;
+    for(int y=104;y<=123;y++)for(int x=(int)(100+i*w);x<(int)(100+(i+1)*w);x++){
+     int pixel=image.getPixel(x,y),c0=palette[i];
+     if(Math.abs(Color.red(pixel)-Color.red(c0))<24&&Math.abs(Color.green(pixel)-Color.green(c0))<24&&Math.abs(Color.blue(pixel)-Color.blue(c0))<24)count++;
+    }
+    if(count>5)columns++;
+    colored+=count;
+   }
+   assertEquals("All five count groups have colored numerals",5,columns);
+   assertTrue("Full-day counters legible",colored>50);
+   int safe=0;for(int y=104;y<=122;y++)for(int x=932;x<959;x++){int p=image.getPixel(x,y);if(Color.red(p)>125&&Color.green(p)>125&&Color.blue(p)>125)safe++;}
+   assertEquals("No bright text enters TV right overscan margin",0,safe);
+   export(image,"summary-totals");
+  }finally{image.recycle();}
+  NewsBannerView unavailable=new NewsBannerView(c,List.of(alert()),"2026-11-14",false,true);
+  assertNull("Absent totals must preserve scrolling ticker",field(unavailable,"summaryTotals"));
+ }
 }
 
