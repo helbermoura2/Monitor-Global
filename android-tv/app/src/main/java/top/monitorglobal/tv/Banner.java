@@ -13,7 +13,8 @@ final class Banner {
   return showView(new NewsBannerView(context,alert,demo,replay),CompactNotice.DURATION_MS,0,null);
  }
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete){return showSummary(alerts,day,replay,complete,null);}
- boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete,Runnable finished){return showView(new NewsBannerView(context,alerts,day,replay,complete),0,alerts.size(),finished);}
+ boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete,Runnable finished){return showSummary(alerts,day,replay,complete,null,finished);}
+ boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete,DailySeismicTotals totals,Runnable finished){return showView(new NewsBannerView(context,alerts,day,replay,complete,totals),0,alerts.size(),finished);}
  boolean showWeather(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.weather(context,rain,weather,demo),duration,0,finished);
  }
