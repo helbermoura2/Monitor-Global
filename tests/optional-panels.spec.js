@@ -29,3 +29,23 @@ for(const file of ['css/telegram-history.css','js/telegram-history.js'])test('fa
  await page.evaluate(()=>TelegramAdmin.open());await expect(page.locator('#tg-admin-key')).toBeVisible();expect(attempts).toBe(2);
  await expect(page.locator('#tg-admin-dialog')).toHaveCount(1);
 });
+
+test('admin can send a single text smoke test from history panel without HTTP editor',async({page})=>{
+ let posts=0,tokenInUrl=false,method='',credential='';
+ await page.route('**/telegram-history',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,daily:[],alerts:[]})}));
+ await page.route('**/telegram-admin-smoke',r=>{
+  posts++;method=r.request().method();credential=r.request().headers()['x-admin-token'];
+  tokenInUrl=r.request().url().includes('test-key');
+  return r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,mode:'text',messageId:811})});
+ });
+ await boot(page,'?admin=1');
+ await page.locator('#tg-admin-key').fill('test-key');
+ await page.getByRole('button',{name:'Entrar'}).click();
+ const button=page.getByRole('button',{name:'Enviar teste ao canal'});
+ await expect(button).toBeVisible();
+ page.once('dialog',dialog=>dialog.accept());
+ await button.click();
+ await expect(page.locator('#tg-admin-dialog .tg-admin-message')).toContainText('mensagem 811');
+ expect(posts).toBe(1);expect(method).toBe('POST');expect(credential).toBe('test-key');expect(tokenInUrl).toBe(false);
+ expect(await page.evaluate(()=>({local:localStorage.length,session:sessionStorage.length}))).toEqual({local:0,session:0});
+});
