@@ -40,7 +40,12 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  try{
   await page.goto(origin+prefix+'phone-rain.html');
   await page.waitForFunction(()=>document.querySelector('#frame-label').textContent.startsWith('Quadro atual')&&document.querySelector('#chart svg'),null,{timeout:20000});
-  assert.match(await page.locator('#headline').textContent(),/Chuva prevista em cerca de 7[45] min/);assert.equal(await page.locator('#chart svg path').count(),2);assert.equal(await page.locator('.liberdade-point').count(),1);assert.equal(await page.locator('.liberdade-point span').textContent(),'Liberdade');assert.equal(await page.locator('#frame-kind').textContent(),'ÚLTIMO QUADRO');
+  assert.match(await page.locator('#headline').textContent(),/Chuva prevista em cerca de 1h1[45]/);assert.equal(await page.locator('#chart svg path').count(),2);assert.equal(await page.locator('.liberdade-point').count(),1);assert.equal(await page.locator('.liberdade-point span').textContent(),'Liberdade');assert.equal(await page.locator('#frame-kind').textContent(),'ÚLTIMO QUADRO');
+  assert.match(await page.locator('#peak-info').textContent(),/Pico previsto às .*5,0 mm\/h/);
+  assert.match(await page.locator('.rain-amount').textContent(),/mmnas próximas 2h/);
+  assert.equal(await page.locator('.map-panel #map-source').count(),1,'map image timestamp stays inside compact badge');
+  assert.equal(await page.locator('.map-panel .admin-boundary-controls:not([open])').count(),1,'state boundary selector starts collapsed');
+  assert.equal(await page.locator('.map-panel .map-title').textContent(),'Chuva na região');
   assert.equal(await page.evaluate(()=>!!document.querySelector('.maplibregl-canvas').getContext('webgl2')),true);
   await page.evaluate(()=>window.__map.jumpTo({center:[-45.8,-22.9],zoom:6.5}));const camera=await page.evaluate(()=>({center:__map.getCenter().toArray(),zoom:__map.getZoom()}));
   await page.locator('#frame').evaluate((el,value)=>{el.value=String(value);el.dispatchEvent(new Event('input',{bubbles:true}));},9);await page.waitForFunction(()=>document.querySelector('#frame-label').textContent.startsWith('Previsão'),null,{timeout:15000});
