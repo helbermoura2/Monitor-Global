@@ -44,3 +44,7 @@
 .marker.tsunami{border-color:#69daf7;color:#a3f3ff}
 .marker.cluster{width:34px;min-height:34px;border-radius:50%;background:#123f59;color:#e6feff;border:2px solid #61d0e4;font-size:15px}
 #map-legend p{font:11px/1.55 system-ui}
+
+/* In the rain preview, the header overlays the top of the map. */
+.map-panel:not(.brazil-map-panel) .admin-boundary-controls{top:70px;left:9px;max-width:180px}
+.brazil-map-panel .admin-boundary-controls{top:9px;left:9px;max-width:180px}
