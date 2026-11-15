@@ -2001,7 +2001,8 @@ async function handleWorkerRequest(request,env,ctx){
 
         if(reqUrl.pathname==='/telegram-admin-diagnose'){
             if(request.method!=='POST')return json({ok:false,error:'Método não permitido'},405);
-            return diagnoseTelegramAdmin(env);
+            const result=await diagnoseTelegramAdmin(env);
+            return new Response(result.body,{status:result.status,headers:{...CORS_HEADERS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
         }
         if(reqUrl.pathname==='/telegram-admin-smoke'){
             if(request.method!=='POST')return json({ok:false,error:'Método não permitido'},405);
