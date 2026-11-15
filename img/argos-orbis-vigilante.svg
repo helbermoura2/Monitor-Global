@@ -15,8 +15,8 @@
   @keyframes soft-pulse { 0%,100%{opacity:.72} 50%{opacity:1} }
   @media (prefers-reduced-motion: reduce) { #radar-pointer, .radar-glow { animation:none; } }
 </style>
-<!-- Fundo e inscrições idênticos à direção aprovada -->
-<rect x="0" y="0" width="1328" height="859" rx="68" fill="#030C19"/>
+<!-- Inscrições e desenho preservados; fundo externo transparente -->
+
 <text x="664" y="111" text-anchor="middle" fill="#BFA274" font-family="DejaVu Sans,Arial,sans-serif" font-size="40" font-weight="400" letter-spacing="12">ΠΑΝΟΠΤΗΣ</text>
 <text x="664" y="808" text-anchor="middle" fill="#C6A677" font-family="DejaVu Sans,Arial,sans-serif" font-size="39" font-weight="400" letter-spacing="11">CUSTOS ORBIS</text>
 
