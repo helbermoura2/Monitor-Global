@@ -3,6 +3,7 @@ package top.monitorglobal.tv;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 
 /**
@@ -64,14 +65,46 @@ final class BroadcastVisuals {
  static float tickerOffset(long elapsed,float length,boolean animated){
   return animated&&length>0?(elapsed/1000f*TICKER_PX_PER_SECOND)%length:0f;
  }
+ /** Native compact rendering of the official vigilante eye. Keep the rings fixed;
+  * only the pointer turns and the eye briefly blinks, as on the website.
+  * Native drawing avoids spawning WebView instances in the repeated overlays.
+  */
  static void radar(Canvas c,Paint paint,long elapsed,boolean animated){
-  c.save();c.translate(RADAR_X,RADAR_Y);c.scale(RADAR_SCALE,RADAR_SCALE);
+  c.save();
+  c.translate(RADAR_X,RADAR_Y);
+  c.scale(1.05f,1.05f);
+  float openness=1f;
+  if(animated){
+   float phase=(elapsed%11000L)/11000f;
+   if(phase>=.81f&&phase<.89f)
+    openness=Math.max(.015f,Math.abs(2f*(phase-.81f)/.08f-1f));
+  }
+  Path eye=new Path();
+  eye.moveTo(-34,0);
+  eye.quadTo(0,-25*openness,34,0);
+  eye.quadTo(0,25*openness,-34,0);
+  eye.close();
+  c.save();c.clipPath(eye);
+  paint.setStyle(Paint.Style.FILL);paint.setColor(0xff052f35);
+  c.drawRect(-36,-28,36,28,paint);
   paint.setStyle(Paint.Style.STROKE);
-  paint.setStrokeWidth(1.6f);paint.setColor(Color.rgb(45,127,168));
-  c.drawCircle(0,0,23,paint);c.drawCircle(0,0,16,paint);c.drawCircle(0,0,8,paint);
-  paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(56,189,248));
-  float angle=animated?(elapsed%RADAR_PERIOD_MS)/(float)RADAR_PERIOD_MS*360:0;
-  c.drawArc(-23,-23,23,23,-90+angle,45,true,paint);c.drawCircle(0,0,3,paint);
+  paint.setColor(0xff13d7d5);paint.setStrokeWidth(2.1f);
+  for(int radius:new int[]{24,17,9})c.drawCircle(0,0,radius,paint);
+  paint.setColor(0xff0d7c82);paint.setStrokeWidth(1.1f);
+  c.drawLine(-25,0,25,0,paint);c.drawLine(0,-25,0,25,paint);
+  c.save();
+  float degrees=animated?(elapsed%7200L)/7200f*360f:0f;
+  c.rotate(degrees);
+  paint.setStyle(Paint.Style.FILL);paint.setColor(0x6626ddd2);
+  Path beam=new Path();beam.moveTo(0,0);beam.lineTo(24,0);
+  beam.arcTo(-24,-24,24,24,0,32,false);beam.close();c.drawPath(beam,paint);
+  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2.4f);
+  paint.setColor(0xff4efff0);c.drawLine(0,0,24,0,paint);
+  c.restore();
+  paint.setStyle(Paint.Style.FILL);paint.setColor(0xff19dccb);c.drawCircle(0,0,5,paint);
+  c.restore();
+  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3f);
+  paint.setColor(0xffc4a16a);c.drawPath(eye,paint);
   c.restore();
  }
 }

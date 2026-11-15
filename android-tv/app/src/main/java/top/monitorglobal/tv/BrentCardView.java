@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import android.content.*;import android.graphics.*;import android.graphics.drawable.*;import android.view.*;import android.widget.*;
 import java.util.*;
 
-/** Compact Brent on-video HUD in the original Monitor Global navy/cyan palette. */
+/** Compact Brent on-video HUD in the original Argos Orbis navy/cyan palette. */
 final class BrentCardView extends LinearLayout {
  static final int BODY=TvCardStyle.BODY,DEEP=TvCardStyle.FOOT,CYAN=TvCardStyle.CYAN,WHITE=TvCardStyle.WHITE,MUTED=TvCardStyle.MUTED,GREEN=TvCardStyle.GREEN,RED=TvCardStyle.RED;
  private final Typeface brand;
