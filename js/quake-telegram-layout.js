@@ -129,7 +129,7 @@
 
   stripe(p,28,1360,744,CYAN);
   label(p,'argosorbis.com.br',32,1380,17,MUTED,true,350);
-  label(p,'TELEGRAM · ARGOS ORBIS',498,1380,16,CYAN,true,272);
+  label(p,'TELEGRAM · @argosorbis',498,1380,16,CYAN,true,272);
  }
  globalThis.QuakeTelegramLayout={version:'telegram-argos-v20',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y:994,TSUNAMI_HEIGHT:132,telegramFrame,draw,drawTsunami,tsunamiCopy};
 })();

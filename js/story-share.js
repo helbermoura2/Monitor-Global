@@ -591,7 +591,7 @@
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = '700 24px system-ui, sans-serif';
-    haloFillText(ctx, '📋 Resumo do dia no Telegram: ARGOS ORBIS', W / 2, y + 78);
+    haloFillText(ctx, '📋 Resumo do dia no Telegram: @argosorbis', W / 2, y + 78);
 
     ctx.restore();
     return y + boxH;
@@ -1848,7 +1848,7 @@
       const file = new File([blob], fileName, { type: 'image/png' });
       const shareData = {
         files: [file],
-        title: 'Monitor Global',
+        title: 'Argos Orbis',
         text: `${titleForItem(item)} — ${item.place || ''}`
       };
       let shared = false;

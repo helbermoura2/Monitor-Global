@@ -1553,7 +1553,7 @@ async function handleTelegramTest(env) {
     };
     const caption =
         telegramCaption(demo) +
-        '\n\n_Mensagem de teste do Monitor Global_';
+        '\n\n_Mensagem de teste do Argos Orbis_';
     try {
         await telegramSendPhoto(env, demo, caption);
         return json({ ok: true, mode: 'card', message: 'Card de teste enviado no Telegram' });
@@ -1603,7 +1603,7 @@ function dailySummaryCaption(quakes){
         `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${globalThis.EventPortuguese.place(top[0].place)}`:'sem registro'}`+
         (br.length?`\n🇧🇷 Brasil: ${br.length} sismo${br.length===1?'':'s'} · maior M${br[0].mag.toFixed(1).replace('.', ',')}`:
         quakes.brazilFailedSources?.length?'\n🇧🇷 Brasil: consulta incompleta; atualização pendente':'\n🇧🇷 Brasil: nenhum sismo registrado nas fontes consultadas')+
-        '\n🌐 monitorglobal.top';
+        '\n🌐 monitorglobal.top\n📢 t.me/argosorbis';
 }
 // Reconcilia publicações brasileiras atrasadas com o mesmo boletim, sem reenviá-lo.
 async function refreshDailyBrazilSummary(request,env,storage){
