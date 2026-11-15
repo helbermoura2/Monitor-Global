@@ -30,12 +30,12 @@ public class BroadcastBannerTest {
  @Test public void radarIsLargeAndAnimatedWhileReducedMotionStopsTheSweep()throws Exception{
   java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);
   try{for(boolean motion:new boolean[]{true,false}){scale.invoke(null,motion?1f:0f);NewsBannerView view=new NewsBannerView(c,alert(),false,true);Bitmap a=render(view,1000),b=render(view,1600);
-   try{int changed=0,blue=0;for(int y=25;y<97;y++)for(int x=886;x<958;x++){if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;int p=a.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("large visible radar",blue>500);if(motion)assertTrue(changed>100);else assertEquals(0,changed);}finally{a.recycle();b.recycle();}
+   try{int changed=0,blue=0;for(int y=28;y<91;y++)for(int x=864;x<926;x++){if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;int p=a.getPixel(x,y);if(Color.blue(p)>Color.red(p)+50)blue++;}assertTrue("large official eye remains visible",blue>190);if(motion)assertTrue(changed>100);else assertEquals(0,changed);}finally{a.recycle();b.recycle();}
   }}finally{scale.invoke(null,1f);}
  }
  @Test public void siteAndTelegramShareTheRightEdge()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),false,true);
-  for(long elapsed:new long[]{1000,9000}){Bitmap b=render(view,elapsed);try{int left=960,right=0,count=0;for(int y=103;y<124;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue(count>30);assertTrue("no overlap with ticker",left>730);assertTrue("ink ends close to right edge",right>=936&&right<=958);export(b,elapsed==1000?"site":"telegram");}finally{b.recycle();}}
+  for(long elapsed:new long[]{1000,9000}){Bitmap b=render(view,elapsed);try{int left=960,right=0,count=0;for(int y=103;y<124;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue(count>30);assertTrue("no overlap with ticker",left>730);assertTrue("site and Telegram inset by 35 coordinate units",right>=907&&right<=925);export(b,elapsed==1000?"site":"telegram");}finally{b.recycle();}}
  }
  @Test public void redMagnitudeHasNoBoxAndOnlyTheFooterEndsAreRounded()throws Exception{
   NewsBannerView normal=new NewsBannerView(c,alert(),true,false);Bitmap b=render(normal,1000);
