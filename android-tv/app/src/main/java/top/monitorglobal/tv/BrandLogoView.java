@@ -38,7 +38,14 @@ final class BrandLogoView extends FrameLayout {
    });
    addView(logo, new LayoutParams(
     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-   logo.loadUrl("file:///android_asset/argos-orbis-vigilante.svg");
+   // Wrap the SVG in a local transparent viewport so its 1328×859 source
+   // scales to the 118×76 dp header instead of cropping on older WebViews.
+   String html = "<!doctype html><html><head>"
+     + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+     + "<style>html,body{margin:0;width:100%;height:100%;background:transparent;"
+     + "overflow:hidden}img{display:block;width:100%;height:100%;object-fit:contain}</style>"
+     + "</head><body><img alt='' src='argos-orbis-vigilante.svg'></body></html>";
+   logo.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null);
   } catch (RuntimeException noWebView) {
    // Some Fire OS/Android TV builds omit the WebView runtime.
    // The native fallback remains visible.
