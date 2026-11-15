@@ -80,7 +80,7 @@
  }
  function drawBrand(p,status='AO VIVO'){
   box(p,28,16,40,40,'#020816');
-  globalThis.ArgosBrand.paint(p,48,36,16);
+  globalThis.ArgosBrand?.paint(p,48,36,16);
   (p.brandText||p.text)('ARGOS ORBIS',80,20,29,white,true);
   const size=13;p.text(status,774-p.measure(status,size,true),27,size,muted,true);
  }
