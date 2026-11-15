@@ -114,7 +114,7 @@ function create({map,host=document.body,onPlace=null}={}){
    if(map.getSource(CITY_ID))map.getSource(CITY_ID).setData(data);
    warn('Municípios · '+uf+' · IBGE (malha simplificada)');
    top();
-  }catch(error){if(ticket===seq&&alive&&!signal.aborted){cachedMunicipal=null;warn('Municípios indisponíveis · estados preservados');}}
+  }catch(error){if(ticket===seq&&alive&&!signal.aborted){cachedMunicipal=null;ufLoaded='';warn('Municípios indisponíveis · estados preservados');}}
  }
  function update(){
   if(!alive||!map.getLayer(STATE_LINES))return;
@@ -169,7 +169,7 @@ function create({map,host=document.body,onPlace=null}={}){
  map.on('zoomend',move);map.on('moveend',move);map.on('click',handleClick);map.on('style.load',style);map.on('styledata',overlayMoved);
  if(map.isStyleLoaded())install();
  fetchStates();
- return Object.freeze({setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){seq++;request?.abort();}else update();},destroy(){
+ return Object.freeze({setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){seq++;request?.abort();if(!cachedMunicipal)ufLoaded='';}else update();},destroy(){
   alive=false;seq++;request?.abort();mousePopup?.remove();
   map.off('zoomend',move);map.off('moveend',move);map.off('click',handleClick);map.off('style.load',style);map.off('styledata',overlayMoved);
   for(const marker of ufMarkers)marker.remove();ufMarkers=[];
