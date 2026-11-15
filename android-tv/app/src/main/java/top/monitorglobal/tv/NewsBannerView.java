@@ -139,7 +139,7 @@ final class NewsBannerView extends View {
  private void identity(Canvas c,int index,int opacity){
   if(opacity<=0)return;float labelX=954-identityTextWidths[index];int layer=c.saveLayerAlpha(960-identityWidths[index],BroadcastVisuals.FOOTER_TOP,960,126,opacity);c.clipPath(bannerClip);
   if(index==1){c.save();c.translate(labelX-14,113);paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(42,171,238));c.drawCircle(0,0,8,paint);paint.setColor(Color.WHITE);c.drawPath(telegramPlane,paint);c.restore();}
-  text(c,index==0?"monitorglobal.top":"@monitor_global",labelX,119,15,Color.WHITE,brand,206);c.restoreToCount(layer);
+  text(c,index==0?"argosorbis.com.br":"@argosorbis",labelX,119,15,Color.WHITE,brand,206);c.restoreToCount(layer);
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
   if(opacity<=0)return;int layer=opacity<255?c.saveLayerAlpha(0,24,844,BroadcastVisuals.FOOTER_TOP,opacity):c.save();c.clipRect(0,24,844,BroadcastVisuals.FOOTER_TOP);c.translate(0,shift);
