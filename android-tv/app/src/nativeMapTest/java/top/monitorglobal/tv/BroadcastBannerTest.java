@@ -59,7 +59,7 @@ public class BroadcastBannerTest {
    if(elapsed==1000)assertEquals("site has no Telegram symbol",0,blue);else assertTrue("Telegram symbol is visible next to handle",blue>60);
    for(int y=103;y<123;y++)for(int x=735;x<(int)view.identityLeft(elapsed)-8;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200)letters++;}assertTrue("ticker uses previously empty footer area",letters>20);
   }finally{b.recycle();}}
-  assertTrue("site reserve follows shorter label",view.identityLeft(1000)>view.identityLeft(9000));
+  assertTrue("new domain and channel labels reserve their actual measured widths",view.identityLeft(1000)<view.identityLeft(9000));
   assertEquals(Math.min(view.identityLeft(1000),view.identityLeft(9000)),view.identityLeft(BannerTimeline.PAGE_MS+100),.01);
  }
 }
