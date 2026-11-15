@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const API='https://black-sky-9ba0.terrestre.workers.dev',M=window.PhoneRainModel,$=id=>document.getElementById(id),CENTER=[-46.635,-23.555];
-let map=null,loaded=false,active=true,closed=false,epoch=0,metadata=null,rawForecast=null,frames=[],index=3,currentSource='',playing=false,playTimer=0,frameTimer=0,expiryTimer=0,lastLoad=0,loading=false,detailsChosen=false,detailsInitialized=false,refreshAfter=0,baseFailed=false;
+let map=null,boundaries=null,loaded=false,active=true,closed=false,epoch=0,metadata=null,rawForecast=null,frames=[],index=3,currentSource='',playing=false,playTimer=0,frameTimer=0,expiryTimer=0,lastLoad=0,loading=false,detailsChosen=false,detailsInitialized=false,refreshAfter=0,baseFailed=false;
 const requests=new Set(),sources=new Set(),failedSources=new Set();
 function message(value){$('map-status').textContent=value;$('map-status').hidden=!value;}
 function time(value){return new Date(value).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})+' BRT';}
@@ -68,9 +68,9 @@ async function load(force=false){
  if(needForecast){if(!M.forecast(rawForecast))clearGraph('Atualizando previsão da Liberdade…');jobs.push(json('/tv-rain?area=liberdade',token).then(data=>{if(!M.forecast(data))throw Error('forecast');rawForecast=data;renderForecast();}).catch(()=>{if(token===epoch&&active){refreshAfter=Date.now()+300000;rawForecast=null;clearGraph('Previsão da Liberdade indisponível');}}));}
  await Promise.allSettled(jobs);if(token!==epoch||closed||!active)return;loading=false;$('refresh').disabled=false;if(!needMap)showFrame(index);if(!needForecast)renderForecast();scheduleExpiry();
 }
-function pause(){active=false;epoch++;loading=false;halt();clearTimeout(frameTimer);clearTimeout(expiryTimer);for(const request of requests)request.abort();requests.clear();hideRain();if(map)map.stop();}
-function resume(){if(closed)return;active=true;if(map)map.resize();load();}
-function close(){if(closed)return;pause();closed=true;removeFrames();if(map){map.remove();map=null;}loaded=false;metadata=null;rawForecast=null;frames=[];}
+function pause(){active=false;epoch++;loading=false;halt();clearTimeout(frameTimer);clearTimeout(expiryTimer);for(const request of requests)request.abort();requests.clear();hideRain();boundaries?.setActive(false);if(map)map.stop();}
+function resume(){if(closed)return;active=true;if(map)map.resize();boundaries?.setActive(true);load();}
+function close(){if(closed)return;pause();closed=true;boundaries?.destroy();boundaries=null;removeFrames();if(map){map.remove();map=null;}loaded=false;metadata=null;rawForecast=null;frames=[];}
 window.MonitorMap={pause,resume,close};
 $('frame').addEventListener('input',()=>{halt();showFrame(Number($('frame').value));});
 $('play').addEventListener('click',()=>{if(playing){halt();return;}if(!active||!frames.length)return;playing=true;$('play').textContent='Ⅱ';$('play').setAttribute('aria-label','Pausar animação');showFrame(index>=frames.length-1?0:index);});
@@ -80,7 +80,7 @@ try{
  map=new maplibregl.Map({container:'rain-map',center:CENTER,zoom:7.2,minZoom:3,maxZoom:9,maxBounds:[[-77,-36],[-29,7]],renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:48,fadeDuration:0,attributionControl:false,style:{version:8,sources:{base:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:18,attribution:'Mapa © Esri, HERE, Garmin e colaboradores'}},layers:[{id:'base',type:'raster',source:'base',paint:{'raster-brightness-max':.88,'raster-saturation':-.2}}]}});
  map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
  const marker=document.createElement('div');marker.className='liberdade-point';marker.setAttribute('aria-label','Ponto da Liberdade, São Paulo');const pointName=document.createElement('span');pointName.textContent='Liberdade';marker.appendChild(pointName);new maplibregl.Marker({element:marker}).setLngLat(CENTER).addTo(map);
- map.on('load',()=>{loaded=true;if(active)load();});map.on('sourcedata',e=>{if(e.sourceId===currentSource)settled();});map.on('idle',settled);
+ map.on('load',()=>{loaded=true;try{boundaries=window.ArgosBoundaries.create({map,host:document.querySelector('.map-panel')});boundaries?.setActive(active);}catch{}if(active)load();});map.on('sourcedata',e=>{if(e.sourceId===currentSource)settled();});map.on('idle',settled);
  map.on('error',e=>{if(e.sourceId===currentSource)frameFailed();else if(e.sourceId==='base'){baseFailed=true;message('Imagem de fundo indisponível. A previsão da Liberdade pode continuar disponível.');}});
  map.on('movestart',e=>{if(e.originalEvent)halt();});
 }catch{message('Não foi possível iniciar o mapa. Volte e abra a prévia novamente.');clearGraph('Previsão da Liberdade indisponível');}
