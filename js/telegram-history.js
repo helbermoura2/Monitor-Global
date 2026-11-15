@@ -26,7 +26,7 @@
      const response=await fetch(base+path,{method,headers:{'X-Admin-Token':token},cache:'no-store',signal:controller.signal});
      if(response.status===401){authorized=false;token='';menuButtons();throw Error('Chave inválida ou acesso administrativo não configurado.')}
      if(!response.ok){
-       if(path==='/telegram-admin-smoke'){
+       if(path==='/telegram-admin-smoke'||path==='/telegram-admin-diagnose'){
          const detail=await response.json().catch(()=>null);
          throw Error(detail?.error||'O envio não foi confirmado. Confira o canal antes de tentar novamente.');
        }
@@ -67,6 +67,16 @@
    for(const [key,text] of [['daily','Resumos diários'],['alerts','Sismos M6+ e Brasil'],['health','Saúde do serviço']]){
      const btn=n('button',text);btn.type='button';btn.setAttribute('aria-pressed',String(active===key));btn.onclick=()=>{active=key;render()};controls.append(btn);
    }
+   const diagnose=n('button','🔎 Verificar bot e canal');diagnose.type='button';
+   diagnose.title='Confere o bot configurado e se ele pode publicar, sem enviar nenhuma mensagem.';
+   diagnose.onclick=async()=>{
+     diagnose.disabled=true;message.textContent='Verificando bot e permissões, sem publicar nada…';
+     try{
+       const result=await request('/telegram-admin-diagnose',false,'POST');
+       message.textContent=result.ok?'✅ '+result.message:'⚠️ '+(result.error||'Conexão não confirmada.');
+     }catch(error){message.textContent='⚠️ '+(error.name==='AbortError'?'A verificação demorou demais.':error.message);}
+     finally{diagnose.disabled=false;}
+   };
    const test=n('button','🧪 Enviar teste ao canal','tg-send-test');test.type='button';test.disabled=sendingTest;
    test.title='Publica somente uma mensagem técnica, sem sismo fictício, no canal @argosorbis.';
    test.onclick=async()=>{
@@ -83,7 +93,7 @@
      }finally{sendingTest=false;test.disabled=false;}
    };
    const update=n('button','Atualizar');update.type='button';update.onclick=refresh;
-   const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(test,update,exit);body.append(controls);
+   const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(diagnose,test,update,exit);body.append(controls);
    body.append(n('p','Teste de texto simples, sem alertas fictícios. O sistema limita repetições para evitar mensagens duplicadas.','tg-note'));
    if(active==='health'){loadHealth();return;}
    healthGeneration++;
