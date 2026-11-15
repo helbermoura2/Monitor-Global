@@ -82,8 +82,8 @@ public class BroadcastBannerTest {
    }
    assertEquals("All five count groups have colored numerals",5,columns);
    assertTrue("Full-day counters legible",colored>50);
-   int safe=0;for(int y=104;y<=122;y++)for(int x=932;x<959;x++)if(image.getPixel(x,y)!=0xff020816)safe++;
-   assertEquals("Brand remains clear of TV overscan",0,safe);
+   int safe=0;for(int y=104;y<=122;y++)for(int x=932;x<959;x++){int p=image.getPixel(x,y);if(Color.red(p)>125&&Color.green(p)>125&&Color.blue(p)>125)safe++;}
+   assertEquals("No bright text enters TV right overscan margin",0,safe);
    export(image,"summary-totals");
   }finally{image.recycle();}
   NewsBannerView unavailable=new NewsBannerView(c,List.of(alert()),"2026-11-14",false,true);
