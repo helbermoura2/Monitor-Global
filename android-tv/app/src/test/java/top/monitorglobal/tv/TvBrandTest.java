@@ -4,10 +4,10 @@ import static org.junit.Assert.*;
 
 /** Guard against restoring the old public footer during the rebrand. */
 public final class TvBrandTest {
- @Test public void publicBrandUsesNewDomainWithoutInventingTelegramUsername() {
+ @Test public void publicBrandUsesVerifiedTelegramUsername() {
   assertEquals("ARGOS ORBIS", TvBrand.NAME);
   assertEquals("argosorbis.com.br", TvBrand.SITE);
-  assertEquals("TELEGRAM · ARGOS ORBIS", TvBrand.TELEGRAM);
-  assertFalse(TvBrand.TELEGRAM.contains("@"));
+  assertEquals("@argosorbis", TvBrand.TELEGRAM);
+  assertEquals("https://t.me/argosorbis", TvBrand.TELEGRAM_URL);
  }
 }
