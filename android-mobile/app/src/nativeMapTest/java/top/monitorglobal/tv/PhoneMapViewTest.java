@@ -46,5 +46,24 @@ public class PhoneMapViewTest {
   AtomicInteger selected=new AtomicInteger();PhoneMapView view=new PhoneMapView(RuntimeEnvironment.getApplication(),a->{assertEquals("q1",a.id);selected.incrementAndGet();});
   try{view.setEvents(Collections.singletonList(sample("q1",85,27)));Object bridge=field(view,"bridge");Method select=bridge.getClass().getDeclaredMethod("selectEvent",String.class);select.setAccessible(true);assertNotNull(select.getAnnotation(JavascriptInterface.class));select.invoke(bridge,"foreign-id");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(0,selected.get());select.invoke(bridge,"q1");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(1,selected.get());view.pause();select.invoke(bridge,"q1");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(1,selected.get());view.close();select.invoke(bridge,"q1");Shadows.shadowOf(Looper.getMainLooper()).idle();assertEquals(1,selected.get());}finally{view.close();}
  }
+ @Test public void onlyPinnedMunicipalMeshPathsAreAllowed(){
+  final String base="https://cdn.jsdelivr.net/gh/henriquemalvar/br-geojson@a4680c128c23c90fde346334fd5888a3b2997d29/dist/municipios/";
+  for(String uf:new String[]{"SP","MG","RJ","AC","DF","RS","TO"})
+   assertTrue("Official UF geodata "+uf,PhoneMapView.municipalMeshResource(Uri.parse(base+uf+".geojson")));
+  for(String url:Arrays.asList(base+"SP.geojson?token=1",base+"ZZ.geojson",base+"SP.geojson#fragment",
+    base+"sp.geojson","http"+base.substring(5)+"SP.geojson",
+    "https://evil.example"+base.substring(base.indexOf("/gh/"))+"SP.geojson",
+    "https://cdn.jsdelivr.net/gh/henriquemalvar/br-geojson@main/dist/municipios/SP.geojson"))
+   assertFalse(url,PhoneMapView.municipalMeshResource(Uri.parse(url)));
+ }
+ @Test public void packagedAdministrativeSourcesRemainAvailableOffline()throws Exception{
+  PhoneMapView view=new PhoneMapView(RuntimeEnvironment.getApplication(),null);
+  try{
+   androidx.webkit.WebViewAssetLoader loader=(androidx.webkit.WebViewAssetLoader)field(view,"loader");
+   for(String name:Arrays.asList("phone-boundaries.js","phone-boundaries.css","data/br-states.geojson","data/br-municipalities-sp.geojson")){
+    android.webkit.WebResourceResponse r=loader.shouldInterceptRequest(Uri.parse("https://appassets.androidplatform.net"+PhoneMapView.ASSET_PREFIX+name));
+    assertNotNull(name,r);assertNotNull(name,r.getData());r.getData().close();
+   }
+  }finally{view.close();}
+ }
 }
-
