@@ -46,7 +46,7 @@ class DarkArgosLauncher(unittest.TestCase):
   tv=(ROOT/"android-tv/app/build.gradle").read_text()
   mobile=(ROOT/"android-mobile/app/build.gradle").read_text()
   self.assertIn("versionCode 10099",tv)
-  self.assertIn("versionCode 21",mobile)
+  self.assertIn("versionCode 22",mobile)
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",tv)
   self.assertIn("applicationId 'top.monitorglobal.mobile'",mobile)
   activity=(ROOT/"android-mobile/app/src/main/java/top/monitorglobal/tv/PhoneActivity.java").read_text()
