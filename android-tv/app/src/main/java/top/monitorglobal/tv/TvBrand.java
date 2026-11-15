@@ -5,7 +5,8 @@ package top.monitorglobal.tv;
 final class TvBrand {
  static final String NAME = "ARGOS ORBIS";
  static final String SITE = "argosorbis.com.br";
- // No new @username is shown until the existing channel is actually renamed.
- static final String TELEGRAM = "TELEGRAM · ARGOS ORBIS";
+ // The existing Telegram channel has been renamed and its public URL confirmed.
+ static final String TELEGRAM = "@argosorbis";
+ static final String TELEGRAM_URL = "https://t.me/argosorbis";
  private TvBrand() {}
 }
