@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 globalThis.window=globalThis;
+await import('../../js/argos-eye-brand.js');
 await import('../../js/event-portuguese.js');
 await import('../../js/seismic-impact-model.js');
 await import('../../js/quake-card-layout.js');
@@ -21,8 +22,8 @@ test('Concept 6 is for every quake magnitude, shows two flags only inside Brazil
   layout.draw(out.p,{mag,place:'Lajedo/PE',depth:0,when:'08/11/2026 · 02:26 BRT',sourceLabel:'USP',mmi:'I',imageFlags:region,imageMapAvailable:true});
   assert(out.text.some(t=>t.s==='M'+String(mag).replace('.',',')));
   assert.equal(out.flags.length,flags);
-  assert(out.text.some(t=>t.s==='monitorglobal.top'));
-  assert(out.text.some(t=>t.s==='Telegram · @monitor_global'));
+  assert(out.text.some(t=>t.s==='argosorbis.com.br'));
+  assert(out.text.some(t=>t.s==='Telegram · ARGOS ORBIS'));
   assert(out.text.some(t=>t.s==='Não confirmado'));
   assert(!out.text.some(t=>/Ver vídeo|Replay do mapa|Animação do sismo/i.test(t.s)));
   assert(out.text.every(t=>t.y+t.z<1440));
