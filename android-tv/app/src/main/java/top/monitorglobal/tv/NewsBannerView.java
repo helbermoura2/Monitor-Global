@@ -18,7 +18,7 @@ final class NewsBannerView extends View {
  private final Alert root;
  private final Page[] pages;
  private final boolean demo,replay;
- private final boolean summary;private final String summaryDay;private final long pageMillis;
+ private final boolean summary;private final String summaryDay;private final long pageMillis;private final DailySeismicTotals summaryTotals;
  private long started;private boolean presentationAnimated;
  void startPresentation(long when,boolean animated){started=when;presentationAnimated=animated&&animate;invalidate();}
  private final String ticker;
@@ -43,11 +43,12 @@ final class NewsBannerView extends View {
   }
  }
  NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated){
-  this(context,a,demonstration,repeated,null,"",false);
+  this(context,a,demonstration,repeated,null,"",false,null);
  }
- NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts.get(0),false,repeated,alerts,day,complete);}
- private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete){
-  super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;
+ NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts,day,repeated,complete,null);}
+  NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete,DailySeismicTotals totals){this(context,alerts.get(0),false,repeated,alerts,day,complete,totals);}
+ private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete,DailySeismicTotals totals){
+  super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;
   brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
   paint.setTypeface(brand);paint.setTextSize(15);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
   identityTextWidths[0]=paint.measureText("argosorbis.com.br");identityTextWidths[1]=paint.measureText("@argosorbis");identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
@@ -66,7 +67,7 @@ final class NewsBannerView extends View {
   }
   if(summary||replay)line.append("HISTÓRICO · Não informa a situação atual de tsunami     •     ");
   line.append("Siga as orientações das autoridades locais");ticker=line.toString();
-  setContentDescription((demo?"Demonstração, não é alerta real. ":replay?"Replay de registro histórico. ":"")+ticker);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+  setContentDescription((demo?"Demonstração, não é alerta real. ":replay?"Replay de registro histórico. ":"")+(summaryTotals!=null?summaryTotals.accessibilityText()+" ":"")+ticker);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
  private void rect(Canvas c,float l,float t,float r,float b,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRect(l,t,r,b,paint);}
  private void rounded(Canvas c,float l,float t,float r,float b,float radius,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(l,t,r,b,radius,radius,paint);}
@@ -101,12 +102,31 @@ final class NewsBannerView extends View {
   if((summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
    float t=BannerTimeline.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
+  if(summary&&summaryTotals!=null)drawSummaryTotals(c);
+  else{
   c.save();c.clipRect(100,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);paint.setTypeface(data);paint.setTextSize(12);float length=paint.measureText(ticker)+90;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);text(c,ticker,100-offset,119,12,Color.WHITE,data,Float.MAX_VALUE);text(c,ticker,100-offset+length,119,12,Color.WHITE,data,Float.MAX_VALUE);c.restore();
+  }
   c.restore();
   drawMap(c,index,elapsed,fadeElapsed);c.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
   if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(Math.min(pageMillis-within,60000-Math.floorMod(System.currentTimeMillis(),60000)));}
+ }
+ /** Five magnitude bands from the full-day catalog, not the five ranked quake cards. */
+ private void drawSummaryTotals(Canvas c){
+  final float left=100f,right=Math.min(identityLeft(1000),identityLeft(BannerTimeline.PAGE_MS+1000))-8f;
+  final float width=(right-left)/5f;
+  final String[] labels={"EVENTOS","M6,0+","M5,0–5,9","M4,0–4,9","ABAIXO M4,0"};
+  final int[] colors={0xff29d4f2,0xffff5c68,0xffffa04b,0xffffda54,0xff46df9b};
+  final int[] values=summaryTotals.values();
+  c.save();c.clipRect(left,BroadcastVisuals.FOOTER_TOP+1,right,125);
+  for(int i=0;i<5;i++){
+   float x=left+i*width,center=x+width/2f;
+   if(i>0){paint.setStyle(Paint.Style.STROKE);paint.setColor(0xff315169);paint.setStrokeWidth(.75f);c.drawLine(x,105,x,123,paint);}
+   centerText(c,Integer.toString(values[i]),center,114,14,colors[i],brand,width-7f);
+   centerText(c,labels[i],center,122.7f,8.5f,Color.WHITE,data,width-6f);
+  }
+  c.restore();
  }
  private void drawMap(Canvas c,int index,long elapsed,long fadeElapsed){
   if(mapInset==null||mapReveal<=0||mapSpace==0)return;
