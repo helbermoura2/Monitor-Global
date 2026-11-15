@@ -13,7 +13,8 @@
      const btn=n('button','Histórico do Telegram','submenu-action');btn.type='button';btn.id='admin-telegram-history';
      btn.addEventListener('click',open);menu.append(btn);
    }
-   document.querySelectorAll('#admin-telegram-history').forEach(btn=>btn.hidden=!authorized);
+   // The menu entry stays visible; every operation still requires the ADMIN_TOKEN.
+   document.querySelectorAll('#admin-telegram-history').forEach(btn=>btn.hidden=false);
  }
  function logout(){
    token='';authorized=false;data=null;healthGeneration++;clearPreview();menuButtons();login();
