@@ -1,4 +1,4 @@
-"""Regression contract: 1.0.91 restores the approved 1.0.88 event internals.
+"""Regression contract: retain approved weather/market columns with safe logo insets.
 
 The newsroom experiment changed the internal presentation of every event and
 made the seismic subtitle collide with its header. The extended red tabs and
@@ -24,7 +24,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'label(c,detail,290,84,',
             'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",493)',
             'metric(c,2,weather==null?"—":weather.windValue,"VENTO",626)',
-            'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",759)',
+            'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",727)',
         ):
             self.assertIn(piece, WEATHER)
 
