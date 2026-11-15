@@ -46,13 +46,15 @@ function countMessage(list){
 function showEvents(){
  if(!loaded||!active||!map)return;
  const list=filtered();countMessage(list);
- removeMarkers();
  empty.hidden=list.length>0||!notice.hidden;
  if(!fitted&&list.length&&!focus){
   fitted=true;
   if(list.length===1)map.jumpTo({center:[list[0].longitude,list[0].latitude],zoom:5});
   else{const bounds=new maplibregl.LngLatBounds();list.forEach(e=>bounds.extend([e.longitude,e.latitude]));map.fitBounds(bounds,{padding:55,maxZoom:5,duration:0});}
  }
+ // Fit can fire a synchronous moveend and reenter showEvents. Clearing after
+ // fitting guarantees only one set of markers survives the nested rendering.
+ removeMarkers();
  // Cluster in projected screen space, without a glyph server or per-frame workload.
  const cells=new Map(),zoom=map.getZoom();
  for(const event of list){
