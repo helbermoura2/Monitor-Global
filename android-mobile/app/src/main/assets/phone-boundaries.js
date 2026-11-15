@@ -46,7 +46,7 @@ function create({map,host=document.body,onPlace=null}={}){
   // limits must stay visible above them without creating recursive style loops.
   const style=map.getStyle(),layers=style&&style.layers;
   if(!layers||!layers.length)return;
-  const overlay=['br-satellite-layer','br-radar-layer'];
+  const overlay=['br-satellite-layer','br-historical-radar-layer'];
   let max=-1;for(const id of overlay){const i=layers.findIndex(x=>x.id===id);if(i>max)max=i;}
   if(max<0)return;
   for(const id of [STATE_FILL,STATE_LINES,CITY_FILL,CITY_LINES]){
@@ -159,14 +159,19 @@ function create({map,host=document.body,onPlace=null}={}){
   current=value;select.value=value;remember(value);update();
  }
  const move=()=>{if(active)update();};
+ let queued=false;
  const style=()=>{if(!alive)return;if(!map.getLayer(STATE_LINES)&&map.isStyleLoaded())install();};
+ const overlayMoved=()=>{
+  if(!alive||queued)return;queued=true;
+  requestAnimationFrame(()=>{queued=false;if(alive&&map.getLayer(STATE_LINES))top();});
+ };
  select.addEventListener('change',()=>setMode(select.value));
- map.on('zoomend',move);map.on('moveend',move);map.on('click',handleClick);map.on('style.load',style);
+ map.on('zoomend',move);map.on('moveend',move);map.on('click',handleClick);map.on('style.load',style);map.on('styledata',overlayMoved);
  if(map.isStyleLoaded())install();
  fetchStates();
  return Object.freeze({setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){seq++;request?.abort();}else update();},destroy(){
   alive=false;seq++;request?.abort();mousePopup?.remove();
-  map.off('zoomend',move);map.off('moveend',move);map.off('click',handleClick);map.off('style.load',style);
+  map.off('zoomend',move);map.off('moveend',move);map.off('click',handleClick);map.off('style.load',style);map.off('styledata',overlayMoved);
   for(const marker of ufMarkers)marker.remove();ufMarkers=[];
   for(const id of [CITY_LINES,CITY_FILL,STATE_LINES,STATE_FILL])if(map.getLayer(id))map.removeLayer(id);
   for(const id of [CITY_ID,STATE_ID])if(map.getSource(id))map.removeSource(id);
