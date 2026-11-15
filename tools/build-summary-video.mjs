@@ -22,9 +22,9 @@ if(!events.length)throw new Error('No dated earthquakes to render');
 const impact=process.argv.includes('--impact');if(impact)events=await enrichVideoEvents(events);
 const painted=process.argv.includes('--paint')||process.argv.includes('--satellite');
 if(painted)events=await prepareVideoPaint(events.map(e=>({...e,depthKm:data.events.find(original=>original.id===e.id)?.depth})),{official:process.argv.includes('--satellite')});
-const logo=(await readFile(resolve(root,'index.html'),'utf8')).match(/<svg class="mg-logo-icon"[\s\S]*?<\/svg>/)?.[0];
-if(!logo)throw new Error('Project radar logo missing');
-const logoURL='data:image/svg+xml;base64,'+Buffer.from(logo.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ')).toString('base64');
+const logo=await readFile(resolve(root,'img/argos-orbis-vigilante-static.svg'),'utf8');
+if(!logo.includes('<svg'))throw new Error('Argos Orbis vector logo missing');
+const logoURL='data:image/svg+xml;base64,'+Buffer.from(logo).toString('base64');
 const hold=impact?5:4;
 const fonts=await Promise.all(['CormorantGaramond','Inter'].map(async name=>({name,url:'data:font/ttf;base64,'+(await readFile(resolve(root,'assets/summary-fonts/'+name+'.ttf'))).toString('base64')})));
 const satellite=process.argv.includes('--satellite')?await preloadSatellite(events,resolve(tmpdir(),'monitor-global-satellite-tiles'),{hold,mapHeight:impact?460:560}):null;
@@ -84,8 +84,8 @@ try{
    if(!intro&&!closing){const local=time-2-index*hold,from=index?camera(events[index-1]):world;cam=mix(from,camera(event),ease(Math.min(1,local/1.4)));}
    if(closing)cam=mix(camera(events.at(-1)),world,ease(Math.min(1,(time-2-events.length*hold)/1.4)));
    if(satellite)cam=satellite.cameras[Math.min(satellite.cameras.length-1,Math.max(0,Math.round(time*25)))];
-   ctx.drawImage(logoImage,30,36,52,52);
-   text('MONITOR GLOBAL',98,69,23,white);text('AMOSTRA · '+date+' · BRT',30,113,15,muted);
+   ctx.drawImage(logoImage,30,29,81,53);
+   text('ARGOS ORBIS',118,69,23,white);text('AMOSTRA · '+date+' · BRT',30,113,15,muted);
    if(satellite||impact){text('Resumo sísmico diário.',30,190,57,white,'CormorantGaramond',600);text('OS '+events.length+' MAIORES SISMOS DO DIA',32,229,17,muted);}
    else{text('Resumo sísmico',30,203,76,white,'CormorantGaramond',600);text('diário.',30,282,76,cyan,'CormorantGaramond',600);text('OS '+events.length+' MAIORES SISMOS DO DIA',32,323,17,muted);}
    drawMap(cam,intro||closing?null:event,time);
@@ -115,7 +115,7 @@ try{
     if(!valid(event))text('Epicentro sem coordenadas disponíveis',32,755,16,muted);
    }
    for(let i=0;i<events.length;i++)circle(310+i*24,impact?1215:1190,4,intro||closing?muted:i===index?color(event):'#294052');
-   text(impact?'Fontes: USGS · EMSC · Dados sujeitos a revisão':'Fonte: USGS · Dados sujeitos a revisão',30,1250,14,muted);ctx.font='400 17px Inter';text('monitorglobal.top',W-30-ctx.measureText('monitorglobal.top').width,1250,17,cyan);
+   text(impact?'Fontes: USGS · EMSC · Dados sujeitos a revisão':'Fonte: USGS · Dados sujeitos a revisão',30,1250,14,muted);ctx.font='400 17px Inter';text('argosorbis.com.br',W-30-ctx.measureText('argosorbis.com.br').width,1250,17,cyan);
   }
   draw(0);
   const stream=canvas.captureStream(25),mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
