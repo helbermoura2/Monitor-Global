@@ -1,6 +1,6 @@
-# Monitor Global Celular · 0.1.15 de teste
+# Argos Orbis Celular · 0.1.16 de teste
 
-O nome exibido pelo Android nas notificações e no ícone agora é **Monitor Global** (sem o sufixo “· Teste”). O aplicativo continua sendo uma prévia, identificada no número da versão **0.1.15-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
+O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.16-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
 
 ## Correções preservadas da 0.1.14
 
