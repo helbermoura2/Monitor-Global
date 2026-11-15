@@ -22,7 +22,7 @@ android {
  buildTypes {
   // Keep the preview package and visible version suffix distinct, but show a clean
   // public-facing app name in Android notification headers and the launcher.
-  debug { applicationIdSuffix '.dev'; versionNameSuffix '-teste'; resValue 'string', 'app_name', 'Monitor Global' }
+  debug { applicationIdSuffix '.dev'; versionNameSuffix '-teste'; resValue 'string', 'app_name', 'Argos Orbis' }
   release { minifyEnabled false; debuggable false; resValue 'string', 'app_name', 'Monitor Global' }
  }
  // Reuse the validated protocol, forecast and flag models without copying the TV application.
