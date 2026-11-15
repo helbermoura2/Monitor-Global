@@ -8,7 +8,6 @@ let filter={region:'world',hours:0,minMagnitude:0},opacity=70;
 const ACTIVE_TSUNAMI_STATES=new Set(['warning','watch','advisory']);
 // Preserve quiet/ended bulletins in the native history, but do not pin them as an active threat.
 const onAlertMap=e=>e.kind!=='tsunami'||ACTIVE_TSUNAMI_STATES.has(String(e.state||''));
-const LEGEND_TEXT='Pontos de referência · sem área de risco estimada. Períodos limitados pela fonte.';
 const valid=e=>e&&Number.isFinite(e.longitude)&&Number.isFinite(e.latitude)&&Math.abs(e.longitude)<=180&&Math.abs(e.latitude)<=85.05112878;
 const haversine=(a,b,c,d)=>{
  const rad=Math.PI/180,dy=(c-a)*rad,dx=(d-b)*rad;
