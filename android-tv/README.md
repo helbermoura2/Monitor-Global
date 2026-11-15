@@ -1,4 +1,4 @@
-# Monitor Global TV
+# Argos Orbis TV
 
 **Fire Stick: botão de sobreposição não abre ou volta sem autorizar?** Use o [guia pelo celular](PERMISSAO_FIRE_TV.md), válido também para a versão já instalada. A versão 1.0.31 acrescenta essa ajuda por QR Code; a autorização continua dependendo do Fire OS.
 
