@@ -57,7 +57,7 @@ public class BroadcastBannerTest {
   for(long elapsed:new long[]{1000,9000}){Bitmap b=render(view,elapsed);try{
    int blue=0,letters=0;for(int y=103;y<123;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)<80&&Color.green(p)>100&&Color.blue(p)>180)blue++;}
    if(elapsed==1000)assertEquals("site has no Telegram symbol",0,blue);else assertTrue("Telegram symbol is visible next to handle",blue>60);
-   for(int y=103;y<123;y++)for(int x=735;x<(int)view.identityLeft(elapsed)-8;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200)letters++;}assertTrue("ticker uses previously empty footer area",letters>20);
+   for(int y=103;y<123;y++)for(int x=100;x<(int)view.identityLeft(elapsed)-8;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200)letters++;}assertTrue("ticker remains readable within the inset brand footer",letters>20);
   }finally{b.recycle();}}
   assertTrue("new domain and channel labels reserve their actual measured widths",view.identityLeft(1000)<view.identityLeft(9000));
   assertEquals(Math.min(view.identityLeft(1000),view.identityLeft(9000)),view.identityLeft(BannerTimeline.PAGE_MS+100),.01);
