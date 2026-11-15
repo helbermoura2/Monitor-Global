@@ -7,7 +7,7 @@ assert "package: name='top.monitorglobal.mobile.dev'" in badging, badging
 assert "PhoneActivity" in badging, "Phone launcher missing"
 assert "application-label:'Argos Orbis'" in badging, "Android launcher must use Argos Orbis"
 source = (pathlib.Path(__file__).resolve().parents[1] / "app/src/main/java/top/monitorglobal/tv/PhoneActivity.java").read_text(encoding="utf-8")
-for marker in ("argosorbis.com.br", "https://t.me/argosorbis", 'setTag("argos-logo")'):
+for marker in ("argosorbis.com.br", "https://t.me/argosorbis", 'setTag("argos-logo")', "new RadarLogoView(this)"):
     assert marker in source, "Missing Argos branding: " + marker
 assert "https://t.me/monitor_global" not in source
 assert "https://monitorglobal.top/" not in source
