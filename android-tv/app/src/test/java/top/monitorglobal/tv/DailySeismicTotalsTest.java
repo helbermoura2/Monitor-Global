@@ -22,10 +22,7 @@ public class DailySeismicTotalsTest {
   corrupt.put("dailyTotals",new JSONObject().put("day","2026-11-14").put("total",190).put("m6",0).put("m5",2).put("m4",15).put("below4",5));
   assertNull(SummaryRecord.decode(corrupt.toString()).dailyTotals);
   assertNull(DailySeismicTotals.read(new DailySeismicTotals("2026-11-14",190,0,2,15,173,true).json(),"2026-11-14"));
-  try{new DailySeismicTotals("2026-11-15",190,0,2,15,173,false).json();fail("Day mismatch");}catch(AssertionError bad){
-   // A well-formed other day is only rejected when attributed to the requested date.
-   try{DailySeismicTotals.read(new DailySeismicTotals("2026-11-15",190,0,2,15,173,false).json(),"2026-11-14");fail();}
-   catch(JSONException expected){}
-  }
+  try{DailySeismicTotals.read(new DailySeismicTotals("2026-11-15",190,0,2,15,173,false).json(),"2026-11-14");fail("Out-of-day totals accepted");}
+  catch(JSONException expected){}
  }
 }
