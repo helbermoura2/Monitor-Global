@@ -1,6 +1,6 @@
-# Argos Orbis Celular · 0.1.19 de teste
+# Argos Orbis Celular · 0.1.20 de teste
 
-O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.19-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
+O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.20-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
 
 ## Correções preservadas da 0.1.14
 
@@ -23,3 +23,6 @@ O desenho do tempo agora usa a posição solar calculada para a Liberdade, São 
 
 ## Logo oficial animado no cabeçalho
 O olho do Argos Orbis usa a mesma ilustração vetorial nativa da TV: o ponteiro gira, os anéis permanecem parados e o olho pisca discretamente. A animação para quando o app fica invisível e respeita as animações desativadas do Android. Não há GIF, downloads de imagens ou mudanças nas notificações e APIs.
+
+## Ícone de instalação — opção 3
+Ícone do lançador Android atualizado com fundo preto quase puro, brilho ciano discreto atrás do olho/radar e contorno dourado. Atualização visual aplicada também à Android TV. O logo animado do cabeçalho permanece como antes; o ícone de instalação é estático, conforme o Android.
