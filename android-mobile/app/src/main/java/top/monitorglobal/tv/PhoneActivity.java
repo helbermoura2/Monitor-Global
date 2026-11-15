@@ -255,7 +255,7 @@ public class PhoneActivity extends Activity {
   if(map==null)map=new PhoneMapView(this,this::showEvent);if(map.getParent()!=null)((ViewGroup)map.getParent()).removeView(map);box.addView(map,new LinearLayout.LayoutParams(-1,0,1));List<Alert> visible=new ArrayList<>();for(Alert a:events())if(mapFilter.equals("all")||mapFilter.equals(a.kind))visible.add(a);map.setEvents(visible);if(active)map.resume();else map.pause();
  }
  private void rainPage(){
-  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));if(mapReturnTab.equals("map"))mapModes(box,"rain");Button back=button(mapReturnTab.equals("map")?"‹ Mapa de eventos":"‹ Tempo na Liberdade",()->{tab=mapReturnTab;render();});back.setTag("close-rain");box.addView(back,new LinearLayout.LayoutParams(-1,-2));
+  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));if(mapReturnTab.equals("map"))mapModes(box,"rain");else{Button back=button("‹ Voltar ao clima",()->{tab=mapReturnTab;render();});back.setTag("close-rain");back.setTextSize(13);back.setMinHeight(dp(34));back.setMinimumHeight(dp(34));back.setPadding(dp(8),dp(3),dp(8),dp(3));box.addView(back,new LinearLayout.LayoutParams(-1,-2));}
   if(snapshot!=null)briefingCard(box,"rain",snapshot.weather,snapshot.rain);
   if(rainMap==null)rainMap=new PhoneMapView(this,null,true);if(rainMap.getParent()!=null)((ViewGroup)rainMap.getParent()).removeView(rainMap);box.addView(rainMap,new LinearLayout.LayoutParams(-1,0,1));if(active)rainMap.resume();else rainMap.pause();
  }
