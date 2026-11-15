@@ -45,7 +45,7 @@ class DarkArgosLauncher(unittest.TestCase):
  def test_versions_increment_but_package_id_and_animated_header_stay(self):
   tv=(ROOT/"android-tv/app/build.gradle").read_text()
   mobile=(ROOT/"android-mobile/app/build.gradle").read_text()
-  self.assertIn("versionCode 10098",tv)
+  self.assertIn("versionCode 10099",tv)
   self.assertIn("versionCode 21",mobile)
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",tv)
   self.assertIn("applicationId 'top.monitorglobal.mobile'",mobile)
