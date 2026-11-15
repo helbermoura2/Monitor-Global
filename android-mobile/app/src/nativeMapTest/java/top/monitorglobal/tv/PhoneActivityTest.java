@@ -41,6 +41,21 @@ public class PhoneActivityTest {
   root().findViewWithTag("tab-notices").performClick();layout();assertTrue(texts(root()).contains("Notificações desativadas"));assertTrue(named(root(),"Ativar avisos no celular").isEnabled());assertNotNull(named(root(),"Verificar atualização do aplicativo"));
   Intent push=new Intent(activity,PhoneActivity.class).putExtra(PhonePush.EXTRA,AlertCodec.write(quake()).toString());activity.onNewIntent(push);layout();assertTrue(texts(root()).contains("Detalhes do evento"));assertTrue(texts(root()).contains("Kathmandu"));assertFalse(push.hasExtra(PhonePush.EXTRA));activity.onBackPressed();assertTrue(texts(root()).contains("Avisos e fontes"));
  }
+ @Test public void headerUsesTheOfficialAnimatedArgosMarkAcrossTabs(){
+  View logo=root().findViewWithTag("argos-logo");
+  assertNotNull("Argos logo must remain visible in the mobile header",logo);
+  assertTrue("The mark must be the same native animated vector as TV",logo instanceof RadarLogoView);
+  RadarLogoView eye=(RadarLogoView)logo;
+  assertTrue(eye.getContentDescription().toString().contains("radar em movimento"));
+  eye.setSweepDegrees(135f);
+  assertEquals(135f,eye.getSweepDegrees(),.001f);
+  layout();
+  assertTrue(eye.getWidth()>0&&eye.getHeight()>0);
+  root().findViewWithTag("tab-weather").performClick();
+  assertSame("Navigating must not recreate or restart the header logo",eye,root().findViewWithTag("argos-logo"));
+  root().findViewWithTag("tab-notices").performClick();
+  assertSame(eye,root().findViewWithTag("argos-logo"));
+ }
  @Test public void notificationHeaderUsesArgosOrbisWithoutPreviewSuffix(){
   // Android shows the manifest app label above BOTH live weather and seismic notifications.
   // A preview build remains identifiable through its package and in-app version only.
