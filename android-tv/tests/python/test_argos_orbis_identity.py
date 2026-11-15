@@ -28,7 +28,7 @@ class ArgosOrbisIdentity(unittest.TestCase):
   self.assertIn("ARGOS / ORBIS",banner)
   self.assertNotIn("MONITOR GLOBAL",banner)
   gradle=(ROOT/"android-tv/app/build.gradle").read_text(encoding="utf-8")
-  self.assertIn("versionCode 10098",gradle)
+  self.assertIn("versionCode 10099",gradle)
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",gradle)
   self.assertIn("app_name', 'Argos Orbis TV'",gradle)
   self.assertIn("ΠΑΝΟΠΤΗΣ",(SRC/"RadarLogoView.java").read_text(encoding="utf-8"))
