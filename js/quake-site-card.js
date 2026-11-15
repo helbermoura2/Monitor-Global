@@ -26,7 +26,7 @@
  }
  function header(p,ev,mag,place){
   p.rect(0,0,W,MAP_Y,bg);
-  globalThis.ArgosBrand.paint(p,55,39,24);
+  globalThis.ArgosBrand?.paint(p,55,39,24);
   (p.brandText||p.text)('ARGOS ORBIS',101,21,30,white,true);
   p.text(ev.test?'SIMULAÇÃO':ev.revisionText||ev._deltaTxt?'REVISADO':'REGISTRO SÍSMICO',textRight(p,ev.test?'SIMULAÇÃO':ev.revisionText||ev._deltaTxt?'REVISADO':'REGISTRO SÍSMICO',14),26,14,muted,true);
   p.rect(26,78,748,1,'#345468');
