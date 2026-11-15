@@ -55,7 +55,7 @@ final class TvBroadcastInfoView extends View {
   // Match NewsBannerView's alternating site/Telegram footer exactly.
   p.setTypeface(brand);p.setTextSize(17);
   identityTextWidths[0]=p.measureText("argosorbis.com.br");
-  identityTextWidths[1]=p.measureText("ARGOS ORBIS");
+  identityTextWidths[1]=p.measureText("@argosorbis");
   identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;
   identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
   telegramPlane.moveTo(-5.5f,-.5f);telegramPlane.lineTo(5,-4.5f);
