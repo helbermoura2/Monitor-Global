@@ -38,7 +38,7 @@ test('event filters only show data present in the catalog, no false safety claim
  assert.match(map,/filter\.hours>0/);
  assert.match(map,/filter\.minMagnitude>0/);
  assert.match(map,/e\.countryCode/);
- assert.match(map,/na consulta\. Isso não significa ausência de eventos/);
+ assert.match(map,/nesta consulta\. Isso não significa ausência de eventos/);
  assert.match(map,/clusters|Cluster in projected screen space/i);
  assert.match(map,/maplibregl\.Popup/);
  assert.match(map,/setDOMContent\(content\)/);
