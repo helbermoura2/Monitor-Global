@@ -13,15 +13,15 @@ import android.graphics.Typeface;
 final class BroadcastVisuals {
  private BroadcastVisuals(){}
  // Shared geometry for seismic, weather, rain, and market broadcasts.
- static final float BREAKING_WIDTH=260f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f;
- static final float STATUS_MIN_WIDTH=154f,STATUS_MAX_WIDTH=176f;
+ static final float BREAKING_WIDTH=190f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f;
+ static final float STATUS_MIN_WIDTH=88f,STATUS_MAX_WIDTH=142f;
  // Both Android TV renderers use the same headline and status typography.
  // The labels fill the existing boxes without changing the overlay/map/footer size.
  static final float BREAKING_TEXT_FILL=.86f,STATUS_TEXT_FILL=.80f;
  static final float HEADER_LABEL_HEIGHT=24f;
  static float statusWidth(Paint paint,android.graphics.Typeface font,String label){
-  paint.setTypeface(font);paint.setTextSize(17f);
-  return Math.max(STATUS_MIN_WIDTH,Math.min(STATUS_MAX_WIDTH,(float)Math.ceil(paint.measureText(label))+32f));
+  paint.setTypeface(font);paint.setTextSize(18f);
+  return Math.max(STATUS_MIN_WIDTH,Math.min(STATUS_MAX_WIDTH,(float)Math.ceil(paint.measureText(label))+24f));
  }
  /** Rajdhani lettering retains natural glyph proportions in the 24-unit headline bar.
   * Draw the same centered label for sismos, meteorologia, mercados, voz and replay.
@@ -59,7 +59,7 @@ final class BroadcastVisuals {
  // 960-unit coordinate system, shared by all lower thirds (not physical TV px).
  // Right edge: 960 - 35 = 925, so the full 62-unit logo is overscan-safe.
  static final float BRAND_RIGHT_INSET=35f;
- static final float RADAR_SIZE=62f,RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f;
+ static final float RADAR_SIZE=66f,RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f;
  static final float CONTENT_RIGHT_LIMIT=858f;
  static final float TICKER_PX_PER_SECOND=40f;
  static final long RADAR_PERIOD_MS=7200L,BLINK_PERIOD_MS=11000L;
