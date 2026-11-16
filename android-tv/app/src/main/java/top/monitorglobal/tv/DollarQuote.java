@@ -40,6 +40,7 @@ final class DollarQuote {
   while(head.find()){
    LocalDate day;
    try{day=LocalDate.parse(head.group(1),DATE);}catch(DateTimeException ignored){continue;}
+   if(day.getDayOfWeek()==DayOfWeek.SATURDAY||day.getDayOfWeek()==DayOfWeek.SUNDAY)continue;
    long close=day.atTime(18,30).atZone(BRASIL).toInstant().toEpochMilli();
    if(close>now+120000L||now-close>MAX_CLOSE_AGE)continue;
    String table=text.substring(head.end(),Math.min(text.length(),head.end()+1800));
