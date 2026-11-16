@@ -34,7 +34,7 @@ final class MarketDOLWidget {
    "<div class='tradingview-widget-container'><div class='tradingview-widget-container__widget'></div>"+
    "<div class='tradingview-widget-copyright'><a href='https://br.tradingview.com/symbols/BMFBOVESPA-DOL1!/' target='_blank' rel='noopener nofollow'>DOL1! · B3</a> · ~15 min · TradingView</div>"+
    "<script type='text/javascript' src='"+SCRIPT+"' async>"+
-   "{\\\"symbol\\\":\\\""+SYMBOL+"\\\",\\\"width\\\":\\\"100%\\\",\\\"locale\\\":\\\"br\\\",\\\"colorTheme\\\":\\\"dark\\\",\\\"isTransparent\\\":false}"+
+   "{\"symbol\":\""+SYMBOL+"\",\"width\":\"100%\",\"locale\":\"br\",\"colorTheme\":\"dark\",\"isTransparent\":false}"+
    "</script></div></body></html>";
  }
  static WebView create(Context context){
