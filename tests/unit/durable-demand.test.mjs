@@ -37,11 +37,11 @@ test('legacy source alarms drain without scheduling another alarm, including whe
  await handleSourceInObject(req,{},s,async()=>Response.json({features:[]}));
 });
 test('idle cron skips public dashboard prewarming and checks historical summaries only every fifteen minutes; live Telegram keeps running',async()=>{
- const fixed=originalDate.parse('2026-10-18T12:01:00Z');globalThis.Date=class extends originalDate{constructor(...args){super(...(args.length?args:[fixed]));}static now(){return fixed;}};globalThis.fetch=async()=>{throw Error('Unexpected public prewarm or real Telegram call');};
+ const fixed=originalDate.parse('2026-10-18T16:01:00Z');globalThis.Date=class extends originalDate{constructor(...args){super(...(args.length?args:[fixed]));}static now(){return fixed;}};globalThis.fetch=async()=>{throw Error('Unexpected public prewarm or real Telegram call');};
  const calls=[],jobs=[],binding={idFromName:n=>n,get:n=>({fetch:async r=>{calls.push([n,String(r?.url||r)]);return Response.json({ok:true});}})};
  const env={EARTHQUAKE_ALERTS:binding,DAILY_SUMMARY:binding};
  await worker.scheduled({scheduledTime:Date.now()},env,{waitUntil:p=>jobs.push(p)});await Promise.all(jobs.splice(0));assert.deepEqual(calls.map(x=>x[0]),['earthquake-alerts']);
- await worker.scheduled({scheduledTime:Date.parse('2026-10-18T12:15:00Z')},env,{waitUntil:p=>jobs.push(p)});await Promise.all(jobs.splice(0));assert.equal(calls.filter(x=>x[0]==='earthquake-alerts').length,2);assert.equal(calls.filter(x=>x[1].includes('refresh-brazil')).length,3);
+ await worker.scheduled({scheduledTime:Date.parse('2026-10-18T16:15:00Z')},env,{waitUntil:p=>jobs.push(p)});await Promise.all(jobs.splice(0));assert.equal(calls.filter(x=>x[0]==='earthquake-alerts').length,2);assert.equal(calls.filter(x=>x[1].includes('refresh-brazil')).length,3);
 });
 test('less urgent weather/status cache lasts five minutes; seismic, volcanic escalation and tsunami policies remain unchanged',()=>{
  assert.equal(sourcePolicy(new Request('https://worker.test/metar-observed')).ttl,300000);
