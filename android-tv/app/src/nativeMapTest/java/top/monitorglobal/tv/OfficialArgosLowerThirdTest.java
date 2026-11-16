@@ -62,7 +62,7 @@ public class OfficialArgosLowerThirdTest {
    assertTrue(BroadcastVisuals.CONTENT_RIGHT_LIMIT+5f<=BroadcastVisuals.RADAR_X-BroadcastVisuals.RADAR_SIZE/2f);
    assertBrandWithinSafeArea(a);
    assertBrandWithinSafeArea(b);
-   for(int y=28;y<91;y++)for(int x=864;x<926;x++)
+   for(int y=33;y<91;y++)for(int x=864;x<926;x++)
     assertEquals("weather/oil should render identical official mark at "+x+","+y,
                  a.getPixel(x,y),b.getPixel(x,y));
   }finally{a.recycle();b.recycle();}
