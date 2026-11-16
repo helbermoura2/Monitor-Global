@@ -28,7 +28,9 @@ assert(row.events.some(x=>x.stage==='query'));assert(row.events.some(x=>x.stage=
 assert.equal(JSON.stringify(history).includes('test-admin'),false);assert.equal(JSON.stringify(history).includes('token'),false);
 const preview=await worker.fetch(admin('/telegram-history-preview?day=2026-09-30'),env);assert.equal(preview.headers.get('content-type'),'image/png');assert((await preview.arrayBuffer()).byteLength>10000);assert.equal(sends,1);
 assert.equal((await worker.fetch(admin('/telegram-history-preview?day=wrong'),env)).status,400);
-stamp+=86400000;queryFail=true;
+// A source outage at midnight must not permanently lose the previous day's
+// bulletin: it can retry later in the morning, with exactly-once delivery.
+stamp+=86400000+3*3600000;queryFail=true;
 await run();assert.equal(sends,1);queryFail=false;await run();assert.equal(sends,2);
 history=await (await worker.fetch(admin('/telegram-history'),env)).json();
 assert.equal(history.daily.find(x=>x.day==='2026-10-01').attempts,2);
@@ -42,5 +44,5 @@ history=await (await worker.fetch(admin('/telegram-history'),env)).json();
 assert.equal(history.alerts.length,1);
 const detail=await (await worker.fetch(admin('/telegram-history-detail?key='+encodeURIComponent(key)),env)).json();
 assert.equal(detail.record.mag,6.2);assert.equal(sends,3);
-console.log('PASS: authorization, no URL tokens, concurrent send once, persistent attempt history, real PNG preview without sending, query retry, ambiguous timeout blocked, daytime blocked');
+console.log('PASS: authorization, no URL tokens, concurrent send once, persistent attempt history, real PNG preview without sending, morning recovery after 00:30, query retry, ambiguous timeout blocked, daytime blocked');
 
