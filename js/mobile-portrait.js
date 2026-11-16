@@ -75,7 +75,9 @@
     button(panel, 'Visual: vidro / escuro', secondary(() => window.mgToggleTheme?.()));
     button(panel, 'Recarregar dados', secondary(() => window.menuAcao?.('reload')));
     if (typeof window.toggleTvMode === 'function') button(panel, 'Modo TV', secondary(() => window.toggleTvMode()));
-    if (window.TelegramAdmin?.isAuthenticated()) button(panel, 'Histórico do Telegram', secondary(() => window.TelegramAdmin.open()));
+    // Login is requested by the panel itself; hiding the entry until login
+    // makes it impossible to discover on mobile.
+    button(panel, '🔒 Histórico do Telegram', secondary(() => window.TelegramAdmin?.open()));
   }
   function install() {
     const parent = $('ux-controlbar');

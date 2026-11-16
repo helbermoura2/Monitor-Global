@@ -5,7 +5,7 @@ class Element {constructor(tag){this.tag=tag;this.children=[];this.classList=new
 const body=new Element('body');for(const id of ['ux-controlbar','fab-menu','ux-panel','btn-teste']){const e=new Element('div');e.id=id;body.append(e)}
 const document={body,readyState:'complete',getElementById:id=>nodes.get(id),createElement:t=>new Element(t),addEventListener(){},querySelectorAll(selector){if(selector.includes('data-view'))return nodes.get('mobile-primary-nav').children;return []}};
 let orientationChange;const media={matches:true,addEventListener(_,fn){orientationChange=fn}};
-const calls=[];const context={document,window:{matchMedia:()=>media, toggleSomAtivo(){context.somAtivo=!context.somAtivo},__uxShow:k=>calls.push(k)},MutationObserver:class{observe(){}},localStorage:{getItem:()=>null},somAtivo:false,somVolume:.7,globalAlerts:[{id:'a',place:'Vento forte',source:'INMET',time:100}],globalEvents:[],toggleMobileEventsModal:on=>body.classList.toggle('mobile-events-open',on),fecharPainelDetalhesMobile:()=>body.classList.remove('mobile-details-mid','mobile-details-open'),showAlertDetails:item=>calls.push(item.id),setSomVolume:v=>calls.push('volume:'+v),formatTime:()=> 'agora'};
+const calls=[];const context={document,window:{matchMedia:()=>media,TelegramAdmin:{isAuthenticated:()=>false,open:()=>calls.push('telegram-admin-open')}, toggleSomAtivo(){context.somAtivo=!context.somAtivo},__uxShow:k=>calls.push(k)},MutationObserver:class{observe(){}},localStorage:{getItem:()=>null},somAtivo:false,somVolume:.7,globalAlerts:[{id:'a',place:'Vento forte',source:'INMET',time:100}],globalEvents:[],toggleMobileEventsModal:on=>body.classList.toggle('mobile-events-open',on),fecharPainelDetalhesMobile:()=>body.classList.remove('mobile-details-mid','mobile-details-open'),showAlertDetails:item=>calls.push(item.id),setSomVolume:v=>calls.push('volume:'+v),formatTime:()=> 'agora'};
 vm.createContext(context);
 // The portrait menu delegates to the shared audio renderer; exercise that real renderer too.
 context.toggleSomAtivo=context.window.toggleSomAtivo;
@@ -22,6 +22,9 @@ const all=el=>[el,...el.children.flatMap(all)];const find=text=>all(panel).find(
 find('🔇 Som desligado · ligar').onclick();assert.equal(context.somAtivo,true);assert(find('🔊 Som ligado · desligar'));
 const sliders=all(panel).filter(e=>e.tag==='input');assert.equal(sliders.length,2);const slider=sliders.find(e=>e.attrs['aria-label']==='Volume de efeitos');slider.value='35';slider.oninput();assert(calls.includes('volume:35'));const voice=sliders.find(e=>e.attrs['aria-label']==='Volume de voz');voice.value='45';voice.oninput();assert(calls.includes('voice:45'));
 all(panel).find(e=>e.className==='mg-alert-row').onclick();assert(calls.includes('a'));assert(!panel.classList.contains('open'));
+context.window.MobilePortraitUI.menu();
+assert(find('🔒 Histórico do Telegram'),'History entry must be available before authentication');
+find('🔒 Histórico do Telegram').onclick();assert(calls.includes('telegram-admin-open'));
 context.window.MobilePortraitUI.menu();find('Filtros de eventos').onclick();assert(body.classList.contains('mg-mobile-filters'));
 media.matches=false;orientationChange();assert(!body.classList.contains('mg-mobile-primary'));assert(!body.classList.contains('mg-mobile-filters'));
 console.log('PASS: Mapa/Eventos/Alertas navigation, real alert selection, audio toggle/volume, secondary filters, portrait exit');
