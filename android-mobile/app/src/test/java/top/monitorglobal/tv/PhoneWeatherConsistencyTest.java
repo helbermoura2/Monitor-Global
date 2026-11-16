@@ -6,6 +6,20 @@ public class PhoneWeatherConsistencyTest {
  private WeatherForecast.Summary drizzle(){return new WeatherForecast.Summary("25°C","Garoa","6 km/h","57%","Modelo horário",now+3600000,false,"25°C","27°C","57%","6 km/h","11 km/h","Drizzle");}
  @Test public void screenshotAmountsAreCompatibleAndReadFromTheSameMinuteWindow()throws Exception{JSONObject d=minuteData();RainForecast.Summary r=RainForecast.summarize(d,now);PhoneRainChart.Series s=PhoneRainChart.Series.parse(d,now);assertNotNull(s);assertEquals(10,r.arrivalMinutes);assertEquals(.1,s.accumulated(30),1e-9);assertEquals(1.3,s.accumulated(60),1e-9);assertEquals(r.amount,s.accumulated(60),1e-9);assertEquals(2.4,s.peakRate,0);assertEquals("0–30 min: 0,1 mm · 30–60 min: 1,2 mm",s.distribution());assertEquals("Chuva prevista em ~10 min",PhoneWeatherReading.condition(drizzle(),r));assertEquals("RainSoon",PhoneWeatherReading.illustration(drizzle(),r));}
  @Test public void allRainValuesAdvanceTogetherWhenTheReferenceMinuteAdvances()throws Exception{JSONObject d=minuteData();long later=now+5*60000;RainForecast.Summary r=RainForecast.summarize(d,later);PhoneRainChart.Series s=PhoneRainChart.Series.parse(d,later);assertEquals(later,s.startsAt);assertEquals(5,r.arrivalMinutes);assertEquals(r.amount,s.accumulated(60),1e-9);assertTrue(s.accumulated(30)>.1);}
+ @Test public void dryMinuteDoesNotReplaceSkyOrChangeItsArtwork(){
+  RainForecast.Summary dry=new RainForecast.Summary("dry","","Sem chuva estimada · próxima hora",0,0,"",now,now+600000,false);
+  WeatherForecast.Summary clouds=new WeatherForecast.Summary("23°C","Nublado","18 km/h","67%","Modelo horário",now+600000,false,"23°C","24°C","67%","18 km/h","18 km/h","Cloudy");
+  assertEquals("Nublado",PhoneWeatherReading.condition(clouds,dry));
+  assertEquals("Cloudy",PhoneWeatherReading.illustration(clouds,dry));
+  assertEquals("Condição: modelo horário",PhoneWeatherReading.caption(clouds,dry));
+  assertEquals("Garoa",PhoneWeatherReading.condition(drizzle(),dry));
+  long daylight=java.time.Instant.parse("2026-11-16T18:00:00Z").toEpochMilli();
+  long night=java.time.Instant.parse("2026-11-16T06:00:00Z").toEpochMilli();
+  WeatherForecast.Summary partly=new WeatherForecast.Summary("23°C","Parcialmente nublado","18 km/h","67%","Modelo horário",now+600000,false,"23°C","24°C","67%","18 km/h","18 km/h","PartlyCloudy");
+  assertEquals("Sol entre nuvens",WeatherForecast.sky(partly,daylight));
+  assertEquals("Parcialmente nublado",WeatherForecast.sky(partly,night));
+  assertEquals("Ensolarado",WeatherForecast.sky(new WeatherForecast.Summary("23°C","Céu limpo","","","",now+600000,false,"23°C","24°C","67%","18 km/h","18 km/h","Clear"),daylight));
+ }
  @Test public void cachedNarrativesCannotIntroduceADifferentRainWindow(){assertEquals("",PhoneWeatherReading.complementaryAi("Garoa agora, sem chuva por 30 minutos."));assertEquals("",PhoneWeatherReading.complementaryAi("Acumulado de precipitação de 0,1 mm."));assertEquals("",PhoneWeatherReading.complementaryAi("Acumulado estimado: 0,1 mm."));assertEquals("Modelo horário de 25 °C; umidade 57%.",PhoneWeatherReading.complementaryAi("Modelo horário de 25 °C; umidade 57%."));}
  @Test public void expiredMinuteDataDoesNotBecomeZeroRain()throws Exception{assertNull(PhoneRainChart.Series.parse(minuteData(),now+600001));assertEquals("Garoa",PhoneWeatherReading.condition(drizzle(),null));}
 }
