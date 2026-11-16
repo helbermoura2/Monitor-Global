@@ -9,7 +9,7 @@ import java.util.regex.*;
 /** One overlay: stable brand/footer, softly changing event content. No focus required. */
 final class NewsBannerView extends View {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- static final float HEADLINE_X=124,HEADLINE_Y=64,HEADLINE_TOP=40,HEADLINE_BOTTOM=72,HEADLINE_WIDTH=660,FLAG_RESERVE=44;
+ static final float HEADLINE_X=124,HEADLINE_Y=72,HEADLINE_TOP=48,HEADLINE_BOTTOM=77,HEADLINE_WIDTH=660,FLAG_RESERVE=44;
  private final Path breakingClip=new Path();private final float breakingWidth,badgeWidth;private final Path bannerClip=new Path(),telegramPlane=new Path();private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private long clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private final Matrix shineMatrix=new Matrix();
@@ -181,9 +181,9 @@ final class NewsBannerView extends View {
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
   }else if(a.kind.equals("tsunami")){BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI",a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",eventInk(a));}
   else centerText(c,p.magnitude,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,36,eventInk(a),brand,85);
-  fitText(c,p.caption,HEADLINE_X,41,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
+  fitText(c,p.caption,HEADLINE_X,45,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:31;drawHeadline(c,p,elapsed,width,size);
-  if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,43,x+32,67),paint);}
+  if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,50,x+32,74),paint);}
   fitText(c,p.first,HEADLINE_X,89,15,foreground,brand,315);fitText(c,p.source,449,89,14,foreground,brand,166);text(c,p.time,630,89,13,foreground,data,180);c.restoreToCount(layer);
  }
  private void drawHeadline(Canvas c,Page p,long elapsed,float width,float size){
