@@ -77,7 +77,7 @@ public class TvBroadcastInfoViewTest {
    float weatherTitle=inkMidY(w,11,115,offset+31,offset+80,true)-offset;
    float weatherDegrees=inkMidY(w,124,236,offset+31,offset+80,false)-offset;
    float brentTitle=inkMidY(m,12,123,31,80,true);
-   float brentPrice=inkMidY(m,138,390,31,80,false);
+   float brentPrice=inkMidY(m,130,347,31,80,false);
    assertEquals("TEMPO and 19°C need one visual center",weatherTitle,weatherDegrees,5.5f);
    assertEquals("BRENT must be large and centered alongside its price",brentTitle,brentPrice,5.5f);
    assertEquals("All categories must use the same vertical anchor",weatherTitle,brentTitle,6f);
@@ -175,7 +175,7 @@ public class TvBroadcastInfoViewTest {
     int tint=onScreen.value==MarketState.OPEN?0xff75edb2:onScreen.value==MarketState.CLOSED?0xffff7687:onScreen.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;
     int top=0,bottom=0;
     // The new header badge is in the SAME y=44 baseline as the USD/BRL badge.
-    for(int y=28;y<=45;y++)for(int x=402;x<=559;x++){
+    for(int y=28;y<=45;y++)for(int x=355;x<=476;x++){
      int pixel=image.getPixel(x,y);
      if(Color.red(pixel)==Color.red(tint)&&Color.green(pixel)==Color.green(tint)&&Color.blue(pixel)==Color.blue(tint))top++;
     }

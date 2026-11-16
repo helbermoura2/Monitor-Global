@@ -43,6 +43,10 @@ public class UnifiedBroadcastChromeTest {
   view.draw(new Canvas(bitmap));return bitmap;
  }
  @Test public void everyRadarPixelMatchesTheOriginalSeismicReplay()throws Exception{
+  // Identical static frames: a moving sweep advances between sequential render calls.
+  java.lang.reflect.Method durationScale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);
+  durationScale.setAccessible(true);durationScale.invoke(null,0f);
+  try{
   NewsBannerView seismic=new NewsBannerView(context,regional(),false,true);
   BrentQuote brent=new BrentQuote(78.45,77.50,.95,1.22,System.currentTimeMillis()-180000,"Yahoo Finance");
   DollarQuote dollar=new DollarQuote(5.35,.04,.76,System.currentTimeMillis()-180000,"Yahoo Finance");
@@ -69,6 +73,7 @@ public class UnifiedBroadcastChromeTest {
    assertTrue("full official Argos eye stays clearly visible",bright>140);
    assertTrue(changed>100);
   }finally{a.recycle();b.recycle();c.recycle();}
+  }finally{durationScale.invoke(null,1f);}
  }
  @Test public void newsroomHeaderAndFooterMatchAcrossSeismicAndMarkets()throws Exception{
   NewsBannerView quake=new NewsBannerView(context,regional(),false,true);

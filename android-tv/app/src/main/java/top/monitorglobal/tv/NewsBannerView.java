@@ -144,8 +144,8 @@ final class NewsBannerView extends View {
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}
   c.save();c.clipRect(OledNewsChrome.LEFT,94,106,126);
-  rect(c,31,94,106,126,OledNewsChrome.RED_DARK);
-  centerText(c,clockText,68,118,17,Color.WHITE,data,69);
+  rect(c,OledNewsChrome.LEFT,94,106,126,OledNewsChrome.RED_DARK);
+  centerText(c,clockText,58,118,17,Color.WHITE,data,90);
   c.restore();
  }
  private void breaking(Canvas c,long elapsed){

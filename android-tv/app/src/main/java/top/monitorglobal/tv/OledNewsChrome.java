@@ -11,7 +11,7 @@ import android.graphics.Typeface;
 /**
  * Argos Orbis OLED rendering of the user-supplied 1920x1080 Pixlr news template.
  * Virtual canvas is 960x126 (the existing Android TV safe-area and animation size).
- * Main bar: x=43..924, y=30..94, pure #000000.
+ * Main bar: x=8..925, y=30..94, pure #000000 with safe overscan spacing.
  * Red left/right tags: same separated locations as the approved template.
  * No floating text panels are drawn above the lower third.
  *
@@ -22,9 +22,10 @@ final class OledNewsChrome {
  static final int OLED=Color.BLACK, INK=Color.WHITE;
  static final int RED=0xffbf1827, RED_BRIGHT=0xffed1231, RED_DARK=0xff850008;
  static final int FOOTER=0xff101115, MUTE=0xffb9c2c8;
- static final float LEFT=31f, LEFT_TAB_RIGHT=295f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
+ static final float LEFT=8f, LEFT_TAB_RIGHT=295f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
  static final float BODY_TOP=30f, BODY_END=94f, FOOTER_END=126f;
  static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=804f;
+ static final float LOGO_CENTER_X=877f, LOGO_SIZE=60f;
  static final long FOOTER_SLOT_MS=4000L, FOOTER_FADE_MS=400L;
  private OledNewsChrome(){}
 
@@ -53,8 +54,8 @@ final class OledNewsChrome {
  static void base(Canvas c,Paint p){
   // The original white banner is now pitch-black OLED with a thin old-news red left edge.
   fill(c,p,LEFT,BODY_TOP,RIGHT,BODY_END,OLED);
-  fill(c,p,LEFT,BODY_TOP,37f,BODY_END,RED_DARK);
-  fill(c,p,37f,BODY_TOP,RIGHT,BODY_END,OLED);
+  fill(c,p,LEFT,BODY_TOP,LEFT+6f,BODY_END,RED_DARK);
+  fill(c,p,LEFT+6f,BODY_TOP,RIGHT,BODY_END,OLED);
   // Only the original lower ticker; no floating right-hand boxes above the banner.
   p.setShader(new LinearGradient(0,94,0,126,
    new int[]{0xff25262a,0xff090a0e,0xff17191e},null,Shader.TileMode.CLAMP));
@@ -84,13 +85,12 @@ final class OledNewsChrome {
   float open=1f;
   if(animate&&blink>.81f&&blink<.89f)
    open=Math.max(.015f,Math.abs(2f*((blink-.81f)/.08f)-1f));
+  // The right-hand panel carries ONLY the official animated radar-eye artwork.
+  // Center the complete vector (including its corner symbols) inside the safe area.
   c.save();c.clipRect(830,31,RIGHT,94);
-  c.translate(831,36);c.scale(.36f,.36f);
+  c.translate(LOGO_CENTER_X-LOGO_SIZE/2f,32);c.scale(LOGO_SIZE/128f,LOGO_SIZE/128f);
   RadarLogoView.drawArtwork(c,p,sweep,open);
   c.restore();
-  fitted(c,p,"ARGOS",titleFont(null),879,56,42,14,INK);
-  fitted(c,p,"ORBIS",titleFont(null),879,75,42,14,INK);
-  // Logo-only panel: website and Telegram belong exclusively in the grey footer.
  }
  /** One address at a time: 3.2s fully shown, 0.4s fades on each side. */
  static String footerText(long elapsed){
@@ -111,8 +111,14 @@ final class OledNewsChrome {
   // A fade-through-blank guarantees both labels are never present together.
   int layer=c.saveLayerAlpha(BRAND_PLATE_LEFT,99,RIGHT,126,opacity);
   c.clipRect(BRAND_PLATE_LEFT+2,99,RIGHT-2,126);
-  fitted(c,p,footerText(elapsed),titleFont(null),BRAND_PLATE_LEFT+6,118,
-   RIGHT-BRAND_PLATE_LEFT-12,13.5f,INK);
+  // Center the single visible address optically, not against the left box edge.
+  String address=footerText(elapsed);
+  p.setTypeface(regularFont());p.setTextScaleX(1f);p.setShader(null);
+  float size=13.5f, available=RIGHT-BRAND_PLATE_LEFT-12;
+  p.setTextSize(size);
+  while(size>9.5f&&p.measureText(address)>available){size-=.5f;p.setTextSize(size);}
+  p.setColor(INK);p.setStyle(Paint.Style.FILL);
+  c.drawText(address,(BRAND_PLATE_LEFT+RIGHT-p.measureText(address))/2f,118,p);
   c.restoreToCount(layer);
  }
 }
