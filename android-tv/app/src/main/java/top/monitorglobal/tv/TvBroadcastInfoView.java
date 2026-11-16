@@ -173,6 +173,16 @@ final class TvBroadcastInfoView extends View {
   while(size>minimum&&p.measureText(raw)>width){size-=.5f;p.setTextSize(size);}
   label(c,raw,x,y,size,color,font,width);
  }
+ // Align category names and the large value on one optical center. Font sizes
+ // can differ while their painted bounding boxes keep the same vertical center.
+ private void primary(Canvas c,String text,float x,float size,int tint,float maxWidth){
+  String value=text==null?"":text;
+  float chosen=size;
+  p.setTypeface(brand);p.setTextSize(chosen);
+  while(chosen>16f&&p.measureText(value)>maxWidth){chosen-=.5f;p.setTextSize(chosen);}
+  float baseline=BroadcastVisuals.centeredBodyBaseline(p,brand,chosen);
+  label(c,value,x,baseline,chosen,tint,brand,maxWidth);
+ }
  private void drawRadar(Canvas c,long elapsed){
   BroadcastVisuals.radar(c,p,elapsed,animate);
  }
@@ -242,7 +252,7 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawRain(Canvas c){
   RainBannerContent facts=rainFacts;
-  label(c,facts.topic,11,64,29,0xffff6d7f,brand,108);
+  primary(c,facts.topic,11,30,0xffff6d7f,108);
   fitted(c,"LIBERDADE · SP",11,86,13,11,0xffe8f7ff,brand,111);
   icon(c,0,127,41,28);label(c,facts.headline,165,60,23,foreground,brand,235);
   label(c,facts.end,127,86,16,0xffb8d2df,brand,275);
@@ -251,8 +261,8 @@ final class TvBroadcastInfoView extends View {
   metric(c,3,facts.duration,facts.durationLabel.contains("JANELA")?"JANELA ESTIMADA":rain!=null&&rain.state.equals("now")?"DURAÇÃO RESTANTE":"DURAÇÃO PREVISTA",720);
  }
  private void drawWeather(Canvas c){
-  label(c,"TEMPO",11,70,30,0xffff6d7f,brand,105);
-  label(c,weather==null?"—":weather.temperatureValue,124,65,39,foreground,brand,112);
+  primary(c,"TEMPO",11,30,0xffff6d7f,105);
+  primary(c,weather==null?"—":weather.temperatureValue,124,39,foreground,112);
   fitted(c,"LIBERDADE · SP",11,88,13,11,0xffe8f7ff,brand,110);
   icon(c,0,251,42,30);
   // Do not present an hourly MODEL rain code as rain observed right now.
@@ -280,16 +290,16 @@ final class TvBroadcastInfoView extends View {
  }
 
  private void drawVoiceStatus(Canvas c){
-  label(c,"CONSULTA",12,66,31,0xffff6d7f,brand,133);
-  label(c,voiceTitle,170,62,27,foreground,brand,680);
+  primary(c,"CONSULTA",12,31,0xffff6d7f,133);
+  primary(c,voiceTitle,170,27,foreground,680);
   label(c,voiceDetail,170,88,16,0xffbdcfdd,data,680);
  }
  private void drawBrent(Canvas c){
   refreshMarket();
   if(marketPending){
-   label(c,"BRENT",12,57,28,0xffff6d7f,brand,112);
+   primary(c,"BRENT",12,31,0xffff6d7f,112);
    label(c,"CONSULTA POR VOZ",12,83,13,0xffe6f7ff,brand,120);
-   label(c,"CONSULTANDO COTAÇÃO REAL…",138,67,29,foreground,brand,420);
+   primary(c,"CONSULTANDO COTAÇÃO REAL…",138,29,foreground,420);
    fill(c,575,41,1,43,0xff45647b);
    label(c,"DÓLAR GLOBAL",593,45,17,0xffe6f7ff,brand,220);
    label(c,"AGUARDANDO FONTE",593,77,21,foreground,brand,260);
@@ -297,14 +307,14 @@ final class TvBroadcastInfoView extends View {
   }
   // Matching panels: market state immediately ABOVE each percentage.
   // The right panel is the GLOBAL Yahoo USD/BRL reference, not B3 futures.
-  label(c,"BRENT",12,44,19,0xffff6d7f,brand,74);
-  label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,70,36,foreground,brand,252);
+  primary(c,"BRENT",12,31,0xffff6d7f,112);
+  primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,foreground,252);
   int oilTint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
   String oilChange=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
   fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),402,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,158);
   fitted(c,oilChange,402,73,25,16,oilTint,brand,160);
   fill(c,575,41,1,43,0xff45647b);
-  label(c,"DÓLAR · GLOBAL",593,44,17,0xffe6f7ff,brand,160);
+  fitted(c,"DÓLAR · GLOBAL",593,47,21,16,0xffe6f7ff,brand,157);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),754,45,15,11,demo?0xffffd17d:sessionColor(dollarSession),brand,104);
   label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,151);
   Double fxChange=dollar==null?null:dollar.percent;
@@ -313,12 +323,14 @@ final class TvBroadcastInfoView extends View {
   label(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,90,12,0xffd3e3ed,data,434);
   long now=System.currentTimeMillis();
   String fxReference=dollar==null?"SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at);
-  String fxFoot=MarketState.brazilWeekend(now)?"BRASIL SEM PREGÃO · "+fxReference:fxReference;
-  fitted(c,fxFoot,593,91,11,9,0xffd3e3ed,data,264);
+  // The FX quotation can be OPEN on Sunday night while Brazil's B3 is CLOSED.
+  // Keep the B3 qualifier prominent; the exact quote reference remains in the ticker.
+  String fxFoot=MarketState.brazilWeekend(now)?"B3 FECHADA · SEG 09H (REGULAR)":"COTAÇÃO GLOBAL · NÃO É B3";
+  fitted(c,fxFoot,593,91,14,11,MarketState.brazilWeekend(now)?0xffffd17d:0xffd3e3ed,brand,264);
  }
  private void drawSatelliteNews(Canvas c){
-  label(c,"SATÉLITE",12,70,32,0xffff6d7f,brand,119);
-  label(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,62,28,foreground,brand,705);
+  primary(c,"SATÉLITE",12,32,0xffff6d7f,119);
+  primary(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,foreground,705);
   label(c,satellite==null?satelliteStatus:InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
     " · IMAGEM INFRAVERMELHA · NÃO É RADAR DE CHUVA",142,88,16,0xffb8d2df,data,705);
  }
