@@ -169,8 +169,8 @@ final class NewsBannerView extends View {
    if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);
    else if(elapsed<BannerTimeline.REVISION_AT_MS)magnitude(c,p.oldMagnitude,"ANTERIOR",255);
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
-  }else if(a.kind.equals("tsunami")){centerText(c,"TSUNAMI",56f,59,22,eventInk(a),brand,85);centerText(c,a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",56f,79,12,eventInk(a),brand,85);}
-  else centerText(c,p.magnitude,56f,72,36,eventInk(a),brand,85);
+  }else if(a.kind.equals("tsunami")){BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI",a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",eventInk(a));}
+  else centerText(c,p.magnitude,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,36,eventInk(a),brand,85);
   fitText(c,p.caption,HEADLINE_X,37,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:28;drawHeadline(c,p,elapsed,width,size);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,43,x+32,67),paint);}
@@ -182,7 +182,7 @@ final class NewsBannerView extends View {
   long local=elapsed%pageMillis;if(summary){long content=BannerTimeline.summaryElapsed(elapsed,presentationAnimated);int index=0;for(int i=0;i<pages.length;i++)if(pages[i]==p){index=i;break;}local=Math.max(0,content-index*(pageMillis+(presentationAnimated?BannerTimeline.PAGE_FADE_MS:0)));}
   float offset=HeadlineMotion.offset(length-width,local,pageMillis);c.save();c.clipRect(HEADLINE_X,HEADLINE_TOP,HEADLINE_X+width,HEADLINE_BOTTOM);text(c,p.headline,HEADLINE_X-offset,HEADLINE_Y,size,foreground,brand,Float.MAX_VALUE);c.restore();
  }
- private void magnitude(Canvas c,String value,String label,int opacity){if(opacity<=0)return;int layer=c.saveLayerAlpha(8,28,108,94,opacity);centerText(c,value,56f,68,35,Color.rgb(255,90,107),brand,85);centerText(c,label,56f,86,10,Color.WHITE,brand,85);c.restoreToCount(layer);}
+ private void magnitude(Canvas c,String value,String label,int opacity){if(opacity<=0)return;int layer=c.saveLayerAlpha(8,28,108,94,opacity);centerText(c,value,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_CATEGORY_BASELINE,35,Color.rgb(255,90,107),brand,85);centerText(c,label,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_CAPTION_BASELINE,10,Color.WHITE,brand,85);c.restoreToCount(layer);}
 
 
  static String formatTime(long at){return date(at,"HH:mm 'BRT'");}
