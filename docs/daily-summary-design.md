@@ -51,3 +51,11 @@ O cache de renderização foi invalidado para o novo layout. Esta alteração s�
 atinge o gerador do resumo diário, não os alertas M6+/Brasil nem os segredos
 Telegram, o canal configurado ou as regras de envio. A publicação exige deploy
 separado do Worker após os testes de PNG e deduplicação.
+
+## Arte final aprovada (16/11/2026)
+
+O desenho agora corresponde à **composição greco-romana com estátua clássica, louros, mármore noturno e molduras bronze** aprovada pelo proprietário. A obra original foi adaptada para um raster offline compacto de uso no Cloudflare Worker; o cabeçalho, estatutária e rodapé são preservados, enquanto os campos de data, mapa, evento principal, quatro linhas de ranking e cinco estatísticas são repintados a cada execução com os dados reais.
+
+Código visual `argos-orbis-approved-classical-art-v1`. Composição base 900 × 1200 px lógicos, PNG final 1800 × 2400 px. Boletins com atividade sísmica brasileira adicionam uma seção com número real de registros (exibem os seis mais fortes e informam o total adicional). A arte visual é uma miniatura otimizada do modelo fornecido e os números da imagem de exemplo não são reutilizados.
+
+O mapa e suas coordenadas são gerados com o motor geográfico já existente. O cachê da imagem foi versionado para não devolver a arte anterior. Guardas de envio e credenciais permanecem intactos.

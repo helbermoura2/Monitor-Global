@@ -8,3 +8,6 @@ Este marcador só pode disparar o workflow de manutenção em push para main, se
 
 REPUBLICAÇÃO EXPLÍCITA ADICIONAL · 16/11/2026
 O proprietário pediu: “Republica pra eu ver como ficou”. Autorizar uma única nova mensagem com o resumo de 15/11/2026 e o logo recém-publicado, com a legenda indicando REPUBLICAÇÃO. O Durable Object da data mantém a publicação original, verifica sua confirmação e grava um marcador `daily-repost:2026-11-15` antes de enviar, evitando duplicatas. A tentativa via cron tem validade somente no dia 16/11/2026 BRT e é desativada ao vencer; não alterar CHAT_ID/tokens/bindings/schedules. O endpoint administrativo também exige ADMIN_TOKEN.
+
+ALTERAÇÃO DE ARTE FINAL · 16/11/2026 · AUTORIZAÇÃO EXPRESSA DO PROPRIETÁRIO: “Integra”.
+Integrar a composição greco-romana **aprovada visualmente**, com estátua, molduras bronze, mármore azul noturno, folhas de louro, logo ΠΑΝΟΠΤΗΣ / CUSTOS ORBIS e rodapé @argosorbis, ao PNG dinâmico do Telegram. Manter data, mapa, magnitudes, países, bandeiras, fontes e totais reais em cada resumo. Renderizador modular: daily-summary-imperial-renderer.mjs, ativo com asset offline verificado. Não alterar destinatário, tokens, cron, Durable Objects ou proteção anti-duplicidade. Publicação via maintenance workflow somente após CI de imagem e Worker.

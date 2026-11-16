@@ -1,4 +1,5 @@
 import {summaryGraphicsAtScale} from './daily-summary-hd.mjs';
+import {renderImperialDaily} from './daily-summary-imperial-renderer.mjs';
 import { SUMMARY_MAP_LAND } from './summary-editorial-assets.mjs';
 
 const COLORS={
@@ -6,7 +7,7 @@ const COLORS={
  muted:[169,198,216],line:[28,77,100],map:[3,20,37],land:[14,59,82],
  coast:[35,131,170],green:[58,233,130],orange:[251,146,60],gold:[203,163,106],goldBright:[236,193,127]
 };
-export const DAILY_SUMMARY_DESIGN='argos-orbis-panoptes-imperial-v1';
+export const DAILY_SUMMARY_DESIGN='argos-orbis-approved-classical-art-v1';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -117,6 +118,7 @@ function drawMap(ctx,x,y,frame){
 export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={}){
  if(![1,2].includes(scale))throw Error('Escala inválida');
  gfx=summaryGraphicsAtScale(gfx,scale);
+ if(fonts.approvedBackground)return renderImperialDaily(quakes,fonts,gfx,{drawMap,summaryMapFrame,scaledIcon,line},{scale});
  const {day,events}=quakes,W=900,X=28,CW=844;
  const top=events.slice().sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5);
  const measure=(key,s,tracking=0)=>gfx.textWidth(fonts[key],gfx.clean(s,fonts[key]),tracking);
