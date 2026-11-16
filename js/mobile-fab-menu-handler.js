@@ -63,10 +63,9 @@
       '<button type="button" id="mf-main-performance">Desempenho no aparelho</button>' +
       '<button type="button" id="mf-main-tools">🛠️ Ferramentas (fontes, legenda, alertas)</button>' +
       '<button type="button" id="mf-main-reload">🔄 Recarregar dados</button>';
-    if(window.TelegramAdmin?.isAuthenticated()){
-      el.innerHTML+='<button type="button" id="mf-main-telegram-history">Histórico do Telegram</button>';
-      document.getElementById('mf-main-telegram-history').onclick=acao(()=>window.TelegramAdmin.open());
-    }
+    // Always expose the secure login entry, including before authentication.
+    el.innerHTML+='<button type="button" id="mf-main-telegram-history">🔒 Histórico do Telegram</button>';
+    document.getElementById('mf-main-telegram-history').onclick=acao(()=>window.TelegramAdmin?.open());
     el.classList.add('open');
     el.style.display = 'block';
 
