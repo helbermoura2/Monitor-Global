@@ -3,7 +3,7 @@ on:
   # One-time, explicitly approved rollout from main. Future AI commits do not auto-deploy.
   push:
     branches: [main]
-    paths: ['android-tv/AI_DEPLOY_REQUEST_20261108.txt', 'android-tv/MARKET_STATUS_DEPLOY_REQUEST_20261113.txt', 'android-tv/DAILY_TOTALS_DEPLOY_REQUEST_20261115.txt', 'ops/ARGOS_DAILY_SUMMARY_DEPLOY_REQUEST_20261116.txt']
+    paths: ['android-tv/AI_DEPLOY_REQUEST_20261108.txt', 'android-tv/MARKET_STATUS_DEPLOY_REQUEST_20261113.txt', 'android-tv/DAILY_TOTALS_DEPLOY_REQUEST_20261115.txt', 'ops/ARGOS_DAILY_SUMMARY_DEPLOY_REQUEST_20261116.txt', 'ops/TELEGRAM_M6_BRONZE_DEPLOY_REQUEST_20261116.txt']
   workflow_dispatch:
     inputs:
       mode:
