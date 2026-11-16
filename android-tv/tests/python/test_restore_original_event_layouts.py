@@ -1,4 +1,4 @@
-"""Regression contract: TV data columns plus compact professional labels.
+"""Regression contract: all TV data columns retained in the approved OLED news layout.
 
 Shortened top badges preserve real market/weather data, event map, footer
 totals and shared official Argos artwork.
@@ -21,9 +21,9 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'icon(c,0,251,42,30)',
             'label(c,sky,290,58,',
             'label(c,detail,290,84,',
-            'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",493)',
-            'metric(c,2,weather==null?"—":weather.windValue,"VENTO",626)',
-            'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",727)',
+            'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492)',
+            'metric(c,2,weather==null?"—":weather.windValue,"VENTO",603)',
+            'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",712)',
         ):
             self.assertIn(piece, WEATHER)
 
@@ -33,8 +33,8 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'icon(c,0,127,41,28)',
             'label(c,facts.headline,165,60,23,',
             'label(c,facts.end,127,86,16,',
-            'metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",412)',
-            'metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",570)',
+            'metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430)',
+            'metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",558)',
             'metric(c,3,facts.duration,',
         ):
             self.assertIn(piece, WEATHER)
@@ -44,9 +44,9 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'eventCategory(c,"BRENT","NYMEX")',
             'primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,',
             'fitted(c,oilChange,402,73,25,',
-            'fill(c,575,41,1,43,',
-            'fitted(c,"DÓLAR USD/BRL",593,47,21,',
-            'fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),593,75,29,',
+            'fill(c,566,41,1,43,',
+            'fitted(c,"DÓLAR USD/BRL",577,47,21,',
+            'fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),577,75,29,',
             'eventCategory(c,"BRENT","NYMEX")',
         ):
             self.assertIn(piece, WEATHER)
@@ -62,13 +62,13 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             self.assertIn(piece, WEATHER)
 
     def test_sismos_tsunami_replay_and_summary_have_original_caption_space(self):
-        self.assertIn('c.clipRect(0,24,844,BroadcastVisuals.FOOTER_TOP)', SEISMIC)
-        self.assertIn('fitText(c,p.caption,HEADLINE_X,37,13,', SEISMIC)
+        self.assertIn('c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP)', SEISMIC)
+        self.assertIn('fitText(c,p.caption,HEADLINE_X,45,13,', SEISMIC)
         self.assertIn('drawHeadline(c,p,elapsed,width,size)', SEISMIC)
         self.assertIn('drawPage(c,pages[index],elapsed,255,0)', SEISMIC)
         self.assertIn('else if(a.kind.equals("tsunami"))', SEISMIC)
         self.assertIn('else centerText(c,p.magnitude,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,36,', SEISMIC)
-        self.assertIn('c.clipRect(0,0,960,24)', SEISMIC)
+        self.assertIn('OledNewsChrome.tab(c,paint,badgeLabel(),false)', SEISMIC)
 
     def test_shared_vertical_alignment_is_used_for_weather_rain_market_satellite_voice(self):
         self.assertIn("BroadcastVisuals.centeredBodyBaseline(p,brand,chosen)", WEATHER)
@@ -84,7 +84,10 @@ class OriginalEventLayoutsTest(unittest.TestCase):
     def test_header_footer_and_position_stay_as_pre_redesign(self):
         self.assertIn('BREAKING_WIDTH=190f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f', CHROME)
         self.assertNotIn('newsroomBody(', CHROME)
-        self.assertIn('c.clipPath(outline);fill(c,0,24,960,102,background)', WEATHER)
+        self.assertIn('OledNewsChrome.base(c,p)', WEATHER)
+        skin=(ROOT / "OledNewsChrome.java").read_text(encoding="utf-8")
+        self.assertIn('static final int OLED=Color.BLACK', skin)
+        self.assertIn('static final float LEFT=31f', skin)
         self.assertIn('p.y=dp(32)-dp(TRAVEL_DP)', BANNER)
         self.assertIn('int bannerWidthPercent=requestedWidth==92?96:requestedWidth', BANNER)
 
