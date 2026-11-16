@@ -16,7 +16,7 @@ final class BrentOverlay {
   if(!banner.showBrent(quote,dollar,demo,BrentQuote.DISPLAY,()->{if(token==generation)current=null;}))return false;
   current=banner.activeView();return true;
  }
- boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo){if(quote==null&&(bs==null||!bs.closed())&&!MarketDOLWidget.shouldShow(System.currentTimeMillis(),demo))return false;hide();final int token=++generation;if(!banner.showMarket(quote,dollar,bs,ds,demo,BrentQuote.DISPLAY,()->{if(token==generation)current=null;}))return false;current=banner.activeView();return true;}
+ boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo){if(quote==null&&(bs==null||!bs.closed()))return false;hide();final int token=++generation;if(!banner.showMarket(quote,dollar,bs,ds,demo,BrentQuote.DISPLAY,()->{if(token==generation)current=null;}))return false;current=banner.activeView();return true;}
  /** On-demand voice/manual consultation must always return a real newsroom strip.
   * Unknown market/source may show dashes and "sem cotação confirmada", never a
   * fabricated price. Automatic hourly display still requires a valid quote. */

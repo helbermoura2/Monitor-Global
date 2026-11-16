@@ -25,7 +25,22 @@ final class MarketState {
    return new MarketState(CLOSED,"B3 DOL · fora da grade regular 09:00–18:30");
   return new MarketState(OPEN,"B3 DOL · horário regular 09:00–18:30 (feriados podem alterar)");
  }
- static String brazilDollarContext(long now){return "DÓLAR FUTURO B3 · DOL · "+(brazilDOLRegular(now).value==OPEN?"HORÁRIO REGULAR 09H–18H30":"FORA DO HORÁRIO REGULAR")+" · fechamento de pregão; sem cotação intradiária verificada";}
+ /** International currency-market schedule, independent of B3 futures.
+  * Standard FX is Sunday 17:05 to Friday 16:59 America/New_York, with a
+  * short weekday rollover pause. Source confirmation still comes from Yahoo.
+  */
+ static MarketState forexRegular(long now){
+  if(now<=0)return unknown();
+  ZonedDateTime ny=Instant.ofEpochMilli(now).atZone(NEW_YORK);
+  DayOfWeek d=ny.getDayOfWeek();LocalTime clock=ny.toLocalTime();
+  LocalTime open=LocalTime.of(17,5),close=LocalTime.of(16,59);
+  boolean trading=d==DayOfWeek.SUNDAY?!clock.isBefore(open):
+   d==DayOfWeek.SATURDAY?false:
+   d==DayOfWeek.FRIDAY?clock.isBefore(close):
+   clock.isBefore(close)||!clock.isBefore(open);
+  return new MarketState(trading?OPEN:CLOSED,"Horário de referência do câmbio internacional · Yahoo confirma pela cotação");
+ }
+ static String brazilDollarContext(long now){return "USD/BRL · YAHOO FINANCE · CÂMBIO INTERNACIONAL · horário independente da bolsa brasileira · preços sujeitos a atraso";}
  static MarketState brentRegular(long now){
   if(now<=0)return unknown();ZonedDateTime t=Instant.ofEpochMilli(now).atZone(NEW_YORK);DayOfWeek d=t.getDayOfWeek();int h=t.getHour();
   if(d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY&&h<18||d==DayOfWeek.FRIDAY&&h>=17)return new MarketState(CLOSED,"Sessão regular NYMEX/CME · fim de semana");

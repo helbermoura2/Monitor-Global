@@ -43,12 +43,13 @@ class AlexaBrentNewsroomTest(unittest.TestCase):
     def test_source_fallback_progress_never_claims_fabricated_price(self):
         code=source("BrentMonitor.java")
         self.assertIn('Verificando diretamente no Yahoo Finance',code)
-        self.assertIn('Brent consultado. Verificando último fechamento DOL da B3',code)
-        self.assertNotIn('BRL=X?interval=1m',code)
+        self.assertIn('Brent consultado. Verificando a cotação do dólar',code)
         self.assertIn('boolean brentValid=BrentQuote.parse(result',code)
-        self.assertIn('if(!externalReader&&!MarketDOLWidget.shouldShow(System.currentTimeMillis(),false)&&(brentValid||manual&&closedSession))',code)
-        self.assertIn('boolean dueDOL=b3Open',code)
-        self.assertIn('b3DolLastSlot',code)
+        self.assertIn('if(!externalReader&&(forexOpen||brentValid||manual&&closedSession))',code)
+        self.assertIn('yahooFxLastSlot',code)
+        self.assertIn('forexRegular(now)',code)
+        self.assertIn('DollarQuote.fromYahoo(raw,now)',code)
+        self.assertNotIn('MarketDOLWidget',code)
         self.assertIn('sem valor inventado',code)
 
 

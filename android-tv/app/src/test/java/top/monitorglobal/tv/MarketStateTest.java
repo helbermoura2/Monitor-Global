@@ -21,8 +21,8 @@ public class MarketStateTest {
  @Test public void sundayGlobalForexIsNotMisidentifiedAsBrazilianExchangeTrading()throws Exception{
   long sunday=at("2026-11-16T00:15:00Z"); // Sunday, 21:15 BRT.
   assertTrue(MarketState.brazilWeekend(sunday));
-  assertTrue(MarketState.brazilDollarContext(sunday).contains("FORA DO HORÁRIO"));
-  assertEquals(MarketState.CLOSED,MarketState.brazilDOLRegular(sunday).value);
+  assertTrue(MarketState.brazilDollarContext(sunday).contains("YAHOO FINANCE"));
+  assertEquals(MarketState.OPEN,MarketState.forexRegular(sunday).value);
   long friday=at("2026-11-13T23:30:00Z");
   JSONObject stale=new JSONObject().put("symbol","BRL=X").put("marketState","REGULAR").put("regularMarketTime",friday/1000);
   assertEquals("Old Yahoo REGULAR label cannot prove Sunday night OPEN",MarketState.UNKNOWN,MarketState.fromMeta(stale,"BRL=X",sunday).value);
@@ -30,8 +30,17 @@ public class MarketStateTest {
   assertEquals("Fresh global quote can be OPEN even though Brazil has no trading",MarketState.OPEN,MarketState.fromMeta(current,"BRL=X",sunday).value);
   long monday=at("2026-11-16T13:00:00Z");
   assertFalse(MarketState.brazilWeekend(monday));
-  assertTrue(MarketState.brazilDollarContext(monday).contains("DÓLAR FUTURO B3"));
-  assertEquals(MarketState.OPEN,MarketState.brazilDOLRegular(monday).value);
+  assertTrue(MarketState.brazilDollarContext(monday).contains("CÂMBIO INTERNACIONAL"));
+  assertEquals(MarketState.OPEN,MarketState.forexRegular(monday).value);
+ }
+ @Test public void yahooForexHoursAreIndependentFromB3Futures(){
+  assertEquals("Just before Sunday FX open",MarketState.CLOSED,MarketState.forexRegular(at("2026-11-15T22:04:00Z")).value);
+  assertEquals("Sunday after 17:05 New York",MarketState.OPEN,MarketState.forexRegular(at("2026-11-15T22:06:00Z")).value);
+  assertEquals("Weekday session",MarketState.OPEN,MarketState.forexRegular(at("2026-11-16T14:15:00Z")).value);
+  assertEquals("Daily rollover",MarketState.CLOSED,MarketState.forexRegular(at("2026-11-16T22:02:00Z")).value);
+  assertEquals("Daily rollover resumes",MarketState.OPEN,MarketState.forexRegular(at("2026-11-16T22:06:00Z")).value);
+  assertEquals("After Friday global forex close",MarketState.CLOSED,MarketState.forexRegular(at("2026-11-20T22:00:00Z")).value);
+  assertEquals("Saturday",MarketState.CLOSED,MarketState.forexRegular(at("2026-11-21T15:00:00Z")).value);
  }
  @Test public void missingStateUsesOnlyAValidProviderPeriod()throws Exception{
   long now=at("2026-11-11T15:00:00Z");JSONObject fx=new JSONObject().put("symbol","BRL=X").put("currentTradingPeriod",new JSONObject().put("regular",new JSONObject().put("start",(now-3600000)/1000).put("end",(now+3600000)/1000)));

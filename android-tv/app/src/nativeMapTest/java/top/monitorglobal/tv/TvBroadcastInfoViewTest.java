@@ -87,9 +87,9 @@ public class TvBroadcastInfoViewTest {
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
   long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
   long monday=java.time.Instant.parse("2026-11-16T15:33:00Z").toEpochMilli();
-  assertEquals("B3 FECHADA · SEG 09H (REGULAR)",TvBroadcastInfoView.brazilFxHint(sunday));
-  assertEquals("B3 DOL · 09H–18H30 (REG.)",TvBroadcastInfoView.brazilFxHint(monday));
-  assertTrue(MarketState.brazilDollarContext(sunday).contains("FORA DO HORÁRIO"));
+  assertEquals("YAHOO · USD/BRL · CÂMBIO",TvBroadcastInfoView.brazilFxHint(sunday));
+  assertEquals("YAHOO · USD/BRL · CÂMBIO",TvBroadcastInfoView.brazilFxHint(monday));
+  assertTrue(MarketState.brazilDollarContext(sunday).contains("CÂMBIO INTERNACIONAL"));
  }
  @Test public void weatherHasMapAboveLiveBreakingNewsWithoutChangingSourceData()throws Exception{
   WeatherForecast.Summary weather=new WeatherForecast.Summary(
@@ -139,42 +139,19 @@ public class TvBroadcastInfoViewTest {
  }
  @Test public void brentAndDollarAlwaysShareSameStripAndClearlyMarkMissingFX()throws Exception{
   BrentQuote brent=new BrentQuote(78.35,77.5,.85,1.1,System.currentTimeMillis()-300000,"Yahoo Finance");
-  // A raw BRL=X-like quote may not leak into a B3-only card.
   DollarQuote dollar=new DollarQuote(5.32,.02,.38,System.currentTimeMillis()-240000,"Yahoo Finance");
   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,brent,dollar,false);
   assertEquals(0,view.mapSpace);
-  assertTrue(String.valueOf(view.getContentDescription()).contains("DÓLAR FUTURO · B3 DOL"));
-  assertTrue(String.valueOf(view.getContentDescription()).contains("sem fechamento B3 confirmado"));
+  assertTrue(String.valueOf(view.getContentDescription()).contains("+0,38%"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
-  assertFalse("Never show legacy global spot as B3",String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
+  assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
   try{assertEquals(126,b.getHeight());assertEquals(0xffbf1827,b.getPixel(10,10));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
-  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR FUTURO · B3 DOL"));
+  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · YAHOO · STATUS N/D: sem cotação confirmada"));
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
- }
- @Test public void datedB3FuturesCloseDisplaysWithContractAndNeverGlobalSpot()throws Exception{
-  long now=System.currentTimeMillis();
-  java.time.LocalDate day=java.time.Instant.ofEpochMilli(now)
-   .atZone(java.time.ZoneId.of("America/Sao_Paulo")).toLocalDate().minusDays(1);
-  while(day.getDayOfWeek()==java.time.DayOfWeek.SATURDAY||day.getDayOfWeek()==java.time.DayOfWeek.SUNDAY)day=day.minusDays(1);
-  String html="<html><h1>Dólar Comercial Futuro</h1>"+
-   "<h2>Fechamento: "+day.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/uuuu"))+"</h2>"+
-   "<div>Fonte: B3</div><table><tr><th>Contrato</th><th>Fechamento (R$/US$)</th><th>Variação (%)</th></tr>"+
-   "<tr><td>Dezembro/26</td><td>5.684,00</td><td>+0,26</td></tr></table></html>";
-  DollarQuote official=DollarQuote.fromB3CloseHtml(html,now);
-  assertNotNull(official);assertTrue(official.b3Close);
-  TvBroadcastInfoView tv=TvBroadcastInfoView.market(c,null,official,false);
-  String spoken=String.valueOf(tv.getContentDescription());
-  assertTrue(spoken.contains("DÓLAR FUTURO · B3 DOL"));
-  assertTrue(spoken.contains("R$ 5,684"));
-  assertTrue(spoken.contains("ÚLTIMO FECHAMENTO"));
-  assertTrue(spoken.contains("Dezembro/26"));
-  assertFalse(spoken.contains("DÓLAR USD/BRL · GLOBAL"));
-  Bitmap image=render(tv,"b3-dol-closing-only");
-  try{assertEquals(126,image.getHeight());}finally{image.recycle();}
  }
  @Test public void brentMarketStateUsesSameTopRowAsDollarWithNoLowerLeftBadge()throws Exception{
   assertEquals("ABERTO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.OPEN,"fonte")));
