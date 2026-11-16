@@ -67,22 +67,41 @@ final class BrentMonitor {
   if(closed||manualRequest||SystemClock.elapsedRealtime()<manualDisplayUntil)return;
   boolean enabled=Prefs.get(context).getBoolean("brentHourly",true);
   long now=System.currentTimeMillis();
-  if(!enabled||!BrentQuote.marketOpen(now)||!screen()){
+  boolean brentOpen=BrentQuote.marketOpen(now);
+  boolean b3Open=MarketDOLWidget.shouldShow(now,false);
+  if(!enabled||!screen()||!brentOpen&&!b3Open){
    hide();
-   if(!enabled)status("Brent desativado nas preferências.");
-   else if(!BrentQuote.marketOpen(now))status("Brent fechado ou em pausa de negociação.");
+   if(!enabled)status("Mercados desativados nas preferências.");
+   else if(!brentOpen&&!b3Open)status("Brent e dólar B3 fora do horário regular.");
    return;
   }
   long slot=BrentQuote.slot(now);
   if(knownSlot!=slot){knownSlot=slot;quote=null;dollar=null;nextRetry=0;}
-  if(!BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))return;
+  boolean dueBrent=BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now);
+  boolean dueDOL=b3Open&&now>=slot&&now<slot+45*BrentQuote.MINUTE
+   &&Prefs.get(context).getLong("b3DolLastSlot",0)!=slot;
+  if(!dueBrent&&!dueDOL)return;
   if(!allowed.getAsBoolean()||overlay.showing())return;
   BrentQuote valid=BrentQuote.parse(quote,now);
   if(valid!=null){
-   if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){TvSounds.play(context,TvSoundPattern.MARKET);
-    Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
-    status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(quote.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
-   }else status("Cotação real validada, mas a sobreposição foi bloqueada. Verifique a permissão.");
+   if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
+    TvSounds.play(context,TvSoundPattern.MARKET);
+    android.content.SharedPreferences.Editor e=Prefs.get(context).edit();
+    if(dueBrent)e.putLong("brentLastSlot",slot);
+    if(dueDOL)e.putLong("b3DolLastSlot",slot);
+    e.apply();
+    status("BRENT · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+
+     " · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+
+     (dueDOL?" · DOL futuro B3 no widget TradingView · atraso ~15 min":""));
+   }else status("Tarja oficial bloqueada. Confira permissão de sobreposição.");
+   return;
+  }
+  // DOL intraday must appear hourly, even when Brent's unrelated feed is unavailable.
+  if(dueDOL&&(!brentOpen||SystemClock.elapsedRealtime()<nextRetry)){
+   if(overlay.showMarket(null,null,MarketState.brentRegular(now),MarketState.brazilDOLRegular(now),false)){
+    Prefs.get(context).edit().putLong("b3DolLastSlot",slot).apply();
+    status("DOL futuro B3 · widget oficial TradingView · atraso ~15 min · Brent sem cotação recente.");
+   }
    return;
   }
   if(!busy&&SystemClock.elapsedRealtime()>=nextRetry)load(false);
@@ -100,7 +119,7 @@ final class BrentMonitor {
    boolean closedSession=!BrentQuote.marketOpen(System.currentTimeMillis());
    // Do not spend another 13 seconds looking up optional USD/BRL when the
    // requested Brent source already failed in an open session.
-   if(!externalReader&&(brentValid||manual&&closedSession)){
+   if(!externalReader&&!MarketDOLWidget.shouldShow(System.currentTimeMillis(),false)&&(brentValid||manual&&closedSession)){
     if(manual||manualRequest)progress("Brent consultado. Verificando último fechamento DOL da B3…");
     fx=readDollar();
    }
@@ -140,8 +159,10 @@ final class BrentMonitor {
      if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
       presented();TvSounds.play(context,TvSoundPattern.MARKET);
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
-      if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))
-       Prefs.get(context).edit().putLong("brentLastSlot",slot).apply();
+      android.content.SharedPreferences.Editor e=Prefs.get(context).edit();
+      if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))e.putLong("brentLastSlot",slot);
+      if(MarketDOLWidget.shouldShow(now,false))e.putLong("b3DolLastSlot",slot);
+      e.apply();
       status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(result.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
      }else status("Cotação real validada, porém falta permissão de sobreposição.");
      manualRequest=false;return;
