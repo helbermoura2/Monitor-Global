@@ -12,10 +12,20 @@ final class MarketState {
  String label(){return value==OPEN?"ABERTO":value==CLOSED?"FECHADO":value==PAUSED?"FECHADO · PAUSA":"STATUS N/D";}
  boolean closed(){return value==CLOSED||value==PAUSED;}
  static MarketState unknown(){return new MarketState(UNKNOWN,"Estado não confirmado pela fonte");}
- // Brazilian exchange/banking hours are distinct from the global Yahoo FX reference.
- // Weekends are unambiguous; weekdays/holidays require an independent local source.
- static boolean brazilWeekend(long now){DayOfWeek d=Instant.ofEpochMilli(now).atZone(ZoneId.of("America/Sao_Paulo")).getDayOfWeek();return d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY;}
- static String brazilDollarContext(long now){return brazilWeekend(now)?"B3 FECHADA · SEM PREGÃO NO FIM DE SEMANA · SEGUNDA 09:00 BRT (HORÁRIO REGULAR)":"REFERÊNCIA GLOBAL · NÃO É DÓLAR B3";}
+ // Local B3 DOL futures regular schedule (09:00–18:30 America/Sao_Paulo).
+ // This clock-only state does not verify exchange holidays or unexpected halts.
+ static final ZoneId SAO_PAULO=ZoneId.of("America/Sao_Paulo");
+ static boolean brazilWeekend(long now){DayOfWeek d=Instant.ofEpochMilli(now).atZone(SAO_PAULO).getDayOfWeek();return d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY;}
+ static MarketState brazilDOLRegular(long now){
+  if(now<=0)return unknown();
+  ZonedDateTime t=Instant.ofEpochMilli(now).atZone(SAO_PAULO);
+  if(brazilWeekend(now))return new MarketState(CLOSED,"B3 DOL · fim de semana (horário regular)");
+  LocalTime clock=t.toLocalTime();
+  if(clock.isBefore(LocalTime.of(9,0))||!clock.isBefore(LocalTime.of(18,30)))
+   return new MarketState(CLOSED,"B3 DOL · fora da grade regular 09:00–18:30");
+  return new MarketState(OPEN,"B3 DOL · horário regular 09:00–18:30 (feriados podem alterar)");
+ }
+ static String brazilDollarContext(long now){return "DÓLAR FUTURO B3 · DOL · "+(brazilDOLRegular(now).value==OPEN?"HORÁRIO REGULAR 09H–18H30":"FORA DO HORÁRIO REGULAR")+" · fechamento de pregão; sem cotação intradiária verificada";}
  static MarketState brentRegular(long now){
   if(now<=0)return unknown();ZonedDateTime t=Instant.ofEpochMilli(now).atZone(NEW_YORK);DayOfWeek d=t.getDayOfWeek();int h=t.getHour();
   if(d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY&&h<18||d==DayOfWeek.FRIDAY&&h>=17)return new MarketState(CLOSED,"Sessão regular NYMEX/CME · fim de semana");
