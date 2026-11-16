@@ -39,7 +39,7 @@ final class WeatherCardView extends LinearLayout {
    LinearLayout hero=new LinearLayout(getContext());hero.setGravity(Gravity.CENTER_VERTICAL);body.addView(hero,new LayoutParams(-1,-2));
    TextView temperature=text(w.temperatureValue,36,Color.WHITE,brand,2);LayoutParams value=new LayoutParams(0,-2,1.05f);value.setMarginEnd(dp(8));hero.addView(temperature,value);
    Icon icon=new Icon(getContext(),conditionIcon(w.conditionKey));LayoutParams glyph=new LayoutParams(dp(38),dp(38));glyph.setMarginEnd(dp(8));hero.addView(icon,glyph);
-   LinearLayout conditions=new LinearLayout(getContext());conditions.setOrientation(VERTICAL);hero.addView(conditions,new LayoutParams(0,-2,1.35f));line(conditions,w.condition,20,Color.WHITE,brand,3);line(conditions,"Sensação "+w.feelsValue,15,MUTED,brand,2);
+   LinearLayout conditions=new LinearLayout(getContext());conditions.setOrientation(VERTICAL);hero.addView(conditions,new LayoutParams(0,-2,1.35f));line(conditions,WeatherForecast.sky(w,System.currentTimeMillis()),20,Color.WHITE,brand,3);line(conditions,"Sensação "+w.feelsValue,15,MUTED,brand,2);
    LinearLayout metrics=metrics(body);metric(metrics,Icon.DROP,w.humidityValue,"Umidade");metric(metrics,Icon.WIND,w.windValue,"Vento");metric(metrics,Icon.GUST,w.gustValue,"Rajadas");
   }else{
    hero(body,conditionIcon(w.conditionKey),w.temperature,25,w.condition);
@@ -65,10 +65,11 @@ final class WeatherCardView extends LinearLayout {
  private TextView text(String value,int size,int color,Typeface font,int lines){TextView t=new TextView(getContext());t.setText(value);t.setTextColor(color);t.setTextSize(size);t.setTypeface(font);t.setIncludeFontPadding(false);t.setMaxLines(lines);return t;}
  private void line(LinearLayout parent,String value,int size,int color,Typeface font,int lines){TextView t=text(value,size,color,font,lines);LayoutParams p=new LayoutParams(-1,-2);p.topMargin=dp(2);parent.addView(t,p);}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
- static int conditionIcon(String key){switch(key){case "Clear":case "MostlyClear":return Icon.SUN;case "PartlyCloudy":case "MostlyCloudy":case "Cloudy":return Icon.CLOUD;case "Drizzle":case "Rain":case "HeavyRain":case "Thunderstorms":case "StrongStorms":case "ScatteredThunderstorms":case "IsolatedThunderstorms":return Icon.RAIN;case "Snow":case "HeavySnow":return Icon.SNOW;case "Foggy":case "Haze":return Icon.FOG;default:return Icon.UNKNOWN;}}
+ static int conditionIcon(String key){return conditionIcon(key,System.currentTimeMillis());}
+ static int conditionIcon(String key,long at){boolean day=WeatherForecast.isDay(at);switch(key){case "Clear":case "MostlyClear":return day?Icon.SUN:Icon.MOON;case "PartlyCloudy":return day?Icon.SUN_CLOUD:Icon.MOON_CLOUD;case "MostlyCloudy":case "Cloudy":return Icon.CLOUD;case "Drizzle":case "Rain":case "HeavyRain":case "Thunderstorms":case "StrongStorms":case "ScatteredThunderstorms":case "IsolatedThunderstorms":return Icon.RAIN;case "Snow":case "HeavySnow":return Icon.SNOW;case "Foggy":case "Haze":return Icon.FOG;default:return Icon.UNKNOWN;}}
  /** Path and paint are allocated once; no animation, bitmap or draw-time allocation. */
  static final class Icon extends View {
-  static final int CLOUD=0,RAIN=1,DROP=2,WIND=3,GUST=4,CLOCK=5,HOURGLASS=6,SUN=7,SNOW=8,FOG=9,UNKNOWN=10;
+  static final int CLOUD=0,RAIN=1,DROP=2,WIND=3,GUST=4,CLOCK=5,HOURGLASS=6,SUN=7,SNOW=8,FOG=9,UNKNOWN=10,SUN_CLOUD=11,MOON=12,MOON_CLOUD=13;
   private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path path=new Path();
   Icon(Context c,int kind){super(c);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);paint.setColor(Color.WHITE);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.5f);paint.setStrokeCap(Paint.Cap.ROUND);paint.setStrokeJoin(Paint.Join.ROUND);
    if(kind==CLOUD||kind==RAIN||kind==SNOW||kind==FOG){path.moveTo(6,16);path.cubicTo(0,16,1,8,6,8);path.cubicTo(8,1,17,2,18,8);path.cubicTo(24,8,24,16,18,16);path.lineTo(6,16);if(kind==RAIN){line(7,19,5,22);line(13,19,11,22);line(19,19,17,22);}if(kind==SNOW){line(7,19,7,23);line(5,21,9,21);line(17,19,17,23);line(15,21,19,21);}if(kind==FOG){line(4,19,20,19);line(7,22,17,22);}}
@@ -77,6 +78,16 @@ final class WeatherCardView extends LinearLayout {
    else if(kind==CLOCK){path.addCircle(12,12,9,Path.Direction.CW);line(12,6,12,12);line(12,12,17,15);}
    else if(kind==HOURGLASS){line(5,3,19,3);line(5,21,19,21);path.moveTo(6,3);path.cubicTo(6,10,18,14,18,21);path.moveTo(18,3);path.cubicTo(18,10,6,14,6,21);}
    else if(kind==SUN){path.addCircle(12,12,5,Path.Direction.CW);line(12,1,12,4);line(12,20,12,23);line(1,12,4,12);line(20,12,23,12);line(4,4,6,6);line(18,18,20,20);line(4,20,6,18);line(18,6,20,4);}
+   else if(kind==MOON||kind==MOON_CLOUD){
+    path.moveTo(17,3);path.cubicTo(7,5,7,17,17,20);
+    path.cubicTo(7,23,3,17,4,11);path.cubicTo(5,5,10,2,17,3);
+    if(kind==MOON_CLOUD){path.moveTo(6,20);path.cubicTo(0,20,2,14,6,14);path.cubicTo(9,9,16,11,17,15);path.cubicTo(23,14,24,20,19,20);path.lineTo(6,20);}
+   }
+   else if(kind==SUN_CLOUD){
+    path.addCircle(17,7,3,Path.Direction.CW);
+    line(17,1,17,3);line(22,7,24,7);line(13,3,12,2);
+    path.moveTo(5,20);path.cubicTo(0,20,1,13,6,13);path.cubicTo(8,7,17,10,18,15);path.cubicTo(24,14,24,20,19,20);path.lineTo(5,20);
+   }
    else{path.addCircle(12,12,9,Path.Direction.CW);path.moveTo(9,9);path.cubicTo(9,5,17,6,15,10);path.lineTo(12,13);line(12,13,12,15);line(12,18,12,18.2f);}
   }
   private void line(float x,float y,float xx,float yy){path.moveTo(x,y);path.lineTo(xx,yy);}
