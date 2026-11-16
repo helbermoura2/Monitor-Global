@@ -9,7 +9,7 @@ public class BroadcastBannerTest {
  private void export(Bitmap b,String name)throws Exception{try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-tv-banner-1044-"+name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}}
  @Before public void setup(){c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().commit();}
  @Test public void badgesDistinguishLiveHistoryAndFiction(){
-  assertEquals("AO VIVO",new NewsBannerView(c,alert(),false,false).badgeLabel());assertEquals("REPLAY",new NewsBannerView(c,alert(),false,true).badgeLabel());assertEquals("TESTE",new NewsBannerView(c,alert(),true,false).badgeLabel());assertEquals("AO VIVO",new NewsBannerView(c,List.of(alert()),"2026-10-30",false,true).badgeLabel());
+  assertEquals("AO VIVO",new NewsBannerView(c,alert(),false,false).badgeLabel());assertEquals("REPLAY",new NewsBannerView(c,alert(),false,true).badgeLabel());assertEquals("TESTE",new NewsBannerView(c,alert(),true,false).badgeLabel());assertEquals("RESUMO",new NewsBannerView(c,List.of(alert()),"2026-10-30",false,true).badgeLabel());
   assertEquals("REPLAY",new NewsBannerView(c,List.of(alert()),"2026-10-30",true,true).badgeLabel());
   assertEquals("REPLAY",new NewsBannerView(c,List.of(alert()),"2026-10-30",true,false).badgeLabel());
  }
@@ -17,7 +17,7 @@ public class BroadcastBannerTest {
  @Test public void joinedStripsHaveNoTransparentSeamAndBadgesFitTheirLabels()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),true,false);Bitmap b=render(view,1000);
   try{for(int y=24;y<126;y++)assertEquals("continuous body and footer",255,Color.alpha(b.getPixel(500,y)));assertEquals("no logo divider",Color.rgb(7,23,36),b.getPixel(845,60));
-   assertTrue("status panel is wide enough for broadcast framing",(Float)field(view,"badgeWidth")>=BroadcastVisuals.STATUS_MIN_WIDTH);assertEquals("gap before expanded status",0,Color.alpha(b.getPixel(780,10)));assertEquals("expanded BREAKING NEWS panel is red",Color.rgb(191,24,39),b.getPixel(245,10));assertEquals("no extra red past BREAKING NEWS",0,Color.alpha(b.getPixel(280,10)));
+   assertTrue("status panel is wide enough for broadcast framing",(Float)field(view,"badgeWidth")>=BroadcastVisuals.STATUS_MIN_WIDTH);assertEquals("gap before expanded status",0,Color.alpha(b.getPixel(780,10)));assertEquals("compact BREAKING NEWS panel is red",Color.rgb(191,24,39),b.getPixel(170,10));assertEquals("no extra red past compact panel",0,Color.alpha(b.getPixel(200,10)));
    assertEquals(NewsBannerView.formatClock(System.currentTimeMillis()),field(view,"clockText"));
    int white=0;for(int y=121;y<125;y++)for(int x=10;x<80;x++){int p=b.getPixel(x,y);if(Color.green(p)>200&&Color.blue(p)>200)white++;}assertEquals("no Brasilia subtitle under clock",0,white);export(b,"quake");
   }finally{b.recycle();}

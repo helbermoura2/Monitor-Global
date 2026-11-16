@@ -137,14 +137,24 @@ final class NewsBannerView extends View {
   else mapInset.draw(c,pages[index].alert,brand,accent);
   c.restore();
  }
- String badgeLabel(){return demo?"TESTE":replay?"REPLAY":"AO VIVO";}
+ // Red BREAKING NEWS is reserved for urgent seismic and tsunami events.
+ // Recorded replays, daily recaps and no-threat bulletins use a calmer chip.
+ private String leadLabel(){
+  if(summary)return "RESUMO DIÁRIO";
+  if(replay)return "REGISTRO";
+  if(root.kind.equals("tsunami")&&!(root.state.equals("warning")||root.state.equals("watch")||root.state.equals("advisory")))return "BOLETIM";
+  return "BREAKING NEWS";
+ }
+ private int leadColor(){return leadLabel().equals("BREAKING NEWS")?0xffbf1827:0xff145067;}
+ String badgeLabel(){return demo?"TESTE":replay?"REPLAY":summary?"RESUMO":"AO VIVO";}
  static String formatClock(long at){return date(at,"HH:mm");}
  private void drawClock(Canvas c){long now=System.currentTimeMillis(),minute=now/60000;if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}c.save();c.clipPath(bannerClip);rect(c,0,BroadcastVisuals.FOOTER_TOP,90,126,Color.rgb(191,24,39));centerText(c,clockText,45,119,18,Color.WHITE,data,78);c.restore();}
  private void breaking(Canvas c,long elapsed){
   c.save();c.clipRect(0,0,breakingWidth,24);
-  rounded(c,0,0,breakingWidth,30,7,Color.rgb(191,24,39));rect(c,0,17,breakingWidth,24,Color.rgb(191,24,39));
-  if(animate&&!replay&&!summary){float phase=(elapsed%3200)/3200f;if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*(breakingWidth+70),0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(0,0,breakingWidth,24,paint);paint.setShader(null);c.restore();}}
-  BroadcastVisuals.headerLabel(c,paint,brand,"BREAKING NEWS",0,breakingWidth,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);c.restore();
+  int tint=leadColor();
+  rounded(c,0,0,breakingWidth,30,7,tint);rect(c,0,17,breakingWidth,24,tint);
+  if(animate&&!replay&&!summary&&leadLabel().equals("BREAKING NEWS")){float phase=(elapsed%3200)/3200f;if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*(breakingWidth+70),0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(0,0,breakingWidth,24,paint);paint.setShader(null);c.restore();}}
+  BroadcastVisuals.headerLabel(c,paint,brand,leadLabel(),0,breakingWidth,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);c.restore();
  }
  float identityLeft(long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;float width=identityWidths[current];
@@ -170,7 +180,7 @@ final class NewsBannerView extends View {
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
   }else if(a.kind.equals("tsunami")){centerText(c,"TSUNAMI",56f,59,22,eventInk(a),brand,85);centerText(c,a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",56f,79,12,eventInk(a),brand,85);}
   else centerText(c,p.magnitude,56f,72,36,eventInk(a),brand,85);
-  fitText(c,p.caption,HEADLINE_X,36,11,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
+  fitText(c,p.caption,HEADLINE_X,37,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:28;drawHeadline(c,p,elapsed,width,size);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,43,x+32,67),paint);}
   fitText(c,p.first,HEADLINE_X,89,15,foreground,brand,346);fitText(c,p.source,488,89,15,foreground,brand,185);text(c,p.time,691,89,13,foreground,data,142);c.restoreToCount(layer);

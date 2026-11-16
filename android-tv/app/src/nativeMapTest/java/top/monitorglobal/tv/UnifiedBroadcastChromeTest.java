@@ -71,7 +71,7 @@ public class UnifiedBroadcastChromeTest {
   }finally{a.recycle();b.recycle();c.recycle();}
  }
  @Test public void newsroomHeaderAndFooterMatchAcrossSeismicAndMarkets()throws Exception{
-  assertEquals(260f,BroadcastVisuals.BREAKING_WIDTH,0f);
+  assertEquals(190f,BroadcastVisuals.BREAKING_WIDTH,0f);
   assertEquals(94f,BroadcastVisuals.FOOTER_TOP,0f);
   assertEquals(32f,BroadcastVisuals.FOOTER_HEIGHT,0f);
   NewsBannerView quake=new NewsBannerView(context,regional(),false,true);
@@ -81,14 +81,16 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   // Sample untouched red margins; white text is now deliberately much wider.
-   for(int x:new int[]{10,255}){
-    assertEquals("Long breaking label on seismic",0xffbf1827,a.getPixel(x,map+10));
-    assertEquals("Long breaking label on market",0xffbf1827,b.getPixel(x,10));
+   // Replay and markets use consistent compact information badges, not emergency red.
+   for(int x:new int[]{10,175}){
+    assertEquals("Compact replay information chip",0xff145067,a.getPixel(x,map+10));
+    assertEquals("Compact market information chip",0xff145067,b.getPixel(x,10));
    }
-   for(int x:new int[]{809,950}){
-    assertEquals("Wide seismic live/replay status",0xffbf1827,a.getPixel(x,map+10));
-    assertEquals("Wide market status",0xffbf1827,b.getPixel(x,10));
+   assertEquals("No oversized headline background",0,a.getPixel(196,map+10)>>>24);
+   assertEquals("No oversized headline background",0,b.getPixel(196,10)>>>24);
+   for(int x:new int[]{950}){
+    assertEquals("Replay status remains clearly distinguished",0xffbf1827,a.getPixel(x,map+10));
+    assertEquals("Market information status avoids false live claim",0xff145067,b.getPixel(x,10));
    }
    assertEquals(0xffbf1827,a.getPixel(10,map+96));
    assertEquals(0xffbf1827,b.getPixel(10,96));
@@ -139,19 +141,20 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(weather,960,126+weather.mapSpace,1100);
   try{
    int qa=Banner.insetDp(context),qb=weather.mapSpace;
-   for(int y=3;y<=20;y++)for(int x=20;x<=240;x++){
-    // Ignore seismic-only shine by sampling the same stable status drawing separately.
-    if(x>24&&x<236)continue;
-    assertEquals("same breaking banner edges",a.getPixel(x,qa+y),b.getPixel(x,qb+y));
-   }
-   for(int y=3;y<=20;y++)for(int x=817;x<=945;x++)
-    assertEquals("AO VIVO lettering must match across events at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
+   // An actual seismic alert is red; ordinary weather monitoring is not.
+   assertEquals(0xffbf1827,a.getPixel(175,qa+10));
+   assertEquals(0xff145067,b.getPixel(175,qb+10));
+   assertEquals(0,a.getPixel(196,qa+10)>>>24);
+   assertEquals(0,b.getPixel(196,qb+10)>>>24);
+   // AO VIVO now measures to text rather than filling an oversized red slab.
+   for(int y=3;y<=20;y++)for(int x=830;x<=945;x++)
+    assertEquals("Compact live status must match at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
   }finally{a.recycle();b.recycle();}
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
   assertEquals(40f,BroadcastVisuals.TICKER_PX_PER_SECOND,0f);
-  assertEquals(894f,BroadcastVisuals.RADAR_X,0f);
-  assertEquals(62f,BroadcastVisuals.RADAR_SIZE,0f);
+  assertEquals(892f,BroadcastVisuals.RADAR_X,0f);
+  assertEquals(66f,BroadcastVisuals.RADAR_SIZE,0f);
   assertEquals(35f,BroadcastVisuals.BRAND_RIGHT_INSET,0f);
   assertEquals(59f,BroadcastVisuals.RADAR_Y,0f);
   assertEquals(7200,BroadcastVisuals.RADAR_PERIOD_MS);

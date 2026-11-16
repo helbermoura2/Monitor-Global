@@ -109,7 +109,7 @@ final class TvBroadcastInfoView extends View {
    setContentDescription(ticker);return;
   }
   long sec=System.currentTimeMillis()/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(System.currentTimeMillis(),true);dollarSession=dollarSession.current(System.currentTimeMillis(),false);
-  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
+  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · NYMEX · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · GLOBAL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+MarketState.brazilDollarContext(System.currentTimeMillis())+" · "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
  }
  /** All voice status results reuse the SAME official seismic broadcast geometry. */
@@ -159,10 +159,22 @@ final class TvBroadcastInfoView extends View {
  }
  private void badge(Canvas c,String value){
   float width=BroadcastVisuals.statusWidth(p,brand,value);
-  rounded(c,960-width,0,width,24,demo?0xff995b0e:0xffbf1827,7);
+  int tint=demo?0xff995b0e:value.equals("AO VIVO")?0xffbf1827:0xff145067;
+  rounded(c,960-width,0,width,24,tint,7);
+  // Square the lower corners consistently with NewsBannerView's joined header.
+  fill(c,960-width,17,width,7,tint);
   BroadcastVisuals.headerLabel(c,p,brand,value,960-width,width,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);
  }
  private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
+ private String leadLabel(){return kind==BRENT?"MERCADOS":kind==SATELLITE?"SATÉLITE":kind==VOICE_STATUS?"CONSULTA":"BOLETIM";}
+ private String headerContext(){return kind==RAIN?"PREVISÃO POR MINUTO":kind==WEATHER?"CONDIÇÕES DO TEMPO":kind==BRENT?"NYMEX · USD/BRL GLOBAL":kind==VOICE_STATUS?"COMANDO DE VOZ":"GOES-EAST · SUDESTE";}
+ // Scale text before considering an ellipsis; the distance to the TV makes
+ // clipped words (e.g. INDISPONÍ...) materially harder to understand.
+ private void fitted(Canvas c,String value,float x,float y,float size,float minimum,int color,Typeface font,float width){
+  String raw=value==null?"":value;p.setTypeface(font);p.setTextScaleX(1f);p.setTextSize(size);
+  while(size>minimum&&p.measureText(raw)>width){size-=.5f;p.setTextSize(size);}
+  label(c,raw,x,y,size,color,font,width);
+ }
  private void drawRadar(Canvas c,long elapsed){
   BroadcastVisuals.radar(c,p,elapsed,animate);
  }
@@ -207,9 +219,10 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed){
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
-  rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xffbf1827,5);
-  BroadcastVisuals.headerLabel(c,p,brand,"BREAKING NEWS",0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);
-  label(c,kind==RAIN?"CHUVA · LIBERDADE / SP":kind==WEATHER?"METEOROLOGIA":kind==BRENT?"MERCADO · ENERGIA":kind==VOICE_STATUS?"CONSULTA POR VOZ":"IMAGEM DE SATÉLITE",BroadcastVisuals.BREAKING_WIDTH+16,18,17,accent,brand,440);
+  // Compact, non-emergency editorial tab; breaking news belongs to seismic alerts.
+  rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xff145067,5);
+  BroadcastVisuals.headerLabel(c,p,brand,leadLabel(),0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);
+  fitted(c,headerContext(),BroadcastVisuals.BREAKING_WIDTH+15,17,17,13,Color.WHITE,brand,470);
   badge(c,status());
   // Reserve the same bounded logo region across rain, weather, oil, dollar,
   // satellite, voice and breaking-news banners; never paint metrics below it.
@@ -224,10 +237,15 @@ final class TvBroadcastInfoView extends View {
   drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
- private void metric(Canvas c,int index,String value,String caption,float x){icon(c,index,x,48,20);label(c,value,x+27,65,21,foreground,brand,105);label(c,caption,x,86,12,0xffb8d2df,brand,130);}
+ private void metric(Canvas c,int index,String value,String caption,float x){
+  icon(c,index,x,48,20);
+  fitted(c,value,x+27,65,21,12,foreground,brand,109);
+  fitted(c,caption,x,86,12,10,0xffd8e4ee,brand,129);
+ }
  private void drawRain(Canvas c){
   RainBannerContent facts=rainFacts;
-  label(c,facts.topic,11,70,29,0xffff6d7f,brand,108);
+  label(c,facts.topic,11,64,29,0xffff6d7f,brand,108);
+  fitted(c,"LIBERDADE · SP",11,86,13,11,0xffe8f7ff,brand,111);
   icon(c,0,127,41,28);label(c,facts.headline,165,60,23,foreground,brand,235);
   label(c,facts.end,127,86,16,0xffb8d2df,brand,275);
   metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",412);
@@ -237,7 +255,7 @@ final class TvBroadcastInfoView extends View {
  private void drawWeather(Canvas c){
   label(c,"TEMPO",11,70,30,0xffff6d7f,brand,105);
   label(c,weather==null?"—":weather.temperatureValue,124,65,39,foreground,brand,112);
-  label(c,"LIBERDADE / SP",124,87,12,0xffb8d2df,data,140);
+  fitted(c,"LIBERDADE · SP",11,88,13,11,0xffe8f7ff,brand,110);
   icon(c,0,251,42,30);
   // Do not present an hourly MODEL rain code as rain observed right now.
   String sky=WeatherConditionDisplay.headline(weather,rain);
@@ -272,23 +290,33 @@ final class TvBroadcastInfoView extends View {
   refreshMarket();
   if(marketPending){
    label(c,"BRENT",12,57,28,0xffff6d7f,brand,112);
-   label(c,"CONSULTA POR VOZ",12,83,13,accent,brand,120);
+   label(c,"CONSULTA POR VOZ",12,83,13,0xffe6f7ff,brand,120);
    label(c,"CONSULTANDO COTAÇÃO REAL…",138,67,29,foreground,brand,420);
    fill(c,575,41,1,43,0xff45647b);
-   label(c,"DÓLAR USD/BRL",593,45,17,accent,brand,240);
+   label(c,"DÓLAR GLOBAL",593,45,17,0xffe6f7ff,brand,220);
    label(c,"AGUARDANDO FONTE",593,77,21,foreground,brand,260);
    return;
   }
-  // Header matches the USD/BRL name + colored market-state badge at y=44.
-  // Keep prices, percentages, references, ticker and animation untouched.
-  label(c,"BRENT",12,44,19,0xffff6d7f,brand,62);
-  label(c,demo?"SIMULADO":marketHeaderStatus(brentSession),76,44,12,sessionColor(brentSession),brand,60);
-  label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,68,37,foreground,brand,254);
-  int tint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;String variation=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";label(c,variation,402,66,25,tint,brand,162);fill(c,575,41,1,43,0xff45647b);
-  label(c,"DÓLAR USD/BRL",593,44,16,accent,brand,174);label(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),763,44,12,sessionColor(dollarSession),brand,94);
-  label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,150);Double pct=dollar==null?null:dollar.percent;label(c,pct==null?"VAR. —":(pct>=0?"▲ +":"▼ ")+amount(pct)+"%",749,75,21,pct==null?0xffb8d2df:pct>=0?0xff75edb2:0xffff7687,brand,108);
-  label(c,brent==null?"NYMEX · SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,89,12,0xffbdcfdd,data,430);
-  label(c,dollar==null?"FONTE SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),593,91,11,0xffbdcfdd,data,264);
+  // Matching panels: market state immediately ABOVE each percentage.
+  // The right panel is the GLOBAL Yahoo USD/BRL reference, not B3 futures.
+  label(c,"BRENT",12,44,19,0xffff6d7f,brand,74);
+  label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,70,36,foreground,brand,252);
+  int oilTint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
+  String oilChange=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
+  fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),402,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,158);
+  fitted(c,oilChange,402,73,25,16,oilTint,brand,160);
+  fill(c,575,41,1,43,0xff45647b);
+  label(c,"DÓLAR · GLOBAL",593,44,17,0xffe6f7ff,brand,160);
+  fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),754,45,15,11,demo?0xffffd17d:sessionColor(dollarSession),brand,104);
+  label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,151);
+  Double fxChange=dollar==null?null:dollar.percent;
+  String fxVariation=fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
+  fitted(c,fxVariation,751,76,21,13,fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,107);
+  label(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,90,12,0xffd3e3ed,data,434);
+  long now=System.currentTimeMillis();
+  String fxReference=dollar==null?"SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at);
+  String fxFoot=MarketState.brazilWeekend(now)?"BRASIL SEM PREGÃO · "+fxReference:fxReference;
+  fitted(c,fxFoot,593,91,11,9,0xffd3e3ed,data,264);
  }
  private void drawSatelliteNews(Canvas c){
   label(c,"SATÉLITE",12,70,32,0xffff6d7f,brand,119);
