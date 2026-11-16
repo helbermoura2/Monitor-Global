@@ -7,7 +7,7 @@ export async function archiveTelegramOriginal(storage,png,key=crypto.randomUUID(
  if(!validKey(key)||!(png instanceof Uint8Array)||png.length<24||png.length>MAX_BYTES||!png.subarray(0,8).every((v,i)=>v===[137,80,78,71,13,10,26,10][i]))throw Error('PNG original inválido');
  const view=new DataView(png.buffer,png.byteOffset,png.byteLength);
  const width=view.getUint32(16),height=view.getUint32(20);
- if(summary?width!==1800||height<2688||height>12000:width!==1080||height!==1920)throw Error('Resolução original inválida');
+ if(summary?width!==1800||height<2400||height>12000:width!==1080||height!==1920)throw Error('Resolução original inválida');
  const now=Date.now(),parts=Math.ceil(png.length/CHUNK),meta={key,parts,bytes:png.length,width,height,until:now+TTL,updatedAt:now};
  const old=await storage.get(PREFIX+key),index=(await storage.get(INDEX))||[],all=[...index.filter(x=>x.key!==key),meta];
  const keep=all.filter(x=>x.until>now).slice(-MAX_IMAGES),remove=all.filter(x=>!keep.some(k=>k.key===x.key));
