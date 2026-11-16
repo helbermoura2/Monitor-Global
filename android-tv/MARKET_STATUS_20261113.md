@@ -24,3 +24,13 @@ Cotações indicativas, sujeitas a atraso; não constituem feed oficial em tempo
 - Removidos inteiramente os rótulos pequenos da linha superior após **BREAKING NEWS**. A localização legível fica no corpo da tarja, e os detalhes continuam disponíveis no rodapé e na acessibilidade.
 - Mantidos os ajustes de dados da 1.0.100: Brent com estado sobre a porcentagem, dólar identificado como referência global, contexto do pregão brasileiro separado, totais do resumo diário e marca oficial.
 - A alteração é restrita a **cores, etiqueta e distribuição do cabeçalho**, sem mudar horários, fontes, Worker, alertas ou dados meteorológicos.
+
+
+## TV 1.0.102: legibilidade e alinhamento vertical na sala
+
+- Alinhamento óptico **compartilhado** no corpo da tarja (`BroadcastVisuals.BODY_VISUAL_CENTER_Y`): títulos **TEMPO/CHUVA/BRENT/SATÉLITE/CONSULTA**, temperatura, cotação, métricas e ícones da família informativa não podem ficar em alturas discordantes. O layout sísmico, tarja de alertas e mapa mantêm a estrutura já aprovada.
+- **BRENT** volta a ter fonte de categoria grande (31 unidades) e centrada ao lado do preço, em vez de aparecer pequeno e colado à borda superior.
+- **19 °C** é centralizado verticalmente ao lado de TEMPO e do subtítulo LIBERDADE · SP; um teste Robolectric compara as caixas de tinta real na imagem renderizada.
+- A referência **DÓLAR · GLOBAL (Yahoo `BRL=X`)** pode abrir domingo à noite enquanto a B3 está fechada. Em fins de semana a TV mostra na faixa principal **B3 FECHADA · SEG 09H (REGULAR)** com fonte maior e cor de atenção; o ticker esclarece que 09:00 BRT é o horário regular e pode sofrer exceções de calendário. O fechamento da B3 não substitui o estado independente da cotação internacional.
+- Preservados os selos **vermelhos** compactos BREAKING NEWS / AO VIVO, a identidade oficial Argos, dados meteorológicos e sísmicos reais, cinco contadores do resumo, as colunas, a assinatura, o package ID e a atualização automática.
+
