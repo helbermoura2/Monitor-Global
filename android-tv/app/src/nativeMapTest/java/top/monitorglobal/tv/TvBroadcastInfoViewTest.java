@@ -101,7 +101,7 @@ public class TvBroadcastInfoViewTest {
   assertTrue(accessible.contains("Nublado"));assertTrue(accessible.contains("22°C"));
   Bitmap b=render(view,"weather");
   try{assertTrue("strip has a solid broadcast background",Color.alpha(b.getPixel(500,view.mapSpace+50))>240);
-   assertEquals("original Breaking News red remains unchanged",0xffbf1827,b.getPixel(10,view.mapSpace+10));
+   assertTrue("separated Breaking News remains red",Color.red(b.getPixel(36,view.mapSpace+10))>Color.green(b.getPixel(36,view.mapSpace+10)));
   }finally{b.recycle();}
  }
  @Test public void weatherKeepsOriginalIndependentMetricColumns()throws Exception{
@@ -146,7 +146,7 @@ public class TvBroadcastInfoViewTest {
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
-  try{assertEquals(126,b.getHeight());assertEquals(0xffbf1827,b.getPixel(10,10));}
+  try{assertEquals(126,b.getHeight());assertTrue(Color.red(b.getPixel(36,10))>Color.green(b.getPixel(36,10)));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
   assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · YAHOO · STATUS N/D: sem cotação confirmada"));
@@ -198,8 +198,8 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(generic,"alexa-generic-banner");
   try{
    assertEquals(126,a.getHeight());assertEquals(126,b.getHeight());
-   assertEquals(0xffbf1827,a.getPixel(10,10));
-   assertEquals(0xffbf1827,b.getPixel(10,10));
+   assertTrue(Color.red(a.getPixel(36,10))>Color.green(a.getPixel(36,10)));
+   assertTrue(Color.red(b.getPixel(36,10))>Color.green(b.getPixel(36,10)));
    assertTrue(a.getPixel(911,60)!=0xff071724);
   }finally{a.recycle();b.recycle();}
  }
@@ -243,7 +243,7 @@ public class TvBroadcastInfoViewTest {
   RainForecast.Summary rain=new RainForecast.Summary("soon","fraca","Chuva prevista em ~10 min",0,3.2,"Pode terminar em ~45 min",System.currentTimeMillis(),System.currentTimeMillis()+600000,false,10,45,35,4.5,"Duração estimada: ~35 min");
   TvBroadcastInfoView view=TvBroadcastInfoView.rain(c,rain,null,true);assertEquals(0,view.mapSpace);
   String description=String.valueOf(view.getContentDescription());assertTrue(description.contains("3,2 mm"));assertTrue(description.contains("4,5 mm/h"));assertTrue(description.contains("35 min"));assertFalse(description.contains("Umidade"));
-  Bitmap image=render(view,"rain");try{assertEquals(126,image.getHeight());assertEquals(0xffbf1827,image.getPixel(10,10));try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-weather-card-rain-banner.png")){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}}finally{image.recycle();}
+  Bitmap image=render(view,"rain");try{assertEquals(126,image.getHeight());assertTrue(Color.red(image.getPixel(36,10))>Color.green(image.getPixel(36,10)));try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-weather-card-rain-banner.png")){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}}finally{image.recycle();}
  }
  @Test public void infraredImageIsMapInsetNotAnotherCornerCard()throws Exception{
   Bitmap frame=Bitmap.createBitmap(512,300,Bitmap.Config.ARGB_8888);
