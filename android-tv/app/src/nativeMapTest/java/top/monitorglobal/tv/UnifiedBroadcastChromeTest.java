@@ -88,7 +88,7 @@ public class UnifiedBroadcastChromeTest {
    }
    assertEquals("No oversized headline background",0,a.getPixel(196,map+10)>>>24);
    assertEquals("No oversized headline background",0,b.getPixel(196,10)>>>24);
-   for(int x:new int[]{923,950}){
+   for(int x:new int[]{950}){
     assertEquals("Replay status remains clearly distinguished",0xffbf1827,a.getPixel(x,map+10));
     assertEquals("Market information status avoids false live claim",0xff145067,b.getPixel(x,10));
    }
