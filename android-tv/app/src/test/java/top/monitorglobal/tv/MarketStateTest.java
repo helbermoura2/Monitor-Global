@@ -21,7 +21,8 @@ public class MarketStateTest {
  @Test public void sundayGlobalForexIsNotMisidentifiedAsBrazilianExchangeTrading()throws Exception{
   long sunday=at("2026-11-16T00:15:00Z"); // Sunday, 21:15 BRT.
   assertTrue(MarketState.brazilWeekend(sunday));
-  assertTrue(MarketState.brazilDollarContext(sunday).contains("SEM PREGÃO"));
+  assertTrue(MarketState.brazilDollarContext(sunday).contains("FORA DO HORÁRIO"));
+  assertEquals(MarketState.CLOSED,MarketState.brazilDOLRegular(sunday).value);
   long friday=at("2026-11-13T23:30:00Z");
   JSONObject stale=new JSONObject().put("symbol","BRL=X").put("marketState","REGULAR").put("regularMarketTime",friday/1000);
   assertEquals("Old Yahoo REGULAR label cannot prove Sunday night OPEN",MarketState.UNKNOWN,MarketState.fromMeta(stale,"BRL=X",sunday).value);
@@ -29,7 +30,8 @@ public class MarketStateTest {
   assertEquals("Fresh global quote can be OPEN even though Brazil has no trading",MarketState.OPEN,MarketState.fromMeta(current,"BRL=X",sunday).value);
   long monday=at("2026-11-16T13:00:00Z");
   assertFalse(MarketState.brazilWeekend(monday));
-  assertTrue(MarketState.brazilDollarContext(monday).contains("GLOBAL"));
+  assertTrue(MarketState.brazilDollarContext(monday).contains("DÓLAR FUTURO B3"));
+  assertEquals(MarketState.OPEN,MarketState.brazilDOLRegular(monday).value);
  }
  @Test public void missingStateUsesOnlyAValidProviderPeriod()throws Exception{
   long now=at("2026-11-11T15:00:00Z");JSONObject fx=new JSONObject().put("symbol","BRL=X").put("currentTradingPeriod",new JSONObject().put("regular",new JSONObject().put("start",(now-3600000)/1000).put("end",(now+3600000)/1000)));
