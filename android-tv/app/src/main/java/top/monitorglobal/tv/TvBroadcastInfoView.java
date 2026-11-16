@@ -119,7 +119,9 @@ final class TvBroadcastInfoView extends View {
    "     •     DÓLAR FUTURO · B3 DOL · "+dollarSession.label()+" (HORÁRIO REGULAR): "+
    (dollar==null?"sem fechamento B3 confirmado":"R$ "+b3Amount(dollar.price)+" / US$ 1 · "+dollar.contract+
     " · ÚLTIMO FECHAMENTO "+BrentQuote.reference(dollar.at)+" · "+variationText(dollar.percent))+
-   "     •     "+MarketState.brazilDollarContext(now)+" · B3 via Notícias Agrícolas (fechamento histórico) · preços de hoje não verificados";
+   "     •     "+MarketState.brazilDollarContext(now)+(MarketDOLWidget.shouldShow(now,demo)?
+    " · DOL intradiário exibido somente no widget oficial TradingView (atraso ~15 min; sem extração)":
+    " · B3 via Notícias Agrícolas (fechamento histórico)")+" · nenhum preço de outro mercado utilizado";
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
  }
  /** All voice status results reuse the SAME official seismic broadcast geometry. */
@@ -329,15 +331,17 @@ final class TvBroadcastInfoView extends View {
   fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),402,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,158);
   fitted(c,oilChange,402,73,25,16,oilTint,brand,160);
   fill(c,575,41,1,43,0xff45647b);
+  // A real intraday B3 price, when available, is rendered directly by the
+  // official TradingView widget above this native fallback (not scraped).
+  boolean intraday=MarketDOLWidget.shouldShow(System.currentTimeMillis(),demo);
   fitted(c,"DÓLAR · B3",593,47,21,16,0xffe6f7ff,brand,157);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),754,45,15,11,demo?0xffffd17d:sessionColor(dollarSession),brand,104);
-  fitted(c,dollar==null?"R$ —":"R$ "+b3Amount(dollar.price),593,75,29,20,foreground,brand,151);
-  Double fxChange=dollar==null?null:dollar.percent;
-  String fxVariation=fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
-  fitted(c,fxVariation,751,76,21,13,fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,107);
+  fitted(c,intraday?"COTAÇÃO NO WIDGET":dollar==null?"R$ —":"R$ "+b3Amount(dollar.price),593,75,intraday?18:29,16,foreground,brand,165);
+  Double fxChange=intraday?null:dollar==null?null:dollar.percent;
+  String fxVariation=intraday?"B3 · DOL1!":fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
+  fitted(c,fxVariation,751,76,intraday?15:21,13,fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,107);
   label(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,90,12,0xffd3e3ed,data,434);
-  long now=System.currentTimeMillis();
-  String fxFoot=dollar==null?"B3 DOL · FECHAMENTO N/D":"ÚLT. FECH. "+BrentQuote.reference(dollar.at)+" · "+dollar.contract;
+  String fxFoot=intraday?"B3 DOL1! · ~15 MIN · TradingView":dollar==null?"B3 DOL · FECHAMENTO N/D":"ÚLT. FECH. "+BrentQuote.reference(dollar.at)+" · "+dollar.contract;
   fitted(c,fxFoot,593,91,12,10,0xffd3e3ed,brand,264);
  }
  private void drawSatelliteNews(Canvas c){

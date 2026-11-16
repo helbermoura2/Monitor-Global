@@ -46,3 +46,14 @@ Cotações indicativas, sujeitas a atraso; não constituem feed oficial em tempo
 - Mantém Brent (NYMEX) e o restante das tarjas sem alteração; não adiciona custo, token, fonte paga ou computador local.
 - A B3 comercializa dados intradiários via distribuidores licenciados. Se no futuro for conectado um feed intradiário autorizado, ele poderá substituir a referência histórica sem violar a separação de mercados.
 
+
+## TV 1.0.105: dólar futuro DOL intradiário com atualização horária
+
+- **Motivo:** o último fechamento B3 exibido na versão 1.0.104 não varia durante o pregão; esta versão adiciona cotação intradiária real sem substituir o ativo pelo USD/BRL internacional.
+- **Fonte:** widget público OFICIAL **TradingView Single Quote**, configurado para `BMFBOVESPA:DOL1!`. O próprio TradingView licencia a exibição nos widgets dos ativos da B3 com atraso de aproximadamente **15 minutos** (https://www.tradingview.com/blog/pb/b3-data-available-in-tradingview-widgets-41743/).
+- **Respeito à fonte:** o preço/percentual são renderizados **diretamente pelo widget do fornecedor**, sem baixar, inspecionar iframe, coletar valores com JavaScript, copiar, revender ou expor cotações por API. A atribuição e o atraso são visíveis na tarja.
+- **Agenda:** a cada hora na janela `:15–:59` do pregão regular de dólar futuro da B3 (dias úteis 09:00–18:30, sujeito a feriados), a tarja carrega **uma nova instância do widget**. O ciclo do DOL tem a chave de agendamento `b3DolLastSlot`, separada do Brent; caso o Brent não tenha valor confirmado, o DOL não é suprimido.
+- **Fora do pregão:** usa o último fechamento B3 verificado, com vencimento e data; não simula cotação intradiária.
+- **Sem WebView ou internet:** exibirá um estado nativo claro sem preço intradiário. Não apresenta fechamento velho como se fosse preço atual e não recorre ao BRL=X do Yahoo.
+- **Visual:** a tarja informativa conserva o design vermelho e o alinhamento das categorias pela magnitude, com widget incorporado apenas na coluna do dólar. Não interfere no radar, no resumo diário, no Telegram ou no app celular.
+- **Limitação técnica:** a validação final de disponibilidade do WebView/TradingView precisa ocorrer em uma TV/Fire TV real. Os testes automatizados aprovam o build e o ciclo da tarja, não certificam conectividade com o serviço externo no aparelho do usuário.

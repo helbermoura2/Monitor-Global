@@ -46,7 +46,7 @@ class DarkArgosLauncher(unittest.TestCase):
  def test_versions_increment_but_package_id_and_animated_header_stay(self):
   tv=(ROOT/"android-tv/app/build.gradle").read_text()
   mobile=(ROOT/"android-mobile/app/build.gradle").read_text()
-  self.assertIn("versionCode 10104",tv)
+  self.assertIn("versionCode 10105",tv)
   mobile_version=re.search(r"versionCode\s+(\d+)",mobile)
   self.assertIsNotNone(mobile_version)
   self.assertGreaterEqual(int(mobile_version.group(1)),24,"Phone releases must not be pinned to a stale TV test")
