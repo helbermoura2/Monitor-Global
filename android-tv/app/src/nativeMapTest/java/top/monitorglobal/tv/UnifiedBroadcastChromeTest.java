@@ -81,16 +81,22 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   // Replay and markets use consistent compact information badges, not emergency red.
+   // All lower thirds retain the same original red badges with a compact width.
    for(int x:new int[]{10,175}){
-    assertEquals("Compact replay information chip",0xff145067,a.getPixel(x,map+10));
-    assertEquals("Compact market information chip",0xff145067,b.getPixel(x,10));
+    assertEquals("Original red replay Breaking News chip",0xffbf1827,a.getPixel(x,map+10));
+    assertEquals("Original red market Breaking News chip",0xffbf1827,b.getPixel(x,10));
    }
    assertEquals("No oversized headline background",0,a.getPixel(196,map+10)>>>24);
    assertEquals("No oversized headline background",0,b.getPixel(196,10)>>>24);
+   // The unreadable blue/white microtext after BREAKING NEWS is removed entirely.
+   // Preserve the deliberately empty gap all the way to the right-hand badge.
+   for(int y=2;y<=22;y++)for(int x=205;x<=760;x++){
+    assertEquals("No secondary header text over seismic broadcast at "+x+","+y,0,Color.alpha(a.getPixel(x,map+y)));
+    assertEquals("No secondary header text over market broadcast at "+x+","+y,0,Color.alpha(b.getPixel(x,y)));
+   }
    for(int x:new int[]{950}){
     assertEquals("Replay status remains clearly distinguished",0xffbf1827,a.getPixel(x,map+10));
-    assertEquals("Market information status avoids false live claim",0xff145067,b.getPixel(x,10));
+    assertEquals("Original red market status chip",0xffbf1827,b.getPixel(x,10));
    }
    assertEquals(0xffbf1827,a.getPixel(10,map+96));
    assertEquals(0xffbf1827,b.getPixel(10,96));
@@ -141,12 +147,16 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(weather,960,126+weather.mapSpace,1100);
   try{
    int qa=Banner.insetDp(context),qb=weather.mapSpace;
-   // An actual seismic alert is red; ordinary weather monitoring is not.
+   // Both kinds retain the original approved red; only their badges are narrower.
    assertEquals(0xffbf1827,a.getPixel(175,qa+10));
-   assertEquals(0xff145067,b.getPixel(175,qb+10));
+   assertEquals(0xffbf1827,b.getPixel(175,qb+10));
    assertEquals(0,a.getPixel(196,qa+10)>>>24);
    assertEquals(0,b.getPixel(196,qb+10)>>>24);
-   // AO VIVO now measures to text rather than filling an oversized red slab.
+   for(int x=205;x<=760;x++){
+    assertEquals("Top gap after Breaking News is clean on seismic",0,Color.alpha(a.getPixel(x,qa+12)));
+    assertEquals("Top gap after Breaking News is clean on weather",0,Color.alpha(b.getPixel(x,qb+12)));
+   }
+   // AO VIVO uses identical original red across broadcasters, with text-sized width.
    for(int y=3;y<=20;y++)for(int x=830;x<=945;x++)
     assertEquals("Compact live status must match at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
   }finally{a.recycle();b.recycle();}

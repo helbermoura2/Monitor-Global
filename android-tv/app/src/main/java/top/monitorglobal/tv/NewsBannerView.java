@@ -137,24 +137,15 @@ final class NewsBannerView extends View {
   else mapInset.draw(c,pages[index].alert,brand,accent);
   c.restore();
  }
- // Red BREAKING NEWS is reserved for urgent seismic and tsunami events.
- // Recorded replays, daily recaps and no-threat bulletins use a calmer chip.
- private String leadLabel(){
-  if(summary)return "RESUMO DIÁRIO";
-  if(replay)return "REGISTRO";
-  if(root.kind.equals("tsunami")&&!(root.state.equals("warning")||root.state.equals("watch")||root.state.equals("advisory")))return "BOLETIM";
-  return "BREAKING NEWS";
- }
- private int leadColor(){return leadLabel().equals("BREAKING NEWS")?0xffbf1827:0xff145067;}
- String badgeLabel(){return demo?"TESTE":replay?"REPLAY":summary?"RESUMO":"AO VIVO";}
+ String badgeLabel(){return demo?"TESTE":replay?"REPLAY":"AO VIVO";}
  static String formatClock(long at){return date(at,"HH:mm");}
  private void drawClock(Canvas c){long now=System.currentTimeMillis(),minute=now/60000;if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}c.save();c.clipPath(bannerClip);rect(c,0,BroadcastVisuals.FOOTER_TOP,90,126,Color.rgb(191,24,39));centerText(c,clockText,45,119,18,Color.WHITE,data,78);c.restore();}
  private void breaking(Canvas c,long elapsed){
   c.save();c.clipRect(0,0,breakingWidth,24);
-  int tint=leadColor();
+  int tint=Color.rgb(191,24,39);
   rounded(c,0,0,breakingWidth,30,7,tint);rect(c,0,17,breakingWidth,24,tint);
-  if(animate&&!replay&&!summary&&leadLabel().equals("BREAKING NEWS")){float phase=(elapsed%3200)/3200f;if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*(breakingWidth+70),0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(0,0,breakingWidth,24,paint);paint.setShader(null);c.restore();}}
-  BroadcastVisuals.headerLabel(c,paint,brand,leadLabel(),0,breakingWidth,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);c.restore();
+  if(animate&&!replay&&!summary){float phase=(elapsed%3200)/3200f;if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*(breakingWidth+70),0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(0,0,breakingWidth,24,paint);paint.setShader(null);c.restore();}}
+  BroadcastVisuals.headerLabel(c,paint,brand,"BREAKING NEWS",0,breakingWidth,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);c.restore();
  }
  float identityLeft(long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;float width=identityWidths[current];

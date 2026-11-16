@@ -15,3 +15,12 @@ Cotações indicativas, sujeitas a atraso; não constituem feed oficial em tempo
 - Brent e dólar têm estados independentes **acima** da variação porcentual; as referências da última cotação permanecem identificadas.
 - BREAKING NEWS tem largura compacta em eventos sísmicos pertinentes. Chuva, tempo, satélite e mercado usam selos informativos, sem confundir previsão normal com emergência. O logo oficial e o rodapé, inclusive os cinco totais do resumo diário, permanecem preservados.
 - A confirmação e a validação visual precisam ocorrer no APK 1.0.100; nenhuma cotação fictícia é publicada.
+
+
+## TV 1.0.101: restaurar as cores aprovadas nas tarjas
+
+- **BREAKING NEWS** volta ao vermelho oficial `#BF1827` em todas as tarjas (sismos, chuva, tempo, Brent, dólar, satélite, replay e resumo); o formato mais **estreito** é preservado.
+- **AO VIVO**, **REPLAY** e demais selos de estado voltam ao mesmo vermelho oficial nas tarjas normais. A versão demonstrativa mantém a identificação especial de simulação.
+- Removidos inteiramente os rótulos pequenos da linha superior após **BREAKING NEWS**. A localização legível fica no corpo da tarja, e os detalhes continuam disponíveis no rodapé e na acessibilidade.
+- Mantidos os ajustes de dados da 1.0.100: Brent com estado sobre a porcentagem, dólar identificado como referência global, contexto do pregão brasileiro separado, totais do resumo diário e marca oficial.
+- A alteração é restrita a **cores, etiqueta e distribuição do cabeçalho**, sem mudar horários, fontes, Worker, alertas ou dados meteorológicos.
