@@ -4,3 +4,5 @@ Publicar a nova aparência apenas para cartões automáticos de sismos de magnit
 A publicação deve ocorrer somente após passar o teste do renderizador M6, proteção de tsunami, testes do Worker e build. Preservar TELEGRAM_CHAT_ID, TELEGRAM_BOT_TOKEN, rotinas de busca, cron, bindings, DO, KV e anti-duplicidade. Confirmar marcador público telegramM6ImageStyle no fim do deploy.
 
 REAPLICAÇÃO SEGURA DO MESMO DEPLOY (16/11/2026): o workflow Cloudflare Worker maintenance do merge PR #722 foi cancelado antes de criar qualquer job, devido à concorrência com Android mobile preview (mesmo grupo de serialização). Esta alteração só reaciona a publicação da versão já aprovada/testada. Não altera código nem tenta envio de alerta real; valida e preserva chat ID, bot, cron e storage.
+
+CORREÇÃO FINAL DE PREFLIGHT (16/11/2026): a tentativa Cloudflare de main no PR #723 falhou apenas em teste unitário porque o mock de health não incluía telegramM6ImageStyle. A fixture agora corresponde ao campo público que o código do Worker já disponibiliza. Solicitar novamente o MESMO deploy sem troca de segredos/cron/IDs, e confirmar relatório final de publicação antes de anunciar sucesso.

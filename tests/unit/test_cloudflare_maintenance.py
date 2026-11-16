@@ -13,6 +13,9 @@ class MaintenanceTests(unittest.TestCase):
         version=re.search(r"telegramImageStatus:\s*[\"\']([^\"\']+)",source)
         self.assertIsNotNone(version)
         self.assertEqual(m.TELEGRAM_IMAGE_STATUS,version.group(1))
+        bronze=re.search(r"telegramM6ImageStyle:\s*[\"']([^\"']+)",source)
+        self.assertIsNotNone(bronze)
+        self.assertEqual(m.TELEGRAM_M6_STYLE,bronze.group(1))
     def settings(self):
         return {'compatibility_date':'2024-09-01','compatibility_flags':['nodejs_compat'],'bindings':[{'name':'TTS_USAGE','type':'kv_namespace','namespace_id':'old-kv'},{'name':'DAILY_SUMMARY','type':'durable_object_namespace','namespace_id':'old-summary'},{'name':'EARTHQUAKE_ALERTS','type':'durable_object_namespace','namespace_id':'old-alerts'},{'name':'ADMIN_TOKEN','type':'secret_text'},{'name':'CONFIG','type':'plain_text','text':'keep-existing-value'},{'name':'AI','type':'ai'}],'limits':{'cpu_ms':10},'observability':{'enabled':True}}
     def test_credentials_reject_missing_or_url_without_echoing_values(self):
@@ -39,7 +42,7 @@ class MaintenanceTests(unittest.TestCase):
             def call(self,*args):return {'data':{'viewer':{'accounts':[]}}}
         with self.assertRaises(m.MaintenanceError):m.analytics(Client())
     def test_public_propagation_can_be_verified_without_a_second_upload(self):
-        values=iter([{'electionPolls':'old'},{'publicSourceRuntime':m.PUBLIC_SOURCE_RUNTIME,'demandBudget':m.DEMAND_BUDGET,'sourceEdgeBudget':m.SOURCE_EDGE_BUDGET,'durableRequestBudget':m.REQUEST_BUDGET,'workerModules':m.WORKER_MODULES,'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True,'telegramStorage':'durable-history-v1','telegramSolutionPolicy':m.TELEGRAM_SOLUTION_POLICY,'globalSeismicPolicy':m.GLOBAL_SEISMIC_POLICY,'tvTargetPolicy':m.TV_TARGET_POLICY,'tvRainPolicy':m.TV_RAIN_POLICY,'tvWeatherPolicy':m.TV_WEATHER_POLICY,'telegramImageStatus':m.TELEGRAM_IMAGE_STATUS,'sharedSources':{'version':'shared-sources-v1','enabled':True}}]);waits=[]
+        values=iter([{'electionPolls':'old'},{'publicSourceRuntime':m.PUBLIC_SOURCE_RUNTIME,'demandBudget':m.DEMAND_BUDGET,'sourceEdgeBudget':m.SOURCE_EDGE_BUDGET,'durableRequestBudget':m.REQUEST_BUDGET,'workerModules':m.WORKER_MODULES,'electionPolls':m.MARKER,'kvOptimization':m.OPTIMIZATION,'kvUsageMetrics':True,'telegramStorage':'durable-history-v1','telegramSolutionPolicy':m.TELEGRAM_SOLUTION_POLICY,'globalSeismicPolicy':m.GLOBAL_SEISMIC_POLICY,'tvTargetPolicy':m.TV_TARGET_POLICY,'tvRainPolicy':m.TV_RAIN_POLICY,'tvWeatherPolicy':m.TV_WEATHER_POLICY,'telegramImageStatus':m.TELEGRAM_IMAGE_STATUS,'telegramM6ImageStyle':m.TELEGRAM_M6_STYLE,'sharedSources':{'version':'shared-sources-v1','enabled':True}}]);waits=[]
         result=m.verify_public(check=lambda:next(values),wait=waits.append,attempts=2)
         self.assertEqual(result['electionPolls'],m.MARKER);self.assertEqual(waits,[5])
         with self.assertRaisesRegex(m.MaintenanceError,'without redeploying'):
