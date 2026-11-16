@@ -45,8 +45,8 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,',
             'fitted(c,oilChange,402,73,25,',
             'fill(c,575,41,1,43,',
-            'fitted(c,"DÓLAR · GLOBAL",593,47,21,',
-            'label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,',
+            'fitted(c,"DÓLAR · B3",593,47,21,',
+            'fitted(c,dollar==null?"R$ —":"R$ "+b3Amount(dollar.price),593,75,29,',
             'eventCategory(c,"BRENT","NYMEX")',
         ):
             self.assertIn(piece, WEATHER)
@@ -79,6 +79,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"BRENT"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):
             self.assertIn(phrase, WEATHER)
         self.assertIn("B3 FECHADA · SEG 09H (REGULAR)", WEATHER)
+        self.assertNotIn('DÓLAR · GLOBAL', WEATHER)
 
     def test_header_footer_and_position_stay_as_pre_redesign(self):
         self.assertIn('BREAKING_WIDTH=190f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f', CHROME)
