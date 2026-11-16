@@ -9,7 +9,7 @@ import java.util.regex.*;
 /** One overlay: stable brand/footer, softly changing event content. No focus required. */
 final class NewsBannerView extends View {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- static final float HEADLINE_X=124,HEADLINE_Y=64,HEADLINE_TOP=40,HEADLINE_BOTTOM=72,HEADLINE_WIDTH=714,FLAG_RESERVE=44;
+ static final float HEADLINE_X=124,HEADLINE_Y=64,HEADLINE_TOP=40,HEADLINE_BOTTOM=72,HEADLINE_WIDTH=660,FLAG_RESERVE=44;
  private final Path breakingClip=new Path();private final float breakingWidth,badgeWidth;private final Path bannerClip=new Path(),telegramPlane=new Path();private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private long clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private final Matrix shineMatrix=new Matrix();
@@ -49,12 +49,12 @@ final class NewsBannerView extends View {
   NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete,DailySeismicTotals totals){this(context,alerts.get(0),false,repeated,alerts,day,complete,totals);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete,DailySeismicTotals totals){
   super(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;
-  brand=Typeface.createFromAsset(context.getAssets(),"fonts/Rajdhani-Bold.ttf");data=Typeface.createFromAsset(context.getAssets(),"fonts/JetBrainsMono.ttf");
+  brand=OledNewsChrome.titleFont(null);data=OledNewsChrome.regularFont();
   paint.setTypeface(brand);paint.setTextSize(15);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
   identityTextWidths[0]=paint.measureText("argosorbis.com.br");identityTextWidths[1]=paint.measureText("@argosorbis");identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
   telegramPlane.moveTo(-5.5f,-.5f);telegramPlane.lineTo(5,-4.5f);telegramPlane.lineTo(3,5);telegramPlane.lineTo(-.5f,2);telegramPlane.lineTo(2.5f,-1.5f);telegramPlane.lineTo(-2,1);telegramPlane.close();
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
-  foreground=Color.parseColor(Prefs.get(context).getString("themeText","#ffffff"));background=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#071724":Prefs.get(context).getString("themeBackground","#071724"));
+  foreground=OledNewsChrome.INK;background=OledNewsChrome.OLED;
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
   StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+summaryDay+" · HORÁRIO DE BRASÍLIA · FONTES SÍSMICAS · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
@@ -91,10 +91,11 @@ final class NewsBannerView extends View {
  @Override protected void onDraw(Canvas c){
   super.onDraw(c);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();long elapsed=SystemClock.uptimeMillis()-started;c.save();c.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
   c.save();c.translate(0,mapBelow?0:mapSpace);
-  c.save();c.clipPath(bannerClip);rect(c,0,24,960,126,background);rect(c,0,BroadcastVisuals.FOOTER_TOP,960,126,Color.rgb(2,8,22));c.restore();
+  OledNewsChrome.base(c,paint);
   breaking(c,elapsed);
+  OledNewsChrome.tab(c,paint,badgeLabel(),false);
   BroadcastVisuals.radar(c,paint,elapsed,animate);
-  c.save();c.clipRect(0,0,960,24);rounded(c,960-badgeWidth,0,960,30,7,Color.rgb(191,24,39));rect(c,960-badgeWidth,17,960,24,Color.rgb(191,24,39));BroadcastVisuals.headerLabel(c,paint,brand,badgeLabel(),960-badgeWidth,badgeWidth,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);c.restore();drawClock(c);
+  drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
   int index=summary?BannerTimeline.summaryPage(contentElapsed,pages.length,presentationAnimated):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
@@ -104,8 +105,8 @@ final class NewsBannerView extends View {
   }else drawPage(c,pages[index],elapsed,255,0);
   if(summary&&summaryTotals!=null)drawSummaryTotals(c);
   else{
-  c.save();c.clipRect(100,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);paint.setTypeface(data);paint.setTextSize(12);float length=paint.measureText(ticker)+90;
-  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);text(c,ticker,100-offset,119,12,Color.WHITE,data,Float.MAX_VALUE);text(c,ticker,100-offset+length,119,12,Color.WHITE,data,Float.MAX_VALUE);c.restore();
+  c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+96;
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);text(c,ticker,112-offset,118,13,Color.WHITE,data,Float.MAX_VALUE);text(c,ticker,112-offset+length,118,13,Color.WHITE,data,Float.MAX_VALUE);c.restore();
   }
   c.restore();
   drawMap(c,index,elapsed,fadeElapsed);c.restore();
@@ -114,7 +115,7 @@ final class NewsBannerView extends View {
  }
  /** Five magnitude bands from the full-day catalog, not the five ranked quake cards. */
  private void drawSummaryTotals(Canvas c){
-  final float left=100f,right=Math.min(identityLeft(1000),identityLeft(BannerTimeline.PAGE_MS+1000))-8f;
+  final float left=112f,right=identityLeft(1000)-8f;
   final float width=(right-left)/5f;
   final String[] labels={"EVENTOS","M6,0+","M5,0–5,9","M4,0–4,9","ABAIXO M4,0"};
   final int[] colors={0xff29d4f2,0xffff5c68,0xffffa04b,0xffffda54,0xff46df9b};
@@ -137,33 +138,42 @@ final class NewsBannerView extends View {
   else mapInset.draw(c,pages[index].alert,brand,accent);
   c.restore();
  }
- String badgeLabel(){return demo?"TESTE":replay?"REPLAY":"AO VIVO";}
+ String badgeLabel(){return demo?"TESTE":replay?"REPLAY":summary?"RESUMO":"AO VIVO";}
  static String formatClock(long at){return date(at,"HH:mm");}
- private void drawClock(Canvas c){long now=System.currentTimeMillis(),minute=now/60000;if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}c.save();c.clipPath(bannerClip);rect(c,0,BroadcastVisuals.FOOTER_TOP,90,126,Color.rgb(191,24,39));centerText(c,clockText,45,119,18,Color.WHITE,data,78);c.restore();}
+ private void drawClock(Canvas c){
+  long now=System.currentTimeMillis(),minute=now/60000;
+  if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}
+  c.save();c.clipRect(OledNewsChrome.LEFT,94,106,126);
+  rect(c,31,94,106,126,OledNewsChrome.RED_DARK);
+  centerText(c,clockText,68,118,17,Color.WHITE,data,69);
+  c.restore();
+ }
  private void breaking(Canvas c,long elapsed){
-  c.save();c.clipRect(0,0,breakingWidth,24);
-  int tint=Color.rgb(191,24,39);
-  rounded(c,0,0,breakingWidth,30,7,tint);rect(c,0,17,breakingWidth,24,tint);
-  if(animate&&!replay&&!summary){float phase=(elapsed%3200)/3200f;if(phase<.7f){shineMatrix.setTranslate(-70+phase/.7f*(breakingWidth+70),0);shine.setLocalMatrix(shineMatrix);c.save();c.clipPath(breakingClip);paint.setShader(shine);c.drawRect(0,0,breakingWidth,24,paint);paint.setShader(null);c.restore();}}
-  BroadcastVisuals.headerLabel(c,paint,brand,"BREAKING NEWS",0,breakingWidth,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);c.restore();
+  OledNewsChrome.tab(c,paint,summary?"RESUMO DIÁRIO":"BREAKING NEWS",true);
+  // Keep the native breaking-news shine, clipped to the approved left red label.
+  if(animate&&!replay&&!summary){
+   float phase=(elapsed%3200)/3200f;
+   if(phase<.7f){
+    shineMatrix.setTranslate(31-70+phase/.7f*(264+70),0);
+    shine.setLocalMatrix(shineMatrix);
+    c.save();c.clipRect(31,0,295,30);paint.setShader(shine);
+    c.drawRect(31,0,295,30,paint);paint.setShader(null);c.restore();
+   }
+  }
  }
- float identityLeft(long elapsed){
-  int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;float width=identityWidths[current];
-  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)width=Math.max(identityWidths[0],identityWidths[1]);
-  return 960-BroadcastVisuals.BRAND_RIGHT_INSET-width;
- }
+ float identityLeft(long elapsed){return OledNewsChrome.BRAND_PLATE_LEFT;}
  private void drawIdentity(Canvas c,long elapsed){
   int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;
-  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){float t=BannerTimeline.progress(within);identity(c,1-current,(int)(255*(1-t)));identity(c,current,(int)(255*t));}
-  else identity(c,current,255);
+  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
+   float t=BannerTimeline.progress(within);
+   identity(c,1-current,(int)(255*(1-t)));identity(c,current,(int)(255*t));
+  }else identity(c,current,255);
  }
  private void identity(Canvas c,int index,int opacity){
-  if(opacity<=0)return;float labelX=960-BroadcastVisuals.BRAND_RIGHT_INSET-identityTextWidths[index];int layer=c.saveLayerAlpha(960-BroadcastVisuals.BRAND_RIGHT_INSET-identityWidths[index],BroadcastVisuals.FOOTER_TOP,960-BroadcastVisuals.BRAND_RIGHT_INSET,126,opacity);c.clipPath(bannerClip);
-  if(index==1){c.save();c.translate(labelX-14,113);paint.setStyle(Paint.Style.FILL);paint.setColor(Color.rgb(42,171,238));c.drawCircle(0,0,8,paint);paint.setColor(Color.WHITE);c.drawPath(telegramPlane,paint);c.restore();}
-  text(c,index==0?"argosorbis.com.br":"@argosorbis",labelX,119,15,Color.WHITE,brand,206);c.restoreToCount(layer);
+  OledNewsChrome.brandFooter(c,paint,index==0?"argosorbis.com.br":"@argosorbis",index==1,opacity);
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
-  if(opacity<=0)return;int layer=opacity<255?c.saveLayerAlpha(0,24,844,BroadcastVisuals.FOOTER_TOP,opacity):c.save();c.clipRect(0,24,844,BroadcastVisuals.FOOTER_TOP);c.translate(0,shift);
+  if(opacity<=0)return; int layer=opacity<255?c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,opacity):c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);c.translate(0,shift);
   Alert a=p.alert;
   if(BannerTimeline.magnitudeChanged(a)){
    if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);
@@ -171,10 +181,10 @@ final class NewsBannerView extends View {
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
   }else if(a.kind.equals("tsunami")){BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI",a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",eventInk(a));}
   else centerText(c,p.magnitude,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,36,eventInk(a),brand,85);
-  fitText(c,p.caption,HEADLINE_X,37,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
-  float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:28;drawHeadline(c,p,elapsed,width,size);
+  fitText(c,p.caption,HEADLINE_X,41,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
+  float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:31;drawHeadline(c,p,elapsed,width,size);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,43,x+32,67),paint);}
-  fitText(c,p.first,HEADLINE_X,89,15,foreground,brand,346);fitText(c,p.source,488,89,15,foreground,brand,185);text(c,p.time,691,89,13,foreground,data,142);c.restoreToCount(layer);
+  fitText(c,p.first,HEADLINE_X,89,15,foreground,brand,315);fitText(c,p.source,449,89,14,foreground,brand,166);text(c,p.time,630,89,13,foreground,data,180);c.restoreToCount(layer);
  }
  private void drawHeadline(Canvas c,Page p,long elapsed,float width,float size){
   paint.setTypeface(brand);paint.setTextSize(size);float length=paint.measureText(p.headline);
