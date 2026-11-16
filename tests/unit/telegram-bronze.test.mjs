@@ -36,7 +36,7 @@ test('other countries and long source names remain dynamic; M5 image version sta
  assert(!a.texts.some(t=>t.s==='Indonésia'));
  assert.equal(telegramCardVersion(6),'telegram-imperial-bronze-v1');
  assert.equal(telegramCardVersion(5.9),'telegram-glass-v19');
- const now=Date.now(),record={id:'b',delivery:'sent',messageType:'photo',messageId:101,mag:6.7,timeIso:new Date(now-120000).toISOString(),imageShakingCheckedAt:now-5000,imageExposureCheckedAt:now-5000,cardImageVersion:'telegram-imperial-bronze-v1'};
+ const now=Date.now(),record={id:'b',delivery:'sent',messageType:'photo',messageId:101,mag:6.7,timeIso:new Date(now-120000).toISOString(),imageShakingCheckedAt:now-5000,imageExposureCheckedAt:now-31000,cardImageVersion:'telegram-imperial-bronze-v1'};
  assert.equal(imageRefreshDue(record,now),false,'Do not rerender every minute just because the bronze version differs from glass');
  assert.equal(imageRefreshDue({...record,cardImageVersion:'telegram-glass-v19'},now),true);
 });
