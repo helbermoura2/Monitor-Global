@@ -326,7 +326,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  text('small','Distâncias a São Paulo, SP',X,footerY-40,COLORS.muted);
  return {
   day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,
-  layout:{width:W*scale,height:H*scale,scale,splitH:470,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight,mapX,mapY,mapW,mapH},
+  layout:{width:W*scale,height:H*scale,scale,splitH:470,rowsY,rowsEnd,totalsY,totalsHeight:108,rowHeights,brazilY,brazilHeight,mapX,mapY,mapW,mapH},
   epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),
   design:DAILY_SUMMARY_DESIGN
  };
