@@ -41,8 +41,12 @@ final class TvBroadcastInfoView extends View {
  private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
-  super(c);this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
-  brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
+  super(c);this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;
+  // A global USD/BRL quote can never populate the B3 DOL block, even when
+  // callers accidentally pass a legacy quote. Demonstration is clearly marked.
+  this.dollar=dollar!=null&&(dollar.b3Close||demo)?dollar:null;
+  brentSession=brent==null?closedBrentOrUnknown():brent.session;
+  dollarSession=MarketState.brazilDOLRegular(System.currentTimeMillis());
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
   this.mapSpace=kind==RAIN||kind==BRENT||kind==VOICE_STATUS||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
@@ -76,11 +80,11 @@ final class TvBroadcastInfoView extends View {
   }else{locator=null;
    if(kind==BRENT){
     String v=brent==null?"indisponível":"US$ "+amount(brent.price);
-    String usd=dollar==null?"indisponível":"R$ "+amount(dollar.price);
+    String usd=this.dollar==null?"fechamento indisponível":"R$ "+b3Amount(this.dollar.price);
     ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT: "+v+
-      (brent!=null?" · ref. "+BrentQuote.clock(brent.at):"")+"     •     DÓLAR USD/BRL: "+usd+
-      (dollar!=null?" · "+(dollar.percent==null?"Variação indisponível":(dollar.percent>=0?"+":"")+amount(dollar.percent)+"%")+" · ref. "+BrentQuote.clock(dollar.at):"")+
-      "     •     Variação sobre o fechamento anterior · Fonte: Yahoo Finance · dados podem sofrer atraso";
+      (brent!=null?" · ref. "+BrentQuote.clock(brent.at):"")+"     •     DÓLAR FUTURO B3 DOL: "+usd+
+      (this.dollar!=null?" · "+this.dollar.contract+" · último fechamento "+BrentQuote.reference(this.dollar.at):"")+
+      "     •     DOL: cotação de fechamento da B3, não é preço intradiário · Brent: Yahoo Finance";
    }else{
     ticker=(satellite!=null?"SATÉLITE GOES-EAST · "+satellite.credit()+" · "+InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
       " · Infravermelho não mede intensidade da chuva":"SATÉLITE GOES-EAST · "+this.satelliteStatus);
@@ -100,16 +104,22 @@ final class TvBroadcastInfoView extends View {
   TvBroadcastInfoView v=new TvBroadcastInfoView(c,BRENT,null,null,brent,dollar,null,null,demo);v.refreshMarket();return v;
  }
  private static MarketState closedBrentOrUnknown(){MarketState state=MarketState.brentRegular(System.currentTimeMillis());return state.closed()?state:MarketState.unknown();}
- static TvBroadcastInfoView market(Context c,BrentQuote b,DollarQuote d,MarketState bs,MarketState ds,boolean demo){TvBroadcastInfoView v=market(c,b,d,demo);if(bs!=null)v.brentSession=bs;if(ds!=null)v.dollarSession=ds;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();return v;}
+ static TvBroadcastInfoView market(Context c,BrentQuote b,DollarQuote d,MarketState bs,MarketState ds,boolean demo){TvBroadcastInfoView v=market(c,b,d,demo);if(bs!=null)v.brentSession=bs;v.dollarSession=MarketState.brazilDOLRegular(System.currentTimeMillis());v.marketSecond=Long.MIN_VALUE;v.refreshMarket();return v;}
  private String variationText(Double value){return value==null?"Variação indisponível":(value>=0?"+":"")+amount(value)+"%";}
  private void refreshMarket(){
   if(kind!=BRENT)return;
   if(marketPending){
-   ticker="BRENT · CONSULTANDO COTAÇÃO REAL · Verificando fontes do mercado · DÓLAR USD/BRL aguardando resultado · Sem valores fictícios";
+   ticker="BRENT · CONSULTANDO COTAÇÃO REAL · DÓLAR FUTURO B3 DOL: consultando fechamento · Sem valores fictícios";
    setContentDescription(ticker);return;
   }
-  long sec=System.currentTimeMillis()/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(System.currentTimeMillis(),true);dollarSession=dollarSession.current(System.currentTimeMillis(),false);
-  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · NYMEX · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · GLOBAL · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+amount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+MarketState.brazilDollarContext(System.currentTimeMillis())+" · "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
+  long now=System.currentTimeMillis(),sec=now/1000;if(marketSecond==sec)return;marketSecond=sec;
+  brentSession=brentSession.current(now,true);dollarSession=MarketState.brazilDOLRegular(now);
+  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · NYMEX · "+brentSession.label()+": "+
+   (brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+BrentQuote.reference(brent.at))+
+   "     •     DÓLAR FUTURO · B3 DOL · "+dollarSession.label()+" (HORÁRIO REGULAR): "+
+   (dollar==null?"sem fechamento B3 confirmado":"R$ "+b3Amount(dollar.price)+" / US$ 1 · "+dollar.contract+
+    " · ÚLTIMO FECHAMENTO "+BrentQuote.reference(dollar.at)+" · "+variationText(dollar.percent))+
+   "     •     "+MarketState.brazilDollarContext(now)+" · B3 via Notícias Agrícolas (fechamento histórico) · preços de hoje não verificados";
   setContentDescription((demo?"Teste fictício. ":"")+ticker);
  }
  /** All voice status results reuse the SAME official seismic broadcast geometry. */
@@ -279,8 +289,9 @@ final class TvBroadcastInfoView extends View {
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",727);
  }
  static String brazilFxHint(long now){
-  return MarketState.brazilWeekend(now)?"B3 FECHADA · SEG 09H (REGULAR)":"COTAÇÃO GLOBAL · NÃO É B3";
+  return MarketState.brazilWeekend(now)?"B3 FECHADA · SEG 09H (REGULAR)":"B3 DOL · 09H–18H30 (REG.)";
  }
+ private static String b3Amount(double value){return String.format(Locale.forLanguageTag("pt-BR"),"%.3f",value);}
  private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
  // Compact labels fit next to each market name without truncating PAUSADO.
  // Full market state remains available in ticker/accessibility information.
@@ -305,12 +316,12 @@ final class TvBroadcastInfoView extends View {
    eventCategory(c,"BRENT","NYMEX");
    primary(c,"CONSULTANDO COTAÇÃO REAL…",138,29,foreground,420);
    fill(c,575,41,1,43,0xff45647b);
-   label(c,"DÓLAR GLOBAL",593,45,17,0xffe6f7ff,brand,220);
-   label(c,"AGUARDANDO FONTE",593,77,21,foreground,brand,260);
+   label(c,"DÓLAR · B3 DOL",593,45,17,0xffe6f7ff,brand,220);
+   label(c,"CONSULTANDO FECHAMENTO",593,77,21,foreground,brand,260);
    return;
   }
   // Matching panels: market state immediately ABOVE each percentage.
-  // The right panel is the GLOBAL Yahoo USD/BRL reference, not B3 futures.
+  // Right panel accepts ONLY B3 DOL futures closing quotes, never overseas spot FX.
   eventCategory(c,"BRENT","NYMEX");
   primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,foreground,252);
   int oilTint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
@@ -318,19 +329,16 @@ final class TvBroadcastInfoView extends View {
   fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),402,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,158);
   fitted(c,oilChange,402,73,25,16,oilTint,brand,160);
   fill(c,575,41,1,43,0xff45647b);
-  fitted(c,"DÓLAR · GLOBAL",593,47,21,16,0xffe6f7ff,brand,157);
+  fitted(c,"DÓLAR · B3",593,47,21,16,0xffe6f7ff,brand,157);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),754,45,15,11,demo?0xffffd17d:sessionColor(dollarSession),brand,104);
-  label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,foreground,brand,151);
+  fitted(c,dollar==null?"R$ —":"R$ "+b3Amount(dollar.price),593,75,29,20,foreground,brand,151);
   Double fxChange=dollar==null?null:dollar.percent;
   String fxVariation=fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
   fitted(c,fxVariation,751,76,21,13,fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,107);
   label(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,90,12,0xffd3e3ed,data,434);
   long now=System.currentTimeMillis();
-  String fxReference=dollar==null?"SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at);
-  // The FX quotation can be OPEN on Sunday night while Brazil's B3 is CLOSED.
-  // Keep the B3 qualifier prominent; the exact quote reference remains in the ticker.
-  String fxFoot=brazilFxHint(now);
-  fitted(c,fxFoot,593,91,14,11,MarketState.brazilWeekend(now)?0xffffd17d:0xffd3e3ed,brand,264);
+  String fxFoot=dollar==null?"B3 DOL · FECHAMENTO N/D":"ÚLT. FECH. "+BrentQuote.reference(dollar.at)+" · "+dollar.contract;
+  fitted(c,fxFoot,593,91,12,10,0xffd3e3ed,brand,264);
  }
  private void drawSatelliteNews(Canvas c){
   eventCategory(c,"SATÉLITE","GOES-EAST");
