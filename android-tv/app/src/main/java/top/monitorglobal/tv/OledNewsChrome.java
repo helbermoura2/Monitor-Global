@@ -24,8 +24,8 @@ final class OledNewsChrome {
  static final int FOOTER=0xff101115, MUTE=0xffb9c2c8;
  static final float LEFT=8f, LEFT_TAB_RIGHT=295f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
  static final float BODY_TOP=30f, BODY_END=94f, FOOTER_END=126f;
- static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=804f;
- static final float LOGO_CENTER_X=877f, LOGO_SIZE=60f;
+ static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=790f;
+ static final float LOGO_CENTER_X=878f, LOGO_SIZE=64f;
  static final long FOOTER_SLOT_MS=4000L, FOOTER_FADE_MS=400L;
  private OledNewsChrome(){}
 
@@ -88,7 +88,7 @@ final class OledNewsChrome {
   // The right-hand panel carries ONLY the official animated radar-eye artwork.
   // Center the complete vector (including its corner symbols) inside the safe area.
   c.save();c.clipRect(830,31,RIGHT,94);
-  c.translate(LOGO_CENTER_X-LOGO_SIZE/2f,32);c.scale(LOGO_SIZE/128f,LOGO_SIZE/128f);
+  c.translate(LOGO_CENTER_X-LOGO_SIZE/2f,31);c.scale(LOGO_SIZE/128f,LOGO_SIZE/128f);
   RadarLogoView.drawArtwork(c,p,sweep,open);
   c.restore();
  }
@@ -104,6 +104,14 @@ final class OledNewsChrome {
    return Math.round(255f*(FOOTER_SLOT_MS-phase)/FOOTER_FADE_MS);
   return 255;
  }
+ /** Uniform bullet spacing between ticker sections without altering source figures. */
+ static String tickerDisplay(String raw){
+  if(raw==null)return "";
+  return raw.replaceAll("\\s*•\\s*","      •      ");
+ }
+ static Typeface tickerFont(){
+  return Typeface.create("sans-serif-medium",Typeface.NORMAL);
+ }
  static void brandFooter(Canvas c,Paint p,long elapsed,boolean animated){
   int opacity=footerOpacity(elapsed,animated);
   if(opacity<=0)return;
@@ -114,11 +122,14 @@ final class OledNewsChrome {
   // Center the single visible address optically, not against the left box edge.
   String address=footerText(elapsed);
   p.setTypeface(regularFont());p.setTextScaleX(1f);p.setShader(null);
-  float size=13.5f, available=RIGHT-BRAND_PLATE_LEFT-12;
+  float size=address.startsWith("@")?15.8f:14.8f, available=RIGHT-BRAND_PLATE_LEFT-12;
   p.setTextSize(size);
   while(size>9.5f&&p.measureText(address)>available){size-=.5f;p.setTextSize(size);}
   p.setColor(INK);p.setStyle(Paint.Style.FILL);
-  c.drawText(address,(BRAND_PLATE_LEFT+RIGHT-p.measureText(address))/2f,118,p);
+  Paint.FontMetrics metrics=p.getFontMetrics();
+  float centerY=(99f+126f)/2f;
+  float baseline=centerY-(metrics.ascent+metrics.descent)/2f;
+  c.drawText(address,(BRAND_PLATE_LEFT+RIGHT-p.measureText(address))/2f,baseline,p);
   c.restoreToCount(layer);
  }
 }
