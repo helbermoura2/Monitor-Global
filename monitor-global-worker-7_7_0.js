@@ -38,7 +38,7 @@ import {handleOfficialWeatherAlerts} from "./official-weather-alerts-worker.mjs"
 import {handleWeatherObservations} from "./weather-observations-worker.mjs";
 import {clampFdsnParams} from "./worker/fdsn-policy.mjs";
 import {DAILY_SUMMARY_DESIGN} from "./daily-summary-renderer.mjs";
-import {DAILY_REPOST_REQUEST,requestedDailyRepostReady,dailyRepostOnce} from "./worker/telegram-daily-repost.mjs";
+import {DAILY_REPOST_REQUEST,requestedDailyRepostReady,dailyRepostOnce,dailyRepostMarker} from "./worker/telegram-daily-repost.mjs";
 import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, handleFunvisisEarthquakes, handleSeismicStatus} from "./worker/seismic-providers.mjs";
 import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
@@ -1750,7 +1750,7 @@ export class DailySummaryDelivery {
             const result=await dailyRepostOnce({
                 storage:this.ctx.storage,day,chatId:env.TELEGRAM_CHAT_ID,
                 load:fetchDailyQuakesBrt,render:renderDailySummaryPng,
-                caption:quakes=>'♻️ REPUBLICAÇÃO · NOVO VISUAL\n'+dailySummaryCaption(quakes)+'\nArte atualizada · dados sujeitos a revisão.',
+                caption:quakes=>'♻️ REPUBLICAÇÃO · ARTE CLÁSSICA ARGOS ORBIS\n'+dailySummaryCaption(quakes)+'\nVisual greco-romano aprovado · dados sujeitos a revisão.',
                 post:form=>telegramDailyRequest(env,'sendPhoto',form),
                 archive:async(png,day)=>{
                     const key=await archiveTelegramOriginal(this.ctx.storage,png,null,{summary:true});
@@ -1762,11 +1762,13 @@ export class DailySummaryDelivery {
         }
         if(new URL(request.url||request).pathname==='/history'){
             const history=await this.ctx.storage.get('history');
-            const reprint=await this.ctx.storage.get('daily-repost:'+DAILY_REPOST_REQUEST.day);
+            const reprint=await this.ctx.storage.get(dailyRepostMarker());
+            const previousReprint=await this.ctx.storage.get('daily-repost:'+DAILY_REPOST_REQUEST.day);
             const state=await this.ctx.storage.get('delivery');
             if(!history&&!state)return Response.json({record:null});
             const status=state?.status==='sending'?(history?.status==='uncertain'||Date.now()-(state.at||0)>45000?'uncertain':'sending'):state?.status==='sent'?'sent':history?.status||'pending';
-            return Response.json({record:{...history,status,at:history?.at||state?.at||0,events:history?.events||[],legacy:!history,repost:reprint?{status:reprint.status,at:reprint.sentAt||reprint.at,messageId:reprint.messageId||null}:null}});
+            return Response.json({record:{...history,status,at:history?.at||state?.at||0,events:history?.events||[],legacy:!history,repost:reprint?{status:reprint.status,at:reprint.sentAt||reprint.at,messageId:reprint.messageId||null}:null,
+             previousRepost:previousReprint?{status:previousReprint.status,at:previousReprint.sentAt||previousReprint.at,messageId:previousReprint.messageId||null}:null}});
         }
         if(!telegramDailyWindowOpen())
             return Response.json({ok:true,skipped:true,reason:'fora da janela 00:00–11:59 BRT'});
@@ -2229,7 +2231,8 @@ export default {
         ctx.waitUntil(withKvUsage(env,async env => {
             // Prioridade ao resumo; consultas de outros feeds não atrasam sua tentativa.
             try { await runTelegramDailySummary(cacheRequest, env); } catch (e) { console.error('Cron Telegram resumo diário: envio pendente; nova tentativa no próximo cron'); }
-            // Authorized one-off republication; 15-minute cadence and hard expiry guard quotas.
+            // Authorized one-off *classical artwork* republication; a new design-scoped
+            // marker never resets or overwrites the prior Panoptes repost.
             // The durable per-day reservation guarantees at-most-once delivery even after restarts.
             if(requestedDailyRepostReady(Date.now(),DAILY_SUMMARY_DESIGN)
                 && Math.floor(Number(event.scheduledTime||Date.now())/60000)%15===0
