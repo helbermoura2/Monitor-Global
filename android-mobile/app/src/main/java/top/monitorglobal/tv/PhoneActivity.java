@@ -25,7 +25,7 @@ public class PhoneActivity extends Activity {
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",noticeFilter="all",mapReturnTab="weather";private Alert selected;
- private boolean active,destroyed,refreshing,satelliteRequested,detailLoading,dailyExpanded;private long nextDetailAttempt,nextDailyAttempt;private int generation;
+ private boolean active,destroyed,refreshing,satelliteRequested,detailLoading,dailyExpanded,showInformational,mapFiltersExpanded;private long nextDetailAttempt,nextDailyAttempt;private int generation;
  private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);main.postDelayed(this,60000);}};
 
  protected PhoneRepository createRepository(){return new PhoneRepository();}
@@ -58,7 +58,7 @@ public class PhoneActivity extends Activity {
   readPush(getIntent());setContentView(root);updater=new PhoneUpdater(this);render();
  }
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);readPush(intent);render();}
- private void readPush(Intent intent){String route=intent.getStringExtra(PhonePush.ROUTE);intent.removeExtra(PhonePush.ROUTE);if("rain".equals(route)||"weather".equals(route)||"daily".equals(route)){selected=null;tab=route.equals("daily")?"notices":"weather";returnTab=tab;dailyExpanded=route.equals("daily");}String raw=intent.getStringExtra(PhonePush.EXTRA);intent.removeExtra(PhonePush.EXTRA);if(raw==null||raw.length()>3000)return;try{selected=AlertCodec.read(new org.json.JSONObject(raw));tab="notices";returnTab="notices";}catch(org.json.JSONException ignored){}}
+ private void readPush(Intent intent){String route=intent.getStringExtra(PhonePush.ROUTE);intent.removeExtra(PhonePush.ROUTE);if("rain".equals(route)||"weather".equals(route)||"daily".equals(route)){selected=null;tab=route.equals("daily")?"history":"weather";returnTab=tab;dailyExpanded=route.equals("daily");}String raw=intent.getStringExtra(PhonePush.EXTRA);intent.removeExtra(PhonePush.EXTRA);if(raw==null||raw.length()>3000)return;try{selected=AlertCodec.read(new org.json.JSONObject(raw));tab="notices";returnTab="notices";}catch(org.json.JSONException ignored){}}
  private void activatePush(){if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},77);return;}PhonePush.enable(this,()->{if(!destroyed)render();});}
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==77){if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)PhonePush.enable(this,()->{if(!destroyed)render();});else{PhonePush.disable(this);render();}}}
  private Typeface loadBrand(){try{return Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf");}catch(RuntimeException ignored){return Typeface.DEFAULT_BOLD;}}
@@ -82,11 +82,11 @@ public class PhoneActivity extends Activity {
   if(tab.equals("map")){mapPage();return;}
   if(tab.equals("rain")){rainPage();return;}
   if(tab.equals("brazil")){brazilPage();return;}
-  LinearLayout page=page();if(tab.equals("weather"))weatherPage(page);else if(tab.equals("notices"))noticesPage(page);else homePage(page);
+  LinearLayout page=page();if(tab.equals("weather"))weatherPage(page);else if(tab.equals("notices"))noticesPage(page);else if(tab.equals("settings"))settingsPage(page);else if(tab.equals("advanced"))advancedPage(page);else if(tab.equals("history"))historyPage(page);else homePage(page);
  }
  private void updateStatus(){status.setVisibility(selected==null&&(tab.equals("rain")||tab.equals("brazil"))?View.GONE:View.VISIBLE);if(snapshot==null){status.setText("Aguardando consulta");return;}String time=snapshot.refreshedAt>0?" · "+BrDates.dateTime(snapshot.refreshedAt):"";status.setText(snapshot.feedStatus+time);}
  private void renderNavigation(){
-  navigation.removeAllViews();String shown=selected==null?((tab.equals("rain")||tab.equals("brazil"))?mapReturnTab:tab):returnTab;String[] ids={"home","map","weather","notices"},labels={"Início","Mapa","Clima","Avisos"};int[] icons={PhoneIcons.HOME,PhoneIcons.MAP,PhoneIcons.CLOUD,PhoneIcons.BELL};
+  navigation.removeAllViews();String shown=selected==null?((tab.equals("rain")||tab.equals("brazil"))?mapReturnTab:(tab.equals("settings")||tab.equals("advanced")||tab.equals("history"))?"notices":tab):returnTab;String[] ids={"home","map","weather","notices"},labels={"Início","Mapa","Clima","Avisos"};int[] icons={PhoneIcons.HOME,PhoneIcons.MAP,PhoneIcons.CLOUD,PhoneIcons.BELL};
   for(int i=0;i<ids.length;i++){final String target=ids[i];boolean current=target.equals(shown);int color=current?CYAN:MUTED;LinearLayout item=new LinearLayout(this);item.setOrientation(LinearLayout.VERTICAL);item.setGravity(Gravity.CENTER);item.setMinimumHeight(dp(56));item.setTag("tab-"+target);item.setContentDescription(labels[i]);item.setSelected(current);item.setBackground(ripple(current?0xff143c4d:BODY));item.addView(new PhoneIcons(this,icons[i],color),new LinearLayout.LayoutParams(dp(23),dp(23)));TextView label=text(labels[i],14,color,1);label.setGravity(Gravity.CENTER);item.addView(label,new LinearLayout.LayoutParams(-1,-2));navigation.addView(item,new LinearLayout.LayoutParams(0,-1,1));item.setOnClickListener(v->{selected=null;tab=target;render();});}
  }
  private LinearLayout page(){ScrollView scroll=new ScrollView(this);visibleScroll=scroll;scroll.setFillViewport(false);LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(dp(16),dp(12),dp(16),dp(20));scroll.addView(page,new ScrollView.LayoutParams(-1,-2));content.addView(scroll,new FrameLayout.LayoutParams(-1,-1));final int restored=scrollPositions.getOrDefault(displayedRoute,0);scroll.addOnLayoutChangeListener(new View.OnLayoutChangeListener(){public void onLayoutChange(View v,int l,int t,int r,int b,int ol,int ot,int or,int ob){if(scroll.getHeight()<=0)return;scroll.removeOnLayoutChangeListener(this);scroll.post(()->{if(visibleScroll==scroll)scroll.scrollTo(0,restored);});}});return page;}
@@ -98,7 +98,7 @@ public class PhoneActivity extends Activity {
  private void footer(LinearLayout card,String value){TextView t=text(value,13,MUTED,10);t.setBackgroundColor(0x25000000);t.setPadding(dp(16),dp(10),dp(16),dp(12));card.addView(t,new LinearLayout.LayoutParams(-1,-2));}
  private void homePage(LinearLayout page){
   heading(page,"Seu monitor, em um só lugar");weatherCard(page,false);rainCard(page,false);
-  heading(page,"Últimos eventos");copy(page,"M6+ globais, Brasil e áreas monitoradas. A lista depende da cobertura das fontes.");eventList(page,3);Button more=button("Ver avisos e fontes",()->{tab="notices";render();});page.addView(more,new LinearLayout.LayoutParams(-1,-2));
+  heading(page,"Últimos eventos");copy(page,"Registros sísmicos e avisos oficiais relevantes das fontes consultadas.");eventList(page,3);Button more=button("Abrir Central de Alertas",()->{tab="notices";render();});page.addView(more,new LinearLayout.LayoutParams(-1,-2));
  }
  private void weatherPage(LinearLayout page){requestDetails(false);heading(page,"Tempo na Liberdade");weatherCard(page,true);rainCard(page,true);hourlyCard(page);Button explore=button("Explorar mapa de chuva · prévia",()->openLayer("rain","weather"));explore.setTag("open-rain");page.addView(explore,new LinearLayout.LayoutParams(-1,-2));Button brazil=button("Explorar meteorologia do Brasil · prévia",()->openLayer("brazil","weather"));brazil.setTag("open-brazil");space(page,brazil,8);copy(page,"Previsão para um ponto da Liberdade, São Paulo. No mapa, consulte outros municípios e as fontes de cada camada.");}
  private void requestDetails(boolean daily){requestDetails(daily,false);}
@@ -141,7 +141,7 @@ public class PhoneActivity extends Activity {
  private void metric(LinearLayout row,int kind,String value,String caption){LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);cell.setPadding(0,0,dp(6),0);row.addView(cell,new LinearLayout.LayoutParams(0,-2,1));cell.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(20),dp(20)));cell.addView(text(value,20,TEXT,3),new LinearLayout.LayoutParams(-1,-2));cell.addView(text(caption,13,MUTED,4),new LinearLayout.LayoutParams(-1,-2));}
  private List<Alert> events(){List<Alert> out=new ArrayList<>();if(snapshot!=null)out.addAll(snapshot.events);out.sort((a,b)->Long.compare(eventTime(b),eventTime(a)));return out;}
  private static long eventTime(Alert a){return a.kind.equals("tsunami")?a.issuedAt:a.eventTime;}
- private void eventList(LinearLayout page,int maximum){List<Alert> events=events();if(events.isEmpty()){copy(page,snapshot==null||snapshot.feedStatus.startsWith("Aguardando")?"Aguardando consulta dos eventos.":"Nenhum evento disponível nesta consulta. Confira as fontes e tente atualizar.");return;}for(int i=0;i<Math.min(maximum,events.size());i++)eventCard(page,events.get(i));if(events.size()>maximum)copy(page,"Mostrando "+maximum+" de "+events.size()+" eventos da consulta.");}
+ private void eventList(LinearLayout page,int maximum){List<Alert> relevant=relevantEvents();if(relevant.isEmpty()){copy(page,snapshot==null||snapshot.feedStatus.startsWith("Aguardando")?"Aguardando consulta dos eventos.":"Nenhum evento relevante disponível nesta consulta. Confira o histórico para boletins informativos.");return;}for(int i=0;i<Math.min(maximum,relevant.size());i++)eventCard(page,relevant.get(i));if(relevant.size()>maximum)copy(page,"Mostrando "+maximum+" de "+relevant.size()+" registros relevantes.");}
  private void eventCard(LinearLayout page,Alert a){
   Panel card=new Panel(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(16),dp(16),dp(16));card.setBackground(glass());card.setTag("event-"+a.id);card.setContentDescription(a.title+". "+source(a)+". Abrir detalhes");LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(12);page.addView(card,p);
   LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);card.addView(row,new LinearLayout.LayoutParams(-1,-2));if(a.kind.equals("earthquake")){TextView magnitude=text(magnitude(a),30,AMBER,1);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-2,-2);mp.setMarginEnd(dp(10));row.addView(magnitude,mp);addFlag(row,a,30);}
@@ -234,19 +234,89 @@ public class PhoneActivity extends Activity {
  }
 
  private void detail(LinearLayout parent,int kind,String value){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(8);parent.addView(row,rp);row.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(24),dp(24)));TextView t=text(value,18,TEXT,5);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginStart(dp(10));row.addView(t,lp);}
+
+ private static boolean informational(Alert a){
+  return a.kind.equals("tsunami")&&(a.state.equals("noThreat")||a.state.equals("information")||a.state.equals("ended"));
+ }
+ private static boolean officialWarning(Alert a){
+  return a.kind.equals("tsunami")&&(a.state.equals("warning")||a.state.equals("watch")||a.state.equals("advisory"));
+ }
+ private List<Alert> relevantEvents(){
+  List<Alert> relevant=new ArrayList<>();
+  for(Alert a:events())if(!informational(a))relevant.add(a);
+  return relevant;
+ }
  private void noticesPage(LinearLayout page){
-  heading(page,"Avisos e fontes");pushSettings(page);noticeCards(page);copy(page,"ARGOS ORBIS  ·  argosorbis.com.br  ·  @argosorbis\nVersão "+top.monitorglobal.mobile.BuildConfig.VERSION_NAME);page.addView(button("Verificar atualização do aplicativo",()->{if(updater!=null)updater.check();}),new LinearLayout.LayoutParams(-1,-2));copy(page,"Atualização pelo canal Android de testes · o instalador do Android confirma cada versão.");page.addView(button("Testar notificação neste aparelho",()->{boolean ok=PhonePush.testLocal(this);Toast.makeText(this,ok?"Teste local criado; isso não confirma entrega pelo Firebase.":"Ative a permissão de notificações do Android primeiro.",Toast.LENGTH_LONG).show();}),new LinearLayout.LayoutParams(-1,-2));if(top.monitorglobal.mobile.BuildConfig.DEBUG&&PhonePush.configured())page.addView(button("Copiar código para teste push",()->PhonePush.copyTestToken(this)),new LinearLayout.LayoutParams(-1,-2));copy(page,"Push depende da conexão e das permissões do Android. O aplicativo não garante entrega instantânea; forçar a parada pode impedir avisos até abri-lo novamente.");page.addView(button("Abrir canal oficial no Telegram",()->openUrl("https://t.me/argosorbis")),new LinearLayout.LayoutParams(-1,-2));
-  LinearLayout sources=card(page,"COBERTURA DA CONSULTA"),body=section(sources);body.addView(text("M6+ globais, Brasil e áreas monitoradas",20,TEXT,4));space(body,text(snapshot==null?"Aguardando consulta":snapshot.feedStatus,15,MUTED,5),8);space(body,text(snapshot==null?"Meteorologia aguardando consulta":snapshot.weatherStatus,15,MUTED,5),5);space(body,text(snapshot==null?"Chuva aguardando consulta":snapshot.rainStatus,15,MUTED,5),5);footer(sources,"Ausência de dados não significa ausência de risco. Para orientações de proteção, acompanhe as autoridades responsáveis.");
+  heading(page,"Central de Alertas");
+  LinearLayout summary=card(page,"SITUAÇÃO DOS ALERTAS"),body=section(summary);
+  List<Alert> records=relevantEvents();
+  int urgent=0,quakes=0,tsunamis=0;
+  for(Alert a:records){if(officialWarning(a))urgent++;if(a.kind.equals("earthquake"))quakes++;if(a.kind.equals("tsunami"))tsunamis++;}
+  if(snapshot==null){
+   body.addView(text("Consultando os alertas…",22,TEXT,3));
+  }else{
+   body.addView(text(urgent>0?urgent+" aviso(s) oficial(is) de tsunami na consulta":"Nenhum aviso oficial urgente identificado na consulta",urgent>0?21:19,urgent>0?AMBER:CYAN,4));
+   space(body,text(quakes+" sismos · "+tsunamis+" boletins de tsunami relevantes",15,MUTED,3),8);
+   space(body,text("Registros das fontes consultadas, não um histórico de notificações recebidas. A ausência de dados não garante ausência de perigo.",13,MUTED,5),8);
+  }
+  footer(summary,snapshot==null?"Aguardando consulta":snapshot.feedStatus);
+  LinearLayout filters=new LinearLayout(this);filters.setTag("notice-filters");page.addView(filters,new LinearLayout.LayoutParams(-1,-2));
+  String[] names={"Todos","Sismos","Tsunamis"},ids={"all","earthquake","tsunami"};
+  for(int i=0;i<ids.length;i++){final String id=ids[i];Button b=button(names[i],()->{noticeFilter=id;render();});b.setTag("notice-filter-"+id);b.setTextColor(id.equals(noticeFilter)?CYAN:MUTED);b.setSelected(id.equals(noticeFilter));b.setTextSize(14);b.setPadding(dp(3),dp(5),dp(3),dp(5));filters.addView(b,new LinearLayout.LayoutParams(0,-2,1));}
+  heading(page,"Registros recentes");
+  int shown=0;
+  for(Alert a:records){if(!noticeFilter.equals("all")&&!noticeFilter.equals(a.kind))continue;eventCard(page,a);if(++shown>=20)break;}
+  if(shown==0)copy(page,snapshot==null?"Aguardando atualização…":"Nenhum registro nesta categoria na consulta atual.");
+  if(shown>=20)copy(page,"Mostrando os 20 registros mais recentes desta categoria.");
+  space(page,button("Ver boletins informativos e resumo diário",()->{tab="history";render();}),8);
+  space(page,button("Configurar notificações",()->{tab="settings";render();}),8);
+  space(page,button("Ver previsão do tempo e chuva",()->{tab="weather";render();}),8);
+  copy(page,"Notificações recebidas e seus horários podem ser consultados no histórico do Android.");
+ }
+ private void historyPage(LinearLayout page){
+  page.addView(button("‹ Voltar aos alertas",()->{tab="notices";render();}),new LinearLayout.LayoutParams(-1,-2));
+  heading(page,"Boletins e histórico");
+  copy(page,"Informações sem ameaça ativa ficam aqui, separadas dos alertas importantes.");
+  int shown=0;
+  for(Alert a:events())if(informational(a)){eventCard(page,a);if(++shown>=30)break;}
+  if(shown==0)copy(page,snapshot==null?"Aguardando consulta dos boletins.":"Nenhum boletim informativo disponível nesta consulta.");
+  Button summary=button(dailyExpanded?"Fechar resumo diário":"Ver resumo diário · dia anterior",()->{dailyExpanded=!dailyExpanded;if(dailyExpanded)requestDetails(true);render();});summary.setTag("daily-summary");space(page,summary,8);
+  if(dailyExpanded){requestDetails(true);LinearLayout daily=card(page,"MAIORES SISMOS · DIA ANTERIOR"),body=section(daily);if(snapshot!=null&&snapshot.dailyAvailable){copy(body,"Dia "+snapshot.dailyDay+" · horário de Brasília");if(snapshot.daily.isEmpty())copy(body,"Nenhum registro disponível nas fontes para este período.");for(Alert a:snapshot.daily)eventCard(body,a);footer(daily,"Até cinco maiores registros disponíveis. Não corresponde à contagem global de sismos.");}else copy(body,detailLoading?"Consultando resumo diário…":"Resumo diário indisponível nesta consulta.");}
+ }
+ private void settingsPage(LinearLayout page){
+  page.addView(button("‹ Voltar aos alertas",()->{tab="notices";render();}),new LinearLayout.LayoutParams(-1,-2));
+  heading(page,"Notificações");
+  copy(page,"Escolha quais avisos receber no telefone. Os alertas mostrados na Central vêm das fontes consultadas e não dependem de habilitar notificações.");
+  pushSettings(page);
+  space(page,button("Informações técnicas e atualização do aplicativo",()->{tab="advanced";render();}),6);
+  page.addView(button("Abrir canal oficial no Telegram",()->openUrl("https://t.me/argosorbis")),new LinearLayout.LayoutParams(-1,-2));
+ }
+ private void advancedPage(LinearLayout page){
+  page.addView(button("‹ Voltar às configurações",()->{tab="settings";render();}),new LinearLayout.LayoutParams(-1,-2));
+  heading(page,"Sobre e diagnóstico");
+  copy(page,"ARGOS ORBIS · argosorbis.com.br · @argosorbis\nVersão "+top.monitorglobal.mobile.BuildConfig.VERSION_NAME);
+  page.addView(button("Verificar atualização do aplicativo",()->{if(updater!=null)updater.check();}),new LinearLayout.LayoutParams(-1,-2));
+  copy(page,"Instalação do canal de testes: o Android pede sua confirmação para atualizar.");
+  page.addView(button("Testar notificação neste aparelho",()->{boolean ok=PhonePush.testLocal(this);Toast.makeText(this,ok?"Teste local criado; não confirma entrega pelo Firebase.":"Ative a permissão do Android antes de testar.",Toast.LENGTH_LONG).show();}),new LinearLayout.LayoutParams(-1,-2));
+  if(top.monitorglobal.mobile.BuildConfig.DEBUG&&PhonePush.configured())space(page,button("Copiar código para teste push",()->PhonePush.copyTestToken(this)),6);
+  copy(page,"O recebimento de notificações depende da rede, das permissões e das restrições do Android. Não é garantido tempo real.");
+  LinearLayout sources=card(page,"FONTES E COBERTURA"),body=section(sources);
+  body.addView(text("M6+ globais, Brasil e áreas monitoradas",19,TEXT,4));
+  space(body,text(snapshot==null?"Aguardando consulta":snapshot.feedStatus,15,MUTED,5),8);
+  space(body,text(snapshot==null?"Meteorologia aguardando consulta":snapshot.weatherStatus,15,MUTED,5),5);
+  space(body,text(snapshot==null?"Chuva aguardando consulta":snapshot.rainStatus,15,MUTED,5),5);
+  footer(sources,"Ausência de dados não significa ausência de risco. Siga as orientações das autoridades responsáveis.");
   page.addView(button("Abrir Argos Orbis no navegador",()->openUrl("https://argosorbis.com.br/")),new LinearLayout.LayoutParams(-1,-2));
  }
- private void pushSettings(LinearLayout page){LinearLayout card=card(page,"NOTIFICAÇÕES NO CELULAR"),body=section(card);copy(body,PhonePush.status(this));body.addView(button("Ativar avisos no celular",this::activatePush),new LinearLayout.LayoutParams(-1,-2));if(PhonePush.enabled(this))space(body,button("Desativar notificações",()->{PhonePush.disable(this);render();}),8);String[] names={"Sismos · Brasil, M6+ e áreas monitoradas","Avisos de tsunami","Chuva · chegada, volume e duração","Boletins do tempo · de hora em hora","Resumo diário · dia anterior"};for(int i=0;i<PhonePush.CATEGORIES.length;i++){final String category=PhonePush.CATEGORIES[i];android.widget.Switch toggle=new android.widget.Switch(this);toggle.setText(names[i]);toggle.setTextSize(16);toggle.setTextColor(TEXT);toggle.setTypeface(brand);toggle.setPadding(0,dp(8),0,dp(8));toggle.setMinimumHeight(dp(52));toggle.setChecked(PhonePush.categoryEnabled(this,category));toggle.setTag("push-category-"+category);toggle.setOnCheckedChangeListener((v,on)->PhonePush.setCategory(this,category,on,()->{if(!destroyed)render();}));body.addView(toggle,new LinearLayout.LayoutParams(-1,-2));}footer(card,"Chuva e tempo: ponto da Liberdade, São Paulo. Boletim horário, exceto à meia-noite; resumo diário após 00:05 BRT. Dados ausentes ou vencidos não geram previsão de tempo seco. A entrega depende do Firebase, da conexão e das permissões do Android.");}
- private void noticeCards(LinearLayout page){
-  LinearLayout filters=new LinearLayout(this);filters.setTag("notice-filters");page.addView(filters,new LinearLayout.LayoutParams(-1,-2));String[] names={"Todos","Chuva","Sismos"},ids={"all","rain","earthquake"};for(int i=0;i<ids.length;i++){final String id=ids[i];Button b=button(names[i],()->{noticeFilter=id;render();});b.setTag("notice-filter-"+id);b.setTextColor(id.equals(noticeFilter)?CYAN:MUTED);b.setSelected(id.equals(noticeFilter));filters.addView(b,new LinearLayout.LayoutParams(0,-2,1));}
-  copy(page,"Previsões e eventos da consulta atual. As notificações recebidas são exibidas pelo Android.");
-  if(!noticeFilter.equals("earthquake"))rainCard(page,false);
-  if(!noticeFilter.equals("rain")){heading(page,"Eventos da consulta");List<Alert> shown=events();int count=0;for(Alert a:shown){if(noticeFilter.equals("earthquake")&&!a.kind.equals("earthquake"))continue;eventCard(page,a);if(++count>=40)break;}if(count==0)copy(page,"Nenhum evento disponível nesta consulta.");}
-  Button summary=button(dailyExpanded?"Fechar resumo diário":"Ver resumo diário · dia anterior",()->{dailyExpanded=!dailyExpanded;if(dailyExpanded)requestDetails(true);render();});summary.setTag("daily-summary");space(page,summary,8);if(dailyExpanded){requestDetails(true);LinearLayout daily=card(page,"MAIORES SISMOS · DIA ANTERIOR"),body=section(daily);if(snapshot!=null&&snapshot.dailyAvailable){copy(body,"Dia "+snapshot.dailyDay+" · horário de Brasília");if(snapshot.daily.isEmpty())copy(body,"Nenhum registro disponível nas fontes para este período.");for(Alert a:snapshot.daily)eventCard(body,a);footer(daily,"Até cinco maiores eventos disponíveis nas fontes consultadas. Não é contagem de todos os sismos.");}else copy(body,detailLoading?"Consultando resumo diário…":"Resumo diário indisponível nesta consulta. Tente novamente mais tarde.");}
-  heading(page,"Notificações e aplicativo");
+ private void pushSettings(LinearLayout page){
+  LinearLayout card=card(page,"AVISOS NO CELULAR"),body=section(card);
+  body.addView(text(PhonePush.enabled(this)?"Notificações ativadas":"Notificações desativadas",19,PhonePush.enabled(this)?CYAN:MUTED,2));
+  space(body,text(PhonePush.status(this),14,MUTED,6),7);
+  if(PhonePush.enabled(this))body.addView(button("Desativar notificações",()->{PhonePush.disable(this);render();}),new LinearLayout.LayoutParams(-1,-2));
+  else body.addView(button("Ativar avisos no celular",this::activatePush),new LinearLayout.LayoutParams(-1,-2));
+  String[] names={"Sismos · Brasil, M6+ e áreas monitoradas","Avisos de tsunami","Chuva · chegada, volume e duração","Boletins do tempo · de hora em hora","Resumo diário · dia anterior"};
+  for(int i=0;i<PhonePush.CATEGORIES.length;i++){final String category=PhonePush.CATEGORIES[i];android.widget.Switch toggle=new android.widget.Switch(this);toggle.setText(names[i]);toggle.setTextSize(16);toggle.setTextColor(TEXT);toggle.setTypeface(brand);toggle.setPadding(0,dp(8),0,dp(8));toggle.setMinimumHeight(dp(52));toggle.setChecked(PhonePush.categoryEnabled(this,category));toggle.setTag("push-category-"+category);toggle.setOnCheckedChangeListener((v,on)->PhonePush.setCategory(this,category,on,()->{if(!destroyed)render();}));body.addView(toggle,new LinearLayout.LayoutParams(-1,-2));}
+  footer(card,"Chuva e previsão: Liberdade, São Paulo. Os horários e a entrega dependem dos serviços e permissões do aparelho.");
  }
  private void openLayer(String target,String origin){mapReturnTab=origin;satelliteRequested=target.equals("brazil");tab=target;selected=null;render();}
  private void mapModes(LinearLayout box,String current){LinearLayout row=new LinearLayout(this);row.setPadding(dp(8),dp(2),dp(8),dp(2));String[] names={"Eventos","Satélite","Chuva"},ids={"map","brazil","rain"};for(int i=0;i<ids.length;i++){final String id=ids[i];Button b=button(names[i],()->{if(id.equals("map")){tab="map";render();}else openLayer(id,"map");});b.setTag("map-mode-"+id);b.setMinHeight(dp(38));b.setMinimumHeight(dp(38));b.setPadding(dp(4),dp(2),dp(4),dp(2));b.setTextSize(14);b.setSelected(id.equals(current));b.setTextColor(id.equals(current)?CYAN:MUTED);row.addView(b,new LinearLayout.LayoutParams(0,-2,1));}box.addView(row,new LinearLayout.LayoutParams(-1,-2));}
@@ -266,7 +336,7 @@ public class PhoneActivity extends Activity {
  private void showMapEvent(Alert a){tab="map";mapFilter="all";render();List<Alert> visible=events();if(visible.stream().noneMatch(v->v.id.equals(a.id)))visible.add(0,a);map.setEvents(visible);map.focus(a);}
  private void share(Alert a){String value=a.title+"\n"+(a.kind.equals("earthquake")?depth(a)+"\n":"")+BrDates.dateTime(eventTime(a))+"\n"+source(a)+"\nhttps://argosorbis.com.br/";try{startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,value),"Compartilhar evento"));}catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Nenhum aplicativo disponível para compartilhar.",Toast.LENGTH_LONG).show();}}
  private void openUrl(String url){try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Não foi possível abrir o navegador.",Toast.LENGTH_LONG).show();}}
- @Override public void onBackPressed(){if(selected!=null){selected=null;tab=returnTab;render();}else if(tab.equals("rain")||tab.equals("brazil")){tab=mapReturnTab;render();}else if(!tab.equals("home")){tab="home";render();}else super.onBackPressed();}
+ @Override public void onBackPressed(){if(selected!=null){selected=null;tab=returnTab;render();}else if(tab.equals("rain")||tab.equals("brazil")){tab=mapReturnTab;render();}else if(tab.equals("advanced")){tab="settings";render();}else if(tab.equals("settings")||tab.equals("history")){tab="notices";render();}else if(!tab.equals("home")){tab="home";render();}else super.onBackPressed();}
  static String magnitude(Alert a){return Double.isFinite(a.magnitude)?String.format(Locale.forLanguageTag("pt-BR"),"M%.1f",a.magnitude):"M—";}
  static String location(Alert a){return a.title.replaceFirst("^M[0-9]+[,.][0-9]+\\s*·\\s*","");}
  static String depth(Alert a){return Double.isFinite(a.depth)&&a.depth>=0?String.format(Locale.forLanguageTag("pt-BR"),"Profundidade: %.0f km",a.depth):"Profundidade não informada";}
