@@ -86,8 +86,8 @@ public class UnifiedBroadcastChromeTest {
     assertEquals("Compact replay information chip",0xff145067,a.getPixel(x,map+10));
     assertEquals("Compact market information chip",0xff145067,b.getPixel(x,10));
    }
-   assertEquals("No oversized headline background",0,a.getPixel(215,map+10)>>>24);
-   assertEquals("No oversized headline background",0,b.getPixel(215,10)>>>24);
+   assertEquals("No oversized headline background",0,a.getPixel(196,map+10)>>>24);
+   assertEquals("No oversized headline background",0,b.getPixel(196,10)>>>24);
    for(int x:new int[]{923,950}){
     assertEquals("Replay status remains clearly distinguished",0xffbf1827,a.getPixel(x,map+10));
     assertEquals("Market information status avoids false live claim",0xff145067,b.getPixel(x,10));
@@ -144,8 +144,8 @@ public class UnifiedBroadcastChromeTest {
    // An actual seismic alert is red; ordinary weather monitoring is not.
    assertEquals(0xffbf1827,a.getPixel(175,qa+10));
    assertEquals(0xff145067,b.getPixel(175,qb+10));
-   assertEquals(0,a.getPixel(215,qa+10)>>>24);
-   assertEquals(0,b.getPixel(215,qb+10)>>>24);
+   assertEquals(0,a.getPixel(196,qa+10)>>>24);
+   assertEquals(0,b.getPixel(196,qb+10)>>>24);
    // AO VIVO now measures to text rather than filling an oversized red slab.
    for(int y=3;y<=20;y++)for(int x=830;x<=945;x++)
     assertEquals("Compact live status must match at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
