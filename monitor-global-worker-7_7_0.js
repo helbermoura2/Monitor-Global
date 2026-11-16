@@ -1609,7 +1609,7 @@ function dailySummaryCaption(quakes){
         `\n🏆 Maior: ${top[0]?`M${top[0].mag.toFixed(1).replace('.', ',')} — ${globalThis.EventPortuguese.place(top[0].place)}`:'sem registro'}`+
         (br.length?`\n🇧🇷 Brasil: ${br.length} sismo${br.length===1?'':'s'} · maior M${br[0].mag.toFixed(1).replace('.', ',')}`:
         quakes.brazilFailedSources?.length?'\n🇧🇷 Brasil: consulta incompleta; atualização pendente':'\n🇧🇷 Brasil: nenhum sismo registrado nas fontes consultadas')+
-        '\n🌐 monitorglobal.top';
+        '\n🌐 argosorbis.com.br';
 }
 // Reconcilia publicações brasileiras atrasadas com o mesmo boletim, sem reenviá-lo.
 async function refreshDailyBrazilSummary(request,env,storage){
@@ -1713,10 +1713,15 @@ async function deliverTelegramDailySummary(request,env,delivery){
 
 
 
+// Keep trying on the same BRT calendar morning after a transient cron, source or
+// Telegram outage. The per-day Durable Object still prevents a second delivery.
+function telegramDailyWindowOpen(p=saoPauloParts()){
+    const hour=Number(p.hour);
+    return Number.isInteger(hour) && hour>=0 && hour<12;
+}
 async function runTelegramDailySummary(request,env){
-    const p=saoPauloParts();
-    if(Number(p.hour)!==0 || Number(p.minute)>30)
-        return {ok:true,skipped:true,reason:'fora da janela 00:00–00:30 BRT'};
+    if(!telegramDailyWindowOpen())
+        return {ok:true,skipped:true,reason:'fora da janela 00:00–11:59 BRT'};
     if(!env.DAILY_SUMMARY) throw new Error('Controle central do resumo indisponível');
     const day=saoPauloYmdOffset(-1);
     const id=env.DAILY_SUMMARY.idFromName(day);
@@ -1763,9 +1768,8 @@ export class DailySummaryDelivery {
             const status=state?.status==='sending'?(history?.status==='uncertain'||Date.now()-(state.at||0)>45000?'uncertain':'sending'):state?.status==='sent'?'sent':history?.status||'pending';
             return Response.json({record:{...history,status,at:history?.at||state?.at||0,events:history?.events||[],legacy:!history,repost:reprint?{status:reprint.status,at:reprint.sentAt||reprint.at,messageId:reprint.messageId||null}:null}});
         }
-        const p=saoPauloParts();
-        if(Number(p.hour)!==0 || Number(p.minute)>30)
-            return Response.json({ok:true,skipped:true,reason:'fora da janela'});
+        if(!telegramDailyWindowOpen())
+            return Response.json({ok:true,skipped:true,reason:'fora da janela 00:00–11:59 BRT'});
         const token=crypto.randomUUID(), now=Date.now(), storage=this.ctx.storage;
         const claimed=await storage.transaction(async tx=>{
             const state=await tx.get('delivery');
