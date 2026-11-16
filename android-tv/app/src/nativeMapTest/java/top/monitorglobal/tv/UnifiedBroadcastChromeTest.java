@@ -129,7 +129,7 @@ public class UnifiedBroadcastChromeTest {
   }
  }
  @Test public void seismicAndWeatherHaveIdenticalBreakingAndLiveLettering(){
-  NewsBannerView quake=new NewsBannerView(context,regional(),false,true);
+  NewsBannerView quake=new NewsBannerView(context,regional(),false,false);
   WeatherForecast.Summary summary=new WeatherForecast.Summary(
     "22°C","Nublado","10 km/h","70%","Modelo horário",System.currentTimeMillis()+600000,false,
     "22°C","22°C","70%","10 km/h","15 km/h","Cloudy");
