@@ -94,6 +94,55 @@ public class OledNewsChromeTest {
    assertEquals("background-only during transition",0xff333436,blank.getPixel(850,112));
   }finally{first.recycle();second.recycle();blank.recycle();}
  }
+ @Test public void bothAddressesAreHorizontallyCenteredInTheGreyPlate(){
+  for(long at:new long[]{1200,5100}){
+   Bitmap bitmap=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+   try{
+    Canvas canvas=new Canvas(bitmap);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+    OledNewsChrome.base(canvas,paint);
+    OledNewsChrome.brandFooter(canvas,paint,at,true);
+    int left=960,right=0,count=0;
+    for(int y=105;y<=121;y++)for(int x=804;x<925;x++){
+     int pixel=bitmap.getPixel(x,y);
+     if(Color.red(pixel)>155&&Color.green(pixel)>155&&Color.blue(pixel)>155){
+      left=Math.min(left,x);right=Math.max(right,x);count++;
+     }
+    }
+    assertTrue("address label must be readable",count>40);
+    assertEquals("address centered within grey block",864.5f,(left+right)/2f,6f);
+    assertTrue("address label may not touch box edges",left>=807&&right<=921);
+   }finally{bitmap.recycle();}
+  }
+ }
+ @Test public void allCategoriesRestOnAnExtendedOledBodyAndMarketPanelsRemainBalanced(){
+  Context context=RuntimeEnvironment.getApplication();long now=System.currentTimeMillis();
+  WeatherForecast.Summary sky=new WeatherForecast.Summary(
+   "24°C","Sol entre nuvens","Vento 17 km/h","Umidade 74%","Modelo horário",now+600000,false,
+   "24°C","24°C","74%","17 km/h","19 km/h","PartlyCloudy");
+  TvBroadcastInfoView weather=TvBroadcastInfoView.weather(context,null,sky,false);
+  TvBroadcastInfoView voice=TvBroadcastInfoView.voiceStatus(context,"Consulta","Sismo no Brasil");
+  TvBroadcastInfoView market=TvBroadcastInfoView.market(context,
+    new BrentQuote(92.41,95.85,-3.44,-3.58,now,"Yahoo Finance"),
+    new DollarQuote(5.7835,.12,2.06,now,"Yahoo Finance"),false);
+  for(TvBroadcastInfoView view:new TvBroadcastInfoView[]{weather,voice,market}){
+   int height=126+view.mapSpace;view.layout(0,0,960,height);
+   view.startPresentation(android.os.SystemClock.uptimeMillis()-1200,false);
+   Bitmap b=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);
+   try{
+    view.draw(new Canvas(b));
+    int offset=view.mapSpace;
+    assertEquals("OLED covers label background, not TV content",Color.BLACK,b.getPixel(20,offset+90));
+    assertEquals("left safe overscan",0,Color.alpha(b.getPixel(0,offset+80)));
+    assertEquals("right overscan",0,Color.alpha(b.getPixel(946,offset+80)));
+   }finally{b.recycle();}
+  }
+  assertTrue("Brent panel and USD panel must have comparable widths",
+    (TvBroadcastInfoView.MARKET_DIVIDER_X-130)>320);
+  assertTrue("USD column must no longer be squeezed into 250 units",
+    (829-TvBroadcastInfoView.MARKET_DOLLAR_X)>320);
+  assertTrue("market labels and percentage do not collide",
+    TvBroadcastInfoView.MARKET_DOLLAR_STATUS_X-TvBroadcastInfoView.MARKET_DOLLAR_X>=190);
+ }
  @Test public void liveDataIsStillInTheNativeTvBanners(){
   Context c=RuntimeEnvironment.getApplication();
   long now=System.currentTimeMillis();
