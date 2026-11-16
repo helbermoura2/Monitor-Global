@@ -246,8 +246,9 @@ final class TvBroadcastInfoView extends View {
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
  private void metric(Canvas c,int index,String value,String caption,float x){
-  icon(c,index,x,48,20);
-  fitted(c,value,x+27,65,21,12,foreground,brand,109);
+  // Every value/icon shares the same center as TEMPO, CHUVA and BRENT.
+  icon(c,index,x,51,20);
+  primary(c,value,x+27,21,foreground,109);
   fitted(c,caption,x,86,12,10,0xffd8e4ee,brand,129);
  }
  private void drawRain(Canvas c){
