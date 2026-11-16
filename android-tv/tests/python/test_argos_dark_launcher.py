@@ -1,6 +1,7 @@
 """Check the two launchers use the same dark Argos Orbis option-3 artwork."""
 from pathlib import Path
 import unittest
+import re
 import xml.etree.ElementTree as ET
 
 ROOT=Path(__file__).resolve().parents[3]
@@ -46,7 +47,9 @@ class DarkArgosLauncher(unittest.TestCase):
   tv=(ROOT/"android-tv/app/build.gradle").read_text()
   mobile=(ROOT/"android-mobile/app/build.gradle").read_text()
   self.assertIn("versionCode 10103",tv)
-  self.assertIn("versionCode 24",mobile)
+  mobile_version=re.search(r"versionCode\\s+(\\d+)",mobile)
+  self.assertIsNotNone(mobile_version)
+  self.assertGreaterEqual(int(mobile_version.group(1)),24,"Phone releases must not be pinned to a stale TV test")
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",tv)
   self.assertIn("applicationId 'top.monitorglobal.mobile'",mobile)
   activity=(ROOT/"android-mobile/app/src/main/java/top/monitorglobal/tv/PhoneActivity.java").read_text()
