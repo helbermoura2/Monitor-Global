@@ -1,0 +1,26 @@
+name: Telegram M6 Imperial Bronze
+on:
+  pull_request:
+    paths:
+      - 'js/quake-telegram-bronze.js'
+      - 'worker/image-rendering.mjs'
+      - 'worker/telegram-bronze-tone.mjs'
+      - 'worker/alert-cartography.mjs'
+      - 'telegram-image-refresh.mjs'
+      - 'tests/unit/telegram-bronze.test.mjs'
+      - '.github/workflows/telegram-bronze.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/unit/telegram-bronze.test.mjs tests/unit/telegram-glass.test.mjs tests/unit/tsunami-image-patch.test.mjs
+      - run: npm run worker:test
+      - run: npm run worker:bundle
