@@ -46,7 +46,9 @@ class AlexaBrentNewsroomTest(unittest.TestCase):
         self.assertIn('Brent consultado. Verificando último fechamento DOL da B3',code)
         self.assertNotIn('BRL=X?interval=1m',code)
         self.assertIn('boolean brentValid=BrentQuote.parse(result',code)
-        self.assertIn('if(!externalReader&&(brentValid||manual&&closedSession))',code)
+        self.assertIn('if(!externalReader&&!MarketDOLWidget.shouldShow(System.currentTimeMillis(),false)&&(brentValid||manual&&closedSession))',code)
+        self.assertIn('boolean dueDOL=b3Open',code)
+        self.assertIn('b3DolLastSlot',code)
         self.assertIn('sem valor inventado',code)
 
 
