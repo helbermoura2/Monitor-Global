@@ -12,6 +12,10 @@ final class MarketState {
  String label(){return value==OPEN?"ABERTO":value==CLOSED?"FECHADO":value==PAUSED?"FECHADO · PAUSA":"STATUS N/D";}
  boolean closed(){return value==CLOSED||value==PAUSED;}
  static MarketState unknown(){return new MarketState(UNKNOWN,"Estado não confirmado pela fonte");}
+ // Brazilian exchange/banking hours are distinct from the global Yahoo FX reference.
+ // Weekends are unambiguous; weekdays/holidays require an independent local source.
+ static boolean brazilWeekend(long now){DayOfWeek d=Instant.ofEpochMilli(now).atZone(ZoneId.of("America/Sao_Paulo")).getDayOfWeek();return d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY;}
+ static String brazilDollarContext(long now){return brazilWeekend(now)?"BRASIL · SEM PREGÃO (FIM DE SEMANA)":"REFERÊNCIA GLOBAL · NÃO É DÓLAR B3";}
  static MarketState brentRegular(long now){
   if(now<=0)return unknown();ZonedDateTime t=Instant.ofEpochMilli(now).atZone(NEW_YORK);DayOfWeek d=t.getDayOfWeek();int h=t.getHour();
   if(d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY&&h<18||d==DayOfWeek.FRIDAY&&h>=17)return new MarketState(CLOSED,"Sessão regular NYMEX/CME · fim de semana");
@@ -26,6 +30,11 @@ final class MarketState {
   switch(raw){case "REGULAR":case "OPEN":value=OPEN;break;case "CLOSED":case "PRE":case "POST":case "PREPRE":case "POSTPOST":value=CLOSED;break;case "HALTED":case "PAUSED":value=PAUSED;break;default:value=UNKNOWN;}
   JSONObject sessions=meta.optJSONObject("currentTradingPeriod"),period=sessions==null?null:sessions.optJSONObject("regular");long start=period==null?0:period.optLong("start",0)*1000L,end=period==null?0:period.optLong("end",0)*1000L;
   boolean valid=start>0&&end>start&&end-start<=48*3600000L&&Math.abs(now-start)<=5*86400000L;
+  // An OPEN string without a current trading period or a fresh quote may be
+  // stale provider metadata. Do not advertise the market as open on that basis.
+  long quoteAt=meta.optLong("regularMarketTime",0)*1000L;
+  boolean fresh=quoteAt>0&&quoteAt<=now+120000L&&now-quoteAt<=75*60000L;
+  if(value==OPEN&&!(valid&&now>=start&&now<end)&&!fresh)return unknown();
   if(value!=UNKNOWN)return new MarketState(value,"Estado informado pelo Yahoo Finance",valid&&end>now?end:0);
   if(!raw.isEmpty()||!valid)return unknown();
   if(now>=start&&now<end)return new MarketState(OPEN,"Sessão informada pelo Yahoo Finance",end);
