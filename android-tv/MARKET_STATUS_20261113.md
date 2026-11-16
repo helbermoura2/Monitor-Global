@@ -57,3 +57,13 @@ Cotações indicativas, sujeitas a atraso; não constituem feed oficial em tempo
 - **Sem WebView ou internet:** exibirá um estado nativo claro sem preço intradiário. Não apresenta fechamento velho como se fosse preço atual e não recorre ao BRL=X do Yahoo.
 - **Visual:** a tarja informativa conserva o design vermelho e o alinhamento das categorias pela magnitude, com widget incorporado apenas na coluna do dólar. Não interfere no radar, no resumo diário, no Telegram ou no app celular.
 - **Limitação técnica:** a validação final de disponibilidade do WebView/TradingView precisa ocorrer em uma TV/Fire TV real. Os testes automatizados aprovam o build e o ciclo da tarja, não certificam conectividade com o serviço externo no aparelho do usuário.
+
+## TV 1.0.106: Yahoo USD/BRL sem widget e com atualização horária independente
+
+- **A pedido do usuário, revertida a interface externa do TradingView da 1.0.105**: o widget WebView ocupava o conteúdo da tarja, com tipografia e posição incompatíveis com a identidade aprovada. O elemento WebView e seu teste foram removidos integralmente.
+- A cotação volta ao **Yahoo Finance `BRL=X`**, identificada na tela como **DÓLAR USD/BRL**; não será rotulada como DOL B3, nem chamada de B3. O rodapé indica **YAHOO · REF. HH:mm BRT** e o valor em R$ com **quatro casas decimais**.
+- **Mercados distintos:** `BRL=X` é o par de câmbio USD/BRL do mercado internacional (normalmente de domingo à noite até sexta-feira), com horário próprio e independente da B3; o futuro DOL da B3 negocia em dias úteis 09:00–18:30 BRT. A interface não mostrará mais o texto ostensivo “NÃO É B3”.
+- **Hora em hora:** o ciclo `:15` é mantido e o USD/BRL tem marcador independente `yahooFxLastSlot`. A consulta à fonte do dólar acontece mesmo quando o Brent não retorna; uma cotação Yahoo validada pode exibir sozinha na tarja nativa. O Brent mantém seu próprio preço, status e política de validade, sem preço inventado.
+- **Transparência:** o preço só aparece com timestamp Yahoo válido de no máximo **75 minutos**; sem preço confirmado, exibe **R$ —**, com estado de mercado coerente e sem inventar dados.
+- Fonte de horários e distinção: B3 horário oficial DOL (https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/horario-de-negociacao/), OANDA sobre mercado FX global (https://www.oanda.com/us-en/trading/hours-of-operation/).
+- Preservado o logo oficial, as tarjas vermelhas compactas, a centralização pelas magnitudes, a previsão meteorológica, replays, voz, e a assinatura/atualização oficial de TV.
