@@ -1,12 +1,14 @@
 /* One-time, explicitly requested re-publication of the 15 Nov 2026 daily
- * bulletin with the owner's approved official ΠΑΝΟΠΤΗΣ / CUSTOS ORBIS logo. This does NOT mutate
+ * bulletin with the full Greek–Roman artwork (statue, laurels and official logo).
+ * This is a separate, design-versioned reprint from the previous Panoptes
+ * reprint already confirmed; it does NOT mutate
  * the original delivery state or reset routine daily deduplication.
  * The Durable Object stores an at-most-once send marker; an ambiguous
  * Telegram response is NEVER retried automatically.
  */
 export const DAILY_REPOST_REQUEST={
  day:'2026-11-15',
- design:'argos-orbis-panoptes-imperial-v1',
+ design:'argos-orbis-approved-classical-art-v1',
  opensAt:Date.parse('2026-11-16T03:00:00Z'),
  closesAt:Date.parse('2026-11-17T03:00:00Z')
 };
@@ -14,10 +16,13 @@ export function requestedDailyRepostReady(now=Date.now(),todayDesign){
  return now>=DAILY_REPOST_REQUEST.opensAt&&now<DAILY_REPOST_REQUEST.closesAt
   &&todayDesign===DAILY_REPOST_REQUEST.design;
 }
-export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,post,archive,caption,chatId,photoName='argos-orbis-resumo-oficial.png'}){
+export function dailyRepostMarker(day=DAILY_REPOST_REQUEST.day){
+ return 'daily-repost:'+DAILY_REPOST_REQUEST.design+':'+day;
+}
+export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,post,archive,caption,chatId,photoName='argos-orbis-resumo-classico.png'}){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||day!==DAILY_REPOST_REQUEST.day)
   return {ok:false,skipped:true,reason:'Data não autorizada'};
- const key='daily-repost:'+day,token=crypto.randomUUID();
+ const key=dailyRepostMarker(day),token=crypto.randomUUID();
  const claim=await storage.transaction(async tx=>{
   const [delivery,history,prior]=await Promise.all([tx.get('delivery'),tx.get('history'),tx.get(key)]);
   if(delivery?.status!=='sent'||!history?.messageId||history?.status!=='sent')
