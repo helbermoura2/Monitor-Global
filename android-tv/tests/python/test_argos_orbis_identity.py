@@ -17,9 +17,13 @@ class ArgosOrbisIdentity(unittest.TestCase):
  def test_all_lower_thirds_show_one_consistent_official_footer(self):
   for file in ("NewsBannerView.java","TvBroadcastInfoView.java"):
    s=(SRC/file).read_text(encoding="utf-8")
-   self.assertIn('"argosorbis.com.br":"@argosorbis"',s)
+   self.assertIn("OledNewsChrome.brandFooter(",s)
    self.assertNotIn('"monitorglobal.top":"@monitor_global"',s)
    self.assertIn("BroadcastVisuals.radar(",s)
+  oled=(SRC/"OledNewsChrome.java").read_text(encoding="utf-8")
+  self.assertIn('"argosorbis.com.br":"@argosorbis"',oled)
+  self.assertIn("FOOTER_FADE_MS=400L",oled)
+  self.assertIn("footerOpacity(long elapsed,boolean animated)",oled)
   radar=(SRC/"BroadcastVisuals.java").read_text(encoding="utf-8")
   self.assertIn("OledNewsChrome.brand(c,paint,elapsed,animated)",radar)
   self.assertIn("RadarLogoView.drawArtwork(c,p,sweep,open)",(SRC/"OledNewsChrome.java").read_text(encoding="utf-8"))

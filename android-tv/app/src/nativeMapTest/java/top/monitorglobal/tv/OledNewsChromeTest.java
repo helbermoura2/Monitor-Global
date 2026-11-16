@@ -26,7 +26,7 @@ public class OledNewsChromeTest {
   OledNewsChrome.tab(c,p,left,true);
   OledNewsChrome.tab(c,p,right,false);
   BroadcastVisuals.radar(c,p,1200,false);
-  OledNewsChrome.brandFooter(c,p,"argosorbis.com.br",false,255);
+  OledNewsChrome.brandFooter(c,p,1200,false);
   return b;
  }
  @Test public void mainStripeIsGenuineOledBlackWithNoFloatingTopTextBoxes(){
@@ -65,6 +65,34 @@ public class OledNewsChromeTest {
    for(int x=931;x<960;x++)for(int y=32;y<94;y++)
     assertEquals("no brand bleeding into overscan",0,Color.alpha(b.getPixel(x,y)));
   }finally{b.recycle();}
+ }
+ @Test public void greyFooterAlternatesOneAddressAtATimeWithNoCrossfadeOverlap(){
+  assertEquals("argosorbis.com.br",OledNewsChrome.footerText(1200));
+  assertEquals("@argosorbis",OledNewsChrome.footerText(5100));
+  assertEquals("argosorbis.com.br",OledNewsChrome.footerText(9100));
+  assertEquals(255,OledNewsChrome.footerOpacity(1200,true));
+  assertTrue("fade out before changing label",OledNewsChrome.footerOpacity(3900,true)<100);
+  assertEquals("no text exactly at switch",0,OledNewsChrome.footerOpacity(4000,true));
+  assertTrue("fade in after changing label",OledNewsChrome.footerOpacity(4100,true)<100);
+  assertEquals(255,OledNewsChrome.footerOpacity(5100,true));
+  assertEquals(255,OledNewsChrome.footerOpacity(4000,false));
+  Bitmap first=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  Bitmap second=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  Bitmap blank=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  try{
+   Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+   OledNewsChrome.base(new Canvas(first),p);OledNewsChrome.brandFooter(new Canvas(first),p,1200,true);
+   OledNewsChrome.base(new Canvas(second),p);OledNewsChrome.brandFooter(new Canvas(second),p,5100,true);
+   OledNewsChrome.base(new Canvas(blank),p);OledNewsChrome.brandFooter(new Canvas(blank),p,4000,true);
+   int altered=0;
+   for(int y=104;y<122;y++)for(int x=809;x<923;x++){
+    if(first.getPixel(x,y)!=second.getPixel(x,y))altered++;
+    assertEquals("switching point must contain no address glyphs",
+      0xff333436,blank.getPixel(x,y));
+   }
+   assertTrue("site and Telegram must have distinct visual labels",altered>40);
+   assertEquals("background-only during transition",0xff333436,blank.getPixel(850,112));
+  }finally{first.recycle();second.recycle();blank.recycle();}
  }
  @Test public void liveDataIsStillInTheNativeTvBanners(){
   Context c=RuntimeEnvironment.getApplication();

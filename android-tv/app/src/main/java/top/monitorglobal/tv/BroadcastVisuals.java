@@ -88,7 +88,7 @@ final class BroadcastVisuals {
  // Right edge: 960 - 35 = 925, so the full 62-unit logo is overscan-safe.
  static final float BRAND_RIGHT_INSET=35f;
  static final float RADAR_SIZE=66f,RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f;
- static final float CONTENT_RIGHT_LIMIT=817f;
+ static final float CONTENT_RIGHT_LIMIT=829f;
  static final float TICKER_PX_PER_SECOND=40f;
  static final long RADAR_PERIOD_MS=7200L,BLINK_PERIOD_MS=11000L;
  static final int TICKER_START_X=100;

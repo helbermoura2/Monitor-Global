@@ -24,7 +24,8 @@ final class OledNewsChrome {
  static final int FOOTER=0xff101115, MUTE=0xffb9c2c8;
  static final float LEFT=31f, LEFT_TAB_RIGHT=295f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
  static final float BODY_TOP=30f, BODY_END=94f, FOOTER_END=126f;
- static final float CONTENT_RIGHT=817f, BRAND_PLATE_LEFT=804f;
+ static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=804f;
+ static final long FOOTER_SLOT_MS=4000L, FOOTER_FADE_MS=400L;
  private OledNewsChrome(){}
 
  static Typeface titleFont(Typeface unused){
@@ -83,21 +84,35 @@ final class OledNewsChrome {
   float open=1f;
   if(animate&&blink>.81f&&blink<.89f)
    open=Math.max(.015f,Math.abs(2f*((blink-.81f)/.08f)-1f));
-  c.save();c.clipRect(818,31,RIGHT,94);
-  c.translate(820,37);c.scale(.39f,.39f);
+  c.save();c.clipRect(830,31,RIGHT,94);
+  c.translate(831,36);c.scale(.36f,.36f);
   RadarLogoView.drawArtwork(c,p,sweep,open);
   c.restore();
-  fitted(c,p,"ARGOS",titleFont(null),873,58,49,15,INK);
-  fitted(c,p,"ORBIS",titleFont(null),873,76,49,15,INK);
-  fitted(c,p,"argosorbis.com.br",regularFont(),849,90,73,8,0xff65d9d2);
+  fitted(c,p,"ARGOS",titleFont(null),879,56,42,14,INK);
+  fitted(c,p,"ORBIS",titleFont(null),879,75,42,14,INK);
+  // Logo-only panel: website and Telegram belong exclusively in the grey footer.
  }
- static void brandFooter(Canvas c,Paint p,String identity,boolean telegram,int opacity){
+ /** One address at a time: 3.2s fully shown, 0.4s fades on each side. */
+ static String footerText(long elapsed){
+  return (Math.max(0L,elapsed)/FOOTER_SLOT_MS)%2L==0L?"argosorbis.com.br":"@argosorbis";
+ }
+ static int footerOpacity(long elapsed,boolean animated){
+  if(!animated)return 255;
+  long phase=Math.floorMod(elapsed,FOOTER_SLOT_MS);
+  if(phase<FOOTER_FADE_MS)return Math.round(255f*phase/FOOTER_FADE_MS);
+  if(phase>FOOTER_SLOT_MS-FOOTER_FADE_MS)
+   return Math.round(255f*(FOOTER_SLOT_MS-phase)/FOOTER_FADE_MS);
+  return 255;
+ }
+ static void brandFooter(Canvas c,Paint p,long elapsed,boolean animated){
+  int opacity=footerOpacity(elapsed,animated);
   if(opacity<=0)return;
+  // Paint just one address over the grey plate already drawn by base().
+  // A fade-through-blank guarantees both labels are never present together.
   int layer=c.saveLayerAlpha(BRAND_PLATE_LEFT,99,RIGHT,126,opacity);
-  fill(c,p,BRAND_PLATE_LEFT,99,RIGHT,126,0xff343638);
-  fitted(c,p,"ARGOS ORBIS",titleFont(null),817,111,104,14,INK);
-  fitted(c,p,telegram?"@argosorbis":"argosorbis.com.br",
-    regularFont(),817,122,103,10,Color.WHITE);
+  c.clipRect(BRAND_PLATE_LEFT+2,99,RIGHT-2,126);
+  fitted(c,p,footerText(elapsed),titleFont(null),BRAND_PLATE_LEFT+6,118,
+   RIGHT-BRAND_PLATE_LEFT-12,13.5f,INK);
   c.restoreToCount(layer);
  }
 }

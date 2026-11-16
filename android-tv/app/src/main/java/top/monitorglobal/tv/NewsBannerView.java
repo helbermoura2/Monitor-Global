@@ -9,7 +9,7 @@ import java.util.regex.*;
 /** One overlay: stable brand/footer, softly changing event content. No focus required. */
 final class NewsBannerView extends View {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- static final float HEADLINE_X=124,HEADLINE_Y=72,HEADLINE_TOP=48,HEADLINE_BOTTOM=77,HEADLINE_WIDTH=660,FLAG_RESERVE=44;
+ static final float HEADLINE_X=124,HEADLINE_Y=72,HEADLINE_TOP=48,HEADLINE_BOTTOM=77,HEADLINE_WIDTH=672,FLAG_RESERVE=44;
  private final Path breakingClip=new Path();private final float breakingWidth,badgeWidth;private final Path bannerClip=new Path(),telegramPlane=new Path();private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private long clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private final Matrix shineMatrix=new Matrix();
@@ -163,14 +163,7 @@ final class NewsBannerView extends View {
  }
  float identityLeft(long elapsed){return OledNewsChrome.BRAND_PLATE_LEFT;}
  private void drawIdentity(Canvas c,long elapsed){
-  int current=BannerTimeline.page(elapsed,2);long within=elapsed%BannerTimeline.PAGE_MS;
-  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
-   float t=BannerTimeline.progress(within);
-   identity(c,1-current,(int)(255*(1-t)));identity(c,current,(int)(255*t));
-  }else identity(c,current,255);
- }
- private void identity(Canvas c,int index,int opacity){
-  OledNewsChrome.brandFooter(c,paint,index==0?"argosorbis.com.br":"@argosorbis",index==1,opacity);
+  OledNewsChrome.brandFooter(c,paint,elapsed,animate);
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
   if(opacity<=0)return; int layer=opacity<255?c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,opacity):c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);c.translate(0,shift);
