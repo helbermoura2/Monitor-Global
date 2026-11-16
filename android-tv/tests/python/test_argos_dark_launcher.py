@@ -47,7 +47,7 @@ class DarkArgosLauncher(unittest.TestCase):
   tv=(ROOT/"android-tv/app/build.gradle").read_text()
   mobile=(ROOT/"android-mobile/app/build.gradle").read_text()
   self.assertIn("versionCode 10103",tv)
-  mobile_version=re.search(r"versionCode\\s+(\\d+)",mobile)
+  mobile_version=re.search(r"versionCode\s+(\d+)",mobile)
   self.assertIsNotNone(mobile_version)
   self.assertGreaterEqual(int(mobile_version.group(1)),24,"Phone releases must not be pinned to a stale TV test")
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",tv)
