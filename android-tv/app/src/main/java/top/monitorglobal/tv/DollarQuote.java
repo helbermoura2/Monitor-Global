@@ -46,7 +46,7 @@ final class DollarQuote {
    String table=text.substring(head.end(),Math.min(text.length(),head.end()+1800));
    int next=table.indexOf("Fechamento:");
    if(next>=0)table=table.substring(0,next);
-   if(!table.contains("Contrato")||!table.contains("Variação"))continue;
+   if(!table.contains("Contrato")||!table.contains("Fechamento"))continue;
    Matcher row=ROW.matcher(table);
    if(!row.find())continue;
    String contract=row.group(1)+"/"+row.group(2);
