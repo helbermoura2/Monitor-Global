@@ -118,10 +118,10 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(newCard,"changed-weather-columns");
   try{
    int top=oldCard.mapSpace;
-   // Values must be in four dedicated horizontal columns, as in TV 1.0.88.
+   // Values must remain four independently readable columns within the new logo safe-area.
    // The accidental 1.0.89 rewrite moved temperature and grouped all metrics
    // into a tiny line, which would fail these pixel-region comparisons.
-   int[][] valueColumns={{124,235,44,78},{520,616,48,76},{653,753,48,76},{786,865,48,76}};
+   int[][] valueColumns={{124,235,44,78},{519,616,48,76},{630,723,48,76},{739,814,48,76}};
    for(int i=0;i<valueColumns.length;i++){
     int[] rect=valueColumns[i];int changedPixels=0;
     for(int y=top+rect[2];y<top+rect[3];y++)
