@@ -195,9 +195,9 @@ final class TvBroadcastInfoView extends View {
   // Same one-at-a-time site/Telegram fade used by seismic and daily summary banners.
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
-  fill(c,31,BroadcastVisuals.FOOTER_TOP,75,BroadcastVisuals.FOOTER_HEIGHT,OledNewsChrome.RED_DARK);
+  fill(c,OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_TOP,106-OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_HEIGHT,OledNewsChrome.RED_DARK);
   p.setTypeface(data);p.setTextSize(18);
-  label(c,clockText,68-p.measureText(clockText)/2,118,17,Color.WHITE,data,69);
+  label(c,clockText,58-p.measureText(clockText)/2,118,17,Color.WHITE,data,90);
   OledNewsChrome.brandFooter(c,p,elapsed,animate);
   c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
   p.setTypeface(data);p.setTextSize(13);float length=p.measureText(ticker)+96;
@@ -274,38 +274,43 @@ final class TvBroadcastInfoView extends View {
   primary(c,voiceTitle,170,27,foreground,680);
   label(c,voiceDetail,170,88,16,0xffbdcfdd,data,680);
  }
+ // Dedicated, balanced Brent and USD/BRL panels sharing the full OLED band.
+ // Always keep state and variation inside their own columns.
+ static final float MARKET_BRENT_PRICE_X=130f, MARKET_BRENT_STATUS_X=355f;
+ static final float MARKET_DIVIDER_X=485f, MARKET_DOLLAR_X=499f, MARKET_DOLLAR_STATUS_X=694f;
  private void drawBrent(Canvas c){
   refreshMarket();
+  eventCategory(c,"BRENT","NYMEX");
   if(marketPending){
-   eventCategory(c,"BRENT","NYMEX");
-   primary(c,"CONSULTANDO COTAÇÃO REAL…",138,29,foreground,420);
-   fill(c,566,41,1,43,0xff45647b);
-   label(c,"DÓLAR USD/BRL",579,45,17,0xffe6f7ff,brand,230);
-   label(c,"AGUARDANDO FONTE",579,77,21,foreground,brand,234);
+   primary(c,"CONSULTANDO COTAÇÃO REAL…",MARKET_BRENT_PRICE_X,27,foreground,330);
+   fill(c,MARKET_DIVIDER_X,39,1,47,0xff45647b);
+   fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,19,15,0xffe6f7ff,brand,181);
+   fitted(c,"AGUARDANDO FONTE",MARKET_DOLLAR_X,76,21,16,foreground,brand,315);
    return;
   }
-  // Matching panels: market state immediately ABOVE each percentage.
-  // Right panel uses Yahoo USD/BRL currency quote in the native Argos design.
-  eventCategory(c,"BRENT","NYMEX");
-  primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,foreground,252);
+  String oilValue=brent==null?"US$ —":"US$ "+amount(brent.price);
+  primary(c,oilValue,MARKET_BRENT_PRICE_X,36,foreground,215);
   int oilTint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
   String oilChange=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
-  fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),402,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,158);
-  fitted(c,oilChange,402,73,25,16,oilTint,brand,160);
-  fill(c,575,41,1,43,0xff45647b);
-  fitted(c,"DÓLAR USD/BRL",577,47,21,16,0xffe6f7ff,brand,141);
-  fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),734,45,15,11,demo?0xffffd17d:sessionColor(dollarSession),brand,78);
-  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),577,75,29,22,foreground,brand,143);
+  fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),
+   MARKET_BRENT_STATUS_X,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,118);
+  fitted(c,oilChange,MARKET_BRENT_STATUS_X,73,25,15,oilTint,brand,121);
+  fitted(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),
+   MARKET_BRENT_PRICE_X,90,12,10,0xffd3e3ed,data,341);
+  fill(c,MARKET_DIVIDER_X,39,1,47,0xff45647b);
+
+  fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,20,15,0xffe6f7ff,brand,181);
+  fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),
+   MARKET_DOLLAR_STATUS_X,45,16,11,demo?0xffffd17d:sessionColor(dollarSession),brand,126);
+  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),
+   MARKET_DOLLAR_X,75,31,22,foreground,brand,185);
   Double fxChange=dollar==null?null:dollar.percent;
   String fxVariation=fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
-  fitted(c,fxVariation,733,76,21,13,fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,80);
-  label(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),138,90,12,0xffd3e3ed,data,434);
-  long now=System.currentTimeMillis();
-  String fxReference=dollar==null?"SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at);
-  // Yahoo USD/BRL has different trading hours from Brazilian B3 futures.
-  // Quote timestamps, not the B3 clock, establish whether a quote is recent.
+  fitted(c,fxVariation,MARKET_DOLLAR_STATUS_X,75,23,14,
+   fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,128);
+  // Preserve the independent Yahoo reference timestamp, never replace it with a B3 clock.
   String fxFoot=dollar==null?"YAHOO · SEM COTAÇÃO CONFIRMADA":"YAHOO · REF. "+BrentQuote.clock(dollar.at);
-  fitted(c,fxFoot,577,91,13,10,0xffd3e3ed,brand,236);
+  fitted(c,fxFoot,MARKET_DOLLAR_X,91,13,10,0xffd3e3ed,brand,321);
  }
  private void drawSatelliteNews(Canvas c){
   eventCategory(c,"SATÉLITE","GOES-EAST");
