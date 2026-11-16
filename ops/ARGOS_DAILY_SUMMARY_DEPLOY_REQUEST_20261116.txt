@@ -5,3 +5,6 @@ Mudanças autorizadas: miniatura do logo oficial dentro do PNG automático do Te
 Permanece obrigatório: validar no CI PNG offline e regras de prevenção de duplicação antes de qualquer publicação; conservar tokens e CHAT_ID existentes (que o proprietário já corrigiu no Cloudflare), Bindings, cron, KV, DO e canal.
 Não emitir testes de sismo ou mensagens reais durante deploy. Um envio futuro seguirá automaticamente o agendamento normal.
 Este marcador só pode disparar o workflow de manutenção em push para main, se o ator for o proprietário helbermoura2. Não permitir auto-deploy por commits arbitrários.
+
+REPUBLICAÇÃO EXPLÍCITA ADICIONAL · 16/11/2026
+O proprietário pediu: “Republica pra eu ver como ficou”. Autorizar uma única nova mensagem com o resumo de 15/11/2026 e o logo recém-publicado, com a legenda indicando REPUBLICAÇÃO. O Durable Object da data mantém a publicação original, verifica sua confirmação e grava um marcador `daily-repost:2026-11-15` antes de enviar, evitando duplicatas. A tentativa via cron tem validade somente no dia 16/11/2026 BRT e é desativada ao vencer; não alterar CHAT_ID/tokens/bindings/schedules. O endpoint administrativo também exige ADMIN_TOKEN.

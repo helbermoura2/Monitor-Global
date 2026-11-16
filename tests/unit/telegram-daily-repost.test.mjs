@@ -14,7 +14,9 @@ function deps(storage,post=async form=>({result:{message_id:789}})){
   render:async()=>({png:new Uint8Array([137,80,78,71])}),
   post,caption:()=>('Reedição · '+day)};
 }
-test('one-time policy has explicit start/end and exact Rajdhani approved design',()=>{
+test('one-time policy has explicit start/end and exact approved Panoptes identity',()=>{
+ assert.equal(DAILY_REPOST_REQUEST.day,'2026-11-15');
+ assert.equal(DAILY_REPOST_REQUEST.design,'argos-orbis-panoptes-imperial-v1');
  assert.equal(requestedDailyRepostReady(DAILY_REPOST_REQUEST.opensAt-1,DAILY_REPOST_REQUEST.design),false);
  assert.equal(requestedDailyRepostReady(DAILY_REPOST_REQUEST.opensAt+1,DAILY_REPOST_REQUEST.design),true);
  assert.equal(requestedDailyRepostReady(DAILY_REPOST_REQUEST.opensAt+1,'old-version'),false);
@@ -27,7 +29,7 @@ test('reprint sends once with original date, explicit caption and the existing p
  assert.equal(first.resent,true);assert.equal(first.messageId,789);
  assert.equal(original.get('chat_id'),'-100123');
  assert.match(original.get('caption'),/Reedição/);
- assert.equal(original.get('photo').name,'monitor-global-resumo-novo-visual.png');
+ assert.equal(original.get('photo').name,'argos-orbis-resumo-oficial.png');
  assert.equal(entries.get('delivery').status,'sent');
  assert.equal(entries.get('history').messageId,456);
  const again=await dailyRepostOnce(deps(storage,p));
@@ -36,7 +38,7 @@ test('reprint sends once with original date, explicit caption and the existing p
 });
 test('reprint cannot start without confirmed original and never permits other dates',async()=>{
  const a=mockStorage({original:false});let calls=0;
- assert((await dailyRepostOnce({...deps(a.storage,async()=>{calls++;}),day:'2026-11-08'})).skipped);
+ assert((await dailyRepostOnce({...deps(a.storage,async()=>{calls++;}),day:'2026-11-14'})).skipped);
  assert((await dailyRepostOnce(deps(a.storage,async()=>{calls++;}))).skipped);
  assert.equal(calls,0);
 });

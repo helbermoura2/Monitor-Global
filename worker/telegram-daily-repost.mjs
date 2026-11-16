@@ -1,20 +1,20 @@
-/* One-time, explicitly requested re-publication of the 09 Nov 2026 daily
- * bulletin after its Rajdhani v7 layout was merged. This does NOT mutate
+/* One-time, explicitly requested re-publication of the 15 Nov 2026 daily
+ * bulletin with the owner's approved official ΠΑΝΟΠΤΗΣ / CUSTOS ORBIS logo. This does NOT mutate
  * the original delivery state or reset routine daily deduplication.
  * The Durable Object stores an at-most-once send marker; an ambiguous
  * Telegram response is NEVER retried automatically.
  */
 export const DAILY_REPOST_REQUEST={
- day:'2026-11-09',
- design:'monitor-global-rajdhani-neon-v7',
- opensAt:Date.parse('2026-11-10T03:00:00Z'),
- closesAt:Date.parse('2026-11-12T03:00:00Z')
+ day:'2026-11-15',
+ design:'argos-orbis-panoptes-imperial-v1',
+ opensAt:Date.parse('2026-11-16T03:00:00Z'),
+ closesAt:Date.parse('2026-11-17T03:00:00Z')
 };
 export function requestedDailyRepostReady(now=Date.now(),todayDesign){
  return now>=DAILY_REPOST_REQUEST.opensAt&&now<DAILY_REPOST_REQUEST.closesAt
   &&todayDesign===DAILY_REPOST_REQUEST.design;
 }
-export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,post,archive,caption,chatId,photoName='monitor-global-resumo-novo-visual.png'}){
+export async function dailyRepostOnce({storage,day,now=Date.now(),load,render,post,archive,caption,chatId,photoName='argos-orbis-resumo-oficial.png'}){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||day!==DAILY_REPOST_REQUEST.day)
   return {ok:false,skipped:true,reason:'Data não autorizada'};
  const key='daily-repost:'+day,token=crypto.randomUUID();
