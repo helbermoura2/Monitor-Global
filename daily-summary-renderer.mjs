@@ -6,7 +6,7 @@ const COLORS={
  muted:[169,198,216],line:[28,77,100],map:[3,20,37],land:[14,59,82],
  coast:[35,131,170],green:[58,233,130],orange:[251,146,60],gold:[203,163,106],goldBright:[236,193,127]
 };
-export const DAILY_SUMMARY_DESIGN='argos-orbis-panoptes-imperial-v1';
+export const DAILY_SUMMARY_DESIGN='argos-orbis-approved-art-v2';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -329,5 +329,163 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
   layout:{width:W*scale,height:H*scale,scale,splitH:470,rowsY,rowsEnd,totalsY,totalsHeight:108,rowHeights,brazilY,brazilHeight,mapX,mapY,mapW,mapH},
   epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),
   design:DAILY_SUMMARY_DESIGN
+ };
+}
+
+
+/**
+ * Official approved Argos Orbis edition.
+ *
+ * The 1086x1448 background is cleaned directly from the owner's chosen image:
+ * the statue, laurel, Greek decoration, deep-marble textures, bevelled gold
+ * frames, official ΠΑΝΟΠΤΗΣ/CUSTOS ORBIS eye and Telegram footer are literal
+ * pixels from the approved artwork, NOT recreated as approximate icons.
+ * Only time-varying data fields are overpainted using real daily observations.
+ *
+ * At logical scale 2 the Telegram PNG is 2172x2896 (plus any Brazil section).
+ */
+export async function renderApprovedDailySummary(quakes,fonts,graphics,{scale=2}={}){
+ if(scale!==2&&scale!==1)throw Error('Escala do boletim inválida');
+ const W=1086,BASE_H=1448,DAY=/^\d{4}-\d{2}-\d{2}$/.test(quakes.day||'')?quakes.day:null;
+ if(!DAY||!Array.isArray(quakes.events))throw Error('Dados do boletim inválidos');
+ const events=quakes.events.filter(e=>Number.isFinite(e.mag)&&Number.isFinite(e.time));
+ const top=events.slice().sort((a,b)=>b.mag-a.mag||a.time-b.time).slice(0,5);
+ const brazil=events.filter(e=>e.brazil===true||(Number.isFinite(e.lat)&&Number.isFinite(e.lon)&&graphics.isBrazil?.(e.lat,e.lon))).sort((a,b)=>b.mag-a.mag||a.time-b.time);
+ // On Brazil days, add a genuine section without destroying the approved art:
+ // the lower photo/marble/statistics/footer is moved down as a contiguous panel.
+ const brazilHeight=brazil.length?62+brazil.length*59+12:0,cutY=1037;
+ const H=BASE_H+brazilHeight,background=fonts.approvedBackground;
+ if(!background||background.width!==W||background.height!==BASE_H)throw Error('Arte oficial aprovada indisponível');
+ const gfx=summaryGraphicsAtScale(graphics,scale);
+ const rgba=new Uint8Array(W*H*4*scale*scale);rgba.summaryScale=scale;
+ // Raster from the actual picture: 2x nearest-neighbour keeps gold ornaments
+ // and the typography/shapes faithful, with all live glyphs painted in HD.
+ for(let sy=0;sy<BASE_H;sy++){
+  const y=sy+(sy>=cutY?brazilHeight:0),from=sy*W*4;
+  for(let dy=0;dy<scale;dy++){
+   const dst=((y*scale+dy)*W*scale)*4;
+   if(scale===1){rgba.set(background.rgba.subarray(from,from+W*4),dst);continue;}
+   for(let x=0;x<W;x++){
+    const si=from+x*4,di=dst+x*8;
+    rgba[di]=rgba[di+4]=background.rgba[si];
+    rgba[di+1]=rgba[di+5]=background.rgba[si+1];
+    rgba[di+2]=rgba[di+6]=background.rgba[si+2];
+    rgba[di+3]=rgba[di+7]=255;
+   }
+  }
+ }
+ if(brazilHeight)gfx.fillRect(rgba,W,0,cutY,W,brazilHeight,2,19,32);
+ const fmtMag=n=>Number.isFinite(n)?n.toFixed(1).replace('.',','):'—';
+ const fmtTime=t=>Number.isFinite(t)?new Date(t).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}):'—';
+ const fmtKm=n=>Number.isFinite(n)?Math.max(0,Math.round(n)).toLocaleString('pt-BR')+' km':'—';
+ const distance=e=>{
+  if(!Number.isFinite(e.lat)||!Number.isFinite(e.lon))return null;
+  const rad=Math.PI/180,dlat=(e.lat+23.55)*rad,dlon=(e.lon+46.63)*rad;
+  const a=Math.sin(dlat/2)**2+Math.cos(-23.55*rad)*Math.cos(e.lat*rad)*Math.sin(dlon/2)**2;
+  return 6371*2*Math.asin(Math.sqrt(Math.min(1,a)));
+ };
+ const measure=(font,value)=>graphics.textWidth(fonts[font],graphics.clean(String(value),fonts[font]),0);
+ const txt=(font,value,x,y,color=COLORS.white)=>gfx.drawText(rgba,W,H,fonts[font],graphics.clean(String(value),fonts[font]),x,y,...color,0);
+ const mid=(font,value,cx,y,color=COLORS.white)=>txt(font,value,cx-measure(font,value)/2,y,color);
+ const clip=(font,value,max)=>{let s=String(value??'—');while(s.length>3&&measure(font,s)>max)s=s.slice(0,-2)+'…';return s;};
+ const large=(font,value,cx,y,height,color,maxWidth)=>{
+  const face=fonts[font],valueClean=graphics.clean(String(value),face);
+  let ratio=height/face.cellH;
+  const widthAt=(v,r)=>[...v].reduce((sum,ch)=>{const g=face.glyphs[ch]||face.glyphs['?'];return sum+(g?.[2]||g?.[1]||12)*r;},0);
+  if(widthAt(valueClean,ratio)>maxWidth)ratio*=maxWidth/widthAt(valueClean,ratio);
+  let x=cx-widthAt(valueClean,ratio)/2;
+  for(const ch of valueClean){
+   const g=face.glyphs[ch]||face.glyphs['?'];if(!g)continue;
+   const width=Math.max(1,Math.round(g[1]*ratio)),h=Math.max(1,Math.round(face.cellH*ratio));
+   scaledIcon(rgba,W,H,face.img,g[0],g[1],face.cellH,Math.round(x-(g[3]||0)*ratio),y,width,h,color);
+   x+=(g[2]||g[1])*ratio;
+  }
+ };
+ const iconFlag=(code,x,y,width=38,height=24)=>{
+  if(code==='AQ')scaledIcon(rgba,W,H,fonts.aq,0,72,72,x,y,width,height);
+  else if(code&&fonts.flags.map[code]){const [sx,fw,fh]=fonts.flags.map[code];scaledIcon(rgba,W,H,fonts.flags.img,sx,fw,fh,x,y,width,height);}
+ };
+ const countryPlace=e=>{
+  const country=graphics.country(e.place||''),place=graphics.place(e.place||'Região não informada');
+  let label=country.label||'Região oceânica',name=place.title||'Região não informada';
+  label=label.toLocaleLowerCase('pt-BR').replace(/\b\p{L}/gu,ch=>ch.toLocaleUpperCase('pt-BR'));
+  if(name.includes(',')&&country.code){const suffix=name.slice(name.lastIndexOf(',')+1).trim();if(graphics.country(suffix).code===country.code)name=name.slice(0,name.lastIndexOf(','));}
+  return {country,name,label};
+ };
+ const amber=[244,183,103],bright=[247,227,190];
+ // Date tag & activity date (never reuse the dates printed in the concept art).
+ const date=DAY.split('-').reverse().join('/');
+ large('title',date+' (BRT)',883,204,25,COLORS.cyan,250);
+ const dateLong=new Date(DAY+'T12:00:00Z').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).toLocaleUpperCase('pt-BR');
+ txt('tag','· '+dateLong,399,242,COLORS.white);
+
+ // True map geometry and positions: reuse the tested map implementation.
+ const mapX=46,mapY=297,mapW=616,mapH=321,frame=summaryMapFrame(top,mapW,mapH,{world:true});
+ const layouts=top.map(event=>{const p=countryPlace(event);return {event,place:{title:p.name},country:p.country};});
+ drawMap({rgba,W,H,gfx,text:txt,center:mid,fonts,reference:true,items:layouts},mapX,mapY,frame);
+
+ if(top.length){
+  const e=top[0],p=countryPlace(e),magnitudeColor=graphics.magColor(e.mag);
+  large('heading','M'+fmtMag(e.mag),864,360,98,magnitudeColor,236);
+  iconFlag(p.country.code,724,471,57,35);
+  txt('title',clip('title',p.name,205),791,472,COLORS.white);
+  txt('detail',clip('detail',p.label,245),728,521,COLORS.cyan);
+  txt('columnLabel','PROFUNDIDADE',726,569,bright);
+  txt('columnLabel','HORA (BRT)',907,569,bright);
+  mid('detail',fmtKm(e.depth),800,592,COLORS.white);
+  mid('detail',fmtTime(e.time),948,592,COLORS.white);
+ }else{
+  large('heading','SEM EVENTOS',859,377,41,bright,246);
+  mid('detail','Nenhum registro disponível',859,491,COLORS.white);
+ }
+ // Top-ranked events, exactly in the four engraved rows of the reference.
+ const rowYs=[742,807,876,945],rowCenters=rowYs.map(y=>y+29);
+ txt('columnLabel','DISTÂNCIA',578,735,bright);
+ txt('columnLabel','HORA (BRT)',758,735,bright);
+ txt('columnLabel','PROF.',932,735,bright);
+ for(let i=1;i<5;i++){
+  const y=rowYs[i-1],e=top[i];if(!e)continue;
+  const p=countryPlace(e),color=graphics.magColor(e.mag);
+  large('heading','M'+fmtMag(e.mag),207,y+18,36,color,112);
+  txt('title',clip('title',p.name,268),289,y+2,COLORS.white);
+  iconFlag(p.country.code,288,y+32,36,22);
+  txt('title',clip('title',p.label,219),333,y+32,COLORS.white);
+  txt('detail',fmtKm(distance(e)),576,y+26,COLORS.white);
+  txt('detail',fmtTime(e.time),758,y+26,COLORS.white);
+  txt('detail',fmtKm(e.depth),931,y+26,COLORS.white);
+ }
+
+ // Genuine Brazil lower-magnitude coverage, visible without modifying the
+ // approved greco-roman map, table or lower marble/footer panels.
+ if(brazilHeight){
+  const y=cutY+10;
+  gfx.fillRoundRect(rgba,W,30,y,1026,brazilHeight-20,13,188,146,88);
+  gfx.fillRoundRect(rgba,W,33,y+3,1020,brazilHeight-26,11,4,30,43);
+  iconFlag('BR',56,y+13,36,23);
+  txt('heading','SISMOS NO BRASIL · '+brazil.length,106,y+10,bright);
+  brazil.forEach((e,i)=>{
+   const r=y+49+i*59,p=countryPlace(e),c=graphics.magColor(e.mag);
+   if(i)line(rgba,W,H,50,r-6,1035,r-6,COLORS.gold,.5);
+   large('heading','M'+fmtMag(e.mag),113,r+2,35,c,108);
+   txt('title',clip('title',p.name,438),194,r+6,COLORS.white);
+   txt('detail',fmtTime(e.time)+' BRT',681,r+7,COLORS.white);
+   txt('detail',fmtKm(e.depth),902,r+7,COLORS.white);
+   txt('small',(e.sources||[e.source||'USGS']).join(' · ').slice(0,30),195,r+31,COLORS.muted);
+  });
+ }
+ const counts=[
+  [events.length,COLORS.cyan],
+  [events.filter(e=>e.mag>=6).length,[255,91,93]],
+  [events.filter(e=>e.mag>=5&&e.mag<6).length,COLORS.orange],
+  [events.filter(e=>e.mag>=4&&e.mag<5).length,[255,216,52]],
+  [events.filter(e=>e.mag<4).length,COLORS.green]
+ ];
+ const centers=[224,376,528,680,832];
+ counts.forEach(([count,color],i)=>large('heading',Number(count).toLocaleString('pt-BR'),centers[i],1094+brazilHeight,48,color,132));
+ return {
+  day:DAY,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,
+  design:DAILY_SUMMARY_DESIGN,
+  layout:{width:W*scale,height:H*scale,scale,rowsY:740,rowsEnd:1015,totalsY:1055+brazilHeight,totalsHeight:117,brazilY:brazilHeight?cutY:0,brazilHeight,rowHeights:[67,68,69,70],mapX,mapY,mapW,mapH},
+  epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y}))
  };
 }
