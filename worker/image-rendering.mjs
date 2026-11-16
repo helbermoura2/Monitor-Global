@@ -904,6 +904,9 @@ async function renderAlertPixels(ev) {
     painter.flag=(kind,code,x,y,w,h)=>{const a=atlas[kind],entry=a.data.map[code];if(!entry)return;const [left,fw,fh]=entry,part=new Uint8Array(fw*fh*4);for(let row=0;row<fh;row++)part.set(a.image.rgba.subarray((row*a.image.width+left)*4,(row*a.image.width+left+fw)*4),row*fw*4);const scale=Math.min(w*sx/fw,h*sy/fh);drawImageCover(rgba,W,H,{rgba:part,width:fw,height:fh},x*sx+(w*sx-fw*scale)/2,y*sy+(h*sy-fh*scale)/2,fw*scale,fh*scale);};
     drawMapReferences(painter,frame,ev,places,telegramLayout);
     const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
+    // The tsunami cancellation archive must contain the finished bronze base,
+    // including the lower stone band (not the pre-design blue pixels).
+    if(bronze){painter.gradient(0,0,800,telegramLayout.MAP_Y,'#38291f','#201915');painter.gradient(0,1037,800,403,'#2a201a','#211812');}
     const cleanBackground=captureBackground(rgba,W);
     telegramLayout.draw(painter,{...ev,imageCountryCode:country,imageStateCode:state,brazil:telegramIsBrazil(Number(ev.lat),Number(ev.lon)),imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+telegramLayout.MAP_Y})),
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
