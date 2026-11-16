@@ -19,6 +19,14 @@ final class BroadcastVisuals {
  // The labels fill the existing boxes without changing the overlay/map/footer size.
  static final float BREAKING_TEXT_FILL=.86f,STATUS_TEXT_FILL=.80f;
  static final float HEADER_LABEL_HEIGHT=24f;
+ // Visual center of the 70-unit body (y=24..94). Category words and headline
+ // numbers use the SAME center, regardless of font size or separate subtitles.
+ static final float BODY_VISUAL_CENTER_Y=61f;
+ static float centeredBodyBaseline(Paint paint,Typeface face,float size){
+  paint.setTypeface(face);paint.setTextSize(size);
+  Paint.FontMetrics fm=paint.getFontMetrics();
+  return BODY_VISUAL_CENTER_Y-(fm.ascent+fm.descent)/2f;
+ }
  static float statusWidth(Paint paint,android.graphics.Typeface font,String label){
   paint.setTypeface(font);paint.setTextSize(18f);
   return Math.max(STATUS_MIN_WIDTH,Math.min(STATUS_MAX_WIDTH,(float)Math.ceil(paint.measureText(label))+24f));

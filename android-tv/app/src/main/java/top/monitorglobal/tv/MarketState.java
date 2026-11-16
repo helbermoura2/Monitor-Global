@@ -15,7 +15,7 @@ final class MarketState {
  // Brazilian exchange/banking hours are distinct from the global Yahoo FX reference.
  // Weekends are unambiguous; weekdays/holidays require an independent local source.
  static boolean brazilWeekend(long now){DayOfWeek d=Instant.ofEpochMilli(now).atZone(ZoneId.of("America/Sao_Paulo")).getDayOfWeek();return d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY;}
- static String brazilDollarContext(long now){return brazilWeekend(now)?"BRASIL · SEM PREGÃO (FIM DE SEMANA)":"REFERÊNCIA GLOBAL · NÃO É DÓLAR B3";}
+ static String brazilDollarContext(long now){return brazilWeekend(now)?"B3 FECHADA · SEM PREGÃO NO FIM DE SEMANA · SEGUNDA 09:00 BRT (HORÁRIO REGULAR)":"REFERÊNCIA GLOBAL · NÃO É DÓLAR B3";}
  static MarketState brentRegular(long now){
   if(now<=0)return unknown();ZonedDateTime t=Instant.ofEpochMilli(now).atZone(NEW_YORK);DayOfWeek d=t.getDayOfWeek();int h=t.getHour();
   if(d==DayOfWeek.SATURDAY||d==DayOfWeek.SUNDAY&&h<18||d==DayOfWeek.FRIDAY&&h>=17)return new MarketState(CLOSED,"Sessão regular NYMEX/CME · fim de semana");

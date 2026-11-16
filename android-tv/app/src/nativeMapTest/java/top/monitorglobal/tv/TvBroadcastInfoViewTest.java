@@ -26,6 +26,46 @@ public class TvBroadcastInfoViewTest {
   }
   return b;
  }
+ // Pixel bounding boxes are measured in the approved shared 960-unit banner.
+ // Compare *visible ink* rather than comparing baseline numbers in source.
+ private float inkMidY(Bitmap b,int x0,int x1,int top,int bottom,boolean title){
+  int first=999,last=-1;
+  for(int y=top;y<=bottom;y++)for(int x=x0;x<=x1;x++){
+   int c=b.getPixel(x,y),r=Color.red(c),g=Color.green(c),blue=Color.blue(c);
+   boolean ink=title?r>235&&g>=75&&g<175&&blue>95: r>215&&g>215&&blue>215;
+   if(ink){first=Math.min(first,y);last=Math.max(last,y);}
+  }
+  assertTrue("Primary title/value ink is present in expected column",last>=first);
+  return (first+last)/2f;
+ }
+ @Test public void everyPrimaryValueUsesOneOpticalCenterForReadableTVLabels()throws Exception{
+  WeatherForecast.Summary weather=new WeatherForecast.Summary("19°C","Nublado","Vento 12 km/h","Umidade 81%","Modelo horário",
+   System.currentTimeMillis()+600000,false,"19°C","20°C","81%","12 km/h","19 km/h","Cloudy");
+  TvBroadcastInfoView weatherCard=TvBroadcastInfoView.weather(c,null,weather,false);
+  BrentQuote oil=new BrentQuote(95.34,96.2,-.86,-.90,System.currentTimeMillis()-60000,"Yahoo Finance");
+  DollarQuote fx=new DollarQuote(5.67,0d,0d,System.currentTimeMillis()-60000,"Yahoo Finance");
+  TvBroadcastInfoView market=TvBroadcastInfoView.market(c,oil,fx,false);
+  Bitmap w=render(weatherCard,"centered-weather-19C");
+  Bitmap m=render(market,"centered-brent-market");
+  try{
+   int offset=weatherCard.mapSpace;
+   float weatherTitle=inkMidY(w,11,115,offset+31,offset+80,true)-offset;
+   float weatherDegrees=inkMidY(w,124,236,offset+31,offset+80,false)-offset;
+   float brentTitle=inkMidY(m,12,123,31,80,true);
+   float brentPrice=inkMidY(m,138,390,31,80,false);
+   assertEquals("TEMPO and 19°C need one visual center",weatherTitle,weatherDegrees,5.5f);
+   assertEquals("BRENT must be large and centered alongside its price",brentTitle,brentPrice,5.5f);
+   assertEquals("All categories must use the same vertical anchor",weatherTitle,brentTitle,6f);
+   assertTrue("BRENT title should sit in the main content row, not above it",brentTitle>=53);
+  }finally{w.recycle();m.recycle();}
+ }
+ @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
+  long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
+  long monday=java.time.Instant.parse("2026-11-16T15:33:00Z").toEpochMilli();
+  assertEquals("B3 FECHADA · SEG 09H (REGULAR)",TvBroadcastInfoView.brazilFxHint(sunday));
+  assertEquals("COTAÇÃO GLOBAL · NÃO É B3",TvBroadcastInfoView.brazilFxHint(monday));
+  assertTrue(MarketState.brazilDollarContext(sunday).contains("SEGUNDA 09:00 BRT"));
+ }
  @Test public void weatherHasMapAboveLiveBreakingNewsWithoutChangingSourceData()throws Exception{
   WeatherForecast.Summary weather=new WeatherForecast.Summary(
    "22°C · sensação 23°C","Nublado","Vento 12 km/h","Umidade 81%",
@@ -56,7 +96,7 @@ public class TvBroadcastInfoViewTest {
    // Values must be in four dedicated horizontal columns, as in TV 1.0.88.
    // The accidental 1.0.89 rewrite moved temperature and grouped all metrics
    // into a tiny line, which would fail these pixel-region comparisons.
-   int[][] valueColumns={{124,235,44,69},{520,616,49,71},{653,753,49,71},{786,865,49,71}};
+   int[][] valueColumns={{124,235,44,78},{520,616,48,76},{653,753,48,76},{786,865,48,76}};
    for(int i=0;i<valueColumns.length;i++){
     int[] rect=valueColumns[i];int changedPixels=0;
     for(int y=top+rect[2];y<top+rect[3];y++)
