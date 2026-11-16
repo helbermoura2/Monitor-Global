@@ -43,7 +43,7 @@
     title=title.replace(/,\s*[^,]+$/i,', '+country);
    else if(!title.toLocaleLowerCase('pt-BR').includes(country.toLocaleLowerCase('pt-BR')))title+=', '+country;
   }
-  const haveFlag=!!ev.imageCountryCode,max=haveFlag?667:725;
+  const haveFlag=!!ev.imageCountryCode,max=haveFlag?640:725;
   let size=30;while(size>19&&p.measure(title,size,true)>max*2-65)size--;
   const words=title.split(/\s+/),lines=[];let row='';
   for(const word of words){const next=row?row+' '+word:word;if(row&&p.measure(next,size,true)>max){lines.push(row);row=word;}else row=next;}
@@ -116,7 +116,7 @@
   label(p,'argosorbis.com.br',60,1371,23,IVORY,true,295);
   p.rect(395,1368,2,39,'#866347');
   // Small bronze paper plane to the immediate left of the single, contiguous handle.
-  p.dot(452,1386,20,GOLD);p.rect(446,1380,12,2,BLACK);
+  p.telegramIcon?.(452,1386);
   label(p,'@argosorbis',478,1370,23,IVORY,true,260);
  }
  globalThis.QuakeTelegramBronzeLayout={version:'telegram-imperial-bronze-v1',MAP_Y,MAP_HEIGHT,ANCHOR_Y,CONTEXT,TSUNAMI_Y,TSUNAMI_HEIGHT,showScale:false,telegramFrame,draw,drawTsunami};
