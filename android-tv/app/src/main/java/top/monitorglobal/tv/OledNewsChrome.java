@@ -27,6 +27,8 @@ final class OledNewsChrome {
  static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=790f;
  static final float LOGO_CENTER_X=878f, LOGO_SIZE=64f;
  static final long FOOTER_SLOT_MS=4000L, FOOTER_FADE_MS=400L;
+ // Dedicated reusable brush prevents market text/shader state leaking into the radar mark.
+ private static final ThreadLocal<Paint> LOGO_BRUSH=ThreadLocal.withInitial(()->new Paint(Paint.ANTI_ALIAS_FLAG));
  private OledNewsChrome(){}
 
  static Typeface titleFont(Typeface unused){
@@ -89,7 +91,9 @@ final class OledNewsChrome {
   // Center the complete vector (including its corner symbols) inside the safe area.
   c.save();c.clipRect(830,31,RIGHT,94);
   c.translate(LOGO_CENTER_X-LOGO_SIZE/2f,31);c.scale(LOGO_SIZE/128f,LOGO_SIZE/128f);
-  RadarLogoView.drawArtwork(c,p,sweep,open);
+  Paint logo=LOGO_BRUSH.get();
+  logo.reset();logo.setAntiAlias(true);
+  RadarLogoView.drawArtwork(c,logo,sweep,open);
   c.restore();
  }
  /** One address at a time: 3.2s fully shown, 0.4s fades on each side. */
