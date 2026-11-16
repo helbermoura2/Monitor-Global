@@ -38,6 +38,31 @@ public class TvBroadcastInfoViewTest {
   assertTrue("Primary title/value ink is present in expected column",last>=first);
   return (first+last)/2f;
  }
+ @Test public void rainWeatherBrentSatelliteAndVoiceUseTheSameMagnitudeColumn()throws Exception{
+  Typeface face=Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf");
+  String[] categories={"CHUVA","TEMPO","BRENT","SATÉLITE","CONSULTA","TSUNAMI"};
+  String[] captions={"LIBERDADE · SP","LIBERDADE · SP","NYMEX","GOES-EAST","POR VOZ","SEM AMEAÇA"};
+  for(int i=0;i<categories.length;i++){
+   Bitmap b=Bitmap.createBitmap(120,100,Bitmap.Config.ARGB_8888);
+   try{
+    BroadcastVisuals.eventCategory(new Canvas(b),new Paint(Paint.ANTI_ALIAS_FLAG),face,categories[i],captions[i],0xffff6d7f);
+    int top=100,bottom=-1,left=120,right=-1,captionPixels=0;
+    for(int y=28;y<94;y++)for(int x=8;x<108;x++){
+     int pixel=b.getPixel(x,y);
+     if(Color.red(pixel)>240&&Color.green(pixel)>=80&&Color.green(pixel)<180&&Color.blue(pixel)>=90){
+      top=Math.min(top,y);bottom=Math.max(bottom,y);left=Math.min(left,x);right=Math.max(right,x);
+     }
+     if(y>=74&&Color.red(pixel)>225&&Color.green(pixel)>225&&Color.blue(pixel)>225)captionPixels++;
+    }
+    assertTrue("Category '"+categories[i]+"' is visible",bottom>top);
+    assertTrue("Category '"+categories[i]+"' is horizontally centered like magnitude",Math.abs((left+right)/2f-BroadcastVisuals.EVENT_CENTER_X)<=6f);
+    assertTrue("Category '"+categories[i]+"' remains in seismic center column",top>=31&&bottom<=73);
+    assertTrue("Caption '"+captions[i]+"' stays below like seismic subtitle",captionPixels>6);
+   }finally{b.recycle();}
+  }
+  assertEquals(56f,BroadcastVisuals.EVENT_CENTER_X,0f);
+  assertEquals(72f,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,0f);
+ }
  @Test public void everyPrimaryValueUsesOneOpticalCenterForReadableTVLabels()throws Exception{
   WeatherForecast.Summary weather=new WeatherForecast.Summary("19°C","Nublado","Vento 12 km/h","Umidade 81%","Modelo horário",
    System.currentTimeMillis()+600000,false,"19°C","20°C","81%","12 km/h","19 km/h","Cloudy");

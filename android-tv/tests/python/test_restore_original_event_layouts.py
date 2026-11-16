@@ -16,7 +16,7 @@ BANNER = (ROOT / "Banner.java").read_text(encoding="utf-8")
 class OriginalEventLayoutsTest(unittest.TestCase):
     def test_temperature_has_four_separate_information_columns(self):
         for piece in (
-            'primary(c,"TEMPO",11,30,',
+            'eventCategory(c,"TEMPO","LIBERDADE · SP")',
             'primary(c,weather==null?"—":weather.temperatureValue,124,39,',
             'icon(c,0,251,42,30)',
             'label(c,sky,290,58,',
@@ -29,7 +29,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
 
     def test_rain_restores_original_icons_and_three_metric_columns(self):
         for piece in (
-            'primary(c,facts.topic,11,30,',
+            'eventCategory(c,facts.topic,"LIBERDADE · SP")',
             'icon(c,0,127,41,28)',
             'label(c,facts.headline,165,60,23,',
             'label(c,facts.end,127,86,16,',
@@ -41,21 +41,21 @@ class OriginalEventLayoutsTest(unittest.TestCase):
 
     def test_brent_dollar_restore_their_prior_placement(self):
         for piece in (
-            'primary(c,"BRENT",12,31,',
+            'eventCategory(c,"BRENT","NYMEX")',
             'primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,',
             'fitted(c,oilChange,402,73,25,',
             'fill(c,575,41,1,43,',
             'fitted(c,"DÓLAR · GLOBAL",593,47,21,',
             'label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,',
-            'label(c,"CONSULTA POR VOZ",12,83,13,',
+            'eventCategory(c,"BRENT","NYMEX")',
         ):
             self.assertIn(piece, WEATHER)
 
     def test_satellite_and_voice_restore_prior_display_order(self):
         for piece in (
-            'primary(c,"SATÉLITE",12,32,',
+            'eventCategory(c,"SATÉLITE","GOES-EAST")',
             'primary(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,',
-            'primary(c,"CONSULTA",12,31,',
+            'eventCategory(c,"CONSULTA","POR VOZ")',
             'primary(c,voiceTitle,170,27,',
             'label(c,voiceDetail,170,88,16,',
         ):
@@ -67,13 +67,16 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn('drawHeadline(c,p,elapsed,width,size)', SEISMIC)
         self.assertIn('drawPage(c,pages[index],elapsed,255,0)', SEISMIC)
         self.assertIn('else if(a.kind.equals("tsunami"))', SEISMIC)
-        self.assertIn('else centerText(c,p.magnitude,56f,72,36,', SEISMIC)
+        self.assertIn('else centerText(c,p.magnitude,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,36,', SEISMIC)
         self.assertIn('c.clipRect(0,0,960,24)', SEISMIC)
 
     def test_shared_vertical_alignment_is_used_for_weather_rain_market_satellite_voice(self):
         self.assertIn("BroadcastVisuals.centeredBodyBaseline(p,brand,chosen)", WEATHER)
         self.assertIn("BODY_VISUAL_CENTER_Y=61f", CHROME)
-        for phrase in ('primary(c,"TEMPO"', 'primary(c,"BRENT"', 'primary(c,"SATÉLITE"', 'primary(c,"CONSULTA"', 'primary(c,facts.topic,'):
+        self.assertIn("EVENT_CENTER_X=56f,EVENT_MAGNITUDE_BASELINE=72f", CHROME)
+        self.assertIn('BroadcastVisuals.eventCategory(c,p,brand,title,caption', WEATHER)
+        self.assertIn('BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI"', SEISMIC)
+        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"BRENT"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):
             self.assertIn(phrase, WEATHER)
         self.assertIn("B3 FECHADA · SEG 09H (REGULAR)", WEATHER)
 
