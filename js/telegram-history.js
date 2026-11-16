@@ -135,18 +135,19 @@
    if(row.total!=null)body.append(n('p',row.total+' sismos · '+(row.format==='text'?'envio em texto':'envio com imagem')));
    if(row.legacy)body.append(n('p','Envio anterior confirmado. Não há histórico detalhado dessas tentativas.','tg-note'));
    if(row.kind==='daily'&&row.day==='2026-11-15'){
+     if(row.previousRepost?.status==='sent')body.append(n('p','Republicação anterior preservada. Mensagem: '+(row.previousRepost.messageId||'confirmada'),'tg-note'));
      if(row.repost?.status==='sent'){
-       body.append(n('p','Novo visual republicado no Telegram. Mensagem: '+(row.repost.messageId||'confirmada')+' · '+fmt(row.repost.at),'tg-note'));
+       body.append(n('p','Arte clássica republicada no Telegram. Mensagem: '+(row.repost.messageId||'confirmada')+' · '+fmt(row.repost.at),'tg-note'));
      }else if(row.repost?.status==='sending'||row.repost?.status==='uncertain'){
        body.append(n('p','Republicação em andamento ou sem confirmação. Verifique o canal; o sistema não repetirá este envio automaticamente.','tg-note'));
      }else if(row.status==='sent'&&row.messageId){
-       const btn=n('button','Republicar resumo de 15/11 com o logo oficial');btn.type='button';
+       const btn=n('button','Republicar resumo de 15/11 com a arte greco-romana');btn.type='button';
        btn.onclick=async()=>{
-         if(!window.confirm('Enviar UMA nova publicação do resumo de 15/11/2026 com o logo oficial Argos Orbis? A postagem original será preservada.'))return;
+         if(!window.confirm('Enviar UMA nova publicação do resumo de 15/11/2026 com a arte greco-romana do Argos Orbis? As mensagens anteriores serão preservadas.'))return;
          btn.disabled=true;message.textContent='Solicitando republicação única…';
          try{
            const reply=await request('/telegram-daily-repost?day=2026-11-15',false,'POST');
-           message.textContent=reply.resent?'Novo visual republicado no Telegram.':reply.reason||'Já existe uma republicação ou tentativa registrada.';
+           message.textContent=reply.resent?'Arte clássica republicada no Telegram.':reply.reason||'Já existe uma republicação ou tentativa registrada.';
            data=await request('/telegram-history');
          }catch(error){message.textContent='Não foi possível confirmar o envio. Verifique o canal antes de tentar novamente: '+error.message}
          finally{btn.disabled=false}
