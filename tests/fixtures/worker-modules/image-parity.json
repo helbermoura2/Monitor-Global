@@ -8,9 +8,9 @@
     "pngBefore": "c273b827ce1c5828fcc5b148fc7b151b1d088aa69ada5ee41a9c329d37c31825",
     "pngAfter": "c273b827ce1c5828fcc5b148fc7b151b1d088aa69ada5ee41a9c329d37c31825",
     "previousHeight": 2688,
-    "previousApprovedPixels": "a9cbc45b3f39a8a3ef0426edbe9c245d66120a0d0d64242fc9d65099de301e62",
-    "approvedPixels": "06b95ea7d936992e7e98c4da75533952c3faebfba2a9f1dea1b8956ca5a6fca1",
-    "approvedLayout": "argos-orbis-daily-v14"
+    "previousApprovedPixels": "06b95ea7d936992e7e98c4da75533952c3faebfba2a9f1dea1b8956ca5a6fca1",
+    "approvedPixels": "3103b4af00932795fb40adef50e679bcb329c5360e320294a6cc4ee597e624e1",
+    "approvedLayout": "argos-orbis-panoptes-imperial-v1"
   },
   "empty": {
     "width": 1800,
@@ -21,9 +21,9 @@
     "pngBefore": "d9b86bfaf9eacd59498d9e0574ba0a56954b8b17496b1ef85481b6175adb18ed",
     "pngAfter": "d9b86bfaf9eacd59498d9e0574ba0a56954b8b17496b1ef85481b6175adb18ed",
     "previousHeight": 2688,
-    "previousApprovedPixels": "d354e7dbfec105d423636b6256f322586668dc0575a03bec2c33b66f4f74593e",
-    "approvedPixels": "e06a0690c5de8dd44add446f622effdb91dc3a0f8f23b4807aaebdc474bbe9a7",
-    "approvedLayout": "argos-orbis-daily-v14-empty"
+    "previousApprovedPixels": "e06a0690c5de8dd44add446f622effdb91dc3a0f8f23b4807aaebdc474bbe9a7",
+    "approvedPixels": "ee1d73cce3dd036884ec94c5903cfb4fc192b2f0a3c7e559a6a86eb62fb36750",
+    "approvedLayout": "argos-orbis-panoptes-imperial-v1-empty"
   },
   "alert": {
     "width": 1080,
