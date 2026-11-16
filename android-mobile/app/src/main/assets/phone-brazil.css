@@ -112,3 +112,7 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 /* Scroll horizontally through verified model fields without reducing map height. */
 .brazil-layers{display:flex!important;grid-template-columns:none!important;overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:3px}
 .brazil-layers button{min-width:76px!important;flex:0 0 auto!important;white-space:nowrap;padding-inline:9px!important}
+
+/* Date of observed image belongs to the observation; stale frames must not look live. */
+.brazil-map-panel .frame-badge[data-stale="true"]{border-color:#e9ad59;background:#30251ddd}
+.brazil-map-panel .frame-badge[data-stale="true"] strong{color:#ffcf8a}
