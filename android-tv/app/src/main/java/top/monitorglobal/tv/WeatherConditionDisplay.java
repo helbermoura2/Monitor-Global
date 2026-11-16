@@ -36,14 +36,15 @@ final class WeatherConditionDisplay {
     if(minute.arrivalMinutes>=0)return "Chuva em ~"+minute.arrivalMinutes+" min";
     return "Chuva prevista";
    }
-   if("dry".equals(minute.state)&&hourly!=null&&precipitation(hourly.conditionKey))
-    return "Sem chuva estimada";
   }
   if(hourly==null)return minute==null?"Condição indisponível":minute.title;
+  // Dry minute precipitation cannot erase the hourly sky description.
+  // If hourly rain and the minute forecast disagree, show the hourly model as a forecast.
   if(precipitation(hourly.conditionKey))
    return "Previsão: "+hourly.condition.toLowerCase(Locale.forLanguageTag("pt-BR"));
-  return hourly.condition;
+  return WeatherForecast.sky(hourly,System.currentTimeMillis());
  }
+
  static String detail(WeatherForecast.Summary hourly,RainForecast.Summary minute){
   minute=current(minute);
   String feels=hourly!=null&&hourly.expiresAt>System.currentTimeMillis()&&!hourly.feelsValue.equals("—")?"Sensação "+hourly.feelsValue:"Sensação —";
