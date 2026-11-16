@@ -155,6 +155,27 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
+ @Test public void datedB3FuturesCloseDisplaysWithContractAndNeverGlobalSpot()throws Exception{
+  long now=System.currentTimeMillis();
+  java.time.LocalDate day=java.time.Instant.ofEpochMilli(now)
+   .atZone(java.time.ZoneId.of("America/Sao_Paulo")).toLocalDate().minusDays(1);
+  while(day.getDayOfWeek()==java.time.DayOfWeek.SATURDAY||day.getDayOfWeek()==java.time.DayOfWeek.SUNDAY)day=day.minusDays(1);
+  String html="<html><h1>Dólar Comercial Futuro</h1>"+
+   "<h2>Fechamento: "+day.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/uuuu"))+"</h2>"+
+   "<div>Fonte: B3</div><table><tr><th>Contrato</th><th>Fechamento (R$/US$)</th><th>Variação (%)</th></tr>"+
+   "<tr><td>Dezembro/26</td><td>5.684,00</td><td>+0,26</td></tr></table></html>";
+  DollarQuote official=DollarQuote.fromB3CloseHtml(html,now);
+  assertNotNull(official);assertTrue(official.b3Close);
+  TvBroadcastInfoView tv=TvBroadcastInfoView.market(c,null,official,false);
+  String spoken=String.valueOf(tv.getContentDescription());
+  assertTrue(spoken.contains("DÓLAR FUTURO · B3 DOL"));
+  assertTrue(spoken.contains("R$ 5,684"));
+  assertTrue(spoken.contains("ÚLTIMO FECHAMENTO"));
+  assertTrue(spoken.contains("Dezembro/26"));
+  assertFalse(spoken.contains("DÓLAR USD/BRL · GLOBAL"));
+  Bitmap image=render(tv,"b3-dol-closing-only");
+  try{assertEquals(126,image.getHeight());}finally{image.recycle();}
+ }
  @Test public void brentMarketStateUsesSameTopRowAsDollarWithNoLowerLeftBadge()throws Exception{
   assertEquals("ABERTO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.OPEN,"fonte")));
   assertEquals("FECHADO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.CLOSED,"fonte")));
