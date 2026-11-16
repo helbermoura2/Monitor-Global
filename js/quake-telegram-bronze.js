@@ -3,7 +3,8 @@
  const MAP_Y=284,MAP_HEIGHT=750,ANCHOR_Y=376;
  const CONTEXT={x:0,y:0,width:0,height:0,imageX:0,imageY:0,imageWidth:0,imageHeight:0};
  const GOLD='#bc8d66',IVORY='#ead0a5',DARK='#201915',STONE='#38291f',BLACK='#130f0d',DIM='#b8a187',RED='#dd8c6b';
- const TSUNAMI_Y=902,TSUNAMI_HEIGHT=132;
+ // Same archived tsunami strip as the original glass renderer (930..1076).
+ const TSUNAMI_Y=930,TSUNAMI_HEIGHT=132;
  function telegramFrame(ev){
   const f=globalThis.QuakeCardLayout.frame(ev),span=f.maxLon-f.minLon;
   return {...f,height:MAP_HEIGHT,anchorY:ANCHOR_Y,minLat:Number(ev.lat)-span*(MAP_HEIGHT-ANCHOR_Y)/800,maxLat:Number(ev.lat)+span*ANCHOR_Y/800};
@@ -91,20 +92,20 @@
   p.rect(cx-2,cy-27,4,54,GOLD);p.rect(cx-27,cy-2,54,4,GOLD);
   for(const [s,x,yy]of [['N',cx-8,cy-57],['S',cx-7,cy+41],['O',cx-55,cy-12],['L',cx+42,cy-12]])label(p,s,x,yy,16,IVORY,true,35);
   drawTsunami(p,ev.imageTsunami);
-  frame(p,34,1060,732,277);
-  for(let x=57;x<740;x+=24){p.rect(x,1065,14,2,'#75533b');p.rect(x,1329,14,2,'#75533b');}
+  frame(p,34,1080,732,257);
+  for(let x=57;x<740;x+=24){p.rect(x,1085,14,2,'#75533b');p.rect(x,1329,14,2,'#75533b');}
   const when=realDate(ev);
-  label(p,'DATA · BRT',60,1095,16,DIM,true,224);
-  label(p,when.date,60,1134,23,IVORY,true,236);
-  label(p,when.hour,60,1171,21,IVORY,false,230);
-  p.rect(306,1095,2,101,GOLD);
-  label(p,'PROFUNDIDADE',331,1095,16,DIM,true,220);
+  label(p,'DATA · BRT',60,1110,16,DIM,true,224);
+  label(p,when.date,60,1145,23,IVORY,true,236);
+  label(p,when.hour,60,1178,21,IVORY,false,230);
+  p.rect(306,1110,2,92,GOLD);
+  label(p,'PROFUNDIDADE',331,1110,16,DIM,true,220);
   const depth=ev.depth!=null&&ev.depth!==''&&Number.isFinite(Number(ev.depth))?Math.abs(Number(ev.depth)).toLocaleString('pt-BR',{maximumFractionDigits:1})+' km':'Não informada';
-  label(p,depth,331,1136,27,IVORY,true,214);
-  p.rect(556,1095,2,101,GOLD);
-  label(p,'FONTE',579,1095,16,DIM,true,160);
-  label(p,ev.source||'Não informada',579,1138,22,IVORY,true,167);
-  p.rect(58,1210,680,2,GOLD);
+  label(p,depth,331,1150,27,IVORY,true,214);
+  p.rect(556,1110,2,92,GOLD);
+  label(p,'FONTE',579,1110,16,DIM,true,160);
+  label(p,ev.source||'Não informada',579,1150,22,IVORY,true,167);
+  p.rect(58,1215,680,2,GOLD);
   const revision=ev.reviewed?'Revisado':ev.reviewStatus==='unknown'?'Revisão não informada':'Registro automático';
   label(p,revision,59,1235,19,IVORY,false,306);
   p.rect(387,1231,2,77,GOLD);
