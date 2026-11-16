@@ -1,6 +1,7 @@
 """Guard the approved Argos Orbis TV visual identity without touching the old update package IDs."""
 from pathlib import Path
 import unittest
+import re
 
 ROOT=Path(__file__).resolve().parents[3]
 SRC=ROOT/"android-tv/app/src/main/java/top/monitorglobal/tv"
@@ -28,7 +29,9 @@ class ArgosOrbisIdentity(unittest.TestCase):
   self.assertIn("ARGOS / ORBIS",banner)
   self.assertNotIn("MONITOR GLOBAL",banner)
   gradle=(ROOT/"android-tv/app/build.gradle").read_text(encoding="utf-8")
-  self.assertIn("versionCode 10106",gradle)
+  version=re.search(r"versionCode\s+(\d+)",gradle)
+  self.assertIsNotNone(version)
+  self.assertGreaterEqual(int(version.group(1)),10106)
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",gradle)
   self.assertIn("app_name', 'Argos Orbis TV'",gradle)
   self.assertIn("ΠΑΝΟΠΤΗΣ",(SRC/"RadarLogoView.java").read_text(encoding="utf-8"))

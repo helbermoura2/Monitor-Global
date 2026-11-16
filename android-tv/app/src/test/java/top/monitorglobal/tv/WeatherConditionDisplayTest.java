@@ -17,17 +17,23 @@ public class WeatherConditionDisplayTest {
  }
  @Test public void photoSituationDoesNotClaimHourlyModelRainIsObservedNow(){
   WeatherForecast.Summary w=hourly("Rain","Chuva");
-  assertEquals("Sem chuva estimada",WeatherConditionDisplay.headline(w,minute("dry",-1)));
+  assertEquals("Previsão: chuva",WeatherConditionDisplay.headline(w,minute("dry",-1)));
   assertEquals("Sensação 24°C",WeatherConditionDisplay.detail(w,minute("dry",-1)));
   assertTrue(WeatherConditionDisplay.sourceNote(w,minute("dry",-1)).contains("estimativa por minuto sem chuva"));
   assertEquals("Previsão: chuva",WeatherConditionDisplay.headline(w,null));
  }
  @Test public void minuteForecastCanIndicateRainTimingWithoutReplacingSkyObservations(){
   WeatherForecast.Summary cloudy=hourly("PartlyCloudy","Parcialmente nublado");
-  assertEquals("Parcialmente nublado",WeatherConditionDisplay.headline(cloudy,minute("dry",-1)));
+  assertEquals(WeatherForecast.sky(cloudy,System.currentTimeMillis()),WeatherConditionDisplay.headline(cloudy,minute("dry",-1)));
   assertEquals("Chuva em ~12 min",WeatherConditionDisplay.headline(cloudy,minute("soon",12)));
   assertEquals("Chuva prevista",WeatherConditionDisplay.headline(cloudy,minute("now",0)));
-  assertEquals("Parcialmente nublado",WeatherConditionDisplay.headline(cloudy,null));
+  assertEquals(WeatherForecast.sky(cloudy,System.currentTimeMillis()),WeatherConditionDisplay.headline(cloudy,null));
+ }
+ @Test public void dryMinutePreservesVerifiedHourlySkyAndDoesNotInventSunshine(){
+  WeatherForecast.Summary clouds=hourly("Cloudy","Nublado");
+  assertEquals("Nublado",WeatherConditionDisplay.headline(clouds,minute("dry",-1)));
+  assertEquals("Céu limpo",WeatherForecast.sky(hourly("Clear","Céu limpo"),java.time.Instant.parse("2026-11-16T06:00:00Z").toEpochMilli()));
+  assertEquals("Ensolarado",WeatherForecast.sky(hourly("Clear","Céu limpo"),java.time.Instant.parse("2026-11-16T18:00:00Z").toEpochMilli()));
  }
  @Test public void currentRainHasIntensityAndRateWithoutTechnicalLine(){
   RainForecast.Summary rain=new RainForecast.Summary("now","fraca","Chuva fraca estimada agora",1.2,1.2,"",NOW,NOW+600000,true,0,30,30,1.2,"Duração restante estimada: ~30 min");

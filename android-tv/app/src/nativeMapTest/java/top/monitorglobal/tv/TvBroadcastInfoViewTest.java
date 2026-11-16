@@ -221,7 +221,7 @@ public class TvBroadcastInfoViewTest {
    "Término não aplicável",System.currentTimeMillis(),System.currentTimeMillis()+300000,false);
   TvBroadcastInfoView view=TvBroadcastInfoView.weather(c,minute,model,false);
   String accessible=String.valueOf(view.getContentDescription());
-  assertTrue(accessible.contains("CONDIÇÃO ESTIMADA: Sem chuva estimada"));
+  assertTrue(accessible.contains("CONDIÇÃO ESTIMADA: Previsão: chuva"));
   assertTrue(accessible.contains("MODELO HORÁRIO: Chuva"));
   assertTrue(accessible.contains("estimativa por minuto sem chuva"));
   Bitmap screenshot=render(view,"hourly-rain-vs-dry-minute");

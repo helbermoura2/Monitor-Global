@@ -108,6 +108,15 @@ public class PhoneActivityTest {
  @Test public void notificationCategoriesAreIndependentAndDoNotEnablePushWithoutConsent(){
   root().findViewWithTag("tab-notices").performClick();named(root(),"Configurar notificações").performClick();layout();android.widget.Switch rain=(android.widget.Switch)root().findViewWithTag("push-category-rain");assertNotNull(rain);assertTrue(rain.isChecked());rain.setChecked(false);assertFalse(PhonePush.categoryEnabled(activity,"rain"));assertTrue(PhonePush.categoryEnabled(activity,"weather"));assertFalse(PhonePush.enabled(activity));assertNotNull(root().findViewWithTag("push-category-daily"));
  }
+ @Test public void dryForecastShowsCloudCoverOnBothHomeAndWeatherInsteadOfReplacingSky(){
+  long now=System.currentTimeMillis();
+  WeatherForecast.Summary cloudy=new WeatherForecast.Summary("23°C","Nublado","18 km/h","67%","Modelo horário",now+600000,false,"23°C","24°C","67%","18 km/h","18 km/h","Cloudy");
+  RainForecast.Summary dry=new RainForecast.Summary("dry","","Sem chuva estimada · próxima hora",0,0,"",now,now+600000,false);
+  PhoneRepository.Snapshot base=data();
+  activity.applySnapshot(new PhoneRepository.Snapshot(base.events,cloudy,dry,now,"Eventos atualizados","Modelo horário","Chuva por minuto",false,true,true));
+  layout();String home=texts(root());assertTrue(home.contains("Nublado"));assertTrue(home.contains("Sem chuva estimada"));
+  root().findViewWithTag("tab-weather").performClick();layout();String weather=texts(root());assertTrue(weather.contains("Nublado"));assertTrue(weather.contains("Sem chuva estimada"));
+ }
  @Test public void weatherUsesOneMinuteRainReadingAndDoesNotCallMissingHoursDry()throws Exception{
   long now=System.currentTimeMillis();org.json.JSONArray rows=new org.json.JSONArray();for(int i=0;i<120;i++){double rate=i<10?0:i<20?.1:i<30?.5:2.4;rows.put(new org.json.JSONObject().put("start",now+i*60000).put("end",now+(i+1)*60000).put("rate",rate).put("type",rate==0?"no_precipitation":"rain"));}
   org.json.JSONObject d=new org.json.JSONObject().put("ok",true).put("version","tv-rain-v1").put("area","liberdade").put("loc",new org.json.JSONObject().put("lat",-23.555).put("lng",-46.635)).put("at",now).put("expiresAt",now+600000).put("forecast",rows);

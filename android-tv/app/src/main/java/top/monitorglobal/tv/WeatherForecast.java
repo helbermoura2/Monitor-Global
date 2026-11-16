@@ -27,6 +27,34 @@ final class WeatherForecast {
  static boolean storm(String key){return key.equals("Thunderstorms")||key.equals("StrongStorms")||key.equals("ScatteredThunderstorms")||key.equals("IsolatedThunderstorms");}
  static String metric(JSONObject p,String key,double min,double max,String unit){double n=p.optDouble(key,Double.NaN);return Double.isFinite(n)&&n>=min&&n<=max?Math.round(n)+unit:"—";}
  static String condition(String key){switch(key){case "Clear":return "Céu limpo";case "MostlyClear":return "Predomínio de céu limpo";case "PartlyCloudy":return "Parcialmente nublado";case "MostlyCloudy":case "Cloudy":return "Nublado";case "Foggy":return "Nevoeiro";case "Haze":return "Névoa";case "Drizzle":return "Garoa";case "Rain":return "Chuva";case "HeavyRain":return "Chuva forte";case "Thunderstorms":case "StrongStorms":case "ScatteredThunderstorms":case "IsolatedThunderstorms":return "Trovoadas";case "Snow":return "Neve";case "HeavySnow":return "Neve forte";default:return "Condição indisponível";}}
+ /** Description from the hourly forecast; minute rain does not define cloud cover. */
+ static String sky(Summary weather,long at){
+  if(weather==null)return "Condição horária indisponível";
+  boolean day=isDay(at);
+  switch(weather.conditionKey){
+   case "Clear":return day?"Ensolarado":"Céu limpo";
+   case "MostlyClear":return day?"Predomínio de sol":"Céu quase limpo";
+   case "PartlyCloudy":return day?"Sol entre nuvens":"Parcialmente nublado";
+   case "MostlyCloudy":return "Muitas nuvens";
+   case "Cloudy":return "Nublado";
+   default:return weather.condition;
+  }
+ }
+ /** Solar horizon for Liberdade, São Paulo, independent of device timezone. */
+ static boolean isDay(long epochMillis){
+  double d=epochMillis/86400000.0+2440587.5-2451545.0;
+  double meanLongitude=280.460+0.9856474*d;
+  double anomaly=Math.toRadians(357.528+0.9856003*d);
+  double eclipticLongitude=Math.toRadians(meanLongitude+1.915*Math.sin(anomaly)+0.020*Math.sin(2*anomaly));
+  double obliquity=Math.toRadians(23.439-0.0000004*d);
+  double rightAscension=Math.toDegrees(Math.atan2(Math.cos(obliquity)*Math.sin(eclipticLongitude),Math.cos(eclipticLongitude)));
+  double declination=Math.asin(Math.sin(obliquity)*Math.sin(eclipticLongitude));
+  double siderealLongitude=280.46061837+360.98564736629*d-46.635;
+  double hourAngle=Math.toRadians(Math.IEEEremainder(siderealLongitude-rightAscension,360.0));
+  double latitude=Math.toRadians(-23.555);
+  double sinElevation=Math.sin(latitude)*Math.sin(declination)+Math.cos(latitude)*Math.cos(declination)*Math.cos(hourAngle);
+  return sinElevation>=Math.sin(Math.toRadians(-0.833));
+ }
  static String time(long at){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("HH:mm 'BRT'",java.util.Locale.ROOT);f.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return f.format(new java.util.Date(at));}
  static Summary summarize(JSONObject d,long now)throws JSONException{
   if(!d.optBoolean("ok")||!d.optString("version").equals("tv-weather-v1")||!d.optString("area").equals("liberdade"))return null;
