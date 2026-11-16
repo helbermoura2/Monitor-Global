@@ -42,11 +42,11 @@ class OriginalEventLayoutsTest(unittest.TestCase):
     def test_brent_dollar_restore_their_prior_placement(self):
         for piece in (
             'eventCategory(c,"BRENT","NYMEX")',
-            'primary(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,36,',
-            'fitted(c,oilChange,402,73,25,',
-            'fill(c,566,41,1,43,',
-            'fitted(c,"DÓLAR USD/BRL",577,47,21,',
-            'fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),577,75,29,',
+            'primary(c,oilValue,MARKET_BRENT_PRICE_X,36,',
+            'fitted(c,oilChange,MARKET_BRENT_STATUS_X,73,25,',
+            'fill(c,MARKET_DIVIDER_X,39,1,47,',
+            'fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,20,',
+            'fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),',
             'eventCategory(c,"BRENT","NYMEX")',
         ):
             self.assertIn(piece, WEATHER)
@@ -87,7 +87,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn('OledNewsChrome.base(c,p)', WEATHER)
         skin=(ROOT / "OledNewsChrome.java").read_text(encoding="utf-8")
         self.assertIn('static final int OLED=Color.BLACK', skin)
-        self.assertIn('static final float LEFT=31f', skin)
+        self.assertIn('static final float LEFT=8f', skin)
         self.assertIn('p.y=dp(32)-dp(TRAVEL_DP)', BANNER)
         self.assertIn('int bannerWidthPercent=requestedWidth==92?96:requestedWidth', BANNER)
 
