@@ -1,8 +1,7 @@
-"""Regression contract: retain approved weather/market columns with safe logo insets.
+"""Regression contract: TV data columns plus compact professional labels.
 
-The newsroom experiment changed the internal presentation of every event and
-made the seismic subtitle collide with its header. The extended red tabs and
-the 32-unit footer predate that experiment and must remain.
+Shortened top badges preserve real market/weather data, event map, footer
+totals and shared official Argos artwork.
 """
 import pathlib
 import unittest
@@ -30,7 +29,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
 
     def test_rain_restores_original_icons_and_three_metric_columns(self):
         for piece in (
-            'label(c,facts.topic,11,70,29,',
+            'label(c,facts.topic,11,64,29,',
             'icon(c,0,127,41,28)',
             'label(c,facts.headline,165,60,23,',
             'label(c,facts.end,127,86,16,',
@@ -43,10 +42,10 @@ class OriginalEventLayoutsTest(unittest.TestCase):
     def test_brent_dollar_restore_their_prior_placement(self):
         for piece in (
             'label(c,"BRENT",12,44,19,',
-            'label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,68,37,',
-            'label(c,variation,402,66,25,',
+            'label(c,brent==null?"US$ —":"US$ "+amount(brent.price),138,70,36,',
+            'fitted(c,oilChange,402,73,25,',
             'fill(c,575,41,1,43,',
-            'label(c,"DÓLAR USD/BRL",593,44,16,',
+            'label(c,"DÓLAR · GLOBAL",593,44,17,',
             'label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,',
             'label(c,"CONSULTA POR VOZ",12,83,13,',
         ):
@@ -64,7 +63,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
 
     def test_sismos_tsunami_replay_and_summary_have_original_caption_space(self):
         self.assertIn('c.clipRect(0,24,844,BroadcastVisuals.FOOTER_TOP)', SEISMIC)
-        self.assertIn('fitText(c,p.caption,HEADLINE_X,36,11,', SEISMIC)
+        self.assertIn('fitText(c,p.caption,HEADLINE_X,37,13,', SEISMIC)
         self.assertIn('drawHeadline(c,p,elapsed,width,size)', SEISMIC)
         self.assertIn('drawPage(c,pages[index],elapsed,255,0)', SEISMIC)
         self.assertIn('else if(a.kind.equals("tsunami"))', SEISMIC)
@@ -72,7 +71,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn('c.clipRect(0,0,960,24)', SEISMIC)
 
     def test_header_footer_and_position_stay_as_pre_redesign(self):
-        self.assertIn('BREAKING_WIDTH=260f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f', CHROME)
+        self.assertIn('BREAKING_WIDTH=190f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f', CHROME)
         self.assertNotIn('newsroomBody(', CHROME)
         self.assertIn('c.clipPath(outline);fill(c,0,24,960,102,background)', WEATHER)
         self.assertIn('p.y=dp(32)-dp(TRAVEL_DP)', BANNER)
