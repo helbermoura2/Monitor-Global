@@ -191,22 +191,14 @@ final class TvBroadcastInfoView extends View {
    width=Math.max(identityWidths[0],identityWidths[1]);
   return OledNewsChrome.BRAND_PLATE_LEFT;
  }
- private void identity(Canvas c,int index,int opacity){
-  OledNewsChrome.brandFooter(c,p,index==0?"argosorbis.com.br":"@argosorbis",index==1,opacity);
- }
  private void drawIdentity(Canvas c,long elapsed){
-  // The footer gradient and right brand plate are painted by the shared OLED skin.
+  // Same one-at-a-time site/Telegram fade used by seismic and daily summary banners.
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
   fill(c,31,BroadcastVisuals.FOOTER_TOP,75,BroadcastVisuals.FOOTER_HEIGHT,OledNewsChrome.RED_DARK);
   p.setTypeface(data);p.setTextSize(18);
   label(c,clockText,68-p.measureText(clockText)/2,118,17,Color.WHITE,data,69);
-  int index=BannerTimeline.page(elapsed,2);
-  long within=elapsed%BannerTimeline.PAGE_MS;
-  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS){
-   float t=BannerTimeline.progress(within);
-   identity(c,1-index,(int)(255*(1-t)));identity(c,index,(int)(255*t));
-  }else identity(c,index,255);
+  OledNewsChrome.brandFooter(c,p,elapsed,animate);
   c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
   p.setTypeface(data);p.setTextSize(13);float length=p.measureText(ticker)+96;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
