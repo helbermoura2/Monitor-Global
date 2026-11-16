@@ -4,15 +4,16 @@ import {renderAlertImage,decodePng,patchAlertTsunami} from '../../worker/image-r
 import {telegramCardVersion,imageRefreshDue} from '../../telegram-image-refresh.mjs';
 const B=globalThis.QuakeTelegramBronzeLayout;
 function recorder(){
- const texts=[],flags=[],logos=[];
+ const texts=[],flags=[],logos=[],telegramIcons=[];
  const p={
   measure:(s,z)=>String(s).length*z*.52,
   text:(s,x,y,size)=>texts.push({s:String(s),x,y,size}),
   flag:(kind,code,x,y,w,h)=>flags.push({kind,code,x,y,w,h}),
   officialLogo:(...args)=>logos.push(args),
+  telegramIcon:(...args)=>telegramIcons.push(args),
   rect(){},roundRect(){},dot(){},arc(){},gradient(){},
  };
- return {p,texts,flags,logos};
+ return {p,texts,flags,logos,telegramIcons};
 }
 const quake={mag:6.7,lat:-7.9,lon:130.1,place:'Tanimbar região das ilhas, Indonésia',imageCountryCode:'ID',timeIso:'2026-11-16T21:11:00Z',depth:10,source:'GEOFON',reviewStatus:'unknown',mmi:'IX',imageMapAvailable:true};
 test('approved bronze M6 layout uses one magnitude badge and a flag immediately after the country',()=>{
@@ -25,6 +26,7 @@ test('approved bronze M6 layout uses one magnitude badge and a flag immediately 
  assert(title,'Country must be displayed');
  assert(a.flags[0].x>title.x,'Flag follows country name, not in a floating box');
  assert.equal(a.logos.length,1,'The full official eye (with inscriptions) is displayed once');
+ assert.equal(a.telegramIcons.length,1,'Telegram paper-plane icon is rendered next to the contiguous handle');
  assert(a.texts.some(t=>t.s==='@argosorbis'));
  assert(a.texts.some(t=>t.s==='argosorbis.com.br'));
  assert(a.texts.some(t=>t.s==='GEOFON'));
