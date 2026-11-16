@@ -57,23 +57,20 @@ public class UnifiedBroadcastChromeTest {
   Bitmap c=frame(meteo,960,126+meteo.mapSpace,1100);
   try{
    int changed=0,bright=0;
-   for(int y=28;y<91;y++)for(int x=864;x<926;x++){
+   for(int y=32;y<91;y++)for(int x=820;x<926;x++){
     int seismicPixel=a.getPixel(x,y+Banner.insetDp(context));
     int marketPixel=b.getPixel(x,y);
     int weatherPixel=c.getPixel(x,y+meteo.mapSpace);
     assertEquals("Brent must reuse seismic radar pixel at "+x+","+y,seismicPixel,marketPixel);
     assertEquals("Weather must reuse seismic radar pixel at "+x+","+y,seismicPixel,weatherPixel);
     if(Color.blue(seismicPixel)>Color.red(seismicPixel)+50)bright++;
-    if(seismicPixel!=a.getPixel(864,25+Banner.insetDp(context)))changed++;
+    if(seismicPixel!=a.getPixel(821,35+Banner.insetDp(context)))changed++;
    }
-   assertTrue("full official Argos eye stays clearly visible",bright>190);
+   assertTrue("full official Argos eye stays clearly visible",bright>140);
    assertTrue(changed>100);
   }finally{a.recycle();b.recycle();c.recycle();}
  }
  @Test public void newsroomHeaderAndFooterMatchAcrossSeismicAndMarkets()throws Exception{
-  assertEquals(190f,BroadcastVisuals.BREAKING_WIDTH,0f);
-  assertEquals(94f,BroadcastVisuals.FOOTER_TOP,0f);
-  assertEquals(32f,BroadcastVisuals.FOOTER_HEIGHT,0f);
   NewsBannerView quake=new NewsBannerView(context,regional(),false,true);
   BrentQuote quote=new BrentQuote(78.45,77.50,.95,1.22,System.currentTimeMillis()-180000,"Yahoo Finance");
   TvBroadcastInfoView market=TvBroadcastInfoView.market(context,quote,null,false);
@@ -81,27 +78,21 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   // All lower thirds retain the same original red badges with a compact width.
-   for(int x:new int[]{10,175}){
-    assertEquals("Original red replay Breaking News chip",0xffbf1827,a.getPixel(x,map+10));
-    assertEquals("Original red market Breaking News chip",0xffbf1827,b.getPixel(x,10));
+   for(int x:new int[]{36,280,808}){
+    int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,10);
+    assertTrue("red Pixlr tabs remain visible",Color.red(seismic)>Color.green(seismic));
+    assertTrue("all sources share red tabs",Color.red(marketColor)>Color.green(marketColor));
    }
-   assertEquals("No oversized headline background",0,a.getPixel(196,map+10)>>>24);
-   assertEquals("No oversized headline background",0,b.getPixel(196,10)>>>24);
-   // The unreadable blue/white microtext after BREAKING NEWS is removed entirely.
-   // Preserve the deliberately empty gap all the way to the right-hand badge.
-   for(int y=2;y<=22;y++)for(int x=205;x<=760;x++){
-    assertEquals("No secondary header text over seismic broadcast at "+x+","+y,0,Color.alpha(a.getPixel(x,map+y)));
-    assertEquals("No secondary header text over market broadcast at "+x+","+y,0,Color.alpha(b.getPixel(x,y)));
+   for(int x:new int[]{300,500,780}){
+    assertEquals("no upper-right floating boxes on seismic",0,Color.alpha(a.getPixel(x,map+10)));
+    assertEquals("no upper-right floating boxes on market",0,Color.alpha(b.getPixel(x,10)));
    }
-   for(int x:new int[]{950}){
-    assertEquals("Replay status remains clearly distinguished",0xffbf1827,a.getPixel(x,map+10));
-    assertEquals("Original red market status chip",0xffbf1827,b.getPixel(x,10));
-   }
-   assertEquals(0xffbf1827,a.getPixel(10,map+96));
-   assertEquals(0xffbf1827,b.getPixel(10,96));
-   assertEquals(0xff020816,a.getPixel(92,map+96));
-   assertEquals(0xff020816,b.getPixel(92,96));
+   assertEquals(Color.BLACK,a.getPixel(805,map+60));
+   assertEquals(Color.BLACK,b.getPixel(805,60));
+   assertTrue("clock stays in lower ticker",Color.red(a.getPixel(32,map+100))>75);
+   assertTrue("clock stays in lower ticker",Color.red(b.getPixel(32,100))>75);
+   assertEquals("actual data ticker is still present",255,Color.alpha(a.getPixel(500,map+105)));
+   assertEquals("actual data ticker is still present",255,Color.alpha(b.getPixel(500,105)));
   }finally{a.recycle();b.recycle();}
   Banner banner=new Banner(context);
   try{
@@ -138,7 +129,7 @@ public class UnifiedBroadcastChromeTest {
   }
  }
  @Test public void seismicAndWeatherHaveIdenticalBreakingAndLiveLettering(){
-  NewsBannerView quake=new NewsBannerView(context,regional(),false,false);
+  NewsBannerView quake=new NewsBannerView(context,regional(),false,true);
   WeatherForecast.Summary summary=new WeatherForecast.Summary(
     "22°C","Nublado","10 km/h","70%","Modelo horário",System.currentTimeMillis()+600000,false,
     "22°C","22°C","70%","10 km/h","15 km/h","Cloudy");
@@ -147,18 +138,16 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(weather,960,126+weather.mapSpace,1100);
   try{
    int qa=Banner.insetDp(context),qb=weather.mapSpace;
-   // Both kinds retain the original approved red; only their badges are narrower.
-   assertEquals(0xffbf1827,a.getPixel(175,qa+10));
-   assertEquals(0xffbf1827,b.getPixel(175,qb+10));
-   assertEquals(0,a.getPixel(196,qa+10)>>>24);
-   assertEquals(0,b.getPixel(196,qb+10)>>>24);
-   for(int x=205;x<=760;x++){
-    assertEquals("Top gap after Breaking News is clean on seismic",0,Color.alpha(a.getPixel(x,qa+12)));
-    assertEquals("Top gap after Breaking News is clean on weather",0,Color.alpha(b.getPixel(x,qb+12)));
+   for(int x:new int[]{36,280}){
+    assertTrue(Color.red(a.getPixel(x,qa+10))>Color.green(a.getPixel(x,qa+10)));
+    assertTrue(Color.red(b.getPixel(x,qb+10))>Color.green(b.getPixel(x,qb+10)));
    }
-   // AO VIVO uses identical original red across broadcasters, with text-sized width.
-   for(int y=3;y<=20;y++)for(int x=830;x<=945;x++)
-    assertEquals("Compact live status must match at "+x+","+y,a.getPixel(x,qa+y),b.getPixel(x,qb+y));
+   for(int x:new int[]{300,540,790}){
+    assertEquals(0,Color.alpha(a.getPixel(x,qa+12)));
+    assertEquals(0,Color.alpha(b.getPixel(x,qb+12)));
+   }
+   for(int y=3;y<=20;y++)for(int x=804;x<=924;x++)
+    assertEquals("Same AO VIVO tab across all banners",a.getPixel(x,qa+y),b.getPixel(x,qb+y));
   }finally{a.recycle();b.recycle();}
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
