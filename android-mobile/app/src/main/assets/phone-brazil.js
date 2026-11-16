@@ -135,10 +135,20 @@ document.querySelectorAll('[data-layer]').forEach(button=>button.addEventListene
 $('city-search').addEventListener('input',showResults);
 $('city-search').addEventListener('keydown',e=>{if(e.key==='Escape')$('city-results').hidden=true;else if(e.key==='Enter'){const match=$('city-results').querySelector('button');if(match){e.preventDefault();match.click();$('city-search').blur();}}});
 function satelliteCheckbox(){return document.querySelector('#overlay-panel .brazil-satellite-control input[type=checkbox]');}
+function observationLabel(timestamp){
+ if(!timestamp)return 'Aguardando quadro observado…';
+ const age=Math.max(0,Date.now()-timestamp);
+ const clock=new Date(timestamp).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ return clock+' BRT · há '+Math.floor(age/60000)+' min'+(age>30*60000?' · imagem defasada':'');
+}
 function observedBadge(){
- const caption=document.querySelector('.frame-badge>span');if(!caption)return;
- if(radar?.enabled){caption.textContent='RADAR · OBSERVADO';const t=radarState?.sourceTime;$('time-label').textContent=t?new Date(t).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT':radarState?.loading?'Consultando quadros…':'Sem quadro disponível';}
- else if(satellite?.state.enabled){caption.textContent='SATÉLITE · INFRAVERMELHO';$('time-label').textContent='Horário nos controles da imagem';}
+ const caption=document.querySelector('.frame-badge>span');
+ if(!caption)return;
+ const badge=document.querySelector('.frame-badge');
+ const observed=radar?.enabled?radarState?.sourceTime:satellite?.state.enabled?satellite.state.dataAt:0;
+ if(badge)badge.dataset.stale=String(!!observed&&Date.now()-observed>30*60000);
+ if(radar?.enabled){caption.textContent='RADAR · OBSERVADO';$('time-label').textContent=observed?observationLabel(observed):radarState?.loading?'Consultando quadros…':'Sem quadro disponível';}
+ else if(satellite?.state.enabled){caption.textContent='SATÉLITE · INFRAVERMELHO';$('time-label').textContent=observationLabel(observed);}
  else {caption.textContent='PREVISÃO · MODELO';if(forecast)showValues();else $('time-label').textContent='Sem previsão disponível';}
 }
 function syncOverlays(){
