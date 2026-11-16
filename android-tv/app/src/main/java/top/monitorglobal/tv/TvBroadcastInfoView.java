@@ -277,6 +277,9 @@ final class TvBroadcastInfoView extends View {
   metric(c,2,weather==null?"—":weather.windValue,"VENTO",626);
   metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",727);
  }
+ static String brazilFxHint(long now){
+  return MarketState.brazilWeekend(now)?"B3 FECHADA · SEG 09H (REGULAR)":"COTAÇÃO GLOBAL · NÃO É B3";
+ }
  private int sessionColor(MarketState s){return s.value==MarketState.OPEN?0xff75edb2:s.value==MarketState.CLOSED?0xffff7687:s.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;}
  // Compact labels fit next to each market name without truncating PAUSADO.
  // Full market state remains available in ticker/accessibility information.
@@ -326,7 +329,7 @@ final class TvBroadcastInfoView extends View {
   String fxReference=dollar==null?"SEM COTAÇÃO CONFIRMADA":(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at);
   // The FX quotation can be OPEN on Sunday night while Brazil's B3 is CLOSED.
   // Keep the B3 qualifier prominent; the exact quote reference remains in the ticker.
-  String fxFoot=MarketState.brazilWeekend(now)?"B3 FECHADA · SEG 09H (REGULAR)":"COTAÇÃO GLOBAL · NÃO É B3";
+  String fxFoot=brazilFxHint(now);
   fitted(c,fxFoot,593,91,14,11,MarketState.brazilWeekend(now)?0xffffd17d:0xffd3e3ed,brand,264);
  }
  private void drawSatelliteNews(Canvas c){
