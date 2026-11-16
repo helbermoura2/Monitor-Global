@@ -30,7 +30,7 @@ class RainAndReplayTest(unittest.TestCase):
   banner=self.read("NewsBannerView.java")
   self.assertIn("scheduleLocal(Collections.singletonList(alert),false,true,delayMs)",service)
   self.assertIn("scheduleVoiceBrazil(result.alerts.get(0),fromButton?10000:1500)",service)
-  self.assertIn('BroadcastVisuals.headerLabel(c,paint,brand,"BREAKING NEWS"',banner)
+  self.assertIn('OledNewsChrome.tab(c,paint,summary?"RESUMO DIÁRIO":"BREAKING NEWS",true)',banner)
   self.assertIn("drawMap(c,index,elapsed,fadeElapsed)",banner)
   self.assertIn("String badgeLabel(){return demo?\"TESTE\":replay?\"REPLAY\"",banner)
 
@@ -39,7 +39,7 @@ class RainAndReplayTest(unittest.TestCase):
   broadcast=self.read("TvBroadcastInfoView.java")
   self.assertIn("banner.showWeather(rain,weather,demo,duration",rain)
   self.assertIn("stopEffect()",rain)
-  self.assertIn('BroadcastVisuals.headerLabel(c,p,brand,"BREAKING NEWS"',broadcast)
+  self.assertIn('OledNewsChrome.tab(c,p,"BREAKING NEWS",true)',broadcast)
   self.assertIn("AO VIVO",broadcast)
   self.assertIn("LIBERDADE / SP",broadcast)
   self.assertIn("MAPA · LIBERDADE / SP",self.read("MapInset.java"))
