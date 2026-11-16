@@ -42,7 +42,7 @@ public class BroadcastBannerTest {
   try{
    assertEquals("pure black main strip",Color.BLACK,b.getPixel(805,60));
    assertEquals("no floating upper boxes",0,Color.alpha(b.getPixel(500,12)));
-   assertEquals("no old navy beyond lower-third",0,Color.alpha(b.getPixel(10,60)));
+   assertEquals("full left category rests on OLED black",Color.BLACK,b.getPixel(20,90));
    int ink=0;
    for(int y=37;y<88;y++)for(int x=38;x<105;x++){
     int pixel=b.getPixel(x,y);
