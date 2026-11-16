@@ -45,7 +45,11 @@ class AlexaBrentNewsroomTest(unittest.TestCase):
         self.assertIn('Verificando diretamente no Yahoo Finance',code)
         self.assertIn('Brent consultado. Verificando a cotação do dólar',code)
         self.assertIn('boolean brentValid=BrentQuote.parse(result',code)
-        self.assertIn('if(!externalReader&&(brentValid||manual&&closedSession))',code)
+        self.assertIn('if(!externalReader&&(forexOpen||brentValid||manual&&closedSession))',code)
+        self.assertIn('yahooFxLastSlot',code)
+        self.assertIn('forexRegular(now)',code)
+        self.assertIn('DollarQuote.fromYahoo(raw,now)',code)
+        self.assertNotIn('MarketDOLWidget',code)
         self.assertIn('sem valor inventado',code)
 
 
