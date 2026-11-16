@@ -88,7 +88,7 @@ public class OledNewsChromeTest {
    for(int y=104;y<122;y++)for(int x=809;x<923;x++){
     if(first.getPixel(x,y)!=second.getPixel(x,y))altered++;
     assertEquals("switching point must contain no address glyphs",
-      blank.getPixel(x,y),blank.getPixel(x,y));
+      0xff333436,blank.getPixel(x,y));
    }
    assertTrue("site and Telegram must have distinct visual labels",altered>40);
    assertEquals("background-only during transition",0xff333436,blank.getPixel(850,112));
