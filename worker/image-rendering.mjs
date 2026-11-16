@@ -862,6 +862,7 @@ function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
     };
     painter.brandText=(text,x,y,size,c)=>painter.text(text,x,y,size,c,true,true);
     painter.officialLogo=(x,y,w,h)=>{if(fonts.officialLogo)drawImageCover(rgba,W,H,fonts.officialLogo,x*sx,y*sy,w*sx,h*sy);};
+    painter.telegramIcon=(x,y)=>{fillCircle(rgba,W,H,x*sx,y*sy,19*sy,188,141,102,255);drawPaperPlaneIcon(rgba,W,H,(x-12)*sx,y*sy,24*sx,30,24,18,[188,141,102]);};
     return painter;
 }
 export async function patchAlertTsunami(png,status,version=globalThis.QuakeTelegramLayout.version){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const bronze=version===globalThis.QuakeTelegramBronzeLayout.version;const background=(version==='telegram-glass-v19'||bronze)?await restoreBackground(png,image):null;const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());(bronze?globalThis.QuakeTelegramBronzeLayout.drawTsunami:version==='telegram-v18'?globalThis.QuakeTelegramLegacyLayout.drawTsunami:version===globalThis.QuakeTelegramLayout.version?globalThis.QuakeTelegramLayout.drawTsunami:['editorial-v16',globalThis.QuakeCardLayout.version].includes(version)?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami)(p,status);const result=await rgbaToPng(image.rgba,image.width,image.height);return background?attachBackground(result,background):result;}
