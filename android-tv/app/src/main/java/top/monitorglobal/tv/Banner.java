@@ -1,8 +1,8 @@
 package top.monitorglobal.tv;
-import android.content.*;import android.graphics.PixelFormat;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.FrameLayout;
+import android.content.*;import android.graphics.PixelFormat;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.FrameLayout;import android.webkit.WebView;
 final class Banner {
  private static final int TRAVEL_DP=12;
- private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss;
+ private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss;private WebView dolWidget;
  Banner(Context c){context=c;}
  static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
@@ -20,9 +20,9 @@ final class Banner {
  }
  boolean showRain(RainForecast.Summary rain,WeatherForecast.Summary weather,boolean demo,long duration,Runnable finished){return showView(TvBroadcastInfoView.rain(context,rain,weather,demo),duration,0,finished);}
  boolean showBrent(BrentQuote quote,DollarQuote dollar,boolean demo,long duration,Runnable finished){
-  return showView(TvBroadcastInfoView.market(context,quote,dollar,demo),duration,0,finished);
+  return showView(TvBroadcastInfoView.market(context,quote,dollar,demo),duration,0,finished,!demo);
  }
- boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo,long duration,Runnable finished){return showView(TvBroadcastInfoView.market(context,quote,dollar,bs,ds,demo),duration,0,finished);}
+ boolean showMarket(BrentQuote quote,DollarQuote dollar,MarketState bs,MarketState ds,boolean demo,long duration,Runnable finished){return showView(TvBroadcastInfoView.market(context,quote,dollar,bs,ds,demo),duration,0,finished,!demo);}
  /** On-demand Alexa Brent opens the SAME hourly strip immediately, never a second corner window. */
  boolean showMarketPending(long duration,Runnable finished){
   return showView(TvBroadcastInfoView.marketPending(context),duration,0,finished);
@@ -35,8 +35,9 @@ final class Banner {
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
  }
  View activeView(){return current;}
- private boolean showView(View row,long duration,int summaryCount,Runnable finished){
-  if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;
+ private boolean showView(View row,long duration,int summaryCount,Runnable finished){return showView(row,duration,summaryCount,finished,false);}
+ private boolean showView(View row,long duration,int summaryCount,Runnable finished,boolean displayB3Widget){
+  if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();clearMarketWidget();onFinished=null;
   boolean animated=android.animation.ValueAnimator.areAnimatorsEnabled();
   // Upgrade the old saved 92% theme default to a 96% newsroom strip on existing installations.
   // Preserve explicitly configured non-default widths.
@@ -46,6 +47,7 @@ final class Banner {
   try{
    BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(animated?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
    else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(animated?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
+   if(displayB3Widget&&MarketDOLWidget.shouldShow(System.currentTimeMillis(),false))attachDOLWidget(host,p.width);
    onFinished=finished;awaiting=row;
    starter=new ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
     clearStarter();if(current!=host||host.getChildAt(0)!=row)return true;
@@ -58,6 +60,21 @@ final class Banner {
    }};row.getViewTreeObserver().addOnPreDrawListener(starter);return true;
   }catch(RuntimeException e){hide();Prefs.status(context,"Não foi possível exibir sobre outro aplicativo. Confira a permissão.");return false;}
  }
+ // TradingView handles all B3 DOL quote rendering; no extraction or JS bridges.
+ private void attachDOLWidget(BannerRevealLayout host,int width){
+  try{
+   WebView widget=MarketDOLWidget.create(context);
+   float sx=width/960f,sy=dp(126)/126f;
+   FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(Math.round(275*sx),Math.round(68*sy),Gravity.TOP|Gravity.LEFT);
+   lp.leftMargin=Math.round(580*sx);lp.topMargin=dp(TRAVEL_DP)+Math.round(26*sy);
+   host.addView(widget,lp);dolWidget=widget;
+  }catch(RuntimeException unavailable){clearMarketWidget();}
+ }
+ private void clearMarketWidget(){
+  if(dolWidget==null)return;
+  WebView old=dolWidget;dolWidget=null;
+  try{old.stopLoading();if(old.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)old.getParent()).removeView(old);old.destroy();}catch(RuntimeException ignored){}
+ }
  private void animateWipe(BannerRevealLayout host,float from,float to){clearWipe();wipe=android.animation.ValueAnimator.ofFloat(from,to);wipe.setDuration(BannerTimeline.WIPE_MS);wipe.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());wipe.addUpdateListener(a->{if(current==host)host.reveal((float)a.getAnimatedValue());});wipe.start();}
  private void clearWipe(){if(wipe!=null){wipe.cancel();wipe.removeAllUpdateListeners();wipe=null;}}
  private void clearStarter(){if(awaiting!=null&&starter!=null&&awaiting.getViewTreeObserver().isAlive())awaiting.getViewTreeObserver().removeOnPreDrawListener(starter);awaiting=null;starter=null;}
@@ -68,6 +85,6 @@ final class Banner {
   if(!android.animation.ValueAnimator.areAnimatorsEnabled()){finish(host,row);return;}
   clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,BannerTimeline.WIPE_MS);animateWipe(host,1,0);
  }
- void hide(){main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
+ void hide(){main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();clearMarketWidget();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
 }
 
