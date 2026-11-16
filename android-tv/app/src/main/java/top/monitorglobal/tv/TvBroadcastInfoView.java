@@ -161,6 +161,8 @@ final class TvBroadcastInfoView extends View {
   float width=BroadcastVisuals.statusWidth(p,brand,value);
   int tint=demo?0xff995b0e:value.equals("AO VIVO")?0xffbf1827:0xff145067;
   rounded(c,960-width,0,width,24,tint,7);
+  // Square the lower corners consistently with NewsBannerView's joined header.
+  fill(c,960-width,17,width,7,tint);
   BroadcastVisuals.headerLabel(c,p,brand,value,960-width,width,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);
  }
  private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
