@@ -34,7 +34,7 @@ public class OledNewsChromeTest {
   try{
    assertEquals("exact OLED #000000, not navy",Color.BLACK,b.getPixel(500,65));
    for(int x:new int[]{350,600,750})assertEquals("no floating info boxes in upper area",0,Color.alpha(b.getPixel(x,8)));
-   assertEquals(0,Color.alpha(b.getPixel(20,60)));
+   assertEquals("black under left category",Color.BLACK,b.getPixel(20,60));
    assertEquals(0,Color.alpha(b.getPixel(940,60)));
    assertEquals(255,Color.alpha(b.getPixel(200,65)));
    assertTrue("footer remains darker than a white panel",Color.red(b.getPixel(400,108))<70);
@@ -61,7 +61,7 @@ public class OledNewsChromeTest {
    }
    assertTrue("real official cyan radar eye",cyan>20);
    assertTrue("official golden eye outline",gold>15);
-   assertTrue("full Argos Orbis wordmark",white>25);
+   assertEquals("no project wordmark in right-hand logo-only block",0,white);
    for(int x=931;x<960;x++)for(int y=32;y<94;y++)
     assertEquals("no brand bleeding into overscan",0,Color.alpha(b.getPixel(x,y)));
   }finally{b.recycle();}
