@@ -35,7 +35,7 @@ public class BroadcastBannerTest {
  }
  @Test public void siteAndTelegramShareTheRightEdge()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),false,true);
-  for(long elapsed:new long[]{1000,9000}){Bitmap b=render(view,elapsed);try{int left=960,right=0,count=0;for(int y=103;y<124;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue(count>30);assertTrue("no overlap with ticker",left>730);assertTrue("site and Telegram inset by 35 coordinate units",right>=875&&right<=925);export(b,elapsed==1000?"site":"telegram");}finally{b.recycle();}}
+  for(long elapsed:new long[]{1000,5100}){Bitmap b=render(view,elapsed);try{int left=960,right=0,count=0;for(int y=103;y<124;y++)for(int x=730;x<960;x++){int p=b.getPixel(x,y);if(Color.red(p)>200&&Color.green(p)>200&&Color.blue(p)>200){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue(count>30);assertTrue("no overlap with ticker",left>730);assertTrue("site and Telegram inset by 35 coordinate units",right>=875&&right<=925);export(b,elapsed==1000?"site":"telegram");}finally{b.recycle();}}
  }
  @Test public void oledBackgroundPreservesEarthquakeMagnitudeWithoutOldNavyPanel()throws Exception{
   NewsBannerView normal=new NewsBannerView(c,alert(),true,false);Bitmap b=render(normal,1000);
@@ -59,7 +59,7 @@ public class BroadcastBannerTest {
  }
  @Test public void compactFooterKeepsTickerAndRotatingSiteTelegram()throws Exception{
   NewsBannerView view=new NewsBannerView(c,alert(),false,true);
-  Bitmap site=render(view,1000),telegram=render(view,9000);
+  Bitmap site=render(view,1000),telegram=render(view,5100);
   try{
    int letters=0,changed=0;
    for(int y=103;y<124;y++)for(int x=112;x<(int)view.identityLeft(1000)-8;x++){
@@ -71,7 +71,7 @@ public class BroadcastBannerTest {
    assertTrue("all original ticker facts remain legible",letters>20);
    assertTrue("footer changes between website and Telegram",changed>20);
    assertEquals(OledNewsChrome.BRAND_PLATE_LEFT,view.identityLeft(1000),0.01);
-   assertEquals(view.identityLeft(1000),view.identityLeft(9000),0.01);
+   assertEquals(view.identityLeft(1000),view.identityLeft(5100),0.01);
    export(site,"site");export(telegram,"telegram");
   }finally{site.recycle();telegram.recycle();}
  }
