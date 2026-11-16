@@ -68,39 +68,36 @@ final class BrentMonitor {
   boolean enabled=Prefs.get(context).getBoolean("brentHourly",true);
   long now=System.currentTimeMillis();
   boolean brentOpen=BrentQuote.marketOpen(now);
-  boolean b3Open=MarketDOLWidget.shouldShow(now,false);
-  if(!enabled||!screen()||!brentOpen&&!b3Open){
+  boolean forexOpen=MarketState.forexRegular(now).value==MarketState.OPEN;
+  if(!enabled||!screen()||!brentOpen&&!forexOpen){
    hide();
-   if(!enabled)status("Mercados desativados nas preferências.");
-   else if(!brentOpen&&!b3Open)status("Brent e dólar B3 fora do horário regular.");
+   if(!enabled)status("Tarja de cotações desativada.");
+   else status("Brent e câmbio USD/BRL fora dos horários regulares.");
    return;
   }
   long slot=BrentQuote.slot(now);
   if(knownSlot!=slot){knownSlot=slot;quote=null;dollar=null;nextRetry=0;}
   boolean dueBrent=BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now);
-  boolean dueDOL=b3Open&&now>=slot&&now<slot+45*BrentQuote.MINUTE
-   &&Prefs.get(context).getLong("b3DolLastSlot",0)!=slot;
-  if(!dueBrent&&!dueDOL)return;
+  boolean dueFX=forexOpen&&now>=slot&&now<slot+45*BrentQuote.MINUTE&&
+    Prefs.get(context).getLong("yahooFxLastSlot",0)!=slot;
+  if(!dueBrent&&!dueFX)return;
   if(!allowed.getAsBoolean()||overlay.showing())return;
   BrentQuote valid=BrentQuote.parse(quote,now);
-  if(valid!=null){
-   if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
+  // A fresh Yahoo BRL=X quote can be shown even if NYMEX Brent is unavailable.
+  if(valid!=null||dollar!=null){
+   MarketState bs=valid==null?MarketState.brentRegular(now):valid.session;
+   boolean displayed=valid!=null||bs.closed()
+    ?overlay.showMarket(valid,dollar,bs,dollarState,false)
+    :overlay.showUnavailable(dollar,bs,dollarState);
+   if(displayed){
     TvSounds.play(context,TvSoundPattern.MARKET);
-    android.content.SharedPreferences.Editor e=Prefs.get(context).edit();
-    if(dueBrent)e.putLong("brentLastSlot",slot);
-    if(dueDOL)e.putLong("b3DolLastSlot",slot);
-    e.apply();
-    status("BRENT · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+
-     " · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+
-     (dueDOL?" · DOL futuro B3 no widget TradingView · atraso ~15 min":""));
-   }else status("Tarja oficial bloqueada. Confira permissão de sobreposição.");
-   return;
-  }
-  // DOL intraday must appear hourly, even when Brent's unrelated feed is unavailable.
-  if(dueDOL&&(!brentOpen||SystemClock.elapsedRealtime()<nextRetry)){
-   if(overlay.showMarket(null,null,MarketState.brentRegular(now),MarketState.brazilDOLRegular(now),false)){
-    Prefs.get(context).edit().putLong("b3DolLastSlot",slot).apply();
-    status("DOL futuro B3 · widget oficial TradingView · atraso ~15 min · Brent sem cotação recente.");
+    android.content.SharedPreferences.Editor update=Prefs.get(context).edit();
+    if(dueBrent)update.putLong("brentLastSlot",slot);
+    if(dueFX)update.putLong("yahooFxLastSlot",slot);
+    update.apply();
+    status("COTAÇÕES · "+(valid==null?"Brent sem preço confirmado":("Brent US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)))+
+      " · "+(dollar==null?"USD/BRL indisponível":"Yahoo USD/BRL R$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.3f",dollar.price)+
+       " · "+BrentQuote.clock(dollar.at))+" · referência internacional");
    }
    return;
   }
@@ -119,8 +116,9 @@ final class BrentMonitor {
    boolean closedSession=!BrentQuote.marketOpen(System.currentTimeMillis());
    // Do not spend another 13 seconds looking up optional USD/BRL when the
    // requested Brent source already failed in an open session.
-   if(!externalReader&&!MarketDOLWidget.shouldShow(System.currentTimeMillis(),false)&&(brentValid||manual&&closedSession)){
-    if(manual||manualRequest)progress("Brent consultado. Verificando último fechamento DOL da B3…");
+   boolean forexOpen=MarketState.forexRegular(System.currentTimeMillis()).value==MarketState.OPEN;
+   if(!externalReader&&(forexOpen||brentValid||manual&&closedSession)){
+    if(manual||manualRequest)progress("Brent consultado. Verificando a cotação do dólar…");
     fx=readDollar();
    }
    final DollarResult verifiedDollar=fx;
@@ -129,7 +127,7 @@ final class BrentMonitor {
     boolean requested=manual||manualRequest;
     if(closed||!requested&&requestSlot!=knownSlot)return;
     quote=result;dollar=verifiedDollar.quote;dollarState=verifiedDollar.state;BrentQuote observed=BrentQuote.parse(result,System.currentTimeMillis());brentState=observed==null?MarketState.fromWorker(result,System.currentTimeMillis()):observed.session;if(observed!=null)lastBrent=observed;if(dollar!=null)lastDollar=dollar;
-    if(result==null||!result.optBoolean("ok"))status(problem(result));
+    if((result==null||!result.optBoolean("ok"))&&dollar==null)status(problem(result));
     else if(BrentQuote.parse(result,System.currentTimeMillis())==null)
      status("A fonte respondeu, mas o preço ou horário não passou pela validação da TV.");
     if(requested){
@@ -159,10 +157,10 @@ final class BrentMonitor {
      if(overlay.showMarket(valid,dollar,valid.session,dollarState,false)){
       presented();TvSounds.play(context,TvSoundPattern.MARKET);
       long now=System.currentTimeMillis(),slot=BrentQuote.slot(now);
-      android.content.SharedPreferences.Editor e=Prefs.get(context).edit();
-      if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))e.putLong("brentLastSlot",slot);
-      if(MarketDOLWidget.shouldShow(now,false))e.putLong("b3DolLastSlot",slot);
-      e.apply();
+      android.content.SharedPreferences.Editor update=Prefs.get(context).edit();
+      if(BrentQuote.due(Prefs.get(context).getLong("brentLastSlot",0),now))update.putLong("brentLastSlot",slot);
+      if(MarketState.forexRegular(now).value==MarketState.OPEN)update.putLong("yahooFxLastSlot",slot);
+      update.apply();
       status("REAL · US$ "+String.format(java.util.Locale.forLanguageTag("pt-BR"),"%.2f",valid.price)+" · "+BrentQuote.clock(valid.at)+" · Yahoo Finance"+(result.optBoolean("directFromTv")?" (direto da TV)":" (Worker)"));
      }else status("Cotação real validada, porém falta permissão de sobreposição.");
      manualRequest=false;return;
@@ -200,41 +198,17 @@ final class BrentMonitor {
    .put("reason",invalid?"source-stale-or-invalid":"source-unavailable")
    .put("directAttempted",true);
  }
- /** B3 DOL futures ONLY. The public source shows B3-attributed daily closes;
-  * never request Yahoo BRL=X or present an overseas FX price as a Brazilian trade.
-  * No licensed intraday source is configured, so label the close explicitly.
-  */
- private static final String DOL_CLOSE_URL="https://www.noticiasagricolas.com.br/cotacoes/mercado-financeiro/dolar-b3";
+ /** Dollar is an optional independent Yahoo spot quote. It never delays seismic polling,
+  * and a failure displays an honest unavailable label beside a valid Brent price. */
  private static final class DollarResult {final DollarQuote quote;final MarketState state;DollarResult(DollarQuote q,MarketState s){quote=q;state=s;}}
  private DollarResult readDollar(){
-  long now=System.currentTimeMillis();
-  MarketState schedule=MarketState.brazilDOLRegular(now);
-  try{
-   String html=readB3ClosePage(DOL_CLOSE_URL);
-   DollarQuote q=DollarQuote.fromB3CloseHtml(html,System.currentTimeMillis());
-   if(q!=null)return new DollarResult(q,schedule);
-  }catch(Exception ignored){ /* No B3 data: leave price missing, never substitute global FX. */ }
-  return new DollarResult(null,schedule);
- }
- private String readB3ClosePage(String endpoint)throws Exception{
-  HttpURLConnection c=(HttpURLConnection)new URL(endpoint).openConnection();connection=c;
-  c.setConnectTimeout(5000);c.setReadTimeout(7000);c.setInstanceFollowRedirects(false);
-  c.setRequestProperty("Accept","text/html");
-  c.setRequestProperty("User-Agent","ArgosOrbisTV-B3Close/"+BuildConfig.VERSION_NAME);
-  final int limit=800000;
-  try{
-   if(c.getResponseCode()!=200)throw new IOException("B3 close source HTTP "+c.getResponseCode());
-   if(c.getContentLengthLong()>limit)throw new IOException("B3 close source too large");
-   ByteArrayOutputStream out=new ByteArrayOutputStream();
-   try(InputStream in=c.getInputStream()){
-    byte[] buffer=new byte[4096];int n;
-    while((n=in.read(buffer))!=-1){
-     if(out.size()+n>limit)throw new IOException("B3 close source too large");
-     out.write(buffer,0,n);
-    }
-   }
-   return out.toString("UTF-8");
-  }finally{c.disconnect();if(connection==c)connection=null;}
+  MarketState last=MarketState.unknown();
+  for(String host:new String[]{"query1.finance.yahoo.com","query2.finance.yahoo.com"})try{
+   JSONObject raw=readRemote("https://"+host+"/v8/finance/chart/BRL=X?interval=1m&range=1d",180000,3000,3500);long now=System.currentTimeMillis();DollarQuote q=DollarQuote.fromYahoo(raw,now);if(q!=null)return new DollarResult(q,q.session);
+   JSONObject chart=raw.optJSONObject("chart");JSONArray rows=chart==null?null:chart.optJSONArray("result");JSONObject item=rows!=null&&rows.length()==1?rows.optJSONObject(0):null,meta=item==null?null:item.optJSONObject("meta");
+   if(chart!=null&&chart.isNull("error")&&meta!=null&&"BRL".equals(meta.optString("currency"))){MarketState state=MarketState.fromMeta(meta,"BRL=X",now);if(state.value!=MarketState.UNKNOWN)last=state;if(state.closed())return new DollarResult(null,state);}
+  }catch(Exception ignored){}
+  return new DollarResult(null,last);
  }
  private JSONObject readRemote(String endpoint,int maxBytes,int connectMs,int readMs)throws Exception{
   HttpURLConnection c=(HttpURLConnection)new URL(endpoint).openConnection();connection=c;
