@@ -200,10 +200,12 @@ final class TvBroadcastInfoView extends View {
   label(c,clockText,58-p.measureText(clockText)/2,118,17,Color.WHITE,data,90);
   OledNewsChrome.brandFooter(c,p,elapsed,animate);
   c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
-  p.setTypeface(data);p.setTextSize(13);float length=p.measureText(ticker)+96;
+  String display=OledNewsChrome.tickerDisplay(ticker);
+  Typeface tickerFace=OledNewsChrome.tickerFont();
+  p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
-  label(c,ticker,112-offset,118,13,Color.WHITE,data,Float.MAX_VALUE);
-  label(c,ticker,112-offset+length,118,13,Color.WHITE,data,Float.MAX_VALUE);
+  label(c,display,112-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
+  label(c,display,112-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   c.restore();
  }
  private void drawHeader(Canvas c,long elapsed){
@@ -276,8 +278,8 @@ final class TvBroadcastInfoView extends View {
  }
  // Dedicated, balanced Brent and USD/BRL panels sharing the full OLED band.
  // Always keep state and variation inside their own columns.
- static final float MARKET_BRENT_PRICE_X=130f, MARKET_BRENT_STATUS_X=355f;
- static final float MARKET_DIVIDER_X=485f, MARKET_DOLLAR_X=499f, MARKET_DOLLAR_STATUS_X=694f;
+ static final float MARKET_BRENT_PRICE_X=130f, MARKET_BRENT_STATUS_X=338f;
+ static final float MARKET_DIVIDER_X=485f, MARKET_DOLLAR_X=502f, MARKET_DOLLAR_STATUS_X=711f;
  private void drawBrent(Canvas c){
   refreshMarket();
   eventCategory(c,"BRENT","NYMEX");
@@ -289,25 +291,25 @@ final class TvBroadcastInfoView extends View {
    return;
   }
   String oilValue=brent==null?"US$ —":"US$ "+amount(brent.price);
-  primary(c,oilValue,MARKET_BRENT_PRICE_X,36,foreground,215);
+  primary(c,oilValue,MARKET_BRENT_PRICE_X,36,foreground,196);
   int oilTint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
   String oilChange=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
   fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),
-   MARKET_BRENT_STATUS_X,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,118);
-  fitted(c,oilChange,MARKET_BRENT_STATUS_X,73,25,15,oilTint,brand,121);
+   MARKET_BRENT_STATUS_X,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,125);
+  fitted(c,oilChange,MARKET_BRENT_STATUS_X,73,25,15,oilTint,brand,124);
   fitted(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),
    MARKET_BRENT_PRICE_X,90,12,10,0xffd3e3ed,data,341);
   fill(c,MARKET_DIVIDER_X,39,1,47,0xff45647b);
 
   fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,20,15,0xffe6f7ff,brand,181);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),
-   MARKET_DOLLAR_STATUS_X,45,16,11,demo?0xffffd17d:sessionColor(dollarSession),brand,126);
+   MARKET_DOLLAR_STATUS_X,45,16,11,demo?0xffffd17d:sessionColor(dollarSession),brand,113);
   fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),
    MARKET_DOLLAR_X,75,31,22,foreground,brand,185);
   Double fxChange=dollar==null?null:dollar.percent;
   String fxVariation=fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
   fitted(c,fxVariation,MARKET_DOLLAR_STATUS_X,75,23,14,
-   fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,128);
+   fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,113);
   // Preserve the independent Yahoo reference timestamp, never replace it with a B3 clock.
   String fxFoot=dollar==null?"YAHOO · SEM COTAÇÃO CONFIRMADA":"YAHOO · REF. "+BrentQuote.clock(dollar.at);
   fitted(c,fxFoot,MARKET_DOLLAR_X,91,13,10,0xffd3e3ed,brand,321);

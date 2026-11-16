@@ -109,8 +109,8 @@ public class OledNewsChromeTest {
      }
     }
     assertTrue("address label must be readable",count>40);
-    assertEquals("address centered within grey block",864.5f,(left+right)/2f,6f);
-    assertTrue("address label may not touch box edges",left>=807&&right<=921);
+    assertEquals("address centered within expanded grey block",(OledNewsChrome.BRAND_PLATE_LEFT+OledNewsChrome.RIGHT)/2f,(left+right)/2f,6f);
+    assertTrue("address label may not touch box edges",left>=OledNewsChrome.BRAND_PLATE_LEFT+3&&right<=OledNewsChrome.RIGHT-3);
    }finally{bitmap.recycle();}
   }
  }
@@ -142,6 +142,15 @@ public class OledNewsChromeTest {
     (829-TvBroadcastInfoView.MARKET_DOLLAR_X)>320);
   assertTrue("market labels and percentage do not collide",
     TvBroadcastInfoView.MARKET_DOLLAR_STATUS_X-TvBroadcastInfoView.MARKET_DOLLAR_X>=190);
+ }
+ @Test public void finalRefinementsIncreaseLogoAndFooterLegibilityWithoutOverlaps(){
+  assertEquals(64f,OledNewsChrome.LOGO_SIZE,0f);
+  assertEquals(790f,OledNewsChrome.BRAND_PLATE_LEFT,0f);
+  assertEquals("BRENT · 92,41      •      DÓLAR · R$ 5,79",
+    OledNewsChrome.tickerDisplay("BRENT · 92,41 • DÓLAR · R$ 5,79"));
+  assertEquals("",OledNewsChrome.tickerDisplay(null));
+  assertTrue("larger gray plate leaves safe right overscan",OledNewsChrome.RIGHT<936);
+  assertTrue("footer is tall enough for the new 14-point letter baseline",OledNewsChrome.FOOTER_END-99>=26);
  }
  @Test public void liveDataIsStillInTheNativeTvBanners(){
   Context c=RuntimeEnvironment.getApplication();

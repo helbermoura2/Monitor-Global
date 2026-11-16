@@ -26,7 +26,7 @@ class ArgosOrbisIdentity(unittest.TestCase):
   self.assertIn("footerOpacity(long elapsed,boolean animated)",oled)
   radar=(SRC/"BroadcastVisuals.java").read_text(encoding="utf-8")
   self.assertIn("OledNewsChrome.brand(c,paint,elapsed,animated)",radar)
-  self.assertIn("RadarLogoView.drawArtwork(c,p,sweep,open)",(SRC/"OledNewsChrome.java").read_text(encoding="utf-8"))
+  self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open)",(SRC/"OledNewsChrome.java").read_text(encoding="utf-8"))
   self.assertIn("BRAND_RIGHT_INSET=35f",radar)
   self.assertIn("c.rotate(sweep,64,64)",(SRC/"RadarLogoView.java").read_text(encoding="utf-8"))
  def test_launcher_brand_preserves_official_eye_and_release_compatibility(self):

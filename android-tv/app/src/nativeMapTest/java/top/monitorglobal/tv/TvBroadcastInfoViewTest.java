@@ -137,6 +137,15 @@ public class TvBroadcastInfoViewTest {
       a.getPixel(x,y),b.getPixel(x,y));
   }finally{a.recycle();b.recycle();}
  }
+ @Test public void finalMarketColumnSpacingKeepsBothVariationsInBounds(){
+  assertEquals(338f,TvBroadcastInfoView.MARKET_BRENT_STATUS_X,0f);
+  assertEquals(711f,TvBroadcastInfoView.MARKET_DOLLAR_STATUS_X,0f);
+  assertTrue("Brent change closer to price",TvBroadcastInfoView.MARKET_BRENT_STATUS_X-
+    TvBroadcastInfoView.MARKET_BRENT_PRICE_X<215f);
+  assertTrue("Dollar separated from its quoted price",TvBroadcastInfoView.MARKET_DOLLAR_STATUS_X-
+    TvBroadcastInfoView.MARKET_DOLLAR_X>=200f);
+  assertTrue("USD status remains inside content safe-area",TvBroadcastInfoView.MARKET_DOLLAR_STATUS_X+113<=BroadcastVisuals.CONTENT_RIGHT_LIMIT);
+ }
  @Test public void brentAndDollarAlwaysShareSameStripAndClearlyMarkMissingFX()throws Exception{
   BrentQuote brent=new BrentQuote(78.35,77.5,.85,1.1,System.currentTimeMillis()-300000,"Yahoo Finance");
   DollarQuote dollar=new DollarQuote(5.32,.02,.38,System.currentTimeMillis()-240000,"Yahoo Finance");

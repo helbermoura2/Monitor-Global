@@ -105,8 +105,13 @@ final class NewsBannerView extends View {
   }else drawPage(c,pages[index],elapsed,255,0);
   if(summary&&summaryTotals!=null)drawSummaryTotals(c);
   else{
-  c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);paint.setTypeface(data);paint.setTextSize(13);float length=paint.measureText(ticker)+96;
-  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);text(c,ticker,112-offset,118,13,Color.WHITE,data,Float.MAX_VALUE);text(c,ticker,112-offset+length,118,13,Color.WHITE,data,Float.MAX_VALUE);c.restore();
+  c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
+  String display=OledNewsChrome.tickerDisplay(ticker);
+  Typeface tickerFace=OledNewsChrome.tickerFont();
+  paint.setTypeface(tickerFace);paint.setTextSize(14);float length=paint.measureText(display)+104;
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
+  text(c,display,112-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
+  text(c,display,112-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);c.restore();
   }
   c.restore();
   drawMap(c,index,elapsed,fadeElapsed);c.restore();
