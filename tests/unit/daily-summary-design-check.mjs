@@ -8,11 +8,11 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
 const normal=await mod.renderDailySummaryPng({day:fixture.day,events});
-assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'argos-orbis-panoptes-imperial-v1');
-const image=await mod.decodePng(normal.png);assert.equal(image.width,1800);assert.equal(image.height,2880);assert(normal.png.length>50000);
+assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'argos-orbis-approved-classical-art-v1');
+const image=await mod.decodePng(normal.png);assert.equal(image.width,1800);assert.equal(image.height,2400);assert(normal.png.length>50000);
 const brightRegion=(x0,y0,x1,y1)=>{x0*=2;y0*=2;x1*=2;y1*=2;let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*image.width+x)*4;if(image.rgba[i]>100&&image.rgba[i+1]>100&&image.rgba[i+2]>100)n++;}return n;};
-assert(brightRegion(105,140,810,235)>8000,'Single-row Rajdhani headline must remain visible');
-assert(brightRegion(615,470,672,511)>500,'Primary event flag must remain visible');
+assert(brightRegion(35,116,580,184)>2300,'Approved classical headline and ornaments must remain visible');
+assert(brightRegion(614,394,659,433)>80,'Primary event flag must remain visible');
 // Four ranked entries must each paint their identified country's atlas flag.
 // The fixture yields Japan, Solomon Islands, Solomon Islands and Philippines in ranks 2–5.
 let flagRowY=normal.layout.rowsY;
@@ -20,7 +20,7 @@ for(const [index,code] of ['JP','SB','SB','PH'].entries()){
  const mid=flagRowY+normal.layout.rowHeights[index]/2;
  let colored=0;
  for(let y=Math.max(0,Math.floor(mid-10));y<Math.min(image.height/2,Math.ceil(mid+38));y++)
-  for(let x=227;x<259;x++){
+  for(let x=238;x<271;x++){
    const p=((y*2)*image.width+x*2)*4,r=image.rgba[p],g=image.rgba[p+1],blue=image.rgba[p+2];
    if(code==='JP'||code==='PH'){if(r>100&&r>g*1.55&&r>blue*1.3)colored++;}
    else if(g>65&&g>r*1.15&&g>blue*.72)colored++;
@@ -45,7 +45,7 @@ if(process.env.SUMMARY_COLOR_PREVIEW_PATH){const preview=await mod.renderDailySu
 
 for(const rows of [[],[{...events[0],lat:null,lon:null,depth:null}],Array.from({length:5},(_,i)=>({...events[i],place:'A very long earthquake location with an extraordinarilylongunbrokentokenandadditionalregionalinformationwhichmustwrapsafely, Japan'}))]){
  const result=await mod.renderDailySummaryPng({day:fixture.day,events:rows});const png=await mod.decodePng(result.png);
- assert.equal(result.total,rows.length);assert.equal(png.width,1800);assert(png.height>=2688&&png.height<6000);assert(result.layout.rowsEnd<=result.layout.totalsY);
+ assert.equal(result.total,rows.length);assert.equal(png.width,1800);assert(png.height>=2400&&png.height<6000);assert(result.layout.rowsEnd<=result.layout.totalsY);
  assert.equal(result.epicenters.length,rows.filter(e=>Number.isFinite(e.lat)&&Number.isFinite(e.lon)).length);
 }
 const brazilQuake={id:'brazil-small',mag:3.4,place:'Minas Gerais–São Paulo, Brasil',time:Date.parse('2026-10-01T20:41:54Z'),lat:-20.71,lon:-47.66,depth:4,source:'EMSC'};
@@ -73,7 +73,7 @@ globalThis.fetch=savedFetch;
 console.log('PASS: editorial PNG, official top-five epicentres, offline geography/fonts, long/empty/missing data, close labels, dateline and USGS coordinate ingestion');
 
 // The new neon treatment must preserve the actual data and never add unsupported quakes.
-assert.equal(normal.layout.mapX,32);assert.equal(normal.layout.mapY,275);
-assert.equal(normal.layout.mapW,543);assert.equal(normal.layout.mapH,356);
+assert.equal(normal.layout.mapX,39);assert.equal(normal.layout.mapY,244);
+assert.equal(normal.layout.mapW,510);assert.equal(normal.layout.mapH,280);
 assert.equal(normal.top[0].id,fixture.events[0].id);
 assert.equal(withBrazil.brazilEvents[0].source,'EMSC');
