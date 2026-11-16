@@ -13,7 +13,8 @@ import {QUAKE_HD_FONTS} from "../quake-hd-fonts.mjs";
 import {enrichBrazilEpicenter} from "../brazil-epicenter-location.mjs";
 import {SUMMARY_FLAGS} from "../summary-flags.mjs";
 import {SUMMARY_EDITORIAL_TYPOGRAPHY, SUMMARY_EDITORIAL_TYPOGRAPHY_HD} from "../summary-editorial-assets.mjs";
-import {renderEditorialDailySummary} from "../daily-summary-renderer.mjs";
+import {renderApprovedDailySummary} from "../daily-summary-renderer.mjs";
+import {APPROVED_DAILY_ART_BASE64} from "./approved-daily-background.mjs";
 import {DAILY_SUMMARY_OFFICIAL_LOGO_B64} from "./daily-summary-official-logo.mjs";
 import {telegramIsBrazil} from "./brazil-boundary.mjs";
 import {createRenderCache,renderIdentity} from "./render-cache.mjs";
@@ -1030,6 +1031,7 @@ async function getDailySummaryFonts(){
     fonts.aq=await decodePng(base64ToBytes('iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAARVBMVEVHcEwmX7UmX7UmX7UmX7UmX7X///9ch8iTr9omX7XJ1+3x9fo0abpBc76gud/W4fG7zeiuw+N3m9Fqkczk6/ZPfcOFpdWLa0WiAAAABnRSTlMAv+9gIM+kpfmZAAABRUlEQVR4Xu3X2W6DMBCG0aQJ/8x4Zc37P2qXVKqclM7I9k0jvms4MkZYzOl1Ozq6nKWh8+WbuQ7S2HD9ct6kubdPaZAODR/7I126nM59oPNJOvX/IB4zkB23QmnFvTGKzLEamvFTBqZaKOGhWyXk8Zh3ickAbaGA8HtOh1xxTcROBqjYhWXHyTqUiv2c6h8tesBt5bt/zuvQ/eYURSQwdlt0SO63O+fwR6MBmmDIGaBthR4bIBE2QMECSYaad6MOhQxDqw4RLKVeEOlQhKVZhSjDklOh4GHK8GgjDHkdEmHosQWKti3SIVmhxTYoQYsUyPqVTGKDJEwt51FJETMT0Tx5wPua8+iZpJBsZ7ZeAY03qYZ8+caqIS4+jqBAxgWtm7SvyMMtbT+jkYiZ4kKyW7cf9m4jRK+hptuY1Wvw6zWKvmxHR++lCXjpbjMoUQAAAABJRU5ErkJggg=='));
     fonts.flags={img:await decodePng(base64ToBytes(SUMMARY_FLAGS.b64)),map:SUMMARY_FLAGS.map};
     fonts.officialLogo=await decodePng(base64ToBytes(DAILY_SUMMARY_OFFICIAL_LOGO_B64));
+    fonts.approvedBackground=await decodePng(base64ToBytes(APPROVED_DAILY_ART_BASE64));
     // Reuse the exact Rajdhani Bold font atlas from the approved Android TV cards.
     const rajdhani=QUAKE_HD_FONTS['40-brand'];
     fonts.rajdhani={...rajdhani,img:await decodePng(base64ToBytes(rajdhani.b64))};
@@ -1067,12 +1069,12 @@ function summaryCardWrap(font,text,width){
     if(line)lines.push(line);return lines;
 }
 async function renderDailySummaryImage(quakes) {
-    const key=await renderIdentity('daily-v15-official-logo-bronze',quakes);
+    const key=await renderIdentity('daily-v16-owner-approved-art-greco-roman',quakes);
     return key?cachedRender(key,300000,()=>renderDailySummaryPixels(quakes)):renderDailySummaryPixels(quakes);
 }
 async function renderDailySummaryPixels(quakes) {
     const data=quakes,fonts=await getDailySummaryFonts();
-    return renderEditorialDailySummary(data,fonts,{
+    return renderApprovedDailySummary(data,fonts,{
         fillRect,fillRoundRect,fillCircle,fillRadialGlow,drawArc,drawRadar:drawRadarIcon,
         drawText:drawTextFontProp,textWidth:textFontWidthProp,clean:summaryCleanText,wrap:summaryCardWrap,
         country:summaryCountry,place:summaryPlace,png:rgbaToPng,magColor:getHexColorFromMag,isBrazil:telegramIsBrazil
