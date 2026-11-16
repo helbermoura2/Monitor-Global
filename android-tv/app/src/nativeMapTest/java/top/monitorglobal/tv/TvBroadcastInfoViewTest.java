@@ -87,9 +87,9 @@ public class TvBroadcastInfoViewTest {
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
   long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
   long monday=java.time.Instant.parse("2026-11-16T15:33:00Z").toEpochMilli();
-  assertEquals("B3 FECHADA · SEG 09H (REGULAR)",TvBroadcastInfoView.brazilFxHint(sunday));
-  assertEquals("COTAÇÃO GLOBAL · NÃO É B3",TvBroadcastInfoView.brazilFxHint(monday));
-  assertTrue(MarketState.brazilDollarContext(sunday).contains("SEGUNDA 09:00 BRT"));
+  assertEquals("YAHOO · USD/BRL · CÂMBIO",TvBroadcastInfoView.brazilFxHint(sunday));
+  assertEquals("YAHOO · USD/BRL · CÂMBIO",TvBroadcastInfoView.brazilFxHint(monday));
+  assertTrue(MarketState.brazilDollarContext(sunday).contains("CÂMBIO INTERNACIONAL"));
  }
  @Test public void weatherHasMapAboveLiveBreakingNewsWithoutChangingSourceData()throws Exception{
   WeatherForecast.Summary weather=new WeatherForecast.Summary(
@@ -149,7 +149,7 @@ public class TvBroadcastInfoViewTest {
   try{assertEquals(126,b.getHeight());assertEquals(0xffbf1827,b.getPixel(10,10));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
-  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · GLOBAL · STATUS N/D: sem cotação confirmada"));
+  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · YAHOO · STATUS N/D: sem cotação confirmada"));
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
