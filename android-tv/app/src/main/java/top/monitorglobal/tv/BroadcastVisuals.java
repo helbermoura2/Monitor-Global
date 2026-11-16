@@ -27,6 +27,26 @@ final class BroadcastVisuals {
   Paint.FontMetrics fm=paint.getFontMetrics();
   return BODY_VISUAL_CENTER_Y-(fm.ascent+fm.descent)/2f;
  }
+ // The seismic M5.x value is the official reference for the LEFT 100-unit
+ // event column: centered at x=56, baseline=72, with the caption at y=86.
+ // Weather/rain/Brent/satellite/voice use exactly the same geometry.
+ static final float EVENT_CENTER_X=56f,EVENT_MAGNITUDE_BASELINE=72f;
+ static final float EVENT_CAPTION_BASELINE=86f,EVENT_CATEGORY_BASELINE=68f;
+ static final float EVENT_TEXT_WIDTH=85f;
+ static void eventCategory(Canvas c,Paint paint,Typeface font,String title,String caption,int color){
+  c.save();c.clipRect(8f,28f,108f,94f);
+  eventLabel(c,paint,font,title,EVENT_CATEGORY_BASELINE,35f,color);
+  if(caption!=null&&!caption.isEmpty())eventLabel(c,paint,font,caption,EVENT_CAPTION_BASELINE,10f,Color.WHITE);
+  c.restore();
+ }
+ static void eventLabel(Canvas c,Paint paint,Typeface font,String value,float baseline,float fontSize,int color){
+  if(value==null||value.isEmpty())return;
+  paint.setTypeface(font);paint.setTextScaleX(1f);
+  float size=fontSize;paint.setTextSize(size);
+  while(size>8f&&paint.measureText(value)>EVENT_TEXT_WIDTH){size-=.5f;paint.setTextSize(size);}
+  paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(color);
+  c.drawText(value,EVENT_CENTER_X-paint.measureText(value)/2f,baseline,paint);
+ }
  static float statusWidth(Paint paint,android.graphics.Typeface font,String label){
   paint.setTypeface(font);paint.setTextSize(18f);
   return Math.max(STATUS_MIN_WIDTH,Math.min(STATUS_MAX_WIDTH,(float)Math.ceil(paint.measureText(label))+24f));
