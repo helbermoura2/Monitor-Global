@@ -159,16 +159,14 @@ final class TvBroadcastInfoView extends View {
  }
  private void badge(Canvas c,String value){
   float width=BroadcastVisuals.statusWidth(p,brand,value);
-  int tint=demo?0xff995b0e:value.equals("AO VIVO")?0xffbf1827:0xff145067;
+  int tint=demo?0xff995b0e:0xffbf1827;
   rounded(c,960-width,0,width,24,tint,7);
   // Square the lower corners consistently with NewsBannerView's joined header.
   fill(c,960-width,17,width,7,tint);
   BroadcastVisuals.headerLabel(c,p,brand,value,960-width,width,BroadcastVisuals.STATUS_TEXT_FILL,Color.WHITE);
  }
  private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
- private String leadLabel(){return kind==BRENT?"MERCADOS":kind==SATELLITE?"SATÉLITE":kind==VOICE_STATUS?"CONSULTA":"BOLETIM";}
- private String headerContext(){return kind==RAIN?"PREVISÃO POR MINUTO":kind==WEATHER?"CONDIÇÕES DO TEMPO":kind==BRENT?"NYMEX · USD/BRL GLOBAL":kind==VOICE_STATUS?"COMANDO DE VOZ":"GOES-EAST · SUDESTE";}
- // Scale text before considering an ellipsis; the distance to the TV makes
+   // Scale text before considering an ellipsis; the distance to the TV makes
  // clipped words (e.g. INDISPONÍ...) materially harder to understand.
  private void fitted(Canvas c,String value,float x,float y,float size,float minimum,int color,Typeface font,float width){
   String raw=value==null?"":value;p.setTypeface(font);p.setTextScaleX(1f);p.setTextSize(size);
@@ -219,10 +217,10 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed){
   c.save();c.clipPath(outline);fill(c,0,24,960,102,background);c.restore();
-  // Compact, non-emergency editorial tab; breaking news belongs to seismic alerts.
-  rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xff145067,5);
-  BroadcastVisuals.headerLabel(c,p,brand,leadLabel(),0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);
-  fitted(c,headerContext(),BroadcastVisuals.BREAKING_WIDTH+15,17,17,13,Color.WHITE,brand,470);
+  // Preserve the original red official header; only the tab widths are reduced.
+  rounded(c,0,0,BroadcastVisuals.BREAKING_WIDTH,24,0xffbf1827,5);
+  BroadcastVisuals.headerLabel(c,p,brand,"BREAKING NEWS",0,BroadcastVisuals.BREAKING_WIDTH,BroadcastVisuals.BREAKING_TEXT_FILL,Color.WHITE);
+  // Leave this top-row area clear; context remains in the large, legible body and ticker.
   badge(c,status());
   // Reserve the same bounded logo region across rain, weather, oil, dollar,
   // satellite, voice and breaking-news banners; never paint metrics below it.
