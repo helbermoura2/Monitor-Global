@@ -1,0 +1,15 @@
+{
+  "identity": "argos-orbis-m6-imperial-bronze-exact-approved-2026-11-16",
+  "file": "assets/telegram/m6/imperial-bronze-master.png",
+  "original_file_name": "alerta_sísmico_em_bronze_imperial.png",
+  "width": 1024,
+  "height": 1536,
+  "bytes": 2781657,
+  "sha256": "f6ab82aeee7c405d0d9ce0858040d45d926d000c9b0b4d0c4fb383cbf8bad62f",
+  "channel": "@argosorbis",
+  "site": "argosorbis.com.br",
+  "scope": "M6+",
+  "status": "source-image-required",
+  "notes": "Approved source PNG is in the ChatGPT conversation, but is not yet present as a GitHub binary asset. Procedural bronze renderer v1 is NOT visually equivalent.",
+  "safety": "Do not publish the example's date, magnitude, coordinates, depth, intensity, country or provider as new live seismic information."
+}
