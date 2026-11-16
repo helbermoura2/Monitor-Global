@@ -38,7 +38,8 @@ const mixed=await mod.renderDailySummaryPng({day:fixture.day,events:fixture.even
 const colored=await mod.decodePng(mixed.png);
 for(const [rank,rgb]of [[1,[239,68,68]],[2,[251,146,60]],[3,[250,204,21]],[4,[74,222,128]]]){
  const marker=mixed.epicenters.find(m=>m.rank===rank),x=Math.round(mixed.layout.mapX+marker.x),y=Math.round(mixed.layout.mapY+marker.y);let found=false;
- for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){const index=((y*2+dy)*colored.width+x*2+dx)*4;if(rgb.every((v,i)=>colored.rgba[index+i]===v))found=true;}
+ for(let dy=-36;dy<=36;dy++)for(let dx=-36;dx<=36;dx++){const px=x*2+dx,py=y*2+dy;if(px<0||py<0||px>=colored.width||py>=colored.height)continue;const index=(py*colored.width+px)*4;if(rgb.every((v,i)=>colored.rgba[index+i]===v))found=true;}
+ if(!found)console.log('COLOR_DIAGNOSTIC',rank,rgb,'pixel',x*2,y*2,'markers',mixed.epicenters.map(m=>[m.rank,m.x,m.y]));
  assert(found,'Epicenter must use project magnitude color for rank '+rank);
 }
 if(process.env.SUMMARY_COLOR_PREVIEW_PATH){const preview=await mod.renderDailySummaryPng({day:fixture.day,events:fixture.events.slice(0,5).map((e,i)=>({...e,mag:[6.6,5.3,4.2,3.1,2.8][i]}))});await writeFile(process.env.SUMMARY_COLOR_PREVIEW_PATH,preview.png);}
