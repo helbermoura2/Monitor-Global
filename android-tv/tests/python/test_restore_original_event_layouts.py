@@ -46,7 +46,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'fitted(c,oilChange,402,73,25,',
             'fill(c,575,41,1,43,',
             'fitted(c,"DÓLAR · B3",593,47,21,',
-            'fitted(c,dollar==null?"R$ —":"R$ "+b3Amount(dollar.price),593,75,29,',
+            'fitted(c,intraday?"COTAÇÃO NO WIDGET":dollar==null?"R$ —":"R$ "+b3Amount(dollar.price),593,75,intraday?18:29,',
             'eventCategory(c,"BRENT","NYMEX")',
         ):
             self.assertIn(piece, WEATHER)
