@@ -5,6 +5,8 @@ on:
       - 'daily-summary-renderer.mjs'
       - 'daily-summary-hd.mjs'
       - 'worker/image-rendering.mjs'
+      - 'telegram-image-archive.mjs'
+      - 'tests/unit/telegram-image-archive.test.mjs'
       - 'tests/unit/daily-summary-design-check.mjs'
       - 'tests/fixtures/worker-modules/image-parity.json'
       - '.github/workflows/telegram-daily-png-check.yml'
@@ -42,3 +44,5 @@ jobs:
         run: node tests/unit/daily-summary-design-check.mjs
       - name: Verify approved deterministic PNG pixels
         run: node --test tests/unit/worker-image-parity.test.mjs
+      - name: Verify Telegram original archive sizes and delivery links
+        run: node --test tests/unit/telegram-image-archive.test.mjs

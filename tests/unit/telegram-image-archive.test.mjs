@@ -27,6 +27,16 @@ test('daily summary original keeps its native 1800px width and variable height',
  const key=await archiveTelegramOriginal(storage,image,undefined,{summary:true});const response=await serveTelegramOriginal(request(key),storage);assert.equal(response.headers.get('X-Image-Resolution'),'1800x3000');assert.deepEqual(new Uint8Array(await response.arrayBuffer()),image);assert.match(originalImageButton(key,'2026-10-15').inline_keyboard[0][0].url,/telegram-summary-image\/2026-10-15\//);await assert.rejects(archiveTelegramOriginal(storage,image));
 });
 
+test('approved 1800x2400 classical bulletin archives and older 1800x3000 images remain compatible',async()=>{
+ const storage=new Storage(),image=png(80000);
+ new DataView(image.buffer).setUint32(16,1800);
+ new DataView(image.buffer).setUint32(20,2400);
+ const key=await archiveTelegramOriginal(storage,image,undefined,{summary:true});
+ const response=await serveTelegramOriginal(request(key),storage);
+ assert.equal(response.status,200);assert.equal(response.headers.get('X-Image-Resolution'),'1800x2400');
+ const invalid=png(60);new DataView(invalid.buffer).setUint32(16,1800);new DataView(invalid.buffer).setUint32(20,2399);
+ await assert.rejects(archiveTelegramOriginal(storage,invalid,undefined,{summary:true}));
+});
 test('daily archive expiry deletes image chunks but retains its delivery history',async()=>{
  const storage=new Storage(),key=await archiveTelegramOriginal(storage,png());storage.data.set('history',{status:'sent'});const until=storage.data.get('telegram-original:'+key).until;assert.equal(await pruneTelegramOriginals(storage,until+1),1);assert(!storage.data.has('telegram-original:'+key+':part:0'));assert.deepEqual(storage.data.get('history'),{status:'sent'});
 });
