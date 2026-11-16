@@ -88,7 +88,7 @@ final class BroadcastVisuals {
  // Right edge: 960 - 35 = 925, so the full 62-unit logo is overscan-safe.
  static final float BRAND_RIGHT_INSET=35f;
  static final float RADAR_SIZE=66f,RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f;
- static final float CONTENT_RIGHT_LIMIT=854f;
+ static final float CONTENT_RIGHT_LIMIT=817f;
  static final float TICKER_PX_PER_SECOND=40f;
  static final long RADAR_PERIOD_MS=7200L,BLINK_PERIOD_MS=11000L;
  static final int TICKER_START_X=100;
@@ -96,19 +96,8 @@ final class BroadcastVisuals {
   return animated&&length>0?(elapsed/1000f*TICKER_PX_PER_SECOND)%length:0f;
  }
  static void radar(Canvas c,Paint paint,long elapsed,boolean animated){
-  // The same official vector drawn by RadarLogoView on TV and mobile.
-  // Outer gold eye + four corner symbols remain stationary; only pointer rotates.
-  float angle=animated?(elapsed%RADAR_PERIOD_MS)/(float)RADAR_PERIOD_MS*360f:0f;
-  float blink=animated?(elapsed%BLINK_PERIOD_MS)/(float)BLINK_PERIOD_MS:0f;
-  float open=1f;
-  if(animated&&blink>.81f&&blink<.89f){
-   float phase=(blink-.81f)/.08f;
-   open=Math.max(.015f,Math.abs(2f*phase-1f));
-  }
-  c.save();
-  c.translate(RADAR_X-RADAR_SIZE/2f,RADAR_Y-RADAR_SIZE/2f);
-  c.scale(RADAR_SIZE/128f,RADAR_SIZE/128f);
-  RadarLogoView.drawArtwork(c,paint,angle,open);
-  c.restore();
+  // Full official Argos Orbis radar-eye plus wordmark, same pixel geometry in every strip.
+  // Pointer and eyelid keep their existing 7200ms / 11000ms animation periods.
+  OledNewsChrome.brand(c,paint,elapsed,animated);
  }
 }
