@@ -8,7 +8,7 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/daily-summary/2026-
 const events=[...fixture.events,...Array.from({length:258},(_,i)=>({...fixture.events[0],id:'extra-'+i,mag:i<11?4:2}))];
 const savedFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('PNG must not fetch maps or fonts')};
 const normal=await mod.renderDailySummaryPng({day:fixture.day,events});
-assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'monitor-global-rajdhani-neon-v7');
+assert.equal(normal.total,264);assert.equal(normal.top.length,5);assert.equal(normal.design,'argos-orbis-panoptes-imperial-v1');
 const image=await mod.decodePng(normal.png);assert.equal(image.width,1800);assert.equal(image.height,2880);assert(normal.png.length>50000);
 const brightRegion=(x0,y0,x1,y1)=>{x0*=2;y0*=2;x1*=2;y1*=2;let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*image.width+x)*4;if(image.rgba[i]>100&&image.rgba[i+1]>100&&image.rgba[i+2]>100)n++;}return n;};
 assert(brightRegion(105,140,810,235)>8000,'Single-row Rajdhani headline must remain visible');
@@ -55,7 +55,7 @@ assert(!withBrazil.top.some(e=>e.id===brazilQuake.id),'Small Brazil events must 
 assert(withBrazil.layout.brazilHeight>0);assert(withBrazil.layout.totalsY>=withBrazil.layout.brazilY+withBrazil.layout.brazilHeight);
 assert.equal(normal.brazilEvents.length,0);assert.equal(normal.layout.brazilHeight,0);
 if(process.env.SUMMARY_BRAZIL_PREVIEW_PATH)await writeFile(process.env.SUMMARY_BRAZIL_PREVIEW_PATH,withBrazil.png);
-const fonts=await mod.getDailySummaryFonts();assert(fonts.hero.glyphs[',']);assert(fonts.rajdhani.glyphs['M']&&fonts.rajdhani.glyphs['Á']);assert(fonts.title.glyphs['ñ']);assert(fonts.subtitle.glyphs['í']);assert(fonts.heading.glyphs['R'][3]>=1);
+const fonts=await mod.getDailySummaryFonts();assert.equal(fonts.officialLogo.width,260);assert.equal(fonts.officialLogo.height,146);assert(fonts.hero.glyphs[',']);assert(fonts.rajdhani.glyphs['M']&&fonts.rajdhani.glyphs['Á']);assert(fonts.title.glyphs['ñ']);assert(fonts.subtitle.glyphs['í']);assert(fonts.heading.glyphs['R'][3]>=1);
 assert.equal(mod.summaryCountry('Balleny Islands region').code,'AQ');assert.equal(mod.summaryCountry('8 km ESE of Valle Vista, CA').code,'US');assert.equal(mod.summaryCountry('central Atlantic Ocean').code,null);
 for(const line of mod.summaryCardWrap(fonts.title,'extraordinarilylongunbrokentokenxxxxxxxxxxxxxx',280))assert(mod.textFontWidthProp(fonts.title,line,0)<=280);
 for(const code of ['JP','SB','PH','ID','PE'])assert(fonts.flags.map[code],'Atlas de bandeira ausente: '+code);
