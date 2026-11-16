@@ -4,9 +4,9 @@ import { SUMMARY_MAP_LAND } from './summary-editorial-assets.mjs';
 const COLORS={
  bg:[2,14,27],panel:[4,25,44],white:[240,248,255],cyan:[36,214,239],
  muted:[169,198,216],line:[28,77,100],map:[3,20,37],land:[14,59,82],
- coast:[35,131,170],green:[58,233,130],orange:[251,146,60]
+ coast:[35,131,170],green:[58,233,130],orange:[251,146,60],gold:[203,163,106],goldBright:[236,193,127]
 };
-export const DAILY_SUMMARY_DESIGN='monitor-global-rajdhani-neon-v7';
+export const DAILY_SUMMARY_DESIGN='argos-orbis-panoptes-imperial-v1';
 const mercator=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/360));
 const normalizeLon=lon=>((lon%360)+360)%360;
 
@@ -195,26 +195,21 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
   const points=[[0,12],[12,12],[17,4],[21,20],[25,0],[29,25],[34,10],[41,12],[56,12]];
   for(let i=1;i<points.length;i++)line(rgba,W,H,x+points[i-1][0]*size,y+points[i-1][1]*size,x+points[i][0]*size,y+points[i][1]*size,color);
  };
- // Brand masthead, radar and subtle globe outline use the same TV palette.
+ // The miniature is rasterized from the owner's actual official mark, including
+ // ΠΑΝΟΠΤΗΣ, CUSTOS ORBIS and all four Greek/Roman symbols. Do not redraw a
+ // different "eye" in its place. The dynamic bulletin remains data-driven.
  gfx.fillRadialGlow(rgba,W,H,674,34,190,17,97,143,.18);
- // Silhueta dourada do olho aprovado; as marcas do radar permanecem imóveis.
- const ex=66,ey=61,rx=38,ry=23;
- for(let j=1;j<=40;j++){
-  const u0=(j-1)/40,u1=j/40,a0=u0*2-1,a1=u1*2-1;
-  const xx0=ex+a0*rx,xx1=ex+a1*rx;
-  const yy0=ry*(1-a0*a0),yy1=ry*(1-a1*a1);
-  line(rgba,W,H,xx0,ey-yy0,xx1,ey-yy1,[196,161,106]);
-  line(rgba,W,H,xx0,ey+yy0,xx1,ey+yy1,[196,161,106]);
- }
- gfx.drawRadar(rgba,W,H,66,61,19,35,210,239);
- const brandX=117,monitor='ARGOS',global=' ORBIS';
+ if(!fonts.officialLogo||fonts.officialLogo.width!==260||fonts.officialLogo.height!==146)
+   throw Error('Marca oficial Argos Orbis indisponível');
+ scaledIcon(rgba,W,H,fonts.officialLogo,0,260,146,20,2,255,143);
+ const brandX=286,monitor='ARGOS',global=' ORBIS';
  brand(monitor,brandX,36,37,COLORS.white,200);
  brand(global,brandX+brandWidth(monitor,37)+3,36,37,COLORS.cyan,195);
- text('tag','SISMOS · VULCÕES · CICLONES · ALERTAS',117,87,COLORS.muted,.3);
+ text('tag','SISMOS · VULCÕES · CICLONES · ALERTAS',brandX,87,COLORS.muted,.3);
  border(691,26,181,77,12,COLORS.cyan,COLORS.panel);
  centerBrand('BOLETIM DIÁRIO',782,34,23,COLORS.white,170);
  centerBrand(day.split('-').reverse().join('/')+' (BRT)',782,66,22,COLORS.cyan,172);
- line(rgba,W,H,29,124,870,124,COLORS.cyan,.85);
+ line(rgba,W,H,29,124,870,124,COLORS.gold,.9);
  waveform(30,155,COLORS.cyan,1.25);
  brand('RESUMO SÍSMICO',113,148,54,COLORS.white,550);
  brand('DIÁRIO',113+brandWidth('RESUMO SÍSMICO',54)+14,148,54,COLORS.cyan,230);
@@ -223,7 +218,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
 
  // True geographic data: all five markers come from the original queried coordinates.
  const mapX=32,mapY=275,mapW=543,mapH=356;
- border(mapX-3,mapY-3,mapW+6,mapH+6,14,COLORS.cyan,COLORS.map);
+ border(mapX-3,mapY-3,mapW+6,mapH+6,14,COLORS.gold,COLORS.map);
  const frame=summaryMapFrame(top,mapW,mapH,{world:true});
  drawMap({rgba,W,H,gfx,text,center,fonts,reference:true,items:layouts},mapX,mapY,frame);
  line(rgba,W,H,mapX,mapY,mapX+mapW,mapY,COLORS.cyan,.65);
@@ -233,7 +228,7 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  // The hero is a separate dark LED-style module rather than a circle overlapping the world map.
  const hx=600,hy=272,hw=273,hh=362,accent=first?first.color:COLORS.cyan;
  gfx.fillRadialGlow(rgba,W,H,hx+hw/2,hy+123,154,...accent,.15);
- border(hx,hy,hw,hh,15,accent,COLORS.panel);
+ border(hx,hy,hw,hh,15,COLORS.gold,COLORS.panel);
  gfx.fillRoundRect(rgba,W,H,hx+9,hy+10,hw-18,45,8,...(first?gfx.magColor(first.event.mag):COLORS.line));
  gfx.fillRect(rgba,W,hx+11,hy+12,hw-22,41,...COLORS.bg);
  centerBrand('EVENTO PRINCIPAL',hx+hw/2,hy+20,24,accent,hw-25);
@@ -256,10 +251,10 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  }
 
  // A fixed cyan section heading and adaptive row heights prevent long placenames from colliding with columns.
- border(X,661,CW,51,13,COLORS.cyan,COLORS.panel);
+ border(X,661,CW,51,13,COLORS.gold,COLORS.panel);
  waveform(X+19,677,COLORS.cyan,.88);
  brand('PRINCIPAIS EVENTOS DO DIA',X+88,671,31,COLORS.white,710);
- if(layouts.length>1)border(X,rowsY,CW,rowsEnd-rowsY,11,COLORS.cyan,COLORS.panel);
+ if(layouts.length>1)border(X,rowsY,CW,rowsEnd-rowsY,11,COLORS.gold,COLORS.panel);
  else border(X,rowsY,CW,72,11,COLORS.line,COLORS.panel);
  let rowY=rowsY;
  layouts.slice(1).forEach((l,i)=>{
@@ -311,15 +306,15 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
   ['M4,0 – M4,9',events.filter(e=>e.mag>=4&&e.mag<5).length,[255,216,52]],
   ['ABAIXO DE M4,0',events.filter(e=>e.mag<4).length,COLORS.green]
  ];
- border(X,totalsY,CW,145,12,COLORS.cyan,COLORS.panel);
+ border(X,totalsY,CW,108,12,COLORS.gold,COLORS.panel);
  bands.forEach(([label,count,color],i)=>{
   const w=CW/5,cx=X+w*(i+.5);
-  if(i)line(rgba,W,H,X+w*i,totalsY+21,X+w*i,totalsY+126,COLORS.line);
-  waveform(cx-25,totalsY+20,color,.85);
-  centerBrand(count.toLocaleString('pt-BR'),cx,totalsY+63,51,color,w-12);
-  center('columnLabel',label,cx,totalsY+116,COLORS.white);
+  if(i)line(rgba,W,H,X+w*i,totalsY+13,X+w*i,totalsY+96,COLORS.gold,.54);
+  waveform(cx-25,totalsY+8,color,.7);
+  centerBrand(count.toLocaleString('pt-BR'),cx,totalsY+37,41,color,w-12);
+  center('columnLabel',label,cx,totalsY+87,COLORS.white);
  });
- const footerY=H-48;line(rgba,W,H,X,footerY-23,W-X,footerY-23,COLORS.line,.9);
+ const footerY=H-48;line(rgba,W,H,X,footerY-23,W-X,footerY-23,COLORS.gold,.9);
  const allSources=[...new Set(['USGS',...brazil.flatMap(e=>e.sources||[e.source].filter(Boolean))])];
  const sourceLine='Fontes: '+allSources.join(' · ')+' · Dados sujeitos a revisão';
  const sourceWidth=Math.max(280,W-415-X);
@@ -327,11 +322,11 @@ export async function renderEditorialDailySummary(quakes,fonts,gfx,{scale=1}={})
  while(safeSources.length>12&&measure('small',safeSources)>sourceWidth)safeSources=safeSources.slice(0,-5)+'...';
  text('small',safeSources,X,footerY,COLORS.muted);
  text('small','argosorbis.com.br',W-438,footerY,COLORS.white);
- text('small','TELEGRAM: ARGOS ORBIS',W-242,footerY,COLORS.cyan);
+ text('small','TELEGRAM: @argosorbis',W-242,footerY,COLORS.cyan);
  text('small','Distâncias a São Paulo, SP',X,footerY-40,COLORS.muted);
  return {
   day,png:await gfx.png(rgba,W,H),top,total:events.length,brazilEvents:brazil,
-  layout:{width:W*scale,height:H*scale,scale,splitH:470,rowsY,rowsEnd,totalsY,rowHeights,brazilY,brazilHeight,mapX,mapY,mapW,mapH},
+  layout:{width:W*scale,height:H*scale,scale,splitH:470,rowsY,rowsEnd,totalsY,totalsHeight:108,rowHeights,brazilY,brazilHeight,mapX,mapY,mapW,mapH},
   epicenters:frame.markers.map(({rank,id,lat,lon,x,y})=>({rank,id,lat,lon,x,y})),
   design:DAILY_SUMMARY_DESIGN
  };

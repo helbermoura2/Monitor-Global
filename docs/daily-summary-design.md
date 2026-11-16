@@ -28,3 +28,26 @@ Os cinco maiores eventos continuam ordenados por magnitude decrescente e horári
 Prévia offline: SUMMARY_PREVIEW_PATH=/tmp/resumo.png node tests/unit/daily-summary-design-check.mjs.
 
 Depois da aprovação dos testes e do merge, é necessário implantar o Worker manualmente em Cloudflare Worker maintenance, main, mode=deploy. Não alterar segredos nem o robô existente.
+
+## Argos Orbis · identidade aprovada pelo proprietário (16/11/2026)
+
+O boletim PNG automático passa a usar uma miniatura transparente do **logo oficial**
+`img/argos-orbis-vigilante-static.svg`, com olho tecnológico, quatro símbolos,
+inscrições **ΠΑΝΟΠΤΗΣ** e **CUSTOS ORBIS**; não é outro olho gerado
+por aproximação. O renderer utiliza a miniatura embutida offline,
+sem acessar URLs nem contas externas durante a renderização.
+
+Novo código de design: `argos-orbis-panoptes-imperial-v1`.
+As molduras do mapa, evento principal, listagem e rodapé passam a bronze,
+a faixa de totais fica compacta (108 px lógicos, cinco grupos preservados)
+e o endereço do canal no rodapé é `@argosorbis`.
+Os dados do boletim continuam dinâmicos, com cinco maiores sismos posicionados
+pelas coordenadas das fontes, bandeiras geográficas, seção brasileira adaptativa,
+fontes, datas e contagens calculadas. **Não usar os números da imagem-conceito como
+conteúdo fixo.** A saída continua HD, 1800 px de largura e 2880 px de altura
+para exemplos sem sismos brasileiros; os boletins com Brasil podem expandir.
+
+O cache de renderização foi invalidado para o novo layout. Esta alteração só
+atinge o gerador do resumo diário, não os alertas M6+/Brasil nem os segredos
+Telegram, o canal configurado ou as regras de envio. A publicação exige deploy
+separado do Worker após os testes de PNG e deduplicação.
