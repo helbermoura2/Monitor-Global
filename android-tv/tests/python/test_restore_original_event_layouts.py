@@ -46,7 +46,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'fitted(c,oilChange,402,73,25,',
             'fill(c,575,41,1,43,',
             'fitted(c,"DÓLAR USD/BRL",593,47,21,',
-            'label(c,dollar==null?"R$ —":"R$ "+amount(dollar.price),593,75,29,',
+            'fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),593,75,29,',
             'eventCategory(c,"BRENT","NYMEX")',
         ):
             self.assertIn(piece, WEATHER)
