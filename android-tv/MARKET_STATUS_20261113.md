@@ -34,3 +34,15 @@ Cotações indicativas, sujeitas a atraso; não constituem feed oficial em tempo
 - A referência **DÓLAR · GLOBAL (Yahoo `BRL=X`)** pode abrir domingo à noite enquanto a B3 está fechada. Em fins de semana a TV mostra na faixa principal **B3 FECHADA · SEG 09H (REGULAR)** com fonte maior e cor de atenção; o ticker esclarece que 09:00 BRT é o horário regular e pode sofrer exceções de calendário. O fechamento da B3 não substitui o estado independente da cotação internacional.
 - Preservados os selos **vermelhos** compactos BREAKING NEWS / AO VIVO, a identidade oficial Argos, dados meteorológicos e sísmicos reais, cinco contadores do resumo, as colunas, a assinatura, o package ID e a atualização automática.
 
+
+## TV 1.0.104: somente dólar futuro negociado na B3
+
+- **Retirado completamente o BRL=X (dólar global do Yahoo) do fluxo operacional da TV**. Nenhuma cotação global pode aparecer com a etiqueta B3, nem como substituição de emergência.
+- O painel à direita passa a ser **DÓLAR · B3**, identificado como **DOL (dólar futuro)**.
+- A fonte pública disponível para consulta sem chave é o histórico de **último fechamento** divulgado pela Notícias Agrícolas, com a indicação explícita **Fonte: B3**. É preço do fechamento, **não cotação em tempo real**. A TV mostra preço em BRL/US$1 (pontos B3 divididos por 1.000), contrato e dia/hora de referência; a variação vem da própria publicação.
+- O parser rejeita dados sem identificação da B3, datas de feriado sem confirmação, fechamento de sábado/domingo, preço anterior a sete dias, valores inválidos e fechamentos do futuro.
+- **Se a fonte não responder ou não houver fechamento validado**, mostra **R$ — / FECHAMENTO N/D**, sem usar Yahoo nem interpolar.
+- Para o cabeçalho ABERTO/FECHADO usa exclusivamente a grade **regular** de DOL da B3: dias úteis 09:00–18:30 BRT; feriados, suspensões e exceções podem alterar a sessão. O status indica apenas o horário regular, não que exista um último negócio verificado hoje.
+- Mantém Brent (NYMEX) e o restante das tarjas sem alteração; não adiciona custo, token, fonte paga ou computador local.
+- A B3 comercializa dados intradiários via distribuidores licenciados. Se no futuro for conectado um feed intradiário autorizado, ele poderá substituir a referência histórica sem violar a separação de mercados.
+
