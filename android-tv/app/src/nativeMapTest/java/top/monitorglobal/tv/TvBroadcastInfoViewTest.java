@@ -88,8 +88,8 @@ public class TvBroadcastInfoViewTest {
   long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
   long monday=java.time.Instant.parse("2026-11-16T15:33:00Z").toEpochMilli();
   assertEquals("B3 FECHADA · SEG 09H (REGULAR)",TvBroadcastInfoView.brazilFxHint(sunday));
-  assertEquals("COTAÇÃO GLOBAL · NÃO É B3",TvBroadcastInfoView.brazilFxHint(monday));
-  assertTrue(MarketState.brazilDollarContext(sunday).contains("SEGUNDA 09:00 BRT"));
+  assertEquals("B3 DOL · 09H–18H30 (REG.)",TvBroadcastInfoView.brazilFxHint(monday));
+  assertTrue(MarketState.brazilDollarContext(sunday).contains("FORA DO HORÁRIO"));
  }
  @Test public void weatherHasMapAboveLiveBreakingNewsWithoutChangingSourceData()throws Exception{
   WeatherForecast.Summary weather=new WeatherForecast.Summary(
@@ -139,17 +139,19 @@ public class TvBroadcastInfoViewTest {
  }
  @Test public void brentAndDollarAlwaysShareSameStripAndClearlyMarkMissingFX()throws Exception{
   BrentQuote brent=new BrentQuote(78.35,77.5,.85,1.1,System.currentTimeMillis()-300000,"Yahoo Finance");
+  // A raw BRL=X-like quote may not leak into a B3-only card.
   DollarQuote dollar=new DollarQuote(5.32,.02,.38,System.currentTimeMillis()-240000,"Yahoo Finance");
   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,brent,dollar,false);
   assertEquals(0,view.mapSpace);
-  assertTrue(String.valueOf(view.getContentDescription()).contains("+0,38%"));
+  assertTrue(String.valueOf(view.getContentDescription()).contains("DÓLAR FUTURO · B3 DOL"));
+  assertTrue(String.valueOf(view.getContentDescription()).contains("sem fechamento B3 confirmado"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
-  assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
+  assertFalse("Never show legacy global spot as B3",String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
   try{assertEquals(126,b.getHeight());assertEquals(0xffbf1827,b.getPixel(10,10));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
-  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · GLOBAL · STATUS N/D: sem cotação confirmada"));
+  assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR FUTURO · B3 DOL"));
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
