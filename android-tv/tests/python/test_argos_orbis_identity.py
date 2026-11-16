@@ -1,6 +1,7 @@
 """Guard the approved Argos Orbis TV visual identity without touching the old update package IDs."""
 from pathlib import Path
 import unittest
+import re
 
 ROOT=Path(__file__).resolve().parents[3]
 SRC=ROOT/"android-tv/app/src/main/java/top/monitorglobal/tv"
