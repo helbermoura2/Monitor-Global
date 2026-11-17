@@ -72,7 +72,9 @@ public class UnifiedBroadcastChromeTest {
    }
    assertTrue("full official Argos eye stays clearly visible",bright>140);
    assertTrue(changed>100);
-   assertTrue("same market logo except moving sweep edge: "+marketDiff,marketDiff<240);
+   int cyan=0;
+   for(int y=31;y<93;y++)for(int x=830;x<925;x++){int pixel=b.getPixel(x,y);if(Color.green(pixel)>90&&Color.blue(pixel)>80&&Color.red(pixel)<120)cyan++;}
+   assertTrue("official detailed asset remains visible",cyan>60);
    assertTrue("same weather logo except moving sweep edge: "+weatherDiff,weatherDiff<240);
   }finally{a.recycle();b.recycle();c.recycle();}
   }finally{durationScale.invoke(null,1f);}
@@ -88,11 +90,11 @@ public class UnifiedBroadcastChromeTest {
    for(int x:new int[]{36,220,808}){
     int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,3);
     assertTrue("red Pixlr tabs remain visible",Color.red(seismic)>Color.green(seismic));
-    assertTrue("all sources share red tabs",Color.blue(marketColor)>Color.red(marketColor));
+    if(x<258)assertTrue("short market tab is blue",Color.blue(marketColor)>Color.red(marketColor));else assertEquals(0,Color.alpha(marketColor));
    }
    for(int x:new int[]{300,500,780}){
     assertEquals("no upper-right floating boxes on seismic",0,Color.alpha(a.getPixel(x,map+10)));
-    assertEquals("market header is continuous",255,Color.alpha(b.getPixel(x,10)));
+    assertEquals("unused market header is transparent",0,Color.alpha(b.getPixel(x,10)));
    }
    assertEquals(Color.BLACK,a.getPixel(805,map+60));
    assertEquals(0xfff4f5f6,b.getPixel(805,60));
