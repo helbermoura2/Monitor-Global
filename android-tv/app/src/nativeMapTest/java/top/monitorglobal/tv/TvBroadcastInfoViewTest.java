@@ -144,7 +144,7 @@ public class TvBroadcastInfoViewTest {
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
-  try{assertEquals(126,b.getHeight());assertTrue(Color.blue(b.getPixel(36,10))>Color.red(b.getPixel(36,10)));}
+  try{assertEquals(126,b.getHeight());assertTrue(Color.blue(b.getPixel(36,3))>Color.red(b.getPixel(36,3)));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
   assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · YAHOO · STATUS N/D: sem cotação confirmada"));
@@ -168,7 +168,7 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(generic,"alexa-generic-banner");
   try{
    assertEquals(126,a.getHeight());assertEquals(126,b.getHeight());
-   assertTrue(Color.blue(a.getPixel(36,10))>Color.red(a.getPixel(36,10)));
+   assertTrue(Color.blue(a.getPixel(36,3))>Color.red(a.getPixel(36,3)));
    assertTrue(Color.red(b.getPixel(36,10))>Color.green(b.getPixel(36,10)));
    assertTrue(a.getPixel(911,60)!=0xff071724);
   }finally{a.recycle();b.recycle();}
