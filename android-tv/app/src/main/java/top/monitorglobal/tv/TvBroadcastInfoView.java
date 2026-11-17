@@ -182,7 +182,7 @@ final class TvBroadcastInfoView extends View {
   BroadcastVisuals.eventCategory(c,p,brand,title,caption,0xffff6d7f);
  }
  private static Bitmap officialMarketLogo;
- private void drawOfficialMarketLogo(Canvas c){
+ private void drawOfficialMarketLogo(Canvas c,long elapsed){
   if(officialMarketLogo==null){
    try(java.io.InputStream in=getContext().getAssets().open("argos-official-logo.b64")){
     java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
@@ -194,7 +194,33 @@ final class TvBroadcastInfoView extends View {
   }
   if(officialMarketLogo!=null){
    p.setShader(null);p.setColor(Color.WHITE);p.setFilterBitmap(true);
+   // Inscriptions and corner ornaments remain stationary; only the eye blinks.
+   float phase=(elapsed%BroadcastVisuals.BLINK_PERIOD_MS)/(float)BroadcastVisuals.BLINK_PERIOD_MS;
+   float open=1f;
+   if(animate&&phase>.81f&&phase<.89f)open=Math.max(.015f,Math.abs(2f*(phase-.81f)/.08f-1f));
+   c.save();c.clipRect(830,31,925,93);
    c.drawBitmap(officialMarketLogo,null,new RectF(830,31,925,93),p);
+   if(animate){
+    // Official artwork uses a 1328x859 coordinate system.
+    c.save();c.translate(830,31);c.scale(95f/1328f,62f/859f);
+    Path eye=new Path();eye.moveTo(125,430);eye.quadTo(664,-94,1201,430);eye.quadTo(664,954,125,430);eye.close();
+    if(open<1f){
+     p.setColor(Color.BLACK);c.drawPath(eye,p);
+    }
+    c.save();c.scale(1f,open,664,430);c.clipPath(eye);
+    if(open<1f){
+     p.setColor(Color.WHITE);
+     c.drawBitmap(officialMarketLogo,null,new RectF(0,0,1328,859),p);
+    }
+    float sweep=(elapsed%BroadcastVisuals.RADAR_PERIOD_MS)/(float)BroadcastVisuals.RADAR_PERIOD_MS*360f;
+    p.setStyle(Paint.Style.FILL);p.setColor(0x553affed);
+    c.drawArc(new RectF(380,146,948,714),sweep-90,32,true,p);
+    p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(6);p.setColor(0xff3affed);
+    double angle=Math.toRadians(sweep-90);
+    c.drawLine(664,430,664+(float)Math.cos(angle)*284,430+(float)Math.sin(angle)*284,p);
+    p.setStyle(Paint.Style.FILL);c.restore();c.restore();
+   }
+   c.restore();
   }
  }
  private void drawRadar(Canvas c,long elapsed){
@@ -246,7 +272,7 @@ final class TvBroadcastInfoView extends View {
   else if(kind==VOICE_STATUS)drawVoiceStatus(c);
   else drawSatelliteNews(c);
   c.restore();
-  if(kind==BRENT)drawOfficialMarketLogo(c);else drawRadar(c,elapsed);
+  if(kind==BRENT)drawOfficialMarketLogo(c,elapsed);else drawRadar(c,elapsed);
   drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
