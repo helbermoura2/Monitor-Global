@@ -44,7 +44,7 @@ public class OfficialArgosLowerThirdTest {
   assertTrue("golden official eye must remain visible",gold>15);
   assertEquals("brand must stay 35 units clear of screen edge",0,forbidden);
  }
- @Test public void weatherAndBrentUseExactlyTheSameOfficialLogoRegion(){
+ @Test public void weatherAndBrentUseExactlyTheSameOfficialLogoRegion()throws Exception{
   Context c=RuntimeEnvironment.getApplication();
   WeatherForecast.Summary summary=new WeatherForecast.Summary(
    "29°C","Parcialmente nublado","18 km/h","48%",
@@ -54,6 +54,8 @@ public class OfficialArgosLowerThirdTest {
   BrentQuote oil=new BrentQuote(78.45,77.5,.95,1.22,System.currentTimeMillis()-60000,"Yahoo Finance");
   DollarQuote usd=new DollarQuote(5.35,.04,.76,System.currentTimeMillis()-60000,"Yahoo Finance");
   TvBroadcastInfoView market=TvBroadcastInfoView.market(c,oil,usd,false);
+  java.lang.reflect.Field animation=TvBroadcastInfoView.class.getDeclaredField("animate");
+  animation.setAccessible(true);animation.setBoolean(market,false);
   Bitmap a=render(weather,1000),b=render(market,1000);
   try{
    assertEquals(35f,BroadcastVisuals.BRAND_RIGHT_INSET,0.001f);
