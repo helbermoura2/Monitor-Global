@@ -206,7 +206,14 @@
      };body.append(preview);
    }
  }
+ function openImperialBronze(){
+   // The same authenticated panel; open the exact-PNG form immediately.
+   // If login is required, preserve the requested tab until auth succeeds.
+   active='alerts';
+   return open();
+ }
  function open(){
+   document.getElementById('ts-more-menu')?.classList.remove('open');
    document.getElementById('menu-float-panel')?.classList.remove('open');
    const float=document.getElementById('menu-float-panel');if(float)float.style.display='none';
    if(!authorized){login();return}show();refresh();
@@ -218,7 +225,7 @@
    head.append(title,close);message=n('p','', 'tg-admin-message');message.setAttribute('role','status');
    body=n('div',null,'tg-admin-body');dialog.append(head,message,body);document.body.append(dialog);
    dialog.addEventListener('close',clearPreview);
-   window.TelegramAdmin={open,isAuthenticated:()=>authorized};
+   window.TelegramAdmin={open,openImperialBronze,isAuthenticated:()=>authorized};
    // The optional loader opens the requested panel after initialization.
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
