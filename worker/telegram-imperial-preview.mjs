@@ -6,6 +6,7 @@ export const IMPERIAL_PREVIEW={
  sha256:'ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75',
  width:1024,height:1536,maxBytes:6*1024*1024,
  key:'telegram-imperial-bronze-m6-preview:2026-11-16:ed3cf9da86aa041673',
+ sourceKey:'telegram-imperial-m6-6-exact-source-v1',
  closesAt:Date.parse('2026-11-18T03:00:00Z')
 };
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
@@ -70,15 +71,37 @@ export async function handleImperialPreview(storage,env,request,{now=Date.now(),
   if(existing?.status==='sending'||existing?.status==='uncertain')return json({ok:false,reason:'uncertain',error:'Envio anterior pode ter sido aceito. Confira o canal antes de tentar outra vez.'},409);
   await storage.put(options.key,{status:'sending',at:now,sha256:valid.digest});
  }catch{return json({ok:false,error:'Proteção contra duplicatas indisponível'},503);}
+ // Store the exact original in the existing KV, so the repository's scheduled
+ // asset-sync can import the binary with SHA validation; never alter the PNG.
+ let stored=false;
+ if(env.TTS_USAGE?.put){
+  try{
+   await env.TTS_USAGE.put(options.sourceKey,bytes,{expirationTtl:14*24*60*60,metadata:{sha256:valid.digest,kind:'approved-m6-preview'}});
+   stored=true;
+  }catch{console.warn('Imagem original não pôde ser arquivada no KV');}
+ }
  try{
   const result=await send(env,bytes);
   if(result?.ok!==true||!Number.isSafeInteger(result?.result?.message_id))throw Error('Telegram não confirmou a mensagem');
   const messageId=result.result.message_id;
   try{await storage.put(options.key,{status:'sent',at:now,messageId,sha256:valid.digest});}catch{console.warn('Telegram confirmou imagem, mas o histórico local não pôde ser gravado');}
-  return json({ok:true,posted:true,messageId,channel:'@argosorbis',sha256:valid.digest});
+  return json({ok:true,posted:true,messageId,channel:'@argosorbis',sha256:valid.digest,storedForGitHubSync:stored});
  }catch(error){
   const explicit=error?.definitelyRejected===true;
   try{await storage.put(options.key,{status:explicit?'rejected':'uncertain',at:now,sha256:valid.digest});}catch{}
   return json({ok:false,reason:explicit?'rejected':'uncertain',error:explicit?'Telegram recusou a imagem. Verifique as permissões do bot.':'Envio sem confirmação. Confira @argosorbis antes de tentar novamente.'},502);
  }
+}
+
+/** Public, SHA-restricted binary source. This is a public Telegram poster, not
+ * a private user document. Reads no arbitrary KV keys or other images. */
+export async function getImperialPreviewAsset(env){
+ if(!env.TTS_USAGE?.get)return new Response('Arquivo indisponível',{status:404});
+ try{
+  const bytes=await env.TTS_USAGE.get(IMPERIAL_PREVIEW.sourceKey,'arrayBuffer');
+  if(!bytes)return new Response('Arquivo ainda não carregado',{status:404});
+  const checked=await validateImperialPreview(bytes);
+  if(!checked.ok)return new Response('Imagem inválida',{status:503});
+  return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'public, max-age=3600','X-Content-Type-Options':'nosniff'}});
+ }catch{return new Response('Arquivo indisponível',{status:503});}
 }
