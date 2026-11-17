@@ -22,7 +22,7 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f", shared)
         self.assertIn("BRAND_RIGHT_INSET=35f", shared)
         self.assertIn("OledNewsChrome.brand(c,paint,elapsed,animated)",shared)
-        self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open)",source("OledNewsChrome.java"))
+        self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open,false)",source("OledNewsChrome.java"))
         self.assertIn("RADAR_PERIOD_MS=7200L", shared)
         self.assertIn("postInvalidateOnAnimation()", other)
         self.assertIn("private void drawIdentity(Canvas c,long elapsed)", other)

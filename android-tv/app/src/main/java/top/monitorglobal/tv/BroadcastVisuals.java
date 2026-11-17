@@ -28,13 +28,13 @@ final class BroadcastVisuals {
   return BODY_VISUAL_CENTER_Y-(fm.ascent+fm.descent)/2f;
  }
  // The seismic M5.x value is the official reference for the LEFT 100-unit
- // event column: centered at x=56, baseline=72, with the caption at y=86.
+ // event column: centered at x=68, baseline=72, with the caption at y=86.
  // Weather/rain/Brent/satellite/voice use exactly the same geometry.
- static final float EVENT_CENTER_X=56f,EVENT_MAGNITUDE_BASELINE=72f;
+ static final float EVENT_CENTER_X=68f,EVENT_MAGNITUDE_BASELINE=72f;
  static final float EVENT_CAPTION_BASELINE=86f,EVENT_CATEGORY_BASELINE=68f;
- static final float EVENT_TEXT_WIDTH=85f;
+ static final float EVENT_TEXT_WIDTH=84f;
  static void eventCategory(Canvas c,Paint paint,Typeface font,String title,String caption,int color){
-  c.save();c.clipRect(8f,28f,108f,94f);
+  c.save();c.clipRect(18f,31f,118f,94f);
   eventLabel(c,paint,font,title,EVENT_CATEGORY_BASELINE,35f,color);
   if(caption!=null&&!caption.isEmpty())eventLabel(c,paint,font,caption,EVENT_CAPTION_BASELINE,10f,Color.WHITE);
   c.restore();

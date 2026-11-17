@@ -196,8 +196,9 @@ final class TvBroadcastInfoView extends View {
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
   fill(c,OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_TOP,106-OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_HEIGHT,OledNewsChrome.RED_DARK);
-  p.setTypeface(data);p.setTextSize(18);
-  label(c,clockText,58-p.measureText(clockText)/2,118,17,Color.WHITE,data,90);
+  Typeface clockFace=OledNewsChrome.clockFont();
+  p.setTypeface(clockFace);p.setTextSize(18f);
+  label(c,clockText,58-p.measureText(clockText)/2f,118,18,Color.WHITE,clockFace,90);
   OledNewsChrome.brandFooter(c,p,elapsed,animate);
   c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
   String display=OledNewsChrome.tickerDisplay(ticker);

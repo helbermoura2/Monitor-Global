@@ -85,7 +85,7 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   for(int x:new int[]{36,280,808}){
+   for(int x:new int[]{36,220,808}){
     int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,10);
     assertTrue("red Pixlr tabs remain visible",Color.red(seismic)>Color.green(seismic));
     assertTrue("all sources share red tabs",Color.red(marketColor)>Color.green(marketColor));
@@ -145,7 +145,7 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(weather,960,126+weather.mapSpace,1100);
   try{
    int qa=Banner.insetDp(context),qb=weather.mapSpace;
-   for(int x:new int[]{36,280}){
+   for(int x:new int[]{36,220}){
     assertTrue(Color.red(a.getPixel(x,qa+10))>Color.green(a.getPixel(x,qa+10)));
     assertTrue(Color.red(b.getPixel(x,qb+10))>Color.green(b.getPixel(x,qb+10)));
    }

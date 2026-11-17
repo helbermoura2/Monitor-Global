@@ -52,6 +52,10 @@ public final class RadarLogoView extends View {
   * only the layout transform differs. No bitmap or separate simplified logo.
   */
  static void drawArtwork(Canvas c,Paint paint,float sweep,float open){
+  drawArtwork(c,paint,sweep,open,true);
+ }
+ /** Strip rendering can replace only the miniature inscriptions with readable labels. */
+ static void drawArtwork(Canvas c,Paint paint,float sweep,float open,boolean includeInscriptions){
   Path eye=new Path();
   eye.moveTo(8,64);
   eye.quadTo(64,64-54*open,120,64);
@@ -81,13 +85,15 @@ public final class RadarLogoView extends View {
   paint.setStyle(Paint.Style.FILL);
   // Broadcast labels use Rajdhani/JetBrains; normalize the logo text
   // so all lower thirds draw identical glyphs regardless of the last metric.
-  paint.setTypeface(android.graphics.Typeface.DEFAULT);
-  paint.setTextScaleX(1f);
-  paint.setColor(GOLD);paint.setTextAlign(Paint.Align.CENTER);
-  paint.setTextSize(6f);
-  c.drawText("ΠΑΝΟΠΤΗΣ",64,9,paint);
-  c.drawText("CUSTOS ORBIS",64,126,paint);
-  paint.setTextAlign(Paint.Align.LEFT);
+  if(includeInscriptions){
+   paint.setTypeface(android.graphics.Typeface.DEFAULT);
+   paint.setTextScaleX(1f);
+   paint.setColor(GOLD);paint.setTextAlign(Paint.Align.CENTER);
+   paint.setTextSize(6f);
+   c.drawText("ΠΑΝΟΠΤΗΣ",64,9,paint);
+   c.drawText("CUSTOS ORBIS",64,126,paint);
+   paint.setTextAlign(Paint.Align.LEFT);
+  }
  }
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();start();}
  @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}

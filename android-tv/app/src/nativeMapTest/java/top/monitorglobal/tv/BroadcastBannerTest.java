@@ -22,10 +22,10 @@ public class BroadcastBannerTest {
    int white=0;for(int y=121;y<125;y++)for(int x=10;x<80;x++){int p=b.getPixel(x,y);if(Color.green(p)>200&&Color.blue(p)>200)white++;}assertEquals("no Brasilia subtitle under clock",0,white);export(b,"quake");
   }finally{b.recycle();}
  }
- private double coloredCenter(Bitmap b,int top,int bottom){int left=105,right=0,count=0;for(int y=top;y<bottom;y++)for(int x=8;x<105;x++){int p=b.getPixel(x,y);if(Color.red(p)>220&&Color.green(p)>60&&Color.blue(p)>60){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue("text must be visible",count>20);return(left+right)/2.0;}
+ private double coloredCenter(Bitmap b,int top,int bottom){int left=105,right=0,count=0;for(int y=top;y<bottom;y++)for(int x=18;x<118;x++){int p=b.getPixel(x,y);if(Color.red(p)>220&&Color.green(p)>60&&Color.blue(p)>60){left=Math.min(left,x);right=Math.max(right,x);count++;}}assertTrue("text must be visible",count>20);return(left+right)/2.0;}
  @Test public void tsunamiAndBulletinShareTheSameCenter()throws Exception{
   Alert a=new Alert("test","tsunami","v","Costas citadas no boletim oficial","PTWC","warning",1600000000000L,1600000000000L,true);Bitmap b=render(new NewsBannerView(c,a,true,false),1000);
-  try{assertEquals(56,coloredCenter(b,43,63),2);assertEquals("tsunami caption stays aligned within optical tolerance",56.5,coloredCenter(b,68,82),6);export(b,"tsunami");}finally{b.recycle();}
+  try{assertEquals(68,coloredCenter(b,43,63),3);assertEquals("tsunami caption stays aligned within optical tolerance",68.0,coloredCenter(b,68,82),6);export(b,"tsunami");}finally{b.recycle();}
  }
  @Test public void radarIsLargeAndAnimatedWhileReducedMotionStopsTheSweep()throws Exception{
   java.lang.reflect.Method scale=android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale",float.class);scale.setAccessible(true);

@@ -73,7 +73,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
     def test_shared_vertical_alignment_is_used_for_weather_rain_market_satellite_voice(self):
         self.assertIn("BroadcastVisuals.centeredBodyBaseline(p,brand,chosen)", WEATHER)
         self.assertIn("BODY_VISUAL_CENTER_Y=61f", CHROME)
-        self.assertIn("EVENT_CENTER_X=56f,EVENT_MAGNITUDE_BASELINE=72f", CHROME)
+        self.assertIn("EVENT_CENTER_X=68f,EVENT_MAGNITUDE_BASELINE=72f", CHROME)
         self.assertIn('BroadcastVisuals.eventCategory(c,p,brand,title,caption', WEATHER)
         self.assertIn('BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI"', SEISMIC)
         for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"BRENT"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):

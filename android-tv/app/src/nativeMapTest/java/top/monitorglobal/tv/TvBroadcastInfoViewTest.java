@@ -60,7 +60,7 @@ public class TvBroadcastInfoViewTest {
     assertTrue("Caption '"+captions[i]+"' stays below like seismic subtitle",captionPixels>6);
    }finally{b.recycle();}
   }
-  assertEquals(56f,BroadcastVisuals.EVENT_CENTER_X,0f);
+  assertEquals(68f,BroadcastVisuals.EVENT_CENTER_X,0f);
   assertEquals(72f,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,0f);
  }
  @Test public void everyPrimaryValueUsesOneOpticalCenterForReadableTVLabels()throws Exception{

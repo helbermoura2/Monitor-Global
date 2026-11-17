@@ -150,7 +150,7 @@ final class NewsBannerView extends View {
   if(minute!=clockMinute){clockMinute=minute;clockText=formatClock(now);}
   c.save();c.clipRect(OledNewsChrome.LEFT,94,106,126);
   rect(c,OledNewsChrome.LEFT,94,106,126,OledNewsChrome.RED_DARK);
-  centerText(c,clockText,58,118,17,Color.WHITE,data,90);
+  centerText(c,clockText,58,118,18,Color.WHITE,OledNewsChrome.clockFont(),90);
   c.restore();
  }
  private void breaking(Canvas c,long elapsed){
@@ -159,10 +159,11 @@ final class NewsBannerView extends View {
   if(animate&&!replay&&!summary){
    float phase=(elapsed%3200)/3200f;
    if(phase<.7f){
-    shineMatrix.setTranslate(31-70+phase/.7f*(264+70),0);
+    float left=OledNewsChrome.LEFT,right=OledNewsChrome.LEFT_TAB_RIGHT,width=right-left;
+    shineMatrix.setTranslate(left-70+phase/.7f*(width+70),0);
     shine.setLocalMatrix(shineMatrix);
-    c.save();c.clipRect(31,0,295,30);paint.setShader(shine);
-    c.drawRect(31,0,295,30,paint);paint.setShader(null);c.restore();
+    c.save();c.clipRect(left,0,right,OledNewsChrome.TAB_BOTTOM);paint.setShader(shine);
+    c.drawRect(left,0,right,OledNewsChrome.TAB_BOTTOM,paint);paint.setShader(null);c.restore();
    }
   }
  }
