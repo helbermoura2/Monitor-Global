@@ -209,11 +209,11 @@ public class TvBroadcastInfoViewTest {
   Bitmap image=render(TvBroadcastInfoView.weather(c,rain,hourly,false),"weather-compact-rain");
   try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-weather-card-compact-rain.png")){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}finally{image.recycle();}
  }
- @Test public void dedicatedRainUsesOfficialStripWithoutWeatherMetricsOrMap()throws Exception{
+ @Test public void dedicatedRainUsesIconsMetricsAndAttachedSatellite()throws Exception{
   RainForecast.Summary rain=new RainForecast.Summary("soon","fraca","Chuva prevista em ~10 min",0,3.2,"Pode terminar em ~45 min",System.currentTimeMillis(),System.currentTimeMillis()+600000,false,10,45,35,4.5,"Duração estimada: ~35 min");
-  TvBroadcastInfoView view=TvBroadcastInfoView.rain(c,rain,null,true);assertEquals(0,view.mapSpace);
+  TvBroadcastInfoView view=TvBroadcastInfoView.rain(c,rain,null,true);assertTrue(view.mapSpace>0);
   String description=String.valueOf(view.getContentDescription());assertTrue(description.contains("3,2 mm"));assertTrue(description.contains("4,5 mm/h"));assertTrue(description.contains("35 min"));assertFalse(description.contains("Umidade"));
-  Bitmap image=render(view,"rain");try{assertEquals(126,image.getHeight());assertTrue(Color.red(image.getPixel(36,10))>Color.green(image.getPixel(36,10)));try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-weather-card-rain-banner.png")){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}}finally{image.recycle();}
+  Bitmap image=render(view,"rain");try{assertEquals(126+view.mapSpace,image.getHeight());assertEquals(0xff09235f,image.getPixel(36,view.mapSpace+3));try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-weather-card-rain-banner.png")){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}}finally{image.recycle();}
  }
  @Test public void infraredImageIsMapInsetNotAnotherCornerCard()throws Exception{
   Bitmap frame=Bitmap.createBitmap(512,300,Bitmap.Config.ARGB_8888);
