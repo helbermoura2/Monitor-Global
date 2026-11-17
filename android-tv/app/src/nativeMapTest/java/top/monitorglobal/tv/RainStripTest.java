@@ -58,7 +58,7 @@ public class RainStripTest {
    host.layout(0,0,p.width,p.height);
    View line=host.getChildAt(0);
    assertTrue(line instanceof TvBroadcastInfoView);
-   assertEquals("Rain details have their own compact official strip",0,((TvBroadcastInfoView)line).mapSpace);
+   assertTrue("Rain details reserve the attached satellite inset",((TvBroadcastInfoView)line).mapSpace>0);
    ((TvBroadcastInfoView)line).startPresentation(android.os.SystemClock.uptimeMillis()-500,false);
    String content=String.valueOf(line.getContentDescription());
    assertTrue(content.contains("Chuva prevista em ~8 min"));

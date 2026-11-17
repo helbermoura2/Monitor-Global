@@ -53,10 +53,13 @@ final class RainMonitor {
     WeatherForecast.Summary weather=null;
     try{if(weatherData!=null)weather=WeatherForecast.summarize(weatherData,now);}catch(JSONException ignored){}
     if(weather!=null&&weather.expiresAt<=now)weather=null;
+    if(satelliteEnabled())satellite.prepare();
     if(!overlay.showRain(summary,mode()==2,false,weather,false,rainDelivered(summary,now,true))){
+     satellite.cancel();
      Prefs.status(context,"Não foi possível exibir o aviso de chuva real na TV.");
      manualFinished.run();return;
     }
+    if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);
     Prefs.status(context,"Aviso de chuva real: "+summary.title+" · Liberdade.");
     manualUntil=SystemClock.elapsedRealtime()+RainOverlay.DURATION+800;
     main.postDelayed(()->{
@@ -80,10 +83,10 @@ final class RainMonitor {
   try{if(weatherData!=null&&(enabled||manualWeather))weather=WeatherForecast.summarize(weatherData,now);}catch(JSONException ignored){}
   Prefs.get(context).edit().putString("weatherStatus",weather==null?"Liberdade: previsão horária indisponível ou aguardando consulta":"Liberdade: "+weather.temperature+" · previsão horária: "+weather.condition).apply();
   boolean due=enabled&&WeatherForecast.due(Prefs.get(context).getLong("weatherLastNotice",0),now),wanted=due||manualWeather;
-  if(wanted&&satelliteEnabled()&&allowed.getAsBoolean())satellite.prepare();
   Prefs.get(context).edit().putString("rainStatus",rain==null?"Liberdade: chuva por minuto indisponível ou vencida":"Liberdade: "+rain.title).apply();
   String previous=Prefs.get(context).getString("rainLastKey","");if(rain!=null){previous=RainNoticePolicy.previousAfterGap(previous,Prefs.get(context).getLong("rainLastValidAt",0),now);Prefs.get(context).edit().putLong("rainLastValidAt",now).apply();}
   boolean rainNotice=selected>0&&RainNoticePolicy.shouldShow(rain,previous,Prefs.get(context).getLong("rainLastNotice",0),now);
+  if((wanted||rainNotice)&&satelliteEnabled()&&allowed.getAsBoolean())satellite.prepare();
   // Do not start a 15-second presentation with source data about to expire.
   if(weather!=null&&weather.expiresAt-now<16000)weather=null;
   RainForecast.Summary displayRain=rain!=null&&rain.expiresAt-now>=13000?rain:null;
@@ -94,9 +97,9 @@ final class RainMonitor {
   boolean shown=false;
   Runnable delivered=rainNotice&&displayRain!=null?rainDelivered(displayRain,now,manualWeather):null;
   if(!waiting&&allowed.getAsBoolean()&&!overlay.showing()){
-   if(rainNotice&&displayRain!=null&&!manualWeather){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);}
+   if(rainNotice&&displayRain!=null&&!manualWeather){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);}
    else if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather,false,null,satelliteEnabled()?()->{satellite.cancel();return false;}:null);if(shown){if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
-   else if(rainNotice&&displayRain!=null&&!(wanted&&weatherBusy)){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);}
+   else if(rainNotice&&displayRain!=null&&!(wanted&&weatherBusy)){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);}
   }
   if(!waiting&&manualWeather&&!weatherBusy&&weatherData!=null&&weather==null&&SystemClock.elapsedRealtime()<nextWeatherRead){Prefs.status(context,"Previsão horária indisponível para a Liberdade. Tente novamente depois.");finishManual(false);}
  }
