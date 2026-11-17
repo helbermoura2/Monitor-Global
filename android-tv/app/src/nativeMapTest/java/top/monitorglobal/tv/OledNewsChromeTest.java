@@ -144,13 +144,54 @@ public class OledNewsChromeTest {
     TvBroadcastInfoView.MARKET_DOLLAR_STATUS_X-TvBroadcastInfoView.MARKET_DOLLAR_X>=190);
  }
  @Test public void finalRefinementsIncreaseLogoAndFooterLegibilityWithoutOverlaps(){
-  assertEquals(64f,OledNewsChrome.LOGO_SIZE,0f);
+  assertEquals(56f,OledNewsChrome.LOGO_SIZE,0f);
   assertEquals(790f,OledNewsChrome.BRAND_PLATE_LEFT,0f);
   assertEquals("BRENT · 92,41      •      DÓLAR · R$ 5,79",
     OledNewsChrome.tickerDisplay("BRENT · 92,41 • DÓLAR · R$ 5,79"));
   assertEquals("",OledNewsChrome.tickerDisplay(null));
   assertTrue("larger gray plate leaves safe right overscan",OledNewsChrome.RIGHT<936);
   assertTrue("footer is tall enough for the new 14-point letter baseline",OledNewsChrome.FOOTER_END-99>=26);
+ }
+ @Test public void redTabsSitAboveTheOledBodyAndBreakingNewsIsShorter(){
+  Bitmap b=skin("BREAKING NEWS","COTAÇÕES");
+  try{
+   assertEquals(254f,OledNewsChrome.LEFT_TAB_RIGHT,0f);
+   assertTrue("left badge ends before 260",OledNewsChrome.LEFT_TAB_RIGHT<260f);
+   assertEquals("red tabs must stop 3 units before black",27f,OledNewsChrome.TAB_BOTTOM,0f);
+   assertEquals("no red touching OLED band left",0,Color.alpha(b.getPixel(180,29)));
+   assertEquals("no red touching OLED band right",0,Color.alpha(b.getPixel(855,29)));
+   assertEquals("pitch black below left red tab",Color.BLACK,b.getPixel(180,31));
+   assertEquals("pitch black below right red tab",Color.BLACK,b.getPixel(855,31));
+   assertEquals("unused upper left area stays transparent",0,Color.alpha(b.getPixel(274,12)));
+   assertEquals("right tab remains visible",255,Color.alpha(b.getPixel(820,12)));
+  }finally{b.recycle();}
+ }
+ @Test public void greyDestinationPlateIsFullHeightWithLegibleBrandInscriptions(){
+  Bitmap b=skin("BREAKING NEWS","AO VIVO");
+  try{
+   for(int y=94;y<126;y++){
+    assertEquals("no short grey footer at y "+y,0xff333436,b.getPixel(792,y));
+    assertEquals("no uncovered far-right grey region at y "+y,0xff333436,b.getPixel(924,y));
+   }
+   int upperGold=0,lowerGold=0;
+   for(int x=846;x<=910;x++){
+    for(int y=33;y<40;y++){
+     int p=b.getPixel(x,y);
+     if(Color.red(p)>140&&Color.green(p)>85&&Color.blue(p)<185)upperGold++;
+    }
+    for(int y=85;y<=93;y++){
+     int p=b.getPixel(x,y);
+     if(Color.red(p)>140&&Color.green(p)>85&&Color.blue(p)<185)lowerGold++;
+    }
+   }
+   assertTrue("Greek PANOPTES top inscription must show",upperGold>10);
+   assertTrue("Latin CUSTOS ORBIS bottom inscription must show",lowerGold>10);
+  }finally{b.recycle();}
+ }
+ @Test public void clockAndTickerShareTheNewsSansSerifFamily(){
+  assertEquals(android.graphics.Typeface.BOLD,OledNewsChrome.clockFont().getStyle());
+  assertEquals(OledNewsChrome.titleFont(null).toString(),OledNewsChrome.clockFont().toString());
+  assertEquals(OledNewsChrome.regularFont().toString(),OledNewsChrome.tickerFont().toString());
  }
  @Test public void liveDataIsStillInTheNativeTvBanners(){
   Context c=RuntimeEnvironment.getApplication();
