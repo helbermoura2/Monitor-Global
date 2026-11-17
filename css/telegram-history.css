@@ -15,6 +15,10 @@
 #tg-admin-dialog .tg-controls { display:flex;flex-wrap:wrap;gap:8px;margin:8px 0; }
 #tg-admin-dialog button[aria-pressed="true"] { border-color:#53d4eb;color:#53d4eb; }
 #tg-admin-dialog .tg-send-test { border-color:#53d4eb;background:#0d4351;color:#ecfcff;font-weight:700; }
+#tg-admin-dialog .tg-imperial-repost { margin:16px 0;padding:14px;border:1px solid #8e6e4b;border-radius:12px;background:linear-gradient(120deg,#332319,#1b1714); }
+#tg-admin-dialog .tg-imperial-repost-button { display:block;width:100%;min-height:46px;border-color:#c3996d;color:#f8d6ab;font-weight:700;text-align:center; }
+#tg-admin-dialog .tg-imperial-repost input[hidden] { display:none!important; }
+#tg-admin-dialog .tg-imperial-repost .tg-note { color:#dbc3a2;line-height:1.5; }
 #tg-admin-dialog .tg-history-row { display:grid;grid-template-columns:1fr auto;text-align:left;gap:4px 12px;width:100%;margin:10px 0;padding:14px; }
 #tg-admin-dialog .tg-history-row small { grid-column:1/-1;color:#9ab5c7; }
 #tg-admin-dialog .tg-status { color:#62d8ec;font-size:13px; }
