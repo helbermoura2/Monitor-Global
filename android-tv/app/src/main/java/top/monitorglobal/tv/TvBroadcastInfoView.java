@@ -305,13 +305,13 @@ final class TvBroadcastInfoView extends View {
   fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),218,45,13,10,muted,brand,176);
   String oil=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
   fitted(c,oil,218,71,22,13,brent==null||brent.percent==null?muted:brent.percent>=0?0xff00733b:0xffbd1628,brand,176);
-  fitted(c,brent==null?"SEM COTAÇÃO CONFIRMADA":"NYMEX · REF. "+BrentQuote.reference(brent.at),20,89,11,9,muted,data,370);
+  fitted(c,brent==null?"SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),20,89,11,9,muted,data,370);
   fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),430,71,27,17,ink,brand,195);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),630,45,13,10,muted,brand,185);
   Double change=dollar==null?null:dollar.percent;
   String fx=change==null?"VAR. —":(change>=0?"▲ +":"▼ ")+amount(change)+"%";
   fitted(c,fx,630,71,22,13,change==null?muted:change>=0?0xff00733b:0xffbd1628,brand,185);
-  fitted(c,dollar==null?"SEM COTAÇÃO CONFIRMADA":"YAHOO · REF. "+BrentQuote.reference(dollar.at),430,89,11,9,muted,data,370);
+  fitted(c,dollar==null?"SEM COTAÇÃO CONFIRMADA":"YAHOO · "+(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),430,89,11,9,muted,data,370);
  }
  private void drawSatelliteNews(Canvas c){
   eventCategory(c,"SATÉLITE","GOES-EAST");
