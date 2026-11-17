@@ -62,13 +62,22 @@ public class OfficialArgosLowerThirdTest {
    assertTrue(BroadcastVisuals.CONTENT_RIGHT_LIMIT+5f<=BroadcastVisuals.RADAR_X-BroadcastVisuals.RADAR_SIZE/2f);
    assertBrandWithinSafeArea(a);
    assertBrandWithinSafeArea(b);
-   int transientPixels=0;
-   for(int y=33;y<91;y++)for(int x=864;x<926;x++){
-    // Renderer passes advance the eye's animated sweep by a few milliseconds.
-    if(a.getPixel(x,y)!=b.getPixel(x,y))transientPixels++;
-   }
-   assertTrue("same official emblem, tolerating only its moving sweep edge: "+transientPixels,
-     transientPixels<180);
+   try(java.io.InputStream in=c.getAssets().open("argos-official-logo.b64")){
+    java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
+    byte[] buffer=new byte[4096];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+    byte[] bytes=android.util.Base64.decode(out.toByteArray(),android.util.Base64.DEFAULT);
+    Bitmap official=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+    assertNotNull(official);
+    Bitmap expected=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+    expected.eraseColor(Color.BLACK);
+    android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
+    new Canvas(expected).drawBitmap(official,null,new android.graphics.RectF(830,31,925,93),paint);
+    int mismatches=0;
+    for(int y=33;y<91;y++)for(int x=830;x<925;x++)if(expected.getPixel(x,y)!=b.getPixel(x,y))mismatches++;
+    assertTrue("market must use official detailed artwork: "+mismatches,mismatches<30);
+    expected.recycle();official.recycle();
+   }catch(java.io.IOException ex){throw new AssertionError(ex);}
+
   }finally{a.recycle();b.recycle();}
  }
  @Test public void noElementsOrBrandCrossTheRightOverscanMargin(){

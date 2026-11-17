@@ -181,6 +181,22 @@ final class TvBroadcastInfoView extends View {
  private void eventCategory(Canvas c,String title,String caption){
   BroadcastVisuals.eventCategory(c,p,brand,title,caption,0xffff6d7f);
  }
+ private static Bitmap officialMarketLogo;
+ private void drawOfficialMarketLogo(Canvas c){
+  if(officialMarketLogo==null){
+   try(java.io.InputStream in=getContext().getAssets().open("argos-official-logo.b64")){
+    java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
+    byte[] buffer=new byte[4096];int count;
+    while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+    byte[] bytes=android.util.Base64.decode(out.toByteArray(),android.util.Base64.DEFAULT);
+    officialMarketLogo=BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+   }catch(java.io.IOException ignored){drawRadar(c,0);return;}
+  }
+  if(officialMarketLogo!=null){
+   p.setShader(null);p.setColor(Color.WHITE);p.setFilterBitmap(true);
+   c.drawBitmap(officialMarketLogo,null,new RectF(830,31,925,93),p);
+  }
+ }
  private void drawRadar(Canvas c,long elapsed){
   BroadcastVisuals.radar(c,p,elapsed,animate);
  }
@@ -215,8 +231,8 @@ final class TvBroadcastInfoView extends View {
  private void drawHeader(Canvas c,long elapsed){
   OledNewsChrome.base(c,p);
   if(kind==BRENT){
-   fill(c,8,0,917,30,0xff09235f);
-   fitted(c,demo?"COTAÇÕES · TESTE FICTÍCIO":"COTAÇÕES · MERCADO",20,21,20,14,Color.WHITE,brand,790);
+   fill(c,8,0,demo?360:250,30,0xff09235f);
+   fitted(c,demo?"COTAÇÕES · TESTE FICTÍCIO":"COTAÇÕES",20,21,20,14,Color.WHITE,brand,790);
    fill(c,8,30,812,64,0xfff4f5f6);
   }else{
    OledNewsChrome.tab(c,p,"BREAKING NEWS",true);
@@ -230,7 +246,7 @@ final class TvBroadcastInfoView extends View {
   else if(kind==VOICE_STATUS)drawVoiceStatus(c);
   else drawSatelliteNews(c);
   c.restore();
-  drawRadar(c,elapsed);
+  if(kind==BRENT)drawOfficialMarketLogo(c);else drawRadar(c,elapsed);
   drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
@@ -292,7 +308,7 @@ final class TvBroadcastInfoView extends View {
  static final float MARKET_DIVIDER_X=485f, MARKET_DOLLAR_X=502f, MARKET_DOLLAR_STATUS_X=711f;
  private void drawBrent(Canvas c){
   refreshMarket();
-  final int ink=0xff101d33, muted=0xff4d5c6c;
+  final int ink=0xff101d33, muted=0xff27394b;
   fitted(c,"BRENT",20,46,16,13,ink,brand,110);
   fitted(c,"DÓLAR USD/BRL",430,46,16,12,ink,brand,185);
   fill(c,410,36,1,50,0xffaab5c0);
@@ -301,17 +317,17 @@ final class TvBroadcastInfoView extends View {
    fitted(c,"AGUARDANDO FONTE",430,72,21,14,ink,brand,370);
    return;
   }
-  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),20,71,27,17,ink,brand,195);
+  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),20,73,32,19,ink,brand,195);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),218,45,13,10,muted,brand,176);
   String oil=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
-  fitted(c,oil,218,71,22,13,brent==null||brent.percent==null?muted:brent.percent>=0?0xff00733b:0xffbd1628,brand,176);
-  fitted(c,brent==null?"SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),20,89,11,9,muted,data,370);
-  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),430,71,27,17,ink,brand,195);
+  fitted(c,oil,218,73,27,16,brent==null||brent.percent==null?muted:brent.percent>=0?0xff00733b:0xffbd1628,brand,176);
+  fitted(c,brent==null?"SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),20,91,13,11,muted,data,370);
+  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),430,73,32,19,ink,brand,195);
   fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),630,45,13,10,muted,brand,185);
   Double change=dollar==null?null:dollar.percent;
   String fx=change==null?"VAR. —":(change>=0?"▲ +":"▼ ")+amount(change)+"%";
-  fitted(c,fx,630,71,22,13,change==null?muted:change>=0?0xff00733b:0xffbd1628,brand,185);
-  fitted(c,dollar==null?"SEM COTAÇÃO CONFIRMADA":"YAHOO · "+(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),430,89,11,9,muted,data,370);
+  fitted(c,fx,630,73,27,16,change==null?muted:change>=0?0xff00733b:0xffbd1628,brand,185);
+  fitted(c,dollar==null?"SEM COTAÇÃO CONFIRMADA":"YAHOO · "+(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),430,91,13,11,muted,data,370);
  }
  private void drawSatelliteNews(Canvas c){
   eventCategory(c,"SATÉLITE","GOES-EAST");
