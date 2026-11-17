@@ -152,12 +152,12 @@ public class UnifiedBroadcastChromeTest {
     assertTrue(Color.red(a.getPixel(x,qa+10))>Color.green(a.getPixel(x,qa+10)));
     assertEquals(0xff09235f,b.getPixel(x,qb+3));
    }
-   for(int x:new int[]{400,540,790}){
+   for(int x:new int[]{400,540}){
     assertEquals(0,Color.alpha(a.getPixel(x,qa+12)));
     assertEquals(0,Color.alpha(b.getPixel(x,qb+12)));
    }
    for(int y=3;y<=20;y++)for(int x=804;x<=924;x++)
-    assertEquals("weather has no false live tag",0,Color.alpha(b.getPixel(x,qb+y)));
+    assertEquals("attached satellite occupies former live-tab area",255,Color.alpha(b.getPixel(x,qb+y)));
   }finally{a.recycle();b.recycle();}
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
