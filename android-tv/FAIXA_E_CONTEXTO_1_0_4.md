@@ -1,6 +1,6 @@
 # Faixa e contexto — TV 1.0.4
 
-O tamanho da faixa permanece igual. Breaking News, magnitude e bloco Tsunami têm cantos arredondados. O rodapé passa de 32 para 40 unidades de desenho por segundo (+25%). Sob o nome Monitor Global, `monitorglobal.top` e o ícone vetorial do Telegram com `@monitor_global` alternam a cada oito segundos, com dissolução de 360 ms. A identidade não move nem reinicia o rodapé. Animações desativadas no Android continuam respeitadas; a identidade ainda alterna, sem movimento.
+O tamanho da faixa permanece igual. Breaking News, magnitude e bloco Tsunami têm cantos arredondados. O rodapé passa de 32 para 40 unidades de desenho por segundo (+25%). Sob o nome Argos Orbis, `argosorbis.com.br` e o ícone vetorial do Telegram com `@argosorbis` alternam a cada oito segundos, com dissolução de 360 ms. A identidade não move nem reinicia o rodapé. Animações desativadas no Android continuam respeitadas; a identidade ainda alterna, sem movimento.
 
 Demonstrações continuam explicitamente identificadas na manchete e no rodapé; substituir a antiga palavra TESTE da área de marca não transforma exemplo em notícia real. O replay mantém sua identificação e não toca som.
 

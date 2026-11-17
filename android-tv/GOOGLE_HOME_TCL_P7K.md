@@ -1,6 +1,8 @@
-# Google Home + Monitor Global TV — TCL P7K (teste privado)
+# Google Home + Argos Orbis TV — TCL P7K (teste privado)
 
-Objetivo: dizer "Ativar Temperatura Monitor Global" ao Google na TCL P7K e mostrar o mesmo boletim meteorológico que o Monitor Global já apresenta, sem abrir o aplicativo. Pode-se testar uma rotina pessoal para reconhecer "Mostrar a temperatura do Monitor Global".
+> **Marca pública:** Argos Orbis. Os comandos entre aspas, nomes de cenas e IDs a seguir documentam a **integração Google Home legada** e precisam permanecer exatos até a migração e a validação no console. Mudar a documentação não altera cenas já cadastradas nem garante que a nova invocação funcione.
+
+Objetivo: dizer "Ativar Temperatura Monitor Global" ao Google na TCL P7K e mostrar o mesmo boletim meteorológico que o Argos Orbis já apresenta, sem abrir o aplicativo. Pode-se testar uma rotina pessoal para reconhecer "Mostrar a temperatura do Monitor Global".
 
 Status: implementação em desenvolvimento; exige configurar o projeto Google Home e publicar o Worker. **Não é um produto certificado nem uma integração já ativa no Google Home.** O Google informa que uma integração formada somente por cenas virtuais não pode ser lançada oficialmente, mas permite testes privados.
 
@@ -8,11 +10,11 @@ Status: implementação em desenvolvimento; exige configurar o projeto Google Ho
 
 TCL P7K / Google Assistente ou Gemini -> Google Home (cena privada) -> Cloudflare Worker -> mesmo Durable Object da Alexa (private-tv-alexa-v1) -> fila de comandos já existente -> MonitorService (WEATHER_NOW) -> tarja de meteorologia oficial.
 
-O monitoramento do Monitor Global deve permanecer ativo em segundo plano; o aplicativo não precisa estar visível. A TV precisa estar ligada e na internet. Um alerta sísmico prioritário ainda pode impedir ou adiar a tarja solicitada. O Google não acessa áudio ou senhas do Monitor Global.
+O monitoramento do Argos Orbis deve permanecer ativo em segundo plano; o aplicativo não precisa estar visível. A TV precisa estar ligada e na internet. Um alerta sísmico prioritário ainda pode impedir ou adiar a tarja solicitada. O Google não acessa áudio ou senhas do Argos Orbis.
 
 ## Configuração pelo celular, sem PC
 
-1. No Chrome, abra https://console.home.google.com/ e, se necessário, ative Versão para computador. Crie um projeto e uma integração Cloud-to-cloud de teste chamada Monitor Global.
+1. No Chrome, abra https://console.home.google.com/ e, se necessário, ative Versão para computador. Crie um projeto e uma integração Cloud-to-cloud de teste chamada Argos Orbis.
 2. Anote o Project ID da integração. Crie Client ID e Client Secret do OAuth (Client Secret forte/aleatório).
 3. Configure as URLs na integração:
    - Authorization URL: https://black-sky-9ba0.terrestre.workers.dev/google-home/v1/authorize
@@ -26,7 +28,7 @@ O monitoramento do Monitor Global deve permanecer ativo em segundo plano; o apli
 5. Faça deploy do Worker atualizado que inclui worker/google-home-bridge.mjs e monitor-global-worker-7_7_0.js. Instalar apenas o APK não publica a Cloudflare.
 6. Verifique https://black-sky-9ba0.terrestre.workers.dev/google-home/v1/health . Deve responder ready: true (sem revelar credenciais).
 7. No Google Home Developer Console, habilite o teste da integração para a mesma conta Google usada no Google Home e na TCL P7K.
-8. Instale o APK oficial Monitor Global TV 1.0.92. Abra uma única vez para vincular: Google Home -> Vincular Google Home -> Gerar código de seis dígitos. O PIN expira em dez minutos. Isso não desfaz o vínculo da Alexa.
+8. Instale o APK oficial Argos Orbis TV 1.0.92. Abra uma única vez para vincular: Google Home -> Vincular Google Home -> Gerar código de seis dígitos. O PIN expira em dez minutos. Isso não desfaz o vínculo da Alexa.
 9. No aplicativo Google Home do celular, escolha Adicionar -> Dispositivo -> Funciona com Google Home. Procure a integração de teste ([test] Monitor Global, se disponível). Na tela de autenticação aberta pelo próprio Google, informe o código da TV, leia e aceite o vínculo.
 10. Deixe o monitoramento ativado, volte a qualquer programa e diga pelo microfone do controle: "Ativar Temperatura Monitor Global". Depois tente uma automação pessoal, com frase personalizada "Mostrar a temperatura do Monitor Global", usando a ação de ativar a cena.
 11. Se a P7K permitir voz sem controle remoto, ative o microfone mãos-livres nas configurações do assistente. A disponibilidade exata varia por firmware, região e conta.
@@ -60,10 +62,10 @@ Google Home no celular, em **Automações → Rotinas pessoais → Nova** (a int
 pode usar nomes diferentes dependendo da versão), e configure uma ativação
 **Quando eu falar com o Google Assistente** com frases como:
 
-- Mostrar a temperatura do Monitor Global
-- Como está o tempo no Monitor Global
-- Boletim do tempo Monitor Global
-- Temperatura da Liberdade no Monitor Global
+- Mostrar a temperatura do Argos Orbis
+- Como está o tempo no Argos Orbis
+- Boletim do tempo Argos Orbis
+- Temperatura da Liberdade no Argos Orbis
 
 Como **ação**, escolha ativar a cena/dispositivo `Temperatura Monitor Global`
 se disponível no editor. A ação tem que ser a cena virtual, **não a previsão
@@ -113,7 +115,7 @@ dispositivo, sem mexer nos tokens OAuth.
 2. Google Home pode demorar para atualizar o Home Graph; solicite nova
    sincronização (por Assistente compatível) ou atualize os serviços vinculados
    no app. Não remova a integração automaticamente; preserve o OAuth.
-3. Verifique se **Boletim Monitor Global TV** aparece entre os dispositivos.
+3. Verifique se **Boletim Argos Orbis TV** aparece entre os dispositivos.
    Ele deve aparecer como interruptor, não como TV física.
 4. Pressione **Ligar** nesse dispositivo e observe se a tarja aparece sobre
    o programa na TCL P7K. Isso testa primeiro a entrega sem depender da voz.

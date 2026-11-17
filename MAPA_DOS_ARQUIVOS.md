@@ -1,4 +1,4 @@
-# Mapa dos arquivos — Monitor Global
+# Mapa dos arquivos — Argos Orbis
 
 Para mexer com segurança pelo GitHub, comece pelo [Guia do dono](GUIA_DO_DONO.md). Os caminhos abaixo correspondem à organização atual; não renomeie arquivos sem atualizar quem os utiliza.
 

@@ -1,4 +1,6 @@
-# Publicação oficial do Monitor Global TV
+# Publicação oficial do Argos Orbis TV
+
+> A marca pública agora é **Argos Orbis**. O `applicationId`, a assinatura e a URL técnica do atualizador são preservados; versões antigas podem manter o rótulo anterior até a próxima publicação assinada.
 
 “Oficial” aqui significa **distribuído pelo próprio projeto**, com assinatura própria e canal controlado. Não significa homologação da Amazon, TCL ou loja Google Play.
 
@@ -26,7 +28,7 @@ O backup privado e a chave não estão neste repositório. `signing/release-cert
 
 ## Da prévia para 1.0.0
 
-O identificador técnico `top.monitorglobal.tv.preview` foi preservado para não criar um aplicativo paralelo nem perder as configurações. O nome exibido é **Monitor Global TV**. A retomada do monitoramento é tentada após substituir o pacote, e abrir o aplicativo retoma o serviço se o usuário o havia deixado ativo. A assinatura permanente usa RSA de 3072 bits e um certificado próprio do projeto. Uma prova de rotação assinada pela chave da prévia liga o certificado antigo ao novo.
+O identificador técnico `top.monitorglobal.tv.preview` foi preservado para não criar um aplicativo paralelo nem perder as configurações. O nome exibido é **Argos Orbis TV**. A retomada do monitoramento é tentada após substituir o pacote, e abrir o aplicativo retoma o serviço se o usuário o havia deixado ativo. A assinatura permanente usa RSA de 3072 bits e um certificado próprio do projeto. Uma prova de rotação assinada pela chave da prévia liga o certificado antigo ao novo.
 
 O APK oficial usa assinatura v3 com essa prova, a partir de Android 9/API28, abrangendo as versões Android do Fire Stick 4K Max e Google TV citados pelo proprietário. As verificações criptográficas passaram em SDK28/30/34/35 e o certificado inicial da prova coincide com o da prévia publicada. A preservação dos dados e da permissão é prevista pelo mecanismo Android, mas a atualização sobre a instalação existente ainda precisa ser confirmada no Fire Stick real. **Não desinstale a prévia antes de tentar a atualização normal.**
 

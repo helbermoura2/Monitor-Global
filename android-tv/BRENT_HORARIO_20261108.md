@@ -1,10 +1,10 @@
-# Monitor Global TV — Brent a cada hora (versão 1.0.60)
+# Argos Orbis TV — Brent a cada hora (versão 1.0.60)
 
 ## Comportamento
 - Card financeiro **sobre o vídeo em reprodução**, não na interface interna do aplicativo.
 - Duração de **12 segundos**, às **HH:15 de Brasília**, uma exibição por hora, sem áudio e sem capturar botões do controle.
 - Acima dos demais conteúdos, **sismos M6+, Brasil, M5 regionais, avisos oficiais de tsunami, replay, resumo diário, chuva e satélite têm prioridade**. Um evento prioritário remove o Brent imediatamente e não é interrompido pelo card.
-- Paleta original do Monitor Global: azul-escuro, azul-ciano, valor em destaque e variação verde/vermelha. Exibe **US$/barril**, variação percentual vs. fechamento anterior, carimbo de horário de Brasília e fonte Yahoo Finance.
+- Paleta original do Argos Orbis: azul-escuro, azul-ciano, valor em destaque e variação verde/vermelha. Exibe **US$/barril**, variação percentual vs. fechamento anterior, carimbo de horário de Brasília e fonte Yahoo Finance.
 - O **logo original Radar Scope animado permanece intacto**. Os sons, os thresholds de alertas e o polling sísmico de 30 segundos não mudam.
 - Atalho em configuração: **MERCADO FINANCEIRO · BRENT**, interruptor padrão ligado. Teste visual fictício por botão, sempre com selo **TESTE FICTÍCIO** e sem consulta à bolsa.
 

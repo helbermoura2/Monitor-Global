@@ -1,4 +1,6 @@
-# Monitor Global + Alexa — seis pedidos em português
+# Argos Orbis + Alexa — seis pedidos em português
+
+> **Identidade nova, comandos legados:** o nome público é **Argos Orbis**. O JSON da skill ainda registra a invocação **monitor global**, e os exemplos falados entre aspas continuam com esse nome para funcionarem. **Não anuncie a invocação Argos Orbis como operacional** antes da publicação e do teste no console Alexa.
 
 Frases e atualização de uma skill já vinculada: [FRASES.md](FRASES.md).
 
@@ -7,7 +9,7 @@ Frases e atualização de uma skill já vinculada: [FRASES.md](FRASES.md).
 **Importante:** o GitHub empacota os novos modelos e o código, mas **não publica automaticamente o Interaction Model na conta Amazon**. Atualize o modelo em Build → Interaction Model → JSON Editor → Save Model → Build Model da skill existente; **não é necessário desvincular a TV nem apagar a tabela de vínculo**. O pacote atualizado aparece no workflow [Alexa skill package](https://github.com/helbermoura2/Monitor-Global/actions/workflows/alexa-skill-package.yml).
 Para os três novos pedidos, atualize o modelo JSON e os arquivos `index.js` e `commands.js` na aba Code, depois clique Deploy. Não apague os dados de vínculo.
 
-Objetivo: segurar o **botão físico do microfone** do Fire TV Stick 4K Max (ou falar à Echo), pedir **Brent**, **temperatura** ou **sismos no Brasil**, e o aplicativo **Monitor Global TV** mostrar **os seus cards existentes sobre o conteúdo da TV**, sem abrir a busca de voz do Google. A Alexa recebe a fala, a skill manda um comando autenticado ao Worker, e o aplicativo o executa.
+Objetivo: segurar o **botão físico do microfone** do Fire TV Stick 4K Max (ou falar à Echo), pedir **Brent**, **temperatura** ou **sismos no Brasil**, e o aplicativo **Argos Orbis TV** mostrar **os seus cards existentes sobre o conteúdo da TV**, sem abrir a busca de voz do Google. A Alexa recebe a fala, a skill manda um comando autenticado ao Worker, e o aplicativo o executa.
 
 ## Status
 - Código da skill: `alexa-skill/lambda/`.
@@ -29,7 +31,7 @@ Objetivo: segurar o **botão físico do microfone** do Fire TV Stick 4K Max (ou 
 ## Pareamento da TV
 
 1. Publique primeiro o Worker atualizado, depois instale a versão TV assinada com esta integração. Sem as duas partes, o pareamento exibirá erro.
-2. Abra **Monitor Global TV**, escolha **Vincular Alexa** e **Gerar código**. O app mostra seis dígitos válidos por 10 minutos.
+2. Abra **Argos Orbis TV**, escolha **Vincular Alexa** e **Gerar código**. O app mostra seis dígitos válidos por 10 minutos.
 3. Diga à Echo (ou pelo microfone do controle): **“Alexa, peça ao Monitor Global para vincular código 123456”** — substitua os números pelo código atual. O reconhecimento dos dígitos pode exigir repetir a frase.
 4. **Ative o monitoramento** na TV. A ponte recebe comandos em segundo plano somente quando esse serviço estiver ativo; o Fire OS pode suspendê-lo se a TV dormir.
 5. Segure o microfone do controle e diga **“Peça ao Monitor Global para mostrar o Brent”**, **“Peça ao Monitor Global para mostrar a temperatura”** ou **“Peça ao Monitor Global para mostrar os sismos no Brasil”**. Os comandos invocam os mesmos botões/serviço existentes na TV. Dependem de dados reais, permissão de sobreposição e disponibilidade do Worker.
@@ -46,7 +48,7 @@ Não altere os dados sísmicos nem os alertas reais para tentar reparar a skill.
 - Nenhum comando Alexa controla lâmpadas, trancas ou outros aparelhos: apenas `brent`, `weather`, `brazil`, `recent-quake`, `last-summary`, `today`.
 - Registro e vínculo exigem HTTPS; o PIN é de uso único e expira em 10 minutos; há limite de tentativas por origem. A skill guarda um token aleatório por conta na tabela privada da Amazon. O APK guarda apenas um token do dispositivo nas preferências privadas.
 - O Worker não recebe gravações de voz nem dados da sua conta Alexa. Rejeita comandos sem credencial e não inclui credenciais no código público.
-- O controle é escutado pela **Alexa do Fire TV**, não por um microfone próprio do Monitor Global. Ao segurar o microfone, não é necessário dizer “Alexa”, mas é necessário invocar “Monitor Global”; frases sem o nome da skill não são garantidas.
+- O controle é escutado pela **Alexa do Fire TV**, não por um microfone próprio do Argos Orbis. Ao segurar o microfone, não é necessário dizer “Alexa”, mas é necessário invocar “Monitor Global”; frases sem o nome da skill não são garantidas.
 - O modo de voz local da 1.0.63 (Google SpeechRecognizer) é um teste separado; a integração da Alexa evita aquele campo de pesquisa.
 - Serviço de monitoramento deve estar ativo. Se o Fire Stick interromper apps em segundo plano, será preciso testar o comportamento no aparelho real; o código não pode garantir execução com aparelho desligado.
 

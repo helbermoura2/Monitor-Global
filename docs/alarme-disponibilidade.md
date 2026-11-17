@@ -1,10 +1,12 @@
 # Alarme de disponibilidade da página inicial
 
+> **Site oficial:** [Argos Orbis](https://argosorbis.com.br). **Atenção:** a rotina `tools/uptime-monitor.py` ainda aponta para o domínio legado `monitorglobal.top`, conforme o código consultado em 17/11/2026. Este documento descreve esse funcionamento existente, **não** confirma que o novo domínio esteja sob esse alarme.
+
 O workflow **Homepage availability** tenta acessar `https://monitorglobal.top/` a cada 15 minutos (minutos 7, 22, 37 e 52 de cada hora UTC). O GitHub pode atrasar ou suspender agendamentos; não é um serviço de emergência nem uma garantia de aviso em 15 minutos. Em repositórios públicos inativos, workflows agendados podem ser desabilitados após 60 dias sem atividade.
 
 ## O que verifica
 
-Exige HTTP 200, conteúdo HTML e marcas da página do Monitor Global. Uma falha precisa persistir em três tentativas, separadas por cinco segundos, com timeout de 15 segundos por tentativa. Não abre navegador, consulta feeds de eventos, gera imagens ou invoca Durable Objects. Isso verifica disponibilidade da página inicial, não integridade de todos os arquivos, atualização dos dados ou funcionamento de cada provedor.
+Exige HTTP 200, conteúdo HTML e marcas da página do Argos Orbis. Uma falha precisa persistir em três tentativas, separadas por cinco segundos, com timeout de 15 segundos por tentativa. Não abre navegador, consulta feeds de eventos, gera imagens ou invoca Durable Objects. Isso verifica disponibilidade da página inicial, não integridade de todos os arquivos, atualização dos dados ou funcionamento de cada provedor.
 
 O estado de notificação fica em um artifact do próprio workflow, por 30 dias. Um aviso é enviado na queda confirmada e outro na recuperação após uma queda notificada. Enquanto continuar fora do ar, não se envia novo aviso em toda execução. Se o Telegram falhar, a entrega é tentada novamente na execução seguinte. Como em qualquer envio externo, uma resposta perdida após o Telegram aceitar a mensagem pode causar repetição; não há garantia de entrega exatamente uma vez. Se nenhum histórico for retornado pelo GitHub (por exemplo, após apagá-lo), o monitor inicia uma nova janela e poderá repetir o aviso de uma queda ainda em andamento. Artifacts retornados mas expirados ou inválidos não são usados.
 

@@ -7,7 +7,7 @@
 
 ## Novo PNG de sismo
 
-Marca Monitor Global, local, magnitude, bandeira do país, bandeira do estado brasileiro identificável, mapa e epicentro, mini mapa regional, horário de Brasília, fonte, profundidade, intensidade sísmica **estimada**, estado do boletim de tsunami e rodapé **monitorglobal.top** / **Telegram · @monitor_global**. Não apresenta painel de população, explicações longas, energia em TNT nem legenda de contornos. Esses dados permanecem no site, não no PNG.
+Marca Argos Orbis, local, magnitude, bandeira do país, bandeira do estado brasileiro identificável, mapa e epicentro, mini mapa regional, horário de Brasília, fonte, profundidade, intensidade sísmica **estimada**, estado do boletim de tsunami e rodapé **argosorbis.com.br** / **Telegram · @argosorbis**. Não apresenta painel de população, explicações longas, energia em TNT nem legenda de contornos. Esses dados permanecem no site, não no PNG.
 
 País e estado utilizam SVGs locais já versionados, respectivamente em `assets/flags/countries` e `assets/flags/br-states`. O país vem da cartografia `CountryBoundaries` (ou campo verificado do evento); o estado vem dos polígonos reais de `assets/geography/br-states.json`. Fallback para sigla `/UF` só quando Brasil já está confirmado. Nunca inserir uma bandeira estadual para eventos estrangeiros.
 

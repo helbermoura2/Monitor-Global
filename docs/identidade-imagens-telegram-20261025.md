@@ -1,6 +1,6 @@
 # Identidade das imagens sísmicas e de tsunami — editorial-v17
 
-Cabeçalho com radar azul do projeto e nome MONITOR GLOBAL em Rajdhani Bold. Dados e legendas em JetBrains Mono 600/800, usando os mesmos arquivos de fonte locais já presentes no aplicativo. O status AO VIVO/ATUALIZADO/TESTE passa a ser texto sem caixa de fundo. O rodapé mantém o endereço do site e acrescenta @monitor_global em azul.
+Cabeçalho com radar azul do projeto e nome ARGOS ORBIS em Rajdhani Bold. Dados e legendas em JetBrains Mono 600/800, usando os mesmos arquivos de fonte locais já presentes no aplicativo. O status AO VIVO/ATUALIZADO/TESTE passa a ser texto sem caixa de fundo. O rodapé mantém o endereço do site e acrescenta @argosorbis em azul.
 
 O layout compartilhado atende ao Telegram e à exportação pelo site; o boletim dedicado de tsunami usa o mesmo cabeçalho/rodapé e tipografia. Resumo diário conserva suas fontes anteriores. Não há alteração de fórmulas, coordenadas, população ou classificação de tsunami por esta mudança visual.
 

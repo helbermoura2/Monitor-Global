@@ -1,11 +1,11 @@
 # Operação e recuperação — consulta rápida
 
-Site: https://monitorglobal.top · [Actions do projeto](https://github.com/helbermoura2/Monitor-Global/actions)
+Site: https://argosorbis.com.br · [Actions do projeto](https://github.com/helbermoura2/Monitor-Global/actions)
 
 ## Conferir em dois minutos
 
 1. Abra o site e confira o horário dos sismos. Toque em **Situação das fontes**: uma fonte indisponível não significa que todas falharam.
-2. Em **Actions → Monitor Cloudflare Free quotas → última execução → Summary**, leia **Saúde do Monitor Global — leitura rápida**. O resumo mostra a data medida, percentuais Free, maior consumidor Durable e últimas automações observadas. Não confunda o dia parcial com o completo. “Não medido” não é zero.
+2. Em **Actions → Monitor Cloudflare Free quotas → última execução → Summary**, leia **Saúde do Argos Orbis — leitura rápida**. O resumo mostra a data medida, percentuais Free, maior consumidor Durable e últimas automações observadas. Não confunda o dia parcial com o completo. “Não medido” não é zero.
 3. Na TV, confira a versão e o estado de conexão. Um teste/replay confirma a exibição, não a chegada de um alerta real. Para memória, exporte **Diagnóstico local → Baixar diagnóstico pelo celular**, mantendo a janela aberta e o celular na mesma rede. Atualize sem desinstalar para preservar dados.
 
 ## Publicar a parte correta

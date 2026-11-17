@@ -1,5 +1,7 @@
-# Pedidos ao Monitor Global
+# Pedidos ao Argos Orbis
 Comece com “Alexa, peça ao Monitor Global para…”.
+
+> **Marca atual:** Argos Orbis. A frase acima mantém a **invocação legada realmente configurada** na Alexa. A nova marca não muda a skill automaticamente: só troque a expressão falada após publicar e testar a alteração no console.
 - mostrar a temperatura / mostrar o tempo / mostrar a previsão do tempo
 - mostrar o Brent / mostrar a cotação do Brent / mostrar o preço do petróleo
 - quanto está o Brent / como está o Brent / qual o valor do Brent / cotação do Brent agora

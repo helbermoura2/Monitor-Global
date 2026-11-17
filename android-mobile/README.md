@@ -1,5 +1,7 @@
 # Argos Orbis para Android — prévia 0.1.24
 
+> **Nome público:** Argos Orbis. Identificadores Android (`top.monitorglobal.*`), nomes de APK de teste e certificados continuam os mesmos para não impedir atualizações. O rótulo real depende da versão instalada.
+
 > **Em branch de teste:** [Explorar meteorologia do Brasil, cache e avisos opcionais no próprio Android](BRASIL_METEO_PREVIEW.md). Não é APK publicado. A aparência e os serviços existentes permanecem preservados; o teste no aparelho real é obrigatório.
 
 Primeiro aplicativo de celular, independente da instalação da TV. O APK de teste usa o pacote `top.monitorglobal.mobile.dev`; a aplicação principal é `top.monitorglobal.mobile`. O código de apresentação Java mantém o pacote legado dos modelos compartilhados, enquanto namespace, manifesto, recursos e canal de distribuição são próprios do celular.
@@ -36,7 +38,7 @@ A CI confere o APK, suas permissões e a inicialização dos assets do mapa com 
 
 O workflow Android mobile preview gera o APK em PRs. Após integrar na main e passar os testes, publica a pré-release `mobile-preview`, com o arquivo `monitor-global-mobile-preview.apk`. A prévia usa assinatura de desenvolvimento, mantida no cache da CI para continuidade dos testes; não é o canal oficial assinado nem publicação na Play Store. Uma futura versão oficial terá sua configuração própria de assinatura e atualização. Nenhuma chave é gravada no repositório.
 
-Não se deve distribuir o APK release sem assinatura produzido apenas para verificação de build. O instalável de teste é o APK debug, identificado no lançador e nas notificações como **Monitor Global**. A prévia continua diferenciada pela versão com sufixo `-teste` em **Sobre e diagnóstico**, pelo pacote `top.monitorglobal.mobile.dev` e pelo canal de pré-release. Avisos reais permanecem normais; o teste local mantém o aviso explícito de simulação no título e no corpo.
+Não se deve distribuir o APK release sem assinatura produzido apenas para verificação de build. O instalável de teste é o APK debug, identificado no lançador e nas notificações como **Argos Orbis**. A prévia continua diferenciada pela versão com sufixo `-teste` em **Sobre e diagnóstico**, pelo pacote `top.monitorglobal.mobile.dev` e pelo canal de pré-release. Avisos reais permanecem normais; o teste local mantém o aviso explícito de simulação no título e no corpo.
 
 ## Limites
 

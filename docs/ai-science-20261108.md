@@ -1,4 +1,4 @@
-# Monitor Global — IA compartilhada e projeção meteorológica (08/11/2026)
+# Argos Orbis — IA compartilhada e projeção meteorológica (08/11/2026)
 
 ## Estado do código (PR #610)
 Esta alteração reúne três interfaces (site, Android TV e Android celular) e dois provedores de IA:
