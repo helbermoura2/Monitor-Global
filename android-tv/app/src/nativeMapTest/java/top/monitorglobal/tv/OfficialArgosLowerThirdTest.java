@@ -106,4 +106,38 @@ public class OfficialArgosLowerThirdTest {
    for(int y=31;y<43;y++)for(int x=830;x<925;x++)assertEquals("inscriptions must not rotate",a.getPixel(x,y),b.getPixel(x,y));
   }finally{a.recycle();b.recycle();}
  }
+ @Test public void officialEyeBlinksWithoutRotatingTheInscriptionOrOrnaments(){
+  OfficialArgosLogo.prepare(RuntimeEnvironment.getApplication());
+  assertTrue("official detailed artwork must be present",OfficialArgosLogo.available());
+  assertEquals(1f,OfficialArgosLogo.eyeOpenness(1000,true),.001f);
+  assertTrue("eyelids should nearly meet after 9.35s",OfficialArgosLogo.eyeOpenness(9350,true)<.025f);
+  assertEquals(1f,OfficialArgosLogo.eyeOpenness(10900,true),.001f);
+  Bitmap open=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  Bitmap closed=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  try{
+   OfficialArgosLogo.draw(new Canvas(open),1000,true);
+   OfficialArgosLogo.draw(new Canvas(closed),9350,true);
+   int changed=0;
+   for(int y=51;y<76;y++)for(int x=854;x<904;x++)
+    if(open.getPixel(x,y)!=closed.getPixel(x,y))changed++;
+   assertTrue("the blinking eye must change visible pixels",changed>100);
+   // Neither inscription nor corner icon ever moves with the radar.
+   for(int y=31;y<43;y++)for(int x=830;x<925;x++)
+    assertEquals("upper inscription/icon must remain stationary",open.getPixel(x,y),closed.getPixel(x,y));
+   for(int y=83;y<93;y++)for(int x=830;x<925;x++)
+    assertEquals("lower inscription/icon must remain stationary",open.getPixel(x,y),closed.getPixel(x,y));
+  }finally{open.recycle();closed.recycle();}
+ }
+ @Test public void noBlinkWhenAnimationIsDisabled(){
+  OfficialArgosLogo.prepare(RuntimeEnvironment.getApplication());
+  Bitmap a=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  Bitmap b=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  try{
+   OfficialArgosLogo.draw(new Canvas(a),0,false);
+   OfficialArgosLogo.draw(new Canvas(b),9350,false);
+   for(int y=31;y<93;y++)for(int x=830;x<925;x++)
+    assertEquals(a.getPixel(x,y),b.getPixel(x,y));
+  }finally{a.recycle();b.recycle();}
+ }
+
 }
