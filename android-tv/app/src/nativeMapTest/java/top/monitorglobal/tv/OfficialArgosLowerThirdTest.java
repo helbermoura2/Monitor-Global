@@ -44,7 +44,7 @@ public class OfficialArgosLowerThirdTest {
   assertTrue("golden official eye must remain visible",gold>15);
   assertEquals("brand must stay 35 units clear of screen edge",0,forbidden);
  }
- @Test public void weatherAndBrentUseExactlyTheSameOfficialLogoRegion(){
+ @Test public void weatherAndBrentUseExactlyTheSameOfficialLogoRegion()throws Exception{
   Context c=RuntimeEnvironment.getApplication();
   WeatherForecast.Summary summary=new WeatherForecast.Summary(
    "29°C","Parcialmente nublado","18 km/h","48%",
@@ -54,6 +54,8 @@ public class OfficialArgosLowerThirdTest {
   BrentQuote oil=new BrentQuote(78.45,77.5,.95,1.22,System.currentTimeMillis()-60000,"Yahoo Finance");
   DollarQuote usd=new DollarQuote(5.35,.04,.76,System.currentTimeMillis()-60000,"Yahoo Finance");
   TvBroadcastInfoView market=TvBroadcastInfoView.market(c,oil,usd,false);
+  java.lang.reflect.Field animation=TvBroadcastInfoView.class.getDeclaredField("animate");
+  animation.setAccessible(true);animation.setBoolean(market,false);
   Bitmap a=render(weather,1000),b=render(market,1000);
   try{
    assertEquals(35f,BroadcastVisuals.BRAND_RIGHT_INSET,0.001f);
@@ -90,5 +92,18 @@ public class OfficialArgosLowerThirdTest {
     assertEquals("logo and metrics stay within the safe area",cleanBackground,b.getPixel(x,y));
    }
   }finally{b.recycle();}
+ }
+ @Test public void marketPointerMovesWhileInscriptionsRemainFixed()throws Exception{
+  TvBroadcastInfoView view=TvBroadcastInfoView.market(RuntimeEnvironment.getApplication(),null,null,false);
+  java.lang.reflect.Field animated=TvBroadcastInfoView.class.getDeclaredField("animate");animated.setAccessible(true);animated.setBoolean(view,true);
+  java.lang.reflect.Method draw=TvBroadcastInfoView.class.getDeclaredMethod("drawOfficialMarketLogo",Canvas.class,long.class);draw.setAccessible(true);
+  Bitmap a=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888),b=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  try{
+   draw.invoke(view,new Canvas(a),1000L);draw.invoke(view,new Canvas(b),2800L);
+   int changed=0;
+   for(int y=48;y<78;y++)for(int x=857;x<899;x++)if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;
+   assertTrue("radar pointer must advance between frames",changed>10);
+   for(int y=31;y<43;y++)for(int x=830;x<925;x++)assertEquals("inscriptions must not rotate",a.getPixel(x,y),b.getPixel(x,y));
+  }finally{a.recycle();b.recycle();}
  }
 }
