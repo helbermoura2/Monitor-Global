@@ -102,3 +102,46 @@ test('mobile shortcut remains available even when user is not authenticated',asy
  await expect(page.getByRole('dialog',{name:'Histórico do Telegram'})).toBeVisible();
  await expect(page.locator('#tg-admin-key')).toBeVisible();
 });
+
+test('history detail for the approved Tual M6,6 exposes a direct resend button',async({page})=>{
+ const at=Date.parse('2026-11-16T22:34:10Z');
+ const key='telegram-history-m6:2026-11-16T22:34:10.000Z:d9d96edb-80c8-4ee7-b55d-ff2a8a225110';
+ const record={key,kind:'m6-update',status:'sent',mag:6.6,place:'148 km a oeste-sudoeste de Tual, Indonésia',at,events:[{at,stage:'edited'}]};
+ let posted=0,authenticated=false;
+ await page.route('**/telegram-history',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,daily:[],alerts:[record]})}));
+ await page.route('**/telegram-history-detail*',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,record})}));
+ await page.route('**/telegram-imperial-preview',r=>{
+  posted++;
+  authenticated=r.request().headers()['x-admin-token']==='test-key';
+  return r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,posted:true,messageId:812})});
+ });
+ await boot(page,'?admin=1');
+ await page.locator('#tg-admin-key').fill('test-key');
+ await page.getByRole('button',{name:'Entrar'}).click();
+ await page.getByRole('button',{name:'Sismos M6+ e Brasil'}).click();
+ await page.locator('.tg-history-row').first().click();
+ const resend=page.getByRole('button',{name:'Reenviar imagem Imperial Bronze'});
+ await expect(resend).toBeVisible();
+ const chooser=page.waitForEvent('filechooser');
+ await resend.click();
+ const file=await chooser;
+ await file.setFiles({name:'alerta_sismico_em_bronze_tual.png',mimeType:'image/png',buffer:Buffer.from('browser-test-png-with-server-hash-mocked')});
+ page.once('dialog',dlg=>dlg.accept());
+ await expect(page.locator('.tg-imperial-repost')).toContainText('Telegram confirmou o reenvio');
+ await expect(resend).toBeDisabled();
+ expect(posted).toBe(1);
+ expect(authenticated).toBe(true);
+ expect(await page.evaluate(()=>({local:localStorage.length,session:sessionStorage.length}))).toEqual({local:0,session:0});
+});
+test('history detail never offers the static Tual poster for an unrelated M6+',async({page})=>{
+ const at=Date.parse('2026-11-16T22:34:10Z');
+ const record={key:'telegram-history-m6:2026-11-16T22:34:10.000Z:7b0d5caf-6a40-40bb-bc4e-75bc83eab69e',kind:'m6',status:'sent',mag:6.9,place:'Região de Hokkaido, Japão',at};
+ await page.route('**/telegram-history',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,daily:[],alerts:[record]})}));
+ await page.route('**/telegram-history-detail*',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({ok:true,record})}));
+ await boot(page,'?admin=1');
+ await page.locator('#tg-admin-key').fill('test-key');
+ await page.getByRole('button',{name:'Entrar'}).click();
+ await page.getByRole('button',{name:'Sismos M6+ e Brasil'}).click();
+ await page.locator('.tg-history-row').first().click();
+ await expect(page.getByRole('button',{name:'Reenviar imagem Imperial Bronze'})).toHaveCount(0);
+});
