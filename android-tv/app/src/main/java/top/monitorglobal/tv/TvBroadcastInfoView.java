@@ -376,9 +376,9 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawMap(Canvas c){
   if(mapSpace<=0||mapReveal<=0)return;
-  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
+  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,kind==WEATHER&&!mapBelow?210:180);
   float slide=(1-mapReveal)*180;
-  c.translate(kind==WEATHER?615:649,mapBelow?0-slide:slide+(kind==WEATHER?4:0));
+  c.translate(kind==WEATHER?615:649,mapBelow?0-slide:slide+(kind==WEATHER?34:0));
   WeatherSatelliteClient.Frame displayed=kind==WEATHER?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
   if(kind==WEATHER||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);
