@@ -16,6 +16,7 @@ android {
   // Fim de semana no Brasil não é confundido com abertura da referência global.
   versionCode 10112
   versionName '1.0.112'
+  // Reexecuta publicação oficial assinada após conflito com atualização independente de catálogos.
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
