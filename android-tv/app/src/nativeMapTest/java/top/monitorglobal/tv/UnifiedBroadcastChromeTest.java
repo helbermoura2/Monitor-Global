@@ -75,7 +75,8 @@ public class UnifiedBroadcastChromeTest {
    int cyan=0;
    for(int y=31;y<93;y++)for(int x=830;x<925;x++){int pixel=b.getPixel(x,y);if(Color.green(pixel)>90&&Color.blue(pixel)>80&&Color.red(pixel)<120)cyan++;}
    assertTrue("official detailed asset remains visible",cyan>60);
-   assertTrue("same weather logo except moving sweep edge: "+weatherDiff,weatherDiff<240);
+   int detailedDiff=0;for(int y=33;y<91;y++)for(int x=830;x<925;x++)if(b.getPixel(x,y)!=c.getPixel(x,y+meteo.mapSpace))detailedDiff++;
+   assertTrue("weather and market share detailed official logo",detailedDiff<30);
   }finally{a.recycle();b.recycle();c.recycle();}
   }finally{durationScale.invoke(null,1f);}
  }
@@ -149,14 +150,14 @@ public class UnifiedBroadcastChromeTest {
    int qa=Banner.insetDp(context),qb=weather.mapSpace;
    for(int x:new int[]{36,220}){
     assertTrue(Color.red(a.getPixel(x,qa+10))>Color.green(a.getPixel(x,qa+10)));
-    assertTrue(Color.red(b.getPixel(x,qb+10))>Color.green(b.getPixel(x,qb+10)));
+    assertEquals(0xff09235f,b.getPixel(x,qb+3));
    }
-   for(int x:new int[]{300,540,790}){
+   for(int x:new int[]{400,540,790}){
     assertEquals(0,Color.alpha(a.getPixel(x,qa+12)));
     assertEquals(0,Color.alpha(b.getPixel(x,qb+12)));
    }
    for(int y=3;y<=20;y++)for(int x=804;x<=924;x++)
-    assertEquals("Same AO VIVO tab across all banners",a.getPixel(x,qa+y),b.getPixel(x,qb+y));
+    assertEquals("weather has no false live tag",0,Color.alpha(b.getPixel(x,qb+y)));
   }finally{a.recycle();b.recycle();}
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){
