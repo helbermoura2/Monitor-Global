@@ -32,3 +32,13 @@ A mesma operação pode ser realizada com a página HTML autocontida preparada n
 ## Arquivo no repositório
 
 O módulo `worker/telegram-imperial-preview.mjs` documenta a identidade criptográfica do arquivo e realiza o envio. O repositório **não contém automaticamente** o PNG completo até que os bytes sejam importados como arquivo binário. Não anunciar a existência do arquivo `assets/telegram/m6/imperial-bronze-master.png` sem verificar sua presença e SHA.
+
+## Sincronizar os bytes do PNG para o GitHub após o envio
+
+A partir da versão com sincronização, o upload administrativo grava uma cópia temporária e intacta no namespace KV **TTS_USAGE** (TTL de 14 dias), sob uma chave fixa. O endpoint público de leitura está restrito ao SHA-256 exato do cartaz já destinado à publicação pública no Telegram:
+
+`GET /telegram-imperial-preview-source/ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75.png`
+
+O fluxo diário já existente `.github/workflows/cloudflare-kv-daily-report.yml` executa um **job separado e sem credenciais Cloudflare**, com permissão `contents: write` limitada a esse job. Ele chama `tools/import-telegram-imperial-preview.py` e confere assinatura, dimensões e SHA-256 do arquivo antes de colocá-lo em `assets/telegram/m6/imperial-bronze-preview-2026-11-16-m6-6.png`. Se o upload ainda não aconteceu, a etapa faz nada. Se o arquivo existe com bytes diferentes, o job falha e não sobrescreve.
+
+A importação só é considerada concluída quando o commit do arquivo real aparecer no GitHub; o manifesto JSON sozinho não prova presença do PNG. A foto fixa do exemplo M6,6 não substitui o renderizador dinâmico de futuros eventos e não deve ser enviada como um terremoto novo.
