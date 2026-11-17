@@ -157,9 +157,12 @@ public class OledNewsChromeTest {
   try{
    assertEquals(254f,OledNewsChrome.LEFT_TAB_RIGHT,0f);
    assertTrue("left badge ends before 260",OledNewsChrome.LEFT_TAB_RIGHT<260f);
-   assertEquals("red tabs must stop 3 units before black",27f,OledNewsChrome.TAB_BOTTOM,0f);
-   assertEquals("no red touching OLED band left",0,Color.alpha(b.getPixel(180,29)));
-   assertEquals("no red touching OLED band right",0,Color.alpha(b.getPixel(855,29)));
+   assertEquals("red tabs meet OLED band without a gap",OledNewsChrome.BODY_TOP,OledNewsChrome.TAB_BOTTOM,0f);
+   for(int x:new int[]{30,120,240,811,855,916}){
+    assertEquals("solid red tab bottom at "+x,255,Color.alpha(b.getPixel(x,29)));
+    assertTrue("red tab bottom remains red at "+x,Color.red(b.getPixel(x,29))>Color.green(b.getPixel(x,29))*2);
+    assertEquals("continuous opaque OLED body below "+x,255,Color.alpha(b.getPixel(x,30)));
+   }
    assertEquals("pitch black below left red tab",Color.BLACK,b.getPixel(180,31));
    assertEquals("pitch black below right red tab",Color.BLACK,b.getPixel(855,31));
    assertEquals("unused upper left area stays transparent",0,Color.alpha(b.getPixel(274,12)));
@@ -175,7 +178,7 @@ public class OledNewsChromeTest {
    }
    int upperGold=0,lowerGold=0;
    for(int x=846;x<=910;x++){
-    for(int y=33;y<40;y++){
+    for(int y=38;y<45;y++){
      int p=b.getPixel(x,y);
      if(Color.red(p)>140&&Color.green(p)>85&&Color.blue(p)<185)upperGold++;
     }
@@ -192,6 +195,28 @@ public class OledNewsChromeTest {
   assertEquals(android.graphics.Typeface.BOLD,OledNewsChrome.clockFont().getStyle());
   assertEquals(OledNewsChrome.titleFont(null).toString(),OledNewsChrome.clockFont().toString());
   assertEquals(OledNewsChrome.regularFont().toString(),OledNewsChrome.tickerFont().toString());
+ }
+ @Test public void categorySideRuleIsThinnerAndDoesNotPushContentOffTheBody(){
+  Bitmap b=skin("BREAKING NEWS","AO VIVO");
+  try{
+   assertEquals("three-unit left red rule",OledNewsChrome.RED_DARK,b.getPixel(9,63));
+   assertEquals("black starts right after thin rule",Color.BLACK,b.getPixel(12,63));
+   assertEquals("category area remains opaque",255,Color.alpha(b.getPixel(18,63)));
+  }finally{b.recycle();}
+ }
+ @Test public void tickerTextUsesSoftFadeRatherThanHardHalfLettersAtClipEdges(){
+  Bitmap b=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  try{
+   Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+   int layer=c.saveLayer(112,95,782,124,null);
+   p.setColor(Color.WHITE);c.drawRect(112,105,782,118,p);
+   OledNewsChrome.fadeTickerEdges(c,112,782);
+   c.restoreToCount(layer);
+   assertTrue("ticker entry is softly transparent",Color.alpha(b.getPixel(112,110))<32);
+   assertTrue("ticker fade ramps up progressively",Color.alpha(b.getPixel(120,110))>40);
+   assertEquals("center must remain fully legible",255,Color.alpha(b.getPixel(160,110)));
+   assertTrue("ticker exit softly fades",Color.alpha(b.getPixel(781,110))<48);
+  }finally{b.recycle();}
  }
  @Test public void liveDataIsStillInTheNativeTvBanners(){
   Context c=RuntimeEnvironment.getApplication();
