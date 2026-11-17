@@ -170,6 +170,53 @@
    if(row.attempts)body.append(n('p',row.attempts+' tentativa(s) registrada(s)'));
    if(row.total!=null)body.append(n('p',row.total+' sismos · '+(row.format==='text'?'envio em texto':'envio com imagem')));
    if(row.legacy)body.append(n('p','Envio anterior confirmado. Não há histórico detalhado dessas tentativas.','tg-note'));
+   // This exact Imperial Bronze PNG belongs ONLY to the M6,6 near Tual on
+   // 16/11/2026. Other M6+ records must never be republished with this artwork.
+   const occurredAt=Number(row.at)||Date.parse(row.timeIso||'');
+   const isApprovedEvent=Number(row.mag)===6.6
+     &&/^m6(?:-update)?$/.test(String(row.kind||''))
+     &&/tual|tanimbar/i.test(String(row.place||row.currentEvent?.place||''))
+     &&Number.isFinite(occurredAt)
+     &&new Date(occurredAt).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})==='16/11/2026';
+   if(isApprovedEvent&&row.status==='sent'){
+     const box=n('section',null,'tg-imperial-repost');
+     const trigger=n('button','↻ Reenviar imagem Imperial Bronze','tg-imperial-repost-button');
+     trigger.type='button';trigger.title='Publicar a arte original aprovada no canal @argosorbis';
+     const input=n('input');input.type='file';input.accept='image/png,.png';
+     input.hidden=true;input.id='tg-imperial-repost-file';input.setAttribute('aria-label','Arquivo PNG original Imperial Bronze');
+     const status=n('p','Selecione o PNG original aprovado (não a imagem antiga do canal). O envio será identificado como prévia visual, não como novo terremoto.','tg-note');
+     status.setAttribute('role','status');
+     trigger.onclick=()=>input.click();
+     input.addEventListener('change',async()=>{
+       const original=input.files?.[0];if(!original)return;
+       if(original.type!=='image/png'||original.size>6*1024*1024||!original.size){
+         status.textContent='Arquivo inválido. Selecione o PNG original sem alterações.';input.value='';return;
+       }
+       if(!window.confirm('Reenviar UMA prévia visual Imperial Bronze do M6,6 para @argosorbis? O registro original será preservado e não será anunciado um novo sismo.')){
+         input.value='';return;
+       }
+       trigger.disabled=true;input.disabled=true;status.textContent='Enviando o PNG original ao bot do Telegram…';
+       try{
+         const response=await uploadImperialBronze(original);
+         if(response.posted||response.alreadySent){
+           status.textContent=response.posted
+             ?'✅ Telegram confirmou o reenvio da imagem. Mensagem '+response.messageId+'.'
+             :'✅ Esta imagem já foi publicada. Mensagem '+response.messageId+'.';
+           // One-time publication; never offer a second post from this detail.
+           trigger.disabled=true;
+         }else{
+           status.textContent='Publicação sem confirmação; confira @argosorbis.';
+           trigger.disabled=false;
+         }
+       }catch(error){
+         status.textContent=error.name==='AbortError'
+           ?'Envio sem confirmação. Verifique o canal antes de tentar novamente.'
+           :'⚠️ '+error.message;
+         trigger.disabled=false;
+       }finally{input.disabled=false;input.value='';}
+     });
+     box.append(trigger,input,status);body.append(box);
+   }
    if(row.kind==='daily'&&row.day==='2026-11-15'){
      if(row.previousRepost?.status==='sent')body.append(n('p','Republicação anterior preservada. Mensagem: '+(row.previousRepost.messageId||'confirmada'),'tg-note'));
      if(row.repost?.status==='sent'){
