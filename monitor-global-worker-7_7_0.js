@@ -43,6 +43,7 @@ import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, hand
 import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
 import {handleTelegramAdminSmoke} from "./worker/telegram-admin-smoke.mjs";
+import {handleImperialPreview} from "./worker/telegram-imperial-preview.mjs";
 import {diagnoseTelegramAdmin} from "./worker/telegram-admin-diagnose.mjs";
 
 // Delivery ports keep orchestration independent of rendering and Telegram transport.
@@ -1204,6 +1205,9 @@ export class EarthquakeAlertDelivery {
                 if(request.method!=='POST')return Response.json({error:'Método não permitido'},{status:405});
                 return handleTelegramAdminSmoke(this.state.storage,this.env,telegramSendMessage);
             }
+            if(new URL(request.url).pathname==='/__telegram-imperial-preview'){
+                return handleImperialPreview(this.state.storage,this.env,request);
+            }
             if(new URL(request.url).pathname.startsWith('/alexa/v1/'))return handleAlexaRelay(request,this.state.storage);
             if(new URL(request.url).pathname.startsWith('/google-home/v1/'))return handleGoogleHomeBridge(request,this.state.storage,{env:this.env});
             return withKvUsage(this.env,async measuredEnv=>{
@@ -1998,7 +2002,7 @@ async function handleWorkerRequest(request,env,ctx){
         const ROTAS_TELEGRAM_PROTEGIDAS = new Set([
             '/telegram-test', '/telegram-daily-summary', '/telegram-m6-check', '/telegram-card-preview',
             '/telegram-history', '/telegram-history-preview', '/telegram-history-detail', '/telegram-daily-repost',
-            '/telegram-admin-smoke', '/telegram-admin-diagnose'
+            '/telegram-admin-smoke', '/telegram-admin-diagnose', '/telegram-imperial-preview'
         ]);
         if (ROTAS_TELEGRAM_PROTEGIDAS.has(reqUrl.pathname) && !tokenAdminValido(request, reqUrl, env)) {
             return json({ ok: false, error: 'Não autorizado. Use o cabeçalho X-Admin-Token.' }, 401);
@@ -2021,6 +2025,30 @@ async function handleWorkerRequest(request,env,ctx){
                 return new Response(result.body,{status:result.status,headers:{...CORS_HEADERS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
             }catch{
                 return json({ok:false,error:'Teste indisponível. Verifique a configuração do Worker sem repetir o envio.'},503);
+            }
+        }
+        if(reqUrl.pathname==='/telegram-imperial-preview'){
+            if(request.method!=='POST'&&request.method!=='GET')return json({ok:false,error:'Método não permitido'},405);
+            if(!env.EARTHQUAKE_ALERTS)return json({ok:false,error:'Controle de publicações indisponível'},503);
+            try{
+                // ADMIN_TOKEN was verified above. The private DO deduplicates the
+                // owner-approved preview independently of real earthquake alerts.
+                let bytes=null;
+                if(request.method==='POST'){
+                    const declared=Number(request.headers.get('Content-Length'));
+                    if(Number.isFinite(declared)&&declared>6*1024*1024+8192)return json({ok:false,error:'Arquivo grande demais'},413);
+                    bytes=await request.arrayBuffer();
+                    if(bytes.byteLength>6*1024*1024+8192)return json({ok:false,error:'Arquivo grande demais'},413);
+                }
+                const target=env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('telegram-imperial-preview-20261116'));
+                const internal=new Request('https://internal/__telegram-imperial-preview',{
+                    method:request.method,
+                    ...(bytes?{body:bytes,headers:{'Content-Type':request.headers.get('Content-Type')||'application/octet-stream'}}:{})
+                });
+                const response=await target.fetch(internal);
+                return new Response(response.body,{status:response.status,headers:{...CORS_HEADERS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
+            }catch{
+                return json({ok:false,error:'Não foi possível confirmar a publicação. Confira o canal antes de tentar outra vez.'},503);
             }
         }
         if(reqUrl.pathname.startsWith('/telegram-history')){

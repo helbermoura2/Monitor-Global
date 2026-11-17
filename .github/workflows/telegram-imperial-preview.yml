@@ -1,0 +1,26 @@
+name: Telegram Imperial Bronze exact PNG preview
+on:
+  pull_request:
+    paths:
+      - 'worker/telegram-imperial-preview.mjs'
+      - 'monitor-global-worker-7_7_0.js'
+      - 'js/telegram-history.js'
+      - 'tests/unit/telegram-imperial-preview.test.mjs'
+      - 'tests/unit/admin-security.test.mjs'
+      - '.github/workflows/telegram-imperial-preview.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate exact PNG and at-most-once send
+        run: node --test tests/unit/telegram-imperial-preview.test.mjs tests/unit/admin-security.test.mjs
+      - name: Bundle current Worker
+        run: npm run worker:bundle
