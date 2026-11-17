@@ -1,10 +1,10 @@
-# Resumo sísmico diário — Monitor Global (v7, Rajdhani Neon)
+# Resumo sísmico diário — Argos Orbis (v7, Rajdhani Neon)
 
 Modelo aprovado para o boletim automático do Telegram em 09/11/2026. A saída continua PNG HD de 1800 px de largura, gerada pelo mesmo Durable Object e pelo mesmo canal/fila de envio, sem alterar a periodicidade, o histórico nem a regra de deduplicação.
 
 ## Identidade visual
 
-- Azul-marinho quase preto, linha ciano e radar do Monitor Global, com títulos em Rajdhani Bold do mesmo atlas usado no aplicativo da TV.
+- Azul-marinho quase preto, linha ciano e radar do Argos Orbis, com títulos em Rajdhani Bold do mesmo atlas usado no aplicativo da TV.
 - Título RESUMO SÍSMICO DIÁRIO em uma linha e data BRT.
 - Mapa-múndi real à esquerda, contorno ciano, com os cinco maiores eventos posicionados pelas coordenadas das fontes.
 - Evento principal à direita, com magnitude grande e cor por intensidade (M6+ vermelho, M5 laranja, M4 amarelo, abaixo de M4 verde), local, país, profundidade, horário BRT e bandeira apenas quando identificada.

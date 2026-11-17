@@ -1,4 +1,4 @@
-# Rainbow no Monitor Global
+# Rainbow no Argos Orbis
 
 A mesma chave `RAINBOW_API_KEY` cadastrada como segredo no Worker autentica Nowcast, Weather e Tiles, desde que a assinatura Rainbow permita o produto. A chave nunca vai ao navegador. Nenhuma nova variável ou migração de Durable Object é necessária.
 

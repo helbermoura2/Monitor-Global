@@ -1,4 +1,4 @@
-## Monitor Global — cotas Free
+## Argos Orbis — cotas Free
 
 Consulta UTC: 2026-10-27T09:37:14.109884+00:00. Reinício diário: 00:00 UTC / 21h Brasília.
 

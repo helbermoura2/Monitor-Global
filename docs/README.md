@@ -1,4 +1,4 @@
-# Índice da documentação do Monitor Global
+# Índice da documentação do Argos Orbis
 
 Revisão: 27/10/2026. Para começar: [Guia do dono](../GUIA_DO_DONO.md), [mapa de arquivos](../MAPA_DOS_ARQUIVOS.md) e [apresentação](../README.md).
 

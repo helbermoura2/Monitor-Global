@@ -1,8 +1,8 @@
-# 🌍 Monitor Global
+# 🌍 Argos Orbis
 
 Monitoramento de sismos, vulcões, tsunamis, condições meteorológicas e alertas oficiais, com mapa interativo, visualização de eventos e notificações via Telegram.
 
-**Acesse: [monitorglobal.top](https://monitorglobal.top)**
+**Acesse: [argosorbis.com.br](https://argosorbis.com.br)**
 
 O projeto reúne dados de diferentes instituições para facilitar o acompanhamento de riscos naturais no Brasil e no mundo. A interface oferece globo/mapa, cartões de eventos, sequências de possíveis réplicas, trajetórias de ciclones e informações meteorológicas de capitais brasileiras e internacionais.
 
@@ -20,7 +20,7 @@ A disponibilidade de cada recurso depende das fontes e da configuração dos ser
 
 ## Como interpretar os dados
 
-**O Monitor Global é informativo e não substitui os canais oficiais de emergência.** Para orientações de proteção, acompanhe as autoridades responsáveis pela sua região.
+**O Argos Orbis é informativo e não substitui os canais oficiais de emergência.** Para orientações de proteção, acompanhe as autoridades responsáveis pela sua região.
 
 - Dados podem apresentar atrasos, divergências entre redes e revisões posteriores.
 - Um boletim informativo de tsunami não significa, por si só, que exista ameaça de tsunami.

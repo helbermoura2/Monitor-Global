@@ -1,6 +1,6 @@
-# Guia do dono — Monitor Global
+# Guia do dono — Argos Orbis
 
-Site: https://monitorglobal.top · Repositório: https://github.com/helbermoura2/Monitor-Global
+Site: https://argosorbis.com.br · Repositório: https://github.com/helbermoura2/Monitor-Global
 
 Referência rápida: [operação e recuperação em uma página](docs/OPERACAO_EM_UMA_PAGINA.md).
 
