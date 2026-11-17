@@ -43,7 +43,7 @@ import {handleAfadEarthquakes, handleIngvEarthquakes, handleJmaEarthquakes, hand
 import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./worker/image-rendering.mjs";
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
 import {handleTelegramAdminSmoke} from "./worker/telegram-admin-smoke.mjs";
-import {handleImperialPreview} from "./worker/telegram-imperial-preview.mjs";
+import {IMPERIAL_PREVIEW,handleImperialPreview,getImperialPreviewAsset} from "./worker/telegram-imperial-preview.mjs";
 import {diagnoseTelegramAdmin} from "./worker/telegram-admin-diagnose.mjs";
 
 // Delivery ports keep orchestration independent of rendering and Telegram transport.
@@ -1966,6 +1966,10 @@ async function handlePortugueseTranslation(request,env){
 async function handleWorkerRequest(request,env,ctx){
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
         const reqUrl = new URL(request.url);
+        if(reqUrl.pathname==='/telegram-imperial-preview-source/'+IMPERIAL_PREVIEW.sha256+'.png'){
+            if(request.method!=='GET')return json({ok:false,error:'Método não permitido'},405);
+            return getImperialPreviewAsset(env);
+        }
         if(reqUrl.pathname.startsWith('/telegram-summary-image/')){
             const match=reqUrl.pathname.match(/^\/telegram-summary-image\/(\d{4}-\d{2}-\d{2})\/([a-f0-9-]{36})$/);
             if(!match||!env.DAILY_SUMMARY)return new Response('Imagem não encontrada',{status:404});
