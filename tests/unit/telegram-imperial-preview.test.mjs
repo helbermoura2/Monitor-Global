@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {IMPERIAL_PREVIEW,handleImperialPreview,validateImperialPreview} from '../../worker/telegram-imperial-preview.mjs';
+import {IMPERIAL_PREVIEW,handleImperialPreview,validateImperialPreview,getImperialPreviewAsset} from '../../worker/telegram-imperial-preview.mjs';
 
 function fakePng(){
  const bytes=new Uint8Array(80),v=new DataView(bytes.buffer);
@@ -65,4 +65,24 @@ test('missing bot, wrong file or expired authorization never publishes',async()=
  const req=new Request('https://internal/__telegram-imperial-preview',{method:'POST',body:'not image'});
  assert.equal((await handleImperialPreview(st,env,req,{now:100,options,send})).status,415);
  assert.equal(sends,0);
+});
+
+test('successful upload preserves untouched bytes in KV for GitHub import',async()=>{
+ const {bytes,options}=await sample(),st=storage(),writes=[];
+ const kv={put:async(key,payload,settings)=>{writes.push({key,payload,settings})}};
+ const send=async()=>({ok:true,result:{message_id:444}});
+ const response=await handleImperialPreview(st,{...env,TTS_USAGE:kv},upload(bytes),{now:100,options,send});
+ assert.equal(response.status,200);
+ assert.equal((await response.json()).storedForGitHubSync,true);
+ assert.equal(writes.length,1);
+ assert.equal(writes[0].key,options.sourceKey);
+ assert.equal(writes[0].payload.byteLength,bytes.byteLength);
+ assert.deepEqual(new Uint8Array(writes[0].payload),new Uint8Array(bytes));
+ assert.equal(writes[0].settings.metadata.sha256,options.sha256);
+});
+test('public asset endpoint does not expose arbitrary KV content',async()=>{
+ const missing=await getImperialPreviewAsset({});
+ assert.equal(missing.status,404);
+ const wrong=await getImperialPreviewAsset({TTS_USAGE:{get:async()=>new Uint8Array([1,2,3]).buffer}});
+ assert.equal(wrong.status,503);
 });
