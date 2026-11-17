@@ -86,7 +86,7 @@ public class UnifiedBroadcastChromeTest {
   try{
    int map=Banner.insetDp(context);
    for(int x:new int[]{36,220,808}){
-    int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,10);
+    int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,3);
     assertTrue("red Pixlr tabs remain visible",Color.red(seismic)>Color.green(seismic));
     assertTrue("all sources share red tabs",Color.blue(marketColor)>Color.red(marketColor));
    }
