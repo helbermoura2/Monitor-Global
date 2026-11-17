@@ -64,3 +64,41 @@ test('Telegram diagnostic checks identity and permissions without publishing',as
  await expect(page.locator('#tg-admin-dialog .tg-admin-message')).toContainText('Worker está usando o bot antigo.');
  expect(calls).toBe(1);expect(method).toBe('POST');
 });
+
+test('Imperial Bronze menu shortcut opens the exact PNG uploader after admin login',async({page})=>{
+ let sent=0,authHeader='',name='';
+ await page.route('**/telegram-history',route=>route.fulfill({
+   status:200,headers:{'access-control-allow-origin':'*'},
+   contentType:'application/json',body:'{"ok":true,"daily":[],"alerts":[]}'
+ }));
+ await page.route('**/telegram-imperial-preview',route=>{
+   sent++;authHeader=route.request().headers()['x-admin-token'];
+   const payload=route.request().postData()||'';
+   name=payload.includes('approved-imperial.png')?'approved-imperial.png':'missing';
+   return route.fulfill({status:200,headers:{'access-control-allow-origin':'*'},
+     contentType:'application/json',body:JSON.stringify({ok:true,posted:true,messageId:616,channel:'@argosorbis'})});
+ });
+ await boot(page);
+ const menu=page.locator('#admin-telegram-imperial');
+ await expect(menu).toBeVisible();
+ await menu.click();
+ await expect(page.locator('#tg-admin-key')).toBeVisible();
+ await page.locator('#tg-admin-key').fill('private-demo');
+ await page.getByRole('button',{name:'Entrar'}).click();
+ await expect(page.getByText('Publicar a imagem Imperial Bronze aprovada')).toBeVisible();
+ const input=page.locator('#tg-imperial-png');
+ await input.setInputFiles({name:'approved-imperial.png',mimeType:'image/png',buffer:Buffer.from('unit-test-image')});
+ page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('button',{name:'Publicar esta imagem no @argosorbis'}).click();
+ await expect(page.locator('.tg-imperial-upload')).toContainText('mensagem 616');
+ expect(sent).toBe(1);expect(authHeader).toBe('private-demo');expect(name).toBe('approved-imperial.png');
+ expect(await page.evaluate(()=>({local:localStorage.length,session:sessionStorage.length}))).toEqual({local:0,session:0});
+});
+test('mobile shortcut remains available even when user is not authenticated',async({page})=>{
+ await boot(page);
+ expect(await page.evaluate(()=>typeof TelegramAdmin.openImperialBronze)).toBe('function');
+ await expect(page.locator('#admin-telegram-imperial')).toHaveCount(1);
+ await page.locator('#admin-telegram-imperial').click();
+ await expect(page.getByRole('dialog',{name:'Histórico do Telegram'})).toBeVisible();
+ await expect(page.locator('#tg-admin-key')).toBeVisible();
+});
