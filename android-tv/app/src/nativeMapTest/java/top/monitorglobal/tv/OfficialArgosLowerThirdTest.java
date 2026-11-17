@@ -91,4 +91,17 @@ public class OfficialArgosLowerThirdTest {
    }
   }finally{b.recycle();}
  }
+ @Test public void marketPointerMovesWhileInscriptionsRemainFixed()throws Exception{
+  TvBroadcastInfoView view=TvBroadcastInfoView.market(RuntimeEnvironment.getApplication(),null,null,false);
+  java.lang.reflect.Field animated=TvBroadcastInfoView.class.getDeclaredField("animate");animated.setAccessible(true);animated.setBoolean(view,true);
+  java.lang.reflect.Method draw=TvBroadcastInfoView.class.getDeclaredMethod("drawOfficialMarketLogo",Canvas.class,long.class);draw.setAccessible(true);
+  Bitmap a=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888),b=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+  try{
+   draw.invoke(view,new Canvas(a),1000L);draw.invoke(view,new Canvas(b),2800L);
+   int changed=0;
+   for(int y=48;y<78;y++)for(int x=857;x<899;x++)if(a.getPixel(x,y)!=b.getPixel(x,y))changed++;
+   assertTrue("radar pointer must advance between frames",changed>10);
+   for(int y=31;y<43;y++)for(int x=830;x<925;x++)assertEquals("inscriptions must not rotate",a.getPixel(x,y),b.getPixel(x,y));
+  }finally{a.recycle();b.recycle();}
+ }
 }
