@@ -37,6 +37,20 @@
      return result;
    }finally{clearTimeout(timer)}
  }
+ async function uploadImperialBronze(file){
+   const credential=token,controller=new AbortController(),timer=setTimeout(()=>controller.abort(),65000);
+   const form=new FormData();form.append('photo',file,file.name);
+   try{
+     const response=await fetch(base+'/telegram-imperial-preview',{
+       method:'POST',headers:{'X-Admin-Token':token},body:form,cache:'no-store',signal:controller.signal
+     });
+     const result=await response.json().catch(()=>({}));
+     if(response.status===401){token='';authorized=false;menuButtons();throw Error('A chave administrativa expirou ou está incorreta.');}
+     if(!response.ok)throw Error(result.error||'O Telegram não confirmou a publicação. Verifique o canal antes de repetir.');
+     if(token!==credential)throw Error('Sessão encerrada');
+     return result;
+   }finally{clearTimeout(timer);}
+ }
  function show(){
    if(!dialog.open)dialog.showModal();
  }
@@ -96,6 +110,28 @@
    const exit=n('button','Sair');exit.type='button';exit.onclick=logout;controls.append(diagnose,test,update,exit);body.append(controls);
    body.append(n('p','Teste de texto simples, sem alertas fictícios. O sistema limita repetições para evitar mensagens duplicadas.','tg-note'));
    if(active==='health'){loadHealth();return;}
+   if(active==='alerts'){
+     const panel=n('section',null,'tg-imperial-upload');
+     panel.append(n('h3','Publicar a imagem Imperial Bronze aprovada'),
+       n('p','Selecione o PNG original do alerta M6,6 de 16/11/2026. A publicação será marcada como PRÉVIA VISUAL, não como novo sismo. O bot aceita somente o arquivo exato e permite um único envio.','tg-note'));
+     const file=n('input');file.type='file';file.accept='image/png,.png';file.id='tg-imperial-png';
+     const lbl=n('label','Imagem PNG Imperial Bronze');lbl.htmlFor=file.id;
+     const send=n('button','📷 Publicar esta imagem no @argosorbis');send.type='button';send.disabled=true;
+     const status=n('p','','tg-note');
+     file.addEventListener('change',()=>{send.disabled=!file.files?.length;status.textContent=file.files?.length?file.files[0].name+' · '+Math.ceil(file.files[0].size/1024)+' KB':'';});
+     send.onclick=async()=>{
+       const chosen=file.files?.[0];if(!chosen)return;
+       if(chosen.size>6*1024*1024||chosen.type!=='image/png'){status.textContent='Escolha o PNG original sem conversão.';return;}
+       if(!window.confirm('Publicar UMA prévia Imperial Bronze do M6,6 no canal @argosorbis? Isto não é um novo terremoto.'))return;
+       send.disabled=true;file.disabled=true;status.textContent='Enviando PNG original para o bot…';
+       try{
+         const result=await uploadImperialBronze(chosen);
+         status.textContent=result.posted?'✅ Telegram confirmou a mensagem '+result.messageId+' no canal @argosorbis.':result.alreadySent?'✅ Essa imagem já foi publicada como mensagem '+result.messageId+'.':'Confira o canal antes de repetir.';
+       }catch(error){status.textContent=error.name==='AbortError'?'A comunicação demorou demais. Confira @argosorbis antes de tentar novamente.':'⚠️ '+error.message;}
+       finally{send.disabled=false;file.disabled=false;}
+     };
+     panel.append(lbl,file,send,status);body.append(panel);
+   }
    healthGeneration++;
    body.append(n('p','Últimos 30 dias · horários de Brasília. O registro detalhado começa com esta atualização.','tg-note'));
    const list=active==='daily'?[...(data.daily||[])].sort((a,b)=>b.day.localeCompare(a.day)):data.alerts||[];
