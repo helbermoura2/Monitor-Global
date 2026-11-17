@@ -1,0 +1,27 @@
+name: Telegram menu button UI
+on:
+  pull_request:
+    paths:
+      - 'js/optional-features.js'
+      - 'js/telegram-history.js'
+      - 'js/mobile-fab-menu-handler.js'
+      - 'js/mobile-portrait.js'
+      - 'index.html'
+      - 'tests/optional-panels.spec.js'
+      - '.github/workflows/telegram-menu-ui.yml'
+permissions:
+  contents: read
+jobs:
+  menu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium for isolated menu tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify menu, authentication and exact PNG upload handoff
+        run: npx playwright test tests/optional-panels.spec.js --workers=1
