@@ -217,7 +217,7 @@ final class TvBroadcastInfoView extends View {
   if(kind==BRENT){
    fill(c,8,0,917,30,0xff09235f);
    fitted(c,demo?"COTAÇÕES · TESTE FICTÍCIO":"COTAÇÕES · MERCADO",20,21,20,14,Color.WHITE,brand,790);
-   fill(c,8,30,822,64,0xfff4f5f6);
+   fill(c,8,30,812,64,0xfff4f5f6);
   }else{
    OledNewsChrome.tab(c,p,"BREAKING NEWS",true);
    badge(c,status());
