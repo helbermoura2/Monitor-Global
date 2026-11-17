@@ -22,10 +22,11 @@ final class OledNewsChrome {
  static final int OLED=Color.BLACK, INK=Color.WHITE;
  static final int RED=0xffbf1827, RED_BRIGHT=0xffed1231, RED_DARK=0xff850008;
  static final int FOOTER=0xff101115, MUTE=0xffb9c2c8;
- static final float LEFT=8f, LEFT_TAB_RIGHT=295f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
+ static final float LEFT=8f, LEFT_TAB_RIGHT=254f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
+ static final float TAB_BOTTOM=27f, FOOTER_GREY_TOP=94f;
  static final float BODY_TOP=30f, BODY_END=94f, FOOTER_END=126f;
  static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=790f;
- static final float LOGO_CENTER_X=878f, LOGO_SIZE=64f;
+ static final float LOGO_CENTER_X=878f, LOGO_SIZE=56f;
  static final long FOOTER_SLOT_MS=4000L, FOOTER_FADE_MS=400L;
  // Dedicated reusable brush prevents market text/shader state leaking into the radar mark.
  private static final ThreadLocal<Paint> LOGO_BRUSH=ThreadLocal.withInitial(()->new Paint(Paint.ANTI_ALIAS_FLAG));
@@ -64,21 +65,23 @@ final class OledNewsChrome {
   p.setStyle(Paint.Style.FILL);c.drawRoundRect(LEFT,94,RIGHT,126,0,0,p);p.setShader(null);
   fill(c,p,LEFT,94,RIGHT,95,0xff36383f);
   // Grey brand block at the ticker's right edge, matching the Pixlr original.
-  fill(c,p,BRAND_PLATE_LEFT,99,RIGHT,126,0xff333436);
+  fill(c,p,BRAND_PLATE_LEFT,FOOTER_GREY_TOP,RIGHT,126,0xff333436);
  }
  static void tab(Canvas c,Paint p,String label,boolean left){
   final float l=left?LEFT:RIGHT_TAB_LEFT,r=left?LEFT_TAB_RIGHT:RIGHT;
   final float corner=7f;
-  p.setShader(new LinearGradient(0,0,0,30,RED_BRIGHT,RED_DARK,Shader.TileMode.CLAMP));
-  p.setStyle(Paint.Style.FILL);c.drawRoundRect(l,0,r,34,corner,corner,p);p.setShader(null);
-  fill(c,p,l,25,r,30,RED_DARK);
+  // Both red tabs stop above the OLED panel at y=30: no red bleed into the black band.
+  p.setShader(new LinearGradient(0,-5,0,TAB_BOTTOM,RED_BRIGHT,RED_DARK,Shader.TileMode.CLAMP));
+  p.setStyle(Paint.Style.FILL);
+  c.drawRoundRect(l,-6,r,TAB_BOTTOM,corner,corner,p);p.setShader(null);
+  fill(c,p,l+2,22,r-2,TAB_BOTTOM,RED_DARK);
   Typeface face=titleFont(null);
-  p.setTypeface(face);p.setTextSize(left?22f:20f);
-  float span=r-l, size=left?22f:20f;
+  p.setTypeface(face);p.setTextScaleX(1f);p.setTextSize(left?21.5f:20f);
+  float span=r-l,size=left?21.5f:20f;
   while(size>12f&&p.measureText(label)>span-16){size-=.5f;p.setTextSize(size);}
   float x=l+(span-p.measureText(label))/2f;
-  p.setColor(INK);c.save();c.clipRect(l,0,r,30);
-  c.drawText(label,x,23.6f,p);c.restore();
+  p.setColor(INK);c.save();c.clipRect(l,0,r,TAB_BOTTOM);
+  c.drawText(label,x,20.4f,p);c.restore();
  }
  static void brand(Canvas c,Paint p,long elapsed,boolean animate){
   // The project-wide official radar-eye vector, with rotating sweep and blinking eye.
@@ -90,10 +93,22 @@ final class OledNewsChrome {
   // The right-hand panel carries ONLY the official animated radar-eye artwork.
   // Center the complete vector (including its corner symbols) inside the safe area.
   c.save();c.clipRect(830,31,RIGHT,94);
-  c.translate(LOGO_CENTER_X-LOGO_SIZE/2f,31);c.scale(LOGO_SIZE/128f,LOGO_SIZE/128f);
   Paint logo=LOGO_BRUSH.get();
   logo.reset();logo.setAntiAlias(true);
-  RadarLogoView.drawArtwork(c,logo,sweep,open);
+  // Slightly smaller eye provides independent space for both official inscriptions.
+  c.save();c.translate(LOGO_CENTER_X-LOGO_SIZE/2f,36);
+  c.scale(LOGO_SIZE/128f,LOGO_SIZE/128f);
+  RadarLogoView.drawArtwork(c,logo,sweep,open,false);
+  c.restore();
+  // Broadcast lettering remains readable at TV scale rather than shrinking to 3px.
+  logo.reset();logo.setAntiAlias(true);logo.setShader(null);
+  logo.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+  logo.setTextAlign(Paint.Align.CENTER);logo.setColor(0xffc4a16a);
+  logo.setTextSize(7.5f);
+  c.drawText("ΠΑΝΟΠΤΗΣ",LOGO_CENTER_X,39f,logo);
+  logo.setTextSize(7.2f);
+  c.drawText("CUSTOS ORBIS",LOGO_CENTER_X,91.5f,logo);
+  logo.setTextAlign(Paint.Align.LEFT);
   c.restore();
  }
  /** One address at a time: 3.2s fully shown, 0.4s fades on each side. */
@@ -113,16 +128,17 @@ final class OledNewsChrome {
   if(raw==null)return "";
   return raw.replaceAll("\\s*•\\s*","      •      ");
  }
+ static Typeface clockFont(){return titleFont(null);}
  static Typeface tickerFont(){
-  return Typeface.create("sans-serif-medium",Typeface.NORMAL);
+  return regularFont();
  }
  static void brandFooter(Canvas c,Paint p,long elapsed,boolean animated){
   int opacity=footerOpacity(elapsed,animated);
   if(opacity<=0)return;
   // Paint just one address over the grey plate already drawn by base().
   // A fade-through-blank guarantees both labels are never present together.
-  int layer=c.saveLayerAlpha(BRAND_PLATE_LEFT,99,RIGHT,126,opacity);
-  c.clipRect(BRAND_PLATE_LEFT+2,99,RIGHT-2,126);
+  int layer=c.saveLayerAlpha(BRAND_PLATE_LEFT,FOOTER_GREY_TOP,RIGHT,126,opacity);
+  c.clipRect(BRAND_PLATE_LEFT+2,FOOTER_GREY_TOP,RIGHT-2,126);
   // Center the single visible address optically, not against the left box edge.
   String address=footerText(elapsed);
   p.setTypeface(regularFont());p.setTextScaleX(1f);p.setShader(null);
@@ -131,7 +147,7 @@ final class OledNewsChrome {
   while(size>9.5f&&p.measureText(address)>available){size-=.5f;p.setTextSize(size);}
   p.setColor(INK);p.setStyle(Paint.Style.FILL);
   Paint.FontMetrics metrics=p.getFontMetrics();
-  float centerY=(99f+126f)/2f;
+  float centerY=(FOOTER_GREY_TOP+126f)/2f;
   float baseline=centerY-(metrics.ascent+metrics.descent)/2f;
   c.drawText(address,(BRAND_PLATE_LEFT+RIGHT-p.measureText(address))/2f,baseline,p);
   c.restoreToCount(layer);
