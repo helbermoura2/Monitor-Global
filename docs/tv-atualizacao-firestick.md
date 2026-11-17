@@ -1,5 +1,7 @@
 # Atualização no Fire Stick — TV 1.0.37
 
+> **Marca atual:** [Argos Orbis](https://argosorbis.com.br). O endereço `monitorglobal.top` citado no procedimento de recuperação é um link legado da versão histórica. Não presuma que um APK antigo exista automaticamente no domínio novo.
+
 O botão consulta o manifesto publicado em `android-tv/distribution/stable.json`. Código integrado em main ou uma execução de assinatura com sucesso não disponibilizam, por si só, um APK novo.
 
 Na investigação de 02/11, o canal ainda indicava 1.0.30 e as execuções recentes tinham a etapa **Publish validated distribution** pulada porque usavam **verify**. O modo padrão do workflow passa a **publish**, mantendo execução manual, main, proprietário e ambiente de assinatura. **verify** continua disponível e agora explica no resumo que não publicou nenhum APK.

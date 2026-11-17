@@ -1,5 +1,7 @@
 # Argos Orbis TV
 
+> **Marca pública atual:** [Argos Orbis](https://argosorbis.com.br). As URLs de download em `monitorglobal.top` abaixo são **endereços técnicos legados** documentados para manter a compatibilidade; a troca do nome não migra automaticamente o serviço de atualização do APK. Antes de divulgar uma nova URL de APK, é preciso confirmar HTTPS e disponibilização no domínio novo.
+
 **Fire Stick: botão de sobreposição não abre ou volta sem autorizar?** Use o [guia pelo celular](PERMISSAO_FIRE_TV.md), válido também para a versão já instalada. A versão 1.0.31 acrescenta essa ajuda por QR Code; a autorização continua dependendo do Fire OS.
 
 **Versão 1.0.29:** [resumo do tempo na Liberdade](../docs/tv-resumo-tempo-horario.md), com cartão por 12 segundos a cada hora e opção Ver tempo agora.
@@ -23,7 +25,7 @@ O APK de teste está em [downloads/monitor-global-tv-1.0.0.apk](../downloads/mon
 `https://monitorglobal.top/downloads/monitor-global-tv-1.0.0.apk`
 
 1. Baixe e instale **no aparelho de TV**. No Fire TV, um instalador como Downloader pode abrir o endereço; autorize a instalação para o instalador usado nas configurações do aparelho.
-2. Abra **Monitor Global TV** e selecione **Permitir exibição sobre outros aplicativos**. O aplicativo informa se a permissão foi concedida. Algumas versões do Fire OS não oferecem essa tela ou não autorizam a sobreposição; isso precisa ser conferido no aparelho.
+2. Abra **Argos Orbis TV** e selecione **Permitir exibição sobre outros aplicativos**. O aplicativo informa se a permissão foi concedida. Algumas versões do Fire OS não oferecem essa tela ou não autorizam a sobreposição; isso precisa ser conferido no aparelho.
 3. Selecione **Testar faixa em 10 segundos**. Volte à tela inicial/abra outro aplicativo. O aviso identifica explicitamente que os dados são fictícios e fecha sozinho.
 4. Depois, selecione **Ativar monitoramento**. Som e duração ficam na mesma tela. Para parar, use o botão do aplicativo ou a ação na notificação persistente do serviço.
 
@@ -46,7 +48,7 @@ O IP privado sozinho não dá acesso ao aparelho a partir do ambiente remoto de 
 
 ## Como recebe os avisos
 
-- Consulta HTTPS ao Monitor Global a cada **30 segundos**, usando ETag/304 para reduzir transferências. O Worker compartilha a coleta por cache; não há novo cron ou Durable Object para o feed.
+- Consulta HTTPS ao Argos Orbis a cada **30 segundos**, usando ETag/304 para reduzir transferências. O Worker compartilha a coleta por cache; não há novo cron ou Durable Object para o feed.
 - Terremotos: USGS, EMSC e GEOFON M6+ no mundo; USP/RSBR, USGS, EMSC e GEOFON sem corte mínimo no Brasil. Revisões de IDs já acompanhados continuam por até 72 horas, inclusive abaixo do corte. Veja [cobertura global da versão 1.0.23](../docs/alertas-globais-multifonte.md); a versão 1.0.13 é referência histórica.
 - Tsunami: produtos oficiais identificados por autoridade e ocorrência. Revisões/encerramentos são explícitos e limitados às costas citadas. Um informativo ou produto sem ameaça novo não é um aviso inicial de perigo.
 - A primeira consulta saudável estabelece a referência de cada fonte e **não anuncia os eventos que já estavam no feed**. Erros de fonte não viram encerramento, e não se reproduz uma sequência de avisos antigos ao reconectar.
