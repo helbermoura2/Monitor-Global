@@ -18,6 +18,7 @@ final class WeatherForecast {
  }
  static final class Summary {
   final String temperature,condition,wind,humidity,timing;final long expiresAt;final boolean stormForecast;
+  String windDirection="N/D";
   final String temperatureValue,feelsValue,humidityValue,windValue,gustValue,conditionKey;final long generatedAt,referenceAt;
   Summary(String t,String c,String w,String h,String time,long expiry){this(t,c,w,h,time,expiry,false);}
   Summary(String t,String c,String w,String h,String time,long expiry,boolean storm){this(t,c,w,h,time,expiry,storm,"—","—","—","—","—","");}
@@ -61,6 +62,9 @@ final class WeatherForecast {
   JSONObject loc=d.optJSONObject("loc"),p=d.optJSONObject("current");long generated=d.optLong("generatedAt",0),at=d.optLong("at",0),expires=d.optLong("expiresAt",0),start=p==null?0:p.optLong("start",0);
   if(loc==null||p==null||!Double.isFinite(loc.optDouble("lat",Double.NaN))||!Double.isFinite(loc.optDouble("lng",Double.NaN))||Math.abs(loc.optDouble("lat")-RainForecast.LATITUDE)>.002||Math.abs(loc.optDouble("lng")-RainForecast.LONGITUDE)>.002||at<=0||at>now+60000||now-at>HOUR||generated<=0||generated>now+60000||now-generated>90*60000L||expires<=now||expires>at+HOUR||start>now||start+HOUR<=now)return null;
   double temp=p.optDouble("temperature",Double.NaN);if(!Double.isFinite(temp)||temp< -100||temp>70)return null;
-  return new Summary(metric(p,"temperature",-100,70,"°C")+" · sensação "+metric(p,"feels",-120,100,"°C"),condition(p.optString("condition","")),"Vento "+metric(p,"wind",0,540," km/h")+" · rajadas "+metric(p,"gust",0,540," km/h"),"Umidade "+metric(p,"humidity",0,100,"%"),"Modelo horário · ref. "+time(start)+" · gerado "+time(generated),Math.min(expires,start+HOUR),storm(p.optString("condition","")),metric(p,"temperature",-100,70,"°C"),metric(p,"feels",-120,100,"°C"),metric(p,"humidity",0,100,"%"),metric(p,"wind",0,540," km/h"),metric(p,"gust",0,540," km/h"),p.optString("condition",""),generated,start);
+  Summary result=new Summary(metric(p,"temperature",-100,70,"°C")+" · sensação "+metric(p,"feels",-120,100,"°C"),condition(p.optString("condition","")),"Vento "+metric(p,"wind",0,540," km/h")+" · rajadas "+metric(p,"gust",0,540," km/h"),"Umidade "+metric(p,"humidity",0,100,"%"),"Modelo horário · ref. "+time(start)+" · gerado "+time(generated),Math.min(expires,start+HOUR),storm(p.optString("condition","")),metric(p,"temperature",-100,70,"°C"),metric(p,"feels",-120,100,"°C"),metric(p,"humidity",0,100,"%"),metric(p,"wind",0,540," km/h"),metric(p,"gust",0,540," km/h"),p.optString("condition",""),generated,start);
+  double direction=p.optDouble("windDirection",Double.NaN);
+  if(Double.isFinite(direction)&&direction>=0&&direction<=360)result.windDirection=new String[]{"N","NE","L","SE","S","SO","O","NO"}[(int)Math.floor((direction+22.5)/45)%8];
+  return result;
  }
 }

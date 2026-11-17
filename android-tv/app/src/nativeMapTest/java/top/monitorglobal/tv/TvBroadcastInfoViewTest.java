@@ -90,7 +90,7 @@ public class TvBroadcastInfoViewTest {
   assertTrue(accessible.contains("Nublado"));assertTrue(accessible.contains("22°C"));
   Bitmap b=render(view,"weather");
   try{assertTrue("strip has a solid broadcast background",Color.alpha(b.getPixel(500,view.mapSpace+50))>240);
-   assertTrue("separated Breaking News remains red",Color.red(b.getPixel(36,view.mapSpace+10))>Color.green(b.getPixel(36,view.mapSpace+10)));
+   assertEquals("weather uses compact blue tab",0xff09235f,b.getPixel(36,view.mapSpace+3));
   }finally{b.recycle();}
  }
  @Test public void weatherKeepsOriginalIndependentMetricColumns()throws Exception{
