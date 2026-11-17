@@ -10,7 +10,7 @@ final class Banner {
  /** Regionally monitored M5.0–5.9 uses the genuine seismic bulletin and epicenter
   * map, preserving the original 15s regional slot and seismic 700ms wipe. */
  boolean showRegional(Alert alert,boolean demo,boolean replay){
-  return showView(new NewsBannerView(context,alert,demo,replay),CompactNotice.DURATION_MS,0,null);
+  return showView(new NewsBannerView(context,alert,demo,replay,true),CompactNotice.DURATION_MS,0,null);
  }
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete){return showSummary(alerts,day,replay,complete,null);}
  boolean showSummary(java.util.List<Alert> alerts,String day,boolean replay,boolean complete,Runnable finished){return showSummary(alerts,day,replay,complete,null,finished);}
