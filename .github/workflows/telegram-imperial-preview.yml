@@ -22,5 +22,10 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Validate exact PNG and at-most-once send
         run: node --test tests/unit/telegram-imperial-preview.test.mjs tests/unit/admin-security.test.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify public exact-art repository import
+        run: python -m unittest discover -s tests/unit -p test_import_imperial_preview.py
       - name: Bundle current Worker
         run: npm run worker:bundle
