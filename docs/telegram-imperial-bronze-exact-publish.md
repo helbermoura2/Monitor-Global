@@ -29,16 +29,18 @@ A mesma operação pode ser realizada com a página HTML autocontida preparada n
 - Não modifica o serviço de alertas M6+, fontes sísmicas, design `telegram-imperial-bronze-v1`, crons, id do canal ou histórico sísmico.
 - A imagem aprovada **ainda não é um template editável e georreferenciado** para futuros terremotos. Não se devem reutilizar Tual, Indonésia, magnitude M6,6 ou data de 16/11 em outros eventos.
 
-## Arquivo no repositório
+## Arquivo PNG íntegro já versionado
 
-O módulo `worker/telegram-imperial-preview.mjs` documenta a identidade criptográfica do arquivo e realiza o envio. O repositório **não contém automaticamente** o PNG completo até que os bytes sejam importados como arquivo binário. Não anunciar a existência do arquivo `assets/telegram/m6/imperial-bronze-master.png` sem verificar sua presença e SHA.
+O PNG da prévia M6,6 foi anexado diretamente ao GitHub por blob binário, **sem compressão, conversão ou alterações de pixels**, no caminho:
 
-## Sincronizar os bytes do PNG para o GitHub após o envio
+`assets/telegram/m6/imperial-bronze-preview-2026-11-16-m6-6.png`
 
-A partir da versão com sincronização, o upload administrativo grava uma cópia temporária e intacta no namespace KV **TTS_USAGE** (TTL de 14 dias), sob uma chave fixa. O endpoint público de leitura está restrito ao SHA-256 exato do cartaz já destinado à publicação pública no Telegram:
+O SHA-256 do conteúdo é `ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75` e as dimensões são 1024 × 1536. Testes independentes leem o PNG real no repositório e verificam o digest. O arquivo de M6,6 é um **exemplo estático de republicação**, não um template geográfico genérico para futuros sismos.
 
-`GET /telegram-imperial-preview-source/ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75.png`
+## Republicação automática autorizada, uma única vez
 
-O fluxo diário já existente `.github/workflows/cloudflare-kv-daily-report.yml` executa um **job separado e sem credenciais Cloudflare**, com permissão `contents: write` limitada a esse job. Ele chama `tools/import-telegram-imperial-preview.py` e confere assinatura, dimensões e SHA-256 do arquivo antes de colocá-lo em `assets/telegram/m6/imperial-bronze-preview-2026-11-16-m6-6.png`. Se o upload ainda não aconteceu, a etapa faz nada. Se o arquivo existe com bytes diferentes, o job falha e não sobrescreve.
+`worker/telegram-imperial-auto-repost.mjs` consulta somente o PNG fixo acima no GitHub Raw, a partir do cron normal já existente, na primeira janela de quinze minutos permitida. Antes de enviar, confere bytes, tamanho, dimensões e SHA-256. O mesmo Durable Object e o mesmo marcador de envio administrativo impedem duplicatas; uma resposta ambígua do Telegram bloqueia nova tentativa. A legenda deixa explícito que é **republicação para conferir o visual**, não um terremoto novo. A janela expira em 18/11/2026, 00h BRT.
 
-A importação só é considerada concluída quando o commit do arquivo real aparecer no GitHub; o manifesto JSON sozinho não prova presença do PNG. A foto fixa do exemplo M6,6 não substitui o renderizador dinâmico de futuros eventos e não deve ser enviada como um terremoto novo.
+O botão do histórico e o publicador HTML autocontido continuam disponíveis como alternativas autenticadas se a consulta ao GitHub Raw estiver temporariamente indisponível. O envio automático não exige expor `ADMIN_TOKEN` nem `TELEGRAM_BOT_TOKEN`; as credenciais permanecem no Worker.
+
+A gravação de uma cópia temporária no KV após upload manual continua opcional. O job diário extra de sincronização com GitHub foi removido, pois o PNG exato **já está diretamente versionado** e não precisa de novas execuções programadas. Não modificar fontes, rotinas regulares de M6+, outras mensagens ou alertas brasileiros.
