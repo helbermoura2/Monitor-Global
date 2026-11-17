@@ -200,14 +200,17 @@ final class TvBroadcastInfoView extends View {
   p.setTypeface(clockFace);p.setTextSize(18f);
   label(c,clockText,58-p.measureText(clockText)/2f,118,18,Color.WHITE,clockFace,90);
   OledNewsChrome.brandFooter(c,p,elapsed,animate);
-  c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
+  float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
+  c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
+  int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
   String display=OledNewsChrome.tickerDisplay(ticker);
   Typeface tickerFace=OledNewsChrome.tickerFont();
   p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
-  label(c,display,112-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
-  label(c,display,112-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
-  c.restore();
+  label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
+  label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
+  OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
+  c.restoreToCount(tickerLayer);c.restore();
  }
  private void drawHeader(Canvas c,long elapsed){
   OledNewsChrome.base(c,p);
