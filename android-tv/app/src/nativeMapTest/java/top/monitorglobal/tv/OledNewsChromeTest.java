@@ -131,7 +131,7 @@ public class OledNewsChromeTest {
    try{
     view.draw(new Canvas(b));
     int offset=view.mapSpace;
-    assertEquals("OLED covers label background, not TV content",Color.BLACK,b.getPixel(20,offset+90));
+    assertEquals("OLED covers label background, not TV content",view==market?0xfff4f5f6:Color.BLACK,b.getPixel(20,offset+90));
     assertEquals("left safe overscan",0,Color.alpha(b.getPixel(0,offset+80)));
     assertEquals("right overscan",0,Color.alpha(b.getPixel(946,offset+80)));
    }finally{b.recycle();}

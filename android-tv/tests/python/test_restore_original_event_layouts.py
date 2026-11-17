@@ -39,15 +39,16 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         ):
             self.assertIn(piece, WEATHER)
 
-    def test_brent_dollar_restore_their_prior_placement(self):
+    def test_market_retains_independent_quote_columns(self):
         for piece in (
-            'eventCategory(c,"BRENT","NYMEX")',
-            'primary(c,oilValue,MARKET_BRENT_PRICE_X,36,',
-            'fitted(c,oilChange,MARKET_BRENT_STATUS_X,73,25,',
-            'fill(c,MARKET_DIVIDER_X,39,1,47,',
-            'fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,20,',
-            'fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),',
-            'eventCategory(c,"BRENT","NYMEX")',
+            'fitted(c,"BRENT",20,46',
+            'fitted(c,"DÓLAR USD/BRL",430,46',
+            'brent==null?"US$ —":"US$ "+amount(brent.price)',
+            'dollar==null?"R$ —":"R$ "+fxAmount(dollar.price)',
+            'marketHeaderStatus(brentSession)',
+            'marketHeaderStatus(dollarSession)',
+            'BrentQuote.reference(brent.at)',
+            'BrentQuote.reference(dollar.at)',
         ):
             self.assertIn(piece, WEATHER)
 
@@ -76,7 +77,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn("EVENT_CENTER_X=68f,EVENT_MAGNITUDE_BASELINE=72f", CHROME)
         self.assertIn('BroadcastVisuals.eventCategory(c,p,brand,title,caption', WEATHER)
         self.assertIn('BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI"', SEISMIC)
-        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"BRENT"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):
+        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):
             self.assertIn(phrase, WEATHER)
         self.assertIn("YAHOO · USD/BRL · CÂMBIO", WEATHER)
         self.assertNotIn("MarketDOLWidget", WEATHER)

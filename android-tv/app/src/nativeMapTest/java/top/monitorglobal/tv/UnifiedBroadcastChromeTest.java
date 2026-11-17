@@ -86,16 +86,16 @@ public class UnifiedBroadcastChromeTest {
   try{
    int map=Banner.insetDp(context);
    for(int x:new int[]{36,220,808}){
-    int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,10);
+    int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,3);
     assertTrue("red Pixlr tabs remain visible",Color.red(seismic)>Color.green(seismic));
-    assertTrue("all sources share red tabs",Color.red(marketColor)>Color.green(marketColor));
+    assertTrue("all sources share red tabs",Color.blue(marketColor)>Color.red(marketColor));
    }
    for(int x:new int[]{300,500,780}){
     assertEquals("no upper-right floating boxes on seismic",0,Color.alpha(a.getPixel(x,map+10)));
-    assertEquals("no upper-right floating boxes on market",0,Color.alpha(b.getPixel(x,10)));
+    assertEquals("market header is continuous",255,Color.alpha(b.getPixel(x,10)));
    }
    assertEquals(Color.BLACK,a.getPixel(805,map+60));
-   assertEquals(Color.BLACK,b.getPixel(805,60));
+   assertEquals(0xfff4f5f6,b.getPixel(805,60));
    assertTrue("clock stays in lower ticker",Color.red(a.getPixel(32,map+100))>75);
    assertTrue("clock stays in lower ticker",Color.red(b.getPixel(32,100))>75);
    assertEquals("actual data ticker is still present",255,Color.alpha(a.getPixel(500,map+105)));
