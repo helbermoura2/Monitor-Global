@@ -125,8 +125,8 @@ test('history detail for the approved Tual M6,6 exposes a direct resend button',
  const chooser=page.waitForEvent('filechooser');
  await resend.click();
  const file=await chooser;
- await file.setFiles({name:'alerta_sismico_em_bronze_tual.png',mimeType:'image/png',buffer:Buffer.from('browser-test-png-with-server-hash-mocked')});
  page.once('dialog',dlg=>dlg.accept());
+ await file.setFiles({name:'alerta_sismico_em_bronze_tual.png',mimeType:'image/png',buffer:Buffer.from('browser-test-png-with-server-hash-mocked')});
  await expect(page.locator('.tg-imperial-repost')).toContainText('Telegram confirmou o reenvio');
  await expect(resend).toBeDisabled();
  expect(posted).toBe(1);
