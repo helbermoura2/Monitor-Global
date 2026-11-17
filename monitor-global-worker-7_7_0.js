@@ -44,6 +44,7 @@ import {renderAlertImage, renderDailySummaryImage,patchAlertTsunami} from "./wor
 import {createTelegramTransport} from "./worker/telegram-transport.mjs";
 import {handleTelegramAdminSmoke} from "./worker/telegram-admin-smoke.mjs";
 import {IMPERIAL_PREVIEW,handleImperialPreview,getImperialPreviewAsset} from "./worker/telegram-imperial-preview.mjs";
+import {sendApprovedImperialOnce} from "./worker/telegram-imperial-auto-repost.mjs";
 import {diagnoseTelegramAdmin} from "./worker/telegram-admin-diagnose.mjs";
 
 // Delivery ports keep orchestration independent of rendering and Telegram transport.
@@ -1208,6 +1209,10 @@ export class EarthquakeAlertDelivery {
             if(new URL(request.url).pathname==='/__telegram-imperial-preview'){
                 return handleImperialPreview(this.state.storage,this.env,request);
             }
+            if(new URL(request.url).pathname==='/__telegram-imperial-auto-repost'){
+                if(request.method!=='POST')return Response.json({ok:false,error:'Método não permitido'},{status:405});
+                return Response.json(await sendApprovedImperialOnce(this.state.storage,this.env));
+            }
             if(new URL(request.url).pathname.startsWith('/alexa/v1/'))return handleAlexaRelay(request,this.state.storage);
             if(new URL(request.url).pathname.startsWith('/google-home/v1/'))return handleGoogleHomeBridge(request,this.state.storage,{env:this.env});
             return withKvUsage(this.env,async measuredEnv=>{
@@ -2276,6 +2281,17 @@ export default {
                         .fetch('https://summary.internal/repost-once?day='+day,{method:'POST'});
                     if(!response.ok)console.warn('Republicação única: dados ou envio ainda pendentes');
                 }catch{console.warn('Republicação única: tentativa pendente');}
+            }
+            // One-off owner-authorized reproduction using the EXACT approved PNG.
+            // No event is invented: caption labels it a visual republication.
+            if(Math.floor(Number(event.scheduledTime||Date.now())/60000)%15===0
+                &&Date.now()<IMPERIAL_PREVIEW.closesAt&&env.EARTHQUAKE_ALERTS){
+                try{
+                    const target=env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('telegram-imperial-preview-20261116'));
+                    const res=await target.fetch('https://internal/__telegram-imperial-auto-repost',{method:'POST'});
+                    const result=await res.json().catch(()=>({}));
+                    if(result.posted)console.info('Imperial Bronze original enviado. Telegram messageId:',result.messageId);
+                }catch{console.warn('Reenvio Imperial Bronze: próxima janela autorizada, se ainda cabível');}
             }
             // Public dashboards collect on demand. Telegram keeps its own live collection below.
             try { await runTelegramM6Alerts(cacheRequest, env); } catch (e) { console.error('Cron Telegram M6:', e); }

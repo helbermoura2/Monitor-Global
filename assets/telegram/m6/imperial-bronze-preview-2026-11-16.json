@@ -11,5 +11,7 @@
   "destination": "assets/telegram/m6/imperial-bronze-preview-2026-11-16-m6-6.png",
   "authenticatedUploadEndpoint": "POST /telegram-imperial-preview",
   "retrieval": "GET /telegram-imperial-preview-source/ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75.png",
-  "notes": "The PNG file is synchronized only after it has been uploaded by the owner and verified. The metadata file alone does not establish that the PNG is already available."
+  "notes": "The original approved 1024x1536 PNG is now checked into this repository with the exact SHA-256 above. One-off preview only; never repurpose fixed source labels for another earthquake.",
+  "githubBlobSha": "5db23041084139af49cb12835729bf61e1f9f61b",
+  "publicationMode": "authorized-once-verified-github-original"
 }
