@@ -1,4 +1,4 @@
-# Monitor Global Android · Explorar Brasil (prévia, branch de teste)
+# Argos Orbis Android · Explorar Brasil (prévia, branch de teste)
 
 ## Escopo e interface existente
 - A nova tela **Tempo → Explorar meteorologia do Brasil · prévia** usa o tema atual do aplicativo: Rajdhani, azul-marinho, ciano, cartões e barra de navegação originais.

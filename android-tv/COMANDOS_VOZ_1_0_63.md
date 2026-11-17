@@ -1,7 +1,7 @@
-# Monitor Global TV 1.0.63 — comandos por voz (prévia)
+# Argos Orbis TV 1.0.63 — comandos por voz (prévia)
 
 ## O que entra
-- **Falar com o Monitor Global** na primeira tela de configurações; o visual dos avisos, meteorologia, Brent e satélite permanece o mesmo.
+- **Falar com o Argos Orbis** na primeira tela de configurações; o visual dos avisos, meteorologia, Brent e satélite permanece o mesmo.
 - Voz em português (pt-BR), primeiro pelo seletor oficial de reconhecimento do Android; se indisponível, tentativa pelo `SpeechRecognizer` do sistema com solicitação de permissão de microfone.
 - Se o Android encaminhar `KEYCODE_SEARCH` ou `KEYCODE_VOICE_ASSIST` ao aplicativo, essas teclas também podem iniciar a escuta. **Não existe garantia de capturar o botão de microfone do controle**: muitos modelos o reservam ao Google Assistente/Gemini.
 - Roteamento local, sem prompt de IA para números ou classificações: meteorologia da Liberdade, Brent, sismos no Brasil das últimas 24 h, últimos sismos, maiores do dia, resumo de ontem, satélite e tela da IA meteorológica já existente.
@@ -18,7 +18,7 @@
 
 ## Teste na TV
 1. Instale uma build de testes **assinada** com a identidade apropriada (não substituir APK oficial por build debug com assinatura incompatível).
-2. Abra **Monitor Global TV** e selecione **🎙 Falar com o Monitor Global**.
+2. Abra **Argos Orbis TV** e selecione **🎙 Falar com o Argos Orbis**.
 3. Diga “Como está a temperatura?”, “Mostre o Brent” ou “Teve terremoto no Brasil nas últimas 24 horas?”.
 4. Confira reconhecimento de fala, permissão de microfone (se houver), sobreposição sobre o conteúdo anterior, dados reais e prioridade dos avisos.
 5. Faça um teste adicional do botão físico do microfone **com o app aberto**. Se ele chamar o Assistente do sistema, isso é limitação do sistema e não falha de reconhecimento do comando dentro do aplicativo.

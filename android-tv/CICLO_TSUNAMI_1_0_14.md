@@ -1,4 +1,4 @@
-# Monitor Global TV 1.0.14 — ciclo regional de tsunami
+# Argos Orbis TV 1.0.14 — ciclo regional de tsunami
 
 O mesmo cenário fictício é produzido pelo Worker, consumido pelos testes do site e decodificado pelo aplicativo. São 15 etapas: referência silenciosa; avisos para Vanuatu e Fiji e “sem ameaça” no Alasca; republicação sem mudança; revisão M7,2→M6,9 e da previsão; indisponibilidade sísmica; correção da origem; encerramento em Vanuatu mantendo Fiji; “sem ameaça” em Fiji; repetição; falha/recuperação de boletins; nova escalada em Fiji; falha durante aviso ativo; recuperação e encerramento final.
 

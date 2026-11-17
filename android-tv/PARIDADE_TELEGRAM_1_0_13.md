@@ -1,4 +1,4 @@
-# Monitor Global TV 1.0.13 — regras sísmicas alinhadas ao Telegram
+# Argos Orbis TV 1.0.13 — regras sísmicas alinhadas ao Telegram
 
 ## Cobertura
 

@@ -1,6 +1,6 @@
 # TV 1.0.11 — abertura com varredura vermelha
 
-Referência visual: vídeo enviado pelo proprietário em 26/10/2026, em que um bloco vermelho atravessa a faixa da esquerda para a direita e revela o conteúdo atrás dele. A adaptação usa a identidade do Monitor Global: painel azul escuro, tipografia existente, radar animado, título e rodapé.
+Referência visual: vídeo enviado pelo proprietário em 26/10/2026, em que um bloco vermelho atravessa a faixa da esquerda para a direita e revela o conteúdo atrás dele. A adaptação usa a identidade do Argos Orbis: painel azul escuro, tipografia existente, radar animado, título e rodapé.
 
 A abertura dura 700 ms, com aceleração/desaceleração suave. Um bloco vermelho com leve gradiente percorre a largura; o conteúdo real da tarja é desenhado somente na área já revelada. O recorte acompanha os cantos arredondados. O tamanho e a posição finais permanecem os mesmos. A saída suave de 300 ms, a transição interna a cada oito segundos e o resumo de seis segundos por item continuam independentes da abertura.
 

@@ -1,4 +1,4 @@
-# Monitor Global — Gemini principal e Cloudflare reserva
+# Argos Orbis — Gemini principal e Cloudflare reserva
 
 ## Alcance desta etapa
 
