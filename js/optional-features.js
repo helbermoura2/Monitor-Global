@@ -26,17 +26,22 @@
  // Menu-only panels do not need code, styles or DOM during public startup.
  // Keep small entry points for existing menu handlers; failed loads can retry.
  let adminOpening;
- window.TelegramAdmin={isAuthenticated:()=>false,open(){
+ function openTelegramAdmin(section='open'){
   if(adminOpening)return adminOpening;
   adminOpening=(async()=>{
    try{
     await asset('css/telegram-history.css?v=20261017-lazy-panels');
-    await asset('js/telegram-history.js?v=20261115-admin-telegram-diagnose');
-    return window.TelegramAdmin.open();
+    await asset('js/telegram-history.js?v=20261117-imperial-bronze-menu');
+    return window.TelegramAdmin[section]();
    }catch(error){failure(error);}
    finally{adminOpening=null;}
   })();return adminOpening;
- }};
+ }
+ window.TelegramAdmin={
+  isAuthenticated:()=>false,
+  open:()=>openTelegramAdmin('open'),
+  openImperialBronze:()=>openTelegramAdmin('openImperialBronze')
+ };
  let demoOpening,demoGeneration=0;
  const demoStub={isActive:()=>false,stop(){demoGeneration++;},cancelForRealEvent(){demoGeneration++;}};
  async function demo(method,args){
@@ -93,6 +98,16 @@
    link.textContent='🔒 Telegram · administração';
    link.addEventListener('click',()=>window.TelegramAdmin.open());
    menu.append(link);
+  }
+  if(menu&&!document.getElementById('admin-telegram-imperial')){
+   const publish=document.createElement('button');
+   publish.type='button';
+   publish.id='admin-telegram-imperial';
+   publish.className='submenu-action';
+   publish.textContent='🏛️ Publicar Imperial Bronze no Telegram';
+   publish.title='Enviar a arte oficial M6,6 ao @argosorbis com a chave administrativa';
+   publish.addEventListener('click',()=>window.TelegramAdmin.openImperialBronze());
+   menu.append(publish);
   }
   if(new URLSearchParams(location.search).get('admin')==='1')window.TelegramAdmin.open();
   const button=document.getElementById('pd-share-btn'),videoButton=document.getElementById('pd-video-btn');

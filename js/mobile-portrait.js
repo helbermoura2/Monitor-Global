@@ -78,6 +78,7 @@
     // Login is requested by the panel itself; hiding the entry until login
     // makes it impossible to discover on mobile.
     button(panel, '🔒 Histórico do Telegram', secondary(() => window.TelegramAdmin?.open()));
+    button(panel, '🏛️ Publicar Imperial Bronze no Telegram', secondary(() => window.TelegramAdmin?.openImperialBronze()));
   }
   function install() {
     const parent = $('ux-controlbar');

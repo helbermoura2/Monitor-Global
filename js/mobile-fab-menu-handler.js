@@ -64,8 +64,10 @@
       '<button type="button" id="mf-main-tools">🛠️ Ferramentas (fontes, legenda, alertas)</button>' +
       '<button type="button" id="mf-main-reload">🔄 Recarregar dados</button>';
     // Always expose the secure login entry, including before authentication.
-    el.innerHTML+='<button type="button" id="mf-main-telegram-history">🔒 Histórico do Telegram</button>';
+    el.innerHTML+='<button type="button" id="mf-main-telegram-history">🔒 Histórico do Telegram</button>' +
+      '<button type="button" id="mf-main-telegram-imperial">🏛️ Publicar Imperial Bronze no Telegram</button>';
     document.getElementById('mf-main-telegram-history').onclick=acao(()=>window.TelegramAdmin?.open());
+    document.getElementById('mf-main-telegram-imperial').onclick=acao(()=>window.TelegramAdmin?.openImperialBronze());
     el.classList.add('open');
     el.style.display = 'block';
 
