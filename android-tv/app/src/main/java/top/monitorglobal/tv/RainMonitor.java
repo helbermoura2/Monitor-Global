@@ -80,7 +80,7 @@ final class RainMonitor {
   try{if(weatherData!=null&&(enabled||manualWeather))weather=WeatherForecast.summarize(weatherData,now);}catch(JSONException ignored){}
   Prefs.get(context).edit().putString("weatherStatus",weather==null?"Liberdade: previsão horária indisponível ou aguardando consulta":"Liberdade: "+weather.temperature+" · previsão horária: "+weather.condition).apply();
   boolean due=enabled&&WeatherForecast.due(Prefs.get(context).getLong("weatherLastNotice",0),now),wanted=due||manualWeather;
-  if(wanted&&satelliteEnabled()&&allowed.getAsBoolean())satellite.prepare();
+  if((wanted||rainNotice)&&satelliteEnabled()&&allowed.getAsBoolean())satellite.prepare();
   Prefs.get(context).edit().putString("rainStatus",rain==null?"Liberdade: chuva por minuto indisponível ou vencida":"Liberdade: "+rain.title).apply();
   String previous=Prefs.get(context).getString("rainLastKey","");if(rain!=null){previous=RainNoticePolicy.previousAfterGap(previous,Prefs.get(context).getLong("rainLastValidAt",0),now);Prefs.get(context).edit().putLong("rainLastValidAt",now).apply();}
   boolean rainNotice=selected>0&&RainNoticePolicy.shouldShow(rain,previous,Prefs.get(context).getLong("rainLastNotice",0),now);
@@ -94,7 +94,7 @@ final class RainMonitor {
   boolean shown=false;
   Runnable delivered=rainNotice&&displayRain!=null?rainDelivered(displayRain,now,manualWeather):null;
   if(!waiting&&allowed.getAsBoolean()&&!overlay.showing()){
-   if(rainNotice&&displayRain!=null&&!manualWeather){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);}
+   if(rainNotice&&displayRain!=null&&!manualWeather){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);}
    else if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather,false,null,satelliteEnabled()?()->{satellite.cancel();return false;}:null);if(shown){if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
    else if(rainNotice&&displayRain!=null&&!(wanted&&weatherBusy)){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);}
   }
