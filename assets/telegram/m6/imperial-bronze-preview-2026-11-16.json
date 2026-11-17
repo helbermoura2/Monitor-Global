@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "project": "Argos Orbis",
+  "purpose": "Exact, explicitly approved one-off M6.6 Imperial Bronze preview; not a template for future events.",
+  "eventDateBRT": "2026-11-16",
+  "magnitude": 6.6,
+  "region": "Tual, Indonésia",
+  "width": 1024,
+  "height": 1536,
+  "sha256": "ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75",
+  "destination": "assets/telegram/m6/imperial-bronze-preview-2026-11-16-m6-6.png",
+  "authenticatedUploadEndpoint": "POST /telegram-imperial-preview",
+  "retrieval": "GET /telegram-imperial-preview-source/ed3cf9da86aa041673d98a40172649b498e879137da9a2b8a40810f6fe699a75.png",
+  "notes": "The PNG file is synchronized only after it has been uploaded by the owner and verified. The metadata file alone does not establish that the PNG is already available."
+}
