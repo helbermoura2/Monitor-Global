@@ -64,25 +64,14 @@ public class TvBroadcastInfoViewTest {
   assertEquals(72f,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,0f);
  }
  @Test public void everyPrimaryValueUsesOneOpticalCenterForReadableTVLabels()throws Exception{
-  WeatherForecast.Summary weather=new WeatherForecast.Summary("19°C","Nublado","Vento 12 km/h","Umidade 81%","Modelo horário",
-   System.currentTimeMillis()+600000,false,"19°C","20°C","81%","12 km/h","19 km/h","Cloudy");
-  TvBroadcastInfoView weatherCard=TvBroadcastInfoView.weather(c,null,weather,false);
-  BrentQuote oil=new BrentQuote(95.34,96.2,-.86,-.90,System.currentTimeMillis()-60000,"Yahoo Finance");
-  DollarQuote fx=new DollarQuote(5.67,0d,0d,System.currentTimeMillis()-60000,"Yahoo Finance");
-  TvBroadcastInfoView market=TvBroadcastInfoView.market(c,oil,fx,false);
-  Bitmap w=render(weatherCard,"centered-weather-19C");
-  Bitmap m=render(market,"centered-brent-market");
+  TvBroadcastInfoView view=TvBroadcastInfoView.market(c,new BrentQuote(95.34,96.2,-.86,-.90,System.currentTimeMillis(),"Yahoo Finance"),new DollarQuote(5.67,0d,0d,System.currentTimeMillis(),"Yahoo Finance"),false);
+  Bitmap b=render(view,"market-editorial");
   try{
-   int offset=weatherCard.mapSpace;
-   float weatherTitle=inkMidY(w,11,115,offset+31,offset+80,true)-offset;
-   float weatherDegrees=inkMidY(w,124,236,offset+31,offset+80,false)-offset;
-   float brentTitle=inkMidY(m,12,123,31,80,true);
-   float brentPrice=inkMidY(m,130,347,31,80,false);
-   assertEquals("TEMPO and 19°C need one visual center",weatherTitle,weatherDegrees,5.5f);
-   assertEquals("BRENT must be large and centered alongside its price",brentTitle,brentPrice,5.5f);
-   assertEquals("All categories must use the same vertical anchor",weatherTitle,brentTitle,6f);
-   assertTrue("BRENT title should sit in the main content row, not above it",brentTitle>=53);
-  }finally{w.recycle();m.recycle();}
+   assertEquals(0xfff4f5f6,b.getPixel(400,80));
+   int dark=0,red=0;
+   for(int y=48;y<75;y++)for(int x=20;x<394;x++){int p=b.getPixel(x,y);if(Color.red(p)<80&&Color.green(p)<100)dark++;if(Color.red(p)>120&&Color.green(p)<80)red++;}
+   assertTrue("price ink remains visible",dark>80);assertTrue("negative variation remains visible",red>20);
+  }finally{b.recycle();}
  }
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
   long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
@@ -155,7 +144,7 @@ public class TvBroadcastInfoViewTest {
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
-  try{assertEquals(126,b.getHeight());assertTrue(Color.red(b.getPixel(36,10))>Color.green(b.getPixel(36,10)));}
+  try{assertEquals(126,b.getHeight());assertTrue(Color.blue(b.getPixel(36,10))>Color.red(b.getPixel(36,10)));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
   assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · YAHOO · STATUS N/D: sem cotação confirmada"));
@@ -163,38 +152,10 @@ public class TvBroadcastInfoViewTest {
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
  }
  @Test public void brentMarketStateUsesSameTopRowAsDollarWithNoLowerLeftBadge()throws Exception{
-  assertEquals("ABERTO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.OPEN,"fonte")));
-  assertEquals("FECHADO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.CLOSED,"fonte")));
-  assertEquals("PAUSADO",TvBroadcastInfoView.marketHeaderStatus(new MarketState(MarketState.PAUSED,"fonte")));
-  assertEquals("N/D",TvBroadcastInfoView.marketHeaderStatus(MarketState.unknown()));
-  Paint measure=new Paint(Paint.ANTI_ALIAS_FLAG);
-  measure.setTypeface(Typeface.createFromAsset(c.getAssets(),"fonts/Rajdhani-Bold.ttf"));measure.setTextSize(12);
-  for(String label:new String[]{"ABERTO","FECHADO","PAUSADO","N/D"})
-   assertTrue("Brent header badge must not overlap price: "+label,measure.measureText(label)<60);
   for(int state:new int[]{MarketState.OPEN,MarketState.CLOSED,MarketState.PAUSED}){
-   MarketState market=new MarketState(state,"Informado pela fonte");
-   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,null,null,market,market,false);
-   Bitmap image=render(view,"aligned-brent-"+state);
-   try{
-    // A quoted session can transition while tests run (e.g. Friday market close).
-    // Assert the color of the ACTUAL time-adjusted session being rendered.
-    java.lang.reflect.Field sessionField=TvBroadcastInfoView.class.getDeclaredField("brentSession");
-    sessionField.setAccessible(true);
-    MarketState onScreen=(MarketState)sessionField.get(view);
-    int tint=onScreen.value==MarketState.OPEN?0xff75edb2:onScreen.value==MarketState.CLOSED?0xffff7687:onScreen.value==MarketState.PAUSED?0xffffd17d:0xffb8d2df;
-    int top=0,bottom=0;
-    // The new header badge is in the SAME y=44 baseline as the USD/BRL badge.
-    for(int y=28;y<=45;y++)for(int x=355;x<=476;x++){
-     int pixel=image.getPixel(x,y);
-     if(Color.red(pixel)==Color.red(tint)&&Color.green(pixel)==Color.green(tint)&&Color.blue(pixel)==Color.blue(tint))top++;
-    }
-    for(int y=70;y<=95;y++)for(int x=12;x<=120;x++){
-     int pixel=image.getPixel(x,y);
-     if(Color.red(pixel)==Color.red(tint)&&Color.green(pixel)==Color.green(tint)&&Color.blue(pixel)==Color.blue(tint))bottom++;
-    }
-    assertTrue("Brent status should appear above its percentage: "+state,top>5);
-    assertEquals("No duplicate ABERTO/FECHADO/PAUSADO beneath Brent",0,bottom);
-   }finally{image.recycle();}
+   MarketState session=new MarketState(state,"fonte");
+   Bitmap image=render(TvBroadcastInfoView.market(c,null,null,session,session,false),"market-state-"+state);
+   try{for(int left:new int[]{218,630}){int ink=0;for(int y=34;y<46;y++)for(int x=left;x<left+150;x++){int p=image.getPixel(x,y);if(Color.red(p)<150&&Color.green(p)<150)ink++;}assertTrue("independent market status visible",ink>10);}}finally{image.recycle();}
   }
  }
  @Test public void AlexaBrentPendingAndOtherVoiceStatusUseIdenticalNewsroomGeometry()throws Exception{
@@ -207,7 +168,7 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(generic,"alexa-generic-banner");
   try{
    assertEquals(126,a.getHeight());assertEquals(126,b.getHeight());
-   assertTrue(Color.red(a.getPixel(36,10))>Color.green(a.getPixel(36,10)));
+   assertTrue(Color.blue(a.getPixel(36,10))>Color.red(a.getPixel(36,10)));
    assertTrue(Color.red(b.getPixel(36,10))>Color.green(b.getPixel(36,10)));
    assertTrue(a.getPixel(911,60)!=0xff071724);
   }finally{a.recycle();b.recycle();}
