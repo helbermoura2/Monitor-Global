@@ -12,6 +12,7 @@ test('scheduled delivery keeps demand-only feeds retired and revises history onl
  const context={Request,console,Date,
   DAILY_SUMMARY_DESIGN:'monitor-global-rajdhani-neon-v7',
   DAILY_REPOST_REQUEST:{day:'2026-11-09'},
+  IMPERIAL_PREVIEW:{closesAt:0},
   requestedDailyRepostReady:()=>allowReprint,
   withKvUsage:(env,fn)=>fn(env),maybeRefreshPollsAverageNightly:async()=>calls.push('retired-polls')};
  for(const key of ['runTelegramDailySummary','refreshSpClimaCache','refreshGlobalFeedsCache','runTelegramM6Alerts','refreshRecentDailyBrazilSummaries'])context[key]=async()=>calls.push(key);
