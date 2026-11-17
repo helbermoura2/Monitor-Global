@@ -146,7 +146,7 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(view,"brent-dollar");
   try{assertEquals(126,b.getHeight());assertTrue(Color.blue(b.getPixel(36,3))>Color.red(b.getPixel(36,3)));}
   finally{b.recycle();}
-  TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,false);
+  TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,MarketState.unknown(),MarketState.unknown(),false);
   assertTrue(String.valueOf(missing.getContentDescription()).contains("DÓLAR USD/BRL · YAHOO · STATUS N/D: sem cotação confirmada"));
   TvBroadcastInfoView demo=TvBroadcastInfoView.market(c,brent,dollar,true);
   assertTrue(String.valueOf(demo.getContentDescription()).contains("SIMULAÇÃO"));
