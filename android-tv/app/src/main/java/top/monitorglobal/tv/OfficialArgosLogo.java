@@ -68,30 +68,39 @@ final class OfficialArgosLogo {
   if(artwork==null)return;
   Paint p=BRUSH.get();p.reset();p.setAntiAlias(true);p.setFilterBitmap(true);
   p.setColor(Color.WHITE);p.setStyle(Paint.Style.FILL);p.setShader(null);
-  c.save();
-  c.clipRect(X,Y,X+W,Y+H);
-  c.translate(X,Y);c.scale(W/ART_W,H/ART_H);
+  c.save();c.clipRect(X,Y,X+W,Y+H);
   if(!animate||base==null){
-   c.drawBitmap(artwork,0,0,p);
+   // Use Android's destination-bitmap path for a pixel-identical static asset.
+   c.drawBitmap(artwork,null,new RectF(X,Y,X+W,Y+H),p);
   }else{
+   c.save();c.translate(X,Y);c.scale(W/ART_W,H/ART_H);
    Path eye=eyePath();
    c.drawBitmap(base,0,0,p);
    float open=eyeOpenness(elapsed,true);
    if(open<.999f){
-    // Replace ONLY the eye's original pixels. The letterforms and ornaments
-    // outside the eyelids must never squash, rotate or disappear.
+    // Only the eye area is replaced; static labels and symbols are untouched.
     p.setColor(Color.BLACK);c.drawPath(eye,p);
     c.save();c.scale(1f,open,CX,CY);c.clipPath(eye);
     p.setColor(Color.WHITE);c.drawBitmap(base,0,0,p);
     drawPointer(c,p,elapsed);
     c.restore();
    }else{
-    c.save();c.clipPath(eye);
-    drawPointer(c,p,elapsed);
-    c.restore();
+    c.save();c.clipPath(eye);drawPointer(c,p,elapsed);c.restore();
    }
+   c.restore();
   }
+  drawInscriptions(c,p);
   c.restore();
+ }
+ private static void drawInscriptions(Canvas c,Paint p){
+  // The faithful 664px official image is 95px wide on TV. Repaint its
+  // inscriptions using broadcast-sized letters instead of illegible 3px pixels.
+  p.reset();p.setAntiAlias(true);p.setShader(null);
+  p.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
+  p.setTextAlign(Paint.Align.CENTER);p.setColor(0xffc4a16a);p.setStyle(Paint.Style.FILL);
+  p.setTextSize(7.5f);c.drawText("ΠΑΝΟΠΤΗΣ",878f,42f,p);
+  p.setTextSize(7.2f);c.drawText("CUSTOS ORBIS",878f,89.5f,p);
+  p.setTextAlign(Paint.Align.LEFT);
  }
  private static void drawPointer(Canvas c,Paint p,long elapsed){
   float sweep=Math.floorMod(elapsed,BroadcastVisuals.RADAR_PERIOD_MS)*360f/BroadcastVisuals.RADAR_PERIOD_MS;
