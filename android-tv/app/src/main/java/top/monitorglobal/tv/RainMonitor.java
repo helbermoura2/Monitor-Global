@@ -53,10 +53,13 @@ final class RainMonitor {
     WeatherForecast.Summary weather=null;
     try{if(weatherData!=null)weather=WeatherForecast.summarize(weatherData,now);}catch(JSONException ignored){}
     if(weather!=null&&weather.expiresAt<=now)weather=null;
+    if(satelliteEnabled())satellite.prepare();
     if(!overlay.showRain(summary,mode()==2,false,weather,false,rainDelivered(summary,now,true))){
+     satellite.cancel();
      Prefs.status(context,"Não foi possível exibir o aviso de chuva real na TV.");
      manualFinished.run();return;
     }
+    if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);
     Prefs.status(context,"Aviso de chuva real: "+summary.title+" · Liberdade.");
     manualUntil=SystemClock.elapsedRealtime()+RainOverlay.DURATION+800;
     main.postDelayed(()->{
