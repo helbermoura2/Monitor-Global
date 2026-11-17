@@ -30,3 +30,34 @@ jobs:
           name: kv-daily-health
           path: audit-results/kv-daily-report.json
           retention-days: 30
+
+  sync-imperial-bronze:
+    # Separate job: the daily report keeps its read-only permissions and
+    # Cloudflare credentials. This job only writes one SHA-pinned public PNG.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify import restrictions
+        run: python -m unittest discover -s tests/unit -p test_import_imperial_preview.py
+      - name: Import exact approved image if already published by the admin
+        run: python tools/import-telegram-imperial-preview.py
+      - name: Commit only the original verified PNG if new
+        run: |
+          git add -- assets/telegram/m6/imperial-bronze-preview-2026-11-16-m6-6.png || true
+          if git diff --cached --quiet; then
+            echo "Original PNG not available or already committed."
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'assets(telegram): archive owner-approved exact Imperial Bronze M6.6 poster'
+            git push origin HEAD:main
+          fi
