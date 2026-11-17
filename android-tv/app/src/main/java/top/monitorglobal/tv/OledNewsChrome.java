@@ -88,6 +88,13 @@ final class OledNewsChrome {
   c.drawText(label,x,20.4f,p);c.restore();
  }
  static void brand(Canvas c,Paint p,long elapsed,boolean animate){
+  // Detailed official logo shared by every TV lower third.
+  // Only its eyelids compress: the frame, labels and four icons stay still.
+  if(OfficialArgosLogo.available()){
+   OfficialArgosLogo.draw(c,elapsed,animate);
+   return;
+  }
+  // Native fallback if the detailed asset is unavailable.
   // The project-wide official radar-eye vector, with rotating sweep and blinking eye.
   float sweep=animate?(elapsed%BroadcastVisuals.RADAR_PERIOD_MS)/(float)BroadcastVisuals.RADAR_PERIOD_MS*360f:0f;
   float blink=animate?(elapsed%BroadcastVisuals.BLINK_PERIOD_MS)/(float)BroadcastVisuals.BLINK_PERIOD_MS:0f;
