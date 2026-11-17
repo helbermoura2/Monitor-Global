@@ -214,8 +214,14 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed){
   OledNewsChrome.base(c,p);
-  OledNewsChrome.tab(c,p,"BREAKING NEWS",true);
-  badge(c,status());
+  if(kind==BRENT){
+   fill(c,8,0,917,30,0xff09235f);
+   fitted(c,demo?"COTAÇÕES · TESTE FICTÍCIO":"COTAÇÕES · MERCADO",20,21,20,14,Color.WHITE,brand,790);
+   fill(c,8,30,822,64,0xfff4f5f6);
+  }else{
+   OledNewsChrome.tab(c,p,"BREAKING NEWS",true);
+   badge(c,status());
+  }
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   if(kind==RAIN)drawRain(c);
@@ -286,37 +292,26 @@ final class TvBroadcastInfoView extends View {
  static final float MARKET_DIVIDER_X=485f, MARKET_DOLLAR_X=502f, MARKET_DOLLAR_STATUS_X=711f;
  private void drawBrent(Canvas c){
   refreshMarket();
-  eventCategory(c,"BRENT","NYMEX");
+  final int ink=0xff101d33, muted=0xff4d5c6c;
+  fitted(c,"BRENT",20,46,16,13,ink,brand,110);
+  fitted(c,"DÓLAR USD/BRL",430,46,16,12,ink,brand,185);
+  fill(c,410,36,1,50,0xffaab5c0);
   if(marketPending){
-   primary(c,"CONSULTANDO COTAÇÃO REAL…",MARKET_BRENT_PRICE_X,27,foreground,330);
-   fill(c,MARKET_DIVIDER_X,39,1,47,0xff45647b);
-   fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,19,15,0xffe6f7ff,brand,181);
-   fitted(c,"AGUARDANDO FONTE",MARKET_DOLLAR_X,76,21,16,foreground,brand,315);
+   fitted(c,"CONSULTANDO COTAÇÃO…",20,72,21,14,ink,brand,370);
+   fitted(c,"AGUARDANDO FONTE",430,72,21,14,ink,brand,370);
    return;
   }
-  String oilValue=brent==null?"US$ —":"US$ "+amount(brent.price);
-  primary(c,oilValue,MARKET_BRENT_PRICE_X,36,foreground,196);
-  int oilTint=brent==null||brent.percent==null?0xffb8d2df:brent.percent>=0?0xff75edb2:0xffff7687;
-  String oilChange=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
-  fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),
-   MARKET_BRENT_STATUS_X,45,16,12,demo?0xffffd17d:sessionColor(brentSession),brand,125);
-  fitted(c,oilChange,MARKET_BRENT_STATUS_X,73,25,15,oilTint,brand,124);
-  fitted(c,brent==null?"NYMEX · SEM COTAÇÃO":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),
-   MARKET_BRENT_PRICE_X,90,12,10,0xffd3e3ed,data,341);
-  fill(c,MARKET_DIVIDER_X,39,1,47,0xff45647b);
-
-  fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,45,20,15,0xffe6f7ff,brand,181);
-  fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),
-   MARKET_DOLLAR_STATUS_X,45,16,11,demo?0xffffd17d:sessionColor(dollarSession),brand,113);
-  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),
-   MARKET_DOLLAR_X,75,31,22,foreground,brand,185);
-  Double fxChange=dollar==null?null:dollar.percent;
-  String fxVariation=fxChange==null?"VAR. —":(fxChange>=0?"▲ +":"▼ ")+amount(fxChange)+"%";
-  fitted(c,fxVariation,MARKET_DOLLAR_STATUS_X,75,23,14,
-   fxChange==null?0xffb8d2df:fxChange>=0?0xff75edb2:0xffff7687,brand,113);
-  // Preserve the independent Yahoo reference timestamp, never replace it with a B3 clock.
-  String fxFoot=dollar==null?"YAHOO · SEM COTAÇÃO CONFIRMADA":"YAHOO · REF. "+BrentQuote.clock(dollar.at);
-  fitted(c,fxFoot,MARKET_DOLLAR_X,91,13,10,0xffd3e3ed,brand,321);
+  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),20,71,27,17,ink,brand,195);
+  fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),218,45,13,10,muted,brand,176);
+  String oil=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
+  fitted(c,oil,218,71,22,13,brent==null||brent.percent==null?muted:brent.percent>=0?0xff00733b:0xffbd1628,brand,176);
+  fitted(c,brent==null?"SEM COTAÇÃO CONFIRMADA":"NYMEX · REF. "+BrentQuote.reference(brent.at),20,89,11,9,muted,data,370);
+  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),430,71,27,17,ink,brand,195);
+  fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),630,45,13,10,muted,brand,185);
+  Double change=dollar==null?null:dollar.percent;
+  String fx=change==null?"VAR. —":(change>=0?"▲ +":"▼ ")+amount(change)+"%";
+  fitted(c,fx,630,71,22,13,change==null?muted:change>=0?0xff00733b:0xffbd1628,brand,185);
+  fitted(c,dollar==null?"SEM COTAÇÃO CONFIRMADA":"YAHOO · REF. "+BrentQuote.reference(dollar.at),430,89,11,9,muted,data,370);
  }
  private void drawSatelliteNews(Canvas c){
   eventCategory(c,"SATÉLITE","GOES-EAST");
