@@ -45,7 +45,7 @@ final class TvBroadcastInfoView extends View {
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
-  this.mapSpace=kind==RAIN||kind==BRENT||kind==VOICE_STATUS||kind==WEATHER&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
+  this.mapSpace=kind==BRENT||kind==VOICE_STATUS||(kind==WEATHER||kind==RAIN)&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
   brand=OledNewsChrome.titleFont(null);
   data=OledNewsChrome.regularFont();
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
@@ -269,9 +269,9 @@ final class TvBroadcastInfoView extends View {
    fill(c,8,0,demo?360:250,30,0xff09235f);
    fitted(c,demo?"COTAÇÕES · TESTE FICTÍCIO":"COTAÇÕES",20,21,20,14,Color.WHITE,brand,790);
    fill(c,8,30,812,64,0xfff4f5f6);
-  }else if(kind==WEATHER){
+  }else if(kind==WEATHER||kind==RAIN){
    fill(c,8,0,350,30,0xff09235f);
-   fitted(c,demo?"TEMPO · TESTE FICTÍCIO":"TEMPO · LIBERDADE – SP",20,21,20,14,Color.WHITE,brand,325);
+   fitted(c,demo?(kind==RAIN?"CHUVA · TESTE FICTÍCIO":"TEMPO · TESTE FICTÍCIO"):kind==RAIN?"CHUVA · LIBERDADE – SP":"TEMPO · LIBERDADE – SP",20,21,20,14,Color.WHITE,brand,325);
    fill(c,8,30,812,64,0xff071d2b);
   }else{
    OledNewsChrome.tab(c,p,"BREAKING NEWS",true);
@@ -285,7 +285,7 @@ final class TvBroadcastInfoView extends View {
   else if(kind==VOICE_STATUS)drawVoiceStatus(c);
   else drawSatelliteNews(c);
   c.restore();
-  if(kind==BRENT||kind==WEATHER)drawOfficialMarketLogo(c,elapsed);else drawRadar(c,elapsed);
+  if(kind==BRENT||kind==WEATHER||kind==RAIN)drawOfficialMarketLogo(c,elapsed);else drawRadar(c,elapsed);
   drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
@@ -376,11 +376,11 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawMap(Canvas c){
   if(mapSpace<=0||mapReveal<=0)return;
-  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,kind==WEATHER&&!mapBelow?210:180);
+  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,(kind==WEATHER||kind==RAIN)&&!mapBelow?210:180);
   float slide=(1-mapReveal)*180;
-  c.translate(kind==WEATHER?615:649,mapBelow?0-slide:slide+(kind==WEATHER?34:0));
-  WeatherSatelliteClient.Frame displayed=kind==WEATHER?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
-  if(kind==WEATHER||kind==SATELLITE){
+  c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?0-slide:slide+(kind==WEATHER||kind==RAIN?34:0));
+  WeatherSatelliteClient.Frame displayed=kind==WEATHER||kind==RAIN?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
+  if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);
    if(displayed!=null&&displayed.image!=null&&!displayed.image.isRecycled()){
     p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
