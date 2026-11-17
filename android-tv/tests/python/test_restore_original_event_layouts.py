@@ -22,7 +22,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'label(c,sky,290,58,',
             'label(c,detail,290,84,',
             'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492)',
-            'metric(c,2,weather==null?"—":weather.windValue,"VENTO",603)',
+            'metric(c,2,weather==null?"—":weather.windValue,weather==null?"VENTO · N/D":"VENTO · "+weather.windDirection,603)',
             'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",712)',
         ):
             self.assertIn(piece, WEATHER)
