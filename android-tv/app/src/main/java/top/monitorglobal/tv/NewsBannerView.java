@@ -105,13 +105,17 @@ final class NewsBannerView extends View {
   }else drawPage(c,pages[index],elapsed,255,0);
   if(summary&&summaryTotals!=null)drawSummaryTotals(c);
   else{
-  c.save();c.clipRect(112,BroadcastVisuals.FOOTER_TOP+1,identityLeft(elapsed)-8,124);
+  float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
+  c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
+  int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
   String display=OledNewsChrome.tickerDisplay(ticker);
   Typeface tickerFace=OledNewsChrome.tickerFont();
   paint.setTypeface(tickerFace);paint.setTextSize(14);float length=paint.measureText(display)+104;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
-  text(c,display,112-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
-  text(c,display,112-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);c.restore();
+  text(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
+  text(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
+  OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
+  c.restoreToCount(tickerLayer);c.restore();
   }
   c.restore();
   drawMap(c,index,elapsed,fadeElapsed);c.restore();

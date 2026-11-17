@@ -6,6 +6,8 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Shader;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Typeface;
 
 /**
@@ -23,7 +25,7 @@ final class OledNewsChrome {
  static final int RED=0xffbf1827, RED_BRIGHT=0xffed1231, RED_DARK=0xff850008;
  static final int FOOTER=0xff101115, MUTE=0xffb9c2c8;
  static final float LEFT=8f, LEFT_TAB_RIGHT=254f, RIGHT_TAB_LEFT=804f, RIGHT=925f;
- static final float TAB_BOTTOM=27f, FOOTER_GREY_TOP=94f;
+ static final float TAB_BOTTOM=30f, FOOTER_GREY_TOP=94f;
  static final float BODY_TOP=30f, BODY_END=94f, FOOTER_END=126f;
  static final float CONTENT_RIGHT=829f, BRAND_PLATE_LEFT=790f;
  static final float LOGO_CENTER_X=878f, LOGO_SIZE=56f;
@@ -57,8 +59,8 @@ final class OledNewsChrome {
  static void base(Canvas c,Paint p){
   // The original white banner is now pitch-black OLED with a thin old-news red left edge.
   fill(c,p,LEFT,BODY_TOP,RIGHT,BODY_END,OLED);
-  fill(c,p,LEFT,BODY_TOP,LEFT+6f,BODY_END,RED_DARK);
-  fill(c,p,LEFT+6f,BODY_TOP,RIGHT,BODY_END,OLED);
+  fill(c,p,LEFT,BODY_TOP,LEFT+3f,BODY_END,RED_DARK);
+  fill(c,p,LEFT+3f,BODY_TOP,RIGHT,BODY_END,OLED);
   // Only the original lower ticker; no floating right-hand boxes above the banner.
   p.setShader(new LinearGradient(0,94,0,126,
    new int[]{0xff25262a,0xff090a0e,0xff17191e},null,Shader.TileMode.CLAMP));
@@ -70,11 +72,13 @@ final class OledNewsChrome {
  static void tab(Canvas c,Paint p,String label,boolean left){
   final float l=left?LEFT:RIGHT_TAB_LEFT,r=left?LEFT_TAB_RIGHT:RIGHT;
   final float corner=7f;
-  // Both red tabs stop above the OLED panel at y=30: no red bleed into the black band.
+  // The opaque red foot meets the black body at the exact same y=30 boundary.
   p.setShader(new LinearGradient(0,-5,0,TAB_BOTTOM,RED_BRIGHT,RED_DARK,Shader.TileMode.CLAMP));
   p.setStyle(Paint.Style.FILL);
   c.drawRoundRect(l,-6,r,TAB_BOTTOM,corner,corner,p);p.setShader(null);
-  fill(c,p,l+2,22,r-2,TAB_BOTTOM,RED_DARK);
+  fill(c,p,l+2,22,r-2,TAB_BOTTOM-3f,RED_DARK);
+  // Square the lower edges for a single connected red/black news unit.
+  fill(c,p,l,TAB_BOTTOM-3f,r,TAB_BOTTOM,RED_DARK);
   Typeface face=titleFont(null);
   p.setTypeface(face);p.setTextScaleX(1f);p.setTextSize(left?21.5f:20f);
   float span=r-l,size=left?21.5f:20f;
@@ -105,9 +109,9 @@ final class OledNewsChrome {
   logo.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
   logo.setTextAlign(Paint.Align.CENTER);logo.setColor(0xffc4a16a);
   logo.setTextSize(7.5f);
-  c.drawText("ΠΑΝΟΠΤΗΣ",LOGO_CENTER_X,39f,logo);
+  c.drawText("ΠΑΝΟΠΤΗΣ",LOGO_CENTER_X,42f,logo);
   logo.setTextSize(7.2f);
-  c.drawText("CUSTOS ORBIS",LOGO_CENTER_X,91.5f,logo);
+  c.drawText("CUSTOS ORBIS",LOGO_CENTER_X,89.5f,logo);
   logo.setTextAlign(Paint.Align.LEFT);
   c.restore();
  }
@@ -131,6 +135,21 @@ final class OledNewsChrome {
  static Typeface clockFont(){return titleFont(null);}
  static Typeface tickerFont(){
   return regularFont();
+ }
+ /** Alpha feather for the scrolling news text: no abrupt half-letter at the edges. */
+ static void fadeTickerEdges(Canvas c,float left,float right){
+  if(right-left<52f)return;
+  Paint fade=new Paint(Paint.ANTI_ALIAS_FLAG);
+  fade.setStyle(Paint.Style.FILL);
+  fade.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+  float spread=19f;
+  fade.setShader(new LinearGradient(left,0,left+spread,0,
+    new int[]{0x00ffffff,0xffffffff},null,Shader.TileMode.CLAMP));
+  c.drawRect(left,95,left+spread,124,fade);
+  fade.setShader(new LinearGradient(right-spread,0,right,0,
+    new int[]{0xffffffff,0x00ffffff},null,Shader.TileMode.CLAMP));
+  c.drawRect(right-spread,95,right,124,fade);
+  fade.setShader(null);fade.setXfermode(null);
  }
  static void brandFooter(Canvas c,Paint p,long elapsed,boolean animated){
   int opacity=footerOpacity(elapsed,animated);
