@@ -44,8 +44,9 @@ final class BannerOpening {
   drawChrome(c,elapsed);
   float arrival=effects.full()?TvEffectsController.ease(TvEffectsController.phase(elapsed,GlobalM6Intro.TITLE_START_MS)):1;
   float sweep=8+790*arrival;
-  if(effects.full())for(int k=5;k>=0;k--){
-   paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2+k*4);paint.setColor(Color.argb(160-k*23,255,k<2?82:38,k<2?107:66));
+  float sweepOpacity=1-TvEffectsController.ease(TvEffectsController.phase(elapsed-(GlobalM6Intro.TITLE_START_MS-180),180));
+  if(sweepOpacity>0)for(int k=5;k>=0;k--){
+   paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2+k*4);paint.setColor(Color.argb(Math.round((160-k*23)*sweepOpacity),255,k<2?82:38,k<2?107:66));
    c.drawLine(Math.max(9,sweep-65-k*9),center-7,Math.min(802,sweep+24+k*8),center-7,paint);
   }
   float textArrival=effects.full()?TvEffectsController.ease(TvEffectsController.phase(elapsed-GlobalM6Intro.TITLE_START_MS,360)):TvEffectsController.ease(TvEffectsController.phase(elapsed,160));
