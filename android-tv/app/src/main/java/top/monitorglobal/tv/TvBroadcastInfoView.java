@@ -20,6 +20,8 @@ final class TvBroadcastInfoView extends View {
  private final WeatherForecast.Summary weather;
  private final BrentQuote brent;
  private final DollarQuote dollar;private MarketState brentSession,dollarSession;
+ private boolean brentChanged=true,dollarChanged=true,temperatureChanged=true,rainStateChanged;
+ private boolean brentStateChanged,dollarStateChanged,voiceChanged;
  private boolean marketPending;private String voiceTitle="",voiceDetail="";
  private final WeatherSatelliteClient.Frame satellite;
  private java.util.function.Supplier<WeatherSatelliteClient.Frame> weatherSatellite;
@@ -137,6 +139,23 @@ final class TvBroadcastInfoView extends View {
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
   return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
  }
+ void comparePrevious(TvBroadcastInfoView previous){
+  if(previous.kind!=kind||previous.demo!=demo)return;
+  if(kind==BRENT){
+   brentChanged=brent!=null&&(previous.brent==null||Double.compare(brent.price,previous.brent.price)!=0);
+   dollarChanged=dollar!=null&&(previous.dollar==null||Double.compare(dollar.price,previous.dollar.price)!=0);
+   brentStateChanged=previous.marketPending!=marketPending||brentSession.value!=previous.brentSession.value;
+   dollarStateChanged=previous.marketPending!=marketPending||dollarSession.value!=previous.dollarSession.value;
+  }else if(kind==WEATHER){
+   temperatureChanged=weather!=null&&(previous.weather==null||!weather.temperatureValue.equals(previous.weather.temperatureValue));
+  }else if(kind==RAIN){
+   rainStateChanged=rain!=null&&(previous.rain==null||!rain.state.equals(previous.rain.state));
+  }else if(kind==VOICE_STATUS){
+   voiceChanged=!voiceTitle.equals(previous.voiceTitle)||!voiceDetail.equals(previous.voiceDetail);
+  }
+  // Reuse the active strip position for incoming readings and voice results.
+  effects.disableOpening();
+ }
  void startPresentation(long when,boolean animated){started=when;effects.start(when);invalidate();}
  void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
  void refreshBriefing(){
@@ -245,7 +264,7 @@ final class TvBroadcastInfoView extends View {
   if(kind==RAIN)drawRain(c,elapsed);
   else if(kind==WEATHER)drawWeather(c,elapsed);
   else if(kind==BRENT)drawBrent(c,elapsed);
-  else if(kind==VOICE_STATUS)drawVoiceStatus(c);
+  else if(kind==VOICE_STATUS)drawVoiceStatus(c,elapsed);
   else drawSatelliteNews(c,frame);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
   c.restore();
@@ -253,16 +272,20 @@ final class TvBroadcastInfoView extends View {
   drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
+ private void categoryIcon(Canvas c,int index,float x,float y,float size,long elapsed){
+  c.save();c.translate(0,effects.translate(elapsed)*.45f);
+  icon(c,index,x,y,size);c.restore();
+ }
  private void metric(Canvas c,int index,String value,String caption,float x,long elapsed){
   // Every value/icon shares the same center as TEMPO, CHUVA and BRENT.
   icon(c,index,x,51,20);
   primary(c,value,x+27,19,effects.valueInk(foreground,0xff92e4ff,elapsed),Math.min(95,BroadcastVisuals.CONTENT_RIGHT_LIMIT-x-31));
-  fitted(c,caption,x,86,12,9,0xffd8e4ee,brand,Math.min(112,BroadcastVisuals.CONTENT_RIGHT_LIMIT-x-4));
+  fitted(c,caption,x,86,13,10,0xffd8e4ee,brand,Math.min(112,BroadcastVisuals.CONTENT_RIGHT_LIMIT-x-4));
  }
  private void drawRain(Canvas c,long elapsed){
   RainBannerContent facts=rainFacts;
   eventCategory(c,facts.topic,"LIBERDADE · SP");
-  icon(c,0,127,41,28);label(c,facts.headline,165,60,23,rain==null?foreground:effects.valueInk(foreground,0xff92e4ff,elapsed),brand,235);
+  categoryIcon(c,0,127,41,28,elapsed);label(c,facts.headline,165,60,23,rain==null||!rainStateChanged?foreground:effects.valueInk(foreground,0xff92e4ff,elapsed),brand,235);
   label(c,facts.end,127,86,16,0xffb8d2df,brand,275);
   metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430,elapsed);
   metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",558,elapsed);
@@ -270,8 +293,8 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawWeather(Canvas c,long elapsed){
   eventCategory(c,"TEMPO","LIBERDADE · SP");
-  primary(c,weather==null?"—":weather.temperatureValue,124,39,weather==null?foreground:effects.valueInk(foreground,0xff92e4ff,elapsed),112);
-  icon(c,0,251,42,30);
+  primary(c,weather==null?"—":weather.temperatureValue,124,39,weather==null||!temperatureChanged?foreground:effects.valueInk(foreground,0xff92e4ff,elapsed),112);
+  categoryIcon(c,0,251,42,30,elapsed);
   // Do not present an hourly MODEL rain code as rain observed right now.
   String sky=WeatherConditionDisplay.headline(weather,rain);
   label(c,sky,290,58,sky.length()>19?18:21,foreground,brand,190);
@@ -300,9 +323,9 @@ final class TvBroadcastInfoView extends View {
   }
  }
 
- private void drawVoiceStatus(Canvas c){
+ private void drawVoiceStatus(Canvas c,long elapsed){
   eventCategory(c,"CONSULTA","POR VOZ");
-  primary(c,voiceTitle,170,27,foreground,680);
+  primary(c,voiceTitle,170,27,voiceChanged?effects.valueInk(foreground,0xff92e4ff,elapsed):foreground,680);
   label(c,voiceDetail,170,88,16,0xffbdcfdd,data,680);
  }
  // Dedicated, balanced Brent and USD/BRL panels sharing the full OLED band.
@@ -315,13 +338,13 @@ final class TvBroadcastInfoView extends View {
   fitted(c,"BRENT",20,71,25,19,0xffff7687,brand,100);
   fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,48,18,15,ink,brand,199);
   fill(c,MARKET_DIVIDER_X,36,1,51,0xff3e494e);
-  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),MARKET_BRENT_PRICE_X,73,32,19,brent==null?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
-  fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(brentSession),MARKET_BRENT_STATUS_X,48,16,12,demo?muted:sessionColor(brentSession),brand,135);
+  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),MARKET_BRENT_PRICE_X,73,32,19,brent==null||!brentChanged?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
+  fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(brentSession),MARKET_BRENT_STATUS_X,48,16,12,demo?muted:brentStateChanged?effects.valueInk(sessionColor(brentSession),Color.WHITE,elapsed):sessionColor(brentSession),brand,135);
   String oil=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
   fitted(c,oil,MARKET_BRENT_STATUS_X,73,25,16,brent==null||brent.percent==null?muted:brent.percent>=0?0xff75edb2:0xffff7687,brand,135);
   fitted(c,marketReference("NYMEX",brentSession,brent==null?null:brent.at),MARKET_BRENT_PRICE_X,90,14,12,muted,data,340);
-  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),MARKET_DOLLAR_X,73,32,19,dollar==null?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
-  fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(dollarSession),MARKET_DOLLAR_STATUS_X,48,16,12,demo?muted:sessionColor(dollarSession),brand,113);
+  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),MARKET_DOLLAR_X,73,32,19,dollar==null||!dollarChanged?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
+  fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(dollarSession),MARKET_DOLLAR_STATUS_X,48,16,12,demo?muted:dollarStateChanged?effects.valueInk(sessionColor(dollarSession),Color.WHITE,elapsed):sessionColor(dollarSession),brand,113);
   Double change=dollar==null?null:dollar.percent;
   String fx=change==null?"VAR. —":(change>=0?"▲ +":"▼ ")+amount(change)+"%";
   fitted(c,fx,MARKET_DOLLAR_STATUS_X,73,25,16,change==null?muted:change>=0?0xff75edb2:0xffff7687,brand,113);
@@ -347,6 +370,7 @@ final class TvBroadcastInfoView extends View {
   if(mapSpace<=0||mapReveal<=0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
   float slide=(1-mapReveal)*180;
+  if(kind==SATELLITE&&motionEnabled())slide+=effects.translate(effects.elapsed(now));
   c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide);
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);

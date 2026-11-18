@@ -22,7 +22,7 @@ final class BannerRevealLayout extends FrameLayout {
  }
  private void revealMap(){
   if(getChildCount()==0)return;
-  float visible=effects!=null&&!effects.animated()?1:progress;
+  float visible=exiting||effects!=null&&!effects.animated()?1:progress;
   if(getChildAt(0) instanceof NewsBannerView)((NewsBannerView)getChildAt(0)).mapReveal(effects!=null&&effects.category==TvEffectsController.EffectsCategory.TSUNAMI?1:visible);
   else if(getChildAt(0) instanceof TvBroadcastInfoView)((TvBroadcastInfoView)getChildAt(0)).mapReveal(visible);
  }
@@ -51,14 +51,28 @@ final class BannerRevealLayout extends FrameLayout {
     opening.draw(canvas,elapsed,bodyHeight());canvas.restoreToCount(layer);
    }else opening.draw(canvas,elapsed,bodyHeight());
    canvas.restoreToCount(intro);
+   if(seam>0&&seam<getWidth()&&effects.full()&&effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6){
+    float height=getHeight()-getPaddingTop()-getPaddingBottom();
+    float top=getPaddingTop()+(Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset())*height/totalHeight();
+    float scale=height/totalHeight();
+    paint.setShader(null);paint.setColor(0xffef8899);paint.setStrokeWidth(2*scale);
+    canvas.drawLine(seam-8*scale,top+93*scale,seam,top+93*scale,paint);
+   }
    RuntimeDiagnostics.frame(frameStart,android.os.SystemClock.elapsedRealtimeNanos()-frameStart,true);
    postInvalidateOnAnimation();return;
   }
   revealMap();
+  if(exiting&&effects!=null&&effects.animated()){
+   int restore=canvas.save();
+   float travel=getPaddingBottom()*(1-progress);
+   canvas.translate(0,Prefs.get(getContext()).getBoolean("themeTop",false)?-travel:travel);
+   int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*progress));
+   super.dispatchDraw(canvas);canvas.restoreToCount(layer);canvas.restoreToCount(restore);return;
+  }
   if(progress>=1||effects!=null&&!effects.animated()){super.dispatchDraw(canvas);return;}
   if(effects!=null&&!(effects.full()&&effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6)){
    // All data and the connected layout are present from frame one. Never wipe away a tsunami map.
-   int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*(exiting?progress:.72f+.28f*progress)));
+   int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*(.72f+.28f*progress)));
    super.dispatchDraw(canvas);canvas.restoreToCount(layer);return;
   }
   float bannerTop=getPaddingTop()+(Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset())*(getHeight()-getPaddingTop()-getPaddingBottom())/(totalHeight());

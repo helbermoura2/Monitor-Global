@@ -2,6 +2,7 @@ package top.monitorglobal.tv;
 import android.content.*;import android.graphics.PixelFormat;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.FrameLayout;
 final class Banner {
  private static final int TRAVEL_DP=12;
+ private static final long EXIT_MS=250;
  private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private TvEffectsController activeEffects;private boolean slotAnimated;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss;
  Banner(Context c){context=c;}
  static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
@@ -48,6 +49,10 @@ final class Banner {
   boolean animated=android.animation.ValueAnimator.areAnimatorsEnabled();
   slotAnimated=animated;
   activeEffects=row instanceof NewsBannerView?((NewsBannerView)row).effects:row instanceof BrazilNationalBannerView?((BrazilNationalBannerView)row).effects:((TvBroadcastInfoView)row).effects;
+  if(row instanceof TvBroadcastInfoView&&current instanceof BannerRevealLayout){
+   View previous=((BannerRevealLayout)current).getChildAt(0);
+   if(previous instanceof TvBroadcastInfoView)((TvBroadcastInfoView)row).comparePrevious((TvBroadcastInfoView)previous);
+  }
   // Upgrade the old saved 92% theme default to a 96% newsroom strip on existing installations.
   // Preserve explicitly configured non-default widths.
   int requestedWidth=Prefs.get(context).getInt("themeWidthPercent",96);
@@ -68,12 +73,12 @@ final class Banner {
     else if(row instanceof TvBroadcastInfoView)((TvBroadcastInfoView)row).startPresentation(presentationStart,animated);
     else if(row instanceof BrazilNationalBannerView)((BrazilNationalBannerView)row).startPresentation(presentationStart,animated);
     if(activeEffects.animated())animateWipe(host,0,1);
-    long delay=summaryCount>0?summaryLead+BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?BannerTimeline.WIPE_MS:0));
+    long delay=summaryCount>0?summaryLead+BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?(activeEffects.animated()?EXIT_MS:BannerTimeline.WIPE_MS):0));
     main.postDelayed(dismiss,delay);return true;
    }};row.getViewTreeObserver().addOnPreDrawListener(starter);return true;
   }catch(RuntimeException e){hide();Prefs.status(context,"Não foi possível exibir sobre outro aplicativo. Confira a permissão.");return false;}
  }
- private void animateWipe(BannerRevealLayout host,float from,float to){clearWipe();wipe=android.animation.ValueAnimator.ofFloat(from,to);wipe.setDuration(to==0?Math.min(BannerTimeline.WIPE_MS,activeEffects.entranceMs()):activeEffects.entranceMs());wipe.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());wipe.addUpdateListener(a->{if(current==host)host.reveal((float)a.getAnimatedValue());});wipe.start();}
+ private void animateWipe(BannerRevealLayout host,float from,float to){clearWipe();wipe=android.animation.ValueAnimator.ofFloat(from,to);wipe.setDuration(to==0?EXIT_MS:activeEffects.entranceMs());wipe.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());wipe.addUpdateListener(a->{if(current==host)host.reveal((float)a.getAnimatedValue());});wipe.start();}
  private void clearWipe(){if(wipe!=null){wipe.cancel();wipe.removeAllUpdateListeners();wipe=null;}}
  private void clearStarter(){if(awaiting!=null&&starter!=null&&awaiting.getViewTreeObserver().isAlive())awaiting.getViewTreeObserver().removeOnPreDrawListener(starter);awaiting=null;starter=null;}
  private void clearExit(){if(exitDeadline!=null)main.removeCallbacks(exitDeadline);exitDeadline=null;}
@@ -84,7 +89,7 @@ final class Banner {
    if(slotAnimated){clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,BannerTimeline.WIPE_MS);}else finish(host,row);return;
   }
   host.exiting();
-  clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,BannerTimeline.WIPE_MS);animateWipe(host,1,0);
+  clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,EXIT_MS);animateWipe(host,1,0);
  }
  void hide(){if(activeEffects!=null)activeEffects.stop();main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
 }

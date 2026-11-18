@@ -45,13 +45,21 @@ final class MapInset {
   }}
   if(d.tsunami&&d.shores.isEmpty())d.partial=true;return d;
  }
- void draw(Canvas c,Alert a,Typeface font,int accent){
+ void draw(Canvas c,Alert a,Typeface font,int accent){draw(c,a,font,accent,1f);}
+ void draw(Canvas c,Alert a,Typeface font,int accent,float markerProgress){
   c.save();c.clipPath(clip);paint.setStyle(Paint.Style.FILL);paint.setColor(0xff091f2c);c.drawRect(0,0,310,176,paint);
   Drawing d=ready.get(a);
   if(d!=null&&d.land!=null){paint.setColor(0xff234653);c.drawPath(d.land,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(.65f);paint.setColor(0xff456776);c.drawPath(d.land,paint);}
   if(d!=null&&d.image!=null){paint.setColor(Color.WHITE);paint.setAlpha(255);paint.setFilterBitmap(true);c.drawBitmap(d.image,null,new RectF(0,0,310,150),paint);}
   if(d!=null){for(Stroke s:d.shores){drawNeonCoast(c,s);}paint.setStyle(Paint.Style.FILL);
-   if(d.x!=null&&d.y!=null){paint.setColor(Color.WHITE);c.drawCircle(d.x,d.y,4.5f,paint);paint.setColor(a.kind.equals("weather")?0xff38bdf8:0xffef5350);c.drawCircle(d.x,d.y,3,paint);}
+   if(d.x!=null&&d.y!=null){
+    if(markerProgress<1f){
+     paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.5f);
+     paint.setColor(Color.argb(Math.round(150*(1-markerProgress)),255,112,134));
+     c.drawCircle(d.x,d.y,6+12*markerProgress,paint);
+     paint.setStyle(Paint.Style.FILL);
+    }
+    paint.setColor(Color.WHITE);c.drawCircle(d.x,d.y,4.5f,paint);paint.setColor(a.kind.equals("weather")?0xff38bdf8:0xffef5350);c.drawCircle(d.x,d.y,3,paint);}
   }
   paint.setStyle(Paint.Style.FILL);paint.setColor(0xe6071724);c.drawRect(0,0,310,22,paint);c.drawRect(0,150,310,176,paint);paint.setColor(Color.WHITE);paint.setTypeface(font);paint.setTextSize(14);
   c.drawText(d==null?"MAPA REGIONAL":d.heading,10,16,paint);paint.setTextSize(10);paint.setColor(0xffb4c9ce);
