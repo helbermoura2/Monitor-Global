@@ -18,7 +18,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         for piece in (
             'eventCategory(c,"TEMPO","LIBERDADE · SP")',
             'primary(c,weather==null?"—":weather.temperatureValue,124,39,',
-            'icon(c,0,251,42,30)',
+            'categoryIcon(c,0,251,42,30,elapsed)',
             'label(c,sky,290,58,',
             'label(c,detail,290,84,',
             'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492,elapsed)',
@@ -30,7 +30,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
     def test_rain_restores_original_icons_and_three_metric_columns(self):
         for piece in (
             'eventCategory(c,facts.topic,"LIBERDADE · SP")',
-            'icon(c,0,127,41,28)',
+            'categoryIcon(c,0,127,41,28,elapsed)',
             'label(c,facts.headline,165,60,23,',
             'label(c,facts.end,127,86,16,',
             'metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430,elapsed)',

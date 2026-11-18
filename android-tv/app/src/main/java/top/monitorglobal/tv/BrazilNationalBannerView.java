@@ -193,7 +193,8 @@ final class BrazilNationalBannerView extends View {
  private void drawStateMap(Canvas c,RectF area,long elapsed){
   if(mapArtwork==null||mapArtwork.isRecycled())return;
   p.setShader(null);p.setStyle(Paint.Style.FILL);p.setColor(WHITE);
-  c.drawBitmap(mapArtwork,area.left,area.top,p);
+  p.setAlpha(animated?effects.imageOpacity(elapsed):255);
+  c.drawBitmap(mapArtwork,area.left,area.top,p);p.setAlpha(255);
   if(epicenter==null)return;
   float x=area.left+epicenter[0],y=area.top+epicenter[1];
   if(animated&&effects.full()){

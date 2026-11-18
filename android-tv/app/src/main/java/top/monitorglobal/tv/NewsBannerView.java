@@ -66,7 +66,7 @@ final class NewsBannerView extends View {
   telegramPlane.moveTo(-5.5f,-.5f);telegramPlane.lineTo(5,-4.5f);telegramPlane.lineTo(3,5);telegramPlane.lineTo(-.5f,2);telegramPlane.lineTo(2.5f,-1.5f);telegramPlane.lineTo(-2,1);telegramPlane.close();
   accent=Color.parseColor(Prefs.get(context).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(context).getString("themeAccent","#38bdf8"));
   foreground=OledNewsChrome.INK;background=OledNewsChrome.OLED;
-  if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+"º DE "+pages.length+" · "+pages[i].heading;}}
+  if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+" DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
   StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+summaryDay+" · HORÁRIO DE BRASÍLIA · FONTES SÍSMICAS · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):regional?(demo?"TESTE FICTÍCIO · AVISO REGIONAL · ":replay?"REPLAY · SISMO REGIONAL · REGISTRO HISTÓRICO · ":"AVISO REGIONAL · ÁREA MONITORADA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
   for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
@@ -162,7 +162,11 @@ final class NewsBannerView extends View {
   c.translate(649,mapBelow?4-slide:slide);
   boolean fading=effects.animated()&&(summary?presentationAnimated:motionEnabled())&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
   if(fading){float t=effects.pageProgress(fadeElapsed);int layer=c.saveLayerAlpha(0,0,310,176,(int)(255*(1-t)));mapInset.draw(c,pages[(index+pages.length-1)%pages.length].alert,brand,accent);c.restoreToCount(layer);layer=c.saveLayerAlpha(0,0,310,176,(int)(255*t));mapInset.draw(c,pages[index].alert,brand,accent);c.restoreToCount(layer);}
-  else mapInset.draw(c,pages[index].alert,brand,accent);
+  else{
+   long markerElapsed=Math.max(0,elapsed-(regional?1650:0));
+   float marker=regional&&motionEnabled()&&elapsed>=1650?TvEffectsController.phase(markerElapsed,550):1f;
+   mapInset.draw(c,pages[index].alert,brand,accent,marker);
+  }
   c.restore();
  }
  String badgeLabel(){return demo?"TESTE":replay?"REPLAY":summary?"RESUMO":regional?"REGIONAL":"AO VIVO";}
@@ -220,7 +224,7 @@ final class NewsBannerView extends View {
   fitText(c,p.caption,HEADLINE_X,45,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:31;drawHeadline(c,p,elapsed,width,size);
   if(p.flag!=null){paint.setTypeface(brand);paint.setTextSize(size);float x=HEADLINE_X+Math.min(paint.measureText(p.headline),width)+10;paint.setAlpha(255);c.drawBitmap(p.flag,null,new RectF(x,50,x+32,74),paint);}
-  fitText(c,p.first,HEADLINE_X,89,15,foreground,brand,315);fitText(c,p.source,449,89,14,foreground,brand,166);text(c,p.time,630,89,13,foreground,data,180);c.restoreToCount(layer);
+  fitText(c,p.first,HEADLINE_X,89,a.kind.equals("tsunami")?16:15,foreground,brand,315);fitText(c,p.source,449,89,14,foreground,brand,166);text(c,p.time,630,89,13,foreground,data,180);c.restoreToCount(layer);
  }
  /** M5.0–5.9 is an informational notice for a selected target area,
   * not a second global Breaking News event. Keep the magnitude's exact M6
@@ -253,12 +257,14 @@ final class NewsBannerView extends View {
    locationX+=42;
   }
   paint.setTypeface(brand);paint.setTextScaleX(1f);
-  float fontSize=29f,available=BroadcastVisuals.CONTENT_RIGHT_LIMIT-locationX-10f;
-  paint.setTextSize(fontSize);
-  while(fontSize>19f&&paint.measureText(page.headline)>available){
-   fontSize-=.5f;paint.setTextSize(fontSize);
-  }
-  fitText(c,page.headline,locationX,72,fontSize,Color.WHITE,brand,available);
+  float available=BroadcastVisuals.CONTENT_RIGHT_LIMIT-locationX-10f;
+  paint.setTextSize(27);
+  int end=paint.breakText(page.headline,true,available,null);
+  int split=page.headline.lastIndexOf(' ',end);
+  if(end<page.headline.length()&&split>0){
+   fitText(c,page.headline.substring(0,split),locationX,61,19,Color.WHITE,brand,available);
+   fitText(c,page.headline.substring(split+1),locationX,76,19,Color.WHITE,brand,available);
+  }else fitText(c,page.headline,locationX,72,27,Color.WHITE,brand,available);
   String depth=Double.isFinite(a.depth)&&a.depth>=0
     ?String.format(java.util.Locale.forLanguageTag("pt-BR"),"PROF. %.0f KM",a.depth)
     :"PROF. NÃO INFORMADA";
