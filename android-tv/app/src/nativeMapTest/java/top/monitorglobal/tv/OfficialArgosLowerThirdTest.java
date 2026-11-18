@@ -55,7 +55,7 @@ public class OfficialArgosLowerThirdTest {
   DollarQuote usd=new DollarQuote(5.35,.04,.76,System.currentTimeMillis()-60000,"Yahoo Finance");
   TvBroadcastInfoView market=TvBroadcastInfoView.market(c,oil,usd,false);
   java.lang.reflect.Field animation=TvBroadcastInfoView.class.getDeclaredField("animate");
-  animation.setAccessible(true);animation.setBoolean(market,false);
+  animation.setAccessible(true);animation.setBoolean(market,false);animation.setBoolean(weather,false);
   Bitmap a=render(weather,1000),b=render(market,1000);
   try{
    assertEquals(35f,BroadcastVisuals.BRAND_RIGHT_INSET,0.001f);
@@ -64,22 +64,15 @@ public class OfficialArgosLowerThirdTest {
    assertTrue(BroadcastVisuals.CONTENT_RIGHT_LIMIT+5f<=BroadcastVisuals.RADAR_X-BroadcastVisuals.RADAR_SIZE/2f);
    assertBrandWithinSafeArea(a);
    assertBrandWithinSafeArea(b);
-   try(java.io.InputStream in=c.getAssets().open("argos-official-logo.b64")){
-    java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
-    byte[] buffer=new byte[4096];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
-    byte[] bytes=android.util.Base64.decode(out.toByteArray(),android.util.Base64.DEFAULT);
-    Bitmap official=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.length);
-    assertNotNull(official);
-    Bitmap expected=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+   Bitmap expected=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
+   try{
     expected.eraseColor(Color.BLACK);
-    android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
-    new Canvas(expected).drawBitmap(official,null,new android.graphics.RectF(830,31,925,93),paint);
-    int mismatches=0;
-    // The official eye stays pixel-identical; inscriptions are intentionally enlarged for TV legibility.
-    for(int y=46;y<82;y++)for(int x=830;x<925;x++)if(expected.getPixel(x,y)!=b.getPixel(x,y))mismatches++;
-    assertTrue("market must use official detailed artwork: "+mismatches,mismatches<30);
-    expected.recycle();official.recycle();
-   }catch(java.io.IOException ex){throw new AssertionError(ex);}
+    OfficialArgosLogo.draw(new Canvas(expected),1000,false);
+    for(int y=43;y<81;y++)for(int x=830;x<925;x++){
+     assertEquals("market must use the approved radar",expected.getPixel(x,y),b.getPixel(x,y));
+     assertEquals("weather and market must share the same artwork",b.getPixel(x,y),a.getPixel(x,y));
+    }
+   }finally{expected.recycle();}
 
   }finally{a.recycle();b.recycle();}
  }

@@ -1,4 +1,4 @@
-"""Check the two launchers use the same dark Argos Orbis option-3 artwork."""
+"""Check the dark Argos Orbis artwork and the TV-specific approved radar."""
 from pathlib import Path
 import unittest
 import re
@@ -13,10 +13,10 @@ class DarkArgosLauncher(unittest.TestCase):
   file=ROOT/app/"app/src/main/res/drawable/ic_launcher_monitor.xml"
   return file.read_bytes(),ET.parse(file).getroot()
 
- def test_tv_and_phone_have_identical_opaque_dark_launcher(self):
+ def test_tv_uses_the_approved_radar_on_the_dark_launcher(self):
   tv_content,tv=self.read_icon("android-tv")
   mobile_content,mobile=self.read_icon("android-mobile")
-  self.assertEqual(tv_content,mobile_content,"Both apps must share one approved option-3 icon")
+  self.assertNotEqual(tv_content,mobile_content,"The TV radar update is scoped to the TV app")
   self.assertTrue(tv.tag.endswith("vector"))
   background=tv.find("path")
   self.assertIsNotNone(background)
@@ -32,7 +32,7 @@ class DarkArgosLauncher(unittest.TestCase):
   self.assertEqual(len(colors),4)
   xml=tv_content.decode()
   self.assertIn("#EDC782",xml,"Gold outer eye must be visible")
-  self.assertIn("#14E9E0",xml,"Cyan radar must be visible")
+  self.assertIn("#92FFEB",xml,"Cyan radar must be visible")
   self.assertNotIn("#FFFFFF",xml,"No white launcher background")
 
  def test_tv_banner_matches_new_icon_background(self):
