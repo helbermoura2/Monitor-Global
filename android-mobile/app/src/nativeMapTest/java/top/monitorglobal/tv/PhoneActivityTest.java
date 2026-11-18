@@ -35,7 +35,7 @@ public class PhoneActivityTest {
  }
  @Test public void unknownValuesStayUnknownAndAvisosExplainTheForegroundScope(){
   layout();String empty=texts(root());assertTrue(empty.contains("Consultando previsão horária"));assertFalse(empty.contains("18°C"));root().findViewWithTag("tab-notices").performClick();layout();String notices=texts(root());assertTrue(notices.contains("Central de Alertas"));assertFalse(notices.contains("Copiar código para teste push"));assertNull(named(root(),"Abrir canal oficial no Telegram"));
-  Alert unknown=new Alert("unknown","earthquake","v","M5,1 · Oceano Pacífico","","earthquake",1,0,false);unknown.magnitude=5.1;activity.applySnapshot(new PhoneRepository.Snapshot(List.of(unknown),null,null,0,"Sem atualização confirmada","Previsão indisponível","Chuva indisponível",true,true,false));root().findViewWithTag("event-unknown").performClick();layout();assertTrue(texts(root()).contains("Profundidade não informada"));assertTrue(texts(root()).contains("Data indisponível"));assertTrue(texts(root()).contains("Fonte não informada"));assertFalse(named(root(),"Ver localização no mapa").isEnabled());assertFalse(texts(root()).contains("0 km"));
+  Alert unknown=new Alert("unknown","earthquake","v","M5,1 · Oceano Pacífico","","earthquake",1,0,false);unknown.magnitude=5.1;activity.applySnapshot(new PhoneRepository.Snapshot(List.of(unknown),null,null,0,"Sem atualização confirmada","Previsão indisponível","Chuva indisponível",true,true,false));root().findViewWithTag("tab-sismos").performClick();root().findViewWithTag("event-unknown").performClick();layout();assertTrue(texts(root()).contains("Profundidade não informada"));assertTrue(texts(root()).contains("Data indisponível"));assertTrue(texts(root()).contains("Fonte não informada"));assertFalse(named(root(),"Ver localização no mapa").isEnabled());assertFalse(texts(root()).contains("0 km"));
  }
  @Test public void notificationTapOpensItsEventAndPushSetupStateIsAccurate()throws Exception{
   root().findViewWithTag("tab-notices").performClick();layout();assertTrue(texts(root()).contains("Central de Alertas"));assertNull(named(root(),"Verificar atualização do aplicativo"));named(root(),"Configurar notificações").performClick();layout();assertTrue(texts(root()).contains("Notificações desativadas"));assertTrue(named(root(),"Ativar avisos no celular").isEnabled());named(root(),"Informações técnicas e atualização do aplicativo").performClick();layout();assertNotNull(named(root(),"Verificar atualização do aplicativo"));root().findViewWithTag("tab-notices").performClick();
@@ -117,6 +117,7 @@ public class PhoneActivityTest {
   root().findViewWithTag("tab-sismos").performClick();root().findViewWithTag("quake-region-BR").performClick();
   assertNull(root().findViewWithTag("event-sample"));root().findViewWithTag("quake-region-world").performClick();
   assertNotNull(root().findViewWithTag("event-sample"));
+  export("sismos-redesign");root().findViewWithTag("tab-more").performClick();export("more-redesign");
   root().findViewWithTag("tab-notices").performClick();export("notices-redesign");
   root().findViewWithTag("tab-home").performClick();export("home-redesign");
   root().findViewWithTag("tab-weather").performClick();export("weather-redesign");

@@ -1,4 +1,11 @@
-# Argos Orbis Celular · 0.1.23 de teste
+# Argos Orbis Celular · 0.1.27 de teste
+
+- A barra inferior reúne **Início, Sismos, Clima, Avisos e Mais**. O mapa sísmico fica em Sismos. Os mapas de chuva e satélite ficam em Clima e preservam a aba ativa.
+- Avisos dá acesso direto a tsunamis, boletins e resumo diário. Mais reúne notificações, atualização, diagnóstico e o canal oficial.
+- Listas mais compactas, tipografia legível, controles com feedback de toque, indicador animado da aba ativa e um pulso discreto ao selecionar um epicentro. A interface respeita a opção de reduzir movimento e preserva a animação oficial do olho.
+- Quem já usa a prévia pode atualizar em **Mais → Atualização do aplicativo** depois de instalar esta versão. Na versão anterior, a opção está em **Avisos → Configurar notificações → Informações técnicas e atualização do aplicativo**.
+
+## Histórico · 0.1.23 de teste
 
 O nome exibido pelo Android nas notificações e no ícone agora é **Argos Orbis** (sem o sufixo “· Teste”). O aplicativo agora usa o símbolo Olho de Argos e o nome Argos Orbis no Android. Continua sendo uma prévia, identificada no número da versão **0.1.23-teste** dentro de **Avisos e fontes**, e mantém o mesmo pacote e certificado para atualização sem perder dados. As notificações de teste local continuam explicitamente identificadas como testes; os boletins normais não recebem essa marca.
 
