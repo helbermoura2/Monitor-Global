@@ -38,7 +38,7 @@ function create(map,host,onChange=()=>{}){
  function clock(time){return new Date(time).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT';}
  function styleReady(){
   if(waiting&&enabled&&active&&!closed&&map.isStyleLoaded()){show(wanted,false);return;}
-  if(!pendingTime||!enabled||!active||closed)return;
+  if(!pendingTime||!enabled||!active||closed||map.isSourceLoaded?.(source)===false)return;
   sourceTime=pendingTime;pendingTime=0;
   const age=Math.max(0,Math.floor((Date.now()-sourceTime)/60000));
   message('Quadro observado · '+clock(sourceTime)+' · há '+age+' min'+(age>30?' · imagem defasada':''));

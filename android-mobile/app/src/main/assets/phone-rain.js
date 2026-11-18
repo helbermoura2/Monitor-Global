@@ -76,7 +76,7 @@ function showFrame(next){
  const frame=frames[index],id='phone-rain-'+index;currentSource=id;
  if(failedSources.has(id)){if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id);sources.delete(id);failedSources.delete(id);}
  $('frame-label').textContent='Carregando '+time(frame.time)+'…';message('Carregando '+(frame.offset>0?'previsão':'histórico')+' de '+time(frame.time)+'…');
- if(!map.getSource(id)){map.addSource(id,{type:'raster',tiles:[API+'/rainbow-tile/'+frame.snapshot+'/'+frame.forecast+'/{z}/{x}/{y}'],tileSize:256,maxzoom:7,attribution:'Precipitação: Rainbow Weather'});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':.65,'raster-fade-duration':0}});sources.add(id);}
+ if(!map.getSource(id)){map.addSource(id,{type:'raster',tiles:[API+'/rainbow-tile/'+frame.snapshot+'/'+frame.forecast+'/{z}/{x}/{y}'],tileSize:256,maxzoom:7,attribution:'Precipitação: Rainbow Weather'});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':.65,'raster-fade-duration':matchMedia('(prefers-reduced-motion: reduce)').matches?0:150}});sources.add(id);}
  else map.setLayoutProperty(id,'visibility','visible');
  frameTimer=setTimeout(frameFailed,15000);settled();
 }
