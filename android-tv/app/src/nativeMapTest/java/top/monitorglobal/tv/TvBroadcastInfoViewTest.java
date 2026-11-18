@@ -179,6 +179,9 @@ public class TvBroadcastInfoViewTest {
   Bitmap image=Bitmap.createBitmap(512,300,Bitmap.Config.ARGB_8888);image.eraseColor(Color.MAGENTA);
   WeatherSatelliteClient.Frame frame=new WeatherSatelliteClient.Frame(image,null,System.currentTimeMillis()-300000,InfraredPlan.SOUTHEAST,java.util.Collections.singletonList(System.currentTimeMillis()-300000));
   TvBroadcastInfoView view=TvBroadcastInfoView.weather(c,null,w,false);view.satelliteSource(()->frame);
+  Bitmap arrival=render(view,"weather-satellite-arrival");
+  try{assertNotEquals("new image begins its fade",Color.MAGENTA,arrival.getPixel(800,80));}finally{arrival.recycle();}
+  org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMillis(500));
   Bitmap result=render(view,"weather-satellite");
   try{assertEquals(Color.MAGENTA,result.getPixel(800,80));}finally{result.recycle();frame.close();}
  }

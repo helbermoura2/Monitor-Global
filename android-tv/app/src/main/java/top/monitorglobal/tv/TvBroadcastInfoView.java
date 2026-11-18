@@ -32,16 +32,22 @@ final class TvBroadcastInfoView extends View {
  private MapInset mapInset;
  private long marketSecond=Long.MIN_VALUE;private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private float mapReveal=1;
- private String ticker;private final String baseTicker;
+ private String ticker,tickerDisplay="",tickerSource="";private final String baseTicker;
  private final Path outline=new Path(),telegramPlane=new Path();
  private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private boolean running;
- private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
+ private final boolean animate;
+ private boolean motionEnabled(){return animate&&effects.animated();}
+ final TvEffectsController effects;
+ private WeatherSatelliteClient.Frame fadingFrame;private long imageReadyAt=-1;
+ private final RectF satelliteImageBounds=new RectF(0,0,310,150);
 
  private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
-  super(c);OfficialArgosLogo.prepare(c);this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
+  super(c);OfficialArgosLogo.prepare(c);
+  effects=new TvEffectsController(c,kind==WEATHER?TvEffectsController.EffectsCategory.WEATHER:kind==RAIN?TvEffectsController.EffectsCategory.RAIN:kind==BRENT?TvEffectsController.EffectsCategory.MARKET:kind==SATELLITE?TvEffectsController.EffectsCategory.SATELLITE:TvEffectsController.EffectsCategory.VOICE,false);
+  animate=effects.animated();this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
@@ -126,10 +132,11 @@ final class TvBroadcastInfoView extends View {
   v.marketPending=true;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();
   return v;
  }
+ static TvBroadcastInfoView satelliteDemo(Context c){return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,null,"SIMULAÇÃO · sem imagem real carregada",true);}
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
   return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
  }
- void startPresentation(long when,boolean animated){started=when;invalidate();}
+ void startPresentation(long when,boolean animated){started=when;effects.start(when);invalidate();}
  void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
  void refreshBriefing(){
   if(kind==RAIN){
@@ -186,12 +193,12 @@ final class TvBroadcastInfoView extends View {
   drawRadar(c,elapsed);
  }
  private void drawRadar(Canvas c,long elapsed){
-  BroadcastVisuals.radar(c,p,elapsed,animate);
+  BroadcastVisuals.radar(c,p,elapsed,motionEnabled());
  }
  private float identityLeft(long elapsed){
   int current=BannerTimeline.page(elapsed,2),within=(int)(elapsed%BannerTimeline.PAGE_MS);
   float width=identityWidths[current];
-  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)
+  if(motionEnabled()&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)
    width=Math.max(identityWidths[0],identityWidths[1]);
   return OledNewsChrome.BRAND_PLATE_LEFT;
  }
@@ -203,14 +210,15 @@ final class TvBroadcastInfoView extends View {
   Typeface clockFace=OledNewsChrome.clockFont();
   p.setTypeface(clockFace);p.setTextSize(18f);
   label(c,clockText,58-p.measureText(clockText)/2f,118,18,Color.WHITE,clockFace,90);
-  OledNewsChrome.brandFooter(c,p,elapsed,animate);
+  OledNewsChrome.brandFooter(c,p,elapsed,motionEnabled());
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
-  String display=OledNewsChrome.tickerDisplay(ticker);
+  if(!ticker.equals(tickerSource)){tickerSource=ticker;tickerDisplay=OledNewsChrome.tickerDisplay(ticker);}
+  String display=tickerDisplay;
   Typeface tickerFace=OledNewsChrome.tickerFont();
   p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
-  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());
   label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
@@ -232,11 +240,14 @@ final class TvBroadcastInfoView extends View {
   }
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
+  int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
+  effects.behindContent(c,elapsed);
   if(kind==RAIN)drawRain(c);
   else if(kind==WEATHER)drawWeather(c);
   else if(kind==BRENT)drawBrent(c);
   else if(kind==VOICE_STATUS)drawVoiceStatus(c);
   else drawSatelliteNews(c);
+  c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
   c.restore();
   drawRadar(c,elapsed); // One official eye in every informational strip.
   drawIdentity(c,elapsed);
@@ -337,7 +348,9 @@ final class TvBroadcastInfoView extends View {
    rounded(c,0,0,310,176,0xff0d2737,8);
    if(displayed!=null&&displayed.image!=null&&!displayed.image.isRecycled()){
     p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
-    c.drawBitmap(displayed.image,null,new RectF(0,0,310,150),p);
+    if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=SystemClock.uptimeMillis();}
+    p.setAlpha(effects.imageOpacity(SystemClock.uptimeMillis()-imageReadyAt));
+    c.drawBitmap(displayed.image,null,satelliteImageBounds,p);p.setAlpha(255);
    }
    fill(c,0,0,310,23,0xdd071724);
    label(c,"INFRAVERMELHO · SUDESTE",9,17,16,Color.WHITE,brand,286);
@@ -349,14 +362,15 @@ final class TvBroadcastInfoView extends View {
   c.restore();
  }
  @Override protected void onDraw(Canvas canvas){
-  super.onDraw(canvas);if(started==0)return;
+  super.onDraw(canvas);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();
   long now=SystemClock.uptimeMillis(),elapsed=now-started;
   canvas.save();canvas.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
   canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
   drawHeader(canvas,elapsed);canvas.restore();
   drawMap(canvas);canvas.restore();
+  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,motionEnabled());
   if(running&&isShown()){
-   if(animate)postInvalidateOnAnimation();
+   if(motionEnabled())postInvalidateOnAnimation();
    else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));
   }
  }
@@ -364,6 +378,6 @@ final class TvBroadcastInfoView extends View {
   super.onAttachedToWindow();running=true;
 
  }
- @Override protected void onDetachedFromWindow(){running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
+ @Override protected void onDetachedFromWindow(){running=false;effects.stop();fadingFrame=null;imageReadyAt=-1;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
 }
 

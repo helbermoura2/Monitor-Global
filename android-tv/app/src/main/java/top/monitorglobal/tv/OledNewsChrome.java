@@ -32,14 +32,24 @@ final class OledNewsChrome {
  static final long FOOTER_SLOT_MS=4000L, FOOTER_FADE_MS=400L;
  // Dedicated reusable brush prevents market text/shader state leaking into the radar mark.
  private static final ThreadLocal<Paint> LOGO_BRUSH=ThreadLocal.withInitial(()->new Paint(Paint.ANTI_ALIAS_FLAG));
+ private static final Typeface TITLE=Typeface.create("sans-serif",Typeface.BOLD),REGULAR=Typeface.create("sans-serif",Typeface.NORMAL),INSCRIPTION=Typeface.create("sans-serif-medium",Typeface.NORMAL);
+ private static final LinearGradient FOOTER_GRADIENT=new LinearGradient(0,94,0,126,new int[]{0xff25262a,0xff090a0e,0xff17191e},null,Shader.TileMode.CLAMP);
+ private static final LinearGradient TAB_GRADIENT=new LinearGradient(0,-5,0,TAB_BOTTOM,RED_BRIGHT,RED_DARK,Shader.TileMode.CLAMP);
+ private static final ThreadLocal<EdgeFade> EDGES=ThreadLocal.withInitial(EdgeFade::new);
+ private static final class EdgeFade {
+  final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+  final PorterDuffXfermode mask=new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
+  float left=Float.NaN,right=Float.NaN;LinearGradient leading,trailing;
+  void bounds(float l,float r){if(l==left&&r==right)return;left=l;right=r;leading=new LinearGradient(l,0,l+19,0,new int[]{0x00ffffff,0xffffffff},null,Shader.TileMode.CLAMP);trailing=new LinearGradient(r-19,0,r,0,new int[]{0xffffffff,0x00ffffff},null,Shader.TileMode.CLAMP);}
+ }
  private OledNewsChrome(){}
 
  static Typeface titleFont(Typeface unused){
   // Native display face with CNN Sans-like width; proprietary font files are not redistributed.
-  return Typeface.create("sans-serif",Typeface.BOLD);
+  return TITLE;
  }
  static Typeface regularFont(){
-  return Typeface.create("sans-serif",Typeface.NORMAL);
+  return REGULAR;
  }
  private static void fill(Canvas canvas,Paint p,float left,float top,float right,float bottom,int color){
   p.setStyle(Paint.Style.FILL);p.setShader(null);p.setColor(color);
@@ -62,8 +72,7 @@ final class OledNewsChrome {
   fill(c,p,LEFT,BODY_TOP,LEFT+3f,BODY_END,RED_DARK);
   fill(c,p,LEFT+3f,BODY_TOP,RIGHT,BODY_END,OLED);
   // Only the original lower ticker; no floating right-hand boxes above the banner.
-  p.setShader(new LinearGradient(0,94,0,126,
-   new int[]{0xff25262a,0xff090a0e,0xff17191e},null,Shader.TileMode.CLAMP));
+  p.setShader(FOOTER_GRADIENT);
   p.setStyle(Paint.Style.FILL);c.drawRoundRect(LEFT,94,RIGHT,126,0,0,p);p.setShader(null);
   fill(c,p,LEFT,94,RIGHT,95,0xff36383f);
   // Grey brand block at the ticker's right edge, matching the Pixlr original.
@@ -73,7 +82,7 @@ final class OledNewsChrome {
   final float l=left?LEFT:RIGHT_TAB_LEFT,r=left?LEFT_TAB_RIGHT:RIGHT;
   final float corner=7f;
   // The opaque red foot meets the black body at the exact same y=30 boundary.
-  p.setShader(new LinearGradient(0,-5,0,TAB_BOTTOM,RED_BRIGHT,RED_DARK,Shader.TileMode.CLAMP));
+  p.setShader(TAB_GRADIENT);
   p.setStyle(Paint.Style.FILL);
   c.drawRoundRect(l,-6,r,TAB_BOTTOM,corner,corner,p);p.setShader(null);
   fill(c,p,l+2,22,r-2,TAB_BOTTOM-3f,RED_DARK);
@@ -113,7 +122,7 @@ final class OledNewsChrome {
   c.restore();
   // Broadcast lettering remains readable at TV scale rather than shrinking to 3px.
   logo.reset();logo.setAntiAlias(true);logo.setShader(null);
-  logo.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+  logo.setTypeface(INSCRIPTION);
   logo.setTextAlign(Paint.Align.CENTER);logo.setColor(0xffc4a16a);
   logo.setTextSize(7.5f);
   c.drawText("ΠΑΝΟΠΤΗΣ",LOGO_CENTER_X,42f,logo);
@@ -146,16 +155,11 @@ final class OledNewsChrome {
  /** Alpha feather for the scrolling news text: no abrupt half-letter at the edges. */
  static void fadeTickerEdges(Canvas c,float left,float right){
   if(right-left<52f)return;
-  Paint fade=new Paint(Paint.ANTI_ALIAS_FLAG);
-  fade.setStyle(Paint.Style.FILL);
-  fade.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+  EdgeFade cache=EDGES.get();cache.bounds(left,right);Paint fade=cache.paint;
+  fade.setStyle(Paint.Style.FILL);fade.setXfermode(cache.mask);
   float spread=19f;
-  fade.setShader(new LinearGradient(left,0,left+spread,0,
-    new int[]{0x00ffffff,0xffffffff},null,Shader.TileMode.CLAMP));
-  c.drawRect(left,95,left+spread,124,fade);
-  fade.setShader(new LinearGradient(right-spread,0,right,0,
-    new int[]{0xffffffff,0x00ffffff},null,Shader.TileMode.CLAMP));
-  c.drawRect(right-spread,95,right,124,fade);
+  fade.setShader(cache.leading);c.drawRect(left,95,left+spread,124,fade);
+  fade.setShader(cache.trailing);c.drawRect(right-spread,95,right,124,fade);
   fade.setShader(null);fade.setXfermode(null);
  }
  static void brandFooter(Canvas c,Paint p,long elapsed,boolean animated){

@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import android.content.*;import android.graphics.PixelFormat;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.FrameLayout;
 final class Banner {
  private static final int TRAVEL_DP=12;
- private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss;
+ private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private TvEffectsController activeEffects;private boolean slotAnimated;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss;
  Banner(Context c){context=c;}
  static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
@@ -41,10 +41,13 @@ final class Banner {
  boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
  }
+ boolean showEffectsDemo(TvEffectsController.EffectsCategory category){return showView(TvEffectsDemo.create(context,category),TvEffectsDemo.duration(category),category==TvEffectsController.EffectsCategory.SUMMARY?2:0,null);}
  View activeView(){return current;}
  private boolean showView(View row,long duration,int summaryCount,Runnable finished){
   if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;
   boolean animated=android.animation.ValueAnimator.areAnimatorsEnabled();
+  slotAnimated=animated;
+  activeEffects=row instanceof NewsBannerView?((NewsBannerView)row).effects:row instanceof BrazilNationalBannerView?((BrazilNationalBannerView)row).effects:((TvBroadcastInfoView)row).effects;
   // Upgrade the old saved 92% theme default to a 96% newsroom strip on existing installations.
   // Preserve explicitly configured non-default widths.
   int requestedWidth=Prefs.get(context).getInt("themeWidthPercent",96);
@@ -52,31 +55,34 @@ final class Banner {
   int contentHeight=row instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context));
   WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*bannerWidthPercent/100,dp(contentHeight)+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
   try{
-   BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(animated?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
-   else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(animated?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
-   onFinished=finished;awaiting=row;
+   BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(activeEffects.animated()?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
+   else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(activeEffects.animated()?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
+   host.configure(activeEffects);onFinished=finished;awaiting=row;
    starter=new ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
     clearStarter();if(current!=host||host.getChildAt(0)!=row)return true;
     // Anchor both drawing and dismissal to the first visible frame, not construction/font loading.
     if(row instanceof NewsBannerView)((NewsBannerView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
     else if(row instanceof TvBroadcastInfoView)((TvBroadcastInfoView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
     else if(row instanceof BrazilNationalBannerView)((BrazilNationalBannerView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
-    if(animated)animateWipe(host,0,1);
+    if(activeEffects.animated())animateWipe(host,0,1);
     long delay=summaryCount>0?BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?BannerTimeline.WIPE_MS:0));
     main.postDelayed(dismiss,delay);return true;
    }};row.getViewTreeObserver().addOnPreDrawListener(starter);return true;
   }catch(RuntimeException e){hide();Prefs.status(context,"Não foi possível exibir sobre outro aplicativo. Confira a permissão.");return false;}
  }
- private void animateWipe(BannerRevealLayout host,float from,float to){clearWipe();wipe=android.animation.ValueAnimator.ofFloat(from,to);wipe.setDuration(BannerTimeline.WIPE_MS);wipe.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());wipe.addUpdateListener(a->{if(current==host)host.reveal((float)a.getAnimatedValue());});wipe.start();}
+ private void animateWipe(BannerRevealLayout host,float from,float to){clearWipe();wipe=android.animation.ValueAnimator.ofFloat(from,to);wipe.setDuration(to==0?Math.min(BannerTimeline.WIPE_MS,activeEffects.entranceMs()):activeEffects.entranceMs());wipe.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());wipe.addUpdateListener(a->{if(current==host)host.reveal((float)a.getAnimatedValue());});wipe.start();}
  private void clearWipe(){if(wipe!=null){wipe.cancel();wipe.removeAllUpdateListeners();wipe=null;}}
  private void clearStarter(){if(awaiting!=null&&starter!=null&&awaiting.getViewTreeObserver().isAlive())awaiting.getViewTreeObserver().removeOnPreDrawListener(starter);awaiting=null;starter=null;}
  private void clearExit(){if(exitDeadline!=null)main.removeCallbacks(exitDeadline);exitDeadline=null;}
  private void finish(View host,View row){if(current!=host||((FrameLayout)host).getChildAt(0)!=row)return;Runnable callback=onFinished;hide();if(callback!=null)callback.run();}
  private void dismiss(){
   if(!(current instanceof BannerRevealLayout))return;BannerRevealLayout host=(BannerRevealLayout)current;View row=host.getChildAt(0);if(row==null){hide();return;}
-  if(!android.animation.ValueAnimator.areAnimatorsEnabled()){finish(host,row);return;}
+  if(activeEffects==null||!activeEffects.animated()){
+   if(slotAnimated){clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,BannerTimeline.WIPE_MS);}else finish(host,row);return;
+  }
+  host.exiting();
   clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,BannerTimeline.WIPE_MS);animateWipe(host,1,0);
  }
- void hide(){main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
+ void hide(){if(activeEffects!=null)activeEffects.stop();main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
 }
 

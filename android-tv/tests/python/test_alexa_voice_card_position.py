@@ -34,7 +34,7 @@ class AlexaVoiceBannerPlacementTest(unittest.TestCase):
         self.assertIn("marketPending=true",view)
         self.assertIn("if(marketPending)",view)
         self.assertIn('OledNewsChrome.tab(c,p,"BREAKING NEWS",true)',view)
-        self.assertIn("BroadcastVisuals.radar(c,p,elapsed,animate)",view)
+        self.assertIn("BroadcastVisuals.radar(c,p,elapsed,motionEnabled())",view)
         self.assertIn("BrentQuote.DISPLAY",overlay)
         self.assertNotIn('new VoiceStatusOverlay',overlay)
 

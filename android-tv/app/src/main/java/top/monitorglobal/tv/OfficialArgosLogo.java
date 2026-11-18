@@ -28,6 +28,9 @@ final class OfficialArgosLogo {
  private static volatile Bitmap base,still;
  private static final Object LOCK=new Object();
  private static final ThreadLocal<Paint> BRUSH=ThreadLocal.withInitial(()->new Paint(Paint.ANTI_ALIAS_FLAG));
+ private static final ThreadLocal<Path> EYE=ThreadLocal.withInitial(OfficialArgosLogo::eyePath);
+ private static final RectF DESTINATION=new RectF(X,Y,X+W,Y+H);
+ private static final android.graphics.Typeface INSCRIPTION=android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL);
  private OfficialArgosLogo(){}
 
  static void prepare(Context c){
@@ -71,10 +74,10 @@ final class OfficialArgosLogo {
   c.save();c.clipRect(X,Y,X+W,Y+H);
   if(!animate||base==null){
    // Use Android's destination-bitmap path for a pixel-identical static asset.
-   c.drawBitmap(artwork,null,new RectF(X,Y,X+W,Y+H),p);
+   c.drawBitmap(artwork,null,DESTINATION,p);
   }else{
    c.save();c.translate(X,Y);c.scale(W/ART_W,H/ART_H);
-   Path eye=eyePath();
+   Path eye=EYE.get();
    c.drawBitmap(base,0,0,p);
    float open=eyeOpenness(elapsed,true);
    if(open<.999f){
@@ -96,7 +99,7 @@ final class OfficialArgosLogo {
   // The faithful 664px official image is 95px wide on TV. Repaint its
   // inscriptions using broadcast-sized letters instead of illegible 3px pixels.
   p.reset();p.setAntiAlias(true);p.setShader(null);
-  p.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
+  p.setTypeface(INSCRIPTION);
   p.setTextAlign(Paint.Align.CENTER);p.setColor(0xffc4a16a);p.setStyle(Paint.Style.FILL);
   p.setTextSize(7.5f);c.drawText("ΠΑΝΟΠΤΗΣ",878f,42f,p);
   p.setTextSize(7.2f);c.drawText("CUSTOS ORBIS",878f,89.5f,p);
