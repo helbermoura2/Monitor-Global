@@ -203,8 +203,8 @@ final class BrazilNationalBannerView extends View {
    if(geography!=null)drawStateMap(c,stateArea(10,30,211,136),elapsed,true);
    else ink(c,"MAPA INDISPONÍVEL",22,90,14,0xff355a64,regular,190);
   }else{
-   fill(c,0,26,109,BODY_END,RED);
    c.save();c.clipRect(0,26,109,BODY_END);c.translate(animated?-effects.translate(elapsed):0,0);
+   fill(c,0,26,109,BODY_END,RED);
    centered(c,"BRASIL",54,91,27,WHITE,bold,100);c.restore();
    if(geography!=null)drawStateMap(c,stateArea(112,31,214,135),elapsed,false);
    else ink(c,"BR",137,100,35,0xff6c7780,bold,75);

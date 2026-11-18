@@ -240,6 +240,7 @@ final class TvBroadcastInfoView extends View {
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
+  effects.behindContent(c,elapsed);
   if(kind==RAIN)drawRain(c);
   else if(kind==WEATHER)drawWeather(c);
   else if(kind==BRENT)drawBrent(c);

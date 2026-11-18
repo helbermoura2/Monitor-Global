@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 
 /** Presentation only. No alert mutation, queue, timer, network or sound ownership. */
 final class TvEffectsController {
@@ -15,6 +16,7 @@ final class TvEffectsController {
  final EffectsMode requested;
  final boolean replay;
  private final Paint brush=new Paint(Paint.ANTI_ALIAS_FLAG);
+ private final RectF rainRadar=new RectF(122,36,160,74);
  private long started;
  private boolean stopped;
  TvEffectsController(Context c,EffectsCategory type,boolean historical){
@@ -51,6 +53,14 @@ final class TvEffectsController {
  int imageOpacity(long elapsed){return !animated()?255:Math.round(255*ease(phase(elapsed,full()?400:200)));}
  static boolean wet(RainForecast.Summary rain){return rain!=null&&rain.rain&&"now".equals(rain.state)&&Double.isFinite(rain.rate)&&rain.rate>0;}
  static boolean storm(RainForecast.Summary rain,WeatherForecast.Summary weather){return wet(rain)&&weather!=null&&weather.stormForecast;}
+ /** Radar ornament surrounds the rain icon; it is not meteorological radar data. */
+ void behindContent(Canvas c,long elapsed){
+  if(category!=EffectsCategory.RAIN||!animated()||elapsed<0||elapsed>=entranceMs())return;
+  float t=progress(elapsed);brush.setShader(null);brush.setStyle(Paint.Style.STROKE);
+  brush.setStrokeWidth(full()?1.5f:1f);brush.setColor(Color.argb(Math.round((full()?90:40)*(1-t)),88,220,229));
+  c.drawArc(rainRadar,-90,360*t,false,brush);
+  brush.setStyle(Paint.Style.FILL);brush.setAlpha(255);
+ }
  /** Ornament stays in the 2px body edge, away from every text/number column. */
  void draw(Canvas c,long elapsed,boolean wet,boolean storm){
   if(!animated()||category==EffectsCategory.SUMMARY||elapsed<0||elapsed>=entranceMs())return;
