@@ -81,13 +81,13 @@ public class PhoneActivityTest {
   activity.applySnapshot(longer);layout();Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();assertTrue(scroll(root()).isAttachedToWindow());assertEquals(position,scroll(root()).getScrollY());
  }
  @Test public void rainPreviewLivesUnderWeatherAndKeepsTheSameViewOnRefresh()throws Exception{
-  activity.applySnapshot(data());root().findViewWithTag("tab-weather").performClick();root().findViewWithTag("open-rain").performClick();layout();assertTrue(root().findViewWithTag("tab-weather").isSelected());assertNotNull(root().findViewWithTag("close-rain"));
+  activity.applySnapshot(data());root().findViewWithTag("tab-weather").performClick();root().findViewWithTag("open-rain").performClick();layout();assertTrue(root().findViewWithTag("tab-weather").isSelected());assertNotNull(root().findViewWithTag("open-weather"));
   java.lang.reflect.Field f=PhoneActivity.class.getDeclaredField("rainMap");f.setAccessible(true);PhoneMapView rain=(PhoneMapView)f.get(activity);assertNotNull(rain);assertTrue(rain.isAttachedToWindow());activity.applySnapshot(data());layout();assertSame(rain,f.get(activity));assertTrue(rain.isAttachedToWindow());
   activity.onBackPressed();layout();assertNotNull(root().findViewWithTag("open-rain"));assertFalse(rain.isAttachedToWindow());root().findViewWithTag("open-rain").performClick();layout();assertSame(rain,f.get(activity));
  }
  @Test public void brazilExplorationPreservesTheWeatherTabAndOriginalControls(){
   root().findViewWithTag("tab-weather").performClick();layout();assertNotNull(root().findViewWithTag("open-rain"));assertNotNull(root().findViewWithTag("open-brazil"));
-  root().findViewWithTag("open-brazil").performClick();layout();assertTrue(root().findViewWithTag("tab-weather").isSelected());assertNotNull(root().findViewWithTag("close-brazil"));
+  root().findViewWithTag("open-brazil").performClick();layout();assertTrue(root().findViewWithTag("tab-weather").isSelected());assertNotNull(root().findViewWithTag("open-weather"));
   activity.onBackPressed();layout();assertNotNull(root().findViewWithTag("open-rain"));assertNotNull(root().findViewWithTag("open-brazil"));
  }
  @Test public void verifiedOnlineBriefingAppearsOnPhoneWithoutChangingEventNavigation()throws Exception{

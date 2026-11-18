@@ -172,7 +172,7 @@ public class PhoneActivity extends Activity {
   copy(page,"Previsão para um ponto da Liberdade. Em Satélite, consulte outros municípios e as fontes de cada camada.");
  }
  private void layerButtons(LinearLayout box,String current){
-  LinearLayout row=new LinearLayout(this);
+  LinearLayout row=new LinearLayout(this);row.setPadding(dp(8),0,dp(8),0);
   String[] ids={"weather","rain","brazil"},labels={"Previsão","Chuva","Satélite"};
   for(int i=0;i<ids.length;i++){
    String target=ids[i];Button b=button(labels[i],()->{
@@ -436,12 +436,12 @@ public class PhoneActivity extends Activity {
   if(map==null)map=new PhoneMapView(this,this::showEvent);if(map.getParent()!=null)((ViewGroup)map.getParent()).removeView(map);box.addView(map,new LinearLayout.LayoutParams(-1,0,1));List<Alert> visible=new ArrayList<>();for(Alert a:events())if(mapFilter.equals("all")||mapFilter.equals(a.kind))visible.add(a);if(mappedEvent!=null&&visible.stream().noneMatch(a->a.id.equals(mappedEvent.id)))visible.add(0,mappedEvent);map.setEvents(visible);if(focusMappedEvent&&mappedEvent!=null){focusMappedEvent=false;map.focus(mappedEvent);}if(active)map.resume();else map.pause();
  }
  private void rainPage(){
-  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));Button back=backButton("‹ Voltar ao clima",()->go("weather"));back.setTag("close-rain");box.addView(back);layerButtons(box,"rain");
+  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));layerButtons(box,"rain");
   if(snapshot!=null)briefingCard(box,"rain",snapshot.weather,snapshot.rain);
   if(rainMap==null)rainMap=new PhoneMapView(this,null,true);if(rainMap.getParent()!=null)((ViewGroup)rainMap.getParent()).removeView(rainMap);box.addView(rainMap,new LinearLayout.LayoutParams(-1,0,1));if(active)rainMap.resume();else rainMap.pause();
  }
  private void brazilPage(){
-  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));Button back=backButton("‹ Voltar ao clima",()->go("weather"));back.setTag("close-brazil");box.addView(back);layerButtons(box,"brazil");
+  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));layerButtons(box,"brazil");
   if(brazilMap==null)brazilMap=new PhoneMapView(this,null,false,true);if(brazilMap.getParent()!=null)((ViewGroup)brazilMap.getParent()).removeView(brazilMap);box.addView(brazilMap,new LinearLayout.LayoutParams(-1,0,1));if(active)brazilMap.resume();else brazilMap.pause();if(satelliteRequested){satelliteRequested=false;brazilMap.showSatellite();}
  }
  private void showMapEvent(Alert a){

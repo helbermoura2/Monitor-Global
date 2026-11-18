@@ -8,7 +8,7 @@ function parseMetadata(data,now=Date.now()){
 }
 function tileUrl(frame){return ORIGIN+frame.path+'/256/{z}/{x}/{y}/2/1_1.png';}
 function create(map,host,onChange=()=>{}){
- let enabled=false,closed=false,active=true,frames=[],index=0,playTimer=0,lastSuccess=0,lastAttempt=0,nextAttempt=0,request=null,sourceTime=0,ticket=0,wanted=-1,waiting=false,messageText='';
+ let enabled=false,closed=false,active=true,frames=[],index=0,playTimer=0,lastSuccess=0,lastAttempt=0,nextAttempt=0,request=null,sourceTime=0,pendingTime=0,ticket=0,wanted=-1,waiting=false,messageText='';
  const source='br-historical-radar',layer='br-historical-radar-layer';
  const panel=document.createElement('section');panel.className='radar-control';panel.hidden=true;panel.setAttribute('aria-label','Radar meteorológico observado');
  const heading=document.createElement('strong');heading.textContent='RADAR · CHUVA OBSERVADA';
@@ -24,19 +24,26 @@ function create(map,host,onChange=()=>{}){
  function notify(){onChange({enabled,sourceTime,loading:!!request,frames:frames.length,message:messageText});}
  function message(text){messageText=text;status.textContent=text;notify();}
  function stop(){clearTimeout(playTimer);playTimer=0;play.textContent='▶ Animar';}
- function clear(){if(map.getLayer(layer))map.removeLayer(layer);if(map.getSource(source))map.removeSource(source);sourceTime=0;}
+ function clear(){if(map.getLayer(layer))map.removeLayer(layer);if(map.getSource(source))map.removeSource(source);sourceTime=0;pendingTime=0;}
  function fresh(){return frames.length&&Date.now()-frames.at(-1).time*1000<3*3600000;}
  function show(n,manual=true){
   if(manual)stop();if(!enabled||!active||closed||!frames[n])return;
   wanted=n;if(!map.isStyleLoaded()&&!map.getSource(source)){waiting=true;return;}
   waiting=false;index=n;slider.value=String(n);const frame=frames[n],tiles=[tileUrl(frame)],current=map.getSource(source);
   if(current&&typeof current.setTiles==='function')current.setTiles(tiles);
-  else {clear();map.addSource(source,{type:'raster',tiles,tileSize:256,minzoom:0,maxzoom:7,attribution:'Radar: RainViewer'});map.addLayer({id:layer,type:'raster',source,paint:{'raster-opacity':0.75,'raster-fade-duration':0}});}
-  sourceTime=frame.time*1000;
-  message('Quadro de radar: '+new Date(sourceTime).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT · '+(index+1)+'/'+frames.length);
+  else {clear();map.addSource(source,{type:'raster',tiles,tileSize:256,minzoom:0,maxzoom:7,attribution:'Radar: RainViewer'});map.addLayer({id:layer,type:'raster',source,paint:{'raster-opacity':0.75,'raster-fade-duration':window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:150}});}
+  pendingTime=frame.time*1000;sourceTime=0;
+  message('Carregando quadro do radar · '+clock(pendingTime)+'…');
  }
- function styleReady(){if(waiting&&enabled&&active&&!closed&&map.isStyleLoaded())show(wanted,false);}
- function tileError(event){if(enabled&&active&&event.sourceId===source){stop();message('Não foi possível carregar a imagem do radar. Toque em Atualizar radar para tentar novamente.');}}
+ function clock(time){return new Date(time).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT';}
+ function styleReady(){
+  if(waiting&&enabled&&active&&!closed&&map.isStyleLoaded()){show(wanted,false);return;}
+  if(!pendingTime||!enabled||!active||closed)return;
+  sourceTime=pendingTime;pendingTime=0;
+  const age=Math.max(0,Math.floor((Date.now()-sourceTime)/60000));
+  message('Quadro observado · '+clock(sourceTime)+' · há '+age+' min'+(age>30?' · imagem defasada':''));
+ }
+ function tileError(event){if(enabled&&active&&event.sourceId===source){stop();clear();message('Não foi possível carregar a imagem do radar. Toque em Atualizar radar para tentar novamente.');}}
  map.on('idle',styleReady);map.on('error',tileError);
  async function update(force=false){
   if(!active||closed||!enabled||request)return;

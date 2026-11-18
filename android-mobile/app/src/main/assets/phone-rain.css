@@ -98,3 +98,16 @@ p{font-size:10px;line-height:1.38;color:#afcbd9;margin:6px 0 0}
 @media(max-height:610px){.map-panel{height:300px;min-height:300px}#chart svg{max-height:140px}}
 @media(min-width:600px){.map-panel{height:clamp(380px,53vh,530px)}.outlook{padding:16px 20px}h1{font-size:29px}#chart svg{max-height:190px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+
+.rain-frame-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+.rain-frame-row .frame-badge,.rain-frame-row .legend{max-width:none;background:none;border:0;box-shadow:none;padding:0;backdrop-filter:none}
+.rain-frame-row .legend{flex:0 1 auto;white-space:normal;min-width:72px}
+.rain-app .map-top{justify-content:flex-end}
+.rain-app .maplibregl-ctrl-top-right{top:53px}
+.rain-app .map-panel{height:clamp(305px,57vh,470px)}
+.rain-app #map-status{top:auto;bottom:34px}
+@media(prefers-reduced-motion:no-preference){
+ .brazil-overlays button,.play-row>button{transition:background-color 150ms ease,border-color 150ms ease,transform 120ms ease}
+ .brazil-overlays button:active,.play-row>button:active{transform:scale(.96)}
+}

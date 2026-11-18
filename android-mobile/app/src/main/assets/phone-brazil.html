@@ -8,22 +8,25 @@
 </head><body>
 <main class="brazil-main">
  <section class="brazil-toolbar" aria-label="Explorar meteorologia brasileira">
-  <div class="brazil-heading">
-   <div class="brazil-heading-text"><strong>METEOROLOGIA · BRASIL</strong><span>Dados para municípios brasileiros</span></div>
-   <button type="button" id="recenter" aria-label="Enquadrar todo o Brasil" title="Enquadrar Brasil">⌖</button>
+  <div class="brazil-overlays" role="group" aria-label="Imagens observadas">
+   <button type="button" id="satellite-toggle" aria-pressed="false">Satélite GOES</button>
+   <button type="button" id="radar-toggle" aria-pressed="false">Radar observado</button>
   </div>
-  <div class="brazil-search">
-   <label for="city-search">Buscar cidade ou município</label>
-   <input id="city-search" type="search" autocomplete="off" spellcheck="false" placeholder="Ex.: Campinas, SP" aria-controls="city-results" aria-autocomplete="list">
-   <div id="city-results" role="listbox" hidden></div>
+  <div class="brazil-location">
+   <div class="brazil-search">
+    <input id="city-search" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar município" aria-label="Buscar município" aria-controls="city-results" aria-autocomplete="list">
+    <div id="city-results" role="listbox" hidden></div>
+   </div>
+   <button type="button" id="recenter" aria-label="Enquadrar todo o Brasil" title="Enquadrar Brasil"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></button>
   </div>
-  <div id="brazil-status" role="status" aria-live="polite" hidden></div>
+
  </section>
  <section class="map-panel brazil-map-panel" aria-label="Mapa meteorológico do Brasil">
   <div id="brazil-map"></div>
-  <div class="map-bottom"><div class="frame-badge"><span>PREVISÃO · MODELO</span><strong id="time-label">Sem dados recentes</strong></div></div>
  </section>
- <section class="brazil-controls" aria-label="Camadas meteorológicas">
+ <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
+ <section class="brazil-controls" aria-label="Variáveis da previsão">
+  <strong class="forecast-caption">Previsão municipal · próximas 24 horas</strong>
   <div class="brazil-layers" role="group" aria-label="Selecionar dado de previsão">
    <button type="button" data-layer="temperature" aria-pressed="true">Temperatura</button>
    <button type="button" data-layer="wind" aria-pressed="false">Vento</button>
@@ -33,16 +36,11 @@
    <button type="button" data-layer="gusts" aria-pressed="false">Rajadas</button>
    <button type="button" data-layer="feels" aria-pressed="false">Sensação</button>
   </div>
-  <div class="brazil-overlays" role="group" aria-label="Visualizar imagens observadas">
-   <button type="button" id="radar-toggle" aria-pressed="false">◉ Radar observado</button>
-   <button type="button" id="satellite-toggle" aria-pressed="false">◌ Satélite GOES</button>
-  </div>
  </section>
- <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
  <section class="timeline" aria-label="Linha do tempo da previsão">
   <div class="play-row">
    <button id="play" type="button" aria-label="Reproduzir evolução da previsão" disabled>▶</button>
-   <div class="time-control"><label for="frame">Agora <span>Próximas 24 horas →</span></label>
+   <div class="time-control"><label for="frame">Hora da previsão <span id="time-label">Sem dados recentes</span></label>
     <input id="frame" type="range" min="0" max="8" step="1" value="0" disabled aria-label="Selecionar horário da previsão">
     <div class="ticks"><span>0h</span><span>+12h</span><span>+24h</span></div>
    </div>
@@ -50,6 +48,7 @@
   </div>
  </section>
  <section class="outlook" aria-label="Previsão para cidade selecionada">
+  <div id="brazil-status" role="status" aria-live="polite" hidden></div>
   <div class="point-heading"><span class="point-dot"></span><strong id="place">SÃO PAULO · SP</strong><span id="layer-label">Temperatura</span></div>
   <h1 id="headline" role="status">Buscando previsão…</h1>
   <div id="facts" class="facts"></div>
