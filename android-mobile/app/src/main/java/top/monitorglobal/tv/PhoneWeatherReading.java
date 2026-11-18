@@ -6,7 +6,7 @@ import java.util.Locale;
 final class PhoneWeatherReading {
  static boolean hourlyPrecipitation(WeatherForecast.Summary w){if(w==null)return false;String k=w.conditionKey;return WeatherForecast.storm(k)||k.equals("Drizzle")||k.equals("Rain")||k.equals("HeavyRain")||k.equals("Snow")||k.equals("HeavySnow");}
  static String condition(WeatherForecast.Summary w,RainForecast.Summary r){
-  if(r!=null&&(r.state.equals("now")||r.state.equals("soon")))return r.title;
+  if(r!=null&&(r.state.equals("now")||r.state.equals("soon")||r.state.equals("evidence")))return r.title;
   return WeatherForecast.sky(w,System.currentTimeMillis());
  }
  static String illustration(WeatherForecast.Summary w,RainForecast.Summary r){
@@ -17,6 +17,7 @@ final class PhoneWeatherReading {
   return w==null?"":w.conditionKey;
  }
  static String caption(WeatherForecast.Summary w,RainForecast.Summary r){
+  if(r!=null&&r.state.equals("evidence"))return r.level.equals("gauge")?"Chuva: medição de estação próxima":"Chuva: consenso horário";
   return r!=null&&(r.state.equals("now")||r.state.equals("soon"))?"Chuva: estimativa por minuto":"Condição: modelo horário";
  }
  // An optional cached hourly narrative cannot override the minute-derived rain timeline.

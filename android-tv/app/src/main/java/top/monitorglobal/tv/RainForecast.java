@@ -17,13 +17,38 @@ final class RainForecast {
    durationText=durationDescription;int separator=durationDescription.indexOf(":");durationLabel=separator<0?durationDescription:durationDescription.substring(0,separator);
   }
   Summary withPresentation(String displayLevel,String displayTitle){return new Summary(state,displayLevel,displayTitle,rate,amount,stopText,at,expiresAt,rain,arrivalMinutes,endMinutes,durationMinutes,forecastRate,durationText);}
-  String key(){return state+":"+(state.equals("now")?level:"");}
+  String key(){return state+":"+((state.equals("now")||state.equals("evidence"))?level:"");}
  }
  static String number(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.1f",n);}
  static String intensity(double rate){return rate<2.5?"fraca":rate<7.5?"moderada":rate<50?"forte":"muito forte";}
  static boolean wet(double rate,String type){return rate>=.1&&!type.equals("no_precipitation");}
  static Summary summarize(JSONObject data,long now)throws JSONException {
-  if(!data.optBoolean("ok")||!data.optString("version").equals("tv-rain-v1")||!data.optString("area").equals("liberdade"))return null;
+  if(!data.optString("version").equals("tv-rain-v1")||!data.optString("area").equals("liberdade"))return null;
+  Summary forecast=minuteForecast(data,now);
+  if(forecast!=null&&forecast.state.equals("now"))return forecast;
+  Summary evidence=independentEvidence(data.optJSONObject("evidence"),now);
+  if(evidence!=null&&(evidence.level.equals("gauge")||forecast==null||forecast.state.equals("dry")))return evidence;
+  return forecast;
+ }
+ private static Summary independentEvidence(JSONObject data,long now){
+  if(data==null)return null;
+  long at=data.optLong("at",0),expiry=data.optLong("expiresAt",0);
+  if(at<=0||at>now||expiry<=now||expiry>at+20*MINUTE)return null;
+  String kind=data.optString("kind");
+  if(kind.equals("gauge")){
+   String station=data.optString("station").trim();
+   double amount=data.optDouble("amount",Double.NaN),distance=data.optDouble("distanceKm",Double.NaN);
+   if(station.isEmpty()||station.length()>60||!Double.isFinite(amount)||amount<=0||amount>300||!Double.isFinite(distance)||distance<0||distance>3)return null;
+   String detail="Cemaden · "+station+" · "+number(distance)+" km · "+number(amount)+" mm medidos";
+   return new Summary("evidence",kind,"Chuva medida nas proximidades",Double.NaN,Double.NaN,detail,at,expiry,false);
+  }
+  if(kind.equals("hourly")&&expiry<=at+10*MINUTE){
+   return new Summary("evidence",kind,"Modelos horários indicam chuva",Double.NaN,Double.NaN,"Open-Meteo · pelo menos dois modelos · início incerto",at,expiry,false);
+  }
+  return null;
+ }
+ private static Summary minuteForecast(JSONObject data,long now)throws JSONException {
+  if(!data.optBoolean("ok"))return null;
   JSONObject loc=data.optJSONObject("loc");long at=data.optLong("at",0),expiry=data.optLong("expiresAt",0);
   if(loc==null||!Double.isFinite(loc.optDouble("lat",Double.NaN))||!Double.isFinite(loc.optDouble("lng",Double.NaN))||Math.abs(loc.optDouble("lat",999)-LATITUDE)>.002||Math.abs(loc.optDouble("lng",999)-LONGITUDE)>.002||at<=0||at>now+MINUTE||now-at>20*MINUTE||expiry<=now||expiry>at+10*MINUTE)return null;
   JSONArray points=data.optJSONArray("forecast");if(points==null||points.length()<60||points.length()>300)return null;

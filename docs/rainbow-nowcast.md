@@ -27,3 +27,11 @@ Falhas incluem apenas diagnóstico seguro: código HTTP, etapa (`request`, `http
 ## Validação
 
 `node tests/unit/rainbow-nowcast-check.mjs` verifica limites persistentes, concorrência real através do Worker/DO, reinício, reservas em falhas, isolamento de credenciais e interpretação da série. Playwright cobre gráfico/barra em computador e celular, abertura pelo chip, reserva por modelos, troca de ponto e resposta tardia. Testes utilizam dados simulados identificados como fixtures; validar disponibilidade real exige cadastrar a chave e consultar o endpoint.
+
+## Verificação independente na Liberdade
+
+O endpoint `/tv-rain?area=liberdade` pode retornar `evidence` à TV e ao celular. A série por minuto continua sendo a previsão da Rainbow. O consenso horário usa ECMWF, GFS e ICON via Open-Meteo e exige precipitação de pelo menos 0,2 mm em dois modelos na mesma faixa horária. A interface indica início incerto.
+
+Para ativar as medições, configure o JWT da Plataforma de Entrega de Dados do Cemaden como secret `CEMADEN_API_TOKEN` no Worker e renove-o conforme o prazo do emissor. A consulta usa dados recentes do município de São Paulo e considera estações até 3 km do ponto fixo com leitura válida dos últimos 20 minutos. A interface identifica a estação e a distância. O token só vai ao Cemaden. Falhas de uma fonte deixam a outra disponível.
+
+O radar do CGE continua disponível para consulta visual enquanto a cobertura, o georreferenciamento e a atualização de um feed automatizado são verificados. [Radar do CGE](https://cge.prefeitura.sp.gov.br/v3/mapas.jsp?arq=precipitacaoradar) · [API do Cemaden](https://sws.cemaden.gov.br/PED/api/ui/)
