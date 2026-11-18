@@ -96,7 +96,18 @@ public final class MonitorService extends Service {
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if((TEST+"_RAIN").equals(action)||(TEST+"_STORM").equals(action)){boolean stormPreview=(TEST+"_STORM").equals(action);cancelDemos();Prefs.status(this,stormPreview?"Prévia fictícia de chuva e relâmpagos em 10 segundos.":"Teste fictício de chuva em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){activeUntil=SystemClock.uptimeMillis()+RainOverlay.DURATION+800;rain.demo(stormPreview);Runnable finish=new Runnable(){public void run(){demoTasks.remove(this);if(!draining){activeUntil=0;tryTarget();tryDaily();stopIfIdle();}}};demoTasks.add(finish);main.postDelayed(finish,RainOverlay.DURATION+800);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
-  if((TEST+"_TARGET").equals(action)){Alert a=new Alert("DEMO-TARGET","earthquake","demo","M5,4 · Katmandu, Nepal","","earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);a.magnitude=5.4;a.depth=12;a.source="EXEMPLO";a.targetArea="Katmandu · Nepal";a.countryCode="NP";a.compact=true;a.originLongitude=85.324;a.originLatitude=27.717;Prefs.status(this,"Aviso menor fictício em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){showTargetCard(a,true);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
+  if((TEST+"_BRAZIL").equals(action)){
+    Alert a=new Alert("DEMO-BRAZIL","earthquake","demo",
+       "M3,8 · Jacobina, Bahia, Brasil","Profundidade: 10 km · FICTÍCIO",
+       "earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);
+    a.countryCode="BR";a.catalog="USGS_BR";a.source="SIMULAÇÃO · DADOS FICTÍCIOS";
+    a.magnitude=3.8;a.depth=10;a.originLongitude=-40.516;a.originLatitude=-11.181;
+    Prefs.status(this,"Prévia do modelo nacional selecionado · dados fictícios · 10 segundos. Volte ao vídeo.");
+    scheduleLocal(Collections.singletonList(a),true,false);
+    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
+   if((TEST+"_TARGET").equals(action)){Alert a=new Alert("DEMO-TARGET","earthquake","demo","M5,4 · Katmandu, Nepal","","earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);a.magnitude=5.4;a.depth=12;a.source="EXEMPLO";a.targetArea="Katmandu · Nepal";a.countryCode="NP";a.compact=true;a.originLongitude=85.324;a.originLatitude=27.717;Prefs.status(this,"Aviso menor fictício em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){showTargetCard(a,true);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if(TEST.equals(action)||TEST_REVISION.equals(action)||TEST_TSUNAMI.equals(action)||TEST_END.equals(action)||TEST_NO_THREAT.equals(action)||TEST_SEQUENCE.equals(action)){
    String scenario=TEST_REVISION.equals(action)?"revision":TEST_TSUNAMI.equals(action)?"tsunami":TEST_END.equals(action)?"ended":TEST_NO_THREAT.equals(action)?"noThreat":TEST_SEQUENCE.equals(action)?"sequence":"quake";
    scheduleDemo(scenario);if(Prefs.get(this).getBoolean("enabled",false)){ensurePolling();return START_STICKY;}return START_NOT_STICKY;
