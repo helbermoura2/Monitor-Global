@@ -18,7 +18,7 @@ test.describe('Monitor Global — smoke', () => {
 
   test('estrutura principal da UI está presente', async ({ page }) => {
     await page.goto('/index.html');
-    await expect(page.locator('.mg-logo-word')).toHaveText('MONITOR GLOBAL');
+    await expect(page.locator('.mg-logo-word')).toHaveText('ARGOSORBIS');
     await expect(page.locator('#mapContainer')).toBeVisible({ timeout: 15000 });
     await page.locator('#chips-row > [data-f="earthquake"]').click();
     await expect(page.locator('#events')).toBeVisible();
