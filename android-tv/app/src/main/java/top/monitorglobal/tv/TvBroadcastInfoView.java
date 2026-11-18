@@ -34,6 +34,7 @@ final class TvBroadcastInfoView extends View {
  private MapInset mapInset;
  private long marketSecond=Long.MIN_VALUE;private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private float mapReveal=1;
+ private long iconOpeningDelay;
  private String ticker,tickerDisplay="",tickerSource="";private final String baseTicker;
  private final Path outline=new Path(),telegramPlane=new Path();
  private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
@@ -156,6 +157,7 @@ final class TvBroadcastInfoView extends View {
   // Reuse the active strip position for incoming readings and voice results.
   effects.disableOpening();
  }
+ void iconOpeningDelay(long delay){iconOpeningDelay=delay;}
  void startPresentation(long when,boolean animated){started=when;effects.start(when);invalidate();}
  void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
  void refreshBriefing(){
@@ -273,8 +275,17 @@ final class TvBroadcastInfoView extends View {
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
  private void categoryIcon(Canvas c,int index,float x,float y,float size,long elapsed){
-  c.save();c.translate(0,effects.translate(elapsed)*.45f);
-  icon(c,index,x,y,size);c.restore();
+  long visibleElapsed=elapsed-iconOpeningDelay;
+  long duration=effects.full()?900:500;
+  if(!motionEnabled()||visibleElapsed<0||visibleElapsed>=duration){
+   icon(c,index,x,y,size);return;
+  }
+  float progress=TvEffectsController.phase(visibleElapsed,duration);
+  float lift=(float)Math.sin(Math.PI*progress);
+  float scale=1f+(effects.full()?.16f:.09f)*lift;
+  c.save();c.translate(x+size/2f,y+size/2f-5f*lift);
+  c.scale(scale,scale);
+  icon(c,index,-size/2f,-size/2f,size);c.restore();
  }
  private void metric(Canvas c,int index,String value,String caption,float x,long elapsed){
   // Every value/icon shares the same center as TEMPO, CHUVA and BRENT.

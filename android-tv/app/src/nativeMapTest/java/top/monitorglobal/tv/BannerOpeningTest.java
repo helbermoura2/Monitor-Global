@@ -51,6 +51,21 @@ public class BannerOpeningTest {
    host.startPresentation(SystemClock.uptimeMillis()-2300);b.eraseColor(Color.TRANSPARENT);host.draw(canvas);assertEquals(Color.MAGENTA,b.getPixel(800,Banner.insetDp(c)+60));
   }finally{b.recycle();}
  }
+ @Test public void weatherIconMovesAfterTheOpeningAndSettlesInItsSlot(){
+  WeatherForecast.Summary weather=new WeatherForecast.Summary(
+   "28°C","Nublado","Vento 11 km/h","Umidade 60%","Modelo horário",
+   System.currentTimeMillis()+600000,false,"28°C","29°C","60%","11 km/h","19 km/h","Cloudy");
+  TvBroadcastInfoView row=TvBroadcastInfoView.weather(c,null,weather,false);
+  Bitmap moving=scene(c,row,2750), settled=scene(c,row,3400), later=scene(c,row,4000);
+  try{
+   int changes=0;
+   for(int y=row.mapSpace+35;y<row.mapSpace+76;y++)for(int x=246;x<285;x++){
+    if(moving.getPixel(x,y)!=settled.getPixel(x,y))changes++;
+    assertEquals("settled category icon must stay fixed",settled.getPixel(x,y),later.getPixel(x,y));
+   }
+   assertTrue("visible weather icon must move after the opening",changes>25);
+  }finally{moving.recycle();settled.recycle();later.recycle();}
+ }
  @Test public void urgentAndShortPresentationsNeverWaitForOpening(){
   TvEffectsController urgent=new TvEffectsController(c,TvEffectsController.EffectsCategory.TSUNAMI,false);
   Alert bulletin=new Alert("test","tsunami","","","","warning",0,0,false);
