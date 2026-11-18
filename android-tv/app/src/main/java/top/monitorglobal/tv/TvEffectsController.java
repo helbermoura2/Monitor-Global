@@ -32,8 +32,8 @@ final class TvEffectsController {
  EffectsMode mode(){return stopped||!ValueAnimator.areAnimatorsEnabled()?EffectsMode.OFF:replay&&requested==EffectsMode.FULL?EffectsMode.SOFT:requested;}
  boolean animated(){return mode()!=EffectsMode.OFF;}
  boolean full(){return mode()==EffectsMode.FULL;}
- void start(long when){started=when;stopped=false;}
- void stop(){stopped=true;}
+ void start(long when){RuntimeDiagnostics.resetFrameClock();started=when;stopped=false;}
+ void stop(){RuntimeDiagnostics.resetFrameClock();stopped=true;}
  long elapsed(long now){return Math.max(0,now-started);}
  long entranceMs(){
   if(!animated())return 0;

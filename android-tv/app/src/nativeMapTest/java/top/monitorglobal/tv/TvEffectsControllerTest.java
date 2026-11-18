@@ -102,6 +102,13 @@ public class TvEffectsControllerTest {
    }}finally{baseline.recycle();}
   }
  }
+ @Test public void newPresentationDoesNotCountItsIdleGapAsJank(){
+  RuntimeDiagnostics.resetFrameClock();long before=RuntimeDiagnostics.frameSnapshot().optLong("gapsOver100ms");
+  RuntimeDiagnostics.frame(1000000000L,1000000,true);
+  TvEffectsController policy=new TvEffectsController(c,TvEffectsController.EffectsCategory.WEATHER,false);policy.start(2000);
+  RuntimeDiagnostics.frame(3600000000000L,1000000,true);
+  assertEquals(before,RuntimeDiagnostics.frameSnapshot().optLong("gapsOver100ms"));policy.stop();
+ }
  @Test public void approvedM6OpeningIsExclusiveToFullAndIndependentSwitch()throws Exception{
   for(TvEffectsController.EffectsMode mode:TvEffectsController.EffectsMode.values())for(boolean opening:new boolean[]{true,false}){
    TvEffectsController.select(c,mode);Prefs.get(c).edit().putBoolean(GlobalM6Intro.PREF_ENABLED,opening).commit();
