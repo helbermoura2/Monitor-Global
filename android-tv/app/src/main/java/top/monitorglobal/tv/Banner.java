@@ -6,7 +6,14 @@ final class Banner {
  Banner(Context c){context=c;}
  static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
- boolean show(Alert a,boolean demo,boolean replay){return showView(new NewsBannerView(context,a,demo,replay),BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20)),0,null);}
+ boolean show(Alert a,boolean demo,boolean replay){
+  long duration=BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20));
+  // Real Brazil earthquakes (any magnitude) use the approved editorial strip.
+  // Paired tsunami reports retain the existing multi-page seismic bulletin.
+  if(BrazilNationalBannerView.isBrazilAlert(context,a)&&!AlertPairing.isPair(a,a.companion))
+   return showView(new BrazilNationalBannerView(context,a,demo,replay),duration,0,null);
+  return showView(new NewsBannerView(context,a,demo,replay),duration,0,null);
+ }
  /** Regionally monitored M5.0–5.9 uses the genuine seismic bulletin and epicenter
   * map, preserving the original 15s regional slot and seismic 700ms wipe. */
  boolean showRegional(Alert alert,boolean demo,boolean replay){
@@ -42,7 +49,8 @@ final class Banner {
   // Preserve explicitly configured non-default widths.
   int requestedWidth=Prefs.get(context).getInt("themeWidthPercent",96);
   int bannerWidthPercent=requestedWidth==92?96:requestedWidth;
-  WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*bannerWidthPercent/100,dp(126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context)))+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
+  int contentHeight=row instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context));
+  WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*bannerWidthPercent/100,dp(contentHeight)+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
   try{
    BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(animated?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
    else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(animated?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
@@ -52,6 +60,7 @@ final class Banner {
     // Anchor both drawing and dismissal to the first visible frame, not construction/font loading.
     if(row instanceof NewsBannerView)((NewsBannerView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
     else if(row instanceof TvBroadcastInfoView)((TvBroadcastInfoView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
+    else if(row instanceof BrazilNationalBannerView)((BrazilNationalBannerView)row).startPresentation(android.os.SystemClock.uptimeMillis(),animated);
     if(animated)animateWipe(host,0,1);
     long delay=summaryCount>0?BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?BannerTimeline.WIPE_MS:0));
     main.postDelayed(dismiss,delay);return true;
