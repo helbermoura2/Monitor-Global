@@ -67,6 +67,15 @@ public final class MainActivity extends Activity {
   section("INÍCIO RÁPIDO");
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  section("EFEITOS VISUAIS DAS TARJAS");
+  button("Efeitos das tarjas: "+TvEffectsController.label(this),v->{
+   TvEffectsController.EffectsMode[] modes=TvEffectsController.EffectsMode.values();
+   TvEffectsController.select(this,modes[(TvEffectsController.selected(this).ordinal()+1)%modes.length]);
+   ((Button)v).setText("Efeitos das tarjas: "+TvEffectsController.label(this));
+  });
+  label("Completo, Suave ou Sem efeitos. A redução de movimento do Android/Fire TV tem prioridade. Alertas, sons e duração permanecem iguais.",14,false);
+  button("Testar todos os efeitos (simulações em 10 s)",v->launch(MonitorService.TEST+"_EFFECTS"));
+  button("Cancelar teste de efeitos",v->launch(MonitorService.TEST+"_EFFECTS_CANCEL"));
   section("REPLAY E RESUMOS SÍSMICOS");
   button("Replay · Último sismo M6+ mundial (72 h)",v->launch(MonitorService.REPLAY_M6));
    button("Abertura animada M6+: "+(Prefs.get(this).getBoolean(GlobalM6Intro.PREF_ENABLED,true)?"ativada (vídeo 2)":"desativada · tarja clássica"),v->{

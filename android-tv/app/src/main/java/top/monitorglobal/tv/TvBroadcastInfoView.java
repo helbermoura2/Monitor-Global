@@ -36,7 +36,10 @@ final class TvBroadcastInfoView extends View {
  private final Path outline=new Path(),telegramPlane=new Path();
  private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private boolean running;
- private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
+ private final boolean animate;
+ final TvEffectsController effects;
+ private WeatherSatelliteClient.Frame fadingFrame;private long imageReadyAt=-1;
+ private final RectF satelliteImageBounds=new RectF(0,0,310,150);
 
  private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
@@ -129,7 +132,7 @@ final class TvBroadcastInfoView extends View {
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
   return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
  }
- void startPresentation(long when,boolean animated){started=when;invalidate();}
+ void startPresentation(long when,boolean animated){started=when;effects.start(when);invalidate();}
  void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
  void refreshBriefing(){
   if(kind==RAIN){
@@ -232,11 +235,13 @@ final class TvBroadcastInfoView extends View {
   }
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
+  int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
   if(kind==RAIN)drawRain(c);
   else if(kind==WEATHER)drawWeather(c);
   else if(kind==BRENT)drawBrent(c);
   else if(kind==VOICE_STATUS)drawVoiceStatus(c);
   else drawSatelliteNews(c);
+  c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
   c.restore();
   drawRadar(c,elapsed); // One official eye in every informational strip.
   drawIdentity(c,elapsed);
@@ -337,7 +342,9 @@ final class TvBroadcastInfoView extends View {
    rounded(c,0,0,310,176,0xff0d2737,8);
    if(displayed!=null&&displayed.image!=null&&!displayed.image.isRecycled()){
     p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
-    c.drawBitmap(displayed.image,null,new RectF(0,0,310,150),p);
+    if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=SystemClock.uptimeMillis();}
+    p.setAlpha(effects.imageOpacity(SystemClock.uptimeMillis()-imageReadyAt));
+    c.drawBitmap(displayed.image,null,satelliteImageBounds,p);p.setAlpha(255);
    }
    fill(c,0,0,310,23,0xdd071724);
    label(c,"INFRAVERMELHO · SUDESTE",9,17,16,Color.WHITE,brand,286);
@@ -349,12 +356,13 @@ final class TvBroadcastInfoView extends View {
   c.restore();
  }
  @Override protected void onDraw(Canvas canvas){
-  super.onDraw(canvas);if(started==0)return;
+  super.onDraw(canvas);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();
   long now=SystemClock.uptimeMillis(),elapsed=now-started;
   canvas.save();canvas.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
   canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
   drawHeader(canvas,elapsed);canvas.restore();
   drawMap(canvas);canvas.restore();
+  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
   if(running&&isShown()){
    if(animate)postInvalidateOnAnimation();
    else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));
@@ -364,6 +372,6 @@ final class TvBroadcastInfoView extends View {
   super.onAttachedToWindow();running=true;
 
  }
- @Override protected void onDetachedFromWindow(){running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
+ @Override protected void onDetachedFromWindow(){running=false;effects.stop();fadingFrame=null;imageReadyAt=-1;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
 }
 

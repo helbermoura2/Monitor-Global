@@ -14,7 +14,7 @@ class UnifiedChrome(unittest.TestCase):
         quake = source("NewsBannerView.java")
         other = source("TvBroadcastInfoView.java")
         shared = source("BroadcastVisuals.java")
-        self.assertIn("BroadcastVisuals.radar(c,paint,elapsed,animate)", quake)
+        self.assertIn("BroadcastVisuals.radar(c,paint,elapsed,animate&&effects.animated())", quake)
         self.assertIn("BroadcastVisuals.radar(c,p,elapsed,animate)", other)
         self.assertIn("BroadcastVisuals.tickerOffset(elapsed,length,animate)", quake)
         self.assertIn("BroadcastVisuals.tickerOffset(elapsed,length,animate)", other)

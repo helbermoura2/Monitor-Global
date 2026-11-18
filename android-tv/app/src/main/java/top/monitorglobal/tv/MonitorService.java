@@ -3,16 +3,29 @@ import android.app.*;import android.content.*;import android.content.pm.ServiceI
 public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_M6="top.monitorglobal.tv.REPLAY_M6",REPLAY_BRAZIL="top.monitorglobal.tv.REPLAY_BRAZIL",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL",VOICE_RAIN="top.monitorglobal.tv.VOICE_RAIN";
- private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;
+ private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
- private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){TvSounds.stop();stopTarget();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
+ private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){cancelDemos();TvSounds.stop();stopTarget();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
  private final Runnable dailyTick=new Runnable(){public void run(){if(destroyed)return;checkDaily();rain.tick();brent.tick();long now=System.currentTimeMillis();main.postDelayed(this,Math.min(Math.min(DailySummarySchedule.delay(now),WeatherForecast.delay(now)),BrentQuote.delay(now,Prefs.get(MonitorService.this).getLong("brentLastSlot",0))));}};
  @Override public void onCreate(){super.onCreate();RuntimeDiagnostics.start(this);banner=new Banner(this);compact=new CompactNotice(this);targetSettingsRevision=Prefs.get(this).getLong("targetSettingsRevision",0);targetsEnabled=Prefs.get(this).getBoolean("targetAlerts",true);tracker=Prefs.tracker(this);feed=new FeedClient();daily=new DailySummarySchedule(Prefs.get(this).getString("dailyDeliveredDay",""));brent=new BrentMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!rain.presentationActive());rain=new RainMonitor(this,()->!destroyed&&!localBusy()&&!daily.displaying()&&!brent.showing());rain.setManualFinished(this::stopIfIdle);IntentFilter filter=new IntentFilter(Intent.ACTION_SCREEN_OFF);filter.addAction(Intent.ACTION_SCREEN_ON);filter.addAction(Intent.ACTION_TIME_CHANGED);filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);if(Build.VERSION.SDK_INT>=33)registerReceiver(screenChanges,filter,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(screenChanges,filter);NotificationManager n=getSystemService(NotificationManager.class);NotificationChannel service=new NotificationChannel("monitoring","Monitoramento contínuo",NotificationManager.IMPORTANCE_LOW);service.setSound(null,null);n.createNotificationChannel(service);NotificationChannel alerts=new NotificationChannel("alerts","Terremotos e tsunami",NotificationManager.IMPORTANCE_HIGH);alerts.setSound(null,null);n.createNotificationChannel(alerts);}
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Argos Orbis TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
+  if((TEST+"_EFFECTS_CANCEL").equals(action)){cancelDemos();Prefs.status(this,"Simulações canceladas.");stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
+  if((TEST+"_EFFECTS").equals(action)){
+   if(draining||compactBusy||!queue.isEmpty()){Prefs.status(this,"Teste indisponível durante alerta real.");return START_STICKY;}
+   cancelDemos();rain.hide();brent.hide();interruptDaily();effectsDemoActive=true;
+   long delay=10000;
+   for(TvEffectsController.EffectsCategory category:TvEffectsController.EffectsCategory.values()){
+    Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&effectsDemoActive&&!draining&&queue.isEmpty()&&screenReady())banner.showEffectsDemo(category);}};
+    demoTasks.add(task);main.postDelayed(task,delay);delay+=TvEffectsDemo.duration(category)+1000;
+   }
+   Runnable end=new Runnable(){public void run(){demoTasks.remove(this);effectsDemoActive=false;activeUntil=0;stopIfIdle();tryTarget();tryDaily();}};
+   demoTasks.add(end);main.postDelayed(end,delay);Prefs.status(this,"Dez simulações silenciosas em 10 segundos; canceláveis, com prioridade dos alertas reais.");
+   if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
   if(REPLAY_TARGET.equals(action)){
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
    Alert saved=Prefs.lastTarget(this);
@@ -126,7 +139,7 @@ public final class MonitorService extends Service {
   if(!Prefs.get(this).getBoolean("enabled",false)){stopSelf();return START_NOT_STICKY;}
   ensurePolling();checkDaily();rain.tick();brent.tick();return START_STICKY;
  }
- private void cancelDemos(){++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
+ private void cancelDemos(){if(effectsDemoActive){effectsDemoActive=false;banner.hide();activeUntil=0;}++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
  private void scheduleDemo(String scenario){scheduleLocal(DemoAlerts.create(scenario,System.currentTimeMillis()),true,false);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay){scheduleLocal(examples,demo,replay,10000);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay,long minimumDelayMs){

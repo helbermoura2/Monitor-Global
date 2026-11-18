@@ -20,10 +20,11 @@ final class NewsBannerView extends View {
  private final boolean demo,replay,regional,globalM6Intro;
  private final boolean summary;private final String summaryDay;private final long pageMillis;private final DailySeismicTotals summaryTotals;
  private long started;private boolean presentationAnimated;
- void startPresentation(long when,boolean animated){started=when;presentationAnimated=animated&&animate;invalidate();}
+ void startPresentation(long when,boolean animated){started=when;effects.start(when);presentationAnimated=animated&&android.animation.ValueAnimator.areAnimatorsEnabled();invalidate();}
  private final String ticker;
  private final int accent,foreground,background;
- private final boolean animate=android.animation.ValueAnimator.areAnimatorsEnabled();
+ private final boolean animate;
+ final TvEffectsController effects;
  private boolean running;private MapInset mapInset;private float mapReveal=1;
  private final boolean mapBelow;private final int mapSpace;
  void mapReveal(float p){if(mapReveal!=p){mapReveal=p;invalidate();}}
@@ -39,7 +40,7 @@ final class NewsBannerView extends View {
    source=!a.source.isEmpty()?a.source:split<0?"Fonte não informada":details.substring(split+3);
    oldMagnitude=BannerTimeline.magnitudeChanged(a)?String.format(java.util.Locale.forLanguageTag("pt-BR"),"M%.1f",a.previousMagnitude):"";
    String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):a.compact?"SISMO REGIONAL · ÁREA MONITORADA":!a.revision.isEmpty()?(a.revision.startsWith("Nova estimativa")?"NOVA ESTIMATIVA DE OUTRA FONTE":"ATUALIZAÇÃO DO SISMO"):!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES DO DIA":"NOVO SISMO";
-   heading=(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO · ")+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
+   heading=(demo&&summary?"SIMULAÇÃO FICTÍCIA · ":"")+(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO · ")+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
   }
  }
  NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated){
@@ -51,8 +52,11 @@ final class NewsBannerView extends View {
  }
  NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts,day,repeated,complete,null);}
   NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete,DailySeismicTotals totals){this(context,alerts.get(0),false,repeated,alerts,day,complete,totals,false);}
+ static NewsBannerView simulationSummary(Context c,java.util.List<Alert> alerts){return new NewsBannerView(c,alerts.get(0),true,false,alerts,"SIMULAÇÃO",true,null,false);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete,DailySeismicTotals totals,boolean isRegional){
   super(context);OfficialArgosLogo.prepare(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;regional=isRegional&&!summary;globalM6Intro=GlobalM6Intro.eligible(context,a,demo,replay,summary,regional);
+  effects=new TvEffectsController(context,summary?TvEffectsController.EffectsCategory.SUMMARY:regional?TvEffectsController.EffectsCategory.REGIONAL:"tsunami".equals(a.kind)||a.companion!=null?TvEffectsController.EffectsCategory.TSUNAMI:TvEffectsController.EffectsCategory.GLOBAL_M6,replay||!a.revision.isEmpty());
+  animate=effects.animated();
   brand=OledNewsChrome.titleFont(null);data=OledNewsChrome.regularFont();
   paint.setTypeface(brand);paint.setTextSize(15);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
   identityTextWidths[0]=paint.measureText("argosorbis.com.br");identityTextWidths[1]=paint.measureText("@argosorbis");identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
@@ -98,15 +102,17 @@ final class NewsBannerView extends View {
   OledNewsChrome.base(c,paint);
   breaking(c,elapsed);
   OledNewsChrome.tab(c,paint,badgeLabel(),false);
-  BroadcastVisuals.radar(c,paint,elapsed,animate);
+  BroadcastVisuals.radar(c,paint,elapsed,animate&&effects.animated());
   drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
   int index=summary?BannerTimeline.summaryPage(contentElapsed,pages.length,presentationAnimated):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
   long fadeElapsed=summary?BannerTimeline.summaryFadeElapsed(contentElapsed,index):within;
-  if((summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
-   float t=BannerTimeline.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
+  int effectLayer=c.saveLayerAlpha(8,31,829,94,effects.opacity(elapsed));
+  if(effects.animated()&&(summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
+   float t=effects.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
+  c.restoreToCount(effectLayer);effects.draw(c,elapsed,false,false);
   if(summary&&summaryTotals!=null)drawSummaryTotals(c);
   else{
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
@@ -125,7 +131,7 @@ final class NewsBannerView extends View {
   drawMap(c,index,elapsed,fadeElapsed);
   // Approved M6+ "video 2" opening sits over the genuine seismic bulletin.
   // The underlying map, brand and data are not destroyed or delayed.
-  if(globalM6Intro&&GlobalM6Intro.visible(elapsed,presentationAnimated)){
+  if(globalM6Intro&&effects.full()&&GlobalM6Intro.visible(elapsed,presentationAnimated)){
    c.save();c.translate(0,mapBelow?0:mapSpace);
    GlobalM6Intro.draw(c,paint,elapsed,root,demo);
    c.restore();
@@ -154,8 +160,8 @@ final class NewsBannerView extends View {
   if(mapInset==null||mapReveal<=0||mapSpace==0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);float slide=(1-mapReveal)*180;
   c.translate(649,mapBelow?4-slide:slide);
-  boolean fading=(summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
-  if(fading){float t=BannerTimeline.pageProgress(fadeElapsed);int layer=c.saveLayerAlpha(0,0,310,176,(int)(255*(1-t)));mapInset.draw(c,pages[(index+pages.length-1)%pages.length].alert,brand,accent);c.restoreToCount(layer);layer=c.saveLayerAlpha(0,0,310,176,(int)(255*t));mapInset.draw(c,pages[index].alert,brand,accent);c.restoreToCount(layer);}
+  boolean fading=effects.animated()&&(summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
+  if(fading){float t=effects.pageProgress(fadeElapsed);int layer=c.saveLayerAlpha(0,0,310,176,(int)(255*(1-t)));mapInset.draw(c,pages[(index+pages.length-1)%pages.length].alert,brand,accent);c.restoreToCount(layer);layer=c.saveLayerAlpha(0,0,310,176,(int)(255*t));mapInset.draw(c,pages[index].alert,brand,accent);c.restoreToCount(layer);}
   else mapInset.draw(c,pages[index].alert,brand,accent);
   c.restore();
  }
@@ -172,7 +178,7 @@ final class NewsBannerView extends View {
  private void breaking(Canvas c,long elapsed){
   OledNewsChrome.tab(c,paint,summary?"RESUMO DIÁRIO":regional?"AVISO REGIONAL":"BREAKING NEWS",true);
   // Keep the native breaking-news shine, clipped to the approved left red label.
-  if(animate&&!replay&&!summary){
+  if(effects.full()&&!replay&&!summary){
    float phase=(elapsed%3200)/3200f;
    if(phase<.7f){
     float left=OledNewsChrome.LEFT,right=OledNewsChrome.LEFT_TAB_RIGHT,width=right-left;
@@ -269,5 +275,5 @@ final class NewsBannerView extends View {
  private static String date(long at,String pattern){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat(pattern,java.util.Locale.forLanguageTag("pt-BR"));f.setTimeZone(java.util.TimeZone.getTimeZone("America/Sao_Paulo"));return f.format(new java.util.Date(at));}
  static String tsunamiLabel(String state){switch(state){case "warning":return "AVISO DE TSUNAMI";case "watch":return "VIGILÂNCIA DE TSUNAMI";case "advisory":return "ATENÇÃO PARA TSUNAMI";case "ended":return "AVISO ENCERRADO · COSTAS CITADAS";case "noThreat":return "SEM AMEAÇA · COSTAS CITADAS";case "unknown":return "SITUAÇÃO DE TSUNAMI NÃO CONFIRMADA";default:return "BOLETIM INFORMATIVO DE TSUNAMI";}}
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();RuntimeDiagnostics.resetFrameClock();running=true;if(mapSpace>0){mapInset=new MapInset(getContext(),this::invalidate);for(Page p:pages)mapInset.prepare(p.alert);}invalidate();}
- @Override protected void onDetachedFromWindow(){RuntimeDiagnostics.resetFrameClock();running=false;if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
+ @Override protected void onDetachedFromWindow(){RuntimeDiagnostics.resetFrameClock();running=false;effects.stop();if(mapInset!=null){mapInset.close();mapInset=null;}super.onDetachedFromWindow();}
 }

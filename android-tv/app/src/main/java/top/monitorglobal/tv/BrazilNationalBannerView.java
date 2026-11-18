@@ -40,14 +40,20 @@ final class BrazilNationalBannerView extends View {
  private final String place,headline,magnitude,depth,time,source,ticker;
  private final Typeface bold=Typeface.create("sans-serif-condensed",Typeface.BOLD);
  private final Typeface regular=Typeface.create("sans-serif",Typeface.NORMAL);
- private final boolean animationEnabled=android.animation.ValueAnimator.areAnimatorsEnabled();
+ final TvEffectsController effects;
+ private final RectF stateArea=new RectF();
+ private final Path statusRibbon=new Path(),flagDiamond=new Path();
+ private final LinearGradient footerGradient;
  private boolean running;private long started;private boolean animated;
  private long clockMinute=-1;private String clock="--:--";
 
  BrazilNationalBannerView(Context context,Alert event,boolean demonstration,boolean repeated){
   super(context);
   alert=event;demo=demonstration;replay=repeated;
+  effects=new TvEffectsController(context,TvEffectsController.EffectsCategory.BRAZIL,replay);
   backup=Prefs.get(context).getInt(PREF_MODEL,MODEL_APPROVED)==MODEL_BACKUP;
+  footerGradient=new LinearGradient(0,BODY_END,0,FOOTER_END,backup?new int[]{0xff072f36,0xff00434b}:new int[]{0xffb80000,0xff850000},null,Shader.TileMode.CLAMP);
+  statusRibbon.moveTo(711,0);statusRibbon.lineTo(949,0);statusRibbon.lineTo(960,25);statusRibbon.lineTo(696,25);statusRibbon.close();
   geography=BrazilGeoStates.load(context);
   state=geography==null?null:geography.locate(event);
   place=place(event,state);
@@ -132,7 +138,7 @@ final class BrazilNationalBannerView extends View {
   return location.isEmpty()?(s==null?"Brasil":s.name+" ("+s.uf+")"):location;
  }
  void startPresentation(long when,boolean allowAnimation){
-  started=when;animated=allowAnimation&&animationEnabled;invalidate();
+  started=when;effects.start(when);animated=allowAnimation&&effects.animated();invalidate();
  }
  boolean isBackup(){return backup;}
  private void fill(Canvas c,float l,float t,float r,float b,int color){
@@ -158,13 +164,16 @@ final class BrazilNationalBannerView extends View {
  }
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);if(started==0)return;
-  long elapsed=Math.max(0,SystemClock.uptimeMillis()-started);
+  long drawStarted=SystemClock.elapsedRealtimeNanos();
+  long elapsed=effects.elapsed(SystemClock.uptimeMillis());
   canvas.save();canvas.scale(getWidth()/WIDTH,getHeight()/HEIGHT);
   drawHeader(canvas,elapsed);
   drawBody(canvas,elapsed);
-  drawFooter(canvas,elapsed);
+  int footer=canvas.saveLayerAlpha(0,BODY_END,WIDTH,HEIGHT,animated?effects.opacity(elapsed):255);
+  drawFooter(canvas,elapsed);canvas.restoreToCount(footer);
   canvas.restore();
-  if(running&&animated)postInvalidateOnAnimation();
+  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animated);
+  if(running){if(animated)postInvalidateOnAnimation();else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));}
  }
  private void drawHeader(Canvas c,long elapsed){
   if(backup){
@@ -180,7 +189,7 @@ final class BrazilNationalBannerView extends View {
   String status=demo?"SIMULAÇÃO · NÃO É ALERTA REAL":replay?
     "REPLAY · REGISTRO HISTÓRICO":"MONITORAMENTO NACIONAL";
   // A red/white clipped status ribbon lives directly above the main bar.
-  Path flag=new Path();flag.moveTo(711,0);flag.lineTo(949,0);flag.lineTo(960,25);flag.lineTo(696,25);flag.close();
+  Path flag=statusRibbon;
   p.setShader(null);p.setStyle(Paint.Style.FILL);p.setColor(backup?0xffe9eef0:0xffba0b14);c.drawPath(flag,p);
   centered(c,status,827,18,17,backup?BLACK:WHITE,bold,224);
  }
@@ -188,19 +197,21 @@ final class BrazilNationalBannerView extends View {
   fill(c,0,26,WIDTH,BODY_END,WHITE);
   if(backup){
    fill(c,0,26,219,BODY_END,0xffd6e6e9);
-   if(geography!=null)drawStateMap(c,new RectF(10,30,211,136),elapsed,true);
+   if(geography!=null)drawStateMap(c,stateArea(10,30,211,136),elapsed,true);
    else ink(c,"MAPA INDISPONÍVEL",22,90,14,0xff355a64,regular,190);
   }else{
    fill(c,0,26,109,BODY_END,RED);
-   centered(c,"BRASIL",54,91,27,WHITE,bold,100);
-   if(geography!=null)drawStateMap(c,new RectF(112,31,214,135),elapsed,false);
+   c.save();c.clipRect(0,26,109,BODY_END);c.translate(animated?-effects.translate(elapsed):0,0);
+   centered(c,"BRASIL",54,91,27,WHITE,bold,100);c.restore();
+   if(geography!=null)drawStateMap(c,stateArea(112,31,214,135),elapsed,false);
    else ink(c,"BR",137,100,35,0xff6c7780,bold,75);
   }
   float textX=backup?233:223;
   float textRight=812;
-  int alpha=animated?Math.round(255f*Math.min(1f,Math.max(0,(elapsed-160)/420f))):255;
+  int alpha=animated?effects.opacity(elapsed):255;
   c.saveLayerAlpha(textX,30,textRight,140,Math.max(0,alpha));
-  ink(c,headline,textX,87,37,BLACK,bold,textRight-textX-8);
+  c.save();c.translate(0,animated?effects.translate(elapsed):0);
+  ink(c,headline,textX,87,37,BLACK,bold,textRight-textX-8);c.restore();
   String detail=place+"   •   "+depth+"   •   "+time;
   ink(c,detail,textX,118,22,0xff4c4c4c,regular,textRight-textX-14);
   c.restore();
@@ -210,16 +221,17 @@ final class BrazilNationalBannerView extends View {
  }
  private void drawBrazilFlag(Canvas c,float x,float y,float w,float h){
   fill(c,x,y,x+w,y+h,0xff009b3a);
-  Path diamond=new Path();diamond.moveTo(x+w/2,y+2);diamond.lineTo(x+w-4,y+h/2);
+  Path diamond=flagDiamond;diamond.reset();diamond.moveTo(x+w/2,y+2);diamond.lineTo(x+w-4,y+h/2);
   diamond.lineTo(x+w/2,y+h-2);diamond.lineTo(x+4,y+h/2);diamond.close();
   p.setColor(0xffffdf00);p.setStyle(Paint.Style.FILL);c.drawPath(diamond,p);
   p.setColor(0xff002776);c.drawCircle(x+w/2,y+h/2,h*.27f,p);
  }
+ private RectF stateArea(float l,float t,float r,float b){stateArea.set(l,t,r,b);return stateArea;}
  private void drawStateMap(Canvas c,RectF area,long elapsed,boolean teal){
   float[] marker=geography.draw(c,p,area,state,alert,teal);
   if(marker==null)return;
   p.setShader(null);p.setStyle(Paint.Style.STROKE);
-  if(animated){
+  if(animated&&effects.full()){
    float phase=(elapsed%2000L)/2000f;
    p.setStrokeWidth(1.6f);p.setColor(Color.argb(Math.round(180*(1-phase)),216,0,15));
    c.drawCircle(marker[0],marker[1],4f+14f*phase,p);
@@ -229,9 +241,7 @@ final class BrazilNationalBannerView extends View {
  }
  private void drawFooter(Canvas c,long elapsed){
   final int base=backup?0xff063c46:0xffa50000;
-  p.setShader(new LinearGradient(0,BODY_END,0,FOOTER_END,
-    backup?new int[]{0xff072f36,0xff00434b}:new int[]{0xffb80000,0xff850000},
-    null,Shader.TileMode.CLAMP));
+  p.setShader(footerGradient);
   p.setStyle(Paint.Style.FILL);c.drawRect(0,BODY_END,WIDTH,FOOTER_END,p);p.setShader(null);
   fill(c,0,BODY_END,WIDTH,BODY_END+1,backup?0xffd3e8e8:0xffe54444);
   ink(c,"SISMO NO BRASIL",17,167,21,WHITE,bold,166);
@@ -260,5 +270,5 @@ final class BrazilNationalBannerView extends View {
   centered(c,clock,926,168,22,WHITE,bold,63);
  }
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();running=true;invalidate();}
- @Override protected void onDetachedFromWindow(){running=false;super.onDetachedFromWindow();}
+ @Override protected void onDetachedFromWindow(){running=false;effects.stop();super.onDetachedFromWindow();}
 }

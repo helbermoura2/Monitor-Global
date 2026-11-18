@@ -32,6 +32,7 @@ final class GlobalM6Intro {
  private static final Typeface BOLD=Typeface.create("sans-serif",Typeface.BOLD);
  private static final Typeface NORMAL=Typeface.create("sans-serif",Typeface.NORMAL);
 
+ private static final LinearGradient BAND=new LinearGradient(0,30,0,94,new int[]{0xff93040e,0xffdd1930,0xff79010c},null,Shader.TileMode.CLAMP);
  private GlobalM6Intro(){}
 
  static boolean eligible(Context context,Alert a,boolean demo,boolean replay,
@@ -89,8 +90,7 @@ final class GlobalM6Intro {
 
   // Draw only inside the already-existing 960x126 overlay geometry.
   // Every white/red panel is physically joined: no disconnected red tags.
-  p.setShader(new LinearGradient(0,30,0,94,
-    new int[]{0xff93040e,0xffdd1930,0xff79010c},null,Shader.TileMode.CLAMP));
+  p.setShader(BAND);
   p.setStyle(Paint.Style.FILL);
   c.drawRect(8,30,925,94,p);p.setShader(null);
   fill(c,p,8,30,925,31,0xfff04c54);
