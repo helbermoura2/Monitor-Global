@@ -9,7 +9,14 @@ final class BannerRevealLayout extends FrameLayout {
  void configure(TvEffectsController policy){configure(policy,Long.MAX_VALUE);}
  void configure(TvEffectsController policy,long duration){effects=policy;opening=new BannerOpening(policy,duration);exiting=false;sceneStarted=false;}
  long openingLead(){return opening!=null&&opening.visible(0)?opening.transitionStart():0;}
- void startPresentation(long when){sceneStart=when;sceneStarted=true;invalidate();}
+ void startPresentation(long when){
+  sceneStart=when;sceneStarted=true;
+  if(getChildAt(0) instanceof TvBroadcastInfoView){
+   long openingMs=opening!=null&&opening.visible(0)?opening.duration():0;
+   ((TvBroadcastInfoView)getChildAt(0)).iconOpeningDelay(openingMs);
+  }
+  invalidate();
+ }
  void exiting(){exiting=true;}
  private boolean brazil(){return getChildCount()>0&&getChildAt(0) instanceof BrazilNationalBannerView;}
  private float bodyHeight(){return brazil()?BrazilNationalBannerView.HEIGHT:126f;}
