@@ -143,7 +143,7 @@ jobs:
         id: service
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs; then
+          if git diff --quiet HEAD^ HEAD -- rainbow-products-worker.mjs monitor-global-worker-7_7_0.js worker/weather-briefing.mjs worker/tv-rain.mjs worker/rain-evidence.mjs; then
             echo 'deploy=false' >> "$GITHUB_OUTPUT"
           else
             echo 'deploy=true' >> "$GITHUB_OUTPUT"
