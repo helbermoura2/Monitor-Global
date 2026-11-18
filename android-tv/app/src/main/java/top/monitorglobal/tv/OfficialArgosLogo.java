@@ -24,11 +24,10 @@ final class OfficialArgosLogo {
  private static final float X=830f,Y=31f,W=95f,H=62f;
  private static final float ART_W=664f,ART_H=430f;
  private static final float CX=332f,CY=215f;
- private static final RectF RADAR=new RectF(186,69,478,361);
  private static volatile Bitmap base,still;
  private static final Object LOCK=new Object();
  private static final ThreadLocal<Paint> BRUSH=ThreadLocal.withInitial(()->new Paint(Paint.ANTI_ALIAS_FLAG));
- private static final ThreadLocal<Path> EYE=ThreadLocal.withInitial(OfficialArgosLogo::eyePath);
+ private static final ThreadLocal<Path> EYE=ThreadLocal.withInitial(Path::new);
  private static final RectF DESTINATION=new RectF(X,Y,X+W,Y+H);
  private static final android.graphics.Typeface INSCRIPTION=android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL);
  private OfficialArgosLogo(){}
@@ -56,42 +55,30 @@ final class OfficialArgosLogo {
   return phase>.81f&&phase<.89f
     ?Math.max(.015f,Math.abs(2f*(phase-.81f)/.08f-1f)):1f;
  }
- private static Path eyePath(){
-  // Same broad eyelid silhouette as the supplied official 1440x960 video.
-  Path eye=new Path();
-  eye.moveTo(59,215);
-  eye.quadTo(CX,-51,605,215);
-  eye.quadTo(CX,481,59,215);
-  eye.close();
-  return eye;
- }
  static void draw(Canvas c,long elapsed,boolean animate){
-  Bitmap artwork=animate?base:still;
-  if(artwork==null)artwork=base!=null?base:still;
+  Bitmap artwork=base!=null?base:still;
   if(artwork==null)return;
   Paint p=BRUSH.get();p.reset();p.setAntiAlias(true);p.setFilterBitmap(true);
-  p.setColor(Color.WHITE);p.setStyle(Paint.Style.FILL);p.setShader(null);
   c.save();c.clipRect(X,Y,X+W,Y+H);
-  if(!animate||base==null){
-   // Use Android's destination-bitmap path for a pixel-identical static asset.
-   c.drawBitmap(artwork,null,DESTINATION,p);
-  }else{
-   c.save();c.translate(X,Y);c.scale(W/ART_W,H/ART_H);
-   Path eye=EYE.get();
-   c.drawBitmap(base,0,0,p);
-   float open=eyeOpenness(elapsed,true);
-   if(open<.999f){
-    // Only the eye area is replaced; static labels and symbols are untouched.
-    p.setColor(Color.BLACK);c.drawPath(eye,p);
-    c.save();c.scale(1f,open,CX,CY);c.clipPath(eye);
-    p.setColor(Color.WHITE);c.drawBitmap(base,0,0,p);
-    drawPointer(c,p,elapsed);
-    c.restore();
-   }else{
-    c.save();c.clipPath(eye);drawPointer(c,p,elapsed);c.restore();
-   }
-   c.restore();
-  }
+  c.drawBitmap(artwork,null,DESTINATION,p);
+  c.save();c.translate(X,Y);c.scale(W/ART_W,H/ART_H);
+  Path eye=EYE.get();
+  eye.reset();
+  eye.moveTo(59,CY);eye.quadTo(CX,-51,605,CY);eye.quadTo(CX,481,59,CY);eye.close();
+  p.setColor(Color.BLACK);p.setStyle(Paint.Style.FILL_AND_STROKE);p.setStrokeWidth(13f);
+  c.drawPath(eye,p);
+  eye.reset();
+  float open=eyeOpenness(elapsed,animate);
+  eye.moveTo(59,CY);eye.quadTo(CX,CY-266*open,605,CY);
+  eye.quadTo(CX,CY+266*open,59,CY);eye.close();
+  c.save();c.clipPath(eye);
+  c.translate(CX,CY);c.scale(3.74f,3.74f);c.translate(-64,-64);
+  float sweep=animate?Math.floorMod(elapsed,BroadcastVisuals.RADAR_PERIOD_MS)*360f/BroadcastVisuals.RADAR_PERIOD_MS:225f;
+  RadarLogoView.drawRadar(c,p,sweep);
+  c.restore();
+  p.setColor(0xffc4a16a);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(7f);
+  c.drawPath(eye,p);
+  c.restore();
   drawInscriptions(c,p);
   c.restore();
  }
@@ -104,19 +91,5 @@ final class OfficialArgosLogo {
   p.setTextSize(7.5f);c.drawText("ΠΑΝΟΠΤΗΣ",878f,42f,p);
   p.setTextSize(7.2f);c.drawText("CUSTOS ORBIS",878f,89.5f,p);
   p.setTextAlign(Paint.Align.LEFT);
- }
- private static void drawPointer(Canvas c,Paint p,long elapsed){
-  float sweep=Math.floorMod(elapsed,BroadcastVisuals.RADAR_PERIOD_MS)*360f/BroadcastVisuals.RADAR_PERIOD_MS;
-  c.save();c.rotate(sweep,CX,CY);
-  p.setShader(null);p.setStyle(Paint.Style.FILL);
-  p.setColor(0x3347ffee);
-  c.drawArc(RADAR,-119,29,true,p);
-  p.setColor(0x553affed);
-  c.drawArc(RADAR,-95,7,true,p);
-  p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(5f);p.setColor(0xff57f7ed);
-  c.drawLine(CX,CY,CX,76f,p);
-  p.setStyle(Paint.Style.FILL);p.setColor(0xff8cfff4);
-  c.drawCircle(CX,CY,6f,p);
-  c.restore();
  }
 }

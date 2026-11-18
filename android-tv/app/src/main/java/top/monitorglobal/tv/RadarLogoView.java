@@ -11,12 +11,10 @@ import android.view.View;
 
 /** Argos Orbis: gold blinking eye with stationary teal radar and rotating pointer. */
 public final class RadarLogoView extends View {
- private static final int CYAN=0xff1fcac5,GOLD=0xffc4a16a;
+ private static final int GOLD=0xffc4a16a;
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- private static final Path SECTOR=new Path(),QUAKE=new Path(),WAVES=new Path();
+ private static final Path QUAKE=new Path(),WAVES=new Path();
  static {
-  SECTOR.moveTo(64,64);SECTOR.lineTo(64,26);
-  SECTOR.arcTo(26,26,102,102,-90,42,false);SECTOR.close();
   QUAKE.moveTo(17,26);QUAKE.lineTo(24,26);QUAKE.lineTo(24,21);
   QUAKE.lineTo(29,21);QUAKE.lineTo(29,28);QUAKE.lineTo(34,19);
   QUAKE.lineTo(38,30);QUAKE.lineTo(42,24);
@@ -38,19 +36,11 @@ public final class RadarLogoView extends View {
   float scale=Math.min(getWidth(),getHeight())/128f;
   if(scale<=0f){c.restoreToCount(save);return;}
   c.translate((getWidth()-128*scale)/2f,(getHeight()-128*scale)/2f);c.scale(scale,scale);
-  final float phase=(SystemClock.uptimeMillis()%11000)/11000f;
-  float open=1f;
-  if(phase>.81f && phase<.89f){
-   final float p=(phase-.81f)/.08f;
-   open=Math.max(.015f,Math.abs(2f*p-1f));
-  }
+  float open=OfficialArgosLogo.eyeOpenness(SystemClock.uptimeMillis(),ValueAnimator.areAnimatorsEnabled());
   drawArtwork(c,paint,sweep,open);
   c.restoreToCount(save);
  }
- /** Shared vector artwork for the official Argos Orbis emblem.
-  * Both the home header and all 960x126 lower-thirds use this exact geometry;
-  * only the layout transform differs. No bitmap or separate simplified logo.
-  */
+ /** Full vector artwork for in-app headers and the lower-third fallback. */
  static void drawArtwork(Canvas c,Paint paint,float sweep,float open){
   drawArtwork(c,paint,sweep,open,true);
  }
@@ -61,17 +51,8 @@ public final class RadarLogoView extends View {
   eye.quadTo(64,64-54*open,120,64);
   eye.quadTo(64,64+54*open,8,64);eye.close();
   c.save();c.clipPath(eye);
-  paint.setStyle(Paint.Style.FILL);paint.setColor(0xff052f35);
-  c.drawCircle(64,64,38,paint);
-  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3.5f);paint.setColor(CYAN);
-  for(int r:new int[]{38,28,17})c.drawCircle(64,64,r,paint);
-  // Stationary radar details from the official mark; pointer is the only rotation.
-  paint.setColor(0xff14a4a6);paint.setStrokeWidth(2.8f);
-  for(int j=0;j<12;j++)c.drawArc(32,32,96,96,j*30-87,15,false,paint);
-  c.save();c.rotate(sweep,64,64);
-  paint.setStyle(Paint.Style.FILL);paint.setColor(0x7742f5e7);c.drawPath(SECTOR,paint);
-  paint.setColor(0xff3affed);c.drawCircle(64,64,5.5f,paint);
-  c.restore();c.restore();
+  drawRadar(c,paint,sweep);
+  c.restore();
   paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4f);paint.setColor(GOLD);
   c.drawPath(eye,paint);
   // Original four symbols from the site: seismic, compass, cyclone, and globe.
@@ -95,6 +76,39 @@ public final class RadarLogoView extends View {
    paint.setTextAlign(Paint.Align.LEFT);
   }
  }
+ // Shared radar geometry for the settings screens and every TV tarja.
+ private static final float[] CONTACT_X={80,45,56,81};
+ private static final float[] CONTACT_Y={49,55,86,82};
+ private static final int TRAIL_SEGMENTS=12;
+ private static final int[] TRAIL=new int[TRAIL_SEGMENTS];
+ static{
+  for(int i=0;i<TRAIL.length;i++)
+   TRAIL[i]=android.graphics.Color.rgb(4+2*i,29+8*i,37+8*i);
+ }
+ static void drawRadar(Canvas c,Paint paint,float sweep){
+  paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(0xff041d25);
+  c.drawCircle(64,64,39,paint);
+  c.save();c.rotate(sweep,64,64);
+  for(int i=0;i<TRAIL.length;i++){
+   paint.setColor(TRAIL[i]);
+   c.drawArc(25,25,103,103,-162+6*i,6.2f,true,paint);
+  }
+  paint.setColor(0xff92ffeb);paint.setStrokeWidth(1.2f);
+  c.drawLine(64,64,64,25,paint);
+  c.restore();
+  paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(.8f);paint.setColor(0xff297c7d);
+  c.drawCircle(64,64,38,paint);c.drawCircle(64,64,32,paint);
+  c.drawCircle(64,64,21,paint);c.drawCircle(64,64,11,paint);
+  paint.setStyle(Paint.Style.FILL);
+  for(int i=0;i<CONTACT_X.length;i++){
+   double bearing=Math.toDegrees(Math.atan2(CONTACT_Y[i]-64,CONTACT_X[i]-64))+90;
+   double age=(sweep-bearing+720)%360;
+   float glow=.24f+.76f*Math.max(0,1-(float)age/100);
+   paint.setColor(android.graphics.Color.rgb(Math.round(133*glow),Math.round(255*glow),Math.round(221*glow)));
+   c.drawCircle(CONTACT_X[i],CONTACT_Y[i],1.65f,paint);
+  }
+  paint.setColor(0xff67ddd0);c.drawCircle(64,64,1.7f,paint);
+ }
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();start();}
  @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
  @Override protected void onWindowVisibilityChanged(int visibility){
@@ -104,7 +118,7 @@ public final class RadarLogoView extends View {
  private void start(){
   if(animator!=null)return;
   if(!ValueAnimator.areAnimatorsEnabled()||getWindowVisibility()!=VISIBLE)return;
-  animator=ValueAnimator.ofFloat(0,360);animator.setDuration(7200);
+  animator=ValueAnimator.ofFloat(0,360);animator.setDuration(BroadcastVisuals.RADAR_PERIOD_MS);
   animator.setRepeatCount(ValueAnimator.INFINITE);
   animator.setInterpolator(new android.view.animation.LinearInterpolator());
   animator.addUpdateListener(v->setSweepDegrees((Float)v.getAnimatedValue()));
