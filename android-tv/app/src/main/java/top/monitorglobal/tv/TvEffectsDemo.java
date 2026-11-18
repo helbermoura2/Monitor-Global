@@ -29,7 +29,7 @@ final class TvEffectsDemo {
    case RAIN:return TvBroadcastInfoView.rain(c,rain,weather,true);
    case MARKET:return TvBroadcastInfoView.market(c,new BrentQuote(78.35,77.5,.85,1.1,now,"SIMULAÇÃO"),new DollarQuote(5.32,.02,.38,now,"SIMULAÇÃO"),true);
    case SUMMARY:return NewsBannerView.simulationSummary(c,Arrays.asList(quake(false,false),quake(true,false)));
-   case SATELLITE:return TvBroadcastInfoView.satellite(c,null,"SIMULAÇÃO · sem imagem real carregada");
+   case SATELLITE:return TvBroadcastInfoView.satelliteDemo(c);
    default:return TvBroadcastInfoView.voiceStatus(c,"SIMULAÇÃO · CONSULTA POR VOZ","Teste visual sem consulta nem alerta real");
   }
  }

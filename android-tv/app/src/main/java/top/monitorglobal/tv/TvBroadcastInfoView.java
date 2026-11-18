@@ -132,6 +132,7 @@ final class TvBroadcastInfoView extends View {
   v.marketPending=true;v.marketSecond=Long.MIN_VALUE;v.refreshMarket();
   return v;
  }
+ static TvBroadcastInfoView satelliteDemo(Context c){return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,null,"SIMULAÇÃO · sem imagem real carregada",true);}
  static TvBroadcastInfoView satellite(Context c,WeatherSatelliteClient.Frame frame,String message){
   return new TvBroadcastInfoView(c,SATELLITE,null,null,null,null,frame,message,false);
  }
