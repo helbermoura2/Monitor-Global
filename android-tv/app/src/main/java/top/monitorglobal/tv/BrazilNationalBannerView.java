@@ -167,11 +167,16 @@ final class BrazilNationalBannerView extends View {
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animated);
   if(running){if(animated)postInvalidateOnAnimation();else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));}
  }
+ private float mapReveal=1;
+ void mapReveal(float reveal){if(mapReveal!=reveal){mapReveal=reveal;invalidate();}}
  private void drawBody(Canvas c,long elapsed){
   float mapRight=backup?271:224;
-  if(mapArtwork!=null){
+  if(mapArtwork!=null&&mapReveal>0){
    c.save();c.clipRect(124,32,mapRight,92);
-   drawStateMap(c,stateArea(124,32,mapRight,92),elapsed);c.restore();
+   int layer=mapReveal<1?c.saveLayerAlpha(124,32,mapRight,92,Math.round(255*mapReveal)):c.save();
+   c.translate(0,(1-mapReveal)*(effects.full()?12:7));
+   drawStateMap(c,stateArea(124,32,mapRight,92),elapsed);
+   c.restoreToCount(layer);c.restore();
   }
   float textX=mapArtwork==null?124:mapRight+12;
   int alpha=animated?effects.opacity(elapsed):255;

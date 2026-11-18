@@ -160,7 +160,7 @@ final class TvBroadcastInfoView extends View {
  }
  void iconOpeningDelay(long delay){iconOpeningDelay=delay;}
  void startPresentation(long when,boolean animated){started=when;effects.start(when);invalidate();}
- void mapReveal(float reveal){mapReveal=Math.max(0,Math.min(1,reveal));invalidate();}
+ void mapReveal(float reveal){if(mapReveal!=reveal){mapReveal=reveal;invalidate();}}
  void refreshBriefing(){
   if(kind==RAIN){
    String ai=demo?"":WeatherBriefingClient.text(getContext(),"rain",weather,rain);
@@ -368,9 +368,10 @@ final class TvBroadcastInfoView extends View {
  private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
   if(mapSpace<=0||mapReveal<=0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
-  float slide=(1-mapReveal)*180;
+  float slide=(1-mapReveal)*(effects.full()?34:19);
   if(kind==SATELLITE&&motionEnabled())slide+=effects.translate(effects.elapsed(now));
   c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide);
+  int mapLayer=mapReveal<1?c.saveLayerAlpha(0,0,310,176,Math.round(255*mapReveal)):c.save();
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);
    if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=now;}
@@ -387,7 +388,7 @@ final class TvBroadcastInfoView extends View {
    p.setColor(accent);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
    c.drawRoundRect(0,0,310,176,8,8,p);p.setStyle(Paint.Style.FILL);
   }
-  c.restore();
+  c.restoreToCount(mapLayer);c.restore();
  }
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();
