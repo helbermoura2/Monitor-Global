@@ -62,7 +62,7 @@ public class TvEffectsControllerTest {
    BrazilNationalBannerView v=new BrazilNationalBannerView(c,TvEffectsDemo.quake(true,false),true,false);
    BannerRevealLayout host=new BannerRevealLayout(c);host.setPadding(0,12,0,12);host.addView(v,new FrameLayout.LayoutParams(-1,-1));host.configure(v.effects);host.reveal(mode==TvEffectsController.EffectsMode.OFF?0:.6f);
    host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(150,View.MeasureSpec.EXACTLY));host.layout(0,0,960,150);v.startPresentation(SystemClock.uptimeMillis()-1000,true);
-   Bitmap image=Bitmap.createBitmap(960,150,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));assertTrue("Brazil footer remains inside host at y=126",Color.alpha(image.getPixel(400,134))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
+   Bitmap image=Bitmap.createBitmap(960,150,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));assertTrue("Brazil footer remains visible while the host moves",Color.alpha(image.getPixel(400,130))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
   }
  }
  @Test public void noFabricatedWeatherAndNoNewPriceCounters(){
