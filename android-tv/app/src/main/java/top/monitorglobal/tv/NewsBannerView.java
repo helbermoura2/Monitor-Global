@@ -18,7 +18,8 @@ final class NewsBannerView extends View {
  private final Alert root;
  private final Page[] pages;
  private final boolean demo,replay,regional,globalM6Intro;
- private final boolean summary;private final String summaryDay;private final long pageMillis;private final DailySeismicTotals summaryTotals;
+ private static final long SUMMARY_COUNT_UP_MS=500;
+ private final boolean summary,completedSummary;private final String summaryDay;private final long pageMillis;private final DailySeismicTotals summaryTotals;
  private long started;private boolean presentationAnimated;
  void startPresentation(long when,boolean animated){started=when;effects.start(when);presentationAnimated=animated&&android.animation.ValueAnimator.areAnimatorsEnabled();invalidate();}
  private final String ticker,tickerDisplay;
@@ -55,7 +56,7 @@ final class NewsBannerView extends View {
   NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete,DailySeismicTotals totals){this(context,alerts.get(0),false,repeated,alerts,day,complete,totals,false);}
  static NewsBannerView simulationSummary(Context c,java.util.List<Alert> alerts){return new NewsBannerView(c,alerts.get(0),true,false,alerts,"SIMULAÇÃO",true,null,false);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete,DailySeismicTotals totals,boolean isRegional){
-  super(context);OfficialArgosLogo.prepare(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;regional=isRegional&&!summary;globalM6Intro=GlobalM6Intro.eligible(context,a,demo,replay,summary,regional);
+  super(context);OfficialArgosLogo.prepare(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;completedSummary=summary&&complete&&!demonstration;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;regional=isRegional&&!summary;globalM6Intro=GlobalM6Intro.eligible(context,a,demo,replay,summary,regional);
   effects=new TvEffectsController(context,summary?TvEffectsController.EffectsCategory.SUMMARY:regional?TvEffectsController.EffectsCategory.REGIONAL:"tsunami".equals(a.kind)||a.companion!=null?TvEffectsController.EffectsCategory.TSUNAMI:TvEffectsController.EffectsCategory.GLOBAL_M6,replay||!a.revision.isEmpty(),demo);
   if(!summary&&(!a.revision.isEmpty()||a.companion!=null||urgentTsunami(a)||effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6&&!globalM6Intro))effects.disableOpening();
   animate=effects.animated();
@@ -115,7 +116,7 @@ final class NewsBannerView extends View {
    float t=effects.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,false,false);
-  if(summary&&summaryTotals!=null)drawSummaryTotals(c);
+  if(summary&&summaryTotals!=null)drawSummaryTotals(c,contentElapsed);
   else{
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
@@ -136,12 +137,16 @@ final class NewsBannerView extends View {
   if(running&&isShown()){if(motionEnabled())postInvalidateOnAnimation();else postInvalidateDelayed(Math.min(pageMillis-within,60000-Math.floorMod(System.currentTimeMillis(),60000)));}
  }
  /** Five magnitude bands from the full-day catalog, not the five ranked quake cards. */
- private void drawSummaryTotals(Canvas c){
+ private void drawSummaryTotals(Canvas c,long contentElapsed){
   final float left=112f,right=identityLeft(1000)-8f;
   final float width=(right-left)/5f;
   final String[] labels={"EVENTOS","M6,0+","M5,0–5,9","M4,0–4,9","ABAIXO M4,0"};
   final int[] colors={0xff29d4f2,0xffff5c68,0xffffa04b,0xffffda54,0xff46df9b};
-  final int[] values=summaryTotals.values();
+  boolean counting=completedSummary&&summaryTotals.total>0&&presentationAnimated&&motionEnabled()
+    &&contentElapsed<SUMMARY_COUNT_UP_MS;
+  float progress=counting?TvEffectsController.ease(TvEffectsController.phase(contentElapsed,SUMMARY_COUNT_UP_MS)):1f;
+  final int[] values=summaryTotals.countUpValues(progress);
+  if(counting)labels[0]="CONTAGEM";
   c.save();c.clipRect(left,BroadcastVisuals.FOOTER_TOP+1,right,125);
   for(int i=0;i<5;i++){
    float x=left+i*width,center=x+width/2f;

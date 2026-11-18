@@ -25,4 +25,16 @@ public class DailySeismicTotalsTest {
   try{DailySeismicTotals.read(new DailySeismicTotals("2026-11-15",190,0,2,15,173,false).json(),"2026-11-14");fail("Out-of-day totals accepted");}
   catch(JSONException expected){}
  }
+ @Test public void countUpKeepsBandsMonotonicAndTheTotalInSync()throws Exception{
+  DailySeismicTotals totals=new DailySeismicTotals("2026-11-14",128,1,5,14,108,false);
+  assertArrayEquals(new int[5],totals.countUpValues(0));
+  int[] previous=totals.countUpValues(0);
+  for(int frame=1;frame<=30;frame++){
+   int[] values=totals.countUpValues(frame/30f);
+   assertEquals(values[0],values[1]+values[2]+values[3]+values[4]);
+   for(int i=0;i<values.length;i++)assertTrue(values[i]>=previous[i]);
+   previous=values;
+  }
+  assertArrayEquals(totals.values(),previous);
+ }
 }

@@ -25,6 +25,12 @@ final class DailySeismicTotals {
     .put("below4",below4).put("partial",partial);
  }
  int[] values(){return new int[]{total,m6,m5,m4,below4};}
+ int[] countUpValues(float fraction){
+  if(partial||fraction>=1f)return values();
+  float progress=Math.max(0f,fraction);
+  int a=(int)(m6*progress),b=(int)(m5*progress),c=(int)(m4*progress),d=(int)(below4*progress);
+  return new int[]{a+b+c+d,a,b,c,d};
+ }
  String accessibilityText(){return total+" eventos no dia, "+m6+" magnitude 6 ou mais, "+m5+
    " entre magnitude 5 e 5,9, "+m4+" entre magnitude 4 e 4,9, "+below4+" abaixo de magnitude 4.";}
 }
