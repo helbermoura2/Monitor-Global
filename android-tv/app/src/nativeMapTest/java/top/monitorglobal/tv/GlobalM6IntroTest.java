@@ -77,7 +77,7 @@ public class GlobalM6IntroTest {
     if(Color.red(pixel)>210&&Color.green(pixel)>155&&Color.blue(pixel)<100)yellow++;
    }
    assertTrue("yellow BREAKING NEWS is actually visible at mid-flash",yellow>100);
-   assertEquals("white upper left newsroom tab",0xfff5f7f8,bitmap.getPixel(30,10));
+   assertEquals("white upper left newsroom tab",0xfff5f7f8,bitmap.getPixel(245,6));
    assertEquals("outside safe right margin stays transparent",0,Color.alpha(bitmap.getPixel(948,72)));
    assertEquals("no stray content above banner",0,Color.alpha(bitmap.getPixel(600,4)));
    try(java.io.FileOutputStream stream=new java.io.FileOutputStream(
