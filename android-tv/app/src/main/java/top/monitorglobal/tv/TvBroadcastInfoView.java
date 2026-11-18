@@ -46,7 +46,7 @@ final class TvBroadcastInfoView extends View {
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
   super(c);OfficialArgosLogo.prepare(c);
-  effects=new TvEffectsController(c,kind==WEATHER?TvEffectsController.EffectsCategory.WEATHER:kind==RAIN?TvEffectsController.EffectsCategory.RAIN:kind==BRENT?TvEffectsController.EffectsCategory.MARKET:kind==SATELLITE?TvEffectsController.EffectsCategory.SATELLITE:TvEffectsController.EffectsCategory.VOICE,false);
+  effects=new TvEffectsController(c,kind==WEATHER?TvEffectsController.EffectsCategory.WEATHER:kind==RAIN?TvEffectsController.EffectsCategory.RAIN:kind==BRENT?TvEffectsController.EffectsCategory.MARKET:kind==SATELLITE?TvEffectsController.EffectsCategory.SATELLITE:TvEffectsController.EffectsCategory.VOICE,false,demo);
   animate=effects.animated();this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;

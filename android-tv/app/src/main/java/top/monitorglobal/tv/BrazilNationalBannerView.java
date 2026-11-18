@@ -52,7 +52,8 @@ final class BrazilNationalBannerView extends View {
  BrazilNationalBannerView(Context context,Alert event,boolean demonstration,boolean repeated){
   super(context);
   alert=event;demo=demonstration;replay=repeated;
-  effects=new TvEffectsController(context,TvEffectsController.EffectsCategory.BRAZIL,replay);
+  effects=new TvEffectsController(context,TvEffectsController.EffectsCategory.BRAZIL,replay,demo);
+  if(!event.revision.isEmpty()||event.companion!=null)effects.disableOpening();
   backup=Prefs.get(context).getInt(PREF_MODEL,MODEL_APPROVED)==MODEL_BACKUP;
   footerGradient=new LinearGradient(0,BODY_END,0,FOOTER_END,backup?new int[]{0xff072f36,0xff00434b}:new int[]{0xffb80000,0xff850000},null,Shader.TileMode.CLAMP);
   statusRibbon.moveTo(711,0);statusRibbon.lineTo(949,0);statusRibbon.lineTo(960,25);statusRibbon.lineTo(696,25);statusRibbon.close();

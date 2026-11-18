@@ -56,7 +56,8 @@ final class NewsBannerView extends View {
  static NewsBannerView simulationSummary(Context c,java.util.List<Alert> alerts){return new NewsBannerView(c,alerts.get(0),true,false,alerts,"SIMULAÇÃO",true,null,false);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete,DailySeismicTotals totals,boolean isRegional){
   super(context);OfficialArgosLogo.prepare(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;regional=isRegional&&!summary;globalM6Intro=GlobalM6Intro.eligible(context,a,demo,replay,summary,regional);
-  effects=new TvEffectsController(context,summary?TvEffectsController.EffectsCategory.SUMMARY:regional?TvEffectsController.EffectsCategory.REGIONAL:"tsunami".equals(a.kind)||a.companion!=null?TvEffectsController.EffectsCategory.TSUNAMI:TvEffectsController.EffectsCategory.GLOBAL_M6,replay||!a.revision.isEmpty());
+  effects=new TvEffectsController(context,summary?TvEffectsController.EffectsCategory.SUMMARY:regional?TvEffectsController.EffectsCategory.REGIONAL:"tsunami".equals(a.kind)||a.companion!=null?TvEffectsController.EffectsCategory.TSUNAMI:TvEffectsController.EffectsCategory.GLOBAL_M6,replay||!a.revision.isEmpty(),demo);
+  if(summary||!a.revision.isEmpty()||a.companion!=null||"tsunami".equals(a.kind)||effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6&&!globalM6Intro)effects.disableOpening();
   animate=effects.animated();
   brand=OledNewsChrome.titleFont(null);data=OledNewsChrome.regularFont();
   paint.setTypeface(brand);paint.setTextSize(15);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
@@ -130,13 +131,6 @@ final class NewsBannerView extends View {
   }
   c.restore();
   drawMap(c,index,elapsed,fadeElapsed);
-  // Approved M6+ "video 2" opening sits over the genuine seismic bulletin.
-  // The underlying map, brand and data are not destroyed or delayed.
-  if(globalM6Intro&&effects.full()&&GlobalM6Intro.visible(elapsed,presentationAnimated)){
-   c.save();c.translate(0,mapBelow?0:mapSpace);
-   GlobalM6Intro.draw(c,paint,elapsed,root,demo);
-   c.restore();
-  }
   c.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,motionEnabled());
   if(running&&isShown()){if(motionEnabled())postInvalidateOnAnimation();else postInvalidateDelayed(Math.min(pageMillis-within,60000-Math.floorMod(System.currentTimeMillis(),60000)));}

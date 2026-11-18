@@ -58,9 +58,10 @@ public class GlobalM6IntroTest {
   assertTrue(GlobalM6Intro.visible(1200,true));
   assertFalse(GlobalM6Intro.visible(3500,true));
   assertFalse("reduced motion never flashes",GlobalM6Intro.visible(1200,false));
-  assertEquals(255,GlobalM6Intro.overlayOpacity(700));
-  assertTrue(GlobalM6Intro.overlayOpacity(3000)<255);
-  assertEquals(0,GlobalM6Intro.overlayOpacity(GlobalM6Intro.END_MS));
+  BannerOpening scene=new BannerOpening(new TvEffectsController(context,TvEffectsController.EffectsCategory.GLOBAL_M6,false),20000);
+  assertEquals(0f,scene.contentFraction(GlobalM6Intro.HOLD_END_MS),0);
+  assertTrue(scene.contentFraction(3000)>0);
+  assertEquals(1f,scene.contentFraction(GlobalM6Intro.END_MS),0);
   assertEquals(0f,GlobalM6Intro.yellowOpacity(300),.01f);
   assertTrue(GlobalM6Intro.yellowOpacity(1500)>.9f);
   assertEquals(0f,GlobalM6Intro.yellowOpacity(3000),.01f);
@@ -70,7 +71,8 @@ public class GlobalM6IntroTest {
   Bitmap bitmap=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
   try{
    // The draw method only paints a small TV lower-third: no full-screen image.
-   GlobalM6Intro.draw(new Canvas(bitmap),new Paint(Paint.ANTI_ALIAS_FLAG),1500,quake(),true);
+   Bitmap scene=BannerOpeningTest.scene(context,demo,1500);
+   new Canvas(bitmap).drawBitmap(scene,0,-Banner.insetDp(context),null);scene.recycle();
    int yellow=0;
    for(int y=30;y<94;y++)for(int x=270;x<803;x++){
     int pixel=bitmap.getPixel(x,y);

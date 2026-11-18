@@ -14,14 +14,20 @@ final class TvEffectsController {
  static final String PREF_MODE="tvEffectsMode";
  final EffectsCategory category;
  final EffectsMode requested;
- final boolean replay;
+ final boolean replay,demonstration;
+ private boolean openingAllowed=true;
  private final Paint brush=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final RectF rainRadar=new RectF(122,36,160,74);
  private long started;
  private boolean stopped;
  TvEffectsController(Context c,EffectsCategory type,boolean historical){
-  category=type;replay=historical;requested=selected(c);
+  this(c,type,historical,false);
  }
+ TvEffectsController(Context c,EffectsCategory type,boolean historical,boolean demo){
+  category=type;replay=historical;demonstration=demo;requested=selected(c);
+ }
+ void disableOpening(){openingAllowed=false;}
+ boolean openingAllowed(){return openingAllowed&&animated()&&category!=EffectsCategory.TSUNAMI&&category!=EffectsCategory.SUMMARY&&category!=EffectsCategory.VOICE;}
  static EffectsMode selected(Context c){
   try{return EffectsMode.valueOf(Prefs.get(c).getString(PREF_MODE,"FULL"));}
   catch(IllegalArgumentException e){return EffectsMode.FULL;}
