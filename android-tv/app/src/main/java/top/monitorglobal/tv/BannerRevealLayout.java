@@ -1,5 +1,5 @@
 package top.monitorglobal.tv;
-import android.content.Context;import android.graphics.*;import android.widget.FrameLayout;
+import android.content.Context;import android.graphics.*;import android.view.View;import android.widget.FrameLayout;
 /** A red leading block reveals the actual banner behind it. No video, snapshots or per-frame objects. */
 final class BannerRevealLayout extends FrameLayout {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path outline=new Path();private final Matrix matrix=new Matrix();
@@ -27,13 +27,17 @@ final class BannerRevealLayout extends FrameLayout {
   if(getChildCount()>0&&getChildAt(0) instanceof TvBroadcastInfoView)return ((TvBroadcastInfoView)getChildAt(0)).mapSpace;
   return Banner.insetDp(getContext());
  }
- private void revealMap(){
-  if(getChildCount()==0)return;
-  float visible=exiting||effects!=null&&!effects.animated()?1:progress;
-  if(getChildAt(0) instanceof NewsBannerView)((NewsBannerView)getChildAt(0)).mapReveal(effects!=null&&effects.category==TvEffectsController.EffectsCategory.TSUNAMI?1:visible);
-  else if(getChildAt(0) instanceof TvBroadcastInfoView)((TvBroadcastInfoView)getChildAt(0)).mapReveal(visible);
+ // Let the strip establish itself before revealing its map. Retract the map first.
+ static float mapProgress(float progress,boolean exiting){
+  return TvEffectsController.ease(exiting?(progress-.42f)/.58f:(progress-.22f)/.78f);
  }
- void reveal(float value){progress=Math.max(0,Math.min(1,value));revealMap();invalidate();}
+ private void revealMap(float visible){
+  View child=getChildAt(0);
+  if(child instanceof NewsBannerView)((NewsBannerView)child).mapReveal(visible);
+  else if(child instanceof TvBroadcastInfoView)((TvBroadcastInfoView)child).mapReveal(visible);
+  else if(child instanceof BrazilNationalBannerView)((BrazilNationalBannerView)child).mapReveal(visible);
+ }
+ void reveal(float value){progress=Math.max(0,Math.min(1,value));invalidate();}
  @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
   super.onSizeChanged(w,h,oldw,oldh);outline.reset();float height=h-getPaddingTop()-getPaddingBottom();
   float top=getPaddingTop()+(Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset())*height/(totalHeight());
@@ -47,7 +51,8 @@ final class BannerRevealLayout extends FrameLayout {
    long frameStart=android.os.SystemClock.elapsedRealtimeNanos();
    // Exclusive scenes: the normal child is never painted beneath the opening.
    float seam=opening.contentFraction(elapsed)*getWidth();
-   if(seam>0){int child=canvas.save();canvas.clipRect(0,0,seam,getHeight());revealMap();super.dispatchDraw(canvas);canvas.restoreToCount(child);}
+   revealMap(0);
+   if(seam>0){int child=canvas.save();canvas.clipRect(0,0,seam,getHeight());super.dispatchDraw(canvas);canvas.restoreToCount(child);}
    int intro=canvas.save();canvas.clipRect(seam,0,getWidth(),getHeight());
    canvas.translate(0,getPaddingTop());canvas.scale(getWidth()/960f,(getHeight()-getPaddingTop()-getPaddingBottom())/totalHeight());
    canvas.translate(0,Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset());
@@ -68,7 +73,21 @@ final class BannerRevealLayout extends FrameLayout {
    RuntimeDiagnostics.frame(frameStart,android.os.SystemClock.elapsedRealtimeNanos()-frameStart,true);
    postInvalidateOnAnimation();return;
   }
-  revealMap();
+  boolean animated=effects!=null&&effects.animated();
+  float map=animated?mapProgress(progress,exiting):1;
+  if(animated&&!exiting){
+   // Urgent tsunami information and its map remain visible immediately.
+   if(effects.category==TvEffectsController.EffectsCategory.TSUNAMI)map=1;
+   else if(sceneStarted&&opening!=null&&opening.visible(0)&&elapsed>=opening.duration()){
+    long sinceOpening=elapsed-opening.duration();
+    long mapDuration=effects.full()?340:190;
+    if(sinceOpening<mapDuration){
+     map=TvEffectsController.ease(TvEffectsController.phase(sinceOpening,mapDuration));
+     postInvalidateOnAnimation();
+    }
+   }
+  }
+  revealMap(map);
   if(exiting&&effects!=null&&effects.animated()){
    int restore=canvas.save();
    float travel=getPaddingBottom()*(1-progress);
@@ -78,14 +97,18 @@ final class BannerRevealLayout extends FrameLayout {
   }
   if(progress>=1||effects!=null&&!effects.animated()){super.dispatchDraw(canvas);return;}
   if(effects!=null&&!(effects.full()&&effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6)){
-   // All data and the connected layout are present from frame one. Never wipe away a tsunami map.
+   // Move the connected strip as a unit while keeping its content readable.
+   int restore=canvas.save();
+   boolean tsunami=effects.category==TvEffectsController.EffectsCategory.TSUNAMI;
+   float travel=tsunami?0:getPaddingBottom()*(1-progress)*(effects.full()?.75f:.45f);
+   canvas.translate(0,Prefs.get(getContext()).getBoolean("themeTop",false)?-travel:travel);
    int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*(.72f+.28f*progress)));
-   super.dispatchDraw(canvas);canvas.restoreToCount(layer);return;
+   super.dispatchDraw(canvas);canvas.restoreToCount(layer);canvas.restoreToCount(restore);return;
   }
   float bannerTop=getPaddingTop()+(Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset())*(getHeight()-getPaddingTop()-getPaddingBottom())/(totalHeight());
   float bannerBottom=bannerTop+bodyHeight()*(getHeight()-getPaddingTop()-getPaddingBottom())/(totalHeight());
   // The inset rises from behind the fixed banner; the approved red wipe still affects only the banner.
-  int map=canvas.save();if(Prefs.get(getContext()).getBoolean("themeTop",false))canvas.clipRect(0,bannerBottom,getWidth(),getHeight());else canvas.clipRect(0,0,getWidth(),bannerTop);super.dispatchDraw(canvas);canvas.restoreToCount(map);
+  int mapClip=canvas.save();if(Prefs.get(getContext()).getBoolean("themeTop",false))canvas.clipRect(0,bannerBottom,getWidth(),getHeight());else canvas.clipRect(0,0,getWidth(),bannerTop);super.dispatchDraw(canvas);canvas.restoreToCount(mapClip);
   float sweep=progress*1.4f*getWidth(),left=Math.max(0,sweep-getWidth()*.4f),right=Math.min(getWidth(),sweep);
   int outer=canvas.save();canvas.clipPath(outline);
   if(left>0){int content=canvas.save();canvas.clipRect(0,0,left,getHeight());super.dispatchDraw(canvas);canvas.restoreToCount(content);}

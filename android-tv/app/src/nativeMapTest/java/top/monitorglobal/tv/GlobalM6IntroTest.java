@@ -62,23 +62,22 @@ public class GlobalM6IntroTest {
   assertEquals(0f,scene.contentFraction(GlobalM6Intro.HOLD_END_MS),0);
   assertTrue(scene.contentFraction(3000)>0);
   assertEquals(1f,scene.contentFraction(GlobalM6Intro.END_MS),0);
-  assertEquals(0f,GlobalM6Intro.yellowOpacity(300),.01f);
-  assertTrue(GlobalM6Intro.yellowOpacity(1500)>.9f);
-  assertEquals(0f,GlobalM6Intro.yellowOpacity(3000),.01f);
  }
- @Test public void nativeLayoutHasRealBrightYellowWordmarkAndNoOverscan(){
+ @Test public void nativeLayoutHasWhiteWordmarkAndNoOverscan(){
   NewsBannerView demo=new NewsBannerView(context,quake(),true,false);
   Bitmap bitmap=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
   try{
    // The draw method only paints a small TV lower-third: no full-screen image.
    Bitmap scene=BannerOpeningTest.scene(context,demo,1500);
    new Canvas(bitmap).drawBitmap(scene,0,-Banner.insetDp(context),null);scene.recycle();
-   int yellow=0;
+   int yellow=0,white=0;
    for(int y=30;y<94;y++)for(int x=270;x<803;x++){
     int pixel=bitmap.getPixel(x,y);
+    if(Color.red(pixel)>230&&Color.green(pixel)>230&&Color.blue(pixel)>230)white++;
     if(Color.red(pixel)>210&&Color.green(pixel)>155&&Color.blue(pixel)<100)yellow++;
    }
-   assertTrue("yellow BREAKING NEWS is actually visible at mid-flash",yellow>100);
+   assertTrue("BREAKING NEWS remains visible in white",white>100);
+   assertEquals("the central opening has no yellow elements",0,yellow);
    int tab=bitmap.getPixel(245,6);
    assertTrue("upper left uses the shared red tab",Color.red(tab)>Color.blue(tab));
    assertEquals("opening body uses the shared black background",Color.BLACK,bitmap.getPixel(30,45));

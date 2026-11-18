@@ -58,7 +58,7 @@ public class RegionalLowerThirdTest {
   NewsBannerView ordinary=new NewsBannerView(context,a,false,false);
   NewsBannerView special=new NewsBannerView(context,a,false,false,true);
   assertEquals("AO VIVO",ordinary.badgeLabel());
-  assertEquals("REGIONAL",special.badgeLabel());
+  assertEquals("AO VIVO",special.badgeLabel());
   assertTrue(special.getContentDescription().toString().contains("AVISO REGIONAL"));
   assertTrue(special.getContentDescription().toString().contains("Tóquio"));
   assertTrue(special.getContentDescription().toString().contains("USGS"));
@@ -70,7 +70,7 @@ public class RegionalLowerThirdTest {
   NewsBannerView summary=new NewsBannerView(context,Collections.singletonList(a),
     "2026-11-16",false,true);
   assertFalse((Boolean)uncheckedField(summary,"regional"));
-  assertEquals("RESUMO",summary.badgeLabel());
+  assertEquals("AO VIVO",summary.badgeLabel());
   assertTrue(summary.getContentDescription().toString().contains("RESUMO DO DIA"));
  }
  private Object uncheckedField(Object value,String name){

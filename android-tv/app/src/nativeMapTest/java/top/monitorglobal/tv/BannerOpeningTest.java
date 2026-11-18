@@ -84,6 +84,14 @@ public class BannerOpeningTest {
    assertTrue(intro.visible(100));assertFalse(intro.visible(intro.duration()));assertFalse(intro.visible(8000));assertEquals(1,intro.contentFraction(intro.duration()),0);intro.stop();assertFalse(intro.visible(100));
   }
  }
+ @Test public void mapWaitsForTheStripOnEntryAndRetractsBeforeItOnExit(){
+  assertEquals(0f,BannerRevealLayout.mapProgress(.2f,false),0f);
+  assertEquals(1f,BannerRevealLayout.mapProgress(1f,false),0f);
+  assertTrue(BannerRevealLayout.mapProgress(.6f,false)>0f);
+  assertTrue(BannerRevealLayout.mapProgress(.6f,false)<1f);
+  assertEquals(1f,BannerRevealLayout.mapProgress(1f,true),0f);
+  assertEquals(0f,BannerRevealLayout.mapProgress(.4f,true),0f);
+ }
  @Test public void exportActualOpeningFramesForAllRequestedEvents()throws Exception{
   for(TvEffectsController.EffectsCategory category:new TvEffectsController.EffectsCategory[]{TvEffectsController.EffectsCategory.GLOBAL_M6,TvEffectsController.EffectsCategory.RAIN,TvEffectsController.EffectsCategory.BRAZIL,TvEffectsController.EffectsCategory.REGIONAL,TvEffectsController.EffectsCategory.WEATHER,TvEffectsController.EffectsCategory.MARKET}){
    for(int frame=0;frame<45;frame++){

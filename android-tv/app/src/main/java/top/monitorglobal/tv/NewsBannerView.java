@@ -158,8 +158,9 @@ final class NewsBannerView extends View {
  }
  private void drawMap(Canvas c,int index,long elapsed,long fadeElapsed){
   if(mapInset==null||mapReveal<=0||mapSpace==0)return;
-  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);float slide=(1-mapReveal)*180;
+  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);float slide=(1-mapReveal)*(effects.full()?34:19);
   c.translate(649,mapBelow?4-slide:slide);
+  int mapLayer=mapReveal<1?c.saveLayerAlpha(0,0,310,176,Math.round(255*mapReveal)):c.save();
   boolean fading=effects.animated()&&(summary?presentationAnimated:motionEnabled())&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
   if(fading){float t=effects.pageProgress(fadeElapsed);int layer=c.saveLayerAlpha(0,0,310,176,(int)(255*(1-t)));mapInset.draw(c,pages[(index+pages.length-1)%pages.length].alert,brand,accent);c.restoreToCount(layer);layer=c.saveLayerAlpha(0,0,310,176,(int)(255*t));mapInset.draw(c,pages[index].alert,brand,accent);c.restoreToCount(layer);}
   else{
@@ -167,9 +168,9 @@ final class NewsBannerView extends View {
    float marker=regional&&motionEnabled()&&elapsed>=1650?TvEffectsController.phase(markerElapsed,550):1f;
    mapInset.draw(c,pages[index].alert,brand,accent,marker);
   }
-  c.restore();
+  c.restoreToCount(mapLayer);c.restore();
  }
- String badgeLabel(){return demo?"TESTE":replay?"REPLAY":summary?"RESUMO":regional?"REGIONAL":"AO VIVO";}
+ String badgeLabel(){return demo?"TESTE":replay?"REPLAY":"AO VIVO";}
  static String formatClock(long at){return date(at,"HH:mm");}
  private void drawClock(Canvas c){
   long now=System.currentTimeMillis(),minute=now/60000;

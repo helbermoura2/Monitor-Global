@@ -9,7 +9,7 @@ public class BroadcastBannerTest {
  private void export(Bitmap b,String name)throws Exception{try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-tv-banner-1044-"+name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}}
  @Before public void setup(){c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().commit();}
  @Test public void badgesDistinguishLiveHistoryAndFiction(){
-  assertEquals("AO VIVO",new NewsBannerView(c,alert(),false,false).badgeLabel());assertEquals("REPLAY",new NewsBannerView(c,alert(),false,true).badgeLabel());assertEquals("TESTE",new NewsBannerView(c,alert(),true,false).badgeLabel());assertEquals("RESUMO",new NewsBannerView(c,List.of(alert()),"2026-10-30",false,true).badgeLabel());
+  assertEquals("AO VIVO",new NewsBannerView(c,alert(),false,false).badgeLabel());assertEquals("REPLAY",new NewsBannerView(c,alert(),false,true).badgeLabel());assertEquals("TESTE",new NewsBannerView(c,alert(),true,false).badgeLabel());assertEquals("AO VIVO",new NewsBannerView(c,List.of(alert()),"2026-10-30",false,true).badgeLabel());
   assertEquals("REPLAY",new NewsBannerView(c,List.of(alert()),"2026-10-30",true,true).badgeLabel());
   assertEquals("REPLAY",new NewsBannerView(c,List.of(alert()),"2026-10-30",true,false).badgeLabel());
  }
