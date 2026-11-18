@@ -43,15 +43,16 @@ public class BrazilNationalBannerViewTest {
  @Test public void routeOnlyBrazilNoRegionalOrTsunami(){
   Alert br=brazil();
   assertTrue(BrazilNationalBannerView.isBrazilAlert(context,br));
-  Alert world=br.copy();world.countryCode="JP";world.catalog="GEOFON_GLOBAL";
-  world.title="M6,2 · Japão";world.originLongitude=140;world.originLatitude=37;
+  Alert world=new Alert("world","earthquake","v","M6,2 · Japão","", "earthquake",br.issuedAt,br.eventTime,true);
+  world.countryCode="JP";world.catalog="GEOFON_GLOBAL";world.originLongitude=140;world.originLatitude=37;
   assertFalse(BrazilNationalBannerView.isBrazilAlert(context,world));
   Alert regional=br.copy();regional.compact=true;
   assertFalse(BrazilNationalBannerView.isBrazilAlert(context,regional));
   Alert offshore=br.copy();offshore.originLongitude=-36.4;offshore.originLatitude=-13.1;
   assertTrue("countryCode BR is authoritative even offshore",BrazilNationalBannerView.isBrazilAlert(context,offshore));
-  Alert withoutCode=br.copy();withoutCode.countryCode="";
-  withoutCode.catalog="GEOFON_GLOBAL";withoutCode.title="M3,8 · Jacobina";
+  Alert withoutCode=new Alert("br-coordinates","earthquake","v","M3,8 · Jacobina","","earthquake",br.issuedAt,br.eventTime,true);
+  withoutCode.countryCode="";withoutCode.catalog="GEOFON_GLOBAL";
+  withoutCode.originLongitude=br.originLongitude;withoutCode.originLatitude=br.originLatitude;
   assertTrue("state polygon locates domestic event",BrazilNationalBannerView.isBrazilAlert(context,withoutCode));
   Alert tsunami=new Alert("ts","tsunami","v","Tsunami","","warning",1,1,true);
   assertFalse(BrazilNationalBannerView.isBrazilAlert(context,tsunami));
