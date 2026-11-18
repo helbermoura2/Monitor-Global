@@ -54,7 +54,7 @@ public class PhoneActivity extends Activity {
   FrameLayout reload=new FrameLayout(this);reload.setTag("refresh");reload.setContentDescription("Atualizar dados");reload.setBackground(ripple(BODY));PhoneIcons refreshIcon=new PhoneIcons(this,PhoneIcons.REFRESH,CYAN);FrameLayout.LayoutParams iconParams=new FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER);reload.addView(refreshIcon,iconParams);header.addView(reload,new LinearLayout.LayoutParams(dp(48),dp(48)));reload.setOnClickListener(v->refresh(true));
   status=text("Aguardando consulta",12,MUTED,3);status.setPadding(dp(12),dp(3),dp(12),dp(3));root.addView(status,new LinearLayout.LayoutParams(-1,-2));
   content=new FrameLayout(this);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));
-  navigation=new LinearLayout(this);navigation.setGravity(Gravity.CENTER);navigation.setBackgroundColor(BODY);root.addView(navigation,new LinearLayout.LayoutParams(-1,dp(60)));
+  navigation=new LinearLayout(this);navigation.setGravity(Gravity.CENTER);navigation.setBackgroundColor(BODY);navigation.setMinimumHeight(dp(60));root.addView(navigation,new LinearLayout.LayoutParams(-1,-2));
   readPush(getIntent());setContentView(root);updater=new PhoneUpdater(this);render();
  }
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);readPush(intent);render();}
@@ -106,7 +106,7 @@ public class PhoneActivity extends Activity {
   int[] icons={PhoneIcons.HOME,PhoneIcons.SEISMIC,PhoneIcons.CLOUD,PhoneIcons.BELL,PhoneIcons.MORE};
   for(int i=0;i<ids.length;i++){
    String target=ids[i];boolean current=target.equals(shown);int color=current?CYAN:MUTED;
-   LinearLayout item=new LinearLayout(this);item.setOrientation(LinearLayout.VERTICAL);item.setGravity(Gravity.CENTER);
+   LinearLayout item=new LinearLayout(this);item.setOrientation(LinearLayout.VERTICAL);item.setGravity(Gravity.CENTER);item.setMinimumHeight(dp(60));item.setPadding(0,dp(5),0,dp(5));
    item.setTag("tab-"+target);item.setContentDescription(labels[i]);item.setSelected(current);item.setFocusable(true);
    item.setBackground(ripple(BODY,false));
    FrameLayout indicator=new FrameLayout(this);
@@ -121,7 +121,7 @@ public class PhoneActivity extends Activity {
    item.addView(indicator,new LinearLayout.LayoutParams(dp(44),dp(27)));
    TextView label=text(labels[i],12,color,1);label.setGravity(Gravity.CENTER);
    item.addView(label,new LinearLayout.LayoutParams(-1,-2));
-   navigation.addView(item,new LinearLayout.LayoutParams(0,-1,1));item.setOnClickListener(v->go(target));
+   navigation.addView(item,new LinearLayout.LayoutParams(0,-2,1));item.setOnClickListener(v->go(target));
   }
  }
  private void go(String target){selected=null;tab=target;render();}
@@ -150,7 +150,7 @@ public class PhoneActivity extends Activity {
   for(int i=0;i<regions.length;i++){
    String region=regions[i];Button filter=button(labels[i],()->{quakeRegion=region;render();});
    filter.setTag("quake-region-"+region);filter.setSelected(region.equals(quakeRegion));
-   filter.setTextColor(region.equals(quakeRegion)?CYAN:MUTED);filter.setTextSize(13);filter.setPadding(dp(4),dp(6),dp(4),dp(6));
+   filter.setTextColor(region.equals(quakeRegion)?CYAN:MUTED);filter.setBackground(ripple(region.equals(quakeRegion)?0xff164455:BODY));filter.setTextSize(13);filter.setPadding(dp(4),dp(6),dp(4),dp(6));
    filters.addView(filter,new LinearLayout.LayoutParams(0,-2,1));
   }
   space(page,filters,8);
@@ -180,11 +180,11 @@ public class PhoneActivity extends Activity {
     if(target.equals("weather"))go("weather");else openLayer(target);
    });
    b.setTag(target.equals("weather")?"open-weather":target.equals("rain")?"open-rain":"open-brazil");
-   b.setSelected(target.equals(current));b.setTextColor(target.equals(current)?CYAN:MUTED);b.setTextSize(13);
+   b.setSelected(target.equals(current));b.setTextColor(target.equals(current)?CYAN:MUTED);b.setBackground(ripple(target.equals(current)?0xff164455:BODY));b.setTextSize(13);
    b.setPadding(dp(4),dp(6),dp(4),dp(6));
    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginEnd(dp(i<2?4:0));row.addView(b,lp);
   }
-  box.addView(row,new LinearLayout.LayoutParams(-1,-2));
+  LinearLayout.LayoutParams rowLayout=new LinearLayout.LayoutParams(-1,-2);rowLayout.bottomMargin=dp(8);box.addView(row,rowLayout);
  }
  private void requestDetails(boolean daily){requestDetails(daily,false);}
  private void requestDetails(boolean daily,boolean force){

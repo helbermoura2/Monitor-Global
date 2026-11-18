@@ -152,7 +152,7 @@ function initialize(){
  removeMarkers();if(map){map.remove();map=null;}loaded=false;tileErrors=0;fitted=false;info('Carregando mapa…',false);
  try{
   if(!window.maplibregl||typeof maplibregl.Map!=='function'){info('Não foi possível carregar os recursos do mapa. Toque para tentar novamente.',true);return;}
-  map=new maplibregl.Map({container:'map',center:[-53,-14],zoom:3.1,minZoom:1.3,maxZoom:14,renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:96,fadeDuration:0,attributionControl:false,style:{version:8,sources:{imagery:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagens © Esri, Maxar, Earthstar Geographics e GIS User Community'}},layers:[{id:'imagery',type:'raster',source:'imagery',paint:{'raster-fade-duration':0}}]}});
+  map=new maplibregl.Map({container:'map',center:[-53,-14],zoom:3.1,minZoom:1.3,maxZoom:14,renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:96,fadeDuration:0,attributionControl:false,style:{version:8,sources:{imagery:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagens © Esri, Maxar, Earthstar Geographics e GIS User Community'}},layers:[{id:'imagery',type:'raster',source:'imagery',paint:{'raster-fade-duration':0,'raster-brightness-max':.86,'raster-saturation':-.17}}]}});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
   map.on('load',()=>{
