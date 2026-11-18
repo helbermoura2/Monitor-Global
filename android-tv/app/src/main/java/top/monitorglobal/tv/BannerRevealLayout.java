@@ -4,8 +4,11 @@ import android.content.Context;import android.graphics.*;import android.widget.F
 final class BannerRevealLayout extends FrameLayout {
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path outline=new Path();private final Matrix matrix=new Matrix();
  private LinearGradient red;private float progress=1;
- private TvEffectsController effects;private boolean exiting;
- void configure(TvEffectsController policy){effects=policy;exiting=false;}
+ private TvEffectsController effects;private boolean exiting,sceneStarted;
+ private long sceneStart;private BannerOpening opening;
+ void configure(TvEffectsController policy){configure(policy,Long.MAX_VALUE);}
+ void configure(TvEffectsController policy,long duration){effects=policy;opening=new BannerOpening(policy,duration);exiting=false;sceneStarted=false;}
+ void startPresentation(long when){sceneStart=when;sceneStarted=true;invalidate();}
  void exiting(){exiting=true;}
  private boolean brazil(){return getChildCount()>0&&getChildAt(0) instanceof BrazilNationalBannerView;}
  private float bodyHeight(){return brazil()?BrazilNationalBannerView.HEIGHT:126f;}
@@ -29,7 +32,21 @@ final class BannerRevealLayout extends FrameLayout {
   float radius=8*w/960f;outline.addRoundRect(0,top,w,top+bodyHeight()*height/(totalHeight()),new float[]{0,0,0,0,radius,radius,radius,radius},Path.Direction.CW);
   red=new LinearGradient(0,0,Math.max(1,w*.4f),0,new int[]{Color.rgb(191,24,39),Color.rgb(227,38,63),Color.rgb(191,24,39)},null,Shader.TileMode.CLAMP);
  }
+ @Override protected void onDetachedFromWindow(){sceneStarted=false;if(opening!=null)opening.stop();super.onDetachedFromWindow();}
  @Override protected void dispatchDraw(Canvas canvas){
+  long elapsed=android.os.SystemClock.uptimeMillis()-sceneStart;
+  if(sceneStarted&&!exiting&&opening!=null&&opening.visible(elapsed)){
+   long frameStart=android.os.SystemClock.elapsedRealtimeNanos();
+   // Exclusive scenes: the normal child is never painted beneath the opening.
+   float seam=opening.contentFraction(elapsed)*getWidth();
+   if(seam>0){int child=canvas.save();canvas.clipRect(0,0,seam,getHeight());revealMap();super.dispatchDraw(canvas);canvas.restoreToCount(child);}
+   int intro=canvas.save();canvas.clipRect(seam,0,getWidth(),getHeight());
+   canvas.translate(0,getPaddingTop());canvas.scale(getWidth()/960f,(getHeight()-getPaddingTop()-getPaddingBottom())/totalHeight());
+   canvas.translate(0,Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset());
+   opening.draw(canvas,elapsed,bodyHeight());canvas.restoreToCount(intro);
+   RuntimeDiagnostics.frame(frameStart,android.os.SystemClock.elapsedRealtimeNanos()-frameStart,true);
+   postInvalidateOnAnimation();return;
+  }
   revealMap();
   if(progress>=1||effects!=null&&!effects.animated()){super.dispatchDraw(canvas);return;}
   if(effects!=null&&!(effects.full()&&effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6)){
