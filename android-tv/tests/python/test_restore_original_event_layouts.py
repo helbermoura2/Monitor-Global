@@ -21,9 +21,9 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'icon(c,0,251,42,30)',
             'label(c,sky,290,58,',
             'label(c,detail,290,84,',
-            'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492)',
-            'metric(c,2,weather==null?"—":weather.windValue,weather==null?"VENTO · N/D":"VENTO · "+weather.windDirection,603)',
-            'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",712)',
+            'metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492,elapsed)',
+            'metric(c,2,weather==null?"—":weather.windValue,weather==null?"VENTO · N/D":"VENTO · "+weather.windDirection,603,elapsed)',
+            'metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",712,elapsed)',
         ):
             self.assertIn(piece, WEATHER)
 
@@ -33,16 +33,16 @@ class OriginalEventLayoutsTest(unittest.TestCase):
             'icon(c,0,127,41,28)',
             'label(c,facts.headline,165,60,23,',
             'label(c,facts.end,127,86,16,',
-            'metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430)',
-            'metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",558)',
+            'metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430,elapsed)',
+            'metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",558,elapsed)',
             'metric(c,3,facts.duration,',
         ):
             self.assertIn(piece, WEATHER)
 
     def test_market_retains_independent_quote_columns(self):
         for piece in (
-            'fitted(c,"BRENT",20,46',
-            'fitted(c,"DÓLAR USD/BRL",430,46',
+            'fitted(c,"BRENT",20,71',
+            'fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,48',
             'brent==null?"US$ —":"US$ "+amount(brent.price)',
             'dollar==null?"R$ —":"R$ "+fxAmount(dollar.price)',
             'marketHeaderStatus(brentSession)',
@@ -55,7 +55,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
     def test_satellite_and_voice_restore_prior_display_order(self):
         for piece in (
             'eventCategory(c,"SATÉLITE","GOES-EAST")',
-            'primary(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,',
+            'primary(c,frame==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,',
             'eventCategory(c,"CONSULTA","POR VOZ")',
             'primary(c,voiceTitle,170,27,',
             'label(c,voiceDetail,170,88,16,',

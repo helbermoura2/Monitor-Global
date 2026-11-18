@@ -37,7 +37,7 @@ class UnifiedChrome(unittest.TestCase):
         self.assertNotIn("compact.showVoiceBrazil(", service)
         self.assertIn("new NewsBannerView(context,alert,demo,replay,true)", banner)
         self.assertIn("new NewsBannerView(context,a,demo,replay)", banner)
-        self.assertIn('regional?"AVISO REGIONAL":"BREAKING NEWS"', quake)
+        self.assertIn('if(regional)return "SISMO REGIONAL";', quake)
         self.assertIn("CompactNotice.DURATION_MS", banner)
         self.assertIn('a.compact?"SISMO REGIONAL · ÁREA MONITORADA"', quake)
         self.assertIn("drawMap(c,index,elapsed,fadeElapsed)", quake)
