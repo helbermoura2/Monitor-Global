@@ -32,7 +32,7 @@ final class TvBroadcastInfoView extends View {
  private MapInset mapInset;
  private long marketSecond=Long.MIN_VALUE;private long started,clockMinute=Long.MIN_VALUE;private String clockText="--:--";
  private float mapReveal=1;
- private String ticker;private final String baseTicker;
+ private String ticker,tickerDisplay="",tickerSource="";private final String baseTicker;
  private final Path outline=new Path(),telegramPlane=new Path();
  private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private boolean running;
@@ -213,7 +213,8 @@ final class TvBroadcastInfoView extends View {
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
-  String display=OledNewsChrome.tickerDisplay(ticker);
+  if(!ticker.equals(tickerSource)){tickerSource=ticker;tickerDisplay=OledNewsChrome.tickerDisplay(ticker);}
+  String display=tickerDisplay;
   Typeface tickerFace=OledNewsChrome.tickerFont();
   p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());

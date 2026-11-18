@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class TvEffectsControllerTest {
  private Context c;
- @Before public void setup(){c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().putBoolean("sound",false).commit();ShadowSettings.setCanDrawOverlays(true);}
+ @Before public void setup(){org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofSeconds(30));c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().putBoolean("sound",false).commit();ShadowSettings.setCanDrawOverlays(true);}
  private TvEffectsController policy(View v){return v instanceof NewsBannerView?((NewsBannerView)v).effects:v instanceof BrazilNationalBannerView?((BrazilNationalBannerView)v).effects:((TvBroadcastInfoView)v).effects;}
  private void start(View v,long elapsed){long when=SystemClock.uptimeMillis()-elapsed;if(v instanceof NewsBannerView)((NewsBannerView)v).startPresentation(when,true);else if(v instanceof BrazilNationalBannerView)((BrazilNationalBannerView)v).startPresentation(when,true);else ((TvBroadcastInfoView)v).startPresentation(when,true);}
  private int height(View v){return v instanceof BrazilNationalBannerView?180:126+(v instanceof TvBroadcastInfoView?((TvBroadcastInfoView)v).mapSpace:Banner.insetDp(c));}
@@ -41,7 +41,7 @@ public class TvEffectsControllerTest {
   try{for(TvEffectsController.EffectsCategory category:TvEffectsController.EffectsCategory.values()){
    View v=TvEffectsDemo.create(c,category);assertFalse(policy(v).animated());assertEquals(255,policy(v).opacity(0));assertEquals(0,policy(v).entranceMs());
    Bitmap a=render(v,100),b=render(v,500);
-   try{assertTrue("reduced-motion frame remains static: "+category,a.sameAs(b));}finally{a.recycle();b.recycle();}
+   try{assertTrue("reduced-motion frame remains static: "+category,a.sameAs(b));export(a,category+"-SYSTEM-REDUCED");}finally{a.recycle();b.recycle();}
   }}finally{scale.invoke(null,1f);}
  }
  @Test public void allTenLayoutsHaveFullSoftOffProofAtEntryMiddleAndExit()throws Exception{
@@ -76,6 +76,42 @@ public class TvEffectsControllerTest {
   for(TvEffectsController.EffectsMode mode:TvEffectsController.EffectsMode.values()){
    TvEffectsController.select(c,mode);Banner banner=new Banner(c);assertTrue(banner.showEffectsDemo(TvEffectsController.EffectsCategory.BRAZIL));banner.hide();
    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(25));assertNull(banner.activeView());
+  }
+ }
+ @Test public void simulationSequenceCanBeCancelledWithoutStoppingMonitoring()throws Exception{
+  MonitorService service=Robolectric.buildService(MonitorService.class).create().get();
+  try{
+   Prefs.get(service).edit().putBoolean("enabled",false).commit();
+   service.onStartCommand(new android.content.Intent().setAction(MonitorService.TEST+"_EFFECTS"),0,1);
+   java.lang.reflect.Field tasks=MonitorService.class.getDeclaredField("demoTasks");tasks.setAccessible(true);
+   assertEquals(11,((java.util.List<?>)tasks.get(service)).size());
+   service.onStartCommand(new android.content.Intent().setAction(MonitorService.TEST+"_EFFECTS_CANCEL"),0,2);
+   assertTrue(((java.util.List<?>)tasks.get(service)).isEmpty());
+   assertFalse(Prefs.get(service).getBoolean("enabled",false));
+  }finally{service.onDestroy();}
+ }
+ @Test public void settledInformationKeepsTheSameLayoutAcrossModes(){
+  for(TvEffectsController.EffectsCategory category:TvEffectsController.EffectsCategory.values()){
+   TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);Bitmap baseline=render(TvEffectsDemo.create(c,category),8000);
+   try{for(TvEffectsController.EffectsMode mode:new TvEffectsController.EffectsMode[]{TvEffectsController.EffectsMode.FULL,TvEffectsController.EffectsMode.SOFT}){
+    TvEffectsController.select(c,mode);Bitmap next=render(TvEffectsDemo.create(c,category),8000);
+    try{int top=category==TvEffectsController.EffectsCategory.BRAZIL?31:category==TvEffectsController.EffectsCategory.MARKET||category==TvEffectsController.EffectsCategory.VOICE?31:Banner.insetDp(c)+31;
+     int bottom=category==TvEffectsController.EffectsCategory.BRAZIL?140:top+60;
+     for(int y=top;y<bottom;y++)for(int x=223;x<812;x++)assertEquals("settled content layout: "+category+" / "+mode,baseline.getPixel(x,y),next.getPixel(x,y));
+    }finally{next.recycle();}
+   }}finally{baseline.recycle();}
+  }
+ }
+ @Test public void approvedM6OpeningIsExclusiveToFullAndIndependentSwitch()throws Exception{
+  for(TvEffectsController.EffectsMode mode:TvEffectsController.EffectsMode.values())for(boolean opening:new boolean[]{true,false}){
+   TvEffectsController.select(c,mode);Prefs.get(c).edit().putBoolean(GlobalM6Intro.PREF_ENABLED,opening).commit();
+   Bitmap b=render(TvEffectsDemo.create(c,TvEffectsController.EffectsCategory.GLOBAL_M6),1500);
+   try{int yellow=0;for(int y=Banner.insetDp(c)+48;y<Banner.insetDp(c)+88;y++)for(int x=270;x<800;x++){
+    int color=b.getPixel(x,y);if(Color.red(color)>210&&Color.green(color)>155&&Color.blue(color)<100)yellow++;
+   }
+   if(mode==TvEffectsController.EffectsMode.FULL&&opening)assertTrue(yellow>100);else assertEquals(0,yellow);
+   export(b,"GLOBAL_M6-"+mode+"-opening-"+opening);
+   }finally{b.recycle();}
   }
  }
 }

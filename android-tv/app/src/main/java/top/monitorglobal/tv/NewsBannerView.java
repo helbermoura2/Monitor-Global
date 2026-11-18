@@ -21,7 +21,7 @@ final class NewsBannerView extends View {
  private final boolean summary;private final String summaryDay;private final long pageMillis;private final DailySeismicTotals summaryTotals;
  private long started;private boolean presentationAnimated;
  void startPresentation(long when,boolean animated){started=when;effects.start(when);presentationAnimated=animated&&android.animation.ValueAnimator.areAnimatorsEnabled();invalidate();}
- private final String ticker;
+ private final String ticker,tickerDisplay;
  private final int accent,foreground,background;
  private final boolean animate;
  private boolean motionEnabled(){return animate&&effects.animated();}
@@ -75,7 +75,7 @@ final class NewsBannerView extends View {
    line.append(v.title).append("     •     ").append(v.detail).append("     •     ").append(v.kind.equals("tsunami")?"Boletim: ":"Origem do sismo: ").append(p.time).append("     •     ");
   }
   if(summary||replay)line.append("HISTÓRICO · Não informa a situação atual de tsunami     •     ");
-  line.append("Siga as orientações das autoridades locais");ticker=line.toString();
+  line.append("Siga as orientações das autoridades locais");ticker=line.toString();tickerDisplay=OledNewsChrome.tickerDisplay(ticker);
   setContentDescription((demo?"Demonstração, não é alerta real. ":replay?"Replay de registro histórico. ":"")+(summaryTotals!=null?summaryTotals.accessibilityText()+" ":"")+ticker);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
  private void rect(Canvas c,float l,float t,float r,float b,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRect(l,t,r,b,paint);}
@@ -119,7 +119,7 @@ final class NewsBannerView extends View {
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
-  String display=OledNewsChrome.tickerDisplay(ticker);
+  String display=tickerDisplay;
   Typeface tickerFace=OledNewsChrome.tickerFont();
   paint.setTypeface(tickerFace);paint.setTextSize(14);float length=paint.measureText(display)+104;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());
