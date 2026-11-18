@@ -163,7 +163,7 @@ final class BrazilNationalBannerView extends View {
   c.drawText(text,center-p.measureText(text)/2f,baseline,p);
  }
  @Override protected void onDraw(Canvas canvas){
-  super.onDraw(canvas);if(started==0)return;
+  super.onDraw(canvas);if(started==0)return;animated=animated&&effects.animated();
   long drawStarted=SystemClock.elapsedRealtimeNanos();
   long elapsed=effects.elapsed(SystemClock.uptimeMillis());
   canvas.save();canvas.scale(getWidth()/WIDTH,getHeight()/HEIGHT);

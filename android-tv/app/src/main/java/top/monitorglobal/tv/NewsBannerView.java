@@ -24,6 +24,7 @@ final class NewsBannerView extends View {
  private final String ticker;
  private final int accent,foreground,background;
  private final boolean animate;
+ private boolean motionEnabled(){return animate&&effects.animated();}
  final TvEffectsController effects;
  private boolean running;private MapInset mapInset;private float mapReveal=1;
  private final boolean mapBelow;private final int mapSpace;
@@ -102,14 +103,14 @@ final class NewsBannerView extends View {
   OledNewsChrome.base(c,paint);
   breaking(c,elapsed);
   OledNewsChrome.tab(c,paint,badgeLabel(),false);
-  BroadcastVisuals.radar(c,paint,elapsed,animate&&effects.animated());
+  BroadcastVisuals.radar(c,paint,elapsed,motionEnabled());
   drawClock(c);
   drawIdentity(c,elapsed);
   long contentElapsed=summary?BannerTimeline.summaryElapsed(elapsed,presentationAnimated):elapsed;
   int index=summary?BannerTimeline.summaryPage(contentElapsed,pages.length,presentationAnimated):BannerTimeline.page(elapsed,pages.length);long within=elapsed%pageMillis;
   long fadeElapsed=summary?BannerTimeline.summaryFadeElapsed(contentElapsed,index):within;
   int effectLayer=c.saveLayerAlpha(8,31,829,94,effects.opacity(elapsed));
-  if(effects.animated()&&(summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
+  if(effects.animated()&&(summary?presentationAnimated:motionEnabled())&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS){
    float t=effects.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,false,false);
@@ -121,7 +122,7 @@ final class NewsBannerView extends View {
   String display=OledNewsChrome.tickerDisplay(ticker);
   Typeface tickerFace=OledNewsChrome.tickerFont();
   paint.setTypeface(tickerFace);paint.setTextSize(14);float length=paint.measureText(display)+104;
-  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());
   text(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   text(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
@@ -137,8 +138,8 @@ final class NewsBannerView extends View {
    c.restore();
   }
   c.restore();
-  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
-  if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(Math.min(pageMillis-within,60000-Math.floorMod(System.currentTimeMillis(),60000)));}
+  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,motionEnabled());
+  if(running&&isShown()){if(motionEnabled())postInvalidateOnAnimation();else postInvalidateDelayed(Math.min(pageMillis-within,60000-Math.floorMod(System.currentTimeMillis(),60000)));}
  }
  /** Five magnitude bands from the full-day catalog, not the five ranked quake cards. */
  private void drawSummaryTotals(Canvas c){
@@ -160,7 +161,7 @@ final class NewsBannerView extends View {
   if(mapInset==null||mapReveal<=0||mapSpace==0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);float slide=(1-mapReveal)*180;
   c.translate(649,mapBelow?4-slide:slide);
-  boolean fading=effects.animated()&&(summary?presentationAnimated:animate)&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
+  boolean fading=effects.animated()&&(summary?presentationAnimated:motionEnabled())&&pages.length>1&&(summary?index>0:elapsed>=pageMillis)&&fadeElapsed>=0&&fadeElapsed<BannerTimeline.PAGE_FADE_MS;
   if(fading){float t=effects.pageProgress(fadeElapsed);int layer=c.saveLayerAlpha(0,0,310,176,(int)(255*(1-t)));mapInset.draw(c,pages[(index+pages.length-1)%pages.length].alert,brand,accent);c.restoreToCount(layer);layer=c.saveLayerAlpha(0,0,310,176,(int)(255*t));mapInset.draw(c,pages[index].alert,brand,accent);c.restoreToCount(layer);}
   else mapInset.draw(c,pages[index].alert,brand,accent);
   c.restore();
@@ -191,7 +192,7 @@ final class NewsBannerView extends View {
  }
  float identityLeft(long elapsed){return OledNewsChrome.BRAND_PLATE_LEFT;}
  private void drawIdentity(Canvas c,long elapsed){
-  OledNewsChrome.brandFooter(c,paint,elapsed,animate);
+  OledNewsChrome.brandFooter(c,paint,elapsed,motionEnabled());
  }
  private void drawPage(Canvas c,Page p,long elapsed,int opacity,float shift){
   if(opacity<=0)return; int layer=opacity<255?c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,opacity):c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);c.translate(0,shift);
@@ -202,7 +203,7 @@ final class NewsBannerView extends View {
    return;
   }
   if(BannerTimeline.magnitudeChanged(a)){
-   if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);
+   if(!motionEnabled()||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255);
    else if(elapsed<BannerTimeline.REVISION_AT_MS)magnitude(c,p.oldMagnitude,"ANTERIOR",255);
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)));magnitude(c,p.magnitude,"ATUAL",(int)(255*t));}
   }else if(a.kind.equals("tsunami")){BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI",a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",eventInk(a));}
@@ -219,7 +220,7 @@ final class NewsBannerView extends View {
  private void drawRegionalPage(Canvas c,Page page,long elapsed){
   Alert a=page.alert;
   if(BannerTimeline.magnitudeChanged(a)){
-   if(!animate||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)
+   if(!motionEnabled()||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)
     magnitude(c,page.magnitude,"ATUAL",255);
    else if(elapsed<BannerTimeline.REVISION_AT_MS)
     magnitude(c,page.oldMagnitude,"ANTERIOR",255);
@@ -263,7 +264,7 @@ final class NewsBannerView extends View {
  }
  private void drawHeadline(Canvas c,Page p,long elapsed,float width,float size){
   paint.setTypeface(brand);paint.setTextSize(size);float length=paint.measureText(p.headline);
-  if(length<=width||!animate){fitText(c,p.headline,HEADLINE_X,HEADLINE_Y,size,foreground,brand,width);return;}
+  if(length<=width||!motionEnabled()){fitText(c,p.headline,HEADLINE_X,HEADLINE_Y,size,foreground,brand,width);return;}
   long local=elapsed%pageMillis;if(summary){long content=BannerTimeline.summaryElapsed(elapsed,presentationAnimated);int index=0;for(int i=0;i<pages.length;i++)if(pages[i]==p){index=i;break;}local=Math.max(0,content-index*(pageMillis+(presentationAnimated?BannerTimeline.PAGE_FADE_MS:0)));}
   float offset=HeadlineMotion.offset(length-width,local,pageMillis);c.save();c.clipRect(HEADLINE_X,HEADLINE_TOP,HEADLINE_X+width,HEADLINE_BOTTOM);text(c,p.headline,HEADLINE_X-offset,HEADLINE_Y,size,foreground,brand,Float.MAX_VALUE);c.restore();
  }

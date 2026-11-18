@@ -37,6 +37,7 @@ final class TvBroadcastInfoView extends View {
  private final float[] identityWidths=new float[2],identityTextWidths=new float[2];
  private boolean running;
  private final boolean animate;
+ private boolean motionEnabled(){return animate&&effects.animated();}
  final TvEffectsController effects;
  private WeatherSatelliteClient.Frame fadingFrame;private long imageReadyAt=-1;
  private final RectF satelliteImageBounds=new RectF(0,0,310,150);
@@ -44,7 +45,9 @@ final class TvBroadcastInfoView extends View {
  private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
-  super(c);OfficialArgosLogo.prepare(c);this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
+  super(c);OfficialArgosLogo.prepare(c);
+  effects=new TvEffectsController(c,kind==WEATHER?TvEffectsController.EffectsCategory.WEATHER:kind==RAIN?TvEffectsController.EffectsCategory.RAIN:kind==BRENT?TvEffectsController.EffectsCategory.MARKET:kind==SATELLITE?TvEffectsController.EffectsCategory.SATELLITE:TvEffectsController.EffectsCategory.VOICE,false);
+  animate=effects.animated();this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
@@ -189,12 +192,12 @@ final class TvBroadcastInfoView extends View {
   drawRadar(c,elapsed);
  }
  private void drawRadar(Canvas c,long elapsed){
-  BroadcastVisuals.radar(c,p,elapsed,animate);
+  BroadcastVisuals.radar(c,p,elapsed,motionEnabled());
  }
  private float identityLeft(long elapsed){
   int current=BannerTimeline.page(elapsed,2),within=(int)(elapsed%BannerTimeline.PAGE_MS);
   float width=identityWidths[current];
-  if(animate&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)
+  if(motionEnabled()&&elapsed>=BannerTimeline.PAGE_MS&&within<BannerTimeline.FADE_MS)
    width=Math.max(identityWidths[0],identityWidths[1]);
   return OledNewsChrome.BRAND_PLATE_LEFT;
  }
@@ -206,14 +209,14 @@ final class TvBroadcastInfoView extends View {
   Typeface clockFace=OledNewsChrome.clockFont();
   p.setTypeface(clockFace);p.setTextSize(18f);
   label(c,clockText,58-p.measureText(clockText)/2f,118,18,Color.WHITE,clockFace,90);
-  OledNewsChrome.brandFooter(c,p,elapsed,animate);
+  OledNewsChrome.brandFooter(c,p,elapsed,motionEnabled());
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
   String display=OledNewsChrome.tickerDisplay(ticker);
   Typeface tickerFace=OledNewsChrome.tickerFont();
   p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
-  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animate);
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());
   label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
@@ -362,9 +365,9 @@ final class TvBroadcastInfoView extends View {
   canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
   drawHeader(canvas,elapsed);canvas.restore();
   drawMap(canvas);canvas.restore();
-  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
+  RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,motionEnabled());
   if(running&&isShown()){
-   if(animate)postInvalidateOnAnimation();
+   if(motionEnabled())postInvalidateOnAnimation();
    else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));
   }
  }
