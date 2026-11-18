@@ -72,6 +72,7 @@ final class OfficialArgosLogo {
   eye.moveTo(59,CY);eye.quadTo(CX,CY-266*open,605,CY);
   eye.quadTo(CX,CY+266*open,59,CY);eye.close();
   c.save();c.clipPath(eye);
+  c.clipRect(0,84,ART_W,ART_H-84);
   c.translate(CX,CY);c.scale(3.74f,3.74f);c.translate(-64,-64);
   float sweep=animate?Math.floorMod(elapsed,BroadcastVisuals.RADAR_PERIOD_MS)*360f/BroadcastVisuals.RADAR_PERIOD_MS:225f;
   RadarLogoView.drawRadar(c,p,sweep);
