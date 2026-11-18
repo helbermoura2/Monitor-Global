@@ -8,6 +8,13 @@ public class RainStylesPreviewTest {
  @Before public void setup(){c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().commit();org.robolectric.shadows.ShadowSettings.setCanDrawOverlays(true);}
  @After public void reset(){Prefs.get(c).edit().clear().commit();}
  private RainForecast.Summary sample(){return new RainForecast.Summary("now","moderada","Cenário fictício",4,2,"Simulação",System.currentTimeMillis(),System.currentTimeMillis()+600000,true);}
+ @Test public void screenRainFadesInAndOutWithoutLingering(){
+  assertEquals(0f,PreviewRain.opacity(0),.001f);
+  assertTrue(PreviewRain.opacity(225)>.3f&&PreviewRain.opacity(225)<.7f);
+  assertEquals(1f,PreviewRain.opacity(450),.001f);
+  assertTrue(PreviewRain.opacity(11875)>.3f&&PreviewRain.opacity(11875)<.7f);
+  assertEquals(0f,PreviewRain.opacity(12250),.001f);
+ }
  @Test public void allStylesAndIntensitiesDrawAndReleaseTheirSmallReusableSprites()throws Exception{
   for(int style=0;style<3;style++){int previous=-1;
    for(int level=0;level<4;level++){

@@ -19,7 +19,7 @@ public class StormPreviewTest {
   Context c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().putInt("previewRainStyle",0).putInt("previewRainLevel",3).commit();
   RainForecast.Summary rain=new RainForecast.Summary("now","fraca","Chuva fraca",1,.5,"",System.currentTimeMillis(),System.currentTimeMillis()+600000,true);
   RainOverlay overlay=new RainOverlay(c);
-  try{assertTrue(overlay.show(rain,true,false));Object effect=field(overlay,"previewRain");assertEquals(12,field(effect,"glassCount"));assertEquals(60,field(effect,"airCount"));View host=(View)field(overlay,"current");assertTrue(((WindowManager.LayoutParams)host.getLayoutParams()).width>0);assertEquals(1,((ViewGroup)host).getChildCount());assertNotNull(field(overlay,"effectHost"));
+  try{assertTrue(overlay.show(rain,true,false));Object effect=field(overlay,"previewRain");assertEquals(8,field(effect,"glassCount"));assertEquals(42,field(effect,"airCount"));View host=(View)field(overlay,"current");assertTrue(((WindowManager.LayoutParams)host.getLayoutParams()).width>0);assertEquals(1,((ViewGroup)host).getChildCount());assertNotNull(field(overlay,"effectHost"));
    assertTrue(overlay.show(rain,false,false));assertNull(field(overlay,"previewRain"));assertTrue(((WindowManager.LayoutParams)((View)field(overlay,"current")).getLayoutParams()).width>0);
   }finally{overlay.hide();}
  }
