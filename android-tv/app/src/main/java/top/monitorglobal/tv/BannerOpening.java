@@ -27,7 +27,7 @@ final class BannerOpening {
  static String title(TvEffectsController.EffectsCategory category){
   switch(category){case BRAZIL:return "SISMO NO BRASIL";case REGIONAL:return "SISMO REGIONAL";
    case RAIN:return "CHUVA";case WEATHER:return "TEMPERATURA";case MARKET:return "COTAÇÕES";
-   case SATELLITE:return "SATÉLITE";case TSUNAMI:return "TSUNAMI";case SUMMARY:return "RESUMO SÍSMICO";
+   case SATELLITE:return "SATÉLITE";case TSUNAMI:return "TSUNAMI";case SUMMARY:return "RESUMO DIÁRIO";
    case VOICE:return "CONSULTA POR VOZ";default:return "BREAKING NEWS";}
  }
  long duration(){return effects.full()?(effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6?GlobalM6Intro.END_MS:2300):750;}
@@ -41,7 +41,10 @@ final class BannerOpening {
   while(size>12&&paint.measureText(s)>max){size-=.5f;paint.setTextSize(size);}
   paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(color);c.drawText(s,x,y,paint);
  }
+ boolean standard(){return effects.category!=TvEffectsController.EffectsCategory.GLOBAL_M6||!effects.full();}
+ float arrival(long elapsed){return TvEffectsController.ease(TvEffectsController.phase(elapsed,effects.full()?450:160));}
  void draw(Canvas c,long elapsed,float height){
+  if(standard()){drawStandard(c,elapsed,height);return;}
   float footer=height-32,center=(30+footer)/2;
   c.save();c.clipRect(8,0,925,height);
   gradientMatrix.setScale(1,footer-30);gradientMatrix.postTranslate(0,30);RED.setLocalMatrix(gradientMatrix);
@@ -64,5 +67,30 @@ final class BannerOpening {
   float x=20+(760-paint.measureText(title))/2+(1-textArrival)*45;
   text(c,title,x,center+17,size,760,Color.argb(Math.round(255*textArrival),255,224,33));
   rect(c,8,footer-1,925,footer,0xfffa5260);c.restore();paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);
+ }
+ private void drawStandard(Canvas c,long elapsed,float height){
+  float footer=height-32,center=(30+footer)/2;
+  c.save();c.clipRect(8,0,925,height);
+  rect(c,8,30,925,footer,OledNewsChrome.OLED);
+  rect(c,8,30,11,footer,OledNewsChrome.RED_DARK);
+  OledNewsChrome.tab(c,paint,"ARGOS ORBIS",true);
+  OledNewsChrome.tab(c,paint,status,false);
+  rect(c,8,footer,925,height,0xff171f28);
+  text(c,"argosorbis.com.br",20,height-10,16,420,Color.WHITE);
+  c.save();c.translate(0,center-62);BroadcastVisuals.radar(c,paint,elapsed,true);c.restore();
+  long in=effects.full()?200:65, fade=effects.full()?360:120;
+  float appear=TvEffectsController.ease(TvEffectsController.phase(elapsed-in,fade));
+  float leave=TvEffectsController.ease(TvEffectsController.phase(elapsed-(transitionStart()-fade),fade));
+  Typeface face=OledNewsChrome.titleFont(null);
+  paint.setTypeface(face);paint.setTextAlign(Paint.Align.CENTER);paint.setTextScaleX(1);
+  paint.setTextSize(height>126?48:40);paint.setShader(null);paint.setStyle(Paint.Style.FILL);
+  int opacity=Math.round(255*appear*(1-leave));
+  paint.setColor(Color.argb(opacity,245,250,255));
+  float baseline=center-(paint.ascent()+paint.descent())/2f+8*(1-appear)-6*leave;
+  c.drawText(title,465,baseline,paint);
+  float half=44*appear;
+  rect(c,465-half,center+23,465+half,center+25,Color.argb(opacity,217,39,77));
+  c.restore();
+  paint.setTextAlign(Paint.Align.LEFT);paint.setAlpha(255);
  }
 }

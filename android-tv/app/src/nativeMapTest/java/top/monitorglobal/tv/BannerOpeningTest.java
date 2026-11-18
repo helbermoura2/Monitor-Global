@@ -33,6 +33,8 @@ public class BannerOpeningTest {
   assertEquals("SISMO NO BRASIL",BannerOpening.title(TvEffectsController.EffectsCategory.BRAZIL));
   assertEquals("SISMO REGIONAL",BannerOpening.title(TvEffectsController.EffectsCategory.REGIONAL));
   assertEquals("TEMPERATURA",BannerOpening.title(TvEffectsController.EffectsCategory.WEATHER));
+  assertEquals("RESUMO DIÁRIO",BannerOpening.title(TvEffectsController.EffectsCategory.SUMMARY));
+  assertEquals("TSUNAMI",BannerOpening.title(TvEffectsController.EffectsCategory.TSUNAMI));
   assertEquals("COTAÇÕES",BannerOpening.title(TvEffectsController.EffectsCategory.MARKET));
  }
  @Test public void openerNeverDrawsTheDataUnderItAndWipeHasDisjointPixels(){
@@ -51,7 +53,12 @@ public class BannerOpeningTest {
  }
  @Test public void urgentAndShortPresentationsNeverWaitForOpening(){
   TvEffectsController urgent=new TvEffectsController(c,TvEffectsController.EffectsCategory.TSUNAMI,false);
+  Alert bulletin=new Alert("test","tsunami","","","","warning",0,0,false);
+  assertTrue(NewsBannerView.urgentTsunami(bulletin));
+  urgent.disableOpening();
   assertFalse(new BannerOpening(urgent,15000).visible(500));
+  TvEffectsController routine=new TvEffectsController(c,TvEffectsController.EffectsCategory.TSUNAMI,false);
+  assertTrue(new BannerOpening(routine,15000).visible(500));
   TvEffectsController rain=new TvEffectsController(c,TvEffectsController.EffectsCategory.RAIN,false);
   assertFalse(new BannerOpening(rain,3000).visible(500));rain.disableOpening();assertFalse(new BannerOpening(rain,12000).visible(500));
   TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);assertFalse(new BannerOpening(new TvEffectsController(c,TvEffectsController.EffectsCategory.MARKET,false),12000).visible(500));

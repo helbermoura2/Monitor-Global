@@ -27,7 +27,7 @@ final class TvEffectsController {
   category=type;replay=historical;demonstration=demo;requested=selected(c);
  }
  void disableOpening(){openingAllowed=false;}
- boolean openingAllowed(){return openingAllowed&&animated()&&category!=EffectsCategory.TSUNAMI&&category!=EffectsCategory.SUMMARY&&category!=EffectsCategory.VOICE;}
+ boolean openingAllowed(){return openingAllowed&&animated()&&category!=EffectsCategory.VOICE;}
  static EffectsMode selected(Context c){
   try{return EffectsMode.valueOf(Prefs.get(c).getString(PREF_MODE,"FULL"));}
   catch(IllegalArgumentException e){return EffectsMode.FULL;}
@@ -57,6 +57,15 @@ final class TvEffectsController {
  float translate(long elapsed){return animated()?(1-progress(elapsed))*(full()?8:3):0;}
  float pageProgress(long elapsed){return ease(phase(elapsed,pageFadeMs()));}
  int imageOpacity(long elapsed){return !animated()?255:Math.round(255*ease(phase(elapsed,full()?400:200)));}
+ // Accent confirmed values briefly without changing their text, position or timing.
+ int valueInk(int normal, int highlight, long elapsed){
+  if(!animated()||elapsed<0)return normal;
+  float amount=1f-progress(elapsed);
+  if(amount<=0)return normal;
+  return Color.rgb(Math.round(Color.red(normal)+(Color.red(highlight)-Color.red(normal))*amount),
+    Math.round(Color.green(normal)+(Color.green(highlight)-Color.green(normal))*amount),
+    Math.round(Color.blue(normal)+(Color.blue(highlight)-Color.blue(normal))*amount));
+ }
  static boolean wet(RainForecast.Summary rain){return rain!=null&&rain.rain&&"now".equals(rain.state)&&Double.isFinite(rain.rate)&&rain.rate>0;}
  static boolean storm(RainForecast.Summary rain,WeatherForecast.Summary weather){return wet(rain)&&weather!=null&&weather.stormForecast;}
  /** Radar ornament surrounds the rain icon; it is not meteorological radar data. */

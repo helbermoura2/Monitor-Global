@@ -8,6 +8,7 @@ final class BannerRevealLayout extends FrameLayout {
  private long sceneStart;private BannerOpening opening;
  void configure(TvEffectsController policy){configure(policy,Long.MAX_VALUE);}
  void configure(TvEffectsController policy,long duration){effects=policy;opening=new BannerOpening(policy,duration);exiting=false;sceneStarted=false;}
+ long openingLead(){return opening!=null&&opening.visible(0)?opening.transitionStart():0;}
  void startPresentation(long when){sceneStart=when;sceneStarted=true;invalidate();}
  void exiting(){exiting=true;}
  private boolean brazil(){return getChildCount()>0&&getChildAt(0) instanceof BrazilNationalBannerView;}
@@ -43,7 +44,13 @@ final class BannerRevealLayout extends FrameLayout {
    int intro=canvas.save();canvas.clipRect(seam,0,getWidth(),getHeight());
    canvas.translate(0,getPaddingTop());canvas.scale(getWidth()/960f,(getHeight()-getPaddingTop()-getPaddingBottom())/totalHeight());
    canvas.translate(0,Prefs.get(getContext()).getBoolean("themeTop",false)?0:mapInset());
-   opening.draw(canvas,elapsed,bodyHeight());canvas.restoreToCount(intro);
+   float arrival=opening.standard()?opening.arrival(elapsed):1;
+   if(arrival<1){
+    canvas.translate(0,(1-arrival)*10*(Prefs.get(getContext()).getBoolean("themeTop",false)?-1:1));
+    int layer=canvas.saveLayerAlpha(8,0,925,bodyHeight(),Math.round(255*arrival));
+    opening.draw(canvas,elapsed,bodyHeight());canvas.restoreToCount(layer);
+   }else opening.draw(canvas,elapsed,bodyHeight());
+   canvas.restoreToCount(intro);
    RuntimeDiagnostics.frame(frameStart,android.os.SystemClock.elapsedRealtimeNanos()-frameStart,true);
    postInvalidateOnAnimation();return;
   }
