@@ -4,11 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.SystemClock;
 import android.view.View;
@@ -18,20 +15,12 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/**
- * Brazil's distinct editorial television lower-third, matching the user's
- * approved red/white JPG composition (not the regional OLED quake strip).
- * Every label comes from a live Alert; the JPG's fictional numbers and blurry
- * newsroom background are NEVER part of the shipped on-screen graphics.
- *
- * Model 2: approved red-and-white BRASIL / main headline / right magnitude.
- * Model 1: retained teal-and-white newsroom backup, selected in TV settings.
- */
+/** National seismic bulletin on the shared Argos Orbis TV strip. */
 final class BrazilNationalBannerView extends View {
  static final int MODEL_BACKUP=1, MODEL_APPROVED=2;
  static final String PREF_MODEL="brazilBannerModel";
- static final float WIDTH=960f,HEIGHT=180f,HEADER_END=26f,BODY_END=141f,FOOTER_END=180f;
- private static final int RED=0xffb60000,TEAL=0xff064e59,WHITE=Color.WHITE,BLACK=Color.BLACK;
+ static final float WIDTH=960f,HEIGHT=OledNewsChrome.FOOTER_END;
+ private static final int WHITE=Color.WHITE;
  private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  private final Alert alert;
  private final boolean demo,replay;
@@ -39,13 +28,12 @@ final class BrazilNationalBannerView extends View {
  private final BrazilGeoStates geography;
  private final BrazilGeoStates.State state;
  private final String place,headline,magnitude,depth,time,source,ticker;
- private final Typeface bold=Typeface.create("sans-serif-condensed",Typeface.BOLD);
- private final Typeface regular=Typeface.create("sans-serif",Typeface.NORMAL);
+ private final Typeface bold=OledNewsChrome.titleFont(null);
+ private final Typeface regular=OledNewsChrome.regularFont();
  final TvEffectsController effects;
  private final RectF stateArea=new RectF();
  private Bitmap mapArtwork;private float[] epicenter;
- private final Path statusRibbon=new Path(),flagDiamond=new Path();
- private final LinearGradient footerGradient;
+
  private boolean running;private long started;private boolean animated;
  private long clockMinute=-1;private String clock="--:--";
 
@@ -55,8 +43,6 @@ final class BrazilNationalBannerView extends View {
   effects=new TvEffectsController(context,TvEffectsController.EffectsCategory.BRAZIL,replay,demo);
   if(!event.revision.isEmpty()||event.companion!=null)effects.disableOpening();
   backup=Prefs.get(context).getInt(PREF_MODEL,MODEL_APPROVED)==MODEL_BACKUP;
-  footerGradient=new LinearGradient(0,BODY_END,0,FOOTER_END,backup?new int[]{0xff072f36,0xff00434b}:new int[]{0xffb80000,0xff850000},null,Shader.TileMode.CLAMP);
-  statusRibbon.moveTo(711,0);statusRibbon.lineTo(949,0);statusRibbon.lineTo(960,25);statusRibbon.lineTo(696,25);statusRibbon.close();
   geography=BrazilGeoStates.load(context);
   state=geography==null?null:geography.locate(event);
   prepareMapArtwork();
@@ -171,73 +157,40 @@ final class BrazilNationalBannerView extends View {
   long drawStarted=SystemClock.elapsedRealtimeNanos();
   long elapsed=effects.elapsed(SystemClock.uptimeMillis());
   canvas.save();canvas.scale(getWidth()/WIDTH,getHeight()/HEIGHT);
-  drawHeader(canvas,elapsed);
+  OledNewsChrome.base(canvas,p);
+  OledNewsChrome.tab(canvas,p,"SISMO NO BRASIL",true);
+  OledNewsChrome.tab(canvas,p,demo?"TESTE FICTÍCIO":replay?"REPLAY":"AO VIVO",false);
   drawBody(canvas,elapsed);
-  int footer=canvas.saveLayerAlpha(0,BODY_END,WIDTH,HEIGHT,animated?effects.opacity(elapsed):255);
-  drawFooter(canvas,elapsed);canvas.restoreToCount(footer);
+  BroadcastVisuals.radar(canvas,p,elapsed,animated);
+  drawFooter(canvas,elapsed);
   canvas.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animated);
   if(running){if(animated)postInvalidateOnAnimation();else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));}
  }
- private void drawHeader(Canvas c,long elapsed){
-  if(backup){
-   fill(c,0,0,WIDTH,HEADER_END,TEAL);
-   // A real country emblem, not a nearby-state or guessed flag.
-   drawBrazilFlag(c,17,3,43,20);
-   ink(c,"BRASIL",70,19,22,WHITE,bold,112);
-   fill(c,182,4,183,23,0xffd4ebee);
-   ink(c,"BOLETIM SÍSMICO",195,19,19,WHITE,regular,260);
-  }else{
-   fill(c,0,23,WIDTH,26,RED);
-  }
-  String status=demo?"SIMULAÇÃO · NÃO É ALERTA REAL":replay?
-    "REPLAY · REGISTRO HISTÓRICO":"MONITORAMENTO NACIONAL";
-  // A red/white clipped status ribbon lives directly above the main bar.
-  Path flag=statusRibbon;
-  p.setShader(null);p.setStyle(Paint.Style.FILL);p.setColor(backup?0xffe9eef0:0xffba0b14);c.drawPath(flag,p);
-  centered(c,status,827,18,17,backup?BLACK:WHITE,bold,224);
- }
  private void drawBody(Canvas c,long elapsed){
-  fill(c,0,26,WIDTH,BODY_END,WHITE);
-  if(backup){
-   fill(c,0,26,219,BODY_END,0xffd6e6e9);
-   if(geography!=null)drawStateMap(c,stateArea(10,30,211,136),elapsed,true);
-   else ink(c,"MAPA INDISPONÍVEL",22,90,14,0xff355a64,regular,190);
-  }else{
-   c.save();c.clipRect(0,26,109,BODY_END);c.translate(animated?-effects.translate(elapsed):0,0);
-   fill(c,0,26,109,BODY_END,RED);
-   centered(c,"BRASIL",54,91,27,WHITE,bold,100);c.restore();
-   if(geography!=null)drawStateMap(c,stateArea(112,31,214,135),elapsed,false);
-   else ink(c,"BR",137,100,35,0xff6c7780,bold,75);
+  float mapRight=backup?271:224;
+  if(mapArtwork!=null){
+   c.save();c.clipRect(124,32,mapRight,92);
+   drawStateMap(c,stateArea(124,32,mapRight,92),elapsed);c.restore();
   }
-  float textX=backup?233:223;
-  float textRight=812;
+  float textX=mapArtwork==null?124:mapRight+12;
   int alpha=animated?effects.opacity(elapsed):255;
-  c.saveLayerAlpha(textX,30,textRight,140,Math.max(0,alpha));
-  c.save();c.translate(0,animated?effects.translate(elapsed):0);
-  ink(c,headline,textX,87,37,BLACK,bold,textRight-textX-8);c.restore();
-  String detail=place+"   •   "+depth+"   •   "+time;
-  ink(c,detail,textX,118,22,0xff4c4c4c,regular,textRight-textX-14);
-  c.restore();
-  fill(c,813,38,814,127,0xff777777);
-  centered(c,"MAGNITUDE",888,61,21,0xff111111,bold,132);
-  centered(c,magnitude,888,126,72,BLACK,bold,137);
- }
- private void drawBrazilFlag(Canvas c,float x,float y,float w,float h){
-  fill(c,x,y,x+w,y+h,0xff009b3a);
-  Path diamond=flagDiamond;diamond.reset();diamond.moveTo(x+w/2,y+2);diamond.lineTo(x+w-4,y+h/2);
-  diamond.lineTo(x+w/2,y+h-2);diamond.lineTo(x+4,y+h/2);diamond.close();
-  p.setColor(0xffffdf00);p.setStyle(Paint.Style.FILL);c.drawPath(diamond,p);
-  p.setColor(0xff002776);c.drawCircle(x+w/2,y+h/2,h*.27f,p);
+  int layer=c.saveLayerAlpha(20,31,829,94,alpha);
+  centered(c,"MAGNITUDE",68,50,13,0xffecb8bf,bold,99);
+  centered(c,magnitude.equals("—")?magnitude:"M"+magnitude,68,76,32,0xffff7687,bold,99);
+  ink(c,headline,textX,55,24,WHITE,bold,821-textX);
+  ink(c,place,textX,73,16,0xffd8e4ee,bold,821-textX);
+  ink(c,depth+"  ·  "+time,textX,89,14,0xffd8e4ee,regular,821-textX);
+  c.restoreToCount(layer);
  }
  private RectF stateArea(float l,float t,float r,float b){stateArea.set(l,t,r,b);return stateArea;}
  private void prepareMapArtwork(){
   if(geography==null||mapArtwork!=null)return;
-  int w=backup?201:102,h=backup?106:104;
+  int w=backup?147:100,h=60;
   mapArtwork=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
-  epicenter=geography.draw(new Canvas(mapArtwork),p,new RectF(0,0,w,h),state,alert,backup);
+  epicenter=geography.draw(new Canvas(mapArtwork),p,new RectF(0,0,w,h),state,alert,false);
  }
- private void drawStateMap(Canvas c,RectF area,long elapsed,boolean teal){
+ private void drawStateMap(Canvas c,RectF area,long elapsed){
   if(mapArtwork==null||mapArtwork.isRecycled())return;
   p.setShader(null);p.setStyle(Paint.Style.FILL);p.setColor(WHITE);
   c.drawBitmap(mapArtwork,area.left,area.top,p);
@@ -252,34 +205,23 @@ final class BrazilNationalBannerView extends View {
   p.setColor(0xffd91024);c.drawCircle(x,y,4.8f,p);
  }
  private void drawFooter(Canvas c,long elapsed){
-  final int base=backup?0xff063c46:0xffa50000;
-  p.setShader(footerGradient);
-  p.setStyle(Paint.Style.FILL);c.drawRect(0,BODY_END,WIDTH,FOOTER_END,p);p.setShader(null);
-  fill(c,0,BODY_END,WIDTH,BODY_END+1,backup?0xffd3e8e8:0xffe54444);
-  ink(c,"SISMO NO BRASIL",17,167,21,WHITE,bold,166);
-  fill(c,178,150,179,174,0xffefcfcf);
-  float tickerX=194,tickerRight=744;
-  c.save();c.clipRect(tickerX,145,tickerRight,179);
-  p.setTypeface(regular);p.setTextSize(17);
-  float textWidth=p.measureText(ticker);
-  float offset=animated&&textWidth>tickerRight-tickerX
-    ?elapsed/1000f*22f%(textWidth+55):0f;
-  ink(c,ticker,tickerX-offset,166,17,WHITE,regular,Math.max(textWidth+15f,tickerRight-tickerX));
-  if(textWidth>tickerRight-tickerX)ink(c,ticker,tickerX-offset+textWidth+55,166,17,WHITE,regular,textWidth+15f);
-  c.restore();
-  fill(c,744,148,745,174,0xffedaaaa);
-  // Official eye lives small in the footer: blink + pointer animation as in other strips.
-  c.save();c.translate(750,145);c.scale(.43f,.47f);c.translate(-830,-31);
-  OfficialArgosLogo.draw(c,elapsed,animated);c.restore();
-  ink(c,"ARGOS ORBIS",796,162,13,WHITE,bold,96);
-  ink(c,"CUSTOS ORBIS",796,174,8,0xffe8c5a0,regular,96);
-  fill(c,890,148,891,174,0xffedaaaa);
   long minute=System.currentTimeMillis()/60000;
   if(minute!=clockMinute){
-   clockMinute=minute;
-   clock=NewsBannerView.formatClock(System.currentTimeMillis());
+   clockMinute=minute;clock=NewsBannerView.formatClock(System.currentTimeMillis());
   }
-  centered(c,clock,926,168,22,WHITE,bold,63);
+  fill(c,8,94,106,126,OledNewsChrome.RED_DARK);
+  centered(c,clock,57,118,18,WHITE,OledNewsChrome.clockFont(),90);
+  OledNewsChrome.brandFooter(c,p,elapsed,animated);
+  float left=112,right=OledNewsChrome.BRAND_PLATE_LEFT-8;
+  int layer=c.saveLayer(left,95,right,124,null);
+  c.clipRect(left,95,right,124);
+  p.setTypeface(OledNewsChrome.tickerFont());p.setTextSize(14);
+  float length=p.measureText(ticker)+104;
+  float offset=BroadcastVisuals.tickerOffset(elapsed,length,animated);
+  ink(c,ticker,left-offset,118.5f,14,WHITE,OledNewsChrome.tickerFont(),Float.MAX_VALUE);
+  ink(c,ticker,left-offset+length,118.5f,14,WHITE,OledNewsChrome.tickerFont(),Float.MAX_VALUE);
+  OledNewsChrome.fadeTickerEdges(c,left,right);
+  c.restoreToCount(layer);
  }
  @Override protected void onAttachedToWindow(){super.onAttachedToWindow();prepareMapArtwork();running=true;invalidate();}
  @Override protected void onDetachedFromWindow(){running=false;effects.stop();if(mapArtwork!=null){mapArtwork.recycle();mapArtwork=null;}epicenter=null;super.onDetachedFromWindow();}

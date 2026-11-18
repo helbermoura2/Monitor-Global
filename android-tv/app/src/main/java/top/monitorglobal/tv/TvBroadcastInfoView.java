@@ -168,7 +168,16 @@ final class TvBroadcastInfoView extends View {
  private void badge(Canvas c,String value){
   OledNewsChrome.tab(c,p,value,false);
  }
- private String status(){return demo?"TESTE FICTÍCIO":kind==VOICE_STATUS?"CONSULTA":kind==BRENT?"COTAÇÕES":"AO VIVO";}
+ private String status(){
+  if(demo)return "TESTE FICTÍCIO";
+  switch(kind){
+   case BRENT:return "COTAÇÕES";
+   case WEATHER:return "TEMPERATURA";
+   case RAIN:return "CHUVA";
+   case SATELLITE:return "SATÉLITE";
+   default:return "CONSULTA";
+  }
+ }
    // Scale text before considering an ellipsis; the distance to the TV makes
  // clipped words (e.g. INDISPONÍ...) materially harder to understand.
  private void fitted(Canvas c,String value,float x,float y,float size,float minimum,int color,Typeface font,float width){
@@ -227,17 +236,8 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
-  if(kind==BRENT){
-   OledNewsChrome.tab(c,p,"ARGOS ORBIS",true);
-   badge(c,status());
-  }else if(kind==WEATHER||kind==RAIN){
-   fill(c,8,0,350,30,0xff09235f);
-   fitted(c,demo?(kind==RAIN?"CHUVA · TESTE FICTÍCIO":"TEMPO · TESTE FICTÍCIO"):kind==RAIN?"CHUVA · LIBERDADE – SP":"TEMPO · LIBERDADE – SP",20,21,20,14,Color.WHITE,brand,325);
-   fill(c,8,30,812,64,0xff071d2b);
-  }else{
-   OledNewsChrome.tab(c,p,kind==SATELLITE?"SATÉLITE":"CONSULTA POR VOZ",true);
-   badge(c,status());
-  }
+  OledNewsChrome.tab(c,p,"ARGOS ORBIS",true);
+  badge(c,status());
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
@@ -345,9 +345,9 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
   if(mapSpace<=0||mapReveal<=0)return;
-  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,(kind==WEATHER||kind==RAIN)&&!mapBelow?210:180);
+  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
   float slide=(1-mapReveal)*180;
-  c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?0-slide:slide+(kind==WEATHER||kind==RAIN?34:0));
+  c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide);
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);
    if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=now;}

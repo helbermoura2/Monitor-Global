@@ -21,7 +21,7 @@ public class BannerOpeningTest {
  @Before public void setup(){org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofSeconds(60));c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().commit();OfficialArgosLogo.prepare(c);}
  static TvEffectsController policy(View v){return v instanceof NewsBannerView?((NewsBannerView)v).effects:v instanceof BrazilNationalBannerView?((BrazilNationalBannerView)v).effects:((TvBroadcastInfoView)v).effects;}
  static Bitmap scene(Context context,View row,long elapsed){
-  int h=row instanceof BrazilNationalBannerView?180:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:Banner.insetDp(context));
+  int h=row instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:Banner.insetDp(context));
   BannerRevealLayout host=new BannerRevealLayout(context);host.addView(row,new FrameLayout.LayoutParams(-1,-1));host.configure(policy(row),20000);host.reveal(1);
   host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));host.layout(0,0,960,h);
   long when=SystemClock.uptimeMillis()-elapsed;host.startPresentation(when);

@@ -23,7 +23,7 @@ public class TvEffectsControllerTest {
  @Before public void setup(){org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofSeconds(30));c=RuntimeEnvironment.getApplication();Prefs.get(c).edit().clear().putBoolean("sound",false).commit();ShadowSettings.setCanDrawOverlays(true);}
  private TvEffectsController policy(View v){return v instanceof NewsBannerView?((NewsBannerView)v).effects:v instanceof BrazilNationalBannerView?((BrazilNationalBannerView)v).effects:((TvBroadcastInfoView)v).effects;}
  private void start(View v,long elapsed){long when=SystemClock.uptimeMillis()-elapsed;if(v instanceof NewsBannerView)((NewsBannerView)v).startPresentation(when,true);else if(v instanceof BrazilNationalBannerView)((BrazilNationalBannerView)v).startPresentation(when,true);else ((TvBroadcastInfoView)v).startPresentation(when,true);}
- private int height(View v){return v instanceof BrazilNationalBannerView?180:126+(v instanceof TvBroadcastInfoView?((TvBroadcastInfoView)v).mapSpace:Banner.insetDp(c));}
+ private int height(View v){return v instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT:126+(v instanceof TvBroadcastInfoView?((TvBroadcastInfoView)v).mapSpace:Banner.insetDp(c));}
  private Bitmap render(View v,long elapsed){v.layout(0,0,960,height(v));start(v,elapsed);Bitmap b=Bitmap.createBitmap(960,height(v),Bitmap.Config.ARGB_8888);v.draw(new Canvas(b));return b;}
  private void export(Bitmap b,String name)throws Exception{try(FileOutputStream out=new FileOutputStream("/tmp/monitor-tv-banner-effects-"+name+".png")){assertTrue(b.compress(Bitmap.CompressFormat.PNG,100,out));}}
  private Bitmap exit(View v){BannerRevealLayout host=new BannerRevealLayout(c);host.addView(v,new FrameLayout.LayoutParams(-1,-1));host.configure(policy(v));host.exiting();host.reveal(.25f);host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height(v),View.MeasureSpec.EXACTLY));host.layout(0,0,960,height(v));start(v,TvEffectsDemo.duration(policy(v).category)-100);Bitmap b=Bitmap.createBitmap(960,height(v),Bitmap.Config.ARGB_8888);host.draw(new Canvas(b));host.removeAllViews();return b;}
@@ -61,8 +61,8 @@ public class TvEffectsControllerTest {
    Prefs.get(c).edit().putBoolean("themeTop",top).putInt(BrazilNationalBannerView.PREF_MODEL,model).commit();TvEffectsController.select(c,mode);
    BrazilNationalBannerView v=new BrazilNationalBannerView(c,TvEffectsDemo.quake(true,false),true,false);
    BannerRevealLayout host=new BannerRevealLayout(c);host.setPadding(0,12,0,12);host.addView(v,new FrameLayout.LayoutParams(-1,-1));host.configure(v.effects);host.reveal(mode==TvEffectsController.EffectsMode.OFF?0:.6f);
-   host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(204,View.MeasureSpec.EXACTLY));host.layout(0,0,960,204);v.startPresentation(SystemClock.uptimeMillis()-1000,true);
-   Bitmap image=Bitmap.createBitmap(960,204,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));assertTrue("Brazil footer remains inside host at y=180",Color.alpha(image.getPixel(400,188))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
+   host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(150,View.MeasureSpec.EXACTLY));host.layout(0,0,960,150);v.startPresentation(SystemClock.uptimeMillis()-1000,true);
+   Bitmap image=Bitmap.createBitmap(960,150,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));assertTrue("Brazil footer remains inside host at y=126",Color.alpha(image.getPixel(400,134))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
   }
  }
  @Test public void noFabricatedWeatherAndNoNewPriceCounters(){
@@ -96,8 +96,8 @@ public class TvEffectsControllerTest {
    try{for(TvEffectsController.EffectsMode mode:new TvEffectsController.EffectsMode[]{TvEffectsController.EffectsMode.FULL,TvEffectsController.EffectsMode.SOFT}){
     TvEffectsController.select(c,mode);Bitmap next=render(TvEffectsDemo.create(c,category),8000);
     try{int top=category==TvEffectsController.EffectsCategory.BRAZIL?31:category==TvEffectsController.EffectsCategory.MARKET||category==TvEffectsController.EffectsCategory.VOICE?31:Banner.insetDp(c)+31;
-     int bottom=category==TvEffectsController.EffectsCategory.BRAZIL?140:top+60;
-     for(int y=top;y<bottom;y++)for(int x=223;x<812;x++)assertEquals("settled content layout: "+category+" / "+mode,baseline.getPixel(x,y),next.getPixel(x,y));
+     int bottom=top+60;
+     for(int y=top;y<bottom;y++)for(int x=category==TvEffectsController.EffectsCategory.BRAZIL?272:223;x<812;x++)assertEquals("settled content layout: "+category+" / "+mode,baseline.getPixel(x,y),next.getPixel(x,y));
     }finally{next.recycle();}
    }}finally{baseline.recycle();}
   }

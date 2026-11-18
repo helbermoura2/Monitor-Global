@@ -34,9 +34,9 @@ public class BrazilNationalBannerViewTest {
   a.magnitude=3.8;a.depth=10;return a;
  }
  private Bitmap image(BrazilNationalBannerView view){
-  view.layout(0,0,960,180);
+  view.layout(0,0,960,126);
   view.startPresentation(SystemClock.uptimeMillis()-1100,false);
-  Bitmap bitmap=Bitmap.createBitmap(960,180,Bitmap.Config.ARGB_8888);
+  Bitmap bitmap=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
   view.draw(new Canvas(bitmap));
   return bitmap;
  }
@@ -57,15 +57,15 @@ public class BrazilNationalBannerViewTest {
   Alert tsunami=new Alert("ts","tsunami","v","Tsunami","","warning",1,1,true);
   assertFalse(BrazilNationalBannerView.isBrazilAlert(context,tsunami));
  }
- @Test public void approvedAndBackupAreSelectableAndVisuallyDistinct(){
+ @Test public void mapModelsShareTheSameRedAndBlackStrip(){
   Alert br=brazil();BrazilNationalBannerView approved=new BrazilNationalBannerView(context,br,false,false);
   assertFalse(approved.isBackup());
   Bitmap image=image(approved);
   try{
-   assertEquals("approved bulletin body white",Color.WHITE,image.getPixel(400,40));
-   assertTrue("approved BRASIL tab red",Color.red(image.getPixel(20,55))>130);
-   assertTrue("footer is red",Color.red(image.getPixel(50,154))>100);
-   assertEquals("national banner uses full width inside the 96% safe overlay",Color.WHITE,image.getPixel(900,44));
+   assertEquals("black body",Color.BLACK,image.getPixel(810,35));
+   assertTrue("red category tab",Color.red(image.getPixel(36,3))>Color.blue(image.getPixel(36,3)));
+   assertTrue("red clock block",Color.red(image.getPixel(30,102))>100);
+   assertEquals("safe right margin",0,Color.alpha(image.getPixel(940,44)));
    assertTrue(approved.getContentDescription().toString().contains("Magnitude 3,8"));
    export(image,"national-approved");
   }finally{image.recycle();}
@@ -76,8 +76,8 @@ public class BrazilNationalBannerViewTest {
   Bitmap sample=image(backup);
   try{
    int p=sample.getPixel(20,12);
-   assertTrue("backup has teal header",Color.green(p)>Color.red(p));
-   assertEquals(Color.WHITE,sample.getPixel(450,55));
+   assertTrue("same red header in map mode",Color.red(p)>Color.blue(p));
+   assertEquals(Color.BLACK,sample.getPixel(810,35));
    export(sample,"national-backup");
   }finally{sample.recycle();}
  }

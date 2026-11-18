@@ -2,9 +2,7 @@ package top.monitorglobal.tv;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 
 /** One introductory scene, followed by the existing data scene in the SAME window.
@@ -12,17 +10,13 @@ import android.graphics.Typeface;
  */
 final class BannerOpening {
  private static final Typeface BOLD=Typeface.create("sans-serif",Typeface.BOLD);
- private static final LinearGradient RED=new LinearGradient(0,0,0,1,
-   new int[]{0xff93040e,0xffdd1930,0xff79010c},null,Shader.TileMode.CLAMP);
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- private final android.graphics.Matrix gradientMatrix=new android.graphics.Matrix();
  private final TvEffectsController effects;
  private final long slot;
- private final String title,status;
+ private final String title;
  private boolean stopped;
  BannerOpening(TvEffectsController policy,long duration){
   effects=policy;slot=duration;title=title(policy.category);
-  status=policy.demonstration?"SIMULAÇÃO":policy.replay?"REPLAY":"ARGOS ORBIS";
  }
  static String title(TvEffectsController.EffectsCategory category){
   switch(category){case BRAZIL:return "SISMO NO BRASIL";case REGIONAL:return "SISMO REGIONAL";
@@ -47,14 +41,7 @@ final class BannerOpening {
   if(standard()){drawStandard(c,elapsed,height);return;}
   float footer=height-32,center=(30+footer)/2;
   c.save();c.clipRect(8,0,925,height);
-  gradientMatrix.setScale(1,footer-30);gradientMatrix.postTranslate(0,30);RED.setLocalMatrix(gradientMatrix);
-  paint.setShader(RED);paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);c.drawRect(8,30,925,footer,paint);paint.setShader(null);
-  rect(c,8,0,254,30,0xfff5f7f8);text(c,"ARGOS ORBIS",19,22,21,220,0xff1e2025);
-  rect(c,804,0,925,30,effects.demonstration?0xff603236:0xff124c80);text(c,status,812,21,17,105,Color.WHITE);
-  rect(c,804,30,925,footer,0xff050a0e);
-  c.save();c.translate(0,center-62);BroadcastVisuals.radar(c,paint,elapsed,true);c.restore();
-  rect(c,8,footer,925,height,0xff064d5d);
-  text(c,"argosorbis.com.br",20,height-10,15,420,Color.WHITE);text(c,"@argosorbis",790,height-10,15,125,Color.WHITE);
+  drawChrome(c,elapsed,"BREAKING NEWS",effects.demonstration?"TESTE FICTÍCIO":"AO VIVO");
   float arrival=effects.full()?TvEffectsController.ease(TvEffectsController.phase(elapsed,700)):1;
   float sweep=8+790*arrival;
   if(effects.full())for(int k=5;k>=0;k--){
@@ -71,13 +58,7 @@ final class BannerOpening {
  private void drawStandard(Canvas c,long elapsed,float height){
   float footer=height-32,center=(30+footer)/2;
   c.save();c.clipRect(8,0,925,height);
-  rect(c,8,30,925,footer,OledNewsChrome.OLED);
-  rect(c,8,30,11,footer,OledNewsChrome.RED_DARK);
-  OledNewsChrome.tab(c,paint,"ARGOS ORBIS",true);
-  OledNewsChrome.tab(c,paint,status,false);
-  rect(c,8,footer,925,height,0xff171f28);
-  text(c,"argosorbis.com.br",20,height-10,16,420,Color.WHITE);
-  c.save();c.translate(0,center-62);BroadcastVisuals.radar(c,paint,elapsed,true);c.restore();
+  drawChrome(c,elapsed,"ARGOS ORBIS",effects.demonstration?"TESTE FICTÍCIO":effects.replay?"REPLAY":title);
   long in=effects.full()?200:65, fade=effects.full()?360:120;
   float appear=TvEffectsController.ease(TvEffectsController.phase(elapsed-in,fade));
   float leave=TvEffectsController.ease(TvEffectsController.phase(elapsed-(transitionStart()-fade),fade));
@@ -92,5 +73,14 @@ final class BannerOpening {
   rect(c,465-half,center+23,465+half,center+25,Color.argb(opacity,217,39,77));
   c.restore();
   paint.setTextAlign(Paint.Align.LEFT);paint.setAlpha(255);
+ }
+ private void drawChrome(Canvas c,long elapsed,String left,String right){
+  OledNewsChrome.base(c,paint);
+  OledNewsChrome.tab(c,paint,left,true);
+  OledNewsChrome.tab(c,paint,right,false);
+  rect(c,8,94,106,126,OledNewsChrome.RED_DARK);
+  text(c,NewsBannerView.formatClock(System.currentTimeMillis()),35,118,18,62,Color.WHITE);
+  OledNewsChrome.brandFooter(c,paint,elapsed,true);
+  BroadcastVisuals.radar(c,paint,elapsed,true);
  }
 }

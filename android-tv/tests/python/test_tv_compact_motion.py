@@ -32,7 +32,7 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("weatherSatellite.get()", card)
         self.assertNotIn("new MapInset(", card)
         self.assertIn("INFRAVERMELHO · SUDESTE", card)
-        self.assertIn("c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?0-slide:slide+(kind==WEATHER||kind==RAIN?34:0))", card)
+        self.assertIn("c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide)", card)
         self.assertIn('getBoolean("weatherSatellite",true)?0:Banner.insetDp(c)', card)
         self.assertIn("themeTop", display)
         self.assertIn("static final long DURATION=12000L", weather)
