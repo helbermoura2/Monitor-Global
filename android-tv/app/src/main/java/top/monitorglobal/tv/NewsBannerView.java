@@ -17,7 +17,7 @@ final class NewsBannerView extends View {
  private final Typeface brand,data;
  private final Alert root;
  private final Page[] pages;
- private final boolean demo,replay,regional;
+ private final boolean demo,replay,regional,globalM6Intro;
  private final boolean summary;private final String summaryDay;private final long pageMillis;private final DailySeismicTotals summaryTotals;
  private long started;private boolean presentationAnimated;
  void startPresentation(long when,boolean animated){started=when;presentationAnimated=animated&&animate;invalidate();}
@@ -52,7 +52,7 @@ final class NewsBannerView extends View {
  NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete){this(context,alerts,day,repeated,complete,null);}
   NewsBannerView(Context context,java.util.List<Alert> alerts,String day,boolean repeated,boolean complete,DailySeismicTotals totals){this(context,alerts.get(0),false,repeated,alerts,day,complete,totals,false);}
  private NewsBannerView(Context context,Alert a,boolean demonstration,boolean repeated,java.util.List<Alert> daily,String day,boolean complete,DailySeismicTotals totals,boolean isRegional){
-  super(context);OfficialArgosLogo.prepare(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;regional=isRegional&&!summary;
+  super(context);OfficialArgosLogo.prepare(context);mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);summary=daily!=null;summaryTotals=summary&&totals!=null&&!totals.partial&&totals.day.equals(day)?totals:null;summaryDay=BrDates.day(day);pageMillis=summary?BannerTimeline.SUMMARY_PAGE_MS:BannerTimeline.PAGE_MS;root=a;demo=demonstration;replay=repeated;regional=isRegional&&!summary;globalM6Intro=GlobalM6Intro.eligible(context,a,demo,replay,summary,regional);
   brand=OledNewsChrome.titleFont(null);data=OledNewsChrome.regularFont();
   paint.setTypeface(brand);paint.setTextSize(15);breakingWidth=BroadcastVisuals.BREAKING_WIDTH;breakingClip.addRoundRect(0,0,breakingWidth,30,7,7,Path.Direction.CW);badgeWidth=BroadcastVisuals.statusWidth(paint,brand,badgeLabel());bannerClip.addRoundRect(0,24,960,126,new float[]{0,0,0,0,8,8,8,8},Path.Direction.CW);
   identityTextWidths[0]=paint.measureText("argosorbis.com.br");identityTextWidths[1]=paint.measureText("@argosorbis");identityWidths[0]=(float)Math.ceil(identityTextWidths[0])+12;identityWidths[1]=(float)Math.ceil(identityTextWidths[1])+34;
@@ -122,7 +122,15 @@ final class NewsBannerView extends View {
   c.restoreToCount(tickerLayer);c.restore();
   }
   c.restore();
-  drawMap(c,index,elapsed,fadeElapsed);c.restore();
+  drawMap(c,index,elapsed,fadeElapsed);
+  // Approved M6+ "video 2" opening sits over the genuine seismic bulletin.
+  // The underlying map, brand and data are not destroyed or delayed.
+  if(globalM6Intro&&GlobalM6Intro.visible(elapsed,presentationAnimated)){
+   c.save();c.translate(0,mapBelow?0:mapSpace);
+   GlobalM6Intro.draw(c,paint,elapsed,root,demo);
+   c.restore();
+  }
+  c.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animate);
   if(running&&isShown()){if(animate)postInvalidateOnAnimation();else postInvalidateDelayed(Math.min(pageMillis-within,60000-Math.floorMod(System.currentTimeMillis(),60000)));}
  }

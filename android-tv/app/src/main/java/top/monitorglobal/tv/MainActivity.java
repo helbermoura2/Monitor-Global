@@ -69,6 +69,12 @@ public final class MainActivity extends Activity {
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
   section("REPLAY E RESUMOS SÍSMICOS");
   button("Replay · Último sismo M6+ mundial (72 h)",v->launch(MonitorService.REPLAY_M6));
+   button("Abertura animada M6+: "+(Prefs.get(this).getBoolean(GlobalM6Intro.PREF_ENABLED,true)?"ativada (vídeo 2)":"desativada · tarja clássica"),v->{
+    boolean next=!Prefs.get(this).getBoolean(GlobalM6Intro.PREF_ENABLED,true);
+    Prefs.get(this).edit().putBoolean(GlobalM6Intro.PREF_ENABLED,next).apply();
+    ((Button)v).setText("Abertura animada M6+: "+(next?"ativada (vídeo 2)":"desativada · tarja clássica"));
+   });
+   button("Testar abertura M6+ · vídeo 2 (fictício, em 10 s)",v->launch(MonitorService.TEST+"_M6_INTRO"));
   button("Replay · Último sismo no Brasil, qualquer magnitude (72 h)",v->launch(MonitorService.REPLAY_BRAZIL));
    button("Tarja Brasil: "+(Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED)==BrazilNationalBannerView.MODEL_BACKUP?"Modelo 1 · reserva":"Modelo aprovado · vermelho e branco"),v->{
     int current=Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED);
