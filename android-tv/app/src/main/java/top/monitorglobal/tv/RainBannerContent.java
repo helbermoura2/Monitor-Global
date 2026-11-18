@@ -3,6 +3,15 @@ package top.monitorglobal.tv;
 final class RainBannerContent {
  final String topic,headline,amount,rate,duration,durationLabel,end,accessible;
  RainBannerContent(RainForecast.Summary r){
+  if(r!=null&&r.state.equals("evidence")){
+   topic=r.level.equals("gauge")?"PLUVIÔMETRO · CEMADEN":"MODELOS HORÁRIOS";
+   headline=r.level.equals("gauge")?"CHUVA MEDIDA PERTO":"MODELOS INDICAM CHUVA";
+   amount=rate=duration="—";
+   durationLabel="DURAÇÃO ESTIMADA";
+   end=r.stopText;
+   accessible=r.title+" · "+r.stopText;
+   return;
+  }
   topic=r!=null&&r.title.startsWith("Neve")?"NEVE":"CHUVA";
   String level=r==null?"":r.forecastLevel;
   headline=r==null?"DADOS INDISPONÍVEIS":r.state.equals("soon")?(r.arrivalMinutes>=0?"EM APROX. "+r.arrivalMinutes+" MIN":"PREVISTA"):r.state.equals("now")?(level.isEmpty()?"EM ANDAMENTO":level.toUpperCase(java.util.Locale.forLanguageTag("pt-BR"))+" AGORA"):"SEM CHUVA PREVISTA";

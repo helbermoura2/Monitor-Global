@@ -55,4 +55,25 @@ public class RainForecastTest {
   for(int i=25;i<29;i++)d.getJSONArray("forecast").getJSONObject(i).put("rate",0).put("type","no_precipitation");
   RainForecast.Summary s=RainForecast.summarize(d,now);assertTrue(s.title.startsWith("Neve"));assertFalse(s.rain);assertEquals("Janela de neve prevista",s.durationLabel);assertEquals("Janela de neve prevista: ~25 min",s.durationText);
  }
+
+ @Test public void nearbyGaugeSurfacesWhenTheMinuteForecastIsDry()throws Exception{
+  JSONObject gauge=new JSONObject().put("kind","gauge").put("at",now-60000).put("expiresAt",now+60000)
+    .put("station","Estação de teste").put("amount",0.2).put("distanceKm",1.4);
+  JSONObject dry=input(200,210,8).put("evidence",gauge);
+  RainForecast.Summary measured=RainForecast.summarize(dry,now);
+  assertEquals("evidence",measured.state);
+  assertEquals("gauge",measured.level);
+  assertTrue(measured.stopText.contains("Cemaden"));
+  assertFalse(measured.rain);
+  assertEquals("dry",RainForecast.summarize(dry,now+60000).state);
+ }
+ @Test public void hourlyEvidenceDoesNotInventAnArrivalWithoutAMinuteForecast()throws Exception{
+  JSONObject hourly=new JSONObject().put("kind","hourly").put("at",now).put("expiresAt",now+60000);
+  JSONObject unavailable=input(200,210,8).put("ok",false).put("evidence",hourly);
+  RainForecast.Summary summary=RainForecast.summarize(unavailable,now);
+  assertEquals("hourly",summary.level);
+  assertEquals(-1,summary.arrivalMinutes);
+  assertTrue(Double.isNaN(summary.amount));
+  assertNull(RainForecast.summarize(unavailable,now+60000));
+ }
 }

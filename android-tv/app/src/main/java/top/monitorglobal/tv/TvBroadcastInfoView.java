@@ -78,7 +78,8 @@ final class TvBroadcastInfoView extends View {
    t.append("CONDIÇÃO ESTIMADA: ").append(WeatherConditionDisplay.headline(weather,rain));
    if(weather!=null)t.append(" · MODELO HORÁRIO: ").append(weather.condition).append(" · ").append(weather.temperature)
       .append(" · ").append(weather.humidity).append(" · ").append(weather.wind).append(" · Rajadas ").append(weather.gustValue);
-   if(rain!=null)t.append(" · CHUVA POR MINUTO: ").append(rain.title).append(" · ").append(rain.amountText);
+   if(rain!=null&&rain.state.equals("evidence"))t.append(" · ").append(rain.title).append(" · ").append(rain.stopText);
+   else if(rain!=null)t.append(" · CHUVA POR MINUTO: ").append(rain.title).append(" · ").append(rain.amountText);
    t.append(" · ").append(WeatherConditionDisplay.sourceNote(weather,rain));
    t.append(" · Modelos meteorológicos; não representam observação direta do céu");
    ticker=t.toString();

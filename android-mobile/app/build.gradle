@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 26
-  versionName '0.1.25'
+  versionCode 27
+  versionName '0.1.26'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -45,7 +45,7 @@ tasks.register('preparePhoneAssets', Sync) {
 }
 tasks.register('preparePhoneModels', Sync) {
  from('../../android-tv/app/src/main/java') {
-  ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast','WeatherBriefing','WeatherBriefingClient','RadarLogoView'].each { model ->
+  ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast','WeatherBriefing','WeatherBriefingClient','RadarLogoView','OfficialArgosLogo','BroadcastVisuals','OledNewsChrome'].each { model ->
    include "top/monitorglobal/tv/${model}.java"
   }
  }

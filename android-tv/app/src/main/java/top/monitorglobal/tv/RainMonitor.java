@@ -42,7 +42,7 @@ final class RainMonitor {
      manualFinished.run();return;
     }
     data=received;
-    if(!summary.state.equals("now")&&!summary.state.equals("soon")){
+    if(!summary.state.equals("now")&&!summary.state.equals("soon")&&!summary.state.equals("evidence")){
      Prefs.status(context,"Nenhuma chuva estimada para a Liberdade na próxima hora; nenhum aviso foi exibido.");
      manualFinished.run();return;
     }
@@ -107,7 +107,7 @@ final class RainMonitor {
  private void finishManual(boolean displayed){long presentation=RainOverlay.WEATHER_DURATION;if(!manualWeather)return;if(!displayed)satellite.cancel();manualWeather=false;manualNotBefore=0;main.removeCallbacks(manualStart);if(displayed)Prefs.status(context,"Meteorologia exibida · Liberdade.");int generation=manualGeneration;manualUntil=displayed?SystemClock.elapsedRealtime()+presentation+800:0;main.postDelayed(()->{if(!closed&&generation==manualGeneration){manualUntil=0;manualFinished.run();}},displayed?presentation+800:0);}
  private void fetch(boolean hourly){
   if(hourly){weatherBusy=true;nextWeatherRead=SystemClock.elapsedRealtime()+300000;}else{busy=true;nextRead=SystemClock.elapsedRealtime()+600000;}
-  if(worker==null)worker=Executors.newSingleThreadExecutor();worker.execute(()->{JSONObject result;try{result=(hourly?weatherReader:reader).call();}catch(Exception ignored){result=new JSONObject();}if(result==null)result=new JSONObject();JSONObject value=result;main.post(()->{if(hourly)weatherBusy=false;else busy=false;if(closed)return;long remaining=value.optBoolean("ok")?value.optLong("expiresAt",0)-System.currentTimeMillis():300000;if(hourly){weatherData=value;nextWeatherRead=SystemClock.elapsedRealtime()+Math.max(60000,Math.min(3600000,remaining));}else{data=value;nextRead=SystemClock.elapsedRealtime()+Math.max(60000,Math.min(600000,remaining));}tick();});});
+  if(worker==null)worker=Executors.newSingleThreadExecutor();worker.execute(()->{JSONObject result;try{result=(hourly?weatherReader:reader).call();}catch(Exception ignored){result=new JSONObject();}if(result==null)result=new JSONObject();JSONObject value=result;main.post(()->{if(hourly)weatherBusy=false;else busy=false;if(closed)return;long expiresAt=value.optBoolean("ok")?value.optLong("expiresAt",0):0;JSONObject evidence=value.optJSONObject("evidence");if(!hourly&&evidence!=null){long evidenceExpiry=evidence.optLong("expiresAt",0);if(evidenceExpiry>0)expiresAt=expiresAt>0?Math.min(expiresAt,evidenceExpiry):evidenceExpiry;}long remaining=expiresAt>0?expiresAt-System.currentTimeMillis():300000;if(hourly){weatherData=value;nextWeatherRead=SystemClock.elapsedRealtime()+Math.max(60000,Math.min(3600000,remaining));}else{data=value;nextRead=SystemClock.elapsedRealtime()+Math.max(60000,Math.min(600000,remaining));}tick();});});
  }
  private JSONObject read(String path)throws Exception{
   HttpURLConnection c=(HttpURLConnection)new URL("https://black-sky-9ba0.terrestre.workers.dev/"+path).openConnection();connection=c;c.setConnectTimeout(8000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);c.setRequestProperty("Accept","application/json");c.setRequestProperty("User-Agent","MonitorGlobalTV/"+BuildConfig.VERSION_NAME);

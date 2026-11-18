@@ -125,6 +125,12 @@ public class PhoneActivity extends Activity {
  private void rainCard(LinearLayout page,boolean detail){
   LinearLayout card=card(page,"CHUVA · LIBERDADE, SP"),body=section(card);RainForecast.Summary r=snapshot==null?null:snapshot.rain;
   if(r==null){String state=snapshot==null?"Aguardando consulta":snapshot.rainStatus;body.addView(text(state.startsWith("Aguardando")?"Consultando chuva por minuto…":"Chuva por minuto: indisponível",22,TEXT,4));footer(card,state);return;}
+  if(r.state.equals("evidence")){
+   body.addView(text(r.title,22,TEXT,4));
+   space(body,text(r.stopText,15,MUTED,4),7);
+   footer(card,(r.level.equals("gauge")?"Medição · ":"Consulta · ")+WeatherForecast.time(r.at));
+   return;
+  }
   if(!detail){LinearLayout preview=new LinearLayout(this);preview.setGravity(Gravity.CENTER_VERTICAL);body.addView(preview,new LinearLayout.LayoutParams(-1,-2));preview.addView(new PhoneIcons(this,r.state.equals("dry")?PhoneIcons.CLOUD:PhoneIcons.RAIN,CYAN),new LinearLayout.LayoutParams(dp(26),dp(26)));TextView message=text(r.title,r.state.equals("dry")?19:22,TEXT,4);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.setMarginStart(dp(10));preview.addView(message,mp);if(!r.state.equals("dry")){PhoneRainChart.Series interval=snapshot==null?null:snapshot.rainSeries;space(body,text("Próximos 60 min · "+RainForecast.number(interval==null?r.amount:interval.accumulated(60))+" mm previstos",15,MUTED,3),8);}space(body,text("Estimativa por minuto · "+WeatherForecast.time(r.at),12,MUTED,3),6);return;}
   LinearLayout hero=new LinearLayout(this);hero.setGravity(Gravity.CENTER_VERTICAL);body.addView(hero,new LinearLayout.LayoutParams(-1,-2));hero.addView(new PhoneIcons(this,r.title.startsWith("Neve")?PhoneIcons.SNOW:r.state.equals("dry")?PhoneIcons.CLOUD:PhoneIcons.RAIN,TEXT),new LinearLayout.LayoutParams(dp(36),dp(36)));TextView title=text(r.title,25,TEXT,4);LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(0,-2,1);hp.setMarginStart(dp(10));hero.addView(title,hp);
   PhoneRainChart.Series series=snapshot==null?null:snapshot.rainSeries;LinearLayout totals=metricRow(body);if(series!=null)metric(totals,PhoneIcons.DROP,RainForecast.number(series.accumulated(30))+" mm","Previsto · próximos 30 min");metric(totals,PhoneIcons.DROP,RainForecast.number(series==null?r.amount:series.accumulated(60))+" mm","Previsto · próximos 60 min");
