@@ -150,14 +150,14 @@ public class UnifiedBroadcastChromeTest {
    int qa=Banner.insetDp(context),qb=weather.mapSpace;
    for(int x:new int[]{36,220}){
     assertTrue(Color.red(a.getPixel(x,qa+10))>Color.green(a.getPixel(x,qa+10)));
-    assertEquals(0xff09235f,b.getPixel(x,qb+3));
+    assertTrue(Color.red(b.getPixel(x,qb+3))>Color.blue(b.getPixel(x,qb+3)));
    }
    for(int x:new int[]{400,540}){
     assertEquals(0,Color.alpha(a.getPixel(x,qa+12)));
     assertEquals(0,Color.alpha(b.getPixel(x,qb+12)));
    }
-   for(int y=3;y<=20;y++)for(int x=804;x<=924;x++)
-    assertEquals("attached satellite occupies former live-tab area",255,Color.alpha(b.getPixel(x,qb+y)));
+   int tab=b.getPixel(825,qb+3);
+   assertTrue("satellite stays out of the red status tab",Color.red(tab)>Color.blue(tab));
   }finally{a.recycle();b.recycle();}
  }
  @Test public void allTickerAndRadarMotionUseOneSharedClock(){

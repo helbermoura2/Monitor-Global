@@ -85,11 +85,11 @@ public final class MainActivity extends Activity {
    });
    button("Testar abertura M6+ · vídeo 2 (fictício, em 10 s)",v->launch(MonitorService.TEST+"_M6_INTRO"));
   button("Replay · Último sismo no Brasil, qualquer magnitude (72 h)",v->launch(MonitorService.REPLAY_BRAZIL));
-   button("Tarja Brasil: "+(Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED)==BrazilNationalBannerView.MODEL_BACKUP?"Modelo 1 · reserva":"Modelo aprovado · vermelho e branco"),v->{
+   button("Mapa da tarja Brasil: "+(Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED)==BrazilNationalBannerView.MODEL_BACKUP?"Ampliado":"Compacto"),v->{
     int current=Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED);
     int next=current==BrazilNationalBannerView.MODEL_APPROVED?BrazilNationalBannerView.MODEL_BACKUP:BrazilNationalBannerView.MODEL_APPROVED;
     Prefs.get(this).edit().putInt(BrazilNationalBannerView.PREF_MODEL,next).apply();
-    ((Button)v).setText("Tarja Brasil: "+(next==BrazilNationalBannerView.MODEL_BACKUP?"Modelo 1 · reserva":"Modelo aprovado · vermelho e branco"));
+    ((Button)v).setText("Mapa da tarja Brasil: "+(next==BrazilNationalBannerView.MODEL_BACKUP?"Ampliado":"Compacto"));
    });
    button("Testar tarja do Brasil (simulação, 10 s)",v->launch(MonitorService.TEST+"_BRAZIL"));
   button("Maiores de hoje · parcial até agora",v->launch(MonitorService.SUMMARY_TODAY));

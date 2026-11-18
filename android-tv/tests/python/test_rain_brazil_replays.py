@@ -39,7 +39,7 @@ class RainAndReplayTest(unittest.TestCase):
   broadcast=self.read("TvBroadcastInfoView.java")
   self.assertIn("banner.showWeather(rain,weather,demo,duration",rain)
   self.assertIn("stopEffect()",rain)
-  self.assertIn('kind==RAIN?"CHUVA · LIBERDADE – SP"',broadcast)
+  self.assertIn('case RAIN:return "CHUVA";',broadcast)
   self.assertIn("AO VIVO",broadcast)
   self.assertIn("LIBERDADE / SP",broadcast)
   self.assertIn("MAPA · LIBERDADE / SP",self.read("MapInset.java"))
