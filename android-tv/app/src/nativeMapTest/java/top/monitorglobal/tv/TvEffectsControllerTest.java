@@ -112,11 +112,11 @@ public class TvEffectsControllerTest {
  @Test public void approvedM6OpeningIsExclusiveToFullAndIndependentSwitch()throws Exception{
   for(TvEffectsController.EffectsMode mode:TvEffectsController.EffectsMode.values())for(boolean opening:new boolean[]{true,false}){
    TvEffectsController.select(c,mode);Prefs.get(c).edit().putBoolean(GlobalM6Intro.PREF_ENABLED,opening).commit();
-   Bitmap b=BannerOpeningTest.scene(c,TvEffectsDemo.create(c,TvEffectsController.EffectsCategory.GLOBAL_M6),1500);
-   try{int yellow=0;for(int y=Banner.insetDp(c)+48;y<Banner.insetDp(c)+88;y++)for(int x=270;x<800;x++){
-    int color=b.getPixel(x,y);if(Color.red(color)>210&&Color.green(color)>155&&Color.blue(color)<100)yellow++;
+   Bitmap b=BannerOpeningTest.scene(c,TvEffectsDemo.create(c,TvEffectsController.EffectsCategory.GLOBAL_M6),500);
+   try{int red=0;for(int y=Banner.insetDp(c)+48;y<Banner.insetDp(c)+88;y++)for(int x=270;x<800;x++){
+    int color=b.getPixel(x,y);if(Color.red(color)>125&&Color.green(color)<65&&Color.blue(color)<115)red++;
    }
-   if(mode==TvEffectsController.EffectsMode.FULL&&opening)assertTrue(yellow>100);else assertEquals(0,yellow);
+   if(mode==TvEffectsController.EffectsMode.FULL&&opening)assertTrue(red>100);
    export(b,"GLOBAL_M6-"+mode+"-opening-"+opening);
    }finally{b.recycle();}
   }

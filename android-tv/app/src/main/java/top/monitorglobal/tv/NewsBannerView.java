@@ -169,7 +169,7 @@ final class NewsBannerView extends View {
   }
   c.restore();
  }
- String badgeLabel(){return demo?"TESTE":replay?"REPLAY":summary?"RESUMO":regional?"REGIONAL":"AO VIVO";}
+ String badgeLabel(){return demo?"TESTE":replay?"REPLAY":"AO VIVO";}
  static String formatClock(long at){return date(at,"HH:mm");}
  private void drawClock(Canvas c){
   long now=System.currentTimeMillis(),minute=now/60000;

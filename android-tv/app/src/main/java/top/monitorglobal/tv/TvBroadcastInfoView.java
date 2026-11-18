@@ -187,19 +187,6 @@ final class TvBroadcastInfoView extends View {
   if(p.measureText(s)>max){while(!s.isEmpty()&&p.measureText(s+"…")>max)s=s.substring(0,s.offsetByCodePoints(s.length(),-1));s+="…";}
   p.setStyle(Paint.Style.FILL);p.setColor(color);c.drawText(s,x,y,p);
  }
- private void badge(Canvas c,String value){
-  OledNewsChrome.tab(c,p,value,false);
- }
- private String status(){
-  if(demo)return "TESTE FICTÍCIO";
-  switch(kind){
-   case BRENT:return "COTAÇÕES";
-   case WEATHER:return "TEMPERATURA";
-   case RAIN:return "CHUVA";
-   case SATELLITE:return "SATÉLITE";
-   default:return "CONSULTA";
-  }
- }
    // Scale text before considering an ellipsis; the distance to the TV makes
  // clipped words (e.g. INDISPONÍ...) materially harder to understand.
  private void fitted(Canvas c,String value,float x,float y,float size,float minimum,int color,Typeface font,float width){
@@ -258,8 +245,8 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
-  OledNewsChrome.tab(c,p,"ARGOS ORBIS",true);
-  badge(c,status());
+  OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true);
+  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
