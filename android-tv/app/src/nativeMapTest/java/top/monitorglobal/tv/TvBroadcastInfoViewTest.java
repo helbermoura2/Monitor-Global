@@ -67,10 +67,10 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,new BrentQuote(95.34,96.2,-.86,-.90,System.currentTimeMillis(),"Yahoo Finance"),new DollarQuote(5.67,0d,0d,System.currentTimeMillis(),"Yahoo Finance"),false);
   Bitmap b=render(view,"market-editorial");
   try{
-   assertEquals(0xfff4f5f6,b.getPixel(400,80));
-   int dark=0,red=0;
-   for(int y=48;y<75;y++)for(int x=20;x<394;x++){int p=b.getPixel(x,y);if(Color.red(p)<80&&Color.green(p)<100)dark++;if(Color.red(p)>120&&Color.green(p)<80)red++;}
-   assertTrue("price ink remains visible",dark>80);assertTrue("negative variation remains visible",red>20);
+   assertEquals(Color.BLACK,b.getPixel(400,80));
+   int light=0,red=0;
+   for(int y=48;y<75;y++)for(int x=20;x<473;x++){int p=b.getPixel(x,y);if(Color.red(p)>205&&Color.green(p)>205&&Color.blue(p)>205)light++;if(Color.red(p)>170&&Color.red(p)>Color.green(p)+50)red++;}
+   assertTrue("price ink remains visible",light>80);assertTrue("negative variation remains visible",red>20);
   }finally{b.recycle();}
  }
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
@@ -144,7 +144,7 @@ public class TvBroadcastInfoViewTest {
   assertTrue(String.valueOf(view.getContentDescription()).contains("US$ 78,35"));
   assertTrue(String.valueOf(view.getContentDescription()).contains("R$ 5,32"));
   Bitmap b=render(view,"brent-dollar");
-  try{assertEquals(126,b.getHeight());assertTrue(Color.blue(b.getPixel(36,3))>Color.red(b.getPixel(36,3)));}
+  try{assertEquals(126,b.getHeight());assertTrue(Color.red(b.getPixel(36,3))>Color.blue(b.getPixel(36,3)));}
   finally{b.recycle();}
   TvBroadcastInfoView missing=TvBroadcastInfoView.market(c,brent,null,MarketState.unknown(),MarketState.unknown(),false);
   String missingText=String.valueOf(missing.getContentDescription());
@@ -156,7 +156,7 @@ public class TvBroadcastInfoViewTest {
   for(int state:new int[]{MarketState.OPEN,MarketState.CLOSED,MarketState.PAUSED}){
    MarketState session=new MarketState(state,"fonte");
    Bitmap image=render(TvBroadcastInfoView.market(c,null,null,session,session,false),"market-state-"+state);
-   try{for(int left:new int[]{218,630}){int ink=0;for(int y=34;y<46;y++)for(int x=left;x<left+150;x++){int p=image.getPixel(x,y);if(Color.red(p)<150&&Color.green(p)<150)ink++;}assertTrue("independent market status visible",ink>10);}}finally{image.recycle();}
+   try{for(int left:new int[]{338,711}){int ink=0;for(int y=34;y<48;y++)for(int x=left;x<left+100;x++){int p=image.getPixel(x,y);if(Math.max(Color.red(p),Color.green(p))>140)ink++;}assertTrue("independent market status visible",ink>10);}}finally{image.recycle();}
   }
  }
  @Test public void AlexaBrentPendingAndOtherVoiceStatusUseIdenticalNewsroomGeometry()throws Exception{
@@ -169,7 +169,7 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(generic,"alexa-generic-banner");
   try{
    assertEquals(126,a.getHeight());assertEquals(126,b.getHeight());
-   assertTrue(Color.blue(a.getPixel(36,3))>Color.red(a.getPixel(36,3)));
+   assertTrue(Color.red(a.getPixel(36,3))>Color.blue(a.getPixel(36,3)));
    assertTrue(Color.red(b.getPixel(36,10))>Color.green(b.getPixel(36,10)));
    assertTrue(a.getPixel(911,60)!=0xff071724);
   }finally{a.recycle();b.recycle();}

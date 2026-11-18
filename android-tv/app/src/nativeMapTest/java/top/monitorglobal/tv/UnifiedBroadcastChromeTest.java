@@ -88,17 +88,17 @@ public class UnifiedBroadcastChromeTest {
   Bitmap b=frame(market,960,126,1100);
   try{
    int map=Banner.insetDp(context);
-   for(int x:new int[]{36,220,808}){
+   for(int x:new int[]{36,220,825}){
     int seismic=a.getPixel(x,map+10),marketColor=b.getPixel(x,3);
     assertTrue("red Pixlr tabs remain visible",Color.red(seismic)>Color.green(seismic));
-    if(x<258)assertTrue("short market tab is blue",Color.blue(marketColor)>Color.red(marketColor));else assertEquals(0,Color.alpha(marketColor));
+    assertTrue("market tabs use the same red chrome",Color.red(marketColor)>Color.blue(marketColor));
    }
    for(int x:new int[]{300,500,780}){
     assertEquals("no upper-right floating boxes on seismic",0,Color.alpha(a.getPixel(x,map+10)));
     assertEquals("unused market header is transparent",0,Color.alpha(b.getPixel(x,10)));
    }
    assertEquals(Color.BLACK,a.getPixel(805,map+60));
-   assertEquals(0xfff4f5f6,b.getPixel(805,60));
+   assertEquals(Color.BLACK,b.getPixel(805,60));
    assertTrue("clock stays in lower ticker",Color.red(a.getPixel(32,map+100))>75);
    assertTrue("clock stays in lower ticker",Color.red(b.getPixel(32,100))>75);
    assertEquals("actual data ticker is still present",255,Color.alpha(a.getPixel(500,map+105)));
