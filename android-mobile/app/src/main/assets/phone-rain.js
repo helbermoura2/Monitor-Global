@@ -65,8 +65,8 @@ function hideRain(){if(!map||!loaded)return;for(const id of sources)if(map.getLa
 function settled(){
  if(!active||closed||!currentSource||failedSources.has(currentSource)||!map||!map.getSource(currentSource)||!map.isSourceLoaded(currentSource))return;
  clearTimeout(frameTimer);frameTimer=0;const frame=frames[index];if(!frame)return;
- message(baseFailed?'Mapa de referência indisponível. Os dados de chuva continuam identificados abaixo.':'');$('frame-kind').textContent=frame.offset<0?'HISTÓRICO':frame.offset>0?'PREVISÃO':'ÚLTIMO QUADRO';$('frame-kind').dataset.kind=frame.offset>0?'forecast':'history';$('frame-label').textContent=(frame.offset<0?'Histórico':frame.offset>0?'Previsão':'Quadro atual')+' · '+time(frame.time);$('frame').setAttribute('aria-valuetext',$('frame-label').textContent);
- const age=Math.max(0,Math.floor((Date.now()-metadata.snapshot*1000)/60000));$('map-source').textContent='Base do mapa: '+time(metadata.snapshot*1000)+' · há '+age+' min';$('map-source').dataset.stale=String(age>15);updateSelectedPoint();
+ message(baseFailed?'Mapa de referência indisponível. Os dados de chuva continuam identificados abaixo.':'');$('frame-kind').textContent=frame.offset<0?'HISTÓRICO':frame.offset>0?'PREVISÃO':'ÚLTIMO QUADRO';$('frame-kind').dataset.kind=frame.offset>0?'forecast':'history';$('frame-label').textContent=(frame.offset<0?'Histórico':frame.offset>0?'Previsão':'Último quadro disponível')+' · '+time(frame.time);$('frame').setAttribute('aria-valuetext',$('frame-label').textContent);
+ const age=Math.max(0,Math.floor((Date.now()-metadata.snapshot*1000)/60000));$('map-source').textContent='Imagem de referência: '+time(metadata.snapshot*1000)+' · há '+age+' min';$('map-source').dataset.stale=String(age>15);updateSelectedPoint();
  if(playing&&!playTimer)playTimer=setTimeout(()=>{playTimer=0;if(index>=frames.length-1){halt();return;}showFrame(index+1);},1100);
 }
 function frameFailed(){if(!active)return;failedSources.add(currentSource);clearTimeout(frameTimer);frameTimer=0;halt();hideRain();message('Este quadro de chuva está indisponível. Tente outro horário ou atualize.');$('frame-label').textContent='Quadro indisponível';}
@@ -76,7 +76,7 @@ function showFrame(next){
  const frame=frames[index],id='phone-rain-'+index;currentSource=id;
  if(failedSources.has(id)){if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id);sources.delete(id);failedSources.delete(id);}
  $('frame-label').textContent='Carregando '+time(frame.time)+'…';message('Carregando '+(frame.offset>0?'previsão':'histórico')+' de '+time(frame.time)+'…');
- if(!map.getSource(id)){map.addSource(id,{type:'raster',tiles:[API+'/rainbow-tile/'+frame.snapshot+'/'+frame.forecast+'/{z}/{x}/{y}'],tileSize:256,maxzoom:7,attribution:'Precipitação: Rainbow Weather'});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':.65,'raster-fade-duration':0}});sources.add(id);}
+ if(!map.getSource(id)){map.addSource(id,{type:'raster',tiles:[API+'/rainbow-tile/'+frame.snapshot+'/'+frame.forecast+'/{z}/{x}/{y}'],tileSize:256,maxzoom:7,attribution:'Precipitação: Rainbow Weather'});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':.65,'raster-fade-duration':matchMedia('(prefers-reduced-motion: reduce)').matches?0:150}});sources.add(id);}
  else map.setLayoutProperty(id,'visibility','visible');
  frameTimer=setTimeout(frameFailed,15000);settled();
 }

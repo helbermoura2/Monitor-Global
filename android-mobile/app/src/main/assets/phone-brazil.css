@@ -116,3 +116,19 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 /* Date of observed image belongs to the observation; stale frames must not look live. */
 .brazil-map-panel .frame-badge[data-stale="true"]{border-color:#e9ad59;background:#30251ddd}
 .brazil-map-panel .frame-badge[data-stale="true"] strong{color:#ffcf8a}
+
+
+/* Product, map, observation timeline, then municipal forecast. */
+.brazil-location{display:flex;align-items:center;gap:8px;margin-top:8px}
+.brazil-location .brazil-search{flex:1;min-width:0}
+.brazil-location #recenter,.brazil-search input,.brazil-overlays button{min-height:44px}
+.brazil-map-panel{flex:0 0 auto;height:clamp(300px,59vh,510px);min-height:300px}
+.forecast-caption{color:#a6dcf1;font-size:12px}
+.overlay-panel{border:1px solid #28536b;border-radius:13px}
+.overlay-panel .radar-control{display:flex;flex-direction:column;gap:6px}
+.radar-control [data-radar=status]{order:-1}
+.overlay-panel .br-satellite-status,.radar-control [data-radar=status]{color:#eff8ff;font-size:13px;margin:0 0 5px}
+.overlay-panel .brazil-satellite-control .br-satellite-status[data-stale=true]{color:#ffd18a}
+.overlay-panel .radar-actions button,.overlay-panel .br-satellite-buttons button{min-height:44px}
+.brazil-map-panel .maplibregl-ctrl-attrib{background:#061b2aec!important;color:#d4e4ed!important}
+.brazil-map-panel .maplibregl-ctrl-attrib a{color:inherit!important}
