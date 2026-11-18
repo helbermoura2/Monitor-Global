@@ -96,7 +96,18 @@ public final class MonitorService extends Service {
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if((TEST+"_RAIN").equals(action)||(TEST+"_STORM").equals(action)){boolean stormPreview=(TEST+"_STORM").equals(action);cancelDemos();Prefs.status(this,stormPreview?"Prévia fictícia de chuva e relâmpagos em 10 segundos.":"Teste fictício de chuva em 10 segundos.");Runnable task=new Runnable(){public void run(){demoTasks.remove(this);if(!destroyed&&!localBusy()){activeUntil=SystemClock.uptimeMillis()+RainOverlay.DURATION+800;rain.demo(stormPreview);Runnable finish=new Runnable(){public void run(){demoTasks.remove(this);if(!draining){activeUntil=0;tryTarget();tryDaily();stopIfIdle();}}};demoTasks.add(finish);main.postDelayed(finish,RainOverlay.DURATION+800);}}};demoTasks.add(task);main.postDelayed(task,10000);if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
-  if((TEST+"_BRAZIL").equals(action)){
+  if((TEST+"_M6_INTRO").equals(action)){
+    Alert a=new Alert("DEMO-M6-INTRO","earthquake","demo",
+      "M6,8 · Costa de Honshu, Japão","Profundidade: 28 km · DADOS FICTÍCIOS",
+      "earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);
+    a.countryCode="JP";a.catalog="GEOFON_GLOBAL";a.source="SIMULAÇÃO · NÃO É ALERTA REAL";
+    a.magnitude=6.8;a.depth=28;a.originLongitude=141.4;a.originLatitude=38.1;
+    Prefs.status(this,"Abertura M6+ fictícia em 10 segundos. Volte ao vídeo.");
+    scheduleLocal(Collections.singletonList(a),true,false);
+    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
+   if((TEST+"_BRAZIL").equals(action)){
     Alert a=new Alert("DEMO-BRAZIL","earthquake","demo",
        "M3,8 · Jacobina, Bahia, Brasil","Profundidade: 10 km · FICTÍCIO",
        "earthquake",System.currentTimeMillis(),System.currentTimeMillis(),false);
