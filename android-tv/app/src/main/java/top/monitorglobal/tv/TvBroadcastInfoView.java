@@ -115,8 +115,9 @@ final class TvBroadcastInfoView extends View {
    setContentDescription(ticker);return;
   }
   long now=System.currentTimeMillis(),sec=now/1000;if(marketSecond==sec)return;marketSecond=sec;brentSession=brentSession.current(now,true);dollarSession=MarketState.forexRegular(now).closed()?MarketState.forexRegular(now):dollarSession.current(now,false);
-  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · NYMEX · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · YAHOO · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+fxAmount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at))+"     •     "+MarketState.brazilDollarContext(System.currentTimeMillis())+" · "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance · valores indicativos sujeitos a atraso";
-  setContentDescription((demo?"Teste fictício. ":"")+ticker);
+  String marketDetails=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"BRENT · NYMEX · "+brentSession.label()+": "+(brent==null?"sem cotação confirmada":"US$ "+amount(brent.price)+" · "+variationText(brent.percent)+" · "+(brentSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(brent.at))+"     •     DÓLAR USD/BRL · YAHOO · "+dollarSession.label()+": "+(dollar==null?"sem cotação confirmada":"R$ "+fxAmount(dollar.price)+" · "+variationText(dollar.percent)+" · "+(dollarSession.value==MarketState.OPEN?"ref. ":"última conhecida ")+BrentQuote.reference(dollar.at));
+  ticker=(demo?"SIMULAÇÃO · NÃO É COTAÇÃO REAL · ":"")+"Valores indicativos sujeitos a atraso · Variação sobre o fechamento anterior · "+MarketState.brazilDollarContext(now)+" · "+brentSession.basis+" · "+dollarSession.basis+" · Yahoo Finance";
+  setContentDescription(marketDetails+" · "+ticker);
  }
  /** All voice status results reuse the SAME official seismic broadcast geometry. */
  static TvBroadcastInfoView voiceStatus(Context c,String title,String detail){
@@ -224,53 +225,52 @@ final class TvBroadcastInfoView extends View {
   OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
   c.restoreToCount(tickerLayer);c.restore();
  }
- private void drawHeader(Canvas c,long elapsed){
+ private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
   if(kind==BRENT){
-   fill(c,8,0,demo?360:250,30,0xff09235f);
-   fitted(c,demo?"COTAÇÕES · TESTE FICTÍCIO":"COTAÇÕES",20,21,20,14,Color.WHITE,brand,790);
-   fill(c,8,30,812,64,0xfff4f5f6);
+   OledNewsChrome.tab(c,p,"ARGOS ORBIS",true);
+   badge(c,status());
   }else if(kind==WEATHER||kind==RAIN){
    fill(c,8,0,350,30,0xff09235f);
    fitted(c,demo?(kind==RAIN?"CHUVA · TESTE FICTÍCIO":"TEMPO · TESTE FICTÍCIO"):kind==RAIN?"CHUVA · LIBERDADE – SP":"TEMPO · LIBERDADE – SP",20,21,20,14,Color.WHITE,brand,325);
    fill(c,8,30,812,64,0xff071d2b);
   }else{
-   OledNewsChrome.tab(c,p,"BREAKING NEWS",true);
+   OledNewsChrome.tab(c,p,kind==SATELLITE?"SATÉLITE":"CONSULTA POR VOZ",true);
    badge(c,status());
   }
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
   effects.behindContent(c,elapsed);
-  if(kind==RAIN)drawRain(c);
-  else if(kind==WEATHER)drawWeather(c);
-  else if(kind==BRENT)drawBrent(c);
+  if(kind==RAIN)drawRain(c,elapsed);
+  else if(kind==WEATHER)drawWeather(c,elapsed);
+  else if(kind==BRENT)drawBrent(c,elapsed);
   else if(kind==VOICE_STATUS)drawVoiceStatus(c);
-  else drawSatelliteNews(c);
+  else drawSatelliteNews(c,frame);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
   c.restore();
   drawRadar(c,elapsed); // One official eye in every informational strip.
   drawIdentity(c,elapsed);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
- private void metric(Canvas c,int index,String value,String caption,float x){
+ private void metric(Canvas c,int index,String value,String caption,float x,long elapsed){
   // Every value/icon shares the same center as TEMPO, CHUVA and BRENT.
   icon(c,index,x,51,20);
-  primary(c,value,x+27,19,foreground,Math.min(95,BroadcastVisuals.CONTENT_RIGHT_LIMIT-x-31));
+  primary(c,value,x+27,19,effects.valueInk(foreground,0xff92e4ff,elapsed),Math.min(95,BroadcastVisuals.CONTENT_RIGHT_LIMIT-x-31));
   fitted(c,caption,x,86,12,9,0xffd8e4ee,brand,Math.min(112,BroadcastVisuals.CONTENT_RIGHT_LIMIT-x-4));
  }
- private void drawRain(Canvas c){
+ private void drawRain(Canvas c,long elapsed){
   RainBannerContent facts=rainFacts;
   eventCategory(c,facts.topic,"LIBERDADE · SP");
-  icon(c,0,127,41,28);label(c,facts.headline,165,60,23,foreground,brand,235);
+  icon(c,0,127,41,28);label(c,facts.headline,165,60,23,rain==null?foreground:effects.valueInk(foreground,0xff92e4ff,elapsed),brand,235);
   label(c,facts.end,127,86,16,0xffb8d2df,brand,275);
-  metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430);
-  metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",558);
-  metric(c,3,facts.duration,facts.durationLabel.contains("JANELA")?"JANELA ESTIMADA":rain!=null&&rain.state.equals("now")?"DURAÇÃO RESTANTE":"DURAÇÃO PREVISTA",704);
+  metric(c,1,facts.amount,"PRÓXIMOS 60 MIN",430,elapsed);
+  metric(c,2,facts.rate,"INTENSIDADE ESTIMADA",558,elapsed);
+  metric(c,3,facts.duration,facts.durationLabel.contains("JANELA")?"JANELA ESTIMADA":rain!=null&&rain.state.equals("now")?"DURAÇÃO RESTANTE":"DURAÇÃO PREVISTA",704,elapsed);
  }
- private void drawWeather(Canvas c){
+ private void drawWeather(Canvas c,long elapsed){
   eventCategory(c,"TEMPO","LIBERDADE · SP");
-  primary(c,weather==null?"—":weather.temperatureValue,124,39,foreground,112);
+  primary(c,weather==null?"—":weather.temperatureValue,124,39,weather==null?foreground:effects.valueInk(foreground,0xff92e4ff,elapsed),112);
   icon(c,0,251,42,30);
   // Do not present an hourly MODEL rain code as rain observed right now.
   String sky=WeatherConditionDisplay.headline(weather,rain);
@@ -279,9 +279,9 @@ final class TvBroadcastInfoView extends View {
   p.setTypeface(brand);float detailSize=16;p.setTextSize(detailSize);
   while(detailSize>11&&p.measureText(detail)>190){detailSize-=.5f;p.setTextSize(detailSize);}
   label(c,detail,290,84,detailSize,0xffb8d2df,brand,190);
-  metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492);
-  metric(c,2,weather==null?"—":weather.windValue,weather==null?"VENTO · N/D":"VENTO · "+weather.windDirection,603);
-  metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",712);
+  metric(c,1,weather==null?"—":weather.humidityValue,"UMIDADE",492,elapsed);
+  metric(c,2,weather==null?"—":weather.windValue,weather==null?"VENTO · N/D":"VENTO · "+weather.windDirection,603,elapsed);
+  metric(c,3,weather==null?"—":weather.gustValue,"RAJADAS",712,elapsed);
  }
  static String fxAmount(double price){return String.format(Locale.forLanguageTag("pt-BR"),"%.4f",price);}
  static String brazilFxHint(long now){
@@ -309,53 +309,58 @@ final class TvBroadcastInfoView extends View {
  // Always keep state and variation inside their own columns.
  static final float MARKET_BRENT_PRICE_X=130f, MARKET_BRENT_STATUS_X=338f;
  static final float MARKET_DIVIDER_X=485f, MARKET_DOLLAR_X=502f, MARKET_DOLLAR_STATUS_X=711f;
- private void drawBrent(Canvas c){
+ private void drawBrent(Canvas c,long elapsed){
   refreshMarket();
-  final int ink=0xff101d33, muted=0xff27394b;
-  fitted(c,"BRENT",20,46,16,13,ink,brand,110);
-  fitted(c,"DÓLAR USD/BRL",430,46,16,12,ink,brand,185);
-  fill(c,410,36,1,50,0xffaab5c0);
-  if(marketPending){
-   fitted(c,"CONSULTANDO COTAÇÃO…",20,72,21,14,ink,brand,370);
-   fitted(c,"AGUARDANDO FONTE",430,72,21,14,ink,brand,370);
-   return;
-  }
-  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),20,73,32,19,ink,brand,195);
-  fitted(c,demo?"SIMULADO":marketHeaderStatus(brentSession),218,45,13,10,muted,brand,176);
+  final int ink=Color.WHITE, muted=0xffc5d6df;
+  fitted(c,"BRENT",20,71,25,19,0xffff7687,brand,100);
+  fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,48,18,15,ink,brand,199);
+  fill(c,MARKET_DIVIDER_X,36,1,51,0xff3e494e);
+  fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),MARKET_BRENT_PRICE_X,73,32,19,brent==null?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
+  fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(brentSession),MARKET_BRENT_STATUS_X,48,16,12,demo?muted:sessionColor(brentSession),brand,135);
   String oil=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
-  fitted(c,oil,218,73,27,16,brent==null||brent.percent==null?muted:brent.percent>=0?0xff00733b:0xffbd1628,brand,176);
-  fitted(c,brent==null?"SEM COTAÇÃO CONFIRMADA":"NYMEX · "+(brentSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(brent.at),20,91,13,11,muted,data,370);
-  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),430,73,32,19,ink,brand,195);
-  fitted(c,demo?"SIMULADO":marketHeaderStatus(dollarSession),630,45,13,10,muted,brand,185);
+  fitted(c,oil,MARKET_BRENT_STATUS_X,73,25,16,brent==null||brent.percent==null?muted:brent.percent>=0?0xff75edb2:0xffff7687,brand,135);
+  fitted(c,marketReference("NYMEX",brentSession,brent==null?null:brent.at),MARKET_BRENT_PRICE_X,90,14,12,muted,data,340);
+  fitted(c,dollar==null?"R$ —":"R$ "+fxAmount(dollar.price),MARKET_DOLLAR_X,73,32,19,dollar==null?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
+  fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(dollarSession),MARKET_DOLLAR_STATUS_X,48,16,12,demo?muted:sessionColor(dollarSession),brand,113);
   Double change=dollar==null?null:dollar.percent;
   String fx=change==null?"VAR. —":(change>=0?"▲ +":"▼ ")+amount(change)+"%";
-  fitted(c,fx,630,73,27,16,change==null?muted:change>=0?0xff00733b:0xffbd1628,brand,185);
-  fitted(c,dollar==null?"SEM COTAÇÃO CONFIRMADA":"YAHOO · "+(dollarSession.value==MarketState.OPEN?"REF. ":"ÚLTIMA ")+BrentQuote.reference(dollar.at),430,91,13,11,muted,data,370);
+  fitted(c,fx,MARKET_DOLLAR_STATUS_X,73,25,16,change==null?muted:change>=0?0xff75edb2:0xffff7687,brand,113);
+  fitted(c,marketReference("YAHOO",dollarSession,dollar==null?null:dollar.at),MARKET_DOLLAR_X,90,14,12,muted,data,322);
  }
- private void drawSatelliteNews(Canvas c){
+ private String marketReference(String source,MarketState session,Long at){
+  if(at==null)return marketPending?"AGUARDANDO FONTE":"SEM COTAÇÃO CONFIRMADA";
+  String reference=session.value==MarketState.OPEN?"REF. ":"ÚLTIMA COTAÇÃO ";
+  return reference+BrentQuote.reference(at)+" · "+source;
+ }
+ private void drawSatelliteNews(Canvas c,WeatherSatelliteClient.Frame frame){
   eventCategory(c,"SATÉLITE","GOES-EAST");
-  primary(c,satellite==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,foreground,705);
-  label(c,satellite==null?satelliteStatus:InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
+  primary(c,frame==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,foreground,705);
+  label(c,frame==null?(satellite==null?satelliteStatus:"Imagem indisponível"):InfraredPlan.timing(frame.at,System.currentTimeMillis())+
     " · IMAGEM INFRAVERMELHA · NÃO É RADAR DE CHUVA",142,88,16,0xffb8d2df,data,705);
  }
- private void drawMap(Canvas c){
+ private WeatherSatelliteClient.Frame currentFrame(){
+  WeatherSatelliteClient.Frame frame=kind==WEATHER||kind==RAIN
+      ?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
+  return frame!=null&&frame.image!=null&&!frame.image.isRecycled()?frame:null;
+ }
+ private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
   if(mapSpace<=0||mapReveal<=0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,(kind==WEATHER||kind==RAIN)&&!mapBelow?210:180);
   float slide=(1-mapReveal)*180;
   c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?0-slide:slide+(kind==WEATHER||kind==RAIN?34:0));
-  WeatherSatelliteClient.Frame displayed=kind==WEATHER||kind==RAIN?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);
-   if(displayed!=null&&displayed.image!=null&&!displayed.image.isRecycled()){
+   if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=now;}
+   if(displayed!=null){
     p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
-    if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=SystemClock.uptimeMillis();}
-    p.setAlpha(effects.imageOpacity(SystemClock.uptimeMillis()-imageReadyAt));
+    p.setAlpha(effects.imageOpacity(now-imageReadyAt));
     c.drawBitmap(displayed.image,null,satelliteImageBounds,p);p.setAlpha(255);
    }
    fill(c,0,0,310,23,0xdd071724);
    label(c,"INFRAVERMELHO · SUDESTE",9,17,16,Color.WHITE,brand,286);
    fill(c,0,150,310,26,0xee071724);
-   label(c,displayed!=null?InfraredPlan.timing(displayed.at,System.currentTimeMillis()):"Satélite indisponível nesta consulta",9,168,12,0xffbbd7e7,brand,290);
+   if(displayed!=null)label(c,displayed.credit(),9,160,10,0xffbbd7e7,brand,290);
+   label(c,displayed!=null?InfraredPlan.timing(displayed.at,System.currentTimeMillis()):"Satélite indisponível nesta consulta",9,displayed!=null?173:168,12,0xffbbd7e7,brand,290);
    p.setColor(accent);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
    c.drawRoundRect(0,0,310,176,8,8,p);p.setStyle(Paint.Style.FILL);
   }
@@ -366,8 +371,9 @@ final class TvBroadcastInfoView extends View {
   long now=SystemClock.uptimeMillis(),elapsed=now-started;
   canvas.save();canvas.scale(getWidth()/960f,getHeight()/(126f+mapSpace));
   canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
-  drawHeader(canvas,elapsed);canvas.restore();
-  drawMap(canvas);canvas.restore();
+  WeatherSatelliteClient.Frame frame=currentFrame();
+  drawHeader(canvas,elapsed,frame);canvas.restore();
+  drawMap(canvas,frame,now);canvas.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,motionEnabled());
   if(running&&isShown()){
    if(motionEnabled())postInvalidateOnAnimation();

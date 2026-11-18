@@ -57,17 +57,18 @@ final class Banner {
   try{
    BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(activeEffects.animated()?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
    else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(activeEffects.animated()?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
-   host.configure(activeEffects,duration);onFinished=finished;awaiting=row;
+   host.configure(activeEffects,summaryCount>0?BannerTimeline.summaryContentDuration(summaryCount,animated):duration);onFinished=finished;awaiting=row;
    starter=new ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
     clearStarter();if(current!=host||host.getChildAt(0)!=row)return true;
     // Anchor both drawing and dismissal to the first visible frame, not construction/font loading.
     long presentationStart=android.os.SystemClock.uptimeMillis();
     host.startPresentation(presentationStart);
-    if(row instanceof NewsBannerView)((NewsBannerView)row).startPresentation(presentationStart,animated);
+    long summaryLead=summaryCount>0?host.openingLead():0;
+    if(row instanceof NewsBannerView)((NewsBannerView)row).startPresentation(presentationStart+summaryLead,animated);
     else if(row instanceof TvBroadcastInfoView)((TvBroadcastInfoView)row).startPresentation(presentationStart,animated);
     else if(row instanceof BrazilNationalBannerView)((BrazilNationalBannerView)row).startPresentation(presentationStart,animated);
     if(activeEffects.animated())animateWipe(host,0,1);
-    long delay=summaryCount>0?BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?BannerTimeline.WIPE_MS:0));
+    long delay=summaryCount>0?summaryLead+BannerTimeline.summaryContentDuration(summaryCount,animated)+(animated?BannerTimeline.WIPE_MS:0):Math.max(0,duration-(animated?BannerTimeline.WIPE_MS:0));
     main.postDelayed(dismiss,delay);return true;
    }};row.getViewTreeObserver().addOnPreDrawListener(starter);return true;
   }catch(RuntimeException e){hide();Prefs.status(context,"Não foi possível exibir sobre outro aplicativo. Confira a permissão.");return false;}
