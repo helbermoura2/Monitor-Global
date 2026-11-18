@@ -19,7 +19,15 @@ function remember(payload){
  let count=0;for(const [k,v] of Object.entries(old)){if(k===key()||!v||!Number.isFinite(v.at)||Date.now()-v.at>CACHE_MS||count>=3)continue;next[k]=v;count++;}
  store(CACHE_KEY,{entries:next});
 }
-function stop(){if(playTimer)clearTimeout(playTimer);playTimer=0;$('play').textContent='▶';}
+function playbackIcon(playing){
+ const button=$('play');
+ button.textContent=playing?'Ⅱ':'▶';
+ button.setAttribute('aria-label',playing?'Pausar animação':'Reproduzir animação');
+ if(typeof button.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  button.animate([{opacity:.55},{opacity:1}],{duration:130,easing:'ease-out'});
+ }
+}
+function stop(){if(playTimer){clearTimeout(playTimer);playbackIcon(false);}playTimer=0;}
 function round(n,decimals=0){return n.toLocaleString('pt-BR',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});}
 function value(field){return M.value(forecast,0,step,field);}
 function showValues(){
@@ -128,7 +136,7 @@ function resume(){if(closed)return;active=true;document.body.classList.remove('i
 function close(){if(closed)return;pause();closed=true;boundaries?.destroy();boundaries=null;satellite?.destroy();radar?.destroy();for(const m of markers)m.remove();markers=[];map?.remove();map=null;}
 function advance(){if(!active||!forecast)return;step=(step+1)%9;showValues();playTimer=setTimeout(advance,1300);}
 $('frame').addEventListener('input',event=>{stop();step=Number(event.target.value);showValues();});
-$('play').addEventListener('click',()=>{if(playTimer){stop();return;}if(forecast){$('play').textContent='❚❚';advance();}});
+$('play').addEventListener('click',()=>{if(playTimer){stop();return;}if(forecast){playbackIcon(true);advance();}});
 $('refresh').addEventListener('click',()=>load(true));
 $('recenter').addEventListener('click',()=>map?.jumpTo({center:[-53,-15],zoom:2.65}));
 document.querySelectorAll('[data-layer]').forEach(button=>button.addEventListener('click',()=>{layer=button.dataset.layer;showValues();}));

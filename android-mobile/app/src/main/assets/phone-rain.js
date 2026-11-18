@@ -6,7 +6,15 @@ const requests=new Set(),sources=new Set(),failedSources=new Set();
 function message(value){$('map-status').textContent=value;$('map-status').hidden=!value;}
 function time(value){return new Date(value).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})+' BRT';}
 function number(value){return value.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});}
-function halt(){playing=false;clearTimeout(playTimer);playTimer=0;$('play').textContent='▶';$('play').setAttribute('aria-label','Reproduzir animação');}
+function playbackIcon(playing){
+ const button=$('play');
+ button.textContent=playing?'Ⅱ':'▶';
+ button.setAttribute('aria-label',playing?'Pausar animação':'Reproduzir animação');
+ if(typeof button.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  button.animate([{opacity:.55},{opacity:1}],{duration:130,easing:'ease-out'});
+ }
+}
+function halt(){if(playing)playbackIcon(false);playing=false;clearTimeout(playTimer);playTimer=0;}
 function shortDuration(minutes){
  const value=Math.max(0,Math.round(minutes)),h=Math.floor(value/60),m=value%60;
  return h?(h+'h'+(m?String(m).padStart(2,'0'):'')):(value+' min');
@@ -97,7 +105,7 @@ function resume(){if(closed)return;active=true;if(map)map.resize();boundaries?.s
 function close(){if(closed)return;pause();closed=true;boundaries?.destroy();boundaries=null;removeFrames();if(map){map.remove();map=null;}loaded=false;metadata=null;rawForecast=null;frames=[];}
 window.MonitorMap={pause,resume,close};
 $('frame').addEventListener('input',()=>{halt();showFrame(Number($('frame').value));});
-$('play').addEventListener('click',()=>{if(playing){halt();return;}if(!active||!frames.length)return;playing=true;$('play').textContent='Ⅱ';$('play').setAttribute('aria-label','Pausar animação');showFrame(index>=frames.length-1?0:index);});
+$('play').addEventListener('click',()=>{if(playing){halt();return;}if(!active||!frames.length)return;playing=true;playbackIcon(true);showFrame(index>=frames.length-1?0:index);});
 $('latest').addEventListener('click',()=>{halt();showFrame(frames.findIndex(f=>f.offset===0));});$('forecast-details').addEventListener('click',event=>{if(event.target.closest('summary'))detailsChosen=true;});$('refresh').addEventListener('click',()=>load(true));$('recenter').addEventListener('click',()=>{if(map)map.jumpTo({center:CENTER,zoom:7.2});});
 document.addEventListener('visibilitychange',()=>document.hidden?pause():resume());window.addEventListener('pagehide',close);
 try{
