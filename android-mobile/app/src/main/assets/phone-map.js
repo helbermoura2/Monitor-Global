@@ -23,15 +23,23 @@ function popup(event){
  const title=document.createElement('strong');title.textContent=event.title||'Evento monitorado';content.appendChild(title);
  const specs=document.createElement('div');
  const detailsList=[];
- if(Number.isFinite(event.magnitude))detailsList.push('Magnitude '+event.magnitude.toFixed(1));
+ if(Number.isFinite(event.magnitude))detailsList.push('Magnitude '+event.magnitude.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}));
  if(Number.isFinite(event.depth))detailsList.push('Prof. '+Math.round(event.depth)+' km');
  if(event.kind==='tsunami')detailsList.push('Boletim de tsunami');
- specs.textContent=detailsList.join(' · ')||'Evento observado';content.appendChild(specs);
+ specs.textContent=detailsList.join(' · ')||'Registro monitorado';content.appendChild(specs);
  const when=document.createElement('small');when.textContent=date(event.eventTime);content.appendChild(when);
  if(event.source){const source=document.createElement('small');source.textContent='Fonte: '+event.source;content.appendChild(source);}
  content.appendChild(button('Ver detalhes',()=>details(event.id)));
  const pop=new maplibregl.Popup({offset:14,maxWidth:'270px',focusAfterOpen:false}).setDOMContent(content);
- pop.on('open',()=>document.body.classList.add('argos-popup-active'));
+ pop.on('open',()=>{
+  document.body.classList.add('argos-popup-active');
+  for(const marker of markers){
+   if(marker.getPopup()!==pop)continue;
+   const icon=marker.getElement();
+   icon.classList.remove('epicenter-pulse');
+   requestAnimationFrame(()=>{if(pop.isOpen())icon.classList.add('epicenter-pulse');});
+  }
+ });
  pop.on('close',()=>document.body.classList.remove('argos-popup-active'));
  return pop;
 }
@@ -79,7 +87,7 @@ function showEvents(){
     const lat=group.reduce((n,e)=>n+e.latitude,0)/group.length;
     map.easeTo({center:[lon,lat],zoom:Math.min(14,map.getZoom()+2.2),duration:250});});
   }else if(Number.isFinite(item.magnitude)){
-   el.textContent='M'+item.magnitude.toFixed(1);el.dataset.level=item.magnitude>=6?'high':item.magnitude>=5?'medium':'low';
+   el.textContent='M'+item.magnitude.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});el.dataset.level=item.magnitude>=6?'high':item.magnitude>=5?'medium':'low';
   }
   const lon=group.reduce((n,e)=>n+e.longitude,0)/group.length,lat=group.reduce((n,e)=>n+e.latitude,0)/group.length;
   const marker=new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([lon,lat]);
