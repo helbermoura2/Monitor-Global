@@ -45,7 +45,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   assert.match(await page.locator('.rain-amount').textContent(),/mmnas próximas 2h/);
   assert.equal(await page.locator('.timeline #map-source').count(),1,'map image timestamp sits alongside playback');
   assert.equal(await page.locator('.map-panel .admin-boundary-controls:not([open])').count(),1,'state boundary selector starts collapsed');
-  assert.equal(await page.locator('.map-panel .map-title').textContent(),'Chuva na região');
+  assert.equal(await page.locator('.map-panel .map-title').count(),0,'the map stays clear of a duplicate heading');
   assert.equal(await page.evaluate(()=>!!document.querySelector('.maplibregl-canvas').getContext('webgl2')),true);
   await page.evaluate(()=>window.__map.jumpTo({center:[-45.8,-22.9],zoom:6.5}));const camera=await page.evaluate(()=>({center:__map.getCenter().toArray(),zoom:__map.getZoom()}));
   await page.locator('#frame').evaluate((el,value)=>{el.value=String(value);el.dispatchEvent(new Event('input',{bubbles:true}));},9);await page.waitForFunction(()=>document.querySelector('#frame-label').textContent.startsWith('Previsão'),null,{timeout:15000});
