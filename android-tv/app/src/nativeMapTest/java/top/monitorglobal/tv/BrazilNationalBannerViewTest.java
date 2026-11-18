@@ -64,7 +64,7 @@ public class BrazilNationalBannerViewTest {
    assertEquals("approved bulletin body white",Color.WHITE,image.getPixel(400,40));
    assertTrue("approved BRASIL tab red",Color.red(image.getPixel(20,55))>130);
    assertTrue("footer is red",Color.red(image.getPixel(50,154))>100);
-   assertEquals("right safe overscan is clear",0,Color.alpha(image.getPixel(959,179))==0?0:255);
+   assertEquals("national banner uses full width inside the 96% safe overlay",Color.WHITE,image.getPixel(900,44));
    assertTrue(approved.getContentDescription().toString().contains("Magnitude 3,8"));
    export(image,"national-approved");
   }finally{image.recycle();}
