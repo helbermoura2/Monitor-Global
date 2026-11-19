@@ -31,7 +31,7 @@ import {handleRainbowProductInObject, handleRainbowProducts} from "./rainbow-pro
 import {handleRainbowInObject, handleRainbowNowcast} from "./rainbow-nowcast-worker.mjs";
 import {translationStorage} from "./translation-storage.mjs";
 import {enrichBrazilEpicenter, BRAZIL_EPICENTER_VERSION} from "./brazil-epicenter-location.mjs";
-import {selectImageRefreshes, telegramCardVersion} from "./telegram-image-refresh.mjs";
+import {selectImageRefreshes, telegramCardVersion, TUAL_CARD_VERSION} from "./telegram-image-refresh.mjs";
 import {handleRuptureShaking} from "./rupture-shaking-worker.mjs";
 import {handleCgeBulletins} from "./cge-bulletins-worker.mjs";
 import {handleOfficialWeatherAlerts} from "./official-weather-alerts-worker.mjs";
@@ -1042,7 +1042,7 @@ async function telegramReviseAlert(request, env, ev, observed, root, records) {
     const next = {...root, initialMag: root.initialMag ?? root.mag, updatedAt: nowIso(),
         revisions: [...(root.revisions || []), revision].slice(-12)};
     if (root.messageId) await telegramEditAlert(env, ev, next);
-    next.cardImageVersion = telegramCardVersion(ev.mag);
+    next.cardImageVersion = telegramCardVersion(ev);
     next.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
     next.imageExposureVersion = exposureVersion(ev.imageExposure);
     next.imageExposureCheckedAt = Date.now();
@@ -1460,7 +1460,7 @@ async function runTelegramM6Alerts(request, env) {
                 reservation.chatId = response.result?.chat?.id ?? env.TELEGRAM_CHAT_ID;
                 reservation.messageType = "text";
             }
-            reservation.cardImageVersion = telegramCardVersion(ev.mag);
+            reservation.cardImageVersion = telegramCardVersion(ev);
             reservation.imageTsunamiVersion = imageTsunamiVersion(ev.imageTsunami);
             reservation.imageExposureVersion = exposureVersion(ev.imageExposure);
             reservation.imageExposureCheckedAt = Date.now();
@@ -1522,9 +1522,9 @@ async function runTelegramM6Alerts(request, env) {
             if(validImageExposure(ev.imageExposure))data=ev.imageExposure;
             else continue;
         }
-        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== telegramCardVersion(ev.mag)) {
+        if (validImageExposure(data) && exposureVersion(data)!==root.imageExposureVersion || nextShakingVersion!==previousShakingVersion || nextTsunamiVersion!==root.imageTsunamiVersion || root.cardImageVersion !== telegramCardVersion(ev)) {
             ev.imageExposure = data;
-            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = telegramCardVersion(ev.mag); root.imageExposureVersion = exposureVersion(data); }
+            try { await telegramEditAlert(env, ev, root); root.currentEvent = ev; root.imageTsunamiVersion=nextTsunamiVersion; root.imageShakingVersion = nextShakingVersion; root.place = ev.place; root.cardImageVersion = telegramCardVersion(ev); root.imageExposureVersion = exposureVersion(data); }
             catch (error) { console.error('Exposicao Telegram: edicao pendente', root.id); }
         } else root.imageExposureVersion = exposureVersion(data);
     }
@@ -2107,7 +2107,7 @@ async function handleWorkerRequest(request,env,ctx){
                 tvRainPolicy: TV_RAIN_POLICY,
                 tvWeatherPolicy: TV_WEATHER_POLICY,
                 telegramImageStatus: 'telegram-glass-v19',
-                telegramM6ImageStyle: 'telegram-imperial-bronze-v1',
+                telegramM6ImageStyle: TUAL_CARD_VERSION,
                 telegramTsunamiCard: 'tsunami-coastal-v1',
                 tvAlerts: 'tv-alerts-v1',
                 sharedSources: {version:'shared-sources-v1',enabled:Boolean(env.EARTHQUAKE_ALERTS)},

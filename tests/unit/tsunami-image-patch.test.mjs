@@ -1,13 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {writeFile} from 'node:fs/promises';
 import {renderAlertImage,patchAlertTsunami,decodePng} from '../../worker/image-rendering.mjs';
+import {TUAL_CARD_VERSION} from '../../telegram-image-refresh.mjs';
+import {TUAL_TSUNAMI_ROWS} from '../../worker/telegram-tual-layout.mjs';
 test('cancellation patches only bulletin pixels, preserving the archived official map and statistics',async()=>{
  const originalFetch=globalThis.fetch;globalThis.fetch=async()=>new Response('Offline fixture',{status:503});
  try{
   const png=await renderAlertImage({id:'tsunami-qa',mag:6.9,lat:-14,lon:165,depth:10,timeIso:'2026-10-24T02:30:00Z',place:'Vanuatu — cenário de teste',test:true,imageTsunami:{state:'warning',headline:'AVISO OFICIAL DE TSUNAMI',source:'PTWC · cenário de teste',issuedAt:Date.parse('2026-10-24T02:40:00Z'),areas:'Vanuatu · consulte as regiões do boletim',version:'qa-warning'}});
-  const updated=await patchAlertTsunami(png,{state:'cancelled',headline:'AVISO DE TSUNAMI ENCERRADO',source:'PTWC · cenário de teste',issuedAt:Date.parse('2026-10-24T03:00:00Z'),areas:'Vanuatu · siga as orientações locais',version:'qa-cancelled'});
+  const updated=await patchAlertTsunami(png,{state:'cancelled',headline:'AVISO DE TSUNAMI ENCERRADO',source:'PTWC · cenário de teste',issuedAt:Date.parse('2026-10-24T03:00:00Z'),areas:'Vanuatu · siga as orientações locais',version:'qa-cancelled'},TUAL_CARD_VERSION);
   const a=await decodePng(png),b=await decodePng(updated);let changes=0;
-  for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)for(let c=0;c<4;c++){const i=(y*a.width+x)*4+c;if(a.rgba[i]!==b.rgba[i]){changes++;assert(y>=Math.floor(QuakeTelegramLayout.TSUNAMI_Y*4/3)&&y<Math.ceil((QuakeTelegramLayout.TSUNAMI_Y+QuakeTelegramLayout.TSUNAMI_HEIGHT)*4/3),'No pixel outside bulletin region may change');}}
-  assert(changes>100);assert.equal(b.width,1080);assert.equal(b.height,1920);
+  for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)for(let c=0;c<4;c++){const i=(y*a.width+x)*4+c;if(a.rgba[i]!==b.rgba[i]){changes++;assert(y>=TUAL_TSUNAMI_ROWS[0]&&y<TUAL_TSUNAMI_ROWS[1],'No pixel outside bulletin region may change');}}
+  assert(changes>100);assert.equal(b.width,1024);assert.equal(b.height,1536);
   await writeFile('/tmp/tsunami-image-warning.png',png);await writeFile('/tmp/tsunami-image-cancelled.png',updated);
  }finally{globalThis.fetch=originalFetch;}
 });
@@ -15,7 +17,7 @@ test('cancellation patches only bulletin pixels, preserving the archived officia
 test('an archived v15 image uses the legacy bulletin position during a ShakeMap outage',async()=>{
  const originalFetch=globalThis.fetch;globalThis.fetch=async()=>new Response('Offline fixture',{status:503});
  try{
-  const png=await renderAlertImage({id:'legacy-position',mag:6,lat:0,lon:0,depth:10,timeIso:'2026-10-24T02:30:00Z',test:true,imageTsunami:{state:'unknown',version:'qa-legacy'}});
+  const png=await renderAlertImage({id:'legacy-position',mag:5.9,lat:0,lon:0,depth:10,timeIso:'2026-10-24T02:30:00Z',test:true,imageTsunami:{state:'unknown',version:'qa-legacy'}});
   const updated=await patchAlertTsunami(png,{state:'cancelled',headline:'AVISO ENCERRADO',source:'PTWC',areas:'Vanuatu'},'hollow-v15-regional');
   const a=await decodePng(png),b=await decodePng(updated);let changes=0;
   for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)for(let c=0;c<4;c++){const i=(y*a.width+x)*4+c;if(a.rgba[i]!==b.rgba[i]){changes++;assert(y>=820&&y<977,'Legacy patch must not paint the new position');}}
@@ -25,5 +27,5 @@ test('an archived v15 image uses the legacy bulletin position during a ShakeMap 
 
 test('v16 archive keeps the modern bulletin region after the branding version changes',async()=>{
  const saved=globalThis.fetch;globalThis.fetch=async()=>new Response('Offline fixture',{status:503});
- try{const png=await renderAlertImage({id:'v16-region',mag:6,lat:0,lon:0,depth:10,timeIso:'2026-10-25T00:00:00Z',test:true});const patched=await patchAlertTsunami(png,{state:'noThreat',headline:'SEM AMEAÇA',areas:'Costas citadas',source:'PTWC'},'editorial-v16');const a=await decodePng(png),b=await decodePng(patched);let changed=0;for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){const i=(y*a.width+x)*4;if(a.rgba[i]!==b.rgba[i]||a.rgba[i+1]!==b.rgba[i+1]||a.rgba[i+2]!==b.rgba[i+2]){changed++;assert(y>=Math.floor(QuakeCardLayout.TSUNAMI_Y*4/3)&&y<Math.ceil((QuakeCardLayout.TSUNAMI_Y+QuakeCardLayout.TSUNAMI_HEIGHT)*4/3));}}assert(changed>100);}finally{globalThis.fetch=saved;}
+ try{const png=await renderAlertImage({id:'v16-region',mag:5.9,lat:0,lon:0,depth:10,timeIso:'2026-10-25T00:00:00Z',test:true});const patched=await patchAlertTsunami(png,{state:'noThreat',headline:'SEM AMEAÇA',areas:'Costas citadas',source:'PTWC'},'editorial-v16');const a=await decodePng(png),b=await decodePng(patched);let changed=0;for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){const i=(y*a.width+x)*4;if(a.rgba[i]!==b.rgba[i]||a.rgba[i+1]!==b.rgba[i+1]||a.rgba[i+2]!==b.rgba[i+2]){changed++;assert(y>=Math.floor(QuakeCardLayout.TSUNAMI_Y*4/3)&&y<Math.ceil((QuakeCardLayout.TSUNAMI_Y+QuakeCardLayout.TSUNAMI_HEIGHT)*4/3));}}assert(changed>100);}finally{globalThis.fetch=saved;}
 });
