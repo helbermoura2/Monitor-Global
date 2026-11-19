@@ -2,6 +2,7 @@ package top.monitorglobal.tv;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
@@ -63,7 +64,7 @@ final class EventShareCard {
    paint.setTextSize(30);
    paint.setColor(PhoneActivity.CYAN);
    canvas.drawText("argosorbis.com.br",PADDING,footerY+10,paint);
-   return write(context,image);
+   return write(context,image,null);
   }finally{
    image.recycle();
   }
@@ -85,7 +86,16 @@ final class EventShareCard {
   canvas.restore();
  }
 
- private static Uri write(Context context,Bitmap image)throws IOException{
+ static Uri fromSite(Context context,byte[] png)throws IOException{
+  BitmapFactory.Options options=new BitmapFactory.Options();
+  options.inJustDecodeBounds=true;
+  BitmapFactory.decodeByteArray(png,0,png.length,options);
+  if(!"image/png".equals(options.outMimeType)||options.outWidth!=1080||options.outHeight!=1920)
+   throw new IOException("Cartão inválido");
+  return write(context,null,png);
+ }
+
+ private static Uri write(Context context,Bitmap image,byte[] png)throws IOException{
   File directory=new File(context.getCacheDir(),"event-share");
   if(!directory.mkdirs()&&!directory.isDirectory())throw new IOException("Cache indisponível");
   File[] old=directory.listFiles();
@@ -96,7 +106,8 @@ final class EventShareCard {
   File file=File.createTempFile("argos-orbis-evento-",".png",directory);
   try{
    try(FileOutputStream output=new FileOutputStream(file)){
-    if(!image.compress(Bitmap.CompressFormat.PNG,100,output))throw new IOException("Falha ao gerar PNG");
+    if(png!=null)output.write(png);
+    else if(!image.compress(Bitmap.CompressFormat.PNG,100,output))throw new IOException("Falha ao gerar PNG");
    }
    return FileProvider.getUriForFile(context,context.getPackageName()+".event-share",file);
   }catch(IOException | IllegalArgumentException e){

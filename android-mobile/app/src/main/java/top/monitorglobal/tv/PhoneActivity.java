@@ -22,6 +22,7 @@ public class PhoneActivity extends Activity {
  private final List<Bitmap> flagImages=new ArrayList<>();private final List<ImageView> flagViews=new ArrayList<>();
  private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>(16,.75f,true);private ScrollView visibleScroll;private String displayedRoute="";
  private LinearLayout root,header,navigation;private FrameLayout content;private TextView status;private String shownSection="";
+ private SiteEventImage siteImage;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
@@ -64,7 +65,7 @@ public class PhoneActivity extends Activity {
  private Typeface loadBrand(){try{return Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf");}catch(RuntimeException ignored){return Typeface.DEFAULT_BOLD;}}
  @Override protected void onResume(){super.onResume();if(updater!=null)updater.resume();}
  @Override protected void onStart(){super.onStart();active=true;generation++;if(map!=null&&selected==null&&tab.equals("map"))map.resume();if(rainMap!=null&&selected==null&&tab.equals("rain"))rainMap.resume();if(brazilMap!=null&&selected==null&&tab.equals("brazil"))brazilMap.resume();if(automaticRefresh())main.post(pulse);}
- @Override protected void onStop(){rememberScroll();active=false;generation++;refreshing=false;detailLoading=false;nextDetailAttempt=nextDailyAttempt=0;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();if(brazilMap!=null)brazilMap.pause();if(briefing!=null)briefing.pause();super.onStop();}
+ @Override protected void onStop(){rememberScroll();if(siteImage!=null){siteImage.cancel();siteImage=null;}active=false;generation++;refreshing=false;detailLoading=false;nextDetailAttempt=nextDailyAttempt=0;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();if(brazilMap!=null)brazilMap.pause();if(briefing!=null)briefing.pause();super.onStop();}
  @Override protected void onDestroy(){destroyed=true;active=false;if(updater!=null)updater.close();if(briefing!=null)briefing.close();generation++;main.removeCallbacksAndMessages(null);if(repository!=null)repository.close();if(worker!=null)worker.shutdownNow();if(map!=null){map.close();map=null;}if(rainMap!=null){rainMap.close();rainMap=null;}if(brazilMap!=null){brazilMap.close();brazilMap=null;}clearFlags();super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){rememberScroll();out.putString("tab",tab);out.putString("returnTab",returnTab);out.putString("mapFilter",mapFilter);out.putString("quakeRegion",quakeRegion);out.putString("mapReturnTab",mapReturnTab);out.putString("settingsReturnTab",settingsReturnTab);out.putString("advancedReturnTab",advancedReturnTab);if(mappedEvent!=null)try{out.putString("mappedEvent",AlertCodec.write(mappedEvent).toString());}catch(org.json.JSONException ignored){}out.putStringArrayList("scrollKeys",new ArrayList<>(scrollPositions.keySet()));out.putIntegerArrayList("scrollPositions",new ArrayList<>(scrollPositions.values()));if(selected!=null)try{out.putString("selected",AlertCodec.write(selected).toString());}catch(org.json.JSONException ignored){}super.onSaveInstanceState(out);}
  private void refresh(boolean force){
@@ -273,18 +274,66 @@ public class PhoneActivity extends Activity {
  }
 
  private void showSeismicContext(Alert a){
+  LinearLayout body=new LinearLayout(this);
+  body.setOrientation(LinearLayout.VERTICAL);
+  body.setPadding(dp(20),dp(8),dp(20),dp(16));
+  body.setBackgroundColor(BACK);
   LinearLayout sections=new LinearLayout(this);
   sections.setOrientation(LinearLayout.VERTICAL);
-  sections.setPadding(dp(20),dp(8),dp(20),dp(16));
-  sections.setBackgroundColor(BACK);
-  for(String[] item:SeismicContext.sections(a)){
-   space(sections,text(item[0],18,CYAN,3),12);
-   space(sections,text(item[1],16,TEXT,16),4);
-  }
+  TextView status=text("",14,MUTED,4);
+  Button consult=button("Destacar pontos com IA",()->{});
+  space(body,consult,4);
+  space(body,status,6);
+  body.addView(sections);
+  renderSeismicContext(sections,a,List.of());
   ScrollView scroll=new ScrollView(this);
-  scroll.addView(sections);
-  new android.app.AlertDialog.Builder(this).setTitle("Entenda este sismo")
-   .setView(scroll).setPositiveButton("Fechar",null).show();
+  scroll.addView(body);
+  android.app.AlertDialog dialog=new android.app.AlertDialog.Builder(this).setTitle("Entenda este sismo")
+   .setView(scroll).setPositiveButton("Fechar",null).create();
+  Future<?>[] inquiry={null};
+  consult.setOnClickListener(v->{
+   consult.setEnabled(false);
+   status.setText("Consultando a análise do catálogo…");
+   if(worker==null)worker=Executors.newSingleThreadExecutor();
+   inquiry[0]=worker.submit(()->{
+    List<String> focus;
+    try{focus=PhoneSeismicInsight.focus(a);}
+    catch(InterruptedException e){Thread.currentThread().interrupt();return;}
+    catch(Exception e){focus=List.of();}
+    List<String> result=focus;
+    main.post(()->{
+     if(destroyed||!dialog.isShowing())return;
+     boolean highlighted=renderSeismicContext(sections,a,result);
+     status.setText(highlighted?"A IA priorizou os pontos destacados com base no catálogo."
+      :"A IA está indisponível para este registro. A análise local está abaixo.");
+     consult.setEnabled(!highlighted);
+    });
+   });
+  });
+  dialog.setOnDismissListener(d->{if(inquiry[0]!=null)inquiry[0].cancel(true);});
+  dialog.show();
+ }
+
+ private boolean renderSeismicContext(LinearLayout sections,Alert a,List<String> focus){
+  sections.removeAllViews();
+  List<String[]> items=SeismicContext.sections(a);
+  List<String[]> highlights=new ArrayList<>();
+  for(String[] item:items){
+   String title=item[0];
+   if((title.startsWith("Onde")&&(focus.contains("size")||focus.contains("shaking")))||
+      (title.startsWith("Como a profundidade")&&focus.contains("depth"))||
+      (title.startsWith("O que significa")&&focus.contains("revisions"))||
+      (title.startsWith("Como verificar")&&(focus.contains("science")||focus.contains("revisions")))||
+      (title.startsWith("Como interpretar")&&focus.contains("tsunami")))highlights.add(item);
+  }
+  for(String[] item:highlights)addSeismicSection(sections,item,true);
+  for(String[] item:items)if(!highlights.contains(item))addSeismicSection(sections,item,false);
+  return !highlights.isEmpty();
+ }
+
+ private void addSeismicSection(LinearLayout container,String[] item,boolean highlighted){
+  space(container,text((highlighted?"Destaque · ":"")+item[0],18,CYAN,4),12);
+  space(container,text(item[1],16,TEXT,16),4);
  }
 
  private void detail(LinearLayout parent,int kind,String value){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(8);parent.addView(row,rp);row.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(24),dp(24)));TextView t=text(value,18,TEXT,5);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginStart(dp(10));row.addView(t,lp);}
@@ -405,6 +454,22 @@ public class PhoneActivity extends Activity {
   if(focused!=null){selected=focused;}render();
  }
  private void share(Alert a){
+  if(siteImage!=null)return;
+  if(a.kind.equals("earthquake")&&Double.isFinite(a.magnitude)&&
+    MapFrame.located(a.originLongitude,a.originLatitude)&&shareSiteCard(a))return;
+  sendEvent(a,null);
+ }
+
+ boolean shareSiteCard(Alert event){
+  Toast.makeText(this,"Preparando o cartão com mapa…",Toast.LENGTH_SHORT).show();
+  siteImage=new SiteEventImage(this,event,uri->{
+   siteImage=null;
+   if(active&&!destroyed)sendEvent(event,uri);
+  });
+  return true;
+ }
+
+ private void sendEvent(Alert a,Uri siteCard){
   boolean quake=a.kind.equals("earthquake");
   String kind=quake?"REGISTRO SÍSMICO":tsunamiState(a.state);
   String timestamp=eventTime(a)>0?BrDates.dateTime(eventTime(a)):"Horário indisponível";
@@ -412,7 +477,7 @@ public class PhoneActivity extends Activity {
   String caption=a.title+"\n"+String.join("\n",facts);
   Intent send=new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_SUBJECT,"Argos Orbis · "+a.title);
   try{
-   Uri image=EventShareCard.create(this,kind,quake?location(a):a.title,quake?magnitude(a):"",facts,brand);
+   Uri image=siteCard!=null?siteCard:EventShareCard.create(this,kind,quake?location(a):a.title,quake?magnitude(a):"",facts,brand);
    send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
    send.setClipData(android.content.ClipData.newRawUri("Cartão do evento",image));

@@ -16,7 +16,7 @@ import org.robolectric.annotation.*;
 /** Native phone layout and navigation, with local fixtures and no network. */
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35,qualifiers="w360dp-h800dp-port-mdpi") @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class PhoneActivityTest {
- public static class LocalActivity extends PhoneActivity {@Override protected boolean automaticRefresh(){return false;}}
+ public static class LocalActivity extends PhoneActivity {@Override protected boolean automaticRefresh(){return false;} @Override boolean shareSiteCard(Alert event){return false;}}
  private ActivityController<LocalActivity> controller;private LocalActivity activity;
  @Before public void setup(){controller=Robolectric.buildActivity(LocalActivity.class).create().start().resume().visible();activity=controller.get();}
  @After public void cleanup(){controller.pause().stop().destroy();}
