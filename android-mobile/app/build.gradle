@@ -53,6 +53,7 @@ tasks.register('preparePhoneModels', Sync) {
 }
 tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets', 'preparePhoneModels' }
 dependencies {
+ implementation 'androidx.core:core:1.15.0'
  implementation 'androidx.webkit:webkit:1.12.1'
  implementation 'com.google.firebase:firebase-messaging:24.1.2'
  testImplementation 'junit:junit:4.13.2'
