@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {renderAlertImage,decodePng,patchAlertTsunami} from '../../worker/image-rendering.mjs';
-import {telegramCardVersion,imageRefreshDue} from '../../telegram-image-refresh.mjs';
+import {telegramCardVersion,imageRefreshDue,TUAL_CARD_VERSION} from '../../telegram-image-refresh.mjs';
 const B=globalThis.QuakeTelegramBronzeLayout;
 function recorder(){
  const texts=[],flags=[],logos=[],telegramIcons=[];
@@ -36,9 +36,11 @@ test('other countries and long source names remain dynamic; M5 image version sta
  const a=recorder();B.draw(a.p,{...quake,mag:7.1,place:'off the east coast of Honshu, Japan',imageCountryCode:'JP',source:'PROVIDER-TEST-LONG-STRING'});
  assert(a.flags.some(f=>f.code==='JP'));assert(a.texts.some(t=>t.s==='M7,1'));
  assert(!a.texts.some(t=>t.s==='Indonésia'));
- assert.equal(telegramCardVersion(6),'telegram-imperial-bronze-v1');
+ assert.equal(telegramCardVersion(6),TUAL_CARD_VERSION);
+ assert.equal(telegramCardVersion({mag:3.2,lat:-15.8,lon:-47.9}),TUAL_CARD_VERSION);
+ assert.equal(telegramCardVersion({mag:3.2,lat:-33.4,lon:-70.6}),'telegram-glass-v19');
  assert.equal(telegramCardVersion(5.9),'telegram-glass-v19');
- const now=Date.now(),record={id:'b',delivery:'sent',messageType:'photo',messageId:101,mag:6.7,timeIso:new Date(now-120000).toISOString(),imageShakingCheckedAt:now-5000,imageExposureCheckedAt:now-31000,cardImageVersion:'telegram-imperial-bronze-v1'};
+ const now=Date.now(),record={id:'b',delivery:'sent',messageType:'photo',messageId:101,mag:6.7,timeIso:new Date(now-120000).toISOString(),imageShakingCheckedAt:now-5000,imageExposureCheckedAt:now-31000,cardImageVersion:TUAL_CARD_VERSION};
  assert.equal(imageRefreshDue(record,now),false,'Do not rerender every minute just because the bronze version differs from glass');
  assert.equal(imageRefreshDue({...record,cardImageVersion:'telegram-glass-v19'},now),true);
 });
@@ -54,17 +56,40 @@ test('M6+ bronze PNG is generated offline at official Telegram size, with protec
  globalThis.fetch=async(url)=>{assert(!String(url).includes('api.telegram.org'));return new Response('Offline fixture',{status:503});};
  try{
   const png=await renderAlertImage({...quake,id:'imperial-bronze-test',test:true,imageTsunami:{state:'warning',source:'PTWC',areas:'Costa de teste'}});
-  const image=await decodePng(png);assert.equal(image.width,1080);assert.equal(image.height,1920);
-  const cancelled=await patchAlertTsunami(png,{state:'cancelled'},B.version);
+  const image=await decodePng(png);assert.equal(image.width,1024);assert.equal(image.height,1536);
+  const cancelled=await patchAlertTsunami(png,{state:'cancelled'},TUAL_CARD_VERSION);
   const after=await decodePng(cancelled);
   let changes=0;
   for(let y=0;y<image.height;y++){
    for(let x=0;x<image.width;x++){const i=(y*image.width+x)*4;
     if(image.rgba[i]!==after.rgba[i]||image.rgba[i+1]!==after.rgba[i+1]||image.rgba[i+2]!==after.rgba[i+2]){
-     changes++;assert(y>=1240&&y<1435,'Tsunami-only update must not alter map, logo or statistics');
+     changes++;assert(y>=1000&&y<1068,'Tsunami-only update must not alter map, logo or statistics');
     }
    }
   }
   assert(changes>100);
  }finally{globalThis.fetch=saved;}
+});
+
+test('Brazil below M6 and worldwide M6 use matching Tual artwork with different event fields',async()=>{
+ const saved=globalThis.fetch;
+ globalThis.fetch=async(url)=>{assert(!String(url).includes('api.telegram.org'));return new Response('',{status:503});};
+ try {
+  const brazil={...quake,mag:3.1,lat:-20.02,lon:-48.94,place:'Frutal/MG, Brasil',countryCode:'BR',depth:0};
+  const outside={...quake,mag:6,lat:-33.4,lon:-70.6,place:'Chile',countryCode:'CL'};
+  const images=[];
+  for (const ev of [brazil,outside]) {
+   const png=await renderAlertImage({...ev,imageTsunami:{state:'none'}});
+   const image=await decodePng(png);
+   assert.deepEqual([image.width,image.height],[1024,1536]);
+   images.push(image.rgba);
+  }
+  const row=1510*1024*4;
+  assert.deepEqual(images[0].subarray(row,row+4096),images[1].subarray(row,row+4096));
+  const title=235*1024*4;
+  const titleEnd=285*1024*4;
+  assert(images[0].subarray(title,titleEnd).some((channel,i)=>channel!==images[1][title+i]));
+ } finally {
+  globalThis.fetch=saved;
+ }
 });

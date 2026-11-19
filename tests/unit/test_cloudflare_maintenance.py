@@ -13,7 +13,9 @@ class MaintenanceTests(unittest.TestCase):
         version=re.search(r"telegramImageStatus:\s*[\"\']([^\"\']+)",source)
         self.assertIsNotNone(version)
         self.assertEqual(m.TELEGRAM_IMAGE_STATUS,version.group(1))
-        bronze=re.search(r"telegramM6ImageStyle:\s*[\"']([^\"']+)",source)
+        self.assertRegex(source, r"telegramM6ImageStyle:\s*TUAL_CARD_VERSION")
+        registry=(Path(__file__).resolve().parents[2]/"telegram-image-refresh.mjs").read_text()
+        bronze=re.search(r"TUAL_CARD_VERSION = .([^']+)'",registry)
         self.assertIsNotNone(bronze)
         self.assertEqual(m.TELEGRAM_M6_STYLE,bronze.group(1))
     def settings(self):

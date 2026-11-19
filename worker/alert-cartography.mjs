@@ -13,9 +13,10 @@ export async function referencePlaces(ev){
  }catch{return[];}finally{clearTimeout(timer);}
 }
 export function drawMapReferences(p,frame,ev,places,layout=globalThis.QuakeCardLayout){
- const L=layout,H=L.MAP_HEIGHT,Y=L.MAP_Y,C=L.CONTEXT,bronze=L.version==='telegram-imperial-bronze-v1';
+ const L=layout,H=L.MAP_HEIGHT,Y=L.MAP_Y,C=L.CONTEXT,bronze=L.bronze||L.version==='telegram-imperial-bronze-v1';
  const project=(lon,lat)=>[(lon-frame.minLon)/(frame.maxLon-frame.minLon)*800,Y+(frame.maxLat-lat)/(frame.maxLat-frame.minLat)*H];
  const occupied=[[C.x,C.y,C.x+C.width,C.y+C.height],[285,Y+L.ANCHOR_Y-20,590,Y+L.ANCHOR_Y+55],[550,Y+H-60,784,Y+H]];
+ if (L.bronze) occupied.push([0, 305, 260, 451], [336, 862, 470, 1004]);
  let count=0;for(const place of places){let lon=place.lon;lon+=360*Math.round((Number(ev.lon)-lon)/360);const [x,y]=project(lon,place.lat);let name=place.name;while(p.measure(name,15,true)>200&&name.length>3)name=name.slice(0,-4)+'...';const w=p.measure(name,15,true)+16,h=28,left=Math.max(16,Math.min(784-w,x+10)),top=y-14;
  if(x<16||x>784||y<Y+20||y>Y+H-24||occupied.some(([a,b,c,d])=>left<c&&left+w>a&&top<d&&top+h>b))continue;
  p.dot(x,y,4,bronze?'#b78a61':'#ffffff');p.dot(x,y,2,bronze?'#2e1f18':'#162c34');p.roundRect(left,top,w,h,bronze?'#36251c':'#142a33');p.text(name,left+8,top+6,15,bronze?'#ead0a5':'#edf6fa',true);occupied.push([left,top,left+w,top+h]);if(++count===(bronze?1:4))break;

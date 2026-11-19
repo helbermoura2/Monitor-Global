@@ -1,3 +1,6 @@
+import {TUAL_ART_BASE64} from './telegram-tual-art.mjs';
+import {tualLayout,TUAL_WIDTH,TUAL_HEIGHT,TUAL_TSUNAMI_ROWS} from './telegram-tual-layout.mjs';
+import {telegramCardVersion,TUAL_CARD_VERSION} from '../telegram-image-refresh.mjs';
 import {queryImageTsunami} from '../image-tsunami-status.mjs';
 import {contextFrame,referencePlaces,drawMapReferences} from './alert-cartography.mjs';
 import '../js/argos-eye-brand.js';
@@ -823,7 +826,7 @@ async function renderAlertImage(ev) {
     await enrichBrazilEpicenter(ev);
     ev.imageTsunami=ev.imageTsunami||await queryImageTsunami(ev);
     if(!validImageShaking(ev.shaking)){const data=await queryImageShaking(ev);ev.shaking=validImageShaking(data)?data:null;}
-    const key=await renderIdentity(Number(ev.mag)>=6?'telegram-imperial-bronze-v1':'telegram-glass-v19-argos-orbis-v1',ev);
+    const key=await renderIdentity(telegramCardVersion(ev),ev);
     return key?cachedRender(key,60000,()=>renderAlertPixels(ev)):renderAlertPixels(ev);
 }
 function sanitizeHdText(text){
@@ -831,9 +834,9 @@ function sanitizeHdText(text){
  const value=String(text??'').replace(/→/g,'para').replace(/…/g,'...').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/\s+/g,' ').trim();
  return [...value].map(ch=>Object.hasOwn(glyphs,ch)?ch:' ').join('');
 }
-function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
+function alertPainter(rgba,W,H,fonts,serif){const sx=W/800,sy=H/1440;
     const rgb=color=>color.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16));
-    const fontFor=(size,bold,brand=false)=>fonts[brand?'40-brand':(size*sy>50?96:size*sy>24?40:20)+(bold?'-bold':'-regular')];
+    const fontFor=(size,bold,brand=false)=>serif || fonts[brand?'40-brand':(size*sy>50?96:size*sy>24?40:20)+(bold?'-bold':'-regular')];
     const textWidth=(text,size,bold,brand=false)=>{const font=fontFor(size,bold,brand);return textFontWidthProp(font,sanitizeHdText(text),0)*size/font.size;};
     const nativeRect=(x,y,w,h,c)=>fillRect(rgba,W,Math.round(x*sx),Math.round(y*sy),Math.round(w*sx),Math.round(h*sy),...rgb(c));
     const painter={
@@ -865,15 +868,41 @@ function alertPainter(rgba,W,H,fonts){const sx=W/800,sy=H/1440;
     painter.telegramIcon=(x,y)=>{fillCircle(rgba,W,H,x*sx,y*sy,19*sy,188,141,102,255);drawPaperPlaneIcon(rgba,W,H,(x-12)*sx,y*sy,24*sx,30,24,18,[188,141,102]);};
     return painter;
 }
-export async function patchAlertTsunami(png,status,version=globalThis.QuakeTelegramLayout.version){const image=await decodePng(png);if(image.width!==1080||image.height!==1920)throw Error('Original incompatível');const bronze=version===globalThis.QuakeTelegramBronzeLayout.version;const background=(version==='telegram-glass-v19'||bronze)?await restoreBackground(png,image):null;const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts());(bronze?globalThis.QuakeTelegramBronzeLayout.drawTsunami:version==='telegram-v18'?globalThis.QuakeTelegramLegacyLayout.drawTsunami:version===globalThis.QuakeTelegramLayout.version?globalThis.QuakeTelegramLayout.drawTsunami:['editorial-v16',globalThis.QuakeCardLayout.version].includes(version)?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami)(p,status);const result=await rgbaToPng(image.rgba,image.width,image.height);return background?attachBackground(result,background):result;}
+let tualAssets;
+function getTualAssets() {
+    if (!tualAssets) {
+        const font = SUMMARY_EDITORIAL_TYPOGRAPHY_HD.heading;
+        tualAssets = Promise.all([decodePng(base64ToBytes(TUAL_ART_BASE64)), decodePng(base64ToBytes(font.b64))])
+            .then(([art,img]) => ({art, serif:{...font,img,size:168}}));
+    }
+    return tualAssets;
+}
+
+export async function patchAlertTsunami(png,status,version=globalThis.QuakeTelegramLayout.version) {
+    const image=await decodePng(png);
+    const tual=version===TUAL_CARD_VERSION;
+    if (image.width!==(tual?TUAL_WIDTH:1080)||image.height!==(tual?TUAL_HEIGHT:1920)) throw Error('Original incompatível');
+    const bronze=version===globalThis.QuakeTelegramBronzeLayout.version;
+    const rows=tual?TUAL_TSUNAMI_ROWS:undefined;
+    const background=(version==='telegram-glass-v19'||bronze||tual)?await restoreBackground(png,image,rows):null;
+    const p=alertPainter(image.rgba,image.width,image.height,await getQuakeHdFonts(),tual?(await getTualAssets()).serif:null);
+    const drawTsunami=tual?tualLayout.drawTsunami:bronze?globalThis.QuakeTelegramBronzeLayout.drawTsunami:version==='telegram-v18'?globalThis.QuakeTelegramLegacyLayout.drawTsunami:version===globalThis.QuakeTelegramLayout.version?globalThis.QuakeTelegramLayout.drawTsunami:['editorial-v16',globalThis.QuakeCardLayout.version].includes(version)?globalThis.QuakeCardLayout.drawTsunami:globalThis.QuakeCardLayout.drawLegacyTsunami;
+    drawTsunami(p,status);
+    const result=await rgbaToPng(image.rgba,image.width,image.height);
+    return background?attachBackground(result,background):result;
+}
 let telegramFlagAtlases;
 function getTelegramFlagAtlases(){return telegramFlagAtlases||(telegramFlagAtlases=Promise.all([SUMMARY_FLAGS,STATE_FLAGS].map(async data=>({data,image:await decodePng(base64ToBytes(data.b64))}))).then(([country,state])=>({country,state})));}
 async function renderAlertPixels(ev) {
-    const W=1080,H=1920,sx=W/800,sy=H/1440,rgba=new Uint8Array(W*H*4),fonts=await getQuakeHdFonts();
-    const bronze=Number(ev.mag)>=6,telegramLayout=bronze?globalThis.QuakeTelegramBronzeLayout:globalThis.QuakeTelegramLayout;
+    const bronze=telegramCardVersion(ev)===TUAL_CARD_VERSION;
+    const W=bronze?TUAL_WIDTH:1080,H=bronze?TUAL_HEIGHT:1920,sx=W/800,sy=H/1440;
+    const {art,serif}=bronze?await getTualAssets():{};
+    const rgba=art?art.rgba.slice():new Uint8Array(W*H*4);
+    const fonts=await getQuakeHdFonts();
+    const telegramLayout=bronze?tualLayout:globalThis.QuakeTelegramLayout;
     const logicalFrame=telegramLayout.telegramFrame(ev);
     const frame={...logicalFrame,width:W,height:Math.round(logicalFrame.height*sy),anchorX:logicalFrame.anchorX*sx,anchorY:logicalFrame.anchorY*sy};
-    fillRect(rgba,W,0,0,W,H,9,33,48);
+    if(!bronze)fillRect(rgba,W,0,0,W,H,9,33,48);
     const cf=contextFrame(ev);
     const [mapImg,contextImg,places]=await Promise.all([
       fetchEpicenterMap(ev.lat,ev.lon,frame.zoom,W,frame.height,frame.anchorY,[frame.minLon,frame.minLat,frame.maxLon,frame.maxLat],true),
@@ -881,9 +910,13 @@ async function renderAlertPixels(ev) {
     ]);
     const imageContours=[];
     if(mapImg){
+        if(bronze) {
+            const mapPixels=new Uint8Array(W*frame.height*4);
+            drawImageCover(mapPixels,W,frame.height,mapImg,0,0,W,frame.height);
+            const mapTop=Math.round(telegramLayout.MAP_Y*sy);
+            tintBronzeMap(mapPixels,W,frame.height,rgba,mapTop);
+        } else {
         drawImageCover(rgba,W,H,mapImg,0,0,W,frame.height);
-        if(bronze)tintBronzeMap(rgba,W,frame.height);
-        else {
         fillRect(rgba,W,0,0,W,frame.height,255,255,255,10);
         await overlayImageIntensity(rgba,frame,ev,imageContours);
         // Labels and administrative boundaries stay above the intensity colors.
@@ -895,8 +928,8 @@ async function renderAlertPixels(ev) {
         }catch(e){console.warn('map labels unavailable:',e.message);}
         }
     }
-    rgba.copyWithin(Math.round(telegramLayout.MAP_Y*sy)*W*4,0,frame.height*W*4);
-    const painter=alertPainter(rgba,W,H,fonts),C=telegramLayout.CONTEXT;
+    if(!bronze)rgba.copyWithin(Math.round(telegramLayout.MAP_Y*sy)*W*4,0,frame.height*W*4);
+    const painter=alertPainter(rgba,W,H,fonts,serif),C=telegramLayout.CONTEXT;
     if(contextImg&&!bronze){painter.roundRect(C.x,C.y,C.width,C.height,'#071724');painter.text('CONTEXTO REGIONAL',C.x+8,C.y+9,13,'#38bdf8',true);drawImageCover(rgba,W,H,contextImg,C.imageX*sx,C.imageY*sy,C.imageWidth*sx,C.imageHeight*sy);const px=(C.imageX+(Number(ev.lon)-cf.minLon)/(cf.maxLon-cf.minLon)*C.imageWidth)*sx,py=(C.imageY+(cf.maxLat-Number(ev.lat))/(cf.maxLat-cf.minLat)*C.imageHeight)*sy;fillCircle(rgba,W,H,px,py,8,255,255,255,255);fillCircle(rgba,W,H,px,py,5,225,55,45,255);}
     const brazil=telegramIsBrazil(Number(ev.lat),Number(ev.lon));
     const country=brazil?'BR':ev.countryCode||guessCountryCode(ev.originalPlace)||guessCountryCode(ev.place)||guessCountryCode(places[0]?.country);
@@ -905,10 +938,7 @@ async function renderAlertPixels(ev) {
     painter.flag=(kind,code,x,y,w,h)=>{const a=atlas[kind],entry=a.data.map[code];if(!entry)return;const [left,fw,fh]=entry,part=new Uint8Array(fw*fh*4);for(let row=0;row<fh;row++)part.set(a.image.rgba.subarray((row*a.image.width+left)*4,(row*a.image.width+left+fw)*4),row*fw*4);const scale=Math.min(w*sx/fw,h*sy/fh);drawImageCover(rgba,W,H,{rgba:part,width:fw,height:fh},x*sx+(w*sx-fw*scale)/2,y*sy+(h*sy-fh*scale)/2,fw*scale,fh*scale);};
     drawMapReferences(painter,frame,ev,places,telegramLayout);
     const mmi=estimarMercalliCard(Number(ev.mag),Number(ev.depth)||0);
-    // The tsunami cancellation archive must contain the finished bronze base,
-    // including the lower stone band (not the pre-design blue pixels).
-    if(bronze){painter.gradient(0,0,800,telegramLayout.MAP_Y,'#38291f','#201915');painter.gradient(0,1037,800,403,'#2a201a','#211812');}
-    const cleanBackground=captureBackground(rgba,W);
+    const cleanBackground=captureBackground(rgba,W,bronze?TUAL_TSUNAMI_ROWS:undefined);
     telegramLayout.draw(painter,{...ev,imageCountryCode:country,imageStateCode:state,brazil:telegramIsBrazil(Number(ev.lat),Number(ev.lon)),imageMapAvailable:!!mapImg,imageRegion:places[0]?[places[0].region,places[0].country].filter(Boolean).join(' · '):null,imageContours:imageContours.map(a=>({...a,x:a.x/sx,y:a.y/sy+telegramLayout.MAP_Y})),
         color:'#'+getHexColorFromMag(Number(ev.mag)).map(v=>v.toString(16).padStart(2,'0')).join(''),
         when:ev.timeIso?new Date(ev.timeIso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' BRT':'--',

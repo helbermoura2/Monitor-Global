@@ -24,13 +24,13 @@ TV_TARGET_POLICY = 'populated-areas-m5-v1'
 GLOBAL_SEISMIC_POLICY = 'global-usgs-emsc-geofon-v1'
 TELEGRAM_SOLUTION_POLICY = 'reviewed-seismic-priority-v1'
 TELEGRAM_IMAGE_STATUS = 'telegram-glass-v19'
-TELEGRAM_M6_STYLE = 'telegram-imperial-bronze-v1'
+TELEGRAM_M6_STYLE = 'telegram-imperial-bronze-tual-v2'
 REQUEST_BUDGET = 'durable-request-budget-v1'
 SOURCE_EDGE_BUDGET = 'shared-source-edge-v2'
 DEMAND_BUDGET = 'demand-enrichment-v1'
 PUBLIC_SOURCE_RUNTIME = 'edge-collectors-v1'
 OPTIMIZATION = 'shared-population-voice-v1'
-BUNDLE_SHA256 = 'f8d3f7bd3c2cd219785b62b708060318cd6672ca78fa6b56e99073c2490b0d33'
+BUNDLE_SHA256 = '3e32352389e07645fd6b402a9fe99adfc1e8e2a12621972cf5e07458e63e028f'
 
 class MaintenanceError(Exception):
     pass
