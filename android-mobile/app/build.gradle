@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 29
-  versionName '0.1.28'
+  versionCode 30
+  versionName '0.1.29'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
