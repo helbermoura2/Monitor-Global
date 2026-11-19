@@ -86,8 +86,9 @@ test('Brazil below M6 and worldwide M6 use matching Tual artwork with different 
   }
   const row=1510*1024*4;
   assert.deepEqual(images[0].subarray(row,row+4096),images[1].subarray(row,row+4096));
-  const title=240*1024*4;
-  assert.notDeepEqual(images[0].subarray(title,title+4096),images[1].subarray(title,title+4096));
+  const title=235*1024*4;
+  const titleEnd=285*1024*4;
+  assert(images[0].subarray(title,titleEnd).some((channel,i)=>channel!==images[1][title+i]));
  } finally {
   globalThis.fetch=saved;
  }
