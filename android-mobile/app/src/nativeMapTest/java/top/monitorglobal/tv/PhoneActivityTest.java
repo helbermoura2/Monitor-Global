@@ -70,7 +70,34 @@ public class PhoneActivityTest {
  }
  @Test public void eventDetailsShareTheSelectedRecordAndBackReturnsToThePreviousTab()throws Exception{
   activity.applySnapshot(data());root().findViewWithTag("event-sample").performClick();layout();String details=texts(root());assertTrue(details.contains("Detalhes do evento"));assertTrue(details.contains("Profundidade: 12 km"));assertTrue(details.contains("Fonte: EXEMPLO"));assertTrue(details.contains("Danos: sem informação"));export("event");
-  named(root(),"Compartilhar evento").performClick();Intent chooser=Shadows.shadowOf(activity).getNextStartedActivity();assertEquals(Intent.ACTION_CHOOSER,chooser.getAction());Intent send=chooser.getParcelableExtra(Intent.EXTRA_INTENT);assertEquals(Intent.ACTION_SEND,send.getAction());assertTrue(send.getStringExtra(Intent.EXTRA_TEXT).contains("Kathmandu"));activity.onBackPressed();assertTrue(texts(root()).contains("Monitoramento agora"));
+  named(root(),"Compartilhar evento").performClick();Intent chooser=Shadows.shadowOf(activity).getNextStartedActivity();assertEquals(Intent.ACTION_CHOOSER,chooser.getAction());Intent send=chooser.getParcelableExtra(Intent.EXTRA_INTENT);assertEquals(Intent.ACTION_SEND,send.getAction());assertTrue(send.getStringExtra(Intent.EXTRA_TEXT).contains("Kathmandu"));
+  assertEquals("image/png",send.getType());
+  android.net.Uri image=send.getParcelableExtra(Intent.EXTRA_STREAM);
+  assertNotNull(image);
+  assertEquals(image,send.getClipData().getItemAt(0).getUri());
+  assertTrue((send.getFlags()&Intent.FLAG_GRANT_READ_URI_PERMISSION)!=0);
+  try(java.io.InputStream input=activity.getContentResolver().openInputStream(image)){
+   Bitmap card=BitmapFactory.decodeStream(input);
+   assertNotNull(card);
+   assertEquals(960,card.getWidth());
+   card.recycle();
+  }
+  activity.onBackPressed();assertTrue(texts(root()).contains("Monitoramento agora"));
+ }
+ @Test public void seismicContextExplainsZeroDepthAndMissingBulletin(){
+  Alert a=new Alert("mg","earthquake","v","M2,7 · MINAS GERAIS, Brasil","","earthquake",1,1,false);
+  a.source="EMSC";a.magnitude=2.7;a.depth=0;
+  activity.applySnapshot(new PhoneRepository.Snapshot(List.of(a),null,null,0,"Eventos salvos","Sem previsão","Sem previsão",true,true,true));
+  root().findViewWithTag("event-mg").performClick();
+  named(root(),"Entenda este sismo · análise aprofundada").performClick();
+  android.app.AlertDialog dialog=(android.app.AlertDialog)org.robolectric.shadows.ShadowDialog.getLatestDialog();
+  assertNotNull(dialog);
+  String context=texts(dialog.getWindow().getDecorView());
+  assertTrue(context.contains("arredondamento"));
+  assertTrue(context.contains("medições de intensidade"));
+  assertTrue(context.contains("boletim de tsunami associado"));
+  assertFalse(context.contains("Fonte: EMSC"));
+  dialog.dismiss();
  }
  @Test public void noThreatBulletinDoesNotTurnIntoAWarningAndSelectionSurvivesSavedState(){
   Alert bulletin=new Alert("info","tsunami","v","Sem ameaça segundo o boletim · Costa citada","Boletim informativo","noThreat",1800000000000L,1800000000000L,false);bulletin.source="EXEMPLO";activity.applySnapshot(new PhoneRepository.Snapshot(List.of(bulletin),null,null,0,"Eventos salvos","Sem previsão","Sem previsão",true,true,true));assertNull(root().findViewWithTag("event-info"));root().findViewWithTag("tab-notices").performClick();assertNull(root().findViewWithTag("event-info"));named(root(),"Boletins e resumo diário").performClick();assertNotNull(root().findViewWithTag("event-info"));root().findViewWithTag("event-info").performClick();assertTrue(texts(root()).contains("Sem ameaça segundo o boletim"));assertFalse(texts(root()).contains("Aviso de tsunami"));Bundle saved=new Bundle();controller.saveInstanceState(saved).pause().stop().destroy();controller=Robolectric.buildActivity(LocalActivity.class).create(saved).start().resume().visible();activity=controller.get();layout();assertTrue(texts(root()).contains("Sem ameaça segundo o boletim"));

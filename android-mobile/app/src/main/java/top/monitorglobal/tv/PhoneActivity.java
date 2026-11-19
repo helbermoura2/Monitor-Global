@@ -263,78 +263,28 @@ public class PhoneActivity extends Activity {
   if(!a.tsunamiSummary.isEmpty())copy(page,"Boletim de tsunami: "+a.tsunamiSummary);
   if(!a.populationSummary.isEmpty())copy(page,a.populationSummary);if(!a.nearbySummary.isEmpty())copy(page,a.nearbySummary);
   if(a.kind.equals("earthquake")){
-   LinearLayout science=card(page,"ANÁLISE SÍSMICA · FONTE VERIFICADA");
+   LinearLayout science=card(page,"ENTENDA O SISMO");
    LinearLayout analysisBody=section(science);
-   TextView response=text("Toque para examinar magnitude, profundidade, intensidade, boletins e limites científicos. A IA não envia alertas nem prevê terremotos.",16,MUTED,16);
-   analysisBody.addView(response,new LinearLayout.LayoutParams(-1,-2));
-   analysisBody.addView(button("Entenda este sismo · análise aprofundada",()->scientificExplain(a,response)),new LinearLayout.LayoutParams(-1,-2));
-   footer(science,"Consulta opcional. Sempre compare com as autoridades e relatórios originais.");
+   copy(analysisBody,"O que o registro permite concluir sobre o tremor, o que ainda é incerto e quais evidências ajudam a esclarecer.");
+   analysisBody.addView(button("Entenda este sismo · análise aprofundada",()->showSeismicContext(a)),new LinearLayout.LayoutParams(-1,-2));
   }
   Button mapButton=button("Ver localização no mapa",()->showMapEvent(a));mapButton.setEnabled(MapFrame.located(a.originLongitude,a.originLatitude));page.addView(mapButton,new LinearLayout.LayoutParams(-1,-2));if(!mapButton.isEnabled())copy(page,"Localização no mapa indisponível para este registro.");
   space(page,button("Compartilhar evento",()->share(a)),10);
  }
 
- private void scientificExplain(Alert a,TextView target){
-  if(a==null||!a.kind.equals("earthquake")||a.id==null||a.id.isEmpty())return;
-  final int token=generation;final String eventId=a.id;
-  target.setText("Consultando apenas eventos identificados no feed. Não são emitidos novos alertas…");
-  if(worker==null)worker=Executors.newSingleThreadExecutor();
-  worker.execute(()->{
-   String output="Análise indisponível; o catálogo sísmico continua funcionando normalmente.";
-   try{
-    for(int attempt=0;attempt<6;attempt++){
-     org.json.JSONObject data=scientificResponse(eventId);
-     output=scientificText(data);
-     if(!"pending".equals(data.optString("status")))break;
-     Thread.sleep(2600);
-    }
-   }catch(InterruptedException e){Thread.currentThread().interrupt();return;}
-    catch(Exception ignored){/* Never expose raw provider errors or keys. */}
-   final String message=output;
-   main.post(()->{
-    if(!destroyed&&active&&generation==token&&selected!=null&&eventId.equals(selected.id)&&target.isAttachedToWindow())
-     target.setText(message);
-   });
-  });
- }
- private static org.json.JSONObject scientificResponse(String id)throws Exception{
-  java.net.HttpURLConnection con=(java.net.HttpURLConnection)new java.net.URL(
-   "https://black-sky-9ba0.terrestre.workers.dev/seismic-insight?id="+
-   java.net.URLEncoder.encode(id,"UTF-8")).openConnection();
-  con.setConnectTimeout(5000);con.setReadTimeout(10000);con.setInstanceFollowRedirects(false);
-  con.setRequestProperty("Accept","application/json");
-  try{
-   if(con.getResponseCode()!=200)throw new java.io.IOException("scientific status");
-   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
-   try(java.io.InputStream in=con.getInputStream()){
-    byte[] buffer=new byte[1024];int n;
-    while((n=in.read(buffer))!=-1){if(bytes.size()+n>9000)throw new java.io.IOException("oversized");bytes.write(buffer,0,n);}
-   }
-   return new org.json.JSONObject(bytes.toString("UTF-8"));
-  }finally{con.disconnect();}
- }
- private static String scientificText(org.json.JSONObject data){
-  if(!"seismic-insight-v1".equals(data.optString("version")))return "Resposta científica não reconhecida.";
-  String state=data.optString("status");
-  if("pending".equals(state))return "A análise está em preparação. Os alertas continuam independentes.";
-  if(!"ready".equals(state))return "Análise não disponível para este evento no catálogo atualizado. Nenhum dado será inventado.";
-  org.json.JSONArray rows=data.optJSONArray("sections");
-  if(rows==null||rows.length()!=6)return "Análise incompleta: não será exibida.";
-  String title=data.optString("title");
-  if(title.length()>190)return "Título de evento inválido.";
-  StringBuilder out=new StringBuilder(title).append("\nFonte: ").append(data.optString("source","Fonte não informada")).append("\n");
-  String provider=data.optString("model");
-  out.append(provider.equals("gemini-3.8-flash")?"Destaques selecionados pela Gemini.":provider.startsWith("@cf/")?"Destaques selecionados pela Cloudflare.":"Explicação por regras científicas verificáveis.").append("\n");
-  for(int i=0;i<rows.length();i++){
-   org.json.JSONObject item=rows.optJSONObject(i);
-   if(item==null)return "Seção de análise inválida.";
-   String heading=item.optString("title"),description=item.optString("text");
-   if(heading.length()>70||description.length()>550||description.isEmpty()||
-      description.contains("<")||description.contains(">"))return "Texto de análise fora dos limites.";
-   out.append("\n").append(heading).append("\n").append(description).append("\n");
+ private void showSeismicContext(Alert a){
+  LinearLayout sections=new LinearLayout(this);
+  sections.setOrientation(LinearLayout.VERTICAL);
+  sections.setPadding(dp(20),dp(8),dp(20),dp(16));
+  sections.setBackgroundColor(BACK);
+  for(String[] item:SeismicContext.sections(a)){
+   space(sections,text(item[0],18,CYAN,3),12);
+   space(sections,text(item[1],16,TEXT,16),4);
   }
-  out.append("\nAnálise informativa: não substitui autoridades oficiais ou previsões de perigo.");
-  return out.toString();
+  ScrollView scroll=new ScrollView(this);
+  scroll.addView(sections);
+  new android.app.AlertDialog.Builder(this).setTitle("Entenda este sismo")
+   .setView(scroll).setPositiveButton("Fechar",null).show();
  }
 
  private void detail(LinearLayout parent,int kind,String value){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(8);parent.addView(row,rp);row.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(24),dp(24)));TextView t=text(value,18,TEXT,5);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginStart(dp(10));row.addView(t,lp);}
@@ -454,7 +404,25 @@ public class PhoneActivity extends Activity {
   Alert focused=mappedEvent;mappedEvent=null;focusMappedEvent=false;tab=mapReturnTab;returnTab=tab;
   if(focused!=null){selected=focused;}render();
  }
- private void share(Alert a){String value=a.title+"\n"+(a.kind.equals("earthquake")?depth(a)+"\n":"")+BrDates.dateTime(eventTime(a))+"\n"+source(a)+"\nhttps://argosorbis.com.br/";try{startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,value),"Compartilhar evento"));}catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Nenhum aplicativo disponível para compartilhar.",Toast.LENGTH_LONG).show();}}
+ private void share(Alert a){
+  boolean quake=a.kind.equals("earthquake");
+  String kind=quake?"REGISTRO SÍSMICO":tsunamiState(a.state);
+  String timestamp=eventTime(a)>0?BrDates.dateTime(eventTime(a)):"Horário indisponível";
+  String[] facts=quake?new String[]{depth(a),timestamp,source(a)}:new String[]{timestamp,source(a)};
+  String caption=a.title+"\n"+String.join("\n",facts);
+  Intent send=new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_SUBJECT,"Argos Orbis · "+a.title);
+  try{
+   Uri image=EventShareCard.create(this,kind,quake?location(a):a.title,quake?magnitude(a):"",facts,brand);
+   send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
+    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+   send.setClipData(android.content.ClipData.newRawUri("Cartão do evento",image));
+  }catch(java.io.IOException | IllegalArgumentException e){
+   send.setType("text/plain").putExtra(Intent.EXTRA_TEXT,caption+"\nhttps://argosorbis.com.br/");
+   Toast.makeText(this,"Imagem indisponível. Você pode compartilhar o texto.",Toast.LENGTH_SHORT).show();
+  }
+  try{startActivity(Intent.createChooser(send,"Compartilhar evento"));}
+  catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Nenhum aplicativo disponível para compartilhar.",Toast.LENGTH_LONG).show();}
+ }
  private void openUrl(String url){try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Não foi possível abrir o navegador.",Toast.LENGTH_LONG).show();}}
  @Override public void onBackPressed(){
   if(selected!=null){go(returnTab);return;}
