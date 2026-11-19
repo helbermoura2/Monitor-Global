@@ -78,6 +78,7 @@ const interpret=(q,now)=>{
  const context={
   size:'Magnitude M'+mag+' registrada por '+agency+'. A magnitude é uma medida do tamanho do terremoto; não é a intensidade do tremor sentida em cada cidade nem uma estimativa de danos.',
   depth:dep===null?'A profundidade não foi informada de forma válida. Não há base para classificar a profundidade deste evento.':
+   dep===0?'O catálogo informou 0 km. Esse valor pode refletir arredondamento ou um valor fixado na solução. A confirmação depende do boletim original ou de uma revisão. Sem essa confirmação, a profundidade exata segue incerta.':
    'Profundidade informada: '+fmt(dep)+' km. '+(dep<70?'A profundidade se enquadra na categoria rasa (menos de 70 km).':dep<300?'O registro se enquadra na categoria de profundidade intermediária (70–300 km).':'O registro se enquadra na categoria profunda (300 km ou mais).')+' Profundidade e distância influenciam os efeitos, mas não determinam danos sozinhas.',
   shaking:'A intensidade em cada local depende da distância, da propagação das ondas, das condições do solo e das características da ruptura. Sem um ShakeMap ou relatório oficial verificado, não é correto atribuir intensidades específicas nem prever danos.',
   tsunami:q.tsunamiSummary?
@@ -123,7 +124,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  const evidence=interpret(q,now);
  if(!evidence)return json({version:'seismic-insight-v1',status:'unavailable',reason:'no-matching-fresh-event'});
  const revision=JSON.stringify([evidence.id,evidence.at,evidence.magnitude,evidence.depth,evidence.tsunamiSummary]);
- const key='seismic-insight:v1:'+revision.slice(0,440);
+ const key='seismic-insight:context-v2:'+revision.slice(0,440);
  const base={version:'seismic-insight-v1',id:evidence.id,title:evidence.title,source:evidence.source,
   eventAt:evidence.at,magnitude:evidence.magnitude,depth:evidence.depth,expiresAt:Math.min(now+15*MIN,evidence.at+72*3600000),
   disclaimer:'Explicação educativa de dados publicados, não é previsão sísmica, avaliação oficial de danos ou alerta de tsunami.'};
@@ -145,8 +146,8 @@ export async function handleSeismicInsightInObject(request,env,storage,{
    return json({...base,status:'ready',model:'validated-science-v1',sections:section([]),generatedAt:now,limited:true});
   budget.daily++;budget.monthly++;await storage.put('seismic-insight:budget',budget);
   const keys=evidence.keys;
-  const prompt='Escolha de uma a duas seções técnicas mais úteis para destacar no relatório científico deste sismo. Retorne SOMENTE JSON {"facts":["ids"]} com IDs permitidos. Não escreva outras frases nem novos números. IDs e textos baseados em fonte validada: '+JSON.stringify(evidence.notes);
-  const context={kind:'seismic',keys,facts:evidence.notes};
+  const prompt='Escolha um ou dois IDs cuja explicação melhor ajude a interpretar este sismo. Para registros pequenos em terra, priorize percepção local e incerteza da profundidade. Priorize tsunami quando houver boletim associado. Responda somente JSON {"facts":["id"]}. Dados e opções: '+JSON.stringify({magnitude:evidence.magnitude,depth:evidence.depth,linkedBulletin:Boolean(evidence.tsunamiSummary),topics:evidence.notes});
+  const context={kind:'seismic',keys,facts:evidence.notes,depth:evidence.depth,linkedBulletin:Boolean(evidence.tsunamiSummary)};
   await storage.put(key,{status:'pending',until:now+2*MIN});
   const job=(async()=>{
    let model='validated-science-v1',focus=[];

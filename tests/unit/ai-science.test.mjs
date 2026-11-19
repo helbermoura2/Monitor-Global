@@ -56,7 +56,7 @@ test('scientific interpretation has source lineage and no unverified damages or 
 });
 test('AI selects ONLY emphasis IDs; explanations remain source-verified even on model failure',async()=>{
  const storage=store(),jobs=[];let calls=0;
- const env={AI:{run:async(model,args)=>{calls++;assert.equal(model,BRIEFING_MODEL);assert.match(args.messages[1].content,/IDs permitidos/);return {response:'{"facts":["depth","shaking"]}'};}}};
+ const env={AI:{run:async(model,args)=>{calls++;assert.equal(model,BRIEFING_MODEL);assert.match(args.messages[1].content,/Dados e opções/);return {response:'{"facts":["depth","shaking"]}'};}}};
  const options={now,waitUntil:j=>jobs.push(j),readFeed:reading(feed())};
  let r=await(await handleSeismicInsightInObject(req('?id=USGS%3Aus7000test'),env,storage,options)).json();
  assert.equal(r.status,'pending');assert.equal(jobs.length,1);
@@ -85,4 +85,19 @@ test('seismic source priority and budget do not affect alert state machine or is
  storage.m.set('seismic-insight:budget',{day:'2026-11-08',month:'2026-11',daily:24,monthly:24});
  const r=await(await handleSeismicInsightInObject(req(),env,storage,{now,readFeed:reading(feed()),waitUntil:p=>jobs.push(p)})).json();
  assert.equal(r.status,'ready');assert.equal(r.model,'validated-science-v1');assert.equal(r.limited,true);assert.equal(jobs.length,0);
+});
+
+test('small earthquake with depth zero prioritizes uncertainty when models fail',async()=>{
+ const storage=store(),jobs=[];
+ const event=quake({id:'USP:USP-usp2026wrne',magnitude:2.7,depth:0,source:'EMSC'});
+ const options={now,waitUntil:p=>jobs.push(p),readFeed:reading(feed([event]))};
+ const env={AI:{run:async()=>({response:'{"facts":["invented"]}'})}};
+ const request=req('?id=USP%3AUSP-usp2026wrne');
+ const pending=await(await handleSeismicInsightInObject(request,env,storage,options)).json();
+ assert.equal(pending.status,'pending');await Promise.all(jobs);
+ const report=await(await handleSeismicInsightInObject(request,env,storage,options)).json();
+ assert.equal(report.model,'validated-facts-v1');
+ assert.equal(report.sections.find(x=>x.id==='depth').focus,true);
+ assert.match(report.sections.find(x=>x.id==='depth').text,/arredondamento/);
+ assert.equal(report.sections.find(x=>x.id==='tsunami').focus,false);
 });

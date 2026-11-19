@@ -14,7 +14,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 final class SiteEventImage {
- private static final String PAGE="https://argosorbis.com.br/mobile-event-image.html";
+ private static final String PAGE="https://argosorbis.com.br/mobile-event-image";
  private static final int MAX_LENGTH=12_000_000, CHUNK_LENGTH=64_000;
  interface Result { void ready(Uri uri); }
 

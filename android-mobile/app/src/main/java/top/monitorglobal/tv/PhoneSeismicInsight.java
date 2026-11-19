@@ -14,32 +14,41 @@ import org.json.JSONObject;
 final class PhoneSeismicInsight {
  private PhoneSeismicInsight(){}
 
- static List<String> focus(Alert event)throws Exception{
-  if(event.id==null||event.id.length()<2||event.id.length()>170)return List.of();
-  for(int attempt=0;attempt<4;attempt++){
+ static final class Report {
+  final List<String> topics;
+  final boolean model;
+  Report(List<String> topics,boolean model){this.topics=topics;this.model=model;}
+ }
+ private static final Report UNAVAILABLE=new Report(List.of(),false);
+
+ static Report focus(Alert event)throws Exception{
+  if(event.id==null||event.id.length()<2||event.id.length()>170)return UNAVAILABLE;
+  for(int attempt=0;attempt<10;attempt++){
    JSONObject report=request(event.id);
    if(!"seismic-insight-v1".equals(report.optString("version"))||
-     !event.id.equals(report.optString("id")))return List.of();
+     !event.id.equals(report.optString("id")))return UNAVAILABLE;
    if("pending".equals(report.optString("status"))){
-    if(attempt<3)Thread.sleep(3000);
+    if(attempt<9)Thread.sleep(3000);
     continue;
    }
    if(!"ready".equals(report.optString("status"))||
-     report.optLong("eventAt",-1)!=event.eventTime||
-     Math.abs(report.optDouble("magnitude",-99)-event.magnitude)>.051)
-    return List.of();
+     Math.abs(report.optDouble("eventAt",0)-event.eventTime)>60000||
+     !Double.isFinite(report.optDouble("magnitude"))||
+     Math.abs(report.optDouble("magnitude")-event.magnitude)>.051)
+    return UNAVAILABLE;
    String model=report.optString("model");
-   if(!(model.startsWith("gemini-")||model.startsWith("@cf/")))return List.of();
+   boolean generated=model.startsWith("gemini-")||model.startsWith("@cf/");
+   if(!generated&&!"validated-facts-v1".equals(model)&&!"validated-science-v1".equals(model))return UNAVAILABLE;
    JSONArray sections=report.optJSONArray("sections");
-   if(sections==null||sections.length()!=6)return List.of();
+   if(sections==null||sections.length()!=6)return UNAVAILABLE;
    List<String> topics=new ArrayList<>();
    for(int index=0;index<sections.length();index++){
     JSONObject section=sections.optJSONObject(index);
     if(section!=null&&section.optBoolean("focus"))topics.add(section.optString("id"));
    }
-   return topics;
+   return new Report(topics,generated);
   }
-  return List.of();
+  return UNAVAILABLE;
  }
 
  private static JSONObject request(String eventId)throws Exception{

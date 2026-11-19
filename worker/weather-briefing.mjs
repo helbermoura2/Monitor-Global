@@ -95,7 +95,7 @@ export async function geminiSelection(env,context,prompt,fetcher=fetch){
    method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},
    signal:controller.signal,
    body:JSON.stringify({
-    systemInstruction:{parts:[{text:'Select only verified IDs from the supplied weather fact map. Reply only as JSON {"facts":["id"]}. No new text, measurements, warning levels or predictions.'}]},
+    systemInstruction:{parts:[{text:'Select only verified IDs from the supplied '+(context.kind==='seismic'?'earthquake':'weather')+' facts. Reply only as JSON {"facts":["id"]}. No new text, measurements, warning levels or predictions.'}]},
     contents:[{role:'user',parts:[{text:prompt}]}],
     generationConfig:{
      thinkingConfig:{thinkingLevel:'LOW'},
@@ -126,7 +126,7 @@ async function workersSelection(env,context,prompt){
  try{
   const result=await Promise.race([
    env.AI.run(BRIEFING_MODEL,{messages:[
-    {role:'system',content:'Select only the provided interpretation IDs. Return compact JSON, for example {"facts":["humidCalm"]}. Never return explanations or fact sentences.'},
+    {role:'system',content:'Select one or two IDs only from '+JSON.stringify(context.keys)+'. Return compact JSON, for example '+JSON.stringify({facts:context.keys.slice(0,1)})+'. Never return explanations or fact sentences.'},
     {role:'user',content:prompt}
    ],temperature:0,max_tokens:96}),
    new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})
@@ -143,7 +143,8 @@ async function workersSelection(env,context,prompt){
  */
 export function verifiedRuleSelection(context){
  const priority=context.kind==='rain'?['increase','strong','persistent','pause']:
-  context.kind==='seismic'?['tsunami','shaking','depth','size','revisions','science']:
+  context.kind==='seismic'?(context.linkedBulletin?['tsunami','shaking','depth','size','revisions','science']:
+    [context.depth===0?'depth':'shaking',context.depth===0?'shaking':'depth','size','revisions','science','tsunami']):
   ['storm','gusts','heat','chill','dry','fog','wind','humidCalm','humid'];
  const facts=priority.filter(k=>context.keys.includes(k)).slice(0,2);
  if(!facts.length)throw Error('invalid');

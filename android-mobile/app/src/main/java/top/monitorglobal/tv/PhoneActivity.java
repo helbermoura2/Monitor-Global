@@ -296,17 +296,18 @@ public class PhoneActivity extends Activity {
    status.setText("Consultando a análise do catálogo…");
    if(worker==null)worker=Executors.newSingleThreadExecutor();
    inquiry[0]=worker.submit(()->{
-    List<String> focus;
-    try{focus=PhoneSeismicInsight.focus(a);}
+    PhoneSeismicInsight.Report report;
+    try{report=PhoneSeismicInsight.focus(a);}
     catch(InterruptedException e){Thread.currentThread().interrupt();return;}
-    catch(Exception e){focus=List.of();}
-    List<String> result=focus;
+    catch(Exception e){report=new PhoneSeismicInsight.Report(List.of(),false);}
+    PhoneSeismicInsight.Report result=report;
     main.post(()->{
      if(destroyed||!dialog.isShowing())return;
-     boolean highlighted=renderSeismicContext(sections,a,result);
-     status.setText(highlighted?"A IA priorizou os pontos destacados com base no catálogo."
-      :"A IA está indisponível para este registro. A análise local está abaixo.");
-     consult.setEnabled(!highlighted);
+     boolean highlighted=renderSeismicContext(sections,a,result.topics);
+     if(result.model&&highlighted)status.setText("A IA priorizou os pontos destacados com base no catálogo.");
+     else if(highlighted)status.setText("O serviço retornou destaques por regras científicas. A IA pode ser consultada novamente.");
+     else status.setText("O serviço não retornou destaques para este registro. A análise local está abaixo.");
+     consult.setEnabled(!result.model||!highlighted);
     });
    });
   });
