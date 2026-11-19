@@ -414,8 +414,8 @@ public class PhoneActivity extends Activity {
   try{
    Uri image=EventShareCard.create(this,kind,quake?location(a):a.title,quake?magnitude(a):"",facts,brand);
    send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
-    .setClipData(android.content.ClipData.newRawUri("Cartão do evento",image))
     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+   send.setClipData(android.content.ClipData.newRawUri("Cartão do evento",image));
   }catch(java.io.IOException | IllegalArgumentException e){
    send.setType("text/plain").putExtra(Intent.EXTRA_TEXT,caption+"\nhttps://argosorbis.com.br/");
    Toast.makeText(this,"Imagem indisponível. Você pode compartilhar o texto.",Toast.LENGTH_SHORT).show();
