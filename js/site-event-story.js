@@ -337,7 +337,27 @@
    box(248,766,584,77);text('localização pontual não informada',282,792,29);
   }
   if(hasLocation&&!sat)text('Imagem de satélite indisponível',434,1050,24,MUTED);
-  compass(152,1234);
+  if(engraving){
+   // Reuse the engraved compass. Reflect the top of its round bezel to fill
+   // the part covered by the footer in the original artwork.
+   const sourceMidY=1282, sourceX=11, sourceY=1130, width=204, height=225;
+   const insetX=44, insetY=-52;
+   function drawEngravedSlice(x,y,w,h){
+    const sx=engraving.naturalWidth/W, sy=engraving.naturalHeight/H;
+    c.drawImage(engraving,x*sx,y*sy,w*sx,h*sy,x,y,w,h);
+   }
+   c.save();c.translate(insetX,insetY);
+   drawEngravedSlice(sourceX,sourceY,width,height);
+   c.beginPath();c.arc(108,sourceMidY,101,0,Math.PI*2);c.clip();
+   c.translate(0,2*sourceMidY);c.scale(1,-1);
+   const seam=2*sourceMidY-sourceY-height;
+   drawEngravedSlice(sourceX,1180,width,seam-1180);
+   for(let i=0;i<6;i++){
+    c.globalAlpha=(6-i)/7;
+    drawEngravedSlice(sourceX,seam+i,width,1);
+   }
+   c.restore();
+  }else compass(152,1234);
   const summary=String(e.bulletinSummary||e.condition||e.descOnly||e.detail||'').trim();
   if(summary&&!p.quake){
    box(350,1249,674,91);lines(summary,370,1263,635,25,2);
@@ -364,6 +384,6 @@
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v6'};
+ root.SiteEventStory={render,profile,version:'argos-cartographic-v7'};
 })(window);
 
