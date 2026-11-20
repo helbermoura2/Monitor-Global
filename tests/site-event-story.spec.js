@@ -18,7 +18,7 @@ test('the cartographic card static composition exports every event family and mi
   },type);
   expect(result.texts).toContain('Telegram · ARGOS ORBIS');expect(result.texts.join(' ')).toContain('08/11/2026');
   if(['temperature','capital-weather'].includes(type)){expect(result.profile.marker).toBe('LOCAL DA PREVISÃO');expect(result.texts.join(' ')).toContain('24 °C');expect(result.texts.join(' ')).not.toContain('EPICENTRO');expect(result.texts.join(' ')).not.toContain('PROFUNDIDADE');}
-  if(type==='earthquake'){expect(result.profile.marker).toBe('EPICENTRO · M1,8');expect(result.texts.join(' ')).toContain('0 km');}
+  if(type==='earthquake'){expect(result.profile.marker).toBeNull();expect(result.texts).toContain('M1,8');expect(result.texts.join(' ')).not.toContain('EPICENTRO');expect(result.texts.join(' ')).toContain('0 km');}
   const data=Buffer.from(result.png.split(',')[1],'base64');expect(data.readUInt32BE(16)).toBe(1080);expect(data.readUInt32BE(20)).toBe(1920);
   if(['earthquake','capital-weather','flood'].includes(type)){fs.mkdirSync('/tmp/share-concept6',{recursive:true});fs.writeFileSync('/tmp/share-concept6/'+type+'.png',data);}
  }
@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v3');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v4');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -97,7 +97,8 @@ test('Complete translated location occupies its own row without truncation or he
   CanvasRenderingContext2D.prototype.fillText=function(t,x,y,...a){if(this.canvas.width===1080&&this.canvas.height===1920)drawn.push({text:String(t),x,y,font:this.font,width:this.measureText(t).width});return original.call(this,t,x,y,...a);};
   try{await SiteEventStory.render({type:'earthquake',coords:[176.51,-37.83],mag:1.9,depth:134.5,place:'30 km south-a leste de Tauranga, Nova Zelândia'});return drawn;}finally{CanvasRenderingContext2D.prototype.fillText=original;}
  });
- const location=result.filter(r=>r.y>=289&&r.y<379&&r.x===95);expect(location.map(r=>r.text).join(' ')).toBe('30 km a sudeste de Tauranga, Nova Zelândia');
+ const location=result.filter(r=>r.y>=289&&r.y<379);expect(location.map(r=>r.text).join(' ')).toBe('30 km a sudeste de Tauranga, Nova Zelândia');
+ expect(location[0].font).toMatch(/^(bold|700) /);expect(location[1].font).toMatch(/^500 /);
  for(const row of location){expect(row.text).not.toContain('…');expect(row.x+row.width).toBeLessThanOrEqual(1025);}
  const region=result.find(r=>r.text==='CONTEXTO REGIONAL');expect(region.y).toBeGreaterThan(location.at(-1).y+38);
  expect(result.filter(r=>r.x===764&&[1520,1557].includes(r.y)).map(r=>r.text)).toEqual(['37,83° S','176,51° L']);
@@ -228,19 +229,21 @@ test('Brazil share map paints IBGE municipal boundaries and shades the edges',as
   return route.fulfill({json:{type:'FeatureCollection',features},headers:{'access-control-allow-origin':'*'}});
  });
  await page.addScriptTag({url:'/js/site-event-story.js'});
- const rendered=await page.evaluate(async()=>{
+ for(const type of ['earthquake','flood','capital-weather']){
+ const rendered=await page.evaluate(async type=>{
   const ctx=CanvasRenderingContext2D.prototype,stroke=ctx.stroke,fillText=ctx.fillText;
   const strokes=[],texts=[];
   ctx.stroke=function(...args){strokes.push(this.strokeStyle);return stroke.apply(this,args);};
   ctx.fillText=function(value,...args){texts.push(value);return fillText.call(this,value,...args);};
   try{
-   const canvas=await SiteEventStory.render({type:'earthquake',coords:[-45.2,-19.3],mag:2.7,place:'Minas Gerais, Brasil'});
+   const canvas=await SiteEventStory.render({type,coords:[-45.2,-19.3],mag:2.7,place:'Minas Gerais, Brasil'});
    const ctx=canvas.getContext('2d');
    return {strokes,texts,center:ctx.getImageData(680,875,1,1).data[0],edge:ctx.getImageData(985,1245,1,1).data[0]};
   }finally{ctx.stroke=stroke;ctx.fillText=fillText;}
- });
+ },type);
  expect(requested.some(url=>url.pathname.endsWith('/31')&&url.searchParams.get('intrarregiao')==='municipio')).toBe(true);
  expect(rendered.strokes).toContain('rgba(234, 218, 173, 0.76)');
  expect(rendered.texts.join(' ')).toContain('Limites municipais: IBGE');
  expect(rendered.center-rendered.edge).toBeGreaterThan(45);
+ }
 });

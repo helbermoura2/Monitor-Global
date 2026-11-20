@@ -17,7 +17,7 @@
   else if(bulletin)stats=[['SITUAÇÃO','Informativo'],['REGIÃO','São Paulo · SP'],['TIPO','Boletim meteorológico']];
   else if(e.type==='hurricane')stats=[['CLASSIFICAÇÃO',e.cycloneLabel||e.classification||'Não informada'],['VENTO MÁXIMO',number(e.windKmh,' km/h')],['PRESSÃO',number(e.pressureMb,' hPa')]];
   else stats=[['SITUAÇÃO',e.severityLabel||e.statusLabel||'Conforme a fonte'],['REGIÃO',e.region||e.uf||e.country||'Ver localização'],['TIPO',e.hazardNature==='forecast'?'Previsão':e.hazardNature==='observed'?'Observado':e.hazardNature==='warning'?'Aviso oficial':'Registro da fonte']];
-  return {quake,weather,bulletin,title,metric,stats,marker:quake?'EPICENTRO · '+metric:weather?'LOCAL DA PREVISÃO':bulletin?'REFERÊNCIA MUNICIPAL':'REFERÊNCIA DO EVENTO',note:quake?(stats[1][0]==='INTENSIDADE EST.'?'Intensidade estimada. ':'')+'Anéis de localização; não indicam raio de dano.':weather?'Condições conforme a fonte indicada; sujeitas a atualização.':bulletin?'Boletim municipal informativo; não confirma tempestade nem área de risco.':'A referência no mapa não delimita a área de risco. Consulte a fonte oficial.'};
+  return {quake,weather,bulletin,title,metric,stats,marker:quake?null:weather?'LOCAL DA PREVISÃO':bulletin?'REFERÊNCIA MUNICIPAL':'REFERÊNCIA DO EVENTO',note:quake?(stats[1][0]==='INTENSIDADE EST.'?'Intensidade estimada. ':'')+'Anéis de localização; não indicam raio de dano.':weather?'Condições conforme a fonte indicada; sujeitas a atualização.':bulletin?'Boletim municipal informativo; não confirma tempestade nem área de risco.':'A referência no mapa não delimita a área de risco. Consulte a fonte oficial.'};
  }
  function frame(e,p){let span=1;if(p.quake&&root.QuakeSiteCard)try{const f=QuakeSiteCard.frame({mag:e.mag,depth:e.depth,lon:e.coords[0],lat:e.coords[1]});span=Math.max(1.4,(f.maxLon-f.minLon)/2);}catch{}else if(!p.weather)span=3;
   const [lon,lat]=e.coords;return {minLon:lon-span,maxLon:lon+span,minLat:Math.max(-85,lat-2*span*548/W),maxLat:Math.min(85,lat+2*span*425/W)};
@@ -265,11 +265,24 @@
   const place=root.EventPortuguese?.place(e.place||'Local não informado')||e.place||'Local não informado';
   const images=['country','state'].map(key=>flags?.images?.[key]).filter(Boolean);
   const flagWidth=90,flagHeight=60,flagGap=12,placeWidth=930-images.length*(flagWidth+flagGap);
-  let placeSize=42;
-  c.font=font(placeSize,true);
-  while(placeSize>28&&c.measureText(place).width>placeWidth)c.font=font(--placeSize,true);
-  const flagX=95+Math.min(placeWidth,c.measureText(place).width)+15;
-  lines(place,95,289,placeWidth,placeSize,2,WHITE,true);
+  // Match the reference's bold location and lighter country on the same baseline.
+  const comma=place.lastIndexOf(', ');
+  const locality=comma<0?place:place.slice(0,comma+1);
+  const country=comma<0?'':place.slice(comma+2);
+  function placeWidths(size){
+   c.font=font(size,true);
+   const localityWidth=c.measureText(locality+(country?' ':'')).width;
+   c.font=font(size);
+   return [localityWidth,localityWidth+c.measureText(country).width];
+  }
+  let placeSize=40;
+  let [localityWidth,placeLength]=placeWidths(placeSize);
+  while(placeSize>28&&placeLength>placeWidth)[localityWidth,placeLength]=placeWidths(--placeSize);
+  if(placeLength<=placeWidth){
+   text(locality,95,289,placeSize,WHITE,placeWidth,true);
+   if(country)text(country,95+localityWidth,289,placeSize,WHITE,placeWidth-localityWidth);
+  }else lines(place,95,289,placeWidth,placeSize,2,WHITE,true);
+  const flagX=95+Math.min(placeWidth,placeLength)+15;
   images.forEach((img,i)=>{
    const x=flagX+i*(flagWidth+flagGap);
    box(x,294,flagWidth,flagHeight,7,'#f5e8cf','#674b2f');
@@ -300,9 +313,12 @@
   if(hasLocation){
    const x=W/2,y=top+(f.maxLat-e.coords[1])/(f.maxLat-f.minLat)*mapHeight;
    if(p.quake)[29,51,73].forEach((r,i)=>circle(x,y,r,`rgba(213,127,74,${.65-i*.19})`));
-   circle(x,y,14,'#fff2df',RED);box(550,y-87,334,55,17,'#0a242b','#79969a');
-   c.strokeStyle='#79969a';c.beginPath();c.moveTo(x+9,y-14);c.lineTo(578,y-32);c.stroke();
-   text(p.marker,568,y-71,23,WHITE,302,true);
+   circle(x,y,14,'#fff2df',RED);
+   if(p.marker){
+    box(550,y-87,334,55,17,'#0a242b','#79969a');
+    c.strokeStyle='#79969a';c.beginPath();c.moveTo(x+9,y-14);c.lineTo(578,y-32);c.stroke();
+    text(p.marker,568,y-71,23,WHITE,302,true);
+   }
   }else{
    box(248,766,584,77);text('localização pontual não informada',282,792,29);
   }
@@ -334,6 +350,6 @@
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v3'};
+ root.SiteEventStory={render,profile,version:'argos-cartographic-v4'};
 })(window);
 
