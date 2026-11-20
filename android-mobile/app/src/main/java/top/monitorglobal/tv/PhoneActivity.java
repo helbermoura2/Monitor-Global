@@ -201,8 +201,11 @@ public class PhoneActivity extends Activity {
   LinearLayout card=card(page,"TEMPO · LIBERDADE, SP"),body=section(card);WeatherForecast.Summary w=snapshot==null?null:snapshot.weather;
   if(w==null){String state=snapshot==null?"Aguardando consulta":snapshot.weatherStatus;body.addView(text(state.startsWith("Aguardando")?"Consultando previsão horária…":"Previsão horária indisponível",22,TEXT,4));footer(card,state);return;}
   LinearLayout hero=new LinearLayout(this);hero.setGravity(Gravity.CENTER_VERTICAL);body.addView(hero,new LinearLayout.LayoutParams(-1,-2));
-  PhoneWeatherArt art=new PhoneWeatherArt(this,PhoneWeatherReading.illustration(w,snapshot==null?null:snapshot.rain),System.currentTimeMillis());hero.addView(art,new LinearLayout.LayoutParams(0,dp(126),1));
-  LinearLayout readings=new LinearLayout(this);readings.setOrientation(LinearLayout.VERTICAL);hero.addView(readings,new LinearLayout.LayoutParams(0,-2,1));readings.addView(text(w.temperatureValue,48,TEXT,2));space(readings,text(PhoneWeatherReading.condition(w,snapshot==null?null:snapshot.rain),19,TEXT,4),3);space(readings,text(PhoneWeatherReading.caption(w,snapshot==null?null:snapshot.rain),12,MUTED,3),4);space(readings,text("Sensação "+w.feelsValue,15,MUTED,3),5);
+  long now=System.currentTimeMillis();
+  PhoneSkyObservation observed=snapshot==null?null:snapshot.sky;
+  if(observed!=null&&!observed.fresh(now))observed=null;
+  PhoneWeatherArt art=new PhoneWeatherArt(this,observed==null?PhoneWeatherReading.skyArt(w):observed.key,now);hero.addView(art,new LinearLayout.LayoutParams(0,dp(126),1));
+  LinearLayout readings=new LinearLayout(this);readings.setOrientation(LinearLayout.VERTICAL);hero.addView(readings,new LinearLayout.LayoutParams(0,-2,1));readings.addView(text(w.temperatureValue,48,TEXT,2));space(readings,text(observed==null?PhoneWeatherReading.skyLabel(w,now):observed.condition(observed.at),19,TEXT,4),3);space(readings,text(observed==null?"Céu: modelo horário":"Observado em Congonhas · "+WeatherForecast.time(observed.at),12,MUTED,3),4);space(readings,text("Sensação "+w.feelsValue,15,MUTED,3),5);
   LinearLayout metrics=metricRow(body);metric(metrics,PhoneIcons.DROP,w.humidityValue,"Umidade");metric(metrics,PhoneIcons.WIND,w.windValue,"Vento");metric(metrics,PhoneIcons.WIND,w.gustValue,"Rajadas");
   String provenance="Rainbow Weather · Modelo horário\n"+w.timing;
   if(detail)briefingCard(body,"hourly",w,snapshot==null?null:snapshot.rain);
@@ -210,6 +213,11 @@ public class PhoneActivity extends Activity {
  }
  private void rainCard(LinearLayout page,boolean detail){
   LinearLayout card=card(page,"CHUVA · LIBERDADE, SP"),body=section(card);RainForecast.Summary r=snapshot==null?null:snapshot.rain;
+  if(r==null&&snapshot!=null&&PhoneWeatherReading.hourlyPrecipitation(snapshot.weather)){
+   body.addView(text("Pode haver precipitação · início incerto",22,TEXT,4));
+   footer(card,snapshot.weather.timing);
+   return;
+  }
   if(r==null){String state=snapshot==null?"Aguardando consulta":snapshot.rainStatus;body.addView(text(state.startsWith("Aguardando")?"Consultando chuva por minuto…":"Chuva por minuto: indisponível",22,TEXT,4));footer(card,state);return;}
   if(r.state.equals("evidence")){
    body.addView(text(r.title,22,TEXT,4));

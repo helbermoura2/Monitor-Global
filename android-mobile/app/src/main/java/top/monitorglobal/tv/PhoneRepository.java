@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /** Foreground, on-demand phone data. Call refresh on one worker, never on the UI thread. */
 final class PhoneRepository implements AutoCloseable {
  static final String COVERAGE="M6+ globais, Brasil e áreas monitoradas";
- static final String FEED="tv-alerts?policy=telegram-v1",WEATHER="tv-weather",RAIN="tv-rain?area=liberdade",HOURLY="rain-weather?lat=-23.555&lng=-46.635",DAILY="tv-alerts?view=completed&policy=telegram-v1";
+ static final String FEED="tv-alerts?policy=telegram-v1",WEATHER="tv-weather",RAIN="tv-rain?area=liberdade",HOURLY="rain-weather?lat=-23.555&lng=-46.635",DAILY="tv-alerts?view=completed&policy=telegram-v1",SKY="metar-observed?ids=SBSP";
  static final int FEED_LIMIT=256*1024,WEATHER_LIMIT=100000,CACHE_LIMIT=512*1024;
  static final long RETRY=5*60000L;
  interface Transport {Response get(String path,String etag,int limit)throws Exception;void cancel();}
@@ -19,6 +19,7 @@ final class PhoneRepository implements AutoCloseable {
   Response(int code,String json,String tag){status=code;body=json==null?"":json;etag=cleanEtag(tag);}
  }
  static final class Snapshot {
+  PhoneSkyObservation sky;
   PhoneRainChart.Series rainSeries;List<PhoneHourly.Hour> hours=Collections.emptyList();List<Alert> daily=Collections.emptyList();String dailyDay="";boolean dailyAvailable;String hourlyStatus="Previsão por hora ainda não consultada";final List<Alert> events;final WeatherForecast.Summary weather;final RainForecast.Summary rain;
   final long refreshedAt;final String feedStatus,weatherStatus,rainStatus;final boolean saved,quakeOk,tsunamiOk;
   Snapshot(List<Alert> list,WeatherForecast.Summary w,RainForecast.Summary r,long at,String feed,String weatherState,String rainState,boolean cached,boolean quakes,boolean tsunamis){
@@ -28,6 +29,8 @@ final class PhoneRepository implements AutoCloseable {
  }
  private final Transport transport;private final AtomicLong generation=new AtomicLong();private volatile boolean closed;
  private JSONObject feedData,weatherData,rainData,hourlyData,dailyData;private long nextHourly,nextDaily,lastHourlyAttempt,lastDailyAttempt;private List<Alert> events=new ArrayList<>();private String etag="";
+ private PhoneSkyObservation sky;
+ private long nextSky;
  private long refreshedAt,nextWeather,nextRain;private boolean feedSaved,quakeOk,tsunamiOk;
  private String hourlyStatus="Previsão por hora ainda não consultada";
  private String feedStatus="Aguardando consulta dos eventos",weatherStatus="Aguardando previsão para a Liberdade",rainStatus="Aguardando chuva por minuto";
@@ -40,7 +43,9 @@ final class PhoneRepository implements AutoCloseable {
   boolean requestWeather,requestRain;
   synchronized(this){requestWeather=(forceWeather||weather(now)==null)&& (forceWeather||now>=nextWeather);requestRain=(forceWeather||rain(now)==null)&&(forceWeather||now>=nextRain);}
   if(requestWeather)refreshForecast(now,ticket,true);if(!active(ticket))return snapshot(afterElapsed(now,started));
-  if(requestRain)refreshForecast(now,ticket,false);return snapshot(afterElapsed(now,started));
+  if(requestRain)refreshForecast(now,ticket,false);
+  if(active(ticket))refreshSky(afterElapsed(now,started),ticket);
+  return snapshot(afterElapsed(now,started));
  }
  private static long afterElapsed(long now,long started){return now+Math.max(0,(System.nanoTime()-started)/1000000);}
  private boolean active(long ticket){return !closed&&generation.get()==ticket;}
@@ -52,6 +57,14 @@ final class PhoneRepository implements AutoCloseable {
    JSONObject candidate=object(response,FEED_LIMIT);Parsed parsed=parseFeed(candidate,now);
    synchronized(this){if(!active(ticket))return;feedData=candidate;events=parsed.events;quakeOk=parsed.quakeOk;tsunamiOk=parsed.tsunamiOk;etag=response.etag;refreshedAt=now;feedSaved=false;feedStatus=sourceStatus(quakeOk,tsunamiOk);}
   }catch(Exception error){synchronized(this){if(!active(ticket))return;feedSaved=feedData!=null;feedStatus=feedSaved?"Sem atualização confirmada · mostrando eventos salvos":"Eventos indisponíveis · tente atualizar";}}
+ }
+ private void refreshSky(long now,long ticket){
+  synchronized(this){if(now<nextSky)return;nextSky=now+5*60000L;}
+  try{
+   Response response=transport.get(SKY,"",WEATHER_LIMIT);
+   PhoneSkyObservation reading=PhoneSkyObservation.parse(object(response,WEATHER_LIMIT),now);
+   synchronized(this){if(active(ticket))sky=reading;}
+  }catch(Exception ignored){/* A previous observation retains its original expiry. */}
  }
  private void refreshForecast(long now,long ticket,boolean hourly){
   try{
@@ -66,7 +79,7 @@ final class PhoneRepository implements AutoCloseable {
   WeatherForecast.Summary w=weather(now);RainForecast.Summary r=rain(now);
   String ws=w==null&&weatherData!=null?"Previsão horária indisponível ou vencida":weatherStatus;
   String rs=r==null&&rainData!=null?"Chuva por minuto: indisponível ou vencida":rainStatus;
-  Snapshot result=new Snapshot(events,w,r,refreshedAt,feedStatus,ws,rs,feedSaved,quakeOk,tsunamiOk);result.rainSeries=PhoneRainChart.Series.parse(rainData,now);result.hours=PhoneHourly.parse(hourlyData,now);result.hourlyStatus=result.hours.isEmpty()?hourlyStatus:"Modelo horário válido · Rainbow Weather";List<Alert> records=parseDaily(dailyData,now);result.dailyAvailable=records!=null;result.daily=records==null?Collections.emptyList():records;result.dailyDay=records==null?"":dailyData.optString("day");return result;
+  Snapshot result=new Snapshot(events,w,r,refreshedAt,feedStatus,ws,rs,feedSaved,quakeOk,tsunamiOk);result.sky=sky!=null&&sky.fresh(now)?sky:null;result.rainSeries=PhoneRainChart.Series.parse(rainData,now);result.hours=PhoneHourly.parse(hourlyData,now);result.hourlyStatus=result.hours.isEmpty()?hourlyStatus:"Modelo horário válido · Rainbow Weather";List<Alert> records=parseDaily(dailyData,now);result.dailyAvailable=records!=null;result.daily=records==null?Collections.emptyList():records;result.dailyDay=records==null?"":dailyData.optString("day");return result;
  }
  Snapshot details(long now,boolean daily){return details(now,daily,false);}
  Snapshot details(long now,boolean daily,boolean force){
@@ -115,7 +128,7 @@ final class PhoneRepository implements AutoCloseable {
  static final class HttpTransport implements Transport {
   private volatile HttpURLConnection connection;private final AtomicLong generation=new AtomicLong();
   @Override public Response get(String path,String tag,int limit)throws IOException{
-   if(!path.equals(FEED)&&!path.equals(WEATHER)&&!path.equals(RAIN)&&!path.equals(HOURLY)&&!path.equals(DAILY))throw new IOException("Route not allowed");
+   if(!path.equals(FEED)&&!path.equals(WEATHER)&&!path.equals(RAIN)&&!path.equals(HOURLY)&&!path.equals(DAILY)&&!path.equals(SKY))throw new IOException("Route not allowed");
    long ticket=generation.get();HttpURLConnection request=(HttpURLConnection)new URL("https://black-sky-9ba0.terrestre.workers.dev/"+path).openConnection();connection=request;
    request.setConnectTimeout(8000);request.setReadTimeout(12000);request.setInstanceFollowRedirects(false);request.setRequestProperty("Accept","application/json");request.setRequestProperty("User-Agent","MonitorGlobalMobile");if(!cleanEtag(tag).isEmpty())request.setRequestProperty("If-None-Match",tag);
    try{if(ticket!=generation.get())throw new InterruptedIOException("Cancelled");int status=request.getResponseCode();if(status==304)return new Response(status,"",request.getHeaderField("ETag"));if(status!=200)return new Response(status,"","");
