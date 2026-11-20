@@ -8,6 +8,18 @@ final class PhoneWeatherReading {
  private static boolean dryMinuteOverridesHourlyRain(WeatherForecast.Summary w,RainForecast.Summary r){
   return r!=null&&r.state.equals("dry")&&hourlyPrecipitation(w);
  }
+ static String skyLabel(WeatherForecast.Summary hourly,long now){
+  if(skyArt(hourly).isEmpty())return "Condição do céu indisponível";
+  return hourly.conditionKey.equals("MostlyClear")?"Poucas nuvens":WeatherForecast.sky(hourly,now);
+ }
+ static String skyArt(WeatherForecast.Summary hourly){
+  if(hourly==null)return "";
+  switch(hourly.conditionKey){
+   case "Clear":case "MostlyClear":case "PartlyCloudy":case "Cloudy":case "Overcast":
+    return hourly.conditionKey;
+   default:return "";
+  }
+ }
  static String condition(WeatherForecast.Summary w,RainForecast.Summary r){
   if(r!=null&&(r.state.equals("now")||r.state.equals("soon")||r.state.equals("evidence")))return r.title;
   if(dryMinuteOverridesHourlyRain(w,r))return r.title;
