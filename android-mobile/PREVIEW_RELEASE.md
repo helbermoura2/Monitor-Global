@@ -1,4 +1,8 @@
-# Argos Orbis Celular · 0.1.27 de teste
+# Argos Orbis Celular · 0.1.32 de teste
+
+- **Compartilhar evento** gera uma imagem cartográfica vertical para sismos e boletins de tsunami e abre o menu de compartilhamento do Android.
+
+## Histórico · 0.1.27 de teste
 
 - A barra inferior reúne **Início, Sismos, Clima, Avisos e Mais**. O mapa sísmico fica em Sismos. Os mapas de chuva e satélite ficam em Clima e preservam a aba ativa.
 - Avisos dá acesso direto a tsunamis, boletins e resumo diário. Mais reúne notificações, atualização, diagnóstico e o canal oficial.
