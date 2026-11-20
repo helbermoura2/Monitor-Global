@@ -61,7 +61,7 @@
   return [...(typeof globalEvents==='undefined'?[]:globalEvents),...(typeof globalAlerts==='undefined'?[]:globalAlerts),...(typeof lastMerged==='undefined'?[]:lastMerged)].find(item=>item.id===id);
  }
  function failure(error){console.warn('[recurso opcional]',error);window.showToast?.('Não foi possível carregar. Tente novamente.','warning');}
- // O template de imagem do site usa a mesma identidade do Telegram; sem posts reais em teste.
+ // Imagem solicitada no painel do evento.
  async function siteImageAssets(){
   await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
   await asset('js/argos-eye-brand.js?v=1');
@@ -69,15 +69,15 @@
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
   await asset('js/quake-site-flags.js?v=site-concept6-v1');
   await asset('js/quake-site-card.js?v=argos-orbis-v2');
-  await asset('js/site-event-story.js?v=site-concept6-all-v8');
-  await asset('js/story-share.js?v=argos-orbis-v1');
+  await asset('js/site-event-story.js?v=argos-cartographic-v1');
+  await asset('js/story-share.js?v=argos-cartographic-v1');
  }
  window.shareResumoDiarioStory=async()=>{try{
   await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
   await asset('js/argos-eye-brand.js?v=1');
   await asset('js/quake-card-layout.js?v=argos-orbis-v21');
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
-  await asset('js/story-share.js?v=argos-orbis-v1');
+  await asset('js/story-share.js?v=argos-cartographic-v1');
   return await window.shareResumoDiarioStory();
  }catch(error){failure(error);}};
  function isQuake(item){return !!item&&(item.type==='earthquake'||(!item.type&&item.mag!=null));}

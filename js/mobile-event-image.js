@@ -9,14 +9,9 @@
       if (state !== 'idle') return;
       state = 'pending';
       try {
-        if (record?.type !== 'earthquake' || !Number.isFinite(record.mag) ||
-            
-            !Array.isArray(record.coords) || record.coords.length !== 2 ||
-            !record.coords.every(Number.isFinite) || Math.abs(record.coords[0]) > 180 ||
-            Math.abs(record.coords[1]) > 90) throw Error('Dados de origem incompletos');
-        // Reuse the same renderer invoked by the site's static earthquake card.
+        if (!['earthquake', 'tsunami'].includes(record?.type)) throw Error('Evento indisponível');
         const controller = window.RuptureShaking;
-        if (controller) {
+        if (record.type === 'earthquake' && record.coords?.length === 2 && controller) {
           let timer;
           try {
             record.shaking = await Promise.race([
@@ -28,7 +23,7 @@
             controller.cancel();
           }
         }
-        const canvas = await window.SiteEventStory.render(record);
+        const canvas = await window.SiteEventStory.render(record, { allowMissingMap: true });
         const url = canvas.toDataURL('image/png');
         if (!url.startsWith('data:image/png;base64,') || url.length > MAX_LENGTH) {
           throw Error('Imagem indisponível');

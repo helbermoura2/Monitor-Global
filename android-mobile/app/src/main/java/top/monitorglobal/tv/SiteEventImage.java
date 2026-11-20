@@ -29,11 +29,19 @@ final class SiteEventImage {
   this.context=context;
   this.result=result;
   try{
-   JSONObject record=new JSONObject().put("id",source.id).put("type","earthquake")
-    .put("mag",source.magnitude).put("time",source.eventTime)
-    .put("coords",new JSONArray().put(source.originLongitude).put(source.originLatitude))
-    .put("place",PhoneActivity.location(source)).put("source",source.source)
-    .put("countryCode",source.countryCode);
+   boolean quake=source.kind.equals("earthquake");
+   JSONObject record=new JSONObject().put("id",source.id).put("type",source.kind)
+    .put("time",source.eventTime>0?source.eventTime:source.issuedAt)
+    .put("place",quake?PhoneActivity.location(source):source.targetArea.isEmpty()?source.title:source.targetArea)
+    .put("source",source.source).put("countryCode",source.countryCode);
+   if(Double.isFinite(source.magnitude))record.put("mag",source.magnitude);
+   if(quake&&MapFrame.located(source.originLongitude,source.originLatitude))
+    record.put("coords",new JSONArray().put(source.originLongitude).put(source.originLatitude));
+   if(!quake){
+    record.put("statusLabel",PhoneActivity.tsunamiState(source.state));
+    record.put("region",source.targetArea.isEmpty()?source.title:source.targetArea);
+    record.put("descOnly",source.tsunamiSummary.isEmpty()?source.detail:source.tsunamiSummary);
+   }
    if(Double.isFinite(source.depth)&&source.depth>=0)record.put("depth",source.depth);
    web=new WebView(context);
    web.getSettings().setJavaScriptEnabled(true);

@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
 test.use({serviceWorkers:'block'});
-test('Concept 6 static composition exports every event family and missing-data states',async({page})=>{
+test('the cartographic card static composition exports every event family and missing-data states',async({page})=>{
  test.setTimeout(120000);
  await page.goto('/404.html',{waitUntil:'domcontentloaded'});
  const fixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1080;c.height=1760;const x=c.getContext('2d');x.fillStyle='#274934';x.fillRect(0,0,1080,1760);for(let i=0;i<100;i++){x.strokeStyle=i%2?'#789f81':'#1b352b';x.beginPath();x.moveTo(i*31%1080,0);x.lineTo(i*57%1080,1760);x.stroke();}return c.toDataURL().split(',')[1];});
@@ -27,7 +27,7 @@ test('Concept 6 static composition exports every event family and missing-data s
  expect(official.known).toEqual(['INTENSIDADE · MMI','VI · Forte']);expect(official.missing[1]).toBe('Indisponível');
  expect(missing).toContain('localização pontual não informada');expect(missing).toContain('0 °C');expect(missing).toContain('Não informado');expect(missing).not.toContain('0 km/h');
 });
-test('Temperature image action resolves the selected weather record and exports Concept 6',async({page})=>{
+test('Temperature image action resolves the selected weather record and exports the cartographic card',async({page})=>{
  test.setTimeout(120000);
  await page.route('**/*',r=>new URL(r.request().url()).origin==='http://127.0.0.1:4173'?r.continue():r.abort());
  await page.goto('/?verify=share-concept6-all',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!window.CapitalWeather&&!!window.EventStore&&!!window.RecordPresentation);
@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('site-concept6-all-v8');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v1');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -54,7 +54,7 @@ test('Visual proof with bounded real satellite imagery and explicitly fictional 
  console.log('LIVE_IMAGE_PROOF '+JSON.stringify({requests:count,loaded}));expect(count).toBeLessThanOrEqual(32);
 });
 
-test('Fresh tsunami warnings are conditional and place typography outranks the category',async({page})=>{
+test('Fresh tsunami warnings are conditional and coordinates remain available for other events',async({page})=>{
  await page.goto('/404.html');await page.addScriptTag({url:'/js/site-event-story.js'});
  const result=await page.evaluate(()=>{
   const base={type:'earthquake',coords:[-36.24,-8.67],mag:1.8,depth:0};
@@ -78,7 +78,7 @@ test('Satellite tile recovery preserves the event frame; total failure rejects a
   try{const c=await SiteEventStory.render({type:'earthquake',coords:[-36.24,-8.67],mag:1.8,place:'Lajedo/PE'});return {w:c.width,h:c.height,drawn,rotations};}finally{CanvasRenderingContext2D.prototype.fillText=original;CanvasRenderingContext2D.prototype.rotate=rotate;}
  });
  expect(tiles).toBeGreaterThan(0);expect(tiles).toBeLessThanOrEqual(12);expect(out.w).toBe(1080);expect(out.h).toBe(1920);expect(out.rotations).toEqual([]);
- const size=t=>parseInt(out.drawn.find(x=>x.text===t).font.match(/(\d+)px/)[1]);expect(size('Lajedo/PE')).toBeGreaterThan(size('SISMO'));
+ const size=t=>parseInt(out.drawn.find(x=>x.text===t).font.match(/(\d+)px/)[1]);expect(size('SISMO')).toBeGreaterThan(size('Lajedo/PE'));
  await page.unroute('https://server.arcgisonline.com/**');await page.route('https://server.arcgisonline.com/**',r=>r.abort());
  // A new event frame must not reuse another location's cached image.
  const failure=await page.evaluate(async()=>{try{await SiteEventStory.render({type:'temperature',coords:[-46.63,-23.55],temperature:24});return 'blank accepted';}catch(e){return e.code;}});
@@ -96,8 +96,8 @@ test('Complete translated location occupies its own row without truncation or he
   CanvasRenderingContext2D.prototype.fillText=function(t,x,y,...a){if(this.canvas.width===1080&&this.canvas.height===1920)drawn.push({text:String(t),x,y,font:this.font,width:this.measureText(t).width});return original.call(this,t,x,y,...a);};
   try{await SiteEventStory.render({type:'earthquake',coords:[176.51,-37.83],mag:1.9,depth:134.5,place:'30 km south-a leste de Tauranga, Nova Zelândia'});return drawn;}finally{CanvasRenderingContext2D.prototype.fillText=original;}
  });
- const location=result.filter(r=>r.y>=292&&r.y<415&&r.x===98);expect(location.map(r=>r.text).join(' ')).toBe('30 km a sudeste de Tauranga, Nova Zelândia');
- for(const row of location){expect(row.text).not.toContain('…');expect(row.x+row.width).toBeLessThanOrEqual(982);}
+ const location=result.filter(r=>r.y>=289&&r.y<379&&r.x===95);expect(location.map(r=>r.text).join(' ')).toBe('30 km a sudeste de Tauranga, Nova Zelândia');
+ for(const row of location){expect(row.text).not.toContain('…');expect(row.x+row.width).toBeLessThanOrEqual(1025);}
  const region=result.find(r=>r.text==='CONTEXTO REGIONAL');expect(region.y).toBeGreaterThan(location.at(-1).y+38);
  expect(result.filter(r=>r.x===764&&[1520,1557].includes(r.y)).map(r=>r.text)).toEqual(['37,83° S','176,51° L']);
  expect(parseInt(result.find(r=>r.text==='PROFUNDIDADE').font.match(/(\d+)px/)[1])).toBeGreaterThanOrEqual(18);
@@ -147,7 +147,7 @@ test('Country flags sit next to the locality, and the main temperature is right-
  expect(checked.flags[0].slice(2)).toEqual([90,60]);
 });
 
-test('Severity colored frosted chip has project thresholds and header card is absent',async({page})=>{
+test('Magnitude keeps the gold badge across severity bands',async({page})=>{
  await page.goto('/404.html',{waitUntil:'domcontentloaded'});
  const fixture=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;return c.toDataURL().split(',')[1];});
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(fixture,'base64')}));
@@ -157,7 +157,7 @@ test('Severity colored frosted chip has project thresholds and header card is ab
   for(const mag of [2.1,4.2,5.5,6.6]){
    const traced=[],proto=CanvasRenderingContext2D.prototype,oldRound=proto.roundRect,oldStroke=proto.stroke;
    proto.roundRect=function(x,y,w,h,...rest){
-    this.__metricTestLine=this.canvas.width===1080&&this.canvas.height===1920&&x===701&&y===172&&w===320&&h===94;
+    this.__metricTestLine=this.canvas.width===1080&&this.canvas.height===1920&&x===701&&y===172&&w===324&&h===96;
     if(this.canvas.width===1080&&this.canvas.height===1920&&x===45&&y===150&&w===990)traced.push('HEADER_CARD');
     return oldRound.call(this,x,y,w,h,...rest);
    };
@@ -169,6 +169,40 @@ test('Severity colored frosted chip has project thresholds and header card is ab
   }
   return results;
  });
- expect(result.map(r=>r.traced.filter(t=>t.startsWith('METRIC:')).at(-1))).toEqual(['METRIC:#4ade80','METRIC:#facc15','METRIC:#fb923c','METRIC:#ef4444']);
+ expect(result.map(r=>r.traced.filter(t=>t.startsWith('METRIC:')).at(-1))).toEqual(Array(4).fill('METRIC:#725031'));
  expect(result.every(r=>!r.traced.includes('HEADER_CARD'))).toBe(true);
+});
+
+test('Android image bridge exports a tsunami bulletin without invented coordinates',async({page})=>{
+ await page.goto('/mobile-event-image.html');
+ const png=await page.evaluate(async()=>{
+  await ArgosMobileImage.render({type:'tsunami',place:'Costa do Pacífico',statusLabel:'Aviso de tsunami',source:'PTWC'});
+  const length=ArgosMobileImage.status();
+  if(typeof length!=='number')throw Error(String(length));
+  let data='';
+  for(let offset=0;offset<length;offset+=64000)data+=ArgosMobileImage.chunk(offset);
+  return data;
+ });
+ const bytes=Buffer.from(png,'base64');
+ expect(bytes.readUInt32BE(16)).toBe(1080);
+ expect(bytes.readUInt32BE(20)).toBe(1920);
+});
+
+test('A fresh click shares the PNG if generation outlasts the initial gesture',async({page})=>{
+ await page.goto('/404.html');
+ await page.addScriptTag({url:'/js/story-share.js'});
+ await page.evaluate(()=>{
+  window.SiteEventStory={render:async()=>Object.assign(document.createElement('canvas'),{width:1080,height:1920})};
+  const activation=navigator.userActivation;
+  Object.defineProperty(navigator,'userActivation',{value:{isActive:false}});
+  Object.defineProperty(navigator,'canShare',{value:({files})=>files[0].type==='image/png'});
+  Object.defineProperty(navigator,'share',{value:async({files})=>{
+   window.sharedFile={name:files[0].name,type:files[0].type,active:activation.isActive};
+  }});
+  void window.shareEventAsStory({id:'fixture',type:'tsunami',place:'Costa do Pacífico'});
+ });
+ const dialog=page.getByRole('dialog',{name:'Imagem do evento pronta'});
+ await dialog.getByRole('button',{name:'Compartilhar'}).click();
+ await expect(dialog).toHaveCount(0);
+ expect(await page.evaluate(()=>window.sharedFile)).toEqual({name:'evento-tsunami-fixture.png',type:'image/png',active:true});
 });

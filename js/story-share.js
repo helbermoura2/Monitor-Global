@@ -1848,34 +1848,60 @@
       const file = new File([blob], fileName, { type: 'image/png' });
       const shareData = {
         files: [file],
-        title: 'Monitor Global',
+        title: 'Argos Orbis',
         text: `${titleForItem(item)} — ${item.place || ''}`
       };
-      let shared = false;
-      try {
-        if (navigator.canShare && navigator.canShare(shareData) && navigator.share) {
-          if (btn) btn.textContent = '📤 Abrindo…';
-          await navigator.share(shareData);
-          shared = true;
-        }
-      } catch (shareErr) {
-        if (shareErr && shareErr.name === 'AbortError') {
-          shared = true; // usuário cancelou o sheet — não é falha de geração
-        } else if (typeof dbgLog === 'function') {
-          dbgLog('story-share navigator.share:', shareErr);
-        }
-      }
-      if (!shared) {
+      const download = () => {
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fileName;
-        a.rel = 'noopener';
-        document.body.appendChild(a); a.click(); a.remove();
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 8000);
-        if (typeof showToast === 'function') {
-          showToast('Imagem pronta — salva nos downloads para compartilhar.', 'info');
-        }
+        window.showToast?.('Imagem salva nos downloads.', 'info');
+      };
+      if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
+        download();
+        return;
       }
+      const share = async () => {
+        try {
+          await navigator.share(shareData);
+          return true;
+        } catch (error) {
+          if (error.name === 'AbortError') return true;
+          if (error.name === 'NotAllowedError') return false;
+          download();
+          return true;
+        }
+      };
+      // Map requests can outlast the browser's initial touch activation.
+      if (navigator.userActivation?.isActive !== false && await share()) return;
+      const dialog = document.createElement('dialog');
+      dialog.setAttribute('aria-label', 'Imagem do evento pronta');
+      const message = document.createElement('p');
+      message.textContent = 'Imagem pronta para compartilhar.';
+      const actions = document.createElement('form');
+      actions.method = 'dialog';
+      const shareButton = document.createElement('button');
+      shareButton.type = 'button';
+      shareButton.textContent = 'Compartilhar';
+      shareButton.addEventListener('click', async () => {
+        shareButton.disabled = true;
+        try {
+          if (!(await share())) download();
+          dialog.close();
+        } finally { shareButton.disabled = false; }
+      });
+      const closeButton = document.createElement('button');
+      closeButton.textContent = 'Fechar';
+      actions.append(shareButton, closeButton);
+      dialog.append(message, actions);
+      dialog.addEventListener('close', () => dialog.remove(), { once: true });
+      document.body.appendChild(dialog);
+      dialog.showModal();
     } catch (e) {
       if (e && e.name !== 'AbortError' && typeof showToast === 'function') {
         showToast(e?.code === 'STORY_MAP_UNAVAILABLE' ? e.message : 'Não consegui gerar a imagem pra compartilhar. Tenta de novo?', 'error');
