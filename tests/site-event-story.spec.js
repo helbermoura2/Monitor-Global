@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v5');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v6');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -123,7 +123,7 @@ test('Storm card says TEMPESTADE, while general CGE reports stay informative',as
  expect(result.storm.metric).not.toBe('REGISTRO');
 });
 
-test('Country flags sit next to the locality, and the main temperature is right-aligned',async({page})=>{
+test('A single flag is centered below the main reading',async({page})=>{
  await page.goto('/404.html',{waitUntil:'domcontentloaded'});
  const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;return c.toDataURL().split(',')[1];});
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(image,'base64')}));
@@ -142,12 +142,7 @@ test('Country flags sit next to the locality, and the main temperature is right-
    return {flags:drawn,width:c.width,height:c.height};
   }finally{CanvasRenderingContext2D.prototype.drawImage=original;}
  });
- expect(checked.flags).toHaveLength(1);
- expect(checked.flags[0][0]).toBeGreaterThan(350);
- expect(checked.flags[0][0]).toBeLessThan(650);
- expect(checked.flags[0][1]).toBeGreaterThan(280);
- expect(checked.flags[0][1]).toBeLessThan(360);
- expect(checked.flags[0].slice(2)).toEqual([90,60]);
+ expect(checked.flags).toEqual([[818,294,90,60]]);
 });
 
 test('Magnitude keeps the gold badge across severity bands',async({page})=>{

@@ -174,12 +174,13 @@
    c.beginPath();c.moveTo(10,44);c.bezierCurveTo(17,6,47,27,66,10);c.strokeStyle='#5b3b25';c.stroke();c.restore();
   }
   function compass(x,y){
-   for(const r of [50,84,93])circle(x,y,r,GOLD);
+   circle(x,y,98,'#553a20','rgba(8,27,32,.87)');
+   for(const r of [50,84,93])circle(x,y,r,'#dfb879');
    for(let i=0;i<8;i++){
     const a=i*Math.PI/4,dx=Math.sin(a),dy=-Math.cos(a),length=i===0?107:i%2===0?80:49;
     for(const side of [-1,1]){
      c.beginPath();c.moveTo(x+dx*length,y+dy*length);c.lineTo(x+side*dy*12,y-side*dx*12);c.lineTo(x,y);c.closePath();
-     c.fillStyle=side===1?GOLD:'#64482f';c.fill();c.strokeStyle=GOLD;c.lineWidth=1;c.stroke();
+     c.fillStyle=side===1?'#efcc8d':'#8a6339';c.fill();c.strokeStyle='#d7ab69';c.lineWidth=1;c.stroke();
     }
    }
    circle(x,y,9,GOLD,'#62422b');serif('N',x,y-112,24,28,GOLD,'center');
@@ -216,7 +217,9 @@
     c.drawImage(regional,mini.x,mini.y,mini.w,mini.h);
     c.fillStyle='rgba(199,153,83,.23)';c.fillRect(mini.x,mini.y,mini.w,mini.h);
    }
-   c.drawImage(engraving,0,0,W,H);
+   // Leave the engraved border in place and draw the compass inset over the map.
+   c.save();c.beginPath();c.rect(0,0,W,H);c.rect(11,1130,204,229);
+   c.clip('evenodd');c.drawImage(engraving,0,0,W,H);c.restore();
   }else{
    band(8,7,W-16);band(8,130,W-16);band(8,top-15,W-16);band(8,bottom-7,W-16);
    for(const [x,mirror] of [[22,1],[W-22,-1]]){
@@ -264,7 +267,10 @@
 
   const place=root.EventPortuguese?.place(e.place||'Local não informado')||e.place||'Local não informado';
   const images=['country','state'].map(key=>flags?.images?.[key]).filter(Boolean);
-  const flagWidth=90,flagHeight=60,flagGap=12,placeWidth=930-images.length*(flagWidth+flagGap);
+  const flagWidth=90,flagHeight=60,flagGap=12;
+  const flagsWidth=images.length*flagWidth+Math.max(0,images.length-1)*flagGap;
+  const flagX=863-flagsWidth/2;
+  const placeWidth=images.length?flagX-119:930;
   const comma=place.lastIndexOf(', ');
   const locality=comma<0?place:place.slice(0,comma+1);
   const country=comma<0?'':place.slice(comma+2);
@@ -291,7 +297,6 @@
    if(country)text(country,95+localityWidth,placeY+placeSize-countrySize(placeSize),countrySize(placeSize),'#ddbf8d',placeWidth-localityWidth,false,locationFont);
   }else lines(place,95,placeY,placeWidth,placeSize,2,'#e3bf7d',true,locationFont);
   c.restore();
-  const flagX=95+Math.min(placeWidth,placeLength)+15;
   images.forEach((img,i)=>{
    const x=flagX+i*(flagWidth+flagGap);
    box(x,294,flagWidth,flagHeight,7,'#f5e8cf','#674b2f');
@@ -332,7 +337,7 @@
    box(248,766,584,77);text('localização pontual não informada',282,792,29);
   }
   if(hasLocation&&!sat)text('Imagem de satélite indisponível',434,1050,24,MUTED);
-  if(!engraving)compass(111,1273);
+  compass(152,1234);
   const summary=String(e.bulletinSummary||e.condition||e.descOnly||e.detail||'').trim();
   if(summary&&!p.quake){
    box(350,1249,674,91);lines(summary,370,1263,635,25,2);
@@ -359,6 +364,6 @@
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v5'};
+ root.SiteEventStory={render,profile,version:'argos-cartographic-v6'};
 })(window);
 
