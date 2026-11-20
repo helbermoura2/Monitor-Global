@@ -25,15 +25,15 @@ public class PhoneRepositoryTest {
  private Fake ready()throws Exception{Fake f=new Fake();f.put(PhoneRepository.FEED,200,feed("one").toString(),"\"first\"");f.put(PhoneRepository.WEATHER,weather());f.put(PhoneRepository.RAIN,rain());return f;}
  @Test public void realContractProducesEventsAndValidatedForecastsWithoutMockFallbacks()throws Exception{
   Fake fake=ready();PhoneRepository repository=new PhoneRepository(fake);PhoneRepository.Snapshot s=repository.refresh(now);
-  assertEquals(1,s.events.size());assertEquals("one",s.events.get(0).id);assertEquals("18°C",s.weather.temperatureValue);assertEquals("92%",s.weather.humidityValue);assertEquals("soon",s.rain.state);assertEquals(15,s.rain.arrivalMinutes);assertEquals(25,s.rain.durationMinutes);assertEquals(2.5,s.rain.amount,.00001);assertEquals(6,s.rain.forecastRate,0);assertFalse(s.saved);assertTrue(s.quakeOk&&s.tsunamiOk);assertEquals(3,fake.paths.size());
+  assertEquals(1,s.events.size());assertEquals("one",s.events.get(0).id);assertEquals("18°C",s.weather.temperatureValue);assertEquals("92%",s.weather.humidityValue);assertEquals("soon",s.rain.state);assertEquals(15,s.rain.arrivalMinutes);assertEquals(25,s.rain.durationMinutes);assertEquals(2.5,s.rain.amount,.00001);assertEquals(6,s.rain.forecastRate,0);assertFalse(s.saved);assertTrue(s.quakeOk&&s.tsunamiOk);assertEquals(Arrays.asList(PhoneRepository.FEED,PhoneRepository.WEATHER,PhoneRepository.RAIN,PhoneRepository.SKY),fake.paths);
  }
  @Test public void unchangedFeedKeepsEventsAndDoesNotRefetchValidForecasts()throws Exception{
   Fake fake=ready();PhoneRepository repository=new PhoneRepository(fake);repository.refresh(now);fake.put(PhoneRepository.FEED,304,"","");PhoneRepository.Snapshot same=repository.refresh(now+60000);
-  assertEquals(1,same.events.size());assertEquals("one",same.events.get(0).id);assertEquals("\"first\"",fake.tags.get(3));assertEquals(4,fake.paths.size());assertEquals(now+60000,same.refreshedAt);assertFalse(same.saved);assertNotNull(same.weather);assertEquals(14,same.rain.arrivalMinutes);
+  assertEquals(1,same.events.size());assertEquals("one",same.events.get(0).id);assertEquals("\"first\"",fake.tags.get(4));assertEquals(5,fake.paths.size());assertEquals(now+60000,same.refreshedAt);assertFalse(same.saved);assertNotNull(same.weather);assertEquals(14,same.rain.arrivalMinutes);
  }
  @Test public void malformedFeedCannotPartiallyReplacePriorEventsOrEtag()throws Exception{
   Fake fake=ready();PhoneRepository repository=new PhoneRepository(fake);repository.refresh(now);JSONObject bad=feed("replacement");bad.getJSONArray("alerts").put(new JSONObject().put("id","bad").put("kind","unexpected").put("issuedAt",now).put("eventTime",now));fake.put(PhoneRepository.FEED,200,bad.toString(),"\"bad\"");PhoneRepository.Snapshot failed=repository.refresh(now+60000);
-  assertEquals("one",failed.events.get(0).id);assertTrue(failed.saved);assertEquals(now,failed.refreshedAt);assertTrue(failed.feedStatus.contains("salvos"));fake.put(PhoneRepository.FEED,304,"","");repository.refresh(now+120000);assertEquals("\"first\"",fake.tags.get(4));
+  assertEquals("one",failed.events.get(0).id);assertTrue(failed.saved);assertEquals(now,failed.refreshedAt);assertTrue(failed.feedStatus.contains("salvos"));fake.put(PhoneRepository.FEED,304,"","");repository.refresh(now+120000);assertEquals("\"first\"",fake.tags.get(5));
  }
  @Test public void savedEventsRestoreButExpiredForecastsNeverBecomeCurrentWeather()throws Exception{
   Fake fake=ready();PhoneRepository first=new PhoneRepository(fake);first.refresh(now);String cached=first.exportCache();PhoneRepository restored=new PhoneRepository(new Fake());restored.importCache(cached,now+2*3600000);
@@ -41,8 +41,8 @@ public class PhoneRepositoryTest {
   PhoneRepository fresh=new PhoneRepository(new Fake());fresh.importCache(cached,now+60000);assertEquals("18°C",fresh.snapshot(now+60000).weather.temperatureValue);assertEquals(14,fresh.snapshot(now+60000).rain.arrivalMinutes);
  }
  @Test public void failureBackoffAvoidsRepeatedWeatherRequestsAndManualRefreshCanRetry()throws Exception{
-  Fake fake=new Fake();fake.put(PhoneRepository.FEED,feed("one"));PhoneRepository repository=new PhoneRepository(fake);PhoneRepository.Snapshot s=repository.refresh(now);assertNull(s.weather);assertNull(s.rain);assertTrue(s.rainStatus.contains("indisponível"));assertEquals(3,fake.paths.size());
-  fake.put(PhoneRepository.FEED,304,"","");repository.refresh(now+60000);assertEquals(4,fake.paths.size());fake.put(PhoneRepository.FEED,304,"","");fake.put(PhoneRepository.WEATHER,weather());fake.put(PhoneRepository.RAIN,rain());s=repository.refresh(now+120000,true);assertEquals(7,fake.paths.size());assertNotNull(s.weather);assertNotNull(s.rain);
+  Fake fake=new Fake();fake.put(PhoneRepository.FEED,feed("one"));PhoneRepository repository=new PhoneRepository(fake);PhoneRepository.Snapshot s=repository.refresh(now);assertNull(s.weather);assertNull(s.rain);assertTrue(s.rainStatus.contains("indisponível"));assertEquals(4,fake.paths.size());
+  fake.put(PhoneRepository.FEED,304,"","");repository.refresh(now+60000);assertEquals(4,fake.paths.size());fake.put(PhoneRepository.FEED,304,"","");fake.put(PhoneRepository.WEATHER,weather());fake.put(PhoneRepository.RAIN,rain());s=repository.refresh(now+120000,true);assertEquals(8,fake.paths.size());assertNotNull(s.weather);assertNotNull(s.rain);
  }
  @Test public void cancellationRejectsInFlightResponsesAndCloseNeverStartsAnotherRead()throws Exception{
   Fake fake=ready();PhoneRepository repository=new PhoneRepository(fake);fake.hook=repository::cancel;PhoneRepository.Snapshot s=repository.refresh(now);assertTrue(s.events.isEmpty());assertNull(s.weather);assertEquals(1,fake.paths.size());assertEquals(1,fake.cancelled);repository.close();repository.refresh(now+1000);assertEquals(1,fake.paths.size());assertEquals(2,fake.cancelled);
@@ -59,6 +59,16 @@ public class PhoneRepositoryTest {
  @Test public void notModifiedWithoutACacheIsAnErrorAndUnavailableCatalogsDoNotEraseSavedData()throws Exception{
   Fake fake=new Fake();fake.put(PhoneRepository.FEED,304,"","");PhoneRepository repository=new PhoneRepository(fake);assertTrue(repository.refresh(now).feedStatus.contains("indisponíveis"));
   fake.put(PhoneRepository.FEED,feed("one"));repository.refresh(now+60000);fake.put(PhoneRepository.FEED,feed("two").put("sources",new JSONObject().put("earthquake",false).put("tsunami",false)));PhoneRepository.Snapshot s=repository.refresh(now+120000);assertEquals("one",s.events.get(0).id);assertTrue(s.saved);
+ }
+ @Test public void skyObservationExpiresAndPollingIsBounded()throws Exception{
+  Fake f=ready();
+  f.put(PhoneRepository.SKY,new JSONObject().put("stations",new JSONArray().put(new JSONObject()
+      .put("icao","SBSP").put("raw","METAR SBSP FEW030").put("updatedAt",now-60000))));
+  PhoneRepository repository=new PhoneRepository(f);
+  assertEquals("Poucas nuvens",repository.refresh(now).sky.label);
+  repository.refresh(now+60000);
+  assertEquals(1,Collections.frequency(f.paths,PhoneRepository.SKY));
+  assertNull(repository.snapshot(now+75*60000L).sky);
  }
  @Test public void etagHeaderRejectsNewlines()throws Exception{
   assertEquals("",new PhoneRepository.Response(200,"{}","bad\r\nvalue").etag);

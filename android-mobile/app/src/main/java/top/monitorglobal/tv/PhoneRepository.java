@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /** Foreground, on-demand phone data. Call refresh on one worker, never on the UI thread. */
 final class PhoneRepository implements AutoCloseable {
  static final String COVERAGE="M6+ globais, Brasil e áreas monitoradas";
- static final String FEED="tv-alerts?policy=telegram-v1",WEATHER="tv-weather",RAIN="tv-rain?area=liberdade",HOURLY="rain-weather?lat=-23.555&lng=-46.635",DAILY="tv-alerts?view=completed&policy=telegram-v1";
+ static final String FEED="tv-alerts?policy=telegram-v1",WEATHER="tv-weather",RAIN="tv-rain?area=liberdade",HOURLY="rain-weather?lat=-23.555&lng=-46.635",DAILY="tv-alerts?view=completed&policy=telegram-v1",SKY="metar-observed?ids=SBSP";
  static final int FEED_LIMIT=256*1024,WEATHER_LIMIT=100000,CACHE_LIMIT=512*1024;
  static final long RETRY=5*60000L;
  interface Transport {Response get(String path,String etag,int limit)throws Exception;void cancel();}
@@ -61,7 +61,7 @@ final class PhoneRepository implements AutoCloseable {
  private void refreshSky(long now,long ticket){
   synchronized(this){if(now<nextSky)return;nextSky=now+5*60000L;}
   try{
-   Response response=transport.get("metar-observed?ids=SBSP","",WEATHER_LIMIT);
+   Response response=transport.get(SKY,"",WEATHER_LIMIT);
    PhoneSkyObservation reading=PhoneSkyObservation.parse(object(response,WEATHER_LIMIT),now);
    synchronized(this){if(active(ticket))sky=reading;}
   }catch(Exception ignored){/* A previous observation retains its original expiry. */}
@@ -128,7 +128,7 @@ final class PhoneRepository implements AutoCloseable {
  static final class HttpTransport implements Transport {
   private volatile HttpURLConnection connection;private final AtomicLong generation=new AtomicLong();
   @Override public Response get(String path,String tag,int limit)throws IOException{
-   if(!path.equals(FEED)&&!path.equals(WEATHER)&&!path.equals(RAIN)&&!path.equals(HOURLY)&&!path.equals(DAILY))throw new IOException("Route not allowed");
+   if(!path.equals(FEED)&&!path.equals(WEATHER)&&!path.equals(RAIN)&&!path.equals(HOURLY)&&!path.equals(DAILY)&&!path.equals(SKY))throw new IOException("Route not allowed");
    long ticket=generation.get();HttpURLConnection request=(HttpURLConnection)new URL("https://black-sky-9ba0.terrestre.workers.dev/"+path).openConnection();connection=request;
    request.setConnectTimeout(8000);request.setReadTimeout(12000);request.setInstanceFollowRedirects(false);request.setRequestProperty("Accept","application/json");request.setRequestProperty("User-Agent","MonitorGlobalMobile");if(!cleanEtag(tag).isEmpty())request.setRequestProperty("If-None-Match",tag);
    try{if(ticket!=generation.get())throw new InterruptedIOException("Cancelled");int status=request.getResponseCode();if(status==304)return new Response(status,"",request.getHeaderField("ETag"));if(status!=200)return new Response(status,"","");
