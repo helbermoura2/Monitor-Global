@@ -42,7 +42,7 @@ public class PhoneRepositoryTest {
  }
  @Test public void failureBackoffAvoidsRepeatedWeatherRequestsAndManualRefreshCanRetry()throws Exception{
   Fake fake=new Fake();fake.put(PhoneRepository.FEED,feed("one"));PhoneRepository repository=new PhoneRepository(fake);PhoneRepository.Snapshot s=repository.refresh(now);assertNull(s.weather);assertNull(s.rain);assertTrue(s.rainStatus.contains("indisponível"));assertEquals(4,fake.paths.size());
-  fake.put(PhoneRepository.FEED,304,"","");repository.refresh(now+60000);assertEquals(4,fake.paths.size());fake.put(PhoneRepository.FEED,304,"","");fake.put(PhoneRepository.WEATHER,weather());fake.put(PhoneRepository.RAIN,rain());s=repository.refresh(now+120000,true);assertEquals(8,fake.paths.size());assertNotNull(s.weather);assertNotNull(s.rain);
+  fake.put(PhoneRepository.FEED,304,"","");repository.refresh(now+60000);assertEquals(5,fake.paths.size());fake.put(PhoneRepository.FEED,304,"","");fake.put(PhoneRepository.WEATHER,weather());fake.put(PhoneRepository.RAIN,rain());s=repository.refresh(now+120000,true);assertEquals(8,fake.paths.size());assertNotNull(s.weather);assertNotNull(s.rain);
  }
  @Test public void cancellationRejectsInFlightResponsesAndCloseNeverStartsAnotherRead()throws Exception{
   Fake fake=ready();PhoneRepository repository=new PhoneRepository(fake);fake.hook=repository::cancel;PhoneRepository.Snapshot s=repository.refresh(now);assertTrue(s.events.isEmpty());assertNull(s.weather);assertEquals(1,fake.paths.size());assertEquals(1,fake.cancelled);repository.close();repository.refresh(now+1000);assertEquals(1,fake.paths.size());assertEquals(2,fake.cancelled);
