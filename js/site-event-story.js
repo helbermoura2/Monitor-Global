@@ -49,16 +49,56 @@
  function loadBrazilBorders(){
   if(!brazilBorders)brazilBorders=fetch('assets/geography/br-states.json')
    .then(response=>{if(!response.ok)throw Error('Divisas indisponíveis');return response.json();})
-   .then(data=>data.features??[])
+   .then(data=>(data.features??[]).map(feature=>({...feature,bounds:borderBounds(feature.geometry)})))
    .catch(()=>{brazilBorders=null;return [];});
   return brazilBorders;
  }
- function paintBrazilBorders(ctx,features,frame,x,y,w,h){
+ const ibgeCodes={RO:11,AC:12,AM:13,RR:14,PA:15,AP:16,TO:17,MA:21,PI:22,CE:23,RN:24,PB:25,PE:26,AL:27,SE:28,BA:29,MG:31,ES:32,RJ:33,SP:35,PR:41,SC:42,RS:43,MS:50,MT:51,GO:52,DF:53};
+ const municipalityCache=new Map();
+ function polygonsOf(geometry){
+  if(geometry?.type==='MultiPolygon')return geometry.coordinates;
+  return geometry?.type==='Polygon'?[geometry.coordinates]:[];
+ }
+ function borderBounds(geometry){
+  const bounds=[Infinity,Infinity,-Infinity,-Infinity];
+  for(const polygon of polygonsOf(geometry))for(const [lon,lat] of polygon[0]){
+   bounds[0]=Math.min(bounds[0],lon);bounds[1]=Math.min(bounds[1],lat);
+   bounds[2]=Math.max(bounds[2],lon);bounds[3]=Math.max(bounds[3],lat);
+  }
+  return bounds;
+ }
+ function intersects([west,south,east,north],frame){
+  return west<=frame.maxLon&&east>=frame.minLon&&south<=frame.maxLat&&north>=frame.minLat;
+ }
+ function loadMunicipalities(code){
+  if(municipalityCache.has(code))return municipalityCache.get(code);
+  const params=new URLSearchParams({formato:'application/vnd.geo+json',qualidade:'minima',intrarregiao:'municipio'});
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),4200);
+  const task=fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/'+code+'?'+params,{signal:controller.signal})
+   .then(response=>{if(!response.ok)throw Error('Malha municipal indisponível');return response.json();})
+   .then(data=>(data.features??[]).map(feature=>({...feature,bounds:borderBounds(feature.geometry)})))
+   .catch(()=>{municipalityCache.delete(code);return [];})
+   .finally(()=>clearTimeout(timer));
+  municipalityCache.set(code,task);
+  if(municipalityCache.size>10)municipalityCache.delete(municipalityCache.keys().next().value);
+  return task;
+ }
+ async function mapBorders(frame,point){
+  const states=(await loadBrazilBorders()).filter(feature=>intersects(feature.bounds,frame));
+  const [lon,lat]=point;
+  const distance=([west,south,east,north])=>Math.hypot(Math.max(west-lon,0,lon-east),Math.max(south-lat,0,lat-north));
+  const nearby=states.filter(feature=>ibgeCodes[feature.properties.uf])
+   .sort((a,b)=>distance(a.bounds)-distance(b.bounds)).slice(0,6);
+  const municipalities=(await Promise.all(nearby.map(feature=>loadMunicipalities(ibgeCodes[feature.properties.uf]))))
+   .flat().filter(feature=>intersects(feature.bounds,frame));
+  return {states,municipalities};
+ }
+ function paintBorders(ctx,features,frame,x,y,w,h,municipal=false){
   const longitudeWidth=frame.maxLon-frame.minLon,latitudeHeight=frame.maxLat-frame.minLat;
   ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.beginPath();
   for(const {geometry} of features){
-   const polygons=geometry.type==='MultiPolygon'?geometry.coordinates:[geometry.coordinates];
-   for(const polygon of polygons)for(const ring of polygon){
+   for(const polygon of polygonsOf(geometry))for(const ring of polygon){
     for(let i=0;i<ring.length;i++){
      const [lon,lat]=ring[i];
      const px=x+(lon-frame.minLon)/longitudeWidth*w,py=y+(frame.maxLat-lat)/latitudeHeight*h;
@@ -67,8 +107,21 @@
     ctx.closePath();
    }
   }
-  ctx.strokeStyle='rgba(44,31,16,.68)';ctx.lineWidth=4;ctx.stroke();
-  ctx.strokeStyle='rgba(235,216,164,.76)';ctx.lineWidth=1.55;ctx.stroke();ctx.restore();
+  ctx.strokeStyle='rgba(44,31,16,.68)';ctx.lineWidth=municipal?2.5:4;ctx.stroke();
+  ctx.strokeStyle=municipal?'rgba(234,218,173,.76)':'rgba(245,226,180,.9)';ctx.lineWidth=municipal?1.35:2.05;ctx.stroke();ctx.restore();
+ }
+ function shadeMap(ctx,x,y,w,h,epicenterY){
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.translate(x+w*.52,epicenterY+h*.03);ctx.scale(w*.60,h*.72);
+  const focus=ctx.createRadialGradient(0,0,0,0,0,1);
+  focus.addColorStop(0,'rgba(40,30,9,.04)');focus.addColorStop(.47,'rgba(33,28,14,.12)');
+  focus.addColorStop(.73,'rgba(6,23,29,.48)');focus.addColorStop(1,'rgba(2,19,29,.87)');
+  ctx.fillStyle=focus;ctx.fillRect(-2,-2,4,4);ctx.restore();
+
+  const corners=ctx.createLinearGradient(x+w*.2,y,x+w*.65,y+h);
+  corners.addColorStop(0,'rgba(4,25,29,.29)');corners.addColorStop(.38,'rgba(4,25,29,0)');
+  corners.addColorStop(.68,'rgba(3,23,32,.08)');corners.addColorStop(1,'rgba(2,18,29,.57)');
+  ctx.fillStyle=corners;ctx.fillRect(x,y,w,h);
  }
  let fonts;
  async function render(e,{allowMissingMap=false}={}){
@@ -79,7 +132,7 @@
   const brandAssetPromise=load('img/argos-orbis-vigilante-static.svg?v=2',2500);
   const flagsTask=root.QuakeSiteFlags?QuakeSiteFlags.resolve(e).then(async meta=>({meta,images:await QuakeSiteFlags.images(meta)})).catch(()=>null):null;
   const brazil=hasLocation&&e.coords[0]>=-74&&e.coords[0]<=-34&&e.coords[1]>=-34&&e.coords[1]<=6;
-  const [sat,labels,regional,flags,borders,engraving]=await Promise.all([hasLocation?satellite(f):null,hasLocation?load(mapUrl('Reference/World_Boundaries_and_Places',f,1080),4500):null,hasLocation?load(mapUrl('World_Topo_Map',cf,420),4500):null,flagsTask,brazil?Promise.race([loadBrazilBorders(),new Promise(resolve=>setTimeout(()=>resolve([]),2500))]):[],engravingPromise,Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,3000))])]);
+  const [sat,labels,regional,flags,borders,engraving]=await Promise.all([hasLocation?satellite(f):null,hasLocation?load(mapUrl('Reference/World_Boundaries_and_Places',f,1080),4500):null,hasLocation?load(mapUrl('World_Topo_Map',cf,420),4500):null,flagsTask,brazil?Promise.race([mapBorders(f,e.coords),new Promise(resolve=>setTimeout(()=>resolve(null),5600))]):null,engravingPromise,Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,3000))])]);
   if(hasLocation&&!sat&&!allowMissingMap){const error=Error('O mapa de satélite não carregou. Tente gerar a imagem novamente.');error.code='STORY_MAP_UNAVAILABLE';throw error;}
   const font=(size,bold=false)=>`${bold?'700':'500'} ${size}px StoryInter, sans-serif`;
   function text(value,x,y,size=25,color=WHITE,maxWidth=1000,bold=false){c.font=font(size,bold);let t=String(value??'Não informado');while(t.length>2&&c.measureText(t).width>maxWidth)t=t.slice(0,-2)+'…';c.fillStyle=color;c.textAlign='left';c.textBaseline='top';c.fillText(t,x,y);}
@@ -150,10 +203,9 @@
   if(sat){
    c.drawImage(sat,8,top,W-16,mapHeight);
    if(labels)c.drawImage(labels,8,top,W-16,mapHeight);
-   const shade=c.createRadialGradient(540,800,180,540,820,680);
-   shade.addColorStop(0,'rgba(38,28,8,.14)');shade.addColorStop(1,'rgba(3,22,31,.86)');
-   c.fillStyle=shade;c.fillRect(8,top,W-16,mapHeight);
-   if(borders.length)paintBrazilBorders(c,borders,f,8,top,W-16,mapHeight);
+   if(borders?.municipalities.length)paintBorders(c,borders.municipalities,f,8,top,W-16,mapHeight,true);
+   if(borders?.states.length)paintBorders(c,borders.states,f,8,top,W-16,mapHeight);
+   shadeMap(c,8,top,W-16,mapHeight,top+(f.maxLat-e.coords[1])/(f.maxLat-f.minLat)*mapHeight);
   }
   // The artwork contains only static decoration. Draw the cartography
   // beneath its transparent windows and keep all event data above it.
@@ -278,9 +330,10 @@
    c.strokeStyle=GOLD;c.lineWidth=3;c.strokeRect(7,7,W-14,H-14);
   c.strokeStyle='#6e4d31';c.lineWidth=2;c.strokeRect(12,12,W-24,H-24);
   }
-  text(sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Imagem de base indisponível',60,1802,14,MUTED,960);
+  const attribution=sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Imagem de base indisponível';
+  text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v2'};
+ root.SiteEventStory={render,profile,version:'argos-cartographic-v3'};
 })(window);
 

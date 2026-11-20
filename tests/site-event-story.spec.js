@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v2');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v3');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -206,4 +206,41 @@ test('A fresh click shares the PNG if generation outlasts the initial gesture',a
  await dialog.getByRole('button',{name:'Compartilhar'}).click();
  await expect(dialog).toHaveCount(0);
  expect(await page.evaluate(()=>window.sharedFile)).toEqual({name:'evento-tsunami-fixture.png',type:'image/png',active:true});
+});
+
+test('Brazil share map paints IBGE municipal boundaries and shades the edges',async({page})=>{
+ await page.goto('/404.html');
+ const tile=await page.evaluate(()=>{
+  const c=document.createElement('canvas');c.width=c.height=16;
+  const ctx=c.getContext('2d');ctx.fillStyle='#a3975a';ctx.fillRect(0,0,16,16);
+  return c.toDataURL().split(',')[1];
+ });
+ await page.route('https://server.arcgisonline.com/**',route=>route.fulfill({
+  contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(tile,'base64')
+ }));
+ const requested=[];
+ await page.route('https://servicodados.ibge.gov.br/api/v3/malhas/estados/**',route=>{
+  const url=new URL(route.request().url());
+  requested.push(url);
+  const features=url.pathname.endsWith('/31')?[{type:'Feature',geometry:{
+   type:'Polygon',coordinates:[[[-45.5,-19.1],[-45.1,-19.1],[-45.1,-19.5],[-45.5,-19.5],[-45.5,-19.1]]]
+  }}]:[];
+  return route.fulfill({json:{type:'FeatureCollection',features},headers:{'access-control-allow-origin':'*'}});
+ });
+ await page.addScriptTag({url:'/js/site-event-story.js'});
+ const rendered=await page.evaluate(async()=>{
+  const ctx=CanvasRenderingContext2D.prototype,stroke=ctx.stroke,fillText=ctx.fillText;
+  const strokes=[],texts=[];
+  ctx.stroke=function(...args){strokes.push(this.strokeStyle);return stroke.apply(this,args);};
+  ctx.fillText=function(value,...args){texts.push(value);return fillText.call(this,value,...args);};
+  try{
+   const canvas=await SiteEventStory.render({type:'earthquake',coords:[-45.2,-19.3],mag:2.7,place:'Minas Gerais, Brasil'});
+   const ctx=canvas.getContext('2d');
+   return {strokes,texts,center:ctx.getImageData(680,875,1,1).data[0],edge:ctx.getImageData(985,1245,1,1).data[0]};
+  }finally{ctx.stroke=stroke;ctx.fillText=fillText;}
+ });
+ expect(requested.some(url=>url.pathname.endsWith('/31')&&url.searchParams.get('intrarregiao')==='municipio')).toBe(true);
+ expect(rendered.strokes).toContain('rgba(234, 218, 173, 0.76)');
+ expect(rendered.texts.join(' ')).toContain('Limites municipais: IBGE');
+ expect(rendered.center-rendered.edge).toBeGreaterThan(45);
 });
