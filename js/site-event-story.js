@@ -135,8 +135,8 @@
   const [sat,labels,regional,flags,borders,engraving]=await Promise.all([hasLocation?satellite(f):null,hasLocation?load(mapUrl('Reference/World_Boundaries_and_Places',f,1080),4500):null,hasLocation?load(mapUrl('World_Topo_Map',cf,420),4500):null,flagsTask,brazil?Promise.race([mapBorders(f,e.coords),new Promise(resolve=>setTimeout(()=>resolve(null),5600))]):null,engravingPromise,Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,3000))])]);
   if(hasLocation&&!sat&&!allowMissingMap){const error=Error('O mapa de satélite não carregou. Tente gerar a imagem novamente.');error.code='STORY_MAP_UNAVAILABLE';throw error;}
   const font=(size,bold=false)=>`${bold?'700':'500'} ${size}px StoryInter, sans-serif`;
-  function text(value,x,y,size=25,color=WHITE,maxWidth=1000,bold=false){c.font=font(size,bold);let t=String(value??'Não informado');while(t.length>2&&c.measureText(t).width>maxWidth)t=t.slice(0,-2)+'…';c.fillStyle=color;c.textAlign='left';c.textBaseline='top';c.fillText(t,x,y);}
-  function lines(value,x,y,width,size=24,maxLines=2,color=WHITE,bold=false){c.font=font(size,bold);const words=String(value||'').split(/\s+/),out=[];let line='';for(const word of words){if(c.measureText((line+' '+word).trim()).width>width&&line){out.push(line);line=word;}else line=(line+' '+word).trim();}if(line)out.push(line);out.slice(0,maxLines).forEach((s,i)=>text(i===maxLines-1&&out.length>maxLines?out.slice(i).join(' '):s,x,y+i*(size+8),size,color,width,bold));}
+  function text(value,x,y,size=25,color=WHITE,maxWidth=1000,bold=false,typeface=font){c.font=typeface(size,bold);let t=String(value??'Não informado');while(t.length>2&&c.measureText(t).width>maxWidth)t=t.slice(0,-2)+'…';c.fillStyle=color;c.textAlign='left';c.textBaseline='top';c.fillText(t,x,y);}
+  function lines(value,x,y,width,size=24,maxLines=2,color=WHITE,bold=false,typeface=font){c.font=typeface(size,bold);const words=String(value||'').split(/\s+/),out=[];let line='';for(const word of words){if(c.measureText((line+' '+word).trim()).width>width&&line){out.push(line);line=word;}else line=(line+' '+word).trim();}if(line)out.push(line);out.slice(0,maxLines).forEach((s,i)=>text(i===maxLines-1&&out.length>maxLines?out.slice(i).join(' '):s,x,y+i*(size+8),size,color,width,bold,typeface));}
   function box(x,y,w,h,r=12,fill='#0b2329',edge=GOLD){
    c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();
    c.strokeStyle=edge;c.lineWidth=2;c.stroke();
@@ -265,23 +265,32 @@
   const place=root.EventPortuguese?.place(e.place||'Local não informado')||e.place||'Local não informado';
   const images=['country','state'].map(key=>flags?.images?.[key]).filter(Boolean);
   const flagWidth=90,flagHeight=60,flagGap=12,placeWidth=930-images.length*(flagWidth+flagGap);
-  // Match the reference's bold location and lighter country on the same baseline.
   const comma=place.lastIndexOf(', ');
   const locality=comma<0?place:place.slice(0,comma+1);
   const country=comma<0?'':place.slice(comma+2);
+  const locationFont=(size,bold=false)=>`${bold?'700':'600'} ${size}px StorySerif, Georgia, serif`;
+  const countrySize=size=>Math.round(size*.83);
   function placeWidths(size){
-   c.font=font(size,true);
+   c.font=locationFont(size,true);
    const localityWidth=c.measureText(locality+(country?' ':'')).width;
-   c.font=font(size);
+   c.font=locationFont(countrySize(size));
    return [localityWidth,localityWidth+c.measureText(country).width];
   }
-  let placeSize=40;
+  const placeY=282;
+  let placeSize=54;
   let [localityWidth,placeLength]=placeWidths(placeSize);
-  while(placeSize>28&&placeLength>placeWidth)[localityWidth,placeLength]=placeWidths(--placeSize);
+  while(placeSize>32&&placeLength>placeWidth)[localityWidth,placeLength]=placeWidths(--placeSize);
+  const gold=c.createLinearGradient(0,placeY,0,placeY+placeSize);
+  gold.addColorStop(0,'#f7e3b6');
+  gold.addColorStop(.37,'#e3bf7d');
+  gold.addColorStop(.46,'#f8df9c');
+  gold.addColorStop(1,'#b68750');
+  c.save();c.shadowColor='rgba(8,12,11,.9)';c.shadowBlur=3;c.shadowOffsetY=2;
   if(placeLength<=placeWidth){
-   text(locality,95,289,placeSize,WHITE,placeWidth,true);
-   if(country)text(country,95+localityWidth,289,placeSize,WHITE,placeWidth-localityWidth);
-  }else lines(place,95,289,placeWidth,placeSize,2,WHITE,true);
+   text(locality,95,placeY,placeSize,gold,placeWidth,true,locationFont);
+   if(country)text(country,95+localityWidth,placeY+placeSize-countrySize(placeSize),countrySize(placeSize),'#ddbf8d',placeWidth-localityWidth,false,locationFont);
+  }else lines(place,95,placeY,placeWidth,placeSize,2,'#e3bf7d',true,locationFont);
+  c.restore();
   const flagX=95+Math.min(placeWidth,placeLength)+15;
   images.forEach((img,i)=>{
    const x=flagX+i*(flagWidth+flagGap);
@@ -350,6 +359,6 @@
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v4'};
+ root.SiteEventStory={render,profile,version:'argos-cartographic-v5'};
 })(window);
 
