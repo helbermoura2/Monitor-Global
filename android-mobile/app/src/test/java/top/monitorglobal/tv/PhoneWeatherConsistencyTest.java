@@ -12,13 +12,19 @@ public class PhoneWeatherConsistencyTest {
   assertEquals("Nublado",PhoneWeatherReading.condition(clouds,dry));
   assertEquals("Cloudy",PhoneWeatherReading.illustration(clouds,dry));
   assertEquals("Condição: modelo horário",PhoneWeatherReading.caption(clouds,dry));
-  assertEquals("Garoa",PhoneWeatherReading.condition(drizzle(),dry));
+
   long daylight=java.time.Instant.parse("2026-11-16T18:00:00Z").toEpochMilli();
   long night=java.time.Instant.parse("2026-11-16T06:00:00Z").toEpochMilli();
   WeatherForecast.Summary partly=new WeatherForecast.Summary("23°C","Parcialmente nublado","18 km/h","67%","Modelo horário",now+600000,false,"23°C","24°C","67%","18 km/h","18 km/h","PartlyCloudy");
   assertEquals("Sol entre nuvens",WeatherForecast.sky(partly,daylight));
   assertEquals("Parcialmente nublado",WeatherForecast.sky(partly,night));
   assertEquals("Ensolarado",WeatherForecast.sky(new WeatherForecast.Summary("23°C","Céu limpo","","","",now+600000,false,"23°C","24°C","67%","18 km/h","18 km/h","Clear"),daylight));
+ }
+ @Test public void validDryMinuteSuppressesConflictingHourlyRainAndArtwork(){
+  RainForecast.Summary dry=new RainForecast.Summary("dry","","Sem chuva estimada · próxima hora",0,0,"",now,now+600000,false);
+  assertEquals(dry.title,PhoneWeatherReading.condition(drizzle(),dry));
+  assertEquals("",PhoneWeatherReading.illustration(drizzle(),dry));
+  assertEquals("Chuva: estimativa por minuto",PhoneWeatherReading.caption(drizzle(),dry));
  }
  @Test public void cachedNarrativesCannotIntroduceADifferentRainWindow(){assertEquals("",PhoneWeatherReading.complementaryAi("Garoa agora, sem chuva por 30 minutos."));assertEquals("",PhoneWeatherReading.complementaryAi("Acumulado de precipitação de 0,1 mm."));assertEquals("",PhoneWeatherReading.complementaryAi("Acumulado estimado: 0,1 mm."));assertEquals("Modelo horário de 25 °C; umidade 57%.",PhoneWeatherReading.complementaryAi("Modelo horário de 25 °C; umidade 57%."));}
  @Test public void expiredMinuteDataDoesNotBecomeZeroRain()throws Exception{assertNull(PhoneRainChart.Series.parse(minuteData(),now+600001));assertEquals("Garoa",PhoneWeatherReading.condition(drizzle(),null));}
