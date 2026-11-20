@@ -456,8 +456,7 @@ public class PhoneActivity extends Activity {
  }
  private void share(Alert a){
   if(siteImage!=null)return;
-  if(a.kind.equals("earthquake")&&Double.isFinite(a.magnitude)&&
-    MapFrame.located(a.originLongitude,a.originLatitude)&&shareSiteCard(a))return;
+  if((a.kind.equals("earthquake")||a.kind.equals("tsunami"))&&shareSiteCard(a))return;
   sendEvent(a,null);
  }
 
