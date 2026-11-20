@@ -379,7 +379,7 @@
   p.stats.forEach(([label,value],i)=>{const x=85+i*318;if(i)stroke(x-22,1520,x-22,1616);icon(p.weather?['thermometer','drop','waves'][i]:['depth','pulse',p.stats[2][0]==='COORDENADAS'?'pin':'waves'][i],x-5,1528);if(label==='COORDENADAS'){value.split(' · ').forEach((part,row)=>text(part,x+43,1520+row*37,29,WHITE,241));}else lines(value,x+43,1520,241,29,2);text(label,x+43,1600,18,MUTED,240,true);});
   text(p.note,70,1636,18,MUTED,940);
   stroke(69,1674,1008,1674);icon('globe',85,1712);text('argosorbis.com.br',166,1711,29,WHITE,380,true);stroke(485,1699,485,1762);
-  c.save();c.strokeStyle=WHITE;c.lineWidth=2.5;c.beginPath();c.arc(558,1732,25,0,Math.PI*2);c.stroke();c.fillStyle=WHITE;c.beginPath();c.moveTo(541,1730);c.lineTo(575,1716);c.lineTo(565,1749);c.lineTo(556,1738);c.lineTo(550,1744);c.lineTo(551,1734);c.closePath();c.fill();c.restore();text('Telegram · ARGOS ORBIS',606,1715,24,WHITE,410,true);
+  c.save();c.strokeStyle=WHITE;c.lineWidth=2.5;c.beginPath();c.arc(558,1732,25,0,Math.PI*2);c.stroke();c.fillStyle=WHITE;c.beginPath();c.moveTo(541,1730);c.lineTo(575,1716);c.lineTo(565,1749);c.lineTo(556,1738);c.lineTo(550,1744);c.lineTo(551,1734);c.closePath();c.fill();c.restore();text('Telegram · @argosorbis',606,1715,24,WHITE,410,true);
   // Decorative signature waves below the data, never presented as geophysical observations.
   if(!engraving){
    c.save();c.strokeStyle='#ad9565';c.lineWidth=.8;for(let j=0;j<17;j++){c.globalAlpha=.08+j*.008;c.beginPath();for(let x=0;x<=W;x+=9){const y=1860+Math.sin(x/91+j*.25)*25+Math.sin(x/230-j*.23)*14+j*2;if(x===0)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();}c.restore();
@@ -390,6 +390,6 @@
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v8'};
+ root.SiteEventStory={render,profile,version:'argos-cartographic-v9'};
 })(window);
 
