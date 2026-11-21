@@ -1,4 +1,8 @@
-# Argos Orbis Celular · 0.1.32 de teste
+# Argos Orbis Celular · 0.1.34 de teste
+
+- O cartão cartográfico de compartilhamento vem incluído no aplicativo. Os mapas continuam sendo consultados no momento da geração.
+
+## Argos Orbis Celular · 0.1.32 de teste
 
 - **Compartilhar evento** gera uma imagem cartográfica vertical para sismos e boletins de tsunami e abre o menu de compartilhamento do Android.
 

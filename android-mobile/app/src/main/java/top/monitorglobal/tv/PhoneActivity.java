@@ -465,19 +465,19 @@ public class PhoneActivity extends Activity {
  private void share(Alert a){
   if(siteImage!=null)return;
   if((a.kind.equals("earthquake")||a.kind.equals("tsunami"))&&shareSiteCard(a))return;
-  sendEvent(a,null);
+  sendEvent(a,null,true);
  }
 
  boolean shareSiteCard(Alert event){
   Toast.makeText(this,"Preparando o cartão com mapa…",Toast.LENGTH_SHORT).show();
   siteImage=new SiteEventImage(this,event,uri->{
    siteImage=null;
-   if(active&&!destroyed)sendEvent(event,uri);
+   if(active&&!destroyed)sendEvent(event,uri,false);
   });
   return true;
  }
 
- private void sendEvent(Alert a,Uri siteCard){
+ private void sendEvent(Alert a,Uri siteCard,boolean allowLegacyImage){
   boolean quake=a.kind.equals("earthquake");
   String kind=quake?"REGISTRO SÍSMICO":tsunamiState(a.state);
   String timestamp=eventTime(a)>0?BrDates.dateTime(eventTime(a)):"Horário indisponível";
@@ -485,6 +485,7 @@ public class PhoneActivity extends Activity {
   String caption=a.title+"\n"+String.join("\n",facts);
   Intent send=new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_SUBJECT,"Argos Orbis · "+a.title);
   try{
+   if(siteCard==null&&!allowLegacyImage)throw new java.io.IOException("Cartão cartográfico indisponível");
    Uri image=siteCard!=null?siteCard:EventShareCard.create(this,kind,quake?location(a):a.title,quake?magnitude(a):"",facts,brand);
    send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

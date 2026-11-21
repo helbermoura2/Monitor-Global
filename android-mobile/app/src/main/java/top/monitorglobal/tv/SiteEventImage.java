@@ -6,15 +6,22 @@ import android.os.Handler;
 import android.os.Looper;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.webkit.WebViewAssetLoader;
 import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 final class SiteEventImage {
- private static final String PAGE="https://argosorbis.com.br/mobile-event-image";
+ static final String ASSET_PREFIX="/event-card/";
+ static final String PAGE="https://appassets.androidplatform.net"+ASSET_PREFIX+"share/mobile-event-image.html";
+ static WebViewAssetLoader assets(Context context){
+  return new WebViewAssetLoader.Builder()
+   .addPathHandler(ASSET_PREFIX,new WebViewAssetLoader.AssetsPathHandler(context)).build();
+ }
  private static final int MAX_LENGTH=12_000_000, CHUNK_LENGTH=64_000;
  interface Result { void ready(Uri uri); }
 
@@ -43,11 +50,15 @@ final class SiteEventImage {
     record.put("descOnly",source.tsunamiSummary.isEmpty()?source.detail:source.tsunamiSummary);
    }
    if(Double.isFinite(source.depth)&&source.depth>=0)record.put("depth",source.depth);
+   WebViewAssetLoader loader=assets(context);
    web=new WebView(context);
    web.getSettings().setJavaScriptEnabled(true);
    web.getSettings().setAllowFileAccess(false);
    web.getSettings().setAllowContentAccess(false);
    web.setWebViewClient(new WebViewClient(){
+    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
+     return loader.shouldInterceptRequest(request.getUrl());
+    }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      return request.isForMainFrame()&&!PAGE.equals(request.getUrl().toString());
     }
@@ -60,7 +71,7 @@ final class SiteEventImage {
      if(request.isForMainFrame())finish(null);
     }
    });
-   handler.postDelayed(deadline,18000);
+   handler.postDelayed(deadline,26000);
    web.loadUrl(PAGE);
   }catch(org.json.JSONException | RuntimeException e){
    handler.post(()->finish(null));

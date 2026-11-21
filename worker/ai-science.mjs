@@ -5,9 +5,10 @@
  */
 import {handleTvRain} from './tv-rain.mjs';
 import {handleTvAlerts} from './tv-alerts.mjs';
-import {selectWithFallback,BRIEFING_MODEL,GEMINI_MODEL} from './weather-briefing.mjs';
+import {selectWithFallback,BRIEFING_RULE_MODEL} from './weather-briefing.mjs';
 
 const MIN=60000;
+export const SEISMIC_WORKERS_MODEL='@cf/meta/llama-4-scout-17b-16e-instruct';
 const CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store','Content-Type':'application/json'};
 const json=(v,status=200)=>Response.json(v,{status,headers:CORS});
 const finite=(n,lo,hi)=>typeof n==='number'&&Number.isFinite(n)&&n>=lo&&n<=hi;
@@ -124,7 +125,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  const evidence=interpret(q,now);
  if(!evidence)return json({version:'seismic-insight-v1',status:'unavailable',reason:'no-matching-fresh-event'});
  const revision=JSON.stringify([evidence.id,evidence.at,evidence.magnitude,evidence.depth,evidence.tsunamiSummary]);
- const key='seismic-insight:context-v2:'+revision.slice(0,440);
+ const key='seismic-insight:context-v3:'+revision.slice(0,440);
  const base={version:'seismic-insight-v1',id:evidence.id,title:evidence.title,source:evidence.source,
   eventAt:evidence.at,magnitude:evidence.magnitude,depth:evidence.depth,expiresAt:Math.min(now+15*MIN,evidence.at+72*3600000),
   disclaimer:'Explicação educativa de dados publicados, não é previsão sísmica, avaliação oficial de danos ou alerta de tsunami.'};
@@ -152,10 +153,10 @@ export async function handleSeismicInsightInObject(request,env,storage,{
   const job=(async()=>{
    let model='validated-science-v1',focus=[];
    try{
-    const result=await selectWithFallback(env,context,prompt,fetchGemini);
+    const result=await selectWithFallback(env,context,prompt,fetchGemini,SEISMIC_WORKERS_MODEL);
     model=result.model;focus=result.facts;
    }catch{ /* Keep fully grounded scientific report even when both LLMs fail. */ }
-   try{await storage.put(key,{status:'ready',focus,model,at:now,until:now+15*MIN});}catch{}
+   try{await storage.put(key,{status:'ready',focus,model,at:now,until:now+(model===BRIEFING_RULE_MODEL||model==='validated-science-v1'?MIN:15*MIN)});}catch{}
   })();
   waitUntil(job);
   return json({...base,status:'pending',retryAfter:3});

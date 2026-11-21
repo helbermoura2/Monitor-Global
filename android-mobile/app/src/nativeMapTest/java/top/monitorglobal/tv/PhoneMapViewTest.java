@@ -2,6 +2,22 @@ package top.monitorglobal.tv;
 import android.net.Uri;import android.os.Looper;import android.webkit.JavascriptInterface;import android.webkit.WebSettings;import android.webkit.WebView;import java.lang.reflect.*;import java.util.*;import java.util.concurrent.atomic.AtomicInteger;import org.json.*;import org.junit.*;import static org.junit.Assert.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.*;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35)
 public class PhoneMapViewTest {
+ @Test public void sharedCardLoadsItsPageAndArtworkFromTheApk()throws Exception{
+  androidx.webkit.WebViewAssetLoader loader=SiteEventImage.assets(RuntimeEnvironment.getApplication());
+  Uri page=Uri.parse(SiteEventImage.PAGE);
+  try(java.io.InputStream input=loader.shouldInterceptRequest(page).getData()){
+   assertNotNull(input);
+   String html=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+   assertTrue(html.contains("js/site-event-story.js"));
+  }
+  for(String asset:List.of("js/site-event-story.js","js/mobile-event-image.js","img/argos-share-engraving.webp",
+    "assets/flags/countries/pe.svg","assets/geography/countries-10m.json","assets/summary-fonts/CormorantGaramond.ttf")){
+   Uri uri=Uri.parse("https://appassets.androidplatform.net"+SiteEventImage.ASSET_PREFIX+"share/"+asset);
+   try(java.io.InputStream input=loader.shouldInterceptRequest(uri).getData()){
+    assertNotNull(asset,input);assertTrue(asset,input.read()>=0);
+   }
+  }
+ }
  @Test public void rainPreviewTrustsOnlyItsPublicDataRoutesAndVersionedAssets()throws Exception{
   String api="https://black-sky-9ba0.terrestre.workers.dev";assertTrue(PhoneMapView.streetResource(Uri.parse("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/7/72/47")));assertFalse(PhoneMapView.streetResource(Uri.parse("https://evil.example/ArcGIS/rest/services/World_Street_Map/MapServer/tile/7/72/47")));
   assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/rainbow-snapshot")));assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/tv-rain?area=liberdade")));assertTrue(PhoneMapView.rainResource(Uri.parse(api+"/rainbow-tile/1800000000/7200/7/47/72")));

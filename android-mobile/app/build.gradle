@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 34
-  versionName '0.1.33'
+  versionCode 35
+  versionName '0.1.34'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -41,6 +41,18 @@ tasks.register('preparePhoneAssets', Sync) {
  from('../../data') { include 'brazil-satellite-border.json'; into 'data' }
  from('../../assets/weather') { include 'br-municipalities.json'; into 'data' }
  from('../../vendor') { include 'maplibre-gl.js'; include 'maplibre-gl.css'; into 'vendor' }
+ from('../..') {
+  include 'mobile-event-image.html'
+  include 'js/argos-eye-brand.js', 'js/country-boundaries.js', 'js/event-portuguese.js',
+   'js/geo-e-ciclone-utils.js', 'js/rupture-shaking-model.js', 'js/rupture-shaking.js',
+   'js/seismic-impact-model.js', 'js/quake-card-layout.js', 'js/quake-image-paint.js',
+   'js/quake-site-flags.js', 'js/quake-site-card.js', 'js/site-event-story.js', 'js/mobile-event-image.js'
+  include 'img/argos-share-engraving.webp', 'img/argos-orbis-vigilante-static.svg'
+  include 'assets/geography/br-states.json', 'assets/geography/countries-10m.json',
+   'assets/flags/**', 'assets/summary-fonts/CormorantGaramond.ttf', 'assets/summary-fonts/Inter.ttf',
+   'assets/summary-fonts/CormorantGaramond-OFL.txt', 'assets/summary-fonts/Inter-OFL.txt'
+  into 'share'
+ }
  into layout.buildDirectory.dir('generated/phoneAssets')
 }
 tasks.register('preparePhoneModels', Sync) {

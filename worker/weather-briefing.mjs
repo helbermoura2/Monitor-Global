@@ -120,15 +120,15 @@ export async function geminiSelection(env,context,prompt,fetcher=fetch){
   return facts;
  }finally{clearTimeout(timer);}
 }
-async function workersSelection(env,context,prompt){
+async function workersSelection(env,context,prompt,model){
  if(!env.AI)throw Error('model-unconfigured');
  let timer;
  try{
   const result=await Promise.race([
-   env.AI.run(BRIEFING_MODEL,{messages:[
+   env.AI.run(model,{messages:[
     {role:'system',content:'Select one or two IDs only from '+JSON.stringify(context.keys)+'. Return compact JSON, for example '+JSON.stringify({facts:context.keys.slice(0,1)})+'. Never return explanations or fact sentences.'},
     {role:'user',content:prompt}
-   ],temperature:0,max_tokens:96}),
+   ],temperature:0,max_tokens:96,...(context.kind==='seismic'?{response_format:{type:'json_object'}}:{})}),
    new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})
   ]);
   const facts=parseBriefingSelection(result,context);
@@ -152,7 +152,7 @@ export function verifiedRuleSelection(context){
  if(!validated)throw Error('invalid');
  return {facts:validated,model:BRIEFING_RULE_MODEL};
 }
-export async function selectWithFallback(env,context,prompt,fetchGemini=fetch){
+export async function selectWithFallback(env,context,prompt,fetchGemini=fetch,workersModel=BRIEFING_MODEL){
  // No model needs to choose between just one verified scientific statement.
  if(context.keys?.length===1)return verifiedRuleSelection(context);
  if(env.GEMINI_API_KEY){
@@ -160,7 +160,7 @@ export async function selectWithFallback(env,context,prompt,fetchGemini=fetch){
   catch{ /* Gemini failed: attempt Workers AI once, never reuse unverified text. */ }
  }
  if(env.AI){
-  try{return {facts:await workersSelection(env,context,prompt),model:BRIEFING_MODEL};}
+  try{return {facts:await workersSelection(env,context,prompt,workersModel),model:workersModel};}
   catch{ /* Workers AI failed: never block a deterministic verified insight. */ }
  }
  return verifiedRuleSelection(context);
