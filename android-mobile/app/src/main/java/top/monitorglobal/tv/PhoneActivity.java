@@ -279,6 +279,11 @@ public class PhoneActivity extends Activity {
   }
   Button mapButton=button("Ver localização no mapa",()->showMapEvent(a));mapButton.setEnabled(MapFrame.located(a.originLongitude,a.originLatitude));page.addView(mapButton,new LinearLayout.LayoutParams(-1,-2));if(!mapButton.isEnabled())copy(page,"Localização no mapa indisponível para este registro.");
   space(page,button("Compartilhar evento",()->share(a)),10);
+  if(a.kind.equals("earthquake")&&Double.isFinite(a.magnitude)&&
+    MapFrame.located(a.originLongitude,a.originLatitude)&&Math.abs(a.originLatitude)<85&&
+    (a.magnitude>=6||"BR".equalsIgnoreCase(a.countryCode))){
+   space(page,button("Compartilhar vídeo do sismo",()->prepareShare(a,true)),8);
+  }
  }
 
  private void showSeismicContext(Alert a){
@@ -474,26 +479,31 @@ public class PhoneActivity extends Activity {
   shareSiteCard(a);
  }
 
- void shareSiteCard(Alert event){
-  Toast.makeText(this,"Preparando o cartão com mapa…",Toast.LENGTH_SHORT).show();
-  siteImage=new SiteEventImage(this,event,uri->{
+ void shareSiteCard(Alert event){prepareShare(event,false);}
+
+ private void prepareShare(Alert event,boolean video){
+  if(siteImage!=null)return;
+  Toast.makeText(this,video?"Preparando vídeo do sismo…":"Preparando o cartão com mapa…",Toast.LENGTH_SHORT).show();
+  siteImage=new SiteEventImage(this,event,video,(uri,mime)->{
    siteImage=null;
    if(active&&!destroyed){
-    if(uri!=null)sendEvent(event,uri);
-    else Toast.makeText(this,"Não foi possível preparar o cartão cartográfico. Tente novamente.",Toast.LENGTH_LONG).show();
+    if(uri!=null)sendEvent(event,uri,mime);
+    else Toast.makeText(this,video?"Não foi possível gerar o vídeo com mapa. Tente novamente.":"Não foi possível preparar o cartão cartográfico. Tente novamente.",Toast.LENGTH_LONG).show();
    }
   });
  }
 
- void sendEvent(Alert a,Uri image){
+ void sendEvent(Alert a,Uri image){sendEvent(a,image,"image/png");}
+
+ private void sendEvent(Alert a,Uri image,String mime){
   boolean quake=a.kind.equals("earthquake");
   String timestamp=eventTime(a)>0?BrDates.dateTime(eventTime(a)):"Horário indisponível";
   String[] facts=quake?new String[]{depth(a),timestamp,source(a)}:new String[]{timestamp,source(a)};
   String caption=a.title+"\n"+String.join("\n",facts);
   Intent send=new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_SUBJECT,"Argos Orbis · "+a.title);
-  send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
+  send.setType(mime).putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-  send.setClipData(android.content.ClipData.newRawUri("Cartão do evento",image));
+  send.setClipData(android.content.ClipData.newRawUri("Arquivo do evento",image));
   try{startActivity(Intent.createChooser(send,"Compartilhar evento"));}
   catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Nenhum aplicativo disponível para compartilhar.",Toast.LENGTH_LONG).show();}
  }

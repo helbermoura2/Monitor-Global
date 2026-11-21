@@ -1,9 +1,11 @@
 package top.monitorglobal.tv;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.ViewGroup;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -23,18 +25,21 @@ final class SiteEventImage {
    .addPathHandler(ASSET_PREFIX,new WebViewAssetLoader.AssetsPathHandler(context)).build();
  }
  private static final int MAX_LENGTH=12_000_000, CHUNK_LENGTH=64_000;
- interface Result { void ready(Uri uri); }
+ interface Result { void ready(Uri uri,String mime); }
 
  private final Context context;
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final Runnable deadline=()->finish(null);
  private final Result result;
+ private final boolean video;
+ private String mime="image/png";
  private WebView web;
  private boolean started;
 
- SiteEventImage(Context context,Alert source,Result result){
+ SiteEventImage(Activity context,Alert source,boolean video,Result result){
   this.context=context;
   this.result=result;
+  this.video=video;
   try{
    boolean quake=source.kind.equals("earthquake");
    JSONObject record=new JSONObject().put("id",source.id).put("type",source.kind)
@@ -52,6 +57,10 @@ final class SiteEventImage {
    if(Double.isFinite(source.depth)&&source.depth>=0)record.put("depth",source.depth);
    WebViewAssetLoader loader=assets(context);
    web=new WebView(context);
+   if(video){
+    web.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    context.addContentView(web,new android.widget.FrameLayout.LayoutParams(1,1,android.view.Gravity.TOP|android.view.Gravity.START));
+   }
    web.getSettings().setJavaScriptEnabled(true);
    web.getSettings().setAllowFileAccess(false);
    web.getSettings().setAllowContentAccess(false);
@@ -65,13 +74,13 @@ final class SiteEventImage {
     @Override public void onPageFinished(WebView view,String url){
      if(web!=view||started||!PAGE.equals(url))return;
      started=true;
-     web.evaluateJavascript("window.ArgosMobileImage?.render("+record+"); true",value->poll());
+     web.evaluateJavascript("window.ArgosMobileImage?.render("+record+","+video+"); true",value->poll());
     }
     @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){
      if(request.isForMainFrame())finish(null);
     }
    });
-   handler.postDelayed(deadline,26000);
+   handler.postDelayed(deadline,video?58000:26000);
    web.loadUrl(PAGE);
   }catch(org.json.JSONException | RuntimeException e){
    handler.post(()->finish(null));
@@ -88,7 +97,16 @@ final class SiteEventImage {
     if(state instanceof Integer){
      int length=(Integer)state;
      if(length<=0||length>MAX_LENGTH||length%4!=0){finish(null);return;}
-     read(new StringBuilder(length),length);
+     if(video)web.evaluateJavascript("window.ArgosMobileImage?.mime()",valueMime->{
+      if(web==null)return;
+      try{
+       Object type=new JSONTokener(valueMime).nextValue();
+       if(!"video/mp4".equals(type)&&!"video/webm".equals(type)){finish(null);return;}
+       mime=(String)type;
+       read(new StringBuilder(length),length);
+      }catch(org.json.JSONException | RuntimeException e){finish(null);}
+     });
+     else read(new StringBuilder(length),length);
     }else if("pending".equals(state))handler.postDelayed(this::poll,300);
     else finish(null);
    }catch(org.json.JSONException | RuntimeException e){finish(null);}
@@ -106,8 +124,8 @@ final class SiteEventImage {
     }
     data.append((String)chunk);
     if(data.length()<length){read(data,length);return;}
-    byte[] png=android.util.Base64.decode(data.toString(),android.util.Base64.NO_WRAP);
-    finish(EventShareCard.fromSite(context,png));
+    byte[] bytes=android.util.Base64.decode(data.toString(),android.util.Base64.NO_WRAP);
+    finish(video?EventShareCard.fromVideo(context,bytes,mime):EventShareCard.fromSite(context,bytes));
    }catch(org.json.JSONException | IOException | RuntimeException e){finish(null);}
   });
  }
@@ -118,6 +136,7 @@ final class SiteEventImage {
   if(web==null)return;
   WebView view=web;
   web=null;
+  if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);
   view.stopLoading();
   view.destroy();
  }
@@ -125,6 +144,6 @@ final class SiteEventImage {
  private void finish(Uri uri){
   if(closed)return;
   cancel();
-  result.ready(uri);
+  result.ready(uri,mime);
  }
 }

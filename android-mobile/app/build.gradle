@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 36
-  versionName '0.1.35'
+  versionCode 37
+  versionName '0.1.36'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -46,7 +46,7 @@ tasks.register('preparePhoneAssets', Sync) {
   include 'js/argos-eye-brand.js', 'js/country-boundaries.js', 'js/event-portuguese.js',
    'js/geo-e-ciclone-utils.js', 'js/rupture-shaking-model.js', 'js/rupture-shaking.js',
    'js/seismic-impact-model.js', 'js/quake-card-layout.js', 'js/quake-image-paint.js',
-   'js/quake-site-flags.js', 'js/quake-site-card.js', 'js/site-event-story.js', 'js/mobile-event-image.js'
+   'js/quake-site-flags.js', 'js/quake-site-card.js', 'js/site-event-story.js', 'js/quake-site-video.js', 'js/mobile-event-image.js'
   include 'img/argos-share-engraving.webp', 'img/argos-orbis-vigilante-static.svg'
   include 'assets/geography/br-states.json', 'assets/geography/countries-10m.json',
    'assets/flags/**', 'assets/summary-fonts/CormorantGaramond.ttf', 'assets/summary-fonts/Inter.ttf',

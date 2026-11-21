@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v10');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v11');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -294,4 +294,38 @@ test('Packaged Android renderer retries the compass card without network maps',a
  const bytes=Buffer.from(result.png,'base64');
  expect(bytes.readUInt32BE(16)).toBe(1080);
  expect(bytes.readUInt32BE(20)).toBe(1920);
+});
+
+test('replay fills the frame with topography and progressively reveals a published grid',async({page})=>{
+ await page.goto('/mobile-event-image.html');
+ const output=await page.evaluate(async()=>{
+  const base=document.createElement('canvas');base.width=720;base.height=1280;
+  const map=base.getContext('2d');map.fillStyle='#557c67';map.fillRect(0,0,720,1280);
+  const calls=[];
+  SiteEventStory.replayMap=async frame=>{calls.push(frame);return {base,credit:'Esri · relevo'};};
+  const grid={nx:3,ny:3,x0:-76.49,x1:-75.89,y0:-11.27,y1:-10.67,values:[5,6,4,6,8,6,4,6,5]};
+  const item={type:'earthquake',coords:[-76.19,-10.97],mag:6.7,depth:10,place:'Junín, Peru',
+   shaking:{status:'available',grid,provider:'USGS ShakeMap'}};
+  const {scene,draw,official,rupture}=await QuakeSiteVideo.prepare(item);
+  const color=(x,y)=>Array.from(scene.getContext('2d').getImageData(x,y,1,1).data);
+  draw(0);const start=color(390,550),corner=color(20,60);
+  draw(19000);const end=color(390,550);
+  return {w:scene.width,h:scene.height,start,end,corner,calls,official,rupture};
+ });
+ expect([output.w,output.h]).toEqual([720,1280]);
+ expect(output.corner).toEqual([85,124,103,255]);
+ expect(output.start).not.toEqual(output.end);
+ expect(output.official).toBe(true);
+ expect(output.rupture).toBe(false);
+ expect(output.calls).toHaveLength(1);
+});
+
+test('Android bridge preserves the video MIME type and bytes',async({page})=>{
+ await page.goto('/mobile-event-image.html');
+ const result=await page.evaluate(async()=>{
+  QuakeSiteVideo.record=async()=>({extension:'webm',blob:new Blob(['video-fixture'],{type:'video/webm;codecs=vp8'})});
+  await ArgosMobileImage.render({type:'earthquake'},true);
+  return {length:ArgosMobileImage.status(),mime:ArgosMobileImage.mime(),bytes:atob(ArgosMobileImage.chunk(0))};
+ });
+ expect(result).toEqual({length:20,mime:'video/webm',bytes:'video-fixture'});
 });

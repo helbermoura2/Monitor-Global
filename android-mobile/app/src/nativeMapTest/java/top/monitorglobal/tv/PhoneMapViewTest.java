@@ -10,7 +10,7 @@ public class PhoneMapViewTest {
    String html=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
    assertTrue(html.contains("js/site-event-story.js"));
   }
-  for(String asset:List.of("js/site-event-story.js","js/mobile-event-image.js","img/argos-share-engraving.webp",
+  for(String asset:List.of("js/site-event-story.js","js/quake-site-video.js","js/mobile-event-image.js","img/argos-share-engraving.webp",
     "assets/flags/countries/pe.svg","assets/geography/countries-10m.json","assets/summary-fonts/CormorantGaramond.ttf")){
    Uri uri=Uri.parse("https://appassets.androidplatform.net"+SiteEventImage.ASSET_PREFIX+"share/"+asset);
    try(java.io.InputStream input=loader.shouldInterceptRequest(uri).getData()){

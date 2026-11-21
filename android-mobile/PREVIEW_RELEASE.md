@@ -1,4 +1,8 @@
-# Argos Orbis Celular · 0.1.35 de teste
+# Argos Orbis Celular · 0.1.36 de teste
+
+- Novo vídeo de sismo com mapa em tela cheia e revelação da intensidade. O botão de vídeo aparece para sismos brasileiros e eventos M6+ com coordenadas.
+
+## Argos Orbis Celular · 0.1.35 de teste
 
 - A análise sísmica identifica os dados do catálogo, os tópicos selecionados pela IA e as explicações científicas do Argos Orbis.
 - O compartilhamento de eventos abre o seletor do Android com o PNG cartográfico. O renderizador tenta novamente com a arte incluída no app se a primeira geração falhar.

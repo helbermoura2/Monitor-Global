@@ -1955,8 +1955,6 @@
     });
   }
 
-  // Reutilizado exclusivamente pelo botão Vídeo; não compartilha nem publica PNG.
-  window.createQuakeSiteCanvas=buildCartographicQuake;
   window.shareEventAsStory=shareEventAsStory;
   if(!window.OptionalFeatures){
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);

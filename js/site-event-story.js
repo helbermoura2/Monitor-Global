@@ -401,6 +401,19 @@
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
   return canvas;
  }
- root.SiteEventStory={render,profile,version:'argos-cartographic-v10'};
+ async function replayMap(frame){
+  const [relief,labels]=await Promise.all([
+   load(mapUrl('World_Physical_Map',frame,720,true),4500),
+   load(mapUrl('Reference/World_Boundaries_and_Places',frame,720),4500)
+  ]);
+  if(relief)return {base:relief,labels,credit:'Esri · relevo'};
+  const [topographic,imagery]=await Promise.all([
+   load(mapUrl('World_Topo_Map',frame,720),4500),satellite(frame)
+  ]);
+  if(topographic)return {base:topographic,labels:null,credit:'Esri · mapa topográfico'};
+  if(imagery)return {base:imagery,labels,credit:'Esri, Maxar, Earthstar Geographics'};
+  throw Error('O mapa do vídeo não carregou. Tente novamente.');
+ }
+ root.SiteEventStory={render,profile,replayMap,version:'argos-cartographic-v11'};
 })(window);
 
