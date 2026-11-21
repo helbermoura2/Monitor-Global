@@ -8,6 +8,7 @@ import {handleTvAlerts} from './tv-alerts.mjs';
 import {selectWithFallback,BRIEFING_RULE_MODEL} from './weather-briefing.mjs';
 
 const MIN=60000;
+export const SEISMIC_GEMINI_MODEL='gemini-3.5-flash-lite';
 export const SEISMIC_WORKERS_MODEL='@cf/meta/llama-4-scout-17b-16e-instruct';
 const CORS={'Access-Control-Allow-Origin':'*','Cache-Control':'no-store','Content-Type':'application/json'};
 const json=(v,status=200)=>Response.json(v,{status,headers:CORS});
@@ -125,7 +126,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  const evidence=interpret(q,now);
  if(!evidence)return json({version:'seismic-insight-v1',status:'unavailable',reason:'no-matching-fresh-event'});
  const revision=JSON.stringify([evidence.id,evidence.at,evidence.magnitude,evidence.depth,evidence.tsunamiSummary]);
- const key='seismic-insight:context-v3:'+revision.slice(0,440);
+ const key='seismic-insight:context-v4:'+revision.slice(0,440);
  const base={version:'seismic-insight-v1',id:evidence.id,title:evidence.title,source:evidence.source,
   eventAt:evidence.at,magnitude:evidence.magnitude,depth:evidence.depth,expiresAt:Math.min(now+15*MIN,evidence.at+72*3600000),
   disclaimer:'Explicação educativa de dados publicados, não é previsão sísmica, avaliação oficial de danos ou alerta de tsunami.'};
@@ -135,7 +136,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  try{
   const saved=await storage.get(key);
   if(saved?.status==='ready'&&saved.until>now){
-   return json({...base,status:'ready',model:saved.model,sections:section(saved.focus||[]),generatedAt:saved.at});
+   return json({...base,status:'ready',model:saved.model,sections:section(saved.focus||[]),generatedAt:saved.at,...(saved.model===BRIEFING_RULE_MODEL?{providerStatus:saved.providerStatus}: {})});
   }
   if(saved?.until>now)return json({...base,status:saved.status==='pending'?'pending':'unavailable',
    reason:saved.reason||'',retryAfter:saved.status==='pending'?3:300});
@@ -152,11 +153,20 @@ export async function handleSeismicInsightInObject(request,env,storage,{
   await storage.put(key,{status:'pending',until:now+2*MIN});
   const job=(async()=>{
    let model='validated-science-v1',focus=[];
+   const providerStatus={};
    try{
-    const result=await selectWithFallback(env,context,prompt,fetchGemini,SEISMIC_WORKERS_MODEL);
+    const result=await selectWithFallback(env,context,prompt,fetchGemini,{
+     workersModel:SEISMIC_WORKERS_MODEL,geminiModel:SEISMIC_GEMINI_MODEL,
+     onFailure(provider,error){
+      const status=Number(error?.status);
+      providerStatus[provider]=[400,401,403,404,429,500,502,503,504].includes(status)?'http-'+status:
+       error?.message==='invalid'?'invalid-selection':
+       error?.message==='timeout'||error?.name==='AbortError'?'timeout':'provider-error';
+     }
+    });
     model=result.model;focus=result.facts;
    }catch{ /* Keep fully grounded scientific report even when both LLMs fail. */ }
-   try{await storage.put(key,{status:'ready',focus,model,at:now,until:now+(model===BRIEFING_RULE_MODEL||model==='validated-science-v1'?MIN:15*MIN)});}catch{}
+   try{await storage.put(key,{status:'ready',focus,model,providerStatus,at:now,until:now+(model===BRIEFING_RULE_MODEL||model==='validated-science-v1'?MIN:15*MIN)});}catch{}
   })();
   waitUntil(job);
   return json({...base,status:'pending',retryAfter:3});

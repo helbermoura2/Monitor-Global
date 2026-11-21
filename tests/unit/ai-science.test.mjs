@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {project30,handleRainOutlook,handleSeismicInsightInObject,SEISMIC_WORKERS_MODEL} from '../../worker/ai-science.mjs';
+import {project30,handleRainOutlook,handleSeismicInsightInObject,SEISMIC_WORKERS_MODEL,SEISMIC_GEMINI_MODEL} from '../../worker/ai-science.mjs';
 const now=Date.parse('2026-11-08T20:35:00Z'),MIN=60000;
 const stamp=Math.floor(now/MIN)*MIN;
 function rain(){
@@ -55,8 +55,8 @@ test('scientific interpretation has source lineage and no unverified damages or 
 });
 test('AI selects ONLY emphasis IDs; explanations remain source-verified even on model failure',async()=>{
  const storage=store(),jobs=[];let calls=0;
- const env={GEMINI_API_KEY:"test",AI:{run:async(model,args)=>{calls++;assert.equal(model,SEISMIC_WORKERS_MODEL);assert.equal(args.response_format.type,"json_object");assert.match(args.messages[1].content,/Dados e opções/);return {response:'{"facts":["depth","shaking"]}'};}}};
- const options={now,waitUntil:j=>jobs.push(j),readFeed:reading(feed()),fetchGemini:async()=>new Response(null,{status:503})};
+ const env={GEMINI_API_KEY:"test",AI:{run:async(model,args)=>{calls++;assert.equal(model,SEISMIC_WORKERS_MODEL);assert.match(args.messages[1].content,/Dados e opções/);return {response:'{"facts":["depth","shaking"]}'};}}};
+ const options={now,waitUntil:j=>jobs.push(j),readFeed:reading(feed()),fetchGemini:async url=>{assert.ok(url.includes(SEISMIC_GEMINI_MODEL));return new Response(null,{status:503});}};
  let r=await(await handleSeismicInsightInObject(req('?id=USGS%3Aus7000test'),env,storage,options)).json();
  assert.equal(r.status,'pending');assert.equal(jobs.length,1);
  await Promise.all(jobs);
@@ -96,6 +96,7 @@ test('small earthquake with depth zero prioritizes uncertainty when models fail'
  assert.equal(pending.status,'pending');await Promise.all(jobs);
  const report=await(await handleSeismicInsightInObject(request,env,storage,options)).json();
  assert.equal(report.model,'validated-facts-v1');
+ assert.deepEqual(report.providerStatus,{workersAi:'invalid-selection'});
  assert.equal(report.sections.find(x=>x.id==='depth').focus,true);
  assert.match(report.sections.find(x=>x.id==='depth').text,/arredondamento/);
  assert.equal(report.sections.find(x=>x.id==='tsunami').focus,false);

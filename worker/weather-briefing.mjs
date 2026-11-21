@@ -87,18 +87,18 @@ export function parseBriefingSelection(result,context){
 function renderFacts(keys,context){let out='';for(const key of keys){const next=(out?out+' ':'')+context.facts[key];if(next.length<=185)out=next;}return out;}
 
 /** Fixed-place, verified IDs only. The API key is a Cloudflare secret. */
-export async function geminiSelection(env,context,prompt,fetcher=fetch){
+export async function geminiSelection(env,context,prompt,fetcher=fetch,model=GEMINI_MODEL){
  if(typeof env.GEMINI_API_KEY!=='string'||!env.GEMINI_API_KEY.trim())throw Error('gemini-unconfigured');
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),11000);
  try{
-  const response=await fetcher('https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_MODEL+':generateContent',{
+  const response=await fetcher('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{
    method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},
    signal:controller.signal,
    body:JSON.stringify({
     systemInstruction:{parts:[{text:'Select only verified IDs from the supplied '+(context.kind==='seismic'?'earthquake':'weather')+' facts. Reply only as JSON {"facts":["id"]}. No new text, measurements, warning levels or predictions.'}]},
     contents:[{role:'user',parts:[{text:prompt}]}],
     generationConfig:{
-     thinkingConfig:{thinkingLevel:'LOW'},
+     thinkingConfig:{thinkingLevel:context.kind==='seismic'?'MINIMAL':'LOW'},
      maxOutputTokens:1024,
      responseMimeType:'application/json',
      responseJsonSchema:{
@@ -109,7 +109,7 @@ export async function geminiSelection(env,context,prompt,fetcher=fetch){
     }
    })
   });
-  if(!response.ok)throw Error('gemini-unavailable');
+  if(!response.ok)throw Object.assign(Error('gemini-unavailable'),{status:response.status});
   if(Number(response.headers?.get?.('content-length')||0)>6000)throw Error('gemini-size');
   const raw=await response.text();if(raw.length>6000)throw Error('gemini-size');
   let payload;try{payload=JSON.parse(raw);}catch{throw Error('gemini-response');}
@@ -128,7 +128,7 @@ async function workersSelection(env,context,prompt,model){
    env.AI.run(model,{messages:[
     {role:'system',content:'Select one or two IDs only from '+JSON.stringify(context.keys)+'. Return compact JSON, for example '+JSON.stringify({facts:context.keys.slice(0,1)})+'. Never return explanations or fact sentences.'},
     {role:'user',content:prompt}
-   ],temperature:0,max_tokens:96,...(context.kind==='seismic'?{response_format:{type:'json_object'}}:{})}),
+   ],temperature:0,max_tokens:96}),
    new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),12000);})
   ]);
   const facts=parseBriefingSelection(result,context);
@@ -152,16 +152,16 @@ export function verifiedRuleSelection(context){
  if(!validated)throw Error('invalid');
  return {facts:validated,model:BRIEFING_RULE_MODEL};
 }
-export async function selectWithFallback(env,context,prompt,fetchGemini=fetch,workersModel=BRIEFING_MODEL){
+export async function selectWithFallback(env,context,prompt,fetchGemini=fetch,{workersModel=BRIEFING_MODEL,geminiModel=GEMINI_MODEL,onFailure}={}){
  // No model needs to choose between just one verified scientific statement.
  if(context.keys?.length===1)return verifiedRuleSelection(context);
  if(env.GEMINI_API_KEY){
-  try{return {facts:await geminiSelection(env,context,prompt,fetchGemini),model:GEMINI_MODEL};}
-  catch{ /* Gemini failed: attempt Workers AI once, never reuse unverified text. */ }
+  try{return {facts:await geminiSelection(env,context,prompt,fetchGemini,geminiModel),model:geminiModel};}
+  catch(error){onFailure?.('gemini',error);}
  }
  if(env.AI){
   try{return {facts:await workersSelection(env,context,prompt,workersModel),model:workersModel};}
-  catch{ /* Workers AI failed: never block a deterministic verified insight. */ }
+  catch(error){onFailure?.('workersAi',error);}
  }
  return verifiedRuleSelection(context);
 }
