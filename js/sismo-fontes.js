@@ -640,7 +640,10 @@ async function fetchIGPData() {
             return Date.UTC(dia.getUTCFullYear(), dia.getUTCMonth(), dia.getUTCDate(),
                 Number(hm[1]) + 5, Number(hm[2]), Number(hm[3]));
         },
-        place: (f,p) => p.ref || (p.departamento ? `Peru, ${p.departamento}` : 'Peru'),
+        place: (f,p) => {
+            const reference = p.ref || p.departamento || 'Peru';
+            return window.EventPortuguese?.peruPlace(reference) || reference;
+        },
         detailUrl: () => 'https://ultimosismo.igp.gob.pe/'
     });
 }

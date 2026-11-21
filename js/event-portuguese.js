@@ -31,6 +31,21 @@ function place(value){
  for(const [re,to] of countryRules)s=s.replace(re,to);
  return remember(placeMemo,original,s.trim());
 }
+function peruPlace(value){
+ const translated=place(value);
+ const withoutCountry=translated.replace(/^(?:Peru)\s*,\s*/i,'').replace(/(?:,|[—–-])\s*Peru$/i,'');
+ const parts=withoutCountry.split(/,\s*|\s+[—–-]\s+/);
+ const cleaned=[];
+ for(const part of parts){
+  if(!part.trim())continue;
+  const previous=cleaned.at(-1);
+  const key=text=>text.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().trim();
+  if(previous&&(key(previous)===key(part)||key(previous).endsWith(' de '+key(part))))continue;
+  cleaned.push(part.trim());
+ }
+ const title=cleaned.join(', ');
+ return !title||/^peru$/i.test(title)?'Peru':title+', Peru';
+}
 // Only format presentation values; source numbers and identifiers stay numeric.
 const numberFormats=new Map();
 function number(value,digits=0){
@@ -68,7 +83,7 @@ function local(value){const original=String(value??'');if(localMemo.has(original
 function foreign(value){return /\b(?:the|with|without|issued|until|from|between|along|across|hazardous|possible|waves|earthquake|warning|watch|advisory|eruption|eruptive|erupting|ash|plume|lava lake|action|needed|emission|report|unrest|reported|detected|continues|occupies|crater|vents|depth|intensity|magnitude|estimated|statement|affected|flooding|damaging|winds|thunderstorms|rainfall|residents|evacuate|remain|located|miles|above|below|this|these|that|there|been|will|would|may|was|were|are|not|and|but|sismo de magnitud|profundidad|fuerte|peligro|lluvias|sequia|nord|ouest|est de|sud de)\b/i.test(String(value||''));}
 function text(value){const s=String(value??'');if(cache.has(s))return cache.get(s);const translated=local(s);return foreign(translated)?'Tradução do boletim em andamento. Consulte a fonte oficial.':translated;}
 const fields=['detail','warningDescription','warningInstruction','bulletinSummary','eruptionStatus','vulcanicActivity','activityStatus','ashStatus','ashHeight','vonaRemarks','vonaMovement','vonaDuration','locationNote','descOnly','observatory'];
-function view(item){if(!item)return item;const next={...item,_translatedAutomatically:fields.some(k=>typeof item[k]==='string'&&cache.has(item[k]))};if(item.type==='volcano')next._volcanoActivitySource=item._volcanoActivitySource||Object.fromEntries(['eruptionStatus','activityStatus','vulcanicActivity','ashStatus','vonaRemarks','detail','ashHeight'].map(k=>[k,item[k]]));for(const k of ['place','pais','basin','displayLabel','severityLabel','warningLevel','usgsAlertLevel','warningEvent','event','cycloneLabel','source'])if(typeof next[k]==='string')next[k]=local(next[k]);for(const k of fields)if(typeof next[k]==='string')next[k]=text(next[k]);if(next.movementInfo)next.movementInfo={...next.movementInfo,compass:directions[next.movementInfo.compass]||local(next.movementInfo.compass||'')};return next;}
+function view(item){if(!item)return item;const next={...item,_translatedAutomatically:fields.some(k=>typeof item[k]==='string'&&cache.has(item[k]))};if(item.type==='volcano')next._volcanoActivitySource=item._volcanoActivitySource||Object.fromEntries(['eruptionStatus','activityStatus','vulcanicActivity','ashStatus','vonaRemarks','detail','ashHeight'].map(k=>[k,item[k]]));for(const k of ['place','pais','basin','displayLabel','severityLabel','warningLevel','usgsAlertLevel','warningEvent','event','cycloneLabel','source'])if(typeof next[k]==='string')next[k]=local(next[k]);for(const k of fields)if(typeof next[k]==='string')next[k]=text(next[k]);if(next.place&&(String(item.countryCode||'').toUpperCase()==='PE'||item.pais==='Peru'||item.source==='IGP'))next.place=peruPlace(next.place);if(next.movementInfo)next.movementInfo={...next.movementInfo,compass:directions[next.movementInfo.compass]||local(next.movementInfo.compass||'')};return next;}
 async function ensure(item){
  if(!root.document||!item)return false;
  const values=[...new Set(fields.map(k=>item[k]).filter(s=>typeof s==='string'&&s.trim()&&foreign(local(s))&&!cache.has(s)&&Date.now()>=(retryAfter.get(s)||0)))];
@@ -77,6 +92,6 @@ async function ensure(item){
  const promise=(async()=>{let changed=false;for(let i=0;i<values.length;i+=6){const batch=values.slice(i,i+6);batch.forEach(s=>retryAfter.set(s,Date.now()+300000));while(retryAfter.size>512)retryAfter.delete(retryAfter.keys().next().value);try{const base=typeof workerBaseUrl==='function'?workerBaseUrl():'';if(!base)return changed;const c=new AbortController(),timer=setTimeout(()=>c.abort(),20000);try{const r=await fetch(base+'/translate-pt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texts:batch}),signal:c.signal});if(!r.ok)continue;const d=await r.json();d.translations?.forEach((t,n)=>{if(t&&batch[n]){cache.set(batch[n],t);retryAfter.delete(batch[n]);changed=true;}else if(batch[n])retryAfter.set(batch[n],Date.now()+300000);});while(cache.size>512)cache.delete(cache.keys().next().value);}finally{clearTimeout(timer);}}catch(e){console.warn('[tradução do boletim]',e.message);}}return changed;})().finally(()=>inflight.delete(key));
  inflight.set(key,promise);return promise;
 }
-root.EventPortuguese={place,local,text,speech,number,revision,view,ensure,foreign,directions,kinds:{earthquake:'Sismo',hurricane:'Ciclone',storm:'Tempestade',volcano:'Vulcão',fire:'Incêndio',flood:'Enchente',wind:'Vento',tornado:'Tornado',tsunami:'Tsunami',civil:'Alerta da Defesa Civil'}};
+root.EventPortuguese={place,peruPlace,local,text,speech,number,revision,view,ensure,foreign,directions,kinds:{earthquake:'Sismo',hurricane:'Ciclone',storm:'Tempestade',volcano:'Vulcão',fire:'Incêndio',flood:'Enchente',wind:'Vento',tornado:'Tornado',tsunami:'Tsunami',civil:'Alerta da Defesa Civil'}};
 })(globalThis);
 

@@ -16,7 +16,14 @@ import org.robolectric.annotation.*;
 /** Native phone layout and navigation, with local fixtures and no network. */
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35,qualifiers="w360dp-h800dp-port-mdpi") @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class PhoneActivityTest {
- public static class LocalActivity extends PhoneActivity {@Override protected boolean automaticRefresh(){return false;} @Override boolean shareSiteCard(Alert event){return false;}}
+ public static class LocalActivity extends PhoneActivity {@Override protected boolean automaticRefresh(){return false;} @Override void shareSiteCard(Alert event){
+  Bitmap sample=Bitmap.createBitmap(1080,1920,Bitmap.Config.ARGB_8888);
+  try(java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream()){
+   sample.compress(Bitmap.CompressFormat.PNG,100,output);
+   sendEvent(event,EventShareCard.fromSite(this,output.toByteArray()));
+  }catch(java.io.IOException e){throw new AssertionError(e);}
+  finally{sample.recycle();}
+ }}
  private ActivityController<LocalActivity> controller;private LocalActivity activity;
  @Before public void setup(){controller=Robolectric.buildActivity(LocalActivity.class).create().start().resume().visible();activity=controller.get();}
  @After public void cleanup(){controller.pause().stop().destroy();}
@@ -79,7 +86,8 @@ public class PhoneActivityTest {
   try(java.io.InputStream input=activity.getContentResolver().openInputStream(image)){
    Bitmap card=BitmapFactory.decodeStream(input);
    assertNotNull(card);
-   assertEquals(960,card.getWidth());
+   assertEquals(1080,card.getWidth());
+   assertEquals(1920,card.getHeight());
    card.recycle();
   }
   activity.onBackPressed();assertTrue(texts(root()).contains("Monitoramento agora"));

@@ -288,12 +288,16 @@ public class PhoneActivity extends Activity {
   body.setBackgroundColor(BACK);
   LinearLayout sections=new LinearLayout(this);
   sections.setOrientation(LinearLayout.VERTICAL);
-  TextView status=text("",14,MUTED,4);
-  Button consult=button("Destacar pontos com IA",()->{});
-  space(body,consult,4);
+  space(body,text("Dados do catálogo",17,CYAN,2),6);
+  space(body,text(source(a)+" · "+magnitude(a)+" · "+depth(a),15,TEXT,5),5);
+  space(body,text("Seleção da IA",17,CYAN,2),16);
+  TextView status=text("A IA escolhe os tópicos mais relevantes para este sismo.",14,MUTED,5);
+  status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+  Button consult=button("Pedir seleção à IA",()->{});
   space(body,status,6);
+  space(body,consult,8);
   body.addView(sections);
-  renderSeismicContext(sections,a,List.of());
+  renderSeismicContext(sections,a);
   ScrollView scroll=new ScrollView(this);
   scroll.addView(body);
   android.app.AlertDialog dialog=new android.app.AlertDialog.Builder(this).setTitle("Entenda este sismo")
@@ -301,7 +305,7 @@ public class PhoneActivity extends Activity {
   Future<?>[] inquiry={null};
   consult.setOnClickListener(v->{
    consult.setEnabled(false);
-   status.setText("Consultando a análise do catálogo…");
+   status.setText("A IA está selecionando os tópicos…");
    if(worker==null)worker=Executors.newSingleThreadExecutor();
    inquiry[0]=worker.submit(()->{
     PhoneSeismicInsight.Report report;
@@ -311,38 +315,41 @@ public class PhoneActivity extends Activity {
     PhoneSeismicInsight.Report result=report;
     main.post(()->{
      if(destroyed||!dialog.isShowing())return;
-     boolean highlighted=renderSeismicContext(sections,a,result.topics);
-     if(result.model&&highlighted)status.setText("A IA priorizou os pontos destacados com base no catálogo.");
-     else if(highlighted)status.setText("O serviço retornou destaques por regras científicas. A IA pode ser consultada novamente.");
-     else status.setText("O serviço não retornou destaques para este registro. A análise local está abaixo.");
-     consult.setEnabled(!result.model||!highlighted);
+     List<String> selection=result.model?seismicSelection(a,result.topics):List.of();
+     if(!selection.isEmpty()){
+      status.setText("Tópicos selecionados pela IA\n• "+String.join("\n• ",selection));
+      consult.setText("Seleção concluída");
+     }else{
+      status.setText("A seleção da IA está indisponível. As explicações do Argos Orbis estão abaixo.");
+      consult.setEnabled(true);
+     }
     });
    });
   });
   dialog.setOnDismissListener(d->{if(inquiry[0]!=null)inquiry[0].cancel(true);});
   dialog.show();
+  if(dialog.getWindow()!=null)dialog.getWindow().setBackgroundDrawable(pill(BACK));
  }
 
- private boolean renderSeismicContext(LinearLayout sections,Alert a,List<String> focus){
-  sections.removeAllViews();
-  List<String[]> items=SeismicContext.sections(a);
-  List<String[]> highlights=new ArrayList<>();
-  for(String[] item:items){
+ private List<String> seismicSelection(Alert a,List<String> focus){
+  List<String> highlights=new ArrayList<>();
+  for(String[] item:SeismicContext.sections(a)){
    String title=item[0];
    if((title.startsWith("Onde")&&(focus.contains("size")||focus.contains("shaking")))||
       (title.startsWith("Como a profundidade")&&focus.contains("depth"))||
       (title.startsWith("O que significa")&&focus.contains("revisions"))||
       (title.startsWith("Como verificar")&&(focus.contains("science")||focus.contains("revisions")))||
-      (title.startsWith("Como interpretar")&&focus.contains("tsunami")))highlights.add(item);
+      (title.startsWith("Como interpretar")&&focus.contains("tsunami")))highlights.add(title);
   }
-  for(String[] item:highlights)addSeismicSection(sections,item,true);
-  for(String[] item:items)if(!highlights.contains(item))addSeismicSection(sections,item,false);
-  return !highlights.isEmpty();
+  return highlights;
  }
 
- private void addSeismicSection(LinearLayout container,String[] item,boolean highlighted){
-  space(container,text((highlighted?"Destaque · ":"")+item[0],18,CYAN,4),12);
-  space(container,text(item[1],16,TEXT,16),4);
+ private void renderSeismicContext(LinearLayout sections,Alert a){
+  space(sections,text("Explicações científicas · Argos Orbis",17,CYAN,3),18);
+  for(String[] item:SeismicContext.sections(a)){
+   space(sections,text(item[0],18,TEXT,4),12);
+   space(sections,text(item[1],16,MUTED,16),4);
+  }
  }
 
  private void detail(LinearLayout parent,int kind,String value){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(8);parent.addView(row,rp);row.addView(new PhoneIcons(this,kind,MUTED),new LinearLayout.LayoutParams(dp(24),dp(24)));TextView t=text(value,18,TEXT,5);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginStart(dp(10));row.addView(t,lp);}
@@ -464,36 +471,29 @@ public class PhoneActivity extends Activity {
  }
  private void share(Alert a){
   if(siteImage!=null)return;
-  if((a.kind.equals("earthquake")||a.kind.equals("tsunami"))&&shareSiteCard(a))return;
-  sendEvent(a,null,true);
+  shareSiteCard(a);
  }
 
- boolean shareSiteCard(Alert event){
+ void shareSiteCard(Alert event){
   Toast.makeText(this,"Preparando o cartão com mapa…",Toast.LENGTH_SHORT).show();
   siteImage=new SiteEventImage(this,event,uri->{
    siteImage=null;
-   if(active&&!destroyed)sendEvent(event,uri,false);
+   if(active&&!destroyed){
+    if(uri!=null)sendEvent(event,uri);
+    else Toast.makeText(this,"Não foi possível preparar o cartão cartográfico. Tente novamente.",Toast.LENGTH_LONG).show();
+   }
   });
-  return true;
  }
 
- private void sendEvent(Alert a,Uri siteCard,boolean allowLegacyImage){
+ void sendEvent(Alert a,Uri image){
   boolean quake=a.kind.equals("earthquake");
-  String kind=quake?"REGISTRO SÍSMICO":tsunamiState(a.state);
   String timestamp=eventTime(a)>0?BrDates.dateTime(eventTime(a)):"Horário indisponível";
   String[] facts=quake?new String[]{depth(a),timestamp,source(a)}:new String[]{timestamp,source(a)};
   String caption=a.title+"\n"+String.join("\n",facts);
   Intent send=new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_SUBJECT,"Argos Orbis · "+a.title);
-  try{
-   if(siteCard==null&&!allowLegacyImage)throw new java.io.IOException("Cartão cartográfico indisponível");
-   Uri image=siteCard!=null?siteCard:EventShareCard.create(this,kind,quake?location(a):a.title,quake?magnitude(a):"",facts,brand);
-   send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
-    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-   send.setClipData(android.content.ClipData.newRawUri("Cartão do evento",image));
-  }catch(java.io.IOException | IllegalArgumentException e){
-   send.setType("text/plain").putExtra(Intent.EXTRA_TEXT,caption+"\nhttps://argosorbis.com.br/");
-   Toast.makeText(this,"Imagem indisponível. Você pode compartilhar o texto.",Toast.LENGTH_SHORT).show();
-  }
+  send.setType("image/png").putExtra(Intent.EXTRA_STREAM,image).putExtra(Intent.EXTRA_TEXT,caption)
+   .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+  send.setClipData(android.content.ClipData.newRawUri("Cartão do evento",image));
   try{startActivity(Intent.createChooser(send,"Compartilhar evento"));}
   catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Nenhum aplicativo disponível para compartilhar.",Toast.LENGTH_LONG).show();}
  }

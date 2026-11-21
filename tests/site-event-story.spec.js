@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v9');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v10');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -186,8 +186,10 @@ test('Android image bridge exports a tsunami bulletin without invented coordinat
  expect(bytes.readUInt32BE(20)).toBe(1920);
 });
 
-test('A fresh click shares the PNG if generation outlasts the initial gesture',async({page})=>{
+test('A fresh click shares the PNG from the centered dialog',async({page})=>{
+ await page.setViewportSize({width:390,height:820});
  await page.goto('/404.html');
+ await page.addStyleTag({url:'/css/optional-features.css'});
  await page.addScriptTag({url:'/js/story-share.js'});
  await page.evaluate(()=>{
   window.SiteEventStory={render:async()=>Object.assign(document.createElement('canvas'),{width:1080,height:1920})};
@@ -199,7 +201,10 @@ test('A fresh click shares the PNG if generation outlasts the initial gesture',a
   }});
   void window.shareEventAsStory({id:'fixture',type:'tsunami',place:'Costa do Pacífico'});
  });
- const dialog=page.getByRole('dialog',{name:'Imagem do evento pronta'});
+ const dialog=page.getByRole('dialog',{name:'Imagem pronta para compartilhar'});
+ const box=await dialog.boundingBox();
+ expect(Math.abs(box.x+box.width/2-195)).toBeLessThan(2);
+ expect(Math.abs(box.y+box.height/2-410)).toBeLessThan(2);
  await dialog.getByRole('button',{name:'Compartilhar'}).click();
  await expect(dialog).toHaveCount(0);
  expect(await page.evaluate(()=>window.sharedFile)).toEqual({name:'evento-tsunami-fixture.png',type:'image/png',active:true});
@@ -242,4 +247,51 @@ test('Brazil share map paints IBGE municipal boundaries and shades the edges',as
  expect(rendered.texts.join(' ')).toContain('Limites municipais: IBGE');
  expect(rendered.center-rendered.edge).toBeGreaterThan(45);
  }
+});
+
+test('Video uses the same centered share dialog and shares a video file',async({page})=>{
+ await page.setViewportSize({width:390,height:820});
+ await page.goto('/404.html');
+ await page.addStyleTag({url:'/css/optional-features.css'});
+ await page.addScriptTag({url:'/js/story-share.js'});
+ await page.evaluate(()=>{
+  Object.defineProperty(navigator,'userActivation',{value:{isActive:false}});
+  Object.defineProperty(navigator,'canShare',{value:()=>true});
+  Object.defineProperty(navigator,'share',{value:async({files})=>{window.sharedVideo=files[0].type;}});
+  void window.presentEventShareFile(new Blob(['fixture'],{type:'video/webm'}),'argos.webm','Vídeo','Junín, Peru');
+ });
+ const dialog=page.getByRole('dialog',{name:'Vídeo pronto para compartilhar'});
+ const box=await dialog.boundingBox();
+ expect(Math.abs(box.y+box.height/2-410)).toBeLessThan(2);
+ await dialog.getByRole('button',{name:'Compartilhar'}).click();
+ await expect(dialog).toHaveCount(0);
+ expect(await page.evaluate(()=>window.sharedVideo)).toBe('video/webm');
+});
+
+test('Packaged Android renderer retries the compass card without network maps',async({page})=>{
+ await page.route('https://server.arcgisonline.com/**',route=>route.abort());
+ await page.route('https://black-sky-9ba0.terrestre.workers.dev/**',route=>route.abort());
+ await page.goto('/mobile-event-image.html');
+ const result=await page.evaluate(async()=>{
+  const originalRender=SiteEventStory.render;
+  const attempts=[],labels=[];
+  CanvasRenderingContext2D.prototype.roundRect=undefined;
+  const draw=CanvasRenderingContext2D.prototype.fillText;
+  CanvasRenderingContext2D.prototype.fillText=function(value,...args){labels.push(value);return draw.call(this,value,...args);};
+  SiteEventStory.render=(event,options)=>{
+   attempts.push(options.skipNetworkMaps);
+   if(!options.skipNetworkMaps)throw Error('Primeira tentativa indisponível');
+   return originalRender(event,options);
+  };
+  await ArgosMobileImage.render({type:'earthquake',coords:[-76.19,-10.97],mag:6.7,depth:10,countryCode:'PE',source:'IGP',place:'30 km a noroeste de Junín, Junín - Junín'});
+  const length=ArgosMobileImage.status();
+  let png='';
+  for(let offset=0;offset<length;offset+=64000)png+=ArgosMobileImage.chunk(offset);
+  return {attempts,labels,png};
+ });
+ expect(result.attempts).toEqual([false,true]);
+ expect(result.labels).toEqual(expect.arrayContaining(['30 km a noroeste de Junín,','Peru','S','L','O']));
+ const bytes=Buffer.from(result.png,'base64');
+ expect(bytes.readUInt32BE(16)).toBe(1080);
+ expect(bytes.readUInt32BE(20)).toBe(1920);
 });

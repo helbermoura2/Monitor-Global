@@ -4,6 +4,25 @@
   let image = '';
   let state = 'idle';
 
+  async function encode(canvas) {
+    const blob = await new Promise(resolve => {
+      const timer = setTimeout(() => resolve(null), 1400);
+      try {
+        canvas.toBlob(result => { clearTimeout(timer); resolve(result); }, 'image/png');
+      } catch {
+        clearTimeout(timer);
+        resolve(null);
+      }
+    });
+    if (!blob) return canvas.toDataURL('image/png');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
   window.ArgosMobileImage = {
     async render(record) {
       if (state !== 'idle') return;
@@ -16,20 +35,29 @@
           try {
             record.shaking = await Promise.race([
               controller.query(record),
-              new Promise(resolve => { timer = setTimeout(() => resolve(null), 2400); })
+              new Promise(resolve => { timer = setTimeout(() => resolve(null), 1800); })
             ]);
+          } catch {
+            record.shaking = null;
           } finally {
             clearTimeout(timer);
             controller.cancel();
           }
         }
-        const canvas = await window.SiteEventStory.render(record, { allowMissingMap: true });
-        const url = canvas.toDataURL('image/png');
-        if (!url.startsWith('data:image/png;base64,') || url.length > MAX_LENGTH) {
-          throw Error('Imagem indisponível');
+        for (const skipNetworkMaps of [false, true]) {
+          try {
+            const canvas = await window.SiteEventStory.render(record, { allowMissingMap: true, skipNetworkMaps });
+            const url = await encode(canvas);
+            const prefix = 'data:image/png;base64,';
+            if (typeof url !== 'string' || !url.startsWith(prefix) || url.length > MAX_LENGTH) continue;
+            image = url.slice(prefix.length);
+            state = 'ready';
+            return;
+          } catch {
+            // Retry the same cartographic template using bundled assets only.
+          }
         }
-        image = url.slice('data:image/png;base64,'.length);
-        state = 'ready';
+        state = 'failed';
       } catch {
         state = 'failed';
       }

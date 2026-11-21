@@ -1825,6 +1825,72 @@
     return { cidades: [], reserva: true };
   }
 
+  async function presentShareFile(blob, fileName, label, caption) {
+    const file = new File([blob], fileName, { type: blob.type.split(';', 1)[0] });
+    const shareData = {
+      files: [file],
+      title: 'Argos Orbis',
+      text: caption
+    };
+    const download = () => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 8000);
+    };
+    if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
+      download();
+      return;
+    }
+    const share = async () => {
+      try {
+        await navigator.share(shareData);
+        return true;
+      } catch (error) {
+        if (error.name === 'AbortError') return true;
+        if (error.name === 'NotAllowedError') return false;
+        download();
+        return true;
+      }
+    };
+    // Map requests can outlast the browser's initial touch activation.
+    if (navigator.userActivation?.isActive !== false && await share()) return;
+    const dialog = document.createElement('dialog');
+    if (typeof dialog.showModal !== 'function') { download(); return; }
+    dialog.className = 'event-share-dialog';
+    const message = document.createElement('h2');
+    message.textContent = label === 'Vídeo' ? 'Vídeo pronto para compartilhar' : 'Imagem pronta para compartilhar';
+    dialog.setAttribute('aria-label', message.textContent);
+    const actions = document.createElement('form');
+    actions.method = 'dialog';
+    const shareButton = document.createElement('button');
+    shareButton.type = 'button';
+    shareButton.textContent = 'Compartilhar';
+    shareButton.addEventListener('click', async () => {
+      shareButton.disabled = true;
+      try {
+        if (!(await share())) download();
+        dialog.close();
+      } finally { shareButton.disabled = false; }
+    });
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.textContent = 'Baixar';
+    saveButton.addEventListener('click', () => { download(); dialog.close(); });
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Fechar';
+    actions.append(shareButton, saveButton, closeButton);
+    dialog.append(message, actions);
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  }
+  window.presentEventShareFile = presentShareFile;
+
   let storyBusy = false;
 
   async function shareEventAsStory(item) {
@@ -1845,63 +1911,7 @@
       const blob = await comTimeout(canvasToBlob(canvas), 6000, 'exportação da imagem demorou demais');
       if (!blob || !blob.size) throw new Error('blob vazio');
       const fileName = `evento-${(item.type || 'evento')}-${String(item.id || Date.now()).replace(/[^\w.-]+/g, '_')}.png`;
-      const file = new File([blob], fileName, { type: 'image/png' });
-      const shareData = {
-        files: [file],
-        title: 'Argos Orbis',
-        text: `${titleForItem(item)} — ${item.place || ''}`
-      };
-      const download = () => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 8000);
-        window.showToast?.('Imagem salva nos downloads.', 'info');
-      };
-      if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
-        download();
-        return;
-      }
-      const share = async () => {
-        try {
-          await navigator.share(shareData);
-          return true;
-        } catch (error) {
-          if (error.name === 'AbortError') return true;
-          if (error.name === 'NotAllowedError') return false;
-          download();
-          return true;
-        }
-      };
-      // Map requests can outlast the browser's initial touch activation.
-      if (navigator.userActivation?.isActive !== false && await share()) return;
-      const dialog = document.createElement('dialog');
-      dialog.setAttribute('aria-label', 'Imagem do evento pronta');
-      const message = document.createElement('p');
-      message.textContent = 'Imagem pronta para compartilhar.';
-      const actions = document.createElement('form');
-      actions.method = 'dialog';
-      const shareButton = document.createElement('button');
-      shareButton.type = 'button';
-      shareButton.textContent = 'Compartilhar';
-      shareButton.addEventListener('click', async () => {
-        shareButton.disabled = true;
-        try {
-          if (!(await share())) download();
-          dialog.close();
-        } finally { shareButton.disabled = false; }
-      });
-      const closeButton = document.createElement('button');
-      closeButton.textContent = 'Fechar';
-      actions.append(shareButton, closeButton);
-      dialog.append(message, actions);
-      dialog.addEventListener('close', () => dialog.remove(), { once: true });
-      document.body.appendChild(dialog);
-      dialog.showModal();
+      await presentShareFile(blob, fileName, 'Imagem', `${titleForItem(item)} — ${item.place || ''}`);
     } catch (e) {
       if (e && e.name !== 'AbortError' && typeof showToast === 'function') {
         showToast(e?.code === 'STORY_MAP_UNAVAILABLE' ? e.message : 'Não consegui gerar a imagem pra compartilhar. Tenta de novo?', 'error');

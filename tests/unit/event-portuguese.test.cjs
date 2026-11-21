@@ -43,3 +43,11 @@ test('distance descriptors translate full and partially translated compound comp
   ['30 km a sudeste de Tauranga, Nova Zelândia','30 km a sudeste de Tauranga, Nova Zelândia']
  ]){assert.equal(p.place(input),expected);assert.equal(p.place(expected),expected);}
 });
+
+test('Peruvian administrative repetitions are cleaned while preserving distance and other places',()=>{
+ const dirty='30 km a noroeste de Junín, Junín - Junín';
+ assert.equal(p.peruPlace(dirty),'30 km a noroeste de Junín, Peru');
+ assert.equal(p.peruPlace('9 km NE of Carhuamayo, Peru'),'9 km a nordeste de Carhuamayo, Peru');
+ assert.equal(p.view({source:'IGP',place:dirty}).place,'30 km a noroeste de Junín, Peru');
+ assert.equal(p.view({source:'USGS',place:'Junín, Argentina'}).place,'Junín, Argentina');
+});

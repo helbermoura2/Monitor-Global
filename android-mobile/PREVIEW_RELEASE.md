@@ -1,4 +1,9 @@
-# Argos Orbis Celular · 0.1.34 de teste
+# Argos Orbis Celular · 0.1.35 de teste
+
+- A análise sísmica identifica os dados do catálogo, os tópicos selecionados pela IA e as explicações científicas do Argos Orbis.
+- O compartilhamento de eventos abre o seletor do Android com o PNG cartográfico. O renderizador tenta novamente com a arte incluída no app se a primeira geração falhar.
+
+## Argos Orbis Celular · 0.1.34 de teste
 
 - O cartão cartográfico de compartilhamento vem incluído no aplicativo. Os mapas continuam sendo consultados no momento da geração.
 
