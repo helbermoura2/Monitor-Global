@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.38 de teste
+
+- O replay mostra a evolução do modelo oficial de ruptura ou revela as áreas por intensidade do ShakeMap, conforme os dados disponíveis.
+
 # Argos Orbis Celular · 0.1.37 de teste
 
 - O replay mantém o card cartográfico do compartilhamento, com animação contida no mapa.

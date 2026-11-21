@@ -331,3 +331,47 @@ test('Android bridge preserves the video MIME type and bytes',async({page})=>{
  });
  expect(result).toEqual({length:20,mime:'video/webm',bytes:'video-fixture'});
 });
+
+test('replay reveals fault patches in their published time order',async({page})=>{
+ const origin='https://earthquake.usgs.gov';
+ const eventId='us123abc';
+ const modelUrl=origin+'/product/finite-fault/fixture/model.fsp';
+ await page.route(origin+'/fdsnws/event/1/query?*',route=>route.fulfill({json:{
+  id:eventId,geometry:{coordinates:[-76.19,-10.97]},
+  properties:{time:1795219759000,products:{'finite-fault':[
+   {source:'us',status:'UPDATE',contents:{'model.fsp':{url:modelUrl}}}
+  ]}}
+ }}));
+ await page.route(modelUrl,route=>route.fulfill({body:[
+  '% Mech : STRK = 0 DIP = 45',
+  '% Invs : Dx = 6 km Dz = 6 km',
+  '% LAT LON X Y Z SLIP RAKE TRUP RISE',
+  '-10.97 -76.29 0 0 5 3 0 8 2',
+  '-10.97 -76.09 0 0 5 2 0 0 2',
+ ].join('\n')}));
+ await page.goto('/mobile-event-image.html');
+ const output=await page.evaluate(async({eventId})=>{
+  const base=document.createElement('canvas');base.width=720;base.height=1280;
+  const map=base.getContext('2d');map.fillStyle='#557c67';map.fillRect(0,0,720,1280);
+  let frame;
+  SiteEventStory.replayMap=async bounds=>{frame=bounds;return {base,credit:'Esri'};};
+  const item={type:'earthquake',coords:[-76.19,-10.97],mag:6.7,depth:10,place:'Junín, Peru',
+   time:1795219759000,source:'USGS',sourceEventId:eventId};
+  const {scene,draw,timed}=await QuakeSiteVideo.prepare(item);
+  const area=SiteEventStory.mapArea;
+  const color=(lon)=>{
+   const x=(area.x+(lon-frame.minLon)/(frame.maxLon-frame.minLon)*area.width)*2/3;
+   const y=(area.y+(frame.maxLat+10.97)/(frame.maxLat-frame.minLat)*area.height)*2/3;
+   return Array.from(scene.getContext('2d').getImageData(x,y,1,1).data);
+  };
+  const colors=()=>[color(-76.29),color(-76.09)];
+  draw(0);const start=colors();
+  draw(6000);const middle=colors();
+  draw(19500);const end=colors();
+  return {timed,start,middle,end};
+ },{eventId});
+ expect(output.timed).toBe(true);
+ expect(output.middle[0]).toEqual(output.start[0]);
+ expect(output.middle[1]).not.toEqual(output.start[1]);
+ expect(output.end[0]).not.toEqual(output.start[0]);
+});

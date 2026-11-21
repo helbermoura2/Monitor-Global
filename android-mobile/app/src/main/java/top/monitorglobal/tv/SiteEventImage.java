@@ -80,7 +80,7 @@ final class SiteEventImage {
      if(request.isForMainFrame())finish(null);
     }
    });
-   handler.postDelayed(deadline,video?58000:26000);
+   handler.postDelayed(deadline,video?65000:26000);
    web.loadUrl(PAGE);
   }catch(org.json.JSONException | RuntimeException e){
    handler.post(()->finish(null));

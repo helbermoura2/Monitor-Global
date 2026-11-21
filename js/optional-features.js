@@ -131,7 +131,7 @@
    videoButton.disabled=true;videoButton.textContent='Preparando…';
    try{
     await siteImageAssets();
-    await asset('js/quake-site-video.js?v=terrain-replay-v2');
+    await asset('js/quake-site-video.js?v=terrain-replay-v3');
     const {blob,extension}=await window.QuakeSiteVideo.record(item,pct=>{videoButton.textContent='Vídeo '+pct+'%';});
     const filename='argos-orbis-sismo-'+String(item.id||'evento').replace(/[^a-zA-Z0-9_.-]/g,'_')+'.'+extension;
     await window.presentEventShareFile(blob,filename,'Vídeo',item.place||'');
