@@ -23,6 +23,7 @@ public class PhoneActivity extends Activity {
  private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>(16,.75f,true);private ScrollView visibleScroll;private String displayedRoute="";
  private LinearLayout root,header,navigation;private FrameLayout content;private TextView status;private String shownSection="";
  private SiteEventImage siteImage;
+ private android.app.AlertDialog quakeVolumeDialog;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
@@ -64,8 +65,8 @@ public class PhoneActivity extends Activity {
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==77){if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)PhonePush.enable(this,()->{if(!destroyed)render();});else{PhonePush.disable(this);render();}}}
  private Typeface loadBrand(){try{return Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf");}catch(RuntimeException ignored){return Typeface.DEFAULT_BOLD;}}
  @Override protected void onResume(){super.onResume();if(updater!=null)updater.resume();}
- @Override protected void onStart(){super.onStart();active=true;generation++;if(map!=null&&selected==null&&tab.equals("map"))map.resume();if(rainMap!=null&&selected==null&&tab.equals("rain"))rainMap.resume();if(brazilMap!=null&&selected==null&&tab.equals("brazil"))brazilMap.resume();if(automaticRefresh())main.post(pulse);}
- @Override protected void onStop(){rememberScroll();if(siteImage!=null){siteImage.cancel();siteImage=null;}active=false;generation++;refreshing=false;detailLoading=false;nextDetailAttempt=nextDailyAttempt=0;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();if(brazilMap!=null)brazilMap.pause();if(briefing!=null)briefing.pause();super.onStop();}
+ @Override protected void onStart(){super.onStart();PhonePlaceAlerts.sync(this);active=true;generation++;if(map!=null&&selected==null&&tab.equals("map"))map.resume();if(rainMap!=null&&selected==null&&tab.equals("rain"))rainMap.resume();if(brazilMap!=null&&selected==null&&tab.equals("brazil"))brazilMap.resume();if(automaticRefresh())main.post(pulse);}
+ @Override protected void onStop(){if(quakeVolumeDialog!=null)quakeVolumeDialog.dismiss();rememberScroll();if(siteImage!=null){siteImage.cancel();siteImage=null;}active=false;generation++;refreshing=false;detailLoading=false;nextDetailAttempt=nextDailyAttempt=0;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();if(brazilMap!=null)brazilMap.pause();if(briefing!=null)briefing.pause();super.onStop();}
  @Override protected void onDestroy(){destroyed=true;active=false;if(updater!=null)updater.close();if(briefing!=null)briefing.close();generation++;main.removeCallbacksAndMessages(null);if(repository!=null)repository.close();if(worker!=null)worker.shutdownNow();if(map!=null){map.close();map=null;}if(rainMap!=null){rainMap.close();rainMap=null;}if(brazilMap!=null){brazilMap.close();brazilMap=null;}clearFlags();super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){rememberScroll();out.putString("tab",tab);out.putString("returnTab",returnTab);out.putString("mapFilter",mapFilter);out.putString("quakeRegion",quakeRegion);out.putString("mapReturnTab",mapReturnTab);out.putString("settingsReturnTab",settingsReturnTab);out.putString("advancedReturnTab",advancedReturnTab);if(mappedEvent!=null)try{out.putString("mappedEvent",AlertCodec.write(mappedEvent).toString());}catch(org.json.JSONException ignored){}out.putStringArrayList("scrollKeys",new ArrayList<>(scrollPositions.keySet()));out.putIntegerArrayList("scrollPositions",new ArrayList<>(scrollPositions.values()));if(selected!=null)try{out.putString("selected",AlertCodec.write(selected).toString());}catch(org.json.JSONException ignored){}super.onSaveInstanceState(out);}
  private void refresh(boolean force){
@@ -278,6 +279,10 @@ public class PhoneActivity extends Activity {
    analysisBody.addView(button("Entenda este sismo · análise aprofundada",()->showSeismicContext(a)),new LinearLayout.LayoutParams(-1,-2));
   }
   Button mapButton=button("Ver localização no mapa",()->showMapEvent(a));mapButton.setEnabled(MapFrame.located(a.originLongitude,a.originLatitude));page.addView(mapButton,new LinearLayout.LayoutParams(-1,-2));if(!mapButton.isEnabled())copy(page,"Localização no mapa indisponível para este registro.");
+  if(a.kind.equals("earthquake")&&mapButton.isEnabled()){
+   seismicVolumeActions(page,a);
+   space(page,button("Monitorar esta área",()->editSeismicPlace(-1,a)),8);
+  }
   space(page,button("Compartilhar evento",()->share(a)),10);
   if(a.kind.equals("earthquake")&&Double.isFinite(a.magnitude)&&
     MapFrame.located(a.originLongitude,a.originLatitude)&&Math.abs(a.originLatitude)<85&&
@@ -285,6 +290,144 @@ public class PhoneActivity extends Activity {
    space(page,button("Compartilhar vídeo do sismo",()->prepareShare(a,true)),8);
   }
  }
+
+ private void seismicVolumeActions(LinearLayout parent,Alert event){
+  LinearLayout actions=new LinearLayout(this);space(parent,actions,8);
+  actions.addView(button("Subsolo 3D",()->openQuakeVolume(event,false)),new LinearLayout.LayoutParams(0,-2,1));
+  actions.addView(button("Tour",()->openQuakeVolume(event,true)),new LinearLayout.LayoutParams(0,-2,1));
+ }
+ private void openQuakeVolume(Alert event,boolean startTour){
+  if(quakeVolumeDialog!=null)quakeVolumeDialog.dismiss();
+  LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setBackgroundColor(BACK);
+  TextView location=text(magnitude(event)+" · "+location(event)+"\n"+depth(event),17,TEXT,4);
+  location.setPadding(dp(14),dp(10),dp(14),dp(8));body.addView(location);
+  PhoneQuakeVolume volume=new PhoneQuakeVolume(this,event,events());
+  body.addView(volume,new LinearLayout.LayoutParams(-1,Math.min(dp(370),getResources().getDisplayMetrics().heightPixels*43/100)));
+  LinearLayout controls=new LinearLayout(this);body.addView(controls);
+  Button tour=button("Iniciar / pausar",volume::toggleTour);
+  controls.addView(tour,new LinearLayout.LayoutParams(0,-2,1.45f));
+  controls.addView(button("Topo",()->volume.view(true)),new LinearLayout.LayoutParams(0,-2,1));
+  controls.addView(button("Corte",()->volume.view(false)),new LinearLayout.LayoutParams(0,-2,1));
+  TextView nearby=text("",13,MUTED,12);nearby.setPadding(dp(14),dp(8),dp(14),dp(6));
+  ScrollView list=new ScrollView(this);list.addView(nearby);body.addView(list,new LinearLayout.LayoutParams(-1,dp(86)));
+  Runnable refreshNearby=()->{
+   List<Alert> points=volume.nearby();
+   List<String> labels=new ArrayList<>();
+   for(Alert a:points)labels.add(magnitude(a)+" · "+depth(a)+" · "+BrDates.dateTime(a.eventTime));
+   nearby.setText(points.isEmpty()?"Sem sismos próximos com profundidade no período consultado.":
+    "Sismos próximos no catálogo · até 7 dias do evento\n"+String.join("\n",labels));
+  };
+  refreshNearby.run();
+  android.app.AlertDialog dialog=new android.app.AlertDialog.Builder(this).setTitle("Subsolo 3D")
+   .setView(body).setPositiveButton("Fechar",null).create();
+  quakeVolumeDialog=dialog;
+  ExecutorService loads=Executors.newFixedThreadPool(2);
+  dialog.setOnDismissListener(d->{loads.shutdownNow();volume.stop();if(quakeVolumeDialog==dialog)quakeVolumeDialog=null;});
+  dialog.show();
+  if(startTour)volume.post(volume::toggleTour);
+  java.util.function.Consumer<MapFrame> loadTerrain=frame->loads.execute(()->{
+   try{
+    Bitmap image=PhoneQuakeData.terrain(frame);
+    main.post(()->{if(dialog.isShowing()&&volume.frame()==frame)volume.setTerrain(image);else if(image!=null)image.recycle();});
+   }catch(Exception ignored){}
+  });
+  loadTerrain.accept(volume.frame());
+  double radius=Math.min(1000,volume.radius());
+  loads.execute(()->{
+   try{
+    String url=PhoneQuakeData.USGS+"/fdsnws/event/1/query?format=geojson&eventtype=earthquake&minmagnitude=2.5&limit=80"
+     +"&latitude="+event.originLatitude+"&longitude="+event.originLongitude+"&maxradiuskm="+radius
+     +"&starttime="+java.time.Instant.ofEpochMilli(event.eventTime-7*86400000L)
+     +"&endtime="+java.time.Instant.ofEpochMilli(Math.min(System.currentTimeMillis(),event.eventTime+7*86400000L));
+    List<Alert> more=PhoneQuakeData.catalog(url);
+    main.post(()->{if(dialog.isShowing()){volume.addNearby(more);refreshNearby.run();}});
+    List<List<double[]>> rupture=PhoneQuakeData.rupture(event,more);
+    if(!rupture.isEmpty())main.post(()->{
+     if(dialog.isShowing()){volume.setRupture(rupture);volume.addNearby(more);refreshNearby.run();loadTerrain.accept(volume.frame());}
+    });
+   }catch(Exception ignored){}
+  });
+ }
+ private void savedSeismicPlaces(LinearLayout page){
+  LinearLayout card=card(page,"LUGARES SALVOS"),body=section(card);
+  copy(body,"Alertas de sismos próximos a partir de M5,0. O Android consulta o catálogo USGS em segundo plano, aproximadamente a cada 30 min.");
+  List<PhonePlaceAlerts.Place> places=PhonePlaceAlerts.saved(this);
+  for(int i=0;i<places.size();i++){
+   int index=i;PhonePlaceAlerts.Place p=places.get(i);
+   space(body,button(p.name+String.format(Locale.forLanguageTag("pt-BR")," · %.0f km · M%.1f+",p.km,p.min),()->editSeismicPlace(index,null)),4);
+  }
+  if(places.size()<10)space(body,button("Adicionar lugar",()->editSeismicPlace(-1,null)),4);
+ }
+ private void editSeismicPlace(int index,Alert event){
+  List<PhonePlaceAlerts.Place> places=PhonePlaceAlerts.saved(this);
+  if(index>=places.size()||index<0&&places.size()>=10){
+   Toast.makeText(this,"Limite de 10 lugares salvos.",Toast.LENGTH_SHORT).show();return;
+  }
+  PhonePlaceAlerts.Place old=index>=0?places.get(index):null;
+  LinearLayout fields=new LinearLayout(this);fields.setOrientation(LinearLayout.VERTICAL);fields.setPadding(dp(20),0,dp(20),0);
+  EditText name=placeField(fields,"Nome do lugar",old!=null?old.name:event!=null?location(event):"",false);
+  EditText lat=placeField(fields,"Latitude",old!=null?Double.toString(old.lat):event!=null?Double.toString(event.originLatitude):"",true);
+  EditText lon=placeField(fields,"Longitude",old!=null?Double.toString(old.lon):event!=null?Double.toString(event.originLongitude):"",true);
+  EditText km=placeField(fields,"Raio (10 a 1.000 km)",old!=null?Double.toString(old.km):"150",true);
+  EditText min=placeField(fields,"Magnitude mínima (5,0 a 9,0)",old!=null?Double.toString(old.min):"5,0",true);
+  ScrollView scroll=new ScrollView(this);scroll.addView(fields);
+  android.app.AlertDialog.Builder builder=new android.app.AlertDialog.Builder(this).setTitle("Lugar monitorado").setView(scroll)
+   .setPositiveButton("Salvar",null).setNegativeButton("Cancelar",null);
+  if(old!=null)builder.setNeutralButton("Remover",(dialog,which)->{places.remove(index);PhonePlaceAlerts.save(this,places);render();});
+  android.app.AlertDialog dialog=builder.create();
+  dialog.setOnShowListener(ignored->dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+   try{
+    PhonePlaceAlerts.Place p=new PhonePlaceAlerts.Place(name.getText().toString().trim(),placeNumber(lat),placeNumber(lon),
+     placeNumber(km),placeNumber(min),System.currentTimeMillis());
+    if(!p.valid())throw new NumberFormatException();
+    if(old==null)places.add(p);else places.set(index,p);
+    PhonePlaceAlerts.save(this,places);dialog.dismiss();render();
+    if(!PhonePush.enabled(this)||!PhonePush.allowed(this))Toast.makeText(this,"Ative as notificações para receber alertas do lugar salvo.",Toast.LENGTH_LONG).show();
+   }catch(NumberFormatException e){Toast.makeText(this,"Confira nome, coordenadas, raio e magnitude mínima.",Toast.LENGTH_LONG).show();}
+  }));
+  dialog.show();
+  if(android.location.Geocoder.isPresent()){
+   Button search=button("Buscar cidade pelo nome",()->{});
+   fields.addView(search,2,new LinearLayout.LayoutParams(-1,-2));
+   search.setOnClickListener(v->{
+    String query=name.getText().toString().trim();
+    if(query.length()<2){name.setError("Informe uma cidade, estado ou país");return;}
+    search.setEnabled(false);
+    if(worker==null)worker=Executors.newSingleThreadExecutor();
+    worker.execute(()->{
+     List<android.location.Address> found=findSeismicPlaces(query);
+     main.post(()->{
+      if(!dialog.isShowing())return;
+      search.setEnabled(true);
+      if(found.isEmpty()){name.setError("Cidade indisponível. Você pode informar as coordenadas.");return;}
+      String[] labels=found.stream().map(a->a.getMaxAddressLineIndex()>=0?a.getAddressLine(0):a.getLocality())
+       .map(label->label==null?query:label).toArray(String[]::new);
+      new android.app.AlertDialog.Builder(this).setTitle("Escolha o lugar").setItems(labels,(choice,which)->{
+       android.location.Address address=found.get(which);
+       String title=address.getLocality();
+       name.setText(title==null?query:title);
+       lat.setText(Double.toString(address.getLatitude()));lon.setText(Double.toString(address.getLongitude()));
+      }).setNegativeButton("Cancelar",null).show();
+     });
+    });
+   });
+  }
+ }
+ @SuppressWarnings("deprecation")
+ private List<android.location.Address> findSeismicPlaces(String query){
+  try{
+   List<android.location.Address> rows=new android.location.Geocoder(this).getFromLocationName(query,5);
+   if(rows!=null){rows=new ArrayList<>(rows);rows.removeIf(address->!address.hasLatitude()||!address.hasLongitude());return rows;}
+  }catch(Exception ignored){}
+  return Collections.emptyList();
+ }
+ private EditText placeField(LinearLayout fields,String label,String value,boolean number){
+  TextView caption=text(label,13,TEXT,3);fields.addView(caption);
+  EditText input=new EditText(this);input.setSingleLine(true);input.setContentDescription(label);
+  input.setInputType(number?android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL:android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+  input.setText(value);fields.addView(input,new LinearLayout.LayoutParams(-1,-2));return input;
+ }
+ private double placeNumber(EditText input){return Double.parseDouble(input.getText().toString().trim().replace(',','.')); }
 
  private void showSeismicContext(Alert a){
   LinearLayout body=new LinearLayout(this);
@@ -419,6 +562,7 @@ public class PhoneActivity extends Activity {
   heading(page,"Notificações");
   copy(page,"Escolha quais avisos receber no telefone. Os alertas mostrados na Central vêm das fontes consultadas e não dependem de habilitar notificações.");
   pushSettings(page);
+  savedSeismicPlaces(page);
   space(page,button("Informações técnicas e atualização do aplicativo",()->openAdvanced("settings")),6);
   page.addView(button("Abrir canal oficial no Telegram",()->openUrl("https://t.me/argosorbis")),new LinearLayout.LayoutParams(-1,-2));
  }
@@ -453,7 +597,7 @@ public class PhoneActivity extends Activity {
  private Button backButton(String label,Runnable action){Button b=button(label,action);b.setTextSize(14);return b;}
  private void mapPage(){
   LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));box.addView(backButton("‹ "+(mappedEvent==null?"Sismos":"Detalhes do evento"),this::closeSeismicMap));Button filterButton=button("Filtrar eventos · "+(mapFilter.equals("all")?"Todos":mapFilter.equals("earthquake")?"Sismos":"Tsunamis")+(mapFiltersExpanded?"  ▴":"  ▾"),()->{mapFiltersExpanded=!mapFiltersExpanded;render();});filterButton.setTag("map-show-filters");filterButton.setTextSize(14);filterButton.setMinHeight(dp(36));filterButton.setMinimumHeight(dp(36));box.addView(filterButton,new LinearLayout.LayoutParams(-1,-2));LinearLayout filters=new LinearLayout(this);filters.setPadding(dp(8),0,dp(8),dp(3));if(mapFiltersExpanded)box.addView(filters,new LinearLayout.LayoutParams(-1,-2));String[] names={"Todos","Sismos","Tsunami"},ids={"all","earthquake","tsunami"};for(int i=0;i<ids.length;i++){final String id=ids[i];Button b=button(names[i],()->{mapFilter=id;render();});b.setSelected(mapFilter.equals(id));b.setTextColor(mapFilter.equals(id)?CYAN:MUTED);b.setMinHeight(dp(38));b.setMinimumHeight(dp(38));b.setPadding(dp(4),dp(2),dp(4),dp(2));b.setTextSize(14);filters.addView(b,new LinearLayout.LayoutParams(0,-2,1));}
-  if(map==null)map=new PhoneMapView(this,this::showEvent);if(map.getParent()!=null)((ViewGroup)map.getParent()).removeView(map);box.addView(map,new LinearLayout.LayoutParams(-1,0,1));List<Alert> visible=new ArrayList<>();for(Alert a:events())if(mapFilter.equals("all")||mapFilter.equals(a.kind))visible.add(a);if(mappedEvent!=null&&visible.stream().noneMatch(a->a.id.equals(mappedEvent.id)))visible.add(0,mappedEvent);map.setEvents(visible);if(focusMappedEvent&&mappedEvent!=null){focusMappedEvent=false;map.focus(mappedEvent);}if(active)map.resume();else map.pause();
+  if(map==null)map=new PhoneMapView(this,this::showEvent);if(map.getParent()!=null)((ViewGroup)map.getParent()).removeView(map);box.addView(map,new LinearLayout.LayoutParams(-1,0,1));List<Alert> visible=new ArrayList<>();for(Alert a:events())if(mapFilter.equals("all")||mapFilter.equals(a.kind))visible.add(a);if(mappedEvent!=null&&visible.stream().noneMatch(a->a.id.equals(mappedEvent.id)))visible.add(0,mappedEvent);map.setEvents(visible);if(mappedEvent!=null&&"earthquake".equals(mappedEvent.kind)&&MapFrame.located(mappedEvent.originLongitude,mappedEvent.originLatitude))seismicVolumeActions(box,mappedEvent);if(focusMappedEvent&&mappedEvent!=null){focusMappedEvent=false;map.focus(mappedEvent);}if(active)map.resume();else map.pause();
  }
  private void rainPage(){
   LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));layerButtons(box,"rain");

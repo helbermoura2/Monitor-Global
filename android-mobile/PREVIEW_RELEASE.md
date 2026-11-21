@@ -1,3 +1,8 @@
+# Argos Orbis Celular · 0.1.40 de teste
+
+- Subsolo 3D e tour nos detalhes de sismos com coordenadas. A visualização usa a profundidade do catálogo e permite alternar entre topo e corte.
+- Lugares salvos com raio e magnitude configuráveis. A verificação em segundo plano usa o catálogo USGS.
+
 # Argos Orbis Celular · 0.1.39 de teste
 
 - Quando o ShakeMap não chega a tempo, o vídeo pode mostrar faixas de intensidade estimadas a partir de magnitude, profundidade e distância ao epicentro.
