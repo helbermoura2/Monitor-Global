@@ -104,7 +104,12 @@ public class PhoneActivityTest {
   assertTrue(context.contains("arredondamento"));
   assertTrue(context.contains("medições de intensidade"));
   assertTrue(context.contains("boletim de tsunami associado"));
-  assertFalse(context.contains("Fonte: EMSC"));
+  assertTrue(context.contains("Dados do catálogo"));
+  assertTrue(context.contains("Fonte: EMSC"));
+  assertTrue(context.contains("Seleção da IA"));
+  assertTrue(context.contains("Explicações científicas · Argos Orbis"));
+  assertTrue(context.indexOf("Fonte: EMSC")<context.indexOf("Seleção da IA"));
+  assertTrue(context.indexOf("Seleção da IA")<context.indexOf("Explicações científicas · Argos Orbis"));
   dialog.dismiss();
  }
  @Test public void noThreatBulletinDoesNotTurnIntoAWarningAndSelectionSurvivesSavedState(){
