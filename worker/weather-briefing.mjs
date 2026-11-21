@@ -110,8 +110,9 @@ export async function geminiSelection(env,context,prompt,fetcher=fetch,model=GEM
    })
   });
   if(!response.ok)throw Object.assign(Error('gemini-unavailable'),{status:response.status});
-  if(Number(response.headers?.get?.('content-length')||0)>6000)throw Error('gemini-size');
-  const raw=await response.text();if(raw.length>6000)throw Error('gemini-size');
+  const responseLimit=context.kind==='seismic'?24000:6000;
+  if(Number(response.headers?.get?.('content-length')||0)>responseLimit)throw Error('gemini-size');
+  const raw=await response.text();if(raw.length>responseLimit)throw Error('gemini-size');
   let payload;try{payload=JSON.parse(raw);}catch{throw Error('gemini-response');}
   const content=payload?.candidates?.[0]?.content?.parts?.filter(p=>!p?.thought).map(p=>p?.text||'').join('')||'';
   if(typeof content!=='string'||content.length>2000)throw Error('gemini-response');

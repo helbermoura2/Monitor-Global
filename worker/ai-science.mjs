@@ -95,6 +95,24 @@ const interpret=(q,now)=>{
 };
 const LIMIT={daily:24,monthly:400};
 const dayKey=now=>new Date(now).toISOString().slice(0,10);
+function providerFailure(error){
+ const status=Number(error?.status??error?.statusCode??error?.response?.status);
+ if(Number.isInteger(status)&&status>=400&&status<=599)return 'http-'+status;
+ const code=Number(error?.internalCode??error?.code);
+ if(Number.isInteger(code)&&code>=1000&&code<=99999)return 'provider-code-'+code;
+ const message=String(error?.message??'');
+ if(message==='invalid')return 'invalid-selection';
+ if(message==='gemini-size')return 'response-too-large';
+ if(message==='gemini-response')return 'invalid-response';
+ if(message==='timeout'||error?.name==='AbortError')return 'timeout';
+ if(/subrequest/i.test(message))return 'subrequest-limit';
+ if(/quota|rate limit|neurons/i.test(message))return 'quota';
+ if(/invalid.?api.?key|unauthori[sz]ed|permission/i.test(message))return 'authorization';
+ if(/no longer|not found|not supported|deprecated/i.test(message))return 'model-unavailable';
+ if(/execution context|request context|illegal invocation|outside.*request/i.test(message))return 'execution-context';
+ if(/network|fetch failed|connection|dns|socket/i.test(message))return 'network';
+ return 'provider-error';
+}
 export async function handleSeismicInsight(request,env){
  const u=new URL(request.url);
  if(request.method!=='GET'||u.pathname!=='/seismic-insight'||[...u.searchParams.keys()].some(k=>k!=='id')||
@@ -126,7 +144,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  const evidence=interpret(q,now);
  if(!evidence)return json({version:'seismic-insight-v1',status:'unavailable',reason:'no-matching-fresh-event'});
  const revision=JSON.stringify([evidence.id,evidence.at,evidence.magnitude,evidence.depth,evidence.tsunamiSummary]);
- const key='seismic-insight:context-v4:'+revision.slice(0,440);
+ const key='seismic-insight:context-v5:'+revision.slice(0,440);
  const base={version:'seismic-insight-v1',id:evidence.id,title:evidence.title,source:evidence.source,
   eventAt:evidence.at,magnitude:evidence.magnitude,depth:evidence.depth,expiresAt:Math.min(now+15*MIN,evidence.at+72*3600000),
   disclaimer:'Explicação educativa de dados publicados, não é previsão sísmica, avaliação oficial de danos ou alerta de tsunami.'};
@@ -158,10 +176,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
     const result=await selectWithFallback(env,context,prompt,fetchGemini,{
      workersModel:SEISMIC_WORKERS_MODEL,geminiModel:SEISMIC_GEMINI_MODEL,
      onFailure(provider,error){
-      const status=Number(error?.status);
-      providerStatus[provider]=[400,401,403,404,429,500,502,503,504].includes(status)?'http-'+status:
-       error?.message==='invalid'?'invalid-selection':
-       error?.message==='timeout'||error?.name==='AbortError'?'timeout':'provider-error';
+      providerStatus[provider]=providerFailure(error);
      }
     });
     model=result.model;focus=result.facts;
