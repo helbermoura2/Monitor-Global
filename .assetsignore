@@ -1,7 +1,44 @@
-monitor-global-worker-7_7_0.js
-wrangler.toml
-wrangler-monitor.toml
-.assetsignore
-.git
-.github
-MAPA_DOS_ARQUIVOS.md
+# Monitor Global static Worker: the asset directory is the repository root.
+# Keep browser assets and the official Android TV update channel public;
+# exclude server code, developer tooling and unpublished build artifacts.
+/.git/
+/.github/
+/.gitignore
+/.assetsignore
+/.wrangler/
+/.env
+/.env.*
+**/*.pem
+**/*.p12
+**/*.key
+
+# Cloudflare configuration and server-only modules
+/*.mjs
+/monitor-global-worker-7_7_0.js
+/wrangler*.toml
+/package.json
+/package-lock.json
+/playwright.config.js
+
+# Development-only trees and generated runtime reports
+/android-mobile/
+/android-tv/*
+!/android-tv/distribution/
+/docs/
+/node_modules/
+/tools/
+/tests/
+/worker/
+/audit-results/
+/coverage/
+/playwright-report/
+/test-logs/
+/test-results/
+/README.md
+/GUIA_DO_DONO.md
+/MAPA_DOS_ARQUIVOS.md
+
+# Deliver official Android TV APKs and their checksums, not Worker ZIPs.
+/downloads/*
+!/downloads/*.apk
+!/downloads/*.apk.sha256
