@@ -22,7 +22,7 @@
    new Promise(resolve=>{timer=setTimeout(()=>resolve(null),6500);})
   ]).finally(()=>clearTimeout(timer));
  }
- function frameFor(item,grid){
+ function frameFor(item,grid,mapHeight){
   const [lon,lat]=item.coords;
   const latScale=Math.max(.2,Math.cos(lat*Math.PI/180));
   const estimatedKm=root.SeismicImpactModel.extent(item.mag,item.depth,5);
@@ -36,18 +36,18 @@
    for(let y=0;y<grid.ny;y++)for(let x=0;x<grid.nx;x++){
     if((grid.values[y*grid.nx+x]??0)<threshold)continue;
     displayed=Math.max(displayed,Math.abs(grid.x0+x*dx+shift-lon),
-     Math.abs(grid.y0+y*dy-lat)*WIDTH/(HEIGHT*.83*latScale));
+     Math.abs(grid.y0+y*dy-lat)*WIDTH/(mapHeight*.83*latScale));
    }
    span=Math.min(6,displayed*1.27);
   }
-  const latSpan=span*latScale*HEIGHT/WIDTH;
+  const latSpan=span*latScale*mapHeight/WIDTH;
   return {minLon:lon-span,maxLon:lon+span,minLat:Math.max(-85,lat-latSpan*1.17),maxLat:Math.min(85,lat+latSpan*.83)};
  }
- function projection(f){
+ function projection(f,mapHeight){
   return (lon,lat)=>{
    const middle=(f.minLon+f.maxLon)/2;
    return [(lon+360*Math.round((middle-lon)/360)-f.minLon)/(f.maxLon-f.minLon)*WIDTH,
-    (f.maxLat-lat)/(f.maxLat-f.minLat)*HEIGHT];
+    (f.maxLat-lat)/(f.maxLat-f.minLat)*mapHeight];
   };
  }
  function field(item,frame,grid){
@@ -76,7 +76,7 @@
   }
   return colored;
  }
- function gridCells(grid,frame,project,epicenter){
+ function gridCells(grid,frame,project,epicenter,mapHeight){
   if(!grid)return [];
   const dx=(grid.x1-grid.x0)/(grid.nx-1),dy=(grid.y1-grid.y0)/(grid.ny-1);
   const visible=(1+(frame.maxLon-frame.minLon)/dx)*(1+(frame.maxLat-frame.minLat)/dy);
@@ -89,7 +89,7 @@
    const [cx,cy]=project(lon,lat);
    const [left,top]=project(lon-dx*stride/2,lat+dy*stride/2);
    const [right,bottom]=project(lon+dx*stride/2,lat-dy*stride/2);
-   if(right<0||left>WIDTH||bottom<0||top>HEIGHT)continue;
+   if(right<0||left>WIDTH||bottom<0||top>mapHeight)continue;
    cells.push({left,top,w:right-left,h:bottom-top,mmi,distance:Math.hypot(cx-epicenter[0],cy-epicenter[1])});
   }
   return cells.sort((a,b)=>a.distance-b.distance);
@@ -112,33 +112,25 @@
   if(!eligible(item))throw Error('Vídeo disponível para sismos com coordenadas, M6+ ou brasileiros.');
   const product=await officialProduct(item);
   const grid=product?.status==='available'&&root.RuptureShakingModel?.valid(product.grid)?product.grid:null;
-  const frame=frameFor(item,grid),project=projection(frame),epicenter=project(...item.coords);
+  const {x,y,width,height}=root.SiteEventStory.mapArea;
+  const scale=WIDTH/1080,mapWidth=width*scale,mapHeight=height*scale,mapTop=y*scale;
+  const frame=frameFor(item,grid,mapHeight),project=projection(frame,mapHeight),epicenter=project(...item.coords);
   const maps=await root.SiteEventStory.replayMap(frame);
-  const staticMap=canvas(),mapCtx=staticMap.getContext('2d');
-  mapCtx.drawImage(maps.base,0,0,WIDTH,HEIGHT);
-  if(maps.labels)mapCtx.drawImage(maps.labels,0,0,WIDTH,HEIGHT);
-  const colorField=field(item,frame,grid),cells=gridCells(grid,frame,project,epicenter);
+  const {overlay,mapLayer}=await root.SiteEventStory.render({...item,shaking:product},{videoMap:{...maps,frame}});
+  const colorField=field(item,frame,grid),cells=gridCells(grid,frame,project,epicenter,mapHeight);
   const rupture=(product?.rupture?.features||[]).filter(f=>f.properties?.projection===true&&
    ['USGS','INGV','ShakeMap-EU'].includes(f.properties.provider)&&f.geometry?.type==='LineString');
   const scene=canvas(),ctx=scene.getContext('2d',{alpha:false});
-  const location=root.EventPortuguese?.view(item)?.place||item.place||'Localização não informada';
-  const source=grid?(product.provider||'ShakeMap oficial'):'Estimativa de intensidade';
-  const magnitude=Number(item.mag).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
-  const when=Number.isFinite(item.time)?new Intl.DateTimeFormat('pt-BR',{
-   dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'
-  }).format(item.time):'';
-  const radius=Math.max(...[[0,0],[0,HEIGHT],[WIDTH,0],[WIDTH,HEIGHT]].map(([x,y])=>Math.hypot(x-epicenter[0],y-epicenter[1])));
-  const shade=ctx.createLinearGradient(0,910,0,HEIGHT);
-  shade.addColorStop(0,'#05111900');shade.addColorStop(.55,'#051119e8');shade.addColorStop(1,'#051119');
-  function text(value,x,y,font,color,width=640){
-   ctx.font=font;ctx.fillStyle=color;ctx.fillText(value,x,y,width);
-  }
+  const radius=Math.max(...[[0,0],[0,mapHeight],[WIDTH,0],[WIDTH,mapHeight]].map(([x,y])=>Math.hypot(x-epicenter[0],y-epicenter[1])));
+  const source=grid?(product.provider||'ShakeMap oficial'):'Intensidade estimada';
   function draw(t){
    const reveal=Math.max(0,Math.min(1,(t-1100)/16300));
-   ctx.drawImage(staticMap,0,0);
+   ctx.save();ctx.translate(x*scale,mapTop);ctx.scale(mapWidth/WIDTH,1);
+   ctx.beginPath();ctx.rect(0,0,WIDTH,mapHeight);ctx.clip();
+   ctx.drawImage(mapLayer,0,0,WIDTH,mapHeight);
    ctx.save();ctx.beginPath();
    ctx.arc(...epicenter,Math.max(1,radius*Math.sqrt(reveal)),0,2*Math.PI);ctx.clip();
-   ctx.drawImage(colorField,0,0,WIDTH,HEIGHT);ctx.restore();
+   ctx.drawImage(colorField,0,0,WIDTH,mapHeight);ctx.restore();
    const count=Math.floor(cells.length*reveal);
    for(let i=0;i<count;i++){
     const {left,top,w,h,mmi}=cells[i];
@@ -149,17 +141,16 @@
    }
    ctx.globalAlpha=1;
    drawRupture(ctx,rupture,project,reveal);
-   ctx.beginPath();ctx.arc(...epicenter,8,0,2*Math.PI);ctx.fillStyle='#ff4456';ctx.fill();
-   ctx.strokeStyle='#fff9e7';ctx.lineWidth=2.5;ctx.stroke();
-   ctx.fillStyle=shade;ctx.fillRect(0,910,WIDTH,HEIGHT-910);
-   text('ARGOS ORBIS',34,1038,'700 23px system-ui','#ebcf96');
-   text('Sismo M'+magnitude,34,1093,'bold 47px system-ui','#fff6dd');
-   text(location,34,1132,'600 26px system-ui','#f5f7f5');
-   text([when&&when+' BRT',item.source].filter(Boolean).join(' · '),34,1166,'20px system-ui','#e2ecea');
-   text(source+(rupture.length?' · Projeção de ruptura publicada':''),34,1197,'600 19px system-ui','#efdaac');
-   text('Revelação ilustrativa da intensidade · '+maps.credit,34,1230,'17px system-ui','#d0dedf');
-   ctx.fillStyle='#45626a';ctx.fillRect(34,1251,WIDTH-68,4);
-   ctx.fillStyle='#f0c97e';ctx.fillRect(34,1251,(WIDTH-68)*Math.min(1,t/DURATION),4);
+   ctx.restore();
+   ctx.drawImage(overlay,0,0,WIDTH,HEIGHT);
+   const tagX=222,tagY=mapTop+mapHeight-65,tagW=466;
+   ctx.fillStyle='#0b202beb';ctx.fillRect(tagX,tagY,tagW,47);
+   ctx.fillStyle='#f6e5c8';ctx.font='600 15px system-ui';
+   ctx.fillText('Replay ilustrativo · '+source,tagX+10,tagY+18,tagW-20);
+   ctx.fillStyle='#d8c49e';ctx.font='13px system-ui';
+   ctx.fillText(rupture.length?'Projeção de ruptura publicada':'Revelação da intensidade',tagX+10,tagY+35,tagW-20);
+   ctx.fillStyle='#6f6853';ctx.fillRect(tagX,tagY+45,tagW,2);
+   ctx.fillStyle='#f0c97e';ctx.fillRect(tagX,tagY+45,tagW*Math.min(1,t/DURATION),2);
   }
   draw(0);
   return {scene,draw,official:!!grid,rupture:rupture.length>0};

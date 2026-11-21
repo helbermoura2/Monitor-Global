@@ -1,4 +1,8 @@
-# Argos Orbis Celular · 0.1.36 de teste
+# Argos Orbis Celular · 0.1.37 de teste
+
+- O replay mantém o card cartográfico do compartilhamento, com animação contida no mapa.
+
+## Argos Orbis Celular · 0.1.36 de teste
 
 - Novo vídeo de sismo com mapa em tela cheia e revelação da intensidade. O botão de vídeo aparece para sismos brasileiros e eventos M6+ com coordenadas.
 

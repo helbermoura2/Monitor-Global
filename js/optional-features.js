@@ -69,15 +69,15 @@
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
   await asset('js/quake-site-flags.js?v=site-concept6-v1');
   await asset('js/quake-site-card.js?v=argos-orbis-v2');
-  await asset('js/site-event-story.js?v=argos-cartographic-v11');
-  await asset('js/story-share.js?v=argos-cartographic-v11');
+  await asset('js/site-event-story.js?v=argos-cartographic-v12');
+  await asset('js/story-share.js?v=argos-cartographic-v12');
  }
  window.shareResumoDiarioStory=async()=>{try{
   await asset('js/quake-tsunami-status.js?v=20261024-regional-tsunami');
   await asset('js/argos-eye-brand.js?v=1');
   await asset('js/quake-card-layout.js?v=argos-orbis-v21');
   await asset('js/quake-image-paint.js?v=20261024-editorial-v16');
-  await asset('js/story-share.js?v=argos-cartographic-v11');
+  await asset('js/story-share.js?v=argos-cartographic-v12');
   return await window.shareResumoDiarioStory();
  }catch(error){failure(error);}};
  function isQuake(item){return !!item&&(item.type==='earthquake'||(!item.type&&item.mag!=null));}
@@ -131,7 +131,7 @@
    videoButton.disabled=true;videoButton.textContent='Preparando…';
    try{
     await siteImageAssets();
-    await asset('js/quake-site-video.js?v=terrain-replay-v1');
+    await asset('js/quake-site-video.js?v=terrain-replay-v2');
     const {blob,extension}=await window.QuakeSiteVideo.record(item,pct=>{videoButton.textContent='Vídeo '+pct+'%';});
     const filename='argos-orbis-sismo-'+String(item.id||'evento').replace(/[^a-zA-Z0-9_.-]/g,'_')+'.'+extension;
     await window.presentEventShareFile(blob,filename,'Vídeo',item.place||'');

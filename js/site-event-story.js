@@ -123,17 +123,18 @@
   corners.addColorStop(.68,'rgba(3,23,32,.08)');corners.addColorStop(1,'rgba(2,18,29,.57)');
   ctx.fillStyle=corners;ctx.fillRect(x,y,w,h);
  }
+ const mapArea={x:8,y:394,width:W-16,height:976};
  let fonts;
- async function render(e,{allowMissingMap=false,skipNetworkMaps=false}={}){
+ async function render(e,{allowMissingMap=false,skipNetworkMaps=false,videoMap=null}={}){
   const p=profile(e),hasLocation=located(e),canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');
   if(!fonts)fonts=(async()=>{if(!root.FontFace)return;try{const loaded=await Promise.all([new FontFace('StoryInter','url(assets/summary-fonts/Inter.ttf)',{weight:'100 900'}).load(),new FontFace('StorySerif','url(assets/summary-fonts/CormorantGaramond.ttf)',{weight:'300 700'}).load()]);loaded.forEach(f=>document.fonts.add(f));}catch{}})();
   const fetchMaps=hasLocation&&!skipNetworkMaps;
-  const f=hasLocation?frame(e,p):null,cf=fetchMaps?{minLon:e.coords[0]-3.3,maxLon:e.coords[0]+3.3,minLat:Math.max(-85,e.coords[1]-2.34),maxLat:Math.min(85,e.coords[1]+2.34)}:null;
+  const f=videoMap?.frame||(hasLocation?frame(e,p):null),cf=fetchMaps?{minLon:e.coords[0]-3.3,maxLon:e.coords[0]+3.3,minLat:Math.max(-85,e.coords[1]-2.34),maxLat:Math.min(85,e.coords[1]+2.34)}:null;
   const engravingPromise=load('img/argos-share-engraving.webp',2500);
   const brandAssetPromise=load('img/argos-orbis-vigilante-static.svg?v=2',2500);
   const flagsTask=root.QuakeSiteFlags?QuakeSiteFlags.resolve(e).then(async meta=>({meta,images:await QuakeSiteFlags.images(meta)})).catch(()=>null):null;
   const brazil=hasLocation&&e.coords[0]>=-74&&e.coords[0]<=-34&&e.coords[1]>=-34&&e.coords[1]<=6;
-  const [sat,labels,regional,flags,borders,engraving]=await Promise.all([fetchMaps?satellite(f):null,fetchMaps?load(mapUrl('Reference/World_Boundaries_and_Places',f,1080),4500):null,fetchMaps?load(mapUrl('World_Topo_Map',cf,420),4500):null,flagsTask,fetchMaps&&brazil?Promise.race([mapBorders(f,e.coords),new Promise(resolve=>setTimeout(()=>resolve(null),5600))]):null,engravingPromise,Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,3000))])]);
+  const [sat,labels,regional,flags,borders,engraving]=await Promise.all([videoMap?.base||(fetchMaps?satellite(f):null),videoMap?videoMap.labels:fetchMaps?load(mapUrl('Reference/World_Boundaries_and_Places',f,1080),4500):null,fetchMaps?load(mapUrl('World_Topo_Map',cf,420),4500):null,flagsTask,fetchMaps&&brazil?Promise.race([mapBorders(f,e.coords),new Promise(resolve=>setTimeout(()=>resolve(null),5600))]):null,engravingPromise,Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,3000))])]);
   if(hasLocation&&!sat&&!allowMissingMap){const error=Error('O mapa de satélite não carregou. Tente gerar a imagem novamente.');error.code='STORY_MAP_UNAVAILABLE';throw error;}
   const font=(size,bold=false)=>`${bold?'700':'500'} ${size}px StoryInter, sans-serif`;
   function text(value,x,y,size=25,color=WHITE,maxWidth=1000,bold=false,typeface=font){c.font=typeface(size,bold);let t=String(value??'Não informado');while(t.length>2&&c.measureText(t).width>maxWidth)t=t.slice(0,-2)+'…';c.fillStyle=color;c.textAlign='left';c.textBaseline='top';c.fillText(t,x,y);}
@@ -206,16 +207,23 @@
    else for(let j=0;j<3;j++){c.moveTo(0,7+j*11);c.bezierCurveTo(8,-3+j*11,17,17+j*11,34,7+j*11);}
    c.stroke();c.restore();}
   function stroke(x1,y1,x2,y2){c.strokeStyle='rgba(195,157,96,.68)';c.lineWidth=1;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();}
-  const top=394,bottom=1370,mapHeight=bottom-top;
+  const {x:mapX,y:top,width:mapWidth,height:mapHeight}=mapArea,bottom=top+mapHeight;
   const base=c.createLinearGradient(0,0,W,H);
   base.addColorStop(0,'#142d2a');base.addColorStop(.55,'#091c22');base.addColorStop(1,'#051820');
   c.fillStyle=base;c.fillRect(0,0,W,H);
   if(sat){
-   c.drawImage(sat,8,top,W-16,mapHeight);
-   if(labels)c.drawImage(labels,8,top,W-16,mapHeight);
-   if(borders?.municipalities.length)paintBorders(c,borders.municipalities,f,8,top,W-16,mapHeight,true);
-   if(borders?.states.length)paintBorders(c,borders.states,f,8,top,W-16,mapHeight);
-   shadeMap(c,8,top,W-16,mapHeight,top+(f.maxLat-e.coords[1])/(f.maxLat-f.minLat)*mapHeight);
+   c.drawImage(sat,mapX,top,mapWidth,mapHeight);
+   if(labels)c.drawImage(labels,mapX,top,mapWidth,mapHeight);
+   if(borders?.municipalities.length)paintBorders(c,borders.municipalities,f,mapX,top,mapWidth,mapHeight,true);
+   if(borders?.states.length)paintBorders(c,borders.states,f,mapX,top,mapWidth,mapHeight);
+   shadeMap(c,mapX,top,mapWidth,mapHeight,top+(f.maxLat-e.coords[1])/(f.maxLat-f.minLat)*mapHeight);
+  }
+  let mapLayer;
+  if(videoMap){
+   mapLayer=document.createElement('canvas');
+   mapLayer.width=mapWidth;mapLayer.height=mapHeight;
+   mapLayer.getContext('2d').drawImage(canvas,mapX,top,mapWidth,mapHeight,0,0,mapWidth,mapHeight);
+   c.clearRect(mapX,top,mapWidth,mapHeight);
   }
   // The artwork contains only static decoration. Draw the cartography
   // beneath its transparent windows and keep all event data above it.
@@ -397,9 +405,9 @@
    c.strokeStyle=GOLD;c.lineWidth=3;c.strokeRect(7,7,W-14,H-14);
   c.strokeStyle='#6e4d31';c.lineWidth=2;c.strokeRect(12,12,W-24,H-24);
   }
-  const attribution=sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Imagem de base indisponível';
+  const attribution=videoMap?'Imagem de base: '+videoMap.credit:sat?'Imagem de base: Esri, Maxar, Earthstar Geographics':'Imagem de base indisponível';
   text(attribution+(sat&&borders?.municipalities.length?' · Limites municipais: IBGE':''),60,1802,14,MUTED,960);
-  return canvas;
+  return videoMap?{overlay:canvas,mapLayer}:canvas;
  }
  async function replayMap(frame){
   const [relief,labels]=await Promise.all([
@@ -414,6 +422,6 @@
   if(imagery)return {base:imagery,labels,credit:'Esri, Maxar, Earthstar Geographics'};
   throw Error('O mapa do vídeo não carregou. Tente novamente.');
  }
- root.SiteEventStory={render,profile,replayMap,version:'argos-cartographic-v11'};
+ root.SiteEventStory={render,profile,replayMap,mapArea,version:'argos-cartographic-v12'};
 })(window);
 

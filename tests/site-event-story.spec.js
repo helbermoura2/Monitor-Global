@@ -37,7 +37,7 @@ test('Temperature image action resolves the selected weather record and exports 
  await page.route('https://server.arcgisonline.com/**',r=>r.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:Buffer.from(mapFixture,'base64')}));
  await expect(page.locator('#pd-share-btn')).toBeVisible();await expect(page.locator('#pd-video-btn')).toBeHidden();
  const download=page.waitForEvent('download');await page.locator('#pd-share-btn').click();const file=await download;
- expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v11');await expect(page.locator('#pd-share-btn')).toBeEnabled();
+ expect(file.suggestedFilename()).toContain('evento-capital-weather-');expect(await page.evaluate(()=>SiteEventStory.version)).toBe('argos-cartographic-v12');await expect(page.locator('#pd-share-btn')).toBeEnabled();
 });
 
 test('Visual proof with bounded real satellite imagery and explicitly fictional event data',async({page})=>{
@@ -296,7 +296,8 @@ test('Packaged Android renderer retries the compass card without network maps',a
  expect(bytes.readUInt32BE(20)).toBe(1920);
 });
 
-test('replay fills the frame with topography and progressively reveals a published grid',async({page})=>{
+test('replay animates the published grid inside a fixed share card',async({page})=>{
+ await page.route('https://server.arcgisonline.com/**',route=>route.abort());
  await page.goto('/mobile-event-image.html');
  const output=await page.evaluate(async()=>{
   const base=document.createElement('canvas');base.width=720;base.height=1280;
@@ -308,12 +309,13 @@ test('replay fills the frame with topography and progressively reveals a publish
    shaking:{status:'available',grid,provider:'USGS ShakeMap'}};
   const {scene,draw,official,rupture}=await QuakeSiteVideo.prepare(item);
   const color=(x,y)=>Array.from(scene.getContext('2d').getImageData(x,y,1,1).data);
-  draw(0);const start=color(390,550),corner=color(20,60);
+  draw(0);const start=color(390,550),header=color(400,60),footer=color(400,1000);
   draw(19000);const end=color(390,550);
-  return {w:scene.width,h:scene.height,start,end,corner,calls,official,rupture};
+  return {w:scene.width,h:scene.height,start,end,header,footer,endHeader:color(400,60),endFooter:color(400,1000),calls,official,rupture};
  });
  expect([output.w,output.h]).toEqual([720,1280]);
- expect(output.corner).toEqual([85,124,103,255]);
+ expect(output.header).toEqual(output.endHeader);
+ expect(output.footer).toEqual(output.endFooter);
  expect(output.start).not.toEqual(output.end);
  expect(output.official).toBe(true);
  expect(output.rupture).toBe(false);
