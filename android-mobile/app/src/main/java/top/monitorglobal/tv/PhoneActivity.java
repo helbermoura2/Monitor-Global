@@ -14,10 +14,11 @@ import android.view.*;
 import android.widget.*;
 import java.util.*;
 import java.util.concurrent.*;
+import top.monitorglobal.mobile.R;
 
 /** First phone client: touch navigation and foreground-only updates. */
 public class PhoneActivity extends Activity {
- static final int BACK=0xff04121e,BODY=0xff0b2635,CYAN=0xff24d9ed,TEXT=0xfff0f8ff,MUTED=0xffa6c3d3,AMBER=0xffffc04d;
+ static final int BACK=0xff071019,BODY=0xff10212d,CYAN=0xff8adbe7,TEXT=0xfff2f5f7,MUTED=0xffa8bac8,AMBER=0xffebc687;
  private final Handler main=new Handler(Looper.getMainLooper());
  private final List<Bitmap> flagImages=new ArrayList<>();private final List<ImageView> flagViews=new ArrayList<>();
  private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>(16,.75f,true);private ScrollView visibleScroll;private String displayedRoute="";
@@ -40,7 +41,7 @@ public class PhoneActivity extends Activity {
   getWindow().setStatusBarColor(BACK);getWindow().setNavigationBarColor(BACK);getWindow().getDecorView().setSystemUiVisibility(0);
   root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BACK);
   root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});
-  header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(dp(10),dp(5),dp(7),dp(5));header.setBackgroundColor(BODY);root.addView(header,new LinearLayout.LayoutParams(-1,dp(64)));
+  header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(dp(10),dp(5),dp(7),dp(5));header.setBackground(surface(0xff132733,BACK,0xff233744,0));root.addView(header,new LinearLayout.LayoutParams(-1,dp(64)));
   // Reuse the native TV mark: a blinking eye and a rotating pointer
   // over stationary radar rings. Animation pauses off-screen automatically.
   RadarLogoView officialLogo=new RadarLogoView(this);
@@ -56,7 +57,7 @@ public class PhoneActivity extends Activity {
   FrameLayout reload=new FrameLayout(this);reload.setTag("refresh");reload.setContentDescription("Atualizar dados");reload.setBackground(ripple(BODY));PhoneIcons refreshIcon=new PhoneIcons(this,PhoneIcons.REFRESH,CYAN);FrameLayout.LayoutParams iconParams=new FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER);reload.addView(refreshIcon,iconParams);header.addView(reload,new LinearLayout.LayoutParams(dp(48),dp(48)));reload.setOnClickListener(v->refresh(true));
   status=text("Aguardando consulta",12,MUTED,3);status.setPadding(dp(12),dp(3),dp(12),dp(3));root.addView(status,new LinearLayout.LayoutParams(-1,-2));
   content=new FrameLayout(this);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));
-  navigation=new LinearLayout(this);navigation.setGravity(Gravity.CENTER);navigation.setBackgroundColor(BODY);navigation.setMinimumHeight(dp(60));root.addView(navigation,new LinearLayout.LayoutParams(-1,-2));
+  navigation=new LinearLayout(this);navigation.setGravity(Gravity.CENTER);navigation.setBackground(surface(0xff11232f,BACK,0xff233744,0));navigation.setMinimumHeight(dp(60));root.addView(navigation,new LinearLayout.LayoutParams(-1,-2));
   readPush(getIntent());setContentView(root);updater=new PhoneUpdater(this);render();
  }
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);readPush(intent);render();}
@@ -107,13 +108,13 @@ public class PhoneActivity extends Activity {
   String[] labels={"Início","Sismos","Clima","Avisos","Mais"};
   int[] icons={PhoneIcons.HOME,PhoneIcons.SEISMIC,PhoneIcons.CLOUD,PhoneIcons.BELL,PhoneIcons.MORE};
   for(int i=0;i<ids.length;i++){
-   String target=ids[i];boolean current=target.equals(shown);int color=current?CYAN:MUTED;
+   String target=ids[i];boolean current=target.equals(shown);int color=current?AMBER:MUTED;
    LinearLayout item=new LinearLayout(this);item.setOrientation(LinearLayout.VERTICAL);item.setGravity(Gravity.CENTER);item.setMinimumHeight(dp(60));item.setPadding(0,dp(5),0,dp(5));
    item.setTag("tab-"+target);item.setContentDescription(labels[i]);item.setSelected(current);item.setFocusable(true);
    item.setBackground(ripple(BODY,false));
    FrameLayout indicator=new FrameLayout(this);
    if(current){
-    indicator.setBackground(pill(0xff164455));
+    indicator.setBackground(surface(0xff34302a,0xff24252a,0xff5d4d38,14));
     if(previous>=0&&previous!=i&&android.animation.ValueAnimator.areAnimatorsEnabled()){
      indicator.setTranslationX(dp(previous<i?-10:10));indicator.setAlpha(.35f);
      indicator.animate().translationX(0).alpha(1f).setDuration(170).start();
@@ -131,8 +132,13 @@ public class PhoneActivity extends Activity {
  private LinearLayout page(){ScrollView scroll=new ScrollView(this);visibleScroll=scroll;scroll.setFillViewport(false);LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(dp(16),dp(12),dp(16),dp(20));scroll.addView(page,new ScrollView.LayoutParams(-1,-2));content.addView(scroll,new FrameLayout.LayoutParams(-1,-1));final int restored=scrollPositions.getOrDefault(displayedRoute,0);scroll.addOnLayoutChangeListener(new View.OnLayoutChangeListener(){public void onLayoutChange(View v,int l,int t,int r,int b,int ol,int ot,int or,int ob){if(scroll.getHeight()<=0)return;scroll.removeOnLayoutChangeListener(this);scroll.post(()->{if(visibleScroll==scroll)scroll.scrollTo(0,restored);});}});return page;}
  private void heading(LinearLayout page,String title){TextView t=text(title,24,TEXT,4);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(12);t.setAccessibilityHeading(true);page.addView(t,p);}
  private void copy(LinearLayout page,String value){TextView t=text(value,15,MUTED,60);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(12);page.addView(t,p);}
- private android.graphics.drawable.Drawable glass(){GradientDrawable g=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff123b4e,0xff0a2231,0xff0b2938});g.setCornerRadius(dp(18));g.setStroke(dp(1),0xff245266);return g;}
- private LinearLayout card(LinearLayout page,String caption){Panel panel=new Panel(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setBackground(glass());LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(16);page.addView(panel,lp);TextView h=text(caption,13,CYAN,3);h.setLetterSpacing(.06f);h.setPadding(dp(16),dp(16),dp(16),0);panel.addView(h,new LinearLayout.LayoutParams(-1,-2));return panel;}
+ private GradientDrawable surface(int top,int bottom,int edge,int radius){
+  GradientDrawable shape=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{top,bottom});
+  shape.setCornerRadius(dp(radius));if(edge!=0)shape.setStroke(dp(1),edge);
+  return shape;
+ }
+ private android.graphics.drawable.Drawable glass(){return surface(0xff142936,0xff0c1a25,0xff293e49,18);}
+ private LinearLayout card(LinearLayout page,String caption){Panel panel=new Panel(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setBackground(glass());LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(16);page.addView(panel,lp);TextView h=text(caption,12,AMBER,3);h.setLetterSpacing(.06f);h.setPadding(dp(16),dp(16),dp(16),0);panel.addView(h,new LinearLayout.LayoutParams(-1,-2));return panel;}
  private LinearLayout section(LinearLayout card){LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));card.addView(body,new LinearLayout.LayoutParams(-1,-2));return body;}
  private void footer(LinearLayout card,String value){TextView t=text(value,13,MUTED,10);t.setBackgroundColor(0x25000000);t.setPadding(dp(16),dp(10),dp(16),dp(12));card.addView(t,new LinearLayout.LayoutParams(-1,-2));}
  private void homePage(LinearLayout page){
@@ -265,8 +271,20 @@ public class PhoneActivity extends Activity {
  private void clearFlags(){for(ImageView image:flagViews)image.setImageDrawable(null);flagViews.clear();for(Bitmap b:flagImages)if(!b.isRecycled())b.recycle();flagImages.clear();}
  private void showEvent(Alert a){if(destroyed)return;returnTab=tab;selected=a.copy();render();}
  private void eventPage(LinearLayout page,Alert a){
-  page.addView(button("‹ Voltar",()->{selected=null;tab=returnTab;render();}),new LinearLayout.LayoutParams(-1,-2));heading(page,"Detalhes do evento");
-  if(a.kind.equals("earthquake")){TextView mag=text(magnitude(a),54,AMBER,1);space(page,mag,6);LinearLayout locationRow=new LinearLayout(this);locationRow.setGravity(Gravity.CENTER_VERTICAL);addFlag(locationRow,a,42);locationRow.addView(text(location(a),28,TEXT,5),new LinearLayout.LayoutParams(0,-2,1));space(page,locationRow,6);}
+  Button back=button("‹ Voltar",()->{selected=null;tab=returnTab;render();});
+  page.addView(back,new LinearLayout.LayoutParams(-2,-2));
+  TextView detailHeading=text("Detalhes do evento",14,MUTED,1);
+  detailHeading.setAccessibilityHeading(true);
+  LinearLayout.LayoutParams headingSpace=new LinearLayout.LayoutParams(-1,-2);
+  headingSpace.setMargins(0,dp(12),0,dp(9));page.addView(detailHeading,headingSpace);
+  if(a.kind.equals("earthquake")){
+   LinearLayout hero=section(card(page,"SISMO"));
+   TextView mag=text(magnitude(a),56,AMBER,1);mag.setTypeface(brand);hero.addView(mag);
+   LinearLayout locationRow=new LinearLayout(this);locationRow.setGravity(Gravity.CENTER_VERTICAL);
+   addFlag(locationRow,a,30);
+   TextView place=text(location(a),25,TEXT,5);place.setAccessibilityHeading(true);
+   locationRow.addView(place,new LinearLayout.LayoutParams(0,-2,1));space(hero,locationRow,6);
+  }
   else{heading(page,tsunamiState(a.state));copy(page,a.title);}
   LinearLayout info=card(page,a.kind.equals("earthquake")?"REGISTRO SÍSMICO":"BOLETIM OFICIAL");LinearLayout body=section(info);if(a.kind.equals("earthquake"))detail(body,PhoneIcons.DEPTH,depth(a));detail(body,PhoneIcons.CLOCK,BrDates.dateTime(eventTime(a)));space(body,text(source(a),17,TEXT,5),8);if(!a.detail.isEmpty())space(body,text(a.detail,16,MUTED,60),8);footer(info,a.kind.equals("earthquake")?"Danos: sem informação":"Consulte o boletim e siga as orientações das autoridades locais.");
   if(!a.revision.isEmpty())copy(page,"Atualização: "+a.revision);
@@ -278,38 +296,57 @@ public class PhoneActivity extends Activity {
    copy(analysisBody,"O que o registro permite concluir sobre o tremor, o que ainda é incerto e quais evidências ajudam a esclarecer.");
    analysisBody.addView(button("Entenda este sismo · análise aprofundada",()->showSeismicContext(a)),new LinearLayout.LayoutParams(-1,-2));
   }
-  Button mapButton=button("Ver localização no mapa",()->showMapEvent(a));mapButton.setEnabled(MapFrame.located(a.originLongitude,a.originLatitude));page.addView(mapButton,new LinearLayout.LayoutParams(-1,-2));if(!mapButton.isEnabled())copy(page,"Localização no mapa indisponível para este registro.");
+  LinearLayout explore=section(card(page,"MAPA E SUBSOLO"));
+  Button mapButton=button("Ver localização no mapa",()->showMapEvent(a));
+  mapButton.setEnabled(MapFrame.located(a.originLongitude,a.originLatitude));explore.addView(mapButton,new LinearLayout.LayoutParams(-1,-2));
+  if(!mapButton.isEnabled())copy(explore,"Localização no mapa indisponível para este registro.");
   if(a.kind.equals("earthquake")&&mapButton.isEnabled()){
-   seismicVolumeActions(page,a);
-   space(page,button("Monitorar esta área",()->editSeismicPlace(-1,a)),8);
+   seismicVolumeActions(explore,a);
+   space(explore,button("Monitorar esta área",()->editSeismicPlace(-1,a)),8);
   }
-  space(page,button("Compartilhar evento",()->share(a)),10);
+  LinearLayout sharing=section(card(page,"COMPARTILHAR"));
+  space(sharing,button("Compartilhar evento",()->share(a)),0);
   if(a.kind.equals("earthquake")&&Double.isFinite(a.magnitude)&&
     MapFrame.located(a.originLongitude,a.originLatitude)&&Math.abs(a.originLatitude)<85&&
     (a.magnitude>=6||"BR".equalsIgnoreCase(a.countryCode))){
-   space(page,button("Compartilhar vídeo do sismo",()->prepareShare(a,true)),8);
+   space(sharing,button("Compartilhar vídeo do sismo",()->prepareShare(a,true)),8);
   }
  }
 
  private void seismicVolumeActions(LinearLayout parent,Alert event){
   LinearLayout actions=new LinearLayout(this);space(parent,actions,8);
-  actions.addView(button("Subsolo 3D",()->openQuakeVolume(event,false)),new LinearLayout.LayoutParams(0,-2,1));
-  actions.addView(button("Tour",()->openQuakeVolume(event,true)),new LinearLayout.LayoutParams(0,-2,1));
+  addAction(actions,primaryButton("Subsolo 3D",()->openQuakeVolume(event,false)),1);
+  addAction(actions,button("Tour",()->openQuakeVolume(event,true)),1);
+ }
+ private void addAction(LinearLayout row,View action,float weight){
+  LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,-2,weight);
+  if(row.getChildCount()>0)params.setMarginStart(dp(8));
+  row.addView(action,params);
  }
  private void openQuakeVolume(Alert event,boolean startTour){
   if(quakeVolumeDialog!=null)quakeVolumeDialog.dismiss();
-  LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setBackgroundColor(BACK);
-  TextView location=text(magnitude(event)+" · "+location(event)+"\n"+depth(event),17,TEXT,4);
-  location.setPadding(dp(14),dp(10),dp(14),dp(8));body.addView(location);
+  LinearLayout body=dialogBody();
+  dialogTitle(body,"Subsolo 3D");
+  TextView location=text(location(event),17,TEXT,4);
+  space(body,location,10);
+  TextView metrics=text(magnitude(event)+"  ·  "+depth(event),14,AMBER,3);
+  space(body,metrics,6);
   PhoneQuakeVolume volume=new PhoneQuakeVolume(this,event,events());
-  body.addView(volume,new LinearLayout.LayoutParams(-1,Math.min(dp(370),getResources().getDisplayMetrics().heightPixels*43/100)));
-  LinearLayout controls=new LinearLayout(this);body.addView(controls);
-  Button tour=button("Iniciar / pausar",volume::toggleTour);
-  controls.addView(tour,new LinearLayout.LayoutParams(0,-2,1.45f));
-  controls.addView(button("Topo",()->volume.view(true)),new LinearLayout.LayoutParams(0,-2,1));
-  controls.addView(button("Corte",()->volume.view(false)),new LinearLayout.LayoutParams(0,-2,1));
-  TextView nearby=text("",13,MUTED,12);nearby.setPadding(dp(14),dp(8),dp(14),dp(6));
-  ScrollView list=new ScrollView(this);list.addView(nearby);body.addView(list,new LinearLayout.LayoutParams(-1,dp(86)));
+  volume.setBackground(surface(0xff0e212d,0xff08151e,0xff304650,16));
+  volume.setClipToOutline(true);
+  LinearLayout.LayoutParams stage=new LinearLayout.LayoutParams(-1,Math.min(dp(360),getResources().getDisplayMetrics().heightPixels*42/100));
+  stage.topMargin=dp(14);body.addView(volume,stage);
+  LinearLayout controls=new LinearLayout(this);space(body,controls,10);
+  Button tour=primaryButton("Iniciar tour",()->{});
+  Button top=button("Topo",()->{}),side=button("Corte",()->{});
+  addAction(controls,tour,1.6f);addAction(controls,top,1);addAction(controls,side,1);
+  Runnable play=()->{volume.toggleTour();};
+  volume.setTourListener(label->tour.setText(label));
+  tour.setOnClickListener(v->{top.setSelected(false);side.setSelected(false);play.run();});
+  top.setOnClickListener(v->{volume.view(true);top.setSelected(true);side.setSelected(false);});
+  side.setOnClickListener(v->{volume.view(false);side.setSelected(true);top.setSelected(false);});
+  TextView nearby=text("",13,MUTED,60);nearby.setPadding(0,dp(4),0,dp(4));
+  ScrollView list=new ScrollView(this);list.addView(nearby);space(body,list,8);list.getLayoutParams().height=dp(68);
   Runnable refreshNearby=()->{
    List<Alert> points=volume.nearby();
    List<String> labels=new ArrayList<>();
@@ -318,13 +355,13 @@ public class PhoneActivity extends Activity {
     "Sismos próximos no catálogo · até 7 dias do evento\n"+String.join("\n",labels));
   };
   refreshNearby.run();
-  android.app.AlertDialog dialog=new android.app.AlertDialog.Builder(this).setTitle("Subsolo 3D")
-   .setView(body).setPositiveButton("Fechar",null).create();
+  android.app.AlertDialog dialog=panelDialog(body);
   quakeVolumeDialog=dialog;
   ExecutorService loads=Executors.newFixedThreadPool(2);
   dialog.setOnDismissListener(d->{loads.shutdownNow();volume.stop();if(quakeVolumeDialog==dialog)quakeVolumeDialog=null;});
-  dialog.show();
-  if(startTour)volume.post(volume::toggleTour);
+  showPanel(dialog);
+  if(startTour)volume.post(()->{if(dialog.isShowing())play.run();});
+  if(!automaticRefresh())return;
   java.util.function.Consumer<MapFrame> loadTerrain=frame->loads.execute(()->{
    try{
     Bitmap image=PhoneQuakeData.terrain(frame);
@@ -430,10 +467,8 @@ public class PhoneActivity extends Activity {
  private double placeNumber(EditText input){return Double.parseDouble(input.getText().toString().trim().replace(',','.')); }
 
  private void showSeismicContext(Alert a){
-  LinearLayout body=new LinearLayout(this);
-  body.setOrientation(LinearLayout.VERTICAL);
-  body.setPadding(dp(20),dp(8),dp(20),dp(16));
-  body.setBackgroundColor(BACK);
+  LinearLayout body=dialogBody();
+  dialogTitle(body,"Entenda este sismo");
   LinearLayout sections=new LinearLayout(this);
   sections.setOrientation(LinearLayout.VERTICAL);
   space(body,text("Dados do catálogo",17,CYAN,2),6);
@@ -448,8 +483,7 @@ public class PhoneActivity extends Activity {
   renderSeismicContext(sections,a);
   ScrollView scroll=new ScrollView(this);
   scroll.addView(body);
-  android.app.AlertDialog dialog=new android.app.AlertDialog.Builder(this).setTitle("Entenda este sismo")
-   .setView(scroll).setPositiveButton("Fechar",null).create();
+  android.app.AlertDialog dialog=panelDialog(scroll);
   Future<?>[] inquiry={null};
   consult.setOnClickListener(v->{
    consult.setEnabled(false);
@@ -475,8 +509,7 @@ public class PhoneActivity extends Activity {
    });
   });
   dialog.setOnDismissListener(d->{if(inquiry[0]!=null)inquiry[0].cancel(true);});
-  dialog.show();
-  if(dialog.getWindow()!=null)dialog.getWindow().setBackgroundDrawable(pill(BACK));
+  showPanel(dialog);
  }
 
  private List<String> seismicSelection(Alert a,List<String> focus){
@@ -672,7 +705,52 @@ public class PhoneActivity extends Activity {
  static String tsunamiState(String state){switch(state){case "noThreat":return "Sem ameaça segundo o boletim";case "warning":return "Aviso de tsunami";case "watch":return "Vigilância de tsunami";case "advisory":return "Atenção para tsunami";case "ended":return "Aviso de tsunami encerrado";case "information":return "Boletim informativo de tsunami";default:return "Situação de tsunami não confirmada";}}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private TextView text(String value,int size,int color,int maxLines){TextView v=new TextView(this);v.setText(value);v.setTextColor(color);v.setTextSize(size);v.setTypeface(size>=17?Typeface.create("sans-serif-medium",Typeface.NORMAL):Typeface.DEFAULT);v.setFontFeatureSettings("tnum");v.setMaxLines(maxLines);v.setEllipsize(TextUtils.TruncateAt.END);v.setIncludeFontPadding(false);return v;}
- private Button button(String value,Runnable action){Button b=new Button(this);b.setText(value);b.setAllCaps(false);b.setTextSize(16);b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));b.setTextColor(CYAN);b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setPadding(dp(12),dp(8),dp(12),dp(8));b.setBackground(ripple(BODY));b.setOnClickListener(v->action.run());return b;}
+ private Button button(String value,Runnable action){return actionButton(value,action,false);}
+ private Button primaryButton(String value,Runnable action){return actionButton(value,action,true);}
+ private Button actionButton(String value,Runnable action,boolean primary){
+  Button button=new Button(this);
+  button.setText(value);button.setAllCaps(false);button.setTextSize(15);
+  button.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+  button.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},
+   new int[]{0xffa6b2ba,primary?0xff21170c:TEXT}));
+  button.setMinHeight(dp(48));button.setMinimumHeight(dp(48));
+  button.setPadding(dp(10),dp(8),dp(10),dp(8));
+  android.graphics.drawable.StateListDrawable states=new android.graphics.drawable.StateListDrawable();
+  states.addState(new int[]{-android.R.attr.state_enabled},surface(0xff1b2731,0xff17222b,0xff32404b,12));
+  states.addState(new int[]{android.R.attr.state_focused},primary?surface(0xffffe2a5,0xffddac60,Color.WHITE,12):surface(0xff264553,0xff132d3a,CYAN,12));
+  states.addState(new int[]{android.R.attr.state_selected},surface(0xff32444b,0xff26343b,AMBER,12));
+  states.addState(new int[]{},primary?surface(0xfff9d99e,0xffc89549,0xfff2d597,12):surface(0xff1a303e,0xff11232f,0xff344b58,12));
+  button.setStateListAnimator(null);
+  button.setBackground(new RippleDrawable(ColorStateList.valueOf(primary?0x44382510:0x3c9ed7e7),states,pill(Color.WHITE)));
+  button.setOnClickListener(v->action.run());return button;
+ }
+ private LinearLayout dialogBody(){
+  LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);
+  body.setPadding(dp(16),dp(16),dp(16),dp(8));return body;
+ }
+ private TextView dialogTitle(LinearLayout body,String title){
+  TextView header=text(title,26,TEXT,3);header.setAccessibilityHeading(true);body.addView(header);return header;
+ }
+ private android.app.AlertDialog panelDialog(View content){
+  return new android.app.AlertDialog.Builder(this,R.style.ArgosPanelDialog)
+   .setView(content).setPositiveButton("Fechar",null).create();
+ }
+ private void showPanel(android.app.AlertDialog dialog){
+  dialog.show();
+  Window window=dialog.getWindow();if(window==null)return;
+  window.setBackgroundDrawable(surface(0xff152b38,0xff0b1722,0xff46525a,22));
+  window.setDimAmount(.72f);
+  window.setLayout(Math.min(dp(540),getResources().getDisplayMetrics().widthPixels-dp(24)),
+   WindowManager.LayoutParams.WRAP_CONTENT);
+  Button close=dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+  close.setAllCaps(false);close.setTextColor(AMBER);
+  if(android.animation.ValueAnimator.areAnimatorsEnabled()){
+   View decor=window.getDecorView();
+   decor.setAlpha(0f);decor.setTranslationY(dp(8));
+   decor.animate().alpha(1).translationY(0).setDuration(180)
+    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+  }
+ }
  private android.graphics.drawable.Drawable ripple(int color){return ripple(color,true);}
  private android.graphics.drawable.Drawable ripple(int color,boolean outline){
   GradientDrawable shape=pill(color);if(outline)shape.setStroke(dp(1),0xff244a62);

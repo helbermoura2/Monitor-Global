@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.41 de teste
+
+- Nova aparência para navegação, botões e detalhes do sismo, com painéis próprios para análise e subsolo 3D.
+
 # Argos Orbis Celular · 0.1.40 de teste
 
 - Subsolo 3D e tour nos detalhes de sismos com coordenadas. A visualização usa a profundidade do catálogo e permite alternar entre topo e corte.

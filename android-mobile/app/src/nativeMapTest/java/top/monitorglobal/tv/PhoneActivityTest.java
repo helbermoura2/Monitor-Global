@@ -92,6 +92,19 @@ public class PhoneActivityTest {
   }
   activity.onBackPressed();assertTrue(texts(root()).contains("Monitoramento agora"));
  }
+ @Test public void quakeVolumePanelCanChangeProjectionAndClose(){
+  activity.applySnapshot(data());root().findViewWithTag("event-sample").performClick();
+  named(root(),"Subsolo 3D").performClick();
+  android.app.AlertDialog dialog=(android.app.AlertDialog)org.robolectric.shadows.ShadowDialog.getLatestDialog();
+  View stage=dialog.getWindow().getDecorView();
+  assertNotNull(named(stage,"Iniciar tour"));
+  TextView top=named(stage,"Topo"),side=named(stage,"Corte");
+  top.performClick();assertTrue(top.isSelected());assertFalse(side.isSelected());
+  side.performClick();assertTrue(side.isSelected());assertFalse(top.isSelected());
+  named(stage,"Fechar").performClick();
+  org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+  assertFalse(dialog.isShowing());
+ }
  @Test public void seismicContextExplainsZeroDepthAndMissingBulletin(){
   Alert a=new Alert("mg","earthquake","v","M2,7 · MINAS GERAIS, Brasil","","earthquake",1,1,false);
   a.source="EMSC";a.magnitude=2.7;a.depth=0;

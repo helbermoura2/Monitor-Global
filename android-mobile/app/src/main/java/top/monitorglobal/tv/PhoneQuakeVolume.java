@@ -9,7 +9,7 @@ import java.util.*;
 
 /** Rotatable geographic block. Vertical and horizontal axes use the same kilometre scale. */
 final class PhoneQuakeVolume extends View {
- private static final int GOLD=0xffffce77,INK=0xff081a23;
+ private static final int GOLD=0xffffce77;
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  private final Alert origin;
  private final double kmPerLat=111.2,kmPerLon;
@@ -21,6 +21,7 @@ final class PhoneQuakeVolume extends View {
  private float yaw=-.58f,tilt=.59f,lastX,lastY,focus;
  private ValueAnimator tour;
  private boolean paused;
+ private java.util.function.Consumer<String> tourListener=label->{};
  PhoneQuakeVolume(Context context,Alert event,List<Alert> candidates){
   super(context);origin=event;
   kmPerLon=kmPerLat*Math.max(.04,Math.cos(Math.toRadians(event.originLatitude)));
@@ -61,17 +62,21 @@ final class PhoneQuakeVolume extends View {
  private static double depth(Alert a){return known(a)?a.depth:0;}
  boolean canDescend(){return known(origin);}
  void view(boolean top){stop();focus=0;yaw=top?0:-.52f;tilt=top?1.57f:.08f;invalidate();}
- void stop(){if(tour!=null){tour.cancel();tour=null;}paused=false;}
+ void setTourListener(java.util.function.Consumer<String> listener){tourListener=listener;}
+ void stop(){if(tour!=null){tour.removeAllListeners();tour.cancel();tour=null;}paused=false;tourListener.accept("Iniciar tour");}
  boolean toggleTour(){
   if(tour!=null&&tour.isRunning()){
    if(paused)tour.resume();else tour.pause();
-   paused=!paused;return !paused;
+   paused=!paused;tourListener.accept(paused?"Retomar":"Pausar");return !paused;
   }
   yaw=0;tilt=1.56f;focus=0;
   if(!ValueAnimator.areAnimatorsEnabled()){tilt=.55f;focus=known(origin)?1:0;invalidate();return false;}
   tour=ValueAnimator.ofFloat(0,1);tour.setDuration(7000);
   tour.addUpdateListener(value->{float p=(float)value.getAnimatedValue();yaw=-.68f*p;tilt=1.56f-1.04f*p;focus=known(origin)?Math.max(0,(p-.30f)/.70f):0;invalidate();});
-  tour.start();return true;
+  tour.addListener(new android.animation.AnimatorListenerAdapter(){
+   @Override public void onAnimationEnd(android.animation.Animator animation){tour=null;tourListener.accept("Repetir tour");}
+  });
+  tourListener.accept("Pausar");tour.start();return true;
  }
  @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
  @Override public boolean onTouchEvent(MotionEvent e){
@@ -96,7 +101,11 @@ final class PhoneQuakeVolume extends View {
   paint.setStyle(Paint.Style.STROKE);paint.setColor(0xff987e52);paint.setStrokeWidth(1);canvas.drawPath(polygon,paint);paint.setStyle(Paint.Style.FILL);
  }
  @Override protected void onDraw(Canvas canvas){
-  super.onDraw(canvas);canvas.drawColor(INK);
+  super.onDraw(canvas);
+  canvas.drawColor(0xff0b1821);
+  paint.setColor(0xff1b303b);paint.setStrokeWidth(1);
+  for(int x=16;x<getWidth();x+=24)canvas.drawLine(x,0,x,getHeight(),paint);
+  for(int y=16;y<getHeight();y+=24)canvas.drawLine(0,y,getWidth(),y,paint);
   double faultDepth=rupture.stream().flatMap(Collection::stream).mapToDouble(v->v[2]).max().orElse(0);
   double nearbyDepth=nearby.stream().mapToDouble(PhoneQuakeVolume::depth).max().orElse(0);
   double bottom=Math.max(half*.62,Math.max(faultDepth,Math.max(depth(origin),nearbyDepth))*1.15);
@@ -105,7 +114,7 @@ final class PhoneQuakeVolume extends View {
   int[] xs={-1,1,1,-1},ys={-1,-1,1,1};
   for(int i=0;i<4;i++){top[i]=vertex(xs[i]*half,ys[i]*half,0,scale);base[i]=vertex(xs[i]*half,ys[i]*half,bottom,scale);}
   Integer[] order={0,1,2,3};Arrays.sort(order,Comparator.comparingDouble(i->top[i][1]+top[(i+1)%4][1]));
-  for(int i:order){int next=(i+1)%4;face(canvas,i%2==0?0x993e3440:0x99485058,top[i],top[next],base[next],base[i]);}
+  for(int i:order){int next=(i+1)%4;face(canvas,i%2==0?0xaa34333c:0xaa1d3b47,top[i],top[next],base[next],base[i]);}
   face(canvas,0xff17424a,top);
   if(terrain!=null){
    Matrix matrix=new Matrix();matrix.setPolyToPoly(new float[]{0,0,terrain.getWidth(),0,0,terrain.getHeight()},0,
@@ -134,7 +143,7 @@ final class PhoneQuakeVolume extends View {
   paint.setColor(primary?GOLD:0xff63c9d5);paint.setStrokeWidth(primary?2:1);
   if(known(event))canvas.drawLine(top[0],top[1],point[0],point[1],paint);
   canvas.drawCircle(point[0],point[1],primary?7:4,paint);
-  if(primary||focus>.7&&nearby.size()<8)
+  if(primary)
    label(canvas,PhoneActivity.magnitude(event)+(known(event)?String.format(Locale.ROOT," · %.1f km",event.depth):" · profundidade indisponível"),
     point[0]+10,point[1]-9,primary?GOLD:0xffa6e8e8,12);
  }

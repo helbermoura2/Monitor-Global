@@ -3,4 +3,9 @@
  <item name="android:colorAccent">#38BDF8</item><item name="android:statusBarColor">#020816</item><item name="android:navigationBarColor">#020816</item>
  <item name="android:windowLightStatusBar">false</item><item name="android:windowLightNavigationBar">false</item>
  <item name="android:windowActionModeOverlay">true</item>
-</style></resources>
+</style>
+<style name="ArgosPanelDialog" parent="android:style/Theme.Material.Dialog.Alert">
+ <item name="android:colorAccent">#EBC687</item>
+ <item name="android:windowAnimationStyle">@null</item>
+</style>
+</resources>
