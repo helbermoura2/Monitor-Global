@@ -66,6 +66,26 @@ test('AI selects ONLY emphasis IDs; explanations remain source-verified even on 
  assert.ok(r.sections.find(s=>s.id==='shaking').focus);
  assert.ok(!r.sections.find(s=>s.id==='size').focus);
 });
+test('catalogue fan-out runs in a separate object before invoking the model',async()=>{
+ const storage=store(),jobs=[];
+ let read=0;
+ const env={
+  EARTHQUAKE_ALERTS:{
+   idFromName(name){assert.equal(name,'seismic-insight-catalogue-v1');return name;},
+   get(){return {async fetch(url){
+    assert.equal(url,'https://alerts.internal/__seismic-insight-catalogue');
+    read++;return Response.json(feed());
+   }};}
+  },
+  AI:{async run(){assert.equal(read,1);return {response:{facts:['shaking']}};}}
+ };
+ const options={now,waitUntil:job=>jobs.push(job)};
+ const first=await(await handleSeismicInsightInObject(req(),env,storage,options)).json();
+ assert.equal(first.status,'pending');
+ await Promise.all(jobs);
+ const ready=await(await handleSeismicInsightInObject(req(),env,storage,options)).json();
+ assert.equal(ready.model,SEISMIC_WORKERS_MODEL);
+});
 test('unknown IDs cannot call models; unfinished/untrusted feed does not create analysis',async()=>{
  const storage=store();let calls=0;
  const env={AI:{run:async()=>{calls++;return {};}}};

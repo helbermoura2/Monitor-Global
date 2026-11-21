@@ -1224,6 +1224,10 @@ export class EarthquakeAlertDelivery {
             if(new URL(request.url).pathname.startsWith('/telegram-image/'))return serveTelegramOriginal(request,this.state.storage);
             if(/^\/(?:rain-weather|rainbow-snapshot|rainbow-tile)(?:\/|$)/.test(new URL(request.url).pathname))return handleRainbowProductInObject(request,measuredEnv,this.state.storage);
             if(new URL(request.url).pathname==='/weather-briefing')return handleWeatherBriefingInObject(request,measuredEnv,this.state.storage,{waitUntil:job=>this.state.waitUntil(job)});
+            if(new URL(request.url).pathname==='/__seismic-insight-catalogue'){
+                const catalogueRequest=new Request('https://internal/tv-alerts?policy=telegram-v1');
+                return handleTvAlerts(catalogueRequest,{env:measuredEnv});
+            }
             if(new URL(request.url).pathname==='/seismic-insight')return handleSeismicInsightInObject(request,measuredEnv,this.state.storage,{waitUntil:job=>this.state.waitUntil(job)});
             if(new URL(request.url).pathname==='/rain-nowcast')return handleRainbowInObject(request,measuredEnv,this.state.storage);
             if(new URL(request.url).pathname==='/translate-pt'){

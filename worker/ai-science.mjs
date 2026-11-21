@@ -4,7 +4,6 @@
  * No background polling, no extra weather provider quota, no AI-generated measurements.
  */
 import {handleTvRain} from './tv-rain.mjs';
-import {handleTvAlerts} from './tv-alerts.mjs';
 import {selectWithFallback,BRIEFING_RULE_MODEL} from './weather-briefing.mjs';
 
 const MIN=60000;
@@ -122,8 +121,14 @@ export async function handleSeismicInsight(request,env){
  try{return await env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('weather-briefing-v1')).fetch(request);}
  catch{return json({version:'seismic-insight-v1',status:'unavailable',reason:'service-unavailable'});}
 }
+// Keep catalogue fan-out out of the invocation that calls the models.
+function readSeismicCatalogue({env}){
+ const binding=env.EARTHQUAKE_ALERTS;
+ const catalogue=binding.get(binding.idFromName('seismic-insight-catalogue-v1'));
+ return catalogue.fetch('https://alerts.internal/__seismic-insight-catalogue');
+}
 export async function handleSeismicInsightInObject(request,env,storage,{
- now=Date.now(),waitUntil,readFeed=(req,opts)=>handleTvAlerts(req,opts),
+ now=Date.now(),waitUntil,readFeed=readSeismicCatalogue,
  fetchGemini=fetch
 }={}){
  const u=new URL(request.url);
@@ -133,7 +138,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  if(typeof waitUntil!=='function')return json({version:'seismic-insight-v1',status:'unavailable',reason:'service-unavailable'});
  let snap;
  try{
-  const response=await readFeed(new Request('https://internal/tv-alerts?policy=telegram-v1'),{env});
+  const response=await readFeed({env});
   if(!response.ok)throw Error('feed');
   snap=await response.json();
   if(snap?.version!=='tv-alerts-v1'||!snap?.sources?.earthquake||!Array.isArray(snap.alerts))throw Error('feed');
@@ -144,7 +149,7 @@ export async function handleSeismicInsightInObject(request,env,storage,{
  const evidence=interpret(q,now);
  if(!evidence)return json({version:'seismic-insight-v1',status:'unavailable',reason:'no-matching-fresh-event'});
  const revision=JSON.stringify([evidence.id,evidence.at,evidence.magnitude,evidence.depth,evidence.tsunamiSummary]);
- const key='seismic-insight:context-v5:'+revision.slice(0,440);
+ const key='seismic-insight:context-v6:'+revision.slice(0,440);
  const base={version:'seismic-insight-v1',id:evidence.id,title:evidence.title,source:evidence.source,
   eventAt:evidence.at,magnitude:evidence.magnitude,depth:evidence.depth,expiresAt:Math.min(now+15*MIN,evidence.at+72*3600000),
   disclaimer:'Explicação educativa de dados publicados, não é previsão sísmica, avaliação oficial de danos ou alerta de tsunami.'};
