@@ -28,6 +28,8 @@ final class PhoneVolumeShare {
   float x=(1080-stageWidth*scale)/2,y=363+(1030-stageHeight*scale)/2;
   canvas.save();
   canvas.translate(x,y);canvas.scale(scale,scale);
+  // The view uses drawColor, which respects the clip but ignores the transform.
+  canvas.clipRect(0,0,stageWidth,stageHeight);
   volume.draw(canvas);canvas.restore();
   line.setShader(new LinearGradient(64,0,1016,0,GOLD,0x108f6a35,Shader.TileMode.CLAMP));
   canvas.drawRect(64,1413,1016,1417,line);

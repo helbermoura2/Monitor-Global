@@ -92,7 +92,7 @@ public class PhoneActivityTest {
   }
   activity.onBackPressed();assertTrue(texts(root()).contains("Monitoramento agora"));
  }
- @Test public void quakeVolumePanelCanChangeProjectionAndClose(){
+ @Test public void quakeVolumePanelCanChangeProjectionAndClose()throws Exception{
   activity.applySnapshot(data());root().findViewWithTag("event-sample").performClick();
   named(root(),"Subsolo 3D").performClick();
   android.app.AlertDialog dialog=(android.app.AlertDialog)org.robolectric.shadows.ShadowDialog.getLatestDialog();
@@ -109,10 +109,25 @@ public class PhoneActivityTest {
   Bitmap card=PhoneVolumeShare.render(volume,quake(),Typeface.DEFAULT_BOLD);
   assertNotNull(card);
   assertEquals(1080,card.getWidth());assertEquals(1920,card.getHeight());
-  card.recycle();
+  assertEquals(0xff091722,card.getPixel(45,100));
+  assertEquals(0xffb49056,card.getPixel(540,22));
+  assertTrue(hasCardInk(card,64,65,500,128,0xffebc687)); // Brand
+  assertTrue(hasCardInk(card,64,146,760,198,0xffebc687)); // 3D title
+  assertTrue(hasCardInk(card,64,205,1016,350,0xfff2f5f7)); // Event location
+  assertTrue(hasCardInk(card,64,1450,1016,1510,0xfff2f5f7)); // Depth
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(
+   new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-phone-subsolo-share.png"))){
+   assertTrue(card.compress(Bitmap.CompressFormat.PNG,100,out));
+  }finally{card.recycle();}
   named(stage,"Fechar").performClick();
   org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
   assertFalse(dialog.isShowing());
+ }
+ private boolean hasCardInk(Bitmap card,int left,int top,int right,int bottom,int color){
+  int[] pixels=new int[(right-left)*(bottom-top)];
+  card.getPixels(pixels,0,right-left,left,top,right-left,bottom-top);
+  int count=0;for(int pixel:pixels)if(pixel==color&&++count>=20)return true;
+  return false;
  }
  @Test public void seismicContextExplainsZeroDepthAndMissingBulletin(){
   Alert a=new Alert("mg","earthquake","v","M2,7 · MINAS GERAIS, Brasil","","earthquake",1,1,false);

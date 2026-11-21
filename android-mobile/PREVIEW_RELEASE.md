@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.43 de teste
+
+- Corrige o PNG do Subsolo 3D para preservar título, localização e moldura.
+
 # Argos Orbis Celular · 0.1.42 de teste
 
 - Formulário de lugares salvos com o visual do aplicativo.
