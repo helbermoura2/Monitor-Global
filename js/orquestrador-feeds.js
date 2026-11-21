@@ -315,7 +315,8 @@ async function fetchGlobalFeeds() {
             } else {
                 window.__sismoUsingCache = true;
                 window.__sismoCacheAt =
-                    Number(window.__lastSismoSuccess || Date.now());
+                    Number(window.__lastSismoSuccess || window.__sismoCacheAt || 0) || null;
+                window.__offlineCacheReason = 'sources-off';
             }
 
             try {
@@ -515,6 +516,7 @@ async function fetchGlobalFeeds() {
         window.__lastSismoSuccess = Date.now();
         window.__lastSismoError = null;
         window.__sismoUsingCache = false;
+        window.__offlineCacheReason = null;
         window.__sismoCacheAt = null;
         window.__sismoCacheAgeMs = 0;
 
@@ -651,6 +653,9 @@ async function fetchGlobalFeeds() {
             restaurarCacheOffline('error');
         } else {
             window.__sismoUsingCache = true;
+            window.__sismoCacheAt =
+                Number(window.__lastSismoSuccess || window.__sismoCacheAt || 0) || null;
+            window.__offlineCacheReason = 'error';
             try {
                 if (typeof updateFreshnessUI === 'function') updateFreshnessUI();
             } catch (err) {}

@@ -36,8 +36,8 @@ function updateFreshnessBar() {
         const alEl = document.getElementById('fresh-alerts');
         const netEl = document.getElementById('fresh-net');
         if (sismoEl) {
-            if (window.__sismoUsingCache && window.__sismoCacheAt) {
-                const age = ago(window.__sismoCacheAt);
+            if (window.__sismoUsingCache) {
+                const age = window.__sismoCacheAt ? ago(window.__sismoCacheAt) : 'idade não confirmada';
                 sismoEl.innerHTML = 'Sismos: <b class="warn">cache ' + age + '</b>';
                 sismoEl.title = 'Dados de cache local — última gravação há ' + age + '. Fontes ao vivo indisponíveis ou sem rede.';
             } else {

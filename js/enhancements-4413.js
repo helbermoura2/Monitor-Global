@@ -68,9 +68,17 @@
           ? `${Math.round(age / 60)}min`
           : `${Math.round(age / 3600)}h`;
 
-      const why = window.__offlineCacheReason === 'offline' ? 'sem rede' : 'fontes indisponíveis';
+      const why = window.__offlineCacheReason === 'offline' ? 'sem rede'
+        : window.__offlineCacheReason === 'reconnecting' ? 'conexão voltou; aguardando confirmação das fontes'
+        : 'fontes indisponíveis';
       el.textContent = `🟠 cache ${label}`;
       el.title = `Dados locais (${why}). Última gravação há ${label}. Não é consulta ao vivo.`;
+      return;
+    }
+
+    if (window.__sismoUsingCache) {
+      el.textContent = '🟠 sismos sem horário válido';
+      el.title = 'Registros anteriores preservados; nenhuma consulta sísmica recente foi confirmada.';
       return;
     }
 
