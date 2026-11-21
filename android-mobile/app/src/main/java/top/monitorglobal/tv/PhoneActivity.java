@@ -332,9 +332,10 @@ public class PhoneActivity extends Activity {
   TextView metrics=text(magnitude(event)+"  ·  "+depth(event),14,AMBER,3);
   space(body,metrics,6);
   PhoneQuakeVolume volume=new PhoneQuakeVolume(this,event,events());
+  volume.setTag("quake-volume");
   volume.setBackground(surface(0xff0e212d,0xff08151e,0xff304650,16));
   volume.setClipToOutline(true);
-  LinearLayout.LayoutParams stage=new LinearLayout.LayoutParams(-1,Math.min(dp(360),getResources().getDisplayMetrics().heightPixels*42/100));
+  LinearLayout.LayoutParams stage=new LinearLayout.LayoutParams(-1,Math.min(dp(350),getResources().getDisplayMetrics().heightPixels*36/100));
   stage.topMargin=dp(14);body.addView(volume,stage);
   LinearLayout controls=new LinearLayout(this);space(body,controls,10);
   Button tour=primaryButton("Iniciar tour",()->{});
@@ -345,18 +346,45 @@ public class PhoneActivity extends Activity {
   tour.setOnClickListener(v->{top.setSelected(false);side.setSelected(false);play.run();});
   top.setOnClickListener(v->{volume.view(true);top.setSelected(true);side.setSelected(false);});
   side.setOnClickListener(v->{volume.view(false);side.setSelected(true);top.setSelected(false);});
-  TextView nearby=text("",13,MUTED,60);nearby.setPadding(0,dp(4),0,dp(4));
-  ScrollView list=new ScrollView(this);list.addView(nearby);space(body,list,8);list.getLayoutParams().height=dp(68);
+  LinearLayout tabs=new LinearLayout(this);space(body,tabs,8);
+  TextView facts=text("",14,TEXT,60);facts.setPadding(0,dp(5),0,dp(5));
+  TextView nearby=text("",14,MUTED,60);nearby.setPadding(0,dp(5),0,dp(5));
+  FrameLayout data=new FrameLayout(this);data.addView(facts);data.addView(nearby);
+  ScrollView list=new ScrollView(this){
+   @Override public boolean dispatchTouchEvent(android.view.MotionEvent event){
+    int type=event.getActionMasked();
+    if(type==android.view.MotionEvent.ACTION_DOWN)getParent().requestDisallowInterceptTouchEvent(true);
+    else if(type==android.view.MotionEvent.ACTION_UP||type==android.view.MotionEvent.ACTION_CANCEL)getParent().requestDisallowInterceptTouchEvent(false);
+    return super.dispatchTouchEvent(event);
+   }
+  };
+  list.addView(data);space(body,list,4);list.getLayoutParams().height=dp(80);
+  Button detailsTab=button("Dados do sismo",()->{}),nearbyTab=button("Sismos próximos",()->{});
+  addAction(tabs,detailsTab,1);addAction(tabs,nearbyTab,1);
+  java.util.function.Consumer<Boolean> selectNearby=selected->{
+   detailsTab.setSelected(!selected);nearbyTab.setSelected(selected);
+   facts.setVisibility(selected?View.GONE:View.VISIBLE);nearby.setVisibility(selected?View.VISIBLE:View.GONE);
+   list.scrollTo(0,0);
+  };
+  detailsTab.setOnClickListener(v->selectNearby.accept(false));
+  nearbyTab.setOnClickListener(v->selectNearby.accept(true));
+  selectNearby.accept(false);
+  Button shareVolume=button("Compartilhar vista 3D",()->{});
+  space(body,shareVolume,8);
   Runnable refreshNearby=()->{
+   facts.setText(BrDates.dateTime(eventTime(event))+" · "+source(event)+"\n"+PhoneVolumeShare.coordinates(event)
+    +"\n"+(volume.hasRupture()?"Ruptura publicada · USGS":"Dourado: sismo selecionado. Azul: sismos próximos."));
    List<Alert> points=volume.nearby();
    List<String> labels=new ArrayList<>();
    for(Alert a:points)labels.add(magnitude(a)+" · "+depth(a)+" · "+BrDates.dateTime(a.eventTime));
-   nearby.setText(points.isEmpty()?"Sem sismos próximos com profundidade no período consultado.":
-    "Sismos próximos no catálogo · até 7 dias do evento\n"+String.join("\n",labels));
+   nearby.setText(points.isEmpty()?"Sem outros registros com profundidade nesta consulta.":
+    "Catálogo · até 7 dias do evento\n"+String.join("\n",labels));
   };
   refreshNearby.run();
-  android.app.AlertDialog dialog=panelDialog(body);
+  ScrollView panelScroll=new ScrollView(this);panelScroll.addView(body);
+  android.app.AlertDialog dialog=panelDialog(panelScroll);
   quakeVolumeDialog=dialog;
+  shareVolume.setOnClickListener(v->shareQuakeVolume(dialog,shareVolume,volume,event));
   ExecutorService loads=Executors.newFixedThreadPool(2);
   dialog.setOnDismissListener(d->{loads.shutdownNow();volume.stop();if(quakeVolumeDialog==dialog)quakeVolumeDialog=null;});
   showPanel(dialog);
@@ -385,6 +413,26 @@ public class PhoneActivity extends Activity {
    }catch(Exception ignored){}
   });
  }
+ private void shareQuakeVolume(android.app.AlertDialog dialog,Button action,PhoneQuakeVolume volume,Alert event){
+  Bitmap image=PhoneVolumeShare.render(volume,event,brand);
+  if(image==null){Toast.makeText(this,"Aguarde a visualização carregar.",Toast.LENGTH_SHORT).show();return;}
+  action.setEnabled(false);action.setText("Preparando imagem…");
+  if(worker==null)worker=Executors.newSingleThreadExecutor();
+  worker.execute(()->{
+   Uri imageUri=null;
+   try(java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream()){
+    if(image.compress(Bitmap.CompressFormat.PNG,100,bytes))imageUri=EventShareCard.fromSite(this,bytes.toByteArray());
+   }catch(java.io.IOException | RuntimeException ignored){}
+   finally{image.recycle();}
+   Uri ready=imageUri;
+   main.post(()->{
+    if(destroyed||!dialog.isShowing())return;
+    action.setText("Compartilhar vista 3D");action.setEnabled(true);
+    if(ready!=null)sendEvent(event,ready);
+    else Toast.makeText(this,"Não foi possível preparar a vista 3D.",Toast.LENGTH_SHORT).show();
+   });
+  });
+ }
  private void savedSeismicPlaces(LinearLayout page){
   LinearLayout card=card(page,"LUGARES SALVOS"),body=section(card);
   copy(body,"Alertas de sismos próximos a partir de M5,0. O Android consulta o catálogo USGS em segundo plano, aproximadamente a cada 30 min.");
@@ -401,14 +449,15 @@ public class PhoneActivity extends Activity {
    Toast.makeText(this,"Limite de 10 lugares salvos.",Toast.LENGTH_SHORT).show();return;
   }
   PhonePlaceAlerts.Place old=index>=0?places.get(index):null;
-  LinearLayout fields=new LinearLayout(this);fields.setOrientation(LinearLayout.VERTICAL);fields.setPadding(dp(20),0,dp(20),0);
+  LinearLayout fields=dialogBody();
+  dialogTitle(fields,"Lugar monitorado");
   EditText name=placeField(fields,"Nome do lugar",old!=null?old.name:event!=null?location(event):"",false);
   EditText lat=placeField(fields,"Latitude",old!=null?Double.toString(old.lat):event!=null?Double.toString(event.originLatitude):"",true);
   EditText lon=placeField(fields,"Longitude",old!=null?Double.toString(old.lon):event!=null?Double.toString(event.originLongitude):"",true);
   EditText km=placeField(fields,"Raio (10 a 1.000 km)",old!=null?Double.toString(old.km):"150",true);
   EditText min=placeField(fields,"Magnitude mínima (5,0 a 9,0)",old!=null?Double.toString(old.min):"5,0",true);
   ScrollView scroll=new ScrollView(this);scroll.addView(fields);
-  android.app.AlertDialog.Builder builder=new android.app.AlertDialog.Builder(this).setTitle("Lugar monitorado").setView(scroll)
+  android.app.AlertDialog.Builder builder=new android.app.AlertDialog.Builder(this,R.style.ArgosPanelDialog).setView(scroll)
    .setPositiveButton("Salvar",null).setNegativeButton("Cancelar",null);
   if(old!=null)builder.setNeutralButton("Remover",(dialog,which)->{places.remove(index);PhonePlaceAlerts.save(this,places);render();});
   android.app.AlertDialog dialog=builder.create();
@@ -422,10 +471,11 @@ public class PhoneActivity extends Activity {
     if(!PhonePush.enabled(this)||!PhonePush.allowed(this))Toast.makeText(this,"Ative as notificações para receber alertas do lugar salvo.",Toast.LENGTH_LONG).show();
    }catch(NumberFormatException e){Toast.makeText(this,"Confira nome, coordenadas, raio e magnitude mínima.",Toast.LENGTH_LONG).show();}
   }));
-  dialog.show();
+  showPanel(dialog);
   if(android.location.Geocoder.isPresent()){
    Button search=button("Buscar cidade pelo nome",()->{});
-   fields.addView(search,2,new LinearLayout.LayoutParams(-1,-2));
+   LinearLayout.LayoutParams searchSpace=new LinearLayout.LayoutParams(-1,-2);
+   searchSpace.topMargin=dp(8);fields.addView(search,3,searchSpace);
    search.setOnClickListener(v->{
     String query=name.getText().toString().trim();
     if(query.length()<2){name.setError("Informe uma cidade, estado ou país");return;}
@@ -439,12 +489,13 @@ public class PhoneActivity extends Activity {
       if(found.isEmpty()){name.setError("Cidade indisponível. Você pode informar as coordenadas.");return;}
       String[] labels=found.stream().map(a->a.getMaxAddressLineIndex()>=0?a.getAddressLine(0):a.getLocality())
        .map(label->label==null?query:label).toArray(String[]::new);
-      new android.app.AlertDialog.Builder(this).setTitle("Escolha o lugar").setItems(labels,(choice,which)->{
+      android.app.AlertDialog choices=new android.app.AlertDialog.Builder(this,R.style.ArgosPanelDialog).setTitle("Escolha o lugar").setItems(labels,(choice,which)->{
        android.location.Address address=found.get(which);
        String title=address.getLocality();
        name.setText(title==null?query:title);
        lat.setText(Double.toString(address.getLatitude()));lon.setText(Double.toString(address.getLongitude()));
-      }).setNegativeButton("Cancelar",null).show();
+      }).setNegativeButton("Cancelar",null).create();
+      showPanel(choices);
      });
     });
    });
@@ -459,10 +510,13 @@ public class PhoneActivity extends Activity {
   return Collections.emptyList();
  }
  private EditText placeField(LinearLayout fields,String label,String value,boolean number){
-  TextView caption=text(label,13,TEXT,3);fields.addView(caption);
+  TextView caption=text(label,13,AMBER,3);space(fields,caption,12);
   EditText input=new EditText(this);input.setSingleLine(true);input.setContentDescription(label);
   input.setInputType(number?android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL:android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-  input.setText(value);fields.addView(input,new LinearLayout.LayoutParams(-1,-2));return input;
+  input.setText(value);input.setTextColor(TEXT);input.setTextSize(16);
+  input.setBackground(surface(0xff162b37,0xff101e29,0xff40545f,10));
+  input.setMinHeight(dp(48));input.setPadding(dp(12),dp(8),dp(12),dp(8));
+  space(fields,input,5);return input;
  }
  private double placeNumber(EditText input){return Double.parseDouble(input.getText().toString().trim().replace(',','.')); }
 
@@ -742,8 +796,10 @@ public class PhoneActivity extends Activity {
   window.setDimAmount(.72f);
   window.setLayout(Math.min(dp(540),getResources().getDisplayMetrics().widthPixels-dp(24)),
    WindowManager.LayoutParams.WRAP_CONTENT);
-  Button close=dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
-  close.setAllCaps(false);close.setTextColor(AMBER);
+  for(int which:new int[]{android.app.AlertDialog.BUTTON_POSITIVE,android.app.AlertDialog.BUTTON_NEGATIVE,android.app.AlertDialog.BUTTON_NEUTRAL}){
+   Button action=dialog.getButton(which);
+   if(action!=null){action.setAllCaps(false);action.setTextColor(which==android.app.AlertDialog.BUTTON_POSITIVE?AMBER:MUTED);}
+  }
   if(android.animation.ValueAnimator.areAnimatorsEnabled()){
    View decor=window.getDecorView();
    decor.setAlpha(0f);decor.setTranslationY(dp(8));

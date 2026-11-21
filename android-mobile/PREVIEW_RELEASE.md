@@ -1,3 +1,8 @@
+# Argos Orbis Celular · 0.1.42 de teste
+
+- Formulário de lugares salvos com o visual do aplicativo.
+- O Subsolo 3D exibe dados do catálogo e exporta a vista atual em PNG pelo compartilhamento do Android.
+
 # Argos Orbis Celular · 0.1.41 de teste
 
 - Nova aparência para navegação, botões e detalhes do sismo, com painéis próprios para análise e subsolo 3D.

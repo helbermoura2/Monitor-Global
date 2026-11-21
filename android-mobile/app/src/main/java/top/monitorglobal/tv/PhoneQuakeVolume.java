@@ -42,6 +42,7 @@ final class PhoneQuakeVolume extends View {
     Math.abs(frame.longitude(v[0])-origin.originLongitude)*kmPerLon));
   updateFrame();terrain=null;invalidate();
  }
+ boolean hasRupture(){return !rupture.isEmpty();}
  MapFrame frame(){return frame;}
  double radius(){return half;}
  void setTerrain(Bitmap bitmap){terrain=bitmap;invalidate();}
@@ -81,10 +82,11 @@ final class PhoneQuakeVolume extends View {
  @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
  @Override public boolean onTouchEvent(MotionEvent e){
   switch(e.getActionMasked()){
-   case MotionEvent.ACTION_DOWN:stop();lastX=e.getX();lastY=e.getY();return true;
+   case MotionEvent.ACTION_DOWN:getParent().requestDisallowInterceptTouchEvent(true);stop();lastX=e.getX();lastY=e.getY();return true;
    case MotionEvent.ACTION_MOVE:yaw+=(e.getX()-lastX)*.012f;tilt=Math.max(.06f,Math.min(1.56f,tilt+(e.getY()-lastY)*.009f));
     lastX=e.getX();lastY=e.getY();invalidate();return true;
-   case MotionEvent.ACTION_UP:performClick();return true;
+   case MotionEvent.ACTION_UP:getParent().requestDisallowInterceptTouchEvent(false);performClick();return true;
+   case MotionEvent.ACTION_CANCEL:getParent().requestDisallowInterceptTouchEvent(false);return true;
    default:return true;
   }
  }

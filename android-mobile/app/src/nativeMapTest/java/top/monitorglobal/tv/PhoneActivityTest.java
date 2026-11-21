@@ -101,6 +101,15 @@ public class PhoneActivityTest {
   TextView top=named(stage,"Topo"),side=named(stage,"Corte");
   top.performClick();assertTrue(top.isSelected());assertFalse(side.isSelected());
   side.performClick();assertTrue(side.isSelected());assertFalse(top.isSelected());
+  assertTrue(texts(stage).contains("Fonte: EXEMPLO"));
+  assertTrue(texts(stage).contains("27,7000° N"));
+  assertNotNull(named(stage,"Compartilhar vista 3D"));
+  PhoneQuakeVolume volume=stage.findViewWithTag("quake-volume");
+  volume.layout(0,0,290,260);
+  Bitmap card=PhoneVolumeShare.render(volume,quake(),Typeface.DEFAULT_BOLD);
+  assertNotNull(card);
+  assertEquals(1080,card.getWidth());assertEquals(1920,card.getHeight());
+  card.recycle();
   named(stage,"Fechar").performClick();
   org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
   assertFalse(dialog.isShowing());
