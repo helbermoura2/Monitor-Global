@@ -375,3 +375,41 @@ test('replay reveals fault patches in their published time order',async({page})=
  expect(output.middle[1]).not.toEqual(output.start[1]);
  expect(output.end[0]).not.toEqual(output.start[0]);
 });
+
+test('Carhuamayo replay estimates shaking when the official service is unavailable',async({page})=>{
+ await page.goto('/mobile-event-image.html');
+ const result=await page.evaluate(async()=>{
+  const base=document.createElement('canvas');base.width=720;base.height=1280;
+  const map=base.getContext('2d');map.fillStyle='#557c67';map.fillRect(0,0,720,1280);
+  SiteEventStory.replayMap=async()=>({base,credit:'Esri'});
+  RuptureShaking.query=async()=>null;
+  const item={type:'earthquake',coords:[-75.98,-10.85],mag:6.7,depth:108,place:'Carhuamayo, Peru'};
+  const {scene,draw,official,estimated,timed}=await QuakeSiteVideo.prepare(item);
+  const ctx=scene.getContext('2d');
+  const sample=()=>Array.from(ctx.getImageData(400,550,1,1).data);
+  const start=sample();
+  draw(19000);
+  return {start,end:sample(),official,estimated,timed};
+ });
+ expect(result.official).toBe(false);
+ expect(result.estimated).toBe(true);
+ expect(result.timed).toBe(false);
+ expect(result.start).not.toEqual(result.end);
+});
+
+
+test('Android synthetic event ID does not override official coordinate matching',async({page})=>{
+ const requests=[];
+ await page.route('**/rupture-shaking?*',route=>{
+  requests.push(new URL(route.request().url()).searchParams);
+  return route.fulfill({json:{status:'available',method:'usgs-shakemap-grid',eventId:'us6000ucfm',
+   grid:{nx:2,ny:2,x0:-77,x1:-75,y0:-12,y1:-10,values:[4,5,5,4]}}});
+ });
+ await page.goto('/mobile-event-image.html');
+ const id=await page.evaluate(async()=> (await RuptureShaking.query({id:'EQ-1795219759--10.850--75.980',
+  source:'USGS',coords:[-75.98,-10.85],mag:6.7,time:1795219759000}))?.eventId);
+ expect(id).toBe('us6000ucfm');
+ expect(requests).toHaveLength(1);
+ expect(requests[0].get('eventId')).toBeNull();
+ expect(requests[0].get('lat')).toBe('-10.85');
+});

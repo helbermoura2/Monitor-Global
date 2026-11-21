@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.39 de teste
+
+- Quando o ShakeMap não chega a tempo, o vídeo pode mostrar faixas de intensidade estimadas a partir de magnitude, profundidade e distância ao epicentro.
+
 # Argos Orbis Celular · 0.1.38 de teste
 
 - O replay mostra a evolução do modelo oficial de ruptura ou revela as áreas por intensidade do ShakeMap, conforme os dados disponíveis.

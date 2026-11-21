@@ -14,11 +14,11 @@
  }
  function officialProduct(item){
   const service=root.RuptureShaking;
-  if(item.shaking?.grid||!service)return Promise.resolve(item.shaking||null);
+  if(root.RuptureShakingModel?.valid(item.shaking?.grid)||!service)return Promise.resolve(item.shaking||null);
   let timer;
   return Promise.race([
    Promise.resolve().then(()=>service.query(item,{background:true})).catch(()=>null),
-   new Promise(resolve=>{timer=setTimeout(()=>resolve(null),6500);})
+   new Promise(resolve=>{timer=setTimeout(()=>resolve(null),10000);})
   ]).finally(()=>clearTimeout(timer));
  }
  function parseFiniteFault(text){
@@ -79,7 +79,7 @@
  function frameFor(item,grid,mapHeight,patches){
   const [lon,lat]=item.coords;
   const latScale=Math.max(.2,Math.cos(lat*Math.PI/180));
-  const estimatedKm=root.SeismicImpactModel.extent(item.mag,item.depth,5);
+  const estimatedKm=root.SeismicImpactModel.extent(item.mag,item.depth,patches.length?5:2.1);
   let span=Math.max(.34,Math.min(5,estimatedKm/(92*latScale)));
   if(grid){
    const center=(grid.x0+grid.x1)/2,shift=360*Math.round((lon-center)/360);
@@ -110,7 +110,29 @@
     (f.maxLat-lat)/(f.maxLat-f.minLat)*mapHeight];
   };
  }
- function intensityFrames(frame,grid,withFault){
+ // Sample the existing point-source attenuation model on the same map grid.
+ // The estimate uses epicentral distance and depth, without site amplification.
+ function estimatedGrid(item,frame){
+  const model=root.SeismicImpactModel,nx=81,ny=81;
+  const [lon,lat]=item.coords,latRadians=lat*Math.PI/180;
+  const depth=Number.isFinite(item.depth)&&item.depth>=0?Math.max(1,item.depth):10;
+  const pgaForMMI=[.5,1,2.1,5,11,26,60,140,321.8,740,1702,3000];
+  const values=[];
+  for(let y=0;y<ny;y++){
+   const rowLat=(frame.minLat+y*(frame.maxLat-frame.minLat)/(ny-1))*Math.PI/180;
+   for(let x=0;x<nx;x++){
+    const deltaLon=(frame.minLon+x*(frame.maxLon-frame.minLon)/(nx-1)-lon)*Math.PI/180;
+    const a=Math.sin((rowLat-latRadians)/2)**2+Math.cos(rowLat)*Math.cos(latRadians)*Math.sin(deltaLon/2)**2;
+    const pga=model.pga(item.mag,depth,12742*Math.asin(Math.sqrt(Math.min(1,a))));
+    const next=pgaForMMI.findIndex(threshold=>pga<threshold);
+    const mmi=next<0?12:next===0?pga/.5:next+
+     Math.log(pga/pgaForMMI[next-1])/Math.log(pgaForMMI[next]/pgaForMMI[next-1]);
+    values.push(mmi);
+   }
+  }
+  return {nx,ny,x0:frame.minLon,x1:frame.maxLon,y0:frame.minLat,y1:frame.maxLat,values};
+ }
+ function intensityFrames(frame,grid,withFault,estimated){
   if(!grid)return [];
   const w=144,h=132,steps=24;
   const samples=[];
@@ -137,7 +159,7 @@
    }
   }
   // The grid's rectangular extent is a data boundary, not a shaking contour.
-  const floor=withFault?2.5:Math.max(2.5,Math.min(edgeMax+.05,peak-.45));
+  const floor=withFault||estimated?2.5:Math.max(2.5,Math.min(edgeMax+.05,peak-.45));
   return Array.from({length:steps+1},(_,step)=>{
    const layer=canvas(w,h),ctx=layer.getContext('2d');
    const threshold=peak-(peak-floor)*step/steps;
@@ -145,7 +167,9 @@
     if(!step||mmi<threshold)continue;
     const index=Math.min(11,Math.round(mmi)-1);
     ctx.fillStyle=palette[index];
-    ctx.globalAlpha=Math.min(.72,.44+index*.045)*Math.min(1,(mmi-threshold)/.24)*opacity;
+    const nearContour=Math.abs(mmi-Math.round(mmi))<.06;
+    const strength=estimated?(nearContour?.64:.25):Math.min(.72,.44+index*.045);
+    ctx.globalAlpha=strength*Math.min(1,(mmi-threshold)/.24)*opacity;
     ctx.fillRect(x,y,1,1);
    }
    return layer;
@@ -207,7 +231,11 @@
   const frame=frameFor(item,grid,mapHeight,patches),project=projection(frame,mapHeight);
   const maps=await root.SiteEventStory.replayMap(frame);
   const {overlay,mapLayer}=await root.SiteEventStory.render({...item,shaking:product},{videoMap:{...maps,frame}});
-  const cells=faultCells(patches,project),layers=intensityFrames(frame,grid,cells.length>0);
+  const cells=faultCells(patches,project);
+  const estimate=!grid&&!cells.length?estimatedGrid(item,frame):null;
+  const layers=intensityFrames(frame,grid||estimate,cells.length>0,!!estimate);
+  const estimated=!!estimate&&estimate.values.some(value=>value>2.5);
+  const assumedDepth=!Number.isFinite(item.depth)||item.depth<0;
   const maxSlip=Math.max(0,...cells.map(cell=>cell.slip));
   const faultDuration=Math.max(0,...cells.map(cell=>cell.time+cell.rise));
   const rupture=(product?.rupture?.features||[]).filter(f=>f.properties?.projection===true&&
@@ -234,14 +262,14 @@
    const tagX=222,tagY=mapTop+mapHeight-65,tagW=466;
    ctx.fillStyle='#0b202beb';ctx.fillRect(tagX,tagY,tagW,47);
    ctx.fillStyle='#f6e5c8';ctx.font='600 15px system-ui';
-   ctx.fillText(cells.length?'Ruptura modelada · USGS':grid?(product.provider||'Mapa oficial de intensidade'):'Localização do sismo',tagX+10,tagY+18,tagW-20);
+   ctx.fillText(cells.length?'Ruptura modelada · USGS':grid?(product.provider||'Mapa oficial de intensidade'):estimated?'Intensidade estimada · Argos Orbis':'Localização do sismo',tagX+10,tagY+18,tagW-20);
    ctx.fillStyle='#d8c49e';ctx.font='13px system-ui';
-   ctx.fillText(cells.length?`Avanço na falha · ${Math.round(reveal*faultDuration)} s do modelo`:grid?'Faixas mais intensas · sem cronologia':'Mapa oficial de intensidade indisponível',tagX+10,tagY+35,tagW-20);
+   ctx.fillText(cells.length?`Avanço na falha · ${Math.round(reveal*faultDuration)} s do modelo`:grid?'Faixas mais intensas · sem cronologia':estimated?(assumedDepth?'Prof. assumida: 10 km · sem dados locais do solo':'Modelo por distância e prof. · sem dados locais do solo'):'Sem faixa de intensidade visível',tagX+10,tagY+35,tagW-20);
    ctx.fillStyle='#6f6853';ctx.fillRect(tagX,tagY+45,tagW,2);
    ctx.fillStyle='#f0c97e';ctx.fillRect(tagX,tagY+45,tagW*Math.min(1,t/DURATION),2);
   }
   draw(0);
-  return {scene,draw,official:!!grid,rupture:cells.length>0||rupture.length>0,timed:cells.length>0};
+  return {scene,draw,official:!!grid,estimated,rupture:cells.length>0||rupture.length>0,timed:cells.length>0};
  }
  async function record(item,onProgress){
   const mime=mimeType();
