@@ -49,6 +49,18 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   unexpected.push(u.hostname+u.pathname);return route.abort();
  });
  await page.goto(origin+prefix+'phone-brazil.html');await page.waitForFunction(()=>window.__map?.isStyleLoaded()&&document.querySelector('#headline').textContent.includes('22'));
+ const hourly=page.locator('#city-rain-summary');
+ await hourly.waitFor();
+ assert.match(await hourly.innerText(),/Chuva · próximas 24 h/);
+ assert.match(await page.locator('#rain24-volume').innerText(),/[0-9]+,[0-9] mm/);
+ assert.equal(await page.locator('#frame').getAttribute('max'),'24');
+ const initialFrame=await page.locator('#time-label').innerText();
+ await page.locator('#frame').evaluate(input=>{input.value='1';input.dispatchEvent(new Event('input'));});
+ assert.notEqual(await page.locator('#time-label').innerText(),initialFrame);
+ await page.locator('#forecast-now').click();
+ assert.equal(await page.locator('#time-label').innerText(),initialFrame);
+ await hourly.scrollIntoViewIfNeeded();
+ await page.screenshot({path:path.join(output,'forecast-24h-fixture.png'),fullPage:true});
  await page.locator('#radar-toggle').click();await page.waitForFunction(()=>document.querySelector('[data-radar=status]').textContent.includes('Consultando'));
  await expect.poll(()=>metadataCalls).toBe(1);mode='ok';await page.evaluate(()=>{MonitorMap.pause();MonitorMap.resume();});releaseFirst?.();await page.waitForFunction(()=>!document.querySelector('[data-radar=play]').disabled&&window.__map.getSource('br-historical-radar')&&window.__map.isSourceLoaded('br-historical-radar'));
  assert.equal(metadataCalls,2,'resume must retry interrupted request, not wait ten minutes');assert(tiles.length>0);assert.equal(await page.locator('#overlay-panel .brazil-satellite-control').isVisible(),false);assert.match(await page.locator('.radar-control > strong').innerText(),/RADAR/);

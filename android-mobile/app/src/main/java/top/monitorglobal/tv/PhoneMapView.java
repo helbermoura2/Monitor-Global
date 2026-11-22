@@ -134,7 +134,7 @@ final class PhoneMapView extends FrameLayout {
  private void sendFocus(){if(!rainPage&&!brazilPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
  private static String quote(String value){return JSONObject.quote(value).replace("\u2028","\\u2028").replace("\u2029","\\u2029");}
  private String pendingWeatherMode;
- void showSatellite(){requestWeatherMode("showSatellite");}
+ void showForecast(){requestWeatherMode("showForecast");}
  void showSevere(){requestWeatherMode("showSevere");}
  private void requestWeatherMode(String mode){if(closed)return;pendingWeatherMode=mode;sendSatellite();}
  private void sendSatellite(){if(ready&&active&&pendingWeatherMode!=null){String mode=pendingWeatherMode;pendingWeatherMode=null;script("window.MonitorMap?.["+quote(mode)+"]?.()");}}

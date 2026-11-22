@@ -33,7 +33,7 @@ function round(n,decimals=0){return n.toLocaleString('pt-BR',{minimumFractionDig
 function value(field){return M.value(forecast,0,step,field);}
 function showValues(){
  if(!forecast)return;
- const at=forecast.times[forecast.first+step*3],v=value(LAYERS[layer].field);
+ const at=forecast.times[forecast.first+step],v=value(LAYERS[layer].field);
  $('time-label').textContent=at.substring(8,10)+'/'+at.substring(5,7)+' · '+at.substring(11,16)+' BRT';
  $('frame').value=String(step);$('layer-label').textContent=LAYERS[layer].label;
  document.querySelectorAll('[data-layer]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.layer===layer)));
@@ -49,11 +49,41 @@ function showValues(){
  for(const [amount,label] of [[round(value('temperature_2m'))+' °C','Temperatura'],[round(value('wind_speed_10m'))+' km/h','Vento a 10 m'],[round(value('precipitation'),1)+' mm','Chuva na hora anterior'],[round(value('pressure_msl'))+' hPa','Pressão'],[Number.isFinite(value('relative_humidity_2m'))?round(value('relative_humidity_2m'))+'%':'—','Umidade'],[Number.isFinite(value('wind_gusts_10m'))?round(value('wind_gusts_10m'))+' km/h':'—','Rajadas'],[Number.isFinite(value('apparent_temperature'))?round(value('apparent_temperature'))+' °C':'—','Sensação térmica']]){
   const cell=document.createElement('div'),strong=document.createElement('strong');strong.textContent=amount;cell.append(strong,document.createTextNode(label));$('facts').appendChild(cell);
  }
- const rainSummary=$('city-rain-summary');
- const rain=M.nextRain(forecast);
- rainSummary.hidden=!rain;
- if(rain)rainSummary.textContent='Próximas 3 horas completas · '+round(rain.amount,1)+' mm previstos';
+ showRain24(forecast);
  $('validity').textContent='Previsão de modelo para '+city.name+' ('+city.uf+') · consulta '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'. Radar e satélite são imagens observadas independentes.';
+}
+const shortTime=time=>time.slice(11,16);
+function windowText(from,to){
+ const day=time=>time.slice(8,10)+'/'+time.slice(5,7);
+ return day(from)+' · '+shortTime(from)+'–'+(from.slice(0,10)===to.slice(0,10)?'':day(to)+' ')+shortTime(to);
+}
+let rain24Key='';
+function showRain24(data){
+ const hours=M.rainIntervals(data);
+ const card=$('city-rain-summary');
+ card.hidden=hours.length===0;
+ if(!hours.length)return;
+ const from=hours[0].from,to=hours.at(-1).to,key=city.id+'/'+lastSuccess+'/'+from+'/'+to;
+ if(key===rain24Key)return;
+ rain24Key=key;
+ const peak=hours.reduce((max,hour)=>hour.amount>max.amount?hour:max);
+ const total=hours.reduce((sum,hour)=>sum+hour.amount,0);
+ const mm=amount=>(amount>0&&amount<.05?'< 0,1':round(amount,1))+' mm';
+ $('rain24-volume').textContent=mm(total);
+ $('rain24-window').textContent=windowText(from,to)+' BRT · '+hours.length+' horas completas · Open-Meteo';
+ $('rain24-start').textContent=shortTime(from);$('rain24-end').textContent=shortTime(to);
+ $('rain24-peak').textContent=peak.amount>0?'Maior volume · '+mm(peak.amount)+' entre '+windowText(peak.from,peak.to)+' BRT':
+  'Sem chuva prevista nos intervalos acima.';
+ const bars=document.createDocumentFragment(),table=document.createDocumentFragment();
+ for(const hour of hours){
+  const slot=document.createElement('span'),bar=document.createElement('i'),row=document.createElement('li');
+  bar.style.height=(peak.amount>0?Math.max(2,100*hour.amount/peak.amount):2)+'%';
+  slot.append(bar);bars.append(slot);
+  const label=document.createElement('span'),amount=document.createElement('strong');
+  label.textContent=windowText(hour.from,hour.to);amount.textContent=mm(hour.amount);
+  row.append(label,amount);table.append(row);
+ }
+ $('rain24-bars').replaceChildren(bars);$('rain24-hours').replaceChildren(table);
 }
 function createMarker(){
  for(const m of markers)m.remove();markers=[];
@@ -106,7 +136,7 @@ function selectCity(p){
  if(!p)return;
  $('city-search').value=p.name+', '+p.uf;$('city-results').hidden=true;
  if(city.id===p.id)return;
- requestId++;controller?.abort();controller=null;loading=false;stop();city={id:p.id,name:p.name,uf:p.uf,lat:p.lat,lon:p.lon};forecast=null;lastSuccess=0;
+ requestId++;controller?.abort();controller=null;loading=false;stop();city={id:p.id,name:p.name,uf:p.uf,lat:p.lat,lon:p.lon};forecast=null;lastSuccess=0;step=0;$('city-rain-summary').hidden=true;
  $('frame').disabled=true;$('play').disabled=true;$('place').textContent=city.name.toUpperCase()+' · '+city.uf;
  $('headline').textContent='Consultando '+city.name+'…';$('facts').replaceChildren();
  createMarker();if(map)map.jumpTo({center:[city.lon,city.lat],zoom:Math.max(5,map.getZoom())});
@@ -143,7 +173,8 @@ async function load(force=false){
 function pause(){active=false;document.body.classList.add('is-paused');stop();requestId++;controller?.abort();satellite?.setActive(false);radar?.setActive(false);severe?.setActive(false);boundaries?.setActive(false);map?.stop();}
 function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');map?.resize();satellite?.setActive(true);radar?.setActive(true);severe?.setActive(true);boundaries?.setActive(true);syncOverlays();if(!forecast||Date.now()-lastSuccess>=CACHE_MS)load(false);}
 function close(){if(closed)return;pause();closed=true;mapSize?.disconnect();boundaries?.destroy();boundaries=null;satellite?.destroy();radar?.destroy();severe?.destroy();for(const m of markers)m.remove();markers=[];map?.remove();map=null;}
-function advance(){if(!active||!forecast)return;step=(step+1)%9;showValues();playTimer=setTimeout(advance,1300);}
+function advance(){if(!active||!forecast)return;step=(step+1)%25;showValues();playTimer=setTimeout(advance,1300);}
+$('forecast-now').addEventListener('click',()=>{stop();step=0;showValues();});
 $('frame').addEventListener('input',event=>{stop();step=Number(event.target.value);showValues();});
 $('play').addEventListener('click',()=>{if(playTimer){stop();return;}if(forecast){playbackIcon(true);advance();}});
 $('refresh').addEventListener('click',()=>load(true));
@@ -229,7 +260,16 @@ $('severe-toggle').addEventListener('click',()=>{
  setSevere(!severeOn);
 });
 function showSatellite(){pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
-window.MonitorMap={pause,resume,close,showSatellite,showSevere};window.addEventListener('pagehide',close);
+function showForecast(){
+ pendingSevere=false;pendingSatellite=false;
+ if(severeOn)setSevere(false);
+ if(radar?.enabled)radar.toggle(false);
+ if(satellite?.state.enabled)satelliteCheckbox()?.click();
+ if(document.body.classList.contains('map-expanded'))setExpanded(false);
+ stop();step=0;showValues();syncOverlays();
+ document.querySelector('.brazil-main').scrollTop=0;
+}
+window.MonitorMap={pause,resume,close,showSatellite,showSevere,showForecast};window.addEventListener('pagehide',close);
 initMap();restore();load(false);loadCities();
 })();
 

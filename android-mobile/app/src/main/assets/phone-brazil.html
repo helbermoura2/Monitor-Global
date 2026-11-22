@@ -61,7 +61,7 @@
   </details>
  </section>
  <section class="brazil-controls" aria-label="Variáveis da previsão">
-  <strong class="forecast-caption">Previsão municipal · próximas 24 horas</strong>
+  <strong class="forecast-caption">Previsão municipal · até 24 horas</strong>
   <div class="brazil-layers" role="group" aria-label="Selecionar dado de previsão">
    <button type="button" data-layer="temperature" aria-pressed="true">Temperatura</button>
    <button type="button" data-layer="wind" aria-pressed="false">Vento</button>
@@ -76,8 +76,8 @@
   <div class="play-row">
    <button id="play" type="button" aria-label="Reproduzir evolução da previsão" disabled>▶</button>
    <div class="time-control"><label for="frame">Hora da previsão <span id="time-label">Sem dados recentes</span></label>
-    <input id="frame" type="range" min="0" max="8" step="1" value="0" disabled aria-label="Selecionar horário da previsão">
-    <div class="ticks"><span>0h</span><span>+12h</span><span>+24h</span></div>
+    <input id="frame" type="range" min="0" max="24" step="1" value="0" disabled aria-label="Selecionar horário da previsão">
+    <div class="ticks"><button id="forecast-now" type="button">Agora</button><span>+6h</span><span>+12h</span><span>+18h</span><span>+24h</span></div>
    </div>
    <button id="refresh" type="button" aria-label="Atualizar a previsão">↻</button>
   </div>
@@ -87,7 +87,17 @@
   <div class="point-heading"><span class="point-dot"></span><strong id="place">SÃO PAULO · SP</strong><span id="layer-label">Temperatura</span></div>
   <h1 id="headline" role="status">Buscando previsão…</h1>
   <div id="facts" class="facts"></div>
-  <p id="city-rain-summary" class="city-rain-summary" hidden></p>
+  <section id="city-rain-summary" class="city-rain-summary" aria-labelledby="rain24-title" hidden>
+   <div class="rain24-heading"><strong id="rain24-title">Chuva · próximas 24 h</strong><strong id="rain24-volume"></strong></div>
+   <p id="rain24-window"></p>
+   <div id="rain24-bars" aria-hidden="true"></div>
+   <div class="rain24-endpoints" aria-hidden="true"><span id="rain24-start"></span><span id="rain24-end"></span></div>
+   <p id="rain24-peak"></p>
+   <details>
+    <summary>Ver chuva por hora</summary>
+    <ol id="rain24-hours"></ol>
+   </details>
+  </section>
   <details id="forecast-details">
    <summary>Detalhes e fontes <span aria-hidden="true">⌄</span></summary>
    <p id="validity">Previsão pontual para a cidade selecionada. Radar e satélite exibem observações independentes.</p>

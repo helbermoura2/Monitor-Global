@@ -28,8 +28,24 @@ test('validated forecast provides hourly values without interpolating missing gr
  assert.equal(result.first,9);
  assert.equal(M.value(result,13,0,'temperature_2m'),24);
  assert.equal(M.value(result,13,8,'wind_speed_10m'),18);
- assert.equal(M.value(result,13,9,'wind_speed_10m'),null);
+ assert.equal(M.value(result,13,24,'wind_speed_10m'),18);
+ assert.equal(M.value(result,13,25,'wind_speed_10m'),null);
  assert.equal(M.value(result,13,0,'unknown'),null);
+});
+test('24-hour accumulation only uses whole future intervals and the end-of-hour amount',()=>{
+ const rows=valid();
+ rows[0].hourly.precipitation.fill(0);
+ rows[0].hourly.precipitation[10]=99; // Hour that started before 09:30 BRT.
+ rows[0].hourly.precipitation[11]=12.1;
+ rows[0].hourly.precipitation[12]=10.4;
+ rows[0].hourly.precipitation[13]=8;
+ rows[0].hourly.precipitation[34]=99; // Ends outside the 24-hour horizon.
+ const hours=M.rainIntervals(M.parse(rows,now),now);
+ assert.equal(hours.length,23);
+ assert.equal(hours[0].from,'2026-11-08T10:00');
+ assert.equal(hours[0].amount,12.1);
+ assert.equal(hours.at(-1).to,'2026-11-09T09:00');
+ assert.equal(hours.reduce((sum,hour)=>sum+hour.amount,0),30.5);
 });
 test('invalid location, time, source, values and coverage are rejected',()=>{
  let rows=valid();rows[0].latitude=50;assert.equal(M.parse(rows,now),null);

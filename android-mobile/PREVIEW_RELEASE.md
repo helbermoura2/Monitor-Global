@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.53 de teste
+
+- Clima prioriza o horizonte de até 24 horas. O mapa municipal tem uma linha do tempo hora a hora e um gráfico de chuva acumulada.
+
 # Argos Orbis Celular · 0.1.52 de teste
 
 - O mapa do clima mostra os detalhes do item selecionado em uma única ficha legível abaixo do mapa.

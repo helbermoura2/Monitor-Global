@@ -14,7 +14,7 @@ const EXTRAS=['relative_humidity_2m','apparent_temperature','wind_gusts_10m'];
 const LIMITS={temperature_2m:[-50,60],wind_speed_10m:[0,300],wind_direction_10m:[0,360],precipitation:[0,500],pressure_msl:[850,1100],relative_humidity_2m:[0,100],apparent_temperature:[-80,75],wind_gusts_10m:[0,350]};
 const HOUR=3600000;
 function brHour(now){
- return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).format(new Date(now)).replace(' ','T');
+ return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(Math.floor(now/HOUR)*HOUR)).replace(' ','T');
 }
 function url(places=PLACES){
  const params=new URLSearchParams({latitude:places.map(p=>p.lat).join(','),longitude:places.map(p=>p.lon).join(','),hourly:[...FIELDS,...EXTRAS].join(','),timezone:'America/Sao_Paulo',forecast_days:'3',wind_speed_unit:'kmh'});
@@ -31,7 +31,8 @@ function parse(payload,now=Date.now(),places=PLACES){
   if(!Array.isArray(hourly.time)||hourly.time.length<48||hourly.time.length>96||hourly.time.some(t=>typeof t!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:00$/.test(t)))return null;
   if(times===null){
    times=hourly.time;
-   if(times.some((t,j)=>j>0&&t<=times[j-1]))return null;
+   const stamps=times.map(time=>Date.parse(time+'Z'));
+   if(stamps.some((time,j)=>!Number.isFinite(time)||j>0&&time-stamps[j-1]!==HOUR))return null;
    first=times.findIndex(t=>t>=brHour(now));
    if(first<0||first+24>=times.length)return null;
   }else if(hourly.time.length!==times.length||hourly.time.some((t,j)=>t!==times[j]))return null;
@@ -52,17 +53,26 @@ function parse(payload,now=Date.now(),places=PLACES){
  return {series,times,first,at:now,places:places.map(p=>({name:String(p.name),lat:p.lat,lon:p.lon}))};
 }
 function value(data,placeIndex,step,field){
- if(!data||![...FIELDS,...EXTRAS].includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>8)return null;
- const values=data.series[placeIndex][field];return Array.isArray(values)?values[data.first+step*3]:null;
+ if(!data||![...FIELDS,...EXTRAS].includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>24)return null;
+ const values=data.series[placeIndex][field];return Array.isArray(values)?values[data.first+step]:null;
+}
+function rainIntervals(data,now=Date.now(),maxHours=24){
+ if(!data)return [];
+ const start=brHour(now);
+ const first=data.times.indexOf(start);
+ if(first<0)return [];
+ // Start of the first complete hour. Open-Meteo records rain at the end of each hour.
+ const initial=first+(now%HOUR===0?0:1),limit=brHour(now+24*HOUR);
+ const result=[];
+ for(let i=initial+1;i<data.times.length&&data.times[i]<=limit&&result.length<maxHours;i++){
+  result.push({from:data.times[i-1],to:data.times[i],amount:data.series[0].precipitation[i]});
+ }
+ return result;
 }
 function nextRain(data){
- // Each Open-Meteo precipitation timestamp ends an hourly interval.
- const from=data.first+1,values=data.series[0].precipitation.slice(from+1,from+4);
- if(values.length!==3)return null;
- const times=data.times.slice(from,from+4).map(time=>Date.parse(time+'Z'));
- if(times.some((time,i)=>!Number.isFinite(time)||(i>0&&time-times[i-1]!==HOUR)))return null;
- return {amount:values.reduce((sum,n)=>sum+n,0)};
+ const hours=rainIntervals(data,Date.now(),3);
+ return hours.length===3?{amount:hours.reduce((sum,hour)=>sum+hour.amount,0)}:null;
 }
-const api={PLACES,FIELDS,url,parse,value,nextRain,brHour,HOUR};
+const api={PLACES,FIELDS,url,parse,value,nextRain,rainIntervals,brHour,HOUR};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PhoneBrazilModel=api;
 })(typeof window==='undefined'?globalThis:window);
