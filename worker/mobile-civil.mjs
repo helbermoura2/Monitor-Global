@@ -10,8 +10,10 @@ export function validCivilSnapshot(snapshot,now){
  return snapshot?.version===1&&snapshot.source===CIVIL_SOURCE&&snapshot.municipality==='3550308'&&
  Number.isFinite(snapshot.checkedAt)&&snapshot.checkedAt<=now+MIN&&now-snapshot.checkedAt>=0&&
  now-snapshot.checkedAt<=MAX_SNAPSHOT_AGE&&Number.isFinite(snapshot.updatedAt)&&
- snapshot.updatedAt<=snapshot.checkedAt+MIN&&now-snapshot.updatedAt<=20*MIN&&
- Array.isArray(snapshot.alerts)&&snapshot.alerts.length<=20;
+ snapshot.updatedAt<=snapshot.checkedAt+MIN&&
+ Array.isArray(snapshot.alerts)&&snapshot.alerts.length<=20&&
+ (now-snapshot.updatedAt<=20*MIN||snapshot.alerts.some(a=>a&&Number.isFinite(a.sent)&&
+  a.sent>now-MAX_AGE&&a.sent<=now&&Number.isFinite(a.expires)&&a.expires>now));
 }
 export function civilNotices(snapshot,now){
  if(!validCivilSnapshot(snapshot,now))return [];
@@ -22,7 +24,7 @@ export function civilNotices(snapshot,now){
     !text(value.id)||text(value.id).length>80||!text(value.message)||text(value.message).length>500||
     !Number.isFinite(value.sent)||value.sent<=0||value.sent>now||
     now-value.sent>MAX_AGE||!Number.isFinite(value.expires)||value.expires<=now||
-    value.expires<=value.sent||value.expires-value.sent>4*3600000)continue;
+    value.expires<=value.sent||value.expires-value.sent>24*3600000)continue;
   const id='civil:'+value.id+':'+value.sent;
   const body=text(value.message),version=String(value.sent)+':'+hash(body);
   output.push({schema:'monitor-notice-v1',kind:'civil',id,version,
