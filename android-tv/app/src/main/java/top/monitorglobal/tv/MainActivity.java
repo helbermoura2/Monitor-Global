@@ -67,6 +67,10 @@ public final class MainActivity extends Activity {
   section("INÍCIO RÁPIDO");
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  section("DEFESA CIVIL · REPLAY DOS AVISOS");
+  button("Replay · último aviso SEVERO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_SEVERE));
+  button("Replay · último aviso EXTREMO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_EXTREME));
+  label("Reproduz o último aviso oficial recebido nesta TV nos últimos sete dias. Abre em 10 s para você voltar ao vídeo, fica 20 s e mostra REPLAY HISTÓRICO com a data da emissão. Não toca som e não dispara notificações. Se não houver registro, informa isso; não inventa avisos.",14,false);
   section("DEFESA CIVIL · SIMULAÇÃO NA TV");
   button("Testar aviso SEVERO · fictício (em 10 s)",v->launch(MonitorService.TEST_CIVIL_SEVERE));
   button("Testar aviso EXTREMO · fictício (em 10 s)",v->launch(MonitorService.TEST_CIVIL_EXTREME));
