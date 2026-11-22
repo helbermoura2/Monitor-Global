@@ -132,3 +132,30 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .overlay-panel .radar-actions button,.overlay-panel .br-satellite-buttons button{min-height:44px}
 .brazil-map-panel .maplibregl-ctrl-attrib{background:#061b2aec!important;color:#d4e4ed!important}
 .brazil-map-panel .maplibregl-ctrl-attrib a{color:inherit!important}
+.brazil-overlays #severe-toggle{border-color:#876840;color:#f4d197}
+.brazil-overlays #severe-toggle[aria-pressed=true]{background:#e8bc7c;color:#23180c}
+.severe-panel{background:#102531;border:1px solid #34515e;border-radius:14px;padding:12px;margin:8px 0;color:#edf6f8}
+.severe-panel[hidden]{display:none}
+.severe-heading{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.severe-heading strong{font-size:14px;color:#f4d197}
+.severe-panel button{color:#eef6f8;background:#192f3b;border:1px solid #416475;border-radius:9px;padding:6px 9px;min-height:36px}
+.severe-panel button[aria-pressed=false]{opacity:.65}
+.severe-chips{display:flex;gap:8px;margin:8px 0}
+.severe-chips i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff7bda;margin-right:3px}
+.severe-chips #severe-notices i{background:#ffd181}
+.severe-panel small,.severe-panel p{display:block;color:#b6c8d4;font-size:12px;margin:6px 0}
+.severe-panel details summary{color:#f4d197;font-size:12px;cursor:pointer;margin-top:8px}
+.severe-popup{color:#142734}
+.severe-popup p{margin:6px 0 0}
+.severe-mode .brazil-controls,.severe-mode .timeline,.severe-mode .outlook{display:none}
+
+.brazil-overlays{grid-template-columns:repeat(3,minmax(0,1fr))}
+.city-rain-summary{padding:9px 0 2px;color:#f4d197;font-size:13px}
+
+.severe-mode .brazil-map-panel{height:clamp(260px,50vh,460px);min-height:260px}
+.severe-mode #overlay-panel .radar-control+.brazil-satellite-control{margin-top:8px}
+
+#severe-map-readout{position:absolute;bottom:62px;left:10px;z-index:2;pointer-events:none;
+ margin:0;max-width:calc(100% - 20px);padding:6px 9px;border-radius:8px;
+ border:1px solid #816742;background:#071722e8;color:#f5d29a;font-size:12px}
+#severe-map-readout[hidden]{display:none}

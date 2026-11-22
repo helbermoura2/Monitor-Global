@@ -70,7 +70,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||municipalMeshResource(uri)))?null:blocked();
+     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -104,6 +104,13 @@ final class PhoneMapView extends FrameLayout {
    "/gh/henriquemalvar/br-geojson@a4680c128c23c90fde346334fd5888a3b2997d29/dist/municipios/"
    +"(AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)[.]geojson");
  }
+ static boolean weatherObservationResource(Uri uri){
+  if(!"https".equalsIgnoreCase(uri.getScheme())||!"raw.githubusercontent.com".equalsIgnoreCase(uri.getHost())
+    ||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getQuery()!=null||uri.getFragment()!=null)return false;
+  String path=uri.getPath();
+  return "/helbermoura2/Monitor-Global/main/data/goes-19-lightning.json".equals(path)||
+   "/helbermoura2/Monitor-Global/main/data/cemaden-alerts.json".equals(path);
+ }
  static boolean forecastResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"api.open-meteo.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&"/v1/forecast".equals(uri.getPath())&&uri.getQuery()!=null&&uri.getQuery().length()<=1800&&uri.getQueryParameter("apikey")==null&&uri.getQueryParameter("latitude")!=null&&uri.getQueryParameter("longitude")!=null;}
  static boolean rainResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"black-sky-9ba0.terrestre.workers.dev".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String path=uri.getPath();return ("/rainbow-snapshot".equals(path)&&uri.getQuery()==null)||("/tv-rain".equals(path)&&"area=liberdade".equals(uri.getQuery()))||(path!=null&&path.matches("/rainbow-tile/[0-9]+/[0-9]+/[0-7]/[0-9]+/[0-9]+")&&uri.getQuery()==null);}
  static boolean mainPage(Uri uri){return localAsset(uri)&&(ASSET_PREFIX+"phone-map.html").equals(uri.getPath())&&uri.getQuery()==null;}
@@ -126,9 +133,11 @@ final class PhoneMapView extends FrameLayout {
  private void sendEvents(){if(!rainPage&&!brazilPage&&ready&&active)script("window.MonitorMap&&window.MonitorMap.setEvents(JSON.parse("+quote(pendingEvents)+"))");}
  private void sendFocus(){if(!rainPage&&!brazilPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
  private static String quote(String value){return JSONObject.quote(value).replace("\u2028","\\u2028").replace("\u2029","\\u2029");}
- private boolean pendingSatellite;
- void showSatellite(){if(closed)return;pendingSatellite=true;sendSatellite();}
- private void sendSatellite(){if(ready&&active&&pendingSatellite){pendingSatellite=false;script("window.MonitorMap&&window.MonitorMap.showSatellite&&window.MonitorMap.showSatellite()");}}
+ private String pendingWeatherMode;
+ void showSatellite(){requestWeatherMode("showSatellite");}
+ void showSevere(){requestWeatherMode("showSevere");}
+ private void requestWeatherMode(String mode){if(closed)return;pendingWeatherMode=mode;sendSatellite();}
+ private void sendSatellite(){if(ready&&active&&pendingWeatherMode!=null){String mode=pendingWeatherMode;pendingWeatherMode=null;script("window.MonitorMap?.["+quote(mode)+"]?.()");}}
  private void script(String value){if(web!=null&&!closed)web.evaluateJavascript(value,null);}
  void pause(){active=false;if(web!=null){script("window.MonitorMap&&window.MonitorMap.pause()");web.onPause();}}
  void resume(){if(closed)return;active=true;if(web!=null){web.onResume();sendSatellite();script("window.MonitorMap&&window.MonitorMap.resume()");sendEvents();sendFocus();}}

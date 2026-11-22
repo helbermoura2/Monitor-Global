@@ -55,6 +55,14 @@ function value(data,placeIndex,step,field){
  if(!data||![...FIELDS,...EXTRAS].includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>8)return null;
  const values=data.series[placeIndex][field];return Array.isArray(values)?values[data.first+step*3]:null;
 }
-const api={PLACES,FIELDS,url,parse,value,brHour,HOUR};
+function nextRain(data){
+ // Each Open-Meteo precipitation timestamp ends an hourly interval.
+ const from=data.first+1,values=data.series[0].precipitation.slice(from+1,from+4);
+ if(values.length!==3)return null;
+ const times=data.times.slice(from,from+4).map(time=>Date.parse(time+'Z'));
+ if(times.some((time,i)=>!Number.isFinite(time)||(i>0&&time-times[i-1]!==HOUR)))return null;
+ return {amount:values.reduce((sum,n)=>sum+n,0)};
+}
+const api={PLACES,FIELDS,url,parse,value,nextRain,brHour,HOUR};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PhoneBrazilModel=api;
 })(typeof window==='undefined'?globalThis:window);

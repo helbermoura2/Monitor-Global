@@ -1,3 +1,4 @@
+import {createRequire} from 'node:module';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -54,4 +55,22 @@ test('Campinas and all IBGE-listed municipalities can be selected offline and fo
  assert.equal(new URL(M.url([place])).searchParams.get('latitude'),String(place.lat));
  assert.equal(new URL(M.url([place])).searchParams.get('longitude'),String(place.lon));
  assert.equal(M.parse({...response,latitude:0},now,[place]),null);
+});
+
+
+test('weather map keeps stale and partial lightning distinct from a fresh zero',()=>{
+ const require=createRequire(import.meta.url);
+ const severe=require('../../android-mobile/app/src/main/assets/phone-severe-weather.js');
+ const now=1795360860000,packet={version:1,source:'NOAA GOES-19 GLM',start:now-900000,end:now,
+  resolution:.25,files:44,expected:45,cells:[[-46.625,-23.625,15]]};
+ assert.equal(severe.lightning(packet,now).collection.features[0].properties.count,15);
+ assert.equal(severe.lightning(packet,now).partial,true);
+ assert.equal(severe.lightning({...packet,files:45,cells:[]},now).collection.features.length,0);
+ assert.equal(severe.lightning(packet,now+36*60000),null);
+ assert.equal(severe.lightning({...packet,files:10},now),null);
+ const notices=severe.notices({version:1,source:'https://painelalertas.cemaden.gov.br/wsAlertas2',checkedAt:now,
+  alerts:[{status:1,lng:-46.6,lat:-23.5,city:'São Paulo',uf:'SP',level:'Alto',event:'Risco hidrológico'},
+   {status:0,lng:-46.6,lat:-23.5,city:'São Paulo',uf:'SP',event:'Encerrado'}]},now);
+ assert.equal(notices.collection.features.length,1);
+ assert.equal(notices.collection.features[0].properties.severity,2);
 });

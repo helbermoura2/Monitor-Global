@@ -36,6 +36,12 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   }
   if(u.hostname==='gibs.earthdata.nasa.gov'&&u.searchParams.get('REQUEST')==='GetMap')return route.fulfill({headers:cors,contentType:'image/png',body:png(false,1200)});
 
+  if(u.hostname==='raw.githubusercontent.com'&&u.pathname.endsWith('/goes-19-lightning.json'))return route.fulfill({headers:cors,json:{
+   version:1,source:'NOAA GOES-19 GLM',start:now-15*60000,end:now,files:45,expected:45,resolution:.25,cells:[[-46.625,-23.625,18]]
+  }});
+  if(u.hostname==='raw.githubusercontent.com'&&u.pathname.endsWith('/cemaden-alerts.json'))return route.fulfill({headers:cors,json:{
+   version:1,source:'https://painelalertas.cemaden.gov.br/wsAlertas2',checkedAt:now,alerts:[{status:1,lat:-23.55,lng:-46.63,city:'São Paulo',uf:'SP',level:'Alto',event:'Risco hidrológico'}]
+  }});
   if(u.hostname==='api.open-meteo.com')return route.fulfill({headers:cors,contentType:'application/json',body:JSON.stringify(forecast)});
   if(u.hostname==='api.rainviewer.com'){metadataCalls++;if(mode==='hold'&&metadataCalls===1)await new Promise(r=>releaseFirst=r);try{return await route.fulfill({status:mode==='fail'?503:200,headers:cors,contentType:'application/json',body:JSON.stringify(mode==='empty'?{...metadata,radar:{past:[]}}:metadata)});}catch{return;}}
   if(u.hostname==='tilecache.rainviewer.com'){assert.match(u.pathname,/^\/v2\/radar\/[A-Za-z0-9_-]{1,64}\/256\/[0-7]\/\d{1,3}\/\d{1,3}\/2\/1_1\.png$/);tiles.push(u.pathname);return route.fulfill({headers:cors,contentType:'image/png',body:rain});}
@@ -57,6 +63,15 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#time-label').innerText(),/BRT/,'forecast retains its own time');
  assert.equal(await page.locator('.radar-control').isVisible(),false);
  await page.screenshot({path:path.join(output,'satellite-packaged-fixture.png'),fullPage:true});
+ await page.locator('#severe-toggle').click();
+ await page.waitForFunction(()=>document.querySelector('#severe-lightning-status').textContent.includes('18 detecções')&&
+  document.querySelector('#severe-notice-status').textContent.includes('1 alerta municipal')&&
+  window.__map.getSource('br-historical-radar')&&window.__map.getLayer('br-satellite-layer'));
+ assert.equal(await page.locator('.forecast-caption').isVisible(),false);
+ await page.screenshot({path:path.join(output,'severe-weather-fixture.png'),fullPage:true});
+ await page.locator('#severe-toggle').click();
+ assert.equal(await page.locator('#severe-panel').isVisible(),false);
+ assert.equal(await page.locator('.forecast-caption').isVisible(),true);
  const live={attempted:process.argv.includes('--live-proof')};if(live.attempted){const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{signal:AbortSignal.timeout(12000)});assert(r.ok,'live metadata unavailable');const data=await r.json();const frames=await page.evaluate(d=>PhoneBrazilRadar.parseMetadata(d,Date.now()),data);assert(frames.length>0,'packaged parser must accept current real metadata');const frame=frames.at(-1),url=await page.evaluate(f=>PhoneBrazilRadar.tileUrl(f).replace('{z}','5').replace('{x}','11').replace('{y}','18'),frame),tile=await fetch(url,{signal:AbortSignal.timeout(12000)});assert(tile.ok,'real Sao Paulo tile unavailable');const bytes=Buffer.from(await tile.arrayBuffer());assert(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'provider must return PNG');Object.assign(live,{passed:true,frames:frames.length,frameTime:frame.time,provider:'RainViewer',tileBytes:bytes.length,coverage:'PNG receipt does not assert local coverage or rain'});}
  assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);const report={passed:true,renderer:'Chromium WebGL2 with packaged APK assets',metadataCalls,radarTileCalls:tiles.length,opaqueFrameIds:true,abortResume:true,manualRecovery:true,separateObservedTimestamp:true,live};fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));await browser.close();browser=null;
 })().catch(async error=>{console.error(error);if(browser)await browser.close();process.exitCode=1;}).finally(()=>fs.rmSync(temporary,{recursive:true,force:true}));

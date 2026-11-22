@@ -1,3 +1,8 @@
+# Argos Orbis Celular · 0.1.49 de teste
+
+- Tempo severo reúne radar, satélite, detecções do GOES-19 e alertas municipais do Cemaden no mapa.
+- O mapa de previsão municipal identifica a hora de referência da chuva e resume as três próximas horas completas.
+
 # Argos Orbis Celular · 0.1.48 de teste
 
 - Clima explica o acumulado da sequência mais chuvosa na previsão por hora, aponta a hora de maior volume e descreve possíveis efeitos conforme a previsão.

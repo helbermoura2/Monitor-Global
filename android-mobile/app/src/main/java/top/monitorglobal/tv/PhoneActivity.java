@@ -24,7 +24,7 @@ public class PhoneActivity extends Activity {
  private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>(16,.75f,true);private ScrollView visibleScroll;private String displayedRoute="";
  private LinearLayout root,header,navigation;private FrameLayout content;private TextView status;private String shownSection="";
  private SiteEventImage siteImage;
- private boolean hourlyRainExpanded;
+ private boolean hourlyRainExpanded,severeRequested;
  private android.app.AlertDialog quakeVolumeDialog;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
@@ -177,6 +177,7 @@ public class PhoneActivity extends Activity {
   requestDetails(false);heading(page,"Clima");
   copy(page,"Tempo na Liberdade · São Paulo");
   layerButtons(page,"weather");
+  space(page,primaryButton("Abrir mapa de tempo severo",()->{severeRequested=true;go("brazil");}),0);
   weatherCard(page,true);hourlyCard(page);rainCard(page,true);
   copy(page,"Previsão para um ponto da Liberdade. Em Satélite, consulte outros municípios e as fontes de cada camada.");
  }
@@ -769,7 +770,7 @@ public class PhoneActivity extends Activity {
  }
  private void brazilPage(){
   LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));layerButtons(box,"brazil");
-  if(brazilMap==null)brazilMap=new PhoneMapView(this,null,false,true);if(brazilMap.getParent()!=null)((ViewGroup)brazilMap.getParent()).removeView(brazilMap);box.addView(brazilMap,new LinearLayout.LayoutParams(-1,0,1));if(active)brazilMap.resume();else brazilMap.pause();if(satelliteRequested){satelliteRequested=false;brazilMap.showSatellite();}
+  if(brazilMap==null)brazilMap=new PhoneMapView(this,null,false,true);if(brazilMap.getParent()!=null)((ViewGroup)brazilMap.getParent()).removeView(brazilMap);box.addView(brazilMap,new LinearLayout.LayoutParams(-1,0,1));if(active)brazilMap.resume();else brazilMap.pause();if(severeRequested){severeRequested=false;satelliteRequested=false;brazilMap.showSevere();}else if(satelliteRequested){satelliteRequested=false;brazilMap.showSatellite();}
  }
  private void showMapEvent(Alert a){
   if(!tab.equals("map")){mappedEvent=a.copy();mapReturnTab=returnTab;}
