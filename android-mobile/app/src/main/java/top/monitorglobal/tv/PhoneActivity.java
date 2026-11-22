@@ -26,11 +26,14 @@ public class PhoneActivity extends Activity {
  private SiteEventImage siteImage;
  private boolean hourlyRainExpanded,severeRequested;
  private android.app.AlertDialog quakeVolumeDialog;
+ private DefesaCivilSp civilAlerts;
+ private boolean civilLoading;
+ private long civilNextCheck;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
  private boolean active,destroyed,refreshing,forecastRequested,focusMappedEvent,detailLoading,dailyExpanded,mapFiltersExpanded;private long nextDetailAttempt,nextDailyAttempt;private int generation;
- private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);main.postDelayed(this,60000);}};
+ private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);if(tab.equals("notices")&&selected==null)refreshCivilAlerts(false);main.postDelayed(this,60000);}};
 
  protected PhoneRepository createRepository(){return new PhoneRepository();}
  protected boolean automaticRefresh(){return true;}
@@ -55,7 +58,7 @@ public class PhoneActivity extends Activity {
   TextView title=text("ARGOS ORBIS",20,TEXT,1);title.setTypeface(brand);title.setLetterSpacing(.05f);brandTitles.addView(title);
   TextView brandLink=text("argosorbis.com.br",11,CYAN,1);brandTitles.addView(brandLink);
   FrameLayout bell=new FrameLayout(this);bell.setContentDescription("Abrir avisos e notificações");bell.setBackground(ripple(BODY));bell.addView(new PhoneIcons(this,PhoneIcons.BELL,CYAN),new FrameLayout.LayoutParams(dp(22),dp(22),Gravity.CENTER));header.addView(bell,new LinearLayout.LayoutParams(dp(48),dp(48)));bell.setOnClickListener(v->{selected=null;tab="notices";render();});
-  FrameLayout reload=new FrameLayout(this);reload.setTag("refresh");reload.setContentDescription("Atualizar dados");reload.setBackground(ripple(BODY));PhoneIcons refreshIcon=new PhoneIcons(this,PhoneIcons.REFRESH,CYAN);FrameLayout.LayoutParams iconParams=new FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER);reload.addView(refreshIcon,iconParams);header.addView(reload,new LinearLayout.LayoutParams(dp(48),dp(48)));reload.setOnClickListener(v->refresh(true));
+  FrameLayout reload=new FrameLayout(this);reload.setTag("refresh");reload.setContentDescription("Atualizar dados");reload.setBackground(ripple(BODY));PhoneIcons refreshIcon=new PhoneIcons(this,PhoneIcons.REFRESH,CYAN);FrameLayout.LayoutParams iconParams=new FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER);reload.addView(refreshIcon,iconParams);header.addView(reload,new LinearLayout.LayoutParams(dp(48),dp(48)));reload.setOnClickListener(v->{refresh(true);if(tab.equals("notices")&&selected==null)refreshCivilAlerts(true);});
   status=text("Aguardando consulta",12,MUTED,3);status.setPadding(dp(12),dp(3),dp(12),dp(3));root.addView(status,new LinearLayout.LayoutParams(-1,-2));
   content=new FrameLayout(this);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));
   navigation=new LinearLayout(this);navigation.setGravity(Gravity.CENTER);navigation.setBackground(surface(0xff11232f,BACK,0xff233744,0));navigation.setMinimumHeight(dp(60));root.addView(navigation,new LinearLayout.LayoutParams(-1,-2));
@@ -683,8 +686,43 @@ public class PhoneActivity extends Activity {
   body.addView(text(message,17,urgent>0?AMBER:TEXT,5));
   footer(summary,snapshot==null?"Aguardando consulta":snapshot.feedStatus+(queried?" · "+BrDates.dateTime(snapshot.refreshedAt):""));
  }
+ private void refreshCivilAlerts(boolean force){
+  long now=System.currentTimeMillis();
+  if(!active||destroyed||!automaticRefresh()||civilLoading||!force&&now<civilNextCheck)return;
+  civilLoading=true;civilNextCheck=now+60_000;
+  if(worker==null)worker=Executors.newSingleThreadExecutor();
+  worker.execute(()->{
+   DefesaCivilSp result;
+   try{result=DefesaCivilSp.read();}catch(java.io.IOException|org.json.JSONException e){result=null;}
+   final DefesaCivilSp checked=result;
+   main.post(()->{
+    civilLoading=false;
+    if(destroyed)return;
+    civilAlerts=checked;
+    if(active&&tab.equals("notices")&&selected==null)render();
+   });
+  });
+ }
+ private void civilAlertsCard(LinearLayout page){
+  LinearLayout card=card(page,"DEFESA CIVIL · SÃO PAULO CAPITAL"),body=section(card);
+  long now=System.currentTimeMillis();
+  if(civilAlerts==null||!civilAlerts.fresh(now)){
+   body.addView(text(civilLoading?"Consultando avisos oficiais…":"Consulta de avisos oficiais indisponível.",15,MUTED,3));
+  }else{
+   int shown=0;
+   for(DefesaCivilSp.Notice notice:civilAlerts.notices){
+    if(notice.expires<=now)continue;
+    if(++shown>5)break;
+    body.addView(text(notice.level(),18,AMBER,2));
+    body.addView(text(notice.message,16,TEXT,12));
+    space(body,text(notice.issuer+" · "+BrDates.dateTime(notice.sent)+" · válido até "+BrDates.dateTime(notice.expires),12,MUTED,4),6);
+   }
+   if(shown==0)body.addView(text("Nenhum aviso severo ou extremo para a capital na consulta IDAP.",15,MUTED,3));
+  }
+  body.addView(button("Abrir painel da Defesa Civil",()->openUrl(DefesaCivilSp.PANEL)));
+ }
  private void noticesPage(LinearLayout page){
-  heading(page,"Central de Alertas");alertStatus(page);
+  heading(page,"Central de Alertas");refreshCivilAlerts(false);civilAlertsCard(page);alertStatus(page);
   Button tsunamis=button("Avisos de tsunami",()->go("tsunamis"));tsunamis.setTag("open-tsunamis");space(page,tsunamis,0);
   Button history=button("Boletins e resumo diário",()->go("history"));history.setTag("open-history");space(page,history,8);
   space(page,button("Configurar notificações",()->openSettings("notices")),8);

@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.55 de teste
+
+- A Central de Alertas mostra avisos severos e extremos da Defesa Civil que atingem São Paulo capital, quando a consulta oficial se encontra atualizada.
+
 # Argos Orbis Celular · 0.1.54 de teste
 
 - Tempo severo destaca as células com descargas do GOES-19 com pequenos ícones de raio pulsantes.

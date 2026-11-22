@@ -160,7 +160,11 @@ public final class MonitorService extends Service {
  private void ensureExecutor(){if(executor==null)executor=Executors.newSingleThreadScheduledExecutor();}
  private void ensurePolling(){
   ensureExecutor();
-  if(!polling){polling=true;executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);}
+  if(!polling){
+   polling=true;
+   executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);
+   executor.scheduleWithFixedDelay(this::pollCivilAlerts,2,60,TimeUnit.SECONDS);
+  }
   if(!dailyRunning){dailyRunning=true;main.post(dailyTick);}
   // Separate network executor: slow seismic catalogues must not delay voice.
   if(!alexaPolling&&!AlexaLinkClient.token(this).isEmpty()){
@@ -317,6 +321,35 @@ public final class MonitorService extends Service {
   Prefs.status(this,"Resumo automático de "+BrDates.day(snapshot.day)+" · dia encerrado · 6 segundos de leitura por sismo + animações.");
  }
  private PendingIntent open(){return PendingIntent.getActivity(this,1,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
+ private void pollCivilAlerts(){
+  if(destroyed||!screenReady())return;
+  try{
+   DefesaCivilSp bulletin=DefesaCivilSp.read();
+   main.post(()->showCivilAlert(bulletin));
+  }catch(java.io.IOException|org.json.JSONException unavailable){
+   // The next scheduled poll can recover; never display an unofficial or stale message.
+  }
+ }
+ private void showCivilAlert(DefesaCivilSp bulletin){
+  long now=System.currentTimeMillis();
+  if(destroyed||!screenReady()||localBusy()||banner.activeView()!=null||daily.displaying()||
+     rain.presentationActive()||brent.showing()||!bulletin.fresh(now))return;
+  android.content.SharedPreferences prefs=Prefs.get(this);
+  if(!prefs.getBoolean("enabled",false))return;
+  Set<String> seen=new HashSet<>(prefs.getStringSet("civilSpShown",Collections.emptySet()));
+  for(DefesaCivilSp.Notice notice:bulletin.notices){
+   String key=notice.id+"@"+notice.sent;
+   if(notice.expires-now<5000||now-notice.sent>30*60_000L||seen.contains(key))continue;
+   long duration=Math.min(30_000,notice.expires-now);
+   if(banner.showCivilAlert(notice,duration,()->{activeUntil=0;drain();})){
+    activeUntil=android.os.SystemClock.uptimeMillis()+duration+1000;
+    seen.removeIf(item->{try{return now-Long.parseLong(item.substring(item.lastIndexOf('@')+1))>24*60*60_000L;}catch(NumberFormatException ignored){return true;}});
+    seen.add(key);
+    prefs.edit().putStringSet("civilSpShown",seen).apply();
+   }
+   return;
+  }
+ }
  private void poll(){if(destroyed)return;try{boolean enabledTargets=Prefs.get(this).getBoolean("targetAlerts",true);long settingsRevision=Prefs.get(this).getLong("targetSettingsRevision",0);if(enabledTargets!=targetsEnabled||settingsRevision!=targetSettingsRevision){targetSettingsRevision=settingsRevision;feed.invalidate();tracker.targetsReady=false;targetsEnabled=enabledTargets;main.post(()->{targetQueue.clear();stopTarget();});}FeedClient.Snapshot snapshot=feed.read();if(destroyed)return;long now=System.currentTimeMillis();Prefs.get(this).edit().putLong("lastCheck",now).apply();if(snapshot.unchanged){refreshOfficialConfig();return;}Set<String> disabled=Prefs.get(this).getStringSet("disabledTargetAreas",Collections.emptySet());for(Alert a:snapshot.alerts){if(!a.targetAreas.isEmpty())a.targetArea=a.targetAreas.stream().filter(area->!disabled.contains(area)).findFirst().orElse("");else if(disabled.contains(a.targetArea))a.targetArea="";}List<Alert> all=tracker.accept(snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk,now,snapshot.catalogs,targetsEnabled);List<Alert> small=new ArrayList<>(),alerts=new ArrayList<>();for(Alert a:all){if(a.compact)small.add(a);else alerts.add(a);}AlertPairing.attach(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);Prefs.save(this,tracker);StringBuilder health=new StringBuilder();for(Map.Entry<String,Boolean> e:snapshot.catalogs.entrySet())if(!e.getValue()){if(health.length()>0)health.append(", ");health.append(catalogLabel(e.getKey()));}if(!snapshot.tsunamiOk){if(health.length()>0)health.append(", ");health.append("boletins de tsunami");}Prefs.get(this).edit().putString("sourceHealth",health.length()==0?"Fontes disponíveis":"Indisponível: "+health).apply();Prefs.status(this,health.length()==0?"Conectado · fontes disponíveis":"Monitoramento parcial · "+health);main.post(()->{if(destroyed)return;enqueue(alerts,snapshot.alerts,snapshot.quakeOk,snapshot.tsunamiOk);if(!small.isEmpty()&&effectsDemoActive)cancelDemos();for(Alert a:small)targetQueue.add(a);tryTarget();});refreshOfficialConfig();
  }catch(Exception e){Prefs.status(this,"Sem atualização confirmada. Tentando novamente em 30 s.");}}
  private static String catalogLabel(String key){return key.equals("USGS_BR")?"USGS Brasil":key.equals("EMSC_GLOBAL")?"EMSC global":key.equals("GEOFON_GLOBAL")?"GEOFON global":key.equals("EMSC")?"EMSC Brasil":key.equals("GEOFON")?"GEOFON Brasil":key;}

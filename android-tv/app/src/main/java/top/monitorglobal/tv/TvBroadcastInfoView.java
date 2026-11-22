@@ -11,7 +11,7 @@ import java.util.Locale;
  * Informational banners stay silent and preserve the existing timers.
  */
 final class TvBroadcastInfoView extends View {
- static final int WEATHER=1,BRENT=2,SATELLITE=3,RAIN=4,VOICE_STATUS=5;
+ static final int WEATHER=1,BRENT=2,SATELLITE=3,RAIN=4,VOICE_STATUS=5,CIVIL_ALERT=6;
  private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final Typeface brand,data;
  private final int kind,accent,foreground,background;
@@ -22,6 +22,8 @@ final class TvBroadcastInfoView extends View {
  private final DollarQuote dollar;private MarketState brentSession,dollarSession;
  private boolean brentChanged=true,dollarChanged=true,temperatureChanged=true,rainStateChanged;
  private boolean brentStateChanged,dollarStateChanged,voiceChanged;
+ private DefesaCivilSp.Notice civilNotice;
+ private android.text.StaticLayout civilMessage;
  private boolean marketPending;private String voiceTitle="",voiceDetail="";
  private final WeatherSatelliteClient.Frame satellite;
  private java.util.function.Supplier<WeatherSatelliteClient.Frame> weatherSatellite;
@@ -54,7 +56,7 @@ final class TvBroadcastInfoView extends View {
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
-  this.mapSpace=kind==BRENT||kind==VOICE_STATUS||(kind==WEATHER||kind==RAIN)&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
+  this.mapSpace=kind==BRENT||kind==VOICE_STATUS||kind==CIVIL_ALERT||(kind==WEATHER||kind==RAIN)&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
   brand=OledNewsChrome.titleFont(null);
   data=OledNewsChrome.regularFont();
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
@@ -130,6 +132,17 @@ final class TvBroadcastInfoView extends View {
   v.voiceDetail=detail==null?"":detail;
   v.ticker="ARGOS ORBIS · CONSULTA POR VOZ · "+v.voiceTitle+" · "+v.voiceDetail;
   v.setContentDescription(v.ticker);return v;
+ }
+ static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice){
+  TvBroadcastInfoView v=new TvBroadcastInfoView(c,CIVIL_ALERT,null,null,null,null,null,null,false);
+  v.civilNotice=notice;
+  android.text.TextPaint paint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+  paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(17);
+  v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,730)
+   .setIncludePad(false).setMaxLines(3).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
+  v.ticker=notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
+  v.setContentDescription(notice.level()+" · "+v.ticker);
+  return v;
  }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
  static TvBroadcastInfoView marketPending(Context c){
@@ -255,6 +268,7 @@ final class TvBroadcastInfoView extends View {
   else if(kind==WEATHER)drawWeather(c,elapsed);
   else if(kind==BRENT)drawBrent(c,elapsed);
   else if(kind==VOICE_STATUS)drawVoiceStatus(c,elapsed);
+  else if(kind==CIVIL_ALERT)drawCivilAlert(c);
   else drawSatelliteNews(c,frame);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
   c.restore();
@@ -322,6 +336,11 @@ final class TvBroadcastInfoView extends View {
   }
  }
 
+ private void drawCivilAlert(Canvas c){
+  eventCategory(c,"DEFESA CIVIL","SÃO PAULO · CAPITAL");
+  label(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),170,51,25,0xffff9d7c,brand,730);
+  c.save();c.translate(170,58);civilMessage.draw(c);c.restore();
+ }
  private void drawVoiceStatus(Canvas c,long elapsed){
   eventCategory(c,"CONSULTA","POR VOZ");
   primary(c,voiceTitle,170,27,voiceChanged?effects.valueInk(foreground,0xff92e4ff,elapsed):foreground,680);
