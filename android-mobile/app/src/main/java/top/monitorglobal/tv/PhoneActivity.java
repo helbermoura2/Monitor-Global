@@ -24,6 +24,7 @@ public class PhoneActivity extends Activity {
  private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>(16,.75f,true);private ScrollView visibleScroll;private String displayedRoute="";
  private LinearLayout root,header,navigation;private FrameLayout content;private TextView status;private String shownSection="";
  private SiteEventImage siteImage;
+ private boolean hourlyRainExpanded;
  private android.app.AlertDialog quakeVolumeDialog;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
@@ -37,7 +38,7 @@ public class PhoneActivity extends Activity {
   super.onCreate(saved);if(automaticRefresh())briefing=new WeatherBriefingClient(this,()->{if(active&&!destroyed)render();});brand=loadBrand();cache=getSharedPreferences("monitor-phone",MODE_PRIVATE);repository=createRepository();
   try{repository.importCache(cache.getString("snapshot",""),System.currentTimeMillis());}catch(RuntimeException ignored){}
   snapshot=repository.snapshot(System.currentTimeMillis());
-  if(saved!=null){tab=saved.getString("tab","home");returnTab=saved.getString("returnTab","home");mapFilter=saved.getString("mapFilter","all");quakeRegion=saved.getString("quakeRegion","all");settingsReturnTab=saved.getString("settingsReturnTab","more");advancedReturnTab=saved.getString("advancedReturnTab","more");mapReturnTab=saved.getString("mapReturnTab","sismos");if(mapReturnTab.equals("map"))mapReturnTab="sismos";ArrayList<String> keys=saved.getStringArrayList("scrollKeys");ArrayList<Integer> positions=saved.getIntegerArrayList("scrollPositions");if(keys!=null&&positions!=null)for(int i=0;i<Math.min(64,Math.min(keys.size(),positions.size()));i++)scrollPositions.put(keys.get(i),Math.max(0,positions.get(i)));try{String record=saved.getString("selected","");if(!record.isEmpty())selected=AlertCodec.read(new org.json.JSONObject(record));String mapped=saved.getString("mappedEvent","");if(!mapped.isEmpty()){mappedEvent=AlertCodec.read(new org.json.JSONObject(mapped));focusMappedEvent=true;}}catch(org.json.JSONException ignored){}}
+  if(saved!=null){hourlyRainExpanded=saved.getBoolean("hourlyRainExpanded");tab=saved.getString("tab","home");returnTab=saved.getString("returnTab","home");mapFilter=saved.getString("mapFilter","all");quakeRegion=saved.getString("quakeRegion","all");settingsReturnTab=saved.getString("settingsReturnTab","more");advancedReturnTab=saved.getString("advancedReturnTab","more");mapReturnTab=saved.getString("mapReturnTab","sismos");if(mapReturnTab.equals("map"))mapReturnTab="sismos";ArrayList<String> keys=saved.getStringArrayList("scrollKeys");ArrayList<Integer> positions=saved.getIntegerArrayList("scrollPositions");if(keys!=null&&positions!=null)for(int i=0;i<Math.min(64,Math.min(keys.size(),positions.size()));i++)scrollPositions.put(keys.get(i),Math.max(0,positions.get(i)));try{String record=saved.getString("selected","");if(!record.isEmpty())selected=AlertCodec.read(new org.json.JSONObject(record));String mapped=saved.getString("mappedEvent","");if(!mapped.isEmpty()){mappedEvent=AlertCodec.read(new org.json.JSONObject(mapped));focusMappedEvent=true;}}catch(org.json.JSONException ignored){}}
   getWindow().setStatusBarColor(BACK);getWindow().setNavigationBarColor(BACK);getWindow().getDecorView().setSystemUiVisibility(0);
   root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BACK);
   root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});
@@ -69,7 +70,7 @@ public class PhoneActivity extends Activity {
  @Override protected void onStart(){super.onStart();PhonePlaceAlerts.sync(this);active=true;generation++;if(map!=null&&selected==null&&tab.equals("map"))map.resume();if(rainMap!=null&&selected==null&&tab.equals("rain"))rainMap.resume();if(brazilMap!=null&&selected==null&&tab.equals("brazil"))brazilMap.resume();if(automaticRefresh())main.post(pulse);}
  @Override protected void onStop(){if(quakeVolumeDialog!=null)quakeVolumeDialog.dismiss();rememberScroll();if(siteImage!=null){siteImage.cancel();siteImage=null;}active=false;generation++;refreshing=false;detailLoading=false;nextDetailAttempt=nextDailyAttempt=0;main.removeCallbacks(pulse);if(repository!=null)repository.cancel();if(map!=null)map.pause();if(rainMap!=null)rainMap.pause();if(brazilMap!=null)brazilMap.pause();if(briefing!=null)briefing.pause();super.onStop();}
  @Override protected void onDestroy(){destroyed=true;active=false;if(updater!=null)updater.close();if(briefing!=null)briefing.close();generation++;main.removeCallbacksAndMessages(null);if(repository!=null)repository.close();if(worker!=null)worker.shutdownNow();if(map!=null){map.close();map=null;}if(rainMap!=null){rainMap.close();rainMap=null;}if(brazilMap!=null){brazilMap.close();brazilMap=null;}clearFlags();super.onDestroy();}
- @Override protected void onSaveInstanceState(Bundle out){rememberScroll();out.putString("tab",tab);out.putString("returnTab",returnTab);out.putString("mapFilter",mapFilter);out.putString("quakeRegion",quakeRegion);out.putString("mapReturnTab",mapReturnTab);out.putString("settingsReturnTab",settingsReturnTab);out.putString("advancedReturnTab",advancedReturnTab);if(mappedEvent!=null)try{out.putString("mappedEvent",AlertCodec.write(mappedEvent).toString());}catch(org.json.JSONException ignored){}out.putStringArrayList("scrollKeys",new ArrayList<>(scrollPositions.keySet()));out.putIntegerArrayList("scrollPositions",new ArrayList<>(scrollPositions.values()));if(selected!=null)try{out.putString("selected",AlertCodec.write(selected).toString());}catch(org.json.JSONException ignored){}super.onSaveInstanceState(out);}
+ @Override protected void onSaveInstanceState(Bundle out){rememberScroll();out.putBoolean("hourlyRainExpanded",hourlyRainExpanded);out.putString("tab",tab);out.putString("returnTab",returnTab);out.putString("mapFilter",mapFilter);out.putString("quakeRegion",quakeRegion);out.putString("mapReturnTab",mapReturnTab);out.putString("settingsReturnTab",settingsReturnTab);out.putString("advancedReturnTab",advancedReturnTab);if(mappedEvent!=null)try{out.putString("mappedEvent",AlertCodec.write(mappedEvent).toString());}catch(org.json.JSONException ignored){}out.putStringArrayList("scrollKeys",new ArrayList<>(scrollPositions.keySet()));out.putIntegerArrayList("scrollPositions",new ArrayList<>(scrollPositions.values()));if(selected!=null)try{out.putString("selected",AlertCodec.write(selected).toString());}catch(org.json.JSONException ignored){}super.onSaveInstanceState(out);}
  private void refresh(boolean force){
   if(!active||destroyed||refreshing)return;refreshing=true;status.setText("Atualizando dados…");final int token=generation;
   if(worker==null)worker=Executors.newSingleThreadExecutor();worker.execute(()->{
@@ -201,8 +202,43 @@ public class PhoneActivity extends Activity {
  private void hourlyCard(LinearLayout page){
   if(snapshot==null||snapshot.hours.isEmpty()){LinearLayout card=card(page,"PREVISÃO POR HORA"),body=section(card);body.addView(text(detailLoading?"Consultando os próximos horários…":"Não foi possível carregar os próximos horários",16,MUTED,3));space(body,text("Isso não significa ausência de chuva. A estimativa por minuto está no quadro de chuva.",14,MUTED,4),7);Button retry=button("Consultar próximas horas",()->{requestDetails(false,true);render();});retry.setTag("retry-hourly");retry.setEnabled(!detailLoading);space(body,retry,8);return;}
   LinearLayout card=card(page,"PRÓXIMAS HORAS · MODELO HORÁRIO"),body=section(card);HorizontalScrollView scroller=new HorizontalScrollView(this);scroller.setHorizontalScrollBarEnabled(false);LinearLayout row=new LinearLayout(this);scroller.addView(row,new HorizontalScrollView.LayoutParams(-2,-2));body.addView(scroller,new LinearLayout.LayoutParams(-1,-2));
-  for(PhoneHourly.Hour h:snapshot.hours){if(h.start<System.currentTimeMillis())continue;LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);cell.setGravity(Gravity.CENTER);cell.setPadding(dp(8),0,dp(8),0);row.addView(cell,new LinearLayout.LayoutParams(dp(98),-2));String from=WeatherForecast.time(h.start).replace(" BRT",""),to=WeatherForecast.time(h.start+3600000).replace(" BRT","");cell.addView(text(from+"–"+to,13,MUTED,2));cell.addView(new PhoneIcons(this,PhoneIcons.condition(h.condition,h.start),TEXT),new LinearLayout.LayoutParams(dp(30),dp(38)));cell.addView(text(Math.round(h.temperature)+"°C",22,TEXT,1));cell.addView(text(RainForecast.number(h.amount)+" mm/1h",12,CYAN,1));}
+  long now=System.currentTimeMillis();
+  List<PhoneHourly.Hour> visible=new ArrayList<>();
+  for(PhoneHourly.Hour h:snapshot.hours)if(h.start>=now)visible.add(h);
+  for(PhoneHourly.Hour h:visible){LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);cell.setGravity(Gravity.CENTER);cell.setPadding(dp(8),0,dp(8),0);row.addView(cell,new LinearLayout.LayoutParams(dp(98),-2));String from=WeatherForecast.time(h.start).replace(" BRT",""),to=WeatherForecast.time(h.start+3600000).replace(" BRT","");cell.addView(text(from+"–"+to,13,MUTED,2));cell.addView(new PhoneIcons(this,PhoneIcons.condition(h.condition,h.start),TEXT),new LinearLayout.LayoutParams(dp(30),dp(38)));cell.addView(text(Math.round(h.temperature)+"°C",22,TEXT,1));cell.addView(text(RainForecast.number(h.amount)+" mm/1h",12,CYAN,1));}
+  if(visible.isEmpty())space(body,text("Nenhum intervalo completo disponível agora.",14,MUTED,2),8);
+  else hourlyRainSummary(body,visible);
   footer(card,"Rainbow Weather · horários em Brasília. Cada coluna é o intervalo indicado, diferente dos próximos 60 minutos contados a partir de agora.");
+ }
+ private void hourlyRainSummary(LinearLayout body,List<PhoneHourly.Hour> hours){
+  PhoneHourlyRain.Period rain=PhoneHourlyRain.mainPeriod(hours);
+  if(rain==null){
+   space(body,text("Sem chuva prevista nos horários exibidos.",15,MUTED,3),14);
+   return;
+  }
+  String volume=PhoneHourlyRain.millimeters(rain.amount);
+  String duration=rain.hours()==1?"1 hora":rain.hours()+" horas";
+  TextView summary=text(volume+" mm em "+duration,21,AMBER,2);
+  summary.setAccessibilityHeading(true);space(body,summary,14);
+  String period=PhoneHourlyRain.interval(rain.start,rain.end);
+  space(body,text("Sequência com maior acumulado · "+period+" BRT",13,MUTED,3),4);
+  LinearLayout explanation=new LinearLayout(this);explanation.setOrientation(LinearLayout.VERTICAL);
+  space(explanation,text("Maior volume da sequência · "+PhoneHourlyRain.interval(rain.peak.start,rain.peak.start+PhoneHourlyRain.HOUR)
+   +" · "+PhoneHourlyRain.millimeters(rain.peak.amount)+" mm em 1 hora",14,TEXT,4),8);
+  String liters=rain.amount<.05?"menos de 0,1":volume;
+  space(explanation,text("Se a previsão se confirmar, são "+liters+
+   " litros por m² no período. Cada 1 mm equivale a 1 litro por m².",14,TEXT,4),8);
+  space(explanation,text(rain.impacts(),14,TEXT,8),8);
+  space(explanation,text("Estimativa pontual do modelo. Os efeitos dependem da drenagem, do relevo e da chuva anterior. Consulte a aba Avisos para boletins oficiais.",13,MUTED,8),8);
+  Button expand=button(hourlyRainExpanded?"Recolher explicação":"Entenda a chuva prevista",()->{});
+  expand.setTag("hourly-rain-explanation");
+  explanation.setVisibility(hourlyRainExpanded?View.VISIBLE:View.GONE);
+  expand.setOnClickListener(v->{
+   hourlyRainExpanded=!hourlyRainExpanded;
+   explanation.setVisibility(hourlyRainExpanded?View.VISIBLE:View.GONE);
+   expand.setText(hourlyRainExpanded?"Recolher explicação":"Entenda a chuva prevista");
+  });
+  space(body,expand,9);body.addView(explanation);
  }
  private void weatherCard(LinearLayout page,boolean detail){
   LinearLayout card=card(page,"TEMPO · LIBERDADE, SP"),body=section(card);WeatherForecast.Summary w=snapshot==null?null:snapshot.weather;

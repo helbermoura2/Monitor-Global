@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.48 de teste
+
+- Clima explica o acumulado da sequência mais chuvosa na previsão por hora, aponta a hora de maior volume e descreve possíveis efeitos conforme a previsão.
+
 # Argos Orbis Celular · 0.1.47 de teste
 
 - O card 3D usa os pesos de Cormorant Garamond e Inter do cartão cartográfico, com o mesmo tratamento tipográfico na imagem e no vídeo.

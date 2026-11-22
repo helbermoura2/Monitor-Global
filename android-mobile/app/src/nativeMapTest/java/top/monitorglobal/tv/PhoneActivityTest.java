@@ -40,6 +40,21 @@ public class PhoneActivityTest {
   for(String id:new String[]{"home","sismos","weather","notices","more"}){View nav=root().findViewWithTag("tab-"+id);assertNotNull(nav);assertTrue(nav.getHeight()>=48);assertTrue(nav.getBottom()<=800);}
   export("home");root().findViewWithTag("tab-weather").performClick();layout();String weather=texts(root());assertTrue(weather.contains("2,5 mm"));assertTrue(weather.contains("~25 min"));assertTrue(weather.contains("6,0 mm/h no início previsto"));assertTrue(weather.contains("~40 min a partir de agora"));assertTrue(weather.contains("Modelo horário"));export("weather");
  }
+ @Test public void hourlyForecastExplainsPredictedRainVolume()throws Exception{
+  PhoneRepository.Snapshot fixture=data();
+  long hour=PhoneHourlyRain.HOUR;
+  long start=(System.currentTimeMillis()/hour+1)*hour;
+  fixture.hours=List.of(new PhoneHourly.Hour(start,23,12.1,"Rain"),
+   new PhoneHourly.Hour(start+hour,22,10.4,"Rain"),new PhoneHourly.Hour(start+2*hour,21,8,"Rain"));
+  activity.applySnapshot(fixture);root().findViewWithTag("tab-weather").performClick();layout();
+  assertTrue(texts(root()).contains("30,5 mm em 3 horas"));
+  View expand=root().findViewWithTag("hourly-rain-explanation");assertNotNull(expand);
+  expand.performClick();layout();
+  assertTrue(texts(root()).contains("12,1 mm em 1 hora"));
+  assertTrue(texts(root()).contains("30,5 litros por m²"));
+  assertTrue(texts(root()).contains("drenagem lenta"));
+  assertEquals("Recolher explicação",((TextView)expand).getText().toString());
+ }
  @Test public void unknownValuesStayUnknownAndAvisosExplainTheForegroundScope(){
   layout();String empty=texts(root());assertTrue(empty.contains("Consultando previsão horária"));assertFalse(empty.contains("18°C"));root().findViewWithTag("tab-notices").performClick();layout();String notices=texts(root());assertTrue(notices.contains("Central de Alertas"));assertFalse(notices.contains("Copiar código para teste push"));assertNull(named(root(),"Abrir canal oficial no Telegram"));
   Alert unknown=new Alert("unknown","earthquake","v","M5,1 · Oceano Pacífico","","earthquake",1,0,false);unknown.magnitude=5.1;activity.applySnapshot(new PhoneRepository.Snapshot(List.of(unknown),null,null,0,"Sem atualização confirmada","Previsão indisponível","Chuva indisponível",true,true,false));root().findViewWithTag("tab-sismos").performClick();root().findViewWithTag("event-unknown").performClick();layout();assertTrue(texts(root()).contains("Profundidade não informada"));assertTrue(texts(root()).contains("Data indisponível"));assertTrue(texts(root()).contains("Fonte não informada"));assertFalse(named(root(),"Ver localização no mapa").isEnabled());assertFalse(texts(root()).contains("0 km"));
