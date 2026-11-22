@@ -75,7 +75,18 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  await page.mouse.click(bounds.x+cell.x,bounds.y+cell.y);
  await page.locator('.severe-popup').filter({hasText:'Célula em atenção'}).waitFor();
  assert.match(await page.locator('.severe-popup').innerText(),/45 dBZ/);
+ assert.equal(await page.locator('.argos-area-popup').count(),0);
+ await page.locator('.argos-severe-popup .maplibregl-popup-close-button').click();
  await page.screenshot({path:path.join(output,'severe-weather-fixture.png'),fullPage:true});
+ assert.equal(await page.locator('#brazil-map #severe-map-readout').count(),0);
+ assert.equal(await page.locator('.brazil-map-panel .maplibregl-ctrl-attrib').count(),0);
+ assert.equal(await page.locator('#map-reading #radar-key').isVisible(),true);
+ const compactHeight=(await page.locator('#brazil-map').boundingBox()).height;
+ await page.locator('#map-expand').click();
+ assert.equal(await page.locator('.brazil-toolbar').isVisible(),false);
+ assert.ok((await page.locator('#brazil-map').boundingBox()).height>compactHeight);
+ await page.locator('#map-expand').click();
+ assert.equal(await page.locator('.brazil-toolbar').isVisible(),true);
  await page.locator('#severe-toggle').click();
  assert.equal(await page.locator('#severe-panel').isVisible(),false);
  assert.equal(await page.locator('.forecast-caption').isVisible(),true);

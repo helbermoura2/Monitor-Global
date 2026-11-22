@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.51 de teste
+
+- Mapa meteorológico maior, modo de ampliação, legenda e contagens abaixo do mapa. Grupos de raios se expandem ao aproximar.
+
 # Argos Orbis Celular · 0.1.50 de teste
 
 - O mapa mostra uma hora de raios, escala aproximada do radar e fichas experimentais de células com eco intenso e atividade elétrica.

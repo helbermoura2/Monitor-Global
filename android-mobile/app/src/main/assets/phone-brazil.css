@@ -145,21 +145,37 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .severe-chips #severe-notices i{background:#ffd181}
 .severe-panel small,.severe-panel p{display:block;color:#b6c8d4;font-size:12px;margin:6px 0}
 .severe-panel details summary{color:#f4d197;font-size:12px;cursor:pointer;margin-top:8px}
-.severe-popup{color:#142734}
-.severe-popup p{margin:6px 0 0}
+.severe-popup{color:#f2f7fa;padding:3px 3px 0}
+.argos-severe-popup .maplibregl-popup-content{background:#102531;border:1px solid #4f6672;border-radius:12px}
+.argos-severe-popup .maplibregl-popup-tip{filter:brightness(.30)}
+.severe-popup p{margin:6px 0 0;color:#cfe0e8}
 .severe-mode .brazil-controls,.severe-mode .timeline,.severe-mode .outlook{display:none}
 
 .brazil-overlays{grid-template-columns:repeat(3,minmax(0,1fr))}
 .city-rain-summary{padding:9px 0 2px;color:#f4d197;font-size:13px}
 
-.severe-mode .brazil-map-panel{height:clamp(260px,50vh,460px);min-height:260px}
+.severe-mode .brazil-map-panel{height:clamp(320px,68vh,620px);min-height:320px}
 .severe-mode #overlay-panel .radar-control+.brazil-satellite-control{margin-top:8px}
 
-#severe-map-readout{position:absolute;bottom:62px;left:10px;z-index:2;pointer-events:none;
- margin:0;max-width:calc(100% - 20px);padding:6px 9px;border-radius:8px;
- border:1px solid #816742;background:#071722e8;color:#f5d29a;font-size:12px}
-#severe-map-readout[hidden]{display:none}
-
+ .map-actions{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex:none;margin:3px 0 2px}
+.map-actions button,.map-sources summary{min-height:42px;border:1px solid #395865;border-radius:10px;padding:0 12px;
+ background:#102733;color:#e7f2f7;font:600 13px system-ui}
+.map-actions button[aria-pressed=true]{color:#f4d197;border-color:#816742}
+.map-sources{max-width:58%}
+.map-sources summary{display:list-item;line-height:40px;cursor:pointer}
+.map-sources p{margin:6px 0;font-size:11px;color:#b6c8d4}
+.map-reading{flex:none;margin:4px 0 8px;display:grid;gap:8px}
+.map-reading[hidden],.map-summary[hidden],#radar-key[hidden]{display:none}
+.map-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.map-summary>div,#radar-key{padding:10px 12px;background:#102531;border:1px solid #34515e;border-radius:12px}
+.map-summary span{display:block;color:#b6c8d4;font-size:11px;margin-bottom:3px}
+.map-summary strong{font-size:15px;color:#f4d197}
+#radar-key strong{display:block;font-size:13px;color:#e8f4f8;margin-bottom:7px}
+#radar-key small,.radar-control details{font-size:11px;color:#b6c8d4}
+.radar-control details summary{padding:6px 0;cursor:pointer}
+body.map-expanded .brazil-main>section:not(.brazil-map-panel),body.map-expanded .map-sources{display:none!important}
+body.map-expanded .brazil-map-panel{height:calc(100dvh - 65px);min-height:0}
+body.map-expanded .map-actions{justify-content:center}
 .radar-scale{display:flex;justify-content:space-between;gap:4px;font-size:11px;color:#eaf5fc}
 .radar-scale span{flex:1;text-align:center}
 .radar-scale i{display:block;height:6px;border-radius:4px;margin:1px 0 4px}

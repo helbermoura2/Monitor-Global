@@ -48,12 +48,13 @@ function create(map,host,getRadar,getModel){
  let enabled=false,active=true,request=null,interval=0,popup=null;
  let lightningData=null,noticeData=null,lastFetched=0,showLightning=true,showNotices=true;
 
- map.addSource(sources.lightning,{type:'geojson',data:EMPTY,attribution:'Raios: NOAA GOES-19 GLM'});
+ map.addSource(sources.lightning,{type:'geojson',data:EMPTY,cluster:true,clusterRadius:24,clusterMaxZoom:5,
+  clusterProperties:{flashCount:['+',['get','count']]},attribution:'Raios: NOAA GOES-19 GLM'});
  map.addSource(sources.cells,{type:'geojson',data:EMPTY});
  map.addSource(sources.notices,{type:'geojson',data:EMPTY,attribution:'Alertas municipais: Cemaden'});
  map.addLayer({id:sources.lightning,source:sources.lightning,type:'circle',paint:{
-  'circle-radius':['interpolate',['linear'],['get','count'],1,3,60,7,500,12], 'circle-color':'#ff7bda',
-  'circle-opacity':.72,'circle-stroke-color':'#ffd6f1','circle-stroke-width':.55
+  'circle-radius':['interpolate',['linear'],['coalesce',['get','flashCount'],['get','count']],1,2.5,60,4,500,6.5,3000,10],
+  'circle-color':'#ff80d9','circle-opacity':.60,'circle-stroke-color':'#ffc7eb','circle-stroke-width':.55
  }});
  map.addLayer({id:sources.notices,source:sources.notices,type:'circle',paint:{
   'circle-radius':8,'circle-color':['match',['get','severity'],3,'#f3646f',2,'#fc9a58','#ffd181'],
@@ -102,18 +103,21 @@ function create(map,host,getRadar,getModel){
   const area=map.getBounds(),readout=[];
   if(lightningData&&fresh(lightningData.end,Date.now(),35)){
    const count=lightningData.collection.features.reduce((sum,f)=>area.contains(f.geometry.coordinates)?sum+f.properties.count:sum,0);
-   if(showLightning)readout.push((lightningData.end-lightningData.start>50*MINUTE?'Raios · 1 h: ':'Raios: ')+count.toLocaleString('pt-BR'));
+   if(showLightning)readout.push({name:lightningData.end-lightningData.start>50*MINUTE?'Raios · 1 h':'Raios',value:count.toLocaleString('pt-BR')});
    lightningStatus.textContent=showLightning?
     count.toLocaleString('pt-BR')+' detecções nas células cobertas do recorte · NOAA GOES-19 · '+clock(lightningData.start)+' – '+clock(lightningData.end)+(lightningData.partial?' · janela parcial':''):
     'Camada de raios oculta.';
-  }else{lightningStatus.textContent='Raios sem dados recentes do GOES-19 para esta visualização.';if(showLightning)readout.push('Raios: sem dados recentes');}
+  }else{lightningStatus.textContent='Raios sem dados recentes do GOES-19 para esta visualização.';if(showLightning)readout.push({name:'Raios',value:'Sem dados recentes'});}
   if(noticeData&&fresh(noticeData.checkedAt,Date.now(),90)){
    const count=noticeData.collection.features.filter(f=>area.contains(f.geometry.coordinates)).length;
-   if(showNotices)readout.push('Cemaden: '+count);
+   if(showNotices)readout.push({name:'Alertas Cemaden',value:String(count)});
    noticeStatus.textContent=showNotices?count+' '+(count===1?'alerta municipal':'alertas municipais')+' no recorte · Cemaden · '+clock(noticeData.checkedAt):
     'Camada de alertas oculta.';
-  }else{noticeStatus.textContent='Alertas municipais indisponíveis nesta consulta.';if(showNotices)readout.push('Cemaden: indisponível');}
-  mapReadout.textContent=readout.join(' · ');mapReadout.hidden=!readout.length;
+  }else{noticeStatus.textContent='Alertas municipais indisponíveis nesta consulta.';if(showNotices)readout.push({name:'Alertas Cemaden',value:'Indisponível'});}
+  mapReadout.replaceChildren(...readout.map(item=>{
+   const cell=document.createElement('div'),label=document.createElement('span'),value=document.createElement('strong');
+   label.textContent=item.name;value.textContent=item.value;cell.append(label,value);return cell;
+  }));mapReadout.hidden=!readout.length;
  }
  function draw(){
   const now=Date.now();
@@ -146,6 +150,11 @@ function create(map,host,getRadar,getModel){
   const results=map.queryRenderedFeatures(e.point,{layers:Object.values(sources)});
   const feature=results.find(f=>f.layer.id===sources.cells)||results.find(f=>f.layer.id===sources.notices)||results[0];
   if(!feature)return;
+  if(feature.layer.id===sources.lightning&&Number.isInteger(feature.properties.cluster_id)){
+   map.getSource(sources.lightning).getClusterExpansionZoom(feature.properties.cluster_id)
+    .then(zoom=>{if(enabled&&active)map.easeTo({center:feature.geometry.coordinates,zoom,duration:250});}).catch(()=>{});
+   return;
+  }
   const content=document.createElement('div'),title=document.createElement('strong'),description=document.createElement('p');
   if(feature.layer.id===sources.cells&&cellWindow){
    title.textContent='Célula em atenção · experimental';
@@ -169,7 +178,7 @@ function create(map,host,getRadar,getModel){
    description.textContent='Célula aproximada de 0,25°. Descargas detectadas pelo GOES-19 dentro da janela indicada.';
   }
   content.className='severe-popup';if(!title.parentNode)content.append(title,description);
-  popup?.remove();popup=new maplibregl.Popup({closeButton:true,maxWidth:'235px'}).setLngLat(feature.geometry.coordinates).setDOMContent(content).addTo(map);
+  popup?.remove();popup=new maplibregl.Popup({className:'argos-severe-popup',closeButton:true,maxWidth:'235px'}).setLngLat(feature.geometry.coordinates).setDOMContent(content).addTo(map);
  }
  function wake(){
   clearInterval(interval);interval=0;
@@ -181,7 +190,7 @@ function create(map,host,getRadar,getModel){
  noticeButton.addEventListener('click',()=>{showNotices=!showNotices;noticeButton.setAttribute('aria-pressed',String(showNotices));draw();});
  cellButton.addEventListener('click',()=>{showCells=!showCells;cellButton.setAttribute('aria-pressed',String(showCells));draw();});
  byId('severe-refresh').addEventListener('click',()=>refresh(Date.now()-lastFetched>=15000));
- return {raise,analyze,toggle(next){enabled=!!next;host.hidden=!enabled;wake();},
+ return {raise,analyze,hasMarkerAt(point){return enabled&&active&&map.queryRenderedFeatures(point,{layers:Object.values(sources)}).length>0;},toggle(next){enabled=!!next;host.hidden=!enabled;wake();},
   setActive(next){active=!!next;wake();},
   destroy(){enabled=false;active=false;wake();map.off('moveend',updateCount);map.off('click',click);}};
 }

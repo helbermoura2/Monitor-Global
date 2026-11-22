@@ -24,7 +24,18 @@
  </section>
  <section class="map-panel brazil-map-panel" aria-label="Mapa meteorológico do Brasil">
   <div id="brazil-map"></div>
-  <p id="severe-map-readout" hidden></p>
+
+ </section>
+ <div class="map-actions">
+  <button id="map-expand" type="button" aria-pressed="false">Ampliar mapa</button>
+  <details class="map-sources"><summary>Fontes · Esri</summary>
+   <p>Mapa © Esri, Maxar, Earthstar Geographics e GIS User Community.</p>
+   <p>Radar: RainViewer. Satélite e descargas: NASA GIBS e NOAA GOES-19. Alertas municipais: Cemaden.</p>
+  </details>
+ </div>
+ <section class="map-reading" id="map-reading" aria-label="Legenda e resumo do mapa" hidden>
+  <div id="severe-map-readout" class="map-summary" hidden></div>
+  <div id="radar-key" hidden></div>
  </section>
  <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
  <section id="severe-panel" class="severe-panel" aria-label="Observações e alertas" hidden>

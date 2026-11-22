@@ -26,7 +26,16 @@ function create(map,host,onChange=()=>{}){
  }
  const caption=document.createElement('small');caption.textContent='mm/h aproximados · conversão de refletividade (Z–R)';
  const caution=document.createElement('small');caution.textContent='Áreas sem ecos podem estar sem cobertura. Isso não confirma ausência de chuva.';
- actions.append(play,latest);panel.append(heading,actions,slider,status,scale,caption,credit,caution);host.appendChild(panel);
+ const legend=host.ownerDocument?.getElementById('radar-key');
+ if(legend){
+  const title=document.createElement('strong');title.textContent='Intensidade da chuva no radar';
+  legend.append(title,scale,caption);
+ }
+ const notes=document.createElement('details'),notesTitle=document.createElement('summary');
+ notesTitle.textContent='Fonte e cobertura do radar';notes.append(notesTitle,credit,caution);
+ actions.append(play,latest);panel.append(heading,actions,slider,status);
+ if(!legend)panel.append(scale,caption);
+ panel.append(notes);host.appendChild(panel);
  function notify(){onChange({enabled,sourceTime,loading:!!request,frames:frames.length,message:messageText,latest:frames.at(-1)||null});}
  function message(text){messageText=text;status.textContent=text;notify();}
  function stop(){clearTimeout(playTimer);playTimer=0;play.textContent='▶ Animar';}

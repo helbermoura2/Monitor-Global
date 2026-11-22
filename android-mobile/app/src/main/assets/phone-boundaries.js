@@ -25,7 +25,7 @@ async function fetchLimited(url,limit,signal){
  if(raw.length>limit)throw Error('Malha excessivamente grande');
  return JSON.parse(raw);
 }
-function create({map,host=document.body,onPlace=null}={}){
+function create({map,host=document.body,onPlace=null,shouldOpen=()=>true}={}){
  if(!map||!host)return null;
  let stateData=null,current='states',request=null,seq=0,alive=true,active=true,ufLoaded='',cachedMunicipal=null,mousePopup=null,ufMarkers=[];
  const panel=document.createElement('details');panel.className='admin-boundary-controls';
@@ -137,7 +137,7 @@ function create({map,host=document.body,onPlace=null}={}){
   try{return map.getLayer(id)?map.queryRenderedFeatures(point,{layers:[id]}):[];}catch{return [];}
  }
  function handleClick(ev){
-  if(!alive||current==='off'||!stateData)return;
+  if(!alive||current==='off'||!stateData||!shouldOpen(ev.point))return;
   const selectedState=featuresAt(ev.point,STATE_FILL)[0];
   const selectedCity=current==='cities'?featuresAt(ev.point,CITY_FILL)[0]:null;
   if(!selectedState&&!selectedCity)return;
