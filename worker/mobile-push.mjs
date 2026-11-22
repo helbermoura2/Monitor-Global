@@ -1,6 +1,7 @@
 import {createNoticeDispatcher} from './mobile-notices.mjs';
+import {createCivilDispatcher} from './mobile-civil.mjs';
 // Dedicated optional sender. Public feed only; Firebase credentials never go into the APK.
-export const MOBILE_PUSH_RELEASE='notices-v1';
+export const MOBILE_PUSH_RELEASE='civil-notices-v2';
 const TOPIC='monitor_global_alerts_v1',KEY='mobile-push-state-v1';
 export function compactAlert(a){
  const out={};for(const k of ['id','kind','title','detail','state','source','countryCode'])out[k]=String(a[k]||'').slice(0,k==='id'?300:240);
@@ -50,8 +51,18 @@ export class MobilePushDelivery {
   if(!this.env.FIREBASE_SERVICE_ACCOUNT)return Response.json({configured:false});
   const read=async path=>{const response=await fetch('https://black-sky-9ba0.terrestre.workers.dev/'+path,{signal:AbortSignal.timeout(10000)});if(!response.ok||Number(response.headers.get('content-length')||0)>262144)throw Error('Public feed unavailable');const raw=await response.text();if(raw.length>262144)throw Error('Public feed oversized');return JSON.parse(raw);};
   const options={storage:this.state.storage,send:message=>sendFcm(this.env,message)};
-  const events=createDispatcher({...options,read:()=>read('tv-alerts?policy=telegram-v1')}),notices=createNoticeDispatcher({...options,read});
-  const results=await Promise.allSettled([events(),notices()]);return Response.json({events:results[0].status==='fulfilled'?results[0].value:{retry:true},notices:results[1].status==='fulfilled'?results[1].value:{retry:true}});
+  const events=createDispatcher({...options,read:()=>read('tv-alerts?policy=telegram-v1')});
+  const notices=createNoticeDispatcher({...options,read});
+  // The public CAP snapshot is independently verified; never infer a notice from rain forecasts.
+  const civil=createCivilDispatcher({...options,read:async()=>{
+   const url='https://raw.githubusercontent.com/helbermoura2/Monitor-Global/main/data/defesa-civil-sp.json?at='+Math.floor(Date.now()/60000);
+   const response=await fetch(url,{signal:AbortSignal.timeout(10000)});
+   if(!response.ok||Number(response.headers.get('content-length')||0)>16000)throw Error('Official CAP snapshot unavailable');
+   const raw=await response.text();if(raw.length>16000)throw Error('Official CAP snapshot oversized');
+   return JSON.parse(raw);
+  }});
+  const results=await Promise.allSettled([events(),notices(),civil()]);
+  return Response.json({events:results[0].status==='fulfilled'?results[0].value:{retry:true},notices:results[1].status==='fulfilled'?results[1].value:{retry:true},civil:results[2].status==='fulfilled'?results[2].value:{retry:true}});
  });this.queue=run.catch(()=>{});return run;}
 
 }
