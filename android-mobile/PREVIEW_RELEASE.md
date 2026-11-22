@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.47 de teste
+
+- O card 3D usa os pesos de Cormorant Garamond e Inter do cartão cartográfico, com o mesmo tratamento tipográfico na imagem e no vídeo.
+
 # Argos Orbis Celular · 0.1.46 de teste
 
 - Ajusta o espaço abaixo do bloco 3D no card para afastá-lo da moldura.

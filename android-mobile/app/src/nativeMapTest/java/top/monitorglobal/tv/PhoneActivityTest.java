@@ -110,9 +110,9 @@ public class PhoneActivityTest {
   Bitmap card=PhoneVolumeShare.render(volume,quake(),Typeface.DEFAULT_BOLD);
   assertNotNull(card);
   assertEquals(1080,card.getWidth());assertEquals(1920,card.getHeight());
-  assertTrue(hasCardInk(card,66,183,610,255,0xffebc687));
-  assertTrue(hasCardInk(card,66,283,1016,386,0xffebc687));
-  assertTrue(hasCardInk(card,74,1529,1016,1578,0xfff2f5f7));
+  assertTrue(hasCardInk(card,95,183,680,285,0xffe6c897));
+  assertTrue(hasCardInk(card,95,282,1030,386,0xffddbf8d));
+  assertTrue(hasCardInk(card,76,1510,1016,1599,0xfff5e8cf));
   assertEquals(0xff0b1821,card.getPixel(16,580)); // No regional inset.
   assertEquals(0xff0b1821,card.getPixel(16,1250)); // No compass.
   Bitmap first=Bitmap.createBitmap(720,1280,Bitmap.Config.ARGB_8888);
