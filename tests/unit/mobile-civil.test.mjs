@@ -32,7 +32,7 @@ test('no official feed or stale GitHub schedules never cause an invented emergen
  const h=harness();
  for(const item of [
   null,snapshot({alerts:[]}),snapshot({source:'https://fake.example/xml'}),
-  snapshot({municipality:'9999999'}),snapshot({updatedAt:NOW-21*MIN}),
+  snapshot({municipality:'9999999'}),snapshot({updatedAt:NOW-21*MIN,alerts:[]}),
   snapshot({checkedAt:NOW-11*MIN}),
   snapshot({alerts:[record({issuer:'Site de previsão'})]}),
   snapshot({alerts:[record({severity:'Moderate'})]}),
@@ -44,6 +44,11 @@ test('no official feed or stale GitHub schedules never cause an invented emergen
  }
  assert.equal(validCivilSnapshot(snapshot(),NOW),true);
  assert.equal(civilNotices(snapshot(),NOW).length,1);
+});
+test('recent verified CAP notices may be delivered even when the Atom updated timestamp lags',async()=>{
+ const h=harness();h.data(snapshot({updatedAt:NOW-3*3600000}));
+ assert.equal((await h.dispatch()).sent,1);
+ assert.equal(h.out[0].topic,CIVIL_TOPIC);
 });
 test('FCM failure does not mark a notice delivered and retries after restoration',async()=>{
  const h=harness();h.fail(true);await assert.rejects(h.dispatch());
