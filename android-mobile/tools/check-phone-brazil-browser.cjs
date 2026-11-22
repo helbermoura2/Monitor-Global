@@ -76,6 +76,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  const selection=page.locator('#map-selection');
  await selection.filter({hasText:'Célula em atenção'}).waitFor();
  assert.match(await selection.innerText(),/45 dBZ/);
+ assert.equal(await selection.evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(16, 37, 49)');
  assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
  await page.screenshot({path:path.join(output,'severe-selection-fixture.png'),fullPage:true});
  await page.waitForFunction(()=>{

@@ -146,7 +146,6 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .severe-panel small,.severe-panel p{display:block;color:#b6c8d4;font-size:12px;margin:6px 0}
 .severe-panel details summary{color:#f4d197;font-size:12px;cursor:pointer;margin-top:8px}
 
-.severe-popup p{margin:6px 0 0;color:#cfe0e8}
 .severe-mode .brazil-controls,.severe-mode .timeline,.severe-mode .outlook{display:none}
 
 .brazil-overlays{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -179,5 +178,13 @@ body.map-expanded .map-actions{justify-content:center}
 .radar-scale i{display:block;height:6px;border-radius:4px;margin:1px 0 4px}
 .severe-chips{flex-wrap:wrap}
 .severe-chips #severe-cells i{background:transparent;border:1px solid #ffad62}
-.severe-popup strong{font-size:14px}
-.severe-popup p{line-height:1.35}
+#map-selection{flex:none;margin:5px 0 8px;padding:12px;border:1px solid #465e6a;border-radius:13px;
+ background:#102531;color:#eef5f9;scroll-margin:12px}
+#map-selection[hidden]{display:none}
+.map-selection-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.map-selection-head strong{font-size:13px;color:#f4d197}
+.map-selection-head button,.weather-selection-data button{padding:6px 12px;min-height:42px;border:1px solid #416475;
+ border-radius:9px;background:#163341;color:#f0f6fa;font:600 13px system-ui}
+.weather-selection-data{display:grid;gap:8px;font:14px/1.45 system-ui;overflow-wrap:anywhere}
+.weather-selection-data strong{font-size:17px;color:#f6f8fa}
+.weather-selection-data :is(p,small){margin:0;font-size:13px;color:#c9dce7}
