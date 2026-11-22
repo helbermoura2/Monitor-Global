@@ -132,6 +132,42 @@ public class PhoneActivityTest {
   org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
   assertFalse(dialog.isShowing());
  }
+ @Test public void carhuamayoExportUsesPerspectiveAndRealRelief()throws Exception{
+  long eventTime=1795219759000L;
+  Alert event=new Alert("carhuamayo","earthquake","v","M6,7 · 9 km a nordeste de Carhuamayo, Peru",
+   "","earthquake",eventTime,eventTime,true);
+  event.originLatitude=-10.8548;event.originLongitude=-75.9779;
+  event.magnitude=6.7;event.depth=108;event.source="USGS";
+  PhoneQuakeVolume volume=new PhoneQuakeVolume(activity,event,List.of());
+  volume.layout(0,0,320,320);
+  Bitmap terrain;
+  try(java.io.InputStream input=getClass().getResourceAsStream("/carhuamayo-esri.jpg")){
+   assertNotNull(input);
+   terrain=BitmapFactory.decodeStream(input);assertNotNull(terrain);
+  }
+  volume.setTerrain(terrain);
+  volume.view(false);
+  Bitmap png=PhoneVolumeShare.render(volume,event,Typeface.DEFAULT_BOLD);
+  volume.view(true);
+  Bitmap fromTop=PhoneVolumeShare.render(volume,event,Typeface.DEFAULT_BOLD);
+  assertTrue(png.sameAs(fromTop));
+  fromTop.recycle();
+  int brightRelief=0;
+  for(int y=560;y<920;y+=5)for(int x=250;x<830;x+=5){
+   int color=png.getPixel(x,y);
+   if(Color.red(color)>150&&Color.green(color)>150&&Color.blue(color)>120)brightRelief++;
+  }
+  assertTrue("Esri terrain visible in the 3D surface",brightRelief>200);
+  Bitmap start=Bitmap.createBitmap(1080,1920,Bitmap.Config.ARGB_8888);
+  try(PhoneVolumeShare frame=new PhoneVolumeShare(volume,event,Typeface.DEFAULT_BOLD,1080,1920)){
+   frame.draw(new Canvas(start),0);
+   assertTrue(png.sameAs(start));
+  }finally{start.recycle();}
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(
+   new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-phone-carhuamayo-share.png"))){
+   assertTrue(png.compress(Bitmap.CompressFormat.PNG,100,out));
+  }finally{png.recycle();terrain.recycle();}
+ }
  private boolean hasCardInk(Bitmap card,int left,int top,int right,int bottom,int color){
   int[] pixels=new int[(right-left)*(bottom-top)];
   card.getPixels(pixels,0,right-left,left,top,right-left,bottom-top);

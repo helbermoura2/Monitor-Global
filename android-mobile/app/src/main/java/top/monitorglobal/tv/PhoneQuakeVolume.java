@@ -10,6 +10,7 @@ import java.util.*;
 /** Rotatable geographic block. Vertical and horizontal axes use the same kilometre scale. */
 final class PhoneQuakeVolume extends View {
  private static final int GOLD=0xffffce77;
+ private static final float PERSPECTIVE_YAW=-.68f,PERSPECTIVE_TILT=.59f;
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  private final Alert origin;
  private final double kmPerLat=111.2,kmPerLon;
@@ -18,7 +19,8 @@ final class PhoneQuakeVolume extends View {
  private List<List<double[]>> rupture=Collections.emptyList();
  private final List<Alert> nearby=new ArrayList<>();
  private Bitmap terrain;
- private float yaw=-.58f,tilt=.59f,lastX,lastY,focus;
+ private float yaw=PERSPECTIVE_YAW,tilt=PERSPECTIVE_TILT,lastX,lastY,focus;
+ private boolean forShare;
  private ValueAnimator tour;
  private boolean paused;
  private java.util.function.Consumer<String> tourListener=label->{};
@@ -94,14 +96,15 @@ final class PhoneQuakeVolume extends View {
  PhoneQuakeVolume exportCopy(){
   PhoneQuakeVolume copy=new PhoneQuakeVolume(getContext(),origin,Collections.emptyList());
   copy.half=half;copy.frame=frame;copy.rupture=rupture;copy.terrain=terrain;
-  copy.nearby.addAll(nearby);copy.yaw=yaw;copy.tilt=tilt;copy.focus=focus;
+  copy.nearby.addAll(nearby);copy.forShare=true;
   copy.layout(0,0,600,560);
   return copy;
  }
  void exportTourPose(float progress){
   float p=(float)(.5-.5*Math.cos(Math.PI*Math.max(0,Math.min(1,progress))));
-  yaw=-.68f*p;tilt=1.56f-1.04f*p;
-  focus=known(origin)?Math.max(0,(p-.30f)/.70f):0;
+  yaw=PERSPECTIVE_YAW-.27f*(float)Math.sin(Math.PI*p);
+  tilt=PERSPECTIVE_TILT+.32f*(float)Math.sin(Math.PI*p);
+  focus=known(origin)?p*.72f:0;
  }
  private float[] vertex(double east,double south,double depth,double scale){
   double sin=Math.sin(yaw),cos=Math.cos(yaw);
@@ -126,7 +129,7 @@ final class PhoneQuakeVolume extends View {
   double faultDepth=rupture.stream().flatMap(Collection::stream).mapToDouble(v->v[2]).max().orElse(0);
   double nearbyDepth=nearby.stream().mapToDouble(PhoneQuakeVolume::depth).max().orElse(0);
   double bottom=Math.max(half*.62,Math.max(faultDepth,Math.max(depth(origin),nearbyDepth))*1.15);
-  double scale=Math.min(getWidth()/(half*3.15),getHeight()/(half*2.25+bottom*1.3))*(1+.18*focus);
+  double scale=Math.min(getWidth()/(half*3.15),getHeight()/(half*2.25+bottom*1.3))*(1+.18*focus)*(forShare?1.10:1);
   float[][] top=new float[4][],base=new float[4][];
   int[] xs={-1,1,1,-1},ys={-1,-1,1,1};
   for(int i=0;i<4;i++){top[i]=vertex(xs[i]*half,ys[i]*half,0,scale);base[i]=vertex(xs[i]*half,ys[i]*half,bottom,scale);}

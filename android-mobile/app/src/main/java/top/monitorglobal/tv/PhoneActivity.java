@@ -374,6 +374,9 @@ public class PhoneActivity extends Activity {
   addAction(exportActions,shareVolume,1);
   Button shareTour=button("Compartilhar vídeo 3D",()->{});
   addAction(exportActions,shareTour,1);
+  TextView reliefStatus=text("",12,MUTED,2);
+  reliefStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+  reliefStatus.setVisibility(View.GONE);space(body,reliefStatus,4);
   Runnable refreshNearby=()->{
    facts.setText(BrDates.dateTime(eventTime(event))+" · "+source(event)+"\n"+PhoneVolumeShare.coordinates(event)
     +"\n"+(volume.hasRupture()?"Ruptura publicada · USGS":"Dourado: sismo selecionado. Azul: sismos próximos."));
@@ -414,12 +417,25 @@ public class PhoneActivity extends Activity {
   showPanel(dialog);
   if(startTour)volume.post(()->{if(dialog.isShowing())play.run();});
   if(!automaticRefresh())return;
-  java.util.function.Consumer<MapFrame> loadTerrain=frame->loads.execute(()->{
-   try{
-    Bitmap image=PhoneQuakeData.terrain(frame);
-    main.post(()->{if(dialog.isShowing()&&volume.frame()==frame)volume.setTerrain(image);else if(image!=null)image.recycle();});
-   }catch(Exception ignored){}
-  });
+  java.util.function.Consumer<MapFrame> loadTerrain=frame->{
+   shareVolume.setEnabled(false);shareTour.setEnabled(false);
+   reliefStatus.setText("Carregando o relevo para compartilhar…");
+   reliefStatus.setVisibility(View.VISIBLE);
+   loads.execute(()->{
+    Bitmap sampled=null;
+    try{sampled=PhoneQuakeData.terrain(frame);}catch(Exception ignored){}
+    Bitmap image=sampled;
+    main.post(()->{
+     if(!dialog.isShowing()||volume.frame()!=frame){if(image!=null)image.recycle();return;}
+     volume.setTerrain(image);
+     if(recording[0]==null){
+      shareVolume.setEnabled(true);shareTour.setEnabled(true);
+     }
+     reliefStatus.setText("Relevo indisponível · a exportação usa a grade geográfica.");
+     reliefStatus.setVisibility(image==null?View.VISIBLE:View.GONE);
+    });
+   });
+  };
   loadTerrain.accept(volume.frame());
   double radius=Math.min(1000,volume.radius());
   loads.execute(()->{

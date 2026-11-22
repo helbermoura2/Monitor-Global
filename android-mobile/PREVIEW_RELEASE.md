@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.45 de teste
+
+- O PNG e o primeiro quadro do tour usam a perspectiva do bloco 3D com topo e duas faces visíveis. O compartilhamento aguarda o relevo quando a consulta está em andamento.
+
 # Argos Orbis Celular · 0.1.44 de teste
 
 - O Subsolo 3D pode ser compartilhado como PNG ou vídeo MP4 do tour, com a mesma moldura cartográfica em ambos.
