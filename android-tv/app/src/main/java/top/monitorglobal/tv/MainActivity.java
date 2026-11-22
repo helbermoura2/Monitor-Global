@@ -67,6 +67,12 @@ public final class MainActivity extends Activity {
   section("INÍCIO RÁPIDO");
   button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
   start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  section("DEFESA CIVIL · SITUAÇÃO DA FONTE CAP");
+  label(Prefs.get(this).getString("civilSourceState","Aguardando primeira consulta da fonte oficial CAP."),14,false);
+  long lastCivilCheck=Prefs.get(this).getLong("civilLastVerifiedAt",0);
+  long lastCivilFailure=Prefs.get(this).getLong("civilLastFailedAt",0);
+  if(lastCivilCheck>0||lastCivilFailure>0)label("Última consulta: "+BrDates.dateTime(Math.max(lastCivilCheck,lastCivilFailure))+" · pode haver defasagem.",13,false);
+  label("O CAP público pode não incluir avisos enviados diretamente pelo Cell Broadcast aos celulares. A falta de aviso nesta tarja não é confirmação de segurança.",13,false);
   section("DEFESA CIVIL · REPLAY DOS AVISOS");
   button("Replay · último aviso SEVERO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_SEVERE));
   button("Replay · último aviso EXTREMO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_EXTREME));

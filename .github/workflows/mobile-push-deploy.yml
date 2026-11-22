@@ -10,6 +10,7 @@ on:
       - 'tools/check-mobile-push-access.mjs'
       - 'worker/mobile-push.mjs'
       - 'worker/mobile-notices.mjs'
+      - 'worker/mobile-civil.mjs'
       - 'wrangler-mobile-push.toml'
 permissions:
   contents: read
@@ -41,7 +42,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
       - name: Verify delivery selection and history rules
         if: steps.active.outputs.skip != 'true'
-        run: node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs
+        run: node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs tests/unit/mobile-civil.test.mjs
       - name: Validate Firebase and Secret configuration without sending messages
         if: steps.active.outputs.skip != 'true'
         env:

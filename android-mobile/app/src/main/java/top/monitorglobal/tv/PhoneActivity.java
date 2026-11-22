@@ -65,7 +65,7 @@ public class PhoneActivity extends Activity {
   readPush(getIntent());setContentView(root);updater=new PhoneUpdater(this);render();
  }
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);readPush(intent);render();}
- private void readPush(Intent intent){String route=intent.getStringExtra(PhonePush.ROUTE);intent.removeExtra(PhonePush.ROUTE);if("rain".equals(route)||"weather".equals(route)||"daily".equals(route)){selected=null;tab=route.equals("daily")?"history":"weather";returnTab=tab;dailyExpanded=route.equals("daily");}String raw=intent.getStringExtra(PhonePush.EXTRA);intent.removeExtra(PhonePush.EXTRA);if(raw==null||raw.length()>3000)return;try{selected=AlertCodec.read(new org.json.JSONObject(raw));tab="notices";returnTab="notices";}catch(org.json.JSONException ignored){}}
+ private void readPush(Intent intent){String route=intent.getStringExtra(PhonePush.ROUTE);intent.removeExtra(PhonePush.ROUTE);if("rain".equals(route)||"weather".equals(route)||"daily".equals(route)||"civil".equals(route)){selected=null;tab=route.equals("civil")?"notices":route.equals("daily")?"history":"weather";returnTab=tab;dailyExpanded=route.equals("daily");}String raw=intent.getStringExtra(PhonePush.EXTRA);intent.removeExtra(PhonePush.EXTRA);if(raw==null||raw.length()>3000)return;try{selected=AlertCodec.read(new org.json.JSONObject(raw));tab="notices";returnTab="notices";}catch(org.json.JSONException ignored){}}
  private void activatePush(){if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},77);return;}PhonePush.enable(this,()->{if(!destroyed)render();});}
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==77){if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)PhonePush.enable(this,()->{if(!destroyed)render();});else{PhonePush.disable(this);render();}}}
  private Typeface loadBrand(){try{return Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf");}catch(RuntimeException ignored){return Typeface.DEFAULT_BOLD;}}
@@ -707,7 +707,7 @@ public class PhoneActivity extends Activity {
   LinearLayout card=card(page,"DEFESA CIVIL · SÃO PAULO CAPITAL"),body=section(card);
   long now=System.currentTimeMillis();
   if(civilAlerts==null||!civilAlerts.fresh(now)){
-   body.addView(text(civilLoading?"Consultando avisos oficiais…":"Consulta de avisos oficiais indisponível.",15,MUTED,3));
+   body.addView(text(civilLoading?"Consultando avisos oficiais…":"Fonte CAP indisponível ou defasada. Um alerta recebido pelo sistema Android pode não aparecer aqui.",15,MUTED,3));
   }else{
    int shown=0;
    for(DefesaCivilSp.Notice notice:civilAlerts.notices){
@@ -719,6 +719,7 @@ public class PhoneActivity extends Activity {
    }
    if(shown==0)body.addView(text("Nenhum aviso severo ou extremo para a capital na consulta IDAP.",15,MUTED,3));
   }
+  body.addView(text("O Cell Broadcast é recebido diretamente pelo Android e não depende do Argos Orbis. Siga o aviso do sistema, mesmo quando esta consulta estiver sem dados.",13,MUTED,6));
   body.addView(button("Abrir painel da Defesa Civil",()->openUrl(DefesaCivilSp.PANEL)));
  }
  private void noticesPage(LinearLayout page){
@@ -792,9 +793,9 @@ public class PhoneActivity extends Activity {
   space(body,text(PhonePush.status(this),14,MUTED,6),7);
   if(PhonePush.enabled(this))body.addView(button("Desativar notificações",()->{PhonePush.disable(this);render();}),new LinearLayout.LayoutParams(-1,-2));
   else body.addView(button("Ativar avisos no celular",this::activatePush),new LinearLayout.LayoutParams(-1,-2));
-  String[] names={"Sismos · Brasil, M6+ e áreas monitoradas","Avisos de tsunami","Chuva · chegada, volume e duração","Boletins do tempo · de hora em hora","Resumo diário · dia anterior"};
+  String[] names={"Sismos · Brasil, M6+ e áreas monitoradas","Avisos de tsunami","Defesa Civil · avisos severos e extremos oficiais","Chuva · chegada, volume e duração","Boletins do tempo · de hora em hora","Resumo diário · dia anterior"};
   for(int i=0;i<PhonePush.CATEGORIES.length;i++){final String category=PhonePush.CATEGORIES[i];android.widget.Switch toggle=new android.widget.Switch(this);toggle.setText(names[i]);toggle.setTextSize(16);toggle.setTextColor(TEXT);toggle.setTypeface(Typeface.DEFAULT);toggle.setPadding(0,dp(8),0,dp(8));toggle.setMinimumHeight(dp(52));toggle.setChecked(PhonePush.categoryEnabled(this,category));toggle.setTag("push-category-"+category);toggle.setOnCheckedChangeListener((v,on)->PhonePush.setCategory(this,category,on,()->{if(!destroyed)render();}));body.addView(toggle,new LinearLayout.LayoutParams(-1,-2));}
-  footer(card,"Chuva e previsão: Liberdade, São Paulo. Os horários e a entrega dependem dos serviços e permissões do aparelho.");
+  footer(card,"Defesa Civil: dados públicos CAP confirmados para São Paulo capital. O Cell Broadcast do Android é independente e pode chegar antes do Argos Orbis. Chuva e previsão: Liberdade, SP.");
  }
  private void openLayer(String target){forecastRequested=target.equals("brazil");tab=target;selected=null;render();}
  private Button backButton(String label,Runnable action){Button b=button(label,action);b.setTextSize(14);return b;}
