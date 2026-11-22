@@ -707,7 +707,7 @@ public class PhoneActivity extends Activity {
   LinearLayout card=card(page,"DEFESA CIVIL · SÃO PAULO CAPITAL"),body=section(card);
   long now=System.currentTimeMillis();
   if(civilAlerts==null||!civilAlerts.fresh(now)){
-   body.addView(text(civilLoading?"Consultando avisos oficiais…":"Consulta de avisos oficiais indisponível.",15,MUTED,3));
+   body.addView(text(civilLoading?"Consultando avisos oficiais…":"Fonte CAP indisponível ou defasada. Um alerta recebido pelo sistema Android pode não aparecer aqui.",15,MUTED,3));
   }else{
    int shown=0;
    for(DefesaCivilSp.Notice notice:civilAlerts.notices){
@@ -719,6 +719,7 @@ public class PhoneActivity extends Activity {
    }
    if(shown==0)body.addView(text("Nenhum aviso severo ou extremo para a capital na consulta IDAP.",15,MUTED,3));
   }
+  body.addView(text("O Cell Broadcast é recebido diretamente pelo Android e não depende do Argos Orbis. Siga o aviso do sistema, mesmo quando esta consulta estiver sem dados.",13,MUTED,6));
   body.addView(button("Abrir painel da Defesa Civil",()->openUrl(DefesaCivilSp.PANEL)));
  }
  private void noticesPage(LinearLayout page){
