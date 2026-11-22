@@ -394,9 +394,21 @@ public final class MonitorService extends Service {
   if(destroyed||!screenReady())return;
   try{
    DefesaCivilSp bulletin=DefesaCivilSp.read();
-   main.post(()->showCivilAlert(bulletin));
+   main.post(()->{
+    if(destroyed)return;
+    Prefs.get(this).edit().putLong("civilLastVerifiedAt",System.currentTimeMillis())
+     .putString("civilSourceState",bulletin.notices.isEmpty()?
+       "Consulta CAP confirmada · sem aviso severo/extremo no feed para a capital":
+       "Consulta CAP confirmada · "+bulletin.notices.size()+" aviso(s) oficial(is)").apply();
+    showCivilAlert(bulletin);
+   });
   }catch(java.io.IOException|org.json.JSONException unavailable){
-   // The next scheduled poll can recover; never display an unofficial or stale message.
+   // An outage or stale CAP feed must be visible, never reported as all-clear.
+   main.post(()->{
+    if(destroyed)return;
+    Prefs.get(this).edit().putLong("civilLastFailedAt",System.currentTimeMillis())
+      .putString("civilSourceState","Fonte CAP da Defesa Civil indisponível ou defasada · não confirma ausência de risco").apply();
+   });
   }
  }
  private void showCivilAlert(DefesaCivilSp bulletin){
