@@ -103,7 +103,6 @@ final class PhoneQuakeVolume extends View {
   yaw=-.68f*p;tilt=1.56f-1.04f*p;
   focus=known(origin)?Math.max(0,(p-.30f)/.70f):0;
  }
- void drawExport(Canvas canvas){onDraw(canvas);}
  private float[] vertex(double east,double south,double depth,double scale){
   double sin=Math.sin(yaw),cos=Math.cos(yaw);
   double x=east*cos-south*sin,y=east*sin+south*cos;
@@ -117,6 +116,9 @@ final class PhoneQuakeVolume extends View {
  }
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);
+  drawExport(canvas);
+ }
+ void drawExport(Canvas canvas){
   canvas.drawColor(0xff0b1821);
   paint.setColor(0xff1b303b);paint.setStrokeWidth(1);
   for(int x=16;x<getWidth();x+=24)canvas.drawLine(x,0,x,getHeight(),paint);
