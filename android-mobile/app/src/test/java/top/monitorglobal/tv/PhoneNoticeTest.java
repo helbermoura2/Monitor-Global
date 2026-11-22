@@ -3,7 +3,7 @@ import org.json.*;import org.junit.Test;import static org.junit.Assert.*;
 public class PhoneNoticeTest {
  private final long now=1800000000000L;
  private JSONObject sample(String kind)throws Exception{return new JSONObject().put("schema","monitor-notice-v1").put("kind",kind).put("id",kind+":1").put("version","1").put("title","Previsão de teste").put("body","Dados fictícios somente para teste").put("issuedAt",now).put("expiresAt",now+600000);}
- @Test public void knownKindsKeepTheirIdentityWithoutASeismicRecord()throws Exception{for(String kind:new String[]{"rain","weather","daily","civil"})assertEquals(kind,PhoneNotice.parse(sample(kind).toString(),now).kind);}
+ @Test public void knownKindsKeepTheirIdentityWithoutASeismicRecord()throws Exception{for(String kind:new String[]{"rain","weather","daily"})assertEquals(kind,PhoneNotice.parse(sample(kind).toString(),now).kind);}
  @Test public void civilRequiresOfficialProvenanceAndCorrectSeverity()throws Exception{
   JSONObject civil=sample("civil").put("issuer","Defesa Civil Estadual de São Paulo")
     .put("source","https://idapfile.mdr.gov.br/idap/api/rss/cap").put("severity","Severe");
