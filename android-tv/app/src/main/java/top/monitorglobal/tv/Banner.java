@@ -40,7 +40,10 @@ final class Banner {
   return showView(TvBroadcastInfoView.voiceStatus(context,title,detail),duration,0,finished);
  }
  boolean showCivilAlert(DefesaCivilSp.Notice notice,long duration,Runnable finished){
-  return showView(TvBroadcastInfoView.civilAlert(context,notice),duration,0,finished);
+  return showCivilAlert(notice,duration,finished,false);
+ }
+ boolean showCivilAlert(DefesaCivilSp.Notice notice,long duration,Runnable finished,boolean demo){
+  return showView(TvBroadcastInfoView.civilAlert(context,notice,demo),duration,0,finished);
  }
  boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
