@@ -259,7 +259,8 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
-  OledNewsChrome.tab(c,p,kind==CIVIL_ALERT?(demo?"SIMULAÇÃO":"ALERTA OFICIAL"):BannerOpening.title(effects.category),true);
+  if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":"ALERTA OFICIAL",true);
+  else OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true);
   OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
