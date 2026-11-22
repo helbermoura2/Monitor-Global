@@ -4,7 +4,8 @@ public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_M6="top.monitorglobal.tv.REPLAY_M6",REPLAY_BRAZIL="top.monitorglobal.tv.REPLAY_BRAZIL",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL",VOICE_RAIN="top.monitorglobal.tv.VOICE_RAIN";
  static final String TEST_CIVIL_SEVERE=TEST+"_CIVIL_SEVERE",TEST_CIVIL_EXTREME=TEST+"_CIVIL_EXTREME";
- private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive,civilDemoActive;
+ static final String REPLAY_CIVIL_SEVERE="top.monitorglobal.tv.REPLAY_CIVIL_SEVERE",REPLAY_CIVIL_EXTREME="top.monitorglobal.tv.REPLAY_CIVIL_EXTREME";
+ private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive,civilDemoActive,civilReplayPending,civilReplayActive;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
@@ -14,6 +15,37 @@ public final class MonitorService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Argos Orbis TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
+  if(REPLAY_CIVIL_SEVERE.equals(action)||REPLAY_CIVIL_EXTREME.equals(action)){
+   boolean extreme=REPLAY_CIVIL_EXTREME.equals(action);
+   DefesaCivilSp.Notice recorded=CivilReplayStore.last(this,extreme?CivilReplayStore.EXTREME:CivilReplayStore.SEVERE);
+   if(recorded==null){
+    Prefs.status(this,"Nenhum aviso "+(extreme?"EXTREMO":"SEVERO")+" oficial recebido nesta TV nos últimos sete dias. Para visualizar a tarja, use o teste fictício.");
+    stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
+   if(!android.provider.Settings.canDrawOverlays(this)||destroyed||!screenReady()||localBusy()||targetBannerActive||
+      daily.displaying()||banner.activeView()!=null||rain.presentationActive()||brent.showing()){
+    Prefs.status(this,"Replay da Defesa Civil indisponível: verifique a sobreposição ou aguarde o aviso em andamento.");
+    stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
+   civilReplayPending=true;
+   Runnable play=new Runnable(){public void run(){
+    demoTasks.remove(this);civilReplayPending=false;
+    if(destroyed||!screenReady()||localBusy()||targetBannerActive||daily.displaying()||
+       banner.activeView()!=null||rain.presentationActive()||brent.showing()){
+     Prefs.status(MonitorService.this,"Replay da Defesa Civil cancelado: aviso prioritário ou tela indisponível.");stopIfIdle();return;
+    }
+    long duration=20_000L;
+    Runnable end=()->{civilReplayActive=false;activeUntil=0;tryTarget();tryDaily();drain();stopIfIdle();};
+    if(banner.showCivilReplay(recorded,duration,end)){
+     civilReplayActive=true;activeUntil=SystemClock.uptimeMillis()+duration+1000;
+     Prefs.status(MonitorService.this,"REPLAY HISTÓRICO · "+recorded.level()+" · emitido em "+BrDates.dateTime(recorded.sent)+" · não é aviso atual · 20 segundos · sem som.");
+    }else{Prefs.status(MonitorService.this,"Replay da Defesa Civil indisponível: autorize a sobreposição.");stopIfIdle();}
+   }};
+   demoTasks.add(play);main.postDelayed(play,10_000L);
+   Prefs.status(this,"REPLAY HISTÓRICO "+(extreme?"EXTREMO":"SEVERO")+" em 10 segundos · volte ao vídeo. Aviso original: "+BrDates.dateTime(recorded.sent)+".");
+   if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+   return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
   if(TEST_CIVIL_SEVERE.equals(action)||TEST_CIVIL_EXTREME.equals(action)){
    if(!android.provider.Settings.canDrawOverlays(this)){
     Prefs.status(this,"Teste da Defesa Civil indisponível: autorize a sobreposição em Início rápido.");
@@ -176,7 +208,7 @@ public final class MonitorService extends Service {
   if(!Prefs.get(this).getBoolean("enabled",false)){stopSelf();return START_NOT_STICKY;}
   ensurePolling();checkDaily();rain.tick();brent.tick();return START_STICKY;
  }
- private void cancelDemos(){if(effectsDemoActive||civilDemoActive){effectsDemoActive=false;civilDemoActive=false;banner.hide();activeUntil=0;}++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
+ private void cancelDemos(){if(effectsDemoActive||civilDemoActive||civilReplayActive){effectsDemoActive=false;civilDemoActive=false;civilReplayActive=false;banner.hide();activeUntil=0;}civilReplayPending=false;++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
  private void scheduleDemo(String scenario){scheduleLocal(DemoAlerts.create(scenario,System.currentTimeMillis()),true,false);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay){scheduleLocal(examples,demo,replay,10000);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay,long minimumDelayMs){
@@ -314,7 +346,7 @@ public final class MonitorService extends Service {
    else{Prefs.status(this,"Histórico indisponível. Tente novamente com internet.");stopIfIdle();}
   });}});
  }
- private void stopIfIdle(){if(!Prefs.get(this).getBoolean("enabled",false)&&!draining&&!compactBusy&&demoTasks.isEmpty()&&!rain.manualPending())stopSelf();}
+ private void stopIfIdle(){if(!Prefs.get(this).getBoolean("enabled",false)&&!draining&&!compactBusy&&!civilReplayActive&&!civilDemoActive&&demoTasks.isEmpty()&&!rain.manualPending())stopSelf();}
  private void scheduleSummary(FeedClient.Snapshot snapshot,boolean replay){
   cancelDemos();final int generation=localGeneration;long delay=Math.max(10000,activeUntil-android.os.SystemClock.uptimeMillis()+500);
   Runnable stop=()->{if(generation!=localGeneration)return;demoTasks.clear();activeUntil=0;stopIfIdle();tryTarget();tryDaily();};
@@ -369,11 +401,18 @@ public final class MonitorService extends Service {
  }
  private void showCivilAlert(DefesaCivilSp bulletin){
   long now=System.currentTimeMillis();
-  if(destroyed||!screenReady()||localBusy()||banner.activeView()!=null||daily.displaying()||
-     rain.presentationActive()||brent.showing()||!bulletin.fresh(now))return;
+  if(destroyed||!screenReady()||!bulletin.fresh(now))return;
   android.content.SharedPreferences prefs=Prefs.get(this);
   if(!prefs.getBoolean("enabled",false))return;
   Set<String> seen=new HashSet<>(prefs.getStringSet("civilSpShown",Collections.emptySet()));
+  // A newly received official notice preempts a pending or visible historic replay.
+  if(civilReplayPending||civilReplayActive){
+   for(DefesaCivilSp.Notice candidate:bulletin.notices){
+    if(candidate.expires-now>=5000&&now-candidate.sent<=30*60_000L
+      &&!seen.contains(candidate.id+"@"+candidate.sent)){cancelDemos();break;}
+   }
+  }
+  if(localBusy()||banner.activeView()!=null||daily.displaying()||rain.presentationActive()||brent.showing())return;
   for(DefesaCivilSp.Notice notice:bulletin.notices){
    String key=notice.id+"@"+notice.sent;
    if(notice.expires-now<5000||now-notice.sent>30*60_000L||seen.contains(key))continue;
@@ -383,6 +422,7 @@ public final class MonitorService extends Service {
     seen.removeIf(item->{try{return now-Long.parseLong(item.substring(item.lastIndexOf('@')+1))>24*60*60_000L;}catch(NumberFormatException ignored){return true;}});
     seen.add(key);
     prefs.edit().putStringSet("civilSpShown",seen).apply();
+    CivilReplayStore.remember(this,notice);
    }
    return;
   }
