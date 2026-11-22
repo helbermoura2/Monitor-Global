@@ -390,8 +390,8 @@ final class TvBroadcastInfoView extends View {
   if(mapSpace<=0||mapReveal<=0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
   float slide=(1-mapReveal)*(effects.full()?34:19);
-  if(kind==SATELLITE&&motionEnabled())slide+=effects.translate(effects.elapsed(now));
-  c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide);
+  // A mesma ancora usada nos sismos: nenhum deslocamento exclusivo do infravermelho.
+  c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide));
   int mapLayer=mapReveal<1?c.saveLayerAlpha(0,0,310,176,Math.round(255*mapReveal)):c.save();
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);
