@@ -110,7 +110,7 @@ final class PhoneQuakeVolume extends View {
   double sin=Math.sin(yaw),cos=Math.cos(yaw);
   double x=east*cos-south*sin,y=east*sin+south*cos;
   return new float[]{getWidth()*.50f+(float)(x*scale),
-   getHeight()*.47f+(float)((y*Math.sin(tilt)+(depth-depth(origin)*focus)*Math.cos(tilt))*scale)};
+   getHeight()*(forShare?.38f:.47f)+(float)((y*Math.sin(tilt)+(depth-depth(origin)*focus)*Math.cos(tilt))*scale)};
  }
  private void face(Canvas canvas,int fill,float[]... points){
   Path polygon=new Path();polygon.moveTo(points[0][0],points[0][1]);for(int i=1;i<points.length;i++)polygon.lineTo(points[i][0],points[i][1]);polygon.close();

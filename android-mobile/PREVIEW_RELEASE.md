@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.46 de teste
+
+- Ajusta o espaço abaixo do bloco 3D no card para afastá-lo da moldura.
+
 # Argos Orbis Celular · 0.1.45 de teste
 
 - O PNG e o primeiro quadro do tour usam a perspectiva do bloco 3D com topo e duas faces visíveis. O compartilhamento aguarda o relevo quando a consulta está em andamento.
