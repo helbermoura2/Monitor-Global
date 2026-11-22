@@ -45,6 +45,9 @@ final class Banner {
  boolean showCivilAlert(DefesaCivilSp.Notice notice,long duration,Runnable finished,boolean demo){
   return showView(TvBroadcastInfoView.civilAlert(context,notice,demo),duration,0,finished);
  }
+ boolean showCivilReplay(DefesaCivilSp.Notice notice,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.civilAlert(context,notice,false,true),duration,0,finished);
+ }
  boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
  }
