@@ -145,9 +145,7 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .severe-chips #severe-notices i{background:#ffd181}
 .severe-panel small,.severe-panel p{display:block;color:#b6c8d4;font-size:12px;margin:6px 0}
 .severe-panel details summary{color:#f4d197;font-size:12px;cursor:pointer;margin-top:8px}
-.severe-popup{color:#f2f7fa;padding:3px 3px 0}
-.argos-severe-popup .maplibregl-popup-content{background:#102531;border:1px solid #4f6672;border-radius:12px}
-.argos-severe-popup .maplibregl-popup-tip{filter:brightness(.30)}
+
 .severe-popup p{margin:6px 0 0;color:#cfe0e8}
 .severe-mode .brazil-controls,.severe-mode .timeline,.severe-mode .outlook{display:none}
 

@@ -37,7 +37,7 @@ function notices(data,now=Date.now()){
  return {checkedAt:data.checkedAt,collection:{type:'FeatureCollection',features}};
 }
 
-function create(map,host,getRadar,getModel){
+function create(map,host,getRadar,getModel,present){
  const byId=id=>host.querySelector('#'+id);
  const mapReadout=document.getElementById('severe-map-readout');
  const lightningStatus=byId('severe-lightning-status'),noticeStatus=byId('severe-notice-status');
@@ -45,7 +45,7 @@ function create(map,host,getRadar,getModel){
  const cellStatus=byId('severe-cell-status');
  const storms=root.PhoneStormSignals;
  let recent=null,cellData=EMPTY,cellTime=0,cellWindow=null,scanKey='',scanning=null,showCells=true;
- let enabled=false,active=true,request=null,interval=0,popup=null;
+ let enabled=false,active=true,request=null,interval=0;
  let lightningData=null,noticeData=null,lastFetched=0,showLightning=true,showNotices=true;
 
  map.addSource(sources.lightning,{type:'geojson',data:EMPTY,cluster:true,clusterRadius:24,clusterMaxZoom:5,
@@ -161,7 +161,7 @@ function create(map,host,getRadar,getModel){
    description.textContent='O radar e o GOES-19 indicam eco intenso e atividade elétrica na mesma área. Esta leitura não classifica rotação.';
    const more=(label,value)=>{const p=document.createElement('p');p.textContent=label+' · '+value;content.append(p);};
    content.append(title,description);
-   more('Radar RainViewer',feature.properties.echo+' dBZ na vizinhança · '+clock(cellTime));
+   more('Quadro usado na análise · RainViewer',feature.properties.echo+' dBZ na vizinhança · '+clock(cellTime));
    more('Raios NOAA GOES-19',feature.properties.count+' detecções na célula · '+clock(cellWindow.start)+' a '+clock(cellWindow.end));
    const coordinates=feature.geometry.coordinates,model=getModel();
    if(model&&storms.distance(coordinates,model.coords)<=30)more('Previsão Open-Meteo',model.place+' · '+model.rain.toLocaleString('pt-BR',{maximumFractionDigits:1})+' mm nas próximas 3 h completas');
@@ -177,13 +177,13 @@ function create(map,host,getRadar,getModel){
    title.textContent=Number(feature.properties.count).toLocaleString('pt-BR')+' detecções GLM';
    description.textContent='Célula aproximada de 0,25°. Descargas detectadas pelo GOES-19 dentro da janela indicada.';
   }
-  content.className='severe-popup';if(!title.parentNode)content.append(title,description);
-  popup?.remove();popup=new maplibregl.Popup({className:'argos-severe-popup',closeButton:true,maxWidth:'235px'}).setLngLat(feature.geometry.coordinates).setDOMContent(content).addTo(map);
+  content.className='weather-selection-data';if(!title.parentNode)content.append(title,description);
+  present(content);
  }
  function wake(){
   clearInterval(interval);interval=0;
   if(enabled&&active){draw();refresh();interval=setInterval(()=>{draw();refresh();},2*MINUTE);}
-  else{scanning?.abort();scanning=null;scanKey='';cellData=EMPTY;cellTime=0;cellWindow=null;mapReadout.hidden=true;const old=request;request=null;if(old){lastFetched=0;old.abort();}popup?.remove();draw();}
+  else{scanning?.abort();scanning=null;scanKey='';cellData=EMPTY;cellTime=0;cellWindow=null;mapReadout.hidden=true;const old=request;request=null;if(old){lastFetched=0;old.abort();}draw();}
  }
  map.on('moveend',updateCount);map.on('click',click);
  lightningButton.addEventListener('click',()=>{showLightning=!showLightning;lightningButton.setAttribute('aria-pressed',String(showLightning));draw();});

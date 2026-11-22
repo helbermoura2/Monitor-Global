@@ -73,10 +73,24 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  const cell=await page.evaluate(()=>window.__map.project([-47.8125,-24.5271]));
  const bounds=await page.locator('#brazil-map').boundingBox();
  await page.mouse.click(bounds.x+cell.x,bounds.y+cell.y);
- await page.locator('.severe-popup').filter({hasText:'Célula em atenção'}).waitFor();
- assert.match(await page.locator('.severe-popup').innerText(),/45 dBZ/);
- assert.equal(await page.locator('.argos-area-popup').count(),0);
- await page.locator('.argos-severe-popup .maplibregl-popup-close-button').click();
+ const selection=page.locator('#map-selection');
+ await selection.filter({hasText:'Célula em atenção'}).waitFor();
+ assert.match(await selection.innerText(),/45 dBZ/);
+ assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
+ await page.screenshot({path:path.join(output,'severe-selection-fixture.png'),fullPage:true});
+ await page.waitForFunction(()=>{
+  const map=window.__map,point=map.project([-47.9,-15.8]);
+  return map.getLayer('argos-uf-hit')&&map.queryRenderedFeatures(point,{layers:['argos-uf-hit']}).length;
+ });
+ await page.locator('#brazil-map').scrollIntoViewIfNeeded();
+ const region=await page.evaluate(()=>window.__map.project([-47.9,-15.8]));
+ const regionBounds=await page.locator('#brazil-map').boundingBox();
+ await page.mouse.click(regionBounds.x+region.x,regionBounds.y+region.y);
+ await selection.filter({hasText:'IBGE'}).or(selection.filter({hasText:'Unidade da Federação'})).first().waitFor();
+ assert.equal(await selection.getByText('Célula em atenção', {exact:false}).count(),0);
+ assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
+ await page.locator('#map-selection-close').click();
+ assert.equal(await selection.isVisible(),false);
  await page.screenshot({path:path.join(output,'severe-weather-fixture.png'),fullPage:true});
  assert.equal(await page.locator('#brazil-map #severe-map-readout').count(),0);
  assert.equal(await page.locator('.brazil-map-panel .maplibregl-ctrl-attrib').count(),0);

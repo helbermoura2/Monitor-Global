@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.52 de teste
+
+- O mapa do clima mostra os detalhes do item selecionado em uma única ficha legível abaixo do mapa.
+
 # Argos Orbis Celular · 0.1.51 de teste
 
 - Mapa meteorológico maior, modo de ampliação, legenda e contagens abaixo do mapa. Grupos de raios se expandem ao aproximar.

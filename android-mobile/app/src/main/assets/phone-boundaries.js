@@ -25,7 +25,7 @@ async function fetchLimited(url,limit,signal){
  if(raw.length>limit)throw Error('Malha excessivamente grande');
  return JSON.parse(raw);
 }
-function create({map,host=document.body,onPlace=null,shouldOpen=()=>true}={}){
+function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,presentPlace=null}={}){
  if(!map||!host)return null;
  let stateData=null,current='states',request=null,seq=0,alive=true,active=true,ufLoaded='',cachedMunicipal=null,mousePopup=null,ufMarkers=[];
  const panel=document.createElement('details');panel.className='admin-boundary-controls';
@@ -152,6 +152,10 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true}={}){
   if(onPlace){
    const found=onPlace({uf,title,municipalityId,lng:ev.lngLat.lng,lat:ev.lngLat.lat,element:root});
    if(typeof found==='string'&&found)root.appendChild(text('small',found));
+  }
+  if(presentPlace){
+   panel.open=false;
+   presentPlace(root);return;
   }
   mousePopup=new maplibregl.Popup({closeButton:true,closeOnClick:true,offset:8,maxWidth:'285px',focusAfterOpen:false}).setLngLat(ev.lngLat).setDOMContent(root);
   mousePopup.on('open',()=>{document.body.classList.add('argos-popup-active');panel.open=false;});
