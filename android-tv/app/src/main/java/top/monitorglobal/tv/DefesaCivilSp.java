@@ -32,7 +32,16 @@ final class DefesaCivilSp {
  private DefesaCivilSp(List<Notice> notices,long checkedAt,long updatedAt){
   this.notices=Collections.unmodifiableList(notices);this.checkedAt=checkedAt;this.updatedAt=updatedAt;
  }
- boolean fresh(long now){return updatedAt>0&&updatedAt<=checkedAt+60_000&&checkedAt<=now+60_000&&now-updatedAt<=20*60_000L;}
+ boolean fresh(long now){
+  // The Atom feed timestamp can lag behind newly issued, explicit CAP notices.
+  // Always require a recent official fetch and a future expiration; never infer
+  // safety or create a notification from stale weather data.
+  if(updatedAt<=0||checkedAt<=0||updatedAt>checkedAt+60_000||
+     checkedAt>now+60_000||now-checkedAt>12*60_000L)return false;
+  if(now-updatedAt<=20*60_000L)return true;
+  for(Notice n:notices)if(n.sent>now-30*60_000L&&n.sent<=now&&n.expires>now)return true;
+  return false;
+ }
 
  static DefesaCivilSp read() throws IOException,JSONException {
   HttpURLConnection connection=(HttpURLConnection)new URL(SNAPSHOT+"?minute="+System.currentTimeMillis()/60_000).openConnection();
