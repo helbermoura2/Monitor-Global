@@ -133,15 +133,16 @@ final class TvBroadcastInfoView extends View {
   v.ticker="ARGOS ORBIS · CONSULTA POR VOZ · "+v.voiceTitle+" · "+v.voiceDetail;
   v.setContentDescription(v.ticker);return v;
  }
- static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice){
-  TvBroadcastInfoView v=new TvBroadcastInfoView(c,CIVIL_ALERT,null,null,null,null,null,null,false);
+ static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice){return civilAlert(c,notice,false);}
+ static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice,boolean demo){
+  TvBroadcastInfoView v=new TvBroadcastInfoView(c,CIVIL_ALERT,null,null,null,null,null,null,demo);
   v.civilNotice=notice;
   android.text.TextPaint paint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(15);
   v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,650)
    .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
-  v.ticker=notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription(notice.level()+" · "+v.ticker);
+  v.ticker=(demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
+  v.setContentDescription((demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
   return v;
  }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
@@ -258,7 +259,7 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
-  OledNewsChrome.tab(c,p,kind==CIVIL_ALERT?"ALERTA OFICIAL":BannerOpening.title(effects.category),true);
+  OledNewsChrome.tab(c,p,kind==CIVIL_ALERT?(demo?"SIMULAÇÃO":"ALERTA OFICIAL"):BannerOpening.title(effects.category),true);
   OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
@@ -337,7 +338,7 @@ final class TvBroadcastInfoView extends View {
  }
 
  private void drawCivilAlert(Canvas c){
-  eventCategory(c,"DEFESA CIVIL","SÃO PAULO · CAPITAL");
+  eventCategory(c,"DEFESA CIVIL",demo?"TESTE · SÃO PAULO":"SÃO PAULO · CAPITAL");
   label(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),170,51,25,0xffff9d7c,brand,650);
   c.save();c.translate(170,56);civilMessage.draw(c);c.restore();
  }
