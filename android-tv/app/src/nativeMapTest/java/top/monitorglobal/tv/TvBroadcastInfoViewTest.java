@@ -116,7 +116,7 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView replay=TvBroadcastInfoView.civilAlert(c,old,false,true);
   String text=String.valueOf(replay.getContentDescription());
   assertTrue(text.contains("REPLAY HISTÓRICO"));
-  assertTrue(text.contains("NÃO É AVISO ATUAL"));
+  assertTrue(text.contains("NÃO É ALERTA ATUAL"));
   assertTrue(text.contains(BrDates.dateTime(sent)));
   assertFalse(text.contains("SIMULAÇÃO"));
   Bitmap b=render(replay,"civil-replay");try{assertEquals(126,b.getHeight());}
