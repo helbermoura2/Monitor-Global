@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.54 de teste
+
+- Tempo severo destaca as células com descargas do GOES-19 com pequenos ícones de raio pulsantes.
+
 # Argos Orbis Celular · 0.1.53 de teste
 
 - Clima prioriza o horizonte de até 24 horas. O mapa municipal tem uma linha do tempo hora a hora e um gráfico de chuva acumulada.

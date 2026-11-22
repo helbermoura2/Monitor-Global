@@ -1,6 +1,7 @@
 /* Observed GLM cells and active municipal notices, with independent times and coverage. */
 (function(root){'use strict';
 const BASE='https://raw.githubusercontent.com/helbermoura2/Monitor-Global/main/data/';
+const BOLT='argos-lightning-bolt', PULSE_PHASES=8;
 const MINUTE=60000, EMPTY={type:'FeatureCollection',features:[]};
 const sources={lightning:'br-severe-lightning',notices:'br-severe-notices',cells:'br-storm-cells'};
 const fresh=(time,now,minutes)=>Number.isSafeInteger(time)&&time>0&&time<=now+MINUTE&&now-time<=minutes*MINUTE;
@@ -20,7 +21,9 @@ function lightning(data,now=Date.now(),hour=false){
   const [lon,lat,count]=cell;
   const key=lon+','+lat;
   if(!coordinate(lon,lat)||!Number.isInteger(count)||count<=0||count>100000||seen.has(key))return null;
-  seen.add(key);features.push(point(lon,lat,{count}));
+  seen.add(key);
+  const phase=Math.abs(Math.round(lon*4)*31+Math.round(lat*4))%PULSE_PHASES;
+  features.push(point(lon,lat,{count,phase}));
  }
  return {start:data.start,end:data.end,partial:data.files<data.expected,collection:{type:'FeatureCollection',features}};
 }
@@ -37,6 +40,20 @@ function notices(data,now=Date.now()){
  return {checkedAt:data.checkedAt,collection:{type:'FeatureCollection',features}};
 }
 
+function addBoltImage(map){
+ const canvas=document.createElement('canvas');
+ canvas.width=32;canvas.height=32;
+ const ctx=canvas.getContext('2d');
+ const bolt=new Path2D('M18 3 L7 18 H14 L12 29 L25 13 H18 Z');
+ ctx.lineJoin='round';
+ ctx.lineWidth=4;
+ ctx.strokeStyle='#14212c';
+ ctx.stroke(bolt);
+ ctx.fillStyle='#ffe28a';
+ ctx.fill(bolt);
+ map.addImage(BOLT,ctx.getImageData(0,0,32,32),{pixelRatio:2});
+}
+
 function create(map,host,getRadar,getModel,present){
  const byId=id=>host.querySelector('#'+id);
  const mapReadout=document.getElementById('severe-map-readout');
@@ -47,15 +64,18 @@ function create(map,host,getRadar,getModel,present){
  let recent=null,cellData=EMPTY,cellTime=0,cellWindow=null,scanKey='',scanning=null,showCells=true;
  let enabled=false,active=true,request=null,interval=0;
  let lightningData=null,noticeData=null,lastFetched=0,showLightning=true,showNotices=true;
+ const reducedMotion=root.matchMedia('(prefers-reduced-motion: reduce)');
+ let pulseTimer=0,pulseStep=0;
+ addBoltImage(map);
 
  map.addSource(sources.lightning,{type:'geojson',data:EMPTY,cluster:true,clusterRadius:24,clusterMaxZoom:5,
   clusterProperties:{flashCount:['+',['get','count']]},attribution:'Raios: NOAA GOES-19 GLM'});
  map.addSource(sources.cells,{type:'geojson',data:EMPTY});
  map.addSource(sources.notices,{type:'geojson',data:EMPTY,attribution:'Alertas municipais: Cemaden'});
- map.addLayer({id:sources.lightning,source:sources.lightning,type:'circle',paint:{
-  'circle-radius':['interpolate',['linear'],['coalesce',['get','flashCount'],['get','count']],1,2.5,60,4,500,6.5,3000,10],
-  'circle-color':'#ff80d9','circle-opacity':.60,'circle-stroke-color':'#ffc7eb','circle-stroke-width':.55
- }});
+ map.addLayer({id:sources.lightning,source:sources.lightning,type:'symbol',layout:{
+  'icon-image':BOLT,'icon-size':['case',['has','cluster_id'],1.25,1],
+  'icon-padding':1,'icon-ignore-placement':true
+ },paint:{'icon-opacity':.78,'icon-opacity-transition':{duration:180,delay:0}}});
  map.addLayer({id:sources.notices,source:sources.notices,type:'circle',paint:{
   'circle-radius':8,'circle-color':['match',['get','severity'],3,'#f3646f',2,'#fc9a58','#ffd181'],
   'circle-opacity':.75,'circle-stroke-color':'#fff2cc','circle-stroke-width':1.3
@@ -119,12 +139,27 @@ function create(map,host,getRadar,getModel,present){
    label.textContent=item.name;value.textContent=item.value;cell.append(label,value);return cell;
   }));mapReadout.hidden=!readout.length;
  }
+ function updatePulse(shouldPulse){
+  if(shouldPulse&&!reducedMotion.matches){
+   if(!pulseTimer)pulseTimer=setInterval(()=>{
+    pulseStep=(pulseStep+1)%PULSE_PHASES;
+    const phase=['%',['coalesce',['get','phase'],['get','cluster_id'],0],PULSE_PHASES];
+    map.setPaintProperty(sources.lightning,'icon-opacity',['case',['==',phase,pulseStep],1,.60]);
+   },180);
+  }else if(pulseTimer){
+   clearInterval(pulseTimer);pulseTimer=0;
+   map.setPaintProperty(sources.lightning,'icon-opacity',.78);
+  }
+ }
+ function syncMotion(){
+  updatePulse(Boolean(enabled&&active&&showLightning&&lightningData?.collection.features.length&&fresh(lightningData.end,Date.now(),35)));
+ }
  function draw(){
   const now=Date.now();
   map.getSource(sources.lightning)?.setData(enabled&&active&&showLightning&&lightningData&&fresh(lightningData.end,now,35)?lightningData.collection:EMPTY);
   map.getSource(sources.notices)?.setData(enabled&&active&&showNotices&&noticeData&&fresh(noticeData.checkedAt,now,90)?noticeData.collection:EMPTY);
   map.getSource(sources.cells)?.setData(enabled&&active&&showCells?cellData:EMPTY);
-  updateCount();analyze();
+  syncMotion();updateCount();analyze();
  }
  async function read(path,signal,limit){
   const response=await fetch(BASE+path,{signal,credentials:'omit',redirect:'error'});
@@ -185,6 +220,7 @@ function create(map,host,getRadar,getModel,present){
   if(enabled&&active){draw();refresh();interval=setInterval(()=>{draw();refresh();},2*MINUTE);}
   else{scanning?.abort();scanning=null;scanKey='';cellData=EMPTY;cellTime=0;cellWindow=null;mapReadout.hidden=true;const old=request;request=null;if(old){lastFetched=0;old.abort();}draw();}
  }
+ reducedMotion.addEventListener('change',syncMotion);
  map.on('moveend',updateCount);map.on('click',click);
  lightningButton.addEventListener('click',()=>{showLightning=!showLightning;lightningButton.setAttribute('aria-pressed',String(showLightning));draw();});
  noticeButton.addEventListener('click',()=>{showNotices=!showNotices;noticeButton.setAttribute('aria-pressed',String(showNotices));draw();});
@@ -192,7 +228,7 @@ function create(map,host,getRadar,getModel,present){
  byId('severe-refresh').addEventListener('click',()=>refresh(Date.now()-lastFetched>=15000));
  return {raise,analyze,hasMarkerAt(point){return enabled&&active&&map.queryRenderedFeatures(point,{layers:Object.values(sources)}).length>0;},toggle(next){enabled=!!next;host.hidden=!enabled;wake();},
   setActive(next){active=!!next;wake();},
-  destroy(){enabled=false;active=false;wake();map.off('moveend',updateCount);map.off('click',click);}};
+  destroy(){enabled=false;active=false;wake();reducedMotion.removeEventListener('change',syncMotion);map.off('moveend',updateCount);map.off('click',click);}};
 }
 const api={create,lightning,notices};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PhoneSevereWeather=api;

@@ -141,8 +141,8 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .severe-panel button{color:#eef6f8;background:#192f3b;border:1px solid #416475;border-radius:9px;padding:6px 9px;min-height:36px}
 .severe-panel button[aria-pressed=false]{opacity:.65}
 .severe-chips{display:flex;gap:8px;margin:8px 0}
-.severe-chips i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff7bda;margin-right:3px}
-.severe-chips #severe-notices i{background:#ffd181}
+.severe-chips i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffd181;margin-right:3px}
+.severe-chips #severe-lightning i{width:10px;height:13px;border-radius:0;background:#ffe28a;vertical-align:-2px;clip-path:polygon(60% 0,0 58%,40% 58%,28% 100%,100% 37%,57% 37%)}
 .severe-panel small,.severe-panel p{display:block;color:#b6c8d4;font-size:12px;margin:6px 0}
 .severe-panel details summary{color:#f4d197;font-size:12px;cursor:pointer;margin-top:8px}
 

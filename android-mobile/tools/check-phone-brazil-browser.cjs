@@ -81,6 +81,21 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   document.querySelector('#severe-notice-status').textContent.includes('1 alerta municipal')&&
   window.__map.getSource('br-historical-radar')&&window.__map.getLayer('br-satellite-layer'));
  assert.equal(await page.locator('.forecast-caption').isVisible(),false);
+ const lightningLayer='br-severe-lightning';
+ await page.waitForFunction(id=>{
+  const map=window.__map;
+  return map.getLayer(id)?.type==='symbol'&&map.hasImage('argos-lightning-bolt')&&Array.isArray(map.getPaintProperty(id,'icon-opacity'))&&
+   map.queryRenderedFeatures({layers:[id]}).length>0;
+ },lightningLayer);
+ const pulse=await page.evaluate(id=>JSON.stringify(window.__map.getPaintProperty(id,'icon-opacity')),lightningLayer);
+ await page.waitForFunction(({id,previous})=>JSON.stringify(window.__map.getPaintProperty(id,'icon-opacity'))!==previous,{id:lightningLayer,previous:pulse});
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.waitForFunction(id=>window.__map.getPaintProperty(id,'icon-opacity')===.78,lightningLayer);
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.waitForFunction(id=>Array.isArray(window.__map.getPaintProperty(id,'icon-opacity')),lightningLayer);
+ await page.evaluate(()=>MonitorMap.pause());
+ assert.equal(await page.evaluate(id=>window.__map.getPaintProperty(id,'icon-opacity'),lightningLayer),.78);
+ await page.evaluate(()=>MonitorMap.resume());
  await page.waitForFunction(()=>document.querySelector('#severe-cell-status').textContent.includes('1 área com eco intenso'));
  const cell=await page.evaluate(()=>window.__map.project([-47.8125,-24.5271]));
  const bounds=await page.locator('#brazil-map').boundingBox();
