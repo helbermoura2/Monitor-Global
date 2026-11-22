@@ -25,7 +25,7 @@ final class SatelliteImage {
  }
  private Bitmap export(String layer,MapFrame f,boolean transparent,long deadline){
   String bbox=f.west+","+f.south+","+f.east+","+f.north;
-  String url=ROOT+layer+"/MapServer/export?bbox="+URLEncoder.encode(bbox,java.nio.charset.StandardCharsets.UTF_8)
+  String url=ROOT+layer+"/MapServer/export?bbox="+bbox
     +"&bboxSR=4326&imageSR=4326&size=620,300&dpi=144&format="+(transparent?"png32":"png")
     +"&transparent="+transparent+"&f=image";
   return download(url,deadline,620,300,1500000);
@@ -45,7 +45,8 @@ final class SatelliteImage {
    byte[] payload=bytes.toByteArray();BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;
    BitmapFactory.decodeByteArray(payload,0,payload.length,o);
    if(o.outWidth!=width||o.outHeight!=height)return null;
-   return BitmapFactory.decodeByteArray(payload,0,payload.length);
+   BitmapFactory.Options mutable=new BitmapFactory.Options();mutable.inMutable=true;
+   return BitmapFactory.decodeByteArray(payload,0,payload.length,mutable);
   }catch(IOException|RuntimeException e){return null;}finally{active=null;if(connection!=null)connection.disconnect();}
  }
  private Bitmap tiles(MapFrame f,long deadline){
