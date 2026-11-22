@@ -67,10 +67,27 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView view=TvBroadcastInfoView.market(c,new BrentQuote(95.34,96.2,-.86,-.90,System.currentTimeMillis(),"Yahoo Finance"),new DollarQuote(5.67,0d,0d,System.currentTimeMillis(),"Yahoo Finance"),false);
   Bitmap b=render(view,"market-editorial");
   try{
-   assertEquals(Color.BLACK,b.getPixel(400,80));
+   assertEquals(Color.BLACK,b.getPixel(480,80));
    int light=0,red=0;
    for(int y=48;y<75;y++)for(int x=20;x<473;x++){int p=b.getPixel(x,y);if(Color.red(p)>205&&Color.green(p)>205&&Color.blue(p)>205)light++;if(Color.red(p)>170&&Color.red(p)>Color.green(p)+50)red++;}
    assertTrue("price ink remains visible",light>80);assertTrue("negative variation remains visible",red>20);
+  }finally{b.recycle();}
+ }
+ @Test public void officialCivilNoticeRendersInTheStandardStrip()throws Exception{
+  long now=System.currentTimeMillis();
+  String message="Mensagem fictícia para teste de renderização. Zona Central e Leste de São Paulo.";
+  DefesaCivilSp.Notice notice=new DefesaCivilSp.Notice("fixture","Defesa Civil Estadual de São Paulo",message,"Severe",now,now+60000);
+  TvBroadcastInfoView view=TvBroadcastInfoView.civilAlert(c,notice);
+  Bitmap b=render(view,"civil-alert");
+  try{
+   assertEquals(126,b.getHeight());
+   assertTrue(view.getContentDescription().toString().contains(message));
+   int ink=0;
+   for(int y=56;y<94;y++)for(int x=170;x<800;x++){
+    int pixel=b.getPixel(x,y);
+    if(Color.red(pixel)>220&&Color.green(pixel)>220&&Color.blue(pixel)>220)ink++;
+   }
+   assertTrue("Official message is visible above the footer",ink>80);
   }finally{b.recycle();}
  }
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
