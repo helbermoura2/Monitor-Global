@@ -34,11 +34,13 @@ public class BrazilNationalBannerViewTest {
   a.magnitude=3.8;a.depth=10;return a;
  }
  private Bitmap image(BrazilNationalBannerView view){
-  view.layout(0,0,960,126);
+  int extra=view.mapSpace;
+  view.layout(0,0,960,126+extra);
   view.startPresentation(SystemClock.uptimeMillis()-1100,false);
-  Bitmap bitmap=Bitmap.createBitmap(960,126,Bitmap.Config.ARGB_8888);
-  view.draw(new Canvas(bitmap));
-  return bitmap;
+  Bitmap full=Bitmap.createBitmap(960,126+extra,Bitmap.Config.ARGB_8888);
+  view.draw(new Canvas(full));
+  Bitmap lower=Bitmap.createBitmap(full,0,extra,960,126);
+  full.recycle();return lower;
  }
  @Test public void routeOnlyBrazilNoRegionalOrTsunami(){
   Alert br=brazil();
@@ -60,6 +62,8 @@ public class BrazilNationalBannerViewTest {
  @Test public void mapModelsShareTheSameRedAndBlackStrip(){
   Alert br=brazil();BrazilNationalBannerView approved=new BrazilNationalBannerView(context,br,false,false);
   assertFalse(approved.isBackup());
+  assertEquals("Brazil detail map uses the shared seismic viewport",Banner.insetDp(context),approved.mapSpace);
+  assertTrue(approved.mapSpace>0);
   Bitmap image=image(approved);
   try{
    assertEquals("black body",Color.BLACK,image.getPixel(810,35));
