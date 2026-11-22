@@ -159,3 +159,11 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
  margin:0;max-width:calc(100% - 20px);padding:6px 9px;border-radius:8px;
  border:1px solid #816742;background:#071722e8;color:#f5d29a;font-size:12px}
 #severe-map-readout[hidden]{display:none}
+
+.radar-scale{display:flex;justify-content:space-between;gap:4px;font-size:11px;color:#eaf5fc}
+.radar-scale span{flex:1;text-align:center}
+.radar-scale i{display:block;height:6px;border-radius:4px;margin:1px 0 4px}
+.severe-chips{flex-wrap:wrap}
+.severe-chips #severe-cells i{background:transparent;border:1px solid #ffad62}
+.severe-popup strong{font-size:14px}
+.severe-popup p{line-height:1.35}

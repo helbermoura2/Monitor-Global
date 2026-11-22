@@ -73,14 +73,17 @@ function initMap(){
   map.on('load',()=>{
    ready=true;createMarker();
    try{satellite=window.BrazilSatellite.create({map,host:$('overlay-panel'),enabled:false});const satellitePanel=$('overlay-panel').querySelector('.brazil-satellite-control');satellitePanel.querySelector('details').open=true;satellitePanel.prepend(satellitePanel.querySelector('.br-satellite-status'));satelliteCheckbox()?.addEventListener('change',()=>{if(!severeOn&&satellite?.state.enabled&&radar?.enabled){radar.toggle(false);$('radar-toggle').setAttribute('aria-pressed','false');}syncOverlays();});}catch(e){note('Satélite indisponível nesta visualização.');}
-   try{radar=window.PhoneBrazilRadar.create(map,$('overlay-panel'),()=>severe?.raise());}catch(e){note('Radar indisponível nesta visualização.');}
+   try{radar=window.PhoneBrazilRadar.create(map,$('overlay-panel'),()=>{severe?.raise();severe?.analyze();});}catch(e){note('Radar indisponível nesta visualização.');}
    try{boundaries=window.ArgosBoundaries.create({map,host:document.querySelector('.brazil-map-panel'),onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
      if(!local)return place.municipalityId?'Município identificado; localize-o pela busca para consultar a previsão.':'Selecione um município pelo campo de busca.';
      const button=document.createElement('button');button.type='button';button.textContent='Consultar previsão de '+local.name;
      button.addEventListener('click',()=>selectCity(local));place.element.appendChild(button);
      return 'Toque no botão para usar o modelo da cidade selecionada.';}});boundaries?.setActive(active);}
    catch(e){note('Limites estaduais e municipais indisponíveis. A previsão segue funcionando.');}
-   try{severe=window.PhoneSevereWeather.create(map,$('severe-panel'));}catch(e){note('Camadas de tempo severo indisponíveis.');}
+   try{severe=window.PhoneSevereWeather.create(map,$('severe-panel'),()=>radar?.state,()=>{
+    const rain=forecast&&M.nextRain(forecast);
+    return rain?{coords:[city.lon,city.lat],place:city.name,rain:rain.amount}:null;
+   });}catch(e){note('Camadas de tempo severo indisponíveis.');}
    syncOverlays();if(pendingSatellite)showSatellite();if(pendingSevere)showSevere();
    if(forecast)note('');
   });

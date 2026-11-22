@@ -14,7 +14,8 @@ from netCDF4 import Dataset
 import numpy as np
 
 ORIGIN = "https://noaa-goes19.s3.amazonaws.com"
-WINDOW = timedelta(minutes=15)
+WINDOW = timedelta(hours=1)
+RECENT = timedelta(minutes=15)
 CADENCE = 20
 BOUNDS = (-90, -60, -30, 18)
 NS = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
@@ -74,26 +75,38 @@ def generate(now):
         except (OSError, ValueError):
             return time, None
 
-    cells = collections.Counter()
-    complete = []
+    cells, recent = collections.Counter(), collections.Counter()
+    complete, recent_complete = [], []
     with ThreadPoolExecutor(max_workers=8) as pool:
         for time, data in pool.map(download, sorted(candidates.items())):
             if data is not None:
                 try:
-                    cells.update(parse(data))
+                    counts = parse(data)
+                    cells.update(counts)
+                    if time >= end - RECENT:
+                        recent.update(counts)
+                        recent_complete.append(time)
                 except (KeyError, OSError, ValueError):
                     continue
                 complete.append(time)
     expected = int(WINDOW.total_seconds() / CADENCE)
     if len(complete) < minimum or end - complete[-1] > timedelta(minutes=2):
         raise ValueError(f"NOAA observations incomplete: {len(complete)}/{expected}")
-    observed_start, observed_end = complete[0], complete[-1] + timedelta(seconds=CADENCE)
+    if len(recent_complete) < 38:
+        raise ValueError("Recent NOAA observations incomplete")
+    def window(sample, timestamps, expected):
+        return {
+            "start": int(timestamps[0].timestamp() * 1000),
+            "end": int((timestamps[-1] + timedelta(seconds=CADENCE)).timestamp() * 1000),
+            "files": len(timestamps), "expected": expected,
+            "cells": [[x / 4 + .125, y / 4 + .125, count] for (x, y), count in sorted(sample.items())],
+        }
     return {
-        "version": 1, "source": "NOAA GOES-19 GLM",
-        "start": int(observed_start.timestamp() * 1000), "end": int(observed_end.timestamp() * 1000),
-        "files": len(complete), "expected": expected, "resolution": .25,
-        "cells": [[x / 4 + .125, y / 4 + .125, count] for (x, y), count in sorted(cells.items())],
+        "version": 1, "source": "NOAA GOES-19 GLM", "resolution": .25,
+        **window(recent, recent_complete, 45),
+        "hour": window(cells, complete, expected),
     }
+
 
 
 if __name__ == "__main__":

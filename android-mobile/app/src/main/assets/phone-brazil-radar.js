@@ -19,9 +19,15 @@ function create(map,host,onChange=()=>{}){
  const status=document.createElement('small');status.setAttribute('role','status');status.dataset.radar='status';
  const credit=document.createElement('small'),link=document.createElement('a');link.href='https://www.rainviewer.com/';link.textContent='RainViewer';link.target='_blank';link.rel='noopener';
  credit.append('Radar observado · ',link,' · cobertura variável, sem previsão futura');
+ const scale=document.createElement('div');scale.className='radar-scale';scale.setAttribute('aria-label','Escala aproximada de chuva no radar');
+ for(const entry of root.PhoneStormSignals?.legend||[]){
+  const stop=document.createElement('span'),swatch=document.createElement('i');swatch.style.backgroundColor=entry.hex;
+  stop.append(swatch,entry.rate.toLocaleString('pt-BR',{maximumFractionDigits:1}));scale.append(stop);
+ }
+ const caption=document.createElement('small');caption.textContent='mm/h aproximados · conversão de refletividade (Z–R)';
  const caution=document.createElement('small');caution.textContent='Áreas sem ecos podem estar sem cobertura. Isso não confirma ausência de chuva.';
- actions.append(play,latest);panel.append(heading,actions,slider,status,credit,caution);host.appendChild(panel);
- function notify(){onChange({enabled,sourceTime,loading:!!request,frames:frames.length,message:messageText});}
+ actions.append(play,latest);panel.append(heading,actions,slider,status,scale,caption,credit,caution);host.appendChild(panel);
+ function notify(){onChange({enabled,sourceTime,loading:!!request,frames:frames.length,message:messageText,latest:frames.at(-1)||null});}
  function message(text){messageText=text;status.textContent=text;notify();}
  function stop(){clearTimeout(playTimer);playTimer=0;play.textContent='▶ Animar';}
  function clear(){if(map.getLayer(layer))map.removeLayer(layer);if(map.getSource(source))map.removeSource(source);sourceTime=0;pendingTime=0;}
@@ -63,7 +69,7 @@ function create(map,host,onChange=()=>{}){
  function tick(){if(!enabled||!active||closed||frames.length<2||!fresh()){stop();return;}index=(index+1)%frames.length;show(index,false);play.textContent='Ⅱ Pausar';playTimer=setTimeout(tick,FRAME_MS);}
  function toggle(next){if(closed)return;enabled=!!next;panel.hidden=!enabled;stop();if(!enabled){cancel();clear();notify();return;}if(fresh())show(index);else update();notify();}
  play.addEventListener('click',()=>{if(playTimer){stop();return;}if(frames.length>1)tick();});slider.addEventListener('input',()=>show(Number(slider.value)));latest.addEventListener('click',()=>update(true));
- return {toggle,get enabled(){return enabled;},get state(){return {enabled,sourceTime,frames:frames.length,loading:!!request,message:messageText};},setActive(v){active=!!v;if(!active){stop();cancel();waiting=false;clear();}else if(enabled){if(fresh())show(index);else update();}},destroy(){if(closed)return;closed=true;enabled=false;stop();cancel();waiting=false;map.off('idle',styleReady);map.off('error',tileError);clear();panel.remove();}};
+ return {toggle,get enabled(){return enabled;},get state(){return {enabled,sourceTime,frames:frames.length,loading:!!request,message:messageText,latest:frames.at(-1)||null};},setActive(v){active=!!v;if(!active){stop();cancel();waiting=false;clear();}else if(enabled){if(fresh())show(index);else update();}},destroy(){if(closed)return;closed=true;enabled=false;stop();cancel();waiting=false;map.off('idle',styleReady);map.off('error',tileError);clear();panel.remove();}};
 }
 root.PhoneBrazilRadar={create,parseMetadata,tileUrl};
 })(window);

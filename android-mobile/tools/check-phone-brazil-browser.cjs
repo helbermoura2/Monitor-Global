@@ -5,7 +5,7 @@ const apk=process.argv[process.argv.indexOf('--apk')+1];if(!apk)throw Error('Use
 const output=path.resolve('android-mobile/app/build/reports/brazil-browser'),temporary=fs.mkdtempSync(path.join(os.tmpdir(),'phone-brazil-check-'));fs.mkdirSync(output,{recursive:true});
 const version=fs.readFileSync('android-mobile/app/build.gradle','utf8').match(/versionCode\s+(\d+)/)[1],prefix='/assets/v'+version+'/',origin='https://appassets.androidplatform.net';
 function png(rain,w=256){
- const raw=Buffer.alloc(w*(1+4*w));for(let y=0;y<w;y++)for(let x=0;x<w;x++){const i=y*(1+4*w)+1+4*x,d=Math.hypot(x-120,y-125),c=rain?(d<32?[230,20,35]:d<55?[255,220,0]:d<95?[40,190,60]:[0,0,0]):[21+(x>>4)%2*8,53+(y>>4)%2*8,66];raw.set(c,i);raw[i+3]=rain?(d<95?185:0):255;}
+ const raw=Buffer.alloc(w*(1+4*w));for(let y=0;y<w;y++)for(let x=0;x<w;x++){const i=y*(1+4*w)+1+4*x,d=Math.hypot(x-120,y-125),c=rain?(d<32?[255,68,0]:d<55?[255,220,0]:d<95?[40,190,60]:[0,0,0]):[21+(x>>4)%2*8,53+(y>>4)%2*8,66];raw.set(c,i);raw[i+3]=rain?(d<32?255:d<95?185:0):255;}
  function crc(b){let c=0xffffffff;for(const x of b){c^=x;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
  function chunk(n,b){const t=Buffer.from(n),l=Buffer.alloc(4),c=Buffer.alloc(4);l.writeUInt32BE(b.length);c.writeUInt32BE(crc(Buffer.concat([t,b])));return Buffer.concat([l,t,b,c]);}
  const h=Buffer.alloc(13);h.writeUInt32BE(w);h.writeUInt32BE(w,4);h[8]=8;h[9]=6;return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',h),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);
@@ -37,7 +37,8 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   if(u.hostname==='gibs.earthdata.nasa.gov'&&u.searchParams.get('REQUEST')==='GetMap')return route.fulfill({headers:cors,contentType:'image/png',body:png(false,1200)});
 
   if(u.hostname==='raw.githubusercontent.com'&&u.pathname.endsWith('/goes-19-lightning.json'))return route.fulfill({headers:cors,json:{
-   version:1,source:'NOAA GOES-19 GLM',start:now-15*60000,end:now,files:45,expected:45,resolution:.25,cells:[[-46.625,-23.625,18]]
+   version:1,source:'NOAA GOES-19 GLM',start:now-15*60000,end:now,files:45,expected:45,resolution:.25,cells:[[-47.8125,-24.5271,31]],
+   hour:{start:now-60*60000,end:now,files:180,expected:180,cells:[[-47.8125,-24.5271,88]]}
   }});
   if(u.hostname==='raw.githubusercontent.com'&&u.pathname.endsWith('/cemaden-alerts.json'))return route.fulfill({headers:cors,json:{
    version:1,source:'https://painelalertas.cemaden.gov.br/wsAlertas2',checkedAt:now,alerts:[{status:1,lat:-23.55,lng:-46.63,city:'São Paulo',uf:'SP',level:'Alto',event:'Risco hidrológico'}]
@@ -64,10 +65,16 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(await page.locator('.radar-control').isVisible(),false);
  await page.screenshot({path:path.join(output,'satellite-packaged-fixture.png'),fullPage:true});
  await page.locator('#severe-toggle').click();
- await page.waitForFunction(()=>document.querySelector('#severe-lightning-status').textContent.includes('18 detecções')&&
+ await page.waitForFunction(()=>document.querySelector('#severe-lightning-status').textContent.includes('88 detecções')&&
   document.querySelector('#severe-notice-status').textContent.includes('1 alerta municipal')&&
   window.__map.getSource('br-historical-radar')&&window.__map.getLayer('br-satellite-layer'));
  assert.equal(await page.locator('.forecast-caption').isVisible(),false);
+ await page.waitForFunction(()=>document.querySelector('#severe-cell-status').textContent.includes('1 área com eco intenso'));
+ const cell=await page.evaluate(()=>window.__map.project([-47.8125,-24.5271]));
+ const bounds=await page.locator('#brazil-map').boundingBox();
+ await page.mouse.click(bounds.x+cell.x,bounds.y+cell.y);
+ await page.locator('.severe-popup').filter({hasText:'Célula em atenção'}).waitFor();
+ assert.match(await page.locator('.severe-popup').innerText(),/45 dBZ/);
  await page.screenshot({path:path.join(output,'severe-weather-fixture.png'),fullPage:true});
  await page.locator('#severe-toggle').click();
  assert.equal(await page.locator('#severe-panel').isVisible(),false);

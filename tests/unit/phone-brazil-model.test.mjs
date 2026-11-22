@@ -74,3 +74,16 @@ test('weather map keeps stale and partial lightning distinct from a fresh zero',
  assert.equal(notices.collection.features.length,1);
  assert.equal(notices.collection.features[0].properties.severity,2);
 });
+
+
+test('storm evidence needs multiple pixels of calibrated radar echo',()=>{
+ const require=createRequire(import.meta.url);
+ const storms=require('../../android-mobile/app/src/main/assets/phone-storm-signals.js');
+ assert.equal(storms.reflectivity(255,68,0,255),45);
+ assert.equal(storms.reflectivity(255,68,0,120),null);
+ const rgba=new Uint8Array(400);
+ for(let i=0;i<4;i++)rgba.set([255,68,0,255],4*i);
+ assert.equal(storms.peak(rgba,10,10,5,5),null);
+ rgba.set([255,68,0,255],16);
+ assert.equal(storms.peak(rgba,10,10,5,5),45);
+});

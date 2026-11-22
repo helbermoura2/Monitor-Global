@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.50 de teste
+
+- O mapa mostra uma hora de raios, escala aproximada do radar e fichas experimentais de células com eco intenso e atividade elétrica.
+
 # Argos Orbis Celular · 0.1.49 de teste
 
 - Tempo severo reúne radar, satélite, detecções do GOES-19 e alertas municipais do Cemaden no mapa.
