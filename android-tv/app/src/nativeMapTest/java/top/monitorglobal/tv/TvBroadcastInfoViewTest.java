@@ -108,6 +108,34 @@ public class TvBroadcastInfoViewTest {
     "Comunicado confirmado de teste unitário.", "Severe",now,now+30000);
   assertFalse(String.valueOf(TvBroadcastInfoView.civilAlert(c,real).getContentDescription()).contains("SIMULAÇÃO"));
  }
+ @Test public void replayCivilIsExplicitlyHistoricalAndHasOriginalIssuance()throws Exception{
+  long sent=System.currentTimeMillis()-3600000;
+  DefesaCivilSp.Notice old=new DefesaCivilSp.Notice("official-archive",
+   "Defesa Civil Estadual de São Paulo","Mensagem histórica de chuva. Siga fontes oficiais.",
+   "Extreme",sent,sent+120000);
+  TvBroadcastInfoView replay=TvBroadcastInfoView.civilAlert(c,old,false,true);
+  String text=String.valueOf(replay.getContentDescription());
+  assertTrue(text.contains("REPLAY HISTÓRICO"));
+  assertTrue(text.contains("NÃO É ALERTA ATUAL"));
+  assertTrue(text.contains(BrDates.dateTime(sent)));
+  assertFalse(text.contains("SIMULAÇÃO"));
+  Bitmap b=render(replay,"civil-replay");try{assertEquals(126,b.getHeight());}
+  finally{b.recycle();}
+ }
+ @Test public void satelliteAndSeismicMapShareOneStableVisualAnchor()throws Exception{
+  assertEquals(649f,MapInset.FRAME_X,0);
+  assertEquals(310f,MapInset.FRAME_WIDTH,0);
+  assertEquals(176f,MapInset.FRAME_HEIGHT,0);
+  WeatherForecast.Summary weather=new WeatherForecast.Summary(
+    "22°C","Nublado","12 km/h","74%","Modelo horário",System.currentTimeMillis()+600000,false,
+    "22°C","22°C","74%","12 km/h","17 km/h","Cloudy");
+  TvBroadcastInfoView v=TvBroadcastInfoView.weather(c,null,weather,false);
+  Bitmap full=render(v,"aligned-weather-inset");
+  try{
+   assertTrue("Shared frame begins exactly at x649",Color.alpha(full.getPixel(653,10))>160);
+   assertEquals("No legacy inset should begin at x615",0,Color.alpha(full.getPixel(623,10)));
+  }finally{full.recycle();}
+ }
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
   long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
   long monday=java.time.Instant.parse("2026-11-16T15:33:00Z").toEpochMilli();

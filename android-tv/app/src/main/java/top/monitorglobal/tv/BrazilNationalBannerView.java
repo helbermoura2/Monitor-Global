@@ -31,6 +31,9 @@ final class BrazilNationalBannerView extends View {
  private final Typeface bold=OledNewsChrome.titleFont(null);
  private final Typeface regular=OledNewsChrome.regularFont();
  final TvEffectsController effects;
+ final int mapSpace;
+ private final boolean mapBelow;
+ private MapInset detailMap;
  private final RectF stateArea=new RectF();
  private Bitmap mapArtwork;private float[] epicenter;
 
@@ -40,6 +43,7 @@ final class BrazilNationalBannerView extends View {
  BrazilNationalBannerView(Context context,Alert event,boolean demonstration,boolean repeated){
   super(context);
   alert=event;demo=demonstration;replay=repeated;
+  mapSpace=Banner.insetDp(context);mapBelow=Prefs.get(context).getBoolean("themeTop",false);
   effects=new TvEffectsController(context,TvEffectsController.EffectsCategory.BRAZIL,replay,demo);
   if(!event.revision.isEmpty()||event.companion!=null)effects.disableOpening();
   backup=Prefs.get(context).getInt(PREF_MODEL,MODEL_APPROVED)==MODEL_BACKUP;
@@ -156,19 +160,29 @@ final class BrazilNationalBannerView extends View {
   super.onDraw(canvas);if(started==0)return;animated=animated&&effects.animated();
   long drawStarted=SystemClock.elapsedRealtimeNanos();
   long elapsed=effects.elapsed(SystemClock.uptimeMillis());
-  canvas.save();canvas.scale(getWidth()/WIDTH,getHeight()/HEIGHT);
+  canvas.save();canvas.scale(getWidth()/WIDTH,getHeight()/(HEIGHT+mapSpace));
+  canvas.save();canvas.translate(0,mapBelow?0:mapSpace);
   OledNewsChrome.base(canvas,p);
   OledNewsChrome.tab(canvas,p,"SISMO NO BRASIL",true);
   OledNewsChrome.tab(canvas,p,demo?"TESTE FICTÍCIO":replay?"REPLAY":"AO VIVO",false);
   drawBody(canvas,elapsed);
   BroadcastVisuals.radar(canvas,p,elapsed,animated);
   drawFooter(canvas,elapsed);
+  canvas.restore();drawDetailMap(canvas);
   canvas.restore();
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,animated);
   if(running){if(animated)postInvalidateOnAnimation();else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));}
  }
  private float mapReveal=1;
  void mapReveal(float reveal){if(mapReveal!=reveal){mapReveal=reveal;invalidate();}}
+ private void drawDetailMap(Canvas c){
+  if(mapSpace<=0||detailMap==null||mapReveal<=0)return;
+  c.save();c.translate(0,mapBelow?HEIGHT:0);c.scale(1,mapSpace/MapInset.VIEWPORT_HEIGHT);c.clipRect(0,0,WIDTH,MapInset.VIEWPORT_HEIGHT);
+  float slide=(1-mapReveal)*(effects.full()?34:19);
+  c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide));
+  detailMap.draw(c,alert,bold,0xff38bdf8);
+  c.restore();
+ }
  private void drawBody(Canvas c,long elapsed){
   float mapRight=backup?271:224;
   if(mapArtwork!=null&&mapReveal>0){
@@ -229,6 +243,6 @@ final class BrazilNationalBannerView extends View {
   OledNewsChrome.fadeTickerEdges(c,left,right);
   c.restoreToCount(layer);
  }
- @Override protected void onAttachedToWindow(){super.onAttachedToWindow();prepareMapArtwork();running=true;invalidate();}
- @Override protected void onDetachedFromWindow(){running=false;effects.stop();if(mapArtwork!=null){mapArtwork.recycle();mapArtwork=null;}epicenter=null;super.onDetachedFromWindow();}
+ @Override protected void onAttachedToWindow(){super.onAttachedToWindow();prepareMapArtwork();if(mapSpace>0){detailMap=new MapInset(getContext(),this::invalidate);detailMap.prepare(alert);}running=true;invalidate();}
+ @Override protected void onDetachedFromWindow(){running=false;effects.stop();if(detailMap!=null){detailMap.close();detailMap=null;}if(mapArtwork!=null){mapArtwork.recycle();mapArtwork=null;}epicenter=null;super.onDetachedFromWindow();}
 }

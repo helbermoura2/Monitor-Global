@@ -32,7 +32,12 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("weatherSatellite.get()", card)
         self.assertNotIn("new MapInset(", card)
         self.assertIn("INFRAVERMELHO · SUDESTE", card)
-        self.assertIn("c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide)", card)
+        # All TV insets must share the seismic geometry; the old 615/649 split
+        # was the exact 34-unit misalignment visible in the television photos.
+        self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", card)
+        self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", source("NewsBannerView.java"))
+        self.assertIn("FRAME_X=649f", source("MapInset.java"))
+        self.assertNotIn("WEATHER||kind==RAIN?615:649", card)
         self.assertIn('getBoolean("weatherSatellite",true)?0:Banner.insetDp(c)', card)
         self.assertIn("themeTop", display)
         self.assertIn("static final long DURATION=12000L", weather)

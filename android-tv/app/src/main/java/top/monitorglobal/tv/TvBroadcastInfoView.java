@@ -23,6 +23,7 @@ final class TvBroadcastInfoView extends View {
  private boolean brentChanged=true,dollarChanged=true,temperatureChanged=true,rainStateChanged;
  private boolean brentStateChanged,dollarStateChanged,voiceChanged;
  private DefesaCivilSp.Notice civilNotice;
+ private boolean civilReplay;
  private android.text.StaticLayout civilMessage;
  private boolean marketPending;private String voiceTitle="",voiceDetail="";
  private final WeatherSatelliteClient.Frame satellite;
@@ -135,14 +136,18 @@ final class TvBroadcastInfoView extends View {
  }
  static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice){return civilAlert(c,notice,false);}
  static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice,boolean demo){
+  return civilAlert(c,notice,demo,false);
+ }
+ static TvBroadcastInfoView civilAlert(Context c,DefesaCivilSp.Notice notice,boolean demo,boolean replay){
   TvBroadcastInfoView v=new TvBroadcastInfoView(c,CIVIL_ALERT,null,null,null,null,null,null,demo);
-  v.civilNotice=notice;
+  v.civilNotice=notice;v.civilReplay=replay;
   android.text.TextPaint paint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(15);
   v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,650)
    .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
-  v.ticker=(demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription((demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
+  v.ticker=(replay?"REPLAY HISTÓRICO · NÃO É AVISO ATIVO · EMITIDO EM "+BrDates.dateTime(notice.sent)+" · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")
+    +notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
+  v.setContentDescription((replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
   return v;
  }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
@@ -259,9 +264,9 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
-  if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":"ALERTA OFICIAL",true);
+  if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":civilReplay?"DEFESA CIVIL":"ALERTA OFICIAL",true);
   else OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true);
-  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":"AO VIVO",false);
+  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":civilReplay?"REPLAY":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
@@ -339,7 +344,7 @@ final class TvBroadcastInfoView extends View {
  }
 
  private void drawCivilAlert(Canvas c){
-  eventCategory(c,"DEFESA CIVIL",demo?"TESTE · SÃO PAULO":"SÃO PAULO · CAPITAL");
+  eventCategory(c,"DEFESA CIVIL",civilReplay?"REGISTRO HISTÓRICO":demo?"TESTE · SÃO PAULO":"SÃO PAULO · CAPITAL");
   label(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),170,51,25,0xffff9d7c,brand,650);
   c.save();c.translate(170,56);civilMessage.draw(c);c.restore();
  }
@@ -390,8 +395,8 @@ final class TvBroadcastInfoView extends View {
   if(mapSpace<=0||mapReveal<=0)return;
   c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
   float slide=(1-mapReveal)*(effects.full()?34:19);
-  if(kind==SATELLITE&&motionEnabled())slide+=effects.translate(effects.elapsed(now));
-  c.translate(kind==WEATHER||kind==RAIN?615:649,mapBelow?-slide:slide);
+  // A mesma ancora usada nos sismos: nenhum deslocamento exclusivo do infravermelho.
+  c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide));
   int mapLayer=mapReveal<1?c.saveLayerAlpha(0,0,310,176,Math.round(255*mapReveal)):c.save();
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
    rounded(c,0,0,310,176,0xff0d2737,8);

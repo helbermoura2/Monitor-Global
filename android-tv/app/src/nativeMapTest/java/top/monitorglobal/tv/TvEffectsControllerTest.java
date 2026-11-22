@@ -61,8 +61,11 @@ public class TvEffectsControllerTest {
    Prefs.get(c).edit().putBoolean("themeTop",top).putInt(BrazilNationalBannerView.PREF_MODEL,model).commit();TvEffectsController.select(c,mode);
    BrazilNationalBannerView v=new BrazilNationalBannerView(c,TvEffectsDemo.quake(true,false),true,false);
    BannerRevealLayout host=new BannerRevealLayout(c);host.setPadding(0,12,0,12);host.addView(v,new FrameLayout.LayoutParams(-1,-1));host.configure(v.effects);host.reveal(mode==TvEffectsController.EffectsMode.OFF?0:.6f);
-   host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(150,View.MeasureSpec.EXACTLY));host.layout(0,0,960,150);v.startPresentation(SystemClock.uptimeMillis()-1000,true);
-   Bitmap image=Bitmap.createBitmap(960,150,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));assertTrue("Brazil footer remains visible while the host moves",Color.alpha(image.getPixel(400,130))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
+   // Brazil now has the exact same 180-unit map viewport as regional and satellite.
+   // Keep the host test realistic: the footer sits below the inset in bottom mode.
+   int height=150+v.mapSpace;
+   host.measure(View.MeasureSpec.makeMeasureSpec(960,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));host.layout(0,0,960,height);v.startPresentation(SystemClock.uptimeMillis()-1000,true);
+   Bitmap image=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));int footerY=130+(top?0:v.mapSpace);assertTrue("Brazil footer remains visible while the host moves",Color.alpha(image.getPixel(400,footerY))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
   }
  }
  @Test public void noFabricatedWeatherAndNoNewPriceCounters(){

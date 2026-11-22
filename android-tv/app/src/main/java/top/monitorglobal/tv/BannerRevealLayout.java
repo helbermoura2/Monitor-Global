@@ -23,7 +23,7 @@ final class BannerRevealLayout extends FrameLayout {
  private float totalHeight(){return bodyHeight()+mapInset();}
  BannerRevealLayout(Context c){super(c);}
  private int mapInset(){
-  if(brazil())return 0;
+  if(brazil())return ((BrazilNationalBannerView)getChildAt(0)).mapSpace;
   if(getChildCount()>0&&getChildAt(0) instanceof TvBroadcastInfoView)return ((TvBroadcastInfoView)getChildAt(0)).mapSpace;
   return Banner.insetDp(getContext());
  }

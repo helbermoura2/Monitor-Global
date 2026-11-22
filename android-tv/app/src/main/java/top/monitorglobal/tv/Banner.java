@@ -45,6 +45,9 @@ final class Banner {
  boolean showCivilAlert(DefesaCivilSp.Notice notice,long duration,Runnable finished,boolean demo){
   return showView(TvBroadcastInfoView.civilAlert(context,notice,demo),duration,0,finished);
  }
+ boolean showCivilReplay(DefesaCivilSp.Notice notice,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.civilAlert(context,notice,false,true),duration,0,finished);
+ }
  boolean showSatellite(WeatherSatelliteClient.Frame frame,String status,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.satellite(context,frame,status),duration,0,finished);
  }
@@ -63,7 +66,7 @@ final class Banner {
   // Preserve explicitly configured non-default widths.
   int requestedWidth=Prefs.get(context).getInt("themeWidthPercent",96);
   int bannerWidthPercent=requestedWidth==92?96:requestedWidth;
-  int contentHeight=row instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context));
+  int contentHeight=row instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT+((BrazilNationalBannerView)row).mapSpace:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context));
   WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*bannerWidthPercent/100,dp(contentHeight)+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
   try{
    BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(activeEffects.animated()?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
