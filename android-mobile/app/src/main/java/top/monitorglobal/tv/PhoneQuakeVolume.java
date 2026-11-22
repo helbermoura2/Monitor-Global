@@ -91,6 +91,19 @@ final class PhoneQuakeVolume extends View {
   }
  }
  @Override public boolean performClick(){super.performClick();return true;}
+ PhoneQuakeVolume exportCopy(){
+  PhoneQuakeVolume copy=new PhoneQuakeVolume(getContext(),origin,Collections.emptyList());
+  copy.half=half;copy.frame=frame;copy.rupture=rupture;copy.terrain=terrain;
+  copy.nearby.addAll(nearby);copy.yaw=yaw;copy.tilt=tilt;copy.focus=focus;
+  copy.layout(0,0,600,560);
+  return copy;
+ }
+ void exportTourPose(float progress){
+  float p=(float)(.5-.5*Math.cos(Math.PI*Math.max(0,Math.min(1,progress))));
+  yaw=-.68f*p;tilt=1.56f-1.04f*p;
+  focus=known(origin)?Math.max(0,(p-.30f)/.70f):0;
+ }
+ void drawExport(Canvas canvas){onDraw(canvas);}
  private float[] vertex(double east,double south,double depth,double scale){
   double sin=Math.sin(yaw),cos=Math.cos(yaw);
   double x=east*cos-south*sin,y=east*sin+south*cos;

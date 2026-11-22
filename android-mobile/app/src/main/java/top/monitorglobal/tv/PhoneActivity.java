@@ -370,7 +370,10 @@ public class PhoneActivity extends Activity {
   nearbyTab.setOnClickListener(v->selectNearby.accept(true));
   selectNearby.accept(false);
   Button shareVolume=button("Compartilhar vista 3D",()->{});
-  space(body,shareVolume,8);
+  LinearLayout exportActions=new LinearLayout(this);space(body,exportActions,8);
+  addAction(exportActions,shareVolume,1);
+  Button shareTour=button("Compartilhar vídeo 3D",()->{});
+  addAction(exportActions,shareTour,1);
   Runnable refreshNearby=()->{
    facts.setText(BrDates.dateTime(eventTime(event))+" · "+source(event)+"\n"+PhoneVolumeShare.coordinates(event)
     +"\n"+(volume.hasRupture()?"Ruptura publicada · USGS":"Dourado: sismo selecionado. Azul: sismos próximos."));
@@ -385,8 +388,29 @@ public class PhoneActivity extends Activity {
   android.app.AlertDialog dialog=panelDialog(panelScroll);
   quakeVolumeDialog=dialog;
   shareVolume.setOnClickListener(v->shareQuakeVolume(dialog,shareVolume,volume,event));
+  Future<?>[] recording={null};
+  shareTour.setOnClickListener(v->{
+   shareTour.setEnabled(false);shareVolume.setEnabled(false);shareTour.setText("Gerando vídeo…");
+   if(worker==null)worker=Executors.newSingleThreadExecutor();
+   PhoneVolumeShare frame=new PhoneVolumeShare(volume,event,brand,PhoneVolumeVideo.WIDTH,PhoneVolumeVideo.HEIGHT);
+   recording[0]=worker.submit(()->{
+    Uri result=null;
+    try(PhoneVolumeShare card=frame){
+     result=PhoneVolumeVideo.record(this,card,percent->main.post(()->{
+      if(dialog.isShowing())shareTour.setText("Vídeo · "+percent+"%");
+     }));
+    }catch(java.io.IOException | RuntimeException ignored){}
+    Uri ready=result;
+    main.post(()->{
+     if(destroyed||!dialog.isShowing())return;
+     recording[0]=null;shareTour.setEnabled(true);shareVolume.setEnabled(true);shareTour.setText("Compartilhar vídeo 3D");
+     if(ready!=null)sendEvent(event,ready,"video/mp4");
+     else Toast.makeText(this,"Não foi possível gerar o vídeo 3D neste aparelho.",Toast.LENGTH_LONG).show();
+    });
+   });
+  });
   ExecutorService loads=Executors.newFixedThreadPool(2);
-  dialog.setOnDismissListener(d->{loads.shutdownNow();volume.stop();if(quakeVolumeDialog==dialog)quakeVolumeDialog=null;});
+  dialog.setOnDismissListener(d->{loads.shutdownNow();if(recording[0]!=null)recording[0].cancel(true);volume.stop();if(quakeVolumeDialog==dialog)quakeVolumeDialog=null;});
   showPanel(dialog);
   if(startTour)volume.post(()->{if(dialog.isShowing())play.run();});
   if(!automaticRefresh())return;

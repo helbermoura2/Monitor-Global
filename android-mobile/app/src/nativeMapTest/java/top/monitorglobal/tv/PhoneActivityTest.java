@@ -104,17 +104,26 @@ public class PhoneActivityTest {
   assertTrue(texts(stage).contains("Fonte: EXEMPLO"));
   assertTrue(texts(stage).contains("27,7000° N"));
   assertNotNull(named(stage,"Compartilhar vista 3D"));
+  assertNotNull(named(stage,"Compartilhar vídeo 3D"));
   PhoneQuakeVolume volume=stage.findViewWithTag("quake-volume");
   volume.layout(0,0,290,260);
   Bitmap card=PhoneVolumeShare.render(volume,quake(),Typeface.DEFAULT_BOLD);
   assertNotNull(card);
   assertEquals(1080,card.getWidth());assertEquals(1920,card.getHeight());
-  assertEquals(0xff091722,card.getPixel(45,100));
-  assertEquals(0xffb49056,card.getPixel(540,22));
-  assertTrue(hasCardInk(card,64,65,500,128,0xffebc687)); // Brand
-  assertTrue(hasCardInk(card,64,146,760,198,0xffebc687)); // 3D title
-  assertTrue(hasCardInk(card,64,205,1016,350,0xfff2f5f7)); // Event location
-  assertTrue(hasCardInk(card,64,1450,1016,1510,0xfff2f5f7)); // Depth
+  assertTrue(hasCardInk(card,66,183,610,255,0xffebc687));
+  assertTrue(hasCardInk(card,66,283,1016,386,0xffebc687));
+  assertTrue(hasCardInk(card,74,1529,1016,1578,0xfff2f5f7));
+  assertEquals(0xff0b1821,card.getPixel(16,580)); // No regional inset.
+  assertEquals(0xff0b1821,card.getPixel(16,1250)); // No compass.
+  Bitmap first=Bitmap.createBitmap(720,1280,Bitmap.Config.ARGB_8888);
+  Bitmap last=Bitmap.createBitmap(720,1280,Bitmap.Config.ARGB_8888);
+  try(PhoneVolumeShare frame=new PhoneVolumeShare(volume,quake(),Typeface.DEFAULT_BOLD,720,1280)){
+   frame.draw(new Canvas(first),0);
+   frame.draw(new Canvas(last),1);
+   assertEquals(first.getPixel(360,44),last.getPixel(360,44));
+   assertEquals(first.getPixel(360,1210),last.getPixel(360,1210));
+   assertFalse(first.sameAs(last));
+  }finally{first.recycle();last.recycle();}
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(
    new java.io.File(System.getProperty("java.io.tmpdir"),"monitor-phone-subsolo-share.png"))){
    assertTrue(card.compress(Bitmap.CompressFormat.PNG,100,out));

@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.44 de teste
+
+- O Subsolo 3D pode ser compartilhado como PNG ou vídeo MP4 do tour, com a mesma moldura cartográfica em ambos.
+
 # Argos Orbis Celular · 0.1.43 de teste
 
 - Corrige o PNG do Subsolo 3D para preservar título, localização e moldura.
