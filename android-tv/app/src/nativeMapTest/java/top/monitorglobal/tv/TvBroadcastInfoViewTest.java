@@ -90,6 +90,24 @@ public class TvBroadcastInfoViewTest {
    assertTrue("Official message is visible above the footer",ink>80);
   }finally{b.recycle();}
  }
+ @Test public void localCivilSimulationClearlyLabelsBothSeverityLevelsAndKeepsOfficialMode()throws Exception{
+  long now=System.currentTimeMillis();
+  for(String severity:new String[]{"Severe","Extreme"}){
+   DefesaCivilSp.Notice example=new DefesaCivilSp.Notice("TEST-ONLY","ARGOS ORBIS · DADOS FICTÍCIOS",
+     "EXEMPLO FICTÍCIO: NÃO EXISTE ALERTA REAL NESTE TESTE.",severity,now,now+20000);
+   TvBroadcastInfoView simulated=TvBroadcastInfoView.civilAlert(c,example,true);
+   String visible=String.valueOf(simulated.getContentDescription());
+   assertTrue(visible.contains("SIMULAÇÃO · NÃO É ALERTA REAL"));
+   assertTrue(visible.contains("DADOS FICTÍCIOS"));
+   assertTrue(visible.contains("EXEMPLO FICTÍCIO"));
+   assertTrue(visible.contains("Alerta "+("Extreme".equals(severity)?"extremo":"severo")));
+   Bitmap bitmap=render(simulated,"civil-simulation-"+severity);
+   try{assertEquals(126,bitmap.getHeight());}finally{bitmap.recycle();}
+  }
+  DefesaCivilSp.Notice real=new DefesaCivilSp.Notice("REAL","Defesa Civil Estadual de São Paulo",
+    "Comunicado confirmado de teste unitário.", "Severe",now,now+30000);
+  assertFalse(String.valueOf(TvBroadcastInfoView.civilAlert(c,real).getContentDescription()).contains("SIMULAÇÃO"));
+ }
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
   long sunday=java.time.Instant.parse("2026-11-16T01:33:00Z").toEpochMilli();
   long monday=java.time.Instant.parse("2026-11-16T15:33:00Z").toEpochMilli();

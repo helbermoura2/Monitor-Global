@@ -3,7 +3,8 @@ import android.app.*;import android.content.*;import android.content.pm.ServiceI
 public final class MonitorService extends Service {
  static final String START="top.monitorglobal.tv.START",STOP="top.monitorglobal.tv.STOP",TEST="top.monitorglobal.tv.TEST",TEST_REVISION=TEST+"_REVISION",TEST_TSUNAMI=TEST+"_TSUNAMI",TEST_END=TEST+"_END",TEST_NO_THREAT=TEST+"_NO_THREAT",TEST_SEQUENCE=TEST+"_SEQUENCE",SUMMARY_REPLAY="top.monitorglobal.tv.SUMMARY_REPLAY",SUMMARY="top.monitorglobal.tv.SUMMARY",SUMMARY_TODAY="top.monitorglobal.tv.SUMMARY_TODAY",REPLAY="top.monitorglobal.tv.REPLAY",REPLAY_M6="top.monitorglobal.tv.REPLAY_M6",REPLAY_BRAZIL="top.monitorglobal.tv.REPLAY_BRAZIL",REPLAY_TARGET="top.monitorglobal.tv.REPLAY_TARGET";
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL",VOICE_RAIN="top.monitorglobal.tv.VOICE_RAIN";
- private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive;
+ static final String TEST_CIVIL_SEVERE=TEST+"_CIVIL_SEVERE",TEST_CIVIL_EXTREME=TEST+"_CIVIL_EXTREME";
+ private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive,civilDemoActive;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
@@ -13,6 +14,42 @@ public final class MonitorService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Argos Orbis TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
+  if(TEST_CIVIL_SEVERE.equals(action)||TEST_CIVIL_EXTREME.equals(action)){
+   if(!android.provider.Settings.canDrawOverlays(this)){
+    Prefs.status(this,"Teste da Defesa Civil indisponível: autorize a sobreposição em Início rápido.");
+    stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
+   if(destroyed||draining||!queue.isEmpty()||localBusy()||compactBusy||targetBannerActive||
+      daily.displaying()||banner.activeView()!=null||rain.presentationActive()||brent.showing()){
+    Prefs.status(this,"Teste da Defesa Civil adiado: já existe uma apresentação ou alerta real.");
+    stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+   }
+   cancelDemos();
+   final boolean extreme=TEST_CIVIL_EXTREME.equals(action);
+   Runnable play=new Runnable(){public void run(){
+    demoTasks.remove(this);
+    if(destroyed||!screenReady()||draining||!queue.isEmpty()||localBusy()||compactBusy||targetBannerActive||
+       daily.displaying()||banner.activeView()!=null||rain.presentationActive()||brent.showing()){
+     Prefs.status(MonitorService.this,"Simulação da Defesa Civil cancelada: TV indisponível ou alerta prioritário.");
+     stopIfIdle();return;
+    }
+    long now=System.currentTimeMillis(),duration=20_000L;
+    DefesaCivilSp.Notice example=new DefesaCivilSp.Notice("SIMULACAO-CIVIL-SP",
+     "ARGOS ORBIS · DADOS FICTÍCIOS",
+     extreme?"EXEMPLO FICTÍCIO: alerta extremo ilustrativo. NÃO EXISTE EMERGÊNCIA REAL NESTE TESTE.":
+             "EXEMPLO FICTÍCIO: aviso de chuva intensa ilustrativo. NÃO EXISTE ALERTA REAL NESTE TESTE.",
+     extreme?"Extreme":"Severe",now,now+duration);
+    Runnable finished=()->{civilDemoActive=false;activeUntil=0;tryTarget();tryDaily();drain();stopIfIdle();};
+    if(banner.showCivilAlert(example,duration,finished,true)){
+     civilDemoActive=true;activeUntil=SystemClock.uptimeMillis()+duration+1000;
+     Prefs.status(MonitorService.this,"Tarja fictícia da Defesa Civil em exibição por 20 segundos. Não é aviso oficial.");
+    }else{Prefs.status(MonitorService.this,"Não foi possível mostrar a tarja. Confira a permissão de sobreposição.");stopIfIdle();}
+   }};
+   demoTasks.add(play);main.postDelayed(play,10_000);
+   Prefs.status(this,"Simulação "+(extreme?"EXTREMA":"SEVERA")+" em 10 segundos · volte ao vídeo da TV. Sem som ou notificação.");
+   if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
+   return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
+  }
   if((TEST+"_EFFECTS_CANCEL").equals(action)){cancelDemos();Prefs.status(this,"Simulações canceladas.");stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;}
   if((TEST+"_EFFECTS").equals(action)){
    if(draining||compactBusy||!queue.isEmpty()){Prefs.status(this,"Teste indisponível durante alerta real.");return START_STICKY;}
@@ -139,7 +176,7 @@ public final class MonitorService extends Service {
   if(!Prefs.get(this).getBoolean("enabled",false)){stopSelf();return START_NOT_STICKY;}
   ensurePolling();checkDaily();rain.tick();brent.tick();return START_STICKY;
  }
- private void cancelDemos(){if(effectsDemoActive){effectsDemoActive=false;banner.hide();activeUntil=0;}++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
+ private void cancelDemos(){if(effectsDemoActive||civilDemoActive){effectsDemoActive=false;civilDemoActive=false;banner.hide();activeUntil=0;}++localGeneration;for(Runnable r:demoTasks)main.removeCallbacks(r);demoTasks.clear();}
  private void scheduleDemo(String scenario){scheduleLocal(DemoAlerts.create(scenario,System.currentTimeMillis()),true,false);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay){scheduleLocal(examples,demo,replay,10000);}
  private void scheduleLocal(List<Alert> examples,boolean demo,boolean replay,long minimumDelayMs){
