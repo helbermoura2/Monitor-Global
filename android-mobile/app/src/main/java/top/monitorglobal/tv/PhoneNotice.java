@@ -14,7 +14,7 @@ final class PhoneNotice {
       n.id.isEmpty()||n.id.length()>160||n.version.isEmpty()||n.version.length()>180||
       n.title.isEmpty()||n.title.length()>160||n.body.isEmpty()||n.body.length()>1200||
       n.issuedAt<=0||n.issuedAt>now+60000||n.expiresAt<=now||n.expiresAt<=n.issuedAt||
-      n.expiresAt>n.issuedAt+(official?4*3600000L:3600000L))return null;
+      n.expiresAt>n.issuedAt+(official?24*3600000L:3600000L))return null;
    // Civil notifications must be traceable to a verified active, public CAP notice.
    // A rain forecast or generic Firebase message cannot impersonate the Defesa Civil.
    if(official){
