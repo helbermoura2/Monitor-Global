@@ -71,6 +71,28 @@ public final class MainActivity extends Activity {
   button("Replay · último aviso SEVERO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_SEVERE));
   button("Replay · último aviso EXTREMO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_EXTREME));
   label("Reproduz o último aviso oficial recebido nesta TV nos últimos sete dias. Abre em 10 s para você voltar ao vídeo, fica 20 s e mostra REPLAY HISTÓRICO com a data da emissão. Não toca som e não dispara notificações. Se não houver registro, informa isso; não inventa avisos.",14,false);
+  section("DEFESA CIVIL · HISTÓRICO RECEBIDO DO CELULAR");
+  button("Replay · último SEVERO recebido do celular",v->launch(MonitorService.REPLAY_PHONE_SEVERE));
+  button("Replay · último EXTREMO recebido do celular",v->launch(MonitorService.REPLAY_PHONE_EXTREME));
+  label("Guarda por até sete dias o último aviso real de cada nível recebido pela TV via celular. NÃO é boletim CAP verificado. Replays são históricos, silenciosos e não mostram uma ameaça atual. Simulações não entram no histórico.",14,false);
+  button("Diagnóstico · celular → Worker → TV",v->{
+   android.content.SharedPreferences p=Prefs.get(this);
+   long poll=p.getLong("civilPhoneLastPollAt",0);
+   long received=p.getLong("civilPhoneLastReceivedAt",0);
+   long shown=p.getLong("civilPhoneLastAt",0);
+   String report="Receptor: "+(TvCivilPhoneRelay.paired(this)?"VINCULADO":"NÃO VINCULADO")
+    +"\nMonitoramento: "+(p.getBoolean("enabled",false)?"ATIVO":"DESATIVADO")
+    +"\nÚltima consulta: "+(poll>0?BrDates.dateTime(poll):"NENHUMA")
+    +"\nResultado: "+p.getString("civilPhoneLastPollStatus","Ainda não consultado")
+    +"\nÚltimo aviso recebido: "+(received>0?BrDates.dateTime(received):"NENHUM")
+    +"\nNível recebido: "+p.getString("civilPhoneLastReceivedSeverity","N/D")
+    +"\nÚltima tarja exibida: "+(shown>0?BrDates.dateTime(shown):"NENHUMA")
+    +"\nTipo exibido: "+p.getString("civilPhoneLastType","N/D")
+    +"\nEstado da exibição: "+p.getString("civilPhoneLastDisplayStatus","Não há confirmação local")
+    +"\nO aceite pelo Worker NÃO significa exibição na TV.";
+   new AlertDialog.Builder(this).setTitle("Defesa Civil · Diagnóstico da ponte")
+    .setMessage(report).setPositiveButton("Entendi",null).show();
+  });
   section("DEFESA CIVIL · VINCULAR CELULARES");
   button("Gerar código de 8 dígitos para o Argos Orbis do celular",v->
    TvCivilPhoneRelay.code(this,message->{
