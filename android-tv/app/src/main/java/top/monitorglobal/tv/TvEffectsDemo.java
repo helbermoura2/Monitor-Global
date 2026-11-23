@@ -30,6 +30,10 @@ final class TvEffectsDemo {
    case MARKET:return TvBroadcastInfoView.market(c,new BrentQuote(78.35,77.5,.85,1.1,now,"SIMULAÇÃO"),new DollarQuote(5.32,.02,.38,now,"SIMULAÇÃO"),true);
    case SUMMARY:return NewsBannerView.simulationSummary(c,Arrays.asList(quake(false,false),quake(true,false)));
    case SATELLITE:return TvBroadcastInfoView.satelliteDemo(c);
+   case CIVIL:return TvBroadcastInfoView.civilAlert(c,
+     new DefesaCivilSp.Notice("EFFECTS-CIVIL-DEMO","ARGOS ORBIS · TESTE FICTÍCIO",
+       "SIMULAÇÃO DE ALERTA SEVERO da Defesa Civil. Não é uma emergência real.",
+       "Severe",now,now+20000),true);
    default:return TvBroadcastInfoView.voiceStatus(c,"SIMULAÇÃO · CONSULTA POR VOZ","Teste visual sem consulta nem alerta real");
   }
  }
