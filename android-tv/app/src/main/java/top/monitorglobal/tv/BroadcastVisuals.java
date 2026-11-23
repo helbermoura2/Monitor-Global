@@ -12,6 +12,22 @@ import android.graphics.Typeface;
  */
 final class BroadcastVisuals {
  private BroadcastVisuals(){}
+ // Common OLED newsroom section rules; one source column and one logo column.
+ // These rules use the existing 960-unit layout and do not alter its footprint.
+ static final float SOURCE_DIVIDER_X=119f, CIVIL_SOURCE_DIVIDER_X=178f;
+ static final float BRAND_DIVIDER_X=827f, MARKET_DIVIDER_X=485f;
+ static final float DIVIDER_TOP=39f,DIVIDER_BOTTOM=87f;
+ static void sectionDivider(Canvas canvas,Paint paint,float x){
+  paint.setShader(null);
+  paint.setStyle(Paint.Style.FILL);
+  paint.setAlpha(255);
+  paint.setColor(0xffbb243d);
+  canvas.drawRoundRect(x,DIVIDER_TOP,x+1.6f,DIVIDER_BOTTOM,.8f,.8f,paint);
+ }
+ static void newsroomDividers(Canvas canvas,Paint paint,float sourceX){
+  sectionDivider(canvas,paint,sourceX);
+  sectionDivider(canvas,paint,BRAND_DIVIDER_X);
+ }
  // Shared geometry for seismic, weather, rain, and market broadcasts.
  static final float BREAKING_WIDTH=190f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f;
  static final float STATUS_MIN_WIDTH=88f,STATUS_MAX_WIDTH=142f;
