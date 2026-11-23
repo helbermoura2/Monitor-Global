@@ -40,6 +40,17 @@ const allowedSource=p=>[
  'com.android.cellbroadcastreceiver','com.google.android.cellbroadcastreceiver'
 ].includes(p)||/^com\.(?:android|google)\.cellbroadcastreceiver\.[a-z0-9_.]+$/.test(p);
 const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+// Remove UI-only differences between the same Cell Broadcast shown by Android
+// notification and accessibility services. Never ignore locations, times,
+// hazard words or warning instructions: different substantive text stays distinct.
+export function civilBroadcastFingerprintText(text,severity){
+ let core=normalize(text).replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+ const level=severity==='Extreme'?'extremo':'severo';
+ // Different Android skins sometimes repeat the entire severity heading.
+ const prefix=new RegExp('^(?:(?:alerta '+level+'|defesa civil) )+');
+ core=core.replace(prefix,'').replace(/(?: ok)+$/,'').trim();
+ return core;
+}
 // The device display name is volunteered by the paired app; it is not a hardware attestation.
 // Only these short, fixed labels can be shown to the owner on the paired TV.
 const deviceLabel=s=>s==='Galaxy S25 Ultra'||s==='Nothing Phone 1'?s:'Celular Android';
@@ -128,37 +139,45 @@ export async function handleCivilPhoneRelay(request,storage,{now=Date.now()}={})
    const recent=now-row.windowAt<600000?row:{...row,windowAt:now,count:0};
    if(recent.count>=20)return reply({error:'rate_limited'},429);
    await storage.put(key('phone',phone.id),{...recent,count:recent.count+1,lastSend:now});
-   const tv=phone.tv;
-   const previous=(tv.recent||[]).filter(x=>now-x.at<150000);
-   const fingerprint=await sha(alert.type+':'+alert.severity+':'+normalize(alert.text));
+   // Clock-independent identifier for the SAME substantive warning, including
+   // text coming from the notification vs accessibility UI. Do not use a
+   // coarse time/geographic heuristic that could hide a second real warning.
+   const fingerprint=await sha(alert.type+':'+alert.severity+':'
+     +civilBroadcastFingerprintText(alert.text,alert.severity));
    const label=deviceLabel(body.deviceLabel);
-   const events=(tv.events||[]).filter(x=>x.expiresAt>now).slice(-9);
-   const repeated=previous.find(x=>x.hash===fingerprint);
-   if(repeated){
-    // Preserve the first sender and the first alert ID, but record when the
-    // OTHER paired phone also delivered the same Cell Broadcast. This does not
-    // generate another overlay or new incident. Retries from one phone are ignored.
-    const previousEvent=events.find(x=>x.id===repeated.id);
-    if(previousEvent&&phone.id!==previousEvent.firstPhone&&!previousEvent.secondPhone){
-     previousEvent.secondPhone=phone.id;
-     previousEvent.secondDevice=label;
-     previousEvent.secondReceivedAt=now;
-     previousEvent.secondObservedAt=alert.observedAt;
-     await storage.put(key('tv',phone.row.tvId),{...tv,events});
+   // Read the TV record INSIDE its transaction. Two phones can POST together;
+   // stale copies of the TV state could otherwise each create a separate ID.
+   const decision=await storage.transaction(async tx=>{
+    const tv=await tx.get(key('tv',phone.row.tvId));
+    if(!tv||tv.expiresAt<=now||!tv.phones?.includes(phone.id))
+     return {error:'not_paired'};
+    const previous=(tv.recent||[]).filter(x=>now-x.at<150000);
+    const events=(tv.events||[]).filter(x=>x.expiresAt>now).slice(-9);
+    const repeated=previous.find(x=>x.hash===fingerprint);
+    if(repeated){
+     const prior=events.find(x=>x.id===repeated.id);
+     if(prior&&phone.id!==prior.firstPhone&&!prior.secondPhone){
+      prior.secondPhone=phone.id;
+      prior.secondDevice=label;
+      prior.secondReceivedAt=now;
+      prior.secondObservedAt=alert.observedAt;
+      await tx.put(key('tv',phone.row.tvId),{...tv,events});
+     }
+     return {accepted:true,duplicate:true,id:prior?.id||repeated.id||'',
+      firstDevice:prior?.firstDevice||'Celular sem identificação',
+      firstReceivedAt:prior?.firstReceivedAt||0};
     }
-    return reply({accepted:true,duplicate:true,id:previousEvent?.id||repeated.id||'',
-      firstDevice:previousEvent?.firstDevice||'Celular sem identificação',
-      firstReceivedAt:previousEvent?.firstReceivedAt||0});
-   }
-   alert.firstPhone=phone.id;  // internal only; omit from authenticated TV response
-   alert.firstDevice=label;
-   alert.firstReceivedAt=now; // Worker server clock, not the phone wall clock
-   alert.firstObservedAt=alert.observedAt;
-   events.push(alert);
-   await storage.put(key('tv',phone.row.tvId),
-     {...tv,events,recent:[...previous,{hash:fingerprint,id:alert.id,at:now}].slice(-20)});
-   return reply({accepted:true,duplicate:false,id:alert.id,firstDevice:label,
-     firstReceivedAt:now,expiresAt:alert.expiresAt});
+    alert.firstPhone=phone.id; // internal; redacted from the TV poll
+    alert.firstDevice=label;
+    alert.firstReceivedAt=now; // Worker server clock, not phone detection clock
+    alert.firstObservedAt=alert.observedAt;
+    events.push(alert);
+    await tx.put(key('tv',phone.row.tvId),
+      {...tv,events,recent:[...previous,{hash:fingerprint,id:alert.id,at:now}].slice(-20)});
+    return {accepted:true,duplicate:false,id:alert.id,firstDevice:label,
+      firstReceivedAt:now,expiresAt:alert.expiresAt};
+   });
+   return decision.error==='not_paired'?reply({error:'not_paired'},401):reply(decision);
   }
   if(path.endsWith('/tv/poll')){
    const tv=await activeTV(storage,request,now);if(!tv)return reply({error:'not_paired'},401);
