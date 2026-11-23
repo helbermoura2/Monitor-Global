@@ -3,7 +3,7 @@ import android.content.*;import android.graphics.PixelFormat;import android.os.*
 final class Banner {
  private static final int TRAVEL_DP=12;
  private static final long EXIT_MS=250;
- private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private TvEffectsController activeEffects;private boolean slotAnimated;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss;
+ private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private CivilScreenEffect civilScreen;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private TvEffectsController activeEffects;private boolean slotAnimated;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss,clearCivilScreen=this::stopCivilScreen;
  Banner(Context c){context=c;}
  static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
@@ -57,6 +57,7 @@ final class Banner {
  boolean showEffectsDemo(TvEffectsController.EffectsCategory category){return showView(TvEffectsDemo.create(context,category),TvEffectsDemo.duration(category),category==TvEffectsController.EffectsCategory.SUMMARY?2:0,null);}
  View activeView(){return current;}
  private boolean showView(View row,long duration,int summaryCount,Runnable finished){
+  stopCivilScreen();
   if(!Settings.canDrawOverlays(context))return false;main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;
   boolean animated=android.animation.ValueAnimator.areAnimatorsEnabled();
   slotAnimated=animated;
@@ -72,6 +73,9 @@ final class Banner {
   int contentHeight=row instanceof BrazilNationalBannerView?(int)BrazilNationalBannerView.HEIGHT+((BrazilNationalBannerView)row).mapSpace:126+(row instanceof TvBroadcastInfoView?((TvBroadcastInfoView)row).mapSpace:insetDp(context));
   WindowManager wm=(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);WindowManager.LayoutParams p=new WindowManager.LayoutParams(context.getResources().getDisplayMetrics().widthPixels*bannerWidthPercent/100,dp(contentHeight)+2*dp(TRAVEL_DP),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT);p.gravity=(Prefs.get(context).getBoolean("themeTop",false)?Gravity.TOP:Gravity.BOTTOM)|Gravity.CENTER_HORIZONTAL;p.y=dp(32)-dp(TRAVEL_DP);
   try{
+   // The atmosphere is its own full-screen transparent window, added FIRST so
+   // the alert strip paints ABOVE it. It is opt-in through existing effects mode.
+   showCivilScreenBehind(row,wm);
    BannerRevealLayout host;if(current instanceof BannerRevealLayout){host=(BannerRevealLayout)current;host.reveal(activeEffects.animated()?0:1);host.removeAllViews();host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.updateViewLayout(host,p);}
    else{host=new BannerRevealLayout(context);host.setPadding(0,dp(TRAVEL_DP),0,dp(TRAVEL_DP));host.setClipToPadding(false);host.reveal(activeEffects.animated()?0:1);host.addView(row,new FrameLayout.LayoutParams(-1,-1));wm.addView(host,p);current=host;}
    host.configure(activeEffects,summaryCount>0?BannerTimeline.summaryContentDuration(summaryCount,animated):duration);onFinished=finished;awaiting=row;
@@ -103,6 +107,34 @@ final class Banner {
   host.exiting();
   clearExit();exitDeadline=()->finish(host,row);main.postDelayed(exitDeadline,EXIT_MS);animateWipe(host,1,0);
  }
- void hide(){if(activeEffects!=null)activeEffects.stop();main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
+ /** Ambient layer stops independently of the alert's reading time. */
+ private void showCivilScreenBehind(View row,WindowManager wm){
+  if(!(row instanceof TvBroadcastInfoView)||!CivilScreenEffect.eligible(context))return;
+  TvBroadcastInfoView civil=(TvBroadcastInfoView)row;
+  if(civil.effects.category!=TvEffectsController.EffectsCategory.CIVIL||civil.civilIsReplay())return;
+  CivilScreenEffect effect=new CivilScreenEffect(context,civil.civilIsExtreme(),civil.civilIsSimulation());
+  WindowManager.LayoutParams full=new WindowManager.LayoutParams(
+   -1,-1,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+   WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|
+    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,PixelFormat.TRANSLUCENT);
+  full.gravity=Gravity.TOP|Gravity.LEFT;
+  try{
+   wm.addView(effect,full);
+   civilScreen=effect;
+   main.postDelayed(clearCivilScreen,effect.duration()+130L);
+  }catch(RuntimeException denied){
+   // A decorative failure must never block the original official banner.
+   effect.stop();
+  }
+ }
+ private void stopCivilScreen(){
+  main.removeCallbacks(clearCivilScreen);
+  if(civilScreen==null)return;
+  CivilScreenEffect effect=civilScreen;civilScreen=null;
+  effect.stop();
+  try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(effect);}
+  catch(RuntimeException ignored){}
+ }
+ void hide(){stopCivilScreen();if(activeEffects!=null)activeEffects.stop();main.removeCallbacks(dismiss);clearStarter();clearWipe();clearExit();onFinished=null;if(current!=null){try{((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).removeView(current);}catch(RuntimeException ignored){}current=null;}}
 }
 
