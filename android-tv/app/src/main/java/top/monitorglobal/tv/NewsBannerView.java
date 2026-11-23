@@ -79,6 +79,12 @@ final class NewsBannerView extends View {
    pageTickerDisplays[i]=OledNewsChrome.tickerDisplay(footer);
    if(i==0)firstTicker=footer;
    if(i>0)description.append(" · PRÓXIMO REGISTRO · ");
+   // Keep the full regional/status labels in accessibility, independent of
+   // the shorter visual ticker; no information is lost for spoken output.
+   if(regional)description.append("AVISO REGIONAL · ÁREA MONITORADA · ");
+   description.append(page.heading).append(" · ");
+   if(!page.alert.targetArea.isEmpty())description.append("ÁREA MONITORADA · ")
+    .append(page.alert.targetArea).append(" · ");
    description.append(page.alert.title).append(" · ").append(page.alert.detail);
    if(!page.alert.tsunamiSummary.isEmpty())
     description.append(" · ").append(page.alert.tsunamiSummary);
