@@ -295,6 +295,11 @@ final class TvBroadcastInfoView extends View {
   else if(kind==CIVIL_ALERT)drawCivilAlert(c,elapsed);
   else drawSatelliteNews(c,frame);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
+  // Shared source / content / logo divisions in every information banner.
+  BroadcastVisuals.newsroomDividers(c,p,kind==CIVIL_ALERT
+    ?BroadcastVisuals.CIVIL_SOURCE_DIVIDER_X:BroadcastVisuals.SOURCE_DIVIDER_X);
+  // Brent and USD/BRL have two distinct market columns within the content.
+  if(kind==BRENT)BroadcastVisuals.sectionDivider(c,p,BroadcastVisuals.MARKET_DIVIDER_X);
   c.restore();
   drawRadar(c,elapsed); // One official eye in every informational strip.
   drawIdentity(c,elapsed);
@@ -394,13 +399,13 @@ final class TvBroadcastInfoView extends View {
   civilCentered(c,"DEFESA CIVIL",97f,54.7f,19.5f,16f,144f,brand,Color.WHITE);
   fill(c,28f,65.9f,138f,1.2f,0xffc52943);
   civilCentered(c,caption,97f,77.1f,11.5f,9.5f,144f,data,0xffdae2e8);
-  fill(c,178f,39f,1.2f,47f,0xffbb243d);
+  // The shared renderer paints the exact same Civil Defense source rule.
   // Title and two-line message use the wider newsroom column, leaving a safe
   // separation from the official animated eye at the far right.
   fitted(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),
     190f,52f,25f,19f,0xffffb49c,brand,622f);
   c.save();c.translate(190f,56f);civilMessage.draw(c);c.restore();
-  fill(c,817f,40f,1f,46f,0xffab2540);
+  // The logo boundary is also shared with every other event.
   civilEdgeSweep(c,elapsed);
  }
  private void drawVoiceStatus(Canvas c,long elapsed){
@@ -417,7 +422,7 @@ final class TvBroadcastInfoView extends View {
   final int ink=Color.WHITE, muted=0xffc5d6df;
   fitted(c,"BRENT",20,71,25,19,0xffff7687,brand,100);
   fitted(c,"DÓLAR USD/BRL",MARKET_DOLLAR_X,48,18,15,ink,brand,199);
-  fill(c,MARKET_DIVIDER_X,36,1,51,0xff3e494e);
+  // Red Brent / USD divider is drawn by the shared newsroom template.
   fitted(c,brent==null?"US$ —":"US$ "+amount(brent.price),MARKET_BRENT_PRICE_X,73,32,19,brent==null||!brentChanged?ink:effects.valueInk(ink,0xff92e4ff,elapsed),brand,199);
   fitted(c,marketPending?"CONSULTANDO":demo?"SIMULADO":marketHeaderStatus(brentSession),MARKET_BRENT_STATUS_X,48,16,12,demo?muted:brentStateChanged?effects.valueInk(sessionColor(brentSession),Color.WHITE,elapsed):sessionColor(brentSession),brand,135);
   String oil=brent==null||brent.percent==null?"VAR. —":(brent.percent>=0?"▲ +":"▼ ")+amount(brent.percent)+"%";
