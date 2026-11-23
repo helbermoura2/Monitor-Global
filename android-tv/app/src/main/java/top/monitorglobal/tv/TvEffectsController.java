@@ -10,7 +10,7 @@ import android.graphics.RectF;
 /** Presentation only. No alert mutation, queue, timer, network or sound ownership. */
 final class TvEffectsController {
  enum EffectsMode { FULL, SOFT, OFF }
- enum EffectsCategory { GLOBAL_M6, BRAZIL, REGIONAL, TSUNAMI, WEATHER, RAIN, MARKET, SUMMARY, SATELLITE, VOICE }
+ enum EffectsCategory { GLOBAL_M6, BRAZIL, REGIONAL, TSUNAMI, WEATHER, RAIN, MARKET, SUMMARY, SATELLITE, VOICE, CIVIL }
  static final String PREF_MODE="tvEffectsMode";
  final EffectsCategory category;
  final EffectsMode requested;
@@ -27,7 +27,7 @@ final class TvEffectsController {
   category=type;replay=historical;demonstration=demo;requested=selected(c);
  }
  void disableOpening(){openingAllowed=false;}
- boolean openingAllowed(){return openingAllowed&&animated()&&category!=EffectsCategory.VOICE;}
+ boolean openingAllowed(){return openingAllowed&&animated()&&category!=EffectsCategory.VOICE&&category!=EffectsCategory.CIVIL;}
  static EffectsMode selected(Context c){
   try{return EffectsMode.valueOf(Prefs.get(c).getString(PREF_MODE,"FULL"));}
   catch(IllegalArgumentException e){return EffectsMode.FULL;}
@@ -46,7 +46,7 @@ final class TvEffectsController {
   if(!full())return category==EffectsCategory.BRAZIL?300:category==EffectsCategory.VOICE?160:220;
   switch(category){case BRAZIL:return 600;case REGIONAL:return 550;case TSUNAMI:return 400;
    case WEATHER:case MARKET:return 450;case RAIN:return 500;case SATELLITE:return 400;
-   case SUMMARY:return 320;case VOICE:return 300;default:return BannerTimeline.WIPE_MS;}
+   case SUMMARY:return 320;case VOICE:return 300;case CIVIL:return 520;default:return BannerTimeline.WIPE_MS;}
  }
  long pageFadeMs(){return !animated()?0:full()?320:160;}
  static float phase(long elapsed,long duration){return duration<=0?1:Math.max(0f,Math.min(1f,elapsed/(float)duration));}
@@ -81,7 +81,7 @@ final class TvEffectsController {
   if(!animated()||category==EffectsCategory.SUMMARY||elapsed<0||elapsed>=entranceMs())return;
   float t=progress(elapsed),x=8+804*t;
   brush.setShader(null);brush.setStyle(Paint.Style.STROKE);brush.setStrokeWidth(full()?2:1);
-  int tint=category==EffectsCategory.GLOBAL_M6?0xffee3048:category==EffectsCategory.TSUNAMI?0xffffc56b:category==EffectsCategory.MARKET?0xff3166b4:category==EffectsCategory.REGIONAL?0xfff47a89:0xff58dce5;
+  int tint=category==EffectsCategory.GLOBAL_M6?0xffee3048:category==EffectsCategory.TSUNAMI?0xffffc56b:category==EffectsCategory.MARKET?0xff3166b4:category==EffectsCategory.REGIONAL?0xfff47a89:category==EffectsCategory.CIVIL?0xffff526b:0xff58dce5;
   brush.setColor(tint);brush.setAlpha(Math.round((full()?160:80)*(1-t)));
   c.save();c.clipRect(8,91.5f,812,94);
   switch(category){
