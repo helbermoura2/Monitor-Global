@@ -22,7 +22,7 @@ final class BannerOpening {
   switch(category){case BRAZIL:return "SISMO NO BRASIL";case REGIONAL:return "SISMO REGIONAL";
    case RAIN:return "CHUVA";case WEATHER:return "TEMPERATURA";case MARKET:return "COTAÇÕES";
    case SATELLITE:return "SATÉLITE";case TSUNAMI:return "TSUNAMI";case SUMMARY:return "RESUMO DIÁRIO";
-   case VOICE:return "CONSULTA POR VOZ";default:return "BREAKING NEWS";}
+   case VOICE:return "CONSULTA POR VOZ";case CIVIL:return "DEFESA CIVIL";default:return "BREAKING NEWS";}
  }
  long duration(){return effects.full()?(effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6?GlobalM6Intro.END_MS:2300):750;}
  long transitionStart(){return effects.full()&&effects.category==TvEffectsController.EffectsCategory.GLOBAL_M6?GlobalM6Intro.HOLD_END_MS:duration()-(effects.full()?650:300);}
