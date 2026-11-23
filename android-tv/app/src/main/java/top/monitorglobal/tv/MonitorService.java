@@ -92,7 +92,7 @@ public final class MonitorService extends Service {
     demoTasks.add(task);main.postDelayed(task,delay);delay+=TvEffectsDemo.duration(category)+1000;
    }
    Runnable end=new Runnable(){public void run(){demoTasks.remove(this);effectsDemoActive=false;activeUntil=0;stopIfIdle();tryTarget();tryDaily();}};
-   demoTasks.add(end);main.postDelayed(end,delay);Prefs.status(this,"Dez simulações silenciosas em 10 segundos; canceláveis, com prioridade dos alertas reais.");
+   demoTasks.add(end);main.postDelayed(end,delay);Prefs.status(this,"Onze simulações silenciosas em sequência; canceláveis, com prioridade dos alertas reais.");
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
   if(REPLAY_TARGET.equals(action)){
