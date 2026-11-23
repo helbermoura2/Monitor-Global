@@ -27,12 +27,12 @@ async function budget(storage,request,category,limit,now){
 const allowedSource=p=>[
  'com.android.systemui','com.samsung.android.cellbroadcastreceiver','com.sec.android.cellbroadcastreceiver',
  'com.android.cellbroadcastreceiver','com.google.android.cellbroadcastreceiver'
-].includes(p)||/^com\\.(?:android|google)\\.cellbroadcastreceiver\\.[a-z0-9_.]+$/.test(p);
-const normalize=s=>s.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/\\s+/g,' ').trim();
+].includes(p)||/^com\.(?:android|google)\.cellbroadcastreceiver\.[a-z0-9_.]+$/.test(p);
+const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 function validatedNotice(body,now){
  if(typeof body.text!=='string'||body.text.length<28||body.text.length>500||
-    /[\\x00-\\x08\\x0b\\x0e-\\x1f]/.test(body.text))return null;
- const text=body.text.replace(/\\s+/g,' ').trim();
+    /[\x00-\x08\x0b\x0e-\x1f]/.test(body.text))return null;
+ const text=body.text.replace(/\s+/g,' ').trim();
  const test=body.test===true;
  if(typeof body.observedAt!=='number'||body.observedAt<now-120_000||body.observedAt>now+15_000)return null;
  const level=body.severity,source=body.source,origin=body.packageName;
