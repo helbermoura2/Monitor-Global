@@ -1,0 +1,3 @@
+<resources>
+ <string name="argos_probe_accessibility_description">Diagnóstico experimental autorizado pelo usuário para verificar se alertas da Defesa Civil ficam acessíveis à leitura de tela. Só registra mensagens compatíveis localmente quando ativado, sem enviá-las pela internet.</string>
+</resources>
