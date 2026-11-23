@@ -54,7 +54,7 @@ jobs:
             ~/.android/debug.keystore
           key: monitor-global-mobile-debug-key-v2
       - name: Verify mobile push delivery rules
-        run: node --test tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/phone-brazil-radar.test.mjs tests/unit/phone-brazil-model.test.mjs tests/unit/phone-brazil-layout.test.mjs tests/unit/rainbow-products.test.mjs tests/unit/weather-briefing.test.mjs
+        run: node --test tests/unit/civil-phone-relay.test.mjs tests/unit/mobile-push.test.mjs tests/unit/mobile-notices.test.mjs android-mobile/tools/phone-rain-model.test.cjs tests/unit/phone-brazil-radar.test.mjs tests/unit/phone-brazil-model.test.mjs tests/unit/phone-brazil-layout.test.mjs tests/unit/rainbow-products.test.mjs tests/unit/weather-briefing.test.mjs
       - name: Validate all packaged map scripts and administrative geometry
         run: |
           node --check android-mobile/app/src/main/assets/phone-map.js

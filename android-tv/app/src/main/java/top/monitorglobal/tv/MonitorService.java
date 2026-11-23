@@ -6,7 +6,7 @@ public final class MonitorService extends Service {
  static final String TEST_CIVIL_SEVERE=TEST+"_CIVIL_SEVERE",TEST_CIVIL_EXTREME=TEST+"_CIVIL_EXTREME";
  static final String REPLAY_CIVIL_SEVERE="top.monitorglobal.tv.REPLAY_CIVIL_SEVERE",REPLAY_CIVIL_EXTREME="top.monitorglobal.tv.REPLAY_CIVIL_EXTREME";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive,civilDemoActive,civilReplayPending,civilReplayActive;
- private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
+ private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor,civilPhoneExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
  private DailySummarySchedule daily;private FeedClient.Snapshot pendingDaily;private boolean dailyRunning,dailyBusy;private long dailyRetryAt;private Runnable dailyEnd;
  private final BroadcastReceiver screenChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent intent){RuntimeDiagnostics.resetFrameClock();if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){cancelDemos();TvSounds.stop();stopTarget();rain.hide();brent.hide();interruptDaily();}else{tryTarget();checkDaily();rain.tick();brent.tick();}}};
@@ -234,7 +234,11 @@ public final class MonitorService extends Service {
    executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);
    executor.scheduleWithFixedDelay(this::pollCivilAlerts,2,60,TimeUnit.SECONDS);
   }
-  if(!dailyRunning){dailyRunning=true;main.post(dailyTick);}
+  if(civilPhoneExecutor==null&&TvCivilPhoneRelay.paired(this)){
+    civilPhoneExecutor=Executors.newSingleThreadScheduledExecutor();
+    civilPhoneExecutor.scheduleWithFixedDelay(this::pollPhoneCivil,2,20,TimeUnit.SECONDS);
+   }
+   if(!dailyRunning){dailyRunning=true;main.post(dailyTick);}
   // Separate network executor: slow seismic catalogues must not delay voice.
   if(!alexaPolling&&!AlexaLinkClient.token(this).isEmpty()){
    alexaPolling=true;alexaExecutor=Executors.newSingleThreadScheduledExecutor();
@@ -390,7 +394,39 @@ public final class MonitorService extends Service {
   Prefs.status(this,"Resumo automático de "+BrDates.day(snapshot.day)+" · dia encerrado · 6 segundos de leitura por sismo + animações.");
  }
  private PendingIntent open(){return PendingIntent.getActivity(this,1,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
- private void pollCivilAlerts(){
+ private void pollPhoneCivil(){
+   if(destroyed||!Prefs.get(this).getBoolean("enabled",false)||!screenReady())return;
+   try{
+    java.util.List<TvCivilPhoneRelay.Event> events=TvCivilPhoneRelay.poll(this);
+    if(!events.isEmpty())main.post(()->showPhoneCivilEvents(events));
+   }catch(Exception unavailable){
+    // A failed phone relay must not be interpreted as a lack of emergency alerts.
+   }
+  }
+  private void showPhoneCivilEvents(java.util.List<TvCivilPhoneRelay.Event> events){
+   long now=System.currentTimeMillis();
+   if(destroyed||!screenReady()||!Prefs.get(this).getBoolean("enabled",false)||
+      !android.provider.Settings.canDrawOverlays(this))return;
+   android.content.SharedPreferences prefs=Prefs.get(this);
+   java.util.Set<String> seen=new java.util.HashSet<>(prefs.getStringSet("civilPhoneShown",java.util.Collections.emptySet()));
+   if(localBusy()||banner.activeView()!=null||daily.displaying()||rain.presentationActive()||brent.showing())return;
+   for(TvCivilPhoneRelay.Event e:events){
+    if(e.expiresAt<=now+5000||now-e.receivedAt>5*60000||seen.contains(e.id))continue;
+    long duration=Math.min(20000,e.expiresAt-now-1000);
+    if(banner.showCivilPhone(e.notice,duration,()->{activeUntil=0;drain();tryTarget();tryDaily();},e.test)){
+     activeUntil=android.os.SystemClock.uptimeMillis()+duration+1000;
+     seen.add(e.id);
+     // Keep only a tiny recent window of IDs, never mix with official CAP replay records.
+     if(seen.size()>40){seen.clear();seen.add(e.id);}
+     prefs.edit().putStringSet("civilPhoneShown",seen).putString("civilPhoneLastType",e.test?"SIMULAÇÃO":"CELULAR")
+      .putLong("civilPhoneLastAt",e.receivedAt).apply();
+     Prefs.status(this,e.test?"Simulação recebida do celular e exibida na TV; não é alerta real.":
+      "Alerta capturado no celular e retransmitido na TV; não confirmado via CAP.");
+    }
+    return;
+   }
+  }
+  private void pollCivilAlerts(){
   if(destroyed||!screenReady())return;
   try{
    DefesaCivilSp bulletin=DefesaCivilSp.read();
@@ -462,7 +498,7 @@ public final class MonitorService extends Service {
   rain.hide();brent.hide();stopTarget();boolean overlay=banner.show(a,demo,replay);if(!overlay)try{getSystemService(NotificationManager.class).notify(100+Math.floorMod(a.id.hashCode(),1000000),new Notification.Builder(this,"alerts").setSmallIcon(R.drawable.ic_monitor).setContentTitle((demo?"DEMONSTRAÇÃO · ":replay?"REPLAY · ":!a.revision.isEmpty()?"ATUALIZAÇÃO · ":"")+a.title).setContentText(a.detail).setStyle(new Notification.BigTextStyle().bigText((a.revision.isEmpty()?"":a.revision+" · ")+a.detail)).setContentIntent(open()).setAutoCancel(true).build());}catch(SecurityException e){Prefs.status(this,"Notificações bloqueadas pelo sistema. Confira a permissão de sobreposição.");}
   TvSounds.play(this,TvSoundPattern.alert(a,replay));
  }
- @Override public void onDestroy(){destroyed=true;RuntimeDiagnostics.stop();brent.close();rain.close();try{unregisterReceiver(screenChanges);}catch(IllegalArgumentException ignored){}if(daily!=null)daily.interrupt();if(executor!=null)executor.shutdownNow();if(alexaExecutor!=null)alexaExecutor.shutdownNow();if(historyExecutor!=null)historyExecutor.shutdownNow();main.removeCallbacksAndMessages(null);banner.hide();compact.hide();targetQueue.clear();queue.clear();TvSounds.stop();super.onDestroy();}
+ @Override public void onDestroy(){destroyed=true;RuntimeDiagnostics.stop();brent.close();rain.close();try{unregisterReceiver(screenChanges);}catch(IllegalArgumentException ignored){}if(daily!=null)daily.interrupt();if(executor!=null)executor.shutdownNow();if(alexaExecutor!=null)alexaExecutor.shutdownNow();if(civilPhoneExecutor!=null)civilPhoneExecutor.shutdownNow();if(historyExecutor!=null)historyExecutor.shutdownNow();main.removeCallbacksAndMessages(null);banner.hide();compact.hide();targetQueue.clear();queue.clear();TvSounds.stop();super.onDestroy();}
  @Override public IBinder onBind(Intent intent){return null;}
 }
 

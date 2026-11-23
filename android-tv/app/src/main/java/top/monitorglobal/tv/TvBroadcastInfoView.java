@@ -23,7 +23,7 @@ final class TvBroadcastInfoView extends View {
  private boolean brentChanged=true,dollarChanged=true,temperatureChanged=true,rainStateChanged;
  private boolean brentStateChanged,dollarStateChanged,voiceChanged;
  private DefesaCivilSp.Notice civilNotice;
- private boolean civilReplay;
+ private boolean civilReplay,civilFromPhone;
  private android.text.StaticLayout civilMessage;
  private boolean marketPending;private String voiceTitle="",voiceDetail="";
  private final WeatherSatelliteClient.Frame satellite;
@@ -150,6 +150,16 @@ final class TvBroadcastInfoView extends View {
   v.setContentDescription((replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
   return v;
  }
+ /** Opt-in phone relay is NOT official CAP verification. Even live captures are labelled. */
+ static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated){
+  TvBroadcastInfoView v=civilAlert(c,notice,simulated,false);
+  v.civilFromPhone=true;
+  v.ticker=(simulated?"SIMULAÇÃO · AVISO FICTÍCIO · ENVIADO PELO CELULAR · ":
+            "RETRANSMITIDO DO CELULAR · NÃO CONFIRMADO VIA CAP · ")+
+    BrDates.dateTime(notice.sent)+" · "+notice.message;
+  v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()+" · "+notice.message);
+  return v;
+ }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
  static TvBroadcastInfoView marketPending(Context c){
   TvBroadcastInfoView v=market(c,null,null,MarketState.unknown(),MarketState.unknown(),false);
@@ -264,9 +274,9 @@ final class TvBroadcastInfoView extends View {
  }
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
-  if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":civilReplay?"DEFESA CIVIL":"ALERTA OFICIAL",true);
+  if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":civilFromPhone?"DEFESA CIVIL":civilReplay?"DEFESA CIVIL":"ALERTA OFICIAL",true);
   else OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true);
-  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":civilReplay?"REPLAY":"AO VIVO",false);
+  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":civilFromPhone?"CELULAR":civilReplay?"REPLAY":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
@@ -344,7 +354,7 @@ final class TvBroadcastInfoView extends View {
  }
 
  private void drawCivilAlert(Canvas c){
-  eventCategory(c,"DEFESA CIVIL",civilReplay?"REGISTRO HISTÓRICO":demo?"TESTE · SÃO PAULO":"SÃO PAULO · CAPITAL");
+  eventCategory(c,"DEFESA CIVIL",civilReplay?"REGISTRO HISTÓRICO":demo?"TESTE · CELULAR":civilFromPhone?"CAPTURADO NO CELULAR":"SÃO PAULO · CAPITAL");
   label(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),170,51,25,0xffff9d7c,brand,650);
   c.save();c.translate(170,56);civilMessage.draw(c);c.restore();
  }

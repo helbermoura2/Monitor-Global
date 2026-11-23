@@ -71,6 +71,19 @@ public final class MainActivity extends Activity {
   button("Replay · último aviso SEVERO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_SEVERE));
   button("Replay · último aviso EXTREMO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_EXTREME));
   label("Reproduz o último aviso oficial recebido nesta TV nos últimos sete dias. Abre em 10 s para você voltar ao vídeo, fica 20 s e mostra REPLAY HISTÓRICO com a data da emissão. Não toca som e não dispara notificações. Se não houver registro, informa isso; não inventa avisos.",14,false);
+  section("DEFESA CIVIL · VINCULAR CELULARES");
+  button("Gerar código de 8 dígitos para o Argos Orbis do celular",v->
+   TvCivilPhoneRelay.code(this,message->{
+    if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
+    new AlertDialog.Builder(this).setTitle("Argos Orbis · Vínculo da TV com celular")
+     .setMessage(message).setPositiveButton("Entendi",null).show();
+   }));
+  label("Um código por celular. Samsung S25 Ultra e Nothing Phone 1 podem usar a mesma TV. Depois de vincular, no celular ative o envio e toque Enviar TESTE para a TV. A TV precisa ter o monitoramento e sobreposição ativados. Avisos encaminhados são CAPTURADOS NO CELULAR e não confirmados via CAP.",14,false);
+  button("Desvincular o receptor desta TV",v->new AlertDialog.Builder(this)
+   .setTitle("Apagar vínculo do receptor da TV?")
+   .setMessage("A TV deixará de consultar alertas dos celulares. Alertas oficiais via CAP continuarão separados. Será preciso gerar novos códigos depois.")
+   .setNegativeButton("Cancelar",null)
+   .setPositiveButton("Desvincular",(dialog,which)->TvCivilPhoneRelay.forget(this)).show());
   section("DEFESA CIVIL · SIMULAÇÃO NA TV");
   button("Testar aviso SEVERO · fictício (em 10 s)",v->launch(MonitorService.TEST_CIVIL_SEVERE));
   button("Testar aviso EXTREMO · fictício (em 10 s)",v->launch(MonitorService.TEST_CIVIL_EXTREME));

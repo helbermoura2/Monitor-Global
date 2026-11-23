@@ -8,6 +8,7 @@ import {handleTvWeather,TV_WEATHER_POLICY} from "./worker/tv-weather.mjs";
 import {handleTvRain,TV_RAIN_POLICY} from "./worker/tv-rain.mjs";
 import {handleTvAlerts} from "./worker/tv-alerts.mjs";
 import {handleAlexaRelay} from "./worker/alexa-voice-bridge.mjs";
+import {handleCivilPhoneRelay} from "./worker/civil-phone-relay.mjs";
 import {handleGoogleHomeBridge} from "./worker/google-home-bridge.mjs";
 import {deliverTsunamiBulletins} from "./worker/telegram-tsunami-delivery.mjs";
 import {renderTsunamiImage} from "./worker/tsunami-rendering.mjs";
@@ -1214,6 +1215,7 @@ export class EarthquakeAlertDelivery {
                 return Response.json(await sendApprovedImperialOnce(this.state.storage,this.env));
             }
             if(new URL(request.url).pathname.startsWith('/alexa/v1/'))return handleAlexaRelay(request,this.state.storage);
+            if(new URL(request.url).pathname.startsWith('/civil-relay/v1/'))return handleCivilPhoneRelay(request,this.state.storage);
             if(new URL(request.url).pathname.startsWith('/google-home/v1/'))return handleGoogleHomeBridge(request,this.state.storage,{env:this.env});
             return withKvUsage(this.env,async measuredEnv=>{
             if(new URL(request.url).pathname==='/__source-health')return Response.json({...await sourceObjectHealth(this.sourceCache),checkpointIntervalSeconds:900,persistenceDegraded:!!this.sourceCache.lastFailure});
@@ -1997,6 +1999,11 @@ async function handleWorkerRequest(request,env,ctx){
         if (reqUrl.pathname === '/weather-briefing') return handleWeatherBriefing(request,env);
         if (reqUrl.pathname === '/weather-outlook') return handleRainOutlook(request,env);
         if (reqUrl.pathname === '/seismic-insight') return handleSeismicInsight(request,env);
+        if(reqUrl.pathname.startsWith('/civil-relay/v1/')){
+            // Isolated Durable Object instance; phone messages are never public CAP notices.
+            if(!env.EARTHQUAKE_ALERTS)return json({error:'relay_unavailable'},503);
+            return env.EARTHQUAKE_ALERTS.get(env.EARTHQUAKE_ALERTS.idFromName('civil-phone-relay-v1')).fetch(request);
+        }
         if(reqUrl.pathname.startsWith('/alexa/v1/')||reqUrl.pathname.startsWith('/google-home/v1/')){
             // One private durable queue for Alexa and the Google Home test.
             // The Google fulfillment has separate OAuth credentials, but the
