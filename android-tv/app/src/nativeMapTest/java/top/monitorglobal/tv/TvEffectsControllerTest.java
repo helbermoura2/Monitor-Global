@@ -68,6 +68,17 @@ public class TvEffectsControllerTest {
    Bitmap image=Bitmap.createBitmap(960,height,Bitmap.Config.ARGB_8888);try{host.draw(new Canvas(image));int footerY=130+(top?0:v.mapSpace);assertTrue("Brazil footer remains visible while the host moves",Color.alpha(image.getPixel(400,footerY))>100);export(image,"BRAZIL-host-"+mode+"-"+model+"-"+top);}finally{image.recycle();}
   }
  }
+ @Test public void civilFullScreenRespectsAllMotionModes(){
+  TvEffectsController.select(c,TvEffectsController.EffectsMode.FULL);
+  assertTrue(CivilScreenEffect.eligible(c));
+  assertEquals(CivilScreenEffect.FULL_MS,new CivilScreenEffect(c,false,true).duration());
+  assertEquals(CivilScreenEffect.FULL_MS,new CivilScreenEffect(c,true,false).duration());
+  TvEffectsController.select(c,TvEffectsController.EffectsMode.SOFT);
+  assertTrue(CivilScreenEffect.eligible(c));
+  assertEquals(CivilScreenEffect.SOFT_MS,new CivilScreenEffect(c,false,false).duration());
+  TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);
+  assertFalse(CivilScreenEffect.eligible(c));
+ }
  @Test public void noFabricatedWeatherAndNoNewPriceCounters(){
   assertFalse(TvEffectsController.wet(null));assertFalse(TvEffectsController.storm(null,null));
   TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);
