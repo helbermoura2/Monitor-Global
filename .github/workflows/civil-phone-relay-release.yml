@@ -9,7 +9,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: cloudflare-black-sky-maintenance
+  # Dedicated deployment queue: do not let unrelated mobile CI cancel a pending relay rollout.
+  group: cloudflare-civil-phone-relay-release
   cancel-in-progress: false
 jobs:
   publish-provenance:
