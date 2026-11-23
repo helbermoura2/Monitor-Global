@@ -87,7 +87,7 @@ public class TvEffectsControllerTest {
    Prefs.get(service).edit().putBoolean("enabled",false).commit();
    service.onStartCommand(new android.content.Intent().setAction(MonitorService.TEST+"_EFFECTS"),0,1);
    java.lang.reflect.Field tasks=MonitorService.class.getDeclaredField("demoTasks");tasks.setAccessible(true);
-   assertEquals(11,((java.util.List<?>)tasks.get(service)).size());
+   assertEquals(TvEffectsController.EffectsCategory.values().length,((java.util.List<?>)tasks.get(service)).size());
    service.onStartCommand(new android.content.Intent().setAction(MonitorService.TEST+"_EFFECTS_CANCEL"),0,2);
    assertTrue(((java.util.List<?>)tasks.get(service)).isEmpty());
    assertFalse(Prefs.get(service).getBoolean("enabled",false));
@@ -98,7 +98,7 @@ public class TvEffectsControllerTest {
    TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);Bitmap baseline=render(TvEffectsDemo.create(c,category),8000);
    try{for(TvEffectsController.EffectsMode mode:new TvEffectsController.EffectsMode[]{TvEffectsController.EffectsMode.FULL,TvEffectsController.EffectsMode.SOFT}){
     TvEffectsController.select(c,mode);Bitmap next=render(TvEffectsDemo.create(c,category),8000);
-    try{int top=category==TvEffectsController.EffectsCategory.BRAZIL?31:category==TvEffectsController.EffectsCategory.MARKET||category==TvEffectsController.EffectsCategory.VOICE?31:Banner.insetDp(c)+31;
+    try{int top=category==TvEffectsController.EffectsCategory.BRAZIL?31:category==TvEffectsController.EffectsCategory.MARKET||category==TvEffectsController.EffectsCategory.VOICE||category==TvEffectsController.EffectsCategory.CIVIL?31:Banner.insetDp(c)+31;
      int bottom=top+60;
      for(int y=top;y<bottom;y++)for(int x=category==TvEffectsController.EffectsCategory.BRAZIL?272:223;x<812;x++)assertEquals("settled content layout: "+category+" / "+mode,baseline.getPixel(x,y),next.getPixel(x,y));
     }finally{next.recycle();}
