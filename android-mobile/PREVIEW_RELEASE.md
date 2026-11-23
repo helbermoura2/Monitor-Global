@@ -1,3 +1,10 @@
+# Argos Orbis Celular · 0.1.57 de teste (diagnóstico experimental)
+
+- Em **Mais → Informações técnicas e atualização → Teste de alertas Severos/Extremos**, ativa um teste local e voluntário de acessibilidade e acesso a notificações do sistema.
+- Identifica janelas que contenham *Alerta severo/extremo* e *Defesa Civil* em aplicativos de alertas do sistema. Registra apenas texto compatível no próprio aparelho; não envia dados ao Worker nem à TV.
+- Permite testar com janela SIMULADA e com alertas exibidos no histórico do Android. Nenhum desses testes comprova, por si só, o recebimento de um novo Cell Broadcast.
+- O diagnóstico está disponível apenas na prévia Android. A versão de produção da TV não foi alterada.
+
 # Argos Orbis Celular · 0.1.55 de teste
 
 - A Central de Alertas mostra avisos severos e extremos da Defesa Civil que atingem São Paulo capital, quando a consulta oficial se encontra atualizada.
