@@ -52,7 +52,7 @@ final class TvBroadcastInfoView extends View {
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
                              String status,boolean demo){
   super(c);OfficialArgosLogo.prepare(c);
-  effects=new TvEffectsController(c,kind==WEATHER?TvEffectsController.EffectsCategory.WEATHER:kind==RAIN?TvEffectsController.EffectsCategory.RAIN:kind==BRENT?TvEffectsController.EffectsCategory.MARKET:kind==SATELLITE?TvEffectsController.EffectsCategory.SATELLITE:TvEffectsController.EffectsCategory.VOICE,false,demo);
+  effects=new TvEffectsController(c,kind==WEATHER?TvEffectsController.EffectsCategory.WEATHER:kind==RAIN?TvEffectsController.EffectsCategory.RAIN:kind==BRENT?TvEffectsController.EffectsCategory.MARKET:kind==SATELLITE?TvEffectsController.EffectsCategory.SATELLITE:kind==CIVIL_ALERT?TvEffectsController.EffectsCategory.CIVIL:TvEffectsController.EffectsCategory.VOICE,false,demo);
   animate=effects.animated();this.kind=kind;this.rain=rain;this.rainFacts=kind==RAIN?new RainBannerContent(rain):null;this.weather=weather;this.brent=brent;this.dollar=dollar;
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
@@ -143,7 +143,7 @@ final class TvBroadcastInfoView extends View {
   v.civilNotice=notice;v.civilReplay=replay;
   android.text.TextPaint paint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(15);
-  v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,650)
+  v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,622)
    .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
   v.ticker=(replay?"REPLAY HISTÓRICO · NÃO É AVISO ATIVO · EMITIDO EM "+BrDates.dateTime(notice.sent)+" · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")
     +notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
@@ -154,7 +154,7 @@ final class TvBroadcastInfoView extends View {
  static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated){
   TvBroadcastInfoView v=civilAlert(c,notice,simulated,false);
   v.civilFromPhone=true;
-  v.ticker=(simulated?"SIMULAÇÃO · AVISO FICTÍCIO · ENVIADO PELO CELULAR · ":
+  v.ticker=(simulated?"ENVIADO PELO CELULAR · SIMULAÇÃO · AVISO FICTÍCIO · ":
             "RETRANSMITIDO DO CELULAR · NÃO CONFIRMADO VIA CAP · ")+
     BrDates.dateTime(notice.sent)+" · "+notice.message;
   v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()+" · "+notice.message);
@@ -266,7 +266,10 @@ final class TvBroadcastInfoView extends View {
   String display=tickerDisplay;
   Typeface tickerFace=OledNewsChrome.tickerFont();
   p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
-  float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());
+  // Let viewers read the beginning of emergency notices before the ticker starts moving.
+  // Other event tickers keep their established cadence.
+  long tickerTime=kind==CIVIL_ALERT?Math.max(0L,elapsed-3500L):elapsed;
+  float offset=BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled());
   label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
@@ -285,7 +288,7 @@ final class TvBroadcastInfoView extends View {
   else if(kind==WEATHER)drawWeather(c,elapsed);
   else if(kind==BRENT)drawBrent(c,elapsed);
   else if(kind==VOICE_STATUS)drawVoiceStatus(c,elapsed);
-  else if(kind==CIVIL_ALERT)drawCivilAlert(c);
+  else if(kind==CIVIL_ALERT)drawCivilAlert(c,elapsed);
   else drawSatelliteNews(c,frame);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,TvEffectsController.wet(rain),TvEffectsController.storm(rain,weather));
   c.restore();
@@ -353,10 +356,48 @@ final class TvBroadcastInfoView extends View {
   }
  }
 
- private void drawCivilAlert(Canvas c){
-  eventCategory(c,"DEFESA CIVIL",civilReplay?"REGISTRO HISTÓRICO":demo?"TESTE · CELULAR":civilFromPhone?"CAPTURADO NO CELULAR":"SÃO PAULO · CAPITAL");
-  label(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),170,51,25,0xffff9d7c,brand,650);
-  c.save();c.translate(170,56);civilMessage.draw(c);c.restore();
+ // A dedicated, centered source plate for Civil Defense, instead of the tiny
+ // seismic magnitude column. This affects official CAP, replay and phone notices alike.
+ private void civilCentered(Canvas c,String text,float centerX,float centerY,float size,float min,
+                            float width,Typeface face,int color){
+  p.setShader(null);p.setStyle(Paint.Style.FILL);p.setTypeface(face);
+  p.setTextScaleX(1f);p.setTextSize(size);
+  while(size>min&&p.measureText(text)>width){size-=.5f;p.setTextSize(size);}
+  Paint.FontMetrics metrics=p.getFontMetrics();
+  float baseline=centerY-(metrics.ascent+metrics.descent)/2f;
+  p.setColor(color);
+  c.drawText(text,centerX-p.measureText(text)/2f,baseline,p);
+ }
+ /** One low-intensity red edge sweep at entry; never flashes the warning text. */
+ private void civilEdgeSweep(Canvas c,long elapsed){
+  if(!motionEnabled()||elapsed<0)return;
+  long duration=effects.full()?820:480;
+  if(elapsed>=duration)return;
+  float phase=TvEffectsController.ease(TvEffectsController.phase(elapsed,duration));
+  float head=20f+794f*phase,tail=Math.max(20f,head-(effects.full()?116f:64f));
+  p.setShader(null);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(effects.full()?1.7f:1.1f);
+  p.setColor(Color.argb(Math.round(160*(1-phase)),255,75,96));
+  c.save();c.clipRect(19f,31f,822f,94f);
+  c.drawLine(tail,32.2f,head,32.2f,p);
+  c.drawLine(tail,92.1f,head,92.1f,p);
+  c.restore();p.setStyle(Paint.Style.FILL);
+ }
+ private void drawCivilAlert(Canvas c,long elapsed){
+  String caption=civilReplay?"REGISTRO HISTÓRICO":
+   demo?(civilFromPhone?"TESTE • CELULAR":"TESTE • TV"):
+   civilFromPhone?"CELULAR • NÃO É CAP":"SÃO PAULO • CAPITAL";
+  // Plate x=20..171: source and subtitle share the same optical center.
+  civilCentered(c,"DEFESA CIVIL",97f,54.7f,19.5f,16f,144f,brand,Color.WHITE);
+  fill(c,28f,65.9f,138f,1.2f,0xffc52943);
+  civilCentered(c,caption,97f,77.1f,11.5f,9.5f,144f,data,0xffdae2e8);
+  fill(c,178f,39f,1.2f,47f,0xffbb243d);
+  // Title and two-line message use the wider newsroom column, leaving a safe
+  // separation from the official animated eye at the far right.
+  fitted(c,civilNotice.level().toUpperCase(java.util.Locale.forLanguageTag("pt-BR")),
+    190f,52f,25f,19f,0xffffb49c,brand,622f);
+  c.save();c.translate(190f,56f);civilMessage.draw(c);c.restore();
+  fill(c,817f,40f,1f,46f,0xffab2540);
+  civilEdgeSweep(c,elapsed);
  }
  private void drawVoiceStatus(Canvas c,long elapsed){
   eventCategory(c,"CONSULTA","POR VOZ");
