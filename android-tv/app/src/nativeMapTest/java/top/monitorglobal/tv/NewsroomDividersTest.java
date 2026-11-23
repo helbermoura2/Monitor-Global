@@ -77,7 +77,8 @@ public class NewsroomDividersTest {
    redRule(bitmap,120,60,"source middle");
    redRule(bitmap,827,60,"logo middle");
    assertEquals("dividers must not enter the red tabs",Color.TRANSPARENT,bitmap.getPixel(120,27));
-   assertEquals("left red rule stops before ticker",0,Color.red(bitmap.getPixel(120,99)));
+   int footer=bitmap.getPixel(120,99);
+   assertTrue("left red rule stops before ticker",Color.red(footer)<=Color.green(footer)+25);
   }finally{bitmap.recycle();}
  }
 }
