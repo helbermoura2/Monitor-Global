@@ -98,7 +98,8 @@ public class TvEffectsControllerTest {
    Prefs.get(service).edit().putBoolean("enabled",false).commit();
    service.onStartCommand(new android.content.Intent().setAction(MonitorService.TEST+"_EFFECTS"),0,1);
    java.lang.reflect.Field tasks=MonitorService.class.getDeclaredField("demoTasks");tasks.setAccessible(true);
-   assertEquals(TvEffectsController.EffectsCategory.values().length,((java.util.List<?>)tasks.get(service)).size());
+   // One task per category plus the final sequence-completion task.
+   assertEquals(TvEffectsController.EffectsCategory.values().length+1,((java.util.List<?>)tasks.get(service)).size());
    service.onStartCommand(new android.content.Intent().setAction(MonitorService.TEST+"_EFFECTS_CANCEL"),0,2);
    assertTrue(((java.util.List<?>)tasks.get(service)).isEmpty());
    assertFalse(Prefs.get(service).getBoolean("enabled",false));
