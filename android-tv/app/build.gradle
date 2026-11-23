@@ -16,7 +16,7 @@ android {
   // Fim de semana no Brasil não é confundido com abertura da referência global.
   versionCode 10139
   versionName '1.0.139'
-  // Defesa Civil: tarja alinhada e radar temporário de tela inteira, sem afetar o transporte.
+  // Defesa Civil: tarja e radar temporário de tela inteira. Reteste da sequência e liberação assinada.
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
