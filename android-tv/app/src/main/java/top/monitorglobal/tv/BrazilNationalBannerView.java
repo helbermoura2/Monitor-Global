@@ -166,6 +166,8 @@ final class BrazilNationalBannerView extends View {
   OledNewsChrome.tab(canvas,p,"SISMO NO BRASIL",true);
   OledNewsChrome.tab(canvas,p,demo?"TESTE FICTÍCIO":replay?"REPLAY":"AO VIVO",false);
   drawBody(canvas,elapsed);
+  // The state map begins at x124, safely after the shared source divider.
+  BroadcastVisuals.newsroomDividers(canvas,p,BroadcastVisuals.SOURCE_DIVIDER_X);
   BroadcastVisuals.radar(canvas,p,elapsed,animated);
   drawFooter(canvas,elapsed);
   canvas.restore();drawDetailMap(canvas);
@@ -197,9 +199,11 @@ final class BrazilNationalBannerView extends View {
   int layer=c.saveLayerAlpha(20,31,829,94,alpha);
   centered(c,"MAGNITUDE",68,50,13,0xffecb8bf,bold,99);
   centered(c,magnitude.equals("—")?magnitude:"M"+magnitude,68,76,32,0xffff7687,bold,99);
-  ink(c,headline,textX,55,24,WHITE,bold,821-textX);
-  ink(c,place,textX,73,16,0xffd8e4ee,bold,821-textX);
-  ink(c,depth+"  ·  "+time,textX,89,14,0xffd8e4ee,regular,821-textX);
+  // Reserve a few pixels for the permanent red rule before the official logo.
+  float storyWidth=BroadcastVisuals.BRAND_DIVIDER_X-8f-textX;
+  ink(c,headline,textX,55,24,WHITE,bold,storyWidth);
+  ink(c,place,textX,73,16,0xffd8e4ee,bold,storyWidth);
+  ink(c,depth+"  ·  "+time,textX,89,14,0xffd8e4ee,regular,storyWidth);
   c.restoreToCount(layer);
  }
  private RectF stateArea(float l,float t,float r,float b){stateArea.set(l,t,r,b);return stateArea;}
