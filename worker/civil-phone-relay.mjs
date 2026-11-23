@@ -13,8 +13,19 @@ const key=(type,id)=>PREFIX+type+':'+id;
 const token=r=>{const raw=r.headers.get('authorization')||'';return /^Bearer [a-f0-9]{64}$/i.test(raw)?raw.slice(7).toLowerCase():'';};
 async function readBody(req){
  if(Number(req.headers.get('content-length')||0)>1800)throw Error('invalid');
- const raw=await req.text();if(enc.encode(raw).length>1800)throw Error('invalid');
- const body=JSON.parse(raw);if(!body||Array.isArray(body)||typeof body!=='object')throw Error('invalid');
+ const reader=req.body?.getReader();if(!reader)throw Error('invalid');
+ let size=0;const pieces=[];
+ try{
+  for(;;){
+   const {done,value}=await reader.read();if(done)break;
+   size+=value.byteLength;if(size>1800)throw Error('invalid');
+   pieces.push(value);
+  }
+ }finally{reader.releaseLock();}
+ const bytes=new Uint8Array(size);let offset=0;
+ for(const part of pieces){bytes.set(part,offset);offset+=part.byteLength;}
+ const body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+ if(!body||Array.isArray(body)||typeof body!=='object')throw Error('invalid');
  return body;
 }
 async function budget(storage,request,category,limit,now){
