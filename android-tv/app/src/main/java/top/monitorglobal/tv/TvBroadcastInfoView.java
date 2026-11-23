@@ -156,12 +156,17 @@ final class TvBroadcastInfoView extends View {
  boolean civilIsSimulation(){return kind==CIVIL_ALERT&&demo;}
  /** Opt-in phone relay is NOT official CAP verification. Even live captures are labelled. */
  static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated){
+  return civilPhone(c,notice,simulated,"Celular sem identificação");
+ }
+ static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated,String sender){
   TvBroadcastInfoView v=civilAlert(c,notice,simulated,false);
   v.civilFromPhone=true;
   v.ticker=(simulated?"ENVIADO PELO CELULAR · SIMULAÇÃO · AVISO FICTÍCIO · ":
             "RETRANSMITIDO DO CELULAR · NÃO CONFIRMADO VIA CAP · ")+
-    BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()+" · "+notice.message);
+    "PRIMEIRO NO WORKER: "+TvCivilPhoneRelay.safeName(sender)+" · "+
+   BrDates.dateTime(notice.sent)+" · "+notice.message;
+  v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()
+   +" · Primeiro aparelho: "+TvCivilPhoneRelay.safeName(sender)+" · "+notice.message);
   return v;
  }
  /** Replay retains the phone origin and never impersonates an official CAP record. */
