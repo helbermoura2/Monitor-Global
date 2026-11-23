@@ -123,17 +123,21 @@ public class TvBroadcastInfoViewTest {
   finally{b.recycle();}
  }
  @Test public void satelliteAndSeismicMapShareOneStableVisualAnchor()throws Exception{
-  assertEquals(649f,MapInset.FRAME_X,0);
+  assertEquals(615f,MapInset.FRAME_X,0);
   assertEquals(310f,MapInset.FRAME_WIDTH,0);
   assertEquals(176f,MapInset.FRAME_HEIGHT,0);
+  assertEquals("Every event map must finish at the banner right edge",
+   OledNewsChrome.RIGHT,MapInset.FRAME_X+MapInset.FRAME_WIDTH,0);
   WeatherForecast.Summary weather=new WeatherForecast.Summary(
     "22°C","Nublado","12 km/h","74%","Modelo horário",System.currentTimeMillis()+600000,false,
     "22°C","22°C","74%","12 km/h","17 km/h","Cloudy");
   TvBroadcastInfoView v=TvBroadcastInfoView.weather(c,null,weather,false);
   Bitmap full=render(v,"aligned-weather-inset");
   try{
-   assertTrue("Shared frame begins exactly at x649",Color.alpha(full.getPixel(653,10))>160);
-   assertEquals("No legacy inset should begin at x615",0,Color.alpha(full.getPixel(623,10)));
+   assertTrue("Map starts at the shared x615 anchor",Color.alpha(full.getPixel(620,10))>160);
+   assertEquals("No map protrudes left of the shared anchor",0,Color.alpha(full.getPixel(600,10)));
+   assertTrue("Map ends at the banner right edge",Color.alpha(full.getPixel(921,10))>160);
+   assertEquals("No map may overflow the ticker right edge",0,Color.alpha(full.getPixel(935,10)));
   }finally{full.recycle();}
  }
  @Test public void sundayForexIsGlobalAndB3NextRegularSessionIsMondayMorning(){
