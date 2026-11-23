@@ -61,9 +61,9 @@ final class BrazilNationalBannerView extends View {
   time=event.eventTime>0?eventTime(event.eventTime):"Horário indisponível";
   String given=event.source==null||event.source.trim().isEmpty()?event.provider:event.source;
   source=given==null||given.trim().isEmpty()?"Fonte não informada":given.trim();
-  ticker=(replay?"REPLAY HISTÓRICO · NÃO É NOVO ALERTA · ":"")
-   +(demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")
-   +place+" · "+depth+" · "+time+" · "+source+" · DADOS SUJEITOS A REVISÃO";
+  // Only complementary source facts in the moving footer; the main strip
+  // already shows place, depth and event time.
+  ticker=SeismicFooter.forEvent(event,demo,replay,false,"",false);
   setContentDescription((demo?"Simulação, não é um alerta real. ":replay?
    "Replay histórico, não é um novo alerta. ":"Registro sísmico no Brasil. ")
    +headline+". "+place+". Magnitude "+magnitude+". "+depth+". "+time+". "+source+".");
