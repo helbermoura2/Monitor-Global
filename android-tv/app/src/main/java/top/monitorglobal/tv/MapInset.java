@@ -2,8 +2,12 @@ package top.monitorglobal.tv;
 import android.content.Context;import android.graphics.*;import java.util.*;import java.util.concurrent.*;import java.io.*;import org.json.*;
 /** Satellite inset with immediate offline fallback and one bounded preparation worker. */
 final class MapInset {
- /** Shared TV map viewport: exactly the same frame for seismic, Brazil and infrared. */
- static final float FRAME_X=649f, FRAME_WIDTH=310f, FRAME_HEIGHT=176f, VIEWPORT_HEIGHT=180f;
+ /** Shared TV map viewport: frame ends at the OLED lower-third's right edge.
+  * M6+, Brasil, regional/replay and weather/infrared all use the same anchor.
+  * Do not hardcode a left coordinate: 649 + 310 previously overshot the 925 right edge by 34.
+  */
+ static final float FRAME_WIDTH=310f, FRAME_HEIGHT=176f, VIEWPORT_HEIGHT=180f;
+ static final float FRAME_X=OledNewsChrome.RIGHT-FRAME_WIDTH;
  static float slideY(boolean below,float slide){return below?4f-slide:slide;}
  private static float[][] land;
  private final android.os.Handler main=new android.os.Handler(android.os.Looper.getMainLooper());
