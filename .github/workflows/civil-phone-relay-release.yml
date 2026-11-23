@@ -5,15 +5,30 @@ on:
     paths:
       - 'worker/civil-phone-relay.mjs'
       - '.github/workflows/civil-phone-relay-release.yml'
+  pull_request:
+    paths:
+      - 'worker/civil-phone-relay.mjs'
+      - 'tests/unit/civil-phone-relay.test.mjs'
+      - '.github/workflows/civil-phone-relay-release.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   # Dedicated deployment queue: do not let unrelated mobile CI cancel a pending relay rollout.
-  group: cloudflare-civil-phone-relay-release
+  group: cloudflare-civil-phone-relay-release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  validate-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check worker/civil-phone-relay.mjs
+      - run: node --test tests/unit/civil-phone-relay.test.mjs
   publish-provenance:
+    needs: validate-provenance
     if: github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15

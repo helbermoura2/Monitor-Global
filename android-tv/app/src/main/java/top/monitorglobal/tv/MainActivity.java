@@ -84,6 +84,12 @@ public final class MainActivity extends Activity {
    long second=p.getLong("civilPhoneSecondWorkerAt",0);
    String firstDevice=p.getString("civilPhoneFirstDevice","NÃO IDENTIFICADO");
    String secondDevice=p.getString("civilPhoneSecondDevice","");
+   String shownId=p.getString("civilPhoneLastDisplayedEvent","");
+   String priorShownId=p.getString("civilPhonePreviousDisplayedEvent","");
+   String shownDevice=p.getString("civilPhoneLastDisplayedDevice","NÃO IDENTIFICADO");
+   String priorDevice=p.getString("civilPhonePreviousDisplayedDevice","NÃO IDENTIFICADO");
+   String shownCode=shownId.isEmpty()?"N/D":shownId.substring(0,Math.min(8,shownId.length()));
+   String priorCode=priorShownId.isEmpty()?"N/D":priorShownId.substring(0,Math.min(8,priorShownId.length()));
    String report="Receptor: "+(TvCivilPhoneRelay.paired(this)?"VINCULADO":"NÃO VINCULADO")
     +"\nMonitoramento: "+(p.getBoolean("enabled",false)?"ATIVO":"DESATIVADO")
     +"\nÚltima consulta: "+(poll>0?BrDates.dateTime(poll):"NENHUMA")
@@ -96,6 +102,10 @@ public final class MainActivity extends Activity {
     +"\nÚltima tarja exibida: "+(shown>0?BrDates.dateTime(shown):"NENHUMA")
     +"\nTipo exibido: "+p.getString("civilPhoneLastType","N/D")
     +"\nEstado da exibição: "+p.getString("civilPhoneLastDisplayStatus","Não há confirmação local")
+    +"\n--- ÚLTIMAS TARJAS REAIS DISTINTAS ---"
+    +"\nÚltima: "+shownCode+" · "+shownDevice
+    +"\nAnterior: "+priorCode+" · "+priorDevice
+    +"\nIDs distintos podem representar textos diferentes do mesmo alerta. O histórico é diagnóstico, não boletim CAP."
     +"\nO aceite pelo Worker NÃO significa exibição na TV.";
    new AlertDialog.Builder(this).setTitle("Defesa Civil · Diagnóstico da ponte")
     .setMessage(report).setPositiveButton("Entendi",null).show();

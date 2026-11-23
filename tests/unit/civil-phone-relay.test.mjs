@@ -1,11 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {handleCivilPhoneRelay} from '../../worker/civil-phone-relay.mjs';
+import {handleCivilPhoneRelay,civilBroadcastFingerprintText} from '../../worker/civil-phone-relay.mjs';
 class Memory {
- map=new Map();
+ map=new Map(); pending=Promise.resolve();
  async get(k){return this.map.get(k)}
  async put(k,v){this.map.set(k,v)}
  async delete(k){this.map.delete(k)}
+ async transaction(fn){
+  const previous=this.pending;
+  let unlock;this.pending=new Promise(resolve=>{unlock=resolve});
+  await previous;
+  try{return await fn(this)}finally{unlock()}
+ }
 }
 const URL='https://black-sky-9ba0.terrestre.workers.dev/civil-relay/v1/';
 const call=async(storage,route,body,token='',time=1795386000000,ip='tester')=>{
@@ -128,4 +134,37 @@ test('unknown or forged device names stay generic and simulations remain marked 
  const events=(await call(db,'tv/poll',undefined,tv,now+1000)).data.events;
  assert.equal(events.length,2);assert.equal(events[1].type,'test');
  assert.equal(events[1].firstDevice,'Galaxy S25 Ultra');
+});
+
+test('same alert across two skins: repeated severity heading, punctuation and OK do not create a second strip',async()=>{
+ const now=1795386000000, db=new Memory();
+ const t=await call(db,'tv/register',{},'',now);
+ const p1=await call(db,'phone/pair',{code:t.data.code},'',now);
+ const code2=await call(db,'tv/code',{},t.data.tvToken,now);
+ const p2=await call(db,'phone/pair',{code:code2.data.code},'',now);
+ const a='Alerta severo Defesa Civil: Chuva forte nas Zonas Oeste, Sul e Central de São Paulo. Tem raios e vento. Busque abrigo.';
+ const b='Alerta severo Alerta severo Defesa Civil:Chuva forte nas Zonas Oeste, Sul e Central de Sao Paulo! Tem raios e vento. Busque abrigo. OK';
+ assert.equal(civilBroadcastFingerprintText(a,'Severe'),civilBroadcastFingerprintText(b,'Severe'));
+ const base={severity:'Severe',source:'ACESSIBILIDADE',packageName:'com.google.android.cellbroadcastreceiver',test:false};
+ const [first,second]=await Promise.all([
+  call(db,'phone/send',{...base,text:a,observedAt:now,deviceLabel:'Nothing Phone 1'},p1.data.phoneToken,now),
+  call(db,'phone/send',{...base,text:b,observedAt:now,deviceLabel:'Galaxy S25 Ultra'},p2.data.phoneToken,now)
+ ]);
+ assert.equal(first.code,200);assert.equal(second.code,200);
+ assert.equal([first.data.duplicate,second.data.duplicate].filter(Boolean).length,1);
+ const poll=await call(db,'tv/poll',undefined,t.data.tvToken,now+200);
+ assert.equal(poll.data.events.length,1);
+ assert.ok(['Nothing Phone 1','Galaxy S25 Ultra'].includes(poll.data.events[0].firstDevice));
+ assert.ok(['Nothing Phone 1','Galaxy S25 Ultra'].includes(poll.data.events[0].secondDevice));
+ assert.notEqual(poll.data.events[0].firstDevice,poll.data.events[0].secondDevice);
+});
+test('distinct updates on hazard or location remain distinct even within duplicate window',async()=>{
+ const now=1795386000000,db=new Memory(),{tv,phone}=await setup(db,now);
+ const base={severity:'Severe',source:'ACESSIBILIDADE',packageName:'com.google.android.cellbroadcastreceiver',test:false};
+ const first='Alerta severo Defesa Civil: Chuva forte na Zona Oeste de São Paulo, risco de granizo. Busque abrigo.';
+ const changed='Alerta severo Defesa Civil: Chuva forte na Zona Leste de São Paulo, risco de granizo. Busque abrigo.';
+ const send=async(text,at)=>call(db,'phone/send',{...base,text,observedAt:at,deviceLabel:'Galaxy S25 Ultra'},phone,at);
+ assert.equal((await send(first,now)).data.duplicate,false);
+ assert.equal((await send(changed,now+1000)).data.duplicate,false);
+ assert.equal((await call(db,'tv/poll',undefined,tv,now+2000)).data.events.length,2);
 });
