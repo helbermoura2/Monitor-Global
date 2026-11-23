@@ -14,9 +14,9 @@ android {
   // Cotação horária Yahoo BRL=X: painel nativo, sem WebView nem sobreposição externa.
   // Câmbio internacional e Brent possuem consultas/sessões independentes.
   // Fim de semana no Brasil não é confundido com abertura da referência global.
-  versionCode 10140
-  versionName '1.0.140'
-  // Shared map frame aligned on every event; rendered map interior and boundaries validated.
+  versionCode 10141
+  versionName '1.0.141'
+  // OLED newsroom dividers unified across sismos, Brasil, weather, markets, Civil Defense and replay.
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
