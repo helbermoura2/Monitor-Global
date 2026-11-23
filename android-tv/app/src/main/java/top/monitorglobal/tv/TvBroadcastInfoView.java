@@ -293,7 +293,7 @@ final class TvBroadcastInfoView extends View {
   OledNewsChrome.base(c,p);
   if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":civilFromPhone?"DEFESA CIVIL":civilReplay?"DEFESA CIVIL":"ALERTA OFICIAL",true);
   else OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true);
-  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":civilFromPhone?"CELULAR":civilReplay?"REPLAY":"AO VIVO",false);
+  OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":civilReplay?"REPLAY":civilFromPhone?"CELULAR":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
   int effectLayer=c.saveLayerAlpha(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP,effects.opacity(elapsed));
