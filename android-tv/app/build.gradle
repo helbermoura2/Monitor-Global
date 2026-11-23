@@ -14,8 +14,8 @@ android {
   // Cotação horária Yahoo BRL=X: painel nativo, sem WebView nem sobreposição externa.
   // Câmbio internacional e Brent possuem consultas/sessões independentes.
   // Fim de semana no Brasil não é confundido com abertura da referência global.
-  versionCode 10142
-  versionName '1.0.142'
+  versionCode 10143
+  versionName '1.0.143'
   // TSUNAMI: estado único; ticker complementar e descrições regionais acessíveis validadas.
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
