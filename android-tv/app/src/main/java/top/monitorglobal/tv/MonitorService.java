@@ -5,6 +5,7 @@ public final class MonitorService extends Service {
  static final String WEATHER_NOW="top.monitorglobal.tv.WEATHER_NOW",CHECK_BRENT="top.monitorglobal.tv.CHECK_BRENT",VOICE_BRAZIL="top.monitorglobal.tv.VOICE_BRAZIL",VOICE_RAIN="top.monitorglobal.tv.VOICE_RAIN";
  static final String TEST_CIVIL_SEVERE=TEST+"_CIVIL_SEVERE",TEST_CIVIL_EXTREME=TEST+"_CIVIL_EXTREME";
  static final String REPLAY_CIVIL_SEVERE="top.monitorglobal.tv.REPLAY_CIVIL_SEVERE",REPLAY_CIVIL_EXTREME="top.monitorglobal.tv.REPLAY_CIVIL_EXTREME";
+ static final String REPLAY_PHONE_SEVERE="top.monitorglobal.tv.REPLAY_PHONE_SEVERE",REPLAY_PHONE_EXTREME="top.monitorglobal.tv.REPLAY_PHONE_EXTREME";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive,civilDemoActive,civilReplayPending,civilReplayActive;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor,civilPhoneExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
@@ -15,11 +16,16 @@ public final class MonitorService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Argos Orbis TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
-  if(REPLAY_CIVIL_SEVERE.equals(action)||REPLAY_CIVIL_EXTREME.equals(action)){
-   boolean extreme=REPLAY_CIVIL_EXTREME.equals(action);
-   DefesaCivilSp.Notice recorded=CivilReplayStore.last(this,extreme?CivilReplayStore.EXTREME:CivilReplayStore.SEVERE);
+  if(REPLAY_CIVIL_SEVERE.equals(action)||REPLAY_CIVIL_EXTREME.equals(action)||
+     REPLAY_PHONE_SEVERE.equals(action)||REPLAY_PHONE_EXTREME.equals(action)){
+   boolean phone=REPLAY_PHONE_SEVERE.equals(action)||REPLAY_PHONE_EXTREME.equals(action);
+   boolean extreme=REPLAY_CIVIL_EXTREME.equals(action)||REPLAY_PHONE_EXTREME.equals(action);
+   String level=extreme?CivilReplayStore.EXTREME:CivilReplayStore.SEVERE;
+   DefesaCivilSp.Notice recorded=phone?CivilPhoneHistory.last(this,level):CivilReplayStore.last(this,level);
    if(recorded==null){
-    Prefs.status(this,"Nenhum aviso "+(extreme?"EXTREMO":"SEVERO")+" oficial recebido nesta TV nos últimos sete dias. Para visualizar a tarja, use o teste fictício.");
+    Prefs.status(this,"Nenhum aviso "+(extreme?"EXTREMO":"SEVERO")
+     +(phone?" capturado no celular e recebido pela TV":" oficial recebido nesta TV")
+     +" nos últimos sete dias. Alertas antigos não são recuperados automaticamente.");
     stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
    }
    if(!android.provider.Settings.canDrawOverlays(this)||destroyed||!screenReady()||localBusy()||targetBannerActive||
@@ -36,13 +42,13 @@ public final class MonitorService extends Service {
     }
     long duration=20_000L;
     Runnable end=()->{civilReplayActive=false;activeUntil=0;tryTarget();tryDaily();drain();stopIfIdle();};
-    if(banner.showCivilReplay(recorded,duration,end)){
+    if(phone?banner.showCivilPhoneReplay(recorded,duration,end):banner.showCivilReplay(recorded,duration,end)){
      civilReplayActive=true;activeUntil=SystemClock.uptimeMillis()+duration+1000;
-     Prefs.status(MonitorService.this,"REPLAY HISTÓRICO · "+recorded.level()+" · emitido em "+BrDates.dateTime(recorded.sent)+" · não é aviso atual · 20 segundos · sem som.");
+     Prefs.status(MonitorService.this,"REPLAY HISTÓRICO · "+(phone?"CELULAR · NÃO VERIFICADO VIA CAP · ":"")+recorded.level()+" · "+BrDates.dateTime(recorded.sent)+" · não é aviso atual · 20 segundos · sem som.");
     }else{Prefs.status(MonitorService.this,"Replay da Defesa Civil indisponível: autorize a sobreposição.");stopIfIdle();}
    }};
    demoTasks.add(play);main.postDelayed(play,10_000L);
-   Prefs.status(this,"REPLAY HISTÓRICO "+(extreme?"EXTREMO":"SEVERO")+" em 10 segundos · volte ao vídeo. Aviso original: "+BrDates.dateTime(recorded.sent)+".");
+   Prefs.status(this,"REPLAY HISTÓRICO "+(extreme?"EXTREMO":"SEVERO")+(phone?" · do celular":" · oficial")+" em 10 segundos · volte ao vídeo. Registro: "+BrDates.dateTime(recorded.sent)+".");
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
@@ -398,9 +404,14 @@ public final class MonitorService extends Service {
    if(destroyed||!Prefs.get(this).getBoolean("enabled",false)||!screenReady())return;
    try{
     java.util.List<TvCivilPhoneRelay.Event> events=TvCivilPhoneRelay.poll(this);
+    Prefs.get(this).edit().putLong("civilPhoneLastPollAt",System.currentTimeMillis())
+     .putString("civilPhoneLastPollStatus","Worker consultado com sucesso").apply();
+    // Capture accepted genuine alerts even when another overlay postpones display.
+    for(TvCivilPhoneRelay.Event event:events)CivilPhoneHistory.remember(this,event);
     if(!events.isEmpty())main.post(()->showPhoneCivilEvents(events));
    }catch(Exception unavailable){
-    // A failed phone relay must not be interpreted as a lack of emergency alerts.
+    Prefs.get(this).edit().putLong("civilPhoneLastPollAt",System.currentTimeMillis())
+     .putString("civilPhoneLastPollStatus","Falha na consulta: "+unavailable.getClass().getSimpleName()).apply();
    }
   }
   private void showPhoneCivilEvents(java.util.List<TvCivilPhoneRelay.Event> events){
@@ -419,7 +430,7 @@ public final class MonitorService extends Service {
      // Keep only a tiny recent window of IDs, never mix with official CAP replay records.
      if(seen.size()>40){seen.clear();seen.add(e.id);}
      prefs.edit().putStringSet("civilPhoneShown",seen).putString("civilPhoneLastType",e.test?"SIMULAÇÃO":"CELULAR")
-      .putLong("civilPhoneLastAt",e.receivedAt).apply();
+      .putLong("civilPhoneLastAt",e.receivedAt).putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido").apply();
      Prefs.status(this,e.test?"Simulação recebida do celular e exibida na TV; não é alerta real.":
       "Alerta capturado no celular e retransmitido na TV; não confirmado via CAP.");
     }
