@@ -1,3 +1,10 @@
+# Argos Orbis Celular · 0.1.58 de teste — encaminhamento para a TV
+
+- O diagnóstico experimental de Cell Broadcast agora permite **vincular o celular à TCL P7K com código temporário de oito dígitos**, ativar o envio e executar **Enviar TESTE para a TV pelo Worker**.
+- Depois de autorizar Acessibilidade ou notificações, se o Android expuser a janela de um **novo** Alerta Severo/Extremo, o Argos Orbis tentará encaminhar a mensagem automaticamente. Não utiliza SMS 40199 nem dá acesso privilegiado ao Cell Broadcast.
+- O encaminhamento é **desativado por padrão**; os registros visualizados no histórico do sistema não são encaminhados. Teste e evento recebido têm rótulos distintos na tarja da TV; captura do celular não equivale a CAP validado.
+- Instruções para desfazer o recurso sem alterar os demais aplicativos: android-mobile/docs/CIVIL_PHONE_TV_BRIDGE_ROLLBACK.md.
+
 # Argos Orbis Celular · 0.1.57 de teste (diagnóstico experimental)
 
 - Em **Mais → Informações técnicas e atualização → Teste de alertas Severos/Extremos**, ativa um teste local e voluntário de acessibilidade e acesso a notificações do sistema.
