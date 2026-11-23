@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Opt-in, debug-only local diagnostic. Nothing read here is uploaded or forwarded.
+ * Opt-in, debug-only local diagnostic. Only paired, explicitly enabled messages may be relayed to the owner's TV.
  * A simulated dialog / old alert history is NOT evidence of live Cell Broadcast access.
  */
 public final class AlertProbeDiagnostics extends Activity {
