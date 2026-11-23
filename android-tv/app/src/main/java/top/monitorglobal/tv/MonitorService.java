@@ -444,7 +444,9 @@ public final class MonitorService extends Service {
      // Keep only a tiny recent window of IDs, never mix with official CAP replay records.
      if(seen.size()>40){seen.clear();seen.add(e.id);}
      prefs.edit().putStringSet("civilPhoneShown",seen).putString("civilPhoneLastType",e.test?"SIMULAÇÃO":"CELULAR")
-      .putLong("civilPhoneLastAt",e.receivedAt).putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido").apply();
+      .putLong("civilPhoneLastAt",e.receivedAt)
+      .putLong("civilPhoneLastDisplayedAt",System.currentTimeMillis())
+      .putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido").apply();
      Prefs.status(this,e.test?"Simulação recebida do celular e exibida na TV; não é alerta real.":
       "Alerta capturado no celular e retransmitido na TV; não confirmado via CAP.");
     }
