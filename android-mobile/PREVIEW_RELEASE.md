@@ -1,3 +1,11 @@
+# Argos Orbis Celular · 0.1.59 de teste — identificar qual aparelho enviou primeiro
+
+- Na ponte da Defesa Civil, cada alerta carrega uma identificação mínima do aparelho: **Galaxy S25 Ultra**, **Nothing Phone 1** ou **Celular Android**. A identificação automática usa apenas fabricante/modelo público do Android, sem IMEI, número de telefone, série ou localização.
+- É possível corrigir o nome exibido em **Teste de alertas Severos/Extremos → Identificar este celular** (Automático, Galaxy S25 Ultra ou Nothing Phone 1).
+- O campo **Última tentativa** passa a informar qual aparelho chegou primeiro ao Worker. A ordem considera o relógio do servidor, não o horário local dos telefones, e a confirmação do Worker ainda não significa exibição na TV.
+- O recurso permanece voluntário, desativado por padrão em instalações novas, e usa os mesmos vínculos já existentes com a TV. Não é necessário gerar um novo código após atualizar.
+- A TV precisa da 1.0.144 e do Worker atualizado para mostrar o primeiro e o segundo emissor no diagnóstico. Testes manuais nunca se misturam aos alertas reais.
+
 # Argos Orbis Celular · 0.1.58 de teste — encaminhamento para a TV
 
 - O diagnóstico experimental de Cell Broadcast agora permite **vincular o celular à TCL P7K com código temporário de oito dígitos**, ativar o envio e executar **Enviar TESTE para a TV pelo Worker**.

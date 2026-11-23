@@ -14,8 +14,8 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 59
-  versionName '0.1.58'
+  versionCode 60
+  versionName '0.1.59'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
  buildFeatures { buildConfig true }
@@ -78,7 +78,8 @@ if (project.hasProperty('phoneUiChecks')) {
  android.testOptions.unitTests.includeAndroidResources = true
  dependencies { testImplementation 'org.robolectric:robolectric:4.16.1' }
  tasks.withType(Test).configureEach {
-  systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+  // Avoid HTTP 429 on large Robolectric runtime JARs in shared CI.
+  systemProperty 'robolectric.dependency.repo.url', 'https://maven-central.storage-download.googleapis.com/maven2/'
   testLogging { exceptionFormat 'full' }
   maxHeapSize = '1536m'
  }

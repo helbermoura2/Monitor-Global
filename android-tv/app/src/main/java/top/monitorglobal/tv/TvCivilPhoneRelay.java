@@ -27,11 +27,26 @@ final class TvCivilPhoneRelay {
   final DefesaCivilSp.Notice notice;
   final boolean test;
   final long receivedAt, expiresAt;
+  final String firstDevice, secondDevice;
+  final long firstReceivedAt, secondReceivedAt, firstObservedAt, secondObservedAt;
   Event(String id,DefesaCivilSp.Notice notice,boolean test,long receivedAt,long expiresAt){
+   this(id,notice,test,receivedAt,expiresAt,"Celular sem identificação","",
+    receivedAt,0L,0L,0L);
+  }
+  Event(String id,DefesaCivilSp.Notice notice,boolean test,long receivedAt,long expiresAt,
+        String firstDevice,String secondDevice,long firstReceivedAt,long secondReceivedAt,
+        long firstObservedAt,long secondObservedAt){
    this.id=id;this.notice=notice;this.test=test;this.receivedAt=receivedAt;this.expiresAt=expiresAt;
+   this.firstDevice=firstDevice;this.secondDevice=secondDevice;
+   this.firstReceivedAt=firstReceivedAt;this.secondReceivedAt=secondReceivedAt;
+   this.firstObservedAt=firstObservedAt;this.secondObservedAt=secondObservedAt;
   }
  }
  private TvCivilPhoneRelay(){}
+ static String safeName(String name){
+  if("Galaxy S25 Ultra".equals(name)||"Nothing Phone 1".equals(name))return name;
+  return "Celular sem identificação";
+ }
  static boolean paired(Context c){return token(c).matches("[0-9a-f]{64}");}
  static String token(Context c){return Prefs.get(c).getString(TOKEN_KEY,"");}
  static void forget(Context c){Prefs.get(c).edit().remove(TOKEN_KEY).remove("civilPhoneShown").apply();}
@@ -110,7 +125,19 @@ final class TvCivilPhoneRelay {
    // Never collapse a phone-observed message into an official IDAP/CAP record.
    DefesaCivilSp.Notice n=new DefesaCivilSp.Notice(id, "Celular Argos Orbis (não verificado via CAP)",
      text,severity,time,expiry);
-   events.add(new Event(id,n,demo,time,expiry));
+   String first=item.optString("firstDevice","Celular sem identificação");
+   String second=item.optString("secondDevice","");
+   // Only two owner-assigned names are expected; never display arbitrary text.
+   first=safeName(first);
+   second=second.isEmpty()?"":safeName(second);
+   long firstAt=item.optLong("firstReceivedAt",time);
+   long secondAt=item.optLong("secondReceivedAt",0L);
+   long firstObserved=item.optLong("firstObservedAt",0L);
+   long secondObserved=item.optLong("secondObservedAt",0L);
+   if(firstAt<time||firstAt>now+15000)firstAt=time;
+   if(secondAt<firstAt||secondAt>now+15000){secondAt=0;second="";}
+   events.add(new Event(id,n,demo,time,expiry,first,second,
+    firstAt,secondAt,firstObserved,secondObserved));
   }
   return events;
  }

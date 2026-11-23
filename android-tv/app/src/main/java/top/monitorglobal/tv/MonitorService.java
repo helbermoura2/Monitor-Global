@@ -406,8 +406,22 @@ public final class MonitorService extends Service {
     java.util.List<TvCivilPhoneRelay.Event> events=TvCivilPhoneRelay.poll(this);
     Prefs.get(this).edit().putLong("civilPhoneLastPollAt",System.currentTimeMillis())
      .putString("civilPhoneLastPollStatus","Worker consultado com sucesso").apply();
-    // Capture accepted genuine alerts even when another overlay postpones display.
-    for(TvCivilPhoneRelay.Event event:events)CivilPhoneHistory.remember(this,event);
+    // Log sender provenance on EVERY poll, even after the strip was displayed.
+    // A second phone may arrive seconds later; that updates diagnostics only.
+    for(TvCivilPhoneRelay.Event event:events){
+     CivilPhoneHistory.remember(this,event);
+     if(event.test)continue;
+     android.content.SharedPreferences p=Prefs.get(this);
+     long latest=p.getLong("civilPhoneFirstWorkerAt",0L);
+     if(event.firstReceivedAt<latest)continue;
+     p.edit().putString("civilPhoneTrackedEvent",event.id)
+      .putLong("civilPhoneFirstWorkerAt",event.firstReceivedAt)
+      .putString("civilPhoneFirstDevice",event.firstDevice)
+      .putLong("civilPhoneFirstObservedAt",event.firstObservedAt)
+      .putString("civilPhoneSecondDevice",event.secondDevice)
+      .putLong("civilPhoneSecondWorkerAt",event.secondReceivedAt)
+      .putLong("civilPhoneSecondObservedAt",event.secondObservedAt).apply();
+    }
     if(!events.isEmpty())main.post(()->showPhoneCivilEvents(events));
    }catch(Exception unavailable){
     Prefs.get(this).edit().putLong("civilPhoneLastPollAt",System.currentTimeMillis())
@@ -424,13 +438,15 @@ public final class MonitorService extends Service {
    for(TvCivilPhoneRelay.Event e:events){
     if(e.expiresAt<=now+5000||now-e.receivedAt>5*60000||seen.contains(e.id))continue;
     long duration=Math.min(20000,e.expiresAt-now-1000);
-    if(banner.showCivilPhone(e.notice,duration,()->{activeUntil=0;drain();tryTarget();tryDaily();},e.test)){
+    if(banner.showCivilPhone(e.notice,duration,()->{activeUntil=0;drain();tryTarget();tryDaily();},e.test,e.firstDevice)){
      activeUntil=android.os.SystemClock.uptimeMillis()+duration+1000;
      seen.add(e.id);
      // Keep only a tiny recent window of IDs, never mix with official CAP replay records.
      if(seen.size()>40){seen.clear();seen.add(e.id);}
      prefs.edit().putStringSet("civilPhoneShown",seen).putString("civilPhoneLastType",e.test?"SIMULAÇÃO":"CELULAR")
-      .putLong("civilPhoneLastAt",e.receivedAt).putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido").apply();
+      .putLong("civilPhoneLastAt",e.receivedAt)
+      .putLong("civilPhoneLastDisplayedAt",System.currentTimeMillis())
+      .putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido").apply();
      Prefs.status(this,e.test?"Simulação recebida do celular e exibida na TV; não é alerta real.":
       "Alerta capturado no celular e retransmitido na TV; não confirmado via CAP.");
     }

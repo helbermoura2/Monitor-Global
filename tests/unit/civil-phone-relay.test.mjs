@@ -73,3 +73,59 @@ test('unpaired and invalid methods never expose events; missing/expired pair blo
  const t=await call(db,'tv/register',{},'',now);
  assert.equal((await call(db,'phone/pair',{code:t.data.code},'',now+11*60000)).code,404);
 });
+
+test('two paired phones: first arrival at Worker wins, second is recorded without replaying alert',async()=>{
+ const db=new Memory(),now=1795386000000;
+ const t=await call(db,'tv/register',{},'',now);
+ const p1=await call(db,'phone/pair',{code:t.data.code},'',now);
+ const code2=await call(db,'tv/code',{},t.data.tvToken,now);
+ const p2=await call(db,'phone/pair',{code:code2.data.code},'',now);
+ const base={text:official,observedAt:now,severity:'Severe',source:'ACESSIBILIDADE',
+  packageName:'com.google.android.cellbroadcastreceiver',test:false};
+ const first=await call(db,'phone/send',{...base,deviceLabel:'Nothing Phone 1'},
+  p2.data.phoneToken,now);
+ assert.equal(first.data.duplicate,false);
+ assert.equal(first.data.firstDevice,'Nothing Phone 1');
+ assert.equal(first.data.firstReceivedAt,now);
+ const second=await call(db,'phone/send',{...base,deviceLabel:'Galaxy S25 Ultra',observedAt:now+900},
+  p1.data.phoneToken,now+1200);
+ assert.equal(second.code,200);
+ assert.equal(second.data.duplicate,true);
+ assert.equal(second.data.id,first.data.id);
+ assert.equal(second.data.firstDevice,'Nothing Phone 1');
+ const poll=await call(db,'tv/poll',undefined,t.data.tvToken,now+1600);
+ assert.equal(poll.data.events.length,1);
+ const event=poll.data.events[0];
+ assert.equal(event.firstDevice,'Nothing Phone 1');
+ assert.equal(event.secondDevice,'Galaxy S25 Ultra');
+ assert.equal(event.firstReceivedAt,now);
+ assert.equal(event.secondReceivedAt,now+1200);
+ assert.equal(event.firstObservedAt,now);
+ assert.equal(event.secondObservedAt,now+900);
+ assert.equal(event.id,first.data.id);
+ assert.equal(Object.hasOwn(event,'firstPhone'),false);
+ assert.equal(Object.hasOwn(event,'secondPhone'),false);
+ const retry=await call(db,'phone/send',{...base,deviceLabel:'Galaxy S25 Ultra',
+  observedAt:now+1700},p1.data.phoneToken,now+1800);
+ assert.equal(retry.data.duplicate,true);
+ const after=await call(db,'tv/poll',undefined,t.data.tvToken,now+1900);
+ assert.equal(after.data.events.length,1);
+ assert.equal(after.data.events[0].secondReceivedAt,now+1200);
+});
+test('unknown or forged device names stay generic and simulations remain marked test',async()=>{
+ const db=new Memory(),now=1795386000000,{tv,phone}=await setup(db,now);
+ const real={text:official,observedAt:now,severity:'Severe',source:'NOTIFICACAO',
+  packageName:'com.google.android.cellbroadcastreceiver',test:false,
+  deviceLabel:'Nothing Phone 1 ☠ forged very long identity'};
+ assert.equal((await call(db,'phone/send',real,phone,now)).code,200);
+ const found=(await call(db,'tv/poll',undefined,tv,now)).data.events[0];
+ assert.equal(found.firstDevice,'Celular Android');
+ assert.equal(found.secondDevice,undefined);
+ const sim={text:'Alerta severo Defesa Civil: TESTE SIMULADO do Argos Orbis. Não é uma emergência.',
+  observedAt:now+1000,severity:'Severe',source:'MANUAL_TEST',
+  packageName:'top.monitorglobal.mobile.dev',test:true,deviceLabel:'Galaxy S25 Ultra'};
+ assert.equal((await call(db,'phone/send',sim,phone,now+1000)).data.accepted,true);
+ const events=(await call(db,'tv/poll',undefined,tv,now+1000)).data.events;
+ assert.equal(events.length,2);assert.equal(events[1].type,'test');
+ assert.equal(events[1].firstDevice,'Galaxy S25 Ultra');
+});

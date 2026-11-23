@@ -79,13 +79,20 @@ public final class MainActivity extends Activity {
    android.content.SharedPreferences p=Prefs.get(this);
    long poll=p.getLong("civilPhoneLastPollAt",0);
    long received=p.getLong("civilPhoneLastReceivedAt",0);
-   long shown=p.getLong("civilPhoneLastAt",0);
+   long shown=p.getLong("civilPhoneLastDisplayedAt",0);
+   long first=p.getLong("civilPhoneFirstWorkerAt",0);
+   long second=p.getLong("civilPhoneSecondWorkerAt",0);
+   String firstDevice=p.getString("civilPhoneFirstDevice","NÃO IDENTIFICADO");
+   String secondDevice=p.getString("civilPhoneSecondDevice","");
    String report="Receptor: "+(TvCivilPhoneRelay.paired(this)?"VINCULADO":"NÃO VINCULADO")
     +"\nMonitoramento: "+(p.getBoolean("enabled",false)?"ATIVO":"DESATIVADO")
     +"\nÚltima consulta: "+(poll>0?BrDates.dateTime(poll):"NENHUMA")
     +"\nResultado: "+p.getString("civilPhoneLastPollStatus","Ainda não consultado")
     +"\nÚltimo aviso recebido: "+(received>0?BrDates.dateTime(received):"NENHUM")
     +"\nNível recebido: "+p.getString("civilPhoneLastReceivedSeverity","N/D")
+    +"\nPrimeiro no Worker: "+(first>0?firstDevice+" · "+BrDates.dateTime(first):"AINDA NÃO IDENTIFICADO")
+    +"\nTambém enviou: "+(second>0&&!secondDevice.isEmpty()?secondDevice+" · "+BrDates.dateTime(second):"NÃO REGISTRADO")
+    +"\nOrdem baseada no recebimento pelo Worker, não no horário dos telefones."
     +"\nÚltima tarja exibida: "+(shown>0?BrDates.dateTime(shown):"NENHUMA")
     +"\nTipo exibido: "+p.getString("civilPhoneLastType","N/D")
     +"\nEstado da exibição: "+p.getString("civilPhoneLastDisplayStatus","Não há confirmação local")

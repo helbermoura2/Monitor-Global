@@ -159,7 +159,22 @@ public final class AlertProbeDiagnostics extends Activity {
   root.addView(text("CONEXÃO COM A TV",19,ACCENT));
   line("TV: "+(PhoneCivilRelay.paired(this)?"VINCULADA":"NÃO VINCULADA"));
   line("Envio automático: "+(PhoneCivilRelay.forwarding(this)?"ATIVADO":"DESATIVADO"));
+  line("Este aparelho: "+PhoneCivilRelay.deviceLabel(this));
+  button("Identificar este celular (Samsung / Nothing)",()->{
+   String[] options={"Automático (modelo do Android)","Galaxy S25 Ultra","Nothing Phone 1"};
+   new AlertDialog.Builder(this).setTitle("Qual celular está enviando?")
+    .setMessage("A identificação acompanha apenas o alerta enviado à sua TV. Não utiliza número de telefone, IMEI ou localização.")
+    .setItems(options,(dialog,index)->{
+     PhoneCivilRelay.setDeviceLabel(this,index==0?"":options[index]);
+     draw();
+    }).setNegativeButton("Cancelar",null).show();
+  });
   line("Última tentativa: "+PhoneCivilRelay.prefs(this).getString("status","Nenhum envio realizado."));
+  long firstWorkerAt=PhoneCivilRelay.prefs(this).getLong("lastFirstWorkerAt",0);
+  if(firstWorkerAt>0)line("Primeiro envio aceito pelo Worker: "
+   +PhoneCivilRelay.prefs(this).getString("lastFirstDevice","NÃO IDENTIFICADO")
+   +" · "+new SimpleDateFormat("dd/MM HH:mm:ss",Locale.forLanguageTag("pt-BR"))
+    .format(new Date(firstWorkerAt)));
   button("Vincular à TV (código de 8 dígitos)",()->{
    final android.widget.EditText input=new android.widget.EditText(this);
    input.setSingleLine(true);
