@@ -150,6 +150,10 @@ final class TvBroadcastInfoView extends View {
   v.setContentDescription((replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
   return v;
  }
+ /** Presentation metadata for the optional transparent full-screen radar layer. */
+ boolean civilIsExtreme(){return kind==CIVIL_ALERT&&civilNotice!=null&&"Extreme".equals(civilNotice.severity);}
+ boolean civilIsReplay(){return kind==CIVIL_ALERT&&civilReplay;}
+ boolean civilIsSimulation(){return kind==CIVIL_ALERT&&demo;}
  /** Opt-in phone relay is NOT official CAP verification. Even live captures are labelled. */
  static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated){
   TvBroadcastInfoView v=civilAlert(c,notice,simulated,false);
