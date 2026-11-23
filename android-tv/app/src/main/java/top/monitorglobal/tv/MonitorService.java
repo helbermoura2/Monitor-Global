@@ -414,7 +414,14 @@ public final class MonitorService extends Service {
      android.content.SharedPreferences p=Prefs.get(this);
      long latest=p.getLong("civilPhoneFirstWorkerAt",0L);
      if(event.firstReceivedAt<latest)continue;
-     p.edit().putString("civilPhoneTrackedEvent",event.id)
+     android.content.SharedPreferences.Editor change=p.edit();
+     String previousId=p.getString("civilPhoneTrackedEvent","");
+     if(!previousId.isEmpty()&&!previousId.equals(event.id)){
+      change.putString("civilPhonePreviousEvent",previousId)
+       .putString("civilPhonePreviousDevice",p.getString("civilPhoneFirstDevice",""))
+       .putLong("civilPhonePreviousWorkerAt",latest);
+     }
+     change.putString("civilPhoneTrackedEvent",event.id)
       .putLong("civilPhoneFirstWorkerAt",event.firstReceivedAt)
       .putString("civilPhoneFirstDevice",event.firstDevice)
       .putLong("civilPhoneFirstObservedAt",event.firstObservedAt)
@@ -443,10 +450,22 @@ public final class MonitorService extends Service {
      seen.add(e.id);
      // Keep only a tiny recent window of IDs, never mix with official CAP replay records.
      if(seen.size()>40){seen.clear();seen.add(e.id);}
-     prefs.edit().putStringSet("civilPhoneShown",seen).putString("civilPhoneLastType",e.test?"SIMULAÇÃO":"CELULAR")
+     android.content.SharedPreferences.Editor displayed=prefs.edit()
+      .putStringSet("civilPhoneShown",seen).putString("civilPhoneLastType",e.test?"SIMULAÇÃO":"CELULAR")
       .putLong("civilPhoneLastAt",e.receivedAt)
       .putLong("civilPhoneLastDisplayedAt",System.currentTimeMillis())
-      .putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido").apply();
+      .putString("civilPhoneLastDisplayStatus",e.test?"Simulação exibida":"Alerta do celular exibido");
+     if(!e.test){
+      String last=prefs.getString("civilPhoneLastDisplayedEvent","");
+      if(!last.isEmpty()&&!last.equals(e.id)){
+       displayed.putString("civilPhonePreviousDisplayedEvent",last)
+        .putString("civilPhonePreviousDisplayedDevice",prefs.getString("civilPhoneLastDisplayedDevice",""))
+        .putLong("civilPhonePreviousDisplayedAt",prefs.getLong("civilPhoneLastDisplayedAt",0L));
+      }
+      displayed.putString("civilPhoneLastDisplayedEvent",e.id)
+       .putString("civilPhoneLastDisplayedDevice",e.firstDevice);
+     }
+     displayed.apply();
      Prefs.status(this,e.test?"Simulação recebida do celular e exibida na TV; não é alerta real.":
       "Alerta capturado no celular e retransmitido na TV; não confirmado via CAP.");
     }
