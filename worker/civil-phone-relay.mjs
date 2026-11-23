@@ -42,10 +42,7 @@ const allowedSource=p=>[
 const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 // The device display name is volunteered by the paired app; it is not a hardware attestation.
 // Only these short, fixed labels can be shown to the owner on the paired TV.
-const deviceLabel=s=>({
- 'Galaxy S25 Ultra':'Galaxy S25 Ultra',
- 'Nothing Phone 1':'Nothing Phone 1'
-})[s]||'Celular Android';
+const deviceLabel=s=>s==='Galaxy S25 Ultra'||s==='Nothing Phone 1'?s:'Celular Android';
 function validatedNotice(body,now){
  if(typeof body.text!=='string'||body.text.length<28||body.text.length>500||
     /[\x00-\x08\x0b\x0e-\x1f]/.test(body.text))return null;
