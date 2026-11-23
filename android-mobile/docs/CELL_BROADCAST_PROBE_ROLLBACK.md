@@ -1,3 +1,7 @@
+# Atualização do experimento (versão celular 0.1.58)
+
+A etapa opcional de transmissão para a TCL P7K está descrita em CIVIL_PHONE_TV_BRIDGE_ROLLBACK.md. O envio depende de vínculo por código, fica desativado por padrão e não comprova recepção de um Cell Broadcast real.
+
 # Argos Orbis — detector experimental Cell Broadcast (PLANO DE REVERSAO)
 
 ## Objetivo
