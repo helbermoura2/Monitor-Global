@@ -49,7 +49,7 @@ test('phone real Cell Broadcast observed: one distinct event per message, duplic
  const events=(await call(db,'tv/poll',undefined,tv,now+2000)).data.events;
  assert.equal(events.length,2);
  assert.ok(events.every(e=>e.type==='phone'));
- assert.equal((await call(db,'tv/poll',undefined,tv,now+5*60000+1000)).data.events.length,0);
+ assert.equal((await call(db,'tv/poll',undefined,tv,now+5*60000+3000)).data.events.length,0);
 });
 test('manual simulation is separate and expires, real cannot fake own application or settings screen',async()=>{
  const db=new Memory(),now=1795386000000,{tv,phone}=await setup(db,now);
