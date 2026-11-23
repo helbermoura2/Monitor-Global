@@ -772,6 +772,7 @@ public class PhoneActivity extends Activity {
  private void advancedPage(LinearLayout page){
   page.addView(button("‹ Voltar",()->go(advancedReturnTab)),new LinearLayout.LayoutParams(-1,-2));
   heading(page,"Sobre e diagnóstico");
+  if(top.monitorglobal.mobile.BuildConfig.DEBUG)page.addView(button("Teste de alertas Severos/Extremos no Android",()->startActivity(new Intent().setClassName(this,"top.monitorglobal.tv.AlertProbeDiagnostics"))),new LinearLayout.LayoutParams(-1,-2));
   copy(page,"ARGOS ORBIS · argosorbis.com.br · @argosorbis\nVersão "+top.monitorglobal.mobile.BuildConfig.VERSION_NAME);
   page.addView(button("Verificar atualização do aplicativo",()->{if(updater!=null)updater.check();}),new LinearLayout.LayoutParams(-1,-2));
   copy(page,"Instalação do canal de testes: o Android pede sua confirmação para atualizar.");
