@@ -16,7 +16,7 @@ android {
   // Fim de semana no Brasil não é confundido com abertura da referência global.
   versionCode 10140
   versionName '1.0.140'
-  // Shared map frame aligned on every event; native Skia corner-pixel tolerance checked.
+  // Shared map frame aligned on every event; rendered map interior and boundaries validated.
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
