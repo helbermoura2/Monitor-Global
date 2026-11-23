@@ -30,6 +30,21 @@ final class PhoneCivilRelay {
  static boolean forwarding(Context c){return paired(c)&&prefs(c).getBoolean("forwarding",false);}
  static void disable(Context c){prefs(c).edit().putBoolean("forwarding",false).apply();}
  static void forget(Context c){prefs(c).edit().clear().apply();}
+ // Voluntary display label only: no IMEI, serial, phone number or location.
+ static String deviceLabel(Context c){
+  String chosen=prefs(c).getString("deviceLabel","");
+  if("Galaxy S25 Ultra".equals(chosen)||"Nothing Phone 1".equals(chosen))return chosen;
+  String model=android.os.Build.MODEL==null?"":android.os.Build.MODEL.trim();
+  String maker=android.os.Build.MANUFACTURER==null?"":android.os.Build.MANUFACTURER.toLowerCase(java.util.Locale.ROOT);
+  if("SM-S938B".equalsIgnoreCase(model)||("samsung".equals(maker)&&model.toUpperCase(java.util.Locale.ROOT).startsWith("SM-S938")))return "Galaxy S25 Ultra";
+  if("A063".equalsIgnoreCase(model)||("nothing".equals(maker)&&model.toLowerCase(java.util.Locale.ROOT).contains("phone (1)")))return "Nothing Phone 1";
+  return "Celular Android";
+ }
+ static void setDeviceLabel(Context c,String label){
+  if(!label.isEmpty()&&!"Galaxy S25 Ultra".equals(label)&&!"Nothing Phone 1".equals(label))
+   throw new IllegalArgumentException("Identificação inválida");
+  prefs(c).edit().putString("deviceLabel",label).apply();
+ }
  private static String token(Context c){return prefs(c).getString("phoneToken","");}
  private static JSONObject request(String path,String authorization,JSONObject payload) throws Exception {
   HttpURLConnection connection=(HttpURLConnection)new URL(BASE+path).openConnection();
@@ -83,6 +98,7 @@ final class PhoneCivilRelay {
    payload.put("source",source);
    payload.put("packageName",packageName);
    payload.put("observedAt",observedAt);
+   payload.put("deviceLabel",deviceLabel(context));
   }catch(Exception e){return;}
   Context app=context.getApplicationContext();
   IO.execute(()->{
@@ -95,7 +111,13 @@ final class PhoneCivilRelay {
     try{
      JSONObject answer=request("phone/send",credential,payload);
      if(answer.optBoolean("accepted",false)){
-      result=answer.optBoolean("duplicate",false)?"Aviso já recebido pela ponte; duplicação evitada.":"Aviso aceito pelo Worker; aguardando apresentação na TV.";
+      String first=answer.optString("firstDevice","Celular sem identificação");
+      result=answer.optBoolean("duplicate",false)
+       ?"Aviso já recebido pela ponte; duplicação evitada. Primeiro no Worker: "+first+"."
+       :"Aviso aceito pelo Worker por "+deviceLabel(app)+"; aguardando apresentação na TV.";
+      prefs(app).edit().putString("lastFirstDevice",first)
+       .putLong("lastFirstWorkerAt",answer.optLong("firstReceivedAt",0L))
+       .putString("lastRelayEventId",answer.optString("id","")).apply();
       break;
      }
     }catch(Exception e){result="Falha de transporte: "+e.getClass().getSimpleName()+" (não confirmado na TV).";}
