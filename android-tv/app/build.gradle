@@ -43,7 +43,10 @@ if (project.hasProperty('nativeMapChecks')) {
  android.testOptions.unitTests.includeAndroidResources = true
  dependencies { testImplementation 'org.robolectric:robolectric:4.16.1' }
  tasks.withType(Test).configureEach {
-  systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+  // Maven Central rate-limits Robolectric's large Android SDK runtime JARs
+  // on shared GitHub runners (HTTP 429). Use Google's Maven Central mirror
+  // used upstream by Robolectric/Android; production APK dependencies unchanged.
+  systemProperty 'robolectric.dependency.repo.url', 'https://maven-central.storage-download.googleapis.com/maven2/'
   ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort', 'javax.net.ssl.trustStore'].each { key ->
    if (System.getProperty(key)) systemProperty key, System.getProperty(key)
   }
