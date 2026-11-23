@@ -73,6 +73,9 @@ public final class AlertProbeDiagnostics extends Activity {
    .putString("type",kind).putString("text",safe).putInt("count",p.getInt("count",0)+1);
   if(simulation)e.putLong("simulationUntil",0);
   e.apply();
+  // History displayed inside Settings must NEVER be relayed as a new emergency.
+  if(!"HISTORICO".equals(kind))
+   PhoneCivilRelay.send(c,safe,simulation,source,pkg,now,null);
  }
  public static final class WindowCapture extends AccessibilityService {
   @Override public void onAccessibilityEvent(AccessibilityEvent event){
@@ -144,7 +147,7 @@ public final class AlertProbeDiagnostics extends Activity {
   ScrollView screen=new ScrollView(this);screen.setFillViewport(true);screen.setBackgroundColor(DARK);
   root=new LinearLayout(this);root.setPadding(22,22,22,40);root.setOrientation(LinearLayout.VERTICAL);screen.addView(root);
   root.addView(text("ARGOS ORBIS • DIAGNOSTICO LOCAL",21,ACCENT));
-  line("Teste experimental de leitura dos alertas do Android. Nenhuma mensagem é transmitida à TV ou à internet.");
+  line("Teste experimental de alertas do Android. Com vínculo e envio ativados, mensagens compatíveis são encaminhadas à sua TV pelo Worker. A fonte é o celular e NÃO equivale a CAP confirmado.");
   SharedPreferences p=prefs();
   boolean enabled=p.getBoolean("armed",false);
   root.addView(text("Monitoramento: "+(enabled?"ATIVADO":"DESATIVADO"),18,enabled?ACCENT:MUTED));
@@ -153,6 +156,40 @@ public final class AlertProbeDiagnostics extends Activity {
   button(enabled?"Desativar diagnóstico":"Ativar diagnóstico local",()->{p.edit().putBoolean("armed",!enabled).apply();draw();});
   button("Conceder acessibilidade",()->startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
   button("Conceder acesso às notificações",()->startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+  root.addView(text("CONEXÃO COM A TV",19,ACCENT));
+  line("TV: "+(PhoneCivilRelay.paired(this)?"VINCULADA":"NÃO VINCULADA"));
+  line("Envio automático: "+(PhoneCivilRelay.forwarding(this)?"ATIVADO":"DESATIVADO"));
+  line("Última tentativa: "+PhoneCivilRelay.prefs(this).getString("status","Nenhum envio realizado."));
+  button("Vincular à TV (código de 8 dígitos)",()->{
+   final android.widget.EditText input=new android.widget.EditText(this);
+   input.setSingleLine(true);
+   input.setHint("Código exibido na TCL P7K");
+   input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+   new AlertDialog.Builder(this).setTitle("Argos Orbis · Vincular celular à TV")
+    .setMessage("Na TV: Defesa Civil → Vincular celulares. Digite aqui o código de 8 dígitos, válido por 10 minutos.")
+    .setView(input)
+    .setNegativeButton("Cancelar",null)
+    .setPositiveButton("Vincular",(dialog,which)->PhoneCivilRelay.pair(this,input.getText().toString().trim(),message->{
+     new AlertDialog.Builder(this).setTitle("Vínculo com a TV").setMessage(message).setPositiveButton("Entendi",(a,b)->draw()).show();
+    })).show();
+  });
+  button(PhoneCivilRelay.forwarding(this)?"Desativar envio automático para TV":"Ativar envio automático para TV",()->{
+   if(PhoneCivilRelay.forwarding(this)){PhoneCivilRelay.disable(this);draw();return;}
+   if(!PhoneCivilRelay.paired(this)){
+    new AlertDialog.Builder(this).setMessage("Vincule o celular à TCL P7K antes de ativar o envio.").setPositiveButton("OK",null).show();return;
+   }
+   new AlertDialog.Builder(this).setTitle("Autorizar envio de alertas à TV?")
+    .setMessage("Somente alertas Severos/Extremos detectados de aplicativos do sistema e simulações solicitadas. O texto segue ao Cloudflare e à sua TV. Não é verificação independente da Defesa Civil ou CAP. O histórico não é enviado como alerta novo.")
+    .setNegativeButton("Cancelar",null)
+    .setPositiveButton("Ativar",(a,b)->{PhoneCivilRelay.prefs(this).edit().putBoolean("forwarding",true).apply();draw();}).show();
+  });
+  button("Enviar TESTE para a TV pelo Worker",()->PhoneCivilRelay.test(this,message->{
+   new AlertDialog.Builder(this).setTitle("Teste de transmissão para a TV").setMessage(message)
+    .setPositiveButton("OK",(a,b)->draw()).show();
+  }));
+  button("Desvincular esta TV e apagar credencial",()->new AlertDialog.Builder(this)
+   .setTitle("Desvincular Argos Orbis da TV?").setMessage("O celular deixará de enviar novos avisos. A TV mantém o próprio vínculo até você o redefinir.")
+   .setNegativeButton("Cancelar",null).setPositiveButton("Desvincular",(a,b)->{PhoneCivilRelay.forget(this);draw();}).show());
   button("SIMULAR janela (não é um alerta real)",()->{
    if(!p.getBoolean("armed",false)){new AlertDialog.Builder(this).setMessage("Ative primeiro o diagnóstico local.").setPositiveButton("OK",null).show();return;}
    p.edit().putLong("simulationUntil",System.currentTimeMillis()+15_000).apply();
@@ -175,7 +212,8 @@ public final class AlertProbeDiagnostics extends Activity {
   line("1. Ative o diagnóstico e autorize Acessibilidade e, opcionalmente, Acesso às notificações.");
   line("2. Use SIMULAR para confirmar que o serviço funciona. Este teste não confirma a leitura do Cell Broadcast.");
   line("3. Abra no Android o histórico de alertas de emergência e volte aqui para verificar se o texto apareceu. O histórico não prova recepção durante um novo alerta.");
-  line("4. Mantenha o diagnóstico ativo no próximo alerta REAL para o teste definitivo. O registro fica somente neste aparelho.");
+  line("4. Para testar a TV, gere o código nela, vincule este celular e ATIVE o envio. Toque 'Enviar TESTE para a TV'.");
+  line("5. Mantenha o detector autorizado no próximo Cell Broadcast real. Se for lido, o sistema tentará retransmitir à TV; não é garantido se o Android ocultar o texto.");
   setContentView(screen);
  }
 }
