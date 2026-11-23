@@ -14,9 +14,9 @@ android {
   // Cotação horária Yahoo BRL=X: painel nativo, sem WebView nem sobreposição externa.
   // Câmbio internacional e Brent possuem consultas/sessões independentes.
   // Fim de semana no Brasil não é confundido com abertura da referência global.
-  versionCode 10137
-  versionName '1.0.137'
-  // Reexecuta publicação oficial assinada após conflito com atualização independente de catálogos.
+  versionCode 10138
+  versionName '1.0.138'
+  // Refino da tarja Defesa Civil: coluna centralizada e varredura discreta, sem alterar o relay.
   def identity = new groovy.json.JsonSlurper().parse(file('../signing/identity.json'))
   buildConfigField 'String', 'OFFICIAL_SIGNER_SHA256', '"' + identity.certificateSha256 + '"'
   testInstrumentationRunner 'android.test.InstrumentationTestRunner'
