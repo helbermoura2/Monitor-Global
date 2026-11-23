@@ -23,6 +23,7 @@ final class NewsBannerView extends View {
  private long started;private boolean presentationAnimated;
  void startPresentation(long when,boolean animated){started=when;effects.start(when);presentationAnimated=animated&&android.animation.ValueAnimator.areAnimatorsEnabled();invalidate();}
  private final String ticker,tickerDisplay;
+ private final String[] pageTickerDisplays;
  private final int accent,foreground,background;
  private final boolean animate;
  private boolean motionEnabled(){return animate&&effects.animated();}
@@ -41,7 +42,7 @@ final class NewsBannerView extends View {
    first=a.kind.equals("tsunami")?tsunamiLabel(a.state):split<0?details:details.substring(0,split);
    source=!a.source.isEmpty()?a.source:split<0?"Fonte não informada":details.substring(split+3);
    oldMagnitude=BannerTimeline.magnitudeChanged(a)?String.format(java.util.Locale.forLanguageTag("pt-BR"),"M%.1f",a.previousMagnitude):"";
-   String stateLabel=a.kind.equals("tsunami")?tsunamiLabel(a.state):a.compact?"SISMO REGIONAL · ÁREA MONITORADA":!a.revision.isEmpty()?(a.revision.startsWith("Nova estimativa")?"NOVA ESTIMATIVA DE OUTRA FONTE":"ATUALIZAÇÃO DO SISMO"):!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM AVISO REGIONAL DE TSUNAMI":summary?"MAIORES MAGNITUDES DO DIA":"NOVO SISMO";
+   String stateLabel=a.kind.equals("tsunami")?"BOLETIM REGIONAL · COSTAS CITADAS":a.compact?"SISMO REGIONAL · ÁREA MONITORADA":!a.revision.isEmpty()?(a.revision.startsWith("Nova estimativa")?"NOVA ESTIMATIVA DE OUTRA FONTE":"ATUALIZAÇÃO DO SISMO"):!summary&&a!=root?"SISMO ASSOCIADO AO BOLETIM":!a.tsunamiSummary.isEmpty()?"SISMO COM BOLETIM DE TSUNAMI":summary?"MAIORES MAGNITUDES DO DIA":"NOVO SISMO";
    heading=(demo&&summary?"SIMULAÇÃO FICTÍCIA · ":"")+(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO · ")+summaryDay+" · ":demo?"TESTE FICTÍCIO · NÃO É ALERTA REAL · ":replay?"REPLAY · "+formatRecordTime(a.issuedAt)+" · ":"")+stateLabel;caption=heading;
   }
  }
@@ -68,17 +69,25 @@ final class NewsBannerView extends View {
   foreground=OledNewsChrome.INK;background=OledNewsChrome.OLED;
   if(summary){pages=new Page[daily.size()];for(int i=0;i<pages.length;i++){pages[i]=new Page(daily.get(i));pages[i].caption=(i+1)+" DE "+pages.length+" · "+pages[i].heading;}}
   else pages=AlertPairing.isPair(a,a.companion)?new Page[]{new Page(a),new Page(a.companion)}:new Page[]{new Page(a)};
-  StringBuilder line=new StringBuilder(summary?(replay?"REPLAY DO RESUMO · ":"RESUMO DO DIA · ")+summaryDay+" · HORÁRIO DE BRASÍLIA · FONTES SÍSMICAS · "+(complete?"DIA ENCERRADO · ":"PARCIAL ATÉ A CONSULTA · "):regional?(demo?"TESTE FICTÍCIO · AVISO REGIONAL · ":replay?"REPLAY · SISMO REGIONAL · REGISTRO HISTÓRICO · ":"AVISO REGIONAL · ÁREA MONITORADA · "):demo?"TESTE FICTÍCIO · ":replay?"REPLAY · REGISTRO HISTÓRICO · ":"");
-  for(Page p:pages){Alert v=p.alert;if(!v.revision.isEmpty())line.append(v.revision).append(" · Atualização: ").append(formatTime(v.issuedAt)).append("     •     ");
-   if(!v.populationSummary.isEmpty())line.append(v.populationSummary).append("     •     ");
-   if(!v.nearbySummary.isEmpty())line.append(v.nearbySummary).append("     •     ");
-   if(v.compact&&!v.targetArea.isEmpty())line.append("ÁREA MONITORADA: ").append(v.targetArea).append("     •     ");
-   if(!v.tsunamiSummary.isEmpty())line.append("TSUNAMI · ").append(v.tsunamiSummary).append("     •     ");
-   line.append(v.title).append("     •     ").append(v.detail).append("     •     ").append(v.kind.equals("tsunami")?"Boletim: ":"Origem do sismo: ").append(p.time).append("     •     ");
+  // The footer follows the CURRENT page rather than repeating the main text.
+  pageTickerDisplays=new String[pages.length];
+  StringBuilder description=new StringBuilder();
+  String firstTicker="";
+  for(int i=0;i<pages.length;i++){
+   Page page=pages[i];
+   String footer=SeismicFooter.forEvent(page.alert,demo,replay,summary,summaryDay,complete);
+   pageTickerDisplays[i]=OledNewsChrome.tickerDisplay(footer);
+   if(i==0)firstTicker=footer;
+   if(i>0)description.append(" · PRÓXIMO REGISTRO · ");
+   description.append(page.alert.title).append(" · ").append(page.alert.detail);
+   if(!page.alert.tsunamiSummary.isEmpty())
+    description.append(" · ").append(page.alert.tsunamiSummary);
   }
-  if(summary||replay)line.append("HISTÓRICO · Não informa a situação atual de tsunami     •     ");
-  line.append("Siga as orientações das autoridades locais");ticker=line.toString();tickerDisplay=OledNewsChrome.tickerDisplay(ticker);
-  setContentDescription((demo?"Demonstração, não é alerta real. ":replay?"Replay de registro histórico. ":"")+(summaryTotals!=null?summaryTotals.accessibilityText()+" ":"")+ticker);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+  ticker=firstTicker;
+  tickerDisplay=pageTickerDisplays[0];
+  setContentDescription((demo?"Demonstração, não é alerta real. ":replay?"Replay de registro histórico. ":"")
+   +(summaryTotals!=null?summaryTotals.accessibilityText()+" ":"")+description+" · "+ticker);
+  setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
  }
  private void rect(Canvas c,float l,float t,float r,float b,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRect(l,t,r,b,paint);}
  private void rounded(Canvas c,float l,float t,float r,float b,float radius,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);c.drawRoundRect(l,t,r,b,radius,radius,paint);}
@@ -123,7 +132,7 @@ final class NewsBannerView extends View {
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
-  String display=tickerDisplay;
+  String display=pageTickerDisplays[index];
   Typeface tickerFace=OledNewsChrome.tickerFont();
   paint.setTypeface(tickerFace);paint.setTextSize(14);float length=paint.measureText(display)+104;
   float offset=BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled());
@@ -222,7 +231,7 @@ final class NewsBannerView extends View {
    if(!motionEnabled()||elapsed>=BannerTimeline.REVISION_AT_MS+BannerTimeline.FADE_MS)magnitude(c,p.magnitude,"ATUAL",255,elapsed-BannerTimeline.REVISION_AT_MS);
    else if(elapsed<BannerTimeline.REVISION_AT_MS)magnitude(c,p.oldMagnitude,"ANTERIOR",255,-1);
    else{float t=BannerTimeline.progress(elapsed-BannerTimeline.REVISION_AT_MS);magnitude(c,p.oldMagnitude,"ANTERIOR",(int)(255*(1-t)),-1);magnitude(c,p.magnitude,"ATUAL",(int)(255*t),elapsed-BannerTimeline.REVISION_AT_MS);}
-  }else if(a.kind.equals("tsunami")){BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI",a.state.equals("noThreat")?"SEM AMEAÇA":"BOLETIM",eventInk(a));}
+  }else if(a.kind.equals("tsunami")){BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI","BOLETIM",eventInk(a));}
   else centerText(c,p.magnitude,BroadcastVisuals.EVENT_CENTER_X,BroadcastVisuals.EVENT_MAGNITUDE_BASELINE,36,eventInk(a),brand,85);
   fitText(c,p.caption,HEADLINE_X,45,13,demo?Color.rgb(255,214,119):foreground,brand,HEADLINE_WIDTH);
   float width=p.flag==null?HEADLINE_WIDTH:HEADLINE_WIDTH-FLAG_RESERVE,size=BannerTimeline.magnitudeChanged(a)?26:31;drawHeadline(c,p,elapsed,width,size);
