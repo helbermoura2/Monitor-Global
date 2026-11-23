@@ -77,7 +77,7 @@ final class PhoneCivilRelay {
   if(!credential.matches("[0-9a-f]{64}"))return;
   final JSONObject payload=new JSONObject();
   try{
-   payload.put("text",raw);
+   payload.put("text",raw.length()>500?raw.substring(0,500):raw);
    payload.put("test",simulation);
    payload.put("severity",AlertProbeDiagnostics.normalized(raw).contains("alerta extremo")?"Extreme":"Severe");
    payload.put("source",source);
