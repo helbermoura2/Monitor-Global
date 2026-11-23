@@ -164,6 +164,16 @@ final class TvBroadcastInfoView extends View {
   v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()+" · "+notice.message);
   return v;
  }
+ /** Replay retains the phone origin and never impersonates an official CAP record. */
+ static TvBroadcastInfoView civilPhoneReplay(Context c,DefesaCivilSp.Notice notice){
+  TvBroadcastInfoView v=civilPhone(c,notice,false);
+  v.civilReplay=true;
+  v.ticker="REPLAY HISTÓRICO · CELULAR · NÃO VERIFICADO VIA CAP · "
+   +BrDates.dateTime(notice.sent)+" · "+notice.message;
+  v.setContentDescription("REPLAY HISTÓRICO · NÃO É AVISO ATUAL · CAPTURADO NO CELULAR "
+   +"E NÃO VERIFICADO VIA CAP · "+notice.level()+" · "+notice.message);
+  return v;
+ }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
  static TvBroadcastInfoView marketPending(Context c){
   TvBroadcastInfoView v=market(c,null,null,MarketState.unknown(),MarketState.unknown(),false);
