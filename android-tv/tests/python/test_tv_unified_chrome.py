@@ -17,7 +17,9 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("BroadcastVisuals.radar(c,paint,elapsed,motionEnabled())", quake)
         self.assertIn("BroadcastVisuals.radar(c,p,elapsed,motionEnabled())", other)
         self.assertIn("BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled())", quake)
-        self.assertIn("BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled())", other)
+        # Civil Defense holds its ticker still for 3.5 s before normal scrolling.
+        self.assertIn("BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled())", other)
+        self.assertIn("kind==CIVIL_ALERT?Math.max(0L,elapsed-3500L):elapsed", other)
         self.assertIn("TICKER_PX_PER_SECOND=40f", shared)
         self.assertIn("RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f", shared)
         self.assertIn("BRAND_RIGHT_INSET=35f", shared)
