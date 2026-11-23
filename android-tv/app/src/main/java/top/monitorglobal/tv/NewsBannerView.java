@@ -116,6 +116,8 @@ final class NewsBannerView extends View {
    float t=effects.pageProgress(fadeElapsed);drawPage(c,pages[(index+pages.length-1)%pages.length],elapsed,(int)(255*(1-t)),-18*t);drawPage(c,pages[index],elapsed,(int)(255*t),18*(1-t));
   }else drawPage(c,pages[index],elapsed,255,0);
   c.restoreToCount(effectLayer);effects.draw(c,elapsed,false,false);
+  // Permanent newsroom structure, outside the page fade: source | story | logo.
+  BroadcastVisuals.newsroomDividers(c,paint,BroadcastVisuals.SOURCE_DIVIDER_X);
   if(summary&&summaryTotals!=null)drawSummaryTotals(c,contentElapsed);
   else{
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
