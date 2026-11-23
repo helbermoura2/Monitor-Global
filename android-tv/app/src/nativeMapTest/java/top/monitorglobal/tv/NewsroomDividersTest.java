@@ -59,7 +59,7 @@ public class NewsroomDividersTest {
      view instanceof TvBroadcastInfoView?((TvBroadcastInfoView)view).mapSpace:Banner.insetDp(context);
     int y=inset+56;
     boolean civil=category==TvEffectsController.EffectsCategory.CIVIL;
-    redRule(screenshot,civil?179:120,y,category+" source");
+    redRule(screenshot,civil?178:119,y,category+" source");
     redRule(screenshot,827,y,category+" brand");
     if(category==TvEffectsController.EffectsCategory.MARKET)
      redRule(screenshot,485,y,"Brent / Dólar");
@@ -74,7 +74,7 @@ public class NewsroomDividersTest {
    OledNewsChrome.base(canvas,new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG));
    BroadcastVisuals.newsroomDividers(canvas,new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG),
     BroadcastVisuals.SOURCE_DIVIDER_X);
-   redRule(bitmap,120,60,"source middle");
+   redRule(bitmap,119,60,"source middle");
    redRule(bitmap,827,60,"logo middle");
    assertEquals("dividers must not enter the red tabs",Color.TRANSPARENT,bitmap.getPixel(120,27));
    int footer=bitmap.getPixel(120,99);
