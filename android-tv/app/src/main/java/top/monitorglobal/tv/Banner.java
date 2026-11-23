@@ -45,8 +45,11 @@ final class Banner {
  boolean showCivilAlert(DefesaCivilSp.Notice notice,long duration,Runnable finished,boolean demo){
   return showView(TvBroadcastInfoView.civilAlert(context,notice,demo),duration,0,finished);
  }
+ boolean showCivilPhone(DefesaCivilSp.Notice notice,long duration,Runnable finished,boolean simulated,String sender){
+  return showView(TvBroadcastInfoView.civilPhone(context,notice,simulated,sender),duration,0,finished);
+ }
  boolean showCivilPhone(DefesaCivilSp.Notice notice,long duration,Runnable finished,boolean simulated){
-  return showView(TvBroadcastInfoView.civilPhone(context,notice,simulated),duration,0,finished);
+  return showCivilPhone(notice,duration,finished,simulated,"Celular sem identificação");
  }
  boolean showCivilReplay(DefesaCivilSp.Notice notice,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.civilAlert(context,notice,false,true),duration,0,finished);
