@@ -1,8 +1,105 @@
 {
   "version": 1,
-  "checkedAt": 1795430546229,
-  "updatedAt": 1795430349000,
+  "checkedAt": 1795472146470,
+  "updatedAt": 1795471833000,
   "source": "https://idapfile.mdr.gov.br/idap/api/rss/cap",
   "municipality": "3550308",
-  "alerts": []
+  "alerts": [
+    {
+      "id": "200236/2026",
+      "sent": 1795470788000,
+      "expires": 1795477500000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte na regiao de Jundiai, avancando para Caieiras. Tem raios, vento e condicao para granizo. Atinge municipios vizinhos. Abrigue-se!"
+    },
+    {
+      "id": "200195/2026",
+      "sent": 1795464459000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte e persistente nas Zonas Central e Leste de Sao Paulo. Tem raios e vento. Atinge municipios vizinhos. Risco elevado para alagamentos."
+    },
+    {
+      "id": "200174/2026",
+      "sent": 1795461233000,
+      "expires": 1795488900000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte nas Zonas Oeste, Sul e Central de Sao Paulo. Tem raios e vento. Atinge municipios vizinhos. Risco para elevado para alamento."
+    },
+    {
+      "id": "200149/2026",
+      "sent": 1795458032000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte se espalhando por Suzano, Mogi das Cruzes e Biritiba Mirim. Tem raios, vento e granizo. Atinge municipios vizinhos. Busque abrigo."
+    },
+    {
+      "id": "200147/2026",
+      "sent": 1795457473000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte se espalhando por Sao Bernardo do Campo, Diadema e Santo Andre. Tem raios, vento e granizo. Atinge municipios vizinhos. Busque abrigo."
+    },
+    {
+      "id": "200143/2026",
+      "sent": 1795456781000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte e isolada se espalhando pela Zona Sul de Sao Paulo. Tem raios, vento e condicao para granizo. Atinge municipios vizinhos. Abrigue-se."
+    },
+    {
+      "id": "200141/2026",
+      "sent": 1795456597000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva se espalhando pela Zona Leste de Sao Paulo. Tem raios, vento e condicao para granizo. Atinge municipios vizinhos. Busque abrigo."
+    },
+    {
+      "id": "200132/2026",
+      "sent": 1795455923000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte se espalhando por Guarulhos e Aruja. Tem raios, vento e condicao para granizo. Atinge municipios vizinhos. Busque abrigo."
+    },
+    {
+      "id": "200131/2026",
+      "sent": 1795455767000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte se espalhando pela Zona Norte de Sao Paulo. Tem raios, vento e condicao para granizo. Atinge municipios vizinhos. Busque abrigo."
+    },
+    {
+      "id": "200125/2026",
+      "sent": 1795454397000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva se espalhando pelo norte da Zona Oeste de Sao Paulo. Tem raio, vento e risco para granizo. Atinge area proxima. Caso necessario, abrigue-se!"
+    },
+    {
+      "id": "200119/2026",
+      "sent": 1795453009000,
+      "expires": 1795487400000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte na regiao de Pirapora do Bom Jesus e Santana de Parnaiba. Tem raios, vento e granizo. Atinge municipios vizinhos. Busque abrigo."
+    },
+    {
+      "id": "200108/2026",
+      "sent": 1795452080000,
+      "expires": 1795483800000,
+      "issuer": "Defesa Civil Estadual De São Paulo",
+      "severity": "Extreme",
+      "message": "Defesa Civil:Chuva forte na regiao de Itanhaem e Mongagua. Tem raios, vento e condicao para granizo. Atinge municipios vizinhos. Busque abrigo."
+    }
+  ]
 }
