@@ -402,7 +402,7 @@ final class TvBroadcastInfoView extends View {
   c.restore();p.setStyle(Paint.Style.FILL);
  }
  private void drawCivilAlert(Canvas c,long elapsed){
-  String caption=civilReplay?"REGISTRO HISTÓRICO":
+  String caption=civilReplay?(civilFromPhone?"REPLAY • CELULAR":"REGISTRO HISTÓRICO"):
    demo?(civilFromPhone?"TESTE • CELULAR":"TESTE • TV"):
    civilFromPhone?"CELULAR • NÃO É CAP":"SÃO PAULO • CAPITAL";
   // Plate x=20..171: source and subtitle share the same optical center.
