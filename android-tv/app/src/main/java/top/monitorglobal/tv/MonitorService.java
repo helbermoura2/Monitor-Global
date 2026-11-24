@@ -6,6 +6,7 @@ public final class MonitorService extends Service {
  static final String TEST_CIVIL_SEVERE=TEST+"_CIVIL_SEVERE",TEST_CIVIL_EXTREME=TEST+"_CIVIL_EXTREME";
  static final String REPLAY_CIVIL_SEVERE="top.monitorglobal.tv.REPLAY_CIVIL_SEVERE",REPLAY_CIVIL_EXTREME="top.monitorglobal.tv.REPLAY_CIVIL_EXTREME";
  static final String REPLAY_PHONE_SEVERE="top.monitorglobal.tv.REPLAY_PHONE_SEVERE",REPLAY_PHONE_EXTREME="top.monitorglobal.tv.REPLAY_PHONE_EXTREME";
+ static final String REPLAY_CIVIL_LAST="top.monitorglobal.tv.REPLAY_CIVIL_LAST";
  private final List<Runnable> demoTasks=new ArrayList<>();private int localGeneration;private boolean effectsDemoActive,civilDemoActive,civilReplayPending,civilReplayActive;
  private long nextConfigCheck;private volatile boolean destroyed;private ScheduledExecutorService executor,alexaExecutor,civilPhoneExecutor;private boolean alexaPolling;private ExecutorService historyExecutor;private boolean historyBusy;private final Handler main=new Handler(Looper.getMainLooper());private Banner banner;private final ArrayDeque<Alert> queue=new ArrayDeque<>();private AlertTracker tracker;private FeedClient feed;private boolean draining,polling;private int historyRequest;private Alert activeReal;private Runnable nextReal;private long activeUntil;
  private RainMonitor rain;private BrentMonitor brent;private CompactNotice compact;private boolean targetsEnabled,compactBusy,targetBannerActive;private long targetSettingsRevision;private Runnable targetEnd;private final TargetNoticeQueue targetQueue=new TargetNoticeQueue();
@@ -16,16 +17,26 @@ public final class MonitorService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?START:intent.getAction();if(STOP.equals(action)){Prefs.get(this).edit().putBoolean("enabled",false).apply();stopSelf();return START_NOT_STICKY;}
   Notification notification=new Notification.Builder(this,"monitoring").setSmallIcon(top.monitorglobal.tv.R.drawable.ic_monitor).setContentTitle("Argos Orbis TV").setContentText("Acompanhando M6+, sismos no Brasil e tsunami").setContentIntent(open()).setOngoing(true).addAction(new Notification.Action.Builder(null,"Parar",PendingIntent.getService(this,2,new Intent(this,MonitorService.class).setAction(STOP),PendingIntent.FLAG_IMMUTABLE)).build()).build();
   try{if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(1,notification);}catch(RuntimeException e){Prefs.status(this,"O sistema impediu o monitoramento. Abra o aplicativo para iniciar.");stopSelf();return START_NOT_STICKY;}
-  if(REPLAY_CIVIL_SEVERE.equals(action)||REPLAY_CIVIL_EXTREME.equals(action)||
-     REPLAY_PHONE_SEVERE.equals(action)||REPLAY_PHONE_EXTREME.equals(action)){
-   boolean phone=REPLAY_PHONE_SEVERE.equals(action)||REPLAY_PHONE_EXTREME.equals(action);
-   boolean extreme=REPLAY_CIVIL_EXTREME.equals(action)||REPLAY_PHONE_EXTREME.equals(action);
+  if(REPLAY_CIVIL_LAST.equals(action)||REPLAY_CIVIL_SEVERE.equals(action)||
+     REPLAY_CIVIL_EXTREME.equals(action)||REPLAY_PHONE_SEVERE.equals(action)||
+     REPLAY_PHONE_EXTREME.equals(action)){
+   // The "last received" button searches both distinct stores, unlike
+   // source-specific buttons that deliberately cannot cross CAP/phone origins.
+   boolean combined=REPLAY_CIVIL_LAST.equals(action);
+   CivilLatestReplay.Record newest=combined?CivilLatestReplay.last(this):null;
+   boolean phone=combined?(newest!=null&&newest.phone):
+    REPLAY_PHONE_SEVERE.equals(action)||REPLAY_PHONE_EXTREME.equals(action);
+   boolean extreme=combined?(newest!=null&&"Extreme".equals(newest.notice.severity)):
+    REPLAY_CIVIL_EXTREME.equals(action)||REPLAY_PHONE_EXTREME.equals(action);
    String level=extreme?CivilReplayStore.EXTREME:CivilReplayStore.SEVERE;
-   DefesaCivilSp.Notice recorded=phone?CivilPhoneHistory.last(this,level):CivilReplayStore.last(this,level);
+   DefesaCivilSp.Notice recorded=combined?(newest==null?null:newest.notice):
+    phone?CivilPhoneHistory.last(this,level):CivilReplayStore.last(this,level);
    if(recorded==null){
-    Prefs.status(this,"Nenhum aviso "+(extreme?"EXTREMO":"SEVERO")
-     +(phone?" capturado no celular e recebido pela TV":" oficial recebido nesta TV")
-     +" nos últimos sete dias. Alertas antigos não são recuperados automaticamente.");
+    Prefs.status(this,combined
+     ?"Nenhum alerta real CAP ou celular salvo nesta TV nos últimos sete dias. A atualização não recupera alertas que a TV nunca recebeu."
+     :"Nenhum aviso "+(extreme?"EXTREMO":"SEVERO")
+      +(phone?" capturado no celular e recebido pela TV":" oficial recebido nesta TV")
+      +" nos últimos sete dias. Alertas antigos não são recuperados automaticamente.");
     stopIfIdle();return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
    }
    if(!android.provider.Settings.canDrawOverlays(this)||destroyed||!screenReady()||localBusy()||targetBannerActive||
@@ -48,7 +59,9 @@ public final class MonitorService extends Service {
     }else{Prefs.status(MonitorService.this,"Replay da Defesa Civil indisponível: autorize a sobreposição.");stopIfIdle();}
    }};
    demoTasks.add(play);main.postDelayed(play,10_000L);
-   Prefs.status(this,"REPLAY HISTÓRICO "+(extreme?"EXTREMO":"SEVERO")+(phone?" · do celular":" · oficial")+" em 10 segundos · volte ao vídeo. Registro: "+BrDates.dateTime(recorded.sent)+".");
+   Prefs.status(this,"REPLAY HISTÓRICO "+(extreme?"EXTREMO":"SEVERO")
+    +(phone?" · capturado no celular, não CAP":" · oficial CAP")
+    +" em 10 segundos · volte ao vídeo. Registro: "+BrDates.dateTime(recorded.sent)+".");
    if(Prefs.get(this).getBoolean("enabled",false))ensurePolling();
    return Prefs.get(this).getBoolean("enabled",false)?START_STICKY:START_NOT_STICKY;
   }
