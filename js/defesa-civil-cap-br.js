@@ -66,7 +66,7 @@
    const response=await fetch(URL+'?minute='+Math.floor(now/60000),{signal:controller.signal,cache:'no-store'});
    if(!response.ok)throw Error('HTTP '+response.status);
    const body=await response.text();
-   if(body.length>1400000)throw Error('Catálogo nacional muito grande');
+   if(body.length>2500000)throw Error('Catálogo nacional muito grande');
    draw(JSON.parse(body),Date.now());
   }catch(error){
    status.textContent='Consulta CAP nacional indisponível ou desatualizada. Confira a fonte oficial.';
