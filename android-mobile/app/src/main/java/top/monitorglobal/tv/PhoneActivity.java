@@ -29,7 +29,7 @@ public class PhoneActivity extends Activity {
  private DefesaCivilSp civilAlerts;
  private DefesaCivilBr nationalCapAlerts;
  private boolean civilLoading;
- private long civilNextCheck;
+ private long civilNextCheck,nationalCapNextCheck;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
@@ -691,19 +691,22 @@ public class PhoneActivity extends Activity {
   long now=System.currentTimeMillis();
   if(!active||destroyed||!automaticRefresh()||civilLoading||!force&&now<civilNextCheck)return;
   civilLoading=true;civilNextCheck=now+60_000;
+  // Large national catalogue is informational; never poll every minute.
+  final boolean readNational=now>=nationalCapNextCheck;
+  if(readNational)nationalCapNextCheck=now+5*60_000L;
   if(worker==null)worker=Executors.newSingleThreadExecutor();
   worker.execute(()->{
    DefesaCivilSp result;
    try{result=DefesaCivilSp.read();}catch(java.io.IOException|org.json.JSONException e){result=null;}
-   DefesaCivilBr national;
-   try{national=DefesaCivilBr.read();}catch(java.io.IOException|org.json.JSONException e){national=null;}
+   DefesaCivilBr national=null;
+   if(readNational)try{national=DefesaCivilBr.read();}catch(java.io.IOException|org.json.JSONException ignored){}
    final DefesaCivilSp checked=result;
    final DefesaCivilBr nationalChecked=national;
    main.post(()->{
     civilLoading=false;
     if(destroyed)return;
     civilAlerts=checked;
-    nationalCapAlerts=nationalChecked;
+    if(readNational)nationalCapAlerts=nationalChecked;
     if(active&&tab.equals("notices")&&selected==null)render();
    });
   });
