@@ -14,7 +14,7 @@ OUTSIDE = "<polygon>-23.5,-47 -23.6,-47 -23.6,-47.1 -23.5,-47</polygon>"
 
 
 def entry(identifier, area=INSIDE, severity="Severe", status="Actual", kind="Alert",
-          expires="2026-11-22T20:00:00-03:00", references=""):
+          expires="2026-11-22T20:00:00-03:00", references="", area_desc="SÃO PAULO/SP"):
     return f"""
       <entry><content><alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
       <identifier>{identifier}</identifier><sender>CENAD-SEDEC</sender>
@@ -22,7 +22,7 @@ def entry(identifier, area=INSIDE, severity="Severe", status="Actual", kind="Ale
       <status>{status}</status><msgType>{kind}</msgType><references>{references}</references>
       <info><language>pt-BR</language><severity>{severity}</severity><expires>{expires}</expires>
       <senderName>Defesa Civil Estadual De São Paulo</senderName><headline>Mensagem de teste</headline>
-      <area><areaDesc>SÃO PAULO/SP</areaDesc>{area}</area></info></alert></content></entry>
+      <area><areaDesc>{area_desc}</areaDesc>{area}</area></info></alert></content></entry>
     """
 
 
@@ -45,7 +45,7 @@ class DefesaCivilCapitalTest(unittest.TestCase):
         xml = '<feed xmlns="http://www.w3.org/2005/Atom"><updated>2026-11-22T21:58:00Z</updated>' \
             + entry("sp-severe", severity="Severe") \
             + entry("other-region", area=OUTSIDE, severity="Extreme") \
-            + entry("no-area", area="", severity="Extreme") \
+            + entry("no-area", area="", area_desc="", severity="Extreme") \
             + entry("exercise", status="Exercise", severity="Extreme") \
             + entry("moderate", severity="Moderate") + "</feed>"
         updated, local, national = MODULE["parse"](io.BytesIO(xml.encode()), CITY, NOW, include_national=True)
