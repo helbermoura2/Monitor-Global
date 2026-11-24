@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.62 de teste
+
+- Clima tem atalhos de camada, legenda compacta do radar e um cartão de chuva por município com gráfico expansível.
+
 # Argos Orbis Celular · 0.1.61 de teste
 
 - O mapa de Clima preenche a área disponível, com camadas no topo, linha do tempo na base e detalhes acessíveis sem perder o enquadramento.

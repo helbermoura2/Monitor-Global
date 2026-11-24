@@ -56,6 +56,22 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  await page.locator('#map-return').click();
  assert.equal(await page.locator('.brazil-main').evaluate(el=>el.scrollTop),0);
  await page.screenshot({path:path.join(output,'full-weather-map-fixture.png')});
+ await page.locator('.brazil-dot').click();
+ const cityCard=page.locator('#map-city-card');
+ await cityCard.waitFor();
+ assert.match(await cityCard.innerText(),/São Paulo.*SP/s);
+ assert.match(await page.locator('#map-city-total').innerText(),/mm previstos/);
+ assert.equal(await page.locator('#map-city-chart #city-rain-summary').count(),0);
+ await page.locator('#map-city-more > summary').click();
+ await page.locator('#map-city-chart #rain24-bars').waitFor();
+ assert.match(await page.locator('#rain24-impact').innerText(),/drenagem/);
+ await page.locator('#map-city-close').click();
+ assert.equal(await cityCard.isVisible(),false);
+ await page.locator('.brazil-toolbar [data-layer=wind]').click();
+ assert.equal(await page.locator('.brazil-toolbar [data-layer=wind]').getAttribute('aria-pressed'),'true');
+ await page.locator('#layers-toggle').click();
+ await page.locator('#model-toggle').click();
+ assert.equal(await page.locator('#layer-menu').isVisible(),false);
  const hourly=page.locator('#city-rain-summary');
  await hourly.waitFor();
  assert.match(await hourly.innerText(),/Chuva · próximas 24 h/);
@@ -83,6 +99,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#time-label').innerText(),/BRT/,'forecast retains its own time');
  assert.equal(await page.locator('.radar-control').isVisible(),false);
  await page.screenshot({path:path.join(output,'satellite-packaged-fixture.png'),fullPage:true});
+ await page.locator('#layers-toggle').click();
  await page.locator('#severe-toggle').click();
  await page.waitForFunction(()=>document.querySelector('#severe-lightning-status').textContent.includes('88 detecções')&&
   document.querySelector('#severe-notice-status').textContent.includes('1 alerta municipal')&&
@@ -104,6 +121,14 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(await page.evaluate(id=>window.__map.getPaintProperty(id,'icon-opacity'),lightningLayer),.78);
  await page.evaluate(()=>MonitorMap.resume());
  await page.waitForFunction(()=>document.querySelector('#severe-cell-status').textContent.includes('1 área com eco intenso'));
+ await page.evaluate(()=>{
+  document.querySelector('.brazil-main').scrollTop=0;
+  window.__map.jumpTo({center:[-47.8125,-24.5271],zoom:5});
+ });
+ await page.waitForFunction(()=>{
+  const map=window.__map,point=map.project([-47.8125,-24.5271]);
+  return map.queryRenderedFeatures(point,{layers:['br-storm-cells']}).length>0;
+ });
  const cell=await page.evaluate(()=>window.__map.project([-47.8125,-24.5271]));
  const bounds=await page.locator('#brazil-map').boundingBox();
  await page.mouse.click(bounds.x+cell.x,bounds.y+cell.y);
@@ -113,6 +138,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(await selection.evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(16, 37, 49)');
  assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
  await page.screenshot({path:path.join(output,'severe-selection-fixture.png'),fullPage:true});
+ await page.evaluate(()=>window.__map.jumpTo({center:[-53,-15],zoom:2.65}));
  await page.waitForFunction(()=>{
   const map=window.__map,point=map.project([-47.9,-15.8]);
   return map.getLayer('argos-uf-hit')&&map.queryRenderedFeatures(point,{layers:['argos-uf-hit']}).length;
@@ -137,8 +163,10 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(await page.locator('.map-dock').isVisible(),false);
  await page.locator('#map-expand').click();
  assert.equal(await page.locator('.brazil-toolbar').isVisible(),true);
+ await page.locator('#layers-toggle').click();
  await page.locator('#severe-toggle').click();
  assert.equal(await page.locator('#severe-panel').isVisible(),false);
+ await page.locator('#layers-toggle').click();
  await page.locator('#model-toggle').click();
  assert.equal(await page.locator('.forecast-caption').isVisible(),true);
  const live={attempted:process.argv.includes('--live-proof')};if(live.attempted){const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{signal:AbortSignal.timeout(12000)});assert(r.ok,'live metadata unavailable');const data=await r.json();const frames=await page.evaluate(d=>PhoneBrazilRadar.parseMetadata(d,Date.now()),data);assert(frames.length>0,'packaged parser must accept current real metadata');const frame=frames.at(-1),url=await page.evaluate(f=>PhoneBrazilRadar.tileUrl(f).replace('{z}','5').replace('{x}','11').replace('{y}','18'),frame),tile=await fetch(url,{signal:AbortSignal.timeout(12000)});assert(tile.ok,'real Sao Paulo tile unavailable');const bytes=Buffer.from(await tile.arrayBuffer());assert(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'provider must return PNG');Object.assign(live,{passed:true,frames:frames.length,frameTime:frame.time,provider:'RainViewer',tileBytes:bytes.length,coverage:'PNG receipt does not assert local coverage or rain'});}

@@ -30,6 +30,7 @@ function create(map,host,onChange=()=>{}){
  if(legend){
   const title=document.createElement('strong');title.textContent='Intensidade da chuva no radar';
   legend.append(title,scale,caption);
+  host.ownerDocument.getElementById('radar-mini-key')?.append(scale.cloneNode(true));
  }
  const notes=document.createElement('details'),notesTitle=document.createElement('summary');
  notesTitle.textContent='Fonte e cobertura do radar';notes.append(notesTitle,credit,caution);

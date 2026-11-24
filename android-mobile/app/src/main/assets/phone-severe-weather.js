@@ -55,7 +55,7 @@ function addBoltImage(map){
 }
 
 function create(map,host,getRadar,getModel,present){
- const byId=id=>host.querySelector('#'+id);
+ const byId=id=>host.ownerDocument.getElementById(id);
  const mapReadout=document.getElementById('severe-map-readout');
  const lightningStatus=byId('severe-lightning-status'),noticeStatus=byId('severe-notice-status');
  const lightningButton=byId('severe-lightning'),noticeButton=byId('severe-notices'),cellButton=byId('severe-cells');

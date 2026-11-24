@@ -10,10 +10,25 @@
  <div class="map-stage">
  <section class="brazil-toolbar" aria-label="Explorar meteorologia brasileira">
   <div class="brazil-overlays" role="group" aria-label="Camadas do mapa">
-   <button type="button" id="model-toggle" aria-pressed="true">Previsão 24 h</button>
-   <button type="button" id="severe-toggle" aria-pressed="false">Tempo severo</button>
-   <button type="button" id="satellite-toggle" aria-pressed="false">Satélite GOES</button>
    <button type="button" id="radar-toggle" aria-pressed="false">Radar</button>
+   <button type="button" id="satellite-toggle" aria-pressed="false">Nuvens</button>
+   <button type="button" data-layer="rain" aria-pressed="false">Chuva prevista</button>
+   <button type="button" data-layer="wind" aria-pressed="false">Vento</button>
+   <button type="button" id="layers-toggle" aria-expanded="false" aria-controls="layer-menu">Camadas</button>
+  </div>
+  <div id="layer-menu" class="layer-menu" aria-label="Mais camadas" hidden>
+   <button type="button" id="model-toggle" data-layer="temperature" aria-pressed="true">Temperatura</button>
+   <button type="button" data-layer="pressure" aria-pressed="false">Pressão</button>
+   <button type="button" data-layer="humidity" aria-pressed="false">Umidade</button>
+   <button type="button" data-layer="gusts" aria-pressed="false">Rajadas</button>
+   <button type="button" data-layer="feels" aria-pressed="false">Sensação térmica</button>
+   <button type="button" id="severe-toggle" aria-pressed="false">Tempo severo</button>
+   <div class="layer-notices">  <div class="severe-chips">
+   <button id="severe-lightning" type="button" aria-pressed="true"><i aria-hidden="true"></i> Raios</button>
+   <button id="severe-cells" type="button" aria-pressed="true"><i aria-hidden="true"></i> Células em atenção</button>
+   <button id="severe-notices" type="button" aria-pressed="true"><i aria-hidden="true"></i> Alertas Cemaden</button>
+  </div>
+   </div>
   </div>
   <div class="brazil-location">
    <div class="brazil-search">
@@ -28,18 +43,18 @@
   <div id="brazil-map"></div>
 
  </section>
+ <section id="map-city-card" aria-labelledby="map-city-title" hidden>
+  <div class="map-city-head"><strong id="map-city-title" tabindex="-1"></strong><button id="map-city-close" type="button" aria-label="Fechar resumo do município">×</button></div>
+  <p id="map-city-total" role="status"></p>
+  <p id="map-city-peak"></p>
+  <details id="map-city-more" hidden>
+   <summary>Gráfico e possíveis efeitos</summary>
+   <div id="map-city-chart"></div>
+  </details>
+ </section>
  <div class="map-dock">
  <section class="brazil-controls" aria-label="Variáveis da previsão">
   <strong class="forecast-caption">Previsão municipal · até 24 horas</strong>
-  <div class="brazil-layers" role="group" aria-label="Selecionar dado de previsão">
-   <button type="button" data-layer="temperature" aria-pressed="true">Temperatura</button>
-   <button type="button" data-layer="wind" aria-pressed="false">Vento</button>
-   <button type="button" data-layer="rain" aria-pressed="false">Chuva</button>
-   <button type="button" data-layer="pressure" aria-pressed="false">Pressão</button>
-   <button type="button" data-layer="humidity" aria-pressed="false">Umidade</button>
-   <button type="button" data-layer="gusts" aria-pressed="false">Rajadas</button>
-   <button type="button" data-layer="feels" aria-pressed="false">Sensação</button>
-  </div>
  </section>
  <section class="timeline" aria-label="Linha do tempo da previsão">
   <div class="play-row">
@@ -51,6 +66,7 @@
    <button id="refresh" type="button" aria-label="Atualizar a previsão">↻</button>
   </div>
  </section>
+ <div id="radar-mini-key" hidden aria-label="Escala aproximada em milímetros por hora"></div>
  <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
  </div>
  <div class="map-actions">
@@ -77,11 +93,6 @@
  </section>
  <section id="severe-panel" class="severe-panel" aria-label="Observações e alertas" hidden>
   <div class="severe-heading"><strong>Observações e alertas</strong><button id="severe-refresh" type="button">Atualizar dados</button></div>
-  <div class="severe-chips">
-   <button id="severe-lightning" type="button" aria-pressed="true"><i aria-hidden="true"></i> Raios</button>
-   <button id="severe-cells" type="button" aria-pressed="true"><i aria-hidden="true"></i> Células em atenção</button>
-   <button id="severe-notices" type="button" aria-pressed="true"><i aria-hidden="true"></i> Alertas Cemaden</button>
-  </div>
   <small id="severe-cell-status" role="status">Comparando radar e raios…</small>
   <small id="severe-lightning-status" role="status">Consultando dados de raios…</small>
   <small id="severe-notice-status" role="status">Consultando alertas municipais…</small>
@@ -101,6 +112,7 @@
    <div id="rain24-bars" aria-hidden="true"></div>
    <div class="rain24-endpoints" aria-hidden="true"><span id="rain24-start"></span><span id="rain24-end"></span></div>
    <p id="rain24-peak"></p>
+   <p id="rain24-impact"></p>
    <details>
     <summary>Ver chuva por hora</summary>
     <ol id="rain24-hours"></ol>

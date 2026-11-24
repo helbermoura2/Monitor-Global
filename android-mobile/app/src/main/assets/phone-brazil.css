@@ -220,3 +220,25 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 body.map-expanded :is(.brazil-toolbar,.map-dock,#map-details,#map-details-panel){display:none!important}
 body.map-expanded .map-stage .admin-boundary-controls{top:11px}
 body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
+
+
+.brazil-overlays{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.layer-menu{position:absolute;right:8px;top:calc(100% + 5px);width:min(300px,calc(100% - 16px));max-height:55vh;overflow:auto;
+ display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;background:#071e2ff7;border:1px solid #52758a;border-radius:12px}
+.layer-menu[hidden],#map-city-card[hidden],#map-city-more[hidden],#radar-mini-key[hidden]{display:none}
+.layer-menu button{min-height:40px;border-radius:8px;font:600 12px system-ui;color:#d9edfa;background:#132c3d;border:1px solid #3b5d73}
+.layer-menu button[aria-pressed=true]{background:#78d5fb;color:#071724}
+.layer-notices{display:none;grid-column:1/-1}
+.severe-mode .layer-notices{display:block}
+#map-city-card{position:absolute;z-index:9;top:58%;bottom:auto;right:8px;width:min(292px,calc(100% - 16px));transform:translateY(-100%);
+ padding:9px 11px;background:#102736fa;border:1px solid #52758a;border-radius:12px;color:#e9f7ff;font:13px/1.35 system-ui}
+#map-city-card.is-expanded{top:118px;transform:none;max-height:calc(100% - 235px);overflow:auto}
+.map-city-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.map-city-head strong{color:#9fe0f9}
+.map-city-head button{min-width:38px;min-height:36px;border-radius:7px;background:#1c3c4f;color:white;border:1px solid #4d6c80;font-size:19px}
+#map-city-card p{margin:4px 0}
+#map-city-total{font-weight:700;color:#f6d796}
+#map-city-more summary{min-height:32px;padding-top:7px;cursor:pointer}
+#map-city-chart .city-rain-summary{margin:0;padding:8px}
+#radar-mini-key{padding:3px 10px 1px}
+#radar-mini-key .radar-scale{font-size:10px}
