@@ -38,3 +38,11 @@ body.geo-br #brasil-hub { display: block !important; }
   .bh-caps { grid-template-columns: 1fr; }
 }
 
+/* CAP Severe/Extreme: concise national catalogue with issuer and original area. */
+#bh-cap-br { border-color: rgba(203, 94, 69, .48); }
+#bh-cap-br-status { color: #f0d1aa; font-variant-numeric: tabular-nums; }
+#bh-cap-br-rows { display: grid; gap: 7px; margin: 8px 0; }
+.bh-cap-item { padding: 7px 9px; background: #0b1528; border: 1px solid #324258; border-radius: 8px; }
+.bh-cap-item strong { display: block; font-size: 12px; line-height: 1.35; }
+.bh-cap-item small { display: block; margin-top: 4px; color: #a8bac8; font-size: 10px; }
+.bh-cap-item p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #d6e2eb; }
