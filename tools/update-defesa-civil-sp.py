@@ -1,4 +1,4 @@
-"""Publish active public severe IDAP messages whose CAP area overlaps São Paulo."""
+"""Publish official Severe/Extreme CAP records locally and for a national information catalogue."""
 import gzip
 import json
 import sys
@@ -22,6 +22,7 @@ CAP = "{urn:oasis:names:tc:emergency:cap:1.2}"
 ATOM = "{http://www.w3.org/2005/Atom}"
 BOUNDARIES = ROOT / "android-mobile/app/src/main/assets/data/br-municipalities-sp.geojson"
 OUTPUT = ROOT / "data/defesa-civil-sp.json"
+NATIONAL_OUTPUT = ROOT / "data/defesa-civil-br.json"
 
 
 def epoch(value):
@@ -59,8 +60,8 @@ def applies(area, city):
     return False
 
 
-def parse(stream, city, now):
-    alerts, superseded = {}, set()
+def parse(stream, city, now, include_national=False):
+    alerts, national, superseded = {}, {}, set()
     updated = 0
     events = ET.iterparse(stream, events=("start", "end"))
     _, root = next(events)
@@ -92,21 +93,37 @@ def parse(stream, city, now):
                         severity = get("severity")
                         expires = epoch(get("expires"))
                         effective = epoch(get("effective")) or sent
-                        if (issuer.casefold() not in {"defesa civil estadual de são paulo", "defesa civil de são paulo (sp)"}
-                                or severity not in {"Severe", "Extreme"} or not effective <= now < expires
-                                or not get("language").lower().startswith("pt")
-                                or not any(applies(a, city) for a in info.findall(CAP + "area"))):
+                        if (severity not in {"Severe", "Extreme"} or not effective <= now < expires
+                                or not get("language").lower().startswith("pt")):
                             continue
                         message = get("headline") or get("description")
-                        if message and len(message) <= 500:
+                        if not issuer or not message or len(message) > 500:
+                            continue
+                        areas = info.findall(CAP + "area")
+                        descriptions = [a.findtext(CAP + "areaDesc", "").strip()[:180]
+                                        for a in areas if a.findtext(CAP + "areaDesc", "").strip()]
+                        # CAP notices need an explicit named area for national display.
+                        if include_national and descriptions:
+                            national[identifier] = dict(
+                                id=identifier, sent=sent, expires=expires, issuer=issuer[:120],
+                                severity=severity, message=message,
+                                area="; ".join(descriptions[:3])[:350])
+                        # Only SP official issuers and geographic overlap can trigger TV.
+                        if (issuer.casefold() in {"defesa civil estadual de são paulo", "defesa civil de são paulo (sp)"}
+                                and any(applies(a, city) for a in areas)):
                             alerts[identifier] = dict(id=identifier, sent=sent, expires=expires,
                                 issuer=issuer, severity=severity, message=message)
                         break
         root.remove(element)
     if not updated or updated > now + 60_000:
         raise ValueError("IDAP feed timestamp is missing or invalid")
-    return updated, sorted((a for key, a in alerts.items() if key not in superseded),
-                           key=lambda a: a["sent"], reverse=True)[:20]
+    local = sorted((a for key, a in alerts.items() if key not in superseded),
+                   key=lambda a: a["sent"], reverse=True)[:20]
+    if not include_national:
+        return updated, local
+    nationwide = sorted((a for key, a in national.items() if key not in superseded),
+                        key=lambda a: (a["sent"], a["id"]), reverse=True)
+    return updated, local, nationwide
 
 
 def main():
@@ -115,7 +132,7 @@ def main():
     now = int(time.time() * 1000)
     if len(sys.argv) == 2:
         with open(sys.argv[1], "rb") as stream:
-            updated, alerts = parse(stream, city, now)
+            updated, alerts, nationwide = parse(stream, city, now, include_national=True)
     else:
         request = urllib.request.Request(SOURCE, headers={"User-Agent": "ArgosOrbis/1.0 (+https://argosorbis.com.br)", "Accept-Encoding": "gzip"})
         with urllib.request.urlopen(request, timeout=25) as response, tempfile.TemporaryFile() as stream:
@@ -128,12 +145,18 @@ def main():
                     raise ValueError("IDAP response exceeds budget")
             stream.seek(0)
             now = int(time.time() * 1000)
-            updated, alerts = parse(stream, city, now)
+            updated, alerts, nationwide = parse(stream, city, now, include_national=True)
     payload = dict(version=1, checkedAt=now, updatedAt=updated, source=SOURCE, municipality="3550308", alerts=alerts)
-    temporary = OUTPUT.with_suffix(".tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
-    temporary.replace(OUTPUT)
-    print(f"IDAP: {len(alerts)} avisos severos ou extremos vigentes para a capital")
+    # Keep a finite transport size. Report total and truncation rather than claiming completeness.
+    limit = 1500
+    national_payload = dict(version=1, checkedAt=now, updatedAt=updated, source=SOURCE,
+                            scope="BRASIL", total=len(nationwide),
+                            truncated=len(nationwide)>limit, alerts=nationwide[:limit])
+    for path, data in ((OUTPUT, payload), (NATIONAL_OUTPUT, national_payload)):
+        temporary = path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
+        temporary.replace(path)
+    print(f"IDAP: {len(alerts)} avisos na capital; {len(nationwide)} avisos CAP nacionais Severe/Extreme")
 
 
 if __name__ == "__main__":
