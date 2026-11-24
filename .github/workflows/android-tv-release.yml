@@ -69,8 +69,26 @@ jobs:
           if old.get('enabled') and new['versionCode']<=old['versionCode']:
               raise SystemExit('Incremente versionCode/versionName em main antes de publicar. A versão instalada não será sobrescrita.')
           PY
-          git fetch origin main
-          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          # CAP snapshot refreshes cannot change signed binaries. Permit only their
+          # data files to advance main; abort if any source, build or release file moves.
+          check_upstream() {
+            git fetch origin main
+            git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+              echo "::error::main não é descendente da revisão compilada"; exit 1;
+            }
+            python - <<'PY'
+          import os,subprocess
+          allowed={'data/defesa-civil-sp.json','data/defesa-civil-br.json'}
+          changed=set(subprocess.check_output([
+           'git','diff','--name-only',os.environ['GITHUB_SHA'],'origin/main'
+          ],text=True).splitlines())
+          unexpected=sorted(changed-allowed)
+          if unexpected:
+           raise SystemExit('Código/main alterado durante assinatura: '+', '.join(unexpected))
+          print('Mudanças upstream permitidas (CAP):',sorted(changed))
+          PY
+          }
+          check_upstream
           cp "$RUNNER_TEMP"/tv-release-public/*.apk downloads/
           cp "$RUNNER_TEMP"/tv-release-public/*.sha256 downloads/
           cp "$RUNNER_TEMP/tv-release-public/stable.json" android-tv/distribution/stable.json
@@ -79,7 +97,17 @@ jobs:
           git add downloads/*.apk downloads/*.sha256 android-tv/distribution/stable.json
           git diff --cached --quiet && exit 0
           git commit -m 'Publica atualização assinada do Monitor Global TV'
-          git push origin HEAD:main
+          published=false
+          for attempt in 1 2 3; do
+            check_upstream
+            git rebase origin/main
+            if git push origin HEAD:main; then published=true; break; fi
+            echo "::warning::Atualização CAP simultânea; revalidando upstream."
+          done
+          if [ "$published" != true ]; then
+            echo "::error::Publicação não concluída após três tentativas seguras"
+            exit 1
+          fi
           gh api --method POST repos/helbermoura2/Monitor-Global/pages/builds --silent
       - name: Explain verification-only mode
         if: inputs.mode == 'verify'
