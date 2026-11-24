@@ -11,6 +11,7 @@
   <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.event-share" android:exported="false" android:grantUriPermissions="true">
    <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/event_share_paths"/>
   </provider>
+  <service android:name="top.monitorglobal.tv.PhoneWeatherBriefJob" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE"/>
   <service android:name="top.monitorglobal.tv.PhoneBackgroundAlerts" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE"/>
   <service android:name="top.monitorglobal.tv.PhonePlaceAlerts" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE"/>
   <service android:name="top.monitorglobal.tv.PhoneMessagingService" android:exported="false"><intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT"/></intent-filter></service>

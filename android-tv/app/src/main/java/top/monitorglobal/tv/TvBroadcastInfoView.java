@@ -127,6 +127,17 @@ final class TvBroadcastInfoView extends View {
   setContentDescription(marketDetails+" · "+ticker);
  }
  /** All voice status results reuse the SAME official seismic broadcast geometry. */
+ private android.text.StaticLayout dailyWeatherText;
+ static TvBroadcastInfoView dailyWeather(Context c,String title,String detail){
+  TvBroadcastInfoView view=voiceStatus(c,title,detail);
+  android.text.TextPaint text=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
+  text.setColor(0xffbdcfdd);text.setTypeface(view.data);text.setTextSize(15);
+  view.dailyWeatherText=android.text.StaticLayout.Builder.obtain(detail,0,detail.length(),text,650)
+   .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
+  view.ticker=title+" · "+detail+" · Previsão Open-Meteo";
+  view.setContentDescription(view.ticker);
+  return view;
+ }
  static TvBroadcastInfoView voiceStatus(Context c,String title,String detail){
   TvBroadcastInfoView v=new TvBroadcastInfoView(c,VOICE_STATUS,null,null,null,null,null,null,false);
   v.voiceTitle=title==null?"CONSULTA POR VOZ":title;
@@ -296,7 +307,7 @@ final class TvBroadcastInfoView extends View {
  private void drawHeader(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   OledNewsChrome.base(c,p);
   if(kind==CIVIL_ALERT)OledNewsChrome.tab(c,p,demo?"SIMULAÇÃO":civilFromPhone?"DEFESA CIVIL":civilReplay?"DEFESA CIVIL":"ALERTA OFICIAL",true);
-  else OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true);
+  else OledNewsChrome.tab(c,p,dailyWeatherText!=null?"BOLETIM DO TEMPO":BannerOpening.title(effects.category),true);
   OledNewsChrome.tab(c,p,demo?"TESTE FICTÍCIO":civilReplay?"REPLAY":civilFromPhone?"CELULAR":"AO VIVO",false);
   // Retain every event-specific native metric, status, timestamp and dynamic value.
   c.save();c.clipRect(0,31,BroadcastVisuals.CONTENT_RIGHT_LIMIT,BroadcastVisuals.FOOTER_TOP);
@@ -423,7 +434,12 @@ final class TvBroadcastInfoView extends View {
   civilEdgeSweep(c,elapsed);
  }
  private void drawVoiceStatus(Canvas c,long elapsed){
-  eventCategory(c,"CONSULTA","POR VOZ");
+  eventCategory(c,dailyWeatherText!=null?"PREVISÃO":"CONSULTA",dailyWeatherText!=null?"OPEN-METEO":"POR VOZ");
+  if(dailyWeatherText!=null){
+   label(c,voiceTitle,170,52,23,foreground,brand,650);
+   c.save();c.translate(170,56);dailyWeatherText.draw(c);c.restore();
+   return;
+  }
   primary(c,voiceTitle,170,27,voiceChanged?effects.valueInk(foreground,0xff92e4ff,elapsed):foreground,680);
   label(c,voiceDetail,170,88,16,0xffbdcfdd,data,680);
  }

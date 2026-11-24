@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.64 de teste
+
+- Notificações opcionais da previsão de hoje e amanhã para a Liberdade, com horários de referência às 11h30 e 23h45 BRT.
+
 # Argos Orbis Celular · 0.1.63 de teste
 
 - Clima volta a destacar Tempo severo. Chuva agora usa cartografia escura, com mais espaço para o mapa e os nomes acima da precipitação.

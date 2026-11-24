@@ -252,6 +252,7 @@ public final class MonitorService extends Service {
    polling=true;
    executor.scheduleWithFixedDelay(this::poll,0,30,TimeUnit.SECONDS);
    executor.scheduleWithFixedDelay(this::pollCivilAlerts,2,60,TimeUnit.SECONDS);
+   executor.scheduleWithFixedDelay(this::pollDailyWeather,5,60,TimeUnit.SECONDS);
   }
   if(civilPhoneExecutor==null&&TvCivilPhoneRelay.paired(this)){
     civilPhoneExecutor=Executors.newSingleThreadScheduledExecutor();
@@ -263,6 +264,27 @@ public final class MonitorService extends Service {
    alexaPolling=true;alexaExecutor=Executors.newSingleThreadScheduledExecutor();
    alexaExecutor.scheduleWithFixedDelay(this::pollAlexa,2,8,TimeUnit.SECONDS);
   }
+ }
+ private long nextWeatherBriefAttempt;
+ private void pollDailyWeather(){
+  long now=System.currentTimeMillis();
+  DailyWeatherBrief.Slot slot=DailyWeatherBrief.due(now);
+  android.content.SharedPreferences prefs=Prefs.get(this);
+  if(destroyed||slot==null||!screenReady()||now<nextWeatherBriefAttempt||
+     slot.key().equals(prefs.getString("dailyWeatherDisplayed","")))return;
+  nextWeatherBriefAttempt=now+4*60_000L;
+  try{
+   String message=DailyWeatherBrief.read(slot,now);
+   main.post(()->{
+    DailyWeatherBrief.Slot current=DailyWeatherBrief.due(System.currentTimeMillis());
+    if(destroyed||current==null||!current.key().equals(slot.key())||!screenReady()||localBusy()||
+       banner.activeView()!=null||daily.displaying()||rain.presentationActive()||brent.showing())return;
+    if(banner.showDailyWeather(slot.title(),message,15000,()->{activeUntil=0;drain();})){
+     activeUntil=android.os.SystemClock.uptimeMillis()+16000;
+     prefs.edit().putString("dailyWeatherDisplayed",slot.key()).apply();
+    }
+   });
+  }catch(java.io.IOException|org.json.JSONException|java.time.DateTimeException ignored){}
  }
  private void pollAlexa(){
   if(destroyed||!Prefs.get(this).getBoolean("enabled",false))return;

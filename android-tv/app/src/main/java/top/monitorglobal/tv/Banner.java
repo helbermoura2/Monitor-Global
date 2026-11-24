@@ -36,6 +36,9 @@ final class Banner {
   return showView(TvBroadcastInfoView.marketPending(context),duration,0,finished);
  }
  /** Generic voice responses also use the broadcast lower-third instead of VoiceStatusOverlay. */
+ boolean showDailyWeather(String title,String detail,long duration,Runnable finished){
+  return showView(TvBroadcastInfoView.dailyWeather(context,title,detail),duration,0,finished);
+ }
  boolean showVoiceStatus(String title,String detail,long duration,Runnable finished){
   return showView(TvBroadcastInfoView.voiceStatus(context,title,detail),duration,0,finished);
  }
