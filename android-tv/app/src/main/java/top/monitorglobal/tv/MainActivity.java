@@ -92,12 +92,12 @@ public final class MainActivity extends Activity {
   label("Busca o registro mais recente entre os avisos CAP da capital e os alertas reais encaminhados por celular. "
    +"Confirme para rever a tarja; o nível e a origem continuam identificados. Não recupera avisos não recebidos pela TV.",14,false);
   section("DEFESA CIVIL · REPLAY DOS AVISOS POR ORIGEM");
-  button("Replay · último aviso SEVERO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_SEVERE));
-  button("Replay · último aviso EXTREMO oficial (histórico)",v->launch(MonitorService.REPLAY_CIVIL_EXTREME));
+  button("Replay · último aviso SEVERO oficial (histórico)",v->replayCivilReal(false,false));
+  button("Replay · último aviso EXTREMO oficial (histórico)",v->replayCivilReal(false,true));
   label("Reproduz o último aviso oficial recebido nesta TV nos últimos sete dias. Abre em 10 s para você voltar ao vídeo, fica 20 s e mostra REPLAY HISTÓRICO com a data da emissão. Não toca som e não dispara notificações. Se não houver registro, informa isso; não inventa avisos.",14,false);
   section("DEFESA CIVIL · HISTÓRICO RECEBIDO DO CELULAR");
-  button("Replay · último SEVERO recebido do celular",v->launch(MonitorService.REPLAY_PHONE_SEVERE));
-  button("Replay · último EXTREMO recebido do celular",v->launch(MonitorService.REPLAY_PHONE_EXTREME));
+  button("Replay · último SEVERO recebido do celular",v->replayCivilReal(true,false));
+  button("Replay · último EXTREMO recebido do celular",v->replayCivilReal(true,true));
   label("Guarda por até sete dias o último aviso real de cada nível recebido pela TV via celular. NÃO é boletim CAP verificado. Replays são históricos, silenciosos e não mostram uma ameaça atual. Simulações não entram no histórico.",14,false);
   button("Diagnóstico · celular → Worker → TV",v->{
    android.content.SharedPreferences p=Prefs.get(this);
@@ -314,6 +314,32 @@ public final class MainActivity extends Activity {
       focused?0xff00ecf4:0xff426276,12)));
   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
   lp.setMargins(0,dp(5),0,dp(5));content.addView(toggle,lp);
+ }
+ private void replayCivilReal(boolean phone,boolean extreme){
+  String level=extreme?CivilReplayStore.EXTREME:CivilReplayStore.SEVERE;
+  DefesaCivilSp.Notice notice=phone?CivilPhoneHistory.last(this,level):CivilReplayStore.last(this,level);
+  String origin=phone?"recebido do celular":"CAP oficial recebido nesta TV";
+  if(notice==null){
+   new AlertDialog.Builder(this).setTitle("Nenhum alerta real "+(extreme?"EXTREMO":"SEVERO")+" salvo")
+    .setMessage("Não existe alerta real "+origin+" disponível no histórico local dos últimos sete dias. "
+     +"A TV não recupera alertas que não recebeu. Simulações nunca são usadas para replay.")
+    .setPositiveButton("Entendi",null).show();
+   return;
+  }
+  if(!Settings.canDrawOverlays(this)){
+   new AlertDialog.Builder(this).setTitle("Sobreposição desativada")
+    .setMessage("Autorize a sobreposição do Argos Orbis para mostrar o replay sobre o vídeo.")
+    .setPositiveButton("Entendi",null).show();
+   return;
+  }
+  String action=phone?(extreme?MonitorService.REPLAY_PHONE_EXTREME:MonitorService.REPLAY_PHONE_SEVERE)
+   :(extreme?MonitorService.REPLAY_CIVIL_EXTREME:MonitorService.REPLAY_CIVIL_SEVERE);
+  new AlertDialog.Builder(this).setTitle("Reproduzir alerta real "+(extreme?"EXTREMO":"SEVERO"))
+   .setMessage("Origem: "+origin+"\nEmitido: "+BrDates.dateTime(notice.sent)
+    +"\n\n"+notice.message+"\n\nReplay histórico, sem som, por 20 segundos. "
+    +"Começa 10 segundos depois da confirmação. Não é um alerta atual.")
+   .setNegativeButton("Cancelar",null)
+   .setPositiveButton("Reproduzir em 10 s",(d,w)->launch(action)).show();
  }
  private void showRegionalReplay(){
   Alert saved=Prefs.lastTarget(this);

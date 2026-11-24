@@ -14,8 +14,8 @@ android {
   // Cotação horária Yahoo BRL=X: painel nativo, sem WebView nem sobreposição externa.
   // Câmbio internacional e Brent possuem consultas/sessões independentes.
   // Fim de semana no Brasil não é confundido com abertura da referência global.
-  versionCode 10147
-  versionName '1.0.147'
+  versionCode 10148
+  versionName '1.0.148'
   // Revalidar assinatura após publicação do catálogo nacional CAP no main.
   // Revalidação de publicação após a implantação do Worker de origem dos celulares.
   // TSUNAMI: estado único; ticker complementar e descrições regionais acessíveis validadas.
