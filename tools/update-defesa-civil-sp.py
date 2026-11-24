@@ -61,7 +61,7 @@ def applies(area, city):
 
 
 def parse(stream, city, now, include_national=False):
-    alerts, national, superseded = {}, {}, set()
+    alerts, national, superseded, national_superseded = {}, {}, set(), set()
     updated = 0
     events = ET.iterparse(stream, events=("start", "end"))
     _, root = next(events)
@@ -86,6 +86,7 @@ def parse(stream, city, now, include_national=False):
                         parts = reference.split(",")
                         if len(parts) == 3 and parts[0] == read("sender"):
                             superseded.add(parts[1])
+                            national_superseded.add((parts[0], parts[1]))
                 if kind in ("Alert", "Update"):
                     for info in alert.findall(CAP + "info"):
                         get = lambda key: info.findtext(CAP + key, "").strip()
@@ -104,7 +105,7 @@ def parse(stream, city, now, include_national=False):
                                         for a in areas if a.findtext(CAP + "areaDesc", "").strip()]
                         # CAP notices need an explicit named area for national display.
                         if include_national and descriptions:
-                            national[identifier] = dict(
+                            national[(read("sender"), identifier)] = dict(
                                 id=identifier, sent=sent, expires=expires, issuer=issuer[:120],
                                 severity=severity, message=message,
                                 area="; ".join(descriptions[:3])[:350])
@@ -121,7 +122,7 @@ def parse(stream, city, now, include_national=False):
                    key=lambda a: a["sent"], reverse=True)[:20]
     if not include_national:
         return updated, local
-    nationwide = sorted((a for key, a in national.items() if key not in superseded),
+    nationwide = sorted((a for key, a in national.items() if key not in national_superseded),
                         key=lambda a: (a["sent"], a["id"]), reverse=True)
     return updated, local, nationwide
 
