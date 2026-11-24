@@ -63,6 +63,21 @@ public class CivilLatestReplayTest {
   CivilPhoneHistory.remember(context,simulated);
   assertNull(CivilLatestReplay.last(context));
  }
+ @Test public void phoneReplayRetainsFirstSenderWithoutBreakingOldHistory(){
+  String id="01234567-89ab-cdef-0123-456789abcdef";
+  DefesaCivilSp.Notice n=new DefesaCivilSp.Notice(id,"Celular não CAP",
+   "Alerta severo real: tempestade e ventos fortes em São Paulo. Abrigue-se.",
+   "Severe",now,now+300000L);
+  TvCivilPhoneRelay.Event e=new TvCivilPhoneRelay.Event(id,n,false,now,now+300000L,
+    "Nothing Phone 1","Galaxy S25 Ultra",now,now+1500,now-400,now+700);
+  CivilPhoneHistory.remember(context,e);
+  assertEquals("Nothing Phone 1",CivilPhoneHistory.firstDevice(context,"Severe",id));
+  DefesaCivilSp.Notice saved=CivilLatestReplay.last(context).notice;
+  TvBroadcastInfoView replay=TvBroadcastInfoView.civilPhoneReplay(context,saved);
+  assertTrue(String.valueOf(replay.getContentDescription()).contains("Nothing Phone 1"));
+  assertTrue(replay.civilIsReplay());
+  assertFalse(replay.civilIsSimulation());
+ }
  @Test public void expiredOfficialStillReplayableForSevenDays(){
   CivilReplayStore.remember(context,cap("cap-short","Severe",now-35000));
   // Official can expire after being saved, but historical replay stays available.
