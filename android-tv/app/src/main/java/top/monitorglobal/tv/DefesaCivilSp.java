@@ -32,7 +32,8 @@ final class DefesaCivilSp {
  private DefesaCivilSp(List<Notice> notices,long checkedAt,long updatedAt){
   this.notices=Collections.unmodifiableList(notices);this.checkedAt=checkedAt;this.updatedAt=updatedAt;
  }
- boolean fresh(long now){return updatedAt>0&&updatedAt<=checkedAt+60_000&&checkedAt<=now+60_000&&now-updatedAt<=20*60_000L;}
+ // Atom updatedAt is last FEED CHANGE, not the time it was successfully checked.
+ boolean fresh(long now){return updatedAt>0&&updatedAt<=checkedAt+60_000&&checkedAt<=now+60_000&&now-checkedAt<=15*60_000L;}
 
  static DefesaCivilSp read() throws IOException,JSONException {
   HttpURLConnection connection=(HttpURLConnection)new URL(SNAPSHOT+"?minute="+System.currentTimeMillis()/60_000).openConnection();
