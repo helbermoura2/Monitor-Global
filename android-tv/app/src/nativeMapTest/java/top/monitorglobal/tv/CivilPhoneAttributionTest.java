@@ -28,7 +28,7 @@ public class CivilPhoneAttributionTest {
   assertEquals(1500L,event.secondReceivedAt-event.firstReceivedAt);
   assertFalse(event.test);
  }
- @Test public void bannerNamesTheFirstPhoneButRetainsNonCapWarning(){
+ @Test public void bannerHidesPhoneIdentityButRetainsNonCapWarning(){
   Context c=RuntimeEnvironment.getApplication();
   long now=System.currentTimeMillis();
   DefesaCivilSp.Notice notice=new DefesaCivilSp.Notice(
@@ -37,7 +37,7 @@ public class CivilPhoneAttributionTest {
    "Severe",now,now+300000);
   TvBroadcastInfoView v=TvBroadcastInfoView.civilPhone(c,notice,false,"Nothing Phone 1");
   String label=String.valueOf(v.getContentDescription());
-  assertTrue(label,label.contains("Nothing Phone 1"));
+  assertFalse(label,label.contains("Nothing Phone 1"));
   assertTrue(label,label.contains("NÃO VERIFICADA VIA CAP"));
   assertFalse(v.civilIsReplay());
  }
