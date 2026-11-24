@@ -7,11 +7,13 @@
 <script defer src="vendor/maplibre-gl.js"></script><script defer src="brazil-satellite-model.js"></script><script defer src="brazil-satellite.js"></script><script defer src="phone-boundaries.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-storm-signals.js"></script><script defer src="phone-brazil-radar.js"></script><script defer src="phone-severe-weather.js"></script><script defer src="phone-brazil.js"></script>
 </head><body>
 <main class="brazil-main">
+ <div class="map-stage">
  <section class="brazil-toolbar" aria-label="Explorar meteorologia brasileira">
-  <div class="brazil-overlays" role="group" aria-label="Imagens observadas">
+  <div class="brazil-overlays" role="group" aria-label="Camadas do mapa">
+   <button type="button" id="model-toggle" aria-pressed="true">Previsão 24 h</button>
    <button type="button" id="severe-toggle" aria-pressed="false">Tempo severo</button>
    <button type="button" id="satellite-toggle" aria-pressed="false">Satélite GOES</button>
-   <button type="button" id="radar-toggle" aria-pressed="false">Radar observado</button>
+   <button type="button" id="radar-toggle" aria-pressed="false">Radar</button>
   </div>
   <div class="brazil-location">
    <div class="brazil-search">
@@ -26,40 +28,7 @@
   <div id="brazil-map"></div>
 
  </section>
- <div class="map-actions">
-  <button id="map-expand" type="button" aria-pressed="false">Ampliar mapa</button>
-  <details class="map-sources"><summary>Fontes · Esri</summary>
-   <p>Mapa © Esri, Maxar, Earthstar Geographics e GIS User Community.</p>
-   <p>Radar: RainViewer. Satélite e descargas: NASA GIBS e NOAA GOES-19. Alertas municipais: Cemaden.</p>
-  </details>
- </div>
- <section id="map-selection" aria-labelledby="map-selection-title" hidden>
-  <div class="map-selection-head">
-   <strong id="map-selection-title" tabindex="-1">Detalhes do mapa</strong>
-   <button id="map-selection-close" type="button" aria-label="Fechar detalhes do mapa">Fechar</button>
-  </div>
-  <div id="map-selection-content"></div>
- </section>
- <section class="map-reading" id="map-reading" aria-label="Legenda e resumo do mapa" hidden>
-  <div id="severe-map-readout" class="map-summary" hidden></div>
-  <div id="radar-key" hidden></div>
- </section>
- <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
- <section id="severe-panel" class="severe-panel" aria-label="Observações e alertas" hidden>
-  <div class="severe-heading"><strong>Observações e alertas</strong><button id="severe-refresh" type="button">Atualizar dados</button></div>
-  <div class="severe-chips">
-   <button id="severe-lightning" type="button" aria-pressed="true"><i aria-hidden="true"></i> Raios</button>
-   <button id="severe-cells" type="button" aria-pressed="true"><i aria-hidden="true"></i> Células em atenção</button>
-   <button id="severe-notices" type="button" aria-pressed="true"><i aria-hidden="true"></i> Alertas Cemaden</button>
-  </div>
-  <small id="severe-cell-status" role="status">Comparando radar e raios…</small>
-  <small id="severe-lightning-status" role="status">Consultando dados de raios…</small>
-  <small id="severe-notice-status" role="status">Consultando alertas municipais…</small>
-  <details><summary>Como ler o mapa</summary>
-   <p>Os anéis laranja mostram sinais combinados de radar e raios. A identificação é experimental. Radar e satélite têm horários próprios. Os ícones de raio destacam células com descargas na janela indicada acima, inclusive durante a animação do radar. O pulso facilita a leitura do mapa.</p>
-   <p>Os pontos do Cemaden referem-se a municípios com alerta hidrológico ou geológico. O GLM detecta descargas em nuvens e no solo. A cobertura do radar varia por região.</p>
-  </details>
- </section>
+ <div class="map-dock">
  <section class="brazil-controls" aria-label="Variáveis da previsão">
   <strong class="forecast-caption">Previsão municipal · até 24 horas</strong>
   <div class="brazil-layers" role="group" aria-label="Selecionar dado de previsão">
@@ -82,6 +51,45 @@
    <button id="refresh" type="button" aria-label="Atualizar a previsão">↻</button>
   </div>
  </section>
+ <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
+ </div>
+ <div class="map-actions">
+  <button id="map-expand" type="button" aria-pressed="false">Só mapa</button>
+  <button id="map-details" type="button" aria-controls="map-details-panel">Ver previsão e fontes</button>
+ </div>
+ </div>
+ <section id="map-details-panel" aria-label="Detalhes da previsão e das observações">
+  <button id="map-return" type="button">↑ Voltar ao mapa</button>
+  <details class="map-sources"><summary>Fontes · Esri</summary>
+   <p>Mapa © Esri, Maxar, Earthstar Geographics e GIS User Community.</p>
+   <p>Radar: RainViewer. Satélite e descargas: NASA GIBS e NOAA GOES-19. Alertas municipais: Cemaden.</p>
+  </details>
+ <section id="map-selection" aria-labelledby="map-selection-title" hidden>
+  <div class="map-selection-head">
+   <strong id="map-selection-title" tabindex="-1">Detalhes do mapa</strong>
+   <button id="map-selection-close" type="button" aria-label="Fechar detalhes do mapa">Fechar</button>
+  </div>
+  <div id="map-selection-content"></div>
+ </section>
+ <section class="map-reading" id="map-reading" aria-label="Legenda e resumo do mapa" hidden>
+  <div id="severe-map-readout" class="map-summary" hidden></div>
+  <div id="radar-key" hidden></div>
+ </section>
+ <section id="severe-panel" class="severe-panel" aria-label="Observações e alertas" hidden>
+  <div class="severe-heading"><strong>Observações e alertas</strong><button id="severe-refresh" type="button">Atualizar dados</button></div>
+  <div class="severe-chips">
+   <button id="severe-lightning" type="button" aria-pressed="true"><i aria-hidden="true"></i> Raios</button>
+   <button id="severe-cells" type="button" aria-pressed="true"><i aria-hidden="true"></i> Células em atenção</button>
+   <button id="severe-notices" type="button" aria-pressed="true"><i aria-hidden="true"></i> Alertas Cemaden</button>
+  </div>
+  <small id="severe-cell-status" role="status">Comparando radar e raios…</small>
+  <small id="severe-lightning-status" role="status">Consultando dados de raios…</small>
+  <small id="severe-notice-status" role="status">Consultando alertas municipais…</small>
+  <details><summary>Como ler o mapa</summary>
+   <p>Os anéis laranja mostram sinais combinados de radar e raios. A identificação é experimental. Radar e satélite têm horários próprios. Os ícones de raio destacam células com descargas na janela indicada acima, inclusive durante a animação do radar. O pulso facilita a leitura do mapa.</p>
+   <p>Os pontos do Cemaden referem-se a municípios com alerta hidrológico ou geológico. O GLM detecta descargas em nuvens e no solo. A cobertura do radar varia por região.</p>
+  </details>
+ </section>
  <section class="outlook" aria-label="Previsão para cidade selecionada">
   <div id="brazil-status" role="status" aria-live="polite" hidden></div>
   <div class="point-heading"><span class="point-dot"></span><strong id="place">SÃO PAULO · SP</strong><span id="layer-label">Temperatura</span></div>
@@ -103,6 +111,7 @@
    <p id="validity">Previsão pontual para a cidade selecionada. Radar e satélite exibem observações independentes.</p>
    <p id="forecast-source">Previsão: Open-Meteo (CC BY 4.0). Não são avisos oficiais. <a href="https://open-meteo.com/" rel="noopener">Fonte</a></p>
   </details>
+ </section>
  </section>
 </main>
 </body></html>

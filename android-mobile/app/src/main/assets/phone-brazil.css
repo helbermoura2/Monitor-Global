@@ -122,7 +122,7 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .brazil-location{display:flex;align-items:center;gap:8px;margin-top:8px}
 .brazil-location .brazil-search{flex:1;min-width:0}
 .brazil-location #recenter,.brazil-search input,.brazil-overlays button{min-height:44px}
-.brazil-map-panel{flex:0 0 auto;height:clamp(300px,59vh,510px);min-height:300px}
+
 .forecast-caption{color:#a6dcf1;font-size:12px}
 .overlay-panel{border:1px solid #28536b;border-radius:13px}
 .overlay-panel .radar-control{display:flex;flex-direction:column;gap:6px}
@@ -148,10 +148,10 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 
 .severe-mode .brazil-controls,.severe-mode .timeline,.severe-mode .outlook{display:none}
 
-.brazil-overlays{grid-template-columns:repeat(3,minmax(0,1fr))}
+.brazil-overlays{grid-template-columns:repeat(4,minmax(0,1fr))}
 .city-rain-summary{padding:9px 0 2px;color:#f4d197;font-size:13px}
 
-.severe-mode .brazil-map-panel{height:clamp(320px,68vh,620px);min-height:320px}
+
 .severe-mode #overlay-panel .radar-control+.brazil-satellite-control{margin-top:8px}
 
  .map-actions{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex:none;margin:3px 0 2px}
@@ -170,9 +170,7 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 #radar-key strong{display:block;font-size:13px;color:#e8f4f8;margin-bottom:7px}
 #radar-key small,.radar-control details{font-size:11px;color:#b6c8d4}
 .radar-control details summary{padding:6px 0;cursor:pointer}
-body.map-expanded .brazil-main>section:not(.brazil-map-panel),body.map-expanded .map-sources{display:none!important}
-body.map-expanded .brazil-map-panel{height:calc(100dvh - 65px);min-height:0}
-body.map-expanded .map-actions{justify-content:center}
+
 .radar-scale{display:flex;justify-content:space-between;gap:4px;font-size:11px;color:#eaf5fc}
 .radar-scale span{flex:1;text-align:center}
 .radar-scale i{display:block;height:6px;border-radius:4px;margin:1px 0 4px}
@@ -201,3 +199,24 @@ body.map-expanded .map-actions{justify-content:center}
 #rain24-bars i{width:100%;background:linear-gradient(#8fe3f0,#4082ab);border-radius:3px 3px 0 0}
 #rain24-hours{margin:2px 0;padding:0;list-style:none}
 #rain24-hours li{font-size:12px;padding:7px 0;border-top:1px solid #294957;color:#d7eaf3}
+
+
+/* The first viewport is the map. Controls occupy its edges and details follow below. */
+.map-stage{flex:none;height:100%;min-height:260px;position:relative;isolation:isolate}
+.map-stage .brazil-map-panel{position:absolute;inset:0;margin:0;border:0;border-radius:0;height:auto;min-height:0}
+.map-stage .brazil-toolbar{position:absolute;inset:0 0 auto;background:#071b2aeb}
+.map-stage .admin-boundary-controls{top:122px}
+.map-stage .maplibregl-ctrl-top-right{top:110px}
+.map-dock{position:absolute;z-index:7;right:8px;bottom:54px;left:8px;max-height:26%;overflow:auto;
+ background:#0b2031ec;border:1px solid #36576d;border-radius:12px;scrollbar-width:thin}
+.map-dock .brazil-controls{padding:4px 7px;background:transparent;border:0}
+.map-dock .timeline{margin:0;background:transparent}
+.map-dock .overlay-panel{margin:0;border:0;background:transparent}
+.map-dock .radar-control details{margin:0}
+.map-stage .map-actions{position:absolute;z-index:8;inset:auto 8px 5px;margin:0}
+#map-details-panel{flex:none;min-height:100%;padding:10px}
+#map-return{min-height:44px;margin-bottom:8px}
+.observed-mode .map-dock .brazil-controls,.observed-mode .map-dock .timeline{display:none}
+body.map-expanded :is(.brazil-toolbar,.map-dock,#map-details,#map-details-panel){display:none!important}
+body.map-expanded .map-stage .admin-boundary-controls{top:11px}
+body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}

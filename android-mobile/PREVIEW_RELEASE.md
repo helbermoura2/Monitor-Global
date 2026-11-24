@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.61 de teste
+
+- O mapa de Clima preenche a área disponível, com camadas no topo, linha do tempo na base e detalhes acessíveis sem perder o enquadramento.
+
 # Argos Orbis Celular · 0.1.60 — alertas oficiais CAP nacionais
 
 - Central de Alertas: nova seção Brasil com Severos e Extremos oficiais, área, emissor, emissão e validade.

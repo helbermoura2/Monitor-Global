@@ -7,9 +7,9 @@ test('Brazil map remains visible between compact toolbar and forecast controls',
  assert.match(html,/<main class="brazil-main">/);
  assert.ok(html.indexOf('class="brazil-toolbar"')<html.indexOf('class="map-panel brazil-map-panel"'));
  assert.ok(html.indexOf('class="map-panel brazil-map-panel"')<html.indexOf('class="brazil-controls"'));
- assert.match(css,/height:clamp\(300px,59vh,510px\)/);
+ assert.match(css,/\.map-stage\{[^}]*height:100%/);
  assert.ok(html.indexOf('id="satellite-toggle"')<html.indexOf('id="brazil-map"'));
- assert.ok(html.indexOf('id="overlay-panel"')<html.indexOf('id="time-label"'));
+ assert.ok(html.indexOf('id="overlay-panel"')<html.indexOf('id="map-details-panel"'));
  assert.match(css,/main\.brazil-main\{[^}]*overflow-y:auto/);
 });
 test('satellite and radar settings are outside the map and hidden until selected',()=>{

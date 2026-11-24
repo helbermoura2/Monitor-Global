@@ -186,7 +186,7 @@ function setExpanded(expanded){
  document.body.classList.toggle('map-expanded',expanded);
  const button=$('map-expand');
  button.setAttribute('aria-pressed',String(expanded));
- button.textContent=expanded?'Voltar à visão completa':'Ampliar mapa';
+ button.textContent=expanded?'Mostrar controles':'Só mapa';
  requestAnimationFrame(()=>map?.resize());
 }
 function closeSelection(){
@@ -208,7 +208,7 @@ function showSelection(content){
  });
 }
 $('map-selection-close').addEventListener('click',()=>{
- closeSelection();$('map-expand').focus({preventScroll:true});
+ closeSelection();document.querySelector('.brazil-main').scrollTop=0;$('map-expand').focus({preventScroll:true});
 });
 $('map-expand').addEventListener('click',()=>{
  const expanded=!document.body.classList.contains('map-expanded');
@@ -216,9 +216,20 @@ $('map-expand').addEventListener('click',()=>{
  setExpanded(expanded);
  document.querySelector('.brazil-main').scrollTop=0;
 });
+$('map-details').addEventListener('click',()=>{
+ $('map-details-panel').scrollIntoView({block:'start'});
+ $('map-return').focus({preventScroll:true});
+});
+$('map-return').addEventListener('click',()=>{
+ document.querySelector('.brazil-main').scrollTop=0;
+ $('map-details').focus({preventScroll:true});
+});
 function satelliteCheckbox(){return document.querySelector('#overlay-panel .brazil-satellite-control input[type=checkbox]');}
 function syncOverlays(){
  const satOn=!!satellite?.state.enabled,radarOn=!!radar?.enabled;
+ document.body.classList.toggle('observed-mode',satOn||radarOn);
+ $('model-toggle').setAttribute('aria-pressed',String(!satOn&&!radarOn&&!severeOn));
+ $('map-details').textContent=satOn||radarOn?'Ver legenda e fontes':'Ver previsão e fontes';
  $('satellite-toggle').setAttribute('aria-pressed',String(satOn));
  $('radar-toggle').setAttribute('aria-pressed',String(radarOn));
  const satellitePanel=document.querySelector('#overlay-panel .brazil-satellite-control');if(satellitePanel)satellitePanel.hidden=!satOn;
@@ -269,6 +280,7 @@ function showForecast(){
  stop();step=0;showValues();syncOverlays();
  document.querySelector('.brazil-main').scrollTop=0;
 }
+$('model-toggle').addEventListener('click',showForecast);
 window.MonitorMap={pause,resume,close,showSatellite,showSevere,showForecast};window.addEventListener('pagehide',close);
 initMap();restore();load(false);loadCities();
 })();
