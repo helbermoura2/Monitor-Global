@@ -220,13 +220,32 @@
     }
   }
 
-  function refreshCemadenSum() {
+  let cemadenLastRequest=0,cemadenBusy=false;
+  async function refreshCemadenSum() {
     const el = $('bh-cemaden-sum');
-    if (!el) return;
-    const st = $('cemaden-status')?.textContent || '';
-    const max = $('cemaden-max24')?.textContent || '--';
-    el.innerHTML = 'Status: <b>links oficiais ativos</b> · API plena via <b>PED</b> (pedido em andamento em ped@cemaden.gov.br). '
-      + 'Enquanto isso: Painel de Alertas + Mapa Interativo. Card SP: ' + max + ' mm/24h (' + st + ').';
+    if (!el || cemadenBusy || Date.now()-cemadenLastRequest<120000) return;
+    cemadenLastRequest=Date.now();cemadenBusy=true;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+    try{
+      const r=await fetch('https://raw.githubusercontent.com/helbermoura2/Monitor-Global/main/data/cemaden-alerts.json',
+        {cache:'no-store',signal:controller.signal});
+      if(!r.ok)throw Error('HTTP '+r.status);
+      const body=await r.text();
+      if(body.length>1800000)throw Error('Tamanho inesperado');
+      const d=JSON.parse(body),now=Date.now();
+      if(d.version!==1||d.source!=='https://painelalertas.cemaden.gov.br/wsAlertas2'
+       ||!Number.isFinite(d.checkedAt)||d.checkedAt>now+60000||now-d.checkedAt>30*60000
+       ||!Array.isArray(d.alerts)||d.alerts.length>2000)throw Error('Catálogo fora do prazo');
+      const valid=d.alerts.filter(x=>x&&x.status===1
+       &&['Moderado','Alto','Muito Alto'].includes(x.level));
+      const high=valid.filter(x=>x.level==='Alto').length;
+      const veryHigh=valid.filter(x=>x.level==='Muito Alto').length;
+      el.textContent='CEMADEN · '+high+' risco(s) ALTO(S) e '+veryHigh
+       +' MUITO ALTO(S) em '+valid.length+' registros municipais ativos. '
+       +'Fonte hidrológica/geológica própria, não é classificação CAP nem Cell Broadcast.';
+    }catch(error){
+      el.textContent='Consulta CEMADEN indisponível ou desatualizada. Abra o painel oficial; ausência de dados não significa ausência de risco.';
+    }finally{clearTimeout(timer);cemadenBusy=false;}
   }
 
   window.refreshBrasilHub = function () {
