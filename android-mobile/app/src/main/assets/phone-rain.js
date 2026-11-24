@@ -76,7 +76,7 @@ function showFrame(next){
  const frame=frames[index],id='phone-rain-'+index;currentSource=id;
  if(failedSources.has(id)){if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id);sources.delete(id);failedSources.delete(id);}
  $('frame-label').textContent='Carregando '+time(frame.time)+'…';message('Carregando '+(frame.offset>0?'previsão':'histórico')+' de '+time(frame.time)+'…');
- if(!map.getSource(id)){map.addSource(id,{type:'raster',tiles:[API+'/rainbow-tile/'+frame.snapshot+'/'+frame.forecast+'/{z}/{x}/{y}'],tileSize:256,maxzoom:7,attribution:'Precipitação: Rainbow Weather'});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':.65,'raster-fade-duration':matchMedia('(prefers-reduced-motion: reduce)').matches?0:150}});sources.add(id);}
+ if(!map.getSource(id)){map.addSource(id,{type:'raster',tiles:[API+'/rainbow-tile/'+frame.snapshot+'/'+frame.forecast+'/{z}/{x}/{y}'],tileSize:256,maxzoom:7,attribution:'Precipitação: Rainbow Weather'});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':.80,'raster-fade-duration':matchMedia('(prefers-reduced-motion: reduce)').matches?0:150}},'labels');sources.add(id);}
  else map.setLayoutProperty(id,'visibility','visible');
  frameTimer=setTimeout(frameFailed,15000);settled();
 }
@@ -109,7 +109,18 @@ $('play').addEventListener('click',()=>{if(playing){halt();return;}if(!active||!
 $('latest').addEventListener('click',()=>{halt();showFrame(frames.findIndex(f=>f.offset===0));});$('forecast-details').addEventListener('click',event=>{if(event.target.closest('summary'))detailsChosen=true;});$('refresh').addEventListener('click',()=>load(true));$('recenter').addEventListener('click',()=>{if(map)map.jumpTo({center:CENTER,zoom:7.2});});
 document.addEventListener('visibilitychange',()=>document.hidden?pause():resume());window.addEventListener('pagehide',close);
 try{
- map=new maplibregl.Map({container:'rain-map',center:CENTER,zoom:7.2,minZoom:3,maxZoom:9,maxBounds:[[-77,-36],[-29,7]],renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:48,fadeDuration:0,attributionControl:false,style:{version:8,sources:{base:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:18,attribution:'Mapa © Esri, HERE, Garmin e colaboradores'}},layers:[{id:'base',type:'raster',source:'base',paint:{'raster-brightness-max':.88,'raster-saturation':-.2}}]}});
+ const canvas='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+ const tiles=name=>[canvas+name+'/MapServer/tile/{z}/{y}/{x}'];
+ map=new maplibregl.Map({container:'rain-map',center:CENTER,zoom:7.2,minZoom:3,maxZoom:9,maxBounds:[[-77,-36],[-29,7]],
+  renderWorldCopies:false,pixelRatio:Math.min(window.devicePixelRatio||1,1.25),maxTileCacheSize:48,fadeDuration:0,attributionControl:false,
+  style:{version:8,sources:{
+   base:{type:'raster',tiles:tiles('World_Dark_Gray_Base'),tileSize:256,maxzoom:16,attribution:'Mapa © Esri e colaboradores'},
+   labels:{type:'raster',tiles:tiles('World_Dark_Gray_Reference'),tileSize:256,maxzoom:16}
+  },layers:[
+   {id:'base',type:'raster',source:'base',paint:{'raster-contrast':.12,'raster-hue-rotate':200}},
+   {id:'labels',type:'raster',source:'labels',paint:{'raster-opacity':.86}}
+  ]}
+ });
  map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
  const marker=document.createElement('div');marker.className='liberdade-point';marker.setAttribute('aria-label','Ponto da Liberdade, São Paulo');const pointName=document.createElement('span');pointName.textContent='Liberdade';marker.appendChild(pointName);new maplibregl.Marker({element:marker}).setLngLat(CENTER).addTo(map);
  map.on('load',()=>{loaded=true;try{boundaries=window.ArgosBoundaries.create({map,host:document.querySelector('.map-panel')});boundaries?.setActive(active);}catch{}if(active)load();});map.on('sourcedata',e=>{if(e.sourceId===currentSource)settled();});map.on('idle',settled);

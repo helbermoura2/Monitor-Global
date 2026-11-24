@@ -89,6 +89,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(metadataCalls,2,'resume must retry interrupted request, not wait ten minutes');assert(tiles.length>0);assert.equal(await page.locator('#overlay-panel .brazil-satellite-control').isVisible(),false);assert.match(await page.locator('.radar-control > strong').innerText(),/RADAR/);
  const before=await page.evaluate(()=>__map.getSource('br-historical-radar').tiles[0]);await page.locator('[data-radar=play]').click();await page.waitForFunction(previous=>__map.getSource('br-historical-radar').tiles[0]!==previous,before);assert.match(await page.locator('[data-radar=play]').innerText(),/Pausar/);
  await page.evaluate(()=>MonitorMap.pause());const callsAtPause=metadataCalls;await page.waitForTimeout(300);assert.equal(metadataCalls,callsAtPause);await page.evaluate(()=>MonitorMap.resume());await page.waitForFunction(()=>__map.getSource('br-historical-radar')&&__map.isSourceLoaded('br-historical-radar'));assert.equal(metadataCalls,callsAtPause,'valid cache survives pause');
+ await page.waitForFunction(()=>document.querySelector('[data-radar=status]').textContent.includes('Quadro observado'));
  await page.screenshot({path:path.join(output,'radar-packaged-fixture.png'),fullPage:true});
  mode='fail';await page.evaluate(()=>window.__radarOffset+=6000);await page.locator('[data-radar=refresh]').click();await page.waitForFunction(()=>document.querySelector('[data-radar=status]').textContent.includes('Falha na atualização'));assert.equal(await page.locator('[data-radar=play]').isDisabled(),false);
  mode='ok';await page.evaluate(()=>window.__radarOffset+=6000);await page.locator('[data-radar=refresh]').click();await page.waitForFunction(()=>document.querySelector('[data-radar=status]').textContent.includes('Quadro observado'));assert.equal(await page.locator('[data-radar=play]').isDisabled(),false);
@@ -99,7 +100,6 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#time-label').innerText(),/BRT/,'forecast retains its own time');
  assert.equal(await page.locator('.radar-control').isVisible(),false);
  await page.screenshot({path:path.join(output,'satellite-packaged-fixture.png'),fullPage:true});
- await page.locator('#layers-toggle').click();
  await page.locator('#severe-toggle').click();
  await page.waitForFunction(()=>document.querySelector('#severe-lightning-status').textContent.includes('88 detecções')&&
   document.querySelector('#severe-notice-status').textContent.includes('1 alerta municipal')&&
@@ -163,7 +163,6 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(await page.locator('.map-dock').isVisible(),false);
  await page.locator('#map-expand').click();
  assert.equal(await page.locator('.brazil-toolbar').isVisible(),true);
- await page.locator('#layers-toggle').click();
  await page.locator('#severe-toggle').click();
  assert.equal(await page.locator('#severe-panel').isVisible(),false);
  await page.locator('#layers-toggle').click();

@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.63 de teste
+
+- Clima volta a destacar Tempo severo. Chuva agora usa cartografia escura, com mais espaço para o mapa e os nomes acima da precipitação.
+
 # Argos Orbis Celular · 0.1.62 de teste
 
 - Clima tem atalhos de camada, legenda compacta do radar e um cartão de chuva por município com gráfico expansível.

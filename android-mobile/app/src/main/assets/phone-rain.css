@@ -103,11 +103,17 @@ p{font-size:10px;line-height:1.38;color:#afcbd9;margin:6px 0 0}
 .rain-frame-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
 .rain-frame-row .frame-badge,.rain-frame-row .legend{max-width:none;background:none;border:0;box-shadow:none;padding:0;backdrop-filter:none}
 .rain-frame-row .legend{flex:0 1 auto;white-space:normal;min-width:72px}
-.rain-app .map-top{justify-content:flex-end}
+.rain-app .map-top{justify-content:space-between}
 .rain-app .maplibregl-ctrl-top-right{top:53px}
-.rain-app .map-panel{height:clamp(305px,57vh,470px)}
+.rain-app .map-panel{height:clamp(305px,68vh,620px);background:#101d27}
 .rain-app #map-status{top:auto;bottom:34px}
 @media(prefers-reduced-motion:no-preference){
  .brazil-overlays button,.play-row>button{transition:background-color 150ms ease,border-color 150ms ease,transform 120ms ease}
  .brazil-overlays button:active,.play-row>button:active{transform:scale(.96)}
 }
+
+.rain-app .rain-map-label{display:grid;gap:2px;padding:7px 10px;border:1px solid #40637a;border-radius:10px;
+ background:#0b2132ed;color:#a9e3f5;font:700 11px Rajdhani,system-ui;letter-spacing:.06em;pointer-events:none}
+.rain-app .rain-map-label small{color:#edf8ff;font:600 12px system-ui;letter-spacing:normal}
+.rain-app .liberdade-point{box-shadow:0 0 0 6px #38bdf84d,0 0 16px #40bfff80;border-color:#ebfbff}
+.rain-app .maplibregl-ctrl-attrib{max-width:min(255px,65vw)}

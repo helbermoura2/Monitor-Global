@@ -132,8 +132,8 @@ main.brazil-main{height:100%;min-height:0;max-width:900px;overflow-y:auto;overfl
 .overlay-panel .radar-actions button,.overlay-panel .br-satellite-buttons button{min-height:44px}
 .brazil-map-panel .maplibregl-ctrl-attrib{background:#061b2aec!important;color:#d4e4ed!important}
 .brazil-map-panel .maplibregl-ctrl-attrib a{color:inherit!important}
-.brazil-overlays #severe-toggle{border-color:#876840;color:#f4d197}
-.brazil-overlays #severe-toggle[aria-pressed=true]{background:#e8bc7c;color:#23180c}
+#severe-toggle{border-color:#876840;color:#f4d197}
+#severe-toggle[aria-pressed=true]{background:#e8bc7c;color:#23180c}
 .severe-panel{background:#102531;border:1px solid #34515e;border-radius:14px;padding:12px;margin:8px 0;color:#edf6f8}
 .severe-panel[hidden]{display:none}
 .severe-heading{display:flex;align-items:center;justify-content:space-between;gap:6px}
@@ -242,3 +242,6 @@ body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
 #map-city-chart .city-rain-summary{margin:0;padding:8px}
 #radar-mini-key{padding:3px 10px 1px}
 #radar-mini-key .radar-scale{font-size:10px}
+
+.brazil-location #severe-toggle{min-height:44px;padding:4px 8px;border:1px solid #876840;border-radius:9px;background:#201b19;color:#f4d197;font:700 12px Rajdhani,system-ui;flex:none}
+.brazil-location #severe-toggle[aria-pressed=true]{background:#e8bc7c;color:#23180c}
