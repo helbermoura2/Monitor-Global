@@ -1,4 +1,4 @@
-name: Refresh Defesa Civil alerts for São Paulo capital
+name: Refresh official CAP Severe / Extreme alerts for Brazil and São Paulo
 on:
   schedule:
     - cron: '3,8,13,18,23,28,33,38,43,48,53,58 * * * *'
@@ -24,7 +24,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/defesa-civil-sp.json
+          git add data/defesa-civil-sp.json data/defesa-civil-br.json
           git diff --cached --quiet && exit 0
           git commit -m 'Refresh official Defesa Civil alerts for São Paulo'
           git pull --rebase origin main
