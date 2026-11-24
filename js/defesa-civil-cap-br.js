@@ -16,7 +16,7 @@
   if(!data||data.version!==1||data.source!==SOURCE||data.scope!=='BRASIL'
     ||!Number.isFinite(data.updatedAt)||!Number.isFinite(data.checkedAt)
     ||data.updatedAt>now+60000||data.checkedAt>now+60000
-    ||now-data.updatedAt>20*60000||now-data.checkedAt>20*60000
+    ||now-data.checkedAt>15*60000
     ||!Array.isArray(data.alerts)||data.alerts.length>1500
     ||!Number.isInteger(data.total)||data.total<data.alerts.length){
     status.textContent='Boletins CAP nacionais sem atualização recente. Consulte a fonte oficial.';
