@@ -233,6 +233,7 @@
     refreshInmetSummary();
     refreshCemadenSum();
     refreshCgeLocal();
+    window.ArgosOfficialCapBR?.refresh();
     fetchCptecBrasil();
   };
 
@@ -286,6 +287,7 @@
         refreshInmetSummary();
         refreshCgeLocal();
         refreshCemadenSum();
+        window.ArgosOfficialCapBR?.refresh();
       }
     },60000,60000,'ui');
     setTimeout(fetchCptecBrasil, 2000);
