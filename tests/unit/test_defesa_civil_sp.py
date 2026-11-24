@@ -41,6 +41,29 @@ class DefesaCivilCapitalTest(unittest.TestCase):
         self.assertEqual([alert["id"] for alert in alerts], ["valid", "valid-extreme"])
         self.assertEqual(alerts[0]["message"], "Mensagem de teste")
 
+    def test_national_preserves_cap_levels_and_official_area_without_expanding_tv(self):
+        xml = '<feed xmlns="http://www.w3.org/2005/Atom"><updated>2026-11-22T21:58:00Z</updated>' \
+            + entry("sp-severe", severity="Severe") \
+            + entry("other-region", area=OUTSIDE, severity="Extreme") \
+            + entry("no-area", area="", severity="Extreme") \
+            + entry("exercise", status="Exercise", severity="Extreme") \
+            + entry("moderate", severity="Moderate") + "</feed>"
+        updated, local, national = MODULE["parse"](io.BytesIO(xml.encode()), CITY, NOW, include_national=True)
+        self.assertEqual([a["id"] for a in local], ["sp-severe"])
+        self.assertEqual({a["id"]: a["severity"] for a in national},
+                         {"sp-severe": "Severe", "other-region": "Extreme"})
+        self.assertTrue(all(a["area"] == "SÃO PAULO/SP" for a in national))
+        self.assertEqual(updated, EPOCH("2026-11-22T21:58:00Z"))
+
+    def test_national_cancellation_removes_expired_referenced_notice(self):
+        xml = '<feed xmlns="http://www.w3.org/2005/Atom"><updated>2026-11-22T21:58:00Z</updated>' \
+            + entry("original", severity="Extreme", area=OUTSIDE) \
+            + entry("cancel", kind="Cancel",
+                    references="CENAD-SEDEC,original,2026-11-22T18:45:00-03:00") \
+            + "</feed>"
+        _, _, national = MODULE["parse"](io.BytesIO(xml.encode()), CITY, NOW, include_national=True)
+        self.assertEqual(national, [])
+
     def test_cancellation_retracts_predecessor_even_if_cancel_precedes_original(self):
         _, alerts = parse(entry("cancel", kind="Cancel", references="CENAD-SEDEC,original,2026-11-22T18:45:00-03:00"),
                           entry("original"))
