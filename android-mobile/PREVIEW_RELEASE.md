@@ -1,3 +1,10 @@
+# Argos Orbis Celular · 0.1.60 — alertas oficiais CAP nacionais
+
+- Central de Alertas: nova seção Brasil com Severos e Extremos oficiais, área, emissor, emissão e validade.
+- Dados CAP nacionais são informativos e não geram novo Cell Broadcast; os avisos SP e a ponte entre os dois celulares e a TV continuam inalterados.
+- Se o instantâneo estiver velho ou indisponível, o app não informa falsamente que não há perigo. Consulta nacional no máximo a cada cinco minutos com a Central aberta.
+- Preserva o vínculo com a TV e a mesma identidade de assinatura do aplicativo.
+
 # Argos Orbis Celular · 0.1.59 de teste — identificar qual aparelho enviou primeiro
 
 - Na ponte da Defesa Civil, cada alerta carrega uma identificação mínima do aparelho: **Galaxy S25 Ultra**, **Nothing Phone 1** ou **Celular Android**. A identificação automática usa apenas fabricante/modelo público do Android, sem IMEI, número de telefone, série ou localização.
