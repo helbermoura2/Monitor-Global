@@ -63,7 +63,7 @@ public class CivilLatestReplayTest {
   CivilPhoneHistory.remember(context,simulated);
   assertNull(CivilLatestReplay.last(context));
  }
- @Test public void phoneReplayRetainsFirstSenderWithoutBreakingOldHistory(){
+ @Test public void phoneReplayHidesSenderWithoutBreakingOldHistory(){
   String id="01234567-89ab-cdef-0123-456789abcdef";
   DefesaCivilSp.Notice n=new DefesaCivilSp.Notice(id,"Celular não CAP",
    "Alerta severo real: tempestade e ventos fortes em São Paulo. Abrigue-se.",
@@ -74,7 +74,7 @@ public class CivilLatestReplayTest {
   assertEquals("Nothing Phone 1",CivilPhoneHistory.firstDevice(context,"Severe",id));
   DefesaCivilSp.Notice saved=CivilLatestReplay.last(context).notice;
   TvBroadcastInfoView replay=TvBroadcastInfoView.civilPhoneReplay(context,saved);
-  assertTrue(String.valueOf(replay.getContentDescription()).contains("Nothing Phone 1"));
+  assertFalse(String.valueOf(replay.getContentDescription()).contains("Nothing Phone 1"));
   assertTrue(replay.civilIsReplay());
   assertFalse(replay.civilIsSimulation());
  }
