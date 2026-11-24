@@ -163,21 +163,19 @@ final class TvBroadcastInfoView extends View {
   v.civilFromPhone=true;
   v.ticker=(simulated?"ENVIADO PELO CELULAR · SIMULAÇÃO · AVISO FICTÍCIO · ":
             "RETRANSMITIDO DO CELULAR · NÃO CONFIRMADO VIA CAP · ")+
-    "PRIMEIRO NO WORKER: "+TvCivilPhoneRelay.safeName(sender)+" · "+
-   BrDates.dateTime(notice.sent)+" · "+notice.message;
+    BrDates.dateTime(notice.sent)+" · "+notice.message;
   v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()
-   +" · Primeiro aparelho: "+TvCivilPhoneRelay.safeName(sender)+" · "+notice.message);
+   +" · "+notice.message);
   return v;
  }
  /** Replay retains the phone origin and never impersonates an official CAP record. */
  static TvBroadcastInfoView civilPhoneReplay(Context c,DefesaCivilSp.Notice notice){
-  String first= CivilPhoneHistory.firstDevice(c,notice.severity,notice.id);
-  TvBroadcastInfoView v=civilPhone(c,notice,false,first);
+  TvBroadcastInfoView v=civilPhone(c,notice,false);
   v.civilReplay=true;
   v.ticker="REPLAY HISTÓRICO · CELULAR · NÃO VERIFICADO VIA CAP · "
-   +"PRIMEIRO ENVIO: "+first+" · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
+   +BrDates.dateTime(notice.sent)+" · "+notice.message;
   v.setContentDescription("REPLAY HISTÓRICO · NÃO É AVISO ATUAL · CAPTURADO NO CELULAR "
-   +"E NÃO VERIFICADO VIA CAP · "+notice.level()+" · Primeiro envio: "+first+" · "+notice.message);
+   +"E NÃO VERIFICADO VIA CAP · "+notice.level()+" · "+notice.message);
   return v;
  }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
