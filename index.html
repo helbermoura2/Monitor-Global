@@ -532,10 +532,17 @@
 <div id="brasil-hub" class="brasil-hub" hidden aria-label="Central Brasil — tempo severo nacional">
   <div class="bh-head">
     <strong>🇧🇷 Central Brasil</strong>
-    <span id="bh-status">INMET · CPTEC · CGE-SP · CEMADEN (links)</span>
+    <span id="bh-status">IDAP/CAP · INMET · CEMADEN · CPTEC · CGE-SP</span>
     <button type="button" id="bh-close" title="Fechar" aria-label="Fechar hub Brasil">✕</button>
   </div>
   <div class="bh-grid">
+    <section class="bh-card" id="bh-cap-br">
+      <h4>🚨 Defesa Civil · CAP oficial — Brasil</h4>
+      <p id="bh-cap-br-status" role="status">Consultando avisos SEVEROS e EXTREMOS...</p>
+      <div id="bh-cap-br-rows" style="max-height:340px;overflow:auto;font-size:12px"></div>
+      <p style="font-size:11px">Os níveis CAP Severe/Extreme são distintos dos avisos laranja/vermelho do INMET e da classificação do Cell Broadcast. A área declarada no CAP determina a abrangência, não a localização aproximada.</p>
+      <a href="https://idapfile.mdr.gov.br/idap/api/rss/cap" target="_blank" rel="noopener">Feed oficial CAP ↗</a>
+    </section>
     <section class="bh-card" id="bh-inmet">
       <h4>⚡ INMET — tempo severo no país</h4>
       <p id="bh-inmet-sum">Carregando avisos nacionais…</p>
@@ -543,8 +550,8 @@
       <a href="https://alertas2.inmet.gov.br/" target="_blank" rel="noopener">Mapa de avisos ↗</a>
     </section>
     <section class="bh-card" id="bh-cemaden">
-      <h4>🌧️ CEMADEN — sem API pública (links oficiais)</h4>
-      <p id="bh-cemaden-sum">Não é uma fonte de dados ao vivo neste aplicativo — API plena depende da <b>PED</b> (pedido enviado). Até lá: use Painel e Mapa oficiais abaixo. O cartão "Chuva-modelo" no topo é uma estimativa via Open-Meteo, não dado do CEMADEN.</p>
+      <h4>🌧️ CEMADEN — alertas hidrológicos e geológicos</h4>
+      <p id="bh-cemaden-sum" role="status">Consultando instantâneo do catálogo público CEMADEN. Classificações: Alto e Muito Alto, diferentes de CAP/Cell Broadcast.</p>
       <div class="bh-links">
         <a href="https://painelalertas.cemaden.gov.br/" target="_blank" rel="noopener">Painel de Alertas ↗</a>
         <a href="https://mapainterativo.cemaden.gov.br/" target="_blank" rel="noopener">Mapa Interativo ↗</a>
@@ -575,7 +582,8 @@
 <script defer src="js/brazil-state-flags.js?v=20261020-unified-main-card"></script>
 <script defer src="js/capital-weather.js?v=20261020-unified-main-card"></script>
 <script defer src="js/world-capital-weather.js?v=20261020-world-capitals"></script>
-<script defer src="js/brasil-hub.js?v=20261019-capitals"></script>
+<script defer src="js/defesa-civil-cap-br.js?v=20261123-severe-extreme"></script>
+<script defer src="js/brasil-hub.js?v=20261123-cap-national"></script>
 
 <!-- 5.8.1 médio impacto + técnico -->
 <div id="snooze-panel" role="dialog" aria-label="Snooze">

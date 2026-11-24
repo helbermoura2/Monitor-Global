@@ -27,8 +27,9 @@ public class PhoneActivity extends Activity {
  private boolean hourlyRainExpanded,severeRequested;
  private android.app.AlertDialog quakeVolumeDialog;
  private DefesaCivilSp civilAlerts;
+ private DefesaCivilBr nationalCapAlerts;
  private boolean civilLoading;
- private long civilNextCheck;
+ private long civilNextCheck,nationalCapNextCheck;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
@@ -690,15 +691,22 @@ public class PhoneActivity extends Activity {
   long now=System.currentTimeMillis();
   if(!active||destroyed||!automaticRefresh()||civilLoading||!force&&now<civilNextCheck)return;
   civilLoading=true;civilNextCheck=now+60_000;
+  // Large national catalogue is informational; never poll every minute.
+  final boolean readNational=now>=nationalCapNextCheck;
+  if(readNational)nationalCapNextCheck=now+5*60_000L;
   if(worker==null)worker=Executors.newSingleThreadExecutor();
   worker.execute(()->{
    DefesaCivilSp result;
    try{result=DefesaCivilSp.read();}catch(java.io.IOException|org.json.JSONException e){result=null;}
+   DefesaCivilBr national=null;
+   if(readNational)try{national=DefesaCivilBr.read();}catch(java.io.IOException|org.json.JSONException ignored){}
    final DefesaCivilSp checked=result;
+   final DefesaCivilBr nationalChecked=national;
    main.post(()->{
     civilLoading=false;
     if(destroyed)return;
     civilAlerts=checked;
+    if(readNational)nationalCapAlerts=nationalChecked;
     if(active&&tab.equals("notices")&&selected==null)render();
    });
   });
@@ -721,8 +729,36 @@ public class PhoneActivity extends Activity {
   }
   body.addView(button("Abrir painel da Defesa Civil",()->openUrl(DefesaCivilSp.PANEL)));
  }
+ private void nationalCapCard(LinearLayout page){
+  LinearLayout card=card(page,"BRASIL · ALERTAS CAP SEVEROS E EXTREMOS"),body=section(card);
+  long now=System.currentTimeMillis();
+  if(nationalCapAlerts==null||!nationalCapAlerts.fresh(now)){
+   body.addView(text(civilLoading?"Consultando avisos CAP nacionais…":
+      "Catálogo nacional indisponível ou sem atualização recente. Consulte o feed oficial.",15,MUTED,3));
+  }else{
+   int severe=0,extreme=0,shown=0;
+   for(DefesaCivilBr.Notice notice:nationalCapAlerts.alerts){
+    if(notice.expires<=now)continue;
+    if("Extreme".equals(notice.severity))extreme++;else severe++;
+   }
+   body.addView(text(extreme+" extremo(s) · "+severe+" severo(s) no catálogo vigente"
+    +(nationalCapAlerts.truncated?" · seleção parcial":""),16,AMBER,5));
+   for(DefesaCivilBr.Notice notice:nationalCapAlerts.alerts){
+    if(notice.expires<=now)continue;
+    if(++shown>6)break;
+    body.addView(text(notice.level()+" · "+notice.area,16,
+      "Extreme".equals(notice.severity)?0xffff777f:AMBER,3));
+    body.addView(text(notice.message,14,TEXT,8));
+    space(body,text(notice.issuer+" · "+BrDates.dateTime(notice.sent)+
+      " · válido até "+BrDates.dateTime(notice.expires),12,MUTED,4),5);
+   }
+   if(shown==0)body.addView(text("Sem avisos CAP vigentes nesta consulta; não significa ausência de risco.",15,MUTED,3));
+  }
+  body.addView(button("Abrir feed público IDAP/CAP",()->openUrl(DefesaCivilBr.SOURCE)));
+  footer(card,"Informação nacional pública. Não é um novo Cell Broadcast. As classificações INMET/CEMADEN permanecem independentes.");
+ }
  private void noticesPage(LinearLayout page){
-  heading(page,"Central de Alertas");refreshCivilAlerts(false);civilAlertsCard(page);alertStatus(page);
+  heading(page,"Central de Alertas");refreshCivilAlerts(false);civilAlertsCard(page);nationalCapCard(page);alertStatus(page);
   Button tsunamis=button("Avisos de tsunami",()->go("tsunamis"));tsunamis.setTag("open-tsunamis");space(page,tsunamis,0);
   Button history=button("Boletins e resumo diário",()->go("history"));history.setTag("open-history");space(page,history,8);
   space(page,button("Configurar notificações",()->openSettings("notices")),8);
