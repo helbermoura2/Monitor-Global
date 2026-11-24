@@ -48,7 +48,7 @@ final class DefesaCivilBr {
    try(InputStream input=conn.getInputStream()){
     byte[] buf=new byte[8192];
     for(int size;(size=input.read(buf))!=-1;){
-     if(bytes.size()+size>1400000)throw new IOException("CAP nacional muito grande");
+     if(bytes.size()+size>2500000)throw new IOException("CAP nacional muito grande");
      bytes.write(buf,0,size);
     }
    }
