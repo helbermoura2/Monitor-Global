@@ -35,13 +35,26 @@ final class CivilPhoneHistory {
   try{
    JSONObject j=new JSONObject();
    j.put("id",e.id);j.put("message",e.notice.message);
-   j.put("severity",e.notice.severity);j.put("at",e.receivedAt);
+   j.put("severity",e.notice.severity);j.put("firstDevice",TvCivilPhoneRelay.safeName(e.firstDevice));
+   j.put("at",e.receivedAt);
    j.put("expiresAt",e.expiresAt);
    SharedPreferences.Editor edit=Prefs.get(context).edit().putString(slot,j.toString());
    edit.putLong("civilPhoneLastReceivedAt",e.receivedAt);
    edit.putString("civilPhoneLastReceivedSeverity",e.notice.severity);
    edit.apply();
   }catch(JSONException ignored){}
+ }
+ /** A display label, never a trusted hardware identity. Older saved records may not have it. */
+ static String firstDevice(Context context,String severity,String recordId){
+  String slot=key(severity);
+  if(slot==null||recordId==null)return "Celular sem identificação";
+  String raw=Prefs.get(context).getString(slot,"");
+  if(raw.isEmpty()||raw.length()>1300)return "Celular sem identificação";
+  try{
+   JSONObject saved=new JSONObject(raw);
+   if(!recordId.equals(saved.optString("id","")))return "Celular sem identificação";
+   return TvCivilPhoneRelay.safeName(saved.optString("firstDevice",""));
+  }catch(JSONException ignored){return "Celular sem identificação";}
  }
  static DefesaCivilSp.Notice last(Context context,String severity){
   String slot=key(severity);if(slot==null)return null;
