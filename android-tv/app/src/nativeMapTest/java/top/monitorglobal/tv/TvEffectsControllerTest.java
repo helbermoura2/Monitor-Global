@@ -107,9 +107,11 @@ public class TvEffectsControllerTest {
  }
  @Test public void settledInformationKeepsTheSameLayoutAcrossModes(){
   for(TvEffectsController.EffectsCategory category:TvEffectsController.EffectsCategory.values()){
-   TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);Bitmap baseline=render(TvEffectsDemo.create(c,category),8000);
+   // Sample the tsunami page before its crossfade into the next bulletin page.
+   long settled=category==TvEffectsController.EffectsCategory.TSUNAMI?BannerTimeline.PAGE_MS-200:8000;
+   TvEffectsController.select(c,TvEffectsController.EffectsMode.OFF);Bitmap baseline=render(TvEffectsDemo.create(c,category),settled);
    try{for(TvEffectsController.EffectsMode mode:new TvEffectsController.EffectsMode[]{TvEffectsController.EffectsMode.FULL,TvEffectsController.EffectsMode.SOFT}){
-    TvEffectsController.select(c,mode);Bitmap next=render(TvEffectsDemo.create(c,category),8000);
+    TvEffectsController.select(c,mode);Bitmap next=render(TvEffectsDemo.create(c,category),settled);
     try{int top=category==TvEffectsController.EffectsCategory.BRAZIL?31:category==TvEffectsController.EffectsCategory.MARKET||category==TvEffectsController.EffectsCategory.VOICE||category==TvEffectsController.EffectsCategory.CIVIL?31:Banner.insetDp(c)+31;
      int bottom=top+60;
      for(int y=top;y<bottom;y++)for(int x=category==TvEffectsController.EffectsCategory.BRAZIL?272:223;x<812;x++)assertEquals("settled content layout: "+category+" / "+mode,baseline.getPixel(x,y),next.getPixel(x,y));
