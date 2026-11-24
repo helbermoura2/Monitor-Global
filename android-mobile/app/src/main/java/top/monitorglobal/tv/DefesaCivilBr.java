@@ -35,8 +35,9 @@ final class DefesaCivilBr {
   checkedAt=checked;updatedAt=updated;
  }
  boolean fresh(long now){
+  // CAP feed change date can be hours old while checkedAt verifies a fresh read.
   return updatedAt>0&&updatedAt<=checkedAt+60000&&checkedAt<=now+60000
-   &&now-updatedAt<=20*60000L&&now-checkedAt<=20*60000L;
+   &&now-checkedAt<=15*60000L;
  }
  static DefesaCivilBr read() throws IOException,JSONException {
   HttpURLConnection conn=(HttpURLConnection)new URL(SNAPSHOT+"?minute="+System.currentTimeMillis()/60000).openConnection();
