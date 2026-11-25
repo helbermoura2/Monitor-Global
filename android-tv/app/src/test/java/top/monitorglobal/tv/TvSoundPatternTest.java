@@ -2,7 +2,7 @@ package top.monitorglobal.tv;
 import org.junit.Test;import static org.junit.Assert.*;import java.util.*;
 public class TvSoundPatternTest {
  private Alert event(String kind,String state){return new Alert("test",kind,"","","",state,0,0,true);}
- @Test public void cuesAreDistinctAudibleBoundedPcmWithSoftEdges(){Set<Integer> fingerprints=new HashSet<>();for(TvSoundPattern cue:TvSoundPattern.values()){short[] data=cue.pcm(85);assertTrue(cue.duration()>300&&cue.duration()<2500);assertEquals(cue.duration()*TvSoundPattern.RATE/1000,data.length);assertEquals(0,data[0]);assertEquals(0,data[data.length-1]);long energy=0;int peak=0;for(short value:data){energy+=(long)value*value;peak=Math.max(peak,Math.abs((int)value));}assertTrue("audible signal "+cue,Math.sqrt(energy/(double)data.length)>3000);assertTrue(peak<Short.MAX_VALUE);assertTrue(fingerprints.add(Arrays.hashCode(data)));for(short value:cue.pcm(0))assertEquals(0,value);}assertEquals(8,fingerprints.size());}
+ @Test public void cuesAreDistinctAudibleBoundedPcmWithSoftEdges(){Set<Integer> fingerprints=new HashSet<>();for(TvSoundPattern cue:TvSoundPattern.values()){short[] data=cue.pcm(85);assertTrue(cue.duration()>300&&cue.duration()<2500);assertEquals(cue.duration()*TvSoundPattern.RATE/1000,data.length);assertEquals(0,data[0]);assertEquals(0,data[data.length-1]);long energy=0;int peak=0;for(short value:data){energy+=(long)value*value;peak=Math.max(peak,Math.abs((int)value));}assertTrue("audible signal "+cue,Math.sqrt(energy/(double)data.length)>3000);assertTrue(peak<Short.MAX_VALUE);assertTrue(fingerprints.add(Arrays.hashCode(data)));for(short value:cue.pcm(0))assertEquals(0,value);}assertEquals(10,fingerprints.size());}
  @Test public void nativeTvStereoAndMonoPreserveDistinctPatternsAndDuration(){
   for(int sampleRate:new int[]{48000,44100,24000}){
    Set<Integer> identities=new HashSet<>();
@@ -17,7 +17,7 @@ public class TvSoundPatternTest {
      }
     }
    }
-   assertEquals(8,identities.size());
+   assertEquals(10,identities.size());
   }
   assertArrayEquals(TvSoundPattern.EARTHQUAKE.pcm(85),
    TvSoundPattern.EARTHQUAKE.pcm(85,TvSoundPattern.RATE,1));
@@ -27,4 +27,18 @@ public class TvSoundPatternTest {
  @Test public void replayAndNoThreatStaySilentAndTsunamiGetsOwnSignal(){Alert quake=event("earthquake","earthquake");assertEquals(TvSoundPattern.EARTHQUAKE,TvSoundPattern.alert(quake,false));assertNull(TvSoundPattern.alert(quake,true));quake.compact=true;assertEquals(TvSoundPattern.REGIONAL,TvSoundPattern.alert(quake,false));assertNull(TvSoundPattern.alert(event("tsunami","noThreat"),false));assertEquals(TvSoundPattern.TSUNAMI_END,TvSoundPattern.alert(event("tsunami","ended"),false));assertEquals(TvSoundPattern.TSUNAMI,TvSoundPattern.alert(event("tsunami","warning"),false));quake.companion=event("tsunami","warning");assertEquals(TvSoundPattern.TSUNAMI,TvSoundPattern.alert(quake,false));assertNull(TvSoundPattern.alert(null,false));}
  @Test public void dangerHasPriorityAndVolumeCannotClip(){assertTrue(TvSoundPattern.TSUNAMI.priority>TvSoundPattern.EARTHQUAKE.priority);assertTrue(TvSoundPattern.EARTHQUAKE.priority>TvSoundPattern.MARKET.priority);assertArrayEquals(TvSoundPattern.RAIN.pcm(100),TvSoundPattern.RAIN.pcm(500));assertArrayEquals(TvSoundPattern.RAIN.pcm(0),TvSoundPattern.RAIN.pcm(-5));}
  @Test public void previewsCannotInterruptRealAlertsAndRealAlertsPreemptPreviews(){assertFalse(TvSoundPattern.canReplace(TvSoundPattern.EARTHQUAKE,false,TvSoundPattern.TSUNAMI,true));assertTrue(TvSoundPattern.canReplace(TvSoundPattern.TSUNAMI,true,TvSoundPattern.EARTHQUAKE,false));assertFalse(TvSoundPattern.canReplace(TvSoundPattern.TSUNAMI,false,TvSoundPattern.MARKET,false));assertTrue(TvSoundPattern.canReplace(TvSoundPattern.MARKET,false,TvSoundPattern.EARTHQUAKE,false));}
+ @Test public void realCivilAlertsHaveDistinctPriorityAndHistoryAndSimulationsStayQuiet(){
+  assertEquals(TvSoundPattern.CIVIL_SEVERE,TvSoundPattern.civil("Severe",false,false));
+  assertEquals(TvSoundPattern.CIVIL_EXTREME,TvSoundPattern.civil("Extreme",false,false));
+  for(String severity:new String[]{"Severe","Extreme"}){
+   assertNull(TvSoundPattern.civil(severity,true,false));
+   assertNull(TvSoundPattern.civil(severity,false,true));
+  }
+  assertNull(TvSoundPattern.civil("Moderate",false,false));
+  assertNull(TvSoundPattern.civil(null,false,false));
+  assertTrue(TvSoundPattern.CIVIL_EXTREME.priority>TvSoundPattern.CIVIL_SEVERE.priority);
+  assertTrue(TvSoundPattern.canReplace(TvSoundPattern.CIVIL_SEVERE,false,TvSoundPattern.CIVIL_EXTREME,false));
+  assertFalse(TvSoundPattern.canReplace(TvSoundPattern.CIVIL_EXTREME,false,TvSoundPattern.CIVIL_SEVERE,false));
+  assertFalse(TvSoundPattern.canReplace(TvSoundPattern.CIVIL_SEVERE,false,TvSoundPattern.CIVIL_EXTREME,true));
+ }
 }

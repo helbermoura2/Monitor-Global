@@ -9,14 +9,16 @@ enum TvSoundPattern {
  RAIN("Aviso de chuva",50,new int[][]{{1200,150},{0,90},{950,180},{0,90},{700,290}}),
  WEATHER("Boletim do tempo",20,new int[][]{{520,230},{0,80},{780,380}}),
  MARKET("Brent e dólar",20,new int[][]{{880,100},{0,90},{1100,180},{0,90},{880,100}}),
- SUMMARY("Resumo sísmico diário",30,new int[][]{{440,180},{0,80},{550,180},{0,80},{660,380}});
+ SUMMARY("Resumo sísmico diário",30,new int[][]{{440,180},{0,80},{550,180},{0,80},{660,380}}),
+ CIVIL_SEVERE("Alerta Severo",110,new int[][]{{540,240},{780,240},{0,120},{540,240},{780,420}}),
+ CIVIL_EXTREME("Alerta Extremo",120,new int[][]{{460,180},{920,180},{0,70},{460,180},{920,180},{0,70},{460,180},{920,420}});
  static final int RATE=24000;
  final String label;final int priority;private final int[][] notes;
  TvSoundPattern(String label,int priority,int[][] notes){this.label=label;this.priority=priority;this.notes=notes;}
  String preference(){return "soundCue_"+name();}
  int duration(){int ms=100;for(int[] note:notes)ms+=note[1];return ms;}
  short[] pcm(int level){return pcm(level,RATE,1);}
- /** Render the SAME eight cues for native TV media outputs (48 kHz stereo)
+ /** Render the same distinct cues for native TV media outputs (48 kHz stereo)
   * and legacy mono tracks without changing their duration or loudness. */
  short[] pcm(int level,int sampleRate,int channels){
   if((channels!=1&&channels!=2)||sampleRate<8000||sampleRate>48000)
@@ -37,6 +39,12 @@ enum TvSoundPattern {
   return out;
  }
  static boolean canReplace(TvSoundPattern active,boolean activePreview,TvSoundPattern next,boolean nextPreview){return active==null||next!=null&&(!nextPreview||activePreview)&&(activePreview||nextPreview||next.priority>=active.priority);}
+ static TvSoundPattern civil(String severity,boolean simulation,boolean replay){
+  if(simulation||replay)return null;
+  if("Severe".equals(severity))return CIVIL_SEVERE;
+  if("Extreme".equals(severity))return CIVIL_EXTREME;
+  return null;
+ }
  static TvSoundPattern alert(Alert a,boolean replay){
   if(a==null||replay||a.quietInformation())return null;
   if("tsunami".equals(a.kind))return "ended".equals(a.state)||"information".equals(a.state)||"unknown".equals(a.state)?TSUNAMI_END:TSUNAMI;
