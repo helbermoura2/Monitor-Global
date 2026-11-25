@@ -84,5 +84,5 @@ export async function collectRainEvidence(loc, env, now, fetcher = fetch) {
   const gauge = gaugeEvidence(gauges, loc, now);
   const consensus = modelConsensus(models, now);
   if (gauge) return {...gauge, ...(consensus ? {consensus} : {})};
-  return consensus;
+  return consensus ? {kind: 'hourly', at: now, expiresAt: consensus.expiresAt, consensus} : null;
 }
