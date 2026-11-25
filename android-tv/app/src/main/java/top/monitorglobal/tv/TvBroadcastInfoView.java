@@ -21,6 +21,7 @@ final class TvBroadcastInfoView extends View {
  private final BrentQuote brent;
  private final DollarQuote dollar;private MarketState brentSession,dollarSession;
  private boolean brentChanged=true,dollarChanged=true,temperatureChanged=true,rainStateChanged;
+ private String weatherTrend="";
  private boolean brentStateChanged,dollarStateChanged,voiceChanged;
  private DefesaCivilSp.Notice civilNotice;
  private boolean civilReplay,civilFromPhone;
@@ -208,6 +209,8 @@ final class TvBroadcastInfoView extends View {
    dollarStateChanged=previous.marketPending!=marketPending||dollarSession.value!=previous.dollarSession.value;
   }else if(kind==WEATHER){
    temperatureChanged=weather!=null&&(previous.weather==null||!weather.temperatureValue.equals(previous.weather.temperatureValue));
+   weatherTrend=WeatherTicker.trend(previous.weather,weather);
+   if(!weatherTrend.isEmpty())refreshBriefing();
   }else if(kind==RAIN){
    rainStateChanged=rain!=null&&(previous.rain==null||!rain.state.equals(previous.rain.state));
   }else if(kind==VOICE_STATUS){
@@ -225,6 +228,8 @@ final class TvBroadcastInfoView extends View {
    String analysis=ai.isEmpty()?"":WeatherTicker.composeRain(ai);
    ticker="LIBERDADE / SP";
    if(weather!=null&&weather.expiresAt>System.currentTimeMillis()&&!weather.temperatureValue.equals("—"))ticker+=" · "+weather.temperatureValue+" · sensação "+weather.feelsValue;
+   if(!weatherTrend.isEmpty())ticker+=" · "+weatherTrend;
+   ticker+=" · "+WeatherTicker.sourceContext(weather,rain,System.currentTimeMillis());
    if(!analysis.isEmpty()&&!analysis.startsWith("Sem análise complementar"))ticker+="     •     IA · "+analysis;
    ticker+="     •     Previsão por minuto · sujeita a mudanças";
    setContentDescription(baseTicker+" · "+ticker);invalidate();return;
@@ -232,7 +237,7 @@ final class TvBroadcastInfoView extends View {
   if(kind!=WEATHER)return;
   String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
   String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
-  ticker="ANÁLISE · "+WeatherTicker.compose(ai,outlook);
+  ticker="ANÁLISE · "+WeatherTicker.compose(ai,outlook)+" · "+(weatherTrend.isEmpty()?"Tendência: aguardando nova atualização horária":weatherTrend)+" · "+WeatherTicker.sourceContext(weather,rain,System.currentTimeMillis());
   setContentDescription(baseTicker+" · "+ticker);invalidate();
  }
  private static String amount(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.2f",n);}
@@ -309,7 +314,7 @@ final class TvBroadcastInfoView extends View {
   // Let viewers read the beginning of emergency notices before the ticker starts moving.
   // Other event tickers keep their established cadence.
   long tickerTime=kind==CIVIL_ALERT?Math.max(0L,elapsed-3500L):elapsed;
-  float tickerSpeed=(kind==SATELLITE||frame!=null&&(kind==WEATHER||kind==RAIN))?65f:BroadcastVisuals.TICKER_PX_PER_SECOND;
+  float tickerSpeed=(kind==SATELLITE||kind==WEATHER||kind==RAIN)?65f:BroadcastVisuals.TICKER_PX_PER_SECOND;
   float offset=BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled(),tickerSpeed);
   label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
