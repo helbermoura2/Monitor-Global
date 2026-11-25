@@ -5,7 +5,7 @@ final class WeatherSatelliteClient implements AutoCloseable {
  interface Reader {byte[] read(String url,int limit,long deadline)throws Exception;default void close(){}}
  enum Source {NASA,REALEARTH}
  static final class Frame implements AutoCloseable {
-  final Bitmap image,legend;final long at;final InfraredPlan.Scope scope;final List<Long> times;final Source source;
+  final Bitmap image,legend;final long at;final InfraredPlan.Scope scope;final List<Long> times;final Source source;SatelliteMotion.Result motion;
   Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times){this(image,legend,at,scope,times,Source.NASA);}
   Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times,Source source){this.image=image;this.legend=legend;this.at=at;this.scope=scope;this.times=new ArrayList<>(times);this.source=source;}
   String credit(){return source==Source.REALEARTH?"GOES-East · SSEC RealEarth / NOAA":"GOES-East · NASA GIBS / NOAA";}
@@ -29,7 +29,7 @@ final class WeatherSatelliteClient implements AutoCloseable {
  Frame latest(InfraredPlan.Scope scope,long now)throws Exception{
   long deadline=SystemClock.elapsedRealtime()+20000;available(now,false);TreeSet<Long> candidates=new TreeSet<>(nasaTimes);candidates.addAll(realTimes);int tried=0;
   for(Iterator<Long> it=candidates.descendingIterator();it.hasNext()&&!closed&&tried<6&&SystemClock.elapsedRealtime()<deadline;tried++){
-   long at=it.next();try{Frame f=frame(scope,at,now,deadline);if(f!=null)return f;}catch(IOException error){if(closed||Thread.currentThread().isInterrupted()||SystemClock.elapsedRealtime()>=deadline)break;rejected.add(key(scope,at));}
+   long at=it.next();try{Frame f=frame(scope,at,now,deadline);if(f!=null){int index=f.times.indexOf(f.at);if(index>0&&SystemClock.elapsedRealtime()<deadline){Frame previous=null;try{previous=frame(scope,f.times.get(index-1),now,Math.min(deadline,SystemClock.elapsedRealtime()+4500));if(previous!=null)f.motion=SatelliteMotion.analyze(previous.image,f.image,previous.at,f.at,scope);}catch(Exception ignored){}finally{if(previous!=null)previous.close();}}return f;}}catch(IOException error){if(closed||Thread.currentThread().isInterrupted()||SystemClock.elapsedRealtime()>=deadline)break;rejected.add(key(scope,at));}
   }return null;
  }
  private Source source(long at){return realTimes.contains(at)?Source.REALEARTH:Source.NASA;}

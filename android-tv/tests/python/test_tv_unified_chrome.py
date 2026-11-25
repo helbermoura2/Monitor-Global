@@ -18,7 +18,9 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("BroadcastVisuals.radar(c,p,elapsed,motionEnabled())", other)
         self.assertIn("BroadcastVisuals.tickerOffset(elapsed,length,motionEnabled())", quake)
         # Civil Defense holds its ticker still for 3.5 s before normal scrolling.
-        self.assertIn("BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled())", other)
+        # Weather/satellite tickers may use a faster dedicated rate; all other banners keep the shared default.
+        self.assertIn("BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled(),tickerSpeed)", other)
+        self.assertIn("(kind==SATELLITE||frame!=null&&(kind==WEATHER||kind==RAIN))?65f:BroadcastVisuals.TICKER_PX_PER_SECOND", other)
         self.assertIn("kind==CIVIL_ALERT?Math.max(0L,elapsed-3500L):elapsed", other)
         self.assertIn("TICKER_PX_PER_SECOND=40f", shared)
         self.assertIn("RADAR_X=960f-BRAND_RIGHT_INSET-RADAR_SIZE/2f,RADAR_Y=59f", shared)
@@ -27,7 +29,7 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open,false)",source("OledNewsChrome.java"))
         self.assertIn("RADAR_PERIOD_MS=7200L", shared)
         self.assertIn("postInvalidateOnAnimation()", other)
-        self.assertIn("private void drawIdentity(Canvas c,long elapsed)", other)
+        self.assertIn("private void drawIdentity(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame)", other)
         self.assertIn("BannerTimeline.page(elapsed,2)", other)
 
     def test_all_regional_notice_routes_use_the_original_seismic_banner(self):

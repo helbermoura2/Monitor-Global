@@ -56,7 +56,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         for piece in (
             'eventCategory(c,"SATÉLITE","GOES-EAST")',
             'primary(c,frame==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,',
-            'eventCategory(c,"CONSULTA","POR VOZ")',
+            'eventCategory(c,dailyWeatherText!=null?"PREVISÃO":"CONSULTA",dailyWeatherText!=null?"OPEN-METEO":"POR VOZ")',
             'primary(c,voiceTitle,170,27,',
             'label(c,voiceDetail,170,88,16,',
         ):
@@ -77,7 +77,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn("EVENT_CENTER_X=68f,EVENT_MAGNITUDE_BASELINE=72f", CHROME)
         self.assertIn('BroadcastVisuals.eventCategory(c,p,brand,title,caption', WEATHER)
         self.assertIn('BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI"', SEISMIC)
-        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):
+        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,dailyWeatherText!=null?"PREVISÃO":"CONSULTA"', 'eventCategory(c,facts.topic,'):
             self.assertIn(phrase, WEATHER)
         self.assertIn("YAHOO · USD/BRL · CÂMBIO", WEATHER)
         self.assertNotIn("MarketDOLWidget", WEATHER)

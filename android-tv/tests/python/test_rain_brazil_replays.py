@@ -40,7 +40,7 @@ class RainAndReplayTest(unittest.TestCase):
   self.assertIn("banner.showWeather(rain,weather,demo,duration",rain)
   self.assertIn("stopEffect()",rain)
   self.assertIn('case RAIN:return "CHUVA";',self.read("BannerOpening.java"))
-  self.assertIn("OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true)",broadcast)
+  self.assertIn('else OledNewsChrome.tab(c,p,dailyWeatherText!=null?"BOLETIM DO TEMPO":BannerOpening.title(effects.category),true)',broadcast)
   self.assertIn("AO VIVO",broadcast)
   self.assertIn("LIBERDADE / SP",broadcast)
   self.assertIn("MAPA · LIBERDADE / SP",self.read("MapInset.java"))

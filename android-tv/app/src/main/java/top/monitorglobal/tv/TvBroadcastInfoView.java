@@ -279,7 +279,16 @@ final class TvBroadcastInfoView extends View {
    width=Math.max(identityWidths[0],identityWidths[1]);
   return OledNewsChrome.BRAND_PLATE_LEFT;
  }
- private void drawIdentity(Canvas c,long elapsed){
+ private String satelliteMotionTicker(WeatherSatelliteClient.Frame frame){
+  if(frame==null)return "";
+  String motion=frame.motion==null
+    ?"MOVIMENTO DAS NUVENS: SEM ESTIMATIVA CONFIÁVEL"
+    :frame.motion.description()+" · COERÊNCIA "+Math.round(frame.motion.confidence*100)+"% · COMPARAÇÃO "+
+      Math.max(1,(frame.motion.newerAt-frame.motion.olderAt)/60000)+" MIN";
+  return " · "+motion+" · DESLOCAMENTO VISUAL DAS NUVENS; NÃO É PREVISÃO DE CHUVA · "+
+    frame.credit()+" · "+InfraredPlan.timing(frame.at,System.currentTimeMillis());
+ }
+ private void drawIdentity(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   // Same one-at-a-time site/Telegram fade used by seismic and daily summary banners.
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
@@ -291,14 +300,17 @@ final class TvBroadcastInfoView extends View {
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
-  if(!ticker.equals(tickerSource)){tickerSource=ticker;tickerDisplay=OledNewsChrome.tickerDisplay(ticker);}
+  String visibleTicker=ticker;
+  if(kind==SATELLITE||kind==WEATHER||kind==RAIN)visibleTicker+=satelliteMotionTicker(frame);
+  if(!visibleTicker.equals(tickerSource)){tickerSource=visibleTicker;tickerDisplay=OledNewsChrome.tickerDisplay(visibleTicker);}
   String display=tickerDisplay;
   Typeface tickerFace=OledNewsChrome.tickerFont();
   p.setTypeface(tickerFace);p.setTextSize(14);float length=p.measureText(display)+104;
   // Let viewers read the beginning of emergency notices before the ticker starts moving.
   // Other event tickers keep their established cadence.
   long tickerTime=kind==CIVIL_ALERT?Math.max(0L,elapsed-3500L):elapsed;
-  float offset=BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled());
+  float tickerSpeed=(kind==SATELLITE||frame!=null&&(kind==WEATHER||kind==RAIN))?65f:BroadcastVisuals.TICKER_PX_PER_SECOND;
+  float offset=BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled(),tickerSpeed);
   label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   OledNewsChrome.fadeTickerEdges(c,tickerLeft,tickerRight);
@@ -327,7 +339,7 @@ final class TvBroadcastInfoView extends View {
   if(kind==BRENT)BroadcastVisuals.sectionDivider(c,p,BroadcastVisuals.MARKET_DIVIDER_X);
   c.restore();
   drawRadar(c,elapsed); // One official eye in every informational strip.
-  drawIdentity(c,elapsed);
+  drawIdentity(c,elapsed,frame);
  }
  private void icon(Canvas c,int index,float x,float y,float size){c.save();c.translate(x,y);c.scale(size/24,size/24);weatherIcons[index].draw(c);c.restore();}
  private void categoryIcon(Canvas c,int index,float x,float y,float size,long elapsed){
