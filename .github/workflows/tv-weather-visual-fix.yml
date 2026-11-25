@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/tv-weather-visual-fix.yml'
       - 'android-tv/settings.gradle'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/TvBroadcastInfoViewTest.java'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/WeatherPortraitBroadcastTest.java'
       - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/WeatherViewerLayoutTest.java'
   workflow_dispatch:
 permissions:
