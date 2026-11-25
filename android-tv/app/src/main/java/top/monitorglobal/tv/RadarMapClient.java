@@ -28,8 +28,14 @@ final class RadarMapClient implements AutoCloseable {
   String credit(){return "INPE / DECEA · "+String.join(" + ",radars)+" · CAPPI 3 km";}
  }
  private volatile boolean closed;private volatile HttpURLConnection connection;
- private long queried;private Frame cached;
+ private long queried;private NavigableMap<Long,List<Item>> catalog=new TreeMap<>();private final LinkedHashMap<Long,Frame> history=new LinkedHashMap<>(8,0.75f,true);
  static List<Item> parse(String json,long now)throws JSONException{
+  NavigableMap<Long,List<Item>> all=parseHistory(json,now);
+  if(all.isEmpty())return Collections.emptyList();
+  long newest=all.lastKey();for(Long at:all.descendingKeySet()){if(newest-at>10*60000L)break;if(all.get(at).size()==2)return all.get(at);}
+  return all.lastEntry().getValue();
+ }
+ static NavigableMap<Long,List<Item>> parseHistory(String json,long now)throws JSONException{
   JSONArray list=new JSONObject(json).getJSONArray("features");
   TreeMap<Long,Map<String,Item>> frames=new TreeMap<>(Collections.reverseOrder());
   for(int i=0;i<Math.min(60,list.length());i++){
@@ -38,21 +44,18 @@ final class RadarMapClient implements AutoCloseable {
     String radar=p.getString("radar"),owner=p.getString("owner");
     if(!PILOT.contains(radar)||!"decea".equals(owner)||!COLLECTION.equals(f.optString("collection",COLLECTION)))continue;
     long at=Instant.parse(p.getString("datetime")).toEpochMilli();
-    if(at<=0||at>now||now-at>60*60000L)continue;
+    if(at<=0||at>now||now-at>180*60000L)continue;
     String href=f.getJSONObject("assets").getJSONObject("cappi3km").getString("href");
-    if(!allowedAsset(href,radar))continue;
+    if(!allowedAsset(href,radar)||!href.endsWith("cappi3km_"+java.time.format.DateTimeFormatter.ofPattern("uuuuMMddHHmm",Locale.ROOT).withZone(java.time.ZoneOffset.UTC).format(Instant.ofEpochMilli(at))+".nc"))continue;
     frames.computeIfAbsent(at,k->new TreeMap<>()).putIfAbsent(radar,new Item(radar,href,at));
    }catch(RuntimeException|JSONException ignored){}
   }
-  if(frames.isEmpty())return Collections.emptyList();
-  // Never combine different observation times. Prefer the most recent common time,
-  // provided it is no more than one acquisition interval behind the latest.
-  long newest=frames.firstKey();
+  NavigableMap<Long,List<Item>> result=new TreeMap<>();
   for(Map.Entry<Long,Map<String,Item>> entry:frames.entrySet()){
-   if(newest-entry.getKey()>10*60000L)break;
-   if(entry.getValue().size()==2)return new ArrayList<>(entry.getValue().values());
+   if(result.size()>=6)break;
+   result.put(entry.getKey(),new ArrayList<>(entry.getValue().values()));
   }
-  return new ArrayList<>(frames.firstEntry().getValue().values());
+  return result;
  }
  static boolean allowedAsset(String address,String radar){
   try{
@@ -62,28 +65,49 @@ final class RadarMapClient implements AutoCloseable {
     u.getRawPath().matches("/bdc/data/br-weather-radar-cappi/decea/"+radar+"/cappi/cappi3km_nc/[0-9]{4}/[0-9]{2}/cappi3km_[0-9]{12}\\.nc");
   }catch(RuntimeException e){return false;}
  }
- Frame latest(long now)throws Exception{
+ List<Long> times(long now)throws Exception{
+  refresh(now);return new ArrayList<>(catalog.keySet());
+ }
+ private void refresh(long now)throws Exception{
   if(closed)throw new IOException("Cancelado");
   if(queried>0&&now>=queried&&now-queried<10*60000L){
-   if(cached!=null&&now-cached.at<=60*60000L)return cached;
-   throw new IOException("Nova tentativa em até 10 minutos");
+   if(catalog.isEmpty())throw new IOException("Nova tentativa em até 10 minutos");
+   return;
   }
-  queried=now;cached=null;
+  queried=now;
   long deadline=SystemClock.elapsedRealtime()+25000;
   String period=URLEncoder.encode(Instant.ofEpochMilli(now-3*3600000L)+"/"+Instant.ofEpochMilli(now),"UTF-8");
-  String url=ROOT+"?collections="+COLLECTION+"&bbox=-47.8,-24.5,-45.5,-22.8&datetime="+period+"&limit=30";
-  List<Item> items=parse(new String(read(url,4*1024*1024,deadline),StandardCharsets.UTF_8),now);
+  String url=ROOT+"?collections="+COLLECTION+"&bbox=-47.8,-24.5,-45.5,-22.8&datetime="+period+"&limit=60";
+  NavigableMap<Long,List<Item>> result=parseHistory(new String(read(url,4*1024*1024,deadline),StandardCharsets.UTF_8),now);
+  if(result.isEmpty())throw new IOException("Histórico indisponível");
+  catalog=result;
+  history.keySet().retainAll(catalog.keySet());
+ }
+ Frame latest(long now)throws Exception{
+  refresh(now);
+  for(long at:catalog.descendingKeySet()){
+   if(now-at>60*60000L||at>now)continue;
+   Frame f=frame(at,now);if(f!=null)return f;
+  }
+  throw new IOException("Radar recente indisponível");
+ }
+ Frame frame(long at,long now)throws Exception{
+  if(closed||at>now||now-at>180*60000L)throw new IOException("Quadro indisponível");
+  Frame existing=history.get(at);if(existing!=null)return existing;
+  List<Item> items=catalog.get(at);if(items==null)throw new IOException("Quadro não publicado");
+  long deadline=SystemClock.elapsedRealtime()+25000;
   List<RadarCappi> grids=new ArrayList<>();List<String> radars=new ArrayList<>();
-  long at=0;
   for(Item item:items){
    try{
     RadarCappi grid=RadarCappi.decode(read(item.href,12*1024*1024,deadline));
     if(closed)throw new IOException("Cancelado");
-    grids.add(grid);radars.add(item.radar.equals("saoroque")?"São Roque":"Pico do Couto");at=item.at;
+    grids.add(grid);radars.add(item.radar.equals("saoroque")?"São Roque":"Pico do Couto");
    }catch(IOException failure){if(closed)throw failure;}
   }
   if(grids.isEmpty()||closed)throw new IOException("Radar indisponível");
-  return cached=new Frame(at,radars,grids);
+  Frame result=new Frame(at,radars,grids);history.put(at,result);
+  while(history.size()>2)history.remove(history.keySet().iterator().next());
+  return result;
  }
  private byte[] read(String address,int limit,long deadline)throws IOException{
   if(closed||Thread.currentThread().isInterrupted())throw new IOException("Cancelado");
@@ -104,5 +128,5 @@ final class RadarMapClient implements AutoCloseable {
    return out.toByteArray();
   }finally{connection=null;c.disconnect();}
  }
- public void close(){closed=true;HttpURLConnection c=connection;if(c!=null)c.disconnect();cached=null;}
+ public void close(){closed=true;HttpURLConnection c=connection;if(c!=null)c.disconnect();history.clear();catalog.clear();}
 }
