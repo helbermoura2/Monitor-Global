@@ -303,3 +303,6 @@ body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
 .brazil-main button:focus-visible,.brazil-main input:focus-visible,.brazil-main summary:focus-visible{outline:2px solid #e8bc7c;outline-offset:-2px}
 @media(max-width:360px){.map-stage .brazil-toolbar{inset:6px 6px auto}.brazil-overlays button{padding-inline:7px;font-size:11px}.brazil-location{gap:4px}.brazil-location #severe-toggle{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.brazil-main button{transition:none!important}}
+
+.argos-tap-marker{display:block;width:14px;height:14px;border:2px solid #fff;border-radius:50%;background:#d5aa75;box-shadow:0 0 0 5px #d5aa7555;pointer-events:none}
+@media(prefers-reduced-motion:no-preference){.argos-tap-marker{animation:argos-tap-pulse 1.8s ease-out infinite}@keyframes argos-tap-pulse{0%,100%{box-shadow:0 0 0 4px #d5aa7555}60%{box-shadow:0 0 0 13px #d5aa7500}}}
