@@ -481,6 +481,7 @@ public final class MonitorService extends Service {
     if(e.expiresAt<=now+5000||now-e.receivedAt>5*60000||seen.contains(e.id))continue;
     long duration=Math.min(20000,e.expiresAt-now-1000);
     if(banner.showCivilPhone(e.notice,duration,()->{activeUntil=0;drain();tryTarget();tryDaily();},e.test,e.firstDevice)){
+     TvSounds.play(this,TvSoundPattern.civil(e.notice.severity,e.test,false));
      activeUntil=android.os.SystemClock.uptimeMillis()+duration+1000;
      seen.add(e.id);
      // Keep only a tiny recent window of IDs, never mix with official CAP replay records.
@@ -535,6 +536,7 @@ public final class MonitorService extends Service {
    if(notice.expires-now<5000||now-notice.sent>30*60_000L||seen.contains(key))continue;
    long duration=Math.min(30_000,notice.expires-now);
    if(banner.showCivilAlert(notice,duration,()->{activeUntil=0;drain();})){
+    TvSounds.play(this,TvSoundPattern.civil(notice.severity,false,false));
     activeUntil=android.os.SystemClock.uptimeMillis()+duration+1000;
     seen.removeIf(item->{try{return now-Long.parseLong(item.substring(item.lastIndexOf('@')+1))>24*60*60_000L;}catch(NumberFormatException ignored){return true;}});
     seen.add(key);
