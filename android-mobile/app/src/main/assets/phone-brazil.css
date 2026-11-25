@@ -321,3 +321,8 @@ body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
 
 .brazil-location #locate{flex:none;width:44px;min-width:44px;min-height:44px;border:0;border-radius:50%;background:#080808ed;color:#eee;font-size:23px}
 .brazil-location #locate:disabled{opacity:.5}
+
+/* Suspend decorative motion while the mobile weather page is inactive. */
+body.is-paused .argos-tap-marker{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.argos-tap-marker{animation:none!important}}
+@media(prefers-reduced-motion:no-preference){#map-city-card{animation:argos-card-in .16s ease-out}@keyframes argos-card-in{from{opacity:0}to{opacity:1}}}
