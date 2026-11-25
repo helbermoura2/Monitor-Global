@@ -10,23 +10,15 @@ on:
   pull_request:
     paths:
       - 'android-mobile/**'
+      - 'android-core/**'
       - '.github/workflows/android-mobile-preview.yml'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/AlertCodec.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/AlertPairing.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/MapFrame.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/BrDates.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/CountryFlag.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/RainForecast.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherForecast.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefing.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefingClient.java'
       - 'worker/weather-briefing.mjs'
       - 'monitor-global-worker-7_7_0.js'
   push:
     branches: [main]
     paths:
       - 'android-mobile/**'
+      - 'android-core/**'
       - '.github/workflows/android-mobile-preview.yml'
       - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherForecast.java'
       - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefing.java'
