@@ -64,7 +64,7 @@ function updateCityCard(){
  const facts=$('map-city-facts');facts.replaceChildren();
  if(forecast)for(const [field,label,unit] of [['temperature_2m','Temperatura','°C'],['wind_speed_10m','Vento','km/h'],['relative_humidity_2m','Umidade','%'],['apparent_temperature','Sensação','°C'],['wind_gusts_10m','Rajadas','km/h'],['pressure_msl','Pressão','hPa']]){
  const v=value(field);if(!Number.isFinite(v))continue;
- const cell=document.createElement('div'),strong=document.createElement('strong');strong.textContent=round(v)+' '+unit;cell.append(strong,document.createTextNode(label));facts.append(cell);
+ const cell=document.createElement('div'),strong=document.createElement('strong');strong.textContent=Math.round(v)+' '+unit;cell.append(strong,document.createTextNode(label));facts.append(cell);
  }
  const available=!$('city-rain-summary').hidden&&!!forecast;
  $('map-city-total').textContent=available?$('rain24-volume').textContent+' previstos · até 24 h':
@@ -103,7 +103,7 @@ const grip=$('map-city-grip');let gripY=null;
  grip.addEventListener('click',()=>{if(!$('map-city-more').hidden)$('map-city-more').open=!$('map-city-more').open;});
  grip.addEventListener('pointerdown',e=>{gripY=e.clientY;grip.setPointerCapture(e.pointerId);});
  grip.addEventListener('pointercancel',()=>{gripY=null;});
- grip.addEventListener('pointerup',e=>{if(gripY===null)return;const dy=e.clientY-gripY;gripY=null;if(Math.abs(dy)>24&&!$('map-city-more').hidden){$('map-city-more').open=dy<0;grip.dataset.swiped='true';}});
+ grip.addEventListener('pointerup',e=>{if(gripY===null)return;const dy=e.clientY-gripY;gripY=null;if(Math.abs(dy)>24&&!$('map-city-more').hidden){$('map-city-more').open=dy<0;grip.dataset.swiped='true';setTimeout(()=>delete grip.dataset.swiped,350);}});
  grip.addEventListener('click',e=>{if(grip.dataset.swiped){delete grip.dataset.swiped;e.stopImmediatePropagation();}},true);
  $('map-city-more').addEventListener('toggle',()=>{
  if($('map-city-more').open)$('map-city-chart').append($('city-rain-summary'));
@@ -243,6 +243,16 @@ $('forecast-now').addEventListener('click',()=>{stop();step=0;showValues();});
 $('frame').addEventListener('input',event=>{stop();step=Number(event.target.value);showValues();});
 $('play').addEventListener('click',()=>{if(playTimer){stop();return;}if(forecast){playbackIcon(true);advance();}});
 $('refresh').addEventListener('click',()=>load(true));
+$('locate').addEventListener('click',()=>{
+ if(!navigator.geolocation){note('Localização indisponível.');return;}
+ const button=$('locate');button.disabled=true;
+ navigator.geolocation.getCurrentPosition(position=>{
+  button.disabled=false;if(!map)return;
+  const {longitude,latitude}=position.coords;
+  map.jumpTo({center:[longitude,latitude],zoom:Math.max(9,map.getZoom())});
+  boundaries?.selectPoint(longitude,latitude);
+ },error=>{button.disabled=false;note(error.code===1?'Autorize a localização no Android e toque novamente.':'Não foi possível obter a localização.');},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+});
 $('recenter').addEventListener('click',()=>{closeSelection();map?.jumpTo({center:[-53,-15],zoom:2.65});});
 document.querySelectorAll('.brazil-toolbar [data-layer]').forEach(button=>button.addEventListener('click',()=>{layer=button.dataset.layer;if(severeOn||radar?.enabled||satellite?.state.enabled)showForecast();else{showValues();syncOverlays();}setLayerMenu(false);}));
 $('city-search').addEventListener('input',showResults);
