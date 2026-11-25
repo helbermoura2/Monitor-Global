@@ -1,0 +1,99 @@
+name: INPE CAPPI stage 02 audit
+on:
+  push:
+    branches: [audit/inpe-cappi-stage-02]
+    paths: ['.github/workflows/inpe-cappi-stage-02.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check netCDF4 requests
+      - name: Read actual CAPPI metadata and bounded single-level NetCDF samples
+        shell: bash
+        run: |
+          python - <<'PY'
+          import requests, datetime as dt, numpy as np, netCDF4, tempfile, pathlib, hashlib
+          from urllib.parse import urlparse
+          base='https://data.inpe.br/bdc/stac/v1'
+          collection='br-weather-radar-cappi-1'
+          now=dt.datetime.now(dt.timezone.utc)
+          stamp=lambda t:t.isoformat(timespec='seconds').replace('+00:00','Z')
+          s=requests.Session()
+          s.headers['User-Agent']='ArgosOrbis-CAPPI-audit/1 (public read-only)'
+          def get_json(url, params=None):
+              r=s.get(url,params=params,timeout=(8,20))
+              print('HTTP',r.status_code,r.url,flush=True)
+              r.raise_for_status()
+              return r.json()
+          c=get_json(f'{base}/collections/{collection}')
+          print('COLLECTION',c.get('id'),c.get('license'),c.get('extent'),flush=True)
+          found={}
+          for hours in (3,24):
+              try:
+                  q={'collections':collection,'bbox':'-47.8,-24.5,-45.5,-22.8','datetime':stamp(now-dt.timedelta(hours=hours))+'/'+stamp(now),'limit':30}
+                  data=get_json(base+'/search',q)
+                  for item in data.get('features',[]):
+                      found[item['id']]=item
+                  print('SEARCH',hours,'hours, items:',len(data.get('features',[])),flush=True)
+                  if found: break
+              except Exception as exc: print('SEARCH ERROR',repr(exc),flush=True)
+          if not found:
+              itemid='decea_saoroque_202611191550'
+              try:
+                  item=get_json(f'{base}/collections/{collection}/items/{itemid}')
+                  found[item['id']]=item
+              except Exception as exc: print('HISTORICAL ITEM ERROR',repr(exc),flush=True)
+          ordered=sorted(found.values(),key=lambda x:x.get('properties',{}).get('datetime',''),reverse=True)
+          valid=[]
+          for item in ordered:
+              p=item.get('properties',{})
+              print('ITEM',item['id'],p.get('datetime'),p.get('radar'),p.get('owner'),'bbox',item.get('bbox'),'assets',list(item.get('assets',{})),flush=True)
+          for item in ordered:
+              if len(valid)>=3: break
+              p=item.get('properties',{})
+              asset=item.get('assets',{}).get('cappi3km')
+              if not asset: continue
+              try:
+                  href=asset['href']
+                  if urlparse(href).scheme!='https': raise ValueError('Non-HTTPS asset')
+                  cap=12*1024*1024
+                  with s.get(href,stream=True,timeout=(8,25)) as r:
+                      r.raise_for_status()
+                      data=bytearray()
+                      for chunk in r.iter_content(65536):
+                          data.extend(chunk)
+                          if len(data)>cap: raise ValueError('Sample exceeds 12 MiB')
+                  print('ASSET',item['id'],href,'bytes',len(data),'sha256',hashlib.sha256(data).hexdigest(),flush=True)
+                  with tempfile.TemporaryDirectory() as tmp:
+                      path=pathlib.Path(tmp)/'sample.nc'
+                      path.write_bytes(data)
+                      with netCDF4.Dataset(path) as ds:
+                          print('VARIABLES',[(k,v.dimensions,v.shape,str(getattr(v,'units',''))) for k,v in ds.variables.items()],flush=True)
+                          v=ds.variables['dbz']
+                          assert v.shape[-2:]==(500,500),v.shape
+                          values=np.ma.masked_invalid(v[:])
+                          vals=values.compressed()
+                          print('DBZ',str(getattr(v,'units','')), 'valid',len(vals),'masked',int(np.ma.count_masked(values)), 'minmax', (float(vals.min()),float(vals.max())) if len(vals) else None, 'fill',getattr(v,'_FillValue',None),flush=True)
+                          assert len(vals)>0,'No valid cells'
+                          coords={}
+                          for k,var in ds.variables.items():
+                              if k.lower() in ('lat','latitude','lon','longitude','x','y') and var.size<=250000:
+                                  a=np.ma.masked_invalid(var[:]).compressed()
+                                  if len(a): coords[k]=(var.shape,float(a.min()),float(a.max()),str(getattr(var,'units','')))
+                          print('COORDINATES',coords,flush=True)
+                          assert coords,'No coordinate arrays identified'
+                  t=dt.datetime.fromisoformat(p['datetime'].replace('Z','+00:00'))
+                  age=(now-t).total_seconds()/60
+                  print('SAMPLE_OK',item['id'],'age_minutes',round(age,1),flush=True)
+                  valid.append((item['id'],age))
+              except Exception as exc: print('ASSET_ERROR',item['id'],repr(exc),flush=True)
+          print('AUDIT_RESULT',valid,flush=True)
+          if not any(0<=age<=60 for _,age in valid):
+              raise SystemExit('No fresh validated CAPPI file; operational approval withheld')
+          PY
