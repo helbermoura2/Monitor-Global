@@ -2,7 +2,12 @@ name: TV meteorology stages 13 to 15 prediction foundations
 on:
   push:
     branches: [feat/tv-meteorologia-avancada]
-    paths: ['.github/workflows/tv-meteorologia-prediction.yml']
+    paths:
+      - '.github/workflows/tv-meteorologia-prediction.yml'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/WeatherPredictionTest.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/RegionalForecast.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/RadarNowcast.java'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/SatelliteMotion.java'
   workflow_dispatch:
 permissions:
   contents: read
