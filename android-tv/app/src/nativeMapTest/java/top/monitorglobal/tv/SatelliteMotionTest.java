@@ -24,7 +24,7 @@ public class SatelliteMotionTest {
   b.setPixels(pixels,0,w,0,0,w,h);return b;
  }
  @Test public void detectsKnownCloudPatternTranslationAndDirection(){
-  Bitmap older=image(0,0),newer=image(16,8);
+  Bitmap older=image(0,0),newer=image(8,4);
   try{
    SatelliteMotion.Result result=SatelliteMotion.analyze(older,newer,1_000_000L,1_600_000L,InfraredPlan.SOUTHEAST);
    assertNotNull(result);assertEquals("SE",result.direction);assertTrue(result.speedKmh>0);
