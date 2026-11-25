@@ -5,7 +5,7 @@ final class WeatherSatelliteClient implements AutoCloseable {
  interface Reader {byte[] read(String url,int limit,long deadline)throws Exception;default void close(){}}
  enum Source {NASA,REALEARTH,RADAR}
  static final class Frame implements AutoCloseable {
-  final Bitmap image,legend;final long at;final InfraredPlan.Scope scope;final List<Long> times;final Source source;final String radarCredit;SatelliteMotion.Result motion;
+  final Bitmap image,legend;final long at;final InfraredPlan.Scope scope;final List<Long> times;final Source source;final String radarCredit;SatelliteMotion.Result motion;Frame alternate,previousObserved;
   Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times){this(image,legend,at,scope,times,Source.NASA);}
   Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times,Source source){this(image,legend,at,scope,times,source,"");}
   private Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times,Source source,String radarCredit){this.image=image;this.legend=legend;this.at=at;this.scope=scope;this.times=new ArrayList<>(times);this.source=source;this.radarCredit=radarCredit;}
@@ -14,7 +14,7 @@ final class WeatherSatelliteClient implements AutoCloseable {
   boolean validAt(long now){return at>0&&at<=now&&now-at<=(isRadar()?60*60000L:InfraredPlan.MAX_AGE);}
   String credit(){if(isRadar())return radarCredit;return source==Source.REALEARTH?"GOES-East · SSEC RealEarth / NOAA":"GOES-East · NASA GIBS / NOAA";}
   String legendDescription(){return source==Source.REALEARTH?"Legenda original infravermelha SSEC RealEarth":"Legenda original de temperatura infravermelha NASA";}
-  public void close(){if(!image.isRecycled())image.recycle();if(legend!=null&&!legend.isRecycled())legend.recycle();}
+  public void close(){if(alternate!=null){alternate.close();alternate=null;}if(previousObserved!=null){previousObserved.close();previousObserved=null;}if(!image.isRecycled())image.recycle();if(legend!=null&&!legend.isRecycled())legend.recycle();}
  }
  private final Context context;private final Reader reader;private volatile boolean closed;private final LinkedHashMap<String,byte[]> cache=new LinkedHashMap<>();private int cacheBytes;private final Map<Source,byte[]> legends=new EnumMap<>(Source.class);private List<Long> times=new ArrayList<>(),nasaTimes=new ArrayList<>(),realTimes=new ArrayList<>();private long queried;private final Set<String> rejected=new HashSet<>();
  WeatherSatelliteClient(Context c){this(c,new Network());}WeatherSatelliteClient(Context c,Reader r){context=c.getApplicationContext();reader=r;}
@@ -51,6 +51,7 @@ final class WeatherSatelliteClient implements AutoCloseable {
  private Source source(long at){return realTimes.contains(at)?Source.REALEARTH:Source.NASA;}
  private String key(InfraredPlan.Scope scope,long at){return source(at)+":"+scope.name+"@"+at;}
  Frame frame(InfraredPlan.Scope scope,long at,long now)throws Exception{return frame(scope,at,now,SystemClock.elapsedRealtime()+15000);}
+ Frame previousForBroadcast(Frame latest,long now)throws Exception{int i=latest.times.indexOf(latest.at);if(i<1)return null;long at=latest.times.get(i-1);Frame prior=frame(latest.scope,at,now,SystemClock.elapsedRealtime()+3000);if(prior!=null&&prior.source!=latest.source){prior.close();return null;}return prior;}
  private Frame frame(InfraredPlan.Scope scope,long at,long now,long deadline)throws Exception{
   if(closed||!(nasaTimes.contains(at)||realTimes.contains(at))||now-at>InfraredPlan.MAX_AGE||at>now)return null;Source provider=source(at);String key=key(scope,at);if(rejected.contains(key))return null;byte[] bytes;synchronized(cache){bytes=cache.get(key);}boolean fresh=bytes==null;Bitmap decoded=null,output=null;
   try{if(fresh)bytes=reader.read(provider==Source.REALEARTH?RealEarthPlan.image(scope,at):InfraredPlan.image(scope,at),1800000,deadline);if(closed)return null;BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,bounds);if(bounds.outWidth!=InfraredPlan.WIDTH||bounds.outHeight!=scope.height)return null;decoded=BitmapFactory.decodeByteArray(bytes,0,bytes.length);if(decoded==null)return null;
@@ -58,7 +59,7 @@ final class WeatherSatelliteClient implements AutoCloseable {
    canvas.drawColor(Color.TRANSPARENT,PorterDuff.Mode.CLEAR);canvas.save();canvas.clipPath(outline);canvas.drawBitmap(decoded,0,0,paint);canvas.restore();output.getPixels(pixels,0,output.getWidth(),0,0,output.getWidth(),output.getHeight());int covered=0;for(int i=0;i<pixels.length;i+=97)if(Color.alpha(pixels[i])>0)covered++;if(expected<20||covered<expected*.98){rejected.add(key);output.recycle();output=null;return null;}
    // Keep the entire RealEarth product, including its attribution watermark, after coverage validation.
    if(provider==Source.REALEARTH){canvas.drawColor(Color.TRANSPARENT,PorterDuff.Mode.CLEAR);canvas.drawBitmap(decoded,0,0,paint);}
-   canvas.drawColor(0xff102d40,PorterDuff.Mode.DST_OVER);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.1f*InfraredPlan.WIDTH/512f);paint.setColor(0xaae7f5ff);canvas.drawPath(outline,paint);paint.setStyle(Paint.Style.FILL);paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize((scope==InfraredPlan.SOUTHEAST?18:15)*InfraredPlan.WIDTH/512f);paint.setShadowLayer(3,0,1,Color.BLACK);city(canvas,paint,scope,-46.63,-23.55,"São Paulo");if(scope==InfraredPlan.SOUTHEAST){city(canvas,paint,scope,-43.20,-22.90,"Rio de Janeiro");city(canvas,paint,scope,-43.94,-19.92,"Belo Horizonte");}
+   canvas.drawColor(scope==WeatherSatelliteSequence.RADAR_REGION?0xff101316:0xff102d40,PorterDuff.Mode.DST_OVER);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.1f*InfraredPlan.WIDTH/512f);paint.setColor(0xaae7f5ff);canvas.drawPath(outline,paint);if(scope==WeatherSatelliteSequence.RADAR_REGION)WeatherBroadcastCartography.states(context,canvas,scope);paint.setStyle(Paint.Style.FILL);paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize((scope==InfraredPlan.SOUTHEAST?18:15)*InfraredPlan.WIDTH/512f);paint.setShadowLayer(3,0,1,Color.BLACK);city(canvas,paint,scope,-46.63,-23.55,"São Paulo");if(scope!=InfraredPlan.BRAZIL){city(canvas,paint,scope,-43.20,-22.90,"Rio de Janeiro");city(canvas,paint,scope,-43.94,-19.92,"Belo Horizonte");}
    if(fresh){synchronized(cache){if(!closed){cache.put(key,bytes);cacheBytes+=bytes.length;while(cache.size()>6||cacheBytes>4194304){String oldest=cache.keySet().iterator().next();cacheBytes-=cache.remove(oldest).length;}}}}
    String legendUrl=provider==Source.REALEARTH?RealEarthPlan.LEGEND:InfraredPlan.LEGEND;
    if(!legends.containsKey(provider)&&!closed)try{byte[] fetched=reader.read(legendUrl,150000,deadline);if(!closed)legends.put(provider,fetched);}catch(Exception ignored){}
