@@ -1,0 +1,57 @@
+name: Refresh Android TV official channel on Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android-tv/distribution/stable.json'
+      - '.github/workflows/android-tv-pages-refresh.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+jobs:
+  refresh:
+    if: github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Request GitHub Pages rebuild and verify the exact TV endpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_code="$(python -c "import json; print(json.load(open('android-tv/distribution/stable.json'))['release']['versionCode'])")"
+          expected_version="$(python -c "import json; print(json.load(open('android-tv/distribution/stable.json'))['release']['versionName'])")"
+          expected_sha="$(python -c "import json; print(json.load(open('android-tv/distribution/stable.json'))['release']['sha256'])")"
+          gh api --method POST repos/helbermoura2/Monitor-Global/pages/builds --silent
+          for attempt in $(seq 1 36); do
+            if curl --fail --silent --show-error \
+              -H 'Accept: application/json' \
+              -H 'Cache-Control: no-cache, no-store, max-age=0' \
+              -H 'Pragma: no-cache' \
+              'https://monitorglobal.top/android-tv/distribution/stable.json' \
+              -o "$RUNNER_TEMP/tv-stable-live.json"; then
+              if python - "$RUNNER_TEMP/tv-stable-live.json" "$expected_code" "$expected_version" "$expected_sha" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1]))
+          release=data.get('release',{})
+          ok=(release.get('enabled') is True
+              and str(release.get('versionCode'))==sys.argv[2]
+              and release.get('versionName')==sys.argv[3]
+              and release.get('sha256')==sys.argv[4])
+          if ok:
+              print('Canal oficial da TV atualizado e verificado:', release['versionName'])
+              raise SystemExit(0)
+          print('Canal ainda divergente:', release.get('versionName'), release.get('versionCode'))
+          raise SystemExit(1)
+          PY
+              then
+                exit 0
+              fi
+            fi
+            echo "Aguardando publicação do manifesto no domínio oficial (tentativa $attempt/36)…"
+            sleep 10
+          done
+          echo "::error::O domínio consultado pelo APK da TV não publicou o manifesto esperado. O APK não deve ser considerado atualizável pelo app até corrigir a hospedagem/cache."
+          exit 1
