@@ -40,7 +40,7 @@ public class WeatherPredictionTest {
   String file=System.getenv("ARGOS_FORECAST_FIXTURE");
   assertNotNull("Live forecast fixture required",file);
   long fetched=Long.parseLong(System.getenv("ARGOS_FORECAST_TIME"));
-  RegionalForecast.Data f=RegionalForecast.parse(Files.readString(Path.of(file)),fetched);
+  RegionalForecast.Data f=RegionalForecast.parse(new String(Files.readAllBytes(Paths.get(file)),java.nio.charset.StandardCharsets.UTF_8),fetched);
   assertEquals(9,f.points.size());assertTrue(f.attribution().contains("rodada não informada"));
   for(RegionalForecast.Point p:f.points)for(int h=1;h<=6;h++){
    assertTrue("Actual forecast sample missing at hour "+h,Double.isFinite(p.value(f.end(h))));
