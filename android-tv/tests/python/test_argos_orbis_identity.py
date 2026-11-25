@@ -27,7 +27,7 @@ class ArgosOrbisIdentity(unittest.TestCase):
   self.assertIn("footerOpacity(long elapsed,boolean animated)",oled)
   radar=(CORE/"BroadcastVisuals.java").read_text(encoding="utf-8")
   self.assertIn("OledNewsChrome.brand(c,paint,elapsed,animated)",radar)
-  self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open,false)",(SRC/"OledNewsChrome.java").read_text(encoding="utf-8"))
+  self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open,false)",(CORE/"OledNewsChrome.java").read_text(encoding="utf-8"))
   self.assertIn("BRAND_RIGHT_INSET=35f",radar)
   self.assertIn("c.rotate(sweep,64,64)",(CORE/"RadarLogoView.java").read_text(encoding="utf-8"))
  def test_launcher_brand_preserves_official_eye_and_release_compatibility(self):
@@ -40,5 +40,5 @@ class ArgosOrbisIdentity(unittest.TestCase):
   self.assertGreaterEqual(int(version.group(1)),10106)
   self.assertIn("applicationId 'top.monitorglobal.tv.preview'",gradle)
   self.assertIn("app_name', 'Argos Orbis TV'",gradle)
-  self.assertIn("ΠΑΝΟΠΤΗΣ",(SRC/"RadarLogoView.java").read_text(encoding="utf-8"))
+  self.assertIn("ΠΑΝΟΠΤΗΣ",(CORE/"RadarLogoView.java").read_text(encoding="utf-8"))
 if __name__=="__main__":unittest.main()
