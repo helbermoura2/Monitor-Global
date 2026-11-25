@@ -67,6 +67,17 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#rain24-impact').innerText(),/drenagem/);
  await page.locator('#map-city-close').click();
  assert.equal(await cityCard.isVisible(),false);
+ // Exercise the MapLibre contextmenu handler deterministically. Native Android
+ // long-press delivery is device-specific and is verified separately on hardware.
+ await page.evaluate(()=>{
+  const map=window.__map,point=map.project(map.getCenter());
+  map.fire('contextmenu',{point,lngLat:map.unproject(point)});
+ });
+ const pointSelection=page.locator('#map-selection-content');
+ await pointSelection.getByText('Coordenadas do ponto').waitFor();
+ assert.match(await pointSelection.innerText(),/-?\d+\.\d{6},\s*-?\d+\.\d{6}/);
+ await page.locator('#map-selection-close').click();
+ assert.equal(await page.locator('#map-selection').isVisible(),false);
  await page.locator('.brazil-toolbar [data-layer=wind]').click();
  assert.equal(await page.locator('.brazil-toolbar [data-layer=wind]').getAttribute('aria-pressed'),'true');
  await page.locator('#layers-toggle').click();
@@ -135,23 +146,27 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  const selection=page.locator('#map-selection');
  await selection.filter({hasText:'Célula em atenção'}).waitFor();
  assert.match(await selection.innerText(),/45 dBZ/);
- assert.equal(await selection.evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(16, 37, 49)');
+ assert.equal(await selection.evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(16, 16, 16)');
  assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
  await page.screenshot({path:path.join(output,'severe-selection-fixture.png'),fullPage:true});
- await page.evaluate(()=>window.__map.jumpTo({center:[-53,-15],zoom:2.65}));
+ await page.locator('#map-selection-close').click();
+ assert.equal(await selection.isVisible(),false);
+ await page.evaluate(()=>window.__map.jumpTo({center:[-47.0608,-22.9056],zoom:5}));
  await page.waitForFunction(()=>{
-  const map=window.__map,point=map.project([-47.9,-15.8]);
+  const map=window.__map,point=map.project([-47.0608,-22.9056]);
   return map.getLayer('argos-uf-hit')&&map.queryRenderedFeatures(point,{layers:['argos-uf-hit']}).length;
  });
  await page.locator('#brazil-map').scrollIntoViewIfNeeded();
- const region=await page.evaluate(()=>window.__map.project([-47.9,-15.8]));
+ const region=await page.evaluate(()=>window.__map.project([-47.0608,-22.9056]));
  const regionBounds=await page.locator('#brazil-map').boundingBox();
  await page.mouse.click(regionBounds.x+region.x,regionBounds.y+region.y);
- await selection.filter({hasText:'IBGE'}).or(selection.filter({hasText:'Unidade da Federação'})).first().waitFor();
- assert.equal(await selection.getByText('Célula em atenção', {exact:false}).count(),0);
- assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
- await page.locator('#map-selection-close').click();
+ await page.locator('#map-city-title').filter({hasText:'Campinas'}).waitFor();
+ assert.equal(await page.locator('#map-city-card').isVisible(),true);
  assert.equal(await selection.isVisible(),false);
+ assert.equal(await page.locator('#brazil-map .maplibregl-popup').count(),0);
+ assert.equal(await page.locator('.argos-tap-marker').count(),1);
+ await page.locator('#map-city-close').click();
+ assert.equal(await page.locator('#map-city-card').isVisible(),false);
  await page.screenshot({path:path.join(output,'severe-weather-fixture.png'),fullPage:true});
  assert.equal(await page.locator('#brazil-map #severe-map-readout').count(),0);
  assert.equal(await page.locator('.brazil-map-panel .maplibregl-ctrl-attrib').count(),0);

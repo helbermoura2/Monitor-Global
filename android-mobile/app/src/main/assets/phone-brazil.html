@@ -35,7 +35,7 @@
     <div id="city-results" role="listbox" hidden></div>
    </div>
    <button type="button" id="severe-toggle" aria-pressed="false">Tempo severo</button>
-   <button type="button" id="recenter" aria-label="Enquadrar todo o Brasil" title="Enquadrar Brasil"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></button>
+   <button type="button" id="locate" aria-label="Minha localização" title="Minha localização">◎</button><button type="button" id="recenter" aria-label="Enquadrar todo o Brasil" title="Enquadrar Brasil"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></button>
   </div>
 
  </section>
@@ -44,8 +44,8 @@
 
  </section>
  <section id="map-city-card" aria-labelledby="map-city-title" hidden>
-  <div class="map-city-head"><strong id="map-city-title" tabindex="-1"></strong><button id="map-city-close" type="button" aria-label="Fechar resumo do município">×</button></div>
-  <p id="map-city-total" role="status"></p>
+  <button id="map-city-grip" type="button" aria-label="Expandir ou recolher previsão" aria-controls="map-city-more"></button><div class="map-city-head"><strong id="map-city-title" tabindex="-1"></strong><button id="map-city-close" type="button" aria-label="Fechar resumo do município">×</button></div>
+  <div id="map-city-facts" class="map-city-facts"></div><p id="map-city-total" role="status"></p>
   <p id="map-city-peak"></p>
   <details id="map-city-more" hidden>
    <summary>Gráfico e possíveis efeitos</summary>
@@ -70,8 +70,8 @@
  <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
  </div>
  <div class="map-actions">
-  <button id="map-expand" type="button" aria-pressed="false">Só mapa</button>
-  <button id="map-details" type="button" aria-controls="map-details-panel">Ver previsão e fontes</button>
+  <button id="map-expand" type="button" aria-pressed="false">⛶ Só mapa</button>
+  <button id="map-details" type="button" aria-controls="map-details-panel">ⓘ Previsão e fontes</button>
  </div>
  </div>
  <section id="map-details-panel" aria-label="Detalhes da previsão e das observações">

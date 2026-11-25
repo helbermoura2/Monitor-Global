@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const folder=new URL('../../android-mobile/app/src/main/assets/',import.meta.url);
@@ -15,7 +16,7 @@ test('all 27 states ship offline from an attributed Brazilian geodata snapshot',
  assert.match(boundaries,/data\/br-states\.geojson/);
  assert.match(boundaries,/Dados simplificados do IBGE|malhas territoriais simplificadas|Malhas territoriais simplificadas/);
 });
-test('SP municipality boundaries are offline and fetched only at high zoom',()=>{
+test('SP municipality boundaries are offline and visual overlay loads at high zoom',()=>{
  assert.equal(sp.features.length,645);
  assert.ok(sp.features.every(f=>f.properties.uf==='SP'&&/^\d{7}$/.test(f.properties.cd_geocmu)));
  assert.ok(sp.features.some(f=>f.properties.nome==='São Paulo'));
@@ -52,5 +53,28 @@ test('three maps share boundary overlays and explicit source modes',()=>{
  assert.match(map,/ArgosBoundaries\.create/);
  assert.match(brazil,/ArgosBoundaries\.create/);
  assert.match(rain,/ArgosBoundaries\.create/);
- assert.match(brazil,/selectCity\(local\)/);
+ assert.match(brazil,/selectCity\(local,false\)/);
+ assert.match(brazil,/function selectCity\(p,recenter=true\)/);
+ assert.match(brazil,/if\(map&&recenter\)/);
+});
+
+test('municipal tap uses polygon containment including holes and multipolygons',()=>{
+ const window={};runInNewContext(boundaries,{window});
+ const contains=window.ArgosBoundaries.containsPoint;
+ const square=[[0,0],[10,0],[10,10],[0,10],[0,0]];
+ const hole=[[3,3],[7,3],[7,7],[3,7],[3,3]];
+ const geometry={type:'Polygon',coordinates:[square,hole]};
+ assert.equal(contains(geometry,1,1),true);
+ assert.equal(contains(geometry,5,5),false);
+ assert.equal(contains(geometry,12,5),false);
+ assert.equal(contains({type:'MultiPolygon',coordinates:[[square],[hole]]},5,5),true);
+ const campinas=sp.features.find(f=>f.properties.nome==='Campinas');
+ assert.equal(contains(campinas.geometry,-47.0608,-22.9056),true);
+});
+test('weather selection independent of visible boundary mode preserves severe marker priority',()=>{
+ assert.match(brazil,/selectAnywhere:true/);
+ assert.match(brazil,/shouldOpen:point=>!severe\?\.hasMarkerAt\(point\)/);
+ assert.match(boundaries,/if\(selectAnywhere\)/);
+ assert.match(boundaries,/tapRequest\?\.abort\(\)/);
+ assert.match(brazil,/boundaries\?\.setActive\(false\)/);
 });

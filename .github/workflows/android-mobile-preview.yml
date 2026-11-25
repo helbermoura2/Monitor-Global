@@ -1,6 +1,12 @@
 name: Android mobile preview
 on:
   workflow_dispatch:
+    inputs:
+      publish_stable:
+        description: 'Publicar a versão estável após validar os artefatos'
+        required: true
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'android-mobile/**'
@@ -67,7 +73,7 @@ jobs:
           node --test tests/unit/phone-map-boundaries.test.mjs
       - name: Build and inspect phone APKs
         working-directory: android-mobile
-        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleStable :app:lintStable :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
       - name: Verify native phone navigation and lifecycle
         working-directory: android-mobile
         run: ./gradlew --no-daemon -PphoneUiChecks :app:testDebugUnitTest
@@ -83,12 +89,32 @@ jobs:
               result=subprocess.check_output([str(tool),'verify','--print-certs',str(p)],text=True)
               return re.search(r'Signer #1 certificate SHA-256 digest: (\w+)',result).group(1)
           old,new=signer(previous),signer('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
-          print(json.dumps({'previousSigner':old,'newSigner':new,'sameSigner':old==new}))
-          if old != new:
-              raise SystemExit('Preview signing identity changed unexpectedly; refusing publication.')
+          stable=signer('android-mobile/app/build/outputs/apk/stable/app-stable.apk')
+          print(json.dumps({'previousPreviewSigner':old,'newPreviewSigner':new,'stableSigner':stable,'allSame':old==new==stable}))
+          if old != new or old != stable:
+              raise SystemExit('Preview/stable signing identity changed unexpectedly; refusing publication.')
           PY
       - name: Check packaged phone identity and permissions
-        run: python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
+        run: |
+          python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
+          python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/stable/app-stable.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-mobile/app/build/outputs/apk/stable/app-stable.apk | grep -F "versionName='0.1.66'"
+          python - <<'PY'
+          import os,re,subprocess,pathlib
+          aapt=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/aapt'
+          def package(path):
+              raw=subprocess.check_output([str(aapt),'dump','badging',path],text=True)
+              match=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",raw)
+              if not match: raise SystemExit('Cannot inspect APK identity')
+              return match.group(1),int(match.group(2)),match.group(3)
+          debug=package('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
+          stable=package('android-mobile/app/build/outputs/apk/stable/app-stable.apk')
+          if debug[0] != stable[0] or stable[1] <= debug[1]:
+              raise SystemExit(f'Stable APK must keep the same package and have a higher versionCode: debug={debug}, stable={stable}')
+          if debug[2].endswith('-teste') is False or stable[2].endswith('-teste'):
+              raise SystemExit(f'Preview/stable version labels are inconsistent: debug={debug[2]}, stable={stable[2]}')
+          print(f'Update eligibility confirmed: preview {debug[1]} -> stable {stable[1]}')
+          PY
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -116,6 +142,11 @@ jobs:
         with:
           name: monitor-global-mobile-preview
           path: android-mobile/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-mobile-stable
+          path: android-mobile/app/build/outputs/apk/stable/app-stable.apk
           retention-days: 14
       - name: Export native phone screens
         uses: actions/upload-artifact@v4
@@ -213,3 +244,54 @@ jobs:
 
 
 
+
+  publish-stable:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_stable == true && github.repository == 'helbermoura2/Monitor-Global'
+    needs: [build, rain-service]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: monitor-global-mobile-stable
+          path: stable-apk
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Create verified stable update manifest
+        run: |
+          python - <<'PY'
+          import pathlib,hashlib,json,re,subprocess,os
+          apk=pathlib.Path('stable-apk/app-stable.apk')
+          target=pathlib.Path('stable-apk/monitor-global-mobile-stable.apk')
+          target.write_bytes(apk.read_bytes())
+          signer_tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
+          aapt_tool=signer_tool.with_name('aapt')
+          badging=subprocess.check_output([str(aapt_tool),'dump','badging',str(target)],text=True)
+          identity=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",badging)
+          if not identity or identity.group(1) != 'top.monitorglobal.mobile.dev': raise SystemExit('Stable APK package identity is invalid')
+          code=int(identity.group(2))
+          version=identity.group(3)
+          certs=subprocess.check_output([str(signer_tool),'verify','--print-certs',str(target)],text=True)
+          match=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F:]+)',certs)
+          if not match: raise SystemExit('Stable APK has no verifiable signer')
+          certificate=match.group(1).replace(':','').lower()
+          manifest={'schema':1,'repository':'helbermoura2/Monitor-Global','channel':'mobile-stable','packageName':'top.monitorglobal.mobile.dev','release':{'enabled':True,'versionCode':code,'versionName':version,'url':'https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-stable/monitor-global-mobile-stable.apk','sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'certificateSha256':certificate}}
+          pathlib.Path('stable-apk/mobile-update.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          notes='Argos Orbis para Android — canal estável. Atualização pelo próprio aplicativo, com validação de pacote, versão, SHA-256 e certificado. A instalação sempre depende da confirmação do Android.\n'
+          pathlib.Path('stable-notes.md').write_text(notes)
+          PY
+      - name: Publish stable release only after explicit manual dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view mobile-stable >/dev/null 2>&1; then
+            gh release edit mobile-stable --draft=false --prerelease=false --title 'Argos Orbis para Android · versão estável' --notes-file stable-notes.md
+          else
+            gh release create mobile-stable --target "$GITHUB_SHA" --title 'Argos Orbis para Android · versão estável' --notes-file stable-notes.md
+          fi
+          gh release upload mobile-stable stable-apk/monitor-global-mobile-stable.apk stable-apk/mobile-update.json --clobber

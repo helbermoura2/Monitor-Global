@@ -25,9 +25,24 @@ async function fetchLimited(url,limit,signal){
  if(raw.length>limit)throw Error('Malha excessivamente grande');
  return JSON.parse(raw);
 }
-function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,presentPlace=null}={}){
+function containsPoint(geometry,lng,lat){
+ const inside=ring=>{let hit=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+ const [x,y]=ring[i],[a,b]=ring[j];if((y>lat)!==(b>lat)&&lng<(a-x)*(lat-y)/(b-y)+x)hit=!hit;
+ }return hit;};
+ const polygons=geometry.type==='Polygon'?[geometry.coordinates]:geometry.coordinates;
+ return polygons.some(p=>p.length&&inside(p[0])&&!p.slice(1).some(inside));
+}
+function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,presentPlace=null,selectAnywhere=false}={}){
  if(!map||!host)return null;
  let stateData=null,current='states',request=null,seq=0,alive=true,active=true,ufLoaded='',cachedMunicipal=null,mousePopup=null,ufMarkers=[];
+ let tapSeq=0,tapRequest=null,tapCache=null,tapMarker=null,selectedGeometry=EMPTY;
+ const selectionId='argos-selected-municipality';
+ function installSelection(){
+ if(!selectAnywhere||!map.isStyleLoaded())return;
+ if(!map.getSource(selectionId))map.addSource(selectionId,{type:'geojson',data:selectedGeometry});
+ layer(selectionId+'-fill','fill',selectionId,{'fill-color':'#d5aa75','fill-opacity':0.14});
+ layer(selectionId+'-line','line',selectionId,{'line-color':'#f1c992','line-width':2});
+ }
  const panel=document.createElement('details');panel.className='admin-boundary-controls';
  panel.setAttribute('aria-label','Limites administrativos');panel.innerHTML='<summary>Limites · Estados</summary><label for="admin-boundary-mode">Limites do mapa</label><select id="admin-boundary-mode" aria-label="Exibir divisões administrativas"><option value="off">Desligados</option><option value="states">Estados</option><option value="cities">Municípios (zoom alto)</option></select><small id="admin-boundary-status">Dados simplificados do IBGE</small>';
  const select=panel.querySelector('select'),status=panel.querySelector('small');host.appendChild(panel);
@@ -49,7 +64,7 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
   const overlay=['br-satellite-layer','br-historical-radar-layer'];
   let max=-1;for(const id of overlay){const i=layers.findIndex(x=>x.id===id);if(i>max)max=i;}
   if(max<0)return;
-  for(const id of [STATE_FILL,STATE_LINES,CITY_FILL,CITY_LINES]){
+  for(const id of [STATE_FILL,STATE_LINES,CITY_FILL,CITY_LINES,selectionId+'-fill',selectionId+'-line']){
    const all=map.getStyle().layers||[],a=all.findIndex(x=>x.id===id),b=Math.max(...overlay.map(o=>all.findIndex(x=>x.id===o)));
    if(a>=0&&a<b){try{map.moveLayer(id);}catch{}} 
   }
@@ -64,7 +79,7 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
   layer(CITY_LINES,'line',CITY_ID,{'line-color':'#ffe7a6','line-opacity':0.74,'line-width':0.9,'line-dasharray':[3,2]},{},MUNICIPAL_ZOOM);
   // The raster-only style has no external glyph endpoint. Use DOM UF labels
   // instead of symbol layers, preserving offline operation without a paid font CDN.
-  update();
+  installSelection();update();
  }
  function underCenter(){
   if(!stateData)return null;
@@ -136,7 +151,33 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
  function featuresAt(point,id){
   try{return map.getLayer(id)?map.queryRenderedFeatures(point,{layers:[id]}):[];}catch{return [];}
  }
+ async function resolveTap(ev){
+  const ticket=++tapSeq;tapRequest?.abort();tapRequest=new AbortController();
+  const {lng,lat}=ev.lngLat;
+  const state=stateData?.features.find(f=>containsPoint(f.geometry,lng,lat));
+  const uf=state?.properties?.sigla;
+  if(!UFS.has(uf)){warn('Município não identificado neste ponto');return;}
+  try{
+   const data=ufLoaded===uf&&cachedMunicipal?cachedMunicipal:tapCache?.uf===uf?tapCache.data:
+    await fetchLimited(uf==='SP'?'data/br-municipalities-sp.geojson':'https://cdn.jsdelivr.net/gh/henriquemalvar/br-geojson@'+PINNED+'/dist/municipios/'+uf+'.geojson',900000,tapRequest.signal);
+   if(!alive||!active||ticket!==tapSeq)return;
+   if(!isGeojson(data,900)||!data.features.length||data.features.some(f=>f.properties.uf!==uf))throw Error('Malha inválida');
+   tapCache={uf,data};
+   const city=data.features.find(f=>containsPoint(f.geometry,lng,lat));
+   if(!city){warn('Município não identificado na malha simplificada');return;}
+   selectedGeometry={type:'FeatureCollection',features:[city]};
+   installSelection();map.getSource(selectionId)?.setData(selectedGeometry);
+   tapMarker?.remove();const node=text('span','');node.className='argos-tap-marker';node.setAttribute('aria-hidden','true');
+   tapMarker=new maplibregl.Marker({element:node,anchor:'center'}).setLngLat([lng,lat]).addTo(map);
+   const root=document.createElement('section');root.className='argos-area-popup';
+   root.appendChild(text('strong',city.properties.nome+' · '+uf));
+   const found=onPlace?.({uf,title:city.properties.nome,municipalityId:String(city.properties.cd_geocmu),lng,lat,element:root});
+   if(typeof found==='string'&&found)root.appendChild(text('small',found));
+   presentPlace?.(root);warn('Município selecionado · '+uf+' · IBGE');
+  }catch{if(alive&&ticket===tapSeq&&!tapRequest.signal.aborted)warn('Malha municipal indisponível nesta consulta');}
+ }
  function handleClick(ev){
+  if(selectAnywhere){if(alive&&active&&shouldOpen(ev.point))void resolveTap(ev);return;}
   if(!alive||current==='off'||!stateData||!shouldOpen(ev.point))return;
   const selectedState=featuresAt(ev.point,STATE_FILL)[0];
   const selectedCity=current==='cities'?featuresAt(ev.point,CITY_FILL)[0]:null;
@@ -177,8 +218,10 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
  map.on('zoomend',move);map.on('moveend',move);map.on('click',handleClick);map.on('style.load',style);map.on('styledata',overlayMoved);
  if(map.isStyleLoaded())install();
  fetchStates();
- return Object.freeze({setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){seq++;request?.abort();if(!cachedMunicipal)ufLoaded='';}else update();},destroy(){
-  alive=false;seq++;request?.abort();mousePopup?.remove();
+ return Object.freeze({selectPoint(lng,lat){if(selectAnywhere&&alive&&active&&Number.isFinite(lng)&&Number.isFinite(lat))void resolveTap({lngLat:{lng,lat}});},setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){tapSeq++;tapRequest?.abort();seq++;request?.abort();if(!cachedMunicipal)ufLoaded='';}else update();},destroy(){
+  alive=false;tapSeq++;tapRequest?.abort();tapMarker?.remove();seq++;request?.abort();mousePopup?.remove();
+  for(const id of [selectionId+'-line',selectionId+'-fill'])if(map.getLayer(id))map.removeLayer(id);
+  if(map.getSource(selectionId))map.removeSource(selectionId);
   map.off('zoomend',move);map.off('moveend',move);map.off('click',handleClick);map.off('style.load',style);map.off('styledata',overlayMoved);
   for(const marker of ufMarkers)marker.remove();ufMarkers=[];
   for(const id of [CITY_LINES,CITY_FILL,STATE_LINES,STATE_FILL])if(map.getLayer(id))map.removeLayer(id);
@@ -186,5 +229,5 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
   panel.remove();
  }});
 }
-root.ArgosBoundaries={create,MUNICIPAL_ZOOM};
+root.ArgosBoundaries={create,MUNICIPAL_ZOOM,containsPoint};
 })(window);

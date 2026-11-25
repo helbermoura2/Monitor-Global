@@ -12,7 +12,7 @@ import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.concurrent.*;
 
-/** Opt-in preview updater. Hash, version, package and signer checked before installer. */
+/** Stable-channel updater. Hash, version, package and signer checked before installer. */
 final class PhoneUpdater {
  private final Activity activity;
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -32,15 +32,15 @@ final class PhoneUpdater {
  }
  void check(){
   if(closed||busy)return;
-  if(!PhoneUpdateChannel.PACKAGE.equals(activity.getPackageName())){show("Canal de testes","Esta versão usa outro pacote Android. A atualização interna do canal de testes não é compatível com ela.",null,false);return;}
+  if(!PhoneUpdateChannel.PACKAGE.equals(activity.getPackageName())){show("Canal incompatível","Esta instalação não corresponde ao pacote do canal estável. Nenhuma alteração foi feita.",null,false);return;}
   busy=true;show("Verificando atualização","Conferindo a versão publicada no GitHub…",null,false);
   executor.execute(()->{try{
    PhoneUpdateChannel.Release r=PhoneUpdateChannel.read();
-   ui(()->{busy=false;if(r==null){show("Canal de testes","Ainda não há APK disponível neste canal.",null,false);return;}
-    if(r.code<=BuildConfig.VERSION_CODE){show("Versão atualizada","Instalada: "+BuildConfig.VERSION_NAME+"\nCanal de testes: "+r.name+"\n\nNão há versão mais recente para instalar.",null,false);return;}
-    show("Nova versão "+r.name,"Há uma atualização de teste disponível. O aplicativo vai conferir o arquivo e a assinatura antes de abrir o instalador do Android.",r,false);
+   ui(()->{busy=false;if(r==null){show("Versão estável indisponível","Ainda não há uma atualização publicada no canal estável.",null,false);return;}
+    if(r.code<=BuildConfig.VERSION_CODE){show("Versão atualizada","Instalada: "+BuildConfig.VERSION_NAME+"\nVersão estável: "+r.name+"\n\nNão há versão mais recente para instalar.",null,false);return;}
+    show("Nova versão "+r.name,"Há uma atualização estável disponível. O aplicativo vai conferir o arquivo e a assinatura antes de abrir o instalador do Android.",r,false);
    });
-  }catch(Exception error){ui(()->{busy=false;show("Não foi possível verificar","O canal pode ainda não ter o arquivo de atualização ou a internet pode estar indisponível. Nenhum APK foi instalado.",null,false);});}});
+  }catch(Exception error){String message=PhoneUpdateChannel.verificationFailure(error);ui(()->{busy=false;show("Não foi possível verificar",message,null,false);});}});
  }
  private static String hex(byte[] bytes){StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}
  private String cert(PackageInfo info)throws Exception{

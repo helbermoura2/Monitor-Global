@@ -4,19 +4,25 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 
-/** Fixed public preview release channel, no Worker, no executable network responses. */
+/** Fixed public stable release channel, no Worker, no executable network responses. */
 final class PhoneUpdateChannel {
  static final String REPOSITORY="helbermoura2/Monitor-Global";
- static final String CHANNEL="mobile-preview";
+ static final String CHANNEL="mobile-stable";
  static final String PACKAGE="top.monitorglobal.mobile.dev";
- static final String MANIFEST="https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/mobile-update.json";
- static final String APK="https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/monitor-global-mobile-preview.apk";
+ static final String MANIFEST="https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-stable/mobile-update.json";
+ static final String APK="https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-stable/monitor-global-mobile-stable.apk";
  static final long MAX_APK=40L*1024*1024;
  static final class Release {
   final long code;final String name,url,sha,certificate;
   Release(long c,String n,String u,String s,String cert){code=c;name=n;url=u;sha=s;certificate=cert;}
  }
  static boolean digest(String value){return value!=null&&value.matches("[0-9a-f]{64}");}
+ static String verificationFailure(Exception error){
+  String detail=error==null?"":String.valueOf(error.getMessage());
+  if(detail.contains("HTTP 404"))return "A versão estável ainda não foi publicada no GitHub. Nenhum APK foi instalado; tente novamente quando a publicação oficial estiver disponível.";
+  if(detail.contains("HTTP 429")||detail.contains("HTTP 403"))return "O GitHub limitou temporariamente o acesso ao canal de atualização. Aguarde um pouco e tente novamente. Nenhum APK foi instalado.";
+  return "Não foi possível acessar o canal estável. Verifique a conexão com a internet e tente novamente. Nenhum APK foi instalado.";
+ }
  static Release parse(String raw,String installedPackage)throws Exception {
   if(raw==null||raw.length()>16384)throw new IOException("Manifesto excedeu o limite");
   JSONObject root=new JSONObject(raw);
@@ -25,7 +31,7 @@ final class PhoneUpdateChannel {
   if(!r.optBoolean("enabled",false))return null;
   long code=r.getLong("versionCode");
   String name=r.getString("versionName"),url=r.getString("url"),sha=r.getString("sha256"),certificate=r.getString("certificateSha256");
-  if(code<1||code>1000000000L||!name.matches("[0-9]+\\.[0-9]+\\.[0-9]+-teste")||!APK.equals(url)||!digest(sha)||!digest(certificate))throw new SecurityException("Metadados inválidos");
+  if(code<1||code>1000000000L||!name.matches("[0-9]+\\.[0-9]+\\.[0-9]+")||!APK.equals(url)||!digest(sha)||!digest(certificate))throw new SecurityException("Metadados inválidos");
   return new Release(code,name,url,sha,certificate);
  }
  static HttpURLConnection open(String initial)throws Exception{
@@ -37,7 +43,7 @@ final class PhoneUpdateChannel {
    String host=uri.getHost();
    if(i==0){if(!"github.com".equals(host)||uri.getRawQuery()!=null)throw new SecurityException("Origem inválida");}
    else if(!("release-assets.githubusercontent.com".equals(host)||"objects.githubusercontent.com".equals(host)))throw new SecurityException("Destino fora do canal de releases");
-   HttpURLConnection conn=(HttpURLConnection)url.openConnection();conn.setInstanceFollowRedirects(false);conn.setConnectTimeout(8000);conn.setReadTimeout(20000);conn.setRequestProperty("User-Agent","MonitorGlobal-Mobile-Preview-Updater");conn.setRequestProperty("Cache-Control","no-cache");
+   HttpURLConnection conn=(HttpURLConnection)url.openConnection();conn.setInstanceFollowRedirects(false);conn.setConnectTimeout(8000);conn.setReadTimeout(20000);conn.setRequestProperty("User-Agent","ArgosOrbis-Mobile-Stable-Updater");conn.setRequestProperty("Cache-Control","no-cache");
    int status=conn.getResponseCode();
    if(status==301||status==302||status==303||status==307||status==308){
     String location=conn.getHeaderField("Location");conn.disconnect();if(location==null||location.length()>4096)throw new IOException("Redirecionamento inválido");
