@@ -24,6 +24,7 @@ final class PreviewRain extends View {
  private static final float[] GLASS_SPEED={.014f,.024f,.039f,.058f};
 
  private final int level,glassCount,airCount;
+ private final float windKmh;
  private final float[] x,y,depth,variation;
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  private final RectF box=new RectF();
@@ -32,10 +33,12 @@ final class PreviewRain extends View {
  private long born;
  private boolean running;
 
- PreviewRain(Context context,int selectedStyle,int selectedLevel){
+ PreviewRain(Context context,int selectedStyle,int selectedLevel){this(context,selectedStyle,selectedLevel,0f);}
+ PreviewRain(Context context,int selectedStyle,int selectedLevel,float windKmh){
   super(context);
   int style=WeatherPreviewOptions.valid(selectedStyle,3,2);
   level=WeatherPreviewOptions.valid(selectedLevel,4,1);
+  this.windKmh=Float.isFinite(windKmh)?Math.max(0f,Math.min(80f,windKmh)):0f;
   glassCount=style==1?0:GLASS_COUNTS[level];
   airCount=style==0?0:AIR_COUNTS[level];
   int count=airCount+glassCount;
@@ -107,15 +110,17 @@ final class PreviewRain extends View {
  }
 
  private void drawAir(Canvas canvas,float seconds,float fade,float width,float height,float scale){
+  float drift=WIND[level]+windKmh*.18f;
+  float slant=WIND[level]*.28f+windKmh*.08f;
   for(int i=0;i<airCount;i++){
    float near=depth[i];
    float length=(13+near*24+variation[i]*9)*(1+level*.17f)*scale;
    float size=(1.7f+near*2.8f)*scale;
    float yy=((y[i]+seconds*FALL[level]*(.59f+near*.62f+variation[i]*.18f))%1.18f-.1f)*height;
-   float xx=(x[i]*width+seconds*WIND[level]*(.6f+near)*scale)%(width+32)-12;
+   float xx=(x[i]*width+seconds*drift*(.6f+near)*scale)%(width+32)-12;
    paint.setAlpha(Math.round(fade*(95+near*115)));
    canvas.save();
-   canvas.rotate(-WIND[level]*.28f,xx,yy);
+   canvas.rotate(-slant,xx,yy);
    box.set(xx-size,yy-length,xx+size,yy);
    canvas.drawBitmap(air,null,box,paint);
    canvas.restore();
@@ -126,7 +131,7 @@ final class PreviewRain extends View {
   for(int i=airCount;i<x.length;i++){
    float phase=(seconds*(.19f+variation[i]*.17f)+depth[i])%1;
    float slide=TvEffectsController.ease(TvEffectsController.phase((long)((phase-.38f)*1000),620));
-   float xx=(.025f+x[i]*.95f)*width+(variation[i]-.5f)*9*slide*scale;
+   float xx=(.025f+x[i]*.95f)*width+(variation[i]-.5f)*(9+windKmh*.12f)*slide*scale;
    float yy=((y[i]+seconds*GLASS_SPEED[level]*(.28f+variation[i])+.1f*slide)%1.08f-.04f)*height;
    float radius=(2.7f+depth[i]*5.3f+level*.8f)*scale;
    boolean merging=level>=2&&i%5==0&&phase<.38f;
